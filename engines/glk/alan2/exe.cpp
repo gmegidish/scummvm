@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -138,10 +137,10 @@ void score(Aword sc) {
 
 	if (sc == 0) {
 		prmsg(M_SCORE1);
-		sprintf(buf, "%d", cur.score);
+		Common::sprintf_s(buf, "%d", cur.score);
 		output(buf);
 		prmsg(M_SCORE2);
-		sprintf(buf, "%ld.", (unsigned long) header->maxscore);
+		Common::sprintf_s(buf, "%ld.", (unsigned long) header->maxscore);
 		output(buf);
 	} else {
 		cur.score += scores[sc - 1];
@@ -160,7 +159,7 @@ Boolean confirm(MsgKind msgno) {
 	   it could be affirmative, but for now any input is NOT! */
 	prmsg(msgno);
 
-	if (!readline(buf)) return TRUE;
+	if (!readline(buf, sizeof(buf))) return TRUE;
 	col = 1;
 
 	return (buf[0] == '\0');
@@ -174,7 +173,7 @@ void quit(CONTEXT) {
 		col = 1;
 		statusline();
 		prmsg(M_QUITACTION);
-		if (!readline(buf)) {
+		if (!readline(buf, sizeof(buf))) {
 			CALL1(terminate, 0)
 		}
 
@@ -305,7 +304,7 @@ void make(Aword id, Aword atr, Aword val) {
 	else if (isAct(id))
 		makact(id, atr, val);
 	else {
-		sprintf(str, "Can't MAKE item (%ld).", (unsigned long) id);
+		Common::sprintf_s(str, "Can't MAKE item (%ld).", (unsigned long) id);
 		syserr(str);
 	}
 }
@@ -340,7 +339,7 @@ void set(Aword id, Aword atr, Aword val) {
 	else if (isAct(id))
 		setact(id, atr, val);
 	else {
-		sprintf(str, "Can't SET item (%ld).", (unsigned long) id);
+		Common::sprintf_s(str, "Can't SET item (%ld).", (unsigned long) id);
 		syserr(str);
 	}
 }
@@ -399,7 +398,7 @@ void incr(Aword id, Aword atr, Aword step) {
 	else if (isAct(id))
 		incract(id, atr, step);
 	else {
-		sprintf(str, "Can't INCR item (%ld).", (unsigned long) id);
+		Common::sprintf_s(str, "Can't INCR item (%ld).", (unsigned long) id);
 		syserr(str);
 	}
 }
@@ -416,7 +415,7 @@ void decr(Aword id, Aword atr, Aword step) {
 	else if (isAct(id))
 		incract(id, atr, static_cast<uint>(-(int)step));
 	else {
-		sprintf(str, "Can't DECR item (%ld).", (unsigned long) id);
+		Common::sprintf_s(str, "Can't DECR item (%ld).", (unsigned long) id);
 		syserr(str);
 	}
 }
@@ -446,7 +445,7 @@ static Aptr litatr(Aword lit, Aword atr) {
 	if (atr == 1)
 		return litValues[lit - LITMIN].value;
 	else {
-		sprintf(str, "Unknown attribute for literal (%ld).", (unsigned long) atr);
+		Common::sprintf_s(str, "Unknown attribute for literal (%ld).", (unsigned long) atr);
 		syserr(str);
 	}
 	return (Aptr)EOD;
@@ -464,7 +463,7 @@ Aptr attribute(Aword id, Aword atr) {
 	else if (isLit(id))
 		return litatr(id, atr);
 	else {
-		sprintf(str, "Can't ATTRIBUTE item (%ld).", (unsigned long) id);
+		Common::sprintf_s(str, "Can't ATTRIBUTE item (%ld).", (unsigned long) id);
 		syserr(str);
 	}
 	return (Aptr)EOD;
@@ -503,7 +502,7 @@ Aword where(Aword id) {
 	else if (isAct(id))
 		return actloc(id);
 	else {
-		sprintf(str, "Can't WHERE item (%ld).", (unsigned long) id);
+		Common::sprintf_s(str, "Can't WHERE item (%ld).", (unsigned long) id);
 		syserr(str);
 	}
 	return (Aptr)EOD;
@@ -620,7 +619,7 @@ void locate(Aword id, Aword whr) {
 	else if (isAct(id))
 		locact(id, whr);
 	else {
-		sprintf(str, "Can't LOCATE item (%ld).", (unsigned long) id);
+		Common::sprintf_s(str, "Can't LOCATE item (%ld).", (unsigned long) id);
 		syserr(str);
 	}
 }
@@ -655,7 +654,7 @@ Abool isHere(Aword id) {
 	else if (isAct(id))
 		return acthere(id);
 	else {
-		sprintf(str, "Can't HERE item (%ld).", (unsigned long) id);
+		Common::sprintf_s(str, "Can't HERE item (%ld).", (unsigned long) id);
 		syserr(str);
 	}
 	return (Abool)EOD;
@@ -689,7 +688,7 @@ Abool isNear(Aword id) {
 	else if (isAct(id))
 		return actnear(id);
 	else {
-		sprintf(str, "Can't NEAR item (%ld).", (unsigned long) id);
+		Common::sprintf_s(str, "Can't NEAR item (%ld).", (unsigned long) id);
 		syserr(str);
 	}
 	return (Abool)EOD;
@@ -734,7 +733,7 @@ void sayint(Aword val) {
 	char buf[25];
 
 	if (isHere(HERO)) {
-		sprintf(buf, "%ld", (unsigned long) val);
+		Common::sprintf_s(buf, "%ld", (unsigned long) val);
 		output(buf);
 	}
 }
@@ -778,7 +777,7 @@ void say(Aword id) {
 		else if (isLit(id))
 			saylit(id);
 		else {
-			sprintf(str, "Can't SAY item (%ld).", (unsigned long) id);
+			Common::sprintf_s(str, "Can't SAY item (%ld).", (unsigned long) id);
 			syserr(str);
 		}
 	}
@@ -811,15 +810,15 @@ static void dscrobj(Aword obj) {
 }
 
 static void dscract(Aword act) {
-	ScrElem *scr = NULL;
+	ScrElem *scr = nullptr;
 
 	if (acts[act - ACTMIN].script != 0) {
 		for (scr = (ScrElem *) addrTo(acts[act - ACTMIN].scradr); !endOfTable(scr); scr++)
 			if (scr->code == acts[act - ACTMIN].script)
 				break;
-		if (endOfTable(scr)) scr = NULL;
+		if (endOfTable(scr)) scr = nullptr;
 	}
-	if (scr != NULL && scr->dscr != 0)
+	if (scr != nullptr && scr->dscr != 0)
 		interpret(scr->dscr);
 	else if (acts[act - ACTMIN].dscr != 0)
 		interpret(acts[act - ACTMIN].dscr);
@@ -849,7 +848,7 @@ void describe(Aword id) {
 	else if (isAct(id))
 		dscract(id);
 	else {
-		sprintf(str, "Can't DESCRIBE item (%ld).", (unsigned long) id);
+		Common::sprintf_s(str, "Can't DESCRIBE item (%ld).", (unsigned long) id);
 		syserr(str);
 	}
 
@@ -867,7 +866,7 @@ void use(Aword act, Aword scr) {
 	char str[80];
 
 	if (!isAct(act)) {
-		sprintf(str, "Item is not an Actor (%ld).", (unsigned long) act);
+		Common::sprintf_s(str, "Item is not an Actor (%ld).", (unsigned long) act);
 		syserr(str);
 	}
 
@@ -1125,7 +1124,7 @@ Aword contains(Aptr string, Aptr substring) {
 	strlow((char *)string);
 	strlow((char *)substring);
 
-	found = (strstr((char *)string, (char *)substring) != 0);
+	found = (strstr((char *)string, (char *)substring) != nullptr);
 
 	free((char *)string);
 	free((char *)substring);

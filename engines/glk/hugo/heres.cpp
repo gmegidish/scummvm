@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -256,9 +255,9 @@ long Hugo::FindResource(const char *filename, const char *resname) {
 
 	resource_file = nullptr;
 
-	strcpy(loaded_filename, filename);
-	strcpy(loaded_resname, resname);
-	if (!strcmp(filename, "")) strcpy(loaded_filename, resname);
+	Common::strcpy_s(loaded_filename, filename);
+	Common::strcpy_s(loaded_resname, resname);
+	if (!strcmp(filename, "")) Common::strcpy_s(loaded_filename, resname);
 
 	/* See if the file is supposed to be in a resourcefile to
 	   begin with
@@ -268,7 +267,7 @@ long Hugo::FindResource(const char *filename, const char *resname) {
 
 
 	/* Open the resourcefile */
-	//strupr(filename);
+	//hugo_strupr(filename);
 
 #if !defined (GLK)
 	/* stdio implementation */
@@ -356,7 +355,7 @@ ResfileError:
 
 #if defined (DEBUGGER)
 	SwitchtoDebugger();
-	sprintf(debug_line, "Unable to find \"%s\" in \"%s\"", resname, filename);
+	Common::sprintf_s(debug_line, "Unable to find \"%s\" in \"%s\"", resname, filename);
 	DebugMessageBox("Resource Error", debug_line);
 	SwitchtoGame();
 #endif
@@ -434,12 +433,12 @@ int Hugo::GetResourceParameters(char *filename, char *resname, int restype) {
 		return 0;
 	}
 
-	strcpy(filename, GetWord((unsigned int)f));
+	Common::strcpy_s(filename, MAX_RES_PATH, GetWord((unsigned int)f));
 
 	if (MEM(codeptr++)!=EOL_T)	/* two or more parameters */
 	{
-		strupr(filename);
-		strcpy(resname, GetWord(GetValue()));
+		hugo_strupr(filename);
+		Common::strcpy_s(resname, MAX_RES_PATH, GetWord(GetValue()));
 		if (MEM(codeptr++)==COMMA_T)
 		{
 			extra_param = GetValue();
@@ -448,8 +447,8 @@ int Hugo::GetResourceParameters(char *filename, char *resname, int restype) {
 	}
 	else				/* only one parameter */
 	{
-		strcpy(resname, filename);
-		strcpy(filename, "");
+		Common::strcpy_s(resname, MAX_RES_PATH, filename);
+		filename[0] = '\0';
 	}
 
 	return true;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -313,11 +312,11 @@ void CineEngine::resetEngine() {
 	bgVar0 = 0;
 	var2 = var3 = var4 = lastType20OverlayBgIdx = 0;
 
-	strcpy(newPrcName, "");
-	strcpy(newRelName, "");
-	strcpy(newObjectName, "");
-	strcpy(newMsgName, "");
-	strcpy(currentCtName, "");
+	newPrcName[0] = '\0';
+	newRelName[0] = '\0';
+	newObjectName[0] = '\0';
+	newMsgName[0] = '\0';
+	currentCtName[0] = '\0';
 
 	allowPlayerInput = 0;
 	waitForPlayerClick = 0;
@@ -353,7 +352,7 @@ int CineEngine::scummVMSaveLoadDialog(bool isSave) {
 		desc = dialog->getResultString();
 
 		if (desc.empty()) {
-			// create our own description for the saved game, the user didnt enter it
+			// create our own description for the saved game, the user didn't enter it
 			desc = dialog->createDefaultSaveDescription(slot);
 		}
 	}
@@ -463,7 +462,7 @@ void CineEngine::makeSystemMenu() {
 					if (!makeMenuChoice(confirmMenu, 2, mouseX, mouseY + 8, 100)) {
 						char loadString[256];
 
-						sprintf(loadString, otherMessages[3], currentSaveName[selectedSave]);
+						Common::sprintf_s(loadString, otherMessages[3], currentSaveName[selectedSave]);
 						renderer->drawString(loadString, 0);
 
 						loadGameState(selectedSave);
@@ -531,7 +530,7 @@ void CineEngine::makeSystemMenu() {
 					fHandle->write(currentSaveName, sizeof(currentSaveName));
 					delete fHandle;
 
-					sprintf(saveString, otherMessages[3], currentSaveName[selectedSave]);
+					Common::sprintf_s(saveString, otherMessages[3], currentSaveName[selectedSave]);
 					renderer->drawString(saveString, 0);
 
 					makeSave(saveFileName, getTotalPlayTime() / 1000, Common::String((const char *)currentSaveName), false);
@@ -594,7 +593,7 @@ void processInventory(int16 x, int16 y) {
 	renderer->drawFrame();
 	renderer->popMenu();
 	delete menu;
-	menu = 0;
+	menu = nullptr;
 
 	manageEvents(PROCESS_INVENTORY, UNTIL_MOUSE_BUTTON_DOWN_UP);
 
@@ -610,7 +609,7 @@ int16 buildObjectListCommand(int16 param) {
 
 	for (i = 0; i < 255; i++) {
 		if (g_cine->_objectTable[i].name[0] && g_cine->_objectTable[i].costume == param) {
-			strcpy(objectListCommand[j], g_cine->_objectTable[i].name);
+			Common::strcpy_s(objectListCommand[j], g_cine->_objectTable[i].name);
 			objListTab[j] = i;
 			j++;
 		}
@@ -906,18 +905,18 @@ int16 makeMenuChoice(const CommandeType commandList[], uint16 height, uint16 X, 
 			}
 		} else {
 			int selectionValueDiff = 0;
-			while (!g_cine->_keyInputList.empty()) {
-				switch (g_cine->_keyInputList.back().keycode) {
-				case Common::KEYCODE_UP:
+			while (!g_cine->_actionList.empty()) {
+				switch (g_cine->_actionList.back()) {
+				case kActionMenuOptionUp:
 					selectionValueDiff--;
 					break;
-				case Common::KEYCODE_DOWN:
+				case kActionMenuOptionDown:
 					selectionValueDiff++;
 					break;
 				default:
 					break;
 				}
-				g_cine->_keyInputList.pop_back();
+				g_cine->_actionList.pop_back();
 			}
 
 			if (selectionValueDiff != 0) {
@@ -1399,7 +1398,7 @@ uint16 executePlayerInput() {
 }
 
 void drawSprite(Common::List<overlay>::iterator it, const byte *spritePtr, const byte *maskPtr, uint16 width, uint16 height, byte *page, int16 x, int16 y) {
-	byte *msk = NULL;
+	byte *msk = nullptr;
 	int16 maskX, maskY, maskWidth, maskHeight;
 	uint16 maskSpriteIdx;
 
@@ -1443,7 +1442,7 @@ void removeMessages() {
 			// NOTE: These are really removeOverlay calls that have been deferred.
 			// In Operation Stealth's disassembly elements are removed from the
 			// overlay list right in the drawOverlays function (And actually in
-			// some other places too) and that's where incrementing a the overlay's
+			// some other places too) and that's where incrementing the overlay's
 			// last parameter by one if it's negative and testing it for positivity
 			// comes from too.
 			remove = it->type == 3 || (it->type == 2 && (it->color >= 0 || ++(it->color) >= 0));
@@ -1472,8 +1471,8 @@ void checkForPendingDataLoad() {
 	if (newPrcName[0] != 0) {
 		bool loadPrcOk = loadPrc(newPrcName);
 
-		strcpy(currentPrcName, newPrcName);
-		strcpy(newPrcName, "");
+		Common::strcpy_s(currentPrcName, newPrcName);
+		newPrcName[0] = '\0';
 
 		// Check that the loading of the script file was successful before
 		// trying to add script 1 from it to the global scripts list. This
@@ -1491,8 +1490,8 @@ void checkForPendingDataLoad() {
 	if (newRelName[0] != 0) {
 		loadRel(newRelName);
 
-		strcpy(currentRelName, newRelName);
-		strcpy(newRelName, "");
+		Common::strcpy_s(currentRelName, newRelName);
+		newRelName[0] = '\0';
 	}
 
 	if (newObjectName[0] != 0) {
@@ -1500,23 +1499,23 @@ void checkForPendingDataLoad() {
 
 		loadObject(newObjectName);
 
-		strcpy(currentObjectName, newObjectName);
-		strcpy(newObjectName, "");
+		Common::strcpy_s(currentObjectName, newObjectName);
+		newObjectName[0] = '\0';
 	}
 
 	if (newMsgName[0] != 0) {
 		loadMsg(newMsgName);
 
-		strcpy(currentMsgName, newMsgName);
-		strcpy(newMsgName, "");
+		Common::strcpy_s(currentMsgName, newMsgName);
+		newMsgName[0] = '\0';
 	}
 }
 
 void hideMouse() {
 }
 
-void removeExtention(char *dest, const char *source) {
-	strcpy(dest, source);
+void removeExtension(char *dest, const char *source, size_t sz) {
+	Common::strcpy_s(dest, sz, source);
 
 	byte *ptr = (byte *) strchr(dest, '.');
 
@@ -1955,7 +1954,7 @@ bool makeTextEntryMenu(const char *messagePtr, char *inputString, int stringMaxL
 				if (inputPos != inputLength) {
 					strncat(tempString, &inputString[inputPos], inputLength - inputPos);
 				}
-				strcpy(inputString, tempString);
+				Common::strcpy_s(inputString, stringMaxLength, tempString);
 				inputLength = strlen(inputString);
 				redraw = true;
 			}
@@ -1981,16 +1980,16 @@ bool makeTextEntryMenu(const char *messagePtr, char *inputString, int stringMaxL
 					ch[0] = ascii;
 					if (inputPos != 1) {
 						strncpy(tempString, inputString, inputPos - 1);
-						strcat(tempString, ch);
+						Common::strcat_s(tempString, ch);
 					}
 					if ((inputLength == 0) || (inputPos == 1)) {
-						strcpy(tempString, ch);
+						Common::strcpy_s(tempString, ch);
 					}
 					if ((inputLength != 0) && (inputPos != inputLength)) {
 						strncat(tempString, &inputString[inputPos - 1], inputLength - inputPos + 1);
 					}
 
-					strcpy(inputString, tempString);
+					Common::strcpy_s(inputString, stringMaxLength, tempString);
 					inputLength = strlen(inputString);
 					inputPos++;
 					redraw = true;

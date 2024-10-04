@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,9 +53,9 @@ namespace Nuvie {
 
 
 GUI_ScrollBar::GUI_ScrollBar(int x, int y, int h, GUI_CallBack *callback)
-	: GUI_Widget(NULL, x, y, SCROLLBAR_WIDTH, h) {
-	callback_object = callback;
-	drag = false;
+	: GUI_Widget(nullptr, x, y, SCROLLBAR_WIDTH, h), callback_object(callback),
+	  drag(false), slider_highlight_c(0), slider_shadow_c(0), slider_base_c(0),
+	  track_border_c(0), track_base_c(0), slider_click_offset(0) {
 
 	loadButtons();
 
@@ -68,26 +67,26 @@ GUI_ScrollBar::GUI_ScrollBar(int x, int y, int h, GUI_CallBack *callback)
 
 
 void GUI_ScrollBar::loadButtons() {
-	Std::string datadir = GUI::get_gui()->get_data_dir();
-	Std::string imagefile;
+	Common::Path datadir = GUI::get_gui()->get_data_dir();
+	Common::Path imagefile;
 	Graphics::ManagedSurface *image, *image1;
 
 	build_path(datadir, "ScrollBarUp_1.bmp", imagefile);
-	image = SDL_LoadBMP(imagefile.c_str());
+	image = SDL_LoadBMP(imagefile);
 	build_path(datadir, "ScrollBarUp_2.bmp", imagefile);
-	image1 = SDL_LoadBMP(imagefile.c_str());
+	image1 = SDL_LoadBMP(imagefile);
 
-	up_button = new GUI_Button(NULL, 0, 0, image, image1, this);
+	up_button = new GUI_Button(nullptr, 0, 0, image, image1, this);
 	this->AddWidget(up_button);
 
 	build_path(datadir, "ScrollBarDown_1.bmp", imagefile);
-	image = SDL_LoadBMP(imagefile.c_str());
+	image = SDL_LoadBMP(imagefile);
 	build_path(datadir, "ScrollBarDown_2.bmp", imagefile);
-	image1 = SDL_LoadBMP(imagefile.c_str());
+	image1 = SDL_LoadBMP(imagefile);
 
 	button_height = image->h;
 
-	down_button = new GUI_Button(NULL, 0, area.height() - button_height, image, image1, this);
+	down_button = new GUI_Button(nullptr, 0, area.height() - button_height, image, image1, this);
 	this->AddWidget(down_button);
 
 	return;
@@ -97,12 +96,12 @@ void GUI_ScrollBar::loadButtons() {
 void GUI_ScrollBar::SetDisplay(Screen *s) {
 	GUI_Widget::SetDisplay(s);
 
-	slider_highlight_c = SDL_MapRGB(surface->format, SLIDER_HIGHLIGHT_R, SLIDER_HIGHLIGHT_G, SLIDER_HIGHLIGHT_B);
-	slider_shadow_c = SDL_MapRGB(surface->format, SLIDER_SHADOW_R, SLIDER_SHADOW_G, SLIDER_SHADOW_B);
-	slider_base_c = SDL_MapRGB(surface->format, SLIDER_BASE_R, SLIDER_BASE_G, SLIDER_BASE_B);
+	slider_highlight_c = surface->format.RGBToColor(SLIDER_HIGHLIGHT_R, SLIDER_HIGHLIGHT_G, SLIDER_HIGHLIGHT_B);
+	slider_shadow_c = surface->format.RGBToColor(SLIDER_SHADOW_R, SLIDER_SHADOW_G, SLIDER_SHADOW_B);
+	slider_base_c = surface->format.RGBToColor(SLIDER_BASE_R, SLIDER_BASE_G, SLIDER_BASE_B);
 
-	track_border_c = SDL_MapRGB(surface->format, TRACK_BORDER_R, TRACK_BORDER_G, TRACK_BORDER_B);
-	track_base_c = SDL_MapRGB(surface->format, TRACK_BASE_R, TRACK_BASE_G, TRACK_BASE_B);
+	track_border_c = surface->format.RGBToColor(TRACK_BORDER_R, TRACK_BORDER_G, TRACK_BORDER_B);
+	track_base_c = surface->format.RGBToColor(TRACK_BASE_R, TRACK_BASE_G, TRACK_BASE_B);
 }
 
 void GUI_ScrollBar::set_slider_length(float percentage) {
@@ -234,9 +233,9 @@ GUI_status GUI_ScrollBar::MouseDown(int x, int y, Shared::MouseButton button) {
 		slider_click_offset = y - area.top - button_height - slider_y;
 		grab_focus();
 	} else if (y < area.top + button_height + slider_y)
-		callback_object->callback(SCROLLBAR_CB_PAGE_UP, this, NULL);
+		callback_object->callback(SCROLLBAR_CB_PAGE_UP, this, nullptr);
 	else
-		callback_object->callback(SCROLLBAR_CB_PAGE_DOWN, this, NULL);
+		callback_object->callback(SCROLLBAR_CB_PAGE_DOWN, this, nullptr);
 
 	return GUI_YUM;
 }
@@ -262,7 +261,7 @@ GUI_status GUI_ScrollBar::MouseMotion(int x, int y, uint8 state) {
 	}
 // Redraw();
 
-	return (GUI_YUM);
+	return GUI_YUM;
 }
 
 inline bool GUI_ScrollBar::move_slider(int new_slider_y) {
@@ -292,11 +291,11 @@ void GUI_ScrollBar::send_slider_moved_msg() {
 }
 
 void GUI_ScrollBar::send_up_button_msg() {
-	callback_object->callback(SCROLLBAR_CB_UP_BUTTON, this, NULL);
+	callback_object->callback(SCROLLBAR_CB_UP_BUTTON, this, nullptr);
 }
 
 void GUI_ScrollBar::send_down_button_msg() {
-	callback_object->callback(SCROLLBAR_CB_DOWN_BUTTON, this, NULL);
+	callback_object->callback(SCROLLBAR_CB_DOWN_BUTTON, this, nullptr);
 }
 
 GUI_status GUI_ScrollBar::callback(uint16 msg, GUI_CallBack *caller, void *data) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,14 +47,15 @@ void ItemPickup::setup(int animationId, int screenX, int screenY) {
 	_facing = 0.0;
 	_timeLeft = 3000u;
 	_scale = 0;
-	_screenX = CLIP(screenX, 40, 600);
-	_screenY = CLIP(screenY, 40, 440);
+	_screenX = CLIP(screenX, 40, BladeRunnerEngine::kOriginalGameWidth  - 40);
+	_screenY = CLIP(screenY, 40, BladeRunnerEngine::kOriginalGameHeight - 40);
 	_screenRect.left = _screenX - 40;
 	_screenRect.right = _screenX + 40;
 	_screenRect.top = _screenY - 40;
 	_screenRect.bottom = _screenY + 40;
 
-	int pan = (75 * (2 * _screenX - 640)) / 640; // map [0..640] to [-75..75]
+	// map [0..640] to [-75..75]
+	int pan = (75 * (2 * _screenX - BladeRunnerEngine::kOriginalGameWidth)) / BladeRunnerEngine::kOriginalGameWidth;
 	_vm->_audioPlayer->playAud(_vm->_gameInfo->getSfxTrack(kSfxGETITEM1), 80, pan, pan, 50, 0);
 
 	_timeLast = _vm->_time->currentSystem();

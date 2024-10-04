@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,10 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-
-//#include "scumm/imuse_digi/dimuse.h"
 #include "scumm/imuse_digi/dimuse_tables.h"
 
 namespace Scumm {
@@ -544,6 +541,7 @@ const imuseFtStateTable _ftStateMusicTable[] = {
 	{"saveme",   2,  127,  "statePlaneControls"  },
 	{"",         4,  0,    "stateCliffHanger1"   },
 	{"",         4,  0,    "stateCliffHanger2"   },
+	{"",         0,  0,    ""                    },
 };
 
 const imuseFtNames _ftSeqNames[] = {
@@ -577,6 +575,7 @@ const imuseFtNames _ftSeqNames[] = {
 	{"seqNestolusAtRanch" },
 	{"seqRipLimo"         },
 	{"seqGorgeTurn"       },
+	{"seqStealRamp"       },
 	{"seqCavefishTalk"    },
 	{"seqArriveCorville"  },
 	{"seqSingleBunny"     },
@@ -598,7 +597,8 @@ const imuseFtNames _ftSeqNames[] = {
 	{"seqFanBunnies"      },
 	{"seqRipDead"         },
 	{"seqFuneral"         },
-	{"seqCredits"         }
+	{"seqCredits"         },
+	{""                   }
 };
 
 const imuseFtSeqTable _ftSeqMusicTable[] = {
@@ -777,7 +777,7 @@ const imuseFtSeqTable _ftSeqMusicTable[] = {
 	{"",         0,  0  },
 	{"",         0,  0  },
 
-	{"veltures", 2,  127},
+	{"vultures", 2,  127},
 	{"",         0,  0  },
 	{"",         0,  0  },
 	{"",         0,  0  },
@@ -853,7 +853,7 @@ const imuseFtSeqTable _ftSeqMusicTable[] = {
 	{"",         0,  0  },
 
 	{"funeral",  2,  127},
-	{"",         2,  127},
+	{"",         0,  0  },
 	{"moshop",   3,  64 },
 	{"",         0,  0  },
 

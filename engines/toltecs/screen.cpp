@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -210,13 +209,13 @@ void Screen::addAnimatedSprite(int16 x, int16 y, int16 fragmentId, byte *data, i
 		drawRequest.scaling = 0;
 	}
 
-	int16 count = FROM_LE_16(spriteArray[0]);
+	int16 count = READ_LE_UINT16(&spriteArray[0]);
 
 	//debug(0, "count = %d", count);
 
 	for (int16 index = 1; index <= count; index++) {
 
-		byte *spriteItem = data + FROM_LE_16(spriteArray[index]);
+		byte *spriteItem = data + READ_LE_UINT16(&spriteArray[index]);
 
 		uint16 loopNum = READ_LE_UINT16(spriteItem + 0) & 0x7FFF;
 		uint16 loopCount = READ_LE_UINT16(spriteItem + 2);

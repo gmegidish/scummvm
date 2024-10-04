@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -432,7 +431,9 @@ bool AIScriptLucy::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 		Actor_Says(kActorLucy, 360, 13);
 		Actor_Says(kActorMcCoy, 1710, 13);
 
-		if (Global_Variable_Query(kVariableAffectionTowards) == kAffectionTowardsLucy) { // cut feature? if this is set lucy will not run into hf04
+		if (Global_Variable_Query(kVariableAffectionTowards) == kAffectionTowardsLucy) {
+			// TODO A cut feature? if this is set lucy will not run into hf04
+			// Also this dialogue takes place in HF03 script too, but with different animations
 			Actor_Says(kActorLucy, 940, 13);
 			Actor_Says(kActorMcCoy, 6780, 12);
 			Actor_Says(kActorLucy, 950, 12);
@@ -461,6 +462,7 @@ bool AIScriptLucy::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 		Actor_Says(kActorLucy, 370, 14);
 		Actor_Set_Goal_Number(kActorLucy, kGoalLucyHF04WalkAway);
 
+		// TODO A bug? Should this be here after Lucy walks away? (It's this way in original)
 		if (Global_Variable_Query(kVariableHollowayArrest) == 3) {
 			Actor_Set_Goal_Number(kActorSteele, kGoalSteeleHF02LucyRanAway);
 			Game_Flag_Set(kFlagLucyRanAway);
@@ -722,6 +724,7 @@ bool AIScriptLucy::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	default:
+		debugC(6, kDebugAnimation, "AIScriptLucy::UpdateAnimation() - Current _animationState (%d) is not supported", _animationState);
 		break;
 	}
 	*frame = _animationFrame;
@@ -844,6 +847,10 @@ bool AIScriptLucy::ChangeAnimationMode(int mode) {
 	case kAnimationModeDie:
 		_animationState = kLucyStateDie;
 		_animationFrame = 0;
+		break;
+
+	default:
+		debugC(6, kDebugAnimation, "AIScriptLucy::ChangeAnimationMode(%d) - Target mode is not supported", mode);
 		break;
 	}
 

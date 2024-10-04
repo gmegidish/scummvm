@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,8 +37,8 @@ String GetDataExtErrorText(DataExtErrorType err) {
 		return "Block data overlapping.";
 	case kDataExtErr_BlockNotFound:
 		return "Block not found.";
+	default: return "Unknown error.";
 	}
-	return "Unknown error.";
 }
 
 HError DataExtParser::OpenBlock() {
@@ -77,15 +76,15 @@ HError DataExtParser::PostAssert() {
 	const soff_t cur_pos = _in->GetPosition();
 	const soff_t block_end = _blockStart + _blockLen;
 	if (cur_pos > block_end) {
-		String err = String::FromFormat("Block: '%s', expected to end at offset: %lld, finished reading at %lld.",
-			_extID.GetCStr(), block_end, cur_pos);
+		String err = String::FromFormat("Block: '%s', expected to end at offset: %llu, finished reading at %llu.",
+			_extID.GetCStr(), static_cast<int64>(block_end), static_cast<int64>(cur_pos));
 		if (cur_pos <= block_end + GetOverLeeway(_blockID))
 			Debug::Printf(kDbgMsg_Warn, err);
 		else
 			return new DataExtError(kDataExtErr_BlockDataOverlapping, err);
 	} else if (cur_pos < block_end) {
-		Debug::Printf(kDbgMsg_Warn, "WARNING: data blocks nonsequential, block '%s' expected to end at %lld, finished reading at %lld",
-			_extID.GetCStr(), block_end, cur_pos);
+		Debug::Printf(kDbgMsg_Warn, "WARNING: data blocks nonsequential, block '%s' expected to end at %llu, finished reading at %llu",
+			_extID.GetCStr(), static_cast<int64>(block_end), static_cast<int64>(cur_pos));
 		_in->Seek(block_end, Shared::kSeekBegin);
 	}
 	return HError::None();
@@ -123,34 +122,38 @@ HError DataExtReader::Read() {
 }
 
 // Generic function that saves a block and automatically adds its size into header
-void WriteExtBlock(int block, const String &ext_id, PfnWriteExtBlock writer, int flags, Stream *out) {
+void WriteExtBlock(int block, const String &ext_id, const PfnWriteExtBlock &writer, int flags, Stream *out) {
+	const bool is_id32 = (flags & kDataExt_NumID32) != 0;
+	// 64-bit file offsets are written for blocks with ext_id, OR File64 flag
+	const bool is_file64 = (block == 0) || ((flags & kDataExt_File64) != 0);
 	// Write block's header
-	(flags & kDataExt_NumID32) != 0 ?
+	is_id32 != 0 ?
 		out->WriteInt32(block) :
-		out->WriteInt8(block);
+		out->WriteInt8(static_cast<int8_t>(block));
 	if (block == 0) // new-style string id
 		ext_id.WriteCount(out, 16);
 	soff_t sz_at = out->GetPosition();
 	// block size placeholder
-	((flags & kDataExt_File64) != 0) ?
+	is_file64 ?
 		out->WriteInt64(0) :
 		out->WriteInt32(0);
+	soff_t start_at = out->GetPosition();
 
 	// Call writer to save actual block contents
 	writer(out);
 
 	// Now calculate the block's size...
 	soff_t end_at = out->GetPosition();
-	soff_t block_size = (end_at - sz_at) - sizeof(int64_t);
+	soff_t block_size = (end_at - start_at);
 	// ...return back and write block's size in the placeholder
 	out->Seek(sz_at, Shared::kSeekBegin);
-	((flags & kDataExt_File64) != 0) ?
+	is_file64 ?
 		out->WriteInt64(block_size) :
 		out->WriteInt32((int32_t)block_size);
 	// ...and get back to the end of the file
 	out->Seek(0, Shared::kSeekEnd);
 }
 
-} // namespace Common
+} // namespace Shared
 } // namespace AGS
 } // namespace AGS3

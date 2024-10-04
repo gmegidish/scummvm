@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "twine/parser/text.h"
 #include "common/debug.h"
+#include "common/str-enc.h"
 #include "common/util.h"
 #include "common/translation.h"
 #include "twine/resources/hqr.h"
@@ -31,10 +31,15 @@ namespace TwinE {
 
 void TextData::initCustomTexts(TextBankId textBankId) {
 	if (textBankId == TextBankId::Options_and_menus) {
-		add(textBankId, TextEntry{_c("High resolution on", "Options menu"), -1, TextId::kCustomHighResOptionOn});
-		add(textBankId, TextEntry{_c("High resolution off", "Options menu"), -1, TextId::kCustomHighResOptionOff});
-		add(textBankId, TextEntry{_c("Wall collision on", "Options menu"), -1, TextId::kCustomWallCollisionOn});
-		add(textBankId, TextEntry{_c("Wall collision off", "Options menu"), -1, TextId::kCustomWallCollisionOff});
+		add(textBankId, TextEntry{_c("High resolution on", "Options menu").encode(Common::CodePage::kDos850), -1, TextId::kCustomHighResOptionOn});
+		add(textBankId, TextEntry{_c("High resolution off", "Options menu").encode(Common::CodePage::kDos850), -1, TextId::kCustomHighResOptionOff});
+		add(textBankId, TextEntry{_c("Wall collision on", "Options menu").encode(Common::CodePage::kDos850), -1, TextId::kCustomWallCollisionOn});
+		add(textBankId, TextEntry{_c("Wall collision off", "Options menu").encode(Common::CodePage::kDos850), -1, TextId::kCustomWallCollisionOff});
+		add(textBankId, TextEntry{_c("Language selection", "Options menu").encode(Common::CodePage::kDos850), -1, TextId::kCustomLanguageOption});
+		add(textBankId, TextEntry{_c("Voices: None", "Options menu").encode(Common::CodePage::kDos850), -1, TextId::kCustomVoicesNone});
+		add(textBankId, TextEntry{_c("Voices: English", "Options menu").encode(Common::CodePage::kDos850), -1, TextId::kCustomVoicesEnglish});
+		add(textBankId, TextEntry{_c("Voices: French", "Options menu").encode(Common::CodePage::kDos850), -1, TextId::kCustomVoicesFrench});
+		add(textBankId, TextEntry{_c("Voices: German", "Options menu").encode(Common::CodePage::kDos850), -1, TextId::kCustomVoicesGerman});
 	}
 }
 

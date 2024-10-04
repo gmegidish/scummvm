@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/nuvie/nuvie.h"
-#include "ultima/nuvie/meta_engine.h"
+#include "ultima/nuvie/metaengine.h"
 #include "ultima/nuvie/core/events.h"
 #include "ultima/nuvie/actors/actor.h"
 #include "ultima/nuvie/core/nuvie_defs.h"
@@ -40,7 +39,7 @@
 #include "ultima/nuvie/gui/widgets/msg_scroll.h"
 #include "common/config-manager.h"
 #include "common/translation.h"
-#include "common/unzip.h"
+#include "common/compression/unzip.h"
 
 namespace Ultima {
 namespace Nuvie {
@@ -49,7 +48,8 @@ NuvieEngine *g_engine;
 
 NuvieEngine::NuvieEngine(OSystem *syst, const Ultima::UltimaGameDescription *gameDesc) :
 		Ultima::Shared::UltimaEngine(syst, gameDesc),  _config(nullptr), _savegame(nullptr),
-		_screen(nullptr), _script(nullptr), _game(nullptr), _soundManager(nullptr) {
+		_screen(nullptr), _script(nullptr), _game(nullptr), _soundManager(nullptr),
+		_events(nullptr) {
 	g_engine = this;
 }
 
@@ -64,7 +64,7 @@ NuvieEngine::~NuvieEngine() {
 	g_engine = nullptr;
 }
 
-bool NuvieEngine::isDataRequired(Common::String &folder, int &majorVersion, int &minorVersion) {
+bool NuvieEngine::isDataRequired(Common::Path &folder, int &majorVersion, int &minorVersion) {
 	folder = "ultima6";
 	majorVersion = 1;
 	minorVersion = 1;
@@ -112,10 +112,8 @@ bool NuvieEngine::initialize() {
 	// Setup screen
 	_screen = new Screen(_config);
 
-	if (_screen->init() == false) {
-		DEBUG(0, LEVEL_ERROR, "Initializing screen!\n");
-		return false;
-	}
+	if (_screen->init() == false)
+		error("Error initializing screen!");
 
 	GUI *gui = new GUI(_config, _screen);
 
@@ -165,6 +163,7 @@ bool NuvieEngine::initialize() {
 
 	if (_game->loadGame(_script) == false) {
 		delete _game;
+		_game = nullptr;
 		return false;
 	}
 
@@ -214,10 +213,10 @@ void NuvieEngine::assignGameConfigValues(uint8 gameType) {
 }
 
 bool NuvieEngine::checkGameDir(uint8 gameType) {
-	Std::string path;
+	Common::Path path;
 
 	config_get_path(_config, "", path);
-	ConsoleAddInfo("gamedir: \"%s\"", path.c_str());
+	ConsoleAddInfo("gamedir: \"%s\"", path.toString().c_str());
 
 	return true;
 }
@@ -235,19 +234,7 @@ void NuvieEngine::syncSoundSettings() {
 	if (!_soundManager)
 		return;
 
-	_soundManager->set_audio_enabled(
-		!ConfMan.hasKey("mute") || !ConfMan.getBool("mute"));
-	_soundManager->set_sfx_enabled(
-		!ConfMan.hasKey("sfx_mute") || !ConfMan.getBool("sfx_mute"));
-	_soundManager->set_music_enabled(
-		!ConfMan.hasKey("music_mute") || !ConfMan.getBool("music_mute"));
-	_soundManager->set_speech_enabled(
-		!ConfMan.hasKey("speech_mute") || !ConfMan.getBool("speech_mute"));
-
-	_soundManager->set_sfx_volume(ConfMan.hasKey("sfx_volume") ?
-		ConfMan.getInt("sfx_volume") : 255);
-	_soundManager->set_music_volume(ConfMan.hasKey("music_volume") ?
-		ConfMan.getInt("music_volume") : 255);
+	_soundManager->syncSoundSettings();
 }
 
 bool NuvieEngine::canLoadGameStateCurrently(bool isAutosave) {

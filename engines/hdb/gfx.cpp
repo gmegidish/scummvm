@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "common/cosinetables.h"
-#include "common/sinetables.h"
 #include "common/random.h"
 #include "common/memstream.h"
 #include "graphics/cursor.h"
 #include "graphics/cursorman.h"
+#include "math/cosinetables.h"
+#include "math/sinetables.h"
 
 #include "hdb/hdb.h"
 #include "hdb/ai.h"
@@ -43,8 +42,8 @@ Gfx::Gfx() {
 	_gfxCache = new Common::Array<GfxCache *>;
 	_globalSurface.create(g_hdb->_screenWidth, g_hdb->_screenHeight, g_hdb->_format);
 	_pointerDisplayable = 1;
-	_sines = new Common::SineTable(360);
-	_cosines = new Common::CosineTable(360);
+	_sines = new Math::SineTable(360);
+	_cosines = new Math::CosineTable(360);
 	_systemInit = false;
 
 	_numTiles = 0;
@@ -1291,7 +1290,7 @@ void Gfx::drawBonusStars() {
 		_starsInfo.active = false;
 		delete _starsInfo.gfx[0];
 		delete _starsInfo.gfx[1];
-		_starsInfo.gfx[0] = _starsInfo.gfx[1] = 0;
+		_starsInfo.gfx[0] = _starsInfo.gfx[1] = nullptr;
 	}
 }
 
@@ -1301,7 +1300,7 @@ void Gfx::drawDebugInfo(Tile *_debugLogo, int fps) {
 	// Draw  FPS
 	setCursor(0, 0);
 	char buff[64];
-	sprintf(buff, "FPS: %d", fps);
+	Common::sprintf_s(buff, "FPS: %d", fps);
 	drawText(buff);
 
 	// Draw Player Info
@@ -1309,22 +1308,22 @@ void Gfx::drawDebugInfo(Tile *_debugLogo, int fps) {
 
 	int x, y;
 	g_hdb->_ai->getPlayerXY(&x, &y);
-	sprintf(buff, "Player X: %d, Y: %d", x / kTileWidth, y / kTileHeight);
+	Common::sprintf_s(buff, "Player X: %d, Y: %d", x / kTileWidth, y / kTileHeight);
 	drawText(buff);
 
 	setCursor(0, 32);
 	AIEntity *p = g_hdb->_ai->getPlayer();
 	if (p) {
-		sprintf(buff, "Player height level: %d", p->level);
+		Common::sprintf_s(buff, "Player height level: %d", p->level);
 		drawText(buff);
 	}
 
 	setCursor(0, 48);
-	sprintf(buff, "Map Name: %s", g_hdb->getInMapName());
+	Common::sprintf_s(buff, "Map Name: %s", g_hdb->getInMapName());
 	drawText(buff);
 
 	setCursor(0, 64);
-	g_hdb->getActionMode() ? sprintf(buff, "Action Mode") : sprintf(buff, "Puzzle Mode");
+	g_hdb->getActionMode() ? Common::sprintf_s(buff, "Action Mode") : Common::sprintf_s(buff, "Puzzle Mode");
 	drawText(buff);
 }
 

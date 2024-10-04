@@ -124,6 +124,8 @@ AGS
      -
    * - Thierry Crozat
      -
+   * - Walter Agazzi
+     - Maintenance, Game archival
    * - Chris Jones
      - Creator
    * - Alan Van Drake
@@ -233,6 +235,21 @@ Avalanche
    * - Arnaud Boutonné
      -
 
+Bagel
+^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Arnaud Boutonné
+     -
+   * - Daniel Albano
+     -
+   * - Eugene Sandulenko
+     -
+   * - Paul Gilbert
+     -
+
 BBVS
 ^^^^
 
@@ -290,12 +307,29 @@ CGE2
    * - Paul Gilbert
      -
 
+Chamber
+^^^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Retro-Junk;
+     -
+   * - Eugene Sandulenko
+     -
+
 Chewy
 ^^^^^
 
 .. list-table::
    :widths: 35 65
 
+   * - Paul Gilbert
+     -
+   * - Eugene Sandulenko
+     -
+   * - Arnaud Boutonné
+     -
    * - Filippos Karapetis
      -
 
@@ -323,6 +357,15 @@ Composer
    :widths: 35 65
 
    * - Alyssa Milburn
+     -
+
+Crab
+^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Kartik Agarwala
      -
 
 CruisE
@@ -383,6 +426,8 @@ Director
    * - Steven Hoefel
      -
    * - Tobia Tesan
+     -
+   * - Misty De Méo
      -
 
 DM
@@ -450,6 +495,26 @@ DreamWeb
    * - Willem Jan Palenstijn
      -
 
+Efh
+^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Arnaud Boutonné
+     -
+
+Freescape
+^^^^^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Chris Allen
+     - Sound engine programming
+   * - Gustavo Grieco
+     -
+
 Glk
 ^^^
 
@@ -468,6 +533,8 @@ Glk
      - ScottFree interpreter
    * - Michael J. Roberts
      - TADS interpreter
+   * - Avijeet Maurya
+     - Scott Sub-engine
 
 Gnap
 ^^^^
@@ -489,6 +556,8 @@ Gob
    * - Torbjörn Andersson
      -
    * - Arnaud Boutonné
+     -
+   * - Simon Delamarre
      -
    * - Sven Hesse
      -
@@ -514,6 +583,8 @@ Grim
      - Grim (retired)
    * - Giulio Camuffo
      - Grim (retired)
+   * - Daniel Schepler
+     - Initial engine contributor
    * - Dries Harnie
      - EMI
    * - Paweł Kołodziejski
@@ -535,13 +606,15 @@ Groovie
 
    * - Henry Bush
      -
+   * - Ray Carro
+     -
    * - Scott Thomas
      -
    * - Jordi Vilalta Prat
      -
 
-Hades' Challenge
-^^^^^^^^^^^^^^^^
+Hades Challenge
+^^^^^^^^^^^^^^^
 
 .. list-table::
    :widths: 35 65
@@ -571,6 +644,15 @@ Hopkins
    * - Paul Gilbert
      -
 
+Hpl1
+^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Emanuele Grisenti
+     -
+
 Hugo
 ^^^^
 
@@ -582,6 +664,15 @@ Hugo
    * - Oystein Eftevaag
      -
    * - Eugene Sandulenko
+     -
+
+Hypno
+^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Gustavo Grieco
      -
 
 ICB
@@ -606,6 +697,15 @@ Illusions
    * - Benjamin Haisch
      -
    * - Eric Fry
+     -
+
+Immortal
+^^^^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Michael Hayman
      -
 
 Kingdom
@@ -684,6 +784,15 @@ Lure
    * - Paul Gilbert
      -
 
+M4
+^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Paul Gilbert
+     -
+
 MacVenture
 ^^^^^^^^^^
 
@@ -717,6 +826,23 @@ MADS
    * - Filippos Karapetis
      -
 
+MM (Xeen)
+^^^^^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Paul Gilbert
+     -
+   * - Benoit Pierre
+     -
+   * - TheDrakeRaider
+     - (M&M1 Gfx Mod)
+   * - David Goldsmith
+     - (Xeen analysis)
+   * - Matt Taylor
+     - (Xeen analysis)
+
 Mohawk
 ^^^^^^
 
@@ -747,6 +873,15 @@ Mortevielle
    * - Arnaud Boutonné
      -
    * - Paul Gilbert
+     -
+
+mTropolis
+^^^^^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Eric Lasota
      -
 
 MutationOfJB
@@ -949,6 +1084,8 @@ SCUMM
 
    * - Torbjörn Andersson
      -
+   * - Andrea Boscarino
+     - Digital iMUSE, SMUSH audio, GUI
    * - James Brown
      - (retired)
    * - Jonathan Gray
@@ -974,6 +1111,8 @@ SCUMM HE
 .. list-table::
    :widths: 35 65
 
+   * - Andrea Boscarino
+     - Digital audio, WIZ graphics system
    * - Jonathan Gray
      - (retired)
    * - Travis Howell
@@ -1065,6 +1204,8 @@ Sword1
 
    * - Fabio Battaglia
      - PSX version support
+   * - Andrea Boscarino
+     - Palette fading, menus, audio
    * - Thierry Crozat
      - Mac version support
    * - Robert Göffringmann
@@ -1109,6 +1250,15 @@ TeenAgent
    * - Robert Megone
      - Help with callback rewriting
    * - Vladimir Menshakov
+     -
+
+Tetraedge
+^^^^^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Matthew Duggan
      -
 
 Tinsel
@@ -1249,6 +1399,15 @@ TwinE
    * - Martin Gerhardy
      -
 
+Thimbleweed Park
+^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Valéry Sablonnière
+     -
+
 Ultima
 ^^^^^^
 
@@ -1298,6 +1457,15 @@ Ultima
    * - Willem Jan Palenstijn
      - (Pentagram)
 
+V-Cruise
+^^^^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Eric Lasota
+     -
+
 Voyeur
 ^^^^^^
 
@@ -1318,6 +1486,15 @@ WAGE
    * - Eugene Sandulenko
      -
 
+Watchmaker
+^^^^^^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Einar Johan Troan Somaen;
+     -
+
 Wintermute
 ^^^^^^^^^^
 
@@ -1330,19 +1507,6 @@ Wintermute
      -
    * - Tobia Tesan
      -
-
-Xeen
-^^^^
-
-.. list-table::
-   :widths: 35 65
-
-   * - Paul Gilbert
-     -
-   * - David Goldsmith
-     - (analysis)
-   * - Matt Taylor
-     - (analysis)
 
 Z-Vision
 ^^^^^^^^
@@ -1359,6 +1523,15 @@ Z-Vision
 
 Backend Teams
 *************
+
+Atari
+^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Miro Kropáček
+     -
 
 Android
 ^^^^^^^
@@ -1407,10 +1580,12 @@ iPhone / iPad
    :widths: 35 65
 
    * - Oystein Eftevaag
-     -
+     - (retired)
    * - Vincent Bénony
      -
    * - Thierry Crozat
+     -
+   * - Lars Sundström
      -
 
 LinuxMoto
@@ -1530,8 +1705,8 @@ PlayStation Vita
    * - rsn8887
      -
 
-SDL (Win/Linux/OS X/etc.)
-^^^^^^^^^^^^^^^^^^^^^^^^^
+SDL (Win/Linux/macOS/etc.)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. list-table::
    :widths: 35 65
@@ -1563,6 +1738,15 @@ Tizen / BADA
    * - Chris Warren-Smith
      -
 
+Webassembly / Emscripten
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Christian Kündig
+     -
+
 WebOS
 ^^^^^
 
@@ -1590,6 +1774,15 @@ Raspberry Pi
    :widths: 35 65
 
    * - Manuel Alfayate
+     -
+
+Libretro
+^^^^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - Giovanni Cascione
      -
 
 Other subsystems
@@ -1647,6 +1840,8 @@ Miscellaneous
      - ARM assembly routines for nice speedups on several ports; improvements to the sound mixer
    * - Trembyle
      - Archivist
+   * - Lothar Serra Mari
+     - Tackling Tremendously Tedious Tasks(tm); ScummVM's Seal of Approval (Awp?!)
 
 Website (code)
 **************
@@ -1802,9 +1997,11 @@ macOS
    * - Max Horn
      - (retired)
    * - Oystein Eftevaag
-     -
+     - (retired)
    * - Thierry Crozat
      -
+   * - dwa
+     - Tiger/Leopard PPC
 
 Mandriva
 ^^^^^^^^
@@ -1968,6 +2165,8 @@ Finnish
 .. list-table::
    :widths: 35 65
 
+   * - Linus Virtanen
+     -
    * - Toni Saarela
      -
    * - Timo Mikkolainen
@@ -2181,6 +2380,19 @@ Mortevielle
    * - Thierry Crozat
      - Improve English translation
 
+Prince
+^^^^^^
+
+.. list-table::
+   :widths: 35 65
+
+   * - ShinjiGR
+     - English translation
+   * - Eugene Sandulenko
+     - English translation
+   * - Anna Baldur
+     - English translation
+
 Supernova
 ^^^^^^^^^
 
@@ -2212,6 +2424,47 @@ Websites (design)
      - SVG logo conversion
    * - Raina
      - ScummVM forum buttons
+
+Icons pack
+**********
+
+.. list-table::
+   :widths: 35 65
+
+   * - Stefan Philippsen
+     - Primary contributor and coordination
+   * - Benjamin Funke
+     -
+   * - Daniel Albano
+     -
+   * - David Calvert
+     -
+   * - Eugene Sandulenko
+     -
+   * - J Moretti
+     -
+   * - Jennifer McMurray
+     -
+   * - Lothar Serra Mari
+     -
+   * - Oleg Ermakov
+     -
+   * - Olly Dean
+     -
+   * - Walter Agazzi
+     -
+   * - beresk137
+     -
+   * - Canuma
+     -
+   * - Thunderforge
+     -
+   * - neuromancer
+     -
+   * - nightm4re94
+     -
+   * - trembyle
+     -
 
 Code contributions
 ******************

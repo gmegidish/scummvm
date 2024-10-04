@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,21 +31,21 @@ namespace Grim {
 EmiRegistry *g_emiregistry = nullptr;
 
 const char *EmiRegistry::_translTable[][2] = {
-	{"speech_mode",		""},	//Translated key not needed, see below
-	{"vocvolume",		"speech_volume"},
-	{"sfxvolume",		"sfx_volume"},
-	{"musvolume",		"music_volume"},
-	{"textspeed",		"talkspeed"},
-	{"gamma",			"gamma"},
-	{"joystick_enabled","joystick_enabled"},
-	{"analog_mode",		"analog_joystick_mode"},
-	{"subtitles",		"movie_subtitles"},
-	{"camera_mode",		"camera_relative_mode"},
-	{"shadowfx",		"shadow_effects"},
-	{"vocfx",			"audio_effects"},
-	{"miscfx",			"misc_video_effects"},
-	{"moviequality",	"movie_quality"},
-	{"musicquality",	"music_quality"},
+	{"speech_mode",      ""}, // Translated key not needed, see below
+	{"vocvolume",        "speech_volume"},
+	{"sfxvolume",        "sfx_volume"},
+	{"musvolume",        "music_volume"},
+	{"textspeed",        "talkspeed"},
+	{"gamma",            "gamma"},
+	{"joystick_enabled", "joystick_enabled"},
+	{"analog_mode",      "analog_joystick_mode"},
+	{"subtitles",        "movie_subtitles"},
+	{"camera_mode",      "camera_relative_mode"},
+	{"shadowfx",         "shadow_effects"},
+	{"vocfx",            "audio_effects"},
+	{"miscfx",           "misc_video_effects"},
+	{"moviequality",     "movie_quality"},
+	{"musicquality",     "music_quality"},
 	{nullptr,nullptr}
 };
 

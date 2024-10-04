@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@ static bool sortSpriteHelper(const Sprite &entry1, const Sprite &entry2) {
 }
 
 void SpritesMgr::buildRegularSpriteList() {
-	ScreenObjEntry *screenObj = NULL;
+	ScreenObjEntry *screenObj = nullptr;
 	uint16 givenOrderNr = 0;
 
 	freeList(_spriteRegularList);
@@ -64,7 +63,7 @@ void SpritesMgr::buildRegularSpriteList() {
 }
 
 void SpritesMgr::buildStaticSpriteList() {
-	ScreenObjEntry *screenObj = NULL;
+	ScreenObjEntry *screenObj = nullptr;
 	uint16 givenOrderNr = 0;
 
 	freeList(_spriteStaticList);
@@ -360,7 +359,7 @@ void SpritesMgr::showSprite(ScreenObjEntry *screenObj) {
 
 void SpritesMgr::showSprites(SpriteList &spriteList) {
 	SpriteList::iterator iter;
-	ScreenObjEntry *screenObjPtr = NULL;
+	ScreenObjEntry *screenObjPtr = nullptr;
 
 	for (iter = spriteList.begin(); iter != spriteList.end(); ++iter) {
 		Sprite &sprite = *iter;
@@ -378,8 +377,8 @@ void SpritesMgr::showSprites(SpriteList &spriteList) {
 			}
 		}
 	}
-	g_system->updateScreen();
-	//g_system->delayMillis(20);
+	_vm->_system->updateScreen();
+	//_vm->_system->delayMillis(20);
 }
 
 void SpritesMgr::showRegularSpriteList() {
@@ -405,9 +404,9 @@ void SpritesMgr::showAllSpriteLists() {
  */
 void SpritesMgr::showObject(int16 viewNr) {
 	ScreenObjEntry screenObj;
-	uint8 *backgroundBuffer = NULL;
+	uint8 *backgroundBuffer = nullptr;
 
-	_vm->agiLoadResource(RESOURCETYPE_VIEW, viewNr);
+	_vm->loadResource(RESOURCETYPE_VIEW, viewNr);
 	_vm->setView(&screenObj, viewNr);
 
 	screenObj.ySize_prev = screenObj.celData->height;
@@ -445,7 +444,7 @@ void SpritesMgr::showObject(int16 viewNr) {
  * @param x     x coordinate to place the view
  * @param y     y coordinate to place the view
  * @param pri   priority to use
- * @param mar   if < 4, create a margin around the the base of the cel
+ * @param mar   if < 4, create a margin around the base of the cel
  */
 void SpritesMgr::addToPic(int16 viewNr, int16 loopNr, int16 celNr, int16 xPos, int16 yPos, int16 priority, int16 border) {
 	debugC(3, kDebugLevelSprites, "addToPic(view=%d, loop=%d, cel=%d, x=%d, y=%d, pri=%d, border=%d)", viewNr, loopNr, celNr, xPos, yPos, priority, border);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,7 +49,7 @@ namespace Nuvie {
 
 
 bool PortraitU6::init() {
-	Std::string filename;
+	Common::Path filename;
 
 	avatar_portrait_num = 0;
 
@@ -59,17 +58,17 @@ bool PortraitU6::init() {
 
 	config_get_path(config, "portrait.a", filename);
 	if (portrait_a.open(filename, 4) == false) {
-		ConsoleAddError("Opening " + filename);
+		ConsoleAddError("Opening " + filename.toString());
 		return false;
 	}
 	config_get_path(config, "portrait.b", filename);
 	if (portrait_b.open(filename, 4) == false) {
-		ConsoleAddError("Opening " + filename);
+		ConsoleAddError("Opening " + filename.toString());
 		return false;
 	}
 	config_get_path(config, "portrait.z", filename);
 	if (portrait_z.open(filename, 4) == false) {
-		ConsoleAddError("Opening " + filename);
+		ConsoleAddError("Opening " + filename.toString());
 		return false;
 	}
 
@@ -87,10 +86,10 @@ bool PortraitU6::load(NuvieIO *objlist) {
 	return true;
 }
 
-uint8 PortraitU6::get_portrait_num(Actor *actor) {
+uint8 PortraitU6::get_portrait_num(Actor *actor) const {
 	uint8 num;
 
-	if (actor == NULL)
+	if (actor == nullptr)
 		return NO_PORTRAIT_FOUND;
 
 	num = actor->get_actor_num();
@@ -104,7 +103,7 @@ uint8 PortraitU6::get_portrait_num(Actor *actor) {
 		if (num == (188 - 1))
 			num = PORTRAIT_U6_EXODUS - 1; // Exodus
 		else if (num >= (192 - 1) && num <= (200 - 1)) // Shrines, Temple of Singularity
-			return (NO_PORTRAIT_FOUND);
+			return NO_PORTRAIT_FOUND;
 		else if (num > 194) { // there are 194 npc portraits
 			switch (actor->get_obj_n()) { //check for temporary actors with portraits. eg guards and wisps
 			case OBJ_U6_GUARD :
@@ -133,7 +132,7 @@ unsigned char *PortraitU6::get_portrait_data(Actor *actor) {
 	unsigned char *new_portrait;
 	uint8 num = get_portrait_num(actor);
 	if (num == NO_PORTRAIT_FOUND)
-		return NULL;
+		return nullptr;
 
 	if (actor->is_avatar()) { // avatar portrait
 		portrait = &portrait_z;
@@ -148,7 +147,7 @@ unsigned char *PortraitU6::get_portrait_data(Actor *actor) {
 
 	lzw_data = portrait->get_item(num);
 	if (!lzw_data)
-		return NULL;
+		return nullptr;
 	new_portrait = lzw.decompress_buffer(lzw_data, portrait->get_item_size(num), new_length);
 	free(lzw_data);
 	Game::get_game()->get_dither()->dither_bitmap(new_portrait, PORTRAIT_WIDTH, PORTRAIT_HEIGHT, true);

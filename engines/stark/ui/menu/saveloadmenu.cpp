@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/stark/ui/menu/saveloadmenu.h"
-
 #include "engines/stark/services/services.h"
 #include "engines/stark/services/userinterface.h"
 #include "engines/stark/services/stateprovider.h"
@@ -29,11 +27,9 @@
 #include "engines/stark/services/settings.h"
 #include "engines/stark/services/gamechapter.h"
 #include "engines/stark/services/gamemessage.h"
-
 #include "engines/stark/gfx/driver.h"
-#include "engines/stark/gfx/texture.h"
+#include "engines/stark/gfx/bitmap.h"
 #include "engines/stark/gfx/surfacerenderer.h"
-
 #include "engines/stark/stark.h"
 #include "engines/stark/savemetadata.h"
 
@@ -45,9 +41,6 @@
 #include "gui/message.h"
 
 namespace Stark {
-
-const Color SaveDataWidget::_outlineColor = Color(0x1E, 0x1E, 0x96);
-const Color SaveDataWidget::_textColor    = Color(0x5C, 0x48, 0x3D);
 
 SaveLoadMenuScreen::SaveLoadMenuScreen(Gfx::Driver *gfx, Cursor *cursor, Screen::Name screenName) :
 		StaticLocationScreen(gfx, cursor, "LoadSaveLocation", screenName),
@@ -100,7 +93,7 @@ void SaveLoadMenuScreen::open() {
 			CLICK_HANDLER(SaveLoadMenuScreen, prevPageHandler),
 			nullptr));
 	_widgets.back()->setupSounds(0, 1);
-	_widgets.back()->setTextColor(Color(0, 0, 0));
+	_widgets.back()->setTextColor(Gfx::Color(0, 0, 0));
 	_widgets.back()->setVisible(_page > 0);
 
 	_widgets.push_back(new StaticLocationWidget(
@@ -108,7 +101,7 @@ void SaveLoadMenuScreen::open() {
 			CLICK_HANDLER(SaveLoadMenuScreen, nextPageHandler),
 			nullptr));
 	_widgets.back()->setupSounds(0, 1);
-	_widgets.back()->setTextColor(Color(0, 0, 0));
+	_widgets.back()->setTextColor(Gfx::Color(0, 0, 0));
 	_widgets.back()->setVisible(_page < _maxPage);
 
 	loadSaveData(_page);
@@ -246,7 +239,7 @@ SaveDataWidget::SaveDataWidget(int slot, Gfx::Driver *gfx, SaveLoadMenuScreen *s
 		_screen(screen),
 		_thumbWidth(kThumbnailWidth),
 		_thumbHeight(kThumbnailHeight),
-		_texture(gfx->createBitmap()),
+		_bitmap(gfx->createBitmap()),
 		_outline(gfx->createBitmap()),
 		_surfaceRenderer(gfx->createSurfaceRenderer()),
 		_textDesc(gfx),
@@ -268,7 +261,7 @@ SaveDataWidget::SaveDataWidget(int slot, Gfx::Driver *gfx, SaveLoadMenuScreen *s
 			_outlineColor.a, _outlineColor.r, _outlineColor.g, _outlineColor.b
 	);
 
-	// Create the outline texture
+	// Create the outline bitmap
 	Graphics::Surface lineSurface;
 	lineSurface.create(_thumbWidth, _thumbHeight, pixelFormat);
 	lineSurface.drawThickLine(0, 0, _thumbWidth - 1, 0, 2, 2, outlineColor);
@@ -291,13 +284,13 @@ SaveDataWidget::SaveDataWidget(int slot, Gfx::Driver *gfx, SaveLoadMenuScreen *s
 }
 
 SaveDataWidget::~SaveDataWidget() {
-	delete _texture;
+	delete _bitmap;
 	delete _outline;
 	delete _surfaceRenderer;
 }
 
 void SaveDataWidget::render() {
-	_surfaceRenderer->render(_texture, _thumbPos);
+	_surfaceRenderer->render(_bitmap, _thumbPos);
 	_textDesc.render(_textDescPos);
 	_textTime.render(_textTimePos);
 	if (_isMouseHovered) {
@@ -322,8 +315,8 @@ void SaveDataWidget::onMouseMove(const Common::Point &mousePos) {
 
 void SaveDataWidget::onScreenChanged() {
 	StaticLocationWidget::onScreenChanged();
-	_textDesc.resetTexture();
-	_textTime.resetTexture();
+	_textDesc.reset();
+	_textTime.reset();
 }
 
 void SaveDataWidget::loadSaveDataElements() {
@@ -342,8 +335,8 @@ void SaveDataWidget::loadSaveDataElements() {
 		// Obtain the thumbnail
 		if (metadata.version >= 9) {
 			Graphics::Surface *thumb = metadata.readGameScreenThumbnail(&stream);
-			_texture->update(thumb);
-			_texture->setSamplingFilter(StarkSettings->getImageSamplingFilter());
+			_bitmap->update(thumb);
+			_bitmap->setSamplingFilter(StarkSettings->getImageSamplingFilter());
 
 			thumb->free();
 			delete thumb;

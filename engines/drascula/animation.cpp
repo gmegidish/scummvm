@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -762,9 +761,9 @@ void DrasculaEngine::animation_16_2() {
 
 	for (int i = 1; i <= 4; i++) {
 		if (i < 4)
-			sprintf(curPic, "his%i.alg", i);
+			Common::sprintf_s(curPic, "his%i.alg", i);
 		else
-			strcpy(curPic, "his4_2.alg");
+			Common::strcpy_s(curPic, "his4_2.alg");
 
 		loadPic(curPic, screenSurface, HALF_PAL);
 		centerText(_texthis[i], 180, 180);
@@ -2080,7 +2079,7 @@ void DrasculaEngine::animation_1_4() {
 	debug(4, "animation_1_4()");
 
 	if (flags[21] == 0) {
-		strcpy(objName[2], _textmisc[5]); // "igor"
+		Common::strcpy_s(objName[2], _textmisc[5]); // "igor"
 		talk(275);
 
 		updateRefresh_pre();

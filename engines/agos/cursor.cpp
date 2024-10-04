@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -302,6 +301,7 @@ static const byte _simon2_cursors[10][256] = {
 };
 
 // Feeble Files specific
+#ifdef ENABLE_AGOS2
 static const byte _mouseOffs[29 * 32] = {
 	6,0,15,21,16,21,14,21,15,21,16,21,16,21,16,21,15,21,15,21,15,21,14,21,12,21,12,21,12,21,12,21,
 	6,2,10,12,9,12,8,11,7,10,6,9,4,8,3,7,1,7,0,6,3,7,4,8,6,9,7,10,8,11,9,12,
@@ -344,7 +344,6 @@ static const byte _mouseOffs[29 * 32] = {
 	0,0,10,7,10,6,10,5,10,4,10,3,10,4,10,5,10,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 };
 
-#ifdef ENABLE_AGOS2
 void AGOSEngine_PuzzlePack::handleMouseMoved() {
 	uint x;
 
@@ -418,7 +417,7 @@ void AGOSEngine_Simon1::handleMouseMoved() {
 
 		if (_rightButtonDown) {
 			_rightButtonDown = false;
-			setVerb(NULL);
+			setVerb(nullptr);
 		}
 	} else if (getGameType() == GType_SIMON2) {
 		if (getBitFlag(79)) {
@@ -451,7 +450,7 @@ void AGOSEngine_Simon1::handleMouseMoved() {
 	_leftButtonOld = _leftButton;
 
 	x = 0;
-	if (_lastHitArea3 == 0 && _leftButtonDown) {
+	if (_lastHitArea3 == nullptr && _leftButtonDown) {
 		_leftButtonDown = false;
 		x = 1;
 	} else {
@@ -461,7 +460,7 @@ void AGOSEngine_Simon1::handleMouseMoved() {
 
 	boxController(_mouse.x, _mouse.y, x);
 	_lastHitArea3 = _lastHitArea;
-	if (x == 1 && _lastHitArea == NULL)
+	if (x == 1 && _lastHitArea == nullptr)
 		_lastHitArea3 = (HitArea *) -1;
 
 get_out:
@@ -583,7 +582,7 @@ void AGOSEngine::handleMouseMoved() {
 		_needHitAreaRecalc++;
 
 	if (_leftButtonOld == 0 && _leftButton != 0) {
-		_lastClickRem = 0;
+		_lastClickRem = nullptr;
 		boxController(_mouse.x, _mouse.y, 3);
 	}
 	_leftButtonOld = _leftButton;
@@ -596,7 +595,7 @@ void AGOSEngine::handleMouseMoved() {
 			goto boxstuff;
 	}
 
-	if (_leftButton != 0 && _dragAccept && _lastClickRem != NULL) {
+	if (_leftButton != 0 && _dragAccept && _lastClickRem != nullptr) {
 		_dragCount++;
 		if (_dragCount == 20) {
 			_dragMode = true;

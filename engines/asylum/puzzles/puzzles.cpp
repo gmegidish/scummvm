@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -63,7 +62,7 @@ EventHandler *Puzzles::getPuzzle(uint32 index) const {
 	if (index >= ARRAYSIZE(_puzzles))
 		error("[AsylumEngine::getPuzzleEventHandler] Invalid index (was: %d - max: %d)", index, ARRAYSIZE(_puzzles));
 
-	if (_puzzles[index] == NULL)
+	if (_puzzles[index] == nullptr)
 		error("[AsylumEngine::getPuzzleEventHandler] This puzzle doesn't have an event handler! (index: %d)", index);
 
 	return (EventHandler *)_puzzles[index];
@@ -74,13 +73,13 @@ void Puzzles::initPuzzles() {
 	_puzzles[kPuzzlePipes]           = new PuzzlePipes(_vm);
 	_puzzles[kPuzzleTicTacToe]       = new PuzzleTicTacToe(_vm);
 	_puzzles[kPuzzleLock]            = new PuzzleLock(_vm);
-	_puzzles[kPuzzle4]               = NULL;    // No event handler for Puzzle 5
+	_puzzles[kPuzzle4]               = nullptr;    // No event handler for Puzzle 5
 	_puzzles[kPuzzleWheel]           = new PuzzleWheel(_vm);
 	_puzzles[kPuzzleBoardSalvation]  = new PuzzleBoardSalvation(_vm);
 	_puzzles[kPuzzleBoardYouth]      = new PuzzleBoardYouth(_vm);
 	_puzzles[kPuzzleBoardKeyHidesTo] = new PuzzleBoardKeyHidesTo(_vm);
 	_puzzles[kPuzzleWritings]        = new PuzzleWritings(_vm);
-	_puzzles[kPuzzle11]              = NULL;
+	_puzzles[kPuzzle11]              = nullptr;
 	_puzzles[kPuzzleMorgueDoor]      = new PuzzleMorgueDoor(_vm);
 	_puzzles[kPuzzleClock]           = new PuzzleClock(_vm);
 	_puzzles[kPuzzleTimeMachine]     = new PuzzleTimeMachine(_vm);

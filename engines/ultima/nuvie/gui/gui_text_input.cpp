@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,18 +30,11 @@ namespace Nuvie {
 
 GUI_TextInput:: GUI_TextInput(int x, int y, uint8 r, uint8 g, uint8 b, const char *str,
 							  GUI_Font *gui_font, uint16 width, uint16 height, GUI_CallBack *callback)
-	: GUI_Text(x, y, r, g, b, gui_font, width) {
-	max_height = height;
-	callback_object = callback;
-	cursor_color = 0;
-	selected_bgcolor = 0;
-
+	: GUI_Text(x, y, r, g, b, gui_font, width), max_height(height), callback_object(callback),
+	  cursor_color(0), selected_bgcolor(0) {
 	text = (char *)malloc(max_width * max_height + 1);
-
-	if (text == NULL) {
-		DEBUG(0, LEVEL_ERROR, "GUI_TextInput failed to allocate memory for text\n");
-		return;
-	}
+	if (text == nullptr)
+		error("GUI_TextInput failed to allocate memory for text");
 
 	strncpy(text, str, max_width * max_height);
 
@@ -76,7 +68,7 @@ GUI_status GUI_TextInput::MouseUp(int x, int y, Shared::MouseButton button) {
 		}
 	}
 
-	return (GUI_PASS);
+	return GUI_PASS;
 }
 
 GUI_status GUI_TextInput::KeyDown(const Common::KeyState &keyState) {
@@ -225,7 +217,7 @@ GUI_status GUI_TextInput::KeyDown(const Common::KeyState &keyState) {
 		break;
 	}
 
-	return (GUI_YUM);
+	return GUI_YUM;
 }
 
 void GUI_TextInput::add_char(char c) {
@@ -276,8 +268,8 @@ void GUI_TextInput::set_text(const char *new_text) {
 /* Map the color to the display */
 void GUI_TextInput::SetDisplay(Screen *s) {
 	GUI_Widget::SetDisplay(s);
-	cursor_color = SDL_MapRGB(surface->format, 0xff, 0, 0);
-	selected_bgcolor = SDL_MapRGB(surface->format, 0x5a, 0x6e, 0x91);
+	cursor_color = surface->format.RGBToColor(0xff, 0, 0);
+	selected_bgcolor = surface->format.RGBToColor(0x5a, 0x6e, 0x91);
 }
 
 

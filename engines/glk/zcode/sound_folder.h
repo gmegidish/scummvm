@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 #include "glk/zcode/frotz_types.h"
 #include "common/archive.h"
 #include "common/fs.h"
-#include "common/hash-str.h"
+#include "common/hashmap.h"
 
 namespace Glk {
 namespace ZCode {
@@ -39,7 +38,8 @@ namespace ZCode {
 class SoundSubfolder : public Common::Archive {
 private:
 	Common::FSNode _folder;
-	Common::StringMap _filenames;
+	typedef Common::HashMap<Common::Path, Common::String, Common::Path::IgnoreCase_Hash, Common::Path::IgnoreCase_EqualTo> FileMap;
+	FileMap _filenames;
 private:
 	/**
 	 * Constructor
@@ -87,7 +87,8 @@ public:
 class SoundZip : public Common::Archive {
 private:
 	Common::Archive *_zip;
-	Common::StringMap _filenames;
+	typedef Common::HashMap<Common::Path, Common::Path, Common::Path::IgnoreCase_Hash, Common::Path::IgnoreCase_EqualTo> FileMap;
+	FileMap _filenames;
 private:
 	/**
 	 * Constructor

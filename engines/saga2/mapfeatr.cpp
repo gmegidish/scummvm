@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -51,7 +50,7 @@ namespace Saga2 {
         new CStaticMapFeature(TilePoint(u,v,0),0,n,STARGATE_COLOR))
 
 /* ===================================================================== *
-   Map feature list maintainence
+   Map feature list maintenance
  * ===================================================================== */
 
 // ------------------------------------------------------------------------
@@ -231,7 +230,7 @@ void initMapFeatures() {
 void updateMapFeatures(int16 cWorld) {
 	extern WorldMapData         *mapList;
 	extern GameWorld            *currentWorld;
-	WorldMapData    *wMap = &mapList[currentWorld->mapNum];
+	WorldMapData    *wMap = &mapList[currentWorld->_mapNum];
 
 	uint16          *mapData = wMap->map->mapData;
 
@@ -240,7 +239,7 @@ void updateMapFeatures(int16 cWorld) {
 			uint16   *mapRow;
 			mapRow = &mapData[(g_vm->_mapFeatures[i]->getU() >> (kTileUVShift + kPlatShift)) * wMap->mapSize];
 			uint16   mtile = mapRow[(g_vm->_mapFeatures[i]->getV() >> (kTileUVShift + kPlatShift))];
-			g_vm->_mapFeatures[i]->expose(mtile & metaTileVisited);
+			g_vm->_mapFeatures[i]->expose(mtile & kMetaTileVisited);
 		}
 	}
 }
@@ -299,10 +298,10 @@ void termMapFeatures() {
 
 
 CMapFeature::CMapFeature(TilePoint where, int16 inWorld, const char *desc) {
-	visible = false;
-	featureCoords = where;
-	world = inWorld;
-	Common::strlcpy(name, desc, MAX_MAP_FEATURE_NAME_LENGTH);
+	_visible = false;
+	_featureCoords = where;
+	_world = inWorld;
+	Common::strlcpy(_name, desc, MAX_MAP_FEATURE_NAME_LENGTH);
 }
 
 
@@ -312,12 +311,12 @@ void CMapFeature::draw(TileRegion viewRegion,
                        gPort &tPort) {
 	int32           x, y;
 
-	if (world != inWorld) return;
+	if (_world != inWorld) return;
 	update();
 
-	//TilePoint centerCoords = featureCoords >> (kTileUVShift + kPlatShift);
-	TilePoint fCoords = featureCoords >> (kTileUVShift + kPlatShift);
-	if (visible                               &&
+	//TilePoint centerCoords = _featureCoords >> (kTileUVShift + kPlatShift);
+	TilePoint fCoords = _featureCoords >> (kTileUVShift + kPlatShift);
+	if (_visible                               &&
 	        fCoords.u >= viewRegion.min.u   &&
 	        fCoords.u <= viewRegion.max.u   &&
 	        fCoords.v >= viewRegion.min.v   &&
@@ -326,7 +325,7 @@ void CMapFeature::draw(TileRegion viewRegion,
 
 		//  Calculate the position of the cross-hairs showing the position of
 		//  the center actor.
-		centerPt = featureCoords - (baseCoords << (kTileUVShift + kPlatShift));
+		centerPt = _featureCoords - (baseCoords << (kTileUVShift + kPlatShift));
 
 		x = ((centerPt.u - centerPt.v) >> (kTileUVShift + kPlatShift - 2)) + 261 + 4;
 		y = 255 + 4 - ((centerPt.u + centerPt.v) >> (kTileUVShift + kPlatShift - 1));
@@ -338,12 +337,12 @@ void CMapFeature::draw(TileRegion viewRegion,
 #ifdef DEBUG_FEATUREPOS
 	else {
 		char msg[256];
-		sprintf(msg, "Hide: ");
-		if (!visible) strcat(msg, "not visible");
-		if (!(fCoords.u >= viewRegion.min.u)) sprintf(msg + strlen(msg), "U lo %d,%d ", fCoords.u, viewRegion.min.u);
-		if (!(fCoords.u <= viewRegion.max.u)) sprintf(msg + strlen(msg), "U hi %d,%d ", fCoords.u, viewRegion.max.u);
-		if (!(fCoords.v >= viewRegion.min.v)) sprintf(msg + strlen(msg), "V lo %d,%d ", fCoords.v, viewRegion.min.v);
-		if (!(fCoords.v <= viewRegion.max.v)) sprintf(msg + strlen(msg), "V hi %d,%d ", fCoords.v, viewRegion.max.v);
+		Common::sprintf_s(msg, "Hide: ");
+		if (!visible) Common::strcat_s(msg, "not visible");
+		if (!(fCoords.u >= viewRegion.min.u)) Common::sprintf_s(msg + strlen(msg), "U lo %d,%d ", fCoords.u, viewRegion.min.u);
+		if (!(fCoords.u <= viewRegion.max.u)) Common::sprintf_s(msg + strlen(msg), "U hi %d,%d ", fCoords.u, viewRegion.max.u);
+		if (!(fCoords.v >= viewRegion.min.v)) Common::sprintf_s(msg + strlen(msg), "V lo %d,%d ", fCoords.v, viewRegion.min.v);
+		if (!(fCoords.v <= viewRegion.max.v)) Common::sprintf_s(msg + strlen(msg), "V hi %d,%d ", fCoords.v, viewRegion.max.v);
 		WriteStatusF(12, "%s", msg);
 	}
 #endif
@@ -355,9 +354,9 @@ bool CMapFeature::hitCheck(TileRegion viewRegion,
                            TilePoint comparePoint) {
 	int32           x, y;
 
-	if (world != inWorld) return false;
-	TilePoint fCoords = featureCoords >> (kTileUVShift + kPlatShift);
-	if (visible                               &&
+	if (_world != inWorld) return false;
+	TilePoint fCoords = _featureCoords >> (kTileUVShift + kPlatShift);
+	if (_visible                               &&
 	        fCoords.u >= viewRegion.min.u   &&
 	        fCoords.u <= viewRegion.max.u   &&
 	        fCoords.v >= viewRegion.min.v   &&
@@ -366,7 +365,7 @@ bool CMapFeature::hitCheck(TileRegion viewRegion,
 
 		//  Calculate the position of the cross-hairs showing the position of
 		//  the center actor.
-		centerPt = featureCoords - (baseCoords << (kTileUVShift + kPlatShift));
+		centerPt = _featureCoords - (baseCoords << (kTileUVShift + kPlatShift));
 
 		x = ((centerPt.u - centerPt.v) >> (kTileUVShift + kPlatShift - 2)) + 261 + 4;
 		y = 255 + 4 - ((centerPt.u + centerPt.v) >> (kTileUVShift + kPlatShift - 1));
@@ -383,13 +382,13 @@ bool CMapFeature::hitCheck(TileRegion viewRegion,
 
 CStaticMapFeature::CStaticMapFeature(TilePoint where, int16 inWorld, const char *desc, int16 bColor)
 	: CMapFeature(where, inWorld, desc) {
-	color = bColor;
+	_color = bColor;
 }
 
 void CStaticMapFeature::blit(gPort &tPort, int32 x, int32 y) {
 	tPort.setColor(9 + 15);          //  black
 	tPort.fillRect(x - 2, y - 2, 5, 5);
-	tPort.setColor(color);       //  whatever color its supposed to be
+	tPort.setColor(_color);       //  whatever color its supposed to be
 	tPort.fillRect(x - 1, y - 1, 3, 3);
 }
 
@@ -405,7 +404,7 @@ bool CStaticMapFeature::isHit(TilePoint disp, TilePoint mouse) {
 
 CPictureMapFeature::CPictureMapFeature(TilePoint where, int16 inWorld, char *desc, gPixelMap *pm)
 	: CMapFeature(where, inWorld, desc) {
-	pic = pm;
+	_pic = pm;
 }
 
 void CPictureMapFeature::blit(gPort &tPort, int32 x, int32 y) {

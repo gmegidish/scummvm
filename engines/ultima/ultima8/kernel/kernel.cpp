@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
+#include "ultima/ultima8/misc/debugger.h"
 #include "ultima/ultima8/kernel/kernel.h"
 #include "ultima/ultima8/kernel/process.h"
 #include "ultima/ultima8/misc/id_man.h"
@@ -44,7 +43,7 @@ static const uint16 CRU_PROC_TYPE_ALL = 0xc;
 
 Kernel::Kernel() : _loading(false), _tickNum(0), _paused(0),
 		_runningProcess(nullptr), _frameByFrame(false) {
-	debugN(MM_INFO, "Creating Kernel...\n");
+	debug(1, "Creating Kernel...");
 
 	_kernel = this;
 	_pIDs = new idMan(1, 32766, 128);
@@ -53,7 +52,7 @@ Kernel::Kernel() : _loading(false), _tickNum(0), _paused(0),
 
 Kernel::~Kernel() {
 	reset();
-	debugN(MM_INFO, "Destroying Kernel...\n");
+	debug(1, "Destroying Kernel...");
 
 	_kernel = nullptr;
 
@@ -61,13 +60,18 @@ Kernel::~Kernel() {
 }
 
 void Kernel::reset() {
-	debugN(MM_INFO, "Resetting Kernel...\n");
+	debug(1, "Resetting Kernel...");
 
 	for (ProcessIterator it = _processes.begin(); it != _processes.end(); ++it) {
-		delete(*it);
+		Process *p = *it;
+		if (p->_flags & Process::PROC_TERM_DISPOSE && p != _runningProcess) {
+			delete p;
+		} else {
+			p->_flags |= Process::PROC_TERMINATED;
+		}
 	}
 	_processes.clear();
-	_currentProcess = _processes.begin();
+	_currentProcess = _processes.end();
 
 	_pIDs->clearAll();
 
@@ -88,7 +92,7 @@ ProcId Kernel::assignPID(Process *proc) {
 	return proc->_pid;
 }
 
-ProcId Kernel::addProcess(Process *proc) {
+ProcId Kernel::addProcess(Process *proc, bool dispose) {
 #if 0
 	for (ProcessIterator it = processes.begin(); it != processes.end(); ++it) {
 		if (*it == proc)
@@ -99,17 +103,18 @@ ProcId Kernel::addProcess(Process *proc) {
 	assert(proc->_pid != 0 && proc->_pid != 0xFFFF);
 
 #if 0
-	perr << "[Kernel] Adding process " << proc
-	<< ", pid = " << proc->_pid << " type " << proc->GetClassType()._className << Std::endl;
+	debug(1, "[Kernel] Adding process %p, pid = %u type %s",
+		proc, proc->_pid, proc->GetClassType()._className);
 #endif
 
-//	processes.push_back(proc);
-//	proc->active = true;
+	if (dispose) {
+		proc->_flags |= Process::PROC_TERM_DISPOSE;
+	}
 	setNextProcess(proc);
 	return proc->_pid;
 }
 
-ProcId Kernel::addProcessExec(Process *proc) {
+ProcId Kernel::addProcessExec(Process *proc, bool dispose) {
 #if 0
 	for (ProcessIterator it = processes.begin(); it != processes.end(); ++it) {
 		if (*it == proc)
@@ -120,10 +125,13 @@ ProcId Kernel::addProcessExec(Process *proc) {
 	assert(proc->_pid != 0 && proc->_pid != 0xFFFF);
 
 #if 0
-	perr << "[Kernel] Adding process " << proc
-	     << ", pid = " << proc->_pid << Std::endl;
+	debug(1, "[Kernel] Adding process %p, pid = %u type %s",
+		proc, proc->_pid, proc->GetClassType()._className);
 #endif
 
+	if (dispose) {
+		proc->_flags |= Process::PROC_TERM_DISPOSE;
+	}
 	_processes.push_back(proc);
 	proc->_flags |= Process::PROC_ACTIVE;
 
@@ -160,6 +168,7 @@ void Kernel::runProcesses() {
 				(_paused || _tickNum % p->getTicksPerRun() == 0)) {
 			_runningProcess = p;
 			p->run();
+			_runningProcess = nullptr;
 
 			num_run++;
 
@@ -184,10 +193,13 @@ void Kernel::runProcesses() {
 				p->fail();
 			}
 
-			if (!_runningProcess)
-				return; // If this happens then the list was reset so leave NOW!
-
-			_runningProcess = nullptr;
+			if (_currentProcess == _processes.end()) {
+				// If this happens then the list was reset so delete the process and return.
+				if (p->_flags & Process::PROC_TERM_DISPOSE) {
+					delete p;
+				}
+				return;
+			}
 		}
 		if (!_paused && (p->_flags & Process::PROC_TERMINATED)) {
 			// process is killed, so remove it from the list
@@ -196,8 +208,9 @@ void Kernel::runProcesses() {
 			// Clear pid
 			_pIDs->clearID(p->_pid);
 
-			//! is this the right place to delete processes?
-			delete p;
+			if (p->_flags & Process::PROC_TERM_DISPOSE) {
+				delete p;
+			}
 		} else if (!_paused && (p->_flags & Process::PROC_TERM_DEFERRED) && GAME_IS_CRUSADER) {
 			//
 			// In Crusader, move term deferred processes to the end to clean up after
@@ -259,12 +272,12 @@ void Kernel::kernelStats() {
 
 void Kernel::processTypes() {
 	g_debugger->debugPrintf("Current process types:\n");
-	Std::map<Common::String, unsigned int> processtypes;
+	Common::HashMap<Common::String, unsigned int> processtypes;
 	for (ProcessIterator it = _processes.begin(); it != _processes.end(); ++it) {
 		Process *p = *it;
 		processtypes[p->GetClassType()._className]++;
 	}
-	Std::map<Common::String, unsigned int>::const_iterator iter;
+	Common::HashMap<Common::String, unsigned int>::const_iterator iter;
 	for (iter = processtypes.begin(); iter != processtypes.end(); ++iter) {
 		g_debugger->debugPrintf("%s: %u\n", (*iter)._key.c_str(), (*iter)._value);
 	}
@@ -324,6 +337,8 @@ void Kernel::killProcessesNotOfType(ObjId objid, uint16 processtype, bool fail) 
 	for (ProcessIterator it = _processes.begin(); it != _processes.end(); ++it) {
 		Process *p = *it;
 
+		// * If objid is 0, terminate procs for all objects.
+		// * Never terminate procs with objid 0
 		if (p->_itemNum != 0 && (objid == 0 || objid == p->_itemNum) &&
 		        (p->_type != processtype) &&
 		        !(p->_flags & Process::PROC_TERMINATED) &&
@@ -336,6 +351,56 @@ void Kernel::killProcessesNotOfType(ObjId objid, uint16 processtype, bool fail) 
 	}
 }
 
+void Kernel::killAllProcessesNotOfTypeExcludeCurrent(uint16 processtype, bool fail) {
+	Common::HashMap<ProcId, bool> procsToSave;
+	Common::Array<ProcId> queue;
+
+	// Create a list of all the processes and their waiting parents that we can't kill.
+	if (_runningProcess) {
+		queue.push_back(_runningProcess->_pid);
+		while (!queue.empty()) {
+			ProcId procToSave = queue.back();
+			queue.pop_back();
+			if (!procsToSave.contains(procToSave)) {
+				Process *p = getProcess(procToSave);
+				if (p) {
+					procsToSave[procToSave] = true;
+					queue.push_back(p->_waiting);
+				}
+			}
+		}
+	}
+
+	for (ProcessIterator it = _processes.begin(); it != _processes.end(); ++it) {
+		Process *p = *it;
+
+		// Don't kill the running process
+		if (procsToSave.contains(p->_pid))
+			continue;
+
+		if ((p->_type != processtype) &&
+				!(p->_flags & Process::PROC_TERMINATED) &&
+				!(p->_flags & Process::PROC_TERM_DEFERRED)) {
+			if (fail)
+				p->fail();
+			else
+				p->terminate();
+		}
+	}
+}
+
+bool Kernel::canSave() {
+	for (ProcessIterator it = _processes.begin(); it != _processes.end(); ++it) {
+		Process *p = *it;
+
+		if (!p->is_terminated() && p->_flags & Process::PROC_PREVENT_SAVE) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 void Kernel::save(Common::WriteStream *ws) {
 	ws->writeUint32LE(_tickNum);
 	_pIDs->save(ws);
@@ -344,7 +409,7 @@ void Kernel::save(Common::WriteStream *ws) {
 		const Std::string & classname = (*it)->GetClassType()._className; // virtual
 		assert(classname.size());
 
-		Std::map<Common::String, ProcessLoadFunc>::iterator iter;
+		Common::HashMap<Common::String, ProcessLoadFunc>::iterator iter;
 		iter = _processLoaders.find(classname);
 
 		if (iter == _processLoaders.end()) {
@@ -409,11 +474,11 @@ Process *Kernel::loadProcess(Common::ReadStream *rs, uint32 version) {
 	Std::string classname = buf;
 	delete[] buf;
 
-	Std::map<Common::String, ProcessLoadFunc>::iterator iter;
+	Common::HashMap<Common::String, ProcessLoadFunc>::iterator iter;
 	iter = _processLoaders.find(classname);
 
 	if (iter == _processLoaders.end()) {
-		perr << "Unknown Process class: " << classname << Std::endl;
+		warning("Unknown Process class: %s", classname.c_str());
 		return nullptr;
 	}
 
@@ -445,12 +510,6 @@ uint32 Kernel::I_resetRef(const uint8 *args, unsigned int /*argsize*/) {
 
 	Kernel::get_instance()->killProcesses(item, type, true);
 	return 0;
-}
-
-const uint U8_RAND_MAX = 0x7fffffff;
-
-uint getRandom() {
-	return Ultima8Engine::get_instance()->getRandomNumber(U8_RAND_MAX);
 }
 
 } // End of namespace Ultima8

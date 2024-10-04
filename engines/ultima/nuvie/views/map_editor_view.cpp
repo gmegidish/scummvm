@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,14 +33,12 @@
 namespace Ultima {
 namespace Nuvie {
 
-#define TILES_W 5
-#define TILES_H 10
+static const int TILES_W = 5;
+static const int TILES_H = 10;
 
-MapEditorView::MapEditorView(Configuration *cfg) : View(cfg) {
-	roof_tiles = NULL;
-	map_window = NULL;
-	up_button = NULL;
-	down_button = NULL;
+MapEditorView::MapEditorView(const Configuration *cfg) : View(cfg), roof_tiles(nullptr),
+		map_window(nullptr), up_button(nullptr), down_button(nullptr),
+		selectedTile(0), tile_offset(0) {
 }
 
 MapEditorView::~MapEditorView() {
@@ -53,8 +50,8 @@ bool MapEditorView::init(Screen *tmp_screen, void *view_manager, uint16 x, uint1
 	SetRect(area.left, area.top, 90, 200);
 	bg_color = 119;
 
-	Std::string datadir = GUI::get_gui()->get_data_dir();
-	Std::string path;
+	Common::Path datadir = GUI::get_gui()->get_data_dir();
+	Common::Path path;
 
 	build_path(datadir, "images", path);
 	datadir = path;
@@ -235,7 +232,7 @@ GUI_status MapEditorView::KeyDown(const Common::KeyState &key) {
 		keybinder->handle_always_available_keys(a);
 		break; // was GUI_PASS pefore action_type change
 	}
-	return (GUI_YUM);
+	return GUI_YUM;
 }
 
 GUI_status MapEditorView::MouseDown(int x, int y, Shared::MouseButton button) {

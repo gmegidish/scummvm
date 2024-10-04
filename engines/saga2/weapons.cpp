@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -49,7 +48,7 @@ namespace Saga2 {
 static void loadWeaponData();
 
 ProtoEffect *createNewProtoEffect(Common::SeekableReadStream *stream) {
-	ProtoEffect *pe = NULL;
+	ProtoEffect *pe = nullptr;
 
 	/* int16 item = */stream->readSint16LE();	// spell ID
 	int16 effectGroup = stream->readSint16LE();	// effect group
@@ -68,44 +67,44 @@ ProtoEffect *createNewProtoEffect(Common::SeekableReadStream *stream) {
 		diceSides = 6;
 
 	switch (effectGroup) {
-	case effectNone:
-		return NULL;
+	case kEffectNone:
+		return nullptr;
 
-	case effectAttrib:
+	case kEffectAttrib:
 		pe = new ProtoEnchantment(makeEnchantmentID(effectGroup, effectType, baseDamage), reserved0, reserved1);
 		break;
 
-	case effectResist:
-	case effectImmune:
-	case effectOthers:
-	case effectNonActor:
+	case kEffectResist:
+	case kEffectImmune:
+	case kEffectOthers:
+	case kEffectNonActor:
 		pe = new ProtoEnchantment(makeEnchantmentID(effectGroup, effectType, skillDamage), reserved0, reserved1);
 		break;
 
-	case effectDamage:
+	case kEffectDamage:
 		pe = new ProtoDamage(baseDice, diceSides, skillDice, baseDamage,
-					(effectDamageTypes)effectType, 0, targeting & spellTargCaster, skillDamage);
+					(effectDamageTypes)effectType, 0, targeting & kSpellTargCaster, skillDamage);
 		break;
 
-	case effectDrains:
+	case kEffectDrains:
 		pe = new ProtoDrainage(baseDice, diceSides, skillDice, baseDamage,
-					(effectDrainsTypes)effectType, 0, targeting & spellTargCaster);
+					(effectDrainsTypes)effectType, 0, targeting & kSpellTargCaster);
 		break;
 
-	case effectPoison:
+	case kEffectPoison:
 		pe = new ProtoEnchantment(makeEnchantmentID(baseDamage),      // poison
 					reserved0, reserved1);
 		break;
 
-	case effectTAG:
+	case kEffectTAG:
 		pe = new ProtoTAGEffect((effectTAGTypes)effectType, skillDamage, baseDamage);
 		break;
 
-	case effectLocation:
-		pe = new ProtoLocationEffect((effectLocationTypes)effectType, baseDamage);
+	case kEffectLocation:
+		pe = new ProtoLocationEffect((kEffectLocationTypes)effectType, baseDamage);
 		break;
 
-	case effectSpecial:
+	case kEffectSpecial:
 		pe = new ProtoSpecialEffect(SagaSpellCall, baseDamage);
 		break;
 	}
@@ -144,14 +143,14 @@ GameObject *getShieldItem(GameObject *defender) {
    WeaponProtoEffect member functions
  * ===================================================================== */
 WeaponProtoEffect::~WeaponProtoEffect() {
-	if (_effect != NULL)
+	if (_effect != nullptr)
 		delete _effect;
 }
 
 void WeaponProtoEffect::implement(Actor *enactor, GameObject *target, GameObject *, uint8) {
 	SpellTarget targ(target);
 
-	if (_effect != NULL)
+	if (_effect != nullptr)
 		_effect->implement(enactor, &targ);
 }
 
@@ -172,12 +171,12 @@ void WeaponStrikeEffect::implement(Actor *enactor, GameObject *target, GameObjec
 }
 
 WeaponStuff::WeaponStuff() {
-	_effects = NULL;
+	_effects = nullptr;
 	_master = kNullWeapon;
 }
 
 WeaponStuff::~WeaponStuff() {
-	while (_effects != NULL) {
+	while (_effects != nullptr) {
 		WeaponEffect *curEffect = _effects;
 
 		_effects = _effects->_next;
@@ -187,7 +186,7 @@ WeaponStuff::~WeaponStuff() {
 }
 
 void WeaponStuff::killEffects() {
-	while (_effects != NULL) {
+	while (_effects != nullptr) {
 		WeaponEffect *curEffect = _effects;
 
 		_effects = _effects->_next;
@@ -212,7 +211,7 @@ void WeaponStuff::addEffect(Common::SeekableReadStream *stream) {
 	/*int16 item = */stream->readSint16LE();		// spell ID
 	int16 effectGroup = stream->readSint16LE();	// effect group
 
-	if (effectGroup == effectStrike) {
+	if (effectGroup == kEffectStrike) {
 		effectDamageTypes effectType = (effectDamageTypes)stream->readSint16LE();	// effect ID
 		/*int16 targeting = */stream->readSint16LE();	// targeting
 		int16 baseDice = stream->readSint16LE();	// base dice
@@ -232,10 +231,10 @@ void WeaponStuff::addEffect(Common::SeekableReadStream *stream) {
 		we = new WeaponProtoEffect(stream);
 	}
 
-	if (we == NULL)
+	if (we == nullptr)
 		error("failed to alloc weapon effect");
 
-	if (_effects == NULL)
+	if (_effects == nullptr)
 		_effects = we;
 	else {
 		WeaponEffect *tail;
@@ -246,7 +245,7 @@ void WeaponStuff::addEffect(Common::SeekableReadStream *stream) {
 }
 
 void WeaponStuff::implement(Actor *enactor, GameObject *target, GameObject *strikingObj, uint8 strength) {
-	for (WeaponEffect *we = _effects; we != NULL; we = we->_next)
+	for (WeaponEffect *we = _effects; we != nullptr; we = we->_next)
 		we->implement(enactor, target, strikingObj, strength);
 }
 
@@ -254,7 +253,7 @@ void WeaponStuff::implement(Actor *enactor, GameObject *target, GameObject *stri
 
 static void loadWeaponData() {
 	hResContext *spellRes = auxResFile->newContext(MKTAG('I', 'T', 'E', 'M'), "weapon resources");
-	if (spellRes == NULL || !spellRes->_valid)
+	if (spellRes == nullptr || !spellRes->_valid)
 		error("Error accessing weapon resource group.");
 
 	debugC(1, kDebugLoading, "Loading Weapon Data");

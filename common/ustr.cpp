@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -61,6 +60,11 @@ U32String &U32String::operator=(const U32String &str) {
 	return *this;
 }
 
+U32String &U32String::operator=(U32String &&str) {
+	assign(static_cast<U32String &&>(str));
+	return *this;
+}
+
 U32String &U32String::operator=(const String &str) {
 	clear();
 	decodeInternal(str.c_str(), str.size(), Common::kUtf8);
@@ -68,7 +72,8 @@ U32String &U32String::operator=(const String &str) {
 }
 
 U32String &U32String::operator=(const value_type *str) {
-	return U32String::operator=(U32String(str));
+	assign(str);
+	return *this;
 }
 
 U32String &U32String::operator=(const char *str) {
@@ -77,27 +82,23 @@ U32String &U32String::operator=(const char *str) {
 	return *this;
 }
 
+U32String &U32String::operator=(value_type c) {
+	assign(c);
+	return *this;
+}
+
+U32String &U32String::operator+=(const value_type *str) {
+	assignAppend(str);
+	return *this;
+}
+
 U32String &U32String::operator+=(const U32String &str) {
-	if (&str == this) {
-		return operator+=(U32String(str));
-	}
-
-	int len = str._size;
-	if (len > 0) {
-		ensureCapacity(_size + len, true);
-
-		memcpy(_str + _size, str._str, (len + 1) * sizeof(value_type));
-		_size += len;
-	}
+	assignAppend(str);
 	return *this;
 }
 
 U32String &U32String::operator+=(value_type c) {
-	ensureCapacity(_size + 1, true);
-
-	_str[_size++] = c;
-	_str[_size] = 0;
-
+	assignAppend(c);
 	return *this;
 }
 
@@ -138,20 +139,12 @@ U32String U32String::substr(size_t pos, size_t len) const {
 		return U32String(_str + pos, MIN((size_t)_size - pos, len));
 }
 
-void U32String::insertString(const char *s, uint32 p, CodePage page) {
-	insertString(U32String(s, page), p);
-}
-
-void U32String::insertString(const String &s, uint32 p, CodePage page) {
-	insertString(U32String(s, page), p);
-}
-
-U32String U32String::format(U32String fmt, ...) {
+U32String U32String::formatInternal(const U32String *fmt, ...) {
 	U32String output;
 
 	va_list va;
 	va_start(va, fmt);
-	U32String::vformat(fmt.c_str(), fmt.c_str() + fmt.size(), output, va);
+	U32String::vformat(fmt->c_str(), fmt->c_str() + fmt->size(), output, va);
 	va_end(va);
 
 	return output;
@@ -172,78 +165,87 @@ U32String U32String::format(const char *fmt, ...) {
 
 int U32String::vformat(const value_type *fmt, const value_type *fmtEnd, U32String &output, va_list args) {
 	int int_temp;
+	uint uint_temp;
 	char *string_temp;
 
 	value_type ch;
 	value_type *u32string_temp;
-	int length = 0;
-	int len = 0;
-	int pos = 0;
-	int tempPos = 0;
 
-	char buffer[512];
+	value_type buffer[512];
+
+	const value_type *start = fmt;
 
 	while (fmt != fmtEnd) {
-		ch = *fmt++;
-		if (ch == '%') {
-			switch (ch = *fmt++) {
+		if (*fmt == '%') {
+			// Copy all characters since the last argument
+			if (fmt != start)
+				output.append(start, fmt);
+
+			switch (ch = *++fmt) {
 			case 'S':
 				u32string_temp = va_arg(args, value_type *);
 
-				tempPos = output.size();
-				output.insertString(u32string_temp, pos);
-				len = output.size() - tempPos;
-				length += len;
-
-				pos += len - 1;
+				output += u32string_temp;
 				break;
 			case 's':
 				string_temp = va_arg(args, char *);
-				tempPos = output.size();
-				output.insertString(string_temp, pos);
-				len = output.size() - tempPos;
-				length += len;
-				pos += len - 1;
+
+				output += Common::U32String(string_temp, kUtf8);
 				break;
 			case 'i':
 			// fallthrough intended
 			case 'd':
 				int_temp = va_arg(args, int);
-				itoa(int_temp, buffer, 10);
-				len = strlen(buffer);
-				length += len;
+				ustr_helper_itoa(int_temp, buffer, 10);
 
-				output.insertString(buffer, pos);
-				pos += len - 1;
+				output += buffer;
 				break;
 			case 'u':
-				int_temp = va_arg(args, uint);
-				itoa(int_temp, buffer, 10);
-				len = strlen(buffer);
-				length += len;
+				uint_temp = va_arg(args, uint);
+				ustr_helper_uitoa(uint_temp, buffer, 10);
 
-				output.insertString(buffer, pos);
-				pos += len - 1;
+				output += buffer;
 				break;
 			case 'c':
 				//char is promoted to int when passed through '...'
 				int_temp = va_arg(args, int);
-				output.insertChar(int_temp, pos);
-				++length;
+
+				output += int_temp;
+				break;
+			case '%':
+				output += '%';
 				break;
 			default:
 				warning("Unexpected formatting type for U32String::Format.");
 				break;
 			}
+
+			start = ++fmt;
 		} else {
-			output += *(fmt - 1);
+			// We attempt to copy as many characters as possible in one go.
+			++fmt;
 		}
-		pos++;
 	}
-	return length;
+
+	// Append any remaining characters
+	if (fmt != start)
+		output.append(start, fmt);
+
+	return output.size();
 }
 
-char* U32String::itoa(int num, char* str, int base) {
+U32String::value_type* U32String::ustr_helper_itoa(int num, value_type* str, uint base) {
+	if (num < 0) {
+		str[0] = '-';
+		ustr_helper_uitoa(-num, str + 1, base);
+	} else {
+		ustr_helper_uitoa(num, str, base);
+	}
+
+	return str;
+}
+
+U32String::value_type* U32String::ustr_helper_uitoa(uint num, value_type* str, uint base) {
 	int i = 0;
 
 	if (num) {
@@ -264,7 +266,7 @@ char* U32String::itoa(int num, char* str, int base) {
 
 	// reverse the string
 	while (k < j) {
-		char temp = str[k];
+		value_type temp = str[k];
 		str[k] = str[j];
 		str[j] = temp;
 		k++;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ class MacButton : public MacText {
 public:
 	MacButton(MacButtonType buttonType, TextAlign textAlignment, MacWidget *parent, int x, int y, int w, int h, MacWindowManager *wm, const Common::U32String &s, const MacFont *macFont, int fgcolor, int bgcolor);
 
-	virtual void setActive(bool active) override;
+	void setActive(bool active) override;
 
 	void invertOuter();
 	void invertInner();
@@ -58,10 +57,10 @@ public:
 	void setCheckBoxType(int type);
 	void setCheckBoxAccess(int type) { _checkBoxAccess = type; }
 
-	virtual bool draw(ManagedSurface *g, bool forceRedraw = false) override;
-	virtual bool draw(bool forceRedraw = false) override;
-	virtual bool processEvent(Common::Event &event) override;
-	virtual Common::Point calculateOffset() override;
+	bool draw(ManagedSurface *g, bool forceRedraw = false) override;
+	bool draw(bool forceRedraw = false) override;
+	bool processEvent(Common::Event &event) override;
+	Common::Point calculateOffset() override;
 
 private:
 	void init();

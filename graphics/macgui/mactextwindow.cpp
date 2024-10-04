@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -95,12 +94,12 @@ void MacTextWindow::init(bool cursorHandler) {
 	if (_wm->_mode & kWMModeWin95) {
 		// in win95 mode, we set scrollbar as default
 		_hasScrollBar = true;
-		loadWin95Border("Win95BorderScrollbar.bmp", kWindowBorderScrollbar | kWindowBorderActive);
-		loadWin95Border("Win95BorderScrollbar.bmp",kWindowBorderScrollbar);
+		setBorderType(kWinBorderWin95Scrollbar);
+		loadInternalBorder(kWindowBorderScrollbar | kWindowBorderActive);
 	}
 }
 
-void MacTextWindow::resize(int w, int h, bool inner) {
+void MacTextWindow::resize(int w, int h) {
 	if (_composeSurface->w == w && _composeSurface->h == h)
 		return;
 
@@ -110,6 +109,17 @@ void MacTextWindow::resize(int w, int h, bool inner) {
 
 	_maxWidth = getInnerDimensions().width();
 	_mactext->resize(_maxWidth, h);
+}
+
+void MacTextWindow::setDimensions(const Common::Rect &r) {
+	resize(r.width(), r.height());
+	_dims.moveTo(r.left, r.top);
+	updateInnerDims();
+
+	_contentIsDirty = true;
+	_wm->setFullRefresh(true);
+
+	_mactext->setDimensions(Common::Rect(_innerDims.width(), _innerDims.height()));
 }
 
 void MacTextWindow::appendText(const Common::U32String &str, const MacFont *macFont, bool skipAdd) {
@@ -161,6 +171,12 @@ void MacTextWindow::appendText(const Common::U32String &str, const MacFont *macF
 
 void MacTextWindow::appendText(const Common::String &str, const MacFont *macFont, bool skipAdd) {
 	appendText(Common::U32String(str), macFont, skipAdd);
+}
+
+void MacTextWindow::setMarkdownText(const Common::U32String &str) {
+	_mactext->setMarkdownText(str);
+
+	_contentIsDirty = true;
 }
 
 void MacTextWindow::clearText() {
@@ -216,6 +232,9 @@ bool MacTextWindow::draw(bool forceRedraw) {
 
 	// Compose
 	_mactext->draw(_composeSurface, true);
+
+	if (_cursorState)
+		_composeSurface->blitFrom(*_cursorSurface, *_cursorRect, Common::Point(_cursorX, _cursorY));
 
 	return true;
 }
@@ -350,6 +369,14 @@ Common::U32String MacTextWindow::cutSelection() {
 	return selection;
 }
 
+int MacTextWindow::getMouseLine(int x, int y) {
+	// TODO: Improve the algorithm here, since after long scrolling there is
+	// sometimes error of +2 rows
+	x -= getInnerDimensions().left;
+	y -= getInnerDimensions().top + kConScrollStep;
+	return _mactext->getMouseLine(x, y); 
+}
+
 void MacTextWindow::calcScrollBar() {
 	// since this function only able for the window which has scroll bar
 	// thus, if it doesn't has scrollbar, then we don't have to calc it
@@ -482,6 +509,10 @@ bool MacTextWindow::processEvent(Common::Event &event) {
 	}
 
 	if (click == kBorderInner) {
+		// Call callback for processing any events
+		if (_callback)
+			(*_callback)(click, event, _dataPtr);
+
 		if (!_selectable)
 			return false;
 
@@ -536,6 +567,8 @@ void MacTextWindow::scroll(int delta) {
 	_cursorY -= (_scrollPos - oldScrollPos);
 	_contentIsDirty = true;
 	_borderIsDirty = true;
+
+	_mactext->scroll(delta);
 }
 
 void MacTextWindow::startMarking(int x, int y) {
@@ -622,7 +655,7 @@ static void cursorTimerHandler(void *refCon) {
 
 void MacTextWindow::updateCursorPos() {
 	_cursorY = _mactext->getTextHeight() - _scrollPos - kCursorHeight;
-
+	_cursorY += _inputText.empty() ? 3 : 0;
 	_cursorDirty = true;
 }
 

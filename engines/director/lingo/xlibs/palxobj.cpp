@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-/* Quicktime movies and PICT castmembers continually display
+/*************************************
+ *
+ * USED IN:
+ * Majestic-mac
+ * chopsuey-mac
+ * Jewels of the Oracle - Mac
+ *
+ *************************************/
+
+/*
+ * Quicktime movies and PICT castmembers continually display
  * in wrong colors after an 8 palette switch
  * this XObject can be used to patch this problem
  * use mPatchIt message on the same frame as the palette switch
@@ -47,26 +56,29 @@ namespace Director {
 
 // The name is different from the obj filename.
 const char *PalXObj::xlibName = "FixPalette";
-const char *PalXObj::fileNames[] = {
-	"PalXObj",
-	0
+const XlibFileDesc PalXObj::fileNames[] = {
+	{ "PalXObj",		nullptr },
+	{ "FixPalette",		nullptr },
+	{ "FixPaletteXObj",	nullptr },
+	{ "PALETTE.XOB",    nullptr }, //  Jewels of the Oracle - Mac
+	{ nullptr,			nullptr },
 };
 
 static MethodProto xlibMethods[] = {
 	{ "new",				PalXObj::m_new,				 4, 4,	400 },	// D4
 	{ "PatchIt",			PalXObj::m_patchIt,			 0, 0,  400 },	// D4
-	{ 0, 0, 0, 0, 0 }
+	{ nullptr, nullptr, 0, 0, 0 }
 };
 
-void PalXObj::open(int type) {
+void PalXObj::open(ObjectType type, const Common::Path &path) {
 	if (type == kXObj) {
 		PalXObject::initMethods(xlibMethods);
 		PalXObject *xobj = new PalXObject(kXObj);
-		g_lingo->_globalvars[xlibName] = xobj;
+		g_lingo->exposeXObject(xlibName, xobj);
 	}
 }
 
-void PalXObj::close(int type) {
+void PalXObj::close(ObjectType type) {
 	if (type == kXObj) {
 		PalXObject::cleanupMethods();
 		g_lingo->_globalvars[xlibName] = Datum();
@@ -74,12 +86,12 @@ void PalXObj::close(int type) {
 }
 
 
-PalXObject::PalXObject(ObjectType ObjectType) :Object<PalXObject>("PalXObj") {
+PalXObject::PalXObject(ObjectType ObjectType) :Object<PalXObject>("FixPalette") {
 	_objType = ObjectType;
 }
 
 void PalXObj::m_new(int nargs) {
-	PalXObject *me = static_cast<PalXObject *>(g_lingo->_currentMe.u.obj);
+	PalXObject *me = static_cast<PalXObject *>(g_lingo->_state->me.u.obj);
 
 	Common::Rect rect;
 	rect.bottom = g_lingo->pop().asInt();
@@ -88,7 +100,7 @@ void PalXObj::m_new(int nargs) {
 	rect.left  = g_lingo->pop().asInt();
 	me->_stageWindowCoordinates = rect;
 
-	g_lingo->push(g_lingo->_currentMe);
+	g_lingo->push(g_lingo->_state->me);
 }
 
 void PalXObj::m_patchIt(int nargs) {

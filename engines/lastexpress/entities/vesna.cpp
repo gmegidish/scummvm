@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -186,16 +185,16 @@ IMPLEMENT_FUNCTION(11, Vesna, homeAlone)
 		parameters->param1++;
 		switch (parameters->param1) {
 		default:
-			strcpy((char *)&parameters->seq, "VES1015C");
+			Common::strcpy_s(parameters->seq, "VES1015C");
 			parameters->param1 = 0;
 			break;
 
 		case 1:
-			strcpy((char *)&parameters->seq, "VES1015A");
+			Common::strcpy_s(parameters->seq, "VES1015A");
 			break;
 
 		case 2:
-			strcpy((char *)&parameters->seq, "VES1015B");
+			Common::strcpy_s(parameters->seq, "VES1015B");
 			break;
 		}
 
@@ -226,7 +225,7 @@ IMPLEMENT_FUNCTION(11, Vesna, homeAlone)
 		case 1:
 		case 2:
 			setCallback(3);
-			setup_playSound((char *)&parameters->seq);
+			setup_playSound(parameters->seq);
 			break;
 
 		case 3:
@@ -539,16 +538,16 @@ IMPLEMENT_FUNCTION(20, Vesna, inCompartment)
 
 		switch (parameters->param3) {
 		default:
-			strcpy((char *)&parameters->seq, "VES1015C");
+			Common::strcpy_s(parameters->seq, "VES1015C");
 			parameters->param3 = 0;
 			break;
 
 		case 1:
-			strcpy((char *)&parameters->seq, "VES1015A");
+			Common::strcpy_s(parameters->seq, "VES1015A");
 			break;
 
 		case 2:
-			strcpy((char *)&parameters->seq, "VES1015B");
+			Common::strcpy_s(parameters->seq, "VES1015B");
 			break;
 		}
 
@@ -584,7 +583,7 @@ IMPLEMENT_FUNCTION(20, Vesna, inCompartment)
 		case 1:
 		case 2:
 			setCallback(3);
-			setup_playSound((char *)&parameters->seq);
+			setup_playSound(parameters->seq);
 			break;
 
 		case 3:

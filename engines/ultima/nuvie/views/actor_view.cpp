@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,18 +41,15 @@ extern GUI_status partyViewButtonCallback(void *data);
 #define MD Game::get_game()->get_game_type()==NUVIE_GAME_MD
 
 
-ActorView::ActorView(Configuration *cfg) : View(cfg) {
-	portrait = NULL;
-	portrait_data = NULL;
-	in_party = false;
+ActorView::ActorView(const Configuration *cfg) : View(cfg), portrait(nullptr),
+		portrait_data(nullptr), in_party(false), cursor_tile(nullptr),
+		show_cursor(false) {
 	cursor_pos.x = 2;
 	cursor_pos.px = cursor_pos.py = 0;
-	cursor_tile = NULL;
-	show_cursor = false;
 }
 
 ActorView::~ActorView() {
-	if (portrait_data != NULL)
+	if (portrait_data != nullptr)
 		free(portrait_data);
 }
 
@@ -96,7 +92,7 @@ bool ActorView::set_party_member(uint8 party_member) {
 			Player *player = Game::get_game()->get_player();
 			portrait_data = portrait->get_portrait_data(player->get_actor());
 		}
-		if (portrait_data == NULL)
+		if (portrait_data == nullptr)
 			return false;
 	}
 
@@ -106,7 +102,7 @@ bool ActorView::set_party_member(uint8 party_member) {
 
 void ActorView::Display(bool full_redraw) {
 
-	if (portrait_data != NULL && (full_redraw || update_display || Game::get_game()->is_original_plus_full_map())) {
+	if (portrait_data != nullptr && (full_redraw || update_display || Game::get_game()->is_original_plus_full_map())) {
 		update_display = false;
 		if (MD) {
 			fill_md_background(bg_color, area);
@@ -121,9 +117,9 @@ void ActorView::Display(bool full_redraw) {
 		screen->update(area.left, area.top, area.width(), area.height());
 	}
 
-	if (show_cursor && cursor_tile != NULL) {
+	if (show_cursor && cursor_tile != nullptr) {
 		screen->blit(cursor_pos.px, cursor_pos.py, (unsigned char *)cursor_tile->data,
-		             8, 16, 16, 16, true, NULL);
+		             8, 16, 16, 16, true, nullptr);
 		screen->update(cursor_pos.px, cursor_pos.py, 16, 16);
 	}
 
@@ -184,7 +180,7 @@ void ActorView::display_name() {
 	else
 		name = Game::get_game()->get_player()->get_actor()->get_name(true);
 
-	if (name == NULL)
+	if (name == nullptr)
 		return;
 
 	font->drawString(screen, name, area.left + ((136) - strlen(name) * 8) / 2, area.top + y_off);
@@ -213,46 +209,46 @@ void ActorView::display_actor_stats() {
 
 	hp_text_color = actor->get_hp_text_color();
 
-	sprintf(buf, "%d", Game::get_game()->get_script()->call_actor_str_adj(actor)); //actor->get_strength());
+	Common::sprintf_s(buf, "%d", Game::get_game()->get_script()->call_actor_str_adj(actor)); //actor->get_strength());
 	uint8 str_len = font->drawString(screen, "STR:", area.left + 5 * 16 + x_off, area.top + y_off + 16);
 	font->drawString(screen, buf, area.left + 5 * 16 + x_off + str_len, area.top + y_off + 16, actor->get_str_text_color(), 0);
 
-	sprintf(buf, "%d", Game::get_game()->get_script()->call_actor_dex_adj(actor));
+	Common::sprintf_s(buf, "%d", Game::get_game()->get_script()->call_actor_dex_adj(actor));
 	str_len = font->drawString(screen, "DEX:", area.left + 5 * 16 + x_off, area.top + y_off + 16 + 8);
 	font->drawString(screen, buf, area.left + 5 * 16 + x_off + str_len, area.top + y_off + 16 + 8, actor->get_dex_text_color(), 0);
 
-	sprintf(buf, "INT:%d", Game::get_game()->get_script()->call_actor_int_adj(actor));
+	Common::sprintf_s(buf, "INT:%d", Game::get_game()->get_script()->call_actor_int_adj(actor));
 	font->drawString(screen, buf, area.left + 5 * 16 + x_off, area.top + y_off + 16 + 2 * 8);
 
 	if (MD || Game::get_game()->get_game_type() == NUVIE_GAME_SE) {
-		sprintf(buf, "%3d", actor->get_hp());
+		Common::sprintf_s(buf, "%3d", actor->get_hp());
 		str_len = font->drawString(screen, "HP:", area.left + 5 * 16 + x_off, area.top + y_off + 16 + 3 * 8);
 		font->drawString(screen, buf, strlen(buf), area.left + 5 * 16 + x_off + str_len, area.top + y_off + 16 + 3 * 8, hp_text_color, 0);
 
-		sprintf(buf, "HM:%3d", actor->get_maxhp());
+		Common::sprintf_s(buf, "HM:%3d", actor->get_maxhp());
 		font->drawString(screen, buf, area.left + 5 * 16 + x_off, area.top + y_off + 16 + 4 * 8);
 
-		sprintf(buf, "Lev:%2d", actor->get_level());
+		Common::sprintf_s(buf, "Lev:%2d", actor->get_level());
 		font->drawString(screen, buf, area.left + 5 * 16 + x_off, area.top + y_off + 16 + 5 * 8);
 
 		font->drawString(screen, "Exper:", area.left + 5 * 16 + x_off, area.top + y_off + 16 + 6 * 8);
-		sprintf(buf, "%6d", actor->get_exp());
+		Common::sprintf_s(buf, "%6d", actor->get_exp());
 		font->drawString(screen, buf, area.left + 5 * 16 + x_off, area.top + y_off + 16 + 7 * 8);
 		return;
 	}
 
 	font->drawString(screen, "Magic", area.left + 5 * 16, area.top + 16 + 4 * 8);
-	sprintf(buf, "%d/%d", actor->get_magic(), actor->get_maxmagic());
+	Common::sprintf_s(buf, "%d/%d", actor->get_magic(), actor->get_maxmagic());
 	font->drawString(screen, buf, area.left + 5 * 16, area.top + 16 + 5 * 8);
 
 	font->drawString(screen, "Health", area.left + 5 * 16, area.top + 16 + 6 * 8);
-	sprintf(buf, "%3d", actor->get_hp());
+	Common::sprintf_s(buf, "%3d", actor->get_hp());
 	font->drawString(screen, buf, strlen(buf), area.left + 5 * 16, area.top + 16 + 7 * 8, hp_text_color, 0);
-	sprintf(buf, "   /%d", actor->get_maxhp());
+	Common::sprintf_s(buf, "   /%d", actor->get_maxhp());
 	font->drawString(screen, buf, area.left + 5 * 16, area.top + 16 + 7 * 8);
 
 	font->drawString(screen, "Lev/Exp", area.left + 5 * 16, area.top + 16 + 8 * 8);
-	sprintf(buf, "%d/%d", actor->get_level(), actor->get_exp());
+	Common::sprintf_s(buf, "%d/%d", actor->get_level(), actor->get_exp());
 	font->drawString(screen, buf, area.left + 5 * 16, area.top + 16 + 9 * 8);
 
 	return;
@@ -283,7 +279,7 @@ GUI_status ActorView::MouseDown(int x, int y, Shared::MouseButton button) {
  */
 GUI_status ActorView::KeyDown(const Common::KeyState &key) {
 	if (!show_cursor) // FIXME: don't rely on show_cursor to get/pass focus
-		return (GUI_PASS);
+		return GUI_PASS;
 	KeyBinder *keybinder = Game::get_game()->get_keybinder();
 	ActionType a = keybinder->get_ActionType(key);
 
@@ -308,7 +304,7 @@ GUI_status ActorView::KeyDown(const Common::KeyState &key) {
 //			set_show_cursor(false); // newAction() can move cursor here
 		return GUI_PASS;
 	}
-	return (GUI_YUM);
+	return GUI_YUM;
 }
 
 /* Put cursor over one of the command icons. */

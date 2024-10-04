@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -144,7 +143,7 @@ public:
 	Matrix<rows, cols> &operator/=(const Matrix<rows, cols> &m);
 
 protected:
-	MatrixBase();
+	constexpr MatrixBase() = default;
 	MatrixBase(const float *data);
 	MatrixBase(const MatrixBase<rows, cols> &m);
 	MatrixBase &operator=(const MatrixBase<rows, cols> &m);
@@ -155,7 +154,7 @@ protected:
 		return *static_cast<Matrix<rows, cols> *>(this); }
 
 private:
-	float _values[rows * cols];
+	float _values[rows * cols] = { 0.0f };
 };
 
 /**
@@ -165,7 +164,7 @@ private:
 template<int r, int c>
 class MatrixType : public MatrixBase<r, c> {
 protected:
-	MatrixType() : MatrixBase<r, c>() { }
+	constexpr MatrixType() : MatrixBase<r, c>() { }
 	MatrixType(const float *data) : MatrixBase<r, c>(data) { }
 	MatrixType(const MatrixBase<r, c> &m) : MatrixBase<r, c>(m) { }
 };
@@ -180,7 +179,7 @@ protected:
 template<int r, int c>
 class Matrix : public MatrixType<r, c> {
 public:
-	Matrix() : MatrixType<r, c>() { }
+	constexpr Matrix() : MatrixType<r, c>() { }
 	Matrix(const float *data) : MatrixType<r, c>(data) { }
 	Matrix(const MatrixBase<r, c> &m) : MatrixType<r, c>(m) { }
 };
@@ -215,13 +214,6 @@ bool operator!=(const Matrix<r, c> &m1, const Matrix<r, c> &m2);
 
 
 // Constructors
-template<int rows, int cols>
-MatrixBase<rows, cols>::MatrixBase() {
-	for (int i = 0; i < rows * cols; ++i) {
-		_values[i] = 0.f;
-	}
-}
-
 template<int rows, int cols>
 MatrixBase<rows, cols>::MatrixBase(const float *data) {
 	setData(data);
@@ -496,7 +488,7 @@ bool operator!=(const Matrix<r, c> &m1, const Matrix<r, c> &m2) {
 }
 
 template<int r, int c>
-Common::StreamDebug &operator<<(Common::StreamDebug dbg, const Math::Matrix<r, c> &m) {
+Common::StreamDebug &operator<<(Common::StreamDebug &dbg, const Math::Matrix<r, c> &m) {
 	dbg.nospace() << "Matrix<" << r << ", " << c << ">(";
 	for (int col = 0; col < c; ++col) {
 		dbg << m(0, col) << ", ";

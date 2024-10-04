@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -132,7 +131,7 @@ protected:
 	void Item_Pickup_Spin_Effect(int animationId, int x, int y);
 	void Item_Pickup_Spin_Effect_From_Actor(int animationId, int actorId, int xOffset = 0, int yOffset = 0); // new for restored content mostly
 	bool Item_Query_Visible(int itemId);
-	void Set_Subtitle_Text_On_Screen(Common::String displayText);
+	void Set_Subtitle_Text_On_Screen(int subtitlesRole, Common::String displayText);
 #if BLADERUNNER_ORIGINAL_BUGS
 #else
 	void Screen_Effect_Skip(int effectInc, bool forceExtraSceneFrameSkip);
@@ -275,6 +274,8 @@ protected:
 	bool Game_Over();
 	void Autosave_Game(int textId);
 	void I_Sez(const char *str);
+	void Add_Subtitle_To_Queue(Common::String dbgQuote, uint32 duration);
+	void Clear_Subtitle_Queue();
 
 	void AI_Countdown_Timer_Start(int actorId, signed int timer, int32 seconds);
 	void AI_Countdown_Timer_Reset(int actorId, int timer);

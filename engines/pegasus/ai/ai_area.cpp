@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@
 
 namespace Pegasus {
 
-AIArea *g_AIArea = 0;
+AIArea *g_AIArea = nullptr;
 
 AIArea::AIArea(InputHandler *nextHandler) : InputHandler(nextHandler), _leftAreaMovie(kAILeftAreaID),
 		_middleAreaMovie(kAIMiddleAreaID), _rightAreaMovie(kAIRightAreaID), _AIMovie(kAIMovieID) {
@@ -51,17 +50,17 @@ AIArea::AIArea(InputHandler *nextHandler) : InputHandler(nextHandler), _leftArea
 	_middleBiochipTime = 0xffffffff;
 	_rightBiochipTime = 0xffffffff;
 	_lockCount = 0;
-	((PegasusEngine *)g_engine)->requestToggle(false);
+	g_vm->requestToggle(false);
 	startIdling();
 }
 
 AIArea::~AIArea() {
 	if (_middleAreaOwner == kBiochipSignature) {
-		BiochipItem *currentBiochip = ((PegasusEngine *)g_engine)->getCurrentBiochip();
+		BiochipItem *currentBiochip = g_vm->getCurrentBiochip();
 		if (currentBiochip && currentBiochip->isSelected())
 			currentBiochip->giveUpSharedArea();
 	} else if (_middleAreaOwner == kInventorySignature) {
-		InventoryItem *currentItem = ((PegasusEngine *)g_engine)->getCurrentInventoryItem();
+		InventoryItem *currentItem = g_vm->getCurrentInventoryItem();
 		if (currentItem && currentItem->isSelected())
 			currentItem->giveUpSharedArea();
 	}
@@ -71,26 +70,22 @@ AIArea::~AIArea() {
 	for (AIRuleList::iterator it = _AIRules.begin(); it != _AIRules.end(); it++)
 		delete *it;
 
-	g_AIArea = 0;
+	g_AIArea = nullptr;
 }
 
 // Save last state of AI rules...
 void AIArea::saveAIState() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
-	delete vm->_aiSaveStream;
+	delete g_vm->_aiSaveStream;
 
 	Common::MemoryWriteStreamDynamic out(DisposeAfterUse::NO);
 	writeAIRules(&out);
 
-	vm->_aiSaveStream = new Common::MemoryReadStream(out.getData(), out.size(), DisposeAfterUse::YES);
+	g_vm->_aiSaveStream = new Common::MemoryReadStream(out.getData(), out.size(), DisposeAfterUse::YES);
 }
 
 void AIArea::restoreAIState() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
-	if (vm->_aiSaveStream)
-		readAIRules(vm->_aiSaveStream);
+	if (g_vm->_aiSaveStream)
+		readAIRules(g_vm->_aiSaveStream);
 }
 
 void AIArea::writeAIRules(Common::WriteStream *stream) {
@@ -109,7 +104,7 @@ void AIArea::initAIArea() {
 	_leftAreaMovie.moveElementTo(kAILeftAreaLeft, kAILeftAreaTop);
 	_leftAreaMovie.setDisplayOrder(kAILeftAreaOrder);
 	_leftAreaMovie.startDisplaying();
-	_leftAreaMovie.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+	_leftAreaMovie.setVolume(g_vm->getSoundFXLevel());
 
 	_middleAreaMovie.shareSurface(this);
 	_middleAreaMovie.initFromMovieFile("Images/Items/Middle Area Movie");
@@ -117,7 +112,7 @@ void AIArea::initAIArea() {
 	_middleAreaMovie.moveMovieBoxTo(kAIMiddleAreaLeft - kAILeftAreaLeft, 0);
 	_middleAreaMovie.setDisplayOrder(kAIMiddleAreaOrder);
 	_middleAreaMovie.startDisplaying();
-	_middleAreaMovie.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+	_middleAreaMovie.setVolume(g_vm->getSoundFXLevel());
 
 	_rightAreaMovie.shareSurface(this);
 	_rightAreaMovie.initFromMovieFile("Images/Items/Right Area Movie");
@@ -125,7 +120,7 @@ void AIArea::initAIArea() {
 	_rightAreaMovie.moveMovieBoxTo(kAIRightAreaLeft - kAILeftAreaLeft, 0);
 	_rightAreaMovie.setDisplayOrder(kAIRightAreaOrder);
 	_rightAreaMovie.startDisplaying();
-	_rightAreaMovie.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+	_rightAreaMovie.setVolume(g_vm->getSoundFXLevel());
 
 	_AIMovie.setDisplayOrder(kAIMovieOrder);
 }
@@ -216,8 +211,6 @@ void AIArea::setAIAreaToTime(const LowerClientSignature client, const LowerAreaS
 // 	   kInventorySignature      kMiddleAreaSignature
 
 void AIArea::playAIAreaSequence(const LowerClientSignature, const LowerAreaSignature area, const TimeValue start, const TimeValue stop) {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	lockAIOut();
 
 	switch (area) {
@@ -235,17 +228,17 @@ void AIArea::playAIAreaSequence(const LowerClientSignature, const LowerAreaSigna
 		_middleAreaMovie.setTime(start);
 		_middleAreaMovie.show();
 		_middleAreaMovie.start();
-		vm->_cursor->hide();
+		g_vm->_cursor->hide();
 
 		while (_middleAreaMovie.isRunning()) {
 			InputDevice.pumpEvents();
-			vm->checkCallBacks();
-			vm->refreshDisplay();
+			g_vm->checkCallBacks();
+			g_vm->refreshDisplay();
 			g_system->delayMillis(10);
 		}
 
 		_middleAreaMovie.stop();
-		vm->_cursor->hideUntilMoved();
+		g_vm->_cursor->hideUntilMoved();
 
 		if (_middleAreaOwner == kInventorySignature)
 			setAIAreaToTime(_middleAreaOwner, kMiddleAreaSignature, _middleInventoryTime);
@@ -260,17 +253,17 @@ void AIArea::playAIAreaSequence(const LowerClientSignature, const LowerAreaSigna
 		_rightAreaMovie.setTime(start);
 		_rightAreaMovie.show();
 		_rightAreaMovie.start();
-		vm->_cursor->hide();
+		g_vm->_cursor->hide();
 
 		while (_rightAreaMovie.isRunning()) {
 			InputDevice.pumpEvents();
-			vm->checkCallBacks();
-			vm->refreshDisplay();
+			g_vm->checkCallBacks();
+			g_vm->refreshDisplay();
 			g_system->delayMillis(10);
 		}
 
 		_rightAreaMovie.stop();
-		vm->_cursor->hideUntilMoved();
+		g_vm->_cursor->hideUntilMoved();
 		setAIAreaToTime(_rightAreaOwner, kRightAreaSignature, _rightBiochipTime);
 		break;
 	default:
@@ -280,9 +273,7 @@ void AIArea::playAIAreaSequence(const LowerClientSignature, const LowerAreaSigna
 	unlockAI();
 }
 
-bool AIArea::playAIMovie(const LowerAreaSignature area, const Common::String &movieName, bool keepLastFrame, const InputBits interruptFilter) {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
+bool AIArea::playAIMovie(const LowerAreaSignature area, const Common::Path &movieName, bool keepLastFrame, const InputBits interruptFilter) {
 	lockAIOut();
 
 	InputDevice.waitInput(interruptFilter);
@@ -305,32 +296,32 @@ bool AIArea::playAIMovie(const LowerAreaSignature area, const Common::String &mo
 	_AIMovie.startDisplaying();
 	_AIMovie.show();
 	_AIMovie.redrawMovieWorld();
-	_AIMovie.setVolume(vm->getSoundFXLevel());
+	_AIMovie.setVolume(g_vm->getSoundFXLevel());
 	_AIMovie.start();
-	vm->_cursor->hide();
+	g_vm->_cursor->hide();
 
 	bool result = true;
-	bool saveAllowed = vm->swapSaveAllowed(false);
-	bool openAllowed = vm->swapLoadAllowed(false);
+	bool saveAllowed = g_vm->swapSaveAllowed(false);
+	bool openAllowed = g_vm->swapLoadAllowed(false);
 
 	while (_AIMovie.isRunning()) {
 		Input input;
 		InputDevice.getInput(input, interruptFilter);
 
-		if (input.anyInput() || vm->shouldQuit() || vm->saveRequested() || vm->loadRequested()) {
+		if (input.anyInput() || g_vm->shouldQuit() || g_vm->saveRequested() || g_vm->loadRequested()) {
 			result = false;
 			break;
 		}
 
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		g_vm->checkCallBacks();
+		g_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
 	_AIMovie.stop();
 
-	vm->swapSaveAllowed(saveAllowed);
-	vm->swapLoadAllowed(openAllowed);
+	g_vm->swapSaveAllowed(saveAllowed);
+	g_vm->swapLoadAllowed(openAllowed);
 
 	// This used to keep the last frame up even if the movie was interrupted.
 	// However, this only occurs in the recalibration, where interruption means skip the
@@ -351,7 +342,7 @@ bool AIArea::playAIMovie(const LowerAreaSignature area, const Common::String &mo
 		}
 	}
 
-	vm->_cursor->hideUntilMoved();
+	g_vm->_cursor->hideUntilMoved();
 	unlockAI();
 	return result;
 }
@@ -385,14 +376,14 @@ void AIArea::setMiddleMovieTime(const LowerClientSignature client, const TimeVal
 	if (client == kInventorySignature) {
 		_middleInventoryTime = time;
 		if (_middleAreaOwner == kBiochipSignature) {
-			BiochipItem *currentBiochip = ((PegasusEngine *)g_engine)->getCurrentBiochip();
+			BiochipItem *currentBiochip = g_vm->getCurrentBiochip();
 			if (currentBiochip && currentBiochip->isSelected())
 				currentBiochip->giveUpSharedArea();
 		}
 	} else {
 		_middleBiochipTime = time;
 		if (_middleAreaOwner == kInventorySignature) {
-			InventoryItem *currentItem = ((PegasusEngine *)g_engine)->getCurrentInventoryItem();
+			InventoryItem *currentItem = g_vm->getCurrentInventoryItem();
 			if (currentItem && currentItem->isSelected())
 				currentItem->giveUpSharedArea();
 		}
@@ -429,13 +420,13 @@ void AIArea::handleInput(const Input &input, const Hotspot *cursorSpot) {
 
 void AIArea::toggleMiddleAreaOwner() {
 	if (_middleAreaOwner == kInventorySignature) {
-		BiochipItem *currentBiochip = ((PegasusEngine *)g_engine)->getCurrentBiochip();
+		BiochipItem *currentBiochip = g_vm->getCurrentBiochip();
 		if (currentBiochip) {
 			setMiddleMovieTime(kBiochipSignature, currentBiochip->getSharedAreaTime());
 			currentBiochip->takeSharedArea();
 		}
 	} else if (_middleAreaOwner == kBiochipSignature) {
-		InventoryItem *currentItem = ((PegasusEngine *)g_engine)->getCurrentInventoryItem();
+		InventoryItem *currentItem = g_vm->getCurrentInventoryItem();
 		if (currentItem) {
 			setMiddleMovieTime(kInventorySignature, currentItem->getSharedAreaTime());
 			currentItem->takeSharedArea();
@@ -444,31 +435,29 @@ void AIArea::toggleMiddleAreaOwner() {
 }
 
 void AIArea::activateHotspots() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	if (_middleAreaOwner == kBiochipSignature) {
-		BiochipItem *currentBiochip = ((PegasusEngine *)g_engine)->getCurrentBiochip();
+		BiochipItem *currentBiochip = g_vm->getCurrentBiochip();
 		if (currentBiochip)
 			switch (currentBiochip->getObjectID()) {
 			case kAIBiochip:
 				((AIChip *)currentBiochip)->activateAIHotspots();
 				break;
 			case kPegasusBiochip:
-				if (!vm->isDemo())
+				if (!g_vm->isDemo())
 					((PegasusChip *)currentBiochip)->activatePegasusHotspots();
 				break;
 			case kOpticalBiochip:
 				((OpticalChip *)currentBiochip)->activateOpticalHotspots();
 				break;
 			case kArthurBiochip:
-				if (vm->isDVD())
+				if (g_vm->isDVD())
 					((ArthurChip *)currentBiochip)->activateArthurHotspots();
 				break;
 			default:
 				break;
 			}
 	} else if (_middleAreaOwner == kInventorySignature) {
-		InventoryItem *currentItem = ((PegasusEngine *)g_engine)->getCurrentInventoryItem();
+		InventoryItem *currentItem = g_vm->getCurrentInventoryItem();
 		if (currentItem && currentItem->getObjectID() == kAirMask)
 			((AirMask *)currentItem)->activateAirMaskHotspots();
 	}
@@ -477,12 +466,10 @@ void AIArea::activateHotspots() {
 }
 
 void AIArea::clickInHotspot(const Input &input, const Hotspot *hotspot) {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	bool handled = false;
 
 	if (_middleAreaOwner == kBiochipSignature) {
-		BiochipItem *currentBiochip = ((PegasusEngine *)g_engine)->getCurrentBiochip();
+		BiochipItem *currentBiochip = g_vm->getCurrentBiochip();
 
 		if (currentBiochip) {
 			switch (currentBiochip->getObjectID()) {
@@ -493,7 +480,7 @@ void AIArea::clickInHotspot(const Input &input, const Hotspot *hotspot) {
 				}
 				break;
 			case kPegasusBiochip:
-				if (!vm->isDemo() && ((hotspot->getHotspotFlags() & kPegasusBiochipSpotFlag) != 0)) {
+				if (!g_vm->isDemo() && ((hotspot->getHotspotFlags() & kPegasusBiochipSpotFlag) != 0)) {
 					((PegasusChip *)currentBiochip)->clickInPegasusHotspot();
 					handled = true;
 				}
@@ -505,7 +492,7 @@ void AIArea::clickInHotspot(const Input &input, const Hotspot *hotspot) {
 				}
 				break;
 			case kArthurBiochip:
-				if (vm->isDVD() && (hotspot->getHotspotFlags() & kArthurBiochipSpotFlag) != 0) {
+				if (g_vm->isDVD() && (hotspot->getHotspotFlags() & kArthurBiochipSpotFlag) != 0) {
 					((ArthurChip *)currentBiochip)->clickInArthurHotspot(hotspot->getObjectID());
 					handled = true;
 				}
@@ -515,7 +502,7 @@ void AIArea::clickInHotspot(const Input &input, const Hotspot *hotspot) {
 			}
 		}
 	} else if (_middleAreaOwner == kInventorySignature) {
-		InventoryItem *currentItem = ((PegasusEngine *)g_engine)->getCurrentInventoryItem();
+		InventoryItem *currentItem = g_vm->getCurrentInventoryItem();
 
 		if (currentItem) {
 			switch (currentItem->getObjectID()) {
@@ -558,7 +545,7 @@ void AIArea::forceAIUnlocked() {
 }
 
 void AIArea::checkRules() {
-	if (_lockCount == 0 && ((PegasusEngine *)g_engine)->playerAlive())
+	if (_lockCount == 0 && g_vm->playerAlive())
 		for (AIRuleList::iterator it = _AIRules.begin(); it != _AIRules.end(); it++)
 			if ((*it)->fireRule())
 				break;
@@ -580,7 +567,7 @@ void AIArea::removeAllRules() {
 }
 
 void AIArea::checkMiddleArea() {
-	BiochipItem *currentBiochip = ((PegasusEngine *)g_engine)->getCurrentBiochip();
+	BiochipItem *currentBiochip = g_vm->getCurrentBiochip();
 
 	if (currentBiochip) {
 		if (_middleAreaOwner == kBiochipSignature) {
@@ -611,10 +598,10 @@ void AIArea::checkMiddleArea() {
 
 TimeValue AIArea::getBigInfoTime() {
 	if (_middleAreaOwner == kInventorySignature) {
-		InventoryItem *currentItem = ((PegasusEngine *)g_engine)->getCurrentInventoryItem();
+		InventoryItem *currentItem = g_vm->getCurrentInventoryItem();
 		return currentItem->getInfoLeftTime();
 	} else if (_middleAreaOwner == kBiochipSignature) {
-		BiochipItem *currentBiochip = ((PegasusEngine *)g_engine)->getCurrentBiochip();
+		BiochipItem *currentBiochip = g_vm->getCurrentBiochip();
 		return currentBiochip->getInfoLeftTime();
 	}
 
@@ -623,10 +610,10 @@ TimeValue AIArea::getBigInfoTime() {
 
 void AIArea::getSmallInfoSegment(TimeValue &start, TimeValue &stop) {
 	if (_middleAreaOwner == kInventorySignature) {
-		InventoryItem *currentItem = ((PegasusEngine *)g_engine)->getCurrentInventoryItem();
+		InventoryItem *currentItem = g_vm->getCurrentInventoryItem();
 		currentItem->getInfoRightTimes(start, stop);
 	} else if (_middleAreaOwner == kBiochipSignature) {
-		BiochipItem *currentBiochip = ((PegasusEngine *)g_engine)->getCurrentBiochip();
+		BiochipItem *currentBiochip = g_vm->getCurrentBiochip();
 		currentBiochip->getInfoRightTimes(start, stop);
 	} else {
 		start = 0xffffffff;

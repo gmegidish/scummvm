@@ -1,29 +1,28 @@
 /* ScummVM - Graphic Adventure Engine
-*
-* ScummVM is the legal property of its developers, whose names
-* are too numerous to list here. Please refer to the COPYRIGHT
-* file distributed with this source distribution.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2
-* of the License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-*
-*/
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 /*
-* Based on the Reverse Engineering work of Christophe Fontanel,
-* maintainer of the Dungeon Master Encyclopaedia (http://dmweb.free.fr/)
-*/
+ * Based on the Reverse Engineering work of Christophe Fontanel,
+ * maintainer of the Dungeon Master Encyclopaedia (http://dmweb.free.fr/)
+ */
 
 #include "graphics/surface.h"
 #include "graphics/thumbnail.h"
@@ -317,7 +316,8 @@ void InventoryMan::drawPanelScroll(Scroll *scroll) {
 	DisplayMan &dispMan = *_vm->_displayMan;
 
 	char stringFirstLine[300];
-	_vm->_dungeonMan->decodeText(stringFirstLine, Thing(scroll->getTextStringThingIndex()), (TextType)(kDMTextTypeScroll | kDMMaskDecodeEvenIfInvisible));
+	_vm->_dungeonMan->decodeText(stringFirstLine, sizeof(stringFirstLine),
+			Thing(scroll->getTextStringThingIndex()), (TextType)(kDMTextTypeScroll | kDMMaskDecodeEvenIfInvisible));
 	char *charRed = stringFirstLine;
 	while (*charRed && (*charRed != '\n'))
 		charRed++;
@@ -415,27 +415,27 @@ void InventoryMan::buildObjectAttributeString(int16 potentialAttribMask, int16 a
 		return;
 	}
 
-	strcpy(destString, prefixString);
+	Common::strcpy_s(destString, 40, prefixString);
 
 	attribMask = 1;
 	for (uint16 stringIndex = 0; stringIndex < 16; stringIndex++, attribMask <<= 1) {
 		if (attribMask & potentialAttribMask & actualAttribMask) {
-			strcat(destString, attribStrings[stringIndex]);
+			Common::strcat_s(destString, 40, attribStrings[stringIndex]);
 			if (identicalBitCount-- > 2) {
-				strcat(destString, ", ");
+				Common::strcat_s(destString, 40, ", ");
 			} else if (identicalBitCount == 1) {
 
 				switch (_vm->getGameLanguage()) { // localized
 				default:
-				case Common::EN_ANY: strcat(destString, " AND "); break;
-				case Common::DE_DEU: strcat(destString, " UND "); break;
-				case Common::FR_FRA: strcat(destString, " ET "); break;
+				case Common::EN_ANY: Common::strcat_s(destString, 40, " AND "); break;
+				case Common::DE_DEU: Common::strcat_s(destString, 40, " UND "); break;
+				case Common::FR_FRA: Common::strcat_s(destString, 40, " ET "); break;
 				}
 			}
 		}
 	}
 
-	strcat(destString, suffixString);
+	Common::strcat_s(destString, 40, suffixString);
 }
 
 void InventoryMan::drawPanelObjectDescriptionString(const char *descString) {
@@ -447,7 +447,7 @@ void InventoryMan::drawPanelObjectDescriptionString(const char *descString) {
 
 	if (descString[0]) {
 		char stringTmpBuff[128];
-		strcpy(stringTmpBuff, descString);
+		Common::strcpy_s(stringTmpBuff, descString);
 
 		char *stringLine = stringTmpBuff;
 		bool severalLines = false;

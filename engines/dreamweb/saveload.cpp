@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -148,7 +147,7 @@ void DreamWebEngine::doLoad(int savegameId) {
 				{ kOpsx+2,kOpsx+92,kOpsy+4,kOpsy+81,&DreamWebEngine::selectSlot },
 				{ kOpsx+158,kOpsx+158+(18*3),kOpsy-17,kOpsy-1,&DreamWebEngine::selectSaveLoadPage },
 				{ 0,320,0,200,&DreamWebEngine::blank },
-				{ 0xFFFF,0,0,0,0 }
+				{ 0xFFFF,0,0,0,nullptr }
 			};
 			checkCoords(loadlist);
 			if (_getBack == 2)
@@ -244,7 +243,7 @@ void DreamWebEngine::saveGame() {
 				{ kOpsx+2,kOpsx+92,kOpsy+4,kOpsy+81,&DreamWebEngine::selectSlot },
 				{ kOpsx+158,kOpsx+158+(18*3),kOpsy-17,kOpsy-1,&DreamWebEngine::selectSaveLoadPage },
 				{ 0,320,0,200,&DreamWebEngine::blank },
-				{ 0xFFFF,0,0,0,0 }
+				{ 0xFFFF,0,0,0,nullptr }
 			};
 			checkCoords(savelist);
 		}
@@ -308,6 +307,8 @@ void DreamWebEngine::oldToNames() {
 }
 
 void DreamWebEngine::saveLoad() {
+	if (ConfMan.getBool("originalsaveload"))
+		createThumbnail(_thumbnail);
 	if (_vars._watchingTime || (_pointerMode == 2)) {
 		blank();
 		return;
@@ -337,7 +338,7 @@ void DreamWebEngine::doSaveLoad() {
 		{ kOpsx+10,kOpsx+77,kOpsy+10,kOpsy+59,&DreamWebEngine::DOSReturn },
 		{ kOpsx+128,kOpsx+190,kOpsy+16,kOpsy+100,&DreamWebEngine::discOps },
 		{ 0,320,0,200,&DreamWebEngine::blank },
-		{ 0xFFFF,0,0,0,0 }
+		{ 0xFFFF,0,0,0,nullptr }
 	};
 
 	bool firstOps = true;
@@ -431,7 +432,7 @@ void DreamWebEngine::discOps() {
 		{ kOpsx+10,kOpsx+79,kOpsy+10,kOpsy+59,&DreamWebEngine::saveGame },
 		{ kOpsx+176,kOpsx+192,kOpsy+60,kOpsy+76,&DreamWebEngine::getBackToOps },
 		{ 0,320,0,200,&DreamWebEngine::blank },
-		{ 0xFFFF,0,0,0,0 }
+		{ 0xFFFF,0,0,0,nullptr }
 	};
 
 	do {
@@ -531,7 +532,7 @@ void DreamWebEngine::savePosition(unsigned int slot, const char *descbuf) {
 	outSaveFile->write((const uint8 *)&header, sizeof(FileHeader));
 	outSaveFile->write(descbuf, len[0]);
 	// TODO: Convert more to serializer?
-	Common::Serializer s(0, outSaveFile);
+	Common::Serializer s(nullptr, outSaveFile);
 	syncGameVars(s, _vars);
 
 	// the Extras segment:
@@ -564,7 +565,11 @@ void DreamWebEngine::savePosition(unsigned int slot, const char *descbuf) {
 	outSaveFile->writeUint32LE(saveDate);
 	outSaveFile->writeUint32LE(saveTime);
 	outSaveFile->writeUint32LE(playTime);
-	Graphics::saveThumbnail(*outSaveFile);
+
+	if (ConfMan.getBool("originalsaveload"))
+		Graphics::saveThumbnail(*outSaveFile, _thumbnail);
+	else
+		Graphics::saveThumbnail(*outSaveFile);
 
 	outSaveFile->finalize();
 	if (outSaveFile->err()) {
@@ -613,7 +618,7 @@ void DreamWebEngine::loadPosition(unsigned int slot) {
 	}
 
 	// TODO: Use serializer for more?
-	Common::Serializer s(inSaveFile, 0);
+	Common::Serializer s(inSaveFile, nullptr);
 	syncGameVars(s, _vars);
 
 	// the Extras segment:

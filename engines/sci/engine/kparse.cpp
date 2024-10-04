@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -146,7 +145,7 @@ reg_t kParse(EngineState *s, int argc, reg_t *argv) {
 		writeSelectorValue(segMan, event, SELECTOR(claimed), 1);
 
 		if (error) {
-			s->_segMan->strcpy(s->_segMan->getParserPtr(), error);
+			s->_segMan->strcpy_(s->_segMan->getParserPtr(), error);
 			debugC(kDebugLevelParser, "Word unknown: %s", error);
 			/* Issue warning: */
 
@@ -162,9 +161,6 @@ reg_t kParse(EngineState *s, int argc, reg_t *argv) {
 reg_t kSetSynonyms(EngineState *s, int argc, reg_t *argv) {
 	SegManager *segMan = s->_segMan;
 	reg_t object = argv[0];
-	List *list;
-	Node *node;
-	int script;
 	int numSynonyms = 0;
 	Vocabulary *voc = g_sci->getVocabulary();
 
@@ -174,15 +170,14 @@ reg_t kSetSynonyms(EngineState *s, int argc, reg_t *argv) {
 
 	voc->clearSynonyms();
 
-	list = s->_segMan->lookupList(readSelector(segMan, object, SELECTOR(elements)));
-	node = s->_segMan->lookupNode(list->first);
+	List *list = s->_segMan->lookupList(readSelector(segMan, object, SELECTOR(elements)));
+	Node *node = s->_segMan->lookupNode(list->first);
 
 	while (node) {
 		reg_t objpos = node->value;
-		int seg;
 
-		script = readSelectorValue(segMan, objpos, SELECTOR(number));
-		seg = s->_segMan->getScriptSegment(script);
+		int script = readSelectorValue(segMan, objpos, SELECTOR(number));
+		int seg = s->_segMan->getScriptSegment(script);
 
 		if (seg > 0)
 			numSynonyms = s->_segMan->getScript(seg)->getSynonymsNr();

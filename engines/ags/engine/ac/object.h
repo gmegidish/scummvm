@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,7 +43,10 @@ class Bitmap;
 
 using namespace AGS; // FIXME later
 
-extern AGS_INLINE int is_valid_object(int obtest);
+extern AGS_INLINE bool is_valid_object(int obj_id);
+// Asserts the object ID is valid in the current room,
+// if not then prints a warning to the log; returns assertion result
+bool    AssertObject(const char *apiname, int obj_id);
 int     Object_IsCollidingWithObject(ScriptObject *objj, ScriptObject *obj2);
 ScriptObject *GetObjectAtScreen(int xx, int yy);
 ScriptObject *GetObjectAtRoom(int x, int y);
@@ -95,6 +97,8 @@ void    Object_RunInteraction(ScriptObject *objj, int mode);
 int     Object_GetProperty(ScriptObject *objj, const char *property);
 void    Object_GetPropertyText(ScriptObject *objj, const char *property, char *bufer);
 const char *Object_GetTextProperty(ScriptObject *objj, const char *property);
+bool    Object_SetProperty(ScriptObject *objj, const char *property, int value);
+bool    Object_SetTextProperty(ScriptObject *objj, const char *property, const char *value);
 
 void    move_object(int objj, int tox, int toy, int spee, int ignwal);
 void    get_object_blocking_rect(int objid, int *x1, int *y1, int *width, int *y2);
@@ -103,6 +107,14 @@ int     is_pos_in_sprite(int xx, int yy, int arx, int ary, Shared::Bitmap *sprit
 // X and Y co-ordinates must be in native format
 // X and Y are ROOM coordinates
 int     check_click_on_object(int roomx, int roomy, int mood);
+// TODO: pick out some kind of "animation" struct
+// Tests if the standard animate parameters are in valid range, if not then clamps them and
+// reports a script warning.
+void ValidateViewAnimParams(const char *apiname, int &repeat, int &blocking, int &direction);
+// General view animation algorithm: find next loop and frame, depending on anim settings;
+// loop and frame values are passed by reference and will be updated;
+// returns whether the animation should continue.
+bool    CycleViewAnim(int view, uint16_t &loop, uint16_t &frame, bool forwards, int repeat);
 
 } // namespace AGS3
 

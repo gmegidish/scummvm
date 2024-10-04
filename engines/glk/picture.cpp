@@ -4,19 +4,18 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software{} you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation{} either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY{} without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program{} if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -119,7 +118,8 @@ Picture *Pictures::load(const Common::String &name) {
 	const Graphics::Surface *img;
 	const byte *palette = nullptr;
 	uint palCount = 0;
-	int transColor = -1;
+	bool hasTransColor = false;
+	uint32 transColor = 0;
 	Picture *pic;
 
 	// Check if the picture is already in the store
@@ -128,33 +128,35 @@ Picture *Pictures::load(const Common::String &name) {
 		return pic;
 
 	Common::File f;
-	if ((name.hasSuffixIgnoreCase(".png") && f.open(name))
-		|| f.open(Common::String::format("pic%s.png", name.c_str()))
-		|| f.open(Common::String::format("%s.png", name.c_str()))
+	if ((name.hasSuffixIgnoreCase(".png") && f.open(Common::Path(name)))
+		|| f.open(Common::Path(Common::String::format("pic%s.png", name.c_str())))
+		|| f.open(Common::Path(Common::String::format("%s.png", name.c_str())))
 	) {
 		png.setKeepTransparencyPaletted(true);
 		png.loadStream(f);
 		img = png.getSurface();
 		palette = png.getPalette();
 		palCount = png.getPaletteColorCount();
+		hasTransColor = png.hasTransparentColor();
 		transColor = png.getTransparentColor();
 	} else if (
-		((name.hasSuffixIgnoreCase(".jpg") || name.hasSuffixIgnoreCase(".jpeg")) && f.open(name))
-		|| f.open(Common::String::format("pic%s.jpg", name.c_str()))
-		|| f.open(Common::String::format("pic%s.jpeg", name.c_str()))
-		|| f.open(Common::String::format("%s.jpg", name.c_str()))
+		((name.hasSuffixIgnoreCase(".jpg") || name.hasSuffixIgnoreCase(".jpeg")) && f.open(Common::Path(name)))
+		|| f.open(Common::Path(Common::String::format("pic%s.jpg", name.c_str())))
+		|| f.open(Common::Path(Common::String::format("pic%s.jpeg", name.c_str())))
+		|| f.open(Common::Path(Common::String::format("%s.jpg", name.c_str())))
 	) {
 		jpg.setOutputPixelFormat(g_system->getScreenFormat());
 		jpg.loadStream(f);
 		img = jpg.getSurface();
-	} else if ((name.hasSuffixIgnoreCase(".raw") && f.open(name)) ||
-			f.open(Common::String::format("pic%s.raw", name.c_str()))) {
+	} else if ((name.hasSuffixIgnoreCase(".raw") && f.open(Common::Path(name))) ||
+			f.open(Common::Path(Common::String::format("pic%s.raw", name.c_str())))) {
 		raw.loadStream(f);
 		img = raw.getSurface();
 		palette = raw.getPalette();
 		palCount = raw.getPaletteColorCount();
+		hasTransColor = raw.hasTransparentColor();
 		transColor = raw.getTransparentColor();
-	} else if (f.open(Common::String::format("pic%s.rect", name.c_str()))) {
+	} else if (f.open(Common::Path(Common::String::format("pic%s.rect", name.c_str())))) {
 		rectImg.w = f.readUint32BE();
 		rectImg.h = f.readUint32BE();
 		img = &rectImg;
@@ -184,7 +186,7 @@ Picture *Pictures::load(const Common::String &name) {
 	pic->_refCount = 1;
 	pic->_name = name;
 	pic->_scaled = false;
-	if (transColor != -1 || (!palette && img->format.aBits() > 0))
+	if (hasTransColor || (!palette && img->format.aBits() > 0))
 		pic->clear(pic->getTransparentColor());
 
 	if (!img->getPixels()) {
@@ -200,7 +202,7 @@ Picture *Pictures::load(const Common::String &name) {
 		const byte *srcP = (const byte *)img->getPixels();
 		byte *destP = (byte *)pic->getPixels();
 		for (int idx = 0; idx < img->w * img->h; ++idx, srcP++, destP += pic->format.bytesPerPixel) {
-			if ((int)*srcP != transColor) {
+			if (!hasTransColor || (uint32)*srcP != transColor) {
 				uint val = (*srcP >= palCount) ? 0 : pal[*srcP];
 				if (pic->format.bytesPerPixel == 2)
 					WRITE_LE_UINT16(destP, val);

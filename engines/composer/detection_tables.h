@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,8 +45,8 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"babayaga",
 			0,
 			{
-				{"book.mac", GAME_CONFIGFILE, "d82143cbc4a36093250c7d6f80af1147", -1},
-  				{"Baba Yaga", GAME_EXECUTABLE, "ae3a4445f42fe10253da7ee4ea0d37d6", 44321},
+				{"book.mac", GAME_CONFIGFILE, "d:d82143cbc4a36093250c7d6f80af1147", 1877},
+				{"Baba Yaga", GAME_EXECUTABLE, "d:ae3a4445f42fe10253da7ee4ea0d37d6", 44321},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -149,7 +148,7 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"imoking",
 			0,
 			{
-				{"book.mac", GAME_CONFIGFILE, "4896a22874bb660f5ba26a0af111f9c0", 1868},
+				{"book.mac", GAME_CONFIGFILE, "d:4896a22874bb660f5ba26a0af111f9c0", 1868},
 				AD_LISTEND
 			},
 			Common::HE_ISR,
@@ -200,7 +199,7 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"babayaga",
 			"Magic Tales: Baba Yaga and the Magic Geese Demo",
 			{
-				{"book.mac", GAME_CONFIGFILE, "ed4a902df3b26d58e9c013f814a30ee8", 134},
+				{"book.mac", GAME_CONFIGFILE, "d:ed4a902df3b26d58e9c013f814a30ee8", 134},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -217,7 +216,7 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"littlesamurai",
 			"Magic Tales: The Little Samurai Demo",
 			{
-				{"book.mac", GAME_CONFIGFILE, "57a82d563800001ed88b2742c3650a2d", 136},
+				{"book.mac", GAME_CONFIGFILE, "d:57a82d563800001ed88b2742c3650a2d", 136},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -234,13 +233,31 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"imoking",
 			0,
 			{
-				{"book.mac", GAME_CONFIGFILE, "190158751630f69c2b6cf146aa2f1efc", -1},
-				{"imo and the king", GAME_EXECUTABLE, "b0277885fec943b5f19409f35b33964c", -1},
+				{"book.mac", GAME_CONFIGFILE, "d:190158751630f69c2b6cf146aa2f1efc", 1874},
+				{"imo and the king", GAME_EXECUTABLE, "d:b0277885fec943b5f19409f35b33964c", 44242},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
+			GUIO2(GUIO_NOASPECT, GUIO_NOMIDI)
+		},
+		GType_ComposerV1
+	},
+
+	// Magic Tales: Imo and the King Mac Demo from Baba Yaga CD
+	{
+		{
+			"imoking",
+			"Magic Tales: Imo and the King Demo",
+			{
+				{"book.mac", GAME_CONFIGFILE, "d:b3456692eab14e9bdac64db6dad27be9", 136},
+				{"imo and the king", GAME_EXECUTABLE, "d:764e0feea86cc201471f2b443161023b", 44321},
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformMacintosh,
+			ADGF_USEEXTRAASTITLE | ADGF_DEMO,
 			GUIO2(GUIO_NOASPECT, GUIO_NOMIDI)
 		},
 		GType_ComposerV1
@@ -303,8 +320,8 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"littlesamurai",
 			0,
 			{
-				{"book.mac", GAME_CONFIGFILE, "190158751630f69c2b6cf146aa2f1efc", -1},
-				{"The Little Samurai", GAME_EXECUTABLE, "38121dd649c24e8676aa108cf35d44b5", -1},
+				{"book.mac", GAME_CONFIGFILE, "d:190158751630f69c2b6cf146aa2f1efc", 1874},
+				{"The Little Samurai", GAME_EXECUTABLE, "d:38121dd649c24e8676aa108cf35d44b5", 44128},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -338,7 +355,7 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"littlesamurai",
 			0,
 			{
-				{"book.mac", GAME_CONFIGFILE, "190158751630f69c2b6cf146aa2f1efc", 1874},
+				{"book.mac", GAME_CONFIGFILE, "d:190158751630f69c2b6cf146aa2f1efc", 1874},
 				AD_LISTEND
 			},
 			Common::HE_ISR,
@@ -353,9 +370,9 @@ static const ComposerGameDescription gameDescriptions[] = {
 	{
 		{
 			"magictales",
-			"Magic Tales Demo: Baby Yaga, Samurai, Imo",
+			"Magic Tales Demo: Baba Yaga, Samurai, Imo",
 			{
-				{"book.ini", GAME_CONFIGFILE, "dbc98c566f4ac61b544443524585dccb", -1},
+				{"book.ini", GAME_CONFIGFILE, "dbc98c566f4ac61b544443524585dccb", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -370,9 +387,10 @@ static const ComposerGameDescription gameDescriptions[] = {
 	{
 		{
 			"magictales",
-			"Magic Tales Demo: Baby Yaga, Samurai, Imo",
+			"Magic Tales Demo: Baba Yaga, Samurai, Imo",
 			{
-				{"demo.ini", GAME_CONFIGFILE, "ea784af960375834d655eb7281cd4500", -1},
+				{"demo.ini", GAME_CONFIGFILE, "ea784af960375834d655eb7281cd4500", 734},
+				{"ik_demo.rsc", GAME_SCRIPTFILE, "31a2d65c4d22d327b8f5f205ab6e7ea3", 6680135},
 				AD_LISTEND
 			},
 			Common::HE_ISR,
@@ -387,9 +405,9 @@ static const ComposerGameDescription gameDescriptions[] = {
 	{
 		{
 			"magictales",
-			"Magic Tales Demo: Baby Yaga, Samurai, Imo",
+			"Magic Tales Demo: Baba Yaga, Samurai, Imo",
 			{
-				{"demo.mac", GAME_CONFIGFILE, "6e775cda6539102d1ddee852bebf32c1", 488},
+				{"demo.mac", GAME_CONFIGFILE, "d:6e775cda6539102d1ddee852bebf32c1", 488},
 				AD_LISTEND
 			},
 			Common::HE_ISR,
@@ -422,8 +440,8 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"liam",
 			0,
 			{
-				{"liam finds a story.ini", GAME_CONFIGFILE, "85a1ca6002ded8572920bbdb73d35b0a", -1},
-				{"page99.rsc", GAME_SCRIPTFILE, "11b0a19c6b6d73c39e2bd289a457c1dc", -1},
+				{"liam finds a story.ini", GAME_CONFIGFILE, "d:85a1ca6002ded8572920bbdb73d35b0a", 747},
+				{"page99.rsc", GAME_SCRIPTFILE, "d:11b0a19c6b6d73c39e2bd289a457c1dc", 355159},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -440,7 +458,7 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"magictales",
 			"Magic Tales Demo: Sleeping Cub, Princess & Crab",
 			{
-				{"book.ini", GAME_CONFIGFILE, "3dede2522bb0886c95667b082987a87f", -1},
+				{"book.ini", GAME_CONFIGFILE, "3dede2522bb0886c95667b082987a87f", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -473,7 +491,7 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"darby",
 			0,
 			{
-				{"Darby the Dragon.ini", GAME_CONFIGFILE, "d81f9214936fa70d42fc578908d4bb3d", -1},
+				{"Darby the Dragon.ini", GAME_CONFIGFILE, "d:d81f9214936fa70d42fc578908d4bb3d", 2950},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -489,7 +507,8 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"darby",
 			0,
 			{
-				{"page99.rsc", GAME_SCRIPTFILE, "ca350397f0c009649afc0cb6145921f0", 1286480},
+				{"page99.rsc", GAME_SCRIPTFILE, "d:ca350397f0c009649afc0cb6145921f0", 1286480},
+				{"Dragor le dragon.ini", GAME_CONFIGFILE, "d:b0ccebb50cf8377486d86cb65ee7215d", 2240},
 				AD_LISTEND
 			},
 			Common::FR_FRA,
@@ -505,7 +524,7 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"darby",
 			0,
 			{
-				{"book.ini", GAME_CONFIGFILE, "285308372f7dddff2ca5a25c9192cf5c", -1},
+				{"book.ini", GAME_CONFIGFILE, "285308372f7dddff2ca5a25c9192cf5c", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::FR_FRA,
@@ -538,7 +557,7 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"darby",
 			0,
 			{
-				{"page99.rsc", GAME_SCRIPTFILE, "183463d18c050563dcdec2d9f9670515", -1},
+				{"page99.rsc", GAME_SCRIPTFILE, "183463d18c050563dcdec2d9f9670515", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::HE_ISR,
@@ -571,7 +590,7 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"gregory",
 			0,
 			{
-				{"Gregory.ini", GAME_CONFIGFILE, "fa82f14731f28c7379c5a106df07a0d6", -1},
+				{"Gregory.ini", GAME_CONFIGFILE, "d:fa82f14731f28c7379c5a106df07a0d6", 2753},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -587,7 +606,7 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"gregory",
 			0,
 			{
-				{"book.ini", GAME_CONFIGFILE, "e54fc5c00de5f94e908a969e445af5d0", -1},
+				{"book.ini", GAME_CONFIGFILE, "e54fc5c00de5f94e908a969e445af5d0", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::FR_FRA,
@@ -638,8 +657,8 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"princess",
 			0,
 			{
-				{"the princess and the crab.ini", GAME_CONFIGFILE, "f6b551a7304643004bd5e4df7ac1e76e", -1},
-				{"page99.rsc", GAME_SCRIPTFILE, "fd5ebd3b5e36c4651c50241619525355", -1},
+				{"the princess and the crab.ini", GAME_CONFIGFILE, "d:f6b551a7304643004bd5e4df7ac1e76e", 877},
+				{"page99.rsc", GAME_SCRIPTFILE, "d:fd5ebd3b5e36c4651c50241619525355", 45418},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -673,8 +692,8 @@ static const ComposerGameDescription gameDescriptions[] = {
 			"sleepingcub",
 			0,
 			{
-				{"sleeping cub.ini", GAME_CONFIGFILE, "39642a4036cb51443f5e90052c3ad0b2", -1},
-				{"page99.rsc", GAME_SCRIPTFILE, "219fbd9bd2ff87c7023814405d753145", -1},
+				{"sleeping cub.ini", GAME_CONFIGFILE, "d:39642a4036cb51443f5e90052c3ad0b2", 877},
+				{"page99.rsc", GAME_SCRIPTFILE, "d:219fbd9bd2ff87c7023814405d753145", 46916},
 				AD_LISTEND
 			},
 			Common::EN_ANY,

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -183,7 +182,7 @@ TattooTalk::TattooTalk(SherlockEngine *vm) : Talk(vm), _talkWidget(vm), _passwor
 	_opcodeTable = OPCODE_METHODS;
 }
 
-void TattooTalk::talkTo(const Common::String filename) {
+void TattooTalk::talkTo(const Common::String &filename) {
 	Events &events = *_vm->_events;
 	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
 
@@ -232,10 +231,7 @@ void TattooTalk::nothingToSay() {
 }
 
 void TattooTalk::showTalk() {
-	TattooPeople &people = *(TattooPeople *)_vm->_people;
 	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
-
-	people.setListenSequence(_talkTo, 129);
 
 	_talkWidget.load();
 	_talkWidget.summonWindow();
@@ -732,11 +728,12 @@ OpcodeReturn TattooTalk::cmdSetNPCWalkGraphics(const byte *&str) {
 	Person &person = people[npcNum];
 
 	// Build up walk library name for the given NPC
-	person._walkVGSName = "";
+	Common::String walkVGSName;
 	for (int idx = 0; idx < 8 && str[idx + 1] != '~'; ++idx)
-		person._walkVGSName += str[idx + 1];
+		walkVGSName += str[idx + 1];
 
-	person._walkVGSName += ".VGS";
+	walkVGSName += ".VGS";
+	person._walkVGSName = Common::Path(walkVGSName);
 	people._forceWalkReload = true;
 	str += 8;
 

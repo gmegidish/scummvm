@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,7 @@ namespace Kyra {
 class KyraAudioStream : public Audio::SeekableAudioStream {
 public:
 	KyraAudioStream(Audio::SeekableAudioStream *impl) : _impl(impl), _rate(impl->getRate()), _fadeSamples(0), _fadeCount(0), _fading(0), _endOfData(false) {}
-	~KyraAudioStream() override { delete _impl; _impl = 0; }
+	~KyraAudioStream() override { delete _impl; _impl = nullptr; }
 
 	int readBuffer(int16 *buffer, const int numSamples) override;
 	bool isStereo() const override { return _impl->isStereo(); }
@@ -104,7 +103,7 @@ int KyraAudioStream::readBuffer(int16 *buffer, const int numSamples) {
 
 SoundDigital_MR::SoundDigital_MR(KyraEngine_MR *vm, Audio::Mixer *mixer) : _vm(vm), _mixer(mixer) {
 	for (uint i = 0; i < ARRAYSIZE(_sounds); ++i)
-		_sounds[i].stream = 0;
+		_sounds[i].stream = nullptr;
 }
 
 SoundDigital_MR::~SoundDigital_MR() {
@@ -113,7 +112,7 @@ SoundDigital_MR::~SoundDigital_MR() {
 }
 
 int SoundDigital_MR::playSound(const char *filename, uint8 priority, Audio::Mixer::SoundType type, int volume, bool loop, int channel) {
-	Sound *use = 0;
+	Sound *use = nullptr;
 	if (channel != -1 && channel < ARRAYSIZE(_sounds)) {
 		stopSound(channel);
 		use = &_sounds[channel];
@@ -148,13 +147,13 @@ int SoundDigital_MR::playSound(const char *filename, uint8 priority, Audio::Mixe
 		}
 	}
 
-	Common::SeekableReadStream *stream = 0;
+	Common::SeekableReadStream *stream = nullptr;
 	int usedCodec = -1;
 	for (int i = 0; _supportedCodecs[i].fileext; ++i) {
-		Common::String file = filename;
-		file += _supportedCodecs[i].fileext;
+		Common::Path file(filename);
+		file.appendInPlace(_supportedCodecs[i].fileext);
 
-		if (!_vm->resource()->exists(file.c_str()))
+		if (!_vm->resource()->exists(file))
 			continue;
 
 		stream = _vm->resource()->createReadStream(file);
@@ -178,7 +177,7 @@ int SoundDigital_MR::playSound(const char *filename, uint8 priority, Audio::Mixe
 	assert(use->stream);
 	if (use->stream->endOfData()) {
 		delete use->stream;
-		use->stream = 0;
+		use->stream = nullptr;
 
 		return -1;
 	}
@@ -212,7 +211,7 @@ void SoundDigital_MR::stopSound(int channel) {
 
 	assert(channel >= 0 && channel < ARRAYSIZE(_sounds));
 	_mixer->stopHandle(_sounds[channel].handle);
-	_sounds[channel].stream = 0;
+	_sounds[channel].stream = nullptr;
 }
 
 void SoundDigital_MR::stopAllSounds() {
@@ -242,7 +241,7 @@ const SoundDigital_MR::AudioCodecs SoundDigital_MR::_supportedCodecs[] = {
 	{ ".MP3", Audio::makeMP3Stream },
 #endif // USE_MAD
 	{ ".AUD", makeAUDStream },
-	{ 0, 0 }
+	{ nullptr, nullptr }
 };
 
 } // End of namespace Kyra

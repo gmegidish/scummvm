@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -173,7 +172,7 @@ void NGIEngine::lift_setButton(const char *name, int state) {
 }
 
 void NGIEngine::lift_init(Scene *sc, int enterSeq, int exitSeq) {
-	_lastLiftButton = 0;
+	_lastLiftButton = nullptr;
 
 	_liftEnterMQ = sc->getMessageQueueById(enterSeq);
 	if (!_liftEnterMQ)
@@ -279,13 +278,13 @@ void NGIEngine::lift_exitSeq(ExCommand *cmd) {
 
 	mq->addExCommandToEnd(ex);
 
-	mq->chain(0);
+	mq->chain(nullptr);
 }
 
 void NGIEngine::lift_closedoorSeq() {
 	if (_lift->_movement) {
 		if (_lift->_movement->_id == MV_LFT_CLOSE) {
-			_lift->queueMessageQueue(0);
+			_lift->queueMessageQueue(nullptr);
 		} else if (_lift->_movement->_id == MV_LFT_OPEN) {
 			int ph = _lift->_movement->_currDynamicPhaseIndex;
 
@@ -356,7 +355,7 @@ void NGIEngine::lift_walkAndGo() {
 		ex->_excFlags |= 3;
 		mq->addExCommandToEnd(ex);
 
-		mq->chain(0);
+		mq->chain(nullptr);
 
 		_aniMan->_flags |= 0x100;
 	}
@@ -365,7 +364,7 @@ void NGIEngine::lift_walkAndGo() {
 void NGIEngine::lift_openLift() {
 	if (_lift->_movement) {
 		if (_lift->_movement->_id == MV_LFT_OPEN) {
-			_lift->queueMessageQueue(0);
+			_lift->queueMessageQueue(nullptr);
 		} else if (_lift->_movement->_id == MV_LFT_CLOSE) {
 			int idx = _lift->_movement->_currDynamicPhaseIndex;
 
@@ -435,11 +434,11 @@ void NGIEngine::lift_goAnimation() {
 		}
 	}
 
-	lift_exitSeq(0);
+	lift_exitSeq(nullptr);
 
 	if (_lastLiftButton) {
 		_lastLiftButton->_statics = _lastLiftButton->getStaticsById(lift_getButtonIdN(_lastLiftButton->_statics->_staticsId));
-		_lastLiftButton = 0;
+		_lastLiftButton = nullptr;
 	}
 }
 
@@ -456,7 +455,7 @@ void NGIEngine::lift_animateButton(StaticANIObject *button) {
 				if (id)
 					_lastLiftButton->_statics = _lastLiftButton->getStaticsById(id);
 
-				_lastLiftButton = 0;
+				_lastLiftButton = nullptr;
 			}
 
 			if (_aniMan->isIdle() && !(_aniMan->_flags & 0x100)) {
@@ -483,14 +482,14 @@ void NGIEngine::lift_animateButton(StaticANIObject *button) {
 void NGIEngine::lift_startExitQueue() {
 	MessageQueue *mq = new MessageQueue(_liftExitMQ, 0, 0);
 
-	mq->chain(0);
+	mq->chain(nullptr);
 }
 
 void NGIEngine::lift_hoverButton(ExCommand *cmd) {
 	if (_lastLiftButton) {
 		if (!(cmd->_param & 2) || _liftX != cmd->_x || _liftY != cmd->_y) {
 			_lastLiftButton->_statics = _lastLiftButton->getStaticsById(lift_getButtonIdN(_lastLiftButton->_statics->_staticsId));
-			_lastLiftButton = 0;
+			_lastLiftButton = nullptr;
 		}
 	}
 }

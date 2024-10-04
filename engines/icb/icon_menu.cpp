@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,11 +20,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "engines/icb/icb.h"
 #include "engines/icb/icon_menu.h"
 #include "engines/icb/global_objects.h"
 #include "engines/icb/sound.h"
@@ -50,8 +50,8 @@ _icon_menu::_icon_menu() {
 	m_nAddedSymbol = 0;
 	m_nAddedFlashCount = 0;
 
-	strcpy(m_pcGlobalClusterFile, GLOBAL_CLUSTER_PATH);
-	strcpy(m_pcIconCluster, ICON_CLUSTER_PATH);
+	Common::strcpy_s(m_pcGlobalClusterFile, GLOBAL_CLUSTER_PATH);
+	Common::strcpy_s(m_pcIconCluster, ICON_CLUSTER_PATH);
 
 	m_nGlobalClusterHash = NULL_HASH;
 	m_nIconClusterHash = NULL_HASH;
@@ -106,7 +106,8 @@ bool8 _icon_menu::CycleIconMenu(const _input &sKeyboardState) {
 
 	// INVENTORY QUIT: we must not be in the remora, m_bAllowEscape must be true
 	// key not locked, we are pressing inventory and we wern't last time...
-	if ((!g_oRemora->IsActive()) && (m_bAllowEscape) && (!m_nKeyLock) && (inventoryPress) && (!lastInventoryPress)) {
+	if (((g_icb->getGameType() == GType_ICB && !g_oRemora->IsActive()) ||
+	     (g_icb->getGameType() != GType_ICB)) && (m_bAllowEscape) && (!m_nKeyLock) && (inventoryPress) && (!lastInventoryPress)) {
 		CloseDownIconMenu();
 
 		// Return the player's state to what it was before the menu was activated.
@@ -121,7 +122,8 @@ bool8 _icon_menu::CycleIconMenu(const _input &sKeyboardState) {
 
 	}
 	// REMORA QUIT: remora is active we just let go of inventory button, key not locked we have a return...
-	else if ((g_oRemora->IsActive()) && (!m_nKeyLock) && (!inventoryPress) && (lastInventoryPress) && (found != -1)) {
+	else if (((g_icb->getGameType() == GType_ICB && g_oRemora->IsActive()) ||
+	          (g_icb->getGameType() != GType_ICB)) && (!m_nKeyLock) && (!inventoryPress) && (lastInventoryPress) && (found != -1)) {
 		m_nLastSelection = found;
 		m_bValidSelection = TRUE8;
 
@@ -139,7 +141,8 @@ bool8 _icon_menu::CycleIconMenu(const _input &sKeyboardState) {
 	// CONVERSATION QUIT: remora is not active m_bAllowEscape is probably true
 	// no key lock, inventory was pressed and has now been released...
 	// and we have a quit!
-	else if ((!g_oRemora->IsActive()) && (!m_bAllowEscape) && (!m_nKeyLock) && (!inventoryPress) && (lastInventoryPress) && (found != -1)) {
+	else if (((g_icb->getGameType() == GType_ICB && !g_oRemora->IsActive()) ||
+	          (g_icb->getGameType() != GType_ICB)) && (!m_bAllowEscape) && (!m_nKeyLock) && (!inventoryPress) && (lastInventoryPress) && (found != -1)) {
 		m_nLastSelection = found;
 		m_bValidSelection = TRUE8;
 
@@ -159,8 +162,7 @@ bool8 _icon_menu::CycleIconMenu(const _input &sKeyboardState) {
 			m_nLastSelection = m_nSelectedIcon;
 			m_bValidSelection = TRUE8;
 		}
-
-		if (!g_oRemora->IsActive()) {
+		if (g_icb->getGameType() == GType_ICB && !g_oRemora->IsActive()) {
 			// Return the player's state to what it was before the menu was activated.
 			MS->player.Pop_control_mode();
 			MS->player.Set_player_status(STOOD);
@@ -307,7 +309,7 @@ void _icon_menu::PreloadIcon(const char *pcIconPath, const char *pcIconName) {
 
 	// Make the full URL for the icon.
 	char pcFullIconName[MAXLEN_URL];
-	sprintf(pcFullIconName, "%s%s.%s", pcIconPath, pcIconName, PX_BITMAP_EXT);
+	Common::sprintf_s(pcFullIconName, "%s%s.%s", pcIconPath, pcIconName, PX_BITMAP_EXT);
 
 	// Open the icon resource.
 	nFullIconNameHash = NULL_HASH;
@@ -320,9 +322,9 @@ const char *_icon_menu::GetLastSelection() {
 		if (m_pIconList->GetIconCount() > 0)
 			return (m_pIconList->GetIcon(m_nLastSelection));
 		else
-			return (NULL);
+			return (nullptr);
 	} else {
-		return (NULL);
+		return (nullptr);
 	}
 }
 

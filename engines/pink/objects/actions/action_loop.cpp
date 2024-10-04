@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,10 +54,10 @@ void ActionLoop::toConsole() const {
 }
 
 void ActionLoop::update() {
-	int frame = _decoder.getCurFrame();
+	int32 frame = _decoder.getCurFrame();
 
 	if (!_inLoop) {
-		if (frame < (int)_startFrame) {
+		if (frame < (int32)_startFrame) {
 			decodeNext();
 			return;
 		} else
@@ -76,7 +75,7 @@ void ActionLoop::update() {
 				decodeNext();
 			}
 		} else {
-			if (frame > (int)_startFrame) {
+			if (frame > (int32)_startFrame) {
 				ActionCEL::setFrame(frame - 1);
 			} else {
 				_forward = true;
@@ -84,18 +83,21 @@ void ActionLoop::update() {
 			decodeNext();
 		}
 		break;
+
 	case kRandom: {
 		Common::RandomSource &rnd = _actor->getPage()->getGame()->getRnd();
 		ActionCEL::setFrame(rnd.getRandomNumberRng(_startFrame, _stopFrame));
 		decodeNext();
 		break;
 	}
+
 	case kForward:
 		if (frame == _stopFrame) {
 			ActionCEL::setFrame(_startFrame);
 		}
 		decodeNext();
 		break;
+
 	default:
 		break;
 	}

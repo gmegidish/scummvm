@@ -51,6 +51,7 @@ ScummVM Team
     AGS:
        Paul Gilbert
        Thierry Crozat
+       Walter Agazzi                  - Maintenance, Game archival
        Chris Jones                    - Creator
        Alan Van Drake                 - AGS
        Benjamin Penney                - AGS
@@ -103,6 +104,12 @@ ScummVM Team
        Peter Bozso
        Arnaud Boutonne
 
+    Bagel:
+       Arnaud Boutonne
+       Daniel Albano
+       Eugene Sandulenko
+       Paul Gilbert
+
     BBVS:
        Benjamin Haisch
 
@@ -124,7 +131,14 @@ ScummVM Team
        Arnaud Boutonne
        Paul Gilbert
 
+    Chamber:
+       Retro-Junk;
+       Eugene Sandulenko
+
     Chewy:
+       Paul Gilbert
+       Eugene Sandulenko
+       Arnaud Boutonne
        Filippos Karapetis
 
     Cine:
@@ -136,6 +150,9 @@ ScummVM Team
 
     Composer:
        Alyssa Milburn
+
+    Crab:
+       Kartik Agarwala
 
     CruisE:
        Paul Gilbert
@@ -160,6 +177,7 @@ ScummVM Team
        Scott Percival
        Steven Hoefel
        Tobia Tesan
+       Misty De Meo
 
     DM:
        Arnaud Boutonne
@@ -186,6 +204,13 @@ ScummVM Team
        Vladimir Menshakov
        Willem Jan Palenstijn
 
+    Efh:
+       Arnaud Boutonne
+
+    Freescape:
+       Chris Allen                    - Sound engine programming
+       Gustavo Grieco
+
     Glk:
        Paul Gilbert
        Tor Andersson                  - GarGlk library
@@ -193,6 +218,7 @@ ScummVM Team
        Andrew Plotkin                 - Glulxe interpreter
        Alan Cox                       - ScottFree interpreter
        Michael J. Roberts             - TADS interpreter
+       Avijeet Maurya                 - Scott Sub-engine
 
     Gnap:
        Arnaud Boutonne
@@ -201,6 +227,7 @@ ScummVM Team
     Gob:
        Torbjorn Andersson
        Arnaud Boutonne
+       Simon Delamarre
        Sven Hesse
        Eugene Sandulenko
 
@@ -210,6 +237,7 @@ ScummVM Team
     Grim:
        James Brown                    - Grim (retired)
        Giulio Camuffo                 - Grim (retired)
+       Daniel Schepler                - Initial engine contributor
        Dries Harnie                   - EMI
        Pawel Kolodziejski             - Grim
        Christian Krause               - EMI (retired)
@@ -219,10 +247,11 @@ ScummVM Team
 
     Groovie:
        Henry Bush
+       Ray Carro
        Scott Thomas
        Jordi Vilalta Prat
 
-    Hades' Challenge:
+    Hades Challenge:
        Vladimir Serbinenko/Google
 
     HDB:
@@ -233,10 +262,16 @@ ScummVM Team
        Arnaud Boutonne
        Paul Gilbert
 
+    Hpl1:
+       Emanuele Grisenti
+
     Hugo:
        Arnaud Boutonne
        Oystein Eftevaag
        Eugene Sandulenko
+
+    Hypno:
+       Gustavo Grieco
 
     ICB:
        Pawel Kolodziejski
@@ -246,6 +281,9 @@ ScummVM Team
     Illusions:
        Benjamin Haisch
        Eric Fry
+
+    Immortal:
+       Michael Hayman
 
     Kingdom:
        Arnaud Boutonne
@@ -276,6 +314,9 @@ ScummVM Team
     Lure:
        Paul Gilbert
 
+    M4:
+       Paul Gilbert
+
     MacVenture:
        Borja Lorente                  - GSoC student
 
@@ -287,6 +328,13 @@ ScummVM Team
        Arnaud Boutonne
        Paul Gilbert
        Filippos Karapetis
+
+    MM (Xeen):
+       Paul Gilbert
+       Benoit Pierre
+       TheDrakeRaider                 - (M&M1 Gfx Mod)
+       David Goldsmith                - (Xeen analysis)
+       Matt Taylor                    - (Xeen analysis)
 
     Mohawk:
        Bastien Bouclet
@@ -300,6 +348,9 @@ ScummVM Team
     Mortevielle:
        Arnaud Boutonne
        Paul Gilbert
+
+    mTropolis:
+       Eric Lasota
 
     MutationOfJB:
        Lubomir Remak
@@ -376,6 +427,7 @@ ScummVM Team
 
     SCUMM:
        Torbjorn Andersson
+       Andrea Boscarino               - Digital iMUSE, SMUSH audio, GUI
        James Brown                    - (retired)
        Jonathan Gray                  - (retired)
        Vincent Hamm                   - (retired)
@@ -388,6 +440,7 @@ ScummVM Team
        Ludvig Strigeus                - (retired)
 
     SCUMM HE:
+       Andrea Boscarino               - Digital audio, WIZ graphics system
        Jonathan Gray                  - (retired)
        Travis Howell
        Gregory Montoir                - (retired)
@@ -423,6 +476,7 @@ ScummVM Team
 
     Sword1:
        Fabio Battaglia                - PSX version support
+       Andrea Boscarino               - Palette fading, menus, audio
        Thierry Crozat                 - Mac version support
        Robert Goeffringmann           - (retired)
 
@@ -441,6 +495,9 @@ ScummVM Team
     TeenAgent:
        Robert Megone                  - Help with callback rewriting
        Vladimir Menshakov
+
+    Tetraedge:
+       Matthew Duggan
 
     Tinsel:
        Torbjorn Andersson
@@ -496,6 +553,9 @@ ScummVM Team
        Sebastien Viannay              - (retired)
        Martin Gerhardy
 
+    Thimbleweed Park:
+       Valéry Sablonnière
+
     Ultima:
        Paul Gilbert
        Matthew Duggan
@@ -519,6 +579,9 @@ ScummVM Team
        Ryan Nunn                      - (Pentagram)
        Willem Jan Palenstijn          - (Pentagram)
 
+    V-Cruise:
+       Eric Lasota
+
     Voyeur:
        Arnaud Boutonne
        Paul Gilbert
@@ -526,15 +589,13 @@ ScummVM Team
     WAGE:
        Eugene Sandulenko
 
+    Watchmaker:
+       Einar Johan Troan Somaen;
+
     Wintermute:
        Gunnar Birke                   - Wintermute 3D
        Einar Johan T. Somaaen
        Tobia Tesan
-
-    Xeen:
-       Paul Gilbert
-       David Goldsmith                - (analysis)
-       Matt Taylor                    - (analysis)
 
     Z-Vision:
        Adrian Astley
@@ -543,6 +604,9 @@ ScummVM Team
 
   Backend Teams
   -------------
+    Atari:
+       Miro Kropacek
+
     Android:
        Andre Heider
        Angus Lees
@@ -558,9 +622,10 @@ ScummVM Team
        John Willis
 
     iPhone / iPad:
-       Oystein Eftevaag
+       Oystein Eftevaag               - (retired)
        Vincent Benony
        Thierry Crozat
+       Lars Sundstroem
 
     LinuxMoto:
        Lubomyr Lisen
@@ -604,7 +669,7 @@ ScummVM Team
        Cpasjuste
        rsn8887
 
-    SDL (Win/Linux/OS X/etc.):
+    SDL (Win/Linux/macOS/etc.):
        Max Horn                       - (retired)
        Eugene Sandulenko              - Asm routines, GFX layers
 
@@ -616,6 +681,9 @@ ScummVM Team
     Tizen / BADA:
        Chris Warren-Smith
 
+    Webassembly / Emscripten:
+       Christian Kuendig
+
     WebOS:
        Klaus Reimer
 
@@ -625,6 +693,9 @@ ScummVM Team
 
     Raspberry Pi:
        Manuel Alfayate
+
+    Libretro:
+       Giovanni Cascione
 
   Other subsystems
   ----------------
@@ -659,6 +730,9 @@ ScummVM Team
                                         speedups on several ports;
                                         improvements to the sound mixer
        Trembyle                       - Archivist
+       Lothar Serra Mari              - Tackling Tremendously Tedious
+                                        Tasks(tm); ScummVM's Seal of Approval
+                                        (Awp?!)
 
   Website (code)
   --------------
@@ -730,8 +804,9 @@ Other contributions
 
     macOS:
        Max Horn                       - (retired)
-       Oystein Eftevaag
+       Oystein Eftevaag               - (retired)
        Thierry Crozat
+       dwa                            - Tiger/Leopard PPC
 
     Mandriva:
        Dominik Scherer                - (retired)
@@ -789,6 +864,7 @@ Other contributions
        Ben Castricum
 
     Finnish:
+       Linus Virtanen
        Toni Saarela
        Timo Mikkolainen
 
@@ -868,6 +944,11 @@ Other contributions
        Hugo Labrande                  - Improve English translation
        Thierry Crozat                 - Improve English translation
 
+    Prince:
+       ShinjiGR                       - English translation
+       Eugene Sandulenko              - English translation
+       Anna Baldur                    - English translation
+
     Supernova:
        Joseph-Eugene Winzer           - English translation
        Thierry Crozat                 - English translation
@@ -881,6 +962,26 @@ Other contributions
      Jean Marc Gimenez              - ScummVM logo
      David Jensen                   - SVG logo conversion
      Raina                          - ScummVM forum buttons
+
+  Icons pack
+  ----------
+     Stefan Philippsen              - Primary contributor and coordination
+     Benjamin Funke
+     Daniel Albano
+     David Calvert
+     Eugene Sandulenko
+     J Moretti
+     Jennifer McMurray
+     Lothar Serra Mari
+     Oleg Ermakov
+     Olly Dean
+     Walter Agazzi
+     beresk137
+     Canuma
+     Thunderforge
+     neuromancer
+     nightm4re94
+     trembyle
 
   Code contributions
   ------------------

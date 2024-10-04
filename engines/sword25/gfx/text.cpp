@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,7 @@
  * Licensed under GNU GPL v2
  *
  */
+#include "common/unicode-bidi.h"
 
 #include "sword25/kernel/kernel.h"
 #include "sword25/kernel/outputpersistenceblock.h"
@@ -218,6 +218,7 @@ void Text::updateFormat() {
 	FontResource *fontPtr = lockFontResource();
 	assert(fontPtr);
 
+	bool isRTL = Kernel::getInstance()->getGfx()->isRTL();
 	updateMetrics(*fontPtr);
 
 	_lines.resize(1);
@@ -260,6 +261,10 @@ void Text::updateFormat() {
 					curLineHeight = curCharRect.height();
 			}
 
+            if (isRTL) {
+                _lines[curLine].text = Common::convertBiDiString(_lines[curLine].text, Common::kWindows1255);
+            }
+
 			_lines[curLine].bbox.right = curLineWidth;
 			_lines[curLine].bbox.bottom = curLineHeight;
 			if ((uint)_width < curLineWidth)
@@ -287,10 +292,14 @@ void Text::updateFormat() {
 			_height += bbox.height();
 		}
 	} else {
-		// No auto format, so all the text is copied to a single line.
-		_lines[0].text = _text;
-		_lines[0].bbox = Common::Rect(0, 0, _width, _height);
-	}
+        if (isRTL) {
+            _lines[0].text = Common::convertBiDiString(_text, Common::kWindows1255);
+        } else {
+            // No auto format, so all the text is copied to a single line.
+            _lines[0].text = _text;
+        }
+        _lines[0].bbox = Common::Rect(0, 0, _width, _height);
+    }
 
 	fontPtr->release();
 }

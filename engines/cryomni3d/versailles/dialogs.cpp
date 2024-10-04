@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@ bool CryOmni3DEngine_Versailles::preprocessDialog(const Common::String &sequence
 	}
 
 	if (_currentLevel == 1 && _currentPlaceId == 3) {
-		playInGameVideo("11D_LEB1");
+		playInGameAnimVideo("11D_LEB1");
 	}
 
 	_dialogsMan["{JOUEUR-VU-MEMORANDUM-DANS-LUSTRE-DU-SALON-DE-LA-GUERRE}"] = 'N';
@@ -120,7 +119,7 @@ void CryOmni3DEngine_Versailles::postprocessDialog(const Common::String &sequenc
 		}
 		if (!_gameVariables[GameVariables::kGotMedalsSolution] &&
 		        _dialogsMan["MONSIEUR-DONNE-SOLUTION-MEDAILLES"] == 'Y') {
-			playInGameVideo("32M_MR2");
+			playInGameAnimVideo("32M_MR2");
 			_gameVariables[GameVariables::kGotMedalsSolution] = 1;
 		}
 		if (!_gameVariables[GameVariables::kDecipherScore] &&
@@ -294,7 +293,7 @@ void CryOmni3DEngine_Versailles::dialogShowBontempsGivesKey() {
 }
 
 void CryOmni3DEngine_Versailles::dialogShowDuMaineLeaves() {
-	playInGameVideo("62S_DUC1");
+	playInGameAnimVideo("62S_DUC1");
 	_inventory.removeByNameID(144);
 	setPlaceState(19, 1);
 }
@@ -313,7 +312,7 @@ void CryOmni3DEngine_Versailles::dialogShowLeBrunGives() {
 }
 
 void CryOmni3DEngine_Versailles::dialogShowLeBrunLeave() {
-	playInGameVideo("11D_LEB3");
+	playInGameAnimVideo("11D_LEB3");
 	setGameTime(2, 1);
 }
 

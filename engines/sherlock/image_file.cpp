@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,25 +34,61 @@ void ImageFile::setVm(SherlockEngine *vm) {
 }
 
 ImageFile::ImageFile() {
+	_stream = nullptr;
 }
 
-ImageFile::ImageFile(const Common::String &name, bool skipPal, bool animImages) {
-	Common::SeekableReadStream *stream = _vm->_res->load(name);
+ImageFile::ImageFile(const Common::Path &name, bool skipPal, bool animImages) {
+	// When we have a filename, the ImageFile class is responsible for
+	// decoding frames on demand, not all at once. But we don't want to
+	// recreate the stream every time since in the case where resources
+	// files are compressed that will decompress the entire resource file
+	// for each call. This makes the Serrated Scalpel intro very slow, even
+	// on decent hardware.
+
+	_name = name;
+	_stream = _vm->_res->load(name);
 
 	Common::fill(&_palette[0], &_palette[PALETTE_SIZE], 0);
-	load(*stream, skipPal, animImages);
-
-	delete stream;
+	load(*_stream, skipPal, animImages);
 }
 
 ImageFile::ImageFile(Common::SeekableReadStream &stream, bool skipPal) {
+	_stream = nullptr;
 	Common::fill(&_palette[0], &_palette[PALETTE_SIZE], 0);
 	load(stream, skipPal, false);
 }
 
 ImageFile::~ImageFile() {
-	for (uint idx = 0; idx < size(); ++idx)
-		(*this)[idx]._frame.free();
+	for (uint idx = 0; idx < size(); ++idx) {
+		if (_frames[idx]._decoded)
+			_frames[idx]._frame.free();
+	}
+	delete _stream;
+}
+
+ImageFrame& ImageFile::operator[](uint index) {
+	if (!_frames[index]._decoded) {
+		decodeFrame(_frames[index]);
+	}
+
+	return _frames[index];
+}
+
+uint ImageFile::size() {
+	return _frames.size();
+}
+
+void ImageFile::push_back(const ImageFrame &frame) {
+	_frames.push_back(frame);
+}
+
+void ImageFile::decodeFrame(ImageFrame &frame) {
+	_stream->seek(frame._pos);
+	byte *data = new byte[frame._size + 4];
+	_stream->read(data, frame._size);
+	Common::fill(data + frame._size, data + frame._size + 4, 0);
+	frame.decompressFrame(data, IS_ROSE_TATTOO);
+	delete[] data;
 }
 
 void ImageFile::load(Common::SeekableReadStream &stream, bool skipPalette, bool animImages) {
@@ -62,9 +97,24 @@ void ImageFile::load(Common::SeekableReadStream &stream, bool skipPalette, bool 
 	int streamSize = stream.size();
 	while (stream.pos() < streamSize) {
 		ImageFrame frame;
+		bool invalid = false;
+
 		frame._width = stream.readUint16LE() + 1;
 		frame._height = stream.readUint16LE() + 1;
 		frame._paletteBase = stream.readByte();
+
+		// Exact purpose of the image with size (-320)x(-200) in
+		// the titles is unclear but skipping it seems to have no ill effect.
+		// Just skip it.
+		if (frame._width > 32768) {
+			frame._width = -(int16)frame._width;
+			invalid = true;
+		}
+
+		if (frame._height > 32768) {
+			frame._height = -(int16)frame._height;
+			invalid = true;
+		}
 
 		if (animImages) {
 			// Animation cutscene image files use a 16-bit x offset
@@ -92,12 +142,26 @@ void ImageFile::load(Common::SeekableReadStream &stream, bool skipPalette, bool 
 			frame._size = frame._width * frame._height;
 		}
 
-		// Load data for frame and decompress it
-		byte *data1 = new byte[frame._size + 4];
-		stream.read(data1, frame._size);
-		Common::fill(data1 + frame._size, data1 + frame._size + 4, 0);
-		frame.decompressFrame(data1, IS_ROSE_TATTOO);
-		delete[] data1;
+		frame._pos = stream.pos();
+
+		if (invalid) {
+			frame._decoded = true;
+			frame._frame.create(frame._width, frame._height, Graphics::PixelFormat::createFormatCLUT8());
+			frame._frame.fillRect(Common::Rect(0, 0, frame._width, frame._height), 0xff);
+			stream.seek(MIN(stream.pos() + frame._size, stream.size()));
+		} else if (_name.empty()) {
+			// Load data for frame and decompress it
+			frame._decoded = true;
+			byte *data1 = new byte[frame._size + 4];
+			stream.read(data1, frame._size);
+			Common::fill(data1 + frame._size, data1 + frame._size + 4, 0);
+			frame.decompressFrame(data1, IS_ROSE_TATTOO);
+			delete[] data1;
+		} else {
+			frame._decoded = false;
+
+			stream.seek(MIN(stream.pos() + frame._size, stream.size()));
+		}
 
 		push_back(frame);
 	}
@@ -262,12 +326,12 @@ void ImageFile3DO::setVm(SherlockEngine *vm) {
 	_vm = vm;
 }
 
-ImageFile3DO::ImageFile3DO(const Common::String &name, ImageFile3DOType imageFile3DOType) {
+ImageFile3DO::ImageFile3DO(const Common::Path &name, ImageFile3DOType imageFile3DOType) {
 #if 0
 	Common::File *dataStream = new Common::File();
 
 	if (!dataStream->open(name)) {
-		error("unable to open %s\n", name.c_str());
+		error("unable to open %s\n", name.toString().c_str());
 	}
 #endif
 	Common::SeekableReadStream *dataStream = _vm->_res->load(name);
@@ -300,6 +364,10 @@ ImageFile3DO::ImageFile3DO(Common::SeekableReadStream &stream, bool isRoomData) 
 	} else {
 		load3DOCelRoomData(stream);
 	}
+}
+
+void ImageFile3DO::decodeFrame(ImageFrame &frame) {
+	error("ImageFile3DO: Frame should already have been decoded");
 }
 
 void ImageFile3DO::load(Common::SeekableReadStream &stream, bool isRoomData) {
@@ -354,6 +422,7 @@ void ImageFile3DO::loadAnimationFile(Common::SeekableReadStream &stream) {
 
 		celDataSize = stream.readUint16BE();
 
+		frame._decoded = true;
 		frame._width = stream.readUint16BE() + 1; // 2 bytes BE width
 		frame._height = stream.readByte() + 1; // 1 byte BE height
 		frame._paletteBase = 0;
@@ -381,7 +450,7 @@ void ImageFile3DO::loadAnimationFile(Common::SeekableReadStream &stream) {
 		streamLeft -= celDataSize;
 
 		// always 16 bits per pixel (RGB555)
-		decompress3DOCelFrame(frame, data_, celDataSize, 16, NULL);
+		decompress3DOCelFrame(frame, data_, celDataSize, 16, nullptr);
 
 		delete[] data_;
 
@@ -399,7 +468,7 @@ void ImageFile3DO::load3DOCelFile(Common::SeekableReadStream &stream) {
 	int32  chunkStartPos = 0;
 	uint32 chunkTag = 0;
 	uint32 chunkSize = 0;
-	byte  *chunkDataPtr = NULL;
+	byte  *chunkDataPtr = nullptr;
 
 	// ANIM chunk (animation header for animation files)
 	bool   animFound = false;
@@ -586,6 +655,7 @@ void ImageFile3DO::load3DOCelFile(Common::SeekableReadStream &stream) {
 			// Set up frame
 			ImageFrame imageFrame;
 
+			imageFrame._decoded = true;
 			imageFrame._width = ccbWidth;
 			imageFrame._height = ccbHeight;
 			imageFrame._paletteBase = 0;
@@ -596,7 +666,7 @@ void ImageFile3DO::load3DOCelFile(Common::SeekableReadStream &stream) {
 
 			// Decompress/copy this frame
 			if (!plutFound) {
-				decompress3DOCelFrame(imageFrame, chunkDataPtr, dataSize, ccbPRE0_bitsPerPixel, NULL);
+				decompress3DOCelFrame(imageFrame, chunkDataPtr, dataSize, ccbPRE0_bitsPerPixel, nullptr);
 			} else {
 				decompress3DOCelFrame(imageFrame, chunkDataPtr, dataSize, ccbPRE0_bitsPerPixel, &plutRGBlookupTable);
 			}
@@ -712,6 +782,7 @@ void ImageFile3DO::load3DOCelRoomData(Common::SeekableReadStream &stream) {
 		{
 			ImageFrame imageFrame;
 
+			imageFrame._decoded = true;
 			imageFrame._width = ccbWidth;
 			imageFrame._height = ccbHeight;
 			imageFrame._paletteBase = 0;
@@ -721,7 +792,7 @@ void ImageFile3DO::load3DOCelRoomData(Common::SeekableReadStream &stream) {
 			imageFrame._size = 0;
 
 			// Decompress/copy this frame
-			decompress3DOCelFrame(imageFrame, celDataPtr, celDataSize, ccbPRE0_bitsPerPixel, NULL);
+			decompress3DOCelFrame(imageFrame, celDataPtr, celDataSize, ccbPRE0_bitsPerPixel, nullptr);
 
 			delete[] celDataPtr;
 
@@ -907,9 +978,9 @@ void ImageFile3DO::loadFont(Common::SeekableReadStream &stream) {
 	uint32 header_maxChar = 0;
 	uint32 header_charCount = 0;
 
-	byte  *widthTablePtr = NULL;
+	byte  *widthTablePtr = nullptr;
 	uint32 bitsTableSize = 0;
-	byte  *bitsTablePtr = NULL;
+	byte  *bitsTablePtr = nullptr;
 
 	stream.skip(2); // Unknown bytes
 	stream.skip(2); // Unknown bytes (0x000E)
@@ -938,7 +1009,7 @@ void ImageFile3DO::loadFont(Common::SeekableReadStream &stream) {
 	// Now extract all characters
 	uint16      curChar = 0;
 	const byte *curBitsLinePtr = bitsTablePtr;
-	const byte *curBitsPtr = NULL;
+	const byte *curBitsPtr = nullptr;
 	byte        curBitsLeft = 0;
 	uint32      curCharHeightLeft = 0;
 	uint32      curCharWidthLeft = 0;
@@ -956,6 +1027,7 @@ void ImageFile3DO::loadFont(Common::SeekableReadStream &stream) {
 		// create frame
 		ImageFrame imageFrame;
 
+		imageFrame._decoded = true;
 		imageFrame._width = widthTablePtr[curChar];
 		imageFrame._height = header_fontHeight;
 		imageFrame._paletteBase = 0;

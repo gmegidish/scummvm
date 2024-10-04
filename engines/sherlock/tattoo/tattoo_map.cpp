@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -117,10 +116,7 @@ int TattooMap::show() {
 	screen._backBuffer2.create(SHERLOCK_SCREEN_WIDTH * 2, SHERLOCK_SCREEN_HEIGHT * 2);
 	screen._backBuffer2.SHblitFrom(screen._backBuffer1);
 
-	// Display the built map to the screen
-	screen.slamArea(0, 0, SHERLOCK_SCREEN_WIDTH, SHERLOCK_SCREEN_HEIGHT);
-
-	// Set initial scroll position
+	// Set initial scroll position, forcing the map to be displayed
 	_targetScroll = _bigPos;
 	screen._currentScroll = Common::Point(-1, -1);
 
@@ -371,7 +367,7 @@ void TattooMap::showCloseUp(int closeUpNum) {
 	events.hideCursor();
 
 	// Get the closeup images
-	Common::String fname = Common::String::format("res%02d.vgs", closeUpNum + 1);
+	Common::Path fname(Common::String::format("res%02d.vgs", closeUpNum + 1));
 	ImageFile pic(fname);
 
 	Point32 closeUp(_data[closeUpNum].x * 100, _data[closeUpNum].y * 100);

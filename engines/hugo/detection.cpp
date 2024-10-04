@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,10 +43,10 @@ namespace Hugo {
 
 static const PlainGameDescriptor hugoGames[] = {
 	// Games
-	{"hugo1", "Hugo 1: Hugo's House of Horrors"},
-	{"hugo2", "Hugo 2: Whodunit?"},
-	{"hugo3", "Hugo 3: Jungle of Doom"},
-	{0, 0}
+	{"hugo1", "Hugo's House of Horrors"},
+	{"hugo2", "Hugo II: Whodunit?"},
+	{"hugo3", "Hugo III: Jungle of Doom"},
+	{nullptr, nullptr}
 };
 
 static const HugoGameDescription gameDescriptions[] = {
@@ -55,7 +54,7 @@ static const HugoGameDescription gameDescriptions[] = {
 	// Hugo1 DOS
 	{
 		{
-			"hugo1", 0,
+			"hugo1", nullptr,
 			AD_ENTRY1s("house.art", "c9403b2fe539185c9fd569b6cc4ff5ca", 14811),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
@@ -67,7 +66,7 @@ static const HugoGameDescription gameDescriptions[] = {
 	// Hugo1 Windows
 	{
 		{
-			"hugo1", 0,
+			"hugo1", nullptr,
 			AD_ENTRY1s("objects.dat", "3ba0f108f7690a05a34c56a02fbe644a", 126488),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
@@ -79,7 +78,7 @@ static const HugoGameDescription gameDescriptions[] = {
 	// Hugo2 DOS
 	{
 		{
-			"hugo2", 0,
+			"hugo2", nullptr,
 			AD_ENTRY1s("objects.dat", "88a718cc0ff2b3b25d49aaaa69d6d52c", 155240),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
@@ -91,7 +90,7 @@ static const HugoGameDescription gameDescriptions[] = {
 	// Hugo2 Windows
 	{
 		{
-			"hugo2", 0,
+			"hugo2", nullptr,
 			AD_ENTRY1s("objects.dat", "5df4ffc851e66a544c0e95e4e084a806", 158480),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
@@ -103,7 +102,7 @@ static const HugoGameDescription gameDescriptions[] = {
 	// Hugo3 DOS
 	{
 		{
-			"hugo3", 0,
+			"hugo3", nullptr,
 			AD_ENTRY1s("objects.dat", "bb1b061538a445f2eb99b682c0f506cc", 136419),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
@@ -115,7 +114,7 @@ static const HugoGameDescription gameDescriptions[] = {
 	// Hugo3 Windows
 	{
 		{
-			"hugo3", 0,
+			"hugo3", nullptr,
 			AD_ENTRY1s("objects.dat", "c9a8af7aa14cc907434eecee3ddd06d3", 136638),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
@@ -128,16 +127,16 @@ static const HugoGameDescription gameDescriptions[] = {
 	{AD_TABLE_END_MARKER, kGameTypeNone}
 };
 
-class HugoMetaEngineDetection : public AdvancedMetaEngineDetection {
+class HugoMetaEngineDetection : public AdvancedMetaEngineDetection<HugoGameDescription> {
 public:
-	HugoMetaEngineDetection() : AdvancedMetaEngineDetection(gameDescriptions, sizeof(HugoGameDescription), hugoGames) {
-	}
-
-	const char *getEngineId() const override {
-		return "hugo";
+	HugoMetaEngineDetection() : AdvancedMetaEngineDetection(gameDescriptions, hugoGames) {
 	}
 
 	const char *getName() const override {
+		return "hugo";
+	}
+
+	const char *getEngineName() const override {
 		return "Hugo";
 	}
 

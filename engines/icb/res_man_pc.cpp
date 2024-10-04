@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,31 +44,15 @@ namespace ICB {
 
 uint32 MAX_MEM_BLOCKS = 0;
 
-Common::File *openDiskFileForBinaryRead(const char *filename) {
-	pxString path = filename;
-	path.ConvertPath();
-	Common::File *result = new Common::File();
-	if (result->open(path.c_str())) {
-		return result;
-	} else {
-		delete result;
-		warning("openDiskFileForBinaryRead(%s) - FAILED", path.c_str());
-		return NULL;
-	}
-}
-
 Common::SeekableReadStream *openDiskFileForBinaryStreamRead(const Common::String &filename) {
-	// Quick-fix to start replacing FILE with Stream.
-	Common::File *f = openDiskFileForBinaryRead(filename.c_str());
-	if (!f) {
-		return nullptr;
-	}
-	int32 size = f->size();
-	byte *data = (byte *)malloc(size);
-	f->read(data, size);
-	f->close();
-	delete f;
-	Common::MemoryReadStream *stream = new Common::MemoryReadStream(data, size, DisposeAfterUse::YES);
+	pxString path = filename.c_str();
+	path.ConvertPath();
+	Common::SeekableReadStream *stream = nullptr;
+	if (SearchMan.hasFile(path.c_str()))
+		stream = SearchMan.createReadStreamForMember(path.c_str());
+	else
+		error("File not found: %s", path.c_str());
+
 	return stream;
 }
 
@@ -163,7 +146,7 @@ uint32 res_man::Fetch_size(const char * /*url*/, uint32 url_hash, const char *cl
 	HEADER_NORMAL *hn = GetFileHeader(cluster_search, &params);
 
 	// return value of 0 means no such file
-	if (hn == NULL)
+	if (hn == nullptr)
 		return 0;
 
 	return hn->size;
@@ -184,7 +167,7 @@ bool8 res_man::Test_file(const char *url, uint32 url_hash, const char *cluster, 
 
 	HEADER_NORMAL *hn = GetFileHeader(cluster_search, &params);
 
-	if (hn == NULL)
+	if (hn == nullptr)
 		return 0;
 
 	return 1;
@@ -235,7 +218,7 @@ void res_man::ReadFile(const char * /*url*/, RMParams *params) {
 
 		Tdebug("clusters.txt", "  Close handle %x", params->_stream);
 		delete params->_stream; // close the cluster
-		params->_stream = NULL;
+		params->_stream = nullptr;
 
 		mem_list[params->search].protect = 0;
 	}
@@ -259,24 +242,21 @@ const char *res_man::OpenFile(int32 &cluster_search, RMParams *params) {
 		params->_stream = openDiskFileForBinaryStreamRead(clusterPath.c_str());
 		Tdebug("clusters.txt", "  open cluster file %s handle %x", clusterPath.c_str(), params->_stream);
 
-		if (params->_stream == NULL)
+		if (params->_stream == nullptr)
 			Fatal_error("Res_open cannot *OPEN* cluster file %s", clusterPath.c_str());
 
-		// Read in 16 bytes, part of which is the cluster header length
-
-		uint32 data[4];
-
-		if (params->_stream->read(&data, 16) != 16) {
+		if (params->_stream->size() < 16) {
 			Fatal_error("res_man::OpenFile cannot read 16 bytes from cluster %s %d", clusterPath.c_str(), params->cluster_hash);
 		}
 
 		params->seekpos = 0;
-		params->len = data[2];
+		params->_stream->skip(8);
+		params->len = params->_stream->readSint32LE();
 		return params->cluster;
 	}
 
 	HEADER_NORMAL *hn = GetFileHeader(cluster_search, params);
-	if (hn == NULL) {
+	if (hn == nullptr) {
 		// Big error the file wasn't found in the cluster
 		Fatal_error("res_man::OpenFile couldn't find url %X in cluster %s %X", params->url_hash, params->cluster, params->cluster_hash);
 	}
@@ -288,22 +268,22 @@ const char *res_man::OpenFile(int32 &cluster_search, RMParams *params) {
 	params->_stream = openDiskFileForBinaryStreamRead(clusterPath.c_str());
 	Tdebug("clusters.txt", "  open cluster file %s handle %x", clusterPath.c_str(), params->_stream);
 
-	if (params->_stream == NULL)
+	if (params->_stream == nullptr)
 		Fatal_error("Res_open cannot *OPEN* cluster file %s", clusterPath.c_str());
 
-	params->seekpos = hn->offset;
+	params->seekpos = FROM_LE_32(hn->offset);
 
 	// Set the length of the data
 	if (params->zipped) {
 		params->_stream->seek(params->seekpos, SEEK_SET);
 		params->len = fileGetZipLength2(params->_stream); // TODO: Use wrapCompressedStream to solve?
 	} else
-		params->len = hn->size;
+		params->len = FROM_LE_32(hn->size);
 
-	return NULL;
+	return nullptr;
 }
 
-// Get the header infomation for a particular file from a cluster
+// Get the header information for a particular file from a cluster
 // Will load the cluster in if need be
 HEADER_NORMAL *res_man::GetFileHeader(int32 &cluster_search, RMParams *params) {
 	Cluster_API *clu;
@@ -330,12 +310,12 @@ HEADER_NORMAL *res_man::GetFileHeader(int32 &cluster_search, RMParams *params) {
 	// and get the position and length to get the data from
 
 	// Check the schema value and the ID
-	if ((clu->schema != CLUSTER_API_SCHEMA) || (*(int32 *)clu->ID != *(int32 *)const_cast<char *>(CLUSTER_API_ID))) {
+	if ((FROM_LE_32(clu->schema) != CLUSTER_API_SCHEMA) || (READ_LE_U32((uint32 *)clu->ID) != *(uint32 *)const_cast<char *>(CLUSTER_API_ID))) {
 		// Big error unknown cluster filetype
 		Fatal_error("res_man::GetFileHeader unknown cluster schema or ID %d %s for %s::0x%X", clu->schema, clu->ID, params->cluster, params->url_hash);
 	}
 
-	if (clu->ho.cluster_hash != params->cluster_hash) {
+	if (FROM_LE_32(clu->ho.cluster_hash) != params->cluster_hash) {
 		// Big error this cluster has a different internal hash value to the one
 		// we are looking for
 //		Fatal_error("res_man::GetFileHeader different internal cluster_hash value %x file %x for %s::0x%X", params->cluster_hash, clu->ho.cluster_hash, params->cluster,
@@ -344,15 +324,15 @@ HEADER_NORMAL *res_man::GetFileHeader(int32 &cluster_search, RMParams *params) {
 
 	HEADER_NORMAL *hn = clu->hn;
 	uint32 i;
-	for (i = 0; i < clu->ho.noFiles; hn++, i++) {
+	for (i = 0; i < FROM_LE_32(clu->ho.noFiles); hn++, i++) {
 		// Hey it has been found
-		if (hn->hash == params->url_hash)
+		if (FROM_LE_32(hn->hash) == params->url_hash)
 			break;
 	}
 
 	// Check that the file was actually found
-	if (i == clu->ho.noFiles) {
-		return NULL;
+	if (i == FROM_LE_32(clu->ho.noFiles)) {
+		return nullptr;
 	}
 
 	return hn;
@@ -364,9 +344,9 @@ void res_man::Res_open_mini_cluster(const char *cluster_url, uint32 &cluster_has
 	// open the mini-cluster
 
 	uint32 zeroHash = 0;
-	Cluster_API *clu = (Cluster_API *)Res_open(NULL, zeroHash, cluster_url, cluster_hash);
+	Cluster_API *clu = (Cluster_API *)Res_open(nullptr, zeroHash, cluster_url, cluster_hash);
 
-	int32 numFiles = clu->ho.noFiles;
+	int32 numFiles = FROM_LE_32(clu->ho.noFiles);
 
 	// check none of the fake files exist
 	// also find total size required
@@ -376,14 +356,14 @@ void res_man::Res_open_mini_cluster(const char *cluster_url, uint32 &cluster_has
 
 	for (i = 0; i < numFiles; i++) {
 		HEADER_NORMAL *hn = clu->hn + i;
-		uint32 check_hash = hn->hash;
+		uint32 check_hash = FROM_LE_32(hn->hash);
 
 		if (FindFile(check_hash, fake_cluster_hash, MAKE_TOTAL_HASH(fake_cluster_hash, check_hash)) != -1) {
 			warning("File %s::%08x exists in res_man so can't load my mini-cluster!", fake_cluster_url, check_hash);
 			return;
 		}
 
-		int32 fileSize = (hn->size + 7) & (~7);
+		int32 fileSize = (FROM_LE_32(hn->size) + 7) & (~7);
 		mem_needed += fileSize;
 	}
 
@@ -404,7 +384,7 @@ void res_man::Res_open_mini_cluster(const char *cluster_url, uint32 &cluster_has
 
 	// ensure the header is still in memory
 
-	clu = (Cluster_API *)Res_open(NULL, zeroHash, cluster_url, cluster_hash);
+	clu = (Cluster_API *)Res_open(nullptr, zeroHash, cluster_url, cluster_hash);
 
 	// now load in the body...
 	// from first file upwards
@@ -424,7 +404,7 @@ void res_man::Res_open_mini_cluster(const char *cluster_url, uint32 &cluster_has
 	stream = openDiskFileForBinaryStreamRead(clusterPath.c_str());
 
 	// seek
-	stream->seek((clu->hn)->offset, SEEK_SET);
+	stream->seek(FROM_LE_32((clu->hn)->offset), SEEK_SET);
 
 	// read
 	stream->read(mem_list[mem_block].ad, mem_needed);
@@ -460,9 +440,9 @@ void res_man::Res_open_mini_cluster(const char *cluster_url, uint32 &cluster_has
 			mem_list[current_child].parent = mem_block;
 		}
 
-		mem_list[mem_block].url_hash = hn->hash;
+		mem_list[mem_block].url_hash = FROM_LE_32(hn->hash);
 		mem_list[mem_block].cluster_hash = fake_cluster_hash;
-		mem_list[mem_block].total_hash = MAKE_TOTAL_HASH(fake_cluster_hash, hn->hash);
+		mem_list[mem_block].total_hash = MAKE_TOTAL_HASH(fake_cluster_hash, FROM_LE_32(hn->hash));
 
 		mem_list[mem_block].ad = ad;
 
@@ -471,7 +451,7 @@ void res_man::Res_open_mini_cluster(const char *cluster_url, uint32 &cluster_has
 		mem_list[mem_block].age = current_time_frame;
 
 		// adjusted size
-		int32 fileSize = (hn->size + 7) & (~7);
+		int32 fileSize = (FROM_LE_32(hn->size) + 7) & (~7);
 
 		mem_list[mem_block].size = fileSize;
 

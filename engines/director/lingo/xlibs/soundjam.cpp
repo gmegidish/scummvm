@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,21 +27,21 @@
  *************************************/
 
 /*
-	-- SoundJam Copyright © Canter Technology 1995
-	SoundJam
-	II   mNew, numberOfChannels
-	ISI  mDefineFileSound, fullPathName, numberOfBeats
-	III  mDefineCastSound, castMemberNumber, numberOfBeats
-	II   mUndefineSound, soundID
-	III  mReadSome, soundID, byteCount
-	II   mStartSound, soundID
-	II   mSwitchNew, soundID
-	II   mSwitchParallel, soundID
-	I    mHasSwitchHappened
-	X    mToggleMute
-	X    mStop
-	X    mDispose
-*/
+ * -- SoundJam Copyright © Canter Technology 1995
+ * SoundJam
+ * II   mNew, numberOfChannels
+ * ISI  mDefineFileSound, fullPathName, numberOfBeats
+ * III  mDefineCastSound, castMemberNumber, numberOfBeats
+ * II   mUndefineSound, soundID
+ * III  mReadSome, soundID, byteCount
+ * II   mStartSound, soundID
+ * II   mSwitchNew, soundID
+ * II   mSwitchParallel, soundID
+ * I    mHasSwitchHappened
+ * X    mToggleMute
+ * X    mStop
+ * X    mDispose
+ */
 
 #include "director/director.h"
 #include "director/window.h"
@@ -55,9 +54,9 @@
 namespace Director {
 
 const char *SoundJam::xlibName = "SoundJam";
-const char *SoundJam::fileNames[] = {
-	"SoundJam",
-	0
+const XlibFileDesc SoundJam::fileNames[] = {
+	{ "SoundJam",	nullptr },
+	{ nullptr,		nullptr },
 };
 
 const int kJamChannel = 3;
@@ -74,18 +73,18 @@ static MethodProto xlibMethods[] = {
 	{ "hasSwitchHappened",	SoundJam::m_hasSwitchHappened, 0, 0, 400 },
 	{ "toggleMute",			SoundJam::m_toggleMute,		 0, 0,	400 },
 	{ "stop",				SoundJam::m_stop,			 0, 0,	400 },
-	{ 0, 0, 0, 0, 0 }
+	{ nullptr, nullptr, 0, 0, 0 }
 };
 
-void SoundJam::open(int type) {
+void SoundJam::open(ObjectType type, const Common::Path &path) {
 	if (type == kXObj) {
 		SoundJamObject::initMethods(xlibMethods);
 		SoundJamObject *xobj = new SoundJamObject(kXObj);
-		g_lingo->_globalvars[xlibName] = xobj;
+		g_lingo->exposeXObject(xlibName, xobj);
 	}
 }
 
-void SoundJam::close(int type) {
+void SoundJam::close(ObjectType type) {
 	if (type == kXObj) {
 		SoundJamObject::cleanupMethods();
 		g_lingo->_globalvars[xlibName] = Datum();
@@ -105,17 +104,13 @@ void SoundJam::m_new(int nargs) {
 		return;
 	}
 
-	g_lingo->push(g_lingo->_currentMe);
+	g_lingo->push(g_lingo->_state->me);
 }
 
-void SoundJam::m_defineFileSound(int nargs) {
-	g_lingo->printSTUBWithArglist("SoundJam::m_defineFileSound", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
+XOBJSTUB(SoundJam::m_defineFileSound, 0)
 
 void SoundJam::m_defineCastSound(int nargs) {
-	SoundJamObject *me = static_cast<SoundJamObject *>(g_lingo->_currentMe.u.obj);
+	SoundJamObject *me = static_cast<SoundJamObject *>(g_lingo->_state->me.u.obj);
 
 	/* Datum numberOfBeats = */ g_lingo->pop();
 	CastMemberID castMemberNumber = g_lingo->pop().asMemberID();
@@ -130,7 +125,7 @@ void SoundJam::m_defineCastSound(int nargs) {
 }
 
 void SoundJam::m_undefineSound(int nargs) {
-	SoundJamObject *me = static_cast<SoundJamObject *>(g_lingo->_currentMe.u.obj);
+	SoundJamObject *me = static_cast<SoundJamObject *>(g_lingo->_state->me.u.obj);
 	int soundID = g_lingo->pop().asInt();
 
 	if (soundID < 0) {
@@ -148,20 +143,11 @@ void SoundJam::m_undefineSound(int nargs) {
 	g_lingo->push(0); // success
 }
 
-void SoundJam::m_readSome(int nargs) {
-	g_lingo->printSTUBWithArglist("SoundJam::m_readSome", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void SoundJam::m_startSound(int nargs) {
-	g_lingo->printSTUBWithArglist("SoundJam::m_startSound", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
+XOBJSTUB(SoundJam::m_readSome, 0)
+XOBJSTUB(SoundJam::m_startSound, 0)
 
 void SoundJam::m_switchNew(int nargs) {
-	SoundJamObject *me = static_cast<SoundJamObject *>(g_lingo->_currentMe.u.obj);
+	SoundJamObject *me = static_cast<SoundJamObject *>(g_lingo->_state->me.u.obj);
 	int soundID = g_lingo->pop().asInt();
 
 	if (!me->_soundMap.contains(soundID)) {
@@ -176,22 +162,9 @@ void SoundJam::m_switchNew(int nargs) {
 	g_lingo->push(0); // success
 }
 
-void SoundJam::m_switchParallel(int nargs) {
-	g_lingo->printSTUBWithArglist("SoundJam::m_switchParallel", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void SoundJam::m_hasSwitchHappened(int nargs) {
-	g_lingo->printSTUBWithArglist("SoundJam::m_hasSwitchHappened", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void SoundJam::m_toggleMute(int nargs) {
-	g_lingo->printSTUBWithArglist("SoundJam::m_toggleMute", nargs);
-	g_lingo->dropStack(nargs);
-}
+XOBJSTUB(SoundJam::m_switchParallel, 0)
+XOBJSTUB(SoundJam::m_hasSwitchHappened, 0)
+XOBJSTUBNR(SoundJam::m_toggleMute)
 
 void SoundJam::m_stop(int nargs) {
 	DirectorSound *sound = g_director->getCurrentWindow()->getSoundManager();
@@ -200,4 +173,3 @@ void SoundJam::m_stop(int nargs) {
 }
 
 } // End of namespace Director
-

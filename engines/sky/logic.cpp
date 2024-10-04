@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -172,7 +171,7 @@ void Logic::engine() {
 void Logic::nop() {}
 
 /**
- * This function is basicly a wrapper around the real script engine. It runs
+ * This function is basically a wrapper around the real script engine. It runs
  * the script engine until a script has finished.
  * @see script()
  */
@@ -1723,10 +1722,6 @@ bool Logic::fnSpeakWaitDir(uint32 a, uint32 b, uint32 c) {
 	a is ID to speak (not us)
 	b is text message number
 	c is base of mini table within anim_talk_table */
-
-#ifdef __DC__
-	__builtin_alloca(4); // Works around a gcc bug (wrong-code/11736)
-#endif
 
 	_compact->flag = (uint16)a;
 	_compact->logic = L_LISTEN;

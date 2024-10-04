@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, MojoTouch has exclusively licensed
+ * this code on November 10th, 2021, to be use in closed-source products.
+ * Therefore, any contributions (commits) to it will also be dual-licensed.
  *
  */
 
@@ -45,12 +50,20 @@ private:
 	int8 findEmptySpot();
 	void sub05(int8 player, int8 *moves);
 	int8 sub06(int8 *moves1, int8 *moves2);
-	uint32 sub09();
+	uint32 didPlayerWin();
 	void sub10(int8 endPos, int8 pos, int unused, int player, int *val);
 	void sub11(int8 pos, int8 *candidates);
-	uint32 sub12();
+	uint32 didAiWin();
+	void sub13(int8 cell, int8 player, int8 *moves1, int8 *moves2);
+	void sub15(int8 cell, int8 *candidates);
+	void sub16(int8 cell, int8 *candidates);
+	int8 countEmtpy(int8 *moves);
 	int8 randomMoveStart();
 	int8 randomMoveStart2();
+
+	void testWinCondition(byte player, int baseX, int baseY);
+	void testGame(uint32 seed, Common::Array<int> moves, bool playerWin);
+	void runTests();
 
 	int _totalBottles;
 	byte _wineRackGrid[100];

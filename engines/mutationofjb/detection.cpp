@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,15 +33,15 @@ static const ADGameDescription mutationofjbDescriptions[] = {
 		"",
 		{
 			{"jb.ex_", 0, "934164b09c72fa7167811f448ee0a426", 150048},
-			{"startup.dat", 0, nullptr, -1},
-			{"startupb.dat", 0, nullptr, -1},
-			{"global.atn", 0, nullptr, -1},
-			{"piggy.apk", 0, nullptr, -1},
-			{"foogl.apk", 0, nullptr, -1},
-			{"tosay.ger", 0, nullptr, -1},
-			{"response.ger", 0, nullptr, -1},
-			{"font1.aft", 0, nullptr, -1},
-			{"sysfnt.aft", 0, nullptr, -1},
+			{"startup.dat", 0, nullptr, AD_NO_SIZE},
+			{"startupb.dat", 0, nullptr, AD_NO_SIZE},
+			{"global.atn", 0, nullptr, AD_NO_SIZE},
+			{"piggy.apk", 0, nullptr, AD_NO_SIZE},
+			{"foogl.apk", 0, nullptr, AD_NO_SIZE},
+			{"tosay.ger", 0, nullptr, AD_NO_SIZE},
+			{"response.ger", 0, nullptr, AD_NO_SIZE},
+			{"font1.aft", 0, nullptr, AD_NO_SIZE},
+			{"sysfnt.aft", 0, nullptr, AD_NO_SIZE},
 			{nullptr, 0, nullptr, 0}
 		},
 		Common::SK_SVK,
@@ -55,15 +54,15 @@ static const ADGameDescription mutationofjbDescriptions[] = {
 		"",
 		{
 			{"jb.ex_", 0, "8833f22f1763d05eeb909e8626cdec7b", 150800},
-			{"startup.dat", 0, nullptr, -1},
-			{"startupb.dat", 0, nullptr, -1},
-			{"global.atn", 0, nullptr, -1},
-			{"piggy.apk", 0, nullptr, -1},
-			{"foogl.apk", 0, nullptr, -1},
-			{"tosay.ger", 0, nullptr, -1},
-			{"response.ger", 0, nullptr, -1},
-			{"font1.aft", 0, nullptr, -1},
-			{"sysfnt.aft", 0, nullptr, -1},
+			{"startup.dat", 0, nullptr, AD_NO_SIZE},
+			{"startupb.dat", 0, nullptr, AD_NO_SIZE},
+			{"global.atn", 0, nullptr, AD_NO_SIZE},
+			{"piggy.apk", 0, nullptr, AD_NO_SIZE},
+			{"foogl.apk", 0, nullptr, AD_NO_SIZE},
+			{"tosay.ger", 0, nullptr, AD_NO_SIZE},
+			{"response.ger", 0, nullptr, AD_NO_SIZE},
+			{"font1.aft", 0, nullptr, AD_NO_SIZE},
+			{"sysfnt.aft", 0, nullptr, AD_NO_SIZE},
 			{nullptr, 0, nullptr, 0}
 		},
 		Common::DE_DEU,
@@ -76,12 +75,12 @@ static const ADGameDescription mutationofjbDescriptions[] = {
 		"Demo",
 		{
 			{"jbdemo.exe", 0, "97943a569bacc4131447577436389276", 121696},
-			{"strt.dat", 0, nullptr, -1},
-			{"startupb.dat", 0, nullptr, -1},
-			{"global.atn", 0, nullptr, -1},
-			{"piggy.apk", 0, nullptr, -1},
-			{"font1.aft", 0, nullptr, -1},
-			{"sysfnt.aft", 0, nullptr, -1},
+			{"strt.dat", 0, nullptr, AD_NO_SIZE},
+			{"startupb.dat", 0, nullptr, AD_NO_SIZE},
+			{"global.atn", 0, nullptr, AD_NO_SIZE},
+			{"piggy.apk", 0, nullptr, AD_NO_SIZE},
+			{"font1.aft", 0, nullptr, AD_NO_SIZE},
+			{"sysfnt.aft", 0, nullptr, AD_NO_SIZE},
 			{nullptr, 0, nullptr, 0}
 		},
 		Common::SK_SVK,
@@ -97,18 +96,18 @@ static const char *const mutationofjbDirectoryGlobs[] = {
 	nullptr
 };
 
-class MutationOfJBMetaEngineDetection : public AdvancedMetaEngineDetection {
+class MutationOfJBMetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	MutationOfJBMetaEngineDetection() : AdvancedMetaEngineDetection(mutationofjbDescriptions, sizeof(ADGameDescription), mutationofjbGames) {
+	MutationOfJBMetaEngineDetection() : AdvancedMetaEngineDetection(mutationofjbDescriptions, mutationofjbGames) {
 		_maxScanDepth = 2;
 		_directoryGlobs = mutationofjbDirectoryGlobs;
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "mutationofjb";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Mutation of J.B.";
 	}
 

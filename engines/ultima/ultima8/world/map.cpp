@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
+#include "ultima/ultima.h"
+#include "ultima/ultima8/misc/debugger.h"
+#include "ultima/ultima8/misc/point3.h"
 #include "ultima/ultima8/world/map.h"
 #include "ultima/ultima8/world/item_factory.h"
 #include "ultima/ultima8/world/container.h"
+#include "ultima/ultima8/world/coord_utils.h"
 #include "ultima/ultima8/kernel/object_manager.h"
 #include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/games/game_data.h"
-#include "ultima/ultima8/graphics/main_shape_archive.h"
+#include "ultima/ultima8/gfx/main_shape_archive.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -143,12 +145,11 @@ void Map::loadFixed(Common::SeekableReadStream *rs) {
 
 		for (iter = _fixedItems.begin(); iter != _fixedItems.end(); ++iter) {
 			if ((*iter)->getShape() == 347 && (*iter)->getZ() == 96) {
-				int32 x, y, z;
-				(*iter)->getLocation(x, y, z);
-				if ((x == 23007 && y == 21343) || (x == 23135 && y == 21471) ||
-				        (x == 23135 && y == 21343)) {
-					shiftCoordsToZ(x, y, z, 40);
-					(*iter)->setLocation(x, y, z);
+				Point3 pt = (*iter)->getLocation();
+				if ((pt.x == 23007 && pt.y == 21343) || (pt.x == 23135 && pt.y == 21471) ||
+				        (pt.x == 23135 && pt.y == 21343)) {
+					shiftCoordsToZ(pt.x, pt.y, pt.z, 40);
+					(*iter)->setLocation(pt);
 				}
 			}
 		}
@@ -162,11 +163,10 @@ void Map::loadFixed(Common::SeekableReadStream *rs) {
 			int32 z = (*iter)->getZ();
 			uint32 sh = (*iter)->getShape();
 			if (z == 8 && (sh == 301 || sh == 31 || sh == 32)) {
-				int32 x, y;
-				(*iter)->getLocation(x, y, z);
-				if ((x == 6783 || x == 6655) && (y == 15743 || y == 15615)) {
-					shiftCoordsToZ(x, y, z, 16);
-					(*iter)->setLocation(x, y, z);
+				Point3 pt = (*iter)->getLocation();
+				if ((pt.x == 6783 || pt.x == 6655) && (pt.y == 15743 || pt.y == 15615)) {
+					shiftCoordsToZ(pt.x, pt.y, pt.z, 16);
+					(*iter)->setLocation(pt);
 				}
 			}
 		}
@@ -178,14 +178,13 @@ void Map::loadFixed(Common::SeekableReadStream *rs) {
 
 		for (iter = _fixedItems.begin(); iter != _fixedItems.end(); ++iter) {
 			if ((*iter)->getShape() == 71 && (*iter)->getFrame() == 8 && (*iter)->getZ() == 0) {
-				int32 x, y, z;
-				(*iter)->getLocation(x, y, z);
-				if ((x == 9151 && y == 24127) || (x == 9279 && y == 23999) ||
-				        (x == 9535 && y == 23615) || (x == 9151 && y == 23487) ||
-				        (x == 10303 && y == 23487) || (x == 9919 && y == 23487) ||
-				        (x == 10559 && y == 23487)) {
-					shiftCoordsToZ(x, y, z, 48);
-					(*iter)->setLocation(x, y, z);
+				Point3 pt = (*iter)->getLocation();
+				if ((pt.x == 9151 && pt.y == 24127) || (pt.x == 9279 && pt.y == 23999) ||
+				        (pt.x == 9535 && pt.y == 23615) || (pt.x == 9151 && pt.y == 23487) ||
+				        (pt.x == 10303 && pt.y == 23487) || (pt.x == 9919 && pt.y == 23487) ||
+				        (pt.x == 10559 && pt.y == 23487)) {
+					shiftCoordsToZ(pt.x, pt.y, pt.z, 48);
+					(*iter)->setLocation(pt);
 				}
 			}
 		}
@@ -211,7 +210,7 @@ void Map::loadFixedFormatObjects(Std::list<Item *> &itemlist,
 
 	uint32 itemcount = size / 16;
 
-	Std::stack<Container *> cont;
+	Common::Stack<Container *> cont;
 	int contdepth = 0;
 
 	for (uint32 i = 0; i < itemcount; ++i) {
@@ -220,10 +219,7 @@ void Map::loadFixedFormatObjects(Std::list<Item *> &itemlist,
 		int32 y = static_cast<int32>(rs->readUint16LE());
 		int32 z = static_cast<int32>(rs->readByte());
 
-		if (GAME_IS_CRUSADER) {
-			x *= 2;
-			y *= 2;
-		}
+		World_FromUsecodeXY(x, y);
 
 		uint32 shape = rs->readUint16LE();
 		uint32 frame = rs->readByte();
@@ -241,32 +237,21 @@ void Map::loadFixedFormatObjects(Std::list<Item *> &itemlist,
 			cont.pop();
 			contdepth--;
 #ifdef DUMP_ITEMS
-			pout << "---- Ending container ----" << Std::endl;
+			debugC(kDebugObject, "---- Ending container ----");
 #endif
 		}
 
 #ifdef DUMP_ITEMS
-		pout << shape << "," << frame << ":\t(" << x << "," << y << "," << z << "),\t" << ConsoleStream::hex << flags << ConsoleStream::dec << ", " << quality << ", " << npcNum << ", " << mapNum << ", " << next << Std::endl;
+		debugC(kDebugObject, "%u,%u:\t(%d, %d, %d),\t%x, %u, %u, %u, %u",
+			shape , frame, x, y, z, flags, quality, npcNum, mapNum, next);
 #endif
 
 		Item *item = ItemFactory::createItem(shape, frame, quality, flags, npcNum,
 		                                     mapNum, extendedflags, false);
 		if (!item) {
-			pout << shape << "," << frame << ":\t(" << x << "," << y << "," << z << "),\t" << ConsoleStream::hex << flags << ConsoleStream::dec << ", " << quality << ", " << npcNum << ", " << mapNum << ", " << next;
-
-			const ShapeInfo *info = GameData::get_instance()->getMainShapes()->
-			                  getShapeInfo(shape);
-			if (info) pout << ", family = " << info->_family;
-			pout << Std::endl;
-
-			pout << "Couldn't create item" << Std::endl;
+			warning("Couldn't create item: %u,%u:\t(%d, %d, %d),\t%x, %u, %u, %u, %u",
+				shape, frame, x, y, z, flags, quality, npcNum, mapNum, next);
 			continue;
-		} else {
-			const ShapeInfo *info = item->getShapeInfo();
-			assert(info);
-			if (info->_family > 10) {
-				//warning("Created fixed item unknown family %d, shape (%d, %d) at (%d, %d, %d)", info->_family, shape, frame, x, y, z);
-			}
 		}
 		item->setLocation(x, y, z);
 
@@ -282,7 +267,7 @@ void Map::loadFixedFormatObjects(Std::list<Item *> &itemlist,
 			contdepth++;
 			cont.push(c);
 #ifdef DUMP_ITEMS
-			pout << "---- Starting container ----" << Std::endl;
+			debugC(kDebugObject, "---- Starting container ----");
 #endif
 		}
 	}

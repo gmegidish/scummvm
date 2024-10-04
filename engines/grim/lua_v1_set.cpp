@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,6 @@
 #include "engines/grim/actor.h"
 #include "engines/grim/grim.h"
 #include "engines/grim/set.h"
-
 #include "engines/grim/lua/lauxlib.h"
 
 namespace Grim {
@@ -302,6 +300,39 @@ void Lua_V1::NextSetup() {
 	g_grim->makeCurrentSetup(num);
 }
 
+void Lua_V1::GetCameraLookVector() {
+	Set *scene = g_grim->getCurrSet();
+	if (!scene) {
+		lua_pushnil();
+		return;
+	}
+
+	Set::Setup *setup;
+	lua_Object setupObj = lua_getparam(1);
+	if (lua_isnumber(setupObj)) {
+		setup = scene->getSetup((int)lua_getnumber(setupObj));
+	} else {
+		setup = scene->getCurrSetup();
+	}
+
+	Math::Vector3d lookVector = setup->_pos - setup->_interest;
+	lookVector.normalize();
+	lua_Object result = lua_createtable();
+	lua_pushobject(result);
+	lua_pushstring("x");
+	lua_pushnumber(lookVector.x());
+	lua_settable();
+	lua_pushobject(result);
+	lua_pushstring("y");
+	lua_pushnumber(lookVector.y());
+	lua_settable();
+	lua_pushobject(result);
+	lua_pushstring("z");
+	lua_pushnumber(lookVector.z());
+	lua_settable();
+	lua_pushobject(result);
+}
+
 /* This function makes the walkplane sectors smaller by the
  * given size. This is used when manny is holding some big
  * thing, like his scythe, that is likely to clip with the
@@ -470,6 +501,13 @@ void Lua_V1::TurnLightOn() {
 	} else if (lua_isstring(lightObj)) {
 		scene->setLightEnabled(lua_getstring(lightObj), isOn);
 	}
+}
+
+void Lua_V1::GetCameraPosition() {
+	Set::Setup *setup = g_grim->getCurrSet()->getCurrSetup();
+	lua_pushnumber(setup->_pos.x());
+	lua_pushnumber(setup->_pos.y());
+	lua_pushnumber(setup->_pos.z());
 }
 
 } // end of namespace Grim

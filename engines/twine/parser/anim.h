@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,13 +29,14 @@
 
 namespace TwinE {
 
+enum BoneType : uint16 {
+	TYPE_ROTATE = 0,
+	TYPE_TRANSLATE = 1,
+	TYPE_ZOOM = 2,
+};
+
 struct BoneFrame {
-	/**
-	 * 0 = allow global rotate
-	 * 1 = disallow global rotate
-	 * 2 = disallow global rotate and hide
-	 */
-	uint16 type = 0;
+	BoneType type = BoneType::TYPE_ROTATE;
 	int16 x = 0;
 	int16 y = 0;
 	int16 z = 0;
@@ -47,6 +47,10 @@ struct KeyFrame {
 	int16 x = 0;
 	int16 y = 0;
 	int16 z = 0;
+	int16 animMasterRot = 0;
+	int16 animStepAlpha = 0;
+	int16 animStepBeta = 0;
+	int16 animStepGamma = 0;
 	Common::Array<BoneFrame> boneframes;
 };
 
@@ -54,7 +58,7 @@ class AnimData : public Parser {
 private:
 	Common::Array<KeyFrame> _keyframes;
 
-	bool loadBoneFrame(KeyFrame &keyframe, Common::SeekableReadStream &stream);
+	void loadBoneFrame(KeyFrame &keyframe, Common::SeekableReadStream &stream);
 	void loadKeyFrames(Common::SeekableReadStream &stream);
 
 	uint16 _numKeyframes;
@@ -67,8 +71,8 @@ protected:
 public:
 	bool loadFromStream(Common::SeekableReadStream &stream, bool lba1) override;
 
-	const KeyFrame* getKeyframe(uint index) const;
-	const Common::Array<KeyFrame>& getKeyframes() const;
+	const KeyFrame *getKeyframe(uint index) const;
+	const Common::Array<KeyFrame> &getKeyframes() const;
 	uint getNumKeyframes() const;
 	uint16 getLoopFrame() const;
 	uint16 getNumBoneframes() const;

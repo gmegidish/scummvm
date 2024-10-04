@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -93,9 +92,9 @@ protected:
 	void showInstructions(Common::SeekableReadStream &stream);
 	void wordWrap(Common::String &str) const;
 
-	Files *_files;
+	Common::Files *_files;
 	Common::File _exe;
-	Common::Array<DataBlockPtr> _corners;
+	Common::Array<Common::DataBlockPtr> _corners;
 	Common::Array<byte> _roomDesc;
 	bool _messageDelay;
 
@@ -148,7 +147,7 @@ void HiRes1Engine::showInstructions(Common::SeekableReadStream &stream) {
 }
 
 void HiRes1Engine::runIntro() {
-	StreamPtr stream(_files->createReadStream(IDS_HR1_EXE_0));
+	Common::StreamPtr stream(_files->createReadStream(IDS_HR1_EXE_0));
 
 	// Early version have no bitmap in 'AUTO LOAD OBJ'
 	if (getGameVersion() >= GAME_VER_HR1_COARSE) {
@@ -181,7 +180,7 @@ void HiRes1Engine::runIntro() {
 		if (!_files->exists(fileName))
 			fileName = "HELLO";
 
-		StreamPtr basic(_files->createReadStream(fileName));
+		Common::StreamPtr basic(_files->createReadStream(fileName));
 
 		_display->setMode(Display::kModeText);
 		_display->home();
@@ -270,18 +269,18 @@ void HiRes1Engine::runIntro() {
 
 void HiRes1Engine::init() {
 	if (Common::File::exists("ADVENTURE")) {
-		_files = new Files_Plain();
+		_files = new Common::Files_Plain();
 	} else {
-		Files_AppleDOS *files = new Files_AppleDOS();
+		Common::Files_AppleDOS *files = new Common::Files_AppleDOS();
 		if (!files->open(getDiskImageName(0)))
-			error("Failed to open '%s'", getDiskImageName(0).c_str());
+			error("Failed to open '%s'", getDiskImageName(0).toString(Common::Path::kNativeSeparator).c_str());
 		_files = files;
 	}
 
 	_graphics = new GraphicsMan_v1<Display_A2>(*static_cast<Display_A2 *>(_display));
 	_display->moveCursorTo(Common::Point(0, 23)); // DOS 3.3
 
-	StreamPtr stream(_files->createReadStream(IDS_HR1_EXE_1));
+	Common::StreamPtr stream(_files->createReadStream(IDS_HR1_EXE_1));
 
 	Common::StringArray exeStrings;
 	extractExeStrings(*stream, 0x1576, exeStrings);
@@ -331,7 +330,7 @@ void HiRes1Engine::init() {
 		byte block = stream->readByte();
 		Common::String name = Common::String::format("BLOCK%i", block);
 		uint16 offset = stream->readUint16LE();
-		_pictures[i] = _files->getDataBlock(name, offset);
+		_pictures[i] = _files->getDataBlock(Common::Path(name), offset);
 	}
 
 	// Load commands from executable
@@ -364,7 +363,7 @@ void HiRes1Engine::init() {
 void HiRes1Engine::initGameState() {
 	_state.vars.resize(IDI_HR1_NUM_VARS);
 
-	StreamPtr stream(_files->createReadStream(IDS_HR1_EXE_1));
+	Common::StreamPtr stream(_files->createReadStream(IDS_HR1_EXE_1));
 
 	// Load room data from executable
 	_roomDesc.clear();
@@ -424,7 +423,7 @@ void HiRes1Engine::printString(const Common::String &str) {
 
 Common::String HiRes1Engine::loadMessage(uint idx) const {
 	const char returnChar = _display->asciiToNative('\r');
-	StreamPtr stream(_messages[idx]->createReadStream());
+	Common::StreamPtr stream(_messages[idx]->createReadStream());
 	return readString(*stream, returnChar) + returnChar;
 }
 
@@ -494,7 +493,7 @@ void HiRes1Engine::drawItems() {
 
 void HiRes1Engine::drawItem(Item &item, const Common::Point &pos) {
 	if (item.isShape) {
-		StreamPtr stream(_corners[item.picture - 1]->createReadStream());
+		Common::StreamPtr stream(_corners[item.picture - 1]->createReadStream());
 		Common::Point p(pos);
 		_graphics->drawShape(*stream, p);
 	} else
@@ -605,7 +604,7 @@ void HiRes1Engine_VF::getInput(uint &verb, uint &noun) {
 }
 
 void HiRes1Engine_VF::runIntro() {
-	StreamPtr stream(_files->createReadStream(IDS_HR1_EXE_0));
+	Common::StreamPtr stream(_files->createReadStream(IDS_HR1_EXE_0));
 
 	stream->seek(0x1000);
 

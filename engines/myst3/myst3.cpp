@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,7 +53,6 @@
 
 #include "image/jpeg.h"
 
-#include "graphics/conversion.h"
 #include "graphics/renderer.h"
 #include "graphics/yuv_to_rgb.h"
 #include "graphics/framelimiter.h"
@@ -65,22 +63,22 @@ namespace Myst3 {
 
 Myst3Engine::Myst3Engine(OSystem *syst, const Myst3GameDescription *version) :
 		Engine(syst), _system(syst), _gameDescription(version),
-		_db(0), _scriptEngine(0),
-		_state(0), _node(0), _scene(0), _archiveNode(0),
-		_cursor(0), _inventory(0), _gfx(0), _menu(0),
-		_rnd(0), _sound(0), _ambient(0),
+		_db(nullptr), _scriptEngine(nullptr),
+		_state(nullptr), _node(nullptr), _scene(nullptr), _archiveNode(nullptr),
+		_cursor(nullptr), _inventory(nullptr), _gfx(nullptr), _menu(nullptr),
+		_rnd(nullptr), _sound(nullptr), _ambient(nullptr),
 		_inputSpacePressed(false), _inputEnterPressed(false),
 		_inputEscapePressed(false), _inputTildePressed(false),
 		_inputEscapePressedNotConsumed(false),
 		_interactive(false),
-		_menuAction(0), _projectorBackground(0),
-		_shakeEffect(0), _rotationEffect(0),
+		_menuAction(0), _projectorBackground(nullptr),
+		_shakeEffect(nullptr), _rotationEffect(nullptr),
 		_backgroundSoundScriptLastRoomId(0),
 		_backgroundSoundScriptLastAgeId(0),
-		_transition(0), _frameLimiter(0), _inventoryManualHide(false) {
+		_transition(nullptr), _frameLimiter(nullptr), _inventoryManualHide(false) {
 
 	// Add subdirectories to the search path to allow running from a full HDD install
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "bin");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "M3Data");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "M3Data/TEXT");
@@ -128,15 +126,24 @@ Myst3Engine::~Myst3Engine() {
 bool Myst3Engine::hasFeature(EngineFeature f) const {
 	// The TinyGL renderer does not support arbitrary resolutions for now
 	Common::String rendererConfig = ConfMan.get("renderer");
-	Graphics::RendererType desiredRendererType = Graphics::parseRendererTypeCode(rendererConfig);
-	Graphics::RendererType matchingRendererType = Graphics::getBestMatchingAvailableRendererType(desiredRendererType);
+	Graphics::RendererType desiredRendererType = Graphics::Renderer::parseTypeCode(rendererConfig);
+	Graphics::RendererType matchingRendererType = Graphics::Renderer::getBestMatchingAvailableType(desiredRendererType,
+#if defined(USE_OPENGL_GAME)
+	                Graphics::kRendererTypeOpenGL |
+#endif
+#if defined(USE_OPENGL_SHADERS)
+	                Graphics::kRendererTypeOpenGLShaders |
+#endif
+#if defined(USE_TINYGL)
+	                Graphics::kRendererTypeTinyGL |
+#endif
+	                0);
 	bool softRenderer = matchingRendererType == Graphics::kRendererTypeTinyGL;
 
-	return
-		(f == kSupportsReturnToLauncher) ||
-		(f == kSupportsLoadingDuringRuntime) ||
-		(f == kSupportsSavingDuringRuntime) ||
-		(f == kSupportsArbitraryResolutions && !softRenderer);
+	return (f == kSupportsReturnToLauncher) ||
+	       (f == kSupportsLoadingDuringRuntime) ||
+	       (f == kSupportsSavingDuringRuntime) ||
+	       (f == kSupportsArbitraryResolutions && !softRenderer);
 }
 
 Common::Error Myst3Engine::run() {
@@ -173,7 +180,6 @@ Common::Error Myst3Engine::run() {
 
 	_cursor = new Cursor(this);
 	_inventory = new Inventory(this);
-
 
 	// Init the font
 	Graphics::Surface *font = loadTexture(1206);
@@ -223,7 +229,7 @@ Common::Error Myst3Engine::run() {
 
 bool Myst3Engine::addArchive(const Common::String &file, bool mandatory) {
 	Archive *archive = new Archive();
-	bool opened = archive->open(file.c_str(), 0);
+	bool opened = archive->open(file.c_str(), nullptr);
 
 	if (opened) {
 		_archivesCommon.push_back(archive);
@@ -351,14 +357,15 @@ void Myst3Engine::closeArchives() {
 
 bool Myst3Engine::checkDatafiles() {
 	if (!SearchMan.hasFile("OVER101.m3o")) {
+		const char* urlForPatchesDownload = "https://www.scummvm.org/frs/extras/patches/";
 		warning("Unable to open the update game archive 'OVER101.m3o'");
 		Common::U32String updateMessage =
-				_("This version of Myst III has not been updated with the latest official patch.\n"
+				Common::U32String::format(_("This version of Myst III has not been updated with the latest official patch.\n"
 						  "Please install the official update corresponding to your game's language.\n"
 						  "The updates can be downloaded from:\n"
-						  "https://www.scummvm.org/frs/extras/patches/");
+						  "%s"), urlForPatchesDownload);
 		warning("%s", updateMessage.encode().c_str());
-		GUI::displayErrorDialog(updateMessage);
+		GUIErrorMessageWithURL(updateMessage, urlForPatchesDownload);
 		return false;
 	}
 
@@ -400,7 +407,7 @@ HotSpot *Myst3Engine::getHoveredHotspot(NodePtr nodeData, uint16 var) {
 		}
 	}
 
-	return 0;
+	return nullptr;
 }
 
 void Myst3Engine::updateCursor() {
@@ -1067,7 +1074,7 @@ void Myst3Engine::loadMovie(uint16 id, uint16 condition, bool resetCond, bool lo
 		movie = new ScriptedMovie(this, id);
 	} else {
 		movie = new ProjectorMovie(this, id, _projectorBackground);
-		_projectorBackground = 0;
+		_projectorBackground = nullptr;
 		_state->setMovieUseBackground(0);
 	}
 
@@ -1310,7 +1317,7 @@ void Myst3Engine::loadNodeSubtitles(uint32 id) {
 }
 
 ResourceDescription Myst3Engine::getFileDescription(const Common::String &room, uint32 index, uint16 face,
-													Archive::ResourceType type) {
+	                                            Archive::ResourceType type) {
 	Common::String archiveRoom = room;
 	if (archiveRoom == "") {
 		archiveRoom = _db->getRoomName(_state->getLocationRoom(), _state->getLocationAge());
@@ -1333,7 +1340,7 @@ ResourceDescription Myst3Engine::getFileDescription(const Common::String &room, 
 }
 
 ResourceDescriptionArray Myst3Engine::listFilesMatching(const Common::String &room, uint32 index, uint16 face,
-													 Archive::ResourceType type) {
+	                                                Archive::ResourceType type) {
 	Common::String archiveRoom = room;
 	if (archiveRoom == "") {
 		archiveRoom = _db->getRoomName(_state->getLocationRoom(), _state->getLocationAge());
@@ -1491,12 +1498,12 @@ void Myst3Engine::dragItem(uint16 statusVar, uint16 movie, uint16 frame, uint16 
 	}
 }
 
-bool Myst3Engine::canSaveGameStateCurrently() {
+bool Myst3Engine::canSaveGameStateCurrently(Common::U32String *msg) {
 	bool inMenuWithNoGameLoaded = _state->getLocationRoom() == kRoomMenu && _state->getMenuSavedAge() == 0;
 	return canLoadGameStateCurrently() && !inMenuWithNoGameLoaded && _cursor->isVisible();
 }
 
-bool Myst3Engine::canLoadGameStateCurrently() {
+bool Myst3Engine::canLoadGameStateCurrently(Common::U32String *msg) {
 	// Loading from the GMM is only possible when the game is interactive
 	// This is to prevent loading from inner loops. Loading while
 	// in an inner loop can cause the exit condition to never happen,
@@ -1506,7 +1513,16 @@ bool Myst3Engine::canLoadGameStateCurrently() {
 
 Common::Error Myst3Engine::loadGameState(int slot) {
 	Common::StringArray filenames = Saves::list(_saveFileMan, getPlatform());
-	return loadGameState(filenames[slot], kTransitionNone);
+
+	// Slots are assigned consecutively, starting from slot 1
+	// Get the Save List index for the selected slot
+	int listIndex = (slot == 0) ? slot : slot - 1;
+	// Sanity check
+	if (listIndex >= filenames.size()) {
+		return Common::kReadingFailed;
+	}
+
+	return loadGameState(filenames[listIndex], kTransitionNone);
 }
 
 Common::Error Myst3Engine::loadGameState(Common::String fileName, TransitionType transition) {
@@ -1566,19 +1582,25 @@ static bool isValidSaveFileName(const Common::String &desc) {
 Common::Error Myst3Engine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
 	assert(!desc.empty());
 
+	Common::String saveName = desc;
 	if (!isValidSaveFileName(desc)) {
-		return Common::Error(Common::kCreatingFileFailed, _("Invalid file name for saving"));
+		if (isAutosave) {
+			// Fall back to the expected English translation
+			saveName = "Autosave";
+		} else {
+			return Common::Error(Common::kCreatingFileFailed, _("Invalid file name for saving"));
+		}
 	}
 
-	// Try to use an already generated thumbnail
-	const Graphics::Surface *thumbnail = _menu->borrowSaveThumbnail();
-	if (!thumbnail) {
+	// If autosaving, get a fresh thumbnail of the game screen
+	if (isAutosave && !_menu->isOpen()) {
 		_menu->generateSaveThumbnail();
 	}
-	thumbnail = _menu->borrowSaveThumbnail();
+	// Use the currently generated thumbnail
+	const Graphics::Surface *thumbnail = _menu->borrowSaveThumbnail();
 	assert(thumbnail);
 
-	return saveGameState(desc, thumbnail, isAutosave);
+	return saveGameState(saveName, thumbnail, isAutosave);
 }
 
 Common::Error Myst3Engine::saveGameState(const Common::String &desc, const Graphics::Surface *thumbnail, bool isAutosave) {
@@ -1653,8 +1675,7 @@ void Myst3Engine::animateDirectionChange(float targetPitch, float targetHeading,
 			if (numTicks >= 15) {
 				// Fast then slow movement
 				if (elapsedTicks > numTicks / 2.0f)
-					step = 1.0f - (numTicks - elapsedTicks) * (numTicks - elapsedTicks)
-								/ (numTicks / 2.0f * numTicks / 2.0f) / 2.0f;
+					step = 1.0f - (numTicks - elapsedTicks) * (numTicks - elapsedTicks) / (numTicks / 2.0f * numTicks / 2.0f) / 2.0f;
 				else
 					step = elapsedTicks * elapsedTicks / (numTicks / 2.0f * numTicks / 2.0f) / 2.0f;
 
@@ -1754,8 +1775,8 @@ void Myst3Engine::playMovieFullFrame(uint16 movie) {
 
 bool Myst3Engine::inputValidatePressed() {
 	return _inputEnterPressed ||
-			_inputSpacePressed ||
-			getEventManager()->getButtonState() & Common::EventManager::LBUTTON;
+	       _inputSpacePressed ||
+	       getEventManager()->getButtonState() & Common::EventManager::LBUTTON;
 }
 
 bool Myst3Engine::inputEscapePressed() {
@@ -1771,7 +1792,7 @@ bool Myst3Engine::inputTilePressed() {
 }
 
 void Myst3Engine::addSunSpot(uint16 pitch, uint16 heading, uint16 intensity,
-		uint16 color, uint16 var, bool varControlledIntensity, uint16 radius) {
+	                     uint16 color, uint16 var, bool varControlledIntensity, uint16 radius) {
 
 	SunSpot *s = new SunSpot();
 
@@ -1779,11 +1800,11 @@ void Myst3Engine::addSunSpot(uint16 pitch, uint16 heading, uint16 intensity,
 	s->heading = heading;
 	s->intensity = intensity * 2.55;
 	s->color = (color & 0xF) | 16
-			* ((color & 0xF) | 16
-			* (((color >> 4) & 0xF) | 16
-			* (((color >> 4) & 0xF) | 16
-			* (((color >> 8) & 0xF) | 16
-			* (((color >> 8) & 0xF))))));
+	           * ((color & 0xF) | 16
+	           * (((color >> 4) & 0xF) | 16
+	           * (((color >> 4) & 0xF) | 16
+	           * (((color >> 8) & 0xF) | 16
+	           * (((color >> 8) & 0xF))))));
 	s->var = var;
 	s->variableIntensity = varControlledIntensity;
 	s->radius = radius;

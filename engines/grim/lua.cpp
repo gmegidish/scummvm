@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/endian.h"
-#include "common/foreach.h"
 #include "common/system.h"
 #include "common/events.h"
 
@@ -42,7 +40,6 @@
 #include "engines/grim/gfx_base.h"
 #include "engines/grim/model.h"
 #include "engines/grim/primitives.h"
-
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/luadebug.h"
 #include "engines/grim/lua/lualib.h"
@@ -80,6 +77,8 @@ void LuaObjects::add(const char *str) {
 void LuaObjects::addNil() {
 	Obj obj;
 	obj._type = Obj::Nil;
+	// Just set a value to avoid having uninitialized fields.
+	obj._value.object = nullptr;
 	_objects.push_back(obj);
 }
 
@@ -102,7 +101,6 @@ void LuaObjects::pushObjects() const {
 		}
 	}
 }
-
 
 LuaBase *LuaBase::s_instance = nullptr;
 
@@ -375,8 +373,12 @@ TextObject *LuaBase::gettextobject(lua_Object obj) {
 	return TextObject::getPool().getObject(lua_getuserdata(obj));
 }
 
-Font *LuaBase::getfont(lua_Object obj) {
-	return Font::getPool().getObject(lua_getuserdata(obj));
+Font *LuaBase::getfont(lua_Object fontObj) {
+	if (lua_tag(fontObj) == BitmapFont::getStaticTag())
+		return BitmapFont::getPool().getObject(lua_getuserdata(fontObj));
+	if (lua_tag(fontObj) == FontTTF::getStaticTag())
+		return FontTTF::getPool().getObject(lua_getuserdata(fontObj));
+	return nullptr;
 }
 
 Color LuaBase::getcolor(lua_Object obj) {
@@ -399,7 +401,7 @@ bool LuaBase::findCostume(lua_Object costumeObj, Actor *actor, Costume **costume
 	if (lua_isnil(costumeObj))
 		return true;
 	if (lua_isnumber(costumeObj)) {
-		/*		int num = (int)lua_getnumber(costumeObj);*/
+		//int num = (int)lua_getnumber(costumeObj);
 		error("findCostume: search by Id not implemented");
 		// TODO get costume by ID ?
 	}
@@ -513,23 +515,18 @@ void LuaBase::setTextObjectParams(TextObjectCommon *textObject, lua_Object table
 	if (keyObj) {
 		if (g_grim->getGameType() == GType_MONKEY4 && lua_isstring(keyObj)) {
 			const char *str = lua_getstring(keyObj);
-			Font *font = nullptr;
-			foreach (Font *f, Font::getPool()) {
-				if (f->getFilename() == str) {
-					font = f;
-				}
-			}
+			Font *font = Font::getByFileName(str);
 			if (!font) {
 				font = g_resourceloader->loadFont(str);
 			}
 
 			textObject->setFont(font);
-		} else if (lua_isuserdata(keyObj) && lua_tag(keyObj) == MKTAG('F','O','N','T')) {
+		} else if (lua_isuserdata(keyObj) && (lua_tag(keyObj) == BitmapFont::getStaticTag() || lua_tag(keyObj) == FontTTF::getStaticTag())) {
 			textObject->setFont(getfont(keyObj));
 		} else if (g_grim->getGameType() == GType_MONKEY4 && !textObject->getFont() && g_grim->getGamePlatform() == Common::kPlatformPS2) {
 			// HACK:
 			warning("HACK: No default font set for PS2-version, just picking one for now");
-			textObject->setFont(*Font::getPool().begin());
+			textObject->setFont(Font::getFirstFont());
 		}
 	}
 
@@ -699,12 +696,12 @@ void LuaBase::concatFallback() {
 		strPtr = &result[pos];
 
 		if (lua_isnil(params[i]))
-			sprintf(strPtr, "(nil)");
+			Common::sprintf_s(strPtr, sizeof(result) - pos, "(nil)");
 		else if (lua_isstring(params[i]))
-			sprintf(strPtr, "%s", lua_getstring(params[i]));
+			Common::sprintf_s(strPtr, sizeof(result) - pos, "%s", lua_getstring(params[i]));
 		else if (lua_tag(params[i]) == MKTAG('A','C','T','R')) {
 			Actor *a = getactor(params[i]);
-			sprintf(strPtr, "(actor%p:%s)", (void *)a,
+			Common::sprintf_s(strPtr, sizeof(result) - pos, "(actor%p:%s)", (void *)a,
 					(a->getCurrentCostume() && a->getCurrentCostume()->getModelNodes()) ?
 					a->getCurrentCostume()->getModelNodes()->_name : "");
 		} else {

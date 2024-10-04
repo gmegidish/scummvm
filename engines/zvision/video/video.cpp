@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,8 +40,8 @@
 
 namespace ZVision {
 
-Video::VideoDecoder *ZVision::loadAnimation(const Common::String &fileName) {
-	Common::String tmpFileName = fileName;
+Video::VideoDecoder *ZVision::loadAnimation(const Common::Path &fileName) {
+	Common::String tmpFileName = fileName.baseName();
 	tmpFileName.toLowercase();
 	Video::VideoDecoder *animation = NULL;
 
@@ -57,15 +56,15 @@ Video::VideoDecoder *ZVision::loadAnimation(const Common::String &fileName) {
 	}
 #endif
 	else
-		error("Unknown suffix for animation %s", fileName.c_str());
+		error("Unknown suffix for animation %s", fileName.toString().c_str());
 
-	Common::File *_file = getSearchManager()->openFile(tmpFileName);
+	Common::File *_file = getSearchManager()->openFile(fileName);
 	if (!_file)
-		error("Error opening %s", tmpFileName.c_str());
+		error("Error opening %s", fileName.toString().c_str());
 
 	bool loaded = animation->loadStream(_file);
 	if (!loaded)
-		error("Error loading animation %s", tmpFileName.c_str());
+		error("Error loading animation %s", fileName.toString().c_str());
 
 	return animation;
 }

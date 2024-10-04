@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -104,59 +103,59 @@ public:
 	Obj();
 	Obj(Obj *sobj);
 
-	bool is_script_obj()    {
+	bool is_script_obj() const {
 		return (nuvie_status & NUVIE_OBJ_STATUS_SCRIPTING);
 	}
-	bool is_actor_obj()     {
+	bool is_actor_obj() const {
 		return (nuvie_status & NUVIE_OBJ_STATUS_ACTOR_OBJ);
 	}
 
-	bool is_ok_to_take();
-	bool is_invisible()     {
+	bool is_ok_to_take() const;
+	bool is_invisible() const {
 		return (status & OBJ_STATUS_INVISIBLE);
 	}
-	bool is_charmed()     {
+	bool is_charmed() const {
 		return (status & OBJ_STATUS_CHARMED);
 	}
-	bool is_temporary()    {
+	bool is_temporary() const {
 		return (status & OBJ_STATUS_TEMPORARY);
 	}
-	bool is_egg_active()   {
+	bool is_egg_active() const {
 		return (status & OBJ_STATUS_EGG_ACTIVE);
 	}
-	bool is_broken()       {
+	bool is_broken() const {
 		return (status & OBJ_STATUS_BROKEN);
 	}
-	bool is_mutant()       {
+	bool is_mutant() const {
 		return (status & OBJ_STATUS_MUTANT);
 	}
-	bool is_cursed()       {
+	bool is_cursed() const {
 		return (status & OBJ_STATUS_CURSED);
 	}
-	bool is_lit()          {
+	bool is_lit() const {
 		return (status & OBJ_STATUS_LIT);
 	}
 
-	bool is_on_map()       {
+	bool is_on_map() const {
 		return ((nuvie_status & NUVIE_OBJ_STATUS_LOC_MASK_GET) == OBJ_LOC_MAP);
 	}
-	bool is_in_container() {
+	bool is_in_container() const {
 		return ((nuvie_status & NUVIE_OBJ_STATUS_LOC_MASK_GET) == OBJ_LOC_CONT);
 	}
-	bool is_in_inventory(bool check_parent = true);
+	bool is_in_inventory(bool check_parent = true) const;
 
-	bool is_readied()      {
+	bool is_readied() const {
 		return ((nuvie_status & NUVIE_OBJ_STATUS_LOC_MASK_GET) == OBJ_LOC_READIED);
 	}
 
-	bool has_container() {
-		return (container != NULL);
+	bool has_container() const {
+		return (container != nullptr);
 	}
 	void make_container();
 	Obj *get_container_obj(bool recursive = false);
-	uint32 container_count_objects();
+	uint32 container_count_objects() const;
 
-	uint8 get_engine_loc();
+	uint8 get_engine_loc() const;
 	Actor *get_actor_holding_obj();
 
 	void set_on_map(U6LList *map_list);
@@ -174,17 +173,17 @@ public:
 	void set_in_script(bool flag);
 	void set_actor_obj(bool flag);
 
-	void add(Obj *obj, bool stack = false);
+	void add(Obj *obj, bool stack = false, bool addAtTail = false);
 
 	bool remove(Obj *obj);
 
-	Obj *find_in_container(uint16 obj_n, uint8 quality, bool match_quality = OBJ_MATCH_QUALITY, uint8 frame_n = 0, bool match_frame_n = OBJ_NOMATCH_FRAME_N, Obj **prev_obj = NULL);
+	Obj *find_in_container(uint16 obj_n, uint8 quality, bool match_quality = OBJ_MATCH_QUALITY, uint8 frame_n = 0, bool match_frame_n = OBJ_NOMATCH_FRAME_N, Obj **prev_obj = nullptr) const;
 
 	uint32 get_total_qty(uint16 match_obj_n);
 
 protected:
 
-	void add_and_stack(Obj *obj);
+	void add_and_stack(Obj *obj, bool addAtTail = false);
 
 };
 

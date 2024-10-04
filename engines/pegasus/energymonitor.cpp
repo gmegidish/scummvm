@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,7 @@
 namespace Pegasus {
 
 Blinker::Blinker() {
-	_sprite = 0;
+	_sprite = nullptr;
 	_frame1 = -1;
 	_frame2 = -1;
 	_blinkDuration = 0;
@@ -51,7 +50,7 @@ void Blinker::startBlinking(Sprite *sprite, int32 frame1, int32 frame2, uint32 n
 void Blinker::stopBlinking() {
 	if (_sprite) {
 		_sprite->setCurrentFrameIndex(_frame2);
-		_sprite = 0;
+		_sprite = nullptr;
 		stop();
 	}
 }
@@ -72,11 +71,9 @@ enum {
 	kEnergyExpiredFlag = 1
 };
 
-EnergyMonitor *g_energyMonitor = 0;
+EnergyMonitor *g_energyMonitor = nullptr;
 
 EnergyMonitor::EnergyMonitor() : IdlerAnimation(kEnergyBarID), _energyLight(kWarningLightID) {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	_stage = kStageNoStage;
 
 	_calibrating = false;
@@ -88,19 +85,19 @@ EnergyMonitor::EnergyMonitor() : IdlerAnimation(kEnergyBarID), _energyLight(kWar
 	startDisplaying();
 
 	SpriteFrame *frame = new SpriteFrame();
-	frame->initFromPICTResource(vm->_resFork, kLightOffID);
+	frame->initFromPICTResource(g_vm->_resFork, kLightOffID);
 	_energyLight.addFrame(frame, 0, 0);
 
 	frame = new SpriteFrame();
-	frame->initFromPICTResource(vm->_resFork, kLightYellowID);
+	frame->initFromPICTResource(g_vm->_resFork, kLightYellowID);
 	_energyLight.addFrame(frame, 0, 0);
 
 	frame = new SpriteFrame();
-	frame->initFromPICTResource(vm->_resFork, kLightOrangeID);
+	frame->initFromPICTResource(g_vm->_resFork, kLightOrangeID);
 	_energyLight.addFrame(frame, 0, 0);
 
 	frame = new SpriteFrame();
-	frame->initFromPICTResource(vm->_resFork, kLightRedID);
+	frame->initFromPICTResource(g_vm->_resFork, kLightRedID);
 	_energyLight.addFrame(frame, 0, 0);
 
 	_energyLight.setBounds(540, 35, 600, 59);
@@ -116,7 +113,7 @@ EnergyMonitor::EnergyMonitor() : IdlerAnimation(kEnergyBarID), _energyLight(kWar
 }
 
 EnergyMonitor::~EnergyMonitor() {
-	g_energyMonitor = 0;
+	g_energyMonitor = nullptr;
 }
 
 void EnergyMonitor::setEnergyValue(const uint32 value) {
@@ -163,9 +160,8 @@ int32 EnergyMonitor::getCurrentEnergy() {
 
 void EnergyMonitor::timeChanged(const TimeValue currentTime) {
 	if (currentTime == getStop()) {
-		PegasusEngine *vm = (PegasusEngine *)g_engine;
-		if (vm->getEnergyDeathReason() != -1)
-			vm->die(vm->getEnergyDeathReason());
+		if (g_vm->getEnergyDeathReason() != -1)
+			g_vm->die(g_vm->getEnergyDeathReason());
 	} else {
 		uint32 currentEnergy = kMaxJMPEnergy - currentTime;
 
@@ -240,25 +236,23 @@ void EnergyMonitor::draw(const Common::Rect &r) {
 	Common::Rect r2 = r.findIntersectingRect(_levelRect);
 
 	if (!r2.isEmpty()) {
-		Graphics::Surface *screen = ((PegasusEngine *)g_engine)->_gfx->getWorkArea();
+		Graphics::Surface *screen = g_vm->_gfx->getWorkArea();
 		screen->fillRect(r2, _barColor);
 	}
 }
 
 void EnergyMonitor::calibrateEnergyBar() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	_calibrating = true;
 
-	vm->setEnergyDeathReason(-1);
+	g_vm->setEnergyDeathReason(-1);
 
 	uint32 numFrames = _energyLight.getNumFrames();
 	for (uint32 i = 1; i < numFrames; i++) {
 		_energyLight.setCurrentFrameIndex(i);
 		_energyLight.show();
-		vm->delayShell(1, 3);
+		g_vm->delayShell(1, 3);
 		_energyLight.hide();
-		vm->delayShell(1, 3);
+		g_vm->delayShell(1, 3);
 	}
 
 	_energyLight.setCurrentFrameIndex(0);
@@ -272,12 +266,12 @@ void EnergyMonitor::calibrateEnergyBar() {
 	_energyLight.hide();
 	while (getCurrentEnergy() != (int32)kMaxJMPEnergy) {
 		InputDevice.pumpEvents();
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		g_vm->checkCallBacks();
+		g_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	g_vm->refreshDisplay();
 	setEnergyDrainRate(0);
 	hide();
 
@@ -285,15 +279,13 @@ void EnergyMonitor::calibrateEnergyBar() {
 }
 
 void EnergyMonitor::restoreLastEnergyValue() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	_dontFlash = true;
-	setEnergyValue(vm->getSavedEnergyValue());
-	vm->resetEnergyDeathReason();
+	setEnergyValue(g_vm->getSavedEnergyValue());
+	g_vm->resetEnergyDeathReason();
 }
 
 void EnergyMonitor::saveCurrentEnergyValue() {
-	((PegasusEngine *)g_engine)->setLastEnergyValue(getCurrentEnergy());
+	g_vm->setLastEnergyValue(getCurrentEnergy());
 }
 
 } // End of namespace Pegasus

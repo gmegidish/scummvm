@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,6 +57,11 @@ struct Rect {
 		bottom += offset;
 	}
 
+	// Check if the rectangle is empty (its width or length is 0) or invalid (its width or length are negative).
+	bool isEmpty() const {
+		return (left >= right || top >= bottom);
+	}
+
 	// Check to see if a Rectangle is 'valid'
 	bool isValidRect() const {
 		return (left <= right && top <= bottom);
@@ -66,6 +70,11 @@ struct Rect {
 	// Check to see if a point is within the Rectangle
 	bool contains(int16 x, int16 y) const {
 		return (left <= x) && (x < right) && (top <= y) && (y < bottom);
+	}
+
+	// Check if the given Rect is contained inside this rectangle.
+	bool contains(const Rect &r) const {
+		return (left <= r.left) && (r.right <= right) && (top <= r.top) && (r.bottom <= bottom);
 	}
 
 	// Move the Rect (Relative)
@@ -91,7 +100,7 @@ struct Rect {
 		if (left < r.left) left = r.left;
 		else if (left > r.right) left = r.right;
 
-		if (bottom < r.top) bottom = r.bottom;
+		if (bottom < r.top) bottom = r.top;
 		else if (bottom > r.bottom) bottom = r.bottom;
 
 		if (right < r.left) right = r.left;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,26 +24,28 @@
 
 #include "backends/networking/sdl_net/handlers/basehandler.h"
 
+namespace Common {
+class Path;
+}
+
 namespace Networking {
 
 class FilesBaseHandler: public BaseHandler {
 protected:
-	Common::String parentPath(Common::String path);
+	Common::String parentPath(const Common::String &path);
 
 	/**
-	* Transforms virtual <path> into actual file system path.
+	* Transforms virtual <url> into actual file system path.
 	*
-	* Fills prefixes with actual file system prefix ("to remove")
-	* and virtual path prefix ("to add").
+	* Fills base path with actual file system prefix
+	* and base URL with virtual prefix
 	*
 	* Returns true on success.
 	*/
-	bool transformPath(Common::String &path, Common::String &prefixToRemove, Common::String &prefixToAdd, bool isDirectory = true);
+	bool urlToPath(Common::String &url, Common::Path &path, Common::String &baseUrl, Common::Path &basePath, bool isDirectory = true);
 public:
 	FilesBaseHandler();
-	virtual ~FilesBaseHandler();
-
-	virtual void handle(Client &client) = 0;
+	~FilesBaseHandler() override;
 };
 
 } // End of namespace Networking

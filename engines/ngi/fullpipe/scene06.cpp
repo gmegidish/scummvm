@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -82,7 +81,7 @@ void sceneHandler06_winArcade() {
 		g_nmi->setObjectState(sO_ClockAxis, g_nmi->getObjectEnumState(sO_ClockAxis, sO_WithoutHandle));
 
 	if (g_vars->scene06_arcadeEnabled) {
-		g_nmi->_aniMan->_callback2 = 0; // Really NULL
+		g_nmi->_aniMan->_callback2 = nullptr; // Really NULL
 
 		g_nmi->_aniMan->changeStatics2(ST_MAN_RIGHT | 0x4000);
 
@@ -91,7 +90,7 @@ void sceneHandler06_winArcade() {
 
 			g_vars->scene06_balls.push_back(g_vars->scene06_someBall);
 
-			g_vars->scene06_someBall = 0;
+			g_vars->scene06_someBall = nullptr;
 		}
 
 		if (g_vars->scene06_flyingBall) {
@@ -99,7 +98,7 @@ void sceneHandler06_winArcade() {
 
 			g_vars->scene06_balls.push_back(g_vars->scene06_flyingBall);
 
-			g_vars->scene06_flyingBall = 0;
+			g_vars->scene06_flyingBall = nullptr;
 		}
 
 		if (g_vars->scene06_ballInHands) {
@@ -107,7 +106,7 @@ void sceneHandler06_winArcade() {
 
 			g_vars->scene06_balls.push_back(g_vars->scene06_ballInHands);
 
-			g_vars->scene06_ballInHands = 0;
+			g_vars->scene06_ballInHands = nullptr;
 		}
 
 		g_vars->scene06_arcadeEnabled = false;
@@ -225,12 +224,12 @@ void sceneHandler06_mumsyBallTake() {
 	}
 
 	mq->setFlags(mq->getFlags() | 1);
-	mq->chain(0);
+	mq->chain(nullptr);
 
 	g_vars->scene06_mumsyNumBalls = 0;
 	g_vars->scene06_arcadeEnabled = false;
 
-	g_nmi->_aniMan2 = 0;
+	g_nmi->_aniMan2 = nullptr;
 }
 
 void sceneHandler06_spinHandle() {
@@ -268,7 +267,7 @@ void sceneHandler06_showNextBall() {
 		MessageQueue *mq = new MessageQueue(g_nmi->_currentScene->getMessageQueueById(QU_SC6_SHOWNEXTBALL), 0, 1);
 
 		mq->setParamInt(-1, g_vars->scene06_currentBall->_odelay);
-		mq->chain(0);
+		mq->chain(nullptr);
 
 		++g_vars->scene06_numBallsGiven;
 	}
@@ -284,7 +283,7 @@ int sceneHandler06_updateScreenCallback() {
 	res = g_nmi->drawArcadeOverlay(g_vars->scene06_arcadeEnabled);
 
 	if (!res)
-		g_nmi->_updateScreenCallback = 0;
+		g_nmi->_updateScreenCallback = nullptr;
 
 	return res;
 }
@@ -296,7 +295,7 @@ void sceneHandler06_startAiming() {
 		g_nmi->_aniMan->startAnim(MV_MAN6_TAKEBALL, 0, -1);
 
 		g_vars->scene06_ballInHands = g_vars->scene06_currentBall;
-		g_vars->scene06_currentBall = 0;
+		g_vars->scene06_currentBall = nullptr;
 
 		if (getCurrSceneSc2MotionController()->_isEnabled)
 			g_nmi->_updateScreenCallback = sceneHandler06_updateScreenCallback;
@@ -304,7 +303,7 @@ void sceneHandler06_startAiming() {
 		getCurrSceneSc2MotionController()->deactivate();
 		getGameLoaderInteractionController()->disableFlag24();
 
-		g_vars->scene06_ballDrop->queueMessageQueue(0);
+		g_vars->scene06_ballDrop->queueMessageQueue(nullptr);
 	}
 }
 
@@ -351,7 +350,7 @@ void sceneHandler06_aiming() {
 void sceneHandler06_ballStartFly() {
 	if (g_vars->scene06_ballInHands) {
 		g_vars->scene06_flyingBall = g_vars->scene06_ballInHands;
-		g_vars->scene06_ballInHands = 0;
+		g_vars->scene06_ballInHands = nullptr;
 		g_vars->scene06_flyingBall->show1(g_nmi->_aniMan->_ox - 60, g_nmi->_aniMan->_oy - 60, -1, 0);
 
 		g_vars->scene06_flyingBall->_priority = 27;
@@ -414,11 +413,11 @@ void sceneHandler06_fallBall() {
 	MessageQueue *mq = new MessageQueue(g_nmi->_currentScene->getMessageQueueById(QU_SC6_FALLBALL), 0, 1);
 
 	mq->setParamInt(-1, g_vars->scene06_flyingBall->_odelay);
-	mq->chain(0);
+	mq->chain(nullptr);
 
 	g_vars->scene06_balls.push_back(g_vars->scene06_flyingBall);
 
-	g_vars->scene06_flyingBall = 0;
+	g_vars->scene06_flyingBall = nullptr;
 
 	sceneHandler06_dropBall();
 	sceneHandler06_eggieWalk();
@@ -430,7 +429,7 @@ void sceneHandler06_catchBall() {
 
 		g_vars->scene06_balls.push_back(g_vars->scene06_flyingBall);
 
-		g_vars->scene06_flyingBall = 0;
+		g_vars->scene06_flyingBall = nullptr;
 
 		g_vars->scene06_mumsyNumBalls++;
 
@@ -489,15 +488,15 @@ void sceneHandler06_checkBallTarget(int par) {
 
 void scene06_initScene(Scene *sc) {
 	g_vars->scene06_mumsy = sc->getStaticANIObject1ById(ANI_MAMASHA, -1);
-	g_vars->scene06_someBall = 0;
+	g_vars->scene06_someBall = nullptr;
 	g_vars->scene06_invHandle = sc->getStaticANIObject1ById(ANI_INV_HANDLE, -1);
 	g_vars->scene06_liftButton = sc->getStaticANIObject1ById(ANI_BUTTON_6, -1);
 	g_vars->scene06_ballDrop = sc->getStaticANIObject1ById(ANI_BALLDROP, -1);
 	g_vars->scene06_arcadeEnabled = false;
 	g_vars->scene06_aimingBall = false;
-	g_vars->scene06_currentBall = 0;
-	g_vars->scene06_ballInHands = 0;
-	g_vars->scene06_flyingBall = 0;
+	g_vars->scene06_currentBall = nullptr;
+	g_vars->scene06_ballInHands = nullptr;
+	g_vars->scene06_flyingBall = nullptr;
 	g_vars->scene06_balls.clear();
 	g_vars->scene06_numBallsGiven = 0;
 	g_vars->scene06_mumsyNumBalls = 0;

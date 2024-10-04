@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,16 +29,14 @@
 #include "ags/shared/gfx/bitmap.h"
 
 namespace AGS3 {
-
-
-
-
-
-
-
-
 namespace AGS {
 namespace Shared {
+
+bool GUIInvWindow::HasAlphaChannel() const {
+	// We would have to test every inventory item's graphic to tell precisely,
+	// so just test game color depth instead:
+	return _GP(game).GetColorDepth() == 32;
+}
 
 int GUIInvWindow::GetCharacterId() const {
 	if (CharId < 0)
@@ -48,33 +45,33 @@ int GUIInvWindow::GetCharacterId() const {
 	return CharId;
 }
 
-void GUIInvWindow::Draw(Bitmap *ds) {
+void GUIInvWindow::Draw(Bitmap *ds, int x, int y) {
 	const bool enabled = IsGUIEnabled(this);
-	if (!enabled && (_G(gui_disabled_style) == GUIDIS_BLACKOUT))
+	if (!enabled && (GUI::Options.DisabledStyle == kGuiDis_Blackout))
 		return;
 
 	// backwards compatibility
+	// TODO: find a way to not have this inside GUIInvWindow::Draw!
 	_GP(play).inv_numinline = ColCount;
 	_GP(play).inv_numdisp = RowCount * ColCount;
-	_GP(play).obsolete_inv_numorder = _G(charextra)[_GP(game).playercharacter].invorder_count;
-	// if the user changes top_inv_item, switch into backwards
-	// compatibiltiy mode
-	if (_GP(play).inv_top)
+	_GP(play).obsolete_inv_numorder = _GP(charextra)[_GP(game).playercharacter].invorder_count;
+	// if the user changes top_inv_item, switch into backwards compat mode
+	if (_GP(play).inv_top != 0)
 		_GP(play).inv_backwards_compatibility = 1;
 	if (_GP(play).inv_backwards_compatibility)
 		TopItem = _GP(play).inv_top;
 
 	// draw the items
-	const int leftmost_x = X;
-	int at_x = X;
-	int at_y = Y;
+	const int leftmost_x = x;
+	int at_x = x;
+	int at_y = y;
 	int lastItem = TopItem + (ColCount * RowCount);
-	if (lastItem > _G(charextra)[GetCharacterId()].invorder_count)
-		lastItem = _G(charextra)[GetCharacterId()].invorder_count;
+	if (lastItem > _GP(charextra)[GetCharacterId()].invorder_count)
+		lastItem = _GP(charextra)[GetCharacterId()].invorder_count;
 
 	for (int item = TopItem; item < lastItem; ++item) {
 		// draw inv graphic
-		draw_gui_sprite(ds, _GP(game).invinfo[_G(charextra)[GetCharacterId()].invorder[item]].pic, at_x, at_y, true);
+		draw_gui_sprite(ds, _GP(game).invinfo[_GP(charextra)[GetCharacterId()].invorder[item]].pic, at_x, at_y, true);
 		at_x += data_to_game_coord(ItemWidth);
 
 		// go to next row when appropriate
@@ -85,10 +82,10 @@ void GUIInvWindow::Draw(Bitmap *ds) {
 	}
 
 	if (!enabled &&
-	        _G(gui_disabled_style) == GUIDIS_GREYOUT &&
-	        _GP(play).inventory_greys_out == 1) {
+		GUI::Options.DisabledStyle == kGuiDis_Greyout &&
+		_GP(play).inventory_greys_out == 1) {
 		// darken the inventory when disabled
-		GUI::DrawDisabledEffect(ds, RectWH(X, Y, Width, Height));
+		GUI::DrawDisabledEffect(ds, RectWH(x, y, Width, Height));
 	}
 }
 

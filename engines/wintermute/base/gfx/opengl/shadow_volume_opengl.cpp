@@ -1,22 +1,21 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,9 +27,10 @@
 
 #include "engines/wintermute/base/base_game.h"
 #include "engines/wintermute/dcgf.h"
+
 #include "graphics/opengl/system_headers.h"
 
-#if (defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)) && !defined(USE_GLES2)
+#if defined(USE_OPENGL_GAME)
 
 #include "engines/wintermute/base/gfx/opengl/base_render_opengl3d.h"
 #include "engines/wintermute/base/gfx/opengl/shadow_volume_opengl.h"
@@ -48,12 +48,12 @@ ShadowVolumeOpenGL::~ShadowVolumeOpenGL() {
 //////////////////////////////////////////////////////////////////////////
 bool ShadowVolumeOpenGL::render() {
 	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_TEXTURE_2D);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	glVertexPointer(3, GL_FLOAT, 0, _vertices.data());
 	glDrawArrays(GL_TRIANGLES, 0, _vertices.size());
+	glDisableClientState(GL_VERTEX_ARRAY);
 
 	return true;
 }
@@ -63,6 +63,8 @@ bool ShadowVolumeOpenGL::renderToStencilBuffer() {
 	// Disable z-buffer writes (note: z-testing still occurs), and enable the
 	// stencil-buffer
 	glDepthMask(GL_FALSE);
+	glDisable(GL_TEXTURE_2D);
+	glDisable(GL_LIGHTING);
 	glEnable(GL_STENCIL_TEST);
 	glEnable(GL_CULL_FACE);
 
@@ -73,8 +75,6 @@ bool ShadowVolumeOpenGL::renderToStencilBuffer() {
 	glStencilFunc(GL_ALWAYS, 0x1, 0xFFFFFFFF);
 
 	glShadeModel(GL_FLAT);
-	glDisable(GL_LIGHTING);
-
 	// Make sure that no pixels get drawn to the frame buffer
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ZERO, GL_ONE);
@@ -126,14 +126,15 @@ bool ShadowVolumeOpenGL::renderToScene() {
 
 	glEnableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-	glDisableClientState(GL_NORMAL_ARRAY);
 
 	// Draw a big, gray square
 	glVertexPointer(3, GL_FLOAT, sizeof(ShadowVertex), &_shadowMask[0].x);
 	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(ShadowVertex), &_shadowMask[0].r);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	glDisableClientState(GL_COLOR_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
 
 	// Restore render states
 	glEnable(GL_DEPTH_TEST);
@@ -185,5 +186,5 @@ bool ShadowVolumeOpenGL::initMask() {
 
 } // namespace Wintermute
 
-#endif // defined(USE_OPENGL) && !defined(USE_GLES2)
+#endif // defined(USE_OPENGL_GAME)
 

@@ -4,7 +4,11 @@ MODULE_OBJS := \
 	adlib.o \
 	adlib_ms.o \
 	audiostream.o \
+	casio.o \
+	chip.o \
+	cms.o \
 	fmopl.o \
+	mac_plugin.o \
 	mididrv.o \
 	mididrv_ms.o \
 	midiparser_qt.o \
@@ -25,12 +29,14 @@ MODULE_OBJS := \
 	decoders/aac.o \
 	decoders/adpcm.o \
 	decoders/aiff.o \
+	decoders/apc.o \
 	decoders/asf.o \
 	decoders/flac.o \
 	decoders/g711.o \
 	decoders/iff_sound.o \
 	decoders/mac_snd.o \
 	decoders/mp3.o \
+	decoders/mpc.o \
 	decoders/qdm2.o \
 	decoders/quicktime.o \
 	decoders/raw.o \
@@ -40,6 +46,7 @@ MODULE_OBJS := \
 	decoders/wma.o \
 	decoders/xa.o \
 	decoders/xan_dpcm.o \
+	mods/universaltracker.o \
 	mods/infogrames.o \
 	mods/maxtrax.o \
 	mods/mod_xm_s3m.o \
@@ -98,6 +105,11 @@ endif
 ifdef ENABLE_OPL2LPT
 MODULE_OBJS += \
 	opl2lpt.o
+endif
+
+ifdef USE_RETROWAVE
+MODULE_OBJS += \
+	rwopl3.o
 endif
 
 # Include common rules

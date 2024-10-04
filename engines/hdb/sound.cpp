@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "common/config-manager.h"
 #include "common/debug.h"
 #include "common/file.h"
 #include "common/fs.h"
@@ -1406,10 +1406,9 @@ const SoundLookUp soundList[] =  {
 };
 
 Sound::Sound() {
-	_sfxVolume = 255;
-	_musicVolume = 255;
 	_numSounds = 0;
 	_voicesOn = false;
+	memset(_voicePlayed, 0, NUM_VOICES * sizeof(byte));
 }
 
 void Sound::test() {
@@ -1417,7 +1416,7 @@ void Sound::test() {
 		Common::SeekableReadStream *soundStream = g_hdb->_fileMan->findFirstData("M00_AIRLOCK_01_MP3", TYPE_BINARY);
 		Audio::SeekableAudioStream *audioStream = Audio::makeMP3Stream(soundStream, DisposeAfterUse::YES);
 		Audio::SoundHandle *handle = new Audio::SoundHandle();
-		g_hdb->_mixer->playStream(Audio::Mixer::kPlainSoundType, handle, audioStream);
+		g_hdb->_mixer->playStream(Audio::Mixer::kSFXSoundType, handle, audioStream);
 	#endif
 }
 
@@ -1444,9 +1443,8 @@ void Sound::init() {
 	}
 	_numSounds = index;
 
-	// voices are on by default
-	_voicesOn = true;
-	memset(&_voicePlayed[0], 0, sizeof(_voicePlayed));
+	setVoiceStatus(true);
+	clearPersistent();
 }
 
 void Sound::save(Common::OutSaveFile *out) {
@@ -1463,7 +1461,7 @@ void Sound::loadSaveFile(Common::InSaveFile *in) {
 
 
 void Sound::playSound(int index) {
-	if (index > _numSounds || !_sfxVolume)
+	if (index > _numSounds || ConfMan.getInt(CONFIG_SFXVOL) == 0)
 		return;
 
 	// is sound in memory at least?
@@ -1499,8 +1497,6 @@ void Sound::playSound(int index) {
 	if (soundChannel == kLaserChannel)
 		return;
 
-	g_hdb->_mixer->setChannelVolume(_handles[soundChannel], _sfxVolume);
-
 	if (_soundCache[index].data == nullptr)
 		return;
 
@@ -1519,7 +1515,7 @@ void Sound::playSound(int index) {
 		audioStream = Audio::makeWAVStream(stream, DisposeAfterUse::YES);
 	}
 
-	if (audioStream == 0) {
+	if (audioStream == nullptr) {
 		warning("playSound: sound %d is corrupt", index);
 		return;
 	}
@@ -1541,7 +1537,7 @@ void Sound::playSoundEx(int index, int channel, bool loop) {
 	if (g_hdb->_mixer->isSoundHandleActive(_handles[channel]))
 		return;
 
-	if (index > _numSounds || !_sfxVolume)
+	if (index > _numSounds || ConfMan.getInt(CONFIG_SFXVOL) == 0)
 		return;
 
 	// is sound in memory at least?
@@ -1562,9 +1558,6 @@ void Sound::playSoundEx(int index, int channel, bool loop) {
 		_soundCache[index].loaded = SNDMEM_LOADED;
 	}
 
-	g_hdb->_mixer->setChannelVolume(_handles[channel], _sfxVolume);
-
-
 	if (_soundCache[index].data == nullptr)
 		return;
 
@@ -1583,7 +1576,7 @@ void Sound::playSoundEx(int index, int channel, bool loop) {
 		audioStream = Audio::makeWAVStream(stream, DisposeAfterUse::YES);
 	}
 
-	if (audioStream == 0) {
+	if (audioStream == nullptr) {
 		warning("playSoundEx: sound %d is corrupt", index);
 		return;
 	}
@@ -1617,7 +1610,7 @@ void Sound::playSoundEx(int index, int channel, bool loop) {
 }
 
 void Sound::playVoice(int index, int actor) {
-	if (!_voicesOn || g_hdb->isPPC())
+	if (!_voicesOn || g_hdb->isPPC() || ConfMan.getInt(CONFIG_SPEECHVOL) == 0)
 		return;
 
 	// is voice channel already active?  if so, shut 'er down (automagically called StopVoice via callback)
@@ -1641,11 +1634,8 @@ void Sound::playVoice(int index, int actor) {
 #ifdef USE_VORBIS
 		Audio::AudioStream *audioStream = Audio::makeVorbisStream(stream, DisposeAfterUse::YES);
 		if (audioStream == nullptr) {
-			delete stream;
 			return;
 		}
-
-		g_hdb->_mixer->setChannelVolume(_voices[actor].handle, _sfxVolume);
 
 		g_hdb->_mixer->playStream(
 			Audio::Mixer::kSpeechSoundType,
@@ -1663,11 +1653,8 @@ void Sound::playVoice(int index, int actor) {
 #ifdef USE_MAD
 		Audio::AudioStream *audioStream = Audio::makeMP3Stream(stream, DisposeAfterUse::YES);
 		if (audioStream == nullptr) {
-			delete stream;
 			return;
 		}
-
-		g_hdb->_mixer->setChannelVolume(_voices[actor].handle, _sfxVolume);
 
 		g_hdb->_mixer->playStream(
 			Audio::Mixer::kSpeechSoundType,
@@ -1689,20 +1676,10 @@ void Sound::playVoice(int index, int actor) {
 	return;
 }
 
-void Sound::setMusicVolume(int volume) {
-	_musicVolume = volume;
-	if (_song1.isPlaying()) {
-		_song1.setVolume(volume);
-	}
-	if (_song2.isPlaying()) {
-		_song2.setVolume(volume);
-	}
-}
-
 void Sound::startMusic(SoundType song) {
 	g_hdb->_menu->saveSong(song);
 
-	if (!_musicVolume)
+	if (ConfMan.getInt(CONFIG_MUSICVOL) == 0)
 		return;
 
 	beginMusic(song, false, 0);
@@ -1711,7 +1688,7 @@ void Sound::startMusic(SoundType song) {
 void Sound::fadeInMusic(SoundType song, int ramp) {
 	g_hdb->_menu->saveSong(song);
 
-	if (!_musicVolume)
+	if (ConfMan.getInt(CONFIG_MUSICVOL) == 0)
 		return;
 
 	stopMusic();
@@ -1778,7 +1755,7 @@ SoundType Song::getSong() const {
 void Song::fadeOut(int ramp) {
 	fadeOutRamp = ramp;
 	fadingOut = true;
-	fadeOutVol = g_hdb->_sound->_musicVolume;
+	fadeOutVol = Audio::Mixer::kMaxChannelVolume;
 }
 
 void Song::stop() {
@@ -1788,7 +1765,7 @@ void Song::stop() {
 
 void Song::playSong(SoundType song, bool fadeIn, int ramp) {
 
-	Common::String fileName = getFileName(song);
+	Common::Path fileName = getFileName(song);
 	Audio::AudioStream* musicStream = createStream(fileName);
 
 	if (musicStream == nullptr) return;
@@ -1802,9 +1779,9 @@ void Song::playSong(SoundType song, bool fadeIn, int ramp) {
 		fadeInRamp = ramp;
 		fadingIn = true;
 		fadeInVol = 0;
-		initialVolume=0;
+		initialVolume = 0;
 	} else {
-		initialVolume=g_hdb->_sound->_musicVolume;
+		initialVolume = Audio::Mixer::kMaxChannelVolume;
 	}
 
 	g_hdb->_mixer->playStream(
@@ -1820,7 +1797,7 @@ void Song::playSong(SoundType song, bool fadeIn, int ramp) {
 	);
 }
 
-Common::String Song::getFileName(SoundType song) {
+Common::Path Song::getFileName(SoundType song) {
 	Common::String fileName(soundList[song].name);
 
 	if (g_hdb->getPlatform() == Common::kPlatformLinux) {
@@ -1843,10 +1820,10 @@ Common::String Song::getFileName(SoundType song) {
 		}
 	}
 
-	return fileName;
+	return Common::Path(fileName);
 }
 
-Audio::AudioStream* Song::createStream(Common::String fileName) {
+Audio::AudioStream* Song::createStream(const Common::Path &fileName) {
 	Common::SeekableReadStream* stream = SearchMan.createReadStreamForMember(fileName);
 	if (stream == nullptr)
 		return nullptr;
@@ -1868,24 +1845,17 @@ Audio::AudioStream* Song::createStream(Common::String fileName) {
 	}
 }
 
-void Song::setVolume(int volume) {
-	if (fadingIn)
-		fadeInVol = volume;
-	if (!fadingOut)
-		g_hdb->_mixer->setChannelVolume(handle, volume);
-}
-
-void Song::update() {
-	if (fadingOut) {
-		fadeOutVol = 0;
-		_playing = false;
-		g_hdb->_mixer->stopHandle(handle);
-	}
-	else if (fadingIn) {
-		fadeInVol = g_hdb->_sound->_musicVolume;
-		fadingIn = false;
-	}
-}
+//void Song::update() {
+//	if (fadingOut) {
+//		fadeOutVol = 0;
+//		_playing = false;
+//		g_hdb->_mixer->stopHandle(handle);
+//	}
+//	else if (fadingIn) {
+//		fadeInVol = Audio::Mixer::kMaxChannelVolume;
+//		fadingIn = false;
+//	}
+//}
 
 Sound::~Sound() {
 	for (int i = 0; i < kMaxSounds; i++) {
@@ -1893,15 +1863,15 @@ Sound::~Sound() {
 	}
 }
 
-void Sound::updateMusic() {
-	if (_song1.isPlaying()) {
-		_song1.update();
-	}
-
-	if (_song2.isPlaying()) {
-		_song2.update();
-	}
-}
+//void Sound::updateMusic() {
+//	if (_song1.isPlaying()) {
+//		_song1.update();
+//	}
+//
+//	if (_song2.isPlaying()) {
+//		_song2.update();
+//	}
+//}
 
 SoundType Sound::whatSongIsPlaying() {
 	if (_song1.isPlaying())

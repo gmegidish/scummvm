@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,8 +54,7 @@ Cursor::~Cursor() {
 }
 
 void Cursor::addCursorFrames(uint16 id) {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-	Common::SeekableReadStream *cursStream = vm->_resFork->getResource(MKTAG('C', 'u', 'r', 's'), id);
+	Common::SeekableReadStream *cursStream = g_vm->_resFork->getResource(MKTAG('C', 'u', 'r', 's'), id);
 	if (!cursStream)
 		error("Could not load cursor frames set %d", id);
 
@@ -66,8 +64,8 @@ void Cursor::addCursorFrames(uint16 id) {
 		info.tag = cursStream->readUint16BE();
 		info.hotspot.x = cursStream->readUint16BE();
 		info.hotspot.y = cursStream->readUint16BE();
-		info.surface = 0;
-		info.palette = 0;
+		info.surface = nullptr;
+		info.palette = nullptr;
 		info.colorCount = 0;
 		_info.push_back(info);
 	}
@@ -85,9 +83,9 @@ void Cursor::setCurrentFrameIndex(int32 index) {
 
 			if (_info[index].surface->format.bytesPerPixel == 1) {
 				CursorMan.replaceCursorPalette(_info[index].palette, 0, _info[index].colorCount);
-				CursorMan.replaceCursor(_info[index].surface->getPixels(), _info[index].surface->w, _info[index].surface->h, _info[index].hotspot.x, _info[index].hotspot.y, 0);
+				CursorMan.replaceCursor(*_info[index].surface, _info[index].hotspot.x, _info[index].hotspot.y, 0);
 			} else {
-				CursorMan.replaceCursor(_info[index].surface->getPixels(), _info[index].surface->w, _info[index].surface->h, _info[index].hotspot.x, _info[index].hotspot.y, _info[index].surface->format.RGBToColor(0xFF, 0xFF, 0xFF), false, &_info[index].surface->format);
+				CursorMan.replaceCursor(*_info[index].surface, _info[index].hotspot.x, _info[index].hotspot.y, _info[index].surface->format.RGBToColor(0xFF, 0xFF, 0xFF), false);
 			}
 		}
 	}
@@ -136,11 +134,9 @@ void Cursor::loadCursorImage(CursorInfo &cursorInfo) {
 	if (cursorInfo.surface)
 		return;
 
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
-	if (vm->isDVD()) {
+	if (g_vm->isDVD()) {
 		// The DVD version has some higher color PICT images for its cursors
-		Common::SeekableReadStream *pictStream = vm->_resFork->getResource(MKTAG('P', 'I', 'C', 'T'), cursorInfo.tag + 1000);
+		Common::SeekableReadStream *pictStream = g_vm->_resFork->getResource(MKTAG('P', 'I', 'C', 'T'), cursorInfo.tag + 1000);
 
 		if (pictStream) {
 			Image::PICTDecoder pict;
@@ -156,7 +152,7 @@ void Cursor::loadCursorImage(CursorInfo &cursorInfo) {
 	cursorInfo.surface = new Graphics::Surface();
 
 	// The CD version uses (only) lower color cicn images for its cursors
-	Common::SeekableReadStream *cicnStream = vm->_resFork->getResource(MKTAG('c', 'i', 'c', 'n'), cursorInfo.tag);
+	Common::SeekableReadStream *cicnStream = g_vm->_resFork->getResource(MKTAG('c', 'i', 'c', 'n'), cursorInfo.tag);
 
 	if (!cicnStream)
 		error("Failed to find color icon %d", cursorInfo.tag);

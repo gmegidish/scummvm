@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,43 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/memstream.h"
-#include "common/iff_container.h"
+#include "common/formats/iff_container.h"
 
 #include "engines/nancy/nancy.h"
 #include "engines/nancy/iff.h"
 #include "engines/nancy/resource.h"
 
 namespace Nancy {
+
+IFF::IFF(Common::SeekableReadStream *stream) {
+	// Scan the file for FORM/DATA wrapper chunks. There can be several of these in a single IFF.
+	uint32 dataString = g_nancy->getGameType() == kGameTypeVampire ? ID_FORM : ID_DATA;
+	_stream = stream;
+
+	while (stream->pos() < stream->size() - 3) {
+		_nextDATAChunk = 0;
+		uint32 id = stream->readUint32BE();
+		stream->seek(-4, SEEK_CUR);
+		if (id == dataString) {
+			Common::IFFParser iff(stream, false, dataString);
+			Common::Functor1Mem<Common::IFFChunk &, bool, IFF> c(this, &IFF::callback);
+			iff.parse(c);
+			if (_nextDATAChunk) {
+				stream->seek(_nextDATAChunk);
+			}
+		} else {
+			stream->skip(1);
+		}
+	}
+
+	delete _stream;
+	_stream = nullptr;
+}
 
 IFF::~IFF() {
 	for (uint i = 0; i < _chunks.size(); i++)
@@ -46,9 +70,11 @@ bool IFF::callback(Common::IFFChunk &c) {
 	}
 	chunk.id = READ_BE_UINT32(id);
 
-	if (chunk.id == ID_DATA) {
-		debugN(3, "IFF::callback: Skipping 'DATA' chunk\n");
-		return false;
+	if (chunk.id == (g_nancy->getGameType() == kGameTypeVampire ? ID_FORM : ID_DATA)) {
+		// Encountered the next FORM/DATA wrapper. Signal that we need to stop reading the
+		// current one and mark where from the parser should be called next.
+		_nextDATAChunk = _stream->pos() - 8;
+		return true;
 	}
 
 	chunk.size = c._size;
@@ -62,38 +88,6 @@ bool IFF::callback(Common::IFFChunk &c) {
 	_chunks.push_back(chunk);
 
 	return false;
-}
-
-bool IFF::load() {
-	byte *data;
-	uint size;
-	data = g_nancy->_resource->loadData(_name, size);
-
-	if (!data) {
-		return false;
-	}
-
-	// Scan the file for DATA chunks, completely ignoring IFF structure
-	// Presumably the string "DATA" is not allowed inside of chunks...
-	uint offset = 0;
-
-	while (offset < size - 3) {
-		uint32 id = READ_BE_UINT32(data + offset);
-		if (id == ID_DATA || id == ID_FORM) {
-			// Replace 'DATA' with standard 'FORM' for the parser
-			WRITE_BE_UINT32(data + offset, ID_FORM);
-			Common::MemoryReadStream stream(data + offset, size - offset);
-			Common::IFFParser iff(&stream);
-			Common::Functor1Mem<Common::IFFChunk &, bool, IFF> c(this, &IFF::callback);
-			iff.parse(c);
-			offset += 16; // Original engine skips 16, while 12 seems more logical
-		} else {
-			++offset;
-		}
-	}
-
-	delete[] data;
-	return true;
 }
 
 const byte *IFF::getChunk(uint32 id, uint &size, uint index) const {
@@ -117,7 +111,7 @@ Common::SeekableReadStream *IFF::getChunkStream(const Common::String &id, uint i
 	const byte *chunk = getChunk(stringToId(id), size, index);
 
 	if (chunk) {
-		byte *dup = new byte[size];
+		byte *dup = (byte *)malloc(size);
 		memcpy(dup, chunk, size);
 		return new Common::MemoryReadStream(dup, size, DisposeAfterUse::YES);
 	}
@@ -144,9 +138,12 @@ uint32 IFF::stringToId(const Common::String &s) {
 }
 
 void IFF::list(Common::Array<Common::String> &nameList) const {
+	Common::String chunkName;
 	nameList.reserve(_chunks.size());
 	for (uint i = 0; i < _chunks.size(); ++i) {
-		nameList.push_back(idToString(_chunks[i].id));
+		chunkName = idToString(_chunks[i].id);
+		chunkName.trim();
+		nameList.push_back(chunkName);
 	}
 }
 

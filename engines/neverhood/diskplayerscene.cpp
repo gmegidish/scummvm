@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -247,7 +246,7 @@ void DiskplayerPlayButton::release() {
 
 DiskplayerSlot::DiskplayerSlot(NeverhoodEngine *vm, DiskplayerScene *diskplayerScene, int slotIndex, bool isAvailable)
 	: Entity(vm, 0), _diskplayerScene(diskplayerScene), _isLocked(false), _isBlinking(false),
-	_blinkCountdown(0), _initialBlinkCountdown(2), _inactiveSlot(NULL), _appearSlot(NULL), _activeSlot(NULL) {
+	_blinkCountdown(0), _initialBlinkCountdown(2), _inactiveSlot(nullptr), _appearSlot(nullptr), _activeSlot(nullptr) {
 
 	if (isAvailable && slotIndex < 20) {
 		_inactiveSlot = _diskplayerScene->addSprite(new StaticSprite(_vm, kDiskplayerSlotFileHashes1[slotIndex], 1100));
@@ -463,6 +462,13 @@ uint32 DiskplayerScene::handleMessage(int messageNum, const MessageParam &param,
 					else
 						playStatic();
 				}
+			}
+			break;
+		case NM_CHEAT:
+			if (param.asInteger() == 0x2C034A29 && !_dropKey && !_hasAllDisks) { // "itsshowtime"
+				for (uint i = 0; i < 20; i++)
+					setSubVar(VA_HAS_TAPE, i, 1);
+				sendMessage(_parentModule, 0x1009, 0);
 			}
 			break;
 		case NM_ANIMATION_UPDATE:

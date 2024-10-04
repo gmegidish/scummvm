@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,6 @@
 
 #include "director/director.h"
 #include "director/cast.h"
-#include "director/util.h"
 
 namespace Director {
 
@@ -422,12 +420,18 @@ bool Cast::readFXmpLine(Common::SeekableReadStreamEndian &stream) {
 
 		// TODO: We should fill _fontXPlatformMap with mappings matching the current platform.
 		// We only have Mac fonts right now, though, so we'll always use the Win => Mac mappings.
+		// We only handle one fontmap per fromFont (happens in Clone Ranger)
 		if (fromPlatform == Common::kPlatformWindows) {
-			_fontXPlatformMap[fromFont] = info;
-			debugC(3, kDebugLoading, "Cast::readFXmpLine: Mapping Win font '%s' to Mac font '%s'", fromFont.c_str(), info->toFont.c_str());
-			debugC(4, kDebugLoading, "  Remap characters: %d", info->remapChars);
-			for (FontSizeMap::iterator it = info->sizeMap.begin(); it != info->sizeMap.end(); ++it) {
-				debugC(4, kDebugLoading, "  Mapping size %d to %d", it->_key, it->_value);
+			if (_fontXPlatformMap.contains(fromFont)) {
+				warning("Cast::readFxmpLine: Skip second map for font '%s'", fromFont.c_str());
+				delete info;
+			} else {
+				_fontXPlatformMap[fromFont] = info;
+				debugC(3, kDebugLoading, "Cast::readFXmpLine: Mapping Win font '%s' to Mac font '%s'", fromFont.c_str(), info->toFont.c_str());
+				debugC(4, kDebugLoading, "  Remap characters: %d", info->remapChars);
+				for (auto &it : info->sizeMap) {
+					debugC(4, kDebugLoading, "  Mapping size %d to %d", it._key, it._value);
+				}
 			}
 		} else {
 			delete info;

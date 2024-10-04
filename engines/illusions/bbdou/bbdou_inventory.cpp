@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,13 +42,19 @@ InventoryItem::InventoryItem(uint32 objectId, uint32 sequenceId)
 // InventorySlot
 
 InventorySlot::InventorySlot(uint32 namedPointId)
-	: _namedPointId(namedPointId), _objectId(0), _inventoryItem(0) {
+	: _namedPointId(namedPointId), _objectId(0), _inventoryItem(nullptr) {
 }
 
 // InventoryBag
 
 InventoryBag::InventoryBag(IllusionsEngine_BBDOU *vm, uint32 sceneId)
 	: _vm(vm), _sceneId(sceneId), _isActive(false), _fieldA(0) {
+}
+
+InventoryBag::~InventoryBag() {
+	for (uint i = 0; i < _inventorySlots.size(); ++i) {
+		delete _inventorySlots[i];
+	}
 }
 
 void InventoryBag::registerInventorySlot(uint32 namedPointId) {
@@ -76,7 +81,7 @@ bool InventoryBag::addInventoryItem(InventoryItem *inventoryItem, InventorySlot 
 void InventoryBag::removeInventoryItem(InventoryItem *inventoryItem) {
 	for (InventorySlotsIterator it = _inventorySlots.begin(); it != _inventorySlots.end(); ++it) {
 		if ((*it)->_inventoryItem && (*it)->_inventoryItem->_objectId == inventoryItem->_objectId)
-			(*it)->_inventoryItem = 0;
+			(*it)->_inventoryItem = nullptr;
 	}
 }
 
@@ -99,7 +104,7 @@ void InventoryBag::buildItems() {
 		if (inventoryItem) {
 			++inventoryItem->_timesPresent;
 			if (!inventoryItem->_assigned || inventoryItem->_flag || inventoryItem->_timesPresent > 1)
-				inventorySlot->_inventoryItem = 0;
+				inventorySlot->_inventoryItem = nullptr;
 		}
 	}
 }
@@ -108,7 +113,7 @@ void InventoryBag::clear() {
 	for (InventorySlotsIterator it = _inventorySlots.begin();
 		it != _inventorySlots.end(); ++it) {
 		InventorySlot *inventorySlot = *it;
-		inventorySlot->_inventoryItem = 0;
+		inventorySlot->_inventoryItem = nullptr;
 	}
 }
 
@@ -117,12 +122,12 @@ InventorySlot *InventoryBag::getInventorySlot(uint32 objectId) {
 		if (_inventorySlots[i]->_objectId == objectId)
 			return _inventorySlots[i];
 	}
-	return 0;
+	return nullptr;
 }
 
 InventorySlot *InventoryBag::findClosestSlot(Common::Point putPos, int index) {
 	uint minDistance = 0xFFFFFFFF;
-	InventorySlot *minDistanceSlot = 0;
+	InventorySlot *minDistanceSlot = nullptr;
 	for (InventorySlotsIterator it = _inventorySlots.begin(); it != _inventorySlots.end(); ++it) {
 		InventorySlot *inventorySlot = *it;
 		Common::Point slotPos = _vm->getNamedPointPosition(inventorySlot->_namedPointId);
@@ -139,6 +144,15 @@ InventorySlot *InventoryBag::findClosestSlot(Common::Point putPos, int index) {
 
 BbdouInventory::BbdouInventory(IllusionsEngine_BBDOU *vm, BbdouSpecialCode *bbdou)
 	: _vm(vm), _bbdou(bbdou), _activeInventorySceneId(0) {
+}
+
+BbdouInventory::~BbdouInventory() {
+	for (uint i = 0; i < _inventoryBags.size(); ++i) {
+		delete _inventoryBags[i];
+	}
+	for (uint i = 0; i < _inventoryItems.size(); ++i) {
+		delete _inventoryItems[i];
+	}
 }
 
 void BbdouInventory::registerInventoryBag(uint32 sceneId) {
@@ -163,7 +177,7 @@ void BbdouInventory::addInventoryItem(uint32 objectId) {
 	inventoryItem->_assigned = true;
 	if (!assigned && !inventoryItem->_flag) {
 		for (uint i = 0; i < _inventoryBags.size(); ++i) {
-			if (!_inventoryBags[i]->addInventoryItem(inventoryItem, 0))
+			if (!_inventoryBags[i]->addInventoryItem(inventoryItem, nullptr))
 				inventoryItem->_assigned = false;
 		}
 	}
@@ -243,7 +257,7 @@ InventoryBag *BbdouInventory::getInventoryBag(uint32 sceneId) {
 		if (_inventoryBags[i]->_sceneId == sceneId)
 			return _inventoryBags[i];
 	}
-	return 0;
+	return nullptr;
 }
 
 InventoryItem *BbdouInventory::getInventoryItem(uint32 objectId) {
@@ -251,7 +265,7 @@ InventoryItem *BbdouInventory::getInventoryItem(uint32 objectId) {
 		if (_inventoryItems[i]->_objectId == objectId)
 			return _inventoryItems[i];
 	}
-	return 0;
+	return nullptr;
 }
 
 void BbdouInventory::refresh() {
@@ -282,7 +296,7 @@ void BbdouInventory::buildItems(InventoryBag *inventoryBag) {
 		if (inventoryItem->_assigned && !inventoryItem->_flag &&
 			inventoryItem->_timesPresent == 0 &&
 			inventoryItem->_objectId != _bbdou->_cursor->_data._holdingObjectId)
-			inventoryBag->addInventoryItem(inventoryItem, 0);
+			inventoryBag->addInventoryItem(inventoryItem, nullptr);
 	}
 }
 
@@ -376,7 +390,7 @@ void BbdouInventory::putBackInventoryItem(uint32 objectId, Common::Point cursorP
 			inventoryBag->addInventoryItem(inventoryItem, inventorySlot);
 		} else {
 			if (!inventoryBag->hasInventoryItem(objectId))
-				inventoryBag->addInventoryItem(inventoryItem, 0);
+				inventoryBag->addInventoryItem(inventoryItem, nullptr);
 		}
 	}
 	refresh();

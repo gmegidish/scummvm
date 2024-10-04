@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/scummsys.h"
-#include "common/math.h"
+#include "math/utils.h"
 #include "mads/mads.h"
 #include "mads/scene.h"
 #include "mads/nebular/nebular_scenes.h"
@@ -1376,14 +1375,14 @@ void Scene103::step() {
 
 	case 72: {
 		Common::Point pt = _vm->_game->_player._playerPos;
-		int dist = Common::hypotenuse(pt.x - 58, pt.y - 93);
+		int dist = Math::hypotenuse(pt.x - 58, pt.y - 93);
 		_vm->_sound->command(27, (dist * -128 / 378) + 127);
 		}
 		break;
 
 	case 73: {
 		Common::Point pt = _vm->_game->_player._playerPos;
-		int dist = Common::hypotenuse(pt.x - 266, pt.y - 81);
+		int dist = Math::hypotenuse(pt.x - 266, pt.y - 81);
 		_vm->_sound->command(27, (dist * -127 / 378) + 127);
 		}
 		break;
@@ -1394,15 +1393,15 @@ void Scene103::step() {
 
 	if (_scene->_frameStartTime >= _updateClock) {
 		Common::Point pt = _vm->_game->_player._playerPos;
-		int dist = Common::hypotenuse(pt.x - 79, pt.y - 137);
+		int dist = Math::hypotenuse(pt.x - 79, pt.y - 137);
 		_vm->_sound->command(29, (dist * -127 / 378) + 127);
 
 		pt = _vm->_game->_player._playerPos;
-		dist = Common::hypotenuse(pt.x - 69, pt.y - 80);
+		dist = Math::hypotenuse(pt.x - 69, pt.y - 80);
 		_vm->_sound->command(30, (dist * -127 / 378) + 127);
 
 		pt = _vm->_game->_player._playerPos;
-		dist = Common::hypotenuse(pt.x - 266, pt.y - 138);
+		dist = Math::hypotenuse(pt.x - 266, pt.y - 138);
 		_vm->_sound->command(32, (dist * -127 / 378) + 127);
 
 		_updateClock = _scene->_frameStartTime + _vm->_game->_player._ticksAmount;

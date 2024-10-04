@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "startrek/common.h"
@@ -29,7 +28,7 @@
 #include "common/events.h"
 #include "common/rendermode.h"
 #include "graphics/cursorman.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/surface.h"
 
 namespace StarTrek {
@@ -49,17 +48,14 @@ Graphics::Graphics(StarTrekEngine *vm) : _vm(vm), _egaMode(false) {
 	if (ConfMan.hasKey("render_mode"))
 		_egaMode = (Common::parseRenderMode(ConfMan.get("render_mode").c_str()) == Common::kRenderEGA) && (_vm->getGameType() != GType_STJR) && !(_vm->getFeatures() & GF_DEMO);
 
-	if (_vm->getGameType() == GType_ST25 && _vm->getPlatform() == Common::kPlatformDOS)
+	if (_vm->getGameType() == GType_ST25 && _vm->getPlatform() != Common::kPlatformAmiga)
 		_font = new Font(_vm);
 
 	_numSprites = 0;
 	_pushedNumSprites = -1;
 
-	_palData = new byte[256 * 3];
-	_lutData = new byte[256 * 3];
-
-	memset(_palData, 0, 256 * 3);
-	memset(_lutData, 0, 256 * 3);
+	_palData = new byte[256 * 3]();
+	_lutData = new byte[256 * 3]();
 
 	_paletteFadeLevel = 0;
 	_lockedMousePos = Common::Point(-1, -1);
@@ -124,9 +120,7 @@ void Graphics::unlockScreenPixels() {
 void Graphics::clearScreenAndPriBuffer() {
 	Common::fill(_priData, _priData + sizeof(_priData), 0);
 
-	::Graphics::Surface *surface = _vm->_system->lockScreen();
-	surface->fillRect(_screenRect, 0);
-	_vm->_system->unlockScreen();
+	_vm->_system->fillScreen(_screenRect, 0);
 	_vm->_system->updateScreen();
 	_vm->_system->delayMillis(10);
 }

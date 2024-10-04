@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,12 +63,12 @@ bool save_game(strid_t save) {
 	write_integer(save, functions);
 	write_integer(save, strings);
 
-	while (current_integer != NULL) {
+	while (current_integer != nullptr) {
 		write_integer(save, current_integer->value);
 		current_integer = current_integer->next_integer;
 	}
 
-	while (current_function != NULL) {
+	while (current_function != nullptr) {
 		write_integer(save, current_function->call_count);
 		current_function = current_function->next_function;
 	}
@@ -87,7 +86,7 @@ bool save_game(strid_t save) {
 	}
 
 	// Write out all the current values of the string variables
-	while (current_string != NULL) {
+	while (current_string != nullptr) {
 		for (index = 0; index < 255; index++) {
 			g_vm->glk_put_char_stream(save, current_string->value[index]);
 		}
@@ -99,7 +98,7 @@ bool save_game(strid_t save) {
 
 	// Save the current volume of each of the sound channels
 	for (index = 0; index < 8; index++) {
-		sprintf(temp_buffer, "volume[%d]", index);
+		Common::sprintf_s(temp_buffer, 1024, "volume[%d]", index);
 		write_integer(save, cinteger_resolve(temp_buffer)->value);
 	}
 
@@ -131,16 +130,16 @@ bool restore_game(strid_t save, bool warn) {
 		if (warn == FALSE) {
 			log_error(cstring_resolve("BAD_SAVED_GAME")->value, PLUS_STDOUT);
 		}
-		g_vm->glk_stream_close(save, NULL);
+		g_vm->glk_stream_close(save, nullptr);
 		return (FALSE);
 	}
 
-	while (current_integer != NULL) {
+	while (current_integer != nullptr) {
 		current_integer->value = read_integer(save);
 		current_integer = current_integer->next_integer;
 	}
 
-	while (current_function != NULL) {
+	while (current_function != nullptr) {
 		current_function->call_count = read_integer(save);
 		current_function = current_function->next_function;
 	}
@@ -157,7 +156,7 @@ bool restore_game(strid_t save, bool warn) {
 		object[index]->user_attributes = read_integer(save);
 	}
 
-	while (current_string != NULL) {
+	while (current_string != nullptr) {
 		for (index = 0; index < 255; index++) {
 			current_string->value[index] = g_vm->glk_get_char_stream(save);
 		}
@@ -169,7 +168,7 @@ bool restore_game(strid_t save, bool warn) {
 
 	// Restore the current volume of each of the sound channels
 	for (index = 0; index < 8; index++) {
-		sprintf(temp_buffer, "volume[%d]", index);
+		Common::sprintf_s(temp_buffer, 1024, "volume[%d]", index);
 		counter = read_integer(save);
 		cinteger_resolve(temp_buffer)->value = counter;
 

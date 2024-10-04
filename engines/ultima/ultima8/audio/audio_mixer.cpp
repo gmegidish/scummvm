@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,7 @@ AudioMixer::AudioMixer(Audio::Mixer *mixer) : _mixer(mixer), _midiPlayer(nullptr
 	for (int idx = 0; idx < TOTAL_CHANNEL_COUNT; ++idx)
 		_channels[idx] = new AudioChannel(_mixer, SAMPLE_RATE, true);
 
-	debugN(MM_INFO, "Creating AudioMixer...\n");
+	debug(1, "Creating AudioMixer...");
 }
 
 void AudioMixer::createProcesses() {
@@ -66,7 +65,7 @@ void AudioMixer::createProcesses() {
 AudioMixer::~AudioMixer(void) {
 	_audioMixer = nullptr;
 
-	debugN(MM_INFO, "Destroying AudioMixer...\n");
+	debug(1, "Destroying AudioMixer...");
 
 	closeMidiOutput();
 
@@ -74,25 +73,14 @@ AudioMixer::~AudioMixer(void) {
 		delete _channels[idx];
 }
 
-void AudioMixer::Lock() {
-	// No implementation
-}
-
-void AudioMixer::Unlock() {
-	// No implementation
-}
 
 void AudioMixer::reset() {
 	_mixer->stopAll();
-	Unlock();
 }
 
-int AudioMixer::playSample(AudioSample *sample, int loop, int priority, bool paused, bool isSpeech, uint32 pitch_shift, int lvol, int rvol, bool ambient) {
+int AudioMixer::playSample(AudioSample *sample, int loop, int priority, bool isSpeech, uint32 pitch_shift, byte volume, int8 balance, bool ambient) {
 	int lowest = -1;
 	int lowprior = 65536;
-
-	// Lock the audio
-	Lock();
 
 	int i;
 	const int minchan = (ambient ? BASE_CHANNEL_COUNT : 0);
@@ -109,12 +97,9 @@ int AudioMixer::playSample(AudioSample *sample, int loop, int priority, bool pau
 	}
 
 	if (i != maxchan || lowprior < priority)
-		_channels[lowest]->playSample(sample, loop, priority, paused, isSpeech, pitch_shift, lvol, rvol);
+		_channels[lowest]->playSample(sample, loop, priority, isSpeech, pitch_shift, volume, balance);
 	else
 		lowest = -1;
-
-	// Unlock
-	Unlock();
 
 	return lowest;
 }
@@ -123,11 +108,7 @@ bool AudioMixer::isPlaying(int chan) {
 	if (chan >= TOTAL_CHANNEL_COUNT || chan < 0)
 		return false;
 
-	Lock();
-
 	bool playing = _channels[chan]->isPlaying();
-
-	Unlock();
 
 	return playing;
 }
@@ -136,57 +117,22 @@ void AudioMixer::stopSample(int chan) {
 	if (chan >= TOTAL_CHANNEL_COUNT || chan < 0)
 		return;
 
-	Lock();
-
 	_channels[chan]->stop();
-
-	Unlock();
 }
 
 void AudioMixer::setPaused(int chan, bool paused) {
 	if (chan >= TOTAL_CHANNEL_COUNT || chan < 0)
 		return;
 
-	Lock();
-
 	_channels[chan]->setPaused(paused);
-
-	Unlock();
 }
 
-bool AudioMixer::isPaused(int chan) {
-	if (chan >= TOTAL_CHANNEL_COUNT|| chan < 0)
-		return false;
 
-	Lock();
-
-	bool ret = _channels[chan]->isPaused();
-
-	Unlock();
-
-	return ret;
-}
-
-void AudioMixer::setVolume(int chan, int lvol, int rvol) {
+void AudioMixer::setVolume(int chan, byte volume, int8 balance) {
 	if (chan >= TOTAL_CHANNEL_COUNT || chan < 0)
 		return;
 
-	Lock();
-
-	_channels[chan]->setVolume(lvol, rvol);
-
-	Unlock();
-}
-
-void AudioMixer::getVolume(int chan, int &lvol, int &rvol) {
-	if (chan >= TOTAL_CHANNEL_COUNT || chan < 0)
-		return;
-
-	Lock();
-
-	_channels[chan]->getVolume(lvol, rvol);
-
-	Unlock();
+	_channels[chan]->setVolume(volume, balance);
 }
 
 void AudioMixer::openMidiOutput() {

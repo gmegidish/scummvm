@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -89,11 +88,11 @@ mcodeFunctionReturnCodes _game_session::fn_set_footstep_weight(int32 &, int32 *p
 
 	// check must be mega
 	if (!M)
-		Fatal_error("Cant set footstep weight for non-mega %s\n", L->GetName());
+		Fatal_error("Can't set footstep weight for non-mega %s\n", L->GetName());
 
 	// check allow
 	if ((w < 0) || (w > 200))
-		Fatal_error("Cant set %s footstep weight to %d, allowed range is 0-200%%", L->GetName(), w);
+		Fatal_error("Can't set %s footstep weight to %d, allowed range is 0-200%%", L->GetName(), w);
 
 	M->footstep_weight = (uint8)w;
 
@@ -106,7 +105,7 @@ mcodeFunctionReturnCodes _game_session::fn_set_special_footstep(int32 &, int32 *
 	// error checking
 	// must be mega
 	if (!M)
-		Fatal_error("Cant set special footsteps for non-mega %s\n", L->GetName());
+		Fatal_error("Can't set special footsteps for non-mega %s\n", L->GetName());
 
 	// must have special footstep set
 	if ((specialFootSfx == 0) && (params[0]))
@@ -183,7 +182,7 @@ void _game_session::UpdateFootstep() {
 
 			// check for special mega who just has single sfx
 			if (M->footstep_special) {
-				RegisterSound(cur_id, NULL, specialFootSfx, "foot", (int8)(vol));
+				RegisterSound(cur_id, nullptr, specialFootSfx, "foot", (int8)(vol));
 			}
 			// we are an ordinary mega look for sfx
 			else {
@@ -211,7 +210,7 @@ void _game_session::UpdateFootstep() {
 					sfx = defaultFootSfx;
 
 				if (sfx)
-					RegisterSound(cur_id, NULL, sfx, "foot", (int8)(vol));
+					RegisterSound(cur_id, nullptr, sfx, "foot", (int8)(vol));
 			}
 		}
 	}

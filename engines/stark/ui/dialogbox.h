@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 
 #include "engines/stark/stark.h"
 #include "engines/stark/ui/window.h"
+#include "engines/stark/gfx/color.h"
 
 #include "common/keyboard.h"
 #include "common/scummsys.h"
@@ -33,7 +33,7 @@ namespace Stark {
 
 namespace Gfx {
 class SurfaceRenderer;
-class Texture;
+class Bitmap;
 }
 
 typedef Common::Functor0<void> ConfirmCallback;
@@ -62,14 +62,14 @@ public:
 	void onScreenChanged();
 
 	/** Called when a keyboard key is pressed and the dialog is active */
-	void onKeyPress(const Common::KeyState &keyState);
+	void onKeyPress(const Common::CustomEventType customType);
 
 protected:
 	void onRender() override;
 	void onClick(const Common::Point &pos) override;
 
 private:
-	Graphics::Surface *loadBackground();
+	Gfx::Bitmap *loadBackground(Gfx::Driver *gfx);
 	static void drawBevel(Graphics::Surface *surface, const Common::Rect &rect);
 	static Common::Rect centerRect(const Common::Rect &container, const Common::Rect &size);
 
@@ -79,8 +79,8 @@ private:
 	StarkEngine *_vm;
 
 	Gfx::SurfaceRenderer *_surfaceRenderer;
-	Gfx::Texture *_backgroundTexture;
-	Gfx::Texture *_foregroundTexture;
+	Gfx::Bitmap *_background;
+	Gfx::Bitmap *_foreground;
 
 	VisualText *_messageVisual;
 	VisualText *_confirmLabelVisual;
@@ -89,6 +89,9 @@ private:
 	Common::Rect _confirmButtonRect;
 	Common::Rect _cancelButtonRect;
 	Common::Rect _messageRect;
+
+	const Gfx::Color _textColor = Gfx::Color(0xFF, 0xFF, 0xFF);
+	const Gfx::Color _backgroundColor = Gfx::Color(26, 28, 57);
 
 	ConfirmCallback *_confirmCallback;
 };

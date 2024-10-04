@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -63,7 +62,7 @@ class InventoryView : public View {
 	bool show_cursor;
 
 public:
-	InventoryView(Configuration *cfg);
+	InventoryView(const Configuration *cfg);
 	~InventoryView() override;
 
 	bool init(Screen *tmp_screen, void *view_manager, uint16 x, uint16 y, Font *f, Party *p, TileManager *tm, ObjManager *om);
@@ -79,14 +78,14 @@ public:
 	void select_objAtCursor();
 	Obj *get_objAtCursor();
 	InventoryWidget *get_inventory_widget() {
-		return (inventory_widget);
+		return inventory_widget;
 	};
 
 	void Display(bool full_redraw) override;
 	void PlaceOnScreen(Screen *s, GUI_DragManager *dm, int x, int y) override;
 	GUI_status KeyDown(const Common::KeyState &key) override;
 	void simulate_CB_callback();
-	bool is_picking_pocket() {
+	bool is_picking_pocket() const {
 		return picking_pocket;
 	}
 	void lock_to_actor(bool value) {

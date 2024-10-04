@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * To ensure exclusive use of resources and exclusive control responsibilities.
  */
@@ -32,6 +31,7 @@ namespace Tinsel {
 
 struct Token {
 	Common::PROCESS		*proc;
+	bool				isFree;
 };
 
 // These vars are reset upon engine destruction
@@ -45,13 +45,15 @@ static void TerminateProcess(Common::PROCESS *tProc) {
 
 	// Release tokens held by the process
 	for (int i = 0; i < NUMTOKENS; i++) {
-		if (g_tokens[i].proc == tProc) {
+		if (!g_tokens[i].isFree && g_tokens[i].proc == tProc) {
 			g_tokens[i].proc = nullptr;
+			g_tokens[i].isFree = true;
 		}
 	}
 
 	// Kill the process
-	CoroScheduler.killProcess(tProc);
+	if (tProc != nullptr)
+		CoroScheduler.killProcess(tProc);
 }
 
 /**
@@ -60,8 +62,9 @@ static void TerminateProcess(Common::PROCESS *tProc) {
 void GetControlToken() {
 	const int which = TOKEN_CONTROL;
 
-	if (g_tokens[which].proc == NULL) {
+	if (g_tokens[which].isFree) {
 		g_tokens[which].proc = CoroScheduler.getCurrentProcess();
+		g_tokens[which].isFree = false;
 	}
 }
 
@@ -71,6 +74,7 @@ void GetControlToken() {
 void FreeControlToken() {
 	// Allow anyone to free TOKEN_CONTROL
 	g_tokens[TOKEN_CONTROL].proc = nullptr;
+	g_tokens[TOKEN_CONTROL].isFree = true;
 }
 
 
@@ -85,12 +89,13 @@ void FreeControlToken() {
 void GetToken(int which) {
 	assert(TOKEN_LEAD <= which && which < NUMTOKENS);
 
-	if (g_tokens[which].proc != NULL) {
+	if (!g_tokens[which].isFree) {
 		assert(g_tokens[which].proc != CoroScheduler.getCurrentProcess());
 		TerminateProcess(g_tokens[which].proc);
 	}
 
 	g_tokens[which].proc = CoroScheduler.getCurrentProcess();
+	g_tokens[which].isFree = false;
 }
 
 /**
@@ -103,6 +108,7 @@ void FreeToken(int which) {
 	assert(g_tokens[which].proc == CoroScheduler.getCurrentProcess());	// we'd have been killed if some other proc had taken this token
 
 	g_tokens[which].proc = nullptr;
+	g_tokens[which].isFree = true;
 }
 
 /**
@@ -112,7 +118,7 @@ bool TestToken(int which) {
 	if (which < 0 || which >= NUMTOKENS)
 		return false;
 
-	return (g_tokens[which].proc == NULL);
+	return (g_tokens[which].isFree);
 }
 
 /**
@@ -121,6 +127,7 @@ bool TestToken(int which) {
 void FreeAllTokens() {
 	for (int i = 0; i < NUMTOKENS; i++) {
 		g_tokens[i].proc = nullptr;
+		g_tokens[i].isFree = true;
 	}
 }
 

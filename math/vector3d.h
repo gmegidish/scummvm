@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,8 +25,9 @@
 #include "common/scummsys.h"
 #include "common/endian.h"
 
-#include "math/vector.h"
 #include "math/angle.h"
+#include "math/squarematrix.h"
+#include "math/vector.h"
 
 namespace Math {
 
@@ -50,39 +50,51 @@ public:
 
 	/**
 	 * Set the value of the vector using three floats
-	 * @param lx	X Value
-	 * @param ly	Y Value
-	 * @param lz	Z Value
+	 * @param lx    X Value
+	 * @param ly    Y Value
+	 * @param lz    Z Value
 	 */
 	void set(float lx, float ly, float lz);
 
 	/**
 	 * Get the angle of this vector around the unit circle
 	 * This operation ignores the z-component
-	 * @return	The computed angle
+	 * @return      The computed angle
 	 */
 	Angle unitCircleAngle() const;
 
 	/**
+	 * Multiply vector XYZ with Matrix 3x3
+	 *
+	 * @return      The result of multiplication
+	 */
+	inline Vector3d operator*(const MatrixType<3, 3> &m) const {
+		const float *d = m.getData();
+		return Vector3d(x() * d[0] + y() * d[3] + z() * d[6],
+		                x() * d[1] + y() * d[4] + z() * d[7],
+		                x() * d[2] + y() * d[5] + z() * d[8]);
+	}
+
+	/**
 	 * Find the cross product between two vectors
-	 * @param v1	The first vector
-	 * @param v2	The second vector
-	 * @return	The resulting cross product
+	 * @param v1    The first vector
+	 * @param v2    The second vector
+	 * @return      The resulting cross product
 	 */
 	inline static Vector3d crossProduct(const Vector3d& v1, const Vector3d& v2) {
 		return Vector3d(v1.y() * v2.z() - v1.z() * v2.y(),
-				v1.z() * v2.x() - v1.x() * v2.z(),
-				v1.x() * v2.y() - v1.y() * v2.x());
+		                v1.z() * v2.x() - v1.x() * v2.z(),
+		                v1.x() * v2.y() - v1.y() * v2.x());
 	}
 
 	/**
 	 * Find the angle between two vectors
-	 * @param v1	The first vector
-	 * @param v2	The second vector
-	 * @return	The computed angle
+	 * @param v1    The first vector
+	 * @param v2    The second vector
+	 * @return      The computed angle
 	 */
 	inline static Angle angle(const Vector3d& v1, const Vector3d& v2) {
-		return Angle::arcCosine(fminf(fmaxf(dotProduct(v1, v2) / (v1.getMagnitude() * v2.getMagnitude()), -1.0f), 1.0f));
+		return Angle::arcCosine(MIN(MAX(dotProduct(v1, v2) / (v1.getMagnitude() * v2.getMagnitude()), -1.0f), 1.0f));
 	}
 
 	/**
@@ -97,7 +109,7 @@ public:
 	 * Calculate vector length
 	 * @return      The computed length
 	 */
-	float length() {
+	float length() const {
 		return sqrtf(x() * x() + y() * y() + z() * z());
 	}
 

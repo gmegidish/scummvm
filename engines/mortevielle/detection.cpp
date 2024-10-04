@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 
 static const PlainGameDescriptor MortevielleGame[] = {
 	{"mortevielle", "Mortville Manor"},
-	{0, 0}
+	{nullptr, nullptr}
 };
 
 static const DebugChannelDef debugFlagList[] = {
@@ -39,21 +38,20 @@ static const DebugChannelDef debugFlagList[] = {
 
 #include "mortevielle/detection_tables.h"
 
-class MortevielleMetaEngineDetection : public AdvancedMetaEngineDetection {
+class MortevielleMetaEngineDetection : public AdvancedMetaEngineDetection<Mortevielle::MortevielleGameDescription> {
 public:
-	MortevielleMetaEngineDetection() : AdvancedMetaEngineDetection(Mortevielle::MortevielleGameDescriptions, sizeof(Mortevielle::MortevielleGameDescription),
-		MortevielleGame) {
+	MortevielleMetaEngineDetection() : AdvancedMetaEngineDetection(Mortevielle::MortevielleGameDescriptions, MortevielleGame) {
 		_md5Bytes = 512;
 		// Use kADFlagUseExtraAsHint to distinguish between original and improved versions
 		// (i.e. use or not of the game data file).
 		_flags = kADFlagUseExtraAsHint;
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "mortevielle";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Mortville Manor";
 	}
 

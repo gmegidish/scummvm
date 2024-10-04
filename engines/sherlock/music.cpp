@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,7 +71,7 @@ MidiParser_SH::MidiParser_SH() {
 MidiParser_SH::~MidiParser_SH() {
 	Common::StackLock lock(_mutex);
 	unloadMusic();
-	_driver = NULL;
+	_driver = nullptr;
 }
 
 void MidiParser_SH::parseNextEvent(EventInfo &info) {
@@ -209,7 +208,7 @@ void MidiParser_SH::unloadMusic() {
 
 	if (_musData) {
 		delete[] _musData;
-		_musData = NULL;
+		_musData = nullptr;
 		_musDataSize = 0;
 	}
 
@@ -219,8 +218,8 @@ void MidiParser_SH::unloadMusic() {
 /*----------------------------------------------------------------*/
 
 Music::Music(SherlockEngine *vm, Audio::Mixer *mixer) : _vm(vm), _mixer(mixer) {
-	_midiDriver = NULL;
-	_midiParser = NULL;
+	_midiDriver = nullptr;
+	_midiParser = nullptr;
 	_musicType = MT_NULL;
 	_musicPlaying = false;
 	_midiOption = false;
@@ -336,7 +335,7 @@ Music::Music(SherlockEngine *vm, Audio::Mixer *mixer) : _vm(vm), _mixer(mixer) {
 Music::~Music() {
 	stopMusic();
 	if (_midiDriver) {
-		_midiDriver->setTimerCallback(this, NULL);
+		_midiDriver->setTimerCallback(this, nullptr);
 	}
 	if (_midiParser) {
 		_midiParser->stopPlaying();
@@ -408,7 +407,7 @@ bool Music::playMusic(const Common::String &name) {
 			return false;
 
 		Common::String midiMusicName = (IS_SERRATED_SCALPEL) ? name + ".MUS" : name + ".XMI";
-		Common::SeekableReadStream *stream = _vm->_res->load(midiMusicName, "MUSIC.LIB");
+		Common::SeekableReadStream *stream = _vm->_res->load(Common::Path(midiMusicName), "MUSIC.LIB");
 
 		byte *midiMusicData     = new byte[stream->size()];
 		int32 midiMusicDataSize = stream->size();
@@ -477,7 +476,8 @@ bool Music::playMusic(const Common::String &name) {
 	} else {
 		// 3DO: sample based
 		Audio::AudioStream *musicStream;
-		Common::String digitalMusicName = "music/" + name + "_MW22.aifc";
+		Common::Path digitalMusicName("music/");
+		digitalMusicName.appendInPlace(name + "_MW22.aifc");
 
 		if (isPlaying()) {
 			_mixer->stopHandle(_digitalMusicHandle);
@@ -485,14 +485,15 @@ bool Music::playMusic(const Common::String &name) {
 
 		Common::File *digitalMusicFile = new Common::File();
 		if (!digitalMusicFile->open(digitalMusicName)) {
-			warning("playMusic: can not open 3DO music '%s'", digitalMusicName.c_str());
+			warning("playMusic: can not open 3DO music '%s'", digitalMusicName.toString().c_str());
+			delete digitalMusicFile;
 			return false;
 		}
 
 		// Try to load the given file as AIFF/AIFC
 		musicStream = Audio::makeAIFFStream(digitalMusicFile, DisposeAfterUse::YES);
 		if (!musicStream) {
-			warning("playMusic: can not load 3DO music '%s'", digitalMusicName.c_str());
+			warning("playMusic: can not load 3DO music '%s'", digitalMusicName.toString().c_str());
 			return false;
 		}
 		_mixer->playStream(Audio::Mixer::kMusicSoundType, &_digitalMusicHandle, musicStream);
@@ -589,7 +590,7 @@ void Music::getSongNames(Common::StringArray &songs) {
 	songs.clear();
 	if (IS_SERRATED_SCALPEL) {
 		if (IS_3DO) {
-			Common::FSDirectory gameDirectory(ConfMan.get("path"));
+			Common::FSDirectory gameDirectory(ConfMan.getPath("path"));
 			Common::FSDirectory *musicDirectory = gameDirectory.getSubDirectory("music");
 			Common::ArchiveMemberList files;
 

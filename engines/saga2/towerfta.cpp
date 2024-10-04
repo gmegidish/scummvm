@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -49,41 +48,41 @@ namespace Saga2 {
    FTA initialization & cleanup records
  * ===================================================================== */
 
-int maxInitState = fullyInitialized;
+int maxInitState = kFullyInitialized;
 
-TowerLayer tower[fullyInitialized] = {
-	{ nothingInitialized,        &initTowerBase,        &termTowerBase },
-	{ errHandlersInitialized,    &initErrorManagers,    &termErrorManagers },
-	{ delayedErrInitialized,     &initDelayedErrors,    &termDelayedErrors },
-	{ activeErrInitialized,      &initActiveErrors,     &termActiveErrors },
-	{ configTestInitialized,     &initSystemConfig,     &termTowerBase },
-	{ introInitialized,          &initPlayIntro,        &termPlayOutro },
-	{ timerInitialized,          &initSystemTimer,      &termSystemTimer },
-	{ audioInitialized,          &initAudio,            &termAudio},
-	{ resourcesInitialized,      &initResourceFiles,    &termResourceFiles },
-	{ serversInitialized,        &initResourceServers,  &termResourceServers },
-	{ pathFinderInitialized,     &initPathFinders,      &termPathFinders },
-	{ scriptsInitialized,        &initSAGAInterpreter,  &termSAGAInterpreter },
-	{ audStartInitialized,       &initAudioChannels,    &termAudioChannels },
-	{ tileResInitialized,        &initResourceHandles,  &termResourceHandles },
-	{ palettesInitialized,       &initPalettes,         &termPalettes },
-	{ mainWindowInitialized,     &initDisplayPort,      &termDisplayPort },
-	{ panelsInitialized,         &initPanelSystem,      &termPanelSystem },
-	{ mainWindowOpenInitialized, &initMainWindow,       &termMainWindow },
-	{ guiMessInitialized,        &initGUIMessagers,     &termGUIMessagers },
-	{ mouseImageInitialized,     &initMousePointer,     &termMousePointer },
-	{ displayInitialized,        &initDisplay,          &termDisplay },
-	{ mapsInitialized,           &initGameMaps,         &termGameMaps },
-	{ patrolsInitialized,        &initRouteData,        &termRouteData },
-	{ spritesInitialized,        &initActorSprites,     &termActorSprites },
-	{ weaponsInitialized,        &initWeaponData,       &termWeaponData },
-	{ magicInitialized,          &initSpellData,        &termSpellData },
-	{ objectSoundFXInitialized,  &initObjectSoundFX,    &termObjectSoundFX },
-	{ prototypesInitialized,     &initObjectPrototypes, &termObjectPrototypes },
-	{ gameStateInitialized,      &initDynamicGameData,  &termDynamicGameData },
-	{ gameModeInitialized,       &initGameMode,         &termGameMode },
-	{ gameDisplayEnabled,        &initTop,              &termTop },
-	{ procResEnabled,            &initProcessResources, &termProcessResources }
+TowerLayer tower[kFullyInitialized] = {
+	{ kNothingInitialized,        &initTowerBase,        &termTowerBase },
+	{ kErrHandlersInitialized,    &initErrorManagers,    &termErrorManagers },
+	{ kDelayedErrInitialized,     &initDelayedErrors,    &termDelayedErrors },
+	{ kActiveErrInitialized,      &initActiveErrors,     &termActiveErrors },
+	{ kConfigTestInitialized,     &initSystemConfig,     &termTowerBase },
+	{ kIntroInitialized,          &initPlayIntro,        &termPlayOutro },
+	{ kTimerInitialized,          &initSystemTimer,      &termSystemTimer },
+	{ kAudioInitialized,          &initAudio,            &termAudio},
+	{ kResourcesInitialized,      &initResourceFiles,    &termResourceFiles },
+	{ kServersInitialized,        &initResourceServers,  &termResourceServers },
+	{ kPathFinderInitialized,     &initPathFinders,      &termPathFinders },
+	{ kScriptsInitialized,        &initSAGAInterpreter,  &termSAGAInterpreter },
+	{ kAudStartInitialized,       &initAudioChannels,    &termAudioChannels },
+	{ kTileResInitialized,        &initResourceHandles,  &termResourceHandles },
+	{ kPalettesInitialized,       &initPalettes,         &termPalettes },
+	{ kMainWindowInitialized,     &initDisplayPort,      &termDisplayPort },
+	{ kPanelsInitialized,         &initPanelSystem,      &termPanelSystem },
+	{ kMainWindowOpenInitialized, &initMainWindow,       &termMainWindow },
+	{ kGuiMessInitialized,        &initGUIMessagers,     &termGUIMessagers },
+	{ kMouseImageInitialized,     &initMousePointer,     &termMousePointer },
+	{ kDisplayInitialized,        &initDisplay,          &termDisplay },
+	{ kMapsInitialized,           &initGameMaps,         &termGameMaps },
+	{ kPatrolsInitialized,        &initRouteData,        &termRouteData },
+	{ kSpritesInitialized,        &initActorSprites,     &termActorSprites },
+	{ kWeaponsInitialized,        &initWeaponData,       &termWeaponData },
+	{ kMagicInitialized,          &initSpellData,        &termSpellData },
+	{ kObjectSoundFXInitialized,  &initObjectSoundFX,    &termObjectSoundFX },
+	{ kPrototypesInitialized,     &initObjectPrototypes, &termObjectPrototypes },
+	{ kGameStateInitialized,      &initDynamicGameData,  &termDynamicGameData },
+	{ kGameModeInitialized,       &initGameMode,         &termGameMode },
+	{ kGameDisplayEnabled,        &initTop,              &termTop },
+	{ kProcResEnabled,            &initProcessResources, &termProcessResources }
 };
 
 /* ===================================================================== *
@@ -91,7 +90,6 @@ TowerLayer tower[fullyInitialized] = {
  * ===================================================================== */
 
 //#include "saga2/loadmsg.h"
-bool initGUIMessagers();
 void cleanupGUIMessagers();
 bool openResources();
 void closeResources();
@@ -134,15 +132,11 @@ TERMINATOR(termPlayOutro) {
 
 // ------------------------------------------------------------------------
 
-extern INITIALIZER(initSystemTimer);
-
 TERMINATOR(termSystemTimer) {
 	cleanupSystemTimer();
 }
 
 // ------------------------------------------------------------------------
-
-extern INITIALIZER(initAudio);
 
 TERMINATOR (termAudio)
 {
@@ -216,9 +210,24 @@ INITIALIZER(initResourceHandles) {
 		return false;
 	if (g_vm->getGameId() == GID_FTA2) {
 		// Only FTA2 has resource imports
-		resImports = (ResImportTable *)LoadResource(listRes, MKTAG('I', 'M', 'P', 'O'), "res imports");
-		if (!resImports)
+		Common::SeekableReadStream *stream = loadResourceToStream(listRes, MKTAG('I', 'M', 'P', 'O'), "res imports");
+
+		if (!stream)
 			return false;
+
+		resImports = (ResImportTable *)malloc(sizeof(ResImportTable));
+		resImports->deadActorProto = (int16)stream->readSint16LE();
+		(void)stream->readSint16LE();
+		(void)stream->readSint16LE();
+		resImports->EXP_spellEffect_CreateFireWisp = stream->readSint16LE();
+		resImports->EXP_spellEffect_CreateWindWisp = stream->readSint16LE();
+		resImports->EXP_spellEffect_CreateWraith = stream->readSint16LE();
+		resImports->EXP_spellEffect_TeleportToShrine = stream->readSint16LE();
+		resImports->EXP_spellEffect_Rejoin = stream->readSint16LE();
+		resImports->EXP_spellEffect_Timequake = stream->readSint16LE();
+		resImports->EXP_spellEffect_CreateFood = stream->readSint16LE();
+
+		delete stream;
 	}
 	return true;
 }
@@ -264,10 +273,10 @@ TERMINATOR(termDisplayPort) {
 
 INITIALIZER(initPanelSystem) {
 	initPanels(g_vm->_mainPort);
-	if (g_vm->_mainPort.map == nullptr) {
+	if (g_vm->_mainPort._map == nullptr) {
 		gPixelMap *tmap = new gPixelMap;
-		tmap->size = Point16(screenWidth, screenHeight);
-		tmap->data = new uint8[tmap->bytes()];
+		tmap->_size = Point16(kScreenWidth, kScreenHeight);
+		tmap->_data = new uint8[tmap->bytes()];
 		g_vm->_mainPort.setMap(tmap);
 	}
 	return true;
@@ -291,8 +300,6 @@ TERMINATOR(termMainWindow) {
 
 // ------------------------------------------------------------------------
 
-extern INITIALIZER(initGUIMessagers);
-
 TERMINATOR(termGUIMessagers) {
 	cleanupGUIMessagers();
 }
@@ -315,7 +322,7 @@ TERMINATOR(termMousePointer) {
 
 INITIALIZER(initDisplay) {
 	g_vm->_mainPort.setColor(0);            //  fill screen with color
-	drawPage = &g_vm->_mainPort.protoPage;
+	drawPage = &g_vm->_mainPort._protoPage;
 	//lightsOut();
 	//g_vm->_mainPort.fillRect( Rect16( 0, 0, screenWidth, screenHeight ) );
 
@@ -339,11 +346,11 @@ INITIALIZER(initDisplay) {
 TERMINATOR(termDisplay) {
 	if (trioControls) {
 		delete trioControls;
-		trioControls = NULL;
+		trioControls = nullptr;
 	}
 	if (indivControls) {
 		delete indivControls;
-		indivControls = NULL;
+		indivControls = nullptr;
 	}
 }
 
@@ -452,7 +459,7 @@ TERMINATOR(termDynamicGameData) {
 INITIALIZER(initGameMode) {
 	GameMode *gameModes[] = {&PlayMode, &TileMode};
 	GameMode::SetStack(gameModes, 2);
-	if (GameMode::newmodeFlag)
+	if (GameMode::_newmodeFlag)
 		GameMode::update();
 	return true;
 }

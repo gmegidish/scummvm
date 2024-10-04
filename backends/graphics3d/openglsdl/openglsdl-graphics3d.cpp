@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,29 +15,30 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/scummsys.h"
 
-#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS) || defined(USE_GLES2)
+#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
 
 #include "backends/graphics3d/openglsdl/openglsdl-graphics3d.h"
-
+#include "backends/graphics3d/opengl/surfacerenderer.h"
+#include "backends/graphics3d/opengl/tiledsurface.h"
+#include "backends/graphics3d/opengl/texture.h"
+#include "backends/graphics3d/opengl/framebuffer.h"
 #include "backends/events/sdl/sdl-events.h"
+
 #include "common/config-manager.h"
 #include "common/file.h"
+#include "common/translation.h"
+
 #include "engines/engine.h"
-#include "graphics/conversion.h"
-#include "graphics/pixelbuffer.h"
+
+#include "graphics/blit.h"
 #include "graphics/opengl/context.h"
-#include "graphics/opengl/framebuffer.h"
-#include "graphics/opengl/surfacerenderer.h"
 #include "graphics/opengl/system_headers.h"
-#include "graphics/opengl/texture.h"
-#include "graphics/opengl/tiledsurface.h"
 
 #ifdef USE_PNG
 #include "image/png.h"
@@ -51,12 +52,11 @@ OpenGLSdlGraphics3dManager::OpenGLSdlGraphics3dManager(SdlEventSource *eventSour
 	_glContext(nullptr),
 #endif
 	_supportsFrameBuffer(supportsFrameBuffer),
-	_overlayVisible(false),
 	_overlayScreen(nullptr),
 	_overlayBackground(nullptr),
-	_gameRect(),
 	_fullscreen(false),
 	_lockAspectRatio(true),
+	_stretchMode(STRETCH_FIT),
 	_frameBuffer(nullptr),
 	_surfaceRenderer(nullptr),
 	_engineRequestedWidth(0),
@@ -67,6 +67,81 @@ OpenGLSdlGraphics3dManager::OpenGLSdlGraphics3dManager(SdlEventSource *eventSour
 
 	// Don't start at zero so that the value is never the same as the surface graphics manager
 	_screenChangeCount = 1 << (sizeof(int) * 5 - 2);
+
+	// Set up proper SDL OpenGL context creation.
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	enum {
+#ifdef USE_OPENGL_SHADERS
+		DEFAULT_GL_MAJOR = 2,
+		DEFAULT_GL_MINOR = 1,
+#else
+		DEFAULT_GL_MAJOR = 1,
+		DEFAULT_GL_MINOR = 3,
+#endif
+
+		DEFAULT_GLES2_MAJOR = 2,
+		DEFAULT_GLES2_MINOR = 0
+	};
+
+#if USE_FORCED_GLES2
+	_glContextType = OpenGL::kContextGLES2;
+	_glContextProfileMask = SDL_GL_CONTEXT_PROFILE_ES;
+	_glContextMajor = DEFAULT_GLES2_MAJOR;
+	_glContextMinor = DEFAULT_GLES2_MINOR;
+#else
+	bool noDefaults = false;
+
+	// Obtain the default GL(ES) context SDL2 tries to setup.
+	//
+	// Please note this might not actually be SDL2's defaults when multiple
+	// instances of this object have been created. But that is no issue
+	// because then we already set up what we want to use.
+	//
+	// In case no defaults are given we prefer OpenGL over OpenGL ES.
+	if (SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &_glContextProfileMask) != 0) {
+		_glContextProfileMask = 0;
+		noDefaults = true;
+	}
+
+	if (SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &_glContextMajor) != 0) {
+		noDefaults = true;
+	}
+
+	if (SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &_glContextMinor) != 0) {
+		noDefaults = true;
+	}
+
+	if (noDefaults) {
+		if (_glContextProfileMask == SDL_GL_CONTEXT_PROFILE_ES) {
+			_glContextMajor = DEFAULT_GLES2_MAJOR;
+			_glContextMinor = DEFAULT_GLES2_MINOR;
+		} else {
+			_glContextProfileMask = 0;
+			_glContextMajor = DEFAULT_GL_MAJOR;
+			_glContextMinor = DEFAULT_GL_MINOR;
+		}
+	}
+
+	if (_glContextProfileMask == SDL_GL_CONTEXT_PROFILE_ES) {
+		// TODO: Support GLES1 for games
+		_glContextType = OpenGL::kContextGLES2;
+	} else if (_glContextProfileMask == SDL_GL_CONTEXT_PROFILE_CORE) {
+		_glContextType = OpenGL::kContextGL;
+
+		// Core profile does not allow legacy functionality, which we use.
+		// Thus we request a standard OpenGL context.
+		_glContextProfileMask = 0;
+		_glContextMajor = DEFAULT_GL_MAJOR;
+		_glContextMinor = DEFAULT_GL_MINOR;
+	} else {
+		_glContextType = OpenGL::kContextGL;
+	}
+#endif
+#else
+	_glContextType = OpenGL::kContextGL;
+#endif
+
+	_vsync = ConfMan.getBool("vsync");
 }
 
 OpenGLSdlGraphics3dManager::~OpenGLSdlGraphics3dManager() {
@@ -85,13 +160,14 @@ bool OpenGLSdlGraphics3dManager::hasFeature(OSystem::Feature f) const {
 #endif
 		(f == OSystem::kFeatureVSync) ||
 		(f == OSystem::kFeatureAspectRatioCorrection) ||
+		(f == OSystem::kFeatureStretchMode) ||
 		(f == OSystem::kFeatureOverlaySupportsAlpha && _overlayFormat.aBits() > 3);
 }
 
 bool OpenGLSdlGraphics3dManager::getFeatureState(OSystem::Feature f) const {
 	switch (f) {
 		case OSystem::kFeatureVSync:
-			return isVSyncEnabled();
+			return _vsync;
 		case OSystem::kFeatureFullscreenMode:
 			return _fullscreen;
 		case OSystem::kFeatureAspectRatioCorrection:
@@ -109,6 +185,10 @@ void OpenGLSdlGraphics3dManager::setFeatureState(OSystem::Feature f, bool enable
 				if (_transactionMode == kTransactionNone)
 					createOrUpdateScreen();
 			}
+			break;
+		case OSystem::kFeatureVSync:
+			assert(_transactionMode != kTransactionNone);
+			_vsync = enable;
 			break;
 		case OSystem::kFeatureAspectRatioCorrection:
 			_lockAspectRatio = enable;
@@ -157,6 +237,53 @@ int OpenGLSdlGraphics3dManager::getGraphicsMode() const {
 	return 0;
 }
 
+const OSystem::GraphicsMode glStretchModes[] = {
+	{"center", _s("Center"), STRETCH_CENTER},
+	{"pixel-perfect", _s("Pixel-perfect scaling"), STRETCH_INTEGRAL},
+	{"even-pixels", _s("Even pixels scaling"), STRETCH_INTEGRAL_AR},
+	{"fit", _s("Fit to window"), STRETCH_FIT},
+	{"stretch", _s("Stretch to window"), STRETCH_STRETCH},
+	{"fit_force_aspect", _s("Fit to window (4:3)"), STRETCH_FIT_FORCE_ASPECT},
+	{nullptr, nullptr, 0}
+};
+
+const OSystem::GraphicsMode *OpenGLSdlGraphics3dManager::getSupportedStretchModes() const {
+	return glStretchModes;
+}
+
+int OpenGLSdlGraphics3dManager::getDefaultStretchMode() const {
+	return STRETCH_FIT;
+}
+
+bool OpenGLSdlGraphics3dManager::setStretchMode(int mode) {
+	assert(_transactionMode != kTransactionNone);
+
+	if (mode == _stretchMode)
+		return true;
+
+	// Check this is a valid mode
+	const OSystem::GraphicsMode *sm = getSupportedStretchModes();
+	bool found = false;
+	while (sm->name) {
+		if (sm->id == mode) {
+			found = true;
+			break;
+		}
+		sm++;
+	}
+	if (!found) {
+		warning("unknown stretch mode %d", mode);
+		return false;
+	}
+
+	_stretchMode = mode;
+	return true;
+}
+
+int OpenGLSdlGraphics3dManager::getStretchMode() const {
+	return _stretchMode;
+}
+
 void OpenGLSdlGraphics3dManager::initSize(uint w, uint h, const Graphics::PixelFormat *format) {
 	_engineRequestedWidth = w;
 	_engineRequestedHeight = h;
@@ -170,18 +297,17 @@ void OpenGLSdlGraphics3dManager::setupScreen() {
 	closeOverlay();
 
 	_antialiasing = ConfMan.getInt("antialiasing");
-	_lockAspectRatio = ConfMan.getBool("aspect_ratio");
-	_vsync = ConfMan.getBool("vsync");
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	bool needsWindowReset = false;
-	if (_window->getSDLWindow()) {
+	if (_window->getSDLWindow() && SDL_GL_GetCurrentContext()) {
 		// The anti-aliasing setting cannot be changed without recreating the window.
 		// So check if the window needs to be recreated.
 
 		int currentSamples = 0;
+
 		#if defined(__EMSCRIPTEN__)
-		// SDL_GL_MULTISAMPLESAMPLES isn't available on a  WebGL 1.0 context 
+		// SDL_GL_MULTISAMPLESAMPLES isn't available on a  WebGL 1.0 context
 		// (or not bridged in Emscripten?). This forces a windows reset.
 		currentSamples = -1;
 		#else
@@ -196,9 +322,7 @@ void OpenGLSdlGraphics3dManager::setupScreen() {
 		}
 	}
 
-	// Clear the GL context when going from / to the launcher
-	SDL_GL_DeleteContext(_glContext);
-	_glContext = nullptr;
+	deinitializeRenderer();
 
 	if (needsWindowReset) {
 		_window->destroyWindow();
@@ -208,37 +332,29 @@ void OpenGLSdlGraphics3dManager::setupScreen() {
 	createOrUpdateScreen();
 
 	int glflag;
-#ifdef __MORPHOS__
-	const GLbyte *str;
-#else
 	const GLubyte *str;
-#endif
-
 	str = glGetString(GL_VENDOR);
-	debug("INFO: OpenGL Vendor: %s", str);
+	debug(2, "INFO: OpenGL Vendor: %s", str);
 	str = glGetString(GL_RENDERER);
-	debug("INFO: OpenGL Renderer: %s", str);
+	debug(2, "INFO: OpenGL Renderer: %s", str);
 	str = glGetString(GL_VERSION);
-	debug("INFO: OpenGL Version: %s", str);
+	debug(2, "INFO: OpenGL Version: %s", str);
 	SDL_GL_GetAttribute(SDL_GL_RED_SIZE, &glflag);
-	debug("INFO: OpenGL Red bits: %d", glflag);
+	debug(2, "INFO: OpenGL Red bits: %d", glflag);
 	SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &glflag);
-	debug("INFO: OpenGL Green bits: %d", glflag);
+	debug(2, "INFO: OpenGL Green bits: %d", glflag);
 	SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &glflag);
-	debug("INFO: OpenGL Blue bits: %d", glflag);
+	debug(2, "INFO: OpenGL Blue bits: %d", glflag);
 	SDL_GL_GetAttribute(SDL_GL_ALPHA_SIZE, &glflag);
-	debug("INFO: OpenGL Alpha bits: %d", glflag);
+	debug(2, "INFO: OpenGL Alpha bits: %d", glflag);
 	SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &glflag);
-	debug("INFO: OpenGL Z buffer depth bits: %d", glflag);
+	debug(2, "INFO: OpenGL Z buffer depth bits: %d", glflag);
 	SDL_GL_GetAttribute(SDL_GL_DOUBLEBUFFER, &glflag);
-	debug("INFO: OpenGL Double Buffer: %d", glflag);
+	debug(2, "INFO: OpenGL Double Buffer: %d", glflag);
 	SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, &glflag);
-	debug("INFO: OpenGL Stencil buffer bits: %d", glflag);
-#ifdef USE_GLEW
-	debug("INFO: GLEW Version: %s", glewGetString(GLEW_VERSION));
-#endif
+	debug(2, "INFO: OpenGL Stencil buffer bits: %d", glflag);
 #ifdef USE_OPENGL_SHADERS
-	debug("INFO: GLSL version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+	debug(2, "INFO: GLSL version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
 #endif
 }
 
@@ -269,19 +385,6 @@ void OpenGLSdlGraphics3dManager::createOrUpdateScreen() {
 		g_system->quit();
 	}
 
-#ifdef USE_GLEW
-	GLenum err = glewInit();
-#ifdef GLEW_ERROR_NO_GLX_DISPLAY
-	if (err == GLEW_ERROR_NO_GLX_DISPLAY) {
-		// Wayland: https://github.com/nigels-com/glew/issues/172
-	} else
-#endif
-	if (err != GLEW_OK) {
-		warning("Error: %s", glewGetErrorString(err));
-		g_system->quit();
-	}
-#endif
-
 #if SDL_VERSION_ATLEAST(2, 0, 1)
 	int obtainedWidth = 0, obtainedHeight = 0;
 	SDL_GL_GetDrawableSize(_window->getSDLWindow(), &obtainedWidth, &obtainedHeight);
@@ -290,47 +393,16 @@ void OpenGLSdlGraphics3dManager::createOrUpdateScreen() {
 	int obtainedHeight = effectiveHeight;
 #endif
 
-	handleResize(obtainedWidth, obtainedHeight);
-
-	// Compute the rectangle where to draw the game inside the effective screen
-	_gameRect = computeGameRect(renderToFrameBuffer, _engineRequestedWidth, _engineRequestedHeight,
-	                            obtainedWidth, obtainedHeight);
-
-	initializeOpenGLContext();
 	_surfaceRenderer = OpenGL::createBestSurfaceRenderer();
-
 	_overlayFormat = OpenGL::TextureGL::getRGBAPixelFormat();
-	_overlayScreen = new OpenGL::TiledSurface(obtainedWidth, obtainedHeight, _overlayFormat);
 
-	_screenChangeCount++;
-
-#if !defined(AMIGAOS) && !defined(__MORPHOS__)
 	if (renderToFrameBuffer) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		_frameBuffer = createFramebuffer(_engineRequestedWidth, _engineRequestedHeight);
 		_frameBuffer->attach();
-	}
-#endif
-}
-
-Math::Rect2d OpenGLSdlGraphics3dManager::computeGameRect(bool renderToFrameBuffer, uint gameWidth, uint gameHeight,
-													  uint screenWidth, uint screenHeight) {
-	if (renderToFrameBuffer) {
-		if (_lockAspectRatio) {
-			// The game is scaled to fit the screen, keeping the same aspect ratio
-			float scale = MIN(screenHeight / float(gameHeight), screenWidth / float(gameWidth));
-			float scaledW = scale * (gameWidth / float(screenWidth));
-			float scaledH = scale * (gameHeight / float(screenHeight));
-			return Math::Rect2d(
-					Math::Vector2d(0.5 - (0.5 * scaledW), 0.5 - (0.5 * scaledH)),
-					Math::Vector2d(0.5 + (0.5 * scaledW), 0.5 + (0.5 * scaledH))
-			);
-		} else {
-			// The game occupies the whole screen
-			return Math::Rect2d(Math::Vector2d(0, 0), Math::Vector2d(1, 1));
-		}
+		handleResize(_engineRequestedWidth, _engineRequestedHeight);
 	} else {
-		return Math::Rect2d(Math::Vector2d(0, 0), Math::Vector2d(1, 1));
+		handleResize(obtainedWidth, obtainedHeight);
 	}
 }
 
@@ -345,33 +417,44 @@ void OpenGLSdlGraphics3dManager::notifyResize(const int width, const int height)
 		return; // nothing to do
 	}
 
-	// Compute the rectangle where to draw the game inside the effective screen
-	_gameRect = computeGameRect(_frameBuffer != nullptr,
-	                            _engineRequestedWidth, _engineRequestedHeight,
-	                            newWidth, newHeight);
+	handleResize(newWidth, newHeight);
+#else
+	handleResize(width, height);
+#endif
+}
 
+void OpenGLSdlGraphics3dManager::handleResizeImpl(const int width, const int height) {
 	// Update the overlay
 	delete _overlayScreen;
-	_overlayScreen = new OpenGL::TiledSurface(newWidth, newHeight, _overlayFormat);
+	_overlayScreen = new OpenGL::TiledSurface(width, height, _overlayFormat);
 
 	// Clear the overlay background so it is not displayed distorted while resizing
 	delete _overlayBackground;
 	_overlayBackground = nullptr;
 
+	// Re-setup the scaling for the screen
+	recalculateDisplayAreas();
+
+	// Something changed, so update the screen change ID.
 	_screenChangeCount++;
-#endif
+}
+
+bool OpenGLSdlGraphics3dManager::gameNeedsAspectRatioCorrection() const {
+	if (_lockAspectRatio) {
+		const uint width = getWidth();
+		const uint height = getHeight();
+
+		// In case we enable aspect ratio correction we force a 4/3 ratio.
+		// But just for 320x200 and 640x400 games, since other games do not need
+		// this.
+		return (width == 320 && height == 200) || (width == 640 && height == 400);
+	}
+
+	return false;
 }
 
 void OpenGLSdlGraphics3dManager::initializeOpenGLContext() const {
-	OpenGL::ContextOGLType type;
-
-#ifdef USE_GLES2
-	type = OpenGL::kOGLContextGLES2;
-#else
-	type = OpenGL::kOGLContextGL;
-#endif
-
-	OpenGLContext.initialize(type);
+	OpenGLContext.initialize(_glContextType);
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	if (SDL_GL_SetSwapInterval(_vsync ? 1 : 0)) {
@@ -406,7 +489,9 @@ bool OpenGLSdlGraphics3dManager::createOrUpdateGLContext(uint gameWidth, uint ga
 	pixelFormats.push_back(OpenGLPixelFormat(16, 5, 5, 5, 1, 0));
 	pixelFormats.push_back(OpenGLPixelFormat(16, 5, 6, 5, 0, 0));
 
-	// Unfortunatly, SDL does not provide a list of valid pixel formats
+	bool clear = false;
+
+	// Unfortunately, SDL does not provide a list of valid pixel formats
 	// for the current OpenGL implementation and hardware.
 	// SDL may not be able to create a screen with the preferred pixel format.
 	// Try all the pixel formats in the list until SDL returns a valid screen.
@@ -425,23 +510,9 @@ bool OpenGLSdlGraphics3dManager::createOrUpdateGLContext(uint gameWidth, uint ga
 		SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, _vsync ? 1 : 0);
 #endif
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-#ifdef USE_GLES2
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-#else
-		// The OpenGL implementation on AmigaOS4 is close to 1.3. Until that changes we need
-		// to use 1.3 as version or ScummVM will cease working at all on that platform.
-		// Profile Mask has to be 0 as well.
-		// This will be revised and removed once AmigaOS4 supports OpenGL 2.x or OpenGLES2.
-		#ifdef __amigaos4__
-			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
-			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-		#else
-			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-		#endif
-#endif
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, _glContextProfileMask);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, _glContextMajor);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, _glContextMinor);
 #endif
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -479,7 +550,12 @@ bool OpenGLSdlGraphics3dManager::createOrUpdateGLContext(uint gameWidth, uint ga
 			if (!_glContext) {
 				_glContext = SDL_GL_CreateContext(_window->getSDLWindow());
 				if (_glContext) {
-					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+					clear = true;
+
+#ifdef USE_IMGUI
+					// Setup Dear ImGui
+					initImGui(nullptr, _glContext);
+#endif
 				}
 			}
 
@@ -514,7 +590,15 @@ bool OpenGLSdlGraphics3dManager::createOrUpdateGLContext(uint gameWidth, uint ga
 		        wantsAA && !gotAA ? " without AA" : "");
 	}
 
-	return it != pixelFormats.end();
+	if (it == pixelFormats.end())
+		return false;
+
+	initializeOpenGLContext();
+
+	if (clear)
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+	return true;
 }
 
 bool OpenGLSdlGraphics3dManager::shouldRenderToFramebuffer() const {
@@ -522,21 +606,11 @@ bool OpenGLSdlGraphics3dManager::shouldRenderToFramebuffer() const {
 	return !engineSupportsArbitraryResolutions && _supportsFrameBuffer;
 }
 
-bool OpenGLSdlGraphics3dManager::isVSyncEnabled() const {
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	return SDL_GL_GetSwapInterval() != 0;
-#else
-	int swapControl = 0;
-	SDL_GL_GetAttribute(SDL_GL_SWAP_CONTROL, &swapControl);
-	return swapControl != 0;
-#endif
-}
-
 void OpenGLSdlGraphics3dManager::drawOverlay() {
-	glViewport(0, 0, _overlayScreen->getWidth(), _overlayScreen->getHeight());
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
 	_surfaceRenderer->prepareState();
+
+	glViewport(_overlayDrawRect.left, _windowHeight - _overlayDrawRect.top - _overlayDrawRect.height(), _overlayDrawRect.width(), _overlayDrawRect.height());
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	if (_overlayBackground) {
 		_overlayBackground->draw(_surfaceRenderer);
@@ -549,9 +623,8 @@ void OpenGLSdlGraphics3dManager::drawOverlay() {
 	_surfaceRenderer->restorePreviousState();
 }
 
-#if !defined(AMIGAOS) && !defined(__MORPHOS__)
 OpenGL::FrameBuffer *OpenGLSdlGraphics3dManager::createFramebuffer(uint width, uint height) {
-#if !defined(USE_GLES2)
+#if !USE_FORCED_GLES2
 	if (_antialiasing && OpenGLContext.framebufferObjectMultisampleSupported) {
 		return new OpenGL::MultiSampleFrameBuffer(width, height, _antialiasing);
 	} else
@@ -560,27 +633,41 @@ OpenGL::FrameBuffer *OpenGLSdlGraphics3dManager::createFramebuffer(uint width, u
 		return new OpenGL::FrameBuffer(width, height);
 	}
 }
-#endif // AMIGAOS
 
 void OpenGLSdlGraphics3dManager::updateScreen() {
+
+	GLint prevStateViewport[4];
+	glGetIntegerv(GL_VIEWPORT, prevStateViewport);
 	if (_frameBuffer) {
 		_frameBuffer->detach();
-		glViewport(0, 0, _overlayScreen->getWidth(), _overlayScreen->getHeight());
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		_surfaceRenderer->prepareState();
-		_surfaceRenderer->render(_frameBuffer, _gameRect);
+		glViewport(_gameDrawRect.left, _windowHeight - _gameDrawRect.top - _gameDrawRect.height(), _gameDrawRect.width(), _gameDrawRect.height());
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		_surfaceRenderer->render(_frameBuffer, Math::Rect2d(Math::Vector2d(0, 0), Math::Vector2d(1, 1)));
 		_surfaceRenderer->restorePreviousState();
 	}
 
 	if (_overlayVisible) {
 		_overlayScreen->update();
 
-		if (_overlayBackground) {
+		// If the overlay is in game we expect the game to continue calling OpenGL
+		if (_overlayBackground && _overlayInGUI) {
 			_overlayBackground->update();
 		}
 
 		drawOverlay();
 	}
+
+#ifdef EMSCRIPTEN
+	if (_queuedScreenshot) {
+		SdlGraphicsManager::saveScreenshot();
+		_queuedScreenshot = false;
+	}
+#endif
+
+#if defined(USE_IMGUI) && SDL_VERSION_ATLEAST(2, 0, 0)
+	renderImGui();
+#endif
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_GL_SwapWindow(_window->getSDLWindow());
@@ -591,6 +678,7 @@ void OpenGLSdlGraphics3dManager::updateScreen() {
 	if (_frameBuffer) {
 		_frameBuffer->attach();
 	}
+	glViewport(prevStateViewport[0], prevStateViewport[1], prevStateViewport[2], prevStateViewport[3]);
 }
 
 int16 OpenGLSdlGraphics3dManager::getHeight() const {
@@ -611,11 +699,12 @@ int16 OpenGLSdlGraphics3dManager::getWidth() const {
 #pragma mark --- Overlays ---
 #pragma mark -
 
-void OpenGLSdlGraphics3dManager::showOverlay() {
-	if (_overlayVisible) {
+void OpenGLSdlGraphics3dManager::showOverlay(bool inGUI) {
+	if (_overlayVisible && _overlayInGUI == inGUI) {
 		return;
 	}
-	_overlayVisible = true;
+
+	WindowedGraphicsManager::showOverlay(inGUI);
 
 	delete _overlayBackground;
 	_overlayBackground = nullptr;
@@ -636,10 +725,22 @@ void OpenGLSdlGraphics3dManager::hideOverlay() {
 	if (!_overlayVisible) {
 		return;
 	}
-	_overlayVisible = false;
+	WindowedGraphicsManager::hideOverlay();
 
 	delete _overlayBackground;
 	_overlayBackground = nullptr;
+
+	if (_surfaceRenderer) {
+		// If there is double buffering we need to redraw twice
+		_surfaceRenderer->prepareState();
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		_surfaceRenderer->restorePreviousState();
+		updateScreen();
+		_surfaceRenderer->prepareState();
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		_surfaceRenderer->restorePreviousState();
+		updateScreen();
+	}
 }
 
 void OpenGLSdlGraphics3dManager::copyRectToOverlay(const void *buf, int pitch, int x, int y, int w, int h) {
@@ -674,7 +775,7 @@ void OpenGLSdlGraphics3dManager::closeOverlay() {
 	delete _frameBuffer;
 	_frameBuffer = nullptr;
 
-	OpenGL::ContextGL::destroy();
+	OpenGLContext.reset();
 }
 
 int16 OpenGLSdlGraphics3dManager::getOverlayHeight() const {
@@ -686,53 +787,44 @@ int16 OpenGLSdlGraphics3dManager::getOverlayWidth() const {
 }
 
 bool OpenGLSdlGraphics3dManager::showMouse(bool visible) {
-	SDL_ShowCursor(visible);
+	SDL_ShowCursor(visible ? SDL_ENABLE : SDL_DISABLE);
 	return true;
 }
 
-void OpenGLSdlGraphics3dManager::warpMouse(int x, int y) {
-	if (!_overlayVisible && _frameBuffer) {
-		// Scale from game coordinates to screen coordinates
-		x = (x * _gameRect.getWidth() * _overlayScreen->getWidth()) / _frameBuffer->getWidth();
-		y = (y * _gameRect.getHeight() * _overlayScreen->getHeight()) / _frameBuffer->getHeight();
-
-		x += _gameRect.getTopLeft().getX() * _overlayScreen->getWidth();
-		y += _gameRect.getTopLeft().getY() * _overlayScreen->getHeight();
-	}
-
-	_window->warpMouseInWindow(x, y);
-}
-
-void OpenGLSdlGraphics3dManager::transformMouseCoordinates(Common::Point &point) {
-	if (_overlayVisible || !_frameBuffer)
-		return;
-
-	// Scale from screen coordinates to game coordinates
-	point.x -= _gameRect.getTopLeft().getX() * _overlayScreen->getWidth();
-	point.y -= _gameRect.getTopLeft().getY() * _overlayScreen->getHeight();
-
-	point.x = (point.x * _frameBuffer->getWidth())  / (_gameRect.getWidth() * _overlayScreen->getWidth());
-	point.y = (point.y * _frameBuffer->getHeight()) / (_gameRect.getHeight() * _overlayScreen->getHeight());
-
-	// Make sure we only supply valid coordinates.
-	point.x = CLIP<int16>(point.x, 0, _frameBuffer->getWidth() - 1);
-	point.y = CLIP<int16>(point.y, 0, _frameBuffer->getHeight() - 1);
+void OpenGLSdlGraphics3dManager::showSystemMouseCursor(bool visible) {
+	// HACK: SdlGraphicsManager disables the system cursor when the mouse is in the
+	// active draw rect, however the 3D graphics manager uses it instead of the
+	// standard mouse graphic.
 }
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 void OpenGLSdlGraphics3dManager::deinitializeRenderer() {
+#ifdef USE_IMGUI
+	destroyImGui();
+#endif
+
 	SDL_GL_DeleteContext(_glContext);
 	_glContext = nullptr;
 }
 #endif // SDL_VERSION_ATLEAST(2, 0, 0)
 
-bool OpenGLSdlGraphics3dManager::saveScreenshot(const Common::String &filename) const {
+#ifdef EMSCRIPTEN
+void OpenGLSdlGraphics3dManager::saveScreenshot() {
+	_queuedScreenshot = true;
+}
+#endif
+
+bool OpenGLSdlGraphics3dManager::saveScreenshot(const Common::Path &filename) const {
 	// Largely based on the implementation from ScummVM
 	uint width = _overlayScreen->getWidth();
 	uint height = _overlayScreen->getHeight();
 
+#ifdef EMSCRIPTEN
+	const uint lineSize        = width * 4; // RGBA (see comment below)
+#else
 	uint linePaddingSize = width % 4;
 	uint lineSize = width * 3 + linePaddingSize;
+#endif
 
 	Common::DumpFile out;
 	if (!out.open(filename)) {
@@ -741,6 +833,14 @@ bool OpenGLSdlGraphics3dManager::saveScreenshot(const Common::String &filename) 
 
 	Common::Array<uint8> pixels;
 	pixels.resize(lineSize * height);
+#ifdef EMSCRIPTEN
+	// WebGL doesn't support GL_RGB, see https://registry.khronos.org/webgl/specs/latest/1.0/#5.14.12:
+	// "Only two combinations of format and type are accepted. The first is format RGBA and type UNSIGNED_BYTE.
+	// The second is an implementation-chosen format. " and the implementation-chosen formats are buggy:
+	// https://github.com/KhronosGroup/WebGL/issues/2747
+	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, &pixels.front());
+	const Graphics::PixelFormat format(4, 8, 8, 8, 8, 0, 8, 16, 24);
+#else
 
 	if (_frameBuffer) {
 		_frameBuffer->detach();
@@ -755,6 +855,8 @@ bool OpenGLSdlGraphics3dManager::saveScreenshot(const Common::String &filename) 
 #else
 	const Graphics::PixelFormat format(3, 8, 8, 8, 0, 16, 8, 0, 0);
 #endif
+#endif
+
 	Graphics::Surface data;
 	data.init(width, height, lineSize, &pixels.front(), format);
 	data.flipVertical(Common::Rect(width, height));
@@ -764,5 +866,34 @@ bool OpenGLSdlGraphics3dManager::saveScreenshot(const Common::String &filename) 
 	return Image::writeBMP(out, data);
 #endif
 }
+
+#if defined(USE_IMGUI) && SDL_VERSION_ATLEAST(2, 0, 0)
+void *OpenGLSdlGraphics3dManager::getImGuiTexture(const Graphics::Surface &image, const byte *palette, int palCount) {
+	// Create a OpenGL texture identifier
+	GLuint image_texture;
+	glGenTextures(1, &image_texture);
+	glBindTexture(GL_TEXTURE_2D, image_texture);
+
+	// Setup filtering parameters for display
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
+
+	// Upload pixels into texture
+	Graphics::Surface *s = image.convertTo(Graphics::PixelFormat(3, 8, 8, 8, 0, 0, 8, 16, 0));
+	glPixelStorei(GL_UNPACK_ALIGNMENT, s->format.bytesPerPixel);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, s->w, s->h, 0, GL_RGB, GL_UNSIGNED_BYTE, s->getPixels());
+	s->free();
+	delete s;
+	return (void *)(intptr_t)image_texture;
+}
+
+void OpenGLSdlGraphics3dManager::freeImGuiTexture(void *texture) {
+	GLuint textureID = (intptr_t)texture;
+	glDeleteTextures(1, &textureID);
+}
+#endif
 
 #endif

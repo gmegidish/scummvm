@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@ namespace Sword1 {
 
 MemMan::MemMan() {
 	_alloced = 0;
-	_memListFree = _memListFreeEnd = NULL;
+	_memListFree = _memListFreeEnd = nullptr;
 }
 
 MemMan::~MemMan() {
@@ -76,20 +75,29 @@ void MemMan::setCondition(MemHandle *bsMem, uint16 pCond) {
 
 void MemMan::flush() {
 	while (_memListFree) {
+		if (_memListFreeEnd == nullptr) {
+			warning("MemMan::flush(): _memListFreeEnd is nullptr");
+			break;
+		}
 		free(_memListFreeEnd->data);
-		_memListFreeEnd->data = NULL;
+		_memListFreeEnd->data = nullptr;
 		_memListFreeEnd->cond = MEM_FREED;
 		_alloced -= _memListFreeEnd->size;
 		removeFromFreeList(_memListFreeEnd);
 	}
+
 	if (_alloced)
 		warning("MemMan::flush: Something's wrong: still %d bytes alloced", _alloced);
 }
 
 void MemMan::checkMemoryUsage() {
 	while ((_alloced > MAX_ALLOC) && _memListFree) {
+		if (_memListFreeEnd == nullptr) {
+			warning("MemMan::checkMemoryUsage(): _memListFreeEnd is nullptr");
+			break;
+		}
 		free(_memListFreeEnd->data);
-		_memListFreeEnd->data = NULL;
+		_memListFreeEnd->data = nullptr;
 		_memListFreeEnd->cond = MEM_FREED;
 		_alloced -= _memListFreeEnd->size;
 		removeFromFreeList(_memListFreeEnd);
@@ -101,7 +109,7 @@ void MemMan::addToFreeList(MemHandle *bsMem) {
 		warning("addToFreeList: mem block is already in freeList");
 		return;
 	}
-	bsMem->prev = NULL;
+	bsMem->prev = nullptr;
 	bsMem->next = _memListFree;
 	if (bsMem->next)
 		bsMem->next->prev = bsMem;
@@ -120,7 +128,7 @@ void MemMan::removeFromFreeList(MemHandle *bsMem) {
 		bsMem->next->prev = bsMem->prev;
 	if (bsMem->prev)
 		bsMem->prev->next = bsMem->next;
-	bsMem->next = bsMem->prev = NULL;
+	bsMem->next = bsMem->prev = nullptr;
 }
 
 void MemMan::initHandle(MemHandle *bsMem) {

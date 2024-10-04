@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -73,7 +72,7 @@ public:
 	Sprite *loadSprite(const Common::String &fname, EMICostume *costume);
 	AnimationEmi *loadAnimationEmi(const Common::String &filename);
 	Overlay *loadOverlay(const Common::String &filename);
-	Common::SeekableReadStream *openNewStreamFile(Common::String fname, bool cache = false) const;
+	Common::SeekableReadStream *openNewStreamFile(const Common::String &fname, bool cache = false) const;
 
 	ModelPtr getModel(const Common::String &fname, CMap *c);
 	CMapPtr getColormap(const Common::String &fname);
@@ -95,11 +94,11 @@ public:
 	static Common::String fixFilename(const Common::String &filename, bool append = true);
 
 private:
-	Common::SeekableReadStream *loadFile(const Common::String &filename) const;
-	Common::SeekableReadStream *getFileFromCache(const Common::String &filename) const;
-	ResourceLoader::ResourceCache *getEntryFromCache(const Common::String &filename) const;
-	void putIntoCache(const Common::String &fname, byte *res, uint32 len) const;
-	void uncache(const char *fname) const;
+	Common::SeekableReadStream *loadFile(const Common::Path &filename) const;
+	Common::SeekableReadStream *getFileFromCache(const Common::Path &filename) const;
+	ResourceLoader::ResourceCache *getEntryFromCache(const Common::Path &filename) const;
+	void putIntoCache(const Common::Path &fname, byte *res, uint32 len) const;
+	void uncache(const Common::Path &fname) const;
 
 	mutable Common::Array<ResourceCache> _cache;
 	mutable bool _cacheDirty;

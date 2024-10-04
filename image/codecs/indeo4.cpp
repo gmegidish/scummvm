@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,7 +59,7 @@ bool Indeo4Decoder::isIndeo4(Common::SeekableReadStream &stream) {
 
 	// Validate the first 18-bit word has the correct identifier
 	Indeo::GetBits gb(buffer, 16 * 8);
-	bool isIndeo4 = gb.getBits(18) == 0x3FFF8;
+	bool isIndeo4 = gb.getBits<18>() == 0x3FFF8;
 
 	return isIndeo4;
 }
@@ -89,20 +88,20 @@ const Graphics::Surface *Indeo4Decoder::decodeFrame(Common::SeekableReadStream &
 	_ctx._frameData = nullptr;
 	_ctx._frameSize = 0;
 
-	return (err < 0) ? nullptr : &_surface;
+	return (err < 0) ? nullptr : _surface;
 }
 
 int Indeo4Decoder::decodePictureHeader() {
 	int pic_size_indx, i, p;
 	IVIPicConfig picConf;
 
-	if (_ctx._gb->getBits(18) != 0x3FFF8) {
+	if (_ctx._gb->getBits<18>() != 0x3FFF8) {
 		warning("Invalid picture start code!");
 		return -1;
 	}
 
 	_ctx._prevFrameType = _ctx._frameType;
-	_ctx._frameType = _ctx._gb->getBits(3);
+	_ctx._frameType = _ctx._gb->getBits<3>();
 	if (_ctx._frameType == 7) {
 		warning("Invalid frame type: %d", _ctx._frameType);
 		return -1;
@@ -112,11 +111,11 @@ int Indeo4Decoder::decodePictureHeader() {
 		_ctx._hasBFrames = true;
 
 	_ctx._hasTransp = _ctx._gb->getBit();
-	if (_ctx._hasTransp && _surface.format.aBits() == 0) {
+	if (_ctx._hasTransp && _surface->format.aBits() == 0) {
 		// Surface is 4 bytes per pixel, but only RGB. So promote the
 		// surface to full RGBA, and convert all the existing pixels
 		_pixelFormat = Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0);
-		_surface.convertToInPlace(_pixelFormat);
+		_surface->convertToInPlace(_pixelFormat);
 	}
 
 	// unknown bit: Mac decoder ignores this bit, XANIM returns error
@@ -125,7 +124,7 @@ int Indeo4Decoder::decodePictureHeader() {
 		return -1;
 	}
 
-	_ctx._dataSize = _ctx._gb->getBit() ? _ctx._gb->getBits(24) : 0;
+	_ctx._dataSize = _ctx._gb->getBit() ? _ctx._gb->getBits<24>() : 0;
 
 	// null frames don't contain anything else so we just return
 	if (_ctx._frameType >= IVI4_FRAMETYPE_NULL_FIRST) {
@@ -141,10 +140,10 @@ int Indeo4Decoder::decodePictureHeader() {
 		warning("Password-protected clip!");
 	}
 
-	pic_size_indx = _ctx._gb->getBits(3);
+	pic_size_indx = _ctx._gb->getBits<3>();
 	if (pic_size_indx == IVI4_PIC_SIZE_ESC) {
-		picConf._picHeight = _ctx._gb->getBits(16);
-		picConf._picWidth = _ctx._gb->getBits(16);
+		picConf._picHeight = _ctx._gb->getBits<16>();
+		picConf._picWidth = _ctx._gb->getBits<16>();
 	} else {
 		picConf._picHeight = _ivi4_common_pic_sizes[pic_size_indx * 2 + 1];
 		picConf._picWidth = _ivi4_common_pic_sizes[pic_size_indx * 2];
@@ -153,15 +152,15 @@ int Indeo4Decoder::decodePictureHeader() {
 	// Decode tile dimensions.
 	_ctx._usesTiling = _ctx._gb->getBit();
 	if (_ctx._usesTiling) {
-		picConf._tileHeight = scaleTileSize(picConf._picHeight, _ctx._gb->getBits(4));
-		picConf._tileWidth = scaleTileSize(picConf._picWidth, _ctx._gb->getBits(4));
+		picConf._tileHeight = scaleTileSize(picConf._picHeight, _ctx._gb->getBits<4>());
+		picConf._tileWidth = scaleTileSize(picConf._picWidth, _ctx._gb->getBits<4>());
 	} else {
 		picConf._tileHeight = picConf._picHeight;
 		picConf._tileWidth = picConf._picWidth;
 	}
 
 	// Decode chroma subsampling. We support only 4:4 aka YVU9.
-	if (_ctx._gb->getBits(2)) {
+	if (_ctx._gb->getBits<2>()) {
 		warning("Only YVU9 picture format is supported!");
 		return -1;
 	}
@@ -205,7 +204,7 @@ int Indeo4Decoder::decodePictureHeader() {
 		}
 	}
 
-	_ctx._frameNum = _ctx._gb->getBit() ? _ctx._gb->getBits(20) : 0;
+	_ctx._frameNum = _ctx._gb->getBit() ? _ctx._gb->getBits<20>() : 0;
 
 	// skip decTimeEst field if present
 	if (_ctx._gb->getBit())
@@ -216,17 +215,17 @@ int Indeo4Decoder::decodePictureHeader() {
 		_ctx._blkVlc.decodeHuffDesc(&_ctx, _ctx._gb->getBit(), IVI_BLK_HUFF))
 		return -1;
 
-	_ctx._rvmapSel = _ctx._gb->getBit() ? _ctx._gb->getBits(3) : 8;
+	_ctx._rvmapSel = _ctx._gb->getBit() ? _ctx._gb->getBits<3>() : 8;
 
 	_ctx._inImf = _ctx._gb->getBit();
 	_ctx._inQ = _ctx._gb->getBit();
 
-	_ctx._picGlobQuant = _ctx._gb->getBits(5);
+	_ctx._picGlobQuant = _ctx._gb->getBits<5>();
 
 	// TODO: ignore this parameter if unused
-	_ctx._unknown1 = _ctx._gb->getBit() ? _ctx._gb->getBits(3) : 0;
+	_ctx._unknown1 = _ctx._gb->getBit() ? _ctx._gb->getBits<3>() : 0;
 
-	_ctx._checksum = _ctx._gb->getBit() ? _ctx._gb->getBits(16) : 0;
+	_ctx._checksum = _ctx._gb->getBit() ? _ctx._gb->getBits<16>() : 0;
 
 	// skip picture header extension if any
 	while (_ctx._gb->getBit()) {
@@ -283,8 +282,8 @@ int Indeo4Decoder::decodeBandHeader(IVIBandDesc *band) {
 	int i;
 	int quantMat;
 
-	plane = _ctx._gb->getBits(2);
-	bandNum = _ctx._gb->getBits(4);
+	plane = _ctx._gb->getBits<2>();
+	bandNum = _ctx._gb->getBits<4>();
 	if (band->_plane != plane || band->_bandNum != bandNum) {
 		warning("Invalid band header sequence!");
 		return -1;
@@ -298,7 +297,7 @@ int Indeo4Decoder::decodeBandHeader(IVIBandDesc *band) {
 		if (_ctx._gb->getBit())
 			_ctx._gb->skip(16);
 
-		band->_isHalfpel = _ctx._gb->getBits(2);
+		band->_isHalfpel = _ctx._gb->getBits<2>();
 		if (band->_isHalfpel >= 2) {
 			warning("Invalid/unsupported mv resolution: %d!",
 				band->_isHalfpel);
@@ -309,9 +308,9 @@ int Indeo4Decoder::decodeBandHeader(IVIBandDesc *band) {
 
 		band->_checksumPresent = _ctx._gb->getBit();
 		if (band->_checksumPresent)
-			band->_checksum = _ctx._gb->getBits(16);
+			band->_checksum = _ctx._gb->getBits<16>();
 
-		indx = _ctx._gb->getBits(2);
+		indx = _ctx._gb->getBits<2>();
 		if (indx == 3) {
 			warning("Invalid block size!");
 			return -1;
@@ -322,10 +321,10 @@ int Indeo4Decoder::decodeBandHeader(IVIBandDesc *band) {
 		band->_inheritMv = _ctx._gb->getBit();
 		band->_inheritQDelta = _ctx._gb->getBit();
 
-		band->_globQuant = _ctx._gb->getBits(5);
+		band->_globQuant = _ctx._gb->getBits<5>();
 
 		if (!_ctx._gb->getBit() || _ctx._frameType == IVI4_FRAMETYPE_INTRA) {
-			transformId = _ctx._gb->getBits(5);
+			transformId = _ctx._gb->getBits<5>();
 			if ((uint)transformId >= FF_ARRAY_ELEMS(_transforms) ||
 				!_transforms[transformId]._invTrans) {
 				warning("Transform %d", transformId);
@@ -358,7 +357,7 @@ int Indeo4Decoder::decodeBandHeader(IVIBandDesc *band) {
 				return -1;
 			}
 
-			scanIndx = _ctx._gb->getBits(4);
+			scanIndx = _ctx._gb->getBits<4>();
 			if (scanIndx == 15) {
 				warning("Custom scan pattern encountered!");
 				return -1;
@@ -376,7 +375,7 @@ int Indeo4Decoder::decodeBandHeader(IVIBandDesc *band) {
 			band->_scan = _scan_index_to_tab[scanIndx];
 			band->_scanSize = band->_blkSize;
 
-			quantMat = _ctx._gb->getBits(5);
+			quantMat = _ctx._gb->getBits<5>();
 			if (quantMat == 31) {
 				warning("Custom quant matrix encountered!");
 				return -1;
@@ -414,12 +413,12 @@ int Indeo4Decoder::decodeBandHeader(IVIBandDesc *band) {
 				return -1;
 
 		// select appropriate rvmap table for this band
-		band->_rvmapSel = _ctx._gb->getBit() ? _ctx._gb->getBits(3) : 8;
+		band->_rvmapSel = _ctx._gb->getBit() ? _ctx._gb->getBits<3>() : 8;
 
 		// decode rvmap probability corrections if any
 		band->_numCorr = 0; // there is no corrections
 		if (_ctx._gb->getBit()) {
-			band->_numCorr = _ctx._gb->getBits(8); // get number of correction pairs
+			band->_numCorr = _ctx._gb->getBits<8>(); // get number of correction pairs
 			if (band->_numCorr > 61) {
 				warning("Too many corrections: %d",
 					band->_numCorr);
@@ -428,7 +427,7 @@ int Indeo4Decoder::decodeBandHeader(IVIBandDesc *band) {
 
 			// read correction pairs
 			for (i = 0; i < band->_numCorr * 2; i++)
-				band->_corr[i] = _ctx._gb->getBits(8);
+				band->_corr[i] = _ctx._gb->getBits<8>();
 		}
 	}
 
@@ -455,17 +454,14 @@ int Indeo4Decoder::decodeBandHeader(IVIBandDesc *band) {
 }
 
 int Indeo4Decoder::decodeMbInfo(IVIBandDesc *band, IVITile *tile) {
-	int x, y, mvX, mvY, mvDelta, offs, mbOffset, blksPerMb,
-		mvScale, mbTypeBits, s;
+	int x, y, mvX, mvY, mvDelta, offs, mbOffset,
+		mvScale, s;
 	IVIMbInfo *mb, *refMb;
 	int row_offset = band->_mbSize * band->_pitch;
 
 	mb = tile->_mbs;
 	refMb = tile->_refMbs;
 	offs = tile->_yPos * band->_pitch + tile->_xPos;
-
-	blksPerMb = band->_mbSize != band->_blkSize ? 4 : 1;
-	mbTypeBits = _ctx._frameType == IVI4_FRAMETYPE_BIDIR ? 2 : 1;
 
 	// scale factor for motion vectors
 	mvScale = (_ctx._planes[0]._bands[0]._mbSize >> 3) - (band->_mbSize >> 3);
@@ -495,8 +491,7 @@ int Indeo4Decoder::decodeMbInfo(IVIBandDesc *band, IVITile *tile) {
 
 				mb->_qDelta = 0;
 				if (!band->_plane && !band->_bandNum && _ctx._inQ) {
-					mb->_qDelta = _ctx._gb->getVLC2<1>(_ctx._mbVlc._tab->_table,
-						IVI_VLC_BITS);
+					mb->_qDelta = _ctx._gb->getVLC2<1, IVI_VLC_BITS>(_ctx._mbVlc._tab->_table);
 					mb->_qDelta = IVI_TOSIGNED(mb->_qDelta);
 				}
 
@@ -522,19 +517,24 @@ int Indeo4Decoder::decodeMbInfo(IVIBandDesc *band, IVITile *tile) {
 				} else if (_ctx._frameType == IVI4_FRAMETYPE_INTRA ||
 					_ctx._frameType == IVI4_FRAMETYPE_INTRA1) {
 					mb->_type = 0; // mb_type is always INTRA for intra-frames
+				} else if (_ctx._frameType == IVI4_FRAMETYPE_BIDIR) {
+					mb->_type = _ctx._gb->getBits<2>();
 				} else {
-					mb->_type = _ctx._gb->getBits(mbTypeBits);
+					mb->_type = _ctx._gb->getBit();
 				}
 
-				mb->_cbp = _ctx._gb->getBits(blksPerMb);
+				if (band->_mbSize != band->_blkSize) {
+					mb->_cbp = _ctx._gb->getBits<4>();
+				} else {
+					mb->_cbp = _ctx._gb->getBit();
+				}
 
 				mb->_qDelta = 0;
 				if (band->_inheritQDelta) {
 					if (refMb) mb->_qDelta = refMb->_qDelta;
 				} else if (mb->_cbp || (!band->_plane && !band->_bandNum &&
 					_ctx._inQ)) {
-					mb->_qDelta = _ctx._gb->getVLC2<1>(_ctx._mbVlc._tab->_table,
-						IVI_VLC_BITS);
+					mb->_qDelta = _ctx._gb->getVLC2<1, IVI_VLC_BITS>(_ctx._mbVlc._tab->_table);
 					mb->_qDelta = IVI_TOSIGNED(mb->_qDelta);
 				}
 
@@ -554,22 +554,18 @@ int Indeo4Decoder::decodeMbInfo(IVIBandDesc *band, IVITile *tile) {
 						}
 					} else {
 						// decode motion vector deltas
-						mvDelta = _ctx._gb->getVLC2<1>(_ctx._mbVlc._tab->_table,
-							IVI_VLC_BITS);
+						mvDelta = _ctx._gb->getVLC2<1, IVI_VLC_BITS>(_ctx._mbVlc._tab->_table);
 						mvY += IVI_TOSIGNED(mvDelta);
-						mvDelta = _ctx._gb->getVLC2<1>(_ctx._mbVlc._tab->_table,
-							IVI_VLC_BITS);
+						mvDelta = _ctx._gb->getVLC2<1, IVI_VLC_BITS>(_ctx._mbVlc._tab->_table);
 						mvX += IVI_TOSIGNED(mvDelta);
 						mb->_mvX = mvX;
 						mb->_mvY = mvY;
 						if (mb->_type == 3) {
-							mvDelta = _ctx._gb->getVLC2<1>(
-								_ctx._mbVlc._tab->_table,
-								IVI_VLC_BITS);
+							mvDelta = _ctx._gb->getVLC2<1, IVI_VLC_BITS>(
+								_ctx._mbVlc._tab->_table);
 							mvY += IVI_TOSIGNED(mvDelta);
-							mvDelta = _ctx._gb->getVLC2<1>(
-								_ctx._mbVlc._tab->_table,
-								IVI_VLC_BITS);
+							mvDelta = _ctx._gb->getVLC2<1, IVI_VLC_BITS>(
+								_ctx._mbVlc._tab->_table);
 							mvX += IVI_TOSIGNED(mvDelta);
 							mb->_bMvX = -mvX;
 							mb->_bMvY = -mvY;
@@ -614,19 +610,19 @@ int Indeo4Decoder::decodeRLETransparency(VLC_TYPE (*table)[2]) {
 	bool runIsOpaque = _ctx._gb->getBit();
 	bool nextRunIsOpaque = !runIsOpaque;
 
-	uint32 *pixel = (uint32 *)_surface.getPixels();
-	const int surfacePixelPitch = _surface.pitch / _surface.format.bytesPerPixel;
-	const int surfacePadding = surfacePixelPitch - _surface.w;
-	const uint32 *endOfVisibleRow = pixel + _surface.w;
-	const uint32 *endOfVisibleArea = pixel + surfacePixelPitch * _surface.h - surfacePadding;
+	uint32 *pixel = (uint32 *)_surface->getPixels();
+	const int surfacePixelPitch = _surface->pitch / _surface->format.bytesPerPixel;
+	const int surfacePadding = surfacePixelPitch - _surface->w;
+	const uint32 *endOfVisibleRow = pixel + _surface->w;
+	const uint32 *endOfVisibleArea = pixel + surfacePixelPitch * _surface->h - surfacePadding;
 
-	const int codecAlignedWidth = (_surface.w + 31) & ~31;
-	const int codecPaddingSize = codecAlignedWidth - _surface.w;
+	const int codecAlignedWidth = (_surface->w + 31) & ~31;
+	const int codecPaddingSize = codecAlignedWidth - _surface->w;
 
-	int numPixelsToRead = codecAlignedWidth * _surface.h;
+	int numPixelsToRead = codecAlignedWidth * _surface->h;
 	int numPixelsToSkip = 0;
 	while (numPixelsToRead > 0) {
-		int value = _ctx._gb->getVLC2<1>(table, IVI_VLC_BITS);
+		int value = _ctx._gb->getVLC2<1, IVI_VLC_BITS>(table);
 
 		if (value == -1) {
 			warning("Transparency VLC code read failed");
@@ -701,18 +697,18 @@ int Indeo4Decoder::decodeRLETransparency(VLC_TYPE (*table)[2]) {
 }
 
 int Indeo4Decoder::decodeTransparency() {
-	if (_ctx._gb->getBits(2) != 3 || _ctx._gb->getBits(3) != 0) {
+	if (_ctx._gb->getBits<2>() != 3 || _ctx._gb->getBits<3>() != 0) {
 		warning("Invalid transparency marker");
 		return -1;
 	}
 
 	Common::Rect drawRect;
 
-	for (int numRects = _ctx._gb->getBits(8); numRects; --numRects) {
-		const int x1 = _ctx._gb->getBits(16);
-		const int y1 = _ctx._gb->getBits(16);
-		const int x2 = x1 + _ctx._gb->getBits(16);
-		const int y2 = y1 + _ctx._gb->getBits(16);
+	for (int numRects = _ctx._gb->getBits<8>(); numRects; --numRects) {
+		const int x1 = _ctx._gb->getBits<16>();
+		const int y1 = _ctx._gb->getBits<16>();
+		const int x2 = x1 + _ctx._gb->getBits<16>();
+		const int y2 = y1 + _ctx._gb->getBits<16>();
 		drawRect.extend(Common::Rect(x1, y1, x2, y2));
 	}
 
@@ -720,7 +716,7 @@ int Indeo4Decoder::decodeTransparency() {
 
 	if (_ctx._gb->getBit()) { /* @350 */
 		/* @358 */
-		_ctx._transKeyColor = _surface.format.ARGBToColor(0, _ctx._gb->getBits(8), _ctx._gb->getBits(8), _ctx._gb->getBits(8));
+		_ctx._transKeyColor = _surface->format.ARGBToColor(0, _ctx._gb->getBits<8>(), _ctx._gb->getBits<8>(), _ctx._gb->getBits<8>());
 		debug(4, "Indeo4: Key color is %08x", _ctx._transKeyColor);
 		/* @477 */
 	}
@@ -732,14 +728,14 @@ int Indeo4Decoder::decodeTransparency() {
 
 	IVIHuffDesc huffDesc;
 
-	const int numHuffRows = huffDesc._numRows = _ctx._gb->getBits(4);
+	const int numHuffRows = huffDesc._numRows = _ctx._gb->getBits<4>();
 	if (numHuffRows == 0 || numHuffRows > IVI_VLC_BITS - 1) {
 		warning("Invalid codebook row count %d", numHuffRows);
 		return -1;
 	}
 
 	for (int i = 0; i < numHuffRows; ++i) {
-		huffDesc._xBits[i] = _ctx._gb->getBits(4);
+		huffDesc._xBits[i] = _ctx._gb->getBits<4>();
 	}
 
 	/* @5E2 */
@@ -771,8 +767,8 @@ int Indeo4Decoder::decodeTransparency() {
 	// necessary for correct decoding of game videos.
 	assert(!_ctx._usesTiling);
 
-	assert(_surface.format.bytesPerPixel == 4);
-	assert((_surface.pitch % 4) == 0);
+	assert(_surface->format.bytesPerPixel == 4);
+	assert((_surface->pitch % 4) == 0);
 
 	const uint32 startByte = _ctx._gb->pos() / 8;
 
@@ -785,7 +781,7 @@ int Indeo4Decoder::decodeTransparency() {
 			// It should only be necessary to draw transparency here since the
 			// data from the YUV planes gets drawn to the output surface on each
 			// frame, which resets the surface pixels to be fully opaque
-			_surface.fillRect(Common::Rect(_surface.w, _surface.h), _ctx._transKeyColor);
+			_surface->fillRect(Common::Rect(_surface->w, _surface->h), _ctx._transKeyColor);
 		}
 
 		// No alignment here
@@ -794,9 +790,9 @@ int Indeo4Decoder::decodeTransparency() {
 		const bool hasDataSize = _ctx._gb->getBit();
 		if (hasDataSize) { /* @81A */
 			/* @822 */
-			int expectedSize = _ctx._gb->getBits(8);
+			int expectedSize = _ctx._gb->getBits<8>();
 			if (expectedSize == 0xFF) {
-				expectedSize = _ctx._gb->getBits(24);
+				expectedSize = _ctx._gb->getBits<24>();
 			}
 
 			expectedSize -= ((_ctx._gb->pos() + 7) / 8) - startByte;
@@ -830,13 +826,13 @@ int Indeo4Decoder::scaleTileSize(int defSize, int sizeFactor) {
 int Indeo4Decoder::decodePlaneSubdivision() {
 	int i;
 
-	switch (_ctx._gb->getBits(2)) {
+	switch (_ctx._gb->getBits<2>()) {
 	case 3:
 		return 1;
 
 	case 2:
 		for (i = 0; i < 4; i++)
-			if (_ctx._gb->getBits(2) != 3)
+			if (_ctx._gb->getBits<2>() != 3)
 				return 0;
 		return 4;
 
@@ -873,7 +869,7 @@ const uint Indeo4Decoder::_ivi4_common_pic_sizes[14] = {
 	640, 480, 320, 240, 160, 120, 704, 480, 352, 240, 352, 288, 176, 144
 };
 
-Indeo4Decoder::Transform Indeo4Decoder::_transforms[18] = {
+const Indeo4Decoder::Transform Indeo4Decoder::_transforms[18] = {
 	{ IndeoDSP::ffIviInverseHaar8x8,  IndeoDSP::ffIviDcHaar2d,       1 },
 	{ IndeoDSP::ffIviRowHaar8,         IndeoDSP::ffIviDcHaar2d,       0 },
 	{ IndeoDSP::ffIviColHaar8,         IndeoDSP::ffIviDcHaar2d,       0 },

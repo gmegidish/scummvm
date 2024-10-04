@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,12 +32,12 @@ namespace Alan3 {
 
 /*----------------------------------------------------------------------*/
 static void executeCommand(CONTEXT, int verb, Parameter parameters[]) {
-	static AltInfo *altInfos = NULL; /* Need to survive lots of different exits...*/
+	static AltInfo *altInfos = nullptr; /* Need to survive lots of different exits...*/
 	int altIndex;
 	bool flag;
 
 	/* Did we leave anything behind last time... */
-	if (altInfos != NULL)
+	if (altInfos != nullptr)
 		free(altInfos);
 
 	altInfos = findAllAlternatives(verb, parameters);
@@ -53,7 +52,7 @@ static void executeCommand(CONTEXT, int verb, Parameter parameters[]) {
 
 	/* Now perform actions! First try any BEFORE or ONLY from inside out */
 	for (altIndex = lastAltInfoIndex(altInfos); altIndex >= 0; altIndex--) {
-		if (altInfos[altIndex].alt != 0) // TODO Can this ever be NULL? Why?
+		if (altInfos[altIndex].alt != nullptr) // TODO Can this ever be NULL? Why?
 			if (altInfos[altIndex].alt->qual == (Aword)Q_BEFORE
 			        || altInfos[altIndex].alt->qual == (Aword)Q_ONLY) {
 				FUNC1(executedOk, flag, &altInfos[altIndex])
@@ -66,7 +65,7 @@ static void executeCommand(CONTEXT, int verb, Parameter parameters[]) {
 
 	/* Then execute any not declared as AFTER, i.e. the default */
 	for (altIndex = 0; !altInfos[altIndex].end; altIndex++) {
-		if (altInfos[altIndex].alt != 0) {
+		if (altInfos[altIndex].alt != nullptr) {
 			if (altInfos[altIndex].alt->qual != (Aword)Q_AFTER) {
 				FUNC1(executedOk, flag, &altInfos[altIndex])
 				if (!flag)
@@ -77,7 +76,7 @@ static void executeCommand(CONTEXT, int verb, Parameter parameters[]) {
 
 	/* Finally, the ones declared as AFTER */
 	for (altIndex = lastAltInfoIndex(altInfos); altIndex >= 0; altIndex--) {
-		if (altInfos[altIndex].alt != 0) {
+		if (altInfos[altIndex].alt != nullptr) {
 			FUNC1(executedOk, flag, &altInfos[altIndex])
 			if (!flag)
 				CALL0(abortPlayerCommand)
@@ -100,7 +99,7 @@ void action(CONTEXT, int verb, Parameter parameters[], Parameter multipleMatches
 
 	multiplePosition = findMultiplePosition(parameters);
 	if (multiplePosition != -1) {
-		sprintf(marker, "($%d)", multiplePosition + 1); /* Prepare a printout with $1/2/3 */
+		Common::sprintf_s(marker, "($%d)", multiplePosition + 1); /* Prepare a printout with $1/2/3 */
 		for (int i = 0; !isEndOfArray(&multipleMatches[i]); i++) {
 			copyParameter(&parameters[multiplePosition], &multipleMatches[i]);
 			setGlobalParameters(parameters); /* Need to do this here since the marker use them */

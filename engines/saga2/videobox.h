@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -36,45 +35,45 @@ namespace Saga2 {
 class CVideoBox : public ModalWindow {
 public:
 	enum {
-		xSize   = 340,
-		ySize   = 220,
-		x       = (640 - xSize) / 2,
-		y       = (480 - ySize) / 3
+		kVBxSize   = 340,
+		kVBySize   = 220,
+		kVBx       = (640 - kVBxSize) / 2,
+		kVBy       = (480 - kVBySize) / 3
 	};
 
 private:
 	enum brush {
-		xBrushSize  = 340,  // size of each brush 'chunk'.
-		yBrushSize  = 110,
-		numBrushes  = 2     // number of chunks
+		kVBxBrushSize  = 340,  // size of each brush 'chunk'.
+		kVByBrushSize  = 110,
+		kVBnumBrushes  = 2     // number of chunks
 	};
 
 	enum borderWidth {
-		borderWidth = 6
+		kVBborderWidth = 6
 	};
 
 	enum {
-		vidPan1ResID = 0,
-		vidPan2ResID
+		kVBvidPan1ResID = 0,
+		kVBvidPan2ResID
 	};
 
 public:
 
 	// resource handle
-	hResContext     *decRes;
+	hResContext     *_decRes;
 
 	// requester info struct
-	requestInfo     rInfo;
+	requestInfo     _rInfo;
 
 	// rect for the window
-	Rect16  vidBoxRect;
+	Rect16  _vidBoxRect;
 
 	// rect for the window panes
-	Rect16  vidPanRects[numBrushes];
+	Rect16  _vidPanRects[kVBnumBrushes];
 
 public:
 	// decoration declarations
-	WindowDecoration vidDec[numBrushes];
+	WindowDecoration _vidDec[kVBnumBrushes];
 
 
 protected:
@@ -102,7 +101,7 @@ public:
 
 	// returns the active area of this video box
 	static Rect16 getAreaRect() {
-		return Rect16(x, y, xSize, ySize);
+		return Rect16(kVBx, kVBy, kVBxSize, kVBySize);
 	}
 
 	// initializes the resources for this object

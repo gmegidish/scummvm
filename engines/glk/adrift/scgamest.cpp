@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -517,14 +516,14 @@ sc_gameref_t gs_create(sc_var_setref_t vars, sc_prop_setref_t bundle, sc_filterr
 	game->filter = filter;
 
 	/* Set memento to NULL for now; it's added later. */
-	game->memento = NULL;
+	game->memento = nullptr;
 
 	/* Initialize for no debugger. */
-	game->debugger = NULL;
+	game->debugger = nullptr;
 
 	/* Initialize the undo buffers to NULL for now. */
-	game->temporary = NULL;
-	game->undo = NULL;
+	game->temporary = nullptr;
+	game->undo = nullptr;
 	game->undo_available = FALSE;
 
 	/* Create rooms state array. */
@@ -740,11 +739,11 @@ sc_gameref_t gs_create(sc_var_setref_t vars, sc_prop_setref_t bundle, sc_filterr
 	game->score = 0;
 	game->bold_room_names = TRUE;
 	game->verbose = FALSE;
-	game->current_room_name = NULL;
-	game->status_line = NULL;
-	game->title = NULL;
-	game->author = NULL;
-	game->hint_text = NULL;
+	game->current_room_name = nullptr;
+	game->status_line = nullptr;
+	game->title = nullptr;
+	game->author = nullptr;
+	game->hint_text = nullptr;
 
 	/* Resource controls. */
 	res_clear_resource(&game->requested_sound);
@@ -813,10 +812,11 @@ static void gs_string_copy(sc_char **to_string, const sc_char *from_string) {
 
 	/* Copy from_string if set, otherwise set to_string to NULL. */
 	if (from_string) {
-		*to_string = (sc_char *)sc_malloc(strlen(from_string) + 1);
-		strcpy(*to_string, from_string);
+		size_t ln = strlen(from_string) + 1;
+		*to_string = (sc_char *)sc_malloc(ln);
+		Common::strcpy_s(*to_string, ln, from_string);
 	} else
-		*to_string = NULL;
+		*to_string = nullptr;
 }
 
 

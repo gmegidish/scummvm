@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,16 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-//include <string.h>
 #include "ags/shared/core/types.h"
 #include "ags/engine/ac/dynobj/cc_ags_dynamic_object.h"
 #include "ags/shared/ac/common.h"               // quit()
-#include "ags/shared/util/bbop.h"
+#include "ags/shared/util/memory_stream.h"
 
 namespace AGS3 {
 
@@ -37,51 +35,16 @@ int AGSCCDynamicObject::Dispose(const char *address, bool force) {
 	return 0;
 }
 
-void AGSCCDynamicObject::StartSerialize(char *sbuffer) {
-	bytesSoFar = 0;
-	serbuffer = sbuffer;
-}
+int AGSCCDynamicObject::Serialize(const char *address, char *buffer, int bufsize) {
+	// If the required space is larger than the provided buffer,
+	// then return negated required space, notifying the caller that a larger buffer is necessary
+	size_t req_size = CalcSerializeSize();
+	if (bufsize < 0 || req_size > static_cast<size_t>(bufsize))
+		return -(static_cast<int32_t>(req_size));
 
-void AGSCCDynamicObject::SerializeInt(int val) {
-	char *chptr = &serbuffer[bytesSoFar];
-	int *iptr = (int *)chptr;
-	*iptr = BBOp::Int32FromLE(val);
-	bytesSoFar += 4;
-}
-
-void AGSCCDynamicObject::SerializeFloat(float val) {
-	char *chptr = &serbuffer[bytesSoFar];
-	float *fptr = (float *)chptr;
-	*fptr = BBOp::FloatFromLE(val);
-	bytesSoFar += 4;
-}
-
-int AGSCCDynamicObject::EndSerialize() {
-	return bytesSoFar;
-}
-
-void AGSCCDynamicObject::StartUnserialize(const char *sbuffer, int pTotalBytes) {
-	bytesSoFar = 0;
-	totalBytes = pTotalBytes;
-	serbuffer = const_cast<char *>(sbuffer);
-}
-
-int AGSCCDynamicObject::UnserializeInt() {
-	if (bytesSoFar >= totalBytes)
-		quit("Unserialise: internal error: read past EOF");
-
-	char *chptr = &serbuffer[bytesSoFar];
-	bytesSoFar += 4;
-	return BBOp::Int32FromLE(*((const int *)chptr));
-}
-
-float AGSCCDynamicObject::UnserializeFloat() {
-	if (bytesSoFar >= totalBytes)
-		quit("Unserialise: internal error: read past EOF");
-
-	char *chptr = &serbuffer[bytesSoFar];
-	bytesSoFar += 4;
-	return BBOp::FloatFromLE(*((const float *)chptr));
+	MemoryStream mems(reinterpret_cast<uint8_t *>(buffer), bufsize, kStream_Write);
+	Serialize(address, &mems);
+	return static_cast<int32_t>(mems.GetPosition());
 }
 
 const char *AGSCCDynamicObject::GetFieldPtr(const char *address, intptr_t offset) {

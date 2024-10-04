@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -229,11 +234,11 @@ void Mult_v1::freeMultKeys() {
 		delete _animArrayY;
 		delete[] _animArrayData;
 
-		_objects = 0;
-		_renderData = 0;
-		_animArrayX = 0;
-		_animArrayY = 0;
-		_animArrayData = 0;
+		_objects = nullptr;
+		_renderData = nullptr;
+		_animArrayX = nullptr;
+		_animArrayY = nullptr;
+		_animArrayData = nullptr;
 
 		_animSurf.reset();
 		_vm->_draw->freeSprite(Draw::kAnimSurface);
@@ -242,7 +247,7 @@ void Mult_v1::freeMultKeys() {
 	}
 
 	delete _multData;
-	_multData = 0;
+	_multData = nullptr;
 }
 
 bool Mult_v1::hasMultData(uint16 multIndex) {
@@ -290,15 +295,11 @@ void Mult_v1::playMultInit() {
 		delete _animArrayY;
 		delete[] _animArrayData;
 
-		_objects = new Mult_Object[_objCount];
-		_renderData = new int16[9 * _objCount];
+		_objects = new Mult_Object[_objCount]();
+		_renderData = new int16[9 * _objCount]();
 		_animArrayX = new VariablesLE(_objCount * 4);
 		_animArrayY = new VariablesLE(_objCount * 4);
-		_animArrayData = new Mult_AnimData[_objCount];
-
-		memset(_objects, 0, _objCount * sizeof(Mult_Object));
-		memset(_renderData, 0, _objCount * 9 * sizeof(int16));
-		memset(_animArrayData, 0, _objCount * sizeof(Mult_AnimData));
+		_animArrayData = new Mult_AnimData[_objCount]();
 
 		for (_counter = 0; _counter < _objCount; _counter++) {
 			Mult_Object &multObj = _objects[_counter];

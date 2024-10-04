@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@
 #include "common/events.h"
 #include "common/file.h"
 #include "common/macresman.h"
-#include "common/stuffit.h"
+#include "common/compression/stuffit.h"
 #include "common/textconsole.h"
 
 #include "backends/audiocd/audiocd.h"
@@ -48,14 +47,16 @@
 
 namespace Groovie {
 
+const int GroovieEngine::AUTOSAVE_SLOT = MAX_SAVES - 1;
+
 GroovieEngine::GroovieEngine(OSystem *syst, const GroovieGameDescription *gd) :
-	Engine(syst), _gameDescription(gd), _script(NULL),
-	_resMan(NULL), _grvCursorMan(NULL), _videoPlayer(NULL), _musicPlayer(NULL),
-	_graphicsMan(NULL), _macResFork(NULL), _waitingForInput(false), _font(NULL),
+	Engine(syst), _gameDescription(gd), _script(nullptr),
+	_resMan(nullptr), _grvCursorMan(nullptr), _videoPlayer(nullptr), _musicPlayer(nullptr),
+	_graphicsMan(nullptr), _macResFork(nullptr), _waitingForInput(false), _font(nullptr),
 	_spookyMode(false) {
 
 	// Adding the default directories
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "groovie");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "media");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "system");
@@ -81,11 +82,19 @@ Common::Error GroovieEngine::run() {
 	if (_gameDescription->version == kGroovieT11H && getPlatform() == Common::kPlatformMacintosh) {
 		// Load the Mac installer with the lowest priority (in case the user has installed
 		// the game and has the MIDI folder present; faster to just load them)
-		Common::Archive *archive = Common::createStuffItArchive("The 11th Hour Installer");
+		Common::Archive *archive = Common::createStuffItArchive("The 11th Hour Installer", true);
 
 		if (archive)
 			SearchMan.add("The 11th Hour Installer", archive);
 	}
+
+	// TODO: remove this default logging when we're done testing?
+	DebugMan.enableDebugChannel(kDebugScript);
+	DebugMan.enableDebugChannel(kDebugScriptvars);
+	DebugMan.enableDebugChannel(kDebugLogic);
+	DebugMan.enableDebugChannel(kDebugVideo);
+	if (gDebugLevel < 0)
+		gDebugLevel = 0;
 
 	_script = new Script(this, _gameDescription->version);
 
@@ -257,6 +266,9 @@ Common::Error GroovieEngine::run() {
 		Common::Event ev;
 		while (_eventMan->pollEvent(ev)) {
 			switch (ev.type) {
+			case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+				_script->setAction(ev.customType);
+				break;
 			case Common::EVENT_KEYDOWN:
 				// Send the event to the scripts
 				_script->setKbdChar(ev.kbd.ascii);
@@ -314,7 +326,7 @@ Common::Error GroovieEngine::run() {
 
 				// Wait a little bit between increments.  While mouse is moving, this triggers
 				// only negligably slower.
-				if (tmr >= 1000) {
+				if (tmr >= 500) {
 					_script->timerTick();
 					tmr = 0;
 				}
@@ -361,6 +373,16 @@ bool GroovieEngine::hasFeature(EngineFeature f) const {
 		(f == kSupportsLoadingDuringRuntime);
 }
 
+bool GroovieEngine::canLaunchLoad() const {
+	if (_gameDescription->desc.guiOptions == nullptr)
+		return false;
+	return strstr(_gameDescription->desc.guiOptions, GUIO_NOLAUNCHLOAD) != nullptr;
+}
+
+bool GroovieEngine::isDemo() const {
+	return _gameDescription->desc.flags & ADGF_DEMO;
+}
+
 void GroovieEngine::syncSoundSettings() {
 	Engine::syncSoundSettings();
 
@@ -378,16 +400,20 @@ void GroovieEngine::syncSoundSettings() {
 		mute ? 0 : ConfMan.getInt("speech_volume"));
 }
 
-bool GroovieEngine::canLoadGameStateCurrently() {
+bool GroovieEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	// TODO: verify the engine has been initialized
+	if (isDemo())
+		return false;
 	if (_script)
 		return true;
 	else
 		return false;
 }
 
-bool GroovieEngine::canSaveGameStateCurrently() {
+bool GroovieEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	// TODO: verify the engine has been initialized
+	if (isDemo())
+		return false;
 	if (_script)
 		return _script->canDirectSave();
 	else
@@ -408,14 +434,18 @@ Common::Error GroovieEngine::saveGameState(int slot, const Common::String &desc,
 	return Common::kNoError;
 }
 
+int GroovieEngine::getAutosaveSlot() const {
+	return AUTOSAVE_SLOT;
+}
+
 void GroovieEngine::waitForInput() {
 	_waitingForInput = true;
 }
 
 SoundEffectQueue::SoundEffectQueue() {
-	_vm = NULL;
-	_player = NULL;
-	_file = NULL;
+	_vm = nullptr;
+	_player = nullptr;
+	_file = nullptr;
 }
 
 void SoundEffectQueue::setVM(GroovieEngine *vm) {
@@ -469,7 +499,7 @@ void SoundEffectQueue::tick() {
 void SoundEffectQueue::deleteFile() {
 	if (_file) {
 		delete _file;
-		_file = NULL;
+		_file = nullptr;
 		_vm->_script->setBitFlag(0, false);
 	}
 }

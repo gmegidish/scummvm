@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,8 @@ static int dissolveSequences[2][20] = {
 	/* SCI2.1mid+ */ { 0, 0, 3, 6, 12, 20, 48, 96, 184, 272, 576, 1280, 3232, 6912, 13568, 24576, 46080, 73728, 132096, 466944 }
 };
 static int16 divisionsDefaults[2][16] = {
-	/* SCI2.1early- */ { 1, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 40, 40, 101, 101 },
+	// the last element in SCI2.1early was added after LSL6 and PQ4
+	/* SCI2.1early- */ { 1, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 40, 40, 101, 101, 2 },
 	/* SCI2.1mid+ */   { 1, 20, 20, 20, 20, 10, 10, 10, 10, 20, 20,  6, 10, 101, 101, 2 }
 };
 
@@ -174,31 +174,12 @@ void GfxTransitions32::processEffects(PlaneShowStyle &showStyle) {
 	}
 }
 
-// TODO: 10-argument version is only in SCI3; argc checks are currently wrong for this version
-// and need to be fixed in future
-void GfxTransitions32::kernelSetShowStyle(const uint16 argc, const reg_t planeObj, const ShowStyleType type, const int16 seconds, const int16 back, const int16 priority, const int16 animate, const int16 frameOutNow, reg_t pFadeArray, int16 divisions, const int16 blackScreen) {
+void GfxTransitions32::kernelSetShowStyle(const reg_t planeObj, const ShowStyleType type, const int16 seconds,
+	const int16 back, const int16 priority, const int16 animate, const int16 frameOutNow,
+	const reg_t pFadeArray, const int16 divisions, const int16 blackScreen) {
 
-	bool hasDivisions = false;
-	bool hasFadeArray = false;
-
-	// KQ7 2.0b uses a mismatched version of the Styler script (SCI2.1early script
-	// for SCI2.1mid engine), so the calls it makes to kSetShowStyle are wrong and
-	// put `divisions` where `pFadeArray` is supposed to be
-	if (getSciVersion() == SCI_VERSION_2_1_MIDDLE && g_sci->getGameId() == GID_KQ7) {
-		hasDivisions = argc > 7;
-		hasFadeArray = false;
-		divisions = argc > 7 ? pFadeArray.toSint16() : -1;
-		pFadeArray = NULL_REG;
-	} else if (getSciVersion() < SCI_VERSION_2_1_MIDDLE) {
-		hasDivisions = argc > 7;
-		hasFadeArray = false;
-	} else if (getSciVersion() < SCI_VERSION_3) {
-		hasDivisions = argc > 8;
-		hasFadeArray = argc > 7;
-	} else {
-		hasDivisions = argc > 9;
-		hasFadeArray = argc > 8;
-	}
+	const bool hasFadeArray = !pFadeArray.isNull();
+	const bool hasDivisions = (divisions != -1);
 
 	bool isFadeUp;
 	int16 color;
@@ -753,9 +734,11 @@ bool GfxTransitions32::processIrisIn(PlaneShowStyle &showStyle) {
 	return processWipe(1, showStyle);
 }
 
+#if 0
 void GfxTransitions32::processDissolveNoMorph(PlaneShowStyle &showStyle) {
 	error("DissolveNoMorph is not known to be used by any game. Please submit a bug report with details about the game you were playing and what you were doing that triggered this error. Thanks!");
 }
+#endif
 
 inline int bitWidth(int number) {
 	int width = 0;

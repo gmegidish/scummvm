@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 // high level layer initializing
@@ -182,7 +181,7 @@ void Screen::initBackground(int32 res, int32 new_palette) {
 		if (screenLayerTable.bg_parallax[i])
 			initializeBackgroundLayer(_vm->fetchBackgroundParallaxLayer(file, i));
 		else
-			initializeBackgroundLayer(NULL);
+			initializeBackgroundLayer(nullptr);
 	}
 
 	// Normal backround layer
@@ -195,7 +194,7 @@ void Screen::initBackground(int32 res, int32 new_palette) {
 		if (screenLayerTable.fg_parallax[i])
 			initializeBackgroundLayer(_vm->fetchForegroundParallaxLayer(file, i));
 		else
-			initializeBackgroundLayer(NULL);
+			initializeBackgroundLayer(nullptr);
 	}
 
 	_vm->_resman->closeResource(_thisScreen.background_layer_id);
@@ -280,14 +279,14 @@ void Screen::initPsxBackground(int32 res, int32 new_palette) {
 
 	// Background parallax layers
 	initializePsxParallaxLayer(_vm->fetchBackgroundParallaxLayer(file, 0));
-	initializePsxParallaxLayer(NULL);
+	initializePsxParallaxLayer(nullptr);
 
 	// Normal backround layer
 	initializePsxBackgroundLayer(_vm->fetchBackgroundLayer(file));
 
 	// Foreground parallax layers
 	initializePsxParallaxLayer(_vm->fetchForegroundParallaxLayer(file, 1));
-	initializePsxParallaxLayer(NULL);
+	initializePsxParallaxLayer(nullptr);
 
 	_vm->_resman->closeResource(_thisScreen.background_layer_id);
 

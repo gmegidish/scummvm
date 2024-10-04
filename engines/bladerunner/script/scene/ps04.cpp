@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -351,7 +350,7 @@ void SceneScriptPS04::dialogueWithGuzza() {
 		           &&  Actor_Clue_Query(kActorMcCoy, kClueRunciterInterviewA)
 		           && !Game_Flag_Query(kFlagPS04GuzzaTalkDumpToMainframe)
 		) {
-			// McCoy metions Bryant's "vacation",
+			// McCoy mentions Bryant's "vacation",
 			// Guzza says about the procedure via Mainframe
 			Actor_Says(kActorMcCoy, 3920, 13);
 			Actor_Says(kActorGuzza, 570, 32);
@@ -379,6 +378,7 @@ void SceneScriptPS04::dialogueWithGuzza() {
 		Actor_Face_Heading(kActorGuzza, 400, false);
 		Actor_Says(kActorGuzza, 620, 32);
 		if (_vm->_cutContent) {
+			Game_Flag_Set(kFlagMcCoyConfessedKillingHomelessInCT04);
 			// add a fade-out here while Guzza calls-in for favors
 			Scene_Loop_Start_Special(kSceneLoopModeOnce, kPS04LoopPanToPS04, true);
 			Scene_Loop_Set_Default(kPS04LoopMainLoop);

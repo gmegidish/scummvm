@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,9 +49,7 @@ class Timestamp;
 class SoundHandle {
 	friend class Channel;
 	friend class MixerImpl;
-	uint32 _val;
-public:
-	inline SoundHandle() : _val(0xFFFFFFFF) {}
+	uint32 _val = 0xffffffff;
 };
 
 /**
@@ -256,6 +253,31 @@ public:
 	virtual int8 getChannelBalance(SoundHandle handle) = 0;
 
 	/**
+	 * Set the sample rate for the given handle.
+	 *
+	 * @param handle 	The sound to affect.
+	 * @param rate		The new sample rate. Must be less than 131072
+	*/
+	virtual void setChannelRate(SoundHandle handle, uint32 rate) = 0;
+
+	/**
+	 * Get the sample rate for the given handle.
+	 *
+	 * @param handle 	The sound to affect.
+	 *
+	 * @return The current sample rate of the channel.
+	*/
+	virtual uint32 getChannelRate(SoundHandle handle) = 0;
+
+	/**
+	 * Reset the sample rate of the channel back to its
+	 * AudioStream's native rate.
+	 *
+	 * @param handle 	The sound to affect.
+	*/
+	virtual void resetChannelRate(SoundHandle handle) = 0;
+
+	/**
 	 * Get an approximation of for how long the channel has been playing.
 	 */
 	virtual uint32 getSoundElapsedTime(SoundHandle handle) = 0;
@@ -305,6 +327,24 @@ public:
 	 * @return The output sample rate in Hz.
 	 */
 	virtual uint getOutputRate() const = 0;
+
+	/**
+	 * Check whether the output is stereo.
+	 *
+	 * @return true if output is stereo, false if not.
+	 */
+	virtual bool getOutputStereo() const = 0;
+
+	/**
+	 * Return the output sample buffer size of the system.
+	 *
+	 * The return value is measured in frame units instead of bytes. It can be converted
+	 * to bytes by multiplying it with the sample size and the number of channels. For
+	 * example, for 16-bit stereo output it should be multiplied by 4.
+	 *
+	 * @return The number of samples processed at each audio callback.
+	 */
+	virtual uint getOutputBufSize() const = 0;
 };
 
 /** @} */

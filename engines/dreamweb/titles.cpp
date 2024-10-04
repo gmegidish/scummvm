@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,21 @@
 #include "common/config-manager.h"
 
 namespace DreamWeb {
+
+namespace {
+void initTitlesGfx() {
+	Graphics::ModeWithFormatList modes = {
+#ifdef USE_HIGHRES
+		// First try for a 640x480 mode
+		Graphics::ModeWithFormat(640, 480, Graphics::PixelFormat::createFormatCLUT8()),
+#endif
+		// System doesn't support it, so fall back on 320x240 mode
+		Graphics::ModeWithFormat(320, 240, Graphics::PixelFormat::createFormatCLUT8()),
+	};
+
+	initGraphicsAny(modes);
+}
+}
 
 void DreamWebEngine::endGame() {
 	loadTempText("T83");
@@ -141,7 +155,7 @@ void DreamWebEngine::bibleQuote() {
 	case Common::RU_RUS:
 		theStory = ruStory;
 		break;
-	case Common::CZ_CZE:
+	case Common::CS_CZE:
 		theStory = csStory;
 		break;
 	default:
@@ -149,7 +163,7 @@ void DreamWebEngine::bibleQuote() {
 		break;
 	}
 
-	initGraphics(640, 480);
+	initTitlesGfx();
 
 	showPCX("I00");
 	fadeScreenUps();
@@ -343,7 +357,7 @@ void DreamWebEngine::realCredits() {
 	_sound->loadRoomsSample(_roomsSample);
 	_sound->volumeSet(0);
 
-	initGraphics(640, 480);
+	initTitlesGfx();
 	hangOn(35);
 
 	showPCX("I01");

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -61,14 +60,14 @@ class MsgScrollNewUI: public MsgScroll {
 
 public:
 
-	MsgScrollNewUI(Configuration *cfg, Screen *s);
+	MsgScrollNewUI(const Configuration *cfg, Screen *s);
 	~MsgScrollNewUI() override;
 
 	GUI_status callback(uint16 msg, GUI_CallBack *caller, void *data) override {
 		return GUI_PASS;
 	}
 	uint16 callback(uint16 msg, CallBack *caller, void *data) override;
-	bool can_display_prompt() override {
+	bool can_display_prompt() const override {
 		return false;
 	}
 
@@ -78,7 +77,7 @@ public:
 
 	void display_prompt() override {}
 
-	void display_string(Std::string s, Font *f, bool include_on_map_window) override;
+	void display_string(const Std::string &s, Font *f, bool include_on_map_window) override;
 
 	void set_font(uint8 font_type) override;
 	bool is_garg_font() override;
@@ -100,7 +99,7 @@ protected:
 
 private:
 	GUI_status scroll_movement_event(MsgScrollEventType event);
-	uint16 count_empty_lines(Std::string s);
+	uint16 count_empty_lines(const Std::string &s);
 
 };
 

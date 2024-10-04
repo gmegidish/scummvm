@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -732,6 +731,7 @@ const char *string_t_Data_1d[] = {
 	"From the looks of it, this\nis the kitchen.  You can hear\nthe sounds of a feast or some-\nthing going on in the room to\nthe right.",
 	"They have a housemaid\nto do that!!",
 	"It probably warrants further\ninvestigation inside!",
+	// FIXME: Spelling incorrect. excercise should be exercise. Fixing changes game data and thus may cause issues
 	"You shinny up the tree,\nfind lots of branches\nand leaves and stuff,\nand shinny down again.\nGood excercise, huh?",
 	"Everything in the garden\nis as it seems!",
 	"You are behind the house, now,\nin what appears to be a small\nfenced in yard.  To the rear\nof the garden is a little shed",

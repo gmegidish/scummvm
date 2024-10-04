@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, MojoTouch has
+ * exclusively licensed this code on March 23th, 2024, to be used in
+ * closed-source products.
+ * Therefore, any contributions (commits) to it will also be dual-licensed.
  *
  */
 
@@ -25,12 +31,13 @@
 
 #include "common/debug.h"
 #include "common/rect.h"
+#include "common/compression/rnc_deco.h"
 #include "common/stack.h"
 
 namespace Toon {
 
-bool Picture::loadPicture(const Common::String &file) {
-	debugC(1, kDebugPicture, "loadPicture(%s)", file.c_str());
+bool Picture::loadPicture(const Common::Path &file) {
+	debugC(1, kDebugPicture, "loadPicture(%s)", file.toString().c_str());
 
 	uint32 size = 0;
 	uint8 *fileData = _vm->resources()->getFileData(file, &size);
@@ -62,7 +69,7 @@ bool Picture::loadPicture(const Common::String &file) {
 			memcpy(_palette, _data + dstsize - (dstsize & 0x7ff), _paletteEntries * 3);
 			_vm->fixPaletteEntries(_palette, _paletteEntries);
 		} else {
-			_palette = NULL;
+			_palette = nullptr;
 		}
 		return true;
 	}
@@ -77,7 +84,7 @@ bool Picture::loadPicture(const Common::String &file) {
 			memcpy(_palette, fileData + 16, _paletteEntries * 3);
 			_vm->fixPaletteEntries(_palette, _paletteEntries);
 		} else {
-			_palette = NULL;
+			_palette = nullptr;
 		}
 
 		// size can only be 640x400 or 1280x400
@@ -93,7 +100,7 @@ bool Picture::loadPicture(const Common::String &file) {
 		return true;
 	}
 	case kCompRNC1: {
-		Toon::RncDecoder rnc;
+		Common::RncDecoder rnc;
 
 		// allocate enough place
 		uint32 decSize = READ_BE_UINT32(fileData + 4);
@@ -112,13 +119,12 @@ bool Picture::loadPicture(const Common::String &file) {
 		return true;
 	}
 	case kCompRNC2: {
-		Toon::RncDecoder rnc;
+		Common::RncDecoder rnc;
 
 		// allocate enough place
 		uint32 decSize = READ_BE_UINT32(fileData + 4);
 
 		_data = new uint8[decSize];
-
 		decSize = rnc.unpackM2(fileData, _data);
 
 		if (decSize > TOON_SCREEN_WIDTH * TOON_SCREEN_HEIGHT + 768)
@@ -136,8 +142,8 @@ bool Picture::loadPicture(const Common::String &file) {
 }
 
 Picture::Picture(ToonEngine *vm) : _vm(vm) {
-	_data = NULL;
-	_palette = NULL;
+	_data = nullptr;
+	_palette = nullptr;
 
 	_width = 0;
 	_height = 0;
@@ -153,7 +159,7 @@ Picture::~Picture() {
 void Picture::setupPalette() {
 	debugC(1, kDebugPicture, "setupPalette()");
 
-	if (_palette != NULL) {
+	if (_palette != nullptr) {
 		if (_useFullPalette)
 			_vm->setPaletteEntries(_palette, 0, 256);
 		else
@@ -164,7 +170,7 @@ void Picture::setupPalette() {
 void Picture::drawMask(Graphics::Surface &surface, int16 x, int16 y, int16 dx, int16 dy) {
 	debugC(1, kDebugPicture, "drawMask(surface, %d, %d, %d, %d)", x, y, dx, dy);
 
-	for (int32 i = 0; i < 128; i++) {
+	for (int32 i = 0; i < 128; ++i) {
 		byte color[3];
 		color[0] = i * 2;
 		color[1] = i * 2;
@@ -183,18 +189,20 @@ void Picture::drawMask(Graphics::Surface &surface, int16 x, int16 y, int16 dx, i
 	uint8 *c = _data + _width * dy + dx;
 	uint8 *curRow = (uint8 *)surface.getBasePtr(x, y);
 
-	for (int16 yy = 0; yy < ry; yy++) {
-		uint8 *curSrc = c;
-		uint8 *cur = curRow;
-		for (int16 xx = 0; xx < rx; xx++) {
-			//*cur = (*curSrc >> 5) * 8; // & 0x1f;
-			*cur = (*curSrc & 0x1f) ? 127 : 0;
+	if (_width > dx) {
+		for (int16 yy = 0; yy < ry; ++yy) {
+			uint8 *curSrc = c;
+			uint8 *cur = curRow;
+			for (int16 xx = 0; xx < rx; ++xx) {
+				//*cur = (*curSrc >> 5) * 8; // & 0x1f;
+				*cur = (*curSrc & 0x1f) ? 127 : 0;
 
-			curSrc++;
-			cur++;
+				++curSrc;
+				++cur;
+			}
+			curRow += destPitch;
+			c += srcPitch;
 		}
-		curRow += destPitch;
-		c += srcPitch;
 	}
 }
 
@@ -208,26 +216,30 @@ void Picture::drawWithRectList(Graphics::Surface& surface, int16 x, int16 y, int
 	int32 destPitch = surface.pitch;
 	int32 srcPitch = _width;
 
-	for (uint32 i = 0; i < rectArray.size(); i++) {
-
+	for (uint32 i = 0; i < rectArray.size(); ++i) {
 		Common::Rect rect = rectArray[i];
 
 		int16 fillRx = MIN<int32>(rx, rect.right - rect.left);
 		int16 fillRy = MIN<int32>(ry, rect.bottom - rect.top);
 
-		uint8 *c = _data + _width * (dy + rect.top) + (dx + rect.left);
-		uint8 *curRow = (uint8 *)surface.getBasePtr(x + rect.left, y + rect.top);
+		if (_width > dx + rect.left) {
+			// Sometimes rect dimensions refer to the larger width ie. 1280, while the picture width is 640
+			// The if clause above is a simple check to avoid those cases.
+			// TODO maybe something smarter could be done to prevent adding such problematic rectangles to the list
+			uint8 *c = _data + _width * (dy + rect.top) + (dx + rect.left);
+			uint8 *curRow = (uint8 *)surface.getBasePtr(x + rect.left, y + rect.top);
 
-		for (int16 yy = 0; yy < fillRy; yy++) {
-			uint8 *curSrc = c;
-			uint8 *cur = curRow;
-			for (int16 xx = 0; xx < fillRx; xx++) {
-				*cur = *curSrc;
-				curSrc++;
-				cur++;
+			for (int16 yy = 0; yy < fillRy; ++yy) {
+				uint8 *curSrc = c;
+				uint8 *cur = curRow;
+				for (int16 xx = 0; xx < fillRx; ++xx) {
+					*cur = *curSrc;  // Here is where the drawing happens (starting from rect Top Left)
+					++curSrc;    // This goes to the next entry of _data (to be read)
+					++cur;       // This goes to the next address BasePtr of surface (to write there, on surface)
+				}
+				c += srcPitch;       // data "row" is increased by srcPitch (_width)
+				curRow += destPitch; // surface row is increased by destPitch
 			}
-			curRow += destPitch;
-			c += srcPitch;
 		}
 	}
 }
@@ -246,16 +258,18 @@ void Picture::draw(Graphics::Surface &surface, int16 x, int16 y, int16 dx, int16
 	uint8 *c = _data + _width * dy + dx;
 	uint8 *curRow = (uint8 *)surface.getBasePtr(x, y);
 
-	for (int16 yy = 0; yy < ry; yy++) {
-		uint8 *curSrc = c;
-		uint8 *cur = curRow;
-		for (int16 xx = 0; xx < rx; xx++) {
-			*cur = *curSrc;
-			curSrc++;
-			cur++;
+	if (_width > dx) {
+		for (int16 yy = 0; yy < ry; ++yy) {
+			uint8 *curSrc = c;
+			uint8 *cur = curRow;
+			for (int16 xx = 0; xx < rx; ++xx) {
+				*cur = *curSrc;
+				++curSrc;
+				++cur;
+			}
+			curRow += destPitch;
+			c += srcPitch;
 		}
-		curRow += destPitch;
-		c += srcPitch;
 	}
 }
 
@@ -272,31 +286,33 @@ uint8 Picture::getData(int16 x, int16 y) {
 void Picture::floodFillNotWalkableOnMask(int16 x, int16 y) {
 	debugC(1, kDebugPicture, "floodFillNotWalkableOnMask(%d, %d)", x, y);
 	// Stack-based floodFill algorithm based on
-	// http://student.kuleuven.be/~m0216922/CG/files/floodfill.cpp
+	// https://web.archive.org/web/20100825020453/http://student.kuleuven.be/~m0216922/CG/files/floodfill.cpp
 	Common::Stack<Common::Point> stack;
 	stack.push(Common::Point(x, y));
 	while (!stack.empty()) {
 		Common::Point pt = stack.pop();
 		while (_data[pt.x + pt.y * _width] & 0x1F && pt.y >= 0)
-			pt.y--;
-		pt.y++;
+			--pt.y;
+		++pt.y;
 		bool spanLeft = false;
 		bool spanRight = false;
-		while (_data[pt.x + pt.y * _width] & 0x1F && pt.y < _height) {
-			_data[pt.x + pt.y * _width] &= 0xE0;
-			if (!spanLeft && pt.x > 0 && _data[pt.x - 1 + pt.y * _width] & 0x1F) {
+		uint32 nextDataPos = pt.x + pt.y * _width;
+		while (pt.y < _height && _data[nextDataPos] & 0x1F) {
+			_data[nextDataPos] &= 0xE0;
+			if (!spanLeft && pt.x > 0 && _data[nextDataPos - 1] & 0x1F) {
 				stack.push(Common::Point(pt.x - 1, pt.y));
 				spanLeft = 1;
-			} else if (spanLeft && pt.x > 0 && !(_data[pt.x - 1 + pt.y * _width] & 0x1F)) {
+			} else if (spanLeft && pt.x > 0 && !(_data[nextDataPos - 1] & 0x1F)) {
 				spanLeft = 0;
 			}
-			if (!spanRight && pt.x < _width - 1 && _data[pt.x + 1 + pt.y * _width] & 0x1F) {
+			if (!spanRight && pt.x < _width - 1 && _data[nextDataPos + 1] & 0x1F) {
 				stack.push(Common::Point(pt.x + 1, pt.y));
 				spanRight = 1;
-			} else if (spanRight && pt.x < _width - 1 && !(_data[pt.x + 1 + pt.y * _width] & 0x1F)) {
+			} else if (spanRight && pt.x < _width - 1 && !(_data[nextDataPos + 1] & 0x1F)) {
 				spanRight = 0;
 			}
-			pt.y++;
+			++pt.y;
+			nextDataPos = pt.x + pt.y * _width;
 		}
 	}
 }
@@ -326,12 +342,12 @@ void Picture::drawLineOnMask(int16 x, int16 y, int16 x2, int16 y2, bool walkable
 	int32 cdx = (dx << 16) / t;
 	int32 cdy = (dy << 16) / t;
 
-	for (int16 i = t; i > 0; i--) {
+	for (int16 i = t; i > 0; --i) {
 		int32 rx = bx >> 16;
 		int32 ry = by >> 16;
 
-		if ( rx >= 0 && rx < _width-1 && ry >= 0 && ry < _height) {	// sanity check: some lines in the game
-																	// were drawing outside the screen causing corruption
+		if ( rx >= 0 && rx < _width-1 && ry >= 0 && ry < _height) { // sanity check: some lines in the game
+		                                                            // were drawing outside the screen causing corruption
 			if (!walkable) {
 				_data[_width * ry + rx] &= 0xe0;
 				_data[_width * ry + rx + 1] &= 0xe0;

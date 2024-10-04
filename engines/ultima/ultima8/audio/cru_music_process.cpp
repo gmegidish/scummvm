@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "common/file.h"
 #include "common/system.h"
+#include "common/config-manager.h"
+
 #include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/audio/cru_music_process.h"
-#include "ultima/ultima8/filesys/file_system.h"
 #include "audio/mods/mod_xm_s3m.h"
 
 #include "ultima/ultima8/world/world.h"
@@ -118,10 +119,12 @@ void CruMusicProcess::playMusic(int track) {
 		}
 
 		// Regret has a Christmas music easter egg.
-		TimeDate t;
-		g_system->getTimeAndDate(t);
-		if (t.tm_mon == 11 && t.tm_mday >= 24) {
-			track = 22;
+		if (!GAME_IS_DEMO) {
+			TimeDate t;
+			g_system->getTimeAndDate(t);
+			if ((t.tm_mon == 11 && t.tm_mday >= 24) || ConfMan.getBool("always_christmas")) {
+				track = 22;
+			}
 		}
 	}
 	playMusic_internal(track);
@@ -181,16 +184,15 @@ void CruMusicProcess::playMusic_internal(int track) {
 	if (track > 0) {
 		// TODO: It's a bit ugly having this here.  Should be in GameData.
 		const Std::string fname = Std::string::format("sound/%s.amf", _trackNames[track]);
-		FileSystem *filesystem = FileSystem::get_instance();
-		assert(filesystem);
-		Common::SeekableReadStream *rs = filesystem->ReadFile(fname);
-		if (!rs) {
+		auto *rs = new Common::File();
+		if (!rs->open(Common::Path(fname))) {
 			// This happens in No Regret demo.
 			warning("Couldn't load AMF file: %s", fname.c_str());
+			delete rs;
 			return;
 		}
 
-		Audio::AudioStream *stream = Audio::makeModXmS3mStream(rs, DisposeAfterUse::NO);
+		Audio::AudioStream *stream = Audio::makeModXmS3mStream(rs, DisposeAfterUse::YES);
 		if (!stream) {
 			error("Couldn't create stream from AMF file: %s", fname.c_str());
 			return;

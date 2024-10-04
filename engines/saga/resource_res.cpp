@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -101,7 +100,7 @@ void Resource_RES::loadGlobalResources(int chapter, int actorsEntrance) {
 	_vm->_actor->_objectsStrings.clear();
 
 	_vm->_resource->loadResource(resourceContext, _metaResource.objectsStringsResourceID, resourceData);
-	_vm->loadStrings(_vm->_actor->_objectsStrings, resourceData);
+	_vm->loadStrings(_vm->_actor->_objectsStrings, resourceData, _vm->isBigEndian());
 
 	if (uint(chapter) >= _vm->_sndRes->_fxTableIDs.size()) {
 		error("Chapter ID exceeds fxTableIDs length");
@@ -132,7 +131,7 @@ void Resource_RES::loadGlobalResources(int chapter, int actorsEntrance) {
 	_vm->_actor->_actorsStrings.clear();
 
 	_vm->_resource->loadResource(resourceContext, _metaResource.actorsStringsResourceID, resourceData);
-	_vm->loadStrings(_vm->_actor->_actorsStrings, resourceData);
+	_vm->loadStrings(_vm->_actor->_actorsStrings, resourceData, _vm->isBigEndian());
 
 	_vm->_sprite->_inventorySprites.clear();
 	_vm->_sprite->loadList(_metaResource.inventorySpritesID, _vm->_sprite->_inventorySprites);
@@ -222,7 +221,7 @@ void ResourceContext_RES::processPatches(Resource *resource, const GamePatchDesc
 			patchResourceId = readS2.readUint32();
 			subjectResourceData = subjectContext->getResourceData(subjectResourceId);
 			resourceData = getResourceData(patchResourceId);
-			subjectResourceData->patchData = new PatchData(&_file, _fileName);
+			subjectResourceData->patchData = new PatchData(_file.get(), _fileName);
 			subjectResourceData->offset = resourceData->offset;
 			subjectResourceData->size = resourceData->size;
 		}

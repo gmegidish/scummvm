@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -221,7 +220,6 @@ void Imuse::callback() {
 				if (track->volFadeStep < 0) {
 					if (track->vol > track->volFadeDest) {
 						track->vol += track->volFadeStep;
-						//warning("fade: %d", track->vol);
 						if (track->vol < track->volFadeDest) {
 							track->vol = track->volFadeDest;
 							track->volFadeUsed = false;
@@ -235,7 +233,6 @@ void Imuse::callback() {
 				} else if (track->volFadeStep > 0) {
 					if (track->vol < track->volFadeDest) {
 						track->vol += track->volFadeStep;
-						//warning("fade: %d", track->vol);
 						if (track->vol > track->volFadeDest) {
 							track->vol = track->volFadeDest;
 							track->volFadeUsed = false;
@@ -290,7 +287,8 @@ void Imuse::callback() {
 				continue;
 
 			do {
-				result = _sound->getDataFromRegion(track->soundDesc, track->curRegion, &data, track->regionOffset, mixer_size);
+				int32 mixerFlags = makeMixerFlags(track->mixerFlags);
+				result = _sound->getDataFromRegion(track->soundDesc, track->curRegion, &data, track->regionOffset, mixer_size, &mixerFlags);
 				if (channels == 1) {
 					result &= ~1;
 				}
@@ -302,10 +300,10 @@ void Imuse::callback() {
 					result = mixer_size;
 
 				if (g_system->getMixer()->isReady()) {
-					track->stream->queueBuffer(data, result, DisposeAfterUse::YES, makeMixerFlags(track->mixerFlags));
+					track->stream->queueBuffer(data, result, DisposeAfterUse::YES, mixerFlags);
 					track->regionOffset += result;
 				} else
-					delete[] data;
+					free(data);
 
 				if (_sound->isEndOfRegion(track->soundDesc, track->curRegion)) {
 					switchToNextRegion(track);

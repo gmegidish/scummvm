@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,8 +26,10 @@
 #include <base/main.h>
 #include <base/plugins.h>
 #include "dc.h"
+#include "dcutils.h"
 #include "icon.h"
 #include "DCLauncherDialog.h"
+#include "backends/mutex/null/null-mutex.h"
 #include <common/config-manager.h>
 #include <common/memstream.h>
 #include <common/endian.h>
@@ -44,7 +45,7 @@ OSystem_Dreamcast::OSystem_Dreamcast()
   : _devpoll(0), screen(NULL), mouse(NULL), overlay(NULL), _softkbd(this),
 	_ms_buf(NULL), _mixer(NULL),
 	_current_shake_x_pos(0), _current_shake_y_pos(0), _aspect_stretch(false), _softkbd_on(false),
-	_softkbd_motion(0), _enable_cursor_palette(false), _screenFormat(0)
+	_softkbd_motion(0), _enable_cursor_palette(false), _overlay_in_gui(false), _screenFormat(0)
 {
   memset(screen_tx, 0, sizeof(screen_tx));
   memset(mouse_tx, 0, sizeof(mouse_tx));
@@ -139,7 +140,6 @@ bool DCCDManager::isPlaying() const {
 	if (DefaultAudioCDManager::isPlaying())
 		return true;
 
-	extern int getCdState();
 	return getCdState() == 3;
 }
 
@@ -153,23 +153,10 @@ void OSystem_Dreamcast::quit() {
 }
 
 /* Mutex handling */
-OSystem::MutexRef OSystem_Dreamcast::createMutex()
+Common::MutexInternal *OSystem_Dreamcast::createMutex()
 {
-  return NULL;
+  return new NullMutexInternal();
 }
-
-void OSystem_Dreamcast::lockMutex(MutexRef mutex)
-{
-}
-
-void OSystem_Dreamcast::unlockMutex(MutexRef mutex)
-{
-}
-
-void OSystem_Dreamcast::deleteMutex(MutexRef mutex)
-{
-}
-
 
 /* Features */
 bool OSystem_Dreamcast::hasFeature(Feature f)
@@ -179,6 +166,7 @@ bool OSystem_Dreamcast::hasFeature(Feature f)
   case kFeatureVirtualKeyboard:
   case kFeatureOverlaySupportsAlpha:
   case kFeatureCursorPalette:
+  case kFeatureCursorAlpha:
 	return true;
   default:
 	return false;
@@ -247,78 +235,6 @@ void OSystem_Dreamcast::logMessage(LogMessageType::Type type, const char *messag
 #endif
 }
 
-namespace DC_Flash {
-  static int syscall_info_flash(int sect, int *info)
-  {
-	return (*(int (**)(int, void*, int, int))0x8c0000b8)(sect,info,0,0);
-  }
-
-  static int syscall_read_flash(int offs, void *buf, int cnt)
-  {
-	return (*(int (**)(int, void*, int, int))0x8c0000b8)(offs,buf,cnt,1);
-  }
-
-  static int flash_crc(const char *buf, int size)
-  {
-	int i, c, n = -1;
-	for(i=0; i<size; i++) {
-	  n ^= (buf[i]<<8);
-	  for(c=0; c<8; c++)
-	if(n & 0x8000)
-	  n = (n << 1) ^ 4129;
-	else
-	  n <<= 1;
-	}
-	return (unsigned short)~n;
-  }
-
-  static int flash_read_sector(int partition, int sec, unsigned char *dst)
-  {
-	int s, r, n, b, bmb, got=0;
-	int info[2];
-	char buf[64];
-	char bm[64];
-
-	if((r = syscall_info_flash(partition, info))<0)
-	  return r;
-
-	if((r = syscall_read_flash(info[0], buf, 64))<0)
-	  return r;
-
-	if(memcmp(buf, "KATANA_FLASH", 12) ||
-	   buf[16] != partition || buf[17] != 0)
-	  return -2;
-
-	n = (info[1]>>6)-1-((info[1] + 0x7fff)>>15);
-	bmb = n+1;
-	for(b = 0; b < n; b++) {
-	  if(!(b&511)) {
-	if((r = syscall_read_flash(info[0] + (bmb++ << 6), bm, 64))<0)
-	  return r;
-	  }
-	  if(!(bm[(b>>3)&63] & (0x80>>(b&7)))) {
-	if((r = syscall_read_flash(info[0] + ((b+1) << 6), buf, 64))<0)
-	  return r;
-	else if((s=READ_LE_UINT16(buf+0)) == sec &&
-		flash_crc(buf, 62) == READ_LE_UINT16(buf+62)) {
-	  memcpy(dst+(s-sec)*60, buf+2, 60);
-	  got=1;
-	}
-	  }
-	}
-	return got;
-  }
-
-  static int get_locale_setting()
-  {
-	unsigned char data[60];
-	if (flash_read_sector(2,5,data) == 1)
-	  return data[5];
-	else
-	  return -1;
-  }
-} // End of namespace DC_Flash
-
 Common::String OSystem_Dreamcast::getSystemLanguage() const {
   static const char *languages[] = {
 	"ja_JP",
@@ -382,7 +298,7 @@ int DCLauncherDialog::runModal()
   ConfMan.set("gameid", gameId, gameId);
 
   if (dir != NULL)
-	ConfMan.set("path", dir, gameId);
+	ConfMan.setPath("path", dir, gameId);
 
   // Set the game language.
   if (language != Common::UNK_LANG)

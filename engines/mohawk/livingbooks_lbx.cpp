@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,7 @@ protected:
 	Common::INIFile _dataFile;
 	Common::String _curSection;
 
-	void open(const Common::String &filename);
+	void open(const Common::Path &filename);
 	bool sectionExists(const Common::String &section);
 };
 
@@ -63,7 +62,7 @@ bool LBXDataFile::call(uint callId, const Common::Array<LBValue> &params, LBValu
 		if (params.size() != 1)
 			error("incorrect number of parameters (%d) to LBXDataFile::open", params.size());
 
-		open(params[0].toString());
+		open(Common::Path(params[0].toString()));
 		return false;
 
 	case kLBXDataFileAddSection:
@@ -108,7 +107,7 @@ bool LBXDataFile::call(uint callId, const Common::Array<LBValue> &params, LBValu
 			Common::String command = Common::String::format("%s = %s", i->key.c_str(), i->value.c_str());
 			LBCode tempCode(_vm, 0);
 			uint offset = tempCode.parseCode(command);
-			tempCode.runCode(NULL, offset);
+			tempCode.runCode(nullptr, offset);
 		}
 		}
 		return false;
@@ -134,7 +133,7 @@ bool LBXDataFile::call(uint callId, const Common::Array<LBValue> &params, LBValu
 	}
 }
 
-void LBXDataFile::open(const Common::String &filename) {
+void LBXDataFile::open(const Common::Path &filename) {
 	_dataFile.clear();
 
 	if (_dataFile.loadFromFile(filename))
@@ -142,7 +141,7 @@ void LBXDataFile::open(const Common::String &filename) {
 
 	// FIXME: try savegames
 
-	error("LBXDataFile::open: couldn't open '%s'", filename.c_str());
+	error("LBXDataFile::open: couldn't open '%s'", filename.toString().c_str());
 }
 
 Common::SharedPtr<LBXObject> createLBXObject(MohawkEngine_LivingBooks *vm, uint16 type) {

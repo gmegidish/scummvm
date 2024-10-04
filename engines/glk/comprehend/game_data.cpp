@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -480,7 +479,7 @@ done:
 	return string;
 }
 
-void GameData::parse_string_table(FileBuffer *fb, unsigned start_addr,
+void GameData::parse_string_table(FileBuffer *fb, uint start_addr,
 							   uint32 end_addr, StringTable *table) {
 	if (start_addr < end_addr) {
 		fb->seek(start_addr);
@@ -516,7 +515,6 @@ void GameData::parse_flags(FileBuffer *fb) {
 void GameData::parse_replace_words(FileBuffer *fb) {
 	size_t len;
 	bool eof;
-	int i;
 
 	/* FIXME - Rename addr_strings_end */
 	fb->seek(_header.addr_strings_end);
@@ -524,7 +522,7 @@ void GameData::parse_replace_words(FileBuffer *fb) {
 	/* FIXME - what is this for */
 	fb->skip(2);
 
-	for (i = 0;; i++) {
+	for (;;) {
 		len = fb->strlen(&eof);
 		if (len == 0)
 			break;

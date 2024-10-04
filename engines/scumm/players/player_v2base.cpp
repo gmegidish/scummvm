@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "scumm/players/player_v2base.h"
 #include "scumm/scumm.h"
-
-#define FREQ_HZ 236 // Don't change!
 
 #define MAX_OUTPUT 0x7fff
 
@@ -317,11 +314,9 @@ static const uint16 pcjr_freq_table[12] = {
 };
 
 
-Player_V2Base::Player_V2Base(ScummEngine *scumm, Audio::Mixer *mixer, bool pcjr)
+Player_V2Base::Player_V2Base(ScummEngine *scumm, bool pcjr)
 	: _vm(scumm),
-	_mixer(mixer),
-	_pcjr(pcjr),
-	_sampleRate(_mixer->getOutputRate()) {
+	_pcjr(pcjr) {
 
 	_isV3Game = (scumm->_game.version >= 3);
 
@@ -329,16 +324,13 @@ Player_V2Base::Player_V2Base(ScummEngine *scumm, Audio::Mixer *mixer, bool pcjr)
 
 	// Initialize sound queue
 	_current_nr = _next_nr = 0;
-	_current_data = _next_data = 0;
+	_current_data = _next_data = nullptr;
 
-	_retaddr = 0;
+	_retaddr = nullptr;
 
 	// Initialize channel code
 	for (int i = 0; i < 4; ++i)
 		clear_channel(i);
-
-	_next_tick = 0;
-	_tick_len = (_sampleRate << FIXP_SHIFT) / FREQ_HZ;
 
 	// Initialize V3 music timer
 	_music_timer_ctr = _music_timer = 0;
@@ -378,7 +370,7 @@ void Player_V2Base::chainNextSound() {
 	if (_next_nr) {
 		chainSound(_next_nr, _next_data);
 		_next_nr = 0;
-		_next_data = 0;
+		_next_data = nullptr;
 	}
 }
 
@@ -544,7 +536,7 @@ void Player_V2Base::execute_cmd(ChannelInfo *channel) {
 				}
 
 				debug(8, "channels[%d]: @%04x note: %3d+%d len: %2d hull: %d mod: %d/%d/%d %s",
-						(uint)(dest_channel - channel), script_ptr ? (uint)(script_ptr - _current_data - 2) : 0,
+						(uint)(dest_channel - channel), (uint)(script_ptr - _current_data - 2),
 						note, (signed short) dest_channel->d.transpose, channel->d.time_left,
 						dest_channel->d.hull_curve, dest_channel->d.freqmod_table,
 						dest_channel->d.freqmod_incr,dest_channel->d.freqmod_multiplier,
@@ -592,7 +584,7 @@ check_stopped:
 	}
 
 	_current_nr = 0;
-	_current_data = 0;
+	_current_data = nullptr;
 	chainNextSound();
 }
 
@@ -600,9 +592,10 @@ void Player_V2Base::next_freqs(ChannelInfo *channel) {
 	channel->d.volume    += channel->d.volume_delta;
 	channel->d.base_freq += channel->d.freq_delta;
 
-	channel->d.freqmod_offset += channel->d.freqmod_incr;
-	if (channel->d.freqmod_offset > channel->d.freqmod_modulo)
-		channel->d.freqmod_offset -= channel->d.freqmod_modulo;
+	if (channel->d.freqmod_modulo > 0)
+		channel->d.freqmod_offset = (channel->d.freqmod_offset + channel->d.freqmod_incr) % channel->d.freqmod_modulo;
+	else
+		channel->d.freqmod_offset = 0;
 
 	channel->d.freq =
 		(int)(freqmod_table[channel->d.freqmod_table + (channel->d.freqmod_offset >> 4)])
@@ -655,5 +648,7 @@ void Player_V2Base::nextTick() {
 	}
 }
 
+const uint8 *g_pv2ModTbl = reinterpret_cast<const uint8*>(freqmod_table);
+extern const uint32 g_pv2ModTblSize = ARRAYSIZE(freqmod_table);
 
 } // End of namespace Scumm

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,8 +29,8 @@
 namespace NGI {
 
 BehaviorManager::BehaviorManager() {
-	_scene = 0;
-	_isActive = 1;
+	_scene = nullptr;
+	_isActive = true;
 }
 
 BehaviorManager::~BehaviorManager() {
@@ -144,7 +143,7 @@ void BehaviorManager::updateBehavior(BehaviorInfo &behaviorInfo, BehaviorAnim &e
 void BehaviorManager::updateStaticAniBehavior(StaticANIObject &ani, int delay, const BehaviorAnim &beh) {
 	debugC(6, kDebugBehavior, "BehaviorManager::updateStaticAniBehavior(%s)", transCyrillic(ani._objectName));
 
-	MessageQueue *mq = 0;
+	MessageQueue *mq = nullptr;
 
 	if (beh._flags & 1) {
 		uint rnd = g_nmi->_rnd.getRandomNumber(32767);
@@ -220,7 +219,7 @@ BehaviorMove *BehaviorManager::getBehaviorMoveByMessageQueueDataId(StaticANIObje
 		}
 	}
 
-	return 0;
+	return nullptr;
 }
 
 void BehaviorInfo::clear() {
@@ -328,7 +327,7 @@ BehaviorAnim::BehaviorAnim(GameVar *var, Scene *sc, StaticANIObject *ani, int *m
 }
 
 BehaviorMove::BehaviorMove(GameVar *subvar, Scene *sc, int *delay) {
-	_messageQueue = 0;
+	_messageQueue = nullptr;
 	_delay = 0;
 	_percent = 0;
 	_flags = 0;

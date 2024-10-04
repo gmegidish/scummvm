@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@ MessageQueue *AniHandler::makeQueue(StaticANIObject *ani, int staticsIndex, int,
 	int idx = getIndex(ani->_id);
 
 	if (idx == -1)
-		return 0;
+		return nullptr;
 
 #if 0
 	int stid = staticsId;
@@ -52,7 +51,7 @@ MessageQueue *AniHandler::makeQueue(StaticANIObject *ani, int staticsIndex, int,
 			stid = ani->_movement->_staticsObj2->_staticsId;
 		} else {
 			if (!ani->_statics)
-				return 0;
+				return nullptr;
 
 			stid = ani->_statics->_staticsId;
 		}
@@ -73,13 +72,16 @@ MessageQueue *AniHandler::makeQueue(StaticANIObject *ani, int staticsIndex, int,
 	}
 
 	if (!_items[idx].subItems[subidx].movement)
-		return 0;
+		return nullptr;
 
 	MessageQueue *mq = new MessageQueue(g_nmi->_globalMessageQueueList->compact());
 	Common::Point point;
 	ExCommand *ex;
 
+#if 0
 	int i = 0;
+#endif
+
 	do {
 		subidx = startidx + endidx * _items[idx].statics.size();
 
@@ -117,6 +119,7 @@ MessageQueue *AniHandler::makeQueue(StaticANIObject *ani, int staticsIndex, int,
 
 		startidx = _items[idx].subItems[subidx].staticsIndex;
 
+#if 0
 		uint step;
 
 		if (_items[idx].subItems[subidx].movement->_currMovement)
@@ -125,6 +128,7 @@ MessageQueue *AniHandler::makeQueue(StaticANIObject *ani, int staticsIndex, int,
 			step = _items[idx].subItems[subidx].movement->_dynamicPhases.size();
 
 		i += step;
+#endif
 	} while (startidx != endidx);
 
 	return mq;
@@ -135,7 +139,7 @@ MGMItem::MGMItem() {
 }
 
 MGMSubItem::MGMSubItem() {
-	movement = 0;
+	movement = nullptr;
 	staticsIndex = 0;
 	field_8 = 0;
 	field_C = 0;
@@ -199,12 +203,12 @@ MessageQueue *AniHandler::makeRunQueue(MakeQueueStruct *mkQueue) {
 	debugC(4, kDebugPathfinding, "AniHandler::makeRunQueue(*%d)", mkQueue->ani ? mkQueue->ani->_id : -1);
 
 	if (!mkQueue->ani)
-		return 0;
+		return nullptr;
 
 	Movement *mov = mkQueue->ani->_movement;
 
 	if (!mov && !mkQueue->ani->_statics)
-		return 0;
+		return nullptr;
 
 	if (!(mkQueue->flags & 1)) {
 		if (mov)
@@ -236,7 +240,7 @@ MessageQueue *AniHandler::makeRunQueue(MakeQueueStruct *mkQueue) {
 	mov = mkQueue->ani->getMovementById(mkQueue->movementId);
 
 	if (!mov)
-		return 0;
+		return nullptr;
 
 
 	int itemIdx = getIndex(mkQueue->ani->_id);
@@ -256,10 +260,10 @@ MessageQueue *AniHandler::makeRunQueue(MakeQueueStruct *mkQueue) {
 	const MGMSubItem &sub2 = _items[itemIdx].subItems[st1idx + subOffset * _items[itemIdx].statics.size()];
 
 	if (subIdx != st2idx && !sub1.movement)
-		return 0;
+		return nullptr;
 
 	if (st1idx != subOffset && !sub2.movement)
-		return 0;
+		return nullptr;
 
 	int n1x = mkQueue->x1 - mkQueue->x2 - sub1.x - sub2.x;
 	int n1y = mkQueue->y1 - mkQueue->y2 - sub1.y - sub2.y;
@@ -430,14 +434,14 @@ void AniHandler::putObjectToStatics(StaticANIObject *ani, int staticsId) {
 		return;
 
 	if (ani->_movement) {
-		ani->queueMessageQueue(0);
+		ani->queueMessageQueue(nullptr);
 		ani->_movement->gotoLastFrame();
 		ani->_statics = ani->_movement->_staticsObj2;
 
 		int x = ani->_movement->_ox;
 		int y = ani->_movement->_oy;
 
-		ani->_movement = 0;
+		ani->_movement = nullptr;
 
 		ani->setOXY(x, y);
 	}

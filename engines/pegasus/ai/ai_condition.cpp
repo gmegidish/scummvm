@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -231,12 +230,12 @@ AICurrentItemCondition::AICurrentItemCondition(const ItemID item) {
 }
 
 bool AICurrentItemCondition::fireCondition() {
-	InventoryItem *item = ((PegasusEngine *)g_engine)->getCurrentInventoryItem();
+	InventoryItem *item = g_vm->getCurrentInventoryItem();
 
 	if (_item == kNoItemID)
-		return item == 0;
+		return item == nullptr;
 
-	return item != 0 && item->getObjectID() == _item;
+	return item != nullptr && item->getObjectID() == _item;
 }
 
 AICurrentBiochipCondition::AICurrentBiochipCondition(const ItemID biochip)  {
@@ -244,12 +243,12 @@ AICurrentBiochipCondition::AICurrentBiochipCondition(const ItemID biochip)  {
 }
 
 bool AICurrentBiochipCondition::fireCondition() {
-	BiochipItem *biochip = ((PegasusEngine *)g_engine)->getCurrentBiochip();
+	BiochipItem *biochip = g_vm->getCurrentBiochip();
 
 	if (_biochip == kNoItemID)
-		return biochip == 0;
+		return biochip == nullptr;
 
-	return biochip != 0 && biochip->getObjectID() == _biochip;
+	return biochip != nullptr && biochip->getObjectID() == _biochip;
 }
 
 AIItemStateCondition::AIItemStateCondition(const ItemID item, const ItemState state) {
@@ -259,7 +258,7 @@ AIItemStateCondition::AIItemStateCondition(const ItemID item, const ItemState st
 
 bool AIItemStateCondition::fireCondition() {
 	Item *item = g_allItems.findItemByID(_item);
-	return item != 0 && item->getItemState() == _state;
+	return item != nullptr && item->getItemState() == _state;
 }
 
 AIEnergyMonitorCondition::AIEnergyMonitorCondition(const int32 energyThreshold) {
@@ -267,7 +266,7 @@ AIEnergyMonitorCondition::AIEnergyMonitorCondition(const int32 energyThreshold) 
 }
 
 bool AIEnergyMonitorCondition::fireCondition() {
-	return g_energyMonitor != 0 && g_energyMonitor->getCurrentEnergy() < _energyThreshold;
+	return g_energyMonitor != nullptr && g_energyMonitor->getCurrentEnergy() < _energyThreshold;
 }
 
 AILastExtraCondition::AILastExtraCondition(const ExtraID lastExtra) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -95,7 +94,7 @@ void Parallaction_br::setupSubtitles(const char *s, const char *s2, int y) {
 		_subtitle[1] = _gfx->createLabel(_labelFont, s2, color);
 		_gfx->showLabel(_subtitle[1], CENTER_LABEL_HORIZONTAL, _subtitleY + 5 + _labelFont->height());
 	} else {
-		_subtitle[1] = 0;
+		_subtitle[1] = nullptr;
 	}
 #if 0	// disabled because no references to lip sync has been found in the scripts
 	_subtitleLipSync = 0;
@@ -107,13 +106,13 @@ void Parallaction_br::clearSubtitles() {
 		_gfx->hideLabel(_subtitle[0]);
 	}
 	delete _subtitle[0];
-	_subtitle[0] = 0;
+	_subtitle[0] = nullptr;
 
 	if (_subtitle[1]) {
 		_gfx->hideLabel(_subtitle[1]);
 	}
 	delete _subtitle[1];
-	_subtitle[1] = 0;
+	_subtitle[1] = nullptr;
 }
 
 
@@ -585,7 +584,7 @@ DECLARE_INSTRUCTION_OPCODE(show) {
 }
 
 DECLARE_INSTRUCTION_OPCODE(call) {
-	_vm->callFunction(ctxt._inst->_immediate, 0);
+	_vm->callFunction(ctxt._inst->_immediate, nullptr);
 }
 
 
@@ -602,7 +601,7 @@ DECLARE_INSTRUCTION_OPCODE(endscript) {
 
 
 CommandExec_br::CommandExec_br(Parallaction_br* vm) : CommandExec(vm), _vm(vm) {
-	CommandOpcodeSet *table = 0;
+	CommandOpcodeSet *table = nullptr;
 
 	SetOpcodeTable(_opcodes);
 	COMMAND_OPCODE(invalid);
@@ -653,7 +652,7 @@ CommandExec_br::CommandExec_br(Parallaction_br* vm) : CommandExec(vm), _vm(vm) {
 ProgramExec_br::ProgramExec_br(Parallaction_br *vm) : _vm(vm) {
 	_instructionNames = _instructionNamesRes_br;
 
-	ProgramOpcodeSet *table = 0;
+	ProgramOpcodeSet *table = nullptr;
 
 	SetOpcodeTable(_opcodes);
 	INSTRUCTION_OPCODE(invalid);

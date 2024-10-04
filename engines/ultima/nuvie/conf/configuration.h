@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,7 +44,7 @@ class ConfigNode;
  * Configuration values are stored in one of two ways -either as a standalone
  * nuvie.cfg file, or otherwise from the ScummVM domain for the added game.
  *
- * WHen the nuvie.cfg file is present, it's contents are stored as an XML tree
+ * When the nuvie.cfg file is present, it's contents are stored as an XML tree
  * (or a forest, technically). All values are stored as strings, but access
  * functions for ints and bools are provided
  * You should only store values in leaf nodes. (This isn't enforced everywhere,
@@ -82,10 +81,7 @@ public:
 	~Configuration();
 
 	// read config file. Multiple files may be read. Order is important.
-	bool readConfigFile(Std::string fname, Std::string root, bool readonly = true);
-
-	// Returns true if default settings for game have previously been set
-	bool isDefaultsSet() const;
+	bool readConfigFile(const Std::string &fname, const Std::string &root, bool readonly = true);
 
 	// Loads up the configuration settings
 	void load(GameId gameId, bool isEnhanced);
@@ -96,16 +92,12 @@ public:
 	// clear everything
 	void clear();
 
-	Std::string filename() const {
-		return _configFilename;
-	}
-
 	// get value
-	void value(const Std::string &key, Std::string &ret, const char *defaultvalue = "");
-	void value(const Std::string &key, int &ret, int defaultvalue = 0);
-	void value(const Std::string &key, bool &ret, bool defaultvalue = false);
+	void value(const Std::string &key, Std::string &ret, const char *defaultvalue = "") const;
+	void value(const Std::string &key, int &ret, int defaultvalue = 0) const;
+	void value(const Std::string &key, bool &ret, bool defaultvalue = false) const;
 
-	void pathFromValue(const Std::string &key, Std::string file, Std::string &full_path);
+	void pathFromValue(const Std::string &key, const Std::string &file, Common::Path &full_path) const;
 
 	// set value
 	bool set(const Std::string &key, const Std::string &value);
@@ -117,12 +109,12 @@ public:
 	ConfigNode *getNode(const Std::string &key);
 
 	// list all subkeys of a key. (no guaranteed order in result)
-	Std::set<Std::string> listKeys(const Std::string &key, bool longformat = false);
+	Std::set<Std::string> listKeys(const Std::string &key, bool longformat = false) const;
 
-	typedef Std::pair<Common::String, Common::String> KeyType;
+	typedef Common::Pair<Common::String, Common::String> KeyType;
 	typedef Common::Array<KeyType> KeyTypeList;
 
-	void getSubkeys(KeyTypeList &ktl, Std::string basekey);
+	void getSubkeys(KeyTypeList &ktl, const Std::string &basekey);
 };
 
 } // End of namespace Nuvie

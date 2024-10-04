@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,11 @@
 #include "neverhood/gamemodule.h"
 
 #include "engines/savestate.h"
+
+#if defined(USE_FREETYPE2)
+#include "graphics/font.h"
+#include "graphics/fonts/ttf.h"
+#endif
 
 namespace Neverhood {
 
@@ -74,7 +78,7 @@ static const uint32 kMakingOfSmackerFileHashList[] = {
 };
 
 MenuModule::MenuModule(NeverhoodEngine *vm, Module *parentModule, int which)
-	: Module(vm, parentModule), _savegameList(NULL) {
+	: Module(vm, parentModule), _savegameList(nullptr) {
 
 	SetMessageHandler(&MenuModule::handleMessage);
 
@@ -231,7 +235,7 @@ void MenuModule::createDeleteGameMenu() {
 void MenuModule::refreshSaveGameList() {
 	_savegameSlot = -1;
 	delete _savegameList;
-	_savegameList = NULL;
+	_savegameList = nullptr;
 	_savegameList = new SavegameList();
 	loadSavegameList();
 }
@@ -243,7 +247,7 @@ void MenuModule::handleLoadGameMenuAction(bool doLoad) {
 		leaveModule(0);
 	}
 	delete _savegameList;
-	_savegameList = NULL;
+	_savegameList = nullptr;
 }
 
 void MenuModule::handleSaveGameMenuAction(bool doSave, bool doQuery) {
@@ -264,7 +268,7 @@ void MenuModule::handleSaveGameMenuAction(bool doSave, bool doQuery) {
 		createScene(MAIN_MENU, -1);
 	}
 	delete _savegameList;
-	_savegameList = NULL;
+	_savegameList = nullptr;
 }
 
 void MenuModule::handleDeleteGameMenuAction(bool doDelete) {
@@ -273,7 +277,7 @@ void MenuModule::handleDeleteGameMenuAction(bool doDelete) {
 		_vm->removeGameState(_savegameSlot);
 	}
 	delete _savegameList;
-	_savegameList = NULL;
+	_savegameList = nullptr;
 }
 
 void MenuModule::loadSavegameList() {
@@ -340,6 +344,13 @@ uint32 MenuButton::handleMessage(int messageNum, const MessageParam &param, Enti
 	return messageResult;
 }
 
+bool MainMenu::hasMakingOf() const {
+	for (uint i = 0; kMakingOfSmackerFileHashList[i]; i++)
+		if (_vm->_res->exists(kMakingOfSmackerFileHashList[i]))
+			return true;
+	return false;
+}
+
 MainMenu::MainMenu(NeverhoodEngine *vm, Module *parentModule)
 	: Scene(vm, parentModule) {
 
@@ -378,6 +389,8 @@ MainMenu::MainMenu(NeverhoodEngine *vm, Module *parentModule)
 		insertStaticSprite(0x0C24C0EE, 100);	// "Music is off" button
 
 	for (uint buttonIndex = 0; buttonIndex < 9; ++buttonIndex) {
+		if (buttonIndex == kMainMenuMakingOf && !hasMakingOf())
+			continue;
 		Sprite *menuButton = insertSprite<MenuButton>(this, buttonIndex,
 			kMenuButtonFileHashes[buttonIndex], kMenuButtonCollisionBounds[buttonIndex]);
 		addCollisionSprite(menuButton);
@@ -400,7 +413,7 @@ uint32 MainMenu::handleMessage(int messageNum, const MessageParam &param, Entity
 	return 0;
 }
 
-static const uint32 kCreditsSceneFileHashes[] = {
+static const uint32 kCreditsSceneFileHashesIntl[] = {
 	0x6081128C, 0x608112BC, 0x608112DC,
 	0x6081121C, 0x6081139C, 0x6081109C,
 	0x6081169C, 0x60811A9C, 0x6081029C,
@@ -408,10 +421,27 @@ static const uint32 kCreditsSceneFileHashes[] = {
 	0x008112DC, 0x0081121C, 0x0081139C,
 	0x0081109C, 0x0081169C, 0x00811A9C,
 	0x0081029C, 0x0081329C, 0xC08112BC,
-	0xC08112DC, 0xC081121C, 0xC081139C,
-	0
+	0xC08112DC, 0xC081121C
 };
 
+static const uint32 kCreditsSceneFileHashesJp[] = {
+	0xC183121C, 0xC283121C, 0xC483121C, 0xC883121C
+};
+
+static uint32 getCreditFileHash(NeverhoodEngine *vm, int num) {
+	if (num < ARRAYSIZE(kCreditsSceneFileHashesIntl))
+		return kCreditsSceneFileHashesIntl[num];
+	num -= ARRAYSIZE(kCreditsSceneFileHashesIntl);
+	if (vm->getLanguage() == Common::Language::JA_JPN) {
+		if (num < ARRAYSIZE(kCreditsSceneFileHashesJp))
+			return kCreditsSceneFileHashesJp[num];
+		num -= ARRAYSIZE(kCreditsSceneFileHashesJp);
+	}
+
+	if (num == 0)
+		return 0xC081139C;
+	return 0;
+}
 CreditsScene::CreditsScene(NeverhoodEngine *vm, Module *parentModule, bool canAbort)
 	: Scene(vm, parentModule), _canAbort(canAbort), _screenIndex(0), _ticksDuration(0),
 	_countdown(216) {
@@ -438,22 +468,25 @@ CreditsScene::~CreditsScene() {
 void CreditsScene::update() {
 	Scene::update();
 	if (_countdown != 0) {
-		if (_screenIndex == 23 && _vm->_system->getMillis() > _ticksTime)
+		int lastScreen = (_vm->getLanguage() == Common::Language::JA_JPN)
+			? ARRAYSIZE(kCreditsSceneFileHashesIntl) + ARRAYSIZE(kCreditsSceneFileHashesJp)
+			: ARRAYSIZE(kCreditsSceneFileHashesIntl);
+		if (_screenIndex == lastScreen && _vm->_system->getMillis() > _ticksTime)
 			leaveScene(0);
 		else if ((--_countdown) == 0) {
-			++_screenIndex;
-			if (kCreditsSceneFileHashes[_screenIndex] == 0)
+			uint32 fileHash = getCreditFileHash(_vm, ++_screenIndex);
+			if (fileHash == 0)
 				leaveScene(0);
 			else {
-				_background->load(kCreditsSceneFileHashes[_screenIndex]);
-				_palette->addPalette(kCreditsSceneFileHashes[_screenIndex], 0, 256, 0);
+				_background->load(fileHash);
+				_palette->addPalette(fileHash, 0, 256, 0);
 				if (_screenIndex < 5)
 					_countdown = 192;
 				else if (_screenIndex < 15)
 					_countdown = 144;
 				else if (_screenIndex < 16)
 					_countdown = 216;
-				else if (_screenIndex < 23)
+				else if (_screenIndex < lastScreen)
 					_countdown = 144;
 				else
 					_countdown = 1224;
@@ -553,7 +586,7 @@ uint32 Widget::handleMessage(int messageNum, const MessageParam &param, Entity *
 
 TextLabelWidget::TextLabelWidget(NeverhoodEngine *vm, int16 x, int16 y, GameStateMenu *parentScene,
 	int baseObjectPriority, int baseSurfacePriority,
-	const byte *string, int stringLen, BaseSurface *drawSurface, int16 tx, int16 ty, FontSurface *fontSurface)
+	const byte *string, int stringLen, const Common::SharedPtr<BaseSurface> &drawSurface, int16 tx, int16 ty, const Common::SharedPtr<FontSurface> &fontSurface)
 	: Widget(vm, x, y, parentScene,	baseObjectPriority, baseSurfacePriority),
 	_string(string), _stringLen(stringLen), _drawSurface(drawSurface), _tx(tx), _ty(ty), _fontSurface(fontSurface) {
 
@@ -589,15 +622,15 @@ void TextLabelWidget::setString(const byte *string, int stringLen) {
 }
 
 TextEditWidget::TextEditWidget(NeverhoodEngine *vm, int16 x, int16 y, GameStateMenu *parentScene,
-	int maxStringLength, FontSurface *fontSurface, uint32 fileHash, const NRect &rect)
+	int maxStringLength, const Common::SharedPtr<FontSurface> &fontSurface, uint32 fileHash, const NRect &rect)
 	: Widget(vm, x, y, parentScene,	1000, 1000),
 	_maxStringLength(maxStringLength), _fontSurface(fontSurface), _fileHash(fileHash), _rect(rect),
-	_cursorSurface(NULL), _cursorTicks(0), _cursorPos(0), _cursorFileHash(0), _cursorWidth(0), _cursorHeight(0),
+	_cursorSurface(nullptr), _cursorTicks(0), _cursorPos(0), _cursorFileHash(0), _cursorWidth(0), _cursorHeight(0),
 	_modified(false), _readOnly(false) {
 
 	_maxVisibleChars = (_rect.x2 - _rect.x1) / _fontSurface->getCharWidth();
 	_cursorPos = 0;
-	_textLabelWidget = NULL;
+	_textLabelWidget = nullptr;
 
 	SetUpdateHandler(&TextEditWidget::update);
 	SetMessageHandler(&TextEditWidget::handleMessage);
@@ -779,7 +812,7 @@ uint32 TextEditWidget::handleMessage(int messageNum, const MessageParam &param, 
 }
 
 SavegameListBox::SavegameListBox(NeverhoodEngine *vm, int16 x, int16 y, GameStateMenu *parentScene,
-	SavegameList *savegameList, FontSurface *fontSurface, uint32 bgFileHash, const NRect &rect)
+	SavegameList *savegameList, const Common::SharedPtr<FontSurface> &fontSurface, uint32 bgFileHash, const NRect &rect)
 	: Widget(vm, x, y, parentScene,	1000, 1000),
 	_savegameList(savegameList), _fontSurface(fontSurface), _bgFileHash(bgFileHash), _rect(rect),
 	_maxStringLength(0), _firstVisibleItem(0), _lastVisibleItem(0), _currIndex(0) {
@@ -916,11 +949,11 @@ GameStateMenu::GameStateMenu(NeverhoodEngine *vm, Module *parentModule, Savegame
 	uint32 listBoxBackgroundFileHash, int16 listBoxX, int16 listBoxY, const NRect &listBoxRect,
 	uint32 textEditBackgroundFileHash, uint32 textEditCursorFileHash, int16 textEditX, int16 textEditY, const NRect &textEditRect,
 	uint32 textFileHash1, uint32 textFileHash2)
-	: Scene(vm, parentModule), _currWidget(NULL), _savegameList(savegameList) {
+	: Scene(vm, parentModule), _currWidget(nullptr), _savegameList(savegameList) {
 
 	bool isSave = (textEditCursorFileHash != 0);
 
-	_fontSurface = new FontSurface(_vm, fontFileHash, 32, 7, 32, 11, 17);
+	_fontSurface.reset(new FontSurface(_vm, fontFileHash, 32, 7, 32, 11, 17));
 
 	if (!ConfMan.getBool("originalsaveload")) {
 		Common::String saveDesc;
@@ -968,10 +1001,6 @@ GameStateMenu::GameStateMenu(NeverhoodEngine *vm, Module *parentModule, Savegame
 
 	SetUpdateHandler(&Scene::update);
 	SetMessageHandler(&GameStateMenu::handleMessage);
-}
-
-GameStateMenu::~GameStateMenu() {
-	delete _fontSurface;
 }
 
 NPoint GameStateMenu::getMousePos() {
@@ -1122,7 +1151,7 @@ static const NRect kLoadGameMenuMouseRect = { 263, 48, 583, 65 };
 LoadGameMenu::LoadGameMenu(NeverhoodEngine *vm, Module *parentModule, SavegameList *savegameList)
 	: GameStateMenu(vm, parentModule, savegameList, kLoadGameMenuButtonFileHashes, kLoadGameMenuButtonCollisionBounds,
 		0x98620234, 0x201C2474,
-		0x2023098E, NULL /* &kLoadGameMenuMouseRect */,
+		0x2023098E, nullptr /* &kLoadGameMenuMouseRect */,
 		0x04040409, 263, 142, kLoadGameMenuListBoxRect,
 		0x10924C03, 0, 263, 48, kLoadGameMenuTextEditRect,
 		0x0BC600A3, 0x0F960021) {
@@ -1157,7 +1186,7 @@ static const NRect kDeleteGameMenuTextEditRect = { 0, 0, 320, 17 };
 DeleteGameMenu::DeleteGameMenu(NeverhoodEngine *vm, Module *parentModule, SavegameList *savegameList)
 	: GameStateMenu(vm, parentModule, savegameList, kDeleteGameMenuButtonFileHashes, kDeleteGameMenuButtonCollisionBounds,
 		0x4080E01C, 0x728523ED,
-		0x0E018400, NULL,
+		0x0E018400, nullptr,
 		0xA5584211, 61, 64, kDeleteGameMenuListBoxRect,
 		0x250A3060, 0, 49, 414, kDeleteGameMenuTextEditRect,
 		0x80083C01, 0x84181E81) {
@@ -1170,6 +1199,37 @@ void DeleteGameMenu::performAction() {
 		((MenuModule*)_parentModule)->setDeletegameInfo(_listBox->getCurrIndex());
 		leaveScene(0);
 	}
+}
+
+void QueryOverwriteMenu::displayOverwriteStrings(const Common::String &description) {
+#if defined(USE_FREETYPE2)
+	if (_vm->getLanguage() == Common::Language::JA_JPN) {
+		Common::Array<Common::U32String> textLines;
+		textLines.push_back(Common::U32String(description));
+		textLines.push_back(Common::U32String("\xe6\x97\xa2\xe3\x81\xab\xef\xbe\x83\xef\xbe\x9e\xef\xbd\xb0\xef\xbe\x80\xe3\x81\x8c\xe5\xad\x98\xe5\x9c\xa8\xe3\x81\x97\xe3\x81\xa6\xe3\x81\x84\xe3\x81\xbe\xe3\x81\x99\xe3\x80\x82")); // "既にﾃﾞｰﾀが存在しています。"
+		textLines.push_back(Common::U32String("\xe4\xb8\x8a\xe6\x9b\xb8\xe3\x81\x8d\xe3\x81\x97\xe3\x81\xa6\xe3\x82\x82\xe3\x82\x88\xe3\x82\x8d\xe3\x81\x97\xe3\x81\x84\xe3\x81\xa7\xe3\x81\x99\xe3\x81\x8b\xef\xbc\x9f")); // "上書きしてもよろしいですか？"
+		Common::ScopedPtr<Graphics::Font> font(Graphics::loadTTFFontFromArchive("NotoSansJP-Regular.otf", 16, Graphics::kTTFSizeModeCharacter, 0, 0, Graphics::kTTFRenderModeLight));
+		if (font) {
+			for (uint i = 0; i < textLines.size(); ++i) {
+				font->drawString(_background->getSurface()->getSurface(), textLines[i], 106,
+						 127 + 31 + i * 17, 423, 240, Graphics::kTextAlignCenter);
+			}
+			return;
+		}
+	}
+#endif
+
+	// Draw the query text to the background, each text line is centered
+	// NOTE The original had this text in its own class
+	FontSurface *fontSurface = new FontSurface(_vm, 0x94188D4D, 32, 7, 32, 11, 17);
+	Common::StringArray textLines;
+	textLines.push_back(description);
+	textLines.push_back("Game exists.");
+	textLines.push_back("Overwrite it?");
+	for (uint i = 0; i < textLines.size(); ++i)
+		fontSurface->drawString(_background->getSurface(), 106 + (423 - textLines[i].size() * 11) / 2,
+					127 + 31 + i * 17, (const byte*)textLines[i].c_str());
+	delete fontSurface;
 }
 
 QueryOverwriteMenu::QueryOverwriteMenu(NeverhoodEngine *vm, Module *parentModule, const Common::String &description)
@@ -1196,17 +1256,7 @@ QueryOverwriteMenu::QueryOverwriteMenu(NeverhoodEngine *vm, Module *parentModule
 		addCollisionSprite(menuButton);
 	}
 
-	// Draw the query text to the background, each text line is centered
-	// NOTE The original had this text in its own class
-	FontSurface *fontSurface = new FontSurface(_vm, 0x94188D4D, 32, 7, 32, 11, 17);
-	Common::StringArray textLines;
-	textLines.push_back(description);
-	textLines.push_back("Game exists.");
-	textLines.push_back("Overwrite it?");
-	for (uint i = 0; i < textLines.size(); ++i)
-		fontSurface->drawString(_background->getSurface(), 106 + (423 - textLines[i].size() * 11) / 2,
-			127 + 31 + i * 17, (const byte*)textLines[i].c_str());
-	delete fontSurface;
+	displayOverwriteStrings(description);
 
 	SetUpdateHandler(&Scene::update);
 	SetMessageHandler(&QueryOverwriteMenu::handleMessage);

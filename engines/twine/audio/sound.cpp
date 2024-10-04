@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,16 +46,38 @@ Sound::~Sound() {
 	_engine->_system->getMixer()->stopAll();
 }
 
+void Sound::startRainSample() {
+	if (!_engine->_cfgfile.Sound) {
+		return;
+	}
+#if 0
+	const int sample = SAMPLE_RAIN;
+	if (CubeMode == CUBE_EXTERIEUR && !TEMPETE_FINIE && !isSamplePlaying(sample)) {
+		//const int frequency = 0x1000;
+		const int offset = 300;
+		const int repeat = 0;
+		const int panning = 64;
+		const int volumeRain = 70;
+		// TODO: playSample(sample, /*frequency,*/ offset, repeat, panning, volumeRain);
+	}
+
+	RestartRainSample = false;
+#endif
+}
+
 void Sound::setSamplePosition(int32 channelIdx, int32 x, int32 y, int32 z) {
 	if (channelIdx < 0 || channelIdx >= NUM_CHANNELS) {
 		return;
 	}
-	const int32 camX = _engine->_grid->_newCamera.x * BRICK_SIZE;
-	const int32 camY = _engine->_grid->_newCamera.y * BRICK_HEIGHT;
-	const int32 camZ = _engine->_grid->_newCamera.z * BRICK_SIZE;
+	const int32 camX = _engine->_grid->_newCamera.x * SIZE_BRICK_XZ;
+	const int32 camY = _engine->_grid->_newCamera.y * SIZE_BRICK_Y;
+	const int32 camZ = _engine->_grid->_newCamera.z * SIZE_BRICK_XZ;
 	int32 distance = getDistance3D(camX, camY, camZ, x, y, z);
-	distance = _engine->_collision->getAverageValue(0, distance, 10000, 255);
-	const byte targetVolume = CLIP<byte>(255 - distance, 0, 255);
+	distance = _engine->_collision->boundRuleThree(0, distance, 10000, 255);
+	byte targetVolume = 0;
+	if (distance < 255) {
+		targetVolume = 255 - distance;
+	}
 	_engine->_system->getMixer()->setChannelVolume(samplesPlaying[channelIdx], targetVolume);
 }
 
@@ -85,7 +106,9 @@ void Sound::playFlaSample(int32 index, int32 repeat, uint8 balance, int32 volume
 		*sampPtr = 'C';
 	}
 
-	playSample(channelIdx, index, sampPtr, sampSize, repeat, Resources::HQR_FLASAMP_FILE);
+	Common::MemoryReadStream *stream = new Common::MemoryReadStream(sampPtr, sampSize, DisposeAfterUse::YES);
+	Audio::SeekableAudioStream *audioStream = Audio::makeVOCStream(stream, DisposeAfterUse::YES);
+	playSample(channelIdx, index, audioStream, repeat, Resources::HQR_FLASAMP_FILE);
 }
 
 void Sound::playSample(int32 index, int32 repeat, int32 x, int32 y, int32 z, int32 actorIdx) {
@@ -103,16 +126,34 @@ void Sound::playSample(int32 index, int32 repeat, int32 x, int32 y, int32 z, int
 		setSamplePosition(channelIdx, x, y, z);
 		// save the actor index for the channel so we can check the position
 		samplesPlayingActors[channelIdx] = actorIdx;
+	} else {
+		samplesPlayingActors[channelIdx] = -1;
 	}
 
 	uint8 *sampPtr = _engine->_resources->_samplesTable[index];
-	int32 sampSize = _engine->_resources->_samplesSizeTable[index];
-	playSample(channelIdx, index, sampPtr, sampSize, repeat, Resources::HQR_SAMPLES_FILE, Audio::Mixer::kSFXSoundType, DisposeAfterUse::NO);
+	uint32 sampSize = _engine->_resources->_samplesSizeTable[index];
+	Common::MemoryReadStream *stream = new Common::MemoryReadStream(sampPtr, sampSize, DisposeAfterUse::NO);
+	Audio::SeekableAudioStream *audioStream = Audio::makeVOCStream(stream, DisposeAfterUse::YES);
+	playSample(channelIdx, index, audioStream, repeat, Resources::HQR_SAMPLES_FILE, Audio::Mixer::kSFXSoundType);
 }
 
 bool Sound::playVoxSample(const TextEntry *text) {
 	if (!_engine->_cfgfile.Sound || text == nullptr) {
 		return false;
+	}
+
+	int channelIdx = getFreeSampleChannelIndex();
+	if (channelIdx == -1) {
+		warning("Failed to play vox sample for index: %i - no free channel", text->index);
+		return false;
+	}
+
+	if (_engine->isAndroid()) {
+		Common::Path basename(Common::String::format("%s%03i", _engine->_text->_currentOggBaseFile.c_str(), text->index));
+		Audio::SeekableAudioStream *audioStream = Audio::SeekableAudioStream::openStreamFile(basename);
+		if (audioStream != nullptr) {
+			return playSample(channelIdx, text->index, audioStream, 1, _engine->_text->_currentOggBaseFile.c_str(), Audio::Mixer::kSpeechSoundType);
+		}
 	}
 
 	uint8 *sampPtr = nullptr;
@@ -131,28 +172,20 @@ bool Sound::playVoxSample(const TextEntry *text) {
 		return false;
 	}
 
-	int channelIdx = getFreeSampleChannelIndex();
-	if (channelIdx == -1) {
-		warning("Failed to play vox sample for index: %i - no free channel", text->index);
-		return false;
-	}
-
 	// Fix incorrect sample files first byte
 	if (*sampPtr != 'C') {
 		_engine->_text->_hasHiddenVox = *sampPtr != '\0';
 		_engine->_text->_voxHiddenIndex++;
 		*sampPtr = 'C';
 	}
-
-	return playSample(channelIdx, text->index, sampPtr, sampSize, 1, _engine->_text->_currentVoxBankFile.c_str(), Audio::Mixer::kSpeechSoundType);
+	Common::MemoryReadStream *stream = new Common::MemoryReadStream(sampPtr, sampSize, DisposeAfterUse::YES);
+	Audio::SeekableAudioStream *audioStream = Audio::makeVOCStream(stream, DisposeAfterUse::YES);
+	return playSample(channelIdx, text->index, audioStream, 1, _engine->_text->_currentVoxBankFile.c_str(), Audio::Mixer::kSpeechSoundType);
 }
 
-bool Sound::playSample(int channelIdx, int index, uint8 *sampPtr, int32 sampSize, int32 loop, const char *name, Audio::Mixer::SoundType soundType, DisposeAfterUse::Flag disposeFlag) {
-	Common::MemoryReadStream *stream = new Common::MemoryReadStream(sampPtr, sampSize, disposeFlag);
-	Audio::SeekableAudioStream *audioStream = Audio::makeVOCStream(stream, DisposeAfterUse::YES);
+bool Sound::playSample(int channelIdx, int index, Audio::SeekableAudioStream *audioStream, int32 loop, const char *name, Audio::Mixer::SoundType soundType) {
 	if (audioStream == nullptr) {
-		warning("Failed to create audio stream for %s", name);
-		delete stream;
+		warning("Failed to create audio stream for %s: %i", name, index);
 		return false;
 	}
 	if (loop == -1) {

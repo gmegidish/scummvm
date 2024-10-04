@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,6 +55,7 @@
 
 #include "gui/gui-manager.h"
 #include "gui/error.h"
+#include "gui/message.h"
 
 #include "audio/mididrv.h"
 #include "audio/musicplugin.h"  /* for music manager */
@@ -66,6 +66,7 @@
 #ifdef USE_FREETYPE2
 #include "graphics/fonts/ttf.h"
 #endif
+#include "graphics/scalerplugin.h"
 
 #include "backends/keymapper/action.h"
 #include "backends/keymapper/keymap.h"
@@ -91,6 +92,12 @@
 #include "gui/updates-dialog.h"
 #endif
 
+#ifdef ANDROID_BACKEND
+#include "backends/fs/android/android-fs-factory.h"
+#endif
+
+#include "gui/dump-all-dialogs.h"
+
 static bool launcherDialog() {
 
 	// Discard any command line options. Those that affect the graphics
@@ -98,15 +105,24 @@ static bool launcherDialog() {
 	// blindly be passed to the first game launched from the launcher.
 	ConfMan.getDomain(Common::ConfigManager::kTransientDomain)->clear();
 
+	// If the backend does not allow quitting, loop on the launcher until a game is started
+	bool noQuit = g_system->hasFeature(OSystem::kFeatureNoQuit);
+	bool status = true;
+	do {
 #if defined(__DC__)
-	DCLauncherDialog dlg;
+		DCLauncherDialog dlg;
 #else
-	GUI::LauncherDialog dlg;
+		GUI::LauncherChooser dlg;
+		dlg.selectLauncher();
 #endif
-	return (dlg.runModal() != -1);
+		status = (dlg.runModal() != -1);
+	} while (noQuit && nullptr == ConfMan.getActiveDomain());
+	return status;
 }
 
-static const Plugin *detectPlugin() {
+static Common::Error identifyGame(const Common::String &debugLevels, const Plugin **detectionPlugin, DetectedGame &game, const void **descriptor) {
+	assert(detectionPlugin);
+
 	// Figure out the engine ID and game ID
 	Common::String engineId = ConfMan.get("engineid");
 	Common::String gameId = ConfMan.get("gameid");
@@ -117,31 +133,39 @@ static const Plugin *detectPlugin() {
 	// At this point the engine ID and game ID must be known
 	if (engineId.empty()) {
 		warning("The engine ID is not set for target '%s'", ConfMan.getActiveDomainName().c_str());
-		return 0;
+		return Common::kUnknownError;
 	}
 
 	if (gameId.empty()) {
 		warning("The game ID is not set for target '%s'", ConfMan.getActiveDomainName().c_str());
-		return 0;
+		return Common::kUnknownError;
 	}
 
-	const Plugin *plugin = EngineMan.findPlugin(engineId);
-	if (!plugin) {
+	*detectionPlugin = EngineMan.findDetectionPlugin(engineId);
+	if (!*detectionPlugin) {
 		warning("'%s' is an invalid engine ID. Use the --list-engines command to list supported engine IDs", engineId.c_str());
-		return 0;
+		return Common::kMetaEnginePluginNotFound;
 	}
-
 	// Query the plugin for the game descriptor
-	printf("   Looking for a plugin supporting this target... %s\n", plugin->getName());
-	const MetaEngineDetection &metaEngine = plugin->get<MetaEngineDetection>();
+	MetaEngineDetection &metaEngine = (*detectionPlugin)->get<MetaEngineDetection>();
+
+	// before doing anything, we register the debug channels of the (Meta)Engine(Detection)
 	DebugMan.addAllDebugChannels(metaEngine.getDebugChannels());
-	PlainGameDescriptor game = metaEngine.findGame(gameId.c_str());
-	if (!game.gameId) {
-		warning("'%s' is an invalid game ID for the engine '%s'. Use the --list-games option to list supported game IDs", gameId.c_str(), engineId.c_str());
-		return 0;
+	// Setup now the debug channels
+	Common::StringTokenizer tokenizer(debugLevels, " ,");
+	while (!tokenizer.empty()) {
+		Common::String token = tokenizer.nextToken();
+		if (token.equalsIgnoreCase("all"))
+			DebugMan.enableAllDebugChannels();
+		else if (!DebugMan.enableDebugChannel(token))
+			warning("Engine does not support debug level '%s'", token.c_str());
 	}
 
-	return plugin;
+	Common::Error result = metaEngine.identifyGame(game, descriptor);
+	if (result.getCode() != Common::kNoError) {
+		warning("Couldn't identify game '%s' for the engine '%s'.", gameId.c_str(), engineId.c_str());
+	}
+	return result;
 }
 
 void saveLastLaunchedTarget(const Common::String &target) {
@@ -154,15 +178,14 @@ void saveLastLaunchedTarget(const Common::String &target) {
 }
 
 // TODO: specify the possible return values here
-static Common::Error runGame(const Plugin *plugin, const Plugin *enginePlugin, OSystem &system, const Common::String &debugLevels) {
-	assert(plugin);
+static Common::Error runGame(const Plugin *enginePlugin, OSystem &system, const DetectedGame &game, const void *meDescriptor) {
 	assert(enginePlugin);
 
 	// Determine the game data path, for validation and error messages
-	Common::FSNode dir(ConfMan.get("path"));
+	Common::FSNode dir(ConfMan.getPath("path"));
 	Common::String target = ConfMan.getActiveDomainName();
 	Common::Error err = Common::kNoError;
-	Engine *engine = 0;
+	Engine *engine = nullptr;
 
 #if defined(SDL_BACKEND) && defined(USE_OPENGL) && defined(USE_RGB_COLOR)
 	// HACK: We set up the requested graphics mode setting here to allow the
@@ -184,29 +207,6 @@ static Common::Error runGame(const Plugin *plugin, const Plugin *enginePlugin, O
 		err = Common::kPathNotDirectory;
 	}
 
-	// Create the game's MetaEngineDetection.
-	const MetaEngineDetection &metaEngineDetection = plugin->get<MetaEngineDetection>();
-	if (err.getCode() == Common::kNoError) {
-		// Set default values for all of the custom engine options
-		// Apparently some engines query them in their constructor, thus we
-		// need to set this up before instance creation.
-		metaEngineDetection.registerDefaultSettings(target);
-	}
-
-	// before we instantiate the engine, we register debug channels for it
-	DebugMan.addAllDebugChannels(metaEngineDetection.getDebugChannels());
-
-	// On creation the engine should have set up all debug levels so we can use
-	// the command line arguments here
-	Common::StringTokenizer tokenizer(debugLevels, " ,");
-	while (!tokenizer.empty()) {
-		Common::String token = tokenizer.nextToken();
-		if (token.equalsIgnoreCase("all"))
-			DebugMan.enableAllDebugChannels();
-		else if (!DebugMan.enableDebugChannel(token))
-			warning("Engine does not support debug level '%s'", token.c_str());
-	}
-
 	// Create the game's MetaEngine.
 	MetaEngine &metaEngine = enginePlugin->get<MetaEngine>();
 	if (err.getCode() == Common::kNoError) {
@@ -214,9 +214,8 @@ static Common::Error runGame(const Plugin *plugin, const Plugin *enginePlugin, O
 		// Apparently some engines query them in their constructor, thus we
 		// need to set this up before instance creation.
 		metaEngine.registerDefaultSettings(target);
+		err = metaEngine.createInstance(&system, &engine, game, meDescriptor);
 	}
-
-	err = metaEngine.createInstance(&system, &engine);
 
 	// Check for errors
 	if (!engine || err.getCode() != Common::kNoError) {
@@ -224,10 +223,10 @@ static Common::Error runGame(const Plugin *plugin, const Plugin *enginePlugin, O
 		// Print a warning; note that scummvm_main will also
 		// display an error dialog, so we don't have to do this here.
 		warning("%s failed to instantiate engine: %s (target '%s', path '%s')",
-			plugin->getName(),
+			game.engineId.c_str(),
 			err.getDesc().c_str(),
 			target.c_str(),
-			dir.getPath().c_str()
+			dir.getPath().toString(Common::Path::kNativeSeparator).c_str()
 			);
 
 		// If a temporary target failed to launch, remove it from the configuration manager
@@ -237,7 +236,6 @@ static Common::Error runGame(const Plugin *plugin, const Plugin *enginePlugin, O
 			ConfMan.removeGameDomain(target.c_str());
 		}
 
-		DebugMan.removeAllDebugChannels();
 		return err;
 	}
 
@@ -247,13 +245,8 @@ static Common::Error runGame(const Plugin *plugin, const Plugin *enginePlugin, O
 	// Set the window caption to the game name
 	Common::String caption(ConfMan.get("description"));
 
-	if (caption.empty()) {
-		// here, we don't need to set the debug channels because it has been set earlier
-		PlainGameDescriptor game = metaEngineDetection.findGame(ConfMan.get("gameid").c_str());
-		if (game.description) {
-			caption = game.description;
-		}
-	}
+	if (caption.empty())
+		caption = game.description;
 	if (caption.empty())
 		caption = target;
 	if (!caption.empty())	{
@@ -269,8 +262,8 @@ static Common::Error runGame(const Plugin *plugin, const Plugin *enginePlugin, O
 
 	// Add extrapath (if any) to the directory search list
 	if (ConfMan.hasKey("extrapath")) {
-		dir = Common::FSNode(ConfMan.get("extrapath"));
-		SearchMan.addDirectory(dir.getPath(), dir);
+		dir = Common::FSNode(ConfMan.getPath("extrapath"));
+		SearchMan.addDirectory(dir);
 	}
 
 	// If a second extrapath is specified on the app domain level, add that as well.
@@ -278,10 +271,10 @@ static Common::Error runGame(const Plugin *plugin, const Plugin *enginePlugin, O
 	// verify that it's not already there before adding it. The search manager will
 	// check for that too, so this check is mostly to avoid a warning message.
 	if (ConfMan.hasKey("extrapath", Common::ConfigManager::kApplicationDomain)) {
-		Common::String extraPath = ConfMan.get("extrapath", Common::ConfigManager::kApplicationDomain);
-		if (!SearchMan.hasArchive(extraPath)) {
-			dir = Common::FSNode(extraPath);
-			SearchMan.addDirectory(dir.getPath(), dir);
+		Common::Path extraPath = ConfMan.getPath("extrapath", Common::ConfigManager::kApplicationDomain);
+		dir = Common::FSNode(extraPath);
+		if (!SearchMan.hasArchive(dir.getPath().toString())) {
+			SearchMan.addDirectory(dir);
 		}
 	}
 
@@ -328,9 +321,7 @@ static Common::Error runGame(const Plugin *plugin, const Plugin *enginePlugin, O
 	keymapper->cleanupGameKeymaps();
 
 	// Free up memory
-	delete engine;
-
-	DebugMan.removeAllDebugChannels();
+	metaEngine.deleteInstance(engine, game, meDescriptor);
 
 	// Reset the file/directory mappings
 	SearchMan.clear();
@@ -353,24 +344,26 @@ static void setupGraphics(OSystem &system) {
 		// Set the user specified graphics mode (if any).
 		system.setGraphicsMode(ConfMan.get("gfx_mode").c_str());
 		system.setStretchMode(ConfMan.get("stretch_mode").c_str());
-		system.setShader(ConfMan.get("shader").c_str());
 		system.setScaler(ConfMan.get("scaler").c_str(), ConfMan.getInt("scale_factor"));
+		system.setShader(ConfMan.getPath("shader"));
 
+#if defined(OPENDINGUX) || defined(MIYOO) || defined(MIYOOMINI) || defined(ATARI)
+		// 0, 0 means "autodetect" but currently only SDL supports
+		// it and really useful only on Opendingux. When more platforms
+		// support it we will switch to it.
+		system.initSize(0, 0);
+#else
 		system.initSize(320, 200);
+#endif
 
 		// Parse graphics configuration, implicit fallback to defaults set with RegisterDefaults()
 		system.setFeatureState(OSystem::kFeatureAspectRatioCorrection, ConfMan.getBool("aspect_ratio"));
 		system.setFeatureState(OSystem::kFeatureFullscreenMode, ConfMan.getBool("fullscreen"));
 		system.setFeatureState(OSystem::kFeatureFilteringMode, ConfMan.getBool("filtering"));
+		system.setFeatureState(OSystem::kFeatureVSync, ConfMan.getBool("vsync"));
 	system.endGFXTransaction();
 
 	system.applyBackendSettings();
-
-	// When starting up launcher for the first time, the user might have specified
-	// a --gui-theme option, to allow that option to be working, we need to initialize
-	// GUI here.
-	// FIXME: Find a nicer way to allow --gui-theme to be working
-	GUI::GuiManager::instance();
 
 	// Set initial window caption
 	system.setWindowCaption(Common::U32String(gScummVMFullVersion));
@@ -419,12 +412,54 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 	Common::StringMap settings;
 	command = Base::parseCommandLine(settings, argc, argv);
 
+	// Check for backend start settings
+	Common::String executable;
+	if (argc && argv && argv[0]) {
+		const char *s = strrchr(argv[0], '/');
+		if (!s)
+			s = strrchr(argv[0], '\\');
+		executable = s ? (s + 1) : argv[0];
+	}
+	Common::StringArray additionalArgs;
+	system.updateStartSettings(executable, command, settings, additionalArgs);
+
+	if (!additionalArgs.empty()) {
+		// Parse those additional command line arguments.
+		additionalArgs.insert_at(0, executable);
+		uint argumentsSize = additionalArgs.size();
+		char **arguments = (char **)malloc(argumentsSize * sizeof(char *));
+		for (uint i = 0; i < argumentsSize; i++) {
+			arguments[i] = (char *)malloc(additionalArgs[i].size() + 1);
+			Common::strlcpy(arguments[i], additionalArgs[i].c_str(), additionalArgs[i].size() + 1);
+		}
+
+		Common::StringMap additionalSettings;
+		Common::String additionalCommand = Base::parseCommandLine(additionalSettings, argumentsSize, arguments);
+
+		for (uint i = 0; i < argumentsSize; i++)
+			free(arguments[i]);
+		free(arguments);
+
+		// Merge additional settings and command with command line. Command line has priority.
+		if (command.empty())
+			command = additionalCommand;
+		for (Common::StringMap::const_iterator x = additionalSettings.begin(); x != additionalSettings.end(); ++x) {
+			if (!settings.contains(x->_key))
+				settings[x->_key] = x->_value;
+		}
+	}
+
 	// Load the config file (possibly overridden via command line):
+	Common::Path initConfigFilename;
+	if (settings.contains("initial-cfg"))
+		initConfigFilename = Common::Path(settings["initial-cfg"], Common::Path::kNativeSeparator);
+
+	bool configLoadStatus;
 	if (settings.contains("config")) {
-		ConfMan.loadConfigFile(settings["config"]);
-		settings.erase("config");
+		configLoadStatus = ConfMan.loadConfigFile(
+			Common::Path(settings["config"], Common::Path::kNativeSeparator), initConfigFilename);
 	} else {
-		ConfMan.loadDefaultConfigFile();
+		configLoadStatus = ConfMan.loadDefaultConfigFile(initConfigFilename);
 	}
 
 	// Update the config file
@@ -434,7 +469,7 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 	// soonest possible moment to ensure debug output starts early on, if
 	// requested.
 	if (settings.contains("debuglevel")) {
-		gDebugLevel = (int)strtol(settings["debuglevel"].c_str(), 0, 10);
+		gDebugLevel = (int)strtol(settings["debuglevel"].c_str(), nullptr, 10);
 		printf("Debuglevel (from command line): %d\n", gDebugLevel);
 		settings.erase("debuglevel"); // This option should not be passed to ConfMan.
 	} else if (ConfMan.hasKey("debuglevel"))
@@ -484,8 +519,6 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 		if (res.getCode() != Common::kNoError)
 			warning("%s", res.getDesc().c_str());
 
-		PluginManager::instance().unloadDetectionPlugin();
-		PluginManager::instance().unloadAllPlugins();
 		PluginManager::destroy();
 
 		return res.getCode();
@@ -503,6 +536,19 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 	}
 #endif
 
+	// If we received an old style graphics mode parameter via command line
+	// override it to default at this stage, so that the backend init won't
+	// pass it onto updateOldSettings(). If it happened to be a valid new
+	// graphics mode, we'll put it back after initBackend().
+	Common::String gfxModeSetting;
+	if (settings.contains("gfx-mode")) {
+		gfxModeSetting = settings["gfx-mode"];
+		if (ScalerMan.isOldGraphicsSetting(gfxModeSetting)) {
+			settings["gfx-mode"] = "default";
+			ConfMan.set("gfx_mode", settings["gfx-mode"], Common::ConfigManager::kSessionDomain);
+		}
+	}
+
 	// Init the backend. Must take place after all config data (including
 	// the command line params) was read.
 	system.initBackend();
@@ -511,25 +557,35 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 	// we check this here. We can't do it until after the backend is inited,
 	// or there won't be a graphics manager to ask for the supported modes.
 
-	if (settings.contains("gfx-mode")) {
+	if (!gfxModeSetting.empty()) {
 		const OSystem::GraphicsMode *gm = g_system->getSupportedGraphicsModes();
-		Common::String option = settings["gfx-mode"];
 		bool isValid = false;
 
 		while (gm->name && !isValid) {
-			isValid = !scumm_stricmp(gm->name, option.c_str());
+			isValid = !scumm_stricmp(gm->name, gfxModeSetting.c_str());
 			gm++;
 		}
 		if (!isValid) {
-			warning("Unrecognized graphics mode '%s'. Switching to default mode", option.c_str());
-			settings["gfx-mode"] = "default";
+			// We will actually already have switched to default, but couldn't be sure that it was right until now.
+			warning("Unrecognized graphics mode '%s'. Switching to default mode", gfxModeSetting.c_str());
+		} else {
+			settings["gfx-mode"] = gfxModeSetting;
+			system.beginGFXTransaction();
+			system.setGraphicsMode(gfxModeSetting.c_str());
+			system.endGFXTransaction();
 		}
+		ConfMan.set("gfx_mode", gfxModeSetting, Common::ConfigManager::kSessionDomain);
 	}
 	if (settings.contains("disable-display")) {
 		ConfMan.setInt("disable-display", 1, Common::ConfigManager::kTransientDomain);
 	}
 	setupGraphics(system);
 
+	if (!configLoadStatus) {
+		GUI::MessageDialog alert(_("Bad config file format. overwrite?"), _("Yes"), _("Cancel"));
+		if (alert.runModal() != GUI::kMessageOK)
+   			return 0;
+	}
 	// Init the different managers that are used by the engines.
 	// Do it here to prevent fragmentation later
 	system.getAudioCDManager();
@@ -562,43 +618,155 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 	}
 #endif
 
+#ifdef ANDROID_BACKEND
+	// This early popup message for Android, informing the users about important
+	// changes to file access, needs to be *after* language for the GUI has been selected.
+	// Hence, we instantiate GUI Manager here, to take care of this.
+	GUI::GuiManager::instance();
+	if (AndroidFilesystemFactory::instance().hasSAF()
+		&& !ConfMan.hasKey("android_saf_dialog_shown")) {
+
+		bool cancelled = false;
+
+		if (!ConfMan.getGameDomains().empty()) {
+			GUI::MessageDialog alert(_(
+				// I18N: <Add a new folder> must match the translation done in backends/fs/android/android-saf-fs.h
+				"In this new version of ScummVM for Android, significant changes were made to "
+				"the file access system to allow support for modern versions of the Android "
+				"Operating System.\n"
+				"If you find that your existing added games or custom paths no longer work, "
+				"please edit those paths:"
+				"\n"
+				"  1. From the Launcher, go to **Game Options > Paths**."
+				" Select **Game Path** or **Extra Path**, as appropriate. \n"
+				"  2. Inside the ScummVM file browser, select **Go Up** until you reach the root folder "
+				"which has the **<Add a new folder>** option.\n"
+				"  3. Double-tap **<Add a new folder>**. In your device's file browser, navigate to the folder "
+				"containing all your game folders. For example, **SD Card > ScummVMgames** \n"
+				"  4. Select **Use this folder**. \n"
+				"  5. Select **Allow** to give ScummVM permission to access the folder. \n"
+				"  6. In the ScummVM file browser, double-tap to browse through your added folder. "
+				"Select the folder containing the game's files, then tap **Choose**. \n"
+				"\n"
+				"Repeat steps 1 and 6 for each game."
+				), _("Ok"),
+				// I18N: A button caption to dismiss a message and read it later
+				_("Read Later"), Graphics::kTextAlignLeft);
+
+			if (alert.runModal() != GUI::kMessageOK)
+				cancelled = true;
+		} else {
+			GUI::MessageDialog alert(_(
+				// I18N: <Add a new folder> must match the translation done in backends/fs/android/android-saf-fs.h
+				"In this new version of ScummVM for Android, significant changes were made to "
+				"the file access system to allow support for modern versions of the Android "
+				"Operating System.\n"
+				"To add a game:\n"
+				"\n"
+				"  1. Select **Add Game...** from the launcher. \n"
+				"  2. Inside the ScummVM file browser, select **Go Up** until you reach the root folder "
+				"which has the **<Add a new folder>** option.\n"
+				"  3. Double-tap **<Add a new folder>**. In your device's file browser, navigate to the folder "
+				"containing all your game folders. For example, **SD Card > ScummVMgames** \n"
+				"  4. Select **Use this folder**. \n"
+				"  5. Select **Allow** to give ScummVM permission to access the folder. \n"
+				"  6. In the ScummVM file browser, double-tap to browse through your added folder. "
+				"Select the sub-folder containing the game's files, then tap **Choose**."
+				"\n"
+				"Repeat steps 1 and 6 for each game."
+				), _("Ok"),
+				// I18N: A button caption to dismiss a message and read it later
+				_("Read Later"), Graphics::kTextAlignLeft);
+
+			if (alert.runModal() != GUI::kMessageOK)
+				cancelled = true;
+		}
+
+		if (!cancelled)
+			ConfMan.setBool("android_saf_dialog_shown", true);
+	}
+#endif
+
 #if defined(USE_CLOUD) && defined(USE_LIBCURL)
 	CloudMan.init();
 	CloudMan.syncSaves();
 #endif
 
+#if 0
+	GUI::dumpAllDialogs();
+#endif
+
+// Print out CPU extension info
+// Separate block to keep the stack clean
+	{
+		Common::String extensionSupportString[3] = { "not supported", "disabled", "enabled" };
+
+		byte sse2Support = 0;
+		byte avx2Support = 0;
+		byte neonSupport = 0;
+
+#ifdef SCUMMVM_SSE2
+		++sse2Support;
+		if (g_system->hasFeature(OSystem::kFeatureCpuSSE2))
+			++sse2Support;
+#endif
+#ifdef SCUMMVM_AVX2
+		++avx2Support;
+		if (g_system->hasFeature(OSystem::kFeatureCpuAVX2))
+			++avx2Support;
+#endif
+#ifdef SCUMMVM_NEON
+		++neonSupport;
+		if (g_system->hasFeature(OSystem::kFeatureCpuNEON))
+			++neonSupport;
+#endif
+
+		debug(0, "CPU extensions:");
+		debug(0, "SSE2(%s) AVX2(%s) NEON(%s)",
+			extensionSupportString[sse2Support].c_str(),
+			extensionSupportString[avx2Support].c_str(),
+			extensionSupportString[neonSupport].c_str());
+	}
+
 	// Unless a game was specified, show the launcher dialog
-	if (0 == ConfMan.getActiveDomain())
+	if (nullptr == ConfMan.getActiveDomain())
 		launcherDialog();
 
 	// FIXME: We're now looping the launcher. This, of course, doesn't
 	// work as well as it should. In theory everything should be destroyed
 	// cleanly, so this is now enabled to encourage people to fix bits :)
-	while (0 != ConfMan.getActiveDomain()) {
+	while (nullptr != ConfMan.getActiveDomain()) {
 		saveLastLaunchedTarget(ConfMan.getActiveDomainName());
 
 		EngineMan.upgradeTargetIfNecessary(ConfMan.getActiveDomainName());
 
 		// Try to find a MetaEnginePlugin which feels responsible for the specified game.
-		const Plugin *plugin = detectPlugin();
-
-		// Then, get the relevant Engine plugin from MetaEngine.
 		const Plugin *enginePlugin = nullptr;
-		if (plugin)
-			enginePlugin = PluginMan.getEngineFromMetaEngine(plugin);
+		const Plugin *plugin = nullptr;
+		DetectedGame game;
+		const void *meDescriptor = nullptr;
+		Common::Error result = identifyGame(specialDebug, &plugin, game, &meDescriptor);
 
-		if (enginePlugin) {
+		if (result.getCode() == Common::kNoError) {
+			Common::String engineId = plugin->getName();
+#if defined(UNCACHED_PLUGINS) && defined(DYNAMIC_MODULES) && !defined(DETECTION_STATIC)
+			// Unload all MetaEnginesDetection if we're using uncached plugins to save extra memory.
+			PluginManager::instance().unloadDetectionPlugin();
+#endif
+
+			// Then, get the relevant Engine plugin from MetaEngine.
+			enginePlugin = PluginMan.findEnginePlugin(engineId);
+			if (enginePlugin == nullptr) {
+				result = Common::kEnginePluginNotFound;
+			}
+		}
+
+		if (result.getCode() == Common::kNoError) {
 			// Unload all plugins not needed for this game, to save memory
 			// Right now, we have a MetaEngine plugin, and we want to unload all except Engine.
 
 			// Pass in the pointer to enginePlugin, with the matching type, so our function behaves as-is.
 			PluginManager::instance().unloadPluginsExcept(PLUGIN_TYPE_ENGINE, enginePlugin);
-
-#if defined(UNCACHED_PLUGINS) && defined(DYNAMIC_MODULES) && !defined(DETECTION_STATIC)
-			// Unload all MetaEngines not needed for the current engine, if we're using uncached plugins
-			// to save extra memory.
-			PluginManager::instance().unloadPluginsExcept(PLUGIN_TYPE_ENGINE_DETECTION, plugin);
-#endif
 
 #ifdef ENABLE_EVENTRECORDER
 			Common::String recordMode = ConfMan.get("record_mode");
@@ -615,6 +783,8 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 				Common::PlaybackFile record;
 				record.openRead(recordFileName);
 				debug("info:author=%s name=%s description=%s", record.getHeader().author.c_str(), record.getHeader().name.c_str(), record.getHeader().description.c_str());
+
+				DebugMan.removeAllDebugChannels();
 				break;
 			}
 #endif
@@ -623,10 +793,12 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 				ttsMan->pushState();
 			}
 			// Try to run the game
-			Common::Error result = runGame(plugin, enginePlugin, system, specialDebug);
+			result = runGame(enginePlugin, system, game, meDescriptor);
 			if (ttsMan != nullptr) {
 				ttsMan->popState();
 			}
+
+			DebugMan.removeAllDebugChannels();
 
 #ifdef ENABLE_EVENTRECORDER
 			// Flush Event recorder file. The recorder does not get reinitialized for next game
@@ -694,6 +866,8 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 			PluginManager::instance().loadAllPluginsOfType(PLUGIN_TYPE_ENGINE); // only for cached manager
 			PluginManager::instance().loadDetectionPlugin(); // only for uncached manager
 		} else {
+			DebugMan.removeAllDebugChannels();
+
 			GUI::displayErrorDialog(_("Could not find any engine capable of running the selected game"));
 
 			// Clear the active domain
@@ -702,7 +876,7 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 
 		// reset the graphics to default
 		setupGraphics(system);
-		if (0 == ConfMan.getActiveDomain()) {
+		if (nullptr == ConfMan.getActiveDomain()) {
 			launcherDialog();
 		}
 	}
@@ -716,8 +890,6 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 	Cloud::CloudManager::destroy();
 #endif
 #endif
-	PluginManager::instance().unloadDetectionPlugin();
-	PluginManager::instance().unloadAllPlugins();
 	PluginManager::destroy();
 	GUI::GuiManager::destroy();
 	Common::ConfigManager::destroy();

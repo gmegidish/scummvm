@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@
 
 namespace Bbvs {
 
-Sound::Sound() : _stream(0) {
+Sound::Sound() : _stream(nullptr) {
 }
 
 Sound::~Sound() {
@@ -37,23 +36,30 @@ Sound::~Sound() {
 	delete _stream;
 }
 
-void Sound::load(const Common::String &filename) {
+void Sound::load(const Common::Path &filename) {
 	Common::File *fd = new Common::File();
 	if (!fd->open(filename)) {
 		delete fd;
-		error("SoundMan::loadSound() Could not load %s", filename.c_str());
+		error("SoundMan::loadSound() Could not load %s", filename.toString(Common::Path::kNativeSeparator).c_str());
 	}
 	_stream = Audio::makeAIFFStream(fd, DisposeAfterUse::YES);
 	_filename = filename;
 }
 
 void Sound::play(bool loop) {
-	debug(0, "Sound::play() [%s] loop:%d", _filename.c_str(), loop);
+	debug(0, "Sound::play() [%s] loop:%d", _filename.toString(Common::Path::kNativeSeparator).c_str(), loop);
+
 	stop();
 	_stream->rewind();
-	Audio::AudioStream *audioStream = Audio::makeLoopingAudioStream(_stream, loop ? 0 : 1);
-	g_system->getMixer()->playStream(Audio::Mixer::kSFXSoundType, &_handle, audioStream,
-		-1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO);
+
+	if (loop) {
+		Audio::AudioStream *audioStream = new Audio::LoopingAudioStream(_stream, 0, DisposeAfterUse::NO);
+		g_system->getMixer()->playStream(Audio::Mixer::kSFXSoundType, &_handle, audioStream,
+			-1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::YES);
+	} else {
+		g_system->getMixer()->playStream(Audio::Mixer::kSFXSoundType, &_handle, _stream,
+			-1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO);
+	}
 }
 
 void Sound::stop() {
@@ -69,7 +75,7 @@ SoundMan::~SoundMan() {
 	unloadSounds();
 }
 
-void SoundMan::loadSound(const Common::String &filename) {
+void SoundMan::loadSound(const Common::Path &filename) {
 	Sound *sound = new Sound();
 	sound->load(filename);
 	_sounds.push_back(sound);

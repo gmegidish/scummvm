@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Copyright 2020 Google
  *
@@ -40,13 +39,15 @@
 #include "hadesch/event.h"
 #include "hadesch/herobelt.h"
 #include "hadesch/persistent.h"
-#include "common/translation.h"
+
+#define _hs(x) (x)
 
 struct ADGameDescription;
 
 namespace Common {
 class SeekableReadStream;
 class PEResources;
+class TranslationManager;
 }
 
 namespace Graphics {
@@ -112,8 +113,8 @@ public:
 
 	bool hasFeature(EngineFeature f) const override;
 
-	bool canLoadGameStateCurrently() override { return true; }
-	bool canSaveGameStateCurrently() override { return _persistent._currentRoomId != 0; }
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return true; }
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override { return _persistent._currentRoomId != 0; }
 	Common::Error loadGameStream(Common::SeekableReadStream *stream) override;
 	Common::Error saveGameStream(Common::WriteStream *stream, bool isAutosave = false) override;
 
@@ -178,6 +179,7 @@ public:
 	uint32 getSubtitleDelayPerChar() const;
 	void wrapSubtitles(const Common::U32String &str, Common::Array<Common::U32String> &lines);
 	Common::U32String translate(const Common::String &str);
+	void fallbackClick();
 
 private:
 	void addTimer(EventHandlerWrapper event, int32 start_time, int period,
@@ -188,7 +190,7 @@ private:
 			  RoomId roomId);
 	Common::ErrorCode loadCursors();
 	bool handleGenericCheat(const Common::String &cheat);
-	Common::ErrorCode loadWindowsCursors(Common::PEResources &exe);
+	Common::ErrorCode loadWindowsCursors(const Common::ScopedPtr<Common::PEResources>& exe);
 
 	struct Timer {
 		int32 next_time;
@@ -226,6 +228,7 @@ private:
   	bool _isQuitting;
 	int _subtitleID;
 	int _subtitleDelayPerChar;
+	int _lastFallbackSound;
 
 #ifdef USE_TRANSLATION
 	Common::TranslationManager *_transMan;

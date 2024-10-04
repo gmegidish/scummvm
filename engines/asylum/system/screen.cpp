@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/scummsys.h"
-#include "common/timer.h"
+#include "graphics/paletteman.h"
 
 #include "asylum/system/screen.h"
 
@@ -43,7 +42,7 @@ int g_debugDrawRects;
 #define TRANSPARENCY_TABLE_SIZE (256 * 256)
 
 Screen::Screen(AsylumEngine *vm) : _vm(vm) ,
-	_useColorKey(false), _transTableCount(0), _transTable(NULL), _transTableBuffer(NULL) {
+	_useColorKey(false), _transTableCount(0), _transTable(nullptr), _transTableBuffer(nullptr) {
 	_backBuffer.create(640, 480, Graphics::PixelFormat::createFormatCLUT8());
 
 	_flag = -1;
@@ -51,18 +50,16 @@ Screen::Screen(AsylumEngine *vm) : _vm(vm) ,
 
 	memset(&_currentPalette, 0, sizeof(_currentPalette));
 	memset(&_mainPalette, 0, sizeof(_mainPalette));
+	memset(&_fromPalette, 0, sizeof(_fromPalette));
+	memset(&_toPalette,   0, sizeof(_toPalette));
+
 	_isFading = false;
 	_fadeStop = false;
-	_fadeResourceId = kResourceNone;
-	_fadeTicksWait = 0;
-	_fadeDelta = 0;
 
 	g_debugDrawRects = 0;
 }
 
 Screen::~Screen() {
-	_vm->getTimerManager()->removeTimerProc(&paletteFadeTimer);
-
 	_backBuffer.free();
 
 	clearTransTables();
@@ -116,7 +113,7 @@ void Screen::drawTransparent(GraphicResource *resource, uint32 frameIndex, const
 
 void Screen::draw(GraphicResource *resource, uint32 frameIndex, const Common::Point &source, DrawFlags flags, ResourceId resourceIdDestination, const Common::Point &destination, bool colorKey) {
 	GraphicFrame *frame = resource->getFrame(frameIndex);
-	ResourceEntry *resourceMask = NULL;
+	ResourceEntry *resourceMask = nullptr;
 
 	// Compute coordinates
 	Common::Rect src;
@@ -187,6 +184,10 @@ void Screen::draw(GraphicResource *resource, uint32 frameIndex, const Common::Po
 	}
 }
 
+void Screen::draw(const Graphics::Surface &surface, int x, int y) {
+	_backBuffer.copyRectToSurface(surface, x, y, Common::Rect(0, 0, surface.w, surface.h));
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Misc
 //////////////////////////////////////////////////////////////////////////
@@ -197,10 +198,8 @@ void Screen::clear() {
 
 void Screen::drawWideScreenBars(int16 barSize) const {
 	if (barSize > 0) {
-		_vm->_system->lockScreen()->fillRect(Common::Rect(0, 0, 640, barSize), 0);
-		_vm->_system->unlockScreen();
-		_vm->_system->lockScreen()->fillRect(Common::Rect(0, 480 - barSize, 640, 480), 0);
-		_vm->_system->unlockScreen();
+		_vm->_system->fillScreen(Common::Rect(0, 0, 640, barSize), 0);
+		_vm->_system->fillScreen(Common::Rect(0, 480 - barSize, 640, 480), 0);
 	}
 }
 
@@ -330,7 +329,7 @@ void Screen::updatePalette(int32 param) {
 			_mainPalette[j + 2] = _currentPalette[j + 2];
 		}
 
-		setupPalette(NULL, 0, 0);
+		setupPalette(nullptr, 0, 0);
 		paletteFade(0, 25, 10);
 	} else {
 		// Get the current action palette
@@ -349,43 +348,22 @@ void Screen::updatePalette(int32 param) {
 			_mainPalette[j + 2] = (byte)((1.0 - fParam) * 4 * paletteData[j + 2] + fParam * _currentPalette[j + 2]);
 		}
 
-		setupPalette(NULL, 0, 0);
+		setupPalette(nullptr, 0, 0);
 	}
 }
 
 //////////////////////////////////////////////////////////////////////////
 // Palette fading
 //////////////////////////////////////////////////////////////////////////
-void Screen::paletteFadeTimer(void *refCon) {
-	((Screen *)refCon)->handlePaletteFadeTimer();
-}
-
-void Screen::handlePaletteFadeTimer() {
-	// Reset flag
-	_fadeStop = false;
-
-	// Start fading
-	_isFading = true;
-
-	paletteFadeWorker(_fadeResourceId, _fadeTicksWait, _fadeDelta);
-
-	// Remove ourselves as a timer (we finished fading or were interrupted)
-	_vm->getTimerManager()->removeTimerProc(&paletteFadeTimer);
-
-	_isFading = false;
-}
-
-void Screen::startPaletteFade(ResourceId resourceId, int32 ticksWait, int32 delta) {
-	if (_isFading && resourceId == _fadeResourceId)
+void Screen::queuePaletteFade(ResourceId resourceId, int32 ticksWait, int32 delta) {
+	if (_isFading && !_fadeQueue.empty() && _fadeQueue.front().resourceId == resourceId)
 		return;
 
-	stopPaletteFadeTimer();
-	_fadeResourceId = resourceId;
-	_fadeTicksWait = ticksWait;
-	_fadeDelta = delta;
+	if (ticksWait < 0 || delta <= 0)
+		return;
 
-	// Inverval == 1: we want to execute directly, since we are only going to be called back once
-	_vm->getTimerManager()->installTimerProc(&paletteFadeTimer, 1, this, "Palette fade timer");
+	FadeParameters fadeParams = {resourceId, ticksWait, delta, _vm->getTick(), 1};
+	_fadeQueue.push(fadeParams);
 }
 
 void Screen::stopPaletteFade(char red, char green, char blue) {
@@ -396,13 +374,19 @@ void Screen::stopPaletteFade(char red, char green, char blue) {
 		_mainPalette[i + 2] = (byte)blue;
 	}
 
-	stopPaletteFadeTimer();
-	setupPalette(NULL, 0, 0);
+	stopQueuedPaletteFade();
+	setupPalette(nullptr, 0, 0);
 }
 
 void Screen::stopPaletteFadeAndSet(ResourceId id, int32 ticksWait, int32 delta) {
-	stopPaletteFadeTimer();
-	paletteFadeWorker(id, ticksWait, delta);
+	stopQueuedPaletteFade();
+	initQueuedPaletteFade(id, delta);
+
+	for (int i = 1; i < delta + 1; i++) {
+		runQueuedPaletteFade(id, delta, i);
+		g_system->delayMillis((uint32)ticksWait);
+		g_system->updateScreen();
+	}
 }
 
 void Screen::paletteFade(uint32 start, int32 ticksWait, int32 delta) {
@@ -425,7 +409,7 @@ void Screen::paletteFade(uint32 start, int32 ticksWait, int32 delta) {
 			_mainPalette[j + 2] = (byte)(palette[j + 2] + i * (blue  - palette[j + 2]) / colorDelta);
 		}
 
-		setupPalette(NULL, 0, 0);
+		setupPalette(nullptr, 0, 0);
 
 		g_system->delayMillis((uint32)ticksWait);
 
@@ -439,17 +423,45 @@ void Screen::paletteFade(uint32 start, int32 ticksWait, int32 delta) {
 	}
 }
 
-void Screen::paletteFadeWorker(ResourceId id, int32 ticksWait, int32 delta) {
-	byte *data = getPaletteData(id);
-
-	if (ticksWait < 0 || delta <= 0)
+void Screen::processPaletteFadeQueue() {
+	if (_fadeQueue.empty())
 		return;
 
+	FadeParameters *current = &_fadeQueue.front();
+	if (_vm->getTick() > current->nextTick) {
+		if (current->step > current->delta) {
+			_isFading = false;
+
+			(void)_fadeQueue.pop();
+			if (_fadeQueue.empty()) {
+				stopQueuedPaletteFade();
+				return;
+			}
+
+			current = &_fadeQueue.front();
+			initQueuedPaletteFade(current->resourceId, current->delta);
+		} else {
+			if (current->step == 1)
+				initQueuedPaletteFade(current->resourceId, current->delta);
+			current->nextTick += current->ticksWait;
+		}
+
+		runQueuedPaletteFade(current->resourceId, current->delta, current->step++);
+	}
+}
+
+void Screen::initQueuedPaletteFade(ResourceId id, int32 delta) {
+	// Reset flag
+	_fadeStop = false;
+
+	// Start fading
+	_isFading = true;
+
+	byte *data = getPaletteData(id);
+
 	// Setup our palette
-	byte original[PALETTE_SIZE];
-	byte palette[PALETTE_SIZE];
-	memcpy(&original, &_mainPalette, sizeof(original));
-	memcpy(&palette,  &_mainPalette, sizeof(palette));
+	memcpy(_fromPalette, _mainPalette, sizeof(_fromPalette));
+	memcpy(_toPalette,   _mainPalette, sizeof(_toPalette));
 
 	// Adjust palette using the target palette data
 	int16 count = READ_LE_UINT16(data);
@@ -458,39 +470,33 @@ void Screen::paletteFadeWorker(ResourceId id, int32 ticksWait, int32 delta) {
 		byte *pData = data + 4;
 
 		for (int16 i = 0; i < count; i++) {
-			palette[i + start]     = (byte)(4 * pData[0]);
-			palette[i + start + 1] = (byte)(4 * pData[1]);
-			palette[i + start + 2] = (byte)(4 * pData[2]);
+			_toPalette[i + start]     = (byte)(4 * pData[0]);
+			_toPalette[i + start + 1] = (byte)(4 * pData[1]);
+			_toPalette[i + start + 2] = (byte)(4 * pData[2]);
 
 			pData += 3;
 		}
 	}
 
 	// Adjust gamma
-	setPaletteGamma(data, (byte *)&palette);
-
-	// Prepare for palette fading loop
-	int32 colorDelta = delta + 1;
-	for (int32 i = 1; i < colorDelta; i++) {
-		for (uint32 j = 3; j < ARRAYSIZE(_mainPalette) - 3; j += 3) {
-			_mainPalette[j]     = (byte)(original[j]     + i * (palette[j]     - original[j])     / colorDelta);
-			_mainPalette[j + 1] = (byte)(original[j + 1] + i * (palette[j + 1] - original[j + 1]) / colorDelta);
-			_mainPalette[j + 2] = (byte)(original[j + 2] + i * (palette[j + 2] - original[j + 2]) / colorDelta);
-		}
-
-		setupPalette(NULL, 0, 0);
-
-		// Original waits for event and so can be interrupted in the middle of the wait
-		g_system->delayMillis((uint32)ticksWait);
-		if (_fadeStop)
-			break;
-
-		// Refresh the screen
-		g_system->updateScreen();
-	}
+	setPaletteGamma(data, _toPalette);
 }
 
-void Screen::stopPaletteFadeTimer() {
+void Screen::runQueuedPaletteFade(ResourceId id, int32 delta, int i) {
+	if (_fadeStop)
+		return;
+
+	int32 colorDelta = delta + 1;
+	for (uint32 j = 3; j < ARRAYSIZE(_mainPalette) - 3; j += 3) {
+		_mainPalette[j]     = (byte)(_fromPalette[j]     + i * (_toPalette[j]     - _fromPalette[j])     / colorDelta);
+		_mainPalette[j + 1] = (byte)(_fromPalette[j + 1] + i * (_toPalette[j + 1] - _fromPalette[j + 1]) / colorDelta);
+		_mainPalette[j + 2] = (byte)(_fromPalette[j + 2] + i * (_toPalette[j + 2] - _fromPalette[j + 2]) / colorDelta);
+	}
+
+	setupPalette(nullptr, 0, 0);
+}
+
+void Screen::stopQueuedPaletteFade() {
 	if (!_isFading)
 		return;
 
@@ -506,7 +512,7 @@ void Screen::setPaletteGamma(ResourceId id) {
 }
 
 void Screen::setPaletteGamma(byte *data, byte *target) {
-	if (target == NULL)
+	if (target == nullptr)
 		target = (byte *)&_mainPalette;
 
 	// Skip first entry
@@ -546,7 +552,7 @@ void Screen::setGammaLevel(ResourceId id) {
 		error("[Screen::setGammaLevel] Resource Id is invalid");
 
 	setPaletteGamma(getPaletteData(id));
-	setupPalette(NULL, 0, 0);
+	setupPalette(nullptr, 0, 0);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -595,8 +601,8 @@ void Screen::setupTransTables(uint32 count, ...) {
 
 void Screen::clearTransTables() {
 	free(_transTableBuffer);
-	_transTableBuffer = NULL;
-	_transTable = NULL;
+	_transTableBuffer = nullptr;
+	_transTable = nullptr;
 	_transTableCount = 0;
 }
 
@@ -915,7 +921,7 @@ void Screen::blitRawColorKey(byte *dstBuffer, byte *srcBuffer, int16 height, int
 
 void Screen::blitMasked(GraphicFrame *frame, Common::Rect *source, byte *maskData, Common::Rect *sourceMask, Common::Rect *destMask, uint16 maskWidth, Common::Rect *destination, int32 flags) {
 	byte *frameBuffer = (byte *)frame->surface.getPixels();
-	byte *mirroredBuffer = NULL;
+	byte *mirroredBuffer = nullptr;
 	int16 frameRight = frame->surface.pitch;
 	uint16 maskHeight = (uint16)sourceMask->height(); // for debugging only
 	byte nSkippedBits = ABS(sourceMask->left) % 8;
@@ -1135,16 +1141,16 @@ void Screen::bltMasked(byte *srcBuffer, byte *maskBuffer, int16 height, int16 wi
 
 void Screen::blt(Common::Rect *dest, GraphicFrame *frame, Common::Rect *source, int32 flags) {
 	if (_useColorKey) {
-		copyToBackBufferWithTransparency((byte *)frame->surface.getPixels() + (source->top * frame->surface.w + source->left),
-		                                 frame->surface.w,
+		copyToBackBufferWithTransparency((byte *)frame->surface.getBasePtr(source->left, source->top),
+		                                 frame->surface.pitch,
 		                                 dest->left,
 		                                 dest->top,
 		                                 (uint16)source->width(),
 		                                 (uint16)source->height(),
 		                                 (bool)(flags & kDrawFlagMirrorLeftRight));
 	} else {
-		copyToBackBuffer((byte *)frame->surface.getPixels() + (source->top * frame->surface.w + source->left),
-		                 frame->surface.w,
+		copyToBackBuffer((byte *)frame->surface.getBasePtr(source->left, source->top),
+		                 frame->surface.pitch,
 		                 dest->left,
 		                 dest->top,
 		                 (uint16)source->width(),
@@ -1154,32 +1160,22 @@ void Screen::blt(Common::Rect *dest, GraphicFrame *frame, Common::Rect *source, 
 }
 
 void Screen::bltFast(int16 dX, int16 dY, GraphicFrame *frame, Common::Rect *source) {
+	if (!frame->surface.getPixels() || source->width() == 0 || source->height() == 0)
+		return;
+
 	if (_useColorKey) {
-		copyToBackBufferWithTransparency((byte *)frame->surface.getPixels() + (source->top * frame->surface.w + source->left),
-		                                 frame->surface.w,
-		                                 dX,
-		                                 dY,
-		                                 (uint16)source->width(),
-		                                 (uint16)source->height());
+		_backBuffer.copyRectToSurfaceWithKey(frame->surface, dX, dY, *source, 0x00);
 	} else {
-		copyToBackBuffer((byte *)frame->surface.getPixels() + (source->top * frame->surface.w + source->left),
-		                 frame->surface.w,
-		                 dX,
-		                 dY,
-		                 (uint16)source->width(),
-		                 (uint16)source->height());
+		_backBuffer.copyRectToSurface(frame->surface, dX, dY, *source);
 	}
 }
 
 void Screen::copyToBackBuffer(const byte *buffer, int32 pitch, int16 x, int16 y, uint16 width, uint16 height, bool mirrored) {
-	byte *dest = (byte *)_backBuffer.getPixels();
+	if (!buffer || width == 0 || height == 0)
+		return;
 
 	if (!mirrored) {
-		while (height--) {
-			memcpy(dest + y * _backBuffer.pitch + x, buffer, width);
-			dest += 640;
-			buffer += pitch;
-		}
+		_backBuffer.copyRectToSurface(buffer, pitch, x, y, width, height);
 	} else {
 		error("[Screen::copyToBackBuffer] Mirrored drawing not implemented (no color key)");
 	}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -46,9 +45,9 @@ struct WindowDecoration;
 
 // enum for the three levels in the trio view
 enum trioViews {
-	top,
-	mid,
-	bot
+	kTrioTop,
+	kTrioMid,
+	kTrioBot
 };
 
 struct ContainerInfo {
@@ -75,16 +74,13 @@ extern const ContainerInfo  indivReadyContInfoBot;
 //  List of decorations for main window
 
 enum borderIDs {
-	MWBottomBorder = 0,
-	MWTopBorder,
-	MWLeftBorder,
-	MWRightBorder1,
-	MWRightBorder2,
-	MWRightBorder3
+	kMWBottomBorder = 0,
+	kMWTopBorder,
+	kMWLeftBorder,
+	kMWRightBorder1,
+	kMWRightBorder2,
+	kMWRightBorder3
 };
-
-const int   extraObjects  = 512,
-            extraActors   = 64;
 
 } // end of namespace Saga2
 

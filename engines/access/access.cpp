@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -80,7 +79,6 @@ AccessEngine::AccessEngine(OSystem *syst, const AccessGameDescription *gameDesc)
 	_establish = nullptr;
 
 	_conversation = 0;
-	_currentMan = 0;
 	_newTime = 0;
 	_newDate = 0;
 	Common::fill(&_objectsTable[0], &_objectsTable[100], (SpriteResource *)nullptr);
@@ -121,6 +119,9 @@ AccessEngine::AccessEngine(OSystem *syst, const AccessGameDescription *gameDesc)
 	_pictureTaken = 0;
 
 	_vidEnd = false;
+
+	for (int i = 0; i < 6; ++i)
+		_countTbl[i] = 0;
 }
 
 AccessEngine::~AccessEngine() {
@@ -153,17 +154,18 @@ void AccessEngine::setVGA() {
 
 void AccessEngine::initialize() {
 	if (isCD()) {
-		const Common::FSNode gameDataDir(ConfMan.get("path"));
+		const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 		// The CD version contains two versions of the game.
 		// - The MCGA version, in the CDROM folder
 		// - The VESA version, in the TDROM folder
 		// We use the hires version.
-		const Common::FSNode cdromDir = gameDataDir.getChild("tdrom");
+
+		// Use forward slash for the folders separator, as documented for SearchSet::addSubDirectoryMatching()
+		const Common::String subfolderMatchPrefix = "tdrom/";
 
 		for (int idx = 0; idx < 15; ++idx) {
-			Common::String folder = (idx == 0) ? "game" :
-				Common::String::format("chap%.2d", idx);
-			SearchMan.addSubDirectoryMatching(cdromDir, folder);
+			Common::String folder = subfolderMatchPrefix + ((idx == 0) ? "game" : Common::String::format("chap%.2d", idx));
+			SearchMan.addSubDirectoryMatching(gameDataDir, folder);
 		}
 	}
 
@@ -495,11 +497,11 @@ Common::Error AccessEngine::loadGameState(int slot) {
 	return Common::kNoError;
 }
 
-bool AccessEngine::canLoadGameStateCurrently() {
+bool AccessEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return _canSaveLoad;
 }
 
-bool AccessEngine::canSaveGameStateCurrently() {
+bool AccessEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return _canSaveLoad;
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -81,7 +80,7 @@ byte *getData(uint32 offset) {
 }
 
 const char *getStringP(uint32 offset) {
-	return offset != 0 ? (const char*)getData(offset) : NULL;
+	return offset != 0 ? (const char*)getData(offset) : nullptr;
 }
 
 uint32 calcHash(const char *value) {
@@ -393,7 +392,7 @@ class RectList : public StaticDataList<RectItem> {
 class MessageList : public StaticDataList<MessageItem> {
 public:
 
-	virtual bool specialLoadList(uint32 count, uint32 offset) {
+	bool specialLoadList(uint32 count, uint32 offset) override {
 		// Special code for message lists which are set at runtime (but otherwise constant)
 		switch (offset) {
 		// Scene 1002 rings
@@ -520,20 +519,22 @@ public:
 
 };
 
-StaticDataListVector<HitRectList> hitRectLists;
-StaticDataListVector<RectList> rectLists;
-StaticDataListVector<MessageList> messageLists;
-StaticDataListVector<NavigationList> navigationLists;
-StaticDataVector<SceneInfo140Item> sceneInfo140Items;
-StaticDataVector<SceneInfo2700Item> sceneInfo2700Items;
+StaticDataListVector<MessageList> *messageLists;
 
 void addMessageList(uint32 messageListCount, uint32 messageListOffset) {
 	MessageList *messageList = new MessageList();
 	messageList->loadList(messageListCount, messageListOffset);
-	messageLists.add(messageList);
+	messageLists->add(messageList);
 }
 
 int main(int argc, char *argv[]) {
+	StaticDataListVector<HitRectList> hitRectLists;
+	StaticDataListVector<RectList> rectLists;
+	StaticDataListVector<NavigationList> navigationLists;
+	StaticDataVector<SceneInfo140Item> sceneInfo140Items;
+	StaticDataVector<SceneInfo2700Item> sceneInfo2700Items;
+
+	messageLists = new StaticDataListVector<MessageList>;
 
 	if (!loadExe("nhc.exe") ||
 		!validateMd5())
@@ -543,7 +544,7 @@ int main(int argc, char *argv[]) {
 
 	hitRectLists.loadListVector(hitRectListOffsets);
 	rectLists.loadListVector(rectListOffsets);
-	messageLists.loadListVector(messageListOffsets);
+	messageLists->loadListVector(messageListOffsets);
 	navigationLists.loadListVector(navigationListOffsets);
 	sceneInfo140Items.loadVector(sceneInfo140Offsets);
 	sceneInfo2700Items.loadVector(sceneInfo2700Offsets);
@@ -553,13 +554,14 @@ int main(int argc, char *argv[]) {
 	writeUint32LE(datFile, 0x11223344); // Some magic
 	writeUint32LE(datFile, DAT_VERSION);
 
-	messageLists.saveListVector(datFile);
+	messageLists->saveListVector(datFile);
 	rectLists.saveListVector(datFile);
 	hitRectLists.saveListVector(datFile);
 	navigationLists.saveListVector(datFile);
 	sceneInfo140Items.saveVector(datFile);
 	sceneInfo2700Items.saveVector(datFile);
 
+	delete messageLists;
 	fclose(datFile);
 
 	printf("Done.\n");

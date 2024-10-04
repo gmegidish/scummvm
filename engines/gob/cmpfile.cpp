@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -37,7 +42,7 @@ namespace Gob {
 CMPFile::CMPFile(GobEngine *vm, const Common::String &baseName,
 				 uint16 width, uint16 height, uint8 bpp) :
 	_vm(vm), _width(width), _height(height), _bpp(bpp), _maxWidth(0), _maxHeight(0),
-	_surface(0), _coordinates(0) {
+	_surface(nullptr), _coordinates(nullptr) {
 
 	if (baseName.empty())
 		return;
@@ -57,7 +62,7 @@ CMPFile::CMPFile(GobEngine *vm, const Common::String &baseName,
 CMPFile::CMPFile(GobEngine *vm, const Common::String &cmpFile, const Common::String &rxyFile,
 				 uint16 width, uint16 height, uint8 bpp) :
 	_vm(vm), _width(width), _height(height), _bpp(bpp), _maxWidth(0), _maxHeight(0),
-	_surface(0), _coordinates(0) {
+	_surface(nullptr), _coordinates(nullptr) {
 
 	if (cmpFile.empty() || !_vm->_dataIO->hasFile(cmpFile))
 		return;
@@ -71,7 +76,7 @@ CMPFile::CMPFile(GobEngine *vm, const Common::String &cmpFile, const Common::Str
 CMPFile::CMPFile(GobEngine *vm, Common::SeekableReadStream &cmp, Common::SeekableReadStream &rxy,
 				 uint16 width, uint16 height, uint8 bpp) :
 	_vm(vm), _width(width), _height(height), _bpp(bpp), _maxWidth(0), _maxHeight(0),
-	_surface(0), _coordinates(0) {
+	_surface(nullptr), _coordinates(nullptr) {
 
 	loadRXY(rxy);
 	createSurface();
@@ -82,7 +87,7 @@ CMPFile::CMPFile(GobEngine *vm, Common::SeekableReadStream &cmp, Common::Seekabl
 CMPFile::CMPFile(GobEngine *vm, Common::SeekableReadStream &cmp,
 				 uint16 width, uint16 height, uint8 bpp) :
 	_vm(vm), _width(width), _height(height), _bpp(bpp), _maxWidth(0), _maxHeight(0),
-	_surface(0), _coordinates(0) {
+	_surface(nullptr), _coordinates(nullptr) {
 
 	createRXY();
 	createSurface();
@@ -96,7 +101,7 @@ CMPFile::~CMPFile() {
 }
 
 bool CMPFile::empty() const {
-	return (_surface == 0) || (_coordinates == 0);
+	return (_surface == nullptr) || (_coordinates == nullptr);
 }
 
 uint16 CMPFile::getSpriteCount() const {
@@ -117,7 +122,7 @@ void CMPFile::loadCMP(const Common::String &cmp) {
 }
 
 void CMPFile::loadRXY(const Common::String &rxy) {
-	Common::SeekableReadStream *dataRXY = 0;
+	Common::SeekableReadStream *dataRXY = nullptr;
 	if (!rxy.empty())
 		dataRXY = _vm->_dataIO->getFile(rxy);
 
@@ -151,7 +156,7 @@ void CMPFile::loadRXY(Common::SeekableReadStream &rxy) {
 	                 ((_vm->getEndiannessMethod() == kEndiannessMethodSystem) &&
 	                  (_vm->getEndianness() == kEndiannessBE));
 
-	Common::SeekableSubReadStreamEndian sub(&rxy, 0, rxy.size(), bigEndian, DisposeAfterUse::NO);
+	Common::SeekableReadStreamEndianWrapper sub(&rxy, bigEndian, DisposeAfterUse::NO);
 
 	_coordinates = new RXYFile(sub);
 

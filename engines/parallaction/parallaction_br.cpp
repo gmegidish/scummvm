@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,16 +43,16 @@ const char *Parallaction_br::_partNames[] = {
 };
 
 Parallaction_br::Parallaction_br(OSystem* syst, const PARALLACTIONGameDescription *gameDesc) : Parallaction(syst, gameDesc),
-	_locationParser(0), _programParser(0), _soundManI(0) {
-	_audioCommandsNamesRes = 0;
+	_locationParser(nullptr), _programParser(nullptr), _soundManI(nullptr) {
+	_audioCommandsNamesRes = nullptr;
 	_part = 0;
 	_nextPart = 0;
 	_subtitleY = 0;
-	_subtitle[0] = 0;
-	_subtitle[1] = 0;
-	_countersNames = 0;
-	_callables = 0;
-	_walker = 0;
+	_subtitle[0] = nullptr;
+	_subtitle[1] = nullptr;
+	_countersNames = nullptr;
+	_callables = nullptr;
+	_walker = nullptr;
 }
 
 Common::Error Parallaction_br::init() {
@@ -93,12 +92,12 @@ Common::Error Parallaction_br::init() {
 	_part = -1;
 	_nextPart = -1;
 
-	_subtitle[0] = 0;
-	_subtitle[1] = 0;
+	_subtitle[0] = nullptr;
+	_subtitle[1] = nullptr;
 
 	memset(_zoneFlags, 0, sizeof(_zoneFlags));
 
-	_countersNames = 0;
+	_countersNames = nullptr;
 
 	_saveLoad = new SaveLoad_br(this, _saveFileMan);
 
@@ -187,13 +186,13 @@ Common::Error Parallaction_br::go() {
 
 void Parallaction_br::freeFonts() {
 	delete _menuFont;
-	_menuFont  = 0;
+	_menuFont  = nullptr;
 
 	delete _dialogueFont;
-	_dialogueFont = 0;
+	_dialogueFont = nullptr;
 
 	// no need to delete _labelFont, since it is using the same buffer as _menuFont
-	_labelFont = 0;
+	_labelFont = nullptr;
 }
 
 
@@ -229,8 +228,8 @@ void Parallaction_br::freeCharacter() {
 	delete _char._talk;
 	delete _char._ani->gfxobj;
 
-	_char._talk = 0;
-	_char._ani->gfxobj = 0;
+	_char._talk = nullptr;
+	_char._ani->gfxobj = nullptr;
 }
 
 void Parallaction_br::freeLocation(bool removeAll) {
@@ -266,9 +265,9 @@ void Parallaction_br::cleanupGame() {
 	delete _objectsNames;
 	delete _countersNames;
 
-	_globalFlagsNames = 0;
-	_objectsNames = 0;
-	_countersNames = 0;
+	_globalFlagsNames = nullptr;
+	_objectsNames = nullptr;
+	_countersNames = nullptr;
 
 	_numLocations = 0;
 	g_globalFlags = 0;
@@ -289,7 +288,7 @@ void Parallaction_br::changeLocation() {
 		// more cleanup needed for part changes (see also saveload)
 		g_globalFlags = 0;
 		cleanInventory(true);
-		strcpy(_characterName1, "null");
+		Common::strcpy_s(_characterName1, "null");
 
 		_part = _nextPart;
 
@@ -393,9 +392,9 @@ void Parallaction_br::parseLocation(const char *filename) {
 
 	// load background, mask and path
 	_disk->loadScenery(*out._info,
-		out._backgroundName.empty() ? 0 : out._backgroundName.c_str(),
-		out._maskName.empty()       ? 0 : out._maskName.c_str(),
-		out._pathName.empty()       ? 0 : out._pathName.c_str());
+		out._backgroundName.empty() ? nullptr : out._backgroundName.c_str(),
+		out._maskName.empty()       ? nullptr : out._maskName.c_str(),
+		out._pathName.empty()       ? nullptr : out._pathName.c_str());
 	// assign background
 	_gfx->setBackground(kBackgroundLocation, out._info);
 

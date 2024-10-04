@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ags/lib/std/algorithm.h"
+#include "common/std/algorithm.h"
 #include "ags/lib/allegro.h" // find files
 #include "ags/engine/gui/gui_dialog.h"
 #include "ags/shared/ac/common.h"
@@ -32,6 +31,7 @@
 #include "ags/engine/gui/csci_dialog.h"
 #include "ags/shared/gfx/bitmap.h"
 #include "ags/engine/gfx/graphics_driver.h"
+#include "ags/engine/main/game_run.h"
 #include "ags/engine/debugging/debug_log.h"
 #include "ags/shared/util/path.h"
 #include "ags/ags.h"
@@ -61,8 +61,7 @@ Bitmap *prepare_gui_screen(int x, int y, int width, int height, bool opaque) {
 	if (_G(windowBuffer)) {
 		_G(windowBuffer) = recycle_bitmap(_G(windowBuffer), _G(windowBuffer)->GetColorDepth(), _G(windowPosWidth), _G(windowPosHeight), !opaque);
 	} else {
-		_G(windowBuffer) = BitmapHelper::CreateBitmap(_G(windowPosWidth), _G(windowPosHeight), _GP(game).GetColorDepth());
-		_G(windowBuffer) = ReplaceBitmapWithSupportedFormat(_G(windowBuffer));
+		_G(windowBuffer) = CreateCompatBitmap(_G(windowPosWidth), _G(windowPosHeight));
 	}
 	_G(dialogDDB) = recycle_ddb_bitmap(_G(dialogDDB), _G(windowBuffer), false, opaque);
 	return _G(windowBuffer);
@@ -82,6 +81,7 @@ void clear_gui_screen() {
 
 void refresh_gui_screen() {
 	_G(gfxDriver)->UpdateDDBFromBitmap(_G(dialogDDB), _G(windowBuffer), false);
+	update_cursor_and_dependent();
 	render_graphics(_G(dialogDDB), _G(windowPosX), _G(windowPosY));
 }
 
@@ -116,7 +116,7 @@ int loadgamedialog() {
 				else {
 					toret = _G(filenumbers)[cursel];
 					String path = get_save_game_path(toret);
-					strcpy(_G(bufTemp), path.GetCStr());
+					Common::strcpy_s(_G(bufTemp), path.GetCStr());
 					_G(lpTemp) = &_G(bufTemp)[0];
 				}
 			} else if (mes.id == ctrlcancel) {
@@ -137,9 +137,9 @@ int loadgamedialog() {
 
 int savegamedialog() {
 	char okbuttontext[50];
-	strcpy(okbuttontext, get_global_message(MSG_SAVEBUTTON));
+	Common::strcpy_s(okbuttontext, get_global_message(MSG_SAVEBUTTON));
 	char labeltext[200];
-	strcpy(labeltext, get_global_message(MSG_SAVEDIALOG));
+	Common::strcpy_s(labeltext, get_global_message(MSG_SAVEDIALOG));
 	const int wnd_width = 200;
 	const int wnd_height = 120;
 	const int boxleft = _G(myscrnwid) / 2 - wnd_width / 2;
@@ -157,8 +157,8 @@ int savegamedialog() {
 	CSCISendControlMessage(ctrllist, CLB_CLEAR, 0, 0);    // clear the list box
 	preparesavegamelist(ctrllist);
 	if (_G(toomanygames)) {
-		strcpy(okbuttontext, get_global_message(MSG_REPLACE));
-		strcpy(labeltext, get_global_message(MSG_MUSTREPLACE));
+		Common::strcpy_s(okbuttontext, get_global_message(MSG_REPLACE));
+		Common::strcpy_s(labeltext, get_global_message(MSG_MUSTREPLACE));
 		labeltop = 2;
 	} else
 		ctrltbox = CSCICreateControl(CNT_TEXTBOX, 10, 29, 120, 0, nullptr);
@@ -186,7 +186,7 @@ int savegamedialog() {
 				if (_G(numsaves) > 0)
 					CSCISendControlMessage(ctrllist, CLB_GETTEXT, cursell, &_G(bufTemp)[0]);
 				else
-					strcpy(_G(bufTemp), "_NOSAVEGAMENAME");
+					Common::strcpy_s(_G(bufTemp), "_NOSAVEGAMENAME");
 
 				if (_G(toomanygames)) {
 					int nwhand = CSCIDrawWindow(boxleft + 5, boxtop + 20, 190, 65);
@@ -236,7 +236,7 @@ int savegamedialog() {
 
 					toret = highestnum + 1;
 					String path = get_save_game_path(toret);
-					strcpy(_G(bufTemp), path.GetCStr());
+					Common::strcpy_s(_G(bufTemp), path.GetCStr());
 				} else {
 					toret = _G(filenumbers)[cursell];
 					_G(bufTemp)[0] = 0;
@@ -244,7 +244,7 @@ int savegamedialog() {
 
 				if (_G(bufTemp)[0] == 0) {
 					String path = get_save_game_path(toret);
-					strcpy(_G(bufTemp), path.GetCStr());
+					Common::strcpy_s(_G(bufTemp), path.GetCStr());
 				}
 
 				_G(lpTemp) = &_G(bufTemp)[0];
@@ -333,7 +333,12 @@ void enterstringwindow(const char *prompttext, char *stouse) {
 	if (wantCancel)
 		CSCIDeleteControl(ctrlcancel);
 	CSCIEraseWindow(handl);
-	strcpy(stouse, _G(buffer2));
+	/* FIXME: Function should take a length parameter
+	 * It is called with a 200 bytes buffer below
+	 * but also called with a STD_BUFFER_SIZE (3000) buffer
+	 * and undetermined size buffer in the API
+	 * Using STD_BUFFER_SIZE as we don't want to break too much stuff */
+	Common::strcpy_s(stouse, STD_BUFFER_SIZE, _G(buffer2));
 }
 
 int enternumberwindow(char *prompttext) {
@@ -344,9 +349,10 @@ int enternumberwindow(char *prompttext) {
 	return atoi(ourbuf);
 }
 
-int roomSelectorWindow(int currentRoom, int numRooms, int *roomNumbers, char **roomNames) {
+int roomSelectorWindow(int currentRoom, int numRooms,
+		const std::vector<int> &roomNumbers, const std::vector<String> &roomNames) {
 	char labeltext[200];
-	strcpy(labeltext, get_global_message(MSG_SAVEDIALOG));
+	Common::strcpy_s(labeltext, get_global_message(MSG_SAVEDIALOG));
 	const int wnd_width = 240;
 	const int wnd_height = 160;
 	const int boxleft = _G(myscrnwid) / 2 - wnd_width / 2;
@@ -360,7 +366,7 @@ int roomSelectorWindow(int currentRoom, int numRooms, int *roomNumbers, char **r
 
 	CSCISendControlMessage(ctrllist, CLB_CLEAR, 0, 0);    // clear the list box
 	for (int aa = 0; aa < numRooms; aa++) {
-		sprintf(_G(buff), "%3d %s", roomNumbers[aa], roomNames[aa]);
+		snprintf(_G(buff), sizeof(_G(buff)), "%3d %s", roomNumbers[aa], roomNames[aa].GetCStr());
 		CSCISendControlMessage(ctrllist, CLB_ADDITEM, 0, &_G(buff)[0]);
 		if (roomNumbers[aa] == currentRoom) {
 			CSCISendControlMessage(ctrllist, CLB_SETCURSEL, aa, 0);
@@ -392,7 +398,7 @@ int roomSelectorWindow(int currentRoom, int numRooms, int *roomNumbers, char **r
 		} else if (mes.code == CM_SELCHANGE) {
 			int cursel = CSCISendControlMessage(ctrllist, CLB_GETCURSEL, 0, 0);
 			if (cursel >= 0) {
-				sprintf(_G(buffer2), "%d", roomNumbers[cursel]);
+				snprintf(_G(buffer2), sizeof(_G(buffer2)), "%d", roomNumbers[cursel]);
 				CSCISendControlMessage(ctrltbox, CTB_SETTEXT, 0, &_G(buffer2)[0]);
 			}
 		}
@@ -452,8 +458,8 @@ int myscimessagebox(const char *lpprompt, char *btn1, char *btn2) {
 
 int quitdialog() {
 	char quitbut[50], playbut[50];
-	strcpy(quitbut, get_global_message(MSG_QUITBUTTON));
-	strcpy(playbut, get_global_message(MSG_PLAYBUTTON));
+	Common::strcpy_s(quitbut, get_global_message(MSG_QUITBUTTON));
+	Common::strcpy_s(playbut, get_global_message(MSG_PLAYBUTTON));
 	return myscimessagebox(get_global_message(MSG_QUITDIALOG), quitbut, playbut);
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -189,8 +188,8 @@ void initBigVar3() {
 			MemFree(filesDatabase[i].subData.ptr);
 		}
 
-		filesDatabase[i].subData.ptr = NULL;
-		filesDatabase[i].subData.ptrMask = NULL;
+		filesDatabase[i].subData.ptr = nullptr;
+		filesDatabase[i].subData.ptrMask = nullptr;
 
 		filesDatabase[i].subData.index = -1;
 		filesDatabase[i].subData.resourceType = 0;
@@ -198,7 +197,7 @@ void initBigVar3() {
 }
 
 void resetPtr2(scriptInstanceStruct *ptr) {
-	ptr->nextScriptPtr = NULL;
+	ptr->nextScriptPtr = nullptr;
 	ptr->scriptNumber = -1;
 }
 
@@ -214,27 +213,27 @@ void resetActorPtr(actorStruct *ptr) {
 		} while (p);
 	}
 
-	ptr->next = NULL;
-	ptr->prev = NULL;
+	ptr->next = nullptr;
+	ptr->prev = nullptr;
 }
 
 ovlData3Struct *getOvlData3Entry(int32 scriptNumber, int32 param) {
 	ovlDataStruct *ovlData = overlayTable[scriptNumber].ovlData;
 
 	if (!ovlData) {
-		return NULL;
+		return nullptr;
 	}
 
 	if (param < 0) {
-		return NULL;
+		return nullptr;
 	}
 
 	if (ovlData->numProc <= param) {
-		return NULL;
+		return nullptr;
 	}
 
 	if (!ovlData->arrayProc) {
-		return NULL;
+		return nullptr;
 	}
 
 	return (&ovlData->arrayProc[param]);
@@ -244,19 +243,19 @@ ovlData3Struct *scriptFunc1Sub2(int32 scriptNumber, int32 param) {
 	ovlDataStruct *ovlData = overlayTable[scriptNumber].ovlData;
 
 	if (!ovlData) {
-		return NULL;
+		return nullptr;
 	}
 
 	if (param < 0) {
-		return NULL;
+		return nullptr;
 	}
 
 	if (ovlData->numRel <= param) {
-		return NULL;
+		return nullptr;
 	}
 
 	if (!ovlData->ptr1) {
-		return NULL;
+		return nullptr;
 	}
 
 	return &ovlData->ptr1[param];
@@ -279,12 +278,12 @@ uint8 *getDataFromData3(ovlData3Struct *ptr, int param) {
 	uint8 *dataPtr;
 
 	if (!ptr)
-		return (NULL);
+		return (nullptr);
 
 	dataPtr = ptr->dataPtr;
 
 	if (!dataPtr)
-		return (NULL);
+		return (nullptr);
 
 	switch (param) {
 	case 0:
@@ -300,7 +299,7 @@ uint8 *getDataFromData3(ovlData3Struct *ptr, int param) {
 	case 5:
 		return (dataPtr + ptr->offsetToSubData5);
 	default:
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -310,18 +309,18 @@ void printInfoBlackBox(const char *string) {
 void waitForPlayerInput() {
 }
 
-void getFileExtention(const char *name, char *buffer) {
+void getFileExtension(const char *name, char *buffer, size_t ln) {
 	while (*name != '.' && *name) {
 		name++;
 	}
 
-	strcpy(buffer, name);
+	Common::strcpy_s(buffer, ln, name);
 }
 
-void removeExtention(const char *name, char *buffer) {	// not like in original
+void removeExtension(const char *name, char *buffer, size_t ln) {	// not like in original
 	char *ptr;
 
-	strcpy(buffer, name);
+	Common::strcpy_s(buffer, ln, name);
 
 	ptr = strchr(buffer, '.');
 
@@ -345,19 +344,19 @@ int loadFileSub1(uint8 **ptr, const char *name, uint8 *ptr2) {
 		}
 	}
 
-	getFileExtention(name, buffer);
+	getFileExtension(name, buffer, sizeof(buffer));
 
 	if (!strcmp(buffer, ".SPL")) {
-		removeExtention(name, buffer);
+		removeExtension(name, buffer, sizeof(buffer));
 
 		/* if (useH32)
 		 *{
-		 *	strcat(buffer, ".H32");
+		 *	Common::strcat_s(buffer,".H32");
 		 *}
 		 * else
 		 * if (useAdLib)
 		 * { */
-		 strcat(buffer,".ADL");
+		Common::strcat_s(buffer,".ADL");
 		/* }
 		 * else
 		 * {
@@ -414,8 +413,8 @@ void resetFileEntry(int32 entryNumber) {
 	if (filesDatabase[entryNumber].subData.ptrMask)
 		MemFree(filesDatabase[entryNumber].subData.ptrMask);
 
-	filesDatabase[entryNumber].subData.ptr = NULL;
-	filesDatabase[entryNumber].subData.ptrMask = NULL;
+	filesDatabase[entryNumber].subData.ptr = nullptr;
+	filesDatabase[entryNumber].subData.ptrMask = nullptr;
 	filesDatabase[entryNumber].widthInColumn = 0;
 	filesDatabase[entryNumber].width = 0;
 	filesDatabase[entryNumber].resType = OBJ_TYPE_LINE;
@@ -429,7 +428,7 @@ void resetFileEntry(int32 entryNumber) {
 uint8 *mainProc14(uint16 overlay, uint16 idx) {
 	assert(0);
 
-	return NULL;
+	return nullptr;
 }
 
 void CruiseEngine::initAllData() {
@@ -446,7 +445,7 @@ void CruiseEngine::initAllData() {
 	soundList[2].frameNum = -1;
 	soundList[3].frameNum = -1;
 
-	menuTable[0] = NULL;
+	menuTable[0] = nullptr;
 
 	for (int i = 0; i < 2000; i++)
 		globalVars[i] = 0;
@@ -455,8 +454,8 @@ void CruiseEngine::initAllData() {
 		backgroundTable[i].name[0] = 0;
 
 	for (int i = 0; i < NUM_FILE_ENTRIES; i++) {
-		filesDatabase[i].subData.ptr = NULL;
-		filesDatabase[i].subData.ptrMask = NULL;
+		filesDatabase[i].subData.ptr = nullptr;
+		filesDatabase[i].subData.ptrMask = nullptr;
 	}
 
 	initBigVar3();
@@ -564,7 +563,7 @@ void CruiseEngine::initAllData() {
 		scriptFunc2(bootOverlayNumber, &procHead, 1, 0);
 	}
 
-	strcpy(lastOverlay, "AUTO00");
+	Common::strcpy_s(lastOverlay, "AUTO00");
 
 	_gameSpeed = GAME_FRAME_DELAY_1;
 	_speedFlag = false;
@@ -763,7 +762,8 @@ int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 	return -1;
 }
 
-Common::KeyCode keyboardCode = Common::KEYCODE_INVALID;
+Common::CustomEventType action = kActionNone;
+bool endpause = false;
 
 void freeStuff2() {
 	warning("implement freeStuff2");
@@ -784,7 +784,7 @@ void buildInventory(int X, int Y) {
 	pMenu = createMenu(X, Y, _vm->langString(ID_INVENTORY));
 	menuTable[1] = pMenu;
 
-	if (pMenu == NULL)
+	if (pMenu == nullptr)
 		return;
 
 	int numObjectInInventory = 0;
@@ -811,7 +811,7 @@ void buildInventory(int X, int Y) {
 
 	if (numObjectInInventory == 0) {
 		freeMenu(menuTable[1]);
-		menuTable[1] = NULL;
+		menuTable[1] = nullptr;
 	}
 }
 
@@ -822,12 +822,12 @@ menuElementStruct *currentMenuElement;
 menuElementSubStruct *getSelectedEntryInMenu(menuStruct *pMenu) {
 	menuElementStruct *pMenuElement;
 
-	if (pMenu == NULL) {
-		return NULL;
+	if (pMenu == nullptr) {
+		return nullptr;
 	}
 
 	if (pMenu->numElements == 0) {
-		return NULL;
+		return nullptr;
 	}
 
 	pMenuElement = pMenu->ptrNextElement;
@@ -844,7 +844,7 @@ menuElementSubStruct *getSelectedEntryInMenu(menuStruct *pMenu) {
 		pMenuElement = pMenuElement->next;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 bool createDialog(int objOvl, int objIdx, int x, int y) {
@@ -896,9 +896,9 @@ bool createDialog(int objOvl, int objIdx, int x, int y) {
 						char verbName[80];
 						verbName[0]	= 0;
 
-						ovlDataStruct *ovl2 = NULL;
-						ovlDataStruct *ovl3 = NULL;
-						ovlDataStruct *ovl4 = NULL;
+						ovlDataStruct *ovl2 = nullptr;
+						ovlDataStruct *ovl3 = nullptr;
+						ovlDataStruct *ovl4 = nullptr;
 
 						if (verbOvl > 0)
 							ovl2 = overlayTable[verbOvl].ovlData;
@@ -992,8 +992,8 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 					char verbName[80];
 					verbName[0]	= 0;
 
-					ovlDataStruct *ovl2 = NULL;
-					ovlDataStruct *ovl3 = NULL;
+					ovlDataStruct *ovl2 = nullptr;
+					ovlDataStruct *ovl3 = nullptr;
 
 					if (verbOvl > 0)
 						ovl2 = overlayTable[verbOvl].ovlData;
@@ -1051,14 +1051,14 @@ int processInventory() {
 			int var4 = pMenuElementSub->header;
 
 			freeMenu(menuTable[1]);
-			menuTable[1] = NULL;
+			menuTable[1] = nullptr;
 
 			findRelation(var2, var4, currentMenuElementX + 80, currentMenuElementY);
 
 			return 1;
 		} else {
 			freeMenu(menuTable[1]);
-			menuTable[1] = NULL;
+			menuTable[1] = nullptr;
 		}
 	}
 
@@ -1066,12 +1066,12 @@ int processInventory() {
 }
 
 void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
-	if (pMenuElement == NULL)
+	if (pMenuElement == nullptr)
 		return;
 
 	menuElementSubStruct* pCurrent = pMenuElement;
 
-	while (pCurrent != NULL) {
+	while (pCurrent != nullptr) {
 		int ovlIdx = pCurrent->ovlIdx;
 		int header = pCurrent->header;
 
@@ -1218,12 +1218,12 @@ int findHighColor() {
 }
 
 void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
-	if (pMenuElement == NULL)
+	if (pMenuElement == nullptr)
 		return;
 
 	menuElementSubStruct* pCurrent = pMenuElement;
 
-	while (pCurrent != NULL) {
+	while (pCurrent != nullptr) {
 		int ovlIdx = pCurrent->ovlIdx;
 		int header = pCurrent->header;
 
@@ -1354,20 +1354,20 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 void closeAllMenu() {
 	if (menuTable[0]) {
 		freeMenu(menuTable[0]);
-		menuTable[0] = NULL;
+		menuTable[0] = nullptr;
 	}
 
 	if (menuTable[1]) {
 		freeMenu(menuTable[1]);
-		menuTable[1] = NULL;
+		menuTable[1] = nullptr;
 	}
 	if (linkedMsgList) {
 		assert(0);
 //					freeMsgList(linkedMsgList);
 	}
 
-	linkedMsgList = NULL;
-	linkedRelation = NULL;
+	linkedMsgList = nullptr;
+	linkedRelation = nullptr;
 }
 
 bool checkInput(int16 *buttonPtr) {
@@ -1414,65 +1414,61 @@ int CruiseEngine::processInput() {
 	}
 
 	// Check for Exit 'X' key
-	if (keyboardCode == Common::KEYCODE_x)
+	if (action == kActionExit)
 		return 1;
 
 	// Check for Pause 'P' key
-	if (keyboardCode == Common::KEYCODE_p) {
-		keyboardCode = Common::KEYCODE_INVALID;
+	if (action == kActionPause) {
+		action = kActionNone;
+		endpause = false;
 		_vm->pauseEngine(true);
 		mouseOff();
 
-		bool pausedButtonDown = false;
 		while (!_vm->shouldQuit()) {
 			manageEvents();
 			getMouseStatus(&main10, &mouseX, &button, &mouseY);
 
-			if (button) pausedButtonDown = true;
-			else if (pausedButtonDown)
-				// Button released, so exit pause
-				break;
-			else if (keyboardCode != Common::KEYCODE_INVALID)
+			if (endpause)
 				break;
 
 			g_system->delayMillis(10);
 		}
 
-		if (keyboardCode == Common::KEYCODE_x)
+		if (action == kActionExit)
 			// Exit the game
 			return 1;
 
-		keyboardCode = Common::KEYCODE_INVALID;
+		action = kActionNone;
 		_vm->pauseEngine(false);
 		mouseOn();
 		return 0;
 	}
 
 	// Player Menu - test for both buttons or the F10 key
-	if (((button & CRS_MB_BOTH) == CRS_MB_BOTH) || (keyboardCode == Common::KEYCODE_F10)) {
+	if (((button & CRS_MB_BOTH) == CRS_MB_BOTH) || (action == kActionPlayerMenu)) {
 		changeCursor(CURSOR_NORMAL);
-		keyboardCode = Common::KEYCODE_INVALID;
+		action = kActionNone;
 		return (playerMenu(mouseX, mouseY));
 	}
 
 	if (userWait) {
 		// Check for left mouse button click or Space to end user waiting
-		if ((keyboardCode == Common::KEYCODE_SPACE) || (button == CRS_MB_LEFT))
+		if ((action == kActionEndUserWaiting) || (button == CRS_MB_LEFT))
 			userWait = false;
 
-		keyboardCode = Common::KEYCODE_INVALID;
+		action = kActionNone;
 		return 0;
 	}
 
 	// Handle any changes in game speed
 	if (_speedFlag) {
-		if ((keyboardCode == Common::KEYCODE_KP_PLUS) && (_gameSpeed >= 30)) {
+		if ((action == kActionIncreaseGameSpeed) && (_gameSpeed >= 30)) {
 			_gameSpeed -= 10;
-			keyboardCode = Common::KEYCODE_INVALID;
+			action = kActionNone;
 		}
-		if ((keyboardCode == Common::KEYCODE_KP_MINUS) && (_gameSpeed <= 200)) {
+		if ((action == kActionDecreaseGameSpeed) && (_gameSpeed <= 200)) {
 			_gameSpeed += 10;
-			keyboardCode = Common::KEYCODE_INVALID;
+			action = kActionNone;
 		}
 	}
 
@@ -1494,7 +1490,7 @@ int CruiseEngine::processInput() {
 			changeCursor(CURSOR_NORMAL);
 		}
 
-		if ((menuTable[0] == NULL) && (!buttonDown)) {
+		if ((menuTable[0] == nullptr) && (!buttonDown)) {
 			int dialogFound = createDialog(dialogueOvl, dialogueObj, xdial, 0);
 
 			if (menuTable[0]) {
@@ -1502,7 +1498,7 @@ int CruiseEngine::processInput() {
 					currentActiveMenu = 0;
 				} else {
 					freeMenu(menuTable[0]);
-					menuTable[0] = NULL;
+					menuTable[0] = nullptr;
 					currentActiveMenu = -1;
 				}
 			} else {
@@ -1514,15 +1510,15 @@ int CruiseEngine::processInput() {
 					callRelation(getSelectedEntryInMenu(menuTable[0]), dialogueObj);
 
 					freeMenu(menuTable[0]);
-					menuTable[0] = NULL;
+					menuTable[0] = nullptr;
 
 					if (linkedMsgList) {
 						assert(0);
 						//					freeMsgList(linkedMsgList);
 					}
 
-					linkedMsgList = NULL;
-					linkedRelation = NULL;
+					linkedMsgList = nullptr;
+					linkedRelation = nullptr;
 
 					changeCursor(CURSOR_NORMAL);
 					currentActiveMenu = -1;
@@ -1550,14 +1546,14 @@ int CruiseEngine::processInput() {
 						callSubRelation(linkedRelation, objOvl, objIdx);
 					}
 					freeMenu(menuTable[0]);
-					menuTable[0] = NULL;
+					menuTable[0] = nullptr;
 				}
 
 				if (linkedMsgList) {
 //					freeMsgList(linkedMsgList);
 				}
-				linkedMsgList = NULL;
-				linkedRelation = NULL;
+				linkedMsgList = nullptr;
+				linkedRelation = nullptr;
 				changeCursor(CURSOR_NORMAL);
 			} else { // call sub relation when clicking in inventory
 				if (menuTable[0] && menuTable[1]) {
@@ -1576,7 +1572,7 @@ int CruiseEngine::processInput() {
 			// manage click on object menu
 			if (menuDown == 0) {
 				// Handle left click on an object
-				if (menuTable[0] == 0) {
+				if (menuTable[0] == nullptr) {
 					int objOvl;
 					int objIdx;
 					int objType;
@@ -1592,7 +1588,7 @@ int CruiseEngine::processInput() {
 							} else {
 								// object has a name but no relation, just move the character
 								freeMenu(menuTable[0]);
-								menuTable[0] = NULL;
+								menuTable[0] = nullptr;
 
 								aniX = mouseX;
 								aniY = mouseY;
@@ -1619,13 +1615,13 @@ int CruiseEngine::processInput() {
 						// if there is a linked relation, close menu
 						if (!linkedRelation) {
 							freeMenu(menuTable[0]);
-							menuTable[0] = NULL;
+							menuTable[0] = nullptr;
 							changeCursor(CURSOR_NORMAL);
 						} else { // else create the message for the linked relation
 							char text[80];
-							strcpy(text, menuTable[0]->stringPtr);
-							strcat(text, ":");
-							strcat(text, currentMenuElement->string);
+							Common::strcpy_s(text, menuTable[0]->stringPtr);
+							Common::strcat_s(text, ":");
+							Common::strcat_s(text, currentMenuElement->string);
 							linkedMsgList = renderText(320, (const char *)text);
 							changeCursor(CURSOR_CROSS);
 						}
@@ -1646,20 +1642,20 @@ int CruiseEngine::processInput() {
 				}
 			}
 		}
-	} else if ((button & CRS_MB_RIGHT) || (keyboardCode == Common::KEYCODE_F9)) {
+	} else if ((button & CRS_MB_RIGHT) || (action == kActionInventory)) {
 		if (buttonDown == 0) {
-			keyboardCode = Common::KEYCODE_INVALID;
+			action = kActionNone;
 
 			// close object menu if there is no linked relation
-			if ((linkedRelation == 0) && (menuTable[0])) {
+			if ((linkedRelation == nullptr) && (menuTable[0])) {
 				freeMenu(menuTable[0]);
-				menuTable[0] = NULL;
+				menuTable[0] = nullptr;
 				selectDown = 0;
 				menuDown = 0;
 				currentActiveMenu = -1;
 			}
 
-			if ((!selectDown) && (!menuDown) && (menuTable[1] == NULL)) {
+			if ((!selectDown) && (!menuDown) && (menuTable[1] == nullptr)) {
 				buildInventory(mouseX, mouseY);
 
 				if (menuTable[1]) {
@@ -1695,12 +1691,17 @@ bool manageEvents() {
 			break;
 		case Common::EVENT_LBUTTONUP:
 			currentMouseButton &= ~CRS_MB_LEFT;
+			endpause = true;
 			break;
 		case Common::EVENT_RBUTTONDOWN:
 			currentMouseButton |= CRS_MB_RIGHT;
 			break;
 		case Common::EVENT_RBUTTONUP:
 			currentMouseButton &= ~CRS_MB_RIGHT;
+			endpause = true;
+			break;
+		case Common::EVENT_JOYBUTTON_DOWN:
+			endpause = true;
 			break;
 		case Common::EVENT_MOUSEMOVE:
 			currentMouseX = event.mouse.x;
@@ -1711,30 +1712,30 @@ bool manageEvents() {
 		case Common::EVENT_RETURN_TO_LAUNCHER:
 			_playerDontAskQuit = true;
 			break;
-		case Common::EVENT_KEYUP:
-			switch (event.kbd.keycode) {
-			case Common::KEYCODE_ESCAPE:
+		case Common::EVENT_KEYDOWN:
+			endpause = true;
+			break;
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_END:
+			if (event.customType == kActionEscape) {
 				currentMouseButton &= ~CRS_MB_MIDDLE;
-				break;
-			default:
-				break;
 			}
 			break;
-		case Common::EVENT_KEYDOWN:
-			switch (event.kbd.keycode) {
-			case Common::KEYCODE_ESCAPE:
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+			action = event.customType;
+
+			switch (action) {
+			case kActionFastMode:
+				bFastMode = !bFastMode;
+				break;
+			case kActionEscape:
 				currentMouseButton |= CRS_MB_MIDDLE;
 				break;
 			default:
-				keyboardCode = event.kbd.keycode;
 				break;
 			}
 
-			if (event.kbd.hasFlags(Common::KBD_CTRL) && event.kbd.keycode == Common::KEYCODE_f) {
-				bFastMode = !bFastMode;
-				keyboardCode = Common::KEYCODE_INVALID;
-			}
-
+			endpause = true;
+			break;
 		default:
 			break;
 		}
@@ -1762,13 +1763,13 @@ void CruiseEngine::mainLoop() {
 
 	int enableUser = 0;
 
-	strcpy(nextOverlay, "");
-	strcpy(lastOverlay, "");
-	strcpy(cmdLine, "");
+	nextOverlay[0] = '\0';
+	lastOverlay[0] = '\0';
+	cmdLine[0] = '\0';
 
 	currentActiveMenu = -1;
 	autoMsg = -1;
-	linkedRelation = 0;
+	linkedRelation = nullptr;
 	userWait = false;
 	autoTrack = false;
 

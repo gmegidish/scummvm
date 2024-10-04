@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -78,7 +77,7 @@ Sprite::Sprite(uint16 width, uint16 height, byte *raw_data, int x, int y, bool c
  *  pixel.
  */
 Sprite::Sprite(const byte *sprite_data, uint16 length, int x, int y, bool columnwise)
-	: _ownsData(false), _data(NULL), _mirror(false) {
+	: _ownsData(false), _data(nullptr), _mirror(false) {
 
 	Common::MemoryReadStream reader(sprite_data, length);
 	_width = reader.readSint16LE();
@@ -120,8 +119,8 @@ int Sprite::getPixel(int x, int y, const Displacement &displacement) const {
 	double scaleX = double(rect.width()) / _width;
 	double scaleY = double(rect.height()) / _height;
 
-	int sy = scummvm_lround(dy / scaleY);
-	int sx = scummvm_lround(dx / scaleX);
+	int sy = lround(dy / scaleY);
+	int sx = lround(dx / scaleX);
 
 	if (_mirror)
 		return _data[sy * _width + (_width - sx)];
@@ -245,8 +244,8 @@ void Sprite::draw(Surface *surface, bool markDirty, int relX, int relY) const {
 
 Common::Rect Sprite::getRect(const Displacement &displacement) const {
 	return Common::Rect(_x + displacement.relX, _y + displacement.relY,
-	    _x + displacement.relX + scummvm_lround(_scaledWidth * displacement.extraScaleX),
-	    _y + displacement.relY + scummvm_lround(_scaledHeight * displacement.extraScaleY));
+	    _x + displacement.relX + lround(_scaledWidth * displacement.extraScaleX),
+	    _y + displacement.relY + lround(_scaledHeight * displacement.extraScaleY));
 }
 
 Text::Text(const Common::String &str, const Font *font, byte fontColor,

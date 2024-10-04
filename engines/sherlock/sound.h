@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,13 +55,13 @@ private:
 	/**
 	 * Handle playing a sound or speech
 	 */
-	bool playSoundResource(const Common::String &name, const Common::String &libFilename,
+	bool playSoundResource(const Common::Path &name, const Common::Path &libFilename,
 		Audio::Mixer::SoundType soundType, Audio::SoundHandle &handle);
 
 	/**
 	 * Form a filename from a passed sound resource name
 	 */
-	Common::String formFilename(const Common::String &name);
+	Common::Path formFilename(const Common::Path &name);
 public:
 	bool _digitized;
 	int _voices;
@@ -84,17 +83,17 @@ public:
 	/**
 	 * Load a sound
 	 */
-	void loadSound(const Common::String &name, int priority);
+	void loadSound(const Common::Path &name, int priority);
 
 	/**
 	 * Play the sound in the specified resource
 	 */
-	bool playSound(const Common::String &name, WaitType waitType, int priority = 100, const char *libraryFilename = nullptr);
+	bool playSound(const Common::Path &name, WaitType waitType, int priority = 100, const Common::Path &libraryFilename = Common::Path());
 
 	/**
 	 * Play the specified AIFF file. (Used for the 3DO Scalpel intro.)
 	 */
-	void playAiff(const Common::String &name, int volume = Audio::Mixer::kMaxChannelVolume, bool loop = false);
+	void playAiff(const Common::Path &name, int volume = Audio::Mixer::kMaxChannelVolume, bool loop = false);
 
 	/**
 	 * Stop the AIFF sound that was started with playAiff().
@@ -131,7 +130,7 @@ public:
 	/**
 	 * Play a specified voice resource
 	 */
-	void playSpeech(const Common::String &name);
+	void playSpeech(const Common::Path &name);
 
 	/**
 	 * Stop any currently playing speech

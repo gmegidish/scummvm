@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Text utilities.
  */
@@ -55,10 +54,12 @@ int StringLengthPix(char *szStr, const FONT *pFont) {
 
 		if (hImg) {
 			// there is a IMAGE for this character
-			const IMAGE *pChar = (const IMAGE *)_vm->_handle->LockMem(hImg);
+			const IMAGE *pChar = _vm->_handle->GetImage(hImg);
 
 			// add width of font bitmap
-			strLen += FROM_16(pChar->imgWidth);
+			strLen += pChar->imgWidth;
+
+			delete pChar;
 		} else
 			// use width of space character
 			strLen += pFont->spaceSize;
@@ -117,7 +118,6 @@ OBJECT *ObjectTextOut(OBJECT **pList, char *szStr, int color,
 	OBJECT *pChar = 0;	// object ptr for the character
 	byte c;
 	SCNHANDLE hImg;
-	const IMAGE *pImg;
 
 	// make sure there is a linked list to add text to
 	assert(pList);
@@ -132,10 +132,11 @@ OBJECT *ObjectTextOut(OBJECT **pList, char *szStr, int color,
 	// get image for capital W
 	SCNHANDLE imgHandle = pFont->fontDef[(int)'W'];
 	assert(imgHandle);
-	pImg = (const IMAGE *)_vm->_handle->LockMem(imgHandle);
 
 	// get height of capital W for offset to next line
-	yOffset = FROM_16(pImg->imgHeight) & ~C16_FLAG_MASK;
+	const IMAGE *pImgCapitalW = _vm->_handle->GetImage(imgHandle);
+	yOffset = pImgCapitalW->imgHeight & ~C16_FLAG_MASK;
+	delete pImgCapitalW;
 
 	while (*szStr) {
 		// x justify the text according to the mode flags
@@ -167,13 +168,13 @@ OBJECT *ObjectTextOut(OBJECT **pList, char *szStr, int color,
 					pChar = pChar->pSlave = InitObject(pFontInit);
 
 				// convert image handle to pointer
-				pImg = (const IMAGE *)_vm->_handle->LockMem(hImg);
+				const IMAGE *pImg = _vm->_handle->GetImage(hImg);
 
 				// fill in character object
 				pChar->hImg   = hImg;			// image def
-				pChar->width  = FROM_16(pImg->imgWidth);		// width of chars bitmap
-				pChar->height = FROM_16(pImg->imgHeight) & ~C16_FLAG_MASK;	// height of chars bitmap
-				pChar->hBits  = FROM_32(pImg->hImgBits);		// bitmap
+				pChar->width  = pImg->imgWidth;		// width of chars bitmap
+				pChar->height = pImg->imgHeight & ~C16_FLAG_MASK;	// height of chars bitmap
+				pChar->hBits  = pImg->hImgBits;		// bitmap
 
 				// check for absolute positioning
 				if (mode & TXT_ABSOLUTE)
@@ -183,7 +184,7 @@ OBJECT *ObjectTextOut(OBJECT **pList, char *szStr, int color,
 				pChar->constant = color;
 
 				// set the base font color to be replaced with supplied color, only for Tinsel V3
-				g_t3fontBaseColor = TinselV3 ? pFont->baseColor : 0;
+				g_t3fontBaseColor = (TinselVersion == 3) ? pFont->baseColor : 0;
 
 				// get Y animation offset
 				GetAniOffset(hImg, pChar->flags, &aniX, &aniY);
@@ -234,7 +235,9 @@ OBJECT *ObjectTextOut(OBJECT **pList, char *szStr, int color,
 					pChar = pChar->pSlave;
 
 				// add character spacing
-				xJustify += FROM_16(pImg->imgWidth);
+				xJustify += pImg->imgWidth;
+
+				delete pImg;
 			}
 
 			// finally add the inter-character spacing

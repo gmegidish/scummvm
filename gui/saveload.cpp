@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@
 
 namespace GUI {
 
-SaveLoadChooser::SaveLoadChooser(const U32String &title, const U32String &buttonLabel, bool saveMode)
+SaveLoadChooser::SaveLoadChooser(const Common::U32String &title, const Common::U32String &buttonLabel, bool saveMode)
 	: _impl(nullptr), _title(title), _buttonLabel(buttonLabel), _saveMode(saveMode) {
 }
 
@@ -83,7 +82,7 @@ int SaveLoadChooser::runModalWithCurrentTarget() {
 	return runModalWithMetaEngineAndTarget(g_engine->getMetaEngine(), ConfMan.getActiveDomainName());
 }
 
-int SaveLoadChooser::runModalWithMetaEngineAndTarget(const MetaEngine *engine, const String &target) {
+int SaveLoadChooser::runModalWithMetaEngineAndTarget(const MetaEngine *engine, const Common::String &target) {
 	selectChooser(engine);
 	if (!_impl)
 		return -1;
@@ -94,7 +93,7 @@ int SaveLoadChooser::runModalWithMetaEngineAndTarget(const MetaEngine *engine, c
 
 	// Set up the game domain as newly active domain, so
 	// target specific savepath will be checked
-	String oldDomain = ConfMan.getActiveDomainName();
+	Common::String oldDomain = ConfMan.getActiveDomainName();
 	ConfMan.setActiveDomain(target);
 
 	int ret;
@@ -113,7 +112,7 @@ int SaveLoadChooser::runModalWithMetaEngineAndTarget(const MetaEngine *engine, c
 	return ret;
 }
 
-const Common::U32String &SaveLoadChooser::getResultString() const {
+const Common::U32String SaveLoadChooser::getResultString() const {
 	assert(_impl);
 	return _impl->getResultString();
 }

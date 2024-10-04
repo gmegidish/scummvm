@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@
 
 namespace Lure {
 
-static Mouse *int_mouse = NULL;
+static Mouse *int_mouse = nullptr;
 
 Mouse &Mouse::getReference() {
 	return *int_mouse;
@@ -146,7 +145,7 @@ void Mouse::waitForRelease() {
 
 /*--------------------------------------------------------------------------*/
 
-static Events *int_events = NULL;
+static Events *int_events = nullptr;
 
 Events::Events() {
 	int_events = this;
@@ -186,7 +185,8 @@ void Events::waitForPress() {
 	while (!keyButton) {
 		while (pollEvent()) {
 			if ((_event.type == Common::EVENT_QUIT) || (_event.type == Common::EVENT_RETURN_TO_LAUNCHER)) return;
-			else if ((_event.type == Common::EVENT_KEYDOWN) && (_event.kbd.ascii != 0))
+			else if (((_event.type == Common::EVENT_KEYDOWN) && (_event.kbd.ascii != 0)) ||
+					 ((_event.type == Common::EVENT_CUSTOM_ENGINE_ACTION_START) && (_event.customType != kActionNone)))
 				keyButton = true;
 			else if ((_event.type == Common::EVENT_LBUTTONDOWN) ||
 				(_event.type == Common::EVENT_MBUTTONDOWN) ||
@@ -213,6 +213,7 @@ bool Events::interruptableDelay(uint32 milliseconds) {
 
 		if (events.pollEvent()) {
 			if (((events.type() == Common::EVENT_KEYDOWN) && (events.event().kbd.ascii != 0)) ||
+				((events.type() == Common::EVENT_CUSTOM_ENGINE_ACTION_START) && (events.customType() != kActionNone)) ||
 				(events.type() == Common::EVENT_LBUTTONDOWN))
 				return true;
 		}

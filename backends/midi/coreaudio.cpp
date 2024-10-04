@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,39 +26,20 @@
 
 #ifdef MACOSX
 
-#include <AvailabilityMacros.h>
+#include "backends/platform/sdl/macosx/macosx-compat.h"
 
 // With the release of Mac OS X 10.5 in October 2007, Apple deprecated the
 // AUGraphNewNode & AUGraphGetNodeInfo APIs in favor of the new AUGraphAddNode &
 // AUGraphNodeInfo APIs. While it is easy to switch to those, it breaks
-// compatibility with all pre-10.5 systems.
-//
-// Since 10.5 was the last system to support PowerPC, we use the old, deprecated
-// APIs on PowerPC based systems by default. On all other systems (such as Mac
-// OS X running on Intel hardware, or iOS running on ARM), we use the new API by
-// default.
-//
-// This leaves Mac OS X 10.4 running on x86 processors as the only system
-// combination that this code will not support by default. It seems quite
-// reasonable to assume that anybody with an Intel system has since then moved
-// on to a newer Mac OS X release. But if for some reason you absolutely need to
-// build an x86 version of this code using the old, deprecated API, you can
-// simply do so by manually enable the USE_DEPRECATED_COREAUDIO_API switch (e.g.
-// by adding setting it suitably in CPPFLAGS).
-#if !defined(USE_DEPRECATED_COREAUDIO_API)
-	#if TARGET_CPU_PPC || TARGET_CPU_PPC64 || !defined(MAC_OS_X_VERSION_10_6)
-		#define USE_DEPRECATED_COREAUDIO_API 1
-	#else
-		#define USE_DEPRECATED_COREAUDIO_API 0
-	#endif
-#endif
-
-#if USE_DEPRECATED_COREAUDIO_API
+// compatibility with 10.4, for which we need to use the older APIs.
+#if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_5
+	#define USE_DEPRECATED_COREAUDIO_API 1
 	// Try to silence warnings about use of deprecated APIs
 	#undef DEPRECATED_ATTRIBUTE
 	#define DEPRECATED_ATTRIBUTE
+#else
+	#define USE_DEPRECATED_COREAUDIO_API 0
 #endif
-
 
 #include "common/config-manager.h"
 #include "common/error.h"
@@ -130,7 +110,7 @@ int MidiDriver_CORE::open() {
 	RequireNoErr(NewAUGraph(&_auGraph));
 
 	AUNode outputNode, synthNode;
-#if USE_DEPRECATED_COREAUDIO_API
+#if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_6
 	ComponentDescription desc;
 #else
 	AudioComponentDescription desc;
@@ -174,7 +154,7 @@ int MidiDriver_CORE::open() {
 
 	// Load custom soundfont, if specified
 	if (ConfMan.hasKey("soundfont"))
-		loadSoundFont(ConfMan.get("soundfont").c_str());
+		loadSoundFont(ConfMan.getPath("soundfont").toString(Common::Path::kNativeSeparator).c_str());
 
 #ifdef COREAUDIO_DISABLE_REVERB
 	// Disable reverb mode, as that sucks up a lot of CPU power, which can
@@ -210,40 +190,13 @@ void MidiDriver_CORE::loadSoundFont(const char *soundfont) {
 	FSRef fsref;
 	err = FSPathMakeRef((const byte *)soundfont, &fsref, NULL);
 
-	SInt32 version;
-	err = Gestalt(gestaltSystemVersion, &version);
-
 	if (err == noErr) {
-		if (version >= 0x1030) {
-			// Use kMusicDeviceProperty_SoundBankFSRef in >= 10.3
-
-			// HACK HACK HACK HACK SUPER HACK: Using the value of 1012 instead of
-			// kMusicDeviceProperty_SoundBankFSRef so this compiles with the 10.2
-			// SDK (which does not have that symbol).
-			if (err == noErr) {
-				err = AudioUnitSetProperty(
-					_synth,
-					/*kMusicDeviceProperty_SoundBankFSRef*/ 1012, kAudioUnitScope_Global,
-					0,
-					&fsref, sizeof(fsref)
-				);
-			}
-		} else {
-			// In 10.2, only kMusicDeviceProperty_SoundBankFSSpec is available
-			FSSpec fsSpec;
-
-			if (err == noErr)
-				err = FSGetCatalogInfo(&fsref, kFSCatInfoNone, NULL, NULL, &fsSpec, NULL);
-
-			if (err == noErr) {
-				err = AudioUnitSetProperty(
-					_synth,
-					kMusicDeviceProperty_SoundBankFSSpec, kAudioUnitScope_Global,
-					0,
-					&fsSpec, sizeof(fsSpec)
-				);
-			}
-		}
+		err = AudioUnitSetProperty(
+			_synth,
+			kMusicDeviceProperty_SoundBankFSRef, kAudioUnitScope_Global,
+			0,
+			&fsref, sizeof(fsref)
+		);
 	}
 #else
 	// kMusicDeviceProperty_SoundBankURL was added in 10.5 as a replacement

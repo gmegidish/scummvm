@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 #include "common/scummsys.h"
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
+#include "common/text-to-speech.h"
 
 namespace Sherlock {
 
@@ -52,6 +52,7 @@ SherlockEngine::SherlockEngine(OSystem *syst, const SherlockGameDescription *gam
 	_showOriginalSavesDialog = false;
 	_interactiveFl = true;
 	_isScreenDoubled = false;
+	_startupAutosave = false;
 }
 
 SherlockEngine::~SherlockEngine() {
@@ -136,7 +137,16 @@ Common::Error SherlockEngine::run() {
 		do {
 			showOpening();
 		} while (!shouldQuit() && !_interactiveFl);
+
+		// Signal startup autosave, if there isn't already a save in
+		// that slot.
+		SaveStateDescriptor desc = getMetaEngine()->querySaveMetaInfos(
+			_targetName.c_str(), getAutosaveSlot());
+		if (!desc.isValid())
+			_startupAutosave = true;
 	}
+
+	_events->showCursor();
 
 	while (!shouldQuit()) {
 		// Prepare for scene, and handle any game-specific scenes. This allows
@@ -153,6 +163,11 @@ Common::Error SherlockEngine::run() {
 
 		// Reset the data for the player character (Sherlock)
 		_people->reset();
+
+		// If this is still set from the previous scene, something went wrong.
+		// The next scene's path script or a continued script would be
+		// incorrectly aborted
+		assert(!_talk->_talkToAbort);
 
 		// Initialize and load the scene.
 		_scene->selectScene();
@@ -179,6 +194,15 @@ void SherlockEngine::sceneLoop() {
 		if (_people->_savedPos.x == -1) {
 			_canLoadSave = true;
 			_scene->doBgAnim();
+
+			if (_startupAutosave) {
+				// When the game is first started, create an autosave.
+				// This helps with the save dialog to prevent users
+				// accidentally saving in the autosave slot
+				_startupAutosave = false;
+				saveAutosaveIfEnabled();
+			}
+
 			_canLoadSave = false;
 		}
 	}
@@ -188,7 +212,7 @@ void SherlockEngine::sceneLoop() {
 }
 
 void SherlockEngine::handleInput() {
-	_canLoadSave = _ui->_menuMode == STD_MODE || _ui->_menuMode == LAB_MODE;
+	_canLoadSave = (_ui->_menuMode == STD_MODE || _ui->_menuMode == LAB_MODE) && _events->isCursorVisible();
 	_events->pollEventsAndWait();
 	_canLoadSave = false;
 
@@ -229,6 +253,10 @@ void SherlockEngine::loadConfig() {
 	_ui->_helpStyle = ConfMan.getBool("help_style");
 	_ui->_slideWindows = ConfMan.getBool("window_style");
 	_people->_portraitsOn = ConfMan.getBool("portraits_on");
+
+	Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+	if (ttsMan != nullptr)
+		ttsMan->enable(ConfMan.getBool("tts_narrator"));
 }
 
 void SherlockEngine::saveConfig() {
@@ -261,11 +289,11 @@ void SherlockEngine::synchronize(Serializer &s) {
 		s.syncAsByte(_flags[idx]);
 }
 
-bool SherlockEngine::canLoadGameStateCurrently() {
+bool SherlockEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return _canLoadSave;
 }
 
-bool SherlockEngine::canSaveGameStateCurrently() {
+bool SherlockEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return _canLoadSave;
 }
 

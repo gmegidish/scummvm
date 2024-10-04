@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@ namespace Agi {
 int AgiEngine::decodeObjects(uint8 *mem, uint32 flen) {
 	unsigned int i, so, padsize, spos;
 
-	padsize = _game.gameFlags & ID_AMIGA ? 4 : 3;
+	padsize = getPlatform() == Common::kPlatformAmiga ? 4 : 3;
 
 	_game.numObjects = 0;
 
@@ -87,17 +86,7 @@ int AgiEngine::loadObjects(const char *fname) {
 	if (!fp.open(fname))
 		return errBadFileOpen;
 
-	return readObjects(fp, fp.size());
-}
-
-/**
- * Loads an object file that is in the common VOL resource format. Expects
- * the file pointer to point to the last field in header, ie. file length.
- * This is used at least by the V1 booter games.
- */
-int AgiEngine::loadObjects(Common::File &fp) {
-	int flen = fp.readUint16LE();
-	return readObjects(fp, flen);
+	return loadObjects(fp, fp.size());
 }
 
 /**
@@ -106,33 +95,31 @@ int AgiEngine::loadObjects(Common::File &fp) {
  * @param  fp    File pointer
  * @param  flen  File length
  */
-int AgiEngine::readObjects(Common::File &fp, int flen) {
+int AgiEngine::loadObjects(Common::SeekableReadStream &fp, int flen) {
 	uint8 *mem;
 
-	if ((mem = (uint8 *)calloc(1, flen + 32)) == NULL) {
-		fp.close();
+	if ((mem = (uint8 *)calloc(1, flen + 32)) == nullptr) {
 		return errNotEnoughMemory;
 	}
 
 	fp.read(mem, flen);
-	fp.close();
 
 	decodeObjects(mem, flen);
 	free(mem);
 	return errOK;
 }
 
-void AgiEngine::objectSetLocation(uint16 objectNr, int i) {
+void AgiEngine::objectSetLocation(uint16 objectNr, int location) {
 	if (objectNr >= _game.numObjects) {
-		warning("AgiEngine::objectSetLocation: Can't access object %d.\n", objectNr);
+		warning("AgiEngine::objectSetLocation: Can't access object %d", objectNr);
 		return;
 	}
-	_objects[objectNr].location = i;
+	_objects[objectNr].location = location;
 }
 
 int AgiEngine::objectGetLocation(uint16 objectNr) {
 	if (objectNr >= _game.numObjects) {
-		warning("AgiEngine::objectGetLocation: Can't access object %d.\n", objectNr);
+		warning("AgiEngine::objectGetLocation: Can't access object %d", objectNr);
 		return 0;
 	}
 	return _objects[objectNr].location;
@@ -140,7 +127,7 @@ int AgiEngine::objectGetLocation(uint16 objectNr) {
 
 const char *AgiEngine::objectName(uint16 objectNr) {
 	if (objectNr >= _game.numObjects) {
-		warning("AgiEngine::objectName: Can't access object %d.\n", objectNr);
+		warning("AgiEngine::objectName: Can't access object %d", objectNr);
 		return "";
 	}
 	return _objects[objectNr].name.c_str();

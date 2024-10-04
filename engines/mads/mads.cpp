@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
 #include "common/events.h"
+#include "common/text-to-speech.h"
 #include "engines/util.h"
 #include "mads/mads.h"
 #include "mads/game.h"
@@ -32,6 +32,7 @@
 #include "mads/resources.h"
 #include "mads/sound.h"
 #include "mads/sprites.h"
+#include "mads/mps_installer.h"
 
 namespace MADS {
 
@@ -77,6 +78,13 @@ MADSEngine::~MADSEngine() {
 }
 
 void MADSEngine::initialize() {
+	if (_gameDescription->desc.flags & GF_INSTALLER) {
+		// Right now used only by Rex Nebular
+		Common::Archive* arch = MpsInstaller::open("MPSLABS");
+		if (arch)
+			SearchMan.add("mpslabs", arch);
+	}
+
 	// Initial sub-system engine references
 	MSurface::setVm(this);
 	MSprite::setVm(this);
@@ -129,10 +137,14 @@ void MADSEngine::loadOptions() {
 
 	// Note: MADS is weird in that sfx and music are handled by the same driver,
 	// and the game scripts themselves check for music being enabled before playing
-	// a "music" sound. Which means we can independantly mute music in ScummVM, but
+	// a "music" sound. Which means we can independently mute music in ScummVM, but
 	// otherwise all sound, music and sfx, is controlled by the SFX volume slider.
 	int soundVolume = MIN(255, ConfMan.getInt("sfx_volume"));
 	_sound->setVolume(soundVolume);
+
+	Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+	if (ttsMan != nullptr)
+		ttsMan->enable(ConfMan.getBool("tts_narrator"));
 }
 
 void MADSEngine::saveOptions() {
@@ -173,16 +185,17 @@ int MADSEngine::getRandomNumber(int minNumber, int maxNumber) {
 	return minNumber + _randomSource.getRandomNumber(range);
 }
 
-bool MADSEngine::canLoadGameStateCurrently() {
+bool MADSEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return !_game->_winStatus && !_game->globals()[5]
 		&& _dialogs->_pendingDialog == DIALOG_NONE
 		&& _events->_cursorId != CURSOR_WAIT;
 }
 
-bool MADSEngine::canSaveGameStateCurrently() {
+bool MADSEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return !_game->_winStatus && !_game->globals()[5]
 		&& _dialogs->_pendingDialog == DIALOG_NONE
-		&& _events->_cursorId != CURSOR_WAIT;
+		&& _events->_cursorId != CURSOR_WAIT
+		&& _game->_scene._sceneLogic;
 }
 
 void MADSEngine::syncSoundSettings() {

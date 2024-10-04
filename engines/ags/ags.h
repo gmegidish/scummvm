@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,7 +36,6 @@
 #include "ags/detection.h"
 #include "ags/shared/gfx/bitmap.h"
 #include "ags/lib/allegro/system.h"
-#include "ags/engine/util/mutex_std.h"
 
 namespace AGS3 {
 class Globals;
@@ -50,13 +48,8 @@ namespace AGS {
  * @brief Engine to run Adventure Game Studio games.
  */
 
-/* Synced up to upstream: 3.5.1.10
- * f2736d21677d2db4b0559c1ded31e284b8a8f64f
- *
- * Commits still pending to be ported:
- * cae84d689019313cad49b6dca7e916866b90e49e
- * - We have slightly different blending code, commit needs
- * to be modified to take that into account
+/* Synced up to upstream: ---
+ * ----
  */
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 200
@@ -66,6 +59,14 @@ struct PluginVersion;
 class EventsManager;
 class Music;
 
+struct PluginVersion {
+	const char *_plugin;
+	int _version;
+};
+
+enum AGSSteamVersion { kAGSteam = 0, kWadjetEye = 1 };
+enum AGSSpriteFontVersion { kAGSSpriteFont = 0, kClifftopGames = 1 };
+
 class AGSEngine : public Engine {
 private:
 	const AGSGameDescription *_gameDescription;
@@ -74,9 +75,6 @@ public:
 	EventsManager *_events;
 	Music *_music;
 	::AGS3::GFX_DRIVER *_gfxDriver;
-	::AGS3::AGS::Engine::Mutex _sMutex;
-	::AGS3::AGS::Engine::Mutex _soundCacheMutex;
-	::AGS3::AGS::Engine::Mutex _mp3Mutex;
 	::AGS3::Globals *_globals;
 	bool _forceTextAA;
 protected:
@@ -155,12 +153,12 @@ public:
 	/**
 	 * Indicate whether a game state can be loaded.
 	 */
-	bool canLoadGameStateCurrently() override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
 
 	/**
 	 * Indicate whether a game state can be saved.
 	 */
-	bool canSaveGameStateCurrently() override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 
 	/**
 	 * Load a savegame
@@ -171,6 +169,11 @@ public:
 	 * Save a savegame
 	 */
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
+
+	/**
+	 * Returns autosave slot (-1 if unavailable)
+	 */
+	int getAutosaveSlot() const override;
 
 	/**
 	 * Synchronize user volume settings

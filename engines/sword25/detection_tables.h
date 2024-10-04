@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -104,6 +103,15 @@ static const ADGameDescription gameDescriptions[] = {
 		ADGF_NO_FLAGS,
 		GUIO1(GUIO_NOASPECT)
 	},
+	{
+		"sword25",
+		"",
+		AD_ENTRY1s("lang_he.b25c","993604772b9c7d9d54219d6993ab9c6c", 1214843),
+		Common::HE_ISR,
+		Common::kPlatformUnknown,
+		ADGF_NO_FLAGS,
+		GUIO1(GUIO_NOASPECT)
+	},
 	// Hungarian "psylog" version.
 	// Submitted by goodoldgeorg in bug report #5888.
 	{
@@ -120,9 +128,9 @@ static const ADGameDescription gameDescriptions[] = {
 	{
 		"sword25",
 		"Extracted",
-		{{"_includes.lua", 0, 0, -1},
-		 {"boot.lua", 0, 0, -1},
-		 {"kernel.lua", 0, 0, -1},
+		{{"_includes.lua", 0, 0, AD_NO_SIZE},
+		 {"boot.lua", 0, 0, AD_NO_SIZE},
+		 {"kernel.lua", 0, 0, AD_NO_SIZE},
 		 AD_LISTEND},
 		Common::UNK_LANG,
 		Common::kPlatformUnknown,

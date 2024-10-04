@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,12 +23,13 @@
 // Largely based on the WMA implementation found in FFmpeg.
 
 #include "common/util.h"
-#include "common/math.h"
-#include "common/sinewindows.h"
+#include "common/intrinsics.h"
 #include "common/error.h"
 #include "common/memstream.h"
-#include "common/mdct.h"
-#include "common/huffman.h"
+#include "common/compression/huffman.h"
+
+#include "math/mdct.h"
+#include "math/sinewindows.h"
 
 #include "audio/audiostream.h"
 
@@ -71,14 +71,14 @@ WMACodec::WMACodec(int version, uint32 sampleRate, uint8 channels,
 	_resetBlockLengths(true), _curFrame(0), _frameLen(0), _frameLenBits(0),
 	_blockSizeCount(0), _framePos(0), _curBlock(0), _blockLen(0), _blockLenBits(0),
 	_nextBlockLenBits(0), _prevBlockLenBits(0), _byteOffsetBits(0),
-	_hgainHuffman(0), _expHuffman(0), _lastSuperframeLen(0), _lastBitoffset(0) {
+	_hgainHuffman(nullptr), _expHuffman(nullptr), _lastSuperframeLen(0), _lastBitoffset(0) {
 
 	for (int i = 0; i < 2; i++) {
-		_coefHuffman[i] = 0;
+		_coefHuffman[i] = nullptr;
 
-		_coefHuffmanRunTable  [i] = 0;
-		_coefHuffmanLevelTable[i] = 0;
-		_coefHuffmanIntTable  [i] = 0;
+		_coefHuffmanRunTable  [i] = nullptr;
+		_coefHuffmanLevelTable[i] = nullptr;
+		_coefHuffmanIntTable  [i] = nullptr;
 	}
 
 	if ((_version != 1) && (_version != 2))
@@ -115,7 +115,7 @@ WMACodec::~WMACodec() {
 		delete _coefHuffman[i];
 	}
 
-	for (Common::Array<Common::MDCT *>::iterator m = _mdct.begin(); m != _mdct.end(); ++m)
+	for (Common::Array<Math::MDCT *>::iterator m = _mdct.begin(); m != _mdct.end(); ++m)
 		delete *m;
 }
 
@@ -339,7 +339,7 @@ void WMACodec::evalMDCTScales(float highFreq) {
 
 		} else {
 			// Hardcoded tables
-			const uint8 *table = 0;
+			const uint8 *table = nullptr;
 
 			int t = _frameLenBits - kBlockBitsMin - k;
 			if (t < 3) {
@@ -460,12 +460,12 @@ void WMACodec::initCoefHuffman(float bps) {
 void WMACodec::initMDCT() {
 	_mdct.reserve(_blockSizeCount);
 	for (int i = 0; i < _blockSizeCount; i++)
-		_mdct.push_back(new Common::MDCT(_frameLenBits - i + 1, true, 1.0));
+		_mdct.push_back(new Math::MDCT(_frameLenBits - i + 1, true, 1.0));
 
 	// Init MDCT windows (simple sine window)
 	_mdctWindow.reserve(_blockSizeCount);
 	for (int i = 0; i < _blockSizeCount; i++)
-		_mdctWindow.push_back(Common::getSineWindow(_frameLenBits - i));
+		_mdctWindow.push_back(Math::getSineWindow(_frameLenBits - i));
 }
 
 void WMACodec::initExponents() {
@@ -544,7 +544,7 @@ void WMACodec::initLSPToCurve() {
 AudioStream *WMACodec::decodeFrame(Common::SeekableReadStream &data) {
 	Common::SeekableReadStream *stream = decodeSuperFrame(data);
 	if (!stream)
-		return 0;
+		return nullptr;
 
 	return makeRawStream(stream, _sampleRate, _audioFlags, DisposeAfterUse::YES);
 }
@@ -553,7 +553,7 @@ Common::SeekableReadStream *WMACodec::decodeSuperFrame(Common::SeekableReadStrea
 	uint32 size = data.size();
 	if (size < _blockAlign) {
 		warning("WMACodec::decodeSuperFrame(): size < _blockAlign");
-		return 0;
+		return nullptr;
 	}
 
 	if (_blockAlign)
@@ -562,7 +562,7 @@ Common::SeekableReadStream *WMACodec::decodeSuperFrame(Common::SeekableReadStrea
 	Common::BitStream8MSB bits(data);
 
 	int    outputDataSize = 0;
-	int16 *outputData     = 0;
+	int16 *outputData     = nullptr;
 
 	_curFrame = 0;
 
@@ -572,7 +572,7 @@ Common::SeekableReadStream *WMACodec::decodeSuperFrame(Common::SeekableReadStrea
 		bits.skip(4); // Super frame index
 
 		// Number of frames in this superframe
-		int newFrameCount = bits.getBits(4) - 1;
+		int newFrameCount = bits.getBits<4>() - 1;
 		if (newFrameCount < 0) {
 			warning("WMACodec::decodeSuperFrame(): newFrameCount == %d", newFrameCount);
 
@@ -580,7 +580,7 @@ Common::SeekableReadStream *WMACodec::decodeSuperFrame(Common::SeekableReadStrea
 			_lastSuperframeLen = 0;
 			_lastBitoffset     = 0;
 
-			return 0;
+			return nullptr;
 		}
 
 		// Number of frames in this superframe + overhang from the last superframe
@@ -590,9 +590,8 @@ Common::SeekableReadStream *WMACodec::decodeSuperFrame(Common::SeekableReadStrea
 
 		// PCM output data
 		outputDataSize = frameCount * _channels * _frameLen;
-		outputData     = new int16[outputDataSize];
+		outputData     = new int16[outputDataSize]();
 
-		memset(outputData, 0, outputDataSize * 2);
 
 		// Number of bits data that completes the last superframe's overhang.
 		int bitOffset = bits.getBits(_byteOffsetBits + 3);
@@ -605,7 +604,7 @@ Common::SeekableReadStream *WMACodec::decodeSuperFrame(Common::SeekableReadStrea
 			byte *lastSuperframeEnd = _lastSuperframe + _lastSuperframeLen;
 
 			while (bitOffset > 7) { // Full bytes
-				*lastSuperframeEnd++ = bits.getBits(8);
+				*lastSuperframeEnd++ = bits.getBits<8>();
 
 				bitOffset          -= 8;
 				_lastSuperframeLen += 1;
@@ -636,8 +635,10 @@ Common::SeekableReadStream *WMACodec::decodeSuperFrame(Common::SeekableReadStrea
 
 		// Decode the frames
 		for (int i = 0; i < newFrameCount; i++, _curFrame++)
-			if (!decodeFrame(bits, outputData))
-				return 0;
+			if (!decodeFrame(bits, outputData)) {
+				delete[] outputData;
+				return nullptr;
+			}
 
 		// Check if we've got new overhang data
 		int remainingBits = bits.size() - bits.pos();
@@ -664,21 +665,20 @@ Common::SeekableReadStream *WMACodec::decodeSuperFrame(Common::SeekableReadStrea
 
 		// PCM output data
 		outputDataSize = _channels * _frameLen;
-		outputData     = new int16[outputDataSize];
+		outputData     = new int16[outputDataSize]();
 
-		memset(outputData, 0, outputDataSize * 2);
 
 		// Decode the frame
 		if (!decodeFrame(bits, outputData)) {
 			delete[] outputData;
-			return 0;
+			return nullptr;
 		}
 	}
 
 	// And return our PCM output data as a stream, if available
 
 	if (!outputData)
-		return 0;
+		return nullptr;
 
 	return new Common::MemoryReadStream((byte *) outputData, outputDataSize * 2, DisposeAfterUse::YES);
 }
@@ -804,7 +804,7 @@ bool WMACodec::decodeChannels(Common::BitStream8MSB &bits, int bSize,
 }
 
 bool WMACodec::calculateIMDCT(int bSize, bool msStereo, bool *hasChannel) {
-	Common::MDCT &mdct = *_mdct[bSize];
+	Math::MDCT &mdct = *_mdct[bSize];
 
 	for (int i = 0; i < _channels; i++) {
 		int n4 = _blockLen / 2;
@@ -939,7 +939,7 @@ bool WMACodec::decodeNoise(Common::BitStream8MSB &bits, int bSize,
 				val += code - 18;
 
 			} else
-				val = bits.getBits(7) - 19;
+				val = bits.getBits<7>() - 19;
 
 			_highBandValues[i][j] = val;
 
@@ -992,7 +992,7 @@ bool WMACodec::decodeSpectralCoef(Common::BitStream8MSB &bits, bool msStereo, bo
 		}
 
 		if ((_version == 1) && (_channels >= 2))
-			bits.skip(-bits.pos() & 7);
+			bits.skip((0u - bits.pos()) & 7u);
 	}
 
 	return true;
@@ -1132,84 +1132,84 @@ void WMACodec::calculateMDCTCoefficients(int bSize, bool *hasChannel,
 }
 
 static const float powTab[] = {
-	1.7782794100389e-04, 2.0535250264571e-04,
-	2.3713737056617e-04, 2.7384196342644e-04,
-	3.1622776601684e-04, 3.6517412725484e-04,
-	4.2169650342858e-04, 4.8696752516586e-04,
-	5.6234132519035e-04, 6.4938163157621e-04,
-	7.4989420933246e-04, 8.6596432336006e-04,
-	1.0000000000000e-03, 1.1547819846895e-03,
-	1.3335214321633e-03, 1.5399265260595e-03,
-	1.7782794100389e-03, 2.0535250264571e-03,
-	2.3713737056617e-03, 2.7384196342644e-03,
-	3.1622776601684e-03, 3.6517412725484e-03,
-	4.2169650342858e-03, 4.8696752516586e-03,
-	5.6234132519035e-03, 6.4938163157621e-03,
-	7.4989420933246e-03, 8.6596432336006e-03,
-	1.0000000000000e-02, 1.1547819846895e-02,
-	1.3335214321633e-02, 1.5399265260595e-02,
-	1.7782794100389e-02, 2.0535250264571e-02,
-	2.3713737056617e-02, 2.7384196342644e-02,
-	3.1622776601684e-02, 3.6517412725484e-02,
-	4.2169650342858e-02, 4.8696752516586e-02,
-	5.6234132519035e-02, 6.4938163157621e-02,
-	7.4989420933246e-02, 8.6596432336007e-02,
-	1.0000000000000e-01, 1.1547819846895e-01,
-	1.3335214321633e-01, 1.5399265260595e-01,
-	1.7782794100389e-01, 2.0535250264571e-01,
-	2.3713737056617e-01, 2.7384196342644e-01,
-	3.1622776601684e-01, 3.6517412725484e-01,
-	4.2169650342858e-01, 4.8696752516586e-01,
-	5.6234132519035e-01, 6.4938163157621e-01,
-	7.4989420933246e-01, 8.6596432336007e-01,
-	1.0000000000000e+00, 1.1547819846895e+00,
-	1.3335214321633e+00, 1.5399265260595e+00,
-	1.7782794100389e+00, 2.0535250264571e+00,
-	2.3713737056617e+00, 2.7384196342644e+00,
-	3.1622776601684e+00, 3.6517412725484e+00,
-	4.2169650342858e+00, 4.8696752516586e+00,
-	5.6234132519035e+00, 6.4938163157621e+00,
-	7.4989420933246e+00, 8.6596432336007e+00,
-	1.0000000000000e+01, 1.1547819846895e+01,
-	1.3335214321633e+01, 1.5399265260595e+01,
-	1.7782794100389e+01, 2.0535250264571e+01,
-	2.3713737056617e+01, 2.7384196342644e+01,
-	3.1622776601684e+01, 3.6517412725484e+01,
-	4.2169650342858e+01, 4.8696752516586e+01,
-	5.6234132519035e+01, 6.4938163157621e+01,
-	7.4989420933246e+01, 8.6596432336007e+01,
-	1.0000000000000e+02, 1.1547819846895e+02,
-	1.3335214321633e+02, 1.5399265260595e+02,
-	1.7782794100389e+02, 2.0535250264571e+02,
-	2.3713737056617e+02, 2.7384196342644e+02,
-	3.1622776601684e+02, 3.6517412725484e+02,
-	4.2169650342858e+02, 4.8696752516586e+02,
-	5.6234132519035e+02, 6.4938163157621e+02,
-	7.4989420933246e+02, 8.6596432336007e+02,
-	1.0000000000000e+03, 1.1547819846895e+03,
-	1.3335214321633e+03, 1.5399265260595e+03,
-	1.7782794100389e+03, 2.0535250264571e+03,
-	2.3713737056617e+03, 2.7384196342644e+03,
-	3.1622776601684e+03, 3.6517412725484e+03,
-	4.2169650342858e+03, 4.8696752516586e+03,
-	5.6234132519035e+03, 6.4938163157621e+03,
-	7.4989420933246e+03, 8.6596432336007e+03,
-	1.0000000000000e+04, 1.1547819846895e+04,
-	1.3335214321633e+04, 1.5399265260595e+04,
-	1.7782794100389e+04, 2.0535250264571e+04,
-	2.3713737056617e+04, 2.7384196342644e+04,
-	3.1622776601684e+04, 3.6517412725484e+04,
-	4.2169650342858e+04, 4.8696752516586e+04,
-	5.6234132519035e+04, 6.4938163157621e+04,
-	7.4989420933246e+04, 8.6596432336007e+04,
-	1.0000000000000e+05, 1.1547819846895e+05,
-	1.3335214321633e+05, 1.5399265260595e+05,
-	1.7782794100389e+05, 2.0535250264571e+05,
-	2.3713737056617e+05, 2.7384196342644e+05,
-	3.1622776601684e+05, 3.6517412725484e+05,
-	4.2169650342858e+05, 4.8696752516586e+05,
-	5.6234132519035e+05, 6.4938163157621e+05,
-	7.4989420933246e+05, 8.6596432336007e+05,
+	1.7782794100389e-04f, 2.0535250264571e-04f,
+	2.3713737056617e-04f, 2.7384196342644e-04f,
+	3.1622776601684e-04f, 3.6517412725484e-04f,
+	4.2169650342858e-04f, 4.8696752516586e-04f,
+	5.6234132519035e-04f, 6.4938163157621e-04f,
+	7.4989420933246e-04f, 8.6596432336006e-04f,
+	1.0000000000000e-03f, 1.1547819846895e-03f,
+	1.3335214321633e-03f, 1.5399265260595e-03f,
+	1.7782794100389e-03f, 2.0535250264571e-03f,
+	2.3713737056617e-03f, 2.7384196342644e-03f,
+	3.1622776601684e-03f, 3.6517412725484e-03f,
+	4.2169650342858e-03f, 4.8696752516586e-03f,
+	5.6234132519035e-03f, 6.4938163157621e-03f,
+	7.4989420933246e-03f, 8.6596432336006e-03f,
+	1.0000000000000e-02f, 1.1547819846895e-02f,
+	1.3335214321633e-02f, 1.5399265260595e-02f,
+	1.7782794100389e-02f, 2.0535250264571e-02f,
+	2.3713737056617e-02f, 2.7384196342644e-02f,
+	3.1622776601684e-02f, 3.6517412725484e-02f,
+	4.2169650342858e-02f, 4.8696752516586e-02f,
+	5.6234132519035e-02f, 6.4938163157621e-02f,
+	7.4989420933246e-02f, 8.6596432336007e-02f,
+	1.0000000000000e-01f, 1.1547819846895e-01f,
+	1.3335214321633e-01f, 1.5399265260595e-01f,
+	1.7782794100389e-01f, 2.0535250264571e-01f,
+	2.3713737056617e-01f, 2.7384196342644e-01f,
+	3.1622776601684e-01f, 3.6517412725484e-01f,
+	4.2169650342858e-01f, 4.8696752516586e-01f,
+	5.6234132519035e-01f, 6.4938163157621e-01f,
+	7.4989420933246e-01f, 8.6596432336007e-01f,
+	1.0000000000000e+00f, 1.1547819846895e+00f,
+	1.3335214321633e+00f, 1.5399265260595e+00f,
+	1.7782794100389e+00f, 2.0535250264571e+00f,
+	2.3713737056617e+00f, 2.7384196342644e+00f,
+	3.1622776601684e+00f, 3.6517412725484e+00f,
+	4.2169650342858e+00f, 4.8696752516586e+00f,
+	5.6234132519035e+00f, 6.4938163157621e+00f,
+	7.4989420933246e+00f, 8.6596432336007e+00f,
+	1.0000000000000e+01f, 1.1547819846895e+01f,
+	1.3335214321633e+01f, 1.5399265260595e+01f,
+	1.7782794100389e+01f, 2.0535250264571e+01f,
+	2.3713737056617e+01f, 2.7384196342644e+01f,
+	3.1622776601684e+01f, 3.6517412725484e+01f,
+	4.2169650342858e+01f, 4.8696752516586e+01f,
+	5.6234132519035e+01f, 6.4938163157621e+01f,
+	7.4989420933246e+01f, 8.6596432336007e+01f,
+	1.0000000000000e+02f, 1.1547819846895e+02f,
+	1.3335214321633e+02f, 1.5399265260595e+02f,
+	1.7782794100389e+02f, 2.0535250264571e+02f,
+	2.3713737056617e+02f, 2.7384196342644e+02f,
+	3.1622776601684e+02f, 3.6517412725484e+02f,
+	4.2169650342858e+02f, 4.8696752516586e+02f,
+	5.6234132519035e+02f, 6.4938163157621e+02f,
+	7.4989420933246e+02f, 8.6596432336007e+02f,
+	1.0000000000000e+03f, 1.1547819846895e+03f,
+	1.3335214321633e+03f, 1.5399265260595e+03f,
+	1.7782794100389e+03f, 2.0535250264571e+03f,
+	2.3713737056617e+03f, 2.7384196342644e+03f,
+	3.1622776601684e+03f, 3.6517412725484e+03f,
+	4.2169650342858e+03f, 4.8696752516586e+03f,
+	5.6234132519035e+03f, 6.4938163157621e+03f,
+	7.4989420933246e+03f, 8.6596432336007e+03f,
+	1.0000000000000e+04f, 1.1547819846895e+04f,
+	1.3335214321633e+04f, 1.5399265260595e+04f,
+	1.7782794100389e+04f, 2.0535250264571e+04f,
+	2.3713737056617e+04f, 2.7384196342644e+04f,
+	3.1622776601684e+04f, 3.6517412725484e+04f,
+	4.2169650342858e+04f, 4.8696752516586e+04f,
+	5.6234132519035e+04f, 6.4938163157621e+04f,
+	7.4989420933246e+04f, 8.6596432336007e+04f,
+	1.0000000000000e+05f, 1.1547819846895e+05f,
+	1.3335214321633e+05f, 1.5399265260595e+05f,
+	1.7782794100389e+05f, 2.0535250264571e+05f,
+	2.3713737056617e+05f, 2.7384196342644e+05f,
+	3.1622776601684e+05f, 3.6517412725484e+05f,
+	4.2169650342858e+05f, 4.8696752516586e+05f,
+	5.6234132519035e+05f, 6.4938163157621e+05f,
+	7.4989420933246e+05f, 8.6596432336007e+05f,
 };
 
 bool WMACodec::decodeExpHuffman(Common::BitStream8MSB &bits, int ch) {
@@ -1226,7 +1226,7 @@ bool WMACodec::decodeExpHuffman(Common::BitStream8MSB &bits, int ch) {
 	int lastExp;
 	if (_version == 1) {
 
-		lastExp = bits.getBits(5) + 10;
+		lastExp = bits.getBits<5>() + 10;
 
 		float   v = ptab[lastExp];
 		uint32 iv = iptab[lastExp];
@@ -1317,9 +1317,9 @@ bool WMACodec::decodeExpLSP(Common::BitStream8MSB &bits, int ch) {
 		int val;
 
 		if (i == 0 || i >= 8)
-			val = bits.getBits(3);
+			val = bits.getBits<3>();
 		else
-			val = bits.getBits(4);
+			val = bits.getBits<4>();
 
 		lspCoefs[i] = lspCodebook[i][val];
 	}
@@ -1377,7 +1377,7 @@ bool WMACodec::decodeRunLevel(Common::BitStream8MSB &bits, const HuffmanDecoder 
 						} else
 							offset += bits.getBits(frameLenBits) + 4;
 					} else
-						offset += bits.getBits(2) + 1;
+						offset += bits.getBits<2>() + 1;
 				}
 
 			}
@@ -1475,7 +1475,7 @@ int WMACodec::readTotalGain(Common::BitStream8MSB &bits) {
 
 	int v = 127;
 	while (v == 127) {
-		v = bits.getBits(7);
+		v = bits.getBits<7>();
 
 		totalGain += v;
 	}
@@ -1494,19 +1494,19 @@ int WMACodec::totalGainToBits(int totalGain) {
 uint32 WMACodec::getLargeVal(Common::BitStream8MSB &bits) {
 	// Consumes up to 34 bits
 
-	int count = 8;
 	if (bits.getBit()) {
-		count += 8;
-
 		if (bits.getBit()) {
-			count += 8;
-
-			if (bits.getBit())
-				count += 7;
+			if (bits.getBit()) {
+				return bits.getBits<31>();
+			} else {
+				return bits.getBits<24>();
+			}
+		} else {
+			return bits.getBits<16>();
 		}
+	} else {
+		return bits.getBits<8>();
 	}
-
-	return bits.getBits(count);
 }
 
 } // End of namespace Audio

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,27 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "glk/scott/detection.h"
-#include "glk/scott/detection_tables.h"
-#include "glk/blorb.h"
+/*
+ * Based on ScottFree interpreter version 1.14 developed by Swansea
+ * University Computer Society without disassembly of any other game
+ * drivers, only of game databases as permitted by EEC law (for purposes
+ * of compatibility).
+ *
+ * Licensed under GPLv2
+ *
+ * https://github.com/angstsmurf/spatterlight/tree/master/terps/scott
+ */
+
 #include "common/file.h"
 #include "common/md5.h"
 #include "engines/game.h"
+#include "glk/blorb.h"
+#include "glk/scott/detection.h"
+#include "glk/scott/detection_tables.h"
 
 namespace Glk {
 namespace Scott {
@@ -45,7 +55,7 @@ GameDescriptor ScottMetaEngine::findGame(const char *gameId) {
 }
 
 bool ScottMetaEngine::detectGames(const Common::FSList &fslist, DetectedGames &gameList) {
-	const char *const EXTENSIONS[] = { ".saga", ".dat", nullptr };
+	const char *const EXTENSIONS[] = {".z80", ".saga", ".dat", ".D64", ".T64", "fiad", nullptr};
 
 	// Loop through the files of the folder
 	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
@@ -63,7 +73,12 @@ bool ScottMetaEngine::detectGames(const Common::FSList &fslist, DetectedGames &g
 		Common::File gameFile;
 		if (!gameFile.open(*file))
 			continue;
-		Common::String md5 = Common::computeStreamMD5AsString(gameFile, 5000);
+		Common::String md5;
+		if (filename.hasSuffixIgnoreCase(".D64"))
+			md5 = Common::computeStreamMD5AsString(gameFile);
+		else
+			md5 = Common::computeStreamMD5AsString(gameFile, 5000);
+
 		size_t filesize = (size_t)gameFile.size();
 		gameFile.seek(0);
 		isBlorb = Blorb::isBlorb(gameFile, ID_SAAI);
@@ -74,11 +89,14 @@ bool ScottMetaEngine::detectGames(const Common::FSList &fslist, DetectedGames &g
 
 		// Scan through the Scott game list for a match
 		const GlkDetectionEntry *p = SCOTT_GAMES;
-		while (p->_md5 && p->_filesize != filesize && md5 != p->_md5)
+		while (p->_md5 && (p->_filesize != filesize || md5 != p->_md5))
 			++p;
 
 		if (!p->_gameId) {
-			if (!isBlorb && filename.hasSuffixIgnoreCase(".dat"))
+
+			// ignore possible variants for common extensions to prevent flooding in mass-add
+			if (!isBlorb && (filename.hasSuffixIgnoreCase(".z80") || filename.hasSuffixIgnoreCase(".dat") ||
+				filename.hasSuffixIgnoreCase(".d64") || filename.hasSuffixIgnoreCase(".t64")))
 				continue;
 
 			const PlainGameDescriptor &desc = SCOTT_GAME_LIST[0];
@@ -86,7 +104,7 @@ bool ScottMetaEngine::detectGames(const Common::FSList &fslist, DetectedGames &g
 		} else {
 			// Found a match
 			PlainGameDescriptor gameDesc = findGame(p->_gameId);
-			gameList.push_back(GlkDetectedGame(p->_gameId, gameDesc.description, filename));
+			gameList.push_back(GlkDetectedGame(p->_gameId, gameDesc.description, filename, p->_language, p->_platform));
 		}
 	}
 
@@ -96,7 +114,7 @@ bool ScottMetaEngine::detectGames(const Common::FSList &fslist, DetectedGames &g
 void ScottMetaEngine::detectClashes(Common::StringMap &map) {
 	for (const PlainGameDescriptor *pd = SCOTT_GAME_LIST; pd->gameId; ++pd) {
 		if (map.contains(pd->gameId))
-			error("Duplicate game Id found - %s", pd->gameId);
+			error("ScottMetaEngine::detectClashes: Duplicate game Id found - %s", pd->gameId);
 		map[pd->gameId] = "";
 	}
 }

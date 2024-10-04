@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@
 
 namespace Sci {
 
-Portrait::Portrait(ResourceManager *resMan, EventManager *event, GfxScreen *screen, GfxPalette *palette, AudioPlayer *audio, Common::String resourceName)
+Portrait::Portrait(ResourceManager *resMan, EventManager *event, GfxScreen *screen, GfxPalette *palette, AudioPlayer *audio, const Common::String &resourceName)
 	: _resMan(resMan), _event(event), _screen(screen), _palette(palette), _audio(audio), _resourceName(resourceName) {
 	init();
 }
@@ -84,7 +83,7 @@ void Portrait::init() {
 	// 4 bytes appended, seem to be random
 	//   9E11120E for alex
 	//   9E9E9E9E for vizier
-	Common::String fileName = "actors/" + _resourceName + ".bin";
+	Common::Path fileName("actors/" + _resourceName + ".bin", '/');
 	Common::SeekableReadStream *file = SearchMan.createReadStreamForMember(fileName);
 
 	if (!file) {
@@ -93,7 +92,7 @@ void Portrait::init() {
 		if (!file)
 			error("portrait %s.bin not found", _resourceName.c_str());
 	}
-	_fileData->allocateFromStream(*file, Common::kSpanMaxSize, fileName);
+	_fileData->allocateFromStream(*file, Common::kSpanMaxSize, fileName.toString('/'));
 	delete file;
 
 	if (strncmp((const char *)_fileData->getUnsafeDataAt(0, 3), "WIN", 3)) {
@@ -120,13 +119,11 @@ void Portrait::init() {
 
 	// Read all bitmaps
 	uint16 bitmapNr;
-	uint16 bytesPerLine;
-
 	for (bitmapNr = 0; bitmapNr < _bitmaps.size(); bitmapNr++) {
 		PortraitBitmap &curBitmap = _bitmaps[bitmapNr];
 		curBitmap.width = data.getUint16LEAt(2);
 		curBitmap.height = data.getUint16LEAt(4);
-		bytesPerLine = data.getUint16LEAt(6);
+		uint16 bytesPerLine = data.getUint16LEAt(6);
 		if (bytesPerLine < curBitmap.width)
 			error("kPortrait: bytesPerLine larger than actual width");
 		curBitmap.extraBytesPerLine = bytesPerLine - curBitmap.width;
@@ -159,7 +156,6 @@ void Portrait::init() {
 	// raw lip-sync frame table follows
 	uint32 lipSyncDataTableSize;
 	uint32 lipSyncDataTableLastOffset;
-	byte   lipSyncData;
 	uint16 lipSyncDataNr;
 	uint16 lipSyncCurOffset;
 
@@ -178,7 +174,7 @@ void Portrait::init() {
 		_lipSyncDataOffsetTable[lipSyncDataNr] = lipSyncCurOffset;
 
 		// Look for end of ID-frame data
-		lipSyncData = *data++; lipSyncCurOffset++;
+		byte lipSyncData = *data++; lipSyncCurOffset++;
 		while (lipSyncData != 0xFF && lipSyncCurOffset < lipSyncDataTableLastOffset) {
 			// Either terminator (0xFF) or frame-data (1 byte tick count and 1 byte bitmap ID)
 			data++;
@@ -269,7 +265,6 @@ void Portrait::doit(Common::Point position, uint16 resourceId, uint16 noun, uint
 	byte raveLipSyncTicks;
 	byte raveLipSyncBitmapNr;
 	int timerPosition = 0;
-	int timerPositionWithin = 0;
 	int curPosition;
 	SciEvent curEvent;
 	bool userAbort = false;
@@ -316,7 +311,7 @@ void Portrait::doit(Common::Point position, uint16 resourceId, uint16 noun, uint
 			// lip sync data is
 			//  Tick:Byte, Bitmap-Nr:BYTE
 			//  Tick = 0xFF is the terminator for the data
-			timerPositionWithin = timerPosition;
+			int timerPositionWithin = timerPosition;
 			raveLipSyncTicks = *raveLipSyncData++;
 			while (raveLipSyncData.size() && raveLipSyncTicks != 0xFF) {
 				if (raveLipSyncTicks)
@@ -424,14 +419,13 @@ void Portrait::doit(Common::Point position, uint16 resourceId, uint16 noun, uint
 int16 Portrait::raveGetTicks(Resource *resource, uint *offset) {
 	uint curOffset = *offset;
 	SciSpan<const byte> curData = resource->subspan(curOffset);
-	byte curByte;
 	uint16 curValue = 0;
 
 	if (curOffset >= resource->size())
 		return -1;
 
 	while (curOffset < resource->size()) {
-		curByte = *curData++; curOffset++;
+		byte curByte = *curData++; curOffset++;
 		if ( curByte == ' ' )
 			break;
 		if ( (curByte >= '0') && (curByte <= '9') ) {
@@ -449,11 +443,10 @@ int16 Portrait::raveGetTicks(Resource *resource, uint *offset) {
 uint16 Portrait::raveGetID(Resource *resource, uint *offset) {
 	uint curOffset = *offset;
 	SciSpan<const byte> curData = resource->subspan(curOffset);
-	byte curByte = 0;
 	uint16 curValue = 0;
 
 	while (curOffset < resource->size()) {
-		curByte = *curData++; curOffset++;
+		byte curByte = *curData++; curOffset++;
 		if ( curByte == ' ' )
 			break;
 		if (!curValue) {
@@ -469,22 +462,18 @@ uint16 Portrait::raveGetID(Resource *resource, uint *offset) {
 
 // Searches for a specific lip sync ID and returns pointer to lip sync data or NULL in case ID was not found
 SciSpan<const byte> Portrait::raveGetLipSyncData(const uint16 raveID) {
-	uint lipSyncIDNr = 0;
 	SciSpan<const byte> lipSyncIDPtr = _lipSyncIDTable;
-	byte lipSyncIDByte1, lipSyncIDByte2;
-	uint16 lipSyncID;
 
 	lipSyncIDPtr++; // skip over first byte
-	while (lipSyncIDNr < _lipSyncIDCount) {
-		lipSyncIDByte1 = *lipSyncIDPtr++;
-		lipSyncIDByte2 = *lipSyncIDPtr++;
-		lipSyncID = (lipSyncIDByte1 << 8) | lipSyncIDByte2;
+	for (uint lipSyncIDNr = 0; lipSyncIDNr < _lipSyncIDCount; lipSyncIDNr++) {
+		byte lipSyncIDByte1 = *lipSyncIDPtr++;
+		byte lipSyncIDByte2 = *lipSyncIDPtr++;
+		uint16 lipSyncID = (lipSyncIDByte1 << 8) | lipSyncIDByte2;
 
 		if (lipSyncID == raveID) {
 			return _lipSyncData.subspan(_lipSyncDataOffsetTable[lipSyncIDNr]);
 		}
 
-		lipSyncIDNr++;
 		lipSyncIDPtr += 2; // ID is every 4 bytes
 	}
 	return SciSpan<const byte>();

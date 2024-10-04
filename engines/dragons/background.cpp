@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/memstream.h"
@@ -84,7 +83,7 @@ void PriorityLayer::restoreTileMap(int16 x, int16 y, int16 w, int16 h) {
 
 }
 
-Background::Background() : _priorityLayer(0), _points2(0), _data(0) {
+Background::Background() : _priorityLayer(nullptr), _points2(nullptr), _data(nullptr) {
 	_layerSurface[0] = nullptr;
 	_layerSurface[1] = nullptr;
 	_layerSurface[2] = nullptr;
@@ -330,7 +329,7 @@ uint16 ScaleLayer::getScale(uint16 y) {
 	short yBand;
 	uint uVar1;
 	short local_v0_368;
-	int iVar3;
+//	int iVar3;
 	short lowerYBandIdx;
 	ScaleBand *pSVar4;
 	short upperYBandIdx;
@@ -394,11 +393,11 @@ uint16 ScaleLayer::getScale(uint16 y) {
 			local_v0_368 = pSVar4->_y - pSVar6->_y;
 			uVar1 = uVar5;
 			if (local_v0_368 != 0) {
-				iVar3 = ((uVar5 & 0xffffu) - (uVar7 & 0xffffu)) * (uint)(uint16)(y - pSVar6->_y);
+				uint uVar3 = ((uVar5 & 0xffffu) - (uVar7 & 0xffffu)) * (uint)(uint16)(y - pSVar6->_y);
 
-				assert(((uint16)local_v0_368 != 0xffffu) || (iVar3 != (int)-0x80000000));
+				assert(((uint16)local_v0_368 != 0xffffu) || (uVar3 != 0x80000000u));
 
-				return (uVar7 + iVar3 / (int)(uint)(uint16)local_v0_368) & 0xffff;
+				return (uVar7 + static_cast<int>(uVar3) / (int)(uint)(uint16)local_v0_368) & 0xffff;
 			}
 		}
 	}

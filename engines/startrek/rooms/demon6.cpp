@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -258,7 +257,7 @@ void Room::demon6TouchedDoorOpenTrigger() {
 	if (!_roomVar.demon.movingToDoor)
 		return;
 	loadActorAnim(10, "s0r6d1", 0xa0, 0x92, 2);
-	playSoundEffectIndex(5);
+	playSoundEffectIndex(kSfxDoor);
 }
 
 void Room::demon6DoorOpenedOrReachedDoor() {
@@ -387,7 +386,7 @@ void Room::demon6MccoyReachedSynthesizer() {
 }
 
 void Room::demon6FinishedMakingHypoDytoxin() {
-	playMidiMusicTracks(-1, -1);
+	playMidiMusicTracks(MIDITRACK_NONE);
 	showDescription(TX_DEM6N023);
 	showText(TX_SPEAKER_MCCOY, TX_DEM6_018);
 
@@ -556,61 +555,61 @@ void Room::demon6UseHandOnStephen() {
 
 void Room::demon6UseMTricoderOnStephen() {
 	loadActorAnim2(OBJECT_MCCOY, "mscans", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_MCCOY, TX_DEM6_016);
 }
 
 void Room::demon6UseSTricoderOnTable() {
 	loadActorAnim2(OBJECT_SPOCK, "sscans", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM6_009);
 }
 
 void Room::demon6UseSTricoderOnComputer() {
 	loadActorAnim2(OBJECT_SPOCK, "sscans", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM6_007);
 }
 
 void Room::demon6UseSTricoderOnMineral() {
 	loadActorAnim2(OBJECT_SPOCK, "sscans", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM6_013);
 }
 
 void Room::demon6UseSTricoderOnShells() {
 	loadActorAnim2(OBJECT_SPOCK, "sscans", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM6_021);
 }
 
 void Room::demon6UseSTricoderOnSkull() {
 	loadActorAnim2(OBJECT_SPOCK, "sscans", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM6_012);
 }
 
 void Room::demon6UseSTricoderOnMetal() {
 	loadActorAnim2(OBJECT_SPOCK, "sscans", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM6_011);
 }
 
 void Room::demon6UseSTricoderOnMeteor() {
 	loadActorAnim2(OBJECT_SPOCK, "sscans", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM6_010);
 }
 
 void Room::demon6UseSTricoderOnCase() {
 	loadActorAnim2(OBJECT_SPOCK, "sscans", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM6_023);
 }
 
 void Room::demon6UseSTricoderOnSynthesizer() {
 	loadActorAnim2(OBJECT_SPOCK, "sscans", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM6_008);
 }
 

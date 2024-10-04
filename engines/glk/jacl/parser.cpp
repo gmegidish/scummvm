@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -115,7 +114,7 @@ void parser() {
 	// GRAMMAR TREE OF POSSIBLE COMMANDS
 
 	struct word_type *pointer;
-	struct word_type *matched_word = NULL;
+	struct word_type *matched_word = nullptr;
 
 	int             index;
 	int             current_noun = 0;
@@ -146,7 +145,7 @@ void parser() {
 	//printf("--- clear action\n");
 	clear_cstring("action");
 
-	if (grammar_table == NULL) {
+	if (grammar_table == nullptr) {
 		// THERE ARE NO USER DEFINED COMMANDS AVAILABLE, SO THE USER'S
 		// COMMAND IS INEVITABLY INVALID
 		//printf("--- no grammar table\n");
@@ -159,7 +158,7 @@ void parser() {
 	// START AT THE TOP OF THE GRAMMAR TREE
 	pointer = grammar_table;
 
-	while (word[wp] != NULL && pointer != NULL) {
+	while (word[wp] != nullptr && pointer != nullptr) {
 		//printf("--- wp = %d\n", wp);
 		//printf("--- word[%d] = %s\n", wp, word[wp]);
 		object_expected = FALSE;
@@ -168,12 +167,12 @@ void parser() {
 			// CONSIDER THIS THE END OF THIS COMMAND AS 'THEN' IS
 			// TREATED LIKE A FULL STOP
 			break;
-		} else if ((matched_word = exact_match(pointer)) != NULL) {
+		} else if ((matched_word = exact_match(pointer)) != nullptr) {
 			// THIS WORD WAS AN EXACT MATCH FOR ONE OF THE POSSIBLE WORDS
 			// AT THE CURRENT GRAMMAR TREE LEVEL - MOVE ON!
 			pointer = matched_word;
 			pointer = pointer->first_child;
-		} else if ((matched_word = object_match(pointer, current_noun)) != NULL) {
+		} else if ((matched_word = object_match(pointer, current_noun)) != nullptr) {
 			// THIS WAS AN OBJECT PLACE HOLDER AT THIS GRAMMAR LEVEL AND
 			// THIS POINT IN THE PLAYER'S COMMAND COULD BE RESOLVED TO
 			// AT LEAST ONE OBJECT
@@ -184,7 +183,7 @@ void parser() {
 					if (last_exact == -1) {
 						write_text(cstring_resolve("NO_MULTI_START")->value);
 					} else {
-						sprintf(error_buffer, cstring_resolve("NO_MULTI_VERB")->value, word[last_exact]);
+						Common::sprintf_s(error_buffer, 1024, cstring_resolve("NO_MULTI_VERB")->value, word[last_exact]);
 						write_text(error_buffer);
 					}
 
@@ -206,7 +205,7 @@ void parser() {
 			pointer = pointer->first_child;
 		} else {
 			// THIS IS AN UNKNOWN WORD
-			if (oops_word == -1 && word[wp] != NULL) {
+			if (oops_word == -1 && word[wp] != nullptr) {
 				oops_word = wp;
 			}
 
@@ -226,7 +225,7 @@ void parser() {
 		}
 	};
 
-	if (pointer == NULL) {
+	if (pointer == nullptr) {
 		// THIS CAN ONLY HAPPEN IF MOVING THE POINTER TO ITS
 		// FIRST CHILD RESULTS IN A NULL - AN INCOMPLETE
 		// GRAMMAR STATEMENT.
@@ -340,7 +339,7 @@ void parser() {
 			//printf("--- move to next grammar sibling\n");
 			// MOVE THROUGH THE OPTIONS AT THIS LEVEL OF THE GRAMMAR TREE
 			// TO FIND THE ACTION THAT MATCHES THIS COMMAND
-			if (pointer->next_sibling == NULL) {
+			if (pointer->next_sibling == nullptr) {
 				break;
 			} else {
 				pointer = pointer->next_sibling;
@@ -386,33 +385,33 @@ void call_functions(const char *base_name) {
 	 * PASS. IF THE COMMAND FAILS, 'TIME' WILL BE SET TO FALSE */
 	TIME->value = TRUE;
 
-	strncpy(base_function, base_name + 1, 80);
-	strcat(base_function, "_");
+	Common::strlcpy(base_function, base_name + 1, 81);
+	Common::strcat_s(base_function, "_");
 
-	strncpy(override_, base_function, 80);
+	Common::strlcpy(override_, base_function, 81);
 
-	strcpy(before_function, "+before_");
-	strcat(before_function, base_name + 1);
+	Common::strcpy_s(before_function, "+before_");
+	Common::strcat_s(before_function, base_name + 1);
 
-	strcpy(after_function, "+after_");
-	strcat(after_function, base_name + 1);
+	Common::strcpy_s(after_function, "+after_");
+	Common::strcat_s(after_function, base_name + 1);
 
-	strcpy(local_after_function, "after_");
-	strcat(local_after_function, base_name + 1);
+	Common::strcpy_s(local_after_function, "after_");
+	Common::strcat_s(local_after_function, base_name + 1);
 	if (noun[1] != FALSE) {
-		strcat(local_after_function, "_");
-		strcat(local_after_function, object[noun[1]]->label);
+		Common::strcat_s(local_after_function, "_");
+		Common::strcat_s(local_after_function, object[noun[1]]->label);
 	}
 	if (noun[0] != FALSE) {
-		strcat(local_after_function, "_");
-		strcat(local_after_function, object[noun[0]]->label);
+		Common::strcat_s(local_after_function, "_");
+		Common::strcat_s(local_after_function, object[noun[0]]->label);
 	}
 
 	/* THIS IS CALLED IF AN 'override' COMMAND IS EXECUTED
 	 * IN A LIBRARY FUNCTION BUT THE OBJECT-OR-LOCATION-SPECIFIC
 	 * OVERRIDE DOES NOT EXIST. IT IS SET TO '+default_func' */
-	strcpy(default_function, "+default_");
-	strcat(default_function, base_name + 1);
+	Common::strcpy_s(default_function, "+default_");
+	Common::strcat_s(default_function, base_name + 1);
 
 	/* EXECUTE THE GLOBAL *DEFAULT* BEFORE FUNCTION
 	 * AND RETURN IF IT RETURNS TRUE */
@@ -425,13 +424,13 @@ void call_functions(const char *base_name) {
 		return;
 
 	if (noun[0] == FALSE) { /* USER'S COMMAND HAS NO NOUNS */
-		strcat(base_function, object[HERE]->label);
+		Common::strcat_s(base_function, object[HERE]->label);
 		/* EXECUTE THE FUNCTION 'func_here' */
 		if (execute(base_function) == FALSE) {
 			/* THIS LOCATION-SPECIFIC FUNCTION DOES NOT
 			 * EXIST OR HAS ISSUED A 'break false' COMMAND.
 			 * EXECUTE THE FUNCTION '+func'
-			 * WITH THE POSSIBLILITY OF
+			 * WITH THE POSSIBILITY OF
 			 * EXECUTING THE FUNCTION 'func_override_here'
 			 * IF AN 'override' COMMAND IS FOUND IN '+func'
 			 * IF THIS OVERRIDE FUNCTION ISN'T FOUND
@@ -439,25 +438,25 @@ void call_functions(const char *base_name) {
 
 			/* PREPARE THE OVERRIDE FUNCTION NAME IN CASE IT
 			 * IS NEEDED */
-			strcat(override_, "override_");
-			strcat(override_, object[HERE]->label);
+			Common::strcat_s(override_, 81, "override_");
+			Common::strcat_s(override_, 81, object[HERE]->label);
 
 			/* CREATE THE FUNCTION NAME '+func' */
-			strcpy(base_function, "+");
-			strcat(base_function, base_name + 1);
+			Common::strcpy_s(base_function, "+");
+			Common::strcat_s(base_function, base_name + 1);
 
 			/* CALL THE LIBRARY'S DEFAULT BEHAVIOR */
 			if (execute(base_function) == FALSE)
 				unkfunrun(base_function);
 		}
 	} else if (noun[1] == FALSE) { /* USER'S COMMAND HAS ONE NOUN */
-		strcat(base_function, object[noun[0]]->label);
+		Common::strcat_s(base_function, object[noun[0]]->label);
 		/* EXECUTE THE FUNCTION 'func_noun1' */
 		if (execute(base_function) == FALSE) {
 			/* THIS OBJECT-SPECIFIC FUNCTION DOES NOT
 			 * EXIST OR HAS ISSUED A 'break false' COMMAND.
 			 * EXECUTE THE FUNCTION '+func'
-			 * WITH THE POSSIBLILITY OF
+			 * WITH THE POSSIBILITY OF
 			 * EXECUTING THE FUNCTION 'func_override_noun1'
 			 * IF AN 'override' COMMAND IS FOUND IN '+func'
 			 * IF THIS OVERRIDE FUNCTION ISN'T FOUND
@@ -465,21 +464,21 @@ void call_functions(const char *base_name) {
 
 			/* PREPARE THE OVERRIDE FUNCTION NAME IN CASE IT
 			 * IS NEEDED */
-			strcat(override_, "override_");
-			strcat(override_, object[noun[0]]->label);
+			Common::strcat_s(override_, 81, "override_");
+			Common::strcat_s(override_, 81, object[noun[0]]->label);
 
 			/* CREATE THE FUNCTION NAME '+func' */
-			strcpy(base_function, "+");
-			strcat(base_function, base_name + 1);
+			Common::strcpy_s(base_function, "+");
+			Common::strcat_s(base_function, base_name + 1);
 
 			/* CALL THE LIBRARY'S DEFAULT BEHAVIOR */
 			if (execute(base_function) == FALSE)
 				unkfunrun(base_function);
 		}
 	} else { /* USER'S COMMAND HAS TWO NOUNS */
-		strcat(base_function, object[noun[1]]->label);
-		strcat(base_function, "_");
-		strcat(base_function, object[noun[0]]->label);
+		Common::strcat_s(base_function, object[noun[1]]->label);
+		Common::strcat_s(base_function, "_");
+		Common::strcat_s(base_function, object[noun[0]]->label);
 		/* EXECUTE THE FUNCTION 'func_noun2_noun1'
 		 * IE give_to_fred THAT IS ASSOCIATED WITH
 		 * THE OBJECT flint_stone */
@@ -487,7 +486,7 @@ void call_functions(const char *base_name) {
 			/* THIS OBJECTS-SPECIFIC FUNCTION DOES NOT
 			 * EXIST OR HAS ISSUED A 'break false' COMMAND.
 			 * EXECUTE THE FUNCTION '+func'
-			 * WITH THE POSSIBLILITY OF
+			 * WITH THE POSSIBILITY OF
 			 * EXECUTING THE FUNCTION 'func_override_noun2_noun1'
 			 * IF AN 'override' COMMAND IS FOUND IN '+func'
 			 * IF THIS OVERRIDE FUNCTION ISN'T FOUND
@@ -495,13 +494,13 @@ void call_functions(const char *base_name) {
 
 			/* PREPARE THE OVERRIDE FUNCTION NAME IN CASE IT
 			 * IS NEEDED */
-			strcat(override_, object[noun[1]]->label);
-			strcat(override_, "_override_");
-			strcat(override_, object[noun[0]]->label);
+			Common::strcat_s(override_, 81, object[noun[1]]->label);
+			Common::strcat_s(override_, 81, "_override_");
+			Common::strcat_s(override_, 81, object[noun[0]]->label);
 
 			/* CREATE THE FUNCTION NAME '+func' */
-			strcpy(base_function, "+");
-			strcat(base_function, base_name + 1);
+			Common::strcpy_s(base_function, "+");
+			Common::strcat_s(base_function, base_name + 1);
 
 			/* CALL THE LIBRARY'S DEFAULT BEHAVIOR */
 			if (execute(base_function) == FALSE)
@@ -560,9 +559,9 @@ struct word_type *object_match(struct word_type *iterator, int noun_number) {
 		if (custom_error == TRUE) {
 			/* AN ERROR OCCURRED IN THE FIRST OBJECT PLACEHOLDER, DON'T
 			 * TRY ANY OTHERS */
-			return (NULL);
+			return (nullptr);
 		}
-	} while ((iterator = iterator->next_sibling) != NULL);
+	} while ((iterator = iterator->next_sibling) != nullptr);
 
 	/* THERE WERE NO OBJECT PLACE HOLDERS OR, IF THERE WERE, NO
 	 * MATCHING OBJECTS COULD BE RESOLVED */
@@ -575,7 +574,7 @@ struct word_type *object_match(struct word_type *iterator, int noun_number) {
 		custom_error = TRUE;
 	}
 
-	return (NULL);
+	return (nullptr);
 }
 
 struct word_type *exact_match(struct word_type *pointer) {
@@ -605,16 +604,16 @@ struct word_type *exact_match(struct word_type *pointer) {
 			wp++;
 			return (iterator);
 		}
-	} while ((iterator = iterator->next_sibling) != NULL);
+	} while ((iterator = iterator->next_sibling) != nullptr);
 
 	/* THERE WERE NO EXACT MATCHES, SO RETURN FALSE */
-	return (NULL);
+	return (nullptr);
 }
 
 int is_terminator(struct word_type *scope_word) {
 	struct word_type *terminator = scope_word->first_child;
 
-	if (terminator != NULL) {
+	if (terminator != nullptr) {
 		/* THERE MAY NO BE ANY MORE POSSIBLE WORDS IN THIS COMMAND
 		 * BUT THERE SHOULD ALWAYS AT LEAST BE A BASE FUNCTION NAME */
 		do {
@@ -626,7 +625,7 @@ int is_terminator(struct word_type *scope_word) {
 			            && validate(word[wp]))) {
 				return (TRUE);
 			}
-		} while ((terminator = terminator->next_sibling) != NULL);
+		} while ((terminator = terminator->next_sibling) != nullptr);
 	}
 
 	return (FALSE);
@@ -649,7 +648,7 @@ int build_object_list(struct word_type *scope_word, int noun_number) {
 		return (FALSE);
 	}
 
-	while (word[wp] != NULL) {
+	while (word[wp] != nullptr) {
 		/* LOOP THROUGH WORDS IN THE PLAYER'S INPUT ENDING WHEN EITHER
 		 * THERE ARE NO MORE WORDS OR ONE OF THE CHILD NODES OF THE
 		 * CURRENT scope_word NODE IS REACHED INDICATING THERE ARE NO
@@ -663,7 +662,7 @@ int build_object_list(struct word_type *scope_word, int noun_number) {
 
 			wp++;
 
-			if (word[wp] != NULL && !strcmp(word[wp], cstring_resolve("FOR_WORD")->value)) {
+			if (word[wp] != nullptr && !strcmp(word[wp], cstring_resolve("FOR_WORD")->value)) {
 				/* SKIP PAST THE WORD 'FOR' */
 				wp++;
 			}
@@ -685,7 +684,7 @@ int build_object_list(struct word_type *scope_word, int noun_number) {
 				 * RESOLVED LIST */
 				noun_number = noun_number + 2;
 			} else {
-				sprintf(error_buffer, cstring_resolve("DOUBLE_EXCEPT")->value, except_word);
+				Common::sprintf_s(error_buffer, 1024, cstring_resolve("DOUBLE_EXCEPT")->value, except_word);
 				write_text(error_buffer);
 				custom_error = TRUE;
 				return (FALSE);
@@ -920,18 +919,18 @@ int get_from_object(struct word_type *scope_word, int noun_number) {
 
 	/* SEE IF 'FROM' IS ONE OF THE TERMINATORS OF THIS CURRENT OBJECT
 	 * PLACEHOLDER. IF SO, DON'T LOOK FOR A FROM OBJECT */
-	if (terminator != NULL) {
+	if (terminator != nullptr) {
 		//printf("--- checking if terminator word (%s) is from\n", terminator->word);
 		if (!strcmp(cstring_resolve("FROM_WORD")->value, terminator->word)) {
 			//printf("--- from is a terminator, don't get a from object\n");
 			return (TRUE);
 		}
-		while ((terminator = terminator->next_sibling) != NULL);
+		while ((terminator = terminator->next_sibling) != nullptr);
 	}
 
 	/* LOOP FROM THE CURRENT WORD TO THE NEXT TERMINATOR AND LOOK FOR THE
 	 * WORD 'FROM' AND STORE THE FOLLOWING OBJECT */
-	while (word[wp] != NULL) {
+	while (word[wp] != nullptr) {
 		//printf("--- from loop checking %s\n", word[wp]);
 		if (!strcmp(word[wp], cstring_resolve("FROM_WORD")->value)) {
 			from_word = word[wp];
@@ -1032,9 +1031,9 @@ int verify_from_object(int from_object) {
 	if (object[from_object]->attributes & CONTAINER && object[from_object]->attributes & CLOSED) {
 		//printf("--- container is concealing\n");
 		if (object[from_object]->attributes & FEMALE) {
-			sprintf(error_buffer, cstring_resolve("CONTAINER_CLOSED_FEM")->value, sentence_output(from_object, TRUE));
+			Common::sprintf_s(error_buffer, 1024, cstring_resolve("CONTAINER_CLOSED_FEM")->value, sentence_output(from_object, TRUE));
 		} else {
-			sprintf(error_buffer, cstring_resolve("CONTAINER_CLOSED")->value, sentence_output(from_object, TRUE));
+			Common::sprintf_s(error_buffer, 1024, cstring_resolve("CONTAINER_CLOSED")->value, sentence_output(from_object, TRUE));
 		}
 		write_text(error_buffer);
 		custom_error = TRUE;
@@ -1102,7 +1101,7 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 	backup_pointer = wp;
 	everything = FALSE;
 
-	if (word[wp] == NULL) {
+	if (word[wp] == nullptr) {
 		/* NOTHING TO RESOLVE... */
 		return (FALSE);
 	}
@@ -1120,7 +1119,7 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 		/* FIRST WORD IS AN INTEGER AND SECOND WORD IS 'OF' SO
 		 * TREAT THIS AS A LIMIT QUALIFIER BEFORE STARTING TO
 		 * PROCESS THE REST OF THE WORDS */
-		if (word[wp + 1] != NULL && !strcmp(word[wp + 1], cstring_resolve("OF_WORD")->value)) {
+		if (word[wp + 1] != nullptr && !strcmp(word[wp + 1], cstring_resolve("OF_WORD")->value)) {
 			return_limit = atoi(word[wp]);
 
 			/* MAKE SURE THE RETURN LIMIT IS SOMETHING SENSIBLE */
@@ -1129,9 +1128,9 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 			}
 
 			object_expected = TRUE;
-			strcpy(object_name, word[wp]);
-			strcat(object_name, " ");
-			strcat(object_name, cstring_resolve("OF_WORD")->value);
+			Common::strcpy_s(object_name, word[wp]);
+			Common::strcat_s(object_name, " ");
+			Common::strcat_s(object_name, cstring_resolve("OF_WORD")->value);
 
 			/* MOVE THE WORD POINTER TO AFTER THE 'OF' */
 			wp = wp + 2;
@@ -1144,13 +1143,13 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 	// HAS USED TO REFER TO THE OBJECT
 	error_buffer[0] = 0;
 
-	while (word[wp] != NULL) {
+	while (word[wp] != nullptr) {
 		// ADD THE WORDS USED TO error_buffer FOR POSSIBLE USE
 		// IN A DISABMIGUATE EMESSAGE
 		if (first_word == FALSE) {
-			strcat(error_buffer, " ");
+			Common::strcat_s(error_buffer, 1024, " ");
 		}
-		strcat(error_buffer, word[wp]);
+		Common::strcat_s(error_buffer, 1024, word[wp]);
 		first_word = FALSE;
 
 		/* LOOP THROUGH WORDS IN THE PLAYER'S INPUT */
@@ -1158,7 +1157,7 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 		/* RESET TERMINATOR TO THE FIRST OF THE TERMINATING WORDS */
 		terminator = scope_word->first_child;
 
-		if (terminator != NULL) {
+		if (terminator != nullptr) {
 			/* THERE MAY NO BE ANY MORE POSSIBLE WORDS IN THIS COMMAND
 			 * BUT THERE SHOULD ALWAYS AT LEAST BE A BASE FUNCTION NAME */
 			do {
@@ -1187,7 +1186,7 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 						break;
 					}
 				}
-			} while ((terminator = terminator->next_sibling) != NULL);
+			} while ((terminator = terminator->next_sibling) != nullptr);
 		}
 
 		if (done == TRUE) {
@@ -1204,9 +1203,9 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 		 * IS TRYING TO REFER TO FOR USE IN AN ERROR MESSAGE IF
 		 * LATER REQUIRED */
 		if (object_name[0] != 0)
-			strcat(object_name, " ");
+			Common::strcat_s(object_name, " ");
 
-		strcat(object_name, word[wp]);
+		Common::strcat_s(object_name, word[wp]);
 
 		if (!strcmp("everything", word[wp])) {
 			/* ALL THIS NEEDS TO SIGNIFY IS THAT IT IS OKAY TO RETURN MULTIPLE
@@ -1230,7 +1229,7 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 			}
 			//printf("--- exiting for loop\n");
 
-			if (word[wp + 1] != NULL && !strcmp(cstring_resolve("OF_WORD")->value, word[wp + 1])) {
+			if (word[wp + 1] != nullptr && !strcmp(cstring_resolve("OF_WORD")->value, word[wp + 1])) {
 				/* MOVE PAST THE 'OF' IF IT IS NEXT */
 				wp++;
 			}
@@ -1319,7 +1318,7 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 				} else {
 					current_name = object[index]->first_name;
 
-					while (current_name != NULL) {
+					while (current_name != nullptr) {
 						/* LOOP THROUGH ALL THE CURRENT OBJECTS NAMES */
 						if (!strcmp(word[wp], current_name->name)) {
 							/* CURRENT WORD MATCHES THE CURRENT NAME
@@ -1337,7 +1336,7 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 					/* NOW LOOP THROUGH ALL THE OJBECTS PLURAL NAMES */
 					current_name = object[index]->first_plural;
 
-					while (current_name != NULL) {
+					while (current_name != nullptr) {
 						/* LOOP THROUGH ALL THE CURRENT OBJECTS NAMES */
 						if (!strcmp(word[wp], current_name->name)) {
 							/* CURRENT WORD MATCHES THE CURRENT NAME
@@ -1393,11 +1392,11 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 		if (!matches) {
 			/* IF THERE ARE NO REMAINING MATCHES DON'T MOVE ON TO THE NEXT
 			 * WORD IN THE PLAYER'S INPUT. */
-			//printf("--- %s isnt a name match for any object\n", word[wp]);
+			//printf("--- %s isn't a name match for any object\n", word[wp]);
 
 			/* THIS WORD IS A LIKELY BE INCORRECT AS IT DIDN'T MATCH
 			 * ANY OBJECTS */
-			if (oops_word == -1 && word[wp] != NULL) {
+			if (oops_word == -1 && word[wp] != nullptr) {
 				oops_word = wp;
 			}
 
@@ -1473,7 +1472,7 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 		if (confidence[index] != FALSE && return_limit == 1) {
 			current_name = object[index]->first_name;
 			counter = 0;
-			while (current_name != NULL) {
+			while (current_name != nullptr) {
 				counter++;
 				current_name = current_name->next_name;
 			}
@@ -1616,13 +1615,14 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 	/* AN AMBIGUOUS REFERENCE WAS MADE. ATTEMPT TO CALL ALL THE disambiguate
 	 * FUNCTIONS TO SEE IF ANY OF THE OBJECT WANTS TO TAKE PREFERENCE IN
 	 * THIS CIRCUMSTANCE */
+
+	/*
 	int situation = noun_number;
 
 	if (finding_from) {
 		situation += 4;
 	}
 
-	/*
 	for (index = 1; index <= objects; index++) {
 	    if (confidence[index] != FALSE) {
 	        strcpy(function_name, "disambiguate");
@@ -1675,7 +1675,7 @@ int noun_resolve(struct word_type *scope_word, int finding_from, int noun_number
 	for (index = 1; index <= objects; index++) {
 		if (confidence[index] != FALSE) {
 			possible_objects[counter] = index;
-			sprintf(text_buffer, "  [%d] ", counter);
+			Common::sprintf_s(text_buffer, 1024, "  [%d] ", counter);
 			write_text(text_buffer);
 			sentence_output(index, 0);
 			write_text(temp_buffer);
@@ -1729,7 +1729,7 @@ void diagnose() {
 		TIME->value = FALSE;
 		return;
 	}
-	if (word[wp] == NULL)
+	if (word[wp] == nullptr)
 		write_text(cstring_resolve("INCOMPLETE_SENTENCE")->value);
 	else if (object_expected && wp != 0) {
 		write_text(cstring_resolve("UNKNOWN_OBJECT")->value);
@@ -1830,7 +1830,7 @@ int find_parent(int index) {
 
 		if (index == parent) {
 			/* THIS OBJECT HAS ITS PARENT SET TO ITSELF */
-			sprintf(error_buffer, SELF_REFERENCE, executing_function->name, object[index]->label);
+			Common::sprintf_s(error_buffer, 1024, SELF_REFERENCE, executing_function->name, object[index]->label);
 			log_error(error_buffer, PLUS_STDOUT);
 			return (FALSE);
 		} else  if (!(object[parent]->attributes & LOCATION)
@@ -1846,7 +1846,7 @@ int find_parent(int index) {
 				//printf("--- %s is a location, so dont recuse\n", object[parent]->label);
 				return (FALSE);
 			} else {
-				//printf("--- %s isnt a location, so recuse\n", object[parent]->label);
+				//printf("--- %s isn't a location, so recuse\n", object[parent]->label);
 				return (find_parent(parent));
 			}
 		}
@@ -1881,7 +1881,7 @@ int parent_of(int parent_, int child, int restricted) {
 
 		if (index == child) {
 			/* THIS CHILD HAS IT'S PARENT SET TO ITSELF */
-			sprintf(error_buffer, SELF_REFERENCE, executing_function->name, object[index]->label);
+			Common::sprintf_s(error_buffer, 1024, SELF_REFERENCE, executing_function->name, object[index]->label);
 			log_error(error_buffer, PLUS_STDOUT);
 			//printf("--- self parent_.\n");
 			return (FALSE);

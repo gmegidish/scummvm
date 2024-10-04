@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,8 @@
 #include "common/config-manager.h"
 #include "common/system.h"
 #include "common/textconsole.h"
+#include "common/file.h"
+#include "common/md5.h"
 
 #include "sky/control.h"
 #include "sky/debug.h"
@@ -52,7 +53,7 @@
 /*
  At the beginning the reverse engineers were happy, and did rejoice at
  their task, for the engine before them did shineth and was full of
- promise. But then they did look closer and see'th the aweful truth;
+ promise. But then they did look closer and see'th the awful truth;
  its code was assembly and messy (rareth was its comments). And so large
  were its includes that did at first seem small; queereth also was its
  compact(s). Then they did findeth another version, and this was slightly
@@ -73,7 +74,7 @@ SystemVars *SkyEngine::_systemVars = nullptr;
 const char *SkyEngine::shortcutsKeymapId = "sky-shortcuts";
 
 SkyEngine::SkyEngine(OSystem *syst)
-	: Engine(syst), _fastMode(0), _debugger(0) {
+	: Engine(syst), _fastMode(0), _debugger(0), _big5Font(nullptr) {
 	_systemVars = new SystemVars();
 	_systemVars->systemFlags    = 0;
 	_systemVars->gameVersion    = 0;
@@ -84,6 +85,9 @@ SkyEngine::SkyEngine(OSystem *syst)
 	_systemVars->currentMusic   = 0;
 	_systemVars->pastIntro      = false;
 	_systemVars->paused         = false;
+
+	memset (_chineseTraditionalOffsets, 0, sizeof(_chineseTraditionalOffsets));
+	_chineseTraditionalBlock = nullptr;
 
 	_action     = kSkyActionNone;
 	_skyLogic   = nullptr;
@@ -115,6 +119,11 @@ SkyEngine::~SkyEngine() {
 			free(_itemList[i]);
 
 	delete _systemVars;
+	delete [] _chineseTraditionalBlock;
+	_chineseTraditionalBlock = nullptr;
+
+	delete _big5Font;
+	_big5Font = nullptr;
 }
 
 void SkyEngine::syncSoundSettings() {
@@ -274,6 +283,66 @@ Common::Error SkyEngine::go() {
 	return Common::kNoError;
 }
 
+static const struct {
+	// Identification
+	const char *md5; // File MD5
+	uint length; // File length
+	// Main section
+	// Offset from the beginning of file to virtual address 0
+	uint32 virtualBase;
+	// Offset to index of string sections
+	uint stringSectionIndexOffset;
+	// Offset to the font
+	uint fontOffset;
+	// Next one isn't strictly necessarry but makes logic simpler
+	// by allowing to read string block into memory as whole
+	// without any parsing. Just has to cover the block containing
+	// the strings. Reading more (up to whole file) is OK.
+	// End of strings block.
+	uint stringBlockEnd;
+} chineseExes[] = {
+	{
+		// Identification
+		"7bc128ba9bfaecb9bb4ef328b756057a", 575538,
+		// Main
+		0x5191, 0x6427e, 0x54afc,
+		// Value to simplify code
+		0x7eee1
+	}
+};
+
+bool SkyEngine::loadChineseTraditional() {
+	Common::File skyExe;
+	if (!skyExe.open("sky.exe"))
+		return false;
+	uint length = skyExe.size();
+	Common::String md5 = Common::computeStreamMD5AsString(skyExe, length);
+
+	for (uint i = 0; i < ARRAYSIZE(chineseExes); i++) {
+		if (md5 == chineseExes[i].md5 && length == chineseExes[i].length) {
+			skyExe.seek(chineseExes[i].stringSectionIndexOffset);
+			for (uint j = 0; j < 8; j++)
+				_chineseTraditionalOffsets[j] = skyExe.readUint32LE() + chineseExes[i].virtualBase;
+			uint32 stringBlockOffset = _chineseTraditionalOffsets[0];
+			for (uint j = 1; j < 8; j++)
+				stringBlockOffset = MIN(_chineseTraditionalOffsets[j], stringBlockOffset);
+			for (uint j = 0; j < 8; j++)
+				_chineseTraditionalOffsets[j] -= stringBlockOffset;
+			uint stringBlockLen = chineseExes[i].stringBlockEnd - stringBlockOffset;
+			_chineseTraditionalBlock = new char[stringBlockLen];
+			skyExe.seek(stringBlockOffset);
+			skyExe.read(_chineseTraditionalBlock, stringBlockLen);
+
+			skyExe.seek(chineseExes[i].fontOffset);
+			_big5Font = new Graphics::Big5Font();
+			_big5Font->loadPrefixedRaw(skyExe, 15);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 Common::Error SkyEngine::init() {
 	initGraphics(320, 200);
 
@@ -314,7 +383,7 @@ Common::Error SkyEngine::init() {
 	_systemVars->gameSpeed = 80;
 
 	_skyCompact = new SkyCompact();
-	_skyText = new Text(_skyDisk, _skyCompact);
+	_skyText = new Text(this, _skyDisk, _skyCompact);
 	_skyMouse = new Mouse(_system, _skyDisk, _skyCompact);
 	_skyScreen = new Screen(_system, _skyDisk, _skyCompact);
 
@@ -356,12 +425,21 @@ Common::Error SkyEngine::init() {
 	case Common::EN_GRB:
 		_systemVars->language = SKY_ENGLISH;
 		break;
+	case Common::ZH_TWN:
+		_systemVars->language = SKY_CHINESE_TRADITIONAL;
+		break;
+
 	default:
 		_systemVars->language = SKY_ENGLISH;
 		break;
 	}
 
-	if (!_skyDisk->fileExists(60600 + SkyEngine::_systemVars->language * 8)) {
+	if (_systemVars->language == SKY_CHINESE_TRADITIONAL && !loadChineseTraditional()) {
+		_systemVars->language = SKY_ENGLISH;
+	}
+
+	if (_systemVars->language != SKY_CHINESE_TRADITIONAL &&
+	    !_skyDisk->fileExists(60600 + SkyEngine::_systemVars->language * 8)) {
 		warning("The language you selected does not exist in your BASS version");
 		if (_skyDisk->fileExists(60600))
 			SkyEngine::_systemVars->language = SKY_ENGLISH; // default to GB english if it exists..

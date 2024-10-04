@@ -12,7 +12,7 @@ If you haven't had a floppy disc or even a CD in your possession for a while, th
 
 .. tip::
 
-   ScummVM has an affiliate referrer programme with GOG.com, so if you are going to buy a game, please use this `GOG.com <https://www.gog.com/?pp=22d200f8670dbdb3e253a90eee5098477c95c23d">`_ link to help the project!
+   ScummVM has an affiliate referrer programme with ZOOM-Platform.com, so if you are going to buy a game, please use this `ZOOM-Platform.com <https://www.zoom-platform.com/?affiliate=c049516c-9c4c-42d6-8649-92ed870e8b53>`_ link to help the project!
 
 Make sure to check out the `compatibility list <https://www.scummvm.org/compatibility/>`_ on the ScummVM website, and the `Supported Games page <https://wiki.scummvm.org/index.php?title=Category:Supported_Games>`_ and `Platform Overview page <https://wiki.scummvm.org/index.php/Platforms/Overview>`_ on the ScummVM wiki before you buy a game, to ensure it can run with ScummVM.
 
@@ -60,16 +60,16 @@ Sometimes, ScummVM detects multiple versions of a single game. In this case, hig
 
 If you are adding an unknown version of a game, ScummVM is not able to add the game to the games list. An error message appears to warn you that the game has not been added.
 
-4. The **Edit Game** dialog opens to allow configuration of various settings for the game. These can be reconfigured at any time, but for now everything should be OK at the default settings. Any settings changed here override the global settings. Click **Ok**.
+4. The **Game Options** window opens to allow configuration of various settings for the game. These can be reconfigured at any time, but for now everything should be OK at the default settings. Any settings changed here override the global settings. Click **Ok**.
 
 .. image:: ../images/Launcher/game_settings.png
    :class: with-shadow
 
 .. note::
 
-   The **Edit Game** dialog does not open when **Mass Add** is used.
+   The **Game Options** window does not open when **Mass Add** is used.
 
-6. Games are now ready to play! To play, highlight a game in the games list and click **Start**, or double-click the game in the games list.
+5. Games are now ready to play! To play, either double-click on the game in the games list, or highlight the game by clicking on it, and then click **Start**. In grid view, either double-click on a game to start it, or select the game and click the play icon in the pop-up window. 
 
 .. image:: ../images/Launcher/start_game.png
    :class: with-shadow

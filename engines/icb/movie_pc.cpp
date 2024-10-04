@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,7 +65,6 @@ bool MovieManager::registerMovie(const char *fileName, bool8 fade, bool8 loop) {
 		g_theMusicManager->StopMusic();
 
 	_binkDecoder = new Video::BinkDecoder();
-	_binkDecoder->setDefaultHighColorFormat(Graphics::PixelFormat(4, 8, 8, 8, 0, 16, 8, 0, 24));
 
 	Common::SeekableReadStream *stream = openDiskFileForBinaryStreamRead(fileName);
 	if (!stream) {
@@ -75,6 +73,9 @@ bool MovieManager::registerMovie(const char *fileName, bool8 fade, bool8 loop) {
 	if (!_binkDecoder->loadStream(stream)) {
 		return false;
 	}
+
+	_binkDecoder->setOutputPixelFormat(Graphics::PixelFormat(4, 8, 8, 8, 0, 16, 8, 0, 24));
+
 	if (_binkDecoder->getWidth() != SCREEN_WIDTH) {
 		_x = (SCREEN_WIDTH / 2) - (_binkDecoder->getWidth() / 2);
 	}
@@ -178,7 +179,7 @@ uint32 MovieManager::drawFrame(uint32 surface_id) {
 	}
 
 	// For access to buffer
-	int16 pitch;
+	int32 pitch;
 	uint8 *surface_address;
 
 	// Lock the surface

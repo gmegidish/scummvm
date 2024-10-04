@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,6 +47,7 @@ namespace Image {
 JPEGDecoder::JPEGDecoder() :
 		_surface(),
 		_colorSpace(kColorSpaceRGB),
+		_accuracy(CodecAccuracy::Default),
 		_requestedPixelFormat(getByteOrderRgbPixelFormat()) {
 }
 
@@ -76,6 +76,10 @@ const Graphics::Surface *JPEGDecoder::decodeFrame(Common::SeekableReadStream &st
 		return 0;
 
 	return getSurface();
+}
+
+void JPEGDecoder::setCodecAccuracy(CodecAccuracy accuracy) {
+	_accuracy = accuracy;
 }
 
 Graphics::PixelFormat JPEGDecoder::getPixelFormat() const {
@@ -244,6 +248,11 @@ bool JPEGDecoder::loadStream(Common::SeekableReadStream &stream) {
 	// Initialize the decompression structure
 	jpeg_create_decompress(&cinfo);
 
+	if (_accuracy <= CodecAccuracy::Fast)
+		cinfo.dct_method = JDCT_FASTEST;
+	else if (_accuracy >= CodecAccuracy::Accurate)
+		cinfo.dct_method = JDCT_ISLOW;
+
 	// Initialize our buffer handling
 	jpeg_scummvm_src(&cinfo, &stream);
 
@@ -272,6 +281,14 @@ bool JPEGDecoder::loadStream(Common::SeekableReadStream &stream) {
 		break;
 	}
 
+	// Semi-hack:
+	// In case 4 components jpeglib expect CMYK or CYYK color space output.
+	// To avoid any color space conversion, CMYK must be used.
+	// HPL1 engine use it to pass RGBA jpeg bitmaps.
+	if (cinfo.num_components == 4) {
+		cinfo.out_color_space = JCS_CMYK;
+	}
+
 	// Actually start decompressing the image
 	jpeg_start_decompress(&cinfo);
 
@@ -294,6 +311,10 @@ bool JPEGDecoder::loadStream(Common::SeekableReadStream &stream) {
 		break;
 	default:
 		break;
+	}
+	// Size of output pixel must match 4 bytes.
+	if (cinfo.out_color_space == JCS_CMYK) {
+		assert(_surface.format.bytesPerPixel == 4);
 	}
 
 	// Allocate buffer for one scanline

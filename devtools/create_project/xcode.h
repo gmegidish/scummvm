@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,23 +29,25 @@
 
 namespace CreateProjectTool {
 
-class XcodeProvider : public ProjectProvider {
+class XcodeProvider final : public ProjectProvider {
 public:
-	XcodeProvider(StringList &global_warnings, std::map<std::string, StringList> &project_warnings, const int version = 0);
+	XcodeProvider(StringList &global_warnings, std::map<std::string, StringList> &project_warnings, StringList &global_errors, const int version = 0);
 
 protected:
 
-	void createWorkspace(const BuildSetup &setup);
+	void createWorkspace(const BuildSetup &setup) final;
 
-	void createOtherBuildFiles(const BuildSetup &setup);
+	void createOtherBuildFiles(const BuildSetup &setup) final;
 
-	void addResourceFiles(const BuildSetup &setup, StringList &includeList, StringList &excludeList);
+	void addResourceFiles(const BuildSetup &setup, StringList &includeList, StringList &excludeList) final;
 
 	void createProjectFile(const std::string &name, const std::string &uuid, const BuildSetup &setup, const std::string &moduleDir,
-	                       const StringList &includeList, const StringList &excludeList);
+						   const StringList &includeList, const StringList &excludeList, const std::string &pchIncludeRoot, const StringList &pchDirs, const StringList &pchExclude) final;
 
-	void writeFileListToProject(const FileNode &dir, std::ofstream &projectFile, const int indentation,
-	                            const std::string &objPrefix, const std::string &filePrefix);
+	void writeFileListToProject(const FileNode &dir, std::ostream &projectFile, const int indentation,
+								const std::string &objPrefix, const std::string &filePrefix,
+								const std::string &pchIncludeRoot, const StringList &pchDirs, const StringList &pchExclude) final;
+
 private:
 	enum {
 		kSettingsAsList        = 0x01,
@@ -315,7 +316,7 @@ private:
 	void setupFrameworksBuildPhase(const BuildSetup &setup);
 	void setupNativeTarget();
 	void setupProject();
-	void setupResourcesBuildPhase();
+	void setupResourcesBuildPhase(const BuildSetup &setup);
 	void setupSourcesBuildPhase();
 	void setupBuildConfiguration(const BuildSetup &setup);
 	void setupImageAssetCatalog(const BuildSetup &setup);
@@ -325,7 +326,8 @@ private:
 	void setupDefines(const BuildSetup &setup); // Setup the list of defines to be used on build configurations
 
 	// Retrieve information
-	ValueList& getResourceFiles() const;
+	ValueList& getResourceFiles(const BuildSetup &setup) const;
+	std::string getLibString(std::string libName, bool xcframework) const;
 
 	// Hash generation
 	std::string getHash(std::string key);

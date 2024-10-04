@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@
 #include "common/rect.h"
 #include "common/textconsole.h"
 
-#if defined(USE_GLES2) || defined(USE_OPENGL_SHADERS)
+#if defined(USE_OPENGL_SHADERS)
 
 #include "graphics/surface.h"
 
@@ -79,7 +78,7 @@ void ShaderRenderer::setupQuadEBO() {
 		p[5] = start++;
 	}
 
-	_quadEBO = OpenGL::ShaderGL::createBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadIndices), quadIndices, GL_STATIC_DRAW);
+	_quadEBO = OpenGL::Shader::createBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadIndices), quadIndices, GL_STATIC_DRAW);
 }
 
 Math::Vector2d ShaderRenderer::scaled(float x, float y) const {
@@ -103,11 +102,11 @@ ShaderRenderer::ShaderRenderer(OSystem *system) :
 }
 
 ShaderRenderer::~ShaderRenderer() {
-	OpenGL::ShaderGL::freeBuffer(_boxVBO);
-	OpenGL::ShaderGL::freeBuffer(_cubeVBO);
-	OpenGL::ShaderGL::freeBuffer(_rect3dVBO);
-	OpenGL::ShaderGL::freeBuffer(_textVBO);
-	OpenGL::ShaderGL::freeBuffer(_quadEBO);
+	OpenGL::Shader::freeBuffer(_boxVBO);
+	OpenGL::Shader::freeBuffer(_cubeVBO);
+	OpenGL::Shader::freeBuffer(_rect3dVBO);
+	OpenGL::Shader::freeBuffer(_textVBO);
+	OpenGL::Shader::freeBuffer(_quadEBO);
 
 	delete _boxShader;
 	delete _cubeShader;
@@ -115,13 +114,8 @@ ShaderRenderer::~ShaderRenderer() {
 	delete _textShader;
 }
 
-Texture *ShaderRenderer::createTexture(const Graphics::Surface *surface) {
+Texture *ShaderRenderer::createTexture3D(const Graphics::Surface *surface) {
 	return new OpenGLTexture(surface);
-}
-
-void ShaderRenderer::freeTexture(Texture *texture) {
-	OpenGLTexture *glTexture = static_cast<OpenGLTexture *>(texture);
-	delete glTexture;
 }
 
 void ShaderRenderer::init() {
@@ -131,24 +125,24 @@ void ShaderRenderer::init() {
 
 	glEnable(GL_DEPTH_TEST);
 
-	static const char* attributes[] = { "position", "texcoord", NULL };
-	_boxShader = OpenGL::ShaderGL::fromFiles("myst3_box", attributes);
-	_boxVBO = OpenGL::ShaderGL::createBuffer(GL_ARRAY_BUFFER, sizeof(boxVertices), boxVertices);
+	static const char* attributes[] = { "position", "texcoord", nullptr };
+	_boxShader = OpenGL::Shader::fromFiles("myst3_box", attributes);
+	_boxVBO = OpenGL::Shader::createBuffer(GL_ARRAY_BUFFER, sizeof(boxVertices), boxVertices);
 	_boxShader->enableVertexAttribute("position", _boxVBO, 2, GL_FLOAT, GL_TRUE, 2 * sizeof(float), 0);
 	_boxShader->enableVertexAttribute("texcoord", _boxVBO, 2, GL_FLOAT, GL_TRUE, 2 * sizeof(float), 0);
 
-	_cubeShader = OpenGL::ShaderGL::fromFiles("myst3_cube", attributes);
-	_cubeVBO = OpenGL::ShaderGL::createBuffer(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices);
+	_cubeShader = OpenGL::Shader::fromFiles("myst3_cube", attributes);
+	_cubeVBO = OpenGL::Shader::createBuffer(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices);
 	_cubeShader->enableVertexAttribute("texcoord", _cubeVBO, 2, GL_FLOAT, GL_TRUE, 5 * sizeof(float), 0);
 	_cubeShader->enableVertexAttribute("position", _cubeVBO, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 2 * sizeof(float));
 
-	_rect3dShader = OpenGL::ShaderGL::fromFiles("myst3_cube", attributes);
-	_rect3dVBO = OpenGL::ShaderGL::createBuffer(GL_ARRAY_BUFFER, 20 * sizeof(float), NULL);
+	_rect3dShader = OpenGL::Shader::fromFiles("myst3_cube", attributes);
+	_rect3dVBO = OpenGL::Shader::createBuffer(GL_ARRAY_BUFFER, 20 * sizeof(float), nullptr);
 	_rect3dShader->enableVertexAttribute("texcoord", _rect3dVBO, 2, GL_FLOAT, GL_TRUE, 5 * sizeof(float), 0);
 	_rect3dShader->enableVertexAttribute("position", _rect3dVBO, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 2 * sizeof(float));
 
-	_textShader = OpenGL::ShaderGL::fromFiles("myst3_text", attributes);
-	_textVBO = OpenGL::ShaderGL::createBuffer(GL_ARRAY_BUFFER, 100 * 16 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
+	_textShader = OpenGL::Shader::fromFiles("myst3_text", attributes);
+	_textVBO = OpenGL::Shader::createBuffer(GL_ARRAY_BUFFER, 100 * 16 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 	_textShader->enableVertexAttribute("texcoord", _textVBO, 2, GL_FLOAT, GL_TRUE, 4 * sizeof(float), 0);
 	_textShader->enableVertexAttribute("position", _textVBO, 2, GL_FLOAT, GL_TRUE, 4 * sizeof(float), 2 * sizeof(float));
 
@@ -207,8 +201,7 @@ void ShaderRenderer::drawRect2D(const Common::Rect &rect,  uint8 a, uint8 r, uin
 }
 
 void ShaderRenderer::drawTexturedRect2D(const Common::Rect &screenRect, const Common::Rect &textureRect,
-		Texture *texture, float transparency, bool additiveBlending) {
-
+	                                Texture *texture, float transparency, bool additiveBlending) {
 	OpenGLTexture *glTexture = static_cast<OpenGLTexture *>(texture);
 
 	const float tLeft = textureRect.left / (float)glTexture->internalWidth;
@@ -305,7 +298,7 @@ void ShaderRenderer::draw2DText(const Common::String &text, const Common::Point 
 	_textShader->use();
 	glBindTexture(GL_TEXTURE_2D, glFont->id);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _quadEBO);
-	glDrawElements(GL_TRIANGLES, 6 * textToDraw.size(), GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_TRIANGLES, 6 * textToDraw.size(), GL_UNSIGNED_SHORT, nullptr);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	glDisable(GL_BLEND);
@@ -344,7 +337,7 @@ void ShaderRenderer::drawCube(Texture **textures) {
 }
 
 void ShaderRenderer::drawTexturedRect3D(const Math::Vector3d &topLeft, const Math::Vector3d &bottomLeft,
-		const Math::Vector3d &topRight, const Math::Vector3d &bottomRight, Texture *texture) {
+	                                const Math::Vector3d &topRight, const Math::Vector3d &bottomRight, Texture *texture) {
 	OpenGLTexture *glTexture = static_cast<OpenGLTexture *>(texture);
 
 	const float w = glTexture->width / (float)glTexture->internalWidth;
@@ -357,7 +350,7 @@ void ShaderRenderer::drawTexturedRect3D(const Math::Vector3d &topLeft, const Mat
 	glBindTexture(GL_TEXTURE_2D, glTexture->id);
 
 	const GLfloat vertices[] = {
-		// S   T         X                 Y                 Z
+		// S   T   X                  Y                 Z
 		   0,  0,  -topLeft.x(),      topLeft.y(),      topLeft.z(),
 		   0,  h,  -bottomLeft.x(),   bottomLeft.y(),   bottomLeft.z(),
 		   w,  0,  -topRight.x(),     topRight.y(),     topRight.z(),

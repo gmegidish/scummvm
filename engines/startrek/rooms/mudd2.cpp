@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -246,7 +245,7 @@ void Room::mudd2Tick1() {
 	} else if (_awayMission->mudd.muddUnavailable) {
 		_awayMission->mudd.muddInsanityState = 1;
 	} else if (_awayMission->mudd.muddInsanityState == 1) { // Second time entering room, start cutscene
-		playMidiMusicTracks(3);
+		playMidiMusicTracks(MIDITRACK_3);
 		loadActorAnim2(OBJECT_MUDD, "s4sbhw", 0x99, 0xbf);
 		_awayMission->disableInput = 2;
 		_awayMission->mudd.muddInhaledGas = true;
@@ -352,7 +351,7 @@ void Room::mudd2MuddNoticedKirk() {
 	showText(TX_SPEAKER_MUDD, TX_MUD2_044);
 	playVoc("BATTYGAS");
 	loadActorAnimC(OBJECT_MUDD, "s4sbhb", 0x9f, 0xbf, &Room::mudd2MuddDroppedCapsule); // Drops the capsule
-	playMidiMusicTracks(0);
+	playMidiMusicTracks(MIDITRACK_0);
 }
 
 void Room::mudd2MuddDroppedCapsule() {

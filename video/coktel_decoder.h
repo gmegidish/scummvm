@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -99,6 +104,8 @@ public:
 	/** Draw the video at the default position. */
 	void setXY();
 
+	void setDouble(bool isDouble); // double the size of the video, to accommodate higher resolutions
+
 	/** Override the video's frame rate. */
 	void setFrameRate(Common::Rational frameRate);
 	/** Get the video's frame rate. */
@@ -177,6 +184,7 @@ public:
 
 	uint16 getWidth()  const;
 	uint16 getHeight() const;
+	virtual uint32 getFlags() const = 0;
 	virtual Graphics::PixelFormat getPixelFormat() const = 0;
 
 	uint32 getFrameCount() const;
@@ -186,6 +194,7 @@ public:
 
 	uint32 getTimeToNextFrame() const;
 	uint32 getStaticTimeToNextFrame() const;
+	int32 getExpectedFrameFromCurrentTime() const;
 
 	void pauseVideo(bool pause);
 
@@ -230,6 +239,8 @@ protected:
 	byte _palette[768];
 	bool _paletteDirty;
 
+	bool _isDouble;
+
 	bool    _ownSurface;
 	Graphics::Surface _surface;
 
@@ -257,12 +268,14 @@ protected:
 	void deRLE(byte *&destPtr, const byte *&srcPtr, int16 destLen, int16 srcLen);
 
 	// Block rendering
-	void renderBlockWhole   (Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
-	void renderBlockWhole4X (Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
-	void renderBlockWhole2Y (Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
-	void renderBlockSparse  (Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
-	void renderBlockSparse2Y(Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
-	void renderBlockRLE     (Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
+	void renderBlockWhole       (Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
+	void renderBlockWholeDouble (Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
+	void renderBlockWhole4X     (Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
+	void renderBlockWhole2Y     (Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
+	void renderBlockSparse      (Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
+	void renderBlockSparseDouble(Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
+	void renderBlockSparse2Y    (Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
+	void renderBlockRLE         (Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect);
 
 	// Sound helper functions
 	inline void unsignedToSigned(byte *buffer, int length);
@@ -288,6 +301,8 @@ public:
 	bool isVideoLoaded() const;
 
 	const Graphics::Surface *decodeNextFrame();
+
+	uint32 getFlags() const;
 
 	Graphics::PixelFormat getPixelFormat() const;
 
@@ -320,6 +335,8 @@ public:
 	bool isVideoLoaded() const;
 
 	const Graphics::Surface *decodeNextFrame();
+
+	uint32 getFlags() const;
 
 	Graphics::PixelFormat getPixelFormat() const;
 
@@ -425,6 +442,8 @@ public:
 	bool isVideoLoaded() const;
 
 	const Graphics::Surface *decodeNextFrame();
+
+	uint32 getFlags() const;
 
 	Graphics::PixelFormat getPixelFormat() const;
 

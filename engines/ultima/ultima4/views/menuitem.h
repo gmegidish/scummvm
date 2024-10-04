@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,7 +49,7 @@ public:
 	/**
 	 * MenuItem class
 	 */
-	MenuItem(Common::String text, short x, short y, int shortcutKey = -1);
+	MenuItem(const Common::String &text, short x, short y, int shortcutKey = -1);
 	virtual ~MenuItem() {}
 
 	virtual void activate(MenuEvent &event) {}
@@ -71,7 +70,7 @@ public:
 	void setId(int id);
 	void setX(int x);
 	void setY(int y);
-	void setText(Common::String text);
+	void setText(const Common::String &text);
 	void setHighlighted(bool h = true);
 	void setSelected(bool s = true);
 	void setVisible(bool v = true);
@@ -96,7 +95,7 @@ protected:
  */
 class BoolMenuItem : public MenuItem {
 public:
-	BoolMenuItem(Common::String text, short xp, short yp, int shortcutKey, bool *val);
+	BoolMenuItem(const Common::String &text, short xp, short yp, int shortcutKey, bool *val);
 
 	BoolMenuItem *setValueStrings(const Common::String &onString, const Common::String &offString);
 
@@ -114,7 +113,7 @@ protected:
  */
 class StringMenuItem : public MenuItem {
 public:
-	StringMenuItem(Common::String text, short xp, short yp, int shortcutKey, Common::String *val, const Std::vector<Common::String> &validSettings);
+	StringMenuItem(const Common::String &text, short xp, short yp, int shortcutKey, Common::String *val, const Std::vector<Common::String> &validSettings);
 
 	void activate(MenuEvent &event) override;
 	Common::String getText() const override;
@@ -130,7 +129,7 @@ protected:
  */
 class IntMenuItem : public MenuItem {
 public:
-	IntMenuItem(Common::String text, short xp, short yp, int shortcutKey, int *val, int min, int max, int increment, menuOutputType output = MENU_OUTPUT_INT);
+	IntMenuItem(const Common::String &text, short xp, short yp, int shortcutKey, int *val, int min, int max, int increment, menuOutputType output = MENU_OUTPUT_INT);
 
 	void activate(MenuEvent &event) override;
 	Common::String getText() const override;

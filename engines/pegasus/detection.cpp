@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,7 @@
 
 static const PlainGameDescriptor pegasusGames[] = {
 	{"pegasus", "The Journeyman Project: Pegasus Prime"},
-	{0, 0}
+	{nullptr, nullptr}
 };
 
 
@@ -56,7 +55,7 @@ static const PegasusGameDescription gameDescriptions[] = {
 			AD_ENTRY1s("JMP PP Resources", "d13a602d2498010d720a6534f097f88b", 2075081),
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
-			ADGF_MACRESFORK|GF_DVD,
+			ADGF_MACRESFORK|ADGF_DVD,
 			GUIO0()
 		},
 	},
@@ -67,7 +66,7 @@ static const PegasusGameDescription gameDescriptions[] = {
 			AD_ENTRY1s("JMP PP Resources", "d13a602d2498010d720a6534f097f88b", 2075081),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
-			ADGF_MACRESFORK|GF_DVD,
+			ADGF_MACRESFORK|ADGF_DVD,
 			GUIO0()
 		},
 	},
@@ -79,7 +78,7 @@ static const PegasusGameDescription gameDescriptions[] = {
 			AD_ENTRY1s("JMP PP Resources", "d13a602d2498010d720a6534f097f88b", 2075081),
 			Common::EN_ANY,
 			Common::kPlatformLinux,
-			ADGF_MACRESFORK|GF_DVD,
+			ADGF_MACRESFORK|ADGF_DVD,
 			GUIO0()
 		},
 	},
@@ -119,10 +118,10 @@ static const PegasusGameDescription gameDescriptions[] = {
 		{
 			"pegasus",
 			"DVD Demo",
-			AD_ENTRY1s("JMP PP Resources", "d0fcda50dc75c7a81ae314e6a813f4d2", 93495), // FIXMEMD5
+			AD_ENTRY1s("JMP PP Resources", "r:d0fcda50dc75c7a81ae314e6a813f4d2", 93239),
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
-			ADGF_MACRESFORK | ADGF_DEMO | GF_DVD,
+			ADGF_MACRESFORK | ADGF_DEMO | ADGF_DVD,
 			GUIO2(GUIO_NOLAUNCHLOAD, GUIO_NOMIDI)
 		},
 	},
@@ -131,10 +130,10 @@ static const PegasusGameDescription gameDescriptions[] = {
 		{
 			"pegasus",
 			"DVD Demo",
-			AD_ENTRY1s("JMP PP Resources", "d0fcda50dc75c7a81ae314e6a813f4d2", 93495),
+			AD_ENTRY1s("JMP PP Resources", "r:d0fcda50dc75c7a81ae314e6a813f4d2", 93239),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
-			ADGF_MACRESFORK | ADGF_DEMO | GF_DVD,
+			ADGF_MACRESFORK | ADGF_DEMO | ADGF_DVD,
 			GUIO2(GUIO_NOLAUNCHLOAD, GUIO_NOMIDI)
 		},
 	},
@@ -145,16 +144,16 @@ static const PegasusGameDescription gameDescriptions[] = {
 } // End of namespace Pegasus
 
 
-class PegasusMetaEngineDetection : public AdvancedMetaEngineDetection {
+class PegasusMetaEngineDetection : public AdvancedMetaEngineDetection<Pegasus::PegasusGameDescription> {
 public:
-	PegasusMetaEngineDetection() : AdvancedMetaEngineDetection(Pegasus::gameDescriptions, sizeof(Pegasus::PegasusGameDescription), pegasusGames) {
-	}
-
-	const char *getEngineId() const override {
-		return "pegasus";
+	PegasusMetaEngineDetection() : AdvancedMetaEngineDetection(Pegasus::gameDescriptions, pegasusGames) {
 	}
 
 	const char *getName() const override {
+		return "pegasus";
+	}
+
+	const char *getEngineName() const override {
 		return "The Journeyman Project: Pegasus Prime";
 	}
 

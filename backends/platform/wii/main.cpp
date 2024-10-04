@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,7 +40,7 @@
 #ifdef USE_WII_DI
 #include <di/di.h>
 #endif
-#ifdef DEBUG_WII_GDB
+#if defined(DEBUG_WII_GDB) || defined(DEBUG_WII_GDB_NETWORK)
 #include <debug.h>
 #endif
 #include <gxflux/gfx_con.h>
@@ -60,7 +59,7 @@ void reset_cb(u32, void *) {
 #else
 void reset_cb(void) {
 #endif
-#ifdef DEBUG_WII_GDB
+#if defined(DEBUG_WII_GDB) || defined(DEBUG_WII_GDB_NETWORK)
 	printf("attach gdb now\n");
 	_break();
 #else
@@ -89,7 +88,7 @@ static void show_console(int code) {
 	for (i = 0; i < 60 * 3; ++i)
 		VIDEO_WaitVSync();
 
-#ifdef DEBUG_WII_GDB
+#if defined(DEBUG_WII_GDB) || defined(DEBUG_WII_GDB_NETWORK)
 	printf("attach gdb now\n");
 	_break();
 #endif
@@ -149,6 +148,9 @@ static sys_resetinfo resetinfo = {
 };
 
 #ifdef DEBUG_WII_MEMSTATS
+#define FORBIDDEN_SYMBOL_EXCEPTION_fprintf
+#define FORBIDDEN_SYMBOL_EXCEPTION_stderr
+
 void wii_memstats(void) {
 	static u32 min_free = UINT_MAX;
 	static u32 temp_free;
@@ -170,6 +172,14 @@ void wii_memstats(void) {
 }
 #endif
 
+#ifdef DEBUG_WII_GDB_NETWORK
+#define GDBSTUB_NETWORK_TCP_PORT 5656
+
+const char *tcp_localip = "192.168.123.101";
+const char *tcp_netmask = "255.255.255.0";
+const char *tcp_gateway = "192.168.123.100";
+#endif
+
 int main(int argc, char *argv[]) {
 	s32 res;
 
@@ -188,6 +198,10 @@ int main(int argc, char *argv[]) {
 
 #ifdef DEBUG_WII_GDB
 	DEBUG_Init(GDBSTUB_DEVICE_USB, 1);
+#endif
+
+#ifdef DEBUG_WII_GDB_NETWORK
+	DEBUG_Init(GDBSTUB_DEVICE_TCP, GDBSTUB_NETWORK_TCP_PORT);
 #endif
 
 	printf("startup as ");
@@ -252,8 +266,6 @@ int main(int argc, char *argv[]) {
 	gfx_con_deinit();
 	gfx_deinit();
 	gfx_video_deinit();
-
-	SYS_ResetSystem(SYS_RETURNTOMENU, 0, 0);
 
 	return res;
 }

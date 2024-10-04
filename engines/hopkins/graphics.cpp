@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,6 @@
 #include "hopkins/hopkins.h"
 
 #include "common/system.h"
-#include "graphics/palette.h"
 #include "image/pcx.h"
 #include "common/file.h"
 #include "common/rect.h"
@@ -42,17 +40,17 @@ GraphicsManager::GraphicsManager(HopkinsEngine *vm) {
 	_initGraphicsFl = false;
 	_screenWidth = _screenHeight = 0;
 	_screenLineSize = 0;
-	_palettePixels = NULL;
+	_palettePixels = nullptr;
 	_lineNbr = 0;
-	_videoPtr = NULL;
+	_videoPtr = nullptr;
 	_scrollOffset = 0;
 	_scrollPosX = 0;
 	_largeScreenFl = false;
 	_oldScrollPosX = 0;
-	_backBuffer = NULL;
-	_frontBuffer = NULL;
-	_screenBuffer = NULL;
-	_backupScreen = NULL;
+	_backBuffer = nullptr;
+	_frontBuffer = nullptr;
+	_screenBuffer = nullptr;
+	_backupScreen = nullptr;
 	_showDirtyRects = false;
 
 	_lineNbr2 = 0;
@@ -113,7 +111,7 @@ void GraphicsManager::setGraphicalMode(int width, int height) {
 		_frontBuffer = _vm->_globals->allocMemory(SCREEN_WIDTH * 2 * SCREEN_HEIGHT);
 		_screenBuffer = _vm->_globals->allocMemory(SCREEN_WIDTH * 2 * SCREEN_HEIGHT);
 
-		_videoPtr = NULL;
+		_videoPtr = nullptr;
 		_screenWidth = width;
 		_screenHeight = height;
 
@@ -145,7 +143,7 @@ void GraphicsManager::lockScreen() {
 void GraphicsManager::unlockScreen() {
 	assert(_videoPtr);
 	if (--_lockCounter == 0) {
-		_videoPtr = NULL;
+		_videoPtr = nullptr;
 	}
 }
 
@@ -170,8 +168,9 @@ void GraphicsManager::clearVesaScreen() {
 /**
  * Load Image
  */
-void GraphicsManager::loadImage(const Common::String &file) {
-	Common::String filename	= Common::String::format("%s.PCX", file.c_str());
+void GraphicsManager::loadImage(const Common::Path &file) {
+	Common::Path filename(file);
+	filename.appendInPlace(".PCX");
 	loadScreen(filename);
 	initColorTable(165, 170, _palette);
 }
@@ -179,7 +178,7 @@ void GraphicsManager::loadImage(const Common::String &file) {
 /**
  * Load VGA Image
  */
-void GraphicsManager::loadVgaImage(const Common::String &file) {
+void GraphicsManager::loadVgaImage(const Common::Path &file) {
 	setScreenWidth(SCREEN_WIDTH);
 	clearScreen();
 	loadPCX320(_backBuffer, file, _palette);
@@ -196,7 +195,7 @@ void GraphicsManager::loadVgaImage(const Common::String &file) {
 /**
  * Load Screen
  */
-void GraphicsManager::loadScreen(const Common::String &file) {
+void GraphicsManager::loadScreen(const Common::Path &file) {
 	Common::File f;
 	assert(!_videoPtr);
 
@@ -205,7 +204,7 @@ void GraphicsManager::loadScreen(const Common::String &file) {
 	_vm->_fileIO->searchCat(file, RES_PIC, fileFoundFl);
 	if (!fileFoundFl) {
 		if (!f.open(file))
-			error("loadScreen - %s", file.c_str());
+			error("loadScreen - %s", file.toString().c_str());
 
 		f.seek(0, SEEK_END);
 		f.close();
@@ -299,7 +298,7 @@ void GraphicsManager::fillSurface(byte *surface, byte *col, int size) {
 	}
 }
 
-void GraphicsManager::loadPCX640(byte *surface, const Common::String &file, byte *palette, bool typeFlag) {
+void GraphicsManager::loadPCX640(byte *surface, const Common::Path &file, byte *palette, bool typeFlag) {
 	Common::File f;
 	Image::PCXDecoder pcxDecoder;
 
@@ -314,12 +313,12 @@ void GraphicsManager::loadPCX640(byte *surface, const Common::String &file, byte
 	} else {
 		// Load stand alone PCX file
 		if (!f.open(file))
-		  error("Error opening PCX %s.", file.c_str());
+		  error("Error opening PCX %s.", file.toString().c_str());
 	}
 
 	// Decode the PCX
 	if (!pcxDecoder.loadStream(f))
-		error("Error decoding PCX %s", file.c_str());
+		error("Error decoding PCX %s", file.toString().c_str());
 
 	const Graphics::Surface *s = pcxDecoder.getSurface();
 
@@ -334,10 +333,10 @@ void GraphicsManager::loadPCX640(byte *surface, const Common::String &file, byte
 	f.close();
 }
 
-void GraphicsManager::loadPCX320(byte *surface, const Common::String &file, byte *palette) {
+void GraphicsManager::loadPCX320(byte *surface, const Common::Path &file, byte *palette) {
 	Common::File f;
 	if (!f.open(file))
-		error("File not found - %s", file.c_str());
+		error("File not found - %s", file.toString().c_str());
 
 	size_t filesize = f.size();
 
@@ -1143,7 +1142,7 @@ void GraphicsManager::displayDirtyRects() {
 
 void GraphicsManager::displayRefreshRects() {
 	debugC(1, kDebugGraphics, "displayRefreshRects() start");
-	Graphics::Surface *screenSurface = NULL;
+	Graphics::Surface *screenSurface = nullptr;
 	if (_showDirtyRects) {
 		screenSurface = g_system->lockScreen();
 		g_system->copyRectToScreen(_screenBuffer, _screenLineSize, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -1753,8 +1752,9 @@ void GraphicsManager::displayFont(byte *surface, const byte *spriteData, int xp,
 	} while (yCtr != 1);
 }
 
-void GraphicsManager::initScreen(const Common::String &file, int mode, bool initializeScreen) {
-	Common::String filename = file + ".ini";
+void GraphicsManager::initScreen(const Common::Path &file, int mode, bool initializeScreen) {
+	Common::Path filename(file);
+	filename.appendInPlace(".ini");
 	bool fileFoundFl = false;
 
 	byte *ptr = _vm->_fileIO->searchCat(filename, RES_INI, fileFoundFl);
@@ -1764,7 +1764,8 @@ void GraphicsManager::initScreen(const Common::String &file, int mode, bool init
 	}
 
 	if (!mode) {
-		filename = file + ".spr";
+		filename = file;
+		filename.appendInPlace(".spr");
 		_vm->_globals->_levelSpriteBuf = _vm->_globals->freeMemory(_vm->_globals->_levelSpriteBuf);
 		if (initializeScreen) {
 			fileFoundFl = false;
@@ -1777,7 +1778,7 @@ void GraphicsManager::initScreen(const Common::String &file, int mode, bool init
 		}
 	}
 	if (READ_BE_UINT24(ptr) != MKTAG24('I', 'N', 'I')) {
-		error("Invalid INI File %s", file.c_str());
+		error("Invalid INI File %s", file.toString().c_str());
 	} else {
 		bool doneFlag = false;
 		int dataOffset = 1;
@@ -1802,7 +1803,8 @@ void GraphicsManager::initScreen(const Common::String &file, int mode, bool init
 	_vm->_globals->freeMemory(ptr);
 	_vm->_globals->_answerBuffer = _vm->_globals->freeMemory(_vm->_globals->_answerBuffer);
 
-	filename = file + ".rep";
+	filename = file;
+	filename.appendInPlace(".rep");
 	fileFoundFl = false;
 	byte *dataP = _vm->_fileIO->searchCat(filename, RES_REP, fileFoundFl);
 	if (!fileFoundFl)
@@ -1910,7 +1912,7 @@ void GraphicsManager::drawVerticalLine(byte *surface, int xp, int yp, int height
  */
 void GraphicsManager::backupScreen() {
 	// Allocate a new data block for the screen, if necessary
-	if (_vm->_graphicsMan->_backupScreen == NULL)
+	if (_vm->_graphicsMan->_backupScreen == nullptr)
 		_vm->_graphicsMan->_backupScreen = _vm->_globals->allocMemory(SCREEN_WIDTH * 2 * SCREEN_HEIGHT);
 
 	// Backup the screen
@@ -1928,7 +1930,7 @@ void GraphicsManager::restoreScreen() {
 	Common::copy(_vm->_graphicsMan->_backupScreen, _vm->_graphicsMan->_backupScreen +
 		SCREEN_WIDTH * 2 * SCREEN_HEIGHT, _vm->_graphicsMan->_backBuffer);
 	_vm->_globals->freeMemory(_vm->_graphicsMan->_backupScreen);
-	_backupScreen = NULL;
+	_backupScreen = nullptr;
 }
 
 } // End of namespace Hopkins

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,6 @@
 #include "graphics/cursorman.h"
 #include "graphics/surface.h"
 #include "graphics/screen.h"
-#include "graphics/palette.h"
 #include "graphics/thumbnail.h"
 #include "gui/saveload.h"
 
@@ -114,8 +112,10 @@ SupernovaEngine::~SupernovaEngine() {
 
 Common::Error SupernovaEngine::run() {
 	Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
-	if (ttsMan != nullptr)
+	if (ttsMan != nullptr) {
 		ttsMan->setLanguage(ConfMan.get("language"));
+		ttsMan->enable(ConfMan.getBool("tts_enabled"));
+	}
 
 	init();
 
@@ -518,14 +518,14 @@ Common::Error SupernovaEngine::showTextReader(const char *extension) {
 	blockName.toUppercase();
 	if ((stream = getBlockFromDatFile(blockName)) == nullptr) {
 		Common::File file;
-		Common::String filename;
+		Common::Path filename;
 		if (_MSPart == 1)
-			filename = Common::String::format("msn.%s", extension);
+			filename = Common::Path(Common::String::format("msn.%s", extension));
 		if (_MSPart == 2)
-			filename = Common::String::format("ms2.%s", extension);
+			filename = Common::Path(Common::String::format("ms2.%s", extension));
 
 		if (!file.open(filename)) {
-			GUIErrorMessageFormat(_("Unable to find '%s' in game folder or the engine data file."), filename.c_str());
+			GUIErrorMessageFormat(_("Unable to find '%s' in game folder or the engine data file."), filename.toString().c_str());
 			return Common::kReadingFailed;
 		}
 		stream = file.readStream(file.size());
@@ -658,7 +658,7 @@ bool SupernovaEngine::quitGameDialog() {
 }
 
 
-bool SupernovaEngine::canLoadGameStateCurrently() {
+bool SupernovaEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return _allowLoadGame;
 }
 
@@ -666,7 +666,7 @@ Common::Error SupernovaEngine::loadGameState(int slot) {
 	return (loadGame(slot) ? Common::kNoError : Common::kReadingFailed);
 }
 
-bool SupernovaEngine::canSaveGameStateCurrently() {
+bool SupernovaEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	// Do not allow saving when either _allowSaveGame, _animationEnabled or _guiEnabled is false
 	return _allowSaveGame && _gm->canSaveGameStateCurrently();
 }

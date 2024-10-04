@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,7 +51,7 @@ public:
 
 	void terminate() override;
 
-	void dumpInfo() const override;
+	Common::String dumpInfo() const override;
 
 	void setIsActivityAOrB() {
 		_isActivityAorB = true;
@@ -77,10 +76,15 @@ public:
 		_target = target;
 	}
 
+	/** Get the right "attack" sound for No Regret for the
+	 given actor.  This is actually used for surrender sounds too, hence
+	 being public static so it can be used from SurrenderProcess. */
+	static int16 getRandomAttackSoundRegret(const Actor *actor);
+
 	bool loadData(Common::ReadStream *rs, uint32 version);
 	void saveData(Common::WriteStream *ws) override;
 
-	static const uint16 ATTACK_PROCESS_TYPE;
+	static const uint16 ATTACK_PROC_TYPE;
 private:
 	/** Set the current tactic in use from the combat.dat file.  If 0,
 	 * will use the genericAttack function. */
@@ -107,7 +111,7 @@ private:
 	void sleep(int ticks);
 
 	/// Check the sound timer and return if we are ready for a new sound
-	bool readyForNextSound(int now);
+	bool readyForNextSound(uint32 now);
 
 	bool checkTimer2PlusDelayElapsed(int now);
 	void pathfindToItemInNPCData();
@@ -161,7 +165,8 @@ private:
 	int32 _timer4; // 0x6f/0x71 in orig
 	int32 _timer5; // 0x8a/0x8c in orig
 
-	int32 _soundTimestamp; /// 0x84/0x86 in orig - time a sound was last played
+	uint32 _soundTimestamp; /// 0x84/0x86 in orig - time a sound was last played
+	uint32 _soundDelayTicks; /// Delay between playing sounds, always 480 in No Remorse - Not saved.
 	int32 _fireTimestamp; /// 0x90/0x92 in orig - time NPC last fired
 
 	// Used in No Regret only, to avoid replaying the same sfx for attack twice in a row.

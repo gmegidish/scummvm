@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 #include "common/rect.h"
 #include "common/textconsole.h"
 #include "common/system.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "access/access.h"
 #include "access/screen.h"
 #include "access/resources.h"
@@ -34,6 +33,13 @@
 namespace Access {
 
 #define VGA_COLOR_TRANS(x) ((x) * 255 / 63)
+
+ScreenSave::ScreenSave(){
+	_clipWidth = _clipHeight = 0;
+	_windowXAdd = _windowYAdd = 0;
+	_scrollCol = _scrollRow = 0;
+	_screenYOff = 0;
+}
 
 Screen::Screen(AccessEngine *vm) : _vm(vm) {
 	create(320, 200);
@@ -64,6 +70,13 @@ Screen::Screen(AccessEngine *vm) : _vm(vm) {
 	_cycleStart = 0;
 	_endCycle = 0;
 	_fadeIn = false;
+
+	for (int i = 0; i < 768; ++i) {
+		_rawPalette[i] = 0;
+		_savedPalettes[0][i] = 0;
+		_savedPalettes[1][i] = 0;
+		_tempPalette[i] = 0;
+	}
 }
 
 void Screen::clearScreen() {

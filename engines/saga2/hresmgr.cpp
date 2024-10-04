@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -57,7 +56,7 @@ hResContext::hResContext(hResContext *sire, hResID id, const char desc[]) {
 	_bytepos = 0;
 	_handle = &_file;
 	_base = nullptr;
-	_parent = 0;
+	_parent = nullptr;
 
 	if (!_res->_valid)
 		return;
@@ -239,7 +238,7 @@ uint32 hResContext::getSize(hResID id, const char desc[]) {
 	return entry->size;
 }
 
-byte *hResContext::loadResource(hResID id, const char desc[], Common::String filename) {
+byte *hResContext::loadResource(hResID id, const char desc[], const Common::Path &filename) {
 	hResEntry *entry;
 
 	debugC(3, kDebugResources, "Loading resource %x (%s)", id, desc);
@@ -250,11 +249,10 @@ byte *hResContext::loadResource(hResID id, const char desc[], Common::String fil
 
 	byte *res = (byte*)malloc(entry->size);
 
-	if (filename.equalsIgnoreCase(""))
-		filename = _filename;
+	const Common::Path &path = filename.empty() ? _filename : filename;
 
 	if (!_file.isOpen())
-		_file.open(filename);
+		_file.open(path);
 
 	_file.seek(entry->offset, SEEK_SET);
 	_file.read(res, entry->size);
@@ -262,7 +260,7 @@ byte *hResContext::loadResource(hResID id, const char desc[], Common::String fil
 	return res;
 }
 
-byte *hResContext::loadIndexResource(int16 index, const char desc[], Common::String filename) {
+byte *hResContext::loadIndexResource(int16 index, const char desc[], const Common::Path &filename) {
 	hResEntry *entry;
 	entry = &_base[index];
 
@@ -284,11 +282,10 @@ byte *hResContext::loadIndexResource(int16 index, const char desc[], Common::Str
 	debugC(5, kDebugResources, "_indexData: pushing (%d, %p)", index, (void*)res);
 	_indexData.setVal(index, res);
 
-	if (filename.equalsIgnoreCase(""))
-		filename = _filename;
+	const Common::Path &path = filename.empty() ? _filename : filename;
 
 	if (!_file.isOpen())
-		_file.open(filename);
+		_file.open(path);
 
 	_file.seek(entry->offset, SEEK_SET);
 	_file.read(res, entry->size);

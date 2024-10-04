@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,14 +39,14 @@ using namespace AGS; // FIXME later
 #define MAXNEEDSTAGES_LEGACY 40
 
 struct MoveList {
-	int32_t pos[MAXNEEDSTAGES];
-	int   numstage;
-	fixed xpermove[MAXNEEDSTAGES], ypermove[MAXNEEDSTAGES];
-	int   fromx, fromy;
-	int   onstage, onpart;
-	int   lastx, lasty;
-	int8  doneflag;
-	int8  direct;  // MoveCharDirect was used or not
+	int32_t pos[MAXNEEDSTAGES] = {};
+	int   numstage = 0;
+	fixed xpermove[MAXNEEDSTAGES] = {}, ypermove[MAXNEEDSTAGES] = {};
+	int   fromx = 0, fromy = 0;
+	int   onstage = 0, onpart = 0;
+	int   lastx = 0, lasty = 0;
+	int8  doneflag = 0;
+	int8  direct = 0;  // MoveCharDirect was used or not
 
 	void ReadFromFile_Legacy(Shared::Stream *in);
 	AGS::Engine::HSaveError ReadFromFile(Shared::Stream *in, int32_t cmp_ver);

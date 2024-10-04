@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,26 +27,46 @@
 
 #include "common/config-manager.h"
 #include "common/savefile.h"
+#include "common/translation.h"
 
 #include "graphics/scaler.h"
 
 namespace Myst3{
 
-class Myst3MetaEngine : public AdvancedMetaEngine {
+static const ADExtraGuiOptionsMap optionsList[] = {
+	{
+		GAMEOPTION_WIDESCREEN_MOD,
+		{
+			_s("Widescreen mod"),
+			_s("Enable widescreen rendering in fullscreen mode."),
+			"widescreen_mod",
+			false,
+			0,
+			0
+		}
+	},
+
+	AD_EXTRA_GUI_OPTIONS_TERMINATOR
+};
+
+class Myst3MetaEngine : public AdvancedMetaEngine<Myst3GameDescription> {
 public:
 	const char *getName() const override {
 		return "myst3";
 	}
 
+	const ADExtraGuiOptionsMap *getAdvancedExtraGuiOptions() const override {
+		return optionsList;
+	}
+
 	bool hasFeature(MetaEngineFeature f) const override {
-		return
-			(f == kSupportsListSaves) ||
-			(f == kSupportsDeleteSave) ||
-			(f == kSupportsLoadingDuringStartup) ||
-			(f == kSavesSupportMetaInfo) ||
-			(f == kSavesSupportThumbnail) ||
-			(f == kSavesSupportCreationDate) ||
-			(f == kSavesSupportPlayTime);
+		return  (f == kSupportsListSaves) ||
+		        (f == kSupportsDeleteSave) ||
+		        (f == kSupportsLoadingDuringStartup) ||
+		        (f == kSavesSupportMetaInfo) ||
+		        (f == kSavesSupportThumbnail) ||
+		        (f == kSavesSupportCreationDate) ||
+		        (f == kSavesSupportPlayTime);
 	}
 
 	SaveStateList listSaves(const char *target) const override {
@@ -56,7 +75,9 @@ public:
 
 		SaveStateList saveList;
 		for (uint32 i = 0; i < filenames.size(); i++)
-			saveList.push_back(SaveStateDescriptor(this, i, filenames[i]));
+			// Since slots are ignored when saving, we always return slot 0
+			// as an unused slot to optimise the autosave process
+			saveList.push_back(SaveStateDescriptor(this, i + 1, filenames[i]));
 
 		return saveList;
 	}
@@ -90,7 +111,7 @@ public:
 		}
 
 		// Read state data
-		Common::Serializer s = Common::Serializer(saveFile, 0);
+		Common::Serializer s = Common::Serializer(saveFile, nullptr);
 		GameState::StateData data;
 		data.syncWithSaveGame(s);
 
@@ -131,11 +152,13 @@ public:
 		return 999;
 	}
 
-	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const Myst3GameDescription *desc) const override;
+
+	// TODO: Add getSavegameFile()
 };
 
-Common::Error Myst3MetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	*engine = new Myst3Engine(syst, (const Myst3GameDescription *)desc);
+Common::Error Myst3MetaEngine::createInstance(OSystem *syst, Engine **engine, const Myst3GameDescription *desc) const {
+	*engine = new Myst3Engine(syst,desc);
 	return Common::kNoError;
 }
 

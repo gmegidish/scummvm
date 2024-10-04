@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,126 +15,126 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "common/system.h"
-#include "common/events.h"
 #include "graphics/cursorman.h"
-#include "graphics/palette.h"
-#include "graphics/surface.h"
-
 #include "chewy/cursor.h"
-#include "chewy/resource.h"
+#include "chewy/events.h"
+#include "chewy/globals.h"
 
 namespace Chewy {
 
-const byte _cursorFrames[] = {
-	4, 1, 1, 1,     //   0-3: walk
-	4, 1, 1, 1,     //   5-7: use (+ no use, 4)
-	1,              //     8: go to
-	4, 1, 1, 1,     //  9-12: nope
-	4, 1, 1, 1,     // 13-16: look
-	4, 1, 1, 1,     // 17-20: talk (+ no talk, 17)
-	4, 1, 1, 1,     // 21-24: inventory
-	1,              // 25: save
-	1,              // 26: exit left
-	1,              // 27: exit right
-	1,              // 28: exit up
-	1,              // 29: exit down
-	1,              // 30: disk
-	1,              // 31: Howard
-	5, 1, 1, 1, 1,  // 32: animated arrow
-	1,              // 37: Nichelle
-	1,              // 38: use (inventory)
-	1,              // 39: look (inventory)
-	1               // 40: gun
-};
-
 Cursor::Cursor() {
-	_curCursor = 0;
-	_curCursorFrame = 0;
-	_cursorSprites = new SpriteResource("cursor.taf");
+	const auto res = new SpriteResource(CURSOR_TAF);
+	const auto invRes = new SpriteResource(INVENTORY_TAF);
+	_cursorCount = res->getChunkCount();
+	_invCursorCount = invRes->getChunkCount();
+	_curSprites = new CursorSprite[_cursorCount + _invCursorCount];
+
+	for (uint32 i = 0; i < _cursorCount + _invCursorCount; i++) {
+		const TAFChunk *sprite = (i < _cursorCount) ? res->getSprite(i) : invRes->getSprite(i - _cursorCount);
+		_curSprites[i].width = sprite->width;
+		_curSprites[i].height = sprite->height;
+		_curSprites[i].data = new byte[sprite->width * sprite->height];
+		memcpy(_curSprites[i].data, sprite->data, sprite->width * sprite->height);
+		delete sprite;
+	}
+
+	delete invRes;
+	delete res;
+
+	_currentCursor.data = _customCursor.data = nullptr;
+	_currentCursor.width = _customCursor.width = 0;
+	_currentCursor.height = _customCursor.height = 0;
+
+	clearCustomCursor();
 }
 
 Cursor::~Cursor() {
-	delete _cursorSprites;
-}
-
-// TODO: This may need to be refactored, since in the original the user
-// selects the cursor to use from a pop-up menu
-CurrentCursor Cursor::getCurrentCursor() const {
-	switch (_curCursor) {
-	case 0:
-	case 1:
-	case 2:
-	case 3:
-		return kWalk;
-	case 4:
-	case 5:
-	case 6:
-	case 7:
-		return kUse;
-	case 13:
-	case 14:
-	case 15:
-	case 16:
-		return kLook;
-	case 17:
-	case 18:
-	case 19:
-	case 20:
-		return kTalk;
-	default:
-		return kOther;
+	for (uint32 i = 0; i < _cursorCount + _invCursorCount; i++) {
+		delete[] _curSprites[i].data;
+		_curSprites[i].data = nullptr;
 	}
+
+	delete[] _curSprites;
 }
 
-void Cursor::setCursor(uint num, bool newCursor) {
-	TAFChunk *cursor = _cursorSprites->getSprite(num);
-	if (newCursor)
-		_curCursor = num;
+void Cursor::updateCursor() {
+	if (!CursorMan.isVisible())
+		return;
 
-	CursorMan.replaceCursor(cursor->data, cursor->width, cursor->height, 0, 0, 0);
+	--_curAniCountdown;
+	if (_curAniCountdown <= 0) {
+		_curAniCountdown = _animDelay;
+		++_aniCount;
+		if (_aniCount > _animEnd)
+			_aniCount = _animStart;
+	}
 
-	delete[] cursor->data;
-	delete cursor;
+	if (_customCursor.data != nullptr) {
+		CursorMan.replaceCursor(_customCursor.data, _customCursor.width, _customCursor.height, 0, 0, 0);
+		_currentCursor.data = _customCursor.data;
+		_currentCursor.width = _customCursor.width;
+		_currentCursor.height = _customCursor.height;
+	} else {
+		const uint32 cursorOffset = _invCursor >= 0 ? _cursorCount : 0;
+		const CursorSprite s = _curSprites[_aniCount + cursorOffset];
+		CursorMan.replaceCursor(s.data, s.width, s.height, 0, 0, 0);
+		_currentCursor.data = s.data;
+		_currentCursor.width = s.width;
+		_currentCursor.height = s.height;
+	}
 }
 
 void Cursor::showCursor() {
 	CursorMan.showMouse(true);
+	updateCursor();
 }
 
 void Cursor::hideCursor() {
 	CursorMan.showMouse(false);
 }
 
-void Cursor::animateCursor() {
-	if (_cursorFrames[_curCursor] > 1) {
-		_curCursorFrame++;
+bool Cursor::isCursorVisible() const {
+	return CursorMan.isVisible();
+}
 
-		if (_curCursorFrame >= _cursorFrames[_curCursor])
-			_curCursorFrame = 0;
+void Cursor::setAnimation(uint8 start, uint8 end, int16 delay) {
+	_aniCount = _animStart = start;
+	_animEnd = end;
+	if (delay >= 0)
+		_animDelay = delay;
+	_curAniCountdown = 0;
+}
 
-		setCursor(_curCursor + _curCursorFrame, false);
+void Cursor::setCustomRoomCursor(byte *roomSprite) {
+	const uint16 width = READ_LE_INT16(roomSprite);
+	const uint16 height = READ_LE_INT16(roomSprite + 2);
+	setCustomCursor(roomSprite + 4, width, height);
+}
+
+void Cursor::setCustomCursor(byte *data, uint16 width, uint16 height) {
+	_currentCursor.data = _customCursor.data = data;
+	_currentCursor.width = _customCursor.width = width;
+	_currentCursor.height = _customCursor.height = height;
+
+	CursorMan.replaceCursor(_customCursor.data, _customCursor.width, _customCursor.height, 0, 0, 0);
+}
+
+void Cursor::clearCustomCursor() {
+	if (_customCursor.data) {
+		_customCursor.data = nullptr;
+		_customCursor.width = 0;
+		_customCursor.height = 0;
+
+		updateCursor();
 	}
 }
 
-void Cursor::nextCursor() {
-	uint maxCursors = ARRAYSIZE(_cursorFrames);
-
-	if (_cursorFrames[_curCursor] > 0)
-		_curCursor += _cursorFrames[_curCursor];
-	else
-		_curCursor++;
-
-	if (_curCursor >= maxCursors)
-		_curCursor = 0;
-
-	_curCursorFrame = 0;
-	setCursor(_curCursor);
+void Cursor::move(int16 x, int16 y) {
+	g_events->warpMouse(Common::Point(x, y));
 }
 
-} // End of namespace Chewy
+} // namespace Chewy

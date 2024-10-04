@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -647,6 +646,7 @@ AIEntTypeInfo aiEntList[] = {
 	{ ITEM_ROBOSTUNNER,		"ITEM_ROBOSTUNNER",		&roboStunner[0],		aiRoboStunnerInit,		aiRoboStunnerInit2  },
 	{ ITEM_SLUGSLINGER,		"ITEM_SLUGSLINGER",		&slugSlinger[0],		aiSlugSlingerInit,		aiSlugSlingerInit2  },
 
+
 	{ ITEM_ENV_GREEN,		"ITEM_ENV_GREEN",		&envelopeGreen[0],		aiEnvelopeGreenInit,	aiEnvelopeGreenInit2  },
 	{ ITEM_GEM_BLUE,		"ITEM_GEM_BLUE",		&gemBlue[0],			aiGemBlueInit,			aiGemBlueInit2  },
 	{ ITEM_GEM_RED,			"ITEM_GEM_RED",			&gemRed[0],				aiGemRedInit,			aiGemRedInit2  },
@@ -895,22 +895,16 @@ static struct {
 	{aiIceBlockInit,			"aiIceBlockInit"},
 	{aiIceBlockInit2,			"aiIceBlockInit2"},
 	{aiIceBlockAction,			"aiIceBlockAction"},
-	{nullptr, nullptr}
-};
+	{aiPlayerDraw,				"aiPlayerDraw"},
+	{aiShockBotShock,			"aiShockBotShock"},
+	{aiSlugAttackDraw,			"aiSlugAttackDraw"},
+	{aiLaserDraw,				"aiLaserDraw"},
+	{aiDiverterDraw,			"aiDiverterDraw"},
+	{aiMeerkatDraw,				"aiMeerkatDraw"},
+	{aiFatFrogTongueDraw,		"aiFatFrogTongueDraw"},
+	{aiIcePuffSnowballDraw,		"aiIcePuffSnowballDraw"},
+	{aiDragonDraw,				"aiDragonDraw"},
 
-static struct {
-	EntFuncPtr function;
-	const char *funcName;
-} aiEntFuncList[] = {
-	{aiPlayerDraw,			"aiPlayerDraw"},
-	{aiShockBotShock,		"aiShockBotShock"},
-	{aiSlugAttackDraw,		"aiSlugAttackDraw"},
-	{aiLaserDraw,			"aiLaserDraw"},
-	{aiDiverterDraw,		"aiDiverterDraw"},
-	{aiMeerkatDraw,			"aiMeerkatDraw"},
-	{aiFatFrogTongueDraw,	"aiFatFrogTongueDraw"},
-	{aiIcePuffSnowballDraw,	"aiIcePuffSnowballDraw"},
-	{aiDragonDraw,			"aiDragonDraw"},
 	{nullptr, nullptr}
 };
 
@@ -1266,12 +1260,6 @@ const char *AI::funcLookUp(FuncPtr function) {
 			return aiFuncList[i].funcName;
 		i++;
 	}
-	i = 0;
-	while (aiEntFuncList[i].funcName) {
-		if ((FuncPtr)aiEntFuncList[i].function == function)
-			return aiEntFuncList[i].funcName;
-		i++;
-	}
 	return nullptr;
 }
 
@@ -1283,12 +1271,6 @@ FuncPtr AI::funcLookUp(const char *function) {
 	while (aiFuncList[i].funcName) {
 		if (!scumm_stricmp(aiFuncList[i].funcName, function))
 			return aiFuncList[i].function;
-		i++;
-	}
-	i = 0;
-	while (aiEntFuncList[i].funcName) {
-		if (!scumm_stricmp(aiEntFuncList[i].funcName, function))
-			return (FuncPtr)aiEntFuncList[i].function;
 		i++;
 	}
 	return nullptr;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -176,14 +175,12 @@ void AdlEngine_v4::saveState(Common::WriteStream &stream) {
 }
 
 Common::String AdlEngine_v4::loadMessage(uint idx) const {
-	Common::String str = AdlEngine_v3::loadMessage(idx);
-
-	for (uint i = 0; i < str.size(); ++i) {
-		const char *xorStr = "AVISDURGAN";
-		str.setChar(str[i] ^ xorStr[i % strlen(xorStr)], i);
+	if (_messages[idx]) {
+		Common::StreamPtr strStream(_messages[idx]->createReadStream());
+		return readString(*strStream, 0xff, "AVISDURGAN");
 	}
 
-	return str;
+	return Common::String();
 }
 
 Common::String AdlEngine_v4::getItemDescription(const Item &item) const {
@@ -296,7 +293,7 @@ void AdlEngine_v4::loadRegion(byte region) {
 	fixupDiskOffset(track, sector);
 
 	for (uint block = 0; block < 7; ++block) {
-		StreamPtr stream(_disk->createReadStream(track, sector, offset, 1));
+		Common::StreamPtr stream(_disk->createReadStream(track, sector, offset, 1));
 
 		uint16 addr = stream->readUint16LE();
 		uint16 size = stream->readUint16LE();

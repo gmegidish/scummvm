@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -62,12 +61,12 @@ WintermuteEngine::WintermuteEngine(OSystem *syst, const WMEGameDescription *desc
 	// Put your engine in a sane state, but do nothing big yet;
 	// in particular, do not load data from files; rather, if you
 	// need to do such things, do them from init().
-	ConfMan.registerDefault("show_fps","false");
+	ConfMan.registerDefault("show_fps", "false");
 
 	// Do not initialize graphics here
 
 	// However this is the place to specify all default directories
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	//SearchMan.addSubDirectoryMatching(gameDataDir, "sound");
 
 	_game = nullptr;
@@ -92,7 +91,7 @@ bool WintermuteEngine::hasFeature(EngineFeature f) const {
 		return true;
 #ifdef ENABLE_WME3D
 	case kSupportsArbitraryResolutions:
-		return true;
+		return /*true*/false; // opengl renderers doesn't support it yet
 #endif
 	default:
 		return false;
@@ -197,7 +196,7 @@ int WintermuteEngine::init() {
 	#ifdef ENABLE_WME3D
 	Common::ArchiveMemberList actors3d;
 	_game->_playing3DGame = instance.getFlags() & GF_3D;
-	_game->_playing3DGame |= BaseEngine::instance().getFileManager()->listMatchingPackageMembers(actors3d, "*.act3d");
+	_game->_playing3DGame |= (BaseEngine::instance().getFileManager()->listMatchingPackageMembers(actors3d, "*.act3d") != 0);
 	#endif
 	instance.setGameRef(_game);
 	BasePlatform::initialize(this, _game, 0, nullptr);
@@ -342,11 +341,11 @@ Common::Error WintermuteEngine::saveGameState(int slot, const Common::String &de
 	return Common::kNoError;
 }
 
-bool WintermuteEngine::canSaveGameStateCurrently() {
+bool WintermuteEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return true;
 }
 
-bool WintermuteEngine::canLoadGameStateCurrently() {
+bool WintermuteEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return true;
 }
 
@@ -439,6 +438,12 @@ bool WintermuteEngine::getGameInfo(const Common::FSList &fslist, Common::String 
 						}
 					}
 					caption = value;
+
+					for (uint i = 0; i< value.size(); i++) {
+						if ( int(value[i]) < 16 || int(value[i]) >= 127 ) {
+							caption = "(invalid)";
+						}
+					}
 				}
 			}
 		}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,7 +43,7 @@ inline frac_t fp_sqroot(uint32 x) {
 	return doubleToFrac(sqrt((double)x));
 #else
 	// The code below wants to use a lot of registers, which is not good on
-	// x86 processors. By taking advantage of the fact the the input value is
+	// x86 processors. By taking advantage of the fact the input value is
 	// an integer, it might be possible to improve this. Furthermore, we could
 	// take advantage of the fact that we call this function several times on
 	// decreasing values. By feeding it the sqrt of the previous old x, as well
@@ -426,42 +425,28 @@ namespace Graphics {
 /**
  * Fills several pixels in a row with a given color.
  *
- * This is a replacement function for Common::fill, using an unrolled
- * loop to maximize performance on most architectures.
- * This function may (and should) be overloaded in any child renderers
- * for portable platforms with platform-specific assembly code.
- *
- * This fill operation is extensively used throughout the renderer, so this
- * counts as one of the main bottlenecks. Please replace it with assembly
- * when possible!
- *
  * @param first Pointer to the first pixel to fill.
  * @param last Pointer to the last pixel to fill.
  * @param color Color of the pixel
  */
 template<typename PixelType>
 void colorFill(PixelType *first, PixelType *last, PixelType color) {
+	STATIC_ASSERT(sizeof(PixelType) == 1 || sizeof(PixelType) == 2 || sizeof(PixelType) == 4, Unsupported_PixelType);
+
 	int count = (last - first);
-	if (!count)
-		return;
-	int n = (count + 7) >> 3;
-	switch (count % 8) {
-	default:
-	case 0:	do {
-	       		*first++ = color; // fall through
-	case 7:		*first++ = color; // fall through
-	case 6:		*first++ = color; // fall through
-	case 5:		*first++ = color; // fall through
-	case 4:		*first++ = color; // fall through
-	case 3:		*first++ = color; // fall through
-	case 2:		*first++ = color; // fall through
-	case 1:		*first++ = color;
-	       	} while (--n > 0);
-	}
+
+	if (sizeof(PixelType) == 1)
+		memset((uint8 *)first, color, count);
+	else if (sizeof(PixelType) == 2)
+		Common::memset16((uint16 *)first, color, count);
+	else
+		Common::memset32((uint32 *)first, color, count);
 }
 
 template<typename PixelType>
 void colorFillClip(PixelType *first, PixelType *last, PixelType color, int realX, int realY, Common::Rect &clippingArea) {
+	STATIC_ASSERT(sizeof(PixelType) == 1 || sizeof(PixelType) == 2 || sizeof(PixelType) == 4, Unsupported_PixelType);
+
 	if (realY < clippingArea.top || realY >= clippingArea.bottom)
 		return;
 
@@ -482,23 +467,12 @@ void colorFillClip(PixelType *first, PixelType *last, PixelType color, int realX
 		count -= diff;
 	}
 
-	if (!count)
-		return;
-
-	int n = (count + 7) >> 3;
-	switch (count % 8) {
-	default:
-	case 0:	do {
-	       		*first++ = color; // fall through
-	case 7:		*first++ = color; // fall through
-	case 6:		*first++ = color; // fall through
-	case 5:		*first++ = color; // fall through
-	case 4:		*first++ = color; // fall through
-	case 3:		*first++ = color; // fall through
-	case 2:		*first++ = color; // fall through
-	case 1:		*first++ = color;
-	       	} while (--n > 0);
-	}
+	if (sizeof(PixelType) == 1)
+		memset((uint8 *)first, color, count);
+	else if (sizeof(PixelType) == 2)
+		Common::memset16((uint16 *)first, color, count);
+	else
+		Common::memset32((uint32 *)first, color, count);
 }
 
 /**
@@ -562,6 +536,8 @@ VectorRenderer *createRenderer(int mode) {
 			return new VectorRendererSpec<uint32>(format);
 		else if (g_system->getOverlayFormat().bytesPerPixel == 2)
 			return new VectorRendererSpec<uint16>(format);
+		else if (g_system->getOverlayFormat().bytesPerPixel == 1)
+			return new VectorRendererSpec<uint8>(format);
 		break;
 #ifndef DISABLE_FANCY_THEMES
 	case GUI::ThemeEngine::kGfxAntialias:
@@ -569,6 +545,9 @@ VectorRenderer *createRenderer(int mode) {
 			return new VectorRendererAA<uint32>(format);
 		else if (g_system->getOverlayFormat().bytesPerPixel == 2)
 			return new VectorRendererAA<uint16>(format);
+		// No AA with 8-bit
+		else if (g_system->getOverlayFormat().bytesPerPixel == 1)
+			return new VectorRendererSpec<uint8>(format);
 		break;
 #endif
 	default:
@@ -587,7 +566,6 @@ VectorRendererSpec(PixelFormat format) :
 	_blueMask((0xFF >> format.bLoss) << format.bShift),
 	_alphaMask((0xFF >> format.aLoss) << format.aShift) {
 
-	_bitmapAlphaColor = _format.RGBToColor(255, 0, 255);
 	_clippingArea = Common::Rect(0, 0, 32767, 32767);
 
 	_fgColor = _bgColor = _bevelColor = 0;
@@ -807,19 +785,29 @@ blitSurface(const Graphics::ManagedSurface *source, const Common::Rect &r) {
 
 template<typename PixelType>
 void VectorRendererSpec<PixelType>::
-blitKeyBitmap(const Graphics::ManagedSurface *source, const Common::Point &p, bool themeTrans) {
+blitManagedSurface(const Graphics::ManagedSurface *source, const Common::Point &p, Graphics::AlphaType alphaType) {
 	Common::Rect drawRect(p.x, p.y, p.x + source->w, p.y + source->h);
 	drawRect.clip(_clippingArea);
-	drawRect.moveTo(0, 0);
+	drawRect.translate(-p.x, -p.y);
 
 	if (drawRect.isEmpty()) {
 		return;
 	}
 
-	if (themeTrans)
-		_activeSurface->transBlitFrom(*source, drawRect, p, _bitmapAlphaColor);
-	else
-		_activeSurface->blitFrom(*source, drawRect, p);
+	Common::Point np;
+	if (!_clippingArea.contains(p)) {
+		int16 nx = CLIP(p.x, _clippingArea.left, _clippingArea.right);
+		int16 ny = CLIP(p.y, _clippingArea.top, _clippingArea.bottom);
+		np = Common::Point(nx, ny);
+	} else {
+		np = p;
+	}
+
+	if (alphaType != Graphics::ALPHA_OPAQUE) {
+		_activeSurface->transBlitFrom(*source, drawRect, np);
+	} else {
+		_activeSurface->simpleBlitFrom(*source, drawRect, np);
+	}
 }
 
 template<typename PixelType>
@@ -894,6 +882,9 @@ blendPixelPtr(PixelType *ptr, PixelType color, uint8 alpha) {
 			(_alphaMask & ((idst & _alphaMask) +
 			((int)(((int)(_alphaMask) -
 			(int)(idst & _alphaMask)) * alpha) >> 8))));
+	} else if (sizeof(PixelType) == 1) {
+		if (alpha & 0x80)
+			*ptr = color;
 	} else {
 		error("Unsupported BPP format: %u", (uint)sizeof(PixelType));
 	}
@@ -931,6 +922,8 @@ darkenFill(PixelType *ptr, PixelType *end) {
 	if (!g_system->hasFeature(OSystem::kFeatureOverlaySupportsAlpha)) {
 		// !kFeatureOverlaySupportsAlpha (but might have alpha bits)
 
+		mask |= _alphaMask;
+
 		while (ptr != end) {
 			*ptr = ((*ptr & ~mask) >> 2) | _alphaMask;
 			++ptr;
@@ -958,6 +951,8 @@ darkenFillClip(PixelType *ptr, PixelType *end, int x, int y) {
 
 	if (!g_system->hasFeature(OSystem::kFeatureOverlaySupportsAlpha)) {
 		// !kFeatureOverlaySupportsAlpha (but might have alpha bits)
+
+		mask |= _alphaMask;
 
 		while (ptr != end) {
 			if (IS_IN_CLIP(x, y)) *ptr = ((*ptr & ~mask) >> 2) | _alphaMask;
@@ -1065,39 +1060,33 @@ drawLine(int x1, int y1, int x2, int y2) {
 
 	PixelType *ptr = (PixelType *)_activeSurface->getBasePtr(x1, y1);
 	int pitch = _activeSurface->pitch / _activeSurface->format.bytesPerPixel;
-	int st = Base::_strokeWidth >> 1;
+	// Stroke widths before and after the coordinate
+	// Before is favoured in case of even stroke width
+	int stb = Base::_strokeWidth >> 1;
+	int sta = stb + (Base::_strokeWidth & 1);
 
 	bool useClippingVersions = !_clippingArea.contains(x1, y1) || !_clippingArea.contains(x2, y2);
 
-	int ptr_x = x1, ptr_y = y1;
-
 	if (dy == 0) { // horizontal lines
-		if (useClippingVersions) {
-			colorFillClip<PixelType>(ptr, ptr + dx + 1, (PixelType)_fgColor, x1, y1, _clippingArea);
-		} else {
-			colorFill<PixelType>(ptr, ptr + dx + 1, (PixelType)_fgColor);
-		}
-
-		for (int i = 0, p = pitch; i < st; ++i, p += pitch) {
+		intptr p = -stb * pitch;
+		for (int i = -stb; i < sta; i++, p += pitch) {
 			if (useClippingVersions) {
-				colorFillClip<PixelType>(ptr + p, ptr + dx + 1 + p, (PixelType)_fgColor, x1, y1 + p/pitch, _clippingArea);
-				colorFillClip<PixelType>(ptr - p, ptr + dx + 1 - p, (PixelType)_fgColor, x1, y1 - p/pitch, _clippingArea);
+				colorFillClip<PixelType>(ptr + p, ptr + p + dx + 1, (PixelType)_fgColor, x1, y1 + i, _clippingArea);
 			} else {
-				colorFill<PixelType>(ptr + p, ptr + dx + 1 + p, (PixelType)_fgColor);
-				colorFill<PixelType>(ptr - p, ptr + dx + 1 - p, (PixelType)_fgColor);
+				colorFill<PixelType>(ptr + p, ptr + p + dx + 1, (PixelType)_fgColor);
 			}
 		}
 
 	} else if (dx == 0) { // vertical lines
 						  // these ones use a static pitch increase.
-		while (y1++ <= y2) {
+		while (y1 <= y2) {
 			if (useClippingVersions) {
-				colorFillClip<PixelType>(ptr - st, ptr + st, (PixelType)_fgColor, x1 - st, ptr_y, _clippingArea);
+				colorFillClip<PixelType>(ptr - stb, ptr + sta, (PixelType)_fgColor, x1 - stb, y1, _clippingArea);
 			} else {
-				colorFill<PixelType>(ptr - st, ptr + st, (PixelType)_fgColor);
+				colorFill<PixelType>(ptr - stb, ptr + sta, (PixelType)_fgColor);
 			}
 			ptr += pitch;
-			++ptr_y;
+			y1++;
 		}
 
 	} else if (dx == dy) { // diagonal lines
@@ -1106,13 +1095,13 @@ drawLine(int x1, int y1, int x2, int y2) {
 
 		while (dy--) {
 			if (useClippingVersions) {
-				colorFillClip<PixelType>(ptr - st, ptr + st, (PixelType)_fgColor, ptr_x - st, ptr_y, _clippingArea);
+				colorFillClip<PixelType>(ptr - stb, ptr + sta, (PixelType)_fgColor, x1 - stb, y1, _clippingArea);
 			} else {
-				colorFill<PixelType>(ptr - st, ptr + st, (PixelType)_fgColor);
+				colorFill<PixelType>(ptr - stb, ptr + sta, (PixelType)_fgColor);
 			}
 			ptr += pitch;
-			++ptr_y;
-			if (x2 > x1) ++ptr_x; else --ptr_x;
+			y1++;
+			if (x2 > x1) ++x1; else --x1;
 		}
 
 	} else { // generic lines, use the standard algorithm...
@@ -1132,7 +1121,7 @@ drawCircle(int x, int y, int r) {
 		x - r < 0 || y - r < 0 || x == 0 || y == 0 || r <= 0)
 		return;
 
-	bool useClippingVersions = !_clippingArea.contains(Common::Rect(x - r, y - r, x + r, y + r));
+	bool useClippingVersions = !_clippingArea.contains(Common::Rect(x - r, y - r, x + r + 1, y + r + 1));
 
 	if (Base::_fillMode != kFillDisabled && Base::_shadowOffset
 		&& x + r + Base::_shadowOffset < Base::_activeSurface->w
@@ -1263,16 +1252,16 @@ drawRoundedSquare(int x, int y, int r, int w, int h) {
 	if (r <= 0)
 		return;
 
-	bool useOriginal = _clippingArea.contains(Common::Rect(x, y, x + w, y + h));
+	bool useOriginal = _clippingArea.contains(Common::Rect(x, y, x + w + 1, y + h + 1));
 
 	if (Base::_fillMode != kFillDisabled && Base::_shadowOffset
 		&& x + w + Base::_shadowOffset + 1 < Base::_activeSurface->w
 		&& y + h + Base::_shadowOffset + 1 < Base::_activeSurface->h
 		&& h > (Base::_shadowOffset + 1) * 2) {
 		if (useOriginal) {
-			drawRoundedSquareShadow(x, y, r, w, h, Base::_shadowOffset);
+			drawRoundedSquareShadow(x, y, r, w, h, Base::_shadowOffset, Base::_shadowIntensity);
 		} else {
-			drawRoundedSquareShadowClip(x, y, r, w, h, Base::_shadowOffset);
+			drawRoundedSquareShadowClip(x, y, r, w, h, Base::_shadowOffset, Base::_shadowIntensity);
 		}
 	}
 
@@ -1291,12 +1280,15 @@ drawTab(int x, int y, int r, int w, int h, int s) {
 		return;
 
 	bool useClippingVersions = !_clippingArea.contains(Common::Rect(x, y, x + w, y + h));
+	uint32 baseLeft = (Base::_dynamicData >> 16) & 0x7FFF;
+	uint32 baseRight = Base::_dynamicData & 0xFFFF;
+	bool vFlip = (Base::_dynamicData >> 31) != 0;
 
 	if (r == 0 && Base::_bevel > 0) {
 		if (useClippingVersions)
-			drawBevelTabAlgClip(x, y, w, h, Base::_bevel, _bevelColor, _fgColor, (Base::_dynamicData >> 16), (Base::_dynamicData & 0xFFFF));
+			drawBevelTabAlgClip(x, y, w, h, Base::_bevel, _bevelColor, _fgColor, baseLeft, baseRight, vFlip);
 		else
-			drawBevelTabAlg(x, y, w, h, Base::_bevel, _bevelColor, _fgColor, (Base::_dynamicData >> 16), (Base::_dynamicData & 0xFFFF));
+			drawBevelTabAlg(x, y, w, h, Base::_bevel, _bevelColor, _fgColor, baseLeft, baseRight, vFlip);
 		return;
 	}
 
@@ -1315,23 +1307,23 @@ drawTab(int x, int y, int r, int w, int h, int s) {
 		// See the rounded rect alg for how to fix it. (The border should
 		// be drawn before the interior, both inside drawTabAlg.)
 		if (useClippingVersions) {
-			drawTabShadowClip(x, y, w - 2, h, r, s);
-			drawTabAlgClip(x, y, w - 2, h, r, _bgColor, Base::_fillMode);
+			drawTabShadowClip(x, y, w - 2, h, r, s, Base::_shadowIntensity, vFlip);
+			drawTabAlgClip(x, y, w - 2, h, r, _bgColor, Base::_fillMode, 0, 0, vFlip);
 			if (Base::_strokeWidth)
-				drawTabAlgClip(x, y, w, h, r, _fgColor, kFillDisabled, (Base::_dynamicData >> 16), (Base::_dynamicData & 0xFFFF));
+				drawTabAlgClip(x, y, w, h, r, _fgColor, kFillDisabled, baseLeft, baseRight, vFlip);
 		} else {
-			drawTabShadow(x, y, w - 2, h, r, s);
-			drawTabAlg(x, y, w - 2, h, r, _bgColor, Base::_fillMode);
+			drawTabShadow(x, y, w - 2, h, r, s, Base::_shadowIntensity, vFlip);
+			drawTabAlg(x, y, w - 2, h, r, _bgColor, Base::_fillMode, 0, 0, vFlip);
 			if (Base::_strokeWidth)
-				drawTabAlg(x, y, w, h, r, _fgColor, kFillDisabled, (Base::_dynamicData >> 16), (Base::_dynamicData & 0xFFFF));
+				drawTabAlg(x, y, w, h, r, _fgColor, kFillDisabled, baseLeft, baseRight, vFlip);
 		}
 		break;
 
 	case kFillForeground:
 		if (useClippingVersions)
-			drawTabAlgClip(x, y, w, h, r, _fgColor, Base::_fillMode);
+			drawTabAlgClip(x, y, w, h, r, _fgColor, Base::_fillMode, 0, 0, vFlip);
 		else
-			drawTabAlg(x, y, w, h, r, _fgColor, Base::_fillMode);
+			drawTabAlg(x, y, w, h, r, _fgColor, Base::_fillMode, 0, 0, vFlip);
 		break;
 
 	default:
@@ -1408,7 +1400,7 @@ drawTriangle(int x, int y, int w, int h, TriangleOrientation orient) {
 /** TAB ALGORITHM - NON AA */
 template<typename PixelType>
 void VectorRendererSpec<PixelType>::
-drawTabAlg(int x1, int y1, int w, int h, int r, PixelType color, VectorRenderer::FillMode fill_m, int baseLeft, int baseRight) {
+drawTabAlg(int x1, int y1, int w, int h, int r, PixelType color, VectorRenderer::FillMode fill_m, int baseLeft, int baseRight, bool vFlip) {
 	// Don't draw anything for empty rects.
 	if (w <= 0 || h <= 0) {
 		return;
@@ -1510,7 +1502,7 @@ drawTabAlg(int x1, int y1, int w, int h, int r, PixelType color, VectorRenderer:
 
 template<typename PixelType>
 void VectorRendererSpec<PixelType>::
-drawTabAlgClip(int x1, int y1, int w, int h, int r, PixelType color, VectorRenderer::FillMode fill_m, int baseLeft, int baseRight) {
+drawTabAlgClip(int x1, int y1, int w, int h, int r, PixelType color, VectorRenderer::FillMode fill_m, int baseLeft, int baseRight, bool vFlip) {
 	// Don't draw anything for empty rects.
 	if (w <= 0 || h <= 0) {
 		return;
@@ -1625,8 +1617,7 @@ drawTabAlgClip(int x1, int y1, int w, int h, int r, PixelType color, VectorRende
 
 template<typename PixelType>
 void VectorRendererSpec<PixelType>::
-drawTabShadow(int x1, int y1, int w, int h, int r, int s) {
-	int offset = s;
+drawTabShadow(int x1, int y1, int w, int h, int r, int offset, uint32 shadowIntensity, bool vFlip) {
 	int pitch = _activeSurface->pitch / _activeSurface->format.bytesPerPixel;
 
 	// "Harder" shadows when having lower BPP, since we will have artifacts (greenish tint on the modern theme)
@@ -1638,7 +1629,13 @@ drawTabShadow(int x1, int y1, int w, int h, int r, int s) {
 	int width = w;
 	int height = h + offset + 1;
 
-	for (int i = offset; i >= 0; i--) {
+	// HACK: shadowIntensity is tailed with 16-bits mantissa. We also represent the
+	// offset as a 16.16 fixed point number here as termination condition to simplify
+	// looping logic. An additional `shadowIntensity` is added to to keep consistent
+	// with previous implementation.
+	uint32 targetOffset = (uint32)(offset << 16) + shadowIntensity;
+	int curOffset = 0;
+	for (uint32 i = shadowIntensity; i <= targetOffset; i += shadowIntensity) {
 		int f, ddF_x, ddF_y;
 		int x, y, px, py;
 
@@ -1677,8 +1674,9 @@ drawTabShadow(int x1, int y1, int w, int h, int r, int s) {
 			ptr_fill += pitch;
 		}
 
-		// Move shadow one pixel upward each iteration
-		xstart += 1;
+		// Move shadow upward each iteration
+		xstart += (i >> 16) - curOffset;
+		curOffset = i >> 16;
 		// Multiply with expfactor
 		alpha = (alpha * (expFactor << 8)) >> 9;
 	}
@@ -1686,8 +1684,7 @@ drawTabShadow(int x1, int y1, int w, int h, int r, int s) {
 
 template<typename PixelType>
 void VectorRendererSpec<PixelType>::
-drawTabShadowClip(int x1, int y1, int w, int h, int r, int s) {
-	int offset = s;
+drawTabShadowClip(int x1, int y1, int w, int h, int r, int offset, uint32 shadowIntensity, bool vFlip) {
 	int pitch = _activeSurface->pitch / _activeSurface->format.bytesPerPixel;
 
 	// "Harder" shadows when having lower BPP, since we will have artifacts (greenish tint on the modern theme)
@@ -1699,7 +1696,13 @@ drawTabShadowClip(int x1, int y1, int w, int h, int r, int s) {
 	int width = w;
 	int height = h + offset + 1;
 
-	for (int i = offset; i >= 0; i--) {
+	// HACK: shadowIntensity is tailed with 16-bits mantissa. We also represent the
+	// offset as a 16.16 fixed point number here as termination condition to simplify
+	// looping logic. An additional `shadowIntensity` is added to to keep consistent
+	// with previous implementation.
+	uint32 targetOffset = (uint32)(offset << 16) + shadowIntensity;
+	int curOffset = 0;
+	for (uint32 i = shadowIntensity; i <= targetOffset; i += shadowIntensity) {
 		int f, ddF_x, ddF_y;
 		int x, y, px, py;
 
@@ -1744,7 +1747,8 @@ drawTabShadowClip(int x1, int y1, int w, int h, int r, int s) {
 		}
 
 		// Move shadow one pixel upward each iteration
-		xstart += 1;
+		xstart += (i >> 16) - curOffset;
+		curOffset = i >> 16;
 		// Multiply with expfactor
 		alpha = (alpha * (expFactor << 8)) >> 9;
 	}
@@ -1753,7 +1757,7 @@ drawTabShadowClip(int x1, int y1, int w, int h, int r, int s) {
 /** BEVELED TABS FOR CLASSIC THEME **/
 template<typename PixelType>
 void VectorRendererSpec<PixelType>::
-drawBevelTabAlg(int x, int y, int w, int h, int bevel, PixelType top_color, PixelType bottom_color, int baseLeft, int baseRight) {
+drawBevelTabAlg(int x, int y, int w, int h, int bevel, PixelType top_color, PixelType bottom_color, int baseLeft, int baseRight, bool vFlip) {
 	int pitch = _activeSurface->pitch / _activeSurface->format.bytesPerPixel;
 	int i, j;
 
@@ -1796,7 +1800,7 @@ drawBevelTabAlg(int x, int y, int w, int h, int bevel, PixelType top_color, Pixe
 
 template<typename PixelType>
 void VectorRendererSpec<PixelType>::
-drawBevelTabAlgClip(int x, int y, int w, int h, int bevel, PixelType top_color, PixelType bottom_color, int baseLeft, int baseRight) {
+drawBevelTabAlgClip(int x, int y, int w, int h, int bevel, PixelType top_color, PixelType bottom_color, int baseLeft, int baseRight, bool vFlip) {
 	int pitch = _activeSurface->pitch / _activeSurface->format.bytesPerPixel;
 	int i, j;
 
@@ -2061,9 +2065,26 @@ void VectorRendererSpec<PixelType>::
 drawLineAlg(int x1, int y1, int x2, int y2, uint dx, uint dy, PixelType color) {
 	PixelType *ptr = (PixelType *)_activeSurface->getBasePtr(x1, y1);
 	int pitch = _activeSurface->pitch / _activeSurface->format.bytesPerPixel;
+	int strokeState = Base::_strokeWidth > 1 ? ((dx > dy) ? 1 : 2) : 0;
+	// Stroke widths before and after the coordinate
+	// Before is favoured in case of even stroke width
+	int stb = Base::_strokeWidth >> 1;
+	int sta = stb + (Base::_strokeWidth & 1);
 	int xdir = (x2 > x1) ? 1 : -1;
 
-	*ptr = (PixelType)color;
+	if (strokeState == 0) {
+		// No stroke width
+		*ptr = (PixelType)color;
+	} else if (strokeState == 1) {
+		// Horizontal line
+		intptr p = -stb * pitch;
+		for (int i = -stb; i < sta; i++, p += pitch) {
+			*(ptr + p) = (PixelType)color;
+		}
+	} else {
+		// Vertical line
+		colorFill<PixelType>(ptr - stb, ptr + sta, (PixelType)color);
+	}
 
 	if (dx > dy) {
 		int ddy = dy * 2;
@@ -2079,7 +2100,15 @@ drawLineAlg(int x1, int y1, int x2, int y2, uint dx, uint dy, PixelType color) {
 			}
 
 			ptr += xdir;
-			*ptr = (PixelType)color;
+
+			if (strokeState) {
+				intptr p = -stb * pitch;
+				for (int i = -stb; i < sta; i++, p += pitch) {
+					*(ptr + p) = (PixelType)color;
+				}
+			} else {
+				*ptr = (PixelType)color;
+			}
 		}
 	} else {
 		int ddx = dx * 2;
@@ -2095,12 +2124,28 @@ drawLineAlg(int x1, int y1, int x2, int y2, uint dx, uint dy, PixelType color) {
 			}
 
 			ptr += pitch;
-			*ptr = (PixelType)color;
+			if (strokeState) {
+				colorFill<PixelType>(ptr - stb, ptr + sta, (PixelType)color);
+			} else {
+				*ptr = (PixelType)color;
+			}
 		}
 	}
 
 	ptr = (PixelType *)_activeSurface->getBasePtr(x2, y2);
-	*ptr = (PixelType)color;
+	if (strokeState == 0) {
+		// No stroke width
+		*ptr = (PixelType)color;
+	} else if (strokeState == 1) {
+		// Horizontal line
+		intptr p = -stb * pitch;
+		for (int i = -stb; i < sta; i++, p += pitch) {
+			*(ptr + p) = (PixelType)color;
+		}
+	} else {
+		// Vertical line
+		colorFill<PixelType>(ptr - stb, ptr + sta, (PixelType)color);
+	}
 }
 
 template<typename PixelType>
@@ -2108,10 +2153,27 @@ void VectorRendererSpec<PixelType>::
 drawLineAlgClip(int x1, int y1, int x2, int y2, uint dx, uint dy, PixelType color) {
 	PixelType *ptr = (PixelType *)_activeSurface->getBasePtr(x1, y1);
 	int pitch = _activeSurface->pitch / _activeSurface->format.bytesPerPixel;
+	int strokeState = Base::_strokeWidth > 1 ? ((dx > dy) ? 1 : 2) : 0;
+	// Stroke widths before and after the coordinate
+	// Before is favoured in case of even stroke width
+	int stb = Base::_strokeWidth >> 1;
+	int sta = stb + (Base::_strokeWidth & 1);
 	int xdir = (x2 > x1) ? 1 : -1;
 	int ptr_x = x1, ptr_y = y1;
 
-	if (IS_IN_CLIP(ptr_x, ptr_y)) *ptr = (PixelType)color;
+	if (strokeState == 0) {
+		// No stroke width
+		if (IS_IN_CLIP(ptr_x, ptr_y)) *ptr = (PixelType)color;
+	} else if (strokeState == 1) {
+		// Horizontal line
+		intptr p = -stb * pitch;
+		for (int i = -stb; i < sta; i++, p += pitch) {
+			if (IS_IN_CLIP(ptr_x, ptr_y + i)) *(ptr + p) = (PixelType)color;
+		}
+	} else {
+		// Vertical line
+		colorFillClip<PixelType>(ptr - stb, ptr + sta, (PixelType)_fgColor, ptr_x - stb, ptr_y, _clippingArea);
+	}
 
 	if (dx > dy) {
 		int ddy = dy * 2;
@@ -2129,7 +2191,15 @@ drawLineAlgClip(int x1, int y1, int x2, int y2, uint dx, uint dy, PixelType colo
 
 			ptr += xdir;
 			ptr_x += xdir;
-			if (IS_IN_CLIP(ptr_x, ptr_y)) *ptr = (PixelType)color;
+
+			if (strokeState) {
+				intptr p = -stb * pitch;
+				for (int i = -stb; i < sta; i++, p += pitch) {
+					if (IS_IN_CLIP(ptr_x, ptr_y + i)) *(ptr + p) = (PixelType)color;
+				}
+			} else {
+				if (IS_IN_CLIP(ptr_x, ptr_y)) *ptr = (PixelType)color;
+			}
 		}
 	} else {
 		int ddx = dx * 2;
@@ -2147,13 +2217,29 @@ drawLineAlgClip(int x1, int y1, int x2, int y2, uint dx, uint dy, PixelType colo
 
 			ptr += pitch;
 			++ptr_y;
-			if (IS_IN_CLIP(ptr_x, ptr_y)) *ptr = (PixelType)color;
+			if (strokeState) {
+				colorFillClip<PixelType>(ptr - stb, ptr + sta, (PixelType)_fgColor, ptr_x - stb, ptr_y, _clippingArea);
+			} else {
+				if (IS_IN_CLIP(ptr_x, ptr_y)) *ptr = (PixelType)color;
+			}
 		}
 	}
 
 	ptr = (PixelType *)_activeSurface->getBasePtr(x2, y2);
 	ptr_x = x2; ptr_y = y2;
-	if (IS_IN_CLIP(ptr_x, ptr_y)) *ptr = (PixelType)color;
+	if (strokeState == 0) {
+		// No stroke width
+		if (IS_IN_CLIP(ptr_x, ptr_y)) *ptr = (PixelType)color;
+	} else if (strokeState == 1) {
+		// Horizontal line
+		intptr p = -stb * pitch;
+		for (int i = -stb; i < sta; i++, p += pitch) {
+			if (IS_IN_CLIP(ptr_x, ptr_y + i)) *(ptr + p) = (PixelType)color;
+		}
+	} else {
+		// Vertical line
+		colorFillClip<PixelType>(ptr - stb, ptr + sta, (PixelType)_fgColor, ptr_x - stb, ptr_y, _clippingArea);
+	}
 }
 
 /** VERTICAL TRIANGLE DRAWING ALGORITHM **/
@@ -3650,7 +3736,7 @@ drawSquareShadowClip(int x, int y, int w, int h, int offset) {
 
 template<typename PixelType>
 void VectorRendererSpec<PixelType>::
-drawRoundedSquareShadow(int x1, int y1, int r, int w, int h, int offset) {
+drawRoundedSquareShadow(int x1, int y1, int r, int w, int h, int offset, uint32 shadowIntensity) {
 	int pitch = _activeSurface->pitch / _activeSurface->format.bytesPerPixel;
 
 	// "Harder" shadows when having lower BPP, since we will have artifacts (greenish tint on the modern theme)
@@ -3670,7 +3756,14 @@ drawRoundedSquareShadow(int x1, int y1, int r, int w, int h, int offset) {
 
 	// Soft shadows are constructed by drawing increasingly
 	// darker and smaller rectangles on top of each other.
-	for (int i = offset; i >= 0; i--) {
+
+	// HACK: shadowIntensity is tailed with 16-bits mantissa. We also represent the
+	// offset as a 16.16 fixed point number here as termination condition to simplify
+	// looping logic. An additional `shadowIntensity` is added to to keep consistent
+	// with previous implementation.
+	uint32 targetOffset = (uint32)(offset << 16) + shadowIntensity;
+	int curOffset = 0;
+	for (uint32 i = shadowIntensity; i <= targetOffset; i += shadowIntensity) {
 		int f, ddF_x, ddF_y;
 		int x, y, px, py;
 
@@ -3731,7 +3824,8 @@ drawRoundedSquareShadow(int x1, int y1, int r, int w, int h, int offset) {
 		}
 
 		// Make shadow smaller each iteration
-		shadowRect.grow(-1);
+		shadowRect.grow(curOffset - (i >> 16));
+		curOffset = i >> 16;
 
 		if (_shadowFillMode == kShadowExponential)
 			// Multiply with expfactor
@@ -3741,7 +3835,7 @@ drawRoundedSquareShadow(int x1, int y1, int r, int w, int h, int offset) {
 
 template<typename PixelType>
 void VectorRendererSpec<PixelType>::
-drawRoundedSquareShadowClip(int x1, int y1, int r, int w, int h, int offset) {
+drawRoundedSquareShadowClip(int x1, int y1, int r, int w, int h, int offset, uint32 shadowIntensity) {
 	int pitch = _activeSurface->pitch / _activeSurface->format.bytesPerPixel;
 
 	// "Harder" shadows when having lower BPP, since we will have artifacts (greenish tint on the modern theme)
@@ -3761,7 +3855,14 @@ drawRoundedSquareShadowClip(int x1, int y1, int r, int w, int h, int offset) {
 
 	// Soft shadows are constructed by drawing increasingly
 	// darker and smaller rectangles on top of each other.
-	for (int i = offset; i >= 0; i--) {
+
+	// HACK: shadowIntensity is tailed with 16-bits mantissa. We also represent the
+	// offset as a 16.16 fixed point number here as termination condition to simplify
+	// looping logic. An additional `shadowIntensity` is added to to keep consistent
+	// with previous implementation.
+	uint32 targetOffset = (uint32)(offset << 16) + shadowIntensity;
+	int curOffset = 0;
+	for (uint32 i = shadowIntensity; i <= targetOffset; i += shadowIntensity) {
 		int f, ddF_x, ddF_y;
 		int x, y, px, py;
 
@@ -3824,7 +3925,8 @@ drawRoundedSquareShadowClip(int x1, int y1, int r, int w, int h, int offset) {
 		}
 
 		// Make shadow smaller each iteration
-		shadowRect.grow(-1);
+		shadowRect.grow(curOffset - (i >> 16));
+		curOffset = i >> 16;
 
 		if (_shadowFillMode == kShadowExponential)
 			// Multiply with expfactor
@@ -3847,11 +3949,28 @@ void VectorRendererAA<PixelType>::
 drawLineAlg(int x1, int y1, int x2, int y2, uint dx, uint dy, PixelType color) {
 	PixelType *ptr = (PixelType *)Base::_activeSurface->getBasePtr(x1, y1);
 	int pitch = Base::_activeSurface->pitch / Base::_activeSurface->format.bytesPerPixel;
+	int strokeState = Base::_strokeWidth > 1 ? ((dx > dy) ? 1 : 2) : 0;
+	// Stroke widths before and after the coordinate
+	// Before is favoured in case of even stroke width
+	int stb = Base::_strokeWidth >> 1;
+	int sta = stb + (Base::_strokeWidth & 1);
 	int xdir = (x2 > x1) ? 1 : -1;
 	uint16 error_tmp, error_acc, gradient;
 	uint8 alpha;
 
-	*ptr = (PixelType)color;
+	if (strokeState == 0) {
+		// No stroke width
+		*ptr = (PixelType)color;
+	} else if (strokeState == 1) {
+		// Horizontal line
+		intptr p = -stb * pitch;
+		for (int i = -stb; i < sta; i++, p += pitch) {
+			*(ptr + p) = (PixelType)color;
+		}
+	} else {
+		// Vertical line
+		colorFill<PixelType>(ptr - stb, ptr + sta, (PixelType)color);
+	}
 
 	if (dx > dy) {
 		gradient = (dy << 16) / dx;
@@ -3867,8 +3986,18 @@ drawLineAlg(int x1, int y1, int x2, int y2, uint dx, uint dy, PixelType color) {
 			ptr += xdir;
 			alpha = (error_acc >> 8);
 
-			this->blendPixelPtr(ptr, color, ~alpha);
-			this->blendPixelPtr(ptr + pitch, color, alpha);
+			if (strokeState) {
+				intptr p = -stb * pitch;
+				this->blendPixelPtr(ptr + p, color, ~alpha);
+				p += pitch;
+				for (int i = -stb + 1; i < sta; i++, p += pitch) {
+					*(ptr + p) = (PixelType)color;
+				}
+				this->blendPixelPtr(ptr + p, color, alpha);
+			} else {
+				this->blendPixelPtr(ptr, color, ~alpha);
+				this->blendPixelPtr(ptr + pitch, color, alpha);
+			}
 		}
 	} else if (dy != 0) {
 		gradient = (dx << 16) / dy;
@@ -3884,18 +4013,43 @@ drawLineAlg(int x1, int y1, int x2, int y2, uint dx, uint dy, PixelType color) {
 			ptr += pitch;
 			alpha = (error_acc >> 8);
 
-			this->blendPixelPtr(ptr, color, ~alpha);
-			this->blendPixelPtr(ptr + xdir, color, alpha);
+			if (strokeState) {
+				if (xdir > 0) {
+					this->blendPixelPtr(ptr - stb, color, ~alpha);
+					colorFill<PixelType>(ptr - stb + 1, ptr + sta, (PixelType)color);
+					this->blendPixelPtr(ptr + sta, color, alpha);
+				} else {
+					this->blendPixelPtr(ptr - stb, color, alpha);
+					colorFill<PixelType>(ptr - stb + 1, ptr + sta, (PixelType)color);
+					this->blendPixelPtr(ptr + sta, color, ~alpha);
+				}
+			} else {
+				this->blendPixelPtr(ptr, color, ~alpha);
+				this->blendPixelPtr(ptr + xdir, color, alpha);
+			}
 		}
 	}
 
-	Base::putPixel(x2, y2, color);
+	ptr = (PixelType *)Base::_activeSurface->getBasePtr(x2, y2);
+	if (strokeState == 0) {
+		// No stroke width
+		*ptr = (PixelType)color;
+	} else if (strokeState == 1) {
+		// Horizontal line
+		intptr p = -stb * pitch;
+		for (int i = -stb; i < sta; i++, p += pitch) {
+			*(ptr + p) = (PixelType)color;
+		}
+	} else {
+		// Vertical line
+		colorFill<PixelType>(ptr - stb, ptr + sta, (PixelType)color);
+	}
 }
 
 /** TAB ALGORITHM */
 template<typename PixelType>
 void VectorRendererAA<PixelType>::
-drawTabAlg(int x1, int y1, int w, int h, int r, PixelType color, VectorRenderer::FillMode fill_m, int baseLeft, int baseRight) {
+drawTabAlg(int x1, int y1, int w, int h, int r, PixelType color, VectorRenderer::FillMode fill_m, int baseLeft, int baseRight, bool vFlip) {
 	// Don't draw anything for empty rects.
 	if (w <= 0 || h <= 0) {
 		return;
@@ -3971,8 +4125,8 @@ drawTabAlg(int x1, int y1, int w, int h, int r, PixelType color, VectorRenderer:
 			}
 		}
 	} else {
-		PixelType color1, color2;
-		color1 = color2 = color;
+		PixelType color1, color2, color3, color4;
+		color1 = color2 = color3 = color4 = color;
 
 		int long_h = h;
 		int short_h = h - real_radius;
@@ -4189,7 +4343,7 @@ drawInteriorRoundedSquareAlg(int x1, int y1, int r, int w, int h, PixelType colo
 
 	} else {
 
-		while (x > 1 + y++) {
+		while (x > y++) {
 			WU_ALGORITHM();
 
 			colorFill<PixelType>(ptr_tl - x - py + 1, ptr_tr + x - py, color);

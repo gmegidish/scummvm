@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -29,7 +28,7 @@
 #include "saga2/tile.h"
 #include "saga2/vpal.h"
 #include "saga2/palette.h"
-#include "saga2/calender.h"
+#include "saga2/calendar.h"
 #include "saga2/modal.h"
 #include "saga2/display.h"
 
@@ -43,11 +42,11 @@ bool isModalMode() {
 	uint16  i;
 	bool    modalFlag = false;
 
-	for (i = 0; i < GameMode::modeStackCtr; i++) {
+	for (i = 0; i < GameMode::_modeStackCtr; i++) {
 		// go through each stacked mode
 		// and if modal mode is one of them,
 		// then set the modal flag
-		if (GameMode::modeStackPtr[i] == &ModalMode) {
+		if (GameMode::_modeStackPtr[i] == &ModalMode) {
 			modalFlag = true;
 		}
 	}
@@ -63,9 +62,9 @@ void dayNightUpdate() {
 
 	audioEnvironmentSetDaytime(isDayTime());
 
-	uint32 lightLevel = g_vm->_calender->lightLevel(MAX_LIGHT);
+	uint32 lightLevel = g_vm->_calendar->lightLevel(MAX_LIGHT);
 
-	//  Code to avoid unneccessary fades.
+	//  Code to avoid unnecessary fades.
 	if (lightLevel != g_vm->_pal->_prevLightLevel) {
 		g_vm->_pal->_prevLightLevel = lightLevel;
 
@@ -96,13 +95,10 @@ void SystemEventLoop();
 //	Fade to black
 
 void clearTileAreaPort();
-void reDrawScreen() ;
 void updateMainDisplay();
 void updateActiveRegions();
-void drawMainDisplay();
 void fadeUp();
 void fadeDown();
-void clearTileAreaPort();
 void displayUpdate();
 void disableUserControls();
 void enableUserControls();

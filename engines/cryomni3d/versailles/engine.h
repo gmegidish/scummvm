@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -180,6 +179,29 @@ struct LocalizedFilenames {
 	};
 };
 
+enum FileType {
+	kFileTypeAnimacti,
+	kFileTypeDocBg,
+	kFileTypeDialAnim,
+	kFileTypeDialSound,
+	kFileTypeFont,
+	kFileTypeGTO,
+	kFileTypeFixedImg,
+	kFileTypeMenu,
+	kFileTypeMusic,
+	kFileTypeObject,
+	kFileTypeSaveGameVisit,
+	kFileTypeTransScene,
+	kFileTypeTransSceneI,
+	kFileTypeSound,
+	kFileTypeSprite,
+	kFileTypeSpriteBmp,
+	kFileTypeText,
+	kFileTypeWAM,
+	kFileTypeWarpCyclo,
+	kFileTypeWarpHNM
+};
+
 struct PlaceState {
 	typedef void (CryOmni3DEngine_Versailles::*InitFunc)();
 	typedef bool (CryOmni3DEngine_Versailles::*FilterEventFunc)(uint *event);
@@ -241,12 +263,7 @@ public:
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
 	Common::String getSaveStateName(int slot) const override;
 
-	Common::String prepareFileName(const Common::String &baseName, const char *extension) const {
-		const char *const extensions[] = { extension, nullptr };
-		return prepareFileName(baseName, extensions);
-	}
-	Common::String prepareFileName(const Common::String &baseName,
-	                                       const char *const *extensions) const override;
+	Common::Path getFilePath(FileType fileType, const Common::String &baseName) const;
 
 	void setupPalette(const byte *colors, uint start, uint num) override { setupPalette(colors, start, num, true); }
 	void makeTranslucent(Graphics::Surface &dst, const Graphics::Surface &src) const override;
@@ -347,7 +364,10 @@ private:
 
 	bool showSubtitles() const;
 
-	void playInGameVideo(const Common::String &filename, bool restoreCursorPalette = true);
+	void playInGameAnimVideo(const Common::String &filename) {
+		playInGameVideo(getFilePath(kFileTypeAnimacti, filename));
+	}
+	void playInGameVideo(const Common::Path &filename, bool restoreCursorPalette = true);
 	void playSubtitledVideo(const Common::String &filename);
 
 	void loadBMPs(const char *pattern, Graphics::Surface *bmps, uint count);

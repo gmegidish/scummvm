@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 #include "common/stream.h"
 #include "common/array.h"
 #include "common/func.h"
-#include "common/iff_container.h"
+#include "common/formats/iff_container.h"
 
 namespace Kyra {
 
@@ -62,11 +61,10 @@ struct EMCState {
 
 #ifdef RELEASE_BUILD
 #define stackPos(x) (script->stack[script->sp+x])
-#define safeStackPos(x) (script->sp+x < EMCState::kStackSize ? stackPos(x) : 0)
 #else
 #define stackPos(x) emcSafeReadStack(script, x, __LINE__, __FILE__)
-#define safeStackPos(x) stackPos(x)
 #endif
+#define safeStackPos(x) (script->sp+x < EMCState::kStackSize ? stackPos(x) : 0)
 #define stackPosString(x) ((const char *)&script->dataPtr->text[READ_BE_UINT16(&script->dataPtr->text[stackPos(x)<<1])])
 
 class Resource;
@@ -78,7 +76,7 @@ public:
 		// It seems Westwood missunderstood the 'size' field of the FORM chunk.
 		//
 		// For EMC scripts (type EMC2) it's filesize instead of filesize - 8,
-		// means accidently including the 8 bytes used by the chunk header for the FORM
+		// means accidentally including the 8 bytes used by the chunk header for the FORM
 		// chunk.
 		//
 		// For TIM scripts (type AVFS) it's filesize - 12 instead of filesize - 8,

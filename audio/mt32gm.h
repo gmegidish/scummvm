@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,8 +24,8 @@
 
 #include "audio/mididrv.h"
 #include "audio/mididrv_ms.h"
+#include "common/list.h"
 #include "common/mutex.h"
-#include "common/queue.h"
 
 /**
  * @defgroup audio_mt32_gm MIDI driver for MT-32 and GM
@@ -113,7 +112,7 @@ class MidiDriver_MT32GM : public MidiDriver_Multisource {
 public:
 	static const byte MT32_DEFAULT_INSTRUMENTS[8];
 	static const byte MT32_DEFAULT_PANNING[8];
-	static const uint8 MT32_DEFAULT_CHANNEL_VOLUME = 98;
+	static const uint8 MT32_DEFAULT_CHANNEL_VOLUME = 102;
 	static const uint8 GM_DEFAULT_CHANNEL_VOLUME = 100;
 	// Map for correcting Roland GS drumkit numbers.
 	static const uint8 GS_DRUMKIT_FALLBACK_MAP[128];
@@ -142,6 +141,7 @@ protected:
 		byte program;
 		// The Roland GS instrument bank
 		byte instrumentBank;
+		byte channelPressure;
 
 		byte modulation;
 		// The volume specified by the MIDI data
@@ -153,17 +153,24 @@ protected:
 		byte expression;
 		bool sustain;
 
+		// The currently selected Registered Parameter Number
+		uint16 rpn;
+		byte pitchBendSensitivity;
+
 		MidiChannelControlData() : source(-1),
 			sourceVolumeApplied(false),
 			pitchWheel(MIDI_PITCH_BEND_DEFAULT),
 			program(0),
 			instrumentBank(0),
+			channelPressure(0),
 			modulation(0),
 			volume(0),
 			scaledVolume(0),
-			panPosition(0x40),
-			expression(0x7F),
-			sustain(false) { }
+			panPosition(MIDI_PANNING_DEFAULT),
+			expression(MIDI_EXPRESSION_DEFAULT),
+			sustain(false),
+			rpn(MIDI_RPN_NULL),
+			pitchBendSensitivity(0) { }
 	};
 
 	/**
@@ -232,7 +239,8 @@ protected:
 	struct SysExData {
 		byte data[270];
 		uint16 length;
-		SysExData() : length(0) {
+		int8 source;
+		SysExData() : length(0), source(-1) {
 			memset(data, 0, sizeof(data));
 		}
 	};
@@ -252,10 +260,7 @@ public:
 	virtual int open(MidiDriver *driver, bool nativeMT32);
 	void close() override;
 	bool isOpen() const override { return _isOpen; }
-	bool isReady() override {
-		Common::StackLock lock(_sysExQueueMutex);
-		return _sysExQueue.empty();
-	}
+	bool isReady(int8 source = -1) override;
 	uint32 property(int prop, uint32 param) override;
 
 	using MidiDriver_BASE::send;
@@ -270,7 +275,7 @@ public:
 	 * MIDI messages (not using the queue) should not be sent until the queue
 	 * is empty.
 	 */
-	void sysExQueue(const byte *msg, uint16 length);
+	void sysExQueue(const byte *msg, uint16 length, int8 source = -1);
 	/**
 	 * Write data to an MT-32 memory location using a SysEx message.
 	 * This function will add the necessary header and checksum bytes.
@@ -290,7 +295,7 @@ public:
 	 * it is the caller's responsibility to make sure that the next SysEx is
 	 * not sent before this time has passed.
 	 */
-	uint16 sysExMT32(const byte *msg, uint16 length, const uint32 targetAddress, bool queue = false, bool delay = true);
+	uint16 sysExMT32(const byte *msg, uint16 length, const uint32 targetAddress, bool queue = false, bool delay = true, int8 source = -1);
 	void metaEvent(int8 source, byte type, byte *data, uint16 length) override;
 
 	void stopAllNotes(bool stopSustainedNotes = false) override;
@@ -347,7 +352,7 @@ protected:
 	 * Initializes the General MIDI device. The device will be reset.
 	 * If the initForMT32 parameter is specified, the device will be set up for
 	 * MT-32 MIDI data. If the device supports Roland GS, the enableGS
-	 * parameter can be specified for enhanced GS MT-32 compatiblity.
+	 * parameter can be specified for enhanced GS MT-32 compatibility.
 	 *
 	 * @param initForMT32 True if the device should be initialized for MT-32 mapping
 	 * @param enableGS True if the device should be initialized for GS MT-32 mapping
@@ -371,6 +376,22 @@ protected:
 	virtual void processEvent(int8 source, uint32 b, uint8 outputChannel,
 		MidiChannelControlData &controlData, bool channelLockedByOtherSource = false);
 	/**
+	 * Applies the controller default settings to the specified output channel
+	 * for the specified source.
+	 * This will set all default values specified on _controllerDefaults on the
+	 * channel except sustain, which is set by deinitSource.
+	 * 
+	 * @param source The source triggering the default settings
+	 * @param controlData The control data set to use when setting the defaults
+	 * @param outputChannel The output channel on which the defaults should be
+	 * set
+	 * @param channelLockedByOtherSource True if the output channel is locked
+	 * by another source. This will prevent the defaults from actually being
+	 * sent to the MIDI device, but controlData will be updated. Default is
+	 * false.
+	 */
+	virtual void applyControllerDefaults(uint8 source, MidiChannelControlData &controlData, uint8 outputChannel, bool channelLockedByOtherSource);
+	/**
 	 * Processes a note on or off MIDI event.
 	 * This will apply source volume if necessary, update the active note
 	 * registration and send the event to the MIDI device.
@@ -382,6 +403,20 @@ protected:
 	 */
 	virtual void noteOnOff(byte outputChannel, byte command, byte note, byte velocity,
 		int8 source, MidiChannelControlData &controlData);
+	/**
+	 * Processes a polyphonic aftertouch MIDI event.
+	 * This implementation will just send the event to the MIDI device.
+	 * 
+	 * @param outputChannel The MIDI output channel for the event
+	 * @param note The note on which aftertouch should be applied
+	 * @param pressure The amount of pressure which should be applied
+	 * @param source The source of the event
+	 * @param controlData The control data set for the MIDI channel
+	 * @param channelLockedByOtherSource True if the output channel is locked
+	 * by another source. Default is false.
+	 */
+	virtual void polyAftertouch(byte outputChannel, byte note, byte pressure,
+		int8 source, MidiChannelControlData &controlData, bool channelLockedByOtherSource = false);
 	/**
 	 * Process a control change MIDI event.
 	 * This will update the specified control data set and apply other
@@ -409,6 +444,36 @@ protected:
 	 */
 	virtual void programChange(byte outputChannel, byte patchId, int8 source,
 		MidiChannelControlData &controlData, bool channelLockedByOtherSource = false);
+	/**
+	 * Processes a channel aftertouch MIDI event.
+	 * This whil update the specified control data set and send the event to
+	 * the MIDI device.
+	 * 
+	 * @param outputChannel The MIDI output channel for the event
+	 * @param pressure The amount of pressure which should be applied
+	 * @param source The source of the event
+	 * @param controlData The control data set for the MIDI channel
+	 * @param channelLockedByOtherSource True if the output channel is locked
+	 * by another source. Default is false.
+	 */
+	virtual void channelAftertouch(byte outputChannel, byte pressure, int8 source,
+		MidiChannelControlData &controlData, bool channelLockedByOtherSource = false);
+	/**
+	 * Processes a pitch bend MIDI event.
+	 * This whil update the specified control data set and send the event to
+	 * the MIDI device.
+	 * 
+	 * @param outputChannel The MIDI output channel for the event
+	 * @param pitchBendLsb The pitch bend LSB
+	 * @param pitchBendMsb The pitch bend MSB
+	 * @param source The source of the event
+	 * @param controlData The control data set for the MIDI channel
+	 * @param channelLockedByOtherSource True if the output channel is locked
+	 * by another source. Default is false.
+	 */
+	virtual void pitchBend(byte outputChannel, uint8 pitchBendLsb, uint8 pitchBendMsb,
+		int8 source, MidiChannelControlData &controlData, bool channelLockedByOtherSource = false);
+
 	/**
 	 * Adds a note to the active note registration.
 	 */
@@ -517,7 +582,7 @@ protected:
 	// SysEx message can be sent.
 	uint32 _sysExDelay;
 	// Queue of SysEx messages to be sent to the MIDI device.
-	Common::Queue<SysExData> _sysExQueue;
+	Common::List<SysExData> _sysExQueue;
 	// Mutex for write access to the SysEx queue.
 	Common::Mutex _sysExQueueMutex;
 };

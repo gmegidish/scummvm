@@ -16,31 +16,15 @@ ScummVM bietet die Möglichkeit, viele klassische Point-and-Click-Adventures und
 
 Weitere Informationen hierzu sowie einige kostenfreie Spiele findest du auf unserer Website. Eine aktuelle Liste mit Bezugsquellen findest du auch in unserem Wiki unter https://wiki.scummvm.org/index.php/Where_to_get_the_games.
 
-Ebenfalls auf unserer Website findest du unter der URL https://docs.scummvm.org/en/v2.5.0/other_platforms/android.html weitere Informationen bezüglich der Einrichtung und Nutzung einiger Android-spezifischer Optionen.
+Ebenfalls auf unserer Website findest du unter der URL https://docs.scummvm.org/en/v2.8.0/other_platforms/android.html weitere Informationen bezüglich der Einrichtung und Nutzung einiger Android-spezifischer Optionen.
 
 https://forums.scummvm.org/viewforum.php?f=17 ist unser Forum, wo du dich mit anderen Nutzern über die Android-Version austauschen kannst.
 
-*** Current release:
-2.5.0
+*** Current release (limit is 500 characters):
+2.8.1.1
 
 *** Release notes:
-- Unterstützung für 12 weitere Engines - AGS, Little Big Adventure, Red Comrades, Director. Bisher KEINE 3D-Spiele
-- Unterstützung für HiDPI-Displays
-- Unicode-Benutzeroberfläche
+- Gemeldete Grafikfehler und App-Abstürze behoben
+- Upgrade auf Android 14
 
-Eine vollständige Aufstellung aller Änderungen findest Du unter https://scummvm.org/frs/scummvm/2.5.0/ReleaseNotes.html
-
-*** Beta release name:
-
-2.2.1c (beta)
-
-*** Beta release notes:
-<de-DE>
-- Verbesserte Behandlung von Installationen auf einer SD-Karte
-- Halbtransparente In-App-Tastatur hinzugefügt
-- Die bilineare Filterung ist standardmäßig deaktiviert
-- Die Korrektur des Seitenverhältnisses ist jetzt standardmäßig aktiviert
-- Die ScummVM-Grafikoptionen geben nun den aktuellen Status der Einstellungen korrekt wieder
-- Fehler in der Upload-Funktion des LAN-Server-Modus behoben
-- Die Zurück-Taste fungiert nun als standardmäßig aktive "Überspringen"-Taste in einem Spiel
-</de-DE>
+Vollständige Versionshinweise: https://scummvm.org/frs/scummvm/2.8.1/ReleaseNotes.html

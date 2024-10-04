@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "ultima/ultima.h"
 #include "ultima/ultima8/gumps/target_gump.h"
-
 #include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/kernel/mouse.h"
 #include "ultima/ultima8/gumps/gump_notify_process.h"
@@ -37,9 +36,10 @@ TargetGump::TargetGump() : ModalGump(), _targetTracing(false) {
 
 }
 
-
+// Skip pause as usecode processes need to complete & matches orginal game
 TargetGump::TargetGump(int x, int y)
-	: ModalGump(x, y, 0, 0), _targetTracing(false) {
+	: ModalGump(x, y, 0, 0, 0, FLAG_DONT_SAVE | FLAG_PREVENT_SAVE, LAYER_MODAL, false),
+	_targetTracing(false) {
 
 }
 
@@ -57,8 +57,7 @@ void TargetGump::InitGump(Gump *newparent, bool take_focus) {
 	CreateNotifier();
 
 	Mouse *mouse = Mouse::get_instance();
-	mouse->pushMouseCursor();
-	mouse->setMouseCursor(Mouse::MOUSE_TARGET);
+	mouse->pushMouseCursor(Mouse::MOUSE_TARGET);
 }
 
 void TargetGump::Close(bool no_del) {
@@ -77,24 +76,37 @@ bool TargetGump::PointOnGump(int mx, int my) {
 }
 
 void TargetGump::onMouseUp(int button, int32 mx, int32 my) {
-	_targetTracing = true;
+	if (button == Mouse::BUTTON_LEFT) {
+		_targetTracing = true;
 
-	_parent->GumpToScreenSpace(mx, my);
+		_parent->GumpToScreenSpace(mx, my);
 
-	Gump *desktopgump = _parent;
-	ObjId objId = desktopgump->TraceObjId(mx, my);
-	Item *item = getItem(objId);
+		Gump *desktopgump = _parent;
+		ObjId objId = desktopgump->TraceObjId(mx, my);
+		Item *item = getItem(objId);
 
-	if (item) {
-		// done
-		pout << "Target result: ";
-		item->dumpInfo();
+		if (item) {
+			// done
+			debugC(kDebugObject, "Target result: %s", item->dumpInfo().c_str());
 
-		_processResult = objId;
+			_processResult = objId;
+			Close();
+		}
+
+		_targetTracing = false;
+	}
+}
+
+bool TargetGump::OnKeyDown(int key, int mod) {
+	switch (key) {
+	case Common::KEYCODE_ESCAPE: {
 		Close();
+	} break;
+	default:
+		break;
 	}
 
-	_targetTracing = false;
+	return true;
 }
 
 uint32 TargetGump::I_target(const uint8 * /*args*/, unsigned int /*argsize*/) {
@@ -104,14 +116,12 @@ uint32 TargetGump::I_target(const uint8 * /*args*/, unsigned int /*argsize*/) {
 	return targetgump->GetNotifyProcess()->getPid();
 }
 
-
-
 void TargetGump::saveData(Common::WriteStream *ws) {
-	CANT_HAPPEN_MSG("Trying to save ModalGump");
+	warning("Trying to save ModalGump");
 }
 
 bool TargetGump::loadData(Common::ReadStream *rs, uint32 versin) {
-	CANT_HAPPEN_MSG("Trying to load ModalGump");
+	warning("Trying to load ModalGump");
 	return false;
 }
 

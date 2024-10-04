@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,6 @@
 #include "hopkins/hopkins.h"
 
 #include "common/system.h"
-#include "graphics/palette.h"
 #include "common/file.h"
 #include "common/rect.h"
 #include "engines/util.h"
@@ -55,7 +53,7 @@ void AnimationManager::clearAll() {
  * @param rate2			Delay amount between animation frames
  * @param rate3			Delay amount after animation finishes
  */
-void AnimationManager::playAnim(const Common::String &hiresName, const Common::String &lowresName, uint32 rate1, uint32 rate2, uint32 rate3, bool skipSeqFl) {
+void AnimationManager::playAnim(const Common::Path &hiresName, const Common::Path &lowresName, uint32 rate1, uint32 rate2, uint32 rate3, bool skipSeqFl) {
 	Common::File f;
 
 	if (_vm->shouldQuit())
@@ -67,7 +65,7 @@ void AnimationManager::playAnim(const Common::String &hiresName, const Common::S
 
 	if (!f.open(hiresName)) {
 		if (!f.open(lowresName))
-			error("Files not found: %s - %s", hiresName.c_str(), lowresName.c_str());
+			error("Files not found: %s - %s", hiresName.toString().c_str(), lowresName.toString().c_str());
 	}
 
 	f.skip(6);
@@ -196,9 +194,9 @@ void AnimationManager::playAnim(const Common::String &hiresName, const Common::S
 /**
  * Play Animation, type 2
  */
-void AnimationManager::playAnim2(const Common::String &hiresName, const Common::String &lowresName, uint32 rate1, uint32 rate2, uint32 rate3) {
+void AnimationManager::playAnim2(const Common::Path &hiresName, const Common::Path &lowresName, uint32 rate1, uint32 rate2, uint32 rate3) {
 	int oldScrollPosX = 0;
-	byte *screenP = NULL;
+	byte *screenP = nullptr;
 	Common::File f;
 
 	if (_vm->shouldQuit())
@@ -217,7 +215,7 @@ void AnimationManager::playAnim2(const Common::String &hiresName, const Common::
 		screenP = _vm->_graphicsMan->_backBuffer;
 		if (!f.open(hiresName)) {
 			if (!f.open(lowresName))
-				error("Error opening files: %s - %s", hiresName.c_str(), lowresName.c_str());
+				error("Error opening files: %s - %s", hiresName.toString().c_str(), lowresName.toString().c_str());
 		}
 
 		f.skip(6);
@@ -352,13 +350,14 @@ void AnimationManager::playAnim2(const Common::String &hiresName, const Common::
 /**
  * Load Animation
  */
-void AnimationManager::loadAnim(const Common::String &animName) {
+void AnimationManager::loadAnim(const Common::Path &animName) {
 	clearAnim();
 
-	Common::String filename = animName + ".ANI";
+	Common::Path filename(animName);
+	filename.appendInPlace(".ANI");
 	Common::File f;
 	if (!f.open(filename))
-		error("Failed to open %s", filename.c_str());
+		error("Failed to open %s", filename.toString().c_str());
 
 	int filesize = f.size();
 	int nbytes = filesize - 115;
@@ -382,7 +381,7 @@ void AnimationManager::loadAnim(const Common::String &animName) {
 	f.read(filename6, 15);
 
 	if (READ_BE_UINT32(header) != MKTAG('A', 'N', 'I', 'S'))
-		error("Invalid animation File: %s", filename.c_str());
+		error("Invalid animation File: %s", filename.toString().c_str());
 
 	const char *files[6] = { &filename1[0], &filename2[0], &filename3[0], &filename4[0],
 			&filename5[0], &filename6[0] };
@@ -390,9 +389,9 @@ void AnimationManager::loadAnim(const Common::String &animName) {
 	for (int idx = 0; idx <= 5; ++idx) {
 		if (files[idx][0]) {
 			if (!f.exists(files[idx]))
-				error("Missing file %s in animation File: %s", files[idx], filename.c_str());
+				error("Missing file %s in animation File: %s", files[idx], filename.toString().c_str());
 			if (loadSpriteBank(idx + 1, files[idx]))
-				error("Invalid sprite bank in animation File: %s", filename.c_str());
+				error("Invalid sprite bank in animation File: %s", filename.toString().c_str());
 		}
 	}
 
@@ -426,7 +425,7 @@ void AnimationManager::clearAnim() {
 /**
  * Load Sprite Bank
  */
-int AnimationManager::loadSpriteBank(int idx, const Common::String &filename) {
+int AnimationManager::loadSpriteBank(int idx, const Common::Path &filename) {
 	int result = 0;
 	Bank[idx]._loadedFl = true;
 	Bank[idx]._filename = filename;
@@ -462,7 +461,7 @@ int AnimationManager::loadSpriteBank(int idx, const Common::String &filename) {
 	}
 	Bank[idx]._objDataIdx = objectDataIdx;
 
-	Common::String ofsFilename = Bank[idx]._filename;
+	Common::String ofsFilename = Bank[idx]._filename.baseName();
 	char ch;
 	do {
 		ch = ofsFilename.lastChar();
@@ -470,9 +469,10 @@ int AnimationManager::loadSpriteBank(int idx, const Common::String &filename) {
 	} while (ch != '.');
 	ofsFilename += ".OFS";
 
+	Common::Path ofsPathname(Bank[idx]._filename.getParent().appendComponent(ofsFilename));
 	Common::File f;
-	if (f.exists(ofsFilename)) {
-		byte *ofsData = _vm->_fileIO->loadFile(ofsFilename);
+	if (f.exists(ofsPathname)) {
+		byte *ofsData = _vm->_fileIO->loadFile(ofsPathname);
 		byte *curOfsData = ofsData;
 		for (int objIdx = 0; objIdx < Bank[idx]._objDataIdx; ++objIdx, curOfsData += 8) {
 			int x1 = READ_LE_INT16(curOfsData);
@@ -508,7 +508,7 @@ void AnimationManager::searchAnim(const byte *data, int animIndex, int bufSize) 
 						innerLoopCond = true;
 					if (bufSize < curBufferPos) {
 						_animBqe[animIndex]._enabledFl = false;
-						_animBqe[animIndex]._data = NULL;
+						_animBqe[animIndex]._data = nullptr;
 						return;
 					}
 					++curBufferPos;
@@ -540,7 +540,7 @@ void AnimationManager::searchAnim(const byte *data, int animIndex, int bufSize) 
 /**
  * Play sequence
  */
-void AnimationManager::playSequence(const Common::String &file, uint32 rate1, uint32 rate2, uint32 rate3, bool skipEscFl, bool skipSeqFl, bool noColFl) {
+void AnimationManager::playSequence(const Common::Path &file, uint32 rate1, uint32 rate2, uint32 rate3, bool skipEscFl, bool skipSeqFl, bool noColFl) {
 	if (_vm->shouldQuit())
 		return;
 
@@ -556,7 +556,7 @@ void AnimationManager::playSequence(const Common::String &file, uint32 rate1, ui
 	byte *screenP = _vm->_graphicsMan->_backBuffer;
 	Common::File f;
 	if (!f.open(file))
-		error("Error opening file - %s", file.c_str());
+		error("Error opening file - %s", file.toString().c_str());
 
 	f.skip(6);
 	f.read(_vm->_graphicsMan->_palette, 800);
@@ -666,7 +666,7 @@ void AnimationManager::playSequence(const Common::String &file, uint32 rate1, ui
 /**
  * Play Sequence type 2
  */
-void AnimationManager::playSequence2(const Common::String &file, uint32 rate1, uint32 rate2, uint32 rate3, bool skipSeqFl) {
+void AnimationManager::playSequence2(const Common::Path &file, uint32 rate1, uint32 rate2, uint32 rate3, bool skipSeqFl) {
 	byte *screenP;
 	Common::File f;
 
@@ -677,7 +677,7 @@ void AnimationManager::playSequence2(const Common::String &file, uint32 rate1, u
 	screenP = _vm->_graphicsMan->_backBuffer;
 
 	if (!f.open(file))
-		error("File not found - %s", file.c_str());
+		error("File not found - %s", file.toString().c_str());
 
 	f.skip(6);
 	f.read(_vm->_graphicsMan->_palette, 800);
@@ -781,12 +781,12 @@ void AnimationManager::playSequence2(const Common::String &file, uint32 rate1, u
 
 void AnimationManager::initAnimBqe() {
 	for (int idx = 0; idx < 35; ++idx) {
-		_animBqe[idx]._data = NULL;
+		_animBqe[idx]._data = nullptr;
 		_animBqe[idx]._enabledFl = false;
 	}
 
 	for (int idx = 0; idx < 8; ++idx) {
-		Bank[idx]._data = NULL;
+		Bank[idx]._data = nullptr;
 		Bank[idx]._loadedFl = false;
 		Bank[idx]._filename = "";
 		Bank[idx]._fileHeader = 0;

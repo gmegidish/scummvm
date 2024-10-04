@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,9 +24,8 @@
 
 #define FORBIDDEN_SYMBOL_EXCEPTION_time_h
 
-#include "backends/mutex/mutex.h"
 #include "backends/base-backend.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "base/main.h"
 #include "audio/mixer_intern.h"
 #include "backends/graphics/graphics.h"
@@ -57,7 +55,14 @@ enum GraphicsModeID {
 	RGB565,
 	RGB555,
 	RGB5A1,
+	RGBA4,
 	CLUT8
+};
+
+enum Screen {
+	kScreenTop = 0x10000002,
+	kScreenBottom,
+	kScreenBoth,
 };
 
 enum TransactionState {
@@ -114,14 +119,15 @@ public:
 	Common::KeymapArray getGlobalKeymaps() override;
 	Common::KeymapperDefaultBindings *getKeymapperDefaultBindings() override;
 
+	void registerDefaultSettings(const Common::String &target) const override;
+	GUI::OptionsContainerWidget *buildBackendOptionsWidget(GUI::GuiObject *boss, const Common::String &name, const Common::String &target) const override;
+	void applyBackendSettings() override;
+
 	virtual uint32 getMillis(bool skipRecord = false);
 	virtual void delayMillis(uint msecs);
 	virtual void getTimeAndDate(TimeDate &td, bool skipRecord = false) const;
 
-	virtual MutexRef createMutex();
-	virtual void lockMutex(MutexRef mutex);
-	virtual void unlockMutex(MutexRef mutex);
-	virtual void deleteMutex(MutexRef mutex);
+	virtual Common::MutexInternal *createMutex();
 
 	virtual void logMessage(LogMessageType::Type type, const char *message);
 
@@ -131,7 +137,7 @@ public:
 	virtual void fatalError();
 	virtual void quit();
 
-	virtual Common::String getDefaultConfigFileName();
+	virtual Common::Path getDefaultConfigFileName();
 	void addSysArchivesToSearchSet(Common::SearchSet &s, int priority) override;
 
 	// Graphics
@@ -158,7 +164,7 @@ public:
 	void setShakePos(int shakeXOffset, int shakeYOffset);
 	void setFocusRectangle(const Common::Rect &rect);
 	void clearFocusRectangle();
-	void showOverlay();
+	void showOverlay(bool inGUI);
 	void hideOverlay();
 	bool isOverlayVisible() const { return _overlayVisible; }
 	Graphics::PixelFormat getOverlayFormat() const;
@@ -175,7 +181,7 @@ public:
 	void warpMouse(int x, int y);
 	void setMouseCursor(const void *buf, uint w, uint h, int hotspotX,
 	                    int hotspotY, uint32 keycolor, bool dontScale = false,
-	                    const Graphics::PixelFormat *format = NULL);
+	                    const Graphics::PixelFormat *format = NULL, const byte *mask = NULL);
 	void setCursorPalette(const byte *colors, uint start, uint num);
 
 	// Transform point from touchscreen coords into gamescreen coords
@@ -187,6 +193,7 @@ public:
 
 	void updateFocus();
 	void updateMagnify();
+	void updateBacklight();
 	void updateConfig();
 	void updateSize();
 
@@ -197,12 +204,11 @@ private:
 	void destroyAudio();
 	void initEvents();
 	void destroyEvents();
-	void runOptionsDialog();
 
 	void flushGameScreen();
 	void flushCursor();
 
-	virtual Common::String getDefaultLogFileName();
+	virtual Common::Path getDefaultLogFileName();
 	virtual Common::WriteStream *createLogFile();
 
 protected:
@@ -228,6 +234,7 @@ private:
 	Graphics::PixelFormat _pfCursor;
 	byte _palette[3 * 256];
 	byte _cursorPalette[3 * 256];
+	uint32 _paletteMap[256];
 
 	Graphics::Surface _gameScreen;
 	bool _gameTextureDirty;
@@ -246,6 +253,7 @@ private:
 	int _screenShakeXOffset;
 	int _screenShakeYOffset;
 	bool _overlayVisible;
+	bool _overlayInGUI;
 	int _screenChangeId;
 
 	DVLB_s *_dvlb;
@@ -292,11 +300,16 @@ private:
 	u16 _magWidth, _magHeight;
 	u16 _magCenterX, _magCenterY;
 
-	Common::String _logFilePath;
+	Common::Path _logFilePath;
 
 public:
 	// Pause
 	PauseToken _sleepPauseToken;
+
+	bool _showCursor;
+	bool _snapToBorder;
+	bool _stretchToFit;
+	Screen _screen;
 };
 
 } // namespace N3DS

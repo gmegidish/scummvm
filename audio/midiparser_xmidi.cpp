@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,14 +43,6 @@ protected:
 	Loop _loop[4];
 	int _loopCount;
 
-	/**
-	 * The source number to use when sending MIDI messages to the driver.
-	 * When using multiple sources, use source 0 and higher. This must be
-	 * used when source volume or channel locking is used.
-	 * By default this is -1, which means the parser is the only source
-	 * of MIDI messages and multiple source functionality is disabled.
-	 */
-	int8 _source;
 	/**
 	 * The sequence branches defined for each track. These point to
 	 * positions in the MIDI data.
@@ -83,20 +74,17 @@ protected:
 
 	void parseNextEvent(EventInfo &info) override;
 
-	virtual void resetTracking() override {
+	void resetTracking() override {
 		MidiParser::resetTracking();
 		_loopCount = -1;
 	}
 	void onTrackStart(uint8 track) override;
-
-	void sendToDriver(uint32 b) override;
-	void sendMetaEventToDriver(byte type, byte *data, uint16 length) override;
 public:
 	MidiParser_XMIDI(XMidiCallbackProc proc, void *data, int8 source = -1) :
+			MidiParser(source),
 			_callbackProc(proc),
 			_callbackData(data),
-			_newTimbreListDriver(0),
-			_source(source),
+			_newTimbreListDriver(nullptr),
 			_loopCount(-1) {
 		memset(_loop, 0, sizeof(_loop));
 		memset(_trackBranches, 0, sizeof(_trackBranches));
@@ -109,6 +97,7 @@ public:
 	bool loadMusic(byte *data, uint32 size) override;
 	bool hasJumpIndex(uint8 index) override;
 	bool jumpToIndex(uint8 index, bool stopNotes) override;
+	int32 determineDataSize(Common::SeekableReadStream *stream) override;
 };
 
 // This is a special XMIDI variable length quantity
@@ -130,14 +119,14 @@ bool MidiParser_XMIDI::hasJumpIndex(uint8 index) {
 	if (_activeTrack >= _numTracks)
 		return false;
 
-	return index < MAXIMUM_TRACK_BRANCHES && _trackBranches[_activeTrack][index] != 0;
+	return index < MAXIMUM_TRACK_BRANCHES && _trackBranches[_activeTrack][index] != nullptr;
 }
 
 bool MidiParser_XMIDI::jumpToIndex(uint8 index, bool stopNotes) {
 	if (_activeTrack >= _numTracks || _pause)
 		return false;
 
-	if (index >= MAXIMUM_TRACK_BRANCHES || _trackBranches[_activeTrack][index] == 0) {
+	if (index >= MAXIMUM_TRACK_BRANCHES || _trackBranches[_activeTrack][index] == nullptr) {
 		warning("MidiParser-XMIDI: jumpToIndex called with invalid sequence branch index %x", index);
 		return false;
 	}
@@ -527,26 +516,49 @@ bool MidiParser_XMIDI::loadMusic(byte *data, uint32 size) {
 	return false;
 }
 
+int32 MidiParser_XMIDI::determineDataSize(Common::SeekableReadStream *stream) {
+	int32 length = 0;
+
+	byte buf[4];
+	Common::fill(buf, buf + 4, 0);
+	// Read FourCC.
+	stream->read(buf, 4);
+
+	if (!memcmp(buf, "FORM", 4)) {
+		// Optional XDIR header.
+
+		// Skip over the header.
+		uint32 headerLength = stream->readUint32BE();
+		stream->seek(headerLength, SEEK_CUR);
+
+		// Read next FourCC.
+		Common::fill(buf, buf + 4, 0);
+		stream->read(buf, 4);
+
+		// Add header length to total length.
+		length += 8;
+		length += headerLength;
+	}
+
+	if (!memcmp(buf, "CAT ", 4)) {
+		// CAT chunk.
+		uint32 catLength = stream->readUint32BE();
+		// Add catalog chunk length to total length.
+		length += 8;
+		length += catLength;
+	} else {
+		// XMIDI files must have a CAT chunk.
+		warning("Expected FORM or CAT  but found '%c%c%c%c' instead", buf[0], buf[1], buf[2], buf[3]);
+		return -1;
+	}
+
+	return length;
+}
+
 void MidiParser_XMIDI::onTrackStart(uint8 track) {
 	// Load custom timbres
 	if (_newTimbreListDriver && _tracksTimbreListSize[track] > 0)
 		_newTimbreListDriver->processXMIDITimbreChunk(_tracksTimbreList[track], _tracksTimbreListSize[track]);
-}
-
-void MidiParser_XMIDI::sendToDriver(uint32 b) {
-	if (_source < 0) {
-		MidiParser::sendToDriver(b);
-	} else {
-		_driver->send(_source, b);
-	}
-}
-
-void MidiParser_XMIDI::sendMetaEventToDriver(byte type, byte *data, uint16 length) {
-	if (_source < 0) {
-		MidiParser::sendMetaEventToDriver(type, data, length);
-	} else {
-		_driver->metaEvent(_source, type, data, length);
-	}
 }
 
 void MidiParser::defaultXMidiCallback(byte eventData, void *data) {

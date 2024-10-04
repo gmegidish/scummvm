@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,7 +19,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -49,7 +48,7 @@ ReactorGuess::ReactorGuess(const DisplayElementID id) : DisplayElement(id) {
 }
 
 void ReactorGuess::initReactorGuess() {
-	_colors.getImageFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kReactorChoicesPICTID);
+	_colors.getImageFromPICTResource(g_vm->_resFork, kReactorChoicesPICTID);
 	startDisplaying();
 	show();
 }
@@ -105,7 +104,7 @@ ReactorChoiceHighlight::ReactorChoiceHighlight(const DisplayElementID id) : Disp
 }
 
 void ReactorChoiceHighlight::initReactorChoiceHighlight() {
-	_colors.getImageFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kReactorChoiceHilitePICTID);
+	_colors.getImageFromPICTResource(g_vm->_resFork, kReactorChoiceHilitePICTID);
 	startDisplaying();
 	show();
 }
@@ -195,9 +194,9 @@ ReactorHistory::ReactorHistory(const DisplayElementID id) : DisplayElement(id) {
 }
 
 void ReactorHistory::initReactorHistory() {
-	_colors.getImageFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kReactorHistoryPICTID);
-	_digits.getImageFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kReactorDigitsPICTID);
-	_answerColors.getImageFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kReactorAnswerPICTID);
+	_colors.getImageFromPICTResource(g_vm->_resFork, kReactorHistoryPICTID);
+	_digits.getImageFromPICTResource(g_vm->_resFork, kReactorDigitsPICTID);
+	_answerColors.getImageFromPICTResource(g_vm->_resFork, kReactorAnswerPICTID);
 	startDisplaying();
 	show();
 }

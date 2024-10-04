@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,8 +58,8 @@ private:
 
 FontSubtitles::FontSubtitles(Myst3Engine *vm) :
 	Subtitles(vm),
-	_font(0),
-	_surface(0),
+	_font(nullptr),
+	_surface(nullptr),
 	_scale(1.0),
 	_charset(nullptr) {
 }
@@ -82,7 +81,7 @@ void FontSubtitles::loadResources() {
 	_scale = getPosition().width() / (float) getOriginalPosition().width();
 
 #ifdef USE_FREETYPE2
-	Common::String ttfFile;
+	const char *ttfFile;
 	if (_fontFace == "Arial Narrow") {
 		// Use the TTF font provided by the game if TTF support is available
 		ttfFile = "arir67w.ttf";
@@ -98,10 +97,9 @@ void FontSubtitles::loadResources() {
 
 	Common::SeekableReadStream *s = SearchMan.createReadStreamForMember(ttfFile);
 	if (s) {
-		_font = Graphics::loadTTFFont(*s, _fontSize * _scale);
-		delete s;
+		_font = Graphics::loadTTFFont(s, DisposeAfterUse::YES, _fontSize * _scale);
 	} else {
-		warning("Unable to load the subtitles font '%s'", ttfFile.c_str());
+		warning("Unable to load the subtitles font '%s'", ttfFile);
 	}
 #endif
 }
@@ -239,7 +237,7 @@ void FontSubtitles::createTexture() {
 	}
 
 	if (!_texture) {
-		_texture = _vm->_gfx->createTexture(_surface);
+		_texture = _vm->_gfx->createTexture2D(_surface);
 	}
 }
 
@@ -249,10 +247,10 @@ static Common::CodePage getEncodingFromCharsetCode(uint32 gdiCharset) {
 		uint32 charset;
 		Common::CodePage encoding;
 	} codepages[] = {
-			{ 128, Common::kWindows932            }, // SHIFTJIS_CHARSET
-			{ 177, Common::kWindows1255           }, // HEBREW_CHARSET
-			{ 204, Common::kWindows1251           }, // RUSSIAN_CHARSET
-			{ 238, Common::kMacCentralEurope }  // EASTEUROPE_CHARSET
+		{ 128, Common::kWindows932       }, // SHIFTJIS_CHARSET
+		{ 177, Common::kWindows1255      }, // HEBREW_CHARSET
+		{ 204, Common::kWindows1251      }, // RUSSIAN_CHARSET
+		{ 238, Common::kMacCentralEurope }  // EASTEUROPE_CHARSET
 	};
 
 	for (uint i = 0; i < ARRAYSIZE(codepages); i++) {
@@ -361,8 +359,8 @@ bool MovieSubtitles::loadSubtitles(int32 id) {
 
 	// Load the movie
 	Common::SeekableReadStream *movieStream = movie.getData();
-	_bink.setDefaultHighColorFormat(Texture::getRGBAPixelFormat());
 	_bink.loadStream(movieStream);
+	_bink.setOutputPixelFormat(Texture::getRGBAPixelFormat());
 	_bink.start();
 
 	return true;
@@ -376,7 +374,7 @@ void MovieSubtitles::drawToTexture(const Phrase *phrase) {
 	const Graphics::Surface *surface = _bink.decodeNextFrame();
 
 	if (!_texture) {
-		_texture = _vm->_gfx->createTexture(surface);
+		_texture = _vm->_gfx->createTexture2D(surface);
 	} else {
 		_texture->update(surface);
 	}
@@ -385,7 +383,7 @@ void MovieSubtitles::drawToTexture(const Phrase *phrase) {
 Subtitles::Subtitles(Myst3Engine *vm) :
 		Window(),
 		_vm(vm),
-		_texture(0),
+		_texture(nullptr),
 		_frame(-1) {
 	_scaled = !_vm->isWideScreenModEnabled();
 }
@@ -475,7 +473,8 @@ void Subtitles::setFrame(int32 frame) {
 }
 
 void Subtitles::drawOverlay() {
-	if (!_texture) return;
+	if (!_texture)
+		return;
 
 	Common::Rect screen = _vm->_gfx->viewport();
 	Common::Rect bottomBorder = Common::Rect(Renderer::kOriginalWidth, _surfaceHeight);
@@ -507,7 +506,7 @@ Subtitles *Subtitles::create(Myst3Engine *vm, uint32 id) {
 
 	if (!s->loadSubtitles(id)) {
 		delete s;
-		return 0;
+		return nullptr;
 	}
 
 	s->loadResources();
@@ -517,7 +516,7 @@ Subtitles *Subtitles::create(Myst3Engine *vm, uint32 id) {
 
 void Subtitles::freeTexture() {
 	if (_texture) {
-		_vm->_gfx->freeTexture(_texture);
+		delete _texture;
 		_texture = nullptr;
 	}
 }

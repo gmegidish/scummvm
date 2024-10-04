@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,10 +34,11 @@
 
 namespace CryOmni3D {
 
-FontManager::FontManager() : _currentFont(nullptr), _transparentBackground(false),
-	_spaceWidth(0), _charSpacing(0), _lineHeight(30), _foreColor(0), _blockTextRemaining(nullptr),
-	_useSpaceDelimiter(true), _keepASCIIjoined(true), _codepage(Common::kCodePageInvalid),
-	_toUnicode(false) {
+FontManager::FontManager() : _codepage(Common::kCodePageInvalid), _toUnicode(false),
+	_currentFont(nullptr), _currentFontId(uint(-1)), _transparentBackground(false),
+	_spaceWidth(0), _charSpacing(0), _foreColor(0), _currentSurface(nullptr),
+	_lineHeight(30), _justifyText(false), _blockTextRemaining(nullptr),
+	_useSpaceDelimiter(true), _keepASCIIjoined(true) {
 }
 
 FontManager::~FontManager() {
@@ -54,7 +54,7 @@ FontManager::~FontManager() {
 	}
 }
 
-void FontManager::loadFonts(const Common::Array<Common::String> &fontFiles,
+void FontManager::loadFonts(const Common::Array<Common::Path> &fontFiles,
 							Common::CodePage codepage) {
 	assert(codepage != Common::kCodePageInvalid);
 	_codepage = codepage;
@@ -66,9 +66,10 @@ void FontManager::loadFonts(const Common::Array<Common::String> &fontFiles,
 	_fonts.clear();
 	_fonts.reserve(fontFiles.size());
 
-	Common::HashMap<Common::String, Graphics::Font *> fontsCache;
+	Common::HashMap<Common::Path, Graphics::Font *,
+		Common::Path::IgnoreCase_Hash, Common::Path::IgnoreCase_EqualTo> fontsCache;
 
-	for (Common::Array<Common::String>::const_iterator it = fontFiles.begin(); it != fontFiles.end();
+	for (Common::Array<Common::Path>::const_iterator it = fontFiles.begin(); it != fontFiles.end();
 	        it++) {
 		Graphics::Font *fontEntry = nullptr;
 		if (fontsCache.tryGetVal(*it, fontEntry)) {
@@ -93,7 +94,7 @@ void FontManager::loadFonts(const Common::Array<Common::String> &fontFiles,
 	}
 }
 
-void FontManager::loadTTFList(const Common::String &ttfList, Common::CodePage codepage) {
+void FontManager::loadTTFList(const Common::Path &ttfList, Common::CodePage codepage) {
 #ifdef USE_FREETYPE2
 	assert(codepage != Common::kCodePageInvalid);
 	_codepage = codepage;
@@ -107,8 +108,10 @@ void FontManager::loadTTFList(const Common::String &ttfList, Common::CodePage co
 	Common::File list;
 
 	if (!list.open(ttfList)) {
-		error("can't open file %s", ttfList.c_str());
+		error("can't open file %s", ttfList.toString(Common::Path::kNativeSeparator).c_str());
 	}
+
+	Common::Path ttfParentDir(ttfList.getParent());
 
 	Common::String line = list.readLine();
 	uint32 num = atoi(line.c_str());
@@ -139,12 +142,13 @@ void FontManager::loadTTFList(const Common::String &ttfList, Common::CodePage co
 		bool bold = sizeFlags.contains('B');
 		bool italic = sizeFlags.contains('I');
 
-		Common::Array<Common::String> fontFiles;
-		fontFiles.push_back(fontFile);
+		Common::Array<Common::Path> fontFiles;
+		fontFiles.push_back(Common::Path(fontFile));
+		fontFiles.push_back(ttfParentDir.appendComponent(fontFile));
 
 		// Use 96 dpi as it's the default under Windows
 		Graphics::Font *font = Graphics::findTTFace(fontFiles, uniFontFace, bold, italic, -(int)size,
-		                       96, Graphics::kTTFRenderModeMonochrome);
+		                       96, 96, Graphics::kTTFRenderModeMonochrome);
 		if (!font) {
 			error("Can't find required face (line %u) in %s", i, fontFile.c_str());
 		}
@@ -245,7 +249,6 @@ bool FontManager::displayBlockText(const Common::U32String &text,
 			bool has_cr;
 			calculateWordWrap(text, &ptr, &finalPos, &has_cr, words);
 			uint spacesWidth = (words.size() - 1) * _spaceWidth;
-			uint remainingSpace = (_blockRect.right - finalPos);
 			uint spaceConsumed = 0;
 			double spaceWidthPerWord;
 			if (words.size() == 1) {
@@ -263,7 +266,6 @@ bool FontManager::displayBlockText(const Common::U32String &text,
 					double sp = (word_i + 1) * spaceWidthPerWord - spaceConsumed;
 					_blockPos.x += int16(sp);
 					spaceConsumed += uint(sp);
-					remainingSpace -= uint(sp);
 				}
 			}
 			if (_blockPos.y + _lineHeight + getFontMaxHeight() >= _blockRect.bottom) {
@@ -376,7 +378,7 @@ void FontManager::calculateWordWrap(const Common::U32String &text,
 		uint width = getStrWidth(word);
 		if (width + offset >= lineWidth) {
 			wordWrap = true;
-			// word is too long: just put pointer back at begining
+			// word is too long: just put pointer back at beginning
 			ptr = begin;
 		} else {
 			words.push_back(word);

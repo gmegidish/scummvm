@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #define RONIN_TIMER_ACCESS
 
 #include "common/scummsys.h"
-#include "graphics/conversion.h"
+#include "graphics/blit.h"
 #include "graphics/surface.h"
 #include "dc.h"
 
@@ -296,8 +295,10 @@ void OSystem_Dreamcast::warpMouse(int x, int y)
 
 void OSystem_Dreamcast::setMouseCursor(const void *buf, uint w, uint h,
 				       int hotspot_x, int hotspot_y,
-				       uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format)
-{
+				       uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format, const byte *mask) {
+	if (mask)
+		warning("OSystem_Dreamcast::setMouseCursor: Masks are not supported");
+
   _ms_cur_w = w;
   _ms_cur_h = h;
 
@@ -635,14 +636,16 @@ void OSystem_Dreamcast::mouseToSoftKbd(int x, int y, int &rx, int &ry) const
 }
 
 
-void OSystem_Dreamcast::showOverlay()
+void OSystem_Dreamcast::showOverlay(bool inGUI)
 {
+  _overlay_in_gui = inGUI;
   _overlay_visible = true;
   clearOverlay();
 }
 
 void OSystem_Dreamcast::hideOverlay()
 {
+  _overlay_in_gui = false;
   _overlay_visible = false;
 }
 

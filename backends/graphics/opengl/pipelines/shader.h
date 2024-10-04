@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,22 +32,23 @@ class Shader;
 class ShaderPipeline : public Pipeline {
 public:
 	ShaderPipeline(Shader *shader);
+	~ShaderPipeline() override;
 
-	virtual void setColor(GLfloat r, GLfloat g, GLfloat b, GLfloat a);
+	void setColor(GLfloat r, GLfloat g, GLfloat b, GLfloat a) override;
 
-	virtual void drawTexture(const GLTexture &texture, const GLfloat *coordinates);
-
-	virtual void setProjectionMatrix(const GLfloat *projectionMatrix);
+	void setProjectionMatrix(const Math::Matrix4 &projectionMatrix) override;
 
 protected:
-	virtual void activateInternal();
-	virtual void deactivateInternal();
+	void activateInternal() override;
+	void deactivateInternal() override;
+	void drawTextureInternal(const GLTexture &texture, const GLfloat *coordinates, const GLfloat *texcoords) override;
 
-	GLint _vertexAttribLocation;
-	GLint _texCoordAttribLocation;
-	GLint _colorAttribLocation;
+	GLuint _coordsVBO;
+	GLuint _texcoordsVBO;
+	GLuint _colorVBO;
 
 	GLfloat _colorAttributes[4*4];
+	bool _colorDirty;
 
 	Shader *const _activeShader;
 };

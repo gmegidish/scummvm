@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "audio/soundfont/rawfile.h"
@@ -511,26 +510,24 @@ void SoundManager::stopAllVoices() {
 }
 
 void SoundManager::playMusic(int16 song) {
-	char sceneName[5] = "nnnn";
-	char filename[12] = "xxxxznn.msq";
-
 	if (_currentSong == song) {
 		return;
 	}
 
 	_currentSong = song;
 
-	memcpy(sceneName, _vm->_dragonRMS->getSceneName(_vm->getCurrentSceneId()), 4);
-	snprintf(filename, 12, "%sz%02d.msq", sceneName, song);
-	debug(1, "Load music file %s", filename);
+	// Music filenames have format "xxxxznn.msq" where xxxx is the four character scene name and nn is the two digit song number
+	Common::String filename = Common::String(_vm->_dragonRMS->getSceneName(_vm->getCurrentSceneId()), 4);
+	filename += Common::String::format("z%02d.msq", song);
+	debug(1, "Load music file %s", filename.c_str());
 
-	if (!_bigFileArchive->doesFileExist(filename)) {
-		warning("Could not find music file %s", filename);
+	if (!_bigFileArchive->doesFileExist(filename.c_str())) {
+		warning("Could not find music file %s", filename.c_str());
 		return;
 	}
 
 	uint32 dataSize;
-	byte *seqData = _bigFileArchive->load(filename, dataSize);
+	byte *seqData = _bigFileArchive->load(filename.c_str(), dataSize);
 	Common::MemoryReadStream *seq = new Common::MemoryReadStream(seqData, dataSize, DisposeAfterUse::YES);
 	_midiPlayer->playSong(seq);
 	delete seq;

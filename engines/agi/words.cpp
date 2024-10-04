@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,7 +36,7 @@ Words::~Words() {
 	clearEgoWords();
 }
 
-int Words::loadDictionary_v1(Common::File &f) {
+int Words::loadDictionary_v1(Common::SeekableReadStream &stream) {
 	char str[64];
 	int k;
 
@@ -45,11 +44,11 @@ int Words::loadDictionary_v1(Common::File &f) {
 
 	// Loop through alphabet, as words in the dictionary file are sorted by
 	// first character
-	f.seek(f.pos() + 26 * 2, SEEK_SET);
+	stream.seek(26 * 2, SEEK_CUR);
 	do {
 		// Read next word
 		for (k = 0; k < (int)sizeof(str) - 1; k++) {
-			str[k] = f.readByte();
+			str[k] = stream.readByte();
 			if (str[k] == 0 || (uint8)str[k] == 0xFF)
 				break;
 		}
@@ -60,7 +59,7 @@ int Words::loadDictionary_v1(Common::File &f) {
 			byte firstCharNr = str[0] - 'a';
 
 			newWord->word = Common::String(str, k + 1); // myStrndup(str, k + 1);
-			newWord->id = f.readUint16LE();
+			newWord->id = stream.readUint16LE();
 
 			_dictionaryWords[firstCharNr].push_back(newWord);
 			debug(3, "'%s' (%d)", newWord->word.c_str(), newWord->id);
@@ -72,27 +71,33 @@ int Words::loadDictionary_v1(Common::File &f) {
 
 int Words::loadDictionary(const char *fname) {
 	Common::File fp;
-
 	if (!fp.open(fname)) {
-		warning("loadWords: can't open %s", fname);
+		warning("loadDictionary: can't open %s", fname);
+		// FIXME
 		return errOK; // err_BadFileOpen
 	}
-	debug(0, "Loading dictionary: %s", fname);
 
+	debug(0, "Loading dictionary: %s", fname);
+	return loadDictionary(fp);
+}
+
+int Words::loadDictionary(Common::SeekableReadStream &stream) {
 	// Loop through alphabet, as words in the dictionary file are sorted by
 	// first character
+	uint32 start = stream.pos();
+	char str[64] = { 0 };
+	char c;
 	for (int i = 0; i < 26; i++) {
-		fp.seek(i * 2, SEEK_SET);
-		int offset = fp.readUint16BE();
+		stream.seek(start + i * 2);
+		int offset = stream.readUint16BE();
 		if (offset == 0)
 			continue;
-		fp.seek(offset, SEEK_SET);
-		int k = fp.readByte();
-		while (!fp.eos() && !fp.err()) {
+		stream.seek(start + offset);
+		int k = stream.readByte();
+		while (!stream.eos() && !stream.err()) {
 			// Read next word
-			char c, str[64];
 			do {
-				c = fp.readByte();
+				c = stream.readByte();
 				str[k++] = (c ^ 0x7F) & 0x7F;
 			} while (!(c & 0x80) && k < (int)sizeof(str) - 1);
 			str[k] = 0;
@@ -105,11 +110,13 @@ int Words::loadDictionary(const char *fname) {
 				// And store it in our internal dictionary
 				WordEntry *newWord = new WordEntry;
 				newWord->word = Common::String(str, k);
-				newWord->id = fp.readUint16BE();
+				newWord->id = stream.readUint16BE();
 				_dictionaryWords[i].push_back(newWord);
+			} else {
+				stream.readUint16BE();
 			}
 
-			k = fp.readByte();
+			k = stream.readByte();
 
 			// Are there more words with an already known prefix?
 			// WORKAROUND: We only break after already seeing words with the
@@ -128,12 +135,12 @@ int Words::loadExtendedDictionary(const char *sierraFname) {
 	const char *fname = fnameStr.c_str();
 
 	Common::File fp;
-
 	if (!fp.open(fname)) {
 		warning("loadWords: can't open %s", fname);
+		// FIXME
 		return errOK; // err_BadFileOpen
 	}
-	debug(0, "Loading dictionary: %s", fname);
+	debug(0, "Loading extended dictionary: %s", fname);
 
 	// skip the header
 	fp.readString('\n');
@@ -142,7 +149,7 @@ int Words::loadExtendedDictionary(const char *sierraFname) {
 		WordEntry *newWord = new WordEntry;
 		newWord->word = fp.readString();
 		newWord->id = atoi(fp.readString('\n').c_str());
-		if(!newWord->word.empty())
+		if (!newWord->word.empty())
 			_dictionaryWords[(byte)newWord->word[0] - 'a'].push_back(newWord);
 	}
 
@@ -187,11 +194,9 @@ static bool isCharSeparator(const char curChar) {
 	case '{':
 	case '}':
 		return true;
-		break;
 	default:
-		break;
+		return false;
 	}
-	return false;
 }
 
 static bool isCharInvalid(const char curChar) {
@@ -202,19 +207,15 @@ static bool isCharInvalid(const char curChar) {
 	case '\\':
 	case '"':
 		return true;
-		break;
 	default:
-		break;
+		return false;
 	}
-	return false;
 }
 
 void Words::cleanUpInput(const char *rawUserInput, Common::String &cleanInput) {
-	byte curChar = 0;
-
 	cleanInput.clear();
 
-	curChar = *rawUserInput;
+	byte curChar = *rawUserInput;
 	while (curChar) {
 		// skip separators / invalid characters
 		if (isCharSeparator(curChar) || isCharInvalid(curChar)) {
@@ -243,20 +244,19 @@ void Words::cleanUpInput(const char *rawUserInput, Common::String &cleanInput) {
 	}
 }
 
-int16 Words::findWordInDictionary(const Common::String &userInputLowcased, uint16 userInputLen, uint16 userInputPos, uint16 &foundWordLen) {
+int16 Words::findWordInDictionary(const Common::String &userInputLowercase, uint16 userInputLen, uint16 userInputPos, uint16 &foundWordLen) {
 	uint16 userInputLeft = userInputLen - userInputPos;
 	uint16 wordStartPos = userInputPos;
 	int16 wordId = DICTIONARY_RESULT_UNKNOWN;
-	byte  firstChar = userInputLowcased[userInputPos];
-	byte  curUserInputChar = 0;
+	byte  firstChar = userInputLowercase[userInputPos];
 
 	foundWordLen = 0;
 
-	const byte lastCharInAbc = _vm->getLanguage() == Common::HE_ISR ? 0xfa : 'z';
+	const byte lastCharInAbc = _vm->getFeatures() & GF_EXTCHAR ? 0xff : 'z';
 
 	if ((firstChar >= 'a') && (firstChar <= lastCharInAbc)) {
 		// word has to start with a letter
-		if (((userInputPos + 1) < userInputLen) && (userInputLowcased[userInputPos + 1] == ' ')) {
+		if (((userInputPos + 1) < userInputLen) && (userInputLowercase[userInputPos + 1] == ' ')) {
 			// current word is 1 char only?
 			if ((firstChar == 'a') || (firstChar == 'i')) {
 				// and it's "a" or "i"? -> then set current type to ignore
@@ -275,12 +275,11 @@ int16 Words::findWordInDictionary(const Common::String &userInputLowcased, uint1
 				// dictionary word is longer or same length as the remaining user input
 				uint16 curCompareLeft = dictionaryWordLen;
 				uint16 dictionaryWordPos = 0;
-				byte   curDictionaryChar = 0;
 
 				userInputPos = wordStartPos;
 				while (curCompareLeft) {
-					curUserInputChar = userInputLowcased[userInputPos];
-					curDictionaryChar = dictionaryEntry->word[dictionaryWordPos];
+					byte curUserInputChar = userInputLowercase[userInputPos];
+					byte curDictionaryChar = dictionaryEntry->word[dictionaryWordPos];
 
 					if (curUserInputChar != curDictionaryChar)
 						break;
@@ -292,7 +291,7 @@ int16 Words::findWordInDictionary(const Common::String &userInputLowcased, uint1
 
 				if (!curCompareLeft) {
 					// check, if there is also nothing more of user input left or if a space the follow-up char?
-					if ((userInputPos >= userInputLen) || (userInputLowcased[userInputPos] == ' ')) {
+					if ((userInputPos >= userInputLen) || (userInputLowercase[userInputPos] == ' ')) {
 						// so fully matched, remember match
 						wordId = dictionaryEntry->id;
 						foundWordLen = dictionaryWordLen;
@@ -311,7 +310,7 @@ int16 Words::findWordInDictionary(const Common::String &userInputLowcased, uint1
 	if (foundWordLen == 0) {
 		userInputPos = wordStartPos;
 		while (userInputPos < userInputLen) {
-			if (userInputLowcased[userInputPos] == ' ') {
+			if (userInputLowercase[userInputPos] == ' ') {
 				break;
 			}
 			userInputPos++;
@@ -322,16 +321,6 @@ int16 Words::findWordInDictionary(const Common::String &userInputLowcased, uint1
 }
 
 void Words::parseUsingDictionary(const char *rawUserInput) {
-	Common::String userInput;
-	Common::String userInputLowcased;
-	const char *userInputPtr = nullptr;
-	uint16 userInputLen;
-	uint16 userInputPos = 0;
-	uint16 foundWordPos;
-	int16  foundWordId;
-	uint16 foundWordLen = 0;
-	uint16 wordCount = 0;
-
 	assert(rawUserInput);
 	debugC(2, kDebugLevelScripts, "parse: userinput = \"%s\"", rawUserInput);
 
@@ -339,70 +328,33 @@ void Words::parseUsingDictionary(const char *rawUserInput) {
 	clearEgoWords();
 
 	// clean up user input
+	Common::String userInput;
 	cleanUpInput(rawUserInput, userInput);
 
 	// Sierra compared independent of upper case and lower case
-	userInputLowcased = userInput;
-	userInputLowcased.toLowercase();
+	Common::String userInputLowercase = userInput;
+	userInputLowercase.toLowercase();
 
 	if (_vm->getLanguage() == Common::RU_RUS) {
-		const char *conv =
-			// АБВГДЕЖЗИЙКЛМНОП
-			  "abvgdewziiklmnop" // 80
-			// РСТУФХЦЧШЩЪЫЬЭЮЯ
-			  "rstufxcyhhjijeuq" // 90
-			// абвгдежзийклмноп
-			  "abvgdewziiklmnop" // a0
-			  "                " // b0
-			  "                " // c0
-			  "                " // d0
-			// рстуфхцчшщъыьэюя
-			  "rstufxcyhhjijeuq" // e0
-			// Ее
-			  "ee              ";// f0
-
-		Common::String tr;
-		for (uint i = 0; i < userInputLowcased.size(); i++) {
-			if ((byte)userInputLowcased[i] >= 0x80) {
-				tr += conv[(byte)userInputLowcased[i] - 0x80];
-			} else {
-				tr += (byte)userInputLowcased[i];
-			}
-		}
-		userInputLowcased = tr;
+		convertRussianUserInput(userInputLowercase);
 	}
 
-	userInputLen = userInput.size();
-	userInputPtr = userInput.c_str();
-
-	// WORKAROUND: For Apple II support speed changes
-	// some of the games hadn't this feature
-	// some (like PQ1) had it, but we override the speed that the game request
-	// with `timeDelayOverwrite`
-	// this mechanism works for all the games, and therefore, doesn't bother to search in the dictionary
-	if (_vm->getPlatform() == Common::kPlatformApple2GS) {
-		if (userInput.equals("fastest")) {
-			_vm->_game.setAppleIIgsSpeedLevel(0);
-			return;
-		} else if (userInput.equals("fast")) {
-			_vm->_game.setAppleIIgsSpeedLevel(1);
-			return;
-		} else if (userInput.equals("normal")) {
-			_vm->_game.setAppleIIgsSpeedLevel(2);
-			return;
-		} else if (userInput.equals("slow")) {
-			_vm->_game.setAppleIIgsSpeedLevel(3);
-			return;
-		}
+	if (handleSpeedCommands(userInputLowercase)) {
+		return;
 	}
 
+	uint16 wordCount = 0;
+	uint16 userInputPos = 0;
+	uint16 userInputLen = userInput.size();
+	const char *userInputPtr = userInput.c_str();
 	while (userInputPos < userInputLen) {
 		// Skip trailing space
 		if (userInput[userInputPos] == ' ')
 			userInputPos++;
 
-		foundWordPos = userInputPos;
-		foundWordId = findWordInDictionary(userInputLowcased, userInputLen, userInputPos, foundWordLen);
+		uint16 foundWordPos = userInputPos;
+		uint16 foundWordLen = 0;
+		int16 foundWordId = findWordInDictionary(userInputLowercase, userInputLen, userInputPos, foundWordLen);
 
 		if (foundWordId != DICTIONARY_RESULT_IGNORE) {
 			// word not supposed to get ignored
@@ -437,16 +389,73 @@ void Words::parseUsingDictionary(const char *rawUserInput) {
 	_vm->setFlag(VM_FLAG_SAID_ACCEPTED_INPUT, false);
 }
 
-uint16 Words::getEgoWordCount() {
+uint16 Words::getEgoWordCount() const {
 	return _egoWordCount;
 }
-const char *Words::getEgoWord(int16 wordNr) {
+
+const char *Words::getEgoWord(int16 wordNr) const {
 	assert(wordNr >= 0 && wordNr < MAX_WORDS);
 	return _egoWords[wordNr].word.c_str();
 }
-uint16 Words::getEgoWordId(int16 wordNr) {
+
+uint16 Words::getEgoWordId(int16 wordNr) const {
 	assert(wordNr >= 0 && wordNr < MAX_WORDS);
 	return _egoWords[wordNr].id;
+}
+
+bool Words::handleSpeedCommands(const Common::String &userInputLowercase) {
+	// We add speed controls to games that didn't originally have them.
+	// Apple II games had no speed controls, the interpreter ran as fast as it could.
+	// Some Apple IIgs games had speed controls, others didn't. We override the
+	// the speed that the game requests with `timeDelayOverwrite`.
+	switch (_vm->getPlatform()) {
+	case Common::kPlatformApple2:
+	case Common::kPlatformApple2GS:
+		if (userInputLowercase == "fastest") {
+			_vm->_game.setSpeedLevel(0);
+			return true;
+		} else if (userInputLowercase == "fast") {
+			_vm->_game.setSpeedLevel(1);
+			return true;
+		} else if (userInputLowercase == "normal") {
+			_vm->_game.setSpeedLevel(2);
+			return true;
+		} else if (userInputLowercase == "slow") {
+			_vm->_game.setSpeedLevel(3);
+			return true;
+		}
+		break;
+	default:
+		break;
+	}
+	return false;
+}
+
+void Words::convertRussianUserInput(Common::String &userInputLowercase) {
+	const char *conv =
+		// АБВГДЕЖЗИЙКЛМНОП
+		  "abvgdewziiklmnop" // 80
+		// РСТУФХЦЧШЩЪЫЬЭЮЯ
+		  "rstufxcyhhjijeuq" // 90
+		// абвгдежзийклмноп
+		  "abvgdewziiklmnop" // a0
+		  "                " // b0
+		  "                " // c0
+		  "                " // d0
+		// рстуфхцчшщъыьэюя
+		  "rstufxcyhhjijeuq" // e0
+		// Ее
+		  "ee              ";// f0
+
+	Common::String tr;
+	for (uint i = 0; i < userInputLowercase.size(); i++) {
+		if ((byte)userInputLowercase[i] >= 0x80) {
+			tr += conv[(byte)userInputLowercase[i] - 0x80];
+		} else {
+			tr += (byte)userInputLowercase[i];
+		}
+	}
+	userInputLowercase = tr;
 }
 
 } // End of namespace Agi

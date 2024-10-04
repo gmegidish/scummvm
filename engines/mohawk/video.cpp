@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,7 @@
 #include "common/textconsole.h"
 #include "common/system.h"
 
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/surface.h"
 
 #include "video/qt_decoder.h"
@@ -41,7 +40,7 @@ namespace Mohawk {
 VideoEntry::VideoEntry() : _video(nullptr), _id(-1), _x(0), _y(0), _loop(false), _enabled(true) {
 }
 
-VideoEntry::VideoEntry(Video::VideoDecoder *video, const Common::String &fileName) : _video(video), _fileName(fileName), _id(-1), _x(0), _y(0), _loop(false), _enabled(true) {
+VideoEntry::VideoEntry(Video::VideoDecoder *video, const Common::Path &fileName) : _video(video), _fileName(fileName), _id(-1), _x(0), _y(0), _loop(false), _enabled(true) {
 }
 
 VideoEntry::VideoEntry(Video::VideoDecoder *video, int id) : _video(video), _id(id), _x(0), _y(0), _loop(false), _enabled(true) {
@@ -54,6 +53,10 @@ VideoEntry::~VideoEntry() {
 void VideoEntry::close() {
 	delete _video;
 	_video = nullptr;
+
+	if (_subtitles.isLoaded()) {
+		g_system->hideOverlay();
+	}
 }
 
 bool VideoEntry::endOfVideo() const {
@@ -111,16 +114,41 @@ void VideoEntry::setRate(const Common::Rational &rate) {
 void VideoEntry::pause(bool isPaused) {
 	assert(_video);
 	_video->pauseVideo(isPaused);
+
+	if (_subtitles.isLoaded()) {
+		if (isPaused) {
+			g_system->hideOverlay();
+		} else {
+			g_system->showOverlay(false);
+			g_system->clearOverlay();
+			_subtitles.drawSubtitle(_video->getTime(), true);
+		}
+	}
 }
 
 void VideoEntry::start() {
 	assert(_video);
 	_video->start();
+
+	if (_subtitles.isLoaded()) {
+		const int16 h = g_system->getOverlayHeight(),
+			        w = g_system->getOverlayWidth();
+		_subtitles.setBBox(Common::Rect(20, h - 120, w - 20, h - 20));
+		_subtitles.setColor(0xff, 0xff, 0xff);
+		_subtitles.setFont("FreeSans.ttf");
+
+		g_system->showOverlay(false);
+		g_system->clearOverlay();
+	}
 }
 
 void VideoEntry::stop() {
 	assert(_video);
 	_video->stop();
+
+	if (_subtitles.isLoaded()) {
+		g_system->hideOverlay();
+	}
 }
 
 bool VideoEntry::isPlaying() const {
@@ -164,10 +192,15 @@ void VideoManager::stopVideos() {
 	_videos.clear();
 }
 
-VideoEntryPtr VideoManager::playMovie(const Common::String &fileName, Audio::Mixer::SoundType soundType) {
+VideoEntryPtr VideoManager::playMovie(const Common::Path &fileName, Audio::Mixer::SoundType soundType) {
 	VideoEntryPtr ptr = open(fileName, soundType);
 	if (!ptr)
 		return VideoEntryPtr();
+
+	Common::String baseName(fileName.baseName());
+
+	Common::String subtitlesName = Common::String::format("%s.srt", baseName.substr(0, baseName.size() - 4).c_str());
+	ptr->loadSubtitles(fileName.getParent().appendComponent(subtitlesName));
 
 	ptr->start();
 	return ptr;
@@ -212,6 +245,8 @@ bool VideoManager::updateMovies() {
 			if (drawNextFrame(*it)) {
 				updateScreen = true;
 			}
+
+			updateScreen |= (*it)->_subtitles.drawSubtitle(video->getTime(), false);
 		}
 
 		// Remember to increase the iterator
@@ -313,7 +348,7 @@ VideoEntryPtr VideoManager::open(uint16 id) {
 	return entry;
 }
 
-VideoEntryPtr VideoManager::open(const Common::String &fileName, Audio::Mixer::SoundType soundType) {
+VideoEntryPtr VideoManager::open(const Common::Path &fileName, Audio::Mixer::SoundType soundType) {
 	// If this video is already playing, return that entry
 	VideoEntryPtr oldVideo = findVideo(fileName);
 	if (oldVideo)
@@ -355,7 +390,7 @@ VideoEntryPtr VideoManager::findVideo(uint16 id) {
 	return VideoEntryPtr();
 }
 
-VideoEntryPtr VideoManager::findVideo(const Common::String &fileName) {
+VideoEntryPtr VideoManager::findVideo(const Common::Path &fileName) {
 	if (fileName.empty())
 		return VideoEntryPtr();
 
@@ -405,7 +440,7 @@ void VideoManager::checkEnableDither(VideoEntryPtr &entry) {
 		if (entry->getFileName().empty())
 			error("Failed to set dither for video tMOV %d", entry->getID());
 		else
-			error("Failed to set dither for video %s", entry->getFileName().c_str());
+			error("Failed to set dither for video %s", entry->getFileName().toString().c_str());
 	}
 }
 

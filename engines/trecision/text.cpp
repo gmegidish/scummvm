@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #include "common/str.h"
 
 #include "trecision/actor.h"
+#include "trecision/animmanager.h"
 #include "trecision/graphics.h"
 #include "trecision/sound.h"
 #include "trecision/trecision.h"
@@ -136,7 +136,7 @@ void TextManager::characterContinueTalk() {
 	_subStringAgain = (_curSubString < (_subStringUsed - 1));
 
 	if (_vm->_flagShowCharacter || _vm->_animMgr->isActionActive())
-		pos = positionString(_vm->_actor->_lim[0], _vm->_actor->_lim[2], _subString[_curSubString], true);
+		pos = positionString(_vm->_actor->_area[0], _vm->_actor->_area[2], _subString[_curSubString], true);
 	else
 		pos = positionString(MAXX / 2, 30, _subString[_curSubString], false);
 
@@ -146,9 +146,9 @@ void TextManager::characterContinueTalk() {
 
 	if (!_vm->_flagDialogActive) {
 		if (_curSubString)
-			_lastFilename = Common::String::format("s%04d%c.wav", _curSentenceId, _curSubString + 'a');
+			_lastFilename = Common::Path(Common::String::format("s%04d%c.wav", _curSentenceId, _curSubString + 'a'));
 		else
-			_lastFilename = Common::String::format("s%04d.wav", _curSentenceId);
+			_lastFilename = Common::Path(Common::String::format("s%04d.wav", _curSentenceId));
 	}
 
 	_talkTime = _vm->_soundMgr->talkStart(_lastFilename);
@@ -185,18 +185,18 @@ void TextManager::someoneContinueTalk() {
 
 	Common::Point pos;
 	if (_talkingPersonId)
-		pos = positionString(_vm->_obj[_talkingPersonId]._lim.left, _vm->_obj[_talkingPersonId]._lim.top, _subString[_curSubString], false);
+		pos = positionString(_vm->_obj[_talkingPersonId]._area.left, _vm->_obj[_talkingPersonId]._area.top, _subString[_curSubString], false);
 	else
-		pos = positionString(_vm->_actor->_lim[0], _vm->_actor->_lim[2], _subString[_curSubString], true);
+		pos = positionString(_vm->_actor->_area[0], _vm->_actor->_area[2], _subString[_curSubString], true);
 
 	clearLastText();
 	if (ConfMan.getBool("subtitles"))
 		addText(pos, _subString[_curSubString], HYELLOW);
 
 	if (_curSubString)
-		_lastFilename = Common::String::format("s%04d%c.wav", _curSentenceId, _curSubString + 'a');
+		_lastFilename = Common::Path(Common::String::format("s%04d%c.wav", _curSentenceId, _curSubString + 'a'));
 	else
-		_lastFilename = Common::String::format("s%04d.wav", _curSentenceId);
+		_lastFilename = Common::Path(Common::String::format("s%04d.wav", _curSentenceId));
 
 	_talkTime = _vm->_soundMgr->talkStart(_lastFilename);
 	if (!_talkTime)
@@ -323,8 +323,8 @@ void TextManager::showObjName(uint16 obj, bool show) {
 		else
 			desc = _vm->_objName[_vm->_obj[obj]._name];
 
-		const uint16 x = (_vm->_obj[obj]._lim.left + _vm->_obj[obj]._lim.right) / 2;
-		const uint16 y = (obj == oWHEELS2C) ? 187 : _vm->_obj[obj]._lim.top;
+		const uint16 x = (_vm->_obj[obj]._area.left + _vm->_obj[obj]._area.right) / 2;
+		const uint16 y = (obj == oWHEELS2C) ? 187 : _vm->_obj[obj]._area.top;
 		Common::Point pos = positionString(x, y, desc.c_str(), false);
 
 		if (_vm->_lastObj)

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,11 +66,11 @@ bool Console::Cmd_DumpAnim(int argc, const char **argv) {
 
 	FastFile animFile;
 
-	Common::String fileName = argv[1];
+	Common::Path fileName(argv[1]);
 
 	bool found = false;
 	for (int i = 1; i <= 3; i++) {
-		Common::String animFileName = Common::String::format("nlanim.cd%d", i);
+		Common::Path animFileName(Common::String::format("nlanim.cd%d", i));
 		animFile.open(_vm, animFileName);
 
 		if (animFile.hasFile(fileName)) {
@@ -88,12 +87,12 @@ bool Console::Cmd_DumpAnim(int argc, const char **argv) {
 
 	Common::SeekableReadStream *dataFile = animFile.createReadStreamForMember(fileName);
 
-	Common::DumpFile *outFile = new Common::DumpFile();
-	Common::String outName = fileName + ".dump";
-	outFile->open(outName);
-	outFile->writeStream(dataFile, dataFile->size());
-	outFile->finalize();
-	outFile->close();
+	Common::DumpFile outFile;
+	Common::Path outName = fileName.append(".dump");
+	outFile.open(outName);
+	outFile.writeStream(dataFile, dataFile->size());
+	outFile.finalize();
+	outFile.close();
 
 	animFile.close();
 
@@ -106,21 +105,21 @@ bool Console::Cmd_DumpFile(int argc, const char **argv) {
 		return true;
 	}
 
-	Common::String fileName = argv[1];
+	Common::Path fileName(argv[1]);
 
 	if (!_vm->_dataFile.hasFile(fileName)) {
 		debugPrintf("File not found\n");
 		return true;
 	}
 
-	Common::SeekableReadStream *dataFile = fileName.hasSuffix(".cr") ? _vm->_dataFile.createReadStreamForCompressedMember(fileName) : _vm->_dataFile.createReadStreamForMember(fileName);
+	Common::SeekableReadStream *dataFile = fileName.baseName().hasSuffix(".cr") ? _vm->_dataFile.createReadStreamForCompressedMember(fileName) : _vm->_dataFile.createReadStreamForMember(fileName);
 
-	Common::DumpFile *outFile = new Common::DumpFile();
-	Common::String outName = fileName + ".dump";
-	outFile->open(outName);
-	outFile->writeStream(dataFile, dataFile->size());
-	outFile->finalize();
-	outFile->close();
+	Common::DumpFile outFile;
+	Common::Path outName = fileName.append(".dump");
+	outFile.open(outName);
+	outFile.writeStream(dataFile, dataFile->size());
+	outFile.finalize();
+	outFile.close();
 
 	return true;
 }

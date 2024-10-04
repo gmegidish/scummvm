@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,7 @@
 namespace Kyra {
 
 SoundPC98_LoK::SoundPC98_LoK(KyraEngine_v1 *vm, Audio::Mixer *mixer) :
-	Sound(vm, mixer), _musicTrackData(0), _sfxTrackData(0), _lastTrack(-1), _driver(0), _currentResourceSet(0) {
+	Sound(vm, mixer), _musicTrackData(nullptr), _sfxTrackData(nullptr), _lastTrack(-1), _driver(nullptr), _currentResourceSet(0) {
 	memset(&_resInfo, 0, sizeof(_resInfo));
 }
 
@@ -39,7 +38,7 @@ SoundPC98_LoK::~SoundPC98_LoK() {
 	delete[] _sfxTrackData;
 	delete _driver;
 	for (int i = 0; i < 3; i++)
-		initAudioResourceInfo(i, 0);
+		initAudioResourceInfo(i, nullptr);
 }
 
 bool SoundPC98_LoK::init() {
@@ -53,7 +52,7 @@ bool SoundPC98_LoK::init() {
 void SoundPC98_LoK::initAudioResourceInfo(int set, void *info) {
 	if (set >= kMusicIntro && set <= kMusicFinale) {
 		delete _resInfo[set];
-		_resInfo[set] = info ? new Common::String(((SoundResourceInfo_PC98*)info)->pattern) : 0;
+		_resInfo[set] = info ? new Common::String(((SoundResourceInfo_PC98*)info)->pattern) : nullptr;
 	}
 }
 
@@ -71,7 +70,7 @@ bool SoundPC98_LoK::hasSoundFile(uint file) const {
 void SoundPC98_LoK::loadSoundFile(uint) {
 	if (_currentResourceSet == kMusicIntro) {
 		delete[] _sfxTrackData;
-		_sfxTrackData = 0;
+		_sfxTrackData = nullptr;
 
 		int dataSize = 0;
 		const uint8 *tmp = _vm->staticres()->loadRawData(k1PC98IntroSfx, dataSize);
@@ -86,9 +85,9 @@ void SoundPC98_LoK::loadSoundFile(uint) {
 	}
 }
 
-void SoundPC98_LoK::loadSoundFile(Common::String file) {
+void SoundPC98_LoK::loadSoundFile(const Common::Path &file) {
 	delete[] _sfxTrackData;
-	_sfxTrackData = _vm->resource()->fileData(file.c_str(), 0);
+	_sfxTrackData = _vm->resource()->fileData(file, nullptr);
 }
 
 void SoundPC98_LoK::playTrack(uint8 track) {
@@ -101,7 +100,7 @@ void SoundPC98_LoK::playTrack(uint8 track) {
 
 	Common::String musicFile = Common::String::format(resPattern(), track);
 	delete[] _musicTrackData;
-	_musicTrackData = _vm->resource()->fileData(musicFile.c_str(), 0);
+	_musicTrackData = _vm->resource()->fileData(musicFile.c_str(), nullptr);
 	if (_musicEnabled)
 		_driver->loadMusicData(_musicTrackData);
 

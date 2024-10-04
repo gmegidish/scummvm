@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -99,7 +98,7 @@ void Mouse::buildMenu() {
 	// far as I can tell, that the new list is ordered in the same way as
 	// the old list, with new objects added to the end of it.
 
-	// Compare new with old. Anything in master thats not in new gets
+	// Compare new with old. Anything in master that's not in new gets
 	// removed from master - if found in new too, remove from temp
 
 	for (i = 0; i < _totalMasters; i++) {
@@ -151,7 +150,7 @@ void Mouse::buildMenu() {
 
 	for (i = 0; i < 15; i++) {
 		uint32 res = _masterMenuList[i].icon_resource;
-		byte *icon = NULL;
+		byte *icon = nullptr;
 
 		if (res) {
 			bool icon_colored;

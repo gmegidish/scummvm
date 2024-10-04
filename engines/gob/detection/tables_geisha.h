@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -30,84 +35,91 @@
 {
 	{
 		"geisha",
-		"",
+		"v1.0",
 		AD_ENTRY1s("disk1.stk", "6eebbb98ad90cd3c44549fc2ab30f632", 212153),
 		EN_ANY,
 		kPlatformDOS,
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeGeisha,
 	kFeaturesEGA | kFeaturesAdLib,
 	"disk1.stk", "intro.tot", 0
 },
 {
 	{
 		"geisha",
-		"",
+		"v1.0",
 		AD_ENTRY1s("disk1.stk", "6eebbb98ad90cd3c44549fc2ab30f632", 212153),
 		DE_DEU,
 		kPlatformDOS,
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeGeisha,
 	kFeaturesEGA | kFeaturesAdLib,
 	"disk1.stk", "intro.tot", 0
 },
 { // Supplied by misterhands in bug report #6079
 	{
 		"geisha",
-		"",
+		"v1.0",
 		AD_ENTRY1s("disk1.stk", "0c4c16090921664f50baefdfd24d7f5d", 211889),
 		FR_FRA,
 		kPlatformDOS,
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeGeisha,
 	kFeaturesEGA | kFeaturesAdLib,
 	"disk1.stk", "intro.tot", 0
 },
 { // Supplied by einstein95 in bug report #6102
 	{
 		"geisha",
-		"",
+		"v1.0",
 		AD_ENTRY1s("disk1.stk", "49107ac897e7c00af6c4ecd78a74a710", 212169),
 		ES_ESP,
 		kPlatformDOS,
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeGeisha,
 	kFeaturesEGA | kFeaturesAdLib,
 	"disk1.stk", "intro.tot", 0
 },
 { // Supplied by einstein95 in bug report #6102
 	{
 		"geisha",
-		"",
+		"v1.0",
 		AD_ENTRY1s("disk1.stk", "49107ac897e7c00af6c4ecd78a74a710", 212169),
 		IT_ITA,
 		kPlatformDOS,
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeGeisha,
 	kFeaturesEGA | kFeaturesAdLib,
 	"disk1.stk", "intro.tot", 0
 },
 { // Supplied by alestedx in bug report #6269
 	{
 		"geisha",
-		"",
+		"v1.0",
 		AD_ENTRY1s("disk1.stk", "49107ac897e7c00af6c4ecd78a74a710", 212164),
 		ES_ESP,
 		kPlatformDOS,
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeGeisha,
+	kFeaturesEGA | kFeaturesAdLib,
+	"disk1.stk", "intro.tot", 0
+},
+{ // Supplied by Hkz
+	{
+		"geisha",
+		"v1.0",
+		AD_ENTRY1s("disk1.stk", "49107ac897e7c00af6c4ecd78a74a710", 212164),
+		IT_ITA,
+		kPlatformDOS,
+		ADGF_NO_FLAGS,
+		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
+	},
 	kFeaturesEGA | kFeaturesAdLib,
 	"disk1.stk", "intro.tot", 0
 },
@@ -121,7 +133,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeGeisha,
 	kFeaturesEGA | kFeaturesAdLib,
 	"disk1.stk", "intro.tot", 0
 },
@@ -133,12 +144,11 @@
 		"geisha",
 		"",
 		AD_ENTRY1s("disk1.stk", "e5892f00917c62423e93f5fd9920cf47", 208120),
-		EN_ANY,
+		EN_GRB,
 		kPlatformAmiga,
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeGeisha,
 	kFeaturesEGA,
 	"disk1.stk", "intro.tot", 0
 },
@@ -153,7 +163,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeGeisha,
 	kFeaturesEGA,
 	"disk1.stk", "intro.tot", 0
 },
@@ -168,7 +177,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeGeisha,
 	kFeaturesEGA,
 	"disk1.stk", "intro.tot", 0
 },
@@ -183,7 +191,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeGeisha,
 	kFeaturesEGA,
 	"disk1.stk", "intro.tot", 0
 },

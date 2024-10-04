@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,20 +29,10 @@
 #include "common/list.h"
 #include "common/queue.h"
 #include "common/stack.h"
+#include "common/util.h"
 
 namespace Ultima {
 namespace Std {
-
-template<class T1, class T2>
-struct pair {
-	T1 first;
-	T2 second;
-
-	pair() {
-	}
-	pair(T1 first_, T2 second_) : first(first_), second(second_) {
-	}
-};
 
 template<class T>
 class vector : public Common::Array<T> {
@@ -102,36 +91,8 @@ public:
 	typedef const T const_reference;
 
 	vector() : Common::Array<T>() {}
-	vector(size_t newSize) : Common::Array<T>() {
-		Common::Array<T>::resize(newSize);
-	}
-	vector(size_t newSize, const T elem) {
-		resize(newSize, elem);
-	}
-
-	typename Common::Array<T>::iterator erase(typename Common::Array<T>::iterator pos) {
-		return Common::Array<T>::erase(pos);
-	}
-
-	typename Common::Array<T>::iterator erase(typename Common::Array<T>::iterator first,
-			typename Common::Array<T>::iterator last) {
-		Common::copy(last, this->_storage + this->_size, first);
-
-		int count = (last - first);
-		this->_size -= count;
-
-		// We also need to destroy the objects beyond the new size
-		for (uint idx = this->_size; idx < (this->_size + count); ++idx)
-			this->_storage[idx].~T();
-
-		return first;
-	}
-
-	void swap(vector &arr) {
-		SWAP(this->_capacity, arr._capacity);
-		SWAP(this->_size, arr._size);
-		SWAP(this->_storage, arr._storage);
-	}
+	vector(size_t newSize) : Common::Array<T>(newSize) {}
+	vector(size_t newSize, const T elem) : Common::Array<T>(newSize, elem) {}
 
 	reverse_iterator rbegin() {
 		return reverse_iterator(this, (int)Common::Array<T>::size() - 1);
@@ -150,16 +111,6 @@ public:
 		Common::Array<T>::remove_at(0);
 	}
 
-	void resize(size_t newSize) {
-		Common::Array<T>::resize(newSize);
-	}
-	void resize(size_t newSize, const T elem) {
-		size_t oldSize = Common::Array<T>::size();
-		resize(newSize);
-		for (size_t idx = oldSize; idx < newSize; ++idx)
-			this->operator[](idx) = elem;
-	}
-
 	T at(size_t index) const {
 		return (*this)[index];
 	}
@@ -172,17 +123,8 @@ class set {
 			return a == b;
 		}
 	};
-
-	class Items : public Common::Array<T> {
-	public:
-		void swap(Items &arr) {
-			SWAP(this->_capacity, arr._capacity);
-			SWAP(this->_size, arr._size);
-			SWAP(this->_storage, arr._storage);
-		}
-	};
 private:
-	Items _items;
+	Common::Array<T> _items;
 	Comparitor _comparitor;
 public:
 	typedef T *iterator;
@@ -240,24 +182,6 @@ public:
 	}
 };
 
-struct PointerHash {
-	Common::Hash<const char *> hash;
-
-	uint operator()(const void *ptr) const {
-		Common::String str = Common::String::format("%p", ptr);
-		return hash.operator()(str.c_str());
-	}
-};
-
-template<class Key, class Val, class HashFunc = Common::Hash<Key>,
-		 class EqualFunc = Common::EqualTo<Key> >
-class map : public Common::HashMap<Key, Val, HashFunc, EqualFunc> {
-public:
-	void insert(Std::pair<Key, Val> elem) {
-		this->operator[](elem.first) = elem.second;
-	}
-};
-
 template<class VAL>
 class deque : public Common::List<VAL> {
 public:
@@ -293,22 +217,12 @@ public:
 		bool operator!=(const reverse_iterator &rhs) { return _it != rhs._it; }
 	};
 public:
-	typename Common::List<T>::iterator insert(typename Common::List<T>::iterator pos,
-			const T &element) {
-		Common::List<T>::insert(pos, element);
-		return pos;
-	}
-
 	reverse_iterator rbegin() {
 		return reverse_iterator(Common::List<T>::reverse_begin());
 	}
 	reverse_iterator rend() {
 		return reverse_iterator(Common::List<T>::end());
 	}
-};
-
-template<class VAL>
-class stack : public Common::Stack<VAL> {
 };
 
 /**

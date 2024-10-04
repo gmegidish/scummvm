@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #ifndef DRAGONS_DRAGONS_H
@@ -46,7 +45,7 @@ enum kReadSaveHeaderError {
 	kRSHEIoError = 3
 };
 
-enum Flags {
+enum Flags : uint {
 	ENGINE_FLAG_1 = 1,
 	ENGINE_FLAG_2 = 2,
 	ENGINE_FLAG_4 = 4,
@@ -244,9 +243,9 @@ private:
 	void (*_sceneUpdateFunction)();
 	void (*_vsyncUpdateFunction)();
 protected:
-	virtual bool hasFeature(EngineFeature f) const override;
+	bool hasFeature(EngineFeature f) const override;
 public:
-	DragonsEngine(OSystem *syst, const ADGameDescription *desc);
+	DragonsEngine(OSystem *syst, const DragonsGameDescription *desc);
 	~DragonsEngine();
 
 	void updateEvents();
@@ -257,9 +256,9 @@ public:
 	static kReadSaveHeaderError readSaveHeader(Common::SeekableReadStream *in, SaveHeader &header, bool skipThumbnail = true);
 
 	Common::Error loadGameState(int slot) override;
-	bool canLoadGameStateCurrently() override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave) override;
-	bool canSaveGameStateCurrently() override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 	void syncSoundSettings() override;
 
 	void updateActorSequences();

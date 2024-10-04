@@ -15,6 +15,7 @@ MODULE_OBJS := \
 	draw.o \
 	draw_v1.o \
 	draw_v2.o \
+	draw_v7.o \
 	draw_bargon.o \
 	draw_fascin.o \
 	draw_playtoons.o \
@@ -27,6 +28,7 @@ MODULE_OBJS := \
 	goblin_v2.o \
 	goblin_v3.o \
 	goblin_v4.o \
+	goblin_v7.o \
 	hotspots.o \
 	iniconfig.o \
 	init.o \
@@ -42,6 +44,7 @@ MODULE_OBJS := \
 	inter_v1.o \
 	inter_geisha.o \
 	inter_v2.o \
+	inter_adibou1.o \
 	inter_bargon.o \
 	inter_fascin.o \
 	inter_littlered.o \
@@ -104,9 +107,9 @@ MODULE_OBJS := \
 	save/saveload_v4.o \
 	save/saveload_v6.o \
 	save/saveload_v7.o \
+	save/saveload_adibou1.o \
 	save/saveload_geisha.o \
 	save/saveload_fascin.o \
-	save/saveload_ajworld.o \
 	save/saveload_inca2.o \
 	save/saveload_playtoons.o \
 	save/saveconverter.o \

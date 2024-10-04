@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -81,7 +80,7 @@ void SoundManager::pause(bool shouldPause) {
 		_soundData[i]->pause(shouldPause);
 }
 
-bool SoundManager::setAmbientSound(const Common::String &fileName, bool fade, byte finalVolumeLevel) {
+bool SoundManager::setAmbientSound(const Common::Path &fileName, bool fade, byte finalVolumeLevel) {
 	// Determine which of the two ambient tracks to use
 	int newAmbientTrack = (_lastAmbient == 0) ? 1 : 0;
 
@@ -219,10 +218,10 @@ bool SoundManager::adjustAmbientSoundVolume(byte newVolumeLevel, bool fade, byte
 }
 
 bool SoundManager::isAmbientSoundPlaying() {
-	return _soundData[kAmbientIndexBase + _lastAmbient]->_handle != 0;
+	return _soundData[kAmbientIndexBase + _lastAmbient]->_handle != nullptr;
 }
 
-bool SoundManager::setSecondaryAmbientSound(const Common::String &fileName, bool fade, byte finalVolumeLevel) {
+bool SoundManager::setSecondaryAmbientSound(const Common::Path &fileName, bool fade, byte finalVolumeLevel) {
 	if (fileName.empty())
 		return false;
 
@@ -338,7 +337,7 @@ bool SoundManager::restartSecondaryAmbientSound() {
 	return true;
 }
 
-bool SoundManager::playSynchronousAIComment(const Common::String &fileName) {
+bool SoundManager::playSynchronousAIComment(const Common::Path &fileName) {
 	if (_paused)
 		return false;
 
@@ -353,7 +352,7 @@ bool SoundManager::playSynchronousAIComment(const Common::String &fileName) {
 
 	while (retVal && !_vm->shouldQuit() && _soundData[kAIVoiceIndex]->isPlaying()) {
 		timerCallback();
-		_vm->yield();
+		_vm->yield(nullptr, kAIVoiceIndex);
 	}
 
 	// Now that is has been played, kill it here and now
@@ -364,7 +363,7 @@ bool SoundManager::playSynchronousAIComment(const Common::String &fileName) {
 	return true;
 }
 
-bool SoundManager::playAsynchronousAIComment(const Common::String &fileName) {
+bool SoundManager::playAsynchronousAIComment(const Common::Path &fileName) {
 	if (_paused)
 		return false;
 
@@ -388,7 +387,13 @@ bool SoundManager::isAsynchronousAICommentPlaying() {
 	return _soundData[kAIVoiceIndex]->isPlaying();
 }
 
-int SoundManager::playSoundEffect(const Common::String &fileName, int volume, bool loop, bool oneShot) {
+void SoundManager::stopAsynchronousAIComment() {
+	if (isAsynchronousAICommentPlaying()) {
+		_soundData[kAIVoiceIndex]->stop();
+	}
+}
+
+int SoundManager::playSoundEffect(const Common::Path &fileName, int volume, bool loop, bool oneShot) {
 	if (fileName.empty())
 		return -1;
 
@@ -426,7 +431,7 @@ int SoundManager::playSoundEffect(const Common::String &fileName, int volume, bo
 	return effectChannel;
 }
 
-bool SoundManager::playSynchronousSoundEffect(const Common::String &fileName, int volume) {
+bool SoundManager::playSynchronousSoundEffect(const Common::Path &fileName, int volume) {
 	// Reset the cursor
 	Cursor oldCursor = _vm->_gfx->setCursor(kCursorWait);
 	g_system->updateScreen();
@@ -442,7 +447,7 @@ bool SoundManager::playSynchronousSoundEffect(const Common::String &fileName, in
 	// the sound finishes playing
 	do {
 		timerCallback();
-		_vm->yield();
+		_vm->yield(nullptr, kEffectsIndexBase + soundChannel);
 	} while (!_vm->shouldQuit() && isSoundEffectPlaying(soundChannel));
 
 	// One last callback check
@@ -523,7 +528,7 @@ bool SoundManager::adjustSoundEffectSoundVolume(int effectID, byte newVolumeLeve
 	return true;
 }
 
-bool SoundManager::playInterfaceSound(const Common::String &fileName) {
+bool SoundManager::playInterfaceSound(const Common::Path &fileName) {
 	if (_paused)
 		return false;
 
@@ -622,6 +627,10 @@ bool SoundManager::stop() {
 	return true;
 }
 
+void SoundManager::stopSound(int soundId) {
+	_soundData[soundId]->stop();
+}
+
 bool SoundManager::restart() {
 	if (!_paused)
 		return true;
@@ -713,7 +722,7 @@ SoundManager::Sound::~Sound() {
 	delete _soundData;
 }
 
-bool SoundManager::Sound::load(const Common::String &fileName) {
+bool SoundManager::Sound::load(const Common::Path &fileName) {
 	if (fileName.empty())
 		return false;
 
@@ -723,7 +732,7 @@ bool SoundManager::Sound::load(const Common::String &fileName) {
 		return false;
 
 	_soundData = Audio::makeWAVStream(stream, DisposeAfterUse::YES);
-	return _soundData != 0;
+	return _soundData != nullptr;
 }
 
 bool SoundManager::Sound::start() {

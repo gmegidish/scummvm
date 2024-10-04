@@ -2,21 +2,21 @@
 Graphics
 ===============
 
-Use the Graphics tab to change how games look when they are played.
+Use the Graphics tab to change how games look when they are played. 
 
 **To change settings globally:**
 
-	From the Launcher, select **Options**. The **Graphics** tab is the first tab shown.
+ 	From the Launcher, select **Global Options**. The Global Options menu opens on the **Graphics** tab.
 
 **To change settings for a specific game:**
 
-	Highlight the game in the games list, select **Edit Game** then select the **Graphics** tab.
+	From the Launcher, highlight the game in the games list, and select the **Game Options** button. If the Launcher is in grid view, select the game and then select the gear icon in the popup window. Select the **Graphics** tab.
 
 For a comprehensive look at how to use these settings, check out our :doc:`../advanced_topics/understand_graphics` guide.
 
 .. figure:: ../images/settings/graphics.png
 
-    The Graphics tab in the global settings
+    The Graphics tab in the Global Options menu
 
 All settings can also be changed in the :doc:`../advanced_topics/configuration_file`. The configuration key is listed in italics after each setting description.
 
@@ -25,15 +25,14 @@ All settings can also be changed in the :doc:`../advanced_topics/configuration_f
 .. _gfxmode:
 
 Graphics mode
-	Change the graphics backend used to render the ScummVM window on the screen. Different graphics modes have different options available (such as scalers and stretch modes).
+	Changes the graphics backend used to render the ScummVM window on the screen. Different graphics modes have different options available (such as scalers and stretch modes).
 
 	*gfx_mode*
-
 
 .. _render:
 
 Render mode
-	Changes how the game is rendered.
+	Changes how the game is rendered. This is only applicable to certain games which were released on multiple systems, and will reproduce what the game looked like on that system. 
 
 	*render_mode*
 
@@ -46,10 +45,28 @@ Stretch mode
 
 .. _scalers:
 
-Scalers
+Scaler
 	Changes the resolution of the game, while also selecting which filter is used to scale up the resolution. For example, a 2x scaler will take a 320x200 resolution game and scale it up to 640x400.
 
 	*scaler* and *scale_factor*
+
+Shaders
+	Similar to render mode, but applicable to all games, shaders are graphics filters that change the way a game looks. Select the **Shader** button, select a shader from the list and then select **Choose**. Alternatively, select **Pick file instead...** to browse your computer for shaders to use. ScummVM only accepts GLSL files in the .glslp format. 
+
+.. figure:: ../images/settings/shader_picker.png
+
+	The shader picker
+
+	Once back in the Graphics tab, select **Apply** to apply the chosen shader. A test pattern pops up to preview the chosen shader, along with a confirmation dialog. Choose **Yes** to keep the new shader, or **No** to revert to previous settings. ScummVM reverts to the previous setting in 10 seconds if no action is taken; this is a safety feature. 
+
+.. figure:: ../images/settings/test_pattern.png
+
+	The shader test pattern
+
+Update Shaders
+	Click on the Update Shaders button to download new or updated shaders. ScummVM will scan to find applicable shader packs; once these have been found, click on the **Download** button in the pop up window to start the download. Click the **Hide** button to close the window and continue the download in the background. Use the **Cancel download** button to cancel the download. Select **Clear Cache** to delete downloaded shaders.
+
+	The shader packs can also be downloaded manually from https://downloads.scummvm.org/frs/icons/ and must be placed in the :ref:`Icon Path <iconspath>`. 
 
 .. _ratio:
 
@@ -61,7 +78,7 @@ Aspect ratio correction
 .. _fullscreen:
 
 Fullscreen mode
-	Switches between playing games in a window, or playing them in fullscreen mode. Switch between the two by using :kbd:`Alt+F5` while in a game.
+	If ticked, games are played using the entire screen, instead of a window. The actual appearance is defined by the other graphics settings.
 
 	*fullscreen*
 

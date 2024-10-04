@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ags/lib/std/math.h"
 #include "ags/engine/ac/dynamic_sprite.h"
 #include "ags/shared/ac/common.h"
-#include "ags/engine/ac/character_cache.h"
 #include "ags/engine/ac/draw.h"
 #include "ags/engine/ac/game.h"
 #include "ags/shared/ac/game_setup_struct.h"
@@ -31,7 +28,6 @@
 #include "ags/engine/ac/global_dynamic_sprite.h"
 #include "ags/engine/ac/global_game.h"
 #include "ags/engine/ac/math.h"    // M_PI
-#include "ags/engine/ac/object_cache.h"
 #include "ags/engine/ac/path_helper.h"
 #include "ags/engine/ac/room_object.h"
 #include "ags/engine/ac/room_status.h"
@@ -128,13 +124,8 @@ void DynamicSprite_Flip(ScriptDynamicSprite *sds, int direction) {
 	// resize the sprite to the requested size
 	Bitmap *newPic = BitmapHelper::CreateTransparentBitmap(_GP(game).SpriteInfos[sds->slot].Width, _GP(game).SpriteInfos[sds->slot].Height, _GP(spriteset)[sds->slot]->GetColorDepth());
 
-	if (direction == 1)
-		newPic->FlipBlt(_GP(spriteset)[sds->slot], 0, 0, Shared::kBitmap_HFlip);
-	else if (direction == 2)
-		newPic->FlipBlt(_GP(spriteset)[sds->slot], 0, 0, Shared::kBitmap_VFlip);
-	else if (direction == 3)
-		newPic->FlipBlt(_GP(spriteset)[sds->slot], 0, 0, Shared::kBitmap_HVFlip);
-
+	// AGS script FlipDirection corresponds to internal GraphicFlip
+	newPic->FlipBlt(_GP(spriteset)[sds->slot], 0, 0, static_cast<GraphicFlip>(direction));
 	delete _GP(spriteset)[sds->slot];
 
 	// replace the bitmap in the sprite set
@@ -272,7 +263,7 @@ int DynamicSprite_SaveToFile(ScriptDynamicSprite *sds, const char *namm) {
 		quit("!DynamicSprite.SaveToFile: sprite has been deleted");
 
 	auto filename = String(namm);
-	if (filename.FindChar('.') == (size_t)-1)
+	if (filename.FindChar('.') == String::NoIndex)
 		filename.Append(".bmp");
 
 	ResolvedPath rp;
@@ -320,10 +311,8 @@ ScriptDynamicSprite *DynamicSprite_CreateFromScreenShot(int width, int height) {
 
 	Bitmap *newPic = CopyScreenIntoBitmap(width, height);
 
-	update_polled_stuff_if_runtime();
-
 	// replace the bitmap in the sprite set
-	add_dynamic_sprite(gotSlot, ReplaceBitmapWithSupportedFormat(newPic));
+	add_dynamic_sprite(gotSlot, newPic);
 	ScriptDynamicSprite *new_spr = new ScriptDynamicSprite(gotSlot);
 	return new_spr;
 }
@@ -380,20 +369,27 @@ ScriptDynamicSprite *DynamicSprite_CreateFromDrawingSurface(ScriptDrawingSurface
 }
 
 ScriptDynamicSprite *DynamicSprite_Create(int width, int height, int alphaChannel) {
+	if (width <= 0 || height <= 0) {
+		debug_script_warn("WARNING: DynamicSprite.Create: invalid size %d x %d, will adjust", width, height);
+		width = MAX(1, width);
+		height = MAX(1, height);
+	}
+
 	data_to_game_coords(&width, &height);
 
 	int gotSlot = _GP(spriteset).GetFreeIndex();
 	if (gotSlot <= 0)
 		return nullptr;
 
-	Bitmap *newPic = BitmapHelper::CreateTransparentBitmap(width, height, _GP(game).GetColorDepth());
+	Bitmap *newPic = CreateCompatBitmap(width, height);
 	if (newPic == nullptr)
 		return nullptr;
 
+	newPic->ClearTransparent();
 	if ((alphaChannel) && (_GP(game).GetColorDepth() < 32))
 		alphaChannel = false;
 
-	add_dynamic_sprite(gotSlot, ReplaceBitmapWithSupportedFormat(newPic), alphaChannel != 0);
+	add_dynamic_sprite(gotSlot, newPic, alphaChannel != 0);
 	ScriptDynamicSprite *new_spr = new ScriptDynamicSprite(gotSlot);
 	return new_spr;
 }

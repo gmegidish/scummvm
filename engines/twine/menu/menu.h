@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,7 @@ namespace TwinE {
 #define MAX_BUTTONS 10
 #define PLASMA_WIDTH 320
 #define PLASMA_HEIGHT 50
+#define kDemoMenu 9999
 #define kQuitEngine 9998
 
 class BodyData;
@@ -44,9 +44,10 @@ private:
 		// is used to calc the height where the first button will appear
 		MenuSettings_NumberOfButtons = 1,
 		MenuSettings_ButtonsBoxHeight = 2,
-		MenuSettings_HeaderEnd = 3, // TODO: unknown
-		MenuSettings_FirstButtonState = 4,
-		MenuSettings_FirstButton = 5
+		MenuSettings_TextBankId = 3,
+
+		MenuSettings_FirstButtonState,
+		MenuSettings_FirstButton
 	};
 
 	int16 _settings[4 + MAX_BUTTONS * 2] {0};
@@ -113,7 +114,7 @@ public:
 	}
 
 	void setTextBankId(TextBankId textBankIndex) {
-		_settings[MenuSettings_HeaderEnd] = (int16)textBankIndex;
+		_settings[MenuSettings_TextBankId] = (int16)textBankIndex;
 	}
 
 	void addButton(TextId textId, int16 state = 0) {
@@ -154,8 +155,10 @@ private:
 	MenuSettings _saveManageMenuState;
 	MenuSettings _giveUpMenuState;
 	MenuSettings _mainMenuState;
+	MenuSettings _newGameMenuState;
 	MenuSettings _advOptionsMenuState;
 	MenuSettings _optionsMenuState;
+	MenuSettings _languageMenuState;
 
 	// objectRotation
 	int16 _itemAngle[NUM_INVENTORY_ITEMS];
@@ -179,17 +182,20 @@ private:
 	/** Used to run the advanced options menu */
 	int32 advoptionsMenu();
 	/** Used to run the volume menu */
-	int32 volumeMenu();
+	int32 volumeOptions();
+	int32 languageMenu();
 	/** Used to run the save game management menu */
 	int32 savemanageMenu();
 	void drawInfoMenu(int16 left, int16 top, int16 width);
 	Common::Rect calcBehaviourRect(int32 left, int32 top, HeroBehaviourType behaviour) const;
 	bool isBehaviourHovered(int32 left, int32 top, HeroBehaviourType behaviour) const;
 	void drawBehaviour(int32 left, int32 top, HeroBehaviourType behaviour, int32 angle, bool cantDrawBox);
-	void drawInventoryItems(int32 left, int32 top);
-	void prepareAndDrawBehaviour(int32 left, int32 top, int32 angle, HeroBehaviourType behaviour);
-	void drawBehaviourMenu(int32 left, int32 top, int32 angle);
-	void drawItem(int32 left, int32 top, int32 item);
+	void drawListInventory(int32 left, int32 top);
+	void prepareAndDrawBehaviour(int32 left, int32 top, int32 angle, HeroBehaviourType behaviour); // DrawComportement
+	void drawBehaviourMenu(int32 left, int32 top, int32 angle); // DrawMenuComportement
+	Common::Rect calcItemRect(int32 left, int32 top, int32 item, int32 *centerX = nullptr, int32 *centerY = nullptr) const;
+	// draw the 2d sprite of the item
+	void drawOneInventory(int32 left, int32 top, int32 item);
 
 	void drawSpriteAndString(int32 left, int32 top, const SpriteData &spriteData, const Common::String &str, int32 color = COLOR_GOLD);
 
@@ -223,7 +229,8 @@ public:
 	 * @param menuSettings menu settings array with the information to build the menu options
 	 * @return pressed menu button identification
 	 */
-	int32 processMenu(MenuSettings *menuSettings, bool showCredits = true);
+	void menuDemo();
+	int32 doGameMenu(MenuSettings *menuSettings);
 
 	bool init();
 
@@ -239,7 +246,9 @@ public:
 	int32 optionsMenu();
 
 	/** Process hero behaviour menu */
-	void processBehaviourMenu();
+	void processBehaviourMenu(bool behaviourMenu); // MenuComportement
+
+	int32 newGameClassicMenu();
 
 	/** Process in-game inventory menu */
 	void processInventoryMenu();

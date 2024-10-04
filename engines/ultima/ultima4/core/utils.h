@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,7 @@ extern void assertMsg(bool exp, const char *desc, ...);
 /* The AdjustValue functions used to be #define'd macros, but these are
  * evil for several reasons, *especially* when they contain multiple
  * statements, and have if statements in them. The macros did both.
- * See http://www.parashift.com/c++-faq-lite/inline-functions.html#faq-9.5
+ * See https://isocpp.org/wiki/faq/inline-functions#inline-vs-macros
  * for more information.
  */
 inline void AdjustValueMax(int &v, int val, int max) {
@@ -115,7 +114,7 @@ Common::String xu4_to_string(int val);
 
 /**
  * Splits a Common::String into substrings, divided by the charactars in
- * separators.  Multiple adjacent seperators are treated as one.
+ * separators.  Multiple adjacent separators are treated as one.
  */
 Std::vector<Common::String> split(const Common::String &s, const Common::String &separators);
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -248,15 +247,15 @@ static inline void blur_createSourceLine(byte *createLine, byte *fromLine, int o
 	memcpy(createLine + overlapOnLeft * 4, fromLine, width * 4);
 
 	for (miniX = 0; miniX < overlapOnLeft; miniX++) {
-		createLine[miniX * 4] = fromLine[0];
-		createLine[miniX * 4 + 1] = fromLine[1];
-		createLine[miniX * 4 + 2] = fromLine[2];
+		createLine[miniX * 4] = fromLine[1];
+		createLine[miniX * 4 + 1] = fromLine[2];
+		createLine[miniX * 4 + 2] = fromLine[3];
 	}
 
 	for (miniX = width + overlapOnLeft; miniX < width + s_matrixEffectWidth - 1; miniX++) {
-		createLine[miniX * 4] = fromLine[width * 4 - 4];
-		createLine[miniX * 4 + 1] = fromLine[width * 4 - 3];
-		createLine[miniX * 4 + 2] = fromLine[width * 4 - 2];
+		createLine[miniX * 4] = fromLine[width * 4 - 3];
+		createLine[miniX * 4 + 1] = fromLine[width * 4 - 2];
+		createLine[miniX * 4 + 2] = fromLine[width * 4 - 1];
 	}
 }
 
@@ -281,11 +280,11 @@ bool GraphicsManager::blurScreen() {
 			for (y = 0; y < s_matrixEffectHeight; y++) {
 				int miniY = CLIP<int>(y - overlapAbove - 1, 0, _sceneHeight - 1);
 
-				blur_createSourceLine(sourceLine[y], (byte *)_origBackdropSurface.getBasePtr(0, miniY), overlapOnLeft, _sceneWidth);
+				blur_createSourceLine(sourceLine[y], (byte *)_backdropSurface.getBasePtr(0, miniY), overlapOnLeft, _sceneWidth);
 			}
 
 			for (y = 0; y < (int)_sceneHeight; y++) {
-				thisLine = (byte *)_origBackdropSurface.getBasePtr(0, y);
+				thisLine = (byte *)_backdropSurface.getBasePtr(0, y);
 
 				//-------------------------
 				// Scroll source lines
@@ -299,7 +298,7 @@ bool GraphicsManager::blurScreen() {
 					int h = s_matrixEffectHeight - 1;
 					int miniY = CLIP<int>(y + (s_matrixEffectHeight - overlapAbove - 1), 0, _sceneHeight - 1);
 
-					blur_createSourceLine(sourceLine[h], (byte *)_origBackdropSurface.getBasePtr(0, miniY), overlapOnLeft, _sceneWidth);
+					blur_createSourceLine(sourceLine[h], (byte *)_backdropSurface.getBasePtr(0, miniY), overlapOnLeft, _sceneWidth);
 				}
 				for (x = 0; x < (int)_sceneWidth; x++) {
 					int totalRed = 0;
@@ -310,9 +309,9 @@ bool GraphicsManager::blurScreen() {
 						byte *pixel = &sourceLine[miniY][x * 4];
 						for (int miniX = 0; miniX < s_matrixEffectWidth; ++miniX) {
 
-							totalRed += pixel[0] **matrixElement;
-							totalGreen += pixel[1] **matrixElement;
-							totalBlue += pixel[2] **matrixElement;
+							totalRed += pixel[1] **matrixElement;
+							totalGreen += pixel[2] **matrixElement;
+							totalBlue += pixel[3] **matrixElement;
 							++matrixElement;
 							pixel += 4;
 						}
@@ -326,20 +325,20 @@ bool GraphicsManager::blurScreen() {
 					totalBlue = (totalBlue + s_matrixEffectDivide / 2) / s_matrixEffectDivide + s_matrixEffectBase;
 					totalBlue = (totalBlue < 0) ? 0 : ((totalBlue > 255) ? 255 : totalBlue);
 
+//					*thisLine = totalAlpha;
+					++thisLine;
 					*thisLine = totalRed;
 					++thisLine;
 					*thisLine = totalGreen;
 					++thisLine;
 					*thisLine = totalBlue;
 					++thisLine;
-//					*thisLine = totalAlpha;
-					++thisLine;
 				}
 			}
 		}
 
 		for (y = 0; y < s_matrixEffectHeight; y++) {
-			delete sourceLine[y];
+			delete[] sourceLine[y];
 		}
 		delete[] sourceLine;
 		sourceLine = NULL;

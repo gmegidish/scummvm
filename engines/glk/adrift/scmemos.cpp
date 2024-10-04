@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -364,7 +363,7 @@ void memo_save_command(sc_memo_setref_t memento, const sc_char *command, sc_int 
 	}
 
 	/* Save the string into this slot, and normalize it for neatness. */
-	strcpy(history->command, command);
+	Common::strcpy_s(history->command, history->allocation, command);
 	sc_normalize_string(history->command);
 	history->sequence = memento->history_count + 1;
 	history->timestamp = timestamp;
@@ -470,7 +469,7 @@ void memo_next_command(sc_memo_setref_t memento, const sc_char **command,
 		*turns = history->turns;
 	} else {
 		/* Return NULL and zeroes if no more commands available. */
-		*command = NULL;
+		*command = nullptr;
 		*sequence = 0;
 		*timestamp = 0;
 		*turns = 0;
@@ -523,7 +522,7 @@ const sc_char *memo_find_command(sc_memo_setref_t memento, sc_int sequence) {
 	 * efficient here, but this is a rarely called function so we'll do it the
 	 * simpler way.
 	 */
-	matched = NULL;
+	matched = nullptr;
 	for (index_ = 0; index_ < MEMO_HISTORY_TABLE_SIZE; index_++) {
 		sc_historyref_t history;
 
@@ -539,7 +538,7 @@ const sc_char *memo_find_command(sc_memo_setref_t memento, sc_int sequence) {
 	 * history was not full, this will still return NULL as it should, since
 	 * this unused history's command found by the search above will be NULL.
 	 */
-	return matched ? matched->command : NULL;
+	return matched ? matched->command : nullptr;
 }
 
 

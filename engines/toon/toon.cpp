@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, MojoTouch has
+ * exclusively licensed this code on March 23th, 2024, to be used in
+ * closed-source products.
+ * Therefore, any contributions (commits) to it will also be dual-licensed.
  *
  */
 
@@ -29,9 +35,10 @@
 #include "common/memstream.h"
 #include "common/translation.h"
 
+#include "audio/mididrv.h"
 #include "engines/advancedDetector.h"
 #include "engines/util.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/surface.h"
 #include "graphics/thumbnail.h"
 #include "gui/saveload.h"
@@ -48,6 +55,20 @@
 namespace Toon {
 
 void ToonEngine::init() {
+	// Assign default values to the ScummVM configuration manager, in case settings are missing
+	ConfMan.registerDefault("music_volume", 192);
+	ConfMan.registerDefault("speech_volume", 192);
+	ConfMan.registerDefault("sfx_volume", 192);
+	ConfMan.registerDefault("music_mute", "false");
+	ConfMan.registerDefault("speech_mute", "false");
+	ConfMan.registerDefault("sfx_mute", "false");
+	ConfMan.registerDefault("mute", "false");
+	ConfMan.registerDefault("subtitles", "true");
+	ConfMan.registerDefault("talkspeed", 60); // Can go up to 255
+	if (!_isEnglishDemo) {
+		ConfMan.registerDefault("alternative_font", "false");
+	}
+
 	_currentScriptRegion = 0;
 	_resources = new Resources(this);
 	_animationManager = new AnimationManager(this);
@@ -57,24 +78,15 @@ void ToonEngine::init() {
 	_mainSurface = new Graphics::Surface();
 	_mainSurface->create(TOON_BACKBUFFER_WIDTH, TOON_BACKBUFFER_HEIGHT, Graphics::PixelFormat::createFormatCLUT8());
 
-	_finalPalette = new uint8[768];
-	_backupPalette = new uint8[768];
-	_additionalPalette1 = new uint8[69];
-	_additionalPalette2 = new uint8[69];
-	_cutawayPalette = new uint8[768];
-	_universalPalette = new uint8[96];
-	_fluxPalette = new uint8[24];
+	_finalPalette = new uint8[768]();
+	_backupPalette = new uint8[768]();
+	_additionalPalette1 = new uint8[69]();
+	_additionalPalette2 = new uint8[69]();
+	_cutawayPalette = new uint8[768]();
+	_universalPalette = new uint8[96]();
+	_fluxPalette = new uint8[24]();
 
-	memset(_finalPalette, 0, 768);
-	memset(_backupPalette, 0, 768);
-	memset(_additionalPalette1, 0, 69);
-	memset(_additionalPalette2, 0, 69);
-	memset(_cutawayPalette, 0, 768);
-	memset(_universalPalette, 0, 96);
-	memset(_fluxPalette, 0, 24);
-
-	_conversationData = new int16[4096];
-	memset(_conversationData, 0, 4096 * sizeof(int16));
+	_conversationData = new int16[4096]();
 
 	_shouldQuit = false;
 	_scriptStep = 0;
@@ -93,12 +105,10 @@ void ToonEngine::init() {
 
 	_firstFrame = false;
 
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "MISC");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "ACT1");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "ACT2");
-
-	syncSoundSettings();
 
 	_pathFinding = new PathFinding();
 
@@ -109,15 +119,13 @@ void ToonEngine::init() {
 	// load subtitles if available (if fails to load it only return false, so there's no need to check)
 	resources()->openPackage("SUBTITLES.PAK");
 
-	for (int32 i = 0; i < 32; i++)
-		_characters[i] = NULL;
+	for (int32 i = 0; i < 32; ++i)
+		_characters[i] = nullptr;
 
 	_characters[0] = new CharacterDrew(this);
 	_characters[1] = new CharacterFlux(this);
 	_drew = _characters[0];
 	_flux = _characters[1];
-
-
 
 	// preload walk anim for flux and drew
 	_drew->loadWalkAnimation("STNDWALK.CAF");
@@ -162,6 +170,13 @@ void ToonEngine::init() {
 	_audioManager->loadAudioPack(0, "GENERIC.SVI", "GENERIC.SVL");
 	_audioManager->loadAudioPack(2, "GENERIC.SEI", "GENERIC.SEL");
 
+
+	// Query the selected music device (defaults to MT_AUTO device).
+	MidiDriver::DeviceHandle dev = MidiDriver::getDeviceHandle(ConfMan.hasKey("music_driver") ? ConfMan.get("music_driver") : Common::String("auto"));
+	_noMusicDriver = (MidiDriver::getMusicType(dev) == MT_NULL || MidiDriver::getMusicType(dev) == MT_INVALID);
+
+	syncSoundSettings();
+
 	_lastMouseButton = 0;
 	_mouseButton = 0;
 	_lastRenderTime = _system->getMillis();
@@ -184,39 +199,72 @@ void ToonEngine::parseInput() {
 	_mouseY = _event->getMousePos().y;
 	_mouseButton = _event->getButtonState();
 
+	bool breakPollEventloop = false;
 	Common::Event event;
-	while (_event->pollEvent(event)) {
+	while (!breakPollEventloop && _event->pollEvent(event)) {
 
-		const bool hasModifier = (event.kbd.flags & Common::KBD_NON_STICKY) != 0;
+		//const bool hasModifier = (event.kbd.flags & Common::KBD_NON_STICKY) != 0;
 		switch (event.type) {
-		case Common::EVENT_KEYDOWN:
-			if ((event.kbd.keycode == Common::KEYCODE_ESCAPE || event.kbd.keycode == Common::KEYCODE_SPACE) && !hasModifier) {
-				_audioManager->stopCurrentVoice();
-			}
-			if (event.kbd.keycode == Common::KEYCODE_F5 && !hasModifier) {
-				if (canSaveGameStateCurrently())
-					saveGame(-1, "");
-			}
-			if (event.kbd.keycode == Common::KEYCODE_F6 && !hasModifier) {
-				if (canLoadGameStateCurrently())
-					loadGame(-1);
-			}
-			if (event.kbd.keycode == Common::KEYCODE_t && !hasModifier) {
-				_showConversationText = !_showConversationText;
-			}
-			if (event.kbd.keycode == Common::KEYCODE_m && !hasModifier) {
-				_audioManager->muteMusic(!_audioManager->isMusicMuted());
-			}
-			if (event.kbd.keycode == Common::KEYCODE_d && !hasModifier) {
-				_audioManager->muteVoice(!_audioManager->isVoiceMuted());
-			}
-			if (event.kbd.keycode == Common::KEYCODE_s && !hasModifier) {
-				_audioManager->muteSfx(!_audioManager->isSfxMuted());
-			}
-			if (event.kbd.keycode == Common::KEYCODE_F1 && !hasModifier && !_gameState->_inMenu) {
-				showOptions();
-			}
+		case Common::EVENT_MOUSEMOVE:
+			_mouseX = event.mouse.x;
+			_mouseY = event.mouse.y;
+			break;
 
+		case Common::EVENT_LBUTTONDOWN:
+			// fall through
+		case Common::EVENT_LBUTTONUP:
+			// fall through
+		case Common::EVENT_RBUTTONDOWN:
+			// fall through
+		case Common::EVENT_RBUTTONUP:
+			_mouseButton = _event->getButtonState();
+			breakPollEventloop = true;
+			break;
+
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+			switch (event.customType) {
+			case kActionStopCurrentVoice:
+				_audioManager->stopCurrentVoice();
+				break;
+			case kActionSaveGame:
+				if (_gameState->_inMenu) {
+					playSoundWrong();
+				} else if (canSaveGameStateCurrently())
+					saveGame(-1, "");
+				break;
+			case kActionLoadGame:
+				if (_gameState->_inMenu) {
+					playSoundWrong();
+				} else if (canLoadGameStateCurrently())
+					loadGame(-1);
+				break;
+			case kActionSubtitles:
+				ConfMan.setBool("subtitles", !ConfMan.getBool("subtitles"));
+				syncSoundSettings();
+				break;
+			case kActionMuteMusic:
+				ConfMan.setBool("music_mute", !ConfMan.getBool("music_mute"));
+				syncSoundSettings();
+				break;
+			case kActionSpeechMute:
+				ConfMan.setBool("speech_mute", !ConfMan.getBool("speech_mute"));
+				syncSoundSettings();
+				break;
+			case kActionSFXMute:
+				ConfMan.setBool("sfx_mute", !ConfMan.getBool("sfx_mute"));
+				syncSoundSettings();
+				break;
+			case kActionShowOptions:
+				if (_gameState->_inMenu) {
+					playSoundWrong();
+				} else
+					showOptions();
+				break;
+			default:
+				break;
+			}
+			break;
+		case Common::EVENT_KEYDOWN:
 			if (event.kbd.flags & Common::KBD_ALT) {
 				int slotNum = event.kbd.keycode - (event.kbd.keycode >= Common::KEYCODE_KP0 ? Common::KEYCODE_KP0 : Common::KEYCODE_0);
 				if (slotNum >= 0 && slotNum <= 9 && canSaveGameStateCurrently()) {
@@ -274,11 +322,10 @@ void ToonEngine::disableTimer(int32 timerId) {
 	_gameState->_timerEnabled[timerId] = false;
 }
 void ToonEngine::updateTimers() {
-	for (int32 i = 0; i < 2; i++) {
+	for (int32 i = 0; i < 2; ++i) {
 		if (_gameState->_timerEnabled[i]) {
 			if (_gameState->_timerDelay[i] > -1 && getOldMilli() > _gameState->_timerTimeout[i]) {
 				if (i == 0) {
-
 					EMCState *status = &_scriptState[_currentScriptRegion];
 					_script->init(status, &_scriptData);
 
@@ -287,13 +334,13 @@ void ToonEngine::updateTimers() {
 					status->regs[1] = _mouseY;
 					status->regs[2] = 0;
 
-					_currentScriptRegion++;
+					++_currentScriptRegion;
 
 					_script->start(status, 7);
 					while (_script->run(status))
 						waitForScriptStep();
 
-					_currentScriptRegion--;
+					--_currentScriptRegion;
 
 					_gameState->_timerTimeout[i] = getOldMilli() + _gameState->_timerDelay[i] * getTickLength();
 
@@ -464,18 +511,18 @@ void ToonEngine::doMagnifierEffect() {
 	};
 
 	byte tempBuffer[25 * 25];
-	for (int32 y = -12; y <= 12; y++) {
+	for (int32 y = -12; y <= 12; ++y) {
 		int32 cy = CLIP<int32>(posY + y, 0, TOON_BACKBUFFER_HEIGHT-1);
-		for (int32 x = -12; x <= 12; x++) {
+		for (int32 x = -12; x <= 12; ++x) {
 			int32 cx = CLIP<int32>(posX + x, 0, TOON_BACKBUFFER_WIDTH-1);
 			uint8 *curRow = (uint8 *)surface.getBasePtr(cx, cy);
 			tempBuffer[(y + 12) * 25 + x + 12] = *curRow;
 		}
 	}
 
-	for (int32 y = -12; y <= 12; y++) {
+	for (int32 y = -12; y <= 12; ++y) {
 		int32 cy = CLIP<int32>(posY + y, 0, TOON_BACKBUFFER_HEIGHT-1);
-		for (int32 x = -12; x <= 12; x++) {
+		for (int32 x = -12; x <= 12; ++x) {
 			int32 dist = y * y + x * x;
 			if (dist > 144)
 				continue;
@@ -505,7 +552,7 @@ void ToonEngine::copyToVirtualScreen(bool updateScreen) {
 	} else {
 
 		int32 offX = 0;
-		for (uint i = 0; i < _oldDirtyRects.size(); i++) {
+		for (uint i = 0; i < _oldDirtyRects.size(); ++i) {
 			Common::Rect rect = _oldDirtyRects[i];
 			rect.translate(-state()->_currentScrollValue, 0);
 			offX = 0;
@@ -521,7 +568,7 @@ void ToonEngine::copyToVirtualScreen(bool updateScreen) {
 			}
 		}
 
-		for (uint i = 0; i < _dirtyRects.size(); i++) {
+		for (uint i = 0; i < _dirtyRects.size(); ++i) {
 			Common::Rect rect = _dirtyRects[i];
 			rect.translate(-state()->_currentScrollValue, 0);
 			offX = 0;
@@ -579,26 +626,25 @@ enum MainMenuMasks {
 };
 
 enum OptionMenuSelections {
-	OPTIONMENUHOTSPOT_NONE					= 0,
-	OPTIONMENUHOTSPOT_PLAY					= 1,
-	OPTIONMENUHOTSPOT_QUIT					= 2,
-	OPTIONMENUHOTSPOT_TEXT					= 3,
-	OPTIONMENUHOTSPOT_TEXTSPEED				= 4,
-	OPTIONMENUHOTSPOT_VOLUMESFX				= 5,
-	OPTIONMENUHOTSPOT_VOLUMESFXSLIDER		= 6,
-	OPTIONMENUHOTSPOT_VOLUMEMUSIC			= 7,
-	OPTIONMENUHOTSPOT_VOLUMEMUSICSLIDER		= 8,
-	OPTIONMENUHOTSPOT_VOLUMEVOICE			= 9,
-	OPTIONMENUHOTSPOT_VOLUMEVOICESLIDER		= 10,
-	OPTIONMENUHOTSPOT_SPEAKERBUTTON			= 11,
-	OPTIONMENUHOTSPOT_SPEAKERLEVER			= 12,
-	OPTIONMENUHOTSPOT_VIDEO_MODE			= 13
+	OPTIONMENUHOTSPOT_NONE                  = 0,
+	OPTIONMENUHOTSPOT_PLAY                  = 1,
+	OPTIONMENUHOTSPOT_QUIT                  = 2,
+	OPTIONMENUHOTSPOT_TEXT                  = 3,
+	OPTIONMENUHOTSPOT_TEXTSPEED             = 4,
+	OPTIONMENUHOTSPOT_VOLUMESFX             = 5,
+	OPTIONMENUHOTSPOT_VOLUMESFXSLIDER       = 6,
+	OPTIONMENUHOTSPOT_VOLUMEMUSIC           = 7,
+	OPTIONMENUHOTSPOT_VOLUMEMUSICSLIDER     = 8,
+	OPTIONMENUHOTSPOT_VOLUMEVOICE           = 9,
+	OPTIONMENUHOTSPOT_VOLUMEVOICESLIDER     = 10,
+	OPTIONMENUHOTSPOT_SPEAKERBUTTON         = 11,
+	OPTIONMENUHOTSPOT_SPEAKERLEVER          = 12,
+	OPTIONMENUHOTSPOT_VIDEO_MODE            = 13
 };
 
 enum OptionMenuMasks {
 	OPTIONMENUMASK_EVERYWHERE = 1
 };
-
 
 struct MenuFile {
 	int menuMask;
@@ -630,7 +676,7 @@ static const MenuFile optionMenuFiles[] = {
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_QUIT,					"QUITBUTN.CAF",	0 },	// "Quit" button
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VIDEO_MODE,			"VIDMODE.CAF",	0 },	// "Video mode" slider
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_TEXTSPEED,			"TXTSPEED.CAF",	0 },	// "Text speed" slider
-	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_TEXT,					"TEXTDIAL.CAF",	0},		// "Text" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_TEXT,					"TEXTDIAL.CAF",	0 },	// "Text" button
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMESFX,			"SFXBUTN.CAF",	0 },	// "SFX" button
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMESFXSLIDER,		"SFXSLDR.CAF",	0 },	// "SFX volume" slider
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMEVOICE,			"VOICEBTN.CAF",	0 },	// "Voice" button
@@ -638,7 +684,7 @@ static const MenuFile optionMenuFiles[] = {
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMEMUSIC,			"MUSICBTN.CAF",	0 },	// "Music" button
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMEMUSICSLIDER,	"MUSICSLD.CAF",	0 },	// "Music volume" button
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_SPEAKERBUTTON,		"XTRABUTN.CAF",	0 },	// Right speaker button
-	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_SPEAKERLEVER,			"XTRALEVR.CAF",	0},		// Left speaker switch
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_SPEAKERLEVER,			"XTRALEVR.CAF",	0 },	// Left speaker switch
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"ANTENNAL.CAF",	6 },	// Decorative animation
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"ANTENNAR.CAF",	6 },	// Decorative animation
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"BIGREDL.CAF",	6 },	// Decorative animation
@@ -663,7 +709,7 @@ static const MenuFile optionMenuFilesEnglishDemo[] = {
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_QUIT,					"QUITBUTN.CAF",	0 },	// "Quit" button
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VIDEO_MODE,			"VIDMODE.CAF",	0 },	// "Video mode" slider
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_TEXTSPEED,			"TXTSPEED.CAF",	0 },	// "Text speed" slider
-	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_TEXT,					"TEXTDIAL.CAF",	0},		// "Text" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_TEXT,					"TEXTDIAL.CAF",	0 },	// "Text" button
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMESFX,			"SFXBUTN.CAF",	0 },	// "SFX" button
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMESFXSLIDER,		"SFXSLDR.CAF",	0 },	// "SFX volume" slider
 	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMEVOICE,			"VOICEBTN.CAF",	0 },	// "Voice" button
@@ -681,11 +727,12 @@ struct MenuEntry {
 	int animateOnFrame;
 	int animateCurFrame;
 	int activeFrame;
+	int targetFrame;
 	bool playOnce;
+	bool handled;
 };
 
 bool ToonEngine::showOptions() {
-
 	storePalette();
 	fadeOut(5);
 	Picture* optionPicture = new Picture(this);
@@ -700,39 +747,67 @@ bool ToonEngine::showOptions() {
 	_gameState->_mouseHidden = false;
 
 	// English demo options menu has less animations and no SFX
-	int optionMenuEntryCount = _isEnglishDemo ? OPTIONMENU_ENTRYCOUNT_ENGLISH_DEMO : OPTIONMENU_ENTRYCOUNT;
+	const int optionMenuEntryCount = _isEnglishDemo ? OPTIONMENU_ENTRYCOUNT_ENGLISH_DEMO : OPTIONMENU_ENTRYCOUNT;
+
 	const MenuFile *optionMenuFilesPtr = _isEnglishDemo ? optionMenuFilesEnglishDemo : optionMenuFiles;
 	MenuEntry *entries = new MenuEntry[optionMenuEntryCount];
 
-	for (int entryNr = 0; entryNr < optionMenuEntryCount; entryNr++) {
+	for (int entryNr = 0; entryNr < optionMenuEntryCount; ++entryNr) {
 		entries[entryNr].menuMask = optionMenuFilesPtr[entryNr].menuMask;
 		entries[entryNr].id = optionMenuFilesPtr[entryNr].id;
 		entries[entryNr].animation = new Animation(this);
 		entries[entryNr].animation->loadAnimation(optionMenuFilesPtr[entryNr].animationFile);
-		if (entries[entryNr].id != OPTIONMENUHOTSPOT_NONE)
+		if (entries[entryNr].id != OPTIONMENUHOTSPOT_NONE) {
 			entries[entryNr].rect = entries[entryNr].animation->getRect();
+			// Bug fix for short hotspot rectangle for the text speed slider
+			// This bug is an original game bug.
+			// NOTE If low resolution mode is supported in the future,
+			//      this height increment should be adjusted accordingly
+			if (entries[entryNr].id == OPTIONMENUHOTSPOT_TEXTSPEED)
+				entries[entryNr].rect.bottom += 10;
+
+			if (entries[entryNr].id == OPTIONMENUHOTSPOT_TEXT && !_isEnglishDemo) {
+				// For the game proper we need to extend the rectangle for the TEXT hotspot
+				// above and to the left and right, so that we can detect clicking on
+				// each of the labels around the dial.
+				// NOTE If low resolution mode is supported in the future,
+				//      these rectangle dimensions should be adjusted accordingly
+				entries[entryNr].rect.top -= 20;
+				entries[entryNr].rect.left -= 65;
+				entries[entryNr].rect.right += 65;
+			}
+		}
 		entries[entryNr].animateOnFrame = optionMenuFilesPtr[entryNr].animateOnFrame;
 		entries[entryNr].animateCurFrame = 0;
 		entries[entryNr].activeFrame = 0;
+		entries[entryNr].targetFrame = -1;
 		entries[entryNr].playOnce = false;
+		entries[entryNr].handled = false;
 	}
 
-	entries[10].activeFrame = _audioManager->_mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType) * (entries[10].animation->_numFrames - 1) / 256;
-	entries[8].activeFrame = _audioManager->_mixer->getVolumeForSoundType(Audio::Mixer::kSpeechSoundType) * (entries[8].animation->_numFrames - 1) / 256;
-	entries[6].activeFrame = _audioManager->_mixer->getVolumeForSoundType(Audio::Mixer::kSFXSoundType) * (entries[6].animation->_numFrames - 1) / 256;
+	// Setting dial / option value in the game options menu
+	entries[10].activeFrame = ConfMan.getInt("music_volume")  * (entries[10].animation->_numFrames - 1) / Audio::Mixer::kMaxMixerVolume;
+	entries[8].activeFrame = ConfMan.getInt("speech_volume") * (entries[8].animation->_numFrames - 1) / Audio::Mixer::kMaxMixerVolume;
+	entries[6].activeFrame = ConfMan.getInt("sfx_volume") * (entries[6].animation->_numFrames - 1) / Audio::Mixer::kMaxMixerVolume;
 
-	entries[9].activeFrame = _audioManager->isMusicMuted() ? 0 : 3;
-	entries[7].activeFrame = _audioManager->isVoiceMuted() ? 0 : 3;
-	entries[5].activeFrame = _audioManager->isSfxMuted() ? 0 : 3;
+	entries[9].activeFrame = _audioManager->isMusicMuted() ? 0 : entries[9].animation->_numFrames - 1;
+	entries[7].activeFrame = _audioManager->isVoiceMuted() ? 0 : entries[7].animation->_numFrames - 1;
+	entries[5].activeFrame = _audioManager->isSfxMuted() ? 0 : entries[5].animation->_numFrames - 1;
+
+	entries[3].activeFrame = _textSpeed * (entries[3].animation->_numFrames - 1) / 255;
 
 	entries[2].activeFrame = entries[2].animation->_numFrames - 1;
 
+	const int textOffFrame = _isEnglishDemo ? 0 : 4;
+	const int textOnFrameFont1 = _isEnglishDemo ? 8 : 0;
+	const int textOnFrameFont2 = 8;
+
 	if (!_showConversationText) {
-		entries[4].activeFrame = 4;
+		entries[4].activeFrame = textOffFrame;
 	} else if (_useAlternativeFont) {
-		entries[4].activeFrame = 8;
+		entries[4].activeFrame = textOnFrameFont2;
 	} else {
-		entries[4].activeFrame = 0;
+		entries[4].activeFrame = textOnFrameFont1;
 	}
 
 	// Variables for the English demo sparkle animation.
@@ -744,17 +819,26 @@ bool ToonEngine::showOptions() {
 
 	int menuMask = OPTIONMENUMASK_EVERYWHERE;
 	int ratioX = 0;
-	bool doExit = false;
+	int ratioY = 0;
+	bool doExitMenu = false;
 	bool exitGame = false;
+	bool targetFrameExceeded = false;
+
 	_gameState->_inMenu = true;
 	dirtyAllScreen();
 	_firstFrame = true;
 
-	while (!doExit) {
+	int32 oldMouseX = _mouseX;
+	int32 oldMouseY = _mouseY;
+	int32 oldMouseButton = _mouseButton;
+	int targetVol, targetTextSpeed;
+	Common::String chosenConfVolumeSoundKey;
+
+	while (!doExitMenu) {
 
 		int clickingOn = OPTIONMENUHOTSPOT_NONE;
 		int clickingOnSprite = 0;
-		int clickRelease = false;
+		bool clickRelease = false;
 
 		while (!clickRelease) {
 
@@ -766,7 +850,8 @@ bool ToonEngine::showOptions() {
 			}
 			clearDirtyRects();
 
-			for (int entryNr = 0; entryNr < optionMenuEntryCount; entryNr++) {
+			// Handle animations
+			for (int entryNr = 0; entryNr < optionMenuEntryCount; ++entryNr) {
 				if (entries[entryNr].menuMask & menuMask) {
 					int animPosX = 0;
 					int animPosY = 0;
@@ -775,7 +860,7 @@ bool ToonEngine::showOptions() {
 						if (sparkleDelay > 0) {
 							// Don't show the next sparkle until the delay has
 							// counted down.
-							sparkleDelay--;
+							--sparkleDelay;
 							continue;
 						} else if (entries[entryNr].animateCurFrame == 0 && entries[entryNr].activeFrame == 0) {
 							// Start of a new sparkle animation. Generate a
@@ -786,202 +871,393 @@ bool ToonEngine::showOptions() {
 						animPosX = sparklePosX;
 						animPosY = sparklePosY;
 					}
-					if (entries[entryNr].animateOnFrame) {
-						entries[entryNr].animateCurFrame++;
+					if (entries[entryNr].animateOnFrame) { // animateOnFrame is used to slow down an animation
+						++entries[entryNr].animateCurFrame; // counter towards animateOnFrame
 						if (entries[entryNr].animateOnFrame <= entries[entryNr].animateCurFrame) {
-							entries[entryNr].activeFrame++;
-							if (entries[entryNr].activeFrame >= entries[entryNr].animation->_numFrames) {
-								entries[entryNr].activeFrame = 0;
-								if (entries[entryNr].playOnce) {
+
+							if (entries[entryNr].targetFrame >= 0) {
+								if (entries[entryNr].targetFrame >= entries[entryNr].animation->_numFrames) {
+									entries[entryNr].targetFrame = entries[entryNr].animation->_numFrames - 1;
+								}
+								targetFrameExceeded = false;
+								if (entries[entryNr].activeFrame <= entries[entryNr].targetFrame) {
+									++entries[entryNr].activeFrame;
+									if (entries[entryNr].activeFrame > entries[entryNr].targetFrame)
+										targetFrameExceeded = true;
+								} else if (entries[entryNr].activeFrame >= entries[entryNr].targetFrame) {
+									--entries[entryNr].activeFrame;
+									if (entries[entryNr].activeFrame < entries[entryNr].targetFrame)
+										targetFrameExceeded = true;
+								}
+
+								if (targetFrameExceeded) {
 									entries[entryNr].animateOnFrame = 0;
-									entries[entryNr].playOnce = false;
+									entries[entryNr].activeFrame = entries[entryNr].targetFrame;
+									entries[entryNr].targetFrame = -1;
+
+									if (entries[entryNr].id == OPTIONMENUHOTSPOT_PLAY) { // PLAY BUTTON
+										exitGame = false;
+										doExitMenu = true;
+									}
+
+									if (entries[entryNr].id == OPTIONMENUHOTSPOT_QUIT) { // QUIT BUTTON
+										exitGame = showQuitConfirmationDialogue();
+										if (exitGame)  {
+											doExitMenu = true;
+										} else {
+											entries[entryNr].activeFrame = 0;
+										}
+									}
 								}
-								if (entryNr == 20 && entries[entryNr].animateOnFrame > 0) {
-									playSFX(-3, 128);
+							} else {
+								++entries[entryNr].activeFrame;
+								if (!_isEnglishDemo && entries[entryNr].activeFrame == 3) {
+									if (entryNr == 19)  {
+										// The left (SPEECH test) horn has 7 frames.
+										// Frame 3 works best to play the Burp Speech sound
+										_audioManager->playVoice(316, true);
+									} else if (entryNr == 20) {
+										// The right (SFX test) horn has 7 frames.
+										// Frame 3 works best to play the Bell SFX sound
+										playSFX(-3, 128);
+									}
 								}
-								if (_isEnglishDemo && entryNr == 11)
-									// Sparkle animation has finished. Generate
-									// a random delay until the next sparkle.
-									sparkleDelay = randRange(0, 100);
+								if (entries[entryNr].activeFrame >= entries[entryNr].animation->_numFrames) {
+									entries[entryNr].activeFrame = 0;
+									if (_isEnglishDemo && entryNr == 11) {
+										// Sparkle animation has finished. Generate
+										// a random delay until the next sparkle.
+										sparkleDelay = randRange(0, 100);
+									}
+									if (entries[entryNr].playOnce) {
+										entries[entryNr].animateOnFrame = 0;
+										entries[entryNr].playOnce = false;
+									}
+								}
 							}
 							entries[entryNr].animateCurFrame = 0;
 						}
 					}
-					int32 frameNr = entries[entryNr].activeFrame;
-					entries[entryNr].animation->drawFrame(*_mainSurface, frameNr, animPosX, animPosY);
+					entries[entryNr].animation->drawFrame(*_mainSurface, entries[entryNr].activeFrame, animPosX, animPosY);
 				}
 			}
 
-			parseInput();
+			oldMouseX = _mouseX;
+			oldMouseY = _mouseY;
+			oldMouseButton = _mouseButton;
 
-			copyToVirtualScreen(true);
-			if (_firstFrame) {
-				_firstFrame = false;
-				fadeIn(5);
-			}
-			_system->delayMillis(17);
-
-			if (_mouseButton & 1) {
-				// left mouse button pushed down
+			if (_shouldQuit || doExitMenu) {
 				clickingOn = OPTIONMENUHOTSPOT_NONE;
-				for (int entryNr = 0; entryNr < optionMenuEntryCount; entryNr++) {
-					if (entries[entryNr].menuMask & menuMask) {
-						if (entries[entryNr].id != OPTIONMENUHOTSPOT_NONE) {
-							if (entries[entryNr].rect.contains(_mouseX, _mouseY)) {
+				clickRelease = true;
+				doExitMenu = true;
+				// Prevent holding left mouse button down to be detected
+				// as a new click when returning from menu
+				_lastMouseButton = _mouseButton;
+			} else {
+				// update mouse clicking state and handle hotkeys
+				parseInput();
+
+				copyToVirtualScreen(true);
+				if (_firstFrame) {
+					_firstFrame = false;
+					fadeIn(5);
+				}
+				_system->delayMillis(17);
+
+				// animations related with handling hotkey commands
+				if (entries[4].animateOnFrame == 0) {
+					if (!_showConversationText && entries[4].activeFrame != textOffFrame) {
+						entries[4].targetFrame = textOffFrame;
+						entries[4].animateOnFrame = 1;
+						entries[4].playOnce = true;
+					} else if (_showConversationText
+					           && (entries[4].activeFrame != textOnFrameFont1
+							       && (_isEnglishDemo || (!_isEnglishDemo && entries[4].activeFrame != textOnFrameFont2)))) {
+						if (!_isEnglishDemo) {
+							entries[4].targetFrame = ConfMan.getBool("alternative_font") ? textOnFrameFont2 : textOnFrameFont1;
+						} else
+							entries[4].targetFrame = textOnFrameFont1;
+						entries[4].animateOnFrame = 1;
+						entries[4].playOnce = true;
+					}
+					if (!_isEnglishDemo && entries[4].animateOnFrame == 1) {
+						playSFX(-9, 128);
+					}
+				}
+
+				if (entries[9].animateOnFrame == 0) {
+					if (!_audioManager->isMusicMuted() && entries[9].activeFrame != entries[9].animation->_numFrames - 1) {
+						entries[9].targetFrame = entries[9].animation->_numFrames - 1;
+						entries[9].animateOnFrame = 1;
+						entries[9].playOnce = true;
+					} else if (_audioManager->isMusicMuted() && entries[9].activeFrame != 0) {
+						entries[9].targetFrame = 0;
+						entries[9].animateOnFrame = 1;
+						entries[9].playOnce = true;
+					}
+					if (!_isEnglishDemo && entries[9].animateOnFrame == 1) {
+						playSFX(-7, 128);
+					}
+				}
+
+				if (entries[7].animateOnFrame == 0) {
+					if (!_audioManager->isVoiceMuted() && entries[7].activeFrame != entries[7].animation->_numFrames - 1) {
+						entries[7].targetFrame = entries[7].animation->_numFrames - 1;
+						entries[7].animateOnFrame = 1;
+						entries[7].playOnce = true;
+					} else if (_audioManager->isVoiceMuted() && entries[7].activeFrame != 0) {
+						entries[7].targetFrame = 0;
+						entries[7].animateOnFrame = 1;
+						entries[7].playOnce = true;
+					}
+					if (!_isEnglishDemo && entries[7].animateOnFrame == 1) {
+						playSFX(-7, 128);
+					}
+				}
+
+				if (entries[5].animateOnFrame == 0) {
+					if (!_audioManager->isSfxMuted() && entries[5].activeFrame != entries[5].animation->_numFrames - 1) {
+						entries[5].targetFrame = entries[5].animation->_numFrames - 1;
+						entries[5].animateOnFrame = 1;
+						entries[5].playOnce = true;
+					} else if (_audioManager->isSfxMuted() && entries[5].activeFrame != 0) {
+						entries[5].targetFrame = 0;
+						entries[5].animateOnFrame = 1;
+						entries[5].playOnce = true;
+					}
+					if (!_isEnglishDemo && entries[5].animateOnFrame == 1) {
+						playSFX(-7, 128);
+					}
+				}
+
+				// Avoid unnecessary checks and actions if mouse has not moved or changed status
+				if (oldMouseButton != _mouseButton
+				    || ((_mouseButton & 1)
+				        && (oldMouseX != _mouseX || oldMouseY != _mouseY))) {
+					if (_mouseButton & 1) {
+						// left mouse button pressed
+						for (int entryNr = 0; entryNr < optionMenuEntryCount; ++entryNr) {
+							if (entries[entryNr].menuMask & menuMask
+							    && entries[entryNr].id != OPTIONMENUHOTSPOT_NONE
+							    && entries[entryNr].rect.contains(_mouseX, _mouseY)
+							    && ((clickingOn == OPTIONMENUHOTSPOT_NONE && !(oldMouseButton & 1))
+							        || (clickingOn == entries[entryNr].id && !entries[entryNr].handled))) {
 								clickingOn = entries[entryNr].id;
 								clickingOnSprite = entryNr;
+								// Note, due to how rect.contains() is implemented,
+								// the difference (_mouseX - entries[entryNr].rect.left)
+								// will always be lower than entries[entryNr].rect.width()
+								// and thus ratioX will always be lower than 256.
+								// This is intentional.
 								ratioX = (_mouseX - entries[entryNr].rect.left) * 256 / entries[entryNr].rect.width();
+								ratioY = (_mouseY - entries[entryNr].rect.top) * 256 / entries[entryNr].rect.height();
+								break;
 							}
+						}
+					} else if (clickingOn != OPTIONMENUHOTSPOT_NONE) {
+						// left mouse button released/not pushed down
+						clickRelease = true;
+						clickingOn = OPTIONMENUHOTSPOT_NONE;
+						entries[clickingOnSprite].handled = false;
+					}
+
+					// handle sliders
+					switch (clickingOn) {
+					case OPTIONMENUHOTSPOT_VOLUMEMUSICSLIDER:
+						// fall through
+					case OPTIONMENUHOTSPOT_VOLUMEVOICESLIDER:
+						// fall through
+					case OPTIONMENUHOTSPOT_VOLUMESFXSLIDER:
+						entries[clickingOnSprite].targetFrame = ratioX * (entries[clickingOnSprite].animation->_numFrames) / 256;
+						entries[clickingOnSprite].animateOnFrame = 1;
+						entries[clickingOnSprite].playOnce = true;
+
+						targetVol = entries[clickingOnSprite].targetFrame * Audio::Mixer::kMaxMixerVolume / (entries[clickingOnSprite].animation->_numFrames - 1);
+						// Since we use integer division, find a value for targetVol that will produce the same targetFrame we have calculated
+						// We need this value for setting the proper frame for the slider needle indicator, when resuming the Options menu.
+						while (entries[clickingOnSprite].targetFrame > targetVol * (entries[clickingOnSprite].animation->_numFrames - 1) / Audio::Mixer::kMaxMixerVolume)
+							++targetVol;
+
+						if (clickingOn == OPTIONMENUHOTSPOT_VOLUMEMUSICSLIDER) {
+							chosenConfVolumeSoundKey = "music_volume";
+						} else if (clickingOn == OPTIONMENUHOTSPOT_VOLUMEVOICESLIDER) {
+							chosenConfVolumeSoundKey = "speech_volume";
+						} else {
+							chosenConfVolumeSoundKey = "sfx_volume";
+						}
+						if (ConfMan.getInt(chosenConfVolumeSoundKey) != targetVol) {
+							ConfMan.setInt(chosenConfVolumeSoundKey, targetVol);
+							syncSoundSettings();
+						}
+						break;
+
+					case OPTIONMENUHOTSPOT_TEXTSPEED:
+						entries[clickingOnSprite].targetFrame = ratioX * (entries[clickingOnSprite].animation->_numFrames) / 256;
+						entries[clickingOnSprite].animateOnFrame = 1;
+						entries[clickingOnSprite].playOnce = true;
+
+						targetTextSpeed = 0;
+						targetTextSpeed = entries[clickingOnSprite].targetFrame * 255 / (entries[clickingOnSprite].animation->_numFrames - 1);
+						// Since we use integer division, find a value for _textSpeed that will produce the same targetFrame we have calculated
+						// We need this value for setting the proper frame for the slider needle indicator, when resuming the Options menu.
+						while (entries[clickingOnSprite].targetFrame > targetTextSpeed * (entries[clickingOnSprite].animation->_numFrames - 1) / 255)
+							++targetTextSpeed;
+
+						if (ConfMan.getInt("talkspeed") != targetTextSpeed) {
+							ConfMan.setInt("talkspeed", targetTextSpeed);
+							syncSoundSettings();
+						}
+						break;
+
+					default:
+						break;
+					}
+
+					// handle buttons
+					if (clickingOn != OPTIONMENUHOTSPOT_NONE && !entries[clickingOnSprite].handled) {
+						switch (clickingOn) {
+						case OPTIONMENUHOTSPOT_PLAY:
+							// fall through
+						case OPTIONMENUHOTSPOT_QUIT:
+							entries[clickingOnSprite].handled = true;
+							entries[clickingOnSprite].targetFrame = entries[clickingOnSprite].animation->_numFrames - 1;
+							entries[clickingOnSprite].animateOnFrame = 1;
+							entries[clickingOnSprite].playOnce = true;
+							if (!_isEnglishDemo) {
+								if (clickingOn == OPTIONMENUHOTSPOT_PLAY)
+									playSFX(-7, 128);
+								else
+									playSFX(-8, 128);
+							}
+							break;
+
+						case OPTIONMENUHOTSPOT_VOLUMEMUSIC:
+							// fall through
+						case OPTIONMENUHOTSPOT_VOLUMEVOICE:
+							// fall through
+						case OPTIONMENUHOTSPOT_VOLUMESFX:
+							entries[clickingOnSprite].handled = true;
+							if (entries[clickingOnSprite].activeFrame != entries[clickingOnSprite].animation->_numFrames - 1) {
+								entries[clickingOnSprite].targetFrame = entries[clickingOnSprite].animation->_numFrames - 1;
+								entries[clickingOnSprite].animateOnFrame = 1;
+								entries[clickingOnSprite].playOnce = true;
+								if (clickingOn == OPTIONMENUHOTSPOT_VOLUMEMUSIC)
+									ConfMan.setBool("music_mute", false);
+								else if (clickingOn == OPTIONMENUHOTSPOT_VOLUMEVOICE)
+									ConfMan.setBool("speech_mute", false);
+								else
+									ConfMan.setBool("sfx_mute", false);
+								syncSoundSettings();
+							} else {
+								entries[clickingOnSprite].targetFrame = 0;
+								entries[clickingOnSprite].animateOnFrame = 1;
+								entries[clickingOnSprite].playOnce = true;
+								if (clickingOn == OPTIONMENUHOTSPOT_VOLUMEMUSIC) {
+									ConfMan.setBool("music_mute", true);
+								} else if (clickingOn == OPTIONMENUHOTSPOT_VOLUMEVOICE) {
+									ConfMan.setBool("speech_mute", true);
+								} else
+									ConfMan.setBool("sfx_mute", true);
+								syncSoundSettings();
+							}
+
+							if (!_isEnglishDemo)
+								playSFX(-7, 128);
+							break;
+
+						case OPTIONMENUHOTSPOT_SPEAKERBUTTON:
+							entries[clickingOnSprite].handled = true;
+							entries[clickingOnSprite].animateOnFrame = 4;
+							entries[clickingOnSprite].playOnce = true;
+
+							entries[19].animateOnFrame = 4;
+							entries[19].playOnce = true;
+
+							if (!_isEnglishDemo)
+								playSFX(-10, 128);
+							break;
+
+						case OPTIONMENUHOTSPOT_SPEAKERLEVER:
+							entries[clickingOnSprite].handled = true;
+							// Speaker lever animation has 2 frames (on and off position).
+							// Set the activeFrame to the other position than the current one.
+							entries[clickingOnSprite].activeFrame = entries[clickingOnSprite].activeFrame ? 0 : 1;
+							if (entries[clickingOnSprite].activeFrame == 1) {
+								entries[20].animateOnFrame = 4;
+								entries[20].playOnce = false;
+							} else {
+								entries[20].playOnce = true;
+							}
+							if (!_isEnglishDemo)
+								playSFX(-10, 128);
+							break;
+
+						case OPTIONMENUHOTSPOT_TEXT:
+							entries[clickingOnSprite].handled = true;
+							if (!_isEnglishDemo) {
+								if ((ratioY <= 151 && ratioX >= 88 && ratioX <= 169)
+								    || (ratioY > 151 && ratioX >= 122 && ratioX <= 145) ) {
+									ConfMan.setBool("subtitles", false);
+									syncSoundSettings();
+									entries[clickingOnSprite].targetFrame = 4;
+									entries[clickingOnSprite].animateOnFrame = 1;
+									entries[clickingOnSprite].playOnce = true;
+								} else if (ratioY > 151 && ratioX > 145) {
+									ConfMan.setBool("subtitles", true);
+									ConfMan.setBool("alternative_font", true);
+									syncSoundSettings();
+									entries[clickingOnSprite].targetFrame = 8;
+									entries[clickingOnSprite].animateOnFrame = 1;
+									entries[clickingOnSprite].playOnce = true;
+								} else if (ratioY > 151 && ratioX < 122) {
+									ConfMan.setBool("subtitles", true);
+									ConfMan.setBool("alternative_font", false);
+									syncSoundSettings();
+									entries[clickingOnSprite].targetFrame = 0;
+									entries[clickingOnSprite].animateOnFrame = 1;
+									entries[clickingOnSprite].playOnce = true;
+								}
+								if (entries[clickingOnSprite].animateOnFrame == 1)
+									playSFX(-9, 128);
+							} else {
+								// In the demo, the behavior is different:
+								// Clicking anywhere in the Text Dial hotspot
+								// toggles between "Text Off" and "Text On"
+								switch (entries[clickingOnSprite].activeFrame) {
+								case 0:
+									ConfMan.setBool("subtitles", true);
+									syncSoundSettings();
+									entries[clickingOnSprite].targetFrame = 8;
+									entries[clickingOnSprite].animateOnFrame = 1;
+									entries[clickingOnSprite].playOnce = true;
+									break;
+
+								case 8:
+									ConfMan.setBool("subtitles", false);
+									syncSoundSettings();
+									entries[clickingOnSprite].targetFrame = 0;
+									entries[clickingOnSprite].animateOnFrame = 1;
+									entries[clickingOnSprite].playOnce = true;
+									break;
+
+								default:
+									break;
+								}
+							}
+							break;
+
+						// don't allow change to video mode
+						case OPTIONMENUHOTSPOT_VIDEO_MODE:
+							entries[clickingOnSprite].handled = true;
+							playSoundWrong();
+							break;
+
+						default:
+							break;
 						}
 					}
 				}
-			} else {
-				// left mouse button released/not pushed down
-				if (clickingOn != OPTIONMENUHOTSPOT_NONE)
-					clickRelease = true;
 			}
-
-			// handle sliders
-			if (clickingOn == OPTIONMENUHOTSPOT_VOLUMEMUSICSLIDER) {
-				entries[clickingOnSprite].activeFrame = ratioX * (entries[clickingOnSprite].animation->_numFrames) / 256;
-				int vol = entries[clickingOnSprite].activeFrame * 256 / entries[clickingOnSprite].animation->_numFrames;
-				_audioManager->_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, vol);
-			}
-
-			if (clickingOn == OPTIONMENUHOTSPOT_VOLUMEVOICESLIDER) {
-				entries[clickingOnSprite].activeFrame = ratioX * (entries[clickingOnSprite].animation->_numFrames) / 256;
-				int vol = entries[clickingOnSprite].activeFrame * 256 / entries[clickingOnSprite].animation->_numFrames;
-				_audioManager->_mixer->setVolumeForSoundType(Audio::Mixer::kSpeechSoundType, vol);
-			}
-
-			if (clickingOn == OPTIONMENUHOTSPOT_VOLUMESFXSLIDER) {
-				entries[clickingOnSprite].activeFrame = ratioX * (entries[clickingOnSprite].animation->_numFrames) / 256;
-				int vol = entries[clickingOnSprite].activeFrame * 256 / entries[clickingOnSprite].animation->_numFrames;
-				_audioManager->_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, vol);
-			}
-
-			if (clickingOn == OPTIONMENUHOTSPOT_TEXTSPEED) {
-				entries[clickingOnSprite].activeFrame = ratioX * (entries[clickingOnSprite].animation->_numFrames) / 256;
-			}
-
-			if (clickingOn == OPTIONMENUHOTSPOT_PLAY) {
-				entries[0].activeFrame = entries[0].animation->_numFrames - 1;
-			} else {
-				entries[0].activeFrame = 0;
-			}
-
-			if (clickingOn == OPTIONMENUHOTSPOT_QUIT) {
-				entries[1].activeFrame = entries[1].animation->_numFrames - 1;
-			} else {
-				entries[1].activeFrame = 0;
-			}
-
-			if (_shouldQuit) {
-				clickingOn = OPTIONMENUHOTSPOT_NONE;
-				clickRelease = true;
-				doExit = true;
-			}
-		}
-
-		if (clickingOn == OPTIONMENUHOTSPOT_VOLUMEMUSIC) {
-			if (entries[9].activeFrame == 0) {
-				entries[9].activeFrame = 3;
-				_audioManager->muteMusic(false);
-			} else {
-				entries[9].activeFrame = 0;
-				_audioManager->muteMusic(true);
-			}
-			if (!_isEnglishDemo)
-				playSFX(-7, 128);
-		}
-
-		if (clickingOn == OPTIONMENUHOTSPOT_VOLUMEVOICE) {
-			if (entries[7].activeFrame == 0) {
-				entries[7].activeFrame = 3;
-				_audioManager->muteVoice(false);
-			} else {
-				entries[7].activeFrame = 0;
-				_audioManager->muteVoice(true);
-			}
-			if (!_isEnglishDemo)
-				playSFX(-7, 128);
-		}
-
-		if (clickingOn == OPTIONMENUHOTSPOT_VOLUMESFX) {
-			if (entries[5].activeFrame == 0) {
-				entries[5].activeFrame = 3;
-				_audioManager->muteSfx(false);
-			} else {
-				entries[5].activeFrame = 0;
-				_audioManager->muteSfx(true);
-			}
-			if (!_isEnglishDemo)
-				playSFX(-7, 128);
-		}
-
-		if (clickingOn == OPTIONMENUHOTSPOT_SPEAKERBUTTON) {
-			entries[11].animateOnFrame = 4;
-			entries[11].playOnce = true;
-
-			entries[19].animateOnFrame = 4;
-			entries[19].playOnce = true;
-
-			playSFX(-10, 128);
-			if (!_isEnglishDemo)
-				_audioManager->playVoice(316, true);
-		}
-
-		if (clickingOn == OPTIONMENUHOTSPOT_SPEAKERLEVER) {
-
-			entries[12].activeFrame = 1 - entries[12].activeFrame;
-			if(entries[12].activeFrame == 1) {
-				entries[20].animateOnFrame = 4;
-				entries[20].playOnce = false;
-				playSFX(-3, 128);
-			} else {
-				entries[20].playOnce = true;
-			}
-			if (!_isEnglishDemo)
-				playSFX(-9, 128);
-		}
-
-		if (clickingOn == OPTIONMENUHOTSPOT_TEXT) {
-
-			if (entries[4].activeFrame == 0) {
-				_showConversationText = false;
-				entries[4].activeFrame = 4;
-			} else if (entries[4].activeFrame == 4) {
-				_showConversationText = true;
-				setFont(true);
-				entries[4].activeFrame = 8;
-			} else if(entries[4].activeFrame == 8) {
-				_showConversationText = true;
-				setFont(false);
-				entries[4].activeFrame = 0;
-			}
-
-			if (!_isEnglishDemo)
-				playSFX(-9, 128);
-		}
-
-		// don't allow change to video mode
-		if (clickingOn == OPTIONMENUHOTSPOT_VIDEO_MODE) {
-			playSoundWrong();
-		}
-
-		if (clickingOn == OPTIONMENUHOTSPOT_PLAY) {
-			doExit = true;
-			exitGame = false;
-			if (!_isEnglishDemo)
-				_audioManager->playSFX(10, 128, true);
-		}
-
-		if (clickingOn == OPTIONMENUHOTSPOT_QUIT) {
-			doExit = true;
-			exitGame = true;
-			_shouldQuit = true;
-			if (!_isEnglishDemo)
-				_audioManager->playSFX(10, 128, true);
 		}
 	}
 
@@ -994,13 +1270,19 @@ bool ToonEngine::showOptions() {
 	restorePalette();
 	dirtyAllScreen();
 
+	for (int entryNr = 0; entryNr < optionMenuEntryCount; ++entryNr)
+		delete entries[entryNr].animation;
 	delete[] entries;
+
 	delete optionPicture;
 
+	if (!_shouldQuit && exitGame) {
+		_shouldQuit = exitGame;
+	}
 	return exitGame;
 }
 
-bool ToonEngine::showMainmenu(bool &loadedGame) {
+bool ToonEngine::showMainMenu(bool &loadedGame) {
 	Picture *mainmenuPicture = new Picture(this);
 	mainmenuPicture->loadPicture("TITLESCR.CPS");
 	mainmenuPicture->setupPalette();
@@ -1008,47 +1290,51 @@ bool ToonEngine::showMainmenu(bool &loadedGame) {
 
 	MenuEntry entries[MAINMENU_ENTRYCOUNT];
 
-	for (int entryNr = 0; entryNr < MAINMENU_ENTRYCOUNT; entryNr++) {
+	for (int entryNr = 0; entryNr < MAINMENU_ENTRYCOUNT; ++entryNr) {
 		entries[entryNr].menuMask = mainMenuFiles[entryNr].menuMask;
 		entries[entryNr].id = mainMenuFiles[entryNr].id;
 		entries[entryNr].animation = new Animation(this);
 		entries[entryNr].animation->loadAnimation(mainMenuFiles[entryNr].animationFile);
-		if (entries[entryNr].id != MAINMENUHOTSPOT_NONE)
+		if (entries[entryNr].id != MAINMENUHOTSPOT_NONE) {
 			entries[entryNr].rect = entries[entryNr].animation->getRect();
+			if (entries[entryNr].id == MAINMENUHOTSPOT_HOTKEYSCLOSE) {
+				// In the original game, clicking anywhere on the
+				// hotspots' screen will return the user to the main menu
+				entries[entryNr].rect.top = 0;
+				entries[entryNr].rect.left = 0;
+				entries[entryNr].rect.right = TOON_SCREEN_WIDTH;
+				entries[entryNr].rect.bottom = TOON_SCREEN_HEIGHT;
+			}
+		}
 		entries[entryNr].animateOnFrame = mainMenuFiles[entryNr].animateOnFrame;
 		entries[entryNr].animateCurFrame = 0;
 		entries[entryNr].activeFrame = 0;
+		entries[entryNr].handled = false;
 	}
 
 	setCursor(0);
 
-	bool doExit = false;
+	bool doExitMenu = false;
 	bool exitGame = false;
 	int menuMask = MAINMENUMASK_BASE;
-	Common::SeekableReadStream *mainmenuMusicFile = NULL;
-	AudioStreamInstance *mainmenuMusic = NULL;
 	bool musicPlaying = false;
+	int musicPlayingChannel = -1;
+	int32 oldMouseButton = _mouseButton;
 
 	_gameState->_inMenu = true;
 	dirtyAllScreen();
 
-	while (!doExit) {
+	while (!doExitMenu) {
 		int clickingOn = MAINMENUHOTSPOT_NONE;
-		int clickRelease = false;
+		int clickingOnSprite = 0;
+		bool resetHotspotLoop = false;
+		bool clickEarlyRelease = false;
 
-		if (!musicPlaying) {
-			mainmenuMusicFile = resources()->openFile("BR091013.MUS");
-			if (mainmenuMusicFile) {
-				mainmenuMusic = new AudioStreamInstance(_audioManager, _mixer, mainmenuMusicFile, true);
-				mainmenuMusic->play(false);
-				musicPlaying = true;
+		while (!resetHotspotLoop) {
+			if (!musicPlaying) {
+				musicPlayingChannel = _audioManager->playMusic("", "BR091013");
+				musicPlaying = musicPlayingChannel >= 0;
 			}
-			else {
-				musicPlaying = false;
-			}
-		}
-
-		while (!clickRelease) {
 
 			if (_dirtyAll) {
 				mainmenuPicture->draw(*_mainSurface, 0, 0, 0, 0);
@@ -1059,21 +1345,19 @@ bool ToonEngine::showMainmenu(bool &loadedGame) {
 
 			clearDirtyRects();
 
-			for (int entryNr = 0; entryNr < MAINMENU_ENTRYCOUNT; entryNr++) {
+			// Handle animations
+			for (int entryNr = 0; entryNr < MAINMENU_ENTRYCOUNT; ++entryNr) {
 				if (entries[entryNr].menuMask & menuMask) {
 					if (entries[entryNr].animateOnFrame) {
-						entries[entryNr].animateCurFrame++;
+						++entries[entryNr].animateCurFrame;
 						if (entries[entryNr].animateOnFrame <= entries[entryNr].animateCurFrame) {
-							entries[entryNr].activeFrame++;
+							++entries[entryNr].activeFrame;
 							if (entries[entryNr].activeFrame >= entries[entryNr].animation->_numFrames)
 								entries[entryNr].activeFrame = 0;
 							entries[entryNr].animateCurFrame = 0;
 						}
 					}
-					int32 frameNr = entries[entryNr].activeFrame;
-					if ((entries[entryNr].id == clickingOn) && (clickingOn != MAINMENUHOTSPOT_NONE))
-						frameNr = 1;
-					entries[entryNr].animation->drawFrame(*_mainSurface, frameNr, 0, 0);
+					entries[entryNr].animation->drawFrame(*_mainSurface, entries[entryNr].activeFrame, 0, 0);
 				}
 			}
 
@@ -1082,93 +1366,182 @@ bool ToonEngine::showMainmenu(bool &loadedGame) {
 				_needPaletteFlush = false;
 			}
 
-			parseInput();
-			copyToVirtualScreen(true);
-			_system->delayMillis(17);
+			oldMouseButton = _mouseButton;
 
-			if (_mouseButton & 1) {
-				// left mouse button pushed down
+			if (_shouldQuit || doExitMenu) {
 				clickingOn = MAINMENUHOTSPOT_NONE;
-				for (int entryNr = 0; entryNr < MAINMENU_ENTRYCOUNT; entryNr++) {
-					if (entries[entryNr].menuMask & menuMask) {
-						if (entries[entryNr].id != MAINMENUHOTSPOT_NONE) {
-							if (entries[entryNr].rect.contains(_mouseX, _mouseY))
-								clickingOn = entries[entryNr].id;
+				resetHotspotLoop = true;
+				doExitMenu = true;
+				// Prevent holding left mouse button down to be detected
+				// as a new click when returning from menu
+				_lastMouseButton = _mouseButton;
+			} else {
+				// update mouse clicking state and handle hotkeys
+				// TODO The code handling menu button presses could be further simplified
+				//      since we expect that a clicked button (on left-mouse-down) will go through
+				//      two steps of handling (step 1: pressed state and sound, step 2: doing the relevant task),
+				//      and the sequence of these two steps should not be broken once it's started.
+				parseInput();
+
+				copyToVirtualScreen(true);
+				_system->delayMillis(17);
+
+				if (_mouseButton & 1) {
+					// left mouse button pushed down
+					for (int entryNr = 0; entryNr < MAINMENU_ENTRYCOUNT; ++entryNr) {
+						if ((entries[entryNr].menuMask & menuMask)
+						    && entries[entryNr].id != MAINMENUHOTSPOT_NONE
+						    && entries[entryNr].rect.contains(_mouseX, _mouseY)
+						    && (clickingOn == MAINMENUHOTSPOT_NONE && !(oldMouseButton & 1))) {
+							clickingOn = entries[entryNr].id;
+							clickingOnSprite = entryNr;
+							break;
+						}
+					}
+				} else if (clickingOn != MAINMENUHOTSPOT_NONE) {
+					// left mouse button released/not pushed down
+					if (!entries[clickingOnSprite].handled)
+						clickEarlyRelease = true;
+					else {
+						resetHotspotLoop = true;
+						clickingOn = MAINMENUHOTSPOT_NONE;
+						entries[clickingOnSprite].handled = false;
+					}
+				}
+
+				// handle buttons
+				if (clickingOn != MAINMENUHOTSPOT_NONE && !entries[clickingOnSprite].handled) {
+					// NOTE "MAINMENUHOTSPOT_HOTKEYSCLOSE" does not have two frames
+					if (entries[clickingOnSprite].animation->_numFrames > 1 && entries[clickingOnSprite].activeFrame == 0) {
+						// First show the button as clicked
+						entries[clickingOnSprite].activeFrame = 1;
+
+						// Use click sfx sound only for:
+						// Start game, Load Game and Hotkeys menu (but not going back from it)
+						// Use special sfx sound for quit
+						switch (clickingOn) {
+						case MAINMENUHOTSPOT_HOTKEYS:
+							// fall through
+						case MAINMENUHOTSPOT_START:
+							// fall through
+						case MAINMENUHOTSPOT_LOADGAME:
+							// fall through
+							playSFX(-9, 128);
+							break;
+
+						case MAINMENUHOTSPOT_QUIT:
+							playSFX(-8, 128);
+							break;
+
+						default:
+							break;
+						}
+					} else {
+						entries[clickingOnSprite].handled = true;
+						switch (entries[clickingOnSprite].id) {
+						case MAINMENUHOTSPOT_HOTKEYS:
+							// fall through
+						case MAINMENUHOTSPOT_HOTKEYSCLOSE:
+							menuMask = (clickingOn == MAINMENUHOTSPOT_HOTKEYS)? MAINMENUMASK_HOTKEYS : MAINMENUMASK_BASE;
+							entries[clickingOnSprite].activeFrame = 0;
+							break;
+
+						case MAINMENUHOTSPOT_START:
+							// Start game (actually exit main menu)
+							clickingOn = MAINMENUHOTSPOT_NONE;
+							resetHotspotLoop = true;
+							loadedGame = false;
+							doExitMenu = true;
+							break;
+
+						case MAINMENUHOTSPOT_LOADGAME:
+
+							doExitMenu = loadGame(-1);
+							loadedGame = doExitMenu;
+							if (loadedGame) {
+								clickingOn = MAINMENUHOTSPOT_NONE;
+								resetHotspotLoop = true;
+							} else {
+								entries[clickingOnSprite].activeFrame = 0;
+							}
+							exitGame = false;
+							break;
+
+						case MAINMENUHOTSPOT_INTRO:
+							// fall through
+						case MAINMENUHOTSPOT_CREDITS:
+							if (musicPlaying) {
+								//stop music
+								_audioManager->stopMusicChannel(musicPlayingChannel, false);
+								musicPlaying = false;
+							}
+							if (clickingOn == MAINMENUHOTSPOT_INTRO) {
+								// Play intro movies
+								getMoviePlayer()->play("209_1M.SMK", 0x10);
+								getMoviePlayer()->play("209_2M.SMK", 0x10);
+								getMoviePlayer()->play("209_3M.SMK", 0x10);
+							} else {
+								// Play credits movie
+								getMoviePlayer()->play("CREDITS.SMK", 0x0);
+							}
+							entries[clickingOnSprite].activeFrame = 0;
+							break;
+
+						case MAINMENUHOTSPOT_QUIT:
+							exitGame = showQuitConfirmationDialogue();
+							if (exitGame)  {
+								clickingOn = MAINMENUHOTSPOT_NONE;
+								resetHotspotLoop = true;
+								doExitMenu = true;
+							} else {
+								entries[clickingOnSprite].activeFrame = 0;
+							}
+							break;
+
+						default:
+							break;
+						}
+
+						if (clickEarlyRelease) {
+							resetHotspotLoop = true;
 						}
 					}
 				}
-			} else {
-				// left mouse button released/not pushed down
-				if (clickingOn != MAINMENUHOTSPOT_NONE)
-					clickRelease = true;
-			}
-			if (_shouldQuit) {
-				clickingOn = MAINMENUHOTSPOT_NONE;
-				clickRelease = true;
-				doExit = true;
 			}
 		}
 
-		if (clickingOn != MAINMENUHOTSPOT_NONE) {
-			_audioManager->playSFX(10, 128, true);
-		}
-
-		switch (clickingOn) {
-		case MAINMENUHOTSPOT_HOTKEYS:
-			menuMask = MAINMENUMASK_HOTKEYS;
-			continue;
-		case MAINMENUHOTSPOT_HOTKEYSCLOSE:
-			menuMask = MAINMENUMASK_BASE;
-			continue;
-		default:
-			break;
-		}
-
-		if (musicPlaying) {
+		if (musicPlaying && doExitMenu) {
 			//stop music
-			mainmenuMusic->stop(false);
-			delete mainmenuMusicFile;
+			_audioManager->stopMusicChannel(musicPlayingChannel, false);
 			musicPlaying = false;
-		}
-
-		switch (clickingOn) {
-		case MAINMENUHOTSPOT_START:
-			// Start game (actually exit main menu)
-			loadedGame = false;
-			doExit = true;
-			break;
-		case MAINMENUHOTSPOT_INTRO:
-			// Play intro movies
-			getMoviePlayer()->play("209_1M.SMK", 0x10);
-			getMoviePlayer()->play("209_2M.SMK", 0x10);
-			getMoviePlayer()->play("209_3M.SMK", 0x10);
-			break;
-		case MAINMENUHOTSPOT_LOADGAME:
-			doExit = loadGame(-1);
-			loadedGame = doExit;
-			exitGame = false;
-			break;
-		case MAINMENUHOTSPOT_CREDITS:
-			// Play credits movie
-			getMoviePlayer()->play("CREDITS.SMK", 0x0);
-			break;
-		case MAINMENUHOTSPOT_QUIT:
-			exitGame = true;
-			doExit = true;
-			break;
-		default:
-			break;
 		}
 	}
 
 	_gameState->_inMenu = false;
 
-	//delete mainmenuMusic;
-	for (int entryNr = 0; entryNr < MAINMENU_ENTRYCOUNT; entryNr++)
+	for (int entryNr = 0; entryNr < MAINMENU_ENTRYCOUNT; ++entryNr)
 		delete entries[entryNr].animation;
 	delete mainmenuPicture;
 
+	if (!_shouldQuit && exitGame) {
+		 _shouldQuit = exitGame;
+	}
 	return !exitGame;
+}
+
+bool ToonEngine::showQuitConfirmationDialogue() {
+	// In the original game this dialogue prompt was:
+	// "Are you sure you want to exit? (Y/N)"
+	// See: devtools\create_toon\staticdata.h
+	// We could allow create_toon to include this text
+	// and all its variations for the game's localizations in toon.dat,
+	// especially if we implement a native game dialogue prompt.
+	// But using ScummVM's Message Dialogue works just as well,
+	// and it requires a mouse click for yes/no selection
+	// instead of a keyboard key-press (which would also be dependent on the
+	// text variant of the yes/no option).
+	GUI::MessageDialog dialog(_("Are you sure you want to exit?"), _("Yes"), _("No"));
+	return (dialog.runModal() == GUI::kMessageOK);
 }
 
 Common::Error ToonEngine::run() {
@@ -1194,7 +1567,7 @@ Common::Error ToonEngine::run() {
 
 		// show mainmenu
 		// the demo does not have a menu and starts a new game right away
-		if (!_isDemo && !showMainmenu(loadedGame)) {
+		if (!_isDemo && !showMainMenu(loadedGame)) {
 			return Common::kNoError;
 		}
 	}
@@ -1214,71 +1587,72 @@ ToonEngine::ToonEngine(OSystem *syst, const ADGameDescription *gameDescription)
 	: Engine(syst), _gameDescription(gameDescription),
 	_language(gameDescription->language), _rnd("toon") {
 	_tickLength = 16;
-	_currentPicture = NULL;
-	_inventoryPicture = NULL;
-	_currentMask = NULL;
+	_currentPicture = nullptr;
+	_inventoryPicture = nullptr;
+	_currentMask = nullptr;
 	_showConversationText = true;
+	_textSpeed = 60;
 	_useAlternativeFont = false;
 	_isDemo = _gameDescription->flags & ADGF_DEMO;
 	_isEnglishDemo = _isDemo && _gameDescription->language == Common::EN_ANY;
 
-	_resources = NULL;
-	_animationManager = NULL;
-	_moviePlayer = NULL;
-	_mainSurface = NULL;
+	_resources = nullptr;
+	_animationManager = nullptr;
+	_moviePlayer = nullptr;
+	_mainSurface = nullptr;
 
-	_finalPalette = NULL;
-	_backupPalette = NULL;
-	_additionalPalette1 = NULL;
-	_additionalPalette2 = NULL;
+	_finalPalette = nullptr;
+	_backupPalette = nullptr;
+	_additionalPalette1 = nullptr;
+	_additionalPalette2 = nullptr;
 	_additionalPalette2Present = false;
-	_cutawayPalette = NULL;
-	_universalPalette = NULL;
-	_fluxPalette = NULL;
+	_cutawayPalette = nullptr;
+	_universalPalette = nullptr;
+	_fluxPalette = nullptr;
 
-	_roomScaleData = NULL;
-	_shadowLUT = NULL;
+	_roomScaleData = nullptr;
+	_shadowLUT = nullptr;
 
-	_conversationData = NULL;
+	_conversationData = nullptr;
 
-	_fontRenderer = NULL;
-	_fontToon = NULL;
-	_fontEZ = NULL;
-	_hotspots = NULL;
-	_genericTexts = NULL;
-	_roomTexts = NULL;
-	_script_func = NULL;
-	_script = NULL;
+	_fontRenderer = nullptr;
+	_fontToon = nullptr;
+	_fontEZ = nullptr;
+	_hotspots = nullptr;
+	_genericTexts = nullptr;
+	_roomTexts = nullptr;
+	_script_func = nullptr;
+	_script = nullptr;
 
 	_mouseX = 0;
 	_mouseY = 0;
 	_mouseButton = 0;
 	_lastMouseButton = 0;
 
-	_saveBufferStream = NULL;
+	_saveBufferStream = nullptr;
 
-	_pathFinding = NULL;
+	_pathFinding = nullptr;
 	setDebugger(new ToonConsole(this));
 
-	_cursorAnimation = NULL;
-	_cursorAnimationInstance = NULL;
-	_dialogIcons = NULL;
-	_inventoryIcons = NULL;
-	_inventoryIconSlots = NULL;
-	_genericTexts = NULL;
-	_audioManager = NULL;
-	_gameState = NULL;
+	_cursorAnimation = nullptr;
+	_cursorAnimationInstance = nullptr;
+	_dialogIcons = nullptr;
+	_inventoryIcons = nullptr;
+	_inventoryIconSlots = nullptr;
+	_genericTexts = nullptr;
+	_audioManager = nullptr;
+	_gameState = nullptr;
 
-	_locationDirNotVisited = NULL;
-	_locationDirVisited = NULL;
-	_specialInfoLine = NULL;
+	_locationDirNotVisited = nullptr;
+	_locationDirVisited = nullptr;
+	_specialInfoLine = nullptr;
 
-	for (int i = 0; i < 64; i++) {
+	for (int i = 0; i < 64; ++i) {
 		_sceneAnimations[i]._active = false;
 	}
 
-	for (int i = 0; i < 32; i++) {
-		_characters[i] = NULL;
+	for (int i = 0; i < 32; ++i) {
+		_characters[i] = nullptr;
 	}
 
 	memset(&_scriptData, 0, sizeof(EMCData));
@@ -1301,13 +1675,16 @@ ToonEngine::ToonEngine(OSystem *syst, const ADGameDescription *gameDescription)
 	case Common::ES_ESP:
 		_gameVariant = 4;
 		break;
+	case Common::HE_ISR:
+		_gameVariant = 5;
+		break;
 	default:
 		// 0 - english
 		_gameVariant = 0;
 		break;
 	}
 
-	for (int i = 0; i < 64; i++) {
+	for (int i = 0; i < 64; ++i) {
 		_sceneAnimationScripts[i]._lastTimer = 0;
 		_sceneAnimationScripts[i]._frozen = false;
 		_sceneAnimationScripts[i]._frozenForConversation = false;
@@ -1339,7 +1716,7 @@ ToonEngine::ToonEngine(OSystem *syst, const ADGameDescription *gameDescription)
 
 	_numVariant = 0;
 	_currentCutaway = nullptr;
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < 4; ++i) {
 		_scriptState[i].ip = nullptr;
 		_scriptState[i].dataPtr = nullptr;
 		_scriptState[i].retValue = 0;
@@ -1353,6 +1730,7 @@ ToonEngine::ToonEngine(OSystem *syst, const ADGameDescription *gameDescription)
 
 ToonEngine::~ToonEngine() {
 	delete _currentPicture;
+	delete _currentCutaway;
 	delete _currentMask;
 	delete _inventoryPicture;
 
@@ -1393,11 +1771,11 @@ ToonEngine::~ToonEngine() {
 
 	delete _pathFinding;
 
-	for (int32 i = 0; i < 64; i++) {
+	for (int32 i = 0; i < 64; ++i) {
 		if (_sceneAnimations[i]._active) {
 			// see if one character shares this instance
-			for (int32 c = 0; c < 32; c++) {
-				if (_characters[c] && _characters[c]->getAnimationInstance() == _sceneAnimations[i]._animInstance) {
+			for (int32 c = 0; c < 32; ++c) {
+				if (_characters[c] != nullptr && _characters[c]->getAnimationInstance() == _sceneAnimations[i]._animInstance) {
 					_characters[c]->setAnimationInstance(0);
 				}
 			}
@@ -1406,7 +1784,7 @@ ToonEngine::~ToonEngine() {
 		}
 	}
 
-	for (int32 i = 0; i < 32; i++)
+	for (int32 i = 0; i < 32; ++i)
 		delete _characters[i];
 
 	delete _cursorAnimation;
@@ -1455,7 +1833,7 @@ void ToonEngine::simpleUpdate(bool waitCharacterToTalk) {
 
 void ToonEngine::fixPaletteEntries(uint8 *palette, int num) {
 	// some color values are coded on 6bits ( for old 6bits DAC )
-	for (int32 i = 0; i < num * 3; i++) {
+	for (int32 i = 0; i < num * 3; ++i) {
 		int32 a = palette[i];
 		a = a * 4;
 		if (a > 255)
@@ -1466,8 +1844,6 @@ void ToonEngine::fixPaletteEntries(uint8 *palette, int num) {
 
 // adapted from KyraEngine
 void ToonEngine::updateAnimationSceneScripts(int32 timeElapsed) {
-	static int32 numReentrant = 0;
-	numReentrant++;
 	const int startScript = _lastProcessedSceneScript;
 
 	_updatingSceneScriptRunFlag = true;
@@ -1478,13 +1854,15 @@ void ToonEngine::updateAnimationSceneScripts(int32 timeElapsed) {
 			_animationSceneScriptRunFlag = true;
 
 			while (_animationSceneScriptRunFlag && _sceneAnimationScripts[_lastProcessedSceneScript]._lastTimer <= _system->getMillis() && !_shouldQuit) {
-				if (!_script->run(&_sceneAnimationScripts[_lastProcessedSceneScript]._state))
+				if (!_script->run(&_sceneAnimationScripts[_lastProcessedSceneScript]._state)) {
 					_animationSceneScriptRunFlag = false;
+				}
 
 				//waitForScriptStep();
 
-				if (_sceneAnimationScripts[_lastProcessedSceneScript]._frozen || _sceneAnimationScripts[_lastProcessedSceneScript]._frozenForConversation)
+				if (_sceneAnimationScripts[_lastProcessedSceneScript]._frozen || _sceneAnimationScripts[_lastProcessedSceneScript]._frozenForConversation) {
 					break;
+				}
 			}
 
 		}
@@ -1495,13 +1873,14 @@ void ToonEngine::updateAnimationSceneScripts(int32 timeElapsed) {
 		}
 
 		++_lastProcessedSceneScript;
-		if (_lastProcessedSceneScript >= state()->_locations[state()->_currentScene]._numSceneAnimations)
+		if (_lastProcessedSceneScript >= state()->_locations[state()->_currentScene]._numSceneAnimations) {
+			// cycle around
 			_lastProcessedSceneScript = 0;
+		}
 
 	} while (_lastProcessedSceneScript != startScript && !_shouldQuit);
 
 	_updatingSceneScriptRunFlag = false;
-	numReentrant--;
 }
 
 void ToonEngine::loadScene(int32 SceneId, bool forGameLoad) {
@@ -1530,8 +1909,9 @@ void ToonEngine::loadScene(int32 SceneId, bool forGameLoad) {
 		} while ((flag & 1) == 0);
 	}
 
-	for (int32 i = 0; i < 8; i++) {
-		if (_characters[i]) _characters[i]->setFlag(0);
+	for (int32 i = 0; i < 8; ++i) {
+		if (_characters[i] != nullptr)
+			_characters[i]->setFlag(0);
 	}
 	_drew->playStandingAnim();
 	_drew->setVisible(true);
@@ -1571,58 +1951,58 @@ void ToonEngine::loadScene(int32 SceneId, bool forGameLoad) {
 	// load package
 	if (!resources()->openPackage(createRoomFilename(locationName + ".PAK"))) {
 		const char *msg = _s("Unable to locate the '%s' data file.");
-		Common::String roomFileName = createRoomFilename(locationName + ".PAK");
+		Common::Path roomFileName = createRoomFilename(locationName + ".PAK");
 
-		Common::U32String buf = Common::U32String::format(_(msg), roomFileName.c_str());
+		Common::U32String buf = Common::U32String::format(_(msg), roomFileName.toString(Common::Path::kNativeSeparator).c_str());
 		GUIErrorMessage(buf);
-		warning(msg, roomFileName.c_str());
+		warning(msg, roomFileName.toString().c_str());
 		_shouldQuit = true;
 		return;
 	}
 
-	loadAdditionalPalette(locationName + ".NPP", 0);
+	loadAdditionalPalette(Common::Path(locationName + ".NPP"), 0);
 
 	_additionalPalette2Present = false;
-	loadAdditionalPalette(locationName + ".NP2", 1);
+	loadAdditionalPalette(Common::Path(locationName + ".NP2"), 1);
 
-	loadAdditionalPalette(locationName + ".CUP", 2);
+	loadAdditionalPalette(Common::Path(locationName + ".CUP"), 2);
 
 	// load artwork
 	delete _currentPicture;
 	_currentPicture = new Picture(this);
-	_currentPicture->loadPicture(locationName + ".CPS");
+	_currentPicture->loadPicture(Common::Path(locationName + ".CPS"));
 	_currentPicture->setupPalette();
 
 	delete _currentMask;
 	_currentMask = new Picture(this);
-	if (_currentMask->loadPicture(locationName + ".MSC"))
+	if (_currentMask->loadPicture(Common::Path(locationName + ".MSC")))
 		_pathFinding->init(_currentMask);
 
 	delete _roomTexts;
 	_roomTexts = new TextResource(this);
-	_roomTexts->loadTextResource(locationName + ".TRE");
+	_roomTexts->loadTextResource(Common::Path(locationName + ".TRE"));
 
 	uint32 fileSize;
-	uint8 *sceneData = resources()->getFileData(locationName + ".DAT", &fileSize);
+	uint8 *sceneData = resources()->getFileData(Common::Path(locationName + ".DAT"), &fileSize);
 	if (sceneData) {
 		delete[] _roomScaleData;
 		_roomScaleData = new uint8[fileSize];
 		memcpy(_roomScaleData, sceneData, fileSize);
 	}
 
-	_audioManager->loadAudioPack(1, locationName + ".SVI", createRoomFilename(locationName + ".SVL"));
-	_audioManager->loadAudioPack(3, locationName + ".SEI", locationName + ".SEL");
+	_audioManager->loadAudioPack(1, Common::Path(locationName + ".SVI"), createRoomFilename(locationName + ".SVL"));
+	_audioManager->loadAudioPack(3, Common::Path(locationName + ".SEI"), Common::Path(locationName + ".SEL"));
 
 	if (state()->_locations[SceneId]._flags & 0x40) {
 		Common::String cutaway = state()->_locations[SceneId]._cutaway;
-		_hotspots->loadRif(locationName + ".RIC", cutaway + ".RIC");
+		_hotspots->loadRif(Common::Path(locationName + ".RIC"), Common::Path(cutaway + ".RIC"));
 	} else {
-		_hotspots->loadRif(locationName + ".RIC", "");
+		_hotspots->loadRif(Common::Path(locationName + ".RIC"), "");
 	}
 	restoreRifFlags(_gameState->_currentScene);
 
 	uint32 convfileSize;
-	uint8 *convData = resources()->getFileData(locationName + ".CNV", &convfileSize);
+	uint8 *convData = resources()->getFileData(Common::Path(locationName + ".CNV"), &convfileSize);
 	if (convData) {
 		assert(convfileSize < 4096 * sizeof(int16));
 		memcpy(_conversationData , convData, convfileSize);
@@ -1649,7 +2029,7 @@ void ToonEngine::loadScene(int32 SceneId, bool forGameLoad) {
 	//_script->RoomScript->Decompile("decomp.txt");
 	//RoomScript->Decompile2("decomp2.txt");
 
-	for (int i = 0; i < state()->_locations[SceneId]._numSceneAnimations; i++) {
+	for (int i = 0; i < state()->_locations[SceneId]._numSceneAnimations; ++i) {
 		_sceneAnimationScripts[i]._data = &_scriptData;
 		_script->init(&_sceneAnimationScripts[i]._state, _sceneAnimationScripts[i]._data);
 		if (!forGameLoad) {
@@ -1713,7 +2093,7 @@ void ToonEngine::setupGeneralPalette() {
 		_drew->setupPalette();
 }
 
-void ToonEngine::loadAdditionalPalette(const Common::String &fileName, int32 mode) {
+void ToonEngine::loadAdditionalPalette(const Common::Path &fileName, int32 mode) {
 
 	uint32 size = 0;
 	uint8 *palette = resources()->getFileData(fileName, &size);
@@ -1841,13 +2221,13 @@ int32 ToonEngine::runEventScript(int32 x, int32 y, int32 mode, int32 id, int32 s
 	status->regs[7] = mode;
 	status->regs[8] = id;
 
-	_currentScriptRegion++;
+	++_currentScriptRegion;
 
 	_script->start(status, 1);
-	while (_script->run(status) && !_shouldQuit)
+	while (_script->run(status) && !_shouldQuit) {
 		waitForScriptStep();
-
-	_currentScriptRegion--;
+	}
+	--_currentScriptRegion;
 
 	return status->regs[2];
 }
@@ -1906,6 +2286,8 @@ void ToonEngine::clickEvent() {
 			else
 				characterTalk(1104);
 		}
+		// Don't walk to Flux after clicking on him
+		return;
 	}
 	if (_currentHotspotItem == -4) {
 		if (_gameState->_mouseState >= 0) {
@@ -1925,6 +2307,7 @@ void ToonEngine::clickEvent() {
 
 		if (_pathFinding->findClosestWalkingPoint(_mouseX + _gameState->_currentScrollValue , _mouseY, &xx, &yy))
 			_drew->walkTo(xx, yy);
+
 		return;
 	}
 
@@ -2126,47 +2509,47 @@ void ToonEngine::exitScene() {
 	fadeOut(5);
 
 	// disable all scene animation
-	for (int32 i = 0; i < 64; i++) {
+	for (int32 i = 0; i < 64; ++i) {
 		if (_sceneAnimations[i]._active) {
 			delete _sceneAnimations[i]._animation;
 			_sceneAnimations[i]._active = false;
 			_animationManager->removeInstance(_sceneAnimations[i]._animInstance);
 
 			// see if one character shares this instance
-			for (int32 c = 0; c < 32; c++) {
-				if (_characters[c] && _characters[c]->getAnimationInstance() == _sceneAnimations[i]._animInstance) {
-					_characters[c]->setAnimationInstance(NULL);
+			for (int32 c = 0; c < 32; ++c) {
+				if (_characters[c] != nullptr && _characters[c]->getAnimationInstance() == _sceneAnimations[i]._animInstance) {
+					_characters[c]->setAnimationInstance(nullptr);
 				}
 			}
 
 			delete _sceneAnimations[i]._originalAnimInstance;
-			_sceneAnimations[i]._animInstance = NULL;
-			_sceneAnimations[i]._animation = NULL;
-			_sceneAnimations[i]._originalAnimInstance = NULL;
+			_sceneAnimations[i]._animInstance = nullptr;
+			_sceneAnimations[i]._animation = nullptr;
+			_sceneAnimations[i]._originalAnimInstance = nullptr;
 		}
 	}
-	for (int32 i = 0; i < 64; i++) {
+	for (int32 i = 0; i < 64; ++i) {
 		_sceneAnimationScripts[i]._frozen = true;
 		_sceneAnimationScripts[i]._active = false;
 	}
 
 	// remove all characters except drew and flux
-	for (int32 i = 0; i < 8; i++) {
+	for (int32 i = 0; i < 8; ++i) {
 		if (_characters[i] != _drew && _characters[i] != _flux) {
-			if (_characters[i]) {
+			if (_characters[i] != nullptr) {
 				delete _characters[i];
-				_characters[i] = 0;
+				_characters[i] = nullptr;
 			}
 		} else {
 			_characters[i]->stopSpecialAnim();
 		}
 	}
 
-	for (int32 i = 0; i < 2; i++) {
+	for (int32 i = 0; i < 2; ++i) {
 		_gameState->_timerEnabled[i] = false;
 	}
 
-	// put back our item if inventory if needed
+	// put back our item in inventory if needed
 	if (_gameState->_mouseState >= 0) {
 		addItemToInventory(_gameState->_mouseState);
 		_gameState->_mouseState = -1;
@@ -2206,10 +2589,10 @@ void ToonEngine::flipScreens() {
 }
 
 void ToonEngine::fadeIn(int32 numFrames) {
-	for (int32 f = 0; f < numFrames; f++) {
+	for (int32 f = 0; f < numFrames; ++f) {
 
 		uint8 vmpalette[3 * 256];
-		for (int32 i = 0; i < 256; i++) {
+		for (int32 i = 0; i < 256; ++i) {
 			vmpalette[i * 3 + 0] = f * _finalPalette[i * 3 + 0] / (numFrames - 1);
 			vmpalette[i * 3 + 1] = f * _finalPalette[i * 3 + 1] / (numFrames - 1);
 			vmpalette[i * 3 + 2] = f * _finalPalette[i * 3 + 2] / (numFrames - 1);
@@ -2225,9 +2608,9 @@ void ToonEngine::fadeOut(int32 numFrames) {
 	uint8 oldpalette[3 * 256];
 	_system->getPaletteManager()->grabPalette(oldpalette, 0, 256);
 
-	for (int32 f = 0; f < numFrames; f++) {
+	for (int32 f = 0; f < numFrames; ++f) {
 		uint8 vmpalette[3 * 256];
-		for (int32 i = 0; i < 256; i++) {
+		for (int32 i = 0; i < 256; ++i) {
 			vmpalette[i * 3 + 0] = (numFrames - f - 1) * oldpalette[i * 3 + 0] / (numFrames - 1);
 			vmpalette[i * 3 + 1] = (numFrames - f - 1) * oldpalette[i * 3 + 1] / (numFrames - 1);
 			vmpalette[i * 3 + 2] = (numFrames - f - 1) * oldpalette[i * 3 + 2] / (numFrames - 1);
@@ -2266,7 +2649,7 @@ void ToonEngine::setFont(bool alternative) {
 
 void ToonEngine::drawInfoLine() {
 	if (_currentHotspotItem != 0 && !_gameState->_mouseHidden && !_gameState->_inConversation) {
-		const char *infoTool = NULL;
+		const char *infoTool = nullptr;
 		if (_currentHotspotItem >= 0 && _currentHotspotItem < 2000) {
 			infoTool = _roomTexts->getText(_currentHotspotItem);
 		} else if (_currentHotspotItem <= -1) {
@@ -2332,7 +2715,7 @@ void ToonEngine::storeRifFlags(int32 location) {
 		_gameState->_locations[location]._numRifBoxes = _hotspots->getCount();
 	}
 
-	for (int32 i = 0; i < _hotspots->getCount(); i++) {
+	for (int32 i = 0; i < _hotspots->getCount(); ++i) {
 		_gameState->_locations[location]._rifBoxesFlags[i * 2 + 0] = _hotspots->get(i)->getData(4);
 		_gameState->_locations[location]._rifBoxesFlags[i * 2 + 1] = _hotspots->get(i)->getData(7);
 	}
@@ -2341,7 +2724,7 @@ void ToonEngine::storeRifFlags(int32 location) {
 void ToonEngine::restoreRifFlags(int32 location) {
 	if (_hotspots) {
 		if (!_gameState->_locations[location]._visited) {
-			for (int32 i = 0; i < _hotspots->getCount(); i++) {
+			for (int32 i = 0; i < _hotspots->getCount(); ++i) {
 				_gameState->_locations[location]._rifBoxesFlags[i * 2 + 0] = _hotspots->get(i)->getData(4);
 				_gameState->_locations[location]._rifBoxesFlags[i * 2 + 1] = _hotspots->get(i)->getData(7);
 			}
@@ -2350,7 +2733,7 @@ void ToonEngine::restoreRifFlags(int32 location) {
 			if (_gameState->_locations[location]._numRifBoxes != _hotspots->getCount())
 				return;
 
-			for (int32 i = 0; i < _hotspots->getCount(); i++) {
+			for (int32 i = 0; i < _hotspots->getCount(); ++i) {
 				_hotspots->get(i)->setData(4, _gameState->_locations[location]._rifBoxesFlags[i * 2 + 0]);
 				_hotspots->get(i)->setData(7, _gameState->_locations[location]._rifBoxesFlags[i * 2 + 1]);
 			}
@@ -2376,7 +2759,7 @@ void ToonEngine::sayLines(int numLines, int dialogId) {
 
 	int32 currentLine = dialogId;
 
-	for (int32 i = 0; i < numLines; i++) {
+	for (int32 i = 0; i < numLines; ++i) {
 		if (!characterTalk(currentLine))
 			break;
 
@@ -2479,7 +2862,7 @@ int32 ToonEngine::characterTalk(int32 dialogid, bool blocking) {
 
 		char *cc = c;
 		Character *waitChar;
-		for (int32 i = 0; i < numParticipants - 1; i++) {
+		for (int32 i = 0; i < numParticipants - 1; ++i) {
 			// listener
 			int32 listenerId = READ_LE_UINT16(cc - 2);
 			cc -= 4;
@@ -2500,7 +2883,7 @@ int32 ToonEngine::characterTalk(int32 dialogid, bool blocking) {
 	} else if (_audioManager->voiceStillPlaying())
 		_audioManager->stopCurrentVoice();
 
-	for (int32 i = 0; i < numParticipants - 1; i++) {
+	for (int32 i = 0; i < numParticipants - 1; ++i) {
 		// listener
 		int32 listenerId = READ_LE_UINT16(c - 2);
 		int32 listenerAnimId = READ_LE_UINT16(c - 4);
@@ -2572,7 +2955,7 @@ void ToonEngine::haveAConversation(int32 convId) {
 
 	if (conv->_enable) {
 		// fix dialog script based on new flags
-		for (int32 i = 0; i < 10; i++) {
+		for (int32 i = 0; i < 10; ++i) {
 			if (conv->state[i]._data2 == 1 || conv->state[i]._data2 == 3) {
 				if (getConversationFlag(_gameState->_currentScene, conv->state[i]._data3))
 					conv->state[i]._data2 = 1;
@@ -2605,13 +2988,13 @@ void ToonEngine::haveAConversation(int32 convId) {
 		}
 		int selected = -1;
 		int a = 0;
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 10; ++i) {
 			if (conv->state[i]._data2 == 1) {
 				if (_mouseX > 50 + a * 60 && _mouseX < 100 + a * 60 && _mouseY >= 336 && _mouseY <= 386) {
 					selected = i;
 					break;
 				}
-				a++;
+				++a;
 			}
 		}
 
@@ -2619,7 +3002,7 @@ void ToonEngine::haveAConversation(int32 convId) {
 			return;
 
 		_gameState->_showConversationIcons = false;
-		_gameState->_mouseHidden = 1;
+		_gameState->_mouseHidden = true;
 
 		if (selected < 0 || selected == 1 || selected == 3) {
 			if (_gameState->_firstConverstationLine)
@@ -2632,7 +3015,7 @@ void ToonEngine::haveAConversation(int32 convId) {
 		}
 	}
 
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 10; ++i) {
 		if (conv->state[i]._data2 == 2) {
 			if (i != 3)
 				conv->state[i]._data2 = 1;
@@ -2653,7 +3036,7 @@ void ToonEngine::drawConversationIcons() {
 	if (!_gameState->_inConversation || !_gameState->_showConversationIcons)
 		return;
 	int32 aa = 50 + _gameState->_currentScrollValue;
-	for (int32 i = 0; i < 10; i++) {
+	for (int32 i = 0; i < 10; ++i) {
 		if (_gameState->_conversationState[_gameState->_currentConversationId].state[i]._data2 == 1) {
 			_dialogIcons->drawFrame(*_mainSurface, (i + _gameState->_currentScene) & 7, aa, 336);
 			_dialogIcons->drawFrame(*_mainSurface, 7 + _gameState->_conversationState[_gameState->_currentConversationId].state[i]._data3, aa, 339);
@@ -2664,7 +3047,7 @@ void ToonEngine::drawConversationIcons() {
 
 void ToonEngine::prepareConversations() {
 	Conversation *allConvs = _gameState->_conversationState;
-	for (int32 i = 0; i < 60; i++) {
+	for (int32 i = 0; i < 60; ++i) {
 
 		allConvs[i].state[0]._data2 = 1;
 		if (!allConvs[i].state[0]._data3) {
@@ -2677,7 +3060,7 @@ void ToonEngine::prepareConversations() {
 	}
 	int numConversations = READ_LE_UINT16(_conversationData + 1);
 	int16 *curConversation = _conversationData + 3;
-	for (int i = 0; i < numConversations; i++) {
+	for (int i = 0; i < numConversations; ++i) {
 		Conversation *conv = &allConvs[ READ_LE_UINT16(curConversation)];
 		if (!conv->_enable) {
 
@@ -2740,11 +3123,11 @@ void ToonEngine::processConversationClick(Conversation *conv, int32 status) {
 		_gameState->_mouseHidden = false;
 	} else {
 		while (v8 != -1) {
-			v7 += 1;
+			++v7;
 			int16 *v14 = (int16 *)((char *)_conversationData + v8);
 
 			// find free dialogue slot
-			for (int j = 0; j < 10; j++) {
+			for (int j = 0; j < 10; ++j) {
 				if (!conv->state[j]._data2) {
 					conv->state[j]._data3 = READ_LE_INT16(v14);
 					conv->state[j]._data4 = v14;
@@ -2982,7 +3365,7 @@ void ToonEngine::renderInventory() {
 	clearDirtyRects();
 
 	// draw items on screen
-	for (int32 i = 0; i < _gameState->_numInventoryItems; i++) {
+	for (int32 i = 0; i < _gameState->_numInventoryItems; ++i) {
 		int32 x = 57 * (i % 7) + 114;
 		int32 y = ((9 * (i % 7)) & 0xf) + 56 * (i / 7) + 80;
 		_inventoryIconSlots->drawFrame(*_mainSurface, i % 12, x + _gameState->_currentScrollValue, y);
@@ -3043,7 +3426,7 @@ int32 ToonEngine::showInventory() {
 		if (justPressedButton & 0x3) {
 			// find out what object we're on
 			int32 foundObj = -1;
-			for (int32 i = 0; i < _gameState->_numInventoryItems; i++) {
+			for (int32 i = 0; i < _gameState->_numInventoryItems; ++i) {
 				int32 x = 57 * (i % 7) + 114;
 				int32 y = ((9 * (i % 7)) & 0xf) + 56 * (i / 7) + 80;
 				if (_mouseX >= (_gameState->_currentScrollValue + x - 6) &&
@@ -3136,8 +3519,7 @@ void ToonEngine::getMouseEvent() {
 	Common::EventManager *_event = _system->getEventManager();
 
 	Common::Event event;
-	while (_event->pollEvent(event) && !_shouldQuit)
-		;
+	while (_event->pollEvent(event) && !_shouldQuit) { }
 
 	_mouseX = _event->getMousePos().x;
 	_mouseY = _event->getMousePos().y;
@@ -3160,7 +3542,7 @@ void ToonEngine::addItemToInventory(int32 item) {
 
 	if (item == 41) {
 		// confiscated inventory
-		for (int32 i = 0; i < _gameState->_numConfiscatedInventoryItems; i++)
+		for (int32 i = 0; i < _gameState->_numConfiscatedInventoryItems; ++i)
 			addItemToInventory(_gameState->_confiscatedInventory[i]);
 
 		_gameState->_numConfiscatedInventoryItems = 0;
@@ -3168,7 +3550,7 @@ void ToonEngine::addItemToInventory(int32 item) {
 		return;
 	}
 
-	for (int32 i = 0; i < _gameState->_numInventoryItems; i++) {
+	for (int32 i = 0; i < _gameState->_numInventoryItems; ++i) {
 		if (_gameState->_inventory[i] == 0) {
 			_gameState->_inventory[i] = item;
 			_gameState->_mouseState = -1;
@@ -3191,12 +3573,14 @@ void ToonEngine::deleteMouseItem() {
 	setCursor(0);
 }
 
-void ToonEngine::showCutaway(const Common::String &cutawayPicture) {
+void ToonEngine::showCutaway(const Common::Path &cutawayPicture) {
 	_gameState->_inCutaway = true;
+	delete _currentCutaway;
+	_currentCutaway = nullptr;
 	_currentCutaway = new Picture(this);
 	if (cutawayPicture.empty()) {
 		Common::String name = _gameState->_locations[_gameState->_currentScene]._cutaway;
-		_currentCutaway->loadPicture(name + ".CPS");
+		_currentCutaway->loadPicture(Common::Path(name + ".CPS"));
 	} else {
 		_currentCutaway->loadPicture(cutawayPicture);
 	}
@@ -3212,22 +3596,22 @@ void ToonEngine::hideCutaway() {
 	_gameState->_sackVisible = true;
 	delete _currentCutaway;
 	_gameState->_currentScrollValue = _oldScrollValue;
-	_currentCutaway = 0;
+	_currentCutaway = nullptr;
 	_currentPicture->setupPalette();
 	dirtyAllScreen();
 	flushPalette();
 }
 
 void ToonEngine::updateCharacters(int32 timeElapsed) {
-	for (int32 i = 0; i < 8; i++) {
-		if (_characters[i]) {
+	for (int32 i = 0; i < 8; ++i) {
+		if (_characters[i] != nullptr) {
 			_characters[i]->update(timeElapsed);
 		}
 	}
 }
 
 void ToonEngine::drawPalette() {
-	for (int32 i = 0; i < 256; i++) {
+	for (int32 i = 0; i < 256; ++i) {
 		int32 x = i % 32;
 		int32 y = i / 32;
 		_mainSurface->fillRect(Common::Rect(x * 16, y * 16, x * 16 + 16, y * 16 + 16), i);
@@ -3235,10 +3619,10 @@ void ToonEngine::drawPalette() {
 }
 
 void ToonEngine::rearrangeInventory() {
-	for (int32 i = 0; i < _gameState->_numInventoryItems; i++) {
+	for (int32 i = 0; i < _gameState->_numInventoryItems; ++i) {
 		if (_gameState->_inventory[i] == 0) {
 			// move all the following items from one
-			for (int32 j = i + 1; j < _gameState->_numInventoryItems; j++) {
+			for (int32 j = i + 1; j < _gameState->_numInventoryItems; ++j) {
 				_gameState->_inventory[j - 1] = _gameState->_inventory[j];
 			}
 			_gameState->_numInventoryItems--;
@@ -3339,8 +3723,8 @@ void ToonEngine::getTextPosition(int32 characterId, int32 *retX, int32 *retY) {
 }
 
 Character *ToonEngine::getCharacterById(int32 charId) {
-	for (int32 i = 0; i < 8; i++) {
-		if (_characters[i] && _characters[i]->getId() == charId)
+	for (int32 i = 0; i < 8; ++i) {
+		if (_characters[i] != nullptr && _characters[i]->getId() == charId)
 			return _characters[i];
 	}
 	return 0;
@@ -3365,6 +3749,10 @@ void ToonEngine::drawCustomText(int16 x, int16 y, const char *line, Graphics::Su
 	}
 }
 
+bool ToonEngine::showConversationText() const {
+	return _showConversationText;
+}
+
 void ToonEngine::pauseEngineIntern(bool pause) {
 
 	Engine::pauseEngineIntern(pause);
@@ -3381,11 +3769,11 @@ void ToonEngine::pauseEngineIntern(bool pause) {
 
 		// we have to add the difference between the start and the current time
 		// to all "timer based" values.
-		for (int32 i = 0; i < _gameState->_locations[_gameState->_currentScene]._numSceneAnimations; i++) {
+		for (int32 i = 0; i < _gameState->_locations[_gameState->_currentScene]._numSceneAnimations; ++i) {
 			_sceneAnimationScripts[i]._lastTimer += diff;
 		}
-		for (int32 i = 0; i < 8; i++) {
-			if (_characters[i]) {
+		for (int32 i = 0; i < 8; ++i) {
+			if (_characters[i] != nullptr) {
 				_characters[i]->updateTimers(diff);
 			}
 		}
@@ -3395,11 +3783,11 @@ void ToonEngine::pauseEngineIntern(bool pause) {
 	}
 }
 
-bool ToonEngine::canSaveGameStateCurrently() {
+bool ToonEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return !_gameState->_inMenu && !_gameState->_inInventory && !_gameState->_inConversation && !_gameState->_inCutaway && !_gameState->_mouseHidden && !_moviePlayer->isPlaying();
 }
 
-bool ToonEngine::canLoadGameStateCurrently() {
+bool ToonEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return !_gameState->_inMenu && !_gameState->_inInventory && !_gameState->_inConversation && !_gameState->_inCutaway && !_gameState->_mouseHidden && !_moviePlayer->isPlaying();
 }
 
@@ -3410,6 +3798,16 @@ Common::String ToonEngine::getSavegameName(int nr) {
 bool ToonEngine::saveGame(int32 slot, const Common::String &saveGameDesc) {
 	int16 savegameId;
 	Common::String savegameDescription;
+
+
+	// NOTE The original game engine additionally saved in EACH saved game file:
+	//      - volume levels for music, speech and SFX
+	//      - muted state for music, speech and SFX
+	//      - text speed
+	//      - disabled subtitles (text off) -- but not font selection.
+	//      ScummVM skips saving (and restoring) this per saved game file.
+	//      Instead it keeps these settings persisted and synced with
+	//      ScummVM's ConfMan volume levels, text speed, and subtitles settings.
 
 	if (slot == -1) {
 		GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Save game:"), _("Save"), true);
@@ -3465,12 +3863,12 @@ bool ToonEngine::saveGame(int32 slot, const Common::String &saveGameDesc) {
 	saveFile->writeSint32BE(getOldMilli());
 
 	// save script states
-	for (int32 i = 0; i < 4; i++) {
+	for (int32 i = 0; i < 4; ++i) {
 		_script->saveState(&_scriptState[i], saveFile);
 	}
 
 	// save animation script states
-	for (int32 i = 0; i < state()->_locations[_gameState->_currentScene]._numSceneAnimations; i++) {
+	for (int32 i = 0; i < state()->_locations[_gameState->_currentScene]._numSceneAnimations; ++i) {
 		saveFile->writeByte(_sceneAnimationScripts[i]._active);
 		saveFile->writeByte(_sceneAnimationScripts[i]._frozen);
 		saveFile->writeSint32BE(_sceneAnimationScripts[i]._lastTimer);
@@ -3478,12 +3876,12 @@ bool ToonEngine::saveGame(int32 slot, const Common::String &saveGameDesc) {
 	}
 
 	// save scene animations
-	for (int32 i = 0; i < 64; i++) {
+	for (int32 i = 0; i < 64; ++i) {
 		_sceneAnimations[i].save(this, saveFile);
 	}
 
-	for (int32 i = 0; i < 8; i++) {
-		if (_characters[i]) {
+	for (int32 i = 0; i < 8; ++i) {
+		if (_characters[i] != nullptr) {
 			saveFile->writeSByte(i);
 			_characters[i]->save(saveFile);
 		}
@@ -3553,12 +3951,12 @@ bool ToonEngine::loadGame(int32 slot) {
 	int32 timerDiff = _system->getMillis() - savedTime;
 
 	// load script states
-	for (int32 i = 0; i < 4; i++) {
+	for (int32 i = 0; i < 4; ++i) {
 		_script->loadState(&_scriptState[i], loadFile);
 	}
 
 	// load animation script states
-	for (int32 i = 0; i < state()->_locations[_gameState->_currentScene]._numSceneAnimations; i++) {
+	for (int32 i = 0; i < state()->_locations[_gameState->_currentScene]._numSceneAnimations; ++i) {
 		_sceneAnimationScripts[i]._active = loadFile->readByte();
 		_sceneAnimationScripts[i]._frozen = loadFile->readByte();
 		_sceneAnimationScripts[i]._frozenForConversation = false;
@@ -3568,12 +3966,12 @@ bool ToonEngine::loadGame(int32 slot) {
 	}
 
 	// load scene animations
-	for (int32 i = 0; i < 64; i++) {
+	for (int32 i = 0; i < 64; ++i) {
 		_sceneAnimations[i].load(this, loadFile);
 	}
 
 	// scene animations have to be added in reverse order in animation manager to preserve the z order
-	for (int32 i = 63; i >= 0; i--) {
+	for (int32 i = 63; i >= 0; --i) {
 		if (_sceneAnimations[i]._active && _sceneAnimations[i]._animInstance) {
 			_animationManager->addInstance(_sceneAnimations[i]._animInstance);
 		}
@@ -3591,10 +3989,19 @@ bool ToonEngine::loadGame(int32 slot) {
 		if (c < 0)
 			break;
 
-		if (!_characters[c]) {
+		// NOTE The exitScene() call above removes characters in scene (if any current exists) (and only for the 8 (scene?) characters)
+		if (_characters[c] == nullptr) {
 			_characters[c] = new Character(this);
 		}
-		_characters[c]->load(loadFile);
+
+		_characters[c]->load(loadFile, saveGameVersion);
+		// NOTE These playStandingAnim() calls are executed in the loadScene() call above,
+		// but that's before we're loading stuff like the _facing of actors
+		if (_characters[c] == _drew) {
+			_drew->playStandingAnim();
+		} else if (_characters[c] == _flux && _gameState->_currentChapter == 1) {
+			_flux->playStandingAnim();
+		}
 		//_characters[c]->setVisible(true);
 		_characters[c]->update(0);
 	}
@@ -3679,7 +4086,7 @@ bool ToonEngine::loadGame(int32 slot) {
 int32 ToonEngine::getSpecialInventoryItem(int32 item) {
 	// butter
 	if (item == 12) {
-		for (int32 i = 0; i < _gameState->_numInventoryItems; i++) {
+		for (int32 i = 0; i < _gameState->_numInventoryItems; ++i) {
 			if (_gameState->_inventory[i] == 12)
 				_gameState->_inventory[i] = 11;
 		}
@@ -3705,13 +4112,15 @@ int32 ToonEngine::getSpecialInventoryItem(int32 item) {
 void ToonEngine::initCharacter(int32 characterId, int32 animScriptId, int32 sceneAnimationId, int32 animToPlayId) {
 	// find a new index
 	int32 characterIndex = -1;
-	for (int32 i = 0; i < 8; i++) {
-		if (_characters[i] && _characters[i]->getId() == characterId) {
+	for (int32 i = 0; i < 8; ++i) {
+		if (_characters[i] != nullptr && _characters[i]->getId() == characterId) {
+			// TODO Shouldn't _characters[i] be deleted here,
+			// since we assign a new Character object to it below?
 			characterIndex = i;
 			break;
 		}
 
-		if (!_characters[i]) {
+		if (_characters[i] == nullptr) {
 			characterIndex = i;
 			break;
 		}
@@ -3837,7 +4246,7 @@ const char *ToonEngine::getSpecialConversationMusic(int32 conversationId) {
 	return specialMusic[randRange(0, 1) + conversationId * 2];
 }
 
-void ToonEngine::viewInventoryItem(const Common::String &str, int32 lineId, int32 itemDest) {
+void ToonEngine::viewInventoryItem(const Common::Path &str, int32 lineId, int32 itemDest) {
 	storePalette();
 	fadeOut(5);
 
@@ -4910,7 +5319,7 @@ int32 ToonEngine::handleInventoryOnDrew(int32 itemId) {
 }
 
 void ToonEngine::deleteItemFromInventory(int32 item) {
-	for (int32 i = 0; i < _gameState->_numInventoryItems; i++) {
+	for (int32 i = 0; i < _gameState->_numInventoryItems; ++i) {
 		if (_gameState->_inventory[i] == item) {
 			_gameState->_inventory[i] = 0;
 			rearrangeInventory();
@@ -4920,7 +5329,7 @@ void ToonEngine::deleteItemFromInventory(int32 item) {
 }
 
 void ToonEngine::replaceItemFromInventory(int32 item, int32 newitem) {
-	for (int32 i = 0; i < _gameState->_numInventoryItems; i++) {
+	for (int32 i = 0; i < _gameState->_numInventoryItems; ++i) {
 		if (_gameState->_inventory[i] == item) {
 			_gameState->_inventory[i] = newitem;
 			return;
@@ -4938,8 +5347,8 @@ int32 ToonEngine::pauseSceneAnimationScript(int32 animScriptId, int32 tickToWait
 	return nextTicks;
 }
 
-Common::String ToonEngine::createRoomFilename(const Common::String& name) {
-	Common::String file = Common::String::format("ACT%d/%s/%s", _gameState->_currentChapter, _gameState->_locations[_gameState->_currentScene]._name, name.c_str());
+Common::Path ToonEngine::createRoomFilename(const Common::String& name) {
+	Common::Path file(Common::String::format("ACT%d/%s/%s", _gameState->_currentChapter, _gameState->_locations[_gameState->_currentScene]._name, name.c_str()));
 	return file;
 }
 
@@ -4957,7 +5366,7 @@ void ToonEngine::createShadowLUT() {
 	uint32 scaleNum = 77;
 	uint32 scaleDenom = 100;
 
-	for (int32 i = 0; i < 255; i++) {
+	for (int32 i = 0; i < 255; ++i) {
 
 		// goal color
 		uint32 destR = _finalPalette[i * 3 + 0] * scaleNum / scaleDenom;
@@ -4968,7 +5377,7 @@ void ToonEngine::createShadowLUT() {
 		int32 colorDist = 0xffffff;
 		int32 foundColor = 0;
 
-		for (int32 c = 1; c < 129; c++) {
+		for (int32 c = 1; c < 129; ++c) {
 
 			int32 diffR = _finalPalette[c * 3 + 0] - destR;
 			int32 diffG = _finalPalette[c * 3 + 1] - destG;
@@ -4980,7 +5389,7 @@ void ToonEngine::createShadowLUT() {
 			}
 		}
 
-		for (int32 c = 200; c < 256; c++) {
+		for (int32 c = 200; c < 256; ++c) {
 
 			int32 diffR = _finalPalette[c * 3 + 0] - destR;
 			int32 diffG = _finalPalette[c * 3 + 1] - destG;
@@ -5055,10 +5464,10 @@ void ToonEngine::unloadToonDat() {
 
 char **ToonEngine::loadTextsVariants(Common::File &in) {
 	int  len;
-	char **res = 0;
-	char *pos = 0;
+	char **res = nullptr;
+	char *pos = nullptr;
 
-	for (int varnt = 0; varnt < _numVariant; varnt++) {
+	for (int varnt = 0; varnt < _numVariant; ++varnt) {
 		int numTexts = in.readUint16BE();
 		int entryLen = in.readUint16BE();
 		pos = (char *)malloc(entryLen);
@@ -5075,7 +5484,7 @@ char **ToonEngine::loadTextsVariants(Common::File &in) {
 
 		pos += DATAALIGNMENT;
 
-		for (int i = 1; i < numTexts; i++) {
+		for (int i = 1; i < numTexts; ++i) {
 			pos -= 2;
 
 			len = READ_BE_UINT16(pos);
@@ -5134,17 +5543,17 @@ void ToonEngine::addDirtyRect( int32 left, int32 top, int32 right, int32 bottom 
 
 	Common::Rect rect(left, top, right, bottom);
 
-	for (uint32 i = 0; i < _dirtyRects.size(); i++) {
+	for (uint32 i = 0; i < _dirtyRects.size(); ++i) {
 		if (_dirtyRects[i].contains(rect))
 			return;
 		if (rect.contains(_dirtyRects[i])) {
 			_dirtyRects.remove_at(i);
-			i--;
+			--i;
 		}
 	}
 
 	// check also in the old rect (of the old frame)
-	for (int32 i = _oldDirtyRects.size() - 1 ; i >= 0; i--) {
+	for (int32 i = _oldDirtyRects.size() - 1 ; i >= 0; --i) {
 		if (rect.contains(_oldDirtyRects[i])) {
 			_oldDirtyRects.remove_at(i);
 		}
@@ -5158,6 +5567,78 @@ void ToonEngine::clearDirtyRects() {
 	_dirtyRects.clear();
 	_dirtyAll = false;
 }
+
+
+void ToonEngine::syncSoundSettings() {
+	Engine::syncSoundSettings();
+
+	_mixer->setVolumeForSoundType(_mixer->kMusicSoundType, ConfMan.getInt("music_volume"));
+	_mixer->setVolumeForSoundType(_mixer->kSpeechSoundType, ConfMan.getInt("speech_volume"));
+	_mixer->setVolumeForSoundType(_mixer->kSFXSoundType, ConfMan.getInt("sfx_volume"));
+
+	if (_noMusicDriver) {
+		// This affects *only* the music muting.
+		_mixer->muteSoundType(_mixer->kMusicSoundType, true);
+		_audioManager->muteMusic(true);
+	}
+
+	bool allSoundIsMuted = false;
+	if (ConfMan.hasKey("mute")) {
+		allSoundIsMuted = ConfMan.getBool("mute");
+		if (!_noMusicDriver) {
+			_mixer->muteSoundType(_mixer->kMusicSoundType, allSoundIsMuted);
+			_audioManager->muteMusic(allSoundIsMuted);
+		}
+		_mixer->muteSoundType(_mixer->kSpeechSoundType, allSoundIsMuted);
+		_audioManager->muteVoice(allSoundIsMuted);
+		_mixer->muteSoundType(_mixer->kSFXSoundType, allSoundIsMuted);
+		_audioManager->muteSfx(allSoundIsMuted);
+		// movie sound type
+		_mixer->muteSoundType(_mixer->kPlainSoundType, allSoundIsMuted);
+	}
+
+	if (ConfMan.hasKey("music_mute") && !allSoundIsMuted) {
+		if (!_noMusicDriver) {
+			_mixer->muteSoundType(_mixer->kMusicSoundType, ConfMan.getBool("music_mute"));
+			_audioManager->muteMusic(ConfMan.getBool("music_mute"));
+		}
+	}
+
+	if (ConfMan.hasKey("speech_mute") && !allSoundIsMuted) {
+		_mixer->muteSoundType(_mixer->kSpeechSoundType, ConfMan.getBool("speech_mute"));
+		_audioManager->muteVoice(ConfMan.getBool("speech_mute"));
+	}
+
+	if (ConfMan.hasKey("sfx_mute") && !allSoundIsMuted) {
+		_mixer->muteSoundType(_mixer->kSFXSoundType, ConfMan.getBool("sfx_mute"));
+		_audioManager->muteSfx(ConfMan.getBool("sfx_mute"));
+	}
+
+	// Adjust movie volume
+	if (!allSoundIsMuted) {
+		int movieVol = MAX<int>((_audioManager->isMusicMuted() ? 0 : ConfMan.getInt("music_volume")),
+		                        (_audioManager->isVoiceMuted() ? 0 : ConfMan.getInt("speech_volume")));
+		movieVol = MAX<int>(movieVol,(_audioManager->isSfxMuted() ? 0 : ConfMan.getInt("sfx_volume")));
+		_mixer->setVolumeForSoundType(Audio::Mixer::kPlainSoundType, movieVol);
+	}
+
+	_showConversationText = ConfMan.getBool("subtitles");
+	if (_showConversationText && !_isEnglishDemo) {
+		setFont(ConfMan.getBool("alternative_font"));
+	}
+
+	if ((ConfMan.getInt("speech_volume") == 0 || ConfMan.getBool("speech_mute") || allSoundIsMuted)
+	     && !_showConversationText) {
+		ConfMan.setBool("subtitles", true);
+		_showConversationText = true;
+	}
+
+	_textSpeed = ConfMan.getInt("talkspeed");
+
+	// write-back to ini file for persistence
+	ConfMan.flushToDisk();
+}
+
 void SceneAnimation::save(ToonEngine *vm, Common::WriteStream *stream) {
 	stream->writeByte(_active);
 	stream->writeSint32BE(_id);
@@ -5194,8 +5675,8 @@ void SceneAnimation::load(ToonEngine *vm, Common::ReadStream *stream) {
 		//vm->getAnimationManager()->addInstance(_animInstance);
 		_originalAnimInstance = _animInstance;
 	} else {
-		_animInstance = NULL;
-		_originalAnimInstance = NULL;
+		_animInstance = nullptr;
+		_originalAnimInstance = nullptr;
 	}
 
 	// load animation if any

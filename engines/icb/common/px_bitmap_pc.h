@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,39 +48,15 @@ typedef struct {
 
 } _pxPCSprite;
 
-// This holds information about a bitmap (which may contain a number of frames).
-class _pxPCBitmap {
-public:
-	// Constructor and destructor (don't need to do anything because these items are always created
-	// by doing a Res_open and casting a block of memory to this type).
-	_pxPCBitmap() { ; }
-	~_pxPCBitmap() { ; }
-
+typedef struct _pxPCBitmap {
 	char id[4];    // "PCB" Pc bitmap
 	uint32 schema; // The current schema number
 
-	// Gets and sets.
-	uint32 Fetch_number_of_items() const { return num_sprites; }
-	inline _pxPCSprite *Fetch_item_by_number(uint32 nNumber);
-
-	uint8 *Fetch_palette_pointer() { return &palette[0]; }
-
-private:
-	uint8 palette[4 * 256]; // RGB but padded with 0 to 32-bits.
+	uint8 palette[4 * 256];         // RGB but padded with 0 to 32-bits.
 	uint32 num_sprites;             // Number of sprites in this file.
 	uint32 sprite_offsets[1];       // Offsets to sprite data for each sprite.
 
-	_pxPCBitmap(const _pxPCBitmap &) { ; }
-	void operator=(const _pxPCBitmap &) { ; }
-};
-
-inline _pxPCSprite *_pxPCBitmap::Fetch_item_by_number(uint32 nNumber) {
-	// Make sure requested sprite is in the resource.
-	assert(nNumber < num_sprites);
-
-	// Return the pointer.
-	return ((_pxPCSprite *)(((uint8 *)this) + sprite_offsets[nNumber]));
-}
+} _pxPCBitmap;
 
 } // End of namespace ICB
 

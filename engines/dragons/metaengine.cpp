@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,18 +30,18 @@
 #include "base/plugins.h"
 #include "graphics/thumbnail.h"
 
-class DragonsMetaEngine : public AdvancedMetaEngine {
+class DragonsMetaEngine : public AdvancedMetaEngine<Dragons::DragonsGameDescription> {
 public:
 	const char *getName() const override {
 		return "dragons";
 	}
 
-	virtual bool hasFeature(MetaEngineFeature f) const override;
-	virtual Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
-	virtual int getMaximumSaveSlot() const override;
-	virtual SaveStateList listSaves(const char *target) const override;
+	bool hasFeature(MetaEngineFeature f) const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const Dragons::DragonsGameDescription *desc) const override;
+	int getMaximumSaveSlot() const override;
+	SaveStateList listSaves(const char *target) const override;
 	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
-	virtual void removeSaveState(const char *target, int slot) const override;
+	void removeSaveState(const char *target, int slot) const override;
 	Common::KeymapArray initKeymaps(const char *target) const override;
 };
 
@@ -53,6 +52,7 @@ bool DragonsMetaEngine::hasFeature(MetaEngineFeature f) const {
 			(f == kSupportsLoadingDuringStartup) ||
 			(f == kSavesSupportMetaInfo) ||
 			(f == kSavesSupportThumbnail) ||
+			(f == kSimpleSavesNames) ||
 			(f == kSavesSupportCreationDate);
 }
 
@@ -69,7 +69,7 @@ SaveStateList DragonsMetaEngine::listSaves(const char *target) const {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	Dragons::SaveHeader header;
 	Common::String pattern = target;
-	pattern += ".???";
+	pattern += ".###";
 	Common::StringArray filenames;
 	filenames = saveFileMan->listSavefiles(pattern.c_str());
 	SaveStateList saveList;
@@ -110,16 +110,15 @@ SaveStateDescriptor DragonsMetaEngine::querySaveMetaInfos(const char *target, in
 	return SaveStateDescriptor();
 }
 
-Common::Error DragonsMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	const Dragons::DragonsGameDescription *gd = (const Dragons::DragonsGameDescription *)desc;
+Common::Error DragonsMetaEngine::createInstance(OSystem *syst, Engine **engine, const Dragons::DragonsGameDescription *gd) const {
+	const char* urlForRequiredDataFiles = "https://wiki.scummvm.org/index.php?title=Blazing_Dragons#Required_data_files";
 
 	switch (gd->gameId) {
 	case Dragons::kGameIdDragons:
-		*engine = new Dragons::DragonsEngine(syst, desc);
+		*engine = new Dragons::DragonsEngine(syst, gd);
 		break;
 	case Dragons::kGameIdDragonsBadExtraction:
-		GUIErrorMessageWithURL(_("Error: It appears that the game data files were extracted incorrectly.\n\nYou should only extract STR and XA files using the special method. The rest should be copied normally from your game CD.\n\n See https://wiki.scummvm.org/index.php?title=Datafiles#Blazing_Dragons"),
-		                       "https://wiki.scummvm.org/index.php?title=Datafiles#Blazing_Dragons");
+		GUIErrorMessageWithURL(Common::U32String::format(_("Error: It appears that the game data files were extracted incorrectly.\n\nYou should only extract STR and XA files using the special method. The rest should be copied normally from your game CD.\n\n See %s"), urlForRequiredDataFiles), urlForRequiredDataFiles);
 		break;
 	default:
 		return Common::kUnsupportedGameidError;

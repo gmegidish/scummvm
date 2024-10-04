@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@
 
 #include "engines/stark/gfx/driver.h"
 #include "engines/stark/gfx/surfacerenderer.h"
-#include "engines/stark/gfx/texture.h"
+#include "engines/stark/gfx/bitmap.h"
 
 #include "engines/stark/services/global.h"
 #include "engines/stark/services/services.h"
@@ -38,7 +37,7 @@ namespace Stark {
 VisualExplodingImage::VisualExplodingImage(Gfx::Driver *gfx) :
 		Visual(TYPE),
 		_gfx(gfx),
-		_texture(nullptr),
+		_bitmap(nullptr),
 		_surface(nullptr),
 		_originalWidth(0),
 		_originalHeight(0) {
@@ -50,20 +49,20 @@ VisualExplodingImage::~VisualExplodingImage() {
 		_surface->free();
 	}
 	delete _surface;
-	delete _texture;
+	delete _bitmap;
 	delete _surfaceRenderer;
 }
 
 void VisualExplodingImage::initFromSurface(const Graphics::Surface *surface, uint originalWidth, uint originalHeight) {
-	assert(!_surface && !_texture);
+	assert(!_surface && !_bitmap);
 
 	_surface = new Graphics::Surface();
 	_surface->copyFrom(*surface);
 	_originalWidth  = originalWidth;
 	_originalHeight = originalHeight;
 
-	_texture = _gfx->createBitmap(_surface);
-	_texture->setSamplingFilter(StarkSettings->getImageSamplingFilter());
+	_bitmap = _gfx->createBitmap(_surface);
+	_bitmap->setSamplingFilter(StarkSettings->getImageSamplingFilter());
 
 	// Create an explosion unit for each pixel in the surface
 	_units.resize(_surface->w * _surface->h);
@@ -92,8 +91,8 @@ void VisualExplodingImage::render(const Common::Point &position) {
 		_units[i].draw(_surface);
 	}
 
-	_texture->update(_surface);
-	_surfaceRenderer->render(_texture, position, _originalWidth, _originalHeight);
+	_bitmap->update(_surface);
+	_surfaceRenderer->render(_bitmap, position, _originalWidth, _originalHeight);
 }
 
 VisualExplodingImage::ExplosionUnit::ExplosionUnit() :
@@ -115,7 +114,7 @@ void VisualExplodingImage::ExplosionUnit::setExplosionSettings(const Common::Poi
 	_speed.setX(cos(StarkRandomSource->getRandomNumber((float)M_PI * 100)) * (float)amplitude.x);
 	_speed.setY(sin(StarkRandomSource->getRandomNumber((float)M_PI * 100)) * (float)amplitude.y);
 
-	// WTF, ensuring all fragments go in the same direction?
+	// Really? ensuring all fragments go in the same direction?
 	float magnitude = _position.getDistanceTo(_speed);
 	_speed -= _position;
 	_speed = _speed / _speed.getMagnitude() * -magnitude;

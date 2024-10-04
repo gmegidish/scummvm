@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,18 +25,18 @@
 namespace Bbvs {
 
 GameModule::GameModule()
-	: _bgSpriteCount(0), _bgSpriteIndices(0), _bgSpritePriorities(0), _walkRectsCount(0),
-	_walkRects(0), _sceneExitsCount(0), _sceneExits(0), _bgObjectsCount(0), _bgObjects(0),
-	_animationsCount(0), _animations(0), _sceneObjectDefsCount(0), _sceneObjectDefs(0),
-	_sceneObjectInitsCount(0), _sceneObjectInits(0), _actionsCount(0), _actions(0),
-	_sceneSoundsCount(0), _sceneSounds(0), _preloadSoundsCount(0), _preloadSounds(0) {
+	: _bgSpriteCount(0), _bgSpriteIndices(nullptr), _bgSpritePriorities(nullptr), _walkRectsCount(0),
+	_walkRects(nullptr), _sceneExitsCount(0), _sceneExits(nullptr), _bgObjectsCount(0), _bgObjects(nullptr),
+	_animationsCount(0), _animations(nullptr), _sceneObjectDefsCount(0), _sceneObjectDefs(nullptr),
+	_sceneObjectInitsCount(0), _sceneObjectInits(nullptr), _actionsCount(0), _actions(nullptr),
+	_sceneSoundsCount(0), _sceneSounds(nullptr), _preloadSoundsCount(0), _preloadSounds(nullptr) {
 }
 
 GameModule::~GameModule() {
 	unload();
 }
 
-void GameModule::load(const char *filename) {
+void GameModule::load(const Common::Path &filename) {
 	debug(0, "GameModule::load()");
 
 	unload();
@@ -45,7 +44,7 @@ void GameModule::load(const char *filename) {
 	Common::File fd;
 
 	if (!fd.open(filename))
-		error("GameModule::load() Could not open %s", filename);
+		error("GameModule::load() Could not open %s", filename.toString(Common::Path::kNativeSeparator).c_str());
 
 	loadBgSprites(fd);
 	loadCameraInits(fd);
@@ -242,17 +241,17 @@ void GameModule::unload() {
 	delete[] _actions;
 	delete[] _sceneSounds;
 	delete[] _preloadSounds;
-	_bgSpriteIndices = 0;
-	_bgSpritePriorities = 0;
-	_walkRects = 0;
-	_sceneExits = 0;
-	_bgObjects = 0;
-	_animations = 0;
-	_sceneObjectDefs = 0;
-	_sceneObjectInits = 0;
-	_actions = 0;
-	_sceneSounds = 0;
-	_preloadSounds = 0;
+	_bgSpriteIndices = nullptr;
+	_bgSpritePriorities = nullptr;
+	_walkRects = nullptr;
+	_sceneExits = nullptr;
+	_bgObjects = nullptr;
+	_animations = nullptr;
+	_sceneObjectDefs = nullptr;
+	_sceneObjectInits = nullptr;
+	_actions = nullptr;
+	_sceneSounds = nullptr;
+	_preloadSounds = nullptr;
 }
 
 void GameModule::loadBgSprites(Common::SeekableReadStream &s) {

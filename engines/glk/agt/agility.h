@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -480,7 +479,7 @@ global rbool BATCH_MODE, make_test;
 	 -- Automatically send output to <gamename>.scr
 	 -- Automatically read/write input from <gamename>.log
 	  (depending on whether we are in BATCH_MODE or make_test mode,
-	  respectivly).
+	  respectively).
 */
 
 
@@ -496,7 +495,7 @@ global rbool mars_fix;
 global rbool fix_ascii_flag;  /* Translate IBM characters?
 				   Defaults to fix_ascii #define'd above */
 global rbool dbg_nomsg;  /* Causes printing of <msg> arguments by
-			   debug disassembler to be supressed */
+			   debug disassembler to be suppressed */
 
 global rbool irun_mode;  /* If true, all messages will be in 1st person */
 global rbool verboseflag;
@@ -782,7 +781,7 @@ global rbool open_as_binary;  /* Open text files as binary, anyhow. */
 				of "[obj].[prop].[prop].[flag]"
 				constructions. */
 
-#define AGT_LVAL   150  /* Used by the compiler in certain psuedo-ops */
+#define AGT_LVAL   150  /* Used by the compiler in certain pseudo-ops */
 
 
 #define AGT_DEFINE 256
@@ -890,6 +889,7 @@ const char *get_objattr_str(int dtype, int id, long val);
 const opdef *get_opdef(integer op);
 char *objname(int);
 void sort_cmd(void);
+void cmds_syns_canon(void);
 
 void agtwarn(const char *, int elev);
 void agtnwarn(const char *, int, int elev);
@@ -964,7 +964,6 @@ rbool parse_config_line(char *s, rbool lastpass);
 descr_line *read_ttl(fc_type fc); /* This returns the title. The return string
 					  must be freed with free_ttl() and not
 					  with free_descr */
-void free_ttl(descr_line *title);
 
 void read_voc(fc_type fc);
 void init_verbrec(void);

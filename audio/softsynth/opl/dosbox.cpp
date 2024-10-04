@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -149,7 +148,7 @@ uint8 Chip::read() {
 	return ret;
 }
 
-OPL::OPL(Config::OplType type) : _type(type), _rate(0), _emulator(0) {
+OPL::OPL(Config::OplType type) : _type(type), _rate(0), _emulator(nullptr) {
 }
 
 OPL::~OPL() {
@@ -159,7 +158,7 @@ OPL::~OPL() {
 
 void OPL::free() {
 	delete _emulator;
-	_emulator = 0;
+	_emulator = nullptr;
 }
 
 bool OPL::init() {
@@ -234,29 +233,6 @@ void OPL::write(int port, int val) {
 			break;
 		}
 	}
-}
-
-byte OPL::read(int port) {
-	switch (_type) {
-	case Config::kOpl2:
-		if (!(port & 1))
-			//Make sure the low bits are 6 on opl2
-			return _chip[0].read() | 0x6;
-		break;
-	case Config::kOpl3:
-		if (!(port & 1))
-			return _chip[0].read();
-		break;
-	case Config::kDualOpl2:
-		// Only return for the lower ports
-		if (port & 1)
-			return 0xff;
-		// Make sure the low bits are 6 on opl2
-		return _chip[(port >> 1) & 1].read() | 0x6;
-	default:
-		break;
-	}
-	return 0;
 }
 
 void OPL::writeReg(int r, int v) {

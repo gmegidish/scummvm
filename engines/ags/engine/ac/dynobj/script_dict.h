@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,16 +28,17 @@
 // that would let expose internal engine's dicts using same interface.
 // TODO: maybe optimize key lookup operations further by not creating a String
 // object from const char*. It seems, C++14 standard allows to use convertible
-// types as keys; need to research what perfomance impact that would make.
+// types as keys; need to research what performance impact that would make.
 //
 //=============================================================================
 
 #ifndef AGS_ENGINE_AC_DYNOBJ_SCRIPTDICT_H
 #define AGS_ENGINE_AC_DYNOBJ_SCRIPTDICT_H
 
-#include "ags/lib/std/map.h"
-#include "ags/lib/std/map.h"
+#include "common/std/map.h"
+#include "common/std/map.h"
 #include "ags/engine/ac/dynobj/cc_ags_dynamic_object.h"
+#include "ags/shared/util/stream.h"
 #include "ags/shared/util/string.h"
 #include "ags/shared/util/string_types.h"
 
@@ -50,8 +50,7 @@ class ScriptDictBase : public AGSCCDynamicObject {
 public:
 	int Dispose(const char *address, bool force) override;
 	const char *GetType() override;
-	int Serialize(const char *address, char *buffer, int bufsize) override;
-	void Unserialize(int index, const char *serializedData, int dataSize) override;
+	void Unserialize(int index, AGS::Shared::Stream *in, size_t data_sz) override;
 
 	virtual bool IsCaseSensitive() const = 0;
 	virtual bool IsSorted() const = 0;
@@ -64,11 +63,13 @@ public:
 	virtual int GetItemCount() = 0;
 	virtual void GetKeys(std::vector<const char *> &buf) const = 0;
 	virtual void GetValues(std::vector<const char *> &buf) const = 0;
+protected:
+	// Write object data into the provided stream
+	void Serialize(const char *address, AGS::Shared::Stream *out) override;
 
 private:
-	virtual size_t CalcSerializeSize() = 0;
-	virtual void SerializeContainer() = 0;
-	virtual void UnserializeContainer(const char *serializedData) = 0;
+	virtual void SerializeContainer(AGS::Shared::Stream *out) = 0;
+	virtual void UnserializeContainer(AGS::Shared::Stream *in) = 0;
 };
 
 template <typename TDict, bool is_sorted, bool is_casesensitive>
@@ -118,9 +119,7 @@ public:
 			return true;
 		}
 
-		size_t key_len = strlen(key);
-		size_t value_len = strlen(value);
-		return TryAddItem(key, key_len, value, value_len);
+		return TryAddItem(String(key), String(value));
 	}
 	int GetItemCount() override {
 		return _dic.size();
@@ -135,18 +134,16 @@ public:
 	}
 
 private:
-	bool TryAddItem(const char *key, size_t key_len, const char *value, size_t value_len) {
-		String elem_key(key, key_len);
-		String elem_value;
-		elem_value.SetString(value, value_len);
-		_dic[elem_key] = elem_value;
+	bool TryAddItem(const String &key, const String &value) {
+		_dic[key] = value;
 		return true;
 	}
-	void DeleteItem(ConstIterator it) { /* do nothing */
-	}
+	void DeleteItem(ConstIterator /*it*/) { /* do nothing */ }
 
 	size_t CalcSerializeSize() override {
-		size_t total_sz = sizeof(int32_t);
+		// 2 class properties + item count
+		size_t total_sz = sizeof(int32_t) * 3;
+		// (int32 + string buffer) per item
 		for (auto it = _dic.begin(); it != _dic.end(); ++it) {
 			total_sz += sizeof(int32_t) + it->_key.GetLength();
 			total_sz += sizeof(int32_t) + it->_value.GetLength();
@@ -154,31 +151,28 @@ private:
 		return total_sz;
 	}
 
-	void SerializeContainer() override {
-		SerializeInt((int)_dic.size());
-		for (auto it = _dic.begin(); it != _dic.end(); ++it) {
-			SerializeInt((int)it->_key.GetLength());
-			memcpy(&serbuffer[bytesSoFar], it->_key.GetCStr(), it->_key.GetLength());
-			bytesSoFar += it->_key.GetLength();
+	void SerializeContainer(AGS::Shared::Stream *out) override
+    {
+        out->WriteInt32((int)_dic.size());
+        for (auto it = _dic.begin(); it != _dic.end(); ++it)
+        {
+            out->WriteInt32((int)it->_key.GetLength());
+            out->Write(it->_key.GetCStr(), it->_key.GetLength());
+            out->WriteInt32((int)it->_value.GetLength());
+            out->Write(it->_value.GetCStr(), it->_value.GetLength());
+        }
+    }
 
-			SerializeInt((int)it->_value.GetLength());
-			memcpy(&serbuffer[bytesSoFar], it->_value.GetCStr(), it->_value.GetLength());
-			bytesSoFar += it->_value.GetLength();
-		}
-	}
-
-	void UnserializeContainer(const char *serializedData) override {
-		size_t item_count = (size_t)UnserializeInt();
+	void UnserializeContainer(AGS::Shared::Stream *in) override {
+		size_t item_count = in->ReadInt32();
 		for (size_t i = 0; i < item_count; ++i) {
-			size_t key_len = UnserializeInt();
-			int key_pos = bytesSoFar;
-			bytesSoFar += key_len;
-			size_t value_len = UnserializeInt();
+			size_t key_len = in->ReadInt32();
+			String key = String::FromStreamCount(in, key_len);
+			size_t value_len = in->ReadInt32();
 			if (value_len != (size_t)-1) // do not restore keys with null value (old format)
 			{
-				int value_pos = bytesSoFar;
-				bytesSoFar += value_len;
-				TryAddItem(&serializedData[key_pos], key_len, &serializedData[value_pos], value_len);
+				String value = String::FromStreamCount(in, value_len);
+				TryAddItem(key, value);
 			}
 		}
 	}

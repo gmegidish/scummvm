@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef AGS_ENGINE_AC_TIMER_H
 #define AGS_ENGINE_AC_TIMER_H
 
-#include "ags/lib/std/type_traits.h"
-#include "ags/lib/std/chrono.h"
-#include "ags/lib/std/xtr1common.h"
+#include "common/std/type_traits.h"
+#include "common/std/chrono.h"
+#include "common/std/xtr1common.h"
+
+#include "ags/lib/std.h"
 
 namespace AGS3 {
 
@@ -40,7 +41,7 @@ using AGS_Clock = std::conditional <
 extern void WaitForNextFrame();
 
 // Sets real FPS to the given number of frames per second; pass 1000+ for maxed FPS mode
-extern void setTimerFps(int new_fps);
+extern int setTimerFps(int new_fps);
 // Tells whether maxed FPS mode is currently set
 extern bool isTimerFpsMaxed();
 // If more than N frames, just skip all, start a fresh.

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -360,22 +359,22 @@ void Room::love1Tick1() {
 
 	switch (_awayMission->love.bottleInNozzle) {
 	case BOTTLETYPE_N2O:
-		strcpy(_roomVar.love.bottleAnimation, "btle1");
+		Common::strcpy_s(_roomVar.love.bottleAnimation, "btle1");
 		_roomVar.love.itemInNozzle = OBJECT_IN2O;
 		loadActorAnim(OBJECT_BOTTLE, _roomVar.love.bottleAnimation, 0xa3, 0x72, 0);
 		break;
 	case BOTTLETYPE_NH3:
-		strcpy(_roomVar.love.bottleAnimation, "btle2");
+		Common::strcpy_s(_roomVar.love.bottleAnimation, "btle2");
 		_roomVar.love.itemInNozzle = OBJECT_INH3;
 		loadActorAnim(OBJECT_BOTTLE, _roomVar.love.bottleAnimation, 0xa3, 0x72, 0);
 		break;
 	case BOTTLETYPE_H2O:
-		strcpy(_roomVar.love.bottleAnimation, "btle3");
+		Common::strcpy_s(_roomVar.love.bottleAnimation, "btle3");
 		_roomVar.love.itemInNozzle = OBJECT_IH2O;
 		loadActorAnim(OBJECT_BOTTLE, _roomVar.love.bottleAnimation, 0xa3, 0x72, 0);
 		break;
 	case BOTTLETYPE_RLG:
-		strcpy(_roomVar.love.bottleAnimation, "btle4");
+		Common::strcpy_s(_roomVar.love.bottleAnimation, "btle4");
 		_roomVar.love.itemInNozzle = OBJECT_IRLG;
 		loadActorAnim(OBJECT_BOTTLE, _roomVar.love.bottleAnimation, 0xa3, 0x72, 0);
 		break;
@@ -663,7 +662,7 @@ void Room::love1KirkGotBottleFromNozzle() {
 void Room::love1UseN2OOnNozzle() {
 	if (_awayMission->love.bottleInNozzle == BOTTLETYPE_NONE) {
 		_roomVar.love.itemInNozzle = OBJECT_IN2O;
-		strcpy(_roomVar.love.bottleAnimation, "btle1");
+		Common::strcpy_s(_roomVar.love.bottleAnimation, "btle1");
 		_awayMission->love.bottleInNozzle = BOTTLETYPE_N2O;
 		walkCrewman(OBJECT_KIRK, 0xa6, 0x90, 3);
 	}
@@ -672,7 +671,7 @@ void Room::love1UseN2OOnNozzle() {
 void Room::love1UseH2OOnNozzle() {
 	if (_awayMission->love.bottleInNozzle == BOTTLETYPE_NONE) {
 		_roomVar.love.itemInNozzle = OBJECT_IH2O;
-		strcpy(_roomVar.love.bottleAnimation, "btle3");
+		Common::strcpy_s(_roomVar.love.bottleAnimation, "btle3");
 		_awayMission->love.bottleInNozzle = BOTTLETYPE_H2O;
 		walkCrewman(OBJECT_KIRK, 0xa6, 0x90, 3);
 	}
@@ -681,7 +680,7 @@ void Room::love1UseH2OOnNozzle() {
 void Room::love1UseNH3OnNozzle() {
 	if (_awayMission->love.bottleInNozzle == BOTTLETYPE_NONE) {
 		_roomVar.love.itemInNozzle = OBJECT_INH3;
-		strcpy(_roomVar.love.bottleAnimation, "btle2");
+		Common::strcpy_s(_roomVar.love.bottleAnimation, "btle2");
 		_awayMission->love.bottleInNozzle = BOTTLETYPE_NH3;
 		walkCrewman(OBJECT_KIRK, 0xa6, 0x90, 3);
 	}
@@ -690,7 +689,7 @@ void Room::love1UseNH3OnNozzle() {
 void Room::love1UseRLGOnNozzle() {
 	if (_awayMission->love.bottleInNozzle == BOTTLETYPE_NONE) {
 		_roomVar.love.itemInNozzle = OBJECT_IRLG;
-		strcpy(_roomVar.love.bottleAnimation, "btle4");
+		Common::strcpy_s(_roomVar.love.bottleAnimation, "btle4");
 		_awayMission->love.bottleInNozzle = BOTTLETYPE_RLG;
 		walkCrewman(OBJECT_KIRK, 0xa6, 0x90, 3);
 	}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -246,7 +245,7 @@ ReturnResult:
 #if defined (DEBUG_EXPR_EVAL)
 	if (p==0 && exprt)
 	{
-		sprintf(line, " = %d", result);
+		Common::sprintf_s(line, " = %d", result);
 		AP(line);
 	}
 #endif
@@ -969,7 +968,7 @@ char Hugo::IsIncrement(long addr) {
 	if (t && debug_eval)
 	{
 		debug_eval_error = true;
-		sprintf(debug_line, "'%s%s' illegal in watch/assignment", token[a], token[MEM(addr+1)]);
+		Common::sprintf_s(debug_line, "'%s%s' illegal in watch/assignment", token[a], token[MEM(addr+1)]);
 		DebugMessageBox("Expression Error", debug_line);
 		t = 0;
 	}
@@ -1028,7 +1027,7 @@ void PrintExpr(void)
 		{
 			case 0:
 			{
-				sprintf(line, "%d ", eval[i + 1]);
+				Common::sprintf_s(line, "%d ", eval[i + 1]);
 				strcat(e, line);
 				break;
 			}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/gumps/mini_stats_gump.h"
 
 #include "ultima/ultima8/games/game_data.h"
-#include "ultima/ultima8/graphics/gump_shape_archive.h"
+#include "ultima/ultima8/gfx/gump_shape_archive.h"
+#include "ultima/ultima8/gfx/palette.h"
+#include "ultima/ultima8/gfx/palette_manager.h"
 #include "ultima/ultima8/world/actors/main_actor.h"
-#include "ultima/ultima8/graphics/render_surface.h"
+#include "ultima/ultima8/gfx/render_surface.h"
+#include "ultima/ultima8/gfx/texture.h"
 #include "ultima/ultima8/kernel/mouse.h"
 #include "ultima/ultima8/world/get_object.h"
 
@@ -40,9 +42,10 @@ static const int manax = 13;
 static const int bary = 19;
 static const int barheight = 14;
 
-static const uint32 hpcolour[] = { 0x980404, 0xBC0C0C, 0xD43030 };
-static const uint32 manacolour[] = { 0x4050FC, 0x1C28FC, 0x0C0CCC };
-
+// TODO: Confirm palette colors for use on mini stats gump
+// These values were closest to previously defined RGB values
+static const uint hpcolour[3] = {41, 39, 37};
+static const uint manacolour[3] = {138, 139, 141};
 
 MiniStatsGump::MiniStatsGump() : Gump() {
 
@@ -87,9 +90,12 @@ void MiniStatsGump::PaintThis(RenderSurface *surf, int32 lerp_factor, bool scale
 	else
 		hpheight = (hp * barheight) / maxhp;
 
+	Palette *pal = PaletteManager::get_instance()->getPalette(PaletteManager::Pal_Game);
 	for (int i = 0; i < 3; ++i) {
-		surf->Fill32(hpcolour[i], hpx + i, bary - hpheight + 1, 1, hpheight);
-		surf->Fill32(manacolour[i], manax + i, bary - manaheight + 1, 1, manaheight);
+		Rect hprect(hpx + i, bary - hpheight + 1, hpx + i + 1, bary + 1);
+		Rect manarect(manax + i, bary - manaheight + 1, manax + i + 1, bary + 1);
+		surf->fillRect(hprect, pal->_native[hpcolour[i]]);
+		surf->fillRect(manarect, pal->_native[manacolour[i]]);
 	}
 }
 
@@ -103,7 +109,7 @@ uint16 MiniStatsGump::TraceObjId(int32 mx, int32 my) {
 }
 
 Gump *MiniStatsGump::onMouseDown(int button, int32 mx, int32 my) {
-	if (button == Shared::BUTTON_LEFT)
+	if (button == Mouse::BUTTON_LEFT)
 		return this;
 
 	return nullptr;

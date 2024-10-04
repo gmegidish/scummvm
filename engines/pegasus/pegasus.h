@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -78,8 +77,8 @@ public:
 	// Engine stuff
 	const PegasusGameDescription *_gameDescription;
 	bool hasFeature(EngineFeature f) const override;
-	bool canLoadGameStateCurrently() override;
-	bool canSaveGameStateCurrently() override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 	Common::Error loadGameState(int slot) override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
 
@@ -166,13 +165,13 @@ public:
 	InventoryResult addItemToBiochips(BiochipItem *);
 
 	// AI
-	Common::String getBriefingMovie();
-	Common::String getEnvScanMovie();
+	Common::Path getBriefingMovie();
+	Common::Path getEnvScanMovie();
 	uint getNumHints();
-	Common::String getHintMovie(uint);
+	Common::Path getHintMovie(uint);
 	bool canSolve();
-	void prepareForAIHint(const Common::String &);
-	void cleanUpAfterAIHint(const Common::String &);
+	void prepareForAIHint(const Common::Path &);
+	void cleanUpAfterAIHint(const Common::Path &);
 	void requestToggle(bool request = true) { _toggleRequested = request; }
 	bool toggleRequested() const { return _toggleRequested; }
 	bool isChattyAI() { return _chattyAI; }
@@ -234,7 +233,7 @@ private:
 	void runIntro();
 	void stopIntroTimer();
 	bool detectOpeningClosingDirectory();
-	Common::String _introDirectory;
+	Common::Path _introDirectory;
 	FuseFunction *_introTimer;
 
 	// Idlers
@@ -271,7 +270,7 @@ private:
 	Hotspot _returnHotspot;
 	HotspotList _allHotspots;
 	InputHandler *_savedHandler;
-	void showTempScreen(const Common::String &fileName);
+	void showTempScreen(const Common::Path &fileName);
 	bool playMovieScaled(Video::VideoDecoder *video, uint16 x, uint16 y);
 	void throwAwayEverything();
 	void shellGameInput(const Input &input, const Hotspot *cursorSpot);
@@ -344,6 +343,8 @@ private:
 	void toggleInfo();
 	Movie _bigInfoMovie, _smallInfoMovie;
 };
+
+extern PegasusEngine *g_vm;
 
 } // End of namespace Pegasus
 

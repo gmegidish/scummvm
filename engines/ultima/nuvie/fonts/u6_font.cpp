@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,14 +27,11 @@
 namespace Ultima {
 namespace Nuvie {
 
-U6Font::U6Font() {
-	font_data = NULL;
-	num_chars = 0;
-	offset = 0;
+U6Font::U6Font() : font_data(nullptr) {
 }
 
 U6Font::~U6Font() {
-	if (font_data != NULL)
+	if (font_data != nullptr)
 		free(font_data);
 }
 
@@ -76,7 +72,7 @@ uint16 U6Font::drawChar(Screen *screen, uint8 char_num, uint16 x, uint16 y,
 		pixels += pitch;
 	}
 
-	screen->blit(x, y, buf, 8, 8, 8, 8, true, NULL);
+	screen->blit(x, y, buf, 8, 8, 8, 8, true, nullptr);
 	return 8;
 }
 

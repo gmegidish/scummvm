@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -310,7 +309,10 @@ void SceneScriptRC02::dialogueWithRunciter() {
 			Actor_Face_Actor(kActorMcCoy, kActorRunciter, true);
 			Actor_Says(kActorMcCoy, 395, 14);
 			Actor_Face_Actor(kActorRunciter, kActorMcCoy, true);
-			Actor_Says(kActorRunciter, 1680, 13);
+			// Runciter's 1680 quote is *boop* (placeholder sound effect) in DEU version
+			if (_vm->_language != Common::DE_DEU) {
+				Actor_Says(kActorRunciter, 1680, 13);
+			}
 			Actor_Says(kActorMcCoy, 400, 14);
 			Voight_Kampff_Activate(kActorRunciter, 20);
 			Actor_Modify_Friendliness_To_Other(kActorRunciter, kActorMcCoy, -10);
@@ -381,7 +383,8 @@ bool SceneScriptRC02::ClickedOnActor(int actorId) {
 				Actor_Says(kActorMcCoy, 4690, 11);
 				Actor_Says(kActorMcCoy, 4695, 13);
 				Actor_Face_Actor(kActorRunciter, kActorMcCoy, true);
-				if (_vm->_cutContent) {
+				if (_vm->_cutContent && _vm->_language != Common::DE_DEU) {
+					// This quote is *boop* (placeholder sound effect) in DEU version.
 					Actor_Says(kActorRunciter, 1670, 14);
 				} else {
 					Actor_Says(kActorRunciter, 1610, 14);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,7 +71,7 @@ void AGOSEngine::loadZone(uint16 zoneNum, bool useError) {
 		_vgaMemPtr = _vgaMemBase;
 	} else {
 		vpe = _vgaBufferPointers + zoneNum;
-		if (vpe->vgaFile1 != NULL)
+		if (vpe->vgaFile1 != nullptr)
 			return;
 	}
 
@@ -92,7 +91,7 @@ void AGOSEngine::loadZone(uint16 zoneNum, bool useError) {
 	vpe->vgaFile1 = _block;
 	vpe->vgaFile1End = _blockEnd;
 
-	vpe->sfxFile = NULL;
+	vpe->sfxFile = nullptr;
 
 	if (getGameType() == GType_ELVIRA2) {
 		// A singe sound file is used for Amiga and AtariST versions
@@ -202,12 +201,12 @@ void AGOSEngine::checkZonePtrs() {
 		if (((vpe->vgaFile1 < _blockEnd) && (vpe->vgaFile1End > _block)) ||
 			((vpe->vgaFile2 < _blockEnd) && (vpe->vgaFile2End > _block)) ||
 			((vpe->sfxFile < _blockEnd) && (vpe->sfxFileEnd > _block))) {
-			vpe->vgaFile1 = NULL;
-			vpe->vgaFile1End = NULL;
-			vpe->vgaFile2 = NULL;
-			vpe->vgaFile2End = NULL;
-			vpe->sfxFile = NULL;
-			vpe->sfxFileEnd = NULL;
+			vpe->vgaFile1 = nullptr;
+			vpe->vgaFile1End = nullptr;
+			vpe->vgaFile2 = nullptr;
+			vpe->vgaFile2End = nullptr;
+			vpe->sfxFile = nullptr;
+			vpe->sfxFileEnd = nullptr;
 		}
 	} while (++vpe, --count);
 }

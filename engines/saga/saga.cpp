@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,8 @@
 #include "common/system.h"
 #include "common/events.h"
 #include "common/translation.h"
+#include "common/compression/unarj.h"
+#include "common/compression/unzip.h"
 
 #include "audio/mixer.h"
 
@@ -52,6 +53,162 @@
 #include "saga/objectmap.h"
 
 namespace Saga {
+
+const char *engineKeyMapId = "engine-default";
+const char *gameKeyMapId = "game-shortcuts";
+const char *optionKeyMapId = "option-panel";
+const char *saveKeyMapId = "save-panel";
+const char *loadKeyMapId = "load-panel";
+const char *quitKeyMapId = "quit-panel";
+const char *converseKeyMapId = "converse-panel";
+
+
+static const GameResourceDescription ITE_Resources_GermanAGACD = {
+	1810,	// Scene lookup table RN
+	216,	// Script lookup table RN
+	3,		// Main panel
+	4,		// Converse panel
+	5,		// Option panel
+	6,		// Main sprites
+	7,		// Main panel sprites
+	35,		// Main strings
+	// ITE specific resources
+	36,		// Actor names
+	125,	// Default portraits
+	// IHNM specific resources
+	0,		// Option panel sprites
+	0,		// Warning panel
+	0,		// Warning panel sprites
+	0		// Psychic profile background
+};
+
+static const GameResourceDescription ITE_Resources_GermanECSCD = {
+	1816,	// Scene lookup table RN
+	216,	// Script lookup table RN
+	3,		// Main panel
+	4,		// Converse panel
+	5,		// Option panel
+	6,		// Main sprites
+	7,		// Main panel sprites
+	35,		// Main strings
+	// ITE specific resources
+	36,		// Actor names
+	125,	// Default portraits
+	// IHNM specific resources
+	0,		// Option panel sprites
+	0,		// Warning panel
+	0,		// Warning panel sprites
+	0		// Psychic profile background
+};
+
+static const GameResourceDescription ITE_Resources = {
+	1806,	// Scene lookup table RN
+	216,	// Script lookup table RN
+	3,		// Main panel
+	4,		// Converse panel
+	5,		// Option panel
+	6,		// Main sprites
+	7,		// Main panel sprites
+	35,		// Main strings
+	// ITE specific resources
+	36,		// Actor names
+	125,	// Default portraits
+	// IHNM specific resources
+	0,		// Option panel sprites
+	0,		// Warning panel
+	0,		// Warning panel sprites
+	0		// Psychic profile background
+};
+
+static const GameResourceDescription ITE_Resources_EnglishECSCD = {
+	1812,	// Scene lookup table RN
+	216,	// Script lookup table RN
+	3,		// Main panel
+	4,		// Converse panel
+	5,		// Option panel
+	6,		// Main sprites
+	7,		// Main panel sprites
+	35,		// Main strings
+	// ITE specific resources
+	36,		// Actor names
+	125,	// Default portraits
+	// IHNM specific resources
+	0,		// Option panel sprites
+	0,		// Warning panel
+	0,		// Warning panel sprites
+	0		// Psychic profile background
+};
+
+// FIXME: Option panel should be 4 but it is an empty resource.
+// Proper fix would be to not load the options panel when the demo is running
+static const GameResourceDescription ITEDemo_Resources = {
+	318,	// Scene lookup table RN
+	146,	// Script lookup table RN
+	2,		// Main panel
+	3,		// Converse panel
+	3,		// Option panel
+	5,		// Main sprites
+	6,		// Main panel sprites
+	8,		// Main strings
+	// ITE specific resources
+	9,		// Actor names
+	80,		// Default portraits
+	// IHNM specific resources
+	0,		// Option panel sprites
+	0,		// Warning panel
+	0,		// Warning panel sprites
+	0		// Psychic profile background
+};
+
+static const GameResourceDescription IHNM_Resources = {
+	1272,	// Scene lookup table RN
+	29,		// Script lookup table RN
+	9,		// Main panel
+	10,		// Converse panel
+	15,		// Option panel
+	12,		// Main sprites
+	12,		// Main panel sprites
+	21,		// Main strings
+	// ITE specific resources
+	0,		// Actor names
+	0,		// Default portraits
+	// IHNM specific resources
+	16,		// Option panel sprites
+	17,		// Warning panel
+	18,		// Warning panel sprites
+	20		// Psychic profile background
+};
+
+static const GameResourceDescription IHNMDEMO_Resources = {
+	286,	// Scene lookup table RN
+	18,		// Script lookup table RN
+	5,		// Main panel
+	6,		// Converse panel
+	10,		// Option panel
+	7,		// Main sprites
+	7,		// Main panel sprites
+	16,		// Main strings
+	// ITE specific resources
+	0,		// Actor names
+	0,		// Default portraits
+	// IHNM specific resources
+	11,		// Option panel sprites
+	12,		// Warning panel
+	13,		// Warning panel sprites
+	15		// Psychic profile background
+};
+
+static const GameResourceDescription *ResourceLists[RESOURCELIST_MAX] = {
+	/* RESOURCELIST_NONE */               nullptr,
+	/* RESOURCELIST_ITE */                &ITE_Resources,
+	/* RESOURCELIST_ITE_ENGLISH_ECS_CD */ &ITE_Resources_EnglishECSCD,
+	/* RESOURCELIST_ITE_GERMAN_AGA_CD */  &ITE_Resources_GermanAGACD,
+	/* RESOURCELIST_ITE_GERMAN_ECS_CD */  &ITE_Resources_GermanECSCD,
+	/* RESOURCELIST_ITE_DEMO */           &ITEDemo_Resources,
+	/* RESOURCELIST_IHNM */               &IHNM_Resources,
+	/* RESOURCELIST_IHNM_DEMO */          &IHNMDEMO_Resources
+};
+
 
 #define MAX_TIME_DELTA 100
 
@@ -105,7 +262,7 @@ SagaEngine::SagaEngine(OSystem *syst, const SAGAGameDescription *gameDesc)
 
 	_frameCount = 0;
 
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 
 	// The Linux version of Inherit the Earth puts all data files in an
 	// 'itedata' sub-directory, except for voices.rsc
@@ -126,6 +283,9 @@ SagaEngine::SagaEngine(OSystem *syst, const SAGAGameDescription *gameDesc)
 
 	// Mac CD Wyrmkeep
 	SearchMan.addSubDirectoryMatching(gameDataDir, "patch");
+
+	if (getPlatform() == Common::Platform::kPlatformMacintosh)
+		SearchMan.addSubDirectoryMatching(gameDataDir, "ITE Data Files");
 
 	_displayClip.left = _displayClip.top = 0;
 }
@@ -196,6 +356,21 @@ SagaEngine::~SagaEngine() {
 
 Common::Error SagaEngine::run() {
 	setTotalPlayTime(0);
+
+	if (getFeatures() & GF_INSTALLER) {
+		Common::Array<Common::Path> filenames;
+		for (const ADGameFileDescription *gameArchiveDescription = getArchivesDescriptions();
+		     gameArchiveDescription->fileName; gameArchiveDescription++)
+			filenames.push_back(gameArchiveDescription->fileName);
+		Common::Archive *archive = nullptr;
+		if (filenames.size() == 1 && filenames[0].baseName().hasSuffix(".exe"))
+			archive = Common::makeZipArchive(filenames[0], true);
+		else
+			archive = Common::makeArjArchive(filenames, true);
+		if (!archive)
+			error("Error opening archive");
+		SearchMan.add("archive", archive, DisposeAfterUse::YES);
+	}
 
 	// Assign default values to the config manager, in case settings are missing
 	ConfMan.registerDefault("talkspeed", "255");
@@ -371,7 +546,13 @@ Common::Error SagaEngine::run() {
 	return Common::kNoError;
 }
 
-void SagaEngine::loadStrings(StringsTable &stringsTable, const ByteArray &stringsData) {
+const GameResourceDescription *SagaEngine::getResourceDescription() const {
+	GameResourceList index = getResourceList();
+	assert(index < RESOURCELIST_MAX && index > RESOURCELIST_NONE);
+	return ResourceLists[index];
+}
+
+void SagaEngine::loadStrings(StringsTable &stringsTable, const ByteArray &stringsData, bool isBigEndian) {
 	uint16 stringsCount;
 	size_t offset;
 	size_t prevOffset = 0;
@@ -383,7 +564,7 @@ void SagaEngine::loadStrings(StringsTable &stringsTable, const ByteArray &string
 	}
 
 
-	ByteArrayReadStreamEndian scriptS(stringsData, isBigEndian()); //TODO: get endianess from context
+	ByteArrayReadStreamEndian scriptS(stringsData, isBigEndian);
 
 	offset = scriptS.readUint16();
 	stringsCount = offset / 2;
@@ -471,33 +652,34 @@ const char *SagaEngine::getObjectName(uint16 objectId) const {
 	return NULL;
 }
 
+int SagaEngine::getLanguageIndex() {
+	switch (getLanguage()) {
+	case Common::EN_ANY:
+		return 0;
+	case Common::DE_DEU:
+		return 1;
+	case Common::IT_ITA:
+		return 2;
+	case Common::ES_ESP:
+		return 3;
+	case Common::FR_FRA:
+		return 4;
+	case Common::JA_JPN:
+		return 5;
+	case Common::RU_RUS:
+		return 6;
+	case Common::HE_ISR:
+		return 7;
+	case Common::ZH_TWN:
+		return 8;
+	default:
+		return 0;
+	}
+}
+
 const char *SagaEngine::getTextString(int textStringId) {
 	const char *string;
-	int lang = 0;
-
-	switch (getLanguage()) {
-		case Common::DE_DEU:
-			lang = 1;
-			break;
-		case Common::IT_ITA:
-			lang = 2;
-			break;
-		case Common::ES_ESP:
-			lang = 3;
-			break;
-		case Common::RU_RUS:
-			lang = 4;
-			break;
-		case Common::FR_FRA:
-			lang = 5;
-			break;
-		case Common::JA_JPN:
-			lang = 6;
-			break;
-		default:
-			lang = 0;
-			break;
-	}
+	int lang = getLanguageIndex();
 
 	if (getLanguage() == Common::RU_RUS && textStringId == 43) {
 		if (getGameId() == GID_ITE)
@@ -538,37 +720,79 @@ void SagaEngine::getExcuseInfo(int verb, const char *&textString, int &soundReso
 	}
 }
 
+void SagaEngine::enableKeyMap(int mode) {
+	PanelModes newPanelMode = (PanelModes)mode;
+	if (_currentPanelMode == newPanelMode) {
+		return;
+	}
+
+	Common::String id;
+	switch (newPanelMode) {
+	case kPanelMain:
+		id = gameKeyMapId;
+		break;
+	case kPanelOption:
+		id = optionKeyMapId;
+		break;
+	case kPanelSave:
+		id = saveKeyMapId;
+		break;
+	case kPanelLoad:
+		id = loadKeyMapId;
+		break;
+	case kPanelQuit:
+		id = quitKeyMapId;
+		break;
+	case kPanelConverse:
+		id = converseKeyMapId;
+		break;
+	default:
+		id = ""; // disable all keymaps if it is not any of above Panels
+		break;
+	}
+
+	Common::Keymapper *keymapper = g_system->getEventManager()->getKeymapper();
+	const Common::KeymapArray &keymaps = keymapper->getKeymaps();
+	for (Common::Keymap *keymap : keymaps) {
+		const Common::String &keymapId = keymap->getId();
+		if (keymap->getType() == Common::Keymap::kKeymapTypeGame && keymapId != engineKeyMapId) {
+			keymap->setEnabled(keymapId == id);
+		}
+	}
+	_currentPanelMode = newPanelMode;
+}
+
 ColorId SagaEngine::KnownColor2ColorId(KnownColor knownColor) {
-	ColorId colorId = kITEColorTransBlack;
+	ColorId colorId = kITEDOSColorTransBlack;
 
 	if (getGameId() == GID_ITE) {
 		switch (knownColor) {
 		case(kKnownColorTransparent):
-			colorId = kITEColorTransBlack;
+			colorId = iteColorTransBlack();
 			break;
 		case (kKnownColorBrightWhite):
-			colorId = kITEColorBrightWhite;
+			colorId = iteColorBrightWhite();
 			break;
 		case (kKnownColorWhite):
-			colorId = kITEColorWhite;
+			colorId = iteColorWhite();
 			break;
 		case (kKnownColorBlack):
-			colorId = kITEColorBlack;
+			colorId = iteColorBlack();
 			break;
 		case (kKnownColorSubtitleTextColor):
-			colorId = (ColorId)255;
+			colorId = isECS() ? kITEECSColorWhite : (ColorId)255;
 			break;
 		case (kKnownColorSubtitleEffectColorPC98):
 			colorId = (ColorId)210;
 			break;
 		case (kKnownColorVerbText):
-			colorId = kITEColorBlue;
+			colorId = isECS() ? kITEECSBottomColorBlue : kITEDOSColorBlue;
 			break;
 		case (kKnownColorVerbTextShadow):
-			colorId = kITEColorBlack;
+			colorId = isECS() ? kITEECSColorBlack : kITEDOSColorBlack;
 			break;
 		case (kKnownColorVerbTextActive):
-			colorId = (ColorId)96;
+			colorId = isECS() ? kITEECSBottomColorYellow60 : kITEDOSColorYellow60;
 			break;
 
 		default:

@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -327,7 +326,7 @@ private:
 	uint32 m_nCurrentZoom;                                 // 128 = scale of 1.0, 1 = x(1/128), 512 = scale of x4
 	uint32 m_nMinZoom;                                     // Minimum zoom level allowed for the Remora.
 	uint32 m_nMaxZoom;                                     // Maximum zoom level allowed for the Remora.
-	_barrier_slice *m_pSlices[REMORA_MAX_INCLUDED_SLICES]; // Slices of barriers for player's current height.
+	BarrierSlice *m_pSlices[REMORA_MAX_INCLUDED_SLICES];   // Slices of barriers for player's current height.
 	uint32 m_pnSlices[REMORA_MAX_INCLUDED_SLICES];         // Index of slice player is on.
 	int32 m_nIncludedCeiling;                              // Top coordinate of things to include in scan modes.
 	int32 m_nIncludedFloor;                                // Bottom coordinate of things to include in scan modes.
@@ -353,7 +352,7 @@ private:
 	// Clustering.
 	uint32 m_nRemoraClusterHash;
 
-	// These are here at the end to keep the data alligned.
+	// These are here at the end to keep the data aligned.
 	bool8 m_bModeChanged;       // Set to true when there is a mode change.
 	uint8 m_nNextAvailableRow;  // Last line text has been written to.
 	uint8 m_nFirstLineToDraw;   // Display from this point (to do scrolling).
@@ -502,7 +501,7 @@ inline void _remora::SetMinimumZoom(uint32 nZoom) {
 	m_nMinZoom = nZoom;
 }
 
-inline void _remora::NewEmail(const char *pcEmailID) { strcpy(m_pcEmailID, pcEmailID); }
+inline void _remora::NewEmail(const char *pcEmailID) { Common::strcpy_s(m_pcEmailID, pcEmailID); }
 
 inline void _remora::ResetFloorRanges() {
 	m_nNumFloorRangesSet = 0;

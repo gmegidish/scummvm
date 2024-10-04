@@ -21,11 +21,12 @@ Default shortcuts are shown in the table.
         :kbd:`Ctrl+z`,Quit (other platforms)
         :kbd:`Ctrl+u` ,Mutes all sounds
         :kbd:`Ctrl+m` ,Toggles mouse capture
-        :kbd:`Ctrl+Alt+ 1-8` ,Switches between graphics filters
+        :kbd:`Ctrl+Alt` and :kbd:`9` or :kbd:`0`,Cycles forwards/backwards between graphics filters
         :kbd:`Ctrl+Alt` and :kbd:`+` or :kbd:`-`,Increases/decreases the scale factor
         :kbd:`Ctrl+Alt+a` ,Toggles aspect ratio correction on/off
         :kbd:`Ctrl+Alt+f` ,Toggles between nearest neighbor and bilinear interpolation (graphics filtering on/off)
         :kbd:`Ctrl+Alt+s` ,Cycles through stretch modes
         :kbd:`Alt+Enter` ,Toggles full screen/windowed mode
-        :kbd:`Alt+s` ,Takes a screenshot
+        :kbd:`Alt+s` ,Takes a :ref:`screenshot <screenshotpath>`
         :kbd:`Ctrl+F7`,"Opens virtual keyboard (if enabled). This can also be opened with a long press of the middle mouse button or wheel."
+		:kbd:`Ctrl+Alt+d`,"Opens the ScummVM debugger"

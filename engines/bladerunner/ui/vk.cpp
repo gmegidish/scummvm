@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -76,12 +75,15 @@ void VK::open(int actorId, int calibrationRatio) {
 		}
 	}
 
-	_volumeAmbient = _vm->_ambientSounds->getVolume();
-	_volumeMusic   = _vm->_music->getVolume();
+	_ambientVolumeFactorOutsideVK = _vm->_ambientSounds->getVolume();
+	_musicVolumeFactorOutsideVK = _vm->_music->getVolume();
+	// Original engine sets volume to 1 for ambient and music
+	_vm->_ambientSounds->setVolume(1);
+	_vm->_music->setVolume(1);
 
 	_actorId          = actorId;
 	_calibrationRatio = calibrationRatio;
-	_calibration      = 0;
+	_calibration      = 0; // TODO Original uses a float (0.0) var for calibration. Does this make any difference?
 
 	_buttons = new UIImagePicker(_vm, 8);
 
@@ -176,8 +178,9 @@ void VK::close() {
 	_shapes->unload();
 
 	_vm->closeArchive("MODE.MIX");
-	_vm->_music->setVolume(_volumeMusic);
-	_vm->_ambientSounds->setVolume(_volumeAmbient);
+
+	_vm->_music->setVolume(_musicVolumeFactorOutsideVK);
+	_vm->_ambientSounds->setVolume(_ambientVolumeFactorOutsideVK);
 
 	_vm->_time->resume();
 	_vm->_scene->resume();
@@ -193,13 +196,9 @@ void VK::tick() {
 	draw();
 
 	if ( _vm->_debugger->_showStatsVk
-		&& !_vm->_actors[_actorId]->isSpeeching()
-		&& !_vm->_actors[kActorMcCoy]->isSpeeching()
-		&& !_vm->_actors[kActorAnsweringMachine]->isSpeeching()
-		&& !_isClosing
-	) {
-		_vm->_subtitles->setGameSubsText(Common::String::format("Adjustment: %03d Calibration: %02d Ratio: %02d\nAnxiety: %02d%% Replicant: %02d%% Human: %02d%%", _adjustment, _calibration, _calibrationRatio, _anxiety, _replicantProbability, _humanProbability), true);
-		_vm->_subtitles->show();
+	    && !_isClosing) {
+		_vm->_subtitles->setGameSubsText(BladeRunner::Subtitles::kSubtitlesSecondary, Common::String::format("Adjustment: %03d Calibration: %02d Ratio: %02d\nAnxiety: %02d%% Replicant: %02d%% Human: %02d%%", _adjustment, _calibration, _calibrationRatio, _anxiety, _replicantProbability, _humanProbability), true);
+		_vm->_subtitles->show(BladeRunner::Subtitles::kSubtitlesSecondary);
 	}
 
 	_vm->_subtitles->tick(_vm->_surfaceFront);
@@ -208,6 +207,10 @@ void VK::tick() {
 
 	// unsigned difference is intentional
 	if (_isClosing && (_vm->_time->current() - _timeCloseStart >= 3000u) && !_script->isInsideScript()) {
+		if ( _vm->_debugger->_showStatsVk) {
+			_vm->_subtitles->setGameSubsText(BladeRunner::Subtitles::kSubtitlesSecondary, "", false);
+			_vm->_subtitles->hide(BladeRunner::Subtitles::kSubtitlesSecondary);
+		}
 		close();
 		_vm->_mouse->enable();
 		reset();
@@ -443,8 +446,8 @@ void VK::reset() {
 
 	_shapes->unload();
 
-	_volumeAmbient = 0;
-	_volumeMusic   = 0;
+	_ambientVolumeFactorOutsideVK = 0;
+	_musicVolumeFactorOutsideVK   = 0;
 
 	_calibrationRatio   = 0;
 	_calibrationCounter = 0;

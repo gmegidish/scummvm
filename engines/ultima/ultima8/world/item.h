@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,7 @@
 #define ULTIMA8_WORLD_ITEM_H
 
 #include "ultima/ultima8/kernel/object.h"
-#include "ultima/ultima8/graphics/shape_info.h"
+#include "ultima/ultima8/gfx/shape_info.h"
 
 #include "ultima/ultima8/usecode/intrinsics.h"
 #include "ultima/ultima8/misc/box.h"
@@ -62,13 +61,17 @@ public:
 	//! Get the Container this Item is in, if any. (NULL if not in a Container)
 	Container *getParentAsContainer() const;
 
+	//! Get the top-most Container this Item is in, if any. (NULL if not in a Container)
+	Container *getRootContainer() const;
+
 	//! Get the top-most Container this Item is in, or the Item itself if not
 	//! in a container
-	Item *getTopItem();
+	const Item *getTopItem() const;
 
 	//! Set item location. This strictly sets the location, and does not
 	//! even update CurrentMap
 	void setLocation(int32 x, int32 y, int32 z); // this only sets the loc.
+	void setLocation(const Point3 &pt); // this only sets the loc.
 
 	//! Move an item. This moves an item to the new location, and updates
 	//! CurrentMap and fastArea if necessary.
@@ -94,14 +97,13 @@ public:
 
 	//! Get the location of the top-most container this Item is in, or
 	//! this Item's location if not in a container.
-	void getLocationAbsolute(int32 &x, int32 &y, int32 &z) const;
+	Point3 getLocationAbsolute() const;
 
 	//! Get this Item's location. Note that this does not return
 	//! 'usable' coordinates if the Item is contained or equipped.
-	inline void getLocation(int32 &x, int32 &y, int32 &z) const;
-
-	//! Get the Item's location using a Point3 struct.
-	inline void getLocation(Point3 &pt) const;
+	inline Point3 getLocation() const {
+		return Point3(_x, _y, _z);
+	}
 
 	//! Get this Item's Z coordinate.
 	int32 getZ() const;
@@ -126,7 +128,7 @@ public:
 
 	//! Get the world coordinates of the Item's centre. Undefined if the Item
 	//! is contained or equipped.
-	void getCentre(int32 &x, int32 &y, int32 &z) const;
+	Point3 getCentre() const;
 
 	//! Get the size of this item's 3D bounding box, in world coordinates.
 	inline void getFootpadWorld(int32 &x, int32 &y, int32 &z) const;
@@ -253,7 +255,7 @@ public:
 	uint16 getFamily() const;
 
 	//! Check if we can merge with another item.
-	bool canMergeWith(Item *other);
+	bool canMergeWith(const Item *other) const;
 
 	//! Get the open ContainerGump for this Item, if any. (NULL if not open.)
 	ObjId getGump() const {
@@ -265,6 +267,12 @@ public:
 	ObjId openGump(uint32 gumpshape);
 	//! Close this Item's gump, if any
 	void closeGump();
+
+	ProcId bark(const Std::string &msg, ObjId id = 0);
+	//! Call this to notify the Item's open bark has closed.
+	void clearBark(); // set bark to 0
+	//! Close this Item's bark, if any
+	void closeBark();
 
 	//! Destroy self.
 	virtual void destroy(bool delnow = false);
@@ -292,6 +300,7 @@ public:
 
 	//! Check if this item can exist at the given coordinates
 	bool canExistAt(int32 x, int32 y, int32 z, bool needsupport = false) const;
+	bool canExistAt(const Point3 &pt, bool needsupport = false) const;
 
 	//! Get direction from centre to another item's centre.
 	//! Undefined if either item is contained or equipped.
@@ -313,7 +322,7 @@ public:
 	//! \param x x coordinate of other to use, If zero, use real coords.
 	//! \param y y coordinate of other to use
 	//! \param z z coordinate of other to use.
-	bool canReach(Item *other, int range, int32 x = 0, int32 y = 0, int32 z = 0);
+	bool canReach(const Item *other, int range, int32 x = 0, int32 y = 0, int32 z = 0) const;
 
 	//! Move the object to (x,y,z) colliding with objects in the way.
 	//! \param teleport move without colliding with objects between source and
@@ -412,14 +421,14 @@ public:
 	int32 getTargetZRelativeToAttackerZ(int32 attackerz) const;
 
 	//! count nearby objects of a given shape
-	unsigned int countNearby(uint32 shape, uint16 range);
+	unsigned int countNearby(uint32 shape, uint16 range) const;
 
 	//! can this item be dragged?
-	bool canDrag();
+	bool canDrag() const;
 
 	//! how far can this item be thrown?
 	//! \return range, or 0 if item can't be thrown
-	int getThrowRange();
+	int getThrowRange() const;
 
 	//! Check this Item against the given loopscript
 	//! \param script The loopscript to run
@@ -453,10 +462,8 @@ public:
 	uint32 use();
 
 	//! Get lerped location.
-	inline void getLerped(int32 &xp, int32 &yp, int32 &zp) const {
-		xp = _ix;
-		yp = _iy;
-		zp = _iz;
+	inline Point3 getLerped() const {
+		return Point3(_ix, _iy, _iz);
 	}
 
 	//! Do lerping for an in between frame (0-256)
@@ -498,8 +505,8 @@ public:
 	//! \note This can destroy the object
 	virtual void leaveFastArea();
 
-	//! dump some info about this item to pout
-	void dumpInfo() const override;
+	//! dump some info about this item to a string
+	Common::String dumpInfo() const override;
 
 	bool loadData(Common::ReadStream *rs, uint32 version);
 	void saveData(Common::WriteStream *ws) override;
@@ -636,7 +643,8 @@ protected:
 	Lerped  _lNext;         // Next (current) state (relative to camera)
 	int32   _ix, _iy, _iz;  // Interpolated position in camera space
 
-	ObjId _gump;             // Item's gump
+	ObjId _gump;             // Item's container gump
+	ObjId _bark;             // Item's bark gump
 	ProcId _gravityPid;      // Item's GravityTracker (or 0)
 
 	uint8 _damagePoints;	// Damage points, used for item damage in Crusader
@@ -696,6 +704,9 @@ public:
 		EXT_TARGET 		 = 0x0200,  //!< Item is the current reticle target in Crusader
 		EXT_FEMALE       = 0x8000	//!< Item is Crusader Female NPC (controls sfx)
 	};
+
+	// easter egg as in original: items stack to max quantity of 666
+	static const int MAX_QUANTITY = 666;
 };
 
 inline const ShapeInfo *Item::getShapeInfo() const {
@@ -721,18 +732,6 @@ inline void Item::getFootpadData(int32 &X, int32 &Y, int32 &Z) const {
 inline void Item::getFootpadWorld(int32 &X, int32 &Y, int32 &Z) const {
 	const ShapeInfo *si = getShapeInfo();
 	si->getFootpadWorld(X, Y, Z, _flags & Item::FLG_FLIPPED);
-}
-
-inline void Item::getLocation(int32 &X, int32 &Y, int32 &Z) const {
-	X = _x;
-	Y = _y;
-	Z = _z;
-}
-
-inline void Item::getLocation(Point3 &pt) const {
-	pt.x = _x;
-	pt.y = _y;
-	pt.z = _z;
 }
 
 } // End of namespace Ultima8

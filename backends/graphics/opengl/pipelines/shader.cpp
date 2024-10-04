@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,57 +15,54 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "backends/graphics/opengl/pipelines/shader.h"
 #include "backends/graphics/opengl/shader.h"
 #include "backends/graphics/opengl/framebuffer.h"
+#include "graphics/opengl/debug.h"
 
 namespace OpenGL {
 
+// A 4 elements with 2 components vector of floats
+static const int kCoordinatesSize = 4 * 2 * sizeof(float);
+
 #if !USE_FORCED_GLES
 ShaderPipeline::ShaderPipeline(Shader *shader)
-	: _activeShader(shader), _colorAttributes() {
-	_vertexAttribLocation = shader->getAttributeLocation("position");
-	_texCoordAttribLocation = shader->getAttributeLocation("texCoordIn");
-	_colorAttribLocation = shader->getAttributeLocation("blendColorIn");
+	: _activeShader(shader), _colorAttributes(), _colorDirty(true) {
+	// Use the same VBO for vertices and texcoords as we modify them at the same time
+	_coordsVBO = OpenGL::Shader::createBuffer(GL_ARRAY_BUFFER, kCoordinatesSize, nullptr, GL_STATIC_DRAW);
+	_activeShader->enableVertexAttribute("position", _coordsVBO, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	_texcoordsVBO = OpenGL::Shader::createBuffer(GL_ARRAY_BUFFER, kCoordinatesSize, nullptr, GL_STATIC_DRAW);
+	_activeShader->enableVertexAttribute("texCoordIn", _texcoordsVBO, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	_colorVBO = OpenGL::Shader::createBuffer(GL_ARRAY_BUFFER, sizeof(_colorAttributes), nullptr, GL_DYNAMIC_DRAW);
+	_activeShader->enableVertexAttribute("blendColorIn", _colorVBO, 4, GL_FLOAT, GL_FALSE, 0, 0);
+}
 
-	assert(_vertexAttribLocation   != -1);
-	assert(_texCoordAttribLocation != -1);
-	assert(_colorAttribLocation    != -1);
+ShaderPipeline::~ShaderPipeline() {
+	delete _activeShader;
 
-	// One of the attributes needs to be passed through location 0, otherwise
-	// we get no output for GL contexts due to GL compatibility reasons. Let's
-	// check whether this ever happens. If this ever gets hit, we need to
-	// enable location 0 and pass some dummy values through it to fix output.
-	assert(   _vertexAttribLocation == 0
-	       || _texCoordAttribLocation == 0
-	       || _colorAttribLocation == 0);
+	OpenGL::Shader::freeBuffer(_coordsVBO);
+	OpenGL::Shader::freeBuffer(_texcoordsVBO);
+	OpenGL::Shader::freeBuffer(_colorVBO);
 }
 
 void ShaderPipeline::activateInternal() {
-	GL_CALL(glEnableVertexAttribArray(_vertexAttribLocation));
-	GL_CALL(glEnableVertexAttribArray(_texCoordAttribLocation));
-	GL_CALL(glEnableVertexAttribArray(_colorAttribLocation));
+	Pipeline::activateInternal();
 
-	if (g_context.multitextureSupported) {
+	if (OpenGLContext.multitextureSupported) {
 		GL_CALL(glActiveTexture(GL_TEXTURE0));
 	}
 
-	_activeShader->activate();
-
-	GL_CALL(glVertexAttribPointer(_colorAttribLocation, 4, GL_FLOAT, GL_FALSE, 0, _colorAttributes));
+	_activeShader->use();
 }
 
 void ShaderPipeline::deactivateInternal() {
-	GL_CALL(glDisableVertexAttribArray(_vertexAttribLocation));
-	GL_CALL(glDisableVertexAttribArray(_texCoordAttribLocation));
-	GL_CALL(glDisableVertexAttribArray(_colorAttribLocation));
+	_activeShader->unbind();
 
-	_activeShader->deactivate();
+	Pipeline::deactivateInternal();
 }
 
 void ShaderPipeline::setColor(GLfloat r, GLfloat g, GLfloat b, GLfloat a) {
@@ -76,18 +73,32 @@ void ShaderPipeline::setColor(GLfloat r, GLfloat g, GLfloat b, GLfloat a) {
 		*dst++ = b;
 		*dst++ = a;
 	}
+	_colorDirty = true;
 }
 
-void ShaderPipeline::drawTexture(const GLTexture &texture, const GLfloat *coordinates) {
+void ShaderPipeline::drawTextureInternal(const GLTexture &texture, const GLfloat *coordinates, const GLfloat *texcoords) {
+	assert(isActive());
+
 	texture.bind();
 
-	GL_CALL(glVertexAttribPointer(_texCoordAttribLocation, 2, GL_FLOAT, GL_FALSE, 0, texture.getTexCoords()));
-	GL_CALL(glVertexAttribPointer(_vertexAttribLocation, 2, GL_FLOAT, GL_FALSE, 0, coordinates));
+	if (_colorDirty) {
+		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _colorVBO));
+		GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(_colorAttributes), _colorAttributes));
+		_colorDirty = false;
+	}
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _coordsVBO));
+	GL_CALL(glBufferData(GL_ARRAY_BUFFER, kCoordinatesSize, coordinates, GL_STATIC_DRAW));
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _texcoordsVBO));
+	GL_CALL(glBufferData(GL_ARRAY_BUFFER, kCoordinatesSize, texcoords, GL_STATIC_DRAW));
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
+
 	GL_CALL(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
 }
 
-void ShaderPipeline::setProjectionMatrix(const GLfloat *projectionMatrix) {
-	_activeShader->setUniform("projection", new ShaderUniformMatrix44(projectionMatrix));
+void ShaderPipeline::setProjectionMatrix(const Math::Matrix4 &projectionMatrix) {
+	assert(isActive());
+
+	_activeShader->setUniform("projection", projectionMatrix);
 }
 #endif // !USE_FORCED_GLES
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,15 +27,15 @@
 
 #include "director/director.h"
 #include "director/archive.h"
+#include "director/movie.h"
 #include "director/window.h"
-#include "director/util.h"
 
 namespace Director {
 
 // Base Archive code
 
 Archive::Archive() {
-	_stream = 0;
+	_stream = nullptr;
 	_isBigEndian = true;
 }
 
@@ -44,21 +43,21 @@ Archive::~Archive() {
 	close();
 }
 
-Common::String Archive::getFileName() const { return Director::getFileName(_pathName); }
+Common::String Archive::getFileName() const { return Director::getFileName(_pathName.toString(g_director->_dirSeparator)); }
 
-bool Archive::openFile(const Common::String &fileName) {
+bool Archive::openFile(const Common::Path &path) {
 	Common::File *file = new Common::File();
 
-	if (!file->open(Common::Path(fileName, g_director->_dirSeparator))) {
-		warning("Archive::openFile(): Error opening file %s", fileName.c_str());
+	if (path.empty() || !file->open(path)) {
+		warning("Archive::openFile(): Error opening file %s", path.toString(Common::Path::kNativeSeparator).c_str());
 		delete file;
 		return false;
 	}
 
-	_pathName = fileName;
+	_pathName = path.toString(g_director->_dirSeparator);
 
 	if (!openStream(file)) {
-		warning("Archive::openFile(): Error loading stream from file %s", fileName.c_str());
+		warning("Archive::openFile(): Error loading stream from file %s", path.toString(Common::Path::kNativeSeparator).c_str());
 		close();
 		return false;
 	}
@@ -67,15 +66,51 @@ bool Archive::openFile(const Common::String &fileName) {
 }
 
 void Archive::close() {
+	listUnaccessedChunks();
+
 	_types.clear();
 
 	if (_stream)
 		delete _stream;
 
-	_stream = 0;
+	_stream = nullptr;
 }
 
-int Archive::getFileSize() {
+void Archive::listUnaccessedChunks() {
+	Common::String s;
+
+	for (const auto &type : _types) {
+		bool accessed = false;
+
+		for (const auto &res : type._value) {
+			if (res._value.accessed) {
+				accessed = true;
+				break;
+			}
+		}
+
+		if (!accessed) {
+			switch (type._key) {
+			case MKTAG('f','r','e','e'):	// Freed chunk
+			case MKTAG('j','u','n','k'):	// Some unreferenced junk
+			case MKTAG('T','H','U','M'):	// Cast thumbnail - authoring only
+			case MKTAG('T','h','u','m'):	// Cast thumbnail - authoring only (D7+)
+			case MKTAG('F','C','O','L'):	// Favorite colors - authoring only
+			case MKTAG('S','C','R','F'):	// Shared Cast refs - authoring only
+			case MKTAG('V','W','t','c'):	// Score time code
+			case MKTAG('V','W','t','k'):	// Tape Key resource. Used as a lookup for labels in early Directors
+				break;
+			default:
+				s += Common::String::format("%s: %d items\n", tag2str(type._key), type._value.size());
+			}
+		}
+	}
+
+	if (!s.empty())
+		debugC(5, kDebugLoading, "Unaccessed Chunks in '%s':\n%s", _pathName.toString(g_director->_dirSeparator).c_str(), s.c_str());
+}
+
+uint32 Archive::getFileSize() {
 	if (!_stream)
 		return 0;
 
@@ -119,8 +154,11 @@ Common::SeekableReadStreamEndian *Archive::getResource(uint32 tag, uint16 id) {
 		error("Archive::getResource(): Archive does not contain '%s' %d", tag2str(tag), id);
 
 	const Resource &res = resMap[id];
+	auto stream = new Common::SeekableSubReadStream(_stream, res.offset, res.offset + res.size, DisposeAfterUse::NO);
 
-	return new Common::SeekableSubReadStreamEndian(_stream, res.offset, res.offset + res.size, _isBigEndian, DisposeAfterUse::NO);
+	_types[tag][id].accessed = true; // Mark it as accessed
+
+	return new Common::SeekableReadStreamEndianWrapper(stream, _isBigEndian, DisposeAfterUse::YES);
 }
 
 Resource Archive::getResourceDetail(uint32 tag, uint16 id) {
@@ -172,6 +210,17 @@ Common::String Archive::getName(uint32 tag, uint16 id) const {
 	return resMap[id].name;
 }
 
+Common::SeekableReadStreamEndian *Archive::getMovieResourceIfPresent(uint32 tag) {
+	if (g_director->getVersion() >= 400) {
+		if (_movieChunks.contains(tag) && hasResource(tag, _movieChunks[tag]))
+			return getResource(tag, _movieChunks[tag]);
+	} else if (hasResource(tag, -1)) {
+		return getFirstResource(tag);
+	}
+
+	return nullptr;
+}
+
 Common::Array<uint32> Archive::getResourceTypeList() const {
 	Common::Array<uint32> typeList;
 
@@ -203,37 +252,84 @@ uint32 Archive::convertTagToUppercase(uint32 tag) {
 	return newTag | toupper(tag & 0xFF);
 }
 
+void Archive::dumpChunk(Resource &res, Common::DumpFile &out) {
+	byte *data = nullptr;
+	uint dataSize = 0;
+
+	Common::SeekableReadStreamEndian *resStream = getResource(res.tag, res.index);
+	if (!resStream) {
+		return;
+	}
+	uint32 len = resStream->size();
+
+	if (dataSize < len) {
+		data = (byte *)malloc(resStream->size());
+		dataSize = resStream->size();
+	}
+
+	Common::Path prepend = _pathName.empty() ? _pathName : "stream";
+	Common::Path filename(Common::String::format("./dumps/%s-%s-%d", encodePathForDump(prepend.toString(g_director->_dirSeparator)).c_str(), tag2str(res.tag), res.index), '/');
+	resStream->read(data, len);
+
+	if (!out.open(filename, true)) {
+		warning("Archive::dumpChunk(): Can not open dump file %s", filename.toString(Common::Path::kNativeSeparator).c_str());
+	} else {
+		out.write(data, len);
+		out.flush();
+		out.close();
+	}
+
+	delete resStream;
+	free(data);
+}
+
+Common::String Archive::formatArchiveInfo() {
+	Common::String result = "unknown, ";
+	if (_isBigEndian)
+		result += "big endian,";
+	else
+		result += "little endian, ";
+	return result;
+}
+
 // Mac Archive code
 
-MacArchive::MacArchive() : Archive(), _resFork(0) {
+MacArchive::MacArchive() : Archive(), _resFork(nullptr) {
 }
 
 MacArchive::~MacArchive() {
 	delete _resFork;
 }
 
+uint32 MacArchive::getFileSize() {
+	if (!_resFork)
+		return 0;
+
+	return _resFork->getResForkDataSize();
+}
+
 void MacArchive::close() {
 	Archive::close();
 	delete _resFork;
-	_resFork = 0;
+	_resFork = nullptr;
 }
 
-bool MacArchive::openFile(const Common::String &fileName) {
+bool MacArchive::openFile(const Common::Path &path) {
 	close();
 
 	_resFork = new Common::MacResManager();
 
-	Common::String fName = fileName;
-
-	if (!_resFork->open(Common::Path(fName, g_director->_dirSeparator)) || !_resFork->hasResFork()) {
+	if (path.empty() || !_resFork->open(path) || !_resFork->hasResFork()) {
 		close();
 		return false;
 	}
 
-	_pathName = _resFork->getBaseFileName().toString(g_director->_dirSeparator);
-	if (_pathName.hasSuffix(".bin")) {
+	_pathName = _resFork->getBaseFileName();
+	Common::String basename(_pathName.baseName());
+	if (basename.hasSuffix(".bin")) {
 		for (int i = 0; i < 4; i++)
-			_pathName.deleteLastChar();
+			basename.deleteLastChar();
+		_pathName = _pathName.getParent().appendComponent(basename);
 	}
 
 	readTags();
@@ -250,14 +346,14 @@ bool MacArchive::openStream(Common::SeekableReadStream *stream, uint32 startOffs
 	_resFork = new Common::MacResManager();
 	stream->seek(startOffset);
 
-	if (!_resFork->loadFromMacBinary(*stream)) {
+	if (!_resFork->loadFromMacBinary(stream)) {
 		warning("MacArchive::openStream(): Error loading Mac Binary");
 		close();
 		return false;
 	}
 
 	_pathName = "<stream>";
-	_resFork->setBaseFileName(_pathName);
+	_resFork->setBaseFileName(Common::Path(_pathName));
 
 	readTags();
 
@@ -266,17 +362,44 @@ bool MacArchive::openStream(Common::SeekableReadStream *stream, uint32 startOffs
 
 void MacArchive::readTags() {
 	Common::MacResTagArray tagArray = _resFork->getResTagArray();
+	Common::DumpFile out;
 
 	for (uint32 i = 0; i < tagArray.size(); i++) {
-		ResourceMap &resMap = _types[tagArray[i]];
+		ResourceMap resMap;
 		Common::MacResIDArray idArray = _resFork->getResIDArray(tagArray[i]);
 
 		for (uint32 j = 0; j < idArray.size(); j++) {
+			// Avoid assigning invalid entries to _types, because other
+			// functions will assume they exist and are valid if listed.
+			Common::SeekableReadStream *readStream = _resFork->getResource(tagArray[i], idArray[j]);
+			if (readStream == nullptr) {
+				continue;
+			}
+			delete readStream;
+
 			Resource &res = resMap[idArray[j]];
 
 			res.offset = res.size = 0; // unused
 			res.name = _resFork->getResName(tagArray[i], idArray[j]);
-			debug(3, "Found MacArchive resource '%s' %d: %s", tag2str(tagArray[i]), idArray[j], res.name.c_str());
+			res.tag = tagArray[i];
+			res.index = idArray[j];
+			res.accessed = false;
+			debugC(3, kDebugLoading, "MacArchive::readTags(): Found MacArchive resource '%s' %d: %s", tag2str(tagArray[i]), idArray[j], res.name.c_str());
+			if (ConfMan.getBool("dump_scripts"))
+				dumpChunk(res, out);
+
+			res.accessed = false; // Clear flag so stats are not spoiled
+		}
+
+		// Don't assign a 0-entry resMap to _types.
+		if (resMap.size() > 0) {
+			 _types[tagArray[i]] = resMap;
+		}
+	}
+	if (debugChannelSet(5, kDebugLoading)) {
+		debugC(5, kDebugLoading, "MacArchive::readTags(): Resources found:");
+		for (const auto &it : _types) {
+			debugC(5, kDebugLoading, "%s: %d", tag2str(it._key), it._value.size());
 		}
 	}
 }
@@ -286,11 +409,21 @@ Common::SeekableReadStreamEndian *MacArchive::getResource(uint32 tag, uint16 id)
 	Common::SeekableReadStream *stream = _resFork->getResource(tag, id);
 
 	if (stream == nullptr) {
-		warning("MacArchive::getResource('%s', %d): Resource doesn't exit", tag2str(tag), id);
-		return nullptr;
+		error("MacArchive::getResource(): Archive does not contain '%s' %d", tag2str(tag), id);
 	}
 
-	return new Common::SeekableSubReadStreamEndian(stream, 0, stream->size(), true, DisposeAfterUse::YES);
+	_types[tag][id].accessed = true; // Mark it as accessed
+
+	return new Common::SeekableReadStreamEndianWrapper(stream, true, DisposeAfterUse::YES);
+}
+
+Common::String MacArchive::formatArchiveInfo() {
+	Common::String result = "Mac resource fork, ";
+	if (_isBigEndian)
+		result += "big endian";
+	else
+		result += "little endian";
+	return result;
 }
 
 // RIFF Archive code
@@ -302,29 +435,38 @@ bool RIFFArchive::openStream(Common::SeekableReadStream *stream, uint32 startOff
 
 	stream->seek(startOffset);
 
-	if (convertTagToUppercase(stream->readUint32BE()) != MKTAG('R', 'I', 'F', 'F')) {
-		warning("RIFFArchive::openStream(): RIFF expected but not found");
+	_stream = stream;
+
+	uint32 tag = stream->readUint32BE();
+
+	if (convertTagToUppercase(tag) != MKTAG('R', 'I', 'F', 'F')) {
+		debugC(5, kDebugLoading, "RIFFArchive::openStream(): RIFF expected but got '%s'", tag2str(tag));
 		return false;
 	}
 
 	stream->readUint32LE(); // size
 
-	if (convertTagToUppercase(stream->readUint32BE()) != MKTAG('R', 'M', 'M', 'P')) {
-		warning("RIFFArchive::openStream(): RMMP expected but not found");
+	tag = stream->readUint32BE();
+
+	if (convertTagToUppercase(tag) != MKTAG('R', 'M', 'M', 'P')) {
+		debugC(5, kDebugLoading, "RIFFArchive::openStream(): RMMP expected but  got '%s'", tag2str(tag));
 		return false;
 	}
 
-	if (convertTagToUppercase(stream->readUint32BE()) != MKTAG('C', 'F', 'T', 'C')) {
-		warning("RIFFArchive::openStream(): CFTC expected but not found");
+	tag = stream->readUint32BE();
+	if (convertTagToUppercase(tag) != MKTAG('C', 'F', 'T', 'C')) {
+		debugC(5, kDebugLoading, "RIFFArchive::openStream(): CFTC expected but  got '%s'", tag2str(tag));
 		return false;
 	}
 
 	uint32 cftcSize = stream->readUint32LE();
 	uint32 startPos = stream->pos();
-	stream->readUint32LE(); // unknown (always 0?)
+	stream->readUint32LE(); // Chunk number, alsways 0
+
+	Common::DumpFile out;
 
 	while ((uint32)stream->pos() < startPos + cftcSize) {
-		uint32 tag = convertTagToUppercase(stream->readUint32BE());
+		tag = convertTagToUppercase(stream->readUint32BE());
 
 		uint32 size = stream->readUint32LE();
 		uint32 id = stream->readUint32LE();
@@ -352,19 +494,30 @@ bool RIFFArchive::openStream(Common::SeekableReadStream *stream, uint32 startOff
 			}
 		}
 
-		stream->seek(startResPos);
+		debugC(3, kDebugLoading, "Found RIFF resource '%s' %d: %d @ 0x%08x (0x%08x)", tag2str(tag), id, size, offset, startOffset + offset);
 
-		debug(3, "Found RIFF resource '%s' %d: %d @ 0x%08x (0x%08x)", tag2str(tag), id, size, offset, startOffset + offset);
-
-		ResourceMap &resMap = _types[tag];
-		Resource &res = resMap[id];
+		Resource &res = _types[tag][id];
+		res.index = id;
 		res.offset = offset;
 		res.size = size;
 		res.name = name;
 		res.tag = tag;
+		res.accessed = false;
+
+		if (ConfMan.getBool("dump_scripts"))
+			dumpChunk(res, out);
+
+		res.accessed = false; // Clear flag so stats are not spoiled
+
+		stream->seek(startResPos);
 	}
 
-	_stream = stream;
+	if (debugChannelSet(5, kDebugLoading)) {
+		debugC(5, kDebugLoading, "RIFFArchive::openStream(): Resources found:");
+		for (const auto &it : _types) {
+			debugC(5, kDebugLoading, "%s: %d", tag2str(it._key), it._value.size());
+		}
+	}
 	return true;
 }
 
@@ -380,8 +533,11 @@ Common::SeekableReadStreamEndian *RIFFArchive::getResource(uint32 tag, uint16 id
 	const Resource &res = resMap[id];
 
 	// Adjust to skip the resource header
+	// FourCC, size and id (all 4 bytes each)
+	// Resource size excludes FourCC and size.
 	uint32 offset = res.offset + 12;
 	uint32 size = res.size - 4;
+
 	// Skip the Pascal string
 	_stream->seek(_startOffset + offset);
 	byte stringSize = _stream->readByte(); // 1 for this byte
@@ -389,13 +545,29 @@ Common::SeekableReadStreamEndian *RIFFArchive::getResource(uint32 tag, uint16 id
 	offset += stringSize + 1;
 	size -= stringSize + 1;
 
-	// Align to nearest word boundary
-	if (offset & 1) {
+	// 'DIB ' was observed to always have two 0 bytes
+	// other resources such as 'SND ' need alignment to nearest word boundary.
+	bool needsAlignment = offset & 1;
+	if (needsAlignment || tag == MKTAG('D', 'I', 'B', ' ')) {
 		offset++;
 		size--;
 	}
 
-	return new Common::SeekableSubReadStreamEndian(_stream, _startOffset + offset, _startOffset + offset + size, true, DisposeAfterUse::NO);
+	debugC(4, kDebugLoading, "RIFFArchive::getResource() tag: %s id: %i offset: %i size: %i", tag2str(tag), id, res.offset, res.size);
+
+	_types[tag][id].accessed = true; // Mark it as accessed
+
+	auto stream = new Common::SeekableSubReadStream(_stream, _startOffset + offset, _startOffset + offset + size, DisposeAfterUse::NO);
+	return new Common::SeekableReadStreamEndianWrapper(stream, true, DisposeAfterUse::YES);
+}
+
+Common::String RIFFArchive::formatArchiveInfo() {
+	Common::String result = "RIFF, ";
+	if (_isBigEndian)
+		result += "big endian";
+	else
+		result += "little endian";
+	return result;
 }
 
 // RIFX Archive code
@@ -407,8 +579,8 @@ RIFXArchive::RIFXArchive() : Archive() {
 }
 
 RIFXArchive::~RIFXArchive() {
-	for (Common::HashMap<uint32, byte *>::iterator it = _ilsData.begin(); it != _ilsData.end(); it++)
-		free(it->_value);
+	for (auto &it : _ilsData)
+		free(it._value);
 }
 
 bool RIFXArchive::openStream(Common::SeekableReadStream *stream, uint32 startOffset) {
@@ -435,8 +607,11 @@ bool RIFXArchive::openStream(Common::SeekableReadStream *stream, uint32 startOff
 			// We need to look at the resource fork to detect XCOD resources
 			Common::SeekableSubReadStream *macStream = new Common::SeekableSubReadStream(stream, 0, stream->size());
 			MacArchive *macArchive = new MacArchive();
-			macArchive->openStream(macStream);
-			g_director->getCurrentWindow()->probeMacBinary(macArchive);
+			if (macArchive->openStream(macStream)) {
+				g_director->getCurrentWindow()->probeResources(macArchive);
+			} else {
+				delete macStream;
+			}
 			delete macArchive;
 
 			// Then read the data fork
@@ -456,10 +631,10 @@ bool RIFXArchive::openStream(Common::SeekableReadStream *stream, uint32 startOff
 		return false;
 	}
 
-	Common::SeekableSubReadStreamEndian endianStream(stream, 0, stream->size(), _isBigEndian, DisposeAfterUse::NO);
+	Common::SeekableReadStreamEndianWrapper endianStream(stream, _isBigEndian, DisposeAfterUse::NO);
 	endianStream.seek(startOffset + moreOffset + 4);
 
-	uint32 sz = endianStream.readUint32(); // size
+	uint32 sz = endianStream.readUint32() + 8; // size
 
 	// If it is an embedded file, dump it if requested.
 	// Start by copying the movie data to a new buffer.
@@ -471,6 +646,16 @@ bool RIFXArchive::openStream(Common::SeekableReadStream *stream, uint32 startOff
 		stream->seek(startOffset);
 		stream->read(dumpData, sz);
 		stream->seek(startOffset + 8);
+
+		// Add the padding data to match the file size
+		endianStream.seek(sz - 4);
+		uint32 _junk = endianStream.readUint32();
+		if (_junk != 0) {
+			dumpStream->seek(sz - 4);
+			dumpStream->writeUint32BE(0);
+		}
+
+		endianStream.seek(startOffset + moreOffset + 8);
 	}
 
 	_rifxType = endianStream.readUint32();
@@ -495,12 +680,14 @@ bool RIFXArchive::openStream(Common::SeekableReadStream *stream, uint32 startOff
 		break;
 	}
 
+	_types[MKTAG('R', 'I', 'F', 'X')][0].accessed = true; // Mark it as accessed
+
 	// Now that the dump data has been patched, actually dump it.
 	if (dumpData) {
 		Common::DumpFile out;
 
 		char buf[256];
-		sprintf(buf, "./dumps/%s-%08x", encodePathForDump(g_director->getEXEName()).c_str(), startOffset);
+		Common::sprintf_s(buf, "./dumps/%s-%08x", encodePathForDump(g_director->getEXEName()).c_str(), startOffset);
 
 		if (out.open(buf, true)) {
 			out.write(dumpData, sz);
@@ -520,22 +707,31 @@ bool RIFXArchive::openStream(Common::SeekableReadStream *stream, uint32 startOff
 	if (_rifxType == MKTAG('A', 'P', 'P', 'L')) {
 		if (hasResource(MKTAG('F', 'i', 'l', 'e'), -1)) {
 			// Replace this archive with the embedded archive.
-			uint32 fileId = getResourceIDList(MKTAG('F', 'i', 'l', 'e'))[0];
-			int32 fileOffset = _resources[fileId]->offset;
-			_types.clear();
-			_resources.clear();
-			return openStream(_stream, fileOffset);
-		} else {
-			warning("No 'File' resource present in APPL archive");
-			return false;
+			Common::Array<uint16> subFiles = getResourceIDList(MKTAG('F', 'i', 'l', 'e'));
+			uint numFile;
+			int32 fileOffset = 0;
+			for (numFile = 0; numFile < subFiles.size(); numFile++) {
+				uint32 fileId = subFiles[numFile];
+				fileOffset = _resources[fileId]->offset;
+				endianStream.seek(fileOffset + 8);
+				uint32 tag = endianStream.readUint32();
+				if (tag != MKTAG('X', 't', 'r', 'a') && tag != MKTAG('a', 'r', 't', 'X'))
+					break;
+			}
+			if (numFile < subFiles.size()) {
+				_types.clear();
+				_resources.clear();
+				return openStream(_stream, fileOffset);
+			}
 		}
+
+		warning("No 'File' resource present in APPL archive");
+		return false;
 	}
 
 	if (ConfMan.getBool("dump_scripts")) {
 		debug("RIFXArchive::openStream(): Dumping %d resources", _resources.size());
 
-		byte *data = nullptr;
-		uint dataSize = 0;
 		Common::DumpFile out;
 
 		for (uint i = 0; i < _resources.size(); i++) {
@@ -543,54 +739,34 @@ bool RIFXArchive::openStream(Common::SeekableReadStream *stream, uint32 startOff
 				// This is in the initial load segment and can't be read like a normal chunk.
 				continue;
 			}
-
-			Common::SeekableReadStreamEndian *resStream = getResource(_resources[i]->tag, _resources[i]->index);
-
-			uint32 len = _resources[i]->size;
-
-			if (dataSize < _resources[i]->size) {
-				free(data);
-				data = (byte *)malloc(resStream->size());
-				dataSize = resStream->size();
-			}
-			Common::String prepend;
-			if (_pathName.size() != 0)
-				prepend = _pathName;
-			else
-				prepend = "stream";
-
-			Common::String filename = Common::String::format("./dumps/%s-%s-%d", encodePathForDump(prepend).c_str(), tag2str(_resources[i]->tag), _resources[i]->index);
-			resStream->read(data, len);
-
-			if (!out.open(filename, true)) {
-				warning("RIFXArchive::openStream(): Can not open dump file %s", filename.c_str());
-				break;
-			}
-
-			out.write(data, len);
-
-			out.flush();
-			out.close();
-			delete resStream;
+			dumpChunk(*_resources[i], out);
 		}
-	}
-
-	// Parse the CAS*, if present
-	if (hasResource(MKTAG('C', 'A', 'S', '*'), -1)) {
-		Common::SeekableReadStreamEndian *casStream = getFirstResource(MKTAG('C', 'A', 'S', '*'));
-		readCast(*casStream);
-		delete casStream;
 	}
 
 	// A KEY* must be present
 	if (!hasResource(MKTAG('K', 'E', 'Y', '*'), -1)) {
 		warning("No 'KEY*' resource present");
-		return false;
+	} else {
+		// Parse the KEY*
+		Common::SeekableReadStreamEndian *keyStream = getFirstResource(MKTAG('K', 'E', 'Y', '*'), true);
+		readKeyTable(*keyStream);
+		delete keyStream;
 	}
-	// Parse the KEY*
-	Common::SeekableReadStreamEndian *keyStream = getFirstResource(MKTAG('K', 'E', 'Y', '*'), true);
-	readKeyTable(*keyStream);
-	delete keyStream;
+
+	// Parse the CAS* for each library, if present
+	uint32 casTag = MKTAG('C', 'A', 'S', '*');
+	if (_keyData.contains(casTag)) {
+		for (auto &it : _keyData[casTag]) {
+			uint32 libId = it._key - CAST_LIB_OFFSET;
+			for (auto &jt : it._value) {
+				if (Common::SeekableReadStreamEndian *casStream = getResource(casTag, jt)) {
+					Resource res = getResourceDetail(casTag, jt);
+					readCast(*casStream, libId);
+					delete casStream;
+				}
+			}
+		}
+	}
 
 	return true;
 }
@@ -599,8 +775,10 @@ bool RIFXArchive::readMemoryMap(Common::SeekableReadStreamEndian &stream, uint32
 	if (stream.readUint32() != MKTAG('i', 'm', 'a', 'p'))
 		return false;
 
+	_types[MKTAG('i', 'm', 'a', 'p')][0].accessed = true; // Mark it as accessed
+
 	stream.readUint32(); // imap length
-	stream.readUint32(); // unknown
+	uint32 mapversion = stream.readUint32(); // version, seen 0 or 1
 	uint32 mmapOffsetPos = stream.pos();
 	uint32 mmapOffset = stream.readUint32() + moreOffset;
 	if (dumpStream) {
@@ -612,7 +790,7 @@ bool RIFXArchive::readMemoryMap(Common::SeekableReadStreamEndian &stream, uint32
 			dumpStream->writeUint32LE(mmapOffset - movieStartOffset);
 	}
 	uint32 version = stream.readUint32(); // 0 for 4.0, 0x4c1 for 5.0, 0x4c7 for 6.0, 0x708 for 8.5, 0x742 for 10.0
-	warning("mmap: version: %x", version);
+	warning("mmap: mapversion: %d version: %x offset: 0x%x (%d)", mapversion, version, mmapOffset, mmapOffset);
 
 	stream.seek(mmapOffset);
 
@@ -621,9 +799,11 @@ bool RIFXArchive::readMemoryMap(Common::SeekableReadStreamEndian &stream, uint32
 		return false;
 	}
 
+	_types[MKTAG('m', 'm', 'a', 'p')][0].accessed = true; // Mark it as accessed
+
 	stream.readUint32(); // mmap length
-	stream.readUint16(); // unknown
-	stream.readUint16(); // unknown
+	stream.readUint16(); // header size
+	stream.readUint16(); // size of map entry
 	stream.readUint32(); // resCount + empty entries
 	uint32 resCount = stream.readUint32();
 	stream.skip(8); // all 0xFF
@@ -647,7 +827,7 @@ bool RIFXArchive::readMemoryMap(Common::SeekableReadStreamEndian &stream, uint32
 		uint16 unk1 = stream.readUint16();
 		uint32 nextFreeResourceId = stream.readUint32(); // for free resources, the next id, flag like for imap and mmap resources
 
-		debug(3, "Found RIFX resource index %d: '%s', %d bytes @ 0x%08x (%d), flags: %x unk1: %x nextFreeResourceId: %d",
+		debugC(3, kDebugLoading, "Found RIFX resource index %d: '%s', %d bytes @ 0x%08x (%d), flags: %x unk1: %x nextFreeResourceId: %d",
 			i, tag2str(tag), size, offset, offset, flags, unk1, nextFreeResourceId);
 
 		Resource &res = _types[tag][i];
@@ -655,7 +835,15 @@ bool RIFXArchive::readMemoryMap(Common::SeekableReadStreamEndian &stream, uint32
 		res.offset = offset;
 		res.size = size;
 		res.tag = tag;
+		res.accessed = false;
 		_resources.push_back(&res);
+	}
+
+	if (debugChannelSet(5, kDebugLoading)) {
+		debugC(5, kDebugLoading, "RIFXArchive::readMemoryMap(): Resources found:");
+		for (const auto &it : _types) {
+			debugC(5, kDebugLoading, "%s: %d", tag2str(it._key), it._value.size());
+		}
 	}
 
 	return true;
@@ -673,7 +861,7 @@ bool RIFXArchive::readAfterburnerMap(Common::SeekableReadStreamEndian &stream, u
 	uint32 fverLength = readVarInt(stream);
 	start = stream.pos();
 	uint32 version = readVarInt(stream);
-	debug(3, "Fver: version: %x", version);
+	debugC(3, kDebugLoading, "Fver: version: %x", version);
 	end = stream.pos();
 
 	if (end - start != fverLength) {
@@ -700,7 +888,7 @@ bool RIFXArchive::readAfterburnerMap(Common::SeekableReadStreamEndian &stream, u
 	uint32 abmpCompressionType = readVarInt(stream);
 	unsigned long abmpUncompLength = readVarInt(stream);
 	unsigned long abmpActualUncompLength = abmpUncompLength;
-	debug(3, "ABMP: length: %d compressionType: %d uncompressedLength: %lu",
+	debugC(3, kDebugLoading, "ABMP: length: %d compressionType: %d uncompressedLength: %lu",
 		abmpLength, abmpCompressionType, abmpUncompLength);
 
 	Common::SeekableReadStreamEndian *abmpStream = readZlibData(stream, abmpEnd - stream.pos(), &abmpActualUncompLength, _isBigEndian);
@@ -716,7 +904,7 @@ bool RIFXArchive::readAfterburnerMap(Common::SeekableReadStreamEndian &stream, u
 		Common::DumpFile out;
 
 		char buf[256];
-		sprintf(buf, "./dumps/%s-%s", encodePathForDump(g_director->getEXEName()).c_str(), "ABMP");
+		Common::sprintf_s(buf, "./dumps/%s-%s", encodePathForDump(g_director->getEXEName()).c_str(), "ABMP");
 
 		if (out.open(buf, true)) {
 			byte *data = (byte *)malloc(abmpStream->size());
@@ -737,7 +925,7 @@ bool RIFXArchive::readAfterburnerMap(Common::SeekableReadStreamEndian &stream, u
 	uint32 abmpUnk1 = readVarInt(*abmpStream);
 	uint32 abmpUnk2 = readVarInt(*abmpStream);
 	uint32 resCount = readVarInt(*abmpStream);
-	debug(3, "ABMP: unk1: %d unk2: %d resCount: %d",
+	debugC(3, kDebugLoading, "ABMP: unk1: %d unk2: %d resCount: %d",
 		abmpUnk1, abmpUnk2, resCount);
 
 	Common::HashMap<uint32, Resource *> resourceMap;
@@ -751,7 +939,7 @@ bool RIFXArchive::readAfterburnerMap(Common::SeekableReadStreamEndian &stream, u
 		uint32 compressionType = readVarInt(*abmpStream);
 		uint32 tag = abmpStream->readUint32();
 
-		debug(3, "Found RIFX resource index %d: '%s', %d bytes (%d uncompressed) @ pos 0x%08x (%d), compressionType: %d",
+		debugC(3, kDebugLoading, "Found RIFX resource index %d: '%s', %d bytes (%d uncompressed) @ pos 0x%08x (%d), compressionType: %d",
 			resId, tag2str(tag), compSize, uncompSize, offset, offset, compressionType);
 
 		Resource &res = _types[tag][resId];
@@ -761,13 +949,14 @@ bool RIFXArchive::readAfterburnerMap(Common::SeekableReadStreamEndian &stream, u
 		res.uncompSize = uncompSize;
 		res.compressionType = compressionType;
 		res.tag = tag;
+		res.accessed = false;
 		_resources.push_back(&res);
 		resourceMap[resId] = &res;
 	}
 
 	delete abmpStream;
 
-	// Initial load segment
+	// Handle Initial Load Segment (ILS)
 	if (!resourceMap.contains(2)) {
 		warning("RIFXArchive::readAfterburnerMap(): Map has no entry for ILS");
 		return false;
@@ -779,7 +968,7 @@ bool RIFXArchive::readAfterburnerMap(Common::SeekableReadStreamEndian &stream, u
 
 	Resource *ilsRes = resourceMap[2];
 	uint32 ilsUnk1 = readVarInt(stream);
-	debug(3, "ILS: length: %d unk1: %d", ilsRes->size, ilsUnk1);
+	debugC(3, kDebugLoading, "ILS: length: %d unk1: %d", ilsRes->size, ilsUnk1);
 	_ilsBodyOffset = stream.pos();
 	uint32 ilsLength = ilsRes->size;
 	unsigned long ilsActualUncompLength = ilsRes->uncompSize;
@@ -796,7 +985,7 @@ bool RIFXArchive::readAfterburnerMap(Common::SeekableReadStreamEndian &stream, u
 		uint32 resId = readVarInt(*ilsStream);
 		Resource *res = resourceMap[resId];
 
-		debug(3, "Loading ILS resource %d: '%s', %d bytes", resId, tag2str(res->tag), res->size);
+		debugC(3, kDebugLoading, "Loading ILS resource %d: '%s', %d bytes", resId, tag2str(res->tag), res->size);
 
 		byte *data = (byte *)malloc(res->size);
 		ilsStream->read(data, res->size);
@@ -808,12 +997,12 @@ bool RIFXArchive::readAfterburnerMap(Common::SeekableReadStreamEndian &stream, u
 	return true;
 }
 
-void RIFXArchive::readCast(Common::SeekableReadStreamEndian &casStream) {
+void RIFXArchive::readCast(Common::SeekableReadStreamEndian &casStream, uint16 libId) {
 	uint castTag = MKTAG('C', 'A', 'S', 't');
 
 	uint casSize = casStream.size() / 4;
 
-	debugCN(2, kDebugLoading, "CAS*: %d [", casSize);
+	debugCN(2, kDebugLoading, "CAS*: libId %d, %d members [", libId, casSize);
 
 	for (uint i = 0; i < casSize; i++) {
 		uint32 castIndex = casStream.readUint32BE();
@@ -824,6 +1013,7 @@ void RIFXArchive::readCast(Common::SeekableReadStreamEndian &casStream) {
 		}
 		Resource &res = _types[castTag][castIndex];
 		res.castId = i;
+		res.libId = libId;
 	}
 	debugC(2, kDebugLoading, "]");
 }
@@ -844,10 +1034,28 @@ void RIFXArchive::readKeyTable(Common::SeekableReadStreamEndian &keyStream) {
 		uint32 childTag = keyStream.readUint32();
 
 		debugC(2, kDebugLoading, "KEY*: childIndex: %d parentIndex: %d childTag: %s", childIndex, parentIndex, tag2str(childTag));
+
+		if (!_keyData.contains(childTag)) {
+			_keyData[childTag] = KeyMap();
+		}
+		if (!_keyData[childTag].contains(parentIndex)) {
+			_keyData[childTag][parentIndex] = KeyArray();
+		}
+		_keyData[childTag][parentIndex].push_back(childIndex);
+
+		// Link cast members to their resources.
 		if (castResMap.contains(parentIndex)) {
 			castResMap[parentIndex].children.push_back(_types[childTag][childIndex]);
 		} else if (castResMap.contains(childIndex)) { // sometimes parent and child index are reversed...
 			castResMap[childIndex].children.push_back(_types[childTag][parentIndex]);
+		}
+
+		// Link the movie to its resources.
+		// The movie has the hardcoded ID 1024, which may collide with a cast member's ID
+		// when there are many chunks. This is not a problem since cast members and
+		// movies use different resource types, so we can tell them apart.
+		if (parentIndex == DEFAULT_CAST_LIB + CAST_LIB_OFFSET) {
+			_movieChunks.setVal(childTag, childIndex);
 		}
 	}
 }
@@ -873,6 +1081,8 @@ Common::SeekableReadStreamEndian *RIFXArchive::getResource(uint32 tag, uint16 id
 	if (!resMap.contains(id))
 		error("RIFXArchive::getResource(): Archive does not contain '%s' %d", tag2str(tag), id);
 
+	_types[tag][id].accessed = true; // Mark it as accessed
+
 	const Resource &res = resMap[id];
 	bool bigEndian = fileEndianness ? _isBigEndian : true;
 
@@ -884,8 +1094,7 @@ Common::SeekableReadStreamEndian *RIFXArchive::getResource(uint32 tag, uint16 id
 			unsigned long actualUncompLength = res.uncompSize;
 			Common::SeekableReadStreamEndian *stream = readZlibData(*_stream, res.size, &actualUncompLength, _isBigEndian);
 			if (!stream) {
-				warning("RIFXArchive::getResource(): Could not uncompress '%s' %d", tag2str(tag), id);
-				return nullptr;
+				error("RIFXArchive::getResource(): Could not uncompress '%s' %d", tag2str(tag), id);
 			}
 			if (res.uncompSize != actualUncompLength) {
 				warning("RIFXArchive::getResource(): For '%s' %d expected uncompressed length %d but got length %lu",
@@ -897,8 +1106,9 @@ Common::SeekableReadStreamEndian *RIFXArchive::getResource(uint32 tag, uint16 id
 
 	uint32 offset = res.offset + 8;
 	uint32 size = res.size;
+	auto stream = new Common::SeekableSubReadStream(_stream, offset, offset + size, DisposeAfterUse::NO);
 
-	return new Common::SeekableSubReadStreamEndian(_stream, offset, offset + size, bigEndian, DisposeAfterUse::NO);
+	return new Common::SeekableReadStreamEndianWrapper(stream, bigEndian, DisposeAfterUse::YES);
 }
 
 Resource RIFXArchive::getResourceDetail(uint32 tag, uint16 id) {
@@ -911,6 +1121,17 @@ Resource RIFXArchive::getResourceDetail(uint32 tag, uint16 id) {
 		error("RIFXArchive::getResourceDetail(): Archive does not contain '%s' %d", tag2str(tag), id);
 
 	return resMap[id];
+}
+
+Common::String RIFXArchive::formatArchiveInfo() {
+	Common::String result = "RIFX, ";
+	if (_isBigEndian)
+		result += "big endian, ";
+	else
+		result += "little endian, ";
+	result += "type ";
+	result += tag2str(_rifxType);
+	return result;
 }
 
 } // End of namespace Director

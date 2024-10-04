@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@ class Configuration;
 class Screen;
 
 class BMPFont : public Font {
-	Graphics::ManagedSurface *sdl_font_data;
+	Graphics::ManagedSurface *font_surface;
 	uint8 *font_width_data;
 
 	uint16 char_w, char_h;
@@ -45,7 +44,7 @@ public:
 	BMPFont();
 	~BMPFont() override;
 
-	bool init(Std::string bmp_filename, bool dual_fontmap = false);
+	bool init(const Common::Path &bmp_filename, bool dual_fontmap = false);
 
 	uint16 getCharWidth(uint8 c) override;
 	uint16 getCharHeight() override {
@@ -54,8 +53,6 @@ public:
 	uint16 drawChar(Screen *screen, uint8 char_num, uint16 x, uint16 y,
 	                uint8 color) override;
 	uint16 getStringWidth(const char *str, uint16 string_len) override;
-protected:
-
 };
 
 } // End of namespace Nuvie

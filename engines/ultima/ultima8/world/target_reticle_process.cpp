@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -102,10 +101,9 @@ bool TargetReticleProcess::findTargetItem() {
 
 	Direction dir = mainactor->getDir();
 
-	int32 x, y, z;
-	mainactor->getLocation(x, y, z);
+	Point3 pt = mainactor->getLocation();
 
-	Item *item = currentmap->findBestTargetItem(x, y, z, dir, dirmode_16dirs);
+	Item *item = currentmap->findBestTargetItem(pt.x, pt.y, pt.z, dir, dirmode_16dirs);
 
 	if (item && item->getObjId() != _lastTargetItem) {
 		Item *lastItem = getItem(_lastTargetItem);
@@ -133,26 +131,24 @@ void TargetReticleProcess::avatarMoved() {
 }
 
 void TargetReticleProcess::putTargetReticleOnItem(Item *item, bool only_last_frame) {
-	int32 x, y, z;
-
 	// TODO: the game does a bunch of other maths here to pick the right location.
 	// This is an over-simplification and is usually too high so it's
 	// hacked a little lower.
-	item->getCentre(x, y, z);
-	z -= 8;
+	Point3 pt = item->getCentre();
+	pt.z -= 8;
 
 	Process *p;
 	const int first_frame = _reticleStyle * 6;
 	const int last_frame = first_frame + 5;
 	if (!only_last_frame)
-		p = new SpriteProcess(0x59a, first_frame, last_frame, 1, 10, x, y, z, false);
+		p = new SpriteProcess(0x59a, first_frame, last_frame, 1, 10, pt.x, pt.y, pt.z, false);
 	else
-		p = new SpriteProcess(0x59a, last_frame, last_frame, 1, 1000, x, y, z, false);
+		p = new SpriteProcess(0x59a, last_frame, last_frame, 1, 1000, pt.x, pt.y, pt.z, false);
 
 	_reticleSpriteProcess = Kernel::get_instance()->addProcess(p);
 	_lastTargetItem = item->getObjId();
 	item->setExtFlag(Item::EXT_TARGET);
-	debug("New reticle target: %d (%d, %d, %d)", _lastTargetItem, x, y, z);
+	debug("New reticle target: %d (%d, %d, %d)", _lastTargetItem, pt.x, pt.y, pt.z);
 }
 
 void TargetReticleProcess::itemMoved(Item *item) {
@@ -162,8 +158,7 @@ void TargetReticleProcess::itemMoved(Item *item) {
 		return;
 	}
 
-	int32 x, y, z;
-	item->getCentre(x, y, z);
+	Point3 pt = item->getCentre();
 
 	Actor *mainactor = getControlledActor();
 	int actordir = -1;
@@ -181,7 +176,7 @@ void TargetReticleProcess::itemMoved(Item *item) {
 			_reticleSpriteProcess = 0;
 			clearSprite();
 		} else {
-			spriteproc->move(x, y, z);
+			spriteproc->move(pt.x, pt.y, pt.z);
 		}
 	}
 }
@@ -201,7 +196,7 @@ void TargetReticleProcess::clearSprite() {
 void TargetReticleProcess::toggle() {
 	bool newstate = !getEnabled();
 	Std::string msg = newstate ? _TL_("TARGETING RETICLE ACTIVE") : _TL_("TARGETING RETICLE INACTIVE");
-	MessageBoxGump::Show("", msg, 0xFF707070);
+	MessageBoxGump::Show("", msg, TEX32_PACK_RGB(0x70, 0x70, 0x70));
 	setEnabled(newstate);
 }
 
@@ -238,6 +233,8 @@ bool TargetReticleProcess::loadData(Common::ReadStream *rs, uint32 version) {
 	_lastTargetItem = rs->readUint16LE();
 	if (GAME_IS_REGRET)
 		_reticleStyle = rs->readUint16LE();
+
+	_type = 1; // should be persistent but older savegames may not know that.
 
 	return true;
 }

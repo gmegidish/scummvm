@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -160,11 +159,11 @@ const char* const ConvertUsecodeCrusader::_intrinsics[] = {
 	"void Item::I_andStatus(Item *, uint16 status)", // part of same coff set 01A, 031, 069, 06E, 099, 0B2, 0BF, 0C1, 0C3, 0E9, 0FC, 101, 104, 106, 108, 10A, 10C, 10E, 110, 114, 117, 11A, 128, 132
 	"byte Item::I_isCompletelyOn(Item *, uint16 other)",
 	// 0070
-	"byte Ultima8Engine::I_getUnkCrusaderFlag(void)",
-	"void Ultima8Engine::I_setUnkCrusaderFlag(void)",
+	"byte Ultima8Engine::I_getCrusaderTeleporting(void)",
+	"void Ultima8Engine::I_setCrusaderTeleporting(void)",
 	"void Ultima8Engine::I_setCruStasis(void)",
 	"void Actor::I_setDead(4 bytes)", // part of same coff set 021, 060, 073, 0A0, 0A8, 0D8, 0E7, 135
-	"void Ultima8Engine::I_clrUnkCrusaderFlag(void)",
+	"void Ultima8Engine::I_clrCrusaderTeleporting(void)",
 	"void Ultima8Engine::I_clrCruStasis(void)",
 	"void AudioProcess::I_stopSFX(Item *)",
 	"int16 PaletteFaderProcess::I_fadeToBlack(void)", // fade to black, no args (40 frames)

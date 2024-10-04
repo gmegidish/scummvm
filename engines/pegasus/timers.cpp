@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,8 +30,8 @@ namespace Pegasus {
 
 Idler::Idler() {
 	_isIdling = false;
-	_nextIdler = 0;
-	_prevIdler = 0;
+	_nextIdler = nullptr;
+	_prevIdler = nullptr;
 }
 
 Idler::~Idler() {
@@ -41,21 +40,21 @@ Idler::~Idler() {
 
 void Idler::startIdling() {
 	if (!isIdling()) {
-		((PegasusEngine *)g_engine)->addIdler(this);
+		g_vm->addIdler(this);
 		_isIdling = true;
 	}
 }
 
 void Idler::stopIdling() {
 	if (isIdling()) {
-		((PegasusEngine *)g_engine)->removeIdler(this);
+		g_vm->removeIdler(this);
 		_isIdling = false;
 	}
 }
 
 TimeBase::TimeBase(const TimeScale preferredScale) {
 	_preferredScale = preferredScale;
-	_callBackList = 0;
+	_callBackList = nullptr;
 	_paused = false;
 	_flags = 0;
 	_lastMillis = 0;
@@ -65,7 +64,7 @@ TimeBase::TimeBase(const TimeScale preferredScale) {
 	_startScale = 1;
 	_stopTime = 0xffffffff;
 	_stopScale = 1;
-	_master = 0;
+	_master = nullptr;
 	_pausedRate = 0;
 	_pauseStart = 0;
 
@@ -73,7 +72,7 @@ TimeBase::TimeBase(const TimeScale preferredScale) {
 }
 
 TimeBase::~TimeBase() {
-	((PegasusEngine *)g_engine)->removeTimeBase(this);
+	g_vm->removeTimeBase(this);
 	disposeAllCallBacks();
 }
 
@@ -231,7 +230,7 @@ void TimeBase::checkCallBacks() {
 	Common::Rational time = Common::Rational(getTime(), getScale());
 
 	// Check if we've triggered any callbacks
-	for (TimeBaseCallBack *runner = _callBackList; runner != 0; runner = runner->_nextCallBack) {
+	for (TimeBaseCallBack *runner = _callBackList; runner != nullptr; runner = runner->_nextCallBack) {
 		if (runner->_hasBeenTriggered)
 			continue;
 
@@ -287,24 +286,24 @@ void TimeBase::removeCallBack(TimeBaseCallBack *callBack) {
 		prevRunner->_nextCallBack = runner->_nextCallBack;
 	}
 
-	callBack->_nextCallBack = 0;
+	callBack->_nextCallBack = nullptr;
 }
 
 void TimeBase::disposeAllCallBacks() {
 	TimeBaseCallBack *nextRunner;
 
-	for (TimeBaseCallBack *runner = _callBackList; runner != 0; runner = nextRunner) {
+	for (TimeBaseCallBack *runner = _callBackList; runner != nullptr; runner = nextRunner) {
 		nextRunner = runner->_nextCallBack;
 		runner->disposeCallBack();
-		runner->_nextCallBack = 0;
+		runner->_nextCallBack = nullptr;
 	}
 
-	_callBackList = 0;
+	_callBackList = nullptr;
 }
 
 TimeBaseCallBack::TimeBaseCallBack() {
-	_timeBase = 0;
-	_nextCallBack = 0;
+	_timeBase = nullptr;
+	_nextCallBack = nullptr;
 	_trigger = kTriggerNone;
 	_type = kCallBackNone;
 	_hasBeenTriggered = false;
@@ -328,7 +327,7 @@ void TimeBaseCallBack::releaseCallBack() {
 }
 
 void TimeBaseCallBack::disposeCallBack() {
-	_timeBase = 0;
+	_timeBase = nullptr;
 	_trigger = kTriggerNone;
 	_hasBeenTriggered = false;
 }
@@ -361,7 +360,7 @@ void IdlerTimeBase::useIdleTime() {
 
 NotificationCallBack::NotificationCallBack() {
 	_callBackFlag = 0;
-	_notifier = 0;
+	_notifier = nullptr;
 }
 
 void NotificationCallBack::callBack() {
@@ -371,7 +370,7 @@ void NotificationCallBack::callBack() {
 
 static const NotificationFlags kFuseExpiredFlag = 1;
 
-Fuse::Fuse() : _fuseNotification(0, (NotificationManager *)((PegasusEngine *)g_engine)) {
+Fuse::Fuse() : _fuseNotification(0, (NotificationManager *)g_vm) {
 	_fuseNotification.notifyMe(this, kFuseExpiredFlag, kFuseExpiredFlag);
 	_fuseCallBack.setNotification(&_fuseNotification);
 	_fuseCallBack.initCallBack(&_fuseTimer, kCallBackAtExtremes);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -118,12 +117,12 @@ enum Sequence {
 	kneelAndFire = 26,
 	slideLeft = 28,
 	slideRight = 29,
-	unknownAnim30 = 30,
-	startRunLargeWeapon = 31,
+	lookLeftCru = 30,
+	lookRightCru = 31,
 	teleportIn = 32,
 	teleportOut = 33,
 	startRunSmallWeapon = 34,
-	startRunLargeWeapon2 = 35,
+	startRunLargeWeapon = 35,
 	advanceSmallWeapon = 36,
 	combatStandLargeWeapon = 37,
 	startRun = 38,
@@ -153,10 +152,16 @@ enum Sequence {
 	combatRollRight = 62,
 	finishFiring = 63,
 
-	crusaderAbsoluteAnimFlag = 0x1000, //!< Bit mask magic to say we want an exact number, don't do mapping from U8 animation numbers
-	teleportInReplacement = crusaderAbsoluteAnimFlag | teleportIn,	//!< See notes in Actor::receiveHitCru
-	teleportOutReplacement = crusaderAbsoluteAnimFlag | teleportOut	//!< See notes in Actor::receiveHitCru
+	/// A flag to say we want an exact number, don't do mapping from U8 animation
+	/// numbers.  This is a bit of a hack because for most code we want to do
+	/// translations from U8 nums, but sometimes we have exact animation numbers
+	/// provided by usecode or from some translated code.
+	crusaderAbsoluteAnimFlag = 0x1000,
 };
+
+static inline Animation::Sequence absAnim(Animation::Sequence seq) {
+	return static_cast<Animation::Sequence>(seq | crusaderAbsoluteAnimFlag);
+}
 
 enum Result {
 	FAILURE = 0,

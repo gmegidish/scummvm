@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
-#include <limits.h>
 
 #include "audio/mididrv.h"
 
@@ -70,10 +67,20 @@ const byte t7gMidiInitScript[] = {
 	0x43, 0x00								// returnscript 00
 };
 
+enum kSpecialVariableTypes {
+	kVarTypeArray = 0x23,
+	kVarType2DArray = 0x7C
+};
+
 Script::Script(GroovieEngine *vm, EngineVersion version) :
-	_code(NULL), _savedCode(NULL), _stacktop(0), _debugger(NULL), _vm(vm),
-	_videoFile(NULL), _videoRef(UINT_MAX), _cellGame(NULL), _lastCursor(0xff),
-	_version(version), _random("GroovieScripts"), _tlcGame(0) {
+	_code(nullptr), _savedCode(nullptr), _stacktop(0), _debugger(nullptr), _vm(vm),
+	_videoFile(nullptr), _videoRef(uint32(-1)), _cellGame(nullptr), _lastCursor(0xff),
+#ifdef ENABLE_GROOVIE2
+	_beehive(ConfMan.getBool("easier_ai")), _cake(ConfMan.getBool("easier_ai")), _gallery(ConfMan.getBool("easier_ai")),
+	_mouseTrap(ConfMan.getBool("easier_ai")), _othello(ConfMan.getBool("easier_ai")), _pente(ConfMan.getBool("easier_ai")),
+#endif
+	_version(version), _random("GroovieScripts"), _tlcGame(nullptr)
+{
 
 	// Initialize the opcode set depending on the engine version
 	if (version == kGroovieT7G) {
@@ -109,6 +116,11 @@ Script::Script(GroovieEngine *vm, EngineVersion version) :
 
 	_oldInstruction = (uint16)-1;
 	_videoSkipAddress = 0;
+	resetFastForward();
+	_eventKbdChar = 0;
+	_eventAction = kActionNone;
+	_eventMouseClicked = 0;
+	_wantAutosave = false;
 }
 
 Script::~Script() {
@@ -120,8 +132,11 @@ Script::~Script() {
 }
 
 void Script::setVariable(uint16 variablenum, byte value) {
+	if (variablenum == 191) {
+		warning("changing var 0x0BF from %d to %d", (int)_variables[variablenum], (int)value);
+	}
+	debugC(1, kDebugScriptvars, "script variable[0x%03X] = %d (0x%04X), was %d (0x%04X)", variablenum, value, value, _variables[variablenum], _variables[variablenum]);
 	_variables[variablenum] = value;
-	debugC(1, kDebugScriptvars, "script variable[0x%03X] = %d (0x%04X)", variablenum, value, value);
 }
 
 void Script::setBitFlag(int bitnum, bool value) {
@@ -145,14 +160,14 @@ void Script::timerTick() {
 }
 
 bool Script::loadScript(Common::String filename) {
-	Common::SeekableReadStream *scriptfile = 0;
+	Common::SeekableReadStream *scriptfile = nullptr;
 
 	if (_vm->_macResFork) {
 		// Try to open the script file from the resource fork
 		scriptfile = _vm->_macResFork->getResource(filename);
 	} else {
 		// Try to open the script file
-		scriptfile = SearchMan.createReadStreamForMember(filename);
+		scriptfile = SearchMan.createReadStreamForMember(Common::Path(filename));
 	}
 
 	if (!scriptfile)
@@ -163,6 +178,9 @@ bool Script::loadScript(Common::String filename) {
 
 	// Load the code
 	_codeSize = scriptfile->size();
+	if (_codeSize <= 0)
+		return false;
+	delete[] _code;
 	_code = new byte[_codeSize];
 	if (!_code)
 		return false;
@@ -196,6 +214,44 @@ bool Script::loadScript(Common::String filename) {
 		_code[0x0795] = 0x41;
 		_code[0x078A] = 0x40;
 		_code[0x079B] = 0x3F;
+	} else if (_version == kGroovieT7G && filename.equals("mu.grv") && _codeSize == 1354) {
+		// remove the right exit hotspot in the piano, set to nops
+		_code[0x1d2] = 1;
+		_code[0x1d3] = 1;
+		_code[0x1d4] = 1;
+	} else if (_version == kGroovieT11H && filename.equals("script.grv") && _codeSize == 62447) {
+		// don't sleep before showing the skulls
+		memset(_code + 0x17, 1, 0x1F - 0x17); // set nop
+		// when the skulls ask you to adjust your brightness, play the song Mr Death
+		memset(_code + 0x25, 1, 0x2F - 0x25);// set nop
+		_code[0x25] = 0x56;// o2_playsound
+		// o2_playsound resource id 851, uint32
+		_code[0x26] = 0x53;
+		_code[0x27] = 0x03;
+		_code[0x28] = 0;
+		_code[0x29] = 0;
+		// o2_playsound loops = 0 for infinite
+		_code[0x2A] = 0;
+		// o2_playsound val3
+		_code[0x2B] = 0;
+	} else if (_version == kGroovieT11H && filename.equals("itsawrap.grv") && _codeSize == 517 && ConfMan.getBool("credits_music")) {
+		// write nops to get rid of MIDI Control Stop and PlaySong
+		memset(_code + 0x000, 1, 5);// this one is only a PlaySong
+		memset(_code + 0x0B4, 1, 10);
+		memset(_code + 0x0136, 1, 10);
+		memset(_code + 0x019A, 1, 10);
+		memset(_code + 0x1FE, 1, 5);// this one is only a MIDI Control Stop
+		// play The Final Hour instead
+		_code[0x00] = 0x56; // o2_playsound
+		// o2_playsound resource id 845, uint32
+		_code[0x01] = 0x4D;
+		_code[0x02] = 0x03;
+		_code[0x03] = 0;
+		_code[0x04] = 0;
+		// o2_playsound loops
+		_code[0x05] = 1;
+		// o2_playsound val3
+		_code[0x06] = 0;
 	}
 
 	// Initialize the script
@@ -209,6 +265,7 @@ void Script::directGameLoad(int slot) {
 	if (slot < 0 || slot > MAX_SAVES - 1) {
 		return;
 	}
+	debugC(0, kDebugScript, "directGameLoad %d", slot);
 
 	// Return to the main script if required
 	if (_savedCode) {
@@ -218,10 +275,13 @@ void Script::directGameLoad(int slot) {
 		_code = _savedCode;
 		_codeSize = _savedCodeSize;
 		_savedCode = nullptr;
+		_scriptFile = _savedScriptFile;
 	}
 
-	uint16 targetInstruction;
-	const byte *midiInitScript = 0;
+	_videoSkipAddress = 0;
+
+	uint16 targetInstruction = 0;
+	const byte *midiInitScript = nullptr;
 	uint8 midiInitScriptSize = 0;
 
 	// HACK: We set the slot to load in the appropriate variable, and set the
@@ -240,7 +300,10 @@ void Script::directGameLoad(int slot) {
 		}
 	} else if (_version == kGroovieT11H) {
 		setVariable(0xF, slot);
-		_currentInstruction = 0xE78D;
+		if (_scriptFile == "suscript.grv")
+			_currentInstruction = 0x13;
+		else
+			_currentInstruction = 0xE78D;
 		return;
 	} else if (_version == kGroovieCDY) {
 		setVariable(0x1, slot);
@@ -249,6 +312,23 @@ void Script::directGameLoad(int slot) {
 	} else if (_version == kGroovieUHP) {
 		setVariable(0x19, slot);
 		_currentInstruction = 0x23B4;
+		return;
+	} else if (_version == kGroovieTLC) {
+		// Save the current code
+		_savedCode = _code;
+		_code = nullptr;
+		_savedCodeSize = _codeSize;
+
+		// Save the filename of the current script
+		_savedScriptFile = _scriptFile;
+
+		_savedInstruction = 0x45;
+		_savedStacktop = 0;
+
+		loadScript("register.grv");
+
+		setVariable(0x19, slot);
+		_currentInstruction = 0x5CF;
 		return;
 	}
 
@@ -318,6 +398,10 @@ void Script::setKbdChar(uint8 c) {
 	_eventKbdChar = c;
 }
 
+void Script::setAction(uint8 a) {
+	_eventAction = a;
+}
+
 Common::String &Script::getContext() {
 	return _debugString;
 }
@@ -368,56 +452,69 @@ uint8 Script::readScriptChar(bool allow7C, bool limitVal, bool limitVar) {
 		data &= 0x7F;
 	}
 
-	if (allow7C && (data == 0x7C)) {
+	if (allow7C && (data == kVarType2DArray)) {
 		// Index a bidimensional array
 		uint8 parta, partb;
 		parta = readScriptChar(false, false, false);
 		partb = readScriptChar(false, true, true);
 		result = _variables[0x0A * parta + partb + 0x19];
-	} else if (data == 0x23) {
+		debugC(7, kDebugScript, "readScriptChar got | for var %d with value %d", (int)(0x0A * parta + partb + 0x19), (int)result);
+	} else if (data == kVarTypeArray) {
 		// Index an array
 		data = readScript8bits();
 		if (limitVar) {
 			data &= 0x7F;
 		}
 		result = _variables[data - 0x61];
+		debugC(7, kDebugScript, "readScriptChar got # for var %d with value %d", (int)(data - 0x61), (int)result);
 	} else {
 		// Immediate value
 		result = data - 0x30;
+		debugC(7, kDebugScript, "readScriptChar got %d", (int)result);
 	}
 	return result;
 }
 
 void Script::readScriptString(Common::String &str) {
 	byte c;
+	Common::String orig;
+
+	debugC(5, kDebugScript, "readScriptString start");
 
 	while ((c = readScript8bits())) {
+		orig += c;
 		switch (c) {
-		case 0x23:
+		case kVarTypeArray:
 			c = readScript8bits();
+			orig += Common::String::format("%d", (int)(c - 0x61));
 			c = _variables[c - 0x61] + 0x30;
 			if (_version == kGroovieT7G) {
 				if (c >= 0x41 && c <= 0x5A) {
-					c += 0x20;
+					c += 0x20;// to lower case
 				}
 			}
 			break;
-		case 0x7C:
+		case kVarType2DArray:
 			uint8 parta, partb;
 			parta = readScriptChar(false, false, false);
 			partb = readScriptChar(false, false, false);
+			orig += Common::String::format("%d", (int)(0x0A * parta + partb + 0x19));
 			c = _variables[0x0A * parta + partb + 0x19] + 0x30;
 			break;
 		default:
 			if (_version == kGroovieT7G) {
 				if (c >= 0x41 && c <= 0x5A) {
-					c += 0x20;
+					c += 0x20;// to lower case
 				}
 			}
 		}
 		// Append the current character at the end of the string
-		str += c;
-	}
+		if (c) {
+			str += c;
+		}
+ 	}
+
+	debugC(5, kDebugScript, "readScriptString orig: %s, ret: %s", orig.c_str(), str.c_str());
 }
 
 uint32 Script::getVideoRefString(Common::String &resName) {
@@ -425,12 +522,26 @@ uint32 Script::getVideoRefString(Common::String &resName) {
 	readScriptString(resName);
 
 	// Add a trailing dot
-	resName += 0x2E;
+	resName += '.';
 
-	debugCN(0, kDebugScript, "%s", resName.c_str());
+	debugC(1, kDebugScript, "getVideoRefString %s", resName.c_str());
 
 	// Get the fileref of the resource
 	return _vm->_resMan->getRef(resName);
+}
+
+void Script::executeInputAction(uint16 address) {
+	debugC(1, kDebugScript, "Groovie::Script: executeInputAction 0x%04X", (uint)address);
+
+	// Jump to the planned address
+	_currentInstruction = address;
+
+	// Exit the input loop
+	_inputLoopAddress = 0;
+
+	// Force immediate hiding of the mouse cursor (required when the next video just contains audio)
+	_vm->_grvCursorMan->show(false);
+	_vm->_graphicsMan->change();
 }
 
 bool Script::hotspot(Common::Rect rect, uint16 address, uint8 cursor) {
@@ -448,11 +559,6 @@ bool Script::hotspot(Common::Rect rect, uint16 address, uint8 cursor) {
 		_vm->_system->updateScreen();
 	}
 
-	// If there's an already planned action, do nothing
-	if (_inputAction != -1) {
-		return false;
-	}
-
 	if (contained) {
 		// Change the mouse cursor
 		if (_newCursorStyle == 5) {
@@ -462,7 +568,7 @@ bool Script::hotspot(Common::Rect rect, uint16 address, uint8 cursor) {
 		// If clicked with the mouse, jump to the specified address
 		if (_mouseClicked) {
 			_lastCursor = cursor;
-			_inputAction = address;
+			executeInputAction(address);
 		}
 	}
 
@@ -470,7 +576,13 @@ bool Script::hotspot(Common::Rect rect, uint16 address, uint8 cursor) {
 }
 
 void Script::loadgame(uint slot) {
-	_vm->_musicPlayer->stop();
+	debugC(0, kDebugScript, "loadgame %d", slot);
+
+	// The 11th Hour uses slot 0 for the Open House savegame. It loads this
+	// savegame before showing the load/restart dialog during the intro. The
+	// music should not be stopped in this case.
+	if (!(_vm->getEngineVersion() == kGroovieT11H && slot == 0))
+		_vm->_musicPlayer->stop();
 
 	Common::InSaveFile *file = SaveLoad::openForLoading(ConfMan.getActiveDomainName(), slot);
 
@@ -501,6 +613,9 @@ bool Script::preview_loadgame(uint slot) { // used by Clandestiny for the photos
 }
 
 bool Script::canDirectSave() const {
+	if (this->_vm->isDemo())
+		return false;
+
 	// Disallow when running a subscript (puzzle)
 	if (_savedCode == nullptr) {
 		// UHP appears not to use "room" variables(?)
@@ -519,19 +634,30 @@ bool Script::canDirectSave() const {
 }
 
 void Script::directGameSave(int slot, const Common::String &desc) {
+	char name[27];
+	debugC(0, kDebugScript, "directGameSave %d %s", slot, desc.c_str());
 	if (slot < 0 || slot > MAX_SAVES - 1) {
 		return;
 	}
 	const char *saveName = desc.c_str();
-	for (int i = 0; i < 15; i++) {
-		_variables[i] = saveName[i] - 0x30;
+	uint name_len = 15;
+	if (_version == kGroovieTLC) {
+		name_len = 19;
+	} else if (_version == kGroovieUHP) {
+		name_len = 27;
 	}
-	savegame(slot);
+	for (uint i = 0; i < desc.size() && i < name_len; i++) {
+		name[i] = saveName[i] - 0x30;
+	}
+	for (uint i = desc.size(); i < name_len; i++) {
+		name[i] = '\0' - 0x30;
+	}
+	savegame(slot, name);
 }
 
-void Script::savegame(uint slot) {
-	char save[15];
+void Script::savegame(uint slot, const char name[27]) {
 	char newchar;
+	debugC(0, kDebugScript, "savegame %d, canDirectSave: %d", slot, canDirectSave());
 	Common::OutSaveFile *file = SaveLoad::openForSaving(ConfMan.getActiveDomainName(), slot);
 
 	if (!file) {
@@ -541,23 +667,39 @@ void Script::savegame(uint slot) {
 		return;
 	}
 
+	// HACK: I think 0x0BF is supposed to be for open house mode, should only be in save slot 0
+	// the script for the triangle puzzle, tx.grv, sets _variables[191] == 1
+	if (slot != 0 && _variables[191] == 1 && _version == kGroovieT11H) {
+		warning("savegame slot %u, fixing variable 0x0BF was %u", slot, _variables[191]);
+		_variables[191] = 0;
+	}
+
 	// Saving the variables. It is endian safe because they're byte variables
-	file->write(_variables, 0x400);
+	uint name_len = 15;
+	if (_version == kGroovieTLC) {
+		name_len = 19;
+	} else if (_version == kGroovieUHP) {
+		name_len = 27;
+	}
+	file->write(name, name_len);
+	file->write(_variables + name_len, 0x400 - name_len);
 	delete file;
 
 	// Cache the saved name
-	for (int i = 0; i < 15; i++) {
-		newchar = _variables[i] + 0x30;
+	char cacheName[28];
+	for (uint i = 0; i < name_len; i++) {
+		newchar = name[i] + 0x30;
 		if ((newchar < 0x30 || newchar > 0x39) && (newchar < 0x41 || newchar > 0x7A) && newchar != 0x2E) {
-			save[i] = '\0';
+			cacheName[i] = '\0';
 			break;
 		} else if (newchar == 0x2E) { // '.', generated when space is pressed
-			save[i] = ' ';
+			cacheName[i] = ' ';
 		} else {
-			save[i] = newchar;
+			cacheName[i] = newchar;
 		}
 	}
-	_saveNames[slot] = save;
+	cacheName[name_len] = '\0';
+	_saveNames[slot] = cacheName;
 }
 
 void Script::printString(Graphics::Surface *surface, const char *str) {
@@ -576,7 +718,8 @@ void Script::printString(Graphics::Surface *surface, const char *str) {
 	if (_version == kGroovieT7G) {
 		_vm->_font->drawString(surface, message, 0, 16, 640, 0xE2, Graphics::kTextAlignCenter);
 	} else {
-		_vm->_font->drawString(surface, message, 190, 190, 640, _vm->_pixelFormat.RGBToColor(0xff, 0x0A, 0x0A), Graphics::kTextAlignLeft);
+		bool drawBackground = _version == kGroovieCDY;
+		_vm->_videoPlayer->drawString(surface, Common::String(message), 190, 190, _vm->_pixelFormat.RGBToColor(0xff, 0x0A, 0x0A), drawBackground);
 	}
 }
 
@@ -628,7 +771,8 @@ void Script::o_bf9on() {			// 0x03
 void Script::o_palfadeout() {
 	debugC(1, kDebugScript, "Groovie::Script: PALFADEOUT");
 	debugC(2, kDebugVideo, "Groovie::Script: PALFADEOUT");
-	_vm->_graphicsMan->fadeOut();
+	if (!_fastForwarding)
+		_vm->_graphicsMan->fadeOut();
 }
 
 void Script::o_bf8on() {			// 0x05
@@ -688,7 +832,7 @@ void Script::o_videofromref() {			// 0x09
 		break;
 
 	case 0x2420:	// load from the main menu
-		if (_version == kGroovieT7G && !ConfMan.getBool("originalsaveload")) {
+		if (_version == kGroovieT7G && !ConfMan.getBool("originalsaveload") && _currentInstruction == 381) {
 			GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Restore game:"), _("Restore"), false);
 			int slot = dialog->runModalWithCurrentTarget();
 			delete dialog;
@@ -706,7 +850,7 @@ void Script::o_videofromref() {			// 0x09
 		break;
 
 	case 0x2422: // save from the in-game menu
-		if (_version == kGroovieT7G && !ConfMan.getBool("originalsaveload")) {
+		if (_version == kGroovieT7G && !ConfMan.getBool("originalsaveload") && _currentInstruction == 7618) {
 			GUI::MessageDialog saveOrLoad(_("Would you like to save or restore a game?"), _("Save"), _("Restore"));
 
 			int choice = saveOrLoad.runModal();
@@ -775,6 +919,10 @@ bool Script::playvideofromref(uint32 fileref, bool loopUntilAudioDone) {
 	// It isn't the current video, open it
 	if (fileref != _videoRef) {
 
+		if (_fastForwarding && !ConfMan.getBool("speedrun_mode")) {
+			resetFastForward();
+		}
+
 		// Debug bitflags
 		debugCN(1, kDebugScript, "Groovie::Script: Play video 0x%04X (bitflags:", fileref);
 		for (int i = 15; i >= 0; i--) {
@@ -787,9 +935,12 @@ bool Script::playvideofromref(uint32 fileref, bool loopUntilAudioDone) {
 
 		// Close the previous video file
 		if (_videoFile) {
-			_videoRef = UINT_MAX;
+			_videoRef = uint32(-1);
 			delete _videoFile;
 		}
+
+		if (fileref == uint32(-1))
+			return true;
 
 		// Try to open the new file
 		ResInfo resInfo;
@@ -810,7 +961,23 @@ bool Script::playvideofromref(uint32 fileref, bool loopUntilAudioDone) {
 			// Original clan engine specifically references these files by name to set the flag
 			else if (_version == kGroovieCDY && (resInfo.filename.hasPrefix("act") || resInfo.filename.hasPrefix("door")))
 				_bitflags |= (1 << 14);
+			// HACK: Clandestiny bricks puzzle appears to use different behavior for copying the _overBuf to the _bg
+			if (_version == kGroovieCDY && _scriptFile == "26a_graf.grv")
+				_bitflags |= 1;
 			_vm->_videoPlayer->load(_videoFile, _bitflags);
+
+			// Find correct filename
+			ResInfo info;
+			_vm->_resMan->getResInfo(fileref, info);
+
+			// Prepend the GJD name and remove the extension
+			Common::String subtitleName = _vm->_resMan->getGjdName(info);
+			subtitleName = subtitleName.substr(0, subtitleName.size() - 4);
+			subtitleName.toUppercase();
+			// add the filename without the extension, then add the .txt extension
+			subtitleName += "-" + info.filename.substr(0, info.filename.size() - 3) + "txt";
+
+			_vm->_videoPlayer->loadSubtitles(subtitleName.c_str());
 		} else {
 			error("Groovie::Script: Couldn't open file");
 			return true;
@@ -821,20 +988,36 @@ bool Script::playvideofromref(uint32 fileref, bool loopUntilAudioDone) {
 	}
 
 	// Check if the user wants to skip the video
-	if ((_eventMouseClicked == 2) && (_videoSkipAddress != 0)) {
-		// Jump to the given address
-		_currentInstruction = _videoSkipAddress;
+	if (_eventMouseClicked == 2 || _eventAction == kActionSkip) {
+		// we don't want to clear a left click here, that would eat the input
+		if (_eventMouseClicked == 2)
+			_eventMouseClicked = 0;
+		_eventKbdChar = 0;
+		_eventAction = kActionNone;
+		if (_videoSkipAddress != 0) {
+			// Jump to the given address
+			_currentInstruction = _videoSkipAddress;
 
-		// Reset the skip address
-		_videoSkipAddress = 0;
+			// Reset the skip address
+			_videoSkipAddress = 0;
 
-		_bitflags = 0;
+			_bitflags = 0;
 
-		// End the playback
-		return true;
-	} else if (_eventMouseClicked == 2) {
+			_vm->_videoPlayer->unloadSubtitles();
+
+			// End the playback
+			return true;
+		}
+		if (_fastForwarding && !ConfMan.getBool("speedrun_mode")) {
+			resetFastForward();
+			if (!_fastForwarding)
+				_vm->_videoPlayer->setOverrideSpeed(false);
+		} else {
+			_vm->_videoPlayer->fastForward();
+			_fastForwarding = true;
+		}
+	} else if (_fastForwarding) {
 		_vm->_videoPlayer->fastForward();
-		_eventMouseClicked = 0;
 	}
 
 	// Video available, play one frame
@@ -855,12 +1038,13 @@ bool Script::playvideofromref(uint32 fileref, bool loopUntilAudioDone) {
 
 			// Close the file
 			delete _videoFile;
-			_videoFile = NULL;
-			_videoRef = UINT_MAX;
+			_videoFile = nullptr;
+			_videoRef = uint32(-1);
 
 			// Clear the input events while playing the video
 			_eventMouseClicked = 0;
 			_eventKbdChar = 0;
+			_eventAction = kActionNone;
 
 			// Newline
 			debugCN(1, kDebugScript, "\n");
@@ -881,7 +1065,7 @@ bool Script::playvideofromref(uint32 fileref, bool loopUntilAudioDone) {
 }
 
 bool Script::playBackgroundSound(uint32 fileref, uint32 loops) {
-	if (fileref == UINT_MAX) {
+	if (fileref == uint32(-1)) {
 		return false;
 	}
 
@@ -907,14 +1091,13 @@ void Script::o_inputloopstart() {	//0x0B
 	debugC(5, kDebugScript, "Groovie::Script: Input loop start");
 
 	// For TLC the regions for many questions are in an extra database. Reset internal region counters
-	if (_version == kGroovieTLC && _tlcGame != NULL) {
+	if (_version == kGroovieTLC && _tlcGame != nullptr) {
 #ifdef ENABLE_GROOVIE2
 		_tlcGame->getRegionRewind();
 #endif
 	}
 
-	// Reset the input action and the mouse cursor
-	_inputAction = -1;
+	// Reset the mouse cursor
 	_newCursorStyle = 5;
 
 	// Save the input loop address
@@ -927,29 +1110,20 @@ void Script::o_inputloopstart() {	//0x0B
 	// Save the current pressed character for the whole loop
 	_kbdChar = _eventKbdChar;
 	_eventKbdChar = 0;
+	_eventAction = kActionNone;
 }
 
 void Script::o_keyboardaction() {
 	uint8 val = readScript8bits();
 	uint16 address = readScript16bits();
 
-	// If there's an already planned action, do nothing
-	if (_inputAction != -1) {
-		debugC(5, kDebugScript, "Groovie::Script: Test key == 0x%02X @0x%04X - skipped", val, address);
-		return;
-	}
-
 	// Check the typed key
 	if (_kbdChar == val) {
-		debugC(5, kDebugScript, "Groovie::Script: Test key == 0x%02X @0x%04X - match", val, address);
+		debugC(1, kDebugScript, "Groovie::Script: Test key == %c (0x%02X) @0x%04X - match", val, val, address);
 
-		// Exit the input loop
-		_inputLoopAddress = 0;
-
-		// Save the action address
-		_inputAction = address;
+		executeInputAction(address);
 	} else {
-		debugC(5, kDebugScript, "Groovie::Script: Test key == 0x%02X @0x%04X", val, address);
+		debugC(5, kDebugScript, "Groovie::Script: Test key == %c (0x%02X) @0x%04X", val, val, address);
 	}
 }
 
@@ -962,7 +1136,7 @@ void Script::o_hotspot_rect() {
 	uint8 cursor = readScript8bits();
 
 	// TLC: The regions for many questions are in an extra database
-	if (_version == kGroovieTLC && left == 0 && top == 0 && right == 0 && bottom == 0 && _tlcGame != NULL) {
+	if (_version == kGroovieTLC && left == 0 && top == 0 && right == 0 && bottom == 0 && _tlcGame != nullptr) {
 #ifdef ENABLE_GROOVIE2
 		if (_tlcGame->getRegionNext(left, top, right, bottom) < 0) {
 			debugC(5, kDebugScript, "Groovie::Script: HOTSPOT-RECT(%d,%d,%d,%d) @0x%04X cursor=%d SKIPPED", left, top, right, bottom, address, cursor);
@@ -983,8 +1157,13 @@ void Script::o_hotspot_left() {
 
 	debugC(5, kDebugScript, "Groovie::Script: HOTSPOT-LEFT @0x%04X", address);
 
-	// Mark the leftmost 100 pixels of the game area
-	Common::Rect rect(0, 80, 100, 400);
+	// Mark the leftmost 50 or 100 pixels of the game area
+	// slim_hotspots is only for puzzles
+	int width = 100;
+	if (_savedCode != nullptr && ConfMan.getBool("slim_hotspots"))
+		width = 50;
+
+	Common::Rect rect(0, 80, width, 400);
 	hotspot(rect, address, 1);
 }
 
@@ -993,8 +1172,13 @@ void Script::o_hotspot_right() {
 
 	debugC(5, kDebugScript, "Groovie::Script: HOTSPOT-RIGHT @0x%04X", address);
 
-	// Mark the rightmost 100 pixels of the game area
-	Common::Rect rect(540, 80, 640, 400);
+	// Mark the rightmost 50 or 100 pixels of the game area
+	// slim_hotspots is only for puzzles
+	int width = 100;
+	if (_savedCode != nullptr && ConfMan.getBool("slim_hotspots"))
+		width = 50;
+
+	Common::Rect rect(640 - width, 80, 640, 400);
 	hotspot(rect, address, 2);
 }
 
@@ -1022,6 +1206,12 @@ void Script::o_hotspot_current() {
 void Script::o_inputloopend() {
 	debugC(5, kDebugScript, "Groovie::Script: Input loop end");
 
+	// width for left and right sides
+	// slim_hotspots is only for puzzles
+	int width = 80;
+	if (_savedCode != nullptr && ConfMan.getBool("slim_hotspots"))
+		width = 50;
+
 	// Handle the predefined hotspots
 	if (_hotspotTopAction) {
 		Common::Rect rect(0, 0, 640, 80);
@@ -1032,48 +1222,49 @@ void Script::o_inputloopend() {
 		hotspot(rect, _hotspotBottomAction, _hotspotBottomCursor);
 	}
 	if (_hotspotRightAction) {
-		Common::Rect rect(560, 0, 640, 480);
+		Common::Rect rect(640 - width, 0, 640, 480);
 		hotspot(rect, _hotspotRightAction, 2);
 	}
 	if (_hotspotLeftAction) {
-		Common::Rect rect(0, 0, 80, 480);
+		Common::Rect rect(0, 0, width, 480);
 		hotspot(rect, _hotspotLeftAction, 1);
-	}
-
-	// Actually execute the planned action
-	if (_inputAction != -1) {
-		// Jump to the planned address
-		_currentInstruction = _inputAction;
-
-		// Exit the input loop
-		_inputLoopAddress = 0;
-		_vm->_grvCursorMan->show(false);
-
-		// Force immediate hiding of the mouse cursor (required when the next
-		// video just contains audio)
-		_vm->_graphicsMan->change();
 	}
 
 	// Nothing to do
 	if (_inputLoopAddress) {
-		if (_newCursorStyle != _vm->_grvCursorMan->getStyle()) {
-			_vm->_grvCursorMan->setStyle(_newCursorStyle);
+		uint16 newCursor = _newCursorStyle;
+		if (_variables[0x91] == 1) {
+			newCursor |= 0x8000;
+		}
+		if (newCursor != _vm->_grvCursorMan->getStyle()) {
+			_vm->_grvCursorMan->setStyle(newCursor);
 		}
 		_vm->_grvCursorMan->show(true);
 
-		// Go back to the begining of the loop
+		// Go back to the beginning of the loop
 		_currentInstruction = _inputLoopAddress;
 
 		// There's nothing to do until we get some input
 		_vm->waitForInput();
+		resetFastForward();
 	}
+
+	if (_wantAutosave && canDirectSave()) {
+		_wantAutosave = false;
+		_vm->saveAutosaveIfEnabled();
+	}
+}
+
+void Script::resetFastForward() {
+	_fastForwarding = DebugMan.isDebugChannelEnabled(kDebugFast);
 }
 
 void Script::o_random() {
 	uint16 varnum = readScript8or16bits();
 	uint8 maxnum = readScript8bits();
 
-	debugC(1, kDebugScript, "Groovie::Script: RANDOM: var[0x%04X] = rand(%d)", varnum, maxnum);
+	byte oldVal = _variables[varnum];
+	uint32 seed = _random.getSeed();
 
 	// TODO: Check if this is really different between the Engines
 	if (_version == kGroovieT7G) {
@@ -1081,6 +1272,8 @@ void Script::o_random() {
 	} else {
 		setVariable(varnum, _random.getRandomNumber(maxnum - 1));
 	}
+
+	debugC(0, kDebugScript, "Groovie::Script: RANDOM: var[0x%04X] = rand(%d), changed from %d to %d, seed was %u", varnum, maxnum, oldVal, _variables[varnum], seed);
 }
 
 void Script::o_jmp() {
@@ -1141,8 +1334,14 @@ void Script::o_sleep() {
 	uint32 endTime = _vm->_system->getMillis() + time * 3;
 
 	Common::Event ev;
-	while (_vm->_system->getMillis() < endTime) {
+	while (_vm->_system->getMillis() < endTime && !_fastForwarding) {
 		_vm->_system->getEventManager()->pollEvent(ev);
+		if (ev.type == Common::EVENT_RBUTTONDOWN
+			|| (ev.type == Common::EVENT_CUSTOM_ENGINE_ACTION_START && (ev.customType == kActionSkip))
+		) {
+			_fastForwarding = true;
+			break;
+		}
 		_vm->_system->updateScreen();
 		_vm->_system->delayMillis(10);
 	}
@@ -1312,7 +1511,7 @@ void Script::o_mov() {
 	uint16 varnum1 = readScript8or16bits();
 	uint16 varnum2 = readScript16bits();
 
-	debugC(1, kDebugScript, "Groovie::Script: MOV var[0x%04X] = var[0x%04X]", varnum1, varnum2);
+	debugC(1, kDebugScript, "Groovie::Script: MOV var[0x%04X] (%u) = var[0x%04X] (%u)", varnum1, _variables[varnum1], varnum2, _variables[varnum2]);
 
 	setVariable(varnum1, _variables[varnum2]);
 }
@@ -1333,7 +1532,7 @@ void Script::o_videofromstring1() {
 
 	// Show the debug information just when starting the playback
 	if (fileref != _videoRef) {
-		debugC(0, kDebugScript, "Groovie::Script: VIDEOFROMSTRING1 %d ('%s')", fileref, vidName.c_str());
+		debugC(1, kDebugScript, "Groovie::Script: VIDEOFROMSTRING1 %d ('%s')", fileref, vidName.c_str());
 		debugC(2, kDebugVideo, "\nGroovie::Script: @0x%04X: Playing video %d ('%s') via 0x26 (VideoFromString1)", instStart-1, fileref, vidName.c_str());
 	}
 
@@ -1356,7 +1555,7 @@ void Script::o_videofromstring2() {
 
 	// Show the debug information just when starting the playback
 	if (fileref != _videoRef) {
-		debugC(0, kDebugScript, "Groovie::Script: VIDEOFROMSTRING2 %d ('%s')", fileref, vidName.c_str());
+		debugC(1, kDebugScript, "Groovie::Script: VIDEOFROMSTRING2 %d ('%s')", fileref, vidName.c_str());
 		debugC(2, kDebugVideo, "\nGroovie::Script: @0x%04X: Playing video %d ('%s') via 0x27 (VideoFromString2)", instStart-1, fileref, vidName.c_str());
 	}
 
@@ -1380,7 +1579,7 @@ void Script::o_stopmidi() {
 }
 
 void Script::o_endscript() {
-	debugC(1, kDebugScript, "Groovie::Script: END OF SCRIPT");
+	debugC(0, kDebugScript, "Groovie::Script: END OF SCRIPT");
 	_vm->quitGame();
 }
 
@@ -1408,7 +1607,7 @@ void Script::o_loadgame() {
 	uint16 varnum = readScript8or16bits();
 	uint8 slot = _variables[varnum];
 
-	debugC(1, kDebugScript, "Groovie::Script: LOADGAME var[0x%04X] -> slot=%d (TODO)", varnum, slot);
+	debugC(0, kDebugScript, "Groovie::Script: LOADGAME var[0x%04X] -> slot=%d", varnum, slot);
 
 	loadgame(slot);
 	if (_version == kGroovieT7G) {
@@ -1420,9 +1619,13 @@ void Script::o_savegame() {
 	uint16 varnum = readScript8or16bits();
 	uint8 slot = _variables[varnum];
 
-	debugC(1, kDebugScript, "Groovie::Script: SAVEGAME var[0x%04X] -> slot=%d (TODO)", varnum, slot);
+	debugC(0, kDebugScript, "Groovie::Script: SAVEGAME var[0x%04X] -> slot=%d", varnum, slot);
 
-	savegame(slot);
+	// TLC uses 19 characters, but there's no harm in copying the extra bytes for the other games
+	// the savegame function will trim it when needed
+	char name[19];
+	memcpy(name, _variables, 19);
+	savegame(slot, name);
 }
 
 void Script::o_hotspotbottom_4() {	//0x30
@@ -1465,7 +1668,7 @@ void Script::o_loadstringvar() {
 	debugCN(1, kDebugScript, "Groovie::Script: LOADSTRINGVAR var[0x%04X..] =", varnum);
 	do {
 		setVariable(varnum++, readScriptChar(true, true, true));
-		debugCN(1, kDebugScript, " 0x%02X", _variables[varnum - 1]);
+		debugCN(1, kDebugScript, " 0x%02X ", _variables[varnum - 1]);
 	} while (!(getCodeByte(_currentInstruction - 1) & 0x80));
 	debugCN(1, kDebugScript, "\n");
 }
@@ -1632,10 +1835,11 @@ void Script::o_printstring() {
 	stringstorage[counter] = 0;
 
 	Common::Rect topbar(640, 80);
-	Graphics::Surface *gamescreen = _vm->_system->lockScreen();
 
 	// Clear the top bar
-	gamescreen->fillRect(topbar, 0);
+	_vm->_system->fillScreen(topbar, 0);
+
+	Graphics::Surface *gamescreen = _vm->_system->lockScreen();
 
 	// Draw the string
 	printString(gamescreen, stringstorage);
@@ -1654,7 +1858,7 @@ void Script::o_hotspot_slot() {
 
 	debugC(1, kDebugScript, "Groovie::Script: HOTSPOT-SLOT %d (%d,%d,%d,%d) @0x%04X cursor=%d (TODO)", slot, left, top, right, bottom, address, cursor);
 
-	// Set rectangle according to the used engine. To remove the previously written text an the screen.
+	// Set rectangle according to the used engine. To remove the previously written text on the screen.
 	Common::Rect removeText;
 	if (_version == kGroovieT7G) {
 		removeText.left = 0;
@@ -1675,10 +1879,10 @@ void Script::o_hotspot_slot() {
 			return;
 		}
 
-		Graphics::Surface *gamescreen = _vm->_system->lockScreen();
-
 		// Clear the top bar
-		gamescreen->fillRect(removeText, 0);	// 0 works for both color formats (Groovie V1 and V2)
+		_vm->_system->fillScreen(removeText, 0);	// 0 works for both color formats (Groovie V1 and V2)
+
+		Graphics::Surface *gamescreen = _vm->_system->lockScreen();
 
 		printString(gamescreen, _saveNames[slot].c_str());
 
@@ -1690,12 +1894,7 @@ void Script::o_hotspot_slot() {
 
 	} else {
 		if (_hotspotSlot == slot) {
-			Graphics::Surface *gamescreen;
-			gamescreen = _vm->_system->lockScreen();
-
-			gamescreen->fillRect(removeText, 0);	// 0 works for both color formats (Groovie V1 and V2)
-
-			_vm->_system->unlockScreen();
+			_vm->_system->fillScreen(removeText, 0);	// 0 works for both color formats (Groovie V1 and V2)
 
 			// Removing the slot highlight
 			_hotspotSlot = (uint16)-1;
@@ -1709,10 +1908,12 @@ void Script::o_hotspot_slot() {
 // checks for 10 save games.
 void Script::o_checkvalidsaves() {
 	debugC(1, kDebugScript, "Groovie::Script: CHECKVALIDSAVES");
+	const int maxSaves = 10; // max number of saves that the original games expect
 
 	// Reset the array of valid saves and the savegame names cache
 	for (int i = 0; i < MAX_SAVES; i++) {
-		setVariable(i, 0);
+		if (i < maxSaves)
+			setVariable(i, 0);
 		_saveNames[i] = "E M P T Y";
 	}
 
@@ -1728,11 +1929,13 @@ void Script::o_checkvalidsaves() {
 			debugC(2, kDebugScript, "Groovie::Script:  Found valid savegame: %s", it->getDescription().encode().c_str());
 
 			// Mark this slot as used
-			setVariable(slot, 1);
+			if (slot < maxSaves) {
+				setVariable(slot, 1);
+				count++;
+			}
 
 			// Cache this slot's description
 			_saveNames[slot] = it->getDescription();
-			count++;
 		}
 		it++;
 	}
@@ -1743,7 +1946,7 @@ void Script::o_checkvalidsaves() {
 }
 
 void Script::o_resetvars() {
-	debugC(1, kDebugScript, "RESETVARS");
+	debugC(0, kDebugScript, "RESETVARS");
 	for (int i = 0; i < 0x100; i++) {
 		setVariable(i, 0);
 	}
@@ -1765,7 +1968,7 @@ void Script::o_loadscript() {
 	while ((c = readScript8bits())) {
 		filename += c;
 	}
-	debugC(1, kDebugScript, "Groovie::Script: LOADSCRIPT %s", filename.c_str());
+	debugC(0, kDebugScript, "Groovie::Script: LOADSCRIPT %s", filename.c_str());
 
 	// Just 1 level of sub-scripts are allowed
 	if (_savedCode) {
@@ -1774,6 +1977,7 @@ void Script::o_loadscript() {
 
 	// Save the current code
 	_savedCode = _code;
+	_code = nullptr;
 	_savedCodeSize = _codeSize;
 	_savedInstruction = _currentInstruction;
 
@@ -1790,6 +1994,8 @@ void Script::o_loadscript() {
 
 	// Save the variables
 	memcpy(_savedVariables, _variables + 0x107, 0x180);
+	_videoSkipAddress = 0;
+	resetFastForward();
 }
 
 void Script::o_setvideoorigin() {
@@ -1816,7 +2022,7 @@ void Script::o_sub() {
 void Script::o_returnscript() {
 	uint8 val = readScript8bits();
 
-	debugC(1, kDebugScript, "Groovie::Script: RETURNSCRIPT @0x%02X", val);
+	debugC(0, kDebugScript, "Groovie::Script: RETURNSCRIPT @0x%02X %s @ 0x%04X", val, _savedScriptFile.c_str(), _savedInstruction);
 
 	// Are we returning from a sub-script?
 	if (!_savedCode) {
@@ -1830,7 +2036,7 @@ void Script::o_returnscript() {
 	delete[] _code;
 	_code = _savedCode;
 	_codeSize = _savedCodeSize;
-	_savedCode = NULL;
+	_savedCode = nullptr;
 	_currentInstruction = _savedInstruction;
 
 	// Restore the stack
@@ -1844,6 +2050,20 @@ void Script::o_returnscript() {
 
 	_vm->_videoPlayer->resetFlags();
 	_vm->_videoPlayer->setOrigin(0, 0);
+
+	// the autosave will actually happen in o_inputloopend in order to ensure that the game is in a stable state
+	_wantAutosave = true;
+	if (_version == kGroovieT11H) {
+		// T11H uses val==1 when you open the GameBook while the puzzle is still ongoing
+		// val==0 means don't open the GameBook, aka you solved the puzzle or walked away from it
+		_wantAutosave = val == 0;
+	} else if (_version == kGroovieCDY) {
+		// Clandestiny uses val==1 when you beat the puzzle
+		_wantAutosave = val == 1;
+	}
+
+	_videoSkipAddress = 0;
+	resetFastForward();
 }
 
 void Script::o_sethotspotright() {
@@ -1955,9 +2175,9 @@ void Script::o2_printstring() {
 	debugC(1, kDebugScript, "Groovie::Script: PRINTSTRING (%d, %d): %s", posx, posy, text.c_str());
 
 	Graphics::Surface *gamescreen = _vm->_system->lockScreen();
-	_vm->_font->drawString(gamescreen, text.c_str(), posx, posy, 640, col, Graphics::kTextAlignLeft);
+	bool drawBackground = _version == kGroovieCDY;
+	_vm->_videoPlayer->drawString(gamescreen, text, posx, posy, col, drawBackground);
 	_vm->_system->unlockScreen();
-	_vm->_graphicsMan->change();	// Force Update screen after step
 }
 
 void Script::o2_playsong() {
@@ -1982,17 +2202,14 @@ void Script::o2_midicontrol() {
 		// Play song from index
 		debugC(1, kDebugScript, "Groovie::Script: MIDI %d: Play song %d", arg1, arg2);
 		_vm->_musicPlayer->playSong(arg2);
-		_vm->_musicPlayer->setUserVolume(100);
 		break;
 
 	case 3:
 		// TODO: Set Volume? Or is it some kind of fade in / out
 		debugC(1, kDebugScript, "Groovie::Script: MIDI %d: Set volume/time:  %d", arg1, arg2);
-		//_vm->_musicPlayer->setUserVolume(arg2);
+		//_vm->_musicPlayer->setGameVolume(arg2, 0);
 		break;
 	}
-
-	//_vm->_musicPlayer->setGameVolume(arg1, arg2);
 }
 void Script::o2_setbackgroundsong() {
 	uint32 fileref = readScript32bits();
@@ -2003,16 +2220,74 @@ void Script::o2_setbackgroundsong() {
 void Script::o2_videofromref() {
 	uint32 fileref = readScript32bits();
 
+	// the fileref differs between languages, but the instruction pointers and script sizes are the same
+
 	// Skip the 11th Hour intro videos on right mouse click, instead of
 	// fast-forwarding them. This has the same effect as pressing 'p' twice in
 	// the skulls screen after the Groovie logo
-	if (_version == kGroovieT11H && fileref == 4926 && fileref != _videoRef)
+	if (_version == kGroovieT11H && _currentInstruction == 0x0560 && fileref != _videoRef && _scriptFile == "script.grv")
 		_videoSkipAddress = 1417;
+
+	if (_version == kGroovieT11H && fileref != _videoRef && !ConfMan.getBool("originalsaveload")) {
+		if (_currentInstruction == 0xE50A && _scriptFile == "script.grv") {
+			// Load from the main menu
+			GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Restore game:"), _("Restore"), false);
+			int slot = dialog->runModalWithCurrentTarget();
+			delete dialog;
+
+			if (slot >= 0) {
+				_currentInstruction = 0xE790;
+				loadgame(slot);
+				return;
+			} else {
+				_currentInstruction = 0xBF37; // main menu
+			}
+		} else if (_currentInstruction == 0xE955 && _scriptFile == "script.grv") {
+			// Save from the main menu
+			GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Save game:"), _("Save"), true);
+			int slot = dialog->runModalWithCurrentTarget();
+			Common::String saveName = dialog->getResultString();
+			delete dialog;
+
+			if (slot >= 0) {
+				directGameSave(slot, saveName);
+			}
+
+			_currentInstruction = 0xBF37; // main menu
+		}
+		// T11H Souped Up
+		else if (_currentInstruction == 0x10 && _scriptFile == "suscript.grv") {
+			// Load from the main menu
+			GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Restore game:"), _("Restore"), false);
+			int slot = dialog->runModalWithCurrentTarget();
+			delete dialog;
+
+			if (slot >= 0) {
+				_currentInstruction = 0x16;
+				loadgame(slot);
+				return;
+			} else {
+				_currentInstruction = 0x8; // main menu
+			}
+		} else if (_currentInstruction == 0x1E && _scriptFile == "suscript.grv") {
+			// Save from the main menu
+			GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Save game:"), _("Save"), true);
+			int slot = dialog->runModalWithCurrentTarget();
+			Common::String saveName = dialog->getResultString();
+			delete dialog;
+
+			if (slot >= 0) {
+				directGameSave(slot, saveName);
+			}
+
+			_currentInstruction = 0x8; // main menu
+		}
+	}
 
 	// Show the debug information just when starting the playback
 	if (fileref != _videoRef) {
 		debugC(1, kDebugScript, "Groovie::Script: VIDEOFROMREF(0x%08X) (Not fully imp): Play video file from ref", fileref);
-		debugC(2, kDebugVideo, "\nGroovie::Script: @0x%04X: Playing video %d via 0x09", _currentInstruction-5, fileref);
+		debugC(2, kDebugVideo, "\nGroovie::Script: @0x%04X: Playing video %d via 0x09 (o2_videofromref)", _currentInstruction-5, fileref);
 	}
 
 	// Clear bit 1
@@ -2031,7 +2306,40 @@ void Script::o2_vdxtransition() {
 	// Show the debug information just when starting the playback
 	if (fileref != _videoRef) {
 		debugC(1, kDebugScript, "Groovie::Script: VDX transition fileref = 0x%08X", fileref);
-		debugC(2, kDebugVideo, "\nGroovie::Script: @0x%04X: Playing video %d with transition via 0x1C", _currentInstruction-5, fileref);
+		debugC(2, kDebugVideo, "\nGroovie::Script: @0x%04X: Playing video %d with transition via 0x1C (o2_vdxtransition)", _currentInstruction-5, fileref);
+	}
+
+	if (_version == kGroovieCDY && fileref != _videoRef && !ConfMan.getBool("originalsaveload")) {
+		if (_currentInstruction == 0x59 && _scriptFile == "save_cam.grv") {
+			// Save from the main menu
+			GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Save game:"), _("Save"), true);
+			int slot = dialog->runModalWithCurrentTarget();
+			Common::String saveName = dialog->getResultString();
+			delete dialog;
+
+			if (slot >= 0) {
+				directGameSave(slot, saveName);
+			}
+
+			_currentInstruction = 0x162; // end of save_cam.grv
+			return;
+		}
+		// TODO: modern load menu needs to tell the user that slot 0 is for starting a new game
+#if 0
+		else if (_currentInstruction == 0xA12C && _scriptFile == "clanmain.grv") {
+			// Load from the main menu
+			GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Restore game:"), _("Restore"), false);
+			int slot = dialog->runModalWithCurrentTarget();
+			delete dialog;
+
+			if (slot >= 0) {
+				directGameLoad(slot);
+			} else {
+				_currentInstruction = 0xA730;
+			}
+			return;
+		}
+#endif
 	}
 
 	// Set bit 1
@@ -2091,7 +2399,7 @@ void Script::o_gamelogic() {
 	switch (_version) {
 	case kGroovieT7G:
 		if (!_cellGame)
-			_cellGame = new CellGame;
+			_cellGame = new CellGame(ConfMan.getBool("easier_ai"));
 
 		_cellGame->run(param, &_variables[0x19]);
 
@@ -2155,15 +2463,14 @@ void Script::o2_copyfgtobg() {
 	uint8 arg = readScript8bits();
 	debugC(1, kDebugScript, "Groovie::Script: o2_copyfgtobg (0x%02X)", arg);
 	debugC(2, kDebugVideo, "Groovie::Script: @0x%04X: o2_copyfgtobg (0x%02X)", _currentInstruction-2, arg);
-	// return;
 
-	_vm->_graphicsMan->_background.copyFrom(_vm->_graphicsMan->_foreground);
-	_vm->_graphicsMan->updateScreen(&_vm->_graphicsMan->_background);
+	_vm->_videoPlayer->copyfgtobg(arg);
 }
 
 void Script::o2_setscriptend() {
 	uint16 arg = readScript16bits();
-	debugC(1, kDebugScript, "Groovie::Script: SetScriptEnd (0x%04X)", arg);
+	debugC(0, kDebugScript, "Groovie::Script: SetScriptEnd (0x%04X)", arg);
+	// TODO: seems to write arg as a uint32 to var 0x38 to 0x3B?
 }
 
 void Script::o2_playsound() {

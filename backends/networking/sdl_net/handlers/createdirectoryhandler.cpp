@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "backends/networking/sdl_net/handlers/createdirectoryhandler.h"
-#include "backends/fs/fs-factory.h"
 #include "backends/networking/sdl_net/handlerutils.h"
 #include "backends/networking/sdl_net/localwebserver.h"
 #include "common/translation.h"
@@ -33,14 +31,14 @@ CreateDirectoryHandler::CreateDirectoryHandler() {}
 
 CreateDirectoryHandler::~CreateDirectoryHandler() {}
 
-void CreateDirectoryHandler::handleError(Client &client, Common::String message) const {
+void CreateDirectoryHandler::handleError(Client &client, const Common::String &message) const {
 	if (client.queryParameter("answer_json") == "true")
 		setJsonResponseHandler(client, "error", message);
 	else
 		HandlerUtils::setFilesManagerErrorMessageHandler(client, message);
 }
 
-void CreateDirectoryHandler::setJsonResponseHandler(Client &client, Common::String type, Common::String message) const {
+void CreateDirectoryHandler::setJsonResponseHandler(Client &client, const Common::String &type, const Common::String &message) const {
 	Common::JSONObject response;
 	response.setVal("type", new Common::JSONValue(type));
 	response.setVal("message", new Common::JSONValue(message));
@@ -68,39 +66,38 @@ void CreateDirectoryHandler::handle(Client &client) {
 	}
 
 	// transform virtual path to actual file system one
-	Common::String prefixToRemove = "", prefixToAdd = "";
-	if (!transformPath(path, prefixToRemove, prefixToAdd) || path.empty()) {
+	Common::String basePath;
+	Common::Path baseFSPath, fsPath;
+	if (!urlToPath(path, fsPath, basePath, baseFSPath) || path.empty()) {
 		handleError(client, Common::convertFromU32String(_("Invalid path!")));
 		return;
 	}
 
 	// check that <path> exists, is directory and isn't forbidden
-	AbstractFSNode *node = g_system->getFilesystemFactory()->makeFileNodePath(path);
-	if (!HandlerUtils::permittedPath(node->getPath())) {
+	Common::FSNode node(fsPath);
+	if (!HandlerUtils::permittedPath(node.getPath())) {
 		handleError(client, Common::convertFromU32String(_("Invalid path!")));
 		return;
 	}
-	if (!node->exists()) {
+	if (!node.exists()) {
 		handleError(client, Common::convertFromU32String(_("Parent directory doesn't exists!")));
 		return;
 	}
-	if (!node->isDirectory()) {
+	if (!node.isDirectory()) {
 		handleError(client, Common::convertFromU32String(_("Can't create a directory within a file!")));
 		return;
 	}
 
 	// check that <directory_name> doesn't exist or is directory
-	if (path.lastChar() != '/' && path.lastChar() != '\\')
-		path += '/';
-	node = g_system->getFilesystemFactory()->makeFileNodePath(path + name);
-	if (node->exists()) {
-		if (!node->isDirectory()) {
+	node = Common::FSNode(fsPath.appendComponent(name));
+	if (node.exists()) {
+		if (!node.isDirectory()) {
 			handleError(client, Common::convertFromU32String(_("There is a file with that name in the parent directory!")));
 			return;
 		}
 	} else {
 		// create the <directory_name> in <path>
-		if (!node->createDirectory()) {
+		if (!node.createDirectory()) {
 			handleError(client, Common::convertFromU32String(_("Failed to create the directory!")));
 			return;
 		}

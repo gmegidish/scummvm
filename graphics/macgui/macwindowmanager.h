@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,12 +24,15 @@
 
 #include "common/hashmap.h"
 #include "common/list.h"
+#include "common/mutex.h"
 #include "common/stack.h"
 #include "common/events.h"
 
 #include "graphics/font.h"
 #include "graphics/fontman.h"
+#include "graphics/palette.h"
 #include "graphics/macgui/macwindow.h"
+#include "graphics/macgui/macmenu.h"
 
 #include "engines/engine.h"
 
@@ -76,18 +78,21 @@ enum MacCursorType {
 };
 
 enum {
-	kWMModeNone         	= 0,
-	kWMModeNoDesktop    	= (1 << 0),
-	kWMModeAutohideMenu 	= (1 << 1),
-	kWMModalMenuMode 		= (1 << 2),
-	kWMModeForceBuiltinFonts= (1 << 3),
-	kWMModeUnicode			= (1 << 4),
-	kWMModeManualDrawWidgets= (1 << 5),
-	kWMModeFullscreen       = (1 << 6),
-	kWMModeButtonDialogStyle= (1 << 7),
-	kWMMode32bpp			= (1 << 8),
-	kWMNoScummVMWallpaper   = (1 << 9),
-	kWMModeWin95            = (1 << 10)
+	kWMModeNone         		= 0,
+	kWMModeNoDesktop    		= (1 << 0),
+	kWMModeAutohideMenu 		= (1 << 1),
+	kWMModalMenuMode 			= (1 << 2),
+	kWMModeForceBuiltinFonts	= (1 << 3),
+	kWMModeUnicode				= (1 << 4),
+	kWMModeManualDrawWidgets	= (1 << 5),
+	kWMModeFullscreen			= (1 << 6),
+	kWMModeButtonDialogStyle	= (1 << 7),
+	kWMMode32bpp				= (1 << 8),
+	kWMNoScummVMWallpaper		= (1 << 9),
+	kWMModeWin95				= (1 << 10),
+	kWMModeForceMacFontsInWin95 = (1 << 11), // Enforce Mac font for languages which don't have glyphs in ms_sans_serif.ttf
+	kWMModeNoCursorOverride     = (1 << 12),
+	kWMModeForceMacBorder       = (1 << 13),
 };
 
 }
@@ -162,6 +167,10 @@ public:
 	 */
 	void setScreen(int w, int h);
 
+	int getWidth();
+
+	int getHeight();
+
 	/**
 	 * Create a window with the given parameters.
 	 * Note that this method allocates the necessary memory for the window.
@@ -198,6 +207,7 @@ public:
 	 * @return Pointer to a new empty menu.
 	 */
 	MacMenu *addMenu();
+	void addMenu(int id, MacMenu *menu);
 
 	void removeMenu();
 	void activateMenu();
@@ -206,6 +216,7 @@ public:
 	void disableScreenCopy();
 
 	bool isMenuActive();
+	void setDesktopMode(uint32 mode);
 
 	/**
 	 * Set hot zone where menu appears (works only with autohide menu)
@@ -227,12 +238,12 @@ public:
 	 * Return Top Window containing a point
 	 * @param x x coordinate of point
 	 * @param y y coordiante of point
-	 */ 
+	 */
 	MacWindow *findWindowAtPoint(int16 x, int16 y);
 	/**
 	 * Return Top Window containing a point
 	 * @param point Point
-	 */ 
+	 */
 	MacWindow *findWindowAtPoint(Common::Point point);
 
 	/**
@@ -285,13 +296,31 @@ public:
 	 */
 	void setActiveWidget(MacWidget *widget);
 
+	/**
+	 * Similar to setActiveWidget but in this case no action including animation
+	 * hover, etc can work until a window is locked.
+	 * Anything outside this window will not respond to user.
+	 * @param widget Pointer to the widget to lock, nullptr for no widget
+	 */
+	void setLockedWidget(MacWidget *widget);
+
+	/**
+	 * Sets a background window, which is always active, this window cannot be
+	 * deactivated by clicking outside it, ie it is always in background.
+	 * @param window Pointer to the widget to background, nullptr for no widget
+	 */
+	void setBackgroundWindow(MacWindow *window);
+
 	MacPatterns  &getBuiltinPatterns() { return _builtinPatterns; }
 
 	MacWidget *getActiveWidget() { return _activeWidget; }
+	MacWidget *getLockedWidget() { return _lockedWidget; }
 
 	Common::Rect getScreenBounds() { return _screen ? _screen->getBounds() : _screenDims; }
 
 	void clearWidgetRefs(MacWidget *widget);
+
+	void printWMMode(int debuglevel = 0);
 
 private:
 	void replaceCursorType(MacCursorType type);
@@ -315,11 +344,12 @@ public:
 	void setEngineRedrawCallback(void *engine, void (*redrawCallback)(void *engine));
 
 	void passPalette(const byte *palette, uint size);
-	uint findBestColor(byte cr, byte cg, byte cb);
-	uint findBestColor(uint32 color);
-	void decomposeColor(uint32 color, byte &r, byte &g, byte &b);
+	template <typename T> void decomposeColor(uint32 color, byte &r, byte &g, byte &b);
+	uint32 findBestColor(byte cr, byte cg, byte cb);
+	uint32 findBestColor(uint32 color);
+	void setDesktopColor(byte, byte, byte);
 
-	uint inverter(uint src);
+	byte inverter(byte src);
 
 	const byte *getPalette() { return _palette; }
 	uint getPaletteSize() { return _paletteSize; }
@@ -331,9 +361,11 @@ public:
 
 	void loadDataBundle();
 	void cleanupDataBundle();
-	BorderOffsets getBorderOffsets(byte windowType);
-	Common::SeekableReadStream *getBorderFile(byte windowType, uint32 flags);
-	Common::SeekableReadStream *getFile(const Common::String &filename);
+	void cleanupDesktopBmp();
+
+	BorderOffsets getBorderOffsets(uint32 windowType);
+	Common::SeekableReadStream *getBorderFile(uint32 windowType, uint32 flags);
+	Common::SeekableReadStream *getFile(const Common::Path &filename);
 
 	void setTextInClipboard(const Common::U32String &str);
 	/**
@@ -350,23 +382,17 @@ public:
 	 */
 	void clearHandlingWidgets();
 
-	void setMenuItemCheckMark(const Common::String &menuId, const Common::String &itemId, bool checkMark);
-	void setMenuItemCheckMark(int menuId, int itemId, bool checkMark);
-	void setMenuItemEnabled(const Common::String &menuId, const Common::String &itemId, bool enabled);
-	void setMenuItemEnabled(int menuId, int itemId, bool enabled);
-	void setMenuItemName(const Common::String &menuId, const Common::String &itemId, const Common::String &name);
-	void setMenuItemName(int menuId, int itemId, const Common::String &name);
-	void setMenuItemAction(const Common::String &menuId, const Common::String &itemId, int actionId);
-	void setMenuItemAction(int menuId, int itemId, int actionId);
+	void setMenuItemCheckMark(MacMenuItem *menuItem, bool checkMark);
+	void setMenuItemEnabled(MacMenuItem *menuItem, bool enabled);
+	void setMenuItemName(MacMenuItem *menuItem, const Common::String &name);
+	void setMenuItemAction(MacMenuItem *menuItem, int actionId);
 
-	bool getMenuItemCheckMark(const Common::String &menuId, const Common::String &itemId);
-	bool getMenuItemCheckMark(int menuId, int itemId);
-	bool getMenuItemEnabled(const Common::String &menuId, const Common::String &itemId);
-	bool getMenuItemEnabled(int menuId, int itemId);
-	Common::String getMenuItemName(const Common::String &menuId, const Common::String &itemId);
-	Common::String getMenuItemName(int menuId, int itemId);
-	int getMenuItemAction(const Common::String &menuId, const Common::String &itemId);
-	int getMenuItemAction(int menuId, int itemId);
+	bool getMenuItemCheckMark(MacMenuItem *menuItem);
+	bool getMenuItemEnabled(MacMenuItem *menuItem);
+	Common::String getMenuItemName(MacMenuItem *menuItem);
+	int getMenuItemAction(MacMenuItem *menuItem);
+	MacMenu *getMenu();
+	MacMenu *getMenu(int id);
 
 public:
 	MacFontManager *_fontMan;
@@ -377,7 +403,7 @@ public:
 	Common::Point _lastMousePos;
 	Common::Rect _menuHotzone;
 
-	bool _menuTimerActive;
+	uint32 _menuTimer;
 	bool _mouseDown;
 
 	uint32 _colorBlack, _colorGray80, _colorGray88, _colorGrayEE, _colorWhite, _colorGreen, _colorGreen2;
@@ -401,7 +427,7 @@ private:
 	void adjustDimensions(const Common::Rect &clip, const Common::Rect &dims, int &adjWidth, int &adjHeight);
 
 public:
-	TransparentSurface *_desktopBmp;
+	Surface *_desktopBmp;
 	ManagedSurface *_desktop;
 	PixelFormat _pixelformat;
 
@@ -410,6 +436,7 @@ public:
 	Common::Rect _screenDims;
 
 private:
+	Common::Mutex _mutex;
 	Common::List<BaseMacWindow *> _windowStack;
 	Common::HashMap<uint, BaseMacWindow *> _windows;
 
@@ -435,22 +462,26 @@ private:
 	void *_engineR;
 	void (*_redrawEngineCallback)(void *engine);
 
-	MacCursorType _tempType;
+	MacCursorType _tempType = kMacCursorArrow;
 	Common::Stack<MacCursorType> _cursorTypeStack;
-	Cursor *_cursor;
+	Cursor *_cursor = nullptr;
 
 	MacWidget *_activeWidget;
+	MacWidget *_lockedWidget;
+	MacWindow *_backgroundWindow;
 
 	PauseToken *_screenCopyPauseToken;
 
 	Common::Array<ZoomBox *> _zoomBoxes;
-	Common::HashMap<uint, uint> _colorHash;
+	Graphics::PaletteLookup _paletteLookup;
 	Common::HashMap<uint, uint> _invertColorHash;
 
 	Common::Archive *_dataBundle;
 
 	Common::U32String _clipboard;
 };
+
+const Common::U32String::value_type *readHex(uint16 *res, const Common::U32String::value_type *s, int len);
 
 } // End of namespace Graphics
 

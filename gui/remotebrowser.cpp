@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@
 #include "backends/networking/curl/request.h"
 #include "backends/cloud/storage.h"
 #include "backends/cloud/cloudmanager.h"
-#include "message.h"
+#include "gui/message.h"
 
 namespace GUI {
 
@@ -53,7 +52,7 @@ RemoteBrowserDialog::RemoteBrowserDialog(const Common::U32String &title):
 	_fileList->setNumberingMode(kListNumberingOff);
 	_fileList->setEditable(false);
 
-	if (g_system->getOverlayWidth() > 320)
+	if (!g_gui.useLowResGUI())
 		new ButtonWidget(this, "Browser.Up", _("Go up"), _("Go to previous directory level"), kGoUpCmd);
 	else
 		new ButtonWidget(this, "Browser.Up", _c("Go up", "lowres"), _("Go to previous directory level"), kGoUpCmd);
@@ -144,19 +143,16 @@ void RemoteBrowserDialog::updateListing() {
 
 	if (!_navigationLocked) {
 		// Populate the ListWidget
-		ListWidget::U32StringArray list;
-		ListWidget::ColorList colors;
+		Common::U32StringArray list;
 		for (Common::Array<Cloud::StorageFile>::iterator i = _nodeContent.begin(); i != _nodeContent.end(); ++i) {
 			if (i->isDirectory()) {
-				list.push_back(i->name() + "/");
-				colors.push_back(ThemeEngine::kFontColorNormal);
+				list.push_back(ListWidget::getThemeColor(ThemeEngine::kFontColorNormal) + Common::U32String(i->name() + "/"));
 			} else {
-				list.push_back(i->name());
-				colors.push_back(ThemeEngine::kFontColorAlternate);
+				list.push_back(ListWidget::getThemeColor(ThemeEngine::kFontColorAlternate) + Common::U32String(i->name()));
 			}
 		}
 
-		_fileList->setList(list, &colors);
+		_fileList->setList(list);
 		_fileList->scrollTo(0);
 	}
 
@@ -197,8 +193,8 @@ void RemoteBrowserDialog::listDirectory(const Cloud::StorageFile &node) {
 
 		_workingRequest = CloudMan.listDirectory(
 			node.path(),
-			new Common::Callback<RemoteBrowserDialog, Cloud::Storage::ListDirectoryResponse>(this, &RemoteBrowserDialog::directoryListedCallback),
-			new Common::Callback<RemoteBrowserDialog, Networking::ErrorResponse>(this, &RemoteBrowserDialog::directoryListedErrorCallback),
+			new Common::Callback<RemoteBrowserDialog, const Cloud::Storage::ListDirectoryResponse &>(this, &RemoteBrowserDialog::directoryListedCallback),
+			new Common::Callback<RemoteBrowserDialog, const Networking::ErrorResponse &>(this, &RemoteBrowserDialog::directoryListedErrorCallback),
 			false
 		);
 	}
@@ -208,7 +204,7 @@ void RemoteBrowserDialog::listDirectory(const Cloud::StorageFile &node) {
 	updateListing();
 }
 
-void RemoteBrowserDialog::directoryListedCallback(Cloud::Storage::ListDirectoryResponse response) {
+void RemoteBrowserDialog::directoryListedCallback(const Cloud::Storage::ListDirectoryResponse &response) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;
@@ -219,7 +215,7 @@ void RemoteBrowserDialog::directoryListedCallback(Cloud::Storage::ListDirectoryR
 	_updateList = true;
 }
 
-void RemoteBrowserDialog::directoryListedErrorCallback(Networking::ErrorResponse error) {
+void RemoteBrowserDialog::directoryListedErrorCallback(const Networking::ErrorResponse &error) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;

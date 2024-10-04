@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "twine/movies.h"
 #include "common/endian.h"
 #include "common/file.h"
+#include "common/language.h"
+#include "common/str.h"
 #include "common/system.h"
 #include "graphics/managed_surface.h"
 #include "image/gif.h"
@@ -43,15 +44,15 @@ namespace TwinE {
 /** FLA Frame Opcode types */
 enum FlaFrameOpcode {
 	kLoadPalette = 1,
-	kFade = 2,
+	kInfo = 2,
 	kPlaySample = 3,
 	kSampleBalance = 4,
 	kStopSample = 5,
 	kDeltaFrame = 6,
 	kBlackFrame = 7,
-	kKeyFrame = 8,
+	kBrownFrame = 8,
 	kCopy = 9,
-	kCopy2 = 16
+	kFliCopy = 16
 };
 
 /** FLA movie sample structure */
@@ -162,25 +163,25 @@ void Movies::scaleFla2x() {
 void Movies::processFrame() {
 	FLASampleStruct sample;
 
-	_frameData.videoSize = _file.readSint16LE();
-	_frameData.frameVar0 = _file.readSint32LE();
-	if (_frameData.frameVar0 > _engine->_imageBuffer.w * _engine->_imageBuffer.h) {
-		warning("Skipping video frame - it would exceed the screen buffer: %i", _frameData.frameVar0);
+	_frameData.nbFrames = _file.readSint16LE();
+	_frameData.offsetNextFrame = _file.readSint32LE();
+	if (_frameData.offsetNextFrame > _engine->_imageBuffer.w * _engine->_imageBuffer.h) {
+		warning("Skipping video frame - it would exceed the screen buffer: %i", _frameData.offsetNextFrame);
 		return;
 	}
 
 	uint8 *outBuf = (uint8 *)_engine->_imageBuffer.getPixels();
-	_file.read(outBuf, _frameData.frameVar0);
+	_file.read(outBuf, _frameData.offsetNextFrame);
 
-	if ((int32)_frameData.videoSize <= 0) {
+	if ((int32)_frameData.nbFrames <= 0) {
 		return;
 	}
 
-	Common::MemoryReadStream stream(outBuf, _frameData.frameVar0);
-	for (int32 frame = 0; frame < _frameData.videoSize; ++frame) {
+	Common::MemoryReadStream stream(outBuf, _frameData.offsetNextFrame);
+	for (int32 frame = 0; frame < _frameData.nbFrames; ++frame) {
 		const uint16 opcode = stream.readUint16LE();
 		const uint16 opcodeBlockSize = stream.readUint16LE();
-		const int32 pos = stream.pos();
+		const int64 pos = stream.pos();
 
 		switch (opcode) {
 		case kLoadPalette: {
@@ -190,11 +191,11 @@ void Movies::processFrame() {
 			stream.read(dest, numOfColor * 3);
 			break;
 		}
-		case kFade: {
+		case kInfo: {
 			int16 innerOpcpde = stream.readSint16LE();
 			switch (innerOpcpde) {
 			case 1: // fla flute
-				_engine->_music->playMidiMusic(26);
+				_engine->_music->playMidiFile(26);
 				break;
 			case 2:
 				// FLA movies don't use cross fade
@@ -209,7 +210,8 @@ void Movies::processFrame() {
 				_flaPaletteVar = true;
 				break;
 			case 4:
-				_engine->_music->stopMidiMusic();
+				// TODO: fade out for 1 second before we stop it
+				_engine->_music->stopMusicMidi();
 				break;
 			}
 			break;
@@ -240,17 +242,17 @@ void Movies::processFrame() {
 			}
 			break;
 		}
-		case kKeyFrame: {
-			drawKeyFrame(stream, FLASCREEN_WIDTH, FLASCREEN_HEIGHT);
+		case kBrownFrame: {
+			drawKeyFrame(stream, FLASCREEN_WIDTH, _flaHeaderData.ysize);
 			break;
 		}
 		case kBlackFrame: {
-			const Common::Rect rect(0, 0, 79, 199);
+			const Common::Rect rect(0, 0, FLASCREEN_WIDTH - 1, FLASCREEN_HEIGHT - 1);
 			_engine->_interface->drawFilledRect(rect, 0);
 			break;
 		}
 		case kCopy:
-		case kCopy2: {
+		case kFliCopy: {
 			const Common::Rect rect(0, 0, 80, 200);
 			byte *ptr = (byte *)_engine->_frontVideoBuffer.getPixels();
 			for (int y = rect.top; y < rect.bottom; ++y) {
@@ -265,6 +267,7 @@ void Movies::processFrame() {
 		case kSampleBalance: {
 			/* int16 num = */ stream.readSint16LE();
 			/* uint8 offset = */ stream.readByte();
+			stream.skip(1); // padding
 			/* int16 balance = */ stream.readSint16LE();
 			/* uint8 volumeLeft = */ stream.readByte();
 			/* uint8 volumeRight = */ stream.readByte();
@@ -298,7 +301,7 @@ void Movies::prepareGIF(int index) {
 	_engine->setPalette(0, decoder.getPaletteColorCount(), decoder.getPalette());
 	Graphics::ManagedSurface& target = _engine->_frontVideoBuffer;
 	const Common::Rect surfaceBounds(0, 0, surface->w, surface->h);
-	target.transBlitFrom(surface, surfaceBounds, target.getBounds(), 0, false, 0, 0xff, nullptr, true);
+	target.transBlitFrom(*surface, surfaceBounds, target.getBounds(), 0, false, 0, 0xff, nullptr, true);
 	debug(2, "Show gif with id %i from %s", index, Resources::HQR_FLAGIF_FILE);
 	delete stream;
 	_engine->delaySkip(5000);
@@ -353,11 +356,14 @@ void Movies::playGIFMovie(const char *flaName) {
 	}
 }
 
-bool Movies::playFlaMovie(const char *flaName) {
-	assert(_engine->isLBA1());
+bool Movies::playMovie(const char *name) { // PlayAnimFla
+	if (_engine->isLBA2()) {
+		const int index = _engine->_resources->findSmkMovieIndex(name);
+		return playSmkMovie(name, index);
+	}
 	_engine->_sound->stopSamples();
 
-	Common::String fileNamePath = Common::String::format("%s", flaName);
+	Common::String fileNamePath = name;
 	const size_t n = fileNamePath.findLastOf(".");
 	if (n != Common::String::npos) {
 		fileNamePath.erase(n);
@@ -368,38 +374,36 @@ bool Movies::playFlaMovie(const char *flaName) {
 		return true;
 	}
 
-	_engine->_music->stopMusic();
-
 	_fadeOut = -1;
 	_fadeOutFrames = 0;
 
 	_file.close();
-	if (!_file.open(fileNamePath + FLA_EXT)) {
+	if (!_file.open(Common::Path(fileNamePath + FLA_EXT))) {
 		warning("Failed to open fla movie '%s'", fileNamePath.c_str());
 		playGIFMovie(fileNamePath.c_str());
 		return true;
 	}
 
-	const uint32 version = _file.readUint32LE();
-	_file.skip(2);
+	const uint32 version = _file.readUint32BE();
+	_file.skip(2); // version field is 5 bytes - and one padding byte
 	_flaHeaderData.numOfFrames = _file.readUint32LE();
 	_flaHeaderData.speed = _file.readByte();
-	_flaHeaderData.var1 = _file.readByte();
-	debug(2, "Unknown byte in fla file: %i", _flaHeaderData.var1);
+	_file.skip(1); // padding byte
 	_flaHeaderData.xsize = _file.readUint16LE();
 	_flaHeaderData.ysize = _file.readUint16LE();
 
 	_samplesInFla = (int16)_file.readUint16LE();
-	const uint16 unk2 = _file.readUint16LE();
-	debug(2, "Unknown uint16 in fla file: %i", unk2);
+	/*const uint16 offsetFrame1 =*/ _file.readUint16LE();
 
+	// sample number int16
+	// loop int16
 	_file.skip(4 * _samplesInFla);
 
 	bool finished = false;
-	if (version != MKTAG('V', '1', '.', '3')) {
+	if (version == MKTAG('V', '1', '.', '3')) {
 		int32 currentFrame = 0;
 
-		debug("Play fla: %s", flaName);
+		debug("Play fla: %s", name);
 
 		ScopedKeyMap scopedKeyMap(_engine, cutsceneKeyMapId);
 
@@ -439,31 +443,69 @@ bool Movies::playFlaMovie(const char *flaName) {
 
 			currentFrame++;
 		} while (!_engine->_input->toggleAbortAction());
+	} else {
+		warning("Unsupported fla version: %u, %s", version, fileNamePath.c_str());
 	}
 
-	if (_engine->_cfgfile.CrossFade) {
-		_engine->crossFade(_engine->_screens->_paletteRGBACustom);
-	} else {
-		_engine->_screens->fadeToBlack(_engine->_screens->_paletteRGBACustom);
-	}
+	_engine->_screens->fadeToBlack(_engine->_screens->_paletteRGBACustom);
 
 	_engine->_sound->stopSamples();
 	return finished;
 }
 
-void Movies::playSmkMovie(int index) {
+class TwineSmackerDecoder : public Video::SmackerDecoder {
+public:
+	void enableLanguage(int track, int volume) {
+		AudioTrack* audio = getAudioTrack(track);
+		if (audio == nullptr) {
+			return;
+		}
+		audio->setMute(false);
+		audio->setVolume(CLIP<int>(volume, 0, Audio::Mixer::kMaxMixerVolume));
+	}
+};
+
+bool Movies::playSmkMovie(const char *name, int index) {
 	assert(_engine->isLBA2());
-	Video::SmackerDecoder decoder;
+	TwineSmackerDecoder decoder;
 	Common::SeekableReadStream *stream = HQR::makeReadStream(TwineResource(Resources::HQR_VIDEO_FILE, index));
 	if (stream == nullptr) {
 		warning("Failed to find smacker video %i", index);
-		return;
+		return false;
 	}
 	if (!decoder.loadStream(stream)) {
 		warning("Failed to load smacker video %i", index);
-		return;
+		return false;
 	}
+	const int volume = _engine->_system->getMixer()->getVolumeForSoundType(Audio::Mixer::kMusicSoundType);
+	decoder.setVolume(CLIP<int>(volume, 0, Audio::Mixer::kMaxMixerVolume));
 	decoder.start();
+
+	decoder.setAudioTrack(0); // music
+	if (ConfMan.getInt("audio_language") > 0) {
+		int additionalAudioTrack = -1;
+		if (!scumm_strnicmp(name, "INTRO", 5)) {
+			switch (_engine->getGameLang()) {
+			default:
+			case Common::Language::EN_ANY:
+			case Common::Language::EN_GRB:
+			case Common::Language::EN_USA:
+				additionalAudioTrack = 3;
+				break;
+			case Common::Language::DE_DEU:
+				additionalAudioTrack = 2;
+				break;
+			case Common::Language::FR_FRA:
+				additionalAudioTrack = 1;
+				break;
+			}
+		}
+		const int speechVolume = _engine->_system->getMixer()->getVolumeForSoundType(Audio::Mixer::kSpeechSoundType);
+		debug(3, "Play additional speech track: %i (of %i tracks)", additionalAudioTrack, decoder.getAudioTrackCount());
+		decoder.enableLanguage(additionalAudioTrack, speechVolume);
+	} else {
+		debug(3, "Disabled smacker speech");
+	}
 
 	for (;;) {
 		if (decoder.endOfVideo()) {
@@ -491,6 +533,7 @@ void Movies::playSmkMovie(int index) {
 	}
 
 	decoder.close();
+	return true;
 }
 
 } // namespace TwinE

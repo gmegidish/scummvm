@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@ byte *Sprite::getRow(int y) {
 }
 
 SpriteModule::SpriteModule()
-	: _spritesCount(0), _paletteStart(0), _paletteCount(0), _spriteData(0), _spriteDataSize(0),
+	: _spritesCount(0), _paletteStart(0), _paletteCount(0), _spriteData(nullptr), _spriteDataSize(0),
 	_spriteTblOffs(0), _paletteOffs(0) {
 }
 
@@ -40,12 +39,12 @@ SpriteModule::~SpriteModule() {
 	unload();
 }
 
-void SpriteModule::load(const char *filename) {
+void SpriteModule::load(const Common::Path &filename) {
 	unload();
 
 	Common::File fd;
 	if (!fd.open(filename))
-		error("SpriteModule::load() Could not open %s", filename);
+		error("SpriteModule::load() Could not open %s", filename.toString(Common::Path::kNativeSeparator).c_str());
 
 	fd.readUint32LE(); // Skip magic
 	fd.readUint32LE(); // Skip unused
@@ -107,7 +106,7 @@ void SpriteModule::unload() {
 	_paletteStart = 0;
 	_paletteCount = 0;
 	delete[] _spriteData;
-	_spriteData = 0;
+	_spriteData = nullptr;
 }
 
 } // End of namespace Bbvs

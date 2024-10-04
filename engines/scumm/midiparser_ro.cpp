@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -86,7 +85,7 @@ void MidiParser_RO::parseNextEvent (EventInfo &info) {
 		info.event = 0xFF;
 		info.ext.type = 0x2F;
 		info.length = 0;
-		info.ext.data = 0;
+		info.ext.data = nullptr;
 		return;
 	}
 
@@ -110,7 +109,7 @@ void MidiParser_RO::parseNextEvent (EventInfo &info) {
 
 	case 0xF: // Marker and EOT messages
 		info.length = 0;
-		info.ext.data = 0;
+		info.ext.data = nullptr;
 		if (info.event == 0xFF) {
 			_autoLoop = true;
 			info.ext.type = 0x2F;
@@ -135,6 +134,7 @@ bool MidiParser_RO::loadMusic (byte *data, uint32 size) {
 	}
 
 	_numTracks = 1;
+	_autoLoop = false;
 	_ppqn = 120;
 	_tracks[0] = pos + 2;
 	_markerCount = _lastMarkerCount = 0;

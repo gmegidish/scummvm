@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,11 +23,12 @@
 
 #include "backends/keymapper/action.h"
 #include "backends/keymapper/keymap.h"
+#include "backends/keymapper/standard-actions.h"
 
-#include "common/achievements.h"
 #include "common/savefile.h"
 #include "common/translation.h"
 
+#include "engines/achievements.h"
 #include "engines/advancedDetector.h"
 
 #include "graphics/scaler.h"
@@ -40,7 +40,7 @@
 #include "asylum/asylum.h"
 #include "asylum/shared.h"
 
-class AsylumMetaEngine : public AdvancedMetaEngine {
+class AsylumMetaEngine : public AdvancedMetaEngine<ADGameDescription> {
 public:
 	const char *getName() const override {
 		return "asylum";
@@ -50,8 +50,8 @@ public:
 		return "Sanitarium (c) ASC Games";
 	}
 
-	int getMaximumSaveSlot() const override { return 25; }
-	int getAutosaveSlot() const override { return getMaximumSaveSlot() - 1; }
+	int getMaximumSaveSlot() const override { return 24; }
+	int getAutosaveSlot()    const override { return getMaximumSaveSlot(); }
 	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
 	void getSavegameThumbnail(Graphics::Surface &thumb) override;
 	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *gd) const override;
@@ -142,7 +142,132 @@ Common::KeymapArray AsylumMetaEngine::initKeymaps(const char *target) const {
 	act->addDefaultInputMapping("o");
 	engineKeyMap->addAction(act);
 
-	return Keymap::arrayOf(engineKeyMap);
+	act = new Action("MENU", _("Bring up the In-Game Menu"));
+	act->setCustomEngineActionEvent(kAsylumActionShowMenu);
+	act->addDefaultInputMapping("ESCAPE");
+	act->addDefaultInputMapping("JOY_Y");
+	act->allowKbdRepeats();
+	engineKeyMap->addAction(act);
+
+	act = new Action("INVENTORY", _("Open character inventory"));
+	act->setCustomEngineActionEvent(kAsylumActionOpenInventory);
+	act->addDefaultInputMapping("i");
+	act->addDefaultInputMapping("MOUSE_MIDDLE");
+	act->addDefaultInputMapping("JOY_X");
+	engineKeyMap->addAction(act);
+
+	act = new Action(kStandardActionLeftClick, _("Left Click"));
+	act->setLeftClickEvent();
+	act->addDefaultInputMapping("MOUSE_LEFT");
+	act->addDefaultInputMapping("JOY_A");
+	engineKeyMap->addAction(act);
+
+	act = new Action(kStandardActionRightClick, _("Right Click"));
+	act->setRightClickEvent();
+	act->addDefaultInputMapping("MOUSE_RIGHT");
+	act->addDefaultInputMapping("JOY_B");
+	engineKeyMap->addAction(act);
+
+	act = new Action(kStandardActionMoveUp, _("Move up"));
+	act->setCustomEngineActionEvent(kAsylumActionMoveUp);
+	act->addDefaultInputMapping("UP");
+	act->addDefaultInputMapping("JOY_UP");
+	engineKeyMap->addAction(act);
+
+	act = new Action(kStandardActionMoveDown, _("Move down"));
+	act->setCustomEngineActionEvent(kAsylumActionMoveDown);
+	act->addDefaultInputMapping("DOWN");
+	act->addDefaultInputMapping("JOY_DOWN");
+	engineKeyMap->addAction(act);
+
+	act = new Action(kStandardActionMoveLeft, _("Move left"));
+	act->setCustomEngineActionEvent(kAsylumActionMoveLeft);
+	act->addDefaultInputMapping("LEFT");
+	act->addDefaultInputMapping("JOY_LEFT");
+	engineKeyMap->addAction(act);
+
+	act = new Action(kStandardActionMoveRight, _("Move right"));
+	act->setCustomEngineActionEvent(kAsylumActionMoveRight);
+	act->addDefaultInputMapping("RIGHT");
+	act->addDefaultInputMapping("JOY_RIGHT");
+	engineKeyMap->addAction(act);
+
+	Keymap *resviewerKeyMap = new Keymap(Keymap::kKeymapTypeGame, "asylum-resviewer", "Sanitarium - Resource viewer");
+	resviewerKeyMap->setEnabled(false);
+
+	act = new Action(kStandardActionMoveUp, _("Move up"));
+	act->setCustomEngineActionEvent(kAsylumActionMoveUp);
+	act->addDefaultInputMapping("UP");
+	act->addDefaultInputMapping("JOY_UP");
+	act->allowKbdRepeats();
+	resviewerKeyMap->addAction(act);
+
+	act = new Action(kStandardActionMoveDown, _("Move down"));
+	act->setCustomEngineActionEvent(kAsylumActionMoveDown);
+	act->addDefaultInputMapping("DOWN");
+	act->addDefaultInputMapping("JOY_DOWN");
+	act->allowKbdRepeats();
+	resviewerKeyMap->addAction(act);
+
+	act = new Action(kStandardActionMoveLeft, _("Move left"));
+	act->setCustomEngineActionEvent(kAsylumActionMoveLeft);
+	act->addDefaultInputMapping("LEFT");
+	act->addDefaultInputMapping("JOY_LEFT");
+	act->allowKbdRepeats();
+	resviewerKeyMap->addAction(act);
+
+	act = new Action(kStandardActionMoveRight, _("Move right"));
+	act->setCustomEngineActionEvent(kAsylumActionMoveRight);
+	act->addDefaultInputMapping("RIGHT");
+	act->addDefaultInputMapping("JOY_RIGHT");
+	act->allowKbdRepeats();
+	resviewerKeyMap->addAction(act);
+
+	act = new Action("ANIMATE", _("Toggle animation on/off"));
+	act->setCustomEngineActionEvent(kAsylumActionAnimate);
+	act->addDefaultInputMapping("RETURN");
+	act->addDefaultInputMapping("JOY_A");
+	resviewerKeyMap->addAction(act);
+
+	act = new Action("CANCEL", _("Return to gameplay"));
+	act->setCustomEngineActionEvent(kAsylumActionShowMenu);
+	act->addDefaultInputMapping("ESCAPE");
+	act->addDefaultInputMapping("JOY_B");
+	resviewerKeyMap->addAction(act);
+
+	act = new Action("PREVRESOURCE", _("Previous resource"));
+	act->setCustomEngineActionEvent(kAsylumActionPreviousResource);
+	act->addDefaultInputMapping("BACKSPACE");
+	act->addDefaultInputMapping("JOY_LEFT_SHOULDER");
+	act->allowKbdRepeats();
+	resviewerKeyMap->addAction(act);
+
+	act = new Action("NEXTRESOURCE", _("Next resource"));
+	act->setCustomEngineActionEvent(kAsylumActionNextResource);
+	act->addDefaultInputMapping("SPACE");
+	act->addDefaultInputMapping("JOY_RIGHT_SHOULDER");
+	act->allowKbdRepeats();
+	resviewerKeyMap->addAction(act);
+
+	act = new Action("PREVPALETTE", _("Previous palette"));
+	act->setCustomEngineActionEvent(kAsylumActionPreviousPalette);
+	act->addDefaultInputMapping("PAGEUP");
+	act->addDefaultInputMapping("JOY_LEFT_TRIGGER");
+	act->allowKbdRepeats();
+	resviewerKeyMap->addAction(act);
+
+	act = new Action("NEXTPALETTE", _("Next palette"));
+	act->setCustomEngineActionEvent(kAsylumActionNextPalette);
+	act->addDefaultInputMapping("PAGEDOWN");
+	act->addDefaultInputMapping("JOY_RIGHT_TRIGGER");
+	act->allowKbdRepeats();
+	resviewerKeyMap->addAction(act);
+
+	KeymapArray keymaps(2);
+	keymaps[0] = engineKeyMap;
+	keymaps[1] = resviewerKeyMap;
+
+	return keymaps;
 }
 
 const Common::AchievementDescriptionList *AsylumMetaEngine::getAchievementDescriptionList() const {

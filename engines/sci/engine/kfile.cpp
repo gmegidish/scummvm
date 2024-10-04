@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,7 +56,7 @@ reg_t kGetCWD(EngineState *s, int argc, reg_t *argv) {
 	// We do not let the scripts see the file system, instead pretending
 	// we are always in the same directory.
 	// TODO/FIXME: Is "/" a good value? Maybe "" or "." or "C:\" are better?
-	s->_segMan->strcpy(argv[0], "/");
+	s->_segMan->strcpy_(argv[0], "/");
 
 	debugC(kDebugLevelFile, "kGetCWD() -> %s", "/");
 
@@ -79,7 +78,7 @@ reg_t kDeviceInfo(EngineState *s, int argc, reg_t *argv) {
 		// WORKAROUND: The fan game script library calls kDeviceInfo with one parameter.
 		// According to the scripts, it wants to call CurDevice. However, it fails to
 		// provide the subop to the function.
-		s->_segMan->strcpy(argv[0], "/");
+		s->_segMan->strcpy_(argv[0], "/");
 		return s->r_acc;
 	}
 
@@ -89,12 +88,12 @@ reg_t kDeviceInfo(EngineState *s, int argc, reg_t *argv) {
 	case K_DEVICE_INFO_GET_DEVICE: {
 		Common::String input_str = s->_segMan->getString(argv[1]);
 
-		s->_segMan->strcpy(argv[2], "/");
+		s->_segMan->strcpy_(argv[2], "/");
 		debug(3, "K_DEVICE_INFO_GET_DEVICE(%s) -> %s", input_str.c_str(), "/");
 		break;
 	}
 	case K_DEVICE_INFO_GET_CURRENT_DEVICE:
-		s->_segMan->strcpy(argv[1], "/");
+		s->_segMan->strcpy_(argv[1], "/");
 		debug(3, "K_DEVICE_INFO_GET_CURRENT_DEVICE() -> %s", "/");
 		break;
 
@@ -118,12 +117,12 @@ reg_t kDeviceInfo(EngineState *s, int argc, reg_t *argv) {
 		return NULL_REG;
 	}
 	/* SCI uses these in a less-than-portable way to delete savegames.
-	** Read http://www-plan.cs.colorado.edu/creichen/freesci-logs/2005.10/log20051019.html
+	** Read https://web.archive.org/web/20060913122014/http://www-plan.cs.colorado.edu/creichen/freesci-logs/2005.10/log20051019.html
 	** for more information on our workaround for this.
 	*/
 	case K_DEVICE_INFO_GET_SAVECAT_NAME: {
 		Common::String game_prefix = s->_segMan->getString(argv[2]);
-		s->_segMan->strcpy(argv[1], "__throwaway");
+		s->_segMan->strcpy_(argv[1], "__throwaway");
 		debug(3, "K_DEVICE_INFO_GET_SAVECAT_NAME(%s) -> %s", game_prefix.c_str(), "__throwaway");
 		}
 
@@ -131,7 +130,7 @@ reg_t kDeviceInfo(EngineState *s, int argc, reg_t *argv) {
 	case K_DEVICE_INFO_GET_SAVEFILE_NAME: {
 		Common::String game_prefix = s->_segMan->getString(argv[2]);
 		uint virtualId = argv[3].toUint16();
-		s->_segMan->strcpy(argv[1], "__throwaway");
+		s->_segMan->strcpy_(argv[1], "__throwaway");
 		debug(3, "K_DEVICE_INFO_GET_SAVEFILE_NAME(%s,%d) -> %s", game_prefix.c_str(), virtualId, "__throwaway");
 		if ((virtualId < SAVEGAMEID_OFFICIALRANGE_START) || (virtualId > SAVEGAMEID_OFFICIALRANGE_END))
 			error("kDeviceInfo(deleteSave): invalid savegame ID specified");
@@ -305,20 +304,20 @@ reg_t kFileIO(EngineState *s, int argc, reg_t *argv) {
 
 reg_t kFileIOOpen(EngineState *s, int argc, reg_t *argv) {
 	Common::String name = s->_segMan->getString(argv[0]);
+	kFileOpenMode mode = (kFileOpenMode)argv[1].toUint16();
+	bool unwrapFilename = true;
+
+	// SQ4 floppy prepends /\ to the filenames, QFG4 import does too.
+	// Do this before the empty test to handle QFG4.
+	if (name.hasPrefix("/\\")) {
+		name.deleteChar(0);
+		name.deleteChar(0);
+	}
 
 	if (name.empty()) {
 		// Happens many times during KQ1 (e.g. when typing something)
 		debugC(kDebugLevelFile, "Attempted to open a file with an empty filename");
 		return SIGNAL_REG;
-	}
-
-	kFileOpenMode mode = (kFileOpenMode)argv[1].toUint16();
-	bool unwrapFilename = true;
-
-	// SQ4 floppy prepends /\ to the filenames
-	if (name.hasPrefix("/\\")) {
-		name.deleteChar(0);
-		name.deleteChar(0);
 	}
 
 	// SQ4 floppy attempts to update the savegame index file sq4sg.dir when
@@ -330,6 +329,13 @@ reg_t kFileIOOpen(EngineState *s, int argc, reg_t *argv) {
 		return SIGNAL_REG;
 	}
 
+	// ECO2 has a print feature in the Ecorder that writes text to PRN,
+	// which is a DOS alias for the printer. Ignore these attempts,
+	// otherwise an actual file will be created.
+	if (g_sci->getGameId() == GID_ECOQUEST2 && name == "prn") {
+		return SIGNAL_REG;
+	}
+
 #ifdef ENABLE_SCI32
 	// GK1, GK2, KQ7, LSL6hires, Phant1, PQ4, PQ:SWAT, and SQ6 read in
 	// their game version from the VERSION file
@@ -337,7 +343,7 @@ reg_t kFileIOOpen(EngineState *s, int argc, reg_t *argv) {
 		unwrapFilename = false;
 
 		// LSL6hires version is in a file with an empty extension
-		if (Common::File::exists(name + ".")) {
+		if (Common::File::exists(Common::Path(name + "."))) {
 			name += ".";
 		}
 	}
@@ -599,6 +605,9 @@ reg_t kFileIOReadRaw(EngineState *s, int argc, reg_t *argv) {
 #ifdef ENABLE_SCI32
 		SegmentRef destReference = s->_segMan->dereference(dest);
 		SegmentObj *destObject = s->_segMan->getSegmentObj(dest.getSegment());
+		if (destObject == nullptr) {
+			error("kFileIO(readRaw): invalid destination %04x:%04x", PRINT_REG(dest));
+		}
 
 		if (destReference.maxSize == size - 4 && destObject->getType() == SEG_TYPE_ARRAY) {
 			// This is an array structure, which starts with the number of
@@ -654,7 +663,7 @@ reg_t kFileIOWriteRaw(EngineState *s, int argc, reg_t *argv) {
 reg_t kFileIOUnlink(EngineState *s, int argc, reg_t *argv) {
 	Common::String name = s->_segMan->getString(argv[0]);
 	Common::SaveFileManager *saveFileMan = g_sci->getSaveFileManager();
-	bool result;
+	bool result = false;
 
 	// SQ4 floppy prepends /\ to the filenames
 	if (name.hasPrefix("/\\")) {
@@ -662,18 +671,12 @@ reg_t kFileIOUnlink(EngineState *s, int argc, reg_t *argv) {
 		name.deleteChar(0);
 	}
 
-	// Special case for SQ4 floppy: This game has hardcoded names for all of
-	// its savegames, and they are all named "sq4sg.xxx", where xxx is the
-	// slot. We just take the slot number here, and delete the appropriate
-	// save game.
-	if (name.hasPrefix("sq4sg.")) {
-		// Special handling for SQ4... get the slot number and construct the
-		// save game name.
-		int slotNum = atoi(name.c_str() + name.size() - 3);
-		Common::Array<SavegameDesc> saves;
-		listSavegames(saves);
-		int savedir_nr = saves[slotNum].id;
-		name = g_sci->getSavegameName(savedir_nr);
+	if (g_sci->getGameId() == GID_SQ4 && name.hasPrefix("sq4sg.")) {
+		// Special case for SQ4 floppy: This game has hardcoded save game names.
+		// They are named "sq4sg.xxx", where xxx is the virtual ID. We construct
+		// the appropriate save game name and delete it.
+		const int savegameId = atoi(name.c_str() + name.size() - 3) - SAVEGAMEID_OFFICIALRANGE_START;
+		name = g_sci->getSavegameName(savegameId);
 		result = saveFileMan->removeSavefile(name);
 #ifdef ENABLE_SCI32
 	} else if (getSciVersion() >= SCI_VERSION_2) {
@@ -695,6 +698,17 @@ reg_t kFileIOUnlink(EngineState *s, int argc, reg_t *argv) {
 			result = saveFileMan->removeSavefile(wrappedName);
 		}
 #endif
+	} else if (g_sci->getGameId() == GID_KQ5 && 
+				g_sci->getPlatform() == Common::kPlatformFMTowns && 
+				name.hasPrefix("a:\\KQ5sg.")) {
+		// KQ5 FM-Towns uses a custom save/restore UI in script 764.
+		// It directly deletes save files using a hard-coded path.
+		int saveNo = 0;
+		sscanf(name.c_str(), "a:\\KQ5sg.%d", &saveNo);
+		if (1 <= saveNo && saveNo <= 10) { // UI has ten buttons
+			name = g_sci->getSavegameName(saveNo);
+			result = saveFileMan->removeSavefile(name);
+		}
 	} else {
 		const Common::String wrappedName = g_sci->wrapFilename(name);
 		result = saveFileMan->removeSavefile(wrappedName);
@@ -721,11 +735,6 @@ reg_t kFileIOReadString(EngineState *s, int argc, reg_t *argv) {
 	} else if ((int)bytesRead > dest_r.maxSize) {
 		error("kFileIO(readString) attempting to read %u bytes into buffer of size %u", bytesRead, dest_r.maxSize);
 	} else if (maxsize > dest_r.maxSize) {
-		// This happens at least in the QfG4 character import.
-		// CHECKME: We zero the remainder of the dest buffer, while
-		// at least several (and maybe all) SSCI interpreters didn't do this.
-		// Therefore this warning is presumably no problem.
-		warning("kFileIO(readString) attempting to copy %u bytes into buffer of size %u (%u/%u bytes actually read)", maxsize, dest_r.maxSize, bytesRead, maxsize);
 		maxsize = dest_r.maxSize;
 	}
 
@@ -809,8 +818,6 @@ reg_t kFileIOFindNext(EngineState *s, int argc, reg_t *argv) {
 reg_t kFileIOExists(EngineState *s, int argc, reg_t *argv) {
 	Common::String name = s->_segMan->getString(argv[0]);
 
-	bool exists = false;
-
 	if (g_sci->getGameId() == GID_PEPPER) {
 		// HACK: Special case for Pepper's Adventure in Time
 		// The game checks like crazy for the file CDAUDIO when entering the game menu.
@@ -822,36 +829,48 @@ reg_t kFileIOExists(EngineState *s, int argc, reg_t *argv) {
 	}
 
 #ifdef ENABLE_SCI32
-	if (isSaveCatalogue(name)) {
-		return saveCatalogueExists(name) ? TRUE_REG : NULL_REG;
-	}
-
-	int findSaveNo = -1;
-
-	if (g_sci->getGameId() == GID_LSL7 && name == "autosvsg.000") {
-		// LSL7 checks to see if the autosave save exists when deciding whether
-		// to go to the main menu or not on startup
-		findSaveNo = kAutoSaveId;
-	} else if (g_sci->getGameId() == GID_RAMA) {
-		// RAMA checks to see if save game files exist before showing them in
-		// the native save/load dialogue
-		if (name == "autorama.sg") {
-			findSaveNo = kAutoSaveId;
-		} else if (sscanf(name.c_str(), "ramasg.%d", &findSaveNo) == 1) {
-			findSaveNo += kSaveIdShift;
+	if (getSciVersion() >= SCI_VERSION_2) {
+		if (isSaveCatalogue(name)) {
+			return saveCatalogueExists(name) ? TRUE_REG : NULL_REG;
 		}
-	}
 
-	if (findSaveNo != -1) {
-		return g_sci->getSaveFileManager()->listSavefiles(g_sci->getSavegameName(findSaveNo)).empty() ? NULL_REG : TRUE_REG;
+		int findSaveNo = -1;
+		if (g_sci->getGameId() == GID_LSL7 && name == "autosvsg.000") {
+			// LSL7 checks to see if the autosave save exists when deciding whether
+			// to go to the main menu or not on startup
+			findSaveNo = kAutoSaveId;
+		} else if (g_sci->getGameId() == GID_RAMA) {
+			// RAMA checks to see if save game files exist before showing them in
+			// the native save/load dialogue
+			if (name == "autorama.sg") {
+				findSaveNo = kAutoSaveId;
+			} else if (sscanf(name.c_str(), "ramasg.%d", &findSaveNo) == 1) {
+				findSaveNo += kSaveIdShift;
+			}
+		}
+
+		if (findSaveNo != -1) {
+			return g_sci->getSaveFileManager()->listSavefiles(g_sci->getSavegameName(findSaveNo)).empty() ? NULL_REG : TRUE_REG;
+		}
+		// TODO: It may apparently be worth caching the existence of
+		// phantsg.dir, and possibly even keeping it open persistently
 	}
 #endif
 
-	// TODO: It may apparently be worth caching the existence of
-	// phantsg.dir, and possibly even keeping it open persistently
+	if (g_sci->getGameId() == GID_KQ5 && g_sci->getPlatform() == Common::kPlatformFMTowns) {
+		// KQ5 FM-Towns uses a custom save/restore UI in script 764.
+		// It directly tests for save files using a hard-coded path.
+		int saveNo = 0;
+		sscanf(name.c_str(), "a:\\KQ5sg.%d", &saveNo);
+		if (1 <= saveNo && saveNo <= 10) { // UI has ten buttons
+			Common::Array<SavegameDesc> saves;
+			listSavegames(saves);
+			return (findSavegame(saves, saveNo) != -1) ? TRUE_REG : NULL_REG;
+		}
+	}
 
 	// Check for regular file
-	exists = Common::File::exists(name);
+	bool exists = Common::File::exists(Common::Path(name));
 
 	// Check for a savegame with the name
 	Common::SaveFileManager *saveFileMan = g_sci->getSaveFileManager();
@@ -911,7 +930,7 @@ reg_t kFileIOExists(EngineState *s, int argc, reg_t *argv) {
 	// case someone has a "HalfDome.bin" file, etc.
 	if (!exists && g_sci->getGameId() == GID_KQ6 && g_sci->getPlatform() == Common::kPlatformMacintosh &&
 			(name == "HalfDome" || name == "Kq6Movie"))
-		exists = Common::MacResManager::exists(name);
+		exists = Common::MacResManager::exists(Common::Path(name));
 
 	debugC(kDebugLevelFile, "kFileIO(fileExists) %s -> %d", name.c_str(), exists);
 	return make_reg(0, exists);
@@ -1101,6 +1120,9 @@ reg_t kSaveGame(EngineState *s, int argc, reg_t *argv) {
 		if (g_sci->getLanguage() == Common::HE_ISR) {
 			Common::U32String u32string = game_description.decode(Common::kWindows1255);
 			game_description = u32string.encode(Common::kUtf8);
+		} else if (g_sci->getLanguage() == Common::RU_RUS) {
+			Common::U32String u32string = game_description.decode(Common::kDos866);
+			game_description = u32string.encode(Common::kUtf8);
 		};
 
 
@@ -1120,6 +1142,15 @@ reg_t kSaveGame(EngineState *s, int argc, reg_t *argv) {
 			case GID_JONES:
 				// Jones has one save slot only
 				savegameId = 0;
+				break;
+			case GID_KQ5:
+				if (g_sci->getPlatform() == Common::kPlatformFMTowns) {
+					// KQ5 FM-Towns uses custom save/restore code.
+					// Use the provided id.
+					savegameId = virtualId;
+					// Use a default description, game passes path since it wasn't displayed.
+					game_description = Common::String::format("Save %d", savegameId);
+				}
 				break;
 			case GID_QFG3: {
 				// Auto-save system used by QFG3
@@ -1207,8 +1238,11 @@ reg_t kRestoreGame(EngineState *s, int argc, reg_t *argv) {
 	if (argv[0].isNull()) {
 		// Direct call, either from launcher or from a patched Game::restore
 		if (savegameId == -1) {
-			// we are supposed to show a dialog for the user and let him choose a saved game
-			g_sci->_soundCmd->pauseAll(true); // pause music
+			// We are supposed to show a dialog for the user and let him choose a saved game.
+			// Pause music if necessary. There are script situations where the pause does not
+			// get properly released. In that case we don't add another pause here.
+			if (!g_sci->_soundCmd->isGlobalPauseActive()) 
+				g_sci->_soundCmd->pauseAll(true); 
 			GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Restore game:"), _("Restore"), false);
 			savegameId = dialog->runModalWithCurrentTarget();
 			delete dialog;
@@ -1223,6 +1257,9 @@ reg_t kRestoreGame(EngineState *s, int argc, reg_t *argv) {
 		if (g_sci->getGameId() == GID_JONES) {
 			// Jones has one save slot only
 			savegameId = 0;
+		} else if (g_sci->getGameId() == GID_KQ5 &&	g_sci->getPlatform() == Common::kPlatformFMTowns) {
+			// KQ5 FM-Towns uses custom save/restore code.
+			// Use the provided id.
 		} else {
 			// Real call from script, we need to adjust ID
 			if ((savegameId < SAVEGAMEID_OFFICIALRANGE_START) || (savegameId > SAVEGAMEID_OFFICIALRANGE_END)) {
@@ -1244,10 +1281,13 @@ reg_t kRestoreGame(EngineState *s, int argc, reg_t *argv) {
 		s->r_acc = TRUE_REG; // signals failure
 	}
 
-	if (!s->r_acc.isNull()) {
-		// no success?
-		if (pausedMusic)
+	if (pausedMusic) {
+		if (!s->r_acc.isNull()) // no success?
 			g_sci->_soundCmd->pauseAll(false); // unpause music
+		else
+			g_sci->_soundCmd->resetGlobalPauseCounter(); // reset music global pause counter without affecting the individual sounds
+	} else if (s->r_acc.isNull() && g_sci->_soundCmd->isGlobalPauseActive()) {
+		g_sci->_soundCmd->resetGlobalPauseCounter(); // reset music global pause counter without affecting the individual sounds
 	}
 
 	return s->r_acc;
@@ -1281,6 +1321,10 @@ reg_t kCheckSaveGame(EngineState *s, int argc, reg_t *argv) {
 	uint savegameId = 0;
 	if (g_sci->getGameId() == GID_JONES) {
 		// Jones has one save slot only
+	} else if (g_sci->getGameId() == GID_KQ5 &&	g_sci->getPlatform() == Common::kPlatformFMTowns) {
+		// KQ5 FM-Towns uses custom save/restore code.
+		// Use the provided id.
+		savegameId = virtualId;
 	} else {
 		// Find saved game
 		if ((virtualId < SAVEGAMEID_OFFICIALRANGE_START) || (virtualId > SAVEGAMEID_OFFICIALRANGE_END))
@@ -1327,7 +1371,7 @@ reg_t kGetSaveFiles(EngineState *s, int argc, reg_t *argv) {
 
 	for (uint i = 0; i < totalSaves; i++) {
 		*slot++ = make_reg(0, saves[i].id + SAVEGAMEID_OFFICIALRANGE_START); // Store the virtual savegame ID (see above)
-		strcpy(saveNamePtr, saves[i].name);
+		Common::strlcpy(saveNamePtr, saves[i].name, kMaxSaveNameLength);
 		saveNamePtr += kMaxSaveNameLength;
 	}
 
@@ -1405,7 +1449,7 @@ reg_t kSaveGame32(EngineState *s, int argc, reg_t *argv) {
 reg_t kRestoreGame32(EngineState *s, int argc, reg_t *argv) {
 	const Common::String gameName = s->_segMan->getString(argv[0]);
 	int16 saveNo = argv[1].toSint16();
-	const Common::String gameVersion = argv[2].isNull() ? "" : s->_segMan->getString(argv[2]);
+	//const Common::String gameVersion = argv[2].isNull() ? "" : s->_segMan->getString(argv[2]);
 
 	// Display the restore prompt for Mac games with native dialogs. Passing
 	//  zero for the save number would trigger these, but we can't act solely
@@ -1438,7 +1482,13 @@ reg_t kRestoreGame32(EngineState *s, int argc, reg_t *argv) {
 reg_t kCheckSaveGame32(EngineState *s, int argc, reg_t *argv) {
 	const Common::String gameName = s->_segMan->getString(argv[0]);
 	int16 saveNo = argv[1].toSint16();
-	const Common::String gameVersion = argv[2].isNull() ? "" : s->_segMan->getString(argv[2]);
+	Common::String gameVersion = argv[2].isNull() ? "" : s->_segMan->getString(argv[2]);
+
+	// If the game version is empty, fall back to loading it from the VERSION file
+	if (gameVersion == "") {
+		Common::ScopedPtr<Common::SeekableReadStream> versionFile(SearchMan.createReadStreamForMember("VERSION"));
+		gameVersion = versionFile ? versionFile->readLine() : "";
+	}
 
 	if (gameName == "Autosave" || gameName == "Autosv") {
 		if (saveNo == 1) {
@@ -1463,7 +1513,7 @@ reg_t kCheckSaveGame32(EngineState *s, int argc, reg_t *argv) {
 		return NULL_REG;
 	}
 
-	if (save.gameVersion != gameVersion) {
+	if (save.gameVersion != gameVersion && gameVersion != "" && save.gameVersion != "") {
 		warning("Save game was created for game version %s, but the current game version is %s", save.gameVersion.c_str(), gameVersion.c_str());
 		return NULL_REG;
 	}
@@ -1506,7 +1556,7 @@ reg_t kGetSaveFiles32(EngineState *s, int argc, reg_t *argv) {
 		// At least Phant2 requires use of strncpy, since it creates save game
 		// names of exactly kMaxSaveNameLength
 		strncpy(target, save.name, kMaxSaveNameLength);
-		int16 sciSaveId = (save.id == 0) ? kMaxShiftedSaveId : (save.id - kSaveIdShift);
+		int16 sciSaveId = shiftScummVMToSciSaveId(save.id);
 		saveIds.setFromInt16(i, sciSaveId);
 	}
 

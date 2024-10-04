@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,10 +36,15 @@ namespace Kyra {
 SoundTowns_Darkmoon::SoundTowns_Darkmoon(KyraEngine_v1 *vm, Audio::Mixer *mixer) : Sound(vm, mixer) {
 	_intf = new TownsAudioInterface(mixer, this);
 	_pcmData = 0;
+	_pcmDataSize = 0;
 	_pcmVol = 0;
 	_timer = 0;
 	_timerSwitch = 0;
+	_fileList = nullptr;
+	_fileListLen = 0;
+	_lastEnvChan = _lastSfxChan = 0;
 	memset(_resource, 0, sizeof(_resource));
+	memset(_soundTable, 0, sizeof(_soundTable));
 }
 
 SoundTowns_Darkmoon::~SoundTowns_Darkmoon() {
@@ -119,10 +123,10 @@ void SoundTowns_Darkmoon::loadSoundFile(uint file) {
 		loadSoundFile(_fileList[file]);
 }
 
-void SoundTowns_Darkmoon::loadSoundFile(Common::String name) {
-	Common::SeekableReadStream *s = _vm->resource()->createReadStream(Common::String::format("%s.SDT", name.c_str()));
+void SoundTowns_Darkmoon::loadSoundFile(const Common::Path &name) {
+	Common::SeekableReadStream *s = _vm->resource()->createReadStream(name.append(".SDT"));
 	if (!s)
-		error("Failed to load sound file '%s.SDT'", name.c_str());
+		error("Failed to load sound file '%s.SDT'", name.toString().c_str());
 
 	for (int i = 0; i < 120; i++) {
 		_soundTable[i].type = s->readSByte();
@@ -133,7 +137,7 @@ void SoundTowns_Darkmoon::loadSoundFile(Common::String name) {
 	delete s;
 
 	uint32 bytesLeft;
-	uint8 *pmb = _vm->resource()->fileData(Common::String::format("%s.PMB", name.c_str()).c_str(), &bytesLeft);
+	uint8 *pmb = _vm->resource()->fileData(name.append(".PMB"), &bytesLeft);
 
 	_vm->delay(300);
 
@@ -155,7 +159,7 @@ void SoundTowns_Darkmoon::loadSoundFile(Common::String name) {
 
 		delete[] pmb;
 	} else {
-		warning("Sound file '%s.PMB' not found.", name.c_str());
+		warning("Sound file '%s.PMB' not found.", name.toString().c_str());
 		// TODO
 	}
 }

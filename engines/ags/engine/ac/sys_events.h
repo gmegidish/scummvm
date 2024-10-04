@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,21 +26,6 @@
 #include "ags/shared/ac/keycode.h"
 
 namespace AGS3 {
-
-// AGS own mouse button codes
-// TODO: these were internal button codes, but AGS script uses different ones,
-// which start with Left=1, and make more sense (0 is easier to use as "no value").
-// Must research if there are any dependencies to these internal values, and if not,
-// then just replace these matching script ones!
-// UPD: even plugin API seem to match script codes and require remap to internals.
-// UPD: or use SDL constants in the engine, but make conversion more visible by using a function.
-enum eAGSMouseButton {
-	MouseNone = -1,
-	MouseLeft = 0,
-	MouseRight = 1,
-	MouseMiddle = 2
-};
-
 
 // Keyboard input handling
 //
@@ -66,14 +50,16 @@ inline int make_merged_mod(int mod) {
 	return m_mod;
 }
 
-extern KeyInput ags_keycode_from_scummvm(const Common::Event &event);
+// Converts ScummVM key event to eAGSKeyCode if it is in proper range,
+// see comments to eAGSKeyCode for details.
+// Optionally works in bacward compatible mode (old_keyhandle)
+extern KeyInput ags_keycode_from_scummvm(const Common::Event &event, bool old_keyhandle);
 
 // Tells if there are any buffered key events
 extern bool ags_keyevent_ready();
 // Queries for the next key event in buffer; returns uninitialized data if none was queued
 extern Common::Event ags_get_next_keyevent();
-// Tells if the key is currently down, provided AGS key;
-// Returns positive value if it's down, 0 if it's not, negative value if the key code is not supported.
+// Tells if the key is currently down, provided AGS key.
 // NOTE: for particular script codes this function returns positive if either of two keys are down.
 extern int ags_iskeydown(eAGSKeyCode ags_key);
 // Simulates key press with the given AGS key
@@ -83,13 +69,13 @@ extern void ags_simulate_keypress(eAGSKeyCode ags_key);
 // Mouse input handling
 //
 // Tells if the mouse button is currently down
-extern bool ags_misbuttondown(int but);
-// Returns mouse button code
-extern int  ags_mgetbutton();
-// Returns recent relative mouse movement
-extern void ags_mouse_get_relxy(int &x, int &y);
+extern bool ags_misbuttondown(eAGSMouseButton but);
+// Returns last "clicked" mouse button
+extern eAGSMouseButton ags_mgetbutton();
+// Returns recent relative mouse movement; resets accumulated values
+extern void ags_mouse_acquire_relxy(int &x, int &y);
 // Updates mouse cursor position in game
-extern void ags_domouse(int what);
+extern void ags_domouse();
 // Returns -1 for wheel down and +1 for wheel up
 // TODO: introduce constants for this
 extern int  ags_check_mouse_wheel();
@@ -117,10 +103,10 @@ extern void sys_evt_set_quit_callback(void(*proc)(void));
 // Set engine callback for when input focus is received or lost by the window.
 extern void sys_evt_set_focus_callbacks(void(*switch_in)(void), void(*switch_out)(void));
 
-// Process single event.
-//extern void sys_evt_process_one(const Common::Event &event);
 // Process all events in the backend's queue.
 extern void sys_evt_process_pending(void);
+// Flushes system events following window initialization.
+void sys_flush_events(void);
 
 } // namespace AGS3
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,18 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/events.h"
 #include "common/system.h"
-#include "graphics/palette.h"
 #include "graphics/surface.h"
 
 #include "sci/sci.h"
 #include "sci/engine/state.h"
+#include "sci/graphics/gfxdrivers.h"
 #include "sci/graphics/screen.h"
 #include "sci/graphics/palette.h"
 #include "sci/graphics/transitions.h"
@@ -103,7 +102,7 @@ void GfxTransitions::init() {
 	_oldScreen = new byte[_screen->getDisplayHeight() * _screen->getDisplayWidth()];
 
 	if (getSciVersion() >= SCI_VERSION_1_LATE)
-		_translationTable = NULL;
+		_translationTable = nullptr;
 	else
 		_translationTable = oldTransitionIDs;
 
@@ -156,7 +155,7 @@ void GfxTransitions::updateScreenAndWait(uint32 shouldBeAtMsec) {
 const GfxTransitionTranslateEntry *GfxTransitions::translateNumber (int16 number, const GfxTransitionTranslateEntry *tablePtr) {
 	while (1) {
 		if (tablePtr->orgId == 255)
-			return NULL;
+			return nullptr;
 		if (tablePtr->orgId == number)
 			return tablePtr;
 		tablePtr++;
@@ -164,13 +163,11 @@ const GfxTransitionTranslateEntry *GfxTransitions::translateNumber (int16 number
 }
 
 void GfxTransitions::doit(Common::Rect picRect) {
-	const GfxTransitionTranslateEntry *translationEntry = _translationTable;
-
 	_picRect = picRect;
 
 	if (_translationTable) {
 		// We need to translate the ID
-		translationEntry = translateNumber(_number, _translationTable);
+		const GfxTransitionTranslateEntry *translationEntry = translateNumber(_number, _translationTable);
 		if (translationEntry) {
 			_number = translationEntry->newId;
 			_blackoutFlag = translationEntry->blackoutFlag;
@@ -184,7 +181,7 @@ void GfxTransitions::doit(Common::Rect picRect) {
 	if (_blackoutFlag) {
 		// We need to find out what transition we are supposed to use for
 		// blackout
-		translationEntry = translateNumber(_number, blackoutTransitionIDs);
+		const GfxTransitionTranslateEntry *translationEntry = translateNumber(_number, blackoutTransitionIDs);
 		if (translationEntry) {
 			doTransition(translationEntry->newId, true);
 		} else {
@@ -286,16 +283,14 @@ void GfxTransitions::copyRectToScreen(const Common::Rect rect, bool blackoutFlag
 	if (!blackoutFlag) {
 		_screen->copyRectToScreen(rect);
 	} else {
-		Graphics::Surface *surface = g_system->lockScreen();
 		if (!_screen->getUpscaledHires()) {
-			surface->fillRect(rect, 0);
+			_screen->gfxDriver()->clearRect(rect);
 		} else {
 			Common::Rect upscaledRect = rect;
 			_screen->adjustToUpscaledCoordinates(upscaledRect.top, upscaledRect.left);
 			_screen->adjustToUpscaledCoordinates(upscaledRect.bottom, upscaledRect.right);
-			surface->fillRect(upscaledRect, 0);
+			_screen->gfxDriver()->clearRect(rect);
 		}
-		g_system->unlockScreen();
 	}
 }
 

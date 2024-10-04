@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -158,7 +157,7 @@ bool DLObject::readProgramHeaders(Elf32_Ehdr *ehdr, Elf32_Phdr *phdr, Elf32_Half
 
 	// Check program header values
 	if (phdr->p_type != PT_LOAD  || phdr->p_filesz > phdr->p_memsz) {
-		warning("elfloader: Invalid program header.");
+		warning("elfloader: Invalid program header %x", phdr->p_type);
 		return false;
 	}
 
@@ -172,7 +171,7 @@ bool DLObject::loadSegment(Elf32_Phdr *phdr) {
 	_segment = (byte *)allocateMemory(phdr->p_align, phdr->p_memsz);
 
 	if (!_segment) {
-		warning("elfloader: Out of memory.");
+		warning("elfloader: Could not allocate %d bytes for the segment", phdr->p_memsz);
 		return false;
 	}
 
@@ -210,7 +209,7 @@ Elf32_Shdr * DLObject::loadSectionHeaders(Elf32_Ehdr *ehdr) {
 
 	// Allocate memory for section headers
 	if (!(shdr = (Elf32_Shdr *)malloc(ehdr->e_shnum * sizeof(*shdr)))) {
-		warning("elfloader: Out of memory.");
+		warning("elfloader: Could not allocate %zu bytes for the section headers", ehdr->e_shnum * sizeof(*shdr));
 		return 0;
 	}
 
@@ -259,7 +258,7 @@ int DLObject::loadSymbolTable(Elf32_Ehdr *ehdr, Elf32_Shdr *shdr) {
 
 	// Allocate memory for symbol table
 	if (!(_symtab = (Elf32_Sym *)malloc(shdr[_symtab_sect].sh_size))) {
-		warning("elfloader: Out of memory.");
+		warning("elfloader: Could not allocate %d bytes for the symbol table", shdr[_symtab_sect].sh_size);
 		return -1;
 	}
 
@@ -287,7 +286,7 @@ bool DLObject::loadStringTable(Elf32_Shdr *shdr) {
 
 	// Allocate memory for string table
 	if (!(_strtab = (char *)malloc(shdr[string_sect].sh_size))) {
-		warning("elfloader: Out of memory.");
+		warning("elfloader: Could not allocate %d bytes for the string table", shdr[string_sect].sh_size);
 		return false;
 	}
 
@@ -326,12 +325,11 @@ void DLObject::relocateSymbols(ptrdiff_t offset) {
 // Track the size of the plugin through memory manager without loading
 // the plugin into memory.
 //
-void DLObject::trackSize(const char *path) {
-
+void DLObject::trackSize(const Common::Path &path) {
 	_file = Common::FSNode(path).createReadStream();
 
 	if (!_file) {
-		warning("elfloader: File %s not found.", path);
+		warning("elfloader: File %s not found.", path.toString(Common::Path::kNativeSeparator).c_str());
 		return;
 	}
 
@@ -416,19 +414,21 @@ bool DLObject::load() {
 	return true;
 }
 
-bool DLObject::open(const char *path) {
+bool DLObject::open(const Common::Path &path) {
+	Common::String pathS(path.toString(Common::Path::kNativeSeparator));
+
 	void *ctors_start, *ctors_end;
 
-	debug(2, "elfloader: open(\"%s\")", path);
+	debug(2, "elfloader: open(\"%s\")", pathS.c_str());
 
 	_file = Common::FSNode(path).createReadStream();
 
 	if (!_file) {
-		warning("elfloader: File %s not found.", path);
+		warning("elfloader: File %s not found.", pathS.c_str());
 		return false;
 	}
 
-	debug(2, "elfloader: %s found!", path);
+	debug(2, "elfloader: %s found!", pathS.c_str());
 
 	/*Try to load and relocate*/
 	if (!load()) {
@@ -459,7 +459,7 @@ bool DLObject::open(const char *path) {
 	for (void (**f)(void) = (void (**)(void))ctors_start; f != ctors_end; f++)
 		(**f)();
 
-	debug(2, "elfloader: %s opened ok.", path);
+	debug(2, "elfloader: %s opened ok.", pathS.c_str());
 
 	return true;
 }

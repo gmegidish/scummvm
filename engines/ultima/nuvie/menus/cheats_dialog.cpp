@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,14 +41,13 @@
 namespace Ultima {
 namespace Nuvie {
 
-#define CD_WIDTH 212
-#define CD_HEIGHT 101
+static const int CD_WIDTH = 212;
+static const int CD_HEIGHT = 101;
 
 CheatsDialog::CheatsDialog(GUI_CallBack *callback)
 	: GUI_Dialog(Game::get_game()->get_game_x_offset() + (Game::get_game()->get_game_width() - CD_WIDTH) / 2,
 	             Game::get_game()->get_game_y_offset() + (Game::get_game()->get_game_height() - CD_HEIGHT) / 2,
-	             CD_WIDTH, CD_HEIGHT, 244, 216, 131, GUI_DIALOG_UNMOVABLE) {
-	callback_object = callback;
+	             CD_WIDTH, CD_HEIGHT, 244, 216, 131, GUI_DIALOG_UNMOVABLE), callback_object(callback) {
 	init();
 	grab_focus();
 }
@@ -64,15 +62,15 @@ bool CheatsDialog::init() {
 	GUI_Widget *widget;
 	GUI *gui = GUI::get_gui();
 
-	widget = (GUI_Widget *) new GUI_Text(colX[0], textY[0], 0, 0, 0, "Cheats:", gui->get_font());
+	widget = new GUI_Text(colX[0], textY[0], 0, 0, 0, "Cheats:", gui->get_font());
 	AddWidget(widget);
-	widget = (GUI_Widget *) new GUI_Text(colX[0], textY[1], 0, 0, 0, "Show eggs:", gui->get_font());
+	widget = new GUI_Text(colX[0], textY[1], 0, 0, 0, "Show eggs:", gui->get_font());
 	AddWidget(widget);
-	widget = (GUI_Widget *) new GUI_Text(colX[0], textY[2], 0, 0, 0, "Enable hackmove:", gui->get_font());
+	widget = new GUI_Text(colX[0], textY[2], 0, 0, 0, "Enable hackmove:", gui->get_font());
 	AddWidget(widget);
-	widget = (GUI_Widget *) new GUI_Text(colX[0], textY[3], 0, 0, 0, "Anyone will join:", gui->get_font());
+	widget = new GUI_Text(colX[0], textY[3], 0, 0, 0, "Anyone will join:", gui->get_font());
 	AddWidget(widget);
-	widget = (GUI_Widget *) new GUI_Text(colX[0], textY[4], 0, 0, 0, "Minimum brightness:", gui->get_font());
+	widget = new GUI_Text(colX[0], textY[4], 0, 0, 0, "Minimum brightness:", gui->get_font());
 	AddWidget(widget);
 
 	bool party_all_the_time;
@@ -93,7 +91,7 @@ bool CheatsDialog::init() {
 	} else {
 		num_of_brightness = 9;
 		brightness_selection = 8; // manually edited setting or old 128
-		sprintf(buff, "%d", min_brightness);
+		Common::sprintf_s(buff, "%d", min_brightness);
 	}
 	const char *const brightness_text[] = { "0", "20", "40", "60", "80", "100", "120", "255", buff };
 

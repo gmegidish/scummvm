@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,7 +68,7 @@ mcodeFunctionReturnCodes _game_session::fn_prop_animate(int32 &, int32 *params) 
 	uint32 j;
 
 	// find entry for this object via its name
-	index = (_animating_prop *)prop_anims->Try_fetch_item_by_name(object->GetName());
+	index = (_animating_prop *)LinkedDataObject::Try_fetch_item_by_name(prop_anims, CGameObject::GetName(object));
 
 	const char *anim_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 
@@ -121,8 +120,8 @@ mcodeFunctionReturnCodes _game_session::fn_prop_animate(int32 &, int32 *params) 
 		}
 	}
 
-	// didnt find the named anim so thats it
-	Tdebug("objects_that_died.txt", "_game_session::fn_prop_animate object %s cant find anim %s", object->GetName(), anim_name);
+	// didn't find the named anim so that's it
+	Tdebug("objects_that_died.txt", "_game_session::fn_prop_animate object %s can't find anim %s", CGameObject::GetName(object), anim_name);
 	Shut_down_object("by fn_prop_animate");
 	return (IR_STOP);
 }
@@ -133,7 +132,7 @@ mcodeFunctionReturnCodes _game_session::fn_prop_set_to_last_frame(int32 &, int32
 	uint32 j;
 
 	// find entry for this object via its name
-	index = (_animating_prop *)prop_anims->Try_fetch_item_by_name(object->GetName());
+	index = (_animating_prop *)LinkedDataObject::Try_fetch_item_by_name(prop_anims, CGameObject::GetName(object));
 
 	const char *anim_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 
@@ -151,8 +150,8 @@ mcodeFunctionReturnCodes _game_session::fn_prop_set_to_last_frame(int32 &, int32
 		}
 	}
 
-	// didnt find the named anim so thats it
-	Tdebug("objects_that_died.txt", "fn_prop_set_to_last_frame object %s cant find anim %s", object->GetName(), anim_name);
+	// didn't find the named anim so that's it
+	Tdebug("objects_that_died.txt", "fn_prop_set_to_last_frame object %s can't find anim %s", CGameObject::GetName(object), anim_name);
 	Shut_down_object("by fn_prop_set_to_last_frame");
 
 	return (IR_REPEAT);
@@ -164,7 +163,7 @@ mcodeFunctionReturnCodes _game_session::fn_prop_set_to_first_frame(int32 &, int3
 	uint32 j;
 
 	// find entry for this object via its name
-	index = (_animating_prop *)prop_anims->Try_fetch_item_by_name(object->GetName());
+	index = (_animating_prop *)LinkedDataObject::Try_fetch_item_by_name(prop_anims, CGameObject::GetName(object));
 
 	const char *anim_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 
@@ -181,9 +180,9 @@ mcodeFunctionReturnCodes _game_session::fn_prop_set_to_first_frame(int32 &, int3
 		}
 	}
 
-	// didnt find the named anim so thats it
-	Tdebug("objects_that_died.txt", "fn_prop_set_to_first_frame object %s cant find anim %s", object->GetName(), anim_name);
-	Message_box("fn_prop_set_to_first_frame object %s cant find anim %s", object->GetName(), anim_name);
+	// didn't find the named anim so that's it
+	Tdebug("objects_that_died.txt", "fn_prop_set_to_first_frame object %s can't find anim %s", CGameObject::GetName(object), anim_name);
+	Message_box("fn_prop_set_to_first_frame object %s can't find anim %s", CGameObject::GetName(object), anim_name);
 	Shut_down_object("by fn_prop_set_to_first_frame");
 	return (IR_REPEAT);
 }
@@ -197,7 +196,7 @@ mcodeFunctionReturnCodes _game_session::fn_test_prop_anim(int32 &result, int32 *
 	uint32 j;
 
 	// find entry for this object via its name
-	index = (_animating_prop *)prop_anims->Try_fetch_item_by_name(object->GetName());
+	index = (_animating_prop *)LinkedDataObject::Try_fetch_item_by_name(prop_anims, CGameObject::GetName(object));
 
 	const char *anim_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 
@@ -213,13 +212,13 @@ mcodeFunctionReturnCodes _game_session::fn_test_prop_anim(int32 &result, int32 *
 				return (IR_CONT);
 			}
 
-			Message_box("fn_test_prop_anim object [%s] has anim [%s] but it has no frames", object->GetName(), anim_name);
+			Message_box("fn_test_prop_anim object [%s] has anim [%s] but it has no frames", CGameObject::GetName(object), anim_name);
 			result = 0;
 			return IR_CONT;
 		}
 	}
 
-	Message_box("fn_test_prop_anim didnt find anim [%s] for object [%s]", anim_name, object->GetName());
+	Message_box("fn_test_prop_anim didn't find anim [%s] for object [%s]", anim_name, CGameObject::GetName(object));
 
 	result = 0;
 
@@ -236,7 +235,7 @@ uint32 _game_session::Validate_prop_anim(const char *anim_name) {
 	uint32 j;
 
 	// find entry for this object via its name
-	index = (_animating_prop *)prop_anims->Try_fetch_item_by_name(object->GetName());
+	index = (_animating_prop *)LinkedDataObject::Try_fetch_item_by_name(prop_anims, CGameObject::GetName(object));
 
 	// loop through all looking for our named anim
 	for (j = 0; j < index->num_anims; j++) {
@@ -248,11 +247,11 @@ uint32 _game_session::Validate_prop_anim(const char *anim_name) {
 			if (anim->num_frames)
 				return (j);
 
-			Fatal_error("Validate_prop_anim object [%s] has anim [%s] but it has no frames", object->GetName(), anim_name);
+			Fatal_error("Validate_prop_anim object [%s] has anim [%s] but it has no frames", CGameObject::GetName(object), anim_name);
 		}
 	}
 
-	Fatal_error("Validate_prop_anim didnt find anim [%s] for object [%s]", anim_name, object->GetName());
+	Fatal_error("Validate_prop_anim didn't find anim [%s] for object [%s]", anim_name, CGameObject::GetName(object));
 	return (FALSE8);
 }
 
@@ -277,7 +276,7 @@ mcodeFunctionReturnCodes _game_session::fn_inherit_prop_anim_height_id(int32 &, 
 	Zdebug("fn_inherit_prop_anim_height_id");
 
 	// find entry for this object via its name, which we find via its number :(
-	index = (_animating_prop *)prop_anims->Fetch_item_by_name((const char *)objects->Fetch_items_name_by_number(params[0]));
+	index = (_animating_prop *)LinkedDataObject::Fetch_item_by_name(prop_anims, (const char *)LinkedDataObject::Fetch_items_name_by_number(objects, params[0]));
 
 	// loop through all looking for our named anim
 	for (j = 0; j < index->num_anims; j++) {
@@ -316,7 +315,7 @@ mcodeFunctionReturnCodes _game_session::fn_inherit_prop_anim_height_id(int32 &, 
 				// the script
 
 				if (L->list[0] > (uint8)(anim->num_frames - 1))
-					Fatal_error("%s corrupted in fn_inherit_prop_anim_height_id", object->GetName());
+					Fatal_error("%s corrupted in fn_inherit_prop_anim_height_id", CGameObject::GetName(object));
 
 				if ((uint8)L->list[0] == (anim->num_frames - 1)) {
 					// not looping
@@ -345,8 +344,8 @@ mcodeFunctionReturnCodes _game_session::fn_inherit_prop_anim_height_id(int32 &, 
 		}
 	}
 
-	// didnt find the named anim so thats it
-	Fatal_error("fn_inherit_prop_anim_height_id object [%s] prop [%s] cant find anim [%s]", object->GetName(), objects->Fetch_items_name_by_number(params[0]), anim_name);
+	// didn't find the named anim so that's it
+	Fatal_error("fn_inherit_prop_anim_height_id object [%s] prop [%s] can't find anim [%s]", CGameObject::GetName(object), LinkedDataObject::Fetch_items_name_by_number(objects, params[0]), anim_name);
 	return (IR_STOP);
 }
 
@@ -370,11 +369,11 @@ mcodeFunctionReturnCodes _game_session::fn_inherit_prop_anim_height(int32 &, int
 	const char *anim_name = (const char *)MemoryUtil::resolvePtr(params[1]);
 
 	Zdebug("fn_inherit_prop_anim_height");
-	Zdebug("ob %s", object->GetName());
+	Zdebug("ob %s", CGameObject::GetName(object));
 	Zdebug("prop %s  anim %s", prop_name, anim_name);
 
 	// find entry for this object via its name, which we find via its number :(
-	index = (_animating_prop *)prop_anims->Fetch_item_by_name(prop_name);
+	index = (_animating_prop *)LinkedDataObject::Fetch_item_by_name(prop_anims, prop_name);
 
 	// loop through all looking for our named anim
 	for (j = 0; j < index->num_anims; j++) {
@@ -436,8 +435,8 @@ mcodeFunctionReturnCodes _game_session::fn_inherit_prop_anim_height(int32 &, int
 		}
 	}
 
-	// didnt find the named anim so thats it
-	Fatal_error("fn_inherit_prop_anim_height object [%s] prop [%s] cant find anim [%s]", object->GetName(), prop_name, anim_name);
+	// didn't find the named anim so that's it
+	Fatal_error("fn_inherit_prop_anim_height object [%s] prop [%s] can't find anim [%s]", CGameObject::GetName(object), prop_name, anim_name);
 	return (IR_STOP); //
 }
 

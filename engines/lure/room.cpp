@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -98,12 +97,12 @@ RoomLayer::RoomLayer(uint16 screenId, bool backgroundLayer):
 Room::Room(): _screen(Screen::getReference()) {
 	int_room = this;
 
-	_roomData = NULL;
-	_talkDialog = NULL;
+	_roomData = nullptr;
+	_talkDialog = nullptr;
 	_hotspotId = 0;
 	_hotspotName[0] = '\0';
 	_statusLine[0] = '\0';
-	for (int ctr = 0; ctr < MAX_NUM_LAYERS; ++ctr) _layers[ctr] = NULL;
+	for (int ctr = 0; ctr < MAX_NUM_LAYERS; ++ctr) _layers[ctr] = nullptr;
 	_numLayers = 0;
 	_showInfo = false;
 	_isExit = false;
@@ -120,7 +119,7 @@ Room::~Room() {
 		delete _layers[layerNum];
 
 	delete _talkDialog;
-	int_room = NULL;
+	int_room = nullptr;
 }
 
 Room &Room::getReference() {
@@ -139,7 +138,7 @@ void Room::leaveRoom() {
 	HotspotList::iterator i = list.begin();
 	while (i != list.end()) {
 		Hotspot const &h = **i;
-		if (!h.persistant()) {
+		if (!h.persistent()) {
 			i = list.erase(i);
 		} else {
 			++i;
@@ -168,7 +167,7 @@ void Room::checkRoomHotspots() {
 	Mouse &m = Mouse::getReference();
 	Resources &res = Resources::getReference();
 	HotspotDataList &list = res.hotspotData();
-	HotspotData *entry = NULL;
+	HotspotData *entry = nullptr;
 	int16 currentX = m.x();
 	int16 currentY = m.y();
 	HotspotDataList::iterator i;
@@ -230,7 +229,7 @@ void Room::checkRoomHotspots() {
 	if (i == list.end()) {
 		_hotspotId = 0;
 		_hotspotNameId = 0;
-		_hotspot = NULL;
+		_hotspot = nullptr;
 	} else {
 		_hotspotNameId = entry->nameId;
 		_hotspot = entry;
@@ -293,7 +292,7 @@ void Room::addAnimation(Hotspot &h) {
 		int16 x = h.x();
 		int16 y = h.y();
 		if ((x >= 0) && (x < FULL_SCREEN_WIDTH) && (y >= 0) && (y < FULL_SCREEN_HEIGHT))
-			sprintf(buffer, "%xh", h.hotspotId());
+			Common::sprintf_s(buffer, "%xh", h.hotspotId());
 
 	}
 }
@@ -319,10 +318,10 @@ void Room::addLayers(Hotspot &h) {
 		// Check foreground layers for an occupied one
 
 		int layerNum = 1;
-		while ((layerNum < 4) && (_layers[layerNum] != NULL) &&
+		while ((layerNum < 4) && (_layers[layerNum] != nullptr) &&
 				(_layers[layerNum]->getCell(xStart, yEnd) == 0xff))
 			++layerNum;
-		if ((layerNum == 4) || (_layers[layerNum] == NULL)) continue;
+		if ((layerNum == 4) || (_layers[layerNum] == nullptr)) continue;
 
 		int16 ye = yEnd - NUM_EDGE_RECTS;
 		for (int16 yCtr = 0; yCtr < numY; ++yCtr, --ye) {
@@ -335,10 +334,10 @@ void Room::addLayers(Hotspot &h) {
 void Room::addCell(int16 xp, int16 yp, int layerNum) {
 	Surface &s = _screen.screen();
 
-	while ((layerNum < 4) && (_layers[layerNum] != NULL) &&
+	while ((layerNum < 4) && (_layers[layerNum] != nullptr) &&
 			(_layers[layerNum]->getCell(xp + NUM_EDGE_RECTS, yp + NUM_EDGE_RECTS) >= 0xfe))
 		++layerNum;
-	if ((layerNum == 4) || (_layers[layerNum] == NULL)) return;
+	if ((layerNum == 4) || (_layers[layerNum] == nullptr)) return;
 
 	RoomLayer *layer = _layers[layerNum];
 
@@ -360,10 +359,10 @@ void Room::addCell(int16 xp, int16 yp, int layerNum) {
 
 void Room::blockMerge() {
 	for (int layerNum1 = 0; layerNum1 < 3; ++layerNum1) {
-		if (_layers[layerNum1] == NULL) break;
+		if (_layers[layerNum1] == nullptr) break;
 
 		for (int layerNum2 = layerNum1 + 1; layerNum2 < 4; ++layerNum2) {
-			if (_layers[layerNum2] == NULL) break;
+			if (_layers[layerNum2] == nullptr) break;
 
 			for (int yp = 0; yp < NUM_VERT_RECTS; ++yp) {
 				for (int xp = 0; xp < NUM_HORIZ_RECTS; ++xp) {
@@ -390,7 +389,7 @@ void Room::blockMerge() {
 
 void Room::layersPostProcess() {
 	for (int layerNum = 1; layerNum < 4; ++layerNum) {
-		if (_layers[layerNum] == NULL)
+		if (_layers[layerNum] == nullptr)
 			continue;
 
 		// Layer optimisation
@@ -481,7 +480,7 @@ void Room::update() {
 	if (_talkDialog)  {
 		// Make sure the character is still active and in the viewing room
 		Hotspot *talkCharacter = res.getActiveHotspot(res.getTalkingCharacter());
-		if ((talkCharacter != NULL) && (talkCharacter->roomNumber() == _roomNumber))
+		if ((talkCharacter != nullptr) && (talkCharacter->roomNumber() == _roomNumber))
 			_talkDialog->copyTo(&s, _talkDialogX, _talkDialogY);
 	}
 
@@ -506,7 +505,7 @@ void Room::update() {
 
 	// Debug - if the bottle object is on layer 0FEh, then display it's surface
 	Hotspot *displayHotspot = res.getActiveHotspot(BOTTLE_HOTSPOT_ID);
-	if ((displayHotspot != NULL) && (displayHotspot->layer() == 0xfe))
+	if ((displayHotspot != nullptr) && (displayHotspot->layer() == 0xfe))
 		displayHotspot->frames().copyTo(&s);
 
 	// If show information is turned on, show extra debugging information
@@ -522,7 +521,7 @@ void Room::update() {
 */
 				uint16 v = tempLayer[(yctr + 1) * DECODED_PATHS_WIDTH + xctr + 1];
 				if ((v != 0) && (v < 100)) {
-					sprintf(buffer, "%d", v % 10);
+					Common::sprintf_s(buffer, "%d", v % 10);
 					s.writeString(xctr * 8, yctr * 8 + 8, buffer, true);
 //				} else if (v == 0xffff) {
 				} else if (_roomData->paths.isOccupied(xctr, yctr)) {
@@ -532,7 +531,7 @@ void Room::update() {
 		}
 
 		Mouse &m = Mouse::getReference();
-		sprintf(buffer, "Room %d Pos (%d,%d) @ (%d,%d)", _roomNumber, m.x(), m.y(),
+		Common::sprintf_s(buffer, "Room %d Pos (%d,%d) @ (%d,%d)", _roomNumber, m.x(), m.y(),
 			m.x() / RECT_SIZE, (m.y() - MENUBAR_Y_SIZE) / RECT_SIZE);
 		s.writeString(FULL_SCREEN_WIDTH / 2, 0, buffer, false, white);
 	}
@@ -568,7 +567,7 @@ void Room::setRoomNumber(uint16 newRoomNumber, bool showOverlay) {
 		for (int layerNum = 0; layerNum < _numLayers; ++layerNum) {
 			if (_layers[layerNum]) {
 				delete _layers[layerNum];
-				_layers[layerNum] = NULL;
+				_layers[layerNum] = nullptr;
 			}
 		}
 
@@ -697,7 +696,7 @@ void Room::setTalkDialog(uint16 srcCharacterId, uint16 destCharacterId, uint16 u
 
 	if (_talkDialog) {
 		delete _talkDialog;
-		_talkDialog = NULL;
+		_talkDialog = nullptr;
 	}
 /*
 	if (res.getTalkingCharacter() != 0) {
@@ -762,7 +761,7 @@ bool Room::checkInTalkDialog() {
 }
 
 void Room::saveToStream(Common::WriteStream *stream) {
-	if (_talkDialog == NULL)
+	if (_talkDialog == nullptr)
 		stream->writeUint16LE(0);
 	else
 		_talkDialog->saveToStream(stream);
@@ -778,7 +777,7 @@ void Room::loadFromStream(Common::ReadStream *stream) {
 
 	if (_talkDialog) {
 		delete _talkDialog;
-		_talkDialog = NULL;
+		_talkDialog = nullptr;
 	}
 
 	if (saveVersion >= 26)

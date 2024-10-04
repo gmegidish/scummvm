@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -74,7 +73,7 @@ enum {
 };
 
 GameModule::GameModule(NeverhoodEngine *vm)
-	: Module(vm, NULL), _moduleNum(-1), _prevChildObject(NULL), _prevModuleNum(-1),
+	: Module(vm, nullptr), _moduleNum(-1), _prevChildObject(nullptr), _prevModuleNum(-1),
 	_restoreGameRequested(false), _restartGameRequested(false), _canRequestMainMenu(true),
 	_mainMenuRequested(false) {
 
@@ -86,7 +85,7 @@ GameModule::GameModule(NeverhoodEngine *vm)
 GameModule::~GameModule() {
 	_vm->_soundMan->deleteSoundGroup(0x002D0031);
 	delete _childObject;
-	_childObject = NULL;
+	_childObject = nullptr;
 }
 
 void GameModule::handleMouseMove(int16 x, int16 y) {
@@ -143,6 +142,17 @@ void GameModule::handleAsciiKey(char key) {
 		debug(2, "GameModule::handleAsciiKey()");
 		sendMessage(_childObject, 0x000A, (uint32)key);
 	}
+
+	if (key == '\n' || key == '\r') {
+		if (!_currentCheat.empty() && _childObject) {
+			uint32 cheatHash = calcHash(_currentCheat.c_str());
+			debug(2, "GameModule: cheat=\"%s\" (0x%08x)", _currentCheat.c_str(), cheatHash);
+			sendMessage(_childObject, NM_CHEAT, cheatHash);
+		} else if (!_currentCheat.empty())
+			debug(2, "GameModule: cheat=\"%s\" but no child", _currentCheat.c_str());
+		_currentCheat.clear();
+	} else if (key)
+		_currentCheat += key;
 }
 
 void GameModule::handleKeyDown(Common::KeyCode keyCode) {
@@ -191,9 +201,9 @@ void GameModule::initMemoryPuzzle() {
 			setSubVar(VA_DICE_MEMORY_SYMBOLS, diceIndices.getNumber(), tileSymbols.getNumber());
 		// Insert special symbols tiles
 		for (uint32 i = 0; i < 3; ++i) {
-			int tileSymbolOccurence = _vm->_rnd->getRandomNumber(4 - 1) * 2 + 2;
-			setSubVar(VA_GOOD_DICE_NUMBERS, i, tileSymbolOccurence);
-			while (tileSymbolOccurence--)
+			int tileSymbolOccurrence = _vm->_rnd->getRandomNumber(4 - 1) * 2 + 2;
+			setSubVar(VA_GOOD_DICE_NUMBERS, i, tileSymbolOccurrence);
+			while (tileSymbolOccurrence--)
 				setSubVar(VA_TILE_SYMBOLS, availableTiles.getNumber(), getSubVar(VA_DICE_MEMORY_SYMBOLS, i));
 		}
 		// Fill the remaining tiles
@@ -282,6 +292,24 @@ void GameModule::initCubeSymbolsPuzzle() {
 	}
 }
 
+byte GameModule::parseCrystalColor(char colorLetter) {
+	switch (colorLetter) {
+	case 'B':
+		return 4;
+	case 'G':
+		return 3;
+	case 'O':
+		return 1;
+	case 'R':
+		return 0;
+	case 'V':
+		return 5;
+	case 'Y':
+		return 2;
+	default:
+		return 0;
+	}
+}
 void GameModule::initCrystalColorsPuzzle() {
 	if (!getGlobalVar(V_CRYSTAL_COLORS_INIT)) {
 		TextResource textResource(_vm);
@@ -290,29 +318,7 @@ void GameModule::initCrystalColorsPuzzle() {
 		textStart = textResource.getString(0, textEnd);
 		for (uint index = 0; index < 5; index++) {
 			char colorLetter = (byte)textStart[index];
-			byte correctColorNum = 0, misalignedColorNum;
-			switch (colorLetter) {
-			case 'B':
-				correctColorNum = 4;
-				break;
-			case 'G':
-				correctColorNum = 3;
-				break;
-			case 'O':
-				correctColorNum = 1;
-				break;
-			case 'R':
-				correctColorNum = 0;
-				break;
-			case 'V':
-				correctColorNum = 5;
-				break;
-			case 'Y':
-				correctColorNum = 2;
-				break;
-			default:
-				break;
-			}
+			byte correctColorNum = parseCrystalColor(colorLetter), misalignedColorNum;
 			do {
 				misalignedColorNum = _vm->_rnd->getRandomNumber(6 - 1);
 			} while (misalignedColorNum == correctColorNum);
@@ -435,8 +441,8 @@ void GameModule::checkRequests() {
 		_vm->_soundMan->playSoundThree(0x002D0031, 0x08861079);
 		delete _childObject;
 		delete _prevChildObject;
-		_childObject = NULL;
-		_prevChildObject = NULL;
+		_childObject = nullptr;
+		_prevChildObject = nullptr;
 		_prevModuleNum = 0;
 		createModuleByHash(getGlobalVar(V_MODULE_NAME));
 	}
@@ -831,7 +837,7 @@ void GameModule::updateMenuModule() {
 		_vm->_screen->restoreParams();
 		_childObject = _prevChildObject;
 		sendMessage(_childObject, NM_MOUSE_SHOW, 0);
-		_prevChildObject = NULL;
+		_prevChildObject = nullptr;
 		_moduleNum = _prevModuleNum;
 		SetUpdateHandler(&GameModule::updateModule);
 	}

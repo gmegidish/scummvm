@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,8 @@
 #include "ultima/ultima8/world/get_object.h"
 #include "ultima/ultima8/world/item_factory.h"
 #include "ultima/ultima8/world/actors/teleport_to_egg_process.h"
-#include "ultima/ultima8/graphics/palette_fader_process.h"
+#include "ultima/ultima8/gfx/palette_fader_process.h"
+#include "ultima/ultima8/gfx/texture.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -41,6 +41,7 @@ DEFINE_RUNTIME_CLASSTYPE_CODE(StartCrusaderProcess)
 
 StartCrusaderProcess::StartCrusaderProcess(int saveSlot) : Process(),
 _initStage(PlayFirstMovie), _saveSlot(saveSlot) {
+	_flags |= PROC_PREVENT_SAVE;
 }
 
 
@@ -65,8 +66,16 @@ void StartCrusaderProcess::run() {
 		return;
 	}
 
-	// Try to load the save game, if succeeded this pointer will no longer be valid
-	if (_saveSlot >= 0 && Ultima8Engine::get_instance()->loadGameState(_saveSlot).getCode() == Common::kNoError) {
+	// Try to load the save game, if succeeded this process will terminate
+	if (_saveSlot >= 0) {
+		Common::Error loadError = Ultima8Engine::get_instance()->loadGameState(_saveSlot);
+		if (loadError.getCode() != Common::kNoError) {
+			Ultima8Engine::get_instance()->setError(loadError);
+			fail();
+			return;
+		}
+
+		terminate();
 		return;
 	}
 
@@ -104,7 +113,7 @@ void StartCrusaderProcess::run() {
 		0x032E, 0x032F, 0x0330, 0x038C, 0x0332, 0x0333, 0x0334,
 		0x038E, 0x0388, 0x038A, 0x038D, 0x038B, 0x0386,
 		// Ammo
-		0x033D, 0x033E, 0x033F, 0x0340, 0x0341
+		0x033D, 0x033E, 0x033F, 0x0340, 0x0341,
 		// No Regret Weapons
 		0x5F6, 0x5F5, 0x198,
 		// No Regret Ammo
@@ -129,7 +138,7 @@ void StartCrusaderProcess::run() {
 		avatar->setActorFlag(Actor::ACT_WEAPONREADY);
 	}
 
-	Process *fader = new PaletteFaderProcess(0x00FFFFFF, true, 0x7FFF, 60, false);
+	Process *fader = new PaletteFaderProcess(TEX32_PACK_RGBA(0xFF, 0xFF, 0xFF, 0x00), true, 0x7FFF, 60, false);
 	Kernel::get_instance()->addProcess(fader);
 
 	Ultima8Engine::get_instance()->setAvatarInStasis(false);
@@ -138,7 +147,7 @@ void StartCrusaderProcess::run() {
 }
 
 void StartCrusaderProcess::saveData(Common::WriteStream *ws) {
-	CANT_HAPPEN();
+	warning("Attempted save of process with prevent save flag");
 
 	Process::saveData(ws);
 }

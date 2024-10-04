@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,32 +46,32 @@ struct Queue {
 };
 
 void qInit(Queue *q) {
-	q->head = q->tail = NULL;
+	q->head = q->tail = nullptr;
 }
 
 void qDelete(Queue *q) {
 	QueueNode *node, *next;
 
-	for (node = q->head; node != NULL; node = next) {
+	for (node = q->head; node != nullptr; node = next) {
 		next = node->next;
 		free(node);
 	}
 
-	q->head = q->tail = NULL;
+	q->head = q->tail = nullptr;
 }
 
 int qIsEmpty(Queue *q) {
-	return (q->head == NULL);
+	return (q->head == nullptr);
 }
 
 void qDebug(Queue *q) {
 	debug("Queue:");
 
-	if (q->head == NULL) {
+	if (q->head == nullptr) {
 		debug(" empty");
 	} else {
 		QueueNode *node;
-		for (node = q->head; node != NULL; node = node->next) {
+		for (node = q->head; node != nullptr; node = node->next) {
 			debug(" %d (%d)", node->val, node->val2);
 		}
 	}
@@ -84,9 +83,9 @@ void qAppend(Queue *q, int val, int val2) {
 	QueueNode *node = (QueueNode *) malloc(sizeof(QueueNode));
 	node->val = val;
 	node->val2 = val2;
-	node->next = NULL;
+	node->next = nullptr;
 
-	if (q->head == NULL) {
+	if (q->head == nullptr) {
 		q->head = q->tail = node;
 	} else {
 		q->tail->next = node;
@@ -101,7 +100,7 @@ void qPop(Queue *q, int *val, int *val2) {
 	*val2 = q->head->val2;
 
 	if (q->head == q->tail) {
-		q->head = q->tail = NULL;
+		q->head = q->tail = nullptr;
 	} else {
 		q->head = q->head->next;
 	}
@@ -163,7 +162,7 @@ void setInit(Set *set) {
 	int n;
 
 	for (n = 0; n < SET_HASHSIZE; n++) {
-		set->node[n] = NULL;
+		set->node[n] = nullptr;
 	}
 }
 
@@ -173,12 +172,12 @@ void setDelete(Set *set) {
 	for (n = 0; n < SET_HASHSIZE; n++) {
 		SetNode *node, *next;
 
-		for (node = set->node[n]; node != NULL; node = next) {
+		for (node = set->node[n]; node != nullptr; node = next) {
 			next = node->next;
 			free(node);
 		}
 
-		set->node[n] = NULL;
+		set->node[n] = nullptr;
 	}
 }
 
@@ -190,7 +189,7 @@ void setDebug(Set *set) {
 	for (n = 0; n < SET_HASHSIZE; n++) {
 		SetNode *node;
 
-		for (node = set->node[n]; node != NULL; node = node->next) {
+		for (node = set->node[n]; node != nullptr; node = node->next) {
 			debug(" %d", node->val);
 		}
 	}
@@ -208,7 +207,7 @@ void setAdd(Set *set, int val) {
 
 	/* check if val is already in the set */
 
-	for (node = set->node[n]; node != NULL; node = node->next) {
+	for (node = set->node[n]; node != nullptr; node = node->next) {
 		if (node->val == val) {
 			return;
 		}
@@ -226,7 +225,7 @@ int setContains(Set *set, int val) {
 	SetNode *node;
 	int n = setHash(val);
 
-	for (node = set->node[n]; node != NULL; node = node->next) {
+	for (node = set->node[n]; node != nullptr; node = node->next) {
 		if (node->val == val) {
 			return 1;
 		}
@@ -297,7 +296,7 @@ int find_route(int fromRoom, int toRoom, int known) {
 
 			if (dest < 1 || dest > objects) continue;
 
-			if (object[dest] == NULL) continue;
+			if (object[dest] == nullptr) continue;
 
 			if (dest != NOWHERE && !setContains(&visited, dest)) {
 				if (!known || (object[dest]->attributes & KNOWN)) {

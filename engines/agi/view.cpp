@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,16 +25,34 @@
 
 namespace Agi {
 
-void AgiEngine::updateView(ScreenObjEntry *screenObj) {
-	int16 celNr, lastCelNr;
+// Apple II V2+ views use different color values.
+static const byte apple2ViewColorMap[16] = {
+	/*00*/ 0x00,
+	/*01*/ 0x04,
+	/*02*/ 0x01,
+	/*03*/ 0x05,
+	/*04*/ 0x02,
+	/*05*/ 0x08,
+	/*06*/ 0x09,
+	/*07*/ 0x0b,
+	/*08*/ 0x06,
+	/*09*/ 0x0d,
+	/*0a*/ 0x07,
+	/*0b*/ 0x0c,
+	/*0c*/ 0x0a,
+	/*0d*/ 0x0e,
+	/*0e*/ 0x03,
+	/*0f*/ 0x0f
+};
 
-	if (screenObj->flags & fDontupdate) {
-		screenObj->flags &= ~fDontupdate;
+void AgiEngine::updateView(ScreenObjEntry *screenObj) {
+	if (screenObj->flags & fDontUpdate) {
+		screenObj->flags &= ~fDontUpdate;
 		return;
 	}
 
-	celNr = screenObj->currentCelNr;
-	lastCelNr = screenObj->celCount - 1;
+	int16 celNr = screenObj->currentCelNr;
+	int16 lastCelNr = screenObj->celCount - 1;
 
 	switch (screenObj->cycle) {
 	case kCycleNormal:
@@ -49,7 +66,11 @@ void AgiEngine::updateView(ScreenObjEntry *screenObj) {
 			if (++celNr != lastCelNr)
 				break;
 		}
-		setFlag(screenObj->loop_flag, true);
+		if (!screenObj->ignoreLoopFlag) {
+			setFlag(screenObj->loop_flag, true);
+		} else {
+			warning("kCycleEndOfLoop: skip setting flag %d", screenObj->loop_flag);
+		}
 		screenObj->flags &= ~fCycling;
 		screenObj->direction = 0;
 		screenObj->cycle = kCycleNormal;
@@ -60,7 +81,11 @@ void AgiEngine::updateView(ScreenObjEntry *screenObj) {
 			if (celNr)
 				break;
 		}
-		setFlag(screenObj->loop_flag, true);
+		if (!screenObj->ignoreLoopFlag) {
+			setFlag(screenObj->loop_flag, true);
+		} else {
+			warning("kCycleRevLoop: skip setting flag %d", screenObj->loop_flag);
+		}
 		screenObj->flags &= ~fCycling;
 		screenObj->direction = 0;
 		screenObj->cycle = kCycleNormal;
@@ -79,59 +104,46 @@ void AgiEngine::updateView(ScreenObjEntry *screenObj) {
 	setCel(screenObj, celNr);
 }
 
-/*
- * Public functions
- */
-
 /**
  * Decode an AGI view resource.
  * This function decodes the raw data of the specified AGI view resource
  * and fills the corresponding views array element.
- * @param n number of view resource to decode
+ * @param viewNr number of view resource to decode
  */
 int AgiEngine::decodeView(byte *resourceData, uint16 resourceSize, int16 viewNr) {
 	AgiView *viewData = &_game.views[viewNr];
-	uint16 headerId = 0;
-	byte   headerStepSize = 0;
-	byte   headerCycleTime = 0;
-	byte   headerLoopCount = 0;
-	uint16 headerDescriptionOffset = 0;
-	bool   isAGI256Data = false;
 
-	AgiViewLoop *loopData = nullptr;
-	uint16 loopOffset = 0;
-	byte   loopHeaderCelCount = 0;
-
-	AgiViewCel *celData = nullptr;
-	uint16 celOffset = 0;
-	byte   celHeaderWidth = 0;
-	byte   celHeaderHeight = 0;
-	byte   celHeaderTransparencyMirror = 0;
-	byte   celHeaderClearKey = 0;
-	bool   celHeaderMirrored = false;
-	byte   celHeaderMirrorLoop = 0;
-
-	byte  *celCompressedData = nullptr;
-	uint16 celCompressedSize = 0;
-
-	debugC(5, kDebugLevelResources, "decode_view(%d)", viewNr);
+	debugC(5, kDebugLevelResources, "decodeView(%d)", viewNr);
 
 	if (resourceSize < 5)
 		error("unexpected end of view data for view %d", viewNr);
 
-	headerId = READ_LE_UINT16(resourceData);
 	if (getVersion() < 0x2000) {
-		headerStepSize = resourceData[0];
-		headerCycleTime = resourceData[1];
+		viewData->headerStepSize = resourceData[0];
+		viewData->headerCycleTime = resourceData[1];
+	} else {
+		viewData->headerStepSize = 0;
+		viewData->headerCycleTime = 0;
 	}
-	headerLoopCount = resourceData[2];
-	headerDescriptionOffset = READ_LE_UINT16(resourceData + 3);
 
-	if (headerId == 0xF00F)
-		isAGI256Data = true; // AGI 256-2 view detected, 256 color view
+	bool isAGI256Data = false;
+	if (getFeatures() & GF_AGI256) {
+		uint16 headerId = READ_LE_UINT16(resourceData);
+		isAGI256Data = (headerId == 0xF00F); // AGI 256-2 view detected, 256 color view
+	}
 
-	viewData->headerStepSize = headerStepSize;
-	viewData->headerCycleTime = headerCycleTime;
+	// Apple II V2+ views stopped including the first two bytes
+	int headerLoopCountOffset = 2;
+	int viewHeaderSize = 5;
+	const bool apple2 = (getPlatform() == Common::kPlatformApple2) && getVersion() >= 0x2000;
+	if (apple2) {
+		headerLoopCountOffset = 0;
+		viewHeaderSize = 3;
+	}
+
+	byte headerLoopCount = resourceData[headerLoopCountOffset];
+	uint16 headerDescriptionOffset = READ_LE_UINT16(resourceData + headerLoopCountOffset + 1);
+
 	viewData->loopCount = headerLoopCount;
 	viewData->description = nullptr;
 	viewData->loop = nullptr;
@@ -157,15 +169,15 @@ int AgiEngine::decodeView(byte *resourceData, uint16 resourceSize, int16 viewNr)
 		return errOK;
 
 	// Check, if at least the loop-offsets are available
-	if (resourceSize < 5 + (headerLoopCount * 2))
+	if (resourceSize < viewHeaderSize + (headerLoopCount * 2))
 		error("unexpected end of view data for view %d", viewNr);
 
 	// Allocate space for loop-information
-	loopData = new AgiViewLoop[headerLoopCount];
+	AgiViewLoop *loopData = new AgiViewLoop[headerLoopCount];
 	viewData->loop = loopData;
 
 	for (int16 loopNr = 0; loopNr < headerLoopCount; loopNr++) {
-		loopOffset = READ_LE_UINT16(resourceData + 5 + (loopNr * 2));
+		uint16 loopOffset = READ_LE_UINT16(resourceData + viewHeaderSize + (loopNr * 2));
 
 		// Check, if at least the loop-header is available
 		if (resourceSize < (loopOffset + 1))
@@ -176,7 +188,7 @@ int AgiEngine::decodeView(byte *resourceData, uint16 resourceSize, int16 viewNr)
 		//  relativeCelOffset[0]:WORD
 		//  relativeCelOffset[1]:WORD
 		//  etc.
-		loopHeaderCelCount = resourceData[loopOffset];
+		byte loopHeaderCelCount = resourceData[loopOffset];
 
 		loopData->celCount = loopHeaderCelCount;
 		loopData->cel = nullptr;
@@ -187,11 +199,11 @@ int AgiEngine::decodeView(byte *resourceData, uint16 resourceSize, int16 viewNr)
 
 		if (loopHeaderCelCount) {
 			// Allocate space for cel-information of current loop
-			celData = new AgiViewCel[loopHeaderCelCount];
+			AgiViewCel *celData = new AgiViewCel[loopHeaderCelCount];
 			loopData->cel = celData;
 
 			for (int16 celNr = 0; celNr < loopHeaderCelCount; celNr++) {
-				celOffset = READ_LE_UINT16(resourceData + loopOffset + 1 + (celNr * 2));
+				uint16 celOffset = READ_LE_UINT16(resourceData + loopOffset + 1 + (celNr * 2));
 				celOffset += loopOffset; // cel offset is relative to loop offset, so adjust accordingly
 
 				// Check, if at least the cel-header is available
@@ -203,10 +215,16 @@ int AgiEngine::decodeView(byte *resourceData, uint16 resourceSize, int16 viewNr)
 				//  height:BYTE
 				//  Transparency + Mirroring:BYTE
 				//  celData follows
-				celHeaderWidth = resourceData[celOffset + 0];
-				celHeaderHeight = resourceData[celOffset + 1];
-				celHeaderTransparencyMirror = resourceData[celOffset + 2];
+				byte celHeaderWidth = resourceData[celOffset + 0];
+				byte celHeaderHeight = resourceData[celOffset + 1];
+				byte celHeaderTransparencyMirror = resourceData[celOffset + 2];
+				if (apple2) {
+					// Apple II views switched the transparency and mirror bits
+					celHeaderTransparencyMirror = (celHeaderTransparencyMirror << 4) | (celHeaderTransparencyMirror >> 4);
+				}
 
+				byte celHeaderClearKey;
+				bool celHeaderMirrored = false;
 				if (!isAGI256Data) {
 					// regular AGI view data
 					// Transparency + Mirroring byte is as follows:
@@ -214,19 +232,22 @@ int AgiEngine::decodeView(byte *resourceData, uint16 resourceSize, int16 viewNr)
 					//  Bit 4-6 - original loop, that is not supposed to be mirrored in any case
 					//  Bit 7   - apply mirroring
 					celHeaderClearKey = celHeaderTransparencyMirror & 0x0F; // bit 0-3 is the clear key
-					celHeaderMirrored = false;
+					if (apple2) {
+						// Apple II views use different color values
+						celHeaderClearKey = apple2ViewColorMap[celHeaderClearKey];
+					}
+
 					if (celHeaderTransparencyMirror & 0x80) {
 						// mirror bit is set
-						celHeaderMirrorLoop = (celHeaderTransparencyMirror >> 4) & 0x07;
+						byte celHeaderMirrorLoop = (celHeaderTransparencyMirror >> 4) & 0x07;
 						if (celHeaderMirrorLoop != loopNr) {
-							// only set to mirror'd in case we are not the original loop
+							// only set to mirrored in case we are not the original loop
 							celHeaderMirrored = true;
 						}
 					}
 				} else {
 					// AGI256-2 view data
 					celHeaderClearKey = celHeaderTransparencyMirror; // full 8 bits for clear key
-					celHeaderMirrored = false;
 				}
 
 				celData->width = celHeaderWidth;
@@ -238,16 +259,16 @@ int AgiEngine::decodeView(byte *resourceData, uint16 resourceSize, int16 viewNr)
 				if ((celHeaderWidth == 0) && (celHeaderHeight == 0))
 					error("view cel is 0x0");
 
-				celCompressedData = resourceData + celOffset + 3;
-				celCompressedSize = resourceSize - (celOffset + 3);
+				byte *celCompressedData = resourceData + celOffset + 3;
+				uint16 celCompressedSize = resourceSize - (celOffset + 3);
 
 				if (celCompressedSize == 0)
 					error("compressed size of loop within view %d is 0 bytes", viewNr);
 
 				if (!isAGI256Data) {
-					unpackViewCelData(celData, celCompressedData, celCompressedSize);
+					unpackViewCelData(celData, celCompressedData, celCompressedSize, viewNr);
 				} else {
-					unpackViewCelDataAGI256(celData, celCompressedData, celCompressedSize);
+					unpackViewCelDataAGI256(celData, celCompressedData, celCompressedSize, viewNr);
 				}
 				celData++;
 			}
@@ -259,20 +280,17 @@ int AgiEngine::decodeView(byte *resourceData, uint16 resourceSize, int16 viewNr)
 	return errOK;
 }
 
-void AgiEngine::unpackViewCelData(AgiViewCel *celData, byte *compressedData, uint16 compressedSize) {
+void AgiEngine::unpackViewCelData(AgiViewCel *celData, byte *compressedData, uint16 compressedSize, int16 viewNr) {
 	byte *rawBitmap = new byte[celData->width * celData->height];
 	int16 remainingHeight = celData->height;
 	int16 remainingWidth = celData->width;
-	bool  isMirrored = celData->mirrored;
-	byte curByte;
-	byte curColor;
-	byte curChunkLen;
 	int16 adjustPreChangeSingle = 0;
 	int16 adjustAfterChangeSingle = +1;
+	const bool apple2 = (getPlatform() == Common::kPlatformApple2) && getVersion() >= 0x2000;
 
 	celData->rawBitmap = rawBitmap;
 
-	if (isMirrored) {
+	if (celData->mirrored) {
 		adjustPreChangeSingle = -1;
 		adjustAfterChangeSingle = 0;
 		rawBitmap += celData->width;
@@ -280,11 +298,13 @@ void AgiEngine::unpackViewCelData(AgiViewCel *celData, byte *compressedData, uin
 
 	while (remainingHeight) {
 		if (!compressedSize)
-			error("unexpected end of data, while unpacking AGI256 data");
+			error("unexpected end of data, while unpacking view %d", viewNr);
 
-		curByte = *compressedData++;
+		byte curByte = *compressedData++;
 		compressedSize--;
 
+		byte curColor;
+		byte curChunkLen;
 		if (curByte == 0) {
 			curColor = celData->clearKey;
 			curChunkLen = remainingWidth;
@@ -292,7 +312,10 @@ void AgiEngine::unpackViewCelData(AgiViewCel *celData, byte *compressedData, uin
 			curColor = curByte >> 4;
 			curChunkLen = curByte & 0x0F;
 			if (curChunkLen > remainingWidth)
-				error("invalid chunk in view data");
+				error("invalid chunk in view %d", viewNr);
+			if (apple2) {
+				curColor = apple2ViewColorMap[curColor];
+			}
 		}
 
 		switch (curChunkLen) {
@@ -304,21 +327,25 @@ void AgiEngine::unpackViewCelData(AgiViewCel *celData, byte *compressedData, uin
 			rawBitmap += adjustAfterChangeSingle;
 			break;
 		default:
-			if (isMirrored)
+			if (celData->mirrored)
 				rawBitmap -= curChunkLen;
 			memset(rawBitmap, curColor, curChunkLen);
-			if (!isMirrored)
+			if (!celData->mirrored)
 				rawBitmap += curChunkLen;
 			break;
 		}
 
 		remainingWidth -= curChunkLen;
 
-		if (curByte == 0) {
+		// Each row is terminated by a zero byte; any remaining pixels are transparent.
+		// Apple II views don't use terminators, instead they explicitly draw remaining
+		// transparent pixels with a normal chunk byte, and rows end when they're full.
+		// The Apple II method uses one less byte on full rows.
+		if (curByte == 0 || (apple2 && remainingWidth == 0)) {
 			remainingWidth = celData->width;
 			remainingHeight--;
 
-			if (isMirrored)
+			if (celData->mirrored)
 				rawBitmap += celData->width * 2;
 		}
 	}
@@ -333,7 +360,7 @@ void AgiEngine::unpackViewCelData(AgiViewCel *celData, byte *compressedData, uin
 
 		rawBitmap = celData->rawBitmap;
 		for (uint16 pixelNr = 0; pixelNr < totalPixels; pixelNr++) {
-			curColor = *rawBitmap;
+			byte curColor = *rawBitmap;
 			*rawBitmap = _gfx->getCGAMixtureColor(curColor);
 			rawBitmap++;
 		}
@@ -344,19 +371,18 @@ void AgiEngine::unpackViewCelData(AgiViewCel *celData, byte *compressedData, uin
 	}
 }
 
-void AgiEngine::unpackViewCelDataAGI256(AgiViewCel *celData, byte *compressedData, uint16 compressedSize) {
+void AgiEngine::unpackViewCelDataAGI256(AgiViewCel *celData, byte *compressedData, uint16 compressedSize, int16 viewNr) {
 	byte *rawBitmap = new byte[celData->width * celData->height];
 	int16 remainingHeight = celData->height;
 	int16 remainingWidth = celData->width;
-	byte curByte;
 
 	celData->rawBitmap = rawBitmap;
 
 	while (remainingHeight) {
 		if (!compressedSize)
-			error("unexpected end of data, while unpacking AGI256 view");
+			error("unexpected end of data, while unpacking AGI256 view %d", viewNr);
 
-		curByte = *compressedData++;
+		byte curByte = *compressedData++;
 		compressedSize--;
 
 		if (curByte == 0) {
@@ -369,7 +395,7 @@ void AgiEngine::unpackViewCelDataAGI256(AgiViewCel *celData, byte *compressedDat
 			}
 		} else {
 			if (!remainingWidth) {
-				error("broken view data, while unpacking AGI256 view");
+				error("broken view data, while unpacking AGI256 view %d", viewNr);
 				break;
 			}
 			*rawBitmap = curByte;
@@ -386,7 +412,7 @@ void AgiEngine::unpackViewCelDataAGI256(AgiViewCel *celData, byte *compressedDat
 
 /**
  * Unloads all data in a view resource
- * @param n number of view resource
+ * @param viewNr number of view resource
  */
 void AgiEngine::unloadView(int16 viewNr) {
 	AgiView *viewData = &_game.views[viewNr];
@@ -409,9 +435,7 @@ void AgiEngine::unloadView(int16 viewNr) {
 		delete[] loopData->cel;
 	}
 	delete[] viewData->loop;
-
-	if (viewData->description)
-		delete[] viewData->description;
+	delete[] viewData->description;
 
 	viewData->headerCycleTime = 0;
 	viewData->headerStepSize = 0;
@@ -439,7 +463,7 @@ void AgiEngine::setView(ScreenObjEntry *screenObj, int16 viewNr) {
 		// Original interpreter bombs out in this situation saying "view not loaded, Press ESC to quit"
 		warning("setView() called on screen object %d to use view %d, but view not loaded", screenObj->objectNr, viewNr);
 		warning("probably game script bug, trying to load view into memory");
-		if (agiLoadResource(RESOURCETYPE_VIEW, viewNr) != errOK) {
+		if (loadResource(RESOURCETYPE_VIEW, viewNr) != errOK) {
 			// loading failed, we better error() out now
 			error("setView() called to set view %d for screen object %d, which is not loaded atm and loading failed", viewNr, screenObj->objectNr);
 			return;
@@ -481,20 +505,25 @@ void AgiEngine::setLoop(ScreenObjEntry *screenObj, int16 loopNr) {
 	}
 
 	if (loopNr >= screenObj->loopCount) {
-		// requested loop not existant
+		// requested loop not existent
 		// instead of error()ing out, we instead clip it
 		// At least required for possibly Manhunter 1 according to previous comment when leaving the arcade machine
 		// TODO: Check MH1
-		// TODO: This causes an issue in KQ1, when bowing to the king in room 53
-		//       Ego will face away from the king, because the scripts set the loop first and then the view
-		//       Loop is corrected by us, because at that time it's invalid. Was already present in 1.7.0
-		//       We should probably script-patch it out.
-		int16 requestedLoopNr = loopNr;
+		// WORKAROUND: This code caused an issue in KQ1 when bowing to the king in room 53. Bug #7045
+		// When ego finishes bowing, the script sets his view to 0 and loop to 1 so that he faces left,
+		// but it does this by setting the loop first and then the view. The previous view is 71 and only
+		// has one loop. This code treated that as an invalid set.loop and would clip it to 0, but that
+		// caused ego to face away from the king. For now, we detect this and set the view to 0 first.
+		if (getGameID() == GID_KQ1 && screenObj->currentViewNr == 71 && loopNr == 1) {
+			setView(screenObj, 0);
+		} else {
+			int16 requestedLoopNr = loopNr;
 
-		loopNr = screenObj->loopCount - 1;
+			loopNr = screenObj->loopCount - 1;
 
-		warning("Non-existant loop requested for screen object %d", screenObj->objectNr);
-		warning("view %d, requested loop %d -> clipped to loop %d", screenObj->currentViewNr, requestedLoopNr, loopNr);
+			warning("Non-existent loop requested for screen object %d", screenObj->objectNr);
+			warning("view %d, requested loop %d -> clipped to loop %d", screenObj->currentViewNr, requestedLoopNr, loopNr);
+		}
 	}
 
 	AgiViewLoop *curViewLoop = &_game.views[screenObj->currentViewNr].loop[loopNr];
@@ -537,7 +566,7 @@ void AgiEngine::setCel(ScreenObjEntry *screenObj, int16 celNr) {
 	}
 
 	if (celNr >= screenObj->celCount) {
-		// requested cel not existant
+		// requested cel not existent
 		// instead of error()ing out, we instead clip it
 		// At least required for King's Quest 3 on Apple IIgs - walking the planks death cutscene
 		// see bug #5832, which is a game bug!
@@ -545,7 +574,7 @@ void AgiEngine::setCel(ScreenObjEntry *screenObj, int16 celNr) {
 
 		celNr = screenObj->celCount - 1;
 
-		warning("Non-existant cel requested for screen object %d", screenObj->objectNr);
+		warning("Non-existent cel requested for screen object %d", screenObj->objectNr);
 		warning("view %d, loop %d, requested cel %d -> clipped to cel %d", screenObj->currentViewNr, screenObj->currentLoopNr, requestedCelNr, celNr);
 	}
 
@@ -581,19 +610,18 @@ void AgiEngine::clipViewCoordinates(ScreenObjEntry *screenObj) {
 	}
 
 	if (getVersion() < 0x2000) {
-		screenObj->flags |= fDontupdate;
+		screenObj->flags |= fDontUpdate;
 	}
-
 }
 
 /**
  * Set the view table entry as updating.
- * @param v pointer to view table entry
+ * @param viewPtr pointer to view table entry
  */
-void AgiEngine::startUpdate(ScreenObjEntry *v) {
-	if (~v->flags & fUpdate) {
+void AgiEngine::startUpdate(ScreenObjEntry *viewPtr) {
+	if (~viewPtr->flags & fUpdate) {
 		_sprites->eraseSprites();
-		v->flags |= fUpdate;
+		viewPtr->flags |= fUpdate;
 		_sprites->buildAllSpriteLists();
 		_sprites->drawAllSpriteLists();
 	}
@@ -601,7 +629,7 @@ void AgiEngine::startUpdate(ScreenObjEntry *v) {
 
 /**
  * Set the view table entry as non-updating.
- * @param v pointer to view table entry
+ * @param viewPtr pointer to view table entry
  */
 void AgiEngine::stopUpdate(ScreenObjEntry *viewPtr) {
 	if (viewPtr->flags & fUpdate) {

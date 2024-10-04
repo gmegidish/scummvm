@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #include "common/events.h"
 #include "engines/util.h"
 #include "graphics/cursorman.h"
+#include "graphics/paletteman.h"
 
 #include "lilliput/lilliput.h"
 #include "engines/util.h"
@@ -38,7 +38,7 @@
 
 namespace Lilliput {
 
-LilliputEngine *LilliputEngine::s_Engine = 0;
+LilliputEngine *LilliputEngine::s_Engine = nullptr;
 
 static const byte _basisPalette[768] = {
 	0,  0,  0,  0,  0,  42, 0,  42, 0,  0,  42, 42,
@@ -112,7 +112,7 @@ LilliputEngine::LilliputEngine(OSystem *syst, const LilliputGameDescription *gd)
 	_system = syst;
 
 	setDebugger(new LilliputConsole(this));
-	_rnd = 0;
+	_rnd = nullptr;
 	_mousePos = Common::Point(0, 0);
 	_oldMousePos = Common::Point(0, 0);
 	_mouseDisplayPos = Common::Point(0, 0);
@@ -208,13 +208,13 @@ LilliputEngine::LilliputEngine(OSystem *syst, const LilliputGameDescription *gd)
 		_characterVariables[i] = 0;
 	}
 
-	_currentCharacterAttributes = NULL;
-	_bufferIdeogram = NULL;
-	_bufferMen = NULL;
-	_bufferMen2 = NULL;
-	_bufferIsoChars = NULL;
-	_bufferIsoMap = NULL;
-	_bufferCubegfx = NULL;
+	_currentCharacterAttributes = nullptr;
+	_bufferIdeogram = nullptr;
+	_bufferMen = nullptr;
+	_bufferMen2 = nullptr;
+	_bufferIsoChars = nullptr;
+	_bufferIsoMap = nullptr;
+	_bufferCubegfx = nullptr;
 
 	_sequencesArr = nullptr;
 	_packedStringIndex = nullptr;
@@ -2247,7 +2247,7 @@ void LilliputEngine::checkInterfaceActivationDelay() {
 void LilliputEngine::displayHeroismIndicator() {
 	debugC(2, kDebugEngine, "displayHeroismIndicator()");
 
-	if (_scriptHandler->_barAttrPtr == NULL)
+	if (_scriptHandler->_barAttrPtr == nullptr)
 		return;
 
 	int var1 = (_scriptHandler->_barAttrPtr[0] * 25) >> 8;
@@ -2343,13 +2343,13 @@ void LilliputEngine::pollEvent() {
 	}
 }
 
-byte *LilliputEngine::loadVGA(Common::String filename, int expectedSize, bool loadPal) {
-	debugC(1, kDebugEngine, "loadVGA(%s, %d, %d)", filename.c_str(), expectedSize, (loadPal) ? 1 : 0);
+byte *LilliputEngine::loadVGA(const Common::Path &filename, int expectedSize, bool loadPal) {
+	debugC(1, kDebugEngine, "loadVGA(%s, %d, %d)", filename.toString().c_str(), expectedSize, (loadPal) ? 1 : 0);
 
 	Common::File f;
 
 	if (!f.open(filename))
-		error("Missing game file %s", filename.c_str());
+		error("Missing game file %s", filename.toString().c_str());
 
 	int remainingSize = f.size();
 	if (loadPal) {
@@ -2403,13 +2403,13 @@ byte *LilliputEngine::loadVGA(Common::String filename, int expectedSize, bool lo
 	return decodeBuffer;
 }
 
-byte *LilliputEngine::loadRaw(Common::String filename, int filesize) {
-	debugC(1, kDebugEngine, "loadRaw(%s)", filename.c_str());
+byte *LilliputEngine::loadRaw(const Common::Path &filename, int filesize) {
+	debugC(1, kDebugEngine, "loadRaw(%s)", filename.toString().c_str());
 
 	Common::File f;
 
 	if (!f.open(filename))
-		error("Missing game file %s", filename.c_str());
+		error("Missing game file %s", filename.toString().c_str());
 
 	byte *res = (byte *)malloc(sizeof(byte) * filesize);
 	for (int i = 0; i < filesize; ++i)
@@ -2432,7 +2432,7 @@ void LilliputEngine::loadRules() {
 	Common::File f;
 	uint16 curWord;
 
-	Common::String filename = "ERULES.PRG";
+	Common::Path filename("ERULES.PRG");
 	Common::Language lang = Common::parseLanguage(ConfMan.get("language"));
 
 	switch (lang) {
@@ -2452,7 +2452,7 @@ void LilliputEngine::loadRules() {
 	}
 
 	if (!f.open(filename))
-		error("Missing game file %s", filename.c_str());
+		error("Missing game file %s", filename.toString().c_str());
 
 	_word10800_ERULES = f.readUint16LE();
 
@@ -2610,13 +2610,14 @@ void LilliputEngine::loadRules() {
 	f.close();
 }
 
-void LilliputEngine::displayVGAFile(Common::String fileName) {
-	debugC(1, kDebugEngine, "displayVGAFile(%s)", fileName.c_str());
+void LilliputEngine::displayVGAFile(const Common::Path &fileName) {
+	debugC(1, kDebugEngine, "displayVGAFile(%s)", fileName.toString().c_str());
 
 	byte *buffer = loadVGA(fileName, 64000, true);
 	memcpy(_mainSurface->getPixels(), buffer, 320*200);
 	_system->copyRectToScreen((byte *)_mainSurface->getPixels(), 320, 0, 0, 320, 200);
 	_system->updateScreen();
+	free(buffer);
 }
 
 void LilliputEngine::fixPaletteEntries(uint8 *palette, int num) {

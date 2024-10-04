@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@
 #include "common/stream.h"
 #include "common/memstream.h"
 #include "common/file.h"
-#include "common/zlib.h"
+#include "common/compression/deflate.h"
 #include "common/archive.h"
 #include "common/tokenizer.h"
 #include "common/config-manager.h"
@@ -41,12 +40,14 @@
 
 namespace Wintermute {
 
-void correctSlashes(Common::String &fileName) {
-	for (size_t i = 0; i < fileName.size(); i++) {
-		if (fileName[i] == '\\') {
-			fileName.setChar('/', i);
+Common::Path correctSlashes(const Common::String &fileName) {
+	Common::String ret(fileName);
+	for (size_t i = 0; i < ret.size(); i++) {
+		if (ret[i] == '\\') {
+			ret.setChar('/', i);
 		}
 	}
+	return Common::Path(ret);
 }
 
 // Parse a relative path in the game-folder, and if it exists, return a FSNode to it.
@@ -61,42 +62,22 @@ static Common::FSNode getNodeForRelativePath(const Common::String &filename) {
 	}
 
 	// Relative path:
-	Common::String fixedFilename = filename;
-	correctSlashes(fixedFilename);
-	if (fixedFilename.contains('/')) {
-		Common::StringTokenizer path(fixedFilename, "/");
+	Common::Path fixedFilename = correctSlashes(filename);
+	Common::Path absolutePath(ConfMan.getPath("path"));
+	absolutePath.joinInPlace(fixedFilename);
 
-		// Start traversing relative to the game-data-dir
-		const Common::FSNode gameDataDir(ConfMan.get("path"));
-		Common::FSNode curNode = gameDataDir;
-
-		// Parse all path-elements
-		while (!path.empty()) {
-			// Get the next path-component by slicing on '/'
-			Common::String pathPart = path.nextToken();
-			// Get the next FSNode in the chain, if it exists as a child from the previous.
-			curNode = curNode.getChild(pathPart);
-			if (!curNode.isReadable()) {
-				// Return an invalid FSNode.
-				return Common::FSNode();
-			}
-			// Following the comments in common/fs.h, anything not a directory is a file.
-			if (!curNode.isDirectory()) {
-				if (!path.empty()) {
-					error("Relative path %s reached a file before the end of the path", filename.c_str());
-				}
-				return curNode;
-			}
-		}
+	Common::FSNode node(absolutePath);
+	if (node.exists()) {
+		return node;
+	} else {
+		return Common::FSNode();
 	}
-	// Return an invalid FSNode to mark that we didn't find the requested file.
-	return Common::FSNode();
 }
 
 bool diskFileExists(const Common::String &filename) {
 	// Try directly from SearchMan first
 	Common::ArchiveMemberList files;
-	SearchMan.listMatchingMembers(files, filename);
+	SearchMan.listMatchingMembers(files, Common::Path(filename));
 
 	for (Common::ArchiveMemberList::iterator it = files.begin(); it != files.end(); ++it) {
 		if ((*it)->getName() == filename) {
@@ -113,26 +94,25 @@ bool diskFileExists(const Common::String &filename) {
 
 
 int listMatchingDiskFileMembers(Common::ArchiveMemberList &list, const Common::String &pattern) {
-	return Common::FSDirectory(ConfMan.get("path")).listMatchingMembers(list, pattern);
+	return Common::FSDirectory(ConfMan.getPath("path")).listMatchingMembers(list, Common::Path(pattern));
 }
 
 Common::SeekableReadStream *openDiskFile(const Common::String &filename) {
 	uint32 prefixSize = 0;
 	Common::SeekableReadStream *file = nullptr;
-	Common::String fixedFilename = filename;
-	correctSlashes(fixedFilename);
+	Common::Path fixedFilename = correctSlashes(filename);
 
 	// HACK: There are a few games around which mistakenly refer to absolute paths in the scripts.
 	// The original interpreter on Windows usually simply ignores them when it can't find them.
 	// We try to turn the known ones into relative paths.
-	if (fixedFilename.contains(':')) {
+	if (filename.contains(':')) {
 		const char* const knownPrefixes[] = { // Known absolute paths
 				"c:/documents and settings/radimk/plocha/projekt/", // Basis Octavus refers to several files named "c:\documents and settings\radimk\plocha\projekt\sprites\clock*.bmp"
 				"c:/program files/wme devkit beta/projects/amu/data/", // Five Magical Amulets refers to "c:\program files\wme devkit beta\projects\amu\data\scenes\prvnimenu\scr\scene_init.script"
 				"c:/users/mathieu/desktop/wintermute engine development kit/jeu verve/vervegame/data/", // Machu Mayu refers to "c:\users\mathieu\desktop\wintermute engine development kit\jeu verve\vervegame\data\interface\system\cr<0xE9>dits.script"
 				"c:/windows/fonts/", // East Side Story refers to "c:\windows\fonts\framd.ttf"
 				"c:/carol6/svn/data/", // Carol Reed 6: Black Circle refers to "c:\carol6\svn\data\sprites\system\help.png"
-				"d:/engine/\322\303" "2/tg_ie_080128_1005/data/", // Tanya Grotter and the Disappearing Floor refers to "d:\engine\<0xD2><0xC3>2\tg_ie_080128_1005\data\interface\pixel\pixel.png"
+				("d:/engine/\322\303" "2/tg_ie_080128_1005/data/"), // Tanya Grotter and the Disappearing Floor refers to "d:\engine\<0xD2><0xC3>2\tg_ie_080128_1005\data\interface\pixel\pixel.png"
 				"e:/users/jonathan/onedrive/knossos/data/", // K'NOSSOS refers to "e:\users\jonathan\onedrive\knossos\data\entities\helprobot\helprobot.script"
 				"f:/dokument/spel 5/demo/data/", // Carol Reed 5 (non-demo) refers to "f:\dokument\spel 5\demo\data\scenes\credits\op_cred_00\op_cred_00.jpg"
 				"f:/quest!!!/engine/quest/data/" // Book of Gron Part One refers to several files named "f:\quest!!!\engine\quest\data\entities\dver\*"
@@ -159,8 +139,9 @@ Common::SeekableReadStream *openDiskFile(const Common::String &filename) {
 		bool matched = false;
 
 		for (uint i = 0; i < ARRAYSIZE(knownPrefixes); i++) {
-			if (fixedFilename.hasPrefix(knownPrefixes[i])) {
-				fixedFilename = fixedFilename.c_str() + strlen(knownPrefixes[i]);
+			Common::Path root(knownPrefixes[i], '/');
+			if (fixedFilename.isRelativeTo(root)) {
+				fixedFilename = fixedFilename.relativeTo(root);
 				matched = true;
 			}
 		}
@@ -176,7 +157,7 @@ Common::SeekableReadStream *openDiskFile(const Common::String &filename) {
 	SearchMan.listMatchingMembers(files, fixedFilename);
 
 	for (Common::ArchiveMemberList::iterator it = files.begin(); it != files.end(); ++it) {
-		if ((*it)->getName().equalsIgnoreCase(lastPathComponent(fixedFilename,'/'))) {
+		if ((*it)->getName().equalsIgnoreCase(fixedFilename.baseName())) {
 			file = (*it)->createReadStream();
 			break;
 		}
@@ -222,7 +203,7 @@ Common::SeekableReadStream *openDiskFile(const Common::String &filename) {
 			file->seek(dataOffset + prefixSize, SEEK_SET);
 			file->read(compBuffer, compSize);
 
-			if (Common::uncompress(data, &uncompSize, compBuffer, compSize) != true) {
+			if (Common::inflateZlib(data, &uncompSize, compBuffer, compSize) != true) {
 				error("Error uncompressing file '%s'", filename.c_str());
 				delete[] compBuffer;
 				delete file;

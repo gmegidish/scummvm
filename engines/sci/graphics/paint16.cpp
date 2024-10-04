@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,8 +48,8 @@ GfxPaint16::GfxPaint16(ResourceManager *resMan, SegManager *segMan, GfxCache *ca
 	  _transitions(transitions), _audio(audio), _EGAdrawingVisualize(false) {
 
 	// _animate and _text16 will be initialized later on
-	_animate = NULL;
-	_text16 = NULL;
+	_animate = nullptr;
+	_text16 = nullptr;
 }
 
 GfxPaint16::~GfxPaint16() {
@@ -111,12 +110,12 @@ void GfxPaint16::drawCelAndShow(GuiResourceId viewId, int16 loopNo, int16 celNo,
 	}
 }
 
-// This version of drawCel is not supposed to call BitsShow()!
+// This version of drawCel is not supposed to call bitsShow()!
 void GfxPaint16::drawCel(GuiResourceId viewId, int16 loopNo, int16 celNo, const Common::Rect &celRect, byte priority, uint16 paletteNo, uint16 scaleX, uint16 scaleY, uint16 scaleSignal) {
 	drawCel(_cache->getView(viewId), loopNo, celNo, celRect, priority, paletteNo, scaleX, scaleY, scaleSignal);
 }
 
-// This version of drawCel is not supposed to call BitsShow()!
+// This version of drawCel is not supposed to call bitsShow()!
 void GfxPaint16::drawCel(GfxView *view, int16 loopNo, int16 celNo, const Common::Rect &celRect, byte priority, uint16 paletteNo, uint16 scaleX, uint16 scaleY, uint16 scaleSignal) {
 	Common::Rect clipRect = celRect;
 	clipRect.clip(_ports->_curPort->rect);
@@ -145,7 +144,7 @@ void GfxPaint16::drawHiresCelAndShow(GuiResourceId viewId, int16 loopNo, int16 c
 			// need to get coordinates from upscaledHiresHandle. I'm not sure if
 			// this is what we are supposed to do or if there is some other bug
 			// that actually makes coordinates to be 0 in the first place.
-			byte *memoryPtr = NULL;
+			byte *memoryPtr = nullptr;
 			memoryPtr = _segMan->getHunkPointer(upscaledHiresHandle);
 			if (memoryPtr) {
 				Common::Rect upscaledHiresRect;
@@ -350,7 +349,7 @@ reg_t GfxPaint16::bitsSave(const Common::Rect &rect, byte screenMask) {
 }
 
 void GfxPaint16::bitsGetRect(reg_t memoryHandle, Common::Rect *destRect) {
-	byte *memoryPtr = NULL;
+	byte *memoryPtr = nullptr;
 
 	if (!memoryHandle.isNull()) {
 		memoryPtr = _segMan->getHunkPointer(memoryHandle);
@@ -362,7 +361,7 @@ void GfxPaint16::bitsGetRect(reg_t memoryHandle, Common::Rect *destRect) {
 }
 
 void GfxPaint16::bitsRestore(reg_t memoryHandle) {
-	byte *memoryPtr = NULL;
+	byte *memoryPtr = nullptr;
 
 	if (!memoryHandle.isNull()) {
 		memoryPtr = _segMan->getHunkPointer(memoryHandle);
@@ -558,7 +557,7 @@ reg_t GfxPaint16::kernelDisplay(const char *text, uint16 languageSplitter, int a
 			SciCallOrigin originReply;
 			SciWorkaroundSolution solution = trackOriginAndFindWorkaround(0, kDisplay_workarounds, &originReply);
 			if (solution.type == WORKAROUND_NONE)
-				error("Unknown kDisplay argument (%04x:%04x) from %s", PRINT_REG(displayArg), originReply.toString().c_str());
+				error("Unknown kDisplay argument (%04x:%04x)", PRINT_REG(displayArg));
 			assert(solution.type == WORKAROUND_IGNORE);
 			break;
 		}
@@ -601,9 +600,17 @@ reg_t GfxPaint16::kernelDisplay(const char *text, uint16 languageSplitter, int a
 		_ports->penColor(colorPen);
 	}
 
-	_text16->Box(text, languageSplitter, false, rect, alignment, -1);
-	if (_screen->_picNotValid == 0 && bRedraw)
+	// To make sure that the Korean hires font does not get overdrawn we update the display area before printing
+	// the text. The PC-98 versions use a lowres font here, so this fix is only for the Korean fan translation.
+	if (g_sci->getLanguage() == Common::KO_KOR && !_screen->_picNotValid && bRedraw)
 		bitsShow(rect);
+
+	_text16->Box(text, languageSplitter, g_sci->getLanguage() == Common::KO_KOR, rect, alignment, -1);
+
+	// See comment above.
+	if (g_sci->getLanguage() != Common::KO_KOR && _screen->_picNotValid == 0 && bRedraw)
+		bitsShow(rect);
+
 	// restoring port and cursor pos
 	Port *currport = _ports->getPort();
 	uint16 tTop = currport->curTop;
@@ -631,12 +638,12 @@ reg_t GfxPaint16::kernelDisplay(const char *text, uint16 languageSplitter, int a
 }
 
 reg_t GfxPaint16::kernelPortraitLoad(const Common::String &resourceName) {
-	//Portrait *myPortrait = new Portrait(g_sci->getResMan(), _screen, _palette, resourceName);
+	//Portrait *myPortrait = new Portrait(_resMan, _screen, _palette, resourceName);
 	return NULL_REG;
 }
 
 void GfxPaint16::kernelPortraitShow(const Common::String &resourceName, Common::Point position, uint16 resourceId, uint16 noun, uint16 verb, uint16 cond, uint16 seq) {
-	Portrait *myPortrait = new Portrait(g_sci->getResMan(), g_sci->getEventManager(), _screen, _palette, _audio, resourceName);
+	Portrait *myPortrait = new Portrait(_resMan, g_sci->getEventManager(), _screen, _palette, _audio, resourceName);
 	// TODO: cache portraits
 	// adjust given coordinates to curPort (but dont adjust coordinates on upscaledHires_Save_Box and give us hires coordinates
 	//  on kDrawCel, yeah this whole stuff makes sense)

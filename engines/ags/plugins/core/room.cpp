@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,8 @@ void Room::AGS_EngineStartup(IAGSEngine *engine) {
 	SCRIPT_METHOD(Room::GetDrawingSurfaceForBackground^1, Room::GetDrawingSurfaceForBackground);
 	SCRIPT_METHOD(Room::GetProperty^1, Room::GetProperty);
 	SCRIPT_METHOD(Room::GetTextProperty^1, Room::GetTextProperty);
+	SCRIPT_METHOD(Room::SetProperty^2, Room::SetProperty);
+	SCRIPT_METHOD(Room::SetTextProperty^2, Room::SetTextProperty);
 	SCRIPT_METHOD(Room::get_BottomEdge, Room::GetBottomEdge);
 	SCRIPT_METHOD(Room::get_ColorDepth, Room::GetColorDepth);
 	SCRIPT_METHOD(Room::get_Height, Room::GetHeight);
@@ -58,6 +59,16 @@ void Room::GetProperty(ScriptMethodParams &params) {
 void Room::GetTextProperty(ScriptMethodParams &params) {
 	PARAMS1(const char *, property);
 	params._result = AGS3::Room_GetTextProperty(property);
+}
+
+void Room::SetProperty(ScriptMethodParams &params) {
+	PARAMS2(const char *, property, int, value);
+	params._result = AGS3::Room_SetProperty(property, value);
+}
+
+void Room::SetTextProperty(ScriptMethodParams &params) {
+	PARAMS2(const char *, property, const char *, value);
+	params._result = AGS3::Room_SetTextProperty(property, value);
 }
 
 void Room::GetBottomEdge(ScriptMethodParams &params) {

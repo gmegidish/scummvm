@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@
 
 namespace LastExpress {
 
-Animation::Animation() : _stream(NULL), _currentChunk(NULL), _overlay(NULL), _background1(NULL), _background2(NULL), _backgroundCurrent(0), _audio(NULL), _startTime(0), _changed(false) {
+Animation::Animation() : _stream(nullptr), _currentChunk(nullptr), _overlay(nullptr), _background1(nullptr), _background2(nullptr), _backgroundCurrent(0), _audio(nullptr), _startTime(0), _changed(false) {
 }
 
 Animation::~Animation() {
@@ -55,7 +54,7 @@ void Animation::reset() {
 	_backgroundCurrent = 0;
 	_chunks.clear();
 
-	_currentChunk = NULL;
+	_currentChunk = nullptr;
 
 	SAFE_DELETE(_stream);
 }
@@ -101,7 +100,7 @@ bool Animation::process() {
 	if (!_currentChunk)
 		error("[Animation::process] Current chunk iterator is invalid");
 
-	if (_stream == NULL || _chunks.size() == 0)
+	if (_stream == nullptr || _chunks.size() == 0)
 		error("[Animation::process] Trying to show an animation before loading data");
 
 	// TODO: - subtract the time paused by the GUI
@@ -111,13 +110,13 @@ bool Animation::process() {
 	int32 currentFrame = (g_system->getMillis() - _startTime) * 3 / 100;
 
 	// Process all chunks until the current frame
-	while (!_changed && _currentChunk != NULL && currentFrame > _currentChunk->frame && !hasEnded()) {
+	while (!_changed && _currentChunk != nullptr && currentFrame > _currentChunk->frame && !hasEnded()) {
 		switch(_currentChunk->type) {
 		//TODO: some info chunks are probably subtitle/sync related
 		case kChunkTypeUnknown1:
 		case kChunkTypeUnknown2:
 		case kChunkTypeUnknown5:
-			debugC(9, kLastExpressDebugGraphics | kLastExpressDebugUnknown, "  info chunk: type 0x%.4x (size %d)", _currentChunk->type, _currentChunk->size);
+			debugC(9, kLastExpressDebugGraphics, "  info chunk: type 0x%.4x (size %d)", _currentChunk->type, _currentChunk->size);
 			assert (_currentChunk->frame == 0);
 			//TODO: _currentChunk->size?
 			break;
@@ -130,7 +129,7 @@ bool Animation::process() {
 			break;
 
 		case kChunkTypeUnknown4:
-			debugC(9, kLastExpressDebugGraphics | kLastExpressDebugUnknown, "  info block 4");
+			debugC(9, kLastExpressDebugGraphics, "  info block 4");
 			assert (_currentChunk->frame == 0 && _currentChunk->size == 0);
 			//TODO unknown type of chunk
 			break;

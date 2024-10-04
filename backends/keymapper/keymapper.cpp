@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -140,6 +139,21 @@ void Keymapper::cleanupGameKeymaps() {
 	}
 }
 
+void Keymapper::setGameKeymapState(const String &id, bool enable) {
+	Keymap *keymap = getKeymap(id);
+	if (keymap) {
+		keymap->setEnabled(enable);
+	}
+}
+
+void Keymapper::disableAllGameKeymaps() {
+	for (auto &keymap : _keymaps) {
+		if (keymap->getType() == Keymap::kKeymapTypeGame) {
+			keymap->setEnabled(false);
+		}
+	}
+}
+
 Keymap *Keymapper::getKeymap(const String &id) const {
 	for (KeymapArray::const_iterator it = _keymaps.begin(); it != _keymaps.end(); it++) {
 		if ((*it)->getId() == id) {
@@ -161,11 +175,9 @@ void Keymapper::setEnabledKeymapType(Keymap::KeymapType type) {
 	_enabledKeymapType = type;
 }
 
-List<Event> Keymapper::mapEvent(const Event &ev) {
+bool Keymapper::mapEvent(const Event &ev, List<Event> &mappedEvents) {
 	if (!_enabled) {
-		List<Event> originalEvent;
-		originalEvent.push_back(ev);
-		return originalEvent;
+		return false;
 	}
 
 	hardcodedEventMapping(ev);
@@ -184,7 +196,6 @@ List<Event> Keymapper::mapEvent(const Event &ev) {
 	}
 
 	bool matchedAction = !actions.empty();
-	List<Event> mappedEvents;
 	for (Keymap::ActionArray::const_iterator it = actions.begin(); it != actions.end(); it++) {
 		Event mappedEvent = executeAction(*it, ev);
 		if (mappedEvent.type == EVENT_INVALID) {
@@ -214,12 +225,7 @@ List<Event> Keymapper::mapEvent(const Event &ev) {
 		}
 	}
 
-	if (!matchedAction) {
-		// if it didn't get mapped, just pass it through
-		mappedEvents.push_back(ev);
-	}
-
-	return mappedEvents;
+	return matchedAction;
 }
 
 Keymap::KeymapMatch Keymapper::getMappedActions(const Event &event, Keymap::ActionArray &actions, Keymap::KeymapType keymapType) const {
@@ -384,7 +390,6 @@ HardwareInput Keymapper::findHardwareInput(const Event &event) {
 void Keymapper::hardcodedEventMapping(Event ev) {
 	// TODO: Either add support for long presses to the keymapper
 	// or move this elsewhere as an event observer + source
-#ifdef ENABLE_VKEYBD
 	// Trigger virtual keyboard on long press of more than 1 second
 	// of middle mouse button.
 	const uint32 vkeybdTime = 1000;
@@ -404,7 +409,6 @@ void Keymapper::hardcodedEventMapping(Event ev) {
 			_delayedEventSource->scheduleEvent(vkeybdEvent, 100);
 		}
 	}
-#endif
 }
 
 void Keymapper::resetInputState() {

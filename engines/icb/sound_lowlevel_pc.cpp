@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,15 +43,12 @@ bool8 DoesClusterContainFile(pxString clustername, uint32 hash_to_find, uint32 &
 	// Manually open the cluster file
 	Common::SeekableReadStream *stream = openDiskFileForBinaryStreamRead(clustername.c_str());
 
-	if (stream == NULL)
+	if (stream == nullptr)
 		Fatal_error(pxVString("Failed to open cluster: %s", clustername.c_str()));
 
-	// Read in first 16 bytes so we can get the header size
-	uint32 data[4];
-	stream->read(data, sizeof(uint32) * 4);
-
 	// Get the size in bytes of the cluster header
-	uint32 clustersize = data[2];
+	stream->skip(8);
+	uint32 clustersize = stream->readUint32LE();
 
 	// Seek to beginning of file
 	stream->seek(0, SEEK_SET);
@@ -71,12 +67,12 @@ bool8 DoesClusterContainFile(pxString clustername, uint32 hash_to_find, uint32 &
 	Cluster_API *clu = (Cluster_API *)memory;
 
 	// Look for the file in the cluster
-	int32 nFiles = (int32)clu->ho.noFiles;
+	int32 nFiles = (int32)FROM_LE_32(clu->ho.noFiles);
 
 	int32 i;
 	for (i = 0; i < nFiles; i++) {
 		// Have we found it
-		if (hash_to_find == clu->hn[i].hash)
+		if (hash_to_find == FROM_LE_32(clu->hn[i].hash))
 			break;
 	}
 
@@ -89,8 +85,8 @@ bool8 DoesClusterContainFile(pxString clustername, uint32 hash_to_find, uint32 &
 	}
 
 	// Get the figures we need for streaming
-	filesize = clu->hn[i].size;
-	fileoffset = clu->hn[i].offset;
+	filesize = FROM_LE_32(clu->hn[i].size);
+	fileoffset = FROM_LE_32(clu->hn[i].offset);
 
 	// Tidy up
 	delete[] memory;

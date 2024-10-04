@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -51,6 +50,7 @@ void Clip_text_print(_rgb *pen, uint32 x, uint32 y, uint8 *base, uint32 pitch, c
 
 	va_start(arg_ptr, format);
 	vsnprintf(ascii, 150, format, arg_ptr);
+	va_end(arg_ptr);
 
 	pxString font_cluster = FONT_CLUSTER_PATH;
 	charSet = rs_font->Res_open(SYS_FONT, sys_font_hash, font_cluster, font_cluster_hash);
@@ -63,11 +63,11 @@ void Clip_text_print(_rgb *pen, uint32 x, uint32 y, uint8 *base, uint32 pitch, c
 		head = (_frameHeader *)FetchFrameHeader(charSet, (uint16)chr);
 		sprite_data = (uint8 *)(head + 1);
 
-		Render_clip_character(x, y, head->width, head->height, pen, base, pitch, sprite_data);
+		Render_clip_character(x, y, FROM_LE_16(head->width), FROM_LE_16(head->height), pen, base, pitch, sprite_data);
 
-		x += head->width + 1; // move on the x coordinate
+		x += FROM_LE_16(head->width) + 1; // move on the x coordinate
 
-	} while ((ascii[j]) && j < 150);
+	} while (j < 150 && ascii[j]);
 }
 
 void Render_clip_character(int32 x, int32 y, uint32 width, uint32 height, _rgb *pen, uint8 *ad, uint32 pitch, uint8 *sprite_data_ad) {

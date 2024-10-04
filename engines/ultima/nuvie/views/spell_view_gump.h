@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@ class Font;
 class U6Bmp;
 class Spell;
 
-#define SPELLVIEWGUMP_WIDTH 162
+static const int SPELLVIEWGUMP_WIDTH = 162;
 
 class SpellViewGump : public SpellView {
 
@@ -47,10 +46,10 @@ class SpellViewGump : public SpellView {
 	GUI_Font *font;
 	NuvieBmpFile bmp;
 public:
-	SpellViewGump(Configuration *cfg);
+	SpellViewGump(const Configuration *cfg);
 	~SpellViewGump() override;
 
-	bool init(Screen *tmp_screen, void *view_manager, uint16 x, uint16 y, Font *f, Party *p, TileManager *tm, ObjManager *om);
+	bool init(Screen *tmp_screen, void *view_manager, uint16 x, uint16 y, Font *f, Party *p, TileManager *tm, ObjManager *om) override;
 
 	void Display(bool full_redraw) override;
 
@@ -68,11 +67,11 @@ public:
 	GUI_status callback(uint16 msg, GUI_CallBack *caller, void *data) override;
 protected:
 
-	sint16 getSpell(int x, int y);
+	sint16 getSpell(int x, int y) const;
 
 	uint8 fill_cur_spell_list() override;
-	void loadCircleString(Std::string datadir);
-	void loadCircleSuffix(Std::string datadir, Std::string image);
+	void loadCircleString(const Common::Path &datadir);
+	void loadCircleSuffix(const Common::Path &datadir, const Std::string &image);
 	void printSpellQty(uint8 spell_num, uint16 x, uint16 y);
 
 	void close_spellbook();

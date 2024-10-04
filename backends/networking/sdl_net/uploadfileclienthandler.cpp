@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "backends/networking/sdl_net/uploadfileclienthandler.h"
-#include "backends/fs/fs-factory.h"
 #include "backends/networking/sdl_net/handlerutils.h"
 #include "backends/networking/sdl_net/localwebserver.h"
 #include "backends/networking/sdl_net/reader.h"
@@ -31,7 +29,7 @@
 
 namespace Networking {
 
-UploadFileClientHandler::UploadFileClientHandler(Common::String parentDirectoryPath):
+UploadFileClientHandler::UploadFileClientHandler(const Common::Path &parentDirectoryPath):
 	_state(UFH_READING_CONTENT), _headersStream(nullptr), _contentStream(nullptr),
 	_parentDirectoryPath(parentDirectoryPath), _uploadedFiles(0) {}
 
@@ -49,7 +47,7 @@ void UploadFileClientHandler::handle(Client *client) {
 	while (true) {
 		switch (_state) {
 		case UFH_READING_CONTENT:
-			if (client->readContent(nullptr)) {
+			if (client->readFirstContent(nullptr)) {
 				_state = UFH_READING_BLOCK_HEADERS;
 				continue;
 			}
@@ -89,7 +87,7 @@ void UploadFileClientHandler::handle(Client *client) {
 }
 
 namespace {
-void readFromThatUntilDoubleQuote(const char *cstr, Common::String needle, Common::String &result) {
+void readFromThatUntilDoubleQuote(const char *cstr, const Common::String &needle, Common::String &result) {
 	const char *position = strstr(cstr, needle.c_str());
 
 	if (position) {
@@ -129,15 +127,13 @@ void UploadFileClientHandler::handleBlockHeaders(Client *client) {
 		return;
 
 	// check that <path>/<filename> doesn't exist
-	Common::String path = _parentDirectoryPath;
-	if (path.lastChar() != '/' && path.lastChar() != '\\')
-		path += '/';
-	AbstractFSNode *originalNode = g_system->getFilesystemFactory()->makeFileNodePath(path + filename);
-	if (!HandlerUtils::permittedPath(originalNode->getPath())) {
+	Common::Path path = _parentDirectoryPath.appendComponent(filename);
+	Common::FSNode originalNode(path);
+	if (!HandlerUtils::permittedPath(originalNode.getPath())) {
 		setErrorMessageHandler(*client, Common::convertFromU32String(_("Invalid path!")));
 		return;
 	}
-	if (originalNode->exists()) {
+	if (originalNode.exists()) {
 		setErrorMessageHandler(*client, Common::convertFromU32String(_("There is a file with that name in the parent directory!")));
 		return;
 	}
@@ -150,7 +146,7 @@ void UploadFileClientHandler::handleBlockHeaders(Client *client) {
 
 	// create file stream (and necessary subdirectories)
 	Common::DumpFile *f = new Common::DumpFile();
-	if (!f->open(originalNode->getPath(), true)) {
+	if (!f->open(originalNode.getPath(), true)) {
 		delete f;
 		setErrorMessageHandler(*client, Common::convertFromU32String(_("Failed to upload the file!")));
 		return;
@@ -188,7 +184,7 @@ void UploadFileClientHandler::handleBlockContent(Client *client) {
 	}
 }
 
-void UploadFileClientHandler::setErrorMessageHandler(Client &client, Common::String message) {
+void UploadFileClientHandler::setErrorMessageHandler(Client &client, const Common::String &message) {
 	HandlerUtils::setFilesManagerErrorMessageHandler(client, message);
 	_state = UFH_ERROR;
 }

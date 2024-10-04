@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -31,20 +30,20 @@ namespace Saga2 {
 
 struct StandingTileInfo;
 
-const   int     maxObjDist = kPlatformWidth * kTileUVSize * 8;
-const   int     maxTileDist = kPlatformWidth * kTileUVSize * 2;
-const   int     maxMetaDist = kPlatformWidth * kTileUVSize * 8;
+const   int     kMaxObjDist = kPlatformWidth * kTileUVSize * 8;
+const   int     kMaxTileDist = kPlatformWidth * kTileUVSize * 2;
+const   int     kMaxMetaDist = kPlatformWidth * kTileUVSize * 8;
 
 enum TargetType {
-	locationTarget,
-	specificTileTarget,
-	tilePropertyTarget,
-	specificMetaTileTarget,
-	metaTilePropertyTarget,
-	specificObjectTarget,
-	objectPropertyTarget,
-	specificActorTarget,
-	actorPropertyTarget
+	kLocationTarget,
+	kSpecificTileTarget,
+	kTilePropertyTarget,
+	kSpecificMetaTileTarget,
+	kMetaTilePropertyTarget,
+	kSpecificObjectTarget,
+	kObjectPropertyTarget,
+	kSpecificActorTarget,
+	kActorPropertyTarget
 };
 
 /* ===================================================================== *
@@ -182,11 +181,11 @@ public:
  * ===================================================================== */
 
 class LocationTarget : public Target {
-	TilePoint   loc;
+	TilePoint   _loc;
 
 public:
 	//  Constructor -- initial construction
-	LocationTarget(const TilePoint &tp) : loc(tp) {}
+	LocationTarget(const TilePoint &tp) : _loc(tp) {}
 
 	LocationTarget(Common::SeekableReadStream *stream);
 
@@ -211,10 +210,10 @@ public:
 	//  Determine if the specified location target is equivalent to this
 	//  location target
 	bool operator == (const LocationTarget &lt) const {
-		return loc == lt.loc;
+		return _loc == lt._loc;
 	}
 	bool operator != (const LocationTarget &lt) const {
-		return loc != lt.loc;
+		return _loc != lt._loc;
 	}
 
 	TilePoint where(GameWorld *world, const TilePoint &tp) const;
@@ -244,11 +243,11 @@ public:
  * ===================================================================== */
 
 class SpecificTileTarget : public TileTarget {
-	TileID  tile;
+	TileID  _tile;
 
 public:
 	//  Constructor -- initial construction
-	SpecificTileTarget(TileID t) : tile(t) {}
+	SpecificTileTarget(TileID t) : _tile(t) {}
 
 	SpecificTileTarget(Common::SeekableReadStream *stream);
 
@@ -278,11 +277,11 @@ public:
  * ===================================================================== */
 
 class TilePropertyTarget : public TileTarget {
-	TilePropertyID  tileProp;
+	TilePropertyID  _tileProp;
 
 public:
 	//  Constructor -- initial construction
-	TilePropertyTarget(TilePropertyID tProp) : tileProp(tProp) {}
+	TilePropertyTarget(TilePropertyID tProp) : _tileProp(tProp) {}
 
 	TilePropertyTarget(Common::SeekableReadStream *stream);
 
@@ -330,11 +329,11 @@ public:
  * ===================================================================== */
 
 class SpecificMetaTileTarget : public MetaTileTarget {
-	MetaTileID  meta;
+	MetaTileID  _meta;
 
 public:
 	//  Constructor -- initial construction
-	SpecificMetaTileTarget(MetaTileID mt) : meta(mt) {}
+	SpecificMetaTileTarget(MetaTileID mt) : _meta(mt) {}
 
 	SpecificMetaTileTarget(Common::SeekableReadStream *stream);
 
@@ -364,12 +363,12 @@ public:
  * ===================================================================== */
 
 class MetaTilePropertyTarget : public MetaTileTarget {
-	MetaTilePropertyID  metaProp;
+	MetaTilePropertyID  _metaProp;
 
 public:
 	//  Constructor -- initial construction
 	MetaTilePropertyTarget(MetaTilePropertyID mtProp) :
-		metaProp(mtProp) {
+		_metaProp(mtProp) {
 	}
 
 	MetaTilePropertyTarget(Common::SeekableReadStream *stream);
@@ -440,17 +439,15 @@ public:
  * ===================================================================== */
 
 class SpecificObjectTarget : public ObjectTarget {
-	ObjectID    obj;
+	ObjectID    _obj;
 
 public:
 	//  Constructors -- initial construction
 	SpecificObjectTarget(ObjectID id) :
-		obj(id) {
-		assert(isObject(obj));
+		_obj(id) {
+		assert(isObject(_obj));
 	}
-	SpecificObjectTarget(GameObject *ptr) :
-		obj((assert(isObject(ptr)), ptr->thisID())) {
-	}
+	SpecificObjectTarget(GameObject *ptr) : _obj((assert(isObject(ptr)), ptr->thisID())) {}
 
 	SpecificObjectTarget(Common::SeekableReadStream *stream);
 
@@ -488,7 +485,7 @@ public:
 
 	//  Return a pointer to the target object, unconditionally
 	GameObject *getTargetObject() const {
-		return GameObject::objectAddress(obj);
+		return GameObject::objectAddress(_obj);
 	}
 };
 
@@ -497,11 +494,11 @@ public:
  * ===================================================================== */
 
 class ObjectPropertyTarget : public ObjectTarget {
-	ObjectPropertyID    objProp;
+	ObjectPropertyID    _objProp;
 
 public:
 	//  Constructor -- initial construction
-	ObjectPropertyTarget(ObjectPropertyID prop) : objProp(prop) {}
+	ObjectPropertyTarget(ObjectPropertyID prop) : _objProp(prop) {}
 
 	ObjectPropertyTarget(Common::SeekableReadStream *stream);
 
@@ -550,13 +547,11 @@ public:
  * ===================================================================== */
 
 class SpecificActorTarget : public ActorTarget {
-	Actor   *a;
+	Actor   *_a;
 
 public:
 	//  Constructor -- initial construction
-	SpecificActorTarget(Actor *actor_) :
-		a(actor_) {
-	}
+	SpecificActorTarget(Actor *actor_) : _a(actor_) {}
 
 	SpecificActorTarget(Common::SeekableReadStream *stream);
 
@@ -600,7 +595,7 @@ public:
 
 	//  Return a pointer to the target actor, unconditionally
 	Actor *getTargetActor() const {
-		return a;
+		return _a;
 	}
 };
 
@@ -609,13 +604,11 @@ public:
  * ===================================================================== */
 
 class ActorPropertyTarget : public ActorTarget {
-	ActorPropertyID     actorProp;
+	ActorPropertyID     _actorProp;
 
 public:
 	//  Constructor -- initial construction
-	ActorPropertyTarget(ActorPropertyID aProp) :
-		actorProp(aProp) {
-	}
+	ActorPropertyTarget(ActorPropertyID aProp) : _actorProp(aProp) {}
 
 	ActorPropertyTarget(Common::SeekableReadStream *stream);
 
@@ -648,9 +641,9 @@ public:
 //	to contain any target.  The sizeof( LocationTarget ) is used because
 //	the LocationTarget takes the most memory.
 
-const size_t    targetBytes = sizeof(LocationTarget);
+const size_t    kTargetBytes = sizeof(LocationTarget);
 
-typedef uint8 TargetPlaceHolder[targetBytes];
+typedef uint8 TargetPlaceHolder[kTargetBytes];
 
 } // end of namespace Saga2
 

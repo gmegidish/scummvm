@@ -4,9 +4,9 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
  * of the License, or(at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -89,6 +88,7 @@ private:
 
 	float _mWindSpeed = 0;
 
+	bool _mBaselineFixed;
 	int _mTopBaseline = 0;
 	int _mBottomBaseline = 0;
 	int _mDeltaBaseline = 0;
@@ -123,7 +123,11 @@ public:
 	void SetDefaultView(int view, int loop);
 	void SetTransparency(int min_value, int max_value);
 	void SetWindSpeed(int value);
+	// Sets baseline and marks baseline as fixed
 	void SetBaseline(int top, int bottom);
+	// Resets baselines to the (0, screen_height);
+	// marks baseline for auto-update on screen change
+	void ResetBaseline();
 	void SetAmount(int amount);
 	void SetFallSpeed(int min_value, int max_value);
 };

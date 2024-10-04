@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,11 +20,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "engines/icb/icb.h"
 #include "engines/icb/common/px_common.h"
 #include "engines/icb/surface_manager.h"
 #include "engines/icb/mission.h"
@@ -41,16 +41,13 @@
 
 #include "engines/util.h"
 
-#include "graphics/tinygl/zgl.h"
-#include "graphics/tinygl/zblit.h"
-
 namespace ICB {
 
 #define FIRST_CLIENT_SURFACE 2
 
 uint32 working_buffer_id;
 uint32 bg_buffer_id;
-uint32 effect_time; // Time spent doing postprocessing effects (fades ect)
+uint32 effect_time; // Time spent doing postprocessing effects (fades etc)
 uint32 flipTime;
 
 _surface::~_surface() {
@@ -62,7 +59,7 @@ _surface::~_surface() {
 }
 
 _surface::_surface() {
-	m_dds = NULL;
+	m_dds = nullptr;
 	m_name = "Created";
 	m_width = 0;
 	m_height = 0;
@@ -72,7 +69,7 @@ _surface::_surface() {
 void _surface_manager::PrintDebugLabel(const char *mess, uint32 c) {
 	static int32 y = 100;
 
-	if (mess == NULL) {
+	if (mess == nullptr) {
 		y = c;
 	} else {
 		/*      Get_surface_DC( working_buffer_id, dc );
@@ -82,6 +79,8 @@ void _surface_manager::PrintDebugLabel(const char *mess, uint32 c) {
 		        Release_surface_DC( working_buffer_id, dc);*/
 		y += 15;
 	}
+
+	(void)y;
 }
 
 void _surface_manager::PrintTimer(char label, uint32 time, uint32 limit) {
@@ -104,7 +103,7 @@ void _surface_manager::PrintTimer(char label, uint32 time, uint32 limit) {
 		if (percIndex > 5)
 			percIndex = 5;
 		char message[64];
-		sprintf(message, "%c%3.1f", label, perc);
+		Common::sprintf_s(message, "%c%3.1f", label, perc);
 		/*      Get_surface_DC( working_buffer_id, dc );
 		        SetBkColor( dc, colours[percIndex] );
 		        SetTextColor( dc, 0x01010101 );
@@ -112,11 +111,12 @@ void _surface_manager::PrintTimer(char label, uint32 time, uint32 limit) {
 		        Release_surface_DC( working_buffer_id, dc);*/
 		x += 54;
 	}
+	(void)x;
 }
 
 _surface_manager::_surface_manager() {
 	// Setup uninitialized pointers
-	screenSurface = NULL;
+	screenSurface = nullptr;
 
 	// set these up only once
 	full_rect.left = 0;
@@ -162,7 +162,10 @@ uint32 _surface_manager::Init_direct_draw() {
 	// Debug info
 	Zdebug("*SURFACE_MANAGER* Initalizing the SDL video interface");
 
-	g_system->setWindowCaption(Common::U32String("In Cold Blood (C)2000 Revolution Software Ltd"));
+	if (g_icb->getGameType() == GType_ICB)
+		g_system->setWindowCaption(Common::U32String("In Cold Blood"));
+	else
+		g_system->setWindowCaption(Common::U32String("The Road to El Dorado"));
 	initGraphics(SCREEN_WIDTH, SCREEN_DEPTH, nullptr);
 
 	screenSurface = new Graphics::Surface();
@@ -210,7 +213,7 @@ void _surface_manager::Reset_Effects() {
 void _surface_manager::Flip() {
 	// Draw Frame rate monitor if it's switched on
 	static uint32 g_fpsCounter = 0;
-	static float g_fpsTotalTime = 0.0f;
+	//static float g_fpsTotalTime = 0.0f;
 	static float g_fpsEndTime = 0.0f;
 	static float g_fpsStartTime = 0.0f;
 
@@ -221,14 +224,14 @@ void _surface_manager::Flip() {
 	if ((nowTime > 1000.0f) || (nowTime < 1.0f))
 		nowTime = 83.0f;
 
-	g_fpsTotalTime += nowTime;
+	//g_fpsTotalTime += nowTime;
 	//float averageFps = (float)(g_fpsTotalTime / ((double)g_fpsCounter + 1.0f));
 
 	//float currentFPS = (float)(1000.0f / (double)nowTime);
 	//float averageFPS = (float)(1000.0f / (double)averageFps);
 
 	if ((++g_fpsCounter) > 0xffffff00) {
-		g_fpsTotalTime = 0.0f;
+		//g_fpsTotalTime = 0.0f;
 		g_fpsCounter = 0;
 	}
 
@@ -244,19 +247,15 @@ void _surface_manager::Flip() {
 
 	flipTime = GetMicroTimer();
 
-	Graphics::PixelBuffer srcBuf;
-	srcBuf.set(screenSurface->format, (byte *)screenSurface->getPixels());
-	Graphics::PixelBuffer dstBuf;
-	dstBuf.create(g_system->getScreenFormat(), screenSurface->w * screenSurface->h, DisposeAfterUse::YES);
-	dstBuf.copyBuffer(0, screenSurface->w * screenSurface->h, srcBuf);
-
-	g_system->copyRectToScreen(dstBuf.getRawBuffer(), screenSurface->pitch,
-	                           0, 0, screenSurface->w, screenSurface->h);
+	Graphics::Surface *dstBuf = screenSurface->convertTo(g_system->getScreenFormat());
+	g_system->copyRectToScreen(dstBuf->getPixels(), dstBuf->pitch, 0, 0, dstBuf->w, dstBuf->h);
 	g_system->updateScreen();
+	dstBuf->free();
+	delete dstBuf;
 
 	flipTime = GetMicroTimer() - flipTime;
 
-	PrintDebugLabel(NULL, 0x00000000);
+	PrintDebugLabel(nullptr, 0x00000000);
 	PrintTimer('\0', 0, 0);
 }
 
@@ -264,7 +263,7 @@ void _surface_manager::Flip() {
 uint32 _surface_manager::Create_new_surface(const char *name, uint32 width, uint32 height, uint32 /*type*/) {
 	// Find the next free slot
 	uint32 slot;
-	for (slot = FIRST_CLIENT_SURFACE; slot < m_Surfaces.GetNoItems() && m_Surfaces[slot] != NULL; slot++)
+	for (slot = FIRST_CLIENT_SURFACE; slot < m_Surfaces.GetNoItems() && m_Surfaces[slot] != nullptr; slot++)
 		;
 
 	// Create the new surface structure
@@ -282,17 +281,17 @@ uint32 _surface_manager::Create_new_surface(const char *name, uint32 width, uint
 		return slot;
 
 	delete m_Surfaces[slot];
-	m_Surfaces[slot] = NULL;
+	m_Surfaces[slot] = nullptr;
 
 	return 0;
 }
 
 void _surface_manager::Kill_surface(uint32 s_id) {
-	if (m_Surfaces[s_id] == NULL)
+	if (m_Surfaces[s_id] == nullptr)
 		return; // Already killed
 
 	delete m_Surfaces[s_id];
-	m_Surfaces[s_id] = NULL;
+	m_Surfaces[s_id] = nullptr;
 }
 
 uint8 *_surface_manager::Lock_surface(uint32 s_id) {

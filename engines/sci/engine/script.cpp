@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,11 +57,13 @@ void Script::freeScript(const bool keepLocalsSegment) {
 	_synonyms.clear();
 	_numSynonyms = 0;
 
+	_codeOffset = 0;
+
 	_localsOffset = 0;
 	if (!keepLocalsSegment) {
 		_localsSegment = 0;
 	}
-	_localsBlock = NULL;
+	_localsBlock = nullptr;
 	_localsCount = 0;
 
 	_lockers = 1;
@@ -90,6 +91,7 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 	_nr = script_nr;
 	uint32 scriptSize = script->size();
 	uint32 bufSize = scriptSize;
+	Resource *heap = nullptr;
 
 	if (getSciVersion() == SCI_VERSION_0_EARLY) {
 		bufSize += script->getUint16LEAt(0) * 2;
@@ -100,7 +102,10 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 		// combined size of the stack and the heap must be 64KB. So far this has
 		// worked for SCI11, SCI2 and SCI21 games. SCI3 games use a different
 		// script format, and they can exceed the 64KB boundary using relocation.
-		Resource *heap = resMan->findResource(ResourceId(kResourceTypeHeap, script_nr), false);
+		heap = resMan->findResource(ResourceId(kResourceTypeHeap, script_nr), false);
+		if (heap == nullptr) {
+			error("Heap %d not found", script_nr);
+		}
 		bufSize += heap->size();
 
 		// Ensure that the start of the heap resource can be word-aligned.
@@ -124,8 +129,7 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 		// WORKAROUND: Script 1 in Ocean Battle doesn't have enough locals to
 		// fit the string showing how many shots are left (a nasty script bug,
 		// corrupting heap memory). We add 10 more locals so that it has enough
-		// space to use as the target for its kFormat operation. Fixes bug
-		// #5335.
+		// space to use as the target for its kFormat operation. Fixes bug #5335.
 		extraLocalsWorkaround = 10;
 	}
 	bufSize += extraLocalsWorkaround * 2;
@@ -133,14 +137,10 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 	SciSpan<byte> outBuffer = _buf->allocate(bufSize, script->name() + " buffer");
 	script->copyDataTo(outBuffer);
 	// The word-aligned script size is used here because other parts of the code
-	// currently rely on finding the start of the heap by reading the script
-	// size
+	// currently rely on finding the start of the heap by reading the script size
 	_script = _buf->subspan(0, scriptSize, script->name());
 
-	if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE) {
-		Resource *heap = resMan->findResource(ResourceId(kResourceTypeHeap, _nr), false);
-		assert(heap);
-
+	if (heap != nullptr) {
 		SciSpan<byte> outHeap = outBuffer.subspan(scriptSize, heap->size(), heap->name(), 0);
 		heap->copyDataTo(outHeap);
 		_heap = outHeap;
@@ -224,6 +224,8 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 
 	// find all strings of this script
 	identifyOffsets();
+
+	applySaidWorkarounds();
 }
 
 void Script::identifyOffsets() {
@@ -638,14 +640,14 @@ Object *Script::getObject(uint32 offset) {
 	if (_objects.contains(offset))
 		return &_objects[offset];
 	else
-		return 0;
+		return nullptr;
 }
 
 const Object *Script::getObject(uint32 offset) const {
 	if (_objects.contains(offset))
 		return &_objects[offset];
 	else
-		return 0;
+		return nullptr;
 }
 
 Object *Script::scriptObjInit(reg_t obj_pos, bool fullObjectInit) {
@@ -840,6 +842,21 @@ void Script::relocateSci3(const SegmentId segmentId) {
 
 void Script::incrementLockers() {
 	assert(!_markedAsDeleted);
+	if (_lockers == 0xffffffff) {
+		// FIXME
+		// The locker on system scripts, most notably script 999, increases throughout
+		// the game and can eventually overflow, causing script 999 to be unloaded
+		// and crash. We have been provided QFG1 SCI0 save games where this occurred
+		// within hours of play over the course of three days. Debugging shows that
+		// this value increases rapidly, for example: on every `class Event` opcode
+		// during input polling, or when our kAnimate code calls `doit` on objects.
+		// Until this is fixed properly, log these overflow attempts and lower the
+		// counter so that the warnings continue without flooding the log.
+		// At the point where a resource usage counter reaches the billions, its value
+		// no longer has meaning, so the important thing for now is that it not crash.
+		warning("script %d locker maximum reached, resetting", _nr);
+		_lockers = 0x80000000;
+	}
 	_lockers++;
 }
 
@@ -848,11 +865,11 @@ void Script::decrementLockers() {
 		_lockers--;
 }
 
-int Script::getLockers() const {
+uint Script::getLockers() const {
 	return _lockers;
 }
 
-void Script::setLockers(int lockers) {
+void Script::setLockers(uint lockers) {
 	assert(lockers == 0 || !_markedAsDeleted);
 	_lockers = lockers;
 }
@@ -885,7 +902,12 @@ uint32 Script::validateExportFunc(int pubfunct, bool relocSci3) {
 #endif
 		offset = _exports.getUint16SEAt(pubfunct);
 
-	// TODO: Check if this should be done for SCI1.1 games as well
+	// SCI2 doesn't adjust export offsets to the code block when they're zero.
+	// Zero is supposed to signify that the export slot is empty. This leaves the
+	// offset pointing at the start of the code block, and several scripts rely
+	// on this. Script 64909's first export is zero but game scripts call this
+	// to shake the screen. This works because the function resides at the start
+	// of the code block.
 	if (getSciVersion() >= SCI_VERSION_2 && offset == 0) {
 		offset = getCodeBlockOffset();
 	}
@@ -951,16 +973,18 @@ SegmentRef Script::dereference(reg_t pointer) {
 
 LocalVariables *Script::allocLocalsSegment(SegManager *segMan) {
 	if (!getLocalsCount()) { // No locals
-		return NULL;
+		return nullptr;
 	} else {
 		LocalVariables *locals;
 
-		if (_localsSegment) {
+		if (!_localsSegment) {
+			locals = new LocalVariables();
+			_localsSegment = segMan->allocSegment(locals);
+		} else {
 			locals = (LocalVariables *)segMan->getSegment(_localsSegment, SEG_TYPE_LOCALS);
 			if (!locals || locals->getType() != SEG_TYPE_LOCALS || locals->script_id != getScriptNumber())
 				error("Invalid script %d locals segment while allocating locals", _nr);
-		} else
-			locals = (LocalVariables *)segMan->allocSegment(new LocalVariables(), &_localsSegment);
+		}
 
 		_localsBlock = locals;
 		locals->script_id = getScriptNumber();
@@ -987,137 +1011,63 @@ void Script::initializeLocals(SegManager *segMan) {
 }
 
 void Script::syncLocalsBlock(SegManager *segMan) {
-	_localsBlock = (_localsSegment == 0) ? NULL : (LocalVariables *)(segMan->getSegment(_localsSegment, SEG_TYPE_LOCALS));
+	_localsBlock = (_localsSegment == 0) ? nullptr : (LocalVariables *)(segMan->getSegment(_localsSegment, SEG_TYPE_LOCALS));
 }
 
-void Script::initializeClasses(SegManager *segMan) {
-	SciSpan<const byte> seeker;
-	uint16 mult = 0;
-
-	if (getSciVersion() <= SCI_VERSION_1_LATE) {
-		seeker = _script;
-		mult = 1;
-
-		// SCI0 early has an extra two bytes of header
-		if (getSciVersion() == SCI_VERSION_0_EARLY) {
-			seeker += 2;
+void Script::initializeClass(SegManager *segMan, uint16 species, uint32 position) {
+	// WORKAROUND: The class table (vocab 996) is incomplete in some games.
+	// Because of this, scripts can contain species (class indexes) beyond
+	// the table's limit. In SCI2 this was a fatal error, but prior to this
+	// the interpreter would write to memory beyond the class table boundary
+	// and then read it back. We accommodate this by resizing the class table
+	// for plausible species values in earlier games.
+	// Ex: sq3 1.018 scripts 93 & 99, lsl3 script 500, kq5 amiga script 220
+	if (species >= segMan->classTableSize()) {
+		if (species <= 255 && getSciVersion() < SCI_VERSION_2) {
+			warning("Resizing class table for species %d in script %d", species, _nr);
+			segMan->resizeClassTable(species + 1);
+		} else {
+			error("Invalid species %d in script %d", species, _nr);
 		}
-	} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE) {
-		seeker = _heap.subspan(4 + _heap.getUint16SEAt(2) * 2);
-		mult = 2;
-#ifdef ENABLE_SCI32
-	} else if (getSciVersion() == SCI_VERSION_3) {
-		seeker = getSci3ObjectsPointer();
-		mult = 1;
-#endif
 	}
 
-	if (!seeker)
-		return;
-
-	uint16 marker;
-	bool isClass = false;
-	uint32 classpos;
-	int16 species = 0;
-
-	for (;;) {
-		// In SCI0-SCI1, this is the segment type. In SCI11, it's a marker (0x1234)
-		marker = seeker.getUint16SEAt(0);
-		classpos = seeker - *_buf;
-
-		if (getSciVersion() <= SCI_VERSION_1_LATE && !marker)
-			break;
-
-		if (getSciVersion() >= SCI_VERSION_1_1 && marker != SCRIPT_OBJECT_MAGIC_NUMBER)
-			break;
-
-		if (getSciVersion() <= SCI_VERSION_1_LATE) {
-			isClass = (marker == SCI_OBJ_CLASS);
-			if (isClass)
-				species = seeker.getUint16SEAt(12);
-			classpos += 12;
-		} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE) {
-			isClass = (seeker.getUint16SEAt(14) & kInfoFlagClass);	// -info- selector
-			species = seeker.getUint16SEAt(10);
-		} else if (getSciVersion() == SCI_VERSION_3) {
-			isClass = (seeker.getUint16SEAt(10) & kInfoFlagClass);
-			species = seeker.getUint16SEAt(4);
-		}
-
-		if (isClass) {
-			// WORKAROUNDs for off-by-one script errors
-			if (species == (int)segMan->classTableSize()) {
-				if (g_sci->getGameId() == GID_LSL2 && g_sci->isDemo())
-					segMan->resizeClassTable(species + 1);
-				else if (g_sci->getGameId() == GID_LSL3 && !g_sci->isDemo() && _nr == 500)
-					segMan->resizeClassTable(species + 1);
-				else if (g_sci->getGameId() == GID_SQ3 && !g_sci->isDemo() && _nr == 93)
-					segMan->resizeClassTable(species + 1);
-				else if (g_sci->getGameId() == GID_SQ3 && !g_sci->isDemo() && _nr == 99)
-					segMan->resizeClassTable(species + 1);
-				else if (g_sci->getGameId() == GID_KQ5 && g_sci->getPlatform() == Common::kPlatformAmiga && _nr == 220)
-					segMan->resizeClassTable(species + 1);
-			}
-
-			if (species < 0 || species >= (int)segMan->classTableSize())
-				error("Invalid species %d(0x%x) unknown max %d(0x%x) while instantiating script %d",
-						  species, species, segMan->classTableSize(), segMan->classTableSize(), _nr);
-
-			segMan->setClassOffset(species, make_reg32(segMan->getScriptSegment(_nr), classpos));
-		}
-
-		seeker += seeker.getUint16SEAt(2) * mult;
-	}
+	segMan->setClassOffset(species, make_reg32(segMan->getScriptSegment(_nr), position));
 }
 
 void Script::initializeObjectsSci0(SegManager *segMan, SegmentId segmentId, bool applyScriptPatches) {
 	bool oldScriptHeader = (getSciVersion() == SCI_VERSION_0_EARLY);
+	SciSpan<const byte> seeker = _buf->subspan(oldScriptHeader ? 2 : 0);
 
-	// We need to make two passes, as the objects in the script might be in the
-	// wrong order (e.g. in the demo of Iceman) - refer to bug #4963
-	for (int pass = 1; pass <= 2; pass++) {
-		SciSpan<const byte> seeker = _buf->subspan(oldScriptHeader ? 2 : 0);
+	do {
+		uint16 objType = seeker.getUint16SEAt(0);
+		if (objType == 0)
+			break;
 
-		do {
-			uint16 objType = seeker.getUint16SEAt(0);
-			if (!objType)
-				break;
-
-			switch (objType) {
-			case SCI_OBJ_OBJECT:
-			case SCI_OBJ_CLASS:
-				{
-					reg_t addr = make_reg(segmentId, seeker - *_buf + 4 - SCRIPT_OBJECT_MAGIC_OFFSET);
-					Object *obj;
-					if (pass == 1) {
-						obj = scriptObjInit(addr);
-						obj->initSpecies(segMan, addr, applyScriptPatches);
-					} else {
-						obj = getObject(addr.getOffset());
-						if (!obj->initBaseObject(segMan, addr, true, applyScriptPatches)) {
-							if ((_nr == 202 || _nr == 764) && g_sci->getGameId() == GID_KQ5) {
-								// WORKAROUND: Script 202 of KQ5 French and German
-								// (perhaps Spanish too?) has an invalid object.
-								// This is non-fatal. Refer to bugs #4996 and
-								// #5568.
-								// Same happens with script 764, it seems to
-								// contain junk towards its end.
-								_objects.erase(addr.toUint16() - SCRIPT_OBJECT_MAGIC_OFFSET);
-							} else {
-								error("Failed to locate base object for object at %04x:%04x in script %d", PRINT_REG(addr), _nr);
-							}
-						}
-					}
-				}
-				break;
-
-			default:
-				break;
+		if (objType == SCI_OBJ_OBJECT || objType == SCI_OBJ_CLASS) {
+			uint16 objectPosition = seeker - *_buf + 12;
+			if (objType == SCI_OBJ_CLASS) {
+				uint16 species = seeker.getUint16SEAt(12);
+				initializeClass(segMan, species, objectPosition);
 			}
 
-			seeker += seeker.getUint16SEAt(2);
-		} while ((uint32)(seeker - *_buf) < getScriptSize() - 2);
-	}
+			reg_t addr = make_reg(segmentId, objectPosition);
+			Object *obj = scriptObjInit(addr);
+			obj->initSpecies(segMan, addr, applyScriptPatches);
+			if (!obj->initBaseObject(segMan, addr, true, applyScriptPatches)) {
+				if ((_nr == 202 || _nr == 764) && g_sci->getGameId() == GID_KQ5) {
+					// WORKAROUND: Script 202 of KQ5 French and German
+					// (perhaps Spanish too?) has an invalid object.
+					// This is non-fatal. Refer to bugs #4996 and #5568.
+					// Same happens with script 764, it seems to
+					// contain junk towards its end.
+					_objects.erase(addr.toUint16() - SCRIPT_OBJECT_MAGIC_OFFSET);
+				} else {
+					error("Failed to locate base object for object at %04x:%04x in script %d", PRINT_REG(addr), _nr);
+				}
+			}
+		}
+		seeker += seeker.getUint16SEAt(2);
+	} while ((uint32)(seeker - *_buf) < getScriptSize() - 2);
 
 	relocateSci0Sci21(segmentId);
 }
@@ -1127,7 +1077,14 @@ void Script::initializeObjectsSci11(SegManager *segMan, SegmentId segmentId, boo
 	Common::Array<reg_t> mismatchedVarCountObjects;
 
 	while (seeker.getUint16SEAt(0) == SCRIPT_OBJECT_MAGIC_NUMBER) {
-		reg_t reg = make_reg(segmentId, seeker - *_buf);
+		uint16 objectPosition = seeker - *_buf;
+		bool isClass = (seeker.getUint16SEAt(14) & kInfoFlagClass);	// -info- selector
+		if (isClass) {
+			uint16 species = seeker.getUint16SEAt(10);
+			initializeClass(segMan, species, objectPosition);
+		}
+
+		reg_t reg = make_reg(segmentId, objectPosition);
 		Object *obj = scriptObjInit(reg);
 
 		// Copy base from species class, as we need its selector IDs
@@ -1191,10 +1148,22 @@ void Script::initializeObjectsSci11(SegManager *segMan, SegmentId segmentId, boo
 
 #ifdef ENABLE_SCI32
 void Script::initializeObjectsSci3(SegManager *segMan, SegmentId segmentId, bool applyScriptPatches) {
+	// SCI3 added all classes to the class table before initializing objects
 	SciSpan<const byte> seeker = getSci3ObjectsPointer();
-
 	while (seeker.getUint16SEAt(0) == SCRIPT_OBJECT_MAGIC_NUMBER) {
-		Object *obj = scriptObjInit(make_reg32(segmentId, seeker - *_buf));
+		uint32 objectPosition = seeker - *_buf;
+		bool isClass = (seeker.getUint16SEAt(10) & kInfoFlagClass);
+		if (isClass) {
+			uint16 species = seeker.getUint16SEAt(4);
+			initializeClass(segMan, species, objectPosition);
+		}
+		seeker += seeker.getUint16SEAt(2);
+	}
+
+	seeker = getSci3ObjectsPointer();
+	while (seeker.getUint16SEAt(0) == SCRIPT_OBJECT_MAGIC_NUMBER) {
+		uint32 objectPosition = seeker - *_buf;
+		Object *obj = scriptObjInit(make_reg32(segmentId, objectPosition));
 		obj->setSuperClassSelector(segMan->getClassAddress(obj->getSuperClassSelector().getOffset(), SCRIPT_GET_LOCK, 0, applyScriptPatches));
 		seeker += seeker.getUint16SEAt(2);
 	}
@@ -1206,10 +1175,10 @@ void Script::initializeObjectsSci3(SegManager *segMan, SegmentId segmentId, bool
 void Script::initializeObjects(SegManager *segMan, SegmentId segmentId, bool applyScriptPatches) {
 	if (getSciVersion() <= SCI_VERSION_1_LATE)
 		initializeObjectsSci0(segMan, segmentId, applyScriptPatches);
-	else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE)
+	else if (getSciVersion() <= SCI_VERSION_2_1_LATE)
 		initializeObjectsSci11(segMan, segmentId, applyScriptPatches);
 #ifdef ENABLE_SCI32
-	else if (getSciVersion() == SCI_VERSION_3)
+	else
 		initializeObjectsSci3(segMan, segmentId, applyScriptPatches);
 #endif
 }
@@ -1273,8 +1242,53 @@ Common::Array<reg_t> Script::listObjectReferences() const {
 	return tmp;
 }
 
-bool Script::offsetIsObject(uint32 offset) const {
-	return _buf->getUint16SEAt(offset + SCRIPT_OBJECT_MAGIC_OFFSET) == SCRIPT_OBJECT_MAGIC_NUMBER;
+void Script::applySaidWorkarounds() {
+	// WORKAROUND: SQ3 version 1.018 has a messy vocab problem.
+	// Sierra added the vocab entry "scout" to this version at group id 0x953
+	// and then apparently never recompiled all the scripts. 30 scripts still
+	// reference the old vocab group ids from 0x953 to 0x990 in their Said
+	// strings. All of these commands are off by one and linked to wrong words. 
+	// For example, looking at the escape pod in the first room with "look pod"
+	// no longer works but "look chute" does. We fix this by patching the Said
+	// strings; any group ids within the broken range are incremented by one.
+	// Four scripts correctly reference vocabs in the broken range, such as
+	// the one that added "scout", and so they must not be patched.
+	// Only version 1.018 has this problem but it's also the most common as
+	// it's the final English DOS version and included in the SQ collections.
+	if (g_sci->getGameId() == GID_SQ3 &&
+		g_sci->getPlatform() == Common::kPlatformDOS &&
+		g_sci->getLanguage() == Common::EN_ANY &&
+		_nr != 0 && _nr != 42 && _nr != 44 && _nr != 70) { // exclude working scripts
+
+		// Identify SQ3 1.018 by the presence of "scout" at 0x953
+		const uint16 sq3FirstBadVocabGroup = 0x953; // scout
+		const uint16 sq3LastBadVocabGroup  = 0x990; // devil
+		ResultWordList words;
+		g_sci->getVocabulary()->lookupWord(words, "scout", 5);
+		if (!words.empty() && words.front()._group == sq3FirstBadVocabGroup) {
+			for (size_t i = 0; i < _offsetLookupArray.size(); ++i) {
+				offsetLookupArrayEntry &offsetEntry = _offsetLookupArray[i];
+				if (offsetEntry.type != SCI_SCR_OFFSET_TYPE_SAID) {
+					continue;
+				}
+
+				// parse the said string and increment groups in the broken range
+				byte *saidPtr = _buf->getUnsafeDataAt(offsetEntry.offset);
+				while (*saidPtr != 0xff) {
+					if (*saidPtr < 0xf0) {
+						uint16 vocabGroup = (*saidPtr << 8) | *(saidPtr + 1);
+						if (sq3FirstBadVocabGroup <= vocabGroup && vocabGroup <= sq3LastBadVocabGroup) {
+							vocabGroup += 1;
+							*saidPtr = vocabGroup >> 8;
+							*(saidPtr + 1) = vocabGroup & 0xff;
+						}
+						saidPtr++;
+					}
+					saidPtr++;
+				}
+			}
+		}
+	}
 }
 
 } // End of namespace Sci

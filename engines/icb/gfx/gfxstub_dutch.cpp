@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,14 +20,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/icb/common/px_common.h"
 #include "engines/icb/gfx/gfxstub_dutch.h"
 #include "engines/icb/gfx/gfxstub_rev_dutch.h"
+
+#include "common/endian.h"
 
 namespace ICB {
 
@@ -60,14 +61,14 @@ typedef struct {
 	int32 ZBytesPerPixel;
 } MyRenderDevice;
 
-MyRenderDevice myRenDev = {NULL, 0, 0, NULL, 0, 0};
-RevRenderDevice *lastRevRenDev = NULL;
+MyRenderDevice myRenDev = {nullptr, 0, 0, nullptr, 0, 0};
+RevRenderDevice *lastRevRenDev = nullptr;
 
 int32 SetRenderDevice(RevRenderDevice *renderDev) {
-	lastRevRenDev = NULL;
-	if (renderDev->RGBdata == NULL)
+	lastRevRenDev = nullptr;
+	if (renderDev->RGBdata == nullptr)
 		return 1;
-	if (renderDev->Zdata == NULL)
+	if (renderDev->Zdata == nullptr)
 		return 1;
 	if (renderDev->width <= 0)
 		return 1;
@@ -99,10 +100,10 @@ int32 UnregisterTexture(TextureHandle *texture) {
 	int32 i;
 
 	for (i = 0; i < 9; i++)
-		if ((texture->pRGBA[i]) != NULL)
+		if ((texture->pRGBA[i]) != nullptr)
 			delete[](texture->pRGBA[i]);
 
-	if (texture->palette != NULL)
+	if (texture->palette != nullptr)
 		delete[](texture->palette);
 
 	delete texture;
@@ -119,21 +120,21 @@ TextureHandle *RegisterTexture(const RevTexture *revInput) {
 	th->h = revInput->height;
 
 	for (i = 0; i < 9; i++)
-		th->pRGBA[i] = NULL;
+		th->pRGBA[i] = nullptr;
 
-	if (revInput->palette[0] == 0xDEADBEAF) {
+	if (FROM_LE_32(revInput->palette[0]) == 0xDEADBEAF) {
 		th->bpp = 4;
-		th->palette = NULL;
+		th->palette = nullptr;
 		th->pRGBA[0] = revInput->level[0];
 	} else {
 		// Complain if width or height > 256 < 1
 		if ((th->w < 1) || (th->w > 256)) {
 			delete th;
-			return NULL;
+			return nullptr;
 		}
 		if ((th->h < 1) || (th->h > 256)) {
 			delete th;
-			return NULL;
+			return nullptr;
 		}
 
 		// Complain if the width or height are not powers of 2
@@ -142,14 +143,14 @@ TextureHandle *RegisterTexture(const RevTexture *revInput) {
 			if (((th->w >> i) << i) != th->w) {
 				if ((th->w >> i) != 0) {
 					delete th;
-					return NULL;
+					return nullptr;
 				}
 			}
 			// ERROR
 			if (((th->h >> i) << i) != th->h) {
 				if ((th->h >> i) != 0) {
 					delete th;
-					return NULL;
+					return nullptr;
 				}
 			}
 		}
@@ -157,7 +158,7 @@ TextureHandle *RegisterTexture(const RevTexture *revInput) {
 		th->bpp = 1;
 		th->palette = new uint32[256];
 		for (i = 0; i < 256; i++)
-			th->palette[i] = revInput->palette[i];
+			th->palette[i] = FROM_LE_32(revInput->palette[i]);
 
 		int32 size = th->w * th->h * th->bpp;
 		for (i = 0; i < 9; i++) {
@@ -184,9 +185,9 @@ int32 DrawGouraudTexturedPolygon(const vertex2D *verts, int32 nVerts, uint16 z) 
 	float y;
 	span_t *pspan;
 
-	if (myRenDev.pRGB == NULL)
+	if (myRenDev.pRGB == nullptr)
 		return 0;
-	if (myTexHan.pRGBA[mip_map_level] == NULL)
+	if (myTexHan.pRGBA[mip_map_level] == nullptr)
 		return 0;
 
 	// Test for clockwise polygons
@@ -461,7 +462,7 @@ int32 DrawFlatUnTexturedPolygon(const vertex2D *verts, int32 nVerts, uint16 z) {
 	float y;
 	span_t *pspan;
 
-	if (myRenDev.pRGB == NULL)
+	if (myRenDev.pRGB == nullptr)
 		return 0;
 
 	// Test for clockwise polygons
@@ -604,7 +605,7 @@ int32 DrawGouraudUnTexturedPolygon(const vertex2D *verts, int32 nVerts, uint16 z
 	float y;
 	span_t *pspan;
 
-	if (myRenDev.pRGB == NULL)
+	if (myRenDev.pRGB == nullptr)
 		return 0;
 
 	// Test for clockwise polygons
@@ -793,9 +794,9 @@ int32 DrawFlatTexturedPolygon(const vertex2D *verts, int32 nVerts, uint16 z) {
 	float y;
 	span_t *pspan;
 
-	if (myRenDev.pRGB == NULL)
+	if (myRenDev.pRGB == nullptr)
 		return 0;
-	if (myTexHan.pRGBA[mip_map_level] == NULL)
+	if (myTexHan.pRGBA[mip_map_level] == nullptr)
 		return 0;
 
 	// Test for clockwise polygons

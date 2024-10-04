@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,7 +54,7 @@ void TextAsset::decodeOld() {
 	bool lowercase = false;
 	char c = ' ';
 	for (uint16 i = 0; i < strLen; i++) {
-		char val = stream.getBits(5);
+		char val = stream.getBits<5>();
 		if (val == 0x0) { // Space
 			c = ' ';
 		} else if (val >= 0x1 && val <= 0x1A) {
@@ -80,7 +79,7 @@ void TextAsset::decodeOld() {
 			}
 			lowercase = true;
 		} else if (val == 0x1D) { // Composite
-			ObjID subval = stream.getBits(16);
+			ObjID subval = stream.getBits<16>();
 			Common::String child;
 			if (subval & 0x8000) {
 				// Composite object id
@@ -96,7 +95,7 @@ void TextAsset::decodeOld() {
 			}
 			lowercase = true;
 		} else if (val == 0x1E) {
-			c = stream.getBits(8);
+			c = stream.getBits<8>();
 			lowercase = true;
 		} else if (val == 0x1F) {
 			lowercase = !lowercase;
@@ -109,6 +108,7 @@ void TextAsset::decodeOld() {
 	str[strLen] = '\0';
 	debugC(3, kMVDebugText, "Decoded string [%d] (old encoding): %s", _id, str);
 	_decoded = Common::String(str);
+	delete[] str;
 }
 
 void TextAsset::decodeHuffman() {
@@ -117,15 +117,15 @@ void TextAsset::decodeHuffman() {
 	Common::BitStream8MSB stream(res, DisposeAfterUse::YES);
 	uint16 strLen = 0;
 	if (stream.getBit()) {
-		strLen = stream.getBits(15);
+		strLen = stream.getBits<15>();
 	} else {
-		strLen = stream.getBits(7);
+		strLen = stream.getBits<7>();
 	}
 	uint32 mask = 0;
 	uint32 symbol = 0;
 	char c;
 	for (uint16 i = 0; i < strLen; i++) {
-		mask = stream.peekBits(16);
+		mask = stream.peekBits<16>();
 
 		uint32 entry;
 		// Find the length index
@@ -140,16 +140,16 @@ void TextAsset::decodeHuffman() {
 		symbol = _huffman->getSymbol(entry);
 
 		if (symbol == 1) { // 7-bit ascii
-			c = stream.getBits(7);
+			c = stream.getBits<7>();
 			_decoded += c;
 		} else if (symbol == 2) { // Composite
 			if (stream.getBit()) { // TextID
-				ObjID embedId = stream.getBits(15);
+				ObjID embedId = stream.getBits<15>();
 			
 				TextAsset embedded(_engine, embedId, _sourceObj, _targetObj, _container, _isOld, _huffman);
 				_decoded += *embedded.decode();
 			} else { //Composite obj string
-				ObjID embedId = stream.getBits(8);
+				ObjID embedId = stream.getBits<8>();
 				_decoded += getNoun(embedId);
 			}
 		} else { // Plain ascii

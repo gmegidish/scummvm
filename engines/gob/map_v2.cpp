@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -39,7 +44,7 @@ Map_v2::Map_v2(GobEngine *vm) : Map_v1(vm) {
 }
 
 Map_v2::~Map_v2() {
-	_passMap = 0;
+	_passMap = nullptr;
 }
 
 void Map_v2::loadMapObjects(const char *avjFile) {
@@ -59,6 +64,10 @@ void Map_v2::loadMapObjects(const char *avjFile) {
 
 	if (((uint16) id) >= 65520) {
 		switch ((uint16) id) {
+			case 65529:
+				warning("STUB: Map_v2::loadMapObjects() ID == 65529 unimplemented"); // TODO: unimplemented case
+				break;
+
 			case 65530:
 				for (int i = 0; i < _mapWidth * _mapHeight; i++)
 					_passMap[i] -= READ_VARO_UINT8(var + i);
@@ -73,19 +82,16 @@ void Map_v2::loadMapObjects(const char *avjFile) {
 				break;
 			case 65533: {
 				int index = READ_VARO_UINT16(var);
-				// _vm->_mult->_objects[index].field_6E = 0;
-				// _vm->_mult->_objects[index].field_6A = variables;
-				warning("Map_v2::loadMapObjects(): ID == 65533 (%d)", index);
+				_vm->_mult->_objects[index].ownAnimVariables = false;
+				_vm->_mult->_objects[index].animVariables = (int16*) variables;
 				break;
 			}
 			case 65534:
-				_tilesWidth     = READ_VARO_UINT8(var);
-				_tilesHeight    = READ_VARO_UINT8(var + 1);
-				_mapWidth       = READ_VARO_UINT8(var + 2);
-				_mapHeight      = READ_VARO_UINT8(var + 3);
-				_mapUnknownBool = READ_VARO_UINT8(var + 4) ? true : false;
-				if (_mapUnknownBool)
-					warning("Map_v2::loadMapObjects(): _mapUnknownBool == true");
+				_tilesWidth             = READ_VARO_UINT8(var);
+				_tilesHeight            = READ_VARO_UINT8(var + 1);
+				_mapWidth               = READ_VARO_UINT8(var + 2);
+				_mapHeight              = READ_VARO_UINT8(var + 3);
+				_usesObliqueCoordinates = READ_VARO_UINT8(var + 4) ? true : false;
 				break;
 			case 65535:
 				_passMap = (int8 *)_vm->_inter->_variables->getAddressOff8(var);
@@ -156,7 +162,7 @@ void Map_v2::loadMapObjects(const char *avjFile) {
 	// In the original asm, this writes byte-wise into the variables-array
 	tmpPos = mapData.pos();
 	mapData.seek(passPos);
-	if ((variables != 0) &&
+	if ((variables != nullptr) &&
 	    (variables != _vm->_inter->_variables->getAddressOff8(0))) {
 
 		_passMap = (int8 *)variables;

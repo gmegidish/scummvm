@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -138,15 +137,15 @@ GetNextWord:
 			/* Have to (rather unfortunately) rebuild the entire
 			   input buffer and word array here
 			*/
-			strcpy(buffer, "");
+			buffer[0] = '\0';
 			t = 0;
 			for (a=1; a<=(int)MAXWORDS; a++)
 			{
 				if ((unsigned short)wd[a]!=UNKNOWN_WORD)
-					strcpy(buffer+t, GetWord(wd[a]));
+					Common::strcpy_s(buffer+t, sizeof(buffer) - t, GetWord(wd[a]));
 				else
-					itoa(parsed_number, buffer+t, 10);
-			        word[a] = buffer + t;
+					hugo_itoa(parsed_number, buffer+t, 10, sizeof(buffer) - t);
+				word[a] = buffer + t;
 				t+=strlen(word[a])+1;
 			}
 
@@ -406,7 +405,7 @@ GetNextPropVal:
 				{
 					if (set_value==title_caption)
 					{
-						strncpy(game_title, GetWord(newp), MAX_GAME_TITLE);
+						Common::strlcpy(game_title, GetWord(newp), MAX_GAME_TITLE);
 						hugo_setgametitle(game_title);
 					}
 					else if (set_value==needs_repaint)

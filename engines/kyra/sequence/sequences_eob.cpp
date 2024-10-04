@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,8 +31,6 @@
 
 #include "common/system.h"
 #include "common/substream.h"
-
-#include "base/version.h"
 
 namespace Kyra {
 
@@ -196,8 +193,7 @@ EoBSeqPlayerCommon::EoBSeqPlayerCommon(EoBEngine *vm, Screen_EoB *screen) : _vm(
 	_fillColor1(vm->gameFlags().platform == Common::kPlatformAmiga ? 19 : (vm->gameFlags().platform == Common::kPlatformPC98 ? 0 : 12)),
 	_fillColor2(vm->gameFlags().platform == Common::kPlatformAmiga ? 10 : 157), _tickLength(16),
 	_textFont(vm->gameFlags().platform == Common::kPlatformPC98 ? Screen::FID_SJIS_TEXTMODE_FNT : Screen::FID_8_FNT) {
-	_shapes = new uint8*[64];
-	memset(_shapes, 0, 64 * sizeof(uint8*));
+	_shapes = new uint8*[64]();
 }
 
 EoBSeqPlayerCommon::~EoBSeqPlayerCommon() {
@@ -523,8 +519,8 @@ void EoBIntroPlayer::tower() {
 	displaySubtitle(0, 168, 32, _stringsTower, 0, 17, 22, 0xE1, 0x0F, 2);
 	printSub(_stringsTower, 1, 13, 24, 0xE1, 0x0F, 2);
 
-	for (int i = 0; i < 64 && !_vm->shouldQuit() && !_vm->skipFlag(); i += 2) {
-		uint32 end = _vm->_system->getMillis() + 2 * _vm->_tickLength;
+	for (int i = 0; i < 64 && !_vm->shouldQuit() && !_vm->skipFlag(); ++i) {
+		uint32 end = _vm->_system->getMillis() + _vm->_tickLength;
 		_screen->copyRegion(0, 142 - i, 96, 0, 128, i + 1, 4, 0, Screen::CR_NO_P_CHECK);
 		_screen->copyRegion(0, 0, 96, i + 1, 128, 167 - i, 2, 0, Screen::CR_NO_P_CHECK);
 		_screen->selectPC98Palette(0, _screen->getPalette(0), MIN(i / 4 - 14, 0), true);
@@ -534,22 +530,22 @@ void EoBIntroPlayer::tower() {
 
 	_screen->selectPC98Palette(0, _screen->getPalette(0), 0, true);
 
-	for (int i = 0; i < 24 && !_vm->shouldQuit() && !_vm->skipFlag(); i += 2) {
-		uint32 end = _vm->_system->getMillis() + 2 * _vm->_tickLength;
-		_screen->copyRegion(0, 79 - i, 96, 0, 24, 65 + i, 4, 0, Screen::CR_NO_P_CHECK);
-		_screen->copyRegion(104, 79 - i, 200, 0, 24, 65 + i, 4, 0, Screen::CR_NO_P_CHECK);
-		_screen->copyRegion(24, 110, 120, i + 31, 80, 34, 4, 0, Screen::CR_NO_P_CHECK);
+	for (int i = 0; i < 23 && !_vm->shouldQuit() && !_vm->skipFlag(); ++i) {
+		uint32 end = _vm->_system->getMillis() + _vm->_tickLength;
+		_screen->copyRegion(0, 78 - i, 96, 0, 24, 65 + i, 4, 0, Screen::CR_NO_P_CHECK);
+		_screen->copyRegion(104, 78 - i, 200, 0, 24, 65 + i, 4, 0, Screen::CR_NO_P_CHECK);
+		_screen->copyRegion(24, 109, 120, i + 31, 80, 34, 4, 0, Screen::CR_NO_P_CHECK);
 		_screen->copyRegion(152, 0, 120, 32, 80, i + 1, 4, 0, Screen::CR_NO_P_CHECK);
 		_screen->copyRegion(0, 0, 96, 65 + i, 128, 103 - i, 2, 0, Screen::CR_NO_P_CHECK);
 		_screen->updateScreen();
 		_vm->delayUntil(end);
 	}
 
-	for (int i = 0; i < 56 && !_vm->shouldQuit() && !_vm->skipFlag(); i += 2) {
-		uint32 end = _vm->_system->getMillis() + 2 * _vm->_tickLength;
-		_screen->copyRegion(0, 56, 96, i, 24, 54, 4, 0, Screen::CR_NO_P_CHECK);
-		_screen->copyRegion(104, 56, 200, i, 24, 54, 4, 0, Screen::CR_NO_P_CHECK);
-		_screen->copyRegion(0, 110, 96, 54 + i, 128, 34, 4, 0, Screen::CR_NO_P_CHECK);
+	for (int i = 0; i < 56 && !_vm->shouldQuit() && !_vm->skipFlag(); ++i) {
+		uint32 end = _vm->_system->getMillis() + _vm->_tickLength;
+		_screen->copyRegion(0, 55, 96, i, 24, 54, 4, 0, Screen::CR_NO_P_CHECK);
+		_screen->copyRegion(104, 55, 200, i, 24, 54, 4, 0, Screen::CR_NO_P_CHECK);
+		_screen->copyRegion(0, 109, 96, 54 + i, 128, 34, 4, 0, Screen::CR_NO_P_CHECK);
 
 		if (i < 32) {
 			_screen->fillRect(128, 0, 255, i + 1, _fillColor1, 2);
@@ -562,7 +558,7 @@ void EoBIntroPlayer::tower() {
 
 		_screen->drawShape(2, _shapes[10], 128, i - 55, 0);
 		_screen->copyRegion(128, 0, 96, 0, 128, i + 1, 2, 0, Screen::CR_NO_P_CHECK);
-		_screen->copyRegion(0, 0, 96, i + 89, 128, 79 - i, 2, 0, Screen::CR_NO_P_CHECK);
+		_screen->copyRegion(0, 0, 96, i + 88, 128, 80 - i, 2, 0, Screen::CR_NO_P_CHECK);
 		_screen->updateScreen();
 		_vm->delayUntil(end);
 	}
@@ -1411,6 +1407,8 @@ void EoBPC98FinalePlayer::king() {
 	static uint8 xOff[] = { 0, 48, 96, 152 };
 	static uint8 maxW[] = { 48, 48, 56, 48 };
 
+	uint32 nextScreenUpdate = _vm->_system->getMillis();
+
 	for (int i = 0; i < 4 && !_vm->skipFlag() && !_vm->shouldQuit(); ++i) {
 		const uint8 *xypos = xydata;
 		uint16 cx = xOff[i];
@@ -1424,14 +1422,20 @@ void EoBPC98FinalePlayer::king() {
 			if (col)
 				_screen->setPagePixel(0, cx + x + 64, y + 84, col);
 			if (ii % 48 == 0) {
-				_screen->updateScreen();
 				uint32 cur = _vm->_system->getMillis();
+				if (cur >= nextScreenUpdate) {
+					_screen->updateScreen();
+					nextScreenUpdate += 16;
+				}
 				if (nextDelay > cur)
 					_vm->_system->delayMillis(nextDelay - cur);
 				nextDelay += 5;
 			}
 		}
-		_screen->updateScreen();
+		if (_vm->_system->getMillis() >= nextScreenUpdate) {
+			_screen->updateScreen();
+			nextScreenUpdate += 16;
+		}
 	}
 
 	printSubtitle(_strings[5], 9, 24, 225);
@@ -2166,7 +2170,7 @@ int EoBEngine::mainMenu() {
 			else
 				_screen->setScreenPalette(_screen->getPalette(0));
 
-			Common::String versionString(Common::String::format("ScummVM %s", gScummVMVersion));
+			Common::String versionString = "ScummVM " + _versionString;
 
 			if (_flags.platform == Common::kPlatformSegaCD) {
 				_txt->clearDim(3);
@@ -2281,12 +2285,8 @@ int EoBEngine::mainMenuLoop() {
 			_screen->sega_getRenderer()->render(0);
 		_screen->updateScreen();
 
-		while (sel == -1 && !shouldQuit()) {
+		while (sel == -1 && !shouldQuit())
 			sel = _gui->simpleMenu_process(8, _mainMenuStrings, 0, -1, 0);
-			if (_flags.platform == Common::kPlatformSegaCD)
-				_screen->sega_getRenderer()->render(0, 6, 20, 26, 5);
-			_screen->updateScreen();
-		}
 	} while ((sel < 0 || sel > 5) && !shouldQuit());
 
 	return sel + 1;
@@ -2379,10 +2379,10 @@ void EoBEngine::seq_xdeath() {
 			_screen->copyRegion(0, 0, 0, 0, 176, 120, 2, 0, Screen::CR_NO_P_CHECK);
 			_screen->drawShape(0, shapes2, 32, 10, 0);
 			_screen->updateScreen();
-			updateAnimTimers();
+			updateAnimations();
 			delete[] shapes2;
 			for (uint32 cur = _system->getMillis(); cur < del; cur = _system->getMillis()) {
-				updateAnimTimers();
+				updateAnimations();
 				delay(MIN<uint32>(8, del - cur));
 			}
 		}
@@ -2456,8 +2456,7 @@ void EoBEngine::seq_xdeath() {
 		((int16*)scrollTable)[iii << 1] = ((int16*)scrollTable)[(iii << 1) + 1] = (iii & 1) ? -step : step;
 
 void EoBEngine::seq_segaOpeningCredits(bool jumpToTitle) {
-	uint16 *scrollTable = new uint16[0x200];
-	memset(scrollTable, 0, 0x200 * sizeof(uint16));
+	uint16 *scrollTable = new uint16[0x200]();
 	SegaRenderer *r = _screen->sega_getRenderer();
 
 	r->setPitch(128);
@@ -2474,7 +2473,7 @@ void EoBEngine::seq_segaOpeningCredits(bool jumpToTitle) {
 	r->loadToVRAM(scrollTable, 0x400, 0xD800);
 
 	Common::SeekableReadStreamEndian *containerAlt = _sres->loadContainer("CREDIT") ? 0 : _res->createEndianAwareReadStream("CREDIT");
-	Common::SeekableReadStreamEndian *in = containerAlt ? new Common::SeekableSubReadStreamEndian(containerAlt, 0, 35840, true) : _sres->resStreamEndian(1);
+	Common::SeekableReadStreamEndian *in = containerAlt ? new Common::SeekableReadStreamEndianWrapper(new Common::SeekableSubReadStream(containerAlt, 0, 35840), true, DisposeAfterUse::YES) : _sres->resStreamEndian(1);
 	r->loadStreamToVRAM(in, 32, !containerAlt);
 	delete in;
 
@@ -2492,8 +2491,7 @@ void EoBEngine::seq_segaOpeningCredits(bool jumpToTitle) {
 		updateScrollState(scrollTable, 320);
 		r->loadToVRAM(scrollTable, 0x400, 0xD800);
 		_screen->sega_selectPalette(i == 3 && _flags.lang == Common::EN_ANY ? 59 : 50, 0, true);
-
-		in = containerAlt ? new Common::SeekableSubReadStreamEndian(containerAlt, i * 35840, (i + 1) * 35840, true) : _sres->resStreamEndian(i);
+		in = containerAlt ? new Common::SeekableReadStreamEndianWrapper(new Common::SeekableSubReadStream(containerAlt, i * 35840, (i + 1) * 35840), true, DisposeAfterUse::YES) : _sres->resStreamEndian(i);
 		r->loadStreamToVRAM(in, 32, !containerAlt);
 		delete in;
 
@@ -2540,8 +2538,7 @@ void EoBEngine::seq_segaOpeningCredits(bool jumpToTitle) {
 	r->memsetVRAM(0xD800, 0, 0x400);
 	r->setPitch(64);
 	_screen->sega_selectPalette(0, 0);
-
-	in = containerAlt ? new Common::SeekableSubReadStreamEndian(containerAlt, last * 35840, (last + 1) * 35840, true) : _sres->resStreamEndian(last);
+	in = containerAlt ? new Common::SeekableReadStreamEndianWrapper(new Common::SeekableSubReadStream(containerAlt, last * 35840, (last + 1) * 35840), true, DisposeAfterUse::YES) : _sres->resStreamEndian(last);
 	r->loadStreamToVRAM(in, 32, !containerAlt);
 	delete in;
 	delete containerAlt;
@@ -2818,7 +2815,6 @@ bool EoBEngine::seq_segaPlaySequence(int sequenceId, bool setupScreen) {
 	if (_flags.platform != Common::kPlatformSegaCD)
 		return true;
 
-	uint32 startTime = _system->getMillis();
 	_allowSkip = true;
 	resetSkipFlag();
 
@@ -2832,8 +2828,6 @@ bool EoBEngine::seq_segaPlaySequence(int sequenceId, bool setupScreen) {
 
 	if (setupScreen)
 		seq_segaRestoreAfterSequence();
-
-	_totalPlaySecs += ((_system->getMillis() - startTime) / 1000);
 
 	if (!res)
 		error("EoBEngine::seq_segaPlaySequence(): Failed to play cutscene no. %d", sequenceId);

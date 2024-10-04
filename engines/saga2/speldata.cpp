@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -50,8 +49,8 @@ namespace Saga2 {
 
 const uint32                    spellSpriteID = MKTAG('S', 'P', 'F', 'X');
 
-const int32 maxSpells = totalSpellBookPages;
-const int32 maxSpellPrototypes = totalSpellBookPages;
+const int32 maxSpells = kTotalSpellBookPages;
+const int32 maxSpellPrototypes = kTotalSpellBookPages;
 const int32 maxEffectPrototypes = 16;
 
 const int32 maxSpellColorMaps = 32;
@@ -213,12 +212,12 @@ static void loadMagicData() {
 	spellRes =  auxResFile->newContext(
 	                MKTAG('S', 'P', 'E', 'L'),
 	                "spell resources");
-	if (spellRes == NULL || !spellRes->_valid)
+	if (spellRes == nullptr || !spellRes->_valid)
 		error("Error accessing spell resource group.\n");
 	i = 1;
-	ADD_SHOW(eAreaInvisible, 0, 0, 0, 0, diFlagInc, ecFlagNone,  30, MKTAG('S', 'T', 'A', 0), 23, 24);
+	ADD_SHOW(keAreaInvisible, 0, 0, 0, 0, kDiFlagInc, kEcFlagNone,  30, MKTAG('S', 'T', 'A', 0), 23, 24);
 
-	spellBook[0].setManaType(sManaIDSkill);
+	spellBook[0].setManaType(ksManaIDSkill);
 
 	while (spellRes->size(
 	            MKTAG('I', 'N', 'F', i)) > 0) {
@@ -228,7 +227,7 @@ static void loadMagicData() {
 		        MKTAG('I', 'N', 'F', i),
 		        "spell");
 
-		if (rsi == NULL)
+		if (rsi == nullptr)
 			error("Unable to load data for spell %d", i);
 
 		spellBook[rsi->spell].setupFromResource(rsi);
@@ -249,7 +248,7 @@ static void loadMagicData() {
 		        MKTAG('E', 'F', 'F', i),
 		        "spell effect");
 
-		if (rse == NULL)
+		if (rse == nullptr)
 			error("Unable to load effects for spell %d", i);
 
 		if (rse->spell)

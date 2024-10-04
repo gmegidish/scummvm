@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -90,6 +89,27 @@ struct Config {                                     // User's config (saved)
 typedef byte Icondib[kXPix * kInvDy];               // Icon bar dib
 typedef byte Viewdib[(long)kXPix * kYPix];          // Viewport dib
 typedef byte Overlay[kOvlSize];                     // Overlay file
+
+enum HUGOAction {
+	kActionNone,
+	kActionEscape,
+	kActionMoveTop,
+	kActionMoveBottom,
+	kActionMoveLeft,
+	kActionMoveRight,
+	kActionMoveTopRight,
+	kActionMoveTopLeft,
+	kActionMoveBottomRight,
+	kActionMoveBottomLeft,
+	kActionUserHelp,
+	kActionToggleSound,
+	kActionRepeatLine,
+	kActionSaveGame,
+	kActionRestoreGame,
+	kActionNewGame,
+	kActionInventory,
+	kActionToggleTurbo
+};
 
 enum HugoDebugChannels {
 	kDebugSchedule  = 1 <<  0,
@@ -220,7 +240,7 @@ public:
 	Common::RandomSource *_rnd;
 
 	const char *_episode;
-	Common::String _picDir;
+	Common::Path _picDir;
 
 	Command _statusLine;
 	Command _scoreLine;
@@ -239,8 +259,8 @@ public:
 		return *s_Engine;
 	}
 
-	bool canLoadGameStateCurrently() override;
-	bool canSaveGameStateCurrently() override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 	bool loadHugoDat();
 
 	int8 getTPS() const;
@@ -266,7 +286,7 @@ public:
 	bool hasFeature(EngineFeature f) const override;
 	const char *getCopyrightString() const;
 
-	virtual Common::String getSaveStateName(int slot) const override;
+	Common::String getSaveStateName(int slot) const override;
 	uint16 **loadLongArray(Common::SeekableReadStream &in);
 
 	FileManager *_file;

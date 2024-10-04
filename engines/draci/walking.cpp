@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -107,7 +106,7 @@ Common::Point WalkingMap::findNearestWalkable(int startX, int startY) const {
 			// The place where, eventually, the result coordinates will be stored
 			Common::Point finalPos;
 
-			// Auxilliary array of multiplicative coefficients for reflecting points.
+			// Auxiliary array of multiplicative coefficients for reflecting points.
 			static const int kSigns[] = { 1, -1 };
 
 			// Check all 8 reflections of the basic point.
@@ -395,7 +394,7 @@ bool WalkingMap::managedToOblique(WalkingPath *path) const {
 
 void WalkingState::stopWalking() {
 	_path.clear();
-	_callback = NULL;
+	_callback = nullptr;
 }
 
 void WalkingState::startWalking(const Common::Point &p1, const Common::Point &p2,
@@ -450,9 +449,9 @@ void WalkingState::callback() {
 	debugC(2, kDraciWalkingDebugLevel, "Calling walking callback");
 
 	const GPL2Program &originalCallback = *_callback;
-	_callback = NULL;
+	_callback = nullptr;
 	_vm->_script->runWrapper(originalCallback, _callbackOffset, true, false);
-	_callbackLast = NULL;
+	_callbackLast = nullptr;
 	_callbackOffset = 0;
 }
 

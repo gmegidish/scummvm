@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,6 +38,7 @@
 #include "audio/mididrv.h"
 
 #include "agi/agi.h"
+#include "agi/detection.h"
 #include "agi/font.h"
 #include "agi/graphics.h"
 #include "agi/inv.h"
@@ -76,8 +76,6 @@ void AgiEngine::wait(uint32 msec, bool busy) {
 }
 
 int AgiEngine::agiInit() {
-	int ec, i;
-
 	debug(2, "initializing");
 	debug(2, "game version = 0x%x", getVersion());
 
@@ -89,7 +87,7 @@ int AgiEngine::agiInit() {
 	memset(_game.vars, 0, sizeof(_game.vars));
 
 	// clear all resources and events
-	for (i = 0; i < MAX_DIRECTORY_ENTRIES; i++) {
+	for (int i = 0; i < MAX_DIRECTORY_ENTRIES; i++) {
 		_game.views[i].reset();
 		_game.pictures[i].reset();
 		_game.logics[i].reset();
@@ -101,7 +99,7 @@ int AgiEngine::agiInit() {
 	}
 
 	// clear view table
-	for (i = 0; i < SCREENOBJECTS_MAX; i++) {
+	for (int i = 0; i < SCREENOBJECTS_MAX; i++) {
 		_game.screenObjTable[i].reset();
 	}
 
@@ -120,8 +118,7 @@ int AgiEngine::agiInit() {
 	// to ask Ego's name again. The name is supposed to be maintained in string 1.
 	// Fixes bug #5673.
 	if (!_restartGame) {
-		for (i = 0; i < MAX_STRINGS; i++)
-			_game.strings[i][0] = 0;
+		memset(_game.strings, 0, sizeof(_game.strings));
 	}
 
 	// setup emulation
@@ -143,29 +140,23 @@ int AgiEngine::agiInit() {
 	}
 
 	if (getPlatform() == Common::kPlatformAmiga)
-		_game.gameFlags |= ID_AMIGA;
-
-	if (getFeatures() & GF_AGDS)
-		_game.gameFlags |= ID_AGDS;
-
-	if (_game.gameFlags & ID_AMIGA)
 		debug(1, "Amiga padded game detected.");
 
-	if (_game.gameFlags & ID_AGDS)
+	if (getFeatures() & GF_AGDS)
 		debug(1, "AGDS mode enabled.");
 
-	ec = _loader->init();   // load vol files, etc
+	int ec = _loader->loadDirs();
 
 	if (ec == errOK)
-		ec = _loader->loadObjects(OBJECTS);
+		ec = _loader->loadObjects();
 
-	// note: demogs has no words.tok
+	// note: demos has no words.tok
 	if (ec == errOK)
-		ec = _loader->loadWords(WORDS);
+		ec = _loader->loadWords();
 
 	// Load logic 0 into memory
 	if (ec == errOK)
-		ec = _loader->loadResource(RESOURCETYPE_LOGIC, 0);
+		ec = loadResource(RESOURCETYPE_LOGIC, 0);
 
 	_keyHoldMode = false;
 	_keyHoldModeLastKey = Common::KEYCODE_INVALID;
@@ -180,50 +171,117 @@ int AgiEngine::agiInit() {
 	return ec;
 }
 
-/*
- * Public functions
- */
-
-void AgiEngine::agiUnloadResources() {
-	int i;
-
+void AgiEngine::unloadResources() {
 	// Make sure logic 0 is always loaded
-	for (i = 1; i < MAX_DIRECTORY_ENTRIES; i++) {
-		_loader->unloadResource(RESOURCETYPE_LOGIC, i);
+	for (int i = 1; i < MAX_DIRECTORY_ENTRIES; i++) {
+		unloadResource(RESOURCETYPE_LOGIC, i);
 	}
-	for (i = 0; i < MAX_DIRECTORY_ENTRIES; i++) {
-		_loader->unloadResource(RESOURCETYPE_VIEW, i);
-		_loader->unloadResource(RESOURCETYPE_PICTURE, i);
-		_loader->unloadResource(RESOURCETYPE_SOUND, i);
+	for (int i = 0; i < MAX_DIRECTORY_ENTRIES; i++) {
+		unloadResource(RESOURCETYPE_VIEW, i);
+		unloadResource(RESOURCETYPE_PICTURE, i);
+		unloadResource(RESOURCETYPE_SOUND, i);
 	}
 }
 
-int AgiEngine::agiDeinit() {
-	int ec;
-
+void AgiEngine::agiDeinit() {
 	if (!_loader)
-		return errOK;
+		return;
 
 	_words->clearEgoWords(); // remove all words from memory
-	agiUnloadResources();    // unload resources in memory
-	_loader->unloadResource(RESOURCETYPE_LOGIC, 0);
-	ec = _loader->deinit();
+	unloadResources();    // unload resources in memory
+	unloadResource(RESOURCETYPE_LOGIC, 0);
 	_objects.clear();
 	_words->unloadDictionary();
 
 	clearImageStack();
-
-	return ec;
 }
 
-int AgiEngine::agiLoadResource(int16 resourceType, int16 resourceNr) {
-	int i;
+int AgiEngine::loadResource(int16 resourceType, int16 resourceNr) {
+	if (resourceNr >= MAX_DIRECTORY_ENTRIES)
+		return errBadResource;
 
-	i = _loader->loadResource(resourceType, resourceNr);
+	int ec = errOK;
+	uint8 *data = nullptr;
+	switch (resourceType) {
+	case RESOURCETYPE_LOGIC:
+		if (~_game.dirLogic[resourceNr].flags & RES_LOADED) {
+			unloadResource(RESOURCETYPE_LOGIC, resourceNr);
+
+			// load raw resource into data
+			data = _loader->loadVolumeResource(&_game.dirLogic[resourceNr]);
+			_game.logics[resourceNr].data = data;
+
+			// uncompressed logic files need to be decrypted
+			if (data != nullptr) {
+				// RES_LOADED flag gets set by decode logic
+				ec = decodeLogic(resourceNr);
+				_game.logics[resourceNr].sIP = 2;
+			} else {
+				ec = errBadResource;
+			}
+		}
+
+		// reset code pointer in case logic was cached
+		_game.logics[resourceNr].cIP = _game.logics[resourceNr].sIP;
+		break;
+
+	case RESOURCETYPE_PICTURE:
+		if (~_game.dirPic[resourceNr].flags & RES_LOADED) {
+			// if loaded but not cached, unload it
+			// if cached but not loaded, etc
+			unloadResource(RESOURCETYPE_PICTURE, resourceNr);
+			data = _loader->loadVolumeResource(&_game.dirPic[resourceNr]);
+
+			if (data != nullptr) {
+				_game.pictures[resourceNr].rdata = data;
+				_game.dirPic[resourceNr].flags |= RES_LOADED;
+			} else {
+				ec = errBadResource;
+			}
+		}
+		break;
+
+	case RESOURCETYPE_SOUND:
+		if (~_game.dirSound[resourceNr].flags & RES_LOADED) {
+			data = _loader->loadVolumeResource(&_game.dirSound[resourceNr]);
+
+			// "data" is freed by objects created by createFromRawResource on success
+			_game.sounds[resourceNr] = AgiSound::createFromRawResource(data, _game.dirSound[resourceNr].len, resourceNr, _soundemu);
+			if (_game.sounds[resourceNr] != nullptr) {
+				_game.dirSound[resourceNr].flags |= RES_LOADED;
+			} else {
+				free(data);
+				ec = errBadResource;
+			}
+		}
+		break;
+
+	case RESOURCETYPE_VIEW:
+		// Load a VIEW resource into memory...
+		// Since VIEWS alter the view table ALL the time
+		// can we cache the view? or must we reload it all
+		// the time?
+		if (~_game.dirView[resourceNr].flags & RES_LOADED) {
+			unloadResource(RESOURCETYPE_VIEW, resourceNr);
+			data = _loader->loadVolumeResource(&_game.dirView[resourceNr]);
+			if (data) {
+				_game.dirView[resourceNr].flags |= RES_LOADED;
+				ec = decodeView(data, _game.dirView[resourceNr].len, resourceNr);
+				free(data);
+			} else {
+				ec = errBadResource;
+			}
+		}
+		break;
+
+	default:
+		ec = errBadResource;
+		break;
+	}
 
 	// WORKAROUND: Patches broken picture 147 in a corrupted Amiga version of Gold Rush! (v2.05 1989-03-09).
 	// The picture can be seen in room 147 after dropping through the outhouse's hole in room 146.
-	if (i == errOK && getGameID() == GID_GOLDRUSH && resourceType == RESOURCETYPE_PICTURE && resourceNr == 147 && _game.dirPic[resourceNr].len == 1982) {
+	if (ec == errOK && getGameID() == GID_GOLDRUSH && resourceType == RESOURCETYPE_PICTURE && resourceNr == 147 && _game.dirPic[resourceNr].len == 1982) {
 		uint8 *pic = _game.pictures[resourceNr].rdata;
 		Common::MemoryReadStream picStream(pic, _game.dirPic[resourceNr].len);
 		Common::String md5str = Common::computeStreamMD5AsString(picStream, _game.dirPic[resourceNr].len);
@@ -237,11 +295,26 @@ int AgiEngine::agiLoadResource(int16 resourceType, int16 resourceNr) {
 		}
 	}
 
-	return i;
+	return ec;
 }
 
-int AgiEngine::agiUnloadResource(int16 resourceType, int16 resourceNr) {
-	return _loader->unloadResource(resourceType, resourceNr);
+void AgiEngine::unloadResource(int16 resourceType, int16 resourceNr) {
+	switch (resourceType) {
+	case RESOURCETYPE_LOGIC:
+		unloadLogic(resourceNr);
+		break;
+	case RESOURCETYPE_PICTURE:
+		_picture->unloadPicture(resourceNr);
+		break;
+	case RESOURCETYPE_VIEW:
+		unloadView(resourceNr);
+		break;
+	case RESOURCETYPE_SOUND:
+		_sound->unloadSound(resourceNr);
+		break;
+	default:
+		break;
+	}
 }
 
 struct GameSettings {
@@ -256,7 +329,7 @@ AgiBase::AgiBase(OSystem *syst, const AGIGameDescription *gameDesc) : Engine(sys
 	_noSaveLoadAllowed = false;
 
 	_rnd = new Common::RandomSource("agi");
-	_sound = 0;
+	_sound = nullptr;
 
 	initFeatures();
 	initVersion();
@@ -264,7 +337,6 @@ AgiBase::AgiBase(OSystem *syst, const AGIGameDescription *gameDesc) : Engine(sys
 
 AgiBase::~AgiBase() {
 	delete _rnd;
-
 	delete _sound;
 }
 
@@ -362,9 +434,7 @@ AgiEngine::AgiEngine(OSystem *syst, const AGIGameDescription *gameDesc) : AgiBas
 
 	_allowSynthetic = false;
 
-	_intobj = NULL;
-
-	memset(&_stringdata, 0, sizeof(struct StringData));
+	_intobj = nullptr;
 
 	_restartGame = false;
 
@@ -372,7 +442,7 @@ AgiEngine::AgiEngine(OSystem *syst, const AGIGameDescription *gameDesc) : AgiBas
 
 	resetControllers();
 
-	_game._curLogic = NULL;
+	_game._curLogic = nullptr;
 	_veryFirstInitialCycle = true;
 	_instructionCounter = 0;
 	resetGetVarSecondsHeuristic();
@@ -396,6 +466,7 @@ AgiEngine::AgiEngine(OSystem *syst, const AGIGameDescription *gameDesc) : AgiBas
 	_menu = nullptr;
 	_systemUI = nullptr;
 	_inventory = nullptr;
+	_logFile = nullptr;
 
 	_keyHoldMode = false;
 	_keyHoldModeLastKey = Common::KEYCODE_INVALID;
@@ -409,9 +480,11 @@ void AgiEngine::initialize() {
 	//       drivers, and I'm not sure what they are. For now, they might
 	//       as well be called "PC Speaker" and "Not PC Speaker".
 
-	// If used platform is Apple IIGS then we must use Apple IIGS sound emulation
-	// because Apple IIGS AGI games use only Apple IIGS specific sound resources.
-	if (getPlatform() == Common::kPlatformApple2GS) {
+	// If platform is Apple or CoCo3 then their sound emulation must be used.
+	// The sound resources in these games have platform-specific formats.
+	if (getPlatform() == Common::kPlatformApple2) {
+		_soundemu = SOUND_EMU_APPLE2;
+	} else if (getPlatform() == Common::kPlatformApple2GS) {
 		_soundemu = SOUND_EMU_APPLE2GS;
 	} else if (getPlatform() == Common::kPlatformCoCo3) {
 		_soundemu = SOUND_EMU_COCO3;
@@ -456,23 +529,21 @@ void AgiEngine::initialize() {
 
 	_text->init(_systemUI);
 
-	_game.gameFlags = 0;
-
 	_text->charAttrib_Set(15, 0);
 
-	_game.name[0] = '\0';
-
-	debugC(2, kDebugLevelMain, "Detect game");
-
-	if (agiDetectGame() == errOK) {
-		debugC(2, kDebugLevelMain, "game loaded");
+	if (getPlatform() == Common::kPlatformApple2) {
+		_loader = new AgiLoader_A2(this);
+	} else if (getVersion() <= 0x2001) {
+		_loader = new AgiLoader_v1(this);
+	} else if (getVersion() <= 0x2999) {
+		_loader = new AgiLoader_v2(this);
 	} else {
-		warning("Could not open AGI game");
+		_loader = new AgiLoader_v3(this);
 	}
+	_loader->init();
+	
 	// finally set up actual VM opcodes, because we should now have figured out the right AGI version
 	setupOpCodes(getVersion());
-
-	debugC(2, kDebugLevelMain, "Init sound");
 }
 
 bool AgiEngine::promptIsEnabled() {
@@ -495,6 +566,11 @@ AgiEngine::~AgiEngine() {
 	if (_gfx) {
 		_gfx->deinitVideo();
 	}
+	if (_logFile) {
+		_logFile->finalize();
+		_logFile->close();
+	}
+	delete _logFile;
 	delete _inventory;
 	delete _systemUI;
 	delete _menu;
@@ -520,9 +596,14 @@ Common::Error AgiEngine::go() {
 	}
 	inGameTimerReset();
 
-	runGame();
+	int ec = runGame();
 
-	return Common::kNoError;
+	switch (ec) {
+	case errOK:            return Common::kNoError;
+	case errFilesNotFound: return Common::kNoGameDataFoundError;
+	case errBadFileOpen:   return Common::kReadingFailed;
+	default:               return Common::kUnknownError;
+	}
 }
 
 void AgiEngine::syncSoundSettings() {
@@ -630,12 +711,10 @@ uint16 AgiEngine::artificialDelay_SearchTable(AgiArtificialDelayTriggerType trig
 }
 
 void AgiEngine::artificialDelayTrigger_NewRoom(int16 newRoomNr) {
-	uint16 millisecondsDelay = 0;
-
 	//warning("artificial delay trigger: room %d -> new room %d", _artificialDelayCurrentRoom, newRoomNr);
 
 	if (!_game.automaticRestoreGame) {
-		millisecondsDelay = artificialDelay_SearchTable(ARTIFICIALDELAYTYPE_NEWROOM, _artificialDelayCurrentRoom, newRoomNr);
+		uint16 millisecondsDelay = artificialDelay_SearchTable(ARTIFICIALDELAYTYPE_NEWROOM, _artificialDelayCurrentRoom, newRoomNr);
 
 		if (_game.nonBlockingTextShown) {
 			if (newRoomNr != _artificialDelayCurrentRoom) {
@@ -656,12 +735,10 @@ void AgiEngine::artificialDelayTrigger_NewRoom(int16 newRoomNr) {
 }
 
 void AgiEngine::artificialDelayTrigger_DrawPicture(int16 newPictureNr) {
-	uint16 millisecondsDelay = 0;
-
 	//warning("artificial delay trigger: picture %d -> new picture %d", _artificialDelayCurrentPicture, newPictureNr);
 
 	if (!_game.automaticRestoreGame) {
-		millisecondsDelay = artificialDelay_SearchTable(ARTIFICIALDELAYTYPE_NEWPICTURE, _artificialDelayCurrentPicture, newPictureNr);
+		uint16 millisecondsDelay = artificialDelay_SearchTable(ARTIFICIALDELAYTYPE_NEWPICTURE, _artificialDelayCurrentPicture, newPictureNr);
 
 		if (_game.nonBlockingTextShown) {
 			if (newPictureNr != _artificialDelayCurrentPicture) {
@@ -680,10 +757,35 @@ void AgiEngine::artificialDelayTrigger_DrawPicture(int16 newPictureNr) {
 	_artificialDelayCurrentPicture = newPictureNr;
 }
 
-void AgiGame::setAppleIIgsSpeedLevel(int i) {
-	appleIIgsSpeedLevel = i;
+const char *AgiGame::getString(int number) {
+	if (0 <= number && number <= MAX_STRINGS) {
+		return strings[number];
+	} else {
+		// WORKAROUND: Flag Quest detects the interpreter version by comparing
+		// out of bounds strings to values know to be in memory in Sierra's
+		// interpreters. The game only starts if a known value matches an
+		// allowed version. We return the value for version 2.917. Bug #15060
+		if (number == 56) {
+			return ".917";
+		}
+		warning("invalid string number: %d", number);
+		return "";
+	}
+}
+
+void AgiGame::setString(int number, const char *str) {
+	if (0 <= number && number <= MAX_STRINGS) {
+		Common::strlcpy(strings[number], str, MAX_STRINGLEN);
+	} else {
+		// Occurs in Groza, number = 150
+		warning("invalid string number: %d, '%s'", number, str);
+	}
+}
+
+void AgiGame::setSpeedLevel(byte s) {
+	speedLevel = s;
 	_vm->setVar(VM_VAR_WINDOW_AUTO_CLOSE_TIMER, 6);
-	switch (i) {
+	switch (speedLevel) {
 	case 0:
 		_vm->_text->messageBox("Fastest speed.");
 		break;
@@ -694,6 +796,7 @@ void AgiGame::setAppleIIgsSpeedLevel(int i) {
 		_vm->_text->messageBox("Normal speed.");
 		break;
 	case 3:
+	case 4:
 		_vm->_text->messageBox("Slow speed.");
 		break;
 	}

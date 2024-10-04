@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -29,27 +28,27 @@
 
 namespace Saga2 {
 
-const uint32 nonActorSenseFlags = actorSeeInvis;
+const uint32 kNonActorSenseFlags = kActorSeeInvis;
 
 //const size_t maxSensorSize = 24;
-const size_t maxSensorSize = 48;
+const size_t kMaxSensorSize = 48;
 
 //  This constant represents the maximum sense range for an object.
 //  Zero means an infinite range.
-const int16 maxSenseRange = 0;
+const int16 kMaxSenseRange = 0;
 
 //  Integers representing sensor types
 enum SensorType {
-	protaganistSensor,
-	specificObjectSensor,
-	objectPropertySensor,
-	specificActorSensor,
-	actorPropertySensor,
-	eventSensor
+	kProtaganistSensor,
+	kSpecificObjectSensor,
+	kObjectPropertySensor,
+	kSpecificActorSensor,
+	kActorPropertySensor,
+	kEventSensor
 };
 
 //  Sensors will be checked every 5 frames
-const int16 sensorCheckRate = 5;
+const int16 kSensorCheckRate = 5;
 
 /* ===================================================================== *
    Function prototypes
@@ -59,7 +58,7 @@ struct GameEvent;
 
 //  Allocate a new SensorList
 void newSensorList(SensorList *s);
-//  Deallocate an SensorList
+//  Deallocate a SensorList
 void deleteSensorList(SensorList *p);
 
 //  Fetch a specified object's SensorList
@@ -107,14 +106,14 @@ struct SenseInfo {
  * ===================================================================== */
 
 class SensorList {
-	GameObject      *obj;
+	GameObject      *_obj;
 
 public:
 	Common::List<Sensor *> _list;
 
 public:
 	//  Constructor -- initial construction
-	SensorList(GameObject *o) : obj(o) {
+	SensorList(GameObject *o) : _obj(o) {
 		newSensorList(this);
 		debugC(1, kDebugSensors, "Adding SensorList %p to %d (%s) (total %d)",
 		       (void *)this, o->thisID(), o->objName(), _list.size());
@@ -123,7 +122,7 @@ public:
 	~SensorList() {
 		deleteSensorList(this);
 		debugC(1, kDebugSensors, "Deleting SensorList %p of %d (%s) (total %d)",
-		       (void *)this, obj->thisID(), obj->objName(), _list.size());
+		       (void *)this, _obj->thisID(), _obj->objName(), _list.size());
 	}
 
 	SensorList(Common::InSaveFile *in);
@@ -137,7 +136,7 @@ public:
 	void write(Common::MemoryWriteStreamDynamic *out);
 
 	GameObject *getObject() {
-		return obj;
+		return _obj;
 	}
 };
 
@@ -147,16 +146,16 @@ public:
 
 class Sensor {
 public:
-	GameObject      *obj;
-	SensorID        id;
-	int16           range;
+	GameObject      *_obj;
+	SensorID        _id;
+	int16           _range;
 
-	int16       checkCtr;
+	int16       _checkCtr;
 	bool _active;
 
 public:
 	//  Constructor -- initial construction
-	Sensor(GameObject *o, SensorID sensorID, int16 rng) : obj(o), id(sensorID), range(rng), _active(true) {
+	Sensor(GameObject *o, SensorID sensorID, int16 rng) : _obj(o), _id(sensorID), _range(rng), _active(true) {
 		newSensor(this);
 		SensorList *sl = fetchSensorList(o);
 		debugC(1, kDebugSensors, "Adding Sensor %p to %d (%s) (list = %p, total = %d)",
@@ -168,9 +167,9 @@ public:
 	//  Virtural destructor
 	virtual ~Sensor() {
 		deleteSensor(this);
-		SensorList *sl = fetchSensorList(obj);
+		SensorList *sl = fetchSensorList(_obj);
 		debugC(1, kDebugSensors, "Deleting Sensor %p of %d (%s) (list = %p, total = %d)",
-		       (void *)this, obj->thisID(), obj->objName(), (void *)sl, (sl != nullptr) ? sl->_list.size() : -1);
+		       (void *)this, _obj->thisID(), _obj->objName(), (void *)sl, (sl != nullptr) ? sl->_list.size() : -1);
 	}
 
 	virtual void write(Common::MemoryWriteStreamDynamic *out);
@@ -179,13 +178,13 @@ public:
 	virtual int16 getType() = 0;
 
 	GameObject *getObject() {
-		return obj;
+		return _obj;
 	}
 	SensorID thisID() {
-		return id;
+		return _id;
 	}
 	int16 getRange() {
-		return range;
+		return _range;
 	}
 
 	//  Determine if the object can sense what it's looking for
@@ -249,7 +248,7 @@ private:
  * ===================================================================== */
 
 class SpecificObjectSensor : public ObjectSensor {
-	ObjectID        soughtObjID;
+	ObjectID        _soughtObjID;
 
 public:
 	//  Constructor -- initial construction
@@ -259,7 +258,7 @@ public:
 	    int16       rng,
 	    ObjectID    objToSense) :
 		ObjectSensor(o, sensorID, rng),
-		soughtObjID(objToSense) {
+		_soughtObjID(objToSense) {
 	}
 
 	SpecificObjectSensor(Common::InSaveFile *in, int16 ctr);
@@ -286,7 +285,7 @@ private:
  * ===================================================================== */
 
 class ObjectPropertySensor : public ObjectSensor {
-	ObjectPropertyID    objectProperty;
+	ObjectPropertyID    _objectProperty;
 
 public:
 	//  Constructor -- initial construction
@@ -296,7 +295,7 @@ public:
 	    int16               rng,
 	    ObjectPropertyID    propToSense) :
 		ObjectSensor(o, sensorID, rng),
-		objectProperty(propToSense) {
+		_objectProperty(propToSense) {
 	}
 
 	ObjectPropertySensor(Common::InSaveFile *in, int16 ctr);
@@ -341,7 +340,7 @@ private:
  * ===================================================================== */
 
 class SpecificActorSensor : public ActorSensor {
-	Actor       *soughtActor;
+	Actor       *_soughtActor;
 
 public:
 	//  Constructor -- initial construction
@@ -351,7 +350,7 @@ public:
 	    int16       rng,
 	    Actor       *actorToSense) :
 		ActorSensor(o, sensorID, rng),
-		soughtActor(actorToSense) {
+		_soughtActor(actorToSense) {
 	}
 
 	SpecificActorSensor(Common::InSaveFile *in, int16 ctr);
@@ -378,7 +377,7 @@ private:
  * ===================================================================== */
 
 class ActorPropertySensor : public ActorSensor {
-	ActorPropertyID     actorProperty;
+	ActorPropertyID     _actorProperty;
 
 public:
 	//  Constructor -- initial construction
@@ -388,7 +387,7 @@ public:
 	    int16               rng,
 	    ActorPropertyID     propToSense) :
 		ActorSensor(o, sensorID, rng),
-		actorProperty(propToSense) {
+		_actorProperty(propToSense) {
 	}
 
 	ActorPropertySensor(Common::InSaveFile *in, int16 ctr);
@@ -412,7 +411,7 @@ private:
  * ===================================================================== */
 
 class EventSensor : public Sensor {
-	int16               eventType;
+	int16               _eventType;
 
 public:
 	//  Constructor -- initial construction

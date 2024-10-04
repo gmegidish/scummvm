@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,24 +15,67 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "common/achievements.h"
+#include "common/translation.h"
 
-#include "engines/wintermute/wintermute.h"
-#include "engines/wintermute/base/base_persistence_manager.h"
+#include "engines/achievements.h"
 
-#include "engines/wintermute/keymapper_tables.h"
-#include "engines/wintermute/achievements_tables.h"
+#include "wintermute/wintermute.h"
+#include "wintermute/base/base_persistence_manager.h"
+
+#include "wintermute/keymapper_tables.h"
+#include "wintermute/achievements_tables.h"
 
 // Detection related files.
 #include "wintermute/detection.h"
 #include "wintermute/detection_tables.h"
 
 namespace Wintermute {
+
+static const ADExtraGuiOptionsMap gameGuiOptions[] = {
+	{
+		GAMEOPTION_SHOW_FPS,
+		{
+			_s("Show FPS-counter"),
+			_s("Show the current number of frames per second in the upper left corner"),
+			"show_fps",
+			false,
+			0,
+			0
+		},
+	},
+
+	{
+		GAMEOPTION_BILINEAR,
+		{
+			_s("Sprite bilinear filtering (SLOW)"),
+			_s("Apply bilinear filtering to individual sprites"),
+			"bilinear_filtering",
+			false,
+			0,
+			0
+		}
+	},
+
+#ifdef ENABLE_WME3D
+	{
+		GAMEOPTION_FORCE_2D_RENDERER,
+		{
+			_s("Force to use 2D renderer (2D games only)"),
+			_s("This setting forces ScummVM to use 2D renderer while running 2D games"),
+			"force_2d_renderer",
+			false,
+			0,
+			0
+		}
+	},
+#endif
+
+	AD_EXTRA_GUI_OPTIONS_TERMINATOR
+};
 
 /**
  * The fallback game descriptor used by the Wintermute engine's fallbackDetector.
@@ -51,15 +94,17 @@ static ADGameDescription s_fallbackDesc = {
 
 static char s_fallbackExtraBuf[256];
 
-class WintermuteMetaEngine : public AdvancedMetaEngine {
+class WintermuteMetaEngine : public AdvancedMetaEngine<WMEGameDescription> {
 public:
 	const char *getName() const override {
 		return "wintermute";
 	}
 
-	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override {
-		const WMEGameDescription *gd = (const WMEGameDescription *)desc;
+	const ADExtraGuiOptionsMap *getAdvancedExtraGuiOptions() const override {
+		return gameGuiOptions;
+	}
 
+	Common::Error createInstance(OSystem *syst, Engine **engine, const WMEGameDescription *gd) const override {
 #ifndef ENABLE_FOXTAIL
 		if (gd->targetExecutable >= FOXTAIL_OLDEST_VERSION && gd->targetExecutable <= FOXTAIL_LATEST_VERSION) {
 			return Common::Error(Common::kUnsupportedGameidError, _s("FoxTail support is not compiled in"));
@@ -84,17 +129,13 @@ public:
 
 	bool hasFeature(MetaEngineFeature f) const override {
 		switch (f) {
-		case MetaEngine::kSupportsListSaves:
-			return true;
-		case MetaEngine::kSupportsLoadingDuringStartup:
-			return true;
-		case MetaEngine::kSupportsDeleteSave:
-			return true;
-		case MetaEngine::kSavesSupportCreationDate:
-			return true;
-		case MetaEngine::kSavesSupportMetaInfo:
-			return true;
-		case MetaEngine::kSavesSupportThumbnail:
+		case kSupportsListSaves:
+		case kSupportsLoadingDuringStartup:
+		case kSupportsDeleteSave:
+		case kSavesSupportCreationDate:
+		case kSavesSupportMetaInfo:
+		case kSavesSupportThumbnail:
+		case kSimpleSavesNames:
 			return true;
 		default:
 			return false;
@@ -183,9 +224,9 @@ public:
 			if (!file->getName().hasSuffixIgnoreCase(".dcp")) continue;
 
 			FileProperties tmp;
-			if (AdvancedMetaEngine::getFilePropertiesExtern(md5Bytes, allFiles, s_fallbackDesc, file->getName(), tmp)) {
+			if (AdvancedMetaEngine::getFilePropertiesExtern(md5Bytes, allFiles, kMD5Head, file->getPathInArchive(), tmp)) {
 				game.hasUnknownFiles = true;
-				game.matchedFiles[file->getName()] = tmp;
+				game.matchedFiles[file->getPathInArchive()] = tmp;
 			}
 		}
 

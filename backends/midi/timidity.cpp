@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -142,7 +141,6 @@ int MidiDriver_TIMIDITY::open() {
 	char *res;
 	char timidity_host[NI_MAXHOST];
 	char timidity_port[6], data_port[6];
-	int num;
 
 	/* count ourselves open */
 	if (_isOpen)
@@ -205,13 +203,13 @@ int MidiDriver_TIMIDITY::open() {
 	/*
 	 * open data connection
 	 */
-	num = atoi(res + 4);
+	uint num = atoi(res + 4);
 	if (num > 65535) {
 		warning("TiMidity: Invalid port %d given.\n", num);
 		close_all();
 		return -1;
 	}
-	snprintf(data_port, sizeof(data_port), "%d", num);
+	snprintf(data_port, sizeof(data_port), "%.5d", (uint16)num);
 	if ((_data_fd = connect_to_server(timidity_host, data_port)) < 0) {
 		warning("TiMidity: can't open data connection (host=%s, port=%s)", timidity_host, data_port);
 		close_all();
@@ -274,9 +272,9 @@ void MidiDriver_TIMIDITY::teardown() {
 }
 
 int MidiDriver_TIMIDITY::connect_to_server(const char* hostname, const char* tcp_port) {
-	int fd;
 	struct addrinfo  hints;
 	struct addrinfo *result, *rp;
+	int fd = -1;
 
 	/* get all address(es) matching host and port */
 	memset(&hints, 0, sizeof(struct addrinfo));
@@ -332,7 +330,7 @@ char *MidiDriver_TIMIDITY::timidity_ctl_command(const char *fmt, ...) {
 	while (1) {
 		/* read reply */
 		if (fdgets(buff, sizeof(buff)) <= 0) {
-			strcpy(buff, "Read error\n");
+			Common::strcpy_s(buff, "Read error\n");
 			break;
 		}
 

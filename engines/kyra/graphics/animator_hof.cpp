@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@ void KyraEngine_HoF::restorePage3() {
 void KyraEngine_HoF::clearAnimObjects() {
 	_animObjects[0].index = 0;
 	_animObjects[0].type = 0;
-	_animObjects[0].enabled = 1;
+	_animObjects[0].enabled = true;
 	_animObjects[0].flags = 0x800;
 	_animObjects[0].width = 32;
 	_animObjects[0].height = 49;
@@ -238,7 +237,7 @@ void KyraEngine_HoF::updateSceneAnim(int anim, int newFrame) {
 		animObject->shapeIndex3 = 0xFFFF;
 		animObject->animNum = 0xFFFF;
 	} else {
-		animObject->shapePtr = 0;
+		animObject->shapePtr = nullptr;
 		animObject->shapeIndex3 = newFrame;
 		animObject->animNum = anim;
 	}
@@ -283,7 +282,7 @@ void KyraEngine_HoF::drawSceneAnimObject(AnimObj *obj, int x, int y, int layer) 
 			y = obj->yPos2;
 		}
 
-		_sceneAnimMovie[obj->animNum]->displayFrame(obj->shapeIndex3, 2, x, y, int(flags | layer), 0, 0);
+		_sceneAnimMovie[obj->animNum]->displayFrame(obj->shapeIndex3, 2, x, y, int(flags | layer), nullptr, nullptr);
 	}
 }
 

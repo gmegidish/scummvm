@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,8 +53,8 @@ public:
 
 	virtual void show(bool visible);
 	virtual void animate();
-	virtual void setStyle(uint8 newStyle);
-	virtual uint8 getStyle();
+	virtual void setStyle(uint16 newStyle);
+	virtual uint16 getStyle();
 
 protected:
 	OSystem *_syst;
@@ -66,7 +65,7 @@ protected:
 
 	// Styles
 	Common::Array<Cursor *> _cursors;
-	uint8 _current;
+	uint16 _current;
 	Cursor *_cursor;
 };
 
@@ -94,7 +93,12 @@ public:
 	GrvCursorMan_v2(OSystem *system);
 	~GrvCursorMan_v2() override;
 
-	void setStyle(uint8 newStyle) override;
+	void animate() override;
+	void setStyle(uint16 newStyle) override;
+
+private:
+	Cursor *_cursor2;
+	uint8 _lastFrame2;
 };
 
 } // End of Groovie namespace

@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,33 +15,24 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/stark/ui/world/dialogpanel.h"
-
 #include "engines/stark/gfx/driver.h"
-
 #include "engines/stark/resources/speech.h"
-
 #include "engines/stark/services/services.h"
 #include "engines/stark/services/staticprovider.h"
 #include "engines/stark/services/dialogplayer.h"
 #include "engines/stark/services/settings.h"
 #include "engines/stark/services/userinterface.h"
-
 #include "engines/stark/ui/cursor.h"
 #include "engines/stark/ui/world/clicktext.h"
-
 #include "engines/stark/visual/image.h"
 #include "engines/stark/visual/text.h"
 
 namespace Stark {
-
-const Color DialogPanel::_aprilColor = Color(0xFF, 0xC0, 0x00);
-const Color DialogPanel::_otherColor = Color(0xFF, 0x40, 0x40);
 
 DialogPanel::DialogPanel(Gfx::Driver *gfx, Cursor *cursor) :
 		Window(gfx, cursor),
@@ -58,8 +49,8 @@ DialogPanel::DialogPanel(Gfx::Driver *gfx, Cursor *cursor) :
 
 	_visible = true;
 
-	_activeBackGroundTexture = StarkStaticProvider->getUIElement(StaticProvider::kTextBackgroundActive);
-	_passiveBackGroundTexture = StarkStaticProvider->getUIElement(StaticProvider::kTextBackgroundPassive);
+	_activeBackGroundImage = StarkStaticProvider->getUIElement(StaticProvider::kTextBackgroundActive);
+	_passiveBackGroundImage = StarkStaticProvider->getUIElement(StaticProvider::kTextBackgroundPassive);
 	_scrollUpArrowImage = StarkStaticProvider->getUIElement(StaticProvider::kTextScrollUpArrow);
 	_scrollDownArrowImage = StarkStaticProvider->getUIElement(StaticProvider::kTextScrollDownArrow);
 	_dialogOptionBullet = StarkStaticProvider->getUIImage(StaticProvider::kDialogOptionBullet);
@@ -151,12 +142,12 @@ void DialogPanel::onGameLoop() {
 void DialogPanel::onRender() {
 	// Draw options if available
 	if (!_options.empty()) {
-		_activeBackGroundTexture->render(Common::Point(0, 0), false);
+		_activeBackGroundImage->render(Common::Point(0, 0), false);
 
 		renderOptions();
 		renderScrollArrows();
 	} else {
-		_passiveBackGroundTexture->render(Common::Point(0, 0), false);
+		_passiveBackGroundImage->render(Common::Point(0, 0), false);
 
 		// Draw subtitle if available
 		if (_subtitleVisual && StarkSettings->getBoolSetting(Settings::kSubtitle)) {
@@ -168,7 +159,7 @@ void DialogPanel::onRender() {
 void DialogPanel::updateSubtitleVisual() {
 	clearSubtitleVisual();
 
-	Color color = _otherColor;
+	Gfx::Color color = _otherColor;
 	if (_currentSpeech->characterIsApril())
 		color = _aprilColor;
 

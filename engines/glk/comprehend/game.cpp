@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -225,7 +224,7 @@ void ComprehendGame::console_println(const char *text) {
 	while (*p) {
 		switch (*p) {
 		case '\n':
-			word = NULL;
+			word = nullptr;
 			word_len = 0;
 			g_comprehend->print("\n");
 			p++;
@@ -372,7 +371,7 @@ Item *ComprehendGame::get_item_by_noun(byte noun) {
 		if (_items[i]._word == noun)
 			return &_items[i];
 
-	return NULL;
+	return nullptr;
 }
 
 int ComprehendGame::get_item_id(byte noun) {
@@ -392,7 +391,7 @@ void ComprehendGame::update_graphics() {
 	if (!g_comprehend->isGraphicsEnabled())
 		return;
 
-	type = roomIsSpecial(_currentRoomCopy, NULL);
+	type = roomIsSpecial(_currentRoomCopy, nullptr);
 
 	switch (type) {
 	case ROOM_IS_DARK:
@@ -462,14 +461,13 @@ void ComprehendGame::updateRoomDesc() {
 
 void ComprehendGame::update() {
 	Room *room = get_room(_currentRoom);
-	unsigned room_type, room_desc_string;
+	uint room_type, room_desc_string;
 
 	update_graphics();
 
 	/* Check if the room is special (dark, too bright, etc) */
 	room_desc_string = room->_stringDesc;
-	room_type = roomIsSpecial(_currentRoom,
-	                                &room_desc_string);
+	room_type = roomIsSpecial(_currentRoom, &room_desc_string);
 
 	if (_updateFlags & UPDATE_ROOM_DESC) {
 		Common::String desc = stringLookup(room_desc_string);

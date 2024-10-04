@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,23 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "base/plugins.h"
-#include "common/translation.h"
 #include "engines/advancedDetector.h"
 
 #include "hdb/detection.h"
 
 static const PlainGameDescriptor hdbGames[] = {
 	{"hdb", "Hyperspace Delivery Boy!"},
-	{0, 0}
+	{nullptr, nullptr}
 };
-
-#define GAMEOPTION_CHEATMODE GUIO_GAMEOPTIONS1
 
 namespace HDB {
 
@@ -117,30 +113,16 @@ static const ADGameDescription gameDescriptions[] = {
 
 } // End of namespace HDB
 
-static const ADExtraGuiOptionsMap optionsList[] = {
-		{
-				GAMEOPTION_CHEATMODE,
-				{
-						_s("Enable cheat mode"),
-						_s("Debug info and level selection becomes available"),
-						"hypercheat",
-						false
-				}
-		},
-
-		AD_EXTRA_GUI_OPTIONS_TERMINATOR
-};
-
-class HDBMetaEngineDetection : public AdvancedMetaEngineDetection {
+class HDBMetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	HDBMetaEngineDetection() : AdvancedMetaEngineDetection(HDB::gameDescriptions, sizeof(ADGameDescription), hdbGames, optionsList) {
-	}
-
-	const char *getEngineId() const override {
-		return "hdb";
+	HDBMetaEngineDetection() : AdvancedMetaEngineDetection(HDB::gameDescriptions, hdbGames) {
 	}
 
 	const char *getName() const override {
+		return "hdb";
+	}
+
+	const char *getEngineName() const override {
 		return "Hyperspace Delivery Boy!";
 	}
 

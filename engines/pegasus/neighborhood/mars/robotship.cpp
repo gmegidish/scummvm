@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,7 +52,7 @@ static const CoordType kRovingTop = kShuttleWindowTop + 20;
 static const CoordType kRovingWidth = kShuttleWindowMidH - kRovingLeft;
 static const CoordType kRovingHeight = kShuttleWindowMidV - kRovingTop;
 
-RobotShip *g_robotShip = 0;
+RobotShip *g_robotShip = nullptr;
 
 RobotShip::RobotShip() : _spritesMovie(kNoDisplayElement) {
 	g_robotShip = this;
@@ -68,7 +67,7 @@ RobotShip::RobotShip() : _spritesMovie(kNoDisplayElement) {
 }
 
 RobotShip::~RobotShip() {
-	g_robotShip = 0;
+	g_robotShip = nullptr;
 }
 
 void RobotShip::initRobotShip() {
@@ -92,15 +91,15 @@ void RobotShip::cleanUpRobotShip() {
 }
 
 void RobotShip::startMoving() {
-	if (((PegasusEngine *)g_engine)->getRandomBit()) {
-		_p4.x = kInitialLocationLeft + ((PegasusEngine *)g_engine)->getRandomNumber(kInitialLocationWidth - 1);
-		if (((PegasusEngine *)g_engine)->getRandomBit())
+	if (g_vm->getRandomBit()) {
+		_p4.x = kInitialLocationLeft + g_vm->getRandomNumber(kInitialLocationWidth - 1);
+		if (g_vm->getRandomBit())
 			_p4.y = kInitialLocationTop;
 		else
 			_p4.y = kInitialLocationTop + kInitialLocationHeight;
 	} else {
-		_p4.y = kInitialLocationTop + ((PegasusEngine *)g_engine)->getRandomNumber(kInitialLocationHeight - 1);
-		if (((PegasusEngine *)g_engine)->getRandomBit())
+		_p4.y = kInitialLocationTop + g_vm->getRandomNumber(kInitialLocationHeight - 1);
+		if (g_vm->getRandomBit())
 			_p4.x = kInitialLocationLeft;
 		else
 			_p4.x = kInitialLocationLeft + kInitialLocationWidth;
@@ -119,7 +118,7 @@ void RobotShip::killRobotShip() {
 
 void RobotShip::setUpNextDropTime() {
 	if (!isSnared()) {
-		_dropJunkFuse.primeFuse(kJunkDropBaseTime + ((PegasusEngine *)g_engine)->getRandomNumber(kJunkDropSlopTime));
+		_dropJunkFuse.primeFuse(kJunkDropBaseTime + g_vm->getRandomNumber(kJunkDropSlopTime));
 		_dropJunkFuse.lightFuse();
 	}
 }
@@ -128,7 +127,7 @@ void RobotShip::timeToDropJunk() {
 	if (g_spaceJunk) {
 		CoordType x, y;
 		_spritesMovie.getCenter(x, y);
-		g_spaceJunk->launchJunk(((PegasusEngine *)g_engine)->getRandomNumber(24), x, y);
+		g_spaceJunk->launchJunk(g_vm->getRandomNumber(24), x, y);
 	}
 }
 
@@ -136,10 +135,10 @@ void RobotShip::newDestination() {
 	_p1 = _p4;
 	_r1 = _r4;
 
-	_p4.x = kRovingLeft + ((PegasusEngine *)g_engine)->getRandomNumber(kRovingWidth - 1);
-	_p4.y = kRovingTop + ((PegasusEngine *)g_engine)->getRandomNumber(kRovingHeight - 1);
+	_p4.x = kRovingLeft + g_vm->getRandomNumber(kRovingWidth - 1);
+	_p4.y = kRovingTop + g_vm->getRandomNumber(kRovingHeight - 1);
 
-	if (((PegasusEngine *)g_engine)->getRandomNumber(7) < 6) {
+	if (g_vm->getRandomNumber(7) < 6) {
 		if (!sameSign(_p4.x - kShuttleWindowMidH, kShuttleWindowMidH - _p1.x)) {
 			if (sign(_p4.x - kShuttleWindowMidH) > 0)
 				_p4.x -= kRovingWidth;
@@ -148,7 +147,7 @@ void RobotShip::newDestination() {
 		}
 	}
 
-	if (((PegasusEngine *)g_engine)->getRandomNumber(7) < 6) {
+	if (g_vm->getRandomNumber(7) < 6) {
 		if (!sameSign(_p4.y - kShuttleWindowMidV, kShuttleWindowMidV - _p1.y)) {
 			if (sign(_p4.y - kShuttleWindowMidV) > 0)
 				_p4.y -= kRovingHeight;
@@ -160,7 +159,7 @@ void RobotShip::newDestination() {
 	makeVelocityVector(_p4.x, _p4.y, kShuttleWindowLeft + kShuttleWindowWidth / 2,
 			kShuttleWindowTop + kShuttleWindowHeight / 2, _r4);
 	stop();
-	_duration = kRovingTime + ((PegasusEngine *)g_engine)->getRandomNumber(kRovingSlop - 1);
+	_duration = kRovingTime + g_vm->getRandomNumber(kRovingSlop - 1);
 	setSegment(0, _duration);
 	setTime(0);
 	start();
@@ -213,7 +212,7 @@ bool RobotShip::pointInShuttle(Common::Point &pt) {
 void RobotShip::hitByEnergyBeam(Common::Point impactPoint) {
 	((Mars *)g_neighborhood)->decreaseRobotShuttleEnergy(1, impactPoint);
 	setGlowing(true);
-	((PegasusEngine *)g_engine)->delayShell(1, 3);
+	g_vm->delayShell(1, 3);
 	setGlowing(false);
 }
 
@@ -256,7 +255,7 @@ void RobotShip::timeChanged(const TimeValue) {
 }
 
 void RobotShip::makeVelocityVector(CoordType x1, CoordType y1, CoordType x2, CoordType y2, Common::Point &vector) {
-	CoordType length = ((PegasusEngine *)g_engine)->getRandomNumber(kVelocityVectorSlop - 1) + kVelocityVectorLength;
+	CoordType length = g_vm->getRandomNumber(kVelocityVectorSlop - 1) + kVelocityVectorLength;
 	vector.x = x2 - x1;
 	vector.y = y2 - y1;
 	float oldLength = sqrt((float)(vector.x * vector.x + vector.y * vector.y));

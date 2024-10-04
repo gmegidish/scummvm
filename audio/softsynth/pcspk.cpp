@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #include "audio/null.h"
 
 #include "common/queue.h"
+#include "common/translation.h"
 
 namespace Audio {
 
@@ -125,7 +125,7 @@ int PCSpeaker::readBuffer(int16 *buffer, const int numSamples) {
 			_oscLength = (uint32)(_rate / command.frequency);
 			_oscSamples = 0;
 			// Length is in microseconds.
-			_remainingSamples = (_rate * command.length) / 1000000;
+			_remainingSamples = ((uint64)_rate * (uint64)command.length) / 1000000;
 			_playForever = false;
 			_commandActive = true;
 		}
@@ -200,15 +200,15 @@ int8 PCSpeaker::generateSilence(uint32 x, uint32 oscLength) {
 
 class PCSpeakerMusicPlugin : public NullMusicPlugin {
 public:
-	const char *getName() const {
+	const char *getName() const override {
 		return _s("PC Speaker emulator");
 	}
 
-	const char *getId() const {
+	const char *getId() const override {
 		return "pcspk";
 	}
 
-	MusicDevices getDevices() const;
+	MusicDevices getDevices() const override;
 };
 
 MusicDevices PCSpeakerMusicPlugin::getDevices() const {
@@ -219,15 +219,15 @@ MusicDevices PCSpeakerMusicPlugin::getDevices() const {
 
 class PCjrMusicPlugin : public NullMusicPlugin {
 public:
-	const char *getName() const {
+	const char *getName() const override {
 		return _s("IBM PCjr emulator");
 	}
 
-	const char *getId() const {
+	const char *getId() const override {
 		return "pcjr";
 	}
 
-	MusicDevices getDevices() const;
+	MusicDevices getDevices() const override;
 };
 
 MusicDevices PCjrMusicPlugin::getDevices() const {

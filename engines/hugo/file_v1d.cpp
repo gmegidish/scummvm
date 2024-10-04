@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,16 +58,17 @@ void FileManager_v1d::readOverlay(const int screenNum, ImagePtr image, const Ovl
 	debugC(1, kDebugFile, "readOverlay(%d, ...)", screenNum);
 
 	const char *ovlExt[] = {".b", ".o", ".ob"};
-	Common::String buf = Common::String(_vm->_text->getScreenNames(screenNum)) + Common::String(ovlExt[overlayType]);
+	Common::Path buf(_vm->_text->getScreenNames(screenNum));
+	buf.appendInPlace(ovlExt[overlayType]);
 
 	if (!Common::File::exists(buf)) {
 		memset(image, 0, kOvlSize);
-		warning("File not found: %s", buf.c_str());
+		warning("File not found: %s", buf.toString().c_str());
 		return;
 	}
 
 	if (!_sceneryArchive1.open(buf))
-		error("File not found: %s", buf.c_str());
+		error("File not found: %s", buf.toString().c_str());
 
 	ImagePtr tmpImage = image;                      // temp ptr to overlay file
 
@@ -82,13 +82,13 @@ void FileManager_v1d::readOverlay(const int screenNum, ImagePtr image, const Ovl
 void FileManager_v1d::readBackground(const int screenIndex) {
 	debugC(1, kDebugFile, "readBackground(%d)", screenIndex);
 
-	Common::String buf;
-	buf = Common::String(_vm->_text->getScreenNames(screenIndex)) + ".ART";
+	Common::Path buf(_vm->_text->getScreenNames(screenIndex));
+	buf.appendInPlace(".ART");
 	if (!_sceneryArchive1.open(buf))
-		error("File not found: %s", buf.c_str());
+		error("File not found: %s", buf.toString().c_str());
 	// Read the image into dummy seq and static dib_a
 	Seq *dummySeq;                                // Image sequence structure for Read_pcx
-	dummySeq = readPCX(_sceneryArchive1, 0, _vm->_screen->getFrontBuffer(), true, _vm->_text->getScreenNames(screenIndex));
+	dummySeq = readPCX(_sceneryArchive1, nullptr, _vm->_screen->getFrontBuffer(), true, _vm->_text->getScreenNames(screenIndex));
 	free(dummySeq);
 	_sceneryArchive1.close();
 }

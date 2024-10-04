@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,8 +26,8 @@
 #include "common/savefile.h"
 #include "common/serializer.h"
 #include "common/system.h"
-#include "common/zlib.h"
-#include "graphics/palette.h"
+#include "common/compression/deflate.h"
+#include "graphics/paletteman.h"
 
 #include "composer/composer.h"
 #include "composer/graphics.h"
@@ -44,7 +43,7 @@ void ComposerEngine::syncArray(Common::Serializer &ser, Common::Array<T> &data, 
 			sync<T>(ser, *i, minVersion, maxVersion);
 		}
 	} else {
-		uint32 size;
+		uint32 size = 0;
 		data.clear();
 		ser.syncAsUint32LE(size, minVersion, maxVersion);
 		for (uint32 i = 0; i < size; i++) {
@@ -63,7 +62,7 @@ void ComposerEngine::syncList(Common::Serializer &ser, Common::List<T> &data, Co
 			sync<T>(ser, *i, minVersion, maxVersion);
 		}
 	} else {
-		uint32 size;
+		uint32 size = 0;
 		data.clear();
 		ser.syncAsUint32LE(size, minVersion, maxVersion);
 		for (uint32 i = 0; i < size; i++) {
@@ -82,7 +81,7 @@ void ComposerEngine::syncListReverse(Common::Serializer &ser, Common::List<T> &d
 			sync<T>(ser, *i, minVersion, maxVersion);
 		}
 	} else {
-		uint32 size;
+		uint32 size = 0;
 		data.clear();
 		ser.syncAsUint32LE(size, minVersion, maxVersion);
 		for (uint32 i = 0; i < size; i++) {
@@ -106,7 +105,7 @@ void ComposerEngine::sync<Library>(Common::Serializer &ser, Library &data, Commo
 		ser.syncAsUint16LE(data._id, minVersion, maxVersion);
 		ser.syncString(data._group, minVersion, maxVersion);
 	} else {
-		uint16 id;
+		uint16 id = 0;
 		ser.syncAsUint16LE(id, minVersion, maxVersion);
 		ser.syncString(_bookGroup, minVersion, maxVersion);
 		loadLibrary(id);
@@ -121,7 +120,7 @@ void ComposerEngine::syncListReverse<Library>(Common::Serializer &ser, Common::L
 			sync<Library>(ser, *i, minVersion, maxVersion);
 		}
 	} else {
-		uint32 size;
+		uint32 size = 0;
 		ser.syncAsUint32LE(size, minVersion, maxVersion);
 		for (uint32 i = 0; i < size; i++) {
 			Library item;
@@ -136,8 +135,8 @@ void ComposerEngine::sync<PendingPageChange>(Common::Serializer &ser, PendingPag
 }
 template<>
 void ComposerEngine::sync<OldScript *>(Common::Serializer &ser, OldScript *&data, Common::Serializer::Version minVersion, Common::Serializer::Version maxVersion) {
-	uint16 id;
-	uint32 pos, delay;
+	uint16 id = 0;
+	uint32 pos = 0, delay = 0;
 	if (ser.isSaving()) {
 		pos = data->_stream->pos();
 		id = data->_id;
@@ -162,8 +161,8 @@ void ComposerEngine::sync<QueuedScript>(Common::Serializer &ser, QueuedScript &d
 }
 template<>
 void ComposerEngine::sync<Pipe *>(Common::Serializer &ser, Pipe *&data, Common::Serializer::Version minVersion, Common::Serializer::Version maxVersion) {
-	uint16 id;
-	uint32 offset, tmp;
+	uint16 id = 0;
+	uint32 offset = 0, tmp = 0;
 	if (ser.isSaving()) {
 		id = data->getPipeId();
 		offset = data->getOffset();
@@ -186,13 +185,15 @@ void ComposerEngine::sync<Pipe *>(Common::Serializer &ser, Pipe *&data, Common::
 		data->setOffset(offset);
 		ser.syncAsUint32LE(tmp);
 		for (uint32 j = tmp; j > 0; j--) {
-			uint32 tag;
+			uint32 tag = 0;
 			ser.syncAsUint32LE(tag);
 			ser.syncAsUint32LE(tmp);
 			for (uint32 k = tmp; k > 0; k--) {
 				ser.syncAsUint16LE(id);
-				if (data->hasResource(tag, id))
-					data->getResource(tag, id, true);
+				if (data->hasResource(tag, id)) {
+					Common::SeekableReadStream *s = data->getResource(tag, id, true);
+					delete s;
+				}
 			}
 		}
 	} else {
@@ -212,9 +213,9 @@ void ComposerEngine::sync<AnimationEntry>(Common::Serializer &ser, AnimationEntr
 }
 template<>
 void ComposerEngine::sync<Animation *>(Common::Serializer &ser, Animation *&data, Common::Serializer::Version minVersion, Common::Serializer::Version maxVersion) {
-	uint16 animId, x, y;
-	uint32 offset, state, param;
-	int32 size;
+	uint16 animId = 0, x = 0, y = 0;
+	uint32 offset = 0, state = 0, param = 0;
+	int32 size = 0;
 	if (ser.isSaving()) {
 		animId = data->_id;
 		offset = data->_offset;
@@ -236,7 +237,7 @@ void ComposerEngine::sync<Animation *>(Common::Serializer &ser, Animation *&data
 		loadAnimation(data, animId, x, y, param, size);
 		data->_offset = offset;
 		data->_state = state;
-		uint32 tmp;
+		uint32 tmp = 0;
 		ser.syncAsUint32LE(tmp);
 		for (uint32 i = 0; i < tmp; i++) {
 			sync<AnimationEntry>(ser, data->_entries[i], minVersion, maxVersion);
@@ -277,7 +278,7 @@ Common::Error ComposerEngine::loadGameState(int slot) {
 	if (!(in = _saveFileMan->openForLoading(filename)))
 		return Common::kPathNotFile;
 
-	Common::Serializer ser(in, NULL);
+	Common::Serializer ser(in, nullptr);
 	byte magic[4];
 	ser.syncBytes(magic, 4);
 	if (magic[0] != 'C' || magic[1] != 'M' || magic[2] != 'P' || magic[3] != 'S')
@@ -353,11 +354,11 @@ Common::Error ComposerEngine::loadGameState(int slot) {
 	_needsUpdate = true;
 
 	_mixer->stopAll();
-	_audioStream = NULL;
+	_audioStream = nullptr;
 
 	// Restore the buffered audio
 	ser.syncAsSint16LE(_currSoundPriority);
-	int32 numSamples;
+	int32 numSamples = 0;
 	ser.syncAsSint32LE(numSamples);
 	int16 *audioBuffer = (int16 *)malloc(numSamples * 2);
 	for (int32 i = 0; i < numSamples; i++)
@@ -376,7 +377,7 @@ Common::Error ComposerEngine::saveGameState(int slot, const Common::String &desc
 	if (!(out = _saveFileMan->openForSaving(filename)))
 		return Common::kWritingFailed;
 
-	Common::Serializer ser(NULL, out);
+	Common::Serializer ser(nullptr, out);
 	byte magic[4] = {'C', 'M', 'P', 'S'};
 	ser.syncBytes(magic, 4);
 	ser.syncVersion(0);

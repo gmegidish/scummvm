@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, MojoTouch has
+ * exclusively licensed this code on March 23th, 2024, to be used in
+ * closed-source products.
+ * Therefore, any contributions (commits) to it will also be dual-licensed.
  *
  */
 
@@ -25,7 +31,7 @@
 #include "common/keyboard.h"
 #include "common/stream.h"
 #include "common/system.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/surface.h"
 
 #include "toon/audio.h"
@@ -59,8 +65,8 @@ bool ToonstruckSmackerDecoder::loadStream(Common::SeekableReadStream *stream) {
 	return true;
 }
 
-Video::SmackerDecoder::SmackerVideoTrack *ToonstruckSmackerDecoder::createVideoTrack(uint32 width, uint32 height, uint32 frameCount, const Common::Rational &frameRate, uint32 flags, uint32 signature) const {
-	return Video::SmackerDecoder::createVideoTrack(width, height, frameCount, frameRate, (height == 200) ? 4 : flags, signature);
+Video::SmackerDecoder::SmackerVideoTrack *ToonstruckSmackerDecoder::createVideoTrack(uint32 width, uint32 height, uint32 frameCount, const Common::Rational &frameRate, uint32 flags, uint32 version) const {
+	return Video::SmackerDecoder::createVideoTrack(width, height, frameCount, frameRate, (height == 200) ? 4 : flags, version);
 }
 
 // decoder is deallocated with Movie destruction i.e. new ToonstruckSmackerDecoder is needed
@@ -73,13 +79,14 @@ Movie::Movie(ToonEngine *vm , ToonstruckSmackerDecoder *decoder) {
 
 Movie::~Movie() {
 	delete _decoder;
+	delete _subtitle;
 }
 
 void Movie::init() const {
 }
 
-void Movie::play(const Common::String &video, int32 flags) {
-	debugC(1, kDebugMovie, "play(%s, %d)", video.c_str(), flags);
+void Movie::play(const Common::Path &video, int32 flags) {
+	debugC(1, kDebugMovie, "play(%s, %d)", video.toString().c_str(), flags);
 	bool isFirstIntroVideo = false;
 	if (video == "209_1M.SMK")
 		isFirstIntroVideo = true;
@@ -87,12 +94,12 @@ void Movie::play(const Common::String &video, int32 flags) {
 	_playing = true;
 	if (flags & 1)
 		_vm->getAudioManager()->setMusicVolume(0);
-	if (!_decoder->loadFile(video.c_str())) {
+	if (!_decoder->loadFile(video)) {
 		if (flags & 2)
 			return;
-		error("Unable to play video %s", video.c_str());
+		error("Unable to play video %s", video.toString().c_str());
 	}
-	_subtitle->load(video.c_str());
+	_subtitle->load(video);
 	playVideo(isFirstIntroVideo);
 	_vm->flushPalette(true);
 	if (flags & 1)
@@ -167,7 +174,7 @@ void Movie::playVideo(bool isFirstIntroVideo) {
 
 		Common::Event event;
 		while (_vm->_system->getEventManager()->pollEvent(event))
-			if ((event.type == Common::EVENT_KEYDOWN && event.kbd.keycode == Common::KEYCODE_ESCAPE)) {
+			if ((event.type == Common::EVENT_CUSTOM_ENGINE_ACTION_START && event.customType == kActionEscape)) {
 				_vm->dirtyAllScreen();
 				return;
 			}

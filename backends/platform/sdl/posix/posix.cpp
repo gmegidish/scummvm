@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -112,7 +111,7 @@ bool OSystem_POSIX::hasFeature(Feature f) {
 	return OSystem_SDL::hasFeature(f);
 }
 
-Common::String OSystem_POSIX::getDefaultConfigFileName() {
+Common::Path OSystem_POSIX::getDefaultConfigFileName() {
 	const Common::String baseConfigName = "scummvm.ini";
 
 	Common::String configFile;
@@ -130,24 +129,22 @@ Common::String OSystem_POSIX::getDefaultConfigFileName() {
 		if (configFile.size() < MAXPATHLEN) {
 			struct stat sb;
 			if (stat(configFile.c_str(), &sb) == 0) {
-				return configFile;
+				return Common::Path(configFile, '/');
 			}
 		}
 	}
 
 	// On POSIX systems we follow the XDG Base Directory Specification for
 	// where to store files. The version we based our code upon can be found
-	// over here: http://standards.freedesktop.org/basedir-spec/basedir-spec-0.8.html
+	// over here: https://specifications.freedesktop.org/basedir-spec/basedir-spec-0.8.html
 	envVar = getenv("XDG_CONFIG_HOME");
 	if (!envVar || !*envVar) {
 		envVar = getenv("HOME");
-		if (!envVar) {
-			return 0;
-		}
-
-		if (Posix::assureDirectoryExists(".config", envVar)) {
-			prefix = envVar;
-			prefix += "/.config";
+		if (envVar && *envVar) {
+			if (Posix::assureDirectoryExists(".config", envVar)) {
+				prefix = envVar;
+				prefix += "/.config";
+			}
 		}
 	} else {
 		prefix = envVar;
@@ -165,7 +162,7 @@ Common::String OSystem_POSIX::getDefaultConfigFileName() {
 		configFile = baseConfigName;
 	}
 
-	return configFile;
+	return Common::Path(configFile, '/');
 }
 
 Common::String OSystem_POSIX::getXdgUserDir(const char *name) {
@@ -183,7 +180,7 @@ Common::String OSystem_POSIX::getXdgUserDir(const char *name) {
 
 	// Find the requested directory line in the xdg-user-dirs configuration file
 	//   Example line value: XDG_PICTURES_DIR="$HOME/Pictures"
-	Common::FSNode userDirsFile(configHome + "/user-dirs.dirs");
+	Common::FSNode userDirsFile(Common::Path(configHome + "/user-dirs.dirs", '/'));
 	if (!userDirsFile.exists() || !userDirsFile.isReadable() || userDirsFile.isDirectory()) {
 		return "";
 	}
@@ -236,9 +233,59 @@ Common::String OSystem_POSIX::getXdgUserDir(const char *name) {
 	return directoryPath;
 }
 
-Common::String OSystem_POSIX::getScreenshotsPath() {
+Common::Path OSystem_POSIX::getDefaultIconsPath() {
+	Common::String iconsPath;
+
+	// On POSIX systems we follow the XDG Base Directory Specification for
+	// where to store files. The version we based our code upon can be found
+	// over here: https://specifications.freedesktop.org/basedir-spec/basedir-spec-0.8.html
+	const char *prefix = getenv("XDG_CACHE_HOME");
+	if (prefix == nullptr || !*prefix) {
+		prefix = getenv("HOME");
+		if (prefix == nullptr) {
+			return Common::Path();
+		}
+
+		iconsPath = ".cache/";
+	}
+
+	iconsPath += "scummvm/icons";
+
+	if (!Posix::assureDirectoryExists(iconsPath, prefix)) {
+		return Common::Path();
+	}
+
+	return Common::Path(prefix).join(iconsPath);
+}
+
+Common::Path OSystem_POSIX::getDefaultDLCsPath() {
+	Common::String dlcsPath;
+
+	// On POSIX systems we follow the XDG Base Directory Specification for
+	// where to store files. The version we based our code upon can be found
+	// over here: https://specifications.freedesktop.org/basedir-spec/basedir-spec-0.8.html
+	const char *prefix = getenv("XDG_CACHE_HOME");
+	if (prefix == nullptr || !*prefix) {
+		prefix = getenv("HOME");
+		if (prefix == nullptr) {
+			return Common::Path();
+		}
+
+		dlcsPath = ".cache/";
+	}
+
+	dlcsPath += "scummvm/dlcs";
+
+	if (!Posix::assureDirectoryExists(dlcsPath, prefix)) {
+		return Common::Path();
+	}
+
+	return Common::Path(prefix).join(dlcsPath);
+}
+
+Common::Path OSystem_POSIX::getScreenshotsPath() {
 	// If the user has configured a screenshots path, use it
-	const Common::String path = OSystem_SDL::getScreenshotsPath();
+	const Common::Path path = OSystem_SDL::getScreenshotsPath();
 	if (!path.empty()) {
 		return path;
 	}
@@ -255,24 +302,31 @@ Common::String OSystem_POSIX::getScreenshotsPath() {
 		picturesPath += "/";
 	}
 
-	static const char *SCREENSHOTS_DIR_NAME = "ScummVM Screenshots";
+	static const char *const SCREENSHOTS_DIR_NAME = "ScummVM Screenshots";
 	if (!Posix::assureDirectoryExists(SCREENSHOTS_DIR_NAME, picturesPath.c_str())) {
 		return "";
 	}
 
-	return picturesPath + SCREENSHOTS_DIR_NAME + "/";
+	return Common::Path(picturesPath).join(SCREENSHOTS_DIR_NAME);
 }
 
 void OSystem_POSIX::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
 #ifdef DATA_PATH
-	const char *snap = getenv("SNAP");
-	if (snap) {
-		Common::String dataPath = Common::String(snap) + DATA_PATH;
+	const char *path = nullptr;
+	if (!path) {
+		path = getenv("SNAP");
+	}
+	if (!path) {
+		path = getenv("APPDIR");
+	}
+	if (path) {
+		Common::Path dataPath(path);
+		dataPath.joinInPlace(DATA_PATH);
 		Common::FSNode dataNode(dataPath);
 		if (dataNode.exists() && dataNode.isDirectory()) {
 			// This is the same priority which is used for the data path (below),
 			// but we insert this one first, so it will be searched first.
-			s.add(dataPath, new Common::FSDirectory(dataNode, 4), priority);
+			s.addDirectory(dataNode, priority, 4);
 		}
 	}
 #endif
@@ -281,17 +335,17 @@ void OSystem_POSIX::addSysArchivesToSearchSet(Common::SearchSet &s, int priority
 	OSystem_SDL::addSysArchivesToSearchSet(s, priority);
 }
 
-Common::String OSystem_POSIX::getDefaultLogFileName() {
+Common::Path OSystem_POSIX::getDefaultLogFileName() {
 	Common::String logFile;
 
 	// On POSIX systems we follow the XDG Base Directory Specification for
 	// where to store files. The version we based our code upon can be found
-	// over here: http://standards.freedesktop.org/basedir-spec/basedir-spec-0.8.html
+	// over here: https://specifications.freedesktop.org/basedir-spec/basedir-spec-0.8.html
 	const char *prefix = getenv("XDG_CACHE_HOME");
 	if (prefix == nullptr || !*prefix) {
 		prefix = getenv("HOME");
 		if (prefix == nullptr) {
-			return Common::String();
+			return Common::Path();
 		}
 
 		logFile = ".cache/";
@@ -300,10 +354,14 @@ Common::String OSystem_POSIX::getDefaultLogFileName() {
 	logFile += "scummvm/logs";
 
 	if (!Posix::assureDirectoryExists(logFile, prefix)) {
-		return Common::String();
+		return Common::Path();
 	}
 
-	return Common::String::format("%s/%s/scummvm.log", prefix, logFile.c_str());
+	Common::Path logPath(prefix);
+	logPath.joinInPlace(logFile);
+	logPath.joinInPlace("scummvm.log");
+
+	return logPath;
 }
 
 bool OSystem_POSIX::displayLogFile() {
@@ -322,7 +380,7 @@ bool OSystem_POSIX::displayLogFile() {
 	} else if (pid == 0) {
 
 		// Try xdg-open first
-		execlp("xdg-open", "xdg-open", _logFilePath.c_str(), (char *)0);
+		execlp("xdg-open", "xdg-open", _logFilePath.toString(Common::Path::kNativeSeparator).c_str(), (char *)0);
 
 		// If we're here, that clearly failed.
 
@@ -331,7 +389,7 @@ bool OSystem_POSIX::displayLogFile() {
 
 		// Try xterm+less next
 
-		execlp("xterm", "xterm", "-e", "less", _logFilePath.c_str(), (char *)0);
+		execlp("xterm", "xterm", "-e", "less", _logFilePath.toString(Common::Path::kNativeSeparator).c_str(), (char *)0);
 
 		// TODO: If less does not exist we could fall back to 'more'.
 		// However, we'll have to use 'xterm -hold' for that to prevent the

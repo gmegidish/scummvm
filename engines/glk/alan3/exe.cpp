@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,7 +64,7 @@ void print(Aword fpos, Aword len) {
 	int i;
 	long savfp = 0;     /* Temporary saved text file position */
 	bool savedPrintFlag = printFlag;
-	void *info = NULL;      /* Saved decoding info */
+	void *info = nullptr;      /* Saved decoding info */
 
 
 	if (len == 0) return;
@@ -172,7 +171,7 @@ void visits(Aword v) {
 
 /*----------------------------------------------------------------------*/
 static void sayUndoneCommand(char *words) {
-	static Parameter *messageParameters = NULL;
+	static Parameter *messageParameters = nullptr;
 	messageParameters = (Parameter *)ensureParameterArrayAllocated(messageParameters);
 
 	current.location = where(HERO, DIRECT);
@@ -284,7 +283,7 @@ void cancelEvent(Aword theEvent) {
 /*----------------------------------------------------------------------*/
 static void increaseEventQueue(void) {
 	eventQueue = (EventQueueEntry *)realloc(eventQueue, (eventQueueTop + 2) * sizeof(EventQueueEntry));
-	if (eventQueue == NULL) syserr("Out of memory in increaseEventQueue()");
+	if (eventQueue == nullptr) syserr("Out of memory in increaseEventQueue()");
 
 	eventQueueSize = eventQueueTop + 2;
 }
@@ -328,9 +327,10 @@ void schedule(Aword event, Aword where, Aword after) {
 Aptr concat(Aptr as1, Aptr as2) {
 	char *s1 = (char *)fromAptr(as1);
 	char *s2 = (char *)fromAptr(as2);
-	char *result = (char *)allocate(strlen((char *)s1) + strlen((char *)s2) + 1);
-	strcpy(result, s1);
-	strcat(result, s2);
+	size_t ln = strlen(s1) + strlen(s2) + 1;
+	char *result = (char *)allocate(ln);
+	Common::strcpy_s(result, ln, s1);
+	Common::strcat_s(result, ln, s2);
 	return toAptr(result);
 }
 
@@ -383,7 +383,7 @@ static int skipWordForwards(char *string, int position) {
 
 	uint i;
 
-	for (i = position; i <= strlen(string) && strchr(separators, string[i]) == NULL; i++)
+	for (i = position; i <= strlen(string) && strchr(separators, string[i]) == nullptr; i++)
 		;
 	return i;
 }
@@ -419,7 +419,7 @@ static int skipWordBackwards(char *string, int position) {
 	char separators[] = " .,?";
 	int i;
 
-	for (i = position; i > 0 && strchr(separators, string[i - 1]) == NULL; i--)
+	for (i = position; i > 0 && strchr(separators, string[i - 1]) == nullptr; i--)
 		;
 	return i;
 }
@@ -535,14 +535,14 @@ void use(CONTEXT, int actor, int script) {
 	StepEntry *step;
 
 	if (!isAActor(actor)) {
-		sprintf(str, "Instance is not an Actor (%d).", actor);
+		Common::sprintf_s(str, "Instance is not an Actor (%d).", actor);
 		syserr(str);
 	}
 
 	admin[actor].script = script;
 	admin[actor].step = 0;
 	step = stepOf(actor);
-	if (step != NULL && step->after != 0) {
+	if (step != nullptr && step->after != 0) {
 		FUNC1(evaluate, admin[actor].waitCount, step->after)
 	}
 
@@ -554,7 +554,7 @@ void stop(int act) {
 	char str[80];
 
 	if (!isAActor(act)) {
-		sprintf(str, "Instance is not an Actor (%d).", act);
+		Common::sprintf_s(str, "Instance is not an Actor (%d).", act);
 		syserr(str);
 	}
 
@@ -609,7 +609,7 @@ bool contains(Aptr string, Aptr substring) {
 	strlow((char *)fromAptr(string));
 	strlow((char *)fromAptr(substring));
 
-	found = (strstr((char *)fromAptr(string), (char *)fromAptr(substring)) != 0);
+	found = (strstr((char *)fromAptr(string), (char *)fromAptr(substring)) != nullptr);
 
 	return found;
 }
@@ -631,14 +631,14 @@ bool streq(char a[], char b[]) {
 
 /*======================================================================*/
 void startTranscript(void) {
-	if (logFile == NULL) {
+	if (logFile == nullptr) {
 		Common::String filename = g_vm->getTargetName() + ".log";
 
 		uint fileUsage = transcriptOption ? fileusage_Transcript : fileusage_InputRecord;
 		frefid_t logFileRef = g_vm->glk_fileref_create_by_name(fileUsage, filename.c_str(), 0);
 		logFile = g_vm->glk_stream_open_file(logFileRef, filemode_Write, 0);
 
-		if (logFile == NULL) {
+		if (logFile == nullptr) {
 			transcriptOption = FALSE;
 			logOption = FALSE;
 		} else {
@@ -650,11 +650,11 @@ void startTranscript(void) {
 
 /*======================================================================*/
 void stopTranscript(void) {
-	if (logFile != NULL) {
+	if (logFile != nullptr) {
 		if (transcriptOption || logOption)
 			delete logFile;
 
-		logFile = NULL;
+		logFile = nullptr;
 		transcriptOption = FALSE;
 		logOption = FALSE;
 	}

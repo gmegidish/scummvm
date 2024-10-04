@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -78,12 +77,12 @@ int32 Sound::voicePlay(const char *file, Audio::SoundHandle *handle, uint8 volum
 }
 
 Audio::SeekableAudioStream *Sound::getVoiceStream(const char *file) const {
-	Common::String filename;
+	Common::Path filename;
 
-	Audio::SeekableAudioStream *audioStream = 0;
+	Audio::SeekableAudioStream *audioStream = nullptr;
 	for (int i = 0; _supportedCodecs[i].fileext; ++i) {
 		filename = file;
-		filename += _supportedCodecs[i].fileext;
+		filename.appendInPlace(_supportedCodecs[i].fileext);
 
 		Common::SeekableReadStream *stream = _vm->resource()->createReadStream(filename);
 		if (!stream)
@@ -95,7 +94,7 @@ Audio::SeekableAudioStream *Sound::getVoiceStream(const char *file) const {
 
 	if (!audioStream) {
 		warning("Couldn't load sound file '%s'", file);
-		return 0;
+		return nullptr;
 	} else {
 		return audioStream;
 	}
@@ -214,12 +213,12 @@ void MixedSoundDriver::loadSoundFile(uint file) {
 	_sfx->loadSoundFile(file);
 }
 
-void MixedSoundDriver::loadSoundFile(Common::String file) {
+void MixedSoundDriver::loadSoundFile(const Common::Path &file) {
 	_music->loadSoundFile(file);
 	_sfx->loadSoundFile(file);
 }
 
-void MixedSoundDriver::loadSfxFile(Common::String file) {
+void MixedSoundDriver::loadSfxFile(const Common::Path &file) {
 	_sfx->loadSoundFile(file);
 }
 
@@ -284,11 +283,7 @@ void KyraEngine_v1::snd_playWanderScoreViaMap(int command, int restart) {
 	if (!_trackMap || !_trackMapSize)
 		return;
 
-	//if (!_disableSound) {
-	//	XXX
-	//}
-
-	if (_flags.platform == Common::kPlatformDOS || _flags.platform == Common::kPlatformMacintosh) {
+	if (_flags.platform == Common::kPlatformDOS) {
 		assert(command * 2 + 1 < _trackMapSize);
 		if (_curMusicTheme != _trackMap[command * 2]) {
 			if (_trackMap[command * 2] != -1 && _trackMap[command * 2] != -2)
@@ -303,6 +298,7 @@ void KyraEngine_v1::snd_playWanderScoreViaMap(int command, int restart) {
 		} else {
 			_sound->beginFadeOut();
 		}
+
 	} else if (_flags.platform == Common::kPlatformFMTowns || _flags.platform == Common::kPlatformPC98) {
 		if (command == -1) {
 			_sound->haltTrack();
@@ -313,12 +309,12 @@ void KyraEngine_v1::snd_playWanderScoreViaMap(int command, int restart) {
 				_sound->playTrack(command);
 			}
 		}
-	} else if (_flags.platform == Common::kPlatformAmiga) {
+	} else if (_flags.platform == Common::kPlatformMacintosh || _flags.platform == Common::kPlatformAmiga) {
 		if (_curMusicTheme != 1)
 			snd_playTheme(1, -1);
 
 		assert(command < _trackMapSize);
-		if (_trackMap[_lastMusicCommand] != _trackMap[command])
+		if (_lastMusicCommand == -1 || _trackMap[_lastMusicCommand] != _trackMap[command])
 			_sound->playTrack(_trackMap[command]);
 	}
 
@@ -365,7 +361,7 @@ const Sound::SpeechCodecs Sound::_supportedCodecs[] = {
 	{ ".FLA", Audio::makeFLACStream },
 #endif // USE_FLAC
 
-	{ 0, 0 }
+	{ nullptr, nullptr }
 };
 
 } // End of namespace Kyra

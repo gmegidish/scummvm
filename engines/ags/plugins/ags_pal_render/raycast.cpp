@@ -4,9 +4,9 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
  * of the License, or(at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,6 @@ namespace AGS3 {
 namespace Plugins {
 namespace AGSPalRender {
 
-#define PI         (3.1415926535f)
 #define S_WIDTH 320
 #define S_HEIGHT 160
 
@@ -175,9 +173,9 @@ void AGSPalRender::Ray_GetAmbientLight(ScriptMethodParams &params) {
 }
 double fsqrt(double y) {
 	double x, z, tempf;
+	tempf = y;
 	unsigned long *tfptr = ((unsigned long *)&tempf) + 1;
 
-	tempf = y;
 	*tfptr = (0xbfcdd90a - *tfptr) >> 1; /* estimate of 1/sqrt(y) */
 	x =  tempf;
 	z =  y * 0.5;                      /* hoist out the �/2�    */
@@ -334,7 +332,7 @@ void AGSPalRender::Ray_GetPlayerY(ScriptMethodParams &params) {
 
 void AGSPalRender::Ray_GetPlayerAngle(ScriptMethodParams &params) {
 	double bgrad = atan2(dirY, dirX);
-	int bgdeg = (int)(bgrad / PI * 180.0) + 180;
+	int bgdeg = (int)(bgrad / M_PI * 180.0) + 180;
 	params._result = bgdeg % 360;
 }
 
@@ -633,33 +631,33 @@ void AGSPalRender::MakeTextures(ScriptMethodParams &params) {
 
 void AGSPalRender::Ray_SetFloorAt(ScriptMethodParams &params) {
 	PARAMS3(int, x, int, y, int, tex);
-	if (x < 0 || x > MAP_WIDTH || y < 0 || y > MAP_HEIGHT || tex > 511) return;
+	if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT || tex > 511) return;
 	else floorMap[x][y] = tex;
 }
 
 void AGSPalRender::Ray_SetCeilingAt(ScriptMethodParams &params) {
 	PARAMS3(int, x, int, y, int, tex);
-	if (x < 0 || x > MAP_WIDTH || y < 0 || y > MAP_HEIGHT || tex > 511) return;
+	if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT || tex > 511) return;
 	else ceilingMap[x][y] = tex;
 }
 
 void AGSPalRender::Ray_GetCeilingAt(ScriptMethodParams &params) {
 	PARAMS2(int, x, int, y);
-	if (x < 0 || x > MAP_WIDTH || y < 0 || y > MAP_HEIGHT) params._result = -1;
+	if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) params._result = -1;
 	else params._result = ceilingMap [x][y];
 }
 
 
 void AGSPalRender::Ray_GetFloorAt(ScriptMethodParams &params) {
 	PARAMS2(int, x, int, y);
-	if (x < 0 || x > MAP_WIDTH || y < 0 || y > MAP_HEIGHT) params._result = -1;
+	if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) params._result = -1;
 	else params._result = floorMap [x][y];
 }
 
 
 void AGSPalRender::Ray_GetLightingAt(ScriptMethodParams &params) {
 	PARAMS2(int, x, int, y);
-	if (x < 0 || x > MAP_WIDTH || y < 0 || y > MAP_HEIGHT) params._result = -1;
+	if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) params._result = -1;
 	else {
 		int lighting = 0;
 		if (ceilingMap[x][y] == 0) {
@@ -672,7 +670,7 @@ void AGSPalRender::Ray_GetLightingAt(ScriptMethodParams &params) {
 
 void AGSPalRender::Ray_SetLightingAt(ScriptMethodParams &params) {
 	PARAMS3(int, x, int, y, unsigned char, lighting);
-	if (x < 0 || x > MAP_WIDTH || y < 0 || y > MAP_HEIGHT) return;
+	if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) return;
 	else {
 		lightMap [x][y] = lighting;
 	}
@@ -748,7 +746,7 @@ void AGSPalRender::Raycast_Render(ScriptMethodParams &params) {
 	PARAMS1(int, slot);
 	ambientweight = 0;
 	raycastOn = true;
-	double playerrad = atan2(dirY, dirX) + (2.0 * PI);
+	double playerrad = atan2(dirY, dirX) + (2.0 * M_PI);
 	rendering = true;
 	int32 w = S_WIDTH, h = S_HEIGHT;
 	BITMAP *screen = engine->GetSpriteGraphic(slot);
@@ -757,7 +755,7 @@ void AGSPalRender::Raycast_Render(ScriptMethodParams &params) {
 	BITMAP *sbBm = engine->GetSpriteGraphic(skybox);
 	if (!sbBm) engine->AbortGame("Raycast_Render: No valid skybox sprite.");
 	if (skybox > 0) {
-		//int bgdeg = (int)((playerrad / PI) * 180.0) + 180;
+		//int bgdeg = (int)((playerrad / M_PI) * 180.0) + 180;
 		int xoffset = (int)(playerrad * 320.0);
 		BITMAP *virtsc = engine->GetVirtualScreen();
 		engine->SetVirtualScreen(screen);

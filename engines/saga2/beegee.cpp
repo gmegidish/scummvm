@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -214,7 +213,6 @@ void setAreaSound(const TilePoint &) {
 				regn.min = baseCoords - ((AudVec * r) << kPlatShift); ///kTileUVSize;
 				MetaTileIterator    mIter(g_vm->_currentMapNum, regn);
 				int i = 0;
-				int j = 0;
 
 				TilePoint       dist = AudVec * r << (kPlatShift + 1);
 				dist = dist << 4;
@@ -224,7 +222,6 @@ void setAreaSound(const TilePoint &) {
 				while (mt) {
 					i++;
 					if (getSound(mt)) {
-						j++;
 						TilePoint thisDist = mtPos - baseCoords;
 						if (thisDist.magnitude() < dist.magnitude()) {
 							dist = thisDist;
@@ -238,7 +235,7 @@ void setAreaSound(const TilePoint &) {
 				for (i = 0; i < AUXTHEMES; i++) {
 					if (g_vm->_grandMasterFTA->_aats[i].active) {
 						Location loc = getCenterActor()->notGetWorldLocation();
-						if (g_vm->_grandMasterFTA->_aats[i].l.context == Nothing || loc.context == g_vm->_grandMasterFTA->_aats[i].l.context) {
+						if (g_vm->_grandMasterFTA->_aats[i].l._context == Nothing || loc._context == g_vm->_grandMasterFTA->_aats[i].l._context) {
 							TilePoint tp = (g_vm->_grandMasterFTA->_aats[i].l >> kTileUVShift) - baseCoords;
 							if (tp.magnitude() < dist.magnitude()) {
 								dist = tp;

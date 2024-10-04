@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,10 +25,8 @@
 namespace Kyra {
 
 void KyraEngine_v2::allocAnimObjects(int actors, int anims, int items) {
-	_animObjects = new AnimObj[actors + anims + items];
+	_animObjects = new AnimObj[actors + anims + items]();
 	assert(_animObjects);
-
-	memset(_animObjects, 0, sizeof(AnimObj) * (actors + anims + items));
 
 	_animActor = _animObjects;
 	_animAnims = _animObjects + actors;
@@ -42,7 +39,7 @@ KyraEngine_v2::AnimObj *KyraEngine_v2::initAnimList(AnimObj *list, AnimObj *entr
 }
 
 KyraEngine_v2::AnimObj *KyraEngine_v2::addToAnimListSorted(AnimObj *list, AnimObj *add) {
-	add->nextObject = 0;
+	add->nextObject = nullptr;
 
 	if (!list)
 		return add;
@@ -67,16 +64,16 @@ KyraEngine_v2::AnimObj *KyraEngine_v2::addToAnimListSorted(AnimObj *list, AnimOb
 		add->nextObject = cur;
 	} else {
 		cur->nextObject = add;
-		add->nextObject = 0;
+		add->nextObject = nullptr;
 	}
 	return list;
 }
 
 KyraEngine_v2::AnimObj *KyraEngine_v2::deleteAnimListEntry(AnimObj *list, AnimObj *entry) {
 	if (!list)
-		return 0;
+		return nullptr;
 
-	AnimObj *old = 0;
+	AnimObj *old = nullptr;
 	AnimObj *cur = list;
 
 	while (true) {
@@ -93,15 +90,15 @@ KyraEngine_v2::AnimObj *KyraEngine_v2::deleteAnimListEntry(AnimObj *list, AnimOb
 
 	if (cur == list) {
 		if (!cur->nextObject)
-			return 0;
+			return nullptr;
 		cur = cur->nextObject;
 		return cur;
 	}
 
 	if (!cur->nextObject) {
 		if (!old)
-			return 0;
-		old->nextObject = 0;
+			return nullptr;
+		old->nextObject = nullptr;
 		return list;
 	}
 
@@ -173,7 +170,7 @@ void KyraEngine_v2::deleteItemAnimEntry(int item) {
 
 	restorePage3();
 
-	animObj->shapePtr = 0;
+	animObj->shapePtr = nullptr;
 	animObj->shapeIndex1 = 0xFFFF;
 	animObj->shapeIndex2 = 0xFFFF;
 	animObj->needRefresh = 1;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,10 @@
 #include "engines/engine.h"
 #include "gui/gui-manager.h"
 
+#if defined(USE_IMGUI) && SDL_VERSION_ATLEAST(2, 0, 0)
+#include "backends/imgui/backends/imgui_impl_sdl2.h"
+#endif
+
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 #define GAMECONTROLLERDB_FILE "gamecontrollerdb.txt"
 
@@ -47,32 +50,32 @@ static uint32 convUTF8ToUTF32(const char *src) {
 void SdlEventSource::loadGameControllerMappingFile() {
 	bool loaded = false;
 	if (ConfMan.hasKey("controller_map_db")) {
-		Common::FSNode file = Common::FSNode(ConfMan.get("controller_map_db"));
+		Common::FSNode file = Common::FSNode(ConfMan.getPath("controller_map_db"));
 		if (file.exists()) {
-			if (SDL_GameControllerAddMappingsFromFile(file.getPath().c_str()) < 0)
-				error("File %s not valid: %s", file.getPath().c_str(), SDL_GetError());
+			if (SDL_GameControllerAddMappingsFromFile(file.getPath().toString(Common::Path::kNativeSeparator).c_str()) < 0)
+				error("File %s not valid: %s", file.getPath().toString(Common::Path::kNativeSeparator).c_str(), SDL_GetError());
 			else {
 				loaded = true;
-				debug("Game controller DB file loaded: %s", file.getPath().c_str());
+				debug("Game controller DB file loaded: %s", file.getPath().toString(Common::Path::kNativeSeparator).c_str());
 			}
 		} else
-			warning("Game controller DB file not found: %s", file.getPath().c_str());
+			warning("Game controller DB file not found: %s", file.getPath().toString(Common::Path::kNativeSeparator).c_str());
 	}
 	if (!loaded && ConfMan.hasKey("extrapath")) {
-		Common::FSNode dir = Common::FSNode(ConfMan.get("extrapath"));
+		Common::FSNode dir = Common::FSNode(ConfMan.getPath("extrapath"));
 		Common::FSNode file = dir.getChild(GAMECONTROLLERDB_FILE);
 		if (file.exists()) {
-			if (SDL_GameControllerAddMappingsFromFile(file.getPath().c_str()) < 0)
-				error("File %s not valid: %s", file.getPath().c_str(), SDL_GetError());
+			if (SDL_GameControllerAddMappingsFromFile(file.getPath().toString(Common::Path::kNativeSeparator).c_str()) < 0)
+				error("File %s not valid: %s", file.getPath().toString(Common::Path::kNativeSeparator).c_str(), SDL_GetError());
 			else
-				debug("Game controller DB file loaded: %s", file.getPath().c_str());
+				debug("Game controller DB file loaded: %s", file.getPath().toString(Common::Path::kNativeSeparator).c_str());
 		}
 	}
 }
 #endif
 
 SdlEventSource::SdlEventSource()
-	: EventSource(), _scrollLock(false), _joystick(0), _lastScreenID(0), _graphicsManager(0), _queuedFakeMouseMove(false),
+	: EventSource(), _scrollLock(false), _joystick(nullptr), _lastScreenID(0), _graphicsManager(nullptr), _queuedFakeMouseMove(false),
 	  _lastHatPosition(SDL_HAT_CENTERED), _mouseX(0), _mouseY(0), _engineRunning(false)
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	  , _queuedFakeKeyUp(false), _fakeKeyUp(), _controller(nullptr)
@@ -82,18 +85,26 @@ SdlEventSource::SdlEventSource()
 	if (joystick_num >= 0) {
 		// Initialize SDL joystick subsystem
 		if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) == -1) {
-			error("Could not initialize SDL: %s", SDL_GetError());
+			warning("Could not initialize SDL joystick: %s", SDL_GetError());
+			return;
 		}
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 		if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) == -1) {
-			error("Could not initialize SDL: %s", SDL_GetError());
+			warning("Could not initialize SDL game controller: %s", SDL_GetError());
+			return;
 		}
 		loadGameControllerMappingFile();
 #endif
 
 		openJoystick(joystick_num);
 	}
+
+#if SDL_VERSION_ATLEAST(2,0,10)
+	// ensure that touch doesn't create double-events
+	SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+#endif
+
 }
 
 SdlEventSource::~SdlEventSource() {
@@ -129,6 +140,10 @@ int SdlEventSource::mapKey(SDL_Keycode sdlKey, SDL_Keymod mod, Uint16 unicode) {
 				if (unicode >= 0x05D0 && unicode <= 0x05EA)
 					return unicode;
 
+				// Cyrillic
+				if (unicode >= 0x0400 && unicode <= 0x045F)
+					return unicode;
+
 				// We must not restrict as much as when Ctrl/Alt-modifiers are active, otherwise
 				// we wouldn't let umlauts through for SDL1. For SDL1 umlauts may set for example KEYCODE_QUOTE, KEYCODE_MINUS, etc.
 				if (unicode > 0xFF)
@@ -145,14 +160,8 @@ int SdlEventSource::mapKey(SDL_Keycode sdlKey, SDL_Keymod mod, Uint16 unicode) {
 	if (key >= Common::KEYCODE_F1 && key <= Common::KEYCODE_F9) {
 		return key - Common::KEYCODE_F1 + Common::ASCII_F1;
 	} else if (key >= Common::KEYCODE_KP0 && key <= Common::KEYCODE_KP9) {
-		// WORKAROUND:  Disable this change for AmigaOS as it's breaking numpad usage ("fighting") on that platform.
-		// This fixes bug #10558.
-		// The actual issue here is that the SCUMM engine uses ASCII codes instead of keycodes for input.
-		// See also the relevant FIXME in SCUMM's input.cpp.
-		#ifndef __amigaos4__
-			if ((mod & KMOD_NUM) == 0)
-				return 0; // In case Num-Lock is NOT enabled, return 0 for ascii, so that directional keys on numpad work
-		#endif
+		if ((mod & KMOD_NUM) == 0)
+			return 0; // In case Num-Lock is NOT enabled, return 0 for ascii, so that directional keys on numpad work
 		return key - Common::KEYCODE_KP0 + '0';
 	} else if (key >= Common::KEYCODE_UP && key <= Common::KEYCODE_PAGEDOWN) {
 		return key;
@@ -325,7 +334,9 @@ Common::KeyCode SdlEventSource::SDLToOSystemKeycode(const SDL_Keycode key) {
 	case SDLK_SYSREQ: return Common::KEYCODE_SYSREQ;
 	case SDLK_MENU: return Common::KEYCODE_MENU;
 	case SDLK_POWER: return Common::KEYCODE_POWER;
+#if SDL_VERSION_ATLEAST(1, 2, 3)
 	case SDLK_UNDO: return Common::KEYCODE_UNDO;
+#endif
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	case SDLK_SCROLLLOCK: return Common::KEYCODE_SCROLLOCK;
 	case SDLK_NUMLOCKCLEAR: return Common::KEYCODE_NUMLOCK;
@@ -404,9 +415,304 @@ Common::KeyCode SdlEventSource::SDLToOSystemKeycode(const SDL_Keycode key) {
 	}
 }
 
-bool SdlEventSource::pollEvent(Common::Event &event) {
-
 #if SDL_VERSION_ATLEAST(2, 0, 0)
+void SdlEventSource::preprocessFingerDown(SDL_Event *event) {
+	// front (0) or back (1) panel
+	SDL_TouchID port = event->tfinger.touchId;
+	// id (for multitouch)
+	SDL_FingerID id = event->tfinger.fingerId;
+
+	int x = _mouseX;
+	int y = _mouseY;
+
+	if (!isTouchPortTouchpadMode(port)) {
+		convertTouchXYToGameXY(event->tfinger.x, event->tfinger.y, &x, &y);
+	}
+
+	// make sure each finger is not reported down multiple times
+	for (int i = 0; i < MAX_NUM_FINGERS; i++) {
+		if (_touchPanels[port]._finger[i].id == id) {
+			_touchPanels[port]._finger[i].id = -1;
+		}
+	}
+
+	// we need the timestamps to decide later if the user performed a short tap (click)
+	// or a long tap (drag)
+	// we also need the last coordinates for each finger to keep track of dragging
+	for (int i = 0; i < MAX_NUM_FINGERS; i++) {
+		if (_touchPanels[port]._finger[i].id == -1) {
+			_touchPanels[port]._finger[i].id = id;
+			_touchPanels[port]._finger[i].timeLastDown = event->tfinger.timestamp;
+			_touchPanels[port]._finger[i].lastDownX = event->tfinger.x;
+			_touchPanels[port]._finger[i].lastDownY = event->tfinger.y;
+			_touchPanels[port]._finger[i].lastX = x;
+			_touchPanels[port]._finger[i].lastY = y;
+			break;
+		}
+	}
+}
+
+Common::Point SdlEventSource::getTouchscreenSize() {
+	int windowWidth, windowHeight;
+	SDL_GetWindowSize((dynamic_cast<SdlGraphicsManager*>(_graphicsManager))->getWindow()->getSDLWindow(), &windowWidth, &windowHeight);
+	return Common::Point(windowWidth, windowHeight);
+}
+
+bool SdlEventSource::isTouchPortTouchpadMode(SDL_TouchID port) {
+       return g_system->getFeatureState(OSystem::kFeatureTouchpadMode);
+}
+
+bool SdlEventSource::isTouchPortActive(SDL_TouchID port) {
+	return true;
+}
+
+void SdlEventSource::convertTouchXYToGameXY(float touchX, float touchY, int *gameX, int *gameY) {
+	int windowWidth, windowHeight;
+	SDL_GetWindowSize((dynamic_cast<SdlGraphicsManager*>(_graphicsManager))->getWindow()->getSDLWindow(), &windowWidth, &windowHeight);
+
+	*gameX = windowWidth * touchX;
+	*gameY = windowHeight * touchY;
+}
+
+void SdlEventSource::finishSimulatedMouseClicks() {
+	for (auto &panel : _touchPanels) {
+		for (int i = 0; i < 2; i++) {
+			if (panel._value._simulatedClickStartTime[i] != 0) {
+				Uint32 currentTime = SDL_GetTicks();
+				if (currentTime - panel._value._simulatedClickStartTime[i] >= SIMULATED_CLICK_DURATION) {
+					int simulatedButton;
+					if (i == 0) {
+						simulatedButton = SDL_BUTTON_LEFT;
+					} else {
+						simulatedButton = SDL_BUTTON_RIGHT;
+					}
+					SDL_Event ev;
+					ev.type = SDL_MOUSEBUTTONUP;
+					ev.button.button = simulatedButton;
+					ev.button.x = _mouseX;
+					ev.button.y = _mouseY;
+					SDL_PushEvent(&ev);
+
+					panel._value._simulatedClickStartTime[i] = 0;
+				}
+			}
+		}
+	}
+}
+
+bool SdlEventSource::preprocessFingerUp(SDL_Event *event, Common::Event *ev) {
+	// front (0) or back (1) panel
+	SDL_TouchID port = event->tfinger.touchId;
+	// id (for multitouch)
+	SDL_FingerID id = event->tfinger.fingerId;
+
+	// find out how many fingers were down before this event
+	int numFingersDown = 0;
+	for (int i = 0; i < MAX_NUM_FINGERS; i++) {
+		if (_touchPanels[port]._finger[i].id >= 0) {
+			numFingersDown++;
+		}
+	}
+
+	int x = _mouseX;
+	int y = _mouseY;
+
+	for (int i = 0; i < MAX_NUM_FINGERS; i++) {
+		if (_touchPanels[port]._finger[i].id == id) {
+			_touchPanels[port]._finger[i].id = -1;
+			if (!_touchPanels[port]._multiFingerDragging) {
+				if ((event->tfinger.timestamp - _touchPanels[port]._finger[i].timeLastDown) <= MAX_TAP_TIME && !_touchPanels[port]._tapMade) {
+					// short (<MAX_TAP_TIME ms) tap is interpreted as right/left mouse click depending on # fingers already down
+					// but only if the finger hasn't moved since it was pressed down by more than MAX_TAP_MOTION_DISTANCE pixels
+					Common::Point touchscreenSize = getTouchscreenSize();
+					float xrel = ((event->tfinger.x * (float) touchscreenSize.x) - (_touchPanels[port]._finger[i].lastDownX * (float) touchscreenSize.x));
+					float yrel = ((event->tfinger.y * (float) touchscreenSize.y) - (_touchPanels[port]._finger[i].lastDownY * (float) touchscreenSize.y));
+					float maxRSquared = (float) (MAX_TAP_MOTION_DISTANCE * MAX_TAP_MOTION_DISTANCE);
+					if ((xrel * xrel + yrel * yrel) < maxRSquared) {
+						if (numFingersDown == 3) {
+							_touchPanels[port]._tapMade = true;
+							ev->type = Common::EVENT_VIRTUAL_KEYBOARD;
+							return true;
+						} else if (numFingersDown == 2 || numFingersDown == 1) {
+							Uint8 simulatedButton = 0;
+							if (numFingersDown == 2) {
+								simulatedButton = SDL_BUTTON_RIGHT;
+								// need to raise the button later
+								_touchPanels[port]._simulatedClickStartTime[1] = event->tfinger.timestamp;
+								_touchPanels[port]._tapMade = true;
+							} else if (numFingersDown == 1) {
+								simulatedButton = SDL_BUTTON_LEFT;
+								// need to raise the button later
+								_touchPanels[port]._simulatedClickStartTime[0] = event->tfinger.timestamp;
+								if (!isTouchPortTouchpadMode(port)) {
+									convertTouchXYToGameXY(event->tfinger.x, event->tfinger.y, &x, &y);
+								}
+							}
+
+							event->type = SDL_MOUSEBUTTONDOWN;
+							event->button.button = simulatedButton;
+							event->button.x = x;
+							event->button.y = y;
+						}
+					}
+				}
+			} else if (numFingersDown == 1) {
+				// when dragging, and the last finger is lifted, the drag is over
+				if (!isTouchPortTouchpadMode(port)) {
+					convertTouchXYToGameXY(event->tfinger.x, event->tfinger.y, &x, &y);
+				}
+				Uint8 simulatedButton = 0;
+				if (_touchPanels[port]._multiFingerDragging == DRAG_THREE_FINGER)
+					simulatedButton = SDL_BUTTON_RIGHT;
+				else {
+					simulatedButton = SDL_BUTTON_LEFT;
+				}
+				event->type = SDL_MOUSEBUTTONUP;
+				event->button.button = simulatedButton;
+				event->button.x = x;
+				event->button.y = y;
+				_touchPanels[port]._multiFingerDragging = DRAG_NONE;
+			}
+		}
+	}
+
+	if (numFingersDown == 1) {
+		_touchPanels[port]._tapMade = false;
+	}
+
+	return false;
+}
+
+void SdlEventSource::preprocessFingerMotion(SDL_Event *event) {
+	// front (0) or back (1) panel
+	SDL_TouchID port = event->tfinger.touchId;
+	// id (for multitouch)
+	SDL_FingerID id = event->tfinger.fingerId;
+
+	// find out how many fingers were down before this event
+	int numFingersDown = 0;
+	for (int i = 0; i < MAX_NUM_FINGERS; i++) {
+		if (_touchPanels[port]._finger[i].id >= 0) {
+			numFingersDown++;
+		}
+	}
+
+	if (numFingersDown >= 1) {
+		int x = _mouseX;
+		int y = _mouseY;
+		int xMax = _graphicsManager->getWindowWidth() - 1;
+		int yMax = _graphicsManager->getWindowHeight() - 1;
+
+		if (!isTouchPortTouchpadMode(port)) {
+			convertTouchXYToGameXY(event->tfinger.x, event->tfinger.y, &x, &y);
+		}	else {
+			// for relative mode, use the pointer speed setting
+			const int kbdMouseSpeed = CLIP<int>(ConfMan.getInt("kbdmouse_speed"), 0, 7);
+			float speedFactor = (kbdMouseSpeed + 1) * 0.25;
+
+			// convert touch events to relative mouse pointer events
+			// track sub-pixel relative finger motion using the FINGER_SUBPIXEL_MULTIPLIER
+			_touchPanels[port]._hiresDX += (event->tfinger.dx * 1.25 * speedFactor * xMax * FINGER_SUBPIXEL_MULTIPLIER);
+			_touchPanels[port]._hiresDY += (event->tfinger.dy * 1.25 * speedFactor * yMax * FINGER_SUBPIXEL_MULTIPLIER);
+			int xRel = _touchPanels[port]._hiresDX / FINGER_SUBPIXEL_MULTIPLIER;
+			int yRel = _touchPanels[port]._hiresDY / FINGER_SUBPIXEL_MULTIPLIER;
+			x = _mouseX + xRel;
+			y = _mouseY + yRel;
+			_touchPanels[port]._hiresDX %= FINGER_SUBPIXEL_MULTIPLIER;
+			_touchPanels[port]._hiresDY %= FINGER_SUBPIXEL_MULTIPLIER;
+		}
+
+		x = CLIP(x, 0, xMax);
+		y = CLIP(y, 0, yMax);
+
+		// update the current finger's coordinates so we can track it later
+		for (int i = 0; i < MAX_NUM_FINGERS; i++) {
+			if (_touchPanels[port]._finger[i].id == id) {
+				_touchPanels[port]._finger[i].lastX = x;
+				_touchPanels[port]._finger[i].lastY = y;
+			}
+		}
+
+		// If we are starting a multi-finger drag, start holding down the mouse button
+		if (numFingersDown >= 2) {
+			if (!_touchPanels[port]._multiFingerDragging) {
+				// only start a multi-finger drag if at least two fingers have been down long enough
+				int numFingersDownLong = 0;
+				for (int i = 0; i < MAX_NUM_FINGERS; i++) {
+					if (_touchPanels[port]._finger[i].id >= 0) {
+						if (event->tfinger.timestamp - _touchPanels[port]._finger[i].timeLastDown > MAX_TAP_TIME) {
+							numFingersDownLong++;
+						}
+					}
+				}
+				if (numFingersDownLong >= 2) {
+					// starting drag, so push mouse down at current location (back)
+					// or location of "oldest" finger (front)
+					int mouseDownX = _mouseX;
+					int mouseDownY = _mouseY;
+					if (!isTouchPortTouchpadMode(port)) {
+						for (int i = 0; i < MAX_NUM_FINGERS; i++) {
+							if (_touchPanels[port]._finger[i].id == id) {
+								Uint32 earliestTime = _touchPanels[port]._finger[i].timeLastDown;
+								for (int j = 0; j < MAX_NUM_FINGERS; j++) {
+									if (_touchPanels[port]._finger[j].id >= 0 && (i != j) ) {
+										if (_touchPanels[port]._finger[j].timeLastDown < earliestTime) {
+											mouseDownX = _touchPanels[port]._finger[j].lastX;
+											mouseDownY = _touchPanels[port]._finger[j].lastY;
+											earliestTime = _touchPanels[port]._finger[j].timeLastDown;
+										}
+									}
+								}
+								break;
+							}
+						}
+					}
+					Uint8 simulatedButton = 0;
+					if (numFingersDownLong == 2) {
+						simulatedButton = SDL_BUTTON_LEFT;
+						_touchPanels[port]._multiFingerDragging = DRAG_TWO_FINGER;
+					} else {
+						simulatedButton = SDL_BUTTON_RIGHT;
+						_touchPanels[port]._multiFingerDragging = DRAG_THREE_FINGER;
+					}
+					SDL_Event ev;
+					ev.type = SDL_MOUSEBUTTONDOWN;
+					ev.button.button = simulatedButton;
+					ev.button.x = mouseDownX;
+					ev.button.y = mouseDownY;
+					SDL_PushEvent(&ev);
+				}
+			}
+		}
+
+		//check if this is the "oldest" finger down (or the only finger down), otherwise it will not affect mouse motion
+		bool updatePointer = true;
+		if (numFingersDown > 1) {
+			for (int i = 0; i < MAX_NUM_FINGERS; i++) {
+				if (_touchPanels[port]._finger[i].id == id) {
+					for (int j = 0; j < MAX_NUM_FINGERS; j++) {
+						if (_touchPanels[port]._finger[j].id >= 0 && (i != j) ) {
+							if (_touchPanels[port]._finger[j].timeLastDown < _touchPanels[port]._finger[i].timeLastDown) {
+								updatePointer = false;
+							}
+						}
+					}
+				}
+			}
+		}
+		if (updatePointer) {
+			event->type = SDL_MOUSEMOTION;
+			event->motion.x = x;
+			event->motion.y = y;
+		}
+	}
+}
+#endif
+
+bool SdlEventSource::pollEvent(Common::Event &event) {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	finishSimulatedMouseClicks();
+
 	// In case we still need to send a key up event for a key down from a
 	// TEXTINPUT event we do this immediately.
 	if (_queuedFakeKeyUp) {
@@ -433,6 +739,43 @@ bool SdlEventSource::pollEvent(Common::Event &event) {
 	SDL_Event ev;
 	while (SDL_PollEvent(&ev)) {
 		preprocessEvents(&ev);
+
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+		// Supported touch gestures:
+		// left mouse click: single finger short tap
+		// right mouse click: second finger short tap while first finger is still down
+		// pointer motion: single finger drag
+		if (ev.type == SDL_FINGERDOWN || ev.type == SDL_FINGERUP || ev.type == SDL_FINGERMOTION) {
+			// front (0) or back (1) panel
+			SDL_TouchID port = ev.tfinger.touchId;
+			// touchpad_mouse_mode off: use only front panel for direct touch control of pointer
+			// touchpad_mouse_mode on: also enable rear touch with indirect touch control
+			// where the finger can be somewhere else than the pointer and still move it
+			if (isTouchPortActive(port)) {
+				switch (ev.type) {
+				case SDL_FINGERDOWN:
+					preprocessFingerDown(&ev);
+					break;
+				case SDL_FINGERUP:
+					if (preprocessFingerUp(&ev, &event))
+						return true;
+					break;
+				case SDL_FINGERMOTION:
+					preprocessFingerMotion(&ev);
+					break;
+				}
+			}
+		}
+#endif
+
+#if defined(USE_IMGUI) && SDL_VERSION_ATLEAST(2, 0, 0)
+		if (ImGui_ImplSDL2_Ready()) {
+			ImGui_ImplSDL2_ProcessEvent(&ev);
+			ImGuiIO &io = ImGui::GetIO();
+			if (io.WantTextInput || io.WantCaptureMouse)
+				continue;
+		}
+#endif
 		if (dispatchSDLEvent(ev, event))
 			return true;
 	}
@@ -557,7 +900,7 @@ bool SdlEventSource::dispatchSDLEvent(SDL_Event &ev, Common::Event &event) {
 
 	case SDL_DROPFILE:
 		event.type = Common::EVENT_DROP_FILE;
-		event.path = Common::String(ev.drop.file);
+		event.path = Common::Path(ev.drop.file, Common::Path::kNativeSeparator);
 		SDL_free(ev.drop.file);
 		return true;
 
@@ -636,7 +979,17 @@ bool SdlEventSource::handleKeyDown(SDL_Event &ev, Common::Event &event) {
 
 	event.type = Common::EVENT_KEYDOWN;
 	event.kbd.keycode = key;
-	event.kbd.ascii = mapKey(sdlKeycode, (SDL_Keymod)ev.key.keysym.mod, obtainUnicode(ev.key.keysym));
+
+	SDL_Keymod mod = (SDL_Keymod)ev.key.keysym.mod;
+#if defined(__amigaos4__)
+	// On AmigaOS, SDL always reports numlock as off. However, we get KEYCODE_KP# only when
+	// it is on, and get different keycodes (for example KEYCODE_PAGEDOWN) when it is off.
+	if (event.kbd.keycode >= Common::KEYCODE_KP0 && event.kbd.keycode <= Common::KEYCODE_KP9) {
+		event.kbd.flags |= Common::KBD_NUM;
+		mod = SDL_Keymod(mod | KMOD_NUM);
+	}
+#endif
+	event.kbd.ascii = mapKey(sdlKeycode, mod, obtainUnicode(ev.key.keysym));
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	event.kbdRepeat = ev.key.repeat;
@@ -649,18 +1002,27 @@ bool SdlEventSource::handleKeyUp(SDL_Event &ev, Common::Event &event) {
 	if (remapKey(ev, event))
 		return true;
 
+	SDLModToOSystemKeyFlags(SDL_GetModState(), event);
+
 	SDL_Keycode sdlKeycode = obtainKeycode(ev.key.keysym);
-	SDL_Keymod mod = SDL_GetModState();
-
-	event.type = Common::EVENT_KEYUP;
-	event.kbd.keycode = SDLToOSystemKeycode(sdlKeycode);
-	event.kbd.ascii = mapKey(sdlKeycode, (SDL_Keymod)ev.key.keysym.mod, 0);
-
-	SDLModToOSystemKeyFlags(mod, event);
 
 	// Set the scroll lock sticky flag
 	if (_scrollLock)
 		event.kbd.flags |= Common::KBD_SCRL;
+
+	event.type = Common::EVENT_KEYUP;
+	event.kbd.keycode = SDLToOSystemKeycode(sdlKeycode);
+
+	SDL_Keymod mod = (SDL_Keymod)ev.key.keysym.mod;
+#if defined(__amigaos4__)
+	// On AmigaOS, SDL always reports numlock as off. However, we get KEYCODE_KP# only when
+	// it is on, and get different keycodes (for example KEYCODE_PAGEDOWN) when it is off.
+	if (event.kbd.keycode >= Common::KEYCODE_KP0 && event.kbd.keycode <= Common::KEYCODE_KP9) {
+		event.kbd.flags |= Common::KBD_NUM;
+		mod = SDL_Keymod(mod | KMOD_NUM);
+	}
+#endif
+	event.kbd.ascii = mapKey(sdlKeycode, mod, 0);
 
 	return true;
 }

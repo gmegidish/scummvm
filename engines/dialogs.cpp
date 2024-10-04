@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,6 +36,7 @@
 #include "gui/ThemeEval.h"
 #include "gui/widget.h"
 #include "gui/widgets/tab.h"
+#include "gui/widgets/scrollcontainer.h"
 
 #include "graphics/font.h"
 
@@ -52,8 +52,7 @@ MainMenuDialog::MainMenuDialog(Engine *engine)
 	_logo = 0;
 	if (g_gui.xmlEval()->getVar("Globals.ShowGlobalMenuLogo", 0) == 1 && g_gui.theme()->supportsImages()) {
 		_logo = new GUI::GraphicsWidget(this, "GlobalMenu.Logo");
-		_logo->useThemeTransparency(true);
-		_logo->setGfx(g_gui.theme()->getImageSurface(GUI::ThemeEngine::kImageLogoSmall));
+		_logo->setGfxFromTheme(GUI::ThemeEngine::kImageLogoSmall);
 	} else {
 		GUI::StaticTextWidget *title = new GUI::StaticTextWidget(this, "GlobalMenu.Title", Common::U32String("ScummVM"));
 		title->setAlign(Graphics::kTextAlignCenter);
@@ -68,13 +67,8 @@ MainMenuDialog::MainMenuDialog(Engine *engine)
 
 	new GUI::ButtonWidget(this, "GlobalMenu.Resume", _("~R~esume"), Common::U32String(), kPlayCmd, 'P');
 
-	_loadButton = new GUI::ButtonWidget(this, "GlobalMenu.Load", _("~L~oad"), Common::U32String(), kLoadCmd);
-	_loadButton->setVisible(_engine->hasFeature(Engine::kSupportsLoadingDuringRuntime));
-	_loadButton->setEnabled(_engine->hasFeature(Engine::kSupportsLoadingDuringRuntime));
-
-	_saveButton = new GUI::ButtonWidget(this, "GlobalMenu.Save", _("~S~ave"), Common::U32String(), kSaveCmd);
-	_saveButton->setVisible(_engine->hasFeature(Engine::kSupportsSavingDuringRuntime));
-	_saveButton->setEnabled(_engine->hasFeature(Engine::kSupportsSavingDuringRuntime));
+	new GUI::ButtonWidget(this, "GlobalMenu.Load", _("~L~oad"), Common::U32String(), kLoadCmd);
+	new GUI::ButtonWidget(this, "GlobalMenu.Save", _("~S~ave"), Common::U32String(), kSaveCmd);
 
 	new GUI::ButtonWidget(this, "GlobalMenu.Options", _("~O~ptions"), Common::U32String(), kOptionsCmd);
 
@@ -82,6 +76,8 @@ MainMenuDialog::MainMenuDialog(Engine *engine)
 	// To enable "Help", an engine needs to use a subclass of MainMenuDialog
 	// (at least for now, we might change how this works in the future).
 	_helpButton = new GUI::ButtonWidget(this, "GlobalMenu.Help", _("~H~elp"), Common::U32String(), kHelpCmd);
+	_helpButton->setVisible(_engine->hasFeature(Engine::kSupportsHelp));
+	_helpButton->setEnabled(_engine->hasFeature(Engine::kSupportsHelp));
 
 	new GUI::ButtonWidget(this, "GlobalMenu.About", _("~A~bout"), Common::U32String(), kAboutCmd);
 
@@ -94,7 +90,7 @@ MainMenuDialog::MainMenuDialog(Engine *engine)
 	if (!g_system->hasFeature(OSystem::kFeatureNoQuit) && (!(ConfMan.getBool("gui_return_to_launcher_at_exit")) || !_engine->hasFeature(Engine::kSupportsReturnToLauncher)))
 		new GUI::ButtonWidget(this, "GlobalMenu.Quit", _("~Q~uit"), Common::U32String(), kQuitCmd);
 
-	_aboutDialog = new GUI::AboutDialog();
+	_aboutDialog = new GUI::AboutDialog(true);
 	_loadDialog = new GUI::SaveLoadChooser(_("Load game:"), _("Load"), false);
 	_saveDialog = new GUI::SaveLoadChooser(_("Save game:"), _("Save"), true);
 }
@@ -152,11 +148,6 @@ void MainMenuDialog::handleCommand(GUI::CommandSender *sender, uint32 cmd, uint3
 }
 
 void MainMenuDialog::reflowLayout() {
-	if (_engine->hasFeature(Engine::kSupportsLoadingDuringRuntime))
-		_loadButton->setEnabled(_engine->canLoadGameStateCurrently());
-	if (_engine->hasFeature(Engine::kSupportsSavingDuringRuntime))
-		_saveButton->setEnabled(_engine->canSaveGameStateCurrently());
-
 	// Overlay size might have changed since the construction of the dialog.
 	// Update labels when it might be needed
 	// FIXME: it might be better to declare GUI::StaticTextWidget::setLabel() virtual
@@ -170,8 +161,7 @@ void MainMenuDialog::reflowLayout() {
 	if (g_gui.xmlEval()->getVar("Globals.ShowGlobalMenuLogo", 0) == 1 && g_gui.theme()->supportsImages()) {
 		if (!_logo)
 			_logo = new GUI::GraphicsWidget(this, "GlobalMenu.Logo");
-		_logo->useThemeTransparency(true);
-		_logo->setGfx(g_gui.theme()->getImageSurface(GUI::ThemeEngine::kImageLogoSmall));
+		_logo->setGfxFromTheme(GUI::ThemeEngine::kImageLogoSmall);
 
 		GUI::StaticTextWidget *title = (GUI::StaticTextWidget *)findWidget("GlobalMenu.Title");
 		if (title) {
@@ -199,6 +189,24 @@ void MainMenuDialog::reflowLayout() {
 }
 
 void MainMenuDialog::save() {
+	if (!_engine->hasFeature(Engine::kSupportsSavingDuringRuntime)) {
+		GUI::MessageDialog dialog(_("This game does not support saving from the menu. Use in-game interface"));
+		dialog.runModal();
+
+		return;
+	}
+
+	Common::U32String msg;
+	if (!_engine->canSaveGameStateCurrently(&msg)) {
+		if (msg.empty())
+			msg = _("This game cannot be saved at this time. Please try again later");
+
+		GUI::MessageDialog dialog(msg);
+		dialog.runModal();
+
+		return;
+	}
+
 	int slot = _saveDialog->runModalWithCurrentTarget();
 
 	if (slot >= 0) {
@@ -222,6 +230,24 @@ void MainMenuDialog::save() {
 }
 
 void MainMenuDialog::load() {
+	if (!_engine->hasFeature(Engine::kSupportsLoadingDuringRuntime)) {
+		GUI::MessageDialog dialog(_("This game does not support loading from the menu. Use in-game interface"));
+		dialog.runModal();
+
+		return;
+	}
+
+	Common::U32String msg;
+	if (!_engine->canLoadGameStateCurrently(&msg)) {
+		if (msg.empty())
+			msg = _("This game cannot be loaded at this time. Please try again later");
+
+		GUI::MessageDialog dialog(msg);
+		dialog.runModal();
+
+		return;
+	}
+
 	int slot = _loadDialog->runModalWithCurrentTarget();
 
 	_engine->setGameToLoadSlot(slot);
@@ -264,7 +290,6 @@ ConfigDialog::ConfigDialog() :
 
 	const Common::String &gameDomain = ConfMan.getActiveDomainName();
 	const MetaEngine *metaEngine = g_engine->getMetaEngine();
-	const MetaEngineDetection &metaEngineDetection = g_engine->getMetaEngineDetection();
 
 	// GUI:  Add tab widget
 	GUI::TabWidget *tab = new GUI::TabWidget(this, "GlobalConfig.TabWidget");
@@ -276,9 +301,11 @@ ConfigDialog::ConfigDialog() :
 	int tabId = tab->addTab(_("Game"), "GlobalConfig_Engine");
 
 	if (g_engine->hasFeature(Engine::kSupportsChangingOptionsDuringRuntime)) {
-		_engineOptions = metaEngine->buildEngineOptionsWidgetDynamic(tab, "GlobalConfig_Engine.Container", gameDomain);
-		if (!_engineOptions)
-			_engineOptions = metaEngineDetection.buildEngineOptionsWidgetStatic(tab, "GlobalConfig_Engine.Container", gameDomain);
+		ScrollContainerWidget *engineContainer = new ScrollContainerWidget(tab, "GlobalConfig_Engine.Container", "GlobalConfig_Engine_Container");
+		engineContainer->setBackgroundType(ThemeEngine::kWidgetBackgroundNo);
+		engineContainer->setTarget(this);
+
+		_engineOptions = metaEngine->buildEngineOptionsWidget(engineContainer, "GlobalConfig_Engine_Container.Container", gameDomain);
 	}
 
 	if (_engineOptions) {
@@ -317,7 +344,12 @@ ConfigDialog::ConfigDialog() :
 	Common::KeymapArray keymaps = metaEngine->initKeymaps(gameDomain.c_str());
 	if (!keymaps.empty()) {
 		tab->addTab(_("Keymaps"), "GlobalConfig_KeyMapper");
-		addKeyMapperControls(tab, "GlobalConfig_KeyMapper.", keymaps, gameDomain);
+
+		ScrollContainerWidget *keymapContainer = new ScrollContainerWidget(tab, "GlobalConfig_KeyMapper.Container", "GlobalConfig_KeyMapper_Container");
+		keymapContainer->setBackgroundType(ThemeEngine::kWidgetBackgroundNo);
+		keymapContainer->setTarget(this);
+
+		addKeyMapperControls(keymapContainer, "GlobalConfig_KeyMapper_Container.", keymaps, gameDomain);
 	}
 
 	//
@@ -325,7 +357,11 @@ ConfigDialog::ConfigDialog() :
 	//
 	int backendTabId = tab->addTab(_("Backend"), "GlobalConfig_Backend");
 
-	_backendOptions = g_system->buildBackendOptionsWidget(tab, "GlobalConfig_Backend.Container", _domain);
+	ScrollContainerWidget *backendContainer = new ScrollContainerWidget(tab, "GlobalConfig_Backend.Container", "GlobalConfig_Backend_Container");
+	backendContainer->setBackgroundType(ThemeEngine::kWidgetBackgroundNo);
+	backendContainer->setTarget(this);
+
+	_backendOptions = g_system->buildBackendOptionsWidget(backendContainer, "GlobalConfig_Backend_Container.Container", gameDomain);
 
 	if (_backendOptions) {
 		_backendOptions->setParentDialog(this);
@@ -378,24 +414,50 @@ void ConfigDialog::apply() {
 }
 
 ExtraGuiOptionsWidget::ExtraGuiOptionsWidget(GuiObject *containerBoss, const Common::String &name, const Common::String &domain, const ExtraGuiOptions &options) :
-		OptionsContainerWidget(containerBoss, name, dialogLayout(domain), true, domain),
+		OptionsContainerWidget(containerBoss, name, "ExtraGuiOptionsDialog", domain),
 		_options(options) {
 
 	for (uint i = 0; i < _options.size(); i++) {
 		Common::String id = Common::String::format("%d", i + 1);
+		uint32 cmd = _options[i].groupLeaderId ? kClickGroupLeaderCmd : 0;
 		_checkboxes.push_back(new CheckboxWidget(widgetsBoss(),
-			_dialogLayout + ".customOption" + id + "Checkbox", _(_options[i].label), _(_options[i].tooltip)));
+			_dialogLayout + ".customOption" + id + "Checkbox", _(_options[i].label), _(_options[i].tooltip), cmd));
 	}
 }
 
 ExtraGuiOptionsWidget::~ExtraGuiOptionsWidget() {
 }
 
-Common::String ExtraGuiOptionsWidget::dialogLayout(const Common::String &domain) {
-	if (ConfMan.getActiveDomainName().equals(domain)) {
-		return "GlobalConfig_Engine_Container";
-	} else {
-		return "GameOptions_Engine_Container";
+void ExtraGuiOptionsWidget::handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) {
+	switch (cmd) {
+	case kClickGroupLeaderCmd: {
+		byte groupLeaderId = 0;
+
+		for (uint i = 0; i < _checkboxes.size(); i++) {
+			if (_checkboxes[i] == (CheckboxWidget *)sender) {
+				groupLeaderId = _options[i].groupLeaderId;
+				break;
+			}
+		}
+
+		if (!groupLeaderId)
+			break;
+
+		// We have found the "group leader" checkbox. Enable or disable
+		// all checkboxes in the group. Theoretically, this could mean
+		// that we disable another group leader, so its group should
+		// also be disabled. But that seems overkill for now.
+
+		for (uint i = 0; i < _options.size(); i++) {
+			if (_options[i].groupId == groupLeaderId) {
+				_checkboxes[i]->setEnabled(data != 0);
+			}
+		}
+		break;
+	}
+	default:
+		OptionsContainerWidget::handleCommand(sender, cmd, data);
+		break;
 	}
 }
 
@@ -418,7 +480,7 @@ void ExtraGuiOptionsWidget::load() {
 bool ExtraGuiOptionsWidget::save() {
 	// Set the state of engine-specific checkboxes
 	for (uint i = 0; i < _options.size() && i < _checkboxes.size(); i++) {
-		ConfMan.setBool(_options[i].configOption, _checkboxes[i]->getState(), _domain);
+		ConfMan.setBool(_options[i].configOption, _checkboxes[i]->isEnabled() && _checkboxes[i]->getState(), _domain);
 	}
 
 	return true;
@@ -426,7 +488,7 @@ bool ExtraGuiOptionsWidget::save() {
 
 void ExtraGuiOptionsWidget::defineLayout(ThemeEval& layouts, const Common::String& layoutName, const Common::String& overlayedLayout) const {
 	layouts.addDialog(layoutName, overlayedLayout);
-	layouts.addLayout(GUI::ThemeLayout::kLayoutVertical).addPadding(8, 8, 8, 8);
+	layouts.addLayout(GUI::ThemeLayout::kLayoutVertical).addPadding(0, 0, 0, 0);
 
 	for (uint i = 0; i < _options.size(); i++) {
 		Common::String id = Common::String::format("%d", i + 1);

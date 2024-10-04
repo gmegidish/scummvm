@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -345,8 +344,6 @@ reg_t kDoBresen(EngineState *s, int argc, reg_t *argv) {
 
 		// Now call client::canBeHere/client::cantBehere to check for collisions
 		bool collision = false;
-		reg_t cantBeHere = NULL_REG;
-
 		// adding this here for hoyle 3 to get happy. CantBeHere is a dummy in hoyle 3 and acc is != 0 so we would
 		//  get a collision otherwise. Resetting the result was always done in SSCI
 		s->r_acc = NULL_REG;
@@ -354,7 +351,6 @@ reg_t kDoBresen(EngineState *s, int argc, reg_t *argv) {
 			invokeSelector(s, client, SELECTOR(cantBeHere), argc, argv);
 			if (!s->r_acc.isNull())
 				collision = true;
-			cantBeHere = s->r_acc;
 		} else {
 			invokeSelector(s, client, SELECTOR(canBeHere), argc, argv);
 			if (s->r_acc.isNull())

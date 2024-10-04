@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -76,6 +75,28 @@ void AABB::transform(const Math::Matrix4 &matrix) {
 		matrix.transform(&verts[i], true);
 		expand(verts[i]);
 	}
+}
+
+bool AABB::collides(const AABB &aabb) const {
+	return (getMax().x() > aabb.getMin().x() &&
+			getMin().x() < aabb.getMax().x() &&
+			getMax().y() > aabb.getMin().y() &&
+			getMin().y() < aabb.getMax().y() &&
+			getMax().z() > aabb.getMin().z() &&
+			getMin().z() < aabb.getMax().z());
+}
+
+Math::Vector3d AABB::distance(const Math::Vector3d &point) const {
+	double dx = MAX(getMin().x() - point.x(), point.x() - getMax().x());
+	dx = MAX(dx, 0.0);
+
+	double dy = MAX(getMin().y() - point.y(), point.y() - getMax().y());
+	dy = MAX(dy, 0.0);
+
+	double dz = MAX(getMin().z() - point.z(), point.z() - getMax().z());
+	dz = MAX(dz, 0.0);
+
+	return Math::Vector3d(dx, dy, dz);
 }
 
 }

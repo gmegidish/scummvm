@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -227,6 +226,8 @@ void OptionsDialog::show() {
 		int rc;
 		if (g_vm->getLanguage() == Common::ES_ESP) {
 			rc = MessageDialog::show(ESP_QUIT_CONFIRM_1_MSG, ESP_CANCEL_BTN_STRING, ESP_QUIT_BTN_STRING);
+		} else if (g_vm->getLanguage() == Common::RU_RUS) {
+			rc = MessageDialog::show(RUS_QUIT_CONFIRM_MSG, RUS_CANCEL_BTN_STRING, RUS_QUIT_BTN_STRING);
 		} else {
 			rc = MessageDialog::show(QUIT_CONFIRM_MSG, CANCEL_BTN_STRING, QUIT_BTN_STRING);
 		}
@@ -261,6 +262,14 @@ OptionsDialog::OptionsDialog() {
 		_btnQuit.setText(ESP_QUIT_BTN_STRING);
 		_btnSound.setText(ESP_SOUND_BTN_STRING);
 		_btnResume.setText(ESP_RESUME_BTN_STRING);
+	} else if (g_vm->getLanguage() == Common::RU_RUS) {
+		_gfxMessage.set(RUS_OPTIONS_MSG, 140, ALIGN_LEFT);
+		_btnRestore.setText(RUS_RESTORE_BTN_STRING);
+		_btnSave.setText(RUS_SAVE_BTN_STRING);
+		_btnRestart.setText(RUS_RESTART_BTN_STRING);
+		_btnQuit.setText(RUS_QUIT_BTN_STRING);
+		_btnSound.setText(RUS_SOUND_BTN_STRING);
+		_btnResume.setText(RUS_RESUME_BTN_STRING);
 	} else {
 		_gfxMessage.set(OPTIONS_MSG, 140, ALIGN_LEFT);
 		_btnRestore.setText(RESTORE_BTN_STRING);
@@ -321,6 +330,8 @@ void InventoryDialog::show() {
 	if (itemCount == 0) {
 		if (g_vm->getLanguage() == Common::ES_ESP) {
 			MessageDialog::show(ESP_INV_EMPTY_MSG, ESP_OK_BTN_STRING);
+		} else if (g_vm->getLanguage() == Common::RU_RUS) {
+			MessageDialog::show(RUS_INV_EMPTY_MSG, RUS_OK_BTN_STRING);
 		} else {
 			MessageDialog::show(INV_EMPTY_MSG, OK_BTN_STRING);
 		}
@@ -386,6 +397,9 @@ InventoryDialog::InventoryDialog() {
 	if (g_vm->getLanguage() == Common::ES_ESP) {
 		_btnOk.setText(ESP_OK_BTN_STRING);
 		_btnLook.setText(ESP_LOOK_BTN_STRING);
+	} else if (g_vm->getLanguage() == Common::RU_RUS) {
+		_btnOk.setText(RUS_OK_BTN_STRING);
+		_btnLook.setText(RUS_LOOK_BTN_STRING);
 	} else {
 		_btnOk.setText(OK_BTN_STRING);
 		_btnLook.setText(LOOK_BTN_STRING);
@@ -455,6 +469,16 @@ void InventoryDialog::execute() {
 					g_globals->_events.setCursor(CURSOR_LOOK);
 				} else {
 					_btnLook._message = ESP_LOOK_BTN_STRING;
+					lookFlag = 0;
+					g_globals->_events.setCursor(CURSOR_WALK);
+				}
+			} else if (g_vm->getLanguage() == Common::RU_RUS) {
+				if (_btnLook._message == RUS_LOOK_BTN_STRING) {
+					_btnLook._message = RUS_PICK_BTN_STRING;
+					lookFlag = 1;
+					g_globals->_events.setCursor(CURSOR_LOOK);
+				} else {
+					_btnLook._message = RUS_LOOK_BTN_STRING;
 					lookFlag = 0;
 					g_globals->_events.setCursor(CURSOR_WALK);
 				}

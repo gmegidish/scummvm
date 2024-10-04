@@ -7,7 +7,7 @@
 #   Prologue information
 #------------------------------------------------------------------------------
 Name		: scummvm
-Version		: 2.6.0git
+Version		: 2.9.0git
 Release		: 1
 Summary		: Graphic adventure game interpreter
 Group		: Interpreters
@@ -63,8 +63,8 @@ make %{_smp_mflags}
 
 %install
 make DESTDIR=%{buildroot} install
-install -m644 -D dists/redhat/scummvm48.png %{buildroot}%{_datadir}/icons/hicolor/48x48/apps/scummvm.png
-desktop-file-install --vendor scummvm --dir=%{buildroot}/%{_datadir}/applications dists/scummvm.desktop
+install -m644 -D dists/redhat/scummvm48.png %{buildroot}%{_datadir}/icons/hicolor/48x48/apps/org.scummvm.scummvm.png
+desktop-file-install --vendor scummvm --dir=%{buildroot}/%{_datadir}/applications dists/org.scummvm.scummvm.desktop
 
 %clean
 rm -Rf ${RPM_BUILD_ROOT}
@@ -86,13 +86,13 @@ fi
 #------------------------------------------------------------------------------
 %files
 %defattr(0644,root,root,0755)
-%doc AUTHORS README NEWS COPYING COPYING.LGPL COPYING.FREEFONT COPYING.OFL COPYING.BSD COPYRIGHT
+%doc AUTHORS README.md NEWS.md COPYING LICENSES/COPYING.Apache LICENSES/COPYING.BSD LICENSES/COPYING.BSL LICENSES/COPYING.LGPL LICENSES/COPYING.FREEFONT LICENSES/COPYING.OFL LICENSES/COPYING.ISC LICENSES/COPYING.LUA LICENSES/COPYING.MIT LICENSES/COPYING.MKV LICENSES/COPYING.MPL LICENSES/COPYING.TINYGL LICENSES/COPYING.GLAD LICENSES/CatharonLicense.txt COPYRIGHT
 %attr(0755,root,root)%{_bindir}/scummvm
 %{_datadir}/applications/*
-%{_datadir}/pixmaps/scummvm.xpm
-%{_datadir}/icons/hicolor/48x48/apps/scummvm.png
-%{_datadir}/icons/hicolor/scalable/apps/scummvm.svg
-%{_datadir}/metainfo/scummvm.appdata.xml
+%{_datadir}/pixmaps/org.scummvm.scummvm.xpm
+%{_datadir}/icons/hicolor/48x48/apps/org.scummvm.scummvm.png
+%{_datadir}/icons/hicolor/scalable/apps/org.scummvm.scummvm.svg
+%{_datadir}/metainfo/org.scummvm.scummvm.metainfo.xml
 %{_datadir}/scummvm/*
 %{_mandir}/man6/scummvm.6*
 
@@ -100,6 +100,8 @@ fi
 #   Change Log
 #------------------------------------------------------------------------------
 %changelog
+* Mon Dec 27 2021 (2.6.0)
+  - synchronized documentation and license paths
 * Thu Nov 23 2017 (2.0.0)
   - remove own libmad since this is now in Fedora itself
 * Fri Jul 11 2014 (1.8.0)

@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -84,8 +83,8 @@ public:
 	bool slideInTransition(Graphics::Surface *newBackground, int direction, int stripSize, int totalTime);
 	bool slideOutTransition(Graphics::Surface *newBackground, int direction, int stripSize, int totalTime);
 
-	bool changeStillFrameMovie(const Common::String &fileName = "");
-	bool changeCycleFrameMovie(const Common::String &fileName = "");
+	bool changeStillFrameMovie(const Common::Path &fileName = Common::Path());
+	bool changeCycleFrameMovie(const Common::Path &fileName = Common::Path());
 
 	Graphics::Surface *getStillFrameCopy(int frameIndex);
 	const Graphics::Surface *getStillFrame(int frameIndex);
@@ -99,15 +98,9 @@ public:
 	bool isCyclingEnabled() const { return _cycleEnabled || _forceCycleEnabled; }
 	bool closeCycleFrameMovie();
 
-	int getGlobalFlag(int offset);
-	byte getGlobalFlagByte(int offset);
-	bool setGlobalFlag(int offset, int value);
-	bool setGlobalFlagByte(int offset, byte value);
-	bool setGlobalFlagDWord(int offset, uint32 value);
-	uint32 getGlobalFlagDWord(int offset);
-	bool addNumberToGlobalFlagTable(int offset, int curItemCountOffset, int maxItems, byte numberToAdd);
-	byte getNumberFromGlobalFlagTable(int offset, int tableIndex);
-	bool isNumberInGlobalFlagTable(int offset, int curItemCountOffset, byte numberToCheck);
+	bool addNumberToGlobalFlagTable(byte numberToAdd);
+	byte getNumberFromGlobalFlagTable(int tableIndex);
+	bool isNumberInGlobalFlagTable(byte numberToCheck);
 
 	bool playSynchronousAnimation(int animationID);
 	bool playSynchronousAnimationExtern(int animationID);
@@ -167,6 +160,8 @@ public:
 
 	const SceneBase *getCurrentScene() const { return _currentScene; }
 
+	Common::Array<AIComment> getAICommentDatabase(int timeZone, int environment);
+
 private:
 	Graphics::Surface *_preBuffer;
 	SceneBase *_currentScene;
@@ -174,7 +169,7 @@ private:
 	GlobalFlags _globalFlags;
 	VideoWindow *_walkMovie;
 
-	Common::String _walkMovieFileName;
+	Common::Path _walkMovieFileName;
 
 	AVIFrames *_stillFrames;
 	AVIFrames *_cycleFrames;
@@ -192,12 +187,12 @@ private:
 	bool _burnedLetterDisplayed;
 
 	VideoWindow *_asyncMovie;
-	Common::String _asyncMovieFileName;
+	Common::Path _asyncMovieFileName;
 	int _asyncMovieStartFrame;
 	int _asyncMovieFrameCount;
 	bool _loopAsyncMovie;
 
-	Common::String _lastAICommentFileName;
+	Common::Path _lastAICommentFileName;
 
 	// Special sound handling for the demo
 	uint _demoSoundTimer;
@@ -210,7 +205,8 @@ private:
 	SceneBase *constructSceneObject(Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
 
 	Common::Array<AnimEvent> getAnimationDatabase(int timeZone, int environment);
-	Common::Array<AIComment> getAICommentDatabase(int timeZone, int environment);
+
+	bool moveToDestination(const DestinationScene &destinationData, int navFrame);
 
 	// AI Lab
 	bool initializeAILabTimeZoneAndEnvironment(Window *viewWindow, int environment);
@@ -249,6 +245,10 @@ private:
 	bool initializeAlienTimeZoneAndEnvironment(Window *viewWindow, int environment);
 	bool startAlienAmbient(int oldTimeZone, int oldEnvironment, int environment, bool fade);
 	SceneBase *constructAlienSceneObject(Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
+
+	byte *aiFlag(uint16 offset);
+	byte getAIFlag(uint16 offset);
+	void setAIFlag(uint16 offset, byte value);
 };
 
 } // End of namespace Buried

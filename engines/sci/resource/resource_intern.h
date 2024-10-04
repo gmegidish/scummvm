@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ enum ResSourceType {
 class ResourceSource {
 protected:
 	const ResSourceType _sourceType;
-	const Common::String _name;
+	const Common::Path _name;
 
 public:
 	bool _scanned;
@@ -57,12 +56,12 @@ public:
 	const int _volumeNumber;
 
 protected:
-	ResourceSource(ResSourceType type, const Common::String &name, int volNum = 0, const Common::FSNode *resFile = 0);
+	ResourceSource(ResSourceType type, const Common::Path &name, int volNum = 0, const Common::FSNode *resFile = 0);
 public:
 	virtual ~ResourceSource();
 
 	ResSourceType getSourceType() const { return _sourceType; }
-	const Common::String &getLocationName() const { return _name; }
+	const Common::Path &getLocationName() const { return _name; }
 
 	// Auxiliary method, used by loadResource implementations.
 	Common::SeekableReadStream *getVolumeFile(ResourceManager *resMan, Resource *res);
@@ -92,14 +91,14 @@ public:
 
 class DirectoryResourceSource : public ResourceSource {
 public:
-	DirectoryResourceSource(const Common::String &name) : ResourceSource(kSourceDirectory, name) {}
+	DirectoryResourceSource(const Common::Path &name) : ResourceSource(kSourceDirectory, name) {}
 
 	void scanSource(ResourceManager *resMan) override;
 };
 
 class PatchResourceSource : public ResourceSource {
 public:
-	PatchResourceSource(const Common::String &name) : ResourceSource(kSourcePatch, name) {}
+	PatchResourceSource(const Common::Path &name) : ResourceSource(kSourcePatch, name) {}
 
 	void loadResource(ResourceManager *resMan, Resource *res) override;
 };
@@ -109,11 +108,11 @@ protected:
 	ResourceSource * const _associatedMap;
 
 public:
-	VolumeResourceSource(const Common::String &name, ResourceSource *map, int volNum, ResSourceType type = kSourceVolume)
+	VolumeResourceSource(const Common::Path &name, ResourceSource *map, int volNum, ResSourceType type = kSourceVolume)
 		: ResourceSource(type, name, volNum), _associatedMap(map) {
 	}
 
-	VolumeResourceSource(const Common::String &name, ResourceSource *map, int volNum, const Common::FSNode *resFile)
+	VolumeResourceSource(const Common::Path &name, ResourceSource *map, int volNum, const Common::FSNode *resFile)
 		: ResourceSource(kSourceVolume, name, volNum, resFile), _associatedMap(map) {
 	}
 
@@ -126,7 +125,7 @@ public:
 
 class ExtMapResourceSource : public ResourceSource {
 public:
-	ExtMapResourceSource(const Common::String &name, int volNum, const Common::FSNode *resFile = 0)
+	ExtMapResourceSource(const Common::Path &name, int volNum, const Common::FSNode *resFile = 0)
 		: ResourceSource(kSourceExtMap, name, volNum, resFile) {
 	}
 
@@ -136,7 +135,7 @@ public:
 class IntMapResourceSource : public ResourceSource {
 public:
 	uint16 _mapNumber;
-	IntMapResourceSource(const Common::String &name, int volNum, int mapNum)
+	IntMapResourceSource(const Common::Path &name, int volNum, int mapNum)
 		: ResourceSource(kSourceIntMap, name, volNum), _mapNumber(mapNum) {
 	}
 
@@ -154,7 +153,7 @@ protected:
 	Common::HashMap<uint32, CompressedTableEntry> _compressedOffsets;
 
 public:
-	AudioVolumeResourceSource(ResourceManager *resMan, const Common::String &name, ResourceSource *map, int volNum);
+	AudioVolumeResourceSource(ResourceManager *resMan, const Common::Path &name, ResourceSource *map, int volNum);
 
 	void loadResource(ResourceManager *resMan, Resource *res) override;
 
@@ -178,7 +177,7 @@ public:
 
 class ExtAudioMapResourceSource : public ResourceSource {
 public:
-	ExtAudioMapResourceSource(const Common::String &name, int volNum)
+	ExtAudioMapResourceSource(const Common::Path &name, int volNum)
 		: ResourceSource(kSourceExtAudioMap, name, volNum) {
 	}
 
@@ -187,7 +186,7 @@ public:
 
 class WaveResourceSource : public ResourceSource {
 public:
-	WaveResourceSource(const Common::String &name) : ResourceSource(kSourceWave, name) {}
+	WaveResourceSource(const Common::Path &name) : ResourceSource(kSourceWave, name) {}
 
 	void loadResource(ResourceManager *resMan, Resource *res) override;
 };
@@ -197,7 +196,7 @@ public:
  */
 class MacResourceForkResourceSource : public ResourceSource {
 public:
-	MacResourceForkResourceSource(const Common::String &name, int volNum);
+	MacResourceForkResourceSource(const Common::Path &name, int volNum);
 	~MacResourceForkResourceSource() override;
 
 	void scanSource(ResourceManager *resMan) override;
@@ -218,7 +217,7 @@ protected:
  */
 class ChunkResourceSource : public ResourceSource {
 public:
-	ChunkResourceSource(const Common::String &name, uint16 number);
+	ChunkResourceSource(const Common::Path &name, uint16 number);
 
 	void scanSource(ResourceManager *resMan) override;
 	void loadResource(ResourceManager *resMan, Resource *res) override;

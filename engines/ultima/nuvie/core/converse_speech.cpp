@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,14 +31,13 @@
 namespace Ultima {
 namespace Nuvie {
 
-ConverseSpeech::ConverseSpeech() {
-	config = NULL;
+ConverseSpeech::ConverseSpeech() : config(nullptr) {
 }
 
 
 /* Initialize global classes from the game.
  */
-void ConverseSpeech::init(Configuration *cfg) {
+void ConverseSpeech::init(const Configuration *cfg) {
 	config = cfg;
 }
 
@@ -66,7 +64,7 @@ void ConverseSpeech::update() {
 }
 
 void ConverseSpeech::play_speech(uint16 actor_num, uint16 sample_num) {
-	Std::string sample_file;
+	Common::Path sample_file;
 	char filename[20]; // "/speech/charxxx.sam"
 	TownsSound sound;
 	SoundManager *sm = Game::get_game()->get_sound_manager();
@@ -84,11 +82,11 @@ void ConverseSpeech::play_speech(uint16 actor_num, uint16 sample_num) {
 
 	sample_num--;
 
-	sprintf(filename, "speech%cchar%u.sam", U6PATH_DELIMITER, actor_num);
+	Common::sprintf_s(filename, "speech%cchar%u.sam", U6PATH_DELIMITER, actor_num);
 
 	config->pathFromValue("config/townsdir", filename, sample_file);
 
-	DEBUG(0, LEVEL_DEBUGGING, "Loading Speech Sample %s:%d\n", sample_file.c_str(), sample_num);
+	DEBUG(0, LEVEL_DEBUGGING, "Loading Speech Sample %s:%d\n", sample_file.toString().c_str(), sample_num);
 
 	sound.filename = sample_file;
 	sound.sample_num = sample_num;
@@ -101,7 +99,7 @@ void ConverseSpeech::play_speech(uint16 actor_num, uint16 sample_num) {
 	return;
 }
 
-NuvieIOBuffer *ConverseSpeech::load_speech(Std::string filename, uint16 sample_num) {
+NuvieIOBuffer *ConverseSpeech::load_speech(const Common::Path &filename, uint16 sample_num) {
 	unsigned char *compressed_data, *raw_audio, *wav_data;
 	sint16 *converted_audio;
 	uint32 decomp_size;
@@ -114,12 +112,12 @@ NuvieIOBuffer *ConverseSpeech::load_speech(Std::string filename, uint16 sample_n
 
 	sam_file.open(filename, 4);
 
-	compressed_data = sam_file.get_item(sample_num, NULL);
+	compressed_data = sam_file.get_item(sample_num, nullptr);
 	raw_audio = lzw.decompress_buffer(compressed_data, sam_file.get_item_size(sample_num), decomp_size);
 
 	free(compressed_data);
 
-	if (raw_audio != NULL) {
+	if (raw_audio != nullptr) {
 		wav_buffer = new NuvieIOBuffer();
 		upsampled_size = decomp_size + (int)floor((decomp_size - 1) / 4) * (2 + 2 + 2 + 1);
 
@@ -178,17 +176,17 @@ NuvieIOBuffer *ConverseSpeech::load_speech(Std::string filename, uint16 sample_n
 
 inline sint16 ConverseSpeech::convert_sample(uint16 raw_sample) {
 	sint16 sample;
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	sint16 temp_sample;
-#endif
 
 	if (raw_sample & 128)
 		sample = ((sint16)(abs(128 - raw_sample) * 256) ^ 0xffff)  + 1;
 	else
 		sample = raw_sample * 256;
 
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	temp_sample = sample >> 8;
+// FIXME: Following code is for Big Endian sample conversion
+//        This was required for older libSDL audio output.
+//        May not be needed for ScummVM audio output?
+#if 0
+	sint16 temp_sample = sample >> 8;
 	temp_sample |= (sample & 0xff) << 8;
 	sample = temp_sample;
 #endif
@@ -196,7 +194,7 @@ inline sint16 ConverseSpeech::convert_sample(uint16 raw_sample) {
 	return sample;
 }
 
-void ConverseSpeech::wav_init_header(NuvieIOBuffer *wav_buffer, uint32 audio_length) {
+void ConverseSpeech::wav_init_header(NuvieIOBuffer *wav_buffer, uint32 audio_length) const {
 	wav_buffer->writeBuf((const unsigned char *)"RIFF", 4);
 	wav_buffer->write4(36 + audio_length * 2); //length of RIFF chunk
 	wav_buffer->writeBuf((const unsigned char *)"WAVE", 4);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -201,7 +200,7 @@ private:
 	void clearSprite();
 	void setSpriteZoom(int idx, int zoomFactor);
 
-	void loadZone(const Common::String &file);
+	void loadZone(const Common::Path &file);
 	void changeCharacterHead(PlayerCharacter oldCharacter, PlayerCharacter newCharacter);
 	void goHome2();
 
@@ -250,8 +249,8 @@ public:
 
 	int getWidth(const byte *objectData, int idx);
 	int getHeight(const byte *objectData, int idx);
-	byte *loadSprite(const Common::String &file);
-	void loadLinkFile(const Common::String &file, bool OBSSEUL = false);
+	byte *loadSprite(const Common::Path &file);
+	void loadLinkFile(const Common::Path &file, bool OBSSEUL = false);
 	void addStaticSprite(const byte *spriteData, Common::Point pos, int idx, int spriteIndex, int zoomFactor, bool flipFl, int deltaX, int deltaY);
 	void animateSprite(int idx);
 	void removeSprite(int idx);
@@ -304,7 +303,7 @@ public:
 	void resetHidingItems();
 	void resetHidingUseCount(int idx);
 	void setHidingUseCount(int idx);
-	void loadHidingItems(const Common::String &file);
+	void loadHidingItems(const Common::Path &file);
 	void enableHidingBehavior();
 	void disableHidingBehavior();
 	void disableHidingItem(int idx);
@@ -325,10 +324,10 @@ public:
 	void disableVbob(int idx);
 	void setAndPlayAnim(int idx, int animIdx, int destPosi, bool animAction);
 
-	void sceneControl(const Common::String &backgroundFile, const Common::String &linkFile,
-		const Common::String &animFile, const Common::String &s4, int soundNum, bool initializeScreen);
-	void sceneControl2(const Common::String &backgroundFile, const Common::String &linkFile,
-		const Common::String &animFile, const Common::String &s4, int soundNum, bool initializeScreen);
+	void sceneControl(const Common::Path &backgroundFile, const Common::Path &linkFile,
+		const Common::Path &animFile, const Common::Path &s4, int soundNum, bool initializeScreen);
+	void sceneControl2(const Common::Path &backgroundFile, const Common::Path &linkFile,
+		const Common::Path &animFile, const Common::Path &s4, int soundNum, bool initializeScreen);
 	void goHome();
 	void paradise();
 };

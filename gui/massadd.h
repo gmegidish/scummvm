@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,10 +32,9 @@
 namespace GUI {
 
 class StaticTextWidget;
+class MassAddListWidget;
 
 class MassAddDialog : public Dialog {
-	typedef Common::Array<Common::String> StringArray;
-	typedef Common::Array<Common::U32String> U32StringArray;
 public:
 	MassAddDialog(const Common::FSNode &startDir);
 
@@ -54,12 +52,15 @@ private:
 	Common::Stack<Common::FSNode>  _scanStack;
 	DetectedGames _games;
 
+	void updateGameList();
+
 	/**
-	 * Map each path occuring in the config file to the target(s) using that path.
+	 * Map each path occurring in the config file to the target(s) using that path.
 	 * Used to detect whether a potential new target is already present in the
 	 * config manager.
 	 */
-	Common::HashMap<Common::String, StringArray>	_pathToTargets;
+	Common::HashMap<Common::Path, Common::StringArray,
+		Common::Path::IgnoreCase_Hash, Common::Path::IgnoreCase_EqualTo> _pathToTargets;
 
 	int _dirsScanned;
 	int _oldGamesCount;
@@ -69,9 +70,29 @@ private:
 	StaticTextWidget *_dirProgressText;
 	StaticTextWidget *_gameProgressText;
 
-	ListWidget *_list;
+	MassAddListWidget *_list;
 };
 
+class MassAddListWidget : public ListWidget {
+public:
+	MassAddListWidget(Dialog *boss, const Common::String &name)
+		: ListWidget(boss, name) { }
+
+	void appendToSelectedList(bool selected) { _listSelected.push_back(selected); }
+	void clearSelectedList() { _listSelected.clear(); }
+
+protected:
+	ThemeEngine::WidgetStateInfo getItemState(int item) const override {
+		// Display selected/unselected games in mass detection as enabled/disabled items.
+		if (item < (signed int)_listSelected.size() && _listSelected[item]) {
+			return ThemeEngine::kStateEnabled;
+		} else {
+			return ThemeEngine::kStateDisabled;
+		}
+	}
+
+	Common::Array<bool>	_listSelected;
+};
 
 } // End of namespace GUI
 

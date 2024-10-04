@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "mohawk/myst.h"
 #include "mohawk/myst_graphics.h"
 #include "mohawk/resource.h"
+#include "mohawk/myst_scripts.h"
 
 #include "common/substream.h"
 #include "common/system.h"
@@ -30,7 +30,7 @@
 #include "engines/util.h"
 #include "graphics/fonts/ttf.h"
 #include "graphics/fontman.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/scaler.h"
 #include "image/pict.h"
 
@@ -94,8 +94,7 @@ void MystGraphics::loadMenuFont() {
 
 	Common::SeekableReadStream *fontStream = SearchMan.createReadStreamForMember(menuFontName);
 	if (fontStream) {
-		_menuFont = Graphics::loadTTFFont(*fontStream, fontSize);
-		delete fontStream;
+		_menuFont = Graphics::loadTTFFont(fontStream, DisposeAfterUse::YES, fontSize);
 	} else
 #endif
 	{
@@ -218,11 +217,17 @@ void MystGraphics::applyImagePatches(uint16 id, const MohawkSurface *mhkSurface)
 		Graphics::Surface fixSurf;
 		fixSurf.create(15, 11, Graphics::PixelFormat::createFormatCLUT8());
 		fixSurf.copyRectToSurface(markerSwitchInstructionsFixPic, fixSurf.w, 0, 0, fixSurf.w, fixSurf.h);
-		fixSurf.convertToInPlace(_pixelFormat, markerSwitchInstructionsFixPal);
+		fixSurf.convertToInPlace(_pixelFormat, markerSwitchInstructionsFixPal, sizeof(markerSwitchInstructionsFixPal) / 3);
 
 		mhkSurface->getSurface()->copyRectToSurface(fixSurf, 171, 208, Common::Rect(fixSurf.w, fixSurf.h));
 
 		fixSurf.free();
+	}
+
+	// Fix map picture with inverted colors in Myst ME Polish version
+	if (id == _vm->_stack->getMap() && _vm->isGameVariant(GF_ME) && _vm->getLanguage() == Common::PL_POL) {
+		debug(3, "Fix for Inverted Map Colors in Myst ME Polish Version Triggered!");
+		mhkSurface->getSurface()->convertToInPlace(Graphics::PixelFormat(4, 8, 8, 8, 8, 8, 16, 0, 24));
 	}
 }
 
@@ -702,18 +707,29 @@ void MystGraphics::fadeToBlack() {
 	// This is only for the demo
 	assert(!_vm->isGameVariant(GF_ME));
 
-	// Linear fade in 64 steps
-	for (int i = 63; i >= 0; i--) {
+	// Linear fade in 64 steps or less
+	uint32 startTime = _vm->_system->getMillis();
+	uint32 endTime = startTime + 640;
+	uint32 time, i;
+
+	do {
 		byte palette[256 * 3];
 		byte *src = _palette;
 		byte *dst = palette;
 
-		for (uint j = 0; j < sizeof(palette); j++)
-			*dst++ = *src++ * i / 64;
+		time = _vm->_system->getMillis();
+		i = (endTime - time) / 10;
+
+		if (time < endTime) {
+			for (uint j = 0; j < sizeof(palette); j++)
+				*dst++ = *src++ * i / 64;
+		} else {
+			memset(palette, 0, sizeof(palette));
+		}
 
 		_vm->_system->getPaletteManager()->setPalette(palette, 0, 256);
 		_vm->doFrame();
-	}
+	} while (time < endTime);
 }
 
 void MystGraphics::fadeFromBlack() {
@@ -722,18 +738,28 @@ void MystGraphics::fadeFromBlack() {
 
 	copyBackBufferToScreen(_viewport);
 
-	// Linear fade in 64 steps
-	for (int i = 0; i < 64; i++) {
+	// Linear fade in 64 steps or less
+	uint32 startTime = _vm->_system->getMillis();
+	uint32 endTime = startTime + 640;
+	uint32 time, i;
+
+	do {
 		byte palette[256 * 3];
 		byte *src = _palette;
 		byte *dst = palette;
+		time = _vm->_system->getMillis();
+		i = (time - startTime) / 10;
 
-		for (uint j = 0; j < sizeof(palette); j++)
-			*dst++ = *src++ * i / 64;
+		if (time < endTime) {
+			for (uint j = 0; j < sizeof(palette); j++)
+				*dst++ = *src++ * i / 64;
+		} else {
+			memcpy(palette, _palette, sizeof(palette));
+		}
 
 		_vm->_system->getPaletteManager()->setPalette(palette, 0, 256);
 		_vm->doFrame();
-	}
+	} while (time < endTime);
 
 	// Set the full palette
 	_vm->_system->getPaletteManager()->setPalette(_palette, 0, 256);

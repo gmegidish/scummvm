@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -129,6 +128,7 @@ enum kExtractID {
 
 	k1GUIStrings,
 	k1ConfigStrings,
+	k1ConfigStrings2,
 
 	k1AudioTracks,
 	k1AudioTracksIntro,
@@ -145,6 +145,8 @@ enum kExtractID {
 
 	k1AmigaIntroSFXTable,
 	k1AmigaGameSFXTable,
+
+	k1TwoByteFontLookupTable,
 
 	k2SeqplayPakFiles,
 	k2SeqplayCredits,
@@ -168,6 +170,7 @@ enum kExtractID {
 	k2IngameTimJpStrings,
 	k2IngameShapeAnimData,
 	k2IngameTlkDemoStrings,
+	k2FontData,
 
 	k3MainMenuStrings,
 	k3MusicFiles,
@@ -177,7 +180,6 @@ enum kExtractID {
 	k3ItemAnimData,
 	k3ItemMagicTable,
 	k3ItemStringMap,
-	k3FontData,
 	k3VqaSubtitlesIntro,
 	k3VqaSubtitlesBoat,
 
@@ -754,6 +756,11 @@ enum kExtractID {
 	kEoB2IntroAnimData42,
 	kEoB2IntroAnimData43,
 
+	kEoB2IntroAnimData44,
+	kEoB2IntroAnimData45,
+	kEoB2IntroAnimData46,
+	kEoB2IntroAnimData47,
+
 	kEoB2IntroShapes00,
 	kEoB2IntroShapes01,
 	kEoB2IntroShapes04,
@@ -1050,7 +1057,8 @@ enum kExtractID {
 
 	kEoB2UtilMenuStrings,
 	kEoB2Config2431Strings,
-	kEoB2FontDmpSearchTbl,
+	kEoB2FontLookupTbl,
+	kEoB2FontConvertTbl,
 	kEoB2Ascii2SjisTables,
 	kEoB2Ascii2SjisTables2,
 	kEoB2PcmSoundEffectsIngame,

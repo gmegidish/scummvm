@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,10 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "graphics/scalerplugin.h"
-
-void ScalerPluginObject::initialize(const Graphics::PixelFormat &format) {
-	_format = format;
-}
 
 namespace {
 /**
@@ -34,7 +29,7 @@ template<typename Pixel>
 void Normal1x(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch,
 							int width, int height) {
 	// Spot the case when it can all be done in 1 hit
-	int BytesPerPixel = sizeof(Pixel);
+	const int BytesPerPixel = sizeof(Pixel);
 	if ((srcPitch == BytesPerPixel * (uint)width) && (dstPitch == BytesPerPixel * (uint)width)) {
 		memcpy(dstPtr, srcPtr, BytesPerPixel * width * height);
 		return;
@@ -47,10 +42,12 @@ void Normal1x(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPit
 }
 } // End of anonymous namespace
 
-void ScalerPluginObject::scale(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr,
+void Scaler::scale(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr,
 	                           uint32 dstPitch, int width, int height, int x, int y) {
 	if (_factor == 1) {
-		if (_format.bytesPerPixel == 2) {
+		if (_format.bytesPerPixel == 1) {
+			Normal1x<uint8>(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
+		} else if (_format.bytesPerPixel == 2) {
 			Normal1x<uint16>(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
 		} else {
 			Normal1x<uint32>(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
@@ -60,17 +57,14 @@ void ScalerPluginObject::scale(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstP
 	}
 }
 
-SourceScaler::SourceScaler() : _width(0), _height(0), _oldSrc(NULL), _enable(false) {
+SourceScaler::SourceScaler(const Graphics::PixelFormat &format) : Scaler(format), _width(0), _height(0), _oldSrc(NULL), _enable(false) {
 }
 
 SourceScaler::~SourceScaler() {
 	if (_oldSrc != NULL)
 		delete[] _oldSrc;
-}
 
-void SourceScaler::deinitialize() {
 	_bufferedOutput.free();
-	ScalerPluginObject::deinitialize();
 }
 
 void SourceScaler::setSource(const byte *src, uint pitch, int width, int height, int padding) {
@@ -83,8 +77,7 @@ void SourceScaler::setSource(const byte *src, uint pitch, int width, int height,
 
 	// Give _oldSrc same pitch
 	int size = (height + padding * 2) * pitch;
-	_oldSrc = new byte[size];
-	memset(_oldSrc, 0, size);
+	_oldSrc = new byte[size]();
 
 	_bufferedOutput.create(_width * _factor, _height * _factor, _format);
 }

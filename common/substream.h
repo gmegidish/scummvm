@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef COMMON_SUBSTREAM_H
 #define COMMON_SUBSTREAM_H
 
+#include "common/mutex.h"
 #include "common/ptr.h"
 #include "common/stream.h"
 #include "common/types.h"
@@ -61,7 +61,7 @@ public:
 		assert(parentStream);
 	}
 
-	virtual bool eos() const { return _eos | _parentStream->eos(); }
+	virtual bool eos() const { return _eos || _parentStream->eos(); }
 	virtual bool err() const { return _parentStream->err(); }
 	virtual void clearErr() { _eos = false; _parentStream->clearErr(); }
 	virtual uint32 read(void *dataPtr, uint32 dataSize);
@@ -89,29 +89,6 @@ public:
 };
 
 /**
- * This is a SeekableSubReadStream subclass which adds non-endian
- * read methods whose endianness is set on the stream creation.
- *
- * Manipulating the parent stream directly /will/ mess up a substream.
- * @see SubReadStream
- */
-class SeekableSubReadStreamEndian :  virtual public SeekableSubReadStream, virtual public SeekableReadStreamEndian {
-public:
-	SeekableSubReadStreamEndian(SeekableReadStream *parentStream, uint32 begin, uint32 end, bool bigEndian, DisposeAfterUse::Flag disposeParentStream = DisposeAfterUse::NO)
-		: SeekableSubReadStream(parentStream, begin, end, disposeParentStream),
-		  SeekableReadStreamEndian(bigEndian),
-		  ReadStreamEndian(bigEndian) {
-	}
-
-	virtual int64 pos() const override { return SeekableSubReadStream::pos(); }
-	virtual int64 size() const override { return SeekableSubReadStream::size(); }
-
-	virtual bool seek(int64 offset, int whence = SEEK_SET) override { return SeekableSubReadStream::seek(offset, whence); }
-	void hexdump(int len, int bytesPerLine = 16, int startOffset = 0) { SeekableSubReadStream::hexdump(len, bytesPerLine, startOffset); }
-	bool skip(uint32 offset) override { return SeekableSubReadStream::seek(offset, SEEK_CUR); }
-};
-
-/**
  * A seekable substream that removes the exclusivity demand required by the
  * normal SeekableSubReadStream, at the cost of seek()ing the parent stream
  * before each read().
@@ -131,6 +108,24 @@ public:
 	}
 
 	virtual uint32 read(void *dataPtr, uint32 dataSize);
+};
+
+/**
+ * A special variant of SafeSeekableSubReadStream which locks a mutex during each read.
+ * This is necessary if the music is streamed from disk and it could happen
+ * that a sound effect or another music track is played from the same read stream
+ * while the first music track is updated/read.
+ */
+
+class SafeMutexedSeekableSubReadStream : public Common::SafeSeekableSubReadStream {
+public:
+	SafeMutexedSeekableSubReadStream(SeekableReadStream *parentStream, uint32 begin, uint32 end, DisposeAfterUse::Flag disposeParentStream,
+		Common::Mutex &mutex)
+		: SafeSeekableSubReadStream(parentStream, begin, end, disposeParentStream), _mutex(mutex) {
+	}
+	uint32 read(void *dataPtr, uint32 dataSize) override;
+protected:
+	Common::Mutex &_mutex;
 };
 
 /** @} */

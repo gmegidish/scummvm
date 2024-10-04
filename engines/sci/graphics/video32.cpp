@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@
 #include "common/util.h"                 // for ARRAYSIZE
 #include "common/system.h"               // for g_system
 #include "engines/engine.h"              // for Engine, g_engine
-#include "graphics/palette.h"            // for PaletteManager
+#include "graphics/paletteman.h"         // for PaletteManager
 #include "sci/console.h"                 // for Console
 #include "sci/engine/features.h"         // for GameFeatures
 #include "sci/engine/state.h"            // for EngineState
@@ -55,9 +54,9 @@ namespace Graphics { struct Surface; }
 
 namespace Sci {
 
-bool VideoPlayer::open(const Common::String &fileName) {
+bool VideoPlayer::open(const Common::Path &fileName) {
 	if (!_decoder->loadFile(fileName)) {
-		warning("Failed to load %s", fileName.c_str());
+		warning("Failed to load %s", fileName.toString().c_str());
 		return false;
 	}
 
@@ -122,6 +121,21 @@ bool VideoPlayer::endHQVideo() {
 	return false;
 }
 
+void VideoPlayer::setSubtitlePosition() const {
+	const int16 overlayHeight = g_system->getOverlayHeight(),
+				overlayWidth = g_system->getOverlayWidth(),
+				drawHeight = _drawRect.height(),
+				drawWidth = _drawRect.width();
+	_subtitles.setBBox(
+		Common::Rect(
+			(_drawRect.left + 20) * overlayWidth / drawWidth,
+			(_drawRect.bottom - 80) * overlayHeight / drawHeight,
+			(_drawRect.right - 20)  * overlayWidth / drawWidth,
+			(_drawRect.bottom - 10) * overlayHeight / drawHeight
+		)
+	);
+}
+
 VideoPlayer::EventFlags VideoPlayer::playUntilEvent(const EventFlags flags, const uint32 maxSleepMs) {
 	// Flushing all the keyboard and mouse events out of the event manager keeps
 	// events queued from before the start of playback from accidentally
@@ -131,6 +145,16 @@ VideoPlayer::EventFlags VideoPlayer::playUntilEvent(const EventFlags flags, cons
 	_decoder->start();
 
 	EventFlags stopFlag = kEventFlagNone;
+
+	if (_subtitles.isLoaded()) {
+		setSubtitlePosition();
+		_subtitles.setColor(0xff, 0xff, 0xff);
+		_subtitles.setFont("FreeSans.ttf");
+
+		g_system->clearOverlay();
+		g_system->showOverlay(false);
+	}
+
 	for (;;) {
 		if (!_needsUpdate) {
 			g_sci->sleep(MIN(_decoder->getTimeToNextFrame(), maxSleepMs));
@@ -178,6 +202,11 @@ VideoPlayer::EventFlags VideoPlayer::playUntilEvent(const EventFlags flags, cons
 		// them will not make it into the hardware buffer until the next tick
 		g_sci->_gfxFrameout->updateScreen();
 	}
+
+	if (_subtitles.isLoaded()) {
+		g_system->hideOverlay();
+	}
+	_subtitles.close();
 
 	return stopFlag;
 }
@@ -270,6 +299,10 @@ void VideoPlayer::renderFrame(const Graphics::Surface &nextFrame) const {
 	g_system->copyRectToScreen(convertedFrame->getPixels(), convertedFrame->pitch, _drawRect.left, _drawRect.top, _drawRect.width(), _drawRect.height());
 	g_sci->_gfxFrameout->updateScreen();
 
+	if (_subtitles.isLoaded())
+		setSubtitlePosition();
+	_subtitles.drawSubtitle(_decoder->getTime(), true);
+
 	if (freeConvertedFrame) {
 		convertedFrame->free();
 		delete convertedFrame;
@@ -313,7 +346,7 @@ void VideoPlayer::setDrawRect(const int16 x, const int16 y, const int16 width, c
 SEQPlayer::SEQPlayer(EventManager *eventMan) :
 	VideoPlayer(eventMan) {}
 
-void SEQPlayer::play(const Common::String &fileName, const int16 numTicks, const int16, const int16) {
+void SEQPlayer::play(const Common::Path &fileName, const int16 numTicks, const int16, const int16) {
 
 	_decoder.reset(new SEQDecoder(numTicks));
 
@@ -356,7 +389,7 @@ AVIPlayer::AVIPlayer(EventManager *eventMan) :
 	_decoder->setSoundType(Audio::Mixer::kSFXSoundType);
 }
 
-AVIPlayer::IOStatus AVIPlayer::open(const Common::String &fileName) {
+AVIPlayer::IOStatus AVIPlayer::open(const Common::Path &fileName) {
 	if (_status != kAVINotOpen) {
 		close();
 	}
@@ -512,7 +545,7 @@ uint16 AVIPlayer::getDuration() const {
 QuickTimePlayer::QuickTimePlayer(EventManager *eventMan) :
 	VideoPlayer(eventMan) {}
 
-void QuickTimePlayer::play(const Common::String& fileName) {
+void QuickTimePlayer::play(const Common::Path &fileName) {
 	_decoder.reset(new Video::QuickTimeDecoder());
 
 	if (!VideoPlayer::open(fileName)) {
@@ -586,16 +619,16 @@ VMDPlayer::~VMDPlayer() {
 #pragma mark -
 #pragma mark VMDPlayer - Playback
 
-VMDPlayer::IOStatus VMDPlayer::open(const Common::String &fileName, const OpenFlags flags) {
+VMDPlayer::IOStatus VMDPlayer::open(const Common::Path &fileName, const OpenFlags flags) {
 	if (_isOpen) {
-		error("Attempted to play %s, but another VMD was loaded", fileName.c_str());
+		error("Attempted to play %s, but another VMD was loaded", fileName.toString().c_str());
 	}
 
 	if (g_sci->_features->VMDOpenStopsAudio()) {
 		g_sci->_audio32->stop(kAllChannels);
 	}
 
-	Resource *bundledVmd = g_sci->getResMan()->findResource(ResourceId(kResourceTypeVMD, fileName.asUint64()), true);
+	Resource *bundledVmd = g_sci->getResMan()->findResource(ResourceId(kResourceTypeVMD, fileName.baseName().asUint64()), true);
 
 	if (bundledVmd != nullptr) {
 		Common::SeekableReadStream *stream = bundledVmd->makeStream();
@@ -614,6 +647,11 @@ VMDPlayer::IOStatus VMDPlayer::open(const Common::String &fileName, const OpenFl
 		if (flags & kOpenFlagMute) {
 			_decoder->setVolume(0);
 		}
+
+		// Try load fan-made SRT subtitles for current video
+		Common::Path subtitlesName(fileName.append(".srt"));
+		_subtitles.loadSRTFile(subtitlesName);
+
 		return kIOSuccess;
 	}
 
@@ -914,7 +952,7 @@ void VMDPlayer::submitPalette(const uint8 rawPalette[256 * 3]) const {
 	for (uint16 i = _endColor + 1; i < ARRAYSIZE(palette.colors); ++i) {
 		palette.colors[i].used = false;
 	}
-#if SCI_VMD_BLACK_PALETTE
+#ifdef SCI_VMD_BLACK_PALETTE
 	if (_blackPalette) {
 		for (uint16 i = _startColor; i <= _endColor; ++i) {
 			palette.colors[i].r = palette.colors[i].g = palette.colors[i].b = 0;
@@ -937,7 +975,7 @@ void VMDPlayer::submitPalette(const uint8 rawPalette[256 * 3]) const {
 		g_sci->_gfxPalette32->updateHardware();
 	}
 
-#if SCI_VMD_BLACK_PALETTE
+#ifdef SCI_VMD_BLACK_PALETTE
 	if (_blackPalette) {
 		fillPalette(rawPalette, palette);
 		if (_isComposited) {
@@ -1150,7 +1188,7 @@ void DuckPlayer::open(const GuiResourceId resourceId, const int displayMode, con
 		error("Attempted to play %u.duk, but another video was loaded", resourceId);
 	}
 
-	const Common::String fileName = Common::String::format("%u.duk", resourceId);
+	const Common::Path fileName(Common::String::format("%u.duk", resourceId));
 
 	if (!VideoPlayer::open(fileName)) {
 		return;
@@ -1180,6 +1218,10 @@ void DuckPlayer::open(const GuiResourceId resourceId, const int displayMode, con
 		g_sci->_gfxFrameout->setPixelFormat(_decoder->getPixelFormat());
 	}
 
+	// Try load fan-made SRT subtitles for current video
+	Common::Path subtitlesName(fileName.append(".srt"));
+	_subtitles.loadSRTFile(subtitlesName);
+
 	_status = kDuckOpen;
 }
 
@@ -1194,9 +1236,7 @@ void DuckPlayer::play(const int lastFrameNo) {
 		return;
 	}
 
-	if (_status != kDuckPlaying) {
-		_status = kDuckPlaying;
-	}
+	_status = kDuckPlaying;
 
 	if (lastFrameNo != -1) {
 		_decoder->setEndFrame(lastFrameNo);

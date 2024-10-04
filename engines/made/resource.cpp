@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,7 +40,7 @@ Resource::~Resource() {
 
 /* PictureResource */
 
-PictureResource::PictureResource() : _picture(NULL), _picturePalette(NULL) {
+PictureResource::PictureResource() : _picture(nullptr), _picturePalette(nullptr) {
 	_hasPalette = false;
 	_paletteColorCount = 0;
 }
@@ -50,11 +49,11 @@ PictureResource::~PictureResource() {
 	if (_picture) {
 		_picture->free();
 		delete _picture;
-		_picture = 0;
+		_picture = nullptr;
 	}
 
 	delete[] _picturePalette;
-	_picturePalette = 0;
+	_picturePalette = nullptr;
 }
 
 void PictureResource::load(byte *source, int size) {
@@ -244,7 +243,7 @@ void AnimationResource::load(byte *source, int size) {
 
 /* SoundResource */
 
-SoundResource::SoundResource() : _soundSize(0), _soundData(NULL) {
+SoundResource::SoundResource() : _soundSize(0), _soundData(nullptr) {
 	_soundEnergyArray = nullptr;
 }
 
@@ -308,12 +307,12 @@ const char *MenuResource::getString(uint index) const {
 	if (index < _strings.size())
 		return _strings[index].c_str();
 	else
-		return NULL;
+		return nullptr;
 }
 
 /* FontResource */
 
-FontResource::FontResource() : _data(NULL), _size(0) {
+FontResource::FontResource() : _data(nullptr), _size(0) {
 }
 
 FontResource::~FontResource() {
@@ -343,7 +342,7 @@ byte *FontResource::getChar(uint c) const {
 	if (charData)
 		return charData + 1;
 	else
-		return NULL;
+		return nullptr;
 }
 
 int FontResource::getTextWidth(const char *text) {
@@ -358,13 +357,13 @@ int FontResource::getTextWidth(const char *text) {
 
 byte *FontResource::getCharData(uint c) const {
 	if (c < 28 || c > 255)
-		return NULL;
+		return nullptr;
 	return _data + 1 + (c - 28) * (getHeight() + 1);
 }
 
 /* GenericResource */
 
-GenericResource::GenericResource() : _data(NULL), _size(0) {
+GenericResource::GenericResource() : _data(nullptr), _size(0) {
 }
 
 GenericResource::~GenericResource() {
@@ -542,12 +541,12 @@ ResourceSlot *ResourceReader::getResourceSlot(uint32 resType, uint index) {
 	ResourceSlots *slots = _resSlots[resType];
 
 	if (!slots)
-		return NULL;
+		return nullptr;
 
 	if (index >= 1 && index < slots->size()) {
 		return &(*slots)[index];
 	} else {
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -583,7 +582,7 @@ void ResourceReader::purgeCache() {
 			if (slot->refCount <= 0 && slot->res) {
 				_cacheDataSize -= slot->size;
 				delete slot->res;
-				slot->res = NULL;
+				slot->res = nullptr;
 				slot->refCount = 0;
 				_cacheCount--;
 			}

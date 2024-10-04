@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-2013 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -98,7 +97,7 @@ void BlinkTimerEvent::fire() {
 }
 
 SubChase::SubChase(Neighborhood *handler) : ChaseInteraction(kNoradSubChaseInteractionID, handler,
-						kNoradSubChaseNotificationID, (PegasusEngine *)g_engine), _subMovie(kNoDisplayElement),
+						kNoradSubChaseNotificationID, g_vm), _subMovie(kNoDisplayElement),
 						_hintPict(kNoDisplayElement), _blinkPict(kNoDisplayElement), _canSteerSub(true) {
 }
 
@@ -108,7 +107,7 @@ void SubChase::setSoundFXLevel(const uint16 fxLevel) {
 
 void SubChase::openInteraction() {
 	_subMovie.initFromMovieFile("Images/Norad Alpha/Sub Chase Movie");
-	_subMovie.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+	_subMovie.setVolume(g_vm->getSoundFXLevel());
 	_subMovie.moveElementTo(0, 0);
 	_subMovie.setDisplayOrder(kSubChaseOrder);
 	_subMovie.startDisplaying();
@@ -178,10 +177,10 @@ void SubChase::receiveNotification(Notification *notification, const Notificatio
 			((NoradAlpha *)_owner)->die(kDeathSubDestroyed);
 		} else {
 			_subMovie.stopDisplaying();
-			((PegasusEngine *)g_engine)->_gfx->enableErase();
-			((PegasusEngine *)g_engine)->_gfx->updateDisplay();
-			((PegasusEngine *)g_engine)->_gfx->disableErase();
-			((PegasusEngine *)g_engine)->jumpToNewEnvironment(kNoradDeltaID, kNorad41, kEast);
+			g_vm->_gfx->enableErase();
+			g_vm->_gfx->updateDisplay();
+			g_vm->_gfx->disableErase();
+			g_vm->jumpToNewEnvironment(kNoradDeltaID, kNorad41, kEast);
 		}
 	}
 	ChaseInteraction::receiveNotification(notification, flags);
@@ -368,7 +367,7 @@ void SubChase::branchRight() {
 		_subState = kSubBranch6;
 		break;
 	case kSubBranch6:
-		if (((PegasusEngine *)g_engine)->getRandomBit()) {
+		if (g_vm->getRandomBit()) {
 			branchStart = kBranch7RightStart;
 			branchEnd = kBranch7RightEnd;
 			flag = kChaseExitedBranchZone;
@@ -398,7 +397,7 @@ void SubChase::branchRight() {
 }
 
 void SubChase::dontBranch() {
-	if (((PegasusEngine *)g_engine)->getRandomBit())
+	if (g_vm->getRandomBit())
 		branchLeft();
 	else
 		branchRight();

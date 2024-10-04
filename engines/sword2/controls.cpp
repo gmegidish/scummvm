@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -86,7 +85,7 @@ public:
 	void setState(int state);
 	int getState();
 
-	virtual void paint(Common::Rect *clipRect = NULL);
+	virtual void paint(Common::Rect *clipRect = nullptr);
 
 	virtual void onMouseEnter() {}
 	virtual void onMouseExit() {}
@@ -430,7 +429,7 @@ Widget::~Widget() {
 }
 
 void Widget::createSurfaceImage(int state, uint32 res, int x, int y, uint32 pc) {
-	byte *file, *colTablePtr = NULL;
+	byte *file, *colTablePtr = nullptr;
 	AnimHeader anim_head;
 	FrameHeader frame_head;
 	CdtEntry cdt_entry;
@@ -690,7 +689,7 @@ private:
 
 public:
 	Slider(Dialog *parent, Widget *background, int max,
-		int x, int y, int w, int h, int step, Widget *base = NULL)
+		int x, int y, int w, int h, int step, Widget *base = nullptr)
 		: Widget(parent, 1), _background(background),
 		  _dragging(false), _value(0), _targetValue(0),
 		  _maxValue(max), _valueStep(step) {
@@ -705,7 +704,7 @@ public:
 			createSurfaceImages(3406, x, y);
 	}
 
-	void paint(Common::Rect *clipRect = NULL) override {
+	void paint(Common::Rect *clipRect = nullptr) override {
 		// This will redraw a bit more than is strictly necessary,
 		// but I doubt that will make any noticeable difference.
 
@@ -1096,16 +1095,16 @@ public:
 	void setText(FontRendererGui *fr, int slot, byte *text) {
 		_fr = fr;
 		if (text)
-			sprintf((char *)_text, "%d.  %s", slot, text);
+			Common::sprintf_s(_text, "%d.  %s", slot, text);
 		else
-			sprintf((char *)_text, "%d.  ", slot);
+			Common::sprintf_s(_text, "%d.  ", slot);
 	}
 
 	byte *getText() {
 		return &_text[0];
 	}
 
-	void paint(Common::Rect *clipRect = NULL) override {
+	void paint(Common::Rect *clipRect = nullptr) override {
 		Widget::paint();
 
 		// HACK: The main dialog is responsible for drawing the text
@@ -1253,7 +1252,7 @@ void SaveRestoreDialog::updateSlots() {
 			slot->setText(fr, baseSlot + i, description);
 			slot->setClickable(true);
 		} else {
-			slot->setText(fr, baseSlot + i, NULL);
+			slot->setText(fr, baseSlot + i, nullptr);
 			slot->setClickable(_mode == kSaveDialog);
 		}
 
@@ -1344,7 +1343,7 @@ void SaveRestoreDialog::onAction(Widget *widget, int result) {
 			else
 				_firstPos = 4;
 
-			strcpy((char *)_editBuffer, (char *)slot->getText());
+			Common::strcpy_s(_editBuffer, (char *)slot->getText());
 			_editPos = strlen((char *)_editBuffer);
 			_cursorTick = 0;
 			_editBuffer[_editPos] = '_';

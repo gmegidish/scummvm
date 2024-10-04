@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,10 @@
 
 namespace Common {
 
+enum {
+	kTempBufSize = 65536
+};
+
 uint32 WriteStream::writeStream(ReadStream *stream, uint32 dataSize) {
 	void *buf = malloc(dataSize);
 	dataSize = stream->read(buf, dataSize);
@@ -37,8 +40,21 @@ uint32 WriteStream::writeStream(ReadStream *stream, uint32 dataSize) {
 	return dataSize;
 }
 
-uint32 WriteStream::writeStream(SeekableReadStream *stream) {
-	return writeStream(stream, stream->size());
+uint32 WriteStream::writeStream(ReadStream *stream) {
+	uint32 ret = 0;
+
+	void *buf = malloc(kTempBufSize);
+	assert(buf);
+
+	uint32 readSize, writeSize;
+	do {
+		readSize = stream->read(buf, kTempBufSize);
+		writeSize = write(buf, readSize);
+		ret += writeSize;
+	} while(readSize == kTempBufSize && writeSize == readSize);
+
+	free(buf);
+	return ret;
 }
 
 void WriteStream::writeString(const String &str) {
@@ -120,7 +136,7 @@ bool MemoryReadStream::seek(int64 offs, int whence) {
 	case SEEK_SET:
 		// Fall through
 	default:
-		_ptr = _ptrOrig + offs;
+		_ptr = _ptrOrig.get() + offs;
 		_pos = offs;
 		break;
 
@@ -129,8 +145,10 @@ bool MemoryReadStream::seek(int64 offs, int whence) {
 		_pos += offs;
 		break;
 	}
-	// Post-Condition
-	assert(_pos <= _size);
+	
+	if (!(_pos <= _size)) {
+		_pos = _size;
+	}
 
 	// Reset end-of-stream flag on a successful seek
 	_eos = false;
@@ -177,8 +195,8 @@ char *SeekableReadStream::readLine(char *buf, size_t bufSize, bool handleCR) {
 
 		// Check for CR or CR/LF
 		// * DOS and Windows use CRLF line breaks
-		// * Unix and OS X use LF line breaks
-		// * Macintosh before OS X used CR line breaks
+		// * Unix and macOS use LF line breaks
+		// * Macintosh before macOS used CR line breaks
 		if (c == CR && handleCR) {
 			// Look at the next char -- is it LF? If not, seek back
 			c = readByte();
@@ -314,11 +332,11 @@ public:
 	BufferedReadStream(ReadStream *parentStream, uint32 bufSize, DisposeAfterUse::Flag disposeParentStream);
 	virtual ~BufferedReadStream();
 
-	virtual bool eos() const { return _eos; }
-	virtual bool err() const { return _parentStream->err(); }
-	virtual void clearErr() { _eos = false; _parentStream->clearErr(); }
+	bool eos() const override { return _eos; }
+	bool err() const override { return _parentStream->err(); }
+	void clearErr() override { _eos = false; _parentStream->clearErr(); }
 
-	virtual uint32 read(void *dataPtr, uint32 dataSize);
+	uint32 read(void *dataPtr, uint32 dataSize) override;
 };
 
 BufferedReadStream::BufferedReadStream(ReadStream *parentStream, uint32 bufSize, DisposeAfterUse::Flag disposeParentStream)
@@ -416,10 +434,10 @@ protected:
 public:
 	BufferedSeekableReadStream(SeekableReadStream *parentStream, uint32 bufSize, DisposeAfterUse::Flag disposeParentStream = DisposeAfterUse::NO);
 
-	virtual int64 pos() const { return _parentStream->pos() - (_bufSize - _pos); }
-	virtual int64 size() const { return _parentStream->size(); }
+	int64 pos() const override { return _parentStream->pos() - (_bufSize - _pos); }
+	int64 size() const override { return _parentStream->size(); }
 
-	virtual bool seek(int64 offset, int whence = SEEK_SET);
+	bool seek(int64 offset, int whence = SEEK_SET) override;
 };
 
 BufferedSeekableReadStream::BufferedSeekableReadStream(SeekableReadStream *parentStream, uint32 bufSize, DisposeAfterUse::Flag disposeParentStream)
@@ -458,7 +476,7 @@ bool BufferedSeekableReadStream::seek(int64 offset, int whence) {
 		if (whence == SEEK_CUR)
 			offset -= (_bufSize - _pos);
 		// We invalidate the buffer here. This assures that successive seeks
-		// do not have the chance to incorrectly think they seeked back into
+		// do not have the chance to incorrectly think they seek'ed back into
 		// the buffer.
 		// Note: This does not take full advantage of the buffer. But it is
 		// a simple way to prevent nasty errors. It would be possible to take
@@ -551,7 +569,7 @@ public:
 
 	bool flush() override { return flushBuffer(); }
 
-	int64 pos() const override { return _pos; }
+	int64 pos() const override { return _pos + _parentStream->pos(); }
 
 	bool seek(int64 offset, int whence) override {
 		flush();
@@ -580,6 +598,11 @@ WriteStream *wrapBufferedWriteStream(WriteStream *parentStream, uint32 bufSize) 
 	if (parentStream)
 		return new BufferedWriteStream(parentStream, bufSize);
 	return nullptr;
+}
+
+uint32 SafeMutexedSeekableSubReadStream::read(void *dataPtr, uint32 dataSize) {
+	Common::StackLock lock(_mutex);
+	return Common::SafeSeekableSubReadStream::read(dataPtr, dataSize);
 }
 
 } // End of namespace Common

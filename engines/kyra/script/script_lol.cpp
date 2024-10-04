@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -565,7 +564,7 @@ int LoLEngine::olol_clearDialogueField(EMCState *script) {
 
 	_screen->setScreenDim(5);
 	const ScreenDim *d = _screen->getScreenDim(5);
-	_screen->fillRect(d->sx, d->sy, d->sx + d->w - (_flags.use16ColorMode ? 3 : 2), d->sy + d->h - 2, d->unkA);
+	_screen->fillRect(d->sx, d->sy, d->sx + d->w - (_flags.use16ColorMode ? 3 : 2), d->sy + d->h - 2, d->col2);
 	_txt->clearDim(4);
 	_txt->resetDimTextPositions(4);
 
@@ -801,7 +800,7 @@ int LoLEngine::olol_copyRegion(EMCState *script) {
 
 int LoLEngine::olol_initMonster(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "LoLEngine::olol_initMonster(%p) (%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d)", (const void *)script,
-	       stackPos(0), stackPos(1), stackPos(2), stackPos(3), stackPos(4), stackPos(5), stackPos(6), stackPos(7), stackPos(8), stackPos(9), stackPos(10));
+	       stackPos(0), stackPos(1), stackPos(2), stackPos(3), stackPos(4), stackPos(5), stackPos(6), safeStackPos(7), safeStackPos(8), safeStackPos(9), safeStackPos(10));
 	uint16 x = 0;
 	uint16 y = 0;
 	calcCoordinates(x, y, stackPos(0), stackPos(1), stackPos(2));
@@ -842,7 +841,7 @@ int LoLEngine::olol_initMonster(EMCState *script) {
 		l->destDirection = l->direction;
 
 		for (int ii = 0; ii < 4; ii++)
-			l->equipmentShapes[ii] = stackPos(7 + ii) & 0xFF;
+			l->equipmentShapes[ii] = safeStackPos(7 + ii) & 0xFF;
 
 		checkSceneUpdateNeed(l->block);
 		return i;
@@ -1070,7 +1069,7 @@ int LoLEngine::olol_playAttackSound(EMCState *script) {
 }
 
 int LoLEngine::olol_addRemoveCharacter(EMCState *script) {
-	debugC(3, kDebugLevelScriptFuncs, "LoLEngine::olol_addRemoveCharacter(%p) (%d, %d, %d)", (const void *)script, stackPos(0), stackPos(1), stackPos(2));
+	debugC(3, kDebugLevelScriptFuncs, "LoLEngine::olol_addRemoveCharacter(%p) (%d)", (const void *)script, stackPos(0));
 
 	int16 id = stackPos(0);
 	if (id < 0) {
@@ -1079,7 +1078,7 @@ int LoLEngine::olol_addRemoveCharacter(EMCState *script) {
 			if (!(_characters[i].flags & 1) || _characters[i].id != id)
 				continue;
 
-			_characters[i].flags &= 0xFFFE;
+			_characters[i].flags &= ~1;
 			calcCharPortraitXpos();
 
 			if (_selectedCharacter == i)
@@ -1097,6 +1096,7 @@ int LoLEngine::olol_addRemoveCharacter(EMCState *script) {
 
 	return 1;
 }
+
 int LoLEngine::olol_giveItem(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "LoLEngine::olol_giveItem(%p) (%d, %d, %d)", (const void *)script, stackPos(0), stackPos(1), stackPos(2));
 	int item = makeItem(stackPos(0), stackPos(1), stackPos(2));
@@ -1309,24 +1309,25 @@ int LoLEngine::olol_drawExitButton(EMCState *script) {
 	static const uint8 printPara[] = { 0x90, 0x78, 0x0C, 0x9F, 0x80, 0x1E };
 
 	int cp = _screen->setCurPage(0);
-	Screen::FontId cf = _screen->setFont(Screen::FID_6_FNT);
+	Screen::FontId cf = _screen->setFont(_flags.lang == Common::Language::ZH_TWN ? Screen::FID_CHINESE_FNT : Screen::FID_6_FNT);
 	int x = printPara[3 * stackPos(0)] << 1;
 	int y = printPara[3 * stackPos(0) + 1];
 	int offs = printPara[3 * stackPos(0) + 2];
 
-	char *str = getLangString(0x4033);
+	const char *str = getLangString(0x4033);
 	int w = _screen->getTextWidth(str);
+	int hButton = _screen->getFontHeight() + 3;
 
 	if (_flags.use16ColorMode) {
-		gui_drawBox(x - offs - w, y - 9, w + offs, 9, 0xEE, 0xCC, 0x11);
-		_screen->printText(str, x - (offs >> 1) - w, y - 7, 0xBB, 0);
+		gui_drawBox(x - offs - w, y - hButton, w + offs, hButton, 0xEE, 0xCC, 0x11);
+		_screen->printText(str, x - (offs >> 1) - w, y - hButton + 2, 0xBB, 0);
 	} else {
-		gui_drawBox(x - offs - w, y - 9, w + offs, 9, 136, 251, 252);
-		_screen->printText(str, x - (offs >> 1) - w, y - 7, 144, 0);
+		gui_drawBox(x - offs - w, y - hButton, w + offs, hButton, 136, 251, 252);
+		_screen->printText(str, x - (offs >> 1) - w, y - hButton + 2, 144, 0);
 	}
 
 	if (stackPos(1))
-		_screen->drawGridBox(x - offs - w + 1, y - 8, w + offs - 2, 7, 1);
+		_screen->drawGridBox(x - offs - w + 1, y - hButton + 1, w + offs - 2, hButton - 2, 1);
 
 	_screen->setFont(cf);
 	_screen->setCurPage(cp);
@@ -1593,7 +1594,7 @@ int LoLEngine::olol_playDialogueTalkText(EMCState *script) {
 	int track = stackPos(0);
 
 	if (!snd_playCharacterSpeech(track, 0, 0) || textEnabled()) {
-		char *s = getLangString(track);
+		const char *s = getLangString(track);
 		_txt->printDialogueText2(4, s, script, 0, 1);
 	}
 
@@ -1689,7 +1690,7 @@ int LoLEngine::olol_countSpecificMonsters(EMCState *script) {
 int LoLEngine::olol_updateBlockAnimations2(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "LoLEngine::olol_updateBlockAnimations2(%p) (%d, %d, %d, %d, ...)", (const void *)script, stackPos(0), stackPos(1), stackPos(2), stackPos(3));
 	int numFrames = stackPos(3);
-	assert(numFrames <= 97);
+	assert(numFrames > 0 && numFrames <= 97);
 	int curFrame = stackPos(2) % numFrames;
 	setWallType(stackPos(0), stackPos(1), stackPos(4 + curFrame));
 	return 0;
@@ -2530,7 +2531,7 @@ int LoLEngine::tlol_clearTextField(const TIM *tim, const uint16 *param) {
 		return 1;
 	_screen->setScreenDim(5);
 	const ScreenDim *d = _screen->_curDim;
-	_screen->fillRect(d->sx, d->sy, d->sx + d->w - (_flags.use16ColorMode ? 3 : 2), d->sy + d->h - 2, d->unkA);
+	_screen->fillRect(d->sx, d->sy, d->sx + d->w - (_flags.use16ColorMode ? 3 : 2), d->sy + d->h - 2, d->col2);
 	_txt->clearDim(4);
 	_txt->resetDimTextPositions(4);
 	return 1;
@@ -2580,23 +2581,18 @@ int LoLEngine::tlol_fadeInScene(const TIM *tim, const uint16 *param) {
 
 	_screen->copyRegion(0, 0, 0, 0, 320, 200, 0, 2, Screen::CR_NO_P_CHECK);
 
-	char filename[32];
-	strcpy(filename, sceneFile);
-	strcat(filename, ".CPS");
-
-	_screen->loadBitmap(filename, 7, 5, &_screen->getPalette(0));
+	Common::String filename = Common::String(sceneFile) + ".CPS";
+	_screen->loadBitmap(filename.c_str(), 7, 5, &_screen->getPalette(0));
 
 	uint8 *overlay = 0;
 	if (!_flags.use16ColorMode) {
-		filename[0] = 0;
+		filename.clear();
 
-		if (_flags.isTalkie) {
-			strcpy(filename, _languageExt[_lang]);
-			strcat(filename, "/");
-		}
+		if (_flags.isTalkie)
+			filename = Common::String(_languageExt[_lang]) + "/";
 
-		strcat(filename, overlayFile);
-		overlay = _res->fileData(filename, 0);
+		filename += overlayFile;
+		overlay = _res->fileData(filename.c_str(), 0);
 
 		for (int i = 0; i < 3; ++i) {
 			uint32 endTime = _system->getMillis() + 10 * _tickLength;

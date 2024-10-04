@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,12 +46,12 @@ private:
 	char _buffer[STRING_BUFFER_SIZE];
 	char *_bufferP;
 protected:
-	Common::String _filename;
+	Common::Path _filename;
 protected:
 	/**
 	 * Constructor
 	 */
-	ResourceFile(const Common::String &filename);
+	ResourceFile(const Common::Path &filename);
 
 	/**
 	 * Destructor
@@ -94,12 +93,12 @@ protected:
 	/**
 	 * Constructor
 	 */
-	LocalResourceFile(const Common::String &filename) : ResourceFile(filename), _owner(nullptr), _file(DisposeAfterUse::YES) {}
+	LocalResourceFile(const Common::Path &filename) : ResourceFile(filename), _owner(nullptr), _file(DisposeAfterUse::YES) {}
 
 	/**
 	 * Constructor
 	 */
-	LocalResourceFile(Resources *owner, const Common::String &filename) : ResourceFile(filename),
+	LocalResourceFile(Resources *owner, const Common::Path &filename) : ResourceFile(filename),
 		_owner(owner), _file(DisposeAfterUse::YES) {}
 
 	/**
@@ -128,11 +127,11 @@ public:
  */
 class Resources : public Common::Archive {
 	struct LocalResource {
-		Common::String _name;
+		Common::Path _name;
 		Common::Array<byte> _data;
 	};
 	struct FileResource {
-		Common::String _name;
+		Common::Path _name;
 		size_t _offset, _size;
 
 		/**
@@ -160,7 +159,7 @@ public:
 	 * later opened like a normal file. Just as it will when eventually shifted to the
 	 * data file for the engine
 	 */
-	void addResource(const Common::String &name, const byte *data, size_t size);
+	void addResource(const Common::Path &name, const byte *data, size_t size);
 
 	// Archive implementation
 	/**

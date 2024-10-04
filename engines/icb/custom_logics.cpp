@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,14 +56,14 @@ mcodeFunctionReturnCodes _game_session::fn_set_custom_simple_animator(int32 &, i
 	_animation_entry *anim;
 
 	// find entry for this object via its name
-	index = (_animating_prop *)prop_anims->Try_fetch_item_by_name(object->GetName());
+	index = (_animating_prop *)LinkedDataObject::Try_fetch_item_by_name(prop_anims, CGameObject::GetName(object));
 
 	// get anim
 	anim = (_animation_entry *)(((char *)index) + index->anims[0]);
 
 	// check for no frame
 	if (!anim->num_frames) {
-		Tdebug("objects_that_died.txt", "fn_set_custom_simple_animator [%s] loop anim has 0 frames", object->GetName());
+		Tdebug("objects_that_died.txt", "fn_set_custom_simple_animator [%s] loop anim has 0 frames", CGameObject::GetName(object));
 		Shut_down_object("by fn_set_custom_simple_animator");
 		return (IR_STOP);
 	}
@@ -74,12 +73,12 @@ mcodeFunctionReturnCodes _game_session::fn_set_custom_simple_animator(int32 &, i
 
 	L->big_mode = __CUSTOM_SIMPLE_ANIMATE;
 
-	SA_INDEX = prop_anims->Fetch_item_number_by_name(object->GetName());
+	SA_INDEX = LinkedDataObject::Fetch_item_number_by_name(prop_anims, CGameObject::GetName(object));
 
 	// object will pause when off screen
 	L->hold_mode = prop_camera_hold;
 
-	Tdebug("logic_modes.txt", "fn_set_custom_simple_animator switching [%s]", object->GetName());
+	Tdebug("logic_modes.txt", "fn_set_custom_simple_animator switching [%s]", CGameObject::GetName(object));
 
 	return (IR_CONT);
 }
@@ -91,7 +90,7 @@ void _game_session::Custom_simple_animator() {
 	_animation_entry *anim;
 
 	// get index for object
-	index = (_animating_prop *)prop_anims->Fetch_item_by_number(SA_INDEX);
+	index = (_animating_prop *)LinkedDataObject::Fetch_item_by_number(prop_anims, SA_INDEX);
 
 	// now then, lets make the assumption that anim 0 will be the 'looping' one
 	anim = (_animation_entry *)(((char *)index) + index->anims[0]);
@@ -118,12 +117,12 @@ mcodeFunctionReturnCodes _game_session::fn_set_custom_button_operated_door(int32
 	// switch out of script mode
 	L->big_mode = __CUSTOM_BUTTON_OPERATED_DOOR;
 
-	BOD_INDEX = prop_anims->Fetch_item_number_by_name(object->GetName());
+	BOD_INDEX = LinkedDataObject::Fetch_item_number_by_name(prop_anims, CGameObject::GetName(object));
 
 	BOD_OPEN_NO = Validate_prop_anim("opening");
 	BOD_CLOSE_NO = Validate_prop_anim("closing");
 
-	Tdebug("logic_modes.txt", "fn_set_custom_button_operated_door switching [%s]", object->GetName());
+	Tdebug("logic_modes.txt", "fn_set_custom_button_operated_door switching [%s]", CGameObject::GetName(object));
 
 	// Set a symbol type so the Remora knows what to draw.
 	L->object_type = __BUTTON_OPERATED_DOOR;
@@ -161,8 +160,8 @@ void _game_session::Custom_button_operated_door() {
 				BOD_STATE = 1; // closed
 
 				// set state flag to 1
-				var_num = object->GetVariable("state");
-				object->SetIntegerVariable(var_num, 1);
+				var_num = CGameObject::GetVariable(object, "state");
+				CGameObject::SetIntegerVariable(object, var_num, 1);
 			} else {
 				BOD_WAIT_COUNT--;
 				return;
@@ -171,7 +170,7 @@ void _game_session::Custom_button_operated_door() {
 
 		if (BOD_CONTROL == BOD_OPENING) {
 			// get index for object
-			index = (_animating_prop *)prop_anims->Fetch_item_by_number(BOD_INDEX);
+			index = (_animating_prop *)LinkedDataObject::Fetch_item_by_number(prop_anims, BOD_INDEX);
 			anim = (_animation_entry *)(((char *)index) + index->anims[BOD_OPEN_NO]);
 			prop_state_table[cur_id] = anim->frames[L->anim_pc];
 
@@ -180,15 +179,15 @@ void _game_session::Custom_button_operated_door() {
 				BOD_WAIT_COUNT = 36;
 				BOD_STATE = 0; // open
 				// set state flag to 0
-				var_num = object->GetVariable("state");
-				object->SetIntegerVariable(var_num, 0);
+				var_num = CGameObject::GetVariable(object, "state");
+				CGameObject::SetIntegerVariable(object, var_num, 0);
 
 			} else
 				L->anim_pc++; // frame on
 			return;
 		} else if (BOD_CONTROL == BOD_CLOSING) {
 			// get index for object
-			index = (_animating_prop *)prop_anims->Try_fetch_item_by_name(object->GetName());
+			index = (_animating_prop *)LinkedDataObject::Try_fetch_item_by_name(prop_anims, CGameObject::GetName(object));
 			anim = (_animation_entry *)(((char *)index) + index->anims[BOD_CLOSE_NO]);
 
 			// set frame
@@ -207,9 +206,9 @@ void _game_session::Custom_button_operated_door() {
 		if (!BOD_STATE) { // open
 			// ok, check to see if opened
 			// get state variable number
-			var_num = object->GetVariable("state");
+			var_num = CGameObject::GetVariable(object, "state");
 			// get value
-			if (!object->GetIntegerVariable(var_num)) {
+			if (!CGameObject::GetIntegerVariable(object, var_num)) {
 				BOD_CONTROL = BOD_WAITING; // just opened - set to wait for list of people to not be here
 				BOD_WAIT_COUNT = 36;
 				return; // zero so still open
@@ -223,7 +222,7 @@ void _game_session::Custom_button_operated_door() {
 
 			// close sound
 			if (logic_structs[cur_id]->sfxVars[CLOSE_SFX_VAR] != 0)
-				RegisterSound(cur_id, NULL, logic_structs[cur_id]->sfxVars[CLOSE_SFX_VAR], closeDesc,
+				RegisterSound(cur_id, nullptr, logic_structs[cur_id]->sfxVars[CLOSE_SFX_VAR], closeDesc,
 				              (int8)127); // have to use full version so we can give hash instead of string
 			else
 				RegisterSound(cur_id, defaultCloseSfx, closeDesc); // use small version as we have string not hash
@@ -250,10 +249,10 @@ void _game_session::Custom_button_operated_door() {
 				}
 			}
 			// get state variable number
-			var_num = object->GetVariable("state");
+			var_num = CGameObject::GetVariable(object, "state");
 
 			// get value
-			if (!object->GetIntegerVariable(var_num)) {
+			if (!CGameObject::GetIntegerVariable(object, var_num)) {
 				open = TRUE8; // now 0 so start opening
 			}
 			if (open) {
@@ -263,7 +262,7 @@ void _game_session::Custom_button_operated_door() {
 
 				// open sound
 				if (logic_structs[cur_id]->sfxVars[OPEN_SFX_VAR] != 0)
-					RegisterSound(cur_id, NULL, logic_structs[cur_id]->sfxVars[OPEN_SFX_VAR], openDesc,
+					RegisterSound(cur_id, nullptr, logic_structs[cur_id]->sfxVars[OPEN_SFX_VAR], openDesc,
 					              (int8)127); // have to use full version so we can give hash instead of string
 				else
 					RegisterSound(cur_id, defaultOpenSfx, openDesc); // use small version as we have string not hash
@@ -293,11 +292,11 @@ mcodeFunctionReturnCodes _game_session::fn_set_custom_auto_door(int32 &, int32 *
 	L->big_mode = __CUSTOM_AUTO_DOOR;
 
 	// anim presets
-	CAD_INDEX = prop_anims->Fetch_item_number_by_name(object->GetName());
+	CAD_INDEX = LinkedDataObject::Fetch_item_number_by_name(prop_anims, CGameObject::GetName(object));
 	CAD_OPEN_NO = Validate_prop_anim("opening");
 	CAD_CLOSE_NO = Validate_prop_anim("closing");
 
-	Tdebug("logic_modes.txt", "fn_set_custom_auto_door switching [%s]", object->GetName());
+	Tdebug("logic_modes.txt", "fn_set_custom_auto_door switching [%s]", CGameObject::GetName(object));
 
 	// Set a symbol type so the Remora knows what to draw.
 	L->object_type = __AUTO_DOOR;
@@ -335,7 +334,7 @@ void _game_session::Custom_auto_door() {
 
 	if (CAD_STATE == CAD_OPENING) { // doors opening
 		// get index for object
-		index = (_animating_prop *)prop_anims->Fetch_item_by_number(CAD_INDEX);
+		index = (_animating_prop *)LinkedDataObject::Fetch_item_by_number(prop_anims, CAD_INDEX);
 
 		anim = (_animation_entry *)(((char *)index) + index->anims[CAD_OPEN_NO]);
 		prop_state_table[cur_id] = anim->frames[L->anim_pc];
@@ -357,7 +356,7 @@ void _game_session::Custom_auto_door() {
 			CAD_STATE = CAD_CLOSING;
 			// close sound
 			if (logic_structs[cur_id]->sfxVars[CLOSE_SFX_VAR] != 0)
-				RegisterSound(cur_id, NULL, logic_structs[cur_id]->sfxVars[CLOSE_SFX_VAR], closeDesc,
+				RegisterSound(cur_id, nullptr, logic_structs[cur_id]->sfxVars[CLOSE_SFX_VAR], closeDesc,
 				              (int8)127); // have to use full version so we can give hash instead of string
 			else
 				RegisterSound(cur_id, defaultCloseSfx, closeDesc); // use small version as we have string not hash
@@ -371,7 +370,7 @@ void _game_session::Custom_auto_door() {
 			return;
 		}
 		// get index for object
-		index = (_animating_prop *)prop_anims->Fetch_item_by_number(CAD_INDEX);
+		index = (_animating_prop *)LinkedDataObject::Fetch_item_by_number(prop_anims, CAD_INDEX);
 
 		// when closing we reverse the opening anim - until the done when we set to last frame of closing
 		anim = (_animation_entry *)(((char *)index) + index->anims[CAD_OPEN_NO]);
@@ -392,7 +391,7 @@ void _game_session::Custom_auto_door() {
 
 			// open sound
 			if (logic_structs[cur_id]->sfxVars[OPEN_SFX_VAR] != 0)
-				RegisterSound(cur_id, NULL, logic_structs[cur_id]->sfxVars[OPEN_SFX_VAR], openDesc,
+				RegisterSound(cur_id, nullptr, logic_structs[cur_id]->sfxVars[OPEN_SFX_VAR], openDesc,
 				              (int8)127); // have to use full version so we can give hash instead of string
 			else
 				RegisterSound(cur_id, defaultOpenSfx, openDesc); // use small version as we have string not hash
@@ -417,7 +416,7 @@ mcodeFunctionReturnCodes _game_session::fn_set_cad_lock_status(int32 &, int32 *p
 	const char *object_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 	uint32 id;
 
-	id = (uint32)objects->Fetch_item_number_by_name(object_name);
+	id = (uint32)LinkedDataObject::Fetch_item_number_by_name(objects, object_name);
 	logic_structs[id]->list[5] = params[1];
 
 	return IR_CONT;
@@ -430,7 +429,7 @@ mcodeFunctionReturnCodes _game_session::fn_get_cad_state_flag(int32 &result, int
 	const char *object_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 	uint32 id;
 
-	id = (uint32)objects->Fetch_item_number_by_name(object_name);
+	id = (uint32)LinkedDataObject::Fetch_item_number_by_name(objects, object_name);
 	if (logic_structs[id]->EXT_CAD_STATE == CAD_OPEN)
 		result = 1;
 	else

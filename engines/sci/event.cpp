@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,7 @@
 #include "sci/console.h"
 #include "sci/engine/state.h"
 #include "sci/engine/kernel.h"
+#include "sci/graphics/gfxdrivers.h"
 #ifdef ENABLE_SCI32
 #include "sci/graphics/cursor32.h"
 #include "sci/graphics/frameout.h"
@@ -146,6 +146,7 @@ EventManager::EventManager(bool fontIsExtended) :
 	_fontIsExtended(fontIsExtended)
 #ifdef ENABLE_SCI32
 	, _hotRectanglesActive(false)
+	, _activeRectIndex(-1)
 #endif
 	{}
 
@@ -205,10 +206,11 @@ SciEvent EventManager::getScummVMEvent() {
 		found = em->pollEvent(ev);
 	} while (found && ev.type == Common::EVENT_MOUSEMOVE);
 
-	Common::Point mousePos = em->getMousePos();
+	Common::Point mousePos;
 
 #if ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
+		mousePos = em->getMousePos();
 		const GfxFrameout *gfxFrameout = g_sci->_gfxFrameout;
 
 		// This will clamp `mousePos` according to the restricted zone,
@@ -225,6 +227,7 @@ SciEvent EventManager::getScummVMEvent() {
 		}
 	} else {
 #endif
+		mousePos = g_sci->_gfxScreen->gfxDriver()->getMousePos();
 		g_sci->_gfxScreen->adjustBackUpscaledCoordinates(mousePos.y, mousePos.x);
 #if ENABLE_SCI32
 	}
@@ -325,7 +328,7 @@ SciEvent EventManager::getScummVMEvent() {
 	if (input.character && input.character <= 0xFF) {
 		// Extended characters need to be converted to the old to DOS CP850/437
 		// character sets for multilingual games
-		if (input.character >= 0x80 && input.character <= 0xFF) {
+		if (input.character >= 0x80) {
 			// SSCI accepted all input scan codes, regardless of locale, and
 			// just didn't display any characters that were missing from fonts
 			// used by text input controls. We intentionally filter them out
@@ -364,7 +367,9 @@ SciEvent EventManager::getScummVMEvent() {
 		if (g_sci->getLanguage() == Common::RU_RUS) {
 			// Convert UTF16 to CP866
 			if (input.character >= 0x400 && input.character <= 0x4ff) {
-				if (input.character >= 0x440)
+				if (input.character == 0x401) // Cyrillic Ё (401h UTF-16) is 0xf0 in CP866
+					input.character = 0xf0;
+				else if (input.character >= 0x440)
 					input.character = input.character - 0x410 + 0xb0;
 				else
 					input.character = input.character - 0x410 + 0x80;

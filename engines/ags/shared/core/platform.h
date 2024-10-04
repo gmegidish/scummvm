@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -107,7 +106,7 @@ namespace AGS3 {
 
 
 #if defined(__LP64__)
-// LP64 machine, OS X or Linux
+// LP64 machine, macOS or Linux
 // int 32bit | long 64bit | long long 64bit | void* 64bit
 #define AGS_PLATFORM_64BIT (1)
 #elif defined(_WIN64)
@@ -115,7 +114,7 @@ namespace AGS3 {
 // int 32bit | long 32bit | long long 64bit | void* 64bit
 #define AGS_PLATFORM_64BIT (1)
 #else
-// 32-bit machine, Windows or Linux or OS X
+// 32-bit machine, Windows or Linux or macOS
 // int 32bit | long 32bit | long long 64bit | void* 32bit
 #define AGS_PLATFORM_64BIT (0)
 #endif
@@ -130,23 +129,26 @@ namespace AGS3 {
 #error "No endianness defined"
 #endif
 
-#if defined(_DEBUG)
-#define AGS_PLATFORM_DEBUG  (1)
-#elif ! defined(NDEBUG)
-#define AGS_PLATFORM_DEBUG  (1)
-#else
-#define AGS_PLATFORM_DEBUG  (0)
-#endif
+#define AGS_PLATFORM_DESKTOP ((AGS_PLATFORM_OS_WINDOWS) || (AGS_PLATFORM_OS_LINUX) || (AGS_PLATFORM_OS_MACOS))
+
+#define AGS_PLATFORM_MOBILE ((AGS_PLATFORM_OS_ANDROID) || (AGS_PLATFORM_OS_IOS))
 
 #define AGS_HAS_DIRECT3D (AGS_PLATFORM_OS_WINDOWS)
-#define AGS_HAS_OPENGL (AGS_PLATFORM_OS_WINDOWS || AGS_PLATFORM_OS_ANDROID || AGS_PLATFORM_OS_IOS || AGS_PLATFORM_OS_LINUX)
+#define AGS_HAS_OPENGL ((AGS_PLATFORM_OS_WINDOWS) || (AGS_PLATFORM_OS_LINUX) || (AGS_PLATFORM_MOBILE))
 #define AGS_OPENGL_ES2 (AGS_PLATFORM_OS_ANDROID)
 
 // Only allow searching around for game data on desktop systems;
 // otherwise use explicit argument either from program wrapper, command-line
 // or read from default config.
-#define AGS_SEARCH_FOR_GAME_ON_LAUNCH (AGS_PLATFORM_OS_WINDOWS || AGS_PLATFORM_OS_LINUX || AGS_PLATFORM_OS_MACOS)
+#define AGS_SEARCH_FOR_GAME_ON_LAUNCH ((AGS_PLATFORM_OS_WINDOWS) || (AGS_PLATFORM_OS_LINUX) || (AGS_PLATFORM_OS_MACOS))
 
+#if !defined(DEBUG_MANAGED_OBJECTS)
+	#define DEBUG_MANAGED_OBJECTS (0)
+#endif
+
+#if !defined(DEBUG_SPRITECACHE)
+	#define DEBUG_SPRITECACHE (0)
+#endif
 
 } // namespace AGS3
 

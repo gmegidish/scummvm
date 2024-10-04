@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,7 +70,7 @@ static const struct {
 	{210, kTimeCityConstantinople}
 };
 
-TrainLine::TrainLine(LastExpressEngine *engine) : _engine(engine), _frameLine1(NULL), _frameLine2(NULL) {
+TrainLine::TrainLine(LastExpressEngine *engine) : _engine(engine), _frameLine1(nullptr), _frameLine2(nullptr) {
 	_frameLine1 = new SequenceFrame(loadSequence("line1.seq"), 0, true);
 	_frameLine2 = new SequenceFrame(loadSequence("line2.seq"), 0, true);
 }
@@ -81,7 +80,7 @@ TrainLine::~TrainLine() {
 	SAFE_DELETE(_frameLine2);
 
 	// Zero passed pointers
-	_engine = NULL;
+	_engine = nullptr;
 }
 
 void TrainLine::clear() {

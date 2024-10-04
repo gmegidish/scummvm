@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,12 +54,12 @@ void EntityData::EntityCallData::syncString(Common::Serializer &s, Common::Strin
 	assert(string.size() <= 13);
 
 	char seqName[13];
-	memset(&seqName, 0, length);
+	memset(seqName, 0, length);
 
 	if (s.isSaving())
-		strcpy((char *)&seqName, string.c_str());
+		Common::strcpy_s(seqName, string.c_str());
 
-	s.syncBytes((byte *)&seqName, length);
+	s.syncBytes((byte *)seqName, length);
 
 	if (s.isLoading())
 		string = seqName;
@@ -160,7 +159,7 @@ void EntityData::saveLoadWithSerializer(Common::Serializer &s, const Common::Arr
 		// (the original game has same-size-PODs and just memcpy-s them.
 		// *sigh* Why does this implementation even need the extra byte in strings?
 		// Well, big-endian vs little-endian is also a thing...)
-		byte buf[ARRAYSIZE(_parameters) * 32 * 4];
+		byte buf[ARRAYSIZE(_parameters) * 32 * 4] = {0};
 		s.syncBytes(buf, sizeof(buf));
 
 		_data.saveLoadWithSerializer(s);
@@ -172,7 +171,7 @@ void EntityData::saveLoadWithSerializer(Common::Serializer &s, const Common::Arr
 				(*paramsTypeSetters)[_data.callbacks[i]](&_parameters[i]);
 		}
 		Common::MemoryReadStream paramsStream(buf, sizeof(buf));
-		Common::Serializer paramsSerializer(&paramsStream, NULL);
+		Common::Serializer paramsSerializer(&paramsStream, nullptr);
 		for (uint i = 0; i < ARRAYSIZE(_parameters); i++)
 			_parameters[i].saveLoadWithSerializer(paramsSerializer);
 	}
@@ -198,7 +197,7 @@ Entity::~Entity() {
 	SAFE_DELETE(_data);
 
 	// Zero-out passed pointers
-	_engine = NULL;
+	_engine = nullptr;
 }
 
 void Entity::setup(ChapterIndex index) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "ultima/ultima.h"
 #include "ultima/ultima8/world/actors/pathfinder_process.h"
-
 #include "ultima/ultima8/world/actors/actor.h"
 #include "ultima/ultima8/world/get_object.h"
 #include "ultima/ultima8/misc/direction_util.h"
@@ -38,19 +37,19 @@ DEFINE_RUNTIME_CLASSTYPE_CODE(PathfinderProcess)
 
 PathfinderProcess::PathfinderProcess() : Process(),
 		_currentStep(0), _targetItem(0), _hitMode(false),
-		_targetX(0), _targetY(0), _targetZ(0) {
+		_target() {
 }
 
 PathfinderProcess::PathfinderProcess(Actor *actor, ObjId itemid, bool hit) :
 		_currentStep(0), _targetItem(itemid), _hitMode(hit),
-		_targetX(0), _targetY(0), _targetZ(0) {
+		_target() {
 	assert(actor);
 	_itemNum = actor->getObjId();
-	_type = PATHFINDER_PROC_TYPE; // CONSTANT !
+	_type = PATHFINDER_PROC_TYPE;
 
 	Item *item = getItem(itemid);
 	if (!item) {
-		perr << "PathfinderProcess: non-existent target" << Std::endl;
+		warning("PathfinderProcess: non-existent target");
 		// can't get there...
 		_result = PATH_FAILED;
 		terminateDeferred();
@@ -59,7 +58,7 @@ PathfinderProcess::PathfinderProcess(Actor *actor, ObjId itemid, bool hit) :
 
 	assert(_targetItem);
 
-	item->getLocation(_targetX, _targetY, _targetZ);
+	_target = item->getLocation();
 
 	Pathfinder pf;
 	pf.init(actor);
@@ -69,7 +68,7 @@ PathfinderProcess::PathfinderProcess(Actor *actor, ObjId itemid, bool hit) :
 
 	if (!ok) {
 		// can't get there...
-		debug(MM_INFO, "PathfinderProcess: actor %d failed to find path", _itemNum);
+		debugC(kDebugPath, "PathfinderProcess: actor %d failed to find path", _itemNum);
 		_result = PATH_FAILED;
 		terminateDeferred();
 		return;
@@ -79,21 +78,22 @@ PathfinderProcess::PathfinderProcess(Actor *actor, ObjId itemid, bool hit) :
 	actor->setActorFlag(Actor::ACT_PATHFINDING);
 }
 
-PathfinderProcess::PathfinderProcess(Actor *actor, int32 x, int32 y, int32 z) :
-		_targetX(x), _targetY(y), _targetZ(z), _targetItem(0), _currentStep(0),
+PathfinderProcess::PathfinderProcess(Actor *actor, const Point3 &target) :
+		_target(target), _targetItem(0), _currentStep(0),
 		_hitMode(false) {
 	assert(actor);
 	_itemNum = actor->getObjId();
+	_type = PATHFINDER_PROC_TYPE;
 
 	Pathfinder pf;
 	pf.init(actor);
-	pf.setTarget(_targetX, _targetY, _targetZ);
+	pf.setTarget(_target);
 
 	bool ok = pf.pathfind(_path);
 
 	if (!ok) {
 		// can't get there...
-		debug(MM_INFO, "PathfinderProcess: actor %d failed to find path", _itemNum);
+		debugC(kDebugPath, "PathfinderProcess: actor %d failed to find path", _itemNum);
 		_result = PATH_FAILED;
 		terminateDeferred();
 		return;
@@ -127,18 +127,17 @@ void PathfinderProcess::run() {
 	bool ok = true;
 
 	if (_targetItem) {
-		int32 curx, cury, curz;
 		Item *item = getItem(_targetItem);
 		if (!item) {
-			perr << "PathfinderProcess: target missing" << Std::endl;
+			warning("PathfinderProcess: target missing");
 			_result = PATH_FAILED;
 			terminate();
 			return;
 		}
 
-		item->getLocation(curx, cury, curz);
-		if (ABS(curx - _targetX) >= 32 || ABS(cury - _targetY) >= 32 ||
-		        ABS(curz - _targetZ) >= 8) {
+		Point3 cur = item->getLocation();
+		if (ABS(cur.x - _target.x) >= 32 || ABS(cur.y - _target.y) >= 32 ||
+		        ABS(cur.z - _target.z) >= 8) {
 			// target moved
 			ok = false;
 		}
@@ -146,26 +145,21 @@ void PathfinderProcess::run() {
 
 	if (ok && _currentStep >= _path.size()) {
 		// done
-#if 0
-		pout << "PathfinderProcess: done" << Std::endl;
-#endif
+		debugC(kDebugPath, "PathfinderProcess: done");
 		_result = PATH_OK;
 		terminate();
 		return;
 	}
 
 	// try to take the next step
-
-#if 0
-	pout << "PathfinderProcess: trying step" << Std::endl;
-#endif
+	debugC(kDebugPath, "PathfinderProcess: trying step");
 
 	// if actor is still animating for whatever reason, wait until he stopped
 	// FIXME: this should happen before the pathfinder is actually called,
 	// since the running animation may move the actor, which could break
 	// the found _path.
 	if (actor->hasActorFlags(Actor::ACT_ANIMLOCK)) {
-		perr << "PathfinderProcess: ANIMLOCK, waiting" << Std::endl;
+		debugC(kDebugPath, "PathfinderProcess: ANIMLOCK, waiting");
 		return;
 	}
 
@@ -176,9 +170,7 @@ void PathfinderProcess::run() {
 	}
 
 	if (!ok) {
-#if 0
-		pout << "PathfinderProcess: recalculating _path" << Std::endl;
-#endif
+		debugC(kDebugPath, "PathfinderProcess: recalculating _path");
 
 		// need to redetermine _path
 		ok = true;
@@ -194,10 +186,10 @@ void PathfinderProcess::run() {
 					_hitMode = false;
 				}
 				pf.setTarget(item, _hitMode);
-				item->getLocation(_targetX, _targetY, _targetZ);
+				_target = item->getLocation();
 			}
 		} else {
-			pf.setTarget(_targetX, _targetY, _targetZ);
+			pf.setTarget(_target);
 		}
 		if (ok)
 			ok = pf.pathfind(_path);
@@ -205,7 +197,7 @@ void PathfinderProcess::run() {
 		_currentStep = 0;
 		if (!ok) {
 			// can't get there anymore
-			debug(MM_INFO, "PathfinderProcess: actor %d failed to find path", _itemNum);
+			debugC(kDebugPath, "PathfinderProcess: actor %d failed to find path", _itemNum);
 			_result = PATH_FAILED;
 			terminate();
 			return;
@@ -213,9 +205,7 @@ void PathfinderProcess::run() {
 	}
 
 	if (_currentStep >= _path.size()) {
-#if 0
-		pout << "PathfinderProcess: done" << Std::endl;
-#endif
+		debugC(kDebugPath, "PathfinderProcess: done");
 		// done
 		_result = PATH_OK;
 		terminate();
@@ -225,11 +215,10 @@ void PathfinderProcess::run() {
 	uint16 animpid = actor->doAnim(_path[_currentStep]._action,
 	                               _path[_currentStep]._direction,
 	                               _path[_currentStep]._steps);
-#if 0
-	pout << "PathfinderProcess(" << getPid() << "): taking step "
-	     << _path[_currentStep].action << "," << _path[_currentStep].direction
-	     << " (animpid=" << animpid << ")" << Std::endl;
-#endif
+
+	debugC(kDebugPath, "PathfinderProcess(%u): taking step %d, %d (animpid=%u)",
+		getPid(), _path[_currentStep]._action, _path[_currentStep]._direction, animpid);
+
 	_currentStep++;
 
 	waitFor(animpid);
@@ -239,9 +228,9 @@ void PathfinderProcess::saveData(Common::WriteStream *ws) {
 	Process::saveData(ws);
 
 	ws->writeUint16LE(_targetItem);
-	ws->writeUint16LE(static_cast<uint16>(_targetX));
-	ws->writeUint16LE(static_cast<uint16>(_targetY));
-	ws->writeUint16LE(static_cast<uint16>(_targetZ));
+	ws->writeUint16LE(static_cast<uint16>(_target.x));
+	ws->writeUint16LE(static_cast<uint16>(_target.y));
+	ws->writeUint16LE(static_cast<uint16>(_target.z));
 	ws->writeByte(_hitMode ? 1 : 0);
 	ws->writeUint16LE(static_cast<uint16>(_currentStep));
 
@@ -255,10 +244,15 @@ void PathfinderProcess::saveData(Common::WriteStream *ws) {
 bool PathfinderProcess::loadData(Common::ReadStream *rs, uint32 version) {
 	if (!Process::loadData(rs, version)) return false;
 
+	// Type previously missing from constructor
+	if (_type == 0) {
+		_type = PATHFINDER_PROC_TYPE;
+	}
+
 	_targetItem = rs->readUint16LE();
-	_targetX = rs->readUint16LE();
-	_targetY = rs->readUint16LE();
-	_targetZ = rs->readUint16LE();
+	_target.x = rs->readUint16LE();
+	_target.y = rs->readUint16LE();
+	_target.z = rs->readUint16LE();
 	_hitMode = (rs->readByte() != 0);
 	_currentStep = rs->readUint16LE();
 

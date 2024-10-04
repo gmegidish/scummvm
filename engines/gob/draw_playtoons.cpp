@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,20 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
 #include "common/endian.h"
 
 #include "gob/draw.h"
+#include "gob/inter.h"
 #include "gob/game.h"
 #include "gob/resources.h"
 
@@ -148,7 +154,7 @@ void Draw_Playtoons::spriteOperation(int16 operation) {
 	case DRAW_PUTPIXEL:
 		switch (_pattern & 0xFF) {
 		case 0xFF:
-			warning("oPlaytoons_spriteOperation: operation DRAW_PUTPIXEL, pattern -1");
+			WRITE_VAR(0, _spritesArray[_destSurface]->get(_destSpriteX, _destSpriteY).get());
 			break;
 		case 1:
 			_spritesArray[_destSurface]->fillRect(destSpriteX,
@@ -176,12 +182,30 @@ void Draw_Playtoons::spriteOperation(int16 operation) {
 		break;
 	case DRAW_FILLRECT:
 		switch (_pattern & 0xFF) {
-		case 1:
-		case 2:
 		case 3:
 		case 4:
 			warning("oPlaytoons_spriteOperation: operation DRAW_FILLRECT, pattern %d", _pattern & 0xFF);
 			break;
+
+		case 1: {
+			_spritesArray[_destSurface]->fillArea(destSpriteX,
+												  _destSpriteY,
+												  _destSpriteX + _spriteRight - 1,
+												  _destSpriteY + _spriteBottom - 1,
+												  _backColor & 0xFF,
+												  (_backColor >> 8) & 0xFF);
+
+			dirtiedRect(_destSurface, _destSpriteX, _destSpriteY,
+						_destSpriteX + _spriteRight - 1, _destSpriteY + _spriteBottom - 1);
+			break;
+		}
+		case 2: {
+			Common::Rect dirtyRect = _spritesArray[_destSurface]->fillAreaAtPoint(destSpriteX,
+																				  _destSpriteY,
+																				  _backColor);
+			dirtiedRect(_destSurface, dirtyRect.left, dirtyRect.top, dirtyRect.right, dirtyRect.bottom);
+			break ;
+		}
 		case 0:
 			_spritesArray[_destSurface]->fillRect(destSpriteX,
 					_destSpriteY, _destSpriteX + _spriteRight - 1,
@@ -215,7 +239,6 @@ void Draw_Playtoons::spriteOperation(int16 operation) {
 
 				break;
 			default:
-				warning("oPlaytoons_spriteOperation: operation DRAW_DRAWLINE, draw %d lines", (_pattern & 0xFF) * (_pattern & 0xFF));
 				for (int16 i = 0; i <= _pattern; i++)
 					for (int16 j = 0; j <= _pattern; j++)
 						_spritesArray[_destSurface]->drawLine(
@@ -234,11 +257,8 @@ void Draw_Playtoons::spriteOperation(int16 operation) {
 		break;
 
 	case DRAW_INVALIDATE:
-		if ((_pattern & 0xFF) != 0)
-			warning("oPlaytoons_spriteOperation: operation DRAW_INVALIDATE, pattern %d", _pattern & 0xFF);
-
 		_spritesArray[_destSurface]->drawCircle(_destSpriteX,
-				_destSpriteY, _spriteRight, _frontColor);
+												_destSpriteY, _spriteRight, _frontColor, _pattern & 0xFF);
 
 		dirtiedRect(_destSurface, _destSpriteX - _spriteRight, _destSpriteY - _spriteBottom,
 				_destSpriteX + _spriteRight, _destSpriteY + _spriteBottom);
@@ -381,7 +401,7 @@ void Draw_Playtoons::spriteOperation(int16 operation) {
 
 	if (operation == DRAW_PRINTTEXT) {
 		len = _fonts[_fontIndex]->getCharWidth();
-		adjustCoords(1, &len, 0);
+		adjustCoords(1, &len, nullptr);
 		_destSpriteX += len * strlen(_textToPrint);
 	}
 

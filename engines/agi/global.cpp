@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,9 @@
 #include "agi/graphics.h"
 
 namespace Agi {
+
+#define VM_VAR_GOLDRUSH_CYCLE_COUNT       156
+#define VM_VAR_GOLDRUSH_CYCLES_PER_SECOND 166
 
 bool AgiBase::getFlag(int16 flagNr) {
 	uint8 *flagPtr = _game.flags;
@@ -52,7 +54,16 @@ void AgiBase::flipFlag(int16 flagNr) {
 	*flagPtr ^= 1 << (flagNr & 0x07);        // flip bit
 }
 
+void AgiBase::setFlagOrVar(int16 flagNr, bool newState) {
+	if (getVersion() < 0x2000) {
+		_game.vars[flagNr] = (newState ? 1 : 0);
+	} else {
+		setFlag(flagNr, newState);
+	}
+}
+
 void AgiEngine::setVar(int16 varNr, byte newValue) {
+	byte oldValue = _game.vars[varNr];
 	_game.vars[varNr] = newValue;
 
 	switch (varNr) {
@@ -61,6 +72,11 @@ void AgiEngine::setVar(int16 varNr, byte newValue) {
 		break;
 	case VM_VAR_VOLUME:
 		applyVolumeToMixer();
+		break;
+	case VM_VAR_GOLDRUSH_CYCLES_PER_SECOND:
+		if (getGameID() == GID_GOLDRUSH) {
+			goldRushClockTimeWorkaround_OnWriteVar(oldValue);
+		}
 		break;
 	default:
 		break;
@@ -78,6 +94,11 @@ byte AgiEngine::getVar(int16 varNr) {
 		// Timer Update is necessary in here, because of at least Manhunter 1 script 153
 		// Sierra AGI updated the timer via a timer procedure
 		inGameTimerUpdate();
+		break;
+	case VM_VAR_GOLDRUSH_CYCLES_PER_SECOND:
+		if (getGameID() == GID_GOLDRUSH) {
+			goldRushClockTimeWorkaround_OnReadVar();
+		}
 		break;
 	default:
 		break;
@@ -206,7 +227,7 @@ void AgiEngine::setVarSecondsTrigger(byte newSeconds) {
 
 // This is called, when one of the timer variables is read
 // We calculate the latest variables, according to current official playtime
-// This is also called in the main loop, because the game needs to be sync'd to 20 cycles per second
+// This is also called in the main loop, because the game needs to be sync'd to 40 cycles per second
 void AgiEngine::inGameTimerUpdate() {
 	uint32 curPlayTimeMilliseconds = inGameTimerGet();
 	uint32 curPlayTimeCycles = curPlayTimeMilliseconds / 25;
@@ -288,14 +309,60 @@ void AgiEngine::inGameTimerUpdate() {
 }
 
 void AgiEngine::decrypt(uint8 *mem, int len) {
-	const uint8 *key;
-	int i;
-
-	key = (getFeatures() & GF_AGDS) ? (const uint8 *)CRYPT_KEY_AGDS
-	                                : (const uint8 *)CRYPT_KEY_SIERRA;
-
-	for (i = 0; i < len; i++)
+	const uint8 *key = (getFeatures() & GF_AGDS) ? (const uint8 *)CRYPT_KEY_AGDS
+	                                             : (const uint8 *)CRYPT_KEY_SIERRA;
+	for (int i = 0; i < len; i++)
 		*(mem + i) ^= *(key + (i % 11));
+}
+
+// WORKAROUND: Gold Rush runs a speed test to calculate how fast the in-game
+// clock should advance at Fast and Fastest settings, based on CPU speed.
+// The goal was to produce a real-time clock, even though it's really driven
+// by game cycles. This test is incompatible with our speed throttling because
+// it runs in Fastest mode and the results are based on running unthrottled.
+// This causes an artificially poor test result, resulting in the clock running
+// much too fast at Fast and Fastest speeds. On Apple II and Apple IIgs, there
+// was no speed setting. GR ran unthrottled and the clock script was hard-coded
+// with values based on the expected CPU speed. We add speed settings to these
+// versions, so we need to replace these values and sync them with game speed.
+// We fix all of this by overriding the cycles-per-clock-second variable with
+// values that match the actual game speed. Fixes bugs #4147, #13910
+void AgiEngine::goldRushClockTimeWorkaround_OnReadVar() {
+	const byte grCyclesPerSecond[4] = {
+		40, // Fastest: 40 game cycles per clock second
+		20, // Fast:    20 game cycles per clock second
+		10, // Normal:  10 game cycles per clock second
+		6   // Slow:     6 game cycles per clock second
+	};
+	
+	// Determine the correct number of game cycles per clock second
+	byte cyclesPerSecond;
+	switch (getPlatform()) {
+	case Common::kPlatformApple2:
+	case Common::kPlatformApple2GS:
+		cyclesPerSecond = grCyclesPerSecond[MIN<byte>(_game.speedLevel, 3)];
+		break;
+	case Common::kPlatformDOS:
+		setFlag(172, 0); // allow Fastest speed in version 3.0
+		// fall through
+	default:
+		cyclesPerSecond = grCyclesPerSecond[MIN<byte>(getVar(VM_VAR_TIME_DELAY), 3)];
+		break;
+	}
+
+	// When the changing speed, reset the cycle counter. The script
+	// that resets the counter was removed from A2/A2GS versions.
+	if (cyclesPerSecond != _game.vars[VM_VAR_GOLDRUSH_CYCLES_PER_SECOND]) {
+		_game.vars[VM_VAR_GOLDRUSH_CYCLES_PER_SECOND] = cyclesPerSecond;
+		_game.vars[VM_VAR_GOLDRUSH_CYCLE_COUNT] = 0;
+	}
+}
+
+void AgiEngine::goldRushClockTimeWorkaround_OnWriteVar(byte oldValue) {
+	// Ignore attempts from game scripts to set the cycles per second.
+	// Apple II sets it to 10 on every cycle, and that would confuse
+	// the change detection in goldRushClockTimeWorkaround_OnReadVar.
+	_game.vars[VM_VAR_GOLDRUSH_CYCLES_PER_SECOND] = oldValue;
 }
 
 } // End of namespace Agi

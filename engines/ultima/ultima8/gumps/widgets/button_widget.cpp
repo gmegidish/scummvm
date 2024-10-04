@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,16 +15,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/gumps/widgets/button_widget.h"
 #include "ultima/ultima8/gumps/widgets/text_widget.h"
 #include "ultima/ultima8/games/game_data.h"
-#include "ultima/ultima8/graphics/shape_archive.h"
-#include "ultima/ultima8/graphics/shape.h"
+#include "ultima/ultima8/gfx/shape_archive.h"
+#include "ultima/ultima8/gfx/shape.h"
 #include "ultima/ultima8/kernel/mouse.h"
 #include "ultima/ultima8/world/get_object.h"
 
@@ -111,7 +110,7 @@ Gump *ButtonWidget::onMouseDown(int button, int32 mx, int32 my) {
 	Gump *ret = Gump::onMouseDown(button, mx, my);
 	if (ret)
 		return ret;
-	if (button == Shared::BUTTON_LEFT) {
+	if (button == Mouse::BUTTON_LEFT) {
 		// CHECKME: change dimensions or not?
 		if (!_mouseOver) {
 			_shape = _shapeDown;
@@ -131,23 +130,24 @@ uint16 ButtonWidget::TraceObjId(int32 mx, int32 my) {
 
 
 void ButtonWidget::onMouseUp(int button, int32 mx, int32 my) {
-	if (button == Shared::BUTTON_LEFT) {
+	if (button == Mouse::BUTTON_LEFT) {
 		if (!_mouseOver) {
 			_shape = _shapeUp;
 			_frameNum = _frameNumUp;
 		}
-		_parent->ChildNotify(this, BUTTON_UP);
+		if (PointOnGump(mx, my))
+			_parent->ChildNotify(this, BUTTON_UP);
 	}
 }
 
 void ButtonWidget::onMouseClick(int button, int32 mx, int32 my) {
-	int gx = mx, gy = my;
-	if (PointOnGump(gx, gy))
+	if (PointOnGump(mx, my))
 		_parent->ChildNotify(this, BUTTON_CLICK);
 }
 
 void ButtonWidget::onMouseDouble(int button, int32 mx, int32 my) {
-	_parent->ChildNotify(this, BUTTON_DOUBLE);
+	if (PointOnGump(mx, my))
+		_parent->ChildNotify(this, BUTTON_DOUBLE);
 }
 
 void ButtonWidget::onMouseOver() {

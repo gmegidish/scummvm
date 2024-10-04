@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,20 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "backends/cloud/savessyncrequest.h"
 #include "backends/cloud/cloudmanager.h"
+#include "backends/cloud/downloadrequest.h"
+#include "backends/cloud/id/iddownloadrequest.h"
 #include "backends/networking/curl/curljsonrequest.h"
 #include "backends/saves/default/default-saves.h"
 #include "common/config-manager.h"
 #include "common/debug.h"
 #include "common/file.h"
-#include "common/json.h"
+#include "common/formats/json.h"
 #include "common/savefile.h"
 #include "common/system.h"
 #include "gui/saveload-dialog.h"
@@ -35,8 +36,8 @@
 namespace Cloud {
 
 SavesSyncRequest::SavesSyncRequest(Storage *storage, Storage::BoolCallback callback, Networking::ErrorCallback ecb):
-	Request(nullptr, ecb), CommandSender(nullptr), _storage(storage), _boolCallback(callback),
-	_workingRequest(nullptr), _ignoreCallback(false) {
+	Request(nullptr, ecb), _storage(storage), _boolCallback(callback),
+	_workingRequest(nullptr), _ignoreCallback(false), _bytesToDownload(0), _bytesDownloaded(0) {
 	start();
 }
 
@@ -69,13 +70,13 @@ void SavesSyncRequest::start() {
 		dir.deleteLastChar();
 	_workingRequest = _storage->listDirectory(
 		dir,
-		new Common::Callback<SavesSyncRequest, Storage::ListDirectoryResponse>(this, &SavesSyncRequest::directoryListedCallback),
-		new Common::Callback<SavesSyncRequest, Networking::ErrorResponse>(this, &SavesSyncRequest::directoryListedErrorCallback)
+		new Common::Callback<SavesSyncRequest, const Storage::ListDirectoryResponse &>(this, &SavesSyncRequest::directoryListedCallback),
+		new Common::Callback<SavesSyncRequest, const Networking::ErrorResponse &>(this, &SavesSyncRequest::directoryListedErrorCallback)
 	);
 	if (!_workingRequest) finishError(Networking::ErrorResponse(this, "SavesSyncRequest::start: Storage couldn't create Request to list directory"));
 }
 
-void SavesSyncRequest::directoryListedCallback(Storage::ListDirectoryResponse response) {
+void SavesSyncRequest::directoryListedCallback(const Storage::ListDirectoryResponse &response) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;
@@ -88,11 +89,11 @@ void SavesSyncRequest::directoryListedCallback(Storage::ListDirectoryResponse re
 	}
 
 	//determine which files to download and which files to upload
-	Common::Array<StorageFile> &remoteFiles = response.value;
+	const Common::Array<StorageFile> &remoteFiles = response.value;
 	uint64 totalSize = 0;
 	debug(9, "SavesSyncRequest decisions:");
 	for (uint32 i = 0; i < remoteFiles.size(); ++i) {
-		StorageFile &file = remoteFiles[i];
+		const StorageFile &file = remoteFiles[i];
 		if (file.isDirectory())
 			continue;
 		totalSize += file.size();
@@ -137,11 +138,14 @@ void SavesSyncRequest::directoryListedCallback(Storage::ListDirectoryResponse re
 		}
 	}
 
+	_bytesToDownload = 0;
+	_bytesDownloaded = 0;
 	debug(9, "\nSavesSyncRequest: ");
 	if (_filesToDownload.size() > 0) {
 		debug(9, "download files:");
 		for (uint32 i = 0; i < _filesToDownload.size(); ++i) {
 			debug(9, " %s", _filesToDownload[i].name().c_str());
+			_bytesToDownload += _filesToDownload[i].size();
 		}
 		debug(9, "%s", "");
 	} else {
@@ -166,7 +170,7 @@ void SavesSyncRequest::directoryListedCallback(Storage::ListDirectoryResponse re
 	}
 }
 
-void SavesSyncRequest::directoryListedErrorCallback(Networking::ErrorResponse error) {
+void SavesSyncRequest::directoryListedErrorCallback(const Networking::ErrorResponse &error) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;
@@ -235,14 +239,14 @@ void SavesSyncRequest::directoryListedErrorCallback(Networking::ErrorResponse er
 	debug(9, "\nSavesSyncRequest: creating %s", dir.c_str());
 	_workingRequest = _storage->createDirectory(
 		dir,
-		new Common::Callback<SavesSyncRequest, Storage::BoolResponse>(this, &SavesSyncRequest::directoryCreatedCallback),
-		new Common::Callback<SavesSyncRequest, Networking::ErrorResponse>(this, &SavesSyncRequest::directoryCreatedErrorCallback)
+		new Common::Callback<SavesSyncRequest, const Storage::BoolResponse &>(this, &SavesSyncRequest::directoryCreatedCallback),
+		new Common::Callback<SavesSyncRequest, const Networking::ErrorResponse &>(this, &SavesSyncRequest::directoryCreatedErrorCallback)
 	);
 	if (!_workingRequest)
 		finishError(Networking::ErrorResponse(this, "SavesSyncRequest::directoryListedErrorCallback: Storage couldn't create Request to create remote directory"));
 }
 
-void SavesSyncRequest::directoryCreatedCallback(Storage::BoolResponse response) {
+void SavesSyncRequest::directoryCreatedCallback(const Storage::BoolResponse &response) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;
@@ -258,7 +262,7 @@ void SavesSyncRequest::directoryCreatedCallback(Storage::BoolResponse response) 
 	directoryListedCallback(Storage::ListDirectoryResponse(response.request, files));
 }
 
-void SavesSyncRequest::directoryCreatedErrorCallback(Networking::ErrorResponse error) {
+void SavesSyncRequest::directoryCreatedErrorCallback(const Networking::ErrorResponse &error) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;
@@ -270,7 +274,6 @@ void SavesSyncRequest::directoryCreatedErrorCallback(Networking::ErrorResponse e
 void SavesSyncRequest::downloadNextFile() {
 	if (_filesToDownload.empty()) {
 		_currentDownloadingFile = StorageFile("", 0, 0, false); //so getFilesToDownload() would return an empty array
-		sendCommand(GUI::kSavesSyncEndedCmd, 0);
 		uploadNextFile();
 		return;
 	}
@@ -278,20 +281,18 @@ void SavesSyncRequest::downloadNextFile() {
 	_currentDownloadingFile = _filesToDownload.back();
 	_filesToDownload.pop_back();
 
-	sendCommand(GUI::kSavesSyncProgressCmd, (int)(getDownloadingProgress() * 100));
-
 	debug(9, "\nSavesSyncRequest: downloading %s (%d %%)", _currentDownloadingFile.name().c_str(), (int)(getProgress() * 100));
 	_workingRequest = _storage->downloadById(
 		_currentDownloadingFile.id(),
 		DefaultSaveFileManager::concatWithSavesPath(_currentDownloadingFile.name()),
-		new Common::Callback<SavesSyncRequest, Storage::BoolResponse>(this, &SavesSyncRequest::fileDownloadedCallback),
-		new Common::Callback<SavesSyncRequest, Networking::ErrorResponse>(this, &SavesSyncRequest::fileDownloadedErrorCallback)
+		new Common::Callback<SavesSyncRequest, const Storage::BoolResponse &>(this, &SavesSyncRequest::fileDownloadedCallback),
+		new Common::Callback<SavesSyncRequest, const Networking::ErrorResponse &>(this, &SavesSyncRequest::fileDownloadedErrorCallback)
 	);
 	if (!_workingRequest)
 		finishError(Networking::ErrorResponse(this, "SavesSyncRequest::downloadNextFile: Storage couldn't create Request to download a file"));
 }
 
-void SavesSyncRequest::fileDownloadedCallback(Storage::BoolResponse response) {
+void SavesSyncRequest::fileDownloadedCallback(const Storage::BoolResponse &response) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;
@@ -305,15 +306,15 @@ void SavesSyncRequest::fileDownloadedCallback(Storage::BoolResponse response) {
 	}
 
 	//update local timestamp for downloaded file
-	_localFilesTimestamps = DefaultSaveFileManager::loadTimestamps();
 	_localFilesTimestamps[_currentDownloadingFile.name()] = _currentDownloadingFile.timestamp();
 	DefaultSaveFileManager::saveTimestamps(_localFilesTimestamps);
+	_bytesDownloaded += _currentDownloadingFile.size();
 
 	//continue downloading files
 	downloadNextFile();
 }
 
-void SavesSyncRequest::fileDownloadedErrorCallback(Networking::ErrorResponse error) {
+void SavesSyncRequest::fileDownloadedErrorCallback(const Networking::ErrorResponse &error) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;
@@ -336,27 +337,26 @@ void SavesSyncRequest::uploadNextFile() {
 		_workingRequest = _storage->upload(
 			_storage->savesDirectoryPath() + _currentUploadingFile,
 			g_system->getSavefileManager()->openRawFile(_currentUploadingFile),
-			new Common::Callback<SavesSyncRequest, Storage::UploadResponse>(this, &SavesSyncRequest::fileUploadedCallback),
-			new Common::Callback<SavesSyncRequest, Networking::ErrorResponse>(this, &SavesSyncRequest::fileUploadedErrorCallback)
+			new Common::Callback<SavesSyncRequest, const Storage::UploadResponse &>(this, &SavesSyncRequest::fileUploadedCallback),
+			new Common::Callback<SavesSyncRequest, const Networking::ErrorResponse &>(this, &SavesSyncRequest::fileUploadedErrorCallback)
 		);
 	} else {
 		_workingRequest = _storage->upload(
 			_storage->savesDirectoryPath() + _currentUploadingFile,
 			DefaultSaveFileManager::concatWithSavesPath(_currentUploadingFile),
-			new Common::Callback<SavesSyncRequest, Storage::UploadResponse>(this, &SavesSyncRequest::fileUploadedCallback),
-			new Common::Callback<SavesSyncRequest, Networking::ErrorResponse>(this, &SavesSyncRequest::fileUploadedErrorCallback)
+			new Common::Callback<SavesSyncRequest, const Storage::UploadResponse &>(this, &SavesSyncRequest::fileUploadedCallback),
+			new Common::Callback<SavesSyncRequest, const Networking::ErrorResponse &>(this, &SavesSyncRequest::fileUploadedErrorCallback)
 		);
 	}
 	if (!_workingRequest) finishError(Networking::ErrorResponse(this, "SavesSyncRequest::uploadNextFile: Storage couldn't create Request to upload a file"));
 }
 
-void SavesSyncRequest::fileUploadedCallback(Storage::UploadResponse response) {
+void SavesSyncRequest::fileUploadedCallback(const Storage::UploadResponse &response) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;
 
 	//update local timestamp for the uploaded file
-	_localFilesTimestamps = DefaultSaveFileManager::loadTimestamps();
 	_localFilesTimestamps[_currentUploadingFile] = response.value.timestamp();
 	DefaultSaveFileManager::saveTimestamps(_localFilesTimestamps);
 
@@ -364,7 +364,7 @@ void SavesSyncRequest::fileUploadedCallback(Storage::UploadResponse response) {
 	uploadNextFile();
 }
 
-void SavesSyncRequest::fileUploadedErrorCallback(Networking::ErrorResponse error) {
+void SavesSyncRequest::fileUploadedErrorCallback(const Networking::ErrorResponse &error) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;
@@ -387,9 +387,30 @@ double SavesSyncRequest::getDownloadingProgress() const {
 	if (_totalFilesToHandle == _filesToUpload.size())
 		return 1; //nothing to download => download complete
 
+	if (_bytesToDownload > 0) {
+		// can calculate more precise progress
+		return (double)(getDownloadedBytes()) / (double)(_bytesToDownload);
+	}
+
 	uint32 totalFilesToDownload = _totalFilesToHandle - _filesToUpload.size();
 	uint32 filesLeftToDownload = _filesToDownload.size() + (_currentDownloadingFile.name() != "" ? 1 : 0);
+	if (filesLeftToDownload > totalFilesToDownload)
+		filesLeftToDownload = totalFilesToDownload;
 	return (double)(totalFilesToDownload - filesLeftToDownload) / (double)(totalFilesToDownload);
+}
+
+void SavesSyncRequest::getDownloadingInfo(Storage::SyncDownloadingInfo &info) const {
+	info.bytesDownloaded = getDownloadedBytes();
+	info.bytesToDownload = getBytesToDownload();
+
+	uint32 totalFilesToDownload = _totalFilesToHandle - _filesToUpload.size();
+	uint32 filesLeftToDownload = _filesToDownload.size() + (_currentDownloadingFile.name() != "" ? 1 : 0);
+	if (filesLeftToDownload > totalFilesToDownload)
+		filesLeftToDownload = totalFilesToDownload;
+	info.filesDownloaded = totalFilesToDownload - filesLeftToDownload;
+	info.filesToDownload = totalFilesToDownload;
+
+	info.inProgress = (totalFilesToDownload > 0 && filesLeftToDownload > 0);
 }
 
 double SavesSyncRequest::getProgress() const {
@@ -411,7 +432,21 @@ Common::Array<Common::String> SavesSyncRequest::getFilesToDownload() {
 	return result;
 }
 
-void SavesSyncRequest::finishError(Networking::ErrorResponse error) {
+uint32 SavesSyncRequest::getDownloadedBytes() const {
+	double currentFileProgress = 0;
+	if (const DownloadRequest *downloadRequest = dynamic_cast<DownloadRequest *>(_workingRequest))
+		currentFileProgress = downloadRequest->getProgress();
+	else if (const Id::IdDownloadRequest *idDownloadRequest = dynamic_cast<Id::IdDownloadRequest *>(_workingRequest))
+		currentFileProgress = idDownloadRequest->getProgress();
+
+	return _bytesDownloaded + currentFileProgress * _currentDownloadingFile.size();
+}
+
+uint32 SavesSyncRequest::getBytesToDownload() const {
+	return _bytesToDownload;
+}
+
+void SavesSyncRequest::finishError(const Networking::ErrorResponse &error, Networking::RequestState state) {
 	debug(9, "SavesSync::finishError");
 	//if we were downloading a file - remember the name
 	//and make the Request close() it, so we can delete it

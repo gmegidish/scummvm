@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,7 +34,8 @@
 #ifndef AGS_SHARED_UTIL_STREAM_H
 #define AGS_SHARED_UTIL_STREAM_H
 
-#include "ags/shared/api/stream_api.h"
+#include "ags/shared/util/iags_stream.h"
+#include "ags/lib/allegro/file.h"
 #include "common/stream.h"
 #include "common/types.h"
 
@@ -63,29 +63,29 @@ public:
 	//-----------------------------------------------------
 	// Helper methods
 	//-----------------------------------------------------
-	inline int8_t ReadInt8() override {
+	int8_t ReadInt8() override {
 		return ReadByte();
 	}
 
-	inline size_t WriteInt8(int8_t val) override {
+	size_t WriteInt8(int8_t val) override {
 		int32_t ival = WriteByte(val);
 		return ival >= 0 ? ival : 0;
 	}
 
-	inline bool ReadBool() override {
+	bool ReadBool() override {
 		return ReadInt8() != 0;
 	}
 
-	inline size_t WriteBool(bool val) override {
+	size_t WriteBool(bool val) override {
 		return WriteInt8(val ? 1 : 0);
 	}
 
 	// Practically identical to Read() and Write(), these two helpers' only
 	// meaning is to underline the purpose of data being (de)serialized
-	inline size_t ReadArrayOfInt8(int8_t *buffer, size_t count) override {
+	size_t ReadArrayOfInt8(int8_t *buffer, size_t count) override {
 		return Read(buffer, count);
 	}
-	inline size_t WriteArrayOfInt8(const int8_t *buffer, size_t count) override {
+	size_t WriteArrayOfInt8(const int8_t *buffer, size_t count) override {
 		return Write(buffer, count);
 	}
 
@@ -130,6 +130,41 @@ public:
 			origin = kSeekEnd;
 
 		return _stream->Seek(offset, origin);
+	}
+};
+
+
+class ScummVMPackReadStream : public Common::SeekableReadStream {
+private:
+	PACKFILE *_file;
+	DisposeAfterUse::Flag _disposeAfterUse;
+public:
+	ScummVMPackReadStream(PACKFILE *src, DisposeAfterUse::Flag disposeAfterUse =
+		DisposeAfterUse::YES) : _file(src), _disposeAfterUse(disposeAfterUse) {
+	}
+	~ScummVMPackReadStream() override {
+		if (_disposeAfterUse == DisposeAfterUse::YES)
+			delete _file;
+	}
+
+	bool eos() const override {
+		return _file->pack_feof();
+	}
+
+	uint32 read(void *dataPtr, uint32 dataSize) override {
+		return _file->pack_fread(dataPtr, dataSize);
+	}
+
+	int64 pos() const override {
+		error("Unsupported");
+	}
+
+	int64 size() const override {
+		error("Unsupported");
+	}
+
+	bool seek(int64 offset, int whence = SEEK_SET) override {
+		error("Unsupported");
 	}
 };
 

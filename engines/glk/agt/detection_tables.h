@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,25 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/game.h"
-#include "common/gui_options.h"
 #include "common/language.h"
 
 namespace Glk {
 namespace AGT {
 
-/* TODO: The following games aren't yet supported:
- * Lost Gold : Doesn't come as separate gamefiles
- * eather's Easter Egg Hunt - Comes as an .arc archive;
- *		still need to find something to uncompress it
- */
-
 const PlainGameDescriptor AGT_GAME_LIST[] = {
+	{ "agt", "AGT IF Game" },
+
 	{ "abloodylife", "A Bloody Life" },
 	{ "alandria", "The Search for Princess Alandria" },
 	{ "alchemistcastle", "Castle of the Alchemists" },
@@ -57,6 +51,7 @@ const PlainGameDescriptor AGT_GAME_LIST[] = {
 	{ "destinationearth", "Destination: Earth" },
 	{ "dudleydilemma", "A Dudley Dilemma" },
 	{ "80days", "Around the World in Eighty Days" },
+	{ "easteregghunt", "Heather's Easter Egg Hunt" },
 	{ "electrabot", "Electrabot" },
 	{ "elf20", "The Elf's Christmas Adventure" },
 	{ "elfquest", "Elf Quest" },
@@ -67,7 +62,7 @@ const PlainGameDescriptor AGT_GAME_LIST[] = {
 	{ "firststupidgame", "My First Stupid Game" },
 	{ "ccfirstadv", "Colossal Cave - The First Adventure" },
 	{ "ggollek", "Ggollek I : The Dissolution" },
-	{ "agtghosttown", "Ghost Town" },
+	{ "ghosttown_rm", "Ghost Town (by Robert Masenten)" },
 	{ "giganticsecrets", "Secrets of the Gigantic" },
 	{ "newenglandgothic", "New England Gothic" },
 	{ "grailmisadventure", "The Misadventure of the Holy Grail" },
@@ -89,6 +84,7 @@ const PlainGameDescriptor AGT_GAME_LIST[] = {
 	{ "klingonrpg", "In the Year 2366, Klingon Role Playing Game" },
 	{ "deadlylabyrinth", "The Deadly Labyrinth" },
 	{ "library", "Library - Library of Guilford College" },
+	{ "lostgold", "Lost Gold" },
 	{ "lostinspace", "Lost in Space : Dr.Smith Goes Home" },
 	{ "agtlottery", "Lottery" },
 	{ "loststonemansion", "Lost Stone Mansion" },
@@ -114,6 +110,7 @@ const PlainGameDescriptor AGT_GAME_LIST[] = {
 	{ "pork2", "PORK II, The Gizzard of Showbiz" },
 	{ "starportal", "The Star Portal" },
 	{ "pastoralpitfalls", "Pastoral Pitfalls" },
+	{ "personalizedsample", "Personalized Adventure Game Sample" },
 	{ "lostproperty", "Lost Property" },
 	{ "gameofrecovery", "The Game of Recovery" },
 	{ "rerunsagain", "Reruns Again version" },
@@ -125,7 +122,7 @@ const PlainGameDescriptor AGT_GAME_LIST[] = {
 	{ "sonofstagefright", "Son of Stagefright" },
 	{ "spatent", "The Spatent Obstruction" },
 	{ "squynchia", "The Squynchia Adventure" },
-	{ "stiffy", "The Incredible Erotic Adventures of Stiffy Makane!" },
+	{ "agtstiffy", "The Incredible Erotic Adventures of Stiffy Makane!" },
 	{ "storms1", "Storms I" },
 	{ "susan", "Susan (A Lustful Game)" },
 	{ "tamoret", "Tamoret" },
@@ -137,6 +134,7 @@ const PlainGameDescriptor AGT_GAME_LIST[] = {
 	{ "therift", "The Rift" },
 	{ "tja", "The Jeweled Arena" },
 	{ "toho", "Toho Academy" },
+	{ "tombpharaohs", "The Tomb of the Ancient Pharaohs" },
 	{ "tossedintospace", "Tossed into Space : Dr.Schmidt Goes Home" },
 	{ "timesquared", "TimeSquared" },
 	{ "folkestone", "Murder at the Folkestone Inn" },
@@ -160,6 +158,7 @@ const PlainGameDescriptor AGT_GAME_LIST[] = {
 
 const GlkDetectionEntry AGT_GAMES[] = {
 	DT_ENTRY0("abloodylife", "c492e0ae0647d3a4835012ca864b99d5", 157221),
+	DT_ENTRY0("alandria", "0dcaff32c55dd2c1898da7893500de34", 53946),
 	DT_ENTRY0("alchemistcastle", "7822dfaf1ae31b3e508e7b0a267d054b", 192051),
 	DT_ENTRY0("advalice", "0aaafb897b46baa28023bbbaf4091fd8", 23004),
 	DT_ENTRY0("apprenticetesting", "4e4244649dc1cd39546f3d10dc85acb5", 131868),
@@ -183,6 +182,7 @@ const GlkDetectionEntry AGT_GAMES[] = {
 	DT_ENTRY0("cavesofdyanty", "267e8a2812d58e140be8582914d9cefb", 40662),
 	DT_ENTRY0("destinationearth", "d00cfa53e2b3315f0ee6813c064be74f", 12474),
 	DT_ENTRY0("80days", "0086c0151760c59aa4d9e8ca055de84d", 30294),
+	DT_ENTRY0("easteregghunt", "6ef9fb84ec755b88f1f7c2cc3c47db2e", 55647),
 	DT_ENTRY0("electrabot", "1c7096e4a9a0579526e9b5084aa27701", 8748),
 	DT_ENTRY0("elf20", "0fa1e888a452fec59bb4a5a6ffa43d78", 101088),
 	DT_ENTRY0("elfquest", "5419ab5d7a19037a5971c7e2de59cee4", 16929),
@@ -193,7 +193,7 @@ const GlkDetectionEntry AGT_GAMES[] = {
 	DT_ENTRY0("ccfirstadv", "8a8ff26cd6a396c193d865fa6e37594d", 83754),
 	DT_ENTRY0("firststupidgame", "859933f151a301f64f88a8101853f432", 21222),
 	DT_ENTRY0("ggollek", "e02fa5e1ddff57e89231481574218834", 75573),
-	DT_ENTRY0("agtghosttown", "33aa534de04a978c50f8a038a6bec3e7", 35235),
+	DT_ENTRY0("ghosttown_rm", "33aa534de04a978c50f8a038a6bec3e7", 35235),
 	DT_ENTRY0("giganticsecrets", "66d6b6b5bf43149a8ad5578c45ad4731", 21627),
 	DT_ENTRY0("newenglandgothic", "10898900c3b872282a4298b32e851dfc", 104895),
 	DT_ENTRY0("grailmisadventure", "f7b0447cc01d1f4629e734952deccf98", 107487),
@@ -210,6 +210,7 @@ const GlkDetectionEntry AGT_GAMES[] = {
 	DT_ENTRY0("klingonrpg", "93811c560f0c78f470f65dbe62834aa1", 15066),
 	DT_ENTRY0("deadlylabyrinth", "3a5d3ad2f80fb8c02baf5eb9894eb9b6", 113643),
 	DT_ENTRY0("library", "f23d106273f6e5fdb50f65d2acd4e4fc", 133407),
+	DT_ENTRY0("lostgold", "ff08d607b3a1a787b5d9e369264ae7f8", 67959),
 	DT_ENTRY0("lostinspace", "322c226f26768b6962c2b3b147450410", 49410),
 	DT_ENTRY0("agtlottery", "7c0890c420d6585e4629f1cc228bf259", 24948),
 	DT_ENTRY0("loststonemansion", "f0ef6d965533e67b29acb130dd0f1213", 39933),
@@ -240,6 +241,7 @@ const GlkDetectionEntry AGT_GAMES[] = {
 	DT_ENTRY0("pork2", "13911c59cbe70ae877c87aa0ded89e47", 28269),
 	DT_ENTRY0("starportal", "0bf0f86fdeea607083c22a5cb41c6885", 172935),
 	DT_ENTRY0("pastoralpitfalls", "c35d440286c6bf67cd6ee1e5947c3483", 206469),
+	DT_ENTRY0("personalizedsample", "c590a3c5116ee2fa786e8f511ef85c8e", 69174),
 	DT_ENTRY0("lostproperty", "8acf3d6994a3b39911827d5040e8873a", 30375),
 	DT_ENTRY0("gameofrecovery", "b497bb0e1e93023a892f0fa54d78a1c0", 108459),
 	DT_ENTRY0("rerunsagain", "d263341c871a2f52e0052c313bf3e525", 81648),
@@ -252,7 +254,7 @@ const GlkDetectionEntry AGT_GAMES[] = {
 	DT_ENTRY0("sonofstagefright", "9527fa27e910470deac8ffbcb29e2427", 116640),
 	DT_ENTRY0("spatent", "acc4c60cbb9d0239ab9b1900b239771a", 85455),
 	DT_ENTRY0("squynchia", "e9e5c99ee87f3b38a9ea8e7fdd1ed79f", 81000),
-	DT_ENTRY0("stiffy", "a7f1902ab7aa9972ca46d5b36d06d2b1", 32805),
+	DT_ENTRY0("agtstiffy", "a7f1902ab7aa9972ca46d5b36d06d2b1", 32805),
 	DT_ENTRY0("storms1", "8567c2db37c80f015a950ef80d299a0a", 111942),
 	DT_ENTRY0("susan", "cb71705848aabcac90e7ea9e911ceee9", 15633),
 	DT_ENTRY0("tamoret", "3de37497ed763a58093e556a963ca14e", 156816),
@@ -264,10 +266,11 @@ const GlkDetectionEntry AGT_GAMES[] = {
 	DT_ENTRY0("therift", "1c30da9b9a55d691226c45b8b53c11c3", 41877),
 	DT_ENTRY0("tja", "6699e867df8263dd7858d2f6fb84acde", 517185),
 	DT_ENTRY0("toho", "58a6fdf89b29966774beaca80f505fff", 228744),
+	DT_ENTRY0("tombpharaohs", "2d10501417f28ee1dc5be8479f6e88a3", 46251),
 	DT_ENTRY0("tossedintospace", "515f06782c5b11108a719a20e182166c", 49491),
 	DT_ENTRY0("timesquared", "55e36771d5e1fe184cce8f5be666ff9f", 105300),
 	DT_ENTRY0("folkestone", "7e949a7376b0a64cee0d9412b0203611", 64557),
-	DT_ENTRY0("wanderer1", "0dcaff32c55dd2c1898da7893500de34", 53946),
+	DT_ENTRY0("wanderer1", "e1d707c9deaf02a4b28c9041a4009cb6", 53946),
 	DT_ENTRY0("wanderer2", "89dd16629022c75f3ffc171a6b126da6", 46980),
 	DT_ENTRY0("wanderer3", "839ab34bce5c82ec6194675f0186b15b", 45765),
 	DT_ENTRY0("weekendsurvival", "e770c0e75b7257eae9d4677340beca10", 91044),

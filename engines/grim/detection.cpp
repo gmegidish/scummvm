@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/advancedDetector.h"
 #include "engines/grim/detection.h"
-
-#include "common/translation.h"
 #include "engines/grim/debug.h"
 
 static const DebugChannelDef debugFlagList[] = {
@@ -58,34 +55,6 @@ static const PlainGameDescriptor grimGames[] = {
 	{nullptr, nullptr}
 };
 
-#define GAMEOPTION_LOAD_DATAUSR GUIO_GAMEOPTIONS1
-#define GAMEOPTION_SHOW_FPS GUIO_GAMEOPTIONS2
-
-#define GUI_OPTIONS_GRIME GUIO2(GAMEOPTION_LOAD_DATAUSR, GAMEOPTION_SHOW_FPS)
-
-static const ADExtraGuiOptionsMap gameGuiOptions[] = {
-	{
-		GAMEOPTION_LOAD_DATAUSR,
-		{
-			_s("Load user patch (unsupported)"),
-			_s("Load an user patch. Please note that the ScummVM team doesn't provide support for using such patches."),
-			"datausr_load",
-			false
-		}
-	},
-	{
-		GAMEOPTION_SHOW_FPS,
-		{
-			_s("Show FPS"),
-			_s("Show the current FPS-rate, while you play."),
-			"show_fps",
-			false
-		}
-	},
-
-	AD_EXTRA_GUI_OPTIONS_TERMINATOR
-};
-
 static const GrimGameDescription gameDescriptions[] = {
 	{
 		// Grim Fandango English version (patched)
@@ -114,12 +83,67 @@ static const GrimGameDescription gameDescriptions[] = {
 		GType_GRIM
 	},
 	{
+		// Grim Fandango English version (unpatched) + Chinese Fan translation
+		{
+			"grim",
+			"",
+			AD_ENTRY2s("VOX0001.LAB", "8b12ed530195c6c577436df27df62ecb", 58011176,
+				   "GRIM.TAB", "613d5c80480229837a14829cbc1e1d22", 273523),
+			Common::ZH_CHN,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_GRIME
+		},
+		GType_GRIM
+	},
+	{
+		// Grim Fandango English version (unpatched) + Russian Enpy translation
+		{
+			"grim",
+			"ENPY",
+			AD_ENTRY2s("VOX0001.LAB", "8b12ed530195c6c577436df27df62ecb", 58011176,
+				   "rus_font.lab", "df658c6a491a831d47a58eb21ccc7126", 162443),
+			Common::RU_RUS,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_GRIME
+		},
+		GType_GRIM
+	},
+
+	{
 		// Grim Fandango French version (un/patched ???)
 		{
 			"grim",
 			"",
 			AD_ENTRY1s("VOX0001.LAB", "19bc0dc9554257b1f021463de54f359f", 56268691),
 			Common::FR_FRA,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_GRIME
+		},
+		GType_GRIM
+	},
+	{
+		// Grim Fandango Russian (7Wolf) version
+		{
+			"grim",
+			"7Wolf",
+			AD_ENTRY1s("VOX0001.LAB", "b517dbb493679b1679036de1a1bfc8a5", 57180788),
+			Common::RU_RUS,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_GRIME
+		},
+		GType_GRIM
+	},
+	{
+		// Grim Fandango Russian (Fargus) version
+		{
+			"grim",
+			"Fargus",
+			AD_ENTRY1s("VOX0001.LAB", "a38708ba97960ee7ee59218489a485eb", 44691160),
+			Common::RU_RUS,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUI_OPTIONS_GRIME
@@ -179,6 +203,19 @@ static const GrimGameDescription gameDescriptions[] = {
 		GType_GRIM
 	},
 	{
+		// Grim Fandango German version (CD protected) - unsupported
+		{
+			"grim",
+			"",
+			AD_ENTRY1s("VOX0001.LAB", "88e8e13a8164c0df62b1f2f4e9ab4583", 388753408),
+			Common::DE_DEU,
+			Common::kPlatformWindows,
+			ADGF_UNSUPPORTED,
+			GUI_OPTIONS_GRIME
+		},
+		GType_GRIM
+	},
+	{
 		// Grim Fandango Hebrew Fan translation (patched)
 		{
 			"grim",
@@ -186,6 +223,20 @@ static const GrimGameDescription gameDescriptions[] = {
 			AD_ENTRY2s("LOCAL.LAB", "d22648d6787c2f8f0a789ee3ed0c08f7", 608,
 					   "VOX0001.LAB", "444f05f2af689c1bffd179b8b6a632bd", 57993159),
 			Common::HE_ISR,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_GRIME
+		},
+		GType_GRIM
+	},
+	{
+		// Grim Fandango Korean Fan translation (patched)
+		{
+			"grim",
+			"",
+			AD_ENTRY2s("VOX0001.LAB", "444f05f2af689c1bffd179b8b6a632bd", 57993159,
+					   "grim.ko.tab", NULL, AD_NO_SIZE),
+			Common::KO_KOR,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUI_OPTIONS_GRIME
@@ -383,6 +434,20 @@ static const GrimGameDescription gameDescriptions[] = {
 		GType_MONKEY4
 	},
 	{
+		// Escape from Monkey Island Chinese
+		{
+			"monkey4",
+			"",
+			AD_ENTRY2s("artAll.m4b", "61959da91d864bf5f4588daa4a5a3019", 18515664,
+				   "Script.tab", "ee08a95b6820f7b876940f6cd41dbae7", 618346),
+			Common::ZH_TWN,
+			Common::kPlatformWindows,
+			ADGF_UNSTABLE,
+			GUI_OPTIONS_GRIME
+		},
+		GType_MONKEY4
+	},
+	{
 		// Escape from Monkey Island German
 		{
 			"monkey4",
@@ -461,6 +526,20 @@ static const GrimGameDescription gameDescriptions[] = {
 		GType_MONKEY4
 	},
 	{
+		// Escape from Monkey Island English (Mac)
+		{
+			"monkey4",
+			"",
+			AD_ENTRY2s("artAll.m4b",	 "61959da91d864bf5f4588daa4a5a3019", 18515664,
+					   "Monkey Island 4 Installer", "r:8230927789935674546c4b3f9b1368ea", 560139),
+			Common::EN_ANY,
+			Common::kPlatformMacintosh,
+			ADGF_UNSTABLE,
+			GUI_OPTIONS_GRIME
+		},
+		GType_MONKEY4
+	},
+	{
 		// Escape from Monkey Island German (Mac)
 		{
 			"monkey4",
@@ -474,6 +553,8 @@ static const GrimGameDescription gameDescriptions[] = {
 		},
 		GType_MONKEY4
 	},
+
+#if defined(USE_MPEG2)
 	{
 		// Escape from Monkey Island English PS2
 		{
@@ -539,6 +620,8 @@ static const GrimGameDescription gameDescriptions[] = {
 		},
 		GType_MONKEY4
 	},
+#endif
+
 	{
 		// Escape from Monkey Island CD demo (English)
 		{
@@ -615,21 +698,27 @@ static const GrimGameDescription gameDescriptions[] = {
 	{ AD_TABLE_END_MARKER, GType_GRIM }
 };
 
-class GrimMetaEngineDetection : public AdvancedMetaEngineDetection {
+class GrimMetaEngineDetection : public AdvancedMetaEngineDetection<Grim::GrimGameDescription> {
 public:
-	GrimMetaEngineDetection() : AdvancedMetaEngineDetection(Grim::gameDescriptions, sizeof(Grim::GrimGameDescription), grimGames, gameGuiOptions) {
+	GrimMetaEngineDetection() : AdvancedMetaEngineDetection(Grim::gameDescriptions, grimGames) {
 		_guiOptions = GUIO_NOMIDI;
+		_flags |= kADFlagCanTranscodeTraditionalChineseToSimplified;
 	}
 
 	PlainGameDescriptor findGame(const char *gameid) const override {
 		return Engines::findGameID(gameid, _gameIds, obsoleteGameIDsTable);
 	}
 
-	const char *getName() const override {
+	Common::Error identifyGame(DetectedGame &game, const void **descriptor) override {
+		Engines::upgradeTargetIfNecessary(obsoleteGameIDsTable);
+		return AdvancedMetaEngineDetection::identifyGame(game, descriptor);
+	}
+
+	const char *getEngineName() const override {
 		return "Grim";
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "grim";
 	}
 
@@ -641,6 +730,17 @@ public:
 		return debugFlagList;
 	}
 
+	DetectedGame toDetectedGame(const ADDetectedGame &adGame, ADDetectedGameExtraInfo *extraInfo) const override {
+		DetectedGame game = AdvancedMetaEngineDetection::toDetectedGame(adGame, extraInfo);
+		GrimGameType gameID = reinterpret_cast<const GrimGameDescription *>(adGame.desc)->gameType;
+
+		if (gameID == GType_MONKEY4 && adGame.desc->language == Common::Language::ZH_TWN) {
+			game.appendGUIOptions(Common::getGameGUIOptionsDescriptionLanguage(Common::ZH_TWN));
+			game.appendGUIOptions(Common::getGameGUIOptionsDescriptionLanguage(Common::ZH_CHN));
+		}
+
+		return game;
+	}
 };
 
 } // End of namespace Grim

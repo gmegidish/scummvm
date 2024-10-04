@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,24 +15,23 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/gumps/cru_energy_gump.h"
 
 #include "ultima/ultima8/world/actors/main_actor.h"
-#include "ultima/ultima8/graphics/palette_manager.h"
-#include "ultima/ultima8/graphics/render_surface.h"
+#include "ultima/ultima8/gfx/palette.h"
+#include "ultima/ultima8/gfx/palette_manager.h"
+#include "ultima/ultima8/gfx/render_surface.h"
+#include "ultima/ultima8/gfx/texture.h"
 #include "ultima/ultima8/world/get_object.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-static const uint32 ENERGY_BAR_R = 154;
-static const uint32 ENERGY_BAR_G = 4;
-static const uint32 ENERGY_BAR_B = 4;
+static const uint ENERGY_BAR_COLOR = 245;
 
 DEFINE_RUNTIME_CLASSTYPE_CODE(CruEnergyGump)
 
@@ -73,12 +72,8 @@ void CruEnergyGump::PaintThis(RenderSurface *surf, int32 lerp_factor, bool scale
 	if (!gamepal)
 		return;
 
-	int r = ENERGY_BAR_R;
-	int g = ENERGY_BAR_G;
-	int b = ENERGY_BAR_B;
-	gamepal->transformRGB(r, g, b);
-	uint32 fillcolor = (r << 16) | (g << 8) | b;
-	surf->Fill32(fillcolor, 34, 7, width, 14);
+	Rect rect(34, 7, 34 + width, 21);
+	surf->fillRect(rect, gamepal->_native[ENERGY_BAR_COLOR]);
 }
 
 void CruEnergyGump::saveData(Common::WriteStream *ws) {

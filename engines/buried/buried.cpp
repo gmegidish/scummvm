@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,18 +31,22 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 #include "common/translation.h"
-#include "common/winexe_ne.h"
-#include "common/winexe_pe.h"
+#include "common/formats/winexe_ne.h"
+#include "common/formats/winexe_pe.h"
 #include "engines/util.h"
 #include "graphics/wincursor.h"
 #include "gui/message.h"
 
+#include "buried/agent_evaluation.h"
+#include "buried/biochip_right.h"
 #include "buried/buried.h"
 #include "buried/console.h"
 #include "buried/frame_window.h"
+#include "buried/gameui.h"
 #include "buried/graphics.h"
 #include "buried/message.h"
 #include "buried/resources.h"
+#include "buried/scene_view.h"
 #include "buried/sound.h"
 #include "buried/video_window.h"
 #include "buried/window.h"
@@ -61,8 +64,9 @@ BuriedEngine::BuriedEngine(OSystem *syst, const ADGameDescription *gameDesc) : E
 	_captureWindow = nullptr;
 	_pauseStartTime = 0;
 	_yielding = false;
+	_allowVideoSkip = true;
 
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "WIN31/MANUAL", 0, 2); // v1.05 era
 	SearchMan.addSubDirectoryMatching(gameDataDir, "WIN95/MANUAL", 0, 2); // v1.10 era (Trilogy release)
 
@@ -85,8 +89,11 @@ BuriedEngine::~BuriedEngine() {
 Common::Error BuriedEngine::run() {
 	setDebugger(new BuriedConsole(this));
 
+	ConfMan.registerDefault("skip_support", true);
+	_allowVideoSkip = ConfMan.getBool("skip_support");
+
 	if (isTrueColor()) {
-		initGraphics(640, 480, 0);
+		initGraphics(640, 480, nullptr);
 
 		if (_system->getScreenFormat().bytesPerPixel == 1)
 			return Common::kUnsupportedColorMode;
@@ -107,16 +114,16 @@ Common::Error BuriedEngine::run() {
 
 	if (isCompressed()) {
 		if (!_mainEXE->loadFromCompressedEXE(getEXEName()))
-			error("Failed to load main EXE '%s'", getEXEName().c_str());
+			error("Failed to load main EXE '%s'", getEXEName().toString(Common::Path::kNativeSeparator).c_str());
 
 		if (_library && !_library->loadFromCompressedEXE(getLibraryName()))
-			error("Failed to load library DLL '%s'", getLibraryName().c_str());
+			error("Failed to load library DLL '%s'", getLibraryName().toString(Common::Path::kNativeSeparator).c_str());
 	} else {
 		if (!_mainEXE->loadFromEXE(getEXEName()))
-			error("Failed to load main EXE '%s'", getEXEName().c_str());
+			error("Failed to load main EXE '%s'", getEXEName().toString(Common::Path::kNativeSeparator).c_str());
 
 		if (_library && !_library->loadFromEXE(getLibraryName()))
-			error("Failed to load library DLL '%s'", getLibraryName().c_str());
+			error("Failed to load library DLL '%s'", getLibraryName().toString(Common::Path::kNativeSeparator).c_str());
 	}
 
 	syncSoundSettings();
@@ -125,6 +132,8 @@ Common::Error BuriedEngine::run() {
 	_sound = new SoundManager(this);
 	_mainWindow = new FrameWindow(this);
 	_mainWindow->showWindow(Window::kWindowShow);
+
+	checkForOriginalSavedGames();
 
 	if (isDemo()) {
 		((FrameWindow *)_mainWindow)->showTitleSequence();
@@ -189,23 +198,29 @@ Common::String BuriedEngine::getString(uint32 stringID) {
 	return result;
 }
 
-Common::String BuriedEngine::getFilePath(uint32 stringID) {
+Common::Path BuriedEngine::getFilePath(uint32 stringID) {
 	Common::String path = getString(stringID);
-	Common::String output;
 
 	if (path.empty())
-		return output;
+		return Common::Path();
 
+	Common::String output;
 	uint i = 0;
 
 	// The non-demo paths have CD info followed by a backslash.
 	// We ignore this.
 	// In the demo, we remove the "BITDATA" prefix because the
 	// binaries are in the same directory.
-	if (isDemo())
-		i += 8;
-	else
+	// The North American demo also has paths that start with
+	// a backslash, while other demos don't.
+	if (isDemo()) {
+		if (path[0] == '\\')
+			i += 9;
+		else
+			i += 8;
+	} else {
 		i += 2;
+	}
 
 	for (; i < path.size(); i++) {
 		if (path[i] == '\\')
@@ -214,7 +229,7 @@ Common::String BuriedEngine::getFilePath(uint32 stringID) {
 			output += path[i];
 	}
 
-	return output;
+	return Common::Path(output, '/');
 }
 
 Graphics::WinCursorGroup *BuriedEngine::getCursorGroup(uint32 cursorGroupID) {
@@ -311,6 +326,45 @@ void BuriedEngine::postMessageToWindow(Window *dest, Message *message) {
 	_messageQueue.push_back(msg);
 }
 
+void BuriedEngine::processAudioVideoSkipMessages(VideoWindow *video, int soundId) {
+	assert(video || soundId >= 0);
+
+	for (MessageQueue::iterator it = _messageQueue.begin(); it != _messageQueue.end();) {
+		MessageType messageType = it->message->getMessageType();
+
+		if (messageType == kMessageTypeKeyUp) {
+			Common::KeyState keyState = ((KeyUpMessage *)it->message)->getKeyState();
+
+			// Send any skip keyup events to the audio/video players
+			if (keyState.keycode == Common::KEYCODE_ESCAPE) {
+				if (video)
+					video->onKeyUp(keyState, ((KeyUpMessage *)it->message)->getFlags());
+
+				if (soundId >= 0)
+					_sound->stopSound(soundId);
+
+				delete it->message;
+				it = _messageQueue.erase(it);
+			} else {
+				++it;
+			}
+		} else if (messageType == kMessageTypeKeyDown) {
+			Common::KeyState keyState = ((KeyDownMessage *)it->message)->getKeyState();
+
+			// Erase any skip video keydown events from the queue, to avoid
+			// interpreting them as game quit events after the video ends
+			if (keyState.keycode == Common::KEYCODE_ESCAPE) {
+				delete it->message;
+				it = _messageQueue.erase(it);
+			} else {
+				++it;
+			}
+		} else {
+			++it;
+		}
+	}
+}
+
 void BuriedEngine::sendAllMessages() {
 	while (!shouldQuit() && !_messageQueue.empty()) {
 		MessageInfo msg = _messageQueue.front();
@@ -387,7 +441,7 @@ bool BuriedEngine::hasMessage(Window *window, int messageBegin, int messageEnd) 
 	return false;
 }
 
-void BuriedEngine::yield() {
+void BuriedEngine::yield(VideoWindow *video, int soundId) {
 	// A cut down version of the Win16 yield function. Win32 handles this
 	// asynchronously, which we don't want. Only needed for internal event loops.
 
@@ -398,8 +452,10 @@ void BuriedEngine::yield() {
 
 	pollForEvents();
 
-	// We don't send messages any messages from here. Otherwise, this is the same
+	// We only send audio/video skipping messages from here. Otherwise, this is the same
 	// as our main loop.
+	if ((video || soundId >= 0) && _allowVideoSkip)
+		processAudioVideoSkipMessages(video, soundId);
 
 	_gfx->updateScreen();
 	_system->delayMillis(10);
@@ -454,6 +510,10 @@ void BuriedEngine::pollForEvents() {
 			window->postMessage(new RButtonUpMessage(window->convertPointToLocal(event.mouse), 0));
 			break;
 		}
+		case Common::EVENT_MAINMENU: {
+			((FrameWindow *)_mainWindow)->_controlDown = false;
+			break;
+		}
 		default:
 			break;
 		}
@@ -483,7 +543,7 @@ uint32 BuriedEngine::getVersion() {
 	return result;
 }
 
-Common::String BuriedEngine::getFilePath(int timeZone, int environment, int fileOffset) {
+Common::Path BuriedEngine::getFilePath(int timeZone, int environment, int fileOffset) {
 	return getFilePath(computeFileNameResourceID(timeZone, environment, fileOffset));
 }
 
@@ -533,6 +593,53 @@ bool BuriedEngine::runQuitDialog() {
 
 bool BuriedEngine::isControlDown() const {
 	return _mainWindow && ((FrameWindow *)_mainWindow)->_controlDown;
+}
+
+void BuriedEngine::pauseGame() {
+	// TODO: Would be nice to load the translated text from IDS_APP_MESSAGE_PAUSED_TEXT (9023)
+	GUI::MessageDialog dialog(_("Your game is now Paused.  Click OK to continue."));
+	runDialog(dialog);
+}
+
+void BuriedEngine::showPoints() {
+	if (isDemo())
+		return;
+
+	FrameWindow *frameWindow = (FrameWindow *)_mainWindow;
+	SceneViewWindow *sceneView = ((GameUIWindow *)frameWindow->getMainChildWindow())->_sceneViewWindow;
+	AgentEvaluation *agentEvaluation = new AgentEvaluation(this, sceneView->getGlobalFlags(), -1);
+
+	GUI::MessageDialog dialog(
+		agentEvaluation->_scoringTextDescriptionsWithScores,
+		"OK",
+		Common::U32String(),
+		Graphics::kTextAlignLeft
+	);
+	runDialog(dialog);
+
+	delete agentEvaluation;
+}
+
+void BuriedEngine::handleSaveDialog() {
+	FrameWindow *frameWindow = (FrameWindow *)_mainWindow;
+	BioChipRightWindow *bioChipWindow = ((GameUIWindow *)frameWindow->getMainChildWindow())->_bioChipRightWindow;
+
+	if (isDemo())
+		return;
+
+	if (saveGameDialog())
+		bioChipWindow->destroyBioChipViewWindow();
+}
+
+void BuriedEngine::handleRestoreDialog() {
+	FrameWindow *frameWindow = (FrameWindow *)_mainWindow;
+	BioChipRightWindow *bioChipWindow = ((GameUIWindow *)frameWindow->getMainChildWindow())->_bioChipRightWindow;
+
+	if (isDemo())
+		return;
+
+	if (loadGameDialog())
+		bioChipWindow->destroyBioChipViewWindow();
 }
 
 } // End of namespace Buried

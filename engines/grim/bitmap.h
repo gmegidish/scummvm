@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@
 #include "engines/grim/pool.h"
 
 namespace Graphics {
-class PixelBuffer;
+struct Surface;
 }
 
 namespace Common {
@@ -51,7 +50,7 @@ namespace Grim {
 class BitmapData {
 public:
 	BitmapData(const Common::String &fname);
-	BitmapData(const Graphics::PixelBuffer &buf, int w, int h, const char *fname);
+	BitmapData(const Graphics::Surface &buf, int w, int h, const char *fname);
 	BitmapData();
 	~BitmapData();
 
@@ -72,7 +71,7 @@ public:
 	static BitmapData *getBitmapData(const Common::String &fname);
 	static Common::HashMap<Common::String, BitmapData *> *_bitmaps;
 
-	const Graphics::PixelBuffer &getImageData(int num) const;
+	const Graphics::Surface &getImageData(int num) const;
 
 	/**
 	 * Convert a bitmap to another color-format.
@@ -119,8 +118,8 @@ public:
 	uint32 _numVerts;
 	uint32 _numLayers;
 
-// private:
-	Graphics::PixelBuffer *_data;
+//private:
+	Graphics::Surface *_data;
 	void *_userData;
 };
 
@@ -134,7 +133,7 @@ public:
 	 * @param len       the length of the data
 	 */
 	Bitmap(const Common::String &filename);
-	Bitmap(const Graphics::PixelBuffer &buf, int width, int height, const char *filename);
+	Bitmap(const Graphics::Surface &buf, int width, int height, const char *filename);
 	Bitmap();
 
 	static int32 getStaticTag() { return MKTAG('V', 'B', 'U', 'F'); }
@@ -163,8 +162,8 @@ public:
 	int getWidth() const { return _data->_width; }
 	int getHeight() const { return _data->_height; }
 
-	const Graphics::PixelBuffer &getData(int num) const { return _data->getImageData(num); }
-	const Graphics::PixelBuffer &getData() const { return getData(_currImage); }
+	const Graphics::Surface &getData(int num) const { return _data->getImageData(num); }
+	const Graphics::Surface &getData() const { return getData(_currImage); }
 	BitmapData *getBitmapData() const { return _data; }
 	void *getTexIds() const { return _data->_texIds; }
 	int getNumTex() const { return _data->_numTex; }

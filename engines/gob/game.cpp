@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -47,12 +52,12 @@ Environments::Environments(GobEngine *vm) : _vm(vm) {
 
 		e.cursorHotspotX = 0;
 		e.cursorHotspotY = 0;
-		e.variables      = 0;
-		e.script         = 0;
-		e.resources      = 0;
+		e.variables      = nullptr;
+		e.script         = nullptr;
+		e.resources      = nullptr;
 
 		for (int j = 0; j < 17; j++)
-			m.fonts[j] = 0;
+			m.fonts[j] = nullptr;
 	}
 }
 
@@ -170,7 +175,7 @@ bool Environments::has(Resources *resources, uint8 startEnv, int16 except) const
 void Environments::deleted(Variables *variables) {
 	for (uint i = 0; i < kEnvironmentCount; i++) {
 		if (_environments[i].variables == variables)
-			_environments[i].variables = 0;
+			_environments[i].variables = nullptr;
 	}
 }
 
@@ -188,7 +193,7 @@ bool Environments::clearMedia(uint8 env) {
 
 	for (int i = 0; i < 17; i++) {
 		delete m.fonts[i];
-		m.fonts[i] = 0;
+		m.fonts[i] = nullptr;
 	}
 
 	return true;
@@ -216,7 +221,7 @@ bool Environments::setMedia(uint8 env) {
 	int n = MIN(Draw::kFontCount, 17);
 	for (int i = 0; i < n; i++) {
 		m.fonts[i] = _vm->_draw->_fonts[i];
-		_vm->_draw->_fonts[i] = 0;
+		_vm->_draw->_fonts[i] = nullptr;
 	}
 
 	return true;
@@ -244,7 +249,7 @@ bool Environments::getMedia(uint8 env) {
 	for (int i = 0; i < n; i++) {
 		delete _vm->_draw->_fonts[i];
 		_vm->_draw->_fonts[i] = m.fonts[i];
-		m.fonts[i]= 0;
+		m.fonts[i]= nullptr;
 	}
 
 	return true;
@@ -253,8 +258,8 @@ bool Environments::getMedia(uint8 env) {
 
 TotFunctions::TotFunctions(GobEngine *vm) : _vm(vm) {
 	for (uint8 i = 0; i < kTotCount; i++) {
-		_tots[i].script    = 0;
-		_tots[i].resources = 0;
+		_tots[i].script    = nullptr;
+		_tots[i].resources = nullptr;
 	}
 }
 
@@ -279,8 +284,8 @@ void TotFunctions::freeTot(Tot &tot) {
 	delete tot.script;
 	delete tot.resources;
 
-	tot.script    = 0;
-	tot.resources = 0;
+	tot.script    = nullptr;
+	tot.resources = nullptr;
 
 	tot.file.clear();
 	tot.functions.clear();
@@ -382,9 +387,9 @@ bool TotFunctions::unload(const Common::String &totFile) {
 	Tot &tot = _tots[index];
 
 	if (_vm->_game->_script == tot.script)
-		_vm->_game->_script = 0;
+		_vm->_game->_script = nullptr;
 	if (_vm->_game->_resources == tot.resources)
-		_vm->_game->_resources = 0;
+		_vm->_game->_resources = nullptr;
 
 	freeTot(tot);
 
@@ -576,6 +581,13 @@ void Game::playTot(int16 function) {
 				break;
 			}
 
+			if (_vm->getGameType() == kGameTypeAdibou1 ||
+				_vm->getGameType() == kGameTypeAdi2) { // TODO: maybe needed by other games
+				_vm->_draw->_needAdjust = _vm->_game->_script->getData()[58];
+				if (_vm->_draw->_needAdjust <= 1 || _vm->_draw->_needAdjust >= 8)
+					_vm->_draw->_needAdjust = 2;
+			}
+
 			_resources->load(_curTotFile);
 
 			_vm->_global->_inter_animDataSize = _script->getAnimDataSize();
@@ -667,6 +679,9 @@ void Game::capturePush(int16 left, int16 top, int16 width, int16 height) {
 	if (_captureCount == 20)
 		error("Game::capturePush(): Capture stack overflow");
 
+	_vm->_draw->adjustCoords(0, &left, &top);
+	_vm->_draw->adjustCoords(0, &width, &height);
+
 	_captureStack[_captureCount].left = left;
 	_captureStack[_captureCount].top = top;
 	_captureStack[_captureCount].right = left + width;
@@ -689,7 +704,11 @@ void Game::capturePush(int16 left, int16 top, int16 width, int16 height) {
 	_vm->_draw->_destSpriteX = 0;
 	_vm->_draw->_destSpriteY = 0;
 	_vm->_draw->_transparency = 0;
-	_vm->_draw->spriteOperation(0);
+
+	int16 savedNeedAdjust = _vm->_draw->_needAdjust;
+	_vm->_draw->_needAdjust = 10;
+	_vm->_draw->spriteOperation(DRAW_BLITSURF);
+	_vm->_draw->_needAdjust = savedNeedAdjust;
 	_captureCount++;
 }
 
@@ -711,7 +730,10 @@ void Game::capturePop(char doDraw) {
 		_vm->_draw->_destSurface = Draw::kBackSurface;
 		_vm->_draw->_spriteLeft = _vm->_draw->_destSpriteX & 0xF;
 		_vm->_draw->_spriteTop = 0;
-		_vm->_draw->spriteOperation(0);
+		int16 savedNeedAdjust = _vm->_draw->_needAdjust;
+		_vm->_draw->_needAdjust = 10;
+		_vm->_draw->spriteOperation(DRAW_BLITSURF);
+		_vm->_draw->_needAdjust = savedNeedAdjust;
 	}
 	_vm->_draw->freeSprite(Draw::kCaptureSurface + _captureCount);
 }
@@ -862,7 +884,7 @@ void Game::totSub(int8 flags, const Common::String &totFile) {
 		warning("Addy Stub: Game::totSub(), flags & 0x80");
 
 	if (flags & 5)
-		_vm->_inter->_variables = 0;
+		_vm->_inter->_variables = nullptr;
 
 	_curTotFile = totFile + ".TOT";
 
@@ -961,11 +983,11 @@ void Game::deletedVars(Variables *variables) {
 void Game::clearUnusedEnvironment() {
 	if (!_environments.has(_script)) {
 		delete _script;
-		_script = 0;
+		_script = nullptr;
 	}
 	if (!_environments.has(_resources)) {
 		delete _resources;
-		_resources = 0;
+		_resources = nullptr;
 	}
 }
 

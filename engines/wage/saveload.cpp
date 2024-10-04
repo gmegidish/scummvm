@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * MIT License:
  *
@@ -62,6 +61,7 @@
 #include "wage/wage.h"
 #include "wage/world.h"
 #include "wage/entities.h"
+#include "wage/gui.h"
 
 #define SAVEGAME_CURRENT_VERSION 1
 
@@ -74,8 +74,6 @@
 //
 
 namespace Wage {
-
-static const uint32 WAGEflag = MKTAG('W', 'A', 'G', 'E');
 
 //TODO: make sure these are calculated right: (we add flag, description, etc)
 #define VARS_INDEX 0x005E
@@ -335,34 +333,7 @@ int WageEngine::saveGame(const Common::String &fileName, const Common::String &d
 	}
 
 	// the following is appended by ScummVM
-	int32 appendixOffset = out->pos();
-	if (appendixOffset < 0) {
-		warning("OutSaveFile::pos() failed");
-	}
-	out->writeUint32BE(WAGEflag);
-
-	// Write description of saved game, limited to WAGE_SAVEDGAME_DESCRIPTION_LEN characters + terminating NUL
-	const int WAGE_SAVEDGAME_DESCRIPTION_LEN = 127;
-	char description[WAGE_SAVEDGAME_DESCRIPTION_LEN + 1];
-
-	memset(description, 0, sizeof(description));
-	strncpy(description, descriptionString.c_str(), WAGE_SAVEDGAME_DESCRIPTION_LEN);
-	assert(WAGE_SAVEDGAME_DESCRIPTION_LEN + 1 == 128); // safety
-	out->write(description, 128);
-
-	out->writeByte(SAVEGAME_CURRENT_VERSION);
-	debug(9, "Writing save game version (%d)", SAVEGAME_CURRENT_VERSION);
-
-	// Thumbnail
-	Graphics::saveThumbnail(*out);
-
-	out->writeUint32BE(appendixOffset);
-
-	// this one to make checking easier:
-	// it couldn't be added to the beginning
-	// and we won't be able to find it in the middle,
-	// so these would be the last 4 bytes of the file
-	out->writeUint32BE(WAGEflag);
+	g_engine->getMetaEngine()->appendExtendedSave(out, g_engine->getTotalPlayTime(), descriptionString, fileName.contains("auto"));
 
 	out->finalize();
 	if (out->err()) {
@@ -717,23 +688,46 @@ int WageEngine::loadGame(int slotId) {
 	_aim = aim;
 	_opponentAim = opponentAim;
 
+	// Load the savaegame header
+	ExtendedSavegameHeader header;
+	if (!MetaEngine::readSavegameHeader(data, &header, true))
+		error("Invalid savegame");
+
+	_defaultSaveDescritpion = header.description;
+
 	delete data;
 	return 0;
 }
 
 Common::Error WageEngine::loadGameState(int slot) {
-	if (loadGame(slot) == 0)
+	warning("LOADING %d", slot);
+	if (loadGame(slot) == 0) {
+		if (slot != getAutosaveSlot()) {
+			_defaultSaveSlot = slot;
+			// save description is set inside of loadGame()
+			_gui->enableSave();
+		}
+
 		return Common::kNoError;
-	else
+	} else {
 		return Common::kUnknownError;
+	}
 }
 
 Common::Error WageEngine::saveGameState(int slot, const Common::String &description, bool isAutosave) {
 	Common::String saveLoadSlot = getSaveStateName(slot);
-	if (saveGame(saveLoadSlot, description) == 0)
+	if (saveGame(saveLoadSlot, description) == 0) {
+		if (slot != getAutosaveSlot()) {
+			_defaultSaveSlot = slot;
+			_defaultSaveDescritpion = description;
+
+			_gui->enableSave();
+		}
+
 		return Common::kNoError;
-	else
+	} else {
 		return Common::kUnknownError;
+	}
 }
 
 bool WageEngine::scummVMSaveLoadDialog(bool isSave) {
@@ -754,7 +748,7 @@ bool WageEngine::scummVMSaveLoadDialog(bool isSave) {
 	Common::String desc = dialog.getResultString();
 
 	if (desc.empty()) {
-		// create our own description for the saved game, the user didnt enter it
+		// create our own description for the saved game, the user didn't enter it
 		desc = dialog.createDefaultSaveDescription(slot);
 	}
 

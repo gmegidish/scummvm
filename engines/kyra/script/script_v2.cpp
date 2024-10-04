@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -119,7 +118,7 @@ int KyraEngine_v2::o2_delay(EMCState *script) {
 	if (stackPos(1)) {
 		uint32 maxWaitTime = _system->getMillis() + stackPos(0) * _tickLength;
 		while (_system->getMillis() < maxWaitTime) {
-			int inputFlag = checkInput(0);
+			int inputFlag = checkInput(nullptr);
 			removeInputTop();
 
 			if (inputFlag == 198 || inputFlag == 199)
@@ -159,7 +158,7 @@ int KyraEngine_v2::o2_waitForConfirmationClick(EMCState *script) {
 	uint32 maxWaitTime = _system->getMillis() + stackPos(0) * _tickLength;
 
 	while (_system->getMillis() < maxWaitTime) {
-		int inputFlag = checkInput(0);
+		int inputFlag = checkInput(nullptr);
 		removeInputTop();
 
 		if (inputFlag == 198 || inputFlag == 199) {
@@ -243,8 +242,8 @@ int KyraEngine_v2::o2_defineScene(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_v2::o2_defineScene(%p) (%d, '%s', %d, %d, %d, %d, %d, %d)",
 	       (const void *)script, stackPos(0), stackPosString(1), stackPos(2), stackPos(3), stackPos(4), stackPos(5), stackPos(6), stackPos(7));
 	const int scene = stackPos(0);
-	strcpy(_sceneList[scene].filename1, stackPosString(1));
-	strcpy(_sceneList[scene].filename2, stackPosString(1));
+	Common::strlcpy(_sceneList[scene].filename1, stackPosString(1), sizeof(_sceneList[scene].filename1));
+	Common::strlcpy(_sceneList[scene].filename2, stackPosString(1), sizeof(_sceneList[scene].filename2));
 
 	_sceneList[scene].exit1 = stackPos(2);
 	_sceneList[scene].exit2 = stackPos(3);
@@ -324,7 +323,7 @@ int KyraEngine_v2::o2_getVocHigh(EMCState *script) {
 int KyraEngine_v2::o2a_setAnimationShapes(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_v2::o2a_setAnimationShapes(%p) ('%s', %d, %d, %d, %d, %d)", (const void *)script,
 	       stackPosString(0), stackPos(1), stackPos(2), stackPos(3), stackPos(4), stackPos(5));
-	strcpy(_animShapeFilename, stackPosString(0));
+	Common::strlcpy(_animShapeFilename, stackPosString(0), sizeof(_animShapeFilename));
 	_animShapeLastEntry = stackPos(1);
 	_animShapeWidth = stackPos(2);
 	_animShapeHeight = stackPos(3);

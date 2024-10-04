@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -133,7 +132,7 @@ uint8 *Disk::loadFile(uint16 fileNr) {
 		if ((fileFlags >> 22) & 0x1) { //do we include the header?
 			// don't return the file's header
 			output = uncompDest;
-			unpackLen = _rncDecoder.unpackM1(input, output, 0);
+			unpackLen = _rncDecoder.unpackM1(input, fileSize - sizeof(DataFileHeader), output);
 		} else {
 #ifdef SCUMM_BIG_ENDIAN
 			// Convert DataFileHeader to BE (it only consists of 16 bit words)
@@ -144,7 +143,7 @@ uint8 *Disk::loadFile(uint16 fileNr) {
 
 			memcpy(uncompDest, fileDest, sizeof(DataFileHeader));
 			output = uncompDest + sizeof(DataFileHeader);
-			unpackLen = _rncDecoder.unpackM1(input, output, 0);
+			unpackLen = _rncDecoder.unpackM1(input, fileSize - sizeof(DataFileHeader), output);
 			if (unpackLen)
 				unpackLen += sizeof(DataFileHeader);
 		}
@@ -320,7 +319,7 @@ void Disk::dumpFile(uint16 fileNr) {
 	byte* filePtr;
 
 	filePtr = loadFile(fileNr);
-	sprintf(buf, "dumps/file-%d.dmp", fileNr);
+	Common::sprintf_s(buf, "dumps/file-%d.dmp", fileNr);
 
 	if (!Common::File::exists(buf)) {
 		if (out.open(buf))

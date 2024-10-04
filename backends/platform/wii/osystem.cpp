@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,12 +24,12 @@
 #include <unistd.h>
 
 #include <ogc/conf.h>
-#include <ogc/mutex.h>
 #include <ogc/lwp_watchdog.h>
 
 #include "common/config-manager.h"
 #include "common/textconsole.h"
 #include "backends/fs/wii/wii-fs-factory.h"
+#include "backends/mutex/wii/wii-mutex.h"
 #include "backends/saves/default/default-saves.h"
 #include "backends/timer/default/default-timer.h"
 
@@ -40,6 +39,7 @@
 OSystem_Wii::OSystem_Wii() :
 	_startup_time(0),
 
+	_overlayInGUI(false),
 	_cursorDontScale(true),
 	_cursorPaletteDisabled(true),
 	_cursorPalette(NULL),
@@ -132,7 +132,7 @@ void OSystem_Wii::initBackend() {
 
 	char buf[MAXPATHLEN];
 	if (!getcwd(buf, MAXPATHLEN))
-		strcpy(buf, "/");
+		Common::strcpy_s(buf, "/");
 
 	_savefileManager = new DefaultSaveFileManager(buf);
 	_timerManager = new DefaultTimerManager();
@@ -163,7 +163,7 @@ void OSystem_Wii::quit() {
 
 void OSystem_Wii::engineInit() {
 	_gameRunning = true;
-	WiiFilesystemFactory::instance().umountUnused(ConfMan.get("path"));
+	WiiFilesystemFactory::instance().umountUnused(ConfMan.getPath("path").toString(Common::Path::kNativeSeparator));
 }
 
 void OSystem_Wii::engineDone() {
@@ -176,7 +176,9 @@ bool OSystem_Wii::hasFeature(Feature f) {
 	return (f == kFeatureFullscreenMode) ||
 			(f == kFeatureAspectRatioCorrection) ||
 			(f == kFeatureCursorPalette) ||
-			(f == kFeatureOverlaySupportsAlpha);
+			(f == kFeatureCursorAlpha) ||
+			(f == kFeatureOverlaySupportsAlpha) ||
+			(f == kFeatureTouchscreen);
 }
 
 void OSystem_Wii::setFeatureState(Feature f, bool enable) {
@@ -190,10 +192,7 @@ void OSystem_Wii::setFeatureState(Feature f, bool enable) {
 		break;
 	case kFeatureCursorPalette:
 		_cursorPaletteDisabled = !enable;
-		if (_texMouse.palette && !enable) {
-			memcpy(_texMouse.palette, _cursorPalette, 256 * 2);
-			_cursorPaletteDirty = true;
-		}
+		updateMousePalette();
 		break;
 	default:
 		break;
@@ -221,40 +220,8 @@ void OSystem_Wii::delayMillis(uint msecs) {
 	usleep(msecs * 1000);
 }
 
-OSystem::MutexRef OSystem_Wii::createMutex() {
-	mutex_t *mutex = (mutex_t *) malloc(sizeof(mutex_t));
-	s32 res = LWP_MutexInit(mutex, true);
-
-	if (res) {
-		printf("ERROR creating mutex\n");
-		free(mutex);
-		return NULL;
-	}
-
-	return (MutexRef) mutex;
-}
-
-void OSystem_Wii::lockMutex(MutexRef mutex) {
-	s32 res = LWP_MutexLock(*(mutex_t *)mutex);
-
-	if (res)
-		printf("ERROR locking mutex %p (%d)\n", mutex, res);
-}
-
-void OSystem_Wii::unlockMutex(MutexRef mutex) {
-	s32 res = LWP_MutexUnlock(*(mutex_t *)mutex);
-
-	if (res)
-		printf("ERROR unlocking mutex %p (%d)\n", mutex, res);
-}
-
-void OSystem_Wii::deleteMutex(MutexRef mutex) {
-	s32 res = LWP_MutexDestroy(*(mutex_t *)mutex);
-
-	if (res)
-		printf("ERROR destroying mutex %p (%d)\n", mutex, res);
-
-	free(mutex);
+Common::MutexInternal *OSystem_Wii::createMutex() {
+	return createWiiMutexInternal();
 }
 
 Audio::Mixer *OSystem_Wii::getMixer() {

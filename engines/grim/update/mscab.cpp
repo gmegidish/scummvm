@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 #include "common/file.h"
 #include "common/archive.h"
 #include "common/memstream.h"
-#include "common/zlib.h"
+#include "common/compression/deflate.h"
 #include "common/str.h"
 
 namespace Grim {
@@ -47,7 +46,7 @@ MsCabinet::MsCabinet(Common::SeekableReadStream *data) :
 	if (!_data)
 		return;
 
-	//CFHEADER PARSING
+	// CFHEADER PARSING
 
 	// Verify Head-signature
 	uint32 tag = _data->readUint32BE();
@@ -73,7 +72,7 @@ MsCabinet::MsCabinet(Common::SeekableReadStream *data) :
 	if (numFolders == 0 || numFiles == 0)
 		return;
 
-	//This implementation doesn't support multicabinet and reserved fields
+	// This implementation doesn't support multicabinet and reserved fields
 	uint16 flags = _data->readUint16LE();
 	if (flags != 0)
 		return;
@@ -98,7 +97,7 @@ MsCabinet::MsCabinet(Common::SeekableReadStream *data) :
 		_folderMap[i] = fEntry;
 	}
 
-	//CFFILEs PARSING
+	// CFFILEs PARSING
 	_data->seek(filesOffset);
 	if (_data->err())
 		return;
@@ -129,7 +128,7 @@ MsCabinet::MsCabinet(Common::SeekableReadStream *data) :
 			return;
 		}
 
-		_fileMap[name] = fEntry;
+		_fileMap[Common::Path(name, '/')] = fEntry;
 	}
 }
 
@@ -147,8 +146,7 @@ Common::String MsCabinet::readString(Common::ReadStream *stream) {
 }
 
 bool MsCabinet::hasFile(const Common::Path &path) const {
-	Common::String name = path.toString();
-	return _fileMap.contains(name);
+	return _fileMap.contains(path);
 }
 
 int MsCabinet::listMembers(Common::ArchiveMemberList &list) const {
@@ -159,25 +157,23 @@ int MsCabinet::listMembers(Common::ArchiveMemberList &list) const {
 }
 
 const Common::ArchiveMemberPtr MsCabinet::getMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
+	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(path, *this));
 }
 
 Common::SeekableReadStream *MsCabinet::createReadStreamForMember(const Common::Path &path) const {
-	Common::String name = path.toString();
 	byte *fileBuf;
 
-	if (!hasFile(name))
+	if (!hasFile(path))
 		return nullptr;
 
-	const FileEntry &entry = _fileMap[name];
+	const FileEntry &entry = _fileMap[path];
 
-	//Check if the file has already been decompressed and it's in the cache,
+	// Check if the file has already been decompressed and it's in the cache,
 	// otherwise decompress it and put it in the cache
-	if (_cache.contains(name))
-		fileBuf = _cache[name];
+	if (_cache.contains(path))
+		fileBuf = _cache[path];
 	else {
-		//Check if the decompressor should be reinitialized
+		// Check if the decompressor should be reinitialized
 		if (!_decompressor || entry.folder != _decompressor->getFolder()) {
 			delete _decompressor;
 
@@ -187,7 +183,7 @@ Common::SeekableReadStream *MsCabinet::createReadStreamForMember(const Common::P
 		if (!_decompressor->decompressFile(fileBuf, entry))
 			return nullptr;
 
-		_cache[name] = fileBuf;
+		_cache[path] = fileBuf;
 	}
 
 	return new Common::MemoryReadStream(fileBuf, entry.length, DisposeAfterUse::NO);
@@ -197,7 +193,7 @@ MsCabinet::Decompressor::Decompressor(const MsCabinet::FolderEntry *folder, Comm
 	_curFolder(folder), _data(data), _curBlock(-1), _compressedBlock(nullptr), _decompressedBlock(nullptr), _fileBuf(nullptr),
 	_inBlockEnd(0), _inBlockStart(0), _endBlock(0), _startBlock(0) {
 
-	//Alloc the decompression buffers
+	// Alloc the decompression buffers
 	_compressedBlock = new byte[kCabInputmax];
 	_decompressedBlock = new byte[kCabBlockSize];
 }
@@ -211,14 +207,13 @@ MsCabinet::Decompressor::~Decompressor() {
 }
 
 bool MsCabinet::Decompressor::decompressFile(byte *&fileBuf, const FileEntry &entry) {
-#ifdef USE_ZLIB
 	// Ref: http://blogs.kde.org/node/3181
 	uint16 uncompressedLen, compressedLen;
 	byte hdrS[4];
 	byte *buf_tmp, *dict;
 	bool decRes;
 
-	//Sanity checks
+	// Sanity checks
 	if (!_compressedBlock || entry.folder != _curFolder)
 		return false;
 
@@ -227,17 +222,17 @@ bool MsCabinet::Decompressor::decompressFile(byte *&fileBuf, const FileEntry &en
 	_endBlock = (entry.folderOffset + entry.length) / kCabBlockSize;
 	_inBlockEnd = (entry.folderOffset + entry.length) % kCabBlockSize;
 
-	//Check if the decompressor should be reinitialized
+	// Check if the decompressor should be reinitialized
 	if (_curBlock > _startBlock || _curBlock == -1) {
 		_data->seek(entry.folder->offset);
-		//Check the compression method (only mszip supported)
+		// Check the compression method (only mszip supported)
 		if (entry.folder->comp_type != kMszipCompression)
 			return false;
 
-		_curBlock = -1;     //No block decompressed
+		_curBlock = -1;     // No block decompressed
 	}
 
-	//Check if the file is contained in the folder
+	// Check if the file is contained in the folder
 	if ((entry.length + entry.folderOffset) / kCabBlockSize > entry.folder->num_blocks)
 		return false;
 
@@ -245,7 +240,7 @@ bool MsCabinet::Decompressor::decompressFile(byte *&fileBuf, const FileEntry &en
 
 	buf_tmp = _fileBuf;
 
-	//if a part of this file has been decompressed in the last block, make a copy of it
+	// If a part of this file has been decompressed in the last block, make a copy of it
 	copyBlock(buf_tmp);
 
 	while ((_curBlock + 1) <= _endBlock) {
@@ -261,15 +256,15 @@ bool MsCabinet::Decompressor::decompressFile(byte *&fileBuf, const FileEntry &en
 		if (compressedLen > kCabInputmax || uncompressedLen > kCabBlockSize)
 			return false;
 
-		//Read the compressed block
+		// Read the compressed block
 		if (_data->read(_compressedBlock, compressedLen) != compressedLen)
 			return false;
 
-		//Check the CK header
+		// Check the CK header
 		if (_compressedBlock[0] != 'C' || _compressedBlock[1] != 'K')
 			return false;
 
-		//Decompress the block. If it isn't the first, provide the previous block as dictonary
+		// Decompress the block. If it isn't the first, provide the previous block as dictonary
 		dict = (_curBlock >= 0) ? _decompressedBlock : nullptr;
 		decRes = Common::inflateZlibHeaderless(_decompressedBlock, uncompressedLen, _compressedBlock + 2, compressedLen - 2, dict, kCabBlockSize);
 		if (!decRes)
@@ -277,17 +272,13 @@ bool MsCabinet::Decompressor::decompressFile(byte *&fileBuf, const FileEntry &en
 
 		_curBlock++;
 
-		//Copy the decompressed data, if needed
+		// Copy the decompressed data, if needed
 		copyBlock(buf_tmp);
 	}
 
 	fileBuf = _fileBuf;
 	_fileBuf = nullptr;
 	return true;
-#else
-	warning("zlib required to extract MSCAB");
-	return false;
-#endif
 }
 
 void MsCabinet::Decompressor::copyBlock(byte *&data_ptr) const {

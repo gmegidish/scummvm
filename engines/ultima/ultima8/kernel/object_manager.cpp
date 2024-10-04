@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
+#include "ultima/ultima8/misc/debugger.h"
 #include "ultima/ultima8/kernel/object_manager.h"
 #include "ultima/ultima8/misc/id_man.h"
 #include "ultima/ultima8/ultima8.h"
@@ -63,7 +62,7 @@ struct ObjectLoader {
 };
 
 ObjectManager::ObjectManager() {
-	debugN(MM_INFO, "Creating ObjectManager...\n");
+	debug(1, "Creating ObjectManager...");
 
 	_objectManager = this;
 
@@ -78,7 +77,7 @@ ObjectManager::ObjectManager() {
 
 ObjectManager::~ObjectManager() {
 	reset();
-	debugN(MM_INFO, "Destroying ObjectManager...\n");
+	debug(1, "Destroying ObjectManager...");
 
 	_objectManager = nullptr;
 
@@ -87,7 +86,7 @@ ObjectManager::~ObjectManager() {
 }
 
 void ObjectManager::reset() {
-	debugN(MM_INFO, "Resetting ObjectManager...\n");
+	debug(1, "Resetting ObjectManager...");
 
 	unsigned int i;
 
@@ -111,7 +110,7 @@ void ObjectManager::reset() {
 	_objects.clear();
 	_objects.resize(65536);
 	_objIDs->clearAll(32766);
-	_objIDs->reserveID(666);     // 666 is reserved for the Guardian Bark hack
+	_objIDs->reserveID(kGuardianId);     // Reserved for the Guardian Bark hack
 	_actorIDs->clearAll();
 }
 
@@ -135,14 +134,14 @@ void ObjectManager::objectStats() {
 
 void ObjectManager::objectTypes() {
 	g_debugger->debugPrintf("Current object types:\n");
-	Std::map<Common::String, unsigned int> objecttypes;
+	Common::HashMap<Common::String, unsigned int> objecttypes;
 	for (unsigned int i = 1; i < _objects.size(); ++i) {
 		Object *o = _objects[i];
 		if (!o) continue;
 		objecttypes[o->GetClassType()._className]++;
 	}
 
-	Std::map<Common::String, unsigned int>::const_iterator iter;
+	Common::HashMap<Common::String, unsigned int>::const_iterator iter;
 	for (iter = objecttypes.begin(); iter != objecttypes.end(); ++iter) {
 		g_debugger->debugPrintf("%s: %u\n", (*iter)._key.c_str(), (*iter)._value);
 	}
@@ -262,13 +261,12 @@ bool ObjectManager::load(Common::ReadStream *rs, uint32 version) {
 	// _objIDs (up to 511 is reserved by U8Game, 666 is reserved for Guardian
 	// barks).
 	// FIXME: Properly fix this objID leak and increment the savegame number.
-	//        This check can then be turned into an savegame corruption check
+	//        This check can then be turned into a savegame corruption check
 	//        for saves with the new savegame version.
 	// We also fail loading when we're out of _objIDs since this could
 	// have caused serious issues when critical _objects haven't been created.
 	if (_objIDs->isFull()) {
-		perr << "Savegame has been corrupted by running out of _objIDs."
-		     << Std::endl;
+		warning("Savegame has been corrupted by running out of _objIDs.");
 		return false;
 	}
 	unsigned int count = 0;
@@ -278,7 +276,7 @@ bool ObjectManager::load(Common::ReadStream *rs, uint32 version) {
 			count++;
 		}
 	}
-	pout << "Reclaimed " << count << " _objIDs on load." << Std::endl;
+	debug(1, "Reclaimed %u _objIDs on load.", count);
 
 	// Integrity check items - their ids should match, and if they have
 	// parents, those should be valid.
@@ -308,7 +306,7 @@ bool ObjectManager::load(Common::ReadStream *rs, uint32 version) {
 void ObjectManager::saveObject(Common::WriteStream *ws, Object *obj) const {
 	const Std::string & classname = obj->GetClassType()._className; // note: virtual
 
-	Std::map<Common::String, ObjectLoadFunc>::iterator iter;
+	Common::HashMap<Common::String, ObjectLoadFunc>::iterator iter;
 	iter = _objectLoaders.find(classname);
 	if (iter == _objectLoaders.end()) {
 		error("Object class cannot save without registered loader: %s", classname.c_str());
@@ -333,18 +331,18 @@ Object *ObjectManager::loadObject(Common::ReadStream *rs, uint32 version) {
 
 Object *ObjectManager::loadObject(Common::ReadStream *rs, Std::string classname,
 								  uint32 version) {
-	Std::map<Common::String, ObjectLoadFunc>::iterator iter;
+	Common::HashMap<Common::String, ObjectLoadFunc>::iterator iter;
 	iter = _objectLoaders.find(classname);
 
 	if (iter == _objectLoaders.end()) {
-		perr << "Unknown Object class: " << classname << Std::endl;
+		warning("Unknown Object class: %s", classname.c_str());
 		return nullptr;
 	}
 
 	Object *obj = (*(iter->_value))(rs, version);
 
 	if (!obj) {
-		perr << "Error loading object of type " << classname << Std::endl;
+		warning("Error loading object of type %s", classname.c_str());
 		return nullptr;
 	}
 	uint16 objid = obj->getObjId();
@@ -357,8 +355,7 @@ Object *ObjectManager::loadObject(Common::ReadStream *rs, Std::string classname,
 		else
 			used = _actorIDs->isIDUsed(objid);
 		if (!used) {
-			perr << "Error: object ID " << objid
-			     << " used but marked available. " << Std::endl;
+			warning("Error: object ID %u used but marked available.", objid);
 			return nullptr;
 		}
 	}

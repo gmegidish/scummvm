@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -93,12 +92,35 @@ public:
 	virtual int getFontHeight() const = 0;
 
 	/**
+	 * Returns the font's name, if one is available
+	 */
+	virtual Common::String getFontName() const { return ""; }
+
+	/**
 	 * Return the ascent of the font.
 	 *
 	 * @return Font ascent in pixels. If it is unknown
 	 * a value of -1 is returned.
 	 */
 	virtual int getFontAscent() const;
+
+	/**
+	 * Return the descent of the font.
+	 *
+	 * @return Font descent in pixels. If it is unknown
+	 * a value of -1 is returned.
+	 */
+	virtual int getFontDescent() const;
+
+	/**
+	 * Return the leading of the font.
+	 * This is the distance between the descent line
+	 * and the ascent line below it.
+	 *
+	 * @return Font leading in pixels. If it is unknown
+	 * a value of -1 is returned.
+	 */
+	virtual int getFontLeading() const;
 
 	/**
 	 * Return the maximum width of the font.
@@ -247,6 +269,36 @@ public:
 	int wordWrapText(const Common::String &str, int maxWidth, Common::Array<Common::String> &lines, int initWidth = 0, uint32 mode = kWordWrapOnExplicitNewLines) const;
 	/** @overload */
 	int wordWrapText(const Common::U32String &str, int maxWidth, Common::Array<Common::U32String> &lines, int initWidth = 0, uint32 mode = kWordWrapOnExplicitNewLines) const;
+	/**
+	 * @overload
+	 * Word-wrap a text, and returns in lineCountination a list of lines where a word has
+	 * been splitted into the next line.
+	 *
+	 * @param lineContinuation	Bool list. If the ith element of the list is true, then the ith
+	 * line in lines contains a splitted word.
+	 */
+	int wordWrapText(const Common::U32String &str, int maxWidth, Common::Array<Common::U32String> &lines, Common::Array<bool> &lineContinuation, int initWidth = 0, uint32 mode = kWordWrapOnExplicitNewLines) const;
+
+	/**
+	 * Scales the single gylph at @p chr the given the @p scale and the pointer @p grayScaleMap to the grayscale array. It fills @p scaleSurface surface 
+	 * and then we draw the character on @p scaleSurface surface. The @p scaleSUrface is magnified to grayScale array and then we change the @p scaleSurface using the 
+	 * grayScale array and @p grayLevel.
+	 *
+	 * @param grayScaleMap   The pointer to the grayScale array.
+	 * @param grayScaleMapSize  The size of the grayScale array.
+	 * @param scaleSurface  The surface to where character is scaled and drawn.
+	 * @param width     The width of the bouding box for scaled glyph.
+	 * @param height    The height of the bounding box for scaled glyph.
+	 * @param grayLevel The graylevel is the threshold value above which the pixel is considered
+	 * @param chr       The character to scale.
+	 * @param xOffset   The x offset of the bounding box for scaled glyph.
+	 * @param yOffset   The y offset of the bounding box for scaled glyph.
+	 * @param srcheight The height of the source glyph.
+	 * @param srcwidth  The width of the source glyph bounding box.
+	 * @param scale     The scale factor that is equal to @p newSize / @p srcSize of initializeScaling.
+	 */
+	void scaleSingleGlyph(Surface *scaleSurface, int *grayScaleMap, int grayScaleMapSize, int width, int height, int xOffset, int yOffset, int grayLevel, int chr, int srcheight, int srcwidth, float scale) const;
+
 };
 /** @} */
 } // End of namespace Graphics

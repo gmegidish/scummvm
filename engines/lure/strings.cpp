@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,13 +28,13 @@
 
 namespace Lure {
 
-StringData *int_strings = NULL;
+StringData *int_strings = nullptr;
 
 StringData::StringData() {
 	int_strings = this;
 	Disk &disk = Disk::getReference();
 
-	for (uint8 ctr = 0; ctr < MAX_NUM_CHARS; ++ctr) _chars[ctr] = NULL;
+	for (uint8 ctr = 0; ctr < MAX_NUM_CHARS; ++ctr) _chars[ctr] = nullptr;
 	_numChars = 0;
 	_names = Disk::getReference().getEntry(NAMES_RESOURCE_ID);
 	_strings[0] = disk.getEntry(STRINGS_RESOURCE_ID);
@@ -56,7 +55,7 @@ StringData::StringData() {
 }
 
 StringData::~StringData() {
-	int_strings = NULL;
+	int_strings = nullptr;
 
 	for (uint8 ctr = 0; ctr < MAX_NUM_CHARS; ++ctr)
 		if (_chars[ctr]) delete _chars[ctr];
@@ -166,7 +165,7 @@ char StringData::readCharacter() {
 		searchValue |= readBit() << (numBits - 1);
 
 		// Scan through list for a match
-		for (int index = 0; _chars[index] != NULL; ++index) {
+		for (int index = 0; _chars[index] != nullptr; ++index) {
 			if ((_chars[index]->_numBits == numBits) &&
 				(_chars[index]->_sequence == searchValue))
 				return _chars[index]->_ascii;
@@ -185,7 +184,7 @@ void StringData::getString(uint16 stringId, char *dest, const char *hotspotName,
 		stringId, hotspotArticle, hotspotName, characterArticle, characterName);
 	StringList &stringList = Resources::getReference().stringList();
 	char ch;
-	strcpy(dest, "");
+	dest[0] = '\0';
 	char *destPos = dest;
 	stringId &= 0x1fff;      // Strip off any article identifier
 	if (stringId == 0) return;
@@ -203,12 +202,12 @@ void StringData::getString(uint16 stringId, char *dest, const char *hotspotName,
 			const char *p = (ch == '1') ? hotspotName : characterName;
 			int article = !includeArticles ? 0 : ((ch == '1') ? hotspotArticle : characterArticle);
 
-			if (p != NULL) {
+			if (p != nullptr) {
 				if (article > 0) {
-					strcpy(destPos, stringList.getString(S_ARTICLE_LIST + article - 1));
-					strcat(destPos, p);
+					Common::strcpy_s(destPos, MAX_DESC_SIZE - (destPos - dest), stringList.getString(S_ARTICLE_LIST + article - 1));
+					Common::strcat_s(destPos, MAX_DESC_SIZE - (destPos - dest), p);
 				} else {
-					strcpy(destPos, p);
+					Common::strcpy_s(destPos, MAX_DESC_SIZE - (destPos - dest), p);
 				}
 				destPos += strlen(destPos);
 
@@ -217,7 +216,7 @@ void StringData::getString(uint16 stringId, char *dest, const char *hotspotName,
 			}
 		} else if ((uint8) ch >= 0xa0) {
 			const char *p = getName((uint8) ch - 0xa0);
-			strcpy(destPos, p);
+			Common::strcpy_s(destPos, MAX_DESC_SIZE - (destPos - dest), p);
 			destPos += strlen(p);
 			debugC(ERROR_DETAILED, kLureDebugStrings, "String data %xh/%.2xh val=%.2xh sequence='%s'",
 				charOffset, charBitMask, (uint8)ch, p);

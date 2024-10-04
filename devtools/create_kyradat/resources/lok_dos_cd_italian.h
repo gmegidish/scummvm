@@ -229,7 +229,7 @@ static const char *const k1ThePoisonStringsDOSCDItalian[4] = {
 	"Il veleno...",
 	"Non riesco a respirare...  ",
 	"Non mi sento molto bene...    ",
-	"\xAD""E' un serpente velenoso!      "
+	("\xAD""E' un serpente velenoso!      ")
 };
 
 static const StringListProvider k1ThePoisonStringsDOSCDItalianProvider = { ARRAYSIZE(k1ThePoisonStringsDOSCDItalian), k1ThePoisonStringsDOSCDItalian };
@@ -312,7 +312,7 @@ static const char *const k1GUIStringsDOSCDItalian[35] = {
 	"OFF      ",
 	"Si ",
 	"No ",
-	"?""\x0F"")+F""\x0F"")+L""\x0F"")+T""\x0F"")+[""\x0F"")+h""\x0F"")+y""\x0F"")+""\x89\x0F"")+""\x97\x0F"")+""\x9D\x0F"")+""\xA5\x0F"")+""\xAC\x0F"")+Velocit""\x85"" Camminata    ",
+	"Velocit""\x85"" Camminata    ",
 	"Velocit""\x85"" Testo  ",
 	"Musica         ",
 	"Effetti Sonori",

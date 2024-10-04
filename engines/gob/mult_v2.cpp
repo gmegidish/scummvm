@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -41,10 +46,10 @@
 namespace Gob {
 
 Mult_v2::Mult_v2(GobEngine *vm) : Mult_v1(vm) {
-	_renderObjs = 0;
-	_multData = 0;
+	_renderObjs = nullptr;
+	_multData = nullptr;
 	for (int i = 0; i < 8; i++)
-		_multDatas[i] = 0;
+		_multDatas[i] = nullptr;
 }
 
 Mult_v2::~Mult_v2() {
@@ -127,7 +132,7 @@ void Mult_v2::loadMult(int16 resId) {
 
 	for (int i = 0; i < 4; i++) {
 		_multData->imdKeysCount[i] = 0;
-		_multData->imdKeys[i] = 0;
+		_multData->imdKeys[i] = nullptr;
 		_multData->imdIndices[i] = -1;
 
 		for (int j = 0; j < 4; j++) {
@@ -237,8 +242,8 @@ void Mult_v2::loadMult(int16 resId) {
 		}
 	}
 
-	_multData->imdFiles = 0;
-	_multData->somepointer10 = 0;
+	_multData->imdFiles = nullptr;
+	_multData->somepointer10 = nullptr;
 
 	if (hasImds)
 		loadImds(data);
@@ -346,26 +351,26 @@ void Mult_v2::freeMultKeys() {
 		delete _animArrayY;
 		delete[] _animArrayData;
 
-		_animArrayX = 0;
-		_animArrayY = 0;
-		_animArrayData = 0;
+		_animArrayX = nullptr;
+		_animArrayY = nullptr;
+		_animArrayData = nullptr;
 
 		_animDataAllocated = false;
 	}
 
 	for (int i = 0; i < 8; i++)
 		if (_multDatas[i] == _multData)
-			_multDatas[i] = 0;
+			_multDatas[i] = nullptr;
 
 	delete _multData;
-	_multData = 0;
+	_multData = nullptr;
 }
 
 bool Mult_v2::hasMultData(uint16 multIndex) {
 	if (multIndex > 7)
 		error("Multindex out of range");
 
-	return _multDatas[multIndex] != 0;
+	return _multDatas[multIndex] != nullptr;
 }
 
 void Mult_v2::setMultData(uint16 multIndex) {
@@ -380,7 +385,7 @@ void Mult_v2::zeroMultData(uint16 multIndex) {
 	if (multIndex > 7)
 		error("Multindex out of range");
 
-	_multDatas[multIndex] = 0;
+	_multDatas[multIndex] = nullptr;
 }
 
 void Mult_v2::multSub(uint16 multIndex) {
@@ -546,17 +551,12 @@ void Mult_v2::playMultInit() {
 		delete _animArrayY;
 		delete[] _animArrayData;
 
-		_objects = new Mult_Object[_objCount];
-		_orderArray = new int8[_objCount];
-		_renderObjs = new Mult_Object*[_objCount];
+		_objects = new Mult_Object[_objCount]();
+		_orderArray = new int8[_objCount]();
+		_renderObjs = new Mult_Object*[_objCount]();
 		_animArrayX = new VariablesLE(_objCount * 4);
 		_animArrayY = new VariablesLE(_objCount * 4);
-		_animArrayData = new Mult_AnimData[_objCount];
-
-		memset(_objects, 0, _objCount * sizeof(Mult_Object));
-		memset(_orderArray, 0, _objCount * sizeof(int8));
-		memset(_renderObjs, 0, _objCount * sizeof(Mult_Object *));
-		memset(_animArrayData, 0, _objCount * sizeof(Mult_AnimData));
+		_animArrayData = new Mult_AnimData[_objCount]();
 
 		for (_counter = 0; _counter < _objCount; _counter++) {
 			Mult_Object &multObj = _objects[_counter];
@@ -694,7 +694,7 @@ void Mult_v2::drawAnims(bool &stop) {
 
 void Mult_v2::newCycleAnim(Mult_Object &animObj) {
 	Mult_AnimData &animData = *(animObj.pAnimData);
-	Scenery::AnimLayer *animLayer = 0;
+	Scenery::AnimLayer *animLayer = nullptr;
 
 	if (animData.animation >= 0) {
 		int nAnim = animData.animation, nLayer = animData.layer;
@@ -705,8 +705,18 @@ void Mult_v2::newCycleAnim(Mult_Object &animObj) {
 		animLayer = _vm->_scenery->getAnimLayer(nAnim, nLayer);
 	} else {
 		if (animObj.videoSlot > 0) {
-			_vm->_video->retrace();
-			_vm->_vidPlayer->waitEndFrame(animObj.videoSlot - 1, true);
+			if (_vm->getGameType() == kGameTypeAdibou2) {
+				int expectedFrame = _vm->_vidPlayer->getExpectedFrameFromCurrentTime(animObj.videoSlot - 1);
+				if (expectedFrame >= 0 &&
+					expectedFrame < animData.frame) {
+					return; // We are in advance, do not further increment the frame
+				}
+
+				_vm->_vidPlayer->waitEndFrame(animObj.videoSlot - 1, true);
+			} else {
+				_vm->_video->retrace();
+				_vm->_vidPlayer->waitEndFrame(animObj.videoSlot - 1, true);
+			}
 		}
 	}
 
@@ -716,6 +726,7 @@ void Mult_v2::newCycleAnim(Mult_Object &animObj) {
 		if ((animData.animation < 0) && (animObj.videoSlot > 0)) {
 			_vm->_vidPlayer->closeVideo(animObj.videoSlot - 1);
 			animObj.videoSlot = 0;
+			animObj.animName[0] = 0;
 		}
 		return;
 	}
@@ -724,13 +735,40 @@ void Mult_v2::newCycleAnim(Mult_Object &animObj) {
 		animData.animType = 11;
 
 	if (animData.animType == 11) {
-		if (animData.isBusy != 0)
-			warning("Woodruff Stub: AnimType 11");
+		if (animData.isBusy != 0) {
+			if (animData.animTypeBak == 1) {
+				if (animData.framesLeft != 0) {
+					--animData.framesLeft;
+				} else {
+					_vm->_goblin->setGoblinState(&animObj, animData.isBusy);
+					animData.isBusy = 0;
+					animData.animTypeBak = 0;
+					animData.animType = 10;
+				}
+			}
+		}
 		return;
 	}
 
-	if (animData.animType != 8)
+	if (animData.animType != 8) {
 		animData.frame++;
+		if (_vm->getGameType() == kGameTypeAdibou2
+			&&
+			animData.animation < 0
+			&&
+			animObj.videoSlot > 0) {
+			// Workaround to improve audio sync of video objects in Adibou 2
+			// They easily get out of sync when the timing is done by hotspots::evaluate, which sometimes does not call animate()
+			// as often as needed for good sync (mouse events processing, in particular, can delay the call).
+			// The original game seems to use also some kind of frame skipping to address this problem.
+			int32 expectedFrame = _vm->_vidPlayer->getExpectedFrameFromCurrentTime(animObj.videoSlot - 1);
+			expectedFrame = CLIP<int32>(expectedFrame, -1, _vm->_vidPlayer->getFrameCount(animObj.videoSlot - 1) - 1);
+			if (expectedFrame > animData.frame + 5) {
+				// We are too far behind, skip frames
+				animData.frame = expectedFrame;
+			}
+		}
+	}
 
 	if (animData.animation < 0) {
 		if ((animObj.videoSlot > 0) &&
@@ -775,8 +813,7 @@ void Mult_v2::newCycleAnim(Mult_Object &animObj) {
 		animData.isStatic = 1;
 		animData.frame = 0;
 		if ((animData.animation < 0) && (animObj.videoSlot > 0)) {
-			_vm->_vidPlayer->closeVideo(animObj.videoSlot - 1);
-			animObj.videoSlot = 0;
+			closeObjVideo(animObj);
 		}
 
 		break;
@@ -785,18 +822,44 @@ void Mult_v2::newCycleAnim(Mult_Object &animObj) {
 	case 7:
 		animData.frame--;
 		animData.isPaused = 1;
-/*
+
 		if ((animData.animation < 0) && (animObj.videoSlot > 0)) {
 			if (_vm->_vidPlayer->getFlags(animObj.videoSlot - 1) & 0x1000) {
 				_vm->_vidPlayer->closeVideo(animObj.videoSlot - 1);
 				animObj.videoSlot = 0;
+				animObj.animName[0] = 0;
 			}
 		}
-*/
+
 		break;
 
 	case 10:
-		warning("Woodruff Stub: AnimType 10");
+		if (_vm->_map->_usesObliqueCoordinates) {
+			int8 deltaY = animObj.destY - animObj.goblinY;
+			if (deltaY == -1) {
+				*animObj.pPosX = *animObj.pPosX - _vm->_map->getTilesWidth();
+			} else if (deltaY == 1) {
+				*animObj.pPosX = *animObj.pPosX + _vm->_map->getTilesWidth();
+			}
+		} else {
+			warning("STUB: newCycleAnim: _map->_usesObliqueCoordinates == false");
+		}
+
+
+		animData.frame = 0;
+		animData.destXBak = animData.destX;
+		animData.destYBak = animData.destY;
+		animObj.goblinX = animObj.destX;
+		animData.destX = animObj.goblinX;
+		animObj.goblinY = animObj.destY;
+		animData.destY = animObj.goblinY;
+		if (animData.pathExistence) {
+			animObj.gobDestX = animObj.goblinX;
+			animObj.gobDestY = animObj.goblinY;
+		}
+
+		_vm->_goblin->initiateMove(&animObj);
+
 		break;
 
 	default:
@@ -822,17 +885,52 @@ void Mult_v2::animate() {
 			return;
 		orderArray = _orderArray;
 	} else
-		orderArray = 0;
+		orderArray = nullptr;
 
 	advanceAllObjects();
 
 	// Find relevant objects
+	int8 currentOrder = (int8) _objCount;
 	for (int i = 0; i < _objCount; i++) {
 		Mult_Object &animObj = _objects[i];
 		Mult_AnimData &animData = *(animObj.pAnimData);
 
-		if (_vm->_map->_mapUnknownBool) {
-			// TODO!
+		if (_vm->_map->_usesObliqueCoordinates && !animData.isStatic && animData.order < 100) {
+			animData.order = currentOrder;
+			animData.field_22 = 0;
+			animData.field_21 = 0;
+			if (animData.animType == 10 || animData.animType == 3) {
+				animData.field_21 = 1;
+				if (animData.curLookDir > 10 || animData.animType == 3) {
+					animData.field_22 = 1;
+				}
+			}
+
+			for (int j = 0; j < i; j++) {
+				Mult_Object &previousAnimObject = _objects[j];
+				Mult_AnimData &previousAnimData = *(previousAnimObject.pAnimData);
+
+				if (previousAnimData.isStatic || previousAnimData.order > 100)
+					continue;
+
+				int8 orderCorrection = 0;
+				if (previousAnimData.destY > animData.destY
+					&& previousAnimData.destX < animData.destX) {
+					orderCorrection = -1;
+				} else if (previousAnimData.destY < animData.destY
+						   && previousAnimData.destX > animData.destX) {
+					orderCorrection = 1;
+				} else if (animData.destX + animData.field_1F > previousAnimData.destX
+							&& animData.destY - animData.field_20 < previousAnimData.destY) {
+					orderCorrection = -1;
+				} else if (previousAnimData.destX + previousAnimData.field_1F > animData.destX
+						   && previousAnimData.destY - previousAnimData.field_20 < animData.destY) {
+					orderCorrection = 1;
+				}
+
+				animData.order += orderCorrection;
+				previousAnimData.order -= orderCorrection;
+			}
 		}
 
 		animData.intersected = 200;
@@ -1071,7 +1169,7 @@ void Mult_v2::animate() {
 			if ((animData.animType < 100) || (_vm->_goblin->_gobsCount < 0))
 				newCycleAnim(animObj);
 			else if (animData.animType == 100)
-				_vm->_goblin->moveAdvance(&animObj, 0, 0, 0);
+				_vm->_goblin->moveAdvance(&animObj, nullptr, 0, 0);
 			else if (animData.animType == 101)
 				_vm->_goblin->animate(&animObj);
 		} else

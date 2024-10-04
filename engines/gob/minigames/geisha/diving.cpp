@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -90,9 +95,9 @@ const Diving::PlantLevel Diving::kPlantLevels[] = {
 };
 
 
-Diving::Diving(GobEngine *vm) : _vm(vm), _background(0),
-	_objects(0), _gui(0), _okoAnim(0), _water(0), _lungs(0), _heart(0),
-	_blackPearl(0), _airMeter(0), _healthMeter(0), _isPlaying(false) {
+Diving::Diving(GobEngine *vm) : _vm(vm), _background(nullptr),
+	_objects(nullptr), _gui(nullptr), _okoAnim(nullptr), _water(nullptr), _lungs(nullptr), _heart(nullptr),
+	_blackPearl(nullptr), _airMeter(nullptr), _healthMeter(nullptr), _isPlaying(false) {
 
 	_blackPearl = new Surface(11, 8, 1);
 
@@ -100,20 +105,20 @@ Diving::Diving(GobEngine *vm) : _vm(vm), _background(0),
 	_healthMeter = new Meter(275, 195, 40, 2, 6, 7,  4, Meter::kFillToLeft);
 
 	for (uint i = 0; i < kEvilFishCount; i++)
-		_evilFish[i].evilFish = 0;
+		_evilFish[i].evilFish = nullptr;
 
 	for (uint i = 0; i < kDecorFishCount; i++)
-		_decorFish[i].decorFish = 0;
+		_decorFish[i].decorFish = nullptr;
 
 	for (uint i = 0; i < kPlantCount; i++)
-		_plant[i].plant = 0;
+		_plant[i].plant = nullptr;
 
 	for (uint i = 0; i < kMaxShotCount; i++)
-		_shot[i] = 0;
+		_shot[i] = nullptr;
 
-	_pearl.pearl = 0;
+	_pearl.pearl = nullptr;
 
-	_oko = 0;
+	_oko = nullptr;
 }
 
 Diving::~Diving() {
@@ -130,7 +135,7 @@ bool Diving::play(uint16 playerCount, bool hasPearlLocation) {
 	_isPlaying = true;
 
 	// Fade to black
-	_vm->_palAnim->fade(0, 0, 0);
+	_vm->_palAnim->fade(nullptr, 0, 0);
 
 	// Initialize our playing field
 	init();
@@ -338,32 +343,32 @@ void Diving::deinit() {
 	for (uint i = 0; i < kMaxShotCount; i++) {
 		delete _shot[i];
 
-		_shot[i] = 0;
+		_shot[i] = nullptr;
 	}
 
 	for (uint i = 0; i < kEvilFishCount; i++) {
 		delete _evilFish[i].evilFish;
 
-		_evilFish[i].evilFish = 0;
+		_evilFish[i].evilFish = nullptr;
 	}
 
 	for (uint i = 0; i < kDecorFishCount; i++) {
 		delete _decorFish[i].decorFish;
 
-		_decorFish[i].decorFish = 0;
+		_decorFish[i].decorFish = nullptr;
 	}
 
 	for (uint i = 0; i < kPlantCount; i++) {
 		delete _plant[i].plant;
 
-		_plant[i].plant = 0;
+		_plant[i].plant = nullptr;
 	}
 
 	delete _pearl.pearl;
-	_pearl.pearl = 0;
+	_pearl.pearl = nullptr;
 
 	delete _oko;
-	_oko = 0;
+	_oko = nullptr;
 
 	delete _heart;
 	delete _lungs;
@@ -374,14 +379,14 @@ void Diving::deinit() {
 	delete _objects;
 	delete _background;
 
-	_water = 0;
-	_heart = 0;
-	_lungs = 0;
+	_water = nullptr;
+	_heart = nullptr;
+	_lungs = nullptr;
 
-	_okoAnim    = 0;
-	_gui        = 0;
-	_objects    = 0;
-	_background = 0;
+	_okoAnim    = nullptr;
+	_gui        = nullptr;
+	_objects    = nullptr;
+	_background = nullptr;
 }
 
 void Diving::initScreen() {

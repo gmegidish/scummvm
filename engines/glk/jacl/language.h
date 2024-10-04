@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 namespace Glk {
@@ -202,7 +201,6 @@ namespace JACL {
 #define MAXIMUM_EXCEEDED "Maximum number of objects exceeded, can't continue."
 #define ERROR_DETECTED "1 error detected."
 #define ERRORS_DETECTED "%d errors detected."
-#define UNKOWN_OBJECT_RUN "In function \"%s\",  reference to unknown object \"%s\"."
 #define UNKNOWN_FUNCTION_RUN "Attempt to execute unknown function \"%s\"."
 #define UNKNOWN_KEYWORD_ERR "In line %d, unknown keyword \"%s\"."
 #define UNKNOWN_ATTRIBUTE_ERR "In line %d, unknown attribute \"%s\"."
@@ -375,7 +373,6 @@ namespace JACL {
 #define MAXIMUM_EXCEEDED "Maximum number of objects exceeded, can't continue."
 #define ERROR_DETECTED "1 error detected."
 #define ERRORS_DETECTED "%d errors detected."
-#define UNKOWN_OBJECT_RUN "In function \"%s\",  reference to unknown object \"%s\"."
 #define UNKNOWN_FUNCTION_RUN "Attempt to execute unknown function \"%s\"."
 #define UNKNOWN_KEYWORD_ERR "In line %d, unknown keyword \"%s\"."
 #define UNKNOWN_ATTRIBUTE_ERR "In line %d, unknown attribute \"%s\"."
@@ -550,7 +547,6 @@ namespace JACL {
 #define MAXIMUM_EXCEEDED "Maximum number of objects exceeded, can't continue."
 #define ERROR_DETECTED "1 error detected."
 #define ERRORS_DETECTED "%d errors detected."
-#define UNKOWN_OBJECT_RUN "In function \"%s\",  reference to unknown object \"%s\"."
 #define UNKNOWN_FUNCTION_RUN "Attempt to execute unknown function \"%s\"."
 #define UNKNOWN_KEYWORD_ERR "In line %d, unknown keyword \"%s\"."
 #define UNKNOWN_ATTRIBUTE_ERR "In line %d, unknown attribute \"%s\"."

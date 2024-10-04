@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define SCI_ENGINE_VM_TYPES_H
 
 #include "common/scummsys.h"
+#include "sci/version.h"
 
 namespace Sci {
 
@@ -43,8 +43,27 @@ struct reg_t {
 
 	SegmentId getSegment() const;
 	void setSegment(SegmentId segment);
-	uint32 getOffset() const;
-	void setOffset(uint32 offset);
+
+	// speed optimization: inline due to frequent calling
+	uint32 getOffset() const {
+		if (getSciVersion() < SCI_VERSION_3) {
+			return _offset;
+		} else {
+			// Return the lower 16 bits from the offset, and the 17th and 18th bits from the segment
+			return ((_segment & 0xC000) << 2) | _offset;
+		}
+	}
+
+	// speed optimization: inline due to frequent calling
+	void setOffset(uint32 offset) {
+		if (getSciVersion() < SCI_VERSION_3) {
+			_offset = offset;
+		} else {
+			// Store the lower 16 bits in the offset, and the 17th and 18th bits in the segment
+			_offset = offset & 0xFFFF;
+			_segment = ((offset & 0x30000) >> 2) | (_segment & 0x3FFF);
+		}
+	}
 
 	inline void incOffset(int32 offset) {
 		setOffset(getOffset() + offset);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -88,13 +87,13 @@ static const sc_expr_multichar_t FUNCTION_TOKENS[] = {
 	{"mod", 3, TOK_MOD}, {"abs", 3, TOK_ABS}, {"len", 3, TOK_LEN},
 	{"val", 3, TOK_VAL}, {"and", 3, TOK_AND}, {"mid", 3, TOK_MID},
 	{"str", 3, TOK_STR}, {"or", 2, TOK_OR}, {"if", 2, TOK_IF},
-	{NULL, 0, TOK_NONE}
+	{nullptr, 0, TOK_NONE}
 };
 static const sc_expr_multichar_t OPERATOR_TOKENS[] = {
 	{"&&", 2, TOK_AND}, {"||", 2, TOK_OR},
 	{"==", 2, TOK_EQUAL}, {"!=", 2, TOK_NOT_EQUAL},
 	{"<>", 2, TOK_NOT_EQUAL}, {">=", 2, TOK_GREATER_EQ}, {"<=", 2, TOK_LESS_EQ},
-	{NULL, 0, TOK_NONE}
+	{nullptr, 0, TOK_NONE}
 };
 
 
@@ -119,10 +118,10 @@ static sc_int expr_multichar_search(const sc_char *name, const sc_expr_multichar
 
 
 /* Tokenizer variables. */
-static const sc_char *expr_expression = NULL;
+static const sc_char *expr_expression = nullptr;
 static sc_int expr_index = 0;
 static sc_vartype_t expr_token_value;
-static sc_char *expr_temporary = NULL;
+static sc_char *expr_temporary = nullptr;
 static sc_int expr_current_token = TOK_NONE;
 
 /*
@@ -173,8 +172,8 @@ static void expr_tokenize_start(const sc_char *expression) {
 static void expr_tokenize_end(void) {
 	/* Deallocate temporary strings, clear expression. */
 	sc_free(expr_temporary);
-	expr_temporary = NULL;
-	expr_expression = NULL;
+	expr_temporary = nullptr;
+	expr_expression = nullptr;
 	expr_index = 0;
 	expr_current_token = TOK_NONE;
 }
@@ -339,7 +338,7 @@ static sc_int expr_next_token(void) {
 	 * Get the basic next token.  We may adjust it later for unary minus/plus
 	 * depending on what it is, and the prior token.
 	 */
-	token_value.voidp = NULL;
+	token_value.voidp = nullptr;
 	token = expr_next_token_unadjusted(&token_value);
 
 	/* Special handling for unary minus/plus signs. */
@@ -419,7 +418,7 @@ static sc_stack_t expr_eval_stack[MAX_NESTING_DEPTH];
 static sc_int expr_eval_stack_index = 0;
 
 /* Variables set to reference for %...% values. */
-static sc_var_setref_t expr_varset = NULL;
+static sc_var_setref_t expr_varset = nullptr;
 
 /*
  * expr_eval_start()
@@ -481,8 +480,9 @@ static void expr_eval_push_string(const sc_char *value) {
 		sc_fatal("expr_eval_push_string: stack overflow\n");
 
 	/* Push a copy of value. */
-	value_copy = (sc_char *)sc_malloc(strlen(value) + 1);
-	strcpy(value_copy, value);
+	size_t ln = strlen(value) + 1;
+	value_copy = (sc_char *)sc_malloc(ln);
+	Common::strcpy_s(value_copy, ln, value);
 	expr_eval_stack[expr_eval_stack_index].is_collectible = TRUE;
 	expr_eval_stack[expr_eval_stack_index++].value.mutable_string = value_copy;
 }
@@ -675,7 +675,7 @@ static void expr_eval_action(CONTEXT, sc_int token) {
 		 * position, starting at 1, or 0 if not found.  Then free the popped
 		 * strings, and push back the result.
 		 */
-		search = (val1[0] != NUL) ? strstr(val1, val2) : NULL;
+		search = (val1[0] != NUL) ? strstr(val1, val2) : nullptr;
 		result = (!search) ? 0 : search - val1 + 1;
 		sc_free(val1);
 		sc_free(val2);
@@ -968,7 +968,7 @@ static void expr_eval_action(CONTEXT, sc_int token) {
 		 * The leading space on positive values matches the Runner.
 		 */
 		val = expr_eval_pop_integer();
-		sprintf(buffer, "% ld", val);
+		Common::sprintf_s(buffer, "% ld", val);
 		expr_eval_push_string(buffer);
 		break;
 	}
@@ -1024,8 +1024,9 @@ static void expr_eval_action(CONTEXT, sc_int token) {
 		 * Resize text1 to be long enough for both, and concatenate, then
 		 * free text2, and push back the concatenation.
 		 */
-		text1 = (sc_char *)sc_realloc(text1, strlen(text1) + strlen(text2) + 1);
-		strcat(text1, text2);
+		size_t ln = strlen(text1) + strlen(text2) + 1;
+		text1 = (sc_char *)sc_realloc(text1, ln);
+		Common::strcat_s(text1, ln, text2);
 		sc_free(text2);
 		expr_eval_push_alloced_string(text1);
 		break;

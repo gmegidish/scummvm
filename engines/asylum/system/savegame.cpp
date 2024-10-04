@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,7 +52,12 @@ Savegame::Savegame(AsylumEngine *engine) : _vm(engine), _index(0) {
 	memset(&_moviesViewed, 0, sizeof(_moviesViewed));
 	memset(&_savegames, 0, sizeof(_savegames));
 	memset(&_savegameToScene, 0, sizeof(_savegameToScene));
-	_build = 0;
+	resetVersion();
+}
+
+void Savegame::resetVersion() {
+	_version = savegame_version;
+	_build   = SAVEGAME_BUILD;
 }
 
 bool Savegame::hasSavegames() const {
@@ -111,7 +115,7 @@ bool Savegame::quickLoad() {
 		return false;
 
 	_index = SAVEGAME_QUICKSLOT;
-	_vm->startGame(getScenePack(), AsylumEngine::kStartGameLoad);
+	(void)_vm->startGame(getScenePack(), AsylumEngine::kStartGameLoad);
 
 	return true;
 }
@@ -312,8 +316,7 @@ Common::String Savegame::read(Common::InSaveFile *file, uint32 strLength, const 
 	if (strLength > count)
 		error("[Savegame::read] Count too large (asked: %d, present: %d)", strLength, count);
 
-	char *str = new char[strLength + 1];
-	memset(str, 0, strLength + 1);
+	char *str = new char[strLength + 1]();
 	file->read(str, strLength);
 
 	Common::String ret(str);
@@ -337,7 +340,7 @@ void Savegame::read(Common::InSaveFile *file, Common::Serializable *data, uint32
 	if (fileCount * fileSize == 0)
 		return;
 
-	Common::Serializer ser(file, NULL);
+	Common::Serializer ser(file, nullptr);
 	data->saveLoadWithSerializer(ser);
 }
 
@@ -377,7 +380,7 @@ void Savegame::write(Common::OutSaveFile *file, Common::Serializable *data, uint
 	if (size * count == 0)
 		return;
 
-	Common::Serializer ser(NULL, file);
+	Common::Serializer ser(nullptr, file);
 	uint before = ser.bytesSynced();
 
 	// Save the data

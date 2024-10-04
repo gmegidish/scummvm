@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@ class InventoryWidget : public GUI_Widget {
 private:
 	Common::Rect arrow_rects[2];
 protected:
-	Configuration *config;
+	const Configuration *config;
 
 	int game_type;
 
@@ -61,16 +60,16 @@ protected:
 	const Tile *empty_tile;
 
 public:
-	InventoryWidget(Configuration *cfg, GUI_CallBack *callback = NULL);
+	InventoryWidget(const Configuration *cfg, GUI_CallBack *callback = nullptr);
 	~InventoryWidget() override;
 
 	bool init(Actor *a, uint16 x, uint16 y, TileManager *tm, ObjManager *om, Font *f);
 	void set_actor(Actor *a);
 	Actor *get_actor() {
-		return (actor);
+		return actor;
 	}
 	Obj *get_container() {
-		return (container_obj);
+		return container_obj;
 	}
 	void set_container(Obj *obj) {
 		container_obj = obj;
@@ -80,7 +79,7 @@ public:
 	Obj *get_prev_container();
 	void set_prev_container();
 	bool is_showing_container() {
-		return (container_obj != NULL ? true : false);
+		return (container_obj != nullptr ? true : false);
 	}
 	void Display(bool full_redraw) override;
 
@@ -99,7 +98,7 @@ public:
 
 	void drag_draw(int x, int y, int message, void *data) override;
 
-	uint8 get_num_rows() {
+	uint8 get_num_rows() const {
 		return game_type == NUVIE_GAME_U6 ? 3 : 4;
 	}
 

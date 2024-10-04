@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -83,13 +82,13 @@ CSTimeChar::CSTimeChar(MohawkEngine_CSTime *vm, CSTimeScene *scene, uint id) : _
 	_flappingState = 0xffff;
 	_surfingState = 0;
 
-	_NIS = NULL;
-	_restFeature = NULL;
-	_talkFeature = NULL;
+	_NIS = nullptr;
+	_restFeature = nullptr;
+	_talkFeature = nullptr;
 
-	_talkFeature1 = NULL;
-	_talkFeature2 = NULL;
-	_talkFeature3 = NULL;
+	_talkFeature1 = nullptr;
+	_talkFeature2 = nullptr;
+	_talkFeature3 = nullptr;
 	_lastTime1 = 0;
 	_lastTime2 = 0;
 	_lastTime3 = 0;
@@ -163,7 +162,7 @@ void CSTimeChar::stopAmbients(bool restpos) {
 		if (!_ambients[i].feature)
 			continue;
 		_vm->getView()->removeFeature(_ambients[i].feature, true);
-		_ambients[i].feature = NULL;
+		_ambients[i].feature = nullptr;
 	}
 
 	if (restpos)
@@ -177,7 +176,7 @@ void CSTimeChar::setupRestPos() {
 	if (!_restFeature) {
 		uint id = _enabled ? 0 : 13;
 		uint32 flags = kFeatureSortStatic | kFeatureNewNoLoop | kFeatureNewDisableOnReset;
-		Feature *feature = _vm->getView()->installViewFeature(getChrBaseId() + id, flags, NULL);
+		Feature *feature = _vm->getView()->installViewFeature(getChrBaseId() + id, flags, nullptr);
 		// FIXME: fix priorities
 		_restFeature = feature;
 	} else {
@@ -203,12 +202,12 @@ void CSTimeChar::removeChr() {
 	if (_restFeature)
 		_vm->getView()->removeFeature(_restFeature, true);
 
-	_talkFeature1 = NULL;
-	_talkFeature2 = NULL;
-	_talkFeature3 = NULL;
+	_talkFeature1 = nullptr;
+	_talkFeature2 = nullptr;
+	_talkFeature3 = nullptr;
 
-	_talkFeature = NULL;
-	_restFeature = NULL;
+	_talkFeature = nullptr;
+	_restFeature = nullptr;
 }
 
 uint16 CSTimeChar::getChrBaseId() {
@@ -227,7 +226,7 @@ void CSTimeChar::playNIS(uint16 id) {
 	stopAmbients(false);
 	removeChr();
 	uint32 flags = kFeatureSortStatic | kFeatureNewNoLoop;
-	_NIS = _vm->getView()->installViewFeature(getChrTypeScriptBase() + id + _ambients.size(), flags, NULL);
+	_NIS = _vm->getView()->installViewFeature(getChrTypeScriptBase() + id + _ambients.size(), flags, nullptr);
 	// FIXME: fix priorities
 }
 
@@ -239,7 +238,7 @@ void CSTimeChar::removeNIS() {
 	if (!_NIS)
 		return;
 	_vm->getView()->removeFeature(_NIS, true);
-	_NIS = NULL;
+	_NIS = nullptr;
 }
 
 void CSTimeChar::startFlapping(uint16 id) {
@@ -249,7 +248,7 @@ void CSTimeChar::startFlapping(uint16 id) {
 	_scene->_activeChar = this;
 	if (_restFeature) {
 		_vm->getView()->removeFeature(_restFeature, true);
-		_restFeature = NULL;
+		_restFeature = nullptr;
 	}
 	stopAmbients(false);
 	setupTalk();
@@ -265,7 +264,7 @@ void CSTimeChar::interruptFlapping() {
 }
 
 void CSTimeChar::installAmbientAnim(uint id, uint32 flags) {
-	Feature *feature = _vm->getView()->installViewFeature(getChrTypeScriptBase() + id, flags, NULL);
+	Feature *feature = _vm->getView()->installViewFeature(getChrTypeScriptBase() + id, flags, nullptr);
 	// FIXME: fix priorities
 
 	_ambients[id].feature = feature;
@@ -312,13 +311,13 @@ void CSTimeChar::setupTalk() {
 		return;
 
 	uint32 flags = kFeatureSortStatic | kFeatureNewNoLoop | kFeatureNewDisableOnReset;
-	_talkFeature = _vm->getView()->installViewFeature(getChrBaseId() + (_enabled ? 1 : 14), flags, NULL);
+	_talkFeature = _vm->getView()->installViewFeature(getChrBaseId() + (_enabled ? 1 : 14), flags, nullptr);
 
-	_talkFeature3 = _vm->getView()->installViewFeature(getChrBaseId() + (_enabled ? 4 : 15), flags, NULL);
+	_talkFeature3 = _vm->getView()->installViewFeature(getChrBaseId() + (_enabled ? 4 : 15), flags, nullptr);
 	if (_enabled) {
-		_talkFeature1 = _vm->getView()->installViewFeature(getChrBaseId() + 2, flags, NULL);
+		_talkFeature1 = _vm->getView()->installViewFeature(getChrBaseId() + 2, flags, nullptr);
 		if (_unknown1 > 1) {
-			_talkFeature2 = _vm->getView()->installViewFeature(getChrBaseId() + 10, flags, NULL);
+			_talkFeature2 = _vm->getView()->installViewFeature(getChrBaseId() + 10, flags, nullptr);
 		}
 	}
 	// FIXME: fix priorities
@@ -651,11 +650,11 @@ void CSTimeConversation::unhighlightLine(uint line) {
 }
 
 CSTimeCase::CSTimeCase(MohawkEngine_CSTime *vm, uint id) : _vm(vm), _id(id) {
-	_vm->loadResourceFile(Common::String::format("Cases/C%dText", id));
+	_vm->loadResourceFile(Common::Path(Common::String::format("Cases/C%dText", id)));
 	// We load this early, so we can use the text for debugging.
 	loadRolloverText();
 
-	_vm->loadResourceFile(Common::String::format("Cases/C%dInfo", id));
+	_vm->loadResourceFile(Common::Path(Common::String::format("Cases/C%dInfo", id)));
 	Common::SeekableReadStream *caseInfoStream = _vm->getResource(ID_CINF, 1);
 	uint16 numScenes = caseInfoStream->readUint16BE();
 	uint16 numInvObjs = caseInfoStream->readUint16BE();
@@ -668,8 +667,8 @@ CSTimeCase::CSTimeCase(MohawkEngine_CSTime *vm, uint id) : _vm(vm), _id(id) {
 	for (uint i = 0; i < numInvObjs; i++)
 		_inventoryObjs.push_back(loadInventoryObject(i));
 
-	_vm->loadResourceFile(Common::String::format("Cases/C%dArt", id));
-	_vm->loadResourceFile(Common::String::format("Cases/C%dDlog", id));
+	_vm->loadResourceFile(Common::Path(Common::String::format("Cases/C%dArt", id)));
+	_vm->loadResourceFile(Common::Path(Common::String::format("Cases/C%dDlog", id)));
 
 	debug("Loading %d scenes...", numScenes);
 	for (uint i = 0; i < numScenes; i++)
@@ -699,7 +698,7 @@ void CSTimeCase::loadRolloverText() {
 
 CSTimeInventoryObject *CSTimeCase::loadInventoryObject(uint id) {
 	CSTimeInventoryObject *invObj = new CSTimeInventoryObject;
-	invObj->feature = NULL;
+	invObj->feature = nullptr;
 	invObj->id = id;
 
 	Common::SeekableReadStream *invObjStream = _vm->getResource(ID_INVO, id + 1);
@@ -755,7 +754,7 @@ CSTimeScene *CSTimeCase::getCurrScene() {
 
 CSTimeScene::CSTimeScene(MohawkEngine_CSTime *vm, CSTimeCase *case_, uint id) : _vm(vm), _case(case_), _id(id) {
 	_visitCount = 0;
-	_activeChar = NULL;
+	_activeChar = nullptr;
 	_currHotspot = 0xffff;
 	_hoverHotspot = 0xffff;
 	load();
@@ -804,7 +803,7 @@ void CSTimeScene::load() {
 		for (uint j = 0; j < numAmbients; j++) {
 			CSTimeAmbient ambient;
 			ambient.delay = sceneStream->readUint16BE();
-			ambient.feature = NULL;
+			ambient.feature = nullptr;
 			chr->_ambients.push_back(ambient);
 		}
 		_chars.push_back(chr);
@@ -863,7 +862,7 @@ void CSTimeScene::buildScene() {
 		// FIXME: deal with NULL
 		uint32 flags = kFeatureSortStatic | kFeatureNewNoLoop | kFeatureNewDisableOnReset;
 		assert(flags == 0x4C00000);
-		Feature *feature = _vm->getView()->installViewFeature(resourceId + i, flags, NULL);
+		Feature *feature = _vm->getView()->installViewFeature(resourceId + i, flags, nullptr);
 		_objectFeatures.push_back(feature);
 	}
 }

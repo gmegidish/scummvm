@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,10 +29,12 @@
 #include "common/savefile.h"
 #include "common/textconsole.h"
 
+#include "backends/keymapper/keymapper.h"
+
 #include "engines/util.h"
 
 #include "graphics/cursorman.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "gui/debugger.h"
 
 #include "tucker/tucker.h"
@@ -642,40 +643,34 @@ void TuckerEngine::parseEvents() {
 	Common::Event ev;
 	while (_eventMan->pollEvent(ev)) {
 		switch (ev.type) {
-		case Common::EVENT_KEYDOWN:
-			switch (ev.kbd.ascii) {
-			// do not use KEYCODE_PERIOD here so that it works with most keyboard layouts
-			case '.':
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+			switch (ev.customType) {
+			case kActionEscape:
+				_inputKeys[kInputKeyEscape] = true;
+				// fall through
+			case kActionSkipSpeech:
 				_inputKeys[kInputKeySkipSpeech] = true;
 				break;
-			default:
+			case kActionFastMode:
+				_fastMode = !_fastMode;
 				break;
-			}
-			switch (ev.kbd.keycode) {
-			case Common::KEYCODE_f:
-				if (ev.kbd.hasFlags(Common::KBD_CTRL)) {
-					_fastMode = !_fastMode;
-				}
-				break;
-			case Common::KEYCODE_p:
+			case kActionPause:
 				_inputKeys[kInputKeyPause] = true;
 				break;
-			case Common::KEYCODE_F1:
+			case kActionTogglePanelStyle:
 				_inputKeys[kInputKeyTogglePanelStyle] = true;
 				break;
-			case Common::KEYCODE_F2:
+			case kActionToggleTextSpeech:
 				_inputKeys[kInputKeyToggleTextSpeech] = true;
 				break;
-			case Common::KEYCODE_F3:
+			case kActionHelp:
 				_inputKeys[kInputKeyHelp] = true;
-				break;
-			case Common::KEYCODE_ESCAPE:
-				_inputKeys[kInputKeyEscape] = true;
-				_inputKeys[kInputKeySkipSpeech] = true;
 				break;
 			default:
 				break;
 			}
+			break;
+		case Common::EVENT_KEYDOWN:
 			_lastKeyPressed = ev.kbd.keycode;
 			break;
 		case Common::EVENT_MOUSEMOVE:
@@ -1639,6 +1634,13 @@ void TuckerEngine::drawData3() {
 }
 
 void TuckerEngine::execData3PreUpdate() {
+	Common::Keymapper *keymapper = _eventMan->getKeymapper();
+	if (_location == kLocationComputerScreen) {
+		keymapper->getKeymap("game-shortcuts")->setEnabled(false);
+	} else {
+		keymapper->getKeymap("game-shortcuts")->setEnabled(true);
+	}
+
 	switch (_location) {
 	case 1:
 		execData3PreUpdate_locationNum1();
@@ -2984,7 +2986,7 @@ void TuckerEngine::drawStringInteger(int num, int x, int y, int digits) {
 	const int xStart = x;
 	char numStr[4];
 	assert(num < 1000);
-	sprintf(numStr, "%03d", num);
+	Common::sprintf_s(numStr, "%03d", num);
 	int i = (digits > 2) ? 0 : 1;
 	for (; i < 3; ++i) {
 		Graphics::drawStringChar(_locationBackgroundGfxBuf, _scrollOffset + x, y, 640, numStr[i], 102, _charsetGfxBuf);
@@ -3065,10 +3067,21 @@ bool TuckerEngine::testLocationMask(int x, int y) {
 	if (_locationMaskType > 0 || _locationMaskIgnore) {
 		return true;
 	}
-	if (_location == kLocationSubwayTunnel || _location == kLocationKitchen) {
+
+	if (_location == kLocationSubwayTunnel
+		|| _location == kLocationKitchen
+		|| (_location == kLocationTopCorridor && _nextLocation == kLocationBottomCorridor)
+		) {
 		y -= 3;
 	}
 	const int offset = y * 640 + x;
+	if (offset >= (640 * 140)) {
+		// NOTE This causes multiple warning printouts in the console in problematic locations such as kLocationTopCorridor.
+		// TODO If all problematic locations are accounted for and returning true is the proper thing to do for all,
+		// we could keep only the "return true" statement here and remove the warning (or change it to a high level debug).
+		warning("testLocationMask: offset (%d, %d) is out of bounds for location: %d, nextLocation: %d", x, y, _location, _nextLocation);
+		return true;
+	}
 	return (_locationBackgroundMaskBuf[offset] > 0);
 }
 
@@ -3485,7 +3498,7 @@ int TuckerEngine::executeTableInstruction() {
 		//   Fixed: 61dw buw,148,125,wsm,buw,148,132,wsm,mof,pan,01,wat,050[...]
 		//                                               ^^^^^^^^^^
 		// To work around the issue in the problematic versions we inject these two
-		// instructions after the first occurence of the 'wsm' instruction (which
+		// instructions after the first occurrence of the 'wsm' instruction (which
 		// proves good enough).
 		if (_location == kLocationStoreRoom && _nextAction == 61) {
 			setCursorState(kCursorStateDisabledHidden);

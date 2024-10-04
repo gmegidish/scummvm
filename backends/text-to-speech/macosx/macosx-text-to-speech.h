@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,36 +33,36 @@
 class MacOSXTextToSpeechManager : public Common::TextToSpeechManager {
 public:
 	MacOSXTextToSpeechManager();
-	virtual ~MacOSXTextToSpeechManager() override;
+	~MacOSXTextToSpeechManager() override;
 
-	virtual bool say(const Common::U32String &str, Action action) override;
+	bool say(const Common::U32String &str, Action action) override;
 
-	virtual bool stop() override;
-	virtual bool pause() override;
-	virtual bool resume() override;
+	bool stop() override;
+	bool pause() override;
+	bool resume() override;
 
-	virtual bool isSpeaking() override;
-	virtual bool isPaused() override;
-	virtual bool isReady() override;
+	bool isSpeaking() override;
+	bool isPaused() override;
+	bool isReady() override;
 
-	virtual void setVoice(unsigned index) override;
+	void setVoice(unsigned index) override;
 
-	virtual void setRate(int rate) override;
+	void setRate(int rate) override;
 
-	virtual void setPitch(int pitch) override;
+	void setPitch(int pitch) override;
 
-	virtual void setVolume(unsigned volume) override;
+	void setVolume(unsigned volume) override;
 
-	virtual void setLanguage(Common::String language) override;
+	void setLanguage(Common::String language) override;
 
-	virtual int getDefaultVoice() override;
+	int getDefaultVoice() override;
 
-	virtual void freeVoiceData(void *data) override;
+	void freeVoiceData(void *data) override;
 
 	bool startNextSpeech();
 
 private:
-	virtual void updateVoices() override;
+	void updateVoices() override;
 
 	Common::Queue<Common::String> _messageQueue;
 	Common::String _currentSpeech;

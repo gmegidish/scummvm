@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -106,8 +105,8 @@ Registry::Registry() :
 
 	// Read settings
 	_spewOnError.setString(ConfMan.get("spew_on_error"));
-	_dataPath.setString(ConfMan.get("path"));
-	_savePath.setString(ConfMan.get("savepath"));
+	_dataPath.setString(ConfMan.getPath("path").toString(Common::Path::kNativeSeparator));
+	_savePath.setString(ConfMan.getPath("savepath").toString(Common::Path::kNativeSeparator));
 	_develMode.setBool(ConfMan.getBool("game_devel_mode"));
 	_lastSet.setString(ConfMan.get("last_set"));
 	_musicVolume.setInt(convertVolumeFromMixer(ConfMan.getInt("music_volume")));
@@ -294,8 +293,8 @@ void Registry::save() {
 		return;
 
 	ConfMan.set("spew_on_error", _spewOnError.getString());
-	ConfMan.set("path", _dataPath.getString());
-	ConfMan.set("savepath", _savePath.getString());
+	ConfMan.setPath("path", Common::Path(_dataPath.getString(), Common::Path::kNativeSeparator));
+	ConfMan.setPath("savepath", Common::Path(_savePath.getString(), Common::Path::kNativeSeparator));
 	if (ConfMan.hasKey("last_set")) {
 		ConfMan.set("last_set", _lastSet.getString());
 	}

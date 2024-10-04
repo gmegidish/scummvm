@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,8 +34,8 @@ class TwinEEngine;
 class Animations {
 private:
 	TwinEEngine *_engine;
-	int16 applyAnimStepRotation(int32 deltaTime, int32 keyFrameLength, int16 newAngle1, int16 lastAngle1) const;
-	int16 applyAnimStepTranslation(int32 deltaTime, int32 keyFrameLength, int16 newPos, int16 lastPos) const;
+	int16 patchInterAngle(int32 deltaTime, int32 keyFrameLength, int16 newAngle1, int16 lastAngle1) const;
+	int16 patchInterStep(int32 deltaTime, int32 keyFrameLength, int16 newPos, int16 lastPos) const;
 
 	/**
 	 * Verify animation at keyframe
@@ -44,7 +43,7 @@ private:
 	 * @param animData Animation data
 	 * @param animTimerDataPtr Animation time data
 	 */
-	bool verifyAnimAtKeyframe(int32 keyframeIdx, const AnimData &animData, AnimTimerDataStruct *animTimerDataPtr);
+	bool setInterDepObjet(int32 keyframeIdx, const AnimData &animData, AnimTimerDataStruct *animTimerDataPtr);
 
 	void copyKeyFrameToState(const KeyFrame *keyframe, BodyData &bodyData, int32 numBones) const;
 	void copyStateToKeyFrame(KeyFrame *keyframe, const BodyData &bodyData) const;
@@ -53,9 +52,9 @@ private:
 	KeyFrame _animKeyframeBuf[32];
 
 	/** Rotation by anim and not by engine */
-	int16 _processRotationByAnim = 0; // processActorVar5
+	int16 _animMasterRot = 0; // AnimMasterRot
 	/** Last rotation angle */
-	int16 _processLastRotationAngle = ANGLE_0; // processActorVar6
+	int16 _animStepBeta = 0; // AnimStepBeta
 
 	/** Current step coordinates */
 	IVec3 _currentStep;
@@ -63,8 +62,6 @@ private:
 public:
 	Animations(TwinEEngine *engine);
 
-	/** Current process actor index */
-	int16 _currentlyProcessedActorIdx = 0;
 	/** Current actor anim extra pointer */
 	AnimationTypes _currentActorAnimExtraPtr = AnimationTypes::kAnimNone;
 
@@ -75,7 +72,7 @@ public:
 	 * @param bodyData Body model data
 	 * @param animTimerDataPtr Animation time data
 	 */
-	void setAnimAtKeyframe(int32 keyframeIdx, const AnimData &animData, BodyData &bodyData, AnimTimerDataStruct *animTimerDataPtr);
+	void setAnimObjet(int32 keyframeIdx, const AnimData &animData, BodyData &bodyData, AnimTimerDataStruct *animTimerDataPtr);
 
 	/**
 	 * Set new body animation
@@ -84,21 +81,21 @@ public:
 	 * @param bodyData Body model data
 	 * @param animTimerDataPtr Animation time data
 	 */
-	bool setModelAnimation(int32 keyframeIdx, const AnimData &animData, BodyData &bodyData, AnimTimerDataStruct *animTimerDataPtr);
+	bool doSetInterAnimObjet(int32 keyframeIdx, const AnimData &animData, BodyData &bodyData, AnimTimerDataStruct *animTimerDataPtr);
 
 	/**
 	 * Get entity anim index (This is taken from File3D entities)
 	 * @param animIdx Entity animation index
 	 * @param actorIdx Actor index
 	 */
-	int32 getBodyAnimIndex(AnimationTypes animIdx, int32 actorIdx = OWN_ACTOR_SCENE_INDEX);
+	int32 searchAnim(AnimationTypes animIdx, int32 actorIdx = OWN_ACTOR_SCENE_INDEX);
 
 	/**
 	 * Stock animation - copy the next keyFrame from a different buffer
 	 * @param bodyData Body model data
 	 * @param animTimerDataPtr Animation time data
 	 */
-	void stockAnimation(const BodyData &bodyData, AnimTimerDataStruct *animTimerDataPtr);
+	void stockInterAnim(const BodyData &bodyData, AnimTimerDataStruct *animTimerDataPtr);
 
 	/**
 	 * Initialize animation
@@ -107,7 +104,7 @@ public:
 	 * @param animExtra animation actions extra data
 	 * @param actorIdx actor index
 	 */
-	bool initAnim(AnimationTypes newAnim, AnimType animType, AnimationTypes animExtra, int32 actorIdx);
+	bool initAnim(AnimationTypes newAnim, AnimType animType, AnimationTypes animExtra, int32 actorIdx); // InitAnim
 
 	/**
 	 * Process acotr animation actions
@@ -119,7 +116,7 @@ public:
 	 * Process main loop actor animations
 	 * @param actorIdx Actor index
 	 */
-	void processActorAnimations(int32 actorIdx);
+	void doAnim(int32 actorIdx);
 };
 
 } // namespace TwinE

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,7 @@
 #include "ultima/ultima8/world/get_object.h"
 #include "ultima/ultima8/world/actors/actor.h"
 #include "ultima/ultima8/world/camera_process.h"
+#include "ultima/ultima8/ultima8.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -35,7 +35,7 @@ SnapProcess *SnapProcess::_instance = nullptr;
 
 DEFINE_RUNTIME_CLASSTYPE_CODE(SnapProcess)
 
-SnapProcess::SnapProcess() : Process(), _currentSnapEgg() {
+SnapProcess::SnapProcess() : Process(), _currentSnapEgg(0) {
 	_instance = this;
 	_type = 1; // persistent
 }
@@ -47,16 +47,20 @@ SnapProcess::~SnapProcess() {
 
 void SnapProcess::run() {
 	bool snap_to_player = ConfMan.getBool("camera_on_player");
-	if (snap_to_player) {
+	bool in_stasis = Ultima8Engine::get_instance()->isAvatarInStasis();
+
+	// For cut scenes and remote cameras (when in stasis),
+	// we should snap to the right egg - not to the player.
+	// Snapping to player resumes once stasis is done.
+	if (snap_to_player && !in_stasis) {
 		const Actor *controlled = getControlledActor();
 		if (controlled) {
-			int32 x, y, z;
-			controlled->getCentre(x, y, z);
-			if (x > 0 || y > 0) {
+			Point3 pt = controlled->getCentre();
+			if (pt.x > 0 || pt.y > 0) {
 				_currentSnapEgg = 0;
 				CameraProcess *camera = CameraProcess::GetCameraProcess();
 				if (camera->getItemNum() != controlled->getObjId())
-					CameraProcess::SetCameraProcess(new CameraProcess(x, y, z));
+					CameraProcess::SetCameraProcess(new CameraProcess(pt));
 			}
 		}
 	} else {
@@ -87,10 +91,10 @@ void SnapProcess::updateCurrentEgg() {
 	if (!a)
 		return;
 
-	int32 ax, ay, az, axd, ayd, azd, x, y, z;
-	a->getLocation(ax, ay, az);
+	int32 axd, ayd, azd;
+	Point3 pta = a->getLocation();
 	a->getFootpadWorld(axd, ayd, azd);
-	Rect arect(ax, ay, ax + axd, ay + ayd);
+	Rect arect(pta.x, pta.y, pta.x + axd, pta.y + ayd);
 
 	for (Std::list<ObjId>::const_iterator iter = _snapEggs.begin();
 		 iter != _snapEggs.end(); iter++) {
@@ -98,9 +102,9 @@ void SnapProcess::updateCurrentEgg() {
 		if (!egg)
 			continue;
 		Rect r;
-		egg->getLocation(x, y, z);
+		Point3 pte = egg->getLocation();
 		getSnapEggRange(egg, r);
-		if (r.intersects(arect) && (az <= z + 0x30 && az >= z - 0x30)) {
+		if (r.intersects(arect) && (pta.z <= pte.z + 0x30 && pta.z >= pte.z - 0x30)) {
 			_currentSnapEgg = *iter;
 			_currentSnapEggRange = r;
 			CameraProcess::SetCameraProcess(new CameraProcess(_currentSnapEgg));
@@ -123,6 +127,13 @@ void SnapProcess::removeEgg(Item *item) {
 	}
 }
 
+void SnapProcess::clearEggs() {
+	_snapEggs.clear();
+	_currentSnapEgg = 0;
+	_currentSnapEggRange = Rect();
+}
+
+
 bool SnapProcess::isNpcInRangeOfCurrentEgg() const {
 	if (!_currentSnapEgg)
 		return false;
@@ -133,16 +144,16 @@ bool SnapProcess::isNpcInRangeOfCurrentEgg() const {
 	if (!a || !currentegg)
 		return false;
 
-	int32 ax, ay, az, axd, ayd, azd, x, y, z;
-	a->getLocation(ax, ay, az);
+	int32 axd, ayd, azd;
+	Point3 pta = a->getLocation();
 	a->getFootpadWorld(axd, ayd, azd);
-	currentegg->getLocation(x, y, z);
+	Point3 pte = currentegg->getLocation();
 
-	Rect arect(ax, ay, ax + axd, ay + ayd);
+	Rect arect(pta.x, pta.y, pta.x + axd, pta.y + ayd);
 
 	if (!_currentSnapEggRange.intersects(arect))
 		return false;
-	if (az > z + 0x30 || az < z - 0x30)
+	if (pta.z > pte.z + 0x30 || pta.z < pte.z - 0x30)
 		return false;
 
 	return true;
@@ -157,11 +168,10 @@ void SnapProcess::getSnapEggRange(const Item *item, Rect &rect) const {
 	int32 xrange = (qhi >> 4) * 0x20;
 	int32 yrange = (qhi & 0xf) * 0x20;
 
-	int32 x, y, z;
-	item->getLocation(x, y, z);
+	Point3 pt = item->getLocation();
 
-	rect.left = x - xrange + xoff;
-	rect.top = y - yrange + yoff;
+	rect.left = pt.x - xrange + xoff;
+	rect.top = pt.y - yrange + yoff;
 	rect.setWidth(xrange * 2);
 	rect.setHeight(yrange * 2);
 }
@@ -185,6 +195,8 @@ bool SnapProcess::loadData(Common::ReadStream *rs, uint32 version) {
 	for (int i = 0; i < numeggs; i++) {
 		_snapEggs.push_back(rs->readUint16LE());
 	}
+
+	_type = 1; // should be persistent but older savegames may not know that.
 
 	return true;
 }

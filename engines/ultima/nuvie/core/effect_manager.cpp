@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,7 +51,7 @@ void EffectManager::delete_effect(Effect *eff) {
 	}
 }
 
-/* Add an (already existant) effect to the list.
+/* Add an (already existent) effect to the list.
  */
 void EffectManager::add_effect(Effect *eff) {
 	effects.push_back(eff);
@@ -75,14 +74,14 @@ void EffectManager::update_effects() {
 
 /* Returns true if there are any effects still active.
  */
-bool EffectManager::has_effects() {
+bool EffectManager::has_effects() const {
 	if (!effects.empty()) {
-		EffectIterator i = effects.begin();
+		ConstEffectIterator i = effects.begin();
 		while (i != effects.end())
 			if (!(*i)->is_defunct()) // effect is still active
-				return (true);
+				return true;
 	}
-	return (false); // no effects, or all effects are complete
+	return false; // no effects, or all effects are complete
 }
 
 /* Add a watched effect. This will send effect completion message to the
@@ -102,7 +101,7 @@ void EffectManager::unwatch_effect(CallBack *callback_target, Effect *watch) {
 		WatchIterator i = watched.begin();
 		while (i != watched.end())
 			if ((*i).watcher == callback_target
-			        && ((*i).effect == watch || watch == NULL)) {
+			        && ((*i).effect == watch || watch == nullptr)) {
 				i = watched.erase(i); // resume from next element
 			} else ++i;
 	}
@@ -114,12 +113,12 @@ void EffectManager::signal_watch(Effect *effect) {
 	EffectWatch *watch = find_effect_watch(effect);
 	if (watch) {
 		if (watch->watcher)
-			watch->watcher->callback(EFFECT_CB_COMPLETE, NULL, effect);
+			watch->watcher->callback(EFFECT_CB_COMPLETE, nullptr, effect);
 		unwatch_effect(watch->watcher, effect);
 	}
 }
 
-/* Returns watch for an effect. (or NULL)
+/* Returns watch for an effect. (or nullptr)
  */
 EffectManager::EffectWatch *EffectManager::find_effect_watch(Effect *effect) {
 	if (!watched.empty()) {
@@ -129,7 +128,7 @@ EffectManager::EffectWatch *EffectManager::find_effect_watch(Effect *effect) {
 				return (&(*i));
 			else ++i;
 	}
-	return (NULL);
+	return nullptr;
 }
 
 } // End of namespace Nuvie

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 
 #include "ultima/ultima8/world/actors/attack_process.h"
-
+#include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/audio/audio_process.h"
 #include "ultima/ultima8/games/game_data.h"
 #include "ultima/ultima8/kernel/kernel.h"
@@ -40,6 +39,8 @@
 
 namespace Ultima {
 namespace Ultima8 {
+
+//#define WATCHACTOR 3
 
 DEFINE_RUNTIME_CLASSTYPE_CODE(AttackProcess)
 
@@ -69,31 +70,33 @@ static const int16 REG_SFX_13[] = { 0x1DD, 0x1DE, 0x1DF, 0x1E0, 0x1E1, 0x1E2, 0x
 static const int16 REG_SFX_14[] = { 0x9B, 0x9C, 0x9D, 0x9E, 0x9F };
 static const int16 REG_SFX_15[] = { 0x1E7, 0x1E8, 0x1E9, 0x1EA, 0x1ED };
 
-#define RANDOM_ELEM(array) (array[getRandom() % ARRAYSIZE(array)])
+#define RANDOM_ELEM(array) (array[rs.getRandomNumber(ARRAYSIZE(array) - 1)])
 
 // If data is referenced in the metalang with an offset of this or greater,
 // read from the data array.
 static const int MAGIC_DATA_OFF = 33000;
 
-const uint16 AttackProcess::ATTACK_PROCESS_TYPE = 0x259;
+const uint16 AttackProcess::ATTACK_PROC_TYPE = 0x259;
 
 int16 AttackProcess::_lastAttackSound = -1;
 int16 AttackProcess::_lastLastAttackSound = -1;
 
 static uint16 someSleepGlobal = 0;
 
-static inline int32 randomOf(int32 max) {
-	return (max > 0 ? getRandom() % max : 0);
-}
-
 AttackProcess::AttackProcess() : Process(), _block(0), _target(1), _tactic(0), _tacticDat(nullptr),
 _tacticDatReadStream(nullptr), _tacticDatStartOffset(0), _soundNo(-1), _playedStartSound(false),
 _npcInitialDir(dir_invalid), _field57(0), _field59(0), _field7f(false), _field96(false), _field97(false),
 _isActivity9orB(false), _isActivityAorB(false), _timer3set(false), _timer2set(false),
 _doubleDelay(false), _wpnField8(1), _wpnBasedTimeout(0), _difficultyBasedTimeout(0), _timer2(0),
-_timer3(0), _timer4(0), _timer5(0), _soundTimestamp(0), _fireTimestamp(0) {
+_timer3(0), _timer4(0), _timer5(0), _soundTimestamp(0), _soundDelayTicks(480), _fireTimestamp(0) {
 	for (int i = 0; i < ARRAYSIZE(_dataArray); i++) {
 		_dataArray[i] = 0;
+	}
+	if (GAME_IS_REGRET) {
+		Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
+		_soundDelayTicks = rs.getRandomNumberRng(10, 24) * 60;
+		if (rs.getRandomNumber(2) == 0)
+			_soundTimestamp = Kernel::get_instance()->getTickNum();
 	}
 }
 
@@ -102,7 +105,7 @@ _tacticDatReadStream(nullptr), _tacticDatStartOffset(0), _soundNo(-1), _playedSt
 _field57(0), _field59(0), _field7f(false), _field96(false), _field97(false), _isActivity9orB(false),
 _isActivityAorB(false), _timer3set(false), _timer2set(false), _doubleDelay(false), _wpnField8(1),
 _wpnBasedTimeout(0), _difficultyBasedTimeout(0), _timer2(0), _timer3(0), _timer4(0), _timer5(0),
-_soundTimestamp(0), _fireTimestamp(0) {
+_soundTimestamp(0), _soundDelayTicks(480), _fireTimestamp(0) {
 	assert(actor);
 	_itemNum = actor->getObjId();
 	_npcInitialDir = actor->getDir();
@@ -112,6 +115,13 @@ _soundTimestamp(0), _fireTimestamp(0) {
 	// coverity etc happy clear it anyway.
 	for (int i = 0; i < ARRAYSIZE(_dataArray); i++) {
 		_dataArray[i] = 0;
+	}
+
+	if (GAME_IS_REGRET) {
+		Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
+		_soundDelayTicks = rs.getRandomNumberRng(10, 24) * 60;
+		if (rs.getRandomNumber(2) == 0)
+			_soundTimestamp = Kernel::get_instance()->getTickNum();
 	}
 
 	actor->setAttackAimFlag(false);
@@ -158,7 +168,7 @@ _soundTimestamp(0), _fireTimestamp(0) {
 		}
 	}
 
-	_type = ATTACK_PROCESS_TYPE;
+	_type = ATTACK_PROC_TYPE;
 
 	setTacticNo(actor->getCombatTactic());
 	actor->setToStartOfAnim(Animation::stand);
@@ -199,6 +209,7 @@ void AttackProcess::run() {
 		return;
 	}
 
+	Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
 	const Direction curdir = a->getDir();
 
 	const uint8 opcode = _tacticDatReadStream->readByte();
@@ -263,32 +274,29 @@ void AttackProcess::run() {
 			int32 x, y, z;
 			a->getHomePosition(x, y, z);
 			ProcId pid = Kernel::get_instance()->addProcess(
-					   new CruPathfinderProcess(a, x, y, z, 100, 0x80, true));
+					   new CruPathfinderProcess(a, Point3(x, y, z), 100, 0x80, true));
 			waitFor(pid);
 			return;
 		}
 		case 0x8e:
 		{
 			// Pathfind to target
-			int32 x, y, z;
-			target->getLocation(x, y, z);
+			Point3 pt = target->getLocation();
 			ProcId pid = Kernel::get_instance()->addProcess(
-					   new CruPathfinderProcess(a, x, y, z, 12, 0x80, true));
+					   new CruPathfinderProcess(a, pt, 12, 0x80, true));
 			waitFor(pid);
 			return;
 		}
 		case 0x8f:
 		{
 			// Pathfind to a point between npc and the target
-			int32 tx, ty, tz;
-			target->getLocation(tx, ty, tz);
-			int32 ax, ay, az;
-			target->getLocation(ax, ay, az);
-			int32 x = (tx + ax) / 2;
-			int32 y = (ty + ay) / 2;
-			int32 z = (tz + az) / 2;
+			Point3 apt = a->getLocation();
+			Point3 tpt = target->getLocation();
+			int32 x = (tpt.x + apt.x) / 2;
+			int32 y = (tpt.y + apt.y) / 2;
+			int32 z = (tpt.z + apt.z) / 2;
 			ProcId pid = Kernel::get_instance()->addProcess(
-					   new CruPathfinderProcess(a, x, y, z, 12, 0x80, true));
+					   new CruPathfinderProcess(a, Point3(x, y, z), 12, 0x80, true));
 			waitFor(pid);
 			return;
 		}
@@ -300,7 +308,7 @@ void AttackProcess::run() {
 			// Sleep for a random value scaled by difficult level
 			int ticks = readNextWordWithData();
 			if (ticks == someSleepGlobal) {
-				ticks = randomOf(0x32) + 0x14;
+				ticks = rs.getRandomNumberRng(0x31, 0x45);
 			}
 			ticks /= World::get_instance()->getGameDifficulty();
 			sleep(ticks);
@@ -343,9 +351,8 @@ void AttackProcess::run() {
 		case 0x9a:
 		{
 			// get next word and jump to that offset if distance < 481
-			Point3 apt, tpt;
-			a->getLocation(apt);
-			target->getLocation(tpt);
+			Point3 apt = a->getLocation();
+			Point3 tpt = target->getLocation();
 			int maxdiff = apt.maxDistXYZ(tpt);
 			int16 data = readNextWordWithData();
 			if (maxdiff < 481) {
@@ -356,9 +363,8 @@ void AttackProcess::run() {
 		case 0x9b:
 		{
 			// get next word and jump to that offset if distance > 160
-			Point3 apt, tpt;
-			a->getLocation(apt);
-			target->getLocation(tpt);
+			Point3 apt = a->getLocation();
+			Point3 tpt = target->getLocation();
 			int maxdiff = apt.maxDistXYZ(tpt);
 			int16 data = readNextWordWithData();
 			if (maxdiff > 160) {
@@ -387,10 +393,12 @@ void AttackProcess::run() {
 		case 0x9e:
 		{
 			uint16 maxval = readNextWordWithData();
-			uint16 randval = randomOf(maxval);
 			uint16 offset = readNextWordWithData();
-			if (randval != 0) {
-				_tacticDatReadStream->seek(offset);
+			if (maxval != 0) {
+				uint16 randval = rs.getRandomNumber(maxval - 1);
+				if (randval != 0) {
+					_tacticDatReadStream->seek(offset);
+				}
 			}
 			return;
 		}
@@ -541,6 +549,11 @@ void AttackProcess::genericAttack() {
 		return;
 	}
 
+#ifdef WATCHACTOR
+	if (_itemNum == WATCHACTOR)
+		debug("Attack: actor %d genericAttack (not busy or pathfinding)", _itemNum);
+#endif
+
 	// This should never be running on the controlled npc.
 	if (_itemNum == World::get_instance()->getControlledNPCNum()) {
 		terminate();
@@ -552,6 +565,7 @@ void AttackProcess::genericAttack() {
 		warning("started attack for NPC %d with no weapon", _itemNum);
 	}*/
 
+	Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
 	AudioProcess *audio = AudioProcess::get_instance();
 	const Direction curdir = a->getDir();
 	const int32 ticknow = Kernel::get_instance()->getTickNum();
@@ -566,18 +580,26 @@ void AttackProcess::genericAttack() {
 			_target = controlledNPC;
 	}
 
+#ifdef WATCHACTOR
+	if (_itemNum == WATCHACTOR)
+		debug("Attack: genericAttack chose target %d", _target);
+#endif
+
 	Actor *target = getActor(_target);
 	if (!target || !target->isOnScreen() || target->isDead()) {
 		// Walk around randomly in hope of finding target
 		_target = 0;
 		if (!_isActivity9orB) {
-			int32 x, y, z;
-			a->getLocation(x, y, z);
-			x += -0x1ff + randomOf(0x400);
-			y += -0x1ff + randomOf(0x400);
+#ifdef WATCHACTOR
+			if (_itemNum == WATCHACTOR)
+				debug("Attack: genericAttack walking around looking for target %d", _target);
+#endif
+			Point3 pt = a->getLocation();
+			pt.x += rs.getRandomNumberRngSigned(-0x1ff, 0x1ff);
+			pt.y += rs.getRandomNumberRngSigned(-0x1ff, 0x1ff);
 			_field96 = true;
 			const ProcId pid = Kernel::get_instance()->addProcess(
-								new CruPathfinderProcess(a, x, y, z, 12, 0x80, true));
+								new CruPathfinderProcess(a, pt, 12, 0x80, true));
 			// add a tiny delay to avoid tight loops
 			Process *delayproc = new DelayProcess(2);
 			Kernel::get_instance()->addProcess(delayproc);
@@ -594,9 +616,17 @@ void AttackProcess::genericAttack() {
 		}
 		DirectionMode standDirMode = a->animDirMode(anim);
 		if (_timer3set) {
+#ifdef WATCHACTOR
+			if (_itemNum == WATCHACTOR)
+				debug("Attack: _timer3set");
+#endif
 			if (_timer3 >= ticknow) {
 				if (a->isInCombat()) {
-					if (randomOf(3) != 0) {
+					if (rs.getRandomNumber(2) != 0) {
+#ifdef WATCHACTOR
+						if (_itemNum == WATCHACTOR)
+							debug("Attack: toggle weapon state");
+#endif
 						const Animation::Sequence lastanim = a->getLastAnim();
 						if ((lastanim != Animation::unreadyWeapon) && (lastanim != Animation::unreadyLargeWeapon))
 							a->doAnim(Animation::unreadyWeapon, dir_current);
@@ -605,8 +635,8 @@ void AttackProcess::genericAttack() {
 						return;
 					}
 
-					if (randomOf(3) == 0) {
-						a->turnTowardDir(Direction_TurnByDelta(curdir, randomOf(8), dirmode_8dirs));
+					if (rs.getRandomNumber(2) == 0) {
+						a->turnTowardDir(Direction_TurnByDelta(curdir, rs.getRandomNumber(7), dirmode_8dirs));
 						return;
 					}
 
@@ -625,13 +655,18 @@ void AttackProcess::genericAttack() {
 					_wpnField8 = wpnField8;
 					if (_wpnField8 < 3) {
 						_wpnField8 = 1;
-					} else if ((_doubleDelay && (randomOf(2) == 0)) || (randomOf(5) == 0)) {
+					} else if ((_doubleDelay && rs.getRandomNumber(1) == 0) || (rs.getRandomNumber(4) == 0)) {
 						a->setAttackAimFlag(true);
 						_wpnField8 *= 4;
 					}
 					_fireTimestamp = ticknow;
 					if (_timer4 == 0)
 						_timer4 = ticknow;
+
+#ifdef WATCHACTOR
+					if (_itemNum == WATCHACTOR)
+						debug("Attack: firing weapon at tick %d!", ticknow);
+#endif
 
 					const ProcId animpid = a->doAnim(Animation::attack, dir_current); // fire small weapon.
 					if (animpid == 0) {
@@ -655,18 +690,25 @@ void AttackProcess::genericAttack() {
 			targetdir = a->getDirToItemCentre(*target);
 		}
 
-		Point3 apt, tpt;
-		a->getLocation(apt);
-		target->getLocation(tpt);
+		Point3 apt = a->getLocation();
+		Point3 tpt = target->getLocation();
 		const int32 dist = apt.maxDistXYZ(tpt);
 		const int32 zdiff = abs(a->getZ() - target->getZ());
 		const bool onscreen = a->isPartlyOnScreen(); // note: original uses "isMajorityOnScreen", this is close enough.
 		if ((!_isActivity9orB && !onscreen) || (dist <= zdiff)) {
+#ifdef WATCHACTOR
+			if (_itemNum == WATCHACTOR)
+				debug("Attack: Not 9/B and actor not onscreen or dist %d < zdiff %d, pathfinding", dist, zdiff);
+#endif
 			pathfindToItemInNPCData();
 			return;
 		}
 		if (targetdir == curdir) {
-			const uint16 rnd = randomOf(10);
+#ifdef WATCHACTOR
+			if (_itemNum == WATCHACTOR)
+				debug("Attack: targetdir == currentdir");
+#endif
+			const uint16 rnd = rs.getRandomNumber(9);
 			const uint32 frameno = Kernel::get_instance()->getFrameNum();
 			const uint32 timeoutfinish = target->getAttackMoveTimeoutFinishFrame();
 
@@ -684,7 +726,7 @@ void AttackProcess::genericAttack() {
 			else
 				ready = checkReady(ticknow, targetdir);
 
-			if (_timer2set && (randomOf(5) == 0 || checkTimer2PlusDelayElapsed(ticknow))) {
+			if (_timer2set && (rs.getRandomNumber(4) == 0 || checkTimer2PlusDelayElapsed(ticknow))) {
 				_timer2set = false;
 			}
 
@@ -723,7 +765,7 @@ void AttackProcess::genericAttack() {
 					_wpnField8 = 1;
 				} else {
 					_wpnField8 = wpnField8;
-					if (_wpnField8 > 2 && ((_doubleDelay && randomOf(2) == 0) || randomOf(5) == 0)) {
+					if (_wpnField8 > 2 && ((_doubleDelay && rs.getRandomNumber(1) == 0) || rs.getRandomNumber(4) == 0)) {
 						a->setAttackAimFlag(true);
 						_wpnField8 *= 4;
 					}
@@ -749,6 +791,10 @@ void AttackProcess::genericAttack() {
 				return;
 			}
 		} else {
+#ifdef WATCHACTOR
+			if (_itemNum == WATCHACTOR)
+				debug("Attack: targetdir != currentdir");
+#endif
 			bool ready;
 			if (!timer4and5Update(ticknow) && !_field7f) {
 				if (standDirMode != dirmode_16dirs) {
@@ -779,18 +825,34 @@ void AttackProcess::genericAttack() {
 }
 
 void AttackProcess::checkRandomAttackSoundRegret(const Actor *actor) {
+	if (!readyForNextSound(Kernel::get_instance()->getTickNum()))
+		return;
+
 	AudioProcess *audio = AudioProcess::get_instance();
-
-	if (World::get_instance()->getControlledNPCNum() != 1)
-		return;
-
-	if (actor->isDead())
-		return;
-
 	if (audio->isSFXPlayingForObject(-1, actor->getObjId()))
 		return;
 
+	int16 sndno = getRandomAttackSoundRegret(actor);
+
+	if (sndno != -1 && _lastAttackSound != sndno && _lastLastAttackSound != sndno) {
+		_lastLastAttackSound = _lastAttackSound;
+		_lastAttackSound = sndno;
+		_soundNo = sndno;
+		audio->playSFX(sndno, 0x80, actor->getObjId(), 1);
+	}
+}
+
+/* static */
+int16 AttackProcess::getRandomAttackSoundRegret(const Actor *actor) {
+	if (World::get_instance()->getControlledNPCNum() != kMainActorId)
+		return -1;
+
+	if (actor->isDead())
+		return -1;
+
+	Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
 	uint32 shapeno = actor->getShape();
+
 	int16 sndno = -1;
 	// The order here is pretty random, how it comes out of the disasm.
 	switch (shapeno) {
@@ -850,12 +912,7 @@ void AttackProcess::checkRandomAttackSoundRegret(const Actor *actor) {
 		  break;
 	}
 
-	if (sndno != -1 && _lastAttackSound != sndno && _lastLastAttackSound != sndno) {
-		_lastLastAttackSound = _lastAttackSound;
-		_lastAttackSound = sndno;
-		_soundNo = sndno;
-		audio->playSFX(sndno, 0x80, actor->getObjId(), 1);
-	}
+	return sndno;
 }
 
 void AttackProcess::checkRandomAttackSound(int now, uint32 shapeno) {
@@ -863,11 +920,13 @@ void AttackProcess::checkRandomAttackSound(int now, uint32 shapeno) {
 		checkRandomAttackSoundRegret(getActor(_itemNum));
 		return;
 	}
+
+	Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
 	AudioProcess *audio = AudioProcess::get_instance();
 	int16 attacksound = -1;
 	if (!_playedStartSound) {
 		_playedStartSound = true;
-		if (randomOf(3) == 0) {
+		if (rs.getRandomNumber(2) == 0) {
 			switch(shapeno) {
 				case 0x371:
 					attacksound = RANDOM_ELEM(REM_SFX_3);
@@ -905,8 +964,8 @@ void AttackProcess::checkRandomAttackSound(int now, uint32 shapeno) {
 	}
 }
 
-bool AttackProcess::readyForNextSound(int now) {
-	if (_soundTimestamp == 0 || _soundTimestamp - now >= 480) {
+bool AttackProcess::readyForNextSound(uint32 now) {
+	if (_soundTimestamp == 0 || now - _soundTimestamp >= _soundDelayTicks) {
 		_soundTimestamp = now;
 		return true;
 	}
@@ -936,6 +995,10 @@ uint16 AttackProcess::getAttackData(uint16 off) const {
 }
 
 void AttackProcess::pathfindToItemInNPCData() {
+#ifdef WATCHACTOR
+	if (_itemNum == WATCHACTOR)
+		debug("Attack: pathfindToItemInNPCData");
+#endif
 	_doubleDelay = false;
 	_timer2set = false;
 	_field96 = true;
@@ -958,6 +1021,12 @@ bool AttackProcess::timer4and5Update(int now) {
 	if (_doubleDelay) {
 		delay = 240;
 	}
+
+#ifdef WATCHACTOR
+	if (_itemNum == WATCHACTOR)
+		debug("Attack: timer4and5Update (doubledelay=%d, timer4=%d, timer5=%d)",
+			  _doubleDelay, _timer4, _timer5);
+#endif
 
 	if (_timer4) {
 		_timer5 = _timer4;
@@ -989,14 +1058,19 @@ void AttackProcess::timeNowToTimerVal2(int now) {
 }
 
 void AttackProcess::setTimer3() {
+	Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
 	const int32 now = Kernel::get_instance()->getTickNum();
 	_timer3set = true;
-	_timer3 = randomOf(10) * 60 + now;
+	_timer3 = rs.getRandomNumber(9) * 60 + now;
 	return;
 }
 
 void AttackProcess::sleep(int ticks) {
 	// waiting less than 2 ticks can cause a tight loop
+#ifdef WATCHACTOR
+	if (_itemNum == WATCHACTOR)
+		debug("Attack: sleeping for %d", ticks);
+#endif
 	ticks = MAX(ticks, 2);
 	Process *delayProc = new DelayProcess(ticks);
 	ProcId pid = Kernel::get_instance()->addProcess(delayProc);
@@ -1036,9 +1110,8 @@ uint16 AttackProcess::readNextWordRaw() {
 	return _tacticDatReadStream->readUint16LE();
 }
 
-void AttackProcess::dumpInfo() const {
-	Process::dumpInfo();
-
+Common::String AttackProcess::dumpInfo() const {
+	return Process::dumpInfo();
 }
 
 void AttackProcess::saveData(Common::WriteStream *ws) {
@@ -1078,7 +1151,10 @@ void AttackProcess::saveData(Common::WriteStream *ws) {
 	ws->writeSint32LE(_timer3);
 	ws->writeSint32LE(_timer4);
 	ws->writeSint32LE(_timer5);
-	ws->writeSint32LE(_soundTimestamp);
+	ws->writeSint32LE(_soundTimestamp); // bug: this should ideally be unsigned, probably won't make any difference.
+	// Don't write the sound delay because it only affects
+	// No Regret, adding it now would need a version bump, and
+	// and it doesn't make much difference to re-randomize it.
 	ws->writeSint32LE(_fireTimestamp);
 }
 

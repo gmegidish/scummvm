@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -86,7 +85,7 @@ Intrinsic RegretIntrinsics[] = {
 	MainActor::I_getMana, // Intrinsic030()
 	Item::I_getFamily, // Intrinsic031()
 	Actor::I_destroyContents, // Intrinsic032()
-	0, // Intrinsic033() AudioProcess::I_setVolumeForItemSFX
+	AudioProcess::I_setVolumeForObjectSFX, // Intrinsic033()
 	Item::I_getDirToItem, // Intrinsic034()
 	AudioProcess::I_isSFXPlayingForObject, // Intrinsic035()
 	Item::I_getRangeIfVisible, // Intrinsic036()
@@ -162,9 +161,9 @@ Intrinsic RegretIntrinsics[] = {
 	Item::I_unequip, // Intrinsic078()
 	Item::I_andStatus, // Intrinsic079()
 	Item::I_move, // Intrinsic07A()
-	Ultima8Engine::I_getUnkCrusaderFlag, // Intrinsic07B()
-	Ultima8Engine::I_setUnkCrusaderFlag, // Intrinsic07C()
-	Ultima8Engine::I_clrUnkCrusaderFlag, // Intrinsic07D()
+	Ultima8Engine::I_getCrusaderTeleporting, // Intrinsic07B()
+	Ultima8Engine::I_setCrusaderTeleporting, // Intrinsic07C()
+	Ultima8Engine::I_clrCrusaderTeleporting, // Intrinsic07D()
 	Actor::I_turnToward, // Intrinsic07E()
 	PaletteFaderProcess::I_fadeToBlack, // Intrinsic07F()
 	// 0080
@@ -390,7 +389,7 @@ Intrinsic RegretIntrinsics[] = {
 	Egg::I_getEggXRange, // Intrinsic14F()
 	// 0150
 	Actor::I_clrInCombat, // Intrinsic150()
-	PaletteFaderProcess::I_jumpToAllGivenColor, // Intrinsic151() PaletteFaderProcess::I_jumpToColor
+	PaletteFaderProcess::I_jumpToAllGivenColor, // Intrinsic151()
 	Item::I_setFrame, // Intrinsic152()
 	UCMachine::I_numToStr, // Intrinsic153()
 	Actor::I_getDir, // Intrinsic154()
@@ -466,7 +465,7 @@ Intrinsic RegretDemoIntrinsics[] = {
 	MainActor::I_getMana,           // Intrinsic030 10f8:3b4a
 	Item::I_getFamily,              // Intrinsic031 10b0:1036
 	Actor::I_destroyContents,       // Intrinsic032 10b0:14f3
-	0, // AudioProcess::I_setVolumeForItemSFX, // Intrinsic033 10b0:3a33
+	AudioProcess::I_setVolumeForObjectSFX, // Intrinsic033 10b0:3a33
 	Item::I_getDirToItem,           // Intrinsic034 10b0:1ab8
 	AudioProcess::I_isSFXPlayingForObject, // Intrinsic035 10b0:3a0b
 	Item::I_touch,                  // Intrinsic036 10b0:2558
@@ -550,9 +549,9 @@ Intrinsic RegretDemoIntrinsics[] = {
 	// 0x080
 	Item::I_andStatus,              // Intrinsic080 10b0:25cf
 	Item::I_move,                   // Intrinsic081 10b0:1575
-	Ultima8Engine::I_getUnkCrusaderFlag, // Intrinsic082 1008:0f1c
-	Ultima8Engine::I_setUnkCrusaderFlag, // Intrinsic083 1008:0f20
-	Ultima8Engine::I_clrUnkCrusaderFlag, // Intrinsic084 1008:0f16
+	Ultima8Engine::I_getCrusaderTeleporting, // Intrinsic082 1008:0f1c
+	Ultima8Engine::I_setCrusaderTeleporting, // Intrinsic083 1008:0f20
+	Ultima8Engine::I_clrCrusaderTeleporting, // Intrinsic084 1008:0f16
 	PaletteFaderProcess::I_fadeToBlack, // Intrinsic085 1418:071b
 	MainActor::I_clrKeycards,       // Intrinsic086 10f8:4443
 	MusicProcess::I_pauseMusic,     // Intrinsic087 1210:02b0
@@ -781,7 +780,7 @@ Intrinsic RegretDemoIntrinsics[] = {
 // =========================================================
 // Intrinsics for German version.
 // This is annoyingly similar to the main version, but has an extra intrinsic inserted,
-// at 13F so they are all offset after taht
+// at 13F so they are all offset after that
 //
 
 Intrinsic RegretDeIntrinsics[] = {
@@ -840,7 +839,7 @@ Intrinsic RegretDeIntrinsics[] = {
 	MainActor::I_getMana,           // Intrinsic030 10f8:3b4a
 	Item::I_getFamily,              // Intrinsic031 10b0:1036
 	Actor::I_destroyContents,       // Intrinsic032 10b0:14f3
-	0, // AudioProcess::I_setVolumeForItemSFX,  // Intrinsic033 10b0:3a33
+	AudioProcess::I_setVolumeForObjectSFX,  // Intrinsic033 10b0:3a33
 	Item::I_getDirToItem,           // Intrinsic034 10b0:1ab8
 	AudioProcess::I_isSFXPlayingForObject, // Intrinsic035 10b0:3a0b
 	Item::I_getRangeIfVisible,      // Intrinsic036 1140:258e
@@ -916,9 +915,9 @@ Intrinsic RegretDeIntrinsics[] = {
 	Item::I_unequip,                // Intrinsic078 10b0:2a51
 	Item::I_andStatus,              // Intrinsic079 10b0:25cf
 	Item::I_move,                   // Intrinsic07A 10b0:1575
-	Ultima8Engine::I_getUnkCrusaderFlag, // Intrinsic07B 1008:0f1c
-	Ultima8Engine::I_setUnkCrusaderFlag, // Intrinsic07C 1008:0f20
-	Ultima8Engine::I_clrUnkCrusaderFlag, // Intrinsic07D 1008:0f16
+	Ultima8Engine::I_getCrusaderTeleporting, // Intrinsic07B 1008:0f1c
+	Ultima8Engine::I_setCrusaderTeleporting, // Intrinsic07C 1008:0f20
+	Ultima8Engine::I_clrCrusaderTeleporting, // Intrinsic07D 1008:0f16
 	Actor::I_turnToward,            // Intrinsic07E 10f8:3961
 	PaletteFaderProcess::I_fadeToBlack, // Intrinsic07F 1418:071b
 	// 0x080

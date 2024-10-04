@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 #include "engines/stark/scene.h"
 #include "engines/stark/services/services.h"
 
-#if defined(USE_GLES2) || defined(USE_OPENGL_SHADERS)
+#if defined(USE_OPENGL_SHADERS)
 
 #include "graphics/opengl/shader.h"
 
@@ -41,7 +40,7 @@ OpenGLSPropRenderer::OpenGLSPropRenderer(Driver *gfx) :
 		_faceVBO(0),
 		_modelIsDirty(true) {
 	static const char* attributes[] = { "position", "normal", "texcoord", nullptr };
-	_shader = OpenGL::ShaderGL::fromFiles("stark_prop", attributes);
+	_shader = OpenGL::Shader::fromFiles("stark_prop", attributes);
 }
 
 OpenGLSPropRenderer::~OpenGLSPropRenderer() {
@@ -110,10 +109,10 @@ void OpenGLSPropRenderer::render(const Math::Vector3d &position, float direction
 }
 
 void OpenGLSPropRenderer::clearVertices() {
-	OpenGL::ShaderGL::freeBuffer(_faceVBO);
+	OpenGL::Shader::freeBuffer(_faceVBO);
 
 	for (FaceBufferMap::iterator it = _faceEBO.begin(); it != _faceEBO.end(); ++it) {
-		OpenGL::ShaderGL::freeBuffer(it->_value);
+		OpenGL::Shader::freeBuffer(it->_value);
 	}
 
 	_faceEBO.clear();
@@ -131,11 +130,11 @@ void OpenGLSPropRenderer::uploadVertices() {
 GLuint OpenGLSPropRenderer::createFaceVBO() {
 	const Common::Array<Formats::BiffMesh::Vertex> &vertices = _model->getVertices();
 
-	return OpenGL::ShaderGL::createBuffer(GL_ARRAY_BUFFER, sizeof(float) * 9 * vertices.size(), &vertices.front());
+	return OpenGL::Shader::createBuffer(GL_ARRAY_BUFFER, sizeof(float) * 9 * vertices.size(), &vertices.front());
 }
 
 GLuint OpenGLSPropRenderer::createFaceEBO(const Face *face) {
-	return OpenGL::ShaderGL::createBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32) * face->vertexIndices.size(), &face->vertexIndices.front());
+	return OpenGL::Shader::createBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32) * face->vertexIndices.size(), &face->vertexIndices.front());
 }
 
 void OpenGLSPropRenderer::setLightArrayUniform(const LightEntryArray &lights) {
@@ -191,4 +190,4 @@ void OpenGLSPropRenderer::setLightArrayUniform(const LightEntryArray &lights) {
 } // End of namespace Gfx
 } // End of namespace Stark
 
-#endif // defined(USE_GLES2) || defined(USE_OPENGL_SHADERS)
+#endif // defined(USE_OPENGL_SHADERS)

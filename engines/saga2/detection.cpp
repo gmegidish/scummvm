@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,7 +47,7 @@ namespace Saga2 {
 static const PlainGameDescriptor saga2Games[] = {
 	{"dino", "Dinotopia"},
 	{"fta2", "Faery Tale Adventure II: Halls of the Dead"},
-	{ 0, 0 }
+	{ nullptr, nullptr }
 };
 
 
@@ -107,13 +106,13 @@ static const SAGA2GameDescription gameDescriptions[] = {
 				{"scripts.hrs",	 GAME_SCRIPTFILE,					"95f33928f6c4f02ee04d2ec5c3314c30", 1041948},
 				{"ftasound.hrs", GAME_SOUNDFILE,					"ce930cb38922e6a03461f55d51b4e165", 12403350},
 				{"ftaimage.hrs", GAME_IMAGEFILE,					"09bb003733b20f924e2e373d2ddcd394", 21127397},
-				{"ftavoice.hrs", GAME_VOICEFILE,					NULL, -1 },
+				{"ftavoice.hrs", GAME_VOICEFILE,					nullptr, AD_NO_SIZE },
 				{"fta2win.exe",  GAME_EXECUTABLE,					"9a94854fef932483754a8f929caa0dba", 1093120},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
 			Common::kPlatformDOS,
-			ADGF_UNSTABLE,
+			ADGF_NO_FLAGS,
 			GUIO1(GUIO_NOASPECT)
 		},
 		GID_FTA2
@@ -122,24 +121,24 @@ static const SAGA2GameDescription gameDescriptions[] = {
 };
 } // End of namespace Saga2
 
-static const char *directoryGlobs[] = {
+static const char *const directoryGlobs[] = {
 	"res",
 	"win",
-	0
+	nullptr
 };
 
-class Saga2MetaEngineDetection : public AdvancedMetaEngineDetection {
+class Saga2MetaEngineDetection : public AdvancedMetaEngineDetection<Saga2::SAGA2GameDescription> {
 public:
-	Saga2MetaEngineDetection() : AdvancedMetaEngineDetection(Saga2::gameDescriptions, sizeof(Saga2::SAGA2GameDescription), Saga2::saga2Games) {
+	Saga2MetaEngineDetection() : AdvancedMetaEngineDetection(Saga2::gameDescriptions, Saga2::saga2Games) {
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "saga2";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "SAGA2";
 	}
 

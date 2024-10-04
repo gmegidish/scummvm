@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,6 +41,11 @@ void Ray::transform(const Matrix4 &matrix) {
 
 void Ray::rotate(const Quaternion &rot) {
 	rot.transform(_origin);
+	rot.transform(_direction);
+	_direction.normalize();
+}
+
+void Ray::rotateDirection(const Quaternion &rot) {
 	rot.transform(_direction);
 	_direction.normalize();
 }
@@ -75,6 +79,40 @@ bool Ray::intersectAABB(const AABB &aabb) const {
 	if (tMin > tMax) {
 		return false;
 	}
+
+	return true;
+}
+
+// Algorithm adapted from https://www.lighthouse3d.com/tutorials/maths/ray-triangle-intersection/
+bool Ray::intersectTriangle(const Vector3d &v0, const Vector3d &v1,
+		const Vector3d &v2, Vector3d &vout, float &fout) const {
+	const Vector3d e1 = v1 - v0;
+	const Vector3d e2 = v2 - v0;
+	const Vector3d h = Vector3d::crossProduct(_direction, e2);
+
+	float a = e1.dotProduct(h);
+	if (fabs(a) < 1e-6f)
+		return false;
+
+	float f = 1.0f / a;
+	const Vector3d s = _origin - v0;
+	float u = f * s.dotProduct(h);
+	if (u < 0.0f || u > 1.0f)
+		return false;
+
+	const Vector3d q = Vector3d::crossProduct(s, e1);
+	float v = f * _direction.dotProduct(q);
+
+	if (v < 0.0f || u + v > 1.0f)
+		return false;
+
+	float t = f * e2.dotProduct(q);
+
+	if (t < 1e-6f)
+		return false;
+
+	fout = t;
+	vout = _origin + t * _direction;
 
 	return true;
 }

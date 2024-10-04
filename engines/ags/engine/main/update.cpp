@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,6 @@
 // Game update procedure
 //
 
-#include "ags/lib/std/math.h"
 #include "ags/shared/ac/common.h"
 #include "ags/engine/ac/character.h"
 #include "ags/engine/ac/character_extras.h"
@@ -58,7 +56,7 @@ int do_movelist_move(short *mlnum, int *xx, int *yy) {
 	int need_to_fix_sprite = 0;
 	if (mlnum[0] < 1) quit("movelist_move: attempted to move on a non-exist movelist");
 	MoveList *cmls;
-	cmls = &_G(mls)[mlnum[0]];
+	cmls = &_GP(mls)[mlnum[0]];
 	fixed xpermove = cmls->xpermove[cmls->onstage], ypermove = cmls->ypermove[cmls->onstage];
 
 	short targetx = short((cmls->pos[cmls->onstage + 1] >> 16) & 0x00ffff);
@@ -180,40 +178,45 @@ void update_script_timers() {
 
 void update_cycling_views() {
 	// update graphics for object if cycling view
-	for (int i = 0; i < _G(croom)->numobj; ++i) {
+	for (uint32_t  i = 0; i < _G(croom)->numobj; ++i) {
 		_G(objs)[i].UpdateCyclingView(i);
 	}
 }
 
-void update_shadow_areas() {
-	// shadow areas
+// Updates the view of the player character
+void update_player_view() {
+	if (_G(playerchar)->flags & CHF_FIXVIEW)
+		return; // view is locked
+
 	int onwalkarea = get_walkable_area_at_character(_GP(game).playercharacter);
-	if (onwalkarea < 0);
-	else if (_G(playerchar)->flags & CHF_FIXVIEW);
-	else {
-		onwalkarea = _GP(thisroom).WalkAreas[onwalkarea].Light;
-		if (onwalkarea > 0) _G(playerchar)->view = onwalkarea - 1;
-		else if (_GP(thisroom).Options.PlayerView == 0) _G(playerchar)->view = _G(playerchar)->defview;
-		else _G(playerchar)->view = _GP(thisroom).Options.PlayerView - 1;
-	}
+	if (onwalkarea < 0)
+		return; // error?
+
+	int areaview = _GP(thisroom).WalkAreas[onwalkarea].PlayerView;
+	if (areaview > 0)
+		_G(playerchar)->view = areaview - 1; // convert to 0-based id
+	else if (_GP(thisroom).Options.PlayerView > 0)
+		_G(playerchar)->view = _GP(thisroom).Options.PlayerView - 1; // convert to 0-based id
+	else
+		_G(playerchar)->view = _G(playerchar)->defview;
 }
 
-void update_character_move_and_anim(int &numSheep, int *followingAsSheep) {
+void update_character_move_and_anim(std::vector<int> &followingAsSheep) {
 	// move & animate characters
 	for (int aa = 0; aa < _GP(game).numcharacters; aa++) {
 		if (_GP(game).chars[aa].on != 1) continue;
 
 		CharacterInfo *chi = &_GP(game).chars[aa];
-		CharacterExtras *chex = &_G(charextra)[aa];
+		CharacterExtras *chex = &_GP(charextra)[aa];
 
-		chi->UpdateMoveAndAnim(aa, chex, numSheep, followingAsSheep);
+		chi->UpdateMoveAndAnim(aa, chex, followingAsSheep);
 	}
 }
 
-void update_following_exactly_characters(int &numSheep, int *followingAsSheep) {
+void update_following_exactly_characters(const std::vector<int> &followingAsSheep) {
 	// update location of all following_exactly characters
-	for (int aa = 0; aa < numSheep; aa++) {
-		CharacterInfo *chi = &_GP(game).chars[followingAsSheep[aa]];
+	for (size_t i = 0; i < followingAsSheep.size(); ++i) {
+		CharacterInfo *chi = &_GP(game).chars[followingAsSheep[i]];
 
 		chi->UpdateFollowingExactlyCharacter();
 	}
@@ -221,20 +224,22 @@ void update_following_exactly_characters(int &numSheep, int *followingAsSheep) {
 
 void update_overlay_timers() {
 	// update overlay timers
-	for (int aa = 0; aa < _G(numscreenover); aa++) {
-		if (_G(screenover)[aa].timeout > 0) {
-			_G(screenover)[aa].timeout--;
-			if (_G(screenover)[aa].timeout == 0)
-				remove_screen_overlay(_G(screenover)[aa].type);
+	for (size_t i = 0; i < _GP(screenover).size();) {
+		if (_GP(screenover)[i].timeout > 0) {
+			_GP(screenover)[i].timeout--;
+			if (_GP(screenover)[i].timeout == 0) {
+				remove_screen_overlay_index(i);
+				continue;
+			}
 		}
+		i++;
 	}
 }
 
 void update_speech_and_messages() {
 	bool is_voice_playing = false;
 	if (_GP(play).speech_has_voice) {
-		AudioChannelsLock lock;
-		auto *ch = lock.GetChannel(SCHAN_SPEECH);
+		auto *ch = AudioChans::GetChannel(SCHAN_SPEECH);
 		is_voice_playing = ch && ch->is_playing();
 	}
 	// determine if speech text should be removed
@@ -249,19 +254,19 @@ void update_speech_and_messages() {
 				_GP(play).messagetime = 0;
 		}
 
-		if (_GP(play).messagetime < 1 && _GP(play).speech_display_post_time_ms > 0 &&
-		        _GP(play).fast_forward == 0) {
-			if (!_GP(play).speech_in_post_state) {
+		// Enter speech post-state: optionally increase final waiting time
+		if (!_GP(play).speech_in_post_state && (_GP(play).fast_forward == 0) && (_GP(play).messagetime < 1)) {
+			_GP(play).speech_in_post_state = true;
+			if (_GP(play).speech_display_post_time_ms > 0) {
 				_GP(play).messagetime = ::lround(_GP(play).speech_display_post_time_ms * get_current_fps() / 1000.0f);
 			}
-			_GP(play).speech_in_post_state = !_GP(play).speech_in_post_state;
 		}
 
 		if (_GP(play).messagetime < 1) {
 			if (_GP(play).fast_forward > 0) {
 				remove_screen_overlay(_GP(play).text_overlay_on);
 				_GP(play).SetWaitSkipResult(SKIP_AUTOTIMER);
-			} else if (_GP(play).cant_skip_speech & SKIP_AUTOTIMER) {
+			} else if (_GP(play).speech_skip_style & SKIP_AUTOTIMER) {
 				remove_screen_overlay(_GP(play).text_overlay_on);
 				_GP(play).SetWaitSkipResult(SKIP_AUTOTIMER);
 				_GP(play).SetIgnoreInput(_GP(play).ignore_user_input_after_text_timeout_ms);
@@ -274,8 +279,7 @@ void update_speech_and_messages() {
 void update_sierra_speech() {
 	int voice_pos_ms = -1;
 	if (_GP(play).speech_has_voice) {
-		AudioChannelsLock lock;
-		auto *ch = lock.GetChannel(SCHAN_SPEECH);
+		auto *ch = AudioChans::GetChannel(SCHAN_SPEECH);
 		voice_pos_ms = ch ? ch->get_pos_ms() : -1;
 	}
 	if ((_G(face_talking) >= 0) && (_GP(play).fast_forward == 0)) {
@@ -292,12 +296,12 @@ void update_sierra_speech() {
 				}
 			} else if (_G(facetalkchar)->blinktimer < 0) {
 				// currently playing blink anim
-				if (_G(facetalkchar)->blinktimer < ((0 - 6) - _G(views)[_G(facetalkchar)->blinkview].loops[_G(facetalkBlinkLoop)].frames[_G(facetalkchar)->blinkframe].speed)) {
+				if (_G(facetalkchar)->blinktimer < ((0 - 6) - _GP(views)[_G(facetalkchar)->blinkview].loops[_G(facetalkBlinkLoop)].frames[_G(facetalkchar)->blinkframe].speed)) {
 					// time to advance to next frame
 					_G(facetalkchar)->blinktimer = -1;
 					_G(facetalkchar)->blinkframe++;
 					updatedFrame = 2;
-					if (_G(facetalkchar)->blinkframe >= _G(views)[_G(facetalkchar)->blinkview].loops[_G(facetalkBlinkLoop)].numFrames) {
+					if (_G(facetalkchar)->blinkframe >= _GP(views)[_G(facetalkchar)->blinkview].loops[_G(facetalkBlinkLoop)].numFrames) {
 						_G(facetalkchar)->blinkframe = 0;
 						_G(facetalkchar)->blinktimer = _G(facetalkchar)->blinkinterval;
 					}
@@ -320,7 +324,7 @@ void update_sierra_speech() {
 					else
 						_G(facetalkframe) = _G(splipsync)[_G(curLipLine)].frame[_G(curLipLinePhoneme)];
 
-					if (_G(facetalkframe) >= _G(views)[_G(facetalkview)].loops[_G(facetalkloop)].numFrames)
+					if (_G(facetalkframe) >= _GP(views)[_G(facetalkview)].loops[_G(facetalkloop)].numFrames)
 						_G(facetalkframe) = 0;
 
 					updatedFrame |= 1;
@@ -352,11 +356,11 @@ void update_sierra_speech() {
 			} else {
 				// normal non-lip-sync
 				_G(facetalkframe)++;
-				if ((_G(facetalkframe) >= _G(views)[_G(facetalkview)].loops[_G(facetalkloop)].numFrames) ||
+				if ((_G(facetalkframe) >= _GP(views)[_G(facetalkview)].loops[_G(facetalkloop)].numFrames) ||
 				        (!_GP(play).speech_has_voice && (_GP(play).messagetime < 1) && (_GP(play).close_mouth_speech_time > 0))) {
 
-					if ((_G(facetalkframe) >= _G(views)[_G(facetalkview)].loops[_G(facetalkloop)].numFrames) &&
-					        (_G(views)[_G(facetalkview)].loops[_G(facetalkloop)].RunNextLoop())) {
+					if ((_G(facetalkframe) >= _GP(views)[_G(facetalkview)].loops[_G(facetalkloop)].numFrames) &&
+					        (_GP(views)[_G(facetalkview)].loops[_G(facetalkloop)].RunNextLoop())) {
 						_G(facetalkloop)++;
 					} else {
 						_G(facetalkloop) = 0;
@@ -366,7 +370,7 @@ void update_sierra_speech() {
 						_G(facetalkwait) = 999999;
 				}
 				if ((_G(facetalkframe) != 0) || (_G(facetalkrepeat) == 1))
-					_G(facetalkwait) = _G(views)[_G(facetalkview)].loops[_G(facetalkloop)].frames[_G(facetalkframe)].speed + GetCharacterSpeechAnimationDelay(_G(facetalkchar));
+					_G(facetalkwait) = _GP(views)[_G(facetalkview)].loops[_G(facetalkloop)].frames[_G(facetalkframe)].speed + GetCharacterSpeechAnimationDelay(_G(facetalkchar));
 			}
 			updatedFrame |= 1;
 		}
@@ -374,15 +378,17 @@ void update_sierra_speech() {
 		// _G(is_text_overlay) might be 0 if it was only just destroyed this loop
 		if ((updatedFrame) && (_GP(play).text_overlay_on > 0)) {
 
+			const int frame_vol = GetCharacterFrameVolume(_G(facetalkchar));
 			if (updatedFrame & 1)
-				CheckViewFrame(_G(facetalkview), _G(facetalkloop), _G(facetalkframe));
+				CheckViewFrame(_G(facetalkview), _G(facetalkloop), _G(facetalkframe), frame_vol);
 			if (updatedFrame & 2)
-				CheckViewFrame(_G(facetalkchar)->blinkview, _G(facetalkBlinkLoop), _G(facetalkchar)->blinkframe);
+				CheckViewFrame(_G(facetalkchar)->blinkview, _G(facetalkBlinkLoop), _G(facetalkchar)->blinkframe, frame_vol);
 
-			int thisPic = _G(views)[_G(facetalkview)].loops[_G(facetalkloop)].frames[_G(facetalkframe)].pic;
+			int thisPic = _GP(views)[_G(facetalkview)].loops[_G(facetalkloop)].frames[_G(facetalkframe)].pic;
 			int view_frame_x = 0;
 			int view_frame_y = 0;
 
+			Bitmap *frame_pic = _GP(screenover)[_G(face_talking)].GetImage();
 			if (_GP(game).options[OPT_SPEECHTYPE] == 3) {
 				// QFG4-style fullscreen dialog
 				if (_G(facetalk_qfg4_override_placement_x)) {
@@ -391,26 +397,26 @@ void update_sierra_speech() {
 				if (_G(facetalk_qfg4_override_placement_y)) {
 					view_frame_y = _GP(play).speech_portrait_y;
 				} else {
-					view_frame_y = (_G(screenover)[_G(face_talking)].pic->GetHeight() / 2) - (_GP(game).SpriteInfos[thisPic].Height / 2);
+					view_frame_y = (frame_pic->GetHeight() / 2) - (_GP(game).SpriteInfos[thisPic].Height / 2);
 				}
-				_G(screenover)[_G(face_talking)].pic->Clear(0);
+				frame_pic->Clear(0);
 			} else {
-				_G(screenover)[_G(face_talking)].pic->ClearTransparent();
+				frame_pic->ClearTransparent();
 			}
 
-			Bitmap *frame_pic = _G(screenover)[_G(face_talking)].pic;
-			const ViewFrame *face_vf = &_G(views)[_G(facetalkview)].loops[_G(facetalkloop)].frames[_G(facetalkframe)];
+			const ViewFrame *face_vf = &_GP(views)[_G(facetalkview)].loops[_G(facetalkloop)].frames[_G(facetalkframe)];
 			bool face_has_alpha = (_GP(game).SpriteInfos[face_vf->pic].Flags & SPF_ALPHACHANNEL) != 0;
 			DrawViewFrame(frame_pic, face_vf, view_frame_x, view_frame_y);
 
 			if ((_G(facetalkchar)->blinkview > 0) && (_G(facetalkchar)->blinktimer < 0)) {
-				ViewFrame *blink_vf = &_G(views)[_G(facetalkchar)->blinkview].loops[_G(facetalkBlinkLoop)].frames[_G(facetalkchar)->blinkframe];
+				ViewFrame *blink_vf = &_GP(views)[_G(facetalkchar)->blinkview].loops[_G(facetalkBlinkLoop)].frames[_G(facetalkchar)->blinkframe];
 				face_has_alpha |= (_GP(game).SpriteInfos[blink_vf->pic].Flags & SPF_ALPHACHANNEL) != 0;
 				// draw the blinking sprite on top
 				DrawViewFrame(frame_pic, blink_vf, view_frame_x, view_frame_y, face_has_alpha);
 			}
 
-			_G(gfxDriver)->UpdateDDBFromBitmap(_G(screenover)[_G(face_talking)].bmp, _G(screenover)[_G(face_talking)].pic, face_has_alpha);
+			_GP(screenover)[_G(face_talking)].SetAlphaChannel(face_has_alpha);
+			_GP(screenover)[_G(face_talking)].MarkChanged();
 		}  // end if updatedFrame
 	}
 }
@@ -427,16 +433,15 @@ void update_stuff() {
 
 	_G(our_eip) = 21;
 
-	update_shadow_areas();
+	update_player_view();
 
 	_G(our_eip) = 22;
 
-	int numSheep = 0;
-	int followingAsSheep[MAX_SHEEP];
+	std::vector<int> followingAsSheep;
 
-	update_character_move_and_anim(numSheep, followingAsSheep);
+	update_character_move_and_anim(followingAsSheep);
 
-	update_following_exactly_characters(numSheep, followingAsSheep);
+	update_following_exactly_characters(followingAsSheep);
 
 	_G(our_eip) = 23;
 

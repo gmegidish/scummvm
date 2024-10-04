@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@ public:
 	CryoExtFont() : _height(0), _maxAdvance(0), _crf(nullptr), _codepage(Common::kCodePageInvalid) { }
 	virtual ~CryoExtFont();
 
-	void load(const Common::String &fontFile, Common::CodePage encoding);
+	void load(const Common::Path &fontFile, Common::CodePage encoding);
 
 	virtual int getFontHeight() const { return _height; }
 	virtual int getMaxCharWidth() const { return _maxAdvance; }
@@ -51,7 +50,7 @@ public:
 	virtual void drawChar(Graphics::Surface *dst, uint32 chr, int x, int y, uint32 color) const;
 
 private:
-	void loadOffsets(const Common::String &offsetsFile);
+	void loadOffsets(const Common::Path &offsetsFile);
 	void assureCached(uint32 chr) const;
 	uint32 mapGlyph(uint32 chr) const;
 

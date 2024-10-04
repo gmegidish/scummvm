@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -79,7 +78,7 @@ Logic::~Logic() {
 	SAFE_DELETE(_state);
 
 	// Zero-out passed pointers
-	_engine = NULL;
+	_engine = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -236,7 +235,7 @@ void Logic::eventMouse(const Common::Event &ev) {
 
 	// Check hotspots
 	int location = 0;
-	SceneHotspot *hotspot = NULL;
+	SceneHotspot *hotspot = nullptr;
 	Scene *scene = getScenes()->get(getState()->scene);
 
 	for (Common::Array<SceneHotspot *>::iterator it = scene->getHotspots()->begin(); it != scene->getHotspots()->end(); ++it) {
@@ -265,7 +264,7 @@ void Logic::eventMouse(const Common::Event &ev) {
 		return;
 	}
 
-	// Found an hotspot: update the cursor and perform the action if the user clicked the mouse
+	// Found a hotspot: update the cursor and perform the action if the user clicked the mouse
 	_engine->getCursor()->setStyle(getAction()->getCursor(*hotspot));
 
 	if (ev.type != Common::EVENT_LBUTTONUP || _flagActionPerformed)
@@ -551,7 +550,7 @@ void Logic::updateCursor(bool) const { /* the cursor is always updated, even whe
 			 && !getInventory()->isEggHighlighted()
 			 && !getInventory()->isMagnifierInUse()) {
 				int location = 0;
-				SceneHotspot *hotspot = NULL;
+				SceneHotspot *hotspot = nullptr;
 				Scene *scene = getScenes()->get(getState()->scene);
 
 				// Check all hotspots

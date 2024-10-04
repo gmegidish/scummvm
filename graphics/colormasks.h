@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,7 +65,7 @@ The meaning of these is masks is the following:
 
 template<>
 struct ColorMasks<565> {
-	enum {
+	enum : uint {
 		kHighBitsMask    = 0xF7DEF7DE,
 		kLowBitsMask     = 0x08210821,
 		qhighBits   = 0xE79CE79C,
@@ -282,6 +281,42 @@ struct ColorMasks<8888> {
 		kHighBitsMask = ~kLowBits,
 		qlowBits = kLow2Bits,
 		qhighBits = ~kLow2Bits
+	};
+
+	typedef uint32 PixelType;
+};
+
+template<>
+struct ColorMasks<-8888> {
+	enum : uint {
+		kBytesPerPixel = 4,
+
+		kAlphaBits  = 8,
+		kRedBits    = 8,
+		kGreenBits  = 8,
+		kBlueBits   = 8,
+
+		kAlphaShift = 0,
+		kRedShift   = kAlphaBits,
+		kGreenShift = kRedBits+kAlphaBits,
+		kBlueShift  = kGreenBits+kRedBits+kAlphaBits,
+
+		kAlphaMask = ((1u << kAlphaBits) - 1) << kAlphaShift,
+		kRedMask   = ((1u << kRedBits) - 1) << kRedShift,
+		kGreenMask = ((1u << kGreenBits) - 1) << kGreenShift,
+		kBlueMask  = ((1u << kBlueBits) - 1) << kBlueShift,
+
+		kRedBlueMask = kRedMask | kBlueMask,
+
+		kLowBits    = (1 << kRedShift) | (1 << kGreenShift) | (1 << kBlueShift) | (1 << kAlphaShift),
+		kLow2Bits   = (3 << kRedShift) | (3 << kGreenShift) | (3 << kBlueShift) | (3 << kAlphaShift),
+		kLow3Bits   = (7 << kRedShift) | (7 << kGreenShift) | (7 << kBlueShift) | (7 << kAlphaShift),
+		kLow4Bits   = (15 << kRedShift) | (15 << kGreenShift) | (15 << kBlueShift) | (15 << kAlphaShift),
+
+		kLowBitsMask = kLowBits,
+		kHighBitsMask = (uint) ~kLowBits,
+		qlowBits = kLow2Bits,
+		qhighBits = (uint) ~kLow2Bits
 	};
 
 	typedef uint32 PixelType;

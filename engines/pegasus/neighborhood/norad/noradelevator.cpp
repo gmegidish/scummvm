@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@ static const ResIDType kElevatorUpOnID = 203;
 
 NoradElevator::NoradElevator(Neighborhood *handler, const RoomID upRoom, const RoomID downRoom,
 		const HotSpotID upHotspot, const HotSpotID downHotspot) : GameInteraction(kNoradElevatorInteractionID, handler),
-		_elevatorControls(kNoradElevatorControlsID), _elevatorNotification(kNoradElevatorNotificationID, ((PegasusEngine *)g_engine)) {
+		_elevatorControls(kNoradElevatorControlsID), _elevatorNotification(kNoradElevatorNotificationID, g_vm) {
 	_timerExpired = false;
 	_upRoom = upRoom;
 	_downRoom = downRoom;
@@ -49,19 +48,19 @@ NoradElevator::NoradElevator(Neighborhood *handler, const RoomID upRoom, const R
 
 void NoradElevator::openInteraction() {
 	SpriteFrame *frame = new SpriteFrame();
-	frame->initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kElevatorLabelID, true);
+	frame->initFromPICTResource(g_vm->_resFork, kElevatorLabelID, true);
 	_elevatorControls.addFrame(frame, 0, 0);
 
 	frame = new SpriteFrame();
-	frame->initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kElevatorButtonsID, true);
+	frame->initFromPICTResource(g_vm->_resFork, kElevatorButtonsID, true);
 	_elevatorControls.addFrame(frame, 0, 0);
 
 	frame = new SpriteFrame();
-	frame->initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kElevatorDownOnID, true);
+	frame->initFromPICTResource(g_vm->_resFork, kElevatorDownOnID, true);
 	_elevatorControls.addFrame(frame, 0, 0);
 
 	frame = new SpriteFrame();
-	frame->initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kElevatorUpOnID, true);
+	frame->initFromPICTResource(g_vm->_resFork, kElevatorUpOnID, true);
 	_elevatorControls.addFrame(frame, 0, 0);
 
 	_elevatorControls.setCurrentFrameIndex(0);

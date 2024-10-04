@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-// The code in this file is currently used in KYRA, SCI, SCUMM, SAGA, 
+// The code in this file is currently used in KYRA, SCI, SCUMM, SAGA,
 // and AGOS. If none of those are enabled, we will skip compiling it.
 // We also enable this code for ScummVM builds including support
 // for dynamic engine plugins.
@@ -232,6 +231,38 @@ private:
 	virtual const uint8 *getCharData(uint16 c) const;
 
 	bool hasFeature(int feat) const;
+};
+
+/**
+ * PC98 ROM based SJIS compatible font.
+ *
+ * This is used in KYRA and SCI.
+ */
+class FontPC98 : public FontSJISBase {
+public:
+	/**
+	 * Loads the ROM data from "FONT.ROM".
+	 */
+	bool loadData() override;
+
+	/**
+	 * Loads the ROM data from "FONT.ROM".
+	 */
+	bool loadBMPData();
+
+protected:
+	const uint8 *getCharData(uint16 c) const override;
+
+private:
+	enum {
+		kFont16x16Chars = 8831,
+		kFont8x16Chars = 256
+	};
+
+	uint8 _fontData16x16[kFont16x16Chars * 32];
+	uint8 _fontData8x16[kFont8x16Chars * 16];
+
+	bool hasFeature(int feat) const override;
 };
 
 /**

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -63,6 +62,9 @@ MidiPlayer::MidiPlayer() : _parser(nullptr), _transitionParser(nullptr), _playin
 			_driver->property(MidiDriver::PROP_USER_VOLUME_SCALING, true);
 			_driver->setTimerCallback(this, &timerCallback);
 			syncSoundSettings();
+		} else {
+			delete _driver;
+			_driver = nullptr;
 		}
 	}
 }
@@ -71,19 +73,16 @@ MidiPlayer::~MidiPlayer() {
 	if (_parser) {
 		_parser->unloadMusic();
 		delete _parser;
-		_parser = 0;
 	}
 
 	if (_transitionParser) {
 		_transitionParser->unloadMusic();
 		delete _transitionParser;
-		_transitionParser = 0;
 	}
 
 	if (_driver) {
 		_driver->close();
 		delete _driver;
-		_driver = 0;
 	}
 }
 
@@ -96,7 +95,7 @@ void MidiPlayer::load(byte *data, size_t size, int seqNo) {
 	if (_parser) {
 		_parser->unloadMusic();
 		delete _parser;
-		_parser = 0;
+		_parser = nullptr;
 	}
 
 	if (size < 4)
@@ -118,6 +117,9 @@ void MidiPlayer::load(byte *data, size_t size, int seqNo) {
 }
 
 void MidiPlayer::loadTransitionData(byte* data, size_t size) {
+	if (!_driver)
+		return;
+
 	if (size < 4)
 		error("loadTransitionData() wrong music resource size");
 

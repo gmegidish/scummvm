@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Copyright 2020 Google
  *
@@ -32,7 +31,7 @@
 #include "audio/decoders/aiff.h"
 #include "hadesch/pod_file.h"
 #include "hadesch/baptr.h"
-#include "common/translation.h"
+#include "common/macresman.h"
 
 static const int kVideoMaxW = 1280;
 static const int kVideoMaxH = 480;
@@ -120,7 +119,7 @@ VideoRoom::VideoRoom(const Common::String &dir, const Common::String &pod,
 		     const Common::String &assetMapFile) : _layers(layerComparator) {
 	Common::String podPath = g_vm->getCDScenesPath() + dir + "/" + pod + ".pod";
 	_podFile = Common::SharedPtr<PodFile>(new PodFile(podPath));
-	_podFile->openStore(podPath);
+	_podFile->openStore(Common::Path(podPath));
 	_smkPath = g_vm->getCDScenesPath() + dir;
 	Common::SharedPtr<Common::SeekableReadStream> assetMapStream(assetMapFile != "" ? openFile(assetMapFile) : nullptr);
 	if (assetMapStream) {
@@ -759,12 +758,13 @@ void VideoRoom::playVideo(const Common::String &name, int zValue,
 	Common::SharedPtr<Video::SmackerDecoder> decoder
 	  = Common::SharedPtr<Video::SmackerDecoder>(new Video::SmackerDecoder());
 
-	Common::File *file = new Common::File;
 	Common::String mappedName = _assetMap.get(name, 1);
 	if (mappedName == "") {
 		mappedName = name;
 	}
-	if (!file->open(_smkPath + "/" + mappedName + ".SMK") || !decoder->loadStream(file)) {
+	Common::SeekableReadStream *stream = Common::MacResManager::openFileOrDataFork(Common::Path(_smkPath + "/" + mappedName + ".SMK"));
+
+	if (!stream || !decoder->loadStream(stream)) {
 		debug("Video file %s can't be opened", name.c_str());
 		g_vm->handleEvent(callbackEvent);
 		return;

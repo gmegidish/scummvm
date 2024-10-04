@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -28,7 +27,7 @@
 #define SAGA2_SCRIPT_H
 
 #include "saga2/objects.h"
-#include "saga2/calender.h"
+#include "saga2/calendar.h"
 
 namespace Saga2 {
 
@@ -38,17 +37,17 @@ typedef int16   ThreadID;
 
 enum scriptResult {
 
-	//  Code returned when attempt to run a non-existant script
-	scriptResultNoScript = 0,
+	//  Code returned when attempt to run a non-existent script
+	kScriptResultNoScript = 0,
 
 	//  Code returned when script was aborted before completion
-	scriptResultAborted,
+	kScriptResultAborted,
 
 	//  Code returned when script finished
-	scriptResultFinished,
+	kScriptResultFinished,
 
 	//  Script spun off as async thread; no answer available.
-	scriptResultAsync
+	kScriptResultAsync
 };
 
 //  Variables specific to a thread
@@ -57,13 +56,13 @@ struct scriptCallFrame {
 
 	//  ID of object who's method is being called (which can be the same
 	//  as one of the other objects below).
-	ObjectID        invokedObject;
+	ObjectID        invokedObject = Nothing;
 	ActiveItemID    invokedTAI;
 
 	//  ID of the objects in the interaction.
-	ObjectID        enactor,                // actor who caused interaction
-	                directObject,           // the object being acted on
-	                indirectObject;         // the object being used
+	ObjectID        enactor = Nothing,        // actor who caused interaction
+	                directObject = Nothing,   // the object being acted on
+	                indirectObject = Nothing; // the object being used
 	// with the other one
 	ActiveItemID    directTAI,              // the tile activity instance
 	                // being used
@@ -71,16 +70,16 @@ struct scriptCallFrame {
 	// upon which the object is being
 	// used
 
-	int16           responseType;           // used with knowledge package
+	int16           responseType = -1;      // used with knowledge package
 
-	int16           methodNum;              // which method being invoked
+	int16           methodNum = -1;         // which method being invoked
 
 	//  Misc fields used in passing parameters to scripts.
-	int16           idNum;                  // a misc. id number
-	int16           value;                  // a misc. parameter value
+	int16           idNum = 0;              // a misc. id number
+	int16           value = 0;              // a misc. parameter value
 	TilePoint       coords;                 // a misc. tilepoint
 
-	int16           returnVal;              // return value of script
+	int16           returnVal = 0;          // return value of script
 };
 
 //  Standard return codes from scripts in the "returnVal" field
@@ -89,15 +88,15 @@ enum {
 	//  Code returned by script when script decides requested
 	//  action is not possible, and the calling C-code should
 	//  take action to inform user
-	actionResultFailure = 0,
+	kActionResultFailure = 0,
 
 	//  Code returned by script when script completes the action
 	//  successfully and C-code should not complete the action
-	actionResultSuccess,
+	kActionResultSuccess,
 
 	//  Code returned by script when requested action should complete
 	//  the action
-	actionResultNotDone
+	kActionResultNotDone
 };
 
 //  Method used to refer to a SAGA object
@@ -111,10 +110,10 @@ struct SegmentRef {
 //  such as actors and TAGS
 
 enum builtinTypes {
-	builtinTypeObject = -1,
-	builtinTypeTAG = -2,
-	builtinAbstract = -3,
-	builtinTypeMission = -4
+	kBuiltinTypeObject = -1,
+	kBuiltinTypeTAG = -2,
+	kBuiltinAbstract = -3,
+	kBuiltinTypeMission = -4
 };
 
 /* ===================================================================== *
@@ -173,70 +172,69 @@ scriptResult runMethod(
 
 class Thread {
 
-	friend          char *STRING(int strNum);
+	friend char *STRING(int strNum);
 
-	friend scriptResult runScript(
-	    uint16 exportEntryNum, scriptCallFrame &args);
+	friend scriptResult runScript(uint16 exportEntryNum, scriptCallFrame &args);
 
 	friend void wakeUpThread(ThreadID, int16);
 
 public:
-	SegmentRef      programCounter;         // current PC location
+	SegmentRef      _programCounter;         // current PC location
 
-	uint8           *stackPtr;              // current stack location
-	byte            *codeSeg;                // base of current data segment
-//					*stringBase;         // base of string resource
+	uint8           *_stackPtr;              // current stack location
+	byte            *_codeSeg;                // base of current data segment
+//					*_stringBase;         // base of string resource
 
-	uint8           *stackBase;             // base of module stack
+	uint8           *_stackBase;             // base of module stack
 
 	enum threadFlags {
-		waiting     = (1 << 0),             // thread waiting for event
-		finished    = (1 << 1),             // thread finished normally
-		aborted     = (1 << 2),             // thread is aborted
-		extended    = (1 << 3),             // this is an extended sequence
-		expectResult = (1 << 4),            // script is expecting result on stack
-		synchronous = (1 << 5),             // when this bit is set this thread will
+		kTFWaiting     = (1 << 0),             // thread waiting for event
+		kTFFinished    = (1 << 1),             // thread finished normally
+		kTFAborted     = (1 << 2),             // thread is aborted
+		kTFExtended    = (1 << 3),             // this is an extended sequence
+		kTFExpectResult = (1 << 4),            // script is expecting result on stack
+		kTFSynchronous = (1 << 5),             // when this bit is set this thread will
 		// run until it is finished or this bit
 		// is cleared
 
-		asleep      = (waiting | finished | aborted)
+		kTFAsleep      = (kTFWaiting | kTFFinished | kTFAborted)
 	};
 
-	int16           stackSize,              // allocated size of stack
-	                flags,                  // execution flags
-	                framePtr,               // pointer to call frame
-	                returnVal;              // return value from ccalls
+	int16           _stackSize,              // allocated size of stack
+	                _flags,                  // execution flags
+	                _framePtr,               // pointer to call frame
+	                _returnVal;              // return value from ccalls
 
 	bool            _valid;
 
 	//  Various signals that a script can wait upon
 	enum WaitTypes {
-		waitNone = 0,                       // waiting for nothing
-		waitDelay,                          // waiting for a timer
-		waitFrameDelay,                     // waiting for frame count
-		waitOther,                          // waiting for to be awoken
-		waitTagSemaphore                    // waiting for a tag semaphore
+		kWaitNone = 0,                       // waiting for nothing
+		kWaitDelay,                          // waiting for a timer
+		kWaitFrameDelay,                     // waiting for frame count
+		kWaitOther,                          // waiting for to be awoken
+		kWaitTagSemaphore                    // waiting for a tag semaphore
 
-//		waitSpeech,                         // waiting for speech to finish
-//		waitDialogEnd,                      // waiting for my dialog to finish
-//		waitDialogBegin,                    // waiting for other dialog to finish
-//		waitWalk,                           // waiting to finish walking
-//		waitRequest,                        // a request is up
+//		kWaitSpeech,                         // waiting for speech to finish
+//		kWaitDialogEnd,                      // waiting for my dialog to finish
+//		kWaitDialogBegin,                    // waiting for other dialog to finish
+//		kWaitWalk,                           // waiting to finish walking
+//		kWaitRequest,                        // a request is up
 	};
 
-	enum WaitTypes  waitType;               // what we're waiting for
+	WaitTypes  _waitType;               // what we're waiting for
 	union {
-		Alarm       waitAlarm;              // for time-delay
-		FrameAlarm  waitFrameAlarm;         // for frame count delay
-		ActiveItem *waitParam;              // for other waiting
+		Alarm       _waitAlarm;              // for time-delay
+		FrameAlarm  _waitFrameAlarm;         // for frame count delay
+		ActiveItem *_waitParam;              // for other waiting
 	};
 
-	scriptCallFrame threadArgs;             // arguments from C to thread
+	scriptCallFrame _threadArgs;             // arguments from C to thread
 
 	//  For 'cfunc' member functions, the address of the object who's
 	//  member function is being invoked.
-	void            *thisObject;
-	uint16          argCount;               // number of args to cfunc
+	void            *_thisObject;
+	uint16          _argCount;               // number of args to cfunc
 
 	//  Constructor
 	Thread(uint16 segNum, uint16 segOff, scriptCallFrame &args);
@@ -265,10 +263,10 @@ public:
 	scriptResult run();
 
 	//  Tells thread to wait for an event
-	void waitForEvent(enum WaitTypes wt, ActiveItem *param) {
-		flags |= waiting;
-		waitType = wt;
-		waitParam = param;
+	void waitForEvent(WaitTypes wt, ActiveItem *param) {
+		_flags |= kTFWaiting;
+		_waitType = wt;
+		_waitParam = param;
 	}
 
 	//  Convert to extended script, and back to synchonous script
@@ -314,11 +312,11 @@ extern Thread           *thisThread;        // task queue
 //void killThread( Thread *th );
 
 /*
-void wakeUpActorThread( enum WaitTypes wakeupType, void *obj );
-void wakeUpThreads( enum WaitTypes wakeupType );
-void wakeUpThreadsDelayed( enum WaitTypes wakeupType, int newdelay );
-void abortObjectThreads( Thread *keep, uint16 id );
-bool abortAllThreads( void );
+void wakeUpActorThread(WaitTypes wakeupType, void *obj);
+void wakeUpThreads(WaitTypes wakeupType);
+void wakeUpThreadsDelayed(WaitTypes wakeupType, int newdelay);
+void abortObjectThreads(Thread *keep, uint16 id);
+bool abortAllThreads(void);
 */
 
 //  Run a script function
@@ -341,7 +339,7 @@ struct ResImportTable {
 	                EXP_spellEffect_TeleportToShrine,
 	                EXP_spellEffect_Rejoin,
 	                EXP_spellEffect_Timequake,
-	                EXP_spellEffect_CreateFood      ;
+	                EXP_spellEffect_CreateFood;
 };
 
 extern ResImportTable       *resImports;

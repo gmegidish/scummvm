@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -258,9 +257,9 @@ public:
 
 	void enableFallback(bool val) { _fallBack = val; }
 
-	void registerArchive(const Common::String &filename, int priority);
+	void registerArchive(const Common::Path &filename, int priority);
 
-	Common::SeekableReadStream *open(const Common::String &filename);
+	Common::SeekableReadStream *open(const Common::Path &filename);
 
 private:
 	bool _fallBack;
@@ -326,9 +325,9 @@ public:
 	void syncSoundSettings() override;
 
 	Common::Error loadGameState(int slot) override;
-	bool canLoadGameStateCurrently() override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
-	bool canSaveGameStateCurrently() override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 
 	Common::RandomSource *_rnd;
 	const DrasculaGameDescription *_gameDescription;
@@ -346,7 +345,7 @@ public:
 
 	void loadPic(int roomNum, byte *targetSurface, int colorCount = 1) {
 		char rm[20];
-		sprintf(rm, "%i.alg", roomNum);
+		Common::sprintf_s(rm, "%i.alg", roomNum);
 		loadPic(rm, targetSurface, colorCount);
 	}
 
@@ -465,6 +464,7 @@ public:
 	int _color;
 	int musicStopped;
 	int _mouseX, _mouseY, _leftMouseButton, _rightMouseButton;
+	bool _leftMouseButtonHeld;
 
 	Common::KeyState _keyBuffer[KEYBUFSIZE];
 	int _keyBufferHead;

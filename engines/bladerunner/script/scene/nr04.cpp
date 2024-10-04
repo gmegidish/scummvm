@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -233,12 +232,19 @@ void SceneScriptNR04::ActorChangedGoal(int actorId, int newGoal, int oldGoal, bo
 
 		case kGoalEarlyQNR04PourDrink:
 			Actor_Face_Actor(kActorMcCoy, kActorEarlyQ, true);
-			Actor_Says(kActorEarlyQ, 90, 73);
-			Actor_Says(kActorMcCoy, 3390, 3);
+			Actor_Says(kActorEarlyQ, 90, 73);  // E: It's your lucky day
+			Actor_Says(kActorMcCoy, 3390, 3);  // M: Not interested
 			Actor_Face_Actor(kActorEarlyQ, kActorMcCoy, true);
-			Actor_Says(kActorEarlyQ, 110, 74);
-			Actor_Says(kActorMcCoy, 3385, 3);
-			Actor_Says(kActorEarlyQ, 120, 74);
+			Actor_Says(kActorEarlyQ, 110, 74); // E: Bull, everyone's interested
+			Actor_Says(kActorMcCoy, 3385, 3);  // M:   "I want information" (ENG, FRA)
+			                                   // (OR) "Make me an offer"   (DEU, ITA, ESP)
+			Actor_Says(kActorEarlyQ, 120, 74); // E: You can have whatever you little heart desires
+			if (_vm->_cutContent
+			    && (_vm->_language == Common::ES_ESP
+			       || _vm->_language == Common::IT_ITA
+			       || _vm->_language == Common::DE_DEU)) {
+				Actor_Says(kActorMcCoy, 3395, 14);  // M: "I want information" (DEU, ITA, ESP)
+			}
 			Actor_Face_Actor(kActorEarlyQ, kActorMcCoy, true);
 			Actor_Set_Goal_Number(kActorEarlyQ, kGoalEarlyQNR04GoToMcCoy);
 			//return true;
@@ -307,9 +313,9 @@ void SceneScriptNR04::PlayerWalkedIn() {
 
 	Loop_Actor_Walk_To_XYZ(kActorMcCoy, 53.0f, 0.0f, -26.0f, 0, false, false, false);
 	if (Game_Flag_Query(kFlagAR02DektoraBoughtScorpions)) {
-		Overlay_Play("nr04over", 0, true, false, 0);
+		Overlay_Play("NR04OVER", 0, true, false, 0);
 		Delay(4000);
-		Overlay_Remove("nr04over");
+		Overlay_Remove("NR04OVER");
 	}
 	//return false;
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,7 +65,7 @@ const char *strcasestr(const char *s, const char *find) {
 		do {
 			do {
 				if ((sc = *s++) == 0)
-					return (NULL);
+					return (nullptr);
 			} while ((char)tolower((unsigned char)sc) != c);
 		} while (scumm_strnicmp(s, find, len) != 0);
 		s--;
@@ -89,7 +88,7 @@ const char *location_attributes[] = {
 	"VISITED ", "DARK ", "ON_WATER ", "UNDER_WATER ", "WITHOUT_AIR ", "OUTDOORS ",
 	"MID_AIR ", "TIGHT_ROPE ", "POLLUTED ", "SOLVED ", "MID_WATER ", "DARKNESS ",
 	"MAPPED ", "KNOWN ",
-	NULL
+	nullptr
 };
 
 const char *object_attributes[] = {
@@ -98,19 +97,19 @@ const char *object_attributes[] = {
 	"CONTAINER ", "SURFACE ", "PLURAL ", "FLAMMABLE ", "BURNING ", "LOCATION ",
 	"ON ", "DAMAGED ", "FEMALE ", "POSSESSIVE ", "OUT_OF_REACH ", "TOUCHED ",
 	"SCORED ", "SITTING ", "NPC ", "DONE ", "GAS ", "NO_TAB ",
-	"NOT_IMPORTANT ", NULL
+	"NOT_IMPORTANT ", nullptr
 };
 
 const char *object_elements[] = {
 	"parent", "capacity", "mass", "bearing", "velocity", "next", "previous",
 	"child", "index", "status", "state", "counter", "points", "class", "x", "y",
-	NULL
+	nullptr
 };
 
 const char *location_elements[] = {
 	"north", "south", "east", "west", "northeast", "northwest", "southeast",
 	"southwest", "up", "down", "in", "out", "points", "class", "x", "y",
-	NULL
+	nullptr
 };
 
 struct csv_parser               parser_csv;
@@ -127,16 +126,16 @@ int                             field_no = 0;
 struct stack_type               backup[STACK_SIZE];
 struct proxy_type               proxy_backup[STACK_SIZE];
 
-struct function_type *resolved_function = NULL;
-struct string_type *resolved_string = NULL;
+struct function_type *resolved_function = nullptr;
+struct string_type *resolved_string = nullptr;
 
-struct string_type *new_string = NULL;
-struct string_type *current_cstring = NULL;
-struct string_type *previous_cstring = NULL;
+struct string_type *new_string = nullptr;
+struct string_type *current_cstring = nullptr;
+struct string_type *previous_cstring = nullptr;
 
-struct cinteger_type *new_cinteger = NULL;
-struct cinteger_type *current_cinteger = NULL;
-struct cinteger_type *previous_cinteger = NULL;
+struct cinteger_type *new_cinteger = nullptr;
+struct cinteger_type *current_cinteger = nullptr;
+struct cinteger_type *previous_cinteger = nullptr;
 
 long                            bit_mask;
 extern int                      encrypted;
@@ -150,8 +149,8 @@ char                            csv_buffer[1024];
 int                             resolved_attribute;
 
 /* THE ITERATION VARIABLE USED FOR LOOPS */
-int                             *loop_integer = NULL;
-int                             *select_integer = NULL;
+int                             *loop_integer = nullptr;
+int                             *select_integer = nullptr;
 
 int                             criterion_value = 0;
 int                             criterion_type = 0;
@@ -281,14 +280,14 @@ void terminate(int code) {
 
 	/* CLOSE THE SOUND CHANNELS */
 	for (index = 0; index < 8; index++) {
-		if (sound_channel[index] != NULL) {
+		if (sound_channel[index] != nullptr) {
 			g_vm->glk_schannel_destroy(sound_channel[index]);
 		}
 	}
 
 	/* CLOSE THE STREAM */
-	if (game_stream != NULL) {
-		g_vm->glk_stream_close(game_stream, NULL);
+	if (game_stream != nullptr) {
+		g_vm->glk_stream_close(game_stream, nullptr);
 	}
 
 	g_vm->glk_exit();
@@ -307,8 +306,8 @@ void build_proxy() {
 
 	/* LOOP THROUGH ALL THE PARAMETERS OF THE PROXY COMMAND
 	   AND BUILD THE MOVE TO BE ISSUED ON THE PLAYER'S BEHALF */
-	for (index = 1; word[index] != NULL; index++) {
-		strcat(proxy_buffer, text_of_word(index));
+	for (index = 1; word[index] != nullptr; index++) {
+		Common::strcat_s(proxy_buffer, 1024, text_of_word(index));
 	}
 
 	for (index = 0; index < (int)strlen(proxy_buffer); index++) {
@@ -326,14 +325,13 @@ void cb1(void *s, size_t i, void *not_used) {
 	//sprintf (temp_buffer, "Trying to set field %d to equal %s^", field_no, (const char *) s);
 	//write_text(temp_buffer);
 
-	sprintf(temp_buffer, "field[%d]", field_no);
+	Common::sprintf_s(temp_buffer, 1024, "field[%d]", field_no);
 
-	if ((resolved_cstring = cstring_resolve(temp_buffer)) != NULL) {
+	if ((resolved_cstring = cstring_resolve(temp_buffer)) != nullptr) {
 		//write_text("Resolved ");
 		//write_text(temp_buffer);
 		//write_text("^");
-		strncpy(resolved_cstring->value, (const char *)s, i);
-		resolved_cstring->value[i] = 0;
+		Common::strcpy_s(resolved_cstring->value, (const char *)s);
 		//sprintf(temp_buffer, "Setting field %d to ~%s~^", field_no, (const char *) s);
 		//write_text(temp_buffer);
 		// INCREMENT THE FIELD NUMBER SO THE NEXT ONE GETS STORED IN THE RIGHT CONSTANT
@@ -350,7 +348,7 @@ void cb2(int c, void *not_used) {
 	// THE END OF THE RECORD HAS BEEN REACHED, EXPORT THE NUMBER OF FIELDS READ
 	struct cinteger_type *resolved_cinteger;
 
-	if ((resolved_cinteger = cinteger_resolve("field_count")) != NULL) {
+	if ((resolved_cinteger = cinteger_resolve("field_count")) != nullptr) {
 		resolved_cinteger->value = field_no;
 	}
 }
@@ -380,12 +378,12 @@ int execute(const char *funcname) {
 #endif
 
 
-	strncpy(called_name, funcname, 1023);
+	Common::strlcpy(called_name, funcname, 1024);
 
 	/* GET THE FUNCTION OBJECT BY THE FUNCTION NAME */
 	resolved_function = function_resolve(called_name);
 
-	if (resolved_function == NULL) {
+	if (resolved_function == nullptr) {
 		//printf("--- failed to find %s\n", called_name);
 		return (FALSE);
 	}
@@ -413,8 +411,8 @@ int execute(const char *funcname) {
 
 	// SET function_name TO THE CORE NAME STORED IN THE FUNCTION OBJECT
 	// LEAVING called_name TO CONTAIN THE FULL ARGUMENT LIST
-	strncpy(function_name, executing_function->name, 80);
-	strncpy(cstring_resolve("function_name")->value, executing_function->name, 80);
+	Common::strlcpy(function_name, executing_function->name, 81);
+	Common::strlcpy(cstring_resolve("function_name")->value, executing_function->name, sizeof(((string_type *)0)->value));
 
 	//sprintf(temp_buffer, "--- starting to execute %s^", function_name);
 	//write_text(temp_buffer);
@@ -434,14 +432,14 @@ int execute(const char *funcname) {
 
 	while (text_buffer[0] != 125 && !interrupted) {
 		encapsulate();
-		if (word[0] == NULL);
+		if (word[0] == nullptr);
 		else if (!strcmp(word[0], "endwhile")) {
 			currentLevel--;
 			if (currentLevel < executionLevel) {
 				// THIS ENDWHILE COMMAND WAS BEING EXECUTED,
 				// NOT JUST COUNTED.
 				if (top_of_while == FALSE) {
-					sprintf(error_buffer, NO_WHILE, executing_function->name);
+					Common::sprintf_s(error_buffer, 1024, NO_WHILE, executing_function->name);
 					log_error(error_buffer, PLUS_STDOUT);
 				} else {
 #ifdef GLK
@@ -458,7 +456,7 @@ int execute(const char *funcname) {
 				// THIS ENDITERATE COMMAND WAS BEING EXECUTED,
 				// NOT JUST COUNTED.
 				if (top_of_iterate == FALSE) {
-					sprintf(error_buffer, NO_ITERATE, executing_function->name);
+					Common::sprintf_s(error_buffer, 1024, NO_ITERATE, executing_function->name);
 					log_error(error_buffer, PLUS_STDOUT);
 				} else {
 #ifdef GLK
@@ -475,7 +473,7 @@ int execute(const char *funcname) {
 				// THIS ENDUPDATE COMMAND WAS BEING EXECUTED,
 				// NOT JUST COUNTED.
 				if (top_of_update == FALSE) {
-					sprintf(error_buffer, NO_UPDATE, executing_function->name);
+					Common::sprintf_s(error_buffer, 1024, NO_UPDATE, executing_function->name);
 					log_error(error_buffer, PLUS_STDOUT);
 				} else {
 #ifdef GLK
@@ -540,13 +538,13 @@ int execute(const char *funcname) {
 				top_of_do_loop = ftell(file);
 #endif
 			} else if (!strcmp(word[0], "until")) {
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
 				} else {
 					if (top_of_do_loop == FALSE) {
-						sprintf(error_buffer, NO_REPEAT, executing_function->name);
+						Common::sprintf_s(error_buffer, 1024, NO_REPEAT, executing_function->name);
 						log_error(error_buffer, PLUS_STDOUT);
 					} else if (!condition()) {
 #ifdef GLK
@@ -557,13 +555,13 @@ int execute(const char *funcname) {
 					}
 				}
 			} else if (!strcmp(word[0], "untilall")) {
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
 				} else {
 					if (top_of_do_loop == FALSE) {
-						sprintf(error_buffer, NO_REPEAT, executing_function->name);
+						Common::sprintf_s(error_buffer, 1024, NO_REPEAT, executing_function->name);
 						log_error(error_buffer, PLUS_STDOUT);
 					} else if (!and_condition()) {
 #ifdef GLK
@@ -588,27 +586,27 @@ int execute(const char *funcname) {
 
 				// infile REMAINS OPEN DURING THE ITERATION, ONLY NEEDS
 				// OPENING THE FIRST TIME
-				if (infile == NULL) {
-					strcpy(temp_buffer, data_directory);
-					strcat(temp_buffer, prefix);
-					strcat(temp_buffer, "-");
-					strcat(temp_buffer, text_of_word(1));
-					strcat(temp_buffer, ".csv");
+				if (infile == nullptr) {
+					Common::strcpy_s(temp_buffer, 1024, data_directory);
+					Common::strcat_s(temp_buffer, 1024, prefix);
+					Common::strcat_s(temp_buffer, 1024, "-");
+					Common::strcat_s(temp_buffer, 1024, text_of_word(1));
+					Common::strcat_s(temp_buffer, 1024, ".csv");
 
 					infile = File::openForReading(temp_buffer);
 
-					if (word[2] != NULL && !strcmp(word[2], "skip_header")) {
+					if (word[2] != nullptr && !strcmp(word[2], "skip_header")) {
 						assert(infile);
 						infile->read(csv_buffer, 1024);
 					}
 				}
 
-				if (infile == NULL) {
-					sprintf(error_buffer, "Failed to open file %s\n", temp_buffer);
+				if (infile == nullptr) {
+					Common::sprintf_s(error_buffer, 1024, "Failed to open file %s\n", temp_buffer);
 					log_error(error_buffer, LOG_ONLY);
-					infile = NULL;
+					infile = nullptr;
 				} else {
-					if (word[1] == NULL) {
+					if (word[1] == nullptr) {
 						/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 						noproprun();
 						return (exit_function(TRUE));
@@ -621,18 +619,18 @@ int execute(const char *funcname) {
 							i = strlen(csv_buffer);
 							//sprintf (temp_buffer, "Read ~%s~ with %d bytes.^", csv_buffer, i);
 							//write_text(temp_buffer);
-							if (csv_parse(&parser_csv, csv_buffer, i, cb1, cb2, (void *) NULL) != (uint)i) {
-								sprintf(error_buffer, "Error parsing file: %s\n", csv_strerror(csv_error(&parser_csv)));
+							if (csv_parse(&parser_csv, csv_buffer, i, cb1, cb2, (void *) nullptr) != (uint)i) {
+								Common::sprintf_s(error_buffer, 1024, "Error parsing file: %s\n", csv_strerror(csv_error(&parser_csv)));
 								log_error(error_buffer, PLUS_STDOUT);
 								delete infile;
-								infile = NULL;
+								infile = nullptr;
 							} else {
 								// A LINE HAS BEEN SUCCESSFULLY READ, EXECUTE THE CONTENTS OF THE LOOP
 								executionLevel++;
 							}
 						} else {
 							delete infile;
-							infile = NULL;
+							infile = nullptr;
 						}
 					}
 				}
@@ -662,44 +660,44 @@ int execute(const char *funcname) {
 
 				// infile REMAINS OPEN DURING THE ITERATION, ONLY NEEDS
 				// OPENING THE FIRST TIME
-				if (infile == NULL) {
-					strcpy(in_name, data_directory);
-					strcat(in_name, prefix);
-					strcat(in_name, "-");
-					strcat(in_name, text_of_word(1));
-					strcat(in_name, ".csv");
+				if (infile == nullptr) {
+					Common::strcpy_s(in_name, data_directory);
+					Common::strcat_s(in_name, prefix);
+					Common::strcat_s(in_name, "-");
+					Common::strcat_s(in_name, text_of_word(1));
+					Common::strcat_s(in_name, ".csv");
 
 					infile = File::openForReading(in_name);
 				}
 
-				if (outfile == NULL) {
+				if (outfile == nullptr) {
 					// OPEN A TEMPORARY OUTPUT FILE TO WRITE THE MODIFICATIONS TO
-					strcpy(out_name, data_directory);
-					strcat(out_name, prefix);
-					strcat(out_name, "-");
-					strcat(out_name, text_of_word(1));
-					strcat(out_name, "-");
-					strcat(out_name, user_id);
-					strcat(out_name, ".csv");
+					Common::strcpy_s(out_name, data_directory);
+					Common::strcat_s(out_name, prefix);
+					Common::strcat_s(out_name, "-");
+					Common::strcat_s(out_name, text_of_word(1));
+					Common::strcat_s(out_name, "-");
+					Common::strcat_s(out_name, user_id);
+					Common::strcat_s(out_name, ".csv");
 
 					outfile = File::openForWriting(out_name);
 				}
 
-				if (infile == NULL) {
-					sprintf(error_buffer, "Failed to open input CSV file ~%s\n", in_name);
+				if (infile == nullptr) {
+					Common::sprintf_s(error_buffer, 1024, "Failed to open input CSV file ~%s\n", in_name);
 					log_error(error_buffer, LOG_ONLY);
-					if (outfile != NULL) {
+					if (outfile != nullptr) {
 						delete outfile;
-						outfile = NULL;
+						outfile = nullptr;
 					}
 					return (exit_function(TRUE));
 				} else {
-					if (outfile == NULL) {
-						sprintf(error_buffer, "Failed to open output CSV file ~%s~\n", out_name);
+					if (outfile == nullptr) {
+						Common::sprintf_s(error_buffer, 1024, "Failed to open output CSV file ~%s~\n", out_name);
 						log_error(error_buffer, LOG_ONLY);
-						if (infile != NULL) {
+						if (infile != nullptr) {
 							delete infile;
-							infile = NULL;
+							infile = nullptr;
 						}
 						return (exit_function(TRUE));
 					} else {
@@ -715,7 +713,7 @@ int execute(const char *funcname) {
 									jacl_sleep(1000);
 									continue;
 								}
-								sprintf(error_buffer, "File busy unable to get lock on output file.\n");
+								Common::sprintf_s(error_buffer, 1024, "File busy unable to get lock on output file.\n");
 								log_error(error_buffer, PLUS_STDOUT);
 								return (exit_function(TRUE));
 							}
@@ -733,13 +731,13 @@ int execute(const char *funcname) {
 									jacl_sleep(1000);
 									continue;
 								}
-								sprintf(error_buffer, "File busy unable to get lock on input file.\n");
+								Common::sprintf_s(error_buffer, 1024, "File busy unable to get lock on input file.\n");
 								log_error(error_buffer, PLUS_STDOUT);
 								return (exit_function(TRUE));
 							}
 						}
 #endif
-						if (word[1] == NULL) {
+						if (word[1] == nullptr) {
 							/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 							noproprun();
 							return (exit_function(TRUE));
@@ -750,12 +748,12 @@ int execute(const char *funcname) {
 							if (infile->pos() < infile->size()) {
 								i = strlen(csv_buffer);
 								if (csv_parse(&parser_csv, csv_buffer, i, cb1, cb2, (int *) &field_no) != (uint)i) {
-									sprintf(error_buffer, "Error parsing file: %s\n", csv_strerror(csv_error(&parser_csv)));
+									Common::sprintf_s(error_buffer, 1024, "Error parsing file: %s\n", csv_strerror(csv_error(&parser_csv)));
 									log_error(error_buffer, PLUS_STDOUT);
 									read_lck.l_type = F_UNLCK;  // SETTING A READ LOCK
 									fcntl(read_fd, F_SETLK, &read_lck);
 									delete infile;
-									infile = NULL;
+									infile = nullptr;
 								} else {
 									// A LINE HAS BEEN SUCCESSFULLY READ, EXECUTE THE CONTENTS OF THE LOOP
 									executionLevel++;
@@ -771,8 +769,8 @@ int execute(const char *funcname) {
 
 								rename(out_name, in_name);
 
-								outfile = NULL;
-								infile = NULL;
+								outfile = nullptr;
+								infile = nullptr;
 							}
 						}
 					}
@@ -782,7 +780,7 @@ int execute(const char *funcname) {
 				/* THIS LOOP COMES BACK TO THE START OF THE LINE CURRENTLY
 				   EXECUTING, NOT THE LINE AFTER */
 				top_of_while = before_command;
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
@@ -794,7 +792,7 @@ int execute(const char *funcname) {
 				/* THIS LOOP COMES BACK TO THE START OF THE LINE CURRENTLY
 				   EXECUTING, NOT THE LINE AFTER */
 				top_of_while = before_command;
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
@@ -809,7 +807,7 @@ int execute(const char *funcname) {
 #else
 				top_of_loop = ftell(file);
 #endif
-				if (word[1] == NULL) {
+				if (word[1] == nullptr) {
 					// IF NONE IS SUPPLIED DEFAULT TO noun3
 					loop_integer = &noun[2];
 				} else {
@@ -818,7 +816,7 @@ int execute(const char *funcname) {
 
 					// IF THE SUPPLIED CONTAINER CAN'T BE RESOLVED
 					// DEFAULT TO noun3
-					if (loop_integer == NULL)
+					if (loop_integer == nullptr)
 						loop_integer = &noun[2];
 				}
 
@@ -827,7 +825,7 @@ int execute(const char *funcname) {
 
 			} else if (!strcmp(word[0], "endloop")) {
 				if (top_of_loop == FALSE) {
-					sprintf(error_buffer, NO_LOOP, executing_function->name);
+					Common::sprintf_s(error_buffer, 1024, NO_LOOP, executing_function->name);
 					log_error(error_buffer, PLUS_STDOUT);
 				} else {
 					*loop_integer += 1;
@@ -850,11 +848,11 @@ int execute(const char *funcname) {
 #else
 				top_of_select = ftell(file);
 #endif
-				if (word[1] == NULL) {
+				if (word[1] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
-				} else if (word[2] == NULL) {
+				} else if (word[2] == nullptr) {
 					// IF NONE IS SUPPLIED DEFAULT TO noun3
 					select_integer = &noun[2];
 				} else {
@@ -863,7 +861,7 @@ int execute(const char *funcname) {
 
 					// IF THE SUPPLIED CONTAINER CAN'T BE RESOLVED
 					// DEFAULT TO noun3
-					if (select_integer == NULL) {
+					if (select_integer == nullptr) {
 						select_integer = &noun[2];
 					}
 				}
@@ -875,10 +873,10 @@ int execute(const char *funcname) {
 
 				if (word[1][0] == '!') {
 					criterion_negate = TRUE;
-					strcpy(argument_buffer, &word[1][1]);
+					Common::strcpy_s(argument_buffer, &word[1][1]);
 				} else {
 					criterion_negate = FALSE;
-					strcpy(argument_buffer, word[1]);
+					Common::strcpy_s(argument_buffer, word[1]);
 				}
 
 				// DETERMINE THE CRITERION FOR SELETION
@@ -887,7 +885,7 @@ int execute(const char *funcname) {
 				        || !strcmp(argument_buffer, "*anywhere")
 				        || !strcmp(argument_buffer, "*present")) {
 					criterion_type = CRI_SCOPE;
-					strncpy(scope_criterion, argument_buffer, 20);
+					Common::strlcpy(scope_criterion, argument_buffer, sizeof(scope_criterion));
 				} else if ((criterion_value = attribute_resolve(argument_buffer))) {
 					criterion_type = CRI_ATTRIBUTE;
 				} else if ((criterion_value = user_attribute_resolve(argument_buffer))) {
@@ -925,7 +923,7 @@ int execute(const char *funcname) {
 
 					while (text_buffer[0] != '}') {
 						encapsulate();
-						if (word[0] != NULL && !strcmp(word[0], "endselect")) {
+						if (word[0] != nullptr && !strcmp(word[0], "endselect")) {
 							break;
 						}
 #ifdef GLK
@@ -937,7 +935,7 @@ int execute(const char *funcname) {
 				}
 			} else if (!strcmp(word[0], "endselect")) {
 				if (top_of_select == FALSE) {
-					sprintf(error_buffer, NO_LOOP, executing_function->name);
+					Common::sprintf_s(error_buffer, 1024, NO_LOOP, executing_function->name);
 					log_error(error_buffer, PLUS_STDOUT);
 				} else {
 					if (select_next(/* select_integer, criterion_type, criterion_value, scope_criterion */)) {
@@ -956,7 +954,7 @@ int execute(const char *funcname) {
 				executionLevel--;
 #ifdef GLK
 			} else if (!strcmp(word[0], "cursor")) {
-				if (word[2] == NULL) {
+				if (word[2] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun(0);
 					return (exit_function(TRUE));
@@ -972,7 +970,7 @@ int execute(const char *funcname) {
 
 				if (SOUND_SUPPORTED->value) {
 					/* SET THE CHANNEL TO STOP, IF SUPPLIED */
-					if (word[1] == NULL) {
+					if (word[1] == nullptr) {
 						channel = 0;
 					} else {
 						channel = value_of(word[1], TRUE);
@@ -989,7 +987,7 @@ int execute(const char *funcname) {
 
 				if (SOUND_SUPPORTED->value) {
 					/* SET THE CHANNEL TO STOP, IF SUPPLIED */
-					if (word[2] == NULL) {
+					if (word[2] == nullptr) {
 						channel = 0;
 					} else {
 						channel = value_of(word[2], TRUE);
@@ -1000,7 +998,7 @@ int execute(const char *funcname) {
 						}
 					}
 
-					if (word[1] == NULL) {
+					if (word[1] == nullptr) {
 						/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 						noproprun();
 						return (exit_function(TRUE));
@@ -1018,7 +1016,7 @@ int execute(const char *funcname) {
 
 						/* STORE A COPY OF THE CURRENT VOLUME FOR ACCESS
 						 * FROM JACL CODE */
-						sprintf(temp_buffer, "volume[%d]", channel);
+						Common::sprintf_s(temp_buffer, 1024, "volume[%d]", channel);
 						cinteger_resolve(temp_buffer)->value = volume;
 
 						/* NOW SCALE THE 0-100 VOLUME TO THE 0-65536 EXPECTED
@@ -1031,7 +1029,7 @@ int execute(const char *funcname) {
 				}
 			} else if (!strcmp(word[0], "timer")) {
 				if (TIMER_SUPPORTED->value && TIMER_ENABLED->value) {
-					if (word[1] == NULL) {
+					if (word[1] == nullptr) {
 						/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 						noproprun();
 						return (exit_function(TRUE));
@@ -1054,7 +1052,7 @@ int execute(const char *funcname) {
 
 				if (SOUND_SUPPORTED->value && SOUND_ENABLED->value) {
 					/* SET THE CHANNEL TO USE, IF SUPPLIED */
-					if (word[2] == NULL) {
+					if (word[2] == nullptr) {
 						channel = 0;
 					} else {
 						channel = value_of(word[2], TRUE);
@@ -1066,13 +1064,13 @@ int execute(const char *funcname) {
 					}
 
 					/* SET THE NUMBER OF REPEATS, IF SUPPLIED */
-					if (word[3] == NULL) {
+					if (word[3] == nullptr) {
 						repeats = 1;
 					} else {
 						repeats = value_of(word[3], TRUE);
 					}
 
-					if (word[1] == NULL) {
+					if (word[1] == nullptr) {
 						/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 						noproprun();
 						return (exit_function(TRUE));
@@ -1082,32 +1080,32 @@ int execute(const char *funcname) {
 							 * NOTIFICATION EVENT CAN USE THE INFORMATION
 							 * IT HAS 1 ADDED TO IT SO THAT IT IS A NON-ZERO
 							 * NUMBER AND THE EVENT IS ACTIVATED */
-							sprintf(error_buffer, "Unable to play sound: %ld", value_of(word[1], FALSE));
+							Common::sprintf_s(error_buffer, 1024, "Unable to play sound: %ld", value_of(word[1], FALSE));
 							log_error(error_buffer, PLUS_STDERR);
 						}
 					}
 				}
 			} else if (!strcmp(word[0], "image")) {
 				if (GRAPHICS_SUPPORTED->value && GRAPHICS_ENABLED->value) {
-					if (word[1] == NULL) {
+					if (word[1] == nullptr) {
 						/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 						noproprun();
 						return (exit_function(TRUE));
 					} else {
 						if (!g_vm->loadingSavegame() && g_vm->glk_image_draw(mainwin, (glui32) value_of(word[1], TRUE), imagealign_InlineDown, 0) == 0) {
-							sprintf(error_buffer, "Unable to draw image: %ld", value_of(word[1], FALSE));
+							Common::sprintf_s(error_buffer, 1024, "Unable to draw image: %ld", value_of(word[1], FALSE));
 							log_error(error_buffer, PLUS_STDERR);
 						}
 					}
 				}
 			} else if (!strcmp(word[0], "askstring") || !strcmp(word[0], "getstring")) {
-				if (word[1] == NULL) {
+				if (word[1] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun(0);
 					return (exit_function(TRUE));
 				} else {
 					/* GET A POINTER TO THE STRING BEING MODIFIED */
-					if ((resolved_string = string_resolve(word[1])) == NULL) {
+					if ((resolved_string = string_resolve(word[1])) == nullptr) {
 						unkstrrun(word[1]);
 						return (exit_function(TRUE));
 					}
@@ -1128,9 +1126,9 @@ int execute(const char *funcname) {
 					insist = TRUE;
 				}
 
-				if (word[3] != NULL) {
+				if (word[3] != nullptr) {
 					ask_integer = container_resolve(word[1]);
-					if (ask_integer == NULL) {
+					if (ask_integer == nullptr) {
 						unkvarrun(word[1]);
 						return (exit_function(TRUE));
 					}
@@ -1149,9 +1147,9 @@ int execute(const char *funcname) {
 					return (exit_function(TRUE));
 				}
 			} else if (!strcmp(word[0], "getyesorno")) {
-				if (word[1] != NULL) {
+				if (word[1] != nullptr) {
 					ask_integer = container_resolve(word[1]);
-					if (ask_integer == NULL) {
+					if (ask_integer == nullptr) {
 						unkvarrun(word[1]);
 						return (exit_function(TRUE));
 					}
@@ -1170,7 +1168,7 @@ int execute(const char *funcname) {
 				terminate(0);
 				return 0;
 			} else if (!strcmp(word[0], "more")) {
-				if (word[1] == NULL) {
+				if (word[1] == nullptr) {
 					more("[MORE]");
 				} else {
 					more(word[1]);
@@ -1178,7 +1176,7 @@ int execute(const char *funcname) {
 			} else if (!strcmp(word[0], "style")) {
 				/* THIS COMMAND IS USED TO OUTPUT ANSI CODES OR SET GLK
 				 * STREAM STYLES */
-				if (word[1] == NULL) {
+				if (word[1] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
@@ -1211,7 +1209,7 @@ int execute(const char *funcname) {
 			} else if (!strcmp(word[0], "flush")) {
 			} else if (!strcmp(word[0], "hyperlink")) {
 				/* OUTPUT LINK TEXT AS PLAIN TEXT UNDER Glk */
-				if (word[2] == NULL) {
+				if (word[2] == nullptr) {
 					noproprun();
 					pop_stack();
 					return (TRUE);
@@ -1369,11 +1367,11 @@ int execute(const char *funcname) {
 				} else {
 					index = value_of(word[1]);
 					if (word[2] != NULL) {
-						sprintf(option_buffer, "<option value=\"%d\">",
+						Common::sprintf_s(option_buffer, "<option value=\"%d\">",
 						        index);
 					} else {
 						object_names(index, temp_buffer);
-						sprintf(option_buffer, "<option value=\"%s\">", temp_buffer);
+						Common::sprintf_s(option_buffer, "<option value=\"%s\">", temp_buffer);
 					}
 
 					write_text(option_buffer);
@@ -1397,9 +1395,9 @@ int execute(const char *funcname) {
 
 					// COPY THE VARIABLE OF THE CGI VARIABLE INTO THE SPECIFIED STRING VARIABLE
 					if (getenv(text_of_word(2)) != NULL) {
-						strncpy(resolved_setstring->value, getenv(text_of_word(2)), 255);
+						Common::strlcpy(resolved_setstring->value, getenv(text_of_word(2)), 256);
 					} else {
-						strncpy(resolved_setstring->value, "", 255);
+						resolved_setstring->value[0] = '\0';
 					}
 				}
 			} else if (!strcmp(word[0], "button")) {
@@ -1410,16 +1408,16 @@ int execute(const char *funcname) {
 					return (TRUE);
 				}
 				if (word[2] != NULL) {
-					sprintf(option_buffer, "<input class=~button~ type=~image~ src=~%s~ name=~verb~ value=~", text_of_word(2));
+					Common::sprintf_s(option_buffer, "<input class=~button~ type=~image~ src=~%s~ name=~verb~ value=~", text_of_word(2));
 					strcat(option_buffer, text_of_word(1));
 					strcat(option_buffer, "~>");
 					write_text(option_buffer);
 				} else {
-					sprintf(option_buffer, "<input class=~button~ type=~submit~ style=~width: 90px; margin: 5px;~ name=~verb~ value=~%s~>", text_of_word(1));
+					Common::sprintf_s(option_buffer, "<input class=~button~ type=~submit~ style=~width: 90px; margin: 5px;~ name=~verb~ value=~%s~>", text_of_word(1));
 					write_text(option_buffer);
 				}
 			} else if (!strcmp(word[0], "hidden")) {
-				sprintf(temp_buffer, "<INPUT TYPE=\"hidden\" NAME=\"user_id\" VALUE=\"%s\">", user_id);
+				Common::sprintf_s(temp_buffer, 1024, "<INPUT TYPE=\"hidden\" NAME=\"user_id\" VALUE=\"%s\">", user_id);
 				write_text(temp_buffer);
 			} else if (!strcmp(word[0], "control")) {
 				/* USED TO CREATE A HYPERLINK THAT IS AN IMAGE */
@@ -1428,7 +1426,7 @@ int execute(const char *funcname) {
 					pop_stack();
 					return (TRUE);
 				} else {
-					sprintf(option_buffer, "<a href=\"?command=%s&amp;user_id=%s\"><img border=0 SRC=\"", text_of_word(2), user_id);
+					Common::sprintf_s(option_buffer, "<a href=\"?command=%s&amp;user_id=%s\"><img border=0 SRC=\"", text_of_word(2), user_id);
 					strcat(option_buffer, text_of_word(1));
 					strcat(option_buffer, "\"></a>");
 					write_text(option_buffer);
@@ -1451,13 +1449,13 @@ int execute(const char *funcname) {
 					}
 
 					if (word[3] == NULL) {
-						sprintf(string_buffer, "<a href=\"?command=%s&amp;user_id=%s\">", encoded, user_id);
+						Common::sprintf_s(string_buffer, "<a href=\"?command=%s&amp;user_id=%s\">", encoded, user_id);
 						strcat(string_buffer, text_of_word(1));
 						strcat(string_buffer, "</a>");
 					} else {
-						sprintf(string_buffer, "<a class=\"%s\" href=\"?command=", text_of_word(3));
+						Common::sprintf_s(string_buffer, "<a class=\"%s\" href=\"?command=", text_of_word(3));
 						strcat(string_buffer, encoded);
-						sprintf(option_buffer, "&amp;user_id=%s\">%s</a>", user_id, text_of_word(1));
+						Common::sprintf_s(option_buffer, "&amp;user_id=%s\">%s</a>", user_id, text_of_word(1));
 						strcat(string_buffer, option_buffer);
 					}
 
@@ -1470,13 +1468,13 @@ int execute(const char *funcname) {
 			} else if (!strcmp(word[0], "prompt")) {
 				/* USED TO OUTPUT A HTML INPUT CONTROL THAT CONTAINS SESSION INFORMATION */
 				if (word[1] != NULL) {
-					sprintf(temp_buffer, "<input id=\"JACLCommandPrompt\" type=text name=~command~ onKeyPress=~%s~>\n", word[1]);
+					Common::sprintf_s(temp_buffer, 1024, "<input id=\"JACLCommandPrompt\" type=text name=~command~ onKeyPress=~%s~>\n", word[1]);
 					write_text(temp_buffer);
 				} else {
-					sprintf(temp_buffer, "<input id=\"JACLCommandPrompt\" type=text name=~command~>\n");
+					Common::sprintf_s(temp_buffer, 1024, "<input id=\"JACLCommandPrompt\" type=text name=~command~>\n");
 					write_text(temp_buffer);
 				}
-				sprintf(temp_buffer, "<input type=hidden name=\"user_id\" value=\"%s\">", user_id);
+				Common::sprintf_s(temp_buffer, 1024, "<input type=hidden name=\"user_id\" value=\"%s\">", user_id);
 				write_text(temp_buffer);
 			} else if (!strcmp(word[0], "style")) {
 				/* THIS COMMAND IS USED TO OUTPUT ANSI CODES OR SET GLK
@@ -1550,9 +1548,9 @@ int execute(const char *funcname) {
 					return (exit_function(TRUE));
 				} else {
 					if (word[2] == NULL) {
-						sprintf(option_buffer, "<img src=~%s~>", text_of_word(1));
+						Common::sprintf_s(option_buffer, "<img src=~%s~>", text_of_word(1));
 					} else {
-						sprintf(option_buffer, "<img class=~%s~ src=~%s~>", text_of_word(2), text_of_word(1));
+						Common::sprintf_s(option_buffer, "<img class=~%s~ src=~%s~>", text_of_word(2), text_of_word(1));
 					}
 
 					write_text(option_buffer);
@@ -1565,7 +1563,7 @@ int execute(const char *funcname) {
 				} else {
 					write_text("<audio autoplay=~autoplay~>");
 					if (word[3] == NULL) {
-						sprintf(option_buffer, "<source src=~%s~ type=~%s~>", text_of_word(1), text_of_word(2));
+						Common::sprintf_s(option_buffer, "<source src=~%s~ type=~%s~>", text_of_word(1), text_of_word(2));
 						write_text(option_buffer);
 					}
 					write_text("</audio>");
@@ -1596,7 +1594,7 @@ int execute(const char *funcname) {
 
 				// TEXT BUFFER IS THE NORMAL ARRAY FOR HOLDING THE PLAYERS
 				// MOVE FOR PROCESSING
-				strncpy(text_buffer, proxy_buffer, 1024);
+				Common::strlcpy(text_buffer, proxy_buffer, 1024);
 
 				command_encapsulate();
 
@@ -1621,7 +1619,7 @@ int execute(const char *funcname) {
 				}
 			} else if (!strcmp(word[0], "execute") || !strcmp(word[0], "call")) {
 				/* CALLS ANOTHER JACL FUNCTION */
-				if (word[1] == NULL) {
+				if (word[1] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
@@ -1629,20 +1627,20 @@ int execute(const char *funcname) {
 					/* RESOLVE ALL THE TEXT AND STORE IT IN A TEMPORARY BUFFER*/
 					string_buffer[0] = 0;
 
-					for (counter = 1; word[counter] != NULL && counter < MAX_WORDS; counter++) {
-						strcat(string_buffer, arg_text_of_word(counter));
+					for (counter = 1; word[counter] != nullptr && counter < MAX_WORDS; counter++) {
+						Common::strcat_s(string_buffer, arg_text_of_word(counter));
 					}
 
-					if (function_resolve(string_buffer) == NULL && !strcmp(word[0], "execute")) {
+					if (function_resolve(string_buffer) == nullptr && !strcmp(word[0], "execute")) {
 						char *argstart;
 
 						/* REMOVE ANY PARAMETERS FROM FUNCTION NAME
 						   BEFORE DISPLAYING ERROR MESSAGE */
 						argstart = strchr(string_buffer, '<');
-						if (argstart != NULL)
+						if (argstart != nullptr)
 							*argstart = 0;
 
-						sprintf(error_buffer, UNDEFINED_FUNCTION, executing_function->name, string_buffer);
+						Common::sprintf_s(error_buffer, 1024, UNDEFINED_FUNCTION, executing_function->name, string_buffer);
 						log_error(error_buffer, PLUS_STDOUT);
 					} else {
 						execute(string_buffer);
@@ -1650,7 +1648,7 @@ int execute(const char *funcname) {
 				}
 			} else if (!strcmp(word[0], "points")) {
 				/* INCREASE THE PLAYER'S SCORE AND POTENTIALLY INFORM THEM OF THE INCREASE */
-				if (word[1] != NULL) {
+				if (word[1] != nullptr) {
 					SCORE->value += value_of(word[1], TRUE);
 					if (NOTIFY->value) {
 #ifdef GLK
@@ -1664,7 +1662,7 @@ int execute(const char *funcname) {
 #endif
 #endif
 						write_text(cstring_resolve("SCORE_UP")->value);
-						sprintf(temp_buffer, "%ld", value_of(word[1], TRUE));
+						Common::sprintf_s(temp_buffer, 1024, "%ld", value_of(word[1], TRUE));
 						write_text(temp_buffer);
 						if (value_of(word[1], TRUE) == 1) {
 							write_text(cstring_resolve("POINT")->value);
@@ -1735,7 +1733,7 @@ int execute(const char *funcname) {
 						} else if (text_buffer[index - 1] != '^') {
 							// ADD AN IMPLICIT SPACE IF THE PREVIOUS LINE
 							// DIDN'T END WITH A CARRIAGE RETURN
-							strcat(text_buffer, " ");
+							Common::strcat_s(text_buffer, 1024, " ");
 						}
 
 						// OUTPUT THE LINE READ AS PLAIN TEXT
@@ -1752,23 +1750,23 @@ int execute(const char *funcname) {
 					if (encrypted) jacl_decrypt(text_buffer);
 				}
 			} else if (!strcmp(word[0], "mesg")) {
-				for (counter = 1; word[counter] != NULL && counter < MAX_WORDS; counter++) {
+				for (counter = 1; word[counter] != nullptr && counter < MAX_WORDS; counter++) {
 					warning("%s", text_of_word(counter));
 				}
 			} else if (!strcmp(word[0], "error")) {
 				write_text("ERROR: In function ~");
 				write_text(executing_function->name);
 				write_text("~, ");
-				for (counter = 1; word[counter] != NULL && counter < MAX_WORDS; counter++) {
+				for (counter = 1; word[counter] != nullptr && counter < MAX_WORDS; counter++) {
 					write_text(text_of_word(counter));
 				}
 			} else if (!strcmp(word[0], "debug") && DEBUG->value) {
 				write_text("DEBUG: ");
-				for (counter = 1; word[counter] != NULL && counter < MAX_WORDS; counter++) {
+				for (counter = 1; word[counter] != nullptr && counter < MAX_WORDS; counter++) {
 					write_text(text_of_word(counter));
 				}
 			} else if (!strcmp(word[0], "write")) {
-				for (counter = 1; word[counter] != NULL && counter < MAX_WORDS; counter++) {
+				for (counter = 1; word[counter] != nullptr && counter < MAX_WORDS; counter++) {
 					output = text_of_word(counter);
 					if (*output != 0) {
 						// IF THE OUTPUT ISN'T AN EMPTY STRING, DISPLAY IT
@@ -1776,12 +1774,12 @@ int execute(const char *funcname) {
 					}
 				}
 			} else if (!strcmp(word[0], "length")) {
-				if (word[2] == NULL) {
+				if (word[2] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun(0);
 					return (exit_function(TRUE));
 				} else {
-					if ((container = container_resolve(word[1])) == NULL) {
+					if ((container = container_resolve(word[1])) == nullptr) {
 						unkvarrun(word[1]);
 						return (exit_function(TRUE));
 					}
@@ -1789,12 +1787,12 @@ int execute(const char *funcname) {
 					*container = strlen(text_of(word[2]));
 				}
 			} else if (!strcmp(word[0], "savegame")) {
-				if (word[1] == NULL) {
+				if (word[1] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
 				} else {
-					if ((container = container_resolve(word[1])) == NULL) {
+					if ((container = container_resolve(word[1])) == nullptr) {
 						unkvarrun(word[1]);
 						return (exit_function(TRUE));
 					} else {
@@ -1802,12 +1800,12 @@ int execute(const char *funcname) {
 					}
 				}
 			} else if (!strcmp(word[0], "restoregame")) {
-				if (word[1] == NULL) {
+				if (word[1] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
 				} else {
-					if ((container = container_resolve(word[1])) == NULL) {
+					if ((container = container_resolve(word[1])) == nullptr) {
 						unkvarrun(word[1]);
 						return (exit_function(TRUE));
 					} else {
@@ -1836,22 +1834,22 @@ int execute(const char *funcname) {
 				char split_buffer[256] = "";
 				char container_buffer[256] = "";
 				char delimiter[256] = "";
-				char *match = NULL;
-				struct string_type *resolved_splitstring = NULL;
+				char *match = nullptr;
+				struct string_type *resolved_splitstring = nullptr;
 
-				strcpy(split_buffer, text_of_word(2));
-				strcpy(delimiter, text_of_word(3));
+				Common::strcpy_s(split_buffer, text_of_word(2));
+				Common::strcpy_s(delimiter, text_of_word(3));
 
 				char *source = split_buffer;
 
-				if (word[4] == NULL) {
+				if (word[4] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun(0);
 					return (exit_function(TRUE));
 				} else {
 					split_container = container_resolve(var_text_of_word(1));
 
-					if (split_container == NULL) {
+					if (split_container == nullptr) {
 						unkvarrun(var_text_of_word(1));
 						return (exit_function(TRUE));
 					} else {
@@ -1861,32 +1859,32 @@ int execute(const char *funcname) {
 
 						while ((match = strstr(source, delimiter))) {
 							*match = 0;
-							strcpy(container_buffer, var_text_of_word(4));
-							strcat(container_buffer, "[");
-							sprintf(integer_buffer, "%d", *split_container);
-							strcat(container_buffer, integer_buffer);
-							strcat(container_buffer, "]");
+							Common::strcpy_s(container_buffer, var_text_of_word(4));
+							Common::strcat_s(container_buffer, "[");
+							Common::sprintf_s(integer_buffer, "%d", *split_container);
+							Common::strcat_s(container_buffer, integer_buffer);
+							Common::strcat_s(container_buffer, "]");
 
-							if ((resolved_splitstring = string_resolve(container_buffer)) == NULL) {
+							if ((resolved_splitstring = string_resolve(container_buffer)) == nullptr) {
 								unkstrrun(var_text_of_word(4));
 								return (exit_function(TRUE));
 							} else {
-								strcpy(resolved_splitstring->value, source);
+								Common::strcpy_s(resolved_splitstring->value, source);
 								source = match + strlen(delimiter);
 								(*split_container)++;
 							}
 						}
-						strcpy(container_buffer, var_text_of_word(4));
-						strcat(container_buffer, "[");
-						sprintf(integer_buffer, "%d", *split_container);
-						strcat(container_buffer, integer_buffer);
-						strcat(container_buffer, "]");
+						Common::strcpy_s(container_buffer, var_text_of_word(4));
+						Common::strcat_s(container_buffer, "[");
+						Common::sprintf_s(integer_buffer, "%d", *split_container);
+						Common::strcat_s(container_buffer, integer_buffer);
+						Common::strcat_s(container_buffer, "]");
 
-						if ((resolved_splitstring = string_resolve(container_buffer)) == NULL) {
+						if ((resolved_splitstring = string_resolve(container_buffer)) == nullptr) {
 							unkstrrun(word[1]);
 							return (exit_function(TRUE));
 						} else {
-							strcpy(resolved_splitstring->value, source);
+							Common::strcpy_s(resolved_splitstring->value, source);
 							(*split_container)++;
 						}
 					}
@@ -1894,47 +1892,45 @@ int execute(const char *funcname) {
 			} else if (!strcmp(word[0], "setstring") ||
 			           !strcmp(word[0], "addstring")) {
 				char setstring_buffer[2048] = "";
-				struct string_type *resolved_setstring = NULL;
+				struct string_type *resolved_setstring = nullptr;
 
-				if (word[2] == NULL) {
+				if (word[2] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun(0);
 					return (exit_function(TRUE));
 				} else {
 					/* GET A POINTER TO THE STRING BEING MODIFIED */
-					if ((resolved_setstring = string_resolve(var_text_of_word(1))) == NULL) {
+					if ((resolved_setstring = string_resolve(var_text_of_word(1))) == nullptr) {
 						unkstrrun(word[1]);
 						return (exit_function(TRUE));
 					}
 
 					/* RESOLVE ALL THE TEXT AND STORE IT IN A TEMPORARY BUFFER*/
-					for (counter = 2; word[counter] != NULL && counter < MAX_WORDS; counter++) {
-						strcat(setstring_buffer, text_of_word(counter));
+					for (counter = 2; word[counter] != nullptr && counter < MAX_WORDS; counter++) {
+						Common::strcat_s(setstring_buffer, text_of_word(counter));
 					}
 
 					/* setstring_buffer IS NOW FILLED, COPY THE UP TO 256 BYTES OF
 					 * IT INTO THE STRING */
 					if (!strcmp(word[0], "setstring")) {
-						strncpy(resolved_setstring->value, setstring_buffer, 255);
+						Common::strlcpy(resolved_setstring->value, setstring_buffer, 256);
 					} else {
-						/* CALCULATE HOW MUCH SPACE IS LEFT IN THE STRING */
-						counter = 255 - strlen(resolved_setstring->value);
 						/* THIS IS A addstring COMMAND, SO USE STRNCAT INSTEAD */
-						strncat(resolved_setstring->value, setstring_buffer, counter);
+						Common::strlcat(resolved_setstring->value, setstring_buffer, 256);
 					}
 				}
 			} else if (!strcmp(word[0], "padstring")) {
 				char setstring_buffer[2048] = "";
-				struct string_type *resolved_setstring = NULL;
+				struct string_type *resolved_setstring = nullptr;
 				string_buffer[0] = 0;
 
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun(0);
 					return (exit_function(TRUE));
 				} else {
 					/* GET A POINTER TO THE STRING BEING MODIFIED */
-					if ((resolved_setstring = string_resolve(word[1])) == NULL) {
+					if ((resolved_setstring = string_resolve(word[1])) == nullptr) {
 						unkstrrun(word[1]);
 						return (exit_function(TRUE));
 					}
@@ -1942,16 +1938,16 @@ int execute(const char *funcname) {
 					index = value_of(word[3], TRUE);
 
 					for (counter = 0; counter < index; counter++) {
-						strcat(setstring_buffer, text_of_word(2));
+						Common::strcat_s(setstring_buffer, text_of_word(2));
 					}
 
 					/* setstring_buffer IS NOW FILLED, COPY THE UP TO 256 BYTES OF
 					 * IT INTO THE STRING */
-					strncpy(resolved_setstring->value, setstring_buffer, 255);
+					Common::strlcpy(resolved_setstring->value, setstring_buffer, 256);
 				}
 			} else if (!strcmp(word[0], "return")) {
 				/* RETURN FROM THIS FUNCTION, POSSIBLY RETURNING AN INTEGER VALUE */
-				if (word[1] == NULL) {
+				if (word[1] == nullptr) {
 					return (exit_function(TRUE));
 				} else {
 					index = value_of(word[1], TRUE);
@@ -1960,7 +1956,7 @@ int execute(const char *funcname) {
 			} else if (!strcmp(word[0], "position")) {
 				/* MOVE AN OBJECT TO ITS NEW X,Y COORDINATES BASED ON ITS CURRENT VALUES
 				 * FOR x, y, bearing, velocity */
-				if (word[1] == NULL) {
+				if (word[1] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
@@ -1982,12 +1978,12 @@ int execute(const char *funcname) {
 				}
 			} else if (!strcmp(word[0], "bearing")) {
 				/* CALCULATE THE BEARING BETWEEN TWO OBJECTS */
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
 				} else {
-					if ((container = container_resolve(word[1])) == NULL) {
+					if ((container = container_resolve(word[1])) == nullptr) {
 						unkvarrun(word[1]);
 						return (exit_function(TRUE));
 					}
@@ -2004,7 +2000,7 @@ int execute(const char *funcname) {
 							badptrrun(word[3], object_2);
 							return (exit_function(TRUE));
 						} else {
-							if (container != NULL
+							if (container != nullptr
 							        && object_1 != FALSE
 							        && object_2 != FALSE) {
 								*container = bearing((double) object[object_1]->X,
@@ -2017,7 +2013,7 @@ int execute(const char *funcname) {
 				}
 			} else if (!strcmp(word[0], "distance")) {
 				/* CALCULATE THE DISTANCE BETWEEN TWO OBJECTS */
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
@@ -2036,7 +2032,7 @@ int execute(const char *funcname) {
 							badptrrun(word[3], object_2);
 							return (exit_function(TRUE));
 						} else {
-							if (container != NULL
+							if (container != nullptr
 							        && object_1 != FALSE
 							        && object_2 != FALSE) {
 								*container = distance((double)
@@ -2055,7 +2051,7 @@ int execute(const char *funcname) {
 			           !strcmp(word[0], "npc_to")) {
 				/* CALCULATE THE FIRST DIRECTION TO TRAVEL IN GET TO
 				 * A SPECIFIED LOCATION */
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
@@ -2074,7 +2070,7 @@ int execute(const char *funcname) {
 							badptrrun(word[3], object_2);
 							return (exit_function(TRUE));
 						} else {
-							if (container != NULL
+							if (container != nullptr
 							        && object_1 != FALSE
 							        && object_2 != FALSE) {
 								if (!strcmp(word[0], "dir_to")) {
@@ -2088,19 +2084,19 @@ int execute(const char *funcname) {
 				}
 			} else if (!strcmp(word[0], "set")) {
 				/* SET THE VALUE OF AN ELEMENT TO A SUPPLIED INTEGER */
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
 				} else {
 					container = container_resolve(var_text_of_word(1));
 
-					if (container == NULL) {
+					if (container == nullptr) {
 						unkvarrun(word[1]);
 						return (exit_function(TRUE));
 					} else {
 						int mark = 2; // SET mark TO POINT TO THE FIRST OPERATOR
-						while (word[mark + 1] != NULL) {
+						while (word[mark + 1] != nullptr) {
 							counter = value_of(word[mark + 1], TRUE);
 
 							if (word[mark][0] == '+')
@@ -2113,7 +2109,7 @@ int execute(const char *funcname) {
 								*container = *container % counter;
 							else if (word[mark][0] == '/') {
 								if (counter == 0) {
-									sprintf(error_buffer, DIVIDE_BY_ZERO,
+									Common::sprintf_s(error_buffer, 1024, DIVIDE_BY_ZERO,
 									        executing_function->name);
 									log_error(error_buffer, PLUS_STDOUT);
 								} else
@@ -2125,7 +2121,7 @@ int execute(const char *funcname) {
 							} else if (word[mark][0] == '=') {
 								*container = counter;
 							} else {
-								sprintf(error_buffer, ILLEGAL_OPERATOR,
+								Common::sprintf_s(error_buffer, 1024, ILLEGAL_OPERATOR,
 								        executing_function->name,
 								        word[2]);
 								log_error(error_buffer, PLUS_STDOUT);
@@ -2137,7 +2133,7 @@ int execute(const char *funcname) {
 				}
 			} else if (!strcmp(word[0], "ensure")) {
 				/* USED TO GIVE OR TAKE AN ATTRIBUTE TO OR FROM AND OBJECT */
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
@@ -2180,24 +2176,24 @@ int execute(const char *funcname) {
 			} else if (!strcmp(word[0], "append")) {
 				int first = TRUE;
 
-				if (word[2] == NULL) {
+				if (word[2] == nullptr) {
 					// NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND
 					noproprun();
 					return (exit_function(TRUE));
 				} else {
-					strcpy(temp_buffer, data_directory);
-					strcat(temp_buffer, prefix);
-					strcat(temp_buffer, "-");
-					strcat(temp_buffer, text_of_word(1));
-					strcat(temp_buffer, ".csv");
+					Common::strcpy_s(temp_buffer, 1024, data_directory);
+					Common::strcat_s(temp_buffer, 1024, prefix);
+					Common::strcat_s(temp_buffer, 1024, "-");
+					Common::strcat_s(temp_buffer, 1024, text_of_word(1));
+					Common::strcat_s(temp_buffer, 1024, ".csv");
 
 					outfile = File::openForWriting(temp_buffer);
 
-					if (outfile == NULL) {
-						sprintf(error_buffer, "Failed to open file %s\n", temp_buffer);
+					if (outfile == nullptr) {
+						Common::sprintf_s(error_buffer, 1024, "Failed to open file %s\n", temp_buffer);
 						log_error(error_buffer, PLUS_STDOUT);
 					} else {
-						for (counter = 2; word[counter] != NULL && counter < MAX_WORDS; counter++) {
+						for (counter = 2; word[counter] != nullptr && counter < MAX_WORDS; counter++) {
 							output = text_of_word(counter);
 							if (*output != 0) {
 								if (first == FALSE) {
@@ -2216,20 +2212,20 @@ int execute(const char *funcname) {
 					}
 
 					delete outfile;
-					outfile = NULL;
+					outfile = nullptr;
 				}
 			} else if (!strcmp(word[0], "insert")) {
 				int first = TRUE;
 
-				if (word[1] == NULL) {
+				if (word[1] == nullptr) {
 					// NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND
 					noproprun();
 					return (exit_function(TRUE));
 				} else {
-					if (outfile == NULL) {
+					if (outfile == nullptr) {
 						log_error("Insert statement not inside an 'update' loop.", PLUS_STDOUT);
 					} else {
-						for (counter = 1; word[counter] != NULL && counter < MAX_WORDS; counter++) {
+						for (counter = 1; word[counter] != nullptr && counter < MAX_WORDS; counter++) {
 							output = text_of_word(counter);
 							if (*output != 0) {
 								if (first == FALSE) {
@@ -2245,7 +2241,7 @@ int execute(const char *funcname) {
 					}
 				}
 			} else if (!strcmp(word[0], "inspect")) {
-				if (word[1] == NULL) {
+				if (word[1] == nullptr) {
 					// NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND
 					noproprun();
 					return (exit_function(TRUE));
@@ -2255,7 +2251,7 @@ int execute(const char *funcname) {
 			} else if (!strcmp(word[0], "move")) {
 				/* THIS COMMAND IS USED TO MOVE AN OBJECT TO HAVE ANOTHER PARENT
 				 * INCLUDING MODIFYING ALL QUANTITY VALUES BASED ON THE OBJECTS MASS */
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun();
 					return (exit_function(TRUE));
@@ -2283,7 +2279,7 @@ int execute(const char *funcname) {
 			} else if (!strcmp(word[0], "ifstringall")) {
 				/* CHECK IF A STRING EQUALS OR CONTAINS ANOTHER STRING */
 				currentLevel++;
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun(0);
 					return (exit_function(TRUE));
@@ -2293,7 +2289,7 @@ int execute(const char *funcname) {
 			} else if (!strcmp(word[0], "ifstring")) {
 				/* CHECK IF A STRING EQUALS OR CONTAINS ANOTHER STRING */
 				currentLevel++;
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun(0);
 					return (exit_function(TRUE));
@@ -2302,7 +2298,7 @@ int execute(const char *funcname) {
 				}
 			} else if (!strcmp(word[0], "ifexecute")) {
 				currentLevel++;
-				if (word[1] == NULL) {
+				if (word[1] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun(0);
 					return (exit_function(TRUE));
@@ -2310,8 +2306,8 @@ int execute(const char *funcname) {
 					/* RESOLVE ALL THE TEXT AND STORE IT IN A TEMPORARY BUFFER*/
 					string_buffer[0] = 0;
 
-					for (counter = 1; word[counter] != NULL && counter < MAX_WORDS; counter++) {
-						strcat(string_buffer, arg_text_of_word(counter));
+					for (counter = 1; word[counter] != nullptr && counter < MAX_WORDS; counter++) {
+						Common::strcat_s(string_buffer, arg_text_of_word(counter));
 					}
 
 					if (execute(string_buffer)) {
@@ -2320,7 +2316,7 @@ int execute(const char *funcname) {
 				}
 			} else if (!strcmp(word[0], "if")) {
 				currentLevel++;
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun(0);
 					return (exit_function(TRUE));
@@ -2329,7 +2325,7 @@ int execute(const char *funcname) {
 				}
 			} else if (!strcmp(word[0], "ifall")) {
 				currentLevel++;
-				if (word[3] == NULL) {
+				if (word[3] == nullptr) {
 					/* NOT ENOUGH PARAMETERS SUPPLIED FOR THIS COMMAND */
 					noproprun(0);
 					return (exit_function(TRUE));
@@ -2337,7 +2333,7 @@ int execute(const char *funcname) {
 					executionLevel++;
 				}
 			} else {
-				sprintf(error_buffer, UNKNOWN_COMMAND,
+				Common::sprintf_s(error_buffer, 1024, UNKNOWN_COMMAND,
 				        executing_function->name, word[0]);
 				log_error(error_buffer, PLUS_STDOUT);
 			}
@@ -2370,18 +2366,18 @@ int execute(const char *funcname) {
 }
 
 int exit_function(int return_code) {
-	if (infile != NULL) {
+	if (infile != nullptr) {
 		read_lck.l_type = F_UNLCK;  // SETTING A READ LOCK
 		fcntl(read_fd, F_SETLK, &read_lck);
 		delete infile;
-		infile = NULL;
+		infile = nullptr;
 	}
 
-	if (outfile != NULL) {
+	if (outfile != nullptr) {
 		write_lck.l_type = F_UNLCK; // SETTING A WRITE LOCK
 		fcntl(write_fd, F_SETLK, &write_lck);
 		delete outfile;
-		outfile = NULL;
+		outfile = nullptr;
 	}
 
 	/* POP THE STACK REGARDLESS OF THE RETURN CODE */
@@ -2397,9 +2393,9 @@ char *object_names(int object_index, char *names_buffer) {
 	struct name_type *current_name = object[object_index]->first_name;
 	names_buffer[0] = 0;
 
-	while (current_name != NULL) {
-		strcat(names_buffer, " ");
-		strcat(names_buffer, current_name->name);
+	while (current_name != nullptr) {
+		Common::strcat_s(names_buffer, 1024, " ");
+		Common::strcat_s(names_buffer, 1024, current_name->name);
 		current_name = current_name->next_name;
 	}
 
@@ -2587,16 +2583,16 @@ void set_arguments(const char *function_call) {
 	argument_buffer[index] = 0;
 
 	/* CLEAR THE NEXT ARGUMENT POINTER */
-	arg_ptr[position] = NULL;
+	arg_ptr[position] = nullptr;
 
 	/* STORE THE INTEGER VALUE OF EACH ARGUMENT PASSED*/
 	index = 0;
-	while (arg_ptr[index] != NULL) {
+	while (arg_ptr[index] != nullptr) {
 		//arg_value[index] = value_of(arg_ptr[index], TRUE);
 
-		if ((resolved_integer = integer_resolve(arg_ptr[index])) != NULL) {
+		if ((resolved_integer = integer_resolve(arg_ptr[index])) != nullptr) {
 			arg_value[index] = resolved_integer->value;
-		} else if ((resolved_cinteger = cinteger_resolve(arg_ptr[index])) != NULL) {
+		} else if ((resolved_cinteger = cinteger_resolve(arg_ptr[index])) != nullptr) {
 			arg_value[index] = resolved_cinteger->value;
 		} else if (object_element_resolve(arg_ptr[index])) {
 			arg_value[index] = oec;
@@ -2625,7 +2621,7 @@ void set_arguments(const char *function_call) {
 
 	/* CREATE A CONSTANT FOR EACH ARGUMENT AFTER THE CORE FUNCTION NAME */
 	index = 0;
-	while (arg_ptr[index] != NULL) {
+	while (arg_ptr[index] != nullptr) {
 		if (index == 0) noun[3] = arg_value[index];
 		add_cinteger("arg", arg_value[index]);
 		//printf("--- %s = %s\n", arg_ptr[index], arg_text_of(arg_ptr[index]));
@@ -2660,17 +2656,17 @@ void pop_stack() {
 	/* RESTORE THE CONTENTS OF called_name */
 	//for (counter = 0; counter < 256; counter++)
 	//called_name[counter] = backup[stack].called_name[counter];
-	strncpy(called_name, backup[stack].called_name, 1024);
+	Common::strlcpy(called_name, backup[stack].called_name, 1024);
 
 	/* RESTORE THE CONTENTS OF scope_criterion */
 	//for (counter = 0; counter < 21; counter++)
 	//  scope_criterion[counter] = backup[stack].scope_criterion[counter];
-	strncpy(scope_criterion, backup[stack].scope_criterion, 20);
+	Common::strlcpy(scope_criterion, backup[stack].scope_criterion, sizeof(scope_criterion));
 
 	/* RESTORE THE STORED FUNCTION NAMES THAT ARE USED WHEN AN
 	 * 'override' COMMAND IS ENCOUNTERED IN THE CURRENT FUNCTION */
-	strncpy(override_, backup[stack]._override, 80);
-	strncpy(default_function, backup[stack].default_function, 80);
+	Common::strlcpy(override_, backup[stack]._override, 81);
+	Common::strlcpy(default_function, backup[stack].default_function, 84);
 
 	/* RESTORE ALL THE WORD POINTERS */
 	for (counter = 0; counter < MAX_WORDS; counter++) {
@@ -2680,9 +2676,9 @@ void pop_stack() {
 
 	executing_function = backup[stack].function;
 
-	if (executing_function != NULL) {
-		strncpy(function_name, executing_function->name, 80);
-		strncpy(cstring_resolve("function_name")->value, executing_function->name, 80);
+	if (executing_function != nullptr) {
+		Common::strlcpy(function_name, executing_function->name, 81);
+		Common::strlcpy(cstring_resolve("function_name")->value, executing_function->name, 81);
 	}
 
 	wp = backup[stack].wp;
@@ -2721,9 +2717,9 @@ void push_stack(int32 file_pointer) {
 		return;
 	} else {
 		backup[stack].infile = infile;
-		infile = NULL;
+		infile = nullptr;
 		backup[stack].outfile = outfile;
-		outfile = NULL;
+		outfile = nullptr;
 		backup[stack].function = executing_function;
 		backup[stack].address = file_pointer;
 		backup[stack].wp = wp;
@@ -2746,15 +2742,15 @@ void push_stack(int32 file_pointer) {
 			backup[stack].text_buffer[counter] = text_buffer[counter];
 
 		/* MAKE A COPY OF THE CURRENT CONTENTS OF called_name */
-		strncpy(backup[stack].called_name, called_name, 1024);
+		Common::strlcpy(backup[stack].called_name, called_name, 1024);
 
 		// MAKE A COPY OF THE CURRENT CONTENTS OF scope_criterion
-		strncpy(backup[stack].scope_criterion, scope_criterion, 20);
+		Common::strlcpy(backup[stack].scope_criterion, scope_criterion, 21);
 
 		/* COPY THE STORED FUNCTION NAMES THAT ARE USED WHEN AN
 		 * 'override' COMMAND IS ENCOUNTERED IN THE CURRENT FUNCTION */
-		strncpy(backup[stack]._override, override_, 80);
-		strncpy(backup[stack].default_function, default_function, 80);
+		Common::strlcpy(backup[stack]._override, override_, 81);
+		Common::strlcpy(backup[stack].default_function, default_function, 81);
 
 		/* PUSH ALL THE WORD POINTERS ONTO THE STACK */
 		for (counter = 0; counter < MAX_WORDS; counter++) {
@@ -2766,13 +2762,13 @@ void push_stack(int32 file_pointer) {
 		index = 0;
 		current_cinteger = cinteger_table;
 
-		if (current_cinteger != NULL) {
+		if (current_cinteger != nullptr) {
 			do {
 				if (!strcmp(current_cinteger->name, "arg")) {
 					backup[stack].arguments[index++] = current_cinteger->value;
 				}
 				current_cinteger = current_cinteger->next_cinteger;
-			} while (current_cinteger != NULL);
+			} while (current_cinteger != nullptr);
 		}
 
 		// STORE THE NUMBER OF ARGUMENTS PASSED TO THIS FUNCTION
@@ -2783,14 +2779,14 @@ void push_stack(int32 file_pointer) {
 		index = 0;
 		current_cstring = cstring_table;
 
-		if (current_cstring != NULL) {
+		if (current_cstring != nullptr) {
 			do {
 				if (!strcmp(current_cstring->name, "string_arg")) {
-					strncpy(backup[stack].str_arguments[index++], current_cstring->value, 255);
+					Common::strlcpy(backup[stack].str_arguments[index++], current_cstring->value, 256);
 				}
 
 				current_cstring = current_cstring->next_string;
-			} while (current_cstring != NULL);
+			} while (current_cstring != nullptr);
 		}
 	}
 
@@ -2876,13 +2872,13 @@ void push_proxy() {
 		/* PUSH ALL THE CURRENT COMMAND INTEGERS ONTO THE STACK */
 		counter = 0;
 
-		if (current_cinteger != NULL) {
+		if (current_cinteger != nullptr) {
 			do {
 				if (!strcmp(current_cinteger->name, "$integer")) {
 					proxy_backup[proxy_stack].integer[counter++] = current_cinteger->value;
 				}
 				current_cinteger = current_cinteger->next_cinteger;
-			} while (current_cinteger != NULL);
+			} while (current_cinteger != nullptr);
 		}
 
 		proxy_backup[proxy_stack].integercount = counter;
@@ -2891,17 +2887,17 @@ void push_proxy() {
 		text = 0;
 		command = 0;
 
-		if (current_cstring != NULL) {
+		if (current_cstring != nullptr) {
 			do {
 				if (!strcmp(current_cstring->name, "$string")) {
-					strncpy(proxy_backup[proxy_stack].text[text++], current_cstring->value, 255);
-					proxy_backup[proxy_stack].text[counter++][255] = 0;
+					Common::strlcpy(proxy_backup[proxy_stack].text[text++], current_cstring->value, 256);
+					counter++;
 				} else if (!strcmp(current_cstring->name, "$word")) {
-					strncpy(proxy_backup[proxy_stack].command[command++], current_cstring->value, 255);
+					Common::strlcpy(proxy_backup[proxy_stack].command[command++], current_cstring->value, 256);
 				}
 
 				current_cstring = current_cstring->next_string;
-			} while (current_cstring != NULL);
+			} while (current_cstring != nullptr);
 		}
 
 		proxy_backup[proxy_stack].textcount = counter;
@@ -2921,7 +2917,7 @@ int condition() {
 
 	first = 1;
 
-	while (word[first + 2] != NULL && ((first + 2) < MAX_WORDS)) {
+	while (word[first + 2] != nullptr && ((first + 2) < MAX_WORDS)) {
 		if (logic_test(first))
 			return (TRUE);
 		else
@@ -2937,7 +2933,7 @@ int and_condition() {
 
 	first = 1;
 
-	while (word[first + 2] != NULL && ((first + 2) < MAX_WORDS)) {
+	while (word[first + 2] != nullptr && ((first + 2) < MAX_WORDS)) {
 		if (logic_test(first) == FALSE)
 			return (FALSE);
 		else
@@ -3055,7 +3051,7 @@ int logic_test(int first) {
 			}
 		}
 	} else {
-		sprintf(error_buffer,
+		Common::sprintf_s(error_buffer, 1024,
 		        "ERROR: In function \"%s\", illegal operator \"%s\".^",
 		        executing_function->name, word[2]);
 		write_text(error_buffer);
@@ -3068,7 +3064,7 @@ int strcondition() {
 
 	first = 1;
 
-	while (word[first + 2] != NULL && ((first + 2) < MAX_WORDS)) {
+	while (word[first + 2] != nullptr && ((first + 2) < MAX_WORDS)) {
 		if (str_test(first))
 			return (TRUE);
 		else
@@ -3082,7 +3078,7 @@ int and_strcondition() {
 
 	first = 1;
 
-	while (word[first + 2] != NULL && ((first + 2) < MAX_WORDS)) {
+	while (word[first + 2] != nullptr && ((first + 2) < MAX_WORDS)) {
 		if (str_test(first) == FALSE)
 			return (FALSE);
 		else
@@ -3143,7 +3139,7 @@ int str_test(int first) {
 		else
 			return (FALSE);
 	} else {
-		sprintf(error_buffer,
+		Common::sprintf_s(error_buffer, 1024,
 		        "ERROR: In function \"%s\", illegal operator \"%s\".^",
 		        executing_function->name, word[2]);
 		write_text(error_buffer);
@@ -3155,23 +3151,22 @@ void add_cinteger(const char *name, int value) {
 	/* THIS FUNCTION ADDS A NEW JACL CONSTANT TO THE LIST */
 
 	if ((new_cinteger = (struct cinteger_type *)
-	                    malloc(sizeof(struct cinteger_type))) == NULL)
+	                    malloc(sizeof(struct cinteger_type))) == nullptr)
 		outofmem();
 	else {
-		if (cinteger_table == NULL) {
+		if (cinteger_table == nullptr) {
 			cinteger_table = new_cinteger;
 		} else {
 			/* FIND LAST CONSTANT IN LIST */
 			current_cinteger = cinteger_table;
-			while (current_cinteger->next_cinteger != NULL) {
+			while (current_cinteger->next_cinteger != nullptr) {
 				current_cinteger = current_cinteger->next_cinteger;
 			}
 			current_cinteger->next_cinteger = new_cinteger;
 		}
-		strncpy(new_cinteger->name, name, 40);
-		new_cinteger->name[40] = 0;
+		Common::strlcpy(new_cinteger->name, name, 41);
 		new_cinteger->value = value;
-		new_cinteger->next_cinteger = NULL;
+		new_cinteger->next_cinteger = nullptr;
 	}
 }
 
@@ -3179,10 +3174,10 @@ void clear_cinteger(const char *name) {
 	/* FREE CONSTANTS THAT HAVE SUPPLIED NAME*/
 
 	//printf("--- clear integer %s\n", name);
-	if (cinteger_table != NULL) {
+	if (cinteger_table != nullptr) {
 		current_cinteger = cinteger_table;
 		previous_cinteger = cinteger_table;
-		while (current_cinteger != NULL) {
+		while (current_cinteger != nullptr) {
 			//sprintf(temp_buffer, "--- checking integer %s^", current_cinteger->name);
 			//write_text(temp_buffer);
 			if (!strcmp(current_cinteger->name, name)) {
@@ -3213,33 +3208,31 @@ void add_cstring(const char *name, const char *value) {
 	/* ADD A STRING CONSTANT WITH THE SUPPLIED NAME AND VALUE */
 
 	if ((new_string = (struct string_type *)
-	                  malloc(sizeof(struct string_type))) == NULL)
+	                  malloc(sizeof(struct string_type))) == nullptr)
 		outofmem();
 	else {
-		if (cstring_table == NULL) {
+		if (cstring_table == nullptr) {
 			cstring_table = new_string;
 		} else {
 			/* FIND LAST STRING IN LIST */
 			current_cstring = cstring_table;
-			while (current_cstring->next_string != NULL) {
+			while (current_cstring->next_string != nullptr) {
 				current_cstring = current_cstring->next_string;
 			}
 			current_cstring->next_string = new_string;
 		}
-		strncpy(new_string->name, name, 40);
-		new_string->name[40] = 0;
-		strncpy(new_string->value, value, 255);
-		new_string->value[255] = 0;
-		new_string->next_string = NULL;
+		Common::strlcpy(new_string->name, name, 41);
+		Common::strlcpy(new_string->value, value, 256);
+		new_string->next_string = nullptr;
 	}
 }
 
 void clear_cstring(const char *name) {
 	/* FREE CONSTANTS THAT HAVE SUPPLIED NAME*/
-	if (cstring_table != NULL) {
+	if (cstring_table != nullptr) {
 		current_cstring = cstring_table;
 		previous_cstring = cstring_table;
-		while (current_cstring != NULL) {
+		while (current_cstring != nullptr) {
 			if (!strcmp(current_cstring->name, name)) {
 				/* FREE THIS STRING */
 				if (previous_cstring == current_cstring) {
@@ -3280,7 +3273,7 @@ void inspect(int object_num)  {
 		write_text("^has location attributes: ");
 		index = 0;
 		attribute_value = 1;
-		while (location_attributes[index] != NULL) {
+		while (location_attributes[index] != nullptr) {
 			if (object[object_num]->attributes & attribute_value) {
 				write_text(location_attributes[index]);
 			}
@@ -3292,7 +3285,7 @@ void inspect(int object_num)  {
 		write_text("^has object attributes: ");
 		index = 0;
 		attribute_value = 1;
-		while (object_attributes[index] != NULL) {
+		while (object_attributes[index] != nullptr) {
 			if (object[object_num]->attributes & attribute_value) {
 				write_text(object_attributes[index]);
 			}
@@ -3304,7 +3297,7 @@ void inspect(int object_num)  {
 		attribute_value = 1;
 	}
 
-	if (pointer != NULL) {
+	if (pointer != nullptr) {
 		// THERE ARE USER ATTRIBUTES, SO CHECK IF THIS OBJECT OR LOCATION
 		// HAS ANY OF THEM
 		do {
@@ -3314,32 +3307,32 @@ void inspect(int object_num)  {
 			}
 
 			pointer = pointer->next_attribute;
-		} while (pointer != NULL);
+		} while (pointer != nullptr);
 	}
 
 	write_text("^");
 
 	index = 0;
 	if (object[object_num]->attributes & LOCATION) {
-		while (location_elements[index] != NULL) {
+		while (location_elements[index] != nullptr) {
 			if (index < 12) {
 				if (object[object_num]->integer[index] < 1 || object[object_num]->integer[index] > objects) {
-					sprintf(temp_buffer, "%s: nowhere (%d)^", location_elements[index], object[object_num]->integer[index]);
+					Common::sprintf_s(temp_buffer, 1024, "%s: nowhere (%d)^", location_elements[index], object[object_num]->integer[index]);
 				} else {
-					sprintf(temp_buffer, "%s: %s (%d)^", location_elements[index], object[object[object_num]->integer[index]]->label, object[object_num]->integer[index]);
+					Common::sprintf_s(temp_buffer, 1024, "%s: %s (%d)^", location_elements[index], object[object[object_num]->integer[index]]->label, object[object_num]->integer[index]);
 				}
 			} else {
-				sprintf(temp_buffer, "%s: %d^", location_elements[index], object[object_num]->integer[index]);
+				Common::sprintf_s(temp_buffer, 1024, "%s: %d^", location_elements[index], object[object_num]->integer[index]);
 			}
 			write_text(temp_buffer);
 			index++;
 		}
 	} else {
-		while (object_elements[index] != NULL) {
+		while (object_elements[index] != nullptr) {
 			if (index == 0) {
-				sprintf(temp_buffer, "%s: %s (%d)^", object_elements[index], object[object[object_num]->integer[index]]->label, object[object_num]->integer[index]);
+				Common::sprintf_s(temp_buffer, 1024, "%s: %s (%d)^", object_elements[index], object[object[object_num]->integer[index]]->label, object[object_num]->integer[index]);
 			} else {
-				sprintf(temp_buffer, "%s: %d^", object_elements[index], object[object_num]->integer[index]);
+				Common::sprintf_s(temp_buffer, 1024, "%s: %d^", object_elements[index], object[object_num]->integer[index]);
 			}
 			write_text(temp_buffer);
 			index++;

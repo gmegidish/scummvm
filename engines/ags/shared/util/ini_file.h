@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,8 +32,8 @@
 #ifndef AGS_SHARED_UTIL_INIFILE_H
 #define AGS_SHARED_UTIL_INIFILE_H
 
-#include "ags/lib/std/list.h"
-#include "ags/lib/std/utility.h"
+#include "common/std/list.h"
+#include "common/std/utility.h"
 #include "ags/shared/util/string.h"
 
 namespace AGS3 {
@@ -45,10 +44,14 @@ class IniFile {
 public:
 	// Position of a string in the line of text:
 	// is defined by a pair of first and next-after-last character indices
-	typedef std::pair<int, int> StrPos;
+	typedef std::pair<size_t, size_t> StrPos;
 	// Location of section in the array of text lines:
 	// is defined by a pair of first and next-after-last line indices
-	typedef std::pair<int, int> SectionPos;
+	typedef std::pair<size_t, size_t> SectionPos;
+
+	inline static bool IsValidStrPos(const StrPos &pos) {
+		return pos.first < pos.second;
+	}
 
 	// Item definition
 	// Valid key indicates a key-value line; no key means unparsed
@@ -56,7 +59,7 @@ public:
 	class ItemDef {
 	public:
 		ItemDef(const String &key, const String &value);
-		ItemDef(const String &line, const StrPos &key, const StrPos &value, int sep_at);
+		ItemDef(const String &line, const StrPos &key, const StrPos &value, size_t sep_at);
 		String GetLine()  const {
 			return Line;
 		}
@@ -66,8 +69,9 @@ public:
 		String GetValue() const {
 			return SubString(Line, Value);
 		}
-		bool   IsKeyValue() const {
-			return Key.second - Key.first > 0;
+		// Tells if this is a valid key/value item, which means that it has a valid key
+		bool IsKeyValue() const {
+			return IsValidStrPos(Key);
 		}
 		void SetKey(const String &key);
 		void SetValue(const String &value);
@@ -75,7 +79,7 @@ public:
 	private:
 		String  Line;  // actual text
 		StrPos  Key;   // position of item key
-		int     SepAt; // position of the separator (assignment) symbol
+		size_t  SepAt; // position of the separator (assignment) symbol
 		StrPos  Value; // position of item value
 	};
 	// Linked list of items
@@ -97,8 +101,9 @@ public:
 		size_t GetItemCount() const {
 			return Items.size();
 		}
-		bool   IsGlobal() const {
-			return Name.second - Name.first <= 0;
+		// Tells if this is a "global" section, which means that it has no name
+		bool IsGlobal() const {
+			return !IsValidStrPos(Name);
 		}
 		ItemIterator Begin() {
 			return Items.begin();

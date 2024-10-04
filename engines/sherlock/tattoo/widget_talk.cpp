@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,15 +43,17 @@ WidgetTalk::WidgetTalk(SherlockEngine *vm) : WidgetBase(vm) {
 }
 
 void WidgetTalk::getTalkWindowSize() {
-	TattooTalk &talk = *(TattooTalk *)_vm->_talk;
+	//TattooTalk &talk = *(TattooTalk *)_vm->_talk;
 	int width, height;
 
 	// See how many statements are going to be available
+#if 0
 	int numStatements = 0;
 	for (uint idx = 0; idx < talk._statements.size(); ++idx) {
 		if (talk._statements[idx]._talkMap != -1)
 			++numStatements;
 	}
+#endif
 
 	width = SHERLOCK_SCREEN_WIDTH * 2 / 3;
 
@@ -126,7 +127,7 @@ void WidgetTalk::handleEvents() {
 	int oldScrollIndex = _talkScrollIndex;
 	handleScrolling(_talkScrollIndex, NUM_VISIBLE_TALK_LINES, _statementLines.size());
 
-	// Only redraw the window if the the scrollbar position has changed
+	// Only redraw the window if the scrollbar position has changed
 	if (ui._scrollHighlight != oldHighlight || oldScrollIndex != _talkScrollIndex)
 		render(HL_NO_HIGHLIGHTING);
 
@@ -441,7 +442,7 @@ void WidgetTalk::setStatementLines() {
 	_statementLines.clear();
 
 	for (uint statementNum = 0; statementNum < talk._statements.size(); ++statementNum) {
-		// See if this statment meets all of its flag requirements
+		// See if this statement meets all of its flag requirements
 		if (talk._statements[statementNum]._talkMap != -1) {
 			// Get the next statement text to process
 			Common::String str = talk._statements[statementNum]._statement;

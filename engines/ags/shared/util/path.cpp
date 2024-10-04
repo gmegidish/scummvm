@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,7 @@
 #include "ags/lib/allegro/file.h"
 #include "ags/shared/util/path.h"
 #include "ags/shared/util/stdio_compat.h"
+#include "ags/shared/util/file.h"
 
 namespace AGS3 {
 namespace AGS {
@@ -48,26 +48,10 @@ String get_extension(const String &path) {
 	       filename : Common::String(filename.c_str() + i + 1);
 }
 
-bool IsDirectory(const String &filename) {
-	// stat() does not like trailing slashes, remove them
-	String fixed_path = MakePathNoSlash(filename);
-	return ags_directory_exists(fixed_path.GetCStr()) != 0;
-}
-
-bool IsFile(const String &filename) {
-	return ags_file_exists(filename.GetCStr()) != 0;
-}
-
-bool IsFileOrDir(const String &filename) {
-	// stat() does not like trailing slashes, remove them
-	String fixed_path = MakePathNoSlash(filename);
-	return ags_path_exists(fixed_path.GetCStr()) != 0;
-}
-
 String GetParent(const String &path) {
 	const char *cstr = path.GetCStr();
 	const char *ptr_end = cstr + path.GetLength();
-	for (const char *ptr = ptr_end; ptr > cstr; --ptr) {
+	for (const char *ptr = ptr_end; ptr >= cstr; --ptr) {
 		if (*ptr == '/' || *ptr == PATH_ALT_SEPARATOR)
 			return String(cstr, ptr - cstr);
 	}
@@ -97,22 +81,18 @@ int ComparePaths(const String &path1, const String &path2) {
 	fixed_path2.TrimRight('/');
 
 	int cmp_result =
-#if defined AGS_CASE_SENSITIVE_FILESYSTEM
-	    fixed_path1.Compare(fixed_path2);
-#else
 	    fixed_path1.CompareNoCase(fixed_path2);
-#endif // AGS_CASE_SENSITIVE_FILESYSTEM
 	return cmp_result;
 }
 
 String GetDirectoryPath(const String &path) {
-	if (IsDirectory(path))
+	if (File::IsDirectory(path))
 		return path;
 
 	String dir = path;
 	FixupPath(dir);
 	size_t slash_at = dir.FindCharReverse('/');
-	if (slash_at != (size_t)-1) {
+	if (slash_at != String::NoIndex) {
 		dir.ClipMid(slash_at + 1);
 		return dir;
 	}
@@ -144,9 +124,9 @@ bool IsRelativePath(const String &path) {
 }
 
 void FixupPath(String &path) {
-#if AGS_PLATFORM_OS_WINDOWS
+//#if AGS_PLATFORM_OS_WINDOWS
 	path.Replace('\\', '/'); // bring Windows path separators to uniform style
-#endif
+//#endif
 	path.MergeSequences('/');
 }
 

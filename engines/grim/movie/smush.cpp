@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -51,20 +50,23 @@ SmushPlayer::SmushPlayer(bool demo) : MoviePlayer(), _demo(demo) {
 }
 
 bool SmushPlayer::loadFile(const Common::String &filename) {
-	warning("Play video %s", filename.c_str());
+	debug(2, "Play video %s", filename.c_str());
 	bool success = false;
 	_videoDecoder = _smushDecoder;
 	if (!_demo)
 		success = _videoDecoder->loadStream(g_resourceloader->openNewStreamFile(filename.c_str()));
 	else
-		success = _videoDecoder->loadFile(filename);
+		success = _videoDecoder->loadFile(Common::Path(filename));
 
 	if (!success) {
 #if defined (USE_THEORADEC)
-		Common::String theoraFilename = "MoviesHD/" + filename;
-		theoraFilename.erase(theoraFilename.size() - 4);
-		theoraFilename += ".ogv";
-		warning("Trying to open %s", theoraFilename.c_str());
+		Common::String baseName(filename);
+		baseName.erase(baseName.size() - 4);
+		baseName += ".ogv";
+
+		Common::Path theoraFilename(Common::Path("MoviesHD").appendComponent(baseName));
+
+		debug(2, "Trying to open %s", theoraFilename.toString().c_str());
 		success = _theoraDecoder->loadFile(theoraFilename);
 		_videoDecoder = _theoraDecoder;
 		_currentVideoIsTheora = true;
@@ -101,7 +103,7 @@ void SmushPlayer::handleFrame() {
 			return;
 		} else {
 			if (!_currentVideoIsTheora) {
-				_smushDecoder->rewind(); // This doesnt handle if looping fails.
+				_smushDecoder->rewind(); // This doesn't handle if looping fails.
 				_smushDecoder->start();
 			}
 		}

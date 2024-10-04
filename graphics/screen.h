@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define GRAPHICS_SCREEN_H
 
 #include "graphics/managed_surface.h"
+#include "graphics/palette.h"
 #include "graphics/pixelformat.h"
 #include "common/list.h"
 #include "common/rect.h"
@@ -38,9 +38,6 @@ namespace Graphics {
  *
  * @{
  */
-
-#define PALETTE_COUNT 256
-#define PALETTE_SIZE (256 * 3)
 
 /**
  * Implements a specialised surface that represents the screen.
@@ -112,6 +109,15 @@ public:
 	void getPalette(byte *palette, uint start, uint num);
 
 	/**
+	 * Return a portion of the currently active palette as a palette object
+	 */
+	Graphics::Palette getPalette(uint start = 0, uint num = PALETTE_COUNT) {
+		byte tmp[PALETTE_SIZE];
+		getPalette(tmp, start, num);
+		return Graphics::Palette(tmp, num);
+	}
+
+	/**
 	 * Set the palette
 	 */
 	void setPalette(const byte palette[PALETTE_SIZE]);
@@ -120,6 +126,13 @@ public:
 	 * Set a subsection of the palette
 	 */
 	void setPalette(const byte *palette, uint start, uint num);
+
+	/**
+	 * Set a palette based on a passed palette object
+	 */
+	void setPalette(const Graphics::Palette &pal, uint start = 0) {
+		setPalette(pal.data(), start, pal.size());
+	}
 
 	/**
 	 * Clears the current palette, setting all entries to black

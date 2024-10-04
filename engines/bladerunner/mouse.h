@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,13 +42,15 @@ class Mouse {
 	int _x;
 	int _y;
 	int _disabledCounter;
-	int _lastFrameTime;
+	uint32 _lastFrameTime;
 	int _animCounter;
 
 	int _randomCountdownX;
 	int _randomCountdownY;
 	int _randomX;
 	int _randomY;
+
+	uint16 _drawModeBitFlags; // replaces the additive bool with a set of bit flags (including flags for additive mode)
 
 public:
 	Mouse(BladeRunnerEngine *vm);
@@ -69,10 +70,28 @@ public:
 	void updateCursorFrame();
 
 	void tick(int x, int y);
+	bool isRandomized() const;
 	bool isInactive() const;
 
-// private:
 	Vector3 getXYZ(int x, int y) const;
+
+	typedef enum mouseDrawFlags {
+		REDCROSSHAIRS    = 0x0001,
+		YELLOWCROSSHAIRS = 0x0002,
+		BLUECROSSHAIRS   = 0x0004,
+		SPECIAL          = 0x0008,
+		ADDITIVE_MODE0   = 0x0010,
+		ADDITIVE_MODE1   = 0x0020,
+		CUSTOM           = 0x0040,
+		EXIT_UP          = 0x0080,
+		EXIT_DOWN        = 0x0100,
+		EXIT_LEFT        = 0x0200,
+		EXIT_RIGHT       = 0x0400,
+		ESPER_UP         = 0x0800,
+		ESPER_DOWN       = 0x1000,
+		ESPER_LEFT       = 0x2000,
+		ESPER_RIGHT      = 0x4000
+	} MouseDrawFlags;
 };
 
 } // End of namespace BladeRunner

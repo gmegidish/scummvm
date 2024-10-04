@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,7 +59,7 @@ const char BArchive::_dfwMagicNumber[] = "BS";
  *                 [multiple bytes] compressed data
  */
 
-void BArchive::openDFW(const Common::String &path) {
+void BArchive::openDFW(const Common::Path &path) {
 	byte *table;
 	uint16 tableSize;
 	byte buf[2];
@@ -105,7 +104,7 @@ void BArchive::openDFW(const Common::String &path) {
 		_f.readUint16LE(); // Compressed length again (already read from the index table)
 		_files[i]._stopper = _f.readByte();
 
-		_files[i]._data = NULL; // File data will be read in on demand
+		_files[i]._data = nullptr; // File data will be read in on demand
 		_files[i]._crc = 0; // Dummy value; not used in DFW archives
 	}
 
@@ -141,7 +140,7 @@ void BArchive::openDFW(const Common::String &path) {
  *                (last entry is footer offset again)
  */
 
-void BArchive::openArchive(const Common::String &path) {
+void BArchive::openArchive(const Common::Path &path) {
 	byte buf[4];
 	byte *footer;
 	uint32 footerOffset, footerSize;
@@ -149,7 +148,7 @@ void BArchive::openArchive(const Common::String &path) {
 	// Close previously opened archive (if any)
 	closeArchive();
 
-	debugCN(2, kDraciArchiverDebugLevel, "Loading archive %s: ", path.c_str());
+	debugCN(2, kDraciArchiverDebugLevel, "Loading archive %s: ", path.toString(Common::Path::kNativeSeparator).c_str());
 
 	_f.open(path);
 	if (_f.isOpen()) {
@@ -217,7 +216,7 @@ void BArchive::openArchive(const Common::String &path) {
 			"Compression type flag is non-zero (file is compressed)");
 
 		_files[i]._crc = _f.readByte();	// CRC checksum of the file
-		_files[i]._data = NULL;		// File data will be read in on demand
+		_files[i]._data = nullptr;		// File data will be read in on demand
 		_files[i]._stopper = 0;		// Dummy value; not used in BAR files, needed in DFW
 	}
 
@@ -252,7 +251,7 @@ void BArchive::closeArchive() {
 	_f.close();
 
 	_opened = false;
-	_files = NULL;
+	_files = nullptr;
 	_fileCount = 0;
 }
 
@@ -268,7 +267,7 @@ BAFile *BArchive::loadFileBAR(uint i) {
 	// Else open archive and read in requested file
 	if (!_f.isOpen()) {
 		debugC(2, kDraciArchiverDebugLevel, "Error");
-		return NULL;
+		return nullptr;
 	}
 
 	// Read in the file (without the file header)
@@ -302,7 +301,7 @@ BAFile *BArchive::loadFileDFW(uint i) {
 	// Else open archive and read in requested file
 	if (!_f.isOpen()) {
 		debugC(2, kDraciArchiverDebugLevel, "Error");
-		return NULL;
+		return nullptr;
 	}
 
 	// Seek to raw data of the file
@@ -375,11 +374,11 @@ void BArchive::clearCache() {
 const BAFile *BArchive::getFile(uint i) {
 	// Check whether requested file exists
 	if (i >= _fileCount) {
-		return NULL;
+		return nullptr;
 	}
 
 	debugCN(2, kDraciArchiverDebugLevel, "Accessing file %d from archive %s... ",
-		i, _path.c_str());
+		i, _path.toString(Common::Path::kNativeSeparator).c_str());
 
 	// Check if file has already been opened and return that
 	if (_files[i]._data) {

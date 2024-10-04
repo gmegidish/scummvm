@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ags/engine/ac/dynobj/script_view_frame.h"
+#include "ags/shared/util/stream.h"
 
 namespace AGS3 {
+
+using namespace AGS::Shared;
 
 int ScriptViewFrame::Dispose(const char *address, bool force) {
 	// always dispose a ViewFrame
@@ -34,19 +36,20 @@ const char *ScriptViewFrame::GetType() {
 	return "ViewFrame";
 }
 
-int ScriptViewFrame::Serialize(const char *address, char *buffer, int bufsize) {
-	StartSerialize(buffer);
-	SerializeInt(view);
-	SerializeInt(loop);
-	SerializeInt(frame);
-	return EndSerialize();
+size_t ScriptViewFrame::CalcSerializeSize() {
+	return sizeof(int32_t) * 3;
 }
 
-void ScriptViewFrame::Unserialize(int index, const char *serializedData, int dataSize) {
-	StartUnserialize(serializedData, dataSize);
-	view = UnserializeInt();
-	loop = UnserializeInt();
-	frame = UnserializeInt();
+void ScriptViewFrame::Serialize(const char *address, Stream *out) {
+	out->WriteInt32(view);
+	out->WriteInt32(loop);
+	out->WriteInt32(frame);
+}
+
+void ScriptViewFrame::Unserialize(int index, Stream *in, size_t data_sz) {
+	view = in->ReadInt32();
+	loop = in->ReadInt32();
+	frame = in->ReadInt32();
 	ccRegisterUnserializedObject(index, this, this);
 }
 

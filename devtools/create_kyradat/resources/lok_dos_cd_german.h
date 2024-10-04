@@ -241,9 +241,10 @@ static const char *const k1FluteStringsDOSCDGerman[2] = {
 
 static const StringListProvider k1FluteStringsDOSCDGermanProvider = { ARRAYSIZE(k1FluteStringsDOSCDGerman), k1FluteStringsDOSCDGerman };
 
-static const char *const k1WispJewelStringsDOSCDGerman[2] = {
+static const char *const k1WispJewelStringsDOSCDGerman[3] = {
 	"Im Moment f""\x81""hle ich mich dazu nicht in der Lage.",
-	"Ich mu""\xE1"" wahrscheinlich erst mein(e)..."
+	"Ich mu""\xE1"" wahrscheinlich erst mein(e)...",
+	"ablegen."
 };
 
 static const StringListProvider k1WispJewelStringsDOSCDGermanProvider = { ARRAYSIZE(k1WispJewelStringsDOSCDGerman), k1WispJewelStringsDOSCDGerman };
@@ -331,12 +332,12 @@ static const char *const k1GUIStringsDOSCDGerman[59] = {
 	"",
 	"",
 	"",
-	"Hauptmen""\x81",
+	"Hauptmen\x81",
 	"An",
 	"Aus",
 	"Ja",
 	"Nein",
-	"c""\x0F\x17""+r""\x0F\x17""+z""\x0F\x17""+""\x81\x0F\x17""+""\x89\x0F\x17""+""\x98\x0F\x17""+""\xA1\x0F\x17""+""\xAD\x0F\x17""+""\xBC\x0F\x17""+""\xCB\x0F\x17""+""\xD2\x0F\x17""+""\xDA\x0F\x17""+Schrittempo",
+	"Schrittempo",
 	"Textgeschwindigkeit",
 	"Die Musik ist",
 	"Die Soundeffekte sind",

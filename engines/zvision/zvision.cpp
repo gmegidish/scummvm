@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -176,9 +175,9 @@ void ZVision::saveSettings() {
 }
 
 void ZVision::initialize() {
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 
-	_searchManager = new SearchManager(ConfMan.get("path"), 6);
+	_searchManager = new SearchManager(ConfMan.getPath("path"), 6);
 
 	_searchManager->addDir("FONTS");
 	_searchManager->addDir("addon");
@@ -198,7 +197,7 @@ void ZVision::initialize() {
 	modes.push_back(Graphics::Mode(WINDOW_WIDTH, WINDOW_HEIGHT));
 #if defined(USE_MPEG2) && defined(USE_A52)
 	// For the DVD version of ZGI we can play high resolution videos
-	if (getGameId() == GID_GRANDINQUISITOR && (getFeatures() & GF_DVD))
+	if (getGameId() == GID_GRANDINQUISITOR && (getFeatures() & ADGF_DVD))
 		modes.push_back(Graphics::Mode(HIRES_WINDOW_WIDTH, HIRES_WINDOW_HEIGHT));
 #endif
 	initGraphicsModes(modes);
@@ -292,9 +291,9 @@ Common::Error ZVision::run() {
 			liberationFontName += liberationFontSuffixes[j];
 			liberationFontName += ".ttf";
 
-			if (!Common::File::exists(fontName) && !_searchManager->hasFile(fontName) &&
-				!Common::File::exists(liberationFontName) && !_searchManager->hasFile(liberationFontName) &&
-				!Common::File::exists(freeFontName) && !_searchManager->hasFile(freeFontName) &&
+			if (!Common::File::exists(Common::Path(fontName)) && !_searchManager->hasFile(Common::Path(fontName)) &&
+				!Common::File::exists(Common::Path(liberationFontName)) && !_searchManager->hasFile(Common::Path(liberationFontName)) &&
+				!Common::File::exists(Common::Path(freeFontName)) && !_searchManager->hasFile(Common::Path(freeFontName)) &&
 				!Common::File::exists("fonts.dat") && !_searchManager->hasFile("fonts.dat")) {
 				foundAllFonts = false;
 				break;

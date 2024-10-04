@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,14 +33,14 @@
 
 namespace CGE {
 
-Bitmap::Bitmap(CGEEngine *vm, const char *fname) : _m(NULL), _v(NULL), _map(0), _vm(vm) {
+Bitmap::Bitmap(CGEEngine *vm, const char *fname) : _m(nullptr), _v(nullptr), _map(0), _vm(vm) {
 	debugC(1, kCGEDebugBitmap, "Bitmap::Bitmap(%s)", fname);
 
 	char pat[kMaxPath];
 	forceExt(pat, fname, ".VBM");
 
 	if (_vm->_resman->exist(pat)) {
-		EncryptedStream file(_vm, pat);
+		EncryptedStream file(_vm->_resman, pat);
 		if (file.err())
 			error("Unable to find VBM [%s]", fname);
 		if (!loadVBM(&file))
@@ -51,7 +50,7 @@ Bitmap::Bitmap(CGEEngine *vm, const char *fname) : _m(NULL), _v(NULL), _map(0), 
 	}
 }
 
-Bitmap::Bitmap(CGEEngine *vm, uint16 w, uint16 h, uint8 *map) : _w(w), _h(h), _m(map), _v(NULL), _map(0), _b(NULL), _vm(vm) {
+Bitmap::Bitmap(CGEEngine *vm, uint16 w, uint16 h, uint8 *map) : _w(w), _h(h), _m(map), _v(nullptr), _map(0), _b(nullptr), _vm(vm) {
 	debugC(1, kCGEDebugBitmap, "Bitmap::Bitmap(%d, %d, map)", w, h);
 	if (map)
 		code();
@@ -62,7 +61,7 @@ Bitmap::Bitmap(CGEEngine *vm, uint16 w, uint16 h, uint8 *map) : _w(w), _h(h), _m
 // especially for text line real time display
 Bitmap::Bitmap(CGEEngine *vm, uint16 w, uint16 h, uint8 fill)
 	: _w((w + 3) & ~3),                              // only full uint32 allowed!
-	  _h(h), _m(NULL), _map(0), _b(NULL), _vm(vm) {
+	  _h(h), _m(nullptr), _map(0), _b(nullptr), _vm(vm) {
 	debugC(1, kCGEDebugBitmap, "Bitmap::Bitmap(%d, %d, %d)", w, h, fill);
 
 	uint16 dsiz = _w >> 2;                           // data size (1 plane line size)
@@ -70,7 +69,7 @@ Bitmap::Bitmap(CGEEngine *vm, uint16 w, uint16 h, uint8 fill)
 	uint16 psiz = _h * lsiz;                         // - last gape, but + plane trailer
 	uint8 *v = new uint8[4 * psiz + _h * sizeof(*_b)];// the same for 4 planes
 	                                                // + room for wash table
-	assert(v != NULL);
+	assert(v != nullptr);
 
 	WRITE_LE_UINT16(v, (kBmpCPY | dsiz));                 // data chunk hader
 	memset(v + 2, fill, dsiz);                      // data bytes
@@ -100,7 +99,7 @@ Bitmap::Bitmap(CGEEngine *vm, uint16 w, uint16 h, uint8 fill)
 	_b = b;
 }
 
-Bitmap::Bitmap(CGEEngine *vm, const Bitmap &bmp) : _w(bmp._w), _h(bmp._h), _m(NULL), _v(NULL), _map(0), _b(NULL), _vm(vm) {
+Bitmap::Bitmap(CGEEngine *vm, const Bitmap &bmp) : _w(bmp._w), _h(bmp._h), _m(nullptr), _v(nullptr), _map(0), _b(nullptr), _vm(vm) {
 	debugC(1, kCGEDebugBitmap, "Bitmap::Bitmap(bmp)");
 	uint8 *v0 = bmp._v;
 	if (!v0)
@@ -109,7 +108,7 @@ Bitmap::Bitmap(CGEEngine *vm, const Bitmap &bmp) : _w(bmp._w), _h(bmp._h), _m(NU
 	uint16 vsiz = (uint8 *)(bmp._b) - (uint8 *)(v0);
 	uint16 siz = vsiz + _h * sizeof(HideDesc);
 	uint8 *v1 = new uint8[siz];
-	assert(v1 != NULL);
+	assert(v1 != nullptr);
 	memcpy(v1, v0, siz);
 	_b = (HideDesc *)((_v = v1) + vsiz);
 }
@@ -129,18 +128,18 @@ Bitmap &Bitmap::operator=(const Bitmap &bmp) {
 	uint8 *v0 = bmp._v;
 	_w = bmp._w;
 	_h = bmp._h;
-	_m = NULL;
+	_m = nullptr;
 	_map = 0;
 	_vm = bmp._vm;
 	delete[] _v;
 
-	if (v0 == NULL) {
-		_v = NULL;
+	if (v0 == nullptr) {
+		_v = nullptr;
 	} else {
 		uint16 vsiz = (uint8 *)bmp._b - (uint8 *)v0;
 		uint16 siz = vsiz + _h * sizeof(HideDesc);
 		uint8 *v1 = new uint8[siz];
-		assert(v1 != NULL);
+		assert(v1 != nullptr);
 		memcpy(v1, v0, siz);
 		_b = (HideDesc *)((_v = v1) + vsiz);
 	}
@@ -148,11 +147,11 @@ Bitmap &Bitmap::operator=(const Bitmap &bmp) {
 }
 
 char *Bitmap::forceExt(char *buf, const char *name, const char *ext) {
-	strcpy(buf, name);
+	Common::strcpy_s(buf, kMaxPath, name);
 	char *dot = strrchr(buf, '.');
 	if (dot)
 		*dot = '\0';
-	strcat(buf, ext);
+	Common::strcat_s(buf, kMaxPath, ext);
 
 	return buf;
 }
@@ -161,13 +160,13 @@ BitmapPtr Bitmap::code() {
 	debugC(1, kCGEDebugBitmap, "Bitmap::code()");
 
 	if (!_m)
-		return NULL;
+		return nullptr;
 
 	uint16 cnt;
 
 	if (_v) {                                        // old X-map exists, so remove it
 		delete[] _v;
-		_v = NULL;
+		_v = nullptr;
 	}
 
 	while (true) {                                  // at most 2 times: for (V == NULL) & for allocated block;
@@ -250,7 +249,7 @@ BitmapPtr Bitmap::code() {
 
 		uint16 sizV = (uint16)(im - 2 - _v);
 		_v = new uint8[sizV + _h * sizeof(*_b)];
-		assert(_v != NULL);
+		assert(_v != nullptr);
 
 		_b = (HideDesc *)(_v + sizV);
 	}
@@ -373,7 +372,7 @@ bool Bitmap::loadVBM(EncryptedStream *f) {
 				f->seek(f->pos() + kPalSize);
 		}
 	}
-	if ((_v = new uint8[n]) == NULL)
+	if ((_v = new uint8[n]) == nullptr)
 		return false;
 
 	if (!f->err())

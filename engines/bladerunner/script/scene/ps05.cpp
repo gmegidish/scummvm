@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@ void SceneScriptPS05::InitializeScene() {
 		Setup_Scene_Information(630.72f, 0.38f, -469.26f, 400);
 #else
 		// exiting from PS15
-		Setup_Scene_Information(553.24f, 0.37f, -422.97f, 400);
+		Setup_Scene_Information(560.24f, 0.37f, -422.97f, 400);
 #endif // BLADERUNNER_ORIGINAL_BUGS
 	}
 	Scene_Exit_Add_2D_Exit(0, 218, 98, 280, 246, 3);
@@ -149,6 +148,12 @@ bool SceneScriptPS05::ClickedOnExit(int exitId) {
 bool SceneScriptPS05::ClickedOn2DRegion(int region) {
 	if (region == 0 && !Loop_Actor_Walk_To_XYZ(kActorMcCoy, 694.78f, 0.37f, -321.05f, 0, true, false, false)) {
 		Actor_Face_Heading(kActorMcCoy, 130, false);
+#if !BLADERUNNER_ORIGINAL_BUGS
+		// Add small delay so that McCoy can turn to the score board
+		// Otherwise Score board loads immediately
+		// and McCoy turns towards it after we exit the board UI
+		Delay(50);
+#endif
 		View_Score_Board();
 	}
 	return false;

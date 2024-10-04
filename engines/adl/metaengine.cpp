@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,83 @@
 
 namespace Adl {
 
-Common::String getDiskImageName(const AdlGameDescription &adlDesc, byte volume) {
+static const ADExtraGuiOptionsMap optionsList[] = {
+	{
+		GAMEOPTION_NTSC,
+		{
+			_s("TV emulation"),
+			_s("Emulate composite output to an NTSC TV"),
+			"ntsc",
+			true,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_COLOR_DEFAULT_OFF,
+		{
+			_s("Color graphics"),
+			_s("Use color graphics instead of monochrome"),
+			"color",
+			false,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_COLOR_DEFAULT_ON,
+		{
+			_s("Color graphics"),
+			_s("Use color graphics instead of monochrome"),
+			"color",
+			true,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_SCANLINES,
+		{
+			_s("Show scanlines"),
+			_s("Darken every other scanline to mimic the look of a CRT"),
+			"scanlines",
+			false,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_MONO_TEXT,
+		{
+			_s("Always use sharp monochrome text"),
+			_s("Do not emulate NTSC artifacts for text"),
+			"monotext",
+			true,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_APPLE2E_CURSOR,
+		{
+			_s("Use checkered cursor"),
+			_s("Use the checkered cursor from later Apple II models"),
+			"apple2e_cursor",
+			false,
+			0,
+			0
+		}
+	},
+
+	AD_EXTRA_GUI_OPTIONS_TERMINATOR
+};
+
+Common::Path getDiskImageName(const AdlGameDescription &adlDesc, byte volume) {
 	const ADGameDescription &desc = adlDesc.desc;
 	for (uint i = 0; desc.filesDescriptions[i].fileName; ++i) {
 		const ADGameFileDescription &fDesc = desc.filesDescriptions[i];
@@ -46,8 +121,8 @@ Common::String getDiskImageName(const AdlGameDescription &adlDesc, byte volume) 
 		if (fDesc.fileType == volume) {
 			for (uint e = 0; e < ARRAYSIZE(diskImageExts); ++e) {
 				if (diskImageExts[e].platform == desc.platform) {
-					Common::String testFileName(fDesc.fileName);
-					testFileName += diskImageExts[e].extension;
+					Common::Path testFileName(fDesc.fileName);
+					testFileName.appendInPlace(diskImageExts[e].extension);
 					if (Common::File::exists(testFileName))
 						return testFileName;
 				}
@@ -76,10 +151,14 @@ Common::Platform getPlatform(const AdlGameDescription &adlDesc) {
 	return adlDesc.desc.platform;
 }
 
-class AdlMetaEngine : public AdvancedMetaEngine {
+class AdlMetaEngine : public AdvancedMetaEngine<AdlGameDescription> {
 public:
 	const char *getName() const override {
 		return "adl";
+	}
+
+	const ADExtraGuiOptionsMap *getAdvancedExtraGuiOptions() const override {
+		return optionsList;
 	}
 
 	bool hasFeature(MetaEngineFeature f) const override;
@@ -89,7 +168,7 @@ public:
 	SaveStateList listSaves(const char *target) const override;
 	void removeSaveState(const char *target, int slot) const override;
 
-	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *gd) const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const AdlGameDescription *adlGd) const override;
 	Common::KeymapArray initKeymaps(const char *target) const override;
 };
 
@@ -102,7 +181,6 @@ bool AdlMetaEngine::hasFeature(MetaEngineFeature f) const {
 	case kSavesSupportThumbnail:
 	case kSavesSupportCreationDate:
 	case kSavesSupportPlayTime:
-	case kSimpleSavesNames:
 		return true;
 	default:
 		return false;
@@ -220,9 +298,7 @@ Engine *HiRes4Engine_create(OSystem *syst, const AdlGameDescription *gd);
 Engine *HiRes5Engine_create(OSystem *syst, const AdlGameDescription *gd);
 Engine *HiRes6Engine_create(OSystem *syst, const AdlGameDescription *gd);
 
-Common::Error AdlMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *gd) const {
-	const AdlGameDescription *adlGd = (const AdlGameDescription *)gd;
-
+Common::Error AdlMetaEngine::createInstance(OSystem *syst, Engine **engine, const AdlGameDescription *adlGd) const {
 	switch (adlGd->gameType) {
 	case GAME_TYPE_HIRES1:
 		*engine = HiRes1Engine_create(syst, adlGd);

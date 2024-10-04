@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,7 @@
 
 #include "ags/shared/core/platform.h"
 #include "ags/engine/ac/cd_audio.h"
+#include "ags/engine/ac/game.h"
 #include "ags/engine/ac/game_setup.h"
 #include "ags/shared/ac/game_setup_struct.h"
 #include "ags/engine/ac/game_state.h"
@@ -46,7 +46,9 @@
 #include "ags/shared/gfx/bitmap.h"
 #include "ags/shared/core/asset_manager.h"
 #include "ags/engine/platform/base/ags_platform_driver.h"
+#include "ags/engine/platform/base/sys_main.h"
 #include "ags/plugins/plugin_engine.h"
+#include "ags/shared/script/cc_common.h"
 #include "ags/engine/media/audio/audio_system.h"
 #include "ags/globals.h"
 #include "ags/ags.h"
@@ -59,8 +61,8 @@ using namespace AGS::Engine;
 void quit_tell_editor_debugger(const String &qmsg, QuitReason qreason) {
 	if (_G(editor_debugging_initialized)) {
 		if (qreason & kQuitKind_GameException)
-			_G(handledErrorInEditor) = send_exception_to_editor(qmsg.GetCStr());
-		send_message_to_editor("EXIT");
+			_G(handledErrorInEditor) = send_exception_to_debugger(qmsg.GetCStr());
+		send_state_to_debugger("EXIT");
 		_G(editor_debugger)->Shutdown();
 	}
 }
@@ -68,10 +70,6 @@ void quit_tell_editor_debugger(const String &qmsg, QuitReason qreason) {
 void quit_stop_cd() {
 	if (_G(need_to_stop_cd))
 		cd_manager(3, 0);
-}
-
-void quit_shutdown_scripts() {
-	ccUnregisterAllObjects();
 }
 
 void quit_check_dynamic_sprites(QuitReason qreason) {
@@ -86,30 +84,17 @@ void quit_check_dynamic_sprites(QuitReason qreason) {
 	}
 }
 
-void quit_shutdown_platform(QuitReason qreason) {
-	// Be sure to unlock mouse on exit, or users will hate us
-	_G(platform)->UnlockMouse();
-	_G(platform)->AboutToQuitGame();
-
-	_G(our_eip) = 9016;
-
-	pl_stop_plugins();
-
-	quit_check_dynamic_sprites(qreason);
-
-	_G(platform)->FinishedUsingGraphicsMode();
-
-	if (_G(use_cdplayer))
-		_G(platform)->ShutdownCDPlayer();
-}
-
 void quit_shutdown_audio() {
 	_G(our_eip) = 9917;
 	_GP(game).options[OPT_CROSSFADEMUSIC] = 0;
 	shutdown_sound();
 }
 
-QuitReason quit_check_for_error_state(const char *&qmsg, String &alertis) {
+// Parses the quit message; returns:
+// * QuitReason - which is a code of the reason we're quitting (game error, etc);
+// * errmsg - a pure error message (extracted from the parsed string).
+// * alertis - a complex message to post into the engine output (stdout, log);
+QuitReason quit_check_for_error_state(const char *qmsg, String &errmsg, String &alertis) {
 	if (qmsg[0] == '|') {
 		return kQuit_GameRequest;
 	} else if (qmsg[0] == '!') {
@@ -127,45 +112,30 @@ QuitReason quit_check_for_error_state(const char *&qmsg, String &alertis) {
 			qreason = kQuit_GameError;
 			alertis.Format("An error has occurred. Please contact the game author for support, as this "
 			               "is likely to be a scripting error and not a bug in AGS.\n"
-			               "(ACI version %s)\n\n", _G(EngineVersion).LongString.GetCStr());
+			               "(Engine version %s)\n\n", _G(EngineVersion).LongString.GetCStr());
 		}
 
-		alertis.Append(get_cur_script(5));
+		alertis.Append(cc_get_error().CallStack);
 
-		if (qreason != kQuit_UserAbort)
-			alertis.Append("\nError: ");
-		else
-			qmsg = "";
+		if (qreason != kQuit_UserAbort) {
+			alertis.AppendFmt("\nError: %s", qmsg);
+			errmsg = qmsg;
+			Debug::Printf(kDbgMsg_Fatal, "ERROR: %s\n%s", qmsg, cc_get_error().CallStack.GetCStr());
+		}
 		return qreason;
 	} else if (qmsg[0] == '%') {
 		qmsg++;
 		alertis.Format("A warning has been generated. This is not normally fatal, but you have selected "
 		               "to treat warnings as errors.\n"
-		               "(ACI version %s)\n\n%s\n", _G(EngineVersion).LongString.GetCStr(), get_cur_script(5).GetCStr());
+		               "(Engine version %s)\n\n%s\n%s", _G(EngineVersion).LongString.GetCStr(), cc_get_error().CallStack.GetCStr(), qmsg);
+		errmsg = qmsg;
 		return kQuit_GameWarning;
 	} else {
 		alertis.Format("An internal error has occurred. Please note down the following information.\n"
-		               "(ACI version %s)\n"
-		               "\nError: ", _G(EngineVersion).LongString.GetCStr());
+		               "(Engine version %s)\n"
+		               "\nError: %s", _G(EngineVersion).LongString.GetCStr(), qmsg);
 		return kQuit_FatalError;
 	}
-}
-
-void quit_message_on_exit(const String &qmsg, String &alertis, QuitReason qreason) {
-	// successful exit or user abort displays no messages
-	if ((qreason & (kQuitKind_NormalExit | kQuit_UserAbort)) == 0 && !_G(handledErrorInEditor)) {
-		// Display the message (at this point the window still exists)
-		sprintf(_G(pexbuf), "%s\n", qmsg.GetCStr());
-		alertis.Append(_G(pexbuf));
-		_G(platform)->DisplayAlert("%s", alertis.GetCStr());
-	}
-}
-
-void quit_release_data() {
-	resetRoomStatuses();
-	_GP(thisroom).Free();
-	_GP(play).Free();
-	_GP(AssetMgr).reset();
 }
 
 void quit_delete_temp_files() {
@@ -196,19 +166,24 @@ void quit(const char *quitmsg) {
 }
 
 void quit_free() {
-	String alertis;
 	if (strlen(_G(quit_message)) == 0)
-		strcpy(_G(quit_message), "|bye!");
+		Common::strcpy_s(_G(quit_message), "|bye!");
 
 	const char *quitmsg = _G(quit_message);
-	QuitReason qreason = quit_check_for_error_state(quitmsg, alertis);
+
+	Debug::Printf(kDbgMsg_Info, "Quitting the game...");
+
+	// NOTE: we must not use the quitmsg pointer past this step,
+	// as it may be from a plugin and we're about to free plugins
+	String errmsg, fullmsg;
+	QuitReason qreason = quit_check_for_error_state(quitmsg, errmsg, fullmsg);
 
 	if (qreason & kQuitKind_NormalExit)
 		save_config_file();
 
 	_G(handledErrorInEditor) = false;
 
-	quit_tell_editor_debugger(_G(quit_message), qreason);
+	quit_tell_editor_debugger(errmsg, qreason);
 
 	_G(our_eip) = 9900;
 
@@ -216,9 +191,15 @@ void quit_free() {
 
 	_G(our_eip) = 9020;
 
-	quit_shutdown_scripts();
+	// Be sure to unlock mouse on exit, or users will hate us
+	sys_window_lock_mouse(false);
 
-	quit_shutdown_platform(qreason);
+	_G(our_eip) = 9016;
+
+	quit_check_dynamic_sprites(qreason);
+
+	if (_G(use_cdplayer))
+		_G(platform)->ShutdownCDPlayer();
 
 	_G(our_eip) = 9019;
 
@@ -226,29 +207,29 @@ void quit_free() {
 
 	_G(our_eip) = 9901;
 
-	shutdown_font_renderer();
-	_G(our_eip) = 9902;
-
 	_GP(spriteset).Reset();
-
-	_G(our_eip) = 9907;
-
-	close_translation();
 
 	_G(our_eip) = 9908;
 
 	shutdown_pathfinder();
 
+	unload_game();
+
 	engine_shutdown_gfxmode();
 
-	quit_message_on_exit(quitmsg, alertis, qreason);
+	_G(platform)->PreBackendExit();
 
-	quit_release_data();
+	// On abnormal exit: display the message (at this point the window still exists)
+	if ((qreason & kQuitKind_NormalExit) == 0 && !_G(handledErrorInEditor)) {
+		_G(platform)->DisplayAlert("%s", fullmsg.GetCStr());
+	}
 
 	// release backed library
 	// WARNING: no Allegro objects should remain in memory after this,
 	// if their destruction is called later, program will crash!
+	shutdown_font_renderer();
 	allegro_exit();
+	sys_main_shutdown();
 
 	_G(platform)->PostAllegroExit();
 

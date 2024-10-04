@@ -4,19 +4,18 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software{} you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation{} either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY{} without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program{} if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,10 +48,9 @@ bool ResourceArchive::splitName(const Common::String &name,
 
 
 bool ResourceArchive::hasFile(const Common::Path &path) const {
-	Common::String name = path.toString();
 	Common::String filename, resName;
 
-	if (!splitName(name, filename, resName))
+	if (!splitName(path.baseName(), filename, resName))
 		return false;
 	size_t resLength = g_vm->FindResource(filename.c_str(), resName.c_str());
 	g_vm->hugo_fclose(g_vm->resource_file);
@@ -61,19 +59,17 @@ bool ResourceArchive::hasFile(const Common::Path &path) const {
 }
 
 const Common::ArchiveMemberPtr ResourceArchive::getMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	if (!hasFile(name))
+	if (!hasFile(path))
 		return Common::ArchiveMemberPtr();
 
-	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
+	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(path, *this));
 }
 
 Common::SeekableReadStream *ResourceArchive::createReadStreamForMember(const Common::Path &path) const {
-	Common::String name = path.toString();
 	Common::String filename, resName;
 
 	// Split up the file and resource entry; return if it's not one
-	if (!splitName(name, filename, resName))
+	if (!splitName(path.baseName(), filename, resName))
 		return nullptr;
 
 	// Try and get the entry details from the given file

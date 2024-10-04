@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,7 +55,7 @@ Font *Font::getFont(const Common::String &fontName) {
 	if (_fonts->contains(fontName)) {
 		return _fonts->getVal(fontName);
 	} else {
-		Font *font = new Font(fontName);
+		Font *font = new Font(Common::Path(fontName));
 		_fonts->setVal(fontName, font);
 		return font;
 	}
@@ -69,7 +68,7 @@ Font::Font() {
 	setFont(FONT_INTERFACE);
 }
 
-Font::Font(const Common::String &filename) {
+Font::Font(const Common::Path &filename) {
 	_charWidths = nullptr;
 	_charOffs = nullptr;
 	_charData = nullptr;
@@ -82,16 +81,16 @@ Font::~Font() {
 	delete[] _charData;
 }
 
-void Font::setFont(const Common::String &filename) {
+void Font::setFont(const Common::Path &filename) {
 	if (!_filename.empty() && (filename == _filename))
 		// Already using specified font, so don't bother reloading
 		return;
 
 	_filename = filename;
 
-	Common::String resName = filename;
-	if (!resName.hasSuffix(".FF"))
-		resName += ".FF";
+	Common::Path resName = filename;
+	if (!resName.baseName().hasSuffix(".FF"))
+		resName.appendInPlace(".FF");
 
 	MadsPack fontData(resName, _vm);
 	Common::SeekableReadStream *fontFile = fontData.getItemStream(0);

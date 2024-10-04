@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -526,8 +525,8 @@ void WSC::init() {
 
 	_extraMovieCallBack.setNotification(&_neighborhoodNotification);
 
-	_cachedZoomSpot = 0;
-	_argonSprite = 0;
+	_cachedZoomSpot = nullptr;
+	_argonSprite = nullptr;
 
 	// HACK: Fix the drag item for picking up the Sinclair Key Card
 	HotspotInfoTable::Entry *entry = findHotspotEntry(kWSC02SouthTakeArgonSpotID);
@@ -570,8 +569,8 @@ protected:
 };
 
 void PryDoorMessage::performAIAction(AIRule *rule) {
-	if (((PegasusEngine *)g_engine)->playerHasItemID(kShieldBiochip)
-			&& ((PegasusEngine *)g_engine)->getCurrentBiochip()->getObjectID() != kShieldBiochip)
+	if (g_vm->playerHasItemID(kShieldBiochip)
+			&& g_vm->getCurrentBiochip()->getObjectID() != kShieldBiochip)
 		AIPlayMessageAction::performAIAction(rule);
 }
 
@@ -650,11 +649,11 @@ void WSC::setUpAIRules() {
 	}
 }
 
-Common::String WSC::getBriefingMovie() {
+Common::Path WSC::getBriefingMovie() {
 	return "Images/AI/WSC/XWO";
 }
 
-Common::String WSC::getEnvScanMovie() {
+Common::Path WSC::getEnvScanMovie() {
 	RoomID room = GameState.getCurrentRoom();
 
 	if (room >= kWSC01 && room <= kWSC04)
@@ -771,7 +770,7 @@ uint WSC::getNumHints() {
 	return 0;
 }
 
-Common::String WSC::getHintMovie(uint hintNum) {
+Common::Path WSC::getHintMovie(uint hintNum) {
 	switch (GameState.getCurrentRoomAndView()) {
 	case MakeRoomView(kWSC10, kWest):
 	case MakeRoomView(kWSC28, kWest):
@@ -787,7 +786,7 @@ Common::String WSC::getHintMovie(uint hintNum) {
 		if (_vm->getEnergyDeathReason() == kDeathDidntStopPoison &&
 				!_privateFlags.getFlag(kWSCPrivateInMoleculeGameFlag) &&
 				!GameState.getWSCDesignedAntidote())
-			return Common::String::format("Images/AI/WSC/XWPH%d", hintNum);
+			return Common::Path(Common::String::format("Images/AI/WSC/XWPH%d", hintNum));
 
 		return "Images/AI/Globals/XGLOB1C";
 	case MakeRoomView(kWSC61, kEast):
@@ -854,14 +853,14 @@ Common::String WSC::getHintMovie(uint hintNum) {
 	case MakeRoomView(kWSC04, kEast):
 	case MakeRoomView(kWSC04, kWest):
 		// analyzer hint
-		return Common::String::format("Images/AI/WSC/XWPH%d", hintNum);
+		return Common::Path(Common::String::format("Images/AI/WSC/XWPH%d", hintNum));
 	case MakeRoomView(kWSC02Messages, kSouth):
 	case MakeRoomView(kWSC02Morph, kSouth):
 		if (_vm->getEnergyDeathReason() == kDeathDidntStopPoison &&
 				!_privateFlags.getFlag(kWSCPrivateInMoleculeGameFlag) &&
 				!GameState.getWSCDesignedAntidote())
 			// analyzer hint
-			return Common::String::format("Images/AI/WSC/XWPH%d", hintNum);
+			return Common::Path(Common::String::format("Images/AI/WSC/XWPH%d", hintNum));
 
 		return "Images/AI/Globals/XGLOB1C";
 	case MakeRoomView(kWSC98, kWest):
@@ -873,12 +872,12 @@ Common::String WSC::getHintMovie(uint hintNum) {
 	return "";
 }
 
-void WSC::prepareForAIHint(const Common::String &movieName) {
+void WSC::prepareForAIHint(const Common::Path &movieName) {
 	if (movieName == "Images/AI/WSC/XW98WH2" && isEventTimerRunning())
 		pauseTimer();
 }
 
-void WSC::cleanUpAfterAIHint(const Common::String &movieName) {
+void WSC::cleanUpAfterAIHint(const Common::Path &movieName) {
 	if (movieName == "Images/AI/WSC/XW98WH2" && isEventTimerRunning())
 		resumeTimer();
 }
@@ -1897,7 +1896,7 @@ void WSC::turnTo(const DirectionConstant direction) {
 		}
 		// fall through
 		// FIXME: fall through intentional?
-		// clone2727 says: This falls through?!??! WTF?
+		// clone2727 says: This falls through?!??!
 	case MakeRoomView(kWSC42, kEast):
 		_privateFlags.setFlag(kWSCPrivateSinclairOfficeOpenFlag, false);
 		setCurrentActivation(kActivationSinclairOfficeLocked);
@@ -2003,7 +2002,7 @@ void WSC::receiveNotification(Notification *notification, const NotificationFlag
 			_privateFlags.setFlag(kWSCPrivateLabMessagesOpenFlag, false);
 			if (_cachedZoomSpot) {
 				zoomTo(_cachedZoomSpot);
-				_cachedZoomSpot = 0;
+				_cachedZoomSpot = nullptr;
 			}
 			break;
 		case kWSC02TurnOnMorphScreen:
@@ -2118,7 +2117,7 @@ void WSC::receiveNotification(Notification *notification, const NotificationFlag
 			setCurrentActivation(kActivationW61MessagesOff);
 			if (_cachedZoomSpot) {
 				zoomTo(_cachedZoomSpot);
-				_cachedZoomSpot = 0;
+				_cachedZoomSpot = nullptr;
 			}
 			break;
 		case kW61SouthScreenOnWithGun:
@@ -2134,7 +2133,7 @@ void WSC::receiveNotification(Notification *notification, const NotificationFlag
 			setCurrentActivation(kActivationW61SouthOff);
 			if (_cachedZoomSpot) {
 				zoomTo(_cachedZoomSpot);
-				_cachedZoomSpot = 0;
+				_cachedZoomSpot = nullptr;
 			}
 			break;
 		case kW62ZoomOutFromRobot:
@@ -2229,7 +2228,7 @@ void WSC::receiveNotification(Notification *notification, const NotificationFlag
 			break;
 		case kW98MorphsToRobot:
 			if (_argonSprite) {
-				delete _argonSprite; _argonSprite = 0;
+				delete _argonSprite; _argonSprite = nullptr;
 				startExtraSequence(kW98RobotGassed, kExtraCompletedFlag, kFilterNoInput);
 			} else if (_privateFlags.getFlag(kWSCPrivateClickedCatwalkCableFlag)) {
 				startExtraSequence(kW98RobotShocked, kExtraCompletedFlag, kFilterNoInput);
@@ -2959,11 +2958,11 @@ void WSC::setSoundFXLevel(const uint16 level) {
 		_welcomeSound.setVolume(level);
 }
 
-Common::String WSC::getNavMovieName() {
+Common::Path WSC::getNavMovieName() {
 	return "Images/World Science Center/WSC.movie";
 }
 
-Common::String WSC::getSoundSpotsName() {
+Common::Path WSC::getSoundSpotsName() {
 	return "Sounds/World Science Center/WSC Spots";
 }
 

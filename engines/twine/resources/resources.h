@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 
 #include "common/hashmap.h"
 #include "common/scummsys.h"
+#include "twine/parser/anim3ds.h"
 #include "twine/parser/body.h"
 #include "twine/parser/holomap.h"
 #include "twine/parser/sprite.h"
@@ -41,13 +41,18 @@ namespace TwinE {
 #define RESSHQR_BLANK 2
 #define RESSHQR_SPRITEBOXDATA 3
 #define RESSHQR_SPRITESHADOW 4
-#define RESSHQR_HOLOPAL 5
-#define RESSHQR_HOLOSURFACE 6
-#define RESSHQR_HOLOIMG 7
-#define RESSHQR_HOLOARROWINFO 8
-#define RESSHQR_HOLOTWINMDL 9
-#define RESSHQR_HOLOARROWMDL 10
-#define RESSHQR_HOLOTWINARROWMDL 11
+#define RESSHQR_HOLOPAL 5           // lba1
+#define RESSHQR_HOLOSURFACE 6       // lba1
+#define RESSHQR_HOLOIMG 7           // lba1
+#define RESSHQR_HOLOARROWINFO 8     // lba1
+#define RESSHQR_HOLOTWINMDL 9       // lba1
+#define RESSHQR_HOLOARROWMDL 10     // lba1
+#define RESSHQR_HOLOTWINARROWMDL 11 // lba1
+
+#define RESSHQR_BLACKPAL 9   // lba2
+#define RESSHQR_ECLAIRPAL 10 // lba2
+#define RESSHQR_ARROWBIN 12  // lba2
+#define SAMPLE_RAIN 13
 
 #define RESSHQR_GAMEOVERMDL 21
 
@@ -64,6 +69,8 @@ namespace TwinE {
 #define FLA_INTROD "introd"
 #define FLA_THEEND "the_end"
 #define FLA_BATEAU "bateau"
+
+#define ACF_INTRO "INTRO"
 
 #define FILE3DHQR_HERONORMAL 0
 #define FILE3DHQR_HEROATHLETIC 1
@@ -129,8 +136,10 @@ private:
 	void initPalettes();
 	/** Preload all sprites */
 	void preloadSprites();
+
 	/** Preload all animations */
 	void preloadAnimations();
+	void preloadAnim3DS();
 	void preloadSamples();
 	void loadMovieInfo();
 
@@ -140,6 +149,7 @@ private:
 	TrajectoryData _trajectories;
 
 	TextData _textData;
+	Anim3DSData _anim3DSData;
 
 public:
 	Resources(TwinEEngine *engine) : _engine(engine) {}
@@ -173,6 +183,7 @@ public:
 	/** Font buffer pointer */
 	int32 _fontBufSize = 0;
 	uint8 *_fontPtr = nullptr;
+	uint8 *_sjisFontPtr = nullptr;
 
 	SpriteData _spriteShadowPtr;
 	SpriteBoundingBoxData _spriteBoundingBox;
@@ -186,8 +197,12 @@ public:
 	void initResources();
 
 	const Trajectory *getTrajectory(int index) const;
+	void loadEntityData(EntityData &entityData, int32 &index);
 
 	const TextEntry *getText(TextBankId textBankId, TextId index) const;
+	const T_ANIM_3DS *getAnim(int index) const;
+
+	int findSmkMovieIndex(const char *name) const;
 
 	// main palette
 	static constexpr const char *HQR_RESS_FILE = "ress.hqr";
@@ -225,8 +240,11 @@ public:
 	static constexpr const char *HQR_BODY_FILE = "body.hqr";
 	// animations
 	static constexpr const char *HQR_ANIM_FILE = "anim.hqr";
+	static constexpr const char *HQR_ANIM3DS_FILE = "anim3ds.hqr";
 	// inventory objects
 	static constexpr const char *HQR_INVOBJ_FILE = "invobj.hqr";
+	// lba2 holomap
+	static constexpr const char *HQR_HOLOMAP_FILE = "holomap.hqr";
 
 	/**
 	 * @brief Floppy version of the game uses gifs for replacing the videos

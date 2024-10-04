@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -266,7 +265,7 @@ extern int16 ctp_routes[20][10];	// path-finding line information
 /* ctp_routes:
 
    correct size would be: ctp_routes[routeCoordCount * 20 * 2]
-   array is seperate in 20 * 2 bytes slices.
+   array is separate in 20 * 2 bytes slices.
    first 2 bytes of the slice indicate how many coordinates/lines are following (lineCount)
    after that there are lineCount * 2 bytes following with indexes pointing on the routeCoords table
    the root x,y for the lines is the coordinate in the routeCoords array, which fits to the current slice

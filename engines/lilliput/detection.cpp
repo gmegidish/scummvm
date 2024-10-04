@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,9 +30,9 @@ namespace Lilliput {
 
 static const PlainGameDescriptor lilliputGames[] = {
 	// Games
-	{"robin", "Adventures of Robin Hood"},
+	{"robin", "The Adventures of Robin Hood"},
 	{"rome", "Rome: Pathway to Power"},
-	{0, 0}
+	{nullptr, nullptr}
 };
 
 static const DebugChannelDef debugFlagList[] = {
@@ -50,7 +49,7 @@ static const LilliputGameDescription gameDescriptions[] = {
 	// Robin Hood English
 	{
 		{
-			"robin", 0,
+			"robin", nullptr,
 			AD_ENTRY2s("erules.prg", "92aaf84693a8948497ad57864fa31c2a", 71010,
 					   "isomap.dta", "bad97eae03a4db3e99565e39b0b3c06a", 16384),
 			Common::EN_ANY,
@@ -63,7 +62,7 @@ static const LilliputGameDescription gameDescriptions[] = {
 	// Robin Hood French
 	{
 		{
-			"robin", 0,
+			"robin", nullptr,
 			AD_ENTRY2s("frules.prg", "cf076c5ebfe8b3571e74a6a46d79426f", 76660,
 					   "isomap.dta", "bad97eae03a4db3e99565e39b0b3c06a", 16384),
 			Common::FR_FRA,
@@ -76,7 +75,7 @@ static const LilliputGameDescription gameDescriptions[] = {
 	// Robin Hood German
 	{
 		{
-			"robin", 0,
+			"robin", nullptr,
 			AD_ENTRY2s("grules.prg", "b53b7353dc1e841b206a64851e7bc58c", 78050,
 					   "isomap.dta", "bad97eae03a4db3e99565e39b0b3c06a", 16384),
 			Common::DE_DEU,
@@ -89,7 +88,7 @@ static const LilliputGameDescription gameDescriptions[] = {
 	// Robin Hood Italian
 	{
 		{
-			"robin", 0,
+			"robin", nullptr,
 			AD_ENTRY2s("irules.prg", "4d69ed3cda1e1d73585905517ea705d1", 75654,
 					   "isomap.dta", "bad97eae03a4db3e99565e39b0b3c06a", 16384),
 			Common::IT_ITA,
@@ -115,16 +114,16 @@ static const LilliputGameDescription gameDescriptions[] = {
 	{AD_TABLE_END_MARKER, kGameTypeNone}
 };
 
-class LilliputMetaEngineDetection : public AdvancedMetaEngineDetection {
+class LilliputMetaEngineDetection : public AdvancedMetaEngineDetection<LilliputGameDescription> {
 public:
-	LilliputMetaEngineDetection() : AdvancedMetaEngineDetection(gameDescriptions, sizeof(LilliputGameDescription), lilliputGames) {
-	}
-
-	const char *getEngineId() const override {
-		return "lilliput";
+	LilliputMetaEngineDetection() : AdvancedMetaEngineDetection(gameDescriptions, lilliputGames) {
 	}
 
 	const char *getName() const override {
+		return "lilliput";
+	}
+
+	const char *getEngineName() const override {
 		return "Lilliput";
 	}
 

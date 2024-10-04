@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,17 +26,14 @@
 
 #include "common/system.h"
 
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 
 namespace Kyra {
 
-Screen_LoL::Screen_LoL(LoLEngine *vm, OSystem *system) : Screen_v2(vm, system,  vm->gameFlags().use16ColorMode ? _screenDimTable16C : _screenDimTable256C, _screenDimTableCount) {
-	_paletteOverlay1 = new uint8[0x100];
-	_paletteOverlay2 = new uint8[0x100];
-	_grayOverlay = new uint8[0x100];
-	memset(_paletteOverlay1, 0, 0x100);
-	memset(_paletteOverlay2, 0, 0x100);
-	memset(_grayOverlay, 0, 0x100);
+Screen_LoL::Screen_LoL(LoLEngine *vm, OSystem *system) : Screen_v2(vm, system,  vm->gameFlags().use16ColorMode ? _screenDimTable16C : vm->gameFlags().lang == Common::Language::ZH_TWN ? _screenDimTableZH : _screenDimTable256C, _screenDimTableCount) {
+	_paletteOverlay1 = new uint8[0x100]();
+	_paletteOverlay2 = new uint8[0x100]();
+	_grayOverlay = new uint8[0x100]();
 
 	for (int i = 0; i < 8; i++)
 		_levelOverlays[i] = new uint8[256];
@@ -222,7 +218,7 @@ void Screen_LoL::drawGridBox(int x, int y, int w, int h, int col) {
 
 	tmp = (y + x) & 1;
 	uint8 *p = getPagePtr(_curPage) + y * 320 + x;
-	uint8 s = (tmp >> 8) & 1;
+	bool oddWidth = w & 1;
 
 	w >>= 1;
 	int w2 = w;
@@ -235,7 +231,7 @@ void Screen_LoL::drawGridBox(int x, int y, int w, int h, int col) {
 			}
 		}
 
-		if (s == 1) {
+		if (oddWidth) {
 			if (tmp == 0)
 				*p = col;
 			p++;
@@ -886,6 +882,21 @@ void Screen_LoL::postProcessCursor(uint8 *data, int w, int h, int pitch) {
 
 		data += pitch - w;
 	}
+}
+
+void ChineseOneByteFontLoL::processColorMap() {
+	_textColor[0] = _colorMap[1];
+	_textColor[1] = _colorMap[0];
+}
+
+uint32 ChineseTwoByteFontLoL::getFontOffset(uint16 c) const {
+	c = ((c & 0x7F00) >> 2) | (c & 0x3F);
+	return c * 28;
+}
+
+void ChineseTwoByteFontLoL::processColorMap() {
+	_textColor[0] = _colorMap[1];
+	_textColor[1] = _colorMap[0];
 }
 
 } // End of namespace Kyra

@@ -37,16 +37,14 @@ my @subs_files = qw(
 	dists/slackware/scummvm.SlackBuild
 	dists/macosx/Info.plist
 	dists/macosx/dockplugin/Info.plist
-	dists/iphone/Info.plist
 	dists/ios7/Info.plist
+	dists/tvos/Info.plist
 	dists/irix/scummvm.spec
 	dists/wii/meta.xml
 	dists/openpandora/PXML.xml
 	dists/openpandora/README-OPENPANDORA
 	dists/openpandora/README-PND.txt
 	dists/openpandora/index.html
-	dists/gph/README-GPH
-	dists/gph/scummvm.ini
 	dists/riscos/!Boot,feb
 	dists/amigaos/md2ag.rexx
 	backends/platform/psp/README.PSP

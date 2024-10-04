@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -37,7 +36,7 @@ extern WorldMapData     *mapList;
 
 static int16        prevMapNum;
 static StaticTilePoint prevCoords = {(int16)minint16, (int16)minint16, (int16)minint16};
-static MetaTilePtr  prevMeta = NULL;
+static MetaTilePtr  prevMeta = nullptr;
 
 /* ===================================================================== *
    Terrain damage info
@@ -46,9 +45,9 @@ static MetaTilePtr  prevMeta = NULL;
 void drown(GameObject *obj) {
 	if (isActor(obj)) {
 		Actor *a = (Actor *) obj;
-		if (!a->hasEffect(actorWaterBreathe)) {
-			if (g_vm->_rnd->getRandomNumber(drowningDamageOddsYes + drowningDamageOddsNo - 1) > drowningDamageOddsNo - 1) {
-				a->acceptDamage(a->thisID(), drowningDamagePerFrame);
+		if (!a->hasEffect(kActorWaterBreathe)) {
+			if (g_vm->_rnd->getRandomNumber(kDrowningDamageOddsYes + kDrowningDamageOddsNo - 1) > kDrowningDamageOddsNo - 1) {
+				a->acceptDamage(a->thisID(), kDrowningDamagePerFrame);
 			}
 		}
 	}
@@ -58,42 +57,42 @@ void drown(GameObject *obj) {
 void lavaDamage(GameObject *obj) {
 	if (isActor(obj)) {
 		Actor *a = (Actor *) obj;
-		if (a->resists(resistHeat))
+		if (a->resists(kResistHeat))
 			return;
 	}
-	if (g_vm->_rnd->getRandomNumber(heatDamageOddsYes + heatDamageOddsNo - 1) > heatDamageOddsNo - 1) {
-		obj->acceptDamage(obj->thisID(), heatDamagePerFrame, kDamageHeat, heatDamageDicePerFrame, 6);
+	if (g_vm->_rnd->getRandomNumber(kHeatDamageOddsYes + kHeatDamageOddsNo - 1) > kHeatDamageOddsNo - 1) {
+		obj->acceptDamage(obj->thisID(), kHeatDamagePerFrame, kDamageHeat, kHeatDamageDicePerFrame, 6);
 	}
 }
 
 void coldDamage(GameObject *obj) {
 	if (isActor(obj)) {
 		Actor *a = (Actor *) obj;
-		if (a->resists(resistCold))
+		if (a->resists(kResistCold))
 			return;
 	}
-	if (g_vm->_rnd->getRandomNumber(coldDamageOddsYes + coldDamageOddsNo - 1) > coldDamageOddsNo - 1) {
-		obj->acceptDamage(obj->thisID(), coldDamagePerFrame, kDamageCold, coldDamageDicePerFrame, 6);
+	if (g_vm->_rnd->getRandomNumber(kColdDamageOddsYes + kColdDamageOddsNo - 1) > kColdDamageOddsNo - 1) {
+		obj->acceptDamage(obj->thisID(), kColdDamagePerFrame, kDamageCold, kColdDamageDicePerFrame, 6);
 	}
 }
 
 void terrainDamageSlash(GameObject *obj) {
-	if (g_vm->_rnd->getRandomNumber(terrainDamageOddsYes + terrainDamageOddsNo - 1) > terrainDamageOddsNo - 1) {
-		obj->acceptDamage(obj->thisID(), terrainDamagePerFrame, kDamageSlash, terrainDamageDicePerFrame, 6);
+	if (g_vm->_rnd->getRandomNumber(kTerrainDamageOddsYes + kTerrainDamageOddsNo - 1) > kTerrainDamageOddsNo - 1) {
+		obj->acceptDamage(obj->thisID(), kTerrainDamagePerFrame, kDamageSlash, kTerrainDamageDicePerFrame, 6);
 	}
 }
 
 void terrainDamageBash(GameObject *obj) {
-	if (g_vm->_rnd->getRandomNumber(terrainDamageOddsYes + terrainDamageOddsNo - 1) > terrainDamageOddsNo - 1) {
-		obj->acceptDamage(obj->thisID(), terrainDamagePerFrame, kDamageImpact, terrainDamageDicePerFrame, 6);
+	if (g_vm->_rnd->getRandomNumber(kTerrainDamageOddsYes + kTerrainDamageOddsNo - 1) > kTerrainDamageOddsNo - 1) {
+		obj->acceptDamage(obj->thisID(), kTerrainDamagePerFrame, kDamageImpact, kTerrainDamageDicePerFrame, 6);
 	}
 }
 
 void fallingDamage(GameObject *obj, int16 speed) {
 	if (isActor(obj)) {
 		Actor *a = (Actor *) obj;
-		if (!a->hasEffect(actorSlowFall)) {
-			a->acceptDamage(a->thisID(), (MAX(0, speed - 16)*fallingDamageMult) / fallingDamageDiv);
+		if (!a->hasEffect(kActorSlowFall)) {
+			a->acceptDamage(a->thisID(), (MAX(0, speed - 16)*kFallingDamageMult) / kFallingDamageDiv);
 		}
 	}
 
@@ -133,15 +132,15 @@ uint32 tileTerrain(
 		prevCoords.set(metaCoords.u, metaCoords.v, metaCoords.z);
 	}
 
-	if (metaPtr == NULL) return 0L;
+	if (metaPtr == nullptr) return 0L;
 
-	for (int i = 0; i < maxPlatforms; i++) {
+	for (int i = 0; i < kMaxPlatforms; i++) {
 		Platform    *p;
 
-		if ((p = metaPtr->fetchPlatform(mapNum, i)) == NULL)
+		if ((p = metaPtr->fetchPlatform(mapNum, i)) == nullptr)
 			continue;
 
-		if (p->flags & plVisible) {
+		if (p->flags & kPlVisible) {
 			int16           height;
 			TileInfo        *ti;
 			int16           trFlags;
@@ -158,9 +157,9 @@ uint32 tileTerrain(
 				        tileMaxZ = height;
 				int32   combinedMask = ti->combinedTerrainMask();
 
-				if (combinedMask & terrainRaised)
+				if (combinedMask & kTerrainRaised)
 					tileMaxZ += ti->attrs.terrainHeight;
-				if (combinedMask & terrainWater)
+				if (combinedMask & kTerrainWater)
 					tileMinZ -= ti->attrs.terrainHeight;
 
 				if (tileMinZ <  maxZ
@@ -172,16 +171,16 @@ uint32 tileTerrain(
 					//  If only checking the top of raised terrain treat it
 					//  as if it were normal terrain.
 					if (minZ >= tileMaxZ) {
-						if (tileFgdTerrain & terrainSupportingRaised)
-							tileFgdTerrain = terrainNormal;
-						if (tileBgdTerrain & terrainSupportingRaised)
-							tileBgdTerrain = terrainNormal;
+						if (tileFgdTerrain & kTerrainSupportingRaised)
+							tileFgdTerrain = kTerrainNormal;
+						if (tileBgdTerrain & kTerrainSupportingRaised)
+							tileBgdTerrain = kTerrainNormal;
 					}
 
 					//  If this tile is sensitive to being walked on,
 					//  set the "sensitive" flag.
-					if (trFlags & trTileSensitive)
-						terrainResult |= terrainActive;
+					if (trFlags & kTrTileSensitive)
+						terrainResult |= kTerrainActive;
 
 					if (mask & ti->attrs.terrainMask)
 						terrainResult |= tileFgdTerrain;
@@ -192,9 +191,9 @@ uint32 tileTerrain(
 					//  This prevents actors from walking through
 					//  catwalks and other surfaces which have no bottom.
 
-					if ((terrainResult & terrainSolidSurface)
+					if ((terrainResult & kTerrainSolidSurface)
 					        &&  height > minZ + kMaxStepHeight) {
-						terrainResult |= terrainStone;
+						terrainResult |= kTerrainStone;
 					}
 
 					terrain |= terrainResult;
@@ -611,21 +610,21 @@ int16 tileSlopeHeight(
 	prevMapNum = mapNum;
 	prevCoords.set(metaCoords.u, metaCoords.v, metaCoords.z);
 
-	if (metaPtr != NULL) {
-		highestTile.surfaceTile = lowestTile.surfaceTile = NULL;
+	if (metaPtr != nullptr) {
+		highestTile.surfaceTile = lowestTile.surfaceTile = nullptr;
 		highestSupportHeight = -100;
 		lowestSupportHeight = 0x7FFF;
 
 		//  Search each platform until we find a tile which is under
 		//  the character.
 
-		for (i = 0; i < maxPlatforms; i++) {
+		for (i = 0; i < kMaxPlatforms; i++) {
 			Platform    *p;
 
-			if ((p = metaPtr->fetchPlatform(mapNum, i)) == NULL)
+			if ((p = metaPtr->fetchPlatform(mapNum, i)) == nullptr)
 				continue;
 
-			if (p->flags & plVisible) {
+			if (p->flags & kPlVisible) {
 				TileInfo        *ti;
 				StandingTileInfo sti;
 
@@ -641,13 +640,13 @@ int16 tileSlopeHeight(
 					int32 subTileTerrain =
 					    ti->attrs.testTerrain(calcSubTileMask(subTile.u,
 					                          subTile.v));
-					if (subTileTerrain & terrainInsubstantial)
+					if (subTileTerrain & kTerrainInsubstantial)
 						continue;
-					else if (subTileTerrain & terrainSupportingRaised)
+					else if (subTileTerrain & kTerrainSupportingRaised)
 						// calculate height of raised surface
 						supportHeight = sti.surfaceHeight +
 						                ti->attrs.terrainHeight;
-					else if (subTileTerrain & terrainWater) {
+					else if (subTileTerrain & kTerrainWater) {
 						// calculate depth of water
 						supportHeight = sti.surfaceHeight -
 						                ti->attrs.terrainHeight;
@@ -664,14 +663,14 @@ int16 tileSlopeHeight(
 					if (tileBase < pt.z + objectHeight
 					        &&  supportHeight >= highestSupportHeight
 					        && (ti->combinedTerrainMask() &
-					            (terrainSurface | terrainRaised))) {
+					            (kTerrainSurface | kTerrainRaised))) {
 						highestTile = sti;
 						highestSupportHeight = supportHeight;
 						highestSupportPlatform = i;
-					} else if (highestTile.surfaceTile == NULL &&
+					} else if (highestTile.surfaceTile == nullptr &&
 					           supportHeight <= lowestSupportHeight &&
 					           (ti->combinedTerrainMask() &
-					            (terrainSurface | terrainRaised))) {
+					            (kTerrainSurface | kTerrainRaised))) {
 						lowestTile = sti;
 						lowestSupportHeight = supportHeight;
 						lowestSupportPlatform = i;
@@ -693,8 +692,8 @@ int16 tileSlopeHeight(
 	}
 
 	if (stiResult) {
-		stiResult->surfaceTile = NULL;
-		stiResult->surfaceTAG = NULL;
+		stiResult->surfaceTile = nullptr;
+		stiResult->surfaceTAG = nullptr;
 		stiResult->surfaceHeight = 0;
 	}
 	if (platformResult) *platformResult = 0;
@@ -745,7 +744,7 @@ uint32 objectTerrain(GameObject *obj, StandingTileInfo &sti) {
 	uint32          terrain;
 	TilePoint       loc = obj->getLocation();
 
-	sti.surfaceTAG = NULL;
+	sti.surfaceTAG = nullptr;
 
 	terrain = volumeTerrain(mapNum,
 	                        loc,
@@ -755,7 +754,7 @@ uint32 objectTerrain(GameObject *obj, StandingTileInfo &sti) {
 	//  If one of the tiles we're standing on is active,
 	//  double check to see if we're really standing on it.
 
-	if (terrain & terrainActive) {
+	if (terrain & kTerrainActive) {
 		int16       tHeight;
 
 		//  Determine the height of the landscape we're on
@@ -765,12 +764,12 @@ uint32 objectTerrain(GameObject *obj, StandingTileInfo &sti) {
 		//  If the character is indeed standing ON the landscape
 		//  REM: This depends on the nature of the tile I think!!!
 
-		if (sti.surfaceTile == NULL
-		        ||  sti.surfaceTAG == NULL
-		        ||  !(sti.surfaceRef.flags & trTileSensitive)
+		if (sti.surfaceTile == nullptr
+		        ||  sti.surfaceTAG == nullptr
+		        ||  !(sti.surfaceRef.flags & kTrTileSensitive)
 		        ||  loc.z >= tHeight + 2
 		        /* ||   loc.z >= standingTile->attrs.terrainHeight */) {
-			terrain &= ~terrainActive;
+			terrain &= ~kTerrainActive;
 		}
 	}
 
@@ -789,11 +788,11 @@ int16 checkBlocked(
 	GameObject      *blockObj;
 	GameWorld       *world;
 
-	if (blockResultObj) *blockResultObj = NULL;
+	if (blockResultObj) *blockResultObj = nullptr;
 
 
 	//  check to make sure the actor recognizes terrain
-	if (!isActor(obj) || !((Actor *) obj)->hasEffect(actorNoncorporeal)) {
+	if (!isActor(obj) || !((Actor *) obj)->hasEffect(kActorNoncorporeal)) {
 		TilePoint       testLoc = loc;
 
 		testLoc.z = MAX<int16>(loc.z, 8);
@@ -804,7 +803,7 @@ int16 checkBlocked(
 		                        height);
 
 		//  Check for intersection with a wall or obstacle
-		if (terrain & terrainRaised) return blockageTerrain;
+		if (terrain & kTerrainRaised) return kBlockageTerrain;
 	}
 
 	//  See if object collided with an object
@@ -812,10 +811,10 @@ int16 checkBlocked(
 	blockObj = objectCollision(obj, world, loc);
 	if (blockObj) {
 		if (blockResultObj) *blockResultObj = blockObj;
-		return blockageObject;
+		return kBlockageObject;
 	}
 
-	return blockageNone;
+	return kBlockageNone;
 }
 
 //  return terrain that object is currently interacting with
@@ -836,15 +835,15 @@ int16 checkWalkable(
 	int16               supportHeight;
 	StandingTileInfo    sti;
 
-	if ((result = checkBlocked(obj, loc, blockResultObj)) != blockageNone)
+	if ((result = checkBlocked(obj, loc, blockResultObj)) != kBlockageNone)
 		return result;
 
 	supportHeight = tileSlopeHeight(loc, obj, &sti);
 
 	if (supportHeight < loc.z - kMaxStepHeight * 4)
-		return blockageTerrain;
+		return kBlockageTerrain;
 
-	if (sti.surfaceTile != NULL) {
+	if (sti.surfaceTile != nullptr) {
 		int16               subTileU,
 		                    subTileV,
 		                    mask;
@@ -854,11 +853,11 @@ int16 checkWalkable(
 		mask = 1 << ((subTileU << kSubTileShift) + subTileV);
 
 		//  If the suporting subtile is funiture consider this blocked
-		if (sti.surfaceTile->attrs.testTerrain(mask) & terrainFurniture)
-			return blockageTerrain;
+		if (sti.surfaceTile->attrs.testTerrain(mask) & kTerrainFurniture)
+			return kBlockageTerrain;
 	}
 
-	return blockageNone;
+	return kBlockageNone;
 }
 
 //  return terrain that object is currently interacting with
@@ -872,7 +871,7 @@ int16 checkContact(
 	GameObject      *blockObj;
 	GameWorld       *world;
 
-	if (blockResultObj) *blockResultObj = NULL;
+	if (blockResultObj) *blockResultObj = nullptr;
 
 	terrain = volumeTerrain(mapNum,
 	                        loc,
@@ -880,24 +879,24 @@ int16 checkContact(
 	                        proto->height);
 
 	//  Check for intersection with a wall or obstacle
-	if (terrain & terrainRaised) return blockageTerrain;
+	if (terrain & kTerrainRaised) return kBlockageTerrain;
 
 	//  Check for intersection with slope of the terrain.
-	if (((terrain & terrainSurface)
+	if (((terrain & kTerrainSurface)
 	        &&  loc.z <= tileSlopeHeight(loc, obj))
-	        || (!(terrain & terrainWater)
+	        || (!(terrain & kTerrainWater)
 	            &&  loc.z <= 0))
-		return blockageTerrain;
+		return kBlockageTerrain;
 
 	//  See if object collided with an object
 	world = (GameWorld *)GameObject::objectAddress(mapList[mapNum].worldID);
 	blockObj = objectCollision(obj, world, loc);
 	if (blockObj) {
 		if (blockResultObj) *blockResultObj = blockObj;
-		return blockageObject;
+		return kBlockageObject;
 	}
 
-	return blockageNone;
+	return kBlockageNone;
 }
 
 } // end of namespace Saga2

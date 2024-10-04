@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -268,7 +267,7 @@ byte *readBundleFile(int16 foundFileIdx, uint32 *size) {
 	}
 
 	// Set the size variable if a pointer to it has been given
-	if (size != NULL) {
+	if (size != nullptr) {
 		*size = g_cine->_partBuffer[foundFileIdx].unpackedSize;
 	}
 
@@ -278,7 +277,7 @@ byte *readBundleFile(int16 foundFileIdx, uint32 *size) {
 byte *readBundleSoundFileOS(const char *entryName, uint32 *size) {
 	int16 index = findFileInBundle(entryName);
 	if (index == -1) {
-		return NULL;
+		return nullptr;
 	}
 
 	return readBundleFile(index, size);
@@ -286,11 +285,11 @@ byte *readBundleSoundFileOS(const char *entryName, uint32 *size) {
 
 byte *readBundleSoundFileFW(const char *entryName, uint32 *size) {
 	int16 index;
-	byte *data = 0;
+	byte *data = nullptr;
 	char previousPartName[15] = "";
 
 	if (g_cine->getGameType() == Cine::GType_FW) {
-		strcpy(previousPartName, currentPartName);
+		Common::strcpy_s(previousPartName, currentPartName);
 		loadPart("BASESON.SND");
 	}
 	index = findFileInBundle((const char *)entryName);
@@ -355,7 +354,7 @@ void checkDataDisk(int16 diskNum) {
 void dumpBundle(const char *fileName) {
 	char tmpPart[15];
 
-	strcpy(tmpPart, currentPartName);
+	Common::strcpy_s(tmpPart, currentPartName);
 
 	loadPart(fileName);
 	for (uint i = 0; i < g_cine->_partBuffer.size(); i++) {
@@ -364,7 +363,7 @@ void dumpBundle(const char *fileName) {
 		debug(0, "%s", g_cine->_partBuffer[i].partName);
 
 		Common::DumpFile out;
-		if (out.open(Common::String("dumps/") + g_cine->_partBuffer[i].partName)) {
+		if (out.open(Common::Path("dumps/").appendInPlace(g_cine->_partBuffer[i].partName))) {
 			out.write(data, g_cine->_partBuffer[i].unpackedSize);
 			out.close();
 		}

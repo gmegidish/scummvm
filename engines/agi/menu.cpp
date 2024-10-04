@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -165,13 +164,6 @@ void GfxMenu::addMenuItem(const char *menuItemText, uint16 controllerSlot) {
 }
 
 void GfxMenu::submit() {
-	GuiMenuEntry *menuEntry = nullptr;
-	GuiMenuItemEntry *menuItemEntry = nullptr;
-	int16 menuCount = _array.size();
-	int16 menuNr = 0;
-	int16 menuItemNr = 0;
-	int16 menuItemLastNr = 0;
-
 	if ((_array.size() == 0) || (_itemArray.size() == 0))
 		return;
 
@@ -205,15 +197,16 @@ void GfxMenu::submit() {
 	// Atari ST SQ1 had one bad menu entry as well, we fix that too.
 	switch (_vm->getPlatform()) {
 	case Common::kPlatformApple2GS:
-	case Common::kPlatformAtariST:
+	case Common::kPlatformAtariST: {
 		// Go through all menus
-		for (menuNr = 0; menuNr < menuCount; menuNr++) {
-			menuEntry = _array[menuNr];
-			menuItemLastNr = menuEntry->firstItemNr + menuEntry->itemCount;
+		int16 menuCount = _array.size();
+		for (int16 menuNr = 0; menuNr < menuCount; menuNr++) {
+			GuiMenuEntry *menuEntry = _array[menuNr];
+			int16 menuItemLastNr = menuEntry->firstItemNr + menuEntry->itemCount;
 
 			// Go through all items of current menu
-			for (menuItemNr = menuEntry->firstItemNr; menuItemNr < menuItemLastNr; menuItemNr++) {
-				menuItemEntry = _itemArray[menuItemNr];
+			for (int16 menuItemNr = menuEntry->firstItemNr; menuItemNr < menuItemLastNr; menuItemNr++) {
+				GuiMenuItemEntry *menuItemEntry = _itemArray[menuItemNr];
 
 				if (menuItemEntry->textLen < menuEntry->maxItemTextLen) {
 					// current item text is shorter than the maximum?
@@ -271,6 +264,7 @@ void GfxMenu::submit() {
 			}
 		}
 		break;
+	}
 	default:
 		break;
 	}
@@ -285,32 +279,28 @@ void GfxMenu::itemDisable(uint16 controllerSlot) {
 }
 
 void GfxMenu::itemEnableDisable(uint16 controllerSlot, bool enabled) {
-	GuiMenuItemArray::iterator listIterator;
+	GuiMenuItemArray::iterator listIterator = _itemArray.begin();
 	GuiMenuItemArray::iterator listEnd = _itemArray.end();
-	GuiMenuItemEntry *menuItemEntry;
 
-	listIterator = _itemArray.begin();
 	while (listIterator != listEnd) {
-		menuItemEntry = *listIterator;
+		GuiMenuItemEntry *menuItemEntry = *listIterator;
 		if (menuItemEntry->controllerSlot == controllerSlot) {
 			menuItemEntry->enabled = enabled;
 		}
 
-		listIterator++;
+		++listIterator;
 	}
 }
 
 void GfxMenu::itemEnableAll() {
-	GuiMenuItemArray::iterator listIterator;
+	GuiMenuItemArray::iterator listIterator = _itemArray.begin();
 	GuiMenuItemArray::iterator listEnd = _itemArray.end();
-	GuiMenuItemEntry *menuItemEntry;
 
-	listIterator = _itemArray.begin();
 	while (listIterator != listEnd) {
-		menuItemEntry = *listIterator;
+		GuiMenuItemEntry *menuItemEntry = *listIterator;
 		menuItemEntry->enabled = true;
 
-		listIterator++;
+		++listIterator;
 	}
 }
 
@@ -337,7 +327,7 @@ void GfxMenu::delayedExecuteViaMouse() {
 }
 
 bool GfxMenu::delayedExecuteActive() {
-	return _delayedExecuteViaKeyboard | _delayedExecuteViaMouse;
+	return _delayedExecuteViaKeyboard || _delayedExecuteViaMouse;
 }
 
 void GfxMenu::execute() {

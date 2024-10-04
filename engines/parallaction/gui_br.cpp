@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -171,7 +170,7 @@ class MainMenuInputState_BR : public MenuInputState {
 
 		for (int i = 0; i < _availItems; i++) {
 			delete _lines[i];
-			_lines[i] = 0;
+			_lines[i] = nullptr;
 		}
 	}
 
@@ -196,8 +195,8 @@ public:
 	MainMenuInputState_BR(Parallaction_br *vm, MenuInputHelper *helper) : MenuInputState("mainmenu", helper), _vm(vm)  {
 	    memset(_lines, 0, sizeof(_lines));
 
-		_menuStrings = 0;
-		_options = 0;
+		_menuStrings = nullptr;
+		_options = nullptr;
 		_availItems = 0;
 		_selection = 0;
 	}
@@ -236,7 +235,7 @@ public:
 		_vm->_system->showMouse(false);
 		cleanup();
 
-		return 0;
+		return nullptr;
 	}
 
 	void enter() override {
@@ -448,7 +447,7 @@ public:
 
 		if (close) {
 			_vm->_gfx->freeDialogueObjects();
-			return 0;
+			return nullptr;
 		}
 
 		_vm->_input->setArrowCursor();
@@ -520,7 +519,7 @@ public:
 
 		if (key == 'y' || key == 'Y') {
 			_vm->quitGame();
-			return 0;
+			return nullptr;
 		} else
 		if (key == 'n' || key == 'N') {
 			// NOTE: when the quit dialog is hidden, the in-game menu is

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -77,8 +76,24 @@ void Sound::playSound(ResourceId resourceId, bool looping, int32 volume, int32 p
 	// Original sets position back to 0
 	_mixer->stopHandle(item->handle);
 
+	Audio::Mixer::SoundType soundType;
+	switch (RESOURCE_PACK(resourceId)) {
+	case kResourcePackShared:
+		soundType = Audio::Mixer::kPlainSoundType;
+		break;
+
+	case kResourcePackSpeech:
+	case kResourcePackSharedSound:
+		soundType = Audio::Mixer::kSpeechSoundType;
+		break;
+
+	default:
+		soundType = Audio::Mixer::kSFXSoundType;
+		break;
+	}
+
 	ResourceEntry *resource = getResource()->get(resourceId);
-	playSoundData(Audio::Mixer::kSFXSoundType, &item->handle, resource->data, resource->size, looping, volume, panning);
+	playSoundData(soundType, &item->handle, resource->data, resource->size, looping, volume, panning);
 }
 
 void Sound::playMusic(ResourceId resourceId, int32 volume) {
@@ -111,7 +126,7 @@ void Sound::changeMusic(int32 index, int32 musicStatusExt) {
 }
 
 bool Sound::isPlaying(ResourceId resourceId) {
-	return (getPlayingItem(resourceId) != NULL);
+	return (getPlayingItem(resourceId) != nullptr);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -246,7 +261,7 @@ int32 Sound::calculatePanningAtPoint(const Common::Point &point) {
 void Sound::stop(ResourceId resourceId) {
 	SoundQueueItem *item = getPlayingItem(resourceId);
 
-	if (item != NULL)
+	if (item != nullptr)
 		_mixer->stopHandle(item->handle);
 }
 
@@ -289,7 +304,7 @@ SoundQueueItem *Sound::getItem(ResourceId resourceId) {
 		if (resourceId == _soundQueue[i].resourceId)
 			return &_soundQueue[i];
 
-	return NULL;
+	return nullptr;
 }
 
 SoundQueueItem *Sound::getPlayingItem(ResourceId resourceId) {
@@ -298,7 +313,7 @@ SoundQueueItem *Sound::getPlayingItem(ResourceId resourceId) {
 			&& _mixer->isSoundHandleActive(_soundQueue[i].handle))
 			return &_soundQueue[i];
 
-	return NULL;
+	return nullptr;
 }
 
 SoundQueueItem *Sound::addToQueue(ResourceId resourceId) {
@@ -365,7 +380,7 @@ void Sound::convertVolumeFrom(int32 &vol) {
 }
 
 void Sound::convertVolumeTo(int32 &vol) {
-	vol = (int32)(log10(vol / (double)Audio::Mixer::kMaxChannelVolume) - 0.5) * 2000;
+	vol = vol ? (int32)log10((vol - 0.5) / Audio::Mixer::kMaxChannelVolume) * 2000 : -9999;
 }
 
 void Sound::convertPan(int32 &pan) {
@@ -383,11 +398,9 @@ void Sound::convertPan(int32 &pan) {
 
 	int32 p = CLIP<int32>(pan, -10000, 10000);
 	if (p < 0) {
-		pan = (int)(255.0 * pow(10.0, (double)p / 2000.0) + 127.5);
-	} else if (p > 0) {
-		pan = (int)(255.0 * pow(10.0, (double)p / -2000.0) - 127.5);
+		pan =  129 * (1 - pow(10.0, p /  5000.0));
 	} else {
-		pan = 0;
+		pan = -129 * (1 - pow(10.0, p / -5000.0));
 	}
 }
 

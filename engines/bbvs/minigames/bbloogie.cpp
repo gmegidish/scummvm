@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -201,7 +200,7 @@ void MinigameBbLoogie::buildDrawList3(DrawList &drawList) {
 		Obj *obj = &_objects[i];
 		if (obj->kind == 2)
 			drawList.add(obj->anim->frameIndices[obj->frameIndex], obj->x, obj->y, 400);
-		else
+		else if (obj->kind != 0)
 			drawList.add(obj->anim->frameIndices[obj->frameIndex], obj->x, obj->y, obj->y + 16);
 	}
 
@@ -241,14 +240,14 @@ MinigameBbLoogie::Obj *MinigameBbLoogie::getFreeObject() {
 	for (int i = 0; i < kMaxObjectsCount; ++i)
 		if (_objects[i].kind == 0)
 			return &_objects[i];
-	return 0;
+	return nullptr;
 }
 
 MinigameBbLoogie::Obj *MinigameBbLoogie::findLoogieObj(int startObjIndex) {
 	for (int i = startObjIndex; i < kMaxObjectsCount; ++i)
 		if (_objects[i].kind == 3)
 			return &_objects[i];
-	return 0;
+	return nullptr;
 }
 
 bool MinigameBbLoogie::isHit(Obj *obj1, Obj *obj2) {
@@ -468,7 +467,7 @@ bool MinigameBbLoogie::updateStatus0(int mouseX, int mouseY, uint mouseButtons) 
 		_objects[2].kind = 1;
 	}
 
-	if (_vm->_gameDescription->flags & ADGF_DEMO) {
+	if (_vm->isDemo()) {
 		_objects[0].frameIndex = 0;
 	}
 
@@ -576,7 +575,7 @@ bool MinigameBbLoogie::updateStatus2(int mouseX, int mouseY, uint mouseButtons) 
 	} else if (_bonusDisplayDelay2 > 0) {
 		if (--_bonusDisplayDelay2 == 0) {
 			_bonusDisplayDelay3 = 150;
-			if (!(_vm->_gameDescription->flags & ADGF_DEMO)) {
+			if (!_vm->isDemo()) {
 				playSound(38);
 			}
 		} else if (_timeBonusCtr > 0) {
@@ -890,7 +889,7 @@ void MinigameBbLoogie::updateCar(int objIndex) {
 				loogieObj->ticks = getAnimation(5)->frameTicks[12];
 				obj->frameIndex = 4;
 				obj->ticks = getAnimation(2)->frameTicks[4];
-				if (!(_vm->_gameDescription->flags & ADGF_DEMO)) {
+				if (!_vm->isDemo()) {
 					playSound(34);
 				}
 				playRndSound();
@@ -927,7 +926,7 @@ void MinigameBbLoogie::updateBike(int objIndex) {
 				loogieObj->ticks = getAnimation(5)->frameTicks[12];
 				obj->frameIndex = 4;
 				obj->ticks = getAnimation(3)->frameTicks[4];
-				if (!(_vm->_gameDescription->flags & ADGF_DEMO)) {
+				if (!_vm->isDemo()) {
 					playSound(35);
 				}
 				playRndSound();
@@ -964,7 +963,7 @@ void MinigameBbLoogie::updateSquirrel(int objIndex) {
 				obj->x += kSquirrelOffX[obj->frameIndex];
 				obj->frameIndex = obj->frameIndex < 29 ? 54 : 58;
 				obj->ticks = getAnimation(7)->frameTicks[obj->frameIndex];
-				if (!(_vm->_gameDescription->flags & ADGF_DEMO)) {
+				if (!_vm->isDemo()) {
 					playSound(36);
 				}
 				playRndSound();
@@ -999,7 +998,7 @@ void MinigameBbLoogie::updatePaperPlane(int objIndex) {
 				obj->frameIndex = (obj->frameIndex + 1) % 8;
 				obj->xIncr = kPlaneOffX[obj->frameIndex];
 				obj->yIncr = kPlaneOffY[obj->frameIndex];
-				if (!(_vm->_gameDescription->flags & ADGF_DEMO)) {
+				if (!_vm->isDemo()) {
 					playSound(37);
 				}
 				playRndSound();
@@ -1310,7 +1309,7 @@ void MinigameBbLoogie::playRndSound() {
 
 bool MinigameBbLoogie::run(bool fromMainGame) {
 
-	if (!_vm->isLoogieDemo()) {
+	if (!_vm->isLoogieDemo() && !_vm->isLoogieAltDemo()) {
 		Common::strlcpy(_prefix, "bbloogie/", 20);
 	} else {
 		_prefix[0] = 0;
@@ -1320,7 +1319,7 @@ bool MinigameBbLoogie::run(bool fromMainGame) {
 
 	_numbersAnim = getAnimation(9);
 
-	if (_vm->_gameDescription->flags & ADGF_DEMO) {
+	if (_vm->isDemo() && !_vm->isLoogieAltDemo()) {
 		_backgroundSpriteIndex = 209;
 		_titleScreenSpriteIndex = 210;
 	} else {
@@ -1379,7 +1378,7 @@ void MinigameBbLoogie::update() {
 		_gameTicks = _vm->_system->getMillis();
 	}
 
-	if (_vm->_keyCode == Common::KEYCODE_ESCAPE) {
+	if (_vm->_customAction == kActionEscape) {
 		_gameDone = true;
 		return;
 	}
@@ -1393,7 +1392,7 @@ void MinigameBbLoogie::update() {
 		done = !updateStatus(_vm->_mouseX, _vm->_mouseY, _vm->_mouseButtons);
 		_vm->_mouseButtons &= ~kLeftButtonClicked;
 		_vm->_mouseButtons &= ~kRightButtonClicked;
-		_vm->_keyCode = Common::KEYCODE_INVALID;
+		_vm->_customAction = kActionNone;
 	} while (--inputTicks && _gameTicks > 0 && !done);
 
 	drawSprites();
@@ -1403,7 +1402,7 @@ void MinigameBbLoogie::update() {
 }
 
 void MinigameBbLoogie::loadSounds() {
-	if (_vm->_gameDescription->flags & ADGF_DEMO) {
+	if (_vm->isDemo()) {
 		for (uint i = 0; i < kDemoSoundFilenamesCount; ++i) {
 			Common::String filename = Common::String::format("%s%s", _prefix, kDemoSoundFilenames[i]);
 			_vm->_sound->loadSound(filename.c_str());

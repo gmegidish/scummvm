@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,8 +30,7 @@
 #include "scumm/charset.h"
 #include "scumm/dialogs.h"
 #include "scumm/file.h"
-#include "scumm/imuse/imuse.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
 #include "scumm/he/intern_he.h"
 #include "scumm/object.h"
 #include "scumm/resource.h"
@@ -102,7 +100,7 @@ void ScummEngine::openRoom(const int room) {
 			return;
 		}
 
-		Common::String filename(generateFilename(room));
+		Common::Path filename(generateFilename(room));
 
 		// Determine the encryption, if any.
 		if (_game.features & GF_USE_KEY) {
@@ -131,10 +129,10 @@ void ScummEngine::openRoom(const int room) {
 			if (_fileOffset != 8)
 				return;
 
-			error("Room %d not in %s", room, filename.c_str());
+			error("Room %d not in %s", room, filename.toString().c_str());
 			return;
 		}
-		askForDisk(filename.c_str(), diskNumber);
+		askForDisk(filename, diskNumber);
 	}
 
 	do {
@@ -184,7 +182,7 @@ void ScummEngine::readRoomsOffsets() {
 	}
 }
 
-bool ScummEngine::openFile(BaseScummFile &file, const Common::String &filename, bool resourceFile) {
+bool ScummEngine::openFile(BaseScummFile &file, const Common::Path &filename, bool resourceFile) {
 	bool result = false;
 
 	if (!_containerFile.empty()) {
@@ -203,8 +201,8 @@ bool ScummEngine::openFile(BaseScummFile &file, const Common::String &filename, 
 	return result;
 }
 
-bool ScummEngine::openResourceFile(const Common::String &filename, byte encByte) {
-	debugC(DEBUG_GENERAL, "openResourceFile(%s)", filename.c_str());
+bool ScummEngine::openResourceFile(const Common::Path &filename, byte encByte) {
+	debugC(DEBUG_GENERAL, "openResourceFile(%s)", filename.toString().c_str());
 
 	if (openFile(*_fileHandle, filename, true)) {
 		_fileHandle->setEnc(encByte);
@@ -213,7 +211,7 @@ bool ScummEngine::openResourceFile(const Common::String &filename, byte encByte)
 	return false;
 }
 
-void ScummEngine::askForDisk(const char *filename, int disknum) {
+void ScummEngine::askForDisk(const Common::Path &filename, int disknum) {
 	char buf[128];
 
 	if (_game.version == 8) {
@@ -223,27 +221,27 @@ void ScummEngine::askForDisk(const char *filename, int disknum) {
 		_imuseDigital->stopAllSounds();
 
 #ifdef MACOSX
-		sprintf(buf, "Cannot find file: '%s'\nPlease insert disc %d.\nPress OK to retry, Quit to exit", filename, disknum);
+		Common::sprintf_s(buf, "Cannot find file: '%s'\nPlease insert disc %d.\nPress OK to retry, Quit to exit", filename.toString(Common::Path::kNativeSeparator).c_str(), disknum);
 #else
-		sprintf(buf, "Cannot find file: '%s'\nInsert disc %d into drive %s\nPress OK to retry, Quit to exit", filename, disknum, ConfMan.get("path").c_str());
+		Common::sprintf_s(buf, "Cannot find file: '%s'\nInsert disc %d into drive %s\nPress OK to retry, Quit to exit", filename.toString(Common::Path::kNativeSeparator).c_str(), disknum,
+				ConfMan.getPath("path").toString(Common::Path::kNativeSeparator).c_str());
 #endif
 
 		result = displayMessage("Quit", "%s", buf);
 		if (!result) {
-			error("Cannot find file: '%s'", filename);
+			error("Cannot find file: '%s'", filename.toString(Common::Path::kNativeSeparator).c_str());
 		}
 #endif
 	} else {
-		sprintf(buf, "Cannot find file: '%s'", filename);
+		Common::sprintf_s(buf, "Cannot find file: '%s'", filename.toString(Common::Path::kNativeSeparator).c_str());
 		InfoDialog dialog(this, Common::U32String(buf));
 		runDialog(dialog);
-		error("Cannot find file: '%s'", filename);
+		error("Cannot find file: '%s'", filename.toString(Common::Path::kNativeSeparator).c_str());
 	}
 }
 
 void ScummEngine::readIndexFile() {
 	uint32 blocktype, itemsize;
-	int numblock = 0;
 
 	debugC(DEBUG_GENERAL, "readIndexFile()");
 
@@ -291,7 +289,7 @@ void ScummEngine::readIndexFile() {
 	}
 
 	if (checkTryMedia(_fileHandle)) {
-		displayMessage(NULL, "You're trying to run game encrypted by ActiveMark. This is not supported.");
+		displayMessage(nullptr, "You're trying to run game encrypted by ActiveMark. This is not supported.");
 		quitGame();
 
 		return;
@@ -304,7 +302,6 @@ void ScummEngine::readIndexFile() {
 		if (_fileHandle->eos() || _fileHandle->err())
 			break;
 
-		numblock++;
 		debug(2, "Reading index block of type '%s', size %d", tag2str(blocktype), itemsize);
 		readIndexBlock(blocktype, itemsize);
 	}
@@ -389,13 +386,13 @@ void ScummEngine_v70he::readIndexBlock(uint32 blocktype, uint32 itemsize) {
 	case MKTAG('D','L','F','L'):
 		i = _fileHandle->readUint16LE();
 		_fileHandle->seek(-2, SEEK_CUR);
-		_heV7RoomOffsets = (byte *)calloc(2 + (i * 4), 1);
+		_heV7RoomOffsets = (byte *)reallocateArray(_heV7RoomOffsets, 2 + (i * 4), 1);
 		_fileHandle->read(_heV7RoomOffsets, (2 + (i * 4)) );
 		break;
 
 	case MKTAG('D','I','S','K'):
 		i = _fileHandle->readUint16LE();
-		_heV7DiskOffsets = (byte *)calloc(i, 1);
+		_heV7DiskOffsets = (byte *)reallocateArray(_heV7DiskOffsets, i, 1);
 		_fileHandle->read(_heV7DiskOffsets, i);
 		break;
 
@@ -569,7 +566,7 @@ void ScummEngine::loadCharset(int no) {
 
 	debugC(DEBUG_GENERAL, "loadCharset(%d)", no);
 
-	/* FIXME - hack around crash in Indy4 (occurs if you try to load after dieing) */
+	/* FIXME - hack around crash in Indy4 (occurs if you try to load after dying) */
 	if (_game.id == GID_INDY4 && no == 0)
 		no = 1;
 
@@ -595,6 +592,8 @@ void ScummEngine::nukeCharset(int i) {
 }
 
 void ScummEngine::ensureResourceLoaded(ResType type, ResId idx) {
+	Common::StackLock lock(_resourceAccessMutex);
+
 	debugC(DEBUG_RESOURCE, "ensureResourceLoaded(%s,%d)", nameOfResType(type), idx);
 
 	if ((type == rtRoom) && idx > 0x7F && _game.version < 7 && _game.heversion <= 71) {
@@ -617,6 +616,22 @@ void ScummEngine::ensureResourceLoaded(ResType type, ResId idx) {
 
 	if (idx <= _res->_types[type].size() && _res->_types[type][idx]._address)
 		return;
+
+	#ifdef ENABLE_SCUMM_7_8
+	_resourceAccessMutex.unlock();
+
+	if (_imuseDigital) {
+		int32 bufSize, criticalSize, freeSpace;
+		int paused;
+		if (_imuseDigital->isFTSoundEngine() && _imuseDigital->queryNextSoundFile(bufSize, criticalSize, freeSpace, paused)) {
+			_imuseDigital->fillStreamsWhileMusicCritical(5);
+		} else {
+			_imuseDigital->fillStreamsWhileMusicCritical(_game.id == GID_DIG ? 30 : 20);
+		}
+	}
+
+	_resourceAccessMutex.lock();
+#endif
 
 	loadResource(type, idx);
 
@@ -692,7 +707,7 @@ int ScummEngine::loadResource(ResType type, ResId idx) {
 			        "while trying to load res (%s,%d) in room %d at %d+%d in file %s",
 			        tag2str(tag), tag2str(_res->_types[type]._tag),
 					nameOfResType(type), idx, roomNr,
-					_fileOffset, fileOffs, _fileHandle->getName());
+			                _fileOffset, fileOffs, _fileHandle->getDebugName().c_str());
 		}
 
 		size = _fileHandle->readUint32BE();
@@ -737,19 +752,21 @@ uint32 ScummEngine_v70he::getResourceRoomOffset(ResType type, ResId idx) {
 }
 
 int ScummEngine::getResourceSize(ResType type, ResId idx) {
+	Common::StackLock lock(_resourceAccessMutex);
 	byte *ptr = getResourceAddress(type, idx);
 	assert(ptr);
 	return _res->_types[type][idx]._size;
 }
 
 byte *ScummEngine::getResourceAddress(ResType type, ResId idx) {
+	Common::StackLock lock(_resourceAccessMutex);
 	byte *ptr;
 
 	if (_game.heversion >= 80 && type == rtString)
-		idx &= ~0x33539000;
+		idx &= ~MAGIC_ARRAY_NUMBER;
 
 	if (!_res->validateResource("getResourceAddress", type, idx))
-		return NULL;
+		return nullptr;
 
 	// If the resource is missing, but loadable from the game data files, try to do so.
 	if (!_res->_types[type][idx]._address && _res->_types[type]._mode != kDynamicResTypeMode) {
@@ -759,7 +776,7 @@ byte *ScummEngine::getResourceAddress(ResType type, ResId idx) {
 	ptr = (byte *)_res->_types[type][idx]._address;
 	if (!ptr) {
 		debugC(DEBUG_RESOURCE, "getResourceAddress(%s,%d) == NULL", nameOfResType(type), idx);
-		return NULL;
+		return nullptr;
 	}
 
 	_res->setResourceCounter(type, idx, 1);
@@ -775,8 +792,8 @@ byte *ScummEngine::getStringAddress(ResId idx) {
 
 byte *ScummEngine_v6::getStringAddress(ResId idx) {
 	byte *addr = getResourceAddress(rtString, idx);
-	if (addr == NULL)
-		return NULL;
+	if (addr == nullptr)
+		return nullptr;
 	// Skip over the ArrayHeader
 	return addr + 6;
 }
@@ -823,8 +840,12 @@ byte ResourceManager::Resource::getResourceCounter() const {
 byte *ResourceManager::createResource(ResType type, ResId idx, uint32 size) {
 	debugC(DEBUG_RESOURCE, "_res->createResource(%s,%d,%d)", nameOfResType(type), idx, size);
 
-	if (!validateResource("allocating", type, idx))
-		return NULL;
+	_vm->_insideCreateResource++; // For the HE sound engine
+
+	if (!validateResource("allocating", type, idx)) {
+		_vm->_insideCreateResource--;
+		return nullptr;
+	}
 
 	if (_vm->_game.version <= 2) {
 		// Nuking and reloading a resource can be harmful in some
@@ -839,22 +860,24 @@ byte *ResourceManager::createResource(ResType type, ResId idx, uint32 size) {
 
 	expireResources(size);
 
-	byte *ptr = new byte[size + SAFETY_AREA];
-	if (ptr == NULL) {
+	byte *ptr = new byte[size + SAFETY_AREA]();
+	if (ptr == nullptr) {
 		error("createResource(%s,%d): Out of memory while allocating %d", nameOfResType(type), idx, size);
 	}
 
-	memset(ptr, 0, size + SAFETY_AREA);
 	_allocatedSize += size;
 
 	_types[type][idx]._address = ptr;
 	_types[type][idx]._size = size;
 	setResourceCounter(type, idx, 1);
+
+	_vm->_insideCreateResource--;
+
 	return ptr;
 }
 
 ResourceManager::Resource::Resource() {
-	_address = 0;
+	_address = nullptr;
 	_size = 0;
 	_flags = 0;
 	_status = 0;
@@ -864,12 +887,12 @@ ResourceManager::Resource::Resource() {
 
 ResourceManager::Resource::~Resource() {
 	delete[] _address;
-	_address = 0;
+	_address = nullptr;
 }
 
 void ResourceManager::Resource::nuke() {
 	delete[] _address;
-	_address = 0;
+	_address = nullptr;
 	_size = 0;
 	_flags = 0;
 	_status &= ~RS_MODIFIED;
@@ -911,7 +934,7 @@ bool ResourceManager::validateResource(const char *str, ResType type, ResId idx)
 
 void ResourceManager::nukeResource(ResType type, ResId idx) {
 	byte *ptr = _types[type][idx]._address;
-	if (ptr != NULL) {
+	if (ptr != nullptr) {
 		debugC(DEBUG_RESOURCE, "nukeResource(%s,%d)", nameOfResType(type), idx);
 		_allocatedSize -= _types[type][idx]._size;
 		_types[type][idx].nuke();
@@ -926,13 +949,13 @@ const byte *ScummEngine::findResourceData(uint32 tag, const byte *ptr) {
 	else
 		ptr = findResource(tag, ptr);
 
-	if (ptr == NULL)
-		return NULL;
+	if (ptr == nullptr)
+		return nullptr;
 	return ptr + _resourceHeaderSize;
 }
 
 int ScummEngine::getResourceDataSize(const byte *ptr) const {
-	if (ptr == NULL)
+	if (ptr == nullptr)
 		return 0;
 
 	if (_game.features & GF_OLD_BUNDLE)
@@ -1026,6 +1049,12 @@ bool ResourceManager::isModified(ResType type, ResId idx) const {
 	if (!validateResource("isModified", type, idx))
 		return false;
 	return _types[type][idx].isModified();
+}
+
+bool ResourceManager::isOffHeap(ResType type, ResId idx) const {
+	if (!validateResource("isOffHeap", type, idx))
+		return false;
+	return _types[type][idx].isOffHeap();
 }
 
 bool ResourceManager::Resource::isModified() const {
@@ -1128,7 +1157,7 @@ void ScummEngine::loadPtrToResource(ResType type, ResId idx, const byte *source)
 			refreshScriptPointer();
 			source = _scriptPointer;
 		}
-		translateText(source, translateBuffer);
+		translateText(source, translateBuffer, sizeof(translateBuffer));
 
 		source = translateBuffer;
 		len = resStrLen(source) + 1;
@@ -1154,7 +1183,7 @@ void ScummEngine::loadPtrToResource(ResType type, ResId idx, const byte *source)
 bool ResourceManager::isResourceLoaded(ResType type, ResId idx) const {
 	if (!validateResource("isResourceLoaded", type, idx))
 		return false;
-	return _types[type][idx]._address != NULL;
+	return _types[type][idx]._address != nullptr;
 }
 
 void ResourceManager::resourceStats() {
@@ -1184,7 +1213,7 @@ void ScummEngine_v5::readMAXS(int blockSize) {
 	// Used to be 50, which wasn't enough for MI2 and FOA. See bugs
 	// #1591, #1600 and #1607.
 	_numNewNames = 150;
-	_objectRoomTable = NULL;
+	_objectRoomTable = nullptr;
 
 	_fileHandle->readUint16LE();                      // 50
 	_numCharsets = _fileHandle->readUint16LE();       // 9
@@ -1198,13 +1227,13 @@ void ScummEngine_v5::readMAXS(int blockSize) {
 	_numFlObject = 50;
 
 	if (_shadowPaletteSize)
-		_shadowPalette = (byte *)calloc(_shadowPaletteSize, 1);
+		_shadowPalette = (byte *)reallocateArray(_shadowPalette, _shadowPaletteSize, 1);
 }
 
 #ifdef ENABLE_SCUMM_7_8
 void ScummEngine_v8::readMAXS(int blockSize) {
-	_fileHandle->seek(50, SEEK_CUR);                 // Skip over SCUMM engine version
-	_fileHandle->seek(50, SEEK_CUR);                 // Skip over data file version
+	_fileHandle->read(_engineVersionString, 50);
+	_fileHandle->read(_dataFileVersionString, 50);
 	_numVariables = _fileHandle->readUint32LE();     // 1500
 	_numBitVariables = _fileHandle->readUint32LE();  // 2048
 	_fileHandle->readUint32LE();                     // 40
@@ -1223,16 +1252,16 @@ void ScummEngine_v8::readMAXS(int blockSize) {
 	_numArray = _fileHandle->readUint32LE();         // 200
 	_numVerbs = _fileHandle->readUint32LE();         // 50
 
-	_objectRoomTable = (byte *)calloc(_numGlobalObjects, 1);
+	_objectRoomTable = (byte *)reallocateArray(_objectRoomTable, _numGlobalObjects, 1);
 	_numGlobalScripts = 2000;
 
 	_shadowPaletteSize = NUM_SHADOW_PALETTE * 256;
-	_shadowPalette = (byte *)calloc(_shadowPaletteSize, 1);
+	_shadowPalette = (byte *)reallocateArray(_shadowPalette, _shadowPaletteSize, 1);
 }
 
 void ScummEngine_v7::readMAXS(int blockSize) {
-	_fileHandle->seek(50, SEEK_CUR);                 // Skip over SCUMM engine version
-	_fileHandle->seek(50, SEEK_CUR);                 // Skip over data file version
+	_fileHandle->read(_engineVersionString, 50);
+	_fileHandle->read(_dataFileVersionString, 50);
 	_numVariables = _fileHandle->readUint16LE();
 	_numBitVariables = _fileHandle->readUint16LE();
 	_fileHandle->readUint16LE();
@@ -1249,7 +1278,7 @@ void ScummEngine_v7::readMAXS(int blockSize) {
 	_numCharsets = _fileHandle->readUint16LE();
 	_numCostumes = _fileHandle->readUint16LE();
 
-	_objectRoomTable = (byte *)calloc(_numGlobalObjects, 1);
+	_objectRoomTable = (byte *)reallocateArray(_objectRoomTable, _numGlobalObjects, 1);
 
 	if ((_game.id == GID_FT) && (_game.features & GF_DEMO) &&
 		(_game.platform == Common::kPlatformDOS))
@@ -1258,7 +1287,7 @@ void ScummEngine_v7::readMAXS(int blockSize) {
 		_numGlobalScripts = 2000;
 
 	_shadowPaletteSize = NUM_SHADOW_PALETTE * 256;
-	_shadowPalette = (byte *)calloc(_shadowPaletteSize, 1);
+	_shadowPalette = (byte *)reallocateArray(_shadowPalette, _shadowPaletteSize, 1);
 }
 #endif
 
@@ -1281,16 +1310,16 @@ void ScummEngine_v6::readMAXS(int blockSize) {
 		_numGlobalObjects = _fileHandle->readUint16LE();
 		_numNewNames = 50;
 
-		_objectRoomTable = NULL;
+		_objectRoomTable = nullptr;
 		_numGlobalScripts = 200;
 
 		if (_game.heversion >= 70) {
-			_objectRoomTable = (byte *)calloc(_numGlobalObjects, 1);
+			_objectRoomTable = (byte *)reallocateArray(_objectRoomTable, _numGlobalObjects, 1);
 		}
 
 		if (_game.heversion <= 70) {
 			_shadowPaletteSize = 256;
-			_shadowPalette = (byte *)calloc(_shadowPaletteSize, 1);
+			_shadowPalette = (byte *)reallocateArray(_shadowPalette, _shadowPaletteSize, 1);
 		}
 	} else
 		error("readMAXS(%d) failed to read MAXS data", blockSize);
@@ -1370,19 +1399,19 @@ void ScummEngine::allocateArrays() {
 	// Note: Buffers are now allocated in scummMain to allow for
 	//     early GUI init.
 
-	_objectOwnerTable = (byte *)calloc(_numGlobalObjects, 1);
-	_objectStateTable = (byte *)calloc(_numGlobalObjects, 1);
-	_classData = (uint32 *)calloc(_numGlobalObjects, sizeof(uint32));
-	_newNames = (uint16 *)calloc(_numNewNames, sizeof(uint16));
+	_objectOwnerTable = (byte *)reallocateArray(_objectOwnerTable, _numGlobalObjects, 1);
+	_objectStateTable = (byte *)reallocateArray(_objectStateTable, _numGlobalObjects, 1);
+	_classData = (uint32 *)reallocateArray(_classData, _numGlobalObjects, sizeof(uint32));
+	_newNames = (uint16 *)reallocateArray(_newNames, _numNewNames, sizeof(uint16));
 
-	_inventory = (uint16 *)calloc(_numInventory, sizeof(uint16));
-	_verbs = (VerbSlot *)calloc(_numVerbs, sizeof(VerbSlot));
-	_objs = (ObjectData *)calloc(_numLocalObjects, sizeof(ObjectData));
-	_roomVars = (int32 *)calloc(_numRoomVariables, sizeof(int32));
-	_scummVars = (int32 *)calloc(_numVariables, sizeof(int32));
-	_bitVars = (byte *)calloc(_numBitVariables >> 3, 1);
+	_inventory = (uint16 *)reallocateArray(_inventory, _numInventory, sizeof(uint16));
+	_verbs = (VerbSlot *)reallocateArray(_verbs, _numVerbs, sizeof(VerbSlot));
+	_objs = (ObjectData *)reallocateArray(_objs, _numLocalObjects, sizeof(ObjectData));
+	_roomVars = (int32 *)reallocateArray(_roomVars, _numRoomVariables, sizeof(int32));
+	_scummVars = (int32 *)reallocateArray(_scummVars, _numVariables, sizeof(int32));
+	_bitVars = (byte *)reallocateArray(_bitVars, _numBitVariables >> 3, 1);
 	if (_game.heversion >= 60) {
-		_arraySlot = (byte *)calloc(_numArray, 1);
+		_arraySlot = (byte *)reallocateArray(_arraySlot, _numArray, 1);
 	}
 
 	_res->allocResTypeData(rtCostume, (_game.features & GF_NEW_COSTUMES) ? MKTAG('A','K','O','S') : MKTAG('C','O','S','T'),
@@ -1410,7 +1439,7 @@ void ScummEngine_v70he::allocateArrays() {
 	ScummEngine::allocateArrays();
 
 	_res->allocResTypeData(rtSpoolBuffer, 0, 9, kStaticResTypeMode);
-	_heV7RoomIntOffsets = (uint32 *)calloc(_numRooms, sizeof(uint32));
+	_heV7RoomIntOffsets = (uint32 *)reallocateArray(_heV7RoomIntOffsets, _numRooms, sizeof(uint32));
 }
 
 
@@ -1428,7 +1457,7 @@ void ScummEngine::dumpResource(const char *tag, int id, const byte *ptr, int len
 	else
 		size = READ_BE_UINT32(ptr + 4);
 
-	sprintf(buf, "dumps/%s%d.dmp", tag, id);
+	Common::sprintf_s(buf, "dumps/%s%d.dmp", tag, id);
 
 	out.open(buf);
 	if (out.isOpen() == false)
@@ -1454,18 +1483,18 @@ ResourceIterator::ResourceIterator(const byte *searchin, bool smallHeader)
 
 const byte *ResourceIterator::findNext(uint32 tag) {
 	uint32 size = 0;
-	const byte *result = 0;
+	const byte *result = nullptr;
 
 	if (_smallHeader) {
 		uint16 smallTag = newTag2Old(tag);
 		do {
 			if (_pos >= _size)
-				return 0;
+				return nullptr;
 
 			result = _ptr;
 			size = READ_LE_UINT32(result);
 			if ((int32)size <= 0)
-				return 0;	// Avoid endless loop
+				return nullptr;	// Avoid endless loop
 
 			_pos += size;
 			_ptr += size;
@@ -1473,12 +1502,12 @@ const byte *ResourceIterator::findNext(uint32 tag) {
 	} else {
 		do {
 			if (_pos >= _size)
-				return 0;
+				return nullptr;
 
 			result = _ptr;
 			size = READ_BE_UINT32(result + 4);
 			if ((int32)size <= 0)
-				return 0;	// Avoid endless loop
+				return nullptr;	// Avoid endless loop
 
 			_pos += size;
 			_ptr += size;
@@ -1489,6 +1518,7 @@ const byte *ResourceIterator::findNext(uint32 tag) {
 }
 
 const byte *ScummEngine::findResource(uint32 tag, const byte *searchin) {
+	Common::StackLock lock(_resourceAccessMutex);
 	uint32 curpos, totalsize, size;
 
 	debugC(DEBUG_RESOURCE, "findResource(%s, %p)", tag2str(tag), (const void *)searchin);
@@ -1500,7 +1530,7 @@ const byte *ScummEngine::findResource(uint32 tag, const byte *searchin) {
 			curpos = 0;
 		} else {
 			assert(searchin);
-			return NULL;
+			return nullptr;
 		}
 	} else {
 		searchin += 4;
@@ -1518,14 +1548,14 @@ const byte *ScummEngine::findResource(uint32 tag, const byte *searchin) {
 		size = READ_BE_UINT32(searchin + 4);
 		if ((int32)size <= 0) {
 			error("(%s) Not found in %d... illegal block len %d", tag2str(tag), 0, size);
-			return NULL;
+			return nullptr;
 		}
 
 		curpos += size;
 		searchin += size;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 const byte *findResourceSmall(uint32 tag, const byte *searchin) {
@@ -1534,7 +1564,7 @@ const byte *findResourceSmall(uint32 tag, const byte *searchin) {
 
 	smallTag = newTag2Old(tag);
 	if (smallTag == 0)
-		return NULL;
+		return nullptr;
 
 	assert(searchin);
 
@@ -1550,14 +1580,14 @@ const byte *findResourceSmall(uint32 tag, const byte *searchin) {
 
 		if ((int32)size <= 0) {
 			error("(%s) Not found in %d... illegal block len %d", tag2str(tag), 0, size);
-			return NULL;
+			return nullptr;
 		}
 
 		curpos += size;
 		searchin += size;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 uint16 newTag2Old(uint32 newTag) {
@@ -1644,18 +1674,24 @@ const char *nameOfResType(ResType type) {
 	case rtSpoolBuffer:
 		return "SpoolBuffer";
 	default:
-		sprintf(buf, "rt%d", type);
+		Common::sprintf_s(buf, "rt%d", type);
 		return buf;
 	}
 }
 
 void ScummEngine::applyWorkaroundIfNeeded(ResType type, int idx) {
+	// The resource isn't always loaded into memory, in which case no
+	// workaround is needed. This happens when loading some HE savegames
+	// where sound resource 1 isn't loaded. Possibly other cases as well.
+	if (!_res->isResourceLoaded(type, idx))
+		return;
+
 	int size = getResourceSize(type, idx);
 
 	// WORKAROUND: FM-TOWNS Zak used the extra 40 pixels at the bottom to increase the inventory to 10 items
 	// if we trim to 200 pixels, we can show only 6 items
 	// therefore we patch the inventory script (20)
-	// replacing the 5 occurences of 10 as limit to 6
+	// replacing the 5 occurrences of 10 as limit to 6
 	if (_game.platform == Common::kPlatformFMTowns && _game.id == GID_ZAK && ConfMan.getBool("trim_fmtowns_to_200_pixels")) {
 		if (type == rtScript && idx == 20) {
 			byte *ptr = getResourceAddress(rtScript, idx);
@@ -1680,29 +1716,29 @@ void ScummEngine::applyWorkaroundIfNeeded(ResType type, int idx) {
 	//
 	// However, this means that there is no way to pick the difficulty
 	// level. Since ScummVM bypasses the copy protection check, there is
-	// no harm in showing the screen by simply re-inserging the missing
+	// no harm in showing the screen by simply re-inserting the missing
 	// part of the script.
 
 	else if (_game.id == GID_MONKEY2 && _game.platform == Common::kPlatformMacintosh && type == rtScript && idx == 1 && size == 6718) {
 		byte *unpatchedScript = getResourceAddress(type, idx);
 
 		const byte patch[] = {
-0x48, 0x00, 0x40, 0x00, 0x00, 0x13, 0x00, // if (Local[0] == 0) {
-0x33, 0x03, 0x00, 0x00, 0xc8, 0x00,       //     SetScreen(0,200);
-0x0a, 0x82, 0xff,                         //     startScript(130,[]);
-0x80,                                     //     breakHere();
-0x68, 0x00, 0x00, 0x82,                   //     VAR_RESULT = isScriptRunning(130);
-0x28, 0x00, 0x00, 0xf6, 0xff,             //     unless (!VAR_RESULT) goto 0955;
-                                          // }
-0x48, 0x00, 0x40, 0x3f, 0xe1, 0x1d, 0x00, // if (Local[0] == -7873) [
-0x1a, 0x32, 0x00, 0x3f, 0x01,             //     VAR_MAINMENU_KEY = 319;
-0x33, 0x03, 0x00, 0x00, 0xc8, 0x00,       //     SetScreen(0,200);
-0x0a, 0x82, 0xff,                         //     startScript(130,[]);
-0x80,                                     //     breakHere();
-0x68, 0x00, 0x00, 0x82,                   //     VAR_RESULT = isScriptRunning(130);
-0x28, 0x00, 0x00, 0xf6, 0xff,             //     unless (!VAR_RESULT) goto 0955;
-0x1a, 0x00, 0x40, 0x00, 0x00              //     Local[0] = 0;
-                                          // }
+0x48, 0x00, 0x40, 0x00, 0x00, 0x13, 0x00, // [0926] if (Local[0] == 0) {
+0x33, 0x03, 0x00, 0x00, 0xc8, 0x00,       // [092D]   SetScreen(0,200);
+0x0a, 0x82, 0xff,                         // [0933]   startScript(130,[]);
+0x80,                                     // [0936]   breakHere();
+0x68, 0x00, 0x00, 0x82,                   // [0937]   VAR_RESULT = isScriptRunning(130);
+0x28, 0x00, 0x00, 0xf6, 0xff,             // [093B]   unless (!VAR_RESULT) goto 0936;
+                                          // [0940] }
+0x48, 0x00, 0x40, 0x3f, 0xe1, 0x1d, 0x00, // [0940] if (Local[0] == -7873) [
+0x1a, 0x32, 0x00, 0x3f, 0x01,             // [0947]   VAR_MAINMENU_KEY = 319;
+0x33, 0x03, 0x00, 0x00, 0xc8, 0x00,       // [094C]   SetScreen(0,200);
+0x0a, 0x82, 0xff,                         // [0952]   startScript(130,[]);
+0x80,                                     // [0955]   breakHere();
+0x68, 0x00, 0x00, 0x82,                   // [0956]   VAR_RESULT = isScriptRunning(130);
+0x28, 0x00, 0x00, 0xf6, 0xff,             // [095A]   unless (!VAR_RESULT) goto 0955;
+0x1a, 0x00, 0x40, 0x00, 0x00              // [095F]   Local[0] = 0;
+                                          // [0964] }
 		};
 
 		byte *patchedScript = new byte[6780];
@@ -1726,27 +1762,39 @@ void ScummEngine::applyWorkaroundIfNeeded(ResType type, int idx) {
 		delete[] patchedScript;
 	} else
 
-	// For some reason, the CD version of Monkey Island 1 removes some of
-	// the text when giving the wimpy idol to the cannibals. It looks like
-	// a mistake, because one of the text that is printed is immediately
-	// overwritten. This probably affects all CD versions, so we just have
-	// to add further patches as they are reported.
+	// WORKAROUND: For some reason, the CD version of Monkey Island 1
+	// removes some of the text when giving the wimpy idol to the cannibals.
+	// It looks like a mistake, because one of the text that is printed is
+	// immediately overwritten. This probably affects all CD versions, so we
+	// just have to add further patches as they are reported.
 
-	if (_game.id == GID_MONKEY && type == rtRoom && idx == 25) {
+	if (_game.id == GID_MONKEY && type == rtRoom && idx == 25 && enhancementEnabled(kEnhRestoredContent)) {
 		tryPatchMI1CannibalScript(getResourceAddress(type, idx), size);
-	} else
+	} else if (_game.id == GID_MANIAC && _game.version == 2 && _game.platform == Common::kPlatformDOS &&
+			   type == rtScript && idx == 44 && size == 199 && enhancementEnabled(kEnhMinorBugFixes)) {
+		// WORKAROUND: There is a cracked version of Maniac Mansion v2 that
+		// attempts to remove the security door copy protection. With it, any
+		// code is accepted as long as you get the last digit wrong.
+		// Unfortunately, it changes a script that is used by all keypads in the
+		// game, which means some puzzles are completely nerfed.
+		//
+		// Even worse, this is the version that GOG and Steam are selling. No,
+		// seriously! I've reported this as a bug, but it remains unclear
+		// whether or not they will fix it.
+		//
+		// Please note, this fix was posthumously made optional using the kEnhMinorBugFixes
+		// enhancement class, since this is still (somehow...) an official release, and this
+		// represents an external bug fix on the data files. As of why this was made optional:
+		// there was an interest within the speedrunning community (see #14815).
+		//
+		// Quoting from the ticket:
+		// "The speedruns for the PC version of Maniac Mansion are separated into two categories:
+		// one that makes use of the broken lab door and one that does not. All of the runs, that
+		// make use of it are from within the first two years after the digital release of the game.
+		// I'm pretty sure, no one understood what was going on, they just recognized the door being
+		// broken from runs of the NES game (this is me guessing). You could say the category is
+		// "grandfathered in". Still, it is the most popular and shortest category for Maniac Mansion."
 
-	// There is a cracked version of Maniac Mansion v2 that attempts to
-	// remove the security door copy protection. With it, any code is
-	// accepted as long as you get the last digit wrong. Unfortunately,
-	// it changes a script that is used by all keypads in the game, which
-	// means some puzzles are completely nerfed.
-	//
-	// Even worse, this is the version that GOG and Steam are selling. No,
-	// seriously! I've reported this as a bug, but it remains unclear
-	// whether or not they will fix it.
-
-	if (_game.id == GID_MANIAC && _game.version == 2 && _game.platform == Common::kPlatformDOS && type == rtScript && idx == 44 && size == 199) {
 		byte *data = getResourceAddress(type, idx);
 
 		if (data[184] == 0) {
@@ -1890,6 +1938,10 @@ bool ScummEngine::tryPatchMI1CannibalScript(byte *buf, int size) {
 		lang[1] = 'S';
 		lang[2] = 'P';
 		break;
+	// For some reason, those lines were already missing from the official
+	// French floppy EGA/VGA releases, and so there's no official content
+	// to restore for this language.
+	case Common::FR_FRA:
 	default:
 		return false;
 	}

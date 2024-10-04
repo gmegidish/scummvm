@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,13 +31,13 @@ Animator_LoK::Animator_LoK(KyraEngine_LoK *vm, OSystem *system) {
 	_screen = vm->screen();
 	_initOk = false;
 	_system = system;
-	_screenObjects = _actors = _items = _sprites = _objectQueue = 0;
+	_screenObjects = _actors = _items = _sprites = _objectQueue = nullptr;
 	_noDrawShapesFlag = 0;
-
-	_actorBkgBackUp[0] = new uint8[_screen->getRectSize(8, 69)];
-	memset(_actorBkgBackUp[0], 0, _screen->getRectSize(8, 69));
-	_actorBkgBackUp[1] = new uint8[_screen->getRectSize(8, 69)];
-	memset(_actorBkgBackUp[1], 0, _screen->getRectSize(8, 69));
+	_brandonDrawFrame = 0;
+	_brandonScaleX = _brandonScaleY = _brandonAnimSeqSizeWidth = _brandonAnimSeqSizeHeight = 0;
+	
+	_actorBkgBackUp[0] = new uint8[_screen->getRectSize(8, 69)]();
+	_actorBkgBackUp[1] = new uint8[_screen->getRectSize(8, 69)]();
 }
 
 Animator_LoK::~Animator_LoK() {
@@ -48,9 +47,8 @@ Animator_LoK::~Animator_LoK() {
 }
 
 void Animator_LoK::init(int actors_, int items_, int sprites_) {
-	_screenObjects = new AnimObject[actors_ + items_ + sprites_];
+	_screenObjects = new AnimObject[actors_ + items_ + sprites_]();
 	assert(_screenObjects);
-	memset(_screenObjects, 0, sizeof(AnimObject) * (actors_ + items_ + sprites_));
 	_actors = _screenObjects;
 	_sprites = &_screenObjects[actors_];
 	_items = &_screenObjects[actors_ + items_];
@@ -63,7 +61,7 @@ void Animator_LoK::close() {
 	if (_initOk) {
 		_initOk = false;
 		delete[] _screenObjects;
-		_screenObjects = _actors = _items = _sprites = _objectQueue = 0;
+		_screenObjects = _actors = _items = _sprites = _objectQueue = nullptr;
 	}
 }
 
@@ -205,13 +203,13 @@ void Animator_LoK::preserveOrRestoreBackground(AnimObject *obj, bool restore) {
 void Animator_LoK::prepDrawAllObjects() {
 	AnimObject *curObject = _objectQueue;
 	int drawPage = 2;
-	int flagUnk1 = 0, flagUnk2 = 0, flagUnk3 = 0;
+	int invisibilityDrawFlag = 0, blurDrawFlag = 0, fadeDrawFlag = 0;
 	if (_noDrawShapesFlag)
 		return;
 	if (_vm->_brandonStatusBit & 0x20)
-		flagUnk1 = 0x200;
+		invisibilityDrawFlag = Screen::kDRAWSHP_PREDATOR;
 	if (_vm->_brandonStatusBit & 0x40)
-		flagUnk2 = 0x4000;
+		blurDrawFlag = Screen::kDRAWSHP_MORPH;
 
 	while (curObject) {
 		if (curObject->active) {
@@ -219,90 +217,85 @@ void Animator_LoK::prepDrawAllObjects() {
 			int ypos = curObject->y1;
 
 			int drawLayer = 0;
-			if (!(curObject->flags & 0x800))
+			if (!(curObject->flags & Screen::kDRAWSHP_PRIORITY))
 				drawLayer = 7;
 			else if (curObject->disable)
 				drawLayer = 0;
 			else
 				drawLayer = _vm->_sprites->getDrawLayer(curObject->drawY);
 
-			// talking head functionallity
-			if (_vm->_talkingCharNum != -1 && (_vm->_currentCharacter->currentAnimFrame != 88 || curObject->index != 0)) {
-				const int16 baseAnimFrameTable1[] = { 0x11, 0x35, 0x59, 0x00, 0x00, 0x00 };
-				const int16 baseAnimFrameTable2[] = { 0x15, 0x39, 0x5D, 0x00, 0x00, 0x00 };
-				const int8 xOffsetTable1[] = { 2, 4, 0, 5, 2, 0, 0, 0 };
-				const int8 xOffsetTable2[] = { 6, 4, 8, 3, 6, 0, 0, 0 };
-				const int8 yOffsetTable1[] = { 0, 8, 1, 1, 0, 0, 0, 0 };
-				const int8 yOffsetTable2[] = { 0, 8, 1, 1, 0, 0, 0, 0 };
-				if (curObject->index == 0 || curObject->index <= 4) {
+			// Talking head functionallity
+			// DOS Floppy, Amiga and Mac work differently than DOS Talkie. PC-98 and FM-Towns are similar to DOS Talkie, but also slightly different.
+			bool fmTownsOrPC98 = (_vm->gameFlags().platform == Common::kPlatformFMTowns || _vm->gameFlags().platform == Common::kPlatformPC98);
+			if (_vm->_talkingCharNum != -1 && (fmTownsOrPC98 || (_vm->gameFlags().isTalkie ?
+				(_vm->_currentCharacter->currentAnimFrame != 88 || curObject->index != 0) : (_brandonScaleX == 0x100 || !_vm->_scaleMode)))) {
+				const int16 baseAnimFrameTable1[] = { 0x11, 0x35, 0x59, 0x00, 0x00 };
+				const int16 baseAnimFrameTable2[] = { 0x15, 0x39, 0x5D, 0x00, 0x00 };
+				const int8 xOffsetTable1[] = { 2, 4, 0, 5, 2, };
+				const int8 xOffsetTable2[] = { 6, 4, 8, 3, 6, };
+				const int8 yOffsetTable[] = { 0, 8, 1, 1, 0, };
+				if (curObject->index <= 4) {
 					int shapesIndex = 0;
-					if (curObject->index == _vm->_charSayUnk3) {
+					if (curObject->index == _vm->_talkHeadAnimCharNum)
 						shapesIndex = _vm->_currHeadShape + baseAnimFrameTable1[curObject->index];
-					} else {
+					else if (curObject->index != 2 || _vm->_characterList[2].sceneId == 77 || _vm->_characterList[2].sceneId == 86)
 						shapesIndex = baseAnimFrameTable2[curObject->index];
-						int temp2 = 0;
-						if (curObject->index == 2) {
-							if (_vm->_characterList[2].sceneId == 77 || _vm->_characterList[2].sceneId == 86)
-								temp2 = 1;
-							else
-								temp2 = 0;
-						} else {
-							temp2 = 1;
-						}
-
-						if (!temp2)
-							shapesIndex = -1;
-					}
+					else
+						shapesIndex = -1;
 
 					xpos = curObject->x1;
 					ypos = curObject->y1;
 
 					int tempX = 0, tempY = 0;
-					if (curObject->flags & 0x1) {
-						tempX = (xOffsetTable1[curObject->index] * _brandonScaleX) >> 8;
-						tempY = yOffsetTable1[curObject->index];
+					if (curObject->flags & Screen::kDRAWSHP_XFLIP) {
+						tempX = xOffsetTable1[curObject->index];
+						tempY = yOffsetTable[curObject->index];
 					} else {
-						tempX = (xOffsetTable2[curObject->index] * _brandonScaleX) >> 8;
-						tempY = yOffsetTable2[curObject->index];
+						tempX = xOffsetTable2[curObject->index];
+						tempY = yOffsetTable[curObject->index];
 					}
-					tempY = (tempY * _brandonScaleY) >> 8;
+
+					if (_vm->gameFlags().isTalkie || fmTownsOrPC98) {
+						tempX = (tempX * _brandonScaleX) >> 8;
+						tempY = (tempY * _brandonScaleY) >> 8;
+						if (_vm->_scaleMode && _brandonScaleX != 0x100)
+							++tempX;
+					}
+
 					xpos += tempX;
 					ypos += tempY;
 
-					if (_vm->_scaleMode && _brandonScaleX != 256)
-						++xpos;
-
 					if (curObject->index == 0 && shapesIndex != -1) {
 						if (!(_vm->_brandonStatusBit & 2)) {
-							flagUnk3 = 0x100;
-							if ((flagUnk1 & 0x200) || (flagUnk2 & 0x4000))
-								flagUnk3 = 0;
+							fadeDrawFlag = Screen::kDRAWSHP_FADE;
+							if ((invisibilityDrawFlag & Screen::kDRAWSHP_PREDATOR) || (blurDrawFlag & Screen::kDRAWSHP_MORPH))
+								fadeDrawFlag = 0;
 
 							int tempFlags = 0;
-							if (flagUnk3 & 0x100) {
-								tempFlags = curObject->flags & 1;
-								tempFlags |= 0x800 | flagUnk1 | 0x100;
+							if (fadeDrawFlag & Screen::kDRAWSHP_FADE) {
+								tempFlags = curObject->flags & Screen::kDRAWSHP_XFLIP;
+								tempFlags |= (Screen::kDRAWSHP_PRIORITY | invisibilityDrawFlag | Screen::kDRAWSHP_FADE);
 							}
 
-							if (!(flagUnk3 & 0x100) && (flagUnk2 & 0x4000)) {
-								tempFlags = curObject->flags & 1;
-								tempFlags |= 0x900 | flagUnk1 | 0x4000;
-								_screen->drawShape(drawPage, _vm->_shapes[shapesIndex], xpos, ypos, 2, tempFlags | 4, _vm->_brandonPoisonFlagsGFX, int(1), int(_vm->_brandonInvFlag), drawLayer, _brandonScaleX, _brandonScaleY);
+							if (!(fadeDrawFlag & Screen::kDRAWSHP_FADE) && (blurDrawFlag & Screen::kDRAWSHP_MORPH)) {
+								tempFlags = curObject->flags & Screen::kDRAWSHP_XFLIP;
+								tempFlags |= (Screen::kDRAWSHP_PRIORITY | Screen::kDRAWSHP_FADE | invisibilityDrawFlag | Screen::kDRAWSHP_MORPH);
+								_screen->drawShape(drawPage, _vm->_shapes[shapesIndex], xpos, ypos, 2, tempFlags | Screen::kDRAWSHP_SCALE, _vm->_brandonPoisonFlagsGFX, int(1), int(_vm->_brandonInvFlag), drawLayer, _brandonScaleX, _brandonScaleY);
 							} else {
-								if (!(flagUnk2 & 0x4000)) {
-									tempFlags = curObject->flags & 1;
-									tempFlags |= 0x900 | flagUnk1;
+								if (!(blurDrawFlag & Screen::kDRAWSHP_MORPH)) {
+									tempFlags = curObject->flags & Screen::kDRAWSHP_XFLIP;
+									tempFlags |= (Screen::kDRAWSHP_PRIORITY | Screen::kDRAWSHP_FADE | invisibilityDrawFlag);
 								}
 
-								_screen->drawShape(drawPage, _vm->_shapes[shapesIndex], xpos, ypos, 2, tempFlags | 4, _vm->_brandonPoisonFlagsGFX, int(1), drawLayer, _brandonScaleX, _brandonScaleY);
+								_screen->drawShape(drawPage, _vm->_shapes[shapesIndex], xpos, ypos, 2, tempFlags | Screen::kDRAWSHP_SCALE, _vm->_brandonPoisonFlagsGFX, int(1), drawLayer, _brandonScaleX, _brandonScaleY);
 							}
 						}
 					} else {
 						if (shapesIndex != -1) {
 							int tempFlags = 0;
-							if (curObject->flags & 1)
-								tempFlags = 1;
-							_screen->drawShape(drawPage, _vm->_shapes[shapesIndex], xpos, ypos, 2, tempFlags | 0x800, drawLayer);
+							if (curObject->flags & Screen::kDRAWSHP_XFLIP)
+								tempFlags = Screen::kDRAWSHP_XFLIP;
+							_screen->drawShape(drawPage, _vm->_shapes[shapesIndex], xpos, ypos, 2, tempFlags | Screen::kDRAWSHP_PRIORITY, drawLayer);
 						}
 					}
 				}
@@ -311,34 +304,34 @@ void Animator_LoK::prepDrawAllObjects() {
 			xpos = curObject->x1;
 			ypos = curObject->y1;
 
-			curObject->flags |= 0x800;
+			curObject->flags |= Screen::kDRAWSHP_PRIORITY;
 			if (curObject->index == 0) {
-				flagUnk3 = 0x100;
+				fadeDrawFlag = Screen::kDRAWSHP_FADE;
 
-				if (flagUnk1 & 0x200 || flagUnk2 & 0x4000)
-					flagUnk3 = 0;
+				if (invisibilityDrawFlag & Screen::kDRAWSHP_PREDATOR || blurDrawFlag & Screen::kDRAWSHP_MORPH)
+					fadeDrawFlag = 0;
 
 				if (_vm->_brandonStatusBit & 2)
-					curObject->flags &= 0xFFFFFFFE;
+					curObject->flags &= ~Screen::kDRAWSHP_XFLIP;
 
 				if (!_vm->_scaleMode) {
-					if (flagUnk3 & 0x100)
-						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | flagUnk1 | 0x100, (uint8 *)_vm->_brandonPoisonFlagsGFX, int(1), drawLayer);
-					else if (flagUnk2 & 0x4000)
-						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | flagUnk1 | 0x4000, int(_vm->_brandonInvFlag), drawLayer);
+					if (fadeDrawFlag & Screen::kDRAWSHP_FADE)
+						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | invisibilityDrawFlag | Screen::kDRAWSHP_FADE, (uint8 *)_vm->_brandonPoisonFlagsGFX, int(1), drawLayer);
+					else if (blurDrawFlag & Screen::kDRAWSHP_MORPH)
+						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | invisibilityDrawFlag | Screen::kDRAWSHP_MORPH, int(_vm->_brandonInvFlag), drawLayer);
 					else
-						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | flagUnk1, drawLayer);
+						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | invisibilityDrawFlag, drawLayer);
 				} else {
-					if (flagUnk3 & 0x100)
-						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | flagUnk1 | 0x104, (uint8 *)_vm->_brandonPoisonFlagsGFX, int(1), drawLayer, _brandonScaleX, _brandonScaleY);
-					else if (flagUnk2 & 0x4000)
-						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | flagUnk1 | 0x4004, int(_vm->_brandonInvFlag), drawLayer, _brandonScaleX, _brandonScaleY);
+					if (fadeDrawFlag & Screen::kDRAWSHP_FADE)
+						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | invisibilityDrawFlag | Screen::kDRAWSHP_FADE | Screen::kDRAWSHP_SCALE, (uint8 *)_vm->_brandonPoisonFlagsGFX, int(1), drawLayer, _brandonScaleX, _brandonScaleY);
+					else if (blurDrawFlag & Screen::kDRAWSHP_MORPH)
+						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | invisibilityDrawFlag | Screen::kDRAWSHP_MORPH | Screen::kDRAWSHP_SCALE, int(_vm->_brandonInvFlag), drawLayer, _brandonScaleX, _brandonScaleY);
 					else
-						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | flagUnk1 | 0x4, drawLayer, _brandonScaleX, _brandonScaleY);
+						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | invisibilityDrawFlag | Screen::kDRAWSHP_SCALE, drawLayer, _brandonScaleX, _brandonScaleY);
 				}
 			} else {
 				if (curObject->index >= 16 && curObject->index <= 27)
-					_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | 4, drawLayer, (int)_vm->_scaleTable[curObject->drawY], (int)_vm->_scaleTable[curObject->drawY]);
+					_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | Screen::kDRAWSHP_SCALE, drawLayer, (int)_vm->_scaleTable[curObject->drawY], (int)_vm->_scaleTable[curObject->drawY]);
 				else
 					_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags, drawLayer);
 			}
@@ -347,7 +340,7 @@ void Animator_LoK::prepDrawAllObjects() {
 	}
 }
 
-void Animator_LoK::copyChangedObjectsForward(int refreshFlag) {
+void Animator_LoK::copyChangedObjectsForward(int refreshFlag, bool refreshScreen) {
 	for (AnimObject *curObject = _objectQueue; curObject; curObject = curObject->nextAnimObject) {
 		if (curObject->active) {
 			if (curObject->refreshFlag || refreshFlag) {
@@ -379,21 +372,22 @@ void Animator_LoK::copyChangedObjectsForward(int refreshFlag) {
 		}
 	}
 
-	_screen->updateScreen();
+	if (refreshScreen)
+		_screen->updateScreen();
 }
 
-void Animator_LoK::updateAllObjectShapes() {
+void Animator_LoK::updateAllObjectShapes(bool refreshScreen) {
 	restoreAllObjectBackgrounds();
 	preserveAnyChangedBackgrounds();
 	prepDrawAllObjects();
-	copyChangedObjectsForward(0);
+	copyChangedObjectsForward(0, refreshScreen);
 }
 
 void Animator_LoK::animRemoveGameItem(int index) {
 	restoreAllObjectBackgrounds();
 
 	AnimObject *animObj = &_items[index];
-	animObj->sceneAnimPtr = 0;
+	animObj->sceneAnimPtr = nullptr;
 	animObj->animFrameNumber = -1;
 	animObj->refreshFlag = 1;
 	animObj->bkgdChangeFlag = 1;
@@ -466,16 +460,16 @@ Animator_LoK::AnimObject *Animator_LoK::objectRemoveQueue(AnimObject *queue, Ani
 
 	if (cur == queue) {
 		if (!cur)
-			return 0;
+			return nullptr;
 		return cur->nextAnimObject;
 	}
 
 	if (!cur->nextAnimObject) {
 		if (cur == rem) {
 			if (!prev)
-				return 0;
+				return nullptr;
 			else
-				prev->nextAnimObject = 0;
+				prev->nextAnimObject = nullptr;
 		}
 	} else {
 		if (cur == rem)
@@ -510,14 +504,14 @@ Animator_LoK::AnimObject *Animator_LoK::objectQueue(AnimObject *queue, AnimObjec
 		add->nextAnimObject = cur;
 	} else {
 		cur->nextAnimObject = add;
-		add->nextAnimObject = 0;
+		add->nextAnimObject = nullptr;
 	}
 	return queue;
 }
 
 void Animator_LoK::addObjectToQueue(AnimObject *object) {
 	if (!_objectQueue)
-		_objectQueue = objectAddHead(0, object);
+		_objectQueue = objectAddHead(nullptr, object);
 	else
 		_objectQueue = objectQueue(_objectQueue, object);
 }
@@ -527,7 +521,7 @@ void Animator_LoK::refreshObject(AnimObject *object) {
 	if (_objectQueue)
 		_objectQueue = objectQueue(_objectQueue, object);
 	else
-		_objectQueue = objectAddHead(0, object);
+		_objectQueue = objectAddHead(nullptr, object);
 }
 
 void Animator_LoK::makeBrandonFaceMouse() {
@@ -595,6 +589,7 @@ void Animator_LoK::animRefreshNPC(int character) {
 			if (_vm->_brandonStatusBit0x02Flag) {
 				++_brandonDrawFrame;
 				// TODO: check this
+				// UPDATE: From DOS floppy disasm: _brandonDrawFrame > 122 --> Test where this actually occurs
 				if (_brandonDrawFrame >= 122) {
 					_brandonDrawFrame = 113;
 					_vm->_brandonStatusBit0x02Flag = 0;

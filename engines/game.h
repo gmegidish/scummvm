@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,11 +24,12 @@
 
 #include "common/array.h"
 #include "common/hash-str.h"
-#include "common/str.h"
-#include "common/ustr.h"
-#include "common/str-array.h"
 #include "common/language.h"
+#include "common/path.h"
 #include "common/platform.h"
+#include "common/str.h"
+#include "common/str-array.h"
+#include "common/ustr.h"
 
 /**
  * @defgroup engines_game Games
@@ -98,6 +98,22 @@ enum GameSupportLevel {
 	kWarningGame      // we want to ask user to proceed and provide them with an explanation
 };
 
+/**
+ * This enum is used to indicate the method of MD5 calculation used for a particular file.
+ * The result is used for the more fine tuned reporting of unknown MD5s
+ */
+
+enum MD5Properties {
+	kMD5Head		         = 0 << 1,	// the MD5 is calculated from the head, default
+	kMD5Tail		         = 1 << 1,	// the MD5 is calculated from the tail
+	kMD5MacResFork           = 1 << 2,	// the MD5 is calculated from the Mac Resource fork (no fall back) (head or tail)
+	kMD5MacDataFork	         = 1 << 3,	// the MD5 is calculated from the Mac Data fork (head or tail)
+	kMD5MacResOrDataFork     = kMD5MacResFork | kMD5MacDataFork,	// the MD5 is calculated from the Mac Resource fork falling back to data fork (head or tail). Deprecated.
+	kMD5MacMask              = kMD5MacResFork | kMD5MacDataFork,    // Mask for mac type
+	kMD5Archive              = 1 << 4,	// the desired file is inside an archive
+};
+
+Common::String md5PropToCachePrefix(MD5Properties val);
 
 /**
  * A record describing the properties of a file. Used on the existing
@@ -106,14 +122,20 @@ enum GameSupportLevel {
 struct FileProperties {
 	int64 size;
 	Common::String md5;
+	MD5Properties md5prop;
 
-	FileProperties() : size(-1) {}
+	FileProperties() : size(-1), md5prop(kMD5Head) {}
 };
 
 /**
  * A map of all relevant existing files while detecting.
  */
-typedef Common::HashMap<Common::String, FileProperties, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> FilePropertiesMap;
+typedef Common::HashMap<Common::Path, FileProperties, Common::Path::IgnoreCase_Hash, Common::Path::IgnoreCase_EqualTo> FilePropertiesMap;
+
+/**
+ * A map using a composed key to cache file properties
+ */
+typedef Common::HashMap<Common::String, FileProperties, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> CachedPropertiesMap;
 
 /**
  * Details about a given game.
@@ -126,11 +148,11 @@ struct DetectedGame {
 	DetectedGame();
 	DetectedGame(const Common::String &engine, const PlainGameDescriptor &pgd);
 	DetectedGame(const Common::String &engine, const Common::String &id,
-	               const Common::String &description,
-	               Common::Language language = Common::UNK_LANG,
-	               Common::Platform platform = Common::kPlatformUnknown,
-	               const Common::String &extra = Common::String(),
-	               bool unsupported = false);
+				   const Common::String &description,
+				   Common::Language language = Common::UNK_LANG,
+				   Common::Platform platform = Common::kPlatformUnknown,
+				   const Common::String &extra = Common::String(),
+				   bool unsupported = false);
 
 	void setGUIOptions(const Common::String &options);
 	void appendGUIOptions(const Common::String &str);
@@ -149,6 +171,11 @@ struct DetectedGame {
 	bool hasUnknownFiles;
 
 	/**
+	 * A game was detected and is selected in the Mass Add list.
+	 */
+	bool isSelected = false;
+
+	/**
 	 * An optional list of the files that were used to match the game with the engine's detection tables
 	 */
 	FilePropertiesMap matchedFiles;
@@ -165,7 +192,7 @@ struct DetectedGame {
 	Common::String description;
 	Common::Language language;
 	Common::Platform platform;
-	Common::String path;
+	Common::Path path;
 	Common::String shortPath;
 	Common::String extra;
 

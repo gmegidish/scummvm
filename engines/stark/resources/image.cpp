@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,7 @@
 
 #include "engines/stark/debug.h"
 #include "engines/stark/formats/xrc.h"
+#include "engines/stark/gfx/driver.h"
 #include "engines/stark/resources/location.h"
 #include "engines/stark/services/archiveloader.h"
 #include "engines/stark/services/settings.h"
@@ -96,7 +96,7 @@ Visual *Image::getVisual() {
 }
 
 void Image::printData() {
-	debug("filename: %s", _filename.c_str());
+	debug("filename: %s", _filename.toString().c_str());
 	debug("hotspot: x %d, y %d", _hotspot.x, _hotspot.y);
 	debug("transparent: %d", _transparent);
 	debug("transparentColor: %d", _transparentColor);
@@ -216,7 +216,7 @@ void ImageStill::initVisual() {
 
 	VisualImageXMG *visual = new VisualImageXMG(StarkGfx);
 
-	if (StarkSettings->isAssetsModEnabled() && loadPNGOverride(visual)) {
+	if (StarkSettings->isAssetsModEnabled() && StarkGfx->supportsModdedAssets() && loadPNGOverride(visual)) {
 		visual->readOriginalSize(xmgStream);
 	} else {
 		visual->load(xmgStream);
@@ -230,14 +230,16 @@ void ImageStill::initVisual() {
 }
 
 bool ImageStill::loadPNGOverride(VisualImageXMG *visual) const {
-	if (!_filename.hasSuffixIgnoreCase(".xmg")) {
+	if (!_filename.baseName().hasSuffixIgnoreCase(".xmg")) {
 		return false;
 	}
 
-	Common::String pngFilename = Common::String(_filename.c_str(), _filename.size() - 4) + ".png";
-	Common::String pngFilePath = StarkArchiveLoader->getExternalFilePath(pngFilename, _archiveName);
+	Common::String pngFilename = _filename.baseName();
+	pngFilename = Common::String(pngFilename.c_str(), pngFilename.size() - 4) + ".png";
+	Common::Path pngFilePath = _filename.getParent().appendComponent(pngFilename);
+	pngFilePath = StarkArchiveLoader->getExternalFilePath(pngFilePath, _archiveName);
 
-	debugC(kDebugModding, "Attempting to load %s", pngFilePath.c_str());
+	debugC(kDebugModding, "Attempting to load %s", pngFilePath.toString(Common::Path::kNativeSeparator).c_str());
 
 	Common::SeekableReadStream *pngStream = SearchMan.createReadStreamForMember(pngFilePath);
 	if (!pngStream) {
@@ -245,12 +247,12 @@ bool ImageStill::loadPNGOverride(VisualImageXMG *visual) const {
 	}
 
 	if (!visual->loadPNG(pngStream)) {
-		warning("Failed to load %s. It is not a valid PNG file.", pngFilePath.c_str());
+		warning("Failed to load %s. It is not a valid PNG file.", pngFilePath.toString(Common::Path::kNativeSeparator).c_str());
 		delete pngStream;
 		return false;
 	}
 
-	debugC(kDebugModding, "Loaded %s", pngFilePath.c_str());
+	debugC(kDebugModding, "Loaded %s", pngFilePath.toString(Common::Path::kNativeSeparator).c_str());
 
 	delete pngStream;
 	return true;
@@ -262,7 +264,7 @@ void ImageStill::printData() {
 
 ImageText::ImageText(Object *parent, byte subType, uint16 index, const Common::String &name) :
 		Image(parent, subType, index, name),
-		_color(Color(0, 0, 0)),
+		_color(Gfx::Color(0, 0, 0)),
 		_font(0) {
 }
 
@@ -277,7 +279,7 @@ void ImageText::readData(Formats::XRCReadStream *stream) {
 	_color.r = stream->readByte();
 	_color.g = stream->readByte();
 	_color.b = stream->readByte();
-	_color.a = stream->readByte() | 0xFF;
+	_color.a = 0xFF; stream->readByte();
 	_font = stream->readUint32LE();
 
 	// WORKAROUND: Give more space to text in the Archives' computer
@@ -358,7 +360,7 @@ void ImageText::resetVisual() {
 
 	VisualText *text = _visual->get<VisualText>();
 	if (text) {
-		text->resetTexture();
+		text->reset();
 	}
 }
 

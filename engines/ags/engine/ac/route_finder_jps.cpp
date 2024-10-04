@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,12 +26,13 @@
 //
 //=============================================================================
 
-#include "ags/lib/std/queue.h"
-#include "ags/lib/std/vector.h"
-#include "ags/lib/std/algorithm.h"
-#include "ags/lib/std/functional.h"
-#include "ags/lib/std/math.h"
-#include "ags/lib/std/xutility.h"
+#include "common/std/queue.h"
+#include "common/std/vector.h"
+#include "common/std/algorithm.h"
+#include "common/std/functional.h"
+#include "common/std/xutility.h"
+
+#include "ags/lib/std.h"
 
 namespace AGS3 {
 
@@ -244,7 +244,8 @@ bool Navigation::Reachable(int x0, int y0, int x1, int y1) const {
 }
 
 // A* using jump point search (JPS)
-// reference: http://users.cecs.anu.edu.au/~dharabor/data/papers/harabor-grastien-aaai11.pdf
+// reference: Online Graph Pruning for Pathfinding on Grid Maps
+// http://users.cecs.anu.edu.au/~dharabor/data/papers/harabor-grastien-aaai11.pdf
 void Navigation::AddPruned(int *buf, int &bcount, int x, int y) const {
 	assert(buf && bcount < 8);
 
@@ -340,10 +341,12 @@ Navigation::NavResult Navigation::Navigate(int sx, int sy, int ex, int ey, std::
 	if (!TraceLine(sx, sy, ex, ey, &opath))
 		return NAV_STRAIGHT;
 
-	NodeInfo &nodeInfo = mapNodes[sy * mapWidth + sx];
-	nodeInfo.dist = 0;
-	nodeInfo.frameId = frameId;
-	nodeInfo.prev = -1;
+	{
+		NodeInfo &node = mapNodes[sy * mapWidth + sx];
+		node.dist = 0;
+		node.frameId = frameId;
+		node.prev = -1;
+	}
 
 	closest = 0x7fffffff;
 	cnode = PackSquare(sx, sy);
@@ -361,13 +364,15 @@ Navigation::NavResult Navigation::Navigate(int sx, int sy, int ex, int ey, std::
 		int x, y;
 		UnpackSquare(e.index, x, y);
 
-		int vdx = x - ex;
-		int vdy = y - ey;
-		int edist = ClosestDist(vdx, vdy);
+		{
+			int edx = x - ex;
+			int edy = y - ey;
+			int edist = ClosestDist(edx, edy);
 
-		if (edist < closest) {
-			closest = edist;
-			cnode = e.index;
+			if (edist < closest) {
+				closest = edist;
+				cnode = e.index;
+			}
 		}
 
 		if (x == ex && y == ey) {
@@ -375,14 +380,17 @@ Navigation::NavResult Navigation::Navigate(int sx, int sy, int ex, int ey, std::
 			break;
 		}
 
-		const NodeInfo &node = mapNodes[y * mapWidth + x];
+		float dist;
+		int prev;
 
-		float dist = node.dist * DIST_SCALE_UNPACK;
+		{
+			const NodeInfo &node = mapNodes[y * mapWidth + x];
+			dist = node.dist * DIST_SCALE_UNPACK;
+			prev = node.prev;
+		}
 
 		int pneig[8];
 		int ncount = 0;
-
-		int prev = node.prev;
 
 		if (prev < 0) {
 			for (int ny = y - 1; ny <= y + 1; ny++) {
@@ -445,11 +453,11 @@ Navigation::NavResult Navigation::Navigate(int sx, int sy, int ex, int ey, std::
 					AddPruned(pneig, ncount, x + dx, y + dy);
 
 				if (!Passable(x - dx, y) &&
-				        (nodiag || Reachable(x, y, x - dx, y + dy)))
+					(nodiag || Reachable(x, y, x - dx, y + dy)))
 					AddPruned(pneig, ncount, x - dx, y + dy);
 
 				if (!Passable(x, y - dy) &&
-				        (nodiag || Reachable(x, y, x + dx, y - dy)))
+					(nodiag || Reachable(x, y, x + dx, y - dy)))
 					AddPruned(pneig, ncount, x + dx, y - dy);
 			}
 		}
@@ -493,9 +501,9 @@ Navigation::NavResult Navigation::Navigate(int sx, int sy, int ex, int ey, std::
 			UnpackSquare(succ[ni], nx, ny);
 			assert(Walkable(nx, ny));
 
-			NodeInfo &mapNode = mapNodes[ny * mapWidth + nx];
+			NodeInfo &node = mapNodes[ny * mapWidth + nx];
 
-			float ndist = mapNode.frameId != frameId ? INFINITY : mapNode.dist * DIST_SCALE_UNPACK;
+			float ndist = node.frameId != frameId ? INFINITY : node.dist * DIST_SCALE_UNPACK;
 
 			float dx = (float)(nx - x);
 			float dy = (float)(ny - y);
@@ -516,9 +524,9 @@ Navigation::NavResult Navigation::Navigate(int sx, int sy, int ex, int ey, std::
 				if (ecost > 65535.0f)
 					continue;
 
-				mapNode.dist = (unsigned short)(ecost + 0.5f);
-				mapNode.frameId = frameId;
-				mapNode.prev = PackSquare(x, y);
+				node.dist = (unsigned short)(ecost + 0.5f);
+				node.frameId = frameId;
+				node.prev = PackSquare(x, y);
 				pq.push(Entry(ecost + heur, PackSquare(nx, ny)));
 			}
 		}
@@ -577,7 +585,7 @@ Navigation::NavResult Navigation::Navigate(int sx, int sy, int ex, int ey, std::
 	}
 
 	if (ex < 0 || ex >= mapWidth || ey < 0 || ey >= mapHeight ||
-	        mapNodes[ey * mapWidth + ex].frameId != frameId) {
+		mapNodes[ey * mapWidth + ex].frameId != frameId) {
 		// path not found
 		return NAV_UNREACHABLE;
 	}
@@ -611,7 +619,7 @@ Navigation::NavResult Navigation::Navigate(int sx, int sy, int ex, int ey, std::
 }
 
 Navigation::NavResult Navigation::NavigateRefined(int sx, int sy, int ex, int ey,
-        std::vector<int> &opath, std::vector<int> &ncpath) {
+	std::vector<int> &opath, std::vector<int> &ncpath) {
 	ncpath.clear();
 
 	NavResult res = Navigate(sx, sy, ex, ey, opath);
@@ -624,9 +632,6 @@ Navigation::NavResult Navigation::NavigateRefined(int sx, int sy, int ex, int ey
 
 		return res;
 	}
-
-	int fx = sx;
-	int fy = sy;
 
 	fpath.clear();
 	ncpathIndex.clear();
@@ -642,7 +647,7 @@ Navigation::NavResult Navigation::NavigateRefined(int sx, int sy, int ex, int ey
 	rayPath.reserve(opath.size());
 	orayPath.reserve(opath.size());
 
-	for (int i = 1; i < (int)opath.size(); i++) {
+	for (int i = 1, fx = sx, fy = sy; i < (int)opath.size(); i++) {
 		// trying to optimize path
 		int tx, ty;
 		UnpackSquare(opath[i], tx, ty);
@@ -690,6 +695,7 @@ Navigation::NavResult Navigation::NavigateRefined(int sx, int sy, int ex, int ey
 
 	// validate cpath
 	for (int i = 0; i < (int)ncpath.size() - 1; i++) {
+		int fx, fy;
 		int tx, ty;
 		UnpackSquare(ncpath[i], fx, fy);
 		UnpackSquare(ncpath[i + 1], tx, ty);
@@ -750,6 +756,7 @@ Navigation::NavResult Navigation::NavigateRefined(int sx, int sy, int ex, int ey
 	opath.push_back(ncpath[0]);
 
 	for (int i = 1; i < (int)ncpath.size(); i++) {
+		int fx, fy;
 		int tx, ty;
 
 		UnpackSquare(ncpath[i - 1], fx, fy);

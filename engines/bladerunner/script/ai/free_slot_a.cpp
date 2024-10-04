@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -220,11 +219,20 @@ void AIScriptFreeSlotA::ClickedByPlayer() {
 		Actor_Face_Actor(kActorMcCoy, kActorFreeSlotA, true);
 		if (_vm->_cutContent && !Game_Flag_Query(kFlagMcCoyCommentsOnHoodooRats)) {
 			Game_Flag_Set(kFlagMcCoyCommentsOnHoodooRats);
-			Actor_Voice_Over(1060, kActorVoiceOver);  // Hoodoo rats
-			// Note: Quote 1070 is *boop* in ENG version.
-			// However, it is similar to 1060 quote in FRA, DEU, ESP and ITA versions
-			//          with the only difference being not mentioning the "Hoodoo Rats" name.
-			//          It uses a generic "rats" in its place.
+			// Note: Quote 1060 mentions "Hoodoo Rats". Quote 1070 is *boop* in ENG version.
+			// However, quote 1070 is similar to 1060 quote in FRA, DEU, ESP and ITA versions
+			// with the only difference being not mentioning the "Hoodoo Rats" name.
+			// It uses a generic "rats" in its place.
+			// For those four languages one of the two quotes will play (random chance 50%)
+			if ((_vm->_language == Common::DE_DEU
+			     || _vm->_language == Common::ES_ESP
+			     || _vm->_language == Common::FR_FRA
+			     || _vm->_language == Common::IT_ITA)
+			    && (Random_Query(1, 2) == 1)) {
+				Actor_Voice_Over(1070, kActorVoiceOver);  // "rats"
+			} else {
+				Actor_Voice_Over(1060, kActorVoiceOver);  // "Hoodoo rats"
+			}
 			Actor_Voice_Over(1080, kActorVoiceOver);
 			Actor_Voice_Over(1090, kActorVoiceOver);
 		} else {
@@ -540,6 +548,7 @@ bool AIScriptFreeSlotA::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	default:
+		debugC(6, kDebugAnimation, "AIScriptFreeSlotA::UpdateAnimation() - Current _animationState (%d) is not supported", _animationState);
 		break;
 	}
 	*frame = _animationFrame;
@@ -548,7 +557,7 @@ bool AIScriptFreeSlotA::UpdateAnimation(int *animation, int *frame) {
 
 bool AIScriptFreeSlotA::ChangeAnimationMode(int mode) {
 	switch (mode) {
-	case 0:
+	case kAnimationModeIdle:
 		if ((unsigned int)(_animationState - 1) > 1) {
 			_animationState = 0;
 			_animationFrame = 0;
@@ -557,7 +566,7 @@ bool AIScriptFreeSlotA::ChangeAnimationMode(int mode) {
 		}
 		break;
 
-	case 1:
+	case kAnimationModeWalk:
 		_animationState = 3;
 		_animationFrame = 0;
 		break;
@@ -599,6 +608,10 @@ bool AIScriptFreeSlotA::ChangeAnimationMode(int mode) {
 	case kAnimationModeDie:
 		_animationState = 7;
 		_animationFrame = 0;
+		break;
+
+	default:
+		debugC(6, kDebugAnimation, "AIScriptFreeSlotA::ChangeAnimationMode(%d) - Target mode is not supported", mode);
 		break;
 	}
 	return true;

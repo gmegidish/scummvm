@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,20 +36,20 @@ DisplayElement::DisplayElement(const DisplayElementID id) : IDObject(id) {
 	_elementIsVisible = false;
 	_elementOrder = 0;
 	_triggeredElement = this;
-	_nextElement = 0;
+	_nextElement = nullptr;
 }
 
 DisplayElement::~DisplayElement() {
 	if (isDisplaying())
-		((PegasusEngine *)g_engine)->_gfx->removeDisplayElement(this);
+		g_vm->_gfx->removeDisplayElement(this);
 }
 
 void DisplayElement::setDisplayOrder(const DisplayOrder order) {
 	if (_elementOrder != order) {
 		_elementOrder = order;
 		if (isDisplaying()) {
-			((PegasusEngine *)g_engine)->_gfx->removeDisplayElement(this);
-			((PegasusEngine *)g_engine)->_gfx->addDisplayElement(this);
+			g_vm->_gfx->removeDisplayElement(this);
+			g_vm->_gfx->addDisplayElement(this);
 			triggerRedraw();
 		}
 	}
@@ -58,7 +57,7 @@ void DisplayElement::setDisplayOrder(const DisplayOrder order) {
 
 void DisplayElement::startDisplaying() {
 	if (!isDisplaying()) {
-		((PegasusEngine *)g_engine)->_gfx->addDisplayElement(this);
+		g_vm->_gfx->addDisplayElement(this);
 		triggerRedraw();
 	}
 }
@@ -66,7 +65,7 @@ void DisplayElement::startDisplaying() {
 void DisplayElement::stopDisplaying() {
 	if (isDisplaying()) {
 		triggerRedraw();
-		((PegasusEngine *)g_engine)->_gfx->removeDisplayElement(this);
+		g_vm->_gfx->removeDisplayElement(this);
 	}
 }
 
@@ -141,7 +140,7 @@ void DisplayElement::show() {
 // -- The element is visible.
 // -- The element is part of the active layer OR is one of the reserved items.
 void DisplayElement::triggerRedraw() {
-	GraphicsManager *gfx = ((PegasusEngine *)g_engine)->_gfx;
+	GraphicsManager *gfx = g_vm->_gfx;
 
 	if (_triggeredElement == this) {
 		if (validToDraw(gfx->getBackOfActiveLayer(), gfx->getFrontOfActiveLayer()))
@@ -172,7 +171,7 @@ DropHighlight::DropHighlight(const DisplayElementID id) : DisplayElement(id) {
 }
 
 void DropHighlight::draw(const Common::Rect &) {
-	Graphics::Surface *screen = ((PegasusEngine *)g_engine)->_gfx->getWorkArea();
+	Graphics::Surface *screen = g_vm->_gfx->getWorkArea();
 
 	// Since this is only used in two different ways, I'm only
 	// going to implement it in those two ways. Deal with it.
@@ -235,7 +234,7 @@ FrameSequence::~FrameSequence() {
 	delete _resFork;
 }
 
-void FrameSequence::useFileName(const Common::String &fileName) {
+void FrameSequence::useFileName(const Common::Path &fileName) {
 	_resFork->open(fileName);
 }
 
@@ -315,7 +314,7 @@ bool FrameSequence::isSequenceOpen() const {
 Sprite::Sprite(const DisplayElementID id) : DisplayElement(id) {
 	_numFrames = 0;
 	_currentFrameNum = 0xffffffff;
-	_currentFrame = 0;
+	_currentFrame = nullptr;
 }
 
 Sprite::~Sprite() {
@@ -333,7 +332,7 @@ void Sprite::discardFrames() {
 
 		_frameArray.clear();
 		_numFrames = 0;
-		_currentFrame = 0;
+		_currentFrame = nullptr;
 		_currentFrameNum = 0xffffffff;
 		setBounds(0, 0, 0, 0);
 	}
@@ -341,7 +340,7 @@ void Sprite::discardFrames() {
 
 void Sprite::addPICTResourceFrame(const ResIDType pictID, bool transparent, const CoordType left, const CoordType top) {
 	SpriteFrame *frame = new SpriteFrame();
-	frame->initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, pictID, transparent);
+	frame->initFromPICTResource(g_vm->_resFork, pictID, transparent);
 	addFrame(frame, left, top);
 }
 
@@ -401,7 +400,7 @@ void Sprite::setCurrentFrameIndex(const int32 frameNum) {
 	if (frameNum < 0) {
 		if (_currentFrameNum != 0xffffffff) {
 			_currentFrameNum = 0xffffffff;
-			_currentFrame = 0;
+			_currentFrame = nullptr;
 			triggerRedraw();
 		}
 	} else if (_numFrames > 0) {
@@ -416,7 +415,7 @@ void Sprite::setCurrentFrameIndex(const int32 frameNum) {
 
 SpriteFrame *Sprite::getFrame(const int32 index) {
 	if (index < 0 || (uint32)index >= _numFrames)
-		return 0;
+		return nullptr;
 
 	return _frameArray[index].frame;
 }
@@ -497,7 +496,7 @@ void ScreenDimmer::draw(const Common::Rect &r) {
 	// The output is identical to the original
 
 	uint32 black = g_system->getScreenFormat().RGBToColor(0, 0, 0);
-	Graphics::Surface *screen = ((PegasusEngine *)g_engine)->_gfx->getWorkArea();
+	Graphics::Surface *screen = g_vm->_gfx->getWorkArea();
 	byte bytesPerPixel = g_system->getScreenFormat().bytesPerPixel;
 
 	// We're currently doing it to the whole screen to simplify the code
@@ -560,7 +559,7 @@ void SoundLevel::draw(const Common::Rect &r) {
 	levelRect = r.findIntersectingRect(levelRect);
 
 	if (!levelRect.isEmpty()) {
-		Graphics::Surface *screen = ((PegasusEngine *)g_engine)->_gfx->getWorkArea();
+		Graphics::Surface *screen = g_vm->_gfx->getWorkArea();
 		screen->fillRect(levelRect, g_system->getScreenFormat().RGBToColor(0, 0, 0));
 	}
 }

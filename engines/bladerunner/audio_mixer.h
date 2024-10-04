@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,11 +27,13 @@
 
 #include "common/mutex.h"
 
+#include "bladerunner/bladerunner.h" // For BLADERUNNER_ORIGINAL_BUGS symbol
+
 namespace BladeRunner {
 
 class BladeRunnerEngine;
 
-#if !BLADERUNNER_ORIGINAL_BUG
+#if !BLADERUNNER_ORIGINAL_BUGS
 enum audioMixerAppTimers {
 	kAudioMixerAppTimerMusicNext    =  0,
 	kAudioMixerAppTimerMusicFadeOut =  1
@@ -59,12 +60,12 @@ class AudioMixer {
 		bool                loop;
 		Audio::SoundHandle  handle;
 		Audio::AudioStream *stream;
-		float               volume;
+		float               volume;       // should be in [0.0f, 100.0f]. It's percent for the Audio::Mixer::kMaxChannelVolume
 		float               volumeDelta;
-		float               volumeTarget;
-		float               pan;
+		float               volumeTarget; // should be in [0.0f, 100.0f], as for volume field.
+		float               pan;          // should be in [-100.0f, 100.0f]. It's percent for 127 (max absolute balance value)
 		float               panDelta;
-		float               panTarget;
+		float               panTarget;    // should be in [-100.0f, 100.0f], as for pan field.
 		void              (*endCallback)(int channel, void *data);
 		void               *callbackData;
 		uint32              timeStarted;
@@ -95,8 +96,8 @@ public:
 	int playMusic(Audio::RewindableAudioStream *stream, int volume, void(*endCallback)(int, void *), void *callbackData, uint32 trackDurationMs);
 	void stop(int channel, uint32 time);
 
-	void adjustVolume(int channel, int newVolume, uint32 time);
-	void adjustPan(int channel, int newPan, uint32 time);
+	void adjustVolume(int channel, int targetVolume, uint32 time);
+	void adjustPan(int channel, int targetPan, uint32 time);
 
 #if !BLADERUNNER_ORIGINAL_BUGS
 	void startAppTimerProc(int audioMixAppTimerId, uint32 intervalMillis);

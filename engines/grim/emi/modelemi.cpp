@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/endian.h"
-#include "common/foreach.h"
+
 #include "engines/grim/debug.h"
 #include "engines/grim/grim.h"
 #include "engines/grim/material.h"
@@ -98,7 +97,7 @@ void EMIModel::setTex(uint32 index) {
 }
 
 void EMIModel::loadMesh(Common::SeekableReadStream *data) {
-	//int strLength = 0; // Usefull for PS2-strings
+	//int strLength = 0; // Useful for PS2-strings
 
 	Common::String nameString = readLAString(data);
 
@@ -133,9 +132,9 @@ void EMIModel::loadMesh(Common::SeekableReadStream *data) {
 
 	int type = data->readUint32LE();
 	// Check that it is one of the known types
-	//3  is no texture vertecies
-	//18 is no normals
-	//19 is regular
+	// 3  is no texture vertecies
+	// 18 is no normals
+	// 19 is regular
 	assert(type == 19 || type == 18 || type == 3);
 
 	_numVertices = data->readUint32LE();
@@ -248,13 +247,13 @@ void EMIModel::prepareForRender() {
 		const Math::Matrix4 &bindPose = _skeleton->_joints[jointIndex]._absMatrix;
 
 		Math::Vector3d vert = _vertices[boneVert];
-		bindPose.inverseTranslate(&vert);
-		bindPose.inverseRotate(&vert);
+		vert -= bindPose.getPosition();
+		vert = vert * bindPose.getRotation();
 		jointMatrix.transform(&vert, true);
 		_drawVertices[boneVert] += vert * _boneInfos[i]._weight;
 
 		Math::Vector3d normal = _normals[boneVert];
-		bindPose.inverseRotate(&normal);
+		normal = normal * bindPose.getRotation();
 		jointMatrix.transform(&normal, false);
 		_drawNormals[boneVert] += normal * _boneInfos[i]._weight;
 	}
@@ -324,7 +323,7 @@ void EMIModel::updateLighting(const Math::Matrix4 &modelToWorld) {
 
 	Actor *actor = _costume->getOwner();
 
-	foreach(Light *l, g_grim->getCurrSet()->getLights(actor->isInOverworld())) {
+	for (Light *l : g_grim->getCurrSet()->getLights(actor->isInOverworld())) {
 		if (l->_enabled) {
 			activeLights.push_back(l);
 			if (l->_type == Light::Ambient)
@@ -369,7 +368,7 @@ void EMIModel::updateLighting(const Math::Matrix4 &modelToWorld) {
 					if (cosAngle < 0.0f)
 						continue;
 
-					float angle = acos(fminf(cosAngle, 1.0f));
+					float angle = acos(MIN(cosAngle, 1.0f));
 					if (angle > l->_penumbraangle)
 						continue;
 

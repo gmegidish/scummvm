@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,16 +43,16 @@ FileManager::FileManager(HopkinsEngine *vm) {
 /**
  * Load a file
  */
-byte *FileManager::loadFile(const Common::String &file) {
+byte *FileManager::loadFile(const Common::Path &file) {
 	Common::File f;
 	if (!f.open(file))
-		error("Error opening %s", file.c_str());
+		error("Error opening %s", file.toString().c_str());
 
 	// Allocate space for the file contents
 	size_t filesize = f.size();
 	byte *data = _vm->_globals->allocMemory(filesize+1);
 	if (!data)
-		error("Error allocating space for file being loaded - %s", file.c_str());
+		error("Error allocating space for file being loaded - %s", file.toString().c_str());
 
 	readStream(f, data, filesize);
 	f.close();
@@ -80,7 +79,7 @@ void FileManager::initCensorship() {
 /**
  * Check if a file is present
  */
-bool FileManager::fileExists(const Common::String &file) {
+bool FileManager::fileExists(const Common::Path &file) {
 	Common::File f;
 
 	return f.exists(file);
@@ -89,20 +88,20 @@ bool FileManager::fileExists(const Common::String &file) {
 /**
  * Search file in Cat file
  */
-byte *FileManager::searchCat(const Common::String &file, CatMode mode, bool &fileFoundFl) {
-	byte *ptr = NULL;
+byte *FileManager::searchCat(const Common::Path &file, CatMode mode, bool &fileFoundFl) {
+	byte *ptr = nullptr;
 	fileFoundFl = true;
 	Common::File f;
 
-	Common::String filename = file;
-	Common::String secondaryFilename = "";
+	Common::String filename = file.toString('/');
+	Common::Path secondaryFilename;
 	filename.toUppercase();
 
 	switch (mode) {
 	case RES_INI:
 		if (!f.exists("RES_INI.CAT")) {
 			fileFoundFl = false;
-			return NULL;
+			return nullptr;
 		}
 
 		ptr = loadFile("RES_INI.CAT");
@@ -112,7 +111,7 @@ byte *FileManager::searchCat(const Common::String &file, CatMode mode, bool &fil
 	case RES_REP:
 		if (!f.exists("RES_REP.CAT")) {
 			fileFoundFl = false;
-			return NULL;
+			return nullptr;
 		}
 
 		ptr = loadFile("RES_REP.CAT");
@@ -122,7 +121,7 @@ byte *FileManager::searchCat(const Common::String &file, CatMode mode, bool &fil
 	case RES_LIN:
 		if (!f.exists("RES_LIN.CAT")) {
 			fileFoundFl = false;
-			return NULL;
+			return nullptr;
 		}
 
 		ptr = loadFile("RES_LIN.CAT");
@@ -132,7 +131,7 @@ byte *FileManager::searchCat(const Common::String &file, CatMode mode, bool &fil
 	case RES_PER:
 		if (!f.exists("RES_PER.CAT")) {
 			fileFoundFl = false;
-			return NULL;
+			return nullptr;
 		}
 
 		ptr = loadFile("RES_PER.CAT");
@@ -142,7 +141,7 @@ byte *FileManager::searchCat(const Common::String &file, CatMode mode, bool &fil
 	case RES_PIC:
 		if (!f.exists("PIC.CAT")) {
 			fileFoundFl = false;
-			return NULL;
+			return nullptr;
 		}
 
 		ptr = loadFile("PIC.CAT");
@@ -151,7 +150,7 @@ byte *FileManager::searchCat(const Common::String &file, CatMode mode, bool &fil
 	case RES_SAN:
 		if (!f.exists("RES_SAN.CAT")) {
 			fileFoundFl = false;
-			return NULL;
+			return nullptr;
 		}
 
 		ptr = loadFile("RES_SAN.CAT");
@@ -160,14 +159,14 @@ byte *FileManager::searchCat(const Common::String &file, CatMode mode, bool &fil
 	case RES_SLI:
 		if (!f.exists("RES_SLI.CAT")) {
 			fileFoundFl = false;
-			return NULL;
+			return nullptr;
 		}
 
 		ptr = loadFile("RES_SLI.CAT");
 		break;
 
 	case RES_VOI: {
-		Common::String tmpFilename;
+		Common::Path tmpFilename;
 		if (_vm->getPlatform() == Common::kPlatformOS2 || _vm->getPlatform() == Common::kPlatformBeOS)
 			tmpFilename = "ENG_VOI.CAT";
 		// Win95 and Linux versions uses another set of names
@@ -189,7 +188,7 @@ byte *FileManager::searchCat(const Common::String &file, CatMode mode, bool &fil
 
 		if (!f.exists(tmpFilename)) {
 			fileFoundFl = false;
-			return NULL;
+			return nullptr;
 		}
 
 		ptr = loadFile(tmpFilename);
@@ -219,7 +218,7 @@ byte *FileManager::searchCat(const Common::String &file, CatMode mode, bool &fil
 		if (name == "FINIS") {
 			_vm->_globals->freeMemory(ptr);
 			fileFoundFl = false;
-			return NULL;
+			return nullptr;
 		}
 
 		offsetVal += 23;
@@ -227,21 +226,21 @@ byte *FileManager::searchCat(const Common::String &file, CatMode mode, bool &fil
 
 	_vm->_globals->freeMemory(ptr);
 
-	if (secondaryFilename != "") {
+	if (!secondaryFilename.empty()) {
 		if (!f.open(secondaryFilename))
 			error("CHARGE_FICHIER");
 
 		f.seek(_catalogPos);
 
 		byte *catData = _vm->_globals->allocMemory(_catalogSize);
-		if (catData == NULL)
+		if (catData == nullptr)
 			error("CHARGE_FICHIER");
 
 		readStream(f, catData, _catalogSize);
 		f.close();
 		result = catData;
 	} else {
-		result = NULL;
+		result = nullptr;
 	}
 
 	return result;
@@ -250,12 +249,12 @@ byte *FileManager::searchCat(const Common::String &file, CatMode mode, bool &fil
 /**
  * Returns the size of a file. Throws an error if the file can't be found
  */
-uint32 FileManager::fileSize(const Common::String &filename) {
+uint32 FileManager::fileSize(const Common::Path &filename) {
 	Common::File f;
 	uint32 size;
 
 	if (!f.open(filename))
-		error("Could not find file %s", filename.c_str());
+		error("Could not find file %s", filename.toString().c_str());
 
 	size = f.size();
 	f.close();

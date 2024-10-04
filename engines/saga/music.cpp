@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,6 +36,7 @@
 #include "audio/decoders/mp3.h"
 #include "audio/decoders/raw.h"
 #include "audio/decoders/vorbis.h"
+#include "audio/mods/mod_xm_s3m.h"
 #include "audio/softsynth/fmtowns_pc98/towns_pc98_driver.h"
 #include "common/config-manager.h"
 #include "common/file.h"
@@ -48,11 +48,13 @@ namespace Saga {
 
 const uint8 Music::MT32_GOODBYE_MSG[] = { 0x47, 0x6F, 0x6F, 0x64, 0x62, 0x79, 0x65, 0x21, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20 };
 
-Music::Music(SagaEngine *vm, Audio::Mixer *mixer) : _vm(vm), _mixer(mixer), _parser(0), _driver(0), _driverPC98(0), _musicContext(0) {
+Music::Music(SagaEngine *vm, Audio::Mixer *mixer) : _vm(vm), _mixer(mixer), _parser(nullptr), _driver(nullptr), _driverPC98(nullptr), _musicContext(nullptr) {
 	_currentVolume = 0;
-	_currentMusicBuffer = NULL;
+	_currentMusicBuffer = nullptr;
 
-	if (_vm->getPlatform() == Common::kPlatformPC98) {
+	if (_vm->getPlatform() == Common::kPlatformAmiga) {
+		_musicType = _driverType = MT_AMIGA;
+	} else if (_vm->getPlatform() == Common::kPlatformPC98) {
 		_musicType = _driverType = MT_PC98;
 
 		_driverPC98 = new TownsPC98_AudioDriver(mixer, PC98AudioPluginDriver::kType86);
@@ -100,10 +102,16 @@ Music::Music(SagaEngine *vm, Audio::Mixer *mixer) : _vm(vm), _mixer(mixer), _par
 						_("OK"));
 					dialog.runModal();
 
-					_driver = new MidiDriver_ADLIB_Multisource(OPL::Config::kOpl3);
+					OPL::Config::OplType oplType =
+						MidiDriver_ADLIB_Multisource::detectOplType(OPL::Config::kOpl3) ? OPL::Config::kOpl3 : OPL::Config::kOpl2;
+
+					_driver = new MidiDriver_ADLIB_Multisource(oplType);
 				}
 			} else {
-				_driver = new MidiDriver_ADLIB_Multisource(OPL::Config::kOpl3);
+				OPL::Config::OplType oplType =
+					MidiDriver_ADLIB_Multisource::detectOplType(OPL::Config::kOpl3) ? OPL::Config::kOpl3 : OPL::Config::kOpl2;
+
+				_driver = new MidiDriver_ADLIB_Multisource(oplType);
 			}
 			break;
 		case MT_MT32:
@@ -190,7 +198,7 @@ Music::~Music() {
 		delete _parser;
 	}
 	if (_driver) {
-		_driver->setTimerCallback(0, 0);
+		_driver->setTimerCallback(nullptr, nullptr);
 		_driver->close();
 		delete _driver;
 	}
@@ -323,7 +331,7 @@ void Music::play(uint32 resourceId, MusicFlags flags) {
 	if (_parser) {
 		_parser->unloadMusic();
 		delete _parser;
-		_parser = 0;
+		_parser = nullptr;
 	}
 	if (_driverPC98)
 		_driverPC98->reset();
@@ -334,7 +342,9 @@ void Music::play(uint32 resourceId, MusicFlags flags) {
 
 	if (!digital) {
 		// Load MIDI/XMI resource data
-		if (_vm->getGameId() == GID_IHNM && _vm->isMacResources()) {
+		if (_vm->getGameId() == GID_ITE && _vm->getPlatform() == Common::Platform::kPlatformAmiga) {
+			playProtracker(resourceId, flags);
+		} else if (_vm->getGameId() == GID_IHNM && _vm->isMacResources()) {
 			// Load the external music file for Mac IHNM
 			playQuickTime(resourceId, flags);
 		} else {
@@ -344,12 +354,12 @@ void Music::play(uint32 resourceId, MusicFlags flags) {
 }
 
 bool Music::playDigital(uint32 resourceId, MusicFlags flags) {
-	Audio::SeekableAudioStream *audioStream = NULL;
+	Audio::SeekableAudioStream *audioStream = nullptr;
 	uint32 loopStart = 0;
 	int realTrackNumber = 0;
 
 	if (_vm->getGameId() == GID_ITE) {
-		if (flags == MUSIC_NORMAL && (resourceId == 13 || resourceId == 19))
+		if (resourceId != 13 && resourceId != 19)
 			flags = MUSIC_LOOP;
 		realTrackNumber = resourceId - 8;
 	} else if (_vm->getGameId() == GID_IHNM) {
@@ -358,9 +368,9 @@ bool Music::playDigital(uint32 resourceId, MusicFlags flags) {
 
 	// Try to open standalone digital track
 	char trackName[2][16];
-	sprintf(trackName[0], "track%d", realTrackNumber);
-	sprintf(trackName[1], "track%02d", realTrackNumber);
-	Audio::SeekableAudioStream *stream = 0;
+	Common::sprintf_s(trackName[0], "track%d", realTrackNumber);
+	Common::sprintf_s(trackName[1], "track%02d", realTrackNumber);
+	Audio::SeekableAudioStream *stream = nullptr;
 	for (int i = 0; i < 2; ++i) {
 		stream = Audio::SeekableAudioStream::openStreamFile(trackName[i]);
 		if (stream) {
@@ -373,7 +383,7 @@ bool Music::playDigital(uint32 resourceId, MusicFlags flags) {
 
 	if (_vm->getGameId() == GID_ITE) {
 		if (resourceId >= 9 && resourceId <= 34) {
-			if (_digitalMusicContext != NULL) {
+			if (_digitalMusicContext != nullptr) {
 				loopStart = 0;
 				// Fix ITE sunstatm/sunspot score
 				if (resourceId == MUSIC_SUNSPOT)
@@ -381,7 +391,7 @@ bool Music::playDigital(uint32 resourceId, MusicFlags flags) {
 
 				// Digital music
 				ResourceData *resData = _digitalMusicContext->getResourceData(resourceId - 9);
-				Common::File *musicFile = _digitalMusicContext->getFile(resData);
+				Common::SeekableReadStream *musicFile = _digitalMusicContext->getFile(resData);
 				int offs = (_digitalMusicContext->isCompressed()) ? 9 : 0;
 
 				Common::SeekableSubReadStream *musicStream = new Common::SeekableSubReadStream(musicFile,
@@ -460,10 +470,25 @@ void Music::playQuickTime(uint32 resourceId, MusicFlags flags) {
 	// Handle music looping
 	_parser->property(MidiParser::mpAutoLoop, flags & MUSIC_LOOP);
 
-	const Common::String &musicName = Common::String::format("Music/Music%02x", resourceId);
+	Common::Path musicName(Common::String::format("Music/Music%02x", resourceId));
 	if (!((MidiParser_QT *)_parser)->loadFromContainerFile(musicName))
-		error("Music::playQuickTime(): Failed to load file '%s'", musicName.c_str());
+		error("Music::playQuickTime(): Failed to load file '%s'", musicName.toString().c_str());
 	_parser->setTrack(0);
+}
+
+void Music::playProtracker(uint32 resourceId, MusicFlags flags) {
+	ByteArray ba;
+
+	_vm->_resource->loadResource(_musicContext, resourceId, ba);
+
+	Common::MemoryReadStream ms(ba.getBuffer(), ba.size());
+
+	/* No reference to the 'stream' object is kept, so you can safely delete it after
+	   invoking this factory. */
+	Audio::RewindableAudioStream *amigaModStream = Audio::makeModXmS3mStream(&ms, DisposeAfterUse::NO);
+
+	_mixer->playStream(Audio::Mixer::kMusicSoundType, &_musicHandle,
+			   Audio::makeLoopingAudioStream(amigaModStream, (flags == MUSIC_LOOP ? 0 : 1)));
 }
 
 void Music::playMidi(uint32 resourceId, MusicFlags flags) {
@@ -484,7 +509,7 @@ void Music::playMidi(uint32 resourceId, MusicFlags flags) {
 
 		// Check if the game is using XMIDI or SMF music
 		if (!memcmp(_currentMusicBuffer->getBuffer(), "FORM", 4)) {
-			_parser = MidiParser::createParser_XMIDI(0, 0, 0);
+			_parser = MidiParser::createParser_XMIDI(nullptr, nullptr, 0);
 		} else {
 			_parser = MidiParser::createParser_SMF(0);
 		}

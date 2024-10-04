@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * MIT License..
  *
@@ -54,6 +53,8 @@ namespace Wage {
 // to print out similar pictures, use
 //   bmpDecoder.getSurface()->debugPrint(0, 0, 0, 0, 0, 1);
 // in MacWindowBorder::loadBorder()
+//
+// TODO: Store these as XPM files?
 
 static const char *wage_border_inact_title[] = {
 "......................................  ..  ..  ......................................",
@@ -231,6 +232,12 @@ static const char *wage_border_act[] = {
 "..                                    ..                                    ..",
 "..................................          .................................."};
 
+static const byte wage_border_palette[] = {
+	0,   0,   0,
+	255, 255, 255,
+	255, 0,   255
+};
+
 void Gui::loadBorders() {
 	_consoleWindow->enableScrollbar(true);
 	loadBorder(_sceneWindow, wage_border_inact_title, ARRAYSIZE(wage_border_inact_title), Graphics::kWindowBorderTitle, 22);
@@ -242,25 +249,26 @@ void Gui::loadBorders() {
 void Gui::loadBorder(Graphics::MacWindow *target, const char *border[], uint height, uint32 flags, int titlePos) {
 	uint width = strlen(border[0]) / 2;
 
-	Graphics::Surface source;
-
-	source.create(width, height, Graphics::TransparentSurface::getSupportedPixelFormat());
+	Graphics::ManagedSurface *surface = new Graphics::ManagedSurface();
+	surface->create(width, height, Graphics::PixelFormat::createFormatCLUT8());
+	surface->setPalette(wage_border_palette, 0, 3);
+	surface->setTransparentColor(2);
 
 	for (uint y = 0; y < height; y++) {
-		uint32 *dst = (uint32 *)source.getBasePtr(0, y);
+		byte *dst = (byte *)surface->getBasePtr(0, y);
 
 		for (uint x = 0; x < width; x++) {
 			switch(border[y][x * 2]) {
 			case ' ':
-				*dst = TS_RGB(0, 0, 0);
+				*dst = 0;
 				break;
 
 			case '#':
-				*dst = TS_RGB(0xff, 0xff, 0xff);
+				*dst = 1;
 				break;
 
 			case '.':
-				*dst = TS_RGB(0xff, 0, 0xff);
+				*dst = 2;
 				break;
 
 			default:
@@ -270,10 +278,6 @@ void Gui::loadBorder(Graphics::MacWindow *target, const char *border[], uint hei
 			dst++;
 		}
 	}
-
-	Graphics::TransparentSurface *surface = new Graphics::TransparentSurface(source, true);
-
-	source.free();
 
 	Graphics::BorderOffsets offsets;
 	offsets.left = 16;

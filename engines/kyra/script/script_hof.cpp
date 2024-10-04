@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,7 +59,7 @@ int KyraEngine_HoF::o2_defineObject(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_HoF::o2_defineObject(%p) (%d, '%s', %d, %d, %d, %d)", (const void *)script,
 			stackPos(0), stackPosString(1), stackPos(2), stackPos(3), stackPos(4), stackPos(5));
 	TalkObject *object = &_talkObjectList[stackPos(0)];
-	strcpy(object->filename, stackPosString(1));
+	Common::strlcpy(object->filename, stackPosString(1), sizeof(object->filename));
 	object->scriptId = stackPos(2);
 	object->x = stackPos(3);
 	object->y = stackPos(4);
@@ -139,7 +138,7 @@ int KyraEngine_HoF::o2_meanWhileScene(EMCState *script) {
 	const char *cpsfile = stackPosString(0);
 	const char *palfile = stackPosString(1);
 
-	_screen->loadBitmap(cpsfile, 3, 3, 0);
+	_screen->loadBitmap(cpsfile, 3, 3, nullptr);
 	_screen->copyPalette(2, 0);
 	_screen->loadPalette(palfile, _screen->getPalette(2));
 	_screen->fillRect(0, 0, 319, 199, 207);
@@ -181,7 +180,7 @@ int KyraEngine_HoF::o2_displayWsaFrame(EMCState *script) {
 
 	_screen->hideMouse();
 	const uint32 endTime = _system->getMillis() + waitTime * _tickLength;
-	_wsaSlots[slot]->displayFrame(frame, dstPage, x, y, copyParam | 0xC000, 0, 0);
+	_wsaSlots[slot]->displayFrame(frame, dstPage, x, y, copyParam | 0xC000, nullptr, nullptr);
 	_screen->updateScreen();
 
 	if (backUp)
@@ -213,7 +212,7 @@ int KyraEngine_HoF::o2_displayWsaSequentialFramesLooping(EMCState *script) {
 		if (startFrame < endFrame) {
 			for (int i = startFrame; i <= endFrame; ++i) {
 				const uint32 endTime = _system->getMillis() + waitTime * _tickLength;
-				_wsaSlots[slot]->displayFrame(i, 0, x, y, 0xC000 | copyFlags, 0, 0);
+				_wsaSlots[slot]->displayFrame(i, 0, x, y, 0xC000 | copyFlags, nullptr, nullptr);
 
 				if (!skipFlag()) {
 					_screen->updateScreen();
@@ -223,7 +222,7 @@ int KyraEngine_HoF::o2_displayWsaSequentialFramesLooping(EMCState *script) {
 		} else {
 			for (int i = startFrame; i >= endFrame; --i) {
 				const uint32 endTime = _system->getMillis() + waitTime * _tickLength;
-				_wsaSlots[slot]->displayFrame(i, 0, x, y, 0xC000 | copyFlags, 0, 0);
+				_wsaSlots[slot]->displayFrame(i, 0, x, y, 0xC000 | copyFlags, nullptr, nullptr);
 
 				if (!skipFlag()) {
 					_screen->updateScreen();
@@ -242,7 +241,7 @@ int KyraEngine_HoF::o2_displayWsaSequentialFramesLooping(EMCState *script) {
 int KyraEngine_HoF::o2_wsaOpen(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_HoF::o2_wsaOpen(%p) ('%s', %d)", (const void *)script, stackPosString(0), stackPos(1));
 	assert(stackPos(1) >= 0 && stackPos(1) < ARRAYSIZE(_wsaSlots));
-	_wsaSlots[stackPos(1)]->open(stackPosString(0), 1, 0);
+	_wsaSlots[stackPos(1)]->open(stackPosString(0), 1, nullptr);
 	return 0;
 }
 
@@ -259,7 +258,7 @@ int KyraEngine_HoF::o2_displayWsaSequentialFrames(EMCState *script) {
 
 	while (currentFrame <= lastFrame) {
 		const uint32 endTime = _system->getMillis() + frameDelay;
-		_wsaSlots[index]->displayFrame(currentFrame++, 0, stackPos(0), stackPos(1), copyParam, 0, 0);
+		_wsaSlots[index]->displayFrame(currentFrame++, 0, stackPos(0), stackPos(1), copyParam, nullptr, nullptr);
 		if (!skipFlag()) {
 			_screen->updateScreen();
 			delayUntil(endTime);
@@ -287,7 +286,7 @@ int KyraEngine_HoF::o2_displayWsaSequence(EMCState *script) {
 
 	while (currentFrame <= lastFrame) {
 		const uint32 endTime = _system->getMillis() + frameDelay;
-		_wsaSlots[index]->displayFrame(currentFrame++, 0, stackPos(0), stackPos(1), copyParam, 0, 0);
+		_wsaSlots[index]->displayFrame(currentFrame++, 0, stackPos(0), stackPos(1), copyParam, nullptr, nullptr);
 		if (!skipFlag()) {
 			if (doUpdate)
 				update();
@@ -673,7 +672,7 @@ int KyraEngine_HoF::o2_getSceneExitToFacing(EMCState *script) {
 int KyraEngine_HoF::o2_setLayerFlag(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_HoF::o2_setLayerFlag(%p) (%d)", (const void *)script, stackPos(0));
 	int layer = stackPos(0);
-	if (layer >= 1 && layer <= 16)
+	if (layer >= 1 && layer <= 15)
 		_layerFlagTable[layer] = 1;
 	return 0;
 }
@@ -775,31 +774,39 @@ int KyraEngine_HoF::o2_showLetter(EMCState *script) {
 
 	_screen->hideMouse();
 
-	showMessage(0, 0xCF);
+	showMessage(nullptr, 0xCF);
 	displayInvWsaLastFrame();
 	backUpPage0();
 
 	_screen->copyPalette(2, 0);
 
 	_screen->clearPage(3);
-	_screen->loadBitmap("_NOTE.CPS", 3, 3, 0);
+	_screen->loadBitmap("_NOTE.CPS", 3, 3, nullptr);
 
-	sprintf(filename, "_NTEPAL%.1d.COL", letter+1);
+	Common::sprintf_s(filename, "_NTEPAL%.1d.COL", letter+1);
 	_screen->loadPalette(filename, _screen->getPalette(0));
 
 	_screen->fadeToBlack(0x14);
 
-	sprintf(filename, "LETTER%.1d.%s", letter, _languageExtension[_lang]);
-	uint8 *letterBuffer = _res->fileData(filename, 0);
+	Common::sprintf_s(filename, "LETTER%.1d.%s", letter, _languageExtension[_lang]);
+	uint8 *letterBuffer = _res->fileData(filename, nullptr);
 	if (!letterBuffer) {
 		// some floppy versions use a TXT extension
-		sprintf(filename, "LETTER%.1d.TXT", letter);
-		letterBuffer = _res->fileData(filename, 0);
+		Common::sprintf_s(filename, "LETTER%.1d.TXT", letter);
+		letterBuffer = _res->fileData(filename, nullptr);
+	}
+
+	int x = 12;
+	int y = 10;
+
+	if (_flags.lang == Common::ZH_TWN) {
+		x = 17;
+		y = 11;
 	}
 
 	if (letterBuffer) {
 		bookDecodeText(letterBuffer);
-		bookPrintText(2, letterBuffer, 0xC, 0xA, 0x20);
+		bookPrintText(2, letterBuffer, x, y, 0x20);
 	}
 
 	_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0, Screen::CR_NO_P_CHECK);
@@ -811,7 +818,7 @@ int KyraEngine_HoF::o2_showLetter(EMCState *script) {
 
 	bool running = true;
 	while (running) {
-		int inputFlag = checkInput(0);
+		int inputFlag = checkInput(nullptr);
 		removeInputTop();
 
 		if (inputFlag == 198 || inputFlag == 199)
@@ -865,11 +872,10 @@ int KyraEngine_HoF::o2_defineSceneAnim(EMCState *script) {
 	anim.height = stackPos(7);
 	anim.specialSize = stackPos(9);
 	anim.shapeIndex = stackPos(11);
-	if (stackPosString(12) != 0)
-		strcpy(anim.filename, stackPosString(12));
+	Common::strlcpy(anim.filename, stackPosString(12), sizeof(anim.filename));
 
 	if (anim.flags & 0x40) {
-		if (!_sceneAnimMovie[animId]->open(anim.filename, 1, 0))
+		if (!_sceneAnimMovie[animId]->open(anim.filename, 1, nullptr))
 			error("couldn't load '%s'", anim.filename);
 
 		if (_sceneAnimMovie[animId]->xAdd() || _sceneAnimMovie[animId]->yAdd())
@@ -1191,10 +1197,10 @@ int KyraEngine_HoF::o2_setupSceneAnimation(EMCState *script) {
 	anim.specialSize = stackPos(9);
 	anim.shapeIndex = stackPos(11);
 	if (stackPosString(12))
-		strcpy(anim.filename, stackPosString(12));
+		Common::strlcpy(anim.filename, stackPosString(12), sizeof(anim.filename));
 
 	if (flags & 0x40) {
-		_sceneAnimMovie[index]->open(stackPosString(12), 0, 0);
+		_sceneAnimMovie[index]->open(stackPosString(12), 0, nullptr);
 		if (_sceneAnimMovie[index]->xAdd() || _sceneAnimMovie[index]->yAdd())
 			anim.wsaFlag = 1;
 		else
@@ -1221,7 +1227,7 @@ int KyraEngine_HoF::o2_setupSceneAnimation(EMCState *script) {
 	if ((anim.flags & 0x20) && anim.shapeIndex >= 0)
 		obj->shapePtr = _sceneShapeTable[anim.shapeIndex];
 	else
-		obj->shapePtr = 0;
+		obj->shapePtr = nullptr;
 
 	if (anim.flags & 0x40) {
 		obj->shapeIndex3 = anim.shapeIndex;
@@ -1405,7 +1411,7 @@ int KyraEngine_HoF::o2_demoFinale(EMCState *script) {
 
 	_screen->clearPage(0);
 	_screen->loadPalette("THANKS.COL", _screen->getPalette(0));
-	_screen->loadBitmap("THANKS.CPS", 3, 3, 0);
+	_screen->loadBitmap("THANKS.CPS", 3, 3, nullptr);
 	_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0);
 
 	_screen->_curPage = 0;
@@ -1492,7 +1498,7 @@ typedef Common::Functor2Mem<const TIM *, const uint16 *, int, KyraEngine_HoF> TI
 #define OpcodeTimUnImpl() _timOpcodes.push_back(new TIMOpcodeV2(this, 0))
 
 void KyraEngine_HoF::setupOpcodeTable() {
-	Common::Array<const Opcode *> *table = 0;
+	Common::Array<const Opcode *> *table = nullptr;
 
 	_opcodes.reserve(176);
 	SetOpcodeTable(_opcodes);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,63 +30,69 @@ namespace Scumm {
 
 #if defined(SCUMM_NEED_ALIGNMENT)
 
-#define COPY_4X1_LINE(dst, src)			\
-	do {					\
-		(dst)[0] = (src)[0];	\
-		(dst)[1] = (src)[1];	\
-		(dst)[2] = (src)[2];	\
-		(dst)[3] = (src)[3];	\
+#define COPY_4X1_LINE(dst, src) \
+	do {                        \
+		(dst)[0] = (src)[0];    \
+		(dst)[1] = (src)[1];    \
+		(dst)[2] = (src)[2];    \
+		(dst)[3] = (src)[3];    \
 	} while (0)
 
-#define COPY_2X1_LINE(dst, src)			\
-	do {					\
-		(dst)[0] = (src)[0];	\
-		(dst)[1] = (src)[1];	\
+#define COPY_2X1_LINE(dst, src) \
+	do {                        \
+		(dst)[0] = (src)[0];    \
+		(dst)[1] = (src)[1];    \
 	} while (0)
 
 
 #else /* SCUMM_NEED_ALIGNMENT */
 
-#define COPY_4X1_LINE(dst, src)			\
+#define COPY_4X1_LINE(dst, src)               \
 	*(uint32 *)(dst) = *(const uint32 *)(src)
 
-#define COPY_2X1_LINE(dst, src)			\
+#define COPY_2X1_LINE(dst, src)               \
 	*(uint16 *)(dst) = *(const uint16 *)(src)
 
 #endif
 
-#define FILL_4X1_LINE(dst, val)			\
-	do {					\
-		(dst)[0] = val;	\
-		(dst)[1] = val;	\
-		(dst)[2] = val;	\
-		(dst)[3] = val;	\
+#define FILL_4X1_LINE(dst, val) \
+	do {                        \
+		(dst)[0] = val;         \
+		(dst)[1] = val;         \
+		(dst)[2] = val;         \
+		(dst)[3] = val;         \
 	} while (0)
 
-#define FILL_2X1_LINE(dst, val)			\
-	do {					\
-		(dst)[0] = val;	\
-		(dst)[1] = val;	\
+#define FILL_2X1_LINE(dst, val) \
+	do {                        \
+		(dst)[0] = val;         \
+		(dst)[1] = val;         \
 	} while (0)
 
-static const  int8 codec47_table_small1[] = {
+#define MOTION_OFFSET_TABLE_SIZE 0xF8
+#define PROCESS_SUBBLOCKS        0xFF
+#define FILL_SINGLE_COLOR        0xFE
+#define DRAW_GLYPH               0xFD
+#define COPY_PREV_BUFFER         0xFC
+
+static const  int8 codecGlyph4XVec[] = {
   0, 1, 2, 3, 3, 3, 3, 2, 1, 0, 0, 0, 1, 2, 2, 1,
 };
 
-static const int8 codec47_table_small2[] = {
+static const int8 codecGlyph4YVec[] = {
   0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 2, 1, 1, 1, 2, 2,
 };
 
-static const int8 codec47_table_big1[] = {
+static const int8 codecGlyph8XVec[] = {
   0, 2, 5, 7, 7, 7, 7, 7, 7, 5, 2, 0, 0, 0, 0, 0,
 };
 
-static const int8 codec47_table_big2[] = {
+static const int8 codecGlyph8YVec[] = {
   0, 0, 0, 0, 1, 3, 4, 6, 7, 7, 7, 7, 6, 4, 3, 1,
 };
 
-static const int8 codec47_table[] = {
-		0,   0,  -1, -43,   6, -43,  -9, -42,  13, -41,
+static const int8 codecTable[] = {
+	  0,   0,  -1, -43,   6, -43,  -9, -42,  13, -41,
 	-16, -40,  19, -39, -23, -36,  26, -34,  -2, -33,
 	  4, -33, -29, -32,  -9, -32,  11, -31, -16, -29,
 	 32, -29,  18, -28, -34, -26, -22, -25,  -1, -25,
@@ -135,134 +140,141 @@ static const int8 codec47_table[] = {
 	 38,  20, -13,  21,  12,  22, -36,  23, -24,  23,
 	 -8,  24,   7,  24,  -3,  25,   1,  25,  22,  25,
 	 34,  26, -18,  28, -32,  29,  16,  29, -11,  31,
-		9,  32,  29,  32,  -4,  33,   2,  33, -26,  34,
+	  9,  32,  29,  32,  -4,  33,   2,  33, -26,  34,
 	 23,  36, -19,  39,  16,  40, -13,  41,   9,  42,
 	 -6,  43,   1,  43,   0,   0,   0,   0,   0,   0
 };
 
-void Codec47Decoder::makeTablesInterpolation(int param) {
-	int32 variable1, variable2;
-	int32 b1, b2;
-	int32 value_table47_1_2, value_table47_1_1, value_table47_2_2, value_table47_2_1;
-	int32 tableSmallBig[64], tmp, s;
-	const int8 *table47_1 = 0, *table47_2 = 0;
-	int32 *ptr_small_big;
+enum Edge {
+    kEdgeLeft,
+    kEdgeTop,
+    kEdgeRight,
+    kEdgeBottom,
+    kEdgeNone,
+};
+
+#define NGLYPHS 256
+
+void SmushDeltaGlyphsDecoder::makeTablesInterpolation(int sideLength) {
+	int32 pos, npoints;
+	int32 edge0, edge1;
+	int32 x1, x0, y1, y0;
+	int32 tableSmallBig[64], s;
+	const int8 *xGlyph = nullptr, *yGlyph = nullptr;
+	int32 *ptrSmallBig;
 	byte *ptr;
 	int i, x, y;
 
-	if (param == 8) {
-		table47_1 = codec47_table_big1;
-		table47_2 = codec47_table_big2;
+	if (sideLength == 8) {
+		xGlyph = codecGlyph8XVec;
+		yGlyph = codecGlyph8YVec;
 		ptr = _tableBig;
-		for (i = 0; i < 256; i++) {
+		for (i = 0; i < NGLYPHS; i++) {
 			ptr[384] = 0;
 			ptr[385] = 0;
 			ptr += 388;
 		}
-	} else if (param == 4) {
-		table47_1 = codec47_table_small1;
-		table47_2 = codec47_table_small2;
+	} else if (sideLength == 4) {
+		xGlyph = codecGlyph4XVec;
+		yGlyph = codecGlyph4YVec;
 		ptr = _tableSmall;
-		for (i = 0; i < 256; i++) {
+		for (i = 0; i < NGLYPHS; i++) {
 			ptr[96] = 0;
 			ptr[97] = 0;
 			ptr += 128;
 		}
 	} else {
-		error("Codec47Decoder::makeTablesInterpolation: unknown param %d", param);
+		error("SmushDeltaGlyphsDecoder::makeTablesInterpolation(): ERROR: Unknown sideLength %d.", sideLength);
 	}
 
 	s = 0;
 	for (x = 0; x < 16; x++) {
-		value_table47_1_1 = table47_1[x];
-		value_table47_2_1 = table47_2[x];
+		x0 = xGlyph[x];
+		y0 = yGlyph[x];
+
+		if (y0 == 0) {
+			edge0 = kEdgeBottom;
+		} else if (y0 == sideLength - 1) {
+			edge0 = kEdgeTop;
+		} else if (x0 == 0) {
+			edge0 = kEdgeLeft;
+		} else if (x0 == sideLength - 1) {
+			edge0 = kEdgeRight;
+		} else {
+			edge0 = kEdgeNone;
+		}
+
 		for (y = 0; y < 16; y++) {
-			value_table47_1_2 = table47_1[y];
-			value_table47_2_2 = table47_2[y];
+			x1 = xGlyph[y];
+			y1 = yGlyph[y];
 
-			if (value_table47_2_1 == 0) {
-				b1 = 0;
-			} else if (value_table47_2_1 == param - 1) {
-				b1 = 1;
-			} else if (value_table47_1_1 == 0) {
-				b1 = 2;
-			} else if (value_table47_1_1 == param - 1) {
-				b1 = 3;
+			if (y1 == 0) {
+				edge1 = kEdgeBottom;
+			} else if (y1 == sideLength - 1) {
+				edge1 = kEdgeTop;
+			} else if (x1 == 0) {
+				edge1 = kEdgeLeft;
+			} else if (x1 == sideLength - 1) {
+				edge1 = kEdgeRight;
 			} else {
-				b1 = 4;
+				edge1 = kEdgeNone;
 			}
 
-			if (value_table47_2_2 == 0) {
-				b2 = 0;
-			} else if (value_table47_2_2 == param - 1) {
-				b2 = 1;
-			} else if (value_table47_1_2 == 0) {
-				b2 = 2;
-			} else if (value_table47_1_2 == param - 1) {
-				b2 = 3;
-			} else {
-				b2 = 4;
-			}
+			memset(tableSmallBig, 0, sideLength * sideLength * 4);
 
-			memset(tableSmallBig, 0, param * param * 4);
+			npoints = MAX(ABS(y1 - y0), ABS(x1 - x0));
 
-			variable2 = ABS(value_table47_2_2 - value_table47_2_1);
-			tmp = ABS(value_table47_1_2 - value_table47_1_1);
-			if (variable2 <= tmp) {
-				variable2 = tmp;
-			}
+			for (pos = 0; pos <= npoints; pos++) {
+				int32 yPoint, xPoint;
 
-			for (variable1 = 0; variable1 <= variable2; variable1++) {
-				int32 variable3, variable4;
-
-				if (variable2 > 0) {
-					// Linearly interpolate between value_table47_1_1 and value_table47_1_2
-					// respectively value_table47_2_1 and value_table47_2_2.
-					variable4 = (value_table47_1_1 * variable1 + value_table47_1_2 * (variable2 - variable1) + variable2 / 2) / variable2;
-					variable3 = (value_table47_2_1 * variable1 + value_table47_2_2 * (variable2 - variable1) + variable2 / 2) / variable2;
+				if (npoints > 0) {
+					// Linearly interpolate between x0 and x1
+					// respectively y0 and y1.
+					xPoint = (x0 * pos + x1 * (npoints - pos) + npoints / 2) / npoints;
+					yPoint = (y0 * pos + y1 * (npoints - pos) + npoints / 2) / npoints;
 				} else {
-					variable4 = value_table47_1_1;
-					variable3 = value_table47_2_1;
+					xPoint = x0;
+					yPoint = y0;
 				}
-				ptr_small_big = &tableSmallBig[param * variable3 + variable4];
-				*ptr_small_big = 1;
+				ptrSmallBig = &tableSmallBig[sideLength * yPoint + xPoint];
+				*ptrSmallBig = 1;
 
-				if ((b1 == 2 && b2 == 3) || (b2 == 2 && b1 == 3) ||
-				    (b1 == 0 && b2 != 1) || (b2 == 0 && b1 != 1)) {
-					if (variable3 >= 0) {
-						i = variable3 + 1;
+				if ((edge0 == kEdgeLeft && edge1 == kEdgeRight) || (edge1 == kEdgeLeft && edge0 == kEdgeRight) ||
+				    (edge0 == kEdgeBottom && edge1 != kEdgeTop) || (edge1 == kEdgeBottom && edge0 != kEdgeTop)) {
+					if (yPoint >= 0) {
+						i = yPoint + 1;
 						while (i--) {
-							*ptr_small_big = 1;
-							ptr_small_big -= param;
+							*ptrSmallBig = 1;
+							ptrSmallBig -= sideLength;
 						}
 					}
-				} else if ((b2 != 0 && b1 == 1) || (b1 != 0 && b2 == 1)) {
-					if (param > variable3) {
-						i = param - variable3;
+				} else if ((edge1 != kEdgeBottom && edge0 == kEdgeTop) || (edge0 != kEdgeBottom && edge1 == kEdgeTop)) {
+					if (sideLength > yPoint) {
+						i = sideLength - yPoint;
 						while (i--) {
-							*ptr_small_big = 1;
-							ptr_small_big += param;
+							*ptrSmallBig = 1;
+							ptrSmallBig += sideLength;
 						}
 					}
-				} else if ((b1 == 2 && b2 != 3) || (b2 == 2 && b1 != 3)) {
-					if (variable4 >= 0) {
-						i = variable4 + 1;
+				} else if ((edge0 == kEdgeLeft && edge1 != kEdgeRight) || (edge1 == kEdgeLeft && edge0 != kEdgeRight)) {
+					if (xPoint >= 0) {
+						i = xPoint + 1;
 						while (i--) {
-							*(ptr_small_big--) = 1;
+							*(ptrSmallBig--) = 1;
 						}
 					}
-				} else if ((b1 == 0 && b2 == 1) || (b2 == 0 && b1 == 1) ||
-				           (b1 == 3 && b2 != 2) || (b2 == 3 && b1 != 2)) {
-					if (param > variable4) {
-						i = param - variable4;
+				} else if ((edge0 == kEdgeBottom && edge1 == kEdgeTop) || (edge1 == kEdgeBottom && edge0 == kEdgeTop) ||
+				           (edge0 == kEdgeRight && edge1 != kEdgeLeft) || (edge1 == kEdgeRight && edge0 != kEdgeLeft)) {
+					if (sideLength > xPoint) {
+						i = sideLength - xPoint;
 						while (i--) {
-							*(ptr_small_big++) = 1;
+							*(ptrSmallBig++) = 1;
 						}
 					}
 				}
 			}
 
-			if (param == 8) {
+			if (sideLength == 8) {
 				for (i = 64 - 1; i >= 0; i--) {
 					if (tableSmallBig[i] != 0) {
 						_tableBig[256 + s + _tableBig[384 + s]] = (byte)i;
@@ -274,7 +286,7 @@ void Codec47Decoder::makeTablesInterpolation(int param) {
 				}
 				s += 388;
 			}
-			if (param == 4) {
+			if (sideLength == 4) {
 				for (i = 16 - 1; i >= 0; i--) {
 					if (tableSmallBig[i] != 0) {
 						_tableSmall[64 + s + _tableSmall[96 + s]] = (byte)i;
@@ -290,7 +302,7 @@ void Codec47Decoder::makeTablesInterpolation(int param) {
 	}
 }
 
-void Codec47Decoder::makeTables47(int width) {
+void SmushDeltaGlyphsDecoder::makeCodecTables(int width) {
 	if (_lastTableWidth == width)
 		return;
 
@@ -299,8 +311,8 @@ void Codec47Decoder::makeTables47(int width) {
 	int32 a, c, d;
 	int16 tmp;
 
-	for (int l = 0; l < ARRAYSIZE(codec47_table); l += 2) {
-		_table[l / 2] = (int16)(codec47_table[l + 1] * width + codec47_table[l]);
+	for (int l = 0; l < ARRAYSIZE(codecTable); l += 2) {
+		_table[l / 2] = (int16)(codecTable[l + 1] * width + codecTable[l]);
 	}
 	// Note: _table[255] is never inited; but since only the first 0xF8
 	// entries of it are used anyway, this doesn't matter.
@@ -360,176 +372,176 @@ extern "C" void ARM_Smush_decode2(      byte  *dst,
 				   _offset1,_offset2,_tableSmall)
 
 #else
-void Codec47Decoder::level3(byte *d_dst) {
+void SmushDeltaGlyphsDecoder::level3(byte *dDst) {
 	int32 tmp;
-	byte code = *_d_src++;
+	byte code = *_dSrc++;
 
-	if (code < 0xF8) {
+	if (code < MOTION_OFFSET_TABLE_SIZE) {
 		tmp = _table[code] + _offset1;
-		COPY_2X1_LINE(d_dst, d_dst + tmp);
-		COPY_2X1_LINE(d_dst + _d_pitch, d_dst + _d_pitch + tmp);
-	} else if (code == 0xFF) {
-		COPY_2X1_LINE(d_dst, _d_src + 0);
-		COPY_2X1_LINE(d_dst + _d_pitch, _d_src + 2);
-		_d_src += 4;
-	} else if (code == 0xFE) {
-		byte t = *_d_src++;
-		FILL_2X1_LINE(d_dst, t);
-		FILL_2X1_LINE(d_dst + _d_pitch, t);
-	} else if (code == 0xFC) {
+		COPY_2X1_LINE(dDst, dDst + tmp);
+		COPY_2X1_LINE(dDst + _dPitch, dDst + _dPitch + tmp);
+	} else if (code == PROCESS_SUBBLOCKS) {
+		COPY_2X1_LINE(dDst, _dSrc + 0);
+		COPY_2X1_LINE(dDst + _dPitch, _dSrc + 2);
+		_dSrc += 4;
+	} else if (code == FILL_SINGLE_COLOR) {
+		byte t = *_dSrc++;
+		FILL_2X1_LINE(dDst, t);
+		FILL_2X1_LINE(dDst + _dPitch, t);
+	} else if (code == COPY_PREV_BUFFER) {
 		tmp = _offset2;
-		COPY_2X1_LINE(d_dst, d_dst + tmp);
-		COPY_2X1_LINE(d_dst + _d_pitch, d_dst + _d_pitch + tmp);
+		COPY_2X1_LINE(dDst, dDst + tmp);
+		COPY_2X1_LINE(dDst + _dPitch, dDst + _dPitch + tmp);
 	} else {
 		byte t = _paramPtr[code];
-		FILL_2X1_LINE(d_dst, t);
-		FILL_2X1_LINE(d_dst + _d_pitch, t);
+		FILL_2X1_LINE(dDst, t);
+		FILL_2X1_LINE(dDst + _dPitch, t);
 	}
 }
 
-void Codec47Decoder::level2(byte *d_dst) {
+void SmushDeltaGlyphsDecoder::level2(byte *d_dst) {
 	int32 tmp;
-	byte code = *_d_src++;
+	byte code = *_dSrc++;
 	int i;
 
-	if (code < 0xF8) {
+	if (code < MOTION_OFFSET_TABLE_SIZE) {
 		tmp = _table[code] + _offset1;
 		for (i = 0; i < 4; i++) {
 			COPY_4X1_LINE(d_dst, d_dst + tmp);
-			d_dst += _d_pitch;
+			d_dst += _dPitch;
 		}
-	} else if (code == 0xFF) {
+	} else if (code == PROCESS_SUBBLOCKS) {
 		level3(d_dst);
 		d_dst += 2;
 		level3(d_dst);
-		d_dst += _d_pitch * 2 - 2;
+		d_dst += _dPitch * 2 - 2;
 		level3(d_dst);
 		d_dst += 2;
 		level3(d_dst);
-	} else if (code == 0xFE) {
-		byte t = *_d_src++;
+	} else if (code == FILL_SINGLE_COLOR) {
+		byte t = *_dSrc++;
 		for (i = 0; i < 4; i++) {
 			FILL_4X1_LINE(d_dst, t);
-			d_dst += _d_pitch;
+			d_dst += _dPitch;
 		}
-	} else if (code == 0xFD) {
-		byte *tmp_ptr = _tableSmall + *_d_src++ * 128;
-		int32 l = tmp_ptr[96];
-		byte val = *_d_src++;
-		int16 *tmp_ptr2 = (int16 *)tmp_ptr;
+	} else if (code == DRAW_GLYPH) {
+		byte *tmpPtr = _tableSmall + *_dSrc++ * 128;
+		int32 l = tmpPtr[96];
+		byte val = *_dSrc++;
+		int16 *tmpPtr2 = (int16 *)tmpPtr;
 		while (l--) {
-			*(d_dst + READ_LE_UINT16(tmp_ptr2)) = val;
-			tmp_ptr2++;
+			*(d_dst + READ_LE_UINT16(tmpPtr2)) = val;
+			tmpPtr2++;
 		}
-		l = tmp_ptr[97];
-		val = *_d_src++;
-		tmp_ptr2 = (int16 *)(tmp_ptr + 32);
+		l = tmpPtr[97];
+		val = *_dSrc++;
+		tmpPtr2 = (int16 *)(tmpPtr + 32);
 		while (l--) {
-			*(d_dst + READ_LE_UINT16(tmp_ptr2)) = val;
-			tmp_ptr2++;
+			*(d_dst + READ_LE_UINT16(tmpPtr2)) = val;
+			tmpPtr2++;
 		}
-	} else if (code == 0xFC) {
+	} else if (code == COPY_PREV_BUFFER) {
 		tmp = _offset2;
 		for (i = 0; i < 4; i++) {
 			COPY_4X1_LINE(d_dst, d_dst + tmp);
-			d_dst += _d_pitch;
+			d_dst += _dPitch;
 		}
 	} else {
 		byte t = _paramPtr[code];
 		for (i = 0; i < 4; i++) {
 			FILL_4X1_LINE(d_dst, t);
-			d_dst += _d_pitch;
+			d_dst += _dPitch;
 		}
 	}
 }
 
-void Codec47Decoder::level1(byte *d_dst) {
-	int32 tmp, tmp2;
-	byte code = *_d_src++;
+void SmushDeltaGlyphsDecoder::level1(byte *d_dst) {
+	int32 tmp;
+	byte code = *_dSrc++;
 	int i;
 
-	if (code < 0xF8) {
-		tmp2 = _table[code] + _offset1;
+	if (code < MOTION_OFFSET_TABLE_SIZE) {
+		tmp = _table[code] + _offset1;
 		for (i = 0; i < 8; i++) {
-			COPY_4X1_LINE(d_dst + 0, d_dst + tmp2);
-			COPY_4X1_LINE(d_dst + 4, d_dst + tmp2 + 4);
-			d_dst += _d_pitch;
+			COPY_4X1_LINE(d_dst + 0, d_dst + tmp);
+			COPY_4X1_LINE(d_dst + 4, d_dst + tmp + 4);
+			d_dst += _dPitch;
 		}
-	} else if (code == 0xFF) {
+	} else if (code == PROCESS_SUBBLOCKS) {
 		level2(d_dst);
 		d_dst += 4;
 		level2(d_dst);
-		d_dst += _d_pitch * 4 - 4;
+		d_dst += _dPitch * 4 - 4;
 		level2(d_dst);
 		d_dst += 4;
 		level2(d_dst);
-	} else if (code == 0xFE) {
-		byte t = *_d_src++;
+	} else if (code == FILL_SINGLE_COLOR) {
+		byte t = *_dSrc++;
 		for (i = 0; i < 8; i++) {
 			FILL_4X1_LINE(d_dst, t);
 			FILL_4X1_LINE(d_dst + 4, t);
-			d_dst += _d_pitch;
+			d_dst += _dPitch;
 		}
-	} else if (code == 0xFD) {
-		tmp = *_d_src++;
-		byte *tmp_ptr = _tableBig + tmp * 388;
-		byte l = tmp_ptr[384];
-		byte val = *_d_src++;
-		int16 *tmp_ptr2 = (int16 *)tmp_ptr;
+	} else if (code == DRAW_GLYPH) {
+		tmp = *_dSrc++;
+		byte *tmpPtr = _tableBig + tmp * 388;
+		byte l = tmpPtr[384];
+		byte val = *_dSrc++;
+		int16 *tmpPtr2 = (int16 *)tmpPtr;
 		while (l--) {
-			*(d_dst + READ_LE_UINT16(tmp_ptr2)) = val;
-			tmp_ptr2++;
+			*(d_dst + READ_LE_UINT16(tmpPtr2)) = val;
+			tmpPtr2++;
 		}
-		l = tmp_ptr[385];
-		val = *_d_src++;
-		tmp_ptr2 = (int16 *)(tmp_ptr + 128);
+		l = tmpPtr[385];
+		val = *_dSrc++;
+		tmpPtr2 = (int16 *)(tmpPtr + 128);
 		while (l--) {
-			*(d_dst + READ_LE_UINT16(tmp_ptr2)) = val;
-			tmp_ptr2++;
+			*(d_dst + READ_LE_UINT16(tmpPtr2)) = val;
+			tmpPtr2++;
 		}
-	} else if (code == 0xFC) {
-		tmp2 = _offset2;
+	} else if (code == COPY_PREV_BUFFER) {
+		tmp = _offset2;
 		for (i = 0; i < 8; i++) {
-			COPY_4X1_LINE(d_dst + 0, d_dst + tmp2);
-			COPY_4X1_LINE(d_dst + 4, d_dst + tmp2 + 4);
-			d_dst += _d_pitch;
+			COPY_4X1_LINE(d_dst + 0, d_dst + tmp);
+			COPY_4X1_LINE(d_dst + 4, d_dst + tmp + 4);
+			d_dst += _dPitch;
 		}
 	} else {
 		byte t = _paramPtr[code];
 		for (i = 0; i < 8; i++) {
 			FILL_4X1_LINE(d_dst, t);
 			FILL_4X1_LINE(d_dst + 4, t);
-			d_dst += _d_pitch;
+			d_dst += _dPitch;
 		}
 	}
 }
 
-void Codec47Decoder::decode2(byte *dst, const byte *src, int width, int height, const byte *param_ptr) {
-	_d_src = src;
-	_paramPtr = param_ptr - 0xf8;
+void SmushDeltaGlyphsDecoder::decode2(byte *dst, const byte *src, int width, int height, const byte *param_ptr) {
+	_dSrc = src;
+	_paramPtr = param_ptr - MOTION_OFFSET_TABLE_SIZE;
 	int bw = (width + 7) / 8;
 	int bh = (height + 7) / 8;
-	int next_line = width * 7;
-	_d_pitch = width;
+	int nextLine = width * 7;
+	_dPitch = width;
 
 	do {
-		int tmp_bw = bw;
+		int tmpBw = bw;
 		do {
 			level1(dst);
 			dst += 8;
-		} while (--tmp_bw);
-		dst += next_line;
+		} while (--tmpBw);
+		dst += nextLine;
 	} while (--bh);
 }
 #endif
 
-Codec47Decoder::Codec47Decoder(int width, int height) {
+SmushDeltaGlyphsDecoder::SmushDeltaGlyphsDecoder(int width, int height) : _prevSeqNb(0), _dSrc(nullptr), _paramPtr(nullptr), _dPitch(0), _offset1(0), _offset2(0) {
 	_lastTableWidth = -1;
 	_width = width;
 	_height = height;
-	_tableBig = (byte *)malloc(256 * 388);
-	_tableSmall = (byte *)malloc(256 * 128);
-	if ((_tableBig != NULL) && (_tableSmall != NULL)) {
+	_tableBig = (byte *)malloc(NGLYPHS * 388);
+	_tableSmall = (byte *)malloc(NGLYPHS * 128);
+	if ((_tableBig != nullptr) && (_tableSmall != nullptr)) {
 		makeTablesInterpolation(4);
 		makeTablesInterpolation(8);
 	}
@@ -542,58 +554,58 @@ Codec47Decoder::Codec47Decoder(int width, int height) {
 	_curBuf = _deltaBuf + _frameSize * 2;
 }
 
-Codec47Decoder::~Codec47Decoder() {
+SmushDeltaGlyphsDecoder::~SmushDeltaGlyphsDecoder() {
 	if (_tableBig) {
 		free(_tableBig);
-		_tableBig = NULL;
+		_tableBig = nullptr;
 	}
 	if (_tableSmall) {
 		free(_tableSmall);
-		_tableSmall = NULL;
+		_tableSmall = nullptr;
 	}
 	_lastTableWidth = -1;
 	if (_deltaBuf) {
 		free(_deltaBuf);
 		_deltaSize = 0;
-		_deltaBuf = NULL;
-		_deltaBufs[0] = NULL;
-		_deltaBufs[1] = NULL;
+		_deltaBuf = nullptr;
+		_deltaBufs[0] = nullptr;
+		_deltaBufs[1] = nullptr;
 	}
 }
 
-bool Codec47Decoder::decode(byte *dst, const byte *src) {
-	if ((_tableBig == NULL) || (_tableSmall == NULL) || (_deltaBuf == NULL))
+bool SmushDeltaGlyphsDecoder::decode(byte *dst, const byte *src) {
+	if ((_tableBig == nullptr) || (_tableSmall == nullptr) || (_deltaBuf == nullptr))
 		return false;
 
 	_offset1 = _deltaBufs[1] - _curBuf;
 	_offset2 = _deltaBufs[0] - _curBuf;
 
-	int32 seq_nb = READ_LE_UINT16(src + 0);
+	int32 seqNb = READ_LE_UINT16(src + 0);
 
-	const byte *gfx_data = src + 26;
+	const byte *gfxData = src + 26;
 
-	if (seq_nb == 0) {
-		makeTables47(_width);
+	if (seqNb == 0) {
+		makeCodecTables(_width);
 		memset(_deltaBufs[0], src[12], _frameSize);
 		memset(_deltaBufs[1], src[13], _frameSize);
 		_prevSeqNb = -1;
 	}
 
 	if ((src[4] & 1) != 0) {
-		gfx_data += 32896;
+		gfxData += 32896;
 	}
 
 	switch (src[2]) {
 	case 0:
-		memcpy(_curBuf, gfx_data, _frameSize);
+		memcpy(_curBuf, gfxData, _frameSize);
 		break;
 	case 1:
 		// Used by Outlaws, but not by any SCUMM game.
-		error("codec47: not implemented decode1 proc");
+		error("SmushDeltaGlyphsDecoder::decode(): ERROR: Case 1 not implemented (used by Outlaws).");
 		break;
 	case 2:
-		if (seq_nb == _prevSeqNb + 1) {
-			decode2(_curBuf, gfx_data, _width, _height, src + 8);
+		if (seqNb == _prevSeqNb + 1) {
+			decode2(_curBuf, gfxData, _width, _height, src + 8);
 		}
 		break;
 	case 3:
@@ -603,7 +615,7 @@ bool Codec47Decoder::decode(byte *dst, const byte *src) {
 		memcpy(_curBuf, _deltaBufs[0], _frameSize);
 		break;
 	case 5:
-		bompDecodeLine(_curBuf, gfx_data, READ_LE_UINT32(src + 14));
+		bompDecodeLine(_curBuf, gfxData, READ_LE_UINT32(src + 14));
 		break;
 	default:
 		break;
@@ -611,7 +623,7 @@ bool Codec47Decoder::decode(byte *dst, const byte *src) {
 
 	memcpy(dst, _curBuf, _frameSize);
 
-	if (seq_nb == _prevSeqNb + 1) {
+	if (seqNb == _prevSeqNb + 1) {
 		if (src[3] == 1) {
 			SWAP(_curBuf, _deltaBufs[1]);
 		} else if (src[3] == 2) {
@@ -619,7 +631,7 @@ bool Codec47Decoder::decode(byte *dst, const byte *src) {
 			SWAP(_deltaBufs[1], _curBuf);
 		}
 	}
-	_prevSeqNb = seq_nb;
+	_prevSeqNb = seqNb;
 
 	return true;
 }

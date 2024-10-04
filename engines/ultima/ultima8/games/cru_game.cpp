@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/config-manager.h"
+#include "common/file.h"
 #include "common/translation.h"
 
-#include "ultima/ultima8/misc/pent_include.h"
+#include "ultima/ultima8/misc/common_types.h"
 #include "ultima/ultima8/games/cru_game.h"
 #include "ultima/ultima8/games/start_crusader_process.h"
-#include "ultima/ultima8/filesys/file_system.h"
-#include "ultima/ultima8/graphics/palette_manager.h"
+#include "ultima/ultima8/gfx/palette_manager.h"
 #include "ultima/ultima8/gumps/movie_gump.h"
 #include "ultima/ultima8/gumps/gump_notify_process.h"
 #include "ultima/ultima8/gumps/main_menu_process.h"
@@ -36,7 +35,7 @@
 #include "ultima/ultima8/kernel/object_manager.h"
 #include "ultima/ultima8/kernel/kernel.h"
 #include "ultima/ultima8/world/world.h"
-#include "ultima/ultima8/graphics/xform_blend.h"
+#include "ultima/ultima8/gfx/xform_blend.h"
 #include "ultima/ultima8/games/game_data.h"
 #include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/world/item_factory.h"
@@ -57,22 +56,21 @@ CruGame::~CruGame() {
 }
 
 static bool loadPalette(const char *path, PaletteManager::PalIndex index) {
-	Common::SeekableReadStream *pf = FileSystem::get_instance()->ReadFile(path);
-	if (!pf) {
-		perr << "Unable to load " << path << Std::endl;
+	Common::File pf;
+	if (!pf.open(path)) {
+		warning("Unable to load %s", path);
 		return false;
 	}
 
 	Common::MemoryReadStream xfds(CruXFormPal, 1024);
-	PaletteManager::get_instance()->load(index, *pf, xfds);
-	delete pf;
+	PaletteManager::get_instance()->load(index, pf, xfds);
 
 	return true;
 }
 
 bool CruGame::loadFiles() {
 	// Load palette
-	pout << "Load Palettes" << Std::endl;
+	debug(1, "Load Palettes");
 
 	if (!loadPalette("static/gamepal.pal", PaletteManager::Pal_Game))
 		return false;
@@ -88,7 +86,7 @@ bool CruGame::loadFiles() {
 	// We don't use his one at the moment, ok to fail.
 	loadPalette("static/star.pal", PaletteManager::Pal_Star);
 
-	pout << "Load GameData" << Std::endl;
+	debug(1, "Load GameData");
 	GameData::get_instance()->loadRemorseData();
 
 	return true;
@@ -96,8 +94,7 @@ bool CruGame::loadFiles() {
 
 bool CruGame::startGame() {
 	// NOTE: assumes the entire engine has been reset!
-
-	pout << "Starting new Crusader: No Remorse game." << Std::endl;
+	debug(1, "Starting new Crusader: No Remorse game.");
 
 	ObjectManager *objman = ObjectManager::get_instance();
 
@@ -151,7 +148,7 @@ bool CruGame::startInitialUsecode(int saveSlot) {
 static ProcId playMovie(const char *movieID, bool fade, bool noScale) {
 	MovieGump *gump = MovieGump::CruMovieViewer(movieID, 640, 480, nullptr, nullptr, 0);
 	if (!gump) {
-		pout << "RemorseGame::playIntro: movie " << movieID << " not found." << Std::endl;
+		debug(1, "RemorseGame::playIntro: movie %s not found.", movieID);
 		return 0;
 	}
 	gump->CreateNotifier();
@@ -185,11 +182,11 @@ void CruGame::playDemoScreen() {
 	Process *menuproc = new MainMenuProcess();
 	Kernel::get_instance()->addProcess(menuproc);
 
-	static const Std::string bmp_filename = "static/buyme.dat";
-	Common::SeekableReadStream *bmprs = FileSystem::get_instance()->ReadFile(bmp_filename);
-	if (!bmprs) {
-		perr << "RemorseGame::playDemoScreen: error opening demo background: "
-			 << bmp_filename << Std::endl;
+	static const Common::Path bmp_filename = "static/buyme.dat";
+	auto *bmprs = new Common::File();
+	if (!bmprs->open(bmp_filename)) {
+		warning("RemorseGame::playDemoScreen: error opening demo background: %s", bmp_filename.toString().c_str());
+		delete bmprs;
 		return;
 	}
 	Gump *gump = new CruDemoGump(bmprs);
@@ -203,21 +200,25 @@ void CruGame::playDemoScreen() {
 }
 
 ProcId CruGame::playCreditsNoMenu() {
-	static const Std::string txt_filename = "static/credits.dat";
-	static const Std::string bmp_filename = "static/cred.dat";
-	Common::SeekableReadStream *txtrs = FileSystem::get_instance()->ReadFile(txt_filename);
-	Common::SeekableReadStream *bmprs = FileSystem::get_instance()->ReadFile(bmp_filename);
+	static const Common::Path txt_filename = "static/credits.dat";
+	static const Common::Path bmp_filename = "static/cred.dat";
+	auto *txtrs = new Common::File();
+	auto *bmprs = new Common::File();
 
-	if (!txtrs) {
-		perr << "RemorseGame::playCredits: error opening credits text: "
-			 << txt_filename << Std::endl;
+	if (!txtrs->open(txt_filename)) {
+		warning("RemorseGame::playCredits: error opening credits text: %s", txt_filename.toString().c_str());
+		delete txtrs;
+		delete bmprs;
 		return 0;
 	}
-	if (!bmprs) {
-		perr << "RemorseGame::playCredits: error opening credits background: "
-			 << bmp_filename << Std::endl;
+
+	if (!bmprs->open(bmp_filename)) {
+		warning("RemorseGame::playCredits: error opening credits background: %s", bmp_filename.toString().c_str());
+		delete txtrs;
+		delete bmprs;
 		return 0;
 	}
+
 	Gump *creditsgump = new CruCreditsGump(txtrs, bmprs);
 	creditsgump->InitGump(nullptr);
 	creditsgump->CreateNotifier();

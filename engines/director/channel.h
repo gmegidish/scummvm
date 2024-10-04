@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define DIRECTOR_CHANNEL_H
 
 #include "director/cursor.h"
+#include "director/sprite.h"
 
 namespace Graphics {
 	struct Surface;
@@ -35,15 +35,23 @@ namespace Director {
 
 class Sprite;
 class Cursor;
+class Score;
 
 class Channel {
 public:
-	Channel(Sprite *sp, int priority = 0);
+	Channel(Score *sc, Sprite *sp, int priority = 0);
+	Channel(const Channel &channel);
+	Channel& operator=(const Channel &channel);
 	~Channel();
 
 	DirectorPlotData getPlotData();
 	const Graphics::Surface *getMask(bool forceMatte = false);
-	Common::Rect getBbox(bool unstretched = false);
+
+	inline int getWidth() { return _sprite->_width; };
+	inline int getHeight() { return _sprite->_height; };
+	inline Common::Point getPosition() { return _sprite->getPosition(); };
+	// Return the area of screen to be used for drawing content.
+	inline Common::Rect getBbox(bool unstretched = false) { return _sprite->getBbox(unstretched); };
 
 	bool isStretched();
 	bool isDirty(Sprite *nextSprite = nullptr);
@@ -55,11 +63,14 @@ public:
 	bool isActiveVideo();
 	bool isVideoDirectToStage();
 
-	void setWidth(int w);
-	void setHeight(int h);
-	void setBbox(int l, int t, int r, int b);
+	inline void setWidth(int w) { _sprite->setWidth(w); replaceWidget(); _dirty = true; };
+	inline void setHeight(int h) { _sprite->setHeight(h); replaceWidget(); _dirty = true; };
+	inline void setBbox(int l, int t, int r, int b) { _sprite->setBbox(l, t, r, b); replaceWidget(); _dirty = true; };
+	void setPosition(int x, int y, bool force = false);
 	void setCast(CastMemberID memberID);
-	void setClean(Sprite *nextSprite, int spriteId, bool partial = false);
+	void setClean(Sprite *nextSprite, bool partial = false);
+	void setStretch(bool enabled);
+	bool getEditable();
 	void setEditable(bool editable);
 	void replaceSprite(Sprite *nextSprite);
 	void replaceWidget(CastMemberID previousCastId = CastMemberID(0, 0), bool force = false);
@@ -70,7 +81,6 @@ public:
 
 	void updateGlobalAttr();
 
-	void addDelta(Common::Point pos);
 	bool canKeepWidget(CastMemberID castId);
 	bool canKeepWidget(Sprite *currentSprite, Sprite *nextSprite);
 
@@ -81,6 +91,10 @@ public:
 
 	void updateVideoTime();
 
+	// used for film loops
+	bool hasSubChannels();
+	Common::Array<Channel> *getSubChannels();
+
 public:
 	Sprite *_sprite;
 	Cursor _cursor;
@@ -89,13 +103,9 @@ public:
 	bool _dirty;
 	bool _visible;
 	uint _constraint;
-	Common::Point _currentPoint;
-	Common::Point _delta;
 	Graphics::ManagedSurface *_mask;
 
 	int _priority;
-	int _width;
-	int _height;
 
 	// Used in digital movie sprites
 	double _movieRate;
@@ -108,9 +118,7 @@ public:
 
 private:
 	Graphics::ManagedSurface *getSurface();
-	Common::Point getPosition();
-
-	void addRegistrationOffset(Common::Point &pos, bool subtract = false);
+	Score *_score;
 };
 
 } // End of namespace Director

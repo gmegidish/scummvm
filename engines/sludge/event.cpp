@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,7 @@
 #include "sludge/graphics.h"
 #include "sludge/freeze.h"
 #include "sludge/function.h"
+#include "sludge/movie.h"
 #include "sludge/newfatal.h"
 #include "sludge/objtypes.h"
 #include "sludge/region.h"
@@ -35,7 +35,6 @@
 
 namespace Sludge {
 
-extern Variable *launchResult;
 extern VariableStack *noStack;
 
 EventManager::EventManager(SludgeEngine *vm) {
@@ -148,23 +147,6 @@ void EventManager::checkInput() {
 }
 
 bool EventManager::handleInput() {
-	static int l = 0;
-
-	if (!_vm->launchMe.empty()) {
-		if (l) {
-			// Still paused because of spawned thingy...
-		} else {
-			l = 1;
-
-			launchResult->setVariable(SVT_INT, 0/*launch(launchMe) > 31*/); //TODO:false value
-			_vm->launchMe.clear();
-			launchResult = nullptr;
-		}
-		return true;
-	} else {
-		l = 0;
-	}
-
 	if (!_vm->_regionMan->getOverRegion())
 		_vm->_regionMan->updateOverRegion();
 
@@ -305,7 +287,7 @@ bool EventManager::handleInput() {
 		default:
 			if (_input.keyPressed >= 256) {
 				char tmp[7] = "ABCDEF";
-				sprintf(tmp, "%i", _input.keyPressed);
+				Common::sprintf_s(tmp, "%i", _input.keyPressed);
 				tempString = tmp;
 				//}
 			} else {
@@ -316,6 +298,8 @@ bool EventManager::handleInput() {
 		}
 
 		if (!tempString.empty()) {
+			if (isMoviePlaying())
+				stopMovie();
 			VariableStack *tempStack = new VariableStack;
 			if (!checkNew(tempStack))
 				return false;

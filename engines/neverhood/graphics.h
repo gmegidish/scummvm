@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -125,10 +124,10 @@ protected:
 
 class ShadowSurface : public BaseSurface {
 public:
-	ShadowSurface(NeverhoodEngine *vm, int priority, int16 width, int16 height, BaseSurface *shadowSurface);
+	ShadowSurface(NeverhoodEngine *vm, int priority, int16 width, int16 height, const Common::SharedPtr<BaseSurface> &shadowSurface);
 	void draw() override;
 protected:
-	BaseSurface *_shadowSurface;
+	Common::SharedPtr<BaseSurface> _shadowSurface;
 };
 
 class FontSurface : public BaseSurface {
@@ -137,7 +136,7 @@ public:
 	FontSurface(NeverhoodEngine *vm, uint32 fileHash, uint charsPerRow, uint16 numRows, byte firstChar, uint16 charWidth, uint16 charHeight);
 	~FontSurface() override;
 	void drawChar(BaseSurface *destSurface, int16 x, int16 y, byte chr);
-	void drawString(BaseSurface *destSurface, int16 x, int16 y, const byte *string, int stringLen = -1);
+	void drawString(const Common::SharedPtr<BaseSurface> &destSurface, int16 x, int16 y, const byte *string, int stringLen = -1);
 	int16 getStringWidth(const byte *string, int stringLen);
 	uint16 getCharWidth() const { return _charWidth; }
 	uint16 getCharHeight() const { return _charHeight; }

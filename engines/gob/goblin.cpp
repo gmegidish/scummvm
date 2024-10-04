@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -45,7 +50,7 @@ Goblin::Goblin(GobEngine *vm) : _vm(vm) {
 	_itemByteFlag = 0;
 	_destItemId = -1;
 	_destActionItem = 0;
-	_actDestItemDesc = 0;
+	_actDestItemDesc = nullptr;
 	_forceNextState[0] = -1;
 	_forceNextState[1] = -1;
 	_forceNextState[2] = -1;
@@ -61,10 +66,10 @@ Goblin::Goblin(GobEngine *vm) : _vm(vm) {
 	_positionedGob = 5;
 
 	_noPick = 0;
-	_objList = 0;
+	_objList = nullptr;
 
 	for (int i = 0; i < 4; i++)
-		_goblins[i] = 0;
+		_goblins[i] = nullptr;
 	for (int i = 0; i < 3; i++) {
 		_gobPositions[i].x = 0;
 		_gobPositions[i].y = 0;
@@ -81,7 +86,7 @@ Goblin::Goblin(GobEngine *vm) : _vm(vm) {
 	_destItemState = 0;
 	for (int i = 0; i < 20; i++) {
 		_itemToObject[i] = 0;
-		_objects[i] = 0;
+		_objects[i] = nullptr;
 	}
 	_objCount = 0;
 	_gobsCount = 0;
@@ -108,10 +113,8 @@ Goblin::~Goblin() {
 		if (_goblins[i]) {
 			if (_goblins[i]->realStateMach) {
 				for (state = 0; state < (i == 3 ? 70 : 40); state++)
-					if (_goblins[i]->realStateMach[state])
-						for (col = 0; col < 6; col++)
-							if (_goblins[i]->realStateMach[state][col])
-								delete _goblins[i]->realStateMach[state][col];
+					for (col = 0; col < 6; col++)
+						delete _goblins[i]->realStateMach[state][col];
 				delete[] _goblins[i]->realStateMach;
 			}
 			delete _goblins[i];
@@ -146,7 +149,7 @@ int16 Goblin::peekGoblin(Gob_Object *_curGob) {
 
 	ptr = _objList->pHead;
 	index = 0;
-	while (ptr != 0) {
+	while (ptr != nullptr) {
 		desc = (Gob_Object *)ptr->pData;
 		if (desc != _curGob) {
 			for (i = 0; i < 3; i++) {
@@ -168,8 +171,8 @@ int16 Goblin::peekGoblin(Gob_Object *_curGob) {
 
 void Goblin::initList() {
 	_objList = new Util::List;
-	_objList->pHead = 0;
-	_objList->pTail = 0;
+	_objList->pHead = nullptr;
+	_objList->pTail = nullptr;
 }
 
 void Goblin::sortByOrder(Util::List *list) {
@@ -177,8 +180,8 @@ void Goblin::sortByOrder(Util::List *list) {
 	Util::ListNode *ptr2;
 
 	ptr = list->pHead;
-	while (ptr->pNext != 0) {
-		for (ptr2 = ptr->pNext; ptr2 != 0; ptr2 = ptr2->pNext) {
+	while (ptr->pNext != nullptr) {
+		for (ptr2 = ptr->pNext; ptr2 != nullptr; ptr2 = ptr2->pNext) {
 			Gob_Object *objDesc = (Gob_Object *)ptr->pData;
 			Gob_Object *objDesc2 = (Gob_Object *)ptr2->pData;
 
@@ -217,7 +220,7 @@ void Goblin::drawObjects() {
 	int16 layer;
 
 	ptr = _objList->pHead;
-	for (ptr = _objList->pHead; ptr != 0; ptr = ptr->pNext) {
+	for (ptr = _objList->pHead; ptr != nullptr; ptr = ptr->pNext) {
 		objDesc = (Gob_Object *)ptr->pData;
 
 		if (objDesc->type == 3)
@@ -226,7 +229,7 @@ void Goblin::drawObjects() {
 			objDesc->toRedraw = 0;
 	}
 
-	for (ptr = _objList->pHead; ptr != 0; ptr = ptr->pNext) {
+	for (ptr = _objList->pHead; ptr != nullptr; ptr = ptr->pNext) {
 		objDesc = (Gob_Object *)ptr->pData;
 		if (objDesc->toRedraw == 0)
 			continue;
@@ -270,7 +273,7 @@ void Goblin::drawObjects() {
 	}
 
 	sortByOrder(_objList);
-	for (ptr = _objList->pHead; ptr != 0; ptr = ptr->pNext) {
+	for (ptr = _objList->pHead; ptr != nullptr; ptr = ptr->pNext) {
 		objDesc = (Gob_Object *)ptr->pData;
 		if (objDesc->toRedraw) {
 			layer =
@@ -318,7 +321,7 @@ void Goblin::drawObjects() {
 		}
 
 		if ((objDesc->type == 0) && (objDesc->visible != 0)) {
-			for (ptr2 = _objList->pHead; ptr2 != 0; ptr2 = ptr2->pNext) {
+			for (ptr2 = _objList->pHead; ptr2 != nullptr; ptr2 = ptr2->pNext) {
 				gobDesc2 = (Gob_Object *)ptr2->pData;
 
 				if (gobDesc2->toRedraw == 0)
@@ -354,7 +357,7 @@ void Goblin::drawObjects() {
 		}
 	}
 
-	for (ptr = _objList->pHead; ptr != 0; ptr = ptr->pNext) {
+	for (ptr = _objList->pHead; ptr != nullptr; ptr = ptr->pNext) {
 		objDesc = (Gob_Object *)ptr->pData;
 		if ((objDesc->toRedraw == 0) || (objDesc->type == 1))
 			continue;
@@ -414,7 +417,7 @@ void Goblin::animateObjects() {
 	Scenery::AnimLayer *pLayer;
 	int16 layer;
 
-	for (node = _objList->pHead; node != 0; node = node->pNext) {
+	for (node = _objList->pHead; node != nullptr; node = node->pNext) {
 		objDesc = (Gob_Object *)node->pData;
 		if ((objDesc->doAnim != 1) || (objDesc->type != 0))
 			continue;
@@ -907,7 +910,7 @@ void Goblin::moveFindItem(int16 posX, int16 posY) {
 	int16 i;
 	if ((_gobAction == 3) || (_gobAction == 4)) {
 		for (i = 0; i < 20; i++) {
-			if (_objects[i] == 0)
+			if (_objects[i] == nullptr)
 				continue;
 
 			if (_objects[i]->type != 0)
@@ -1050,7 +1053,7 @@ void Goblin::moveInitStep(int16 framesCount, int16 action, int16 cont,
 		targetDummyItem(gobDesc);
 
 		targetItem();
-		initiateMove(0);
+		initiateMove(nullptr);
 
 		moveCheckSelect(framesCount, gobDesc, pGobIndex, pNextAct);
 	} else {
@@ -1158,17 +1161,17 @@ int16 Goblin::doMove(Gob_Object *gobDesc, int16 cont, int16 action) {
 
 	moveInitStep(framesCount, action, cont, gobDesc, &gobIndex, &nextAct);
 	moveTreatRopeStairs(gobDesc);
-	moveAdvance(0, gobDesc, nextAct, framesCount);
+	moveAdvance(nullptr, gobDesc, nextAct, framesCount);
 
 	return gobIndex;
 }
 
 void Goblin::zeroObjects() {
 	for (int i = 0; i < 4; i++)
-		_goblins[i] = 0;
+		_goblins[i] = nullptr;
 
 	for (int i = 0; i < 20; i++)
-		_objects[i] = 0;
+		_objects[i] = nullptr;
 
 	for (int i = 0; i < 16; i++)
 		_vm->_sound->sampleFree(&_soundData[i]);
@@ -1176,7 +1179,7 @@ void Goblin::zeroObjects() {
 
 void Goblin::freeAllObjects() {
 	_vm->_util->deleteList(_objList);
-	_objList = 0;
+	_objList = nullptr;
 	freeObjects();
 }
 
@@ -1199,7 +1202,7 @@ void Goblin::loadObjects(const char *source) {
 		placeObject(_objects[i], 1, 0, 0, 0, 0);
 
 	initVarPointers();
-	_actDestItemDesc = 0;
+	_actDestItemDesc = nullptr;
 }
 
 void Goblin::saveGobDataToVars(int16 xPos, int16 yPos, int16 someVal) {
@@ -1233,7 +1236,7 @@ void Goblin::saveGobDataToVars(int16 xPos, int16 yPos, int16 someVal) {
 	_curGobRelaxVarPtr = (uint32) obj->relaxTime;
 	_curGobMaxFrameVarPtr = (uint32) getObjMaxFrame(obj);
 
-	if (_actDestItemDesc == 0)
+	if (_actDestItemDesc == nullptr)
 		return;
 
 	obj = _actDestItemDesc;
@@ -1345,7 +1348,7 @@ void Goblin::loadGobDataFromVars() {
 	obj->pickable = (int32) _curGobPickableVarPtr;
 	obj->relaxTime = (int32) _curGobRelaxVarPtr;
 
-	if (_actDestItemDesc == 0)
+	if (_actDestItemDesc == nullptr)
 		return;
 
 	obj = _actDestItemDesc;
@@ -1631,7 +1634,7 @@ int16 Goblin::treatItem(int16 action) {
 
 		if ((_itemToObject[_destActionItem] != 100) && (_destActionItem != 0)) {
 			if (_itemToObject[_destActionItem] == -1)
-				_actDestItemDesc = 0;
+				_actDestItemDesc = nullptr;
 			else
 				_actDestItemDesc = _objects[_itemToObject[_destActionItem]];
 		}
@@ -1691,7 +1694,7 @@ void Goblin::setState(int16 index, int16 state) {
 	obj = &_vm->_mult->_objects[index];
 	animData = obj->pAnimData;
 
-	if (obj->goblinStates[state] == 0)
+	if (obj->goblinStates[state] == nullptr)
 		return;
 
 	layer = obj->goblinStates[state][0].layer;
@@ -1918,6 +1921,10 @@ void Goblin::updateLayer2(Mult::Mult_AnimData *animData) {
 	default:
 		break;
 	}
+}
+
+void Goblin::setGoblinState(Mult::Mult_Object *obj, int16 animState) {
+	warning("Goblin::setGoblinState not implemented");
 }
 
 } // End of namespace Gob

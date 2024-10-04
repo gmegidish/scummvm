@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,7 +49,7 @@ void String::AGS_EngineStartup(IAGSEngine *engine) {
 	SCRIPT_METHOD(String::get_AsFloat, String::StringToFloat);
 	SCRIPT_METHOD(String::get_AsInt, String::StringToInt);
 	SCRIPT_METHOD(String::geti_Chars, String::GetChars);
-	SCRIPT_METHOD(String::get_Length, String::strlen);
+	SCRIPT_METHOD(String::get_Length, String::GetLength);
 }
 
 void String::IsNullOrEmpty(ScriptMethodParams &params) {
@@ -143,7 +142,7 @@ void String::GetChars(ScriptMethodParams &params) {
 	params._result = AGS3::String_GetChars(texx, index);
 }
 
-void String::strlen(ScriptMethodParams &params) {
+void String::GetLength(ScriptMethodParams &params) {
 	PARAMS1(const char *, s);
 	params._result = ::strlen(s);
 }

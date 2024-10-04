@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -171,12 +170,14 @@ void MidiDriver_Miles_Midi::initMidiDevice() {
 	}
 }
 
-// MIDI messages can be found at http://www.midi.org/techspecs/midimessages.php
+// MIDI messages can be found at https://web.archive.org/web/20120128110425/http://www.midi.org/techspecs/midimessages.php
 void MidiDriver_Miles_Midi::send(int8 source, uint32 b) {
 	assert(source < MAXIMUM_SOURCES);
 
 	byte command = b & 0xf0;
 	byte dataChannel = b & 0xf;
+	byte op1 = (b >> 8) & 0xff;
+	byte op2 = (b >> 16) & 0xff;
 	byte outputChannel = source < 0 ? dataChannel : _channelMap[source][dataChannel];
 
 	MidiChannelEntry &outputChannelEntry = _midiChannels[outputChannel];
@@ -189,7 +190,17 @@ void MidiDriver_Miles_Midi::send(int8 source, uint32 b) {
 	MilesMidiChannelControlData &controlData = channelLockedByOtherSource ?
 		*outputChannelEntry.unlockData : *outputChannelEntry.currentData;
 
-	processEvent(source, b, outputChannel, controlData, channelLockedByOtherSource);
+	if (command == MIDI_COMMAND_CONTROL_CHANGE && op1 == MILES_CONTROLLER_LOCK_CHANNEL) {
+		// The lock channel controller will allocate an output channel to use
+		// to send the events on this data channel. In this case, the data
+		// channel should not be assigned to the source, because it will not
+		// actually be used to send MIDI events. processEvent will assign the
+		// data channel to the source, so it is bypassed and controlChange is
+		// called directly.
+		controlChange(outputChannel, op1, op2, source, controlData, channelLockedByOtherSource);
+	} else {
+		processEvent(source, b, outputChannel, controlData, channelLockedByOtherSource);
+	}
 
 	if (command == MIDI_COMMAND_NOTE_OFF || command == MIDI_COMMAND_NOTE_ON || command == MIDI_COMMAND_PITCH_BEND ||
 		command == MIDI_COMMAND_POLYPHONIC_AFTERTOUCH || command == MIDI_COMMAND_CHANNEL_AFTERTOUCH) {
@@ -414,6 +425,10 @@ void MidiDriver_Miles_Midi::lockChannel(uint8 source, uint8 dataChannel) {
 		// Could not find a channel to lock
 		return;
 
+	// stopNotesOnChannel will turn off sustain, so record the current sustain
+	// value so it can be set on the unlock data.
+	bool currentSustain = _midiChannels[lockChannel].currentData->sustain;
+
 	stopNotesOnChannel(lockChannel);
 
 	_midiChannels[lockChannel].locked = true;
@@ -421,15 +436,14 @@ void MidiDriver_Miles_Midi::lockChannel(uint8 source, uint8 dataChannel) {
 	_channelMap[source][dataChannel] = lockChannel;
 	// Copy current controller values so they can be restored when unlocking the channel
 	*_midiChannels[lockChannel].unlockData = *_midiChannels[lockChannel].currentData;
+	_midiChannels[lockChannel].unlockData->sustain = currentSustain;
 	_midiChannels[lockChannel].currentData->source = source;
+
+	// Set any specified default controller values on the channel
+	applyControllerDefaults(source, *_midiChannels[lockChannel].currentData, lockChannel, false);
 
 	// Send volume change to apply the new source volume
 	controlChange(lockChannel, MIDI_CONTROLLER_VOLUME, 0x7F, source, *_midiChannels[lockChannel].currentData);
-
-	// Note that other controller values might be "inherited" from the source
-	// which was previously playing on the locked MIDI channel. The KYRA engine
-	// does not seem to take any precautions against this.
-	// Controllers could be set to default values here.
 }
 
 int8 MidiDriver_Miles_Midi::findLockChannel(bool useProtectedChannels) {
@@ -559,7 +573,7 @@ const MilesMT32InstrumentEntry *MidiDriver_Miles_Midi::searchCustomInstrument(by
 			return instrumentPtr;
 		instrumentPtr++;
 	}
-	return NULL;
+	return nullptr;
 }
 
 void MidiDriver_Miles_Midi::setupPatch(byte patchBank, byte patchId, bool useSysExQueue) {
@@ -649,7 +663,7 @@ int16 MidiDriver_Miles_Midi::installCustomTimbre(byte patchBank, byte patchId) {
 	int16 customTimbreId = -1;
 	int16 leastUsedTimbreId = -1;
 	uint32 leastUsedTimbreNoteCounter = _noteCounter;
-	const MilesMT32InstrumentEntry *instrumentPtr = NULL;
+	const MilesMT32InstrumentEntry *instrumentPtr = nullptr;
 
 	// Check, if requested instrument is actually available
 	instrumentPtr = searchCustomInstrument(patchBank, patchId);
@@ -780,33 +794,33 @@ void MidiDriver_Miles_Midi::writeToSystemArea(byte index, byte value) {
 	sysExMT32(sysExData, 1, targetAddress);
 }
 
-MidiDriver_Miles_Midi *MidiDriver_Miles_MT32_create(const Common::String &instrumentDataFilename) {
+MidiDriver_Miles_Midi *MidiDriver_Miles_MT32_create(const Common::Path &instrumentDataFilename) {
 	return MidiDriver_Miles_MIDI_create(MT_MT32, instrumentDataFilename);
 }
 
-MidiDriver_Miles_Midi *MidiDriver_Miles_MIDI_create(MusicType midiType, const Common::String &instrumentDataFilename) {
+MidiDriver_Miles_Midi *MidiDriver_Miles_MIDI_create(MusicType midiType, const Common::Path &instrumentDataFilename) {
 	assert(midiType == MT_MT32 || midiType == MT_GM || midiType == MT_GS);
 
-	MilesMT32InstrumentEntry *instrumentTablePtr = NULL;
+	MilesMT32InstrumentEntry *instrumentTablePtr = nullptr;
 	uint16                    instrumentTableCount = 0;
 
 	if (midiType == MT_MT32 && !instrumentDataFilename.empty()) {
 		// Load MT32 instrument data from file SAMPLE.MT
 		Common::File *fileStream = new Common::File();
 		uint32        fileSize = 0;
-		byte         *fileDataPtr = NULL;
+		byte         *fileDataPtr = nullptr;
 		uint32        fileDataOffset = 0;
 		uint32        fileDataLeft = 0;
 
 		byte curBankId;
 		byte curPatchId;
 
-		MilesMT32InstrumentEntry *instrumentPtr = NULL;
+		MilesMT32InstrumentEntry *instrumentPtr = nullptr;
 		uint32                    instrumentOffset;
 		uint16                    instrumentDataSize;
 
 		if (!fileStream->open(instrumentDataFilename))
-			error("MILES-MIDI: could not open instrument file '%s'", instrumentDataFilename.c_str());
+			error("MILES-MIDI: could not open instrument file '%s'", instrumentDataFilename.toString(Common::Path::kNativeSeparator).c_str());
 
 		fileSize = fileStream->size();
 
@@ -901,8 +915,6 @@ void MidiDriver_Miles_Midi::deinitSource(uint8 source) {
 			_midiChannels[i].lockProtected = false;
 			_midiChannels[i].protectedSource = -1;
 		}
-		if (_midiChannels[i].currentData->source == source)
-			_midiChannels[i].currentData->source = -1;
 		if (_midiChannels[i].unlockData->source == source)
 			_midiChannels[i].unlockData->source = -1;
 	}
@@ -916,7 +928,7 @@ void MidiDriver_Miles_Midi::applySourceVolume(uint8 source) {
 			continue;
 
 		MidiChannelEntry &channel = _midiChannels[i];
-		MilesMidiChannelControlData *channelData = 0;
+		MilesMidiChannelControlData *channelData = nullptr;
 		bool channelLockedByOtherSource = false;
 		// Apply the new source volume to this channel if this source is active
 		// on this channel, or if it was active on the channel before it was

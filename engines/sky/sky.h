@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,9 +23,11 @@
 #define SKY_SKY_H
 
 
+#include "common/array.h"
 #include "common/error.h"
 #include "common/keyboard.h"
 #include "engines/engine.h"
+#include "graphics/big5.h"
 
 /**
  * This is the namespace of the Sky engine.
@@ -100,9 +101,9 @@ public:
 
 	Common::Error loadGameState(int slot) override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
-	bool canLoadGameStateCurrently() override;
-	bool canSaveGameStateCurrently() override;
-	virtual Common::String getSaveStateName(int slot) const override {
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
+	Common::String getSaveStateName(int slot) const override {
 		return Common::String::format("SKY-VM.%03d", slot);
 	}
 
@@ -110,10 +111,14 @@ public:
 	static void *_itemList[300];
 	static SystemVars *_systemVars;
 	static const char *shortcutsKeymapId;
+	uint32 _chineseTraditionalOffsets[8];
+	char *_chineseTraditionalBlock;
+	Graphics::Big5Font *_big5Font;
 
 protected:
 	// Engine APIs
 	Common::Error init();
+	bool loadChineseTraditional();
 	Common::Error go();
 	Common::Error run() override {
 		Common::Error err;

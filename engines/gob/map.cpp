@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -34,7 +39,7 @@ Map::Map(GobEngine *vm) : _vm(vm) {
 	_passWidth =  0;
 	_mapWidth  = -1;
 	_mapHeight = -1;
-	_passMap   =  0;
+	_passMap   =  nullptr;
 
 	_screenWidth  = 0;
 	_screenHeight = 0;
@@ -44,15 +49,15 @@ Map::Map(GobEngine *vm) : _vm(vm) {
 
 	_bigTiles = false;
 
-	_mapUnknownBool = false;
+	_usesObliqueCoordinates = false;
 
 	_wayPointCount = 0;
-	_wayPoints = 0;
+	_wayPoints = nullptr;
 
 	_nearestWayPoint = 0;
 	_nearestDest     = 0;
 
-	_itemsMap = 0;
+	_itemsMap = nullptr;
 
 	for (int i = 0; i < 40; i++) {
 		_itemPoses[i].x      = 0;
@@ -514,7 +519,7 @@ int16 Map::checkLongPath(int16 x0, int16 y0, int16 x1, int16 y1, int16 i0, int16
 			nextLink = 1;
 
 		if (nextLink != 0) {
-			if (checkDirectPath(0, x0, y0, x1, y1) == 1)
+			if (checkDirectPath(nullptr, x0, y0, x1, y1) == 1)
 				return 1;
 
 			nextLink = 0;
@@ -533,7 +538,7 @@ int16 Map::checkLongPath(int16 x0, int16 y0, int16 x1, int16 y1, int16 i0, int16
 		}
 		if ((i0 == i1) && (_wayPoints[i0].x == x0) &&
 		    (_wayPoints[i0].y == y0)) {
-			if (checkDirectPath(0, x0, y0, x1, y1) == 1)
+			if (checkDirectPath(nullptr, x0, y0, x1, y1) == 1)
 				return 1;
 			return 0;
 		}

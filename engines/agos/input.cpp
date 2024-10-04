@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,7 +58,7 @@ uint AGOSEngine::setVerbText(HitArea *ha) {
 void AGOSEngine::setup_cond_c_helper() {
 	HitArea *last;
 
-	_noRightClick = 1;
+	_noRightClick = true;
 
 	if (getGameType() == GType_WW)
 		clearMenuStrip();
@@ -113,8 +112,8 @@ void AGOSEngine::setup_cond_c_helper() {
 		}
 	}
 
-	_lastHitArea = 0;
-	_hitAreaObjectItem = NULL;
+	_lastHitArea = nullptr;
+	_hitAreaObjectItem = nullptr;
 	_nameLocked = false;
 
 	last = _lastNameOn;
@@ -122,8 +121,8 @@ void AGOSEngine::setup_cond_c_helper() {
 	_lastNameOn = last;
 
 	while (!shouldQuit()) {
-		_lastHitArea = NULL;
-		_lastHitArea3 = 0;
+		_lastHitArea = nullptr;
+		_lastHitArea3 = nullptr;
 		_leftButtonDown = false;
 
 		do {
@@ -143,14 +142,14 @@ void AGOSEngine::setup_cond_c_helper() {
 			}
 
 			delay(100);
-		} while ((_lastHitArea3 == (HitArea *) -1 || _lastHitArea3 == 0) && !shouldQuit());
+		} while ((_lastHitArea3 == (HitArea *) -1 || _lastHitArea3 == nullptr) && !shouldQuit());
 
-		if (_lastHitArea == NULL) {
+		if (_lastHitArea == nullptr) {
 		} else if (_lastHitArea->id == 0x7FFB) {
 			inventoryUp(_lastHitArea->window);
 		} else if (_lastHitArea->id == 0x7FFC) {
 			inventoryDown(_lastHitArea->window);
-		} else if (_lastHitArea->itemPtr != NULL) {
+		} else if (_lastHitArea->itemPtr != nullptr) {
 			_hitAreaObjectItem = _lastHitArea->itemPtr;
 			setVerbText(_lastHitArea);
 			break;
@@ -158,9 +157,9 @@ void AGOSEngine::setup_cond_c_helper() {
 	}
 
 out_of_here:
-	_lastHitArea3 = 0;
-	_lastHitArea = 0;
-	_lastNameOn = NULL;
+	_lastHitArea3 = nullptr;
+	_lastHitArea = nullptr;
+	_lastNameOn = nullptr;
 
 	_mouseCursor = 0;
 	_noRightClick = 0;
@@ -171,11 +170,11 @@ void AGOSEngine::waitForInput() {
 	uint id;
 
 	_leftButtonDown = false;
-	_lastHitArea = 0;
+	_lastHitArea = nullptr;
 	//_lastClickRem = 0;
 	_verbHitArea = 0;
-	_hitAreaSubjectItem = NULL;
-	_hitAreaObjectItem = NULL;
+	_hitAreaSubjectItem = nullptr;
+	_hitAreaObjectItem = nullptr;
 	_clickOnly = false;
 	_nameLocked = false;
 
@@ -188,21 +187,21 @@ void AGOSEngine::waitForInput() {
 	}
 
 	while (!shouldQuit()) {
-		_lastHitArea = NULL;
-		_lastHitArea3 = NULL;
+		_lastHitArea = nullptr;
+		_lastHitArea3 = nullptr;
 		_dragAccept = true;
 
 		while (!shouldQuit()) {
 			if ((getGameType() == GType_SIMON1 || getGameType() == GType_SIMON2) &&
-					_keyPressed.keycode == Common::KEYCODE_F10)
+				_action == kActionShowObjects)
 				displayBoxStars();
 			if (processSpecialKeys()) {
 				if (getGameId() != GID_DIMP)
 					goto out_of_here;
 			}
 			if (_lastHitArea3 == (HitArea *) -1) {
-				_lastHitArea = NULL;
-				_lastHitArea3 = NULL;
+				_lastHitArea = nullptr;
+				_lastHitArea3 = nullptr;
 				_dragAccept = true;
 			} else {
 				if (_lastHitArea3 || _dragMode)
@@ -215,7 +214,7 @@ void AGOSEngine::waitForInput() {
 		if (!_lastHitArea3 && _dragMode) {
 			ha = _lastClickRem;
 
-			if (ha == 0 || ha->itemPtr == NULL || !(ha->flags & kBFDragBox)) {
+			if (ha == nullptr || ha->itemPtr == nullptr || !(ha->flags & kBFDragBox)) {
 				_dragFlag = false;
 				_dragMode = false;
 				_dragCount = 0;
@@ -246,7 +245,7 @@ void AGOSEngine::waitForInput() {
 
 			boxController(_mouse.x, _mouse.y, 1);
 
-			if (_currentBox != NULL) {
+			if (_currentBox != nullptr) {
 				_hitAreaObjectItem = _currentBox->itemPtr;
 				setVerbText(_currentBox);
 			}
@@ -255,7 +254,7 @@ void AGOSEngine::waitForInput() {
 		}
 
 		ha = _lastHitArea;
-		if (ha == NULL) {
+		if (ha == nullptr) {
 		} else if (ha->id == 0x7FFB) {
 			inventoryUp(ha->window);
 		} else if (ha->id == 0x7FFC) {
@@ -327,7 +326,7 @@ void AGOSEngine::waitForInput() {
 						_hitAreaSubjectItem = ha->itemPtr;
 						break;
 					}
-					if (_hitAreaSubjectItem != NULL)
+					if (_hitAreaSubjectItem != nullptr)
 						break;
 
 					if (getGameType() == GType_WW) {
@@ -369,7 +368,7 @@ void AGOSEngine::hitarea_stuff_helper() {
 		uint subr_id = (uint16)_variableArray[254];
 		if (subr_id) {
 			Subroutine *sub = getSubroutineByID(subr_id);
-			if (sub != NULL) {
+			if (sub != nullptr) {
 				startSubroutineEx(sub);
 				permitInput();
 			}
@@ -396,7 +395,7 @@ void AGOSEngine::hitarea_stuff_helper_2() {
 	subr_id = (uint16)_variableArray[249];
 	if (subr_id) {
 		sub = getSubroutineByID(subr_id);
-		if (sub != NULL) {
+		if (sub != nullptr) {
 			_variableArray[249] = 0;
 			startSubroutineEx(sub);
 			permitInput();
@@ -407,7 +406,7 @@ void AGOSEngine::hitarea_stuff_helper_2() {
 	subr_id = (uint16)_variableArray[254];
 	if (subr_id) {
 		sub = getSubroutineByID(subr_id);
-		if (sub != NULL) {
+		if (sub != nullptr) {
 			_variableArray[254] = 0;
 			startSubroutineEx(sub);
 			permitInput();
@@ -452,7 +451,7 @@ void AGOSEngine_Feeble::handleMouseWheelDown() {
 
 void AGOSEngine_Simon1::handleMouseWheelUp() {
 	HitArea *ha = findBox(206);
-	if (ha != NULL && (ha->flags & kBFBoxInUse) && !(ha->flags & kBFBoxDead)) {
+	if (ha != nullptr && (ha->flags & kBFBoxInUse) && !(ha->flags & kBFBoxDead)) {
 			if (_saveLoadRowCurPos != 1) {
 				if (_saveLoadRowCurPos < 7)
 					_saveLoadRowCurPos = 1;
@@ -469,7 +468,7 @@ void AGOSEngine_Simon1::handleMouseWheelUp() {
 
 void AGOSEngine_Simon1::handleMouseWheelDown() {
 	HitArea *ha = findBox(207);
-	if (ha != NULL && (ha->flags & kBFBoxInUse) && !(ha->flags & kBFBoxDead)) {
+	if (ha != nullptr && (ha->flags & kBFBoxInUse) && !(ha->flags & kBFBoxDead)) {
 			if (_saveDialogFlag) {
 				_saveLoadRowCurPos += 1;
 				if (_saveLoadRowCurPos >= _numSaveGameRows)
@@ -485,7 +484,7 @@ void AGOSEngine_Simon1::handleMouseWheelDown() {
 
 void AGOSEngine_Elvira2::handleMouseWheelUp() {
 	HitArea *ha = findBox(224);
-	if (ha != NULL && (ha->flags & kBFBoxInUse)) {
+	if (ha != nullptr && (ha->flags & kBFBoxInUse)) {
 			_saveGameNameLen = 0;
 
 			if (_saveLoadRowCurPos < 3)
@@ -501,7 +500,7 @@ void AGOSEngine_Elvira2::handleMouseWheelUp() {
 
 void AGOSEngine_Elvira2::handleMouseWheelDown() {
 	HitArea *ha =  findBox(224);
-	if (ha != NULL && (ha->flags & kBFBoxInUse)) {
+	if (ha != nullptr && (ha->flags & kBFBoxInUse)) {
 			_saveGameNameLen = 0;
 			_saveLoadRowCurPos += 3;
 			if (_saveLoadRowCurPos >= _numSaveGameRows)
@@ -515,14 +514,14 @@ void AGOSEngine_Elvira2::handleMouseWheelDown() {
 
 void AGOSEngine::handleMouseWheelUp() {
 	HitArea *ha = findBox(0x7FFB);
-	if (ha != NULL && (ha->flags & kBFBoxInUse) && !(getGameId() == GID_ELVIRA1 && _windowNum == 3)) {
+	if (ha != nullptr && (ha->flags & kBFBoxInUse) && !(getGameId() == GID_ELVIRA1 && _windowNum == 3)) {
 		inventoryUp(ha->window);
 	}
 }
 
 void AGOSEngine::handleMouseWheelDown() {
 	HitArea *ha = findBox(0x7FFC);
-	if (ha != NULL && (ha->flags & kBFBoxInUse) && !(getGameId() == GID_ELVIRA1 && _windowNum == 3)) {
+	if (ha != nullptr && (ha->flags & kBFBoxInUse) && !(getGameId() == GID_ELVIRA1 && _windowNum == 3)) {
 		inventoryDown(ha->window);
 	}
 }
@@ -574,8 +573,8 @@ bool AGOSEngine::processSpecialKeys() {
 	if (shouldQuit())
 		_exitCutscene = true;
 
-	switch (_keyPressed.keycode) {
-	case Common::KEYCODE_UP:
+	switch (_action) {
+	case kActionWalkForward:
 		if (getGameType() == GType_PP)
 			_verbHitArea = 302;
 		else if (getGameType() == GType_WW)
@@ -586,7 +585,7 @@ bool AGOSEngine::processSpecialKeys() {
 			_verbHitArea = 214;
 		verbCode = true;
 		break;
-	case Common::KEYCODE_DOWN:
+	case kActionTurnBack:
 		if (getGameType() == GType_PP)
 			_verbHitArea = 304;
 		else if (getGameType() == GType_WW)
@@ -597,7 +596,7 @@ bool AGOSEngine::processSpecialKeys() {
 			_verbHitArea = 215;
 		verbCode = true;
 		break;
-	case Common::KEYCODE_RIGHT:
+	case kActionTurnRight:
 		if (getGameType() == GType_PP)
 			_verbHitArea = 303;
 		else if (getGameType() == GType_WW)
@@ -608,7 +607,7 @@ bool AGOSEngine::processSpecialKeys() {
 			_verbHitArea = 216;
 		verbCode = true;
 		break;
-	case Common::KEYCODE_LEFT:
+	case kActionTurnLeft:
 		if (getGameType() == GType_PP)
 			_verbHitArea = 301;
 		else if (getGameType() == GType_WW)
@@ -619,10 +618,10 @@ bool AGOSEngine::processSpecialKeys() {
 			_verbHitArea = 217;
 		verbCode = true;
 		break;
-	case Common::KEYCODE_ESCAPE:
+	case kActionExitCutscene:
 		_exitCutscene = true;
 		break;
-	case Common::KEYCODE_F1:
+	case kActionTextSpeedFast:
 		if (getGameType() == GType_SIMON2) {
 			vcWriteVar(5, 50);
 			vcWriteVar(86, 0);
@@ -631,7 +630,7 @@ bool AGOSEngine::processSpecialKeys() {
 			vcWriteVar(86, 0);
 		}
 		break;
-	case Common::KEYCODE_F2:
+	case kActionTextSpeedMedium:
 		if (getGameType() == GType_SIMON2) {
 			vcWriteVar(5, 75);
 			vcWriteVar(86, 1);
@@ -640,7 +639,7 @@ bool AGOSEngine::processSpecialKeys() {
 			vcWriteVar(86, 1);
 		}
 		break;
-	case Common::KEYCODE_F3:
+	case kActionTextSpeedSlow:
 		if (getGameType() == GType_SIMON2) {
 			vcWriteVar(5, 125);
 			vcWriteVar(86, 2);
@@ -649,19 +648,15 @@ bool AGOSEngine::processSpecialKeys() {
 			vcWriteVar(86, 2);
 		}
 		break;
-	case Common::KEYCODE_F5:
-		if (getGameType() == GType_SIMON2 || getGameType() == GType_FF)
-			_exitCutscene = true;
-		break;
-	case Common::KEYCODE_F7:
+	case kActionToggleSwitchCharacter:
 		if (getGameType() == GType_FF && getBitFlag(76))
 			_variableArray[254] = 70;
 		break;
-	case Common::KEYCODE_F9:
+	case kActionToggleHitboxName:
 		if (getGameType() == GType_FF)
 			setBitFlag(73, !getBitFlag(73));
 		break;
-	case Common::KEYCODE_F12:
+	case kActionSpeed_GTYPEPP:
 		if (getGameType() == GType_PP && getGameId() != GID_DIMP) {
 			if (!getBitFlag(110)) {
 				setBitFlag(107, !getBitFlag(107));
@@ -669,61 +664,66 @@ bool AGOSEngine::processSpecialKeys() {
 			}
 		}
 		break;
-	case Common::KEYCODE_PAUSE:
+	case kActionPause:
 		pause();
 		break;
-	default:
-		break;
-	}
-
-	switch (_keyPressed.ascii) {
-	case 't':
+	case kActionToggleSubtitle:
 		if (getGameType() == GType_FF || (getGameType() == GType_SIMON2 && (getFeatures() & GF_TALKIE)) ||
 			((getFeatures() & GF_TALKIE) && _language != Common::EN_ANY && _language != Common::DE_DEU)) {
 			if (_speech)
 				_subtitles = !_subtitles;
 		}
 		break;
-	case 'v':
+	case kActionToggleSpeech:
 		if (getGameType() == GType_FF || (getGameType() == GType_SIMON2 && (getFeatures() & GF_TALKIE))) {
-			if (_subtitles)
+			if (_subtitles) {
 				_speech = !_speech;
+				syncSoundSettingsIntern();
+			}
 		}
 		break;
-	case '+':
-		if (_midiEnabled) {
-			_midi->setVolume(_midi->getMusicVolume() + 16, _midi->getSFXVolume() + 16);
-		}
-		ConfMan.setInt("music_volume", _mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType) + 16);
-		syncSoundSettings();
-		break;
-	case '-':
-		if (_midiEnabled) {
-			_midi->setVolume(_midi->getMusicVolume() - 16, _midi->getSFXVolume() - 16);
-		}
-		ConfMan.setInt("music_volume", _mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType) - 16);
-		syncSoundSettings();
-		break;
-	case 'm':
-		_musicPaused = !_musicPaused;
-		if (_midiEnabled) {
-			_midi->pause(_musicPaused);
-		}
-		_mixer->pauseHandle(_modHandle, _musicPaused);
-		syncSoundSettings();
-		break;
-	case 's':
-		if (getGameId() == GID_SIMON1DOS) {
-			_midi->_enable_sfx = !_midi->_enable_sfx;
+	case kActionMusicUp:
+		if (_musicMuted) {
+			_musicMuted = false;
+			_musicVolume = 16;
 		} else {
-			_effectsPaused = !_effectsPaused;
-			_sound->effectsPause(_effectsPaused);
+			_musicVolume = CLIP(_musicVolume + 16, 0, 256);
+		}
+		syncSoundSettingsIntern();
+		break;
+	case kActionMusicDown:
+		if (!_musicMuted) {
+			_musicVolume = CLIP(_musicVolume - 16, 0, 256);
+			if (_musicVolume == 0) {
+				_musicMuted = true;
+			}
+			syncSoundSettingsIntern();
 		}
 		break;
-	case 'b':
+	case kActionToggleMusic:
+		_musicMuted = !_musicMuted;
+		if (!_musicMuted && _musicVolume == 0)
+			// If last used music volume is 0 when unmuting, use ScummVM
+			// default volume.
+			_musicVolume = 192;
+		syncSoundSettingsIntern();
+		break;
+	case kActionToggleSoundEffects:
+		_effectsMuted = !_effectsMuted;
+		if (!_effectsMuted && _effectsVolume == 0)
+			// If last used SFX volume is 0 when unmuting, use ScummVM
+			// default volume.
+			_effectsVolume = 192;
+		syncSoundSettingsIntern();
+		break;
+	case kActionToggleBackgroundSound:
 		if (getGameType() == GType_SIMON2) {
-			_ambientPaused = !_ambientPaused;
-			_sound->ambientPause(_ambientPaused);
+			_ambientMuted = !_ambientMuted;
+			if (!_ambientMuted && _effectsVolume == 0)
+				// If last used SFX volume is 0 when unmuting, use ScummVM
+				// default volume.
+				_effectsVolume = 192;
+			syncSoundSettingsIntern();
 		}
 		break;
 	default:

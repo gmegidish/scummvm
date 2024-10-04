@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,8 +27,6 @@
 namespace Ultima {
 namespace Nuvie {
 
-using Std::string;
-
 /*
  *  Open a file for input,
  *  trying the original name (lower case), and the upper case version
@@ -38,11 +35,9 @@ using Std::string;
  *  Output: 0 if couldn't open.
  */
 
-bool openFile(Common::ReadStream *&in, const char *fname) {
+bool openFile(Common::ReadStream *&in, const Common::Path &fname) {
 	Common::File *f = new Common::File();
-	Common::String filename(fname);
-
-	if (f->open(filename)) {
+	if (f->open(fname)) {
 	    in = f;
 	    return true;
 	} else {
@@ -55,7 +50,7 @@ bool openFile(Common::ReadStream *&in, const char *fname) {
  *  See if a file exists.
  */
 
-bool fileExists(const char *fname) {
+bool fileExists(const Common::Path &fname) {
 	return Common::File::exists(fname);
 }
 

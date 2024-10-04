@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,6 @@ namespace Myst3 {
 
 Effect::FaceMask::FaceMask() :
 		surface(nullptr) {
-
 	for (uint i = 0; i < 10; i++) {
 		for (uint j = 0; j < 10; j++) {
 			block[i][j] = false;
@@ -173,7 +171,7 @@ WaterEffect *WaterEffect::create(Myst3Engine *vm, uint32 id) {
 
 	if (!s->loadMasks("", id, Archive::kWaterEffectMask)) {
 		delete s;
-		return 0;
+		return nullptr;
 	}
 
 	return s;
@@ -341,7 +339,6 @@ LavaEffect::LavaEffect(Myst3Engine *vm) :
 }
 
 LavaEffect::~LavaEffect() {
-
 }
 
 LavaEffect *LavaEffect::create(Myst3Engine *vm, uint32 id) {
@@ -349,7 +346,7 @@ LavaEffect *LavaEffect::create(Myst3Engine *vm, uint32 id) {
 
 	if (!s->loadMasks("", id, Archive::kLavaEffectMask)) {
 		delete s;
-		return 0;
+		return nullptr;
 	}
 
 	return s;
@@ -683,7 +680,6 @@ ShieldEffect::ShieldEffect(Myst3Engine *vm):
 }
 
 ShieldEffect::~ShieldEffect() {
-
 }
 
 ShieldEffect *ShieldEffect::create(Myst3Engine *vm, uint32 id) {

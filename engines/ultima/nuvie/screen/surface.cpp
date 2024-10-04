@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +41,7 @@ uint32 RenderSurface::Gmask;
 uint32 RenderSurface::Bmask;
 
 // Default constructor for no created surface
-RenderSurface::RenderSurface() : buffer(0), zbuffer_priv(0), _rawSurface(NULL),
+RenderSurface::RenderSurface() : buffer(0), zbuffer_priv(0), _rawSurface(nullptr),
 		_disposeSurface(DisposeAfterUse::YES), opengl(0), bytes_per_pixel(0),
 		bits_per_pixel(0), format_type(0), pixels(0), zbuffer(0), w(0), h(0),
 		pitch(0), gl(0), gr(0), gt(0), gb(0),  lock_count(0) {
@@ -50,7 +49,7 @@ RenderSurface::RenderSurface() : buffer(0), zbuffer_priv(0), _rawSurface(NULL),
 
 // Constructor for custom buffer
 RenderSurface::RenderSurface(uint32 width, uint32 height, uint32 bpp, byte *p) :
-		buffer(0), zbuffer_priv(0), _rawSurface(NULL), _disposeSurface(DisposeAfterUse::YES),
+		buffer(0), zbuffer_priv(0), _rawSurface(nullptr), _disposeSurface(DisposeAfterUse::YES),
 		opengl(0), bytes_per_pixel(bpp / 8), bits_per_pixel(bpp), pixels(p), zbuffer(0),
 		w(width), h(height), pitch(width), gl(0), gr(width), gt(0), gb(height), lock_count(0) {
 	// Set default formats for the buffer
@@ -60,7 +59,7 @@ RenderSurface::RenderSurface(uint32 width, uint32 height, uint32 bpp, byte *p) :
 
 // Constructor for generic surface (with optional guardband)
 RenderSurface::RenderSurface(uint32 width, uint32 height, uint32 bpp, sint32 guard) :
-		buffer(0), zbuffer_priv(0), _rawSurface(NULL), _disposeSurface(DisposeAfterUse::YES),
+		buffer(0), zbuffer_priv(0), _rawSurface(nullptr), _disposeSurface(DisposeAfterUse::YES),
 		opengl(0), bytes_per_pixel(bpp / 8), bits_per_pixel(bpp), pixels(0), zbuffer(0),
 		w(width), h(height), pitch(width * (bpp / 8) + 2 * guard * (bpp / 8)),
 		gl(-guard), gr(guard + width), gt(-guard), gb(guard + height), lock_count(0) {
@@ -82,9 +81,10 @@ RenderSurface::RenderSurface(Graphics::ManagedSurface *surf) :
 }
 
 // Constructor for opengl surface
-RenderSurface::RenderSurface(OpenGL *ogl) : buffer(0), zbuffer_priv(0), _rawSurface(NULL),
-		opengl(ogl), bytes_per_pixel(0), bits_per_pixel(0), format_type(0), pixels(0),
-		zbuffer(0), w(0), h(0), pitch(0), gl(0), gr(0), gt(0), gb(0), lock_count(0) {
+RenderSurface::RenderSurface(OpenGL *ogl) : buffer(0), zbuffer_priv(0), _rawSurface(nullptr),
+		_disposeSurface(DisposeAfterUse::NO), opengl(ogl), bytes_per_pixel(0),
+		bits_per_pixel(0), format_type(0), pixels(0), zbuffer(0), w(0), h(0), pitch(0),
+		gl(0), gr(0), gt(0), gb(0), lock_count(0) {
 }
 
 RenderSurface::~RenderSurface() {
@@ -517,7 +517,7 @@ Graphics::ManagedSurface *RenderSurface::createSurface(int w, int h,
 }
 
 Graphics::ManagedSurface *RenderSurface::get_sdl_surface() {
-	if (_rawSurface == NULL) {
+	if (_rawSurface == nullptr) {
 		_rawSurface = new Graphics::ManagedSurface(w, h,
 			Graphics::PixelFormat(bytes_per_pixel, getBits(Rmask), getBits(Gmask),
 				getBits(Bmask), 0, Rshift, Gshift, Bshift, 0));

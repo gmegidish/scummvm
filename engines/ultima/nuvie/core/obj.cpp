@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,36 +27,26 @@
 namespace Ultima {
 namespace Nuvie {
 
-Obj::Obj() {
-	obj_n = 0;
-	status = 0;
-	nuvie_status = 0;
-	frame_n = 0;
-	qty = 0;
-	quality = 0;
-	parent = NULL;
-	container = NULL;
-	x = 0;
-	y = 0;
-	z = 0;
+Obj::Obj() : obj_n(0), status(0), nuvie_status(0), frame_n(0), qty(0),
+		quality(0), parent(nullptr), container(nullptr), x(0), y(0), z(0) {
 }
 
 Obj::Obj(Obj *sobj) {
 	memcpy(this, sobj, sizeof(Obj));
 
-	parent = NULL;
-	container = NULL;
+	parent = nullptr;
+	container = nullptr;
 }
 
 void Obj::make_container() {
-	if (container == NULL)
+	if (container == nullptr)
 		container = new U6LList();
 
 	return;
 }
 
 Obj *Obj::get_container_obj(bool recursive) {
-	Obj *obj = (is_in_container() ? (Obj *)parent : NULL);
+	Obj *obj = (is_in_container() ? (Obj *)parent : nullptr);
 
 	if (recursive) {
 		while (obj && obj->is_in_container())
@@ -108,7 +97,7 @@ void Obj::set_ok_to_take(bool flag, bool recursive) {
 		status ^= OBJ_STATUS_OK_TO_TAKE;
 
 	if (recursive && container) {
-		for (U6Link *link = container->start(); link != NULL; link = link->next) {
+		for (U6Link *link = container->start(); link != nullptr; link = link->next) {
 			Obj *obj = (Obj *)link->data;
 			obj->set_ok_to_take(flag, recursive);
 		}
@@ -130,7 +119,7 @@ void Obj::readied() { //set_readied() ??
 }
 
 void Obj::set_noloc() {
-	parent = NULL;
+	parent = nullptr;
 	nuvie_status &= NUVIE_OBJ_STATUS_LOC_MASK_SET; //clear location bits 0 = no loc
 
 	return;
@@ -156,7 +145,7 @@ void Obj::set_actor_obj(bool flag) {
 
 /* Returns true if an object is in an actor inventory, including containers and readied items. */
 
-bool Obj::is_in_inventory(bool check_parent) {
+bool Obj::is_in_inventory(bool check_parent) const {
 	switch (get_engine_loc()) {
 	case OBJ_LOC_INV :
 	case OBJ_LOC_READIED :
@@ -172,7 +161,7 @@ bool Obj::is_in_inventory(bool check_parent) {
 	return false;
 }
 
-uint8 Obj::get_engine_loc() {
+uint8 Obj::get_engine_loc() const {
 	return (nuvie_status & NUVIE_OBJ_STATUS_LOC_MASK_GET);
 }
 
@@ -189,30 +178,33 @@ Actor *Obj::get_actor_holding_obj() {
 		break;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 //Add child object into container, stacking if required
-void Obj::add(Obj *obj, bool stack) {
-	if (container == NULL)
+void Obj::add(Obj *obj, bool stack, bool addAtTail) {
+	if (container == nullptr)
 		make_container();
 
 	if (stack && Game::get_game()->get_obj_manager()->is_stackable(obj))
-		add_and_stack(obj);
+		add_and_stack(obj, addAtTail);
 	else
-		container->addAtPos(0, obj);
+		if (!addAtTail)
+			container->addAtPos(0, obj);
+		else
+			container->add(obj);
 
 	obj->set_in_container(this);
 
 	return;
 }
 
-void Obj::add_and_stack(Obj *obj) {
+void Obj::add_and_stack(Obj *obj, bool addAtTail) {
 	U6Link *link;
 	Obj *cont_obj;
 
 	//should we recurse through nested containers?
-	for (link = container->start(); link != NULL;) {
+	for (link = container->start(); link != nullptr;) {
 		cont_obj = (Obj *)link->data;
 		link = link->next;
 		//match on obj_n, frame_n and quality.
@@ -225,14 +217,17 @@ void Obj::add_and_stack(Obj *obj) {
 		}
 	}
 
-	container->addAtPos(0, obj); // add the object as we couldn't find another object to stack with.
+	if (!addAtTail)
+		container->addAtPos(0, obj); // add the object as we couldn't find another object to stack with.
+	else
+		container->add(obj);
 
 	return;
 }
 
 //Remove child object from container.
 bool Obj::remove(Obj *obj) {
-	if (container == NULL)
+	if (container == nullptr)
 		return false;
 
 	if (container->remove(obj) == false)
@@ -250,21 +245,21 @@ bool Obj::remove(Obj *obj) {
 	return true;
 }
 
-Obj *Obj::find_in_container(uint16 objN, uint8 quality_, bool match_quality, uint8 frameN, bool match_frame_n, Obj **prev_obj) {
+Obj *Obj::find_in_container(uint16 objN, uint8 quality_, bool match_quality, uint8 frameN, bool match_frame_n, Obj **prev_obj) const {
 	U6Link *link;
 	Obj *obj;
 
-	if (container == NULL)
-		return NULL;
+	if (container == nullptr)
+		return nullptr;
 
-	for (link = container->start(); link != NULL; link = link->next) {
+	for (link = container->start(); link != nullptr; link = link->next) {
 		obj = (Obj *)link->data;
 		if (obj) {
 			if (obj->obj_n == objN && (match_quality == false || obj->quality == quality_) && (match_frame_n == false || obj->frame_n == frameN)) {
-				if (prev_obj != NULL && obj == *prev_obj)
-					prev_obj = NULL;
+				if (prev_obj != nullptr && obj == *prev_obj)
+					prev_obj = nullptr;
 				else {
-					if (prev_obj == NULL || *prev_obj == NULL)
+					if (prev_obj == nullptr || *prev_obj == nullptr)
 						return obj;
 				}
 			}
@@ -277,7 +272,7 @@ Obj *Obj::find_in_container(uint16 objN, uint8 quality_, bool match_quality, uin
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 uint32 Obj::get_total_qty(uint16 match_obj_n) {
@@ -292,8 +287,8 @@ uint32 Obj::get_total_qty(uint16 match_obj_n) {
 			total_qty += qty;
 	}
 
-	if (container != NULL) {
-		for (link = container->start(); link != NULL; link = link->next) {
+	if (container != nullptr) {
+		for (link = container->start(); link != nullptr; link = link->next) {
 			obj = (Obj *)link->data;
 			if (obj) {
 				if (obj->container)
@@ -311,19 +306,19 @@ uint32 Obj::get_total_qty(uint16 match_obj_n) {
 	return total_qty;
 }
 
-uint32 Obj::container_count_objects() {
+uint32 Obj::container_count_objects() const {
 	uint32 count = 0;
 	U6Link *link;
 
-	if (container != NULL) {
-		for (link = container->start(); link != NULL; link = link->next) {
+	if (container != nullptr) {
+		for (link = container->start(); link != nullptr; link = link->next) {
 			++count;
 		}
 	}
 	return count;
 }
 
-bool Obj::is_ok_to_take() {
+bool Obj::is_ok_to_take() const {
 	return ((status & OBJ_STATUS_OK_TO_TAKE) || Game::get_game()->using_hackmove());
 }
 

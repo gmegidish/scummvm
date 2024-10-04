@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,9 +41,21 @@
  * Status of this engine: ???
  *
  * Games using this engine:
- * - Touche: The Adventures of the Fifth Musketeer
+ * - Touché: The Adventures of the Fifth Musketeer
  */
 namespace Touche {
+
+enum TOUCHEAction {
+	kToucheActionNone,
+	kToucheActionYes,
+	kToucheActionSkipOrQuit,
+	kToucheActionOpenOptions,
+	kToucheActionEnableFastWalk,
+	kToucheActionDisableFastWalk,
+	kToucheActionToggleFastMode,
+	kToucheActionToggleTalkTextMode,
+	kToucheActionSkipDialogue
+};
 
 struct Area {
 	Common::Rect r;
@@ -620,8 +631,8 @@ protected:
 	void loadGameStateData(Common::ReadStream *stream);
 	Common::Error saveGameState(int num, const Common::String &description, bool isAutosave = false) override;
 	Common::Error loadGameState(int num) override;
-	bool canLoadGameStateCurrently() override;
-	bool canSaveGameStateCurrently() override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 	Common::String getSaveStateName(int slot) const override {
 		return Common::String::format("%s.%d", _targetName.c_str(), slot);
 	}

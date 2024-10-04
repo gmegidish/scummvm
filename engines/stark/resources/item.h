@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -82,10 +81,10 @@ public:
 	virtual ~Item();
 
 	// Resource API
-	virtual void readData(Formats::XRCReadStream *stream) override;
-	virtual void onGameLoop() override;
-	virtual void saveLoad(ResourceSerializer *serializer) override;
-	virtual void saveLoadCurrent(ResourceSerializer *serializer) override;
+	void readData(Formats::XRCReadStream *stream) override;
+	void onGameLoop() override;
+	void saveLoad(ResourceSerializer *serializer) override;
+	void saveLoadCurrent(ResourceSerializer *serializer) override;
 
 	/** Is the item present in the scene */
 	bool isEnabled() const;
@@ -116,7 +115,7 @@ public:
 	 */
 	void setMovementSuspendedScript(Script *script);
 
-	/** Set the currently active anim hierachy */
+	/** Set the currently active anim hierarchy */
 	virtual void setAnimHierarchy(AnimHierarchy *animHierarchy) = 0;
 
 	/** List all the exit positions */
@@ -143,10 +142,10 @@ public:
 	virtual ~ItemVisual();
 
 	// Resource API
-	virtual void readData(Formats::XRCReadStream *stream) override;
-	virtual void onAllLoaded() override;
-	virtual void saveLoad(ResourceSerializer *serializer) override;
-	virtual void saveLoadCurrent(ResourceSerializer *serializer) override;
+	void readData(Formats::XRCReadStream *stream) override;
+	void onAllLoaded() override;
+	void saveLoad(ResourceSerializer *serializer) override;
+	void saveLoadCurrent(ResourceSerializer *serializer) override;
 
 	// Item API
 	void setEnabled(bool enabled) override;
@@ -391,7 +390,7 @@ public:
 	virtual ~FloorPositionedImageItem();
 
 	// Resource API
-	virtual void readData(Formats::XRCReadStream *stream) override;
+	void readData(Formats::XRCReadStream *stream) override;
 
 	// Item API
 	Gfx::RenderEntry *getRenderEntry(const Common::Point &positionOffset) override;
@@ -476,7 +475,7 @@ public:
 	virtual ~ImageItem();
 
 	// Resource API
-	virtual void readData(Formats::XRCReadStream *stream) override;
+	void readData(Formats::XRCReadStream *stream) override;
 
 	// Item API
 	Gfx::RenderEntry *getRenderEntry(const Common::Point &positionOffset) override;

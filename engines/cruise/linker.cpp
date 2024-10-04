@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,7 @@ exportEntryStruct *parseExport(int *out1, int *pExportedFuncionIdx, char *buffer
 		Common::strlcpy(functionName, dotPtr + 1, sizeof(functionName));
 		*dotPtr = 0;
 
-		strcpy(overlayName, localBuffer);
+		Common::strcpy_s(overlayName, localBuffer);
 	} else {
 		overlayName[0] = 0;
 
@@ -64,25 +63,25 @@ exportEntryStruct *parseExport(int *out1, int *pExportedFuncionIdx, char *buffer
 	strToUpper(overlayName);
 	strToUpper(functionName);
 	if (strlen((char *)overlayName) == 0)
-		return NULL;
+		return nullptr;
 
 	idx = findOverlayByName2(overlayName);
 
 	if (idx == -4)
-		return (NULL);
+		return (nullptr);
 
 	if (overlayTable[idx].alreadyLoaded == 0)
-		return (NULL);
+		return (nullptr);
 
 	if (!overlayTable[idx].ovlData)
-		return (NULL);
+		return (nullptr);
 
 	numSymbGlob = overlayTable[idx].ovlData->numSymbGlob;
 	currentExportEntry = overlayTable[idx].ovlData->arraySymbGlob;
 	entity1Name = overlayTable[idx].ovlData->arrayNameSymbGlob;
 
 	if (!entity1Name)
-		return (0);
+		return (nullptr);
 
 	for (int i = 0; i < numSymbGlob; i++) {
 		char exportedName[256];
@@ -100,7 +99,7 @@ exportEntryStruct *parseExport(int *out1, int *pExportedFuncionIdx, char *buffer
 		currentExportEntry++;
 	}
 
-	return (NULL);
+	return (nullptr);
 }
 
 int updateScriptImport(int ovlIdx) {

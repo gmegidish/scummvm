@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -134,11 +133,11 @@ private:
 	static int _refCount;
 };
 
-SegaAudioInterfaceInternal *SegaAudioInterfaceInternal::_refInstance = 0;
+SegaAudioInterfaceInternal *SegaAudioInterfaceInternal::_refInstance = nullptr;
 int SegaAudioInterfaceInternal::_refCount = 0;
 
 SegaAudioInterfaceInternal::SegaAudioInterfaceInternal(Audio::Mixer *mixer, SegaAudioInterface *owner, SegaAudioPluginDriver *driver) :TownsPC98_FmSynth(mixer, TownsPC98_FmSynth::kTypeTowns),
-	_drv(driver), _drvOwner(owner),	_musicVolume(Audio::Mixer::kMaxMixerVolume), _sfxVolume(Audio::Mixer::kMaxMixerVolume), _pcmBanks(0), _pcmDev(0), _psgDev(0), _pcmChan(0), _ready(false) {
+	_drv(driver), _drvOwner(owner),	_musicVolume(Audio::Mixer::kMaxMixerVolume), _sfxVolume(Audio::Mixer::kMaxMixerVolume), _pcmBanks(nullptr), _pcmDev(nullptr), _psgDev(nullptr), _pcmChan(nullptr), _ready(false) {
 }
 
 SegaAudioInterfaceInternal::~SegaAudioInterfaceInternal() {
@@ -158,9 +157,9 @@ SegaAudioInterfaceInternal::~SegaAudioInterfaceInternal() {
 
 SegaAudioInterfaceInternal *SegaAudioInterfaceInternal::addNewRef(Audio::Mixer *mixer, SegaAudioInterface *owner, SegaAudioPluginDriver *driver) {
 	_refCount++;
-	if (_refCount == 1 && _refInstance == 0)
+	if (_refCount == 1 && _refInstance == nullptr)
 		_refInstance = new SegaAudioInterfaceInternal(mixer, owner, driver);
-	else if (_refCount < 2 || _refInstance == 0)
+	else if (_refCount < 2 || _refInstance == nullptr)
 		error("SegaAudioInterfaceInternal::addNewRef(): Internal reference management failure");
 	else if (!_refInstance->assignPluginDriver(owner, driver))
 		error("SegaAudioInterfaceInternal::addNewRef(): Plugin driver conflict");
@@ -179,7 +178,7 @@ void SegaAudioInterfaceInternal::releaseRef(SegaAudioInterface *owner) {
 			_refInstance->removePluginDriver(owner);
 	} else {
 		delete _refInstance;
-		_refInstance = 0;
+		_refInstance = nullptr;
 	}
 }
 
@@ -190,8 +189,7 @@ bool SegaAudioInterfaceInternal::init() {
 	if (!TownsPC98_FmSynth::init())
 		return false;
 
-	_pcmBanks = new int8[0x10000];
-	memset(_pcmBanks, 0, 0x10000);
+	_pcmBanks = new int8[0x10000]();
 	_pcmChan = new SegaPCMChannel*[8];
 	_psgDev = new SegaPSG(7670454 / 72, 16);
 	_pcmDev = new PCMDevice_Base(33300, 16, 8);
@@ -301,7 +299,7 @@ bool SegaAudioInterfaceInternal::assignPluginDriver(SegaAudioInterface *owner, S
 void SegaAudioInterfaceInternal::removePluginDriver(SegaAudioInterface *owner) {
 	Common::StackLock lock(_mutex);
 	if (_drvOwner == owner)
-		_drv = 0;
+		_drv = nullptr;
 }
 
 void SegaAudioInterfaceInternal::nextTickEx(int32 *buffer, uint32 bufferSize) {
@@ -357,7 +355,7 @@ void SegaPCMChannel::stopInternal() {
 }
 
 SegaPSG::SegaPSG(int samplingRate, int deviceVolume) : _intRate(3579545), _extRate(samplingRate), _deviceVolume(deviceVolume), _numChannels(3), _cr(-1),
-	_musicVolume(Audio::Mixer::kMaxMixerVolume), _sfxVolume(Audio::Mixer::kMaxMixerVolume), _sfxChanMask(0), _nfb(0), _nfs(0), _timer(0) {
+	_musicVolume(Audio::Mixer::kMaxMixerVolume), _sfxVolume(Audio::Mixer::kMaxMixerVolume), _sfxChanMask(0), _nfb(0), _nfs(0), _nat(0), _timer(0) {
 	memset(_attnTable, 0, sizeof(_attnTable));
 	for (int i = 0; i < 15; ++i)
 		_attnTable[i] =  (32767.0 / (double)(_numChannels + 1)) / pow(2.0, (double)(i << 1) / 6.0);
@@ -433,7 +431,7 @@ SegaAudioInterface::SegaAudioInterface(Audio::Mixer *mixer, SegaAudioPluginDrive
 
 SegaAudioInterface::~SegaAudioInterface() {
 	SegaAudioInterfaceInternal::releaseRef(this);
-	_internal = 0;
+	_internal = nullptr;
 }
 
 bool SegaAudioInterface::init() {

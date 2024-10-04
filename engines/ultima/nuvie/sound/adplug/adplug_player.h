@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,10 @@
 
 #include "ultima/shared/std/string.h"
 #include "ultima/nuvie/sound/adplug/opl.h"
+
+namespace Common {
+class Path;
+}
 
 namespace Ultima {
 namespace Nuvie {
@@ -37,7 +40,7 @@ public:
 	/***** Operational methods *****/
 	void seek(unsigned long ms);
 
-	virtual bool load(const Std::string &filename) = 0; // loads file
+	virtual bool load(const Common::Path &filename) = 0; // loads file
 	virtual bool update() = 0;          // executes replay code for 1 tick
 	virtual void rewind(int subsong = -1) = 0;  // rewinds to specified subsong
 	virtual float getrefresh() = 0;         // returns needed timer refresh rate

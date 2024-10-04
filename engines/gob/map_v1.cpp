@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -45,18 +50,15 @@ void Map_v1::init() {
 	_mapWidth  = 26;
 	_mapHeight = 28;
 
-	_passMap = new int8[_mapHeight * _mapWidth];
-	memset(_passMap, 0, _mapHeight * _mapWidth * sizeof(int8));
+	_passMap = new int8[_mapHeight * _mapWidth]();
 
 	_itemsMap = new int16*[_mapHeight];
 	 for (int i = 0; i < _mapHeight; i++) {
-		_itemsMap[i] = new int16[_mapWidth];
-		memset(_itemsMap[i], 0, _mapWidth * sizeof(int16));
+		_itemsMap[i] = new int16[_mapWidth]();
 	}
 
 	_wayPointCount = 40;
-	_wayPoints = new WayPoint[40];
-	memset(_wayPoints, 0, sizeof(WayPoint));
+	_wayPoints = new WayPoint[40]();
 }
 
 void Map_v1::loadMapObjects(const char *avjFile) {
@@ -69,8 +71,8 @@ void Map_v1::loadMapObjects(const char *avjFile) {
 	uint32 gobsPos;
 	uint32 objsPos;
 
-	strcpy(avoName, _sourceFile);
-	strcat(avoName, ".avo");
+	Common::strcpy_s(avoName, sizeof(avoName) - 4, _sourceFile);
+	Common::strcat_s(avoName, ".avo");
 
 	int32 size;
 	dataBuf = _vm->_dataIO->getFile(avoName, size);
@@ -155,8 +157,8 @@ void Map_v1::loadSounds(Common::SeekableReadStream &data) {
 	for (int i = 0; i < count; i++) {
 		data.read(buf, 14);
 		buf[14] = 0;
-		strcat(buf, ".SND");
-		strcpy(sndNames[i], buf);
+		Common::strcat_s(buf, ".SND");
+		Common::strcpy_s(sndNames[i], buf);
 	}
 
 	_vm->_sound->sampleLoad(&_vm->_goblin->_soundData[14], SOUND_SND, "diamant1.snd");
@@ -194,7 +196,7 @@ void Map_v1::loadGoblins(Common::SeekableReadStream &data, uint32 gobsPos) {
 				new Goblin::Gob_StateLine[linesCount];
 		for (int state = 0; state < linesCount; ++state)
 			for (int col = 0; col < 6; ++col)
-				_vm->_goblin->_goblins[i]->stateMach[state][col] = 0;
+				_vm->_goblin->_goblins[i]->stateMach[state][col] = nullptr;
 
 		for (int state = 0; state < 40; ++state)
 			for (int col = 0; col < 6; ++col)
@@ -209,7 +211,7 @@ void Map_v1::loadGoblins(Common::SeekableReadStream &data, uint32 gobsPos) {
 		for (int state = 0; state < 40; state++) {
 			for (int col = 0; col < 6; col++) {
 				if (tmpStateData[state * 6 + col] == 0) {
-					_vm->_goblin->_goblins[i]->stateMach[state][col] = 0;
+					_vm->_goblin->_goblins[i]->stateMach[state][col] = nullptr;
 					continue;
 				}
 
@@ -268,7 +270,7 @@ void Map_v1::loadGoblins(Common::SeekableReadStream &data, uint32 gobsPos) {
 		pState = new Goblin::Gob_State;
 		memset(pState, 0, sizeof(Goblin::Gob_State));
 		_vm->_goblin->_goblins[3]->stateMach[state][0] = pState;
-		_vm->_goblin->_goblins[3]->stateMach[state][1] = 0;
+		_vm->_goblin->_goblins[3]->stateMach[state][1] = nullptr;
 
 		pState->animation = 9;
 		pState->layer = state - 40;
@@ -298,7 +300,7 @@ void Map_v1::loadObjects(Common::SeekableReadStream &data, uint32 objsPos) {
 		_vm->_goblin->_objects[i]->stateMach = new Goblin::Gob_StateLine[40];
 		for (int state = 0; state < 40; ++state) {
 			for (int col = 0; col < 6; ++col) {
-				_vm->_goblin->_objects[i]->stateMach[state][col] = 0;
+				_vm->_goblin->_objects[i]->stateMach[state][col] = nullptr;
 				tmpStateData[state * 6 + col] = data.readUint32LE();
 			}
 		}
@@ -312,7 +314,7 @@ void Map_v1::loadObjects(Common::SeekableReadStream &data, uint32 objsPos) {
 		for (int state = 0; state < 40; state++) {
 			for (int col = 0; col < 6; col++) {
 				if (tmpStateData[state * 6 + col] == 0) {
-					_vm->_goblin->_objects[i]->stateMach[state][col] = 0;
+					_vm->_goblin->_objects[i]->stateMach[state][col] = nullptr;
 					continue;
 				}
 
@@ -346,7 +348,7 @@ void Map_v1::loadObjects(Common::SeekableReadStream &data, uint32 objsPos) {
 	_vm->_goblin->_objects[10]->stateMach = new Goblin::Gob_StateLine[40];
 	for (int state = 0; state < 40; ++state)
 		for (int col = 0; col < 6; ++col)
-			_vm->_goblin->_objects[10]->stateMach[state][col] = 0;
+			_vm->_goblin->_objects[10]->stateMach[state][col] = nullptr;
 
 	pState = new Goblin::Gob_State;
 	memset(pState, 0, sizeof(Goblin::Gob_State));
@@ -382,13 +384,13 @@ void Map_v1::loadItemToObject(Common::SeekableReadStream &data) {
 void Map_v1::optimizePoints(Mult::Mult_Object *obj, int16 x, int16 y) {
 	if (_nearestWayPoint < _nearestDest) {
 		for (int i = _nearestWayPoint; i <= _nearestDest; i++) {
-			if (checkDirectPath(0, _curGoblinX, _curGoblinY,
+			if (checkDirectPath(nullptr, _curGoblinX, _curGoblinY,
 				_wayPoints[i].x, _wayPoints[i].y) == 1)
 				_nearestWayPoint = i;
 		}
 	} else if (_nearestWayPoint > _nearestDest) {
 		for (int i = _nearestWayPoint; i >= _nearestDest; i--) {
-			if (checkDirectPath(0, _curGoblinX, _curGoblinY,
+			if (checkDirectPath(nullptr, _curGoblinX, _curGoblinY,
 				_wayPoints[i].x, _wayPoints[i].y) == 1)
 				_nearestWayPoint = i;
 		}

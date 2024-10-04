@@ -5,10 +5,10 @@
  - are too numerous to list here. Please refer to the COPYRIGHT
  - file distributed with this source distribution.
  -
- - This program is free software; you can redistribute it and/or
- - modify it under the terms of the GNU General Public License
- - as published by the Free Software Foundation; either version 2
- - of the License, or (at your option) any later version.
+ - This program is free software: you can redistribute it and/or modify
+ - it under the terms of the GNU General Public License as published by
+ - the Free Software Foundation, either version 3 of the License, or
+ - (at your option) any later version.
  -
  - This program is distributed in the hope that it will be useful,
  - but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,8 +16,7 @@
  - GNU General Public License for more details.
  -
  - You should have received a copy of the GNU General Public License
- - along with this program; if not, write to the Free Software
- - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ - along with this program.  If not, see <http://www.gnu.org/licenses/>.
  -
  -->
 <render_info>
@@ -43,25 +42,25 @@
 	</palette>
 
 	<fonts>
-		<font	id = 'text_default'>
+		<font	resolution = 'y>=H'
+				id = 'text_default'>
 				<language id = '*' file = 'helvb12.bdf'/>
 		</font>
-		<font	resolution = 'y<400'
-				id = 'text_default'>
+		<font	id = 'text_default'>
 				<language id = '*' file = 'clR6x12.bdf'/>
+		</font>
+		<font	resolution = 'y>=H'
+				id = 'text_button'>
+				<language id = '*' file = 'helvb12.bdf'/>
 		</font>
 		<font	id = 'text_button'>
-				<language id = '*' file = 'helvb12.bdf'/>
-		</font>
-		<font	resolution = 'y<400'
-				id = 'text_button'>
 				<language id = '*' file = 'clR6x12.bdf'/>
 		</font>
-		<font	id = 'text_normal'>
+		<font	resolution = 'y>=H'
+				id = 'text_normal'>
 				<language id = '*' file = 'helvb12.bdf'/>
 		</font>
-		<font	resolution = 'y<400'
-				id = 'text_normal'>
+		<font	id = 'text_normal'>
 				<language id = '*' file = 'clR6x12.bdf'/>
 		</font>
 		<font	id = 'tooltip_normal'
@@ -102,6 +101,22 @@
 
 		<text_color	id = 'color_alternative_disabled'
 				color = 'darkgrey'
+		/>
+
+		<text_color id = 'color_override'
+				color = '255, 0, 0'
+		/>
+
+		<text_color id = 'color_override_inverted'
+				color = '0, 255, 255'
+		/>
+
+		<text_color id = 'color_override_hover'
+				color = '255, 50, 50'
+		/>
+
+		<text_color id = 'color_override_disabled'
+				color = '255, 200, 200'
 		/>
 
 		<text_color	id = 'color_button'
@@ -183,7 +198,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'scrollbar_button_idle' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'scrollbar_button_idle' cache = 'false' resolution = 'y>=H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -200,7 +215,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'scrollbar_button_idle' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'scrollbar_button_idle' cache = 'false' resolution = 'y<H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -217,7 +232,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'scrollbar_button_hover' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'scrollbar_button_hover' cache = 'false' resolution = 'y>=H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -234,7 +249,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'scrollbar_button_hover' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'scrollbar_button_hover' cache = 'false' resolution = 'y<H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -316,7 +331,7 @@
 	</drawdata>
 
 	<!--popup_idle HERE  -->
-	<drawdata id = 'popup_idle' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'popup_idle' cache = 'false' resolution = 'y>=H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -350,7 +365,7 @@
 				horizontal_align = 'start'
 		/>
 	</drawdata>
-	<drawdata id = 'popup_idle_rtl' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'popup_idle_rtl' cache = 'false' resolution = 'y>=H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -385,7 +400,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'popup_idle' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'popup_idle' cache = 'false' resolution = 'y<H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -419,7 +434,7 @@
 				horizontal_align = 'start'
 		/>
 	</drawdata>
-	<drawdata id = 'popup_idle_rtl' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'popup_idle_rtl' cache = 'false' resolution = 'y<H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -454,7 +469,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'popup_disabled' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'popup_disabled' cache = 'false' resolution = 'y>=H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -486,7 +501,7 @@
 				horizontal_align = 'start'
 		/>
 	</drawdata>
-	<drawdata id = 'popup_disabled_rtl' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'popup_disabled_rtl' cache = 'false' resolution = 'y>=H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -519,7 +534,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'popup_disabled' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'popup_disabled' cache = 'false' resolution = 'y<H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -553,7 +568,7 @@
 				horizontal_align = 'start'
 		/>
 	</drawdata>
-	<drawdata id = 'popup_disabled_rtl' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'popup_disabled_rtl' cache = 'false' resolution = 'y<H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -588,7 +603,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'popup_hover' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'popup_hover' cache = 'false' resolution = 'y>=H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -620,7 +635,7 @@
 				horizontal_align = 'start'
 		/>
 	</drawdata>
-	<drawdata id = 'popup_hover_rtl' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'popup_hover_rtl' cache = 'false' resolution = 'y>=H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -653,7 +668,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'popup_hover' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'popup_hover' cache = 'false' resolution = 'y<H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -687,7 +702,7 @@
 				horizontal_align = 'start'
 		/>
 	</drawdata>
-	<drawdata id = 'popup_hover_rtl' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'popup_hover_rtl' cache = 'false' resolution = 'y<H'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
 					fill = 'none'
@@ -732,6 +747,25 @@
 	<drawdata id = 'plain_bg' cache = 'false'>
 		<drawstep	func = 'bevelsq'
 					bevel = '2'
+		/>
+	</drawdata>
+
+	<!-- Background of the thumbnail -->
+	<drawdata id = 'thumb_bg' cache = 'false'>
+		<drawstep	func = 'bevelsq'
+					fill = 'none'
+					/>
+	</drawdata>
+
+	<drawdata id = 'griditem_bg' cache = 'false'>
+		<drawstep	func = 'bevelsq'
+					fill = 'none'
+		/>
+	</drawdata>
+
+	<drawdata id = 'griditem_hover_bg' cache = 'false'>
+		<drawstep	func = 'bevelsq'
+					fill = 'none'
 		/>
 	</drawdata>
 
@@ -797,7 +831,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'dropdown_button_idle' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'dropdown_button_idle' cache = 'false' resolution = 'y>=H'>
 		<text	font = 'text_button'
 				text_color = 'color_button'
 				vertical_align = 'center'
@@ -828,7 +862,7 @@
 					padding = '0,0,17,1'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_idle_rtl' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'dropdown_button_idle_rtl' cache = 'false' resolution = 'y>=H'>
 		<text	font = 'text_button'
 				text_color = 'color_button'
 				vertical_align = 'center'
@@ -859,7 +893,7 @@
 					padding = '17,0,0,1'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_idle' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'dropdown_button_idle' cache = 'false' resolution = 'y<H'>
 		<text	font = 'text_button'
 				text_color = 'color_button'
 				vertical_align = 'center'
@@ -880,7 +914,7 @@
 					orientation = 'bottom'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_idle_rtl' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'dropdown_button_idle_rtl' cache = 'false' resolution = 'y<H'>
 		<text	font = 'text_button'
 				text_color = 'color_button'
 				vertical_align = 'center'
@@ -902,7 +936,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'dropdown_button_hover_left' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'dropdown_button_hover_left' cache = 'false' resolution = 'y>=H'>
 		<text	font = 'text_button'
 				text_color = 'color_button_hover'
 				vertical_align = 'center'
@@ -933,7 +967,7 @@
 					padding = '0,0,17,1'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_hover_left_rtl' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'dropdown_button_hover_left_rtl' cache = 'false' resolution = 'y>=H'>
 		<text	font = 'text_button'
 				text_color = 'color_button_hover'
 				vertical_align = 'center'
@@ -964,7 +998,7 @@
 					padding = '17,0,0,1'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_hover_left' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'dropdown_button_hover_left' cache = 'false' resolution = 'y<H'>
 		<text	font = 'text_button'
 				text_color = 'color_button_hover'
 				vertical_align = 'center'
@@ -985,7 +1019,7 @@
 					orientation = 'bottom'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_hover_left_rtl' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'dropdown_button_hover_left_rtl' cache = 'false' resolution = 'y<H'>
 		<text	font = 'text_button'
 				text_color = 'color_button_hover'
 				vertical_align = 'center'
@@ -1007,7 +1041,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'dropdown_button_hover_right' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'dropdown_button_hover_right' cache = 'false' resolution = 'y>=H'>
 		<text	font = 'text_button'
 				text_color = 'color_button'
 				vertical_align = 'center'
@@ -1038,7 +1072,7 @@
 					padding = '0,0,17,1'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_hover_right_rtl' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'dropdown_button_hover_right_rtl' cache = 'false' resolution = 'y>=H'>
 		<text	font = 'text_button'
 				text_color = 'color_button'
 				vertical_align = 'center'
@@ -1069,7 +1103,7 @@
 					padding = '17,0,0,1'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_hover_right' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'dropdown_button_hover_right' cache = 'false' resolution = 'y<H'>
 		<text	font = 'text_button'
 				text_color = 'color_button'
 				vertical_align = 'center'
@@ -1090,7 +1124,7 @@
 					orientation = 'bottom'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_hover_right_rtl' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'dropdown_button_hover_right_rtl' cache = 'false' resolution = 'y<H'>
 		<text	font = 'text_button'
 				text_color = 'color_button'
 				vertical_align = 'center'
@@ -1112,7 +1146,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'dropdown_button_disabled' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'dropdown_button_disabled' cache = 'false' resolution = 'y>=H'>
 		<text	font = 'text_button'
 				text_color = 'color_button_disabled'
 				vertical_align = 'center'
@@ -1143,7 +1177,7 @@
 					padding = '0,0,17,1'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_disabled_rtl' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'dropdown_button_disabled_rtl' cache = 'false' resolution = 'y>=H'>
 		<text	font = 'text_button'
 				text_color = 'color_button_disabled'
 				vertical_align = 'center'
@@ -1174,7 +1208,7 @@
 					padding = '17,0,0,1'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_disabled' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'dropdown_button_disabled' cache = 'false' resolution = 'y<H'>
 		<text	font = 'text_button'
 				text_color = 'color_button_disabled'
 				vertical_align = 'center'
@@ -1195,7 +1229,7 @@
 					orientation = 'bottom'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_disabled_rtl' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'dropdown_button_disabled_rtl' cache = 'false' resolution = 'y<H'>
 		<text	font = 'text_button'
 				text_color = 'color_button_disabled'
 				vertical_align = 'center'
@@ -1217,7 +1251,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'dropdown_button_pressed_left' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'dropdown_button_pressed_left' cache = 'false' resolution = 'y>=H'>
 		<text	font = 'text_button'
 				text_color = 'color_alternative_inverted'
 				vertical_align = 'center'
@@ -1239,7 +1273,7 @@
 					orientation = 'bottom'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_pressed_left_rtl' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'dropdown_button_pressed_left_rtl' cache = 'false' resolution = 'y>=H'>
 		<text	font = 'text_button'
 				text_color = 'color_alternative_inverted'
 				vertical_align = 'center'
@@ -1261,7 +1295,7 @@
 					orientation = 'bottom'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_pressed_left' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'dropdown_button_pressed_left' cache = 'false' resolution = 'y<H'>
 		<text	font = 'text_button'
 				text_color = 'color_alternative_inverted'
 				vertical_align = 'center'
@@ -1283,7 +1317,7 @@
 					orientation = 'bottom'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_pressed_left_rtl' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'dropdown_button_pressed_left_rtl' cache = 'false' resolution = 'y<H'>
 		<text	font = 'text_button'
 				text_color = 'color_alternative_inverted'
 				vertical_align = 'center'
@@ -1306,7 +1340,7 @@
 		/>
 	</drawdata>
 
-	<drawdata id = 'dropdown_button_pressed_right' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'dropdown_button_pressed_right' cache = 'false' resolution = 'y>=H'>
 		<text	font = 'text_button'
 				text_color = 'color_button'
 				vertical_align = 'center'
@@ -1328,7 +1362,7 @@
 					orientation = 'bottom'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_pressed_right_rtl' cache = 'false' resolution = 'y>399'>
+	<drawdata id = 'dropdown_button_pressed_right_rtl' cache = 'false' resolution = 'y>=H'>
 		<text	font = 'text_button'
 				text_color = 'color_button'
 				vertical_align = 'center'
@@ -1350,7 +1384,7 @@
 					orientation = 'bottom'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_pressed_right' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'dropdown_button_pressed_right' cache = 'false' resolution = 'y<H'>
 		<text	font = 'text_button'
 				text_color = 'color_button'
 				vertical_align = 'center'
@@ -1372,7 +1406,7 @@
 					orientation = 'bottom'
 		/>
 	</drawdata>
-	<drawdata id = 'dropdown_button_pressed_right_rtl' cache = 'false' resolution = 'y<400'>
+	<drawdata id = 'dropdown_button_pressed_right_rtl' cache = 'false' resolution = 'y<H'>
 		<text	font = 'text_button'
 				text_color = 'color_button'
 				vertical_align = 'center'

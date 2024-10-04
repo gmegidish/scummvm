@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -313,7 +312,7 @@ typedef Common::Functor0Mem<void, LocationParser_br> OpcodeV2;
 DECLARE_LOCATION_PARSER(location)  {
 	debugC(7, kDebugParser, "LOCATION_PARSER(location) ");
 
-	strcpy(_vm->_location._name, _tokens[1]);
+	Common::strcpy_s(_vm->_location._name, _tokens[1]);
 
 	bool flip = false;
 	int nextToken;
@@ -837,21 +836,21 @@ void LocationParser_br::parseNoneData(ZonePtr z) {
 
 typedef void (LocationParser_br::*ZoneTypeParser)(ZonePtr);
 static ZoneTypeParser parsers[] = {
-	0,	// no type
+	nullptr,	// no type
 	&LocationParser_br::parseExamineData,
 	&LocationParser_br::parseDoorData,
 	&LocationParser_br::parseGetData,
 	&LocationParser_br::parseMergeData,
-	0,	// taste
+	nullptr,	// taste
 	&LocationParser_br::parseHearData,
-	0,	// feel
+	nullptr,	// feel
 	&LocationParser_br::parseSpeakData,
 	&LocationParser_br::parseNoneData,
-	0,	// trap
-	0,	// you
-	0,	// command
+	nullptr,	// trap
+	nullptr,	// you
+	nullptr,	// command
 	&LocationParser_br::parsePathData,
-	0,	// box
+	nullptr,	// box
 };
 
 void LocationParser_br::parseZoneTypeBlock(ZonePtr z) {
@@ -1133,7 +1132,7 @@ void LocationParser_br::init() {
 	_locationZoneStmt = new Table(ARRAYSIZE(_locationZoneStmtRes_br), _locationZoneStmtRes_br);
 	_locationAnimStmt = new Table(ARRAYSIZE(_locationAnimStmtRes_br), _locationAnimStmtRes_br);
 
-	Common::Array<const Opcode *> *table = 0;
+	Common::Array<const Opcode *> *table = nullptr;
 
 	SetOpcodeTable(_commandParsers);
 	WARNING_PARSER(unexpected);
@@ -1236,7 +1235,7 @@ void ProgramParser_br::init() {
 
 	_instructionNames = new Table(ARRAYSIZE(_instructionNamesRes_br), _instructionNamesRes_br);
 
-	Common::Array<const Opcode *> *table = 0;
+	Common::Array<const Opcode *> *table = nullptr;
 
 	SetOpcodeTable(_instructionParsers);
 	INSTRUCTION_PARSER(defLocal);	// invalid opcode -> local definition

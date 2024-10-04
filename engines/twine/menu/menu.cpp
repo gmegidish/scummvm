@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,25 +27,26 @@
 #include "common/events.h"
 #include "common/keyboard.h"
 #include "common/scummsys.h"
+#include "common/str.h"
 #include "common/system.h"
 #include "common/util.h"
 #include "graphics/cursorman.h"
-#include "twine/scene/actor.h"
-#include "twine/scene/animations.h"
 #include "twine/audio/music.h"
 #include "twine/audio/sound.h"
-#include "twine/movies.h"
-#include "twine/scene/gamestate.h"
-#include "twine/scene/grid.h"
-#include "twine/resources/hqr.h"
 #include "twine/input.h"
 #include "twine/menu/interface.h"
 #include "twine/menu/menuoptions.h"
-#include "twine/scene/movements.h"
+#include "twine/movies.h"
 #include "twine/renderer/redraw.h"
 #include "twine/renderer/renderer.h"
 #include "twine/renderer/screens.h"
+#include "twine/resources/hqr.h"
 #include "twine/resources/resources.h"
+#include "twine/scene/actor.h"
+#include "twine/scene/animations.h"
+#include "twine/scene/gamestate.h"
+#include "twine/scene/grid.h"
+#include "twine/scene/movements.h"
 #include "twine/scene/scene.h"
 #include "twine/shared.h"
 #include "twine/text.h"
@@ -55,6 +55,9 @@
 namespace TwinE {
 
 static const uint32 kPlasmaEffectFilesize = 262176;
+
+#define HEIGHT_STANDARD 50
+#define MENU_SPACE 6
 
 namespace MenuButtonTypes {
 enum MenuButtonTypesEnum {
@@ -67,7 +70,8 @@ enum MenuButtonTypesEnum {
 	kShadowSettings = 7,
 	kSceneryZoom = 8,
 	kHighResolution = 9,
-	kWallCollision = 10
+	kWallCollision = 10,
+	kVoice = 11
 };
 }
 
@@ -75,17 +79,32 @@ enum MenuButtonTypesEnum {
 	if ((callMenu) == kQuitEngine) { \
 		return kQuitEngine;          \
 	}
-#define kBackground 9999
 
 namespace _priv {
 
-static MenuSettings createMainMenu() {
+static MenuSettings createMainMenu(bool lba1) {
 	MenuSettings settings;
-	settings.setButtonsBoxHeight(200);
+	if (lba1) {
+		settings.setButtonsBoxHeight(200);
+		settings.addButton(TextId::kNewGame);
+		settings.addButton(TextId::kContinueGame);
+		settings.addButton(TextId::kOptions);
+		settings.addButton(TextId::kQuit);
+	} else {
+		settings.setButtonsBoxHeight(335);
+		settings.addButton(TextId::toContinueGame);
+		settings.addButton(TextId::toNewGame);
+		settings.addButton(TextId::toOptions);
+		settings.addButton(TextId::toQuit);
+	}
+	return settings;
+}
+
+static MenuSettings createLba1ClassicNewGame() {
+	MenuSettings settings;
+	settings.addButton(TextId::kReturnMenu);
 	settings.addButton(TextId::kNewGame);
-	settings.addButton(TextId::kContinueGame);
-	settings.addButton(TextId::kOptions);
-	settings.addButton(TextId::kQuit);
+	settings.addButton(TextId::kNewGamePlus);
 	return settings;
 }
 
@@ -106,11 +125,19 @@ static MenuSettings createGiveUpSaveMenu() {
 	return settings;
 }
 
-static MenuSettings createOptionsMenu() {
+static MenuSettings createLanguageMenu(bool lba1) {
+	MenuSettings settings;
+	settings.addButton(TextId::kReturnMenu);
+	settings.addButton(TextId::kCustomVoicesEnglish, MenuButtonTypes::kVoice);
+	return settings;
+}
+
+static MenuSettings createOptionsMenu(bool lba1) {
 	MenuSettings settings;
 	settings.addButton(TextId::kReturnMenu);
 	settings.addButton(TextId::kVolumeSettings);
 	settings.addButton(TextId::kSaveManage);
+	settings.addButton(TextId::kCustomLanguageOption);
 	settings.addButton(TextId::kAdvanced);
 	return settings;
 }
@@ -149,9 +176,14 @@ static MenuSettings createVolumeMenu() {
 
 const char *MenuSettings::getButtonText(Text *text, int buttonIndex) {
 	if (_buttonTexts[buttonIndex].empty()) {
-		const TextId textId = getButtonTextId(buttonIndex);
+		TextId textId = getButtonTextId(buttonIndex);
 		char dialText[256] = "";
-		text->getMenuText(textId, dialText, sizeof(dialText));
+		if (textId == TextId::kNewGamePlus) {
+			text->getMenuText(TextId::kNewGame, dialText, sizeof(dialText));
+			Common::strlcat(dialText, "+", sizeof(dialText));
+		} else {
+			text->getMenuText(textId, dialText, sizeof(dialText));
+		}
 		_buttonTexts[buttonIndex] = dialText;
 	}
 	return _buttonTexts[buttonIndex].c_str();
@@ -160,12 +192,14 @@ const char *MenuSettings::getButtonText(Text *text, int buttonIndex) {
 Menu::Menu(TwinEEngine *engine) {
 	_engine = engine;
 
-	_optionsMenuState = _priv::createOptionsMenu();
+	_optionsMenuState = _priv::createOptionsMenu(engine->isLBA1());
+	_languageMenuState = _priv::createLanguageMenu(engine->isLBA1());
 	_giveUpMenuWithSaveState = _priv::createGiveUpSaveMenu();
 	_volumeMenuState = _priv::createVolumeMenu();
 	_saveManageMenuState = _priv::createSaveManageMenu();
 	_giveUpMenuState = _priv::createGiveUpMenu();
-	_mainMenuState = _priv::createMainMenu();
+	_mainMenuState = _priv::createMainMenu(engine->isLBA1());
+	_newGameMenuState = _priv::createLba1ClassicNewGame();
 	_advOptionsMenuState = _priv::createAdvancedOptionsMenu();
 
 	Common::fill(&_behaviourAnimState[0], &_behaviourAnimState[4], 0);
@@ -182,12 +216,12 @@ void Menu::plasmaEffectRenderFrame() {
 			/* Here we calculate the average of all 8 neighbour pixel values */
 
 			int16 c;
-			c = _plasmaEffectPtr[(i - 1) + (j - 1) * PLASMA_WIDTH];  //top-left
-			c += _plasmaEffectPtr[(i + 0) + (j - 1) * PLASMA_WIDTH]; //top
-			c += _plasmaEffectPtr[(i + 1) + (j - 1) * PLASMA_WIDTH]; //top-right
+			c = _plasmaEffectPtr[(i - 1) + (j - 1) * PLASMA_WIDTH];  // top-left
+			c += _plasmaEffectPtr[(i + 0) + (j - 1) * PLASMA_WIDTH]; // top
+			c += _plasmaEffectPtr[(i + 1) + (j - 1) * PLASMA_WIDTH]; // top-right
 
-			c += _plasmaEffectPtr[(i - 1) + (j + 0) * PLASMA_WIDTH]; //left
-			c += _plasmaEffectPtr[(i + 1) + (j + 0) * PLASMA_WIDTH]; //right
+			c += _plasmaEffectPtr[(i - 1) + (j + 0) * PLASMA_WIDTH]; // left
+			c += _plasmaEffectPtr[(i + 1) + (j + 0) * PLASMA_WIDTH]; // right
 
 			c += _plasmaEffectPtr[(i - 1) + (j + 1) * PLASMA_WIDTH]; // bottom-left
 			c += _plasmaEffectPtr[(i + 0) + (j + 1) * PLASMA_WIDTH]; // bottom
@@ -198,7 +232,7 @@ void Menu::plasmaEffectRenderFrame() {
 			c = (c >> 3) | ((c & 0x0003) << 13);
 
 			if (!(c & 0x6500) &&
-			    (j >= (PLASMA_HEIGHT - 4) || c > 0)) {
+				(j >= (PLASMA_HEIGHT - 4) || c > 0)) {
 				c--; /*fade this pixel*/
 			}
 
@@ -213,6 +247,10 @@ void Menu::plasmaEffectRenderFrame() {
 }
 
 void Menu::processPlasmaEffect(const Common::Rect &rect, int32 color) {
+	if (_engine->isLBA2()) {
+		// TODO: effects are handled differently here.
+		return;
+	}
 	const int32 max_value = color + 15;
 
 	plasmaEffectRenderFrame();
@@ -240,8 +278,8 @@ void Menu::processPlasmaEffect(const Common::Rect &rect, int32 color) {
 }
 
 void Menu::drawRectBorders(const Common::Rect &rect, int32 colorLeftTop, int32 colorRightBottom) {
-	_engine->_interface->drawLine(rect.left, rect.top, rect.right, rect.top, colorLeftTop);           // top line
-	_engine->_interface->drawLine(rect.left, rect.top, rect.left, rect.bottom, colorLeftTop);         // left line
+	_engine->_interface->drawLine(rect.left, rect.top, rect.right, rect.top, colorLeftTop);               // top line
+	_engine->_interface->drawLine(rect.left, rect.top, rect.left, rect.bottom, colorLeftTop);             // left line
 	_engine->_interface->drawLine(rect.right, rect.top + 1, rect.right, rect.bottom, colorRightBottom);   // right line
 	_engine->_interface->drawLine(rect.left + 1, rect.bottom, rect.right, rect.bottom, colorRightBottom); // bottom line
 }
@@ -279,9 +317,9 @@ void Menu::drawButtonGfx(const MenuSettings *menuSettings, const Common::Rect &r
 
 			processPlasmaEffect(rect, COLOR_80);
 			if (!(_engine->getRandomNumber() % 5)) {
-				_plasmaEffectPtr[_engine->getRandomNumber() % 140 * 10 + 1900] = 255;
+				_plasmaEffectPtr[(_engine->getRandomNumber() % PLASMA_WIDTH * 10) + 20 * PLASMA_WIDTH] = 255;
 			}
-			_engine->_interface->drawFilledRect(Common::Rect(newWidth, rect.top, rect.right, rect.bottom), COLOR_68);
+			_engine->_interface->drawFilledRect(Common::Rect(newWidth, rect.top, rect.right, rect.bottom), COLOR_SELECT_MENU);
 		} else {
 			processPlasmaEffect(rect, COLOR_64);
 			if (!(_engine->getRandomNumber() % 5)) {
@@ -309,7 +347,7 @@ int16 Menu::drawButtons(MenuSettings *menuSettings, bool hover) {
 	if (topHeight == 0) {
 		topHeight = 35;
 	} else {
-		topHeight = topHeight - (((maxButton - 1) * 6) + (maxButton * 50)) / 2;
+		topHeight = topHeight - (((maxButton - 1) * 6) + (maxButton * HEIGHT_STANDARD)) / 2;
 	}
 
 	if (maxButton <= 0) {
@@ -323,7 +361,7 @@ int16 Menu::drawButtons(MenuSettings *menuSettings, bool hover) {
 			int16 id = menuSettings->getButtonState(i);
 			switch (id) {
 			case MenuButtonTypes::kAggressiveMode:
-				if (_engine->_actor->_autoAggressive) {
+				if (_engine->_actor->_combatAuto) {
 					menuSettings->setButtonTextId(i, TextId::kBehaviourAggressiveAuto);
 				} else {
 					menuSettings->setButtonTextId(i, TextId::kBehaviourAggressiveManual);
@@ -373,11 +411,22 @@ int16 Menu::drawButtons(MenuSettings *menuSettings, bool hover) {
 			default:
 				break;
 			}
+		} else if (menuSettings == &_languageMenuState) {
+			int16 id = menuSettings->getButtonState(i);
+			switch (id) {
+			case MenuButtonTypes::kVoice: {
+				const int voiceLanguage = ConfMan.getInt("audio_language");
+				menuSettings->setButtonTextId(i, (TextId)((int)TextId::kCustomVoicesNone - voiceLanguage));
+				break;
+			}
+			default:
+				break;
+			}
 		}
 		const int32 menuItemId = menuSettings->getButtonState(i);
 		const char *text = menuSettings->getButtonText(_engine->_text, i);
 		const int32 border = 45;
-		const int32 mainMenuButtonHeightHalf = 25;
+		const int32 mainMenuButtonHeightHalf = HEIGHT_STANDARD / 2;
 		const Common::Rect rect(border, topHeight - mainMenuButtonHeightHalf, _engine->width() - border, topHeight + mainMenuButtonHeightHalf);
 		if (hover) {
 			if (i == buttonNumber) {
@@ -394,18 +443,38 @@ int16 Menu::drawButtons(MenuSettings *menuSettings, bool hover) {
 			mouseActiveButton = i;
 		}
 
-		topHeight += 56; // increase button top height
+		topHeight += HEIGHT_STANDARD + MENU_SPACE; // increase button top height
 	}
 	return mouseActiveButton;
 }
 
-int32 Menu::processMenu(MenuSettings *menuSettings, bool showCredits) {
+void Menu::menuDemo() {
+	// TODO: lba2 only show the credits only in the main menu and you could force it by pressing shift+c
+	// TODO: lba2 has a cd audio track (2) for the credits
+	_engine->_menuOptions->showCredits();
+	if (_engine->_movie->playMovie(FLA_DRAGON3)) {
+		if (!_engine->_screens->loadImageDelay(TwineImage(Resources::HQR_RESS_FILE, 15, 16), 3)) {
+			if (!_engine->_screens->loadImageDelay(TwineImage(Resources::HQR_RESS_FILE, 17, 18), 3)) {
+				if (!_engine->_screens->loadImageDelay(TwineImage(Resources::HQR_RESS_FILE, 19, 20), 3)) {
+					if (_engine->_movie->playMovie(FLA_BATEAU)) {
+						if (_engine->_cfgfile.Version == USA_VERSION) {
+							_engine->_screens->loadImageDelay(_engine->_resources->relentLogo(), 3);
+						} else {
+							_engine->_screens->loadImageDelay(_engine->_resources->lbaLogo(), 3);
+						}
+						_engine->_screens->adelineLogo();
+					}
+				}
+			}
+		}
+	}
+}
+
+int32 Menu::doGameMenu(MenuSettings *menuSettings) {
 	int16 currentButton = menuSettings->getActiveButton();
 	bool buttonsNeedRedraw = true;
 	const int32 numEntry = menuSettings->getButtonCount();
 	int32 maxButton = numEntry - 1;
-	Common::Point mousepos = _engine->_input->getMousePositions();
-	bool useMouse = true;
 
 	_engine->_input->enableKeyMap(uiKeyMapId);
 
@@ -421,18 +490,11 @@ int32 Menu::processMenu(MenuSettings *menuSettings, bool showCredits) {
 		const uint32 loopMillis = _engine->_system->getMillis();
 		_engine->readKeys();
 
-		Common::Point newmousepos = _engine->_input->getMousePositions();
-		if (mousepos != newmousepos) {
-			useMouse = true;
-			mousepos = newmousepos;
-		}
-
 		if (_engine->_input->toggleActionIfActive(TwinEActionType::UIDown)) {
 			currentButton++;
 			if (currentButton == numEntry) { // if current button is the last, than next button is the first
 				currentButton = 0;
 			}
-			useMouse = false;
 			buttonsNeedRedraw = true;
 			startMillis = loopMillis;
 		} else if (_engine->_input->toggleActionIfActive(TwinEActionType::UIUp)) {
@@ -440,7 +502,6 @@ int32 Menu::processMenu(MenuSettings *menuSettings, bool showCredits) {
 			if (currentButton < 0) { // if current button is the first, than previous button is the last
 				currentButton = maxButton;
 			}
-			useMouse = false;
 			buttonsNeedRedraw = true;
 			startMillis = loopMillis;
 		}
@@ -450,7 +511,7 @@ int32 Menu::processMenu(MenuSettings *menuSettings, bool showCredits) {
 			switch (id) {
 			case MenuButtonTypes::kAggressiveMode:
 				if (_engine->_input->toggleActionIfActive(TwinEActionType::UILeft) || _engine->_input->toggleActionIfActive(TwinEActionType::UIRight) || _engine->_input->toggleActionIfActive(TwinEActionType::UIEnter)) {
-					_engine->_actor->_autoAggressive = !_engine->_actor->_autoAggressive;
+					_engine->_actor->_combatAuto = !_engine->_actor->_combatAuto;
 					startMillis = loopMillis;
 				}
 				break;
@@ -494,6 +555,28 @@ int32 Menu::processMenu(MenuSettings *menuSettings, bool showCredits) {
 					const bool highRes = ConfMan.getBool("wallcollision");
 					ConfMan.setBool("wallcollision", !highRes);
 					startMillis = loopMillis;
+				}
+				break;
+			default:
+				break;
+			}
+		} else if (menuSettings == &_languageMenuState) {
+			switch (id) {
+			case MenuButtonTypes::kVoice:
+				if (_engine->_input->toggleActionIfActive(TwinEActionType::UILeft)) {
+					int voiceLanguage = ConfMan.getInt("audio_language");
+					--voiceLanguage;
+					if (voiceLanguage < 0) {
+						voiceLanguage = 3;
+					}
+					ConfMan.setInt("audio_language", voiceLanguage);
+				} else if (_engine->_input->toggleActionIfActive(TwinEActionType::UIRight) || _engine->_input->toggleActionIfActive(TwinEActionType::UIEnter)) {
+					int voiceLanguage = ConfMan.getInt("audio_language");
+					++voiceLanguage;
+					if (voiceLanguage > 3) {
+						voiceLanguage = 0;
+					}
+					ConfMan.setInt("audio_language", voiceLanguage);
 				}
 				break;
 			default:
@@ -563,7 +646,7 @@ int32 Menu::processMenu(MenuSettings *menuSettings, bool showCredits) {
 		if (buttonsNeedRedraw) {
 			// draw all buttons
 			const int16 mouseButtonHovered = drawButtons(menuSettings, false);
-			if (useMouse && mouseButtonHovered != -1) {
+			if (mouseButtonHovered != -1) {
 				currentButton = mouseButtonHovered;
 			}
 			menuSettings->setActiveButton(currentButton);
@@ -571,7 +654,7 @@ int32 Menu::processMenu(MenuSettings *menuSettings, bool showCredits) {
 
 		// draw plasma effect for the current selected button
 		const int16 mouseButtonHovered = drawButtons(menuSettings, true);
-		if (useMouse && mouseButtonHovered != -1) {
+		if (mouseButtonHovered != -1) {
 			if (mouseButtonHovered != currentButton) {
 				buttonsNeedRedraw = true;
 			}
@@ -590,27 +673,14 @@ int32 Menu::processMenu(MenuSettings *menuSettings, bool showCredits) {
 			}
 			startMillis = loopMillis;
 		}
-		if (showCredits && loopMillis - startMillis > 11650) {
-			_engine->_menuOptions->showCredits();
-			if (_engine->_flaMovies->playFlaMovie(FLA_DRAGON3)) {
-				if (!_engine->_screens->loadImageDelay(TwineImage(Resources::HQR_RESS_FILE, 15, 16), 3)) {
-					if (!_engine->_screens->loadImageDelay(TwineImage(Resources::HQR_RESS_FILE, 17, 18), 3)) {
-						if (!_engine->_screens->loadImageDelay(TwineImage(Resources::HQR_RESS_FILE, 19, 20), 3)) {
-							if (_engine->_flaMovies->playFlaMovie(FLA_BATEAU)) {
-								if (_engine->_cfgfile.Version == USA_VERSION) {
-									_engine->_screens->loadImageDelay(_engine->_resources->relentLogo(), 3);
-								} else {
-									_engine->_screens->loadImageDelay(_engine->_resources->lbaLogo(), 3);
-								}
-								_engine->_screens->adelineLogo();
-							}
-						}
-					}
-				}
+		if (menuSettings == &_mainMenuState) {
+			uint32 idleTime = 60 * 3 + 53 * 1000;
+			if (_engine->isDemo()) {
+				idleTime = 60 * 1000;
 			}
-			_engine->_text->initTextBank(TextBankId::Options_and_menus);
-			startMillis = _engine->_system->getMillis();
-			_engine->_screens->loadMenuImage(false);
+			if (loopMillis - startMillis > idleTime) {
+				return kDemoMenu;
+			}
 		}
 	} while (!_engine->_input->toggleActionIfActive(TwinEActionType::UIEnter));
 
@@ -622,7 +692,7 @@ int32 Menu::advoptionsMenu() {
 
 	ScopedCursor scoped(_engine);
 	for (;;) {
-		switch (processMenu(&_advOptionsMenuState)) {
+		switch (doGameMenu(&_advOptionsMenuState)) {
 		case (int32)TextId::kReturnMenu: {
 			return 0;
 		}
@@ -646,7 +716,7 @@ int32 Menu::savemanageMenu() {
 
 	ScopedCursor scoped(_engine);
 	for (;;) {
-		switch (processMenu(&_saveManageMenuState)) {
+		switch (doGameMenu(&_saveManageMenuState)) {
 		case (int32)TextId::kReturnMenu:
 			return 0;
 		case (int32)TextId::kCreateSaveGame:
@@ -666,12 +736,20 @@ int32 Menu::savemanageMenu() {
 	return 0;
 }
 
-int32 Menu::volumeMenu() {
+int32 Menu::volumeOptions() {
 	_engine->restoreFrontBuffer();
+
+	if (_engine->isLBA1()) {
+		if (_engine->isCDROM()) {
+			_engine->_music->playAllMusic(9);
+		} else {
+			_engine->_music->playMidiFile(9);
+		}
+	}
 
 	ScopedCursor scoped(_engine);
 	for (;;) {
-		switch (processMenu(&_volumeMenuState)) {
+		switch (doGameMenu(&_volumeMenuState)) {
 		case (int32)TextId::kReturnMenu:
 			return 0;
 		case kQuitEngine:
@@ -689,8 +767,28 @@ int32 Menu::volumeMenu() {
 	return 0;
 }
 
+int32 Menu::languageMenu() {
+	_engine->restoreFrontBuffer();
+
+	ScopedCursor scoped(_engine);
+	for (;;) {
+		switch (doGameMenu(&_languageMenuState)) {
+		case (int32)TextId::kReturnMenu:
+			return 0;
+		case kQuitEngine:
+			return kQuitEngine;
+		case (int32)MenuButtonTypes::kVoice:
+		default:
+			warning("Unknown menu button handled");
+			break;
+		}
+	}
+
+	return 0;
+}
+
 void Menu::inGameOptionsMenu() {
-	_engine->_text->initTextBank(TextBankId::Options_and_menus);
+	_engine->_text->initDial(TextBankId::Options_and_menus);
 	_optionsMenuState.setButtonTextId(0, TextId::kReturnGame);
 	_engine->saveFrontBuffer();
 	optionsMenu();
@@ -702,23 +800,66 @@ int32 Menu::optionsMenu() {
 	_engine->restoreFrontBuffer();
 
 	_engine->_sound->stopSamples();
-	_engine->_music->playTrackMusic(9); // LBA's Theme
+	if (_engine->isLBA1()) {
+		// LBA's Theme
+		if (_engine->isCDROM()) {
+			_engine->_music->playCdTrack(9);
+		} else {
+			_engine->_music->playMidiFile(9);
+		}
+	}
 
 	ScopedCursor scoped(_engine);
 	for (;;) {
-		switch (processMenu(&_optionsMenuState)) {
+		switch (doGameMenu(&_optionsMenuState)) {
 		case (int32)TextId::kReturnGame:
 		case (int32)TextId::kReturnMenu: {
 			return 0;
 		}
 		case (int32)TextId::kVolumeSettings: {
-			checkMenuQuit(volumeMenu()) break;
+			checkMenuQuit(volumeOptions()) break;
+		}
+		case (int32)TextId::kCustomLanguageOption: {
+			checkMenuQuit(languageMenu()) break;
 		}
 		case (int32)TextId::kSaveManage: {
 			checkMenuQuit(savemanageMenu()) break;
 		}
 		case (int32)TextId::kAdvanced: {
 			checkMenuQuit(advoptionsMenu()) break;
+		}
+		case kQuitEngine:
+			return kQuitEngine;
+		default:
+			break;
+		}
+	}
+
+	return 0;
+}
+
+int32 Menu::newGameClassicMenu() {
+	_engine->restoreFrontBuffer();
+
+	ScopedCursor scoped(_engine);
+	for (;;) {
+		switch (doGameMenu(&_newGameMenuState)) {
+		case (int32)TextId::kReturnGame:
+		case (int32)TextId::kReturnMenu: {
+			return 0;
+		}
+		case (int32)TextId::kNewGamePlus:
+			_engine->_gameState->_endGameItems = true;
+			if (_engine->_menuOptions->newGameMenu()) {
+				return 1;
+			}
+			break;
+		case (int32)TextId::kNewGame: {
+			_engine->_gameState->_endGameItems = false;
+			if (_engine->_menuOptions->newGameMenu()) {
+				return 1;
+			}
+			break;
 		}
 		case kQuitEngine:
 			return kQuitEngine;
@@ -753,6 +894,8 @@ static const byte cursorPalette[] = {
 	0xff, 0xff, 0xff};
 
 bool Menu::init() {
+	_engine->_input->enableKeyMap(uiKeyMapId);
+	_engine->_screens->loadMenuImage();
 	// load menu effect file only once
 	_plasmaEffectPtr = (uint8 *)malloc(kPlasmaEffectFilesize);
 	memset(_plasmaEffectPtr, 0, kPlasmaEffectFilesize);
@@ -764,34 +907,53 @@ bool Menu::init() {
 
 EngineState Menu::run() {
 	FrameMarker frame(_engine);
-	_engine->_text->initTextBank(TextBankId::Options_and_menus);
+	_engine->_text->initDial(TextBankId::Options_and_menus);
 
-	_engine->_music->playTrackMusic(9); // LBA's Theme
 	_engine->_sound->stopSamples();
+	if (_engine->isLBA1()) {
+		if (_engine->isCDROM()) {
+			_engine->_music->playCdTrack(9); // LBA's Theme
+		} else {
+			_engine->_music->playMidiFile(9); // LBA's Theme
+		}
+	} else {
+		_engine->_music->playMusic(6); // LBA2's Theme
+	}
 
 	ScopedCursor scoped(_engine);
-	switch (processMenu(&_mainMenuState)) {
+	switch (doGameMenu(&_mainMenuState)) {
+	case (int32)TextId::toNewGame:
 	case (int32)TextId::kNewGame: {
+		if (_engine->isLba1Classic()) {
+			if (newGameClassicMenu()) {
+				return EngineState::GameLoop;
+			}
+			break;
+		}
 		if (_engine->_menuOptions->newGameMenu()) {
 			return EngineState::GameLoop;
 		}
 		break;
 	}
+	case (int32)TextId::toContinueGame:
 	case (int32)TextId::kContinueGame: {
 		if (_engine->_menuOptions->continueGameMenu()) {
 			return EngineState::LoadedGame;
 		}
 		break;
 	}
+	case (int32)TextId::toOptions:
 	case (int32)TextId::kOptions: {
 		optionsMenu();
 		break;
 	}
-	case kBackground: {
-		_engine->_screens->loadMenuImage();
+	case kDemoMenu: {
+		menuDemo();
+		_engine->_screens->loadMenuImage(false);
 		break;
 	}
 	case (int32)TextId::kQuit:
+	case (int32)TextId::toQuit:
 	case kQuitEngine:
 		debug("quit the game");
 		return EngineState::QuitGame;
@@ -815,8 +977,8 @@ int32 Menu::giveupMenu() {
 	int32 menuId;
 	do {
 		FrameMarker frame(_engine);
-		_engine->_text->initTextBank(TextBankId::Options_and_menus);
-		menuId = processMenu(localMenu);
+		_engine->_text->initDial(TextBankId::Options_and_menus);
+		menuId = doGameMenu(localMenu);
 		switch (menuId) {
 		case (int32)TextId::kContinue:
 			_engine->_sound->resumeSamples();
@@ -841,7 +1003,7 @@ int32 Menu::giveupMenu() {
 void Menu::drawHealthBar(int32 left, int32 right, int32 top, int32 barLeftPadding, int32 barHeight) {
 	_engine->_grid->drawSprite(left, top + 3, _engine->_resources->_spriteData[SPRITEHQR_LIFEPOINTS]);
 	const int32 barLeft = left + barLeftPadding;
-	const int32 healthBarRight = _engine->_screens->lerp(barLeft, right, 50, _engine->_scene->_sceneHero->_life);
+	const int32 healthBarRight = _engine->_screens->lerp(barLeft, right, 50, _engine->_scene->_sceneHero->_lifePoint);
 	const int32 barBottom = top + barHeight;
 	_engine->_interface->drawFilledRect(Common::Rect(barLeft, top, healthBarRight, barBottom), COLOR_91);
 	drawRectBorders(Common::Rect(barLeft, top, right, barBottom));
@@ -874,7 +1036,7 @@ void Menu::drawMagicPointsBar(int32 left, int32 right, int32 top, int32 barLeftP
 	}
 	const int32 barLeft = left + barLeftPadding;
 	const int32 barBottom = top + barHeight;
-	const int32 barRight = _engine->_screens->lerp(barLeft, right, 80, _engine->_gameState->_inventoryMagicPoints);
+	const int32 barRight = _engine->_screens->lerp(barLeft, right, 80, _engine->_gameState->_magicPoint);
 	const Common::Rect pointsRect(barLeft, top, barRight, barBottom);
 	_engine->_interface->drawFilledRect(pointsRect, COLOR_75);
 	drawRectBorders(barLeft, top, barLeft + _engine->_gameState->_magicLevelIdx * 80, barBottom);
@@ -887,7 +1049,7 @@ void Menu::drawSpriteAndString(int32 left, int32 top, const SpriteData &spriteDa
 }
 
 void Menu::drawCoins(int32 left, int32 top) {
-	const Common::String &inventoryNumKashes = Common::String::format("%d", _engine->_gameState->_inventoryNumKashes);
+	const Common::String &inventoryNumKashes = Common::String::format("%d", _engine->_gameState->_goldPieces);
 	drawSpriteAndString(left, top, _engine->_resources->_spriteData[SPRITEHQR_KASHES], inventoryNumKashes);
 }
 
@@ -897,7 +1059,7 @@ void Menu::drawKeys(int32 left, int32 top) {
 }
 
 void Menu::drawInfoMenu(int16 left, int16 top, int16 width) {
-	_engine->_interface->resetClip();
+	_engine->_interface->unsetClip();
 	const int16 height = 80;
 	const Common::Rect rect(left, top, left + width, top + height);
 	drawRectBorders(rect);
@@ -935,6 +1097,9 @@ Common::Rect Menu::calcBehaviourRect(int32 left, int32 top, HeroBehaviourType be
 }
 
 bool Menu::isBehaviourHovered(int32 left, int32 top, HeroBehaviourType behaviour) const {
+	if (!_engine->_cfgfile.Mouse) {
+		return false;
+	}
 	const Common::Rect &boxRect = calcBehaviourRect(left, top, behaviour);
 	return _engine->_input->isMouseHovering(boxRect);
 }
@@ -947,7 +1112,7 @@ void Menu::drawBehaviour(int32 left, int32 top, HeroBehaviourType behaviour, int
 
 	uint currentAnimState = _behaviourAnimState[(byte)behaviour];
 
-	if (_engine->_animations->setModelAnimation(currentAnimState, currentAnimData, *_behaviourEntity, &_behaviourAnimData[(byte)behaviour])) {
+	if (_engine->_animations->doSetInterAnimObjet(currentAnimState, currentAnimData, *_behaviourEntity, &_behaviourAnimData[(byte)behaviour])) {
 		currentAnimState++; // keyframe
 		if (currentAnimState >= currentAnimData.getNumKeyframes()) {
 			currentAnimState = currentAnimData.getLoopFrame();
@@ -961,8 +1126,8 @@ void Menu::drawBehaviour(int32 left, int32 top, HeroBehaviourType behaviour, int
 		drawRectBorders(boxRectCopy);
 	}
 
-	_engine->_interface->saveClip();
-	_engine->_interface->resetClip();
+	_engine->_interface->memoClip();
+	_engine->_interface->unsetClip();
 
 	if (behaviour == _engine->_actor->_heroBehaviour) {
 		const int titleOffset = 10;
@@ -991,14 +1156,14 @@ void Menu::drawBehaviour(int32 left, int32 top, HeroBehaviourType behaviour, int
 		_engine->_interface->drawFilledRect(boxRect, COLOR_BLACK);
 	}
 
-	_engine->_renderer->renderBehaviourModel(boxRect, -600, angle, *_behaviourEntity, _moveMenu);
+	_engine->_renderer->drawObj3D(boxRect, -600, angle, *_behaviourEntity, _moveMenu);
 
-	_engine->_interface->loadClip();
+	_engine->_interface->restoreClip();
 }
 
 void Menu::prepareAndDrawBehaviour(int32 left, int32 top, int32 angle, HeroBehaviourType behaviour) {
 	const int animIdx = _engine->_actor->_heroAnimIdx[(byte)behaviour];
-	_engine->_animations->setAnimAtKeyframe(_behaviourAnimState[(byte)behaviour], _engine->_resources->_animData[animIdx], *_behaviourEntity, &_behaviourAnimData[(byte)behaviour]);
+	_engine->_animations->setAnimObjet(_behaviourAnimState[(byte)behaviour], _engine->_resources->_animData[animIdx], *_behaviourEntity, &_behaviourAnimData[(byte)behaviour]);
 	drawBehaviour(left, top, behaviour, angle, false);
 }
 
@@ -1025,101 +1190,106 @@ void Menu::drawBehaviourMenu(int32 left, int32 top, int32 angle) {
 	drawInfoMenu(titleRect.left, titleRect.bottom + 10, titleRect.width());
 }
 
-void Menu::processBehaviourMenu() {
-	_engine->exitSceneryView();
+void Menu::processBehaviourMenu(bool behaviourMenu) {
+	_engine->extInitSvga();
 	if (_engine->_actor->_heroBehaviour == HeroBehaviourType::kProtoPack) {
 		_engine->_sound->stopSamples();
 		_engine->_actor->setBehaviour(HeroBehaviourType::kNormal);
 	}
 
-	_behaviourEntity = &_engine->_resources->_bodyData[_engine->_scene->_sceneHero->_entity];
+	_behaviourEntity = &_engine->_resources->_bodyData[_engine->_scene->_sceneHero->_body];
 
 	_engine->_actor->_heroAnimIdx[(byte)HeroBehaviourType::kNormal] = _engine->_actor->_heroAnimIdxNORMAL;
 	_engine->_actor->_heroAnimIdx[(byte)HeroBehaviourType::kAthletic] = _engine->_actor->_heroAnimIdxATHLETIC;
 	_engine->_actor->_heroAnimIdx[(byte)HeroBehaviourType::kAggressive] = _engine->_actor->_heroAnimIdxAGGRESSIVE;
 	_engine->_actor->_heroAnimIdx[(byte)HeroBehaviourType::kDiscrete] = _engine->_actor->_heroAnimIdxDISCRETE;
 
-	_engine->_movements->setActorAngleSafe(_engine->_scene->_sceneHero->_angle, _engine->_scene->_sceneHero->_angle - ANGLE_90, ANGLE_17, &_moveMenu);
+	_engine->_movements->initRealAngle(_engine->_scene->_sceneHero->_beta, _engine->_scene->_sceneHero->_beta - LBAAngles::ANGLE_90, LBAAngles::ANGLE_17, &_moveMenu);
 
 	_engine->saveFrontBuffer();
 
 	TextBankId tmpTextBank = _engine->_scene->_sceneTextBank;
 	_engine->_scene->_sceneTextBank = TextBankId::None;
 
-	_engine->_text->initTextBank(TextBankId::Options_and_menus);
+	_engine->_text->initDial(TextBankId::Options_and_menus);
 
-	const int32 left = _engine->width() / 2 - 220;
-	const int32 top = _engine->height() / 2 - 140;
-	drawBehaviourMenu(left, top, _engine->_scene->_sceneHero->_angle);
+	// quick actions to change behaviour don't show the menu in classic edition
+	if (!behaviourMenu && _engine->isLba1Classic()) {
+		char text[256];
+		_engine->_text->getMenuText(_engine->_actor->getTextIdForBehaviour(), text, sizeof(text));
+		_engine->_redraw->setRenderText(text);
+	} else {
+		const int32 left = _engine->width() / 2 - 220;
+		const int32 top = _engine->height() / 2 - 140;
+		drawBehaviourMenu(left, top, _engine->_scene->_sceneHero->_beta);
 
-	HeroBehaviourType tmpHeroBehaviour = _engine->_actor->_heroBehaviour;
+		HeroBehaviourType tmpHeroBehaviour = _engine->_actor->_heroBehaviour;
 
-	const int animIdx = _engine->_actor->_heroAnimIdx[(byte)_engine->_actor->_heroBehaviour];
-	_engine->_animations->setAnimAtKeyframe(_behaviourAnimState[(byte)_engine->_actor->_heroBehaviour], _engine->_resources->_animData[animIdx], *_behaviourEntity, &_behaviourAnimData[(byte)_engine->_actor->_heroBehaviour]);
+		const int animIdx = _engine->_actor->_heroAnimIdx[(byte)_engine->_actor->_heroBehaviour];
+		_engine->_animations->setAnimObjet(_behaviourAnimState[(byte)_engine->_actor->_heroBehaviour], _engine->_resources->_animData[animIdx], *_behaviourEntity, &_behaviourAnimData[(byte)_engine->_actor->_heroBehaviour]);
 
-	int32 tmpTime = _engine->_lbaTime;
+		int32 tmpTime = _engine->timerRef;
 
-#if 0
-	ScopedCursor scopedCursor(_engine);
-#endif
-	ScopedKeyMap scopedKeyMap(_engine, uiKeyMapId);
-	while (_engine->_input->isActionActive(TwinEActionType::BehaviourMenu) || _engine->_input->isQuickBehaviourActionActive()) {
-		FrameMarker frame(_engine, 50);
-		_engine->readKeys();
-		if (_engine->shouldQuit()) {
-			break;
+		ScopedCursor scopedCursor(_engine);
+		ScopedKeyMap scopedKeyMap(_engine, uiKeyMapId);
+		while (_engine->_input->isActionActive(TwinEActionType::BehaviourMenu) || _engine->_input->isQuickBehaviourActionActive()) {
+			FrameMarker frame(_engine, 50);
+			_engine->readKeys();
+			if (_engine->shouldQuit()) {
+				break;
+			}
+
+			if (isBehaviourHovered(left, top, HeroBehaviourType::kNormal)) {
+				_engine->_actor->_heroBehaviour = HeroBehaviourType::kNormal;
+			} else if (isBehaviourHovered(left, top, HeroBehaviourType::kAthletic)) {
+				_engine->_actor->_heroBehaviour = HeroBehaviourType::kAthletic;
+			} else if (isBehaviourHovered(left, top, HeroBehaviourType::kAggressive)) {
+				_engine->_actor->_heroBehaviour = HeroBehaviourType::kAggressive;
+			} else if (isBehaviourHovered(left, top, HeroBehaviourType::kDiscrete)) {
+				_engine->_actor->_heroBehaviour = HeroBehaviourType::kDiscrete;
+			}
+
+			int heroBehaviour = (int)_engine->_actor->_heroBehaviour;
+			if (_engine->_input->toggleActionIfActive(TwinEActionType::UILeft)) {
+				heroBehaviour--;
+			} else if (_engine->_input->toggleActionIfActive(TwinEActionType::UIRight)) {
+				heroBehaviour++;
+			}
+
+			if (heroBehaviour < (int)HeroBehaviourType::kNormal) {
+				heroBehaviour = (int)HeroBehaviourType::kDiscrete;
+			} else if (heroBehaviour >= (int)HeroBehaviourType::kProtoPack) {
+				heroBehaviour = (int)HeroBehaviourType::kNormal;
+			}
+
+			_engine->_actor->_heroBehaviour = (HeroBehaviourType)heroBehaviour;
+
+			if (tmpHeroBehaviour != _engine->_actor->_heroBehaviour) {
+				drawBehaviour(left, top, tmpHeroBehaviour, _engine->_scene->_sceneHero->_beta, true);
+				tmpHeroBehaviour = _engine->_actor->_heroBehaviour;
+				_engine->_movements->initRealAngle(_engine->_scene->_sceneHero->_beta, _engine->_scene->_sceneHero->_beta - LBAAngles::ANGLE_90, LBAAngles::ANGLE_17, &_moveMenu);
+				const int tmpAnimIdx = _engine->_actor->_heroAnimIdx[(byte)_engine->_actor->_heroBehaviour];
+				_engine->_animations->setAnimObjet(_behaviourAnimState[(byte)_engine->_actor->_heroBehaviour], _engine->_resources->_animData[tmpAnimIdx], *_behaviourEntity, &_behaviourAnimData[(byte)_engine->_actor->_heroBehaviour]);
+			}
+
+			drawBehaviour(left, top, _engine->_actor->_heroBehaviour, -1, true);
+
+			// increase the timer to play the animations
+			_engine->timerRef++;
+			debugC(3, kDebugLevels::kDebugTime, "Behaviour time: %i", _engine->timerRef);
 		}
 
-#if 0
-		if (isBehaviourHovered(HeroBehaviourType::kNormal)) {
-			_engine->_actor->heroBehaviour = HeroBehaviourType::kNormal;
-		} else if (isBehaviourHovered(HeroBehaviourType::kAthletic)) {
-			_engine->_actor->heroBehaviour = HeroBehaviourType::kAthletic;
-		} else if (isBehaviourHovered(HeroBehaviourType::kAggressive)) {
-			_engine->_actor->heroBehaviour = HeroBehaviourType::kAggressive;
-		} else if (isBehaviourHovered(HeroBehaviourType::kDiscrete)) {
-			_engine->_actor->heroBehaviour = HeroBehaviourType::kDiscrete;
-		}
-#endif
+		_engine->timerRef = tmpTime;
 
-		int heroBehaviour = (int)_engine->_actor->_heroBehaviour;
-		if (_engine->_input->toggleActionIfActive(TwinEActionType::UILeft)) {
-			heroBehaviour--;
-		} else if (_engine->_input->toggleActionIfActive(TwinEActionType::UIRight)) {
-			heroBehaviour++;
-		}
-
-		if (heroBehaviour < (int)HeroBehaviourType::kNormal) {
-			heroBehaviour = (int)HeroBehaviourType::kDiscrete;
-		} else if (heroBehaviour >= (int)HeroBehaviourType::kProtoPack) {
-			heroBehaviour = (int)HeroBehaviourType::kNormal;
-		}
-
-		_engine->_actor->_heroBehaviour = (HeroBehaviourType)heroBehaviour;
-
-		if (tmpHeroBehaviour != _engine->_actor->_heroBehaviour) {
-			drawBehaviour(left, top, tmpHeroBehaviour, _engine->_scene->_sceneHero->_angle, true);
-			tmpHeroBehaviour = _engine->_actor->_heroBehaviour;
-			_engine->_movements->setActorAngleSafe(_engine->_scene->_sceneHero->_angle, _engine->_scene->_sceneHero->_angle - ANGLE_90, ANGLE_17, &_moveMenu);
-			const int tmpAnimIdx = _engine->_actor->_heroAnimIdx[(byte)_engine->_actor->_heroBehaviour];
-			_engine->_animations->setAnimAtKeyframe(_behaviourAnimState[(byte)_engine->_actor->_heroBehaviour], _engine->_resources->_animData[tmpAnimIdx], *_behaviourEntity, &_behaviourAnimData[(byte)_engine->_actor->_heroBehaviour]);
-		}
-
-		drawBehaviour(left, top, _engine->_actor->_heroBehaviour, -1, true);
-
-		_engine->_lbaTime++;
+		_engine->_gameState->init3DGame();
 	}
-
-	_engine->_lbaTime = tmpTime;
-
 	_engine->_actor->setBehaviour(_engine->_actor->_heroBehaviour);
-	_engine->_gameState->initEngineProjections();
 
 	_engine->_scene->_sceneTextBank = tmpTextBank;
 	_engine->_text->initSceneTextBank();
 }
 
-void Menu::drawItem(int32 left, int32 top, int32 item) {
+Common::Rect Menu::calcItemRect(int32 left, int32 top, int32 item, int32 *centerX, int32 *centerY) const {
 	const int32 itemWidth = 74;
 	const int32 itemHeight = 64;
 	const int32 itemPadding = 11;
@@ -1127,16 +1297,27 @@ void Menu::drawItem(int32 left, int32 top, int32 item) {
 	const int32 itemHeightHalf = itemHeight / 2;
 	const int32 itemX = (item / 4) * (itemWidth + itemPadding) + left + itemWidthHalf + itemPadding - 1;
 	const int32 itemY = (item % 4) * (itemHeight + itemPadding) + top + itemHeightHalf + itemPadding - 1;
-	const Common::Rect rect(itemX - itemWidthHalf, itemY - itemHeightHalf, itemX + itemWidthHalf, itemY + itemHeightHalf);
+	if (centerX) {
+		*centerX = itemX;
+	}
+	if (centerY) {
+		*centerY = itemY;
+	}
+	return Common::Rect(itemX - itemWidthHalf, itemY - itemHeightHalf, itemX + itemWidthHalf, itemY + itemHeightHalf);
+}
+
+void Menu::drawOneInventory(int32 left, int32 top, int32 item) {
+	int32 itemX, itemY;
+	const Common::Rect rect = calcItemRect(left, top, item, &itemX, &itemY);
 	const int32 color = _inventorySelectedItem == item ? _inventorySelectedColor : COLOR_BLACK;
 
 	_engine->_interface->drawFilledRect(rect, color);
 
 	if (item < NUM_INVENTORY_ITEMS && _engine->_gameState->hasItem((InventoryItems)item) && (!_engine->_gameState->inventoryDisabled() || item == InventoryItems::kiCloverLeaf)) {
-		_itemAngle[item] += ANGLE_2;
+		_itemAngle[item] += LBAAngles::ANGLE_2;
 		_engine->_interface->setClip(rect);
-		_engine->_renderer->renderInventoryItem(itemX, itemY, _engine->_resources->_inventoryTable[item], _itemAngle[item], 15000);
-		_engine->_interface->resetClip();
+		_engine->_renderer->draw3dObject(itemX, itemY, _engine->_resources->_inventoryTable[item], _itemAngle[item], 15000);
+		_engine->_interface->unsetClip();
 		if (item == InventoryItems::kGasItem) {
 			_engine->_text->setFontColor(COLOR_WHITE);
 			const Common::String &inventoryNumGas = Common::String::format("%d", _engine->_gameState->_inventoryNumGas);
@@ -1147,15 +1328,14 @@ void Menu::drawItem(int32 left, int32 top, int32 item) {
 	drawRectBorders(rect);
 }
 
-void Menu::drawInventoryItems(int32 left, int32 top) {
+void Menu::drawListInventory(int32 left, int32 top) {
 	const Common::Rect rect(left, top, left + 605, top + 310);
 	_engine->_interface->drawTransparentBox(rect, 4);
 	drawRectBorders(rect);
-
 	for (int32 item = 0; item < NUM_INVENTORY_ITEMS; item++) {
-		drawItem(left, top, item);
+		drawOneInventory(left, top, item);
 	}
-	_engine->_interface->resetClip();
+	_engine->_interface->unsetClip();
 }
 
 void Menu::processInventoryMenu() {
@@ -1164,21 +1344,21 @@ void Menu::processInventoryMenu() {
 
 	_engine->saveFrontBuffer();
 
-	_engine->_renderer->setLightVector(ANGLE_315, ANGLE_334, ANGLE_0);
+	_engine->_renderer->setLightVector(LBAAngles::ANGLE_315, LBAAngles::ANGLE_334, LBAAngles::ANGLE_0);
 
-	_inventorySelectedColor = COLOR_68;
+	_inventorySelectedColor = COLOR_SELECT_MENU;
 
 	if (_engine->_gameState->_inventoryNumLeafs > 0) {
 		_engine->_gameState->giveItem(InventoryItems::kiCloverLeaf);
-		// TODO: shouldn't this get reset? } else {
-		//	_engine->_gameState->removeItem(InventoryItems::kiCloverLeaf);
+	} else {
+		_engine->_gameState->removeItem(InventoryItems::kiCloverLeaf);
 	}
 
 	const int32 left = _engine->width() / 2 - 303;
 	const int32 top = _engine->height() / 2 - 210;
-	drawInventoryItems(left, top);
+	drawListInventory(left, top);
 
-	_engine->_text->initTextBank(TextBankId::Inventory_Intro_and_Holomap);
+	_engine->_text->initDial(TextBankId::Inventory_Intro_and_Holomap);
 
 	_engine->_text->setFontCrossColor(COLOR_BRIGHT_BLUE);
 	_engine->_text->initDialogueBox();
@@ -1186,7 +1366,7 @@ void Menu::processInventoryMenu() {
 	ProgressiveTextState textState = ProgressiveTextState::ContinueRunning;
 	bool updateItemText = true;
 
-	//ScopedCursor scopedCursor(_engine);
+	ScopedCursor scopedCursor(_engine);
 	ScopedKeyMap scopedKeyMap(_engine, uiKeyMapId);
 	for (;;) {
 		FrameMarker frame(_engine, 66);
@@ -1195,6 +1375,16 @@ void Menu::processInventoryMenu() {
 
 		if (_engine->_input->toggleAbortAction() || _engine->shouldQuit()) {
 			break;
+		}
+
+		for (int32 item = 0; item < NUM_INVENTORY_ITEMS; item++) {
+			const Common::Rect &rect = calcItemRect(left, top, item);
+			if (_engine->_input->isMouseHovering(rect)) {
+				_inventorySelectedItem = item;
+				drawOneInventory(left, top, prevSelectedItem);
+				updateItemText = true;
+				break;
+			}
 		}
 
 		const bool cursorDown = _engine->_input->toggleActionIfActive(TwinEActionType::UIDown);
@@ -1207,28 +1397,28 @@ void Menu::processInventoryMenu() {
 			if (_inventorySelectedItem >= NUM_INVENTORY_ITEMS) {
 				_inventorySelectedItem = 0;
 			}
-			drawItem(left, top, prevSelectedItem);
+			drawOneInventory(left, top, prevSelectedItem);
 			updateItemText = true;
 		} else if (cursorUp) {
 			_inventorySelectedItem--;
 			if (_inventorySelectedItem < 0) {
 				_inventorySelectedItem = NUM_INVENTORY_ITEMS - 1;
 			}
-			drawItem(left, top, prevSelectedItem);
+			drawOneInventory(left, top, prevSelectedItem);
 			updateItemText = true;
 		} else if (cursorLeft) {
 			_inventorySelectedItem -= 4;
 			if (_inventorySelectedItem < 0) {
 				_inventorySelectedItem += NUM_INVENTORY_ITEMS;
 			}
-			drawItem(left, top, prevSelectedItem);
+			drawOneInventory(left, top, prevSelectedItem);
 			updateItemText = true;
 		} else if (cursorRight) {
 			_inventorySelectedItem += 4;
 			if (_inventorySelectedItem >= NUM_INVENTORY_ITEMS) {
 				_inventorySelectedItem -= NUM_INVENTORY_ITEMS;
 			}
-			drawItem(left, top, prevSelectedItem);
+			drawOneInventory(left, top, prevSelectedItem);
 			updateItemText = true;
 		}
 
@@ -1260,12 +1450,12 @@ void Menu::processInventoryMenu() {
 			}
 		}
 
-		drawItem(left, top, _inventorySelectedItem);
+		drawOneInventory(left, top, _inventorySelectedItem);
 
 		if (_inventorySelectedItem < NUM_INVENTORY_ITEMS && _engine->_input->toggleActionIfActive(TwinEActionType::UIEnter) && _engine->_gameState->hasItem((InventoryItems)_inventorySelectedItem) && !_engine->_gameState->inventoryDisabled()) {
 			_engine->_loopInventoryItem = _inventorySelectedItem;
 			_inventorySelectedColor = COLOR_91;
-			drawItem(left, top, _inventorySelectedItem);
+			drawOneInventory(left, top, _inventorySelectedItem);
 			break;
 		}
 	}
@@ -1275,9 +1465,12 @@ void Menu::processInventoryMenu() {
 	_engine->_scene->_alphaLight = tmpAlphaLight;
 	_engine->_scene->_betaLight = tmpBetaLight;
 
-	_engine->_gameState->initEngineProjections();
+	_engine->_gameState->init3DGame();
 
 	_engine->_text->initSceneTextBank();
+
+	// this is a hack to 'fix' https://bugs.scummvm.org/ticket/13677
+	_engine->_input->toggleActionIfActive(TwinEActionType::RecenterScreenOnTwinsen);
 }
 
 } // namespace TwinE

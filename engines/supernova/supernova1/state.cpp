@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/system.h"
 #include "graphics/cursorman.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "gui/message.h"
 
 #include "supernova/screen.h"
@@ -1212,20 +1211,20 @@ bool GameManager1::genericInteract(Action verb, Object &obj1, Object &obj2) {
 			_vm->renderBox(91, 99, 138, 9, kColorDarkBlue);
 			edit(input, 91, 100, 5);
 
-			int seperator = -1;
+			int separator = -1;
 			for (uint i = 0; i < input.size(); ++i) {
 				if (input[i] == ':') {
-					seperator = i;
+					separator = i;
 					break;
 				}
 			}
-			if ((seperator == -1) || (seperator > 2)) {
+			if ((separator == -1) || (separator > 2)) {
 				validInput = false;
 				continue;
 			}
 
 			int decimalPlace = 1;
-			for (int i = 0; i < seperator; ++i) {
+			for (int i = 0; i < separator; ++i) {
 				if (Common::isDigit(input[i])) {
 					hours = hours * decimalPlace + (input[i] - '0');
 					decimalPlace *= 10;
@@ -1235,7 +1234,7 @@ bool GameManager1::genericInteract(Action verb, Object &obj1, Object &obj2) {
 				}
 			}
 			decimalPlace = 1;
-			for (uint i = seperator + 1; i < input.size(); ++i) {
+			for (uint i = separator + 1; i < input.size(); ++i) {
 				if (Common::isDigit(input[i])) {
 					minutes = minutes * decimalPlace + (input[i] - '0');
 					decimalPlace *= 10;

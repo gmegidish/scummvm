@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,9 +27,6 @@
 
 namespace Glk {
 namespace Quest {
-
-void glk_put_cstring(const char *);
-
 
 winid_t mainglkwin;
 winid_t inputwin;
@@ -50,7 +46,7 @@ void draw_banner() {
 		strid_t stream = g_vm->glk_window_get_stream(bannerwin);
 
 		g_vm->glk_set_style_stream(stream, style_User1);
-		g_vm->glk_window_get_size(bannerwin, &width, NULL);
+		g_vm->glk_window_get_size(bannerwin, &width, nullptr);
 		for (index = 0; index < width; index++)
 			g_vm->glk_put_char_stream(stream, ' ');
 		g_vm->glk_window_move_cursor(bannerwin, 1, 0);
@@ -115,7 +111,7 @@ void GeasGlkInterface::set_background(String s) {
  */
 String GeasGlkInterface::get_file(const String &fname) const {
 	Common::File f;
-	if (!f.open(fname)) {
+	if (!f.open(Common::Path(fname))) {
 		glk_put_cstring("Couldn't open ");
 		glk_put_cstring(fname.c_str());
 		g_vm->glk_put_char(0x0a);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@
 namespace Voyeur {
 
 void VoyeurEngine::playStamp() {
-	_stampLibPtr = NULL;
+	_stampLibPtr = nullptr;
 	_filesManager->openBoltLib("stampblt.blt", _stampLibPtr);
 
 	_stampLibPtr->getBoltGroup(0);
@@ -235,7 +234,7 @@ void VoyeurEngine::closeStamp() {
 }
 
 void VoyeurEngine::doTailTitle() {
-	_screen->_vPort->setupViewPort(NULL);
+	_screen->_vPort->setupViewPort(nullptr);
 	_screen->screenReset();
 
 	if (_bVoy->getBoltGroup(0x600)) {
@@ -288,7 +287,7 @@ void VoyeurEngine::doClosingCredits() {
 	const char *msg = (const char *)_bVoy->memberAddr(0x404);
 	const byte *creditList = (const byte *)_bVoy->memberAddr(0x405);
 
-	_screen->_vPort->setupViewPort(NULL);
+	_screen->_vPort->setupViewPort(nullptr);
 	_screen->setColor(1, 180, 180, 180);
 	_screen->setColor(2, 200, 200, 200);
 	_eventsManager->_intPtr._hasPalette = true;
@@ -395,7 +394,7 @@ void VoyeurEngine::doPiracy() {
 	_screen->setColor(1, 0, 0, 0);
 	_screen->setColor(2, 255, 255, 255);
 	_eventsManager->_intPtr._hasPalette = true;
-	_screen->_vPort->setupViewPort(NULL);
+	_screen->_vPort->setupViewPort(nullptr);
 	_screen->_vPort->fillPic(1);
 
 	FontInfoResource &fi = *_screen->_fontPtr;
@@ -411,7 +410,7 @@ void VoyeurEngine::doPiracy() {
 	// Loop through the piracy message array to draw each line
 	for (int idx = 0, yp = 33; idx < 10; ++idx) {
 		fi._pos = Common::Point(0, yp);
-		_screen->_vPort->drawText(PIRACY_MESSAGE[idx]);
+		_screen->_vPort->drawText(getLanguage() == Common::DE_DEU ? PIRACY_MESSAGE_DE[idx] : PIRACY_MESSAGE_EN[idx]);
 
 		yp += fi._curFont->_fontHeight + 4;
 	}
@@ -658,7 +657,7 @@ void VoyeurEngine::reviewTape() {
 		newY = _eventsManager->getMousePos().y;
 		_voy->_fadingType = 0;
 		_voy->_viewBounds = nullptr;
-		_screen->_vPort->setupViewPort(NULL);
+		_screen->_vPort->setupViewPort(nullptr);
 
 		if (_currentVocId != -1) {
 			_voy->_vocSecondsOffset = _voy->_RTVNum - _voy->_musicStartTime;
@@ -696,7 +695,7 @@ void VoyeurEngine::reviewTape() {
 
 			// Play sound for the given duration
 			_soundManager->setVOCOffset(_voy->_vocSecondsOffset);
-			Common::String filename = _soundManager->getVOCFileName(
+			Common::Path filename = _soundManager->getVOCFileName(
 				_audioVideoId + 159);
 			_soundManager->startVOCPlay(filename);
 
@@ -1088,7 +1087,7 @@ void VoyeurEngine::initIFace() {
 
 void VoyeurEngine::doScroll(const Common::Point &pt) {
 	Common::Rect clipRect(72, 47, 72 + 240, 47 + 148);
-	_screen->_vPort->setupViewPort(NULL, &clipRect);
+	_screen->_vPort->setupViewPort(nullptr, &clipRect);
 
 	int base = 0;
 	switch (_voy->_transitionId) {
@@ -1123,7 +1122,7 @@ void VoyeurEngine::doScroll(const Common::Point &pt) {
 		_screen->sDrawPic(pic, _screen->_vPort, Common::Point(784 - pt.x - 712, 150 - pt.y + 136));
 	}
 
-	_screen->_vPort->setupViewPort(NULL);
+	_screen->_vPort->setupViewPort(nullptr);
 }
 
 void VoyeurEngine::checkTransition() {
@@ -1158,11 +1157,11 @@ Common::String VoyeurEngine::getDayName() {
 	case 2:
 	case 3:
 	case 4:
-		return SATURDAY;
+		return (getLanguage() == Common::DE_DEU) ? SATURDAY_DE : SATURDAY_EN;
 	case 17:
-		return MONDAY;
+		return (getLanguage() == Common::DE_DEU) ? MONDAY_DE : MONDAY_EN;
 	default:
-		return SUNDAY;
+		return (getLanguage() == Common::DE_DEU) ? SUNDAY_DE : SUNDAY_EN;
 	}
 }
 
@@ -1170,7 +1169,10 @@ Common::String VoyeurEngine::getTimeOfDay() {
 	if (_voy->_transitionId == 17)
 		return "";
 
-	return Common::String::format("%d:%02d%s", _gameHour, _gameMinute, _voy->_isAM ? AM : PM);
+	if (getLanguage() == Common::DE_DEU)
+		return Common::String::format("%d:%02d%s", _voy->_isAM ? _gameHour : _gameHour + 12, _gameMinute, _voy->_isAM ? AM_DE : PM_DE);
+
+	return Common::String::format("%d:%02d%s", _gameHour, _gameMinute, _voy->_isAM ? AM_EN : PM_EN);
 }
 
 int VoyeurEngine::doComputerText(int maxLen) {
@@ -1191,7 +1193,7 @@ int VoyeurEngine::doComputerText(int maxLen) {
 		font._justifyWidth = 384;
 		font._justifyHeight = 100;
 		font._pos = Common::Point(128, 100);
-		_screen->_vPort->drawText(END_OF_MESSAGE);
+		_screen->_vPort->drawText(getLanguage() == Common::DE_DEU ? END_OF_MESSAGE_DE : END_OF_MESSAGE_EN);
 	} else if (_voy->_RTVNum < _voy->_computerTimeMin && maxLen == 9999) {
 		if (_currentVocId != -1)
 			_soundManager->startVOCPlay(_currentVocId);
@@ -1199,7 +1201,7 @@ int VoyeurEngine::doComputerText(int maxLen) {
 		font._justifyWidth = 384;
 		font._justifyHeight = 100;
 		font._pos = Common::Point(120, 100);
-		_screen->_vPort->drawText(START_OF_MESSAGE);
+		_screen->_vPort->drawText(getLanguage() == Common::DE_DEU ? START_OF_MESSAGE_DE : START_OF_MESSAGE_EN);
 	} else {
 		char *msg = (char *)_bVoy->memberAddr(0x4900 + _voy->_computerTextId);
 		font._pos = Common::Point(96, 60);
@@ -1224,7 +1226,7 @@ int VoyeurEngine::doComputerText(int maxLen) {
 					_screen->_fontPtr->_justifyWidth = 384;
 					_screen->_fontPtr->_justifyHeight = 100;
 					_screen->_fontPtr->_pos = Common::Point(128, 100);
-					_screen->_vPort->drawText(END_OF_MESSAGE);
+					_screen->_vPort->drawText(getLanguage() == Common::DE_DEU ? END_OF_MESSAGE_DE : END_OF_MESSAGE_EN);
 				}
 				break;
 			}

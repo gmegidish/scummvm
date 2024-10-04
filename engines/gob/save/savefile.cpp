@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -248,11 +253,11 @@ bool SavePartVars::readFrom(uint32 var, uint32 offset, uint32 size) {
 	return _vm->_inter->_variables->copyTo(var, _data + offset, size);
 }
 
-bool SavePartVars::readFromRaw(const byte *data, uint32 size) {
-	if (size != _size)
+bool SavePartVars::readFromRaw(const byte *data, uint32 offset, uint32 size) {
+	if (offset + size > _size)
 		return false;
 
-	memcpy(_data, data, size);
+	memcpy(_data + offset, data, size);
 	return true;
 }
 
@@ -267,6 +272,14 @@ bool SavePartVars::writeInto(uint32 var, uint32 offset, uint32 size) const {
 	if (!_vm->_inter->_variables->copyFrom(var, _data + offset, size))
 		return false;
 
+	return true;
+}
+
+bool SavePartVars::writeIntoRaw(byte *data, uint32 offset, uint32 size) const {
+	if ((offset + size) > _size)
+		return false;
+
+	memcpy(data, _data + offset, size);
 	return true;
 }
 
@@ -289,11 +302,8 @@ SavePartSprite::SavePartSprite(uint32 width, uint32 height, bool trueColor) {
 		//          width + height + color +    sprite   + palette
 	_header.setSize(4   +   4    +   1   + _spriteSize + 768);
 
-	_dataSprite  = new byte[_spriteSize];
-	_dataPalette = new byte[768];
-
-	memset(_dataSprite,  0, _spriteSize);
-	memset(_dataPalette, 0, 768);
+	_dataSprite  = new byte[_spriteSize]();
+	_dataPalette = new byte[768]();
 }
 
 SavePartSprite::~SavePartSprite() {
@@ -326,9 +336,10 @@ bool SavePartSprite::read(Common::ReadStream &stream) {
 	}
 
 	// The sprite's dimensions have to fit
-	if (stream.readUint32LE() != _width)
-		return false;
-	if (stream.readUint32LE() != _height)
+	uint32 width = stream.readUint32LE();
+	uint32 height = stream.readUint32LE();
+
+	if (width * height != _width * _height)
 		return false;
 
 	// If it's in the current format, the true color flag has to be the same too
@@ -375,9 +386,7 @@ bool SavePartSprite::readPalette(const byte *palette) {
 
 bool SavePartSprite::readSprite(const Surface &sprite) {
 	// The sprite's dimensions have to fit
-	if (((uint32)sprite.getWidth()) != _width)
-		return false;
-	if (((uint32)sprite.getHeight()) != _height)
+	if (((uint32)sprite.getWidth() * sprite.getHeight()) != _width * _height)
 		return false;
 
 	if (_trueColor) {
@@ -417,9 +426,7 @@ bool SavePartSprite::writePalette(byte *palette) const {
 
 bool SavePartSprite::writeSprite(Surface &sprite) const {
 	// The sprite's dimensions have to fit
-	if (((uint32)sprite.getWidth()) != _width)
-		return false;
-	if (((uint32)sprite.getHeight()) != _height)
+	if (((uint32) sprite.getWidth() * sprite.getHeight()) != _width * _height)
 		return false;
 
 	if (_trueColor) {
@@ -457,8 +464,7 @@ SavePartInfo::SavePartInfo(uint32 descMaxLength, uint32 gameID,
 	_endian = endian;
 	_varCount = varCount;
 
-	_desc = new char[_descMaxLength + 1];
-	memset(_desc, 0, _descMaxLength + 1);
+	_desc = new char[_descMaxLength + 1]();
 }
 
 SavePartInfo::~SavePartInfo() {
@@ -608,7 +614,7 @@ void SaveContainer::clear() {
 		Part *&p = *it;
 
 		delete p;
-		p = 0;
+		p = nullptr;
 	}
 }
 
@@ -630,7 +636,7 @@ bool SaveContainer::writePart(uint32 partN, const SavePart *part) {
 	// Write
 	if (!part->write(*pStream)) {
 		delete p;
-		p = 0;
+		p = nullptr;
 
 		delete pStream;
 		return false;
@@ -771,7 +777,7 @@ bool SaveContainer::write(Common::WriteStream &stream) const {
 }
 
 Common::Array<SaveContainer::PartInfo> *SaveContainer::getPartsInfo(Common::SeekableReadStream &stream) {
-	Common::Array<PartInfo> *parts = 0;
+	Common::Array<PartInfo> *parts = nullptr;
 
 	// Remember the stream's position to seek back to
 	uint32 startPos = stream.pos();
@@ -785,7 +791,7 @@ Common::Array<SaveContainer::PartInfo> *SaveContainer::getPartsInfo(Common::Seek
 	if (!header.verifyReadSize(stream)) {
 		// Seek back
 		stream.seek(startPos);
-		return 0;
+		return nullptr;
 	}
 
 	// Read the part count
@@ -811,7 +817,7 @@ Common::Array<SaveContainer::PartInfo> *SaveContainer::getPartsInfo(Common::Seek
 			// Seek back
 			stream.seek(startPos);
 			delete parts;
-			return 0;
+			return nullptr;
 		}
 
 		// Fill in the ID
@@ -823,7 +829,7 @@ Common::Array<SaveContainer::PartInfo> *SaveContainer::getPartsInfo(Common::Seek
 
 	if (stream.err()) {
 		delete parts;
-		parts = 0;
+		parts = nullptr;
 	}
 
 	// Seek back
@@ -853,7 +859,7 @@ bool SaveContainer::isSave(Common::SeekableReadStream &stream) {
 SaveReader::SaveReader(uint32 partCount, uint32 slot, const Common::String &fileName) :
 	SaveContainer(partCount, slot), _fileName(fileName) {
 
-	_stream = 0;
+	_stream = nullptr;
 
 	_loaded = false;
 }
@@ -872,7 +878,7 @@ SaveReader::~SaveReader() {
 // Open the save and read it
 bool SaveReader::load() {
 
-	Common::InSaveFile *in = 0;
+	Common::InSaveFile *in = nullptr;
 	Common::SeekableReadStream *stream;
 
 	if (!_fileName.empty()) {
@@ -918,7 +924,7 @@ bool SaveReader::readPart(uint32 partN, SavePart *part) const {
 
 Common::InSaveFile *SaveReader::openSave(const Common::String &fileName) {
 	if (fileName.empty())
-		return 0;
+		return nullptr;
 
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
 	return saveMan->openForLoading(fileName);
@@ -929,7 +935,7 @@ Common::InSaveFile *SaveReader::openSave() {
 }
 
 bool SaveReader::getInfo(Common::SeekableReadStream &stream, SavePartInfo &info) {
-	// Remeber the stream's starting position to seek back to
+	// Remember the stream's starting position to seek back to
 	uint32 startPos = stream.pos();
 
 	// Get parts' basic information
@@ -1009,6 +1015,14 @@ bool SaveWriter::save(Common::WriteStream &stream) {
 	return SaveContainer::write(stream);
 }
 
+bool SaveWriter::deleteFile() {
+	if (_fileName.empty())
+		return false;
+
+	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
+	return saveMan->removeSavefile(_fileName);
+}
+
 bool SaveWriter::save() {
 	Common::OutSaveFile *out = openSave();
 
@@ -1028,7 +1042,7 @@ bool SaveWriter::canSave() const {
 
 Common::OutSaveFile *SaveWriter::openSave(const Common::String &fileName) {
 	if (fileName.empty())
-		return 0;
+		return nullptr;
 
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
 	return saveMan->openForSaving(fileName);

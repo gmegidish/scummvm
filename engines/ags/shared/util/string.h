@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,10 @@
 #define AGS_SHARED_UTIL_STRING_H
 
 //include <stdarg.h>
-#include "ags/lib/std/vector.h"
+
+#include "common/str.h"
+
+#include "common/std/vector.h"
 #include "ags/shared/core/platform.h"
 #include "ags/shared/core/types.h"
 
@@ -59,7 +61,7 @@ class Stream;
 
 class String {
 public:
-	static const size_t npos = (size_t)-1;
+	static const size_t NoIndex = (size_t)-1;
 
 	// Standard constructor: intialize empty string
 	String();
@@ -92,8 +94,8 @@ public:
 	// Tells if the string is either empty or has only whitespace characters
 	bool IsNullOrSpace() const;
 
-	// Those getters are for tests only, hence if AGS_PLATFORM_DEBUG
-#if AGS_PLATFORM_TEST
+	// Those getters are for tests only, hence if AGS_PLATFORM_TEST
+#if defined(AGS_PLATFORM_TEST) && AGS_PLATFORM_TEST
 	inline const char *GetBuffer() const {
 		return _buf;
 	}
@@ -140,29 +142,29 @@ public:
 	int     CompareNoCase(const char *cstr) const;
 	// Compares the leftmost part of this string with given string
 	int     CompareLeft(const String &str, size_t count = -1) const {
-		return CompareLeft(str._cstr, count != npos ? count : str._len);
+		return CompareLeft(str._cstr, count != NoIndex ? count : str._len);
 	}
 	int     CompareLeft(const char *cstr, size_t count = -1) const;
 	int     CompareLeftNoCase(const String &str, size_t count = -1) const {
-		return CompareLeftNoCase(str._cstr, count != npos ? count : str._len);
+		return CompareLeftNoCase(str._cstr, count != NoIndex ? count : str._len);
 	}
 	int     CompareLeftNoCase(const char *cstr, size_t count = -1) const;
 	// Compares any part of this string with given string
 	int     CompareMid(const String &str, size_t from, size_t count = -1) const {
-		return CompareMid(str._cstr, from, count != npos ? count : str._len);
+		return CompareMid(str._cstr, from, count != NoIndex ? count : str._len);
 	}
 	int     CompareMid(const char *cstr, size_t from, size_t count = -1) const;
 	int     CompareMidNoCase(const String &str, size_t from, size_t count = -1) const {
-		return CompareMidNoCase(str._cstr, from, count != npos ? count : str._len);
+		return CompareMidNoCase(str._cstr, from, count != NoIndex ? count : str._len);
 	}
 	int     CompareMidNoCase(const char *cstr, size_t from, size_t count = -1) const;
 	// Compares the rightmost part of this string with given C-string
 	int     CompareRight(const String &str, size_t count = -1) const {
-		return CompareRight(str._cstr, count != npos ? count : str._len);
+		return CompareRight(str._cstr, count != NoIndex ? count : str._len);
 	}
 	int     CompareRight(const char *cstr, size_t count = -1) const;
 	int     CompareRightNoCase(const String &str, size_t count = -1) const {
-		return CompareRightNoCase(str._cstr, count != npos ? count : str._len);
+		return CompareRightNoCase(str._cstr, count != NoIndex ? count : str._len);
 	}
 	int     CompareRightNoCase(const char *cstr, size_t count = -1) const;
 	// Convenience aliases for Compare functions
@@ -332,9 +334,9 @@ public:
 	}
 	// Prepends a single character
 	void    PrependChar(char c);
-	// Replaces all occurences of one character with another character
+	// Replaces all occurrences of one character with another character
 	void    Replace(char what, char with);
-	// Replaces all occurences of one substring with another substring
+	// Replaces all occurrences of one substring with another substring
 	void    Replace(const String &what, const String &with);
 	void    Replace(const char *what, const char *with) {
 		String whats = String::Wrapper(what), withs = String::Wrapper(with); Replace(whats, withs);
@@ -423,6 +425,9 @@ public:
 	// Fixes compilation error in script_set
 	operator bool() const {
 		return !IsEmpty();
+	}
+	operator const char *() const {
+		return GetCStr();
 	}
 
 private:

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  *              Originally written by Syn9 in FreeBASIC with SDL
@@ -170,7 +169,7 @@ void GriffonEngine::showLogos() {
 		}
 
 		_videoBuffer->fillRect(Common::Rect(0, 0, 320, 240), 0);
-		_logosImg->blit(*_videoBuffer, 0, 0, Graphics::FLIP_NONE, nullptr, TS_ARGB((int)y, (int)y, (int)y, (int)y));
+		_logosImg->blendBlitTo(*_videoBuffer, 0, 0, Graphics::FLIP_NONE, nullptr, MS_ARGB((int)y, (int)y, (int)y, (int)y));
 
 		g_system->copyRectToScreen(_videoBuffer->getPixels(), _videoBuffer->pitch, 0, 0, _videoBuffer->w, _videoBuffer->h);
 		g_system->updateScreen();
@@ -207,8 +206,8 @@ void GriffonEngine::intro() {
 
 	_ticks = g_system->getMillis();
 
-	_videoBuffer->blit(*_videoBuffer3);
-	_videoBuffer->blit(*_videoBuffer2);
+	_videoBuffer->blendBlitTo(*_videoBuffer3);
+	_videoBuffer->blendBlitTo(*_videoBuffer2);
 
 	_fpsr = 0.0;
 	int y = 140;
@@ -246,12 +245,12 @@ void GriffonEngine::intro() {
 		rc.left = -xofs;
 		rc.top = 0;
 
-		_titleImg->blit(*_videoBuffer, rc.left, rc.top);
+		_titleImg->blendBlitTo(*_videoBuffer, rc.left, rc.top);
 
 		rc.left = -xofs + 320;
 		rc.top = 0;
 
-		_titleImg->blit(*_videoBuffer, rc.left, rc.top);
+		_titleImg->blendBlitTo(*_videoBuffer, rc.left, rc.top);
 
 		if (++cnt >= 6) {
 			cnt = 0;
@@ -362,8 +361,8 @@ void GriffonEngine::endOfGame() {
 			break;
 
 		_videoBuffer2->fillRect(Common::Rect(0, 0, _videoBuffer2->w, _videoBuffer2->h), 0);
-		_videoBuffer->setAlpha(255 - ya);
-		_videoBuffer->blit(*_videoBuffer2);
+		_videoBuffer->surfacePtr()->setAlpha(255 - ya);
+		_videoBuffer->blendBlitTo(*_videoBuffer2);
 
 		g_system->copyRectToScreen(_videoBuffer2->getPixels(), _videoBuffer2->pitch, 0, 0, _videoBuffer2->w, _videoBuffer2->h);
 
@@ -396,12 +395,12 @@ void GriffonEngine::endOfGame() {
 		rc.left = -xofs;
 		rc.top = 0;
 
-		_titleImg->blit(*_videoBuffer, rc.left, rc.top);
+		_titleImg->blendBlitTo(*_videoBuffer, rc.left, rc.top);
 
 		rc.left = -xofs + 320;
 		rc.top = 0;
 
-		_titleImg->blit(*_videoBuffer, rc.left, rc.top);
+		_titleImg->blendBlitTo(*_videoBuffer, rc.left, rc.top);
 
 		y = y - spd * _fpsr;
 
@@ -428,7 +427,7 @@ void GriffonEngine::endOfGame() {
 			ya = CLIP(ya, 0, 255);
 		}
 
-		_videoBuffer->setAlpha(ya);
+		_videoBuffer->surfacePtr()->setAlpha(ya);
 		g_system->copyRectToScreen(_videoBuffer->getPixels(), _videoBuffer->pitch, 0, 0, _videoBuffer->w, _videoBuffer->h);
 
 		_ticksPassed = _ticks;
@@ -487,9 +486,9 @@ void GriffonEngine::endOfGame() {
 
 		_videoBuffer->fillRect(Common::Rect(0, 0, _videoBuffer->w, _videoBuffer->h), 0);
 
-		_videoBuffer->setAlpha(y1);
-		_videoBuffer2->blit(*_videoBuffer3);
-		_videoBuffer->blit(*_videoBuffer3);
+		_videoBuffer->surfacePtr()->setAlpha(y1);
+		_videoBuffer2->blendBlitTo(*_videoBuffer3);
+		_videoBuffer->blendBlitTo(*_videoBuffer3);
 
 		g_system->copyRectToScreen(_videoBuffer3->getPixels(), _videoBuffer3->pitch, 0, 0, _videoBuffer3->w, _videoBuffer3->h);
 		g_system->updateScreen();
@@ -527,10 +526,10 @@ void GriffonEngine::endOfGame() {
 			y1 = CLIP(y1, 0, 255);
 		}
 
-		_videoBuffer->setAlpha(y1);
+		_videoBuffer->surfacePtr()->setAlpha(y1);
 
 		_videoBuffer2->fillRect(Common::Rect(0, 0, _videoBuffer2->w, _videoBuffer2->h), 0);
-		_videoBuffer->blit(*_videoBuffer2);
+		_videoBuffer->blendBlitTo(*_videoBuffer2);
 
 		g_system->copyRectToScreen(_videoBuffer2->getPixels(), _videoBuffer2->pitch, 0, 0, _videoBuffer2->w, _videoBuffer2->h);
 
@@ -573,8 +572,8 @@ void GriffonEngine::theEnd() {
 
 	for (float y = 0; y < 100; y += _fpsr) {
 		_videoBuffer2->fillRect(Common::Rect(0, 0, _videoBuffer2->w, _videoBuffer2->h), 0);
-		_videoBuffer->setAlpha((int)((100.0 - y) / 100 * 255));
-		_videoBuffer->blit(*_videoBuffer2);
+		_videoBuffer->surfacePtr()->setAlpha((int)((100.0 - y) / 100 * 255));
+		_videoBuffer->blendBlitTo(*_videoBuffer2);
 
 		g_system->copyRectToScreen(_videoBuffer2->getPixels(), _videoBuffer2->pitch, 0, 0, _videoBuffer2->w, _videoBuffer2->h);
 		g_system->updateScreen();

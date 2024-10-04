@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,7 +40,7 @@ template<int bytesPerSample, bool isUnsigned, bool isLE>
 class RawStream : public SeekableAudioStream {
 public:
 	RawStream(int rate, bool stereo, DisposeAfterUse::Flag disposeStream, Common::SeekableReadStream *stream)
-		: _rate(rate), _isStereo(stereo), _playtime(0, rate), _stream(stream, disposeStream), _endOfData(false), _buffer(0) {
+		: _rate(rate), _isStereo(stereo), _playtime(0, rate), _stream(stream, disposeStream), _endOfData(false), _buffer(nullptr) {
 		// Setup our buffer for readBuffer
 		_buffer = new byte[kSampleBufferLength * bytesPerSample];
 		assert(_buffer);
@@ -54,18 +53,18 @@ public:
 		delete[] _buffer;
 	}
 
-	int readBuffer(int16 *buffer, const int numSamples);
+	int readBuffer(int16 *buffer, const int numSamples) override;
 
-	bool isStereo() const  { return _isStereo; }
-	bool endOfData() const { return _endOfData; }
+	bool isStereo() const override  { return _isStereo; }
+	bool endOfData() const override { return _endOfData; }
 
-	int getRate() const         { return _rate; }
-	Timestamp getLength() const { return _playtime; }
+	int getRate() const override         { return _rate; }
+	Timestamp getLength() const override { return _playtime; }
 
-	bool seek(const Timestamp &where);
+	bool seek(const Timestamp &where) override;
 private:
 	const int _rate;                                           ///< Sample rate of stream
-	const bool _isStereo;                                      ///< Whether this is an stereo stream
+	const bool _isStereo;                                      ///< Whether this is a stereo stream
 	Timestamp _playtime;                                       ///< Calculated total play time
 	Common::DisposablePtr<Common::SeekableReadStream> _stream; ///< Stream to read data from
 	bool _endOfData;                                           ///< Whether the stream end has been reached
@@ -229,7 +228,7 @@ public:
 		StatelessPacketizedAudioStream(rate, ((flags & FLAG_STEREO) != 0) ? 2 : 1), _flags(flags) {}
 
 protected:
-	AudioStream *makeStream(Common::SeekableReadStream *data);
+	AudioStream *makeStream(Common::SeekableReadStream *data) override;
 
 private:
 	byte _flags;

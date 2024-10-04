@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@ namespace Pink {
 
 Actor::Actor()
 		: _page(nullptr), _action(nullptr),
-		  _isActionEnded(1) {}
+		  _isActionEnded(true) {}
 
 Actor::~Actor() {
 	for (uint i = 0; i < _actions.size(); ++i) {
@@ -64,17 +63,17 @@ void Actor::init(bool paused) {
 		_action = findAction(kIdleAction);
 
 	if (!_action) {
-		_isActionEnded = 1;
+		_isActionEnded = true;
 	} else {
-		_isActionEnded = 0;
+		_isActionEnded = false;
 		_action->start();
 		_action->pause(paused);
 	}
 }
 
-bool Actor::initPalette(Director *director) {
+bool Actor::initPalette(Screen *screen) {
 	for (uint i = 0; i < _actions.size(); ++i) {
-		if (_actions[i]->initPalette(director))
+		if (_actions[i]->initPalette(screen))
 			return true;
 	}
 	return false;
@@ -114,19 +113,19 @@ Common::String Actor::getLocation() const {
 
 void Actor::setAction(Action *newAction) {
 	if (_action) {
-		_isActionEnded = 1;
+		_isActionEnded = true;
 		_action->end();
 	}
 	_action = newAction;
 	if (newAction) {
-		_isActionEnded = 0;
+		_isActionEnded = false;
 		_action->start();
 	}
 }
 
 void Actor::setAction(Action *newAction, bool loadingSave) {
 	if (loadingSave) {
-		_isActionEnded = 1;
+		_isActionEnded = true;
 		_action = newAction;
 	} else {
 		setAction(newAction);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -479,7 +478,7 @@ void Actor::update() {
 	case kActorStatusDisabled:
 		_frameIndex = (_frameIndex + 1) % _frameCount;
 
-		if (_vm->screenUpdateCount - _lastScreenUpdate > 300) {
+		if (_vm->screenUpdateCount > _lastScreenUpdate + 300) {
 			if (_vm->getRandom(100) < 50) {
 				if (!getSpeech()->getSoundResourceId() || !getSound()->isPlaying(getSpeech()->getSoundResourceId())) {
 					if (canChangeStatus(10))
@@ -507,7 +506,7 @@ void Actor::update() {
 				break;
 
 			case 1:
-				getSpecial()->run(NULL, _index);
+				getSpecial()->run(nullptr, _index);
 				return;
 
 			case 10:
@@ -548,18 +547,6 @@ void Actor::update() {
 		} else if (canMove(&point, DIR(_direction + 6), dist, false)) {
 			move(DIR(_direction + 6), dist);
 		}
-
-		// Finish
-		if (_soundResourceId != kResourceNone && getSound()->isPlaying(_soundResourceId))
-			setVolume();
-
-		if (_index != getSharedData()->getPlayerIndex() && getWorld()->chapter != kChapter9)
-			getSpecial()->run(NULL, _index);
-
-		updateReflectionData();
-
-		if (_field_944 != 5)
-			actionAreaCheck();
 
 		}
 		break;
@@ -608,18 +595,6 @@ void Actor::update() {
 				}
 			}
 		}
-
-		// Finish
-		if (_soundResourceId != kResourceNone && getSound()->isPlaying(_soundResourceId))
-			setVolume();
-
-		if (_index != getSharedData()->getPlayerIndex() && getWorld()->chapter != kChapter9)
-			getSpecial()->run(NULL, _index);
-
-		updateReflectionData();
-
-		if (_field_944 != 5)
-			actionAreaCheck();
 
 		}
 		break;
@@ -670,11 +645,12 @@ void Actor::update() {
 		break;
 	}
 
+	// Finish
 	if (_soundResourceId && getSound()->isPlaying(_soundResourceId))
 		setVolume();
 
 	if (_index != getSharedData()->getPlayerIndex() && getWorld()->chapter != kChapter9)
-		getSpecial()->run(NULL, _index);
+		getSpecial()->run(nullptr, _index);
 
 	updateReflectionData();
 
@@ -811,7 +787,7 @@ void Actor::updateReflectionData() {
 	if (_nextActionIndex != -1 && !getScene()->polygons()->get(getWorld()->actions[_nextActionIndex]->polygonIndex).contains(sum))
 		return;
 
-	ActorDirection direction = kDirectionN;
+	ActorDirection direction = _direction;
 	Common::Point position = sum;
 	ResourceId resourceId;
 	switch (_nextDirection) {
@@ -1149,7 +1125,7 @@ Common::String Actor::toString(bool shortString) {
 // Unknown methods
 //////////////////////////////////////////////////////////////////////////
 
-void Actor::clearFields() {
+void Actor::clearReflectionData() {
 	_processNewDirection = false;
 	_invertPriority = false;
 	_nextDirection = kDirectionN;
@@ -1479,13 +1455,12 @@ void Actor::setupReflectionData(ActorIndex nextActor, int32 actionAreaId, ActorD
 		if (nextPositionOffset.x) {
 			offset = nextPositionOffset;
 		} else {
-			Polygon polygon = getScene()->polygons()->get((uint32)_nextActionIndex);
+			Polygon polygon = getScene()->polygons()->get((uint32)_nextActionIndex + 1);
 
 			offset = polygon.points[0];
-
 			// Iterate through points
 			if (polygon.count() > 1) {
-				for (uint i = 1; i < polygon.count() - 1; i++) {
+				for (uint i = 1; i < polygon.count(); i++) {
 					Common::Point point = polygon.points[i];
 
 					switch (nextDirection) {
@@ -2123,7 +2098,7 @@ void Actor::updateStatusEnabled() {
 
 	_frameIndex = (_frameIndex + 1) % _frameCount;
 
-	if (_vm->screenUpdateCount - _lastScreenUpdate > 300) {
+	if (_vm->screenUpdateCount > _lastScreenUpdate + 300) {
 		// All actors except Crow and Armed Max
 		if (strcmp((char *)&_name, "Crow") && strcmp((char *)_name, "Armed Max")) {
 			if (_vm->getRandom(100) < 50
@@ -2137,7 +2112,7 @@ void Actor::updateStatusEnabled() {
 
 	// Actor: Player
 	if (_index == getSharedData()->getPlayerIndex()) {
-		if (_vm->lastScreenUpdate && (_vm->screenUpdateCount - _vm->lastScreenUpdate) > 500) {
+		if (_vm->lastScreenUpdate && (_vm->screenUpdateCount > _vm->lastScreenUpdate + 500)) {
 
 			if (_vm->isGameFlagNotSet(kGameFlagScriptProcessing)
 			 && isVisible()
@@ -2271,7 +2246,7 @@ void Actor::updateStatusEnabledProcessStatus(int16 testX, int16 testY, uint32 co
 void Actor::updateStatusBored() {
 	if (_index == getSharedData()->getPlayerIndex()
 	 && getWorld()->chapter != kChapter9
-	 && getWorld()->actorType == 0
+	 && getWorld()->actorType == kActorMax
 	 && _frameIndex == 0
 	 && checkBoredStatus()) {
 		if (!getSpeech()->getSoundResourceId() || !getSound()->isPlaying(getSpeech()->getSoundResourceId()))
@@ -3213,7 +3188,10 @@ void Actor::actionAreaCheck() {
 	ActionArea *area = getWorld()->actions[areaIndex];
 	ActionArea *actorArea = getWorld()->actions[_actionIdx3];
 
-	if ((area->flags & 1) && !getSharedData()->getFlag(kFlagSkipScriptProcessing)) {
+	if (!(area->flags & 1))
+		return;
+
+	if (!getSharedData()->getFlag(kFlagSkipScriptProcessing)) {
 		debugC(kDebugLevelScripts, "[Script] Entered ActionArea (idx: %d, name: %s)", areaIndex, area->name);
 		debugC(kDebugLevelScripts, "[Script] Queuing Script #1 (idx: %d) for Actor (idx: %d)", actorArea->scriptIndex2, _index);
 		getScript()->queueScript(actorArea->scriptIndex2, _index);
@@ -3223,11 +3201,11 @@ void Actor::actionAreaCheck() {
 
 	if (!area->paletteResourceId || area->paletteResourceId == actorArea->paletteResourceId || _index) {
 		if (area->paletteResourceId != actorArea->paletteResourceId && !_index)
-			_vm->screen()->startPaletteFade(getWorld()->currentPaletteId, 100, 3);
+			_vm->screen()->queuePaletteFade(getWorld()->currentPaletteId, 100, 3);
 
 		_actionIdx3 = areaIndex;
 	} else {
-		_vm->screen()->startPaletteFade(area->paletteResourceId, 50, 3);
+		_vm->screen()->queuePaletteFade(area->paletteResourceId, 50, 3);
 		_actionIdx3 = areaIndex;
 	}
 }
@@ -3817,7 +3795,7 @@ int32 Actor::getWalkIncrement(ActorDirection dir, uint32 frameIndex) const {
 
 	switch (dir) {
 	default:
-		error("[Actor::getWalkIncrement] Invalid direction");
+		error("[Actor::getWalkIncrement] Invalid direction %d", dir);
 
 	case kDirectionN:
 		return -_distancesNS[frameIndex];

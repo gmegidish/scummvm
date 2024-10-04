@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,14 +38,17 @@ class XARCMember : public Common::ArchiveMember {
 public:
 	XARCMember(const XARCArchive *xarc, Common::ReadStream &stream, uint32 offset);
 
-	Common::SeekableReadStream *createReadStream() const;
-	Common::String getName() const { return _name; }
+	Common::SeekableReadStream *createReadStream() const override;
+	Common::SeekableReadStream *createReadStreamForAltStream(Common::AltStreamType altStreamType) const override;
+	Common::String getName() const override { return _name.baseName(); }
+	Common::Path getPathInArchive() const override { return _name; }
+	Common::String getFileName() const override { return _name.baseName(); }
 	uint32 getLength() const { return _length; }
 	uint32 getOffset() const { return _offset; }
 
 private:
 	const XARCArchive *_xarc;
-	Common::String _name;
+	Common::Path _name;
 	uint32 _offset;
 	uint32 _length;
 
@@ -58,21 +60,25 @@ XARCMember::XARCMember(const XARCArchive *xarc, Common::ReadStream &stream, uint
 	_xarc = xarc;
 
 	// Read the information about this archive member
-	_name = readString(stream);
+	_name = Common::Path(readString(stream));
 	_offset = offset;
 	_length = stream.readUint32LE();
-	debugC(20, kDebugArchive, "Stark::XARC Member: \"%s\" starts at offset=%d and has length=%d", _name.c_str(), _offset, _length);
+	debugC(20, kDebugArchive, "Stark::XARC Member: \"%s\" starts at offset=%d and has length=%d", _name.toString().c_str(), _offset, _length);
 
 	// Unknown value. English: 0, others: 1
 	uint32 unknown = stream.readUint32LE();
-	debugC(kDebugUnknown, "Stark::XARC Member: \"%s\" has unknown=%d", _name.c_str(), unknown);
+	debugC(kDebugUnknown, "Stark::XARC Member: \"%s\" has unknown=%d", _name.toString().c_str(), unknown);
 	if (unknown != 0 && unknown != 1) {
-		warning("Stark::XARC Member: \"%s\" has unknown=%d with unknown meaning", _name.c_str(), unknown);
+		warning("Stark::XARC Member: \"%s\" has unknown=%d with unknown meaning", _name.toString().c_str(), unknown);
 	}
 }
 
 Common::SeekableReadStream *XARCMember::createReadStream() const {
 	return _xarc->createReadStreamForMember(this);
+}
+
+Common::SeekableReadStream *XARCMember::createReadStreamForAltStream(Common::AltStreamType altStreamType) const {
+	return nullptr;
 }
 
 Common::String XARCMember::readString(Common::ReadStream &stream) {
@@ -96,7 +102,7 @@ Common::String XARCMember::readString(Common::ReadStream &stream) {
 
 // ARCHIVE
 
-bool XARCArchive::open(const Common::String &filename) {
+bool XARCArchive::open(const Common::Path &filename) {
 	Common::File stream;
 	if (!stream.open(filename)) {
 		return false;
@@ -106,18 +112,18 @@ bool XARCArchive::open(const Common::String &filename) {
 
 	// Unknown: always 1? version?
 	uint32 unknown = stream.readUint32LE();
-	debugC(kDebugUnknown, "Stark::XARC: \"%s\" has unknown=%d", _filename.c_str(), unknown);
+	debugC(kDebugUnknown, "Stark::XARC: \"%s\" has unknown=%d", _filename.toString(Common::Path::kNativeSeparator).c_str(), unknown);
 	if (unknown != 1) {
-		warning("Stark::XARC: \"%s\" has unknown=%d with unknown meaning", _filename.c_str(), unknown);
+		warning("Stark::XARC: \"%s\" has unknown=%d with unknown meaning", _filename.toString(Common::Path::kNativeSeparator).c_str(), unknown);
 	}
 
 	// Read the number of contained files
 	uint32 numFiles = stream.readUint32LE();
-	debugC(20, kDebugArchive, "Stark::XARC: \"%s\" contains %d files", _filename.c_str(), numFiles);
+	debugC(20, kDebugArchive, "Stark::XARC: \"%s\" contains %d files", _filename.toString(Common::Path::kNativeSeparator).c_str(), numFiles);
 
 	// Read the offset to the contents of the first file
 	uint32 offset = stream.readUint32LE();
-	debugC(20, kDebugArchive, "Stark::XARC: \"%s\"'s first file has offset=%d", _filename.c_str(), offset);
+	debugC(20, kDebugArchive, "Stark::XARC: \"%s\"'s first file has offset=%d", _filename.toString(Common::Path::kNativeSeparator).c_str(), offset);
 
 	for (uint32 i = 0; i < numFiles; i++) {
 		XARCMember *member = new XARCMember(this, stream, offset);
@@ -130,7 +136,7 @@ bool XARCArchive::open(const Common::String &filename) {
 	return true;
 }
 
-Common::String XARCArchive::getFilename() const {
+Common::Path XARCArchive::getFilename() const {
 	return _filename;
 }
 
@@ -147,7 +153,7 @@ bool XARCArchive::hasFile(const Common::Path &path) const {
 	return false;
 }
 
-int XARCArchive::listMatchingMembers(Common::ArchiveMemberList &list, const Common::Path &pattern) const {
+int XARCArchive::listMatchingMembers(Common::ArchiveMemberList &list, const Common::Path &pattern, bool matchPathComponents) const {
 	Common::String patternString = pattern.toString();
 	int matches = 0;
 	for (Common::ArchiveMemberList::const_iterator it = _members.begin(); it != _members.end(); ++it) {

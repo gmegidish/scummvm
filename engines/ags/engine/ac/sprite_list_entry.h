@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,16 +26,18 @@
 
 namespace AGS3 {
 
+// Describes a texture or node description, for sorting and passing into renderer
 struct SpriteListEntry {
-	AGS::Engine::IDriverDependantBitmap *bmp;
-	AGS::Shared::Bitmap *pic;
-	int baseline;
-	int x, y;
-	int transparent;
-	bool takesPriorityIfEqual;
-	bool hasAlphaChannel;
-
-	SpriteListEntry();
+	int id = -1; // user identifier, for any custom purpose
+	Engine::IDriverDependantBitmap *ddb = nullptr;
+	AGS::Shared::Bitmap *pic = nullptr;
+	int x = 0, y = 0;
+	int zorder = 0;
+	// Tells if this item should take priority during sort if z1 == z2
+	// TODO: this is some compatibility feature - find out if may be omitted and done without extra struct?
+	bool takesPriorityIfEqual = false;
+	// Mark for the render stage callback (if >= 0 other fields are ignored)
+	int renderStage = -1;
 };
 
 } // namespace AGS3

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifdef ENABLE_HE
 
 #include "common/archive.h"
-#include "common/ini-file.h"
+#include "common/formats/ini-file.h"
 #include "common/config-manager.h"
 #include "common/macresman.h"
 #include "common/savefile.h"
@@ -36,6 +35,9 @@
 #include "scumm/resource.h"
 #include "scumm/scumm.h"
 #include "scumm/he/sound_he.h"
+
+#include "scumm/he/moonbase/moonbase.h"
+#include "scumm/he/moonbase/map_main.h"
 
 namespace Scumm {
 
@@ -68,17 +70,17 @@ void ScummEngine_v80he::o80_createSound() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 27:
-		createSound(_heSndResId, pop());
+	case SO_ADD: // 27
+		((SoundHE *)_sound)->createSound(_heSndResId, pop());
 		break;
-	case 217:
-		createSound(_heSndResId, -1);
+	case SO_NEW: // 217
+		((SoundHE *)_sound)->createSound(_heSndResId, -1);
 		break;
-	case 232:
+	case SO_SOUND_START: // 232
 		_heSndResId = pop();
 		break;
-	case 255:
-		// dummy case
+	case SO_END: // 255
+		// Dummy case
 		break;
 	default:
 		error("o80_createSound: default case %d", subOp);
@@ -185,15 +187,19 @@ void ScummEngine_v80he::o80_readConfigFile() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 43: // HE 100
-	case 6: // number
+	case ScummEngine_v100he::SO_DWORD: // HE 100
+	case SO_DWORD: // number
 		if (!strcmp((char *)option, "Benchmark"))
 			push(2);
+		else if (!strcmp((char *)option, "hostip"))
+			push(ConfMan.getBool("host_game"));
 		else
 			push(atoi(entry.c_str()));
 		break;
-	case 77: // HE 100
-	case 7: // string
+	case ScummEngine_v100he::SO_STRING: // HE 100
+	case SO_STRING: // string
+		if (!strcmp((char *)option, "joinip") && ConfMan.get("join_game") != "null")
+			entry = ConfMan.get("join_game");
 		writeVar(0, 0);
 		len = resStrLen((const byte *)entry.c_str());
 		data = defineArray(0, kStringArray, 0, 0, 0, len);
@@ -214,16 +220,16 @@ void ScummEngine_v80he::o80_writeConfigFile() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 43: // HE 100
-	case 6: // number
+	case ScummEngine_v100he::SO_DWORD: // HE 100
+	case SO_DWORD: // number
 		value = pop();
-		sprintf((char *)string, "%d", value);
+		Common::sprintf_s(string, "%d", value);
 		copyScriptString(option, sizeof(option));
 		copyScriptString(section, sizeof(section));
 		copyScriptString(filename, sizeof(filename));
 		break;
-	case 77: // HE 100
-	case 7: // string
+	case ScummEngine_v100he::SO_STRING: // HE 100
+	case SO_STRING: // string
 		copyScriptString(string, sizeof(string));
 		copyScriptString(option, sizeof(option));
 		copyScriptString(section, sizeof(section));
@@ -239,6 +245,12 @@ void ScummEngine_v80he::o80_writeConfigFile() {
 			memcpy(section, "BluesTreasureHunt-Disc1\0", 24);
 		else if (!strcmp((char *)section, "Blue'sTreasureHunt-Disc2"))
 			memcpy(section, "BluesTreasureHunt-Disc2\0", 24);
+	} else if (_game.id == GID_MOONBASE && !strcmp((char *)option, "5-10") &&
+		!strcmp((char *)string, "1") && _moonbase->_map->mapGenerated()) {
+		// If we're playing on a generated map, make sure that the SETUP-MAP
+		// value gets stored to 66 (higher than 65), or else the replay will
+		// load the incorrect map.
+		memcpy(string, "66\0", 3);
 	}
 
 	Common::INIFile iniFile;
@@ -262,46 +274,49 @@ void ScummEngine_v80he::o80_cursorCommand() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 0x13:
-	case 0x14:
+	case SO_CURSOR_IMAGE:
 		a = pop();
-		_wiz->loadWizCursor(a, 0);
+		_wiz->loadWizCursor(a, 0, false);
 		break;
-	case 0x3C:
+	case SO_CURSOR_COLOR_IMAGE:
+		a = pop();
+		_wiz->loadWizCursor(a, 0, true);
+		break;
+	case SO_BUTTON:
 		b = pop();
 		a = pop();
-		_wiz->loadWizCursor(a, b);
+		_wiz->loadWizCursor(a, b, true);
 		break;
-	case 0x90:		// SO_CURSOR_ON Turn cursor on
+	case SO_CURSOR_ON:		// Turn cursor on
 		_cursor.state = 1;
 		break;
-	case 0x91:		// SO_CURSOR_OFF Turn cursor off
+	case SO_CURSOR_OFF:		// Turn cursor off
 		_cursor.state = 0;
 		break;
-	case 0x92:		// SO_USERPUT_ON
+	case SO_USERPUT_ON:
 		_userPut = 1;
 		break;
-	case 0x93:		// SO_USERPUT_OFF
+	case SO_USERPUT_OFF:
 		_userPut = 0;
 		break;
-	case 0x94:		// SO_CURSOR_SOFT_ON Turn soft cursor on
+	case SO_CURSOR_SOFT_ON:		// Turn soft cursor on
 		_cursor.state++;
 		if (_cursor.state > 1)
 			error("Cursor state greater than 1 in script");
 		break;
-	case 0x95:		// SO_CURSOR_SOFT_OFF Turn soft cursor off
+	case SO_CURSOR_SOFT_OFF:		// Turn soft cursor off
 		_cursor.state--;
 		break;
-	case 0x96:		// SO_USERPUT_SOFT_ON
+	case SO_USERPUT_SOFT_ON:
 		_userPut++;
 		break;
-	case 0x97:		// SO_USERPUT_SOFT_OFF
+	case SO_USERPUT_SOFT_OFF:
 		_userPut--;
 		break;
-	case 0x9C:		// SO_CHARSET_SET
+	case SO_CHARSET_SET:
 		initCharset(pop());
 		break;
-	case 0x9D:		// SO_CHARSET_COLOR
+	case SO_CHARSET_COLOR:
 		getStackList(args, ARRAYSIZE(args));
 		for (i = 0; i < 16; i++)
 			_charsetColorMap[i] = _charsetData[_string[1]._default.charset][i] = (unsigned char)args[i];
@@ -324,12 +339,10 @@ void ScummEngine_v80he::o80_setState() {
 }
 
 void ScummEngine_v80he::o80_drawWizPolygon() {
-	WizImage wi;
-	wi.x1 = wi.y1 = pop();
-	wi.resNum = pop();
-	wi.state = 0;
-	wi.flags = kWIFIsPolygon;
-	_wiz->displayWizImage(&wi);
+	int polygon = pop();
+	int image = pop();
+
+	_wiz->simpleDrawAWiz(image, 0, polygon, polygon, kWRFPolygon);
 }
 
 /**
@@ -342,12 +355,13 @@ void ScummEngine_v80he::o80_drawWizPolygon() {
  * @param step	the step size used to render the line, only ever 'step'th point is drawn
  * @param type	the line type -- points are rendered by drawing actors (type == 2),
  *              wiz images (type == 3), or pixels (any other type)
- * @param id	the id of an actor, wizimage or color (low bit) & flag (high bit)
+ * @param color	the id of an actor, wizimage or color (low bit) & flag (high bit)
  */
-void ScummEngine_v80he::drawLine(int x1, int y1, int x, int y, int step, int type, int id) {
+void ScummEngine_v80he::drawLine(int x1, int y1, int x, int y, int step, int type, int color) {
 	if (step < 0) {
 		step = -step;
 	}
+
 	if (step == 0) {
 		step = 1;
 	}
@@ -363,20 +377,13 @@ void ScummEngine_v80he::drawLine(int x1, int y1, int x, int y, int step, int typ
 	y = y1;
 	x = x1;
 
-
-	if (type == 2) {
-		ActorHE *a = (ActorHE *)derefActor(id, "drawLine");
+	if (type == kLTActor) {
+		ActorHE *a = (ActorHE *)derefActor(color, "drawLine");
 		a->drawActorToBackBuf(x, y);
-	} else if (type == 3) {
-		WizImage wi;
-		wi.flags = 0;
-		wi.y1 = y;
-		wi.x1 = x;
-		wi.resNum = id;
-		wi.state = 0;
-		_wiz->displayWizImage(&wi);
+	} else if (type == kLTImage) {
+		_wiz->drawAWiz(color, 0, x, y, 0, 0, 0, 0, nullptr, 0, nullptr);
 	} else {
-		drawPixel(x, y, id);
+		drawPixel(x, y, color);
 	}
 
 	int stepCount = 0;
@@ -415,24 +422,19 @@ void ScummEngine_v80he::drawLine(int x1, int y1, int x, int y, int step, int typ
 		if ((stepCount++ % step) != 0 && maxDist != i)
 			continue;
 
-		if (type == 2) {
-			ActorHE *a = (ActorHE *)derefActor(id, "drawLine");
+		if (type == kLTActor) {
+			ActorHE *a = (ActorHE *)derefActor(color, "drawLine");
 			a->drawActorToBackBuf(x, y);
-		} else if (type == 3) {
-			WizImage wi;
-			wi.flags = 0;
-			wi.y1 = y;
-			wi.x1 = x;
-			wi.resNum = id;
-			wi.state = 0;
-			_wiz->displayWizImage(&wi);
+		} else if (type == kLTImage) {
+			_wiz->drawAWiz(color, 0, x, y, 0, 0, 0, 0, nullptr, 0, nullptr);
 		} else {
-			drawPixel(x, y, id);
+			drawPixel(x, y, color);
 		}
 	}
 }
 
 void ScummEngine_v80he::drawPixel(int x, int y, int flags) {
+	// TODO: RECHECK
 	byte *src, *dst;
 	VirtScreen *vs;
 
@@ -442,7 +444,7 @@ void ScummEngine_v80he::drawPixel(int x, int y, int flags) {
 	if (y < 0)
 		return;
 
-	if ((vs = findVirtScreen(y)) == NULL)
+	if ((vs = findVirtScreen(y)) == nullptr)
 		return;
 
 	markRectAsDirty(vs->number, x, y, x, y + 1);
@@ -468,37 +470,37 @@ void ScummEngine_v80he::drawPixel(int x, int y, int flags) {
 }
 
 void ScummEngine_v80he::o80_drawLine() {
-	int id, step, x, y, x1, y1;
+	int id, step, x2, y2, x1, y1, type;
 
+	type = kLTColor;
 	step = pop();
 	id = pop();
-	y = pop();
-	x = pop();
+	y2 = pop();
+	x2 = pop();
 	y1 = pop();
 	x1 = pop();
 
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 55:
-		drawLine(x1, y1, x, y, step, 2, id);
+	case SO_ACTOR:
+		type = kLTActor;
 		break;
-	case 63:
-		drawLine(x1, y1, x, y, step, 3, id);
+	case SO_IMAGE:
+		type = kLTImage;
 		break;
-	case 66:
-		drawLine(x1, y1, x, y, step, 1, id);
+	case SO_COLOR:
+		type = kLTColor;
 		break;
-	default:
-		error("o80_drawLine: default case %d", subOp);
 	}
 
+	drawLine(x1, y1, x2, y2, step, type, id);
 }
 
 void ScummEngine_v80he::o80_pickVarRandom() {
 	int num;
 	int args[100];
-	int32 dim1end;
+	int32 acrossMax;
 
 	num = getStackList(args, ARRAYSIZE(args));
 	int value = fetchScriptWord();
@@ -526,13 +528,13 @@ void ScummEngine_v80he::o80_pickVarRandom() {
 	num = readArray(value, 0, 0);
 
 	ArrayHeader *ah = (ArrayHeader *)getResourceAddress(rtString, readVar(value));
-	dim1end = FROM_LE_32(ah->dim1end);
+	acrossMax = FROM_LE_32(ah->acrossMax);
 
-	if (dim1end < num) {
+	if (acrossMax < num) {
 		int32 var_2 = readArray(value, 0, num - 1);
-		shuffleArray(value, 1, dim1end);
+		shuffleArray(value, 1, acrossMax);
 		num = 1;
-		if (readArray(value, 0, 1) == var_2 && dim1end >= 3) {
+		if (readArray(value, 0, 1) == var_2 && acrossMax >= 3) {
 			int32 tmp = readArray(value, 0, 2);
 			writeArray(value, 0, num, tmp);
 			writeArray(value, 0, 2, var_2);

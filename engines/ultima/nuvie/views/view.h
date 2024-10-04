@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +41,7 @@ class Actor;
 
 class View: public GUI_Widget {
 protected:
-	Configuration *config;
+	const Configuration *config;
 
 	GUI_Button *left_button, *right_button, *actor_button, *party_button, *inventory_button;
 
@@ -57,27 +56,27 @@ protected:
 
 public:
 
-	View(Configuration *cfg);
+	View(const Configuration *cfg);
 	~View() override;
 
 	bool init(uint16 x, uint16 y, Font *f, Party *p, TileManager *tm, ObjManager *om);
 
 	virtual bool set_party_member(uint8 party_member);
-	uint8 get_party_member_num() {
+	uint8 get_party_member_num() const {
 		return cur_party_member;
 	}
 	bool next_party_member();
 	bool prev_party_member();
 	void fill_md_background(uint8 color, const Common::Rect &r);
 	void set_combat_mode(Actor *actor);
-	uint8 get_combat_mode_index(Actor *actor);
+	uint8 get_combat_mode_index(const Actor *actor) const;
 
 	virtual void close_view() {}
 
 protected:
 
 	GUI_status callback(uint16 msg, GUI_CallBack *caller, void *data) override;
-	GUI_Button *loadButton(Std::string dir, Std::string name, uint16 x, uint16 y);
+	GUI_Button *loadButton(const Common::Path &dir, Std::string name, uint16 x, uint16 y);
 };
 
 } // End of namespace Nuvie

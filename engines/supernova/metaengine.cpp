@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,25 +15,57 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "base/plugins.h"
 #include "common/file.h"
-#include "common/gui_options.h"
 #include "common/savefile.h"
 #include "common/system.h"
+#include "common/translation.h"
 #include "graphics/thumbnail.h"
 #include "engines/advancedDetector.h"
 
 #include "supernova/supernova.h"
+#include "supernova/detection.h"
 
-class SupernovaMetaEngine : public AdvancedMetaEngine {
+static const ADExtraGuiOptionsMap optionsList[] = {
+	{
+		GAMEOPTION_IMPROVED,
+		{
+			_s("Improved mode"),
+			_s("Removes some repetitive actions, adds possibility to change verbs by keyboard"),
+			"improved",
+			true,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_TTS,
+		{
+			_s("Enable Text to Speech"),
+			_s("Use TTS to read the descriptions (if TTS is available)"),
+			"tts_enabled",
+			false,
+			0,
+			0
+		}
+	},
+
+	AD_EXTRA_GUI_OPTIONS_TERMINATOR
+};
+
+class SupernovaMetaEngine : public AdvancedMetaEngine<ADGameDescription> {
 public:
 	const char *getName() const override {
 		return "supernova";
+	}
+
+	const ADExtraGuiOptionsMap *getAdvancedExtraGuiOptions() const override {
+		return optionsList;
 	}
 
 	bool hasFeature(MetaEngineFeature f) const override;
@@ -45,6 +77,17 @@ public:
 		return 99;
 	}
 	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
+	Common::String getSavegameFile(int saveGameIdx, const char *target) const override {
+		const char *prefix = target;
+		if (!strncmp(target, "msn1", 4))
+			prefix = "msn_save";
+		if (!strncmp(target, "msn2", 4))
+			prefix = "ms2_save";
+		if (saveGameIdx == kSavegameFilePattern)
+			return Common::String::format("%s.###", prefix);
+		else
+			return Common::String::format("%s.%03d", prefix, saveGameIdx);
+	}
 };
 
 bool SupernovaMetaEngine::hasFeature(MetaEngineFeature f) const {
@@ -69,11 +112,7 @@ Common::Error SupernovaMetaEngine::createInstance(OSystem *syst, Engine **engine
 
 SaveStateList SupernovaMetaEngine::listSaves(const char *target) const {
 	Common::StringArray filenames;
-	Common::String pattern;
-	if (!strncmp(target, "msn1", 4))
-		pattern = Common::String::format("msn_save.###");
-	if (!strncmp(target, "msn2", 4))
-		pattern = Common::String::format("ms2_save.###");
+	const Common::String pattern = getSavegameFilePattern(target);
 
 	filenames = g_system->getSavefileManager()->listSavefiles(pattern);
 
@@ -106,21 +145,11 @@ SaveStateList SupernovaMetaEngine::listSaves(const char *target) const {
 }
 
 void SupernovaMetaEngine::removeSaveState(const char *target, int slot) const {
-	Common::String filename;
-	if (!strncmp(target, "msn1", 4))
-		filename = Common::String::format("msn_save.%03d", slot);
-	if (!strncmp(target, "msn2", 4))
-		filename = Common::String::format("ms2_save.%03d", slot);
-	g_system->getSavefileManager()->removeSavefile(filename);
+	g_system->getSavefileManager()->removeSavefile(getSavegameFile(slot, target));
 }
 
 SaveStateDescriptor SupernovaMetaEngine::querySaveMetaInfos(const char *target, int slot) const {
-	Common::String fileName;
-	if (!strncmp(target, "msn1", 4))
-		fileName = Common::String::format("msn_save.%03d", slot);
-	if (!strncmp(target, "msn2", 4))
-		fileName = Common::String::format("ms2_save.%03d", slot);
-	Common::InSaveFile *savefile = g_system->getSavefileManager()->openForLoading(fileName);
+	Common::InSaveFile *savefile = g_system->getSavefileManager()->openForLoading(getSavegameFile(slot, target));
 
 	if (savefile) {
 		uint saveHeader = savefile->readUint32LE();

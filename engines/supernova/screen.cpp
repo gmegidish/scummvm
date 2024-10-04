@@ -1,30 +1,29 @@
 /* ScummVM - Graphic Adventure Engine
-*
-* ScummVM is the legal property of its developers, whose names
-* are too numerous to list here. Please refer to the COPYRIGHT
-* file distributed with this source distribution.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2
-* of the License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-*
-*/
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #include "common/str.h"
 #include "common/system.h"
 #include "engines/util.h"
 #include "graphics/cursorman.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/surface.h"
 #include "common/config-manager.h"
 #include "common/text-to-speech.h"
@@ -96,9 +95,8 @@ void ScreenBufferStack::restore() {
 		return;
 
 	--_last;
-	g_system->lockScreen()->copyRectToSurface(_last->_pixels, _last->_width, _last->_x,
-											  _last->_y, _last->_width, _last->_height);
-	g_system->unlockScreen();
+	g_system->copyRectToScreen(_last->_pixels, _last->_width, _last->_x,
+	                           _last->_y, _last->_width, _last->_height);
 
 	delete[] _last->_pixels;
 }
@@ -142,7 +140,7 @@ Marquee::Marquee(Screen *screen, MarqueeId id, const char *text)
 Marquee::~Marquee() {
 	if (_screen->_vm->_MSPart == 2) {
 		_screen->_vm->_system->getPaletteManager()->setPalette(_oldColor, kColorPurple, 1);
-		delete _oldColor;
+		delete[] _oldColor;
 	}
 }
 
@@ -619,9 +617,7 @@ void Screen::removeMessage() {
 }
 
 void Screen::renderBox(int x, int y, int width, int height, byte color) {
-	Graphics::Surface *screen = _vm->_system->lockScreen();
-	screen->fillRect(Common::Rect(x, y, x + width, y + height), color);
-	_vm->_system->unlockScreen();
+	_vm->_system->fillScreen(Common::Rect(x, y, x + width, y + height), color);
 }
 
 void Screen::renderBox(const GuiElement &guiElement) {

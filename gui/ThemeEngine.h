@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,7 +36,7 @@
 #include "graphics/pixelformat.h"
 
 
-#define SCUMMVM_THEME_VERSION_STR "SCUMMVM_STX0.8.51"
+#define SCUMMVM_THEME_VERSION_STR "SCUMMVM_STX0.9.19"
 
 class OSystem;
 
@@ -50,7 +49,6 @@ namespace GUI {
 
 struct WidgetDrawData;
 struct TextDrawData;
-struct TextColorData;
 class Dialog;
 class GuiObject;
 class ThemeEval;
@@ -69,7 +67,9 @@ enum DrawData {
 	kDDDefaultBackground,
 	kDDTextSelectionBackground,
 	kDDTextSelectionFocusBackground,
-
+	kDDThumbnailBackground,
+	kDDGridItemIdle,
+	kDDGridItemHover,
 	kDDWidgetBackgroundDefault,
 	kDDWidgetBackgroundSmall,
 	kDDWidgetBackgroundEditText,
@@ -164,10 +164,18 @@ enum TextColor {
 	kTextColorAlternativeInverted,
 	kTextColorAlternativeHover,
 	kTextColorAlternativeDisabled,
+	kTextColorOverride,
+	kTextColorOverrideInverted,
+	kTextColorOverrideHover,
+	kTextColorOverrideDisabled,
 	kTextColorButton,
 	kTextColorButtonHover,
 	kTextColorButtonDisabled,
 	kTextColorMAX
+};
+
+struct TextColorData {
+	int r, g, b;
 };
 
 class LangExtraFont {
@@ -221,7 +229,10 @@ public:
 		kWidgetBackgroundBorder,        ///< Same as kWidgetBackgroundPlain just with a border
 		kWidgetBackgroundBorderSmall,   ///< Same as kWidgetBackgroundPlain just with a small border
 		kWidgetBackgroundEditText,      ///< Background used for edit text fields
-		kWidgetBackgroundSlider         ///< Background used for sliders
+		kWidgetBackgroundSlider,        ///< Background used for sliders
+		kThumbnailBackground,			///< Background used for thumbnails
+		kGridItemBackground,			///< Default Background used for grid items
+		kGridItemHighlight				///< Highlight Background used for grid items
 	};
 
 	/// Dialog background type
@@ -275,8 +286,10 @@ public:
 
 	/// Font color selector
 	enum FontColor {
+		kFontColorFormatting = -1,	///< Use color from formatting
 		kFontColorNormal = 0,       ///< The default color of the theme
 		kFontColorAlternate = 1,    ///< Alternative font color
+		kFontColorOverride = 2,     ///< Color of overwritten text
 		kFontColorMax
 	};
 
@@ -299,6 +312,7 @@ public:
 	static const char *const kImageLogo;      ///< ScummVM logo used in the launcher
 	static const char *const kImageLogoSmall; ///< ScummVM logo used in the GMM
 	static const char *const kImageSearch;    ///< Search tool image used in the launcher
+	static const char *const kImageGroup;     ///< Select Group image used in the launcher
 	static const char *const kImageEraser;     ///< Clear input image used in the launcher
 	static const char *const kImageDelButton; ///< Delete characters in the predictive dialog
 	static const char *const kImageList;      ///< List image used in save/load chooser selection
@@ -421,9 +435,9 @@ public:
 
 	int getStringWidth(const Common::U32String &str, FontStyle font = kFontStyleBold) const;
 
-	int getCharWidth(byte c, FontStyle font = kFontStyleBold) const;
+	int getCharWidth(uint32 c, FontStyle font = kFontStyleBold) const;
 
-	int getKerningOffset(byte left, byte right, FontStyle font = kFontStyleBold) const;
+	int getKerningOffset(uint32 left, uint32 right, FontStyle font = kFontStyleBold) const;
 
 	//@}
 
@@ -437,6 +451,7 @@ public:
 	 * @return The previous clipping rect
 	 */
 	Common::Rect swapClipRect(const Common::Rect &newRect);
+	const Common::Rect getClipRect();
 
 	/**
 	 * Set the clipping rect to allow rendering on the whole surface.
@@ -454,18 +469,19 @@ public:
 	void drawDropDownButton(const Common::Rect &r, uint32 dropdownWidth, const Common::U32String &str,
 	                        WidgetStateInfo buttonState, bool inButton, bool inDropdown, bool rtl = false);
 
-	void drawSurface(const Common::Point &p, const Graphics::ManagedSurface &surface, bool themeTrans = false);
+	void drawManagedSurface(const Common::Point &p, const Graphics::ManagedSurface &surface, Graphics::AlphaType alphaType);
 
 	void drawSlider(const Common::Rect &r, int width, WidgetStateInfo state = kStateEnabled, bool rtl = false);
 
 	void drawCheckbox(const Common::Rect &r, int spacing, const Common::U32String &str, bool checked,
-	                  WidgetStateInfo state = kStateEnabled, bool rtl = false);
+	                  WidgetStateInfo state = kStateEnabled, bool override = false, bool rtl = false);
 
 	void drawRadiobutton(const Common::Rect &r, int spacing, const Common::U32String &str, bool checked,
 	                     WidgetStateInfo state = kStateEnabled, bool rtl = false);
 
 	void drawTab(const Common::Rect &r, int tabHeight, const Common::Array<int> &tabWidths,
-	             const Common::Array<Common::U32String> &tabs, int active, bool rtl = false);
+	             const Common::Array<Common::U32String> &tabs, int active, bool rtl,
+				 ThemeEngine::TextAlignVertical alignV);
 
 	void drawScrollbar(const Common::Rect &r, int sliderY, int sliderHeight, ScrollbarState scrollState);
 
@@ -484,7 +500,9 @@ public:
 	              FontStyle font = kFontStyleBold, FontColor color = kFontColorNormal, bool restore = true,
 	              const Common::Rect &drawableTextArea = Common::Rect(0, 0, 0, 0));
 
-	void drawChar(const Common::Rect &r, byte ch, const Graphics::Font *font, FontColor color = kFontColorNormal);
+	void drawChar(const Common::Rect &r, byte ch, const Graphics::Font *font, FontColor color = kFontColorNormal, TextInversionState inverted = ThemeEngine::kTextInversionNone);
+
+	void drawFoldIndicator(const Common::Rect &r, bool expanded);
 
 	//@}
 
@@ -514,6 +532,7 @@ public:
 	TextData getTextData(DrawData ddId) const;
 	TextColor getTextColor(DrawData ddId) const;
 
+	TextColorData *getTextColorData(TextColor color) const;
 
 	/**
 	 * Interface for ThemeParser class: Parsed DrawSteps are added via this function.
@@ -570,7 +589,9 @@ public:
 	 * Interface for the ThemeParser class: adds a text color value.
 	 *
 	 * @param colorId Identifier for the color type.
-	 * @param r, g, b Color of the font.
+	 * @param r Red color component
+	 * @param g Green color component
+	 * @param b Blue color component
 	 */
 	bool addTextColor(TextColor colorId, int r, int g, int b);
 
@@ -706,7 +727,7 @@ public:
 	struct ThemeDescriptor {
 		Common::String name;
 		Common::String id;
-		Common::String filename;
+		Common::Path filename;
 	};
 
 	/**
@@ -718,8 +739,8 @@ private:
 	static bool themeConfigUsable(const Common::ArchiveMember &member, Common::String &themeName);
 	static bool themeConfigParseHeader(Common::String header, Common::String &themeName);
 
-	static Common::String getThemeFile(const Common::String &id);
-	static Common::String getThemeId(const Common::String &filename);
+	static Common::Path getThemeFile(const Common::String &id);
+	static Common::String getThemeId(const Common::Path &filename);
 	static void listUsableThemes(const Common::FSNode &node, Common::List<ThemeDescriptor> &list, int depth = -1);
 	static void listUsableThemes(Common::Archive &archive, Common::List<ThemeDescriptor> &list);
 
@@ -757,6 +778,7 @@ protected:
 
 	int16 _baseWidth, _baseHeight;
 	float _scaleFactor;
+	bool _needScaleRefresh = false;
 
 	/** Font info. */
 	const Graphics::Font *_font;
@@ -791,7 +813,7 @@ protected:
 
 	Common::String _themeName; ///< Name of the currently loaded theme
 	Common::String _themeId;
-	Common::String _themeFile;
+	Common::Path _themeFile;
 	Common::Archive *_themeArchive;
 	Common::SearchSet _themeFiles;
 
@@ -800,13 +822,12 @@ protected:
 	uint32 _cursorTransparent;
 	byte *_cursor;
 	uint _cursorWidth, _cursorHeight;
-#ifndef USE_RGB_COLOR
+
 	enum {
 		MAX_CURS_COLORS = 255
 	};
 	byte _cursorPal[3 * MAX_CURS_COLORS];
 	byte _cursorPalSize;
-#endif
 
 	Common::Rect _clip;
 };

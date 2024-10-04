@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,8 +49,9 @@ String GetTraFileErrorText(TraFileErrorType err) {
 		return "Unknown block type.";
 	case kTraFileErr_BlockDataOverlapping:
 		return "Block data overlapping.";
+	default:
+		return "Unknown error.";
 	}
-	return "Unknown error.";
 }
 
 String GetTraBlockName(TraFileBlock id) {
@@ -59,9 +59,8 @@ String GetTraBlockName(TraFileBlock id) {
 	case kTraFblk_Dict: return "Dictionary";
 	case kTraFblk_GameID: return "GameID";
 	case kTraFblk_TextOpts: return "TextOpts";
-	default: break;
+	default: return "unknown";
 	}
-	return "unknown";
 }
 
 HError OpenTraFile(Stream *in) {
@@ -73,7 +72,7 @@ HError OpenTraFile(Stream *in) {
 	return HError::None();
 }
 
-HError ReadTraBlock(Translation &tra, Stream *in, TraFileBlock block, const String &ext_id, soff_t block_len) {
+HError ReadTraBlock(Translation &tra, Stream *in, TraFileBlock block, const String &ext_id, soff_t /*block_len*/) {
 	switch (block) {
 	case kTraFblk_Dict:
 	{
@@ -102,7 +101,7 @@ HError ReadTraBlock(Translation &tra, Stream *in, TraFileBlock block, const Stri
 		tra.SpeechFont = in->ReadInt32();
 		tra.RightToLeft = in->ReadInt32();
 		return HError::None();
-	case kTraFblk_ExtStrID:
+	case kTraFblk_None:
 		// continue reading extensions with string ID
 		break;
 	default:
@@ -147,7 +146,8 @@ private:
 	}
 
 	HError ReadBlock(int block_id, const String &ext_id,
-		soff_t block_len, bool &read_next) override {
+			soff_t block_len, bool &read_next) override {
+		read_next = true;
 		return ReadTraBlock(_tra, _in, (TraFileBlock)block_id, ext_id, block_len);
 	}
 

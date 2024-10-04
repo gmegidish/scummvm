@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,6 +63,7 @@ extern const SciWorkaroundEntry arithmeticWorkarounds[];
 extern const SciWorkaroundEntry uninitializedReadWorkarounds[];
 extern const SciWorkaroundEntry uninitializedReadForParamWorkarounds[];
 extern const SciWorkaroundEntry kAbs_workarounds[];
+extern const SciWorkaroundEntry kAnimate_workarounds[];
 extern const SciWorkaroundEntry kCelHigh_workarounds[];
 extern const SciWorkaroundEntry kCelWide_workarounds[];
 extern const SciWorkaroundEntry kDeviceInfo_workarounds[];
@@ -81,6 +81,7 @@ extern const SciWorkaroundEntry kFrameOut_workarounds[];
 extern const SciWorkaroundEntry kDeleteKey_workarounds[];
 extern const SciWorkaroundEntry kGetAngle_workarounds[];
 extern const SciWorkaroundEntry kGetCWD_workarounds[];
+extern const SciWorkaroundEntry kGetSaveFiles_workarounds[];
 extern const SciWorkaroundEntry kGraphDrawLine_workarounds[];
 extern const SciWorkaroundEntry kGraphSaveBox_workarounds[];
 extern const SciWorkaroundEntry kGraphRestoreBox_workarounds[];
@@ -101,7 +102,6 @@ extern const SciWorkaroundEntry kPalVaryMergeStart_workarounds[];
 extern const SciWorkaroundEntry kPlatform32_workarounds[];
 extern const SciWorkaroundEntry kRandom_workarounds[];
 extern const SciWorkaroundEntry kReadNumber_workarounds[];
-extern const SciWorkaroundEntry kResCheck_workarounds[];
 extern const SciWorkaroundEntry kPaletteUnsetFlag_workarounds[];
 extern const SciWorkaroundEntry kSetCursor_workarounds[];
 extern const SciWorkaroundEntry kArraySetElements_workarounds[];
@@ -111,6 +111,7 @@ extern const SciWorkaroundEntry kStrAt_workarounds[];
 extern const SciWorkaroundEntry kStrCpy_workarounds[];
 extern const SciWorkaroundEntry kStrLen_workarounds[];
 extern const SciWorkaroundEntry kUnLoad_workarounds[];
+extern const SciWorkaroundEntry kWait_workarounds[];
 extern const SciWorkaroundEntry kStringNew_workarounds[];
 extern const SciWorkaroundEntry kScrollWindowAdd_workarounds[];
 
@@ -123,10 +124,11 @@ enum SciMessageWorkaroundType {
 	MSG_WORKAROUND_EXTRACT      // use text from a different record, optionally a substring
 };
 
-enum SciMedia {
+enum SciMedia : uint {
 	SCI_MEDIA_ALL,
 	SCI_MEDIA_FLOPPY,
-	SCI_MEDIA_CD
+	SCI_MEDIA_CD,
+	SCI_MEDIA_MAC, // mac floppy
 };
 
 struct SciMessageWorkaroundSolution {

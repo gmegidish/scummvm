@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,19 +66,7 @@ enum rifOptions {
 };
 
 Puzzle::Puzzle(SagaEngine *vm) : _vm(vm), _solved(false), _active(false) {
-	_lang = 0;
-
-	if (_vm->getLanguage() == Common::DE_DEU)
-		_lang = 1;
-	else if (_vm->getLanguage() == Common::IT_ITA)
-		_lang = 2;
-	else if (_vm->getLanguage() == Common::FR_FRA)
-		_lang = 3;
-	else if (_vm->getLanguage() == Common::JA_JPN)
-		_lang = 4;
-	else if (_vm->getLanguage() == Common::RU_RUS)
-		_lang = 5;
-
+	_lang = _vm->getLanguageIndex();
 	_hintRqState = kRQNoHint;
 	_hintOffer = 0;
 	_hintCount = 0;
@@ -415,7 +402,7 @@ void Puzzle::solicitHint() {
 	// precautions to avoid race conditions.
 	int i;
 
-	_vm->_actor->setSpeechColor(1, kITEColorBlack);
+	_vm->_actor->setSpeechColor(1, _vm->iteColorBlack());
 
 	_vm->getTimerManager()->removeTimerProc(&hintTimerCallback);
 
@@ -547,7 +534,7 @@ void Puzzle::giveHint() {
 	if (_hintCount == 2 && total > 3)
 		_hintCount++;
 
-	_vm->_actor->setSpeechColor(1, kITEColorBlack);
+	_vm->_actor->setSpeechColor(1, _vm->iteColorBlack());
 
 	if (_hintCount < 3) {
 		_vm->_actor->nonActorSpeech(_hintBox, &hintStr[_lang][_hintCount], 1, PUZZLE_HINT_SOUNDS + _hintCount * 3 + _hintSpeaker, 0);
@@ -567,7 +554,7 @@ void Puzzle::giveHint() {
 		if (i >= 0) {
 			static char hintBuf[64];
 			static const char *hintPtr = hintBuf;
-			sprintf(hintBuf, optionsStr[_lang][kROHint], pieceNames[_lang][piece]);
+			Common::sprintf_s(hintBuf, optionsStr[_lang][kROHint], pieceNames[_lang][piece]);
 
 			_vm->_actor->nonActorSpeech(_hintBox, &hintPtr, 1, PUZZLE_TOOL_SOUNDS + _hintSpeaker + piece * 3, 0);
 		} else {

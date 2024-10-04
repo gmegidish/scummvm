@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-//include <cctype>
+#include "ags/engine/gui/csci_dialog.h"
 #include "ags/shared/ac/common.h"
 #include "ags/engine/ac/draw.h"
 #include "ags/engine/ac/game_setup.h"
@@ -85,7 +84,6 @@ int CSCIDrawWindow(int xx, int yy, int wid, int hit) {
 		quit("Too many windows created.");
 
 	_G(windowcount)++;
-	//  ags_domouse(DOMOUSE_DISABLE);
 	xx -= 2;
 	yy -= 2;
 	wid += 4;
@@ -94,7 +92,6 @@ int CSCIDrawWindow(int xx, int yy, int wid, int hit) {
 	_G(oswi)[drawit].x = xx;
 	_G(oswi)[drawit].y = yy;
 	__my_wbutt(ds, 0, 0, wid - 1, hit - 1);    // wbutt goes outside its area
-	//  ags_domouse(DOMOUSE_ENABLE);
 	_G(oswi)[drawit].oldtop = _G(topwindowhandle);
 	_G(topwindowhandle) = drawit;
 	_G(oswi)[drawit].handle = _G(topwindowhandle);
@@ -106,11 +103,9 @@ int CSCIDrawWindow(int xx, int yy, int wid, int hit) {
 }
 
 void CSCIEraseWindow(int handl) {
-	//  ags_domouse(DOMOUSE_DISABLE);
 	_G(ignore_bounds)--;
 	_G(topwindowhandle) = _G(oswi)[handl].oldtop;
 	_G(oswi)[handl].handle = -1;
-	//  ags_domouse(DOMOUSE_ENABLE);
 	_G(windowcount)--;
 	clear_gui_screen();
 }
@@ -118,9 +113,7 @@ void CSCIEraseWindow(int handl) {
 int CSCIWaitMessage(CSCIMessage *cscim) {
 	for (int uu = 0; uu < MAXCONTROLS; uu++) {
 		if (_G(vobjs)[uu] != nullptr) {
-			//      ags_domouse(DOMOUSE_DISABLE);
 			_G(vobjs)[uu]->drawifneeded();
-			//      ags_domouse(DOMOUSE_ENABLE);
 		}
 	}
 
@@ -135,20 +128,24 @@ int CSCIWaitMessage(CSCIMessage *cscim) {
 		cscim->id = -1;
 		cscim->code = 0;
 		_G(smcode) = 0;
+		// NOTE: CSCIWaitMessage is supposed to report only single message,
+		// therefore we cannot process all buffered key presses here
+		// (unless the whole dialog system is rewritten).
 		KeyInput ki;
 		if (run_service_key_controls(ki) && !_GP(play).IsIgnoringInput()) {
 			int keywas = ki.Key;
+			int uchar = ki.UChar;
 			if (keywas == eAGSKeyCodeReturn) {
 				cscim->id = finddefaultcontrol(CNF_DEFAULT);
 				cscim->code = CM_COMMAND;
 			} else if (keywas == eAGSKeyCodeEscape) {
 				cscim->id = finddefaultcontrol(CNF_CANCEL);
 				cscim->code = CM_COMMAND;
-			} else if ((keywas < eAGSKeyCodeSpace) && (keywas != eAGSKeyCodeBackspace));
+			} else if ((uchar == 0) && (keywas < eAGSKeyCodeSpace) && (keywas != eAGSKeyCodeBackspace)) ;
 			else if ((keywas >= eAGSKeyCodeUpArrow) & (keywas <= eAGSKeyCodePageDown) & (finddefaultcontrol(CNT_LISTBOX) >= 0))
 				_G(vobjs)[finddefaultcontrol(CNT_LISTBOX)]->processmessage(CTB_KEYPRESS, keywas, 0);
 			else if (finddefaultcontrol(CNT_TEXTBOX) >= 0)
-				_G(vobjs)[finddefaultcontrol(CNT_TEXTBOX)]->processmessage(CTB_KEYPRESS, keywas, 0);
+				_G(vobjs)[finddefaultcontrol(CNT_TEXTBOX)]->processmessage(CTB_KEYPRESS, keywas, uchar);
 
 			if (cscim->id < 0) {
 				cscim->code = CM_KEYPRESS;
@@ -156,8 +153,9 @@ int CSCIWaitMessage(CSCIMessage *cscim) {
 			}
 		}
 
-		int mbut, mwheelz;
-		if (run_service_mb_controls(mbut, mwheelz) && mbut >= 0 && !_GP(play).IsIgnoringInput()) {
+		eAGSMouseButton mbut;
+		int mwheelz;
+		if (run_service_mb_controls(mbut, mwheelz) && (mbut > kMouseNone) && !_GP(play).IsIgnoringInput()) {
 			if (checkcontrols()) {
 				cscim->id = _G(controlid);
 				cscim->code = CM_COMMAND;
@@ -194,7 +192,7 @@ int CSCICreateControl(int typeandflags, int xx, int yy, int wii, int hii, const 
 	int type = typeandflags & 0x00ff;     // 256 control types
 	if (type == CNT_PUSHBUTTON) {
 		if (wii == -1)
-			wii = wgettextwidth(title, _G(cbuttfont)) + 20;
+			wii = get_text_width(title, _G(cbuttfont)) + 20;
 
 		_G(vobjs)[usec] = new MyPushButton(xx, yy, wii, hii, title);
 
@@ -209,9 +207,7 @@ int CSCICreateControl(int typeandflags, int xx, int yy, int wii, int hii, const 
 
 	_G(vobjs)[usec]->typeandflags = typeandflags;
 	_G(vobjs)[usec]->wlevel = _G(topwindowhandle);
-	//  ags_domouse(DOMOUSE_DISABLE);
 	_G(vobjs)[usec]->draw(get_gui_screen());
-	//  ags_domouse(DOMOUSE_ENABLE);
 	return usec;
 }
 

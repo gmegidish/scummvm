@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -62,6 +61,25 @@ static const int16 waveformMac[WAVEFORM_SIZE] = {
 	151, 133, 116, 100, 72, 43, -7, -57,
 	-99, -141, -156, -170, -174, -177, -178, -179,
 	-175, -172, -165, -159, -137, -114, -67, -19
+};
+
+/**
+ * AGI sound note structure.
+ */
+struct AgiNote {
+	uint16 duration;    ///< Note duration
+	uint16 freqDiv;     ///< Note frequency divisor (10-bit)
+	uint8  attenuation; ///< Note volume attenuation (4-bit)
+
+	/** Reads an AgiNote through the given pointer. */
+	void read(const uint8 *ptr) {
+		duration = READ_LE_UINT16(ptr);
+		uint16 freqByte0 = *(ptr + 2); // Bits 4-9 of the frequency divisor
+		uint16 freqByte1 = *(ptr + 3); // Bits 0-3 of the frequency divisor
+		// Merge the frequency divisor's bits together into a single variable
+		freqDiv = ((freqByte0 & 0x3F) << 4) | (freqByte1 & 0x0F);
+		attenuation = *(ptr + 4) & 0x0F;
+	}
 };
 
 SoundGenSarien::SoundGenSarien(AgiBase *vm, Audio::Mixer *pMixer) : SoundGen(vm, pMixer), _chn() {

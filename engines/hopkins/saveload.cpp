@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,7 +56,7 @@ bool SaveLoadManager::save(const Common::String &file, const void *buf, size_t n
 
 bool SaveLoadManager::saveExists(const Common::String &file) {
 	Common::InSaveFile *savefile = g_system->getSavefileManager()->openForLoading(file);
-	bool result = savefile != NULL;
+	bool result = savefile != nullptr;
 	delete savefile;
 	return result;
 }
@@ -69,7 +68,7 @@ bool SaveLoadManager::saveFile(const Common::String &file, const void *buf, size
 
 void SaveLoadManager::load(const Common::String &file, byte *buf) {
 	Common::InSaveFile *savefile = g_system->getSavefileManager()->openForLoading(file);
-	if (savefile == NULL)
+	if (savefile == nullptr)
 		error("Error opening file - %s", file.c_str());
 
 	int32 filesize = savefile->size();
@@ -156,7 +155,7 @@ Common::Error SaveLoadManager::saveGame(int slot, const Common::String &saveName
 		return Common::kCreatingFileFailed;
 
 	// Set up the serializer
-	Common::Serializer serializer(NULL, savefile);
+	Common::Serializer serializer(nullptr, savefile);
 
 	// Write out the savegame header
 	hopkinsSavegameHeader header;
@@ -182,7 +181,7 @@ Common::Error SaveLoadManager::loadGame(int slot) {
 		return Common::kReadingFailed;
 
 	// Set up the serializer
-	Common::Serializer serializer(savefile, NULL);
+	Common::Serializer serializer(savefile, nullptr);
 
 	// Read in the savegame header
 	hopkinsSavegameHeader header;

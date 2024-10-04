@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,7 +34,7 @@ class HopkinsEngine;
 
 struct TxtItem {
 	bool _textOnFl;
-	Common::String _filename;
+	Common::Path _filename;
 	Common::Point _pos;
 	int _messageId;
 	int _lineCount;
@@ -63,8 +62,8 @@ private:
 	void setTextColor(int idx, byte colByte);
 
 	int _textSortArray[21];
-	Common::String _oldName;
-	Common::String _indexName;
+	Common::Path _oldName;
+	Common::Path _indexName;
 	int _index[4048];
 	byte *_tempText;
 	byte *_zoneText;
@@ -85,12 +84,12 @@ public:
 
 	void showText(int idx);
 	void hideText(int idx);
-	void initTextBuffers(int idx, int messageId, const Common::String &filename, int xp, int yp, int textType, int length, int color);
+	void initTextBuffers(int idx, int messageId, const Common::Path &filename, int xp, int yp, int textType, int length, int color);
 	void displayText(int xp, int yp, const Common::String &message, int col);
 	void displayTextVesa(int xp, int yp, const Common::String &message, int col);
 	void renderTextDisplay(int xp, int yp, const Common::String &msg, int col);
 	void setOptimalColor(int idx1, int idx2, int idx3, int idx4);
-	void box(int idx, int messageId, const Common::String &filename, int xp, int yp);
+	void box(int idx, int messageId, const Common::Path &filename, int xp, int yp);
 };
 
 } // End of namespace Hopkins

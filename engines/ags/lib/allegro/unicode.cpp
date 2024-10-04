@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@ int (*ugetc)(const char *s) = utf8_getc;
 /* ugetxc: */
 int (*ugetx)(char **s) = utf8_getx;
 /* ugetxc: */
-int (*ugetxc)(const char **s) = (int (*)(const char **)) utf8_getx;
+int (*ugetxc)(const char * const *s) = (int (*)(const char * const *)) utf8_getx;
 /* usetc: */
 int (*usetc)(char *s, int c) = utf8_setc;
 /* uwidth: */
@@ -72,7 +71,7 @@ static UTYPE_INFO *find_utype(int type) {
 		if (utypes[i].id == type)
 			return &utypes[i];
 
-	return NULL;
+	return nullptr;
 }
 
 void set_uformat(int type) {
@@ -83,7 +82,7 @@ void set_uformat(int type) {
 		_G(utype) = info->id;
 		ugetc = info->u_getc;
 		ugetx = (int (*)(char **)) info->u_getx;
-		ugetxc = (int (*)(AL_CONST char **)) info->u_getx;
+		ugetxc = (int (*)(AL_CONST char * const*)) info->u_getx;
 		usetc = info->u_setc;
 		uwidth = info->u_width;
 		ucwidth = info->u_cwidth;
@@ -1207,6 +1206,11 @@ int uoffset(const char *s, int index) {
 	return (intptr_t)s - (intptr_t)orig;
 }
 
+int ugetat(const char *s, int index) {
+	assert(s);
+	return ugetc(s + uoffset(s, index));
+}
+
 char *ustrlwr(char *s) {
 	int pos = 0;
 	int c, lc;
@@ -1254,7 +1258,7 @@ const char *ustrstr(const char *s1, const char *s2) {
 		s1 += uwidth(s1);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 int usetat(char *s, int index, int c) {
@@ -1282,6 +1286,22 @@ int ustrsizez(const char *s) {
 	} while (ugetxc(&s) != 0);
 
 	return (intptr_t)s - (intptr_t)orig;
+}
+
+const char *setlocale(int type, const char *language) {
+	const char *locale = "C";
+	// TODO: If needed for alfont
+	return locale;
+}
+
+int need_uconvert(const char *s, int type, int newtype) {
+	// TODO: need_uconvert
+	return 0;
+}
+
+int uvszprintf(char *buf, int size, const char *format, va_list args) {
+	error("TODO: uvszprintf");
+	return 0;
 }
 
 } // namespace AGS3

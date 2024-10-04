@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -197,7 +196,7 @@ void Room::demon1Tick1() {
 	playVoc("DEM1LOOP");
 
 	if (!_awayMission->demon.beatKlingons)
-		playMidiMusicTracks(1, -1);
+		playMidiMusicTracks(MIDITRACK_1);
 
 	if (_awayMission->demon.enteredFrom == 1) { // Entered from south
 		_awayMission->crewDirectionsAfterWalk[OBJECT_KIRK] = DIR_N;
@@ -276,16 +275,16 @@ void Room::demon1Timer1Expired() {
 
 		switch (_roomVar.demon.attackIndex) {
 		case 0:
-			strcpy(_roomVar.demon.d6, "klg1fr");
+			Common::strcpy_s(_roomVar.demon.d6, "klg1fr");
 			break;
 		case 1:
-			strcpy(_roomVar.demon.d6, "klg1fm");
+			Common::strcpy_s(_roomVar.demon.d6, "klg1fm");
 			break;
 		case 2:
-			strcpy(_roomVar.demon.d6, "klg1fs");
+			Common::strcpy_s(_roomVar.demon.d6, "klg1fs");
 			break;
 		case 3:
-			strcpy(_roomVar.demon.d6, "klg1fk");
+			Common::strcpy_s(_roomVar.demon.d6, "klg1fk");
 			break;
 		default:
 			return;
@@ -295,16 +294,16 @@ void Room::demon1Timer1Expired() {
 		shooter = 9;
 		switch (_roomVar.demon.attackIndex) {
 		case 0:
-			strcpy(_roomVar.demon.d6, "klg2fr");
+			Common::strcpy_s(_roomVar.demon.d6, "klg2fr");
 			break;
 		case 1:
-			strcpy(_roomVar.demon.d6, "klg2fm");
+			Common::strcpy_s(_roomVar.demon.d6, "klg2fm");
 			break;
 		case 2:
-			strcpy(_roomVar.demon.d6, "klg2fs");
+			Common::strcpy_s(_roomVar.demon.d6, "klg2fs");
 			break;
 		case 3:
-			strcpy(_roomVar.demon.d6, "klg2fk");
+			Common::strcpy_s(_roomVar.demon.d6, "klg2fk");
 			break;
 		default:
 			return;
@@ -314,16 +313,16 @@ void Room::demon1Timer1Expired() {
 		shooter = 10;
 		switch (_roomVar.demon.attackIndex) {
 		case 0:
-			strcpy(_roomVar.demon.d6, "klg3fr");
+			Common::strcpy_s(_roomVar.demon.d6, "klg3fr");
 			break;
 		case 1:
-			strcpy(_roomVar.demon.d6, "klg3fm");
+			Common::strcpy_s(_roomVar.demon.d6, "klg3fm");
 			break;
 		case 2:
-			strcpy(_roomVar.demon.d6, "klg3fs");
+			Common::strcpy_s(_roomVar.demon.d6, "klg3fs");
 			break;
 		case 3:
-			strcpy(_roomVar.demon.d6, "klg3fk");
+			Common::strcpy_s(_roomVar.demon.d6, "klg3fk");
 			break;
 		default:
 			return;
@@ -335,7 +334,7 @@ void Room::demon1Timer1Expired() {
 
 void Room::demon1KlingonFinishedAimingWeapon() {
 	loadActorAnim(11, _roomVar.demon.d6, 0, 0, 0);
-	playSoundEffectIndex(0x06);
+	playSoundEffectIndex(kSfxPhaser);
 
 	_roomVar.demon.attackIndex++;
 	int crewman = OBJECT_REDSHIRT;
@@ -394,7 +393,7 @@ void Room::demon1ShootKlingon1() {
 		_awayMission->disableWalking = false;
 	}
 	loadActorAnim(12, "s0ks1", 0, 0, 0);
-	playSoundEffectIndex(0x06);
+	playSoundEffectIndex(kSfxPhaser);
 	playVoc("EFX19");
 	loadActorAnim2(8, "klg1d", 0x120, 0x84, 7);
 }
@@ -442,7 +441,7 @@ void Room::demon1ShootKlingon2() {
 		_awayMission->disableWalking = false;
 	}
 	loadActorAnim(12, "s0ks2", 0, 0, 0);
-	playSoundEffectIndex(0x06);
+	playSoundEffectIndex(kSfxPhaser);
 	loadActorAnim2(9, "klg2d", 0xaa, 0x7c, 0);
 	_awayMission->disableInput = 0;
 }
@@ -471,7 +470,7 @@ void Room::demon1ShootKlingon3() {
 		_awayMission->disableWalking = false;
 	}
 	loadActorAnim(12, "s0ks3", 0, 0, 0);
-	playSoundEffectIndex(0x06);
+	playSoundEffectIndex(kSfxPhaser);
 	loadActorAnim2(10, "klg3d", 0, 0, 0);
 	_awayMission->disableInput = 0;
 }
@@ -499,37 +498,37 @@ void Room::demon1Timer5Expired() {
 
 void Room::demon1UseMTricorderOnKlingon() {
 	loadActorAnim2(OBJECT_MCCOY, "mscann", -1, -1, 0);
-	playSoundEffectIndex(0x04);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_MCCOY, TX_DEM1_012);
 }
 
 void Room::demon1UseSTricorderOnTulips() {
 	loadActorAnim2(OBJECT_SPOCK, "sscann", -1, -1, 0);
-	playSoundEffectIndex(0x04);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM1_007);
 }
 
 void Room::demon1UseSTricorderOnPods() {
 	loadActorAnim2(OBJECT_SPOCK, "sscann", -1, -1, 0);
-	playSoundEffectIndex(0x04);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM1_008);
 }
 
 void Room::demon1UseSTricorderOnCattails() {
 	loadActorAnim2(OBJECT_SPOCK, "sscann", -1, -1, 0);
-	playSoundEffectIndex(0x04);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM1_005);
 }
 
 void Room::demon1UseSTricorderOnFerns() {
 	loadActorAnim2(OBJECT_SPOCK, "sscann", -1, -1, 0);
-	playSoundEffectIndex(0x04);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM1_006);
 }
 
 void Room::demon1UseSTricorderOnHand() {
 	loadActorAnim2(OBJECT_SPOCK, "sscann", -1, -1, 0);
-	playSoundEffectIndex(0x04);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM1_017);
 }
 
@@ -538,7 +537,7 @@ void Room::demon1UseSTricorderOnKlingon1() {
 	// actually call the function...
 	loadActorAnim2(OBJECT_SPOCK, "sscann", -1, -1, 0);
 
-	playSoundEffectIndex(0x04);
+	playSoundEffectIndex(kSfxTricorder);
 
 	if (_roomVar.demon.numKlingonsKilled == 3 && !_awayMission->demon.tookKlingonHand && _rdfData[0xcf] != 1) {
 		showText(TX_SPEAKER_SPOCK, TX_DEM1_018);
@@ -550,7 +549,7 @@ void Room::demon1UseSTricorderOnKlingon1() {
 
 void Room::demon1UseSTricorderOnKlingon2Or3() {
 	loadActorAnim2(OBJECT_SPOCK, "sscann", -1, -1, 0);
-	playSoundEffectIndex(0x04);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM1_019);
 }
 
@@ -571,7 +570,7 @@ void Room::demon1UseMTricorderOnRedshirt() {
 
 void Room::demon1UseMTricorderOnCrewman() {
 	loadActorAnim2(OBJECT_MCCOY, "mscann", -1, -1, 0);
-	playSoundEffectIndex(0x04);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_MCCOY, TX_DEM1_009);
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -140,7 +139,7 @@ void WidgetInventoryTooltip::handleEvents() {
 				Object &obj = scene._bgShapes[select];
 
 				if (!obj._description.empty() && !obj._description.hasPrefix(" ")) {
-					if (_vm->getLanguage() == Common::GR_GRE) {
+					if (_vm->getLanguage() == Common::EL_GRC) {
 
 						if (!_owner->_swapItems)
 							str = Common::String::format("%s %s %s %s", _owner->_action.c_str(), obj._description.c_str(),
@@ -161,7 +160,7 @@ void WidgetInventoryTooltip::handleEvents() {
 				Person &person = people[ui._bgFound - 1000];
 
 				if (!person._description.empty() && !person._description.hasPrefix(" ")) {
-					if (_vm->getLanguage() == Common::GR_GRE) {
+					if (_vm->getLanguage() == Common::EL_GRC) {
 						if (!_owner->_swapItems)
 							str = Common::String::format("%s %s %s %s", _owner->_action.c_str(), person._description.c_str(),
 								inv[_owner->_invSelect]._name.c_str(), _owner->_verb.c_str());
@@ -267,7 +266,7 @@ void WidgetInventoryVerbs::load() {
 	_inventCommands.push_back(FIXED(Look));
 
 	// Default the Action word to "with"
-	_owner->_action = _vm->getLanguage() == Common::GR_GRE ? "" : FIXED(With);
+	_owner->_action = _vm->getLanguage() == Common::EL_GRC ? "" : FIXED(With);
 
 	// Search all the bgshapes for any matching Target Fields
 	for (uint idx = 0; idx < scene._bgShapes.size(); ++idx) {

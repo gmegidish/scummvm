@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -141,22 +140,22 @@ void SymbolMaps::installAll(const char *n) {
 		//debug("name %s", s.c_str());
 		if (strcmp(n, "settings") == 0) {
 			//debug("new setting %s", n);
-			assert(r == NULL);
+			assert(r == nullptr);
 			install(s, NAME, 0, s.c_str(), r, &settings);
 		} else if (strcmp(n, "variables") == 0) {
-			assert(r == NULL);
-			install(s, NAME, 0, NULL, r, &variables);
+			assert(r == nullptr);
+			install(s, NAME, 0, nullptr, r, &variables);
 			variableList.push_front(s);
 		} else if (strcmp(n, "cursors") == 0) {
-			assert(r == NULL);
-			install(s, NAME, 0, NULL, r, &cursors);
+			assert(r == nullptr);
+			install(s, NAME, 0, nullptr, r, &cursors);
 		} else if (strcmp(n, "locations") == 0) {
-			assert(r == NULL);
-			install(s, NAME, 0, NULL, r, &locations);
+			assert(r == nullptr);
+			install(s, NAME, 0, nullptr, r, &locations);
 			locationList.push_front(s);
 		} else if (strcmp(n, "rects") == 0) {
-			assert(r != NULL);
-			install(s, RECT, 0, NULL, r, &rects);
+			assert(r != nullptr);
+			install(s, RECT, 0, nullptr, r, &rects);
 		} else
 			error("invalid symbol type");
 	}

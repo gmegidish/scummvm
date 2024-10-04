@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,13 +29,14 @@
 
 namespace Networking {
 
-CurlRequest::CurlRequest(DataCallback cb, ErrorCallback ecb, Common::String url):
+CurlRequest::CurlRequest(DataCallback cb, ErrorCallback ecb, const Common::String &url):
 	Request(cb, ecb), _url(url), _stream(nullptr), _headersList(nullptr), _bytesBuffer(nullptr),
 	_bytesBufferSize(0), _uploading(false), _usingPatch(false), _keepAlive(false), _keepAliveIdle(120), _keepAliveInterval(60) {}
 
 CurlRequest::~CurlRequest() {
+	curl_slist_free_all(_headersList);
 	delete _stream;
-	delete _bytesBuffer;
+	delete[] _bytesBuffer;
 }
 
 NetworkReadStream *CurlRequest::makeStream() {
@@ -78,18 +78,18 @@ Common::String CurlRequest::date() const {
 	return "";
 }
 
-void CurlRequest::setHeaders(Common::Array<Common::String> &headers) {
+void CurlRequest::setHeaders(const Common::Array<Common::String> &headers) {
 	curl_slist_free_all(_headersList);
 	_headersList = nullptr;
 	for (uint32 i = 0; i < headers.size(); ++i)
 		addHeader(headers[i]);
 }
 
-void CurlRequest::addHeader(Common::String header) {
+void CurlRequest::addHeader(const Common::String &header) {
 	_headersList = curl_slist_append(_headersList, header.c_str());
 }
 
-void CurlRequest::addPostField(Common::String keyValuePair) {
+void CurlRequest::addPostField(const Common::String &keyValuePair) {
 	if (_bytesBuffer)
 		warning("CurlRequest: added POST fields would be ignored, because there is buffer present");
 
@@ -102,7 +102,7 @@ void CurlRequest::addPostField(Common::String keyValuePair) {
 		_postFields += "&" + keyValuePair;
 }
 
-void CurlRequest::addFormField(Common::String name, Common::String value) {
+void CurlRequest::addFormField(const Common::String &name, const Common::String &value) {
 	if (_bytesBuffer)
 		warning("CurlRequest: added POST form fields would be ignored, because there is buffer present");
 
@@ -112,7 +112,7 @@ void CurlRequest::addFormField(Common::String name, Common::String value) {
 	_formFields[name] = value;
 }
 
-void CurlRequest::addFormFile(Common::String name, Common::String filename) {
+void CurlRequest::addFormFile(const Common::String &name, const Common::Path &filename) {
 	if (_bytesBuffer)
 		warning("CurlRequest: added POST form files would be ignored, because there is buffer present");
 
@@ -127,7 +127,7 @@ void CurlRequest::setBuffer(byte *buffer, uint32 size) {
 		warning("CurlRequest: added POST fields would be ignored, because buffer added");
 
 	if (_bytesBuffer)
-		delete _bytesBuffer;
+		delete[] _bytesBuffer;
 
 	_bytesBuffer = buffer;
 	_bytesBufferSize = size;

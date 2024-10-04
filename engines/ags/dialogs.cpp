@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,7 @@
 #include "common/str-array.h"
 #include "common/translation.h"
 #include "common/util.h"
+#include "ags/detection.h"
 #include "ags/metaengine.h"
 
 #include "gui/ThemeEval.h"
@@ -49,11 +49,13 @@ private:
 	GUI::PopUpWidget *_langPopUp;
 	Common::StringArray _traFileNames;
 
+	GUI::CheckboxWidget *_overrideSavesCheckbox;
 	GUI::CheckboxWidget *_forceTextAACheckbox;
+	GUI::CheckboxWidget *_displayFPSCheckbox;
 };
 
 AGSOptionsWidget::AGSOptionsWidget(GuiObject *boss, const Common::String &name, const Common::String &domain) :
-	OptionsContainerWidget(boss, name, "AGSGameOptionsDialog", false, domain) {
+	OptionsContainerWidget(boss, name, "AGSGameOptionsDialog", domain) {
 
 	// Language
 	GUI::StaticTextWidget *textWidget = new GUI::StaticTextWidget(widgetsBoss(), _dialogLayout + ".translation_desc", _("Game language:"), _("Language to use for multilingual games"));
@@ -62,32 +64,38 @@ AGSOptionsWidget::AGSOptionsWidget(GuiObject *boss, const Common::String &name, 
 	_langPopUp = new GUI::PopUpWidget(widgetsBoss(), _dialogLayout + ".translation");
 	_langPopUp->appendEntry(_("<default>"), (uint32) - 1);
 
-	Common::String path = ConfMan.get("path", _domain);
-	Common::FSDirectory dir(path);
-	Common::ArchiveMemberList traFileList;
-	dir.listMatchingMembers(traFileList, "*.tra");
+	_traFileNames = AGSMetaEngine::getGameTranslations(_domain);
 
 	int i = 0;
-	for (Common::ArchiveMemberList::iterator iter = traFileList.begin(); iter != traFileList.end(); ++iter) {
-		Common::String traFileName = (*iter)->getName();
-		traFileName.erase(traFileName.size() - 4); // remove .tra extension
-		_traFileNames.push_back(traFileName);
-		_langPopUp->appendEntry(traFileName, i++);
+	for (Common::StringArray::iterator iter = _traFileNames.begin(); iter != _traFileNames.end(); ++iter) {
+		_langPopUp->appendEntry(*iter, i++);
 	}
+
+	// Override game save management
+	if (Common::checkGameGUIOption(GAMEOPTION_NO_AUTOSAVE, ConfMan.get("guioptions", domain)) ||
+		Common::checkGameGUIOption(GAMEOPTION_NO_SAVELOAD, ConfMan.get("guioptions", domain))) {
+		_overrideSavesCheckbox = new GUI::CheckboxWidget(widgetsBoss(), _dialogLayout + ".savesOvr", _("Enable ScummVM save management"), _("Never disable ScummVM save management and autosaves.\nNOTE: This could cause save duplication and other oddities"));
+	} else
+		_overrideSavesCheckbox = nullptr;
 
 	// Force font antialiasing
 	_forceTextAACheckbox = new GUI::CheckboxWidget(widgetsBoss(), _dialogLayout + ".textAA", _("Force antialiased text"), _("Use antialiasing to draw text even if the game does not ask for it"));
+
+	// Display fps
+	_displayFPSCheckbox = new GUI::CheckboxWidget(widgetsBoss(), _dialogLayout + ".displayFPS", _("Show FPS"), _("Show the current FPS-rate, while you play."));
 }
 
 void AGSOptionsWidget::defineLayout(GUI::ThemeEval &layouts, const Common::String &layoutName, const Common::String &overlayedLayout) const {
 	layouts.addDialog(layoutName, overlayedLayout);
-	layouts.addLayout(GUI::ThemeLayout::kLayoutVertical).addPadding(16, 16, 16, 16);
+	layouts.addLayout(GUI::ThemeLayout::kLayoutVertical).addPadding(0, 0, 0, 0);
 
 	layouts.addLayout(GUI::ThemeLayout::kLayoutHorizontal).addPadding(0, 0, 0, 0);
 	layouts.addWidget("translation_desc", "OptionsLabel");
 	layouts.addWidget("translation", "PopUp").closeLayout();
 
+	layouts.addWidget("savesOvr", "Checkbox");
 	layouts.addWidget("textAA", "Checkbox");
+	layouts.addWidget("displayFPS", "Checkbox");
 
 	layouts.closeLayout().closeDialog();
 }
@@ -110,12 +118,28 @@ void AGSOptionsWidget::load() {
 	}
 	_langPopUp->setSelectedTag(curLangIndex);
 
+	Common::String saveOverride;
+	gameConfig->tryGetVal("save_override", saveOverride);
+	if (!saveOverride.empty()) {
+		bool val;
+		if (_overrideSavesCheckbox && parseBool(saveOverride, val))
+			_overrideSavesCheckbox->setState(val);
+	}
+
 	Common::String forceTextAA;
 	gameConfig->tryGetVal("force_text_aa", forceTextAA);
 	if (!forceTextAA.empty()) {
 		bool val;
 		if (parseBool(forceTextAA, val))
 			_forceTextAACheckbox->setState(val);
+	}
+
+	Common::String displayFPS;
+	gameConfig->tryGetVal("display_fps", displayFPS);
+	if (!displayFPS.empty()) {
+		bool val;
+		if (parseBool(displayFPS, val))
+			_displayFPSCheckbox->setState(val);
 	}
 }
 
@@ -126,13 +150,16 @@ bool AGSOptionsWidget::save() {
 	else
 		ConfMan.removeKey("translation", _domain);
 
+	if (_overrideSavesCheckbox)
+		ConfMan.setBool("save_override", _overrideSavesCheckbox->getState(), _domain);
 	ConfMan.setBool("force_text_aa", _forceTextAACheckbox->getState(), _domain);
+	ConfMan.setBool("display_fps", _displayFPSCheckbox->getState(), _domain);
 
 	return true;
 }
 
 } // namespace AGS3
 
-GUI::OptionsContainerWidget *AGSMetaEngine::buildEngineOptionsWidgetDynamic(GUI::GuiObject *boss, const Common::String &name, const Common::String &target) const {
+GUI::OptionsContainerWidget *AGSMetaEngine::buildEngineOptionsWidget(GUI::GuiObject *boss, const Common::String &name, const Common::String &target) const {
 	return new AGS3::AGSOptionsWidget(boss, name, target);
 }

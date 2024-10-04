@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,18 +34,23 @@ namespace Myst3 {
 
 void Face::setTextureFromJPEG(const ResourceDescription *jpegDesc) {
 	_bitmap = Myst3Engine::decodeJpeg(jpegDesc);
-	_texture = _vm->_gfx->createTexture(_bitmap);
+	if (_is3D) {
+		_texture = _vm->_gfx->createTexture3D(_bitmap);
+	} else {
+		_texture = _vm->_gfx->createTexture2D(_bitmap);
+	}
 
 	// Set the whole texture as dirty
 	addTextureDirtyRect(Common::Rect(_bitmap->w, _bitmap->h));
 }
 
-Face::Face(Myst3Engine *vm) :
+Face::Face(Myst3Engine *vm, bool is3D) :
 		_vm(vm),
+		_is3D(is3D),
 		_textureDirty(true),
-		_texture(0),
-		_bitmap(0),
-		_finalBitmap(0) {
+		_texture(nullptr),
+		_bitmap(nullptr),
+		_finalBitmap(nullptr) {
 }
 
 void Face::addTextureDirtyRect(const Common::Rect &rect) {
@@ -73,7 +77,7 @@ void Face::uploadTexture() {
 Face::~Face() {
 	_bitmap->free();
 	delete _bitmap;
-	_bitmap = 0;
+	_bitmap = nullptr;
 
 	if (_finalBitmap) {
 		_finalBitmap->free();
@@ -81,7 +85,7 @@ Face::~Face() {
 	}
 
 	if (_texture) {
-		_vm->_gfx->freeTexture(_texture);
+		delete _texture;
 	}
 }
 
@@ -174,10 +178,7 @@ void Node::loadSpotItem(uint16 id, int16 condition, bool fade) {
 			const ResourceDescription &image = spotItemImages[j];
 			ResourceDescription::SpotItemData spotItemData = image.getSpotItemData();
 
-			SpotItemFace *spotItemFace = new SpotItemFace(
-					_faces[i],
-					spotItemData.u,
-					spotItemData.v);
+			SpotItemFace *spotItemFace = new SpotItemFace(_faces[i], spotItemData.u, spotItemData.v);
 
 			spotItemFace->loadData(&image);
 
@@ -257,7 +258,7 @@ void Node::update() {
 	for (uint faceId = 0; faceId < 6; faceId++) {
 		Face *face = _faces[faceId];
 
-		if (face == 0)
+		if (face == nullptr)
 			continue; // No such face in this node
 
 		if (!isFaceVisible(faceId)) {
@@ -347,8 +348,8 @@ SpotItemFace::SpotItemFace(Face *face, uint16 posX, uint16 posY):
 		_posX(posX),
 		_posY(posY),
 		_drawn(false),
-		_bitmap(0),
-		_notDrawnBitmap(0),
+		_bitmap(nullptr),
+		_notDrawnBitmap(nullptr),
 		_fadeValue(0) {
 }
 
@@ -356,13 +357,13 @@ SpotItemFace::~SpotItemFace() {
 	if (_bitmap) {
 		_bitmap->free();
 		delete _bitmap;
-		_bitmap = 0;
+		_bitmap = nullptr;
 	}
 
 	if (_notDrawnBitmap) {
 		_notDrawnBitmap->free();
 		delete _notDrawnBitmap;
-		_notDrawnBitmap = 0;
+		_notDrawnBitmap = nullptr;
 	}
 }
 
@@ -408,8 +409,7 @@ void SpotItemFace::initNotDrawn(uint16 width, uint16 height) {
 	_notDrawnBitmap->create(width, height, Texture::getRGBAPixelFormat());
 
 	for (uint i = 0; i < height; i++) {
-		memcpy(_notDrawnBitmap->getBasePtr(0, i),
-				_face->_bitmap->getBasePtr(_posX, _posY + i), width * 4);
+		memcpy(_notDrawnBitmap->getBasePtr(0, i), _face->_bitmap->getBasePtr(_posX, _posY + i), width * 4);
 	}
 }
 
@@ -423,9 +423,7 @@ Common::Rect SpotItemFace::getFaceRect() const {
 
 void SpotItemFace::draw() {
 	for (int i = 0; i < _bitmap->h; i++) {
-		memcpy(_face->_bitmap->getBasePtr(_posX, _posY + i),
-				_bitmap->getBasePtr(0, i),
-				_bitmap->w * 4);
+		memcpy(_face->_bitmap->getBasePtr(_posX, _posY + i), _bitmap->getBasePtr(0, i), _bitmap->w * 4);
 	}
 
 	_drawn = true;
@@ -434,9 +432,7 @@ void SpotItemFace::draw() {
 
 void SpotItemFace::undraw() {
 	for (int i = 0; i < _notDrawnBitmap->h; i++) {
-		memcpy(_face->_bitmap->getBasePtr(_posX, _posY + i),
-				_notDrawnBitmap->getBasePtr(0, i),
-				_notDrawnBitmap->w * 4);
+		memcpy(_face->_bitmap->getBasePtr(_posX, _posY + i), _notDrawnBitmap->getBasePtr(0, i), _notDrawnBitmap->w * 4);
 	}
 
 	_drawn = false;

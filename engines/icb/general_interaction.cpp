@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,7 +52,7 @@ bool8 _game_session::Find_interact_marker_in_anim(__mega_set_names animation, PX
 
 	// first check anim file will exist
 	if (!I->IsAnimTable(animation))
-		Fatal_error("Find_interact_marker_in_anim finds [%s] doesnt have a [%s] animation", object->GetName(), master_anim_name_table[animation].name);
+		Fatal_error("Find_interact_marker_in_anim finds [%s] doesn't have a [%s] animation", CGameObject::GetName(object), master_anim_name_table[animation].name);
 
 	// open the file
 	PXanim *pAnim = (PXanim *)rs_anims->Res_open(I->get_info_name(animation), I->info_name_hash[animation], I->base_path, I->base_path_hash);
@@ -69,7 +68,7 @@ bool8 _game_session::Find_interact_marker_in_anim(__mega_set_names animation, PX
 	// INT_TYPE : which means it was a real export of the INT marker on the frame when the anim made the INT marker visible
 
 	PXreal x_org, z_org, unused;
-	PXFrameEnOfAnim(0, pAnim)->markers[ORG_POS].GetXYZ(&x_org, &unused, &z_org);
+	PXmarker_PSX_Object::GetXYZ(&PXFrameEnOfAnim(0, pAnim)->markers[ORG_POS], &x_org, &unused, &z_org);
 
 	for (uint16 frame = 0; frame < pAnim->frame_qty; frame++) {
 		PXframe *frm = PXFrameEnOfAnim(frame, pAnim);
@@ -77,13 +76,13 @@ bool8 _game_session::Find_interact_marker_in_anim(__mega_set_names animation, PX
 
 		if (frm->marker_qty > INT_POS) {
 			PXmarker *marker = &(frm->markers[INT_POS]);
-			uint8 mtype = (uint8)marker->GetType();
+			uint8 mtype = (uint8)PXmarker_PSX_Object::GetType(marker);
 
 			if ((INT0_TYPE == mtype) || (INT_TYPE == mtype)) {
 				// The interact marker exists
 				PXreal x_int, z_int;
 
-				marker->GetXYZ(&x_int, &unused, &z_int);
+				PXmarker_PSX_Object::GetXYZ(marker, &x_int, &unused, &z_int);
 
 				xoff[0] = x_int - x_org;
 				zoff[0] = z_int - z_org;

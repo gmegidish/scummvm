@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -28,10 +33,10 @@
 namespace Gob {
 
 SaveLoad_v2::SaveFile SaveLoad_v2::_saveFiles[] = {
-	{  "cat.inf", kSaveModeSave, 0, "savegame"},
-	{  "cat.cat", kSaveModeSave, 0, "savegame"}, // Alternative file
-	{ "save.inf", kSaveModeSave, 0, "temporary sprite"},
-	{ "bloc.inf", kSaveModeSave, 0, "notes"}
+	{  "cat.inf", kSaveModeSave, nullptr, "savegame"},
+	{  "cat.cat", kSaveModeSave, nullptr, "savegame"}, // Alternative file
+	{ "save.inf", kSaveModeSave, nullptr, "temporary sprite"},
+	{ "bloc.inf", kSaveModeSave, nullptr, "notes"},
 };
 
 
@@ -122,7 +127,7 @@ bool SaveLoad_v2::GameHandler::load(int16 dataVar, int32 size, int32 offset) {
 
 		Common::String slotFile = _slotFile->build(slot);
 
-		SaveReader *reader = 0;
+		SaveReader *reader = nullptr;
 		SaveConverter_v2 converter(_vm, slotFile);
 
 		if (converter.isOldSave()) {
@@ -277,7 +282,7 @@ const SaveLoad_v2::SaveFile *SaveLoad_v2::getSaveFile(const char *fileName) cons
 		if (!scumm_stricmp(fileName, _saveFiles[i].sourceName))
 			return &_saveFiles[i];
 
-	return 0;
+	return nullptr;
 }
 
 SaveLoad_v2::SaveFile *SaveLoad_v2::getSaveFile(const char *fileName) {
@@ -287,7 +292,7 @@ SaveLoad_v2::SaveFile *SaveLoad_v2::getSaveFile(const char *fileName) {
 		if (!scumm_stricmp(fileName, _saveFiles[i].sourceName))
 			return &_saveFiles[i];
 
-	return 0;
+	return nullptr;
 }
 
 SaveHandler *SaveLoad_v2::getHandler(const char *fileName) const {
@@ -296,7 +301,7 @@ SaveHandler *SaveLoad_v2::getHandler(const char *fileName) const {
 	if (saveFile)
 		return saveFile->handler;
 
-	return 0;
+	return nullptr;
 }
 
 const char *SaveLoad_v2::getDescription(const char *fileName) const {
@@ -305,7 +310,7 @@ const char *SaveLoad_v2::getDescription(const char *fileName) const {
 	if (saveFile)
 		return saveFile->description;
 
-	return 0;
+	return nullptr;
 }
 
 SaveLoad::SaveMode SaveLoad_v2::getSaveMode(const char *fileName) const {

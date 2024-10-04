@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -90,10 +89,10 @@ void endDrawing() {
 int32 DrawSprite(int32 x0, int32 y0, short w, short h, uint8 r0, uint8 g0, uint8 b0, uint16 /*u0*/, uint16 v0, uint8 alpha, uint16 z, void *tex) {
 	int32 x, y;
 	int32 lx0, ly0;
-	TextureHandle *pthan = NULL;
+	TextureHandle *pthan = nullptr;
 	int32 lx1, ly1;
 
-	if (tex == NULL) {
+	if (tex == nullptr) {
 		return 0;
 	} else {
 		pthan = (TextureHandle *)tex;
@@ -941,8 +940,8 @@ int32 DrawFlatTriangleTextured(int32 x0, int32 y0, int32 x1, int32 y1, int32 x2,
 	if (ClipPolygon(verts, 3, clipverts, &nVerts) == 0)
 		return 1;
 
-	TextureHandle *pthan = NULL;
-	if (tex == NULL) {
+	TextureHandle *pthan = nullptr;
+	if (tex == nullptr) {
 		return 0;
 	} else {
 		pthan = (TextureHandle *)tex;
@@ -972,7 +971,7 @@ int32 DrawFlatTriangleTextured(int32 x0, int32 y0, int32 x1, int32 y1, int32 x2,
 		}
 	}
 
-	if (tex == NULL)
+	if (tex == nullptr)
 		delete pthan;
 	return ret;
 }
@@ -1014,8 +1013,8 @@ int32 DrawFlatQuadTextured(int32 x0, int32 y0, int32 x1, int32 y1, int32 x2, int
 	if (ClipPolygon(verts, 4, clipverts, &nVerts) == 0)
 		return 1;
 
-	TextureHandle *pthan = NULL;
-	if (tex == NULL) {
+	TextureHandle *pthan = nullptr;
+	if (tex == nullptr) {
 		return 0;
 	} else {
 		pthan = (TextureHandle *)tex;
@@ -1039,7 +1038,7 @@ int32 DrawFlatQuadTextured(int32 x0, int32 y0, int32 x1, int32 y1, int32 x2, int
 			ret |= DrawFlatTexturedPolygon(newVerts, 3, z);
 	}
 
-	if (tex == NULL)
+	if (tex == nullptr)
 		delete pthan;
 	return ret;
 }
@@ -1071,8 +1070,8 @@ int32 DrawGouraudTriangleTextured(int32 x0, int32 y0, int32 x1, int32 y1, int32 
 	if (ClipPolygon(verts, 3, clipverts, &nVerts) == 0)
 		return 1;
 
-	TextureHandle *pthan = NULL;
-	if (tex == NULL) {
+	TextureHandle *pthan = nullptr;
+	if (tex == nullptr) {
 		return 0;
 	} else {
 		pthan = (TextureHandle *)tex;
@@ -1102,7 +1101,7 @@ int32 DrawGouraudTriangleTextured(int32 x0, int32 y0, int32 x1, int32 y1, int32 
 		}
 	}
 
-	if (tex == NULL)
+	if (tex == nullptr)
 		delete pthan;
 
 	return ret;
@@ -1149,8 +1148,8 @@ int32 DrawGouraudQuadTextured(int32 x0, int32 y0, int32 x1, int32 y1, int32 x2, 
 	if (ClipPolygon(verts, 4, clipverts, &nVerts) == 0)
 		return 1;
 
-	TextureHandle *pthan = NULL;
-	if (tex == NULL) {
+	TextureHandle *pthan = nullptr;
+	if (tex == nullptr) {
 		return 0;
 	} else {
 		pthan = (TextureHandle *)tex;
@@ -1174,7 +1173,7 @@ int32 DrawGouraudQuadTextured(int32 x0, int32 y0, int32 x1, int32 y1, int32 x2, 
 			ret |= DrawGouraudTexturedPolygon(newVerts, 3, z);
 	}
 
-	if (tex == NULL)
+	if (tex == nullptr)
 		delete pthan;
 	return ret;
 }

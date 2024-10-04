@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,7 @@
 #include "sci/resource/decompressor.h"
 #include "sci/sci.h"
 #include "sci/util.h"
+#include "sci/version.h"
 
 namespace Common {
 class File;
@@ -143,6 +143,17 @@ enum ResVersion {
 	kResVersionSci3
 };
 
+/**
+ * Same as Sci::getSciVersion, but this version doesn't assert on unknown SCI
+ * versions. Only used by the fallback detector.
+ */
+SciVersion getSciVersionForDetection();
+
+/**
+ * Convenience function converting an SCI version into a human-readable string.
+ */
+const char *getSciVersionDesc(SciVersion version);
+
 class ResourceManager;
 class ResourceSource;
 class ResourcePatcher;
@@ -207,7 +218,7 @@ public:
 		output += intToBase36(getNumber(), 3);                     // Map
 		output += intToBase36(getTuple() >> 24, 2);                // Noun
 		output += intToBase36((getTuple() >> 16) & 0xff, 2);       // Verb
-		output += '.';                                                   // Separator
+		output += '.';                                             // Separator
 		output += intToBase36((getTuple() >> 8) & 0xff, 2);        // Cond
 		output += intToBase36(getTuple() & 0xff, 1);               // Seq
 
@@ -284,7 +295,7 @@ public:
 	Common::SeekableReadStream *makeStream() const;
 #endif
 
-	const Common::String &getResourceLocation() const;
+	const Common::Path &getResourceLocation() const;
 
 	// FIXME: This audio specific method is a hack. After all, why should a
 	// Resource have audio specific methods? But for now we keep this, as it
@@ -346,12 +357,12 @@ public:
 	/**
 	 * Adds all of the resource files for a game
 	 */
-	int addAppropriateSources();
+	void addAppropriateSources();
 
 	/**
 	 * Similar to the function above, only called from the fallback detector
 	 */
-	int addAppropriateSourcesForDetection(const Common::FSList &fslist);	// TODO: Switch from FSList to Common::Archive?
+	void addAppropriateSourcesForDetection(const Common::FSList &fslist);	// TODO: Switch from FSList to Common::Archive?
 
 	/**
 	 * Looks up a resource's data.
@@ -398,8 +409,8 @@ public:
 
 	void setAudioLanguage(int language);
 	int getAudioLanguage() const;
-	void changeAudioDirectory(Common::String path);
-	void changeMacAudioDirectory(Common::String path);
+	void changeAudioDirectory(const Common::Path &path);
+	void changeMacAudioDirectory(const Common::Path &path);
 	bool isGMTrackIncluded();
 	bool isSci11Mac() const { return _volVersion == kResVersionSci11Mac; }
 	ViewType getViewType() const { return _viewType; }
@@ -458,7 +469,7 @@ public:
 	/**
 	 * Finds the internal Sierra ID of the current game from script 0.
 	 */
-	Common::String findSierraGameId(const bool isBE);
+	Common::String findSierraGameId();
 
 	/**
 	 * Finds the location of the game object from script 0.
@@ -466,7 +477,7 @@ public:
 	 *        games. Needs to be false when the heap is accessed directly inside
 	 *        findSierraGameId().
 	 */
-	reg_t findGameObject(const bool addSci11ScriptOffset, const bool isBE);
+	reg_t findGameObject(const bool addSci11ScriptOffset);
 
 	/**
 	 * Converts a map resource type to our type
@@ -501,7 +512,7 @@ protected:
 	 * Add a path to the resource manager's list of sources.
 	 * @return a pointer to the added source structure, or NULL if an error occurred.
 	 */
-	ResourceSource *addPatchDir(const Common::String &path);
+	ResourceSource *addPatchDir(const Common::Path &path);
 
 	ResourceSource *findVolume(ResourceSource *map, int volume_nr);
 
@@ -519,7 +530,7 @@ protected:
 	 * @param volume_nr  The volume number the map starts at, 0 for <SCI2.1
 	 * @return		A pointer to the added source structure, or NULL if an error occurred.
 	 */
-	ResourceSource *addExternalMap(const Common::String &filename, int volume_nr = 0);
+	ResourceSource *addExternalMap(const Common::Path &filename, int volume_nr = 0);
 
 	ResourceSource *addExternalMap(const Common::FSNode *mapFile, int volume_nr = 0);
 
@@ -551,10 +562,10 @@ protected:
 	void disposeVolumeFileStream(Common::SeekableReadStream *fileStream, ResourceSource *source);
 	void loadResource(Resource *res);
 	void freeOldResources();
-	bool validateResource(const ResourceId &resourceId, const Common::String &sourceMapLocation, const Common::String &sourceName, const uint32 offset, const uint32 size, const uint32 sourceSize) const;
-	Resource *addResource(ResourceId resId, ResourceSource *src, uint32 offset, uint32 size = 0, const Common::String &sourceMapLocation = Common::String("(no map location)"));
-	Resource *updateResource(ResourceId resId, ResourceSource *src, uint32 size, const Common::String &sourceMapLocation = Common::String("(no map location)"));
-	Resource *updateResource(ResourceId resId, ResourceSource *src, uint32 offset, uint32 size, const Common::String &sourceMapLocation = Common::String("(no map location)"));
+	bool validateResource(const ResourceId &resourceId, const Common::Path &sourceMapLocation, const Common::Path &sourceName, const uint32 offset, const uint32 size, const uint32 sourceSize) const;
+	Resource *addResource(ResourceId resId, ResourceSource *src, uint32 offset, uint32 size = 0, const Common::Path &sourceMapLocation = Common::Path("(no map location)"));
+	Resource *updateResource(ResourceId resId, ResourceSource *src, uint32 size, const Common::Path &sourceMapLocation = Common::Path("(no map location)"));
+	Resource *updateResource(ResourceId resId, ResourceSource *src, uint32 offset, uint32 size, const Common::Path &sourceMapLocation = Common::Path("(no map location)"));
 	void removeAudioResource(ResourceId resId);
 
 	/**--- Resource map decoding functions ---*/
@@ -613,7 +624,7 @@ protected:
 	 * Process wave files as patches for Audio resources.
 	 */
 	void readWaveAudioPatches();
-	void processWavePatch(ResourceId resourceId, const Common::String &name);
+	void processWavePatch(ResourceId resourceId, const Common::Path &name);
 
 	/**
 	 * Process AIFF files as patches for Audio resources.
@@ -632,7 +643,6 @@ protected:
 	 */
 	bool hasOldScriptHeader();
 
-	void printLRU();
 	void addToLRU(Resource *res);
 	void removeFromLRU(Resource *res);
 
@@ -645,6 +655,8 @@ protected:
 	void detectSciVersion();
 
 public:
+	/** Returns the file name of the game's Mac executable. */
+	Common::Path getMacExecutableName() const;
 	bool isKoreanMessageMap(ResourceSource *source);
 
 private:
@@ -698,7 +710,9 @@ public:
 	Track *getTrackByType(byte type);
 	Track *getDigitalTrack();
 	int getChannelFilterMask(int hardwareMask, bool wantsRhythm);
+#if 0
 	byte getInitialVoiceCount(byte channel);
+#endif
 	byte getSoundPriority() const { return _soundPriority; }
 	bool exists() const { return _resource != nullptr; }
 

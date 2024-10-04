@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef SCI_DETECTION_OPTIONS_H
 #define SCI_DETECTION_OPTIONS_H
+
+#include "common/translation.h"
 
 namespace Sci {
 
@@ -32,7 +33,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Skip EGA dithering pass (full color backgrounds)"),
 			_s("Skip dithering pass in EGA games, graphics are shown with full colors"),
 			"disable_dithering",
-			false
+			false,
+			0,
+			0
 		}
 	},
 
@@ -42,7 +45,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Enable high resolution graphics"),
 			_s("Enable high resolution graphics/content"),
 			"enable_high_resolution_graphics",
-			true
+			true,
+			0,
+			0
 		}
 	},
 
@@ -52,7 +57,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Enable black-lined video"),
 			_s("Draw black lines over videos to increase their apparent sharpness"),
 			"enable_black_lined_video",
-			false
+			false,
+			0,
+			0
 		}
 	},
 
@@ -63,7 +70,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Use high-quality video scaling"),
 			_s("Use linear interpolation when upscaling videos, where possible"),
 			"enable_hq_video",
-			true
+			true,
+			0,
+			0
 		}
 	},
 #endif
@@ -74,7 +83,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Use high-quality \"LarryScale\" cel scaling"),
 			_s("Use special cartoon scaler for drawing character sprites"),
 			"enable_larryscale",
-			true
+			true,
+			0,
+			0
 		}
 	},
 
@@ -84,7 +95,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Prefer digital sound effects"),
 			_s("Prefer digital sound effects instead of synthesized ones"),
 			"prefer_digitalsfx",
-			true
+			true,
+			0,
+			0
 		}
 	},
 
@@ -94,7 +107,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Use original save/load screens"),
 			_s("Use the original save/load screens instead of the ScummVM ones"),
 			"originalsaveload",
-			false
+			false,
+			0,
+			0
 		}
 	},
 	// Jones in the Fast Lane - CD audio tracks or resource.snd
@@ -104,7 +119,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Use CD audio"),
 			_s("Use CD audio instead of in-game audio, if available"),
 			"use_cdaudio",
-			true
+			true,
+			0,
+			0
 		}
 	},
 
@@ -115,7 +132,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Use Windows cursors"),
 			_s("Use the Windows cursors (smaller and monochrome) instead of the DOS ones"),
 			"windows_cursors",
-			false
+			false,
+			0,
+			0
 		}
 	},
 
@@ -126,7 +145,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Use silver cursors"),
 			_s("Use the alternate set of silver cursors instead of the normal golden ones"),
 			"silver_cursors",
-			false
+			false,
+			0,
+			0
 		}
 	},
 
@@ -137,7 +158,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Enable content censoring"),
 			_s("Enable the game's built-in optional content censoring"),
 			"enable_censoring",
-			false
+			false,
+			0,
+			0
 		}
 	},
 
@@ -148,7 +171,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Upscale videos"),
 			_s("Upscale videos to double their size"),
 			"enable_video_upscale",
-			true
+			true,
+			0,
+			0
 		}
 	},
 
@@ -159,7 +184,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Use RGB rendering"),
 			_s("Use RGB rendering to improve screen transitions"),
 			"rgb_rendering",
-			false
+			false,
+			0,
+			0
 		}
 	},
 
@@ -170,7 +197,9 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Use per-resource modified palettes"),
 			_s("Use custom per-resource palettes to improve visuals"),
 			"palette_mods",
-			false
+			false,
+			0,
+			0
 		}
 	},
 
@@ -181,9 +210,25 @@ const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Enable bearded musicians"),
 			_s("Enable graphics that were disabled for legal reasons"),
 			"enable_bearded_musicians",
-			false
+			false,
+			0,
+			0
 		}
 	},
+
+#ifdef USE_TTS
+	{
+		GAMEOPTION_TTS,
+		{
+			_s("Enable Text to Speech"),
+			_s("Use TTS to read the descriptions (if TTS is available)"),
+			"tts_enabled",
+			false,
+			0,
+			0
+		}
+ 	},
+#endif
 
 	AD_EXTRA_GUI_OPTIONS_TERMINATOR
 };
@@ -207,6 +252,14 @@ const PopUpOptionsMap popUpOptionsList[] = {
 			{
 				_s("Yamaha FB-01"),
 				kMidiModeFB01
+			},
+			{
+				_s("Casio MT-540"),
+				kMidiModeMT540
+			},
+			{
+				_s("Casio CT-460 / CSM-1"),
+				kMidiModeCT460
 			},
 			POPUP_OPTIONS_ITEMS_TERMINATOR
 		}

@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,11 +46,11 @@ int32 st1pc;
 int32 st2pc;
 int32 st3pc;
 
-void MakeShadowPC(rap_API *srap, SVECTORPC *local, int32 nVertices, SVECTORPC *p_n, int32 p_d, SVECTORPC *ldir, CVECTOR *lcolour, MATRIXPC *world2screen, MATRIXPC *local2world,
+void MakeShadowPC(RapAPI *srap, SVECTORPC *local, int32 nVertices, SVECTORPC *p_n, int32 p_d, SVECTORPC *ldir, CVECTOR *lcolour, MATRIXPC *world2screen, MATRIXPC *local2world,
 				  int32 debug, SVECTOR *bbox, SVECTOR *minbbox, SVECTOR *maxbbox, int16 xminLocal, int16 xmaxLocal, int16 yminLocal, int16 ymaxLocal, int16 zminLocal,
 				  int16 zmaxLocal);
 
-void DrawShadow1PC(rap_API *srap, int32 poseBone, MATRIXPC *lw, MATRIXPC *world2screen, MATRIXPC *local2world, int32 nShadows, SVECTORPC *ldirs, CVECTOR *lcolours, SVECTORPC *p_n,
+void DrawShadow1PC(RapAPI *srap, int32 poseBone, MATRIXPC *lw, MATRIXPC *world2screen, MATRIXPC *local2world, int32 nShadows, SVECTORPC *ldirs, CVECTOR *lcolours, SVECTORPC *p_n,
 				   int32 *p_d, int32 debug, SVECTOR **shadowBox, SVECTOR *shadowBoxMin, SVECTOR *shadowBoxMax) {
 	if (nShadows == 0)
 		return;
@@ -89,12 +88,12 @@ void DrawShadow1PC(rap_API *srap, int32 poseBone, MATRIXPC *lw, MATRIXPC *world2
 	}
 }
 
-void MakeShadowPC(rap_API *srap, SVECTORPC *local, int32 nVertices, SVECTORPC *p_n, int32 p_d, SVECTORPC *ldir, CVECTOR *lcolour, MATRIXPC *world2screen, MATRIXPC *local2world,
+void MakeShadowPC(RapAPI *srap, SVECTORPC *local, int32 nVertices, SVECTORPC *p_n, int32 p_d, SVECTORPC *ldir, CVECTOR *lcolour, MATRIXPC *world2screen, MATRIXPC *local2world,
 				  int32 debug, SVECTOR *bbox, SVECTOR *minbbox, SVECTOR *maxbbox, int16 xminLocal, int16 xmaxLocal, int16 yminLocal, int16 ymaxLocal, int16 zminLocal,
 				  int16 zmaxLocal) {
 
 	SVECTORPC workVerts[MAX_VECTORS];
-	SVECTORPC *vertices = NULL;
+	SVECTORPC *vertices = nullptr;
 
 	vertices = workVerts;
 
@@ -352,14 +351,13 @@ void MakeShadowPC(rap_API *srap, SVECTORPC *local, int32 nVertices, SVECTORPC *p
 
 	nPolys = srap->nTRI3;
 	if (nPolys != 0) {
-		polyStart = srap->GetTRI3Ptr();
+		polyStart = RapAPIObject::GetTRI3Ptr(srap);
 		// Do the drawing using internal C based debugging drawing code
-#if CD_MODE == 0
-		if (debug)
+		if (debug) {
 			drawTRI3PC(polyStart, nPolys, pvert);
-		else
-#endif // #if CD_MODE == 0
+		} else {
 			fastDrawTRI3PC(polyStart, nPolys, pvert);
+		}
 	}
 	st3pc = g_system->getMillis() - st3pc;
 }

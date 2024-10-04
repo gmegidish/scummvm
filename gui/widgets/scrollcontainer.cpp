@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +41,7 @@ void ScrollContainerWidget::init() {
 	setFlags(WIDGET_ENABLED);
 	_type = kScrollContainerWidget;
 	_backgroundType = ThemeEngine::kWidgetBackgroundPlain;
-	_verticalScroll = new ScrollBarWidget(this, _w-16, 0, 16, _h);
+	_verticalScroll = new ScrollBarWidget(this, _w, 0, 16, _h);
 	_verticalScroll->setTarget(this);
 	_scrolledX = 0;
 	_scrolledY = 0;
@@ -55,12 +54,11 @@ void ScrollContainerWidget::handleMouseWheel(int x, int y, int direction) {
 }
 
 void ScrollContainerWidget::recalc() {
-	int scrollbarWidth = g_gui.xmlEval()->getVar("Globals.Scrollbar.Width", 0);
+	_scrollbarWidth = g_gui.xmlEval()->getVar("Globals.Scrollbar.Width", 0);
 	_limitH = _h;
 
 	//calculate virtual height
-	const int spacing = g_gui.xmlEval()->getVar("Global.Font.Height", 16); //on the bottom
-	int h = 0;
+	const int spacing = g_gui.xmlEval()->getVar("Globals.Font.Height", 16); //on the bottom
 	int min = spacing, max = 0;
 	Widget *ptr = _firstWidget;
 	while (ptr) {
@@ -71,7 +69,7 @@ void ScrollContainerWidget::recalc() {
 		}
 		ptr = ptr->next();
 	}
-	h = max - min;
+	int h = max - min;
 
 	if (h <= _limitH) _scrolledY = 0;
 	if (_scrolledY > h - _limitH) _scrolledY = 0;
@@ -80,8 +78,8 @@ void ScrollContainerWidget::recalc() {
 	_verticalScroll->_currentPos = _scrolledY;
 	_verticalScroll->_entriesPerPage = _limitH;
 	_verticalScroll->_singleStep = kLineHeight;
-	_verticalScroll->setPos(_w - scrollbarWidth, _scrolledY);
-	_verticalScroll->setSize(scrollbarWidth, _limitH-1);
+	_verticalScroll->setPos(_w, _scrolledY);
+	_verticalScroll->setSize(_scrollbarWidth, _limitH-1);
 }
 
 
@@ -96,7 +94,11 @@ int16 ScrollContainerWidget::getChildY() const {
 }
 
 uint16 ScrollContainerWidget::getWidth() const {
-	return _w - (_verticalScroll->isVisible() ? _verticalScroll->getWidth() : 0);
+	// NOTE: if you change that, make sure to do the same
+	// changes in the ThemeLayoutScrollContainerWidget (gui/ThemeLayout.cpp)
+	// NOTE: this width is used for clipping, so it *includes*
+	// scrollbars, because it starts from getAbsX(), not getChildX()
+	return _w + _scrollbarWidth;
 }
 
 uint16 ScrollContainerWidget::getHeight() const {
@@ -144,6 +146,22 @@ void ScrollContainerWidget::drawWidget() {
 	g_gui.theme()->drawWidgetBackground(Common::Rect(_x, _y, _x + _w, _y + getHeight()), _backgroundType);
 }
 
+void ScrollContainerWidget::draw() {
+	Widget::draw();
+
+	if (_verticalScroll->isVisible()) {
+		_verticalScroll->draw();
+	}
+}
+
+void ScrollContainerWidget::markAsDirty() {
+	Widget::markAsDirty();
+
+	if (_verticalScroll->isVisible()) {
+		_verticalScroll->markAsDirty();
+	}
+}
+
 bool ScrollContainerWidget::containsWidget(Widget *w) const {
 	if (w == _verticalScroll || _verticalScroll->containsWidget(w))
 		return true;
@@ -151,17 +169,12 @@ bool ScrollContainerWidget::containsWidget(Widget *w) const {
 }
 
 Widget *ScrollContainerWidget::findWidget(int x, int y) {
-	if (_verticalScroll->isVisible() && x >= _w - _verticalScroll->getWidth())
+	if (_verticalScroll->isVisible() && x >= _w)
 		return _verticalScroll;
 	Widget *w = Widget::findWidgetInChain(_firstWidget, x + _scrolledX, y + _scrolledY);
 	if (w)
 		return w;
 	return this;
-}
-
-Common::Rect ScrollContainerWidget::getClipRect() const {
-	// Make sure the clipping rect contains the scrollbar so it is properly redrawn
-	return Common::Rect(getAbsX(), getAbsY(), getAbsX() + _w, getAbsY() + getHeight() - 1); // this -1 is because of container border, which might not be present actually
 }
 
 void ScrollContainerWidget::setBackgroundType(ThemeEngine::WidgetBackground backgroundType) {

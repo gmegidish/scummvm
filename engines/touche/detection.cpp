@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 #include "touche/touche.h"
 
 static const PlainGameDescriptor toucheGames[] = {
-	{ "touche", "Touche: The Adventures of the Fifth Musketeer" },
+	{ "touche", "Touch\303\251: The Adventures of the Fifth Musketeer" },
 	{ 0, 0 }
 };
 
@@ -106,6 +105,15 @@ static const ADGameDescription gameDescriptions[] = {
 		ADGF_NO_FLAGS,
 		GUIO0()
 	},
+	{ // Fanmade translation by Old-Games.ru
+		"touche",
+		"v1.0.2",
+		AD_ENTRY1s("touche.dat", "44c1a7a619d583d458f0c24e881a0b68", 51362582),
+		Common::RU_RUS,
+		Common::kPlatformDOS,
+		ADGF_NO_FLAGS,
+		GUIO0()
+	},
 	{ // demo version
 		"touche",
 		"Demo",
@@ -125,14 +133,14 @@ static const ADFileBasedFallback fileBasedFallback[] = {
 
 } // End of namespace Touche
 
-static const char *directoryGlobs[] = {
+static const char *const directoryGlobs[] = {
 	"database",
 	0
 };
 
-class ToucheMetaEngineDetection : public AdvancedMetaEngineDetection {
+class ToucheMetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	ToucheMetaEngineDetection() : AdvancedMetaEngineDetection(Touche::gameDescriptions, sizeof(ADGameDescription), toucheGames) {
+	ToucheMetaEngineDetection() : AdvancedMetaEngineDetection(Touche::gameDescriptions, toucheGames) {
 		_md5Bytes = 4096;
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
@@ -142,16 +150,16 @@ public:
 		return detectGameFilebased(allFiles, Touche::fileBasedFallback);
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "touche";
 	}
 
-	const char *getName() const override {
-		return "Touche: The Adventures of the Fifth Musketeer";
+	const char *getEngineName() const override {
+		return "Touch\303\251: The Adventures of the Fifth Musketeer";
 	}
 
 	const char *getOriginalCopyright() const override {
-		return "Touche: The Adventures of the Fifth Musketeer (C) Clipper Software";
+		return "Touch\303\251: The Adventures of the Fifth Musketeer (C) Clipper Software";
 	}
 
 	const DebugChannelDef *getDebugChannels() const override {

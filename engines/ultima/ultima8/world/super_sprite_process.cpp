@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -103,14 +102,16 @@ SuperSpriteProcess::SuperSpriteProcess(int shape, int frame, int sx, int sy, int
 
 		if (rng > 0x50)
 			rng = 0x50;
-		int xoff = -rng + (getRandom() % (rng * 2 + 1));
-		int yoff = -rng + (getRandom() % (rng * 2 + 1));
+
+		Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
+		int xoff = rs.getRandomNumberRngSigned(-rng, rng);
+		int yoff = rs.getRandomNumberRngSigned(-rng, rng);
 		rng /= 3;
 		if (rng > 0x18)
 			rng = 0x18;
-		int zoff = -rng + (getRandom() % (rng * 2 + 1));
+		int zoff = rs.getRandomNumberRngSigned(-rng, rng);
 
-		_destpt.move(xoff, yoff, zoff);
+		_destpt.translate(xoff, yoff, zoff);
 		if (_destpt.z > 0xfa)
 			_destpt.z = 0xfa;
 		else if (_destpt.z < 0)
@@ -183,12 +184,10 @@ void SuperSpriteProcess::run() {
 				} else {
 					const Item *target = getItem(_target);
 					if (target) {
-						int32 tx, ty, tz;
-						int32 cx, cy, cz;
-						target->getLocation(tx, ty, tz);
-						target->getCentre(cx, cy, cz);
-						targetz = cz + 8;
-						dir8 = Direction_GetWorldDir(ty - _nowpt.y, tx - _nowpt.x, dirmode_8dirs);
+						Point3 ptt = target->getLocation();
+						Point3 ptc = target->getCentre();
+						targetz = ptc.z + 8;
+						dir8 = Direction_GetWorldDir(ptt.y - _nowpt.y, ptt.x - _nowpt.x, dirmode_8dirs);
 					}
 				}
 
@@ -307,9 +306,9 @@ void SuperSpriteProcess::makeBulletSplash(const Point3 &pt) {
 	firetypedat->makeBulletSplashShapeAndPlaySound(pt.x, pt.y, pt.z);
 }
 
-static bool _pointOutOfMap(const int32 pt[3], int32 maxxy) {
-	return (pt[0] < 0     || pt[1] < 0     || pt[2] < 0 ||
-			pt[0] > maxxy || pt[1] > maxxy || pt[2] > 255);
+static bool _pointOutOfMap(const Point3 &pt, int32 maxxy) {
+	return (pt.x < 0     || pt.y < 0     || pt.z < 0 ||
+			pt.x > maxxy || pt.y > maxxy || pt.z > 255);
 }
 
 void SuperSpriteProcess::hitAndFinish() {
@@ -320,8 +319,8 @@ void SuperSpriteProcess::hitAndFinish() {
 	int ystep = _pt3.y - _nowpt.y;
 	int zstep = _pt3.z - _nowpt.z;
 	// We add a slight hack - our sweep test is off-by-one on Z??
-	int32 start[3] = {_nowpt.x, _nowpt.y, _nowpt.z + 1};
-	int32 end[3] = {_pt3.x, _pt3.y, _pt3.z + 1};
+	Point3 start(_nowpt.x, _nowpt.y, _nowpt.z + 1);
+	Point3 end(_pt3.x, _pt3.y, _pt3.z + 1);
 	int32 dims[3] = {1, 1, 1};
 	// will never get a collision if not stepping at all..
 	bool collision = !(xstep || ystep || zstep);
@@ -333,12 +332,12 @@ void SuperSpriteProcess::hitAndFinish() {
 								   _source, true, &hits);
 		if (collision)
 			break;
-		start[0] += xstep;
-		start[1] += ystep;
-		start[2] += zstep;
-		end[0] += xstep;
-		end[1] += ystep;
-		end[2] += zstep;
+		start.x += xstep;
+		start.y += ystep;
+		start.z += zstep;
+		end.x += xstep;
+		end.y += ystep;
+		end.z += zstep;
 		const int32 mapmax = map->getChunkSize() * MAP_NUM_CHUNKS;
 		if (_pointOutOfMap(start, mapmax) || _pointOutOfMap(end, mapmax))
 			break;
@@ -347,25 +346,22 @@ void SuperSpriteProcess::hitAndFinish() {
 	if (collision && hits.size()) {
 		const CurrentMap::SweepItem &firsthit = hits.front();
 		_item0x77 = firsthit._item;
-		int32 hitpt[3] = {pt.x, pt.y, pt.z};
-		firsthit.GetInterpolatedCoords(hitpt, start, end);
-		pt = Point3(hitpt[0], hitpt[1], hitpt[2]);
+		pt = firsthit.GetInterpolatedCoords(start, end);
 	}
 
 	Item *item = getItem(_item0x77);
 	if (item) {
 		int32 ifx, ify, ifz;
 		item->getFootpadData(ifx, ify, ifz);
-		int32 ix, iy, iz;
-		item->getLocation(ix, iy, iz);
+		Point3 pti = item->getLocation();
 
 		if (ifx > 2 && ify > 2 && ifz > 2) {
 			int32 ixsize = (ifx - 2) * 16;
-			int32 iysize = (ifx - 2) * 16;
-			if (pt.x < ix - ixsize)
-				pt.x = ix - ixsize;
-			if (pt.y < iy - iysize)
-				pt.y = iy - iysize;
+			int32 iysize = (ify - 2) * 16;
+			if (pt.x < pti.x - ixsize)
+				pt.x = pti.x - ixsize;
+			if (pt.y < pti.y - iysize)
+				pt.y = pti.y - iysize;
 		}
 
 		//Actor *actor = dynamic_cast<Actor *>(item);
@@ -373,7 +369,7 @@ void SuperSpriteProcess::hitAndFinish() {
 		// it should work? See disasm 1138:1384, lines 142 ~ 172
 		// There is some random factor added for non-actor items
 		// which needs checking
-		Direction dir = Direction_GetWorldDir(iy - _nowpt.y, ix - _nowpt.x, dirmode_8dirs);
+		Direction dir = Direction_GetWorldDir(pti.y - _nowpt.y, pti.x - _nowpt.x, dirmode_8dirs);
 		item->receiveHit(_itemNum, dir, _damage, _fireType);
 	}
 	makeBulletSplash(pt);
@@ -443,13 +439,14 @@ void SuperSpriteProcess::advanceFrame() {
 bool SuperSpriteProcess::areaSearch() {
 	CurrentMap *map = World::get_instance()->getCurrentMap();
 
-	int32 start[3] = {_nowpt.x, _nowpt.y, _nowpt.z + 1};
-	int32 end[3] = {_pt3.x, _pt3.y, _pt3.z + 1};
+	Point3 start(_nowpt.x, _nowpt.y, _nowpt.z + 1);
+	Point3 end(_pt3.x, _pt3.y, _pt3.z + 1);
 	int32 dims[3] = {1, 1, 1};
 
 	Item *item = getItem(_itemNum);
-	if (item)
-		item->getLocation(start[0], start[1], start[2]);
+	if (item) {
+		start = item->getLocation();
+	}
 
 	Std::list<CurrentMap::SweepItem> hits;
 	map->sweepTest(start, end, dims, ShapeInfo::SI_SOLID,

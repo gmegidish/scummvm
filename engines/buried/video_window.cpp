@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,12 +24,13 @@
 #include "buried/video_window.h"
 
 #include "common/system.h"
+#include "common/keyboard.h"
 #include "graphics/surface.h"
 #include "video/avi_decoder.h"
 
 namespace Buried {
 
-VideoWindow::VideoWindow(BuriedEngine *vm, Window *parent) : Window(vm, parent), _video(nullptr), _mode(kModeClosed), _lastFrame(0) {
+VideoWindow::VideoWindow(BuriedEngine *vm, Window *parent) : Window(vm, parent), _video(nullptr), _mode(kModeClosed), _lastFrame(nullptr) {
 	_vm->addVideo(this);
 	_needsPalConversion = false;
 	_ownedFrame = nullptr;
@@ -48,6 +48,7 @@ bool VideoWindow::playVideo() {
 	if (_video->isPlaying())
 		return true;
 
+	_vm->_gfx->toggleCursor(false);
 	_video->start();
 	_mode = kModePlaying;
 	return true;
@@ -62,6 +63,9 @@ bool VideoWindow::playToFrame(int frame) {
 	if (_video->isPlaying())
 		return true;
 
+	// We do not hide the mouse cursor here, as this
+	// is used to play background or asynchronous
+	// animations
 	_video->start();
 	_mode = kModePlaying;
 	return true;
@@ -76,6 +80,7 @@ bool VideoWindow::seekToFrame(int frame) {
 
 void VideoWindow::stopVideo() {
 	if (_video) {
+		_vm->_gfx->toggleCursor(true);
 		_video->stop();
 		_mode = kModeStopped;
 	}
@@ -95,7 +100,7 @@ int VideoWindow::getFrameCount() {
 	return 0;
 }
 
-bool VideoWindow::openVideo(const Common::String &fileName) {
+bool VideoWindow::openVideo(const Common::Path &fileName) {
 	closeVideo();
 
 	_video = new Video::AVIDecoder();
@@ -127,6 +132,7 @@ void VideoWindow::closeVideo() {
 	if (_video) {
 		delete _video;
 		_video = nullptr;
+		_vm->_gfx->toggleCursor(true);
 		_mode = kModeClosed;
 		_lastFrame = nullptr;
 
@@ -176,6 +182,7 @@ void VideoWindow::updateVideo() {
 
 		if (_video->isPlaying() && _video->endOfVideo()) {
 			_video->stop();
+			_vm->_gfx->toggleCursor(true);
 			_mode = kModeStopped;
 		}
 	}
@@ -190,6 +197,11 @@ void VideoWindow::onPaint() {
 		else
 			_vm->_gfx->crossBlit(_vm->_gfx->getScreen(), absoluteRect.left + _dstRect.left, absoluteRect.top + _dstRect.top, _dstRect.width(), _dstRect.height(), _lastFrame, _srcRect.left, _srcRect.top);
 	}
+}
+
+void VideoWindow::onKeyUp(const Common::KeyState &key, uint flags) {
+	if (key.keycode == Common::KEYCODE_ESCAPE)
+		stopVideo();
 }
 
 void VideoWindow::setSourceRect(const Common::Rect &srcRect) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,13 +33,14 @@ public:
 	MacTextWindow(MacWindowManager *wm, const Font *font, int fgcolor, int bgcolor, int maxWidth, TextAlign textAlignment, MacMenu *menu, bool cursorHandler = true);
 	virtual ~MacTextWindow();
 
-	virtual void resize(int w, int h, bool inner = false);
+	virtual void resize(int w, int h) override;
+	void setDimensions(const Common::Rect &r) override;
 
-	virtual bool processEvent(Common::Event &event);
+	virtual bool processEvent(Common::Event &event) override;
 
-	virtual bool draw(ManagedSurface *g, bool forceRedraw = false);
-	virtual bool draw(bool forceRedraw = false);
-	virtual void blit(ManagedSurface *g, Common::Rect &dest);
+	virtual bool draw(ManagedSurface *g, bool forceRedraw = false) override;
+	virtual bool draw(bool forceRedraw = false) override;
+	virtual void blit(ManagedSurface *g, Common::Rect &dest) override;
 
 	void setTextWindowFont(const MacFont *macFont);
 	const MacFont *getTextWindowFont();
@@ -48,8 +48,9 @@ public:
 	void appendText(const Common::U32String &str, const MacFont *macFont = nullptr, bool skipAdd = false);
 	void appendText(const Common::String &str, const MacFont *macFont = nullptr, bool skipAdd = false);
 	void clearText();
+	void setMarkdownText(const Common::U32String &str);
 
-	void setEditable(bool editable) { _editable = editable; }
+	void setEditable(bool editable) { _editable = editable; _mactext->setEditable(editable); }
 	void setSelectable(bool selectable) { _selectable = selectable; }
 
 	void undrawCursor();
@@ -64,6 +65,7 @@ public:
 	Common::U32String cutSelection();
 	const SelectedText *getSelectedText() { return &_selectedText; }
 	int getTextHeight() { return _mactext->getTextHeight(); }
+	int getMouseLine(int x, int y);
 
 	/**
 	 * if we want to draw the text which color is not black, then we need to set _textColorRGB

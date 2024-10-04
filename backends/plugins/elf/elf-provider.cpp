@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -79,9 +78,9 @@ DynamicPlugin::VoidFunc ELFPlugin::findSymbol(const char *symbol) {
 
 	if (!func) {
 		if (!_dlHandle)
-			warning("elfloader: Failed loading symbol '%s' from plugin '%s' (Handle is NULL)", symbol, _filename.c_str());
+			warning("elfloader: Failed loading symbol '%s' from plugin '%s' (Handle is NULL)", symbol, _filename.toString(Common::Path::kNativeSeparator).c_str());
 		else
-			warning("elfloader: Failed loading symbol '%s' from plugin '%s'", symbol, _filename.c_str());
+			warning("elfloader: Failed loading symbol '%s' from plugin '%s'", symbol, _filename.toString(Common::Path::kNativeSeparator).c_str());
 	}
 
 	// FIXME HACK: This is a HACK to circumvent a clash between the ISO C++
@@ -101,7 +100,7 @@ void ELFPlugin::trackSize() {
 	// All we need to do is create our object, track its size, then delete it
 	DLObject *obj = makeDLObject();
 
-	obj->trackSize(_filename.c_str());
+	obj->trackSize(_filename);
 	delete obj;
 }
 
@@ -109,7 +108,7 @@ bool ELFPlugin::loadPlugin() {
 	assert(!_dlHandle);
 
 	DLObject *obj = makeDLObject();
-	if (obj->open(_filename.c_str())) {
+	if (obj->open(_filename)) {
 		_dlHandle = obj;
 	} else {
 		delete obj;
@@ -117,20 +116,20 @@ bool ELFPlugin::loadPlugin() {
 	}
 
 	if (!_dlHandle) {
-		warning("elfloader: Failed loading plugin '%s'", _filename.c_str());
+		warning("elfloader: Failed loading plugin '%s'", _filename.toString(Common::Path::kNativeSeparator).c_str());
 		return false;
 	}
 
 	CharFunc buildDateFunc = (CharFunc)findSymbol("PLUGIN_getBuildDate");
 	if (!buildDateFunc) {
 		unloadPlugin();
-		warning("elfloader: plugin '%s' is missing symbols", _filename.c_str());
+		warning("elfloader: plugin '%s' is missing symbols", _filename.toString(Common::Path::kNativeSeparator).c_str());
 		return false;
 	}
 
 	if (strncmp(gScummVMPluginBuildDate, buildDateFunc(), strlen(gScummVMPluginBuildDate))) {
 		unloadPlugin();
-		warning("elfloader: plugin '%s' has a different build date", _filename.c_str());
+		warning("elfloader: plugin '%s' has a different build date", _filename.toString(Common::Path::kNativeSeparator).c_str());
 		return false;
 	}
 
@@ -164,7 +163,7 @@ void ELFPlugin::unloadPlugin() {
 #endif
 
 		if (!_dlHandle->close())
-			warning("elfloader: Failed unloading plugin '%s'", _filename.c_str());
+			warning("elfloader: Failed unloading plugin '%s'", _filename.toString(Common::Path::kNativeSeparator).c_str());
 
 		delete _dlHandle;
 		_dlHandle = 0;
@@ -199,7 +198,7 @@ PluginList ELFPluginProvider::getPlugins() {
 
 bool ELFPluginProvider::isPluginFilename(const Common::FSNode &node) const {
 	// Check the plugin suffix
-	Common::String filename = node.getName();
+	Common::String filename = node.getFileName();
 
 	if (!filename.hasSuffix(".PLG") && !filename.hasSuffix(".plg") &&
 			!filename.hasSuffix(".PLUGIN") && !filename.hasSuffix(".plugin"))

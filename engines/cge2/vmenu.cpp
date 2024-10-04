@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -111,13 +110,17 @@ char *VMenu::vmGather(Common::Array<Choice *> list) {
 		len += strlen(list[i]->_text);
 		++h;
 	}
-	_vmgt = new char[len + h];
-	*_vmgt = '\0';
-	for (uint i = 0; i < list.size(); i++) {
-		if (*_vmgt)
-			strcat(_vmgt, "|");
-		strcat(_vmgt, list[i]->_text);
-		++h;
+	len += h;
+	_vmgt = new char[len];
+
+	if (len) {
+		*_vmgt = '\0';
+		for (uint i = 0; i < list.size(); i++) {
+			if (*_vmgt)
+				Common::strcat_s(_vmgt, len, "|");
+			Common::strcat_s(_vmgt, len, list[i]->_text);
+			++h;
+		}
 	}
 
 	return _vmgt;
@@ -132,9 +135,9 @@ VMenu::~VMenu() {
 	}
 }
 
-void VMenu::touch(uint16 mask, V2D pos, Common::KeyCode keyCode) {
+void VMenu::touch(uint16 mask, V2D pos) {
 	if (_items) {
-		Sprite::touch(mask, pos, keyCode);
+		Sprite::touch(mask, pos);
 
 		int n = 0;
 		bool ok = false;
@@ -155,7 +158,8 @@ void VMenu::touch(uint16 mask, V2D pos, Common::KeyCode keyCode) {
 
 		Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
 		if (_lastN != n) {
-			ttsMan->say(_menu[n]->_text, Common::TextToSpeechManager::INTERRUPT);
+			if (ttsMan != nullptr && ConfMan.getBool("tts_enabled_objects"))
+				ttsMan->say(_menu[n]->_text, Common::TextToSpeechManager::INTERRUPT);
 			_lastN = n;
 		}
 

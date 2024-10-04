@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,28 +29,12 @@ enum {
 	SYSTEM_MODEL_2DS = 3
 };
 
-struct CommandLine {
-	int argumentCount;
-	char** argumentsValue;
+// Set the size of the stack.
+u32 __stacksize__ = 64 * 1024;
 
-	CommandLine(int argc, char** argv): argumentCount(argc), argumentsValue(argv) {}
-};
-
-static void mainThreadFunc(void *threadParams) {
-	g_system = new N3DS::OSystem_3DS();
-	assert(g_system);
-
-#ifdef DYNAMIC_MODULES
-	PluginManager::instance().addPluginProvider(new CTRPluginProvider());
-#endif
-
-	CommandLine *commandLine = static_cast<CommandLine *>(threadParams);
-	int res = scummvm_main(commandLine->argumentCount, commandLine->argumentsValue);
-
-	g_system->destroy();
-
-	threadExit(res);
-};
+// Set the size of the linear heap to allow a larger application heap.
+u32 __ctru_heap_size        = 0;
+u32 __ctru_linear_heap_size = 10 * 1024 * 1024;
 
 int main(int argc, char *argv[]) {
 	// Initialize basic libctru stuff
@@ -75,17 +58,16 @@ int main(int argc, char *argv[]) {
 	socInit((u32 *)soc_sharedmem, soc_sharedmem_size);
 #endif
 
-	// Start ScummVM in a separate thread to be able to set the stack size.
-	// The default stack is not large enough.
-	CommandLine commandLine(argc, argv);
+	g_system = new N3DS::OSystem_3DS();
+	assert(g_system);
 
-	s32 mainThreadPriority = 0;
-	svcGetThreadPriority(&mainThreadPriority, CUR_THREAD_HANDLE);
+#ifdef DYNAMIC_MODULES
+	PluginManager::instance().addPluginProvider(new CTRPluginProvider());
+#endif
 
-	Thread mainThread = threadCreate(&mainThreadFunc, &commandLine, 64 * 1024, mainThreadPriority, -2, false);
-	threadJoin(mainThread, U64_MAX);
-	int res = threadGetExitCode(mainThread);
-	threadFree(mainThread);
+	int res = scummvm_main(argc, argv);
+
+	g_system->destroy();
 
 	// Turn on both screen backlights before exiting.
 	if (R_SUCCEEDED(gspLcdInit())) {

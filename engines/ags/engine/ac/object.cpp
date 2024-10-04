@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,6 @@
 #include "ags/engine/ac/game_state.h"
 #include "ags/engine/ac/global_object.h"
 #include "ags/engine/ac/global_translation.h"
-#include "ags/engine/ac/object_cache.h"
 #include "ags/engine/ac/properties.h"
 #include "ags/engine/ac/room.h"
 #include "ags/engine/ac/room_status.h"
@@ -41,8 +39,10 @@
 #include "ags/engine/ac/route_finder.h"
 #include "ags/engine/gfx/graphics_driver.h"
 #include "ags/shared/ac/view.h"
+#include "ags/engine/ac/view_frame.h"
 #include "ags/shared/gfx/bitmap.h"
 #include "ags/shared/gfx/gfx_def.h"
+#include "ags/shared/gui/gui_main.h"
 #include "ags/engine/script/runtime_script_value.h"
 #include "ags/engine/ac/dynobj/cc_object.h"
 #include "ags/engine/ac/move_list.h"
@@ -55,6 +55,17 @@
 namespace AGS3 {
 
 using namespace AGS::Shared;
+
+AGS_INLINE bool is_valid_object(int obj_id) {
+	return (obj_id >= 0) && (static_cast<uint32_t>(obj_id) < _G(croom)->numobj);
+}
+
+bool AssertObject(const char *apiname, int obj_id) {
+	if ((obj_id >= 0) && (static_cast<uint32_t>(obj_id) < _G(croom)->numobj))
+		return true;
+	debug_script_warn("%s: invalid object id %d (range is 0..%d)", apiname, obj_id, _G(croom)->numobj - 1);
+	return false;
+}
 
 int Object_IsCollidingWithObject(ScriptObject *objj, ScriptObject *obj2) {
 	return AreObjectsColliding(objj->id, obj2->id);
@@ -74,11 +85,6 @@ ScriptObject *GetObjectAtRoom(int x, int y) {
 	return &_G(scrObj)[hsnum];
 }
 
-AGS_INLINE int is_valid_object(int obtest) {
-	if ((obtest < 0) || (obtest >= _G(croom)->numobj)) return 0;
-	return 1;
-}
-
 void Object_Tint(ScriptObject *objj, int red, int green, int blue, int saturation, int luminance) {
 	SetObjectTint(objj->id, red, green, blue, saturation, luminance);
 }
@@ -88,16 +94,6 @@ void Object_RemoveTint(ScriptObject *objj) {
 }
 
 void Object_SetView(ScriptObject *objj, int view, int loop, int frame) {
-	if (_GP(game).options[OPT_BASESCRIPTAPI] < kScriptAPI_v360) { // Previous version of SetView had negative loop and frame mean "use latest values"
-		auto &obj = _G(objs)[objj->id];
-		if (loop < 0) loop = obj.loop;
-		if (frame < 0) frame = obj.frame;
-		const int vidx = view - 1;
-		if (vidx < 0 || vidx >= _GP(game).numviews) quit("!Object_SetView: invalid view number used");
-		loop = Math::Clamp(loop, 0, (int)_G(views)[vidx].numLoops - 1);
-		frame = Math::Clamp(frame, 0, (int)_G(views)[vidx].loops[loop].numFrames - 1);
-	}
-
 	SetObjectFrame(objj->id, view, loop, frame);
 }
 
@@ -120,26 +116,16 @@ int Object_GetBaseline(ScriptObject *objj) {
 	return GetObjectBaseline(objj->id);
 }
 
-void Object_AnimateFrom(ScriptObject *objj, int loop, int delay, int repeat, int blocking, int direction, int sframe) {
-	if (direction == FORWARDS)
-		direction = 0;
-	else if (direction == BACKWARDS)
-		direction = 1;
-	else
-		quit("!Object.Animate: Invalid DIRECTION parameter");
+void Object_AnimateEx(ScriptObject *objj, int loop, int delay, int repeat,
+	int blocking, int direction, int sframe, int volume = 100) {
 
-	if ((blocking == BLOCKING) || (blocking == 1))
-		blocking = 1;
-	else if ((blocking == IN_BACKGROUND) || (blocking == 0))
-		blocking = 0;
-	else
-		quit("!Object.Animate: Invalid BLOCKING parameter");
+	ValidateViewAnimParams("Object.Animate", repeat, blocking, direction);
 
-	AnimateObjectImpl(objj->id, loop, delay, repeat, direction, blocking, sframe);
+	AnimateObjectImpl(objj->id, loop, delay, repeat, direction, blocking, sframe, volume);
 }
 
 void Object_Animate(ScriptObject *objj, int loop, int delay, int repeat, int blocking, int direction) {
-	Object_AnimateFrom(objj, loop, delay, repeat, blocking, direction, 0);
+	Object_AnimateEx(objj, loop, delay, repeat, blocking, direction, 0, 100 /* full volume */);
 }
 
 void Object_StopAnimating(ScriptObject *objj) {
@@ -168,19 +154,19 @@ void Object_SetVisible(ScriptObject *objj, int onoroff) {
 }
 
 int Object_GetView(ScriptObject *objj) {
-	if (_G(objs)[objj->id].view == (uint16_t)-1)
+	if (_G(objs)[objj->id].view == RoomObject::NoView)
 		return 0;
 	return _G(objs)[objj->id].view + 1;
 }
 
 int Object_GetLoop(ScriptObject *objj) {
-	if (_G(objs)[objj->id].view == (uint16_t)-1)
+	if (_G(objs)[objj->id].view == RoomObject::NoView)
 		return 0;
 	return _G(objs)[objj->id].loop;
 }
 
 int Object_GetFrame(ScriptObject *objj) {
-	if (_G(objs)[objj->id].view == (uint16_t)-1)
+	if (_G(objs)[objj->id].view == RoomObject::NoView)
 		return 0;
 	return _G(objs)[objj->id].frame;
 }
@@ -280,7 +266,14 @@ const char *Object_GetName_New(ScriptObject *objj) {
 	if (!is_valid_object(objj->id))
 		quit("!Object.Name: invalid object number");
 
-	return CreateNewScriptString(get_translation(_GP(thisroom).Objects[objj->id].Name.GetCStr()));
+	return CreateNewScriptString(get_translation(_G(croom)->obj[objj->id].name.GetCStr()));
+}
+
+void Object_SetName(ScriptObject *objj, const char *newName) {
+	if (!is_valid_object(objj->id))
+		quit("!Object.Name: invalid object number");
+	_G(croom)->obj[objj->id].name = newName;
+	GUI::MarkSpecialLabelsForUpdate(kLabelMacro_Overhotspot);
 }
 
 bool Object_IsInteractionAvailable(ScriptObject *oobj, int mood) {
@@ -305,7 +298,7 @@ void Object_Move(ScriptObject *objj, int x, int y, int speed, int blocking, int 
 	if ((blocking == BLOCKING) || (blocking == 1))
 		GameLoopUntilNotMoving(&_G(objs)[objj->id].moving);
 	else if ((blocking != IN_BACKGROUND) && (blocking != 0))
-		quit("Object.Move: invalid BLOCKING paramter");
+		quit("Object.Move: invalid BLOCKING parameter");
 }
 
 void Object_SetClickable(ScriptObject *objj, int clik) {
@@ -325,7 +318,7 @@ void Object_SetManualScaling(ScriptObject *objj, bool on) {
 	if (on) _G(objs)[objj->id].flags &= ~OBJF_USEROOMSCALING;
 	else _G(objs)[objj->id].flags |= OBJF_USEROOMSCALING;
 	// clear the cache
-	_G(objcache)[objj->id].ywas = -9999;
+	mark_object_changed(objj->id);
 }
 
 void Object_SetIgnoreScaling(ScriptObject *objj, int newval) {
@@ -420,19 +413,18 @@ void move_object(int objj, int tox, int toy, int spee, int ignwal) {
 
 	debug_script_log("Object %d start move to %d,%d", objj, tox, toy);
 
-	int objX = room_to_mask_coord(_G(objs)[objj].x);
-	int objY = room_to_mask_coord(_G(objs)[objj].y);
-	tox = room_to_mask_coord(tox);
-	toy = room_to_mask_coord(toy);
+	// Convert src and dest coords to the mask resolution, for pathfinder
+	const int src_x = room_to_mask_coord(_G(objs)[objj].x);
+	const int src_y = room_to_mask_coord(_G(objs)[objj].y);
+	const int dst_x = room_to_mask_coord(tox);
+	const int dst_y = room_to_mask_coord(toy);
 
-	set_route_move_speed(spee, spee);
-	set_color_depth(8);
-	int mslot = find_route(objX, objY, tox, toy, prepare_walkable_areas(-1), objj + 1, 1, ignwal);
-	set_color_depth(_GP(game).GetColorDepth());
+	int mslot = find_route(src_x, src_y, dst_x, dst_y, spee, spee, prepare_walkable_areas(-1), objj + 1, 1, ignwal);
+
 	if (mslot > 0) {
 		_G(objs)[objj].moving = mslot;
-		_G(mls)[mslot].direct = ignwal;
-		convert_move_path_to_room_resolution(&_G(mls)[mslot]);
+		_GP(mls)[mslot].direct = ignwal;
+		convert_move_path_to_room_resolution(&_GP(mls)[mslot]);
 	}
 }
 
@@ -449,14 +441,20 @@ void Object_GetPropertyText(ScriptObject *objj, const char *property, char *bufe
 }
 
 const char *Object_GetTextProperty(ScriptObject *objj, const char *property) {
+	if (!AssertObject("Object.GetTextProperty", objj->id))
+		return nullptr;
 	return get_text_property_dynamic_string(_GP(thisroom).Objects[objj->id].Properties, _G(croom)->objProps[objj->id], property);
 }
 
 bool Object_SetProperty(ScriptObject *objj, const char *property, int value) {
+	if (!AssertObject("Object.SetProperty", objj->id))
+		return false;
 	return set_int_property(_G(croom)->objProps[objj->id], property, value);
 }
 
 bool Object_SetTextProperty(ScriptObject *objj, const char *property, const char *value) {
+	if (!AssertObject("Object.SetTextProperty", objj->id))
+		return false;
 	return set_text_property(_G(croom)->objProps[objj->id], property, value);
 }
 
@@ -545,6 +543,97 @@ int check_click_on_object(int roomx, int roomy, int mood) {
 	return 1;
 }
 
+void ValidateViewAnimParams(const char *apiname, int &repeat, int &blocking, int &direction) {
+	if (blocking == BLOCKING)
+		blocking = 1;
+	else if (blocking == IN_BACKGROUND)
+		blocking = 0;
+
+	if (direction == FORWARDS)
+		direction = 0;
+	else if (direction == BACKWARDS)
+		direction = 1;
+
+	if ((repeat < 0) || (repeat > 1)) {
+		debug_script_warn("%s: invalid repeat value %d, will treat as REPEAT (1).", apiname, repeat);
+		repeat = 1;
+	}
+	if ((blocking < 0) || (blocking > 1)) {
+		debug_script_warn("%s: invalid blocking value %d, will treat as BLOCKING (1)", apiname, blocking);
+		blocking = 1;
+	}
+	if ((direction < 0) || (direction > 1)) {
+		debug_script_warn("%s: invalid direction value %d, will treat as BACKWARDS (1)", apiname, direction);
+		direction = 1;
+	}
+}
+
+// General view animation algorithm: find next loop and frame, depending on anim settings
+bool CycleViewAnim(int view, uint16_t &o_loop, uint16_t &o_frame, bool forwards, int repeat) {
+	// Allow multi-loop repeat: idk why, but original engine behavior
+	// was to only check this for forward animation, not backward
+	const bool multi_loop_repeat = !forwards || (_GP(play).no_multiloop_repeat == 0);
+
+	ViewStruct *aview = &_GP(views)[view];
+	uint16_t loop = o_loop;
+	uint16_t frame = o_frame;
+	bool done = false;
+
+	if (forwards) {
+		if (frame + 1 >= aview->loops[loop].numFrames) { // Reached the last frame in the loop, find out what to do next
+			if (aview->loops[loop].RunNextLoop()) {
+				// go to next loop
+				loop++;
+				frame = 0;
+			} else {
+				// If either ANIM_REPEAT or ANIM_ONCERESET:
+				// reset to the beginning of a multiloop animation
+				if (repeat != ANIM_ONCE) {
+					frame = 0;
+					if (multi_loop_repeat)
+						while ((loop > 0) && (aview->loops[loop - 1].RunNextLoop()))
+							loop--;
+				} else { // if ANIM_ONCE, stop at the last frame
+					frame = aview->loops[loop].numFrames - 1;
+				}
+
+				if (repeat != ANIM_REPEAT) // either ANIM_ONCE or ANIM_ONCERESET
+					done = true; // finished animation
+			}
+		} else
+			frame++;
+	} else // backwards
+	{
+		if (frame == 0) { // Reached the first frame in the loop, find out what to do next
+			if ((loop > 0) && aview->loops[loop - 1].RunNextLoop()) {
+				// go to next loop
+				loop--;
+				frame = aview->loops[loop].numFrames - 1;
+			} else {
+				// If either ANIM_REPEAT or ANIM_ONCERESET:
+				// reset to the beginning of a multiloop animation
+				if (repeat != ANIM_ONCE) {
+					if (multi_loop_repeat)
+						while (aview->loops[loop].RunNextLoop())
+							loop++;
+					frame = aview->loops[loop].numFrames - 1;
+				} else { // if ANIM_ONCE, stop at the first frame
+					frame = 0;
+				}
+
+				if (repeat != ANIM_REPEAT) // either ANIM_ONCE or ANIM_ONCERESET
+					done = true; // finished animation
+			}
+		} else
+			frame--;
+	}
+
+	// Update object values
+	o_loop = loop;
+	o_frame = frame;
+	return !done; // have we finished animating?
+}
+
 //=============================================================================
 //
 // Script API Functions
@@ -556,8 +645,12 @@ RuntimeScriptValue Sc_Object_Animate(void *self, const RuntimeScriptValue *param
 	API_OBJCALL_VOID_PINT5(ScriptObject, Object_Animate);
 }
 
-RuntimeScriptValue Sc_Object_AnimateFrom(void *self, const RuntimeScriptValue *params, int32_t param_count) {
-	API_OBJCALL_VOID_PINT6(ScriptObject, Object_AnimateFrom);
+RuntimeScriptValue Sc_Object_Animate6(void *self, const RuntimeScriptValue *params, int32_t param_count) {
+	API_OBJCALL_VOID_PINT6(ScriptObject, Object_AnimateEx);
+}
+
+RuntimeScriptValue Sc_Object_Animate7(void *self, const RuntimeScriptValue *params, int32_t param_count) {
+	API_OBJCALL_VOID_PINT7(ScriptObject, Object_AnimateEx);
 }
 
 // int (ScriptObject *objj, ScriptObject *obj2)
@@ -791,6 +884,10 @@ RuntimeScriptValue Sc_Object_GetName_New(void *self, const RuntimeScriptValue *p
 	API_CONST_OBJCALL_OBJ(ScriptObject, const char, _GP(myScriptStringImpl), Object_GetName_New);
 }
 
+RuntimeScriptValue Sc_Object_SetName(void *self, const RuntimeScriptValue *params, int32_t param_count) {
+	API_OBJCALL_VOID_POBJ(ScriptObject, Object_SetName, const char);
+}
+
 RuntimeScriptValue Sc_Object_GetScaling(void *self, const RuntimeScriptValue *params, int32_t param_count) {
 	API_OBJCALL_INT(ScriptObject, Object_GetScaling);
 }
@@ -858,7 +955,8 @@ RuntimeScriptValue Sc_Object_SetY(void *self, const RuntimeScriptValue *params, 
 
 void RegisterObjectAPI() {
 	ccAddExternalObjectFunction("Object::Animate^5", Sc_Object_Animate);
-	ccAddExternalObjectFunction("Object::Animate^6", Sc_Object_AnimateFrom);
+	ccAddExternalObjectFunction("Object::Animate^6", Sc_Object_Animate6);
+	ccAddExternalObjectFunction("Object::Animate^7", Sc_Object_Animate7);
 	ccAddExternalObjectFunction("Object::IsCollidingWithObject^1", Sc_Object_IsCollidingWithObject);
 	ccAddExternalObjectFunction("Object::GetName^1", Sc_Object_GetName);
 	ccAddExternalObjectFunction("Object::GetProperty^1", Sc_Object_GetProperty);
@@ -904,6 +1002,7 @@ void RegisterObjectAPI() {
 	ccAddExternalObjectFunction("Object::set_ManualScaling", Sc_Object_SetManualScaling);
 	ccAddExternalObjectFunction("Object::get_Moving", Sc_Object_GetMoving);
 	ccAddExternalObjectFunction("Object::get_Name", Sc_Object_GetName_New);
+	ccAddExternalObjectFunction("Object::set_Name", Sc_Object_SetName);
 	ccAddExternalObjectFunction("Object::get_Scaling", Sc_Object_GetScaling);
 	ccAddExternalObjectFunction("Object::set_Scaling", Sc_Object_SetScaling);
 	ccAddExternalObjectFunction("Object::get_Solid", Sc_Object_GetSolid);

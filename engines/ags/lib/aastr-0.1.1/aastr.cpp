@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -51,8 +50,8 @@ static void _aa_stretch_blit(BITMAP *_src, BITMAP *_dst,
 	int xi1, xi2, xdd, yxdd;
 	int yi1, yi2, ydd;
 	int dxbeg, dxend, dybeg, dyend;
-	unsigned long num;
-	void (*add)(BITMAP * _src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num);
+	uint32_t num;
+	void (*add)(BITMAP * _src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num);
 	void (*put)(byte * _addr, int _x);
 
 	if ((_dw <= 0) || (_dh <= 0) || (_sw <= 0) || (_sh <= 0))
@@ -198,8 +197,6 @@ static void _aa_stretch_blit(BITMAP *_src, BITMAP *_dst,
 
 		aa_ADVANCE(sy, yinc, ydd, yi1, yi2);
 	}
-
-	bmp_unwrite_line(_dst);
 }
 
 /*

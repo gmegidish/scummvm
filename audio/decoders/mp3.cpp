@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,9 +52,9 @@ public:
 	BaseMP3Stream();
 	virtual ~BaseMP3Stream();
 
-	bool endOfData() const { return _state == MP3_STATE_EOS; }
-	bool isStereo() const { return _channels == 2; }
-	int getRate() const { return _rate; }
+	bool endOfData() const override { return _state == MP3_STATE_EOS; }
+	bool isStereo() const override { return _channels == 2; }
+	int getRate() const override { return _rate; }
 
 protected:
 	void decodeMP3Data(Common::ReadStream &stream);
@@ -98,9 +97,9 @@ public:
 	MP3Stream(Common::SeekableReadStream *inStream,
 	               DisposeAfterUse::Flag dispose);
 
-	int readBuffer(int16 *buffer, const int numSamples);
-	bool seek(const Timestamp &where);
-	Timestamp getLength() const { return _length; }
+	int readBuffer(int16 *buffer, const int numSamples) override;
+	bool seek(const Timestamp &where) override;
+	Timestamp getLength() const override { return _length; }
 
 protected:
 	Common::ScopedPtr<Common::SeekableReadStream> _inStream;
@@ -118,13 +117,13 @@ public:
 	~PacketizedMP3Stream();
 
 	// AudioStream API
-	int readBuffer(int16 *buffer, const int numSamples);
-	bool endOfData() const;
-	bool endOfStream() const;
+	int readBuffer(int16 *buffer, const int numSamples) override;
+	bool endOfData() const override;
+	bool endOfStream() const override;
 
 	// PacketizedAudioStream API
-	void queuePacket(Common::SeekableReadStream *packet);
-	void finish();
+	void queuePacket(Common::SeekableReadStream *packet) override;
+	void finish() override;
 
 private:
 	Common::Mutex _mutex;
@@ -408,7 +407,7 @@ Common::SeekableReadStream *MP3Stream::skipID3(Common::SeekableReadStream *strea
 
 		// Add in the 10 bytes we read in
 		size += sizeof(data);
-		debug("Skipping ID3 TAG (%d bytes)", size);
+		debug(0, "Skipping ID3 TAG (%d bytes)", size);
 		offset = size;
 	}
 
@@ -544,7 +543,7 @@ SeekableAudioStream *makeMP3Stream(
 #endif
 	if (s && s->endOfData()) {
 		delete s;
-		return 0;
+		return nullptr;
 	} else {
 		return s;
 	}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,8 +53,6 @@ typedef uint8 nuvie_game_t; // Game type (1=u6,2=md,4=se)
 #define NUVIE_STYLE_ORIG_PLUS_CUTOFF_MAP 2
 #define NUVIE_STYLE_ORIG_PLUS_FULL_MAP   3
 
-#define MAX(x, y)      ((x) > (y) ? (x) : (y))
-#define MIN(x, y)      ((x) < (y) ? (x) : (y))
 #define clamp_min(v, c)  (((v) < (c)) ? (c) : (v))
 #define clamp_max(v, c)  (((v) > (c)) ? (c) : (v))
 #define clamp(v, c1, c2) ( ((v) < (c1)) ? (c1) : (((v) > (c2)) ? (c2) : (v)) )
@@ -86,17 +83,19 @@ const uint16 map_pitch[2] = { 1024, 256 }; // width of 0:surface plane, and 1:al
 #define WRAP_COORD(c,level) ((c)&=(map_pitch[(level==0)?0:1]-1)) // modifies C
 */
 
-#define NUVIE_DIR_N    0
-#define NUVIE_DIR_E    1
-#define NUVIE_DIR_S    2
-#define NUVIE_DIR_W    3
+enum NuvieDir {
+	NUVIE_DIR_N = 0,
+	NUVIE_DIR_E = 1,
+	NUVIE_DIR_S = 2,
+	NUVIE_DIR_W = 3,
 
-#define NUVIE_DIR_NE   4
-#define NUVIE_DIR_SE   5
-#define NUVIE_DIR_SW   6
-#define NUVIE_DIR_NW   7
+	NUVIE_DIR_NE = 4,
+	NUVIE_DIR_SE = 5,
+	NUVIE_DIR_SW = 6,
+	NUVIE_DIR_NW = 7,
 
-#define NUVIE_DIR_NONE 8
+	NUVIE_DIR_NONE = 8,
+};
 
 #define TRAMMEL_PHASE 1.75
 #define FELUCCA_PHASE 1.1666666666666667
@@ -110,6 +109,12 @@ enum DebugLevelType {
 	LEVEL_NOTIFICATION,
 	LEVEL_INFORMATIONAL,
 	LEVEL_DEBUGGING
+};
+
+enum ConverseGumpType {
+	CONVERSE_GUMP_DEFAULT = 0,
+	CONVERSE_GUMP_U7_STYLE = 1,
+	CONVERSE_GUMP_WOU_STYLE = 2,
 };
 
 #ifdef WITHOUT_DEBUG
@@ -127,10 +132,6 @@ extern void u6debug(bool no_header, const DebugLevelType level, const char *form
 
 #define NUVIE_RAND_MAX 0x7fffffff // POSIX: 2^(31)-1
 #define NUVIE_RAND() getRandom(NUVIE_RAND_MAX)
-
-#define MAXPATHLEN 256
-
-#define nuprint Game::get_game()->get_scroll()->print
 
 } // End of namespace Nuvie
 } // End of namespace Ultima

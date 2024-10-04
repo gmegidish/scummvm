@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@
 #ifndef AGS_ENGINE_AC_DYNOBJ_CC_DYNAMIC_OBJECT_H
 #define AGS_ENGINE_AC_DYNOBJ_CC_DYNAMIC_OBJECT_H
 
-#include "ags/lib/std/utility.h"
+#include "common/std/utility.h"
 #include "ags/shared/core/types.h"
 
 namespace AGS3 {
@@ -124,7 +123,7 @@ extern int   ccUnserializeAllObjects(Shared::Stream *in, ICCObjectReader *callba
 // dispose the object if RefCount==0
 extern void  ccAttemptDisposeObject(int32_t handle);
 // translate between object handles and memory addresses
-extern int32_t ccGetObjectHandleFromAddress(const char *address);
+extern int32_t ccGetObjectHandleFromAddress(const void *address);
 // TODO: not sure if it makes any sense whatsoever to use "const char*"
 // in these functions, might as well change to char* or just void*.
 extern const char *ccGetObjectAddressFromHandle(int32_t handle);

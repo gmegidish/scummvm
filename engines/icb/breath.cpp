@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,23 +20,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#if !defined(_PSX_ON_PC)
 #include "engines/icb/debug.h"
 #include "engines/icb/mission.h"
 #include "engines/icb/global_objects.h"
-#endif
 
 #include "engines/icb/icb.h"
 #include "engines/icb/breath.h"
 
 namespace ICB {
-
-#if !defined(_PSX_ON_PC)
 
 mcodeFunctionReturnCodes fn_breath(int32 &result, int32 *params) { return (MS->fn_breath(result, params)); }
 
@@ -53,8 +48,6 @@ mcodeFunctionReturnCodes _game_session::fn_breath(int32 &, int32 *params) {
 
 	return IR_CONT;
 }
-
-#endif
 
 // init the breath, so we get a stream of breath....
 Breath::Breath() {
@@ -81,7 +74,7 @@ Breath::Breath() {
 #define SMOKE_IC (32)
 #define SMOKE_IS (4)
 
-#define BREATH_DY (-(g_icb->getRandomSource()->getRandomNumber(2 - 1)))
+#define BREATH_DY (-static_cast<int>(g_icb->getRandomSource()->getRandomNumber(2 - 1)))
 #define BREATH_DZ (g_icb->getRandomSource()->getRandomNumber(4 - 1))
 #define BREATH_DC (-4)
 #define BREATH_DS (2)
@@ -157,7 +150,7 @@ void Breath::Update() {
 					breathColour[i] = SMOKE_IC;
 				}
 
-				// we have definately started now!
+				// we have definitely started now!
 				breathStarted[i] = 1;
 			}
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ public:
 
 	CSImage(U6Shape *shape) {
 		orig_shp = shape;
-		scaled_shp = NULL;
+		scaled_shp = nullptr;
 		shp = shape;
 		scale = 100;
 		refcount = 0;
@@ -96,7 +95,7 @@ struct CSSprite {
 		x = 0;
 		y = 0;
 		opacity = 255;
-		image = NULL;
+		image = nullptr;
 		visible = false;
 		clip_rect = Common::Rect();
 		text = "";
@@ -169,10 +168,10 @@ public:
 		return sound_manager;
 	}
 
-	uint16 get_x_off() {
+	uint16 get_x_off() const {
 		return x_off;
 	}
-	uint16 get_y_off() {
+	uint16 get_y_off() const {
 		return y_off;
 	}
 
@@ -202,7 +201,7 @@ public:
 
 private:
 	bool is_lzc(const char *filename);
-	CSImage *load_image_from_lzc(Std::string filename, uint16 idx, uint16 sub_idx);
+	CSImage *load_image_from_lzc(const Common::Path &filename, uint16 idx, uint16 sub_idx);
 	void display_wrapped_text(CSSprite *s);
 	int display_wrapped_text_line(Std::string str, uint8 text_color, int x, int y, uint8 align_val);
 };

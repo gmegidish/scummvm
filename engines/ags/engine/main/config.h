@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,24 +47,10 @@ void post_config();
 
 void save_config_file();
 
-ScreenSizeDefinition parse_screendef(const String &option, ScreenSizeDefinition def_value);
-void parse_scaling_option(const String &scaling_option, FrameScaleDefinition &scale_def, int &scale_factor);
-void parse_scaling_option(const String &scaling_option, GameFrameSetup &frame_setup);
-String make_scaling_option(FrameScaleDefinition scale_def, int scale_factor = 0);
-String make_scaling_option(const GameFrameSetup &frame_setup);
+FrameScaleDef parse_scaling_option(const String &option, FrameScaleDef def_value = kFrame_Undefined);
+String make_scaling_option(FrameScaleDef scale_def);
 uint32_t convert_scaling_to_fp(int scale_factor);
 int convert_fp_to_scaling(uint32_t scaling);
-// Fill in setup structs with default settings for the given mode (windowed or fullscreen)
-void graphics_mode_get_defaults(bool windowed, ScreenSizeSetup &scsz_setup, GameFrameSetup &frame_setup);
-
-
-bool INIreaditem(const ConfigTree &cfg, const String &sectn, const String &item, String &value);
-int INIreadint(const ConfigTree &cfg, const String &sectn, const String &item, int def_value = 0);
-float INIreadfloat(const ConfigTree &cfg, const String &sectn, const String &item, float def_value = 0.f);
-String INIreadstring(const ConfigTree &cfg, const String &sectn, const String &item, const String &def_value = "");
-void INIwriteint(ConfigTree &cfg, const String &sectn, const String &item, int value);
-void INIwritestring(ConfigTree &cfg, const String &sectn, const String &item, const String &value);
-void INIwriteint(ConfigTree &cfg, const String &sectn, const String &item, int value);
 
 } // namespace AGS3
 

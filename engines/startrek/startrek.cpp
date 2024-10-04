@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,8 +56,8 @@ StarTrekEngine::StarTrekEngine(OSystem *syst, const StarTrekGameDescription *gam
 	_sineTable(1024),
 	_cosineTable(1024) {
 
-	if (getPlatform() != Common::kPlatformDOS)
-		error("Only DOS versions of Star Trek: 25th Anniversary are currently supported");
+	if (getPlatform() == Common::kPlatformAmiga)
+		error("Amiga versions of Star Trek: 25th Anniversary are not yet supported");
 	else if (getGameType() == GType_STJR)
 		error("Star Trek: Judgment Rites is not yet supported");
 
@@ -125,7 +124,7 @@ StarTrekEngine::StarTrekEngine(OSystem *syst, const StarTrekGameDescription *gam
 	_awayMission.sins.missionScore = 0;
 	_awayMission.veng.missionScore = 0;
 
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "patches");
 }
 
@@ -139,7 +138,11 @@ StarTrekEngine::~StarTrekEngine() {
 }
 
 Common::Error StarTrekEngine::run() {
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
+	SearchMan.addSubDirectoryMatching(gameDataDir, "misc");
+
 	bool isDemo = getFeatures() & GF_DEMO;
+	bool isCd = getFeatures() & GF_CDROM;
 	_resource = new Resource(getPlatform(), isDemo);
 	_gfx = new Graphics(this);
 	_sound = new Sound(this);
@@ -162,7 +165,7 @@ Common::Error StarTrekEngine::run() {
 	}
 
 	if (!loadedSave) {
-		if (!isDemo) {
+		if (isCd || !isDemo) {
 			playIntro();
 			_missionToLoad = "DEMON";
 			_bridgeSequenceToLoad = 0;
@@ -324,12 +327,12 @@ void StarTrekEngine::runTransportSequence(const Common::String &name) {
 	_gfx->drawAllSprites();
 	_gfx->fadeinScreen();
 
-	_sound->playSoundEffectIndex(0x0a);
+	_sound->playSoundEffectIndex(kSfxTransporterEnergize);
 
 	if (name.equalsIgnoreCase("teled"))
-		_sound->playSoundEffectIndex(0x08);
+		_sound->playSoundEffectIndex(kSfxTransporterDematerialize);
 	else
-		_sound->playSoundEffectIndex(0x09);
+		_sound->playSoundEffectIndex(kSfxTransporterMaterialize);
 
 	while (_actorList[0].field62 == 0) {
 		TrekEvent event;
@@ -364,7 +367,7 @@ void StarTrekEngine::playMovieMac(Common::String filename) {
 
 	Video::QuickTimeDecoder *qtDecoder = new Video::QuickTimeDecoder();
 
-	if (!qtDecoder->loadFile(filename))
+	if (!qtDecoder->loadFile(Common::Path(filename)))
 		error("Could not open '%s'", filename.c_str());
 
 	bool continuePlaying = true;

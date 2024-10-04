@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,6 +64,8 @@
 // - Memory size for ite
 // - Try discworld?
 
+#include <nds.h>
+
 #include "backends/platform/ds/osystem_ds.h"
 #include "backends/plugins/ds/ds-provider.h"
 #include "base/main.h"
@@ -102,6 +103,11 @@ void fastRamReset() {
 /////////////////
 
 int main(int argc, char **argv) {
+#ifndef DISABLE_TEXT_CONSOLE
+	videoSetModeSub(MODE_0_2D);
+	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 30, 0, false, true);
+#endif
+
 	g_system = new OSystem_DS();
 	assert(g_system);
 

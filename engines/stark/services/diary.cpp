@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ void Diary::addDiaryEntry(const Common::String &name) {
 	StarkUserInterface->notifyDiaryEntryEnabled();
 }
 
-void Diary::addFMVEntry(const Common::String &filename, const Common::String &title, int gameDisc) {
+void Diary::addFMVEntry(const Common::Path &filename, const Common::String &title, int gameDisc) {
 	if (!hasFMVEntry(filename)) {
 		FMVEntry entry;
 		entry.filename = filename;
@@ -59,7 +58,7 @@ void Diary::addFMVEntry(const Common::String &filename, const Common::String &ti
 	}
 }
 
-bool Diary::hasFMVEntry(const Common::String &filename) const {
+bool Diary::hasFMVEntry(const Common::Path &filename) const {
 	for (uint i = 0; i < _fmvEntries.size(); i++) {
 		if (_fmvEntries[i].filename == filename) {
 			return true;
@@ -95,7 +94,14 @@ void Diary::saveLoad(ResourceSerializer *serializer) {
 	// FMV entries
 	serializer->syncArraySize(_fmvEntries);
 	for (uint i = 0; i < _fmvEntries.size(); i++) {
-		serializer->syncAsString32(_fmvEntries[i].filename);
+		if (serializer->isSaving()) {
+			Common::String filename(_fmvEntries[i].filename.toString('/'));
+			serializer->syncAsString32(filename);
+		} else {
+			Common::String filename;
+			serializer->syncAsString32(filename);
+			_fmvEntries[i].filename = Common::Path(filename, '/');
+		}
 		serializer->syncAsString32(_fmvEntries[i].title);
 		serializer->syncAsUint32LE(_fmvEntries[i].gameDisc);
 	}

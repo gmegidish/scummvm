@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,7 @@
 #define BACKENDS_NETWORKING_SDL_NET_LISTAJAXHANDLER_H
 
 #include "backends/networking/sdl_net/handlers/filesbasehandler.h"
-#include "common/json.h"
+#include "common/formats/json.h"
 
 namespace Networking {
 
@@ -43,19 +42,19 @@ class ListAjaxHandler: public FilesBaseHandler {
 	 *
 	 * Returns JSON with either listed directory or error response.
 	 */
-	Common::JSONObject listDirectory(Common::String path);
+	Common::JSONObject listDirectory(const Common::String &path);
 
 	/** Helper method for detecting items' type. */
 	static ItemType detectType(bool isDirectory, const Common::String &name);
 
 	/** Helper method for adding items into the files list. */
-	static void addItem(Common::JSONArray &responseItemsList, ItemType itemType, Common::String path, Common::String name, Common::String size = "");
+	static void addItem(Common::JSONArray &responseItemsList, ItemType itemType, const Common::String &path, const Common::String &name, const Common::String &size = "");
 
 public:
 	ListAjaxHandler();
-	virtual ~ListAjaxHandler();
+	~ListAjaxHandler() override;
 
-	virtual void handle(Client &client);
+	void handle(Client &client) override;
 };
 
 } // End of namespace Networking

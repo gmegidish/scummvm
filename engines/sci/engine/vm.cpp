@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -132,7 +131,7 @@ static reg_t read_var(EngineState *s, int type, int index) {
 					s->variables[type][index] = NULL_REG;
 					break;
 #else
-					error("Uninitialized read for temp %d from %s", index, originReply.toString().c_str());
+					error("Uninitialized read for temp %d", index);
 #endif
 				}
 				assert(solution.type == WORKAROUND_FAKE);
@@ -162,35 +161,6 @@ static reg_t read_var(EngineState *s, int type, int index) {
 
 static void write_var(EngineState *s, int type, int index, reg_t value) {
 	if (validate_variable(s->variables[type], s->stack_base, type, s->variablesMax[type], index)) {
-
-		// WORKAROUND: This code is needed to work around a probable script bug, or a
-		// limitation of the original SCI engine, which can be observed in LSL5.
-		//
-		// In some games, ego walks via the "Grooper" object, in particular its "stopGroop"
-		// child. In LSL5, during the game, ego is swapped from Larry to Patti. When this
-		// happens in the original interpreter, the new actor is loaded in the same memory
-		// location as the old one, therefore the client variable in the stopGroop object
-		// points to the new actor. This is probably why the reference of the stopGroop
-		// object is never updated (which is why I mentioned that this is either a script
-		// bug or some kind of limitation).
-		//
-		// In our implementation, each new object is loaded in a different memory location,
-		// and we can't overwrite the old one. This means that in our implementation,
-		// whenever ego is changed, we need to update the "client" variable of the
-		// stopGroop object, which points to ego, to the new ego object. If this is not
-		// done, ego's movement will not be updated properly, so the result is
-		// unpredictable (for example in LSL5, Patti spins around instead of walking).
-		if (index == kGlobalVarEgo && type == VAR_GLOBAL && getSciVersion() > SCI_VERSION_0_EARLY) {
-			reg_t stopGroopPos = s->_segMan->findObjectByName("stopGroop");
-			if (!stopGroopPos.isNull()) {	// does the game have a stopGroop object?
-				// Find the "client" member variable of the stopGroop object, and update it
-				ObjVarRef varp;
-				if (lookupSelector(s->_segMan, stopGroopPos, SELECTOR(client), &varp, NULL) == kSelectorVariable) {
-					reg_t *clientVar = varp.getPointer(s->_segMan);
-					*clientVar = value;
-				}
-			}
-		}
 
 		// If we are writing an uninitialized value into a temp, we remove the uninitialized segment
 		//  this happens at least in sq1/room 44 (slot-machine), because a send is missing parameters, then
@@ -228,7 +198,7 @@ ExecStack *execute_method(EngineState *s, uint16 script, uint16 pubfunct, StackP
 
 	uint32 exportAddr = scr->validateExportFunc(pubfunct, false);
 	if (!exportAddr)
-		return NULL;
+		return nullptr;
 
 	assert(argp[0].toUint16() == argc); // The first argument is argc
 	ExecStack xstack(calling_obj, calling_obj, sp, argc, argp,
@@ -281,7 +251,7 @@ ExecStack *send_selector(EngineState *s, reg_t send_obj, reg_t work_obj, StackPt
 		argp++;
 		argc = argp->requireUint16();
 
-		if (argc > 0x800)	// More arguments than the stack could possibly accomodate for
+		if (argc > 0x800)	// More arguments than the stack could possibly accommodate for
 			error("send_selector(): More than 0x800 arguments to function call");
 
 #ifdef ENABLE_SCI32
@@ -293,7 +263,7 @@ ExecStack *send_selector(EngineState *s, reg_t send_obj, reg_t work_obj, StackPt
 			error("Send to invalid selector 0x%x (%s) of object at %04x:%04x", 0xffff & selector, g_sci->getKernel()->getSelectorName(0xffff & selector).c_str(), PRINT_REG(send_obj));
 
 		ExecStackType stackType = EXEC_STACK_TYPE_VARSELECTOR;
-		StackPtr curSP = NULL;
+		StackPtr curSP = nullptr;
 		reg_t curFP = make_reg32(0, 0);
 		if (selectorType == kSelectorMethod) {
 			stackType = EXEC_STACK_TYPE_CALL;
@@ -330,7 +300,7 @@ ExecStack *send_selector(EngineState *s, reg_t send_obj, reg_t work_obj, StackPt
 	// those will get executed by op_ret later.
 	_exec_varselectors(s);
 
-	return s->_executionStack.empty() ? NULL : &(s->_executionStack.back());
+	return s->_executionStack.empty() ? nullptr : &(s->_executionStack.back());
 }
 
 static void addKernelCallToExecStack(EngineState *s, int kernelCallNr, int kernelSubCallNr, int argc, reg_t *argv) {
@@ -360,7 +330,7 @@ static void callKernelFunc(EngineState *s, int kernelCallNr, int argc) {
 		case WORKAROUND_NONE: {
 			Common::String signatureDetailsStr;
 			kernel->signatureDebug(signatureDetailsStr, kernelCall.signature, argc, argv);
-			error("\n%s[VM] k%s[%x]: signature mismatch in %s", signatureDetailsStr.c_str(), kernelCall.name, kernelCallNr, originReply.toString().c_str());
+			error("\n%s[VM] k%s[%x]: signature mismatch", signatureDetailsStr.c_str(), kernelCall.name, kernelCallNr);
 			break;
 			}
 		case WORKAROUND_IGNORE: // don't do kernel call, leave acc alone
@@ -383,7 +353,7 @@ static void callKernelFunc(EngineState *s, int kernelCallNr, int argc) {
 		s->r_acc = kernelCall.function(s, argc, argv);
 
 		if (g_sci->checkKernelBreakpoint(kernelCall.name))
-			logKernelCall(&kernelCall, NULL, s, argc, argv, s->r_acc);
+			logKernelCall(&kernelCall, nullptr, s, argc, argv, s->r_acc);
 	} else {
 		// Sub-functions available, check signature and call that one directly
 		if (argc < 1)
@@ -423,13 +393,11 @@ static void callKernelFunc(EngineState *s, int kernelCallNr, int argc) {
 				int callNameLen = strlen(kernelCall.name);
 				if (strncmp(kernelCall.name, kernelSubCall.name, callNameLen) == 0) {
 					const char *subCallName = kernelSubCall.name + callNameLen;
-					error("\n%s[VM] k%s(%s): signature mismatch in %s",
-						signatureDetailsStr.c_str(), kernelCall.name, subCallName,
-						originReply.toString().c_str());
+					error("\n%s[VM] k%s(%s): signature mismatch",
+						signatureDetailsStr.c_str(), kernelCall.name, subCallName);
 				}
-				error("\n%s[VM] k%s: signature mismatch in %s",
-					signatureDetailsStr.c_str(), kernelSubCall.name,
-					originReply.toString().c_str());
+				error("\n%s[VM] k%s: signature mismatch",
+					signatureDetailsStr.c_str(), kernelSubCall.name);
 				break;
 			}
 			case WORKAROUND_IGNORE: // don't do kernel call, leave acc alone
@@ -580,9 +548,9 @@ void run_vm(EngineState *s) {
 	s->r_rest = 0;	// &rest adjusts the parameter count by this value
 	// Current execution data:
 	s->xs = &(s->_executionStack.back());
-	ExecStack *xs_new = NULL;
+	ExecStack *xs_new = nullptr;
 	Object *obj = s->_segMan->getObject(s->xs->objp);
-	Script *scr = 0;
+	Script *scr = nullptr;
 	Script *local_script = s->_segMan->getScriptIfLoaded(s->xs->local_segment);
 	int old_executionStackBase = s->executionStackBase;
 	// Used to detect the stack bottom, for "physical" returns
@@ -626,15 +594,12 @@ void run_vm(EngineState *s) {
 				s->variablesSegment[VAR_LOCAL] = local_script->getLocalsSegment();
 				s->variablesBase[VAR_LOCAL] = s->variables[VAR_LOCAL] = local_script->getLocalsBegin();
 				s->variablesMax[VAR_LOCAL] = local_script->getLocalsCount();
-				s->variablesMax[VAR_TEMP] = s->xs->sp - s->xs->fp;
+				s->variablesMax[VAR_TEMP] = s->xs->tempCount;
 				s->variablesMax[VAR_PARAM] = s->xs->argc + 1;
 			}
 			s->variables[VAR_TEMP] = s->xs->fp;
 			s->variables[VAR_PARAM] = s->xs->variables_argp;
 		}
-
-		if (s->abortScriptProcessing != kAbortNone)
-			return; // Stop processing
 
 		g_sci->checkAddressBreakpoint(s->xs->addr.pc);
 
@@ -650,8 +615,6 @@ void run_vm(EngineState *s) {
 		if (s->xs->sp < s->xs->fp)
 			error("run_vm(): stack underflow, sp: %04x:%04x, fp: %04x:%04x",
 			PRINT_REG(*s->xs->sp), PRINT_REG(*s->xs->fp));
-
-		s->variablesMax[VAR_TEMP] = s->xs->sp - s->xs->fp;
 
 		if (s->xs->addr.pc.getOffset() >= scr->getBufSize())
 			error("run_vm(): program counter gone astray, addr: %d, code buffer size: %d",
@@ -847,6 +810,8 @@ void run_vm(EngineState *s) {
 			break;
 
 		case op_link: // 0x1f (31)
+			s->variablesMax[VAR_TEMP] = s->xs->tempCount = opparams[0];
+
 			// We shouldn't initialize temp variables at all
 			//  We put special segment 0xFFFF in there, so that uninitialized reads can get detected
 			for (int i = 0; i < opparams[0]; i++)
@@ -949,8 +914,7 @@ void run_vm(EngineState *s) {
 		case op_ret: // 0x24 (36)
 			// Return from an execution loop started by call, calle, callb, send, self or super
 			do {
-				StackPtr old_sp2 = s->xs->sp;
-				StackPtr old_fp = s->xs->fp;
+				StackPtr old_sp = s->xs->sp;
 				ExecStack *old_xs = &(s->_executionStack.back());
 
 				if ((int)s->_executionStack.size() - 1 == s->executionStackBase) { // Have we reached the base?
@@ -982,8 +946,8 @@ void run_vm(EngineState *s) {
 
 				if (s->xs->sp == CALL_SP_CARRY // Used in sends to 'carry' the stack pointer
 				        || s->xs->type != EXEC_STACK_TYPE_CALL) {
-					s->xs->sp = old_sp2;
-					s->xs->fp = old_fp;
+					s->xs->sp = old_sp;
+					s->xs->fp = old_sp;
 				}
 
 			} while (s->xs->type == EXEC_STACK_TYPE_VARSELECTOR);
@@ -1433,7 +1397,7 @@ void run_vm(EngineState *s) {
 
 reg_t *ObjVarRef::getPointer(SegManager *segMan) const {
 	Object *o = segMan->getObject(obj);
-	return o ? &o->getVariableRef(varindex) : 0;
+	return o ? &o->getVariableRef(varindex) : nullptr;
 }
 
 reg_t *ExecStack::getVarPointer(SegManager *segMan) const {

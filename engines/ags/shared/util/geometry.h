@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -180,6 +179,14 @@ struct Size {
 
 	inline bool operator<(const Size &other) const { // TODO: this implementation is silly and not universally useful; make a realistic one and replace with another function where necessary
 		return Width < other.Width || (Width == other.Width && Height < other.Height);
+	}
+
+	inline Size operator+(const Size &size) const {
+		return Size(Width + size.Width, Height + size.Height);
+	}
+
+	inline Size operator-(const Size &size) const {
+		return Size(Width - size.Width, Height - size.Height);
 	}
 
 	inline Size operator *(int x) const {
@@ -365,6 +372,10 @@ Rect OffsetRect(const Rect &r, const Point off);
 Rect CenterInRect(const Rect &place, const Rect &item);
 Rect ClampToRect(const Rect &place, const Rect &item);
 Rect PlaceInRect(const Rect &place, const Rect &item, const RectPlacement &placement);
+// Sum two rectangles, the result is the rectangle bounding them both
+Rect SumRects(const Rect &r1, const Rect &r2);
+// Intersect two rectangles, the resolt is the rectangle bounding their intersection
+Rect IntersectRects(const Rect &r1, const Rect &r2);
 
 //} // namespace Shared
 //} // namespace AGS

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,8 +40,8 @@ public:
 	TextHandler (MortevielleEngine *vm);
 
 	void displayStr(Common::String inputStr, int x, int y, int dx, int dy, int typ);
-	void loadPictureFile(Common::String filename, Common::String altFilename, int32 skipSize, int length);
-	void loadAniFile(Common::String filename, int32 skipSize, int length);
+	void loadPictureFile(const Common::Path &filename, const Common::Path &altFilename, int32 skipSize, int length);
+	void loadAniFile(const Common::Path &filename, int32 skipSize, int length);
 	void taffich();
 };
 

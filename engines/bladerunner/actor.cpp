@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -201,6 +200,16 @@ void Actor::changeAnimationMode(int animationMode, bool force) {
 		_vm->_aiScripts->changeAnimationMode(_id, animationMode);
 		_animationMode = animationMode;
 	}
+}
+
+// New for debugging purposes
+void Actor::changeAnimationState(int animationState, int animationFrame, int animationStateNext, int animationNext) {
+	_vm->_aiScripts->setAnimationState(_id, animationState, animationFrame, animationStateNext, animationNext);
+}
+
+// New for debugging purposes
+void Actor::queryAnimationState(int *animationState, int *animationFrame, int *animationStateNext, int *animationNext) {
+	_vm->_aiScripts->queryAnimationState(_id, animationState, animationFrame, animationStateNext, animationNext);
 }
 
 int Actor::getFPS() const {
@@ -1356,7 +1365,8 @@ void Actor::speechPlay(int sentenceId, bool voiceOver) {
 	if (!voiceOver && _id != BladeRunnerEngine::kActorVoiceOver) {
 #if BLADERUNNER_ORIGINAL_BUGS
 		Vector3 screenPosition = _vm->_view->calculateScreenPosition(_position);
-		pan = (75 * (2 *  CLIP<int>(screenPosition.x, 0, 640) - 640)) / 640; // map [0..640] to [-75..75]
+		// pan:: map [0..640] to [-75..75]
+		pan = (75 * (2 *  CLIP<int>(screenPosition.x, 0, BladeRunnerEngine::kOriginalGameWidth) - BladeRunnerEngine::kOriginalGameWidth)) / BladeRunnerEngine::kOriginalGameWidth;
 #else
 		// There are a few situations whereby 
 		// the actor is not actually in the set when speaking, 
@@ -1378,8 +1388,8 @@ void Actor::speechPlay(int sentenceId, bool voiceOver) {
 			// x: 149 --> pan: -41
 			// PS05 TV
 			// x: 527 --> pan:  48
-			// These quotes only play in kSetMA04 and kSetPS05
-			pan = (_vm->_playerActor->getSetId() == kSetMA04) ? -41 : 48;
+			// These quotes only play in MA04 scene and kSetPS05
+			pan = (_vm->_playerActor->getSetId() == kSetPS05) ? 48 : -41;
 		} else if ((_id == kActorLucy     && sentenceId >= 500  && sentenceId <= 640)
 		        || (_id == kActorClovis   && sentenceId >= 310  && sentenceId <= 540)
 		        || (_id == kActorDektora  && sentenceId >= 220  && sentenceId <= 490)
@@ -1387,7 +1397,7 @@ void Actor::speechPlay(int sentenceId, bool voiceOver) {
 		        || (_id == kActorGuzza    && sentenceId >= 0    && sentenceId <= 70)) {
 			// MA04 phone
 			// x: 351 --> pan: 7
-			// These quotes only play in kSetMA04
+			// These quotes only play in MA04 scene
 			pan = 7;
 		} else if (_id == kActorGuzza     && sentenceId >= 1380 && sentenceId <= 1480) {
 			// NR02 phone (Taffy's)
@@ -1466,20 +1476,21 @@ void Actor::speechPlay(int sentenceId, bool voiceOver) {
 			default:
 				actorScreenPosition = _vm->_view->calculateScreenPosition(_position);
 			}
-			pan	= (75 * (2 *  CLIP<int>(actorScreenPosition.x, 0, 640) - 640)) / 640; // map [0..640] to [-75..75]
+			// map [0..640] to [-75..75]
+			pan	= (75 * (2 *  CLIP<int>(actorScreenPosition.x, 0, BladeRunnerEngine::kOriginalGameWidth) - BladeRunnerEngine::kOriginalGameWidth)) / BladeRunnerEngine::kOriginalGameWidth;
 		}
 		// debug("actor: %d, pan: %d", _id, pan);
 #endif // BLADERUNNER_ORIGINAL_BUGS
 	}
 
 	_vm->_subtitles->loadInGameSubsText(_id, sentenceId);
-	_vm->_subtitles->show();
+	_vm->_subtitles->show(BladeRunner::Subtitles::kSubtitlesPrimary);
 
 	_vm->_audioSpeech->playSpeech(name, pan);
 }
 
 void Actor::speechStop() {
-	_vm->_subtitles->hide();
+	_vm->_subtitles->hide(BladeRunner::Subtitles::kSubtitlesPrimary);
 	_vm->_audioSpeech->stopSpeech();
 }
 
@@ -1517,7 +1528,7 @@ bool Actor::hasClue(int clueId) const {
 // or retrieve from Mainframe (eg. Klein)
 // see: ScriptBase::Actor_Clues_Transfer_New_From_Mainframe()
 //      ScriptBase::Actor_Clues_Transfer_New_To_Mainframe()
-// In Restored Content it will skip transfering clues that are Intangible (default clue type)
+// In Restored Content it will skip transferring clues that are Intangible (default clue type)
 // since those clues do not actually show up in McCoy's KIA
 bool Actor::copyClues(int actorId) {
 	bool newCluesAcquired = false;
@@ -1536,7 +1547,7 @@ bool Actor::copyClues(int actorId) {
 			if (_vm->_cutContent
 			    && ((_id == BladeRunnerEngine::kActorVoiceOver && actorId == kActorMcCoy)
 			        || (_id == kActorMcCoy && actorId == BladeRunnerEngine::kActorVoiceOver) )) {
-				// when transfering a clue successfully between McCoy (playerActor) and Mainframe,
+				// when transferring a clue successfully between McCoy (playerActor) and Mainframe,
 				// we mark it as such, since if McCoy later marks it as hidden (with Bob's KIA hack)
 				// the player will have some indication that this clue is already on the mainframe.
 				// Hence manually hiding it would be pointless.
@@ -1580,11 +1591,12 @@ int Actor::soundVolume() const {
 }
 
 // overrideRange argument was added to allow for more accurate sound balance on occasion (if required)
+// overrideRange value should be in [35, 100]
 int Actor::soundPan(uint8 overrideRange) const {
 	Vector3 screenPosition = _vm->_view->calculateScreenPosition(_position);
 	// By default map [0..640] to [-overrideRange..overrideRange] (default range [-35..35])
 	CLIP<int>(overrideRange, 35, 100);
-	return (overrideRange * (2 * CLIP<int>(screenPosition.x, 0, 640) - 640)) / 640;
+	return (overrideRange * (2 * CLIP<int>(screenPosition.x, 0, BladeRunnerEngine::kOriginalGameWidth) - BladeRunnerEngine::kOriginalGameWidth)) / BladeRunnerEngine::kOriginalGameWidth;
 }
 
 bool Actor::isObstacleBetween(const Vector3 &target) {

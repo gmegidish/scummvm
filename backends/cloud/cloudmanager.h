@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 
 #include "backends/cloud/storage.h"
 #include "backends/cloud/cloudicon.h"
+#include "backends/networking/curl/curljsonrequest.h"
 
 #include "common/array.h"
 #include "common/singleton.h"
@@ -86,11 +86,11 @@ class CloudManager : public Common::Singleton<CloudManager>, public Common::Even
 	 * The periodical polling is used to update the OSD icon indicating
 	 * background sync activity.
 	 */
-	virtual bool pollEvent(Common::Event &event) override;
+	bool pollEvent(Common::Event &event) override;
 
 public:
 	CloudManager();
-	virtual ~CloudManager();
+	~CloudManager() override;
 
 	/**
 	 * Loads all information from configs and creates current Storage instance.
@@ -178,7 +178,7 @@ public:
 	 * @param   index   Storage's index.
 	 * @param   name    username to set
 	 */
-	void setStorageUsername(uint32 index, Common::String name);
+	void setStorageUsername(uint32 index, const Common::String &name);
 
 	/**
 	 * Set Storage's used space field.
@@ -196,7 +196,7 @@ public:
 	 * @param   index   Storage's index.
 	 * @param   date    date to set
 	 */
-	void setStorageLastSync(uint32 index, Common::String date);
+	void setStorageLastSync(uint32 index, const Common::String &date);
 
 	/**
 	 * Replace Storage which has given index with a
@@ -206,7 +206,28 @@ public:
 	 * @param   code    OAuth2 code received from user
 	 * @param	cb		callback to notify of success or error
 	 */
-	void connectStorage(uint32 index, Common::String code, Networking::ErrorCallback cb = nullptr);
+	void connectStorage(uint32 index, const Common::String &code, Networking::ErrorCallback cb = nullptr);
+
+	/**
+	 * Replace Storage which has given index with a
+	 * storage created with given JSON response.
+	 *
+	 * @param   index          Storage's index
+	 * @param   codeFlowJson   OAuth2 code flow JSON response (acquired from cloud.scummvm.org)
+	 * @param	cb		       callback to notify of success or error
+	 */
+	void connectStorage(uint32 index, Networking::JsonResponse codeFlowJson, Networking::ErrorCallback cb = nullptr);
+
+	/**
+	 * From given JSON response, extract Storage index
+	 * and replace Storage that has this index with a
+	 * storage created with given JSON.
+	 *
+	 * @param   codeFlowJson   OAuth2 code flow JSON response (acquired from cloud.scummvm.org)
+	 * @param	cb		       callback to notify of success or error
+	 * @returns whether Storage index was found and is correct
+	 */
+	bool connectStorage(Networking::JsonResponse codeFlowJson, Networking::ErrorCallback cb = nullptr);
 
 	/**
 	 * Remove Storage with a given index from config.
@@ -216,10 +237,10 @@ public:
 	void disconnectStorage(uint32 index);
 
 	/** Returns ListDirectoryResponse with list of files. */
-	Networking::Request *listDirectory(Common::String path, Storage::ListDirectoryCallback callback, Networking::ErrorCallback errorCallback, bool recursive = false);
+	Networking::Request *listDirectory(const Common::String &path, Storage::ListDirectoryCallback callback, Networking::ErrorCallback errorCallback, bool recursive = false);
 
 	/** Returns Common::Array<StorageFile> with list of files, which were not downloaded. */
-	Networking::Request *downloadFolder(Common::String remotePath, Common::String localPath, Storage::FileArrayCallback callback, Networking::ErrorCallback errorCallback, bool recursive = false);
+	Networking::Request *downloadFolder(const Common::String &remotePath, const Common::Path &localPath, Storage::FileArrayCallback callback, Networking::ErrorCallback errorCallback, bool recursive = false);
 
 	/** Return the StorageInfo struct. */
 	Networking::Request *info(Storage::StorageInfoCallback callback, Networking::ErrorCallback errorCallback);
@@ -252,6 +273,9 @@ public:
 	/** Returns a number in [0, 1] range which represents current sync downloading progress (1 = complete). */
 	double getSyncDownloadingProgress() const;
 
+	/** Fills a struct with numbers about current sync downloading progress. */
+	void getSyncDownloadingInfo(Storage::SyncDownloadingInfo &info) const;
+
 	/** Returns a number in [0, 1] range which represents current sync progress (1 = complete). */
 	double getSyncProgress() const;
 
@@ -261,16 +285,13 @@ public:
 	/** Cancels running sync. */
 	void cancelSync() const;
 
-	/** Sets SavesSyncRequest's target to given CommandReceiver. */
-	void setSyncTarget(GUI::CommandReceiver *target) const;
-
 	/** Shows a "cloud disabled" icon for three seconds. */
 	void showCloudDisabledIcon();
 
 	///// DownloadFolderRequest-related /////
 
 	/** Starts a folder download. */
-	bool startDownload(Common::String remotePath, Common::String localPath) const;
+	bool startDownload(const Common::String &remotePath, const Common::Path &localPath) const;
 
 	/** Cancels running download. */
 	void cancelDownload() const;
@@ -297,7 +318,7 @@ public:
 	Common::String getDownloadRemoteDirectory() const;
 
 	/** Returns local directory path. */
-	Common::String getDownloadLocalDirectory() const;
+	Common::Path getDownloadLocalDirectory() const;
 };
 
 /** Shortcut for accessing the connection manager. */

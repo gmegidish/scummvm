@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -79,6 +78,7 @@ void SceneScriptCT11::SceneLoaded() {
 			// For the first case, a CrazyLegs advertisement (plus note) is placed in Dektora's room (nr07, kClueCrazysInvolvement)
 			Item_Add_To_World(kItemNote, kModelAnimationGrigoriansNote, kSetCT11, 641.21f, 26.0f, 472.0f, 304, 12, 12, false, true, false, true);
 			Scene_2D_Region_Add(2, 505, 321, 519, 332);
+			Game_Flag_Set(kFlagCT11GrigorianNotePlaced);
 		}
 
 		if (!Actor_Clue_Query(kActorMcCoy, kClueCar)) {
@@ -86,7 +86,7 @@ void SceneScriptCT11::SceneLoaded() {
 			Scene_2D_Region_Add(1, 412, 258, 552, 358);
 #else
 			// expand region 1 a bit and add two more
-			// as auxilliary in order to better cover the car area
+			// as auxiliary in order to better cover the car area
 			Scene_2D_Region_Add(1, 365, 258, 552, 358);
 			Scene_2D_Region_Add(3, 267, 330, 365, 377);
 			Scene_2D_Region_Add(4, 365, 358, 454, 377);
@@ -201,6 +201,7 @@ bool SceneScriptCT11::ClickedOn2DRegion(int region) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, 686.0f, 0.0f, 658.0f, 12, true, false, false)) {
 			Actor_Face_Heading(kActorMcCoy, 47, false);
 			Item_Remove_From_World(kItemNote);
+			Game_Flag_Reset(kFlagCT11GrigorianNotePlaced);
 			Actor_Clue_Acquire(kActorMcCoy, kClueGrigoriansNote, false, -1);
 			Item_Pickup_Spin_Effect(kModelAnimationGrigoriansNote, 512, 326);
 			Actor_Voice_Over(8840, kActorMcCoy);

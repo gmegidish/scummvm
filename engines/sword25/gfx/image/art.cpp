@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,8 +30,8 @@
 
 /* Various utility functions RLL finds useful. */
 
-#include "common/math.h"
 #include "common/textconsole.h"
+#include "math/utils.h"
 
 #include "sword25/gfx/image/art.h"
 
@@ -366,8 +365,8 @@ static void art_vpath_render_bez(ArtVpath **p_vpath, int *pn, int *pn_max,
 		 * the other two control points are the same as the start point,
 		 * too.
 		 */
-		if (!(Common::hypotenuse(x1 - x0, y1 - y0) < 0.001
-		        && Common::hypotenuse(x2 - x0, y2 - y0) < 0.001))
+		if (!(Math::hypotenuse(x1 - x0, y1 - y0) < 0.001
+		        && Math::hypotenuse(x2 - x0, y2 - y0) < 0.001))
 			subDivide = true;
 	} else {
 		/* we can avoid subdivision if:
@@ -1052,7 +1051,7 @@ static bool art_pri_empty(ArtPriQ *pq) {
 }
 
 /* This heap implementation is based on Vasek Chvatal's course notes:
-   http://www.cs.rutgers.edu/~chvatal/notes/pq.html#heap */
+   https://users.encs.concordia.ca/~chvatal/notes/pq.html#heap */
 
 static void art_pri_bubble_up(ArtPriQ *pq, int vacant, ArtPriPoint *missing) {
 	ArtPriPoint **items = pq->items;

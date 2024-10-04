@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@
 
 namespace ZVision {
 
-ZfsArchive::ZfsArchive(const Common::String &fileName) : _fileName(fileName) {
+ZfsArchive::ZfsArchive(const Common::Path &fileName) : _fileName(fileName) {
 	Common::File zfsFile;
 	memset(&_header, 0, sizeof(_header));
 
@@ -40,13 +39,13 @@ ZfsArchive::ZfsArchive(const Common::String &fileName) : _fileName(fileName) {
 
 	readHeaders(&zfsFile);
 
-	debug(1, "ZfsArchive::ZfsArchive(%s): Located %d files", _fileName.c_str(), _entryHeaders.size());
+	debug(1, "ZfsArchive::ZfsArchive(%s): Located %d files", _fileName.toString(Common::Path::kNativeSeparator).c_str(), _entryHeaders.size());
 }
 
-ZfsArchive::ZfsArchive(const Common::String &fileName, Common::SeekableReadStream *stream) : _fileName(fileName) {
+ZfsArchive::ZfsArchive(const Common::Path &fileName, Common::SeekableReadStream *stream) : _fileName(fileName) {
 	readHeaders(stream);
 
-	debug(1, "ZfsArchive::ZfsArchive(%s): Located %d files", _fileName.c_str(), _entryHeaders.size());
+	debug(1, "ZfsArchive::ZfsArchive(%s): Located %d files", _fileName.toString(Common::Path::kNativeSeparator).c_str(), _entryHeaders.size());
 }
 
 ZfsArchive::~ZfsArchive() {
@@ -113,7 +112,7 @@ int ZfsArchive::listMembers(Common::ArchiveMemberList &list) const {
 	int matches = 0;
 
 	for (ZfsEntryHeaderMap::const_iterator it = _entryHeaders.begin(); it != _entryHeaders.end(); ++it) {
-		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(it->_value->name, this)));
+		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(it->_value->name, *this)));
 		matches++;
 	}
 
@@ -121,11 +120,10 @@ int ZfsArchive::listMembers(Common::ArchiveMemberList &list) const {
 }
 
 const Common::ArchiveMemberPtr ZfsArchive::getMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	if (!_entryHeaders.contains(name))
+	if (!hasFile(path))
 		return Common::ArchiveMemberPtr();
 
-	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
+	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(path, *this));
 }
 
 Common::SeekableReadStream *ZfsArchive::createReadStreamForMember(const Common::Path &path) const {

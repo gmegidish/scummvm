@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,12 +30,13 @@
 #ifndef AGS_SHARED_GAME_MAIN_GAME_FILE_H
 #define AGS_SHARED_GAME_MAIN_GAME_FILE_H
 
-#include "ags/lib/std/functional.h"
-#include "ags/lib/std/memory.h"
-#include "ags/lib/std/set.h"
-#include "ags/lib/std/vector.h"
+#include "common/std/functional.h"
+#include "common/std/memory.h"
+#include "common/std/set.h"
+#include "common/std/vector.h"
 #include "ags/shared/core/platform.h"
 #include "ags/shared/ac/game_version.h"
+#include "ags/shared/ac/view.h"
 #include "ags/shared/game/plugin_info.h"
 #include "ags/shared/script/cc_script.h"
 #include "ags/shared/util/error.h"
@@ -48,7 +48,6 @@ namespace AGS3 {
 
 struct GameSetupStruct;
 struct DialogTopic;
-struct ViewStruct;
 
 namespace AGS {
 namespace Shared {
@@ -64,7 +63,6 @@ enum MainGameFileErrorType {
 	kMGFErr_CapsNotSupported,
 	kMGFErr_InvalidNativeResolution,
 	kMGFErr_TooManySprites,
-	kMGFErr_TooManyCursors,
 	kMGFErr_InvalidPropertySchema,
 	kMGFErr_InvalidPropertyValues,
 	kMGFErr_CreateGlobalScriptFailed,
@@ -81,11 +79,7 @@ String GetMainGameFileErrorText(MainGameFileErrorType err);
 
 typedef TypedCodeError<MainGameFileErrorType, GetMainGameFileErrorText> MainGameFileError;
 typedef ErrorHandle<MainGameFileError> HGameFileError;
-#ifdef AGS_PLATFORM_SCUMMVM
-typedef std::shared_ptr<Stream> UStream;
-#else
 typedef std::unique_ptr<Stream> UStream;
-#endif
 
 // MainGameSource defines a successfully opened main game file
 struct MainGameSource {
@@ -117,8 +111,8 @@ struct MainGameSource {
 // code refactoring.
 struct LoadedGameEntities {
 	GameSetupStruct &Game;
-	DialogTopic *&Dialogs;
-	ViewStruct *&Views;
+	std::vector<DialogTopic> Dialogs;
+	std::vector<ViewStruct> Views;
 	PScript                 GlobalScript;
 	PScript                 DialogScript;
 	std::vector<PScript>    ScriptModules;
@@ -126,20 +120,22 @@ struct LoadedGameEntities {
 
 	// Original sprite data (when it was read into const-sized arrays)
 	size_t                  SpriteCount;
-	Common::Array<byte>     SpriteFlags;
+	std::vector<uint8_t>	SpriteFlags; // SPF_* flags
 
 	// Old dialog support
 	// legacy compiled dialog script of its own format,
 	// requires separate interpreting
-	std::vector< std::shared_ptr<unsigned char> > OldDialogScripts;
+	std::vector<std::vector<uint8_t>> OldDialogScripts;
 	// probably, actual dialog script sources kept within some older games
 	std::vector<String>     OldDialogSources;
 	// speech texts displayed during dialog
 	std::vector<String>     OldSpeechLines;
 
-	LoadedGameEntities(GameSetupStruct &game, DialogTopic *&dialogs, ViewStruct *&views);
+	LoadedGameEntities(GameSetupStruct &game);
 	~LoadedGameEntities();
 };
+
+class AssetManager;
 
 // Tells if the given path (library filename) contains main game file
 bool               IsMainGameLibrary(const String &filename);
@@ -148,8 +144,8 @@ String             FindGameData(const String &path);
 String             FindGameData(const String &path, bool(*fn_testfile)(const String &));
 // Opens main game file for reading from an arbitrary file
 HGameFileError     OpenMainGameFile(const String &filename, MainGameSource &src);
-// Opens main game file for reading from the asset library (uses default asset name)
-HGameFileError     OpenMainGameFileFromDefaultAsset(MainGameSource &src);
+// Opens main game file for reading using the current Asset Manager (uses default asset name)
+HGameFileError     OpenMainGameFileFromDefaultAsset(MainGameSource &src, AssetManager *mgr);
 // Reads game data, applies necessary conversions to match current format version
 HGameFileError     ReadGameData(LoadedGameEntities &ents, Stream *in, GameDataVersion data_ver);
 // Pre-reads the heading game data, just enough to identify the game and its special file locations
@@ -160,7 +156,7 @@ HGameFileError     UpdateGameData(LoadedGameEntities &ents, GameDataVersion data
 // Ensures that the game saves directory path is valid
 void               FixupSaveDirectory(GameSetupStruct &game);
 // Maps legacy sound numbers to real audio clips
-void               RemapLegacySoundNums(GameSetupStruct &game, ViewStruct *&views, GameDataVersion data_ver);
+void               RemapLegacySoundNums(GameSetupStruct &game, std::vector<ViewStruct> &views, GameDataVersion data_ver);
 
 } // namespace Shared
 } // namespace AGS

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -93,6 +92,7 @@ struct KyraRpgGUISettings {
 		const uint8 *posY;
 		uint8 labelColor1;
 		uint8 labelColor2;
+		bool labelShadow;
 		uint16 width;
 		uint16 height;
 		int16 txtOffsY;
@@ -127,9 +127,12 @@ struct KyraRpgGUISettings {
 		uint8 guiColorDarkRed;
 		uint8 guiColorLightBlue;
 		uint8 guiColorBlue;
+		uint8 guiColorDarkBlue;
 		uint8 guiColorYellow;
 		uint8 guiColorLightGreen;
 		uint8 guiColorDarkGreen;
+		uint8 guiColorPurple;
+		uint8 guiColorBrown;
 		uint8 guiColorBlack;
 	} colors;
 
@@ -150,11 +153,88 @@ struct KyraRpgGUISettings {
 		uint8 hpBarHeight_1;
 		int16 hpFoodBarX_2[3];
 		int16 hpFoodBarY_2[3];
-		uint8 hpFoodBarWidth_2;
+		uint8 hpFoodBarWidth_2[2];
 		uint8 hpFoodBarHeight_2;
+		int16 nameLabelOffsetX;
+		int16 nameLabelOffsetY;
+		int16 exchangeLabelOffsetX;
+		int16 exchangeLabelOffsetY;
 		int16 redSplatOffsetX;
 		int16 redSplatOffsetY;
 	} charBoxCoords;
+
+	struct StatsPageCoords {
+		int16 headlineX;
+		int16 headlineY;
+		int16 descStartX;
+		int16 descStartY;
+		uint8 descYInc;
+		int16 statsGroup1StringsX;
+		int16 statsGroup1StringsY;
+		int16 statsGroup2StringsX;
+		int16 statsGroup2StringsY;
+		uint8 statsStringsYInc;
+		int16 statsGroup1StatsX;
+		int16 statsGroup1StatsY;
+		int16 statsGroup2StatsX;
+		int16 statsGroup2StatsY;
+		uint8 statsStatsYInc;
+		int16 acStringX;
+		int16 acStringY;
+		int16 acStatsX;
+		int16 acStatsY;
+		int16 expStringX;
+		int16 expStringY;
+		int16 expStatsX;
+		int16 expStatsY;
+		uint8 expStatsXInc;
+		uint8 expStatsYInc;
+		int16 lvlStringX;
+		int16 lvlStringY;
+		int16 lvlStatsX;
+		int16 lvlStatsY;
+		uint8 lvlStatsXInc;
+		uint8 lvlStatsYInc;
+		int16 classStringsX;
+		int16 classStringsY;
+		uint8 classStringsXInc;
+		uint8 classStringsYInc;
+	} statsPageCoords;
+
+	struct StatsPageColors {
+		uint8 headLine;
+		uint8 cls[3];
+		uint8 alignment;
+		uint8 race;
+		uint8 acString;
+		uint8 statsStrings;
+		uint8 statsValues;
+		uint8 expLvl[3];
+	} statsPageColors;
+
+	struct SpellbookCoords {
+		uint8 totalHeight;
+		uint8 numTabs;
+		uint8 tabStartX;
+		uint8 tabStartY;
+		uint8 tabWidth;
+		uint8 tabHeight;
+		uint8 tabStrOffsX;
+		uint8 tabStrOffsY;
+		uint8 listSize;
+		uint8 listStartX;
+		uint8 listStartY;
+		uint8 listTotalH;
+		uint8 abortBtnX;
+		uint8 abortBtnY;
+		uint8 abortBtnW;
+		uint8 abortBtnH;
+		uint8 abortStrX;
+		uint8 abortStrY;
+		uint8 scrollButtonY;
+		uint8 gridCoordsX[4];
+		uint8 gridCoordsY[3];
+	} spellbookCoords;
 };
 
 class KyraRpgEngine : public KyraEngine_v1 {
@@ -324,7 +404,7 @@ protected:
 	int16 *_lvlShapeTop;
 	int16 *_lvlShapeBottom;
 
-	char _lastBlockDataFile[13];
+	Common::String _lastBlockDataFile;
 	uint32 _hasTempDataFlags;
 
 	int16 _sceneDrawVarDown;
@@ -449,6 +529,8 @@ protected:
 	const int _numFlyingObjects;
 	uint32 _flyingObjectStructSize;
 	void *_flyingObjectsPtr;
+
+	Common::String _versionString;
 
 	// sound
 	virtual bool snd_processEnvironmentalSoundEffect(int soundId, int block);

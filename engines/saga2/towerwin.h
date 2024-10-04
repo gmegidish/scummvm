@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -30,46 +29,46 @@
 namespace Saga2 {
 
 enum initializationStates {
-	nothingInitialized          = 0,
-	errHandlersInitialized,
-	messagersInitialized,
-	errLoggersInitialized,
-	breakHandlerInitialized,
-	configTestInitialized,
-	delayedErrInitialized,
-	graphicsSystemInitialized,
-	procResEnabled,
-	memoryInitialized,
-	audioInitialized,
-	videoInitialized,
-	resourcesInitialized,
-	serversInitialized,
-	pathFinderInitialized,
-	scriptsInitialized,
-	audStartInitialized,
-	tileResInitialized,
-	timerInitialized,
-	palettesInitialized,
-	panelsInitialized,
-	mainWindowInitialized,
-	mainWindowOpenInitialized,
-	guiMessInitialized,
-	//mouseImageInitialized,
-	introInitialized,
-	mapsInitialized,
-	mouseImageInitialized,
-	patrolsInitialized,
-	spritesInitialized,
-	weaponsInitialized,
-	magicInitialized,
-	objectSoundFXInitialized,
-	prototypesInitialized,
-	displayInitialized,
-	gameStateInitialized,
-	gameModeInitialized,
-	gameDisplayEnabled,
-	activeErrInitialized,
-	fullyInitialized
+	kNothingInitialized          = 0,
+	kErrHandlersInitialized,
+	kMessagersInitialized,
+	kErrLoggersInitialized,
+	kBreakHandlerInitialized,
+	kConfigTestInitialized,
+	kDelayedErrInitialized,
+	kGraphicsSystemInitialized,
+	kProcResEnabled,
+	kMemoryInitialized,
+	kAudioInitialized,
+	kVideoInitialized,
+	kResourcesInitialized,
+	kServersInitialized,
+	kPathFinderInitialized,
+	kScriptsInitialized,
+	kAudStartInitialized,
+	kTileResInitialized,
+	kTimerInitialized,
+	kPalettesInitialized,
+	kPanelsInitialized,
+	kMainWindowInitialized,
+	kMainWindowOpenInitialized,
+	kGuiMessInitialized,
+	//kMouseImageInitialized,
+	kIntroInitialized,
+	kMapsInitialized,
+	kMouseImageInitialized,
+	kPatrolsInitialized,
+	kSpritesInitialized,
+	kWeaponsInitialized,
+	kMagicInitialized,
+	kObjectSoundFXInitialized,
+	kPrototypesInitialized,
+	kDisplayInitialized,
+	kGameStateInitialized,
+	kGameModeInitialized,
+	kGameDisplayEnabled,
+	kActiveErrInitialized,
+	kFullyInitialized
 };
 
 } // end of namespace Saga2

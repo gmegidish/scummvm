@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,8 +66,8 @@ struct Room {
 };
 
 struct SeqLoop {
-	const uint8 *ptr;
-	uint16 count;
+	const uint8 *ptr = nullptr;
+	uint16 count = 0;
 };
 
 struct SceneExits {
@@ -309,8 +308,8 @@ protected:
 
 	// chat
 	// -> process
-	void characterSays(int vocFile, const char *chatStr, int8 charNum, int8 chatDuration);
-	void waitForChatToFinish(int vocFile, int16 chatDuration, const char *str, uint8 charNum, const bool printText);
+	void characterSays(int vocFile, const char *chatStr, int16 charNum, int16 chatDuration);
+	void waitForChatToFinish(int vocFile, int chatDuration, const char *str, uint8 charNum, const bool printText);
 
 	// -> initialization
 	int initCharacterChat(int8 charNum);
@@ -469,7 +468,7 @@ protected:
 
 	int8 _talkingCharNum;
 	int8 _charSayUnk2;
-	int8 _charSayUnk3;
+	int8 _talkHeadAnimCharNum;
 	int8 _currHeadShape;
 	int _currentHeadFrameTableIndex;
 	int8 _disabledTalkAnimObject;
@@ -479,6 +478,10 @@ protected:
 	bool _fadeText;
 
 	uint8 _configTextspeed;
+
+	Screen::FontId _defaultFont;
+	Screen::FontId _noteFont;
+	int _defaultLineSpacing;
 
 	Animator_LoK *_animator;
 	SeqPlayer *_seq;
@@ -518,9 +521,12 @@ protected:
 
 	static const int8 _dosTrackMap[];
 	static const int _dosTrackMapSize;
-
 	static const int8 _amigaTrackMap[];
 	static const int _amigaTrackMapSize;
+	static const int8 _macHQTrackMap[];
+	static const int _macHQTrackMapSize;
+	static const int8 _macLQTrackMap[];
+	static const int _macLQTrackMapSize;
 
 	// TODO: get rid of all variables having pointers to the static resources if possible
 	// i.e. let them directly use the _staticres functions

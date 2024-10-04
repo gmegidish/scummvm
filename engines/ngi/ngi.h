@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -189,7 +188,7 @@ public:
 	int _currSoundListCount;
 	bool _soundEnabled;
 	bool _flgSoundList;
-	Common::String _sceneTracks[10];
+	Common::Path _sceneTracks[10];
 	int _numSceneTracks;
 	bool _sceneTrackHasSequence;
 	int _musicMinDelay;
@@ -197,7 +196,7 @@ public:
 	int _musicLocal;
 	Common::String _trackName;
 	int _trackStartDelay;
-	Common::String _sceneTracksCurrentTrack;
+	Common::Path _sceneTracksCurrentTrack;
 	bool _sceneTrackIsPlaying;
 
 	void stopAllSounds();
@@ -207,8 +206,8 @@ public:
 	int getSceneTrack();
 	void updateTrackDelay();
 	void startSceneTrack();
-	void startSoundStream1(const Common::String &trackName);
-	void playOggSound(const Common::String &trackName, Audio::SoundHandle &stream);
+	void startSoundStream1(const Common::Path &trackName);
+	void playOggSound(const Common::Path &trackName, Audio::SoundHandle &stream);
 	void stopSoundStream2();
 	void stopAllSoundStreams();
 	void stopAllSoundInstances(int id);
@@ -371,10 +370,10 @@ public:
 
 	Common::Error loadGameState(int slot) override;
 	Common::Error saveGameState(int slot, const Common::String &description, bool isAutosave = false) override;
-	virtual Common::String getSaveStateName(int slot) const override;
+	Common::String getSaveStateName(int slot) const override;
 
-	bool canLoadGameStateCurrently() override { return true; }
-	bool canSaveGameStateCurrently() override { return _isSaveAllowed; }
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return true; }
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override { return _isSaveAllowed; }
 	bool hasFeature(EngineFeature f) const override;
 
 };

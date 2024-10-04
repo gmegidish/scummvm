@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -84,11 +83,10 @@ Screen::~Screen() {
 }
 
 void Screen::init() {
-	Graphics::PixelFormat SCREEN_FORMAT(2, 5, 6, 5, 0, 11, 5, 0, 0);
 	Common::Point size(SCREEN_WIDTH * settings._scale, SCREEN_HEIGHT * settings._scale);
 
-	initGraphics(size.x, size.y, &SCREEN_FORMAT);
-	create(size.x, size.y, SCREEN_FORMAT);
+	initGraphics(size.x, size.y, nullptr);
+	create(size.x, size.y, g_system->getScreenFormat());
 
 	loadMouseCursors();
 	screenLoadGraphicsFromConf();
@@ -159,9 +157,7 @@ void Screen::loadMouseCursors() {
 		// Set the default initial cursor
 		const uint TRANSPARENT = format.RGBToColor(0x80, 0x80, 0x80);
 		MouseCursorSurface *c = _mouseCursors[MC_DEFAULT];
-		CursorMan.pushCursor(c->getPixels(),
-			MOUSE_CURSOR_SIZE, MOUSE_CURSOR_SIZE,
-			c->_hotspot.x, c->_hotspot.y, TRANSPARENT, false, &format);
+		CursorMan.pushCursor(*c, c->_hotspot.x, c->_hotspot.y, TRANSPARENT, false);
 		CursorMan.showMouse(true);
 
 	} else {
@@ -180,8 +176,7 @@ void Screen::setMouseCursor(MouseCursor cursor) {
 		_currentMouseCursor = cursor;
 
 		const uint TRANSPARENT = format.RGBToColor(0x80, 0x80, 0x80);
-		CursorMan.replaceCursor(c->getPixels(), MOUSE_CURSOR_SIZE, MOUSE_CURSOR_SIZE,
-		                        c->_hotspot.x, c->_hotspot.y, TRANSPARENT, false, &format);
+		CursorMan.replaceCursor(*c, c->_hotspot.x, c->_hotspot.y, TRANSPARENT, false);
 	}
 }
 
@@ -1160,7 +1155,7 @@ void Screen::screenShowGemTile(Layout *layout, Map *map, MapTile &t, bool focus,
 
 	if (map->_type == Map::DUNGEON) {
 		assertMsg(_charSetInfo, "charset not initialized");
-		Std::map<Common::String, int>::iterator charIndex = _dungeonTileChars.find(t.getTileType()->getName());
+		Common::HashMap<Common::String, int>::iterator charIndex = _dungeonTileChars.find(t.getTileType()->getName());
 		if (charIndex != _dungeonTileChars.end()) {
 			_charSetInfo->_image->drawSubRect((layout->_viewport.left + (x * layout->_tileShape.x)) * settings._scale,
 			                                  (layout->_viewport.top + (y * layout->_tileShape.y)) * settings._scale,
@@ -1226,7 +1221,7 @@ void Screen::screenGemUpdate() {
 	if (g_context->_location->_map->_type == Map::DUNGEON) {
 		//DO THE SPECIAL DUNGEON MAP TRAVERSAL
 		Std::vector<Std::vector<int> > drawnTiles(layout->_viewport.width(), Std::vector<int>(layout->_viewport.height(), 0));
-		Common::List<Std::pair<int, int> > coordStack;
+		Common::List<Common::Pair<int, int> > coordStack;
 
 		//Put the avatar's position on the stack
 		int center_x = layout->_viewport.width() / 2 - 1;
@@ -1234,12 +1229,12 @@ void Screen::screenGemUpdate() {
 		int avt_x = g_context->_location->_coords.x - 1;
 		int avt_y = g_context->_location->_coords.y - 1;
 
-		coordStack.push_back(Std::pair<int, int>(center_x, center_y));
+		coordStack.push_back(Common::Pair<int, int>(center_x, center_y));
 		bool weAreDrawingTheAvatarTile = true;
 
 		//And draw each tile on the growing stack until it is empty
 		while (coordStack.size() > 0) {
-			Std::pair<int, int> currentXY = coordStack.back();
+			Common::Pair<int, int> currentXY = coordStack.back();
 			coordStack.pop_back();
 
 			x = currentXY.first;
@@ -1276,16 +1271,16 @@ void Screen::screenGemUpdate() {
 				//or the avatar position in those rare circumstances where he is stuck in a wall
 
 				//by adding all relative adjacency combinations to the stack for drawing
-				coordStack.push_back(Std::pair<int, int>(x + 1, y - 1));
-				coordStack.push_back(Std::pair<int, int>(x + 1, y));
-				coordStack.push_back(Std::pair<int, int>(x + 1, y + 1));
+				coordStack.push_back(Common::Pair<int, int>(x + 1, y - 1));
+				coordStack.push_back(Common::Pair<int, int>(x + 1, y));
+				coordStack.push_back(Common::Pair<int, int>(x + 1, y + 1));
 
-				coordStack.push_back(Std::pair<int, int>(x, y - 1));
-				coordStack.push_back(Std::pair<int, int>(x, y + 1));
+				coordStack.push_back(Common::Pair<int, int>(x, y - 1));
+				coordStack.push_back(Common::Pair<int, int>(x, y + 1));
 
-				coordStack.push_back(Std::pair<int, int>(x - 1, y - 1));
-				coordStack.push_back(Std::pair<int, int>(x - 1, y));
-				coordStack.push_back(Std::pair<int, int>(x - 1, y + 1));
+				coordStack.push_back(Common::Pair<int, int>(x - 1, y - 1));
+				coordStack.push_back(Common::Pair<int, int>(x - 1, y));
+				coordStack.push_back(Common::Pair<int, int>(x - 1, y + 1));
 
 				// We only draw the avatar tile once, it is the first tile drawn
 				weAreDrawingTheAvatarTile = false;
@@ -1348,7 +1343,7 @@ Image *Screen::screenScale(Image *src, int scale, int n, int filter) {
 		dest = (*scalerGet("point"))(src, scale, n);
 
 	if (!dest)
-		dest = Image::duplicate(src);
+		dest = Image::duplicate(src, src->format());
 
 	if (isTransparent)
 		dest->setTransparentIndex(transparentIndex);
@@ -1370,7 +1365,7 @@ Image *Screen::screenScaleDown(Image *src, int scale) {
 
 	src->alphaOff();
 
-	dest = Image::create(src->width() / scale, src->height() / scale, src->isIndexed(), Image::HARDWARE);
+	dest = Image::create(src->width() / scale, src->height() / scale, src->format());
 	if (!dest)
 		return nullptr;
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifdef ENABLE_HE
 
 #include "common/system.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "scumm/scumm.h"
 #include "scumm/he/intern_he.h"
 #include "scumm/resource.h"
@@ -31,42 +30,34 @@
 
 namespace Scumm {
 
-void ScummEngine_v71he::remapHEPalette(const uint8 *src, uint8 *dst) {
-	int r, g, b, sum, bestitem, bestsum;
-	int ar, ag, ab;
-	uint8 *palPtr;
-	src += 30;
+void ScummEngine_v71he::buildRemapTable(byte *remapTablePtr, const byte *palDPtr, const byte *palSPtr) {
+	int closestIndex;
+	int32 closestDistance, distance;
 
-	if (_game.heversion >= 99) {
-		palPtr = _hePalettes + _hePaletteSlot + 30;
-	} else {
-		palPtr = _currentPalette + 30;
-	}
+	for (int outer = 10; outer < 246; outer++) {
+		remapTablePtr[outer] = outer;
 
-	for (int j = 10; j < 246; j++) {
-		bestitem = 0xFFFF;
-		bestsum = 0xFFFF;
+		closestIndex = -1;
+		closestDistance = ~0;
 
-		r = *src++;
-		g = *src++;
-		b = *src++;
+		for (int inner = 10; inner < 246; inner++) {
+			const byte *clutSrcEntry = &palSPtr[outer * 3];
+			const byte *clutDstEntry = &palDPtr[inner * 3];
 
-		uint8 *curPal = palPtr;
+			distance = (
+				(int32)((clutSrcEntry[0] - clutDstEntry[0]) * (clutSrcEntry[0] - clutDstEntry[0])) +
+				(int32)((clutSrcEntry[1] - clutDstEntry[1]) * (clutSrcEntry[1] - clutDstEntry[1])) +
+				(int32)((clutSrcEntry[2] - clutDstEntry[2]) * (clutSrcEntry[2] - clutDstEntry[2])));
 
-		for (int k = 10; k < 246; k++) {
-			ar = r - *curPal++;
-			ag = g - *curPal++;
-			ab = b - *curPal++;
-
-			sum = (ar * ar) + (ag * ag) + (ab * ab);
-
-			if (bestitem == 0xFFFF || sum <= bestsum) {
-				bestitem = k;
-				bestsum = sum;
+			if ((closestIndex == -1) || (distance <= closestDistance)) {
+				closestIndex = inner;
+				closestDistance = distance;
 			}
 		}
 
-		dst[j] = bestitem;
+		if (closestIndex != -1) {
+			remapTablePtr[outer] = closestIndex;
+		}
 	}
 }
 

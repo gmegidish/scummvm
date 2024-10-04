@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -951,9 +950,9 @@ void Scene315::Action1::signal() {
 		if (scene->_sceneMode == 3169) {
 			T2_GLOBALS._uiElements.addScore(30);
 			BF_INVENTORY.setObjectScene(INV_MUG_SHOT, 1);
-			//HACK: This has to be checked wether or not it occurs in the original.
-			//When the _sceneMode is set to 3169, the value desn't change.
-			//If you show the forest rapsheet, it gives points (and again... and again...)
+			// HACK: This has to be checked whether or not it occurs in the original.
+			// When the _sceneMode is set to 3169, the value doesn't change.
+			// If you show the forest rapsheet, it gives points (and again... and again...)
 			scene->_sceneMode = 3154;
 		}
 

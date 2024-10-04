@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, MojoTouch has exclusively licensed
+ * this code on November 10th, 2021, to be use in closed-source products.
+ * Therefore, any contributions (commits) to it will also be dual-licensed.
  *
  */
 
@@ -29,7 +34,6 @@
 #include "common/events.h"
 #include "common/file.h"
 #include "common/macresman.h"
-#include "common/translation.h"
 #include "common/util.h"
 
 namespace Groovie {
@@ -58,7 +62,14 @@ const uint8 kTlcEpQuestToPlay[] = {
 TlcGame::TlcGame(byte *scriptVariables) :
 	_numRegionHeaders(0), _regionHeader(NULL), _curQuestNumAnswers(-1), _epQuestionsData(NULL),
 	_random("GroovieTlcGame"), _scriptVariables(scriptVariables),
-	_tatHeaders(NULL), _tatQuestions(NULL) {
+	_tatHeaders(NULL), _tatQuestions(NULL), _curQuestRegions(), _epScoreBin(), _tatFlags() {
+	_curAnswerIndex = 0;
+	_epEpisodeIdx = 0;
+	_epQuestionIdx = 0;
+	_epQuestionNumOfPool = -1;
+	_epQuestionsInEpisode = 0;
+	_tatEpisodes = 0;
+	_tatQuestCount = 0;
 }
 
 TlcGame::~TlcGame() {
@@ -204,7 +215,8 @@ void TlcGame::regionsLoad() {
 
 	// Search for the question entry
 	for (int i = 0; i <= _numRegionHeaders; i++) {
-		if (strcmp(questName, _regionHeader[i].name) == 0) {
+		Common::String regionName(_regionHeader[i].name);
+		if (regionName.equalsIgnoreCase(questName)) {
 
 			// move to coordinates for this question
 			regionsfile->seek(_regionHeader[i].offset, SEEK_SET);
@@ -237,7 +249,7 @@ void TlcGame::getRegionRewind() {
 
 
 int TlcGame::getRegionNext(uint16 &left, uint16 &top, uint16 &right, uint16 &bottom) {
-	
+
 	// Check if initialization was done
 	if (_curQuestNumAnswers < 0) {
 		warning("TLC:GetRegionNext: Uninitialized call to getRegionNext.");
@@ -284,6 +296,7 @@ void TlcGame::opExitPoll() {
 		break;
 	default:
 		// Unknown subcommand
+		debugC(0, kDebugLogic, "TLC:opExitPoll: Unknown subcommand=%d", _scriptVariables[0]);
 		setScriptVar(0, 0x08);
 	}
 }
@@ -294,7 +307,7 @@ void TlcGame::epInit() {
 	int i;
 	int numEpisodesInDB;
 	uint32 scoreDataOffset;
-	
+
 	// Delete previous question data
 	delete[] _epQuestionsData;
 
@@ -632,7 +645,7 @@ void TlcGame::epResultQuestion() {
 
 	_epScoreBin[scoreBinId] = _epScoreBin[scoreBinId] + 1;
 
-	debugC(1, kDebugLogic, "TLC:EpResultQuest: Answer: %d -> Inc bin[%d] -> bin[0..5] = %d, %d, %d, %d, %d, %d", 
+	debugC(1, kDebugLogic, "TLC:EpResultQuest: Answer: %d -> Inc bin[%d] -> bin[0..5] = %d, %d, %d, %d, %d, %d",
 		answerIdx+1, scoreBinId, _epScoreBin[0], _epScoreBin[1], _epScoreBin[2], _epScoreBin[3], _epScoreBin[4], _epScoreBin[5]);
 }
 /*
@@ -704,7 +717,7 @@ void TlcGame::opFlags() {
 				_tatFlags[x][y] = 0;
 			}
 		}
-		debugC(1, kDebugLogic, "Tlc:TatFlags: Initialized fields (%d, %d)", x, y);
+		debugC(0, kDebugLogic, "Tlc:TatFlags: Initialized fields (%d, %d)", x, y);
 		break;
 
 	// Get and set flags
@@ -745,11 +758,11 @@ void TlcGame::opFlags() {
 void TlcGame::debugTatFlags(int y1, int y2) {
 	Common::String s1, s2;
 	for (int x = 0; x < 14; x++) {
-		s1 += int(_tatFlags[x][y1]);
-		s2 += int(_tatFlags[x][y2]);
+		s1 += Common::String::format("%d", _tatFlags[x][y1]);
+		s2 += Common::String::format("%d", _tatFlags[x][y2]);
 	}
 
-	debugC(5, kDebugLogic, "Tlc:TatFlags: %s  %s", s1.c_str(), s2.c_str());
+	debugC(0, kDebugLogic, "Tlc:TatFlags: %s  %s", s1.c_str(), s2.c_str());
 }
 
 
@@ -923,7 +936,7 @@ void TlcGame::tatResultEpisode() {
 		// increment 16 Bit interpreted variables with score sum of the current episode
 		setScriptVar16(0x5D + iBin * 2, getScriptVar16(0x5D + iBin * 2) + binScoreSum);
 
-		// Find the two biggest bin ratios. Remeber idx and ratio, A is biggest, B second
+		// Find the two biggest bin ratios. Remember idx and ratio, A is biggest, B second
 		if (binScoreSum != 0) {
 			ratioCur = (float)binScoreSum / (float)_tatHeaders[episode].binDividends[iBin];
 			if (ratioCur > ratioA) {
@@ -945,125 +958,125 @@ void TlcGame::tatResultEpisode() {
 	case 0:
 		product = ratioA * 18.0;
 		if (product <= 3) {
-			sprintf(resultStrA, "%cP%02d", idxA + 'A', product);
+			Common::sprintf_s(resultStrA, "%cP%02d", idxA + 'A', product);
 		} else {
-			sprintf(resultStrA, "%cN%02d", idxA + 'A', product - 4);
+			Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product - 4);
 		}
 		break;
 
 	case 1:
 		product = ratioA * 13.0;
 		if (product <= 3) {
-			sprintf(resultStrA, "%cP%02d", idxA + 'A', product);
+			Common::sprintf_s(resultStrA, "%cP%02d", idxA + 'A', product);
 		} else {
-			sprintf(resultStrA, "%cN%02d", idxA + 'A', product - 4);
+			Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product - 4);
 		}
 		break;
 
 	case 2:
 		product = ratioA * 12.0;
 		if (product <= 3) {
-			sprintf(resultStrA, "%cP%02d", idxA + 'A', product);
+			Common::sprintf_s(resultStrA, "%cP%02d", idxA + 'A', product);
 		} else {
-			sprintf(resultStrA, "%cN%02d", idxA + 'A', product - 4);
+			Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product - 4);
 		}
 		break;
 
 	case 3:
 		product = ratioA * 13.0;
 		if (product <= 8) {
-			sprintf(resultStrA, "%cP%02d", idxA + 'A', product);
+			Common::sprintf_s(resultStrA, "%cP%02d", idxA + 'A', product);
 		} else {
-			sprintf(resultStrA, "%cN%02d", idxA + 'A', product - 9);
+			Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product - 9);
 		}
 		break;
 
 	case 4:
 		product = ratioA * 11.0;
 		if (product <= 3) {
-			sprintf(resultStrA, "%cP%02d", idxA + 'A', product);
+			Common::sprintf_s(resultStrA, "%cP%02d", idxA + 'A', product);
 		} else {
-			sprintf(resultStrA, "%cN%02d", idxA + 'A', product - 4);
+			Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product - 4);
 		}
 		break;
 
 	case 5:
 		product = ratioA * 11.0;
 		if (product >= 4) {
-			sprintf(resultStrA, "%cP%02d", idxA + 'A', product - 4);
+			Common::sprintf_s(resultStrA, "%cP%02d", idxA + 'A', product - 4);
 		} else {
-			sprintf(resultStrA, "%cN%02d", idxA + 'A', product);
+			Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product);
 		}
 		break;
 
 	case 6:
 		product = ratioA * 9.0;
 		if (product <= 4) {
-			sprintf(resultStrA, "%cP%02d", idxA + 'A', product);
+			Common::sprintf_s(resultStrA, "%cP%02d", idxA + 'A', product);
 		} else {
-			sprintf(resultStrA, "%cN%02d", idxA + 'A', product - 5);
+			Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product - 5);
 		}
 		break;
 
 	case 7:
 		product = ratioA * 10.0;
 		if (product <= 3) {
-			sprintf(resultStrA, "%cP%02d", idxA + 'A', product);
+			Common::sprintf_s(resultStrA, "%cP%02d", idxA + 'A', product);
 		} else {
-			sprintf(resultStrA, "%cN%02d", idxA + 'A', product - 4);
+			Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product - 4);
 		}
 		break;
 
 	case 8:
 		product = ratioA * 12.0;
 		if (product <= 4) {
-			sprintf(resultStrA, "%cP%02d", idxA + 'A', product);
+			Common::sprintf_s(resultStrA, "%cP%02d", idxA + 'A', product);
 		} else {
-			sprintf(resultStrA, "%cN%02d", idxA + 'A', product - 5);
+			Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product - 5);
 		}
 		break;
 
 	case 9:
 		product = ratioA * 10.0;
-		sprintf(resultStrA, "%cN%02d", idxA + 'A', product);
+		Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product);
 		break;
 
 	case 10:
 		product = ratioA * 7.0;
-		sprintf(resultStrA, "%cN%02d", idxA + 'A', product);
+		Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product);
 		break;
 
 	case 11:
 		product = ratioA * 10.0;
 		if (product >= 4) {
-			sprintf(resultStrA, "%cP%02d", idxA + 'A', product - 4);
+			Common::sprintf_s(resultStrA, "%cP%02d", idxA + 'A', product - 4);
 		} else {
-			sprintf(resultStrA, "%cN%02d", idxA + 'A', product);
+			Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product);
 		}
 		break;
 
 	case 12:
 		product = ratioA * 9.0;
 		if (product >= 4) {
-			sprintf(resultStrA, "%cP%02d", idxA + 'A', product - 4);
+			Common::sprintf_s(resultStrA, "%cP%02d", idxA + 'A', product - 4);
 		} else {
-			sprintf(resultStrA, "%cN%02d", idxA + 'A', product);
+			Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product);
 		}
 		break;
 
 	case 13:
 		product = ratioA * 6.0;
-		sprintf(resultStrA, "%cN%02d", idxA + 'A', product);
+		Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product);
 		break;
 
 	case 14:
 		product = ratioA * 7.0;
-		sprintf(resultStrA, "%cP%02d", idxA + 'A', product);
+		Common::sprintf_s(resultStrA, "%cP%02d", idxA + 'A', product);
 		break;
 
 	case 15:
 		product = ratioA * 8.0;
-		sprintf(resultStrA, "%cN%02d", idxA + 'A', product);
+		Common::sprintf_s(resultStrA, "%cN%02d", idxA + 'A', product);
 		break;
 	}
 
@@ -1073,125 +1086,125 @@ void TlcGame::tatResultEpisode() {
 	case 0:
 		product = ratioB * 18.0;
 		if (product <= 3) {
-			sprintf(resultStrB, "%cP%02d", idxB + 'A', product);
+			Common::sprintf_s(resultStrB, "%cP%02d", idxB + 'A', product);
 		} else {
-			sprintf(resultStrB, "%cN%02d", idxB + 'A', product - 4);
+			Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product - 4);
 		}
 		break;
 
 	case 1:
 		product = ratioB * 13.0;
 		if (product <= 3) {
-			sprintf(resultStrB, "%cP%02d", idxB + 'A', product);
+			Common::sprintf_s(resultStrB, "%cP%02d", idxB + 'A', product);
 		} else {
-			sprintf(resultStrB, "%cN%02d", idxB + 'A', product - 4);
+			Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product - 4);
 		}
 		break;
 
 	case 2:
 		product = ratioB * 12.0;
 		if (product <= 3) {
-			sprintf(resultStrB, "%cP%02d", idxB + 'A', product);
+			Common::sprintf_s(resultStrB, "%cP%02d", idxB + 'A', product);
 		} else {
-			sprintf(resultStrB, "%cN%02d", idxB + 'A', product - 4);
+			Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product - 4);
 		}
 		break;
 
 	case 3:
 		product = ratioB * 13.0;
 		if (product <= 8) {
-			sprintf(resultStrB, "%cP%02d", idxB + 'A', product);
+			Common::sprintf_s(resultStrB, "%cP%02d", idxB + 'A', product);
 		} else {
-			sprintf(resultStrB, "%cN%02d", idxB + 'A', product - 9);
+			Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product - 9);
 		}
 		break;
 
 	case 4:
 		product = ratioB * 11.0;
 		if (product <= 3) {
-			sprintf(resultStrB, "%cP%02d", idxB + 'A', product);
+			Common::sprintf_s(resultStrB, "%cP%02d", idxB + 'A', product);
 		} else {
-			sprintf(resultStrB, "%cN%02d", idxB + 'A', product - 4);
+			Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product - 4);
 		}
 		break;
 
 	case 5:
 		product = ratioB * 11.0;
 		if (product >= 4) {
-			sprintf(resultStrB, "%cP%02d", idxB + 'A', product - 4);
+			Common::sprintf_s(resultStrB, "%cP%02d", idxB + 'A', product - 4);
 		} else {
-			sprintf(resultStrB, "%cN%02d", idxB + 'A', product);
+			Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product);
 		}
 		break;
 
 	case 6:
 		product = ratioB * 9.0;
 		if (product <= 4) {
-			sprintf(resultStrB, "%cP%02d", idxB + 'A', product);
+			Common::sprintf_s(resultStrB, "%cP%02d", idxB + 'A', product);
 		} else {
-			sprintf(resultStrB, "%cN%02d", idxB + 'A', product - 5);
+			Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product - 5);
 		}
 		break;
 
 	case 7:
 		product = ratioB * 10.0;
 		if (product <= 3) {
-			sprintf(resultStrB, "%cP%02d", idxB + 'A', product);
+			Common::sprintf_s(resultStrB, "%cP%02d", idxB + 'A', product);
 		} else {
-			sprintf(resultStrB, "%cN%02d", idxB + 'A', product - 4);
+			Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product - 4);
 		}
 		break;
 
 	case 8:
 		product = ratioB * 12.0;
 		if (product <= 4) {
-			sprintf(resultStrB, "%cP%02d", idxB + 'A', product);
+			Common::sprintf_s(resultStrB, "%cP%02d", idxB + 'A', product);
 		} else {
-			sprintf(resultStrB, "%cN%02d", idxB + 'A', product - 5);
+			Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product - 5);
 		}
 		break;
 
 	case 9:
 		product = ratioB * 10.0;
-		sprintf(resultStrB, "%cN%02d", idxB + 'A', product);
+		Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product);
 		break;
 
 	case 10:
 		product = ratioB * 7.0;
-		sprintf(resultStrB, "%cN%02d", idxB + 'A', product);
+		Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product);
 		break;
 
 	case 11:
 		product = ratioB * 10.0;
 		if (product >= 4) {
-			sprintf(resultStrB, "%cP%02d", idxB + 'A', product - 4);
+			Common::sprintf_s(resultStrB, "%cP%02d", idxB + 'A', product - 4);
 		} else {
-			sprintf(resultStrB, "%cN%02d", idxB + 'A', product);
+			Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product);
 		}
 		break;
 
 	case 12:
 		product = ratioB * 9.0;
 		if (product >= 4) {
-			sprintf(resultStrB, "%cP%02d", idxB + 'A', product - 4);
+			Common::sprintf_s(resultStrB, "%cP%02d", idxB + 'A', product - 4);
 		} else {
-			sprintf(resultStrB, "%cN%02d", idxB + 'A', product);
+			Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product);
 		}
 		break;
 
 	case 13:
 		product = ratioB * 6.0;
-		sprintf(resultStrB, "%cN%02d", idxB + 'A', product);
+		Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product);
 		break;
 
 	case 14:
 		product = ratioB * 7.0;
-		sprintf(resultStrB, "%cP%02d", idxB + 'A', product);
+		Common::sprintf_s(resultStrB, "%cP%02d", idxB + 'A', product);
 		break;
 
 	case 15:
 		product = ratioB * 8.0;
-		sprintf(resultStrB, "%cN%02d", idxB + 'A', product);
+		Common::sprintf_s(resultStrB, "%cN%02d", idxB + 'A', product);
 		break;
 	}
 
@@ -1230,7 +1243,7 @@ void TlcGame::tatGetProfile() {
 		binRatios[iBin] = (float)getScriptVar16(0x5D + 2 * iBin) / (float)sumBinDivs[iBin];
 	}
 
-	// Select higher ratio of each pair (A=iBin and B=iBin+1) and 1 or 2 accoring to threshold
+	// Select higher ratio of each pair (A=iBin and B=iBin+1) and 1 or 2 according to threshold
 	for (iBin = 0; iBin < 16; iBin += 2) {
 		if (binRatios[iBin] > binRatios[iBin + 1]) {
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/endian.h"
+#include "common/config-manager.h"
 
 #include "scumm/scumm.h"
 #include "scumm/charset.h"
@@ -36,7 +36,7 @@ void ScummEngine::towns_drawStripToScreen(VirtScreen *vs, int dstX, int dstY, in
 		return;
 
 	assert(_textSurface.getPixels());
-	int m = _textSurfaceMultiplier;
+	int m = (vs->number == kBannerVirtScreen) ? 1 : _textSurfaceMultiplier;
 
 	const uint8 *src1 = vs->getPixels(srcX, srcY);
 	const uint8 *src2 = (uint8 *)_textSurface.getBasePtr(srcX * m, (srcY + vs->topline - _screenTop) * m);
@@ -46,11 +46,12 @@ void ScummEngine::towns_drawStripToScreen(VirtScreen *vs, int dstX, int dstY, in
 	uint8 *dst2 = _townsScreen->getLayerPixels(1, dstX * m, dstY * m);
 
 	int lw1 = _townsScreen->getLayerWidth(0);
-	int dp2 = _townsScreen->getLayerPitch(1) - width * m * _townsScreen->getLayerBpp(1);
+	int lp1 = _townsScreen->getLayerPitch(1);
+	int dp2 = lp1 - width * m * _townsScreen->getLayerBpp(1);
 	int sp1 = vs->pitch - (width * vs->format.bytesPerPixel);
 	int sp2 = _textSurface.pitch - width * m;
 
-	if (vs->number == kMainVirtScreen || _game.id == GID_INDY3 || _game.id == GID_ZAK) {
+	if (vs->number == kMainVirtScreen || ((_game.id == GID_INDY3 || _game.id == GID_ZAK) && vs->number != kBannerVirtScreen)) {
 		if (_outputPixelFormat.bytesPerPixel == 2) {
 			for (int h = 0; h < height; ++h) {
 				uint16 *dst1tmp = dst1a;
@@ -84,42 +85,81 @@ void ScummEngine::towns_drawStripToScreen(VirtScreen *vs, int dstX, int dstY, in
 		for (int h = 0; h < height * m; ++h) {
 			memcpy(dst2, src2, width * m);
 			src2 += _textSurface.pitch;
-			dst2 += _townsScreen->getLayerPitch(1);
+			dst2 += lp1;
 		}
 
 	} else {
 		dst1 = dst2;
+		uint8 t = 0;
+		uint8 s2 = 0;
+		uint8 s3 = 0;
+
 		for (int h = 0; h < height; ++h) {
-			for (int w = 0; w < width; ++w) {
-				uint8 t = (*src1++) & 0x0f;
-				memset(dst1, (t << 4) | t, m);
-				dst1 += m;
-			}
-
-			dst1 = dst2;
-			const uint8 *src3 = src2;
-
 			if (m == 2) {
-				dst2 += _townsScreen->getLayerPitch(1);
-				src3 += _townsScreen->getLayerPitch(1);
+				uint16 *d = reinterpret_cast<uint16*>(dst1);
+				for (int w = 0; w < width; ++w) {
+					t = (*src1++) & 0x0f;
+					*d++ = (t << 8) | t;
+				}
+			} else if (m == 1) {
+				for (int w = 0; w < width; ++w) {
+					t = (*src1++) & 0x0f;
+					*dst1++ = t;
+				}
+			} else {
+				error ("ScummEngine::towns_drawStripToScreen(): Unexpected text surface multiplier %d", m);
 			}
 
-			for (int w = 0; w < width * m; ++w) {
-				*dst2++ = (*src3 | (*dst1 & _townsLayer2Mask[*src3]));
-				*dst1 = (*src2 | (*dst1 & _townsLayer2Mask[*src2]));
-				src2++;
-				src3++;
-				dst1++;
+			if (vs->number == kBannerVirtScreen) {
+				dst2 += lp1;
+				dst1 = dst2;
+			} else {
+				const uint8 *src3 = src2;
+				dst1 = dst2;
+				if (m == 2) {
+					dst2 += lp1;
+					src3 += lp1;
+					for (int w = 0; w < (width << 1); ++w) {
+						t = *dst1;
+						s2 = *src2++ & 0x0f;
+						s3 = *src3++ & 0x0f;
+						*dst2++ = (s3 | (t & _townsLayer2Mask[s3]));
+						*dst1++ = (s2 | (t & _townsLayer2Mask[s2]));
+					}
+				} else if (m == 1) {
+					dst2 += width;
+					src3 += width;
+					for (int w = 0; w < width; ++w) {
+						t = *dst1;
+						s2 = *src2++ & 0x0f;
+						*dst1++ = (s2 | (t & _townsLayer2Mask[s2]));
+					}
+				} else {
+					error("ScummEngine::towns_drawStripToScreen(): Unexpected text surface multiplier %d", m);
+				}
+				src2 = src3 + sp2;
+				dst1 = dst2 + dp2;
+				dst2 += dp2;
 			}
-
 			src1 += sp1;
-			src2 = src3 + sp2;
-			dst1 = dst2 + dp2;
-			dst2 += dp2;
 		}
 	}
 
 	_townsScreen->addDirtyRect(dstX * m, dstY * m, width * m, height * m);
+}
+
+
+void ScummEngine::towns_fillTopLayerRect(int x1, int y1, int x2, int y2, int col) {
+	if (!_townsScreen)
+		return;
+	_townsScreen->fillRect(1, x1, y1, x2, y2, col);
+}
+
+void ScummEngine::towns_swapVirtScreenArea(VirtScreen *vs, int x, int y, int w, int h) {
+	if (!_townsScreen)
+		return;
+
+	_townsScreen->swapAreaWithBuffer(1, x, y, w, h, vs->getPixels(0, 0));
 }
 
 void ScummEngine::towns_clearStrip(int strip) {
@@ -177,7 +217,7 @@ void ScummEngine::requestScroll(int dir) {
 }
 
 void ScummEngine::towns_waitForScroll(int waitForDirection, int threshold) {
-	while (!shouldQuit() && _townsScreen && (_scrollRequest || _townsScreen->isScrolling(waitForDirection, threshold)))
+	while (!shouldQuit() && _townsScreen && (_scrollRequest || _townsScreen->isScrolling(0, waitForDirection, threshold)))
 		waitForTimer(0);
 }
 
@@ -199,12 +239,15 @@ void ScummEngine::towns_updateGfx() {
 	}
 
 	if (_enableSmoothScrolling) {
+		int scrlTop = _virtscr[kMainVirtScreen].topline * _textSurfaceMultiplier;
+		int scrlBottom = scrlTop + _virtscr[kMainVirtScreen].h * _textSurfaceMultiplier;
+
 		while (_scrollTimer <= cur) {
 			if (!_scrollTimer)
 				_scrollTimer = cur;
 			_scrollTimer += 1000 / 60;
-			_townsScreen->scrollLayers(1, _scrollRequest);
-			if (_townsScreen->isScrolling(0))
+			_townsScreen->scrollLayer(0, _scrollRequest, scrlTop, scrlBottom, VAR(VAR_TIMER_NEXT) == 0);
+			if (_scrollNeedDeltaAdjust && _townsScreen->isScrolling(0, 0))
 				_scrollDeltaAdjust++;
 			_scrollRequest = 0;
 			if (!_refreshNeedCatchUp)
@@ -246,12 +289,15 @@ void ScummEngine::towns_scriptScrollEffect(int dir) {
 	// Wait for opposite direction scroll to finish.
 	towns_waitForScroll(-dir);
 
+	int scrlTop = _virtscr[kMainVirtScreen].topline * _textSurfaceMultiplier;
+	int scrlBottom = scrlTop + _virtscr[kMainVirtScreen].h * _textSurfaceMultiplier;
+
 	for (int x = 0; !shouldQuit() && x < _gdi->_numStrips; ++x) {
 		_scrollDestOffset = (_scrollDestOffset - (dir << 3)) % layerW;
 		uint32 nextFrame = _system->getMillis() + 1000 / 60;
 		// Same as in requestScroll(): This prevents glitches from graphics layer wrapping.
 		towns_waitForScroll(dir, threshold);
-		_townsScreen->scrollLayers(0, dir << 3);
+		_townsScreen->scrollLayer(0, dir << 3, scrlTop, scrlBottom, false);
 		towns_drawStripToScreen(vs, destX << 3, vs->topline, (srcX + (-dir * x)) << 3, 0, stripWidth, vs->h);
 		waitForTimer(nextFrame - _system->getMillis());
 	}
@@ -313,33 +359,14 @@ void ScummEngine::towns_resetPalCycleFields() {
 }
 
 const uint8 ScummEngine::_townsLayer2Mask[] = {
-	0xFF, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-TownsScreen::TownsScreen(OSystem *system) :	_system(system), _width(0), _height(0), _pitch(0), _pixelFormat(system->getScreenFormat()), _scrollOffset(0), _scrollRemainder(0), _numDirtyRects(0) {
-	memset(&_layers[0], 0, sizeof(TownsScreenLayer));
-	memset(&_layers[1], 0, sizeof(TownsScreenLayer));
+TownsScreen::TownsScreen(OSystem *system) :	_system(system), _width(0), _height(0), _pixelFormat(system->getScreenFormat()), _numDirtyRects(0) {
+	_width = _system->getWidth();
+	_height = _system->getHeight();
 
-	Graphics::Surface *s = _system->lockScreen();
-	_width = s->w;
-	_height = s->h;
-	_pitch = s->pitch;
-	_system->unlockScreen();
+	_semiSmoothScroll = ConfMan.getBool("semi_smooth_scroll");
 
 	setupLayer(0, _width, _height, 1, 1, 256);
 }
@@ -353,7 +380,7 @@ TownsScreen::~TownsScreen() {
 }
 
 void TownsScreen::setupLayer(int layer, int width, int height, int scaleW, int scaleH, int numCol, void *pal) {
-	if (layer < 0 || layer > 1)
+	if (layer & ~1)
 		return;
 
 	TownsScreenLayer *l = &_layers[layer];
@@ -378,12 +405,11 @@ void TownsScreen::setupLayer(int layer, int width, int height, int scaleW, int s
 		warning("TownsScreen::setupLayer(): Layer palette usage requires 16 bit graphics setting.\nLayer palette will be ignored.");
 
 	delete[] l->pixels;
-	l->pixels = new uint8[l->pitch * l->height];
+	l->pixels = new uint8[l->pitch * l->height]();
 	assert(l->pixels);
-	memset(l->pixels, 0, l->pitch * l->height);
 
 	delete[] l->bltTmpPal;
-	l->bltTmpPal = (l->bpp == 1 && _pixelFormat.bytesPerPixel == 2) ? new uint16[l->numCol] : 0;
+	l->bltTmpPal = (l->bpp == 1 && _pixelFormat.bytesPerPixel == 2) ? new uint16[l->numCol] : nullptr;
 
 	l->enabled = true;
 	_layers[0].onBottom = true;
@@ -392,7 +418,7 @@ void TownsScreen::setupLayer(int layer, int width, int height, int scaleW, int s
 }
 
 void TownsScreen::clearLayer(int layer) {
-	if (layer < 0 || layer > 1)
+	if (layer & ~1)
 		return;
 
 	TownsScreenLayer *l = &_layers[layer];
@@ -405,8 +431,8 @@ void TownsScreen::clearLayer(int layer) {
 }
 
 
-void TownsScreen::fillLayerRect(int layer, int x, int y, int w, int h, int col) {
-	if (layer < 0 || layer > 1 || w <= 0 || h <= 0)
+void TownsScreen::fillRect(int layer, int x, int y, int w, int h, int col) {
+	if ((layer & ~1) || w <= 0 || h <= 0)
 		return;
 
 	TownsScreenLayer *l = &_layers[layer];
@@ -432,13 +458,42 @@ void TownsScreen::fillLayerRect(int layer, int x, int y, int w, int h, int col) 
 	addDirtyRect(x * l->scaleW, y * l->scaleH, w * l->scaleW, h * l->scaleH);
 }
 
+void TownsScreen::swapAreaWithBuffer(int layer, int x, int y, int w, int h, byte *buffer) {
+	if ((layer & ~1) || w <= 0 || h <= 0)
+		return;
+
+	TownsScreenLayer *l = &_layers[layer];
+	if (!l->ready)
+		return;
+
+	assert(x >= 0 && y >= 0 && ((x + w) * l->bpp) <= (l->pitch) && (y + h) <= (l->height));
+
+	uint8 *pos = l->pixels + y * l->pitch + x * l->bpp;
+
+	for (int i = 0; i < h; ++i) {
+		if (l->bpp == 2) {
+			for (int ii = 0; ii < w; ++ii) {
+				SWAP(*(uint16*)buffer, *(uint16*)pos);
+				pos += 2;
+				buffer += 2;
+			}
+			pos += (l->pitch - w * 2);
+		} else {
+			for (int ii = 0; ii < w; ++ii)
+				SWAP(*buffer++, *pos++);
+			pos += (l->pitch - w);
+		}
+	}
+	addDirtyRect(x * l->scaleW, y * l->scaleH, w * l->scaleW, h * l->scaleH);
+}
+
 uint8 *TownsScreen::getLayerPixels(int layer, int x, int y) const {
-	if (layer < 0 || layer > 1)
-		return 0;
+	if (layer & ~1)
+		return nullptr;
 
 	const TownsScreenLayer *l = &_layers[layer];
 	if (!l->ready)
-		return 0;
+		return nullptr;
 
 	return l->pixels + y * l->pitch + (x % l->width) * l->bpp;
 }
@@ -458,53 +513,54 @@ void TownsScreen::addDirtyRect(int x, int y, int w, int h) {
 	int x2 = x + w - 1;
 	int y2 = y + h - 1;
 
-	assert(x >= 0 && y >= 0 && x2 <= _width && y2 <= _height);
+	assert(x >= 0 && y >= 0 && x2 < _width && y2 < _height);
 
-	bool skip = false;
+	bool merge = false;
+	Common::List<Common::Rect>::iterator r2 = _dirtyRects.end();
+
 	for (Common::List<Common::Rect>::iterator r = _dirtyRects.begin(); r != _dirtyRects.end(); ++r) {
-		// Try to merge new rect with an existing rect (only once, since trying to merge
-		// more than one overlapping rect would be causing more overhead than doing any good).
-		if (x > r->left && x < r->right && y > r->top && y < r->bottom) {
-			x = r->left;
-			y = r->top;
-			skip = true;
+		// Try to merge new rect with existing rects.
+		if (merge) {
+			r = _dirtyRects.begin();
+			merge = false;
 		}
-
-		if (x2 > r->left && x2 < r->right && y > r->top && y < r->bottom) {
-			x2 = r->right;
-			y = r->top;
-			skip = true;
+		if (r == r2)
+			continue;
+		if (y == r->top && y2 == r->bottom) {
+			if ((x >= r->left && x <= r->right) || (x2 >= r->left - 1 && x2 <= r->right)) {
+				x = MIN<int>(x, r->left);
+				x2 = MAX<int>(x2, r->right);
+				merge = true;
+			}
 		}
-
-		if (x2 > r->left && x2 < r->right && y2 > r->top && y2 < r->bottom) {
-			x2 = r->right;
-			y2 = r->bottom;
-			skip = true;
+		if (x == r->left && x2 == r->right) {
+			if ((y >= r->top && y <= r->bottom) || (y2 >= r->top - 1 && y2 <= r->bottom)) {
+				y = MIN<int>(y, r->top);
+				y2 = MAX<int>(y2, r->bottom);
+				merge = true;
+			}
 		}
-
-		if (x > r->left && x < r->right && y2 > r->top && y2 < r->bottom) {
-			x = r->left;
-			y2 = r->bottom;
-			skip = true;
-		}
-
-		if (skip) {
-			r->left = x;
-			r->top = y;
-			r->right = x2;
-			r->bottom = y2;
-			break;
+		if (merge) {
+			if (r2 == _dirtyRects.end())
+				r2 = r;
+			else
+				_dirtyRects.erase(r);
 		}
 	}
 
-	if (!skip) {
+	if (r2 == _dirtyRects.end()) {
 		_dirtyRects.push_back(Common::Rect(x, y, x2, y2));
 		_numDirtyRects++;
+	} else {
+		r2->left = x;
+		r2->top = y;
+		r2->right = x2;
+		r2->bottom = y2;
 	}
 }
 
 void TownsScreen::toggleLayers(int flags) {
-	if (flags < 0 || flags > 3)
+	if (flags & ~3)
 		return;
 
 	_layers[0].enabled = (flags & 1) ? true : false;
@@ -516,36 +572,42 @@ void TownsScreen::toggleLayers(int flags) {
 	_dirtyRects.push_back(Common::Rect(_width - 1, _height - 1));
 	_numDirtyRects = kFullRedraw;
 
-	Graphics::Surface *s = _system->lockScreen();
-	assert(s);
-	memset(s->getPixels(), 0, _pitch * _height);
-	_system->unlockScreen();
+	_system->fillScreen(0);
 	update();
 
 	_system->updateScreen();
 }
 
-void TownsScreen::scrollLayers(int flags, int offset) {
-	// This actually supports layer 0 only, since this is all we need.
-	_scrollRemainder += offset;
-	if (!_scrollRemainder)
+void TownsScreen::scrollLayer(int layer, int offset, int top, int bottom, bool fast) {
+	if (layer & ~1)
 		return;
 
-	int step = (_scrollRemainder > 0) ? -1 : 1;
-	_scrollRemainder += step;
-	_scrollOffset = (_scrollOffset + step) % _layers[0].width;
+	// This actually supports layer 0 only, since this is all we need.
+	TownsScreenLayer *l = &_layers[layer];
+	if (!l->ready)
+		return;
 
-	_dirtyRects.clear();
-	_dirtyRects.push_back(Common::Rect(_width - 1, _height - 1));
-	_numDirtyRects = kFullRedraw;
+	l->scrollRemainder += offset;
+	if (!l->scrollRemainder)
+		return;
 
-	for (int i = 0; i < 2; ++i) {
-		if (!(flags & (1 << i)))
-			continue;
-		TownsScreenLayer *l = &_layers[i];
-		if (l->ready)
-			l->hScroll = _scrollOffset % l->width;
-	}
+	int step = (l->scrollRemainder > 0) ? -1 : 1;
+
+	// Smooth scrolling isn't fast enough to keep up with the fast camera
+	// movement in the Loom intro. Non-smooth scrolling is eight pixels at
+	// at time, so two or four should be safe to use. Two is too slow, so
+	// four it is.
+	if (fast && _semiSmoothScroll)
+		step *= 4;
+
+	l->scrollRemainder += step;
+	l->hScroll += step;
+	l->hScroll %= l->width;
+
+	if (top == 0 && bottom == _height - 1)
+		_numDirtyRects = kDirtyRectsMax;
+
+	addDirtyRect(0, top, _width, bottom - top);	
 }
 
 void TownsScreen::update() {
@@ -578,10 +640,10 @@ uint16 TownsScreen::calc16BitColor(const uint8 *palEntry) {
 }
 #endif
 
-template<typename dstPixelType, typename srcPixelType, int scaleW, int scaleH, bool srcCol4bit> void TownsScreen::transferRect(uint8 *dst, TownsScreenLayer *l, int x, int y, int w, int h) {
-	uint8 *dst10 = dst + y * _pitch * scaleH + x * sizeof(dstPixelType) * scaleW;
-	uint8 *dst20 = (scaleH == 2) ? dst10 + _pitch : 0;
-	int pitch = _pitch * scaleH;
+template<typename dstPixelType, typename srcPixelType, int scaleW, int scaleH, bool srcCol4bit> void TownsScreen::transferRect(uint8 *dst, int pitch, TownsScreenLayer *l, int x, int y, int w, int h) {
+	uint8 *dst10 = dst + y * pitch * scaleH + x * sizeof(dstPixelType) * scaleW;
+	uint8 *dst20 = (scaleH == 2) ? dst10 + pitch : nullptr;
+	pitch *= scaleH;
 
 	int x0 = (x + l->hScroll) % l->width;
 	const uint8 *in0 = l->pixels + y * l->pitch + x0 * sizeof(srcPixelType);
@@ -598,7 +660,7 @@ template<typename dstPixelType, typename srcPixelType, int scaleW, int scaleH, b
 				if (sizeof(srcPixelType) == 1) {
 					if (col || l->onBottom) {
 						if (srcCol4bit)
-							col = (col >> 4) & (col & 0x0f);
+							col = col & 0x0f;
 						dstPixelType col2 = l->bltTmpPal[col];
 						*dst10a = col2;
 						if (scaleW == 2)
@@ -623,7 +685,7 @@ template<typename dstPixelType, typename srcPixelType, int scaleW, int scaleH, b
 			} else {
 				if (col || l->onBottom) {
 					if (srcCol4bit)
-						col = (col >> 4) & (col & 0x0f);
+						col = col & 0x0f;
 					*dst10a = col;
 					if (scaleW == 2)
 						*++dst10a = col;
@@ -649,13 +711,13 @@ template<typename dstPixelType, typename srcPixelType, int scaleW, int scaleH, b
 }
 
 #ifdef USE_RGB_COLOR
-template void TownsScreen::transferRect<uint16, uint16, 1, 1, false>(uint8 *dst, TownsScreenLayer *l, int x, int y, int w, int h);
-template void TownsScreen::transferRect<uint16, uint16, 2, 2, false>(uint8 *dst, TownsScreenLayer *l, int x, int y, int w, int h);
-template void TownsScreen::transferRect<uint16, uint8, 1, 1, true>(uint8 *dst, TownsScreenLayer *l, int x, int y, int w, int h);
+template void TownsScreen::transferRect<uint16, uint16, 1, 1, false>(uint8 *dst, int pitch, TownsScreenLayer *l, int x, int y, int w, int h);
+template void TownsScreen::transferRect<uint16, uint16, 2, 2, false>(uint8 *dst, int pitch, TownsScreenLayer *l, int x, int y, int w, int h);
+template void TownsScreen::transferRect<uint16, uint8, 1, 1, true>(uint8 *dst, int pitch, TownsScreenLayer *l, int x, int y, int w, int h);
 #else
-template void TownsScreen::transferRect<uint8, uint8, 2, 2, false>(uint8 *dst, TownsScreenLayer *l, int x, int y, int w, int h);
-template void TownsScreen::transferRect<uint8, uint8, 1, 1, false>(uint8 *dst, TownsScreenLayer *l, int x, int y, int w, int h);
-template void TownsScreen::transferRect<uint8, uint8, 1, 1, true>(uint8 *dst, TownsScreenLayer *l, int x, int y, int w, int h);
+template void TownsScreen::transferRect<uint8, uint8, 2, 2, false>(uint8 *dst, int pitch, TownsScreenLayer *l, int x, int y, int w, int h);
+template void TownsScreen::transferRect<uint8, uint8, 1, 1, false>(uint8 *dst, int pitch, TownsScreenLayer *l, int x, int y, int w, int h);
+template void TownsScreen::transferRect<uint8, uint8, 1, 1, true>(uint8 *dst, int pitch, TownsScreenLayer *l, int x, int y, int w, int h);
 #endif
 
 template<typename dstPixelType> void TownsScreen::updateScreenBuffer() {
@@ -663,6 +725,7 @@ template<typename dstPixelType> void TownsScreen::updateScreenBuffer() {
 	if (!s)
 		error("TownsScreen::updateOutputBuffer(): Failed to allocate screen buffer");
 	uint8 *dst = (uint8*)s->getPixels();
+	int pitch = s->pitch;
 
 	for (int i = 0; i < 2; i++) {
 		TownsScreenLayer *l = &_layers[i];
@@ -672,10 +735,10 @@ template<typename dstPixelType> void TownsScreen::updateScreenBuffer() {
 		if (l->bpp == 2) {
 			if (l->scaleH == 2 && l->scaleW == 2) {
 				for (Common::List<Common::Rect>::iterator r = _dirtyRects.begin(); r != _dirtyRects.end(); ++r)
-					transferRect<dstPixelType, uint16, 2, 2, false>(dst, l, r->left >> 1, r->top >> 1, (r->right - r->left) >> 1, (r->bottom - r->top) >> 1);
+					transferRect<dstPixelType, uint16, 2, 2, false>(dst, pitch, l, r->left >> 1, r->top >> 1, (r->right - r->left) >> 1, (r->bottom - r->top) >> 1);
 			} else if (l->scaleH == 1 && l->scaleW == 1) {
 				for (Common::List<Common::Rect>::iterator r = _dirtyRects.begin(); r != _dirtyRects.end(); ++r)
-					transferRect<dstPixelType, uint16, 1, 1, false>(dst, l, r->left, r->top, r->right - r->left, r->bottom - r->top);
+					transferRect<dstPixelType, uint16, 1, 1, false>(dst, pitch, l, r->left, r->top, r->right - r->left, r->bottom - r->top);
 			} else {
 				error("TownsScreen::updateOutputBuffer(): Unsupported scale mode");
 			}
@@ -685,7 +748,7 @@ template<typename dstPixelType> void TownsScreen::updateScreenBuffer() {
 #endif
 				if (l->scaleH == 1 && l->scaleW == 1) {
 					for (Common::List<Common::Rect>::iterator r = _dirtyRects.begin(); r != _dirtyRects.end(); ++r)
-						transferRect<dstPixelType, uint8, 1, 1, true>(dst, l, r->left, r->top, r->right - r->left, r->bottom - r->top);
+						transferRect<dstPixelType, uint8, 1, 1, true>(dst, pitch, l, r->left, r->top, r->right - r->left, r->bottom - r->top);
 				} else {
 					error("TownsScreen::updateOutputBuffer(): Unsupported scale mode");
 				}
@@ -693,10 +756,10 @@ template<typename dstPixelType> void TownsScreen::updateScreenBuffer() {
 			} else {
 				if (l->scaleH == 2 && l->scaleW == 2) {
 					for (Common::List<Common::Rect>::iterator r = _dirtyRects.begin(); r != _dirtyRects.end(); ++r)
-						transferRect<dstPixelType, uint8, 2, 2, false>(dst, l, r->left >> 1, r->top >> 1, (r->right - r->left) >> 1, (r->bottom - r->top) >> 1);
+						transferRect<dstPixelType, uint8, 2, 2, false>(dst, pitch, l, r->left >> 1, r->top >> 1, (r->right - r->left) >> 1, (r->bottom - r->top) >> 1);
 				} else if (l->scaleH == 1 && l->scaleW == 1) {
 					for (Common::List<Common::Rect>::iterator r = _dirtyRects.begin(); r != _dirtyRects.end(); ++r)
-						transferRect<dstPixelType, uint8, 1, 1, false>(dst, l, r->left, r->top, r->right - r->left, r->bottom - r->top);
+						transferRect<dstPixelType, uint8, 1, 1, false>(dst, pitch, l, r->left, r->top, r->right - r->left, r->bottom - r->top);
 				}
 			}
 #else

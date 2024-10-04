@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,6 +43,7 @@ void PSPPixelFormat::set(Type type, bool swap /* = false */) {
 		bitsPerPixel = 16;
 		break;
 	case Type_8888:
+	case Type_8888_RGBA:
 		bitsPerPixel = 32;
 		break;
 	case Type_Palette_8bit:
@@ -71,7 +71,7 @@ void PSPPixelFormat::convertFromScummvmPixelFormat(const Graphics::PixelFormat *
 		PSPPixelFormat::Type &paletteType,
 		bool &swapRedBlue) {
 	swapRedBlue = false;	 // no red-blue swap by default
-	PSPPixelFormat::Type *target = 0;	// which one we'll be filling
+	PSPPixelFormat::Type *target = nullptr;	// which one we'll be filling
 
 	if (!pf) {	// Default, pf is NULL
 		bufferType = Type_Palette_8bit;
@@ -99,6 +99,8 @@ void PSPPixelFormat::convertFromScummvmPixelFormat(const Graphics::PixelFormat *
 			*target = Type_4444;
 		} else if (pf->gLoss == 0 && pf->gShift == 8) {
 			*target = Type_8888;
+		} else if (pf->gLoss == 0 && pf->gShift == 16) {
+			*target = Type_8888_RGBA;
 		} else if ((pf->gLoss == 0 && pf->gShift == 0) ||
 		           (pf->gLoss == 8 && pf->gShift == 0)) {	// Default CLUT8 can have weird values
 			*target = Type_5551;
@@ -155,6 +157,7 @@ Graphics::PixelFormat PSPPixelFormat::convertToScummvmPixelFormat(PSPPixelFormat
 		pf.bShift = 11;
 		break;
 	case Type_8888:
+	case Type_8888_RGBA:
 		pf.bytesPerPixel = 4;
 		pf.aLoss = 0;
 		pf.rLoss = 0;

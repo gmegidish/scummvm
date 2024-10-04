@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,16 +27,16 @@
 
 class TownsEmuMusicPlugin : public MusicPluginObject {
 public:
-	const char *getName() const {
+	const char *getName() const override {
 		return _s("FM-Towns Audio");
 	}
 
-	const char *getId() const {
+	const char *getId() const override {
 		return "towns";
 	}
 
-	MusicDevices getDevices() const;
-	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const;
+	MusicDevices getDevices() const override;
+	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const override;
 };
 
 MusicDevices TownsEmuMusicPlugin::getDevices() const {
@@ -47,22 +46,22 @@ MusicDevices TownsEmuMusicPlugin::getDevices() const {
 }
 
 Common::Error TownsEmuMusicPlugin::createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle) const {
-	*mididriver = 0;
+	*mididriver = nullptr;
 	return Common::kUnknownError;
 }
 
 class PC98EmuMusicPlugin : public MusicPluginObject {
 public:
-	const char *getName() const {
+	const char *getName() const override {
 		return _s("PC-98 Audio");
 	}
 
-	const char *getId() const {
+	const char *getId() const override {
 		return "pc98";
 	}
 
-	MusicDevices getDevices() const;
-	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const;
+	MusicDevices getDevices() const override;
+	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const override;
 };
 
 MusicDevices PC98EmuMusicPlugin::getDevices() const {
@@ -72,22 +71,22 @@ MusicDevices PC98EmuMusicPlugin::getDevices() const {
 }
 
 Common::Error PC98EmuMusicPlugin::createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle) const {
-	*mididriver = 0;
+	*mididriver = nullptr;
 	return Common::kUnknownError;
 }
 
 class SegaCDSoundPlugin : public MusicPluginObject {
 public:
-	const char *getName() const {
+	const char *getName() const override {
 		return _s("SegaCD Audio");
 	}
 
-	const char *getId() const {
+	const char *getId() const override {
 		return "segacd";
 	}
 
-	MusicDevices getDevices() const;
-	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const;
+	MusicDevices getDevices() const override;
+	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const override;
 };
 
 MusicDevices SegaCDSoundPlugin::getDevices() const {
@@ -97,7 +96,7 @@ MusicDevices SegaCDSoundPlugin::getDevices() const {
 }
 
 Common::Error SegaCDSoundPlugin::createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle) const {
-	*mididriver = 0;
+	*mididriver = nullptr;
 	return Common::kUnknownError;
 }
 

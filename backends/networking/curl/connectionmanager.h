@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@ namespace Networking {
 class NetworkReadStream;
 
 class ConnectionManager : public Common::Singleton<ConnectionManager> {
-	static const uint32 FRAMES_PER_SECOND = 25;
+	static const uint32 FRAMES_PER_SECOND = 100;
 	static const uint32 TIMER_INTERVAL = 1000000 / FRAMES_PER_SECOND;
 	static const uint32 CLOUD_PERIOD = 1; //every frame
 	static const uint32 CURL_PERIOD = 1; //every frame
@@ -90,7 +89,7 @@ class ConnectionManager : public Common::Singleton<ConnectionManager> {
 
 public:
 	ConnectionManager();
-	virtual ~ConnectionManager();
+	~ConnectionManager() override;
 
 	/**
 	 * All libcurl transfers are going through this ConnectionManager.
@@ -115,12 +114,12 @@ public:
 	Request *addRequest(Request *request, RequestCallback callback = nullptr);
 
 	/** Return URL-encoded version of given string. */
-	Common::String urlEncode(Common::String s) const;
+	Common::String urlEncode(const Common::String &s) const;
 
 	static uint32 getCloudRequestsPeriodInMicroseconds();
 
 	/** Return the path to the CA certificates bundle. */
-	static const char *getCaCertPath();
+	static Common::String getCaCertPath();
 };
 
 /** Shortcut for accessing the connection manager. */

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,7 @@
 #include "common/events.h"
 #include "common/keyboard.h"
 #include "common/rect.h"
+#include "illusions/illusions.h"
 
 namespace Illusions {
 
@@ -49,26 +49,26 @@ enum {
 };
 
 struct KeyMapping {
-	Common::KeyCode _key;
+	Common::CustomEventType _action;
 	int _mouseButton;
 	bool _down;
 };
 
 class KeyMap : public Common::Array<KeyMapping> {
 public:
-	void addKey(Common::KeyCode key);
+	void addKey(Common::CustomEventType action);
 	void addMouseButton(int mouseButton);
 protected:
-	void add(Common::KeyCode key, int mouseButton);
+	void add(Common::CustomEventType action, int mouseButton);
 };
 
 class InputEvent {
 public:
 	InputEvent();
 	InputEvent& setBitMask(uint bitMask);
-	InputEvent& addKey(Common::KeyCode key);
+	InputEvent& addKey(Common::CustomEventType action);
 	InputEvent& addMouseButton(int mouseButton);
-	uint handle(Common::KeyCode key, int mouseButton, bool down);
+	uint handle(Common::CustomEventType action, int mouseButton, bool down);
 	uint getBitMask() const { return _bitMask; }
 protected:
 	uint _bitMask;
@@ -92,6 +92,7 @@ public:
 	InputEvent& setInputEvent(uint evt, uint bitMask);
 	bool isCursorMovedByKeyboard() const { return _cursorMovedByKeyboard; }
 	bool isCheatModeActive();
+	void setCheatModeActive(bool active);
 protected:
 	uint _cheatCodeIndex;
 	uint _buttonStates, _newButtons, _buttonsDown;
@@ -100,6 +101,7 @@ protected:
 	Common::Point _cursorPos, _prevCursorPos;
 	InputEvent _inputEvents[kEventMax];
 	bool _cursorMovedByKeyboard;
+	void handleAction(Common::CustomEventType Action, int mouseButton, bool down);
 	void handleKey(Common::KeyCode key, int mouseButton, bool down);
 	void handleMouseButton(int mouseButton, bool down);
 	void discardButtons(uint bitMask);

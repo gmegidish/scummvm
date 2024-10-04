@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "twine/renderer/screens.h"
+#include "common/file.h"
+#include "common/str.h"
 #include "common/system.h"
+#include "common/util.h"
 #include "graphics/managed_surface.h"
+#include "graphics/pixelformat.h"
 #include "graphics/surface.h"
+#include "image/bmp.h"
+#include "image/image_decoder.h"
+#include "image/png.h"
 #include "twine/audio/music.h"
 #include "twine/resources/hqr.h"
 #include "twine/resources/resources.h"
@@ -31,8 +37,21 @@
 
 namespace TwinE {
 
+int32 Screens::mapLba2Palette(int32 palIndex) {
+	static const int32 palettes[] {
+		RESSHQR_MAINPAL,
+		-1, // TODO: current palette
+		RESSHQR_BLACKPAL,
+		RESSHQR_ECLAIRPAL
+	};
+	if (palIndex < 0 || palIndex >= ARRAYSIZE(palettes)) {
+		return -1;
+	}
+	return palettes[palIndex];
+}
+
 bool Screens::adelineLogo() {
-	_engine->_music->playMidiMusic(31);
+	_engine->_music->playMidiFile(31);
 
 	return loadImageDelay(_engine->_resources->adelineLogo(), 7);
 }
@@ -98,35 +117,86 @@ bool Screens::loadImageDelay(TwineImage image, int32 seconds) {
 	return false;
 }
 
-void Screens::fadeIn(const uint32 *pal) {
-	if (_engine->_cfgfile.CrossFade) {
-		_engine->crossFade(pal);
-	} else {
-		fadeToPal(pal);
+template<class ImageDecoder>
+static bool loadImageDelayViaDecoder(TwinEEngine *engine, const Common::Path &fileName, int32 seconds) {
+	ImageDecoder decoder;
+	Common::File fileHandle;
+	if (!fileHandle.open(fileName)) {
+		warning("Failed to open %s", fileName.toString().c_str());
+		return false;
 	}
+	if (!decoder.loadStream(fileHandle)) {
+		warning("Failed to load %s", fileName.toString().c_str());
+		return false;
+	}
+	const Graphics::Surface *src = decoder.getSurface();
+	if (src == nullptr) {
+		warning("Failed to decode %s", fileName.toString().c_str());
+		return false;
+	}
+	Graphics::ManagedSurface &target = engine->_frontVideoBuffer;
+	Common::Rect rect(src->w, src->h);
+	if (decoder.getPaletteColorCount() == 0) {
+		uint8 pal[PALETTE_SIZE];
+		engine->_frontVideoBuffer.getPalette(pal, 0, 256);
+		Graphics::Surface *source = decoder.getSurface()->convertTo(target.format, nullptr, 0, pal, 256);
+		target.blitFrom(*source, rect, target.getBounds());
+		source->free();
+		delete source;
+	} else {
+		engine->setPalette(0, decoder.getPaletteColorCount(), decoder.getPalette());
+		target.transBlitFrom(*src, rect, target.getBounds(), 0, false, 0, 0xff, nullptr, true);
+	}
+	if (engine->delaySkip(1000 * seconds)) {
+		return true;
+	}
+	return false;
+}
+
+bool Screens::loadBitmapDelay(const char *image, int32 seconds) {
+	Common::Path path(image);
+	Common::String filename = path.baseName();
+	size_t extPos = filename.rfind(".");
+	if (extPos == Common::String::npos) {
+		warning("Failed to extract extension %s", image);
+		return false;
+	}
+
+	struct ImageLoader {
+		const char *extension;
+		bool (*loadImageDelay)(TwinEEngine *engine, const Common::Path &fileName, int32 seconds);
+	};
+
+	static const ImageLoader s_imageLoaders[] = {
+		{ "bmp", loadImageDelayViaDecoder<Image::BitmapDecoder> },
+		{ "png", loadImageDelayViaDecoder<Image::PNGDecoder> },
+		{ nullptr, nullptr }
+	};
+	const Common::String &ext = filename.substr(extPos + 1);
+	for (const ImageLoader *loader = s_imageLoaders; loader->extension; ++loader) {
+		if (!scumm_stricmp(loader->extension, ext.c_str())) {
+			return loader->loadImageDelay(_engine, path, seconds);
+		}
+	}
+	warning("Failed to find suitable image handler %s", image);
+	return false;
+}
+
+void Screens::fadeIn(const uint32 *pal) {
+	fadeToPal(pal);
 
 	_engine->setPalette(pal);
 }
 
 void Screens::fadeOut(const uint32 *pal) {
-#if 0
-	if (_engine->_cfgfile.CrossFade) {
-		_engine->crossFade(pal);
-	} else {
-		fadeToBlack(pal);
-	}
-#else
-	if (!_engine->_cfgfile.CrossFade) {
-		fadeToBlack(pal);
-	}
-#endif
+	fadeToBlack(pal);
 }
 
-int32 Screens::lerp(int32 value, int32 start, int32 end, int32 t) {
-	if (!end) {
-		return start;
+int32 Screens::lerp(int32 val1, int32 val2, int32 nbstep, int32 step) {  // RegleTrois32
+	if (nbstep < 0) {
+		return val2;
 	}
-	return (((start - value) * t) / end) + value;
+	return (((val2 - val1) * step) / nbstep) + val1;
 }
 
 void Screens::adjustPalette(uint8 r, uint8 g, uint8 b, const uint32 *rgbaPal, int32 intensity) {
@@ -169,7 +239,7 @@ void Screens::adjustCrossPalette(const uint32 *pal1, const uint32 *pal2) {
 	const uint8 *pal2p = (const uint8 *)pal2;
 	uint8 *paletteOut = (uint8 *)pal;
 	do {
-		FrameMarker frame(_engine, 50);
+		FrameMarker frame(_engine, DEFAULT_HZ);
 		counter = 0;
 
 		uint8 *newR = &paletteOut[counter];
@@ -203,7 +273,7 @@ void Screens::fadeToBlack(const uint32 *pal) {
 	}
 
 	for (int32 i = 100; i >= 0; i -= 3) {
-		FrameMarker frame(_engine, 50);
+		FrameMarker frame(_engine, DEFAULT_HZ);
 		adjustPalette(0, 0, 0, pal, i);
 	}
 
@@ -212,7 +282,7 @@ void Screens::fadeToBlack(const uint32 *pal) {
 
 void Screens::fadeToPal(const uint32 *pal) {
 	for (int32 i = 0; i <= 100; i += 3) {
-		FrameMarker frame(_engine, 50);
+		FrameMarker frame(_engine, DEFAULT_HZ);
 		adjustPalette(0, 0, 0, pal, i);
 	}
 
@@ -232,6 +302,25 @@ void Screens::blackToWhite() {
 	}
 }
 
+void Screens::setDarkPal() {
+	ScopedEngineFreeze scoped(_engine);
+	HQR::getEntry(_palette, Resources::HQR_RESS_FILE, RESSHQR_DARKPAL);
+	convertPalToRGBA(_palette, _paletteRGBA);
+	if (!_fadePalette) {
+		// set the palette hard if it should not get faded
+		_engine->setPalette(_paletteRGBA);
+	}
+	_useAlternatePalette = true;
+}
+
+void Screens::setNormalPal() {
+	_useAlternatePalette = false;
+	if (!_fadePalette) {
+		// reset the palette hard if it should not get faded
+		_engine->setPalette(_mainPaletteRGBA);
+	}
+}
+
 void Screens::setBackPal() {
 	memset(_palette, 0, sizeof(_palette));
 	memset(_paletteRGBA, 0, sizeof(_paletteRGBA));
@@ -243,14 +332,14 @@ void Screens::setBackPal() {
 
 void Screens::fadePalRed(const uint32 *pal) {
 	for (int32 i = 100; i >= 0; i -= 2) {
-		FrameMarker frame(_engine, 50);
+		FrameMarker frame(_engine, DEFAULT_HZ);
 		adjustPalette(0xFF, 0, 0, pal, i);
 	}
 }
 
 void Screens::fadeRedPal(const uint32 *pal) {
 	for (int32 i = 0; i <= 100; i += 2) {
-		FrameMarker frame(_engine, 50);
+		FrameMarker frame(_engine, DEFAULT_HZ);
 		adjustPalette(0xFF, 0, 0, pal, i);
 	}
 }

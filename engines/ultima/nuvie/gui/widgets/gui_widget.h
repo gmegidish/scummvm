@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,7 +49,7 @@ protected:
 	int offset_x, offset_y; /* original offsets to parent */
 
 	/* Flag -- whether or not the widget should be freed */
-	int status;
+	WIDGET_status status;
 
 	/* should we redraw this widget */
 	bool update_display;
@@ -63,7 +62,7 @@ protected:
 	Std::list<GUI_Widget *>children;
 	GUI_Widget *parent;
 
-	char *error;
+	char *errorptr;
 	char  errbuf[BUFSIZ];
 
 	GUI_DragManager *gui_drag_manager;
@@ -101,7 +100,7 @@ public:
 	virtual void MoveRelative(int dx, int dy);
 	virtual void Move(int32 new_x, int32 new_y);
 	void MoveRelativeToParent(int dx, int dy);
-	bool has_focus() {
+	bool has_focus() const {
 		return focused;
 	}
 	void grab_focus();
@@ -109,7 +108,7 @@ public:
 	void moveToFront();
 	virtual void PlaceOnScreen(Screen *s, GUI_DragManager *dm, int x, int y);
 
-	virtual int  Status(void);  /* Reports status to GUI */
+	virtual WIDGET_status Status(void) const;  /* Reports status to GUI */
 
 	/* Set the bounds of the widget.
 	   If 'w' or 'h' is -1, that parameter will not be changed.
@@ -123,16 +122,16 @@ public:
 	}
 
 	/* Return the bounds of the widget */
-	virtual int X() {
+	virtual int X() const {
 		return area.left;
 	}
-	virtual int Y() {
+	virtual int Y() const {
 		return area.top;
 	}
-	virtual int W() {
+	virtual int W() const {
 		return area.width();
 	}
-	virtual int H() {
+	virtual int H() const {
 		return area.height();
 	}
 
@@ -155,7 +154,7 @@ public:
 	virtual void Redraw(void);
 
 	/* should this widget be redrawn */
-	inline bool needs_redraw() {
+	inline bool needs_redraw() const {
 		return update_display;
 	}
 	/* widget has focus or no widget is focused */
@@ -192,9 +191,9 @@ public:
 	 */
 	virtual GUI_status HandleEvent(const Common::Event *event);
 
-	/* Returns NULL if everything is okay, or an error message if not */
+	/* Returns nullptr if everything is okay, or an error message if not */
 	char *Error(void) {
-		return (error);
+		return errorptr;
 	}
 
 	/* yields click state: none, pressed, intermediate */
@@ -218,22 +217,22 @@ protected:
 		va_list ap;
 
 		va_start(ap, fmt);
-		vsprintf(errbuf, fmt, ap);
+		Common::vsprintf_s(errbuf, fmt, ap);
 		va_end(ap);
-		error = errbuf;
+		errorptr = errbuf;
 	}
 
 	// SB-X
 	void set_accept_mouseclick(bool set, int button = 0);
 	void set_mouseup(int set, int button = 0);
 	void set_mousedown(int set, int button = 0);
-	int get_mouseup(int button)  {
+	int get_mouseup(int button) const {
 		if (button > 0 && button < 4) return (mouseup[button - 1]);
-		else return (0);
+		else return 0;
 	}
-	int get_mousedown(int button) {
+	int get_mousedown(int button) const {
 		if (button > 0 && button < 4) return (mousedown[button - 1]);
-		else return (0);
+		else return 0;
 	}
 	void wait_for_mouseclick(int button) {
 		if (button >= Shared::BUTTON_NONE && button < Shared::BUTTON_MIDDLE)

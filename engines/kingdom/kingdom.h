@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,32 +51,31 @@ namespace Kingdom {
 	};
 
 	struct HotSpot {
-		int x1, y1, x2, y2;
+		uint16 x1, y1, x2, y2;
 		int16 _mouseValue;
 
-		bool contains(const Common::Point &p) {
+		bool contains(const Common::Point &p) const {
 			return (x1 <= p.x) && (p.x < x2) && (y1 <= p.y) && (p.y < y2);
 		}
 
-		bool dummy() {
+		bool dummy() const {
 			return !(x1 || x2 || y1 || y2);
 		}
 	};
 
-	extern byte _finalFrameTable[];
-	extern const char *_rezNames[];
-	extern const char *_movieNames[];
-	extern int _mapExit[];
-	extern int _emlTable[];
-	extern int _zoomTable[81][9][2];
-	extern int _iconActTable[82][7];
-	extern int _cursorTable[96];
-	extern int _teaSeq[6][2];
-	extern int _hgaSeq[4][2];
-	extern HotSpot _mouseMapMSFull[51];
-	extern HotSpot _mouseMapMSDemo[51];
-	extern HotSpot _mouseMapASFull[128][16];
-	extern HotSpot _mouseMapASDemo[128][16];
+	extern const byte _finalFrameTable[];
+	extern const char * const _rezNames[];
+	extern const uint16 _mapExit[];
+	extern const uint8 _emlTable[];
+	extern const uint8 _zoomTable[81][9][2];
+	extern const uint8 _iconActTable[82][7];
+	extern const uint8 _cursorTable[96];
+	extern const uint8 _teaSeq[6][2];
+	extern const uint8 _hgaSeq[4][2];
+	extern const HotSpot _mouseMapMSFull[51];
+	extern const HotSpot _mouseMapMSDemo[51];
+	extern const HotSpot _mouseMapASFull[128][16];
+	extern const HotSpot _mouseMapASDemo[128][16];
 
 	struct KingdomSavegameHeader {
 		uint32 _signature;
@@ -91,9 +89,10 @@ namespace Kingdom {
 	class KingdomGame : public Engine {
 	public:
 		KingdomGame(OSystem *syst, const ADGameDescription *gameDesc);
-		~KingdomGame();
+		~KingdomGame() override;
 
-		virtual Common::Error run();
+		bool hasFeature(EngineFeature f) const override;
+		Common::Error run() override;
 
 		// Detection related functions
 		const ADGameDescription *_gameDescription;
@@ -103,10 +102,11 @@ namespace Kingdom {
 		bool isDemo() const;
 
 	private:
-		Console *_console;
 		Logic *_logic;
 
 		KingArtEntry *_kingartEntries;
+		uint32 _kingartCount;
+
 		void displayDebugHotSpots();
 
 	public:
@@ -154,6 +154,7 @@ namespace Kingdom {
 		bool _iconsClosed;
 		bool _oldIconsClosed;
 		int _pMovie;
+		bool _demoMovieSkipped;
 		bool _keyActive;
 		bool _iconRedraw;
 		bool _quit;
@@ -176,8 +177,6 @@ namespace Kingdom {
 		int _tickCount;
 		uint32 _oldTime;
 
-		Common::SeekableReadStream *_rezPointers[510];
-		int _rezSize[510];
 		int _iconPic[7];
 		uint16 _userInput;
 		uint16 _mouseButton;
@@ -190,8 +189,7 @@ namespace Kingdom {
 		void initHelp();
 		void fadeToBlack1();
 		void fadeToBlack2();
-		void loadAResource(int reznum);
-		void releaseAResource(int reznum);
+		Common::SeekableReadStream *loadAResource(int reznum);
 		void showPic(int reznum);
 		void fShowPic(int reznum);
 		void initCursor();
@@ -225,14 +223,15 @@ namespace Kingdom {
 		void drawCursor();
 		void cursorType();
 		void loadKingArt();
+		void unloadKingArt();
 		void setCursor(int cursor);
 		int getAKey();
 		int checkMouseMapAS();
 		void cursorTypeExit();
 		void saveGame();
 		void restoreGame();
-		virtual Common::Error loadGameState(int slot);
-		virtual Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false);
+		Common::Error loadGameState(int slot) override;
+		Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
 		Common::String getSavegameFilename(int slot);
 		void writeSavegameHeader(Common::OutSaveFile *out, KingdomSavegameHeader &header);
 		void synchronize(Common::Serializer &s);

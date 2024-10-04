@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/world/actors/actor_bark_notify_process.h"
+#include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/kernel/delay_process.h"
 #include "ultima/ultima8/world/actors/actor.h"
 #include "ultima/ultima8/kernel/kernel.h"
@@ -62,7 +62,8 @@ void ActorBarkNotifyProcess::run() {
 
 	// wait a short while (1-2.5 seconds) before doing the next animation
 	// (or even if not doing the animation)
-	Process *delayproc = new DelayProcess(30 + (getRandom() % 45));
+	Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
+	Process *delayproc = new DelayProcess(rs.getRandomNumberRng(30, 75));
 	ProcId delaypid = Kernel::get_instance()->addProcess(delayproc);
 
 	if (doAnim)

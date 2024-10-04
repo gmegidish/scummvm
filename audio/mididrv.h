@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,7 +57,10 @@ enum MusicType {
 	MT_SEGACD,			// SegaCD
 	MT_GM,				// General MIDI
 	MT_MT32,			// MT-32
-	MT_GS				// Roland GS
+	MT_GS,				// Roland GS
+	MT_MT540,			// Casio MT-540
+	MT_CT460,			// Casio CT-460 / CSM-1
+	MT_MACINTOSH		// Apple Macintosh
 };
 
 /**
@@ -91,7 +93,8 @@ enum MidiDriverFlags {
 	MDT_MIDI        = 1 << 10,		// Real MIDI
 	MDT_PREFER_MT32 = 1 << 11,		// MT-32 output is preferred
 	MDT_PREFER_GM   = 1 << 12,		// GM output is preferred
-	MDT_PREFER_FLUID= 1 << 13		// FluidSynth driver is preferred
+	MDT_PREFER_FLUID= 1 << 13,		// FluidSynth driver is preferred
+	MDT_MACINTOSH	= 1 << 14
 };
 
 /**
@@ -115,11 +118,15 @@ public:
 	static const byte MIDI_CONTROLLER_MODULATION = 0x01;
 	static const byte MIDI_CONTROLLER_DATA_ENTRY_MSB = 0x06;
 	static const byte MIDI_CONTROLLER_VOLUME = 0x07;
+	static const byte MIDI_CONTROLLER_BALANCE = 0x08;
 	static const byte MIDI_CONTROLLER_PANNING = 0x0A;
 	static const byte MIDI_CONTROLLER_EXPRESSION = 0x0B;
 	static const byte MIDI_CONTROLLER_BANK_SELECT_LSB = 0x20;
 	static const byte MIDI_CONTROLLER_DATA_ENTRY_LSB = 0x26;
 	static const byte MIDI_CONTROLLER_SUSTAIN = 0x40;
+	static const byte MIDI_CONTROLLER_PORTAMENTO = 0x41;
+	static const byte MIDI_CONTROLLER_SOSTENUTO = 0x42;
+	static const byte MIDI_CONTROLLER_SOFT = 0x43;
 	static const byte MIDI_CONTROLLER_REVERB = 0x5B;
 	static const byte MIDI_CONTROLLER_CHORUS = 0x5D;
 	static const byte MIDI_CONTROLLER_RPN_LSB = 0x64;
@@ -146,6 +153,7 @@ public:
 	static const uint16 MIDI_MASTER_TUNING_FINE_DEFAULT = 0x2000;
 	static const uint8 MIDI_MASTER_TUNING_COARSE_DEFAULT = 0x40;
 
+	static const uint8 MT32_PITCH_BEND_SENSITIVITY_DEFAULT = 0x0C;
 	static const uint8 GM_PITCH_BEND_SENSITIVITY_DEFAULT = 0x02;
 
 	static const uint8 GS_RHYTHM_FIRST_NOTE = 0x1B;
@@ -193,7 +201,7 @@ public:
 	 * do NOT include the leading 0xF0 and the trailing 0xF7.
 	 *
 	 * Furthermore, the maximal supported length of a SysEx
-	 * is 264 bytes. Passing longer buffers can lead to
+	 * is 268 bytes. Passing longer buffers can lead to
 	 * undefined behavior (most likely, a crash).
 	 */
 	virtual void sysEx(const byte *msg, uint16 length) { }
@@ -244,8 +252,11 @@ public:
 	 * A driver implementation might need time to prepare playback of
 	 * a track. Use this function to check if the driver is ready to
 	 * receive MIDI events.
+	 *
+	 * @param source Check if the driver is ready to receive events from this
+	 * specific source. Specify -1 to check readiness regardless of source.
 	 */
-	virtual bool isReady() { return true; }
+	virtual bool isReady(int8 source = -1) { return true; }
 
 protected:
 
@@ -432,7 +443,21 @@ public:
 		 * MILES_VERSION_3: behavior matches Miles Sound System version 3 and
 		 * higher. GM devices are initialized according to the GM standard.
 		 */
-		PROP_MILES_VERSION = 9
+		PROP_MILES_VERSION = 9,
+		/**
+		 * Set this property to make the OPL driver ignore note off events for
+		 * rhythm instruments when rhythm mode is activated.
+		 * MIDI data should contain a note off for each note on. For rhythm
+		 * instruments, a note off typically has no effect, because the note
+		 * plays for a fixed amount of time. For the OPL rhythm instruments a
+		 * note off will cut off the note. With this option, this behavior can
+		 * be prevented.
+		 * Currently only the AdLib multisource driver supports this option.
+		 *
+		 * False: note offs for OPL rhythm mode instruments are processed.
+		 * True: note offs for OPL rhythm mode instruments are ignored.
+		 */
+		PROP_OPL_RHYTHM_MODE_IGNORE_NOTE_OFF = 10
 	};
 
 	/**
@@ -475,8 +500,6 @@ public:
 	 */
 	void sendGMReset();
 
-	virtual void sysEx_customInstrument(byte channel, uint32 type, const byte *instr) { }
-
 	// Timing functions - MidiDriver now operates timers
 	virtual void setTimerCallback(void *timer_param, Common::TimerManager::TimerProc timer_proc) = 0;
 
@@ -517,7 +540,7 @@ public:
 	virtual void panPosition(byte value) { controlChange(MidiDriver::MIDI_CONTROLLER_PANNING, value); }
 	virtual void pitchBendFactor(byte value) = 0;
 	virtual void transpose(int8 value) {}
-	virtual void detune(byte value) { controlChange(17, value); }
+	virtual void detune(int16 value) { controlChange(17, value & 0xff); }
 	virtual void priority(byte value) { }
 	virtual void sustain(bool value) { controlChange(MidiDriver::MIDI_CONTROLLER_SUSTAIN, value ? 1 : 0); }
 	virtual void effectLevel(byte value) { controlChange(MidiDriver::MIDI_CONTROLLER_REVERB, value); }
@@ -525,7 +548,7 @@ public:
 	virtual void allNotesOff() { controlChange(MidiDriver::MIDI_CONTROLLER_ALL_NOTES_OFF, 0); }
 
 	// SysEx messages
-	virtual void sysEx_customInstrument(uint32 type, const byte *instr) = 0;
+	virtual void sysEx_customInstrument(uint32 type, const byte *instr, uint32 dataSize) = 0;
 };
 /** @} */
 #endif

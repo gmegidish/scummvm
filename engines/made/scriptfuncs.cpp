@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -300,7 +299,7 @@ int16 ScriptFunctions::sfStopMusic(int16 argc, int16 *argv) {
 	if (_vm->_music->isPlaying() && _musicRes) {
 		_vm->_music->stop();
 		_vm->_res->freeResource(_musicRes);
-		_musicRes = NULL;
+		_musicRes = nullptr;
 	}
 	return 0;
 }
@@ -335,7 +334,7 @@ int16 ScriptFunctions::sfPlayNote(int16 argc, int16 *argv) {
 	// depending on which of the 3 keys on the right has been pressed.
 	// This value seems to be [12, 14] in NE and [1, 3] in EGA.
 
-	// Note frequencies based on http://www.phy.mtu.edu/~suits/notefreqs.html
+	// Note frequencies based on https://pages.mtu.edu/~suits/notefreqs.html
 	static const int freqTable[] = {
 		16, 17, 18, 19, 21, 22, 23, 24, 26, 28, 29,
 		30, 32, 35, 37, 39, 41, 44, 46, 49, 52, 55,
@@ -498,11 +497,11 @@ int16 ScriptFunctions::sfSetFont(int16 argc, int16 *argv) {
 
 int16 ScriptFunctions::sfDrawText(int16 argc, int16 *argv) {
 
-	const char *text = NULL;
+	const char *text = nullptr;
 
 	if (_vm->getGameID() == GID_RTZ) {
 		text = _vm->_dat->getObjectString(argv[argc - 1]);
-	} if (_vm->getGameID() == GID_LGOP2 || _vm->getGameID() == GID_MANHOLE || _vm->getGameID() == GID_RODNEY) {
+	} else if (_vm->getGameID() == GID_LGOP2 || _vm->getGameID() == GID_MANHOLE || _vm->getGameID() == GID_RODNEY) {
 		text = _vm->_dat->getString(argv[argc - 1]);
 	}
 
@@ -581,7 +580,7 @@ int16 ScriptFunctions::sfLoadMouseCursor(int16 argc, int16 *argv) {
 	PictureResource *flex = _vm->_res->getPicture(argv[2]);
 	if (flex) {
 		Graphics::Surface *surf = flex->getPicture();
-		CursorMan.replaceCursor(surf->getPixels(), surf->w, surf->h, argv[1], argv[0], 0);
+		CursorMan.replaceCursor(*surf, argv[1], argv[0], 0);
 		_vm->_res->freeResource(flex);
 	}
 	return 0;

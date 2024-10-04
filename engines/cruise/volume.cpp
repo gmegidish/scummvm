@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 
 namespace Cruise {
 
-uint8 *PAL_ptr = NULL;
+uint8 *PAL_ptr = nullptr;
 
 int16 numLoadedPal;
 int16 fileData2;
@@ -40,7 +39,7 @@ void loadPal(volumeDataStruct *entry) {
 	if (_vm->_PAL_file.isOpen())
 		_vm->_PAL_file.close();
 
-	removeExtention(entry->ident, name);
+	removeExtension(entry->ident, name);
 	strcat(name, ".PAL");
 
 	if (!_vm->_PAL_file.open(name))
@@ -58,7 +57,7 @@ void closePal() {
 		_vm->_PAL_file.close();
 
 		MemFree(PAL_ptr);
-		PAL_ptr = NULL;
+		PAL_ptr = nullptr;
 
 		numLoadedPal = 0;
 		fileData2 = 0;
@@ -71,7 +70,7 @@ int closeBase() {
 
 		MemFree(volumePtrToFileDescriptor);
 
-		strcpy(currentBaseName, "");
+		currentBaseName[0] = '\0';
 	}
 
 	if (_vm->_PAL_file.isOpen()) {
@@ -92,7 +91,7 @@ int getVolumeDataEntry(volumeDataStruct *entry) {
 
 	askDisk(-1);
 
-	strcpy(buffer, entry->ident);
+	Common::strcpy_s(buffer, entry->ident);
 
 	_vm->_currentVolumeFile.open(buffer);
 
@@ -126,7 +125,7 @@ int getVolumeDataEntry(volumeDataStruct *entry) {
 		volumePtrToFileDescriptor[i].unk3 = _vm->_currentVolumeFile.readSint32BE();
 	}
 
-	strcpy(currentBaseName, entry->ident);
+	Common::strcpy_s(currentBaseName, entry->ident);
 
 	loadPal(entry);
 
@@ -207,8 +206,8 @@ void askDisk(int16 discNumber) {
 		currentDiskNumber = discNumber;
 	}
 
-	sprintf(fileName, "VOL.%d", currentDiskNumber);
-	sprintf(string, "INSERER LE DISQUE %d EN ", currentDiskNumber);
+	Common::sprintf_s(fileName, "VOL.%d", currentDiskNumber);
+	Common::sprintf_s(string, "INSERER LE DISQUE %d EN ", currentDiskNumber);
 
 #if 0 // skip drive selection stuff
 	bool messageDrawn = false;
@@ -304,7 +303,7 @@ int closeCnf() {
 	for (long int i = 0; i < numOfDisks; i++) {
 		if (volumeData[i].ptr) {
 			MemFree(volumeData[i].ptr);
-			volumeData[i].ptr = NULL;
+			volumeData[i].ptr = nullptr;
 		}
 	}
 
@@ -321,7 +320,7 @@ int16 readVolCnf() {
 
 	for (int i = 0; i < 20; i++) {
 		volumeData[i].ident[0] = 0;
-		volumeData[i].ptr = NULL;
+		volumeData[i].ptr = nullptr;
 		volumeData[i].diskNumber = i + 1;
 		volumeData[i].size = 0;
 	}
@@ -372,7 +371,7 @@ int16 readVolCnf() {
 		char nameBuffer[256];
 		fileEntry *buffer;
 
-		sprintf(nameBuffer, "D%d.", i + 1);
+		Common::sprintf_s(nameBuffer, "D%d.", i + 1);
 
 		fileHandle.open(nameBuffer);
 
@@ -401,7 +400,7 @@ int16 readVolCnf() {
 
 			char nameBuffer[256];
 
-			sprintf(nameBuffer, "%s", buffer[j].name);
+			Common::sprintf_s(nameBuffer, "%s", buffer[j].name);
 
 			if (buffer[j].size == buffer[j].extSize) {
 				Common::DumpFile fout;

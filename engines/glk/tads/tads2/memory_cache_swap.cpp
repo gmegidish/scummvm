@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@ void mcsini(mcscxdef *ctx, mcmcx1def *gmemctx, ulong maxsiz,
 			osfildef *fp, char *swapfilename, errcxdef *errctx) {
 	uchar *p;
 
-	ctx->mcscxtab = (mcsdsdef **)0; /* anticipate failure */
+	ctx->mcscxtab = (mcsdsdef **)nullptr; /* anticipate failure */
 
 	/* allocate space from the low-level heap for page table and one page */
 	p = mchalo(errctx, ((MCSPAGETAB * sizeof(mcsdsdef *)) + (MCSPAGECNT * sizeof(mcsdsdef))), "mcsini");
@@ -57,11 +56,12 @@ void mcsini(mcscxdef *ctx, mcmcx1def *gmemctx, ulong maxsiz,
 	 *   store the swap filename - make a copy so that the caller doesn't
 	 *   have to retain the original copy (in case it's on the stack)
 	 */
-	if (swapfilename != 0) {
-		ctx->mcscxfname = (char *)mchalo(errctx, (strlen(swapfilename) + 1), "mcsini");
-		strcpy(ctx->mcscxfname, swapfilename);
+	if (swapfilename != nullptr) {
+		size_t ln = strlen(swapfilename) + 1;
+		ctx->mcscxfname = (char *)mchalo(errctx, ln, "mcsini");
+		Common::strcpy_s(ctx->mcscxfname, ln, swapfilename);
 	} else {
-		ctx->mcscxfname = 0;
+		ctx->mcscxfname = nullptr;
 	}
 }
 

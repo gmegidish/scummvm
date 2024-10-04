@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,17 +24,20 @@
 #include "common/system.h"
 #include "common/events.h"
 #include "common/fs.h"
+#include "common/file.h"
 #include "common/savefile.h"
 #include "common/str.h"
 #include "common/taskbar.h"
 #include "common/updates.h"
 #include "common/dialogs.h"
+#include "common/str-enc.h"
 #include "common/textconsole.h"
 #include "common/text-to-speech.h"
 
 #include "backends/audiocd/default/default-audiocd.h"
 #include "backends/fs/fs-factory.h"
 #include "backends/timer/default/default-timer.h"
+#include "backends/dlc/store.h"
 
 OSystem *g_system = nullptr;
 
@@ -55,6 +57,7 @@ OSystem::OSystem() {
 	_dialogManager = nullptr;
 #endif
 	_fsFactory = nullptr;
+	_dlcStore = nullptr;
 	_backendInitialized = false;
 }
 
@@ -91,6 +94,9 @@ OSystem::~OSystem() {
 
 	delete _fsFactory;
 	_fsFactory = nullptr;
+
+	delete _dlcStore;
+	_dlcStore = nullptr;
 }
 
 void OSystem::initBackend() {
@@ -116,7 +122,58 @@ void OSystem::initBackend() {
 void OSystem::destroy() {
 	_backendInitialized = false;
 	Common::String::releaseMemoryPoolMutex();
+	Common::releaseCJKTables();
 	delete this;
+}
+
+void OSystem::updateStartSettings(const Common::String &executable, Common::String &command, Common::StringMap &settings, Common::StringArray& additionalArgs) {
+	// If a command was explicitly passed on the command line, do not override it
+	if (!command.empty())
+		return;
+
+	bool autodetect = false;
+
+	// Check executable name
+	if (executable.equalsIgnoreCase("scummvm-auto")) {
+		warning("Will run in autodetection mode");
+		autodetect = true;
+	}
+
+	// Check for the autorun file
+	if (Common::File::exists("scummvm-autorun")) {
+		// Okay, the file exists. We open it and if it is empty, then run in the autorun mode
+		// If the file is not empty, we read command line arguments from it, one per line
+		warning("Autorun file is detected");
+
+		Common::File autorun;
+		Common::String line;
+		Common::String res;
+
+		if (autorun.open("scummvm-autorun")) {
+			while (!autorun.eos()) {
+				line = autorun.readLine();
+				if (!line.empty() && line[0] != '#') {
+					additionalArgs.push_back(line);
+					res += Common::String::format("\"%s\" ", line.c_str());
+				}
+			}
+		}
+
+		if (!res.empty())
+			warning("Autorun command: %s", res.c_str());
+		else
+			warning("Empty autorun file");
+
+		autorun.close();
+		autodetect = true;
+	}
+
+	if (autodetect && additionalArgs.empty()) {
+		warning("Running autodetection");
+		command = "auto-detect";
+		if (!settings.contains("path"))
+			settings["path"] = ".";
+	}
 }
 
 bool OSystem::setGraphicsMode(const char *name) {
@@ -135,27 +192,6 @@ bool OSystem::setGraphicsMode(const char *name) {
 			return setGraphicsMode(gm->id);
 		}
 		gm++;
-	}
-
-	return false;
-}
-
-bool OSystem::setShader(const char *name) {
-	if (!name)
-		return false;
-
-	// Special case for the 'default' filter
-	if (!scumm_stricmp(name, "default")) {
-		return setShader(getDefaultShader());
-	}
-
-	const GraphicsMode *sm = getSupportedShaders();
-
-	while (sm->name) {
-		if (!scumm_stricmp(sm->name, name)) {
-			return setShader(sm->id);
-		}
-		sm++;
 	}
 
 	return false;
@@ -206,7 +242,7 @@ Common::WriteStream *OSystem::createConfigWriteStream() {
 #endif
 }
 
-Common::String OSystem::getDefaultConfigFileName() {
+Common::Path OSystem::getDefaultConfigFileName() {
 	return "scummvm.ini";
 }
 

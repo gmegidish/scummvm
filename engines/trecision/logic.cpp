@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/config-manager.h"
 
 #include "trecision/actor.h"
+#include "trecision/animmanager.h"
 #include "trecision/defines.h"
 #include "trecision/dialog.h"
 #include "trecision/graphics.h"
@@ -304,8 +304,8 @@ void LogicManager::startCharacterAnimations() {
 	} else if (_vm->_curRoom == kRoom1D && _vm->_oldRoom == kRoom1B) {
 		const uint16 cellarAction = _vm->isObjectVisible(oDONNA1D) ? a1D1SCENDESCALE : a1D12SCENDESCALA;
 		_vm->startCharacterAction(cellarAction, 0, 1, 0);
-		_vm->_actor->_lim[0] = 60;
-		_vm->_actor->_lim[2] = 240;
+		_vm->_actor->_area[0] = 60;
+		_vm->_actor->_area[2] = 240;
 	} else if (_vm->_curRoom == kRoom1B && _vm->_oldRoom == kRoom18 && _vm->_animMgr->_animTab[aBKG1B].isAnimAreaShown(1))
 		_vm->startCharacterAction(a1B12SCAPPATOPO, 0, 0, 0);
 	else if (_vm->_curRoom == kRoom2B && _vm->_oldRoom == kRoom2A)
@@ -1169,7 +1169,7 @@ void LogicManager::useInventoryWithScreen() {
 		break;
 
 	case kItemRatOnSkate:
-		if ((_vm->_useWith[WITH] == oDONNA1D) && (_vm->_mousePos.x >= _vm->_obj[oDONNA1D]._lim.left && (_vm->_mousePos.x >= _vm->_obj[oDONNA1D]._lim.top + TOP) && (_vm->_mousePos.x <= _vm->_obj[oDONNA1D]._lim.right) && (_vm->_mousePos.y <= _vm->_obj[oDONNA1D]._lim.bottom + TOP))) {
+		if ((_vm->_useWith[WITH] == oDONNA1D) && (_vm->_mousePos.x >= _vm->_obj[oDONNA1D]._area.left && (_vm->_mousePos.x >= _vm->_obj[oDONNA1D]._area.top + TOP) && (_vm->_mousePos.x <= _vm->_obj[oDONNA1D]._area.right) && (_vm->_mousePos.y <= _vm->_obj[oDONNA1D]._area.bottom + TOP))) {
 			_vm->_animMgr->_animTab[aBKG1D].toggleAnimArea(1, false);
 			_vm->_dialogMgr->playDialog(dF1D1);
 			updateInventory = false;
@@ -1649,7 +1649,7 @@ void LogicManager::useInventoryWithScreen() {
 	case kItemMatchInPacket:
 		if (_vm->_useWith[WITH] == oTORCHS48) {
 			_vm->_scheduler->doEvent(MC_CHARACTER, ME_CHARACTERACTION, MP_DEFAULT, a4812, 0, 0, _vm->_useWith[WITH]);
-			_vm->_obj[oTORCHS48]._lim = Common::Rect(0, 0, 0, 0);
+			_vm->_obj[oTORCHS48]._area = Common::Rect(0, 0, 0, 0);
 			printSentence = false;
 		}
 		break;
@@ -3717,9 +3717,9 @@ void LogicManager::handleClickGameArea() {
 	int pmousey = _vm->_curMessage->_u16Param2;
 	if (!_vm->_logicMgr->mouseClick(_vm->_curObj)) {
 		if (_vm->checkMask(_vm->_mousePos)) {
-			if ((_vm->_obj[_vm->_curObj]._lim.right - _vm->_obj[_vm->_curObj]._lim.left) < MAXX / 7) {
-				pmousex = (_vm->_obj[_vm->_curObj]._lim.left + _vm->_obj[_vm->_curObj]._lim.right) / 2;
-				pmousey = ((_vm->_obj[_vm->_curObj]._lim.top + _vm->_obj[_vm->_curObj]._lim.bottom) / 2) + TOP;
+			if ((_vm->_obj[_vm->_curObj]._area.right - _vm->_obj[_vm->_curObj]._area.left) < MAXX / 7) {
+				pmousex = (_vm->_obj[_vm->_curObj]._area.left + _vm->_obj[_vm->_curObj]._area.right) / 2;
+				pmousey = ((_vm->_obj[_vm->_curObj]._area.top + _vm->_obj[_vm->_curObj]._area.bottom) / 2) + TOP;
 			}
 		}
 		_vm->_pathFind->whereIs(pmousex, pmousey);
@@ -3988,7 +3988,9 @@ void LogicManager::handleClickControlPanel(uint16 curObj) {
 		if (_vm->_oldRoom == kRoomControlPanel)
 			break;
 		_vm->_curRoom = _vm->_obj[o00EXIT]._goRoom;
+		_vm->_controlPanelSave = true;
 		_vm->dataSave();
+		_vm->_controlPanelSave = false;
 		_vm->showInventoryName(NO_OBJECTS, false);
 		_vm->showIconName();
 		_vm->changeRoom(_vm->_obj[o00EXIT]._goRoom);

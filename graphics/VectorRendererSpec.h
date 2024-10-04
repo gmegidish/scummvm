@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -89,7 +88,7 @@ public:
 
 	void fillSurface() override;
 	void blitSurface(const Graphics::ManagedSurface *source, const Common::Rect &r) override;
-	void blitKeyBitmap(const Graphics::ManagedSurface *source, const Common::Point &p, bool themeTrans) override;
+	void blitManagedSurface(const Graphics::ManagedSurface *source, const Common::Point &p, Graphics::AlphaType alphaType) override;
 
 	void applyScreenShading(GUI::ThemeEngine::ShadingStyle shadingStyle) override;
 
@@ -229,23 +228,23 @@ protected:
 
 	virtual void drawTabAlg(int x, int y, int w, int h, int r,
 	    PixelType color, VectorRenderer::FillMode fill_m,
-	    int baseLeft = 0, int baseRight = 0);
+	    int baseLeft, int baseRight, bool vFlip);
 
 	virtual void drawTabAlgClip(int x, int y, int w, int h, int r,
 		PixelType color, VectorRenderer::FillMode fill_m,
-		int baseLeft = 0, int baseRight = 0);
+		int baseLeft, int baseRight, bool vFlip);
 
-	virtual void drawTabShadow(int x, int y, int w, int h, int r, int s);
+	virtual void drawTabShadow(int x, int y, int w, int h, int r, int offset, uint32 shadowIntensity, bool vFlip);
 
-	virtual void drawTabShadowClip(int x, int y, int w, int h, int r, int s);
+	virtual void drawTabShadowClip(int x, int y, int w, int h, int r, int offset, uint32 shadowIntensity, bool vFlip);
 
 	virtual void drawBevelTabAlg(int x, int y, int w, int h,
 	    int bevel, PixelType topColor, PixelType bottomColor,
-	    int baseLeft = 0, int baseRight = 0);
+	    int baseLeft, int baseRight, bool vFlip);
 
 	virtual void drawBevelTabAlgClip(int x, int y, int w, int h,
 		int bevel, PixelType topColor, PixelType bottomColor,
-		int baseLeft = 0, int baseRight = 0);
+		int baseLeft, int baseRight, bool vFlip);
 
 	/**
 	 * SHADOW DRAWING ALGORITHMS
@@ -259,8 +258,8 @@ protected:
 	 */
 	virtual void drawSquareShadow(int x, int y, int w, int h, int offset);
 	virtual void drawSquareShadowClip(int x, int y, int w, int h, int offset);
-	virtual void drawRoundedSquareShadow(int x, int y, int r, int w, int h, int offset);
-	virtual void drawRoundedSquareShadowClip(int x, int y, int r, int w, int h, int offset);
+	virtual void drawRoundedSquareShadow(int x, int y, int r, int w, int h, int offset, uint32 shadowIntensity);
+	virtual void drawRoundedSquareShadowClip(int x, int y, int r, int w, int h, int offset, uint32 shadowIntensity);
 
 	/**
 	 * Calculates the color gradient on a given point.
@@ -322,7 +321,6 @@ protected:
 	Common::Array<int> _gradIndexes;
 
 	PixelType _bevelColor;
-	PixelType _bitmapAlphaColor;
 };
 
 
@@ -382,13 +380,13 @@ protected:
 
 	virtual void drawInteriorRoundedSquareAlg(int x1, int y1, int r, int w, int h, PixelType color, VectorRenderer::FillMode fill_m);
 
-	virtual void drawRoundedSquareShadow(int x, int y, int r, int w, int h, int offset) {
-		Base::drawRoundedSquareShadow(x, y, r, w, h, offset);
+	virtual void drawRoundedSquareShadow(int x, int y, int r, int w, int h, int offset, uint32 shadowIntensity) {
+		Base::drawRoundedSquareShadow(x, y, r, w, h, offset, shadowIntensity);
 	}
 
 	virtual void drawTabAlg(int x, int y, int w, int h, int r,
 	    PixelType color, VectorRenderer::FillMode fill_m,
-	    int baseLeft = 0, int baseRight = 0);
+	    int baseLeft, int baseRight, bool vFlip);
 };
 #endif
 /** @} */

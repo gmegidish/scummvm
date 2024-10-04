@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -220,7 +219,7 @@ void Room::demon0TouchedHotspot1() {
 	if (!_roomVar.demon.movingToBottomDoor)
 		return;
 	loadActorAnim2(9, "s0r0d1", 254, 153, 1);
-	playSoundEffectIndex(0x05);
+	playSoundEffectIndex(kSfxDoor);
 }
 
 void Room::demon0ReachedBottomDoor() {
@@ -240,7 +239,7 @@ void Room::demon0TouchedHotspot0() {
 	if (!_roomVar.demon.movingToTopDoor)
 		return;
 	loadActorAnim2(10, "s0r0d2", 158, 130, 2);
-	playSoundEffectIndex(0x05);
+	playSoundEffectIndex(kSfxDoor);
 }
 
 void Room::demon0ReachedTopDoor() {
@@ -452,19 +451,19 @@ void Room::demon0AskPrelateAboutSightings() {
 
 void Room::demon0UseSTricorderAnywhere() {
 	loadActorAnim2(OBJECT_SPOCK, "sscans", -1, -1, 0);
-	playSoundEffectIndex(0x04);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM0_028);
 }
 
 void Room::demon0UseMTricorderAnywhere() {
 	loadActorAnim2(OBJECT_MCCOY, "mscans", -1, -1, 0);
-	playSoundEffectIndex(0x04);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_MCCOY, TX_DEM0_021);
 }
 
 void Room::demon0UseMTricorderOnPrelate() {
 	loadActorAnim2(OBJECT_MCCOY, "mscans", -1, -1, 0);
-	playSoundEffectIndex(0x04);
+	playSoundEffectIndex(kSfxTricorder);
 
 	if (_awayMission->demon.talkedToPrelate)
 		showText(TX_SPEAKER_MCCOY, TX_DEM0_018);

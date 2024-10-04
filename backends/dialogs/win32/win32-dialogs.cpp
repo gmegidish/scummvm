@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@
 	// We use functionality introduced with Vista in this file.
 	// To assure that including the respective system headers gives us all
 	// required definitions we set Vista as minimum version we target.
-	// See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa383745%28v=vs.85%29.aspx#macros_for_conditional_declarations
+	// See: https://docs.microsoft.com/en-us/windows/win32/winprog/using-the-windows-headers#macros-for-conditional-declarations
 #include <sdkddkver.h>
 #undef _WIN32_WINNT
 #define _WIN32_WINNT _WIN32_WINNT_VISTA
@@ -70,7 +69,7 @@
 #include "common/translation.h"
 
 Win32DialogManager::Win32DialogManager(SdlWindow_Win32 *window) : _window(window) {
-	CoInitialize(NULL);
+	CoInitialize(nullptr);
 }
 
 Win32DialogManager::~Win32DialogManager() {
@@ -82,18 +81,18 @@ HRESULT winCreateItemFromParsingName(PCWSTR pszPath, IBindCtx *pbc, REFIID riid,
 	typedef HRESULT(WINAPI *SHFunc)(PCWSTR, IBindCtx *, REFIID, void **);
 
 	SHFunc func = (SHFunc)(void *)GetProcAddress(GetModuleHandle(TEXT("shell32.dll")), "SHCreateItemFromParsingName");
-	if (func == NULL)
+	if (func == nullptr)
 		return E_NOTIMPL;
 
 	return func(pszPath, pbc, riid, ppv);
 }
 
-HRESULT getShellPath(IShellItem *item, Common::String &path) {
-	LPWSTR name = NULL;
+HRESULT getShellPath(IShellItem *item, Common::Path &path) {
+	LPWSTR name = nullptr;
 	HRESULT hr = item->GetDisplayName(SIGDN_FILESYSPATH, &name);
 	if (SUCCEEDED(hr)) {
 		char *str = Win32::unicodeToAnsi(name);
-		path = Common::String(str);
+		path = Common::Path(str, Common::Path::kNativeSeparator);
 		CoTaskMemFree(name);
 		free(str);
 	}
@@ -107,9 +106,9 @@ Common::DialogManager::DialogResult Win32DialogManager::showFileBrowser(const Co
 	if (!Win32::confirmWindowsVersion(6, 0))
 		return result;
 
-	IFileOpenDialog *dialog = NULL;
+	IFileOpenDialog *dialog = nullptr;
 	HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog,
-		NULL,
+		nullptr,
 		CLSCTX_INPROC_SERVER,
 		IID_IFileOpenDialog,
 		reinterpret_cast<void **> (&(dialog)));
@@ -140,9 +139,9 @@ Common::DialogManager::DialogResult Win32DialogManager::showFileBrowser(const Co
 
 		LPWSTR str;
 		if (ConfMan.hasKey("browser_lastpath")) {
-			str = Win32::ansiToUnicode(ConfMan.get("browser_lastpath").c_str());
-			IShellItem *item = NULL;
-			hr = winCreateItemFromParsingName(str, NULL, IID_IShellItem, reinterpret_cast<void **> (&(item)));
+			str = Win32::ansiToUnicode(ConfMan.getPath("browser_lastpath").toString(Common::Path::kNativeSeparator).c_str());
+			IShellItem *item = nullptr;
+			hr = winCreateItemFromParsingName(str, nullptr, IID_IShellItem, reinterpret_cast<void **> (&(item)));
 			if (SUCCEEDED(hr)) {
 				hr = dialog->SetDefaultFolder(item);
 			}
@@ -154,10 +153,10 @@ Common::DialogManager::DialogResult Win32DialogManager::showFileBrowser(const Co
 
 		if (SUCCEEDED(hr)) {
 			// Get the selection from the user
-			IShellItem *selectedItem = NULL;
+			IShellItem *selectedItem = nullptr;
 			hr = dialog->GetResult(&selectedItem);
 			if (SUCCEEDED(hr)) {
-				Common::String path;
+				Common::Path path;
 				hr = getShellPath(selectedItem, path);
 				if (SUCCEEDED(hr)) {
 					choice = Common::FSNode(path);
@@ -167,13 +166,13 @@ Common::DialogManager::DialogResult Win32DialogManager::showFileBrowser(const Co
 			}
 
 			// Save last path
-			IShellItem *lastFolder = NULL;
+			IShellItem *lastFolder = nullptr;
 			hr = dialog->GetFolder(&lastFolder);
 			if (SUCCEEDED(hr)) {
-				Common::String path;
+				Common::Path path;
 				hr = getShellPath(lastFolder, path);
 				if (SUCCEEDED(hr)) {
-					ConfMan.set("browser_lastpath", path);
+					ConfMan.setPath("browser_lastpath", path);
 				}
 				lastFolder->Release();
 			}

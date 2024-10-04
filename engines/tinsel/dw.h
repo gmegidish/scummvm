@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,10 +53,10 @@ typedef int HPOLYGON;
 #define	MAX_INT	(~MIN_INT)
 
 // inventory object handle (if there are inventory objects)
-#define	INV_OBJ_SCNHANDLE (TinselV0 ? (2 << SCNHANDLE_SHIFT) : (1 << SCNHANDLE_SHIFT))
+#define	INV_OBJ_SCNHANDLE ((TinselVersion == 0) ? (2 << SCNHANDLE_SHIFT) : (1 << SCNHANDLE_SHIFT))
 
-#define FIELD_WORLD		(TinselV3 ? 2 : 0)
-#define FIELD_STATUS	(TinselV3 ? 8 : 1)
+#define FIELD_WORLD		((TinselVersion == 3) ? 2 : 0)
+#define FIELD_STATUS	((TinselVersion == 3) ? 8 : 1)
 
 #define ZSHIFT 10
 
@@ -65,7 +64,7 @@ typedef int HPOLYGON;
 // i.e. it gets a Z position of 0
 
 #define Z_INV_BRECT	10	// Inventory background rectangle
-#define Z_INV_MFRAME	15	// Inventory window frame
+#define Z_INV_MFRAME	((TinselVersion == 3) ? 16 : 15)	// Inventory window frame
 #define Z_INV_HTEXT	15	// Inventory heading text
 #define Z_INV_ICONS	16	// Icons in inventory
 #define Z_INV_ITEXT	995	// Icon text
@@ -76,7 +75,7 @@ typedef int HPOLYGON;
 #define Z_CURSORTRAIL	999	// Cursor trails
 #define Z_ACURSOR	990	// Auxillary cursor
 
-#define Z_TAG_TEXT	995	// In front of auxillary cursor
+#define Z_TAG_TEXT	995	// In front of auxiliary cursor
 
 #define Z_MDGROOVE	20
 #define Z_MDSLIDER	21
@@ -86,6 +85,7 @@ typedef int HPOLYGON;
 #define Z_TOPW_TEXT	Z_TAG_TEXT
 
 // Started a collection of assorted maximum numbers here:
+// TODO: Noir only has two movers - deal with that
 #define MAX_MOVERS	6	// Moving actors using path system
 #define MAX_SAVED_ACTORS 32	// Saved 'Normal' actors
 #define MAX_SAVED_ALIVES 512	// Saves actors'lives

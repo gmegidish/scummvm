@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@
 
 #include "common/fs.h"
 #include "common/savefile.h"
-#include "common/zlib.h"
+#include "common/compression/deflate.h"
 #include "sword25/kernel/kernel.h"
 #include "sword25/kernel/persistenceservice.h"
 #include "sword25/kernel/inputpersistenceblock.h"
@@ -201,8 +200,8 @@ uint PersistenceService::getSlotCount() {
 	return SLOT_COUNT;
 }
 
-Common::String PersistenceService::getSavegameDirectory() {
-	Common::FSNode node(FileSystemUtil::getUserdataDirectory());
+Common::Path PersistenceService::getSavegameDirectory() {
+	Common::FSNode node(FileSystemUtil::getUserdataDirectoryPath());
 	Common::FSNode childNode = node.getChild(SAVEGAME_DIRECTORY);
 
 	// Try and return the path using the savegame subfolder. But if doesn't exist, fall back on the data directory
@@ -392,7 +391,7 @@ bool PersistenceService::loadGame(uint slotID) {
 
 	if (uncompressedBufferSize > curSavegameInfo.gamedataLength) {
 		// Older saved game, where the game data was compressed again.
-		if (!Common::uncompress(reinterpret_cast<byte *>(&uncompressedDataBuffer[0]), &uncompressedBufferSize,
+		if (!Common::inflateZlib(reinterpret_cast<byte *>(&uncompressedDataBuffer[0]), &uncompressedBufferSize,
 					   reinterpret_cast<byte *>(&compressedDataBuffer[0]), curSavegameInfo.gamedataLength)) {
 			error("Unable to decompress the gamedata from savegame file \"%s\".", filename.c_str());
 			delete[] uncompressedDataBuffer;

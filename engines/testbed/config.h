@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 
 
 #include "common/array.h"
-#include "common/ini-file.h"
+#include "common/formats/ini-file.h"
 #include "common/str-array.h"
 #include "common/tokenizer.h"
 
@@ -67,60 +66,36 @@ private:
 	void parseConfigFile();
 };
 
-class TestbedListWidget : public GUI::ListWidget {
-public:
-	TestbedListWidget(GUI::Dialog *boss, const Common::String &name, Common::Array<Testsuite *> tsArray) : GUI::ListWidget(boss, name), _testSuiteArray(tsArray) {}
-
-	void markAsSelected(int i) {
-		if (!_list[i].encode().contains("selected")) {
-			_list[i] += Common::U32String(" (selected)");
-		}
-		_listColors[i] = GUI::ThemeEngine::kFontColorNormal;
-		draw();
-	}
-
-	void markAsDeselected(int i) {
-		if (_list[i].encode().contains("selected")) {
-			_list[i] = _testSuiteArray[i]->getDescription();
-		}
-		_listColors[i] = GUI::ThemeEngine::kFontColorAlternate;
-		draw();
-	}
-
-	void setColor(uint32 indx, GUI::ThemeEngine::FontColor color) {
-		assert(indx < _listColors.size());
-		_listColors[indx] = color;
-		draw();
-	}
-
-private:
-	Common::Array<Testsuite *>	_testSuiteArray;
-};
-
 class TestbedOptionsDialog : public GUI::Dialog {
 public:
 	TestbedOptionsDialog(Common::Array<Testsuite *> &tsList, TestbedConfigManager *tsConfMan);
 	~TestbedOptionsDialog() override;
 	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
+	void reflowLayout() override;
 
 private:
-	GUI::ListWidget::ColorList _colors;
-	GUI::ButtonWidget	*_selectButton;
+	GUI::ButtonWidget *_selectButton;
+	GUI::ButtonWidget *_runTestButton;
+	GUI::ButtonWidget *_quitButton;
+	GUI::StaticTextWidget *_messageText;
+	GUI::ScrollContainerWidget *_testContainerDisplay;
+	Common::Array<GUI::CheckboxWidget *> _testSuiteCheckboxArray;
+
 	Common::Array<Testsuite *> _testSuiteArray;
 	Common::U32StringArray _testSuiteDescArray;
-	TestbedListWidget *_testListDisplay;
+
 	TestbedConfigManager *_testbedConfMan;
 };
 
 class TestbedInteractionDialog : public GUI::Dialog {
 public:
-	TestbedInteractionDialog(uint x, uint y, uint w, uint h) : GUI::Dialog(x, y, w, h), _xOffset(0), _yOffset(0) {}
+	TestbedInteractionDialog(uint x, uint y, uint w, uint h) : GUI::Dialog(x, y, w, h, true), _xOffset(0), _yOffset(0) {}
 	~TestbedInteractionDialog() override {}
 	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
 	void addButton(uint w, uint h, const Common::String name, uint32 cmd, uint xOffset = 0, uint yPadding = 8);
 	void addButtonXY(uint x, uint y, uint w, uint h, const Common::String name, uint32 cmd);
 	void addText(uint w, uint h, const Common::String text, Graphics::TextAlign textAlign, uint xOffset, uint yPadding = 8);
-	void addList(uint x, uint y, uint w, uint h, const Common::Array<Common::U32String> &strArray, GUI::ListWidget::ColorList *colors = 0, uint yPadding = 8);
+	void addList(uint x, uint y, uint w, uint h, const Common::Array<Common::U32String> &strArray, uint yPadding = 8);
 protected:
 	Common::Array<GUI::ButtonWidget *> _buttonArray;
 	uint _xOffset;

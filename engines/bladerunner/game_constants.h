@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -505,7 +504,7 @@ enum Flags {
 	kFlagMA05toMA04                           =  63,
 	kFlagGaffApproachedMcCoyAboutZuben        =  64,
 	kFlagMcCoyCommentsOnTB05Monitors          =  65, // Re-purposed. Original: 65 is never used
-	// 66 is never used
+	kFlagMcCoyCommentsOnNR03Sloth             =  66, // Re-purposed. Original: 66 is never used
 	// 67 is never used
 	kFlagCT02toCT01                           =  68,
 	kFlagCT02toCT03                           =  69,
@@ -627,7 +626,7 @@ enum Flags {
 	kFlagSteeleInPoliceStation                = 185,
 	kFlagRC01PoliceDone                       = 186,
 	kFlagRC02RunciterTalk1                    = 187,
-	// 188 is never used
+	kFlagMcCoyConfessedKillingHomelessInCT04  = 188, // Original: 188 is never used
 	// 189 is never used
 	kFlagRC02ShellCasingsTaken                = 190,
 	// 191 is never used
@@ -1169,6 +1168,8 @@ enum Flags {
 	kFlagPS04WeaponsOrderForm                 = 727,
 	kFlagDR01Visited                          = 728, // Re-purposed. Original: 728 is never used
 	kFlagNR08DektoraShow                      = 729
+	// INFO Flags count is set to 800 with _gameInfo->getFlagCount()
+	// (the code technically allows up to 831, but there are checks and asserts for <= _flagCount in GameFlags class)
 };
 
 enum Variables {
@@ -1342,7 +1343,8 @@ enum SceneLoopMode {
 	kSceneLoopModeLoseControl =  0,
 	kSceneLoopModeChangeSet   =  1,
 	kSceneLoopModeOnce        =  2,
-	kSceneLoopModeSpinner     =  3
+	kSceneLoopModeSpinner     =  3,
+	kSceneLoopModeOnceNStay   =  4
 };
 
 enum Scenes {
@@ -2842,6 +2844,7 @@ enum AffectionTowards {
 enum GoalMcCoy {
 	kGoalMcCoyDefault              =   0,
 	kGoalMcCoyDodge                =   1,
+	kGoalMcCoyLeanOverAndSearch    =   2, // unused, McCoy searching dumpster is done by Actor_Change_Animation_Mode(kActorMcCoy, 38);
 	kGoalMcCoyBB11GetUp            = 100,
 	kGoalMcCoyBB11PrepareToRunAway = 101,
 	kGoalMcCoyBB11RunAway          = 102,

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,7 +66,8 @@ void Object::load(byte *src) {
 	actorOrientation = *src++;
 	enabled = *src++;
 	name = (const char *)src;
-	description = parseDescription((const char *)src);
+	_nameSize = name.size() + 1;
+	description = parseDescription((const char *)src + _nameSize);
 }
 
 void Object::save() const {
@@ -81,7 +81,7 @@ void Object::save() const {
 
 void Object::setName(const Common::String &newName) {
 	assert(_base != 0);
-	strcpy((char *)(_base + 19), newName.c_str());
+	Common::strcpy_s((char *)(_base + 19), _nameSize, newName.c_str());
 	name = newName;
 }
 
@@ -93,8 +93,7 @@ void Object::dump(int level) const {
 	     );
 }
 
-Common::String Object::parseDescription(const char *name) {
-	const char *desc = name + strlen(name) + 1;
+Common::String Object::parseDescription(const char *desc) {
 	if (*desc == 0)
 		return Common::String();
 

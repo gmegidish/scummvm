@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,6 +39,8 @@
 #include "engines/wintermute/base/base_engine.h"
 #include "engines/wintermute/base/base_surface_storage.h"
 #include "engines/wintermute/base/gfx/base_surface.h"
+#include "engines/wintermute/base/gfx/base_renderer3d.h"
+#include "engines/wintermute/base/gfx/xmodel.h"
 #include "engines/wintermute/wintermute.h"
 #endif
 
@@ -96,16 +97,8 @@ BaseObject::BaseObject(BaseGame *inGame) : BaseScriptHolder(inGame) {
 	}
 	_saveState = true;
 
-	_nonIntMouseEvents = false;
-
-	// sound FX
-	_sFXType = SFX_NONE;
-	_sFXParam1 = _sFXParam2 = _sFXParam3 = _sFXParam4 = 0;
-
-	_blendMode = Graphics::BLEND_NORMAL;
-
 #ifdef ENABLE_WME3D
-	_modelX = nullptr;
+	_xmodel = nullptr;
 	_shadowModel = nullptr;
 	_posVector = Math::Vector3d(0.0f, 0.0f, 0.0f);
 	_angle = 0.0f;
@@ -115,11 +108,18 @@ BaseObject::BaseObject(BaseGame *inGame) : BaseScriptHolder(inGame) {
 	_shadowImage = nullptr;
 	_shadowSize = 10.0f;
 	_shadowType = SHADOW_NONE;
-	// argb value
 	_shadowColor = 0x80000000;
 	_shadowLightPos = Math::Vector3d(-40.0f, 200.0f, -40.0f);
 	_drawBackfaces = true;
 #endif
+
+	_nonIntMouseEvents = false;
+
+	// sound FX
+	_sFXType = SFX_NONE;
+	_sFXParam1 = _sFXParam2 = _sFXParam3 = _sFXParam4 = 0;
+
+	_blendMode = Graphics::BLEND_NORMAL;
 }
 
 
@@ -153,6 +153,18 @@ bool BaseObject::cleanup() {
 		_caption[i] = nullptr;
 	}
 
+#ifdef ENABLE_WME3D
+	delete _xmodel;
+	_xmodel = nullptr;
+	delete _shadowModel;
+	_shadowModel = nullptr;
+
+	if (_shadowImage) {
+		_gameRef->_surfaceStorage->removeSurface(_shadowImage);
+		_shadowImage = nullptr;
+	}
+#endif
+
 	_sFXType = SFX_NONE;
 	_sFXParam1 = _sFXParam2 = _sFXParam3 = _sFXParam4 = 0;
 
@@ -170,11 +182,10 @@ void BaseObject::setCaption(const char *caption, int caseVal) {
 	}
 
 	delete[] _caption[caseVal - 1];
-	_caption[caseVal - 1] = new char[strlen(caption) + 1];
-	if (_caption[caseVal - 1]) {
-		strcpy(_caption[caseVal - 1], caption);
-		_gameRef->expandStringByStringTable(&_caption[caseVal - 1]);
-	}
+	size_t captionSize = strlen(caption) + 1;
+	_caption[caseVal - 1] = new char[captionSize];
+	Common::strcpy_s(_caption[caseVal - 1], captionSize, caption);
+	_gameRef->expandStringByStringTable(&_caption[caseVal - 1]);
 }
 
 
@@ -1097,7 +1108,7 @@ bool BaseObject::persist(BasePersistenceManager *persistMgr) {
 #ifdef ENABLE_WME3D
 	if (BaseEngine::instance().getFlags() & GF_3D) {
 		persistMgr->transferAngle(TMEMBER(_angle));
-		persistMgr->transferPtr(TMEMBER(_modelX));
+		persistMgr->transferPtr(TMEMBER(_xmodel));
 		persistMgr->transferPtr(TMEMBER(_shadowModel));
 		persistMgr->transferVector3d(TMEMBER(_posVector));
 		persistMgr->transferMatrix4(TMEMBER(_worldMatrix));
@@ -1107,6 +1118,9 @@ bool BaseObject::persist(BasePersistenceManager *persistMgr) {
 		persistMgr->transferFloat(TMEMBER(_scale3D));
 		persistMgr->transferVector3d(TMEMBER(_shadowLightPos));
 		persistMgr->transferBool(TMEMBER(_drawBackfaces));
+	} else {
+		_xmodel = nullptr;
+		_shadowModel = nullptr;
 	}
 #endif
 
@@ -1341,10 +1355,9 @@ void BaseObject::setSoundEvent(const char *eventName) {
 	delete[] _soundEvent;
 	_soundEvent = nullptr;
 	if (eventName) {
-		_soundEvent = new char[strlen(eventName) + 1];
-		if (_soundEvent) {
-			strcpy(_soundEvent, eventName);
-		}
+		size_t soundEventSize = strlen(eventName) + 1;
+		_soundEvent = new char[soundEventSize];
+		Common::strcpy_s(_soundEvent, soundEventSize, eventName);
 	}
 }
 
@@ -1379,6 +1392,19 @@ bool BaseObject::getMatrix(Math::Matrix4 *modelMatrix, Math::Vector3d *posVect) 
 
 	*modelMatrix = translation * rotation * scale;
 	return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+bool BaseObject::renderModel() {
+	Math::Matrix4 objectMat;
+	getMatrix(&objectMat);
+
+	_gameRef->_renderer3D->setWorldTransform(objectMat);
+
+	if (_xmodel)
+		return _xmodel->render();
+	else
+		return false;
 }
 #endif
 

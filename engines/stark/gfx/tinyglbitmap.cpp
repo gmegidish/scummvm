@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,23 +15,22 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/stark/gfx/tinyglbitmap.h"
-
 #include "engines/stark/gfx/driver.h"
 
+#include "common/system.h"
 #include "graphics/surface.h"
 
 namespace Stark {
 namespace Gfx {
 
 TinyGlBitmap::TinyGlBitmap() :
-	Texture() {
-	_blitImage = Graphics::tglGenBlitImage();
+		Bitmap() {
+	_blitImage = tglGenBlitImage();
 }
 
 TinyGlBitmap::~TinyGlBitmap() {
@@ -41,36 +40,29 @@ TinyGlBitmap::~TinyGlBitmap() {
 void TinyGlBitmap::bind() const {
 }
 
-void TinyGlBitmap::updateLevel(uint32 level, const Graphics::Surface *surface, const byte *palette) {
+void TinyGlBitmap::update(const Graphics::Surface *surface, const byte *palette) {
 	_width = surface->w;
 	_height = surface->h;
 
-	if (surface->format.bytesPerPixel != 4) {
-		// Convert the surface to texture format
-		Graphics::Surface *convertedSurface = surface->convertTo(Driver::getRGBAPixelFormat(), palette);
-		Graphics::tglUploadBlitImage(_blitImage, *convertedSurface, 0, false);
+	if (palette) {
+		// TinyGL doesn't currently support images with palettes, so we handle conversion here.
+		Graphics::Surface *convertedSurface = surface->convertTo(getBestPixelFormat(), palette);
+		tglUploadBlitImage(_blitImage, *convertedSurface, 0, false);
 		convertedSurface->free();
 		delete convertedSurface;
 	} else {
-		assert(surface->format == Driver::getRGBAPixelFormat());
-		Graphics::tglUploadBlitImage(_blitImage, *surface, 0, false);
+		tglUploadBlitImage(_blitImage, *surface, 0, false);
 	}
 }
 
-void TinyGlBitmap::update(const Graphics::Surface *surface, const byte *palette) {
-	updateLevel(0, surface, palette);
+void TinyGlBitmap::setSamplingFilter(Bitmap::SamplingFilter filter) {
 }
 
-void TinyGlBitmap::setSamplingFilter(Texture::SamplingFilter filter) {
+Graphics::PixelFormat TinyGlBitmap::getBestPixelFormat() const {
+	return g_system->getScreenFormat();
 }
 
-void TinyGlBitmap::setLevelCount(uint32 count) {
-}
-
-void TinyGlBitmap::addLevel(uint32 level, const Graphics::Surface *surface, const byte *palette) {
-}
-
-Graphics::BlitImage *TinyGlBitmap::getBlitTexture() const {
+TinyGL::BlitImage *TinyGlBitmap::getBlitImage() const {
 	return _blitImage;
 }
 

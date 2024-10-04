@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,12 +31,13 @@
 #include "engines/util.h"
 
 #include "audio/mixer.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 
 #include "cryomni3d/cryomni3d.h"
 #include "cryomni3d/datstream.h"
 
 #include "cryomni3d/image/hlz.h"
+#include "cryomni3d/image/hnm.h"
 #include "video/hnm_decoder.h"
 
 namespace CryOmni3D {
@@ -96,54 +96,21 @@ DATSeekableStream *CryOmni3DEngine::getStaticData(uint32 gameId, uint16 version)
 	return gameStream;
 }
 
-Common::String CryOmni3DEngine::prepareFileName(const Common::String &baseName,
-		const char *const *extensions) const {
-	Common::String fname(baseName);
-
-	int lastDotPos = fname.size() - 1;
-	for (; lastDotPos >= 0; --lastDotPos) {
-		if (fname[lastDotPos] == '.') {
-			break;
-		}
-	}
-
-	int extBegin;
-	if (lastDotPos > -1) {
-		extBegin = lastDotPos + 1;
-		fname.erase(extBegin);
-	} else {
-		fname += ".";
-		extBegin = fname.size();
-	}
-
-	while (*extensions != nullptr) {
-		fname += *extensions;
-		debug("Trying file %s", fname.c_str());
-		if (Common::File::exists(fname)) {
-			return fname;
-		}
-		fname.erase(extBegin);
-		extensions++;
-	}
-	fname.deleteLastChar();
-	warning("Failed to find file %s/%s", baseName.c_str(), fname.c_str());
-	return baseName;
-}
-
-void CryOmni3DEngine::playHNM(const Common::String &filename, Audio::Mixer::SoundType soundType,
+void CryOmni3DEngine::playHNM(const Common::Path &filepath, Audio::Mixer::SoundType soundType,
 							  HNMCallback beforeDraw, HNMCallback afterDraw) {
-	const char *const extensions[] = { "hns", "hnm", "ubb", nullptr };
-	Common::String fname(prepareFileName(filename, extensions));
-
-	byte *currentPalette = new byte[256 * 3];
-	g_system->getPaletteManager()->grabPalette(currentPalette, 0, 256);
+	Graphics::PixelFormat screenFormat = g_system->getScreenFormat();
+	byte *currentPalette = nullptr;
+	if (screenFormat.bytesPerPixel == 1) {
+		currentPalette = new byte[256 * 3];
+		g_system->getPaletteManager()->grabPalette(currentPalette, 0, 256);
+	}
 
 	// Pass the ownership of currentPalette to HNMDecoder
-	Video::VideoDecoder *videoDecoder = new Video::HNMDecoder(false, currentPalette);
+	Video::VideoDecoder *videoDecoder = new Video::HNMDecoder(screenFormat, false, currentPalette);
 	videoDecoder->setSoundType(soundType);
 
-	if (!videoDecoder->loadFile(fname)) {
-		warning("Failed to open movie file %s/%s", filename.c_str(), fname.c_str());
+	if (!videoDecoder->loadFile(filepath)) {
+		warning("Failed to open movie file %s", filepath.toString(Common::Path::kNativeSeparator).c_str());
 		delete videoDecoder;
 		return;
 	}
@@ -196,38 +163,35 @@ void CryOmni3DEngine::playHNM(const Common::String &filename, Audio::Mixer::Soun
 	delete videoDecoder;
 }
 
-Image::ImageDecoder *CryOmni3DEngine::loadHLZ(const Common::String &filename) {
-	Common::String fname(prepareFileName(filename, "hlz"));
-
+Image::ImageDecoder *CryOmni3DEngine::loadHLZ(const Common::Path &filepath) {
 	Common::File file;
 
-	if (!file.open(fname)) {
-		warning("Failed to open hlz file %s/%s", filename.c_str(), fname.c_str());
+	if (!file.open(filepath)) {
+		warning("Failed to open hlz file %s", filepath.toString(Common::Path::kNativeSeparator).c_str());
 		return nullptr;
 	}
 
 	Image::ImageDecoder *imageDecoder = new Image::HLZFileDecoder();
 
 	if (!imageDecoder->loadStream(file)) {
-		warning("Failed to open hlz file %s", fname.c_str());
+		warning("Failed to load hlz file %s", filepath.toString(Common::Path::kNativeSeparator).c_str());
 		delete imageDecoder;
-		imageDecoder = 0;
+		imageDecoder = nullptr;
 		return nullptr;
 	}
 
 	return imageDecoder;
 }
 
-bool CryOmni3DEngine::displayHLZ(const Common::String &filename, uint32 timeout) {
-	Image::ImageDecoder *imageDecoder = loadHLZ(filename);
+bool CryOmni3DEngine::displayHLZ(const Common::Path &filepath, uint32 timeout) {
+	Image::ImageDecoder *imageDecoder = loadHLZ(filepath);
 
 	if (!imageDecoder) {
 		return false;
 	}
 
 	if (imageDecoder->hasPalette()) {
-		const byte *palette = imageDecoder->getPalette();
-		setPalette(palette, imageDecoder->getPaletteStartIndex(), imageDecoder->getPaletteColorCount());
+		setPalette(imageDecoder->getPalette(), 0, imageDecoder->getPaletteColorCount());
 	}
 
 	const Graphics::Surface *frame = imageDecoder->getSurface();

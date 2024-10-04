@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
 #include "common/endian.h"
 #include "common/types.h"
+#include "common/bufferedstream.h"
 #include "common/memstream.h"
 #include "common/substream.h"
 
@@ -29,7 +35,7 @@
 
 namespace Gob {
 
-DataIO::File::File() : size(0), offset(0), compression(0), archive(0) {
+DataIO::File::File() : size(0), offset(0), compression(0), archive(nullptr) {
 }
 
 DataIO::File::File(const Common::String &n, uint32 s, uint32 o, uint8 c, Archive &a) :
@@ -100,7 +106,7 @@ byte *DataIO::unpack(Common::SeekableReadStream &src, int32 &size, uint8 compres
 
 	assert(size > 0);
 
-	byte *data = 0;
+	byte *data = nullptr;
 	if (useMalloc)
 		data = (byte *) malloc(size);
 	else
@@ -125,7 +131,7 @@ Common::SeekableReadStream *DataIO::unpack(Common::SeekableReadStream &src, uint
 
 	byte *data = unpack(src, size, compression, true);
 	if (!data)
-		return 0;
+		return nullptr;
 
 	return new Common::MemoryReadStream(data, size, DisposeAfterUse::YES);
 }
@@ -207,7 +213,7 @@ void DataIO::unpackChunk(Common::SeekableReadStream &src, byte *dest, uint32 siz
 
 bool DataIO::openArchive(Common::String name, bool base) {
 	// Look for a free archive slot
-	Archive **archive = 0;
+	Archive **archive = nullptr;
 	int i = 0;
 	for (Common::Array<Archive *>::iterator it = _archives.begin(); it != _archives.end(); ++it, i++) {
 		if (!*it) {
@@ -231,7 +237,7 @@ bool DataIO::openArchive(Common::String name, bool base) {
 		name += ".stk";
 
 	// Try to open
-	*archive = openArchive(name);
+	*archive = openArchive(Common::Path(name));
 	if (!*archive)
 		return false;
 
@@ -239,20 +245,20 @@ bool DataIO::openArchive(Common::String name, bool base) {
 	return true;
 }
 
-// A copy of replaceChar utlity function from util.cpp
+// A copy of replaceChar utility function from util.cpp
 static void replaceChar(char *str, char c1, char c2) {
 	while ((str = strchr(str, c1)))
 		*str = c2;
 }
 
-DataIO::Archive *DataIO::openArchive(const Common::String &name) {
+DataIO::Archive *DataIO::openArchive(const Common::Path &name) {
 	Archive *archive = new Archive;
 	if (!archive->file.open(name)) {
 		delete archive;
-		return 0;
+		return nullptr;
 	}
 
-	archive->name = name;
+	archive->name = name.toString('/');
 
 	uint16 fileCount = archive->file.readUint16LE();
 	for (uint16 i = 0; i < fileCount; i++) {
@@ -316,7 +322,7 @@ bool DataIO::hasFile(const Common::String &name){
 		return true;
 
 	// Else, look if a plain file that matches exists
-	return Common::File::exists(name);
+	return Common::File::exists(Common::Path(name));
 }
 
 int32 DataIO::fileSize(const Common::String &name) {
@@ -342,7 +348,7 @@ int32 DataIO::fileSize(const Common::String &name) {
 
 	// Else, try to find a matching plain file
 	Common::File f;
-	if (!f.open(name))
+	if (!f.open(Common::Path(name)))
 		return -1;
 
 	return f.size();
@@ -359,8 +365,8 @@ Common::SeekableReadStream *DataIO::getFile(const Common::String &name) {
 
 	// Else, try to open a matching plain file
 	Common::File f;
-	if (!f.open(name))
-		return 0;
+	if (!f.open(Common::Path(name)))
+		return nullptr;
 
 	return f.readStream(f.size());
 }
@@ -376,15 +382,15 @@ byte *DataIO::getFile(const Common::String &name, int32 &size) {
 
 	// Else, try to open a matching plain file
 	Common::File f;
-	if (!f.open(name))
-		return 0;
+	if (!f.open(Common::Path(name)))
+		return nullptr;
 
 	size = f.size();
 
 	byte *data = new byte[size];
 	if (f.read(data, size) != ((uint32) size)) {
 		delete[] data;
-		return 0;
+		return nullptr;
 	}
 
 	return data;
@@ -403,48 +409,51 @@ DataIO::File *DataIO::findFile(const Common::String &name) {
 			return &file->_value;
 	}
 
-	return 0;
+	return nullptr;
 }
 
 Common::SeekableReadStream *DataIO::getFile(File &file) {
 	if (!file.archive)
-		return 0;
+		return nullptr;
 
 	if (!file.archive->file.isOpen())
-		return 0;
+		return nullptr;
 
 	if (!file.archive->file.seek(file.offset))
-		return 0;
+		return nullptr;
 
 	Common::SeekableReadStream *rawData =
 		new Common::SafeSeekableSubReadStream(&file.archive->file, file.offset, file.offset + file.size);
 
+	Common::SeekableReadStream *bufferedRawData =
+		Common::wrapBufferedSeekableReadStream(rawData, 4096, DisposeAfterUse::YES);
+
 	if (file.compression == 0)
-		return rawData;
+		return bufferedRawData;
 
-	Common::SeekableReadStream *unpackedData = unpack(*rawData, file.compression);
+	Common::SeekableReadStream *unpackedData = unpack(*bufferedRawData, file.compression);
 
-	delete rawData;
+	delete bufferedRawData;
 
 	return unpackedData;
 }
 
 byte *DataIO::getFile(File &file, int32 &size) {
 	if (!file.archive)
-		return 0;
+		return nullptr;
 
 	if (!file.archive->file.isOpen())
-		return 0;
+		return nullptr;
 
 	if (!file.archive->file.seek(file.offset))
-		return 0;
+		return nullptr;
 
 	size = file.size;
 
 	byte *rawData = new byte[file.size];
 	if (file.archive->file.read(rawData, file.size) != file.size) {
 		delete[] rawData;
-		return 0;
+		return nullptr;
 	}
 
 	if (file.compression == 0)

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,7 +43,7 @@ char *StringFunctions::Ltrim(char a[]) {
 	int len = strlen(a);
 
 	temp = GetTempString();
-	strcpy(temp, a);
+	Common::strcpy_s(temp, sizeof(_tempString[0]), a);
 	while (temp[0]==' ' || temp[0]=='\t')
 		memmove(temp, temp+1, len + 1);
 	return temp;
@@ -82,9 +81,9 @@ char *StringFunctions::Rtrim(char a[]) {
 	int len;
 
 	temp = GetTempString();
-	strcpy(temp, a);
+	Common::strcpy_s(temp, sizeof(_tempString[0]), a);
 	while (((len = strlen(temp))) && (temp[len-1]==' ' || temp[len-1]=='\t'))
-		strcpy(temp, Left(temp, len-1));
+		Common::strcpy_s(temp, sizeof(_tempString[0]), Left(temp, len-1));
 	return temp;
 }
 
@@ -104,13 +103,13 @@ char *StringFunctions::GetTempString() {
 	return r;
 }
 
-char *StringFunctions::strlwr(char *s) {
+char *StringFunctions::hugo_strlwr(char *s) {
 	for (char *sp = s; *sp; ++sp)
 		*sp = tolower(*sp);
 	return s;
 }
 
-char *StringFunctions::strupr(char *s) {
+char *StringFunctions::hugo_strupr(char *s) {
 	for (char *sp = s; *sp; ++sp)
 		*sp = toupper(*sp);
 	return s;

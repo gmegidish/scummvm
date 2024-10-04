@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,6 +58,15 @@ void PopUpDialog::open() {
 
 	// Calculate real popup dimensions
 	_h = _entries.size() * _lineHeight + 2;
+	_w = 0;
+
+	for (uint i = 0; i < _entries.size(); i++) {
+		int width = g_gui.getStringWidth(_entries[i]);
+
+		if (width > _w)
+			_w = width;
+	}
+
 
 	_entriesPerColumn = 1;
 
@@ -66,14 +74,13 @@ void PopUpDialog::open() {
 	// FIXME - OSystem should send out notification messages when the screen
 	// resolution changes... we could generalize CommandReceiver and CommandSender.
 
+	const int screenW = g_system->getOverlayWidth();
 	const int screenH = g_system->getOverlayHeight();
 
 	// HACK: For now, we do not do scrolling. Instead, we draw the dialog
 	// in two columns if it's too tall.
 
 	if (_h >= screenH) {
-		const int screenW = g_system->getOverlayWidth();
-
 		_twoColumns = true;
 		_entriesPerColumn = _entries.size() / 2;
 
@@ -81,15 +88,6 @@ void PopUpDialog::open() {
 			_entriesPerColumn++;
 
 		_h = _entriesPerColumn * _lineHeight + 2;
-		_w = 0;
-
-		for (uint i = 0; i < _entries.size(); i++) {
-			int width = g_gui.getStringWidth(_entries[i]);
-
-			if (width > _w)
-				_w = width;
-		}
-
 		_w = 2 * _w + 10;
 
 		if (!(_w & 1))
@@ -100,14 +98,18 @@ void PopUpDialog::open() {
 			_y = _boss->getAbsY() - (_selection - _entriesPerColumn) * _lineHeight;
 		}
 
-		if (_w >= screenW)
-			_w = screenW - 1;
-		if (_x < 0)
-			_x = 0;
-		if (_x + _w >= screenW)
-			_x = screenW - 1 - _w;
-	} else
+	} else {
 		_twoColumns = false;
+
+		_w = MAX<uint16>(_boss->getWidth(), _w + 20);
+	}
+
+	if (_w >= screenW)
+		_w = screenW - 1;
+	if (_x < 0)
+		_x = 0;
+	if (_x + _w >= screenW)
+		_x = screenW - 1 - _w;
 
 	if (_h >= screenH)
 		_h = screenH - 1;
@@ -160,6 +162,12 @@ void PopUpDialog::handleMouseUp(int x, int y, int button, int clickCount) {
 	int dist = (_clickX - absX) * (_clickX - absX) + (_clickY - absY) * (_clickY - absY);
 	if (dist > 3 * 3 || g_system->getMillis() - _openTime > 300) {
 		int item = findItem(x, y);
+
+		// treat separator item as if no item was clicked
+		if (item >= 0 && _entries[item].size() == 0) {
+			item = -1;
+		}
+
 		setResult(item);
 		close();
 	}
@@ -179,6 +187,7 @@ void PopUpDialog::handleMouseMoved(int x, int y, int button) {
 	// Compute over which item the mouse is...
 	int item = findItem(x, y);
 
+	// treat separator item as if no item was moused over
 	if (item >= 0 && _entries[item].size() == 0)
 		item = -1;
 
@@ -414,7 +423,7 @@ void PopUpDialog::drawMenuEntry(int entry, bool hilite) {
 		g_gui.theme()->drawText(
 			r2,
 			name, hilite ? ThemeEngine::kStateHighlight : ThemeEngine::kStateEnabled,
-			alignment, ThemeEngine::kTextInversionNone, pad
+			alignment, ThemeEngine::kTextInversionNone, pad, false
 		);
 	}
 }
@@ -426,7 +435,7 @@ void PopUpDialog::drawMenuEntry(int entry, bool hilite) {
 // PopUpWidget
 //
 
-PopUpWidget::PopUpWidget(GuiObject *boss, const String &name, const U32String &tooltip, uint32 cmd)
+PopUpWidget::PopUpWidget(GuiObject *boss, const Common::String &name, const Common::U32String &tooltip, uint32 cmd)
 	: Widget(boss, name, tooltip), CommandSender(boss) {
 	setFlags(WIDGET_ENABLED | WIDGET_CLEARBG | WIDGET_RETAIN_FOCUS | WIDGET_IGNORE_DRAG);
 	_type = kPopUpWidget;
@@ -436,7 +445,7 @@ PopUpWidget::PopUpWidget(GuiObject *boss, const String &name, const U32String &t
 	_leftPadding = _rightPadding = 0;
 }
 
-PopUpWidget::PopUpWidget(GuiObject *boss, int x, int y, int w, int h, const U32String &tooltip, uint32 cmd)
+PopUpWidget::PopUpWidget(GuiObject *boss, int x, int y, int w, int h, const Common::U32String &tooltip, uint32 cmd)
 	: Widget(boss, x, y, w, h, tooltip), CommandSender(boss) {
 	setFlags(WIDGET_ENABLED | WIDGET_CLEARBG | WIDGET_RETAIN_FOCUS | WIDGET_IGNORE_DRAG);
 	_type = kPopUpWidget;
@@ -496,15 +505,15 @@ void PopUpWidget::reflowLayout() {
 	Widget::reflowLayout();
 }
 
-void PopUpWidget::appendEntry(const U32String &entry, uint32 tag) {
+void PopUpWidget::appendEntry(const Common::U32String &entry, uint32 tag) {
 	Entry e;
 	e.name = entry;
 	e.tag = tag;
 	_entries.push_back(e);
 }
 
-void PopUpWidget::appendEntry(const String &entry, uint32 tag) {
-	appendEntry(U32String(entry), tag);
+void PopUpWidget::appendEntry(const Common::String &entry, uint32 tag) {
+	appendEntry(Common::U32String(entry), tag);
 }
 
 void PopUpWidget::clearEntries() {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,9 @@ ScopedKeyMap::~ScopedKeyMap() {
 	}
 }
 
-Input::Input(TwinEEngine *engine) : _engine(engine) {}
+Input::Input(TwinEEngine *engine) : _engine(engine) {
+	resetLastHoveredMousePosition();
+}
 
 bool Input::isActionActive(TwinEActionType actionType, bool onlyFirstTime) const {
 	if (onlyFirstTime) {
@@ -61,6 +62,12 @@ bool Input::toggleActionIfActive(TwinEActionType actionType) {
 		return true;
 	}
 	return false;
+}
+
+void Input::resetActionStates() {
+	for (int i = 0; i < TwinEActionType::Max; ++i) {
+		_actionStates[i] = false;
+	}
 }
 
 bool Input::toggleAbortAction() {
@@ -167,12 +174,23 @@ Common::Point Input::getMousePositions() const {
 	return g_system->getEventManager()->getMousePos();
 }
 
-bool Input::isMouseHovering(const Common::Rect &rect) const {
+bool Input::isMouseHovering(const Common::Rect &rect, bool onlyIfMoved) {
 	if (!_engine->_cfgfile.Mouse) {
 		return false;
 	}
 	const Common::Point &point = getMousePositions();
-	return rect.contains(point);
+	if (onlyIfMoved && _lastMousePos == point) {
+		return false;
+	}
+	if (rect.contains(point)) {
+		_lastMousePos = point;
+		return true;
+	}
+	return false;
+}
+
+void Input::resetLastHoveredMousePosition() {
+	_lastMousePos = Common::Point(-1, -1);
 }
 
 } // namespace TwinE

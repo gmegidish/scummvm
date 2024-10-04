@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,15 +51,15 @@ static int remapVolume(int volume) {
 }
 
 // Another obvious rip from gob engine. Hi DrMcCoy!
-Common::String setExtension(const Common::String &str, const Common::String &ext) {
+Common::Path setExtension(const Common::String &str, const Common::String &ext) {
 	if (str.empty())
-		return str;
+		return Common::Path();
 
 	const char *dot = strrchr(str.c_str(), '.');
 	if (dot)
-		return Common::String(str.c_str(), dot - str.c_str()) + ext;
+		return Common::Path(str.c_str(), dot - str.c_str()).appendInPlace(ext);
 
-	return str + ext;
+	return Common::Path(str + ext);
 }
 
 /****************************************************************************\
@@ -552,7 +551,7 @@ bool FPStream::loadFile(const Common::String &fileName, int bufSize) {
 	SoundCodecs codec = FPCODEC_UNKNOWN;
 
 	// Open the file stream for reading
-	if (_file.open(fileName))
+	if (_file.open(Common::Path(fileName)))
 		codec = FPCODEC_ADPCM;
 	else if (_file.open(setExtension(fileName, ".MP3")))
 		codec = FPCODEC_MP3;
@@ -561,7 +560,7 @@ bool FPStream::loadFile(const Common::String &fileName, int bufSize) {
 	else if (_file.open(setExtension(fileName, ".FLA")))
 		codec = FPCODEC_FLAC;
 	// Fallback: try with an extra '0' prefix
-	else if (_file.open("0" + fileName)) {
+	else if (_file.open(Common::Path("0" + fileName))) {
 		codec = FPCODEC_ADPCM;
 		warning("FPStream::loadFile(): Fallback from %s to %s", fileName.c_str(), _file.getName());
 	} else if (_file.open(setExtension("0" + fileName, ".MP3"))) {
@@ -579,32 +578,6 @@ bool FPStream::loadFile(const Common::String &fileName, int bufSize) {
 	// Save the size of the stream
 	_size = _file.size();
 
-#ifdef __amigaos4__
-	// HACK: AmigaOS 4 has weird performance problems with reading in the audio thread,
-	// so we read the whole stream into memory.
-	switch (codec) {
-	case FPCODEC_ADPCM:
-		_rewindableStream = Audio::makeADPCMStream(_file.readStream(_size), DisposeAfterUse::YES, 0, Audio::kADPCMDVI, 44100, 2);
-		break;
-	case FPCODEC_MP3:
-#ifdef USE_MAD
-		_rewindableStream = Audio::makeMP3Stream(&_file, DisposeAfterUse::YES);
-#endif
-		break;
-	case FPCODEC_OGG:
-#ifdef USE_VORBIS
-		_rewindableStream = Audio::makeVorbisStream(&_file, DisposeAfterUse::YES);
-#endif
-		break;
-	case FPCODEC_FLAC:
-#ifdef USE_FLAC
-		_rewindableStream = Audio::makeFLACStream(&_file, DisposeAfterUse::YES);
-#endif
-		break;
-	default:
-		break;
-	}
-#else
 	switch (codec) {
 	case FPCODEC_ADPCM:
 		_rewindableStream = Audio::makeADPCMStream(&_file, DisposeAfterUse::NO, 0, Audio::kADPCMDVI, 44100, 2);
@@ -627,7 +600,6 @@ bool FPStream::loadFile(const Common::String &fileName, int bufSize) {
 	default:
 		break;
 	}
-#endif
 
 	// All done
 	_fileLoaded = true;

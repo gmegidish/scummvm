@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -78,8 +77,8 @@ bool BitmapDecoder::loadStream(Common::SeekableReadStream &stream) {
 	}
 
 	uint32 infoSize = stream.readUint32LE();
-	if (infoSize != 40 && infoSize != 108) {
-		warning("Only Windows v3 & v4 bitmaps are supported");
+	if (infoSize != 40 && infoSize != 52 && infoSize != 56 && infoSize != 108 && infoSize != 124) {
+		warning("Only Windows v1-v5 bitmaps are supported, unknown header: %d", infoSize);
 		return false;
 	}
 
@@ -97,21 +96,29 @@ bool BitmapDecoder::loadStream(Common::SeekableReadStream &stream) {
 	/* uint16 planes = */ stream.readUint16LE();
 	uint16 bitsPerPixel = stream.readUint16LE();
 
-	if (bitsPerPixel != 8 && bitsPerPixel != 24 && bitsPerPixel != 32) {
+	if (bitsPerPixel != 4 && bitsPerPixel != 8 && bitsPerPixel != 16 && bitsPerPixel != 24 && bitsPerPixel != 32) {
 		warning("%dbpp bitmaps not supported", bitsPerPixel);
 		return false;
 	}
 
 	uint32 compression = stream.readUint32BE();
+
+	if (bitsPerPixel == 16 && compression != SWAP_CONSTANT_32(0)) {
+		warning("only RGB555 raw mode supported for %dbpp bitmaps", bitsPerPixel);
+		return false;
+	}
+
 	uint32 imageSize = stream.readUint32LE();
 	/* uint32 pixelsPerMeterX = */ stream.readUint32LE();
 	/* uint32 pixelsPerMeterY = */ stream.readUint32LE();
 	_paletteColorCount = stream.readUint32LE();
 	/* uint32 colorsImportant = */ stream.readUint32LE();
 
-	if (bitsPerPixel == 8) {
+	stream.seek(infoSize - 40, SEEK_CUR);
+
+	if (bitsPerPixel == 4 || bitsPerPixel == 8) {
 		if (_paletteColorCount == 0)
-			_paletteColorCount = 256;
+			_paletteColorCount = bitsPerPixel == 8 ? 256 : 16;
 
 		// Read the palette
 		_palette = new byte[_paletteColorCount * 3];
@@ -146,7 +153,7 @@ bool BitmapDecoder::loadStream(Common::SeekableReadStream &stream) {
 	return true;
 }
 
-bool writeBMP(Common::WriteStream &out, const Graphics::Surface &input) {
+bool writeBMP(Common::WriteStream &out, const Graphics::Surface &input, const byte *palette) {
 #ifdef SCUMM_LITTLE_ENDIAN
 	const Graphics::PixelFormat requiredFormat_3byte(3, 8, 8, 8, 0, 16, 8, 0, 0);
 #else
@@ -159,7 +166,7 @@ bool writeBMP(Common::WriteStream &out, const Graphics::Surface &input) {
 	if (input.format == requiredFormat_3byte) {
 		surface = &input;
 	} else {
-		surface = tmp = input.convertTo(requiredFormat_3byte);
+		surface = tmp = input.convertTo(requiredFormat_3byte, palette);
 	}
 
 	int dstPitch = surface->w * 3;

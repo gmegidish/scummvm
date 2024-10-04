@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,9 +52,9 @@ class Indeo5Decoder : public IndeoDecoderBase {
 	};
 public:
 	Indeo5Decoder(uint16 width, uint16 height, uint bitsPerPixel = 16);
-	virtual ~Indeo5Decoder() {}
+	~Indeo5Decoder() override {}
 
-	virtual const Graphics::Surface *decodeFrame(Common::SeekableReadStream &stream);
+	const Graphics::Surface *decodeFrame(Common::SeekableReadStream &stream) override;
 
 	static bool isIndeo5(Common::SeekableReadStream &stream);
 protected:
@@ -63,14 +62,14 @@ protected:
 	 * Decode the Indeo 5 picture header.
 	 * @returns		0 = Ok, negative number = error
 	 */
-	virtual int decodePictureHeader();
+	int decodePictureHeader() override;
 
 	/**
 	 *  Rearrange decoding and reference buffers.
 	 */
-	virtual void switchBuffers();
+	void switchBuffers() override;
 
-	virtual bool isNonNullFrame() const;
+	bool isNonNullFrame() const override;
 
 	/**
 	 *  Decode Indeo 4 band header.
@@ -78,7 +77,7 @@ protected:
 	 *  @param[in,out] band      pointer to the band descriptor
 	 *  @return        result code: 0 = OK, negative number = error
 	 */
-	virtual int decodeBandHeader(IVIBandDesc *band);
+	int decodeBandHeader(IVIBandDesc *band) override;
 
 	/**
 	 *  Decode information (block type, cbp, quant delta, motion vector)
@@ -88,7 +87,7 @@ protected:
 	 *  @param[in,out] tile      pointer to the tile descriptor
 	 *  @return        result code: 0 = OK, negative number = error
 	 */
-	virtual int decodeMbInfo(IVIBandDesc *band, IVITile *tile);
+	int decodeMbInfo(IVIBandDesc *band, IVITile *tile) override;
 private:
 	/**
 	 *  Decode Indeo5 GOP (Group of pictures) header.

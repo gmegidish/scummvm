@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,6 +31,7 @@
 #include "sci/console.h"
 #include "sci/debug.h"	// for g_debug_simulated_key
 #include "sci/event.h"
+#include "sci/graphics/animate.h"
 #include "sci/graphics/coordadjuster.h"
 #include "sci/graphics/cursor.h"
 #include "sci/graphics/maciconbar.h"
@@ -76,7 +76,7 @@ reg_t kGetEvent(EngineState *s, int argc, reg_t *argv) {
 		reg_t iconObj = NULL_REG;
 		if (g_sci->_gfxMacIconBar->handleEvents(curEvent, iconObj)) {
 			if (!iconObj.isNull()) {
-				invokeSelector(s, iconObj, SELECTOR(select), argc, argv, 0, NULL);
+				invokeSelector(s, iconObj, SELECTOR(select), argc, argv, 0, nullptr);
 			}
 
 			// The mouse press event was handled by the mac icon bar so change
@@ -265,15 +265,21 @@ reg_t kGetEvent(EngineState *s, int argc, reg_t *argv) {
 		g_sci->_soundCmd->updateSci0Cues();
 	}
 
-	// Wait a bit here, so that the CPU isn't maxed out when the game
-	// is waiting for user input (e.g. when showing text boxes) - bug
-	// #5091. Make sure that we're not delaying while the game is
-	// benchmarking, as that will affect the final benchmarked result -
-	// check bugs #5326 and #5543
-	if (s->_gameIsBenchmarking) {
-		// Game is benchmarking, don't add a delay
-	} else if (getSciVersion() < SCI_VERSION_2) {
-		g_system->delayMillis(10);
+	// If we're in a SCI16 unthrottled inner loop then delay a bit.
+	// This prevents the CPU from maxing out and prevents inner loop animations
+	// from running too fast. "Fast cast" games poll kGetEvent from an inner
+	// loop while they display or say a message. This can be detected by testing
+	// the fast cast global. Other inner loops can be detected by counting the
+	// kGetEvent calls since the last kGameIsRestarting(0) or kWait call.
+	// For example, some versions of Dialog:doit poll without calling kWait(1).
+	// See above for similar SCI32 code that counts calls between kFrameout.
+	// Fixes bugs #5091, #5326, #14020
+	if (getSciVersion() <= SCI_VERSION_1_1) {
+		if (++s->_eventCounter > 2 ||
+			(g_sci->_gfxAnimate->isFastCastEnabled() &&
+			!s->variables[VAR_GLOBAL][kGlobalVarFastCast].isNull())) {
+			g_system->delayMillis(10);
+		}
 	}
 
 	return s->r_acc;
@@ -296,7 +302,11 @@ reg_t kMapKeyToDir(EngineState *s, int argc, reg_t *argv) {
 
 	if (readSelectorValue(segMan, obj, SELECTOR(type)) == kSciEventKeyDown) {
 		uint16 message = readSelectorValue(segMan, obj, SELECTOR(message));
-		SciEventType eventType = kSciEventDirection;
+#ifdef ENABLE_SCI32
+		SciEventType eventType = (getSciVersion() < SCI_VERSION_2) ? kSciEventDirection16 : kSciEventDirection32;
+#else
+		SciEventType eventType = kSciEventDirection16;
+#endif
 		// It seems with SCI1 Sierra started to add the kSciEventDirection bit instead of setting it directly.
 		// It was done inside the keyboard driver and is required for the PseudoMouse functionality and class
 		// to work (script 933).

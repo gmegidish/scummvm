@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -113,8 +112,8 @@ public:
 	void setSoundOn(bool toggle);
 
 	uint32 getBaseTempo() override;
-	MidiChannel *allocateChannel() override { return 0; }
-	MidiChannel *getPercussionChannel() override { return 0; }
+	MidiChannel *allocateChannel() override { return nullptr; }
+	MidiChannel *getPercussionChannel() override { return nullptr; }
 
 	void timerCallback(int timerId) override;
 
@@ -404,7 +403,7 @@ int TownsMidiPart::allocateChannel() {
 	return chan;
 }
 
-MidiDriver_FMTowns::MidiDriver_FMTowns(Audio::Mixer *mixer, SciVersion version) : _version(version), _timerProc(0), _timerProcPara(0), _baseTempo(10080), _ready(false), _isOpen(false), _masterVolume(0x0f), _soundOn(true) {
+MidiDriver_FMTowns::MidiDriver_FMTowns(Audio::Mixer *mixer, SciVersion version) : _version(version), _timerProc(nullptr), _timerProcPara(nullptr), _baseTempo(10080), _ready(false), _isOpen(false), _masterVolume(0x0f), _soundOn(true) {
 	_intf = new TownsAudioInterface(mixer, this, true);
 	_out = new TownsChannel*[6];
 	for (int i = 0; i < 6; i++)
@@ -420,19 +419,19 @@ MidiDriver_FMTowns::~MidiDriver_FMTowns() {
 	if (_parts) {
 		for (int i = 0; i < 16; i++) {
 			delete _parts[i];
-			_parts[i] = 0;
+			_parts[i] = nullptr;
 		}
 		delete[] _parts;
-		_parts = 0;
+		_parts = nullptr;
 	}
 
 	if (_out) {
 		for (int i = 0; i < 6; i++) {
 			delete _out[i];
-			_out[i] = 0;
+			_out[i] = nullptr;
 		}
 		delete[] _out;
-		_out = 0;
+		_out = nullptr;
 	}
 }
 
@@ -625,8 +624,15 @@ int MidiPlayer_FMTowns::open(ResourceManager *resMan) {
 	int result = MidiDriver::MERR_DEVICE_NOT_AVAILABLE;
 	if (_townsDriver) {
 		result = _townsDriver->open();
-		if (!result && _version == SCI_VERSION_1_LATE)
-			_townsDriver->loadInstruments(*resMan->findResource(ResourceId(kResourceTypePatch, 8), false));
+		if (!result && _version == SCI_VERSION_1_LATE) {
+			Resource *res = resMan->findResource(ResourceId(kResourceTypePatch, 8), false);
+			if (res != nullptr) {
+				_townsDriver->loadInstruments(*res);
+			} else {
+				warning("MidiPlayer_FMTowns: Failed to open patch 8");
+				result = MidiDriver::MERR_DEVICE_NOT_AVAILABLE;
+			}
+		}
 	}
 	return result;
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,7 +43,6 @@
 #include "graphics/fontman.h"
 #include "graphics/surface.h"
 #include "graphics/pixelformat.h"
-#include "graphics/palette.h"
 #include "graphics/font.h"
 
 #include "gui/message.h"
@@ -60,23 +58,23 @@ namespace MT32Emu {
 class ScummVMReportHandler : public MT32Emu::IReportHandler {
 public:
 	// Callback for debug messages, in vprintf() format
-	void printDebug(const char *fmt, va_list list) {
+	void printDebug(const char *fmt, va_list list) override {
 		Common::String out = Common::String::vformat(fmt, list);
 		debug(4, "%s", out.c_str());
 	}
 
 	// Callbacks for reporting various errors and information
-	void onErrorControlROM() {
+	void onErrorControlROM() override {
 		GUI::MessageDialog dialog("MT32Emu: Init Error - Missing or invalid Control ROM image", "OK");
 		dialog.runModal();
 		error("MT32emu: Init Error - Missing or invalid Control ROM image");
 	}
-	void onErrorPCMROM() {
+	void onErrorPCMROM() override {
 		GUI::MessageDialog dialog("MT32Emu: Init Error - Missing PCM ROM image", "OK");
 		dialog.runModal();
 		error("MT32emu: Init Error - Missing PCM ROM image");
 	}
-	void showLCDMessage(const char *message) {
+	void showLCDMessage(const char *message) override {
 		// Don't show messages that are only spaces, e.g. the first
 		// message in Operation Stealth.
 		for (const char *ptr = message; *ptr; ptr++) {
@@ -88,16 +86,16 @@ public:
 	}
 
 	// Unused callbacks
-	virtual void onMIDIMessagePlayed() {}
-	virtual bool onMIDIQueueOverflow() { return false; }
-	virtual void onMIDISystemRealtime(Bit8u /* system_realtime */) {}
-	virtual void onDeviceReset() {}
-	virtual void onDeviceReconfig() {}
-	virtual void onNewReverbMode(Bit8u /* mode */) {}
-	virtual void onNewReverbTime(Bit8u /* time */) {}
-	virtual void onNewReverbLevel(Bit8u /* level */) {}
-	virtual void onPolyStateChanged(Bit8u /* part_num */) {}
-	virtual void onProgramChanged(Bit8u /* part_num */, const char * /* sound_group_name */, const char * /* patch_name */) {}
+	void onMIDIMessagePlayed() override {}
+	bool onMIDIQueueOverflow() override { return false; }
+	void onMIDISystemRealtime(Bit8u /* system_realtime */) override {}
+	void onDeviceReset() override {}
+	void onDeviceReconfig() override {}
+	void onNewReverbMode(Bit8u /* mode */) override {}
+	void onNewReverbTime(Bit8u /* time */) override {}
+	void onNewReverbLevel(Bit8u /* level */) override {}
+	void onPolyStateChanged(Bit8u /* part_num */) override {}
+	void onProgramChanged(Bit8u /* part_num */, const char * /* sound_group_name */, const char * /* patch_name */) override {}
 
 	virtual ~ScummVMReportHandler() {}
 };
@@ -105,8 +103,8 @@ public:
 }	// end of namespace MT32Emu
 
 class MidiChannel_MT32 : public MidiChannel_MPU401 {
-	void effectLevel(byte value) { }
-	void chorusLevel(byte value) { }
+	void effectLevel(byte value) override { }
+	void chorusLevel(byte value) override { }
 };
 
 class MidiDriver_MT32 : public MidiDriver_Emulated {
@@ -170,12 +168,18 @@ int MidiDriver_MT32::open() {
 	debug(4, _s("Initializing MT-32 Emulator"));
 
 	Common::File controlFile;
-	if (!controlFile.open("CM32L_CONTROL.ROM") && !controlFile.open("MT32_CONTROL.ROM"))
-		error("Error opening MT32_CONTROL.ROM / CM32L_CONTROL.ROM. Check that your Extra Path in Paths settings is set to the correct directory");
-
 	Common::File pcmFile;
-	if (!pcmFile.open("CM32L_PCM.ROM") && !pcmFile.open("MT32_PCM.ROM"))
-		error("Error opening MT32_PCM.ROM / CM32L_PCM.ROM. Check that your Extra Path in Paths settings is set to the correct directory");
+	if (!controlFile.open("CM32L_CONTROL.ROM") || !pcmFile.open("CM32L_PCM.ROM")) {
+		controlFile.close();
+		pcmFile.close();
+		debug("Unable to open CM32L_CONTROL.ROM / CM32L_PCM.ROM. Falling back to MT32");
+
+		if (!controlFile.open("MT32_CONTROL.ROM") || !pcmFile.open("MT32_PCM.ROM")) {
+			controlFile.close();
+			pcmFile.close();
+			error("Error opening (CM32L_CONTROL.ROM / CM32L_PCM.ROM) or (MT32_CONTROL.ROM / MT32_PCM.ROM). Check that your Extra Path in Paths settings is set to the correct directory");
+		}
+	}
 
 	_controlData = new byte[controlFile.size()];
 	controlFile.read(_controlData, controlFile.size());
@@ -265,7 +269,7 @@ void MidiDriver_MT32::close() {
 	_isOpen = false;
 
 	// Detach the player callback handler
-	setTimerCallback(NULL, NULL);
+	setTimerCallback(nullptr, nullptr);
 	// Detach the mixer callback handler
 	_mixer->stopHandle(_mixerSoundHandle);
 
@@ -307,7 +311,7 @@ MidiChannel *MidiDriver_MT32::allocateChannel() {
 			return chan;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 MidiChannel *MidiDriver_MT32::getPercussionChannel() {
@@ -433,17 +437,17 @@ void MidiDriver_ThreadedMT32::onTimer() {
 
 class MT32EmuMusicPlugin : public MusicPluginObject {
 public:
-	const char *getName() const {
+	const char *getName() const override {
 		return _s("MT-32 emulator");
 	}
 
-	const char *getId() const {
+	const char *getId() const override {
 		return "mt32";
 	}
 
-	MusicDevices getDevices() const;
-	bool checkDevice(MidiDriver::DeviceHandle) const;
-	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const;
+	MusicDevices getDevices() const override;
+	bool checkDevice(MidiDriver::DeviceHandle) const override;
+	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const override;
 };
 
 MusicDevices MT32EmuMusicPlugin::getDevices() const {

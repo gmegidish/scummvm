@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,18 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 // PlayStation Stream demuxer based on FFmpeg/libav
-// MDEC video emulation based on http://kenai.com/downloads/jpsxdec/Old/PlayStation1_STR_format1-00.txt
+// MDEC video emulation based on https://web.archive.org/web/20170411092531/https://kenai.com/downloads/jpsxdec/Old/PlayStation1_STR_format1-00.txt
 
 #include "audio/audiostream.h"
 #include "audio/decoders/adpcm.h"
 #include "common/bitstream.h"
-#include "common/huffman.h"
+#include "common/compression/huffman.h"
 #include "common/stream.h"
 #include "common/system.h"
 #include "common/textconsole.h"
@@ -341,17 +340,21 @@ Audio::AudioStream *PSXStreamDecoder::PSXAudioTrack::getAudioStream() const {
 }
 
 
-PSXStreamDecoder::PSXVideoTrack::PSXVideoTrack(Common::SeekableReadStream *firstSector, CDSpeed speed, int frameCount) : _nextFrameStartTime(0, speed), _frameCount(frameCount) {
+PSXStreamDecoder::PSXVideoTrack::PSXVideoTrack(Common::SeekableReadStream *firstSector, CDSpeed speed, int frameCount) : _nextFrameStartTime(0, speed), _frameCount(frameCount), _surface(nullptr) {
 	assert(firstSector);
 
 	firstSector->seek(40);
-	uint16 width = firstSector->readUint16LE();
-	uint16 height = firstSector->readUint16LE();
-	_surface = new Graphics::Surface();
-	_surface->create(width, height, g_system->getScreenFormat());
+	_width = firstSector->readUint16LE();
+	_height = firstSector->readUint16LE();
 
-	_macroBlocksW = (width + 15) / 16;
-	_macroBlocksH = (height + 15) / 16;
+	_pixelFormat = g_system->getScreenFormat();
+
+	// Default to a 32bpp format, if in 8bpp mode
+	if (_pixelFormat.bytesPerPixel == 1)
+		_pixelFormat = Graphics::PixelFormat(4, 8, 8, 8, 8, 8, 16, 24, 0);
+
+	_macroBlocksW = (_width + 15) / 16;
+	_macroBlocksH = (_height + 15) / 16;
 	_yBuffer = new byte[_macroBlocksW * _macroBlocksH * 16 * 16];
 	_cbBuffer = new byte[_macroBlocksW * _macroBlocksH * 8 * 8];
 	_crBuffer = new byte[_macroBlocksW * _macroBlocksH * 8 * 8];
@@ -364,8 +367,10 @@ PSXStreamDecoder::PSXVideoTrack::PSXVideoTrack(Common::SeekableReadStream *first
 }
 
 PSXStreamDecoder::PSXVideoTrack::~PSXVideoTrack() {
-	_surface->free();
-	delete _surface;
+	if (_surface) {
+		_surface->free();
+		delete _surface;
+	}
 
 	delete[] _yBuffer;
 	delete[] _cbBuffer;
@@ -384,14 +389,19 @@ const Graphics::Surface *PSXStreamDecoder::PSXVideoTrack::decodeNextFrame() {
 }
 
 void PSXStreamDecoder::PSXVideoTrack::decodeFrame(Common::BitStreamMemoryStream *frame, uint sectorCount) {
+	if (!_surface) {
+		_surface = new Graphics::Surface();
+		_surface->create(_width, _height, _pixelFormat);
+	}
+
 	// A frame is essentially an MPEG-1 intra frame
 
 	Common::BitStreamMemory16LEMSB bits(frame);
 
 	bits.skip(16); // unknown
 	bits.skip(16); // 0x3800
-	uint16 scale = bits.getBits(16);
-	uint16 version = bits.getBits(16);
+	uint16 scale = bits.getBits<16>();
+	uint16 version = bits.getBits<16>();
 
 	if (version != 2 && version != 3)
 		error("Unknown PSX stream frame version");
@@ -507,7 +517,7 @@ void PSXStreamDecoder::PSXVideoTrack::readAC(Common::BitStreamMemory16LEMSB *bit
 
 		if (symbol == ESCAPE_CODE) {
 			// The escape code!
-			int zeroes = bits->getBits(6);
+			int zeroes = bits->getBits<6>();
 			count += zeroes + 1;
 			BLOCK_OVERFLOW_CHECK();
 			block += zeroes;
@@ -531,7 +541,7 @@ void PSXStreamDecoder::PSXVideoTrack::readAC(Common::BitStreamMemory16LEMSB *bit
 }
 
 int PSXStreamDecoder::PSXVideoTrack::readSignedCoefficient(Common::BitStreamMemory16LEMSB *bits) {
-	uint val = bits->getBits(10);
+	uint val = bits->getBits<10>();
 
 	// extend the sign
 	uint shift = 8 * sizeof(int) - 10;

@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@
 
 namespace Buried {
 
-AVIFrames::AVIFrames(const Common::String &fileName, uint cachedFrames) {
+AVIFrames::AVIFrames(const Common::Path &fileName, uint cachedFrames) {
 	_maxCachedFrames = 0;
 	_video = nullptr;
 	_cacheEnabled = false;
@@ -49,7 +48,7 @@ AVIFrames::~AVIFrames() {
 	close();
 }
 
-bool AVIFrames::open(const Common::String &fileName, uint cachedFrames) {
+bool AVIFrames::open(const Common::Path &fileName, uint cachedFrames) {
 	if (fileName.empty())
 		return false;
 
@@ -121,26 +120,34 @@ const Graphics::Surface *AVIFrames::getFrame(int frameIndex) {
 	if (!frame)
 		return nullptr;
 
-	Graphics::Surface *copy;
-	if (frame->format == g_system->getScreenFormat()) {
-		copy = new Graphics::Surface();
-		copy->copyFrom(*frame);
-	} else {
-		copy = frame->convertTo(g_system->getScreenFormat());
+	if (_tempFrame) {
+		_tempFrame->free();
+		delete _tempFrame;
+		_tempFrame = nullptr;
 	}
 
 	if (_cacheEnabled) {
-		addFrameToCache(frameIndex, copy);
-	} else {
-		if (_tempFrame) {
-			_tempFrame->free();
-			delete _tempFrame;
+		Graphics::Surface *copy;
+
+		if (frame->format == g_system->getScreenFormat()) {
+			copy = new Graphics::Surface();
+			copy->copyFrom(*frame);
+		} else {
+			copy = frame->convertTo(g_system->getScreenFormat());
 		}
 
-		_tempFrame = copy;
+		addFrameToCache(frameIndex, copy);
+		_lastFrame = copy;
+	} else {
+		if (frame->format == g_system->getScreenFormat()) {
+			_lastFrame = frame;
+		} else {
+			_lastFrame = _tempFrame = frame->convertTo(g_system->getScreenFormat());
+		}
 	}
 
-	return copy;
+	_lastFrameIndex = frameIndex;
+	return _lastFrame;
 }
 
 Graphics::Surface *AVIFrames::getFrameCopy(int frameIndex) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -302,7 +301,7 @@ public:
 		return RuntimeScriptValue().SetInt32AsBool(!GetAsBool());
 	}
 
-	inline bool operator ==(const RuntimeScriptValue &rval) {
+	inline bool operator ==(const RuntimeScriptValue &rval) const {
 		if (rval.Type == kScValPluginFunction) {
 			assert(!rval.methodName.empty());
 			return (Type == kScValPluginFunction) && (rval.methodName == methodName);
@@ -310,14 +309,14 @@ public:
 
 		return ((intptr_t)Ptr + (intptr_t)IValue) == ((intptr_t)rval.Ptr + (intptr_t)rval.IValue);
 	}
-	inline bool operator !=(const RuntimeScriptValue &rval) {
+	inline bool operator !=(const RuntimeScriptValue &rval) const {
 		return !(*this == rval);
 	}
 
 	// FIXME: find out all certain cases when we are reading a pointer and store it
 	// as 32-bit value here. There should be a solution to distinct these cases and
 	// store value differently, otherwise it won't work for 64-bit build.
-	inline RuntimeScriptValue ReadValue() {
+	inline RuntimeScriptValue ReadValue() const {
 		RuntimeScriptValue rval;
 		switch (this->Type) {
 		case kScValStackPtr: {
@@ -360,9 +359,9 @@ public:
 	// Helper functions for reading or writing values from/to
 	// object, referenced by this Runtime Value.
 	// Copy implementation depends on value type.
-	uint8_t     ReadByte();
-	int16_t     ReadInt16();
-	int32_t     ReadInt32();
+	uint8_t     ReadByte() const;
+	int16_t     ReadInt16() const;
+	int32_t     ReadInt32() const;
 	bool        WriteByte(uint8_t val);
 	bool        WriteInt16(int16_t val);
 	bool        WriteInt32(int32_t val);

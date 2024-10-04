@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -930,8 +929,8 @@ bool setEdgeUsed(BombEdgeList edges, VertexType fromVertex, VertexType toVertex)
 	while (numEdges--) {
 		VertexType *p = anEdge;
 		VertexType numVerts = *++p;
-		VertexType *fromPtr = 0;
-		VertexType *toPtr = 0;
+		VertexType *fromPtr = nullptr;
+		VertexType *toPtr = nullptr;
 		VertexType i = numVerts;
 		p++;
 
@@ -1012,29 +1011,29 @@ BombGrid::BombGrid(const DisplayElementID id) : Picture(id) {
 
 	_transparent = true;
 
-	_yellowDot.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kYellowBombPICTBaseID, true);
-	_yellowOneSixteenth.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kYellowBombPICTBaseID + 1, true);
-	_yellowOneEighth.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kYellowBombPICTBaseID + 2, true);
-	_yellowThreeSixteenths.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kYellowBombPICTBaseID + 3, true);
-	_yellowOneFourth.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kYellowBombPICTBaseID + 4, true);
-	_yellowFiveSixteenths.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kYellowBombPICTBaseID + 5, true);
-	_yellowThreeEighths.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kYellowBombPICTBaseID + 6, true);
-	_yellowSevenSixteenths.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kYellowBombPICTBaseID + 7, true);
-	_yellowOneHalf.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kYellowBombPICTBaseID + 8, true);
+	_yellowDot.initFromPICTResource(g_vm->_resFork, kYellowBombPICTBaseID, true);
+	_yellowOneSixteenth.initFromPICTResource(g_vm->_resFork, kYellowBombPICTBaseID + 1, true);
+	_yellowOneEighth.initFromPICTResource(g_vm->_resFork, kYellowBombPICTBaseID + 2, true);
+	_yellowThreeSixteenths.initFromPICTResource(g_vm->_resFork, kYellowBombPICTBaseID + 3, true);
+	_yellowOneFourth.initFromPICTResource(g_vm->_resFork, kYellowBombPICTBaseID + 4, true);
+	_yellowFiveSixteenths.initFromPICTResource(g_vm->_resFork, kYellowBombPICTBaseID + 5, true);
+	_yellowThreeEighths.initFromPICTResource(g_vm->_resFork, kYellowBombPICTBaseID + 6, true);
+	_yellowSevenSixteenths.initFromPICTResource(g_vm->_resFork, kYellowBombPICTBaseID + 7, true);
+	_yellowOneHalf.initFromPICTResource(g_vm->_resFork, kYellowBombPICTBaseID + 8, true);
 
-	_redDot.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kRedBombPICTBaseID, true);
-	_redOneSixteenth.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kRedBombPICTBaseID + 1, true);
-	_redOneEighth.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kRedBombPICTBaseID + 2, true);
-	_redThreeSixteenths.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kRedBombPICTBaseID + 3, true);
-	_redOneFourth.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kRedBombPICTBaseID + 4, true);
-	_redFiveSixteenths.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kRedBombPICTBaseID + 5, true);
-	_redThreeEighths.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kRedBombPICTBaseID + 6, true);
-	_redSevenSixteenths.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kRedBombPICTBaseID + 7, true);
-	_redOneHalf.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kRedBombPICTBaseID + 8, true);
+	_redDot.initFromPICTResource(g_vm->_resFork, kRedBombPICTBaseID, true);
+	_redOneSixteenth.initFromPICTResource(g_vm->_resFork, kRedBombPICTBaseID + 1, true);
+	_redOneEighth.initFromPICTResource(g_vm->_resFork, kRedBombPICTBaseID + 2, true);
+	_redThreeSixteenths.initFromPICTResource(g_vm->_resFork, kRedBombPICTBaseID + 3, true);
+	_redOneFourth.initFromPICTResource(g_vm->_resFork, kRedBombPICTBaseID + 4, true);
+	_redFiveSixteenths.initFromPICTResource(g_vm->_resFork, kRedBombPICTBaseID + 5, true);
+	_redThreeEighths.initFromPICTResource(g_vm->_resFork, kRedBombPICTBaseID + 6, true);
+	_redSevenSixteenths.initFromPICTResource(g_vm->_resFork, kRedBombPICTBaseID + 7, true);
+	_redOneHalf.initFromPICTResource(g_vm->_resFork, kRedBombPICTBaseID + 8, true);
 }
 
 void BombGrid::drawEdges(BombEdgeList edges) {
-	GraphicsManager *gfx = ((PegasusEngine *)g_engine)->_gfx;
+	GraphicsManager *gfx = g_vm->_gfx;
 	gfx->setCurSurface(_surface);
 
 	_surface->fillRect(Common::Rect(0, 0, kBombGridWidth, kBombGridHeight), g_system->getScreenFormat().RGBToColor(0xff, 0xff, 0xff));
@@ -1103,8 +1102,8 @@ void BombGrid::drawEdges(BombEdgeList edges) {
 
 BombTimer::BombTimer(const DisplayElementID id) : IdlerAnimation(id) {
 	_middle = -1;
-	_leftImage.getImageFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kTimerLeftPICTID);
-	_rightImage.getImageFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kTimerRightPICTID);
+	_leftImage.getImageFromPICTResource(g_vm->_resFork, kTimerLeftPICTID);
+	_rightImage.getImageFromPICTResource(g_vm->_resFork, kTimerRightPICTID);
 
 	Common::Rect r;
 	_leftImage.getSurfaceBounds(r);
@@ -1174,7 +1173,7 @@ void CaldoriaBomb::setSoundFXLevel(const uint16) {
 	// The transition sounds between levels are ambience, so overwrite what
 	// Neighborhood::setSoundFXLevel does and keep using the ambience volume level
 	if (_timer.isRunning())
-		_owner->_navMovie.setVolume(((PegasusEngine *)g_engine)->getAmbienceLevel());
+		_owner->_navMovie.setVolume(g_vm->getAmbienceLevel());
 }
 
 void CaldoriaBomb::setAmbienceLevel(const uint16 level) {
@@ -1235,7 +1234,7 @@ void CaldoriaBomb::closeInteraction() {
 	_neighborhoodNotification->cancelNotification(this);
 }
 
-void CaldoriaBomb::startBombAmbient(Common::String ambient) {
+void CaldoriaBomb::startBombAmbient(const Common::Path &ambient) {
 	_owner->loadLoopSound1(ambient);
 }
 
@@ -1249,10 +1248,10 @@ void CaldoriaBomb::receiveNotification(Notification *notification, const Notific
 			_timer.start();
 			_currentLevel = 0;
 			_lastVertex = -1;
-			_owner->_navMovie.setVolume(((PegasusEngine *)g_engine)->getAmbienceLevel());
+			_owner->_navMovie.setVolume(g_vm->getAmbienceLevel());
 			startBombAmbient("Sounds/Caldoria/BmbLoop1.22K.AIFF");
 			if (g_arthurChip) {
-				if (((PegasusEngine *)g_engine)->getRandomBit())
+				if (g_vm->getRandomBit())
 					g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA14", kArthurCaldoriaSeeRoofBomb);
 				else
 					g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBB28", kArthurCaldoriaSeeRoofBomb);
@@ -1267,7 +1266,7 @@ void CaldoriaBomb::receiveNotification(Notification *notification, const Notific
 			_currentLevel++;
 			_grid.drawEdges(_bombLevel[_currentLevel]);
 			_lastVertex = -1;
-			startBombAmbient(Common::String::format("Sounds/Caldoria/BmbLoop%d.22K.AIFF", _owner->getLastExtra() - kCaldoria56BombStage1 + 1));
+			startBombAmbient(Common::Path(Common::String::format("Sounds/Caldoria/BmbLoop%d.22K.AIFF", _owner->getLastExtra() - kCaldoria56BombStage1 + 1)));
 			break;
 		case kCaldoria56BombStage7:
 			_owner->requestDeleteCurrentInteraction();
@@ -1282,7 +1281,7 @@ void CaldoriaBomb::receiveNotification(Notification *notification, const Notific
 		_grid.hide();
 		_timer.stop();
 		_timer.hide();
-		_owner->_navMovie.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+		_owner->_navMovie.setVolume(g_vm->getSoundFXLevel());
 		_owner->loadLoopSound1("");
 		_owner->playDeathExtra(kCaldoria56BombExplodes, kDeathNuclearExplosion);
 	}
@@ -1436,7 +1435,7 @@ void CaldoriaBomb::handleInput(const Input &input, const Hotspot *hotspot) {
 				_timer.stop();
 				_grid.hide();
 				_timer.hide();
-				_owner->_navMovie.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+				_owner->_navMovie.setVolume(g_vm->getSoundFXLevel());
 				_owner->startExtraSequence(kCaldoria56BombStage7, kExtraCompletedFlag, kFilterNoInput);
 				if (g_arthurChip)
 					g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA02", kArthurCaldoriaDisarmedNuke);
@@ -1455,7 +1454,7 @@ long CaldoriaBomb::getNumHints() {
 	return 2;
 }
 
-Common::String CaldoriaBomb::getHintMovie(uint hintNum) {
+Common::Path CaldoriaBomb::getHintMovie(uint hintNum) {
 	return (hintNum == 1) ? "Images/AI/Caldoria/X56EH2" : "Images/AI/Caldoria/X56EH3";
 }
 

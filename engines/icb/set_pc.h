@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,8 @@
 #include "engines/icb/gfx/rlp_api.h"
 #include "engines/icb/common/pc_props.h"
 #include "engines/icb/common/px_staticlayers.h"
+
+#include "common/endian.h"
 
 namespace ICB {
 
@@ -77,6 +78,7 @@ public:
 	inline rlp_API *GetPRig();
 	inline pcStaticLayers *GetStaticLayers();
 	inline pcPropFile *GetProps();
+	inline pcInteractibleFile *GetInteractibles();
 	inline uint8 *GetBackground();
 	inline uint32 GetPropQty();
 	inline const char *GetPropName(uint32 n);
@@ -151,13 +153,25 @@ public: /* Prop Surfaces */
 	int32 m_TotalPropSurfaces;
 };
 
-inline rlp_API *_set::GetPRig() { return (rlp_API *)(((uint8 *)m_currentCamera) + m_currentCamera->lightOffset); }
+inline rlp_API *_set::GetPRig() { return (rlp_API *)(((uint8 *)m_currentCamera) + FROM_LE_32(m_currentCamera->lightOffset)); }
 
-inline pcStaticLayers *_set::GetStaticLayers() { return (pcStaticLayers *)(((uint8 *)m_currentCamera) + m_currentCamera->layerOffset); }
+inline pcStaticLayers *_set::GetStaticLayers() { return (pcStaticLayers *)(((uint8 *)m_currentCamera) + FROM_LE_32(m_currentCamera->layerOffset)); }
+
+inline pcInteractibleFile *_set::GetInteractibles() {
+	if (m_currentCamera->id == PCSETFILE_ID_ICB) {
+		static pcInteractibleFile temp;
+		temp.SetQty(0);
+		temp.SetSchema(PCINTERACTIBLE_SCHEMA);
+		temp.SetId(PCINTERACTIBLE_ID);
+		return &temp;
+	}
+	else
+		return (pcInteractibleFile *)(((uint8 *)m_currentCamera) + FROM_LE_32(m_currentCamera->interactiblesOffset));
+}
 
 inline pcPropFile *_set::GetProps() { return m_props; }
 
-inline uint8 *_set::GetBackground() { return (uint8 *)(((uint8 *)m_currentCamera) + m_currentCamera->backgroundOffset); }
+inline uint8 *_set::GetBackground() { return (uint8 *)(((uint8 *)m_currentCamera) + FROM_LE_32(m_currentCamera->backgroundOffset)); }
 
 inline PXcamera &_set::GetCamera() { return m_camera; }
 

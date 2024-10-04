@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -129,8 +128,8 @@ reg_t file_open(EngineState *s, const Common::String &filename, kFileOpenMode mo
 	englishName.toLowercase();
 
 	Common::String wrappedName = unwrapFilename ? g_sci->wrapFilename(englishName) : englishName;
-	Common::SeekableReadStream *inFile = 0;
-	Common::WriteStream *outFile = 0;
+	Common::SeekableReadStream *inFile = nullptr;
+	Common::WriteStream *outFile = nullptr;
 	Common::SaveFileManager *saveFileMan = g_sci->getSaveFileManager();
 
 	bool isCompressed = true;
@@ -192,7 +191,7 @@ reg_t file_open(EngineState *s, const Common::String &filename, kFileOpenMode mo
 		// If no matching savestate exists: fall back to reading from a regular
 		// file
 		if (!inFile)
-			inFile = SearchMan.createReadStreamForMember(englishName);
+			inFile = SearchMan.createReadStreamForMember(Common::Path(englishName));
 
 		if (mode == kFileOpenModeOpenOrFail && !inFile) {
 			debugC(kDebugLevelFile, "  -> file_open(kFileOpenModeOpenOrFail): failed to open file '%s'", englishName.c_str());
@@ -214,7 +213,7 @@ reg_t file_open(EngineState *s, const Common::String &filename, kFileOpenMode mo
 		// If no matching savestate exists: fall back to reading from a regular
 		// file
 		if (!inFile)
-			inFile = SearchMan.createReadStreamForMember(englishName);
+			inFile = SearchMan.createReadStreamForMember(Common::Path(englishName));
 
 		if (!inFile)
 			debugC(kDebugLevelFile, "  -> file_open(kFileOpenModeOpenOrFail): failed to open file '%s'", englishName.c_str());
@@ -256,12 +255,12 @@ reg_t file_open(EngineState *s, const Common::String &filename, kFileOpenMode mo
 FileHandle *getFileFromHandle(EngineState *s, uint handle) {
 	if ((handle == 0) || ((handle >= kVirtualFileHandleStart) && (handle <= kVirtualFileHandleEnd))) {
 		error("Attempt to use invalid file handle (%d)", handle);
-		return 0;
+		return nullptr;
 	}
 
 	if ((handle >= s->_fileHandles.size()) || !s->_fileHandles[handle].isOpen()) {
 		warning("Attempt to use invalid/unused file handle %d", handle);
-		return 0;
+		return nullptr;
 	}
 
 	return &s->_fileHandles[handle];
@@ -315,7 +314,7 @@ bool fillSavegameDesc(const Common::String &filename, SavegameDesc &desc) {
 		return false;
 	}
 
-	const int id = strtol(filename.end() - 3, NULL, 10);
+	const int id = strtol(filename.end() - 3, nullptr, 10);
 	desc.id = id;
 	// We need to fix date in here, because we save DDMMYYYY instead of
 	// YYYYMMDD, so sorting wouldn't work
@@ -341,11 +340,12 @@ bool fillSavegameDesc(const Common::String &filename, SavegameDesc &desc) {
 	if (g_sci->getLanguage() == Common::HE_ISR) {
 		Common::U32String nameU32String = meta.name.decode(Common::kUtf8);
 		nameString = nameU32String.encode(Common::kWindows1255);
+	} else if (g_sci->getLanguage() == Common::RU_RUS) {
+		Common::U32String nameU32String = meta.name.decode(Common::kUtf8);
+		nameString = nameU32String.encode(Common::kDos866);
 	}
 
-	// At least Phant2 requires use of strncpy, since it creates save game
-	// names of exactly kMaxSaveNameLength
-	strncpy(desc.name, nameString.c_str(), kMaxSaveNameLength);
+	Common::strlcpy(desc.name, nameString.c_str(), sizeof(desc.name));
 
 	return true;
 }
@@ -362,7 +362,7 @@ void listSavegames(Common::Array<SavegameDesc> &saves) {
 		//  whose autosave should appear as a normal saved game
 		if (g_sci->getGameId() != GID_QFG3 &&
 			g_sci->getGameId() != GID_QFG4) {
-			const int id = strtol(filename.end() - 3, NULL, 10);
+			const int id = strtol(filename.end() - 3, nullptr, 10);
 			if (id == kNewGameId || id == kAutoSaveId) {
 				continue;
 			}
@@ -474,7 +474,7 @@ int shiftScummVMToSciSaveId(int saveId) {
 }
 #endif
 
-FileHandle::FileHandle() : _in(0), _out(0) {
+FileHandle::FileHandle() : _in(nullptr), _out(nullptr) {
 }
 
 FileHandle::~FileHandle() {
@@ -488,8 +488,8 @@ void FileHandle::close() {
 		delete _in;
 	else
 		delete _out;
-	_in = 0;
-	_out = 0;
+	_in = nullptr;
+	_out = nullptr;
 	_name.clear();
 }
 
@@ -514,6 +514,9 @@ void DirSeeker::addAsVirtualFiles(Common::String title, Common::String fileMask)
 			Common::String wrappedFilename = Common::String(regularFilename.c_str() + fileMask.size() - 1);
 
 			Common::SeekableReadStream *testfile = saveFileMan->openForLoading(regularFilename);
+			if (testfile == nullptr) {
+				continue;
+			}
 			int32 testfileSize = testfile->size();
 			delete testfile;
 			if (testfileSize > 1024) // check, if larger than 1k. in that case its a saved game.
@@ -554,8 +557,10 @@ reg_t DirSeeker::firstFile(const Common::String &mask, reg_t buffer, SegManager 
 		_files.clear();
 		addAsVirtualFiles("-QfG1-", "qfg1-*");
 		addAsVirtualFiles("-QfG1VGA-", "qfg1vga-*");
-		if (QfGImport > 2)
+		if (QfGImport > 2) {
 			addAsVirtualFiles("-QfG2-", "qfg2-*");
+			addAsVirtualFiles("-QfG2 AGDI-", "qfg2agdi-*");
+		}
 		if (QfGImport > 3)
 			addAsVirtualFiles("-QfG3-", "qfg3-*");
 
@@ -598,7 +603,7 @@ reg_t DirSeeker::nextFile(SegManager *segMan) {
 	}
 	if (string.size() > 12)
 		string = Common::String(string.c_str(), 12);
-	segMan->strcpy(_outbuffer, string.c_str());
+	segMan->strcpy_(_outbuffer, string.c_str());
 
 	// Return the result and advance the list iterator :)
 	++_iter;

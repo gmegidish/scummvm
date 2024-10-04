@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,7 @@ void KyraEngine_LoK::seq_demo() {
 	_screen->fadeToBlack();
 
 	_screen->clearPage(0);
-	_screen->loadBitmap("TOP.CPS", 7, 7, 0);
+	_screen->loadBitmap("TOP.CPS", 7, 7, nullptr);
 	_screen->loadBitmap("BOTTOM.CPS", 5, 5, &_screen->getPalette(0));
 	_screen->copyRegion(0, 91, 0, 8, 320, 103, 6, 0);
 	_screen->copyRegion(0, 0, 0, 111, 320, 64, 6, 0);
@@ -105,8 +104,8 @@ void KyraEngine_LoK::seq_intro() {
 	}
 
 	_seq->setCopyViewOffs(true);
-	_screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT);
-	if (_flags.platform != Common::kPlatformFMTowns && _flags.platform != Common::kPlatformPC98 && _flags.platform != Common::kPlatformAmiga)
+	_screen->setFont(_defaultFont);
+	if (_flags.platform == Common::kPlatformDOS)
 		snd_playTheme(0, 2);
 	_text->setTalkCoords(144);
 
@@ -117,6 +116,8 @@ void KyraEngine_LoK::seq_intro() {
 			_screen->clearPage(0);
 		}
 	}
+
+	_screen->setFont(_defaultFont);
 
 	_text->setTalkCoords(136);
 	delay(30 * _tickLength);
@@ -141,7 +142,7 @@ bool KyraEngine_LoK::seq_introPublisherLogos() {
 		}
 	} else if (_flags.platform == Common::kPlatformMacintosh && _res->exists("MP_GOLD.CPS")) {
 		_screen->loadPalette("MP_GOLD.COL", _screen->getPalette(0));
-		_screen->loadBitmap("MP_GOLD.CPS", 3, 3, 0);
+		_screen->loadBitmap("MP_GOLD.CPS", 3, 3, nullptr);
 		_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0);
 		_screen->updateScreen();
 		_screen->fadeFromBlack();
@@ -158,13 +159,13 @@ bool KyraEngine_LoK::seq_introLogos() {
 
 	if (_flags.platform == Common::kPlatformAmiga) {
 		_screen->loadPaletteTable("INTRO.PAL", 0);
-		_screen->loadBitmap("BOTTOM.CPS", 3, 5, 0);
-		_screen->loadBitmap("TOP.CPS", 3, 3, 0);
+		_screen->loadBitmap("BOTTOM.CPS", 3, 5, nullptr);
+		_screen->loadBitmap("TOP.CPS", 3, 3, nullptr);
 		_screen->copyRegion(0, 0, 0, 111, 320, 64, 2, 0);
 		_screen->copyRegion(0, 91, 0, 8, 320, 109, 2, 0);
 		_screen->copyRegion(0, 0, 0, 0, 320, 190, 0, 2);
 	} else {
-		_screen->loadBitmap("TOP.CPS", 7, 7, 0);
+		_screen->loadBitmap("TOP.CPS", 7, 7, nullptr);
 		_screen->loadBitmap("BOTTOM.CPS", 5, 5, &_screen->getPalette(0));
 		_screen->copyRegion(0, 91, 0, 8, 320, 103, 6, 0);
 		_screen->copyRegion(0, 0, 0, 111, 320, 64, 6, 0);
@@ -212,7 +213,7 @@ bool KyraEngine_LoK::seq_introLogos() {
 			uint32 now = _system->getMillis();
 
 			// The smallest y2 we ever draw the screen for is 65.
-			int distance = (now - start) / _tickLength;
+			int distance = (now - start) / (_tickLength << 1);
 			if (distance > 112) {
 				distance = 112;
 				doneFlag = true;
@@ -231,7 +232,7 @@ bool KyraEngine_LoK::seq_introLogos() {
 			}
 
 			oldDistance = distance;
-			delay(10);
+			delay(8);
 		} while (!doneFlag && !shouldQuit() && !_abortIntroFlag);
 	}
 
@@ -245,30 +246,23 @@ bool KyraEngine_LoK::seq_introStory() {
 	_screen->clearPage(3);
 	_screen->clearPage(0);
 
-	// HACK: The Italian fan translation uses an special text screen here
+	// HACK: The Italian fan translation uses a special text screen here
 	// so we show it even when text is disabled
 	if (!textEnabled() && speechEnabled() && _flags.lang != Common::IT_ITA)
 		return false;
 
-	if (((_flags.lang == Common::EN_ANY || _flags.lang == Common::RU_RUS) && !_flags.isTalkie && _flags.platform == Common::kPlatformDOS) || _flags.platform == Common::kPlatformAmiga)
-		_screen->loadBitmap("TEXT.CPS", 3, 3, &_screen->getPalette(0));
-	else if (_flags.lang == Common::EN_ANY || _flags.lang == Common::JA_JPN)
-		_screen->loadBitmap("TEXT_ENG.CPS", 3, 3, &_screen->getPalette(0));
-	else if (_flags.lang == Common::DE_DEU)
-		_screen->loadBitmap("TEXT_GER.CPS", 3, 3, &_screen->getPalette(0));
-	else if (_flags.lang == Common::FR_FRA || (_flags.lang == Common::ES_ESP && _flags.isTalkie)  /* Spanish fan made over French CD version */ )
-		_screen->loadBitmap("TEXT_FRE.CPS", 3, 3, &_screen->getPalette(0));
-	else if (_flags.lang == Common::ES_ESP)
-		_screen->loadBitmap("TEXT_SPA.CPS", 3, 3, &_screen->getPalette(0));
-	else if (_flags.lang == Common::IT_ITA && !_flags.isTalkie)
-		_screen->loadBitmap("TEXT_ITA.CPS", 3, 3, &_screen->getPalette(0));
-	else if (_flags.lang == Common::IT_ITA && _flags.isTalkie)
-		_screen->loadBitmap("TEXT_ENG.CPS", 3, 3, &_screen->getPalette(0));
-	else if (_flags.lang == Common::RU_RUS && _flags.isTalkie)
-		_screen->loadBitmap("TEXT_ENG.CPS", 3, 3, &_screen->getPalette(0));
-	else if (_flags.lang == Common::HE_ISR)
-		_screen->loadBitmap("TEXT_HEB.CPS", 3, 3, &_screen->getPalette(0));
-	else
+	// Mac Talkie has multiple versions of the file. Make sure the correct one gets picked.
+	int searchStart = (_flags.isTalkie && _flags.platform == Common::kPlatformMacintosh && _flags.lang != Common::EN_ANY) ? (_flags.lang == Common::FR_FRA ? 2 : 3) : 0;
+
+	bool success = false;
+	static const char *pattern[] = { "", "_ENG", "_FRE", "_GER", "_SPA", "_ITA", "_HEB", "_HAN" };
+	for (int i = searchStart; i < ARRAYSIZE(pattern) && !success; ++i) {
+		Common::String tryFile = Common::String::format("TEXT%s.CPS", pattern[i]);
+		if ((success = _res->exists(tryFile.c_str())))
+			_screen->loadBitmap(tryFile.c_str(), 3, 3, &_screen->getPalette(0));
+	}
+
+	if (!success)
 		warning("no story graphics file found");
 
 	if (_flags.platform == Common::kPlatformAmiga)
@@ -306,6 +300,8 @@ bool KyraEngine_LoK::seq_introStory() {
 
 	_screen->updateScreen();
 	delay(360 * _tickLength);
+
+	_sound->beginFadeOut();
 
 	return _abortIntroFlag;
 }
@@ -358,7 +354,7 @@ void KyraEngine_LoK::seq_createAmuletJewel(int jewel, int page, int noSound, int
 			delayWithTicks(3);
 		}
 
-		const uint16 *opcodes = 0;
+		const uint16 *opcodes = nullptr;
 		switch (jewel - 1) {
 		case 0:
 			opcodes = specialJewelTable1;
@@ -1039,9 +1035,9 @@ int KyraEngine_LoK::seq_playEnd() {
 		snd_playWanderScoreViaMap(50, 1);
 		setupPanPages();
 
-		if (_flags.platform == Common::kPlatformAmiga) {
+		if (_flags.platform == Common::kPlatformAmiga || _flags.platform == Common::kPlatformMacintosh) {
 			_sound->loadSoundFile(kMusicFinale);
-
+			_sound->selectAudioResourceSet(kMusicFinale);
 			// The original started song 0 directly here. Since our player
 			// uses 0, 1 for stop and fade we start song 0 with 2
 			_sound->playTrack(2);
@@ -1049,16 +1045,16 @@ int KyraEngine_LoK::seq_playEnd() {
 
 		_finalA = createWSAMovie();
 		assert(_finalA);
-		_finalA->open("finala.wsa", 1, 0);
+		_finalA->open("finala.wsa", 1, nullptr);
 
 		_finalB = createWSAMovie();
 		assert(_finalB);
-		_finalB->open("finalb.wsa", 1, 0);
+		_finalB->open("finalb.wsa", 1, nullptr);
 
 		_finalC = createWSAMovie();
 		assert(_finalC);
 		_endSequenceNeedLoading = 0;
-		_finalC->open("finalc.wsa", 1, 0);
+		_finalC->open("finalc.wsa", 1, nullptr);
 
 		_screen->_curPage = 0;
 		_beadStateVar = 0;
@@ -1110,7 +1106,7 @@ int KyraEngine_LoK::seq_playEnd() {
 
 			_finalA = createWSAMovie();
 			assert(_finalA);
-			_finalA->open("finald.wsa", 1, 0);
+			_finalA->open("finald.wsa", 1, nullptr);
 
 			delayUntil(nextTime);
 			snd_playSoundEffect(0x40);
@@ -1121,13 +1117,13 @@ int KyraEngine_LoK::seq_playEnd() {
 				else if (i == 20)
 					snd_playSoundEffect(_flags.platform == Common::kPlatformPC98 ? 0x13 : 0x0E);
 				nextTime = _system->getMillis() + 8 * _tickLength;
-				_finalA->displayFrame(i, 0, 8, 8, 0, 0, 0);
+				_finalA->displayFrame(i, 0, 8, 8, 0, nullptr, nullptr);
 				_screen->updateScreen();
 			}
 
 			nextTime = _system->getMillis() + 300 * _tickLength;
 			delete _finalA;
-			_finalA = 0;
+			_finalA = nullptr;
 			delayUntil(nextTime);
 
 			seq_playEnding();
@@ -1221,22 +1217,45 @@ struct CreditsLine {
 
 void KyraEngine_LoK::seq_playCredits() {
 	static const uint8 colorMap[] = { 0, 0, 0xC, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	static const char stringTerms[] = { 0x5, 0xD, 0x0};
+	static const char stringTermsDef[] = { 0x5, 0xD, 0x0};
+	static const char stringTermsMac[] = { 0x5, 0xA, 0x0 };
+	const char *stringTerms = (_flags.platform == Common::kPlatformMacintosh) ? stringTermsMac : stringTermsDef;
 
 	typedef Common::List<CreditsLine> CreditsLineList;
 	CreditsLineList lines;
 
 	_screen->disableDualPaletteMode();
-
 	_screen->hideMouse();
-	if (!_flags.isTalkie) {
+
+	Common::String creditsFile = "CREDITS.TXT";
+	Screen::FontId font1, font2, font3;
+	int alignX3 = 157;
+	int alignX4 = 161;
+	int alignXOffs = 0;
+	int lineHeight = 10;
+	int fin = 175;
+
+	if (_flags.lang == Common::ZH_TWN) {
+		font1 = font2 = font3 = Screen::FID_CHINESE_FNT;
+		alignX3 = alignX4 = 150;
+		alignXOffs = 10;
+		lineHeight = 16;
+		fin = 160;
+	} else if (!_flags.isTalkie) {
 		_screen->loadFont(Screen::FID_CRED6_FNT, "CREDIT6.FNT");
 		_screen->loadFont(Screen::FID_CRED8_FNT, "CREDIT8.FNT");
+		font1 = Screen::FID_CRED6_FNT;
+		font2 = font3 = Screen::FID_CRED8_FNT;
+		if (_flags.lang == Common::KO_KOR) {
+			if (_res->exists("CREDITS.HAN"))
+				creditsFile = "CREDITS.HAN";
+			font3 = Screen::FID_KOREAN_FNT;
+		}
+	} else {
+		font1 = font2 = font3 = Screen::FID_8_FNT;
+	}
 
-		_screen->setFont(Screen::FID_CRED8_FNT);
-	} else
-		_screen->setFont(Screen::FID_8_FNT);
-
+	_screen->setFont(font3);
 	_screen->loadBitmap("CHALET.CPS", 4, 4, &_screen->getPalette(0));
 
 	_screen->setCurPage(0);
@@ -1248,20 +1267,25 @@ void KyraEngine_LoK::seq_playCredits() {
 	if (_flags.platform == Common::kPlatformFMTowns && _configMusic == 1)
 		snd_playWanderScoreViaMap(53, 1);
 
-	uint8 *buffer = 0;
+	uint8 *buffer = nullptr;
 	uint32 size = 0;
 
-	if (_flags.platform == Common::kPlatformFMTowns || _flags.platform == Common::kPlatformPC98) {
+	// The Mac Talkie version actually gets shipped with a credits.txt file, but that one
+	// does not contain the Mac credits. These are just the credits from the DOS version.
+	if (_flags.platform != Common::kPlatformMacintosh)
+		buffer = _res->fileData(creditsFile.c_str(), &size);
+
+	if (!buffer) {
 		int sizeTmp = 0;
 		const uint8 *bufferTmp = _staticres->loadRawData(k1CreditsStrings, sizeTmp);
+		if (!bufferTmp)
+			error("KyraEngine_LoK::seq_playCredits(): Unable to find credits data (neither in file 'CREDITS.TXT' nor in static data");
+
 		buffer = new uint8[sizeTmp];
 		assert(buffer);
 		memcpy(buffer, bufferTmp, sizeTmp);
 		size = sizeTmp;
 		_staticres->unloadId(k1CreditsStrings);
-	} else {
-		buffer = _res->fileData("CREDITS.TXT", &size);
-		assert(buffer);
 	}
 
 	uint8 *nextString = buffer;
@@ -1281,6 +1305,7 @@ void KyraEngine_LoK::seq_playCredits() {
 		if (lineEndCode != 0)
 			nextString++;
 
+		int lhAdjust = 0;
 		int alignment = 0;
 		if (*currentString == 3 || *currentString == 4) {
 			alignment = *currentString;
@@ -1289,28 +1314,35 @@ void KyraEngine_LoK::seq_playCredits() {
 
 		if (*currentString == 1) {
 			currentString++;
-
-			if (!_flags.isTalkie)
-				_screen->setFont(Screen::FID_CRED6_FNT);
+			_screen->setFont(font1);
 		} else if (*currentString == 2) {
 			currentString++;
+			_screen->setFont(font2);
+		}
 
-			if (!_flags.isTalkie)
-				_screen->setFont(Screen::FID_CRED8_FNT);
+		if (font2 != font3 && _screen->_currentFont != font1) {
+			// Hack for proper display of the data from the CREDITS.HAN file
+			// which the original does not even support...
+			if ((currentString[0] == '\"' && (currentString[1] & 0x80)) || (*currentString & 0x80)) {
+				lhAdjust = 5;
+				_screen->setFont(font3);
+			} else {
+				_screen->setFont(font2);
+			}
 		}
 
 		line.font = _screen->_currentFont;
-
+		
 		if (alignment == 3)
-			line.x = 157 - _screen->getTextWidth((const char *)currentString);
+			line.x = alignX3 - _screen->getTextWidth((const char *)currentString);
 		else if (alignment == 4)
-			line.x = 161;
+			line.x = alignX4;
 		else
-			line.x = (320  - _screen->getTextWidth((const char *)currentString)) / 2 + 1;
+			line.x = (320  - _screen->getTextWidth((const char *)currentString)) / 2 + 1 - alignXOffs;
 
 		line.y = currentY;
 		if (lineEndCode != 5)
-			currentY += 10;
+			currentY += (lineHeight + lhAdjust);
 
 		line.str = currentString;
 
@@ -1330,7 +1362,7 @@ void KyraEngine_LoK::seq_playCredits() {
 	while (!finished && !shouldQuit()) {
 		uint32 startLoop = _system->getMillis();
 
-		if (bottom > 175) {
+		if (bottom > fin) {
 			_screen->copyRegion(0, 32, 0, 32, 320, 128, 4, 2, Screen::CR_NO_P_CHECK);
 			bottom = 0;
 
@@ -1358,7 +1390,7 @@ void KyraEngine_LoK::seq_playCredits() {
 			_screen->updateScreen();
 		}
 
-		if (checkInput(0, false)) {
+		if (checkInput(nullptr, false)) {
 			removeInputTop();
 			finished = true;
 		}
@@ -1480,7 +1512,7 @@ void KyraEngine_LoK::seq_playCreditsAmiga() {
 			*specialString = 0;
 		}
 
-		if (checkInput(0, false)) {
+		if (checkInput(nullptr, false)) {
 			removeInputTop();
 			break;
 		}
@@ -1501,7 +1533,7 @@ int KyraEngine_LoK::handleMalcolmFlag() {
 
 	case 2:
 		if (_system->getMillis() >= _malcolmTimer2) {
-			_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, 0, 0);
+			_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, nullptr, nullptr);
 			_screen->updateScreen();
 			_malcolmTimer2 = _system->getMillis() + 8 * _tickLength;
 			++_malcolmFrame;
@@ -1516,7 +1548,7 @@ int KyraEngine_LoK::handleMalcolmFlag() {
 		if (_system->getMillis() < _malcolmTimer1) {
 			if (_system->getMillis() >= _malcolmTimer2) {
 				_malcolmFrame = _rnd.getRandomNumberRng(14, 17);
-				_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, 0, 0);
+				_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, nullptr, nullptr);
 				_screen->updateScreen();
 				_malcolmTimer2 = _system->getMillis() + 8 * _tickLength;
 			}
@@ -1528,7 +1560,7 @@ int KyraEngine_LoK::handleMalcolmFlag() {
 
 	case 4:
 		if (_system->getMillis() >= _malcolmTimer2) {
-			_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, 0, 0);
+			_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, nullptr, nullptr);
 			_screen->updateScreen();
 			_malcolmTimer2 = _system->getMillis() + 8 * _tickLength;
 			++_malcolmFrame;
@@ -1542,7 +1574,7 @@ int KyraEngine_LoK::handleMalcolmFlag() {
 
 	case 5:
 		if (_system->getMillis() >= _malcolmTimer2) {
-			_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, 0, 0);
+			_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, nullptr, nullptr);
 			_screen->updateScreen();
 			_malcolmTimer2 = _system->getMillis() + 8 * _tickLength;
 			++_malcolmFrame;
@@ -1556,7 +1588,7 @@ int KyraEngine_LoK::handleMalcolmFlag() {
 	case 6:
 		if (_unkEndSeqVar4) {
 			if (_malcolmFrame <= 33 && _system->getMillis() >= _malcolmTimer2) {
-				_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, 0, 0);
+				_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, nullptr, nullptr);
 				_screen->updateScreen();
 				_malcolmTimer2 = _system->getMillis() + 8 * _tickLength;
 				++_malcolmFrame;
@@ -1581,7 +1613,7 @@ int KyraEngine_LoK::handleMalcolmFlag() {
 
 	case 8:
 		if (_system->getMillis() >= _malcolmTimer2) {
-			_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, 0, 0);
+			_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, nullptr, nullptr);
 			_screen->updateScreen();
 			_malcolmTimer2 = _system->getMillis() + 8 * _tickLength;
 			++_malcolmFrame;
@@ -1598,11 +1630,14 @@ int KyraEngine_LoK::handleMalcolmFlag() {
 		snd_playSoundEffect(12);
 		for (int i = 0; i < 18; ++i) {
 			_malcolmTimer2 = _system->getMillis() + 4 * _tickLength;
-			_finalC->displayFrame(i, 0, 16, 50, 0, 0, 0);
+			_finalC->displayFrame(i, 0, 16, 50, 0, nullptr, nullptr);
 			_screen->updateScreen();
 			delayUntil(_malcolmTimer2);
 		}
-		snd_playWanderScoreViaMap(51, 1);
+		if (_flags.platform == Common::kPlatformMacintosh)
+			_sound->playTrack(4);
+		else
+			snd_playWanderScoreViaMap(51, 1);
 		delay(60 * _tickLength);
 		_malcolmFlag = 0;
 		return 1;
@@ -1685,9 +1720,8 @@ int KyraEngine_LoK::handleBeadState() {
 				_beadState1.width = ((_beadState1.width2 + 7) >> 3) + 1;
 				_beadState1.height = _animator->fetchAnimHeight(_panPagesTable[19], 256);
 				if (!_endSequenceBackUpRect) {
-					_endSequenceBackUpRect = new uint8[(_beadState1.width * _beadState1.height) << 3];
+					_endSequenceBackUpRect = new uint8[(_beadState1.width * _beadState1.height) << 3]();
 					assert(_endSequenceBackUpRect);
-					memset(_endSequenceBackUpRect, 0, ((_beadState1.width * _beadState1.height) << 3) * sizeof(uint8));
 				}
 				x = _beadState1.x = 60;
 				y = _beadState1.y = 40;
@@ -1800,14 +1834,14 @@ int KyraEngine_LoK::handleBeadState() {
 					uint32 nextRun = 0;
 					for (int i = 0; i < 8; ++i) {
 						nextRun = _system->getMillis() + _tickLength;
-						_finalB->displayFrame(i, 0, 224, 8, 0, 0, 0);
+						_finalB->displayFrame(i, 0, 224, 8, 0, nullptr, nullptr);
 						_screen->updateScreen();
 						delayUntil(nextRun);
 					}
 					snd_playSoundEffect(0x0D);
 					for (int i = 7; i >= 0; --i) {
 						nextRun = _system->getMillis() + _tickLength;
-						_finalB->displayFrame(i, 0, 224, 8, 0, 0, 0);
+						_finalB->displayFrame(i, 0, 224, 8, 0, nullptr, nullptr);
 						_screen->updateScreen();
 						delayUntil(nextRun);
 					}
@@ -1918,7 +1952,7 @@ int KyraEngine_LoK::processBead(int x, int y, int &x2, int &y2, BeadState *ptr) 
 
 void KyraEngine_LoK::setupPanPages() {
 	_screen->savePageToDisk("BKGD.PG", 2);
-	_screen->loadBitmap("BEAD.CPS", 3, 3, 0);
+	_screen->loadBitmap("BEAD.CPS", 3, 3, nullptr);
 	if (_flags.platform == Common::kPlatformMacintosh || _flags.platform == Common::kPlatformAmiga) {
 		int pageBackUp = _screen->_curPage;
 		_screen->_curPage = 2;
@@ -1948,20 +1982,20 @@ void KyraEngine_LoK::setupPanPages() {
 
 void KyraEngine_LoK::freePanPages() {
 	delete[] _endSequenceBackUpRect;
-	_endSequenceBackUpRect = 0;
+	_endSequenceBackUpRect = nullptr;
 	for (int i = 0; i <= 19; ++i) {
 		delete[] _panPagesTable[i];
-		_panPagesTable[i] = 0;
+		_panPagesTable[i] = nullptr;
 	}
 }
 
 void KyraEngine_LoK::closeFinalWsa() {
 	delete _finalA;
-	_finalA = 0;
+	_finalA = nullptr;
 	delete _finalB;
-	_finalB = 0;
+	_finalB = nullptr;
 	delete _finalC;
-	_finalC = 0;
+	_finalC = nullptr;
 	freePanPages();
 	_endSequenceNeedLoading = 1;
 }

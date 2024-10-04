@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -492,7 +491,7 @@ void Room::tug3UseCommunicator() {
 			showText(TX_SPEAKER_KIRK, TX_TUG3_006);
 			showText(TX_SPEAKER_SCOTT, TX_TUG3_S07);
 
-			playMidiMusicTracks(-1, -1);
+			playMidiMusicTracks(MIDITRACK_NONE);
 
 			_awayMission->disableInput = true;
 			if (_awayMission->tug.missionScore < 0)
@@ -548,7 +547,7 @@ void Room::tug3Timer0Expired() {
 }
 
 void Room::tug3AllCrewmenDead() {
-	playMidiMusicTracks(2, -1);
+	playMidiMusicTracks(MIDITRACK_2);
 	showGameOverMenu();
 }
 
@@ -569,7 +568,7 @@ void Room::tug3Timer1Expired() {
 }
 
 void Room::tug3EndMission() {
-	playMidiMusicTracks(28, -1);
+	playMidiMusicTracks(MIDITRACK_28);
 	showText(TX_SPEAKER_KIRK, TX_TUG3_001);
 	playSoundEffectIndex(kSfxTransporterMaterialize);
 	loadActorAnim2(OBJECT_13, "rteleb", 0x14, 0xa0, 7);
@@ -585,7 +584,7 @@ void Room::tug3SecurityTeamBeamedIn() {
 	showText(TX_SPEAKER_KIRK, TX_TUG3_005);
 	showText(TX_SPEAKER_SCOTT, TX_TUG3_S08);
 
-	playMidiMusicTracks(-1, -1);
+	playMidiMusicTracks(MIDITRACK_NONE);
 	_awayMission->disableInput = true;
 	if (_awayMission->tug.missionScore < 0)
 		_awayMission->tug.missionScore = 0;

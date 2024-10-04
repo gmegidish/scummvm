@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 /*
- * This file is based on, or a modified version of code from TinyGL (C) 1997-1998 Fabrice Bellard,
- * which is licensed under the zlib-license (see LICENSE).
+ * This file is based on, or a modified version of code from TinyGL (C) 1997-2022 Fabrice Bellard,
+ * which is licensed under the MIT license (see LICENSE).
  * It also has modifications by the ResidualVM-team, which are covered under the GPLv2 (or later).
  */
 
@@ -35,7 +34,7 @@ namespace TinyGL {
 // Inversion of a 4x4 matrix.
 // It's not just unrolling, this is a different implementation that directly
 // uses the formula whereas the previous one is using another method (which is generic and thus, slower)
-int MatrixInverse(float *m) {
+static int MatrixInverse(float *m) {
 	double inv[16];
 
 	inv[0] = m[5]  * m[10] * m[15] -
@@ -190,50 +189,50 @@ void Matrix4::identity() {
 Matrix4 Matrix4::transpose() const {
 	Matrix4 a;
 
-	a._m[0][0] = this->_m[0][0];
-	a._m[0][1] = this->_m[1][0];
-	a._m[0][2] = this->_m[2][0];
-	a._m[0][3] = this->_m[3][0];
+	a._m[0][0] = _m[0][0];
+	a._m[0][1] = _m[1][0];
+	a._m[0][2] = _m[2][0];
+	a._m[0][3] = _m[3][0];
 
-	a._m[1][0] = this->_m[0][1];
-	a._m[1][1] = this->_m[1][1];
-	a._m[1][2] = this->_m[2][1];
-	a._m[1][3] = this->_m[3][1];
+	a._m[1][0] = _m[0][1];
+	a._m[1][1] = _m[1][1];
+	a._m[1][2] = _m[2][1];
+	a._m[1][3] = _m[3][1];
 
-	a._m[2][0] = this->_m[0][2];
-	a._m[2][1] = this->_m[1][2];
-	a._m[2][2] = this->_m[2][2];
-	a._m[2][3] = this->_m[3][2];
+	a._m[2][0] = _m[0][2];
+	a._m[2][1] = _m[1][2];
+	a._m[2][2] = _m[2][2];
+	a._m[2][3] = _m[3][2];
 
-	a._m[3][0] = this->_m[0][3];
-	a._m[3][1] = this->_m[1][3];
-	a._m[3][2] = this->_m[2][3];
-	a._m[3][3] = this->_m[3][3];
+	a._m[3][0] = _m[0][3];
+	a._m[3][1] = _m[1][3];
+	a._m[3][2] = _m[2][3];
+	a._m[3][3] = _m[3][3];
 
 	return a;
 }
 
 void Matrix4::transpose() {
 	Matrix4 tmp = *this;
-	this->_m[0][0] = tmp._m[0][0];
-	this->_m[0][1] = tmp._m[1][0];
-	this->_m[0][2] = tmp._m[2][0];
-	this->_m[0][3] = tmp._m[3][0];
+	_m[0][0] = tmp._m[0][0];
+	_m[0][1] = tmp._m[1][0];
+	_m[0][2] = tmp._m[2][0];
+	_m[0][3] = tmp._m[3][0];
 
-	this->_m[1][0] = tmp._m[0][1];
-	this->_m[1][1] = tmp._m[1][1];
-	this->_m[1][2] = tmp._m[2][1];
-	this->_m[1][3] = tmp._m[3][1];
+	_m[1][0] = tmp._m[0][1];
+	_m[1][1] = tmp._m[1][1];
+	_m[1][2] = tmp._m[2][1];
+	_m[1][3] = tmp._m[3][1];
 
-	this->_m[2][0] = tmp._m[0][2];
-	this->_m[2][1] = tmp._m[1][2];
-	this->_m[2][2] = tmp._m[2][2];
-	this->_m[2][3] = tmp._m[3][2];
+	_m[2][0] = tmp._m[0][2];
+	_m[2][1] = tmp._m[1][2];
+	_m[2][2] = tmp._m[2][2];
+	_m[2][3] = tmp._m[3][2];
 
-	this->_m[3][0] = tmp._m[0][3];
-	this->_m[3][1] = tmp._m[1][3];
-	this->_m[3][2] = tmp._m[2][3];
-	this->_m[3][3] = tmp._m[3][3];
+	_m[3][0] = tmp._m[0][3];
+	_m[3][1] = tmp._m[1][3];
+	_m[3][2] = tmp._m[2][3];
+	_m[3][3] = tmp._m[3][3];
 }
 
 Matrix4 Matrix4::inverseOrtho() const {
@@ -241,7 +240,7 @@ Matrix4 Matrix4::inverseOrtho() const {
 
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
-			a._m[i][j] = this->_m[j][i];
+			a._m[i][j] = _m[j][i];
 		}
 	}
 	a._m[3][0] = 0.0f;
@@ -252,7 +251,7 @@ Matrix4 Matrix4::inverseOrtho() const {
 	for (int i = 0; i < 3; i++) {
 		float s = 0;
 		for (int j = 0; j < 3; j++) {
-			s -= this->_m[j][i] * this->_m[j][3];
+			s -= _m[j][i] * _m[j][3];
 		}
 		a._m[i][3] = s;
 	}
@@ -302,7 +301,7 @@ bool Matrix4::isIdentity() const {
 }
 
 void Matrix4::invert() {
-	MatrixInverse((float *)this->_m);
+	MatrixInverse((float *)_m);
 }
 
 Matrix4 Matrix4::frustum(float left, float right, float bottom, float top, float nearp, float farp) {

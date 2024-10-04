@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -120,7 +119,7 @@ encapsulate() {
 
 	/* NULL OUT ALL THE WORD POINTERS BEYOND THE LAST WORD */
 	for (index = position; index < MAX_WORDS; index++)
-		word[index] = NULL;
+		word[index] = nullptr;
 
 	wp = 0;
 }
@@ -156,7 +155,7 @@ command_encapsulate() {
 		case ',':
 			text_buffer[index] = 0;
 			// SET THIS WORD TO POINT TO A STRING CONSTANT OF 'comma' AS THE
-			// COMMA ITSELF WILL BE NULLED OUT TO TERMINATE THE PRECEEDING
+			// COMMA ITSELF WILL BE NULLED OUT TO TERMINATE THE PRECEDING
 			// WORD IN THE COMMAND.
 			word[position] = comma;
 			if (position < MAX_WORDS)
@@ -166,7 +165,7 @@ command_encapsulate() {
 		case '.':
 			text_buffer[index] = 0;
 			// SET THIS WORD TO POINT TO A STRING CONSTANT OF 'comma' AS THE
-			// COMMA ITSELF WILL BE NULLED OUT TO TERMINATE THE PRECEEDING
+			// COMMA ITSELF WILL BE NULLED OUT TO TERMINATE THE PRECEDING
 			// WORD IN THE COMMAND
 			word[position] = then;
 			if (position < MAX_WORDS)
@@ -221,7 +220,7 @@ command_encapsulate() {
 
 	// NULL OUT ALL THE WORD POINTERS BEYOND THE LAST WORD
 	for (index = position; index < MAX_WORDS; index++) {
-		word[index] = NULL;
+		word[index] = nullptr;
 	}
 
 	wp = 0;
@@ -238,19 +237,19 @@ jacl_truncate() {
 	struct filter_type *filter = filter_table;
 
 	// REMOVE ALL THE DEFINED 'filter's FROM THE PLAYER'S COMMAND
-	if (filter != NULL) {
-		while (word[position] != NULL) {
+	if (filter != nullptr) {
+		while (word[position] != nullptr) {
 			match = FALSE;
 			do {
 				if (!strcmp(word[position], filter->word)) {
-					for (index = position; word[index + 1] != NULL;
+					for (index = position; word[index + 1] != nullptr;
 					        index++)
 						word[index] = word[index + 1];
-					word[index] = NULL;
+					word[index] = nullptr;
 					match = TRUE;
 				}
 				filter = filter->next_filter;
-			} while (filter != NULL && !match);
+			} while (filter != nullptr && !match);
 			filter = filter_table;
 			if (!match)
 				position++;
@@ -258,15 +257,15 @@ jacl_truncate() {
 	}
 
 	// SUBTITUTE ALL THE DEFINED 'synonym's IN THE PLAYER'S COMMAND
-	if (synonym_table != NULL) {
-		for (counter = 0; word[counter] != NULL; counter++) {
+	if (synonym_table != nullptr) {
+		for (counter = 0; word[counter] != nullptr; counter++) {
 			synonym = synonym_table;
 			do {
 				if (!strcmp(word[counter], synonym->original)) {
 					word[counter] = synonym->standard;
 					break;
 				}
-				if (synonym->next_synonym != NULL)
+				if (synonym->next_synonym != nullptr)
 					synonym = synonym->next_synonym;
 				else
 					break;

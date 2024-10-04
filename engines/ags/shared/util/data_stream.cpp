@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,10 +68,6 @@ size_t DataStream::WriteInt64(int64_t val) {
 }
 
 size_t DataStream::ReadAndConvertArrayOfInt16(int16_t *buffer, size_t count) {
-	if (!CanRead() || !buffer) {
-		return 0;
-	}
-
 	count = ReadArray(buffer, sizeof(int16_t), count);
 	for (size_t i = 0; i < count; ++i, ++buffer) {
 		*buffer = BBOp::SwapBytesInt16(*buffer);
@@ -81,10 +76,6 @@ size_t DataStream::ReadAndConvertArrayOfInt16(int16_t *buffer, size_t count) {
 }
 
 size_t DataStream::ReadAndConvertArrayOfInt32(int32_t *buffer, size_t count) {
-	if (!CanRead() || !buffer) {
-		return 0;
-	}
-
 	count = ReadArray(buffer, sizeof(int32_t), count);
 	for (size_t i = 0; i < count; ++i, ++buffer) {
 		*buffer = BBOp::SwapBytesInt32(*buffer);
@@ -93,10 +84,6 @@ size_t DataStream::ReadAndConvertArrayOfInt32(int32_t *buffer, size_t count) {
 }
 
 size_t DataStream::ReadAndConvertArrayOfInt64(int64_t *buffer, size_t count) {
-	if (!CanRead() || !buffer) {
-		return 0;
-	}
-
 	count = ReadArray(buffer, sizeof(int64_t), count);
 	for (size_t i = 0; i < count; ++i, ++buffer) {
 		*buffer = BBOp::SwapBytesInt64(*buffer);
@@ -105,12 +92,8 @@ size_t DataStream::ReadAndConvertArrayOfInt64(int64_t *buffer, size_t count) {
 }
 
 size_t DataStream::WriteAndConvertArrayOfInt16(const int16_t *buffer, size_t count) {
-	if (!CanWrite() || !buffer) {
-		return 0;
-	}
-
 	size_t elem;
-	for (elem = 0; elem < count && !EOS(); ++elem, ++buffer) {
+	for (elem = 0; elem < count; ++elem, ++buffer) {
 		int16_t val = *buffer;
 		ConvertInt16(val);
 		if (Write(&val, sizeof(int16_t)) < sizeof(int16_t)) {
@@ -121,12 +104,8 @@ size_t DataStream::WriteAndConvertArrayOfInt16(const int16_t *buffer, size_t cou
 }
 
 size_t DataStream::WriteAndConvertArrayOfInt32(const int32_t *buffer, size_t count) {
-	if (!CanWrite() || !buffer) {
-		return 0;
-	}
-
 	size_t elem;
-	for (elem = 0; elem < count && !EOS(); ++elem, ++buffer) {
+	for (elem = 0; elem < count; ++elem, ++buffer) {
 		int32_t val = *buffer;
 		ConvertInt32(val);
 		if (Write(&val, sizeof(int32_t)) < sizeof(int32_t)) {
@@ -137,12 +116,8 @@ size_t DataStream::WriteAndConvertArrayOfInt32(const int32_t *buffer, size_t cou
 }
 
 size_t DataStream::WriteAndConvertArrayOfInt64(const int64_t *buffer, size_t count) {
-	if (!CanWrite() || !buffer) {
-		return 0;
-	}
-
 	size_t elem;
-	for (elem = 0; elem < count && !EOS(); ++elem, ++buffer) {
+	for (elem = 0; elem < count; ++elem, ++buffer) {
 		int64_t val = *buffer;
 		ConvertInt64(val);
 		if (Write(&val, sizeof(int64_t)) < sizeof(int64_t)) {

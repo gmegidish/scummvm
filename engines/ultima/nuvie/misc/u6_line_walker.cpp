@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,16 +24,8 @@
 namespace Ultima {
 namespace Nuvie {
 
-U6LineWalker::U6LineWalker(uint32 sx, uint32 sy, uint32 ex, uint32 ey) {
-
-	start_x = sx;
-	start_y = sy;
-	end_x = ex;
-	end_y = ey;
-
-	cur_x = start_x;
-	cur_y = start_y;
-
+U6LineWalker::U6LineWalker(uint32 sx, uint32 sy, uint32 ex, uint32 ey)
+	: start_x(sx), start_y(sy), end_x(ex), end_y(ey), cur_x(sx), cur_y(sy), cur_step(0) {
 	sint32 delta_x = end_x - start_x;
 	sint32 delta_y = end_y - start_y;
 
@@ -69,8 +60,6 @@ U6LineWalker::U6LineWalker(uint32 sx, uint32 sy, uint32 ex, uint32 ey) {
 	line_counter = delta_y + delta_y - delta_x;
 	line_inc[0] = delta_y + delta_y;
 	line_inc[1] = (delta_y - delta_x) * 2;
-
-	cur_step = 0;
 }
 
 U6LineWalker::~U6LineWalker() {

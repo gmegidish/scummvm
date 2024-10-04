@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,6 @@
 #include "gui/widget.h"
 #include "gui/widgets/popup.h"
 
-#include "common/gui_options.h"
 #include "common/system.h"
 #include "common/translation.h"
 
@@ -95,7 +93,7 @@ enum {
 #ifdef ENABLE_MYST
 
 MystOptionsWidget::MystOptionsWidget(GuiObject *boss, const Common::String &name, const Common::String &domain) :
-		OptionsContainerWidget(boss, name, "MystGameOptionsDialog", false, domain),
+		OptionsContainerWidget(boss, name, "MystGameOptionsDialog", domain),
 		_zipModeCheckbox(nullptr),
 		_transitionsCheckbox(nullptr),
 		_mystFlyByCheckbox(nullptr),
@@ -177,7 +175,7 @@ MystOptionsWidget::~MystOptionsWidget() {
 void MystOptionsWidget::defineLayout(GUI::ThemeEval &layouts, const Common::String &layoutName, const Common::String &overlayedLayout) const {
 	layouts.addDialog(layoutName, overlayedLayout)
 	            .addLayout(GUI::ThemeLayout::kLayoutVertical)
-	                .addPadding(16, 16, 16, 16)
+	                .addPadding(0, 0, 0, 0)
 	                .addWidget("ZipMode", "Checkbox")
 	                .addWidget("Transistions", "Checkbox")
 	                .addWidget("PlayMystFlyBy", "Checkbox")
@@ -351,15 +349,15 @@ void MystMenuDialog::handleCommand(GUI::CommandSender *sender, uint32 cmd, uint3
 #ifdef ENABLE_RIVEN
 
 RivenOptionsWidget::RivenOptionsWidget(GuiObject *boss, const Common::String &name, const Common::String &domain) :
-		OptionsContainerWidget(boss, name, "RivenOptionsDialog", false, domain),
+		OptionsContainerWidget(boss, name, "RivenOptionsDialog", domain),
 		_languagePopUp(nullptr) {
 	Common::String guiOptions = ConfMan.get("guioptions", domain);
 	bool is25th = checkGameGUIOption(GAMEOPTION_25TH, guiOptions);
 
-	_zipModeCheckbox = new GUI::CheckboxWidget(widgetsBoss(), "RivenOptionsDialog.ZipMode", _("~Z~ip Mode Activated"));
-	_waterEffectCheckbox = new GUI::CheckboxWidget(widgetsBoss(), "RivenOptionsDialog.WaterEffect", _("~W~ater Effect Enabled"));
+	_zipModeCheckbox = new GUI::CheckboxWidget(widgetsBoss(), "RivenOptionsDialog.ZipMode", _("~Z~ip Mode Activated"), _("When activated, clicking on an item or area with the lightning bolt cursor takes you directly there, skipping intermediate screens. You can only 'Zip' to a precise area you've already been."));
+	_waterEffectCheckbox = new GUI::CheckboxWidget(widgetsBoss(), "RivenOptionsDialog.WaterEffect", _("~W~ater Effect Enabled"), _("Toggles the use of QuickTime videos for visual effects related to water surfaces (ripples, waves, etc.)."));
 
-	GUI::StaticTextWidget *transitionModeCaption = new GUI::StaticTextWidget(widgetsBoss(), "RivenOptionsDialog.TransistionsDesc", _("Transitions:"));
+	GUI::StaticTextWidget *transitionModeCaption = new GUI::StaticTextWidget(widgetsBoss(), "RivenOptionsDialog.TransistionsDesc", _("Transitions:"), _("Adjusts the speed of screen transitions. Disabling screen transitions will enable you to navigate more quickly through the game."));
 	transitionModeCaption->setAlign(Graphics::kTextAlignRight);
 
 	_transitionModePopUp = new GUI::PopUpWidget(widgetsBoss(), "RivenOptionsDialog.Transistions");
@@ -396,7 +394,7 @@ RivenOptionsWidget::~RivenOptionsWidget() {
 void RivenOptionsWidget::defineLayout(GUI::ThemeEval &layouts, const Common::String &layoutName, const Common::String &overlayedLayout) const {
 	layouts.addDialog(layoutName, overlayedLayout)
 	        .addLayout(GUI::ThemeLayout::kLayoutVertical)
-	            .addPadding(16, 16, 16, 16)
+	            .addPadding(0, 0, 0, 0)
 	            .addWidget("ZipMode", "Checkbox")
 	            .addWidget("WaterEffect", "Checkbox")
 	            .addLayout(GUI::ThemeLayout::kLayoutHorizontal)

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,12 +27,7 @@
 namespace Ultima {
 namespace Nuvie {
 
-ConvFont::ConvFont() {
-	data_offset = 0;
-	num_chars = 0;
-	offset = 0;
-	f_data = NULL;
-	f_w_data = NULL;
+ConvFont::ConvFont() : data_offset(0), f_data(nullptr), f_w_data(nullptr) {
 }
 
 ConvFont::~ConvFont() {
@@ -60,7 +54,7 @@ uint16 ConvFont::drawChar(Screen *screen, uint8 char_num, uint16 x, uint16 y,
 						  uint8 color) {
 
 	unsigned char *buf = (unsigned char *)f_data + (data_offset * 64) + (char_num % 16) * 8 + (char_num / 16) * 128 * 8;
-	screen->blit(x, y, buf, 8, 8, 8, 128, true, NULL);
+	screen->blit(x, y, buf, 8, 8, 8, 128, true, nullptr);
 	return getCharWidth(char_num);
 }
 

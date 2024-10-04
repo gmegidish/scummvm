@@ -48,8 +48,8 @@ extern char         error_buffer[];
 
 int                 lines_written;
 
-Common::WriteStream *outputFile = NULL;
-Common::SeekableReadStream *inputFile = NULL;
+Common::WriteStream *outputFile = nullptr;
+Common::SeekableReadStream *inputFile = nullptr;
 
 char                *stripped_line;
 
@@ -82,7 +82,7 @@ int jpp() {
 		char *result = NULL;
 
 		if (inputFile->read(text_buffer, 1024) != 1024) {
-			sprintf(error_buffer, CANT_OPEN_SOURCE, game_file);
+			Common::sprintf_s(error_buffer, 1024, CANT_OPEN_SOURCE, game_file);
 			return (FALSE);
 		}
 
@@ -92,11 +92,11 @@ int jpp() {
 				 * DIRECTLY */
 				if (sscanf(text_buffer, "#processed:%d", &game_version)) {
 					if (INTERPRETER_VERSION < game_version) {
-						sprintf(error_buffer, OLD_INTERPRETER, game_version);
+						Common::sprintf_s(error_buffer, 1024, OLD_INTERPRETER, game_version);
 						return (FALSE);
 					}
 				}
-				strcpy(processed_file, game_file);
+				Common::strcpy_s(processed_file, 256, game_file);
 
 				return (TRUE);
 			}
@@ -108,20 +108,20 @@ int jpp() {
 
 		delete inputFile;
 	} else {
-		sprintf(error_buffer, NOT_FOUND);
+		Common::sprintf_s(error_buffer, 1024, NOT_FOUND);
 		return (FALSE);
 	}
 
 	/* SAVE A TEMPORARY FILENAME INTO PROCESSED_FILE */
-	sprintf(processed_file, "%s%s.j2", temp_directory, prefix);
+	Common::sprintf_s(processed_file, "%s%s.j2", temp_directory, prefix);
 
 	/* ATTEMPT TO OPEN THE PROCESSED FILE IN THE TEMP DIRECTORY */
 	if ((outputFile = fopen(processed_file, "w")) == NULL) {
 		/* NO LUCK, TRY OPEN THE PROCESSED FILE IN THE CURRENT DIRECTORY */
-		sprintf(processed_file, "%s.j2", prefix);
+		Common::sprintf_s(processed_file, "%s.j2", prefix);
 		if ((outputFile = fopen(processed_file, "w")) == NULL) {
 			/* NO LUCK, CAN'T CONTINUE */
-			sprintf(error_buffer, CANT_OPEN_PROCESSED, processed_file);
+			Common::sprintf_s(error_buffer, 1024, CANT_OPEN_PROCESSED, processed_file);
 			return (FALSE);
 		}
 	}
@@ -142,8 +142,8 @@ int jpp() {
 int process_file(const char *sourceFile1, char *sourceFile2) {
 	char            temp_buffer1[1025];
 	char            temp_buffer2[1025];
-	Common::File *srcFile = NULL;
-	char           *includeFile = NULL;
+	Common::File *srcFile = nullptr;
+	char           *includeFile = nullptr;
 
 	/* THIS FUNCTION WILL CREATE A PROCESSED FILE THAT HAS HAD ALL
 	 * LEADING AND TRAILING WHITE SPACE REMOVED AND ALL INCLUDED
@@ -151,15 +151,15 @@ int process_file(const char *sourceFile1, char *sourceFile2) {
 	srcFile = File::openForReading(sourceFile1);
 
 	if (!srcFile) {
-		if (sourceFile2 != NULL) {
+		if (sourceFile2 != nullptr) {
 			srcFile = File::openForReading(sourceFile2);
 			if (!srcFile) {
-				sprintf(error_buffer, CANT_OPEN_OR, sourceFile1, sourceFile2);
+				Common::sprintf_s(error_buffer, 1024, CANT_OPEN_OR, sourceFile1, sourceFile2);
 				return (FALSE);
 			}
 
 		} else {
-			sprintf(error_buffer, CANT_OPEN_SOURCE, sourceFile1);
+			Common::sprintf_s(error_buffer, 1024, CANT_OPEN_SOURCE, sourceFile1);
 			return (FALSE);
 		}
 	}
@@ -167,7 +167,7 @@ int process_file(const char *sourceFile1, char *sourceFile2) {
 	*text_buffer = 0;
 
 	if (srcFile->read(text_buffer, 1024) != 1024) {
-		sprintf(error_buffer, READ_ERROR);
+		Common::sprintf_s(error_buffer, 1024, READ_ERROR);
 		delete srcFile;
 		return (FALSE);
 	}
@@ -177,21 +177,21 @@ int process_file(const char *sourceFile1, char *sourceFile2) {
 		        (!strncmp(text_buffer, "#debug", 6) & !release)) {
 			includeFile = strrchr(text_buffer, '"');
 
-			if (includeFile != NULL)
+			if (includeFile != nullptr)
 				*includeFile = 0;
 
 			includeFile = strchr(text_buffer, '"');
 
-			if (includeFile != NULL) {
-				strcpy(temp_buffer1, game_path);
-				strcat(temp_buffer1, includeFile + 1);
-				strcpy(temp_buffer2, include_directory);
-				strcat(temp_buffer2, includeFile + 1);
+			if (includeFile != nullptr) {
+				Common::strcpy_s(temp_buffer1, game_path);
+				Common::strcat_s(temp_buffer1, includeFile + 1);
+				Common::strcpy_s(temp_buffer2, include_directory);
+				Common::strcat_s(temp_buffer2, includeFile + 1);
 				if (process_file(temp_buffer1, temp_buffer2) == FALSE) {
 					return (FALSE);
 				}
 			} else {
-				sprintf(error_buffer, BAD_INCLUDE);
+				Common::sprintf_s(error_buffer, 1024, BAD_INCLUDE);
 				return (FALSE);
 			}
 		} else {
@@ -214,7 +214,7 @@ int process_file(const char *sourceFile1, char *sourceFile2) {
 
 			lines_written++;
 			if (lines_written == 1) {
-				sprintf(temp_buffer, "#processed:%d\n", INTERPRETER_VERSION);
+				Common::sprintf_s(temp_buffer, 1024, "#processed:%d\n", INTERPRETER_VERSION);
 				outputFile->writeString(temp_buffer);
 			}
 		}

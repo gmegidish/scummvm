@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,6 +48,8 @@ namespace Video {
 /**
  * Decoder for MPEG Program Stream videos.
  * Video decoder used in engines:
+ *  - mtropolis
+ *  - qdengine
  *  - zvision
  */
 class MPEGPSDecoder : public VideoDecoder {
@@ -114,13 +115,14 @@ private:
 	// An MPEG 1/2 video track
 	class MPEGVideoTrack : public VideoTrack, public MPEGStream {
 	public:
-		MPEGVideoTrack(Common::SeekableReadStream *firstPacket, const Graphics::PixelFormat &format);
+		MPEGVideoTrack(Common::SeekableReadStream *firstPacket);
 		~MPEGVideoTrack();
 
 		bool endOfTrack() const { return _endOfTrack; }
 		uint16 getWidth() const;
 		uint16 getHeight() const;
 		Graphics::PixelFormat getPixelFormat() const;
+		bool setOutputPixelFormat(const Graphics::PixelFormat &format);
 		int getCurFrame() const { return _curFrame; }
 		uint32 getNextFrameStartTime() const { return _nextFrameStartTime.msecs(); }
 		const Graphics::Surface *decodeNextFrame();
@@ -137,7 +139,11 @@ private:
 		Audio::Timestamp _nextFrameStartTime;
 		Graphics::Surface *_surface;
 
-		void findDimensions(Common::SeekableReadStream *firstPacket, const Graphics::PixelFormat &format);
+		uint16 _width;
+		uint16 _height;
+		Graphics::PixelFormat _pixelFormat;
+
+		void findDimensions(Common::SeekableReadStream *firstPacket);
 
 #ifdef USE_MPEG2
 		Image::MPEGDecoder *_mpegDecoder;

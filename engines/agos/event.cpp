@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,12 +38,18 @@
 
 namespace AGOS {
 
-void AGOSEngine::addTimeEvent(uint16 timeout, uint16 subroutine_id) {
-	TimeEvent *te = (TimeEvent *)malloc(sizeof(TimeEvent)), *first, *last = NULL;
+void AGOSEngine::addTimeEvent(int32 timeout, uint16 subroutine_id) {
+	TimeEvent *te = (TimeEvent *)malloc(sizeof(TimeEvent)), *first, *last = nullptr;
 	uint32 cur_time = getTime();
 
 	if (getGameId() == GID_DIMP) {
 		timeout /= 2;
+	}
+
+	if ((int32)(cur_time + timeout - _gameStoppedClock) < 0) {
+		// This basically fixes a signed/unsigned bug. See comment in AGOSEngine_Elvira2::loadGame().
+		warning("AGOSEngine::addTimeEvent(): Invalid timer encountered (probably from an older savegame) - applying workaround");
+		timeout = 0;
 	}
 
 	te->time = cur_time + timeout - _gameStoppedClock;
@@ -71,10 +76,10 @@ void AGOSEngine::addTimeEvent(uint16 timeout, uint16 subroutine_id) {
 
 	if (last) {
 		last->next = te;
-		te->next = NULL;
+		te->next = nullptr;
 	} else {
 		_firstTimeStruct = te;
-		te->next = NULL;
+		te->next = nullptr;
 	}
 }
 
@@ -82,7 +87,7 @@ void AGOSEngine::delTimeEvent(TimeEvent *te) {
 	TimeEvent *cur;
 
 	if (te == _pendingDeleteTimeEvent)
-		_pendingDeleteTimeEvent = NULL;
+		_pendingDeleteTimeEvent = nullptr;
 
 	if (te == _firstTimeStruct) {
 		_firstTimeStruct = te->next;
@@ -91,11 +96,11 @@ void AGOSEngine::delTimeEvent(TimeEvent *te) {
 	}
 
 	cur = _firstTimeStruct;
-	if (cur == NULL)
+	if (cur == nullptr)
 		error("delTimeEvent: none available");
 
 	for (;;) {
-		if (cur->next == NULL)
+		if (cur->next == nullptr)
 			error("delTimeEvent: no such te");
 		if (te == cur->next) {
 			cur->next = te->next;
@@ -115,7 +120,7 @@ void AGOSEngine::invokeTimeEvent(TimeEvent *te) {
 		return;
 
 	sub = getSubroutineByID(te->subroutine_id);
-	if (sub != NULL)
+	if (sub != nullptr)
 		startSubroutineEx(sub);
 
 	_runScriptReturn1 = false;
@@ -141,12 +146,12 @@ bool AGOSEngine::kickoffTimeEvents() {
 
 	cur_time = getTime() - _gameStoppedClock;
 
-	while ((te = _firstTimeStruct) != NULL && te->time <= cur_time && !shouldQuit()) {
+	while ((te = _firstTimeStruct) != nullptr && te->time <= cur_time && !shouldQuit()) {
 		result = true;
 		_pendingDeleteTimeEvent = te;
 		invokeTimeEvent(te);
 		if (_pendingDeleteTimeEvent) {
-			_pendingDeleteTimeEvent = NULL;
+			_pendingDeleteTimeEvent = nullptr;
 			delTimeEvent(te);
 		}
 	}
@@ -322,7 +327,7 @@ void AGOSEngine::scrollEvent() {
 			}
 		}
 
-		addVgaEvent(6, SCROLL_EVENT, NULL, 0, 0);
+		addVgaEvent(6, SCROLL_EVENT, nullptr, 0, 0);
 	}
 }
 
@@ -454,6 +459,23 @@ void AGOSEngine::delay(uint amount) {
 
 		while (_eventMan->pollEvent(event)) {
 			switch (event.type) {
+			case Common::EVENT_JOYBUTTON_DOWN:
+				_joyaction = event.joystick;
+				break;
+			case Common::EVENT_JOYBUTTON_UP:
+				_joyaction.axis = 0;
+				_joyaction.button = 0;
+				_joyaction.position = 0;
+				break;
+			case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+				_action = (AGOSAction)event.customType;
+				if (event.customType == kActionToggleFastMode) {
+					_fastMode = !_fastMode;
+				}
+				break;
+			case Common::EVENT_CUSTOM_ENGINE_ACTION_END:
+				_action = kActionNone;
+				break;
 			case Common::EVENT_KEYDOWN:
 				if (event.kbd.keycode >= Common::KEYCODE_0 && event.kbd.keycode <= Common::KEYCODE_9
 					&& (event.kbd.hasFlags(Common::KBD_ALT) ||
@@ -465,7 +487,7 @@ void AGOSEngine::delay(uint amount) {
 						_saveLoadSlot = 10;
 
 					memset(_saveLoadName, 0, sizeof(_saveLoadName));
-					sprintf(_saveLoadName, "Quick %d", _saveLoadSlot);
+					Common::sprintf_s(_saveLoadName, "Quick %d", _saveLoadSlot);
 					_saveLoadType = (event.kbd.hasFlags(Common::KBD_ALT)) ? 1 : 2;
 					quickLoadOrSave();
 				} else if (event.kbd.hasFlags(Common::KBD_ALT)) {
@@ -478,11 +500,8 @@ void AGOSEngine::delay(uint amount) {
 					}
 				} else if (event.kbd.hasFlags(Common::KBD_CTRL)) {
 					if (event.kbd.keycode == Common::KEYCODE_a) {
-						GUI::Dialog *_aboutDialog;
-						_aboutDialog = new GUI::AboutDialog();
-						_aboutDialog->runModal();
-					} else if (event.kbd.keycode == Common::KEYCODE_f) {
-						_fastMode = !_fastMode;
+						GUI::AboutDialog aboutDialog;
+						aboutDialog.runModal();
 					}
 				}
 

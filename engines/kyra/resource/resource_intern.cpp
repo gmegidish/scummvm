@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,8 @@
 #include "common/endian.h"
 #include "common/memstream.h"
 #include "common/substream.h"
+#include "common/macresman.h"
+#include "common/compression/stuffit.h"
 
 namespace Kyra {
 
@@ -38,15 +39,14 @@ PlainArchive::PlainArchive(Common::ArchiveMemberPtr file)
 }
 
 bool PlainArchive::hasFile(const Common::Path &path) const {
-	Common::String name = path.toString();
-	return (_files.find(name) != _files.end());
+	return (_files.find(path) != _files.end());
 }
 
 int PlainArchive::listMembers(Common::ArchiveMemberList &list) const {
 	int count = 0;
 
 	for (FileMap::const_iterator i = _files.begin(); i != _files.end(); ++i) {
-		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(i->_key, this)));
+		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(i->_key, *this)));
 		++count;
 	}
 
@@ -54,31 +54,29 @@ int PlainArchive::listMembers(Common::ArchiveMemberList &list) const {
 }
 
 const Common::ArchiveMemberPtr PlainArchive::getMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	if (!hasFile(name))
+	if (!hasFile(path))
 		return Common::ArchiveMemberPtr();
 
-	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
+	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(path, *this));
 }
 
 Common::SeekableReadStream *PlainArchive::createReadStreamForMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	FileMap::const_iterator fDesc = _files.find(name);
+	FileMap::const_iterator fDesc = _files.find(path);
 	if (fDesc == _files.end())
-		return 0;
+		return nullptr;
 
 	Common::SeekableReadStream *parent = _file->createReadStream();
 	if (!parent)
-		return 0;
+		return nullptr;
 
 	return new Common::SeekableSubReadStream(parent, fDesc->_value.offset, fDesc->_value.offset + fDesc->_value.size, DisposeAfterUse::YES);
 }
 
-void PlainArchive::addFileEntry(const Common::String &name, const Entry entry) {
+void PlainArchive::addFileEntry(const Common::Path &name, const Entry entry) {
 	_files[name] = entry;
 }
 
-PlainArchive::Entry PlainArchive::getFileEntry(const Common::String &name) const {
+PlainArchive::Entry PlainArchive::getFileEntry(const Common::Path &name) const {
 	FileMap::const_iterator fDesc = _files.find(name);
 	if (fDesc == _files.end())
 		return Entry();
@@ -96,8 +94,7 @@ TlkArchive::~TlkArchive() {
 }
 
 bool TlkArchive::hasFile(const Common::Path &path) const {
-	Common::String name = path.toString();
-	return (findFile(name) != 0);
+	return (findFile(path) != nullptr);
 }
 
 int TlkArchive::listMembers(Common::ArchiveMemberList &list) const {
@@ -105,29 +102,27 @@ int TlkArchive::listMembers(Common::ArchiveMemberList &list) const {
 
 	for (; count < _entryCount; ++count) {
 		const Common::String name = Common::String::format("%08u.AUD", _fileEntries[count * 2 + 0]);
-		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(name, this)));
+		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(name, *this)));
 	}
 
 	return count;
 }
 
 const Common::ArchiveMemberPtr TlkArchive::getMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	if (!hasFile(name))
+	if (!hasFile(path))
 		return Common::ArchiveMemberPtr();
 
-	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
+	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(path, *this));
 }
 
 Common::SeekableReadStream *TlkArchive::createReadStreamForMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	const uint32 *fileDesc = findFile(name);
+	const uint32 *fileDesc = findFile(path);
 	if (!fileDesc)
-		return 0;
+		return nullptr;
 
 	Common::SeekableReadStream *parent = _file->createReadStream();
 	if (!parent)
-		return 0;
+		return nullptr;
 
 	parent->seek(fileDesc[1], SEEK_SET);
 	const uint32 size = parent->readUint32LE();
@@ -136,16 +131,16 @@ Common::SeekableReadStream *TlkArchive::createReadStreamForMember(const Common::
 	return new Common::SeekableSubReadStream(parent, fileStart, fileStart + size, DisposeAfterUse::YES);
 }
 
-const uint32 *TlkArchive::findFile(const Common::String &name) const {
-	Common::String uppercaseName = name;
+const uint32 *TlkArchive::findFile(const Common::Path &path) const {
+	Common::String uppercaseName = path.baseName();
 	uppercaseName.toUppercase();
 
 	if (!uppercaseName.hasSuffix(".AUD"))
-		return 0;
+		return nullptr;
 
 	uint32 id;
 	if (sscanf(uppercaseName.c_str(), "%08u.AUD", &id) != 1)
-		return 0;
+		return nullptr;
 
 	// Binary search for the file entry
 	int leftIndex = 0;
@@ -167,7 +162,7 @@ const uint32 *TlkArchive::findFile(const Common::String &name) const {
 		}
 	}
 
-	return 0;
+	return nullptr;
 }
 
 // -> CachedArchive implementation
@@ -180,7 +175,7 @@ CachedArchive::CachedArchive(const FileInputList &files)
 		entry.data = i->data;
 		entry.size = i->size;
 
-		Common::String name = i->name;
+		Common::Path name = i->name;
 		name.toLowercase();
 		_files[name] = entry;
 	}
@@ -193,15 +188,14 @@ CachedArchive::~CachedArchive() {
 }
 
 bool CachedArchive::hasFile(const Common::Path &path) const {
-	Common::String name = path.toString();
-	return (_files.find(name) != _files.end());
+	return (_files.find(path) != _files.end());
 }
 
 int CachedArchive::listMembers(Common::ArchiveMemberList &list) const {
 	int count = 0;
 
 	for (FileMap::const_iterator i = _files.begin(); i != _files.end(); ++i) {
-		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(i->_key, this)));
+		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(i->_key, *this)));
 		++count;
 	}
 
@@ -209,18 +203,16 @@ int CachedArchive::listMembers(Common::ArchiveMemberList &list) const {
 }
 
 const Common::ArchiveMemberPtr CachedArchive::getMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	if (!hasFile(name))
+	if (!hasFile(path))
 		return Common::ArchiveMemberPtr();
 
-	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
+	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(path, *this));
 }
 
 Common::SeekableReadStream *CachedArchive::createReadStreamForMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	FileMap::const_iterator fDesc = _files.find(name);
+	FileMap::const_iterator fDesc = _files.find(path);
 	if (fDesc == _files.end())
-		return 0;
+		return nullptr;
 
 	return new Common::MemoryReadStream(fDesc->_value.data, fDesc->_value.size, DisposeAfterUse::NO);
 }
@@ -229,9 +221,12 @@ Common::SeekableReadStream *CachedArchive::createReadStreamForMember(const Commo
 
 // -> ResLoaderPak implementation
 
-bool ResLoaderPak::checkFilename(Common::String filename) const {
-	filename.toUppercase();
-	return (filename.hasSuffix(".PAK") || filename.hasSuffix(".APK") || filename.hasSuffix(".VRM") || filename.hasSuffix(".CMP") || filename.hasSuffix(".TLK") || filename.equalsIgnoreCase(StaticResource::staticDataFilename()));
+bool ResLoaderPak::checkFilename(const Common::String &filename) const {
+	Common::String filenameFixed(filename);
+	filenameFixed.toUppercase();
+	return (filenameFixed.hasSuffix(".PAK") || filenameFixed.hasSuffix(".APK") ||
+		filenameFixed.hasSuffix(".VRM") || filenameFixed.hasSuffix(".CMP") ||
+		filenameFixed.hasSuffix(".TLK") || filenameFixed.equalsIgnoreCase(StaticResource::staticDataFilename()));
 }
 
 namespace {
@@ -297,11 +292,11 @@ bool ResLoaderPak::isLoadable(const Common::String &filename, Common::SeekableRe
 Common::Archive *ResLoaderPak::load(Common::ArchiveMemberPtr memberFile, Common::SeekableReadStream &stream) const {
 	int32 filesize = stream.size();
 	if (filesize < 4)
-		return 0;
+		return nullptr;
 
 	Common::ScopedPtr<PlainArchive> result(new PlainArchive(memberFile));
 	if (!result)
-		return 0;
+		return nullptr;
 
 	int32 startoffset = 0, endoffset = 0;
 	bool switchEndian = false;
@@ -314,26 +309,26 @@ Common::Archive *ResLoaderPak::load(Common::ArchiveMemberPtr memberFile, Common:
 		startoffset = SWAP_BYTES_32(startoffset);
 	}
 
-	Common::String file;
+	Common::Path file;
 	while (!stream.eos()) {
 		// The start offset of a file should never be in the filelist
 		if (startoffset < stream.pos() || startoffset > filesize || startoffset < 0) {
 			warning("PAK file '%s' is corrupted", memberFile->getName().c_str());
-			return 0;
+			return nullptr;
 		}
 
-		file = readString(stream);
+		file = Common::Path(readString(stream));
 
 		if (stream.eos()) {
 			warning("PAK file '%s' is corrupted", memberFile->getName().c_str());
-			return 0;
+			return nullptr;
 		}
 
 		// Quit now if we encounter an empty string
 		if (file.empty()) {
 			if (firstFile) {
 				warning("PAK file '%s' is corrupted", memberFile->getName().c_str());
-				return 0;
+				return nullptr;
 			} else {
 				break;
 			}
@@ -344,7 +339,7 @@ Common::Archive *ResLoaderPak::load(Common::ArchiveMemberPtr memberFile, Common:
 
 		if (endoffset < 0 && stream.pos() != firstOffset) {
 			warning("PAK file '%s' is corrupted", memberFile->getName().c_str());
-			return 0;
+			return nullptr;
 		}
 
 		if (!endoffset || stream.pos() == firstOffset)
@@ -370,15 +365,15 @@ Common::Archive *ResLoaderPak::load(Common::ArchiveMemberPtr memberFile, Common:
 
 		const uint32 links = stream.readUint32BE();
 		for (uint32 i = 0; i < links; ++i) {
-			const Common::String linksTo = readString(stream);
+			const Common::Path linksTo(readString(stream));
 			const uint32 sources = stream.readUint32BE();
 
 			PlainArchive::Entry destination = result->getFileEntry(linksTo);
 			if (destination.size == 0)
-				error("PAK file link destination '%s' not found", linksTo.c_str());
+				error("PAK file link destination '%s' not found", linksTo.toString().c_str());
 
 			for (uint32 j = 0; j < sources; ++j) {
-				const Common::String dest = readString(stream);
+				const Common::Path dest(readString(stream));
 				result->addFileEntry(dest, destination);
 			}
 		}
@@ -389,9 +384,10 @@ Common::Archive *ResLoaderPak::load(Common::ArchiveMemberPtr memberFile, Common:
 
 // -> ResLoaderInsMalcolm implementation
 
-bool ResLoaderInsMalcolm::checkFilename(Common::String filename) const {
-	filename.toUppercase();
-	if (!filename.hasSuffix(".001"))
+bool ResLoaderInsMalcolm::checkFilename(const Common::String &filename) const {
+	Common::String filenameFixed(filename);
+	filenameFixed.toUppercase();
+	if (!filenameFixed.hasSuffix(".001"))
 		return false;
 	return true;
 }
@@ -414,7 +410,7 @@ Common::Archive *ResLoaderInsMalcolm::load(Common::ArchiveMemberPtr memberFile, 
 	Common::List<Common::String> filenames;
 	Common::ScopedPtr<PlainArchive> result(new PlainArchive(memberFile));
 	if (!result)
-		return 0;
+		return nullptr;
 
 	// thanks to eriktorbjorn for this code (a bit modified though)
 	stream.seek(3, SEEK_SET);
@@ -447,16 +443,17 @@ Common::Archive *ResLoaderInsMalcolm::load(Common::ArchiveMemberPtr memberFile, 
 		const uint32 fileSize = stream.readUint32LE();
 		const uint32 fileOffset = stream.pos();
 
-		result->addFileEntry(*file, PlainArchive::Entry(fileOffset, fileSize));
+		result->addFileEntry(Common::Path(*file, Common::Path::kNoSeparator), PlainArchive::Entry(fileOffset, fileSize));
 		stream.seek(fileSize, SEEK_CUR);
 	}
 
 	return result.release();
 }
 
-bool ResLoaderTlk::checkFilename(Common::String filename) const {
-	filename.toUppercase();
-	return (filename.hasSuffix(".TLK"));
+bool ResLoaderTlk::checkFilename(const Common::String &filename) const {
+	Common::String filenameFixed(filename);
+	filenameFixed.toUppercase();
+	return (filenameFixed.hasSuffix(".TLK"));
 }
 
 bool ResLoaderTlk::isLoadable(const Common::String &filename, Common::SeekableReadStream &stream) const {
@@ -611,7 +608,7 @@ private:
 	uint16 *_tables16[3];
 };
 
-FileExpander::FileExpander() : _src(0) {
+FileExpander::FileExpander() : _src(nullptr) {
 	_tables[0] = new uint8[3914];
 	assert(_tables[0]);
 
@@ -779,7 +776,7 @@ bool FileExpander::process(uint8 *dst, const uint8 *src, uint32 outsize, uint32 
 	}
 
 	delete _src;
-	_src = 0;
+	_src = nullptr;
 
 	return true;
 }
@@ -787,7 +784,7 @@ bool FileExpander::process(uint8 *dst, const uint8 *src, uint32 outsize, uint32 
 void FileExpander::generateTables(uint8 srcIndex, uint8 dstIndex, uint8 dstIndex2, int cnt) {
 	uint8 *tbl1 = _tables[srcIndex];
 	uint8 *tbl2 = _tables[dstIndex];
-	uint8 *tbl3 = dstIndex2 == 0xFF ? 0 : _tables[dstIndex2];
+	uint8 *tbl3 = dstIndex2 == 0xFF ? nullptr : _tables[dstIndex2];
 
 	if (!cnt)
 		return;
@@ -919,7 +916,7 @@ uint8 FileExpander::calcCmdAndIndex(const uint8 *tbl, int16 &para) {
 namespace {
 
 struct InsArchive {
-	Common::String filename;
+	Common::Path filename;
 	uint32 firstFile;
 	uint32 startOffset;
 	uint32 lastFile;
@@ -927,7 +924,7 @@ struct InsArchive {
 	uint32 totalSize;
 };
 
-} // end of anonymouse namespace
+} // end of anonymous namespace
 
 class CmpVocDecoder {
 public:
@@ -943,29 +940,29 @@ private:
 	uint8 *_sndArray;
 };
 
-Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &filename, const Common::String &extension, const uint8 containerOffset) {
+Common::Archive *InstallerLoader::load(Resource *owner, const Common::Path &filename, const Common::String &extension, const uint8 containerOffset) {
 	uint32 pos = 0;
 	uint32 bytesleft = 0;
 	bool startFile = true;
 
-	Common::String filenameBase = filename;
-	Common::String filenameTemp;
+	Common::Path filenameBase = filename;
+	Common::Path filenameTemp;
 	char filenameExt[4];
 
-	if (filenameBase.lastChar() != '.')
-		filenameBase += '.';
+	if (filenameBase.baseName().lastChar() != '.')
+		filenameBase.appendInPlace(".");
 
 	InsArchive newArchive;
 	Common::List<InsArchive> archives;
 
-	Common::SeekableReadStream *tmpFile = 0;
+	Common::SeekableReadStream *tmpFile = nullptr;
 
 	for (int8 currentFile = 1; currentFile; currentFile++) {
-		sprintf(filenameExt, extension.c_str(), currentFile);
-		filenameTemp = filenameBase + Common::String(filenameExt);
+		Common::sprintf_s(filenameExt, extension.c_str(), currentFile);
+		filenameTemp = filenameBase.append(filenameExt);
 
 		if (!(tmpFile = owner->createReadStream(filenameTemp))) {
-			debug(3, "couldn't open file '%s'\n", filenameTemp.c_str());
+			debug(3, "couldn't open file '%s'\n", filenameTemp.toString().c_str());
 			break;
 		}
 
@@ -995,7 +992,7 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 		bytesleft -= cs;
 
 		delete tmpFile;
-		tmpFile = 0;
+		tmpFile = nullptr;
 
 		pos += cs;
 		if (cs == size) {
@@ -1021,8 +1018,8 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 	CachedArchive::InputEntry newEntry;
 	uint32 insize = 0;
 	uint32 outsize = 0;
-	uint8 *inbuffer = 0;
-	uint8 *outbuffer = 0;
+	uint8 *inbuffer = nullptr;
+	uint8 *outbuffer = nullptr;
 	uint32 inPart1 = 0;
 	uint32 inPart2 = 0;
 	uint8 compressionType = 0;
@@ -1039,11 +1036,11 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 	for (Common::List<InsArchive>::iterator a = archives.begin(); a != archives.end(); ++a) {
 		startFile = true;
 		for (uint32 i = a->firstFile; i != (a->lastFile + 1); i++) {
-			sprintf(filenameExt, extension.c_str(), i);
-			filenameTemp = a->filename + Common::String(filenameExt);
+			Common::sprintf_s(filenameExt, extension.c_str(), i);
+			filenameTemp = a->filename.append(filenameExt);
 
 			if (!(tmpFile = owner->createReadStream(filenameTemp))) {
-				debug(3, "couldn't open file '%s'\n", filenameTemp.c_str());
+				debug(3, "couldn't open file '%s'\n", filenameTemp.toString().c_str());
 				break;
 			}
 
@@ -1055,7 +1052,7 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 				if (pos > size) {
 					pos -= size;
 					delete tmpFile;
-					tmpFile = 0;
+					tmpFile = nullptr;
 					continue;
 				}
 			} else {
@@ -1070,7 +1067,7 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 						memcpy(outbuffer, inbuffer, outsize);
 
 					delete[] inbuffer;
-					inbuffer = 0;
+					inbuffer = nullptr;
 
 					newEntry.data = outbuffer;
 					newEntry.size = outsize;
@@ -1087,6 +1084,9 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 						newEntry.name = entryStr;
 					}
 
+					// The pointer (and the responsibility for the deletion) has been
+					// passed on. Clear the variable as a signal that it can be reused.
+					outbuffer = nullptr;
 					fileList.push_back(newEntry);
 				}
 				pos++;
@@ -1111,8 +1111,8 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 						}
 					}
 
-					sprintf(filenameExt, extension.c_str(), i + 1);
-					filenameTemp = a->filename + Common::String(filenameExt);
+					Common::sprintf_s(filenameExt, extension.c_str(), i + 1);
+					filenameTemp = a->filename.append(filenameExt);
 
 					Common::SeekableReadStream *tmpFile2 = owner->createReadStream(filenameTemp);
 					tmpFile->read(hdr, m);
@@ -1134,6 +1134,12 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 					entryStr = Common::String((const char *)(hdr + 30));
 					pos += (kHeaderSize + filestrlen - m);
 					tmpFile->seek(pos, SEEK_SET);
+
+					if (outbuffer) {
+						delete[] outbuffer;
+						// We can prevent memory leakage, but we should never arrive here, since we still have unprocessed data in the outbuffer.
+						error("InstallerLoader::load(): Unknown decompression failure.");
+					}
 
 					outbuffer = new uint8[outsize];
 					if (!outbuffer)
@@ -1160,7 +1166,7 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 							memcpy(outbuffer, inbuffer, outsize);
 
 						delete[] inbuffer;
-						inbuffer = 0;
+						inbuffer = nullptr;
 						newEntry.data = outbuffer;
 						newEntry.size = outsize;
 						newEntry.name = entryStr;
@@ -1176,6 +1182,9 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 							newEntry.name = entryStr;
 						}
 
+						// The pointer (and the responsibility for the deletion) has been
+						// passed on. Clear the variable as a signal that it can be reused.
+						outbuffer = nullptr;
 						fileList.push_back(newEntry);
 					}
 
@@ -1190,12 +1199,31 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 				}
 			}
 			delete tmpFile;
-			tmpFile = 0;
+			tmpFile = nullptr;
 		}
+	}
+
+	if (outbuffer) {
+		delete[] outbuffer;
+		// We can prevent memory leakage, but we should never arrive here, since we still have unprocessed data in the outbuffer.
+		error("InstallerLoader::load(): Unknown decompression failure.");
 	}
 
 	archives.clear();
 	return new CachedArchive(fileList);
+}
+
+Common::Archive *StuffItLoader::load(Resource *owner, const Common::Path &filename) {
+	return load(owner, Common::MacResManager::openFileOrDataFork(filename), filename.toString('/'));
+}
+
+Common::Archive *StuffItLoader::load(Resource *owner, Common::SeekableReadStream *stream, const Common::String &debugName) {
+	if (stream) {
+		Common::Archive *archive = Common::createStuffItArchive(stream, true);
+		return archive;
+	}
+
+	error("StuffItLoader::load: Could not load %s", debugName.c_str());
 }
 
 CmpVocDecoder::CmpVocDecoder() {

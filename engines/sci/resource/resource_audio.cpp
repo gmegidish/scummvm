@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@
 
 namespace Sci {
 
-AudioVolumeResourceSource::AudioVolumeResourceSource(ResourceManager *resMan, const Common::String &name, ResourceSource *map, int volNum)
+AudioVolumeResourceSource::AudioVolumeResourceSource(ResourceManager *resMan, const Common::Path &name, ResourceSource *map, int volNum)
 	: VolumeResourceSource(name, map, volNum, kSourceAudioVolume) {
 
 	_audioCompressionType = 0;
@@ -56,7 +55,7 @@ AudioVolumeResourceSource::AudioVolumeResourceSource(ResourceManager *resMan, co
 		_audioCompressionType = compressionType;
 		const uint32 numEntries = fileStream->readUint32LE();
 		if (!numEntries) {
-			error("Compressed audio volume %s has no relocation table entries", name.c_str());
+			error("Compressed audio volume %s has no relocation table entries", name.toString().c_str());
 		}
 
 		CompressedTableEntry *lastEntry = nullptr;
@@ -162,7 +161,7 @@ bool Resource::loadFromAudioVolumeSCI1(Common::SeekableReadStream *file) {
 }
 
 void ResourceManager::addNewGMPatch(SciGameId gameId) {
-	Common::String gmPatchFile;
+	const char *gmPatchFile = nullptr;
 
 	switch (gameId) {
 	case GID_ECOQUEST:
@@ -190,17 +189,17 @@ void ResourceManager::addNewGMPatch(SciGameId gameId) {
 		gmPatchFile = "TALEGM.PAT";
 		break;
 	default:
-		break;
+		return;
 	}
 
-	if (!gmPatchFile.empty() && Common::File::exists(gmPatchFile)) {
+	if (Common::File::exists(gmPatchFile)) {
 		ResourceSource *psrcPatch = new PatchResourceSource(gmPatchFile);
 		processPatch(psrcPatch, kResourceTypePatch, 4);
 	}
 }
 
 void ResourceManager::addNewD110Patch(SciGameId gameId) {
-	Common::String patchFile;
+	const char *patchFile = nullptr;
 
 	switch (gameId) {
 	case GID_CAMELOT:
@@ -232,16 +231,16 @@ void ResourceManager::addNewD110Patch(SciGameId gameId) {
 		break;
 	default:
 		// There's also a CB.000, but unfortunately that file contains an MT-32 patch
-		break;
+		return;
 	}
 
-	if (!patchFile.empty() && Common::File::exists(patchFile)) {
+	if (Common::File::exists(patchFile)) {
 		ResourceSource *psrcPatch = new PatchResourceSource(patchFile);
 		processPatch(psrcPatch, kResourceTypePatch, 0);
 	}
 }
 
-void ResourceManager::processWavePatch(ResourceId resourceId, const Common::String &name) {
+void ResourceManager::processWavePatch(ResourceId resourceId, const Common::Path &name) {
 	ResourceSource *resSrc = new WaveResourceSource(name);
 	Common::File file;
 	file.open(name);
@@ -249,7 +248,7 @@ void ResourceManager::processWavePatch(ResourceId resourceId, const Common::Stri
 	updateResource(resourceId, resSrc, 0, file.size(), name);
 	_sources.push_back(resSrc);
 
-	debugC(1, kDebugLevelResMan, "Patching %s - OK", name.c_str());
+	debugC(1, kDebugLevelResMan, "Patching %s - OK", name.toString().c_str());
 }
 
 void ResourceManager::readWaveAudioPatches() {
@@ -258,10 +257,10 @@ void ResourceManager::readWaveAudioPatches() {
 	SearchMan.listMatchingMembers(files, "*.wav");
 
 	for (Common::ArchiveMemberList::const_iterator x = files.begin(); x != files.end(); ++x) {
-		Common::String name = (*x)->getName();
+		Common::String name = (*x)->getFileName();
 
 		if (Common::isDigit(name[0]))
-			processWavePatch(ResourceId(kResourceTypeAudio, atoi(name.c_str())), name);
+			processWavePatch(ResourceId(kResourceTypeAudio, atoi(name.c_str())), (*x)->getPathInArchive());
 	}
 }
 
@@ -278,9 +277,9 @@ void ResourceManager::readAIFFAudioPatches() {
 	SearchMan.listMatchingMembers(files, "####");
 
 	for (Common::ArchiveMemberList::const_iterator x = files.begin(); x != files.end(); ++x) {
-		Common::String name = (*x)->getName();
+		Common::String name = (*x)->getFileName();
 
-		processWavePatch(ResourceId(kResourceTypeAudio, atoi(name.c_str())), name);
+		processWavePatch(ResourceId(kResourceTypeAudio, atoi(name.c_str())), (*x)->getPathInArchive());
 	}
 }
 #endif
@@ -396,7 +395,7 @@ int ResourceManager::readAudioMapSCI11(IntMapResourceSource *map) {
 	Common::SeekableReadStream *fileStream = getVolumeFile(src);
 
 	if (!fileStream) {
-		warning("Failed to open file stream for %s", src->getLocationName().c_str());
+		warning("Failed to open file stream for %s", src->getLocationName().toString().c_str());
 		return SCI_ERROR_NO_RESOURCE_FILES_FOUND;
 	}
 
@@ -665,7 +664,7 @@ int ResourceManager::readAudioMapSCI1(ResourceSource *map, bool unload) {
 		uint32 size = file.readUint32LE();
 
 		if (file.eos() || file.err()) {
-			warning("Error while reading %s", map->getLocationName().c_str());
+			warning("Error while reading %s", map->getLocationName().toString().c_str());
 			return SCI_ERROR_RESMAP_NOT_FOUND;
 		}
 
@@ -729,11 +728,11 @@ void ResourceManager::setAudioLanguage(int language) {
 		_sources.remove(_audioMapSCI1);
 		delete _audioMapSCI1;
 
-		_audioMapSCI1 = NULL;
+		_audioMapSCI1 = nullptr;
 	}
 
-	Common::String filename = Common::String::format("AUDIO%03d", language);
-	Common::String fullname = filename + ".MAP";
+	Common::Path filename(Common::String::format("AUDIO%03d", language));
+	Common::Path fullname = filename.append(".MAP");
 	if (!Common::File::exists(fullname)) {
 		warning("No audio map found for language %i", language);
 		return;
@@ -743,13 +742,13 @@ void ResourceManager::setAudioLanguage(int language) {
 
 	// Search for audio volumes for this language and add them to the source list
 	Common::ArchiveMemberList files;
-	SearchMan.listMatchingMembers(files, filename + ".0##");
+	SearchMan.listMatchingMembers(files, filename.append(".0##"));
 	for (Common::ArchiveMemberList::const_iterator x = files.begin(); x != files.end(); ++x) {
-		const Common::String name = (*x)->getName();
+		const Common::String name = (*x)->getFileName();
 		const char *dot = strrchr(name.c_str(), '.');
 		int number = atoi(dot + 1);
 
-		addSource(new AudioVolumeResourceSource(this, name, _audioMapSCI1, number));
+		addSource(new AudioVolumeResourceSource(this, (*x)->getPathInArchive(), _audioMapSCI1, number));
 	}
 
 	scanNewSources();
@@ -797,7 +796,7 @@ SoundResource::SoundResource(uint32 resourceNr, ResourceManager *resMan, SciVers
 	if (!_resource)
 		return;
 
-	Channel *channel, *sampleChannel;
+	Channel *channel;
 
 	if (_soundVersion <= SCI_VERSION_0_LATE) {
 		// SCI0 only has a header of 0x11/0x21 byte length and the actual midi track follows afterwards
@@ -820,9 +819,6 @@ SoundResource::SoundResource(uint32 resourceNr, ResourceManager *resMan, SciVers
 			channel->data = _resource->subspan(0x21);
 		}
 		if (_tracks->channelCount == 2) {
-			// Digital sample data included
-			_tracks->digitalChannelNr = 1;
-			sampleChannel = &_tracks->channels[1];
 			// we need to find 0xFC (channel terminator) within the data
 			SciSpan<const byte>::const_iterator it = channel->data.cbegin();
 			while (it != channel->data.cend() && *it != 0xfc)
@@ -830,16 +826,27 @@ SoundResource::SoundResource(uint32 resourceNr, ResourceManager *resMan, SciVers
 			// Skip any following 0xFCs as well
 			while (it != channel->data.cend() && *it == 0xfc)
 				it++;
-			// Now adjust channels accordingly
-			sampleChannel->data = channel->data.subspan(it - channel->data.cbegin());
-			channel->data = channel->data.subspan(0, it - channel->data.cbegin());
-			// Read sample header information
-			//Offset 14 in the header contains the frequency as a short integer. Offset 32 contains the sample length, also as a short integer.
-			_tracks->digitalSampleRate = sampleChannel->data.getUint16LEAt(14);
-			_tracks->digitalSampleSize = sampleChannel->data.getUint16LEAt(32);
-			_tracks->digitalSampleStart = 0;
-			_tracks->digitalSampleEnd = 0;
-			sampleChannel->data += 44; // Skip over header
+			// Verify that there is data after the channel terminator
+			if (it != channel->data.cend()) {
+				// Digital sample data included
+				_tracks->digitalChannelNr = 1;
+				// Now adjust channels accordingly
+				Channel *sampleChannel = &_tracks->channels[1];
+				sampleChannel->data = channel->data.subspan(it - channel->data.cbegin());
+				channel->data = channel->data.subspan(0, it - channel->data.cbegin());
+				// Read sample header information
+				//Offset 14 in the header contains the frequency as a short integer. Offset 32 contains the sample length, also as a short integer.
+				_tracks->digitalSampleRate = sampleChannel->data.getUint16LEAt(14);
+				_tracks->digitalSampleSize = sampleChannel->data.getUint16LEAt(32);
+				_tracks->digitalSampleStart = 0;
+				_tracks->digitalSampleEnd = 0;
+				sampleChannel->data += 44; // Skip over header
+			} else {
+				// Early versions of SQ3 have the digital sample flag set in
+				// sound 35 even though there is no digital sample. Bug #13206
+				warning("No digital sample data in sound resource %d", resourceNr);
+				_tracks->channelCount--; // ignore the digital sample flag
+			}
 		}
 	} else if (_soundVersion >= SCI_VERSION_1_EARLY && _soundVersion <= SCI_VERSION_2_1_MIDDLE) {
 		SciSpan<const byte> data = *_resource;
@@ -920,18 +927,33 @@ SoundResource::SoundResource(uint32 resourceNr, ResourceManager *resMan, SciVers
 					} else {
 						channel->flags = channel->number >> 4;
 						channel->number = channel->number & 0x0F;
-
-						// 0x20 is set on rhythm channels to prevent remapping
-						// CHECKME: Which SCI versions need that set manually?
-						if (channel->number == 9)
-							channel->flags |= 2;
-						// Note: flag 1: channel start offset is 0 instead of 10
-						//               (currently: everything 0)
-						//               also: don't map the channel to device
-						//       flag 2: don't remap
-						//       flag 4: start muted
-						// QfG2 lacks flags 2 and 4, and uses (flags >= 1) as
-						// the condition for starting offset 0, without the "don't map"
+						// Flag 1:	Channel start offset is 0 instead of 10 (currently: everything 0)
+						//			Also: Don't map the channel to the device at all, but still play it.
+						//			It doesn't stop other sounds playing sounds on that channel, it even
+						//			allows other sounds to map to this channel (in that case the dontmap
+						//			channel has limited access, it can't send control change, program
+						//			change and pitch wheel messages.
+						//			This is basically a marker for the channel as a "real" channel
+						//			(used mostly for rhythm channels on devices that have one). These
+						//			channels will also consequently start the parsing at offset 0 instead
+						//			of 10: Normal channels would read the parameters of the first couple of
+						//			events into the channel structs, but the "real" channels have to
+						//			send these to the device right away, since they don't use the stored
+						//			data.
+						//			Very early games like KQ5 (but including the DOS CD version) and SQ2
+						//			have support for this flag, only. It isn't even a flag there, since
+						//			all these games do is check for a channel number below 0x10.
+						// 
+						// Flag 2:	Don't remap the channel. It is placed in the map, but only in the
+						//			exact matching slot of the channel number. All the other games except
+						//			the very early ones use this flag to mark the rhythm channels. I
+						//			haven't seen any usage of flag 1 in any of these games. They all use
+						//			flag 2 instead, but still have full support of flag 1 in the code.
+						//			Using this flag is really preferable, since there can't be conflicts
+						//			with different sounds playing on the channel.
+						// 
+						// Flag 4:	Start up muted. The channel won't be mapped (and thus, not have any
+						//			output), until the mute gets removed.
 					}
 					_tracks[trackNr].channelCount++;
 					channelNr++;
@@ -982,7 +1004,7 @@ SoundResource::Track *SoundResource::getTrackByType(byte type) {
 		if (_tracks[trackNr].type == type)
 			return &_tracks[trackNr];
 	}
-	return NULL;
+	return nullptr;
 }
 
 SoundResource::Track *SoundResource::getDigitalTrack() {
@@ -990,7 +1012,7 @@ SoundResource::Track *SoundResource::getDigitalTrack() {
 		if (_tracks[trackNr].digitalChannelNr != -1)
 			return &_tracks[trackNr];
 	}
-	return NULL;
+	return nullptr;
 }
 
 // Gets the filter mask for SCI0 sound resources
@@ -1058,6 +1080,7 @@ int SoundResource::getChannelFilterMask(int hardwareMask, bool wantsRhythm) {
 	return channelMask;
 }
 
+#if 0
 byte SoundResource::getInitialVoiceCount(byte channel) {
 	if (_soundVersion > SCI_VERSION_0_LATE)
 		return 0; // TODO
@@ -1070,6 +1093,7 @@ byte SoundResource::getInitialVoiceCount(byte channel) {
 	else
 		return data[channel * 2];
 }
+#endif
 
 void WaveResourceSource::loadResource(ResourceManager *resMan, Resource *res) {
 	Common::SeekableReadStream *fileStream = getVolumeFile(resMan, res);
@@ -1130,15 +1154,11 @@ bool ResourceManager::addAudioSources() {
 	return true;
 }
 
-void ResourceManager::changeAudioDirectory(Common::String path) {
-	if (!path.empty()) {
-		path += "/";
-	}
-
-	const Common::String resAudPath = path + "RESOURCE.AUD";
+void ResourceManager::changeAudioDirectory(const Common::Path &path) {
+	const Common::Path resAudPath = path.join("RESOURCE.AUD");
 
 	if (!SearchMan.hasFile(resAudPath)) {
-		error("Could not find %s", resAudPath.c_str());
+		error("Could not find %s", resAudPath.toString().c_str());
 	}
 
 	// When a IntMapResourceSource is scanned, it will not update existing
@@ -1183,7 +1203,7 @@ void ResourceManager::changeAudioDirectory(Common::String path) {
 		}
 
 		AudioVolumeResourceSource *volSource = dynamic_cast<AudioVolumeResourceSource *>(*it);
-		if (volSource && volSource->getLocationName().contains("RESOURCE.AUD")) {
+		if (volSource && volSource->getLocationName().baseName() == "RESOURCE.AUD") {
 			delete volSource;
 			it = _sources.erase(it);
 			continue;
@@ -1195,13 +1215,13 @@ void ResourceManager::changeAudioDirectory(Common::String path) {
 	// # is used as the first pattern character to avoid matching non-audio maps
 	// like RESOURCE.MAP
 	Common::ArchiveMemberList mapFiles;
-	SearchMan.listMatchingMembers(mapFiles, path + "#*.MAP");
+	SearchMan.listMatchingMembers(mapFiles, path.join("#*.MAP"));
 
 	for (Common::ArchiveMemberList::const_iterator it = mapFiles.begin(); it != mapFiles.end(); ++it) {
 		const Common::ArchiveMemberPtr &file = *it;
 		assert(file);
 
-		const Common::String fileName = file->getName();
+		const Common::String fileName = file->getFileName();
 		const int mapNo = atoi(fileName.c_str());
 
 		// Sound effects are the same across all audio directories, so ignore
@@ -1210,7 +1230,7 @@ void ResourceManager::changeAudioDirectory(Common::String path) {
 			continue;
 		}
 
-		ResourceSource *newSource = new PatchResourceSource(path + fileName);
+		ResourceSource *newSource = new PatchResourceSource(path.appendComponent(fileName));
 		processPatch(newSource, kResourceTypeMap, mapNo);
 		Resource *mapResource = _resMap.getVal(ResourceId(kResourceTypeMap, mapNo));
 		assert(mapResource);
@@ -1222,7 +1242,7 @@ void ResourceManager::changeAudioDirectory(Common::String path) {
 	scanNewSources();
 }
 
-void ResourceManager::changeMacAudioDirectory(Common::String path) {
+void ResourceManager::changeMacAudioDirectory(const Common::Path &path_) {
 	// delete all Audio36 resources so that they can be replaced with
 	//  different patch files from the new directory.
 	for (ResourceMap::iterator it = _resMap.begin(); it != _resMap.end(); ++it) {
@@ -1247,21 +1267,21 @@ void ResourceManager::changeMacAudioDirectory(Common::String path) {
 		}
 	}
 
+	Common::Path path(path_);
 	if (path.empty()) {
 		path = "english";
 	}
-	path = "voices/" + path + "/";
+	path = Common::Path("voices").join(path);
 
 	// add all Audio36 wave patch files from language directory
 	Common::ArchiveMemberList audio36Files;
-	SearchMan.listMatchingMembers(audio36Files, path + "A???????.???");
+	SearchMan.listMatchingMembers(audio36Files, path.join("A???????.???"));
 	for (Common::ArchiveMemberList::const_iterator it = audio36Files.begin(); it != audio36Files.end(); ++it) {
 		const Common::ArchiveMemberPtr &file = *it;
 		assert(file);
 
-		const Common::String fileName = file->getName();
-		ResourceId resource36 = convertPatchNameBase36(kResourceTypeAudio36, fileName);
-		processWavePatch(resource36, path + fileName);
+		ResourceId resource36 = convertPatchNameBase36(kResourceTypeAudio36, file->getFileName());
+		processWavePatch(resource36, file->getPathInArchive());
 	}
 }
 

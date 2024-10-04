@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,12 +23,12 @@
 #define FORBIDDEN_SYMBOL_ALLOW_ALL
 
 #include "create_kyradat.h"
+
+#include "md5.h"
+#include "pak.h"
 #include "resources.h"
 #include "types.h"
 
-#include "pak.h"
-
-#include "md5.h"
 #include "common/language.h"
 #include "common/platform.h"
 
@@ -39,7 +38,7 @@
 
 
 enum {
-	kKyraDatVersion = 111
+	kKyraDatVersion = 122
 };
 
 const ExtractFilename extractFilenames[] = {
@@ -89,6 +88,7 @@ const ExtractFilename extractFilenames[] = {
 	// GUI strings table
 	{ k1GUIStrings, kStringList, true },
 	{ k1ConfigStrings, kStringList, true },
+	{ k1ConfigStrings2, kStringList, true },
 
 	// ROOM table/filenames
 	{ k1RoomList, kRoomList, false },
@@ -153,7 +153,7 @@ const ExtractFilename extractFilenames[] = {
 	{ k1SpecialPalette32, kRawData, false },
 	{ k1SpecialPalette33, kRawData, false },
 
-	// CREDITS (used in FM-TOWNS and AMIGA)
+	// CREDITS (used in FM-TOWNS, AMIGA, Chinese DOS)
 	{ k1CreditsStrings, kRawData, true },
 
 	// FM-TOWNS specific
@@ -165,6 +165,9 @@ const ExtractFilename extractFilenames[] = {
 	// PC98 specific
 	{ k1PC98StoryStrings, kStringList, true },
 	{ k1PC98IntroSfx, kRawData, false },
+
+	// Chinese version specific
+	{ k1TwoByteFontLookupTable, kRawDataBe16, true },
 
 	// AMIGA specific
 	{ k1AmigaIntroSFXTable, kAmigaSfxTable, false },
@@ -196,7 +199,7 @@ const ExtractFilename extractFilenames[] = {
 	{ k2IngameTimJpStrings, kStringList, false },
 	{ k2IngameShapeAnimData, k2ItemAnimDefinition, false },
 	{ k2IngameTlkDemoStrings, kStringList, true },
-
+	{ k2FontData, kRawData, true },
 
 	// MALCOLM'S REVENGE
 	{ k3MainMenuStrings, kStringList, true },
@@ -207,7 +210,6 @@ const ExtractFilename extractFilenames[] = {
 	{ k3ItemAnimData, k2ItemAnimDefinition, false },
 	{ k3ItemMagicTable, kRawData, false },
 	{ k3ItemStringMap, kRawData, false },
-	{ k3FontData, kRawData, true },
 	{ k3VqaSubtitlesIntro, kStringList, true },
 	{ k3VqaSubtitlesBoat, kStringList, true },
 
@@ -599,6 +601,10 @@ const ExtractFilename extractFilenames[] = {
 	{ kEoB2IntroAnimData41, kEoB2SequenceData, false },
 	{ kEoB2IntroAnimData42, kEoB2SequenceData, false },
 	{ kEoB2IntroAnimData43, kEoB2SequenceData, false },
+	{ kEoB2IntroAnimData44, kEoB2SequenceData, false },
+	{ kEoB2IntroAnimData45, kEoB2SequenceData, false },
+	{ kEoB2IntroAnimData46, kEoB2SequenceData, false },
+	{ kEoB2IntroAnimData47, kEoB2SequenceData, false },
 	{ kEoB2IntroShapes00, kEoB2ShapeData, false },
 	{ kEoB2IntroShapes01, kEoB2ShapeData, false },
 	{ kEoB2IntroShapes04, kEoB2ShapeData, false },
@@ -1047,7 +1053,8 @@ const ExtractFilename extractFilenames[] = {
 	{ kEoB2Config2431Strings, kStringList, true },
 	{ kEoBBaseTextInputCharacterLines, kStringList, true },
 	{ kEoBBaseTextInputSelectStrings, kStringList, true },
-	{ kEoB2FontDmpSearchTbl, kRawDataBe16, false },
+	{ kEoB2FontLookupTbl, kRawDataBe16, false },
+	{ kEoB2FontConvertTbl, kRawData, false },
 	{ kEoB2Ascii2SjisTables, kStringList, false },
 	{ kEoB2Ascii2SjisTables2, kStringList, false },
 	{ kEoBBaseSaveNamePatterns, kStringList, true },
@@ -1163,7 +1170,7 @@ const ExtractFilename *getFilenameDesc(const int id) {
 		if (i->id == id)
 			return i;
 	}
-	return 0;
+	return nullptr;
 }
 
 bool isLangSpecific(const int id) {
@@ -1199,8 +1206,11 @@ const TypeTable languageTable[] = {
 	{ JA_JPN,  6 },
 	{ RU_RUS,  7 },
 	{ HE_ISR,  8 },
-	{ ZH_CNA,  9 },
+	{ ZH_CHN,  9 },
 	{ ZH_TWN, 10 },
+	{ KO_KOR, 11 },
+	{ CS_CZE, 12 },
+	{ PL_POL, 13 },
 	{ -1, -1 }
 };
 

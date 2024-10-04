@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,9 +29,9 @@
 
 namespace ICB {
 
-void _game_volume::SetUpParameters(_linked_data_file *pyLOSData) {
+void _game_volume::SetUpParameters(LinkedDataFile *pyLOSData) {
 	uint32 i;
-	_barrier_slice *pSlice;
+	BarrierSlice *pSlice;
 	_slice_limit sSliceLimit;
 
 	// Store the pointer to the data file.
@@ -40,7 +39,7 @@ void _game_volume::SetUpParameters(_linked_data_file *pyLOSData) {
 
 	// Get the first slice and use this to set the horizontal sizes, since they all share the
 	// same horizontal sizes.
-	pSlice = (_barrier_slice *)pyLOSData->Fetch_item_by_number(0);
+	pSlice = (BarrierSlice *)LinkedDataObject::Fetch_item_by_number(pyLOSData, 0);
 	m_fLeftEdge = pSlice->left_edge;
 	m_fRightEdge = pSlice->right_edge;
 	m_fBackEdge = pSlice->back_edge;
@@ -55,10 +54,10 @@ void _game_volume::SetUpParameters(_linked_data_file *pyLOSData) {
 	m_nMinimumZIndex = (int32)(m_fBackEdge / (PXreal)FLOOR_CUBE_SIZE);
 
 	// Now set the slice heights.
-	m_nNumSlices = pyLOSData->Fetch_number_of_items();
+	m_nNumSlices = LinkedDataObject::Fetch_number_of_items(pyLOSData);
 
 	for (i = 0; i < m_nNumSlices; ++i) {
-		pSlice = (_barrier_slice *)pyLOSData->Fetch_item_by_number(i);
+		pSlice = (BarrierSlice *)LinkedDataObject::Fetch_item_by_number(pyLOSData, i);
 		sSliceLimit.fTop = pSlice->top;
 		sSliceLimit.fBottom = pSlice->bottom;
 		m_oSliceLimits[i] = sSliceLimit;

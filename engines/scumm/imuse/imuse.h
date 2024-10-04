@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef SCUMM_IMUSE_H
 #define SCUMM_IMUSE_H
 
+#include "audio/mididrv.h"
 #include "common/scummsys.h"
 #include "common/serializer.h"
 #include "common/mutex.h"
@@ -51,13 +51,8 @@ class IMuse : public MusicEngine {
 public:
 	enum {
 		PROP_TEMPO_BASE,
-		PROP_NATIVE_MT32,
-		PROP_GS,
-		PROP_AMIGA,
 		PROP_LIMIT_PLAYERS,
-		PROP_RECYCLE_PLAYERS,
-		PROP_GAME_ID,
-		PROP_PC_SPEAKER
+		PROP_RECYCLE_PLAYERS
 	};
 
 public:
@@ -78,7 +73,7 @@ public:
 
 public:
 	// Factory methods
-	static IMuse *create(OSystem *syst, MidiDriver *nativeMidiDriver, MidiDriver *adlibMidiDriver);
+	static IMuse *create(ScummEngine *vm, MidiDriver *nativeMidiDriver, MidiDriver *adlibMidiDriver, MidiDriverFlags sndType, bool nativeMT32);
 };
 
 } // End of namespace Scumm

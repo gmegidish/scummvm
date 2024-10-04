@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -74,10 +73,8 @@ CREATE_DOSOUND_FORWARD(DoSoundSetLoop)
 reg_t kDoSoundMac32(EngineState *s, int argc, reg_t *argv) {
 	// Several SCI 2.1 Middle Mac games, but not all, contain a modified kDoSound
 	//  in which all but eleven subops were removed, changing their subop values to
-	//  zero through ten. PQSWAT then restored all of the subops, but kept the new
-	//  subop values that removing caused in the first place, and assigned new
-	//  values to the restored subops. It is the only game that does this and it
-	//  only uses two of them.
+	//  zero through ten. PQSWAT and HOYLE5 Solitaire restored all of the subops,
+	//  but kept the new values that removing caused in the first place.
 	switch (argv[0].toUint16()) {
 	case 0:
 		return g_sci->_soundCmd->kDoSoundMasterVolume(s, argc - 1, argv + 1);
@@ -101,11 +98,19 @@ reg_t kDoSoundMac32(EngineState *s, int argc, reg_t *argv) {
 		return g_sci->_soundCmd->kDoSoundSetLoop(s, argc - 1, argv + 1);
 	case 10:
 		return g_sci->_soundCmd->kDoSoundUpdateCues(s, argc - 1, argv + 1);
-	// PQSWAT only
+	// PQSWAT, HOYLE5 solitaire
 	case 12: // kDoSoundRestore
 		return kEmpty(s, argc - 1, argv + 1);
 	case 13:
 		return g_sci->_soundCmd->kDoSoundGetPolyphony(s, argc - 1, argv + 1);
+	case 14:
+		return g_sci->_soundCmd->kDoSoundSuspend(s, argc - 1, argv + 1);
+	case 15:
+		return g_sci->_soundCmd->kDoSoundSetHold(s, argc - 1, argv + 1);
+	case 17:
+		return g_sci->_soundCmd->kDoSoundSetPriority(s, argc - 1, argv + 1);
+	case 18:
+		return g_sci->_soundCmd->kDoSoundSendMidi(s, argc - 1, argv + 1);
 	default:
 		break;
 	}
@@ -237,9 +242,25 @@ reg_t kDoAudio(EngineState *s, int argc, reg_t *argv) {
 		debugC(kDebugLevelSound, "kDoAudio: resume");
 		g_sci->_audio->resumeAudio();
 		break;
-	case kSciAudioPosition:
-		//debugC(kDebugLevelSound, "kDoAudio: get position");	// too verbose
-		return make_reg(0, g_sci->_audio->getAudioPosition());
+	case kSciAudioPosition: {
+		// SSCI queried the audio driver's AudioLoc function and returned the result.
+		// The driver returned the location in ticks if audio was playing, otherwise -1.
+		// The driver could only play one piece of audio at a time, and it could have
+		// been playing either a digital sample from kDoSound or speech from kDoAudio.
+		// We have two separate components for these interfaces, so we must check both.
+		int audioPosition = g_sci->_audio->getAudioPosition();
+		if (audioPosition == -1) {
+			// kDoAudio is not playing speech, so now we check the kDoSound interface.
+			// SoundCommandParser does not keep track of the audio position in ticks
+			// for digital samples, so we can't return the real position. Scripts only
+			// care about the exact tick value for speech, otherwise it only matters
+			// if the result is -1 or not, so just return 1 if a sample is playing.
+			if (g_sci->_soundCmd->isDigitalSamplePlaying()) {
+				audioPosition = 1;
+			}
+		}
+		return make_reg(0, audioPosition);
+	}
 	case kSciAudioRate:
 		debugC(kDebugLevelSound, "kDoAudio: set audio rate to %d", argv[1].toUint16());
 		g_sci->_audio->setAudioRate(argv[1].toUint16());
@@ -329,11 +350,6 @@ reg_t kDoAudio(EngineState *s, int argc, reg_t *argv) {
 		//  a change. The Narrator class also does this to detect
 		//  if speech was interrupted so that the game can continue.
 		return make_reg(0, g_sci->_audio->getPlayCounter());
-	case 17:
-		// Seems to be some sort of audio sync, used in SQ6. Silenced the
-		// warning due to the high level of spam it produces. (takes no params)
-		//warning("kDoAudio: Unhandled case 17, %d extra arguments passed", argc - 1);
-		break;
 	default:
 		warning("kDoAudio: Unhandled case %d, %d extra arguments passed", argv[0].toUint16(), argc - 1);
 	}
@@ -501,7 +517,7 @@ reg_t kSetLanguage(EngineState *s, int argc, reg_t *argv) {
 	// Used by script 90 of MUMG Deluxe from the main menu to toggle between
 	// English and Spanish in some versions and English and Spanish and
 	// French and German in others.
-	const Common::String audioDirectory = s->_segMan->getString(argv[0]);
+	const Common::Path audioDirectory(s->_segMan->getString(argv[0]));
 	if (g_sci->getPlatform() == Common::kPlatformMacintosh) {
 		g_sci->getResMan()->changeMacAudioDirectory(audioDirectory);
 	} else {

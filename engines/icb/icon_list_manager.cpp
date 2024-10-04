@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,11 +20,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "engines/icb/icb.h"
 #include "engines/icb/icon_list_manager.h"
 #include "engines/icb/global_objects.h"
 #include "engines/icb/mission.h"
@@ -50,35 +50,37 @@ void _icon_list_manager::ActivateIconMenu(const char *pcListName, bool8 bAllowEs
 	int32 nListIndex;
 	_icon_menu_duplicates sDuplicates;
 	uint32 nHash;
-	int32 nInitialSelected;
+	int32 nInitialSelected = 0;
 	uint32 nNumClips, nNumMedi;
 
 	nListIndex = FindListByName(pcListName);
 
-	// The player object now 'owns' the count of medipacks and clips.  To find out how many to draw,
-	// we need to get these counts here and add them to the inventory.  Not in the Remora though.
-	if (bDrawStatusIcons) {
-		// Get number of clips and medipacks from the player object.
-		nNumClips = MS->player.GetNoAmmoClips();
-		nNumMedi = MS->player.GetNoMediPacks();
+	if (g_icb->getGameType() == GType_ICB) {
+		// The player object now 'owns' the count of medipacks and clips.  To find out how many to draw,
+		// we need to get these counts here and add them to the inventory.  Not in the Remora though.
+		if (bDrawStatusIcons) {
+			// Get number of clips and medipacks from the player object.
+			nNumClips = MS->player.GetNoAmmoClips();
+			nNumMedi = MS->player.GetNoMediPacks();
 
-		// Set this number in the icon menu.
-		m_pListOfLists[nListIndex].SetAbsoluteIconCount(ARMS_AMMO_NAME, nNumClips);
-		m_pListOfLists[nListIndex].SetAbsoluteIconCount(ARMS_HEALTH_NAME, nNumMedi);
+			// Set this number in the icon menu.
+			m_pListOfLists[nListIndex].SetAbsoluteIconCount(ARMS_AMMO_NAME, nNumClips);
+			m_pListOfLists[nListIndex].SetAbsoluteIconCount(ARMS_HEALTH_NAME, nNumMedi);
 
-		// Find the medipacks position.
-		nInitialSelected = m_pListOfLists[nListIndex].GetIconPosition(ARMS_HEALTH_NAME);
+			// Find the medipacks position.
+			nInitialSelected = m_pListOfLists[nListIndex].GetIconPosition(ARMS_HEALTH_NAME);
 
-		// If we didn't find it, just set the 0 icon to be displayed.
-		if (nInitialSelected == -1)
+			// If we didn't find it, just set the 0 icon to be displayed.
+			if (nInitialSelected == -1)
+				nInitialSelected = 0;
+		} else {
+			// Just select first icon in the Remora.
 			nInitialSelected = 0;
-	} else {
-		// Just select first icon in the Remora.
-		nInitialSelected = 0;
 
-		// No clips or medipacks in the Remora.
-		m_pListOfLists[nListIndex].RemoveIcon(ARMS_AMMO_NAME, TRUE8);
-		m_pListOfLists[nListIndex].RemoveIcon(ARMS_HEALTH_NAME, TRUE8);
+			// No clips or medipacks in the Remora.
+			m_pListOfLists[nListIndex].RemoveIcon(ARMS_AMMO_NAME, TRUE8);
+			m_pListOfLists[nListIndex].RemoveIcon(ARMS_HEALTH_NAME, TRUE8);
+		}
 	}
 
 	// We've found the list.  If there are no icons in it, add the 'empty' one.

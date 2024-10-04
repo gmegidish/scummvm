@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 #define GUI_ANIMATION_DRAWABLE_H
 
 #include "common/ptr.h"
-#include "graphics/transparent_surface.h"
+#include "graphics/managed_surface.h"
 
 #include "gui/animation/Animation.h"
 
@@ -65,8 +64,8 @@ public:
 	void setAlpha(float alpha) { _alpha = alpha; }
 	AnimationPtr getAnimation() const { return _animation; }
 	void setAnimation(AnimationPtr animation) { _animation = animation; }
-	Graphics::TransparentSurface *getBitmap() const { return _bitmap; }
-	void setBitmap(Graphics::TransparentSurface *bitmap) { _bitmap = bitmap; }
+	Graphics::ManagedSurface *getBitmap() const { return _bitmap; }
+	void setBitmap(Graphics::ManagedSurface *bitmap) { _bitmap = bitmap; }
 	float getPositionX() const { return _positionX; }
 	void setPositionX(float positionX) { _positionX = positionX; }
 	float getPositionY() const { return _positionY; }
@@ -75,8 +74,8 @@ public:
 	void setWidth(float width) { _width = width; }
 
 	virtual float getHeight() const {
-		if (_height == 0)
-			return getWidth() * _bitmap->getRatio() * _displayRatio;
+		if (_height == 0 && _bitmap && _bitmap->w && _bitmap->h)
+			return getWidth() * _displayRatio * _bitmap->h / _bitmap->w;
 
 		return _height;
 	}
@@ -90,7 +89,7 @@ protected:
 	bool _usingSnapshot;
 
 private:
-	Graphics::TransparentSurface *_bitmap;
+	Graphics::ManagedSurface *_bitmap;
 	float _positionX;
 	float _positionY;
 	float _width;

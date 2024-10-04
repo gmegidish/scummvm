@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -70,7 +69,7 @@ struct EoBRect8 {
 };
 
 struct EoBChargenButtonDef {
-	uint8 x;
+	uint16 x;
 	uint8 y;
 	uint8 w;
 	uint8 h;
@@ -117,6 +116,7 @@ struct EoBCharacter {
 	uint8 food;
 	uint8 level[3];
 	uint32 experience[3];
+	int16 hitPointsDividend;
 	const uint8 *faceShape;
 	const uint8 *nameShape;
 
@@ -344,7 +344,7 @@ protected:
 	void runLoop();
 	void update() override { screen()->updateScreen(); }
 	bool checkPartyStatus(bool handleDeath);
-	void updateAnimTimers();
+	void updateAnimations();
 
 	bool _runFlag;
 
@@ -390,8 +390,6 @@ protected:
 	uint32 _restPartyElapsedTime;
 
 	uint32 _lastVIntTick;
-	uint32 _lastSecTick;
-	uint32 _totalPlaySecs;
 	uint32 _totalEnemiesKilled;
 	uint32 _totalSteps;
 
@@ -400,7 +398,11 @@ protected:
 
 	// Characters
 	int getDexterityArmorClassModifier(int dexterity);
-	int generateCharacterHitpointsByLevel(int charIndex, int levelIndex);
+	int rollHitDie(int charIndex, int levelIndex);
+	bool shouldRollHitDieAtCurrentLevel(int charIndex, int levelIndex);
+	uint8 getStaticHitPointBonus(int charIndex, int levelIndex);
+	int generateCharacterHitpointsByLevel(int charIndex, int levelIndex, int hitDieRoll);
+	int incrCharacterHitPointsDividendByLevel(int charIndex, int levelIndex, int hitDieRoll);
 	int getClassAndConstHitpointsModifier(int cclass, int constitution);
 	int getCharacterClassType(int cclass, int levelIndex);
 	int getModifiedHpLimits(int hpModifier, int constModifier, int level, bool mode);
@@ -628,7 +630,7 @@ protected:
 	virtual void loadVcnData(const char *file, const uint8 *cgaMapping);
 	virtual Common::SeekableReadStreamEndian *getVmpData(const char *file);
 	void loadBlockProperties(const char *mazFile) override;
-	virtual const uint8 *getBlockFileData(int levelIndex) override;
+	const uint8 *getBlockFileData(int levelIndex) override;
 	const uint8 *getBlockFileData(const char *mazFile);
 	Common::String getBlockFileName(int levelIndex, int sub);
 	void loadDecorations(const char *cpsFile, const char *decFile);
@@ -837,12 +839,19 @@ protected:
 	Screen::FontId _invFont1;
 	Screen::FontId _invFont2;
 	Screen::FontId _invFont3;
+	Screen::FontId _invFont4;
+	Screen::FontId _invFont5;
+	Screen::FontId _invFont6;
 	Screen::FontId _conFont;
+	Screen::FontId _titleFont;
+	Screen::FontId _bookFont;
+	Screen::FontId _hpStatFont;
 	const uint8 **_compassShapes;
 	uint8 _charExchangeSwap;
 	uint8 *_swapShape;
 	bool _configHpBarGraphs;
 	bool _configMouseBtSwap;
+	bool _configADDRuleEnhancements;
 
 	Graphics::Surface _thumbNail;
 
@@ -853,7 +862,7 @@ protected:
 	void drawSequenceBitmap(const char *file, int destRect, int x1, int y1, int flags);
 	int runDialogue(int dialogueTextId, int numStr, int loopButtonId, ...);
 
-	char _dialogueLastBitmap[13];
+	Common::String _dialogueLastBitmap;
 	int _moveCounter;
 
 	const char *const *_chargenStatStrings;
@@ -915,7 +924,7 @@ protected:
 	virtual void seq_segaPausePlayer(bool pause) {}
 	bool checkPassword();
 
-	Common::String convertAsciiToSjis(Common::String str);
+	Common::String makeTwoByteString(const Common::String &str);
 
 	virtual int resurrectionSelectDialogue() = 0;
 	virtual void useHorn(int charIndex, int weaponSlot) {}
@@ -945,8 +954,8 @@ protected:
 	virtual void makeNameShapes(int charId = -1) {}
 	virtual void makeFaceShapes(int charId = -1);
 	// Default parameters will import all present original save files and push them to the top of the save dialog.
-	bool importOriginalSaveFile(int destSlot, const char *sourceFile = 0);
-	Common::String readOriginalSaveFile(Common::String &file);
+	bool importOriginalSaveFile(int destSlot, const Common::Path &sourceFile = Common::Path());
+	Common::String readOriginalSaveFile(const Common::Path &file);
 	bool saveAsOriginalSaveFile(int slot = -1);
 
 	void *generateMonsterTempData(LevelTempData *tmp) override;
@@ -1265,12 +1274,12 @@ protected:
 
 	// sound
 	void snd_playSong(int id, bool loop = true);
-	void snd_playLevelScore();
+	virtual void snd_playLevelScore() = 0;
 	void snd_playSoundEffect(int id, int volume = 0xFF) override;
 	void snd_stopSound();
 	void snd_fadeOut(int del = 160);
 	virtual void snd_loadAmigaSounds(int level, int sub) = 0;
-	virtual void snd_updateLevelScore() {}
+	virtual void snd_updateLevelScore() = 0;
 
 	const char **_amigaSoundMap;
 	const char *const *_amigaLevelSoundList1;
@@ -1280,6 +1289,10 @@ protected:
 
 	// keymap
 	static const char *const kKeymapName;
+
+private:
+	void printStringIntern_statsPage(const char *str, int x, int y, int col);
+	void printStringIntern_spellBook(const char *str, int x, int y, int col1, int col2);
 };
 
 } // End of namespace Kyra

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,7 +71,7 @@ public:
 	int sub_422EA0(Point p1, Point p2);
 	int sub_423350();
 	Common::Point sub_4234B0();
-	bool sub_423570(int, int);
+	bool areEdgesAdjacent(int, int);
 
 	int sub_423600(Point p);
 	int sub_423970(int, int);
@@ -138,13 +137,13 @@ public:
 	double field_198;
 	int destX;
 	int destY;
-	int _bkg1Count;
-	Point *_bkg1;
-	int _bkg2Count;
+	int _verticesCount;
+	Point *_vertices;
+	int _edgesCount;
 	int _bkg3Count;
 	int *_bkg3_1;
 	int **_bkg3_2;
-	Point *_bkg2;
+	Point *_edges;
 	char field_1C4;
 	char field_1C5;
 	char field_1C6;

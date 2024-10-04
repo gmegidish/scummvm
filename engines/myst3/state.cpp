@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -355,7 +354,6 @@ GameState::GameState(const Common::Platform platform, Database *database):
 		VAR(1394, LanguageText, false)
 
 		VAR(1406, ShieldEffectActive, false)
-
 	} else {
 		shiftVariables(927, 1);
 		shiftVariables(1031, 2);
@@ -395,7 +393,7 @@ GameState::~GameState() {
 }
 
 void GameState::syncFloat(Common::Serializer &s, float &val,
-		Common::Serializer::Version minVersion, Common::Serializer::Version maxVersion) {
+	                  Common::Serializer::Version minVersion, Common::Serializer::Version maxVersion) {
 	static const float precision = 10000.0;
 
 	if (s.isLoading()) {
@@ -537,7 +535,7 @@ void GameState::newGame() {
 }
 
 Common::Error GameState::load(Common::InSaveFile *saveFile) {
-	Common::Serializer s = Common::Serializer(saveFile, 0);
+	Common::Serializer s = Common::Serializer(saveFile, nullptr);
 	Common::Error loadError = _data.syncWithSaveGame(s);
 
 	_data.gameRunning = true;
@@ -550,7 +548,7 @@ Common::Error GameState::load(Common::InSaveFile *saveFile) {
 }
 
 Common::Error GameState::save(Common::OutSaveFile *saveFile, const Common::String &description, const Graphics::Surface *thumbnail, bool isAutosave) {
-	Common::Serializer s = Common::Serializer(0, saveFile);
+	Common::Serializer s = Common::Serializer(nullptr, saveFile);
 
 	// Update save creation info
 	TimeDate t;
@@ -583,8 +581,8 @@ Common::String GameState::formatSaveTime() {
 
 	// TODO: Check the Xbox NTSC version, maybe it uses that strange MM/DD/YYYY format
 	return Common::String::format("%02d/%02d/%02d %02d:%02d",
-			_data.saveDay, _data.saveMonth, _data.saveYear,
-			_data.saveHour, _data.saveMinute);
+	                              _data.saveDay, _data.saveMonth, _data.saveYear,
+	                              _data.saveHour, _data.saveMinute);
 }
 
 Common::Array<uint16> GameState::getInventory() {
@@ -709,9 +707,9 @@ const Common::String GameState::describeCondition(int16 condition) {
 	int16 value = (unsignedCond >> 11) - 1;
 
 	return Common::String::format("c[%s %s %d]",
-			describeVar(var).c_str(),
-			(condition >= 0 && value >= 0) || (condition < 0 && value < 0) ? "==" : "!=",
-			value >= 0 ? value : 0);
+	                              describeVar(var).c_str(),
+	                              (condition >= 0 && value >= 0) || (condition < 0 && value < 0) ? "==" : "!=",
+	                              value >= 0 ? value : 0);
 }
 
 void GameState::limitCubeCamera(float minPitch, float maxPitch, float minHeading, float maxHeading) {
@@ -842,12 +840,7 @@ Common::StringArray Saves::list(Common::SaveFileManager *saveFileManager, Common
 	// The saves are sorted alphabetically
 	Common::sort(filenames.begin(), filenames.end(), AutosaveFirstComparator());
 
-	// The MetaEngine save system expects the Autosave to be in slot 0
-	// if we don't have an autosave (yet), insert a fake one.
-	if (!filenames.empty() && !filenames[0].hasPrefixIgnoreCase("autosave.")) {
-		filenames.insert_at(0, buildName("Autosave", platform));
-	}
-
 	return filenames;
 }
+
 } // End of namespace Myst3

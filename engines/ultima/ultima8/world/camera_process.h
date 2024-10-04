@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,7 @@
 #include "ultima/ultima8/kernel/process.h"
 #include "ultima/ultima8/usecode/intrinsics.h"
 #include "ultima/ultima8/misc/classtype.h"
+#include "ultima/ultima8/misc/point3.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -41,9 +41,9 @@ namespace Ultima8 {
 class CameraProcess : public Process {
 public:
 	CameraProcess();
-	CameraProcess(uint16 itemnum);                          // Follow item/Do nothing
-	CameraProcess(int32 x, int32 y, int32 z);               // Goto location
-	CameraProcess(int32 x, int32 y, int32 z, int32 time);   // Scroll to location
+	CameraProcess(uint16 itemnum);                // Follow item/Do nothing
+	CameraProcess(const Point3 &p);               // Goto location
+	CameraProcess(const Point3 &p, int32 time);   // Scroll to location
 
 	~CameraProcess() override;
 
@@ -52,7 +52,7 @@ public:
 	void run() override;
 
 	// You will notice that this isn't the same as how Item::GetLerped works
-	void GetLerped(int32 &x, int32 &y, int32 &z, int32 factor, bool noupdate = false);
+	Point3 GetLerped(int32 factor, bool noupdate = false);
 
 	//! Find the roof above the camera.
 	//! \param factor Interpolation factor for this frame
@@ -67,6 +67,7 @@ public:
 	 * so other pending events will all happen before the fast area is updated
 	 */
 	void moveToLocation(int32 x, int32 y, int32 z);
+	void moveToLocation(const Point3 &p);
 
 	INTRINSIC(I_setCenterOn);
 	INTRINSIC(I_moveTo);
@@ -77,7 +78,7 @@ public:
 	INTRINSIC(I_getCameraY);
 	INTRINSIC(I_getCameraZ);
 
-	static void             GetCameraLocation(int32 &x, int32 &y, int32 &z);
+	static Point3           GetCameraLocation();
 	static CameraProcess   *GetCameraProcess() {
 		return _camera;
 	}
@@ -108,8 +109,8 @@ public:
 	}
 
 private:
-	int32 _sx, _sy, _sz;
-	int32 _ex, _ey, _ez;
+	Point3 _s;
+	Point3 _e;
 	int32 _time;
 	int32 _elapsed;
 	uint16 _itemNum;

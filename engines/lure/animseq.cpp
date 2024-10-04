@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,8 +39,8 @@ AnimAbortType AnimationSequence::delay(uint32 milliseconds) {
 
 	while (g_system->getMillis() < delayCtr) {
 		while (events.pollEvent()) {
-			if ((events.type() == Common::EVENT_KEYDOWN) && (events.event().kbd.ascii != 0)) {
-				if (events.event().kbd.keycode == Common::KEYCODE_ESCAPE)
+			if ((events.type() == Common::EVENT_CUSTOM_ENGINE_ACTION_START) && (events.event().customType != kActionNone)) {
+				if (events.event().customType == kActionEscape)
 					return ABORT_END_INTRO;
 				else
 					return ABORT_NEXT_SCENE;
@@ -156,7 +155,7 @@ AnimationSequence::AnimationSequence(uint16 screenId, Palette &palette,  bool fa
 	_isEGA = LureEngine::getReference().isEGA();
 	if (_isEGA) {
 		// Setup for EGA animation
-		_lineRefs = NULL;
+		_lineRefs = nullptr;
 
 		// Reset the palette and clear the screen for EGA decoding
 		screen.setPaletteEmpty(RES_PALETTE_ENTRIES);
@@ -169,8 +168,8 @@ AnimationSequence::AnimationSequence(uint16 screenId, Palette &palette,  bool fa
 		// Set pointers for animation
 		_pPixelsStart = _pPixels = pSrc;
 		_pPixelsEnd = _decodedData->data() + _decodedData->size() - 1;
-		_pLinesStart = _pLines = NULL;
-		_pLinesEnd = NULL;
+		_pLinesStart = _pLines = nullptr;
+		_pLinesEnd = nullptr;
 
 	} else {
 		// Setup for VGA animation
@@ -215,7 +214,7 @@ AnimAbortType AnimationSequence::show() {
 	// Loop through displaying the animations
 	while (_loops > 0) {
 		if (_pPixels < _pPixelsEnd && (_isEGA || _pLines < _pLinesEnd)) {
-			if ((soundFrame != NULL) && (soundFrame->rolandSoundId != 0xFF) && (frameCtr == 0))
+			if ((soundFrame != nullptr) && (soundFrame->rolandSoundId != 0xFF) && (frameCtr == 0))
 				Sound.musicInterface_Play(
 					Sound.isRoland() ? soundFrame->rolandSoundId : soundFrame->adlibSoundId, soundFrame->music);
 
@@ -242,10 +241,10 @@ AnimAbortType AnimationSequence::show() {
 		result = delay(_frameDelay * 1000 / 50);
 		if (result != ABORT_NONE) return result;
 
-		if ((soundFrame != NULL) && (++frameCtr == soundFrame->numFrames)) {
+		if ((soundFrame != nullptr) && (++frameCtr == soundFrame->numFrames)) {
 			frameCtr = 0;
 			++soundFrame;
-			if (soundFrame->numFrames == 0) soundFrame = NULL;
+			if (soundFrame->numFrames == 0) soundFrame = nullptr;
 		}
 	}
 

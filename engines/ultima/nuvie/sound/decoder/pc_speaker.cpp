@@ -5,10 +5,10 @@
  *  Created by Eric Fry on Sun Feb 13 2011.
  *  Copyright (c) 2011. All rights reserved.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *
  */
@@ -27,11 +27,6 @@
 
 namespace Ultima {
 namespace Nuvie {
-
-#ifndef PI
-#define PI 3.14159265358979323846
-#endif
-
 
 #define SPKR_VOLUME 5000
 //#define SPKR_SHIFT 8
@@ -97,11 +92,9 @@ void PCSpeaker::SetFrequency(uint16 freq, float offset) {
 
 }
 
-PCSpeaker::PCSpeaker(uint32 mixer_rate) {
-	rate = mixer_rate;
-	cur_vol = 0.0f;
-	want_vol = 0.0f; //SPKR_VOLUME;
-	frequency = 0;
+PCSpeaker::PCSpeaker(uint32 mixer_rate) : rate(mixer_rate), cur_vol(0.0f), want_vol(0.0f),
+		frequency(0), half_period(0.0f), time_left(0.0f), osc_length(0),
+		osc_samples(0), wav_length(0) {
 }
 
 

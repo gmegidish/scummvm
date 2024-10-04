@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -191,10 +190,9 @@ void DebuggerController::clear() {
 	_lastLine = 0xFFFFFFFF; // Invalid
 }
 
-Common::String DebuggerController::readValue(const Common::String &name, Error *error) {
+Common::String DebuggerController::readValue(const Common::String &name, Error **error) {
 	if (!_lastScript) {
-		delete error;
-		error = new Error(ERROR, NOT_ALLOWED);
+		*error = new Error(ERROR, NOT_ALLOWED);
 		return Common::String();
 	}
 	char cstr[256]; // TODO not pretty
@@ -289,11 +287,11 @@ uint32 DebuggerController::getLastLine() const {
 	return _lastLine;
 }
 
-Common::String DebuggerController::getSourcePath() const {
+Common::Path DebuggerController::getSourcePath() const {
 	return _sourceListingProvider->getPath();
 }
 
-Error DebuggerController::setSourcePath(const Common::String &sourcePath) {
+Error DebuggerController::setSourcePath(const Common::Path &sourcePath) {
 	ErrorCode err = _sourceListingProvider->setPath(sourcePath);
 	return Error((err == OK ? SUCCESS : ERROR), err);
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,17 +35,10 @@
 namespace Ultima {
 namespace Nuvie {
 
-PortraitViewGump::PortraitViewGump(Configuration *cfg) : DraggableView(cfg) {
-	portrait = NULL;
-	font = NULL;
-	gump_button = NULL;
-	portrait_data = NULL;
-	actor = NULL;
-	cursor_tile = NULL;
-	show_cursor = true;
-	cursor_pos = CURSOR_CHECK;
-	cursor_xoff = 1;
-	cursor_yoff = 67;
+PortraitViewGump::PortraitViewGump(const Configuration *cfg) : DraggableView(cfg),
+		portrait(nullptr), font(nullptr), gump_button(nullptr), portrait_data(nullptr),
+		actor(nullptr), cursor_tile(nullptr), show_cursor(true),
+		cursor_pos(CURSOR_CHECK), cursor_xoff(1), cursor_yoff(67) {
 }
 
 PortraitViewGump::~PortraitViewGump() {
@@ -64,9 +56,9 @@ bool PortraitViewGump::init(Screen *tmp_screen, void *view_manager, uint16 x, ui
 	portrait = por;
 	set_actor(a);
 
-	Std::string datadir = GUI::get_gui()->get_data_dir();
-	Std::string imagefile;
-	Std::string path;
+	Common::Path datadir = GUI::get_gui()->get_data_dir();
+	Common::Path imagefile;
+	Common::Path path;
 
 	build_path(datadir, "images", path);
 	datadir = path;
@@ -76,7 +68,7 @@ bool PortraitViewGump::init(Screen *tmp_screen, void *view_manager, uint16 x, ui
 	gump_button = loadButton(datadir, "gump", 0, 67);
 
 	build_path(datadir, "portrait_bg.bmp", imagefile);
-	bg_image = SDL_LoadBMP(imagefile.c_str());
+	bg_image = SDL_LoadBMP(imagefile);
 
 	set_bg_color_key(0, 0x70, 0xfc);
 
@@ -86,15 +78,15 @@ bool PortraitViewGump::init(Screen *tmp_screen, void *view_manager, uint16 x, ui
 	Graphics::ManagedSurface *image, *image1;
 
 	build_path(datadir, "left_arrow.bmp", imagefile);
-	image = SDL_LoadBMP(imagefile.c_str());
-	image1 = SDL_LoadBMP(imagefile.c_str());
+	image = SDL_LoadBMP(imagefile);
+	image1 = SDL_LoadBMP(imagefile);
 
 	left_button = new GUI_Button(this, 23, 6, image, image1, this);
 	this->AddWidget(left_button);
 
 	build_path(datadir, "right_arrow.bmp", imagefile);
-	image = SDL_LoadBMP(imagefile.c_str());
-	image1 = SDL_LoadBMP(imagefile.c_str());
+	image = SDL_LoadBMP(imagefile);
+	image1 = SDL_LoadBMP(imagefile);
 
 	right_button = new GUI_Button(this, 166, 6, image, image1, this);
 	this->AddWidget(right_button);
@@ -134,12 +126,12 @@ void PortraitViewGump::right_arrow() {
 }
 
 void PortraitViewGump::Display(bool full_redraw) {
-	char buf[6]; //xxxxx\n
+	Common::String buf; //xxxxx\n
 //display_level_text();
 //display_spell_list_text();
 	Common::Rect dst;
 	dst = area;
-	SDL_BlitSurface(bg_image, NULL, surface, &dst);
+	SDL_BlitSurface(bg_image, nullptr, surface, &dst);
 
 	DisplayChildren(full_redraw);
 	screen->blit(area.left + 25, area.top + 17, portrait_data, 8, portrait->get_portrait_width(), portrait->get_portrait_height(), portrait->get_portrait_width(), false);
@@ -151,55 +143,54 @@ void PortraitViewGump::Display(bool full_redraw) {
 
 	font->textOut(screen->get_sdl_surface(), area.left + 29 + w, area.top + 6, actor->get_name());
 
-	snprintf(buf, 5, "%d", actor->get_strength());
-	font->textExtent(buf, &w, &h);
-	font->textOut(screen->get_sdl_surface(), area.left + 170 - w, area.top + 18, buf);
+	buf = Common::String::format("%d", actor->get_strength());
+	font->textExtent(buf.c_str(), &w, &h);
+	font->textOut(screen->get_sdl_surface(), area.left + 170 - w, area.top + 18, buf.c_str());
 
-	snprintf(buf, 5, "%d", actor->get_dexterity());
-	font->textExtent(buf, &w, &h);
-	font->textOut(screen->get_sdl_surface(), area.left + 170 - w, area.top + 27, buf);
+	buf = Common::String::format("%d", actor->get_dexterity());
+	font->textExtent(buf.c_str(), &w, &h);
+	font->textOut(screen->get_sdl_surface(), area.left + 170 - w, area.top + 27, buf.c_str());
 
-	snprintf(buf, 5, "%d", actor->get_intelligence());
-	font->textExtent(buf, &w, &h);
-	font->textOut(screen->get_sdl_surface(), area.left + 170 - w, area.top + 36, buf);
+	buf = Common::String::format("%d", actor->get_intelligence());
+	font->textExtent(buf.c_str(), &w, &h);
+	font->textOut(screen->get_sdl_surface(), area.left + 170 - w, area.top + 36, buf.c_str());
 
 	font->setColoring(0x6c, 0x00, 0x00, 0xbc, 0x34, 0x00, 0x00, 0x00, 0x00);
 
-	snprintf(buf, 5, "%d", actor->get_magic());
-	font->textExtent(buf, &w, &h);
-	font->textOut(screen->get_sdl_surface(), area.left + 142 - w, area.top + 55, buf);
+	buf = Common::String::format("%d", actor->get_magic());
+	font->textExtent(buf.c_str(), &w, &h);
+	font->textOut(screen->get_sdl_surface(), area.left + 142 - w, area.top + 55, buf.c_str());
 
-	snprintf(buf, 5, "%d", actor->get_maxmagic());
-	font->textExtent(buf, &w, &h);
-	font->textOut(screen->get_sdl_surface(), area.left + 170 - w, area.top + 55, buf);
+	buf = Common::String::format("%d", actor->get_maxmagic());
+	font->textExtent(buf.c_str(), &w, &h);
+	font->textOut(screen->get_sdl_surface(), area.left + 170 - w, area.top + 55, buf.c_str());
 
 	font->setColoring(0x00, 0x3c, 0x70, 0x74, 0x74, 0x74, 0x00, 0x00, 0x00);
 
-	snprintf(buf, 5, "%d", actor->get_hp());
-	font->textExtent(buf, &w, &h);
-	font->textOut(screen->get_sdl_surface(), area.left + 142 - w, area.top + 64, buf);
+	buf = Common::String::format("%d", actor->get_hp());
+	font->textExtent(buf.c_str(), &w, &h);
+	font->textOut(screen->get_sdl_surface(), area.left + 142 - w, area.top + 64, buf.c_str());
 
-	snprintf(buf, 5, "%d", actor->get_maxhp());
-	font->textExtent(buf, &w, &h);
-	font->textOut(screen->get_sdl_surface(), area.left + 170 - w, area.top + 64, buf);
+	buf = Common::String::format("%d", actor->get_maxhp());
+	font->textExtent(buf.c_str(), &w, &h);
+	font->textOut(screen->get_sdl_surface(), area.left + 170 - w, area.top + 64, buf.c_str());
 
 	font->setColoring(0xa8, 0x28, 0x00, 0xa8, 0x54, 0x00, 0x00, 0x00, 0x00);
 
-	snprintf(buf, 5, "%d", actor->get_level());
-	font->textExtent(buf, &w, &h);
-	font->textOut(screen->get_sdl_surface(), area.left + 142 - w, area.top + 73, buf);
+	buf = Common::String::format("%d", actor->get_level());
+	font->textExtent(buf.c_str(), &w, &h);
+	font->textOut(screen->get_sdl_surface(), area.left + 142 - w, area.top + 73, buf.c_str());
 
-	snprintf(buf, 5, "%d", actor->get_exp());
-	font->textExtent(buf, &w, &h);
-	font->textOut(screen->get_sdl_surface(), area.left + 170 - w, area.top + 73, buf);
+	buf = Common::String::format("%d", actor->get_exp());
+	font->textExtent(buf.c_str(), &w, &h);
+	font->textOut(screen->get_sdl_surface(), area.left + 170 - w, area.top + 73, buf.c_str());
 
-	if (show_cursor)
+	if (show_cursor) {
 		screen->blit(area.left + cursor_xoff, area.top + cursor_yoff, (const unsigned char *)cursor_tile->data, 8, 16, 16, 16, true);
+	}
+
 	update_display = false;
 	screen->update(area.left, area.top, area.width(), area.height());
-
-
-	return;
 }
 
 GUI_status PortraitViewGump::set_cursor_pos(gumpCursorPos pos) {

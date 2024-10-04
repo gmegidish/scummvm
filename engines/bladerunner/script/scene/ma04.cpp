@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "bladerunner/ambient_sounds.h"
+#include "bladerunner/audio_player.h"
+#include "bladerunner/subtitles.h"
 #include "bladerunner/script/scene_script.h"
 
 namespace BladeRunner {
@@ -76,6 +78,7 @@ void SceneScriptMA04::InitializeScene() {
 		Ambient_Sounds_Add_Sound(kSfxVIDFONE1, 3, 3, 100, 100, 0, 0, 0, 0, 99, 0);
 	}
 	Scene_Loop_Set_Default(kMA04LoopMainLoop);
+	_vm->setExtraCNotify(0);
 }
 
 void SceneScriptMA04::SceneLoaded() {
@@ -90,6 +93,7 @@ void SceneScriptMA04::SceneLoaded() {
 		Clickable_Object("BED-TV-1");
 		Clickable_Object("BED-TV-2");
 	}
+	_vm->setExtraCNotify(0);
 }
 
 bool SceneScriptMA04::MouseClick(int x, int y) {
@@ -177,7 +181,15 @@ bool SceneScriptMA04::ClickedOn2DRegion(int region) {
 				Actor_Says(kActorMcCoy, 2680, 0);
 				Ambient_Sounds_Remove_Sound(kSfxVIDFONE1, true);
 				Sound_Play(kSfxSPNBEEP9, 100, 0, 0, 50);
+#if BLADERUNNER_ORIGINAL_BUGS
 				Overlay_Remove("MA04OVER");
+#else
+				// There's a case where the player has not listened to any pending phone message
+				// from the end of Act 1, so the blinking led indicator should still be active.
+				if (!isPhoneMessageWaiting()) {
+					Overlay_Remove("MA04OVER");
+				}
+#endif // BLADERUNNER_ORIGINAL_BUGS
 				Delay(500);
 				if (Game_Flag_Query(kFlagMcCoyIsHelpingReplicants)) {
 					if (Global_Variable_Query(kVariableAffectionTowards) == kAffectionTowardsDektora) {
@@ -199,6 +211,8 @@ bool SceneScriptMA04::ClickedOn2DRegion(int region) {
 			}
 			if (Actor_Clue_Query(kActorClovis, kClueMcCoyRetiredZuben) && !Game_Flag_Query(kFlagMA04PhoneMessageFromClovis)) {
 				Sound_Play(kSfxSPNBEEP9, 100, 0, 0, 50);
+				// No point in checking if there's more messages waiting here,
+				// since this is always the first and remaining one (in this case when Clovis learns about Zuben being Retired)
 				Overlay_Remove("MA04OVER");
 				Delay(500);
 				Actor_Says(kActorClovis, 310, 3);
@@ -212,9 +226,10 @@ bool SceneScriptMA04::ClickedOn2DRegion(int region) {
 				Sound_Play(kSfxSPNBEEP9, 100, 0, 0, 50);
 				Game_Flag_Set(kFlagMA04PhoneMessageFromClovis);
 				return true;
-			}
-			if (Actor_Clue_Query(kActorLucy, kClueMcCoyLetZubenEscape) && !Game_Flag_Query(kFlagMA04PhoneMessageFromLucy)) {
+			} else if (Actor_Clue_Query(kActorLucy, kClueMcCoyLetZubenEscape) && !Game_Flag_Query(kFlagMA04PhoneMessageFromLucy)) {
 				Sound_Play(kSfxSPNBEEP9, 100, 0, 0, 50);
+				// No point in checking if there's more messages waiting here,
+				// since this is always the first and remaining one (in this case when Lucy learns about Zuben having Escaped)
 				Overlay_Remove("MA04OVER");
 				Delay(500);
 				Actor_Says(kActorLucy, 500, 3);
@@ -248,8 +263,16 @@ void SceneScriptMA04::SceneFrameAdvanced(int frame) {
 	} else {
 		Set_Fade_Density(0.0f);
 	}
-	if (frame == 121 && (Game_Flag_Query(kFlagZubenRetired) || Game_Flag_Query(kFlagZubenSpared)) && !Game_Flag_Query(kFlagPS04GuzzaTalkZubenRetired)) {
+	if (frame == 121 && _vm->getExtraCNotify() == 0 && (Game_Flag_Query(kFlagZubenRetired) || Game_Flag_Query(kFlagZubenSpared)) && !Game_Flag_Query(kFlagPS04GuzzaTalkZubenRetired)) {
 		Sound_Play(kSfxVIDFONE1, 50, 0, 0, 50);
+	}
+
+	if (frame >= 30 && frame < 91 && _vm->getExtraCNotify() == 1) {
+		_vm->setExtraCNotify(2);
+		blip();
+	}
+	if (frame >= 100 && frame < 121 && _vm->getExtraCNotify() == 2) {
+		_vm->setExtraCNotify(3);
 	}
 }
 
@@ -587,6 +610,34 @@ void SceneScriptMA04::turnOnTV() {
 		ADQ_Add(kActorNewscaster, 240, kAnimationModeTalk);
 		break;
 	}
+}
+
+void SceneScriptMA04::blip() {
+	Music_Stop(2u);
+	_vm->_ambientSounds->playSound(kSfxMUSVOL8, 22, 46, 46, 99, Audio::Mixer::kSFXSoundType);
+	ADQ_Flush();
+	if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -7191.52f, 954.11f, 1834.47f, 0, false, false, false)) {
+		Actor_Face_Current_Camera(kActorMcCoy, true);
+		if (isPhoneMessageWaiting() || isPhoneRinging()) {
+			Overlay_Remove("MA04OVER");
+			if (isPhoneRinging()) {
+				Ambient_Sounds_Remove_Sound(kSfxVIDFONE1, true);
+			}
+		}
+		Scene_Loop_Start_Special(kSceneLoopModeOnceNStay, kMA04LoopSleep, false);
+		_vm->_audioPlayer->playAud(_vm->_subtitles->getLoadAvgStr(), 100, 0, 0, 50, kAudioPlayerOverrideVolume, Audio::Mixer::kSpeechSoundType);
+		Delay(40000);
+		Scene_Loop_Start_Special(kSceneLoopModeOnce, kMA04LoopWakeup, true);
+		Delay(1000);
+		if (isPhoneMessageWaiting() || isPhoneRinging()) {
+			Overlay_Play("MA04OVER", 0, true, false, 0);
+			if (isPhoneRinging()) {
+				Ambient_Sounds_Add_Sound(kSfxVIDFONE1, 3, 3, 100, 100, 0, 0, 0, 0, 99, 0);
+			}
+		}
+	}
+	_vm->setExtraCNotify(0);
+	Player_Gains_Control();
 }
 
 void SceneScriptMA04::sleep() {

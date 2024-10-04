@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -70,6 +69,10 @@ static const TextColorDataInfo kTextColorDefaults[] = {
 	{ kTextColorAlternativeInverted,	"color_alternative_inverted" },
 	{ kTextColorAlternativeHover,		"color_alternative_hover" },
 	{ kTextColorAlternativeDisabled,	"color_alternative_disabled" },
+	{ kTextColorOverride,               "color_override" },
+	{ kTextColorOverrideInverted,       "color_override_inverted" },
+	{ kTextColorOverrideHover,          "color_override_hover" },
+	{ kTextColorOverrideDisabled,       "color_override_disabled" },
 	{ kTextColorButton,					"color_button" },
 	{ kTextColorButtonHover,			"color_button_hover" },
 	{ kTextColorButtonDisabled,			"color_button_disabled" }
@@ -158,6 +161,7 @@ Graphics::DrawStep *ThemeParser::defaultDrawStep() {
 	step->fillMode = Graphics::VectorRenderer::kFillDisabled;
 	step->scale = (1 << 16);
 	step->radius = 0xFF;
+	step->shadowIntensity = SCALEVALUE((1 << 16));
 
 	return step;
 }
@@ -533,6 +537,8 @@ bool ThemeParser::parseDrawStep(ParserNode *stepNode, Graphics::DrawStep *drawst
 
 			if (!drawstep->blitSrc)
 				return parserError("The given filename hasn't been loaded into the GUI.");
+
+			drawstep->alphaType = drawstep->blitSrc->detectAlpha();
 		}
 
 		if (functionName == "roundedsq" || functionName == "circle" || functionName == "tab") {
@@ -698,13 +704,12 @@ bool ThemeParser::parserCallback_def(ParserNode *node) {
 bool ThemeParser::parserCallback_widget(ParserNode *node) {
 	Common::String var;
 
+	if (resolutionCheck(node->values["resolution"]) == false) {
+		node->ignore = true;
+		return true;
+	}
+
 	if (getParentNode(node)->name == "globals") {
-
-		if (resolutionCheck(node->values["resolution"]) == false) {
-			node->ignore = true;
-			return true;
-		}
-
 		var = "Globals." + node->values["name"] + ".";
 		if (!parseCommonLayoutProps(node, var))
 			return parserError("Error parsing Layout properties of '" + var + "'.");
@@ -811,6 +816,11 @@ bool ThemeParser::parserCallback_import(ParserNode *node) {
 }
 
 bool ThemeParser::parserCallback_layout(ParserNode *node) {
+	if (resolutionCheck(node->values["resolution"]) == false) {
+		node->ignore = true;
+		return true;
+	}
+
 	int spacing = -1;
 
 	if (node->values.contains("spacing")) {
@@ -859,6 +869,11 @@ bool ThemeParser::parserCallback_layout(ParserNode *node) {
 
 bool ThemeParser::parserCallback_space(ParserNode *node) {
 	int size = -1;
+
+	if (resolutionCheck(node->values["resolution"]) == false) {
+		node->ignore = true;
+		return true;
+	}
 
 	if (node->values.contains("size")) {
 		if (_theme->getEvaluator()->hasVar(node->values["size"]))
@@ -1033,7 +1048,7 @@ bool ThemeParser::resolutionCheck(const Common::String &resolution) {
 		bool lt;
 		int val;
 
-		if (cur.size() < 5) {
+		if (cur.size() < 3) {
 			warning("Invalid theme 'resolution' token '%s'", resolution.c_str());
 			return false;
 		}
@@ -1056,7 +1071,39 @@ bool ThemeParser::resolutionCheck(const Common::String &resolution) {
 			return false;
 		}
 
-		int token = atoi(cur.c_str() + 2);
+		bool eq = false;
+		int offset = 2;
+
+		if (cur[2] == '=') {
+			eq = true;
+			offset++;
+		}
+
+		int token;
+
+		if (cur[offset] == 'W') { // Reported threshold width
+			token = 320;
+		} else if (cur[offset] == 'H') { // Reported threshold height
+#ifndef IPHONE
+			token = 400;
+#else
+			// HACK. Think about API to move it to OSystem?
+			// iPhone SE (gen3) is 375 × 667 @2, iPhone 14 is 390 × 844 @3
+			//
+			// Hence, we are setting height to 375, so we have highres
+			// theme by default
+			token = 375;
+#endif
+		} else if (cur[offset] == 'x') {
+			token = _baseWidth;
+		} else if (cur[offset] == 'y') {
+			token = _baseHeight;
+		} else {
+			token = atoi(cur.c_str() + offset);
+		}
+
+		if (eq && val == token)
+			return true;
 
 		// check inverse for unfulfilled requirements
 		if (lt) {

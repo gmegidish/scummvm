@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -170,11 +169,11 @@ bool QueenEngine::canLoadOrSave() const {
 	return !_input->cutawayRunning() && !(_resource->isDemo() || _resource->isInterview()) && _gameStarted;
 }
 
-bool QueenEngine::canLoadGameStateCurrently() {
+bool QueenEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return canLoadOrSave();
 }
 
-bool QueenEngine::canSaveGameStateCurrently() {
+bool QueenEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return canLoadOrSave();
 }
 
@@ -283,7 +282,7 @@ Common::String QueenEngine::getSaveStateName(int slot) const {
 
 void QueenEngine::makeGameStateName(int slot, char *buf) const {
 	Common::String name = getSaveStateName(slot);
-	strcpy(buf, name.c_str());
+	Common::strcpy_s(buf, 20, name.c_str());
 }
 
 int QueenEngine::getGameStateSlot(const char *filename) const {
@@ -304,7 +303,7 @@ void QueenEngine::findGameStateDescriptions(char descriptions[100][32]) {
 		if (i >= 0 && i < SAVESTATE_MAX_NUM) {
 			GameStateHeader header;
 			Common::InSaveFile *f = readGameStateHeader(i, &header);
-			strcpy(descriptions[i], header.description);
+			Common::strcpy_s(descriptions[i], header.description);
 			delete f;
 		}
 	}

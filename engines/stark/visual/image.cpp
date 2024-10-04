@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 #include "engines/stark/formats/xmg.h"
 #include "engines/stark/gfx/driver.h"
 #include "engines/stark/gfx/surfacerenderer.h"
-#include "engines/stark/gfx/texture.h"
+#include "engines/stark/gfx/bitmap.h"
 #include "engines/stark/services/services.h"
 #include "engines/stark/services/settings.h"
 
@@ -37,7 +36,7 @@ namespace Stark {
 VisualImageXMG::VisualImageXMG(Gfx::Driver *gfx) :
 		Visual(TYPE),
 		_gfx(gfx),
-		_texture(nullptr),
+		_bitmap(nullptr),
 		_surface(nullptr),
 		_originalWidth(0),
 		_originalHeight(0) {
@@ -49,7 +48,7 @@ VisualImageXMG::~VisualImageXMG() {
 		_surface->free();
 	}
 	delete _surface;
-	delete _texture;
+	delete _bitmap;
 	delete _surfaceRenderer;
 }
 
@@ -58,12 +57,12 @@ void VisualImageXMG::setHotSpot(const Common::Point &hotspot) {
 }
 
 void VisualImageXMG::load(Common::ReadStream *stream) {
-	assert(!_surface && !_texture);
+	assert(!_surface && !_bitmap);
 
 	// Decode the XMG
 	_surface = Formats::XMGDecoder::decode(stream);
-	_texture = _gfx->createBitmap(_surface);
-	_texture->setSamplingFilter(StarkSettings->getImageSamplingFilter());
+	_bitmap = _gfx->createBitmap(_surface);
+	_bitmap->setSamplingFilter(StarkSettings->getImageSamplingFilter());
 
 	_originalWidth  = _surface->w;
 	_originalHeight = _surface->h;
@@ -74,7 +73,7 @@ void VisualImageXMG::readOriginalSize(Common::ReadStream *stream) {
 }
 
 bool VisualImageXMG::loadPNG(Common::SeekableReadStream *stream) {
-	assert(!_surface && !_texture);
+	assert(!_surface && !_bitmap);
 
 	// Decode the XMG
 	Image::PNGDecoder pngDecoder;
@@ -95,8 +94,8 @@ bool VisualImageXMG::loadPNG(Common::SeekableReadStream *stream) {
 		_surface = pngDecoder.getSurface()->convertTo(Gfx::Driver::getRGBAPixelFormat());
 	}
 
-	_texture = _gfx->createBitmap(_surface);
-	_texture->setSamplingFilter(StarkSettings->getImageSamplingFilter());
+	_bitmap = _gfx->createBitmap(_surface);
+	_bitmap->setSamplingFilter(StarkSettings->getImageSamplingFilter());
 
 	return true;
 }
@@ -144,9 +143,9 @@ void VisualImageXMG::render(const Common::Point &position, bool useOffset, bool 
 	if (!unscaled) {
 		uint width = _gfx->scaleWidthOriginalToCurrent(_originalWidth);
 		uint height = _gfx->scaleHeightOriginalToCurrent(_originalHeight);
-		_surfaceRenderer->render(_texture, drawPos, width, height);
+		_surfaceRenderer->render(_bitmap, drawPos, width, height);
 	} else {
-		_surfaceRenderer->render(_texture, drawPos, _originalWidth, _originalHeight);
+		_surfaceRenderer->render(_bitmap, drawPos, _originalWidth, _originalHeight);
 	}
 }
 

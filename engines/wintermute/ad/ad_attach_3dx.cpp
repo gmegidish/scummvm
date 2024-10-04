@@ -1,22 +1,21 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,9 +28,9 @@
 #include "engines/wintermute/ad/ad_attach_3dx.h"
 #include "engines/wintermute/base/base_active_rect.h"
 #include "engines/wintermute/base/base_game.h"
-#include "engines/wintermute/base/gfx/shadow_volume.h"
+#include "engines/wintermute/base/gfx/3dshadow_volume.h"
 #include "engines/wintermute/base/gfx/opengl/base_render_opengl3d.h"
-#include "engines/wintermute/base/gfx/x/modelx.h"
+#include "engines/wintermute/base/gfx/xmodel.h"
 #include "engines/wintermute/base/scriptables/script.h"
 #include "engines/wintermute/base/scriptables/script_stack.h"
 #include "engines/wintermute/base/scriptables/script_value.h"
@@ -41,33 +40,33 @@ namespace Wintermute {
 IMPLEMENT_PERSISTENT(AdAttach3DX, false)
 
 //////////////////////////////////////////////////////////////////////////
-AdAttach3DX::AdAttach3DX(BaseGame *inGame, BaseObject *owner) : AdObject3D(inGame), _owner(owner) {
+AdAttach3DX::AdAttach3DX(BaseGame *inGame, BaseObject *owner) : AdObject3D(inGame) {
+	_owner = owner;
 	_dropToFloor = false;
 }
 
 //////////////////////////////////////////////////////////////////////////
-AdAttach3DX::~AdAttach3DX(void) {
+AdAttach3DX::~AdAttach3DX() {
 	_owner = nullptr; // ref only
 }
 
 //////////////////////////////////////////////////////////////////////////
 bool AdAttach3DX::init(const char *modelFile, const char *name, const char *parentBone) {
-	delete _modelX;
-	_modelX = nullptr;
+	delete _xmodel;
+	_xmodel = nullptr;
 
 	_parentBone = parentBone;
 	setName(name);
 
-	_modelX = new ModelX(_gameRef, _owner);
-
-	if (!_modelX) {
+	_xmodel = new XModel(_gameRef, _owner);
+	if (!_xmodel) {
 		return false;
 	}
 
-	bool res = _modelX->loadFromFile(modelFile);
+	bool res = _xmodel->loadFromFile(modelFile);
 	if (!res) {
-		delete _modelX;
-		_modelX = nullptr;
+		delete _xmodel;
+		_xmodel = nullptr;
 	}
 
 	return res;
@@ -76,8 +75,8 @@ bool AdAttach3DX::init(const char *modelFile, const char *name, const char *pare
 //////////////////////////////////////////////////////////////////////////
 bool AdAttach3DX::update() {
 	AdObject3D::update();
-	if (_modelX) {
-		return _modelX->update();
+	if (_xmodel) {
+		return _xmodel->update();
 	} else {
 		return true;
 	}
@@ -88,15 +87,15 @@ bool AdAttach3DX::displayAttachable(const Math::Matrix4 &viewMat, bool registerO
 	Math::Matrix4 finalMat = _owner->_worldMatrix * viewMat * _worldMatrix;
 	_gameRef->_renderer3D->setWorldTransform(finalMat);
 
-	if (_modelX) {
-		_modelX->render();
+	if (_xmodel) {
+		_xmodel->render();
 
 		if (registerObjects && _owner && _owner->_registrable) {
-			_gameRef->_renderer->addRectToList(new BaseActiveRect(_gameRef, _owner, _modelX,
-			                                                      _modelX->_boundingRect.left,
-			                                                      _modelX->_boundingRect.top,
-			                                                      _modelX->_boundingRect.right - _modelX->_boundingRect.left,
-			                                                      _modelX->_boundingRect.bottom - _modelX->_boundingRect.top,
+			_gameRef->_renderer->addRectToList(new BaseActiveRect(_gameRef, _owner, _xmodel,
+			                                                      _xmodel->_boundingRect.left,
+			                                                      _xmodel->_boundingRect.top,
+			                                                      _xmodel->_boundingRect.right - _xmodel->_boundingRect.left,
+			                                                      _xmodel->_boundingRect.bottom - _xmodel->_boundingRect.top,
 			                                                      true));
 		}
 	}
@@ -108,10 +107,10 @@ bool AdAttach3DX::displayAttachable(const Math::Matrix4 &viewMat, bool registerO
 bool AdAttach3DX::displayShadowVol(const Math::Matrix4 &modelMat, const Math::Vector3d &light, float extrusionDepth, bool update) {
 	Math::Matrix4 finalMat = modelMat * _worldMatrix;
 
-	if (_modelX) {
+	if (_xmodel) {
 		if (update) {
 			getShadowVolume()->reset();
-			_modelX->updateShadowVol(getShadowVolume(), finalMat, light, extrusionDepth);
+			_xmodel->updateShadowVol(getShadowVolume(), finalMat, light, extrusionDepth);
 		}
 
 		_gameRef->_renderer3D->setWorldTransform(finalMat);
@@ -136,7 +135,7 @@ bool AdAttach3DX::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisSt
 	if (strcmp(name, "PlayAnim") == 0 || strcmp(name, "PlayAnimAsync") == 0) {
 		stack->correctParams(1);
 		Common::String animName = stack->pop()->getString();
-		if (!_modelX || !_modelX->playAnim(0, animName, 0, true)) {
+		if (!_xmodel || !_xmodel->playAnim(0, animName, 0, true)) {
 			stack->pushBool(false);
 		} else {
 			if (strcmp(name, "PlayAnimAsync") != 0)
@@ -152,8 +151,8 @@ bool AdAttach3DX::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisSt
 	else if (strcmp(name, "StopAnim") == 0) {
 		stack->correctParams(0);
 		bool ret = false;
-		if (_modelX) {
-			ret = _modelX->stopAnim(0);
+		if (_xmodel) {
+			ret = _xmodel->stopAnim(0);
 		}
 
 		stack->pushBool(ret);
@@ -167,8 +166,8 @@ bool AdAttach3DX::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisSt
 		stack->correctParams(1);
 		int channel = stack->pop()->getInt();
 		bool ret = false;
-		if (_modelX) {
-			ret = _modelX->stopAnim(channel, 0);
+		if (_xmodel) {
+			ret = _xmodel->stopAnim(channel, 0);
 		}
 
 		stack->pushBool(ret);
@@ -183,7 +182,7 @@ bool AdAttach3DX::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisSt
 		int channel = stack->pop()->getInt();
 		const char *animName = stack->pop()->getString();
 
-		if (!_modelX || !_modelX->playAnim(channel, animName, 0, true)) {
+		if (!_xmodel || !_xmodel->playAnim(channel, animName, 0, true)) {
 			stack->pushBool(false);
 		} else {
 			if (strcmp(name, "PlayAnimChannelAsync") != 0) {
@@ -237,8 +236,8 @@ bool AdAttach3DX::persist(BasePersistenceManager *persistMgr) {
 
 //////////////////////////////////////////////////////////////////////////
 bool AdAttach3DX::invalidateDeviceObjects() {
-	if (_modelX) {
-		_modelX->invalidateDeviceObjects();
+	if (_xmodel) {
+		_xmodel->invalidateDeviceObjects();
 	}
 
 	if (_shadowModel) {
@@ -250,8 +249,8 @@ bool AdAttach3DX::invalidateDeviceObjects() {
 
 //////////////////////////////////////////////////////////////////////////
 bool AdAttach3DX::restoreDeviceObjects() {
-	if (_modelX) {
-		_modelX->restoreDeviceObjects();
+	if (_xmodel) {
+		_xmodel->restoreDeviceObjects();
 	}
 
 	if (_shadowModel) {

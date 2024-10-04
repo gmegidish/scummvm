@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -139,7 +138,7 @@ const int kStructSizeBASA = 8;
 // background and normal animation
 struct Anim {
 	BASA _basaData;
-	int32 _addr; //animation adress
+	int32 _addr; // animation address
 	int16 _usage;
 	int16 _state; // state of animation: 0 - turning on, 1 - turning off
 	int16 _flags;
@@ -207,7 +206,7 @@ enum AnimType {
 // Nak (PL - Nakladka)
 struct Mask {
 	uint16 _state; // visible / invisible
-	int16 _flags; // turning on / turning off of an mask
+	int16 _flags; // turning on / turning off of a mask
 	int16 _x1;
 	int16 _y1;
 	int16 _x2;
@@ -280,12 +279,12 @@ public:
 
 	bool hasFeature(EngineFeature f) const override;
 	void pauseEngineIntern(bool pause) override;
-	bool canSaveGameStateCurrently() override;
-	bool canLoadGameStateCurrently() override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
 	Common::Error loadGameState(int slot) override;
 
-	void playVideo(Common::String videoFilename);
+	void playVideo(const Common::Path &videoFilename);
 
 	WARN_UNUSED_RESULT static bool readSavegameHeader(Common::InSaveFile *in, SavegameHeader &header, bool skipThumbnail = true);
 	void writeSavegameHeader(Common::OutSaveFile *out, SavegameHeader &header);
@@ -570,7 +569,7 @@ public:
 	byte *_roomPathBitmapTemp; // PL - SSala
 	byte *_coordsBufEnd;
 	byte *_coordsBuf; // optimal path
-	byte *_coords; // last path point adress from coordsBuf
+	byte *_coords; // last path point address from coordsBuf
 	byte *_coordsBuf2;
 	byte *_coords2;
 	byte *_coordsBuf3;

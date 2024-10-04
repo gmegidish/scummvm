@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@ namespace Made {
 	< 0x7FFE  object
 */
 
-Object::Object() : _objData(NULL), _freeData(false) {
+Object::Object() : _objData(nullptr), _freeData(false) {
 	_objSize = 0;
 }
 
@@ -52,7 +51,7 @@ const char *Object::getString() {
 	if (getClass() == 0x7FFF)
 		return (const char*)getData();
 	else
-		return NULL;
+		return nullptr;
 }
 
 void Object::setString(const char *str) {
@@ -327,7 +326,7 @@ void GameDatabase::setObjectString(int16 index, const char *str) {
 int16 *GameDatabase::findObjectPropertyCached(int16 objectIndex, int16 propertyId, int16 &propertyFlag) {
 	uint32 id = (objectIndex << 16) | propertyId;
 	ObjectPropertyCacheMap::iterator iter = _objectPropertyCache.find(id);
-	int16 *propertyPtr = NULL;
+	int16 *propertyPtr = nullptr;
 	if (iter != _objectPropertyCache.end()) {
 		propertyPtr = (*iter)._value;
 	} else {
@@ -386,7 +385,7 @@ void GameDatabase::dumpObject(int16 index) {
 
 /* GameDatabaseV2 */
 
-GameDatabaseV2::GameDatabaseV2(MadeEngine *vm) : GameDatabase(vm), _gameText(NULL) {
+GameDatabaseV2::GameDatabaseV2(MadeEngine *vm) : GameDatabase(vm), _gameText(nullptr) {
 }
 
 GameDatabaseV2::~GameDatabaseV2() {
@@ -438,8 +437,7 @@ void GameDatabaseV2::load(Common::SeekableReadStream &sourceS) {
 
 	debug(0, "textOffs = %08X; textSize = %08X; objectCount = %d; varObjectCount = %d; gameStateSize = %d; objectsOffs = %08X; objectsSize = %d; _mainCodeObjectIndex = %04X\n", textOffs, textSize, objectCount, varObjectCount, _gameStateSize, objectsOffs, objectsSize, _mainCodeObjectIndex);
 
-	_gameState = new byte[_gameStateSize + 2];
-	memset(_gameState, 0, _gameStateSize + 2);
+	_gameState = new byte[_gameStateSize + 2]();
 	setVar(1, objectCount);
 
 	sourceS.seek(textOffs);
@@ -551,7 +549,7 @@ int16 *GameDatabaseV2::findObjectProperty(int16 objectIndex, int16 propertyId, i
 	// Now check in the object hierarchy of the given object
 	int16 parentObjectIndex = obj->getClass();
 	if (parentObjectIndex == 0) {
-		return NULL;
+		return nullptr;
 	}
 
 	while (parentObjectIndex != 0) {
@@ -588,7 +586,7 @@ int16 *GameDatabaseV2::findObjectProperty(int16 objectIndex, int16 propertyId, i
 	}
 
 	debug(1, "findObjectProperty(%04X, %04X) Property not found", objectIndex, propertyId);
-	return NULL;
+	return nullptr;
 
 }
 
@@ -756,7 +754,7 @@ int16 GameDatabaseV3::loadgame(const char *filename, int16 version) {
 int16 *GameDatabaseV3::findObjectProperty(int16 objectIndex, int16 propertyId, int16 &propertyFlag) {
 	Object *obj = getObject(objectIndex);
 	if (obj->getClass() >= 0x7FFE) {
-		error("GameDatabaseV2::findObjectProperty(%04X, %04X) Not an object", objectIndex, propertyId);
+		error("GameDatabaseV3::findObjectProperty(%04X, %04X) Not an object", objectIndex, propertyId);
 	}
 
 	int16 *prop = (int16 *)obj->getData();
@@ -784,7 +782,7 @@ int16 *GameDatabaseV3::findObjectProperty(int16 objectIndex, int16 propertyId, i
 	// Now check in the object hierarchy of the given object
 	int16 parentObjectIndex = obj->getClass();
 	if (parentObjectIndex == 0) {
-		return NULL;
+		return nullptr;
 	}
 
 	while (parentObjectIndex != 0) {
@@ -830,13 +828,13 @@ int16 *GameDatabaseV3::findObjectProperty(int16 objectIndex, int16 propertyId, i
 
 	}
 
-	return NULL;
+	return nullptr;
 
 }
 
 const char *GameDatabaseV3::getString(uint16 offset) {
 	// Not used in version 3 games
-	return NULL;
+	return nullptr;
 }
 
 } // End of namespace Made

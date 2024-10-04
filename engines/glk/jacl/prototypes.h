@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,6 @@ extern strid_t open_glk_file(uint usage, uint mode, char *filename);
 extern glui32 glk_get_bin_line_stream(strid_t file_stream, char *buffer, glui32 max_length);
 extern glui32 parse_utf8(unsigned char *buf, glui32 buflen, glui32 *out, glui32 outlen);
 extern void convert_to_utf8(glui32 *text, int len);
-extern glui32 parse_utf8(unsigned char *buf, glui32 buflen, glui32 *out, glui32 outlen);
 #else
 extern void update_parameters();
 #endif
@@ -67,7 +65,9 @@ extern void create_cinteger(const char *name, int value);
 extern void scripting();
 extern void undoing();
 extern void walking_thru();
+#ifndef GLK
 extern void create_paths(char *full_path);
+#endif
 extern int get_key();
 extern char get_character(const char *message);
 extern int get_yes_or_no();

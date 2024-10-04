@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,10 +15,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * String resource managment routines
+ * String resource management routines
  */
 
 #include "tinsel/dw.h"
@@ -69,12 +68,6 @@ bool g_bMultiByte = false;
 
 LANGUAGE g_textLanguage, g_sampleLanguage = TXT_ENGLISH;
 
-//----------------- LOCAL DEFINES ----------------------------
-
-#define languageExtension	".txt"
-#define indexExtension		".idx"
-#define sampleExtension		".smp"
-
 //----------------- FUNCTIONS --------------------------------
 
 void ResetVarsStrRes() {
@@ -104,7 +97,7 @@ void ChangeLanguage(LANGUAGE newLang) {
 	if (!f.open(_vm->getTextFile(newLang))) {
 		if ((newLang == TXT_ENGLISH) || !f.open(_vm->getTextFile(TXT_ENGLISH))) {
 			char buf[50];
-			sprintf(buf, CANNOT_FIND_FILE, _vm->getTextFile(newLang));
+			Common::sprintf_s(buf, CANNOT_FIND_FILE, _vm->getTextFile(newLang));
 			GUI::MessageDialog dialog(buf, "OK");
 			dialog.runModal();
 
@@ -157,7 +150,7 @@ static byte *FindStringBase(int id) {
 	byte *pText = g_textBuffer;
 
 	// For Tinsel 0, Ids are decremented by 1
-	if (TinselV0)
+	if (TinselVersion == 0)
 		--id;
 
 	// index into text resource file
@@ -193,7 +186,7 @@ static byte *FindStringBase(int id) {
 	while (strSkip-- != 0) {
 		// skip to next string
 
-		if (!TinselV2 || ((*pText & 0x80) == 0)) {
+		if ((TinselVersion <= 1) || ((*pText & 0x80) == 0)) {
 			// Tinsel 1, or string of length < 128
 			pText += *pText + 1;
 		} else if (*pText == 0x80) {
@@ -241,11 +234,11 @@ int LoadStringResource(int id, int sub, char *pBuffer, int bufferMax) {
 	byte *pText = FindStringBase(id);
 
 	if (pText == NULL) {
-		strcpy(pBuffer, "!! HIGH STRING !!");
+		Common::strcpy_s(pBuffer, bufferMax, "!! HIGH STRING !!");
 		return 0;
 	}
 
-	if (!TinselV2 || ((*pText & 0x80) == 0)) {
+	if ((TinselVersion <= 1) || ((*pText & 0x80) == 0)) {
 		// get length of string
 		len = *pText;
 	} else if (*pText == 0x80) {
@@ -317,7 +310,7 @@ int LoadStringResource(int id, int sub, char *pBuffer, int bufferMax) {
 	}
 
 	// TEMPORARY DIRTY BODGE
-	strcpy(pBuffer, "!! NULL STRING !!");
+	Common::strcpy_s(pBuffer, bufferMax, "!! NULL STRING !!");
 
 	// string does not exist
 	return 0;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,28 +15,30 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef DIRECTOR_LINGO_XLIBS_CDROMXOBJ_H
 #define DIRECTOR_LINGO_XLIBS_CDROMXOBJ_H
 
+#include "backends/audiocd/audiocd.h"
+
 namespace Director {
 
 class CDROMXObject : public Object<CDROMXObject> {
 public:
 	CDROMXObject(ObjectType objType);
+    AudioCDManager::Status _cdda_status;
 };
 
 namespace CDROMXObj {
 
 extern const char *xlibName;
-extern const char *fileNames[];
+extern const XlibFileDesc fileNames[];
 
-void open(int type);
-void close(int type);
+void open(ObjectType type, const Common::Path &path);
+void close(ObjectType type);
 
 void m_new(int nargs);
 void m_name(int nargs);

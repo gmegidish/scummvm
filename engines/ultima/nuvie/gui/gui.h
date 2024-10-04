@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,12 +44,10 @@ class GUI {
 protected:
 
 	static GUI *gui;
-	Configuration *config;
+	const Configuration *config;
 
 	/* The display surface */
 	Screen *screen;
-
-	int screen_scale_factor;
 
 	GUI_Font *gui_font;
 	GUI_DragManager *gui_drag_manager;
@@ -73,10 +70,10 @@ protected:
 	/* Flag - whether or not the GUI needs to be displayed */
 	int display;
 
-	/* Flag - wether we are preforming a drag and drop */
+	/* Flag - whether we are performing a drag and drop */
 	bool dragging;
 
-	bool full_redraw; //this forces all widgets to redraw on the next call to Display()
+	bool full_redraw; // this forces all widgets to redraw on the next call to Display()
 
 	// some default colours
 	GUI_Color *selected_color;
@@ -84,7 +81,7 @@ protected:
 public:
 	static const int mouseclick_delay; /* SB-X */
 
-	GUI(Configuration *c, Screen *s);
+	GUI(const Configuration *c, Screen *s);
 	~GUI();
 
 	/* Add a widget to the GUI.
@@ -109,7 +106,7 @@ public:
 	   function requested a quit.
 	 */
 	int Running(void) {
-		return (running);
+		return running;
 	}
 
 	/* Run the GUI.
@@ -117,12 +114,12 @@ public:
 	   function requests a quit, or the SDL window has been closed.
 	   If 'once' is non-zero, you need to display the GUI yourself,
 	   and the GUI event loop will run once and then return.
-	   If 'multitaskfriendly' is non-zero AND idle is NULL,
+	   If 'multitaskfriendly' is non-zero AND idle is nullptr,
 	   a 'WaitEvent' will be used instead of the CPU time
 	   consuming 'PollEvent'. CAVE: Any widget-'idle'-procs WON'T
 	   be executed then.
 	 */
-	void Run(GUI_IdleProc idle = NULL, int once = 0, int multitaskfriendly = 0);
+	void Run(GUI_IdleProc idle = nullptr, int once = 0, int multitaskfriendly = 0);
 
 	/* Run Idle() on all widgets. */
 	void Idle(); // SB-X
@@ -154,11 +151,11 @@ public:
 
 	bool set_focus(GUI_Widget *widget);
 	void clear_focus()  {
-		set_focus(NULL);
+		set_focus(nullptr);
 	}
 	void lock_input(GUI_Widget *widget);
 	void unlock_input() {
-		lock_input(NULL);
+		lock_input(nullptr);
 		unblock();
 	}
 	void block()   {
@@ -167,12 +164,12 @@ public:
 	void unblock() {
 		block_input = false;
 	}
-	Std::string get_data_dir();
+	Common::Path get_data_dir() const;
 
-	uint16 get_width() {
+	uint16 get_width() const {
 		return screen->get_width();
 	}
-	uint16 get_height() {
+	uint16 get_height() const {
 		return screen->get_height();
 	}
 protected:

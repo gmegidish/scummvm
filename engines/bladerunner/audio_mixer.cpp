@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,15 +54,17 @@ AudioMixer::~AudioMixer() {
 	_vm->getTimerManager()->removeTimerProc(timerCallback);
 }
 
+// volume should be in [0, 100]
+// pan should be in [-100, 100]
+// priority should be in [0, 100]
 int AudioMixer::play(Audio::Mixer::SoundType type, Audio::RewindableAudioStream *stream, int priority, bool loop, int volume, int pan, void (*endCallback)(int, void *), void *callbackData, uint32 trackDurationMs) {
 	Common::StackLock lock(_mutex);
-
-	int channel = -1;
+	int channelToAssign = -1;
 	int lowestPriority = 1000000;
 	int lowestPriorityChannel = -1;
 	for (int i = 0; i < kUsableChannels; ++i) {
 		if (!_channels[i].isPresent) {
-			channel = i;
+			channelToAssign = i;
 			break;
 		}
 		if (_channels[i].priority < lowestPriority) {
@@ -71,22 +72,28 @@ int AudioMixer::play(Audio::Mixer::SoundType type, Audio::RewindableAudioStream 
 			lowestPriorityChannel = i;
 		}
 	}
-	if (channel == -1) {
+
+	// If there's no available channel found
+	if (channelToAssign == -1) {
+		// Give up if the lowest priority channel still has greater priority (lowestPriority).
+		// NOTE If the new priority is *equal* to the existing lowestPriority,
+		// then the new audio will replace the old one.
 		if (priority < lowestPriority) {
 			//debug("No available audio channel found - giving up");
 			return -1;
 		}
+		// Otherwise, stop the lowest priority channel, and assign the slot to the new one.
 		//debug("Stopping lowest priority channel %d with lower prio %d!", lowestPriorityChannel, lowestPriority);
 		stop(lowestPriorityChannel, 0u);
-		channel = lowestPriorityChannel;
+		channelToAssign = lowestPriorityChannel;
 	}
 
-	return playInChannel(channel, type, stream, priority, loop, volume, pan, endCallback, callbackData, trackDurationMs);
+	return playInChannel(channelToAssign, type, stream, priority, loop, volume, pan, endCallback, callbackData, trackDurationMs);
 }
 
+// volume should be in [0, 100]
 int AudioMixer::playMusic(Audio::RewindableAudioStream *stream, int volume, void(*endCallback)(int, void *), void *callbackData, uint32 trackDurationMs) {
 	Common::StackLock lock(_mutex);
-
 	return playInChannel(kMusicChannel, Audio::Mixer::kMusicSoundType, stream, 100, false, volume, 0, endCallback, callbackData, trackDurationMs);
 }
 
@@ -110,6 +117,9 @@ void AudioMixer::stop(int channel, uint32 time) {
 	}
 }
 
+// volume should be in [0, 100]
+// pan should be in [-100, 100]
+// priority should be in [0, 100]
 int AudioMixer::playInChannel(int channel, Audio::Mixer::SoundType type, Audio::RewindableAudioStream *stream, int priority, bool loop, int volume, int pan, void(*endCallback)(int, void *), void *callbackData, uint32 trackDurationMs) {
 	_channels[channel].isPresent = true;
 	_channels[channel].stream = stream;
@@ -126,25 +136,26 @@ int AudioMixer::playInChannel(int channel, Audio::Mixer::SoundType type, Audio::
 	_channels[channel].timeStarted = _vm->_time->currentSystem();
 	_channels[channel].trackDurationMs = trackDurationMs;
 
-	Audio::AudioStream *audioStream = stream;
-
-	if (loop) {
-		audioStream = new Audio::LoopingAudioStream(stream, 0, DisposeAfterUse::YES);
-	}
-
 	if (!_vm->_mixer->isReady()) {
 		_channels[channel].sentToMixer = false;
 		return channel;
 	}
 	_channels[channel].sentToMixer = true;
 
-	_vm->_mixer->playStream(
-		type,
-		&_channels[channel].handle,
-		audioStream,
-		-1,
-		volume * 255 / 100,
-		pan * 127 / 100);
+	Audio::AudioStream *audioStream = stream;
+	if (loop) {
+		audioStream = new Audio::LoopingAudioStream(stream, 0, DisposeAfterUse::YES);
+	}
+
+	// Note: 127 (multiplier for pan) is the max (abs) balance value (see common/mixer.cpp)
+	_vm->_mixer->playStream(type,
+	                        &_channels[channel].handle,
+	                        audioStream,
+	                        -1,
+	                        (volume * Audio::Mixer::kMaxChannelVolume) / 100, // the resulting value will be a percentage over kMaxChannelVolume
+	                                              // playStream() will get the soundtype volume into consideration
+	                                              // See: Channel::updateChannelVolumes() in audio/mixer.cpp
+	                        (pan * 127) / 100);
 
 	return channel;
 }
@@ -161,24 +172,30 @@ void AudioMixer::timerCallback(void *self) {
 	((AudioMixer *)self)->tick();
 }
 
+// This method sets the target volume (as a percent) and the delta increment or decrement
+// to reach the target in the specified time.
 // Note: time tends to be the requested time in seconds multiplied by 60u
-void AudioMixer::adjustVolume(int channel, int newVolume, uint32 time) {
+// targetVolume should be in [0, 100]
+void AudioMixer::adjustVolume(int channel, int targetVolume, uint32 time) {
 	Common::StackLock lock(_mutex);
 
 	if (_channels[channel].isPresent) {
-		_channels[channel].volumeTarget = newVolume;
-		_channels[channel].volumeDelta = ((newVolume - _channels[channel].volume) / (time / 60.0f)) / (float)kUpdatesPerSecond;
+		_channels[channel].volumeTarget = targetVolume;
+		_channels[channel].volumeDelta = ((targetVolume - _channels[channel].volume) / (time / 60.0f)) / (float)kUpdatesPerSecond;
 	}
 }
 
+// This method sets the target pan (as a percent) and the delta increment or decrement
+// to reach the target in the specified time.
 // Note: time tends to be the requested time in seconds multiplied by 60u
-void AudioMixer::adjustPan(int channel, int newPan, uint32 time) {
+// targetPan should be in [-100, 100]
+void AudioMixer::adjustPan(int channel, int targetPan, uint32 time) {
 	Common::StackLock lock(_mutex);
 
 	if (_channels[channel].isPresent) {
-		newPan = CLIP(newPan, -100, 100);
-		_channels[channel].panTarget = newPan;
-		_channels[channel].panDelta = ((newPan - _channels[channel].pan) / (time / 60.0f)) / (float)kUpdatesPerSecond;
+		targetPan = CLIP(targetPan, -100, 100);
+		_channels[channel].panTarget = targetPan;
+		_channels[channel].panDelta = ((targetPan - _channels[channel].pan) / (time / 60.0f)) / (float)kUpdatesPerSecond;
 	}
 }
 
@@ -201,7 +218,8 @@ void AudioMixer::tick() {
 			}
 
 			if (channel->sentToMixer) {
-				_vm->_mixer->setChannelVolume(channel->handle, (channel->volume * Audio::Mixer::kMaxChannelVolume) / 100); // map [0..100] to [0..kMaxChannelVolume]
+				// map volume value from [0..100] to [0..kMaxChannelVolume]
+				_vm->_mixer->setChannelVolume(channel->handle, (channel->volume * Audio::Mixer::kMaxChannelVolume) / 100);
 			}
 
 			if (channel->volume <= 0.0f) {
@@ -218,7 +236,8 @@ void AudioMixer::tick() {
 			}
 
 			if (channel->sentToMixer) {
-				_vm->_mixer->setChannelBalance(channel->handle, (channel->pan * 127) / 100); // map [-100..100] to [-127..127]
+				// map balance value from [-100..100] to [-127..127]
+				_vm->_mixer->setChannelBalance(channel->handle, (channel->pan * 127) / 100);
 			}
 		}
 

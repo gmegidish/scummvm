@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef AGS_ENGINE_GAME_SAVEGAME_H
 #define AGS_ENGINE_GAME_SAVEGAME_H
 
-#include "ags/lib/std/memory.h"
+#include "common/std/memory.h"
 #include "ags/shared/core/platform.h"
 #include "ags/shared/ac/game_version.h"
 #include "ags/shared/util/error.h"
@@ -53,6 +52,7 @@ typedef std::shared_ptr<Stream> PStream;
 //
 // 8      last old style saved game format (of AGS 3.2.1)
 // 9      first new style (self-descriptive block-based) format version
+// Since 3.6.0: value is defined as AGS version represented as NN,NN,NN,NN.
 //-----------------------------------------------------------------------------
 enum SavegameVersion {
 	kSvgVersion_Undefined = 0,
@@ -62,7 +62,9 @@ enum SavegameVersion {
 	kSvgVersion_350_final = 11,
 	kSvgVersion_350_final2 = 12,
 	kSvgVersion_351 = 13,
-	kSvgVersion_Current = kSvgVersion_351,
+	kSvgVersion_360_beta = 3060023,
+	kSvgVersion_360_final = 3060041,
+	kSvgVersion_Current = kSvgVersion_360_final,
 	kSvgVersion_LowestSupported = kSvgVersion_321 // change if support dropped
 };
 
@@ -96,13 +98,6 @@ String GetSavegameErrorText(SavegameErrorType err);
 
 typedef TypedCodeError<SavegameErrorType, GetSavegameErrorText> SavegameError;
 typedef ErrorHandle<SavegameError> HSaveError;
-typedef std::unique_ptr<Bitmap> UBitmap;
-#ifdef UNUSED_AGS_PLATFORM_SCUMMVM
-typedef std::shared_ptr<Stream> UStream;
-#else
-typedef std::unique_ptr<Stream> UStream;
-#endif
-
 
 // SavegameSource defines a successfully opened savegame stream
 struct SavegameSource {
@@ -116,7 +111,7 @@ struct SavegameSource {
 	// Savegame format version
 	SavegameVersion     Version;
 	// A ponter to the opened stream
-	UStream             InputStream;
+	std::unique_ptr<Stream> InputStream;
 
 	SavegameSource();
 };
@@ -131,7 +126,7 @@ enum SavegameDescElem {
 	kSvgDesc_All = kSvgDesc_EnvInfo | kSvgDesc_UserText | kSvgDesc_UserImage
 };
 
-// SavegameDescription describes savegame with information about the enviroment
+// SavegameDescription describes savegame with information about the environment
 // it was created in, and custom data provided by user
 struct SavegameDescription {
 	// Name of the engine that saved the game
@@ -155,7 +150,7 @@ struct SavegameDescription {
 	int                 ColorDepth;
 
 	String              UserText;
-	UBitmap             UserImage;
+	std::unique_ptr<Bitmap> UserImage;
 
 	SavegameDescription();
 };

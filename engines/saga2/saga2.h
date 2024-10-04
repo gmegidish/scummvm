@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,6 @@
 #include "engines/advancedDetector.h"
 #include "engines/engine.h"
 
-#include "saga2/console.h"
 #include "saga2/gfx.h"
 #include "saga2/idtypes.h"
 #include "saga2/weapons.h"
@@ -48,6 +46,7 @@ class MemoryWriteStreamDynamic;
 namespace Saga2 {
 
 class ContainerManager;
+class Console;
 class Timer;
 class TimerList;
 class BandList;
@@ -82,7 +81,7 @@ class CMapFeature;
 class AudioInterface;
 class PaletteManager;
 class ActorManager;
-class CalenderTime;
+class CalendarTime;
 class TileModeManager;
 struct SAGA2GameDescription;
 
@@ -114,8 +113,8 @@ public:
 	bool hasFeature(EngineFeature f) const override;
 	const ADGameFileDescription *getFilesDescriptions() const;
 	int getGameId() const;
-	bool canLoadGameStateCurrently() override { return true; }
-	bool canSaveGameStateCurrently() override { return true; }
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return true; }
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override { return true; }
 	Common::Error loadGameStream(Common::SeekableReadStream *stream) override;
 	Common::Error saveGameStream(Common::WriteStream *stream, bool isAutosave = false) override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave) override;
@@ -145,7 +144,7 @@ public:
 	AudioInterface *_audio;
 	PaletteManager *_pal;
 	ActorManager *_act;
-	CalenderTime *_calender;
+	CalendarTime *_calendar;
 	TileModeManager *_tmm;
 	ContainerManager *_cnm;
 

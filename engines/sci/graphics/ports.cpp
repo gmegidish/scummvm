@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,8 +49,6 @@ GfxPorts::~GfxPorts() {
 }
 
 void GfxPorts::init(bool usesOldGfxFunctions, GfxPaint16 *paint16, GfxText16 *text16) {
-	int16 offTop = 10;
-
 	_usesOldGfxFunctions = usesOldGfxFunctions;
 	_paint16 = paint16;
 	_text16 = text16;
@@ -83,9 +80,11 @@ void GfxPorts::init(bool usesOldGfxFunctions, GfxPaint16 *paint16, GfxText16 *te
 
 	// Jones, Slater, Hoyle 3&4 and Crazy Nicks Laura Bow/Kings Quest were
 	// called with parameter -Nw 0 0 200 320.
-	// Mother Goose (SCI1) uses -Nw 0 0 159 262. The game will later use
+	// Mother Goose (SCI1, SCI11) uses -Nw 0 0 159 262. The game will later use
 	// SetPort so we don't need to set the other fields.
 	// This actually meant not skipping the first 10 pixellines in windowMgrPort
+	int16 offTop = 10;
+	bool useMacStatusBarSizing = false;
 	switch (g_sci->getGameId()) {
 	case GID_JONES:
 	case GID_SLATER:
@@ -93,16 +92,28 @@ void GfxPorts::init(bool usesOldGfxFunctions, GfxPaint16 *paint16, GfxText16 *te
 	case GID_HOYLE4:
 	case GID_CNICK_LAURABOW:
 	case GID_CNICK_KQ:
-		offTop = 0;
-		break;
 	case GID_MOTHERGOOSE256:
-		// only the SCI1 and SCI1.1 (VGA) versions need this
 		offTop = 0;
 		break;
 	case GID_FAIRYTALES:
 		// Mixed-Up Fairy Tales (& its demo) uses -w 26 0 200 320. If we don't
 		// also do this we will get not-fully-removed windows everywhere.
 		offTop = 26;
+		break;
+	case GID_QFG1VGA:
+		// QFG1VGA relies on the initial state of the pic window, but its Mac
+		// interpreter sets this differently. The game draws its first pic without
+		// calling kSetPort first. In the PC version this drew pic 750 (320x190)
+		// under the usual 10 pixel black bar. But the Mac interpreter has a
+		// different initial state when its HasStatusBar config flag is set.
+		// (First byte in the `cnfg` resource in the interpreter's resource fork.)
+		// The first pic is instead drawn at the very top of the screen. This would
+		// have left a 10 pixel black bar at the bottom. Sierra fixed this by cloning
+		// pic 750 into pic 748 and extending it by 10 pixels to fill the screen.
+		// We achieve the same effect by adjusting the initial pic window size.
+		// HasStatusBar is also set in LSL6, Brain, and Hoyle4 but they don't depend
+		// on the altered initial state.
+		useMacStatusBarSizing = (g_sci->getPlatform() == Common::kPlatformMacintosh);
 		break;
 	default:
 		// For Mac games running with a height of 190, we do not have a menu bar
@@ -115,7 +126,7 @@ void GfxPorts::init(bool usesOldGfxFunctions, GfxPaint16 *paint16, GfxText16 *te
 	openPort(_wmgrPort);
 	setPort(_wmgrPort);
 	// SCI0 games till kq4 (.502 - not including) did not adjust against _wmgrPort in kNewWindow
-	//  We leave _wmgrPort top at 0, so the adjustment wont get done
+	//  We leave _wmgrPort top at 0, so the adjustment won't get done
 	if (!_usesOldGfxFunctions) {
 		setOrigin(0, offTop);
 		_wmgrPort->rect.bottom = _screen->getHeight() - offTop;
@@ -128,7 +139,11 @@ void GfxPorts::init(bool usesOldGfxFunctions, GfxPaint16 *paint16, GfxText16 *te
 	_wmgrPort->curLeft = 0;
 	_windowList.push_front(_wmgrPort);
 
-	_picWind = addWindow(Common::Rect(0, offTop, _screen->getScriptWidth(), _screen->getScriptHeight()), 0, 0, SCI_WINDOWMGR_STYLE_TRANSPARENT | SCI_WINDOWMGR_STYLE_NOFRAME, 0, true);
+	Common::Rect picWindowRect(0, offTop, _screen->getScriptWidth(), _screen->getScriptHeight());
+	if (useMacStatusBarSizing) {
+		picWindowRect.top = 0;
+	}
+	_picWind = addWindow(picWindowRect, nullptr, nullptr, SCI_WINDOWMGR_STYLE_TRANSPARENT | SCI_WINDOWMGR_STYLE_NOFRAME, 0, true);
 	// For SCI0 games till kq4 (.502 - not including) we set _picWind top to offTop instead
 	//  Because of the menu/status bar
 	if (_usesOldGfxFunctions)
@@ -210,12 +225,12 @@ reg_t GfxPorts::kernelGetActive() {
 }
 
 reg_t GfxPorts::kernelNewWindow(Common::Rect dims, Common::Rect restoreRect, uint16 style, int16 priority, int16 colorPen, int16 colorBack, const char *title) {
-	Window *wnd = NULL;
+	Window *wnd = nullptr;
 
 	if (restoreRect.bottom != 0 && restoreRect.right != 0)
 		wnd = addWindow(dims, &restoreRect, title, style, priority, false);
 	else
-		wnd = addWindow(dims, NULL, title, style, priority, false);
+		wnd = addWindow(dims, nullptr, title, style, priority, false);
 	wnd->penClr = colorPen;
 	wnd->backClr = colorBack;
 	drawWindow(wnd);
@@ -323,7 +338,7 @@ Window *GfxPorts::addWindow(const Common::Rect &dims, const Common::Rect *restor
 
 	if (r.width() > _screen->getScriptWidth()) {
 		// We get invalid dimensions at least at the end of sq3 (script bug!).
-		// Same happens very often in lsl5, sierra sci didnt fix it but it looked awful.
+		// Same happens very often in lsl5, sierra sci didn't fix it but it looked awful.
 		// Also happens frequently in the demo of GK1.
 		warning("Fixing too large window, left: %d, right: %d", dims.left, dims.right);
 		r.left = 0;
@@ -422,7 +437,7 @@ Window *GfxPorts::addWindow(const Common::Rect &dims, const Common::Rect *restor
 
 	pwnd->rect.moveTo(pwnd->rect.left + pwnd->dims.left - oldleft, pwnd->rect.top + pwnd->dims.top - oldtop);
 
-	if (restoreRect == 0)
+	if (restoreRect == nullptr)
 		pwnd->restoreRect = pwnd->dims;
 
 	if (pwnd->restoreRect.top < 0 && g_sci->getPlatform() == Common::kPlatformMacintosh &&
@@ -664,7 +679,7 @@ void GfxPorts::priorityBandsInit(int16 bandCount, int16 top, int16 bottom) {
 		while (_priorityBands[--y] == _priorityBandCount)
 			_priorityBands[y]--;
 	}
-	// We fill space that is left over with the highest band (hardcoded 200 limit, because this algo isnt meant to be used on hires)
+	// We fill space that is left over with the highest band (hardcoded 200 limit, because this algo isn't meant to be used on hires)
 	for (y = _priorityBottom; y < 200; y++)
 		_priorityBands[y] = _priorityBandCount;
 
@@ -676,10 +691,9 @@ void GfxPorts::priorityBandsInit(int16 bandCount, int16 top, int16 bottom) {
 
 void GfxPorts::priorityBandsInit(const SciSpan<const byte> &data) {
 	int i = 0, inx;
-	byte priority = 0;
 
 	for (inx = 0; inx < 14; inx++) {
-		priority = data[inx];
+		byte priority = data[inx];
 		while (i < priority && i < 200)
 			_priorityBands[i++] = inx;
 	}
@@ -727,9 +741,8 @@ byte GfxPorts::kernelCoordinateToPriority(int16 y) {
 }
 
 int16 GfxPorts::kernelPriorityToCoordinate(byte priority) {
-	int16 y;
 	if (priority <= _priorityBandCount) {
-		for (y = 0; y <= _priorityBottom; y++)
+		for (int16 y = 0; y <= _priorityBottom; y++)
 			if (_priorityBands[y] == priority)
 				return y;
 	}

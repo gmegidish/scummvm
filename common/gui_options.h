@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef COMMON_GUI_OPTIONS_H
 #define COMMON_GUI_OPTIONS_H
+
+// This is an equivalent of an enum. Feel free to renumerate them
+// They are used only internally for making lookups cheaper and for
+// possibility to concatenate them as codes to the detection tables
+// See the GUIOnn() macros below
 
 #define GUIO_NONE            "\x00"
 #define GUIO_NOSUBTITLES     "\x01"
@@ -44,46 +48,72 @@
 #define GUIO_MIDISEGACD      "\x10"
 #define GUIO_MIDIMT32        "\x11"
 #define GUIO_MIDIGM          "\x12"
+#define GUIO_MIDIMAC		 "\x17"
 
 #define GUIO_NOASPECT        "\x13"
 
-#define GUIO_RENDERHERCGREEN "\x18"
-#define GUIO_RENDERHERCAMBER "\x19"
-#define GUIO_RENDERCGA       "\x1a"
-#define GUIO_RENDEREGA       "\x1b"
-#define GUIO_RENDERVGA       "\x1c"
-#define GUIO_RENDERAMIGA     "\x1d"
-#define GUIO_RENDERFMTOWNS   "\x1e"
-#define GUIO_RENDERPC9821    "\x1f"
-#define GUIO_RENDERPC9801    "\x20"
-#define GUIO_RENDERAPPLE2GS  "\x21"
-#define GUIO_RENDERATARIST   "\x22"
-#define GUIO_RENDERMACINTOSH "\x23"
+#define GUIO_RENDERHERCGREEN	"\x18"
+#define GUIO_RENDERHERCAMBER	"\x19"
+#define GUIO_RENDERCGA			"\x1a"
+#define GUIO_RENDEREGA			"\x1b"
+#define GUIO_RENDERVGA			"\x1c"
+#define GUIO_RENDERAMIGA		"\x1d"
+#define GUIO_RENDERFMTOWNS		"\x1e"
+#define GUIO_RENDERPC98_256C	"\x1f"
+#define GUIO_RENDERPC98_16C		"\x20"
+#define GUIO_RENDERAPPLE2GS		"\x21"
+#define GUIO_RENDERATARIST		"\x22"
+#define GUIO_RENDERMACINTOSH	"\x23"
+#define GUIO_RENDERMACINTOSHBW	"\x24"
+#define GUIO_RENDERCGACOMP		"\x25"
+#define GUIO_RENDERCGABW		"\x26"
+#define GUIO_RENDERCPC      	"\x27"
+#define GUIO_RENDERZX	    	"\x28"
+#define GUIO_RENDERC64	    	"\x29"
+#define GUIO_RENDERVGAGREY    	"\x2A"
+#define GUIO_RENDERPC98_8C   	"\x2B"
 
-#define GUIO_LINKSPEECHTOSFX "\x24"
-#define GUIO_LINKMUSICTOSFX  "\x25"
-#define GUIO_NOSPEECHVOLUME  "\x26"
+#define GUIO_LINKSPEECHTOSFX "\x30"
+#define GUIO_LINKMUSICTOSFX  "\x31"
+#define GUIO_NOSPEECHVOLUME  "\x32"
 
-#define GUIO_NOLANG          "\x27"
+#define GUIO_NOLANG          "\x33"
 
 // Special GUIO flags for the AdvancedDetector's caching of game specific
 // options.
-#define GUIO_GAMEOPTIONS1    "\x30"
-#define GUIO_GAMEOPTIONS2    "\x31"
-#define GUIO_GAMEOPTIONS3    "\x32"
-#define GUIO_GAMEOPTIONS4    "\x33"
-#define GUIO_GAMEOPTIONS5    "\x34"
-#define GUIO_GAMEOPTIONS6    "\x35"
-#define GUIO_GAMEOPTIONS7    "\x36"
-#define GUIO_GAMEOPTIONS8    "\x37"
-#define GUIO_GAMEOPTIONS9    "\x38"
-#define GUIO_GAMEOPTIONS10   "\x39"
-#define GUIO_GAMEOPTIONS11   "\x3a"
-#define GUIO_GAMEOPTIONS12   "\x3b"
-#define GUIO_GAMEOPTIONS13   "\x3c"
-#define GUIO_GAMEOPTIONS14   "\x3d"
-#define GUIO_GAMEOPTIONS15   "\x3e"
-#define GUIO_GAMEOPTIONS16   "\x3f"
+// Putting them to the end of the range so less renumerations required
+#define GUIO_GAMEOPTIONS1    "\xe0"
+#define GUIO_GAMEOPTIONS2    "\xe1"
+#define GUIO_GAMEOPTIONS3    "\xe2"
+#define GUIO_GAMEOPTIONS4    "\xe3"
+#define GUIO_GAMEOPTIONS5    "\xe4"
+#define GUIO_GAMEOPTIONS6    "\xe5"
+#define GUIO_GAMEOPTIONS7    "\xe6"
+#define GUIO_GAMEOPTIONS8    "\xe7"
+#define GUIO_GAMEOPTIONS9    "\xe8"
+#define GUIO_GAMEOPTIONS10   "\xe9"
+#define GUIO_GAMEOPTIONS11   "\xea"
+#define GUIO_GAMEOPTIONS12   "\xeb"
+#define GUIO_GAMEOPTIONS13   "\xec"
+#define GUIO_GAMEOPTIONS14   "\xed"
+#define GUIO_GAMEOPTIONS15   "\xee"
+#define GUIO_GAMEOPTIONS16   "\xef"
+#define GUIO_GAMEOPTIONS17   "\xf0"
+#define GUIO_GAMEOPTIONS18   "\xf1"
+#define GUIO_GAMEOPTIONS19   "\xf2"
+#define GUIO_GAMEOPTIONS20   "\xf3"
+#define GUIO_GAMEOPTIONS21   "\xf4"
+#define GUIO_GAMEOPTIONS22   "\xf5"
+#define GUIO_GAMEOPTIONS23   "\xf6"
+#define GUIO_GAMEOPTIONS24   "\xf7"
+#define GUIO_GAMEOPTIONS25   "\xf8"
+#define GUIO_GAMEOPTIONS26   "\xf9"
+#define GUIO_GAMEOPTIONS27   "\xfa"
+#define GUIO_GAMEOPTIONS28   "\xfb"
+#define GUIO_GAMEOPTIONS29   "\xfc"
+#define GUIO_GAMEOPTIONS30   "\xfd"
+#define GUIO_GAMEOPTIONS31   "\xfe"
+#define GUIO_GAMEOPTIONS32   "\xff"
 
 #define GUIO0() (GUIO_NONE)
 #define GUIO1(a) (a)
@@ -95,6 +125,9 @@
 #define GUIO7(a,b,c,d,e,f,g) (a b c d e f g)
 #define GUIO8(a,b,c,d,e,f,g,h) (a b c d e f g h)
 #define GUIO9(a,b,c,d,e,f,g,h,i) (a b c d e f g h i)
+#define GUIO10(a,b,c,d,e,f,g,h,i,j) (a b c d e f g h i j)
+#define GUIO11(a,b,c,d,e,f,g,h,i,j,k) (a b c d e f g h i j k)
+#define GUIO12(a,b,c,d,e,f,g,h,i,j,k,l) (a b c d e f g h i j k l)
 
 namespace Common {
 

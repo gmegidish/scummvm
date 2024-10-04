@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -156,7 +155,7 @@ int dbgnam(dbgcxdef *ctx, char *outbuf, int typ, int val)
 {
 	toksdef  sym;
 
-	if (!ctx->dbgcxtab || !ctx->dbgcxtab->tokthhsh)
+	if (!ctx->dbgcxtab)
 	{
 		memcpy(outbuf, "<NO SYMBOL TABLE>", (size_t)17);
 		return(17);
@@ -176,7 +175,7 @@ int dbgnam(dbgcxdef *ctx, char *outbuf, int typ, int val)
 		}
 		else
 		{
-			sprintf(outbuf, "<object#%u>", val);
+			Common::sprintf_s(outbuf, TOKNAMMAX + 1, "<object#%u>", val);
 			return strlen(outbuf);
 		}
 	}
@@ -199,7 +198,7 @@ static void dbgpbval(dbgcxdef *ctx, dattyp typ, const uchar *val,
 	switch(typ)
 	{
 	case DAT_NUMBER:
-		sprintf(buf, "%ld", (long)osrp4s(val));
+		Common::sprintf_s(buf, "%ld", (long)osrp4s(val));
 		len = strlen(buf);
 		break;
 
@@ -266,12 +265,12 @@ void dbgpval(dbgcxdef *ctx, runsdef *val,
 	uchar   buf[TOKNAMMAX + 1];
 	uint    len;
 	const uchar  *p = buf;
-	const char *typ = 0;
+	const char *typ = nullptr;
 
 	switch(val->runstyp)
 	{
 	case DAT_NUMBER:
-		sprintf((char *)buf, "%ld", val->runsv.runsvnum);
+		Common::sprintf_s(buf, "%ld", val->runsv.runsvnum);
 		len = strlen((char *)buf);
 		typ = "number";
 		break;
@@ -394,7 +393,7 @@ void dbgstktr(dbgcxdef *ctx,
 		else if (include_markers)
 		{
 			c = (i == level + 1 ? '*' : ' ');
-			sprintf(buf, "%3d%c  ", j, c);
+			Common::sprintf_s(buf, "%3d%c  ", j, c);
 			p += 4;
 		}
 

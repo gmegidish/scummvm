@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,14 +43,13 @@ InventoryMgr::~InventoryMgr() {
 void InventoryMgr::getPlayerInventory() {
 	AgiGame game = _vm->_game;
 	int16 selectedInventoryItem = _vm->getVar(VM_VAR_SELECTED_INVENTORY_ITEM);
-	uint16 objectNr = 0;
 	int16 curRow = 2; // starting at position 2,1
 	int16 curColumn = 1;
 
 	_array.clear();
 	_activeItemNr = 0;
 
-	for (objectNr = 0; objectNr < game.numObjects; objectNr++) {
+	for (uint16 objectNr = 0; objectNr < game.numObjects; objectNr++) {
 		if (_vm->objectGetLocation(objectNr) == EGO_OWNED) {
 			// item is in the possession of ego, so add it to our internal list
 			if (objectNr == selectedInventoryItem) {
@@ -108,12 +106,11 @@ void InventoryMgr::getPlayerInventory() {
 
 void InventoryMgr::drawAll() {
 	int16 inventoryCount = _array.size();
-	int16 inventoryNr = 0;
 
 	_text->charPos_Set(0, 11);
 	_text->displayText(_systemUI->getInventoryTextYouAreCarrying());
 
-	for (inventoryNr = 0; inventoryNr < inventoryCount; inventoryNr++) {
+	for (int16 inventoryNr = 0; inventoryNr < inventoryCount; inventoryNr++) {
 		drawItem(inventoryNr);
 	}
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,14 +35,14 @@ CPlayer *Cu6mPlayer::factory(Copl *newopl) {
 	return new Cu6mPlayer(newopl);
 }
 
-bool Cu6mPlayer::load(const Std::string &filename) {
+bool Cu6mPlayer::load(const Common::Path &filename) {
 	uint32 decompressed_filesize;
 	U6Lzw lzw;
 
 	song_data = lzw.decompress_file(filename, decompressed_filesize);
 
 	rewind(0);
-	return (true);
+	return true;
 }
 
 
@@ -308,7 +307,7 @@ void Cu6mPlayer::command_5(int channel) {
 
 
 // --------------------------------------------
-// Set vibrato paramters
+// Set vibrato parameters
 // Format: 6c mn
 // c = channel
 // m = vibrato double amplitude
@@ -468,7 +467,7 @@ unsigned char Cu6mPlayer::read_song_byte() {
 	unsigned char song_byte;
 	song_byte = song_data[song_pos];
 	song_pos++;
-	return (song_byte);
+	return song_byte;
 }
 
 
@@ -512,7 +511,7 @@ Cu6mPlayer::byte_pair Cu6mPlayer::expand_freq_byte(unsigned char freq_byte) {
 	freq_word.hi = freq_table[packed_freq].hi + (octave << 2);
 	freq_word.lo = freq_table[packed_freq].lo;
 
-	return (freq_word);
+	return freq_word;
 }
 
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,16 +15,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "engines/util.h"
 #include "sci/engine/kernel.h"
 #include "sci/engine/state.h"
 #include "sci/graphics/helpers.h"
 #include "sci/graphics/cursor.h"
+#include "sci/graphics/gfxdrivers.h"
 #include "sci/graphics/palette.h"
 #include "sci/graphics/screen.h"
 #include "sci/util.h"
@@ -34,7 +33,6 @@
 #include "common/str.h"
 #include "common/system.h"
 #include "common/textconsole.h"
-#include "graphics/palette.h"
 #include "graphics/pixelformat.h"
 #include "graphics/surface.h"
 #include "video/video_decoder.h"
@@ -60,13 +58,12 @@ void playVideo(Video::VideoDecoder &videoDecoder) {
 	uint16 pitch = videoDecoder.getWidth() * bytesPerPixel;
 	uint16 screenWidth = g_sci->_gfxScreen->getDisplayWidth();
 	uint16 screenHeight = g_sci->_gfxScreen->getDisplayHeight();
-	uint32 numPixels;
 
 	if (screenWidth == 640 && width <= 320 && height <= 240) {
 		width *= 2;
 		height *= 2;
 		pitch *= 2;
-		numPixels = width * height * bytesPerPixel;
+		uint32 numPixels = width * height * bytesPerPixel;
 		scaleBuffer->allocate(numPixels, "video scale buffer");
 	}
 
@@ -90,9 +87,9 @@ void playVideo(Video::VideoDecoder &videoDecoder) {
 					const SciSpan<const byte> input((const byte *)frame->getPixels(), frame->w * frame->h * bytesPerPixel);
 					// TODO: Probably should do aspect ratio correction in KQ6
 					g_sci->_gfxScreen->scale2x(input, *scaleBuffer, videoDecoder.getWidth(), videoDecoder.getHeight(), bytesPerPixel);
-					g_sci->_gfxScreen->copyVideoFrameToScreen(scaleBuffer->getUnsafeDataAt(0, pitch * height), pitch, rect, bytesPerPixel == 1);
+					g_sci->_gfxScreen->copyVideoFrameToScreen(scaleBuffer->getUnsafeDataAt(0, pitch * height), pitch, rect);
 				} else {
-					g_sci->_gfxScreen->copyVideoFrameToScreen((const byte *)frame->getPixels(), frame->pitch, rect, bytesPerPixel == 1);
+					g_sci->_gfxScreen->copyVideoFrameToScreen((const byte *)frame->getPixels(), frame->pitch, rect);
 				}
 
 				if (videoDecoder.hasDirtyPalette()) {
@@ -117,30 +114,37 @@ void playVideo(Video::VideoDecoder &videoDecoder) {
 }
 
 reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
+	reg_t retval = s->r_acc;
+
 	// Hide the cursor if it's showing and then show it again if it was
 	// previously visible.
 	bool reshowCursor = g_sci->_gfxCursor->isVisible();
 	if (reshowCursor)
 		g_sci->_gfxCursor->kernelHide();
 
-	uint16 screenWidth = g_system->getWidth();
-	uint16 screenHeight = g_system->getHeight();
-
 	Common::ScopedPtr<Video::VideoDecoder> videoDecoder;
 
 	bool switchedGraphicsMode = false;
 
 	if (argv[0].isPointer()) {
-		Common::String filename = s->_segMan->getString(argv[0]);
+		Common::Path filename(s->_segMan->getString(argv[0]));
 
 		if (g_sci->getPlatform() == Common::kPlatformMacintosh) {
 			// Mac QuickTime
 			// The only argument is the string for the video
 
-			// HACK: Switch to 16bpp graphics for Cinepak.
+			// Switch to 16bpp graphics for Cinepak
 			if (g_system->getScreenFormat().bytesPerPixel == 1) {
-				initGraphics(screenWidth, screenHeight, nullptr);
-				switchedGraphicsMode = true;
+				const Common::List<Graphics::PixelFormat> supportedFormats = g_system->getSupportedFormats();
+				Common::List<Graphics::PixelFormat>::const_iterator it;
+				for (it = supportedFormats.begin(); it != supportedFormats.end(); ++it) {
+					if (it->bytesPerPixel == 2) {
+						const Graphics::PixelFormat format = *it;
+						g_sci->_gfxScreen->gfxDriver()->initScreen(&format);
+						switchedGraphicsMode = true;
+						break;
+					}
+				}
 			}
 
 			if (g_system->getScreenFormat().bytesPerPixel == 1) {
@@ -150,7 +154,7 @@ reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
 
 			videoDecoder.reset(new Video::QuickTimeDecoder());
 			if (!videoDecoder->loadFile(filename))
-				error("Could not open '%s'", filename.c_str());
+				error("Could not open '%s'", filename.toString().c_str());
 		} else {
 			// DOS SEQ
 			// SEQ's are called with no subops, just the string and delay
@@ -158,14 +162,15 @@ reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
 			videoDecoder.reset(new SEQDecoder(argv[1].toUint16()));
 
 			if (!videoDecoder->loadFile(filename)) {
-				warning("Failed to open movie file %s", filename.c_str());
+				warning("Failed to open movie file %s", filename.toString().c_str());
 				videoDecoder.reset();
 			}
 		}
 	} else {
-		// Windows AVI
-		// TODO: This appears to be some sort of subop. case 0 contains the string
-		// for the video, so we'll just play it from there for now.
+		// Windows AVI: Only used by KQ6 CD for the Sierra logo and intro cartoon.
+		// The first parameter is a subop. Some of the subops set the accumulator.
+		// The interpreter implements subops 0-6. KQ6 only calls 0, 1, 2, 3, 6.
+		// Subop 0 plays the AVI; it is the only one that needs to be implemented.
 
 		switch (argv[0].toUint16()) {
 		case 0: {
@@ -175,10 +180,11 @@ reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
 				warning("Failed to open movie file %s", filename.c_str());
 				videoDecoder.reset();
 			}
+			retval = TRUE_REG;
 			break;
 		}
 		default:
-			warning("Unhandled SCI kShowMovie subop %d", argv[0].toUint16());
+			debug(kDebugLevelVideo, "Unhandled kShowMovie subop %d", argv[0].toUint16());
 		}
 	}
 
@@ -190,7 +196,7 @@ reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
 		// HACK: Switch back to 8bpp if we played a true color video.
 		// We also won't be copying the screen to the SCI screen...
 		if (switchedGraphicsMode)
-			initGraphics(screenWidth, screenHeight);
+			g_sci->_gfxScreen->gfxDriver()->initScreen();
 		else if (is8bit) {
 			g_sci->_gfxScreen->kernelSyncWithFramebuffer();
 			g_sci->_gfxPalette16->kernelSyncScreenPalette();
@@ -200,12 +206,12 @@ reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
 	if (reshowCursor)
 		g_sci->_gfxCursor->kernelShow();
 
-	return s->r_acc;
+	return retval;
 }
 
 #ifdef ENABLE_SCI32
 reg_t kShowMovie32(EngineState *s, int argc, reg_t *argv) {
-	Common::String fileName = s->_segMan->getString(argv[0]);
+	Common::Path fileName(s->_segMan->getString(argv[0]));
 	const int16 numTicks = argv[1].toSint16();
 	const int16 x = argc > 3 ? argv[2].toSint16() : 0;
 	const int16 y = argc > 3 ? argv[3].toSint16() : 0;
@@ -306,10 +312,10 @@ reg_t kShowMovieWinOpen(EngineState *s, int argc, reg_t *argv) {
 	// so just ignore it
 	if (getSciVersion() > SCI_VERSION_2) {
 		++argv;
-		--argc;
+		//--argc;
 	}
 
-	const Common::String fileName = s->_segMan->getString(argv[0]);
+	const Common::Path fileName(s->_segMan->getString(argv[0]));
 	return make_reg(0, g_sci->_video32->getAVIPlayer().open(fileName));
 }
 
@@ -318,7 +324,7 @@ reg_t kShowMovieWinInit(EngineState *s, int argc, reg_t *argv) {
 	// so just ignore it
 	if (getSciVersion() > SCI_VERSION_2) {
 		++argv;
-		--argc;
+		//--argc;
 	}
 
 	// argv[0] is a broken x-coordinate
@@ -356,7 +362,7 @@ reg_t kShowMovieWinCue(EngineState *s, int argc, reg_t *argv) {
 	// so just ignore it
 	if (getSciVersion() > SCI_VERSION_2) {
 		++argv;
-		--argc;
+		//--argc;
 	}
 
 	const uint16 frameNo = argv[0].toUint16();
@@ -388,7 +394,7 @@ reg_t kPlayVMD(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kPlayVMDOpen(EngineState *s, int argc, reg_t *argv) {
-	const Common::String fileName = s->_segMan->getString(argv[0]);
+	const Common::Path fileName(s->_segMan->getString(argv[0]));
 	// argv[1] is an optional cache size argument which we do not use
 	// const uint16 cacheSize = argc > 1 ? CLIP<int16>(argv[1].toSint16(), 16, 1024) : 0;
 	const VMDPlayer::OpenFlags flags = argc > 2 ? (VMDPlayer::OpenFlags)argv[2].toUint16() : VMDPlayer::kOpenFlagNone;

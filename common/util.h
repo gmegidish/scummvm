@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,6 @@
 #define COMMON_UTIL_H
 
 #include "common/scummsys.h"
-#include "common/str.h"
 
 /**
  * @defgroup common_util Util
@@ -124,10 +122,131 @@ template<typename T, size_t N> inline void ARRAYCLEAR(T (&array) [N], const T &v
 
 namespace Common {
 
+class String;
+class U32String;
+
 /**
  * @addtogroup common_util
  * @{
  */
+
+/**
+ * A set of templates which remove const and/or volatile specifiers.
+ * Use the remove_*_t<T> variants.
+ */
+template<class T> struct remove_cv {
+	typedef T type;
+};
+template<class T> struct remove_cv<const T> {
+	typedef T type;
+};
+template<class T> struct remove_cv<volatile T> {
+	typedef T type;
+};
+template<class T> struct remove_cv<const volatile T> {
+	typedef T type;
+};
+
+template<class T> struct remove_const {
+	typedef T type;
+};
+template<class T> struct remove_const<const T> {
+	typedef T type;
+};
+
+template<class T> struct remove_volatile {
+	typedef T type;
+};
+template<class T> struct remove_volatile<volatile T> {
+	typedef T type;
+};
+
+/**
+ * A set of templates which removes the reference over types.
+ * Use remove_reference_t<T> for this.
+ */
+template<class T>
+struct remove_reference {
+	typedef T type;
+};
+template<class T>
+struct remove_reference<T &> {
+	typedef T type;
+};
+template<class T>
+struct remove_reference<T &&> {
+	typedef T type;
+};
+
+template<class T>
+using remove_cv_t        = typename remove_cv<T>::type;
+template<class T>
+using remove_const_t     = typename remove_const<T>::type;
+template<class T>
+using remove_volatile_t  = typename remove_volatile<T>::type;
+
+template<class T>
+using remove_reference_t = typename remove_reference<T>::type;
+
+/**
+ * A reimplementation of std::move.
+ */
+template<class T>
+constexpr remove_reference_t<T> &&move(T &&t) noexcept {
+  return static_cast<remove_reference_t<T> &&>(t);
+}
+
+template<class T>
+constexpr T&& forward(remove_reference_t<T> &&t) noexcept {
+	return static_cast<T &&>(t);
+}
+
+template<class T>
+constexpr T&& forward(remove_reference_t<T> &t) noexcept {
+	return static_cast<T &&>(t);
+}
+
+/**
+ * Provides a way to store two heterogeneous objects as a single unit.
+ */
+template<class T1, class T2>
+struct Pair {
+	T1 first;
+	T2 second;
+
+	Pair() {
+	}
+
+	Pair(const Pair &other) : first(other.first), second(other.second) {
+	}
+
+	Pair(Pair &&other) : first(Common::move(other.first)), second(Common::move(other.second)) {
+	}
+
+	Pair(const T1 &first_, const T2 &second_) : first(first_), second(second_) {
+	}
+
+	Pair(T1 &&first_, T2 &&second_) : first(Common::move(first_)), second(Common::move(second_)) {
+	}
+
+	Pair(T1 &&first_, const T2 &second_) : first(Common::move(first_)), second(second_) {
+	}
+
+	Pair(const T1 &first_, T2 &&second_) : first(first_), second(Common::move(second_)) {
+	}
+
+	Pair &operator=(const Pair &other) {
+		this->first = other.first;
+		this->second = other.second;
+		return *this;
+	}
+
+	Pair &operator=(Pair &&other) {
+		this->first = Common::move(other.first);
+		this->second = Common::move(other.second);
+		return *this;
+	}
+};
 
 /**
  * Print a hexdump of the data passed in. The number of bytes per line is
@@ -327,7 +446,7 @@ bool isBlank(int c);
  *
  * @return String with a floating point number representing the given size.
  */
-Common::String getHumanReadableBytes(uint64 bytes, Common::String &unitsOut);
+Common::String getHumanReadableBytes(uint64 bytes, const char *&unitsOut);
 
 /** @} */
 

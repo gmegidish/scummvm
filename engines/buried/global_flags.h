@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,12 +31,6 @@ namespace Buried {
 
 // This is the struct that holds all the global variables for the game
 // Originally, it was just a 1024 byte block of data with offsets into it
-// (There clearly aren't enough variables)
-// For double-fun, they still need to be accessed by index for AI support
-// -> It therefore needs to be packed (Yes, this is totally evil)
-// This is all horrible, really. Avert your eyes.
-
-#include "common/pack-start.h"
 
 struct GlobalFlags {
 	byte cgWallExploded;                // 0
@@ -94,7 +87,8 @@ struct GlobalFlags {
 	byte myMCStingerChannelID;          // 54
 	byte faStingerID;                   // 55
 	byte faStingerChannelID;            // 56
-	byte unused0[3];                    // 57-59
+	uint16 curItem;                     // ScummVM enhancement, originally unused bytes 57-58
+	byte unused0;                       // 59
 	uint32 cgMWCatapultData;            // 60-63
 	uint32 cgMWCatapultOffset;          // 64-67
 	byte cgTSTriedDoor;                 // 68
@@ -317,9 +311,7 @@ struct GlobalFlags {
 	byte generalWalkthroughMode;        // 500
 	byte unused5[11];                   // 501-511
 	byte aiData[512];                   // 512-1023
-} PACKED_STRUCT;
-
-#include "common/pack-end.h"
+};
 
 enum {
 	kAIHWStartingValue = 100,

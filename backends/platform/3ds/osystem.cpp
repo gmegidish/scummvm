@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@
 #include <3ds.h>
 #include "osystem.h"
 
-#include "backends/platform/3ds/config.h"
+#include "backends/mutex/3ds/3ds-mutex.h"
 #include "backends/saves/default/default-saves.h"
 #include "backends/timer/default/default-timer.h"
 #include "backends/events/default/default-events.h"
@@ -81,11 +80,16 @@ OSystem_3DS::OSystem_3DS():
 	_gameTextureDirty(false),
 	_filteringEnabled(true),
 	_overlayVisible(false),
+	_overlayInGUI(false),
 	_screenChangeId(0),
 	_magnifyMode(MODE_MAGOFF),
 	exiting(false),
 	sleeping(false),
-	_logger(0)
+	_logger(0),
+	_showCursor(true),
+	_snapToBorder(true),
+	_stretchToFit(false),
+	_screen(kScreenBoth)
 {
 	chdir("sdmc:/");
 
@@ -138,7 +142,8 @@ void OSystem_3DS::initBackend() {
 			_logger->open(logFile);
 	}
 
-	loadConfig();
+	updateBacklight();
+	updateConfig();
 	ConfMan.registerDefault("fullscreen", true);
 	ConfMan.registerDefault("aspect_ratio", true);
 	ConfMan.registerDefault("filtering", true);
@@ -158,6 +163,22 @@ void OSystem_3DS::initBackend() {
 	initEvents();
 }
 
+void OSystem_3DS::updateBacklight() {
+	// Turn off the backlight of any screen not used
+	if (R_SUCCEEDED(gspLcdInit())) {
+		if (_screen == kScreenTop) {
+			GSPLCD_PowerOnBacklight(GSPLCD_SCREEN_TOP);
+			GSPLCD_PowerOffBacklight(GSPLCD_SCREEN_BOTTOM);
+		} else if (_screen == kScreenBottom) {
+			GSPLCD_PowerOnBacklight(GSPLCD_SCREEN_BOTTOM);
+			GSPLCD_PowerOffBacklight(GSPLCD_SCREEN_TOP);
+		} else {
+			GSPLCD_PowerOnBacklight(GSPLCD_SCREEN_BOTH);
+		}
+		gspLcdExit();
+	}
+}
+
 void OSystem_3DS::updateConfig() {
 	if (_gameScreen.getPixels()) {
 		updateSize();
@@ -166,11 +187,11 @@ void OSystem_3DS::updateConfig() {
 	}
 }
 
-Common::String OSystem_3DS::getDefaultConfigFileName() {
+Common::Path OSystem_3DS::getDefaultConfigFileName() {
 	return "sdmc:/3ds/scummvm/scummvm.ini";
 }
 
-Common::String OSystem_3DS::getDefaultLogFileName() {
+Common::Path OSystem_3DS::getDefaultLogFileName() {
 	return "sdmc:/3ds/scummvm/scummvm.log";
 }
 
@@ -198,19 +219,8 @@ void OSystem_3DS::getTimeAndDate(TimeDate& td, bool skipRecord) const {
 	td.tm_wday = t.tm_wday;
 }
 
-OSystem::MutexRef OSystem_3DS::createMutex() {
-	RecursiveLock *mutex = new RecursiveLock();
-	RecursiveLock_Init(mutex);
-	return (OSystem::MutexRef) mutex;
-}
-void OSystem_3DS::lockMutex(MutexRef mutex) {
-	RecursiveLock_Lock((RecursiveLock*)mutex);
-}
-void OSystem_3DS::unlockMutex(MutexRef mutex) {
-	RecursiveLock_Unlock((RecursiveLock*)mutex);
-}
-void OSystem_3DS::deleteMutex(MutexRef mutex) {
-	delete (RecursiveLock*)mutex;
+Common::MutexInternal *OSystem_3DS::createMutex() {
+	return create3DSMutexInternal();
 }
 
 Common::String OSystem_3DS::getSystemLanguage() const {
@@ -250,9 +260,9 @@ Common::WriteStream *OSystem_3DS::createLogFile() {
 	// of a failure, we know that no log file is open.
 	_logFilePath.clear();
 
-	Common::String logFile;
+	Common::Path logFile;
 	if (ConfMan.hasKey("logfile"))
-		logFile = ConfMan.get("logfile");
+		logFile = ConfMan.getPath("logfile");
 	else
 		logFile = getDefaultLogFileName();
 	if (logFile.empty())

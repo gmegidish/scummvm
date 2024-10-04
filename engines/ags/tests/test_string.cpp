@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,16 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+//#include "ags/shared/debugging/assert.h"
+// File not present??
+#include "common/scummsys.h"
 #include "ags/shared/core/platform.h"
-#include "ags/lib/std/vector.h"
+#include "common/std/vector.h"
 #include "ags/shared/util/path.h"
 #include "ags/shared/util/string.h"
-#include "ags/shared/debugging/assert.h"
+#include "ags/shared/debugging/debug_manager.h"
 
 namespace AGS3 {
 
@@ -47,6 +49,7 @@ void Test_Path() {
 
 void Test_String() {
 	// Test string's internal work
+#if defined(AGS_PLATFORM_TEST) && AGS_PLATFORM_TEST
 	{
 		String s1 = "abcdefghijklmnop";
 		String s2 = s1;
@@ -86,6 +89,7 @@ void Test_String() {
 		assert(s4.GetCStr() == cstr);
 		assert(strcmp(s4, "12345123456789012345") == 0);
 	}
+#endif
 
 	// Test Compare
 	{
@@ -138,16 +142,16 @@ void Test_String() {
 		size_t find8 = s5.FindCharReverse('x');
 		size_t find9 = s1.FindChar('i', 2);
 		size_t find10 = s1.FindCharReverse('i', 12);
-		assert(find1 == 5);
-		assert(find2 == 13);
-		assert(find3 == -1);
-		assert(find4 == -1);
-		assert(find5 == 19);
-		assert(find6 == 0);
-		assert(find7 == -1);
-		assert(find8 == -1);
-		assert(find9 == 10);
-		assert(find10 == 10);
+		assert(find1 == 5LLU);
+		assert(find2 == 13LLU);
+		assert(find3 == -1LLU);
+		assert(find4 == -1LLU);
+		assert(find5 == 19LLU);
+		assert(find6 == 0LLU);
+		assert(find7 == -1LLU);
+		assert(find8 == -1LLU);
+		assert(find9 == 10LLU);
+		assert(find10 == 10LLU);
 	}
 
 	// Test GetAt
@@ -489,6 +493,7 @@ void Test_String() {
 	}
 
 	// Test Wrap
+#if defined(AGS_PLATFORM_TEST) && AGS_PLATFORM_TEST
 	{
 		const char *cstr = "This is a string literal";
 		String str1 = String::Wrapper(cstr);
@@ -501,6 +506,7 @@ void Test_String() {
 		assert(str2.GetCStr() != cstr);
 		assert(str2.GetRefCount() == 1);
 	}
+#endif
 }
 
 } // namespace AGS3

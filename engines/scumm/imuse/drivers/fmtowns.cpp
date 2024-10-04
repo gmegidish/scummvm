@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,20 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "engines/scumm/imuse/drivers/fmtowns.h"
+#include "scumm/imuse/drivers/fmtowns.h"
 #include "audio/softsynth/fmtowns_pc98/towns_pc98_fmsynth.h"
 #include "common/textconsole.h"
 #include "common/system.h"
 
+namespace Scumm {
+
 class TownsMidiOutputChannel {
 friend class TownsMidiInputChannel;
 public:
-	TownsMidiOutputChannel(MidiDriver_TOWNS *driver, int chanId);
+	TownsMidiOutputChannel(IMuseDriver_FMTowns *driver, int chanId);
 	~TownsMidiOutputChannel();
 
 	void noteOn(uint8 msb, uint16 lsb);
@@ -104,7 +105,7 @@ private:
 	uint16 _freq;
 	int16 _freqAdjust;
 
-	MidiDriver_TOWNS *_driver;
+	IMuseDriver_FMTowns *_driver;
 
 	static const uint8 _chanMap[];
 	static const uint8 _chanMap2[];
@@ -117,11 +118,12 @@ private:
 class TownsMidiInputChannel : public MidiChannel {
 friend class TownsMidiOutputChannel;
 public:
-	TownsMidiInputChannel(MidiDriver_TOWNS *driver, int chanIndex);
+	TownsMidiInputChannel(IMuseDriver_FMTowns *driver, int16 number);
 	~TownsMidiInputChannel() override;
 
 	MidiDriver *device() override { return _driver; }
-	byte getNumber() override { return _chanIndex; }
+	byte getNumber() override { return _number; }
+
 	bool allocate();
 	void release() override;
 
@@ -133,8 +135,10 @@ public:
 	void pitchBend(int16 bend) override;
 	void controlChange(byte control, byte value) override;
 	void pitchBendFactor(byte value) override;
+	void detune(int16 value) override;
+	void transpose(int8 value) override;
 	void priority(byte value) override;
-	void sysEx_customInstrument(uint32 type, const byte *instr) override;
+	void sysEx_customInstrument(uint32 type, const byte *instr, uint32 dataSize) override;
 
 private:
 	void controlModulationWheel(byte value);
@@ -146,8 +150,8 @@ private:
 
 	TownsMidiOutputChannel *_out;
 
+	const byte _number;
 	uint8 *_instrument;
-	uint8 _chanIndex;
 	uint8 _priority;
 	uint8 _tl;
 	int8 _transpose;
@@ -160,7 +164,7 @@ private:
 
 	bool _allocated;
 
-	MidiDriver_TOWNS *_driver;
+	IMuseDriver_FMTowns *_driver;
 
 	static const uint8 _programAdjustLevel[];
 };
@@ -206,13 +210,11 @@ uint8 TownsMidiChanState::get(uint8 type) {
 	return 0;
 }
 
-TownsMidiOutputChannel::TownsMidiOutputChannel(MidiDriver_TOWNS *driver, int chanIndex) : _driver(driver), _chan(chanIndex),
-	_in(0), _prev(0), _next(0), _adjustModTl(0), _operator2Tl(0), _note(0), _operator1Tl(0), _sustainNoteOff(0), _duration(0), _freq(0), _freqAdjust(0) {
-	_effectEnvelopes = new EffectEnvelope[2];
-	_effectDefs = new EffectDef[2];
+TownsMidiOutputChannel::TownsMidiOutputChannel(IMuseDriver_FMTowns *driver, int number) : _driver(driver), _chan(number),
+	_in(nullptr), _prev(nullptr), _next(nullptr), _adjustModTl(0), _operator2Tl(0), _note(0), _operator1Tl(0), _sustainNoteOff(0), _duration(0), _freq(0), _freqAdjust(0) {
+	_effectEnvelopes = new EffectEnvelope[2]();
+	_effectDefs = new EffectDef[2]();
 
-	memset(_effectEnvelopes, 0, 2 * sizeof(EffectEnvelope));
-	memset(_effectDefs, 0, 2 * sizeof(EffectDef));
 	_effectDefs[0].s = &_effectEnvelopes[1];
 	_effectDefs[1].s = &_effectEnvelopes[0];
 }
@@ -339,7 +341,7 @@ void TownsMidiOutputChannel::connect(TownsMidiInputChannel *chan) {
 
 	_in = chan;
 	_next = chan->_out;
-	_prev = 0;
+	_prev = nullptr;
 	chan->_out = this;
 	if (_next)
 		_next->_prev = this;
@@ -357,7 +359,7 @@ void TownsMidiOutputChannel::disconnect() {
 		p->_next = n;
 	else
 		_in->_out = n;
-	_in = 0;
+	_in = nullptr;
 }
 
 bool TownsMidiOutputChannel::update() {
@@ -652,10 +654,9 @@ const uint16 TownsMidiOutputChannel::_freqLSB[] = {
 	0x055B, 0x055B, 0x055B, 0x055B, 0x055B, 0x055B, 0x055B, 0x055B
 };
 
-TownsMidiInputChannel::TownsMidiInputChannel(MidiDriver_TOWNS *driver, int chanIndex) : MidiChannel(), _driver(driver), _out(0), _chanIndex(chanIndex),
+TownsMidiInputChannel::TownsMidiInputChannel(IMuseDriver_FMTowns *driver, int16 number) : MidiChannel(), _driver(driver), _number(number), _out(nullptr),
 	_priority(0), _tl(0), _transpose(0), _pitchBendFactor(0), _pitchBend(0), _sustain(0), _freqLSB(0), _detune(0), _modWheel(0), _allocated(false) {
-	_instrument = new uint8[30];
-	memset(_instrument, 0, 30);
+	_instrument = new uint8[30]();
 }
 
 TownsMidiInputChannel::~TownsMidiInputChannel() {
@@ -674,7 +675,7 @@ void TownsMidiInputChannel::release() {
 }
 
 void TownsMidiInputChannel::send(uint32 b) {
-	_driver->send(b | _chanIndex);
+	device()->send(b | _number);
 }
 
 void TownsMidiInputChannel::noteOff(byte note) {
@@ -770,12 +771,29 @@ void TownsMidiInputChannel::pitchBendFactor(byte value) {
 		oc->noteOnPitchBend(oc->_note + oc->_in->_transpose, _freqLSB);
 }
 
+void TownsMidiInputChannel::detune(int16 value) {
+	_detune = (int8)value;
+	_freqLSB = ((_pitchBend * _pitchBendFactor) >> 6) + _detune;
+	for (TownsMidiOutputChannel *oc = _out; oc; oc = oc->_next)
+		oc->noteOnPitchBend(oc->_note + oc->_in->_transpose, _freqLSB);
+}
+
+void TownsMidiInputChannel::transpose(int8 value) {
+	_transpose = value;
+	for (TownsMidiOutputChannel *oc = _out; oc; oc = oc->_next)
+		oc->noteOnPitchBend(oc->_note + _transpose, _freqLSB);
+}
+
 void TownsMidiInputChannel::priority(byte value) {
 	_priority = value;
 }
 
-void TownsMidiInputChannel::sysEx_customInstrument(uint32 type, const byte *instr) {
-	memcpy(_instrument, instr, 30);
+void TownsMidiInputChannel::sysEx_customInstrument(uint32 type, const byte *instr, uint32 dataSize) {
+	const uint8 instrSize = 30;
+	if (instr && dataSize == instrSize)
+		memcpy(_instrument, instr, instrSize);
+	else if (type != 'ADL ') // FM-Towns is actually supposed to get ADL type data.
+		warning("TownsMidiInputChannel: Receiving '%c%c%c%c' instrument data. Probably loading a savegame with that sound setting", (type >> 24) & 0xFF, (type >> 16) & 0xFF, (type >> 8) & 0xFF, type & 0xFF);
 }
 
 void TownsMidiInputChannel::controlModulationWheel(byte value) {
@@ -825,19 +843,19 @@ const uint8 TownsMidiInputChannel::_programAdjustLevel[] = {
 	0x3D, 0x3D, 0x3E, 0x3E, 0x3E, 0x3F, 0x3F, 0x3F
 };
 
-MidiDriver_TOWNS::MidiDriver_TOWNS(Audio::Mixer *mixer) : _timerProc(0), _timerProcPara(0), _channels(0), _out(0),
-	_baseTempo(10080), _chanState(0), _operatorLevelTable(0), _tickCounter(0), _rand(1), _allocCurPos(0), _isOpen(false) {
+IMuseDriver_FMTowns::IMuseDriver_FMTowns(Audio::Mixer *mixer) : _timerProc(nullptr), _timerProcPara(nullptr), _channels(nullptr), _out(nullptr),
+	_baseTempo(10080), _chanState(nullptr), _operatorLevelTable(nullptr), _tickCounter(0), _rand(1), _allocCurPos(0), _isOpen(false), _numParts(24) {
 	_intf = new TownsAudioInterface(mixer, this, true);
 
-	_channels = new TownsMidiInputChannel*[32];
-	for (int i = 0; i < 32; i++)
+	_channels = new TownsMidiInputChannel*[_numParts];
+	for (int i = 0; i < 24; i++)
 		_channels[i] = new TownsMidiInputChannel(this, i > 8 ? (i + 1) : i);
 
 	_out = new TownsMidiOutputChannel*[6];
 	for (int i = 0; i < 6; i++)
 		_out[i] = new TownsMidiOutputChannel(this, i);
 
-	_chanState = new TownsMidiChanState[32];
+	_chanState = new TownsMidiChanState[_numParts];
 
 	_operatorLevelTable = new uint8[2048];
 	for (int i = 0; i < 64; i++) {
@@ -848,31 +866,31 @@ MidiDriver_TOWNS::MidiDriver_TOWNS(Audio::Mixer *mixer) : _timerProc(0), _timerP
 		_operatorLevelTable[i << 5] = 0;
 }
 
-MidiDriver_TOWNS::~MidiDriver_TOWNS() {
+IMuseDriver_FMTowns::~IMuseDriver_FMTowns() {
 	close();
 	delete _intf;
 
 	if (_channels) {
-		for (int i = 0; i < 32; i++)
+		for (int i = 0; i < _numParts; i++)
 			delete _channels[i];
 		delete[] _channels;
 	}
-	_channels = 0;
+	_channels = nullptr;
 
 	if (_out) {
 		for (int i = 0; i < 6; i++)
 			delete _out[i];
 		delete[] _out;
 	}
-	_out = 0;
+	_out = nullptr;
 
 	delete[] _chanState;
-	_chanState = 0;
+	_chanState = nullptr;
 	delete[] _operatorLevelTable;
-	_operatorLevelTable = 0;
+	_operatorLevelTable = nullptr;
 }
 
-int MidiDriver_TOWNS::open() {
+int IMuseDriver_FMTowns::open() {
 	if (_isOpen)
 		return MERR_ALREADY_OPEN;
 
@@ -895,17 +913,17 @@ int MidiDriver_TOWNS::open() {
 	return 0;
 }
 
-void MidiDriver_TOWNS::close() {
+void IMuseDriver_FMTowns::close() {
 	if (!_isOpen)
 		return;
 
 	_isOpen = false;
 
-	setTimerCallback(0, 0);
+	setTimerCallback(nullptr, nullptr);
 	g_system->delayMillis(20);
 }
 
-void MidiDriver_TOWNS::send(uint32 b) {
+void IMuseDriver_FMTowns::send(uint32 b) {
 	if (!_isOpen)
 		return;
 
@@ -943,33 +961,33 @@ void MidiDriver_TOWNS::send(uint32 b) {
 	}
 }
 
-void MidiDriver_TOWNS::setTimerCallback(void *timer_param, Common::TimerManager::TimerProc timer_proc) {
+void IMuseDriver_FMTowns::setTimerCallback(void *timer_param, Common::TimerManager::TimerProc timer_proc) {
 	_timerProc = timer_proc;
 	_timerProcPara = timer_param;
 }
 
-uint32 MidiDriver_TOWNS::getBaseTempo() {
+uint32 IMuseDriver_FMTowns::getBaseTempo() {
 	return _baseTempo;
 }
 
-MidiChannel *MidiDriver_TOWNS::allocateChannel() {
+MidiChannel *IMuseDriver_FMTowns::allocateChannel() {
 	if (!_isOpen)
-		return 0;
+		return nullptr;
 
-	for (int i = 0; i < 32; ++i) {
+	for (int i = 0; i < _numParts; ++i) {
 		TownsMidiInputChannel *chan = _channels[i];
 		if (chan->allocate())
 			return chan;
 	}
 
-	return 0;
+	return nullptr;
 }
 
-MidiChannel *MidiDriver_TOWNS::getPercussionChannel() {
-	return 0;
+MidiChannel *IMuseDriver_FMTowns::getPercussionChannel() {
+	return nullptr;
 }
 
-void MidiDriver_TOWNS::timerCallback(int timerId) {
+void IMuseDriver_FMTowns::timerCallback(int timerId) {
 	if (!_isOpen)
 		return;
 
@@ -983,12 +1001,12 @@ void MidiDriver_TOWNS::timerCallback(int timerId) {
 	}
 }
 
-void MidiDriver_TOWNS::updateParser() {
+void IMuseDriver_FMTowns::updateParser() {
 	if (_timerProc)
 		_timerProc(_timerProcPara);
 }
 
-void MidiDriver_TOWNS::updateOutputChannels() {
+void IMuseDriver_FMTowns::updateOutputChannels() {
 	_tickCounter += _baseTempo;
 	while (_tickCounter >= 16667) {
 		_tickCounter -= 16667;
@@ -999,8 +1017,8 @@ void MidiDriver_TOWNS::updateOutputChannels() {
 	}
 }
 
-TownsMidiOutputChannel *MidiDriver_TOWNS::allocateOutputChannel(uint8 pri) {
-	TownsMidiOutputChannel *res = 0;
+TownsMidiOutputChannel *IMuseDriver_FMTowns::allocateOutputChannel(uint8 pri) {
+	TownsMidiOutputChannel *res = nullptr;
 
 	for (int i = 0; i < 6; i++) {
 		if (++_allocCurPos == 6)
@@ -1022,7 +1040,9 @@ TownsMidiOutputChannel *MidiDriver_TOWNS::allocateOutputChannel(uint8 pri) {
 	return res;
 }
 
-int MidiDriver_TOWNS::randomValue(int para) {
+int IMuseDriver_FMTowns::randomValue(int para) {
 	_rand = (_rand & 1) ? (_rand >> 1) ^ 0xb8 : (_rand >> 1);
 	return (_rand * para) >> 8;
 }
+
+} // end of namespace Scumm

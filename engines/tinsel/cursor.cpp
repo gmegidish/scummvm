@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Cursor and cursor trails.
  */
@@ -85,31 +84,25 @@ Cursor::Cursor() {
  * it. Also initialize its animation script.
  */
 void Cursor::InitCurTrailObj(int i, int x, int y) {
-	const FREEL *pfr;		// pointer to reel
-	IMAGE *pim;		// pointer to image
-	const MULTI_INIT *pmi;		// MULTI_INIT structure
-
-	const FILM *pfilm;
-
 	if (!_numTrails)
 		return;
 
-	// Get rid of old object
-	if (_trailData[i].trailObj != NULL)
-		MultiDeleteObject(_vm->_bg->GetPlayfieldList(FIELD_STATUS), _trailData[i].trailObj);
+	const FILM *pFilm = (const FILM *)_vm->_handle->LockMem(_cursorFilm);
+	const FREEL *pfr = (const FREEL *)&pFilm->reels[i + 1];
+	const MULTI_INIT *pmi = pfr->GetMultiInit();
 
-	pim = GetImageFromFilm(_cursorFilm, i+1, &pfr, &pmi, &pfilm);// Get pointer to image
-	assert(_vm->_bg->BgPal()); // No background palette
-	pim->hImgPal = TO_32(_vm->_bg->BgPal());
+	PokeInPalette(pmi);
+
+	// Get rid of old object
+	MultiDeleteObjectIfExists(FIELD_STATUS, &_trailData[i].trailObj);
 
 	// Initialize and insert the object, set its Z-pos, and hide it
 	_trailData[i].trailObj = MultiInitObject(pmi);
 	MultiInsertObject(_vm->_bg->GetPlayfieldList(FIELD_STATUS), _trailData[i].trailObj);
-	MultiSetZPosition(_trailData[i].trailObj, Z_CURSORTRAIL);
-	MultiSetAniXY(_trailData[i].trailObj, x, y);
+	MultiSetAniXYZ(_trailData[i].trailObj, x, y, Z_CURSORTRAIL);
 
 	// Initialize the animation script
-	InitStepAnimScript(&_trailData[i].trailAnim, _trailData[i].trailObj, FROM_32(pfr->script), ONE_SECOND / FROM_32(pfilm->frate));
+	InitStepAnimScript(&_trailData[i].trailAnim, _trailData[i].trailObj, FROM_32(pfr->script), ONE_SECOND / FROM_32(pFilm->frate));
 	StepAnimScript(&_trailData[i].trailAnim);
 }
 
@@ -239,10 +232,7 @@ void Cursor::DwHideCursor() {
 		MultiHideObject(_auxCursor);
 
 	for (int i = 0; i < _numTrails; i++) {
-		if (_trailData[i].trailObj != NULL) {
-			MultiDeleteObject(_vm->_bg->GetPlayfieldList(FIELD_STATUS), _trailData[i].trailObj);
-			_trailData[i].trailObj = nullptr;
-		}
+		MultiDeleteObjectIfExists(FIELD_STATUS, &_trailData[i].trailObj);
 	}
 }
 
@@ -288,10 +278,7 @@ void Cursor::HideCursorTrails() {
 	_hiddenTrails = true;
 
 	for (i = 0; i < _numTrails; i++)	{
-		if (_trailData[i].trailObj != NULL) {
-			MultiDeleteObject(_vm->_bg->GetPlayfieldList(FIELD_STATUS), _trailData[i].trailObj);
-			_trailData[i].trailObj = nullptr;
-		}
+		MultiDeleteObjectIfExists(FIELD_STATUS, &_trailData[i].trailObj);
 	}
 }
 
@@ -303,85 +290,52 @@ void Cursor::UnHideCursorTrails() {
 }
 
 /**
- * Get pointer to image from a film reel. And the rest.
- */
-IMAGE *Cursor::GetImageFromReel(const FREEL *pfr, const MULTI_INIT **ppmi) {
-	const MULTI_INIT *pmi;
-	const FRAME *pFrame;
-
-	pmi = (const MULTI_INIT *)_vm->_handle->LockMem(FROM_32(pfr->mobj));
-	if (ppmi)
-		*ppmi = pmi;
-
-	pFrame = (const FRAME *)_vm->_handle->LockMem(FROM_32(pmi->hMulFrame));
-
-	// get pointer to image
-	return (IMAGE *)_vm->_handle->LockMem(READ_32(pFrame));
-}
-
-/**
- * Get pointer to image from a film. And the rest.
- */
-IMAGE *Cursor::GetImageFromFilm(SCNHANDLE hFilm, int reel, const FREEL **ppfr, const MULTI_INIT **ppmi, const FILM **ppfilm) {
-	const FILM *pfilm;
-	const FREEL *pfr;
-
-	pfilm = (const FILM *)_vm->_handle->LockMem(hFilm);
-	if (ppfilm)
-		*ppfilm = pfilm;
-
-	pfr = &pfilm->reels[reel];
-	if (ppfr)
-		*ppfr = pfr;
-
-	return GetImageFromReel(pfr, ppmi);
-}
-
-/**
- * Delete auxillary cursor. Restore animation offsets in the image.
+ * Delete auxiliary cursor. Restore animation offsets in the image.
  */
 void Cursor::DelAuxCursor() {
-	if (_auxCursor != NULL) {
-		MultiDeleteObject(_vm->_bg->GetPlayfieldList(FIELD_STATUS), _auxCursor);
-		_auxCursor = nullptr;
-	}
+	MultiDeleteObjectIfExists(FIELD_STATUS, &_auxCursor);
 }
 
 /**
- * Set auxillary cursor.
+ * Set auxiliary cursor.
  * Save animation offsets from the image if required.
  */
 void Cursor::SetAuxCursor(SCNHANDLE hFilm) {
-	IMAGE *pim;		// Pointer to auxillary cursor's image
-	const FREEL *pfr;
-	const MULTI_INIT *pmi;
-	const FILM *pfilm;
+	const FILM *pfilm = (const FILM *)_vm->_handle->LockMem(hFilm);
+	const FREEL *pfr = &pfilm->reels[0];
+	const MULTI_INIT *pmi = pfr->GetMultiInit();
+	const FRAME *pFrame = pmi->GetFrame();
+	const IMAGE *pim;
 	int	x, y;		// Cursor position
 
 	DelAuxCursor();		// Get rid of previous
 
-	// WORKAROUND: There's no palette when loading a DW1 savegame with a held item, so exit if so
-	if (!_vm->_bg->BgPal())
-		return;
+	// Noir does not use palettes
+	if (TinselVersion < 3) {
+		// WORKAROUND: There's no palette when loading a DW1 savegame with a held item, so exit if so
+		if (!_vm->_bg->BgPal())
+			return;
+
+		assert(_vm->_bg->BgPal()); // no background palette
+		PokeInPalette(pmi);
+	}
 
 	GetCursorXY(&x, &y, false);	// Note: also waits for cursor to appear
 
-	pim = GetImageFromFilm(hFilm, 0, &pfr, &pmi, &pfilm);// Get pointer to image
-	assert(_vm->_bg->BgPal()); // no background palette
-	pim->hImgPal = TO_32(_vm->_bg->BgPal());			// Poke in the background palette
+	pim = _vm->_handle->GetImage(READ_32(pFrame)); // Get pointer to auxiliary cursor's image
 
-	_auxCursorOffsetX = (short)(FROM_16(pim->imgWidth)/2 - ((int16) FROM_16(pim->anioffX)));
-	_auxCursorOffsetY = (short)((FROM_16(pim->imgHeight) & ~C16_FLAG_MASK)/2 -
-		((int16) FROM_16(pim->anioffY)));
+	_auxCursorOffsetX = (short)(pim->imgWidth / 2 - ((int16) pim->anioffX));
+	_auxCursorOffsetY = (short)((pim->imgHeight & ~C16_FLAG_MASK) / 2 -
+		((int16) pim->anioffY));
+	delete pim;
 
-	// Initialize and insert the auxillary cursor object
+	// Initialize and insert the auxiliary cursor object
 	_auxCursor = MultiInitObject(pmi);
 	MultiInsertObject(_vm->_bg->GetPlayfieldList(FIELD_STATUS), _auxCursor);
 
 	// Initialize the animation and set its position
 	InitStepAnimScript(&_auxCursorAnim, _auxCursor, FROM_32(pfr->script), ONE_SECOND / FROM_32(pfilm->frate));
-	MultiSetAniXY(_auxCursor, x - _auxCursorOffsetX, y - _auxCursorOffsetY);
-	MultiSetZPosition(_auxCursor, Z_ACURSOR);
+	MultiSetAniXYZ(_auxCursor, x - _auxCursorOffsetX, y - _auxCursorOffsetY, Z_ACURSOR);
 
 	if (_hiddenCursor)
 		MultiHideObject(_auxCursor);
@@ -448,10 +402,10 @@ void Cursor::DoCursorMove() {
 	if (_auxCursor != NULL)
 		MultiSetAniXY(_auxCursor, ptMouse.x - _auxCursorOffsetX, ptMouse.y - _auxCursorOffsetY);
 
-	if (_vm->_dialogs->InventoryActive() && _mainCursor) {
+	if (_vm->_dialogs->inventoryActive() && _mainCursor) {
 		// Notify the inventory
-		_vm->_dialogs->Xmovement(ptMouse.x - startX);
-		_vm->_dialogs->Ymovement(ptMouse.y - startY);
+		_vm->_dialogs->xMovement(ptMouse.x - startX);
+		_vm->_dialogs->yMovement(ptMouse.y - startY);
 	}
 
 	_lastCursorX = ptMouse.x;
@@ -462,27 +416,16 @@ void Cursor::DoCursorMove() {
  * Initialize cursor object.
  */
 void Cursor::InitCurObj() {
-	const FILM *pFilm;
-	const FREEL *pfr;
-	const MULTI_INIT *pmi;
-	IMAGE *pim;
+	const FILM *pFilm = (const FILM *)_vm->_handle->LockMem(_cursorFilm);
+	const FREEL *pfr = (const FREEL *)&pFilm->reels[0];
+	const MULTI_INIT *pmi = pfr->GetMultiInit();
 
-	if (TinselV2 || TinselV3) {
-		pFilm = (const FILM *)_vm->_handle->LockMem(_cursorFilm);
-		pfr = (const FREEL *)&pFilm->reels[0];
-		pmi = (MULTI_INIT *)_vm->_handle->LockMem(FROM_32(pfr->mobj));
-
-		if (!TinselV3) {
-			PokeInPalette(pmi);
-		}
-	} else {
-		assert(_vm->_bg->BgPal()); // no background palette
-
-		pim = GetImageFromFilm(_cursorFilm, 0, &pfr, &pmi, &pFilm);// Get pointer to image
-		pim->hImgPal = TO_32(_vm->_bg->BgPal());
-
-		_auxCursor = nullptr;		// No auxillary cursor
+	if (TinselVersion != 3) {
+		PokeInPalette(pmi);
 	}
+
+	if (TinselVersion <= 1)
+		_auxCursor = nullptr; // No auxiliary cursor
 
 	_mainCursor = MultiInitObject(pmi);
 	MultiInsertObject(_vm->_bg->GetPlayfieldList(FIELD_STATUS), _mainCursor);
@@ -524,26 +467,23 @@ void Cursor::DwInitCursor(SCNHANDLE bfilm) {
  * DropCursor is called when a scene is closing down.
  */
 void Cursor::DropCursor() {
-	if (TinselV2) {
+	if (TinselVersion >= 2) {
 		if (_auxCursor)
-			MultiDeleteObject(_vm->_bg->GetPlayfieldList(FIELD_STATUS), _auxCursor);
+			MultiDeleteObjectIfExists(FIELD_STATUS, &_auxCursor);
 		if (_mainCursor)
-			MultiDeleteObject(_vm->_bg->GetPlayfieldList(FIELD_STATUS), _mainCursor);
+			MultiDeleteObjectIfExists(FIELD_STATUS, &_mainCursor);
 
 		_cursorProcessesRestarted = false;
 	}
 
-	_auxCursor = nullptr;		// No auxillary cursor
+	_auxCursor = nullptr;		// No auxiliary cursor
 	_mainCursor = nullptr;		// No cursor object (imminently deleted elsewhere)
 	_hiddenCursor = false;	// Not hidden in next scene
 	_hiddenTrails = false;	// Trailers not hidden in next scene
 	_cursorProcessesStopped = true;		// Suspend cursor processes
 
 	for (int i = 0; i < _numTrails; i++) {
-		if (_trailData[i].trailObj != NULL)		{
-			MultiDeleteObject(_vm->_bg->GetPlayfieldList(FIELD_STATUS), _trailData[i].trailObj);
-			_trailData[i].trailObj = nullptr;
-		}
+		MultiDeleteObjectIfExists(FIELD_STATUS, &_trailData[i].trailObj);
 	}
 }
 
@@ -579,7 +519,7 @@ void Cursor::StartCursorFollowed() {
 }
 
 void Cursor::EndCursorFollowed() {
-	_vm->_dialogs->InventoryIconCursor(false); // May be holding something
+	_vm->_dialogs->inventoryIconCursor(false); // May be holding something
 	_tempHiddenCursor = false;
 }
 
@@ -595,8 +535,7 @@ void Cursor::AnimateProcess() {
 	for (int i = 0; i < _vm->_cursor->NumTrails(); i++) {
 		if (_trailData[i].trailObj != NULL) {
 			if (StepAnimScript(&_trailData[i].trailAnim) == ScriptFinished) {
-				MultiDeleteObject(_vm->_bg->GetPlayfieldList(FIELD_STATUS), _trailData[i].trailObj);
-				_trailData[i].trailObj = nullptr;
+				MultiDeleteObjectIfExists(FIELD_STATUS, &_trailData[i].trailObj);
 			}
 		}
 	}
@@ -625,7 +564,7 @@ void CursorStoppedCheck(CORO_PARAM) {
 		// Re-initialize
 		_vm->_cursor->InitCurObj();
 		_vm->_cursor->InitCurPos();
-		_vm->_dialogs->InventoryIconCursor(false); // May be holding something
+		_vm->_dialogs->inventoryIconCursor(false); // May be holding something
 
 		// Re-start the cursor trails
 		_vm->_cursor->_cursorProcessesRestarted = true;
@@ -637,7 +576,7 @@ void CursorStoppedCheck(CORO_PARAM) {
 bool CanInitializeCursor() {
 	if (!_vm->_cursor->HasReelData()) {
 		return false;
-	} else if (TinselVersion != TINSEL_V3) {
+	} else if (TinselVersion != 3) {
 		return (_vm->_bg->BgPal() != 0);
 	}
 	return true;
@@ -658,7 +597,7 @@ void CursorProcess(CORO_PARAM, const void *) {
 
 	_vm->_cursor->InitCurObj();
 	_vm->_cursor->InitCurPos();
-	_vm->_dialogs->InventoryIconCursor(false); // May be holding something
+	_vm->_dialogs->inventoryIconCursor(false); // May be holding something
 
 	_vm->_cursor->_cursorProcessesStopped = false;
 	_vm->_cursor->_cursorProcessesRestarted = false;

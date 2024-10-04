@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,12 +46,12 @@ struct Point {
 	int16 x;	/*!< The horizontal position of the point. */
 	int16 y;	/*!< The vertical position of the point. */
 
-	Point() : x(0), y(0) {}
+	constexpr Point() : x(0), y(0) {}
 
 	/**
 	 * Create a point with position defined by @p x1 and @p y1.
 	 */
-	Point(int16 x1, int16 y1) : x(x1), y(y1) {}
+	constexpr Point(int16 x1, int16 y1) : x(x1), y(y1) {}
 	/**
 	 * Determine whether the position of two points is the same.
 	 */
@@ -146,11 +145,27 @@ struct Rect {
 	int16 top, left;		/*!< The point at the top left of the rectangle (part of the Rect). */
 	int16 bottom, right;	/*!< The point at the bottom right of the rectangle (not part of the Rect). */
 
-	Rect() : top(0), left(0), bottom(0), right(0) {}
+	constexpr Rect() : top(0), left(0), bottom(0), right(0) {}
 	/**
 	 * Create a rectangle with the top-left corner at position (0, 0) and the given width @p w and height @p h.
 	 */
-	Rect(int16 w, int16 h) : top(0), left(0), bottom(h), right(w) {}
+	constexpr Rect(int16 w, int16 h) : top(0), left(0), bottom(h), right(w) {}
+	/**
+	 * Create a rectangle with the top-left corner at the position @p topLeft
+	 * and the bottom-right corner at the position @p bottomRight.
+	 *
+	 * The @p topLeft x value must be greater or equal @p bottomRight x and
+	 * @p topLeft y must be greater or equal @p bottomRight y.
+	 */
+	Rect(const Point &topLeft, const Point &bottomRight) : top(topLeft.y), left(topLeft.x), bottom(bottomRight.y), right(bottomRight.x) {
+		assert(isValidRect());
+	}
+	/**
+	 * Create a rectangle with the top-left corner at the position @p topLeft
+	 * and the given width @p w and height @p h.
+	 */
+	constexpr Rect(const Point &topLeft, int16 w, int16 h) : top(topLeft.y), left(topLeft.x), bottom(topLeft.y + h), right(topLeft.x + w) {
+	}
 	/**
 	 * Create a rectangle with the top-left corner at the given position (x1, y1)
 	 * and the bottom-right corner at the position (x2, y2).
@@ -300,7 +315,7 @@ struct Rect {
 	}
 
    	/**
-	 * Reduce the dimensions of this rectangle by setting max width and max heigth.
+	 * Reduce the dimensions of this rectangle by setting max width and max height.
 	 */
 	void clip(int16 maxw, int16 maxh) {
 		clip(Rect(0, 0, maxw, maxh));

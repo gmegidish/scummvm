@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,13 +38,13 @@ TimAnimator::TimAnimator(LoLEngine *engine, Screen_v2 *screen_v2, OSystem *syste
 #else
 TimAnimator::TimAnimator(KyraEngine_v1 *engine, Screen_v2 *screen_v2, OSystem *system, bool useParts) : _vm(engine), _screen(screen_v2), _system(system), _useParts(useParts) {
 #endif
-	_animations = new Animation[TIM::kWSASlots];
-	memset(_animations, 0, TIM::kWSASlots * sizeof(Animation));
+	_animations = new Animation[TIM::kWSASlots]();
+	assert(_animations);
 
 	if (_useParts) {
 		for (int i = 0; i < TIM::kWSASlots; i++) {
-			_animations[i].parts = new AnimPart[TIM::kAnimParts];
-			memset(_animations[i].parts, 0, TIM::kAnimParts * sizeof(AnimPart));
+			_animations[i].parts = new AnimPart[TIM::kAnimParts]();
+			assert(_animations[i].parts);
 		}
 	}
 }
@@ -73,12 +72,10 @@ void TimAnimator::init(int animIndex, Movie *wsa, int x, int y, int wsaCopyParam
 
 void TimAnimator::reset(int animIndex, bool clearStruct) {
 	Animation *anim = &_animations[animIndex];
-	if (!anim)
-		return;
 	anim->field_D = 0;
 	anim->enable = 0;
 	delete anim->wsa;
-	anim->wsa = 0;
+	anim->wsa = nullptr;
 
 	if (clearStruct) {
 		if (_useParts)
@@ -89,6 +86,7 @@ void TimAnimator::reset(int animIndex, bool clearStruct) {
 		if (_useParts) {
 			anim->parts = new AnimPart[TIM::kAnimParts];
 			memset(anim->parts, 0, TIM::kAnimParts * sizeof(AnimPart));
+			assert(anim->parts);
 		}
 	}
 }
@@ -99,7 +97,7 @@ void TimAnimator::displayFrame(int animIndex, int page, int frame, int flags) {
 		page = 2;
 	// WORKAROUND for some bugged scripts that will try to display frames of non-existent animations
 	if (anim->wsa)
-		anim->wsa->displayFrame(frame, page, anim->x, anim->y, (flags == -1) ? (anim->wsaCopyParams & 0xF0FF) : flags, 0, 0);
+		anim->wsa->displayFrame(frame, page, anim->x, anim->y, (flags == -1) ? (anim->wsaCopyParams & 0xF0FF) : flags, nullptr, nullptr);
 	if (!page)
 		_screen->updateScreen();
 }

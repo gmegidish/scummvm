@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef AGS_ENGINE_SCRIPT_CC_INSTANCE_H
 #define AGS_ENGINE_SCRIPT_CC_INSTANCE_H
 
-#include "ags/lib/std/memory.h"
-#include "ags/lib/std/map.h"
-#include "ags/shared/script/script_common.h"
+#include "common/std/memory.h"
+#include "common/std/map.h"
+#include "ags/engine/ac/timer.h"
+#include "ags/shared/script/cc_internal.h"
 #include "ags/shared/script/cc_script.h"  // ccScript
 #include "ags/engine/script/non_blocking_script_function.h"
 #include "ags/shared/util/string.h"
@@ -48,9 +48,6 @@ using namespace AGS;
 #define INSTANCE_ID_SHIFT 24LL
 #define INSTANCE_ID_MASK  0x00000000000000ffLL
 #define INSTANCE_ID_REMOVEMASK 0x0000000000ffffffLL
-
-struct ccInstance;
-struct ScriptImport;
 
 struct ScriptInstruction {
 	ScriptInstruction() {
@@ -101,7 +98,6 @@ struct ScriptPosition {
 // Running instance of the script
 struct ccInstance {
 public:
-	// TODO: change to std:: if moved to C++11
 	typedef std::unordered_map<int32_t, ScriptVariable> ScVarMap;
 	typedef std::shared_ptr<ScVarMap>                   PScVarMap;
 public:
@@ -110,7 +106,7 @@ public:
 	char *globaldata;
 	int32_t globaldatasize;
 	// Executed byte-code. Unlike ccScript's code array which is int32_t, the one
-	// in ccInstance must be intptr_t to accomodate real pointers placed after
+	// in ccInstance must be intptr_t to accommodate real pointers placed after
 	// performing fixups.
 	intptr_t *code;
 	ccInstance *runningInst;  // might point to another instance if in far call
@@ -139,16 +135,21 @@ public:
 	ccInstance *callStackCodeInst[MAX_CALL_STACK];
 
 	// array of real import indexes used in script
-	int *resolved_imports;
+	uint32_t *resolved_imports;
 	int  numimports;
 
 	char *code_fixups;
 
 	// returns the currently executing instance, or NULL if none
 	static ccInstance *GetCurrentInstance(void);
+	// clears recorded stack of current instances
+	// FIXME: reimplement this in a safer way, this must be done automatically
+	// when destroying all script instances, e.g. on game quit.
+	static void FreeInstanceStack();
 	// create a runnable instance of the supplied script
 	static ccInstance *CreateFromScript(PScript script);
 	static ccInstance *CreateEx(PScript scri, ccInstance *joined);
+	static void SetExecTimeout(unsigned sys_poll_ms, unsigned abort_ms, unsigned abort_loops);
 
 	ccInstance();
 	~ccInstance();
@@ -162,31 +163,40 @@ public:
 
 	// Call an exported function in the script
 	int     CallScriptFunction(const char *funcname, int32_t num_params, const RuntimeScriptValue *params);
-	// Begin executing script starting from the given bytecode index
-	int     Run(int32_t curpc);
 
 	// Get the script's execution position and callstack as human-readable text
-	Shared::String GetCallStack(int maxLines);
+	Shared::String GetCallStack(int max_lines = INT_MAX) const;
 	// Get the script's execution position
-	void    GetScriptPosition(ScriptPosition &script_pos);
+	void    GetScriptPosition(ScriptPosition &script_pos) const;
 	// Get the address of an exported symbol (function or variable) in the script
-	RuntimeScriptValue GetSymbolAddress(const char *symname);
-	void    DumpInstruction(const ScriptOperation &op);
+	RuntimeScriptValue GetSymbolAddress(const char *symname) const;
+	void    DumpInstruction(const ScriptOperation &op) const;
 	// Tells whether this instance is in the process of executing the byte-code
 	bool    IsBeingRun() const;
+	// Notifies that the game was being updated (script not hanging)
+	void	NotifyAlive();
 
-protected:
+	// For each import, find the instance that corresponds to it and save it
+	// in resolved_imports[]. Return whether the function is successful
+	bool    ResolveScriptImports(const ccScript *scri);
+
+	// Using resolved_imports[], resolve the IMPORT fixups
+	// Also change CALLEXT op-codes to CALLAS when they pertain to a script instance
+	bool    ResolveImportFixups(const ccScript *scri);
+
+private:
 	bool    _Create(PScript scri, ccInstance *joined);
 	// free the memory associated with the instance
 	void    Free();
 
-	bool    ResolveScriptImports(PScript scri);
-	bool    CreateGlobalVars(PScript scri);
+	bool    CreateGlobalVars(const ccScript *scri);
 	bool    AddGlobalVar(const ScriptVariable &glvar);
 	ScriptVariable *FindGlobalVar(int32_t var_addr);
-	bool    CreateRuntimeCodeFixups(PScript scri);
+	bool    CreateRuntimeCodeFixups(const ccScript *scri);
 	//bool    ReadOperation(ScriptOperation &op, int32_t at_pc);
 
+	// Begin executing script starting from the given bytecode index
+	int     Run(int32_t curpc);
 	// Runtime fixups
 	//bool    FixupArgument(intptr_t code_value, char fixup_type, RuntimeScriptValue &argument);
 
@@ -211,7 +221,13 @@ protected:
 	// Function call stack processing
 	void    PushToFuncCallStack(FunctionCallStack &func_callstack, const RuntimeScriptValue &rval);
 	void    PopFromFuncCallStack(FunctionCallStack &func_callstack, int32_t num_entries);
+
+	// Last time the script was noted of being "alive"
+	AGS_Clock::time_point _lastAliveTs;
 };
+
+extern void script_commands_init();
+extern void script_commands_free();
 
 } // namespace AGS3
 

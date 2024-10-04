@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,22 +25,22 @@
 #include "backends/networking/curl/curljsonrequest.h"
 #include "common/config-manager.h"
 #include "common/debug.h"
-#include "common/json.h"
+#include "common/formats/json.h"
 
 namespace Cloud {
 
 BaseStorage::BaseStorage() {}
 
-BaseStorage::BaseStorage(Common::String token, Common::String refreshToken, bool enabled):
+BaseStorage::BaseStorage(const Common::String &token, const Common::String &refreshToken, bool enabled):
 	_token(token), _refreshToken(refreshToken) {
 	_isEnabled = enabled;
 }
 
 BaseStorage::~BaseStorage() {}
 
-void BaseStorage::getAccessToken(Common::String code, Networking::ErrorCallback callback) {
-	Networking::JsonCallback innerCallback = new Common::CallbackBridge<BaseStorage, Networking::ErrorResponse, Networking::JsonResponse>(this, &BaseStorage::codeFlowComplete, callback);
-	Networking::ErrorCallback errorCallback = new Common::CallbackBridge<BaseStorage, Networking::ErrorResponse, Networking::ErrorResponse>(this, &BaseStorage::codeFlowFailed, callback);
+void BaseStorage::getAccessToken(const Common::String &code, Networking::ErrorCallback callback) {
+	Networking::JsonCallback innerCallback = new Common::CallbackBridge<BaseStorage, const Networking::ErrorResponse &, const Networking::JsonResponse &>(this, &BaseStorage::codeFlowComplete, callback);
+	Networking::ErrorCallback errorCallback = new Common::CallbackBridge<BaseStorage, const Networking::ErrorResponse &, const Networking::ErrorResponse &>(this, &BaseStorage::codeFlowFailed, callback);
 
 	Common::String url = Common::String::format("https://cloud.scummvm.org/%s/token/%s", cloudProvider().c_str(), code.c_str());
 	Networking::CurlJsonRequest *request = new Networking::CurlJsonRequest(innerCallback, errorCallback, url);
@@ -49,19 +48,21 @@ void BaseStorage::getAccessToken(Common::String code, Networking::ErrorCallback 
 	addRequest(request);
 }
 
-void BaseStorage::codeFlowComplete(Networking::ErrorCallback callback, Networking::JsonResponse response) {
+void BaseStorage::codeFlowComplete(Networking::ErrorCallback callback, const Networking::JsonResponse &response) {
 	bool success = true;
 	Common::String callbackMessage = "OK";
 
-	Common::JSONValue *json = (Common::JSONValue *)response.value;
+	const Common::JSONValue *json = response.value;
 	if (json == nullptr) {
 		debug(9, "BaseStorage::codeFlowComplete: got NULL instead of JSON!");
 		success = false;
+		callbackMessage = "Incorrect JSON.";
 	}
 
 	if (success && !json->isObject()) {
 		debug(9, "BaseStorage::codeFlowComplete: passed JSON is not an object!");
 		success = false;
+		callbackMessage = "Incorrect JSON.";
 	}
 
 	Common::JSONObject result;
@@ -71,6 +72,7 @@ void BaseStorage::codeFlowComplete(Networking::ErrorCallback callback, Networkin
 			warning("BaseStorage: bad response, no 'error' attribute passed");
 			debug(9, "%s", json->stringify(true).c_str());
 			success = false;
+			callbackMessage = "Incorrect JSON.";
 		}
 	}
 
@@ -88,6 +90,7 @@ void BaseStorage::codeFlowComplete(Networking::ErrorCallback callback, Networkin
 		warning("BaseStorage: bad response, no 'oauth' attribute passed");
 		debug(9, "%s", json->stringify(true).c_str());
 		success = false;
+		callbackMessage = "Incorrect JSON.";
 	}
 
 	Common::JSONObject oauth;
@@ -99,11 +102,11 @@ void BaseStorage::codeFlowComplete(Networking::ErrorCallback callback, Networkin
 			warning("BaseStorage: bad response, no 'access_token' or 'refresh_token' attribute passed");
 			debug(9, "%s", json->stringify(true).c_str());
 			success = false;
+			callbackMessage = "Incorrect JSON.";
 		}
 	}
 
 	if (success) {
-		debug(9, "%s", json->stringify(true).c_str()); // TODO: remove when done testing against cloud.scummvm.org
 		_token = oauth.getVal("access_token")->asString();
 		if (requiresRefreshToken) {
 			_refreshToken = oauth.getVal("refresh_token")->asString();
@@ -120,7 +123,7 @@ void BaseStorage::codeFlowComplete(Networking::ErrorCallback callback, Networkin
 	delete callback;
 }
 
-void BaseStorage::codeFlowFailed(Networking::ErrorCallback callback, Networking::ErrorResponse error) {
+void BaseStorage::codeFlowFailed(Networking::ErrorCallback callback, const Networking::ErrorResponse &error) {
 	debug(9, "BaseStorage: code flow failed (%s, %ld):", (error.failed ? "failed" : "interrupted"), error.httpResponseCode);
 	debug(9, "%s", error.response.c_str());
 	CloudMan.removeStorage(this);
@@ -137,7 +140,7 @@ void BaseStorage::refreshAccessToken(BoolCallback callback, Networking::ErrorCal
 		return;
 	}
 
-	Networking::JsonCallback innerCallback = new Common::CallbackBridge<BaseStorage, BoolResponse, Networking::JsonResponse>(this, &BaseStorage::tokenRefreshed, callback);
+	Networking::JsonCallback innerCallback = new Common::CallbackBridge<BaseStorage, const BoolResponse &, const Networking::JsonResponse &>(this, &BaseStorage::tokenRefreshed, callback);
 	if (errorCallback == nullptr)
 		errorCallback = getErrorPrintingCallback();
 
@@ -147,10 +150,10 @@ void BaseStorage::refreshAccessToken(BoolCallback callback, Networking::ErrorCal
 	addRequest(request);
 }
 
-void BaseStorage::tokenRefreshed(BoolCallback callback, Networking::JsonResponse response) {
+void BaseStorage::tokenRefreshed(BoolCallback callback, const Networking::JsonResponse &response) {
 	bool success = true;
 
-	Common::JSONValue *json = response.value;
+	const Common::JSONValue *json = response.value;
 	if (json == nullptr) {
 		debug(9, "BaseStorage::tokenRefreshed: got NULL instead of JSON!");
 		success = false;

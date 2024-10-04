@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,7 @@
 #include "common/hashmap.h"
 #include "common/hash-str.h"
 #include "common/random.h"
+#include "common/events.h"
 
 #include "engines/engine.h"
 
@@ -65,8 +65,8 @@
  * all known game variants. Based on Yaz0r's engine.
  *
  * Cinematique evo.2 status:
- * This generation supports Operation Stealth, originally developed by Yaz0r for
- * French variant of the game which heared to be completable.
+ * This generation supports Operation Stealth, originally developed by Yaz0r,
+ * for a french variant of the game which was said to be completable.
  * Later the work was renewed as part of GSoC'08, by Kari Salminen, but it has not
  * yet been finished. The game is not completable.
  *
@@ -92,6 +92,35 @@ struct VolumeResource {
 };
 
 typedef Common::HashMap<Common::String, Common::Array<VolumeResource> > StringToVolumeResourceArrayHashMap;
+
+enum CINEAction {
+	kActionNone,
+	kActionMoveUp,
+	kActionMoveDown,
+	kActionMoveLeft,
+	kActionMoveRight,
+	kActionMoveUpLeft,
+	kActionMoveUpRight,
+	kActionMoveDownLeft,
+	kActionMoveDownRight,
+	kActionGameSpeedDefault,
+	kActionGameSpeedSlower,
+	kActionGameSpeedFaster,
+	kActionExamine,
+	kActionTake,
+	kActionInventory,
+	kActionUse,
+	kActionActivate,
+	kActionSpeak,
+	kActionActionMenu,
+	kActionSystemMenu,
+	kActionCollisionPage,
+	kActionMouseLeft,
+	kActionMouseRight,
+	kActionExitSonyScreen,
+	kActionMenuOptionUp,
+	kActionMenuOptionDown
+};
 
 class CineConsole;
 
@@ -126,9 +155,9 @@ public:
 	uint32 getTimerDelay() const;
 	Common::Error loadGameState(int slot) override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
-	virtual Common::String getSaveStateName(int slot) const override;
-	bool canLoadGameStateCurrently() override;
-	bool canSaveGameStateCurrently() override;
+	Common::String getSaveStateName(int slot) const override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 
 	const CINEGameDescription *_gameDescription;
 	Common::File _partFileHandle;
@@ -193,6 +222,7 @@ public:
 
 	Common::String _commandBuffer;
 	Common::Array<Common::KeyState> _keyInputList;
+	Common::Array<Common::CustomEventType> _actionList;
 };
 
 extern CineEngine *g_cine;

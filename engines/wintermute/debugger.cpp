@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,6 @@ namespace Wintermute {
 Console::Console(WintermuteEngine *vm) : GUI::Debugger(), _engineRef(vm) {
 	registerCmd("show_fps", WRAP_METHOD(Console, Cmd_ShowFps));
 	registerCmd("dump_file", WRAP_METHOD(Console, Cmd_DumpFile));
-	registerCmd("show_fps", WRAP_METHOD(Console, Cmd_ShowFps));
 	registerCmd("dump_file", WRAP_METHOD(Console, Cmd_DumpFile));
 	registerCmd("help", WRAP_METHOD(Console, Cmd_Help));
 	// Actual (script) debugger commands
@@ -57,7 +55,7 @@ Console::Console(WintermuteEngine *vm) : GUI::Debugger(), _engineRef(vm) {
 	registerCmd(TOP_CMD, WRAP_METHOD(Console, Cmd_Top));
 }
 
-Console::~Console(void) {
+Console::~Console() {
 }
 
 bool Console::Cmd_Help(int argc, const char **argv) {
@@ -101,7 +99,7 @@ void Console::printUsage(const Common::String &command) {
 	} else if (command.equals(SET_CMD)) {
 		debugPrintf("Usage: %s <name> = <value> to set <name> to <value>\n", command.c_str());
 	} else {
-		debugPrintf("No help about this command, sorry.");
+		debugPrintf("No help about this command, sorry.\n");
 	}
 }
 
@@ -261,13 +259,14 @@ bool Console::Cmd_List(int argc, const char **argv) {
 
 bool Console::Cmd_Print(int argc, const char **argv) {
 	if (argc == 2) {
-		Error error = Error(SUCCESS, OK, 0);
+		Error *error = nullptr;
 		Common::String temp = CONTROLLER->readValue(argv[1], &error);
-		if (error.getErrorLevel() == SUCCESS) {
+		if (error == nullptr) {
 			debugPrintf("%s = %s \n", argv[1], temp.c_str());
 			return true;
 		} else {
-			printError(argv[0], error);
+			printError(argv[0], *error);
+			delete error;
 			return true;
 		}
 	} else {
@@ -275,7 +274,6 @@ bool Console::Cmd_Print(int argc, const char **argv) {
 		return true;
 	}
 }
-
 
 bool Console::Cmd_Set(int argc, const char **argv) {
 	if (argc == 4 && !strncmp("=", argv[2], 1)) {
@@ -325,7 +323,7 @@ bool Console::Cmd_DumpFile(int argc, const char **argv) {
 	}
 
 	Common::DumpFile *outFile = new Common::DumpFile();
-	outFile->open(outFileName);
+	outFile->open(Common::Path(outFileName, Common::Path::kNativeSeparator));
 
 	byte *data = new byte[inFile->size()];
 	inFile->read(data, inFile->size());
@@ -341,14 +339,13 @@ bool Console::Cmd_DumpFile(int argc, const char **argv) {
 	return true;
 }
 
-
 bool Console::Cmd_SourcePath(int argc, const char **argv) {
 	if (argc != 2) {
 		debugPrintf("Usage: %s <source path>\n", argv[0]);
 		return true;
 	} else {
-		if (CONTROLLER->setSourcePath(Common::String(argv[1])).getErrorCode() == OK) {
-			debugPrintf("Source path set to '%s'\n", CONTROLLER->getSourcePath().c_str());
+		if (CONTROLLER->setSourcePath(Common::Path(argv[1], Common::Path::kNativeSeparator)).getErrorCode() == OK) {
+			debugPrintf("Source path set to '%s'\n", CONTROLLER->getSourcePath().toString(Common::Path::kNativeSeparator).c_str());
 		} else {
 			debugPrintf("Error setting source path. Note that \"\" is illegal.");
 		}
@@ -378,7 +375,6 @@ void Console::notifyWatch(const char *filename, const char *symbol, const char *
 }
 
 Error Console::printSource(int n) {
-
 	Error* error = nullptr;
 	Listing *listing = CONTROLLER->getListing(error);
 	Error err(*error);
@@ -417,4 +413,5 @@ bool Console::Cmd_Top(int argc, const char **argv) {
 void Console::printError(const Common::String &command, Error error) {
 	debugPrintf("%s: %s\n", command.c_str(), error.getErrorDisplayStr().c_str());
 }
+
 } // End of namespace Wintermute

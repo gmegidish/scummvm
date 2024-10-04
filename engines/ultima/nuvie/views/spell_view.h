@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,13 +57,13 @@ protected:
 	uint8 num_spells_per_page;
 
 public:
-	SpellView(Configuration *cfg);
+	SpellView(const Configuration *cfg);
 	~SpellView() override;
 
-	bool init(Screen *tmp_screen, void *view_manager, uint16 x, uint16 y, Font *f, Party *p, TileManager *tm, ObjManager *om);
+	virtual bool init(Screen *tmp_screen, void *view_manager, uint16 x, uint16 y, Font *f, Party *p, TileManager *tm, ObjManager *om);
 
 	void set_spell_caster(Actor *actor, Obj *s_container, bool eventMode);
-	sint16 get_selected_spell() {
+	sint16 get_selected_spell() const {
 		if (spell_container) {
 			return spell_container->quality;
 		} else return -1;
@@ -119,14 +118,14 @@ protected:
 	void set_next_level();
 
 	virtual uint8 fill_cur_spell_list();
-	sint8 get_selected_index();
+	sint8 get_selected_index() const;
 
 	void display_level_text();
 	void display_spell_list_text();
 	void display_spell_text(Spell *spell, uint16 line_num, uint8 selected_spell);
 	void show_spell_description();
 	GUI_status cancel_spell();
-	uint16 get_available_spell_count(Spell *s);
+	uint16 get_available_spell_count(const Spell *s) const;
 
 	GUI_status callback(uint16 msg, GUI_CallBack *caller, void *data) override;
 };

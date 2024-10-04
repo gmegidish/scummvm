@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,6 +37,11 @@ enum ReaderState {
 	RS_NONE,
 	RS_READING_HEADERS,
 	RS_READING_CONTENT
+};
+
+enum ReaderMode {
+	RM_HTTP_GENERIC,
+	RM_POST_FORM_MULTIPART
 };
 
 /**
@@ -74,11 +78,13 @@ enum ReaderState {
 
 class Reader {
 	ReaderState _state;
+	ReaderMode _mode;
 	Common::MemoryReadWriteStream *_content;
 	uint32 _bytesLeft;
 
 	byte *_window;
-	uint32 _windowUsed, _windowSize;
+	uint32 _windowUsed, _windowSize, _windowReadPosition, _windowWritePosition;
+	uint32 _windowHash;
 
 	Common::MemoryReadWriteStream *_headersStream;
 
@@ -100,12 +106,12 @@ class Reader {
 
 	void handleFirstHeaders(Common::MemoryReadWriteStream *headers);
 	void parseFirstLine(const Common::String &headers);
-	void parsePathQueryAndAnchor(Common::String pathToParse);
+	void parsePathQueryAndAnchor(const Common::String &pathToParse);
 	void parseQueryParameters();
 
 	void makeWindow(uint32 size);
 	void freeWindow();
-	bool readOneByteInStream(Common::WriteStream *stream, const Common::String &boundary);
+	bool readOneByteInStream(Common::WriteStream *stream, const Common::String &boundary, const uint32 boundaryHash);
 
 	byte readOne();
 	uint32 bytesLeft() const;
@@ -119,10 +125,12 @@ public:
 	Reader &operator=(Reader &r);
 
 	bool readFirstHeaders(); //true when ended reading
+	bool readContent(Common::WriteStream *stream); //true when ended reading
 	bool readFirstContent(Common::WriteStream *stream); //true when ended reading
 	bool readBlockHeaders(Common::WriteStream *stream); //true when ended reading
 	bool readBlockContent(Common::WriteStream *stream); //true when ended reading
 
+	void setMode(ReaderMode mode);
 	void setContent(Common::MemoryReadWriteStream *stream);
 
 	bool badRequest() const;
@@ -132,7 +140,7 @@ public:
 	Common::String method() const;
 	Common::String path() const;
 	Common::String query() const;
-	Common::String queryParameter(Common::String name) const;
+	Common::String queryParameter(const Common::String &name) const;
 	Common::String anchor() const;
 
 	static Common::String readEverythingFromMemoryStream(Common::MemoryReadWriteStream *stream);

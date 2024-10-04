@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -358,7 +357,7 @@ private:
 	void processCharacterSelection();
 	void updateSelectionAnims();
 	int selectionCharInfo(int character);
-	void selectionCharInfoIntro(char *file);
+	void selectionCharInfoIntro(Common::String &file);
 
 	int getCharSelection();
 	int selectionCharAccept();
@@ -576,7 +575,7 @@ private:
 
 	// text
 	int characterSays(int track, int charId, bool redraw);
-	int playCharacterScriptChat(int charId, int mode, int restorePortrait, char *str, EMCState *script, const uint16 *paramList, int16 paramIndex);
+	int playCharacterScriptChat(int charId, int mode, int restorePortrait, const char *str, EMCState *script, const uint16 *paramList, int16 paramIndex);
 	void setupDialogueButtons(int numStr, const char *s1, const char *s2, const char *s3);
 
 	TextDisplayer_LoL *_txt;
@@ -809,6 +808,7 @@ private:
 
 	// translation
 	int _lang;
+	int _langIntern;
 
 	uint8 *_landsFile;
 	uint8 *_levelLangFile;
@@ -816,7 +816,7 @@ private:
 	int _lastUsedStringBuffer;
 	char _stringBuffer[5][512]; // TODO: The original used a size of 512, it looks a bit large.
 	                            // Maybe we can someday reduce the size.
-	char *getLangString(uint16 id);
+	const char *getLangString(uint16 id);
 	uint8 *getTableEntry(uint8 *buffer, uint16 id);
 	void decodeSjis(const char *src, char *dst);
 	int decodeCyrillic(const char *src, char *dst);
@@ -1166,7 +1166,10 @@ private:
 	uint8 *_pageBuffer1;
 	uint8 *_pageBuffer2;
 
+	bool _displayLoraPaulsonWorkaroundMsg;
+
 	static const KyraRpgGUISettings _guiSettings;
+	static const KyraRpgGUISettings _guiSettingsZH;
 
 	// spells
 	typedef Common::Functor1Mem<ActiveSpell *, int, LoLEngine> SpellProc;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,6 @@
 #include "kyra/sound/sound_intern.h"
 
 #include "common/memstream.h"
-
 
 namespace Kyra {
 
@@ -84,8 +82,7 @@ bool StaticResource::loadEoB2ShapeData(Common::SeekableReadStream &stream, void 
 bool StaticResource::loadEoBNpcData(Common::SeekableReadStream &stream, void *&ptr, int &size) {
 	size = stream.readUint16BE();
 
-	EoBCharacter *e = new EoBCharacter[size];
-	memset(e, 0, size * sizeof(EoBCharacter));
+	EoBCharacter *e = new EoBCharacter[size]();
 	EoBCharacter *s = e;
 
 	for (int i = 0; i < size; i++, s++) {
@@ -149,7 +146,7 @@ void StaticResource::freeEoBNpcData(void *&ptr, int &size) {
 	size = 0;
 }
 
-const ScreenDim Screen_EoB::_screenDimTable[] = {
+const ScreenDim Screen_EoB::_screenDimTableIntl[] = {
 	{ 0x00, 0x00, 0x28, 0xC8, 0x0F, 0x0C, 0x00, 0x00 },
 	{ 0x08, 0x48, 0x18, 0x38, 0x0E, 0x0C, 0x00, 0x00 },
 	{ 0x13, 0x40, 0x14, 0x80, 0x06, 0x0C, 0x00, 0x00 },
@@ -181,7 +178,39 @@ const ScreenDim Screen_EoB::_screenDimTable[] = {
 	{ 0x0A, 0xA8, 0x15, 0x18, 0x0F, 0x0C, 0x00, 0x00 }
 };
 
-const int Screen_EoB::_screenDimTableCount = ARRAYSIZE(Screen_EoB::_screenDimTable);
+const ScreenDim Screen_EoB::_screenDimTableZH[] = {
+	{ 0x00, 0x00, 0x28, 0xC8, 0x0F, 0x0C, 0x00, 0x00 },
+	{ 0x08, 0x48, 0x18, 0x38, 0x0E, 0x0C, 0x00, 0x00 },
+	{ 0x13, 0x40, 0x14, 0x80, 0x06, 0x0C, 0x00, 0x00 },
+	{ 0x1D, 0x78, 0x08, 0x40, 0x0F, 0x0D, 0x00, 0x00 },
+	{ 0x02, 0x18, 0x14, 0x78, 0x0F, 0x02, 0x03, 0x00 },
+	{ 0x00, 0x00, 0x16, 0x78, 0x0F, 0x0D, 0x00, 0x00 },
+	{ 0x0A, 0x6C, 0x15, 0x28, 0x0F, 0x00, 0x00, 0x00 },
+	{ 0x01, 0xAB, 0x23, 0x1C, 0x0F, 0x0C, 0x00, 0x00 },
+	{ 0x02, 0x18, 0x14, 0x00, 0x0F, 0x02, 0x03, 0x00 },
+	{ 0x01, 0x7D, 0x26, 0x40, 0x0F, 0x00, 0x03, 0x00 },
+	{ 0x00, 0x00, 0x16, 0x90, 0x0F, 0x02, 0x00, 0x00 },
+	{ 0x01, 0x14, 0x14, 0x38, 0x0F, 0x02, 0x00, 0x00 },
+	{ 0x01, 0x04, 0x14, 0x9C, 0x0F, 0x02, 0x00, 0x00 },
+	{ 0x01, 0x19, 0x26, 0x64, 0x0F, 0x02, 0x00, 0x00 },
+	{ 0x01, 0x14, 0x14, 0x58, 0x0F, 0x02, 0x00, 0x00 },
+	{ 0x02, 0x06, 0x23, 0x78, 0x0F, 0x02, 0x00, 0x00 },
+	{ 0x09, 0x14, 0x16, 0x38, 0x0F, 0x02, 0x00, 0x00 },
+	{ 0x01, 0x96, 0x26, 0x31, 0x0F, 0x00, 0x00, 0x00 },
+	{ 0x01, 0x08, 0x26, 0x80, 0x0C, 0x0F, 0x00, 0x00 },
+	{ 0x01, 0x10, 0x26, 0x14, 0x00, 0x0F, 0x06, 0x00 },
+	{ 0x00, 0x10, 0x10, 0x0C, 0x00, 0x0F, 0x06, 0x00 },
+	{ 0x00, 0x10, 0x17, 0x00, 0x00, 0x0F, 0x06, 0x00 },
+	{ 0x00, 0x10, 0x10, 0x00, 0x00, 0x0F, 0x06, 0x00 },
+	{ 0x00, 0x10, 0x07, 0x04, 0x00, 0x0F, 0x06, 0x00 },
+	{ 0x00, 0x00, 0x11, 0x05, 0x00, 0x0F, 0x06, 0x00 },
+	{ 0x00, 0x00, 0x15, 0x05, 0x00, 0x0F, 0x06, 0x00 },
+	{ 0x00, 0x00, 0x11, 0x08, 0x00, 0x0F, 0x06, 0x00 },
+	{ 0x00, 0x00, 0x15, 0x03, 0x00, 0x0F, 0x06, 0x00 },
+	{ 0x0A, 0xA8, 0x15, 0x18, 0x0F, 0x0C, 0x00, 0x00 }
+};
+
+const int Screen_EoB::_screenDimTableCount = ARRAYSIZE(Screen_EoB::_screenDimTableIntl);
 
 const uint8 EoBCoreEngine::_hpIncrPerLevel[] = { 10, 4, 8, 6, 10, 10, 9, 10, 9, 10, 9, 9, 3, 1, 2, 2, 3, 3 };
 
@@ -508,7 +537,7 @@ void EoBCoreEngine::initStaticResource() {
 		_sound->initAudioResourceInfo(kMusicIntro, &intro);
 		_sound->initAudioResourceInfo(kMusicFinale, &finale);
 
-	} else if (_flags.platform != Common::kPlatformPC98) {
+	} else if (_flags.platform != Common::kPlatformPC98 || _flags.gameID == GI_EOB2) {
 		const char *const *files = _staticres->loadStrings(kEoBBaseSoundFilesIngame, temp);
 		SoundResourceInfo_PC ingame(files, temp);
 		files = _staticres->loadStrings(kEoBBaseSoundFilesIntro, temp);
@@ -523,7 +552,7 @@ void EoBCoreEngine::initStaticResource() {
 
 	// Hard code the following strings, since EOB I doesn't have them in the original.
 	// EOB I doesn't have load and save menus, because there is only one single
-	// save slot. Instead of emulating this we provide a menu similiar to EOB II.
+	// save slot. Instead of emulating this we provide a menu similar to EOB II.
 	// EOB I SegaCD actually has save/load menus with more than 1 slot if there is
 	// a RAM cart present). I supply the strings here, too...
 
@@ -532,10 +561,14 @@ void EoBCoreEngine::initStaticResource() {
 		{   "Abbr.",    "Leerer Slot",		"Speichern",    "  Laden"       },
 		{	" < < ",	"Posizione Vuota",	"Salva",		"Carica"	    },
 		{	"Anular",	"Sin Uso",			"Grabar",		"Cargar"	    },
-		{   0,          0,					0,					0			},
-		{	0,          0,					0,					0			},
+		// SegaCD English
 		{   "Cancel",   "\x82""d""\x82\x8d\x82\x90\x82\x94\x82\x99\x81""@""\x82\x92\x82\x85\x82\x87\x82\x89\x82\x8f\x82\x8e",		"Select save area",    "Select load data"     },
-		{   "\x82\xe2\x82\xdf\x82\xe9",   "\x8b\xf3\x82\xab\x97\xcc\x88\xe6",	"\x82\xc7\x82\xb1\x82\xc9\x83""Z""\x81""|""\x83""u""\x82\xb5\x82\xdc\x82\xb7\x82\xa9\x81""H",	"\x82\xc7\x82\xea\x82\xf0\x83\x8d\x81""|""\x83""h""\x82\xb5\x82\xdc\x82\xb7\x82\xa9\x81""H"    }
+		// SegaCD Japanese
+		{   "\x82\xe2\x82\xdf\x82\xe9",   "\x8b\xf3\x82\xab\x97\xcc\x88\xe6",	"\x82\xc7\x82\xb1\x82\xc9\x83""Z""\x81""|""\x83""u""\x82\xb5\x82\xdc\x82\xb7\x82\xa9\x81""H",	"\x82\xc7\x82\xea\x82\xf0\x83\x8d\x81""|""\x83""h""\x82\xb5\x82\xdc\x82\xb7\x82\xa9\x81""H"    },
+		// PC-98 Japanese
+		{   "Cancel",   "Empty Slot",	  "\x83\x51\x81\x5B\x83\x80\x83\x5A\x81\x5B\x83\x75", "\x83\x51\x81\x5B\x83\x80\x83\x8D\x81\x5B\x83\x68" },
+		// DOS Chinese
+		{   "\xa8\xfa\xae\xf8" /* "取消"; */, "\xa9\x7c\xa5\xbc\xa8\xcf\xa5\xce" /* "尚未使用"; */, "\xa6\x73\xa9\xf1\xb6\x69\xab\xd7" /* "存放進度"; */, "\xb8\xfc\xa4\x4a\xb6\x69\xab\xd7" /* "載入進度"; */  },
 	};
 
 	static const char *const errorSlotEmptyString[8] = {
@@ -543,16 +576,23 @@ void EoBCoreEngine::initStaticResource() {
 		"Hier ist noch kein\rSpiel gespeichert!",
 		"Non c'\x0E alcun gioco\rsalvato in quella\rposizione!",
 		"No hay partidas\rgrabadas!",
-		"\r ""\x82\xBB\x82\xCC\x83""X""\x83\x8D\x83""b""\x83""g""\x82\xC9\x82\xCD\x83""Q""\x81""[""\x83\x80\x82\xAA\x83""Z""\x81""[""\x83""u\r ""\x82\xB3\x82\xEA\x82\xC4\x82\xA2\x82\xDC\x82\xB9\x82\xF1\x81""B",
+		// SegaCD English
+		"\r  ""\x82\xBB\x82\xCC\x83""X""\x83\x8D\x83""b""\x83""g""\x82\xC9\x82\xCD\x83""Q""\x81""[""\x83\x80\x82\xAA\x83""Z""\x81""[""\x83""u\r ""\x82\xB3\x82\xEA\x82\xC4\x82\xA2\x82\xDC\x82\xB9\x82\xF1\x81""B",
+		// SegaCD + FM-Towns Japanese
 		"\x8b\xf3\x82\xab\x97\xcc\x88\xe6",
-		0
+		// PC-98 Japanese
+		"\r \x82\xBB\x82\xCC\x83\x58\x83\x8D\x83\x62\x83\x67\x82\xC9\x82\xCD\x83\x66\x81\x5B\x83\x5E\x82\xAA\x83\x5A\x81\x5B\x83\x75\r \x82\xB3\x82\xEA\x82\xC4\x82\xA2\x82\xDC\x82\xB9\x82\xF1\x81\x42",
+		// DOS Chinese
+		"\xb3\x6f\xad\xd3\xa6\xec\xb8\x6d\xa9\x7c\xa5\xbc\xc0\x78\xa6\x73\x0d\xb8\xea\xae\xc6\xc0\xc9\x2c\xbd\xd0\xad\xab\xb7\x73\xbf\xef\xbe\xdc" /* "這個位置尚未\r資料檔,請重新選擇"; */
 	};
+
+	_menuOkString = "OK";
 
 	switch (_flags.lang) {
 	case Common::EN_ANY: {
 		if (_flags.platform == Common::kPlatformSegaCD) {
-			_saveLoadStrings = saveLoadStrings[6];
-			_errorSlotEmptyString = errorSlotEmptyString[5];
+			_saveLoadStrings = saveLoadStrings[4];
+			_errorSlotEmptyString = errorSlotEmptyString[4];
 		} else {
 			_saveLoadStrings = saveLoadStrings[0];
 			_errorSlotEmptyString = errorSlotEmptyString[0];
@@ -573,22 +613,32 @@ void EoBCoreEngine::initStaticResource() {
 		break;
 	case Common::JA_JPN:
 		if (_flags.platform == Common::kPlatformSegaCD) {
-			_saveLoadStrings = saveLoadStrings[7];
-			_errorSlotEmptyString = errorSlotEmptyString[6];
-		} else {
+			_saveLoadStrings = saveLoadStrings[5];
+			_errorSlotEmptyString = errorSlotEmptyString[5];
+		} else if (_flags.platform == Common::kPlatformFMTowns) {
 			// EOB II FM-Towns uses English here.
 			// Only the empty slot warning is in Japanese.
 			_saveLoadStrings = saveLoadStrings[0];
 			_errorSlotEmptyString = errorSlotEmptyString[4];
+		} else if (_flags.platform == Common::kPlatformPC98) {
+			_saveLoadStrings = saveLoadStrings[6];
+			_errorSlotEmptyString = errorSlotEmptyString[6];
+		} else {
+			_saveLoadStrings = saveLoadStrings[0];
+			_errorSlotEmptyString = errorSlotEmptyString[0];
 		}
 		break;
-	default:
-		_saveLoadStrings = saveLoadStrings[5];
+	case Common::ZH_TWN:
+		_saveLoadStrings = saveLoadStrings[7];
 		_errorSlotEmptyString = errorSlotEmptyString[7];
+		_menuOkString = "\xa7\xb9\xb2\xa6"; /* "完畢" */
+		break;
+
+	default:
+		_saveLoadStrings = saveLoadStrings[0];
+		_errorSlotEmptyString = errorSlotEmptyString[0];
 		break;
 	}
-
-	_menuOkString = "OK";
 }
 
 void EoBCoreEngine::initButtonData() {
@@ -730,6 +780,33 @@ void EoBCoreEngine::initButtonData() {
 				_buttonDefs[66 + i].h = 8;
 			}
 		}
+	} else if (_flags.lang == Common::ZH_TWN) {
+		// Due to its modified user interface, the Chinese version has some modified button dimensions.
+		for (int i = 0; i < 6; ++i)
+			_buttonDefs[9 + i].y += 7;
+		for (int i = 0; i < 2; ++i) {
+			_buttonDefs[15 + i].y += 6;
+			_buttonDefs[78 + i].y += 7;
+			_buttonDefs[80 + i].y += 4;
+			_buttonDefs[82 + i].h += 7;
+		}
+		for (int i = 0; i < 4; ++i)
+			_buttonDefs[17 + i].h += 7;
+		for (int i = 0; i < 5; ++i)
+			_buttonDefs[61 + i].h = 7;
+		for (int i = 0; i < 3; ++i) {
+			_buttonDefs[66 + i].x = 71;
+			_buttonDefs[66 + i].y = 129 + i * 14;
+			_buttonDefs[66 + i].w = 63;
+			_buttonDefs[66 + i].h = 14;
+			_buttonDefs[69 + i].x = 0x7fff;
+		}
+		_buttonDefs[93].h = 7;
+		_buttonDefs[88].x = 139;
+		_buttonDefs[88].y = 130;
+		_buttonDefs[88].w = 35;
+		_buttonDefs[88].h = 16;
+		_buttonDefs[94].y -= 7;
 	}
 
 	// Replace keycodes for EOB II FM-Towns
@@ -901,6 +978,73 @@ void EoBCoreEngine::initMenus() {
 		{  8,  128, 122,  40,  14,  19,  7  }
 	};
 
+	static const EoBMenuButtonDef buttonDefsChineseEOB2[] = {
+		// Camp menu
+		{  2,   42,   4, 128,  19,  20,  3  },
+		{  3,   42,  24, 128,  19,  52,  3  },
+		{  4,   42,  44, 128,  19,  26,  3  },
+		{  5,   42,  64, 128,  19,  32,  3  },
+		{  6,   42,  84, 128,  19,   0,  3  },
+		{  7,   42, 104, 128,  19,  35,  3  },
+		{  8,  128, 123,  40,  19,  19,  3  },
+
+		{  9,   12,  20, 158,  17,  39,  3  },
+		{  10,  12,  37, 158,  17,  32,  3  },
+		{  11,  12,  54, 158,  17,  33,  3  },
+		{  12,  12,  71, 158,  17,  17,  3  },
+		{  8,  128, 122,  40,  19,  19,  7  },
+		{  18,  12,  20, 158,  17,  32,  3  },
+		{  19,  12,  37, 158,  17,  50,  3  },
+		{  8,  128, 122,  40,  19,  19,  7  },
+		{  8,  128, 122,  40,  19,  19,  5  },
+		{  0,  184,   0,  64,  48, 112,  0  },
+		{  0,  256,   0,  64,  48, 113,  0  },
+		{  0,  184,  56,  64,  48, 114,  0  },
+		{  0,  256,  56,  64,  48, 115,  0  },
+		{  0,  184, 112,  64,  48, 116,  0  },
+		{  0,  256, 112,  64,  48, 117,  0  },
+
+		// OK/Cancel buttons in spell menu
+		{  36,   8, 122,  40,  19,  48,  5  },
+		{  8,  128, 122,  40,  19,  19,  5  },
+
+		// Spell window bounds
+		{  0,    0,  50, 168,  72,  61,  0  },
+
+		// Spell number buttons 1-6
+		{  31,  11,  20,  18,  18,   2,  5  },
+		{  32,  38,  20,  18,  18,   3,  5  },
+		{  33,  65,  20,  18,  18,   4,  5  },
+		{  34,  92,  20,  18,  18,   5,  5  },
+		{  35, 119,  20,  18,  18,   6,  5  },
+		{  60, 146,  20,  18,  18,   7,  5  },
+
+		{  61, 150,  16,  20,  18,   8,  5  },
+		{  38,  16,  57,  32,  17,  22,  7  },
+		{  39, 128,  57,  32,  17,  51,  7  },
+		{  8,  128, 126,  40,  17,  19,  7  },
+		{  0,    0,  50, 168,  72,  61,  0  },
+		// EOB 1 memorize/pray menu:
+		{  36,   8, 126,  48,  17,  48,  5  },
+		{  8,  128, 126,  40,  17,  19,  5  },
+		{  0,    0,  50, 168,  72,  61,  0  },
+		{  31,   8,  16,  24,  20,   2,  5  },
+		{  32,  40,  16,  24,  20,   3,  5  },
+		{  33,  72,  16,  24,  20,   4,  5  },
+		{  34, 104,  16,  24,  20,   5,  5  },
+		{  35, 136,  16,  24,  20,   6,  5  },
+		// FM-Towns options menu
+		{  18,  12,  20, 158,  17,  32,  3  },
+		{  19,  12,  37, 158,  17,  50,  3  },
+		{  20,  12,  54, 158,  17,  21,  3  },
+		{  8,  128, 122,  40,  17,  19,  7  },
+		// PC-98 options menu
+		{  17,  12,  20, 158,  17,  32,  3  },
+		{  18,  12,  37, 158,  17,  50,  3  },
+		{  19,  12,  54, 158,  17,  21,  3  },
+		{  8,  128, 122,  40,  17,  19,  7  }
+	};
+
 	static const EoBMenuButtonDef buttonDefsSegaCD[] = {
 		{   0,   8,  40,  80,  16,  20,  3  },
 		{   0,  88,  40,  80,  16,  52,  3  },
@@ -944,7 +1088,12 @@ void EoBCoreEngine::initMenus() {
 		{   0,  24,  80,  80,  48,   0,  3  }
 	};
 
-	_menuButtonDefs = (_flags.platform == Common::kPlatformSegaCD) ? buttonDefsSegaCD : buttonDefsDefault;
+	if (_flags.lang == Common::Language::ZH_TWN)
+		_menuButtonDefs = buttonDefsChineseEOB2;
+	else if (_flags.platform == Common::kPlatformSegaCD)
+		_menuButtonDefs = buttonDefsSegaCD;
+	else
+		_menuButtonDefs = buttonDefsDefault;
 
 	static const EoBMenuDef menuDefsDefault[7] = {
 		{  1, 10,  0, 7,  9 },
@@ -1264,8 +1413,7 @@ void EoBCoreEngine::initSpells() {
 	ec2(monster_causeCriticalWounds);
 	ec2(monster_fleshToStone);
 
-	_spells = new EoBSpell[_numSpells];
-	memset(_spells, 0, _numSpells * sizeof(EoBSpell));
+	_spells = new EoBSpell[_numSpells]();
 
 	for (int i = 0, n = 0; i < _numSpells; i++, n++) {
 		EoBSpell *s = &_spells[i];
@@ -1353,8 +1501,7 @@ void EoBEngine::initStaticResource() {
 
 	const uint8 *ps = _staticres->loadRawData(kEoB1MonsterProperties, temp);
 	temp /= 27;
-	_monsterProps = new EoBMonsterProperty[temp];
-	memset(_monsterProps, 0, temp * sizeof(EoBMonsterProperty));
+	_monsterProps = new EoBMonsterProperty[temp]();
 	// Convert EOB1 (hard coded) monster properties to EOB2 type monster properties.
 	for (int i = 0; i < temp; i++) {
 		EoBMonsterProperty *p = &_monsterProps[i];
@@ -1445,6 +1592,7 @@ void EoBEngine::initStaticResource() {
 
 	switch (_flags.lang) {
 	case Common::EN_ANY:
+	default:
 		_errorSlotNoNameString = errorSlotNoNameString[0];
 		break;
 	case Common::DE_DEU:
@@ -1456,8 +1604,6 @@ void EoBEngine::initStaticResource() {
 	case Common::JA_JPN:
 		_errorSlotNoNameString = errorSlotNoNameString[3];
 		break;
-	default:
-		_errorSlotNoNameString = errorSlotNoNameString[ARRAYSIZE(errorSlotNoNameString) - 1];
 	}
 }
 
@@ -1544,70 +1690,87 @@ void EoBEngine::initSpells() {
 }
 
 const KyraRpgGUISettings EoBEngine::_guiSettingsVGA = {
-	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 9, 15, 95, 9, 2, 7, { 285, 139 }, { 189, 162 }, { 31, 31 } },
-	{ 135, 130, 132, 180, 133, 17, 23, 20, 184, 177, 180, 184, 177, 180, 15, 6, 8, 9, 2, 5, 4, 3, 12 },
+	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 9, 15, false, 95, 9, 2, 7, { 285, 139 }, { 189, 162 }, { 31, 31 } },
+	{ 135, 130, 132, 180, 133, 17, 23, 20, 184, 177, 180, 184, 177, 180, 15, 6, 8, 9, 2, 11, 5, 4, 3, 1, 7, 12 },
 	{	{ 184, 256, -1}, { 2, 54, 106 }, 64, 50,
 		{ 8, 80, -1 }, { 11, 63, 115 }, { 181, -1, -1 }, { 3, -1, -1 },
 		{ 40, 112, -1 }, { 11, 27, 63, 79, 115, 131 },
-		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, 51, 5,
-		13, 30
-	}
+		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, { 51, 51 }, 5,
+		2, 2, 2, 2, 13, 30
+	},
+	{ 183, 42, 183, 55, 7, 183, 82, 183, 103, 7, 275, 82, 275, 103, 7, 183, 124, 275, 124, 239, 138, 251, 145, 0, 7, 278, 138, 286, 145, 0, 7, 180, 145, 0, 7 },
+	{ 15, { 12, 12, 12 }, 12, 12, 12, 12, 15, { 15, 15, 15 } },
+	{ 56, 5, 71, 122, 21, 9, 2, 1, 6, 73, 132, 44, 0, 0, 0, 0, 73, 168, 0, { 0x44, 0x62, 0x80, 0x90 }, { 0x82, 0x92, 0x98 } }
 };
 
 const KyraRpgGUISettings EoBEngine::_guiSettingsEGA = {
-	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 9, 15, 95, 9, 2, 7, { 285, 139 }, { 189, 162 }, { 31, 31 } },
-	{ 13, 9, 2, 14, 2, 6, 13, 8, 13, 15, 14, 13, 15, 14, 15, 6, 8, 9, 2, 5, 4, 3, 12 },
+	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 9, 15, false, 95, 9, 2, 7, { 285, 139 }, { 189, 162 }, { 31, 31 } },
+	{ 13, 9, 2, 14, 2, 6, 13, 8, 13, 15, 14, 13, 15, 14, 15, 6, 8, 9, 2, 11, 5, 4, 3, 1, 7, 12 },
 	{	{ 184, 256, -1}, { 2, 54, 106 }, 64, 50,
 		{ 8, 80, -1 }, { 11, 63, 115 }, { 181, -1, -1 }, { 3, -1, -1 },
 		{ 40, 112, -1 }, { 11, 27, 63, 79, 115, 131 },
-		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, 51, 5,
-		13, 30
-	}
+		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, { 51, 51 }, 5,
+		2, 2, 2, 2, 13, 30
+	},
+	{ 183, 42, 183, 55, 7, 183, 82, 183, 103, 7, 275, 82, 275, 103, 7, 183, 124, 275, 124, 239, 138, 251, 145, 0, 7, 278, 138, 286, 145, 0, 7, 180, 145, 0, 7 },
+	{ 15, { 12, 12, 12 }, 12, 12, 12, 12, 15, { 15, 15, 15 } },
+	{ 56, 5, 71, 122, 21, 9, 2, 1, 6, 73, 132, 44, 0, 0, 0, 0, 73, 168, 0, { 0x44, 0x62, 0x80, 0x90 }, { 0x82, 0x92, 0x98 } }
 };
 
 const KyraRpgGUISettings EoBEngine::_guiSettingsPC98 = {
-	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 9, 15, 95, 11, 1, 7, { 285, 139 }, { 189, 162 }, { 31, 31 } },
-	{ 13, 9, 2, 14, 2, 6, 13, 8, 13, 15, 14, 13, 15, 14, 15, 6, 8, 9, 2, 5, 4, 3, 12 },
+	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 9, 15, false, 95, 11, 1, 7, { 285, 139 }, { 189, 162 }, { 31, 31 } },
+	{ 13, 9, 2, 14, 2, 6, 13, 8, 13, 15, 14, 13, 15, 14, 15, 6, 8, 9, 2, 11, 5, 4, 3, 1, 7, 12 },
 	{	{ 184, 256, -1}, { 2, 54, 106 }, 64, 50,
 		{ 8, 80, -1 }, { 11, 63, 115 }, { 181, -1, -1 }, { 3, -1, -1 },
 		{ 40, 112, -1 }, { 11, 27, 63, 79, 115, 131 },
-		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, 51, 5,
-		13, 30
-	}
+		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, { 51, 51 }, 5,
+		2, 2, 2, 2, 13, 30
+	},
+	{ 183, 42, 183, 55, 8, 183, 87, 255, 87, 9, 210, 87, 285, 87, 9, 183, 114, 255, 114, 239, 127, 251, 136, 0, 9, 278, 127, 286, 136, 0, 9, 183, 136, 0, 9 },
+	{ 15, { 12, 12, 12 }, 12, 12, 12, 12, 15, { 15, 15, 15 } },
+	{ 56, 5, 71, 122, 21, 9, 2, 1, 6, 73, 132, 44, 0, 0, 0, 0, 73, 168, 0, { 0x44, 0x62, 0x80, 0x90 }, { 0x82, 0x92, 0x98 } }
 };
 
 const KyraRpgGUISettings EoBEngine::_guiSettingsAmiga = {
-	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 28, 31, 95, 9, 2, 7, { 285, 139 }, { 189, 162 }, { 31, 31 } },
-	{ 18, 17, 10, 17, 11, 24, 22, 25, 18, 9, 10, 18, 9, 10, 31, 24, 25, 28, 29, 7, 26, 27, 19 },
+	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 28, 31, false, 95, 9, 2, 7, { 285, 139 }, { 189, 162 }, { 31, 31 } },
+	{ 18, 17, 10, 17, 11, 24, 22, 25, 18, 9, 10, 18, 9, 10, 31, 24, 25, 28, 29, 16, 7, 26, 27, 6, 22, 19 },
 	{	{ 184, 256, -1}, { 2, 54, 106 }, 64, 50,
 		{ 8, 80, -1 }, { 11, 63, 115 }, { 181, -1, -1 }, { 3, -1, -1 },
 		{ 40, 112, -1 }, { 11, 27, 63, 79, 115, 131 },
-		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, 51, 5,
-		13, 30
-	}
+		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, { 51, 51 }, 5,
+		2, 2, 2, 2, 13, 30
+	},
+	{ 183, 42, 183, 55, 7, 183, 82, 183, 103, 7, 275, 82, 275, 103, 7, 183, 124, 275, 124, 239, 138, 251, 145, 0, 7, 278, 138, 286, 145, 0, 7, 180, 145, 0, 7 },
+	{ 31, { 19, 19, 19 }, 19, 19, 19, 19, 31, { 31, 31, 31 } },
+	{ 56, 5, 71, 122, 21, 9, 2, 1, 6, 73, 132, 44, 0, 0, 0, 0, 73, 168, 0, { 0x44, 0x62, 0x80, 0x90 }, { 0x82, 0x92, 0x98 } }
 };
 
 const KyraRpgGUISettings EoBEngine::_guiSettingsAmigaMainMenu = {
-	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 28, 31, 95, 9, 2, 7, { 285, 139 }, { 189, 162 }, { 31, 31 } },
-	{ 22, 28, 30, 17, 11, 24, 22, 25, 18, 9, 10, 18, 9, 10, 31, 24, 25, 28, 29, 7, 26, 27, 19 },
+	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 28, 31, false, 95, 9, 2, 7, { 285, 139 }, { 189, 162 }, { 31, 31 } },
+	{ 22, 28, 30, 17, 11, 24, 22, 25, 18, 9, 10, 18, 9, 10, 31, 24, 25, 28, 29, 16, 7, 26, 27, 6, 22, 19 },
 	{	{ 184, 256, -1}, { 2, 54, 106 }, 64, 50,
 		{ 8, 80, -1 }, { 11, 63, 115 }, { 181, -1, -1 }, { 3, -1, -1 },
 		{ 40, 112, -1 }, { 11, 27, 63, 79, 115, 131 },
-		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, 51, 5,
-		13, 30
-	}
+		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, { 51, 51 }, 5,
+		2, 2, 2, 2, 13, 30
+	},
+	{ 183, 42, 183, 55, 7, 183, 82, 183, 103, 7, 275, 82, 275, 103, 7, 183, 124, 275, 124, 239, 138, 251, 145, 0, 7, 278, 138, 286, 145, 0, 7, 180, 145, 0, 7 },
+	{ 31, { 19, 19, 19 }, 19, 19, 19, 19, 31, { 31, 31, 31 } },
+	{ 56, 5, 71, 122, 21, 9, 2, 1, 6, 73, 132, 44, 0, 0, 0, 0, 73, 168, 0, { 0x44, 0x62, 0x80, 0x90 }, { 0x82, 0x92, 0x98 } }
 };
 
 const KyraRpgGUISettings EoBEngine::_guiSettingsSegaCD = {
-	{ _dlgButtonPosX_Sega, _dlgButtonPosY_Sega, 0x66, 0xFF, 90, 14, 2, 7, { 285, 139 }, { 189, 162 }, { 31, 31 } },
-	{ 135, 130, 132, 180, 0x00, 17, 23, 20, 184, 177, 180, 184, 177, 180, 15, 6, 0x31, 9, 2, 0x35, 4, 0x33, 0x3C },
+	{ _dlgButtonPosX_Sega, _dlgButtonPosY_Sega, 0x66, 0xFF, false, 90, 14, 2, 7, { 285, 139 }, { 189, 162 }, { 31, 31 } },
+	{ 135, 130, 132, 180, 0x00, 17, 23, 20, 184, 177, 180, 184, 177, 180, 15, 6, 0x31, 9, 2, 11, 0x35, 4, 0x33, 1, 7, 0x3C },
 	{	{ 184, 256, -1}, { 1, 57, 113 }, 64, 55,
 		{ 8, 80, -1 }, { 16, 72, 128 }, { 184, -1, -1 }, { 8, -1, -1 },
 		{ 40, 112, -1 }, { 16, 32, 72, 88, 128, 144 },
-		{ 24, 96, -1}, { 51, 107, 163 }, 40, 2, { 248, 248, -1}, { 19, 27, -1 }, 47, 2,
-		16, 39
-	}
-
+		{ 24, 96, -1}, { 51, 107, 163 }, 40, 2, { 248, 248, -1}, { 19, 27, -1 }, { 47, 47 }, 2,
+		2, 2, 2, 2, 16, 39
+	},
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 0, { 0, 0, 0 }, 0, 0, 0, 0, 0, { 0, 0, 0 } },
+	{ 0, 6, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, { 0, 0, 0, 0 }, { 0, 0, 0 } }
 };
 
 const uint8 EoBEngine::_redGridTile[8] = {
@@ -1740,19 +1903,21 @@ void DarkMoonEngine::initStaticResource() {
 	_amigaSoundIndex2 = _staticres->loadRawData(kEoB2SoundIndex2, temp);
 	_amigaSoundPatch = _staticres->loadRawData(kEoB2MonsterSoundPatchData, _amigaSoundPatchSize);
 
-	static const char *const errorSlotNoNameString[4] = {
+	static const char *const errorSlotNoNameString[6] = {
 		" You must specify\r a name for your\r save game!",
 		" Spielst[nde m]ssen\r einen Namen haben!",
 		" Debes poner\run nombre al\rfichero!",
+		"\x83""Z""\x81""[""\x83""u""\x83""t""\x83""@""\x83""C""\x83\x8b\r\x82\xc9\x82\xcd\x96\xbc\x91""O""\x82\xaa\r\x95""K""\x97""v""\x82\xc5\x82\xb7\x81""B",
+		" \xb1\x7a\xa5\xb2\xb6\xb7\xbf\xe9\xa4\x4a\xc0\xc9\xae\xd7\xa6\x57\xba\xd9", /* " 您必須輸入檔案名稱" */
 		0
 	};
 
 	// ScummVM specific
-	static const char *const transferStringsScummVM[4][5] = {
+	static const char *const transferStringsScummVM[5][5] = {
 		{
 			"\r We cannot find any EOB save game\r file. Please make sure that the\r save game file with the party\r you wish to transfer is located\r in your ScummVM save game\r directory. If you have set up\r multiple save directories you\r have to copy the EOB save file\r into your EOB II save directory.\r Do you wish to try again?",
 			"Game ID",
-			"\r It seems that you have already\r defeated Xanathar here. Do you\r wish to transfer the party that\r finished the game? If not, you\r will be able to select a save\r game from the save game\r dialogue.",
+			"\r It seems that you have already\r defeated Xanathar here. Do you\r wish to transfer the party that\r finished the game? If not, you\r will be able to select a save\r game from the save game\r dialog.",
 			"Select File",
 			"\r\r   Please wait..."
 		},
@@ -1770,13 +1935,25 @@ void DarkMoonEngine::initStaticResource() {
 			"Escoge Fichero",
 			"\r\r   Un momento\r   por favor..."
 		},
-		{
-			0, 0, 0, 0
+		{// TODO: translate to Japanese
+			"\r We cannot find any EOB save game\r file. Please make sure that the\r save game file with the party\r you wish to transfer is located\r in your ScummVM save game\r directory. If you have set up\r multiple save directories you\r have to copy the EOB save file\r into your EOB II save directory.\r Do you wish to try again?",
+			"  ""\x83""Q""\x81""[""\x83\x80""ID",
+			"\r It seems that you have already\r defeated Xanathar here. Do you\r wish to transfer the party that\r finished the game? If not, you\r will be able to select a save\r game from the save game\r dialog.",
+			"\x83""t""\x83""@""\x83""C""\x83\x8b\x82\xf0\x91""I""\x91\xf0",
+			"\r\r  ""\x82\xb5\x82\xce\x82\xe7\x82\xad\x82\xa8\x91\xd2\x82\xbf\x82\xad\x82\xbe\x82\xb3\x82\xa2\x81""E""\x81""E""\x81""E"
+		},
+		{// Thanks to kane159 for translating these strings to Traditional Chinese...
+			" \xb5""L""\xaa""k""\xa7\xe4\xa8\xec\xa5\xf4\xa6\xf3""EOB""\xa6""s""\xc0\xc9\xa4\xe5\xa5\xf3"". ""\xbd\xd0\xbd""T""\xab""O\r ""\xb1""z""\xb7""Q""\xc2\xe0\xb2\xbe\xaa\xba\xb6\xa4\xa5\xee\xa6""s""\xc0\xc9\xa9\xf1\xb8""m""\xa9\xf3"" ScummVM\r ""\xaa\xba\xa6""s""\xc0\xc9\xb8\xf4\xae""|. ""\xa6""p""\xaa""G""\xb1""z""\xa6\xb3\xbc\xc6\xad\xd3\xa6""s""\xc0\xc9\xb8\xf4\xae""|\r ""\xb1""z""\xbb\xdd\xad""n""\xab\xfe\xa8\xa9"" EOB ""\xa6""s""\xc0\xc9\xa4\xe5\xa5\xf3\xa8\xec\xb1""z""\xaa\xba""\r EOB II""\xa6""s""\xc0\xc9\xb8\xf4\xae""|. ""\xb1""z""\xad""n""\xa6""A""\xb8\xd5\xa4""@""\xa6\xb8\xb6\xdc""?",
+			" ""\xb9""C""\xc0\xb8"" ID",
+			"\r  ""\xac\xdd\xb0""_""\xa8\xd3\xb1""z""\xa4""w""\xb8""g""\xa5\xb4\xb3""q""\xa4""FXanathar. ""\xb1""z\r  ""\xb7""Q""\xad""n""\xc2\xe0\xb2\xbe\xa4""w""\xb3""q""\xc3\xf6\xaa\xba\xa6""s""\xc0\xc9\xb6\xdc""? ""\xad""Y""\xa4\xa3\xad""n,\r  ""\xb1""z""\xb1""N""\xa5""i""\xa5""H""\xb1""q""\xa6""s""\xc0\xc9\xaa\xba\xb9\xef\xb8\xdc\xa4\xa4\xbf\xef\xa8\xfa\xa4""@""\xad\xd3""\r  ""\xa6""s""\xc0\xc9"".",
+			"\xbf\xef\xbe\xdc\xa4\xe5\xa5\xf3",
+			"\r     ""\xbd\xd0\xb5""y""\xab\xe1""..."
 		}
 	};
 
 	switch(_flags.lang) {
 		case Common::EN_ANY:
+		default:
 			_errorSlotNoNameString = errorSlotNoNameString[0];
 			_transferStringsScummVM = transferStringsScummVM[0];
 			break;
@@ -1788,11 +1965,15 @@ void DarkMoonEngine::initStaticResource() {
 			_errorSlotNoNameString = errorSlotNoNameString[2];
 			_transferStringsScummVM = transferStringsScummVM[2];
 			break;
-		default:
+		case Common::JA_JPN:
 			_errorSlotNoNameString = errorSlotNoNameString[3];
 			_transferStringsScummVM = transferStringsScummVM[3];
+			break;
+		case Common::ZH_TWN:
+			_errorSlotNoNameString = errorSlotNoNameString[4];
+			_transferStringsScummVM = transferStringsScummVM[4];
+			break;
 	}
-
 }
 
 void DarkMoonEngine::initSpells() {
@@ -1816,37 +1997,78 @@ void DarkMoonEngine::initSpells() {
 }
 
 const KyraRpgGUISettings DarkMoonEngine::_guiSettingsFMTowns = {
-	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 9, 15, 95, 11, 1, 7, { 221, 76 }, { 187, 162 }, { 95, 95 } },
-	{ 186, 181, 183, 183, 184, 17, 23, 20, 186, 181, 183, 182, 177, 180, 15, 6, 8, 9, 2, 5, 4, 3, 12 },
+	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 9, 15, false, 95, 11, 1, 7, { 221, 76 }, { 187, 162 }, { 95, 95 } },
+	{ 186, 181, 183, 183, 184, 17, 23, 20, 186, 181, 183, 182, 177, 180, 15, 6, 8, 9, 2, 11, 5, 4, 3, 1, 7, 12 },
 	{	{ 184, 256, -1}, { 2, 54, 106 }, 64, 50,
 		{ 8, 80, -1 }, { 11, 63, 115 }, { 181, -1, -1 }, { 3, -1, -1 },
 		{ 40, 112, -1 }, { 11, 27, 63, 79, 115, 131 },
-		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, 51, 5,
-		13, 30
-	}
+		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, { 51, 51 }, 5,
+		2, 1, 2, 2, 13, 30
+	},
+	{ 183, 42, 183, 55, 7, 183, 82, 183, 103, 7, 275, 82, 275, 103, 7, 183, 124, 275, 124, 239, 138, 251, 145, 0, 7, 278, 138, 286, 145, 0, 7, 180, 145, 0, 7 },
+	{ 15, { 12, 12, 12 }, 12, 12, 12, 12, 15, { 15, 15, 15 } },
+	{ 56, 6, 68, 121, 18, 9, 7, 2, 6, 71, 132, 47, 68, 168, 78, 9, 74, 170,	168, { 0x44, 0x62, 0x80, 0x90 }, { 0x82, 0x92, 0x98 } }
+};
+
+const KyraRpgGUISettings DarkMoonEngine::_guiSettingsPC98 = {
+	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 9, 15, false, 95, 11, 2, 7, { 221, 76 }, { 189, 162 }, { 95, 95 } },
+	{ 186, 181, 183, 183, 184, 17, 23, 20, 186, 181, 183, 182, 177, 180, 15, 6, 8, 9, 2, 11, 5, 4, 3, 1, 7, 12 },
+	{	{ 184, 256, -1}, { 2, 54, 106 }, 64, 50,
+		{ 8, 80, -1 }, { 11, 63, 115 }, { 181, -1, -1 }, { 3, -1, -1 },
+		{ 40, 112, -1 }, { 11, 27, 63, 79, 115, 131 },
+		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, { 51, 51 }, 5,
+		2, 2, 2, 2, 13, 30
+	},
+	{ 183, 42, 183, 55, 7, 183, 82, 183, 103, 7, 275, 82, 275, 103, 7, 183, 124, 275, 124, 239, 138, 251, 145, 0, 7, 278, 138, 286, 145, 0, 7, 180, 145, 0, 7 },
+	{ 15, { 12, 12, 12 }, 12, 12, 12, 12, 15, { 15, 15, 15 } },
+	{ 56, 6, 68, 121, 18, 9, 7, 2, 6, 71, 132, 47, 68, 168, 78, 9, 74, 170,	168, { 0x44, 0x62, 0x80, 0x90 }, { 0x82, 0x92, 0x98 } }
 };
 
 const KyraRpgGUISettings DarkMoonEngine::_guiSettingsDOS = {
-	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 9, 15, 95, 9, 2, 7, { 221, 76 }, { 189, 162 }, { 95, 95 } },
-	{ 186, 181, 183, 183, 184, 17, 23, 20, 186, 181, 183, 182, 177, 180, 15, 6, 8, 9, 2, 5, 4, 3, 12 },
+	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 9, 15, false, 95, 9, 2, 7, { 221, 76 }, { 189, 162 }, { 95, 95 } },
+	{ 186, 181, 183, 183, 184, 17, 23, 20, 186, 181, 183, 182, 177, 180, 15, 6, 8, 9, 2, 11, 5, 4, 3, 1, 7, 12 },
 	{	{ 184, 256, -1}, { 2, 54, 106 }, 64, 50,
 		{ 8, 80, -1 }, { 11, 63, 115 }, { 181, -1, -1 }, { 3, -1, -1 },
 		{ 40, 112, -1 }, { 11, 27, 63, 79, 115, 131 },
-		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, 51, 5,
-		13, 30
-	}
+		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, { 51, 51 }, 5,
+		2, 2, 2, 2, 13, 30
+	},
+	{ 183, 42, 183, 55, 7, 183, 82, 183, 103, 7, 275, 82, 275, 103, 7, 183, 124, 275, 124, 239, 138, 251, 145, 0, 7, 278, 138, 286, 145, 0, 7, 180, 145, 0, 7 },
+	{ 15, { 12, 12, 12 }, 12, 12, 12, 12, 15, { 15, 15, 15 } },
+	{ 56, 6, 68, 121, 18, 9, 7, 2, 6, 71, 132, 47, 68, 168, 78, 9, 74, 170,	168, { 0x44, 0x62, 0x80, 0x90 }, { 0x82, 0x92, 0x98 } }
+};
+
+const KyraRpgGUISettings DarkMoonEngine::_guiSettingsDOS_ZH = {
+	{ _dlgButtonPosX_ZH, _dlgButtonPosY_ZH, 9, 15, true, 69, 16, 1, 7, { 246, 86 }, { 184, 184 }, { 69, 69 } },
+	{ 186, 181, 183, 183, 184, 17, 23, 20, 186, 181, 183, 182, 177, 180, 15, 6, 8, 9, 2, 11, 5, 4, 3, 1, 7, 12 },
+	{	{ 184, 256, -1}, { 2, 54, 106 }, 64, 50,
+		{ 8, 80, -1 }, { 18, 70, 121 }, { 181, -1, -1 }, { 3, -1, -1 },
+		{ 40, 112, -1 }, { 17, 33, 69, 85, 120, 137 },
+		{ 42, 114, -1}, { 49, 101, 153 }, 25, 2, { 233, 290, -1}, { 25, 25, -1 }, { 30, 23 }, 8,
+		0, 1, 0, 0, 13, 30
+	},
+	{ 180, 37, 180, 36, 16, 180, 100, 261, 100, 15, 219, 104, 300, 104, 15, 180, 84, 236, 88, 254, 51, 270, 67, 0, 7, 287, 51, 301, 67, 0, 7, 180, 148, 38, 0 },
+	{ 15, { 4, 5, 6 }, 1, 2, 7, 15, 15, { 4, 5, 6 } },
+	{ 50, 6, 68, 121, 18, 7, 7, 1, 3, 71, 129, 43, 139, 130, 36, 17, 142, 131, 161, { 0x44, 0x62, 0x80, 0x90 }, { 0x82, 0x92, 0x9A } }
 };
 
 const KyraRpgGUISettings DarkMoonEngine::_guiSettingsAmiga = {
-	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 28, 31, 95, 9, 2, 7, { 221, 76 }, { 189, 162 }, { 95, 95 } },
-	{ 18, 17, 10, 17, 11, 10, 12, 25, 18, 9, 10, 18, 9, 10, 31, 24, 25, 28, 29, 7, 26, 27, 19 },
+	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 28, 31, false, 95, 9, 2, 7, { 221, 76 }, { 189, 162 }, { 95, 95 } },
+	{ 18, 17, 10, 17, 11, 10, 12, 25, 18, 9, 10, 18, 9, 10, 31, 24, 25, 28, 29, 16, 7, 26, 27, 6, 22, 19 },
 	{	{ 184, 256, -1}, { 2, 54, 106 }, 64, 50,
 		{ 8, 80, -1 }, { 11, 63, 115 }, { 181, -1, -1 }, { 3, -1, -1 },
 		{ 40, 112, -1 }, { 11, 27, 63, 79, 115, 131 },
-		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, 51, 5,
-		13, 30
-	}
+		{ 23, 95, -1}, { 46, 98, 150 }, 38, 3, { 250, 250, -1}, { 16, 25, -1 }, { 51, 51 }, 5,
+		2, 2, 2, 2, 13, 30
+	},
+	{ 183, 42, 183, 55, 7, 183, 82, 183, 103, 7, 275, 82, 275, 103, 7, 183, 124, 275, 124, 239, 138, 251, 145, 0, 7, 278, 138, 286, 145, 0, 7, 180, 145, 0, 7 },
+	{ 31, { 19, 19, 19 }, 19, 19, 19, 19, 31, { 31, 31, 31 } },
+	{ 56, 6, 68, 121, 18, 9, 7, 2, 6, 71, 132, 47, 68, 168, 78, 9, 74, 170,	168, { 0x44, 0x62, 0x80, 0x90 }, { 0x82, 0x92, 0x98 } }
 };
+
+const uint16 DarkMoonEngine::_dlgButtonPosX_ZH[17] = { 62, 192, 6, 86, 166, 246, 6, 86, 166, 246, 168, 250, 32, 174, 248, 0 };
+
+const uint8 DarkMoonEngine::_dlgButtonPosY_ZH[17] = { 0, 0, 0, 0, 0, 0, 18, 18, 18, 18, 36, 36, 36, 36, 54, 54, 54 };
 
 const uint8 DarkMoonEngine::_egaDefaultPalette[] = {
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15

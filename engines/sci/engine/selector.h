@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -140,6 +139,10 @@ struct SelectorCache {
 	Selector curPos; // for LSL6 volume sync
 	Selector update; // for LSL6 volume sync
 
+	Selector canInput; // for Phant2 restore from launcher and checking if user has input
+	Selector input;	// for checking if user has input
+	Selector controls; // for checking if user has input
+
 #ifdef ENABLE_SCI32
 	Selector data; // Used by Array()/String()
 	Selector picture; // Used to hold the picture ID for SCI32 pictures
@@ -190,7 +193,6 @@ struct SelectorCache {
 	Selector scratch; // for Phant2 save/load patching
 	Selector num; // for Phant2 restore from launcher
 	Selector reallyRestore; // for Phant2 restore from launcher
-	Selector canInput; // for Phant2 restore from launcher
 	Selector bookMark; // for Phant2 auto-save
 	Selector fileNumber; // for RAMA save/load
 	Selector description; // for RAMA save/load
@@ -248,4 +250,4 @@ void updateInfoFlagViewVisible(Object *obj, int index, bool fromPropertyOp = fal
 
 } // End of namespace Sci
 
-#endif // SCI_ENGINE_KERNEL_H
+#endif // SCI_ENGINE_SELECTOR_H

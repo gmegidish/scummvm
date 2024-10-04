@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,18 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "sci/sound/drivers/mididriver.h"
 
-#include "audio/softsynth/emumidi.h"
-#include "audio/softsynth/cms.h"
-#include "audio/mixer.h"
-
-#include "common/system.h"
+#include "audio/mididrv.h"
+#include "audio/cms.h"
 
 #include "sci/resource/resource.h"
 #include "sci/util.h"
@@ -39,7 +35,7 @@ class MidiDriver_CMS;
 
 class CMSVoice {
 public:
-	CMSVoice(uint8 id, MidiDriver_CMS *driver, CMSEmulator *cms, SciSpan<const uint8>& patchData);
+	CMSVoice(uint8 id, MidiDriver_CMS *driver, CMS::CMS *cms, SciSpan<const uint8>& patchData);
 	virtual ~CMSVoice() {}
 
 	virtual void noteOn(int note, int velocity) = 0;
@@ -64,13 +60,13 @@ protected:
 	void sendFrequency();
 	void cmsWrite(uint8 reg, uint8 val);
 
-	CMSEmulator *_cms;
+	CMS::CMS *_cms;
 	MidiDriver_CMS *_driver;
 	SciSpan<const uint8> _patchData;
 
 	const uint8 _id;
 	const uint8 _regOffset;
-	const uint8 _portOffset;
+	const uint16 _chipOffset;
 
 	static uint8 _octaveRegs[6];
 	static const int _frequencyTable[48];
@@ -81,7 +77,7 @@ private:
 
 class CMSVoice_V0 : public CMSVoice {
 public:
-	CMSVoice_V0(uint8 id, MidiDriver_CMS *driver, CMSEmulator *cms, SciSpan<const uint8>& patchData);
+	CMSVoice_V0(uint8 id, MidiDriver_CMS *driver, CMS::CMS *cms, SciSpan<const uint8>& patchData);
 	~CMSVoice_V0() override {}
 
 	void noteOn(int note, int) override;
@@ -147,7 +143,7 @@ private:
 
 class CMSVoice_V1 : public CMSVoice {
 public:
-	CMSVoice_V1(uint8 id, MidiDriver_CMS *driver, CMSEmulator *cms, SciSpan<const uint8>& patchData);
+	CMSVoice_V1(uint8 id, MidiDriver_CMS *driver, CMS::CMS *cms, SciSpan<const uint8>& patchData);
 	~CMSVoice_V1() override {}
 
 	void noteOn(int note, int velocity) override;
@@ -174,7 +170,7 @@ private:
 	static const int _velocityTable[32];
 };
 
-class MidiDriver_CMS : public MidiDriver_Emulated {
+class MidiDriver_CMS : public MidiDriver {
 public:
 	enum {
 		MIDI_PROP_CHANNEL_VOLUME = 1,
@@ -184,24 +180,25 @@ public:
 	};
 
 public:
-	MidiDriver_CMS(Audio::Mixer *mixer, ResourceManager *resMan, SciVersion version);
+	MidiDriver_CMS(ResourceManager *resMan, SciVersion version);
 	~MidiDriver_CMS() override;
 
 	int open() override;
 	void close() override;
+	bool isOpen() const override { return _isOpen; }
 
 	void send(uint32 b) override;
 	uint32 property(int prop, uint32 param) override;
 
 	void initTrack(SciSpan<const byte>& header);
 
-	void onTimer() override;
+	uint32 getBaseTempo() override { return 1000000 / CMS::CMS::DEFAULT_CALLBACK_FREQUENCY; }
 
-	MidiChannel *allocateChannel() override { return 0; }
-	MidiChannel *getPercussionChannel() override { return 0; }
+	void setTimerCallback(void *timerParam, Common::TimerManager::TimerProc timerProc) override;
+	void onTimer();
 
-	bool isStereo() const override { return true; }
-	int getRate() const override { return _rate; }
+	MidiChannel *allocateChannel() override { return nullptr; }
+	MidiChannel *getPercussionChannel() override { return nullptr; }
 
 private:
 	void noteOn(int channelNr, int note, int velocity);
@@ -218,7 +215,6 @@ private:
 	int findVoiceBasic(int channelNr);
 
 	void writeToChip(int chip, int address, int data);
-	void generateSamples(int16 *buffer, int len) override;
 
 	struct Channel {
 		Channel() : program(0), volume(0), pan(0x40), hold(0), missingVoices(0), lastVoiceUsed(0), pitchWheel(0x2000), isValid(true) {}
@@ -238,23 +234,26 @@ private:
 	const int _numVoicesPrimary;
 	const int _numVoicesSecondary;
 
-	CMSEmulator *_cms;
+	CMS::CMS *_cms;
+	bool _isOpen;
 	ResourceManager *_resMan;
 	Common::SpanOwner<SciSpan<const uint8> > _patchData;
 
 	bool _playSwitch;
 	uint16 _masterVolume;
 
+	Common::TimerManager::TimerProc _timerProc;
+	void *_timerParam;
+
 	const int _actualTimerInterval;
 	const int _reqTimerInterval;
 	int _updateTimer;
-	int _rate;
 
 	SciVersion _version;
 };
 
-CMSVoice::CMSVoice(uint8 id, MidiDriver_CMS* driver, CMSEmulator *cms, SciSpan<const uint8>& patchData) : _id(id), _regOffset(id > 5 ? id - 6 : id), _portOffset(id > 5 ? 2 : 0),
-	_driver(driver), _cms(cms), _assign(0xFF), _note(0xFF), _sustained(false), _duration(0), _releaseDuration(0), _secondaryVoice(0), _patchData(patchData) {
+CMSVoice::CMSVoice(uint8 id, MidiDriver_CMS* driver, CMS::CMS *cms, SciSpan<const uint8>& patchData) : _id(id), _regOffset(id > 5 ? id - 6 : id), _chipOffset(id > 5 ? 0x100 : 0),
+	_driver(driver), _cms(cms), _assign(0xFF), _note(0xFF), _sustained(false), _duration(0), _releaseDuration(0), _secondaryVoice(nullptr), _patchData(patchData) {
 	assert(_id < 12);
 	_octaveRegs[_id >> 1] = 0;
 }
@@ -273,8 +272,7 @@ void CMSVoice::sendFrequency() {
 }
 
 void CMSVoice::cmsWrite(uint8 reg, uint8 val) {
-	_cms->portWrite(0x221 + _portOffset, reg);
-	_cms->portWrite(0x220 + _portOffset, val);
+	_cms->writeReg(reg + _chipOffset, val);
 
 	if (reg >= 16 && reg <= 18)
 		_octaveRegs[_id >> 1] = val;
@@ -303,7 +301,7 @@ const int CMSVoice::_frequencyTable[48] = {
 uint8 CMSVoice_V0::_envAR1 = 0;
 #endif
 
-CMSVoice_V0::CMSVoice_V0(uint8 id, MidiDriver_CMS* driver, CMSEmulator *cms, SciSpan<const uint8>& patchData) : CMSVoice(id, driver, cms, patchData), _envState(kReady), _currentLevel(0), _strMask(0),
+CMSVoice_V0::CMSVoice_V0(uint8 id, MidiDriver_CMS* driver, CMS::CMS *cms, SciSpan<const uint8>& patchData) : CMSVoice(id, driver, cms, patchData), _envState(kReady), _currentLevel(0), _strMask(0),
 	_envAR(0), _envTL(0), _envDR(0), _envSL(0), _envRR(0), _envSLI(0), _vbrOn(false), _vbrSteps(0), _vbrState(0), _vbrMod(0), _vbrCur(0), _isSecondary(id > 7),
 	_vbrPhase(0), _transOct(0), _transFreq(0), _envPAC(0), _envPA(0), _panMask(_id & 1 ? 0xF0 : 0x0F), _envSSL(0), _envNote(0xFF), _updateCMS(false) {
 #ifdef SCI0_CMS_ORIGINAL_BUG
@@ -384,7 +382,7 @@ void CMSVoice_V0::programChange(int program) {
 		if (data.getUint8At(pos) == 0xFF) {
 			_secondaryVoice->stop();
 			_secondaryVoice->_assign = 0xFF;
-			_secondaryVoice = 0;
+			_secondaryVoice = nullptr;
 		} else {
 			_secondaryVoice->setPanMask(_panMask);
 			_secondaryVoice->programChange(program);
@@ -471,7 +469,7 @@ void CMSVoice_V0::update() {
 
 void CMSVoice_V0::reset() {
 	_envState = kReady;
-	_secondaryVoice = 0;
+	_secondaryVoice = nullptr;
 	_assign = _note = _envNote = 0xFF;
 	_panMask = _id & 1 ? 0xF0 : 0x0F;
 	_envTL = 0;
@@ -590,7 +588,7 @@ const uint8 CMSVoice_V0::_pitchWheelTable[65] = {
 	0x30
 };
 
-CMSVoice_V1::CMSVoice_V1(uint8 id, MidiDriver_CMS* driver, CMSEmulator *cms, SciSpan<const uint8>& patchData) : CMSVoice(id, driver, cms, patchData), _velocity(0), _patchDataIndex(0),
+CMSVoice_V1::CMSVoice_V1(uint8 id, MidiDriver_CMS* driver, CMS::CMS *cms, SciSpan<const uint8>& patchData) : CMSVoice(id, driver, cms, patchData), _velocity(0), _patchDataIndex(0),
 	_amplitudeTimer(0), _amplitudeModifier(0), _release(false) {
 }
 
@@ -743,9 +741,10 @@ const int CMSVoice_V1::_velocityTable[32] = {
 	 6,  6,  7,  8,  8,  9, 10, 10
 };
 
-MidiDriver_CMS::MidiDriver_CMS(Audio::Mixer* mixer, ResourceManager* resMan, SciVersion version) : MidiDriver_Emulated(mixer), _resMan(resMan),
-	_version(version), _cms(0), _rate(0), _playSwitch(true), _masterVolume(0), _numVoicesPrimary(version > SCI_VERSION_0_LATE ? 12 : 8),
-	_actualTimerInterval(1000000 / _baseFreq), _reqTimerInterval(1000000/60), _numVoicesSecondary(version > SCI_VERSION_0_LATE ? 0 : 4) {
+MidiDriver_CMS::MidiDriver_CMS(ResourceManager *resMan, SciVersion version) : _resMan(resMan), _isOpen(false),
+	_version(version), _cms(nullptr), _playSwitch(true), _masterVolume(0), _numVoicesPrimary(version > SCI_VERSION_0_LATE ? 12 : 8),
+	_timerProc(nullptr), _timerParam(nullptr), _actualTimerInterval(1000000 / CMS::CMS::DEFAULT_CALLBACK_FREQUENCY), _reqTimerInterval(1000000/60),
+	_numVoicesSecondary(version > SCI_VERSION_0_LATE ? 0 : 4) {
 	memset(_voice, 0, sizeof(_voice));
 	_updateTimer = _reqTimerInterval;
 }
@@ -756,7 +755,7 @@ MidiDriver_CMS::~MidiDriver_CMS() {
 }
 
 int MidiDriver_CMS::open() {
-	if (_cms)
+	if (_isOpen)
 		return MERR_ALREADY_OPEN;
 
 	assert(_resMan);
@@ -766,8 +765,9 @@ int MidiDriver_CMS::open() {
 
 	_patchData->allocateFromSpan(_version < SCI_VERSION_1_EARLY ? res->subspan(30) : *res);
 
-	_rate = _mixer->getOutputRate();
-	_cms = new CMSEmulator(_rate);
+	_cms = CMS::Config::create();
+	if (!_cms || !_cms->init())
+		return MERR_CANNOT_CONNECT;
 
 	for (uint i = 0; i < ARRAYSIZE(_channel); ++i)
 		_channel[i] = Channel();
@@ -799,20 +799,22 @@ int MidiDriver_CMS::open() {
 	writeToChip(0, 0x1C, 1);
 	writeToChip(1, 0x1C, 1);
 
-	int retVal = MidiDriver_Emulated::open();
-	if (retVal != 0)
-		return retVal;
+	_isOpen = true;
 
-	_mixer->playStream(Audio::Mixer::kPlainSoundType, &_mixerSoundHandle, this, -1, _mixer->kMaxChannelVolume, 0, DisposeAfterUse::NO);
+	_cms->start(new Common::Functor0Mem<void, MidiDriver_CMS>(this, &MidiDriver_CMS::onTimer));
+
 	return 0;
 }
 
 void MidiDriver_CMS::close() {
-	_mixer->stopHandle(_mixerSoundHandle);
+	if (_cms) {
+		_cms->stop();
+		delete _cms;
+		_cms = nullptr;
+	}
 
 	_patchData.clear();
-	delete _cms;
-	_cms = nullptr;
+	_isOpen = false;
 }
 
 void MidiDriver_CMS::send(uint32 b) {
@@ -868,7 +870,7 @@ uint32 MidiDriver_CMS::property(int prop, uint32 param) {
 	case MIDI_PROP_CHANNEL_PANPOS:
 		return (param < 16) ? _channel[param].pan : 0;
 	default:
-		return MidiDriver_Emulated::property(prop, param);
+		return MidiDriver::property(prop, param);
 	}
 }
 
@@ -918,7 +920,15 @@ void MidiDriver_CMS::initTrack(SciSpan<const byte>& header) {
 	}
 }
 
+void MidiDriver_CMS::setTimerCallback(void *timerParam, Common::TimerManager::TimerProc timerProc) {
+	_timerProc = timerProc;
+	_timerParam = timerParam;
+}
+
 void MidiDriver_CMS::onTimer() {
+	if (_timerProc)
+		(*_timerProc)(_timerParam);
+
 	for (_updateTimer -= _actualTimerInterval; _updateTimer <= 0; _updateTimer += _reqTimerInterval) {
 		for (uint i = 0; i < ARRAYSIZE(_voice); ++i)
 			_voice[i]->update();
@@ -1108,7 +1118,7 @@ void MidiDriver_CMS::unbindVoices(int channelNr, int voices, bool bindSecondary)
 				if (sec) {
 					sec->stop();
 					sec->_assign = 0xFF;
-					_voice[i]->_secondaryVoice = 0;
+					_voice[i]->_secondaryVoice = nullptr;
 				}
 
 				--voices;
@@ -1145,7 +1155,7 @@ void MidiDriver_CMS::unbindVoices(int channelNr, int voices, bool bindSecondary)
 			if (sec) {
 				sec->stop();
 				sec->_assign = 0xFF;
-				_voice[voiceNr]->_secondaryVoice = 0;
+				_voice[voiceNr]->_secondaryVoice = nullptr;
 			}
 
 			--voices;
@@ -1306,12 +1316,7 @@ int MidiDriver_CMS::findVoiceBasic(int channelNr) {
 
 void MidiDriver_CMS::writeToChip(int chip, int address, int data) {
 	assert(chip == 0 || chip == 1);
-	_cms->portWrite(0x221 + (chip << 1), address);
-	_cms->portWrite(0x220 + (chip << 1), data);
-}
-
-void MidiDriver_CMS::generateSamples(int16 *buffer, int len) {
-	_cms->readBuffer(buffer, len);
+	_cms->writeReg(address + (chip << 8), data);
 }
 
 class MidiPlayer_CMS : public MidiPlayer {
@@ -1329,7 +1334,7 @@ public:
 
 	void playSwitch(bool play) override { _driver->property(MidiDriver_CMS::MIDI_PROP_PLAYSWITCH, play ? 1 : 0); }
 
-	const char *reportMissingFiles() override { return _filesMissing ? _requiredFiles : 0; }
+	const char *reportMissingFiles() override { return _filesMissing ? _requiredFiles : nullptr; }
 
 private:
 	bool _filesMissing;
@@ -1340,7 +1345,7 @@ int MidiPlayer_CMS::open(ResourceManager *resMan) {
 	if (_driver)
 		return MidiDriver::MERR_ALREADY_OPEN;
 
-	_driver = new MidiDriver_CMS(g_system->getMixer(), resMan, _version);
+	_driver = new MidiDriver_CMS(resMan, _version);
 	int driverRetVal = _driver->open();
 
 	if (driverRetVal == -1)
@@ -1350,7 +1355,7 @@ int MidiPlayer_CMS::open(ResourceManager *resMan) {
 }
 
 void MidiPlayer_CMS::close() {
-	_driver->setTimerCallback(0, 0);
+	_driver->setTimerCallback(nullptr, nullptr);
 	_driver->close();
 	delete _driver;
 	_driver = nullptr;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,14 +25,14 @@
 #include "backends/networking/curl/connectionmanager.h"
 #include "backends/networking/curl/curljsonrequest.h"
 #include "backends/networking/curl/networkreadstream.h"
-#include "common/json.h"
+#include "common/formats/json.h"
 
 namespace Cloud {
 namespace OneDrive {
 
 #define ONEDRIVE_API_SPECIAL_APPROOT "https://graph.microsoft.com/v1.0/drive/special/approot"
 
-OneDriveCreateDirectoryRequest::OneDriveCreateDirectoryRequest(OneDriveStorage *storage, Common::String path, Storage::BoolCallback cb, Networking::ErrorCallback ecb):
+OneDriveCreateDirectoryRequest::OneDriveCreateDirectoryRequest(OneDriveStorage *storage, const Common::String &path, Storage::BoolCallback cb, Networking::ErrorCallback ecb):
 	Networking::Request(nullptr, ecb), _storage(storage), _path(path), _boolCallback(cb),
 	_workingRequest(nullptr), _ignoreCallback(false) {
 	start();
@@ -71,8 +70,8 @@ void OneDriveCreateDirectoryRequest::start() {
 	if (parent != "")
 		url += ":/" + ConnMan.urlEncode(parent) + ":";
 	url += "/children";
-	Networking::JsonCallback innerCallback = new Common::Callback<OneDriveCreateDirectoryRequest, Networking::JsonResponse>(this, &OneDriveCreateDirectoryRequest::responseCallback);
-	Networking::ErrorCallback errorResponseCallback = new Common::Callback<OneDriveCreateDirectoryRequest, Networking::ErrorResponse>(this, &OneDriveCreateDirectoryRequest::errorCallback);
+	Networking::JsonCallback innerCallback = new Common::Callback<OneDriveCreateDirectoryRequest, const Networking::JsonResponse &>(this, &OneDriveCreateDirectoryRequest::responseCallback);
+	Networking::ErrorCallback errorResponseCallback = new Common::Callback<OneDriveCreateDirectoryRequest, const Networking::ErrorResponse &>(this, &OneDriveCreateDirectoryRequest::errorCallback);
 	Networking::CurlJsonRequest *request = new OneDriveTokenRefresher(_storage, innerCallback, errorResponseCallback, url.c_str());
 	request->addHeader("Authorization: Bearer " + _storage->accessToken());
 	request->addHeader("Content-Type: application/json");
@@ -86,8 +85,8 @@ void OneDriveCreateDirectoryRequest::start() {
 	_workingRequest = ConnMan.addRequest(request);
 }
 
-void OneDriveCreateDirectoryRequest::responseCallback(Networking::JsonResponse response) {
-	Common::JSONValue *json = response.value;
+void OneDriveCreateDirectoryRequest::responseCallback(const Networking::JsonResponse &response) {
+	const Common::JSONValue *json = response.value;
 	_workingRequest = nullptr;
 	if (_ignoreCallback) {
 		delete json;
@@ -97,7 +96,7 @@ void OneDriveCreateDirectoryRequest::responseCallback(Networking::JsonResponse r
 		_date = response.request->date();
 
 	Networking::ErrorResponse error(this, "OneDriveCreateDirectoryRequest::responseCallback: unknown error");
-	Networking::CurlJsonRequest *rq = (Networking::CurlJsonRequest *)response.request;
+	const Networking::CurlJsonRequest *rq = (const Networking::CurlJsonRequest *)response.request;
 	if (rq && rq->getNetworkReadStream())
 		error.httpResponseCode = rq->getNetworkReadStream()->httpResponseCode();
 
@@ -125,7 +124,7 @@ void OneDriveCreateDirectoryRequest::responseCallback(Networking::JsonResponse r
 	delete json;
 }
 
-void OneDriveCreateDirectoryRequest::errorCallback(Networking::ErrorResponse error) {
+void OneDriveCreateDirectoryRequest::errorCallback(const Networking::ErrorResponse &error) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 // Based on the TrueMotion 1 decoder by Alex Beregszaszi & Mike Melanson in FFmpeg
 
-// Only compile if SCI32 is enabled, ZVISION is enabled, or if we're building dynamic modules
-#if defined(ENABLE_SCI32) || defined(ENABLE_ZVISION) || defined(DYNAMIC_MODULES)
+// Only compile if SCI32 is enabled, TESTBED is enabled, ZVISION is enabled, or if we're building dynamic modules
+#if defined(ENABLE_SCI32) || defined(ENABLE_TESTBED) || defined(ENABLE_ZVISION) || defined(DYNAMIC_MODULES)
 
 #ifndef IMAGE_CODECS_TRUEMOTION1_H
 #define IMAGE_CODECS_TRUEMOTION1_H
@@ -40,12 +39,12 @@ namespace Image {
 class TrueMotion1Decoder : public Codec {
 public:
 	TrueMotion1Decoder();
-	~TrueMotion1Decoder();
+	~TrueMotion1Decoder() override;
 
-	const Graphics::Surface *decodeFrame(Common::SeekableReadStream &stream);
+	const Graphics::Surface *decodeFrame(Common::SeekableReadStream &stream) override;
 
 	// Always return RGB565
-	Graphics::PixelFormat getPixelFormat() const { return Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0); }
+	Graphics::PixelFormat getPixelFormat() const override { return Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0); }
 
 private:
 	Graphics::Surface *_surface;

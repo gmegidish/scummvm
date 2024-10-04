@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,12 +31,12 @@ namespace LastExpress {
 
 SavePoints::SavePoints(LastExpressEngine *engine) : _engine(engine) {
 	for (int i = 0; i < 40; i++)
-		_callbacks[i] = NULL;
+		_callbacks[i] = nullptr;
 }
 
 SavePoints::~SavePoints() {
 	// Zero passed pointers
-	_engine = NULL;
+	_engine = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -150,7 +149,7 @@ void SavePoints::call(EntityIndex entity2, EntityIndex entity1, ActionIndex acti
 	point.param.intValue = param;
 
 	Callback *callback = getCallback(entity1);
-	if (callback != NULL && callback->isValid()) {
+	if (callback != nullptr && callback->isValid()) {
 		debugC(8, kLastExpressDebugLogic, "Savepoint: entity1=%s, action=%s, entity2=%s, param=%d", ENTITY_NAME(entity1), ACTION_NAME(action), ENTITY_NAME(entity2), param);
 		(*callback)(point);
 	}
@@ -166,7 +165,7 @@ void SavePoints::call(EntityIndex entity2, EntityIndex entity1, ActionIndex acti
 	strncpy((char *)&point.param.charValue, param.c_str(), 6);
 
 	Callback *callback = getCallback(entity1);
-	if (callback != NULL && callback->isValid()) {
+	if (callback != nullptr && callback->isValid()) {
 		debugC(8, kLastExpressDebugLogic, "Savepoint: entity1=%s, action=%s, entity2=%s, param=%s", ENTITY_NAME(entity1), ACTION_NAME(action), ENTITY_NAME(entity2), param.c_str());
 		(*callback)(point);
 	}
@@ -183,7 +182,7 @@ void SavePoints::callAndProcess() {
 	while (isRunning) {
 
 		Callback *callback = getCallback(index);
-		if (callback != NULL && callback->isValid()) {
+		if (callback != nullptr && callback->isValid()) {
 			(*callback)(savepoint);
 			isRunning = getFlags()->isGameRunning;
 		}

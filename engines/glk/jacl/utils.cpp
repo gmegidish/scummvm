@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -51,11 +50,11 @@ void eachturn() {
 	/* INCREMENT THE TOTAL NUMBER OF MOVES MADE AND CALL THE 'EACHTURN'
 	 * FUNCTION FOR THE CURRENT LOCATION AND THE GLOBAL 'EACHTURN'
 	 * FUNCTION. THESE FUNCTIONS CONTAIN ANY CODE THAT SIMULATED EVENTS
-	 * OCCURING DUE TO THE PASSING OF TIME */
+	 * OCCURRING DUE TO THE PASSING OF TIME */
 	TOTAL_MOVES->value++;
 	execute("+eachturn");
-	strcpy(function_name, "eachturn_");
-	strcat(function_name, object[HERE]->label);
+	Common::strcpy_s(function_name, 81, "eachturn_");
+	Common::strcat_s(function_name, 81, object[HERE]->label);
 	execute(function_name);
 	execute("+system_eachturn");
 
@@ -107,6 +106,7 @@ int random_number() {
 	return g_vm->getRandomNumber(0x7fffffff);
 }
 
+#ifndef GLK
 void create_paths(char *full_path) {
 	int       index;
 	char      *last_slash;
@@ -116,7 +116,7 @@ void create_paths(char *full_path) {
 
 	/* FIND THE LAST SLASH IN THE SPECIFIED GAME PATH AND REMOVE THE GAME
 	 * FILE SUFFIX IF ANY EXISTS */
-	last_slash = (char *)NULL;
+	last_slash = (char *)nullptr;
 
 	/* GET A POINTER TO THE LAST SLASH IN THE FULL PATH */
 	last_slash = strrchr(full_path, DIR_SEPARATOR);
@@ -133,7 +133,7 @@ void create_paths(char *full_path) {
 	}
 
 	/* STORE THE GAME PATH AND THE GAME FILENAME PARTS SEPARATELY */
-	if (last_slash == (const char *) NULL) {
+	if (last_slash == (const char *) nullptr) {
 		/* GAME MUST BE IN CURRENT DIRECTORY SO THERE WILL BE NO GAME PATH */
 		strcpy(prefix, full_path);
 		game_path[0] = 0;
@@ -141,9 +141,9 @@ void create_paths(char *full_path) {
 		/* THIS ADDITION OF ./ TO THE FRONT OF THE GAMEFILE IF IT IS IN THE
 		 * CURRENT DIRECTORY IS REQUIRED TO KEEP Gargoyle HAPPY. */
 #ifdef __NDS__
-		sprintf(temp_buffer, "%c%s", DIR_SEPARATOR, game_file);
+		Common::sprintf_s(temp_buffer, "%c%s", DIR_SEPARATOR, game_file);
 #else
-		sprintf(temp_buffer, ".%c%s", DIR_SEPARATOR, game_file);
+		Common::sprintf_s(temp_buffer, ".%c%s", DIR_SEPARATOR, game_file);
 #endif
 		strcpy(game_file, temp_buffer);
 	} else {
@@ -157,13 +157,13 @@ void create_paths(char *full_path) {
 
 #ifdef GLK
 	/* SET DEFAULT WALKTHRU FILE NAME */
-	sprintf(walkthru, "%s.walkthru", prefix);
+	Common::sprintf_s(walkthru, "%s.walkthru", prefix);
 
 	/* SET DEFAULT SAVED GAME FILE NAME */
-	sprintf(bookmark, "%s.bookmark", prefix);
+	Common::sprintf_s(bookmark, "%s.bookmark", prefix);
 
 	/* SET DEFAULT BLORB FILE NAME */
-	sprintf(blorb, "%s.blorb", prefix);
+	Common::sprintf_s(blorb, "%s.blorb", prefix);
 #endif
 
 	/* SET DEFAULT FILE LOCATIONS IF NOT SET BY THE USER IN CONFIG */
@@ -182,6 +182,7 @@ void create_paths(char *full_path) {
 		strcat(data_directory, DATA_DIR);
 	}
 }
+#endif
 
 int jacl_whitespace(char character) {
 	/* CHECK IF A CHARACTER IS CONSIDERED WHITE SPACE IN THE JACL LANGUAGE */

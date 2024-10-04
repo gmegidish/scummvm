@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,13 +39,13 @@ using namespace AGS::Shared;
 bool get_property_desc(PropertyDesc &desc, const char *property, PropertyType want_type) {
 	PropertySchema::const_iterator sch_it = _GP(game).propSchema.find(property);
 	if (sch_it == _GP(game).propSchema.end())
-		quit("!GetProperty: no such property found in schema. Make sure you are using the property's name, and not its description, when calling this command.");
+		quitprintf("!Did not find property '%s' in the schema. Make sure you are using the property's name, and not its description, when calling this command.", property);
 
 	desc = sch_it->_value;
 	if (want_type == kPropertyString && desc.Type != kPropertyString)
-		quit("!GetTextProperty: need to use GetProperty for a non-text property");
+		quitprintf("!Property '%s' isn't a text property.  Use GetProperty/SetProperty for non-text properties", property);
 	else if (want_type != kPropertyString && desc.Type == kPropertyString)
-		quit("!GetProperty: need to use GetTextProperty for a text property");
+		quitprintf("!Property '%s' is a text property.  Use GetTextProperty/SetTextProperty for text properties", property);
 	return true;
 }
 
@@ -77,7 +76,7 @@ void get_text_property(const StringIMap &st_prop, const StringIMap &rt_prop, con
 		return;
 
 	String val = get_property_value(st_prop, rt_prop, property, desc.DefaultValue);
-	strcpy(bufer, val.GetCStr());
+	snprintf(bufer, MAX_MAXSTRLEN, "%s", val.GetCStr());
 }
 
 const char *get_text_property_dynamic_string(const StringIMap &st_prop, const StringIMap &rt_prop, const char *property) {

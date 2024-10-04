@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -139,8 +138,8 @@ EoBCoreEngine::EoBCoreEngine(OSystem *system, const GameFlags &flags) : KyraRpgE
 	_charExchangeSwap = 0;
 	_configHpBarGraphs = true;
 	_configMouseBtSwap = false;
+	_configADDRuleEnhancements = false;
 
-	memset(_dialogueLastBitmap, 0, 13);
 	_npcSequenceSub = 0;
 	_moveCounter = 0;
 	_partyResting = false;
@@ -199,8 +198,8 @@ EoBCoreEngine::EoBCoreEngine(OSystem *system, const GameFlags &flags) : KyraRpgE
 	_buttonList3Size = _buttonList4Size = _buttonList5Size = _buttonList6Size = 0;
 	_buttonList7Size = _buttonList8Size = 0;
 	_inventorySlotsY = _mnDef = 0;
-	_invFont1 = _invFont2 = _conFont = Screen::FID_6_FNT;
-	_invFont3 = Screen::FID_8_FNT;
+	_invFont1 = _invFont2 = _invFont4 = _invFont5 = _invFont6 = _hpStatFont = _conFont = _bookFont = Screen::FID_6_FNT;
+	_titleFont = _invFont3 = Screen::FID_8_FNT;
 	_transferStringsScummVM = 0;
 	_buttonDefs = 0;
 	_npcPreset = 0;
@@ -243,10 +242,11 @@ EoBCoreEngine::EoBCoreEngine(OSystem *system, const GameFlags &flags) : KyraRpgE
 	_amigaSoundMap = 0;
 	_amigaCurSoundFile = -1;
 	_prefMenuPlatformOffset = 0;
-	_lastVIntTick = _lastSecTick = _totalPlaySecs = _totalEnemiesKilled = _totalSteps = 0;
+	_lastVIntTick = _totalEnemiesKilled = _totalSteps = 0;
 	_levelMaps = 0;
 	_closeSpellbookAfterUse = false;
 	_wndBackgrnd = 0;
+	_ascii2SjisTables = _ascii2SjisTables2 = _mageSpellList2 = _clericSpellList2 = nullptr;
 
 	memset(_cgaMappingLevel, 0, sizeof(_cgaMappingLevel));
 	memset(_expRequirementTables, 0, sizeof(_expRequirementTables));
@@ -256,6 +256,7 @@ EoBCoreEngine::EoBCoreEngine(OSystem *system, const GameFlags &flags) : KyraRpgE
 	memset(_scriptTimers, 0, sizeof(_scriptTimers));
 	memset(_monsterBlockPosArray, 0, sizeof(_monsterBlockPosArray));
 	memset(_foundMonstersArray, 0, sizeof(_foundMonstersArray));
+	memset(_palette16c, 0, sizeof(_palette16c));
 
 #define DWM0 _dscWallMapping.push_back(0)
 #define DWM(x) _dscWallMapping.push_back(&_sceneDrawVar##x)
@@ -429,7 +430,7 @@ Common::Error EoBCoreEngine::init() {
 			_sound = new SoundPC98_EoB(this, _mixer);
 		} else {
 			dev = MidiDriver::detectDevice(MDT_PC98 | MDT_MIDI);
-			/**/
+			_sound = new SoundPC98_Darkmoon(this, dev, _mixer);
 		}
 		break;
 	case Common::kPlatformAmiga:
@@ -446,7 +447,8 @@ Common::Error EoBCoreEngine::init() {
 	}
 
 	assert(_sound);
-	_sound->init();
+	if (!_sound->init())
+		error("Sound init failed");
 
 	if (_flags.platform == Common::kPlatformPC98)
 		_sound->loadSfxFile("EFECT.OBJ");
@@ -471,6 +473,12 @@ Common::Error EoBCoreEngine::init() {
 		assert(_gui);
 		_txt = new TextDisplayer_rpg(this, _screen);
 		assert(_txt);
+
+		if (_flags.platform == Common::kPlatformAmiga) {
+			static const uint8 cmap[16] = { 0x00, 0x06, 0x1d, 0x1b, 0x1a, 0x17, 0x18, 0x0e, 0x19, 0x1c, 0x1c, 0x1e, 0x13, 0x0a, 0x11, 0x1f };
+			for (int i = 0; i < ARRAYSIZE(cmap); ++i)
+				_txt->setColorMapping(-1, i, cmap[i]);
+		}
 	}
 
 	_inf = new EoBInfProcessor(this, _screen);
@@ -516,45 +524,35 @@ Common::Error EoBCoreEngine::init() {
 	_blackFadingTable = new uint8[256 * bpp];
 	_greyFadingTable = new uint8[256 * bpp];
 
-	_monsters = new EoBMonsterInPlay[30];
-	memset(_monsters, 0, 30 * sizeof(EoBMonsterInPlay));
+	_monsters = new EoBMonsterInPlay[30]();
 
-	_characters = new EoBCharacter[6];
-	memset(_characters, 0, sizeof(EoBCharacter) * 6);
+	_characters = new EoBCharacter[6]();
 
-	_items = new EoBItem[600];
-	memset(_items, 0, sizeof(EoBItem) * 600);
+	_items = new EoBItem[600]();
 
 	_itemNames = new char*[130];
 	for (int i = 0; i < 130; i++) {
-		_itemNames[i] = new char[35];
-		memset(_itemNames[i], 0, 35);
+		_itemNames[i] = new char[35]();
 	}
 
-	_flyingObjects = new EoBFlyingObject[_numFlyingObjects];
+	_flyingObjects = new EoBFlyingObject[_numFlyingObjects]();
 	_flyingObjectsPtr = _flyingObjects;
-	memset(_flyingObjects, 0, _numFlyingObjects * sizeof(EoBFlyingObject));
 
 	int bufferSize = _flags.useHiColorMode ? 8192 : 4096;
-	_spellAnimBuffer = new uint8[bufferSize];
-	memset(_spellAnimBuffer, 0, bufferSize);
+	_spellAnimBuffer = new uint8[bufferSize]();
 
-	_wallsOfForce = new WallOfForce[5];
-	memset(_wallsOfForce, 0, 5 * sizeof(WallOfForce));
+	_wallsOfForce = new WallOfForce[5]();
 
 	memset(_doorType, 0, sizeof(_doorType));
 	memset(_noDoorSwitch, 0, sizeof(_noDoorSwitch));
 
-	_monsterShapes = new uint8*[36];
-	memset(_monsterShapes, 0, 36 * sizeof(uint8 *));
-	_monsterDecorations = new SpriteDecoration[36];
-	memset(_monsterDecorations, 0, 36 * sizeof(SpriteDecoration));
+	_monsterShapes = new uint8*[36]();
+	_monsterDecorations = new SpriteDecoration[36]();
 	_monsterPalettes = new uint8*[24];
 	for (int i = 0; i < 24; i++)
 		_monsterPalettes[i] = new uint8[16];
 
-	_doorSwitches = new SpriteDecoration[6];
-	memset(_doorSwitches, 0, 6 * sizeof(SpriteDecoration));
+	_doorSwitches = new SpriteDecoration[6]();
 
 	_monsterFlashOverlay = new uint8[16];
 	_monsterStoneOverlay = new uint8[16];
@@ -584,6 +582,10 @@ void EoBCoreEngine::loadFonts() {
 		else
 			AmigaDOSFont::errorDialog(0);
 
+	} else if (_flags.gameID == GI_EOB2 && _flags.platform == Common::kPlatformPC98) {
+		_screen->loadFont(Screen::FID_6_FNT, "FONT6B.FNT");
+		_screen->loadFont(Screen::FID_8_FNT, "FONT8B.FNT");
+		_screen->loadFont(Screen::FID_SJIS_SMALL_FNT, "FONT1206.FNT");
 	} else if (_flags.platform != Common::kPlatformSegaCD) {
 		_screen->loadFont(Screen::FID_6_FNT, "FONT6.FNT");
 		_screen->loadFont(Screen::FID_8_FNT, "FONT8.FNT");
@@ -592,20 +594,29 @@ void EoBCoreEngine::loadFonts() {
 	if (_flags.platform == Common::kPlatformFMTowns) {
 		_screen->loadFont(Screen::FID_SJIS_SMALL_FNT, "FONT.DMP");
 	} else if (_flags.platform == Common::kPlatformPC98) {
-		_screen->loadFont(Screen::FID_SJIS_SMALL_FNT, "FONT12.FNT");
+		if (_flags.gameID == GI_EOB1) {
+			_screen->loadFont(Screen::FID_SJIS_SMALL_FNT, "FONT12.FNT");
+			_bookFont = Screen::FID_SJIS_SMALL_FNT;
+			_invFont4 = _invFont5 = _invFont6 = Screen::FID_SJIS_FNT;
+		}
+		_titleFont = _conFont = _invFont3 = Screen::FID_SJIS_FNT;
 		_invFont1 = Screen::FID_SJIS_SMALL_FNT;
-		_conFont = _invFont3 = Screen::FID_SJIS_FNT;
 	} else if (_flags.platform == Common::kPlatformSegaCD) {
 		_screen->loadFont(Screen::FID_8_FNT, "FONTK12");
 		_screen->setFontStyles(Screen::FID_8_FNT, Font::kStyleNone);
-		_invFont1 = _invFont2 = _conFont = Screen::FID_8_FNT;
+		_invFont1 = _invFont2 = _invFont4 = _invFont5 = _invFont6 = _hpStatFont = _conFont = Screen::FID_8_FNT;
+	} else if (_flags.lang == Common::ZH_TWN) {
+		_screen->loadFont(Screen::FID_CHINESE_FNT, "FONT8.FNT");
+		_titleFont = _conFont = _invFont1 = _invFont2 = _invFont4 = Screen::FID_CHINESE_FNT;
+		_invFont5 = Screen::FID_8_FNT;
 	}
 }
 
 Common::Error EoBCoreEngine::go() {
 	static_cast<Debugger_EoB *>(getDebugger())->initialize();
 	_txt->removePageBreakFlag();
-	_screen->setFont(_flags.platform == Common::kPlatformPC98 ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT);
+	_screen->setFont(_titleFont);
+
 	loadItemsAndDecorationsShapes();
 
 	_screen->setMouseCursor(0, 0, _itemIconShapes[0]);
@@ -674,12 +685,14 @@ void EoBCoreEngine::registerDefaultSettings() {
 	KyraEngine_v1::registerDefaultSettings();
 	ConfMan.registerDefault("hpbargraphs", true);
 	ConfMan.registerDefault("mousebtswap", false);
+	ConfMan.registerDefault("addrules", false);
 	ConfMan.registerDefault("importOrigSaves", true);
 }
 
 void EoBCoreEngine::readSettings() {
 	_configHpBarGraphs = ConfMan.getBool("hpbargraphs");
 	_configMouseBtSwap = ConfMan.getBool("mousebtswap");
+	_configADDRuleEnhancements = ConfMan.getBool("addrules");
 	_configSounds = ConfMan.getBool("sfx_mute") ? 0 : 1;
 	_configMusic = (_flags.platform == Common::kPlatformPC98 || _flags.platform == Common::kPlatformSegaCD) ? (ConfMan.getBool("music_mute") ? 0 : 1) : (_configSounds ? 1 : 0);
 
@@ -692,6 +705,7 @@ void EoBCoreEngine::readSettings() {
 void EoBCoreEngine::writeSettings() {
 	ConfMan.setBool("hpbargraphs", _configHpBarGraphs);
 	ConfMan.setBool("mousebtswap", _configMouseBtSwap);
+	ConfMan.setBool("addrules", _configADDRuleEnhancements);
 	ConfMan.setBool("sfx_mute", _configSounds == 0);
 	if (_flags.platform == Common::kPlatformPC98 || _flags.platform == Common::kPlatformSegaCD)
 		ConfMan.setBool("music_mute", _configMusic == 0);
@@ -699,7 +713,7 @@ void EoBCoreEngine::writeSettings() {
 	if (_sound) {
 		if (_flags.platform == Common::kPlatformPC98 || _flags.platform == Common::kPlatformSegaCD) {
 			if (!_configMusic)
-				snd_playSong(0);
+				snd_stopSound();
 		} else if (!_configSounds) {
 			_sound->haltTrack();
 		}
@@ -727,7 +741,6 @@ void EoBCoreEngine::runLoop() {
 	_drawSceneTimer = _system->getMillis();
 	_screen->setFont(_conFont);
 	_screen->setScreenDim(7);
-
 	_runFlag = true;
 
 	while (!shouldQuit() && _runFlag) {
@@ -745,7 +758,8 @@ void EoBCoreEngine::runLoop() {
 		if (_sceneUpdateRequired && !_sceneShakeCountdown)
 			drawScene(1);
 
-		updateAnimTimers();
+		updatePlayTimer();
+		updateAnimations();
 
 		uint32 curTime = _system->getMillis();
 		if (_envAudioTimer < curTime && !(_flags.gameID == GI_EOB1 && (_flags.platform == Common::kPlatformSegaCD || _flags.platform == Common::kPlatformAmiga || _currentLevel == 0 || _currentLevel > 3))) {
@@ -773,7 +787,7 @@ bool EoBCoreEngine::checkPartyStatus(bool handleDeath) {
 	gui_drawAllCharPortraitsWithStats();
 
 	if (checkPartyStatusExtra()) {
-		Screen::FontId of = _screen->setFont(_flags.use16ColorMode ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT);
+		Screen::FontId of = _screen->setFont(_titleFont);
 		gui_updateControls();
 		int x = 0;
 		int y = 0;
@@ -797,13 +811,8 @@ bool EoBCoreEngine::checkPartyStatus(bool handleDeath) {
 	return false;
 }
 
-void EoBCoreEngine::updateAnimTimers() {
+void EoBCoreEngine::updateAnimations() {
 	uint32 curTime = _system->getMillis();
-	if (_lastSecTick + 1000 <= curTime) {
-		_lastSecTick = curTime;
-		_totalPlaySecs++;
-	}
-
 	if (_lastVIntTick + 16 <= curTime) {
 		_lastVIntTick = curTime;
 		gui_updateAnimations();
@@ -842,8 +851,6 @@ void EoBCoreEngine::loadItemsAndDecorationsShapes() {
 	}
 
 	_thrownItemShapes = new const uint8*[_numThrownItemShapes];
-	if (_flags.gameID == GI_EOB2)
-		_spellShapes = new const uint8*[4];
 	_firebeamShapes = new const uint8*[3];
 
 	_screen->loadShapeSetBitmap("THROWN", 5, 3);
@@ -857,6 +864,7 @@ void EoBCoreEngine::loadItemsAndDecorationsShapes() {
 				_thrownItemShapesScl[c][i] = _screen->encodeShape((i / div) << 2, (i % div) * mul + 24 + (c << 4), 3 - c, 16 - ((c >> 1) << 3), false, _cgaMappingThrown);
 		}
 	} else {
+		_spellShapes = new const uint8*[4];
 		for (int i = 0; i < 4; i++)
 			_spellShapes[i] = _screen->encodeShape(8, i << 5, 6, 32, false, _cgaMappingThrown);
 	}
@@ -885,12 +893,11 @@ void EoBCoreEngine::loadItemsAndDecorationsShapes() {
 	_teleporterShapes = new const uint8*[6];
 	_sparkShapes = new const uint8*[4];
 	_compassShapes = new const uint8*[12];
-	if (_flags.gameID == GI_EOB2)
-		_wallOfForceShapes = new const uint8*[6];
 
 	_screen->loadShapeSetBitmap("DECORATE", 5, 3);
 	if (_flags.gameID == GI_EOB2) {
 		_lightningColumnShape = _screen->encodeShape(18, 88, 4, 64);
+		_wallOfForceShapes = new const uint8*[6];
 		for (int i = 0; i < 6; i++)
 			_wallOfForceShapes[i] = _screen->encodeShape(_wallOfForceShapeDefs[(i << 2)], _wallOfForceShapeDefs[(i << 2) + 1], _wallOfForceShapeDefs[(i << 2) + 2], _wallOfForceShapeDefs[(i << 2) + 3]);
 	}
@@ -964,9 +971,6 @@ void EoBCoreEngine::releaseItemsAndDecorationsShapes() {
 		releaseShpArr(_largeItemShapesScl[i], _numLargeItemShapes);
 		releaseShpArr(_smallItemShapesScl[i], _numSmallItemShapes);
 		releaseShpArr(_thrownItemShapesScl[i], _numThrownItemShapes);
-		delete[] _largeItemShapesScl[i];
-		delete[] _smallItemShapesScl[i];
-		delete[] _thrownItemShapesScl[i];
 	}
 }
 
@@ -978,8 +982,14 @@ void EoBCoreEngine::setHandItem(Item itemIndex) {
 	}
 
 	if (_screen->curDimIndex() == 7 && itemIndex) {
-		printFullItemName(itemIndex);
-		_txt->printMessage(_takenStrings[0]);
+		if (_flags.lang == Common::Language::ZH_TWN) {
+			_txt->printMessage(_takenStrings[0]);
+			printFullItemName(itemIndex);
+			_txt->printMessage("\r");
+		} else {
+			printFullItemName(itemIndex);
+			_txt->printMessage(_takenStrings[0]);
+		}
 	}
 
 	_itemInHand = itemIndex;
@@ -1022,32 +1032,68 @@ int EoBCoreEngine::getDexterityArmorClassModifier(int dexterity) {
 	return mod[dexterity];
 }
 
-int EoBCoreEngine::generateCharacterHitpointsByLevel(int charIndex, int levelIndex) {
+int EoBCoreEngine::rollHitDie(int charIndex, int levelIndex) {
 	EoBCharacter *c = &_characters[charIndex];
-	int m = getClassAndConstHitpointsModifier(c->cClass, c->constitutionCur);
+	int classOffset = getCharacterClassType(c->cClass, levelIndex);
+	int die = classOffset >= 0 ? _hpIncrPerLevel[classOffset] : 1;
+	int roll = rollDice(1, die);
+	return roll;
+}
 
-	int h = 0;
+bool EoBCoreEngine::shouldRollHitDieAtCurrentLevel(int charIndex, int levelIndex) {
+	const unsigned int kOffsetHPRollMaxLevel = 6;
+	EoBCharacter *c = &_characters[charIndex];
+	int d = getCharacterClassType(c->cClass, levelIndex);
+	return c->level[levelIndex] <= (d >= 0 ? _hpIncrPerLevel[kOffsetHPRollMaxLevel + d] : 0);
+}
 
-	for (int i = 0; i < 3; i++) {
-		if (!(levelIndex & (1 << i)))
-			continue;
+uint8 EoBCoreEngine::getStaticHitPointBonus(int charIndex, int levelIndex) {
+	const unsigned int kOffsetStaticHPBonus = 12;
+	EoBCharacter *c = &_characters[charIndex];
+	int d = getCharacterClassType(c->cClass, levelIndex);
+	return d >= 0 ? _hpIncrPerLevel[kOffsetStaticHPBonus + d] : 0;
+}
 
-		int d = getCharacterClassType(c->cClass, i);
+int EoBCoreEngine::generateCharacterHitpointsByLevel(int charIndex, int levelIndex, int hitDieRoll) {
+	EoBCharacter *c = &_characters[charIndex];
 
-		if (c->level[i] <= _hpIncrPerLevel[6 + i])
-			h += rollDice(1, (d >= 0) ? _hpIncrPerLevel[d] : 0);
-		else
-			h += _hpIncrPerLevel[12 + i];
+	int hp = 0;
 
-		h += m;
+	if (shouldRollHitDieAtCurrentLevel(charIndex, levelIndex))
+		hp += hitDieRoll;
+	else
+		hp += getStaticHitPointBonus(charIndex, levelIndex);
+
+	hp += getClassAndConstHitpointsModifier(c->cClass, c->constitutionCur);
+
+	hp /= _numLevelsPerClass[c->cClass];
+
+	if (hp < 1)
+		hp = 1;
+
+	return hp;
+}
+
+int EoBCoreEngine::incrCharacterHitPointsDividendByLevel(int charIndex, int levelIndex, int hitDieRoll) {
+	EoBCharacter *c = &_characters[charIndex];
+
+	if (shouldRollHitDieAtCurrentLevel(charIndex, levelIndex)) {
+		/*
+		 * Per AD&D 2nd Edition Player's Handbook, HP adjustment is added
+		 * or subtracted from each Hit Die rolled for the character.
+		 *
+		 * If the adjustment would lower the number rolled to 0 or less,
+		 * the final result should be considered to be 1.
+		 *
+		 * The original game adds the HP adjustment even when Hit Die
+		 * is not rolled.
+		 */
+		int hpAdjustment = getClassAndConstHitpointsModifier(c->cClass, c->constitutionCur);
+		int hp = hitDieRoll + hpAdjustment;
+		return hp < 1 ? 1 : hp;
+	} else {
+		return (int)getStaticHitPointBonus(charIndex, levelIndex);
 	}
-
-	h /= _numLevelsPerClass[c->cClass];
-
-	if (h < 1)
-		h = 1;
-
-	return h;
 }
 
 int EoBCoreEngine::getClassAndConstHitpointsModifier(int cclass, int constitution) {
@@ -1332,6 +1378,9 @@ void EoBCoreEngine::npcSequence(int npcIndex) {
 		drawNpcScene(npcIndex);
 
 		Common::SeekableReadStream *s = _res->createReadStream("TEXT.DAT");
+		if (!s)
+			s = _res->createReadStream("JTEXT.DAT");
+
 		if (s) {
 			_screen->loadFileDataToPage(s, 5, 32000);
 		} else {
@@ -1524,10 +1573,34 @@ uint32 EoBCoreEngine::getRequiredExperience(int cClass, int levelIndex, int leve
 }
 
 void EoBCoreEngine::increaseCharacterLevel(int charIndex, int levelIndex) {
+	uint8 numSubclasses = _numLevelsPerClass[(_characters[charIndex].cClass)];
+
+	if (_characters[charIndex].hitPointsDividend == 0) {
+		_characters[charIndex].hitPointsDividend = _characters[charIndex].hitPointsMax * numSubclasses;
+	}
+
 	_characters[charIndex].level[levelIndex]++;
-	int hpInc = generateCharacterHitpointsByLevel(charIndex, 1 << levelIndex);
-	_characters[charIndex].hitPointsCur += hpInc;
-	_characters[charIndex].hitPointsMax += hpInc;
+
+	int hitDieRoll = shouldRollHitDieAtCurrentLevel(charIndex, levelIndex) ? rollHitDie(charIndex, levelIndex) : 0;
+
+	_characters[charIndex].hitPointsDividend += incrCharacterHitPointsDividendByLevel(charIndex, levelIndex, hitDieRoll);
+
+	if (_configADDRuleEnhancements) {
+		/*
+		 * The original game introduces a rounding error when
+		 * calculating HP gains for multi-class characters.
+		 * To avoid accumulating such round-off errors, we
+		 * store the dividend of the total Hit Points, and
+		 * recalculate Hit Points from it on every level up.
+		 */
+		int hpNew = _characters[charIndex].hitPointsDividend / numSubclasses;
+		_characters[charIndex].hitPointsCur += hpNew - _characters[charIndex].hitPointsMax;
+		_characters[charIndex].hitPointsMax = hpNew;
+	} else {
+		int hpInc = generateCharacterHitpointsByLevel(charIndex, levelIndex, hitDieRoll);
+		_characters[charIndex].hitPointsCur += hpInc;
+		_characters[charIndex].hitPointsMax += hpInc;
+	}
 
 	gui_drawCharPortraitWithStats(charIndex);
 	_txt->printMessage(_levelGainStrings[0], -1, _characters[charIndex].name);
@@ -1563,8 +1636,16 @@ void EoBCoreEngine::setupDialogueButtons(int presetfirst, int numStr, va_list &a
 
 	_dialogueButtonPosX = &guiSettings()->buttons.posX[presetfirst];
 	_dialogueButtonPosY = &guiSettings()->buttons.posY[presetfirst];
-	_dialogueButtonXoffs = (_flags.platform == Common::kPlatformSegaCD) ? 8 : 0;
-	_dialogueButtonYoffs = (_flags.platform == Common::kPlatformSegaCD) ? 160 : yOffs;
+	_dialogueButtonXoffs = 0;
+
+	if (_flags.lang == Common::ZH_TWN) {
+		_dialogueButtonYoffs = numStr > 3 ? 166 : 184;
+	} else if (_flags.platform == Common::kPlatformSegaCD) {
+		_dialogueButtonXoffs = 8;
+		_dialogueButtonYoffs =  160;
+	} else {
+		_dialogueButtonYoffs = yOffs;
+	}
 
 	drawDialogueButtons();
 
@@ -1578,7 +1659,7 @@ void EoBCoreEngine::initDialogueSequence() {
 	_npcSequenceSub = -1;
 	_txt->setWaitButtonMode(0);
 	_dialogueField = true;
-	_dialogueLastBitmap[0] = 0;
+	_dialogueLastBitmap.clear();
 
 	_txt->resetPageBreakString();
 	gui_updateControls();
@@ -1591,6 +1672,9 @@ void EoBCoreEngine::initDialogueSequence() {
 		snd_stopSound();
 
 	Common::SeekableReadStream *s = _res->createReadStream("TEXT.DAT");
+	if (!s)
+		s = _res->createReadStream("JTEXT.DAT");
+
 	if (s) {
 		_screen->loadFileDataToPage(s, 5, 32000);
 	} else {
@@ -1609,7 +1693,7 @@ void EoBCoreEngine::restoreAfterDialogueSequence() {
 	_txt->allowPageBreak(false);
 	_dialogueField = _dialogueFieldAmiga = false;
 
-	_dialogueLastBitmap[0] = 0;
+	_dialogueLastBitmap.clear();
 
 	gui_restorePlayField();
 	//_allowSkip = false;
@@ -1630,7 +1714,7 @@ void EoBCoreEngine::drawSequenceBitmap(const char *file, int destRect, int x1, i
 	int page = ((flags & 2) || destRect) ? 0 : 6;
 	int amigaPalIndex = (x1 ? 1 : 0) + (y1 ? 2 : 0) + 1;
 
-	if (scumm_stricmp(_dialogueLastBitmap, file)) {
+	if (!_dialogueLastBitmap.equalsIgnoreCase(file)) {
 		_screen->clearPage(2);
 		if (!destRect) {
 			if (!(flags & 1)) {
@@ -1647,7 +1731,7 @@ void EoBCoreEngine::drawSequenceBitmap(const char *file, int destRect, int x1, i
 		}
 
 		_screen->loadEoBBitmap(file, 0, 3, 3, 2);
-		strcpy(_dialogueLastBitmap, file);
+		_dialogueLastBitmap = file;
 	}
 
 	if (_flags.platform == Common::kPlatformAmiga) {
@@ -1703,6 +1787,7 @@ int EoBCoreEngine::runDialogue(int dialogueTextId, int numStr, int loopButtonId,
 void EoBCoreEngine::restParty_displayWarning(const char *str) {
 	int od = _screen->curDimIndex();
 	_screen->setScreenDim(7);
+
 	Screen::FontId of = _screen->setFont(_conFont);
 	_screen->setCurPage(0);
 
@@ -1728,9 +1813,11 @@ bool EoBCoreEngine::restParty_updateMonsters() {
 		Screen::FontId of = _screen->setFont(_conFont);
 		int od = _screen->curDimIndex();
 		_screen->setScreenDim(7);
+
 		updateMonsters(0);
 		updateMonsters(1);
 		timerProcessFlyingObjects(0);
+
 		_screen->setScreenDim(od);
 		_screen->setFont(of);
 
@@ -1836,6 +1923,9 @@ void EoBCoreEngine::displayParchment(int id) {
 	if (id >= 0) {
 		// display text
 		Common::SeekableReadStream *s = _res->createReadStream("TEXT.DAT");
+		if (!s)
+			s = _res->createReadStream("JTEXT.DAT");
+
 		if (s) {
 			_screen->loadFileDataToPage(s, 5, 32000);
 		} else {
@@ -2034,7 +2124,7 @@ bool EoBCoreEngine::checkPassword() {
 	return true;
 }
 
-Common::String EoBCoreEngine::convertAsciiToSjis(Common::String str) {
+Common::String EoBCoreEngine::makeTwoByteString(const Common::String &str) {
 	if (_flags.platform != Common::kPlatformFMTowns)
 		return str;
 
@@ -2706,16 +2796,6 @@ void EoBCoreEngine::snd_playSong(int track, bool loop) {
 	if (_flags.platform == Common::kPlatformSegaCD && !loop)
 		track |= 0x80;
 	_sound->playTrack(track);
-}
-
-void EoBCoreEngine::snd_playLevelScore() {
-	if (_flags.platform == Common::kPlatformPC98) {
-		if (_flags.gameID == GI_EOB1)
-			snd_playSong(_currentLevel + 1);
-	} else if (_flags.platform == Common::kPlatformSegaCD) {
-		static const uint8 levelTracksSegaCD[13] = { 7, 7, 7, 7, 6, 6, 6, 4, 4, 4, 5, 5, 10 };
-		snd_playSong(levelTracksSegaCD[_currentLevel]);
-	}
 }
 
 void EoBCoreEngine::snd_playSoundEffect(int track, int volume) {

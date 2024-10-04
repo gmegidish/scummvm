@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,7 @@
 #include "neverhood/entity.h"
 #include "neverhood/graphics.h"
 #include "neverhood/resource.h"
+#include "neverhood/subtitles.h"
 
 namespace Neverhood {
 
@@ -54,9 +54,9 @@ const int16 kDefPosition = -32768;
 class Sprite : public Entity {
 public:
 	Sprite(NeverhoodEngine *vm, int objectPriority);
-	~Sprite() override;
 	void init() {}
-	BaseSurface *getSurface() { return _surface; }
+	Common::SharedPtr<BaseSurface> getSurface() { return _surface; }
+	virtual Common::SharedPtr<BaseSurface> getSubtitleSurface() { return nullptr; }
 	void updateBounds();
 	void setDoDeltaX(int type);
 	void setDoDeltaY(int type);
@@ -86,7 +86,7 @@ protected:
 	Common::String _spriteUpdateCbName; // For debugging purposes
 	int16 (Sprite::*_filterXCb)(int16);
 	int16 (Sprite::*_filterYCb)(int16);
-	BaseSurface *_surface;
+	Common::SharedPtr<BaseSurface> _surface;
 	int16 _x, _y;
 	bool _doDeltaX, _doDeltaY;
 	bool _needRefresh;
@@ -150,7 +150,23 @@ public:
 	int16 getFrameIndex(uint32 frameHash) { return _animResource.getFrameIndex(frameHash); }
 	void setNewHashListIndex(int value) { _newStickFrameIndex = value; }
 	void startAnimation(uint32 fileHash, int16 plFirstFrameIndex, int16 plLastFrameIndex);
+	Common::SharedPtr<BaseSurface> getSubtitleSurface() override { return _subtitleSurface; }
 protected:
+	class AnimatedSpriteSubtitles : public BaseSurface {
+	public:
+		void draw() override;
+		AnimatedSpriteSubtitles(NeverhoodEngine *vm);
+		void setFrameIndex(int currFrameIndex, int lastFrameIndex);
+		void setHash(uint32 fileHash);
+		void updatePosition(const NDrawRect &parentDrawRect);
+	private:
+		Common::ScopedPtr<SubtitlePlayer> _subtitles;
+		int _currFrameIndex;
+		int _subCenterX;
+	};
+	
+	static const int kSubtitleWidth = 320;
+	Common::SharedPtr<AnimatedSpriteSubtitles> _subtitleSurface;
 	typedef void (AnimatedSprite::*AnimationCb)();
 	AnimResource _animResource;
 	uint32 _currAnimFileHash, _newAnimFileHash, _nextAnimFileHash;
@@ -177,8 +193,8 @@ protected:
 	void updateFrameIndex();
 	void updateFrameInfo();
 	void createSurface1(uint32 fileHash, int surfacePriority);
-	void createShadowSurface1(BaseSurface *shadowSurface, uint32 fileHash, int surfacePriority);
-	void createShadowSurface(BaseSurface *shadowSurface, int16 width, int16 height, int surfacePriority);
+	void createShadowSurface1(const Common::SharedPtr<BaseSurface> &shadowSurface, uint32 fileHash, int surfacePriority);
+	void createShadowSurface(const Common::SharedPtr<BaseSurface> &shadowSurface, int16 width, int16 height, int surfacePriority);
 	void stopAnimation();
 	void startAnimationByHash(uint32 fileHash, uint32 plFirstFrameHash, uint32 plLastFrameHash);
 	void nextAnimationByHash(uint32 fileHash2, uint32 plFirstFrameHash, uint32 plLastFrameHash);

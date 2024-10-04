@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,8 @@ namespace Cloud {
 class FolderDownloadRequest: public Networking::Request, public GUI::CommandSender {
 	Storage *_storage;
 	Storage::FileArrayCallback _fileArrayCallback;
-	Common::String _remoteDirectoryPath, _localDirectoryPath;
+	Common::String _remoteDirectoryPath;
+	Common::Path _localDirectoryPath;
 	bool _recursive;
 	Common::Array<StorageFile> _pendingFiles, _failedFiles;
 	StorageFile _currentFile;
@@ -42,18 +42,18 @@ class FolderDownloadRequest: public Networking::Request, public GUI::CommandSend
 	uint64 _downloadedBytes, _totalBytes, _wasDownloadedBytes, _currentDownloadSpeed;
 
 	void start();
-	void directoryListedCallback(Storage::ListDirectoryResponse response);
-	void directoryListedErrorCallback(Networking::ErrorResponse error);
-	void fileDownloadedCallback(Storage::BoolResponse response);
-	void fileDownloadedErrorCallback(Networking::ErrorResponse error);
+	void directoryListedCallback(const Storage::ListDirectoryResponse &response);
+	void directoryListedErrorCallback(const Networking::ErrorResponse &error);
+	void fileDownloadedCallback(const Storage::BoolResponse &response);
+	void fileDownloadedErrorCallback(const Networking::ErrorResponse &error);
 	void downloadNextFile();
 	void finishDownload(Common::Array<StorageFile> &files);
 public:
-	FolderDownloadRequest(Storage *storage, Storage::FileArrayCallback callback, Networking::ErrorCallback ecb, Common::String remoteDirectoryPath, Common::String localDirectoryPath, bool recursive);
-	virtual ~FolderDownloadRequest();
+	FolderDownloadRequest(Storage *storage, Storage::FileArrayCallback callback, Networking::ErrorCallback ecb, const Common::String &remoteDirectoryPath, const Common::Path &localDirectoryPath, bool recursive);
+	~FolderDownloadRequest() override;
 
-	virtual void handle();
-	virtual void restart();
+	void handle() override;
+	void restart() override;
 
 	/** Returns a number in range [0, 1], where 1 is "complete". */
 	double getProgress() const;
@@ -71,7 +71,7 @@ public:
 	Common::String getRemotePath() const { return _remoteDirectoryPath; }
 
 	/** Returns local directory path. */
-	Common::String getLocalPath() const { return _localDirectoryPath; }
+	Common::Path getLocalPath() const { return _localDirectoryPath; }
 };
 
 } // End of namespace Cloud

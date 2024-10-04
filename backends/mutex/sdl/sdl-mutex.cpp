@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,21 +26,23 @@
 #include "backends/mutex/sdl/sdl-mutex.h"
 #include "backends/platform/sdl/sdl-sys.h"
 
+/**
+ * SDL mutex manager
+ */
+class SdlMutexInternal final : public Common::MutexInternal {
+public:
+	SdlMutexInternal() { _mutex = SDL_CreateMutex(); }
+	~SdlMutexInternal() override { SDL_DestroyMutex(_mutex); }
 
-OSystem::MutexRef SdlMutexManager::createMutex() {
-	return (OSystem::MutexRef) SDL_CreateMutex();
-}
+	bool lock() override { return (SDL_mutexP(_mutex) == 0); }
+	bool unlock() override { return (SDL_mutexV(_mutex) == 0); }
 
-void SdlMutexManager::lockMutex(OSystem::MutexRef mutex) {
-	SDL_mutexP((SDL_mutex *)mutex);
-}
+private:
+	SDL_mutex *_mutex;
+};
 
-void SdlMutexManager::unlockMutex(OSystem::MutexRef mutex) {
-	SDL_mutexV((SDL_mutex *)mutex);
-}
-
-void SdlMutexManager::deleteMutex(OSystem::MutexRef mutex) {
-	SDL_DestroyMutex((SDL_mutex *)mutex);
+Common::MutexInternal *createSdlMutexInternal() {
+	return new SdlMutexInternal();
 }
 
 #endif

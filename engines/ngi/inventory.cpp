@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@
 namespace NGI {
 
 bool Inventory::load(MfcArchive &file) {
-	debugC(5, kDebugLoading | kDebugInventory, "Inventory::load()");
+	debugC(5, kDebugLoading, "Inventory::load()");
 
 	_sceneId = file.readUint16LE();
 	int numInvs = file.readUint32LE();
@@ -78,8 +77,8 @@ bool Inventory::setItemFlags(int itemId, int flags) {
 Inventory2::Inventory2() {
 	_selectedId = -1;
 	_field_48 = -1;
-	_scene = 0;
-	_picture = 0;
+	_scene = nullptr;
+	_picture = nullptr;
 	_isInventoryOut = false;
 	_isLocked = 0;
 	_topOffset = -65;
@@ -443,7 +442,7 @@ bool Inventory2::unselectItem(bool flag) {
 			_inventoryIcons[i].isSelected = false;
 	}
 
-	g_nmi->getGameLoaderInputController()->setCursorItemPicture(0);
+	g_nmi->getGameLoaderInputController()->setCursorItemPicture(nullptr);
 
 	return true;
 }

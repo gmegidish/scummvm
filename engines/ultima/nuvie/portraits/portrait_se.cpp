@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@ namespace Ultima {
 namespace Nuvie {
 
 bool PortraitSE::init() {
-	Std::string filename;
+	Common::Path filename;
 
 	avatar_portrait_num = 0;
 
@@ -47,7 +46,7 @@ bool PortraitSE::init() {
 
 	config_get_path(config, "faces.lzc", filename);
 	if (faces.open(filename, 4) == false) {
-		ConsoleAddError("Opening " + filename);
+		ConsoleAddError("Opening " + filename.toString());
 		return false;
 	}
 
@@ -65,10 +64,10 @@ bool PortraitSE::load(NuvieIO *objlist) {
 	return true;
 }
 
-uint8 PortraitSE::get_portrait_num(Actor *actor) {
+uint8 PortraitSE::get_portrait_num(Actor *actor) const {
 	uint8 num;
 
-	if (actor == NULL)
+	if (actor == nullptr)
 		return NO_PORTRAIT_FOUND;
 
 	num = actor->get_actor_num();
@@ -79,7 +78,7 @@ uint8 PortraitSE::get_portrait_num(Actor *actor) {
 U6Shape *PortraitSE::get_background_shape(Actor *actor) {
 	U6Lib_n file;
 	U6Shape *bg = new U6Shape();
-	Std::string filename;
+	Common::Path filename;
 	config_get_path(config, "bkgrnd.lzc", filename);
 	file.open(filename, 4, NUVIE_GAME_MD);
 	unsigned char *temp_buf = file.get_item(get_background_shape_num(actor));
@@ -89,7 +88,7 @@ U6Shape *PortraitSE::get_background_shape(Actor *actor) {
 	return bg;
 }
 
-uint8 PortraitSE::get_background_shape_num(Actor *actor) {
+uint8 PortraitSE::get_background_shape_num(Actor *actor) const {
 	const struct {
 		uint16 x;
 		uint16 y;
@@ -157,13 +156,13 @@ uint8 PortraitSE::get_background_shape_num(Actor *actor) {
 unsigned char *PortraitSE::get_portrait_data(Actor *actor) {
 	uint8 num = get_portrait_num(actor);
 	if (num == NO_PORTRAIT_FOUND)
-		return NULL;
+		return nullptr;
 
 	U6Shape *bg_shp = get_background_shape(actor);
 
 	unsigned char *temp_buf = faces.get_item(num);
 	if (!temp_buf)
-		return NULL;
+		return nullptr;
 	U6Shape *p_shp = new U6Shape();
 	p_shp->load(temp_buf + 8);
 	free(temp_buf);

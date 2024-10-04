@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Palette Fader and Flasher processes.
  */
@@ -49,9 +48,12 @@ struct FADE {
  */
 static COLORREF ScaleColor(COLORREF color, uint32 colorMult)	{
 	// apply multiplier to RGB components
-	uint32 red   = ((TINSEL_GetRValue(color) * colorMult) << 8) >> 24;
-	uint32 green = ((TINSEL_GetGValue(color) * colorMult) << 8) >> 24;
-	uint32 blue  = ((TINSEL_GetBValue(color) * colorMult) << 8) >> 24;
+	byte r = (byte)(color & 0xFF);
+	byte g = (byte)((color >> 8) & 0xFF);
+	byte b = (byte)((color >> 16) & 0xFF);
+	uint32 red   = ((r * colorMult) << 8) >> 24;
+	uint32 green = ((g * colorMult) << 8) >> 24;
+	uint32 blue  = ((b * colorMult) << 8) >> 24;
 
 	// return new color
 	return TINSEL_RGB(red, green, blue);
@@ -68,7 +70,7 @@ static COLORREF ScaleColor(COLORREF color, uint32 colorMult)	{
  */
 static void FadePalette(COLORREF *pNew, COLORREF *pOrig, int numColors, uint32 mult) {
 	for (int i = 0; i < numColors; i++, pNew++, pOrig++) {
-		if (!TinselV2)
+		if (TinselVersion <= 1)
 			// apply multiplier to RGB components
 			*pNew = ScaleColor(*pOrig, mult);
 		else if (i == (TalkColor() - 1)) {
@@ -101,34 +103,36 @@ static void FadeProcess(CORO_PARAM, const void *param) {
 
 	CORO_BEGIN_CODE(_ctx);
 
-	if (TinselV2)
+	if (TinselVersion >= 2)
 		// Note that this palette is being faded
 		FadingPalette(pFade->pPalQ, true);
 
 	// get pointer to palette - reduce pointer indirection a bit
-	_ctx->pPalette = (PALETTE *)_vm->_handle->LockMem(pFade->pPalQ->hPal);
+	_ctx->pPalette = _vm->_handle->GetPalette(pFade->pPalQ->hPal);
 
 	for (_ctx->pColMult = pFade->pColorMultTable; *_ctx->pColMult >= 0; _ctx->pColMult++) {
 		// go through all multipliers in table - until a negative entry
 
 		// fade palette using next multiplier
-		if (TinselV2)
+		if (TinselVersion >= 2)
 			FadePalette(_ctx->fadeRGB, pFade->pPalQ->palRGB,
 				pFade->pPalQ->numColors, (uint32) *_ctx->pColMult);
 		else
 			FadePalette(_ctx->fadeRGB, _ctx->pPalette->palRGB,
-				FROM_32(_ctx->pPalette->numColors), (uint32) *_ctx->pColMult);
+				_ctx->pPalette->numColors, (uint32) *_ctx->pColMult);
 
 		// send new palette to video DAC
-		UpdateDACqueue(pFade->pPalQ->posInDAC, FROM_32(_ctx->pPalette->numColors), _ctx->fadeRGB);
+		UpdateDACqueue(pFade->pPalQ->posInDAC, _ctx->pPalette->numColors, _ctx->fadeRGB);
 
 		// allow time for video DAC to be updated
 		CORO_SLEEP(1);
 	}
 
-	if (TinselV2)
+	if (TinselVersion >= 2)
 		// Note that this palette is being faded
 		FadingPalette(pFade->pPalQ, false);
+
+	delete _ctx->pPalette;
 
 	CORO_END_CODE;
 }
@@ -141,7 +145,7 @@ static void FadeProcess(CORO_PARAM, const void *param) {
 static void Fader(const long multTable[]) {
 	PALQ *pPal;	// palette manager iterator
 
-	if (TinselV2) {
+	if (TinselVersion >= 2) {
 		// The is only ever one cuncurrent fade
 		// But this could be a fade out and the fade in is still going!
 		CoroScheduler.killMatchingProcess(PID_FADER);

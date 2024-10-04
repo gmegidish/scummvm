@@ -14,6 +14,7 @@ MODULE_OBJS := \
 	menu/menuoptions.o \
 	\
 	parser/anim.o \
+	parser/anim3ds.o \
 	parser/blocklibrary.o \
 	parser/body.o \
 	parser/entity.o \
@@ -28,25 +29,35 @@ MODULE_OBJS := \
 	\
 	scene/actor.o \
 	scene/animations.o \
+	scene/buggy.o \
 	scene/collision.o \
+	scene/dart.o \
 	scene/extra.o \
 	scene/gamestate.o \
 	scene/grid.o \
 	scene/movements.o \
+	scene/rain.o \
 	scene/scene.o \
+	scene/wagon.o \
 	\
+	script/script_life.o \
+	script/script_move.o \
 	script/script_life_v1.o \
+	script/script_life_v2.o \
 	script/script_move_v1.o \
+	script/script_move_v2.o \
 	\
 	resources/hqr.o \
 	resources/lzss.o \
 	resources/resources.o \
 	\
 	movies.o \
-	holomap.o \
+	holomap_v1.o \
+	holomap_v2.o \
 	input.o \
 	metaengine.o \
 	shared.o \
+	slideshow.o \
 	text.o \
 	twine.o
 

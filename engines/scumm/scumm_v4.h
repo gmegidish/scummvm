@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,29 +31,21 @@ namespace Scumm {
  */
 class ScummEngine_v4 : public ScummEngine_v5 {
 	friend class ScummEngine_v5;
-public:
-
-	/**
-	 * Prepared savegame used by the original save/load dialog.
-	 * Must be valid as long as the savescreen is active. As we are not
-	 * notified when the savescreen is closed, memory is only freed on a game
-	 * reset, at the destruction of the engine or when the original save/load
-	 * dialog is entered the next time.
-	 */
-	Common::SeekableReadStream *_savePreparedSavegame;
-
-	void prepareSavegame();
-	bool savePreparedSavegame(int slot, char *desc);
 
 public:
 	ScummEngine_v4(OSystem *syst, const DetectorResult &dr);
 
 	void resetScumm() override;
 
-protected:
-	void setupOpcodes() override;
+	// Used by MacGui
+	void clearSeriesIQPoints();
+	void updateIQPoints();
 
-	void scummLoop_handleSaveLoad() override;
+protected:
+	const byte _GUIPalette[13]    = {0x00, 0x01, 0x0B, 0x03, 0x00, 0x0B, 0x0B, 0x03, 0x01, 0x00, 0x01, 0x0B, 0x09};
+	const byte _GUIPaletteCGA[13] = {0x00, 0x03, 0x0B, 0x03, 0x00, 0x0B, 0x0B, 0x0F, 0x03, 0x00, 0x0B, 0x0B, 0x05};
+
+	void setupOpcodes() override;
 
 	int readResTypeList(ResType type) override;
 	void readIndexFile() override;
@@ -67,9 +58,11 @@ protected:
 
 	void saveVars();
 	void loadVars();
-	void saveIQPoints();
+	void saveIQPoints(const byte *ptr, int size);
 	void loadIQPoints(byte *ptr, int size);
-	void updateIQPoints();
+
+	int getBannerColor(int bannerId) override;
+	void setUpMainMenuControls() override;
 
 	/* Version 4 script opcodes */
 	void o4_ifState();

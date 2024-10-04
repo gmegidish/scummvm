@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,7 +56,7 @@ int ip_back, parse_ip;
 static int vnum;  /* Verb number from synonym scan */
 
 /* Pointers to negative-terminated arrays of possible nouns */
-static parse_rec *lactor = NULL, *lobj = NULL, *lnoun = NULL;
+static parse_rec *lactor = nullptr, *lobj = nullptr, *lnoun = nullptr;
 
 static int ambig_flag = 0;
 /* Was last input ambiguous? (so player could be entering
@@ -81,7 +80,7 @@ int all_err_msg[] = {73, 83, 113, 103, /* open, close, lock, unlock: 15 - 18 */
 static void freeall(void) {
 	rfree(lnoun);
 	rfree(lobj);
-	lnoun = lobj = NULL;
+	lnoun = lobj = nullptr;
 }
 
 
@@ -113,17 +112,17 @@ static void print_nlist(parse_rec *n) {
 	for (c = 0; n->info != D_END && c < 20; n++, c++)
 		if (n->info == D_AND) writestr(" AND ");
 		else if (n->info == D_NUM) { /* Number entered */
-			sprintf(buff, "#%ld(%d); ", n->num, n->obj);
+			Common::sprintf_s(buff, "#%ld(%d); ", n->num, n->obj);
 			writestr(buff);
 		} else if (n->obj < 0) {
 			writestr(dict[-(n->obj)]);
-			sprintf(buff, "(%d); ", n->obj);
+			Common::sprintf_s(buff, "(%d); ", n->obj);
 			writestr(buff);
 		} else {
 			s = objname(n->obj);
 			writestr(s);
 			rfree(s);
-			sprintf(buff, "(%d) ['%s %s']; ", n->obj, dict[n->adj], dict[n->noun]);
+			Common::sprintf_s(buff, "(%d) ['%s %s']; ", n->obj, dict[n->adj], dict[n->noun]);
 			writestr(buff);
 		}
 	if (n->info != D_END) writestr("///");
@@ -242,6 +241,8 @@ static int comb_verb(void)
 static rbool orig_agt_verb(word w) {
 	int i;
 	if (aver <= AGT10 && w == ext_code[wg]) return 0; /* AGT 1.0 didn't have AGAIN */
+	/* SOGGY overrides SCREAM with a dummy_verb, earlier versions too? */
+	if (aver <= AGTCOS && w == ext_code[wscream]) return 0;
 	for (i = 0; old_agt_verb[i] != -1 && old_agt_verb[i] != w; i++);
 	return (old_agt_verb[i] == w);
 }
@@ -546,7 +547,7 @@ static rbool ident_objrec(parse_rec *p1, parse_rec *p2) {
 static parse_rec *fix_actor(parse_rec *alist) {
 	int i, cnt;
 
-	assert(alist != NULL);
+	assert(alist != nullptr);
 	if (alist[0].info == D_ALL) { /* ALL?! */
 		rfree(alist);
 		return new_list();
@@ -644,7 +645,7 @@ static int score_disambig(parse_rec *rec, int ambig_type)
 	if (ambig_type == 1) /* ACTOR */
 		return DISAMBIG_SUCC;
 	else if (ambig_type == 2) /* NOUN */
-		return check_obj(lactor, vnum, rec, prep, NULL);
+		return check_obj(lactor, vnum, rec, prep, nullptr);
 	else if (ambig_type == 3) /* IOBJ */
 		return check_obj(lactor, vnum, lnoun, prep, rec);
 	else fatal("Invalid ambig_type!");
@@ -674,7 +675,7 @@ static parse_rec *expand_all(parse_rec *lnoun_) {
 	creature[i].scratch = 0;
 	objloop(i)
 	if (((verbflag[vnum]&VERB_GLOBAL) != 0 || visible(i))
-	        && (lnoun_ == NULL || !scan_andrec(i, lnoun_))) {
+	        && (lnoun_ == nullptr || !scan_andrec(i, lnoun_))) {
 		temp_obj.obj = i;
 		if (score_disambig(&temp_obj, 2) >= 500) {
 			if (tnoun(i)) noun[i - first_noun].scratch = 1;
@@ -921,7 +922,7 @@ static int disambig_phrase(parse_rec **ilist, parse_rec *truenoun, int tn_ofs,
 					s = (char *)objname(list[i].obj);
 				else {
 					s = (char *)rmalloc(30 * sizeof(char));
-					sprintf(s, "%ld", list[i].num);
+					Common::sprintf_s(s, 30, "%ld", list[i].num);
 				}
 				writestr(s);
 				rfree(s);
@@ -950,7 +951,7 @@ static parse_rec *disambig(int ambig_set, parse_rec *list, parse_rec *truenoun)
 /* ambig_set = 1 for actor, 2 for noun, 3 for object */
 {
 	if (ambig_flag == ambig_set || ambig_flag == 0) { /* restart where we left off...*/
-		if (truenoun == NULL || truenoun[0].info == D_END) disambig_ofs = -1;
+		if (truenoun == nullptr || truenoun[0].info == D_END) disambig_ofs = -1;
 		disambig_ofs = disambig_phrase(&list, truenoun, disambig_ofs, ambig_set);
 		if (disambig_ofs == -1) ambig_flag = 0; /* Success */
 		else if (disambig_ofs == -2) ambig_flag = -1; /* Error: elim all choices */
@@ -1053,7 +1054,7 @@ static parse_rec *parse_a_noun(void)
 	/* If ip==oip is 0 (meaning no matches so far) or ip==oip+1
 	   (meaning we have a one-word match) then we need to check for
 	   flag nouns, global nouns, ALL, DOOR, pronouns, etc.
-	   and add them to the list if neccessary */
+	   and add them to the list if necessary */
 
 	if (ip == oip || ip == oip + 1) {
 
@@ -1085,7 +1086,7 @@ static parse_rec *parse_a_noun(void)
 			nlist = add_rec(nlist, -input[oip], numval, D_NUM);
 
 		/* Next handle the flag nouns and global nouns */
-		if (globalnoun != NULL)
+		if (globalnoun != nullptr)
 			for (i = 0; i < numglobal; i++)
 				if (input[oip] == globalnoun[i])
 					nlist = add_rec(nlist, -input[oip], 0, D_GLOBAL);
@@ -1191,7 +1192,7 @@ static int parse_cmd(void)
 	/* First go looking for an actor. */
 	ap = ip;
 	new_actor = 0;
-	if (lactor == NULL) {
+	if (lactor == nullptr) {
 		new_actor = 1;
 		lactor = parse_noun(0, 1);
 		/* Check that actor is a creature. */
@@ -1231,7 +1232,7 @@ TELLHack:  /* This is used to restart the noun/prep/object scan
 		return parseerr(230, "I don't understand '$word$' as a verb.", ip);
 
 	/* Now we need to find noun, obj, and prep (if they all exist) */
-	/* standard grammer:  verb noun prep obj */
+	/* standard grammar:  verb noun prep obj */
 	prep = 0;
 	np = ++ip; /* ip now points just _after_ verb */
 	lnoun = parse_noun((verbflag[vnum] & VERB_MULTI) != 0, 0);
@@ -1252,7 +1253,7 @@ TELLHack:  /* This is used to restart the noun/prep/object scan
 		rfree(lactor);
 		rfree(lobj);
 		lactor = lnoun;
-		lnoun = NULL;
+		lnoun = nullptr;
 		vp = ip; /* Replace TELL with new verb */
 		vnum = id_verb(); /* May increment ip (ip points att last word in verb) */
 		goto TELLHack;  /* Go back up and reparse the sentence from
@@ -1327,7 +1328,7 @@ TELLHack:  /* This is used to restart the noun/prep/object scan
 
 
 static void v_undo(void) {
-	if (undo_state == NULL) {
+	if (undo_state == nullptr) {
 		writeln("There is insufficiant memory to support UNDO");
 		ip = -1;
 		return;
@@ -1356,7 +1357,7 @@ rbool parse(void)
 	int fixword;
 	int start_ip;
 
-	currnoun = NULL;
+	currnoun = nullptr;
 	start_ip = ip;
 	/* First, we need to see if someone has issued an OOPS command.
 	   OOPS commands are always assumed to stand alone. (i.e. no
@@ -1388,7 +1389,7 @@ rbool parse(void)
 			ambig_flag = 0;
 			rfree(currnoun);
 			freeall();
-			currnoun = NULL;
+			currnoun = nullptr;
 		}
 	}
 
@@ -1432,7 +1433,7 @@ rbool parse(void)
 	/* We got rid of too much */
 	rfree(currnoun);
 
-	/* Next, expand ALL if neccessary */
+	/* Next, expand ALL if necessary */
 	if (!PURE_ALL && lnoun[0].info == D_ALL) {
 		lnoun = expand_all(lnoun);
 		if (lnoun[0].info == D_END) { /* ALL expands to nothing */
@@ -1450,7 +1451,7 @@ rbool parse(void)
 	   we save the undo state before executing if this is the first command
 	   in a sequence. (That is, UNDO undoes whole lines of commands,
 	   not just individual commands) */
-	if (start_ip == 0 && undo_state != NULL) {
+	if (start_ip == 0 && undo_state != nullptr) {
 		undo_state = getstate(undo_state);
 		can_undo = 1;
 	}
@@ -1465,7 +1466,7 @@ rbool parse(void)
 
 	/* Now we clear lnoun and lobj; lactor is handled elsewhere since
 	   we might have FRED, GET ROCK THEN GO NORTH */
-	lnoun = lobj = NULL;
+	lnoun = lobj = nullptr;
 
 	/* Finally check for THENs */
 
@@ -1495,8 +1496,8 @@ void menu_cmd(void) {
 	int nm_size, nm_width; /* Size and width of noun menu */
 
 
-	nounval = NULL;
-	nounmenu = NULL;
+	nounval = nullptr;
+	nounmenu = nullptr;
 	/* Get verb+prep */
 	choice = agt_menu("", vm_size, vm_width, verbmenu);
 	if (choice == -1 || doing_restore) return;
@@ -1590,7 +1591,7 @@ void menu_cmd(void) {
 		return;
 	}
 
-	if (undo_state != NULL) {
+	if (undo_state != nullptr) {
 		undo_state = getstate(undo_state);
 		can_undo = 1;
 	}
@@ -1599,11 +1600,11 @@ void menu_cmd(void) {
 	tmpobj(&actrec);
 	actrec.obj = 0;
 	exec(&actrec, vnum_, lnoun, prep_, &mobj);
-	lnoun = NULL; /* exec() is responsible for freeing lnoun */
+	lnoun = nullptr; /* exec() is responsible for freeing lnoun */
 }
 
 
-/* Grammer structures:
+/* Grammar structures:
  sverb, dverb                     (n,s,e,w,...,q,l,....)
  overb noun              (close,examine,read,eat,drink,pull,light,ext)
  averb noun|ALL          (drop,get,wear,remove)

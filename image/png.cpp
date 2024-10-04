@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,8 @@ PNGDecoder::PNGDecoder() :
 		_paletteColorCount(0),
 		_skipSignature(false),
 		_keepTransparencyPaletted(false),
-		_transparentColor(-1) {
+		_hasTransparentColor(false),
+		_transparentColor(0) {
 }
 
 PNGDecoder::~PNGDecoder() {
@@ -61,6 +61,7 @@ void PNGDecoder::destroy() {
 	}
 	delete[] _palette;
 	_palette = NULL;
+	_hasTransparentColor = false;
 }
 
 Graphics::PixelFormat PNGDecoder::getByteOrderRgbaPixelFormat(bool isAlpha) const {
@@ -191,6 +192,7 @@ bool PNGDecoder::loadStream(Common::SeekableReadStream &stream) {
 			if (numTrans == 1) {
 				// For a single transparency color, the alpha should be fully transparent
 				assert(*trans == 0);
+				_hasTransparentColor = true;
 				_transparentColor = 0;
 			} else {
 				// Multiple alphas are being specified for the palette, so we can't use
@@ -269,7 +271,7 @@ bool PNGDecoder::loadStream(Common::SeekableReadStream &stream) {
 			png_read_row(pngPtr, (png_bytep)_outputSurface->getBasePtr(0, i), NULL);
 		}
 	} else {
-		// PNGs with interlacing require us to allocate an auxillary
+		// PNGs with interlacing require us to allocate an auxiliary
 		// buffer with pointers to all row starts.
 
 		// Allocate row pointer buffer

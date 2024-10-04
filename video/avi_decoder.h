@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,6 +58,7 @@ namespace Video {
  *  - sword1
  *  - sword2
  *  - titanic
+ *  - vcruise
  *  - zvision
  */
 class AVIDecoder : public VideoDecoder {
@@ -202,7 +202,7 @@ protected:
 
 	class AVIVideoTrack : public FixedRateVideoTrack {
 	public:
-		AVIVideoTrack(int frameCount, const AVIStreamHeader &streamHeader, const BitmapInfoHeader &bitmapInfoHeader, byte *initialPalette = 0);
+		AVIVideoTrack(int frameCount, const AVIStreamHeader &streamHeader, const BitmapInfoHeader &bitmapInfoHeader, byte *initialPalette, Image::CodecAccuracy accuracy);
 		~AVIVideoTrack();
 
 		void decodeFrame(Common::SeekableReadStream *stream);
@@ -212,6 +212,8 @@ protected:
 		uint16 getHeight() const { return _bmInfo.height; }
 		uint16 getBitCount() const { return _bmInfo.bitCount; }
 		Graphics::PixelFormat getPixelFormat() const;
+		bool setOutputPixelFormat(const Graphics::PixelFormat &format);
+		void setCodecAccuracy(Image::CodecAccuracy accuracy);
 		int getCurFrame() const { return _curFrame; }
 		int getFrameCount() const { return _frameCount; }
 		Common::String &getName() { return _vidsHeader.name; }
@@ -276,6 +278,8 @@ protected:
 
 		Image::Codec *_videoCodec;
 		const Graphics::Surface *_lastFrame;
+		Image::CodecAccuracy _accuracy;
+
 		Image::Codec *createCodec();
 	};
 
@@ -352,6 +356,7 @@ protected:
 
 	Common::Array<TrackStatus> _videoTracks, _audioTracks;
 	TrackStatus _transparencyTrack;
+
 public:
 	virtual AVIAudioTrack *createAudioTrack(AVIStreamHeader sHeader, PCMWaveFormat wvInfo);
 

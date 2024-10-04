@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@ SoundManager::SoundManager() {
 
 	_descs = disk.getEntry(SOUND_DESC_RESOURCE_ID);
 	_numDescs = _descs->size() / sizeof(SoundDescResource);
-	_soundData = NULL;
+	_soundData = nullptr;
 	_paused = false;
 
 	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_MIDI | MDT_ADLIB | MDT_PREFER_MT32);
@@ -72,7 +71,7 @@ SoundManager::SoundManager() {
 
 SoundManager::~SoundManager() {
 	if (_driver)
-		_driver->setTimerCallback(this, NULL);
+		_driver->setTimerCallback(this, nullptr);
 
 	removeSounds();
 	_activeSounds.clear();
@@ -88,7 +87,7 @@ SoundManager::~SoundManager() {
 		_driver->stopAllNotes();
 		_driver->close();
 		delete _driver;
-		_driver = NULL;
+		_driver = nullptr;
 	}
 }
 
@@ -115,7 +114,7 @@ void SoundManager::loadFromStream(Common::ReadStream *stream) {
 			SoundDescResource &rec = soundDescs()[soundIndex];
 			if ((rec.flags & SF_RESTORE) != 0)
 				// Requeue the sound for playing
-				addSound(soundIndex, false);
+				addSound2(soundIndex);
 		}
 	}
 }
@@ -127,7 +126,7 @@ void SoundManager::loadSection(uint16 sectionId) {
 
 	if (_soundData) {
 		delete _soundData;
-		_driver->setTimerCallback(this, NULL);
+		_driver->setTimerCallback(this, nullptr);
 	}
 
 	_soundData = Disk::getReference().getEntry(sectionId);
@@ -137,7 +136,7 @@ void SoundManager::loadSection(uint16 sectionId) {
 }
 
 bool SoundManager::initCustomTimbres(bool canAbort) {
-	if (!_isRoland || !_nativeMT32 || _mt32Driver == NULL)
+	if (!_isRoland || !_nativeMT32 || _mt32Driver == nullptr)
 		return false;
 
 	if (!_soundData)
@@ -212,7 +211,8 @@ bool SoundManager::initCustomTimbres(bool canAbort) {
 
 		if (events.interruptableDelay(10)) {
 			if (LureEngine::getReference().shouldQuit() ||
-					(canAbort && events.type() == Common::EVENT_KEYDOWN && events.event().kbd.keycode == 27)) {
+					(canAbort && events.type() == Common::EVENT_CUSTOM_ENGINE_ACTION_START &&
+						events.event().customType == kActionEscape)) {
 				// User has quit the game or pressed Escape.
 				_mt32Driver->clearSysExQueue();
 				result = true;
@@ -316,7 +316,7 @@ void SoundManager::addSound2(uint8 soundIndex) {
 	} else {
 		SoundDescResource &descEntry = soundDescs()[soundIndex];
 		SoundDescResource *rec = findSound(descEntry.soundNumber);
-		if (rec == NULL)
+		if (rec == nullptr)
 			// Sound isn't active, so go and add it
 			addSound(soundIndex, false);
 	}
@@ -378,7 +378,7 @@ SoundDescResource *SoundManager::findSound(uint8 soundNumber) {
 
 	// Signal that sound wasn't found
 	debugC(ERROR_INTERMEDIATE, kLureDebugSounds, "SoundManager::findSound - sound not found");
-	return NULL;
+	return nullptr;
 }
 
 void SoundManager::tidySounds() {
@@ -440,8 +440,8 @@ bool SoundManager::fadeOut() {
 	_driver->startFade(3000, 0);
 	while (_driver->isFading()) {
 		if (events.interruptableDelay(100)) {
-			result = ((events.type() == Common::EVENT_KEYDOWN && events.event().kbd.keycode == 27) ||
-				LureEngine::getReference().shouldQuit());
+			result = ((events.type() == Common::EVENT_CUSTOM_ENGINE_ACTION_START && events.event().customType == kActionEscape)
+						|| LureEngine::getReference().shouldQuit());
 			_driver->abortFade();
 			break;
 		}
@@ -500,7 +500,7 @@ void SoundManager::musicInterface_Play(uint8 soundNumber, bool isMusic, uint8 nu
 	if (soundNum > _soundsTotal)
 		error("Invalid sound index %d requested", soundNum);
 
-	if (_driver == NULL)
+	if (_driver == nullptr)
 		// Only play sounds if a sound driver is active
 		return;
 
@@ -543,13 +543,14 @@ void SoundManager::musicInterface_Play(uint8 soundNumber, bool isMusic, uint8 nu
 			}
 		}
 	}
-	if (source == -1)
+	if (source == -1) {
 		warning("Insufficient sources to play sound %i", soundNumber);
-	else
+	} else {
 		_sourcesInUse[source] = true;
-	MidiMusic *sound = new MidiMusic(_driver, soundNum, isMusic,
-		loop, source, numChannels, soundStart, dataSize, volume);
-	_playingSounds.push_back(MusicList::value_type(sound));
+		MidiMusic *sound = new MidiMusic(_driver, soundNum, isMusic,
+			loop, source, numChannels, soundStart, dataSize, volume);
+		_playingSounds.push_back(MusicList::value_type(sound));
+	}
 	_soundMutex.unlock();
 }
 
@@ -663,7 +664,7 @@ void SoundManager::musicInterface_ContinuePlaying() {
  * off again because of a bug. Also, TrashReverb being triggered by doors opening
  * offscreen would be a bug. There is a third problem: the door opening sound lasts
  * much longer than 40 ms, so turning reverb back on 40 ms after starting the door
- * opening sound still results in a noticable reverb. All in all this explanation
+ * opening sound still results in a noticeable reverb. All in all this explanation
  * is not entirely convicing.
  * Another explanation would be that reverb was only meant to be on for the first
  * part of the game and should be turned off from the town onwards (this is what
@@ -763,7 +764,7 @@ MidiMusic::MidiMusic(MidiDriver_Multisource *driver, uint8 soundNum, bool isMus,
 	// Check whether the music data is compressed - if so, decompress it for the duration
 	// of playing the sound
 
-	_decompressedSound = NULL;
+	_decompressedSound = nullptr;
 	if ((*_soundData == 'C') || (*_soundData == 'c')) {
 		uint32 packedSize = size - 0x201;
 		_decompressedSound = Memory::allocate(packedSize * 2);
@@ -802,8 +803,13 @@ void MidiMusic::setVolume(int volume) {
 
 void MidiMusic::playMusic() {
 	debugC(ERROR_DETAILED, kLureDebugSounds, "MidiMusic::PlayMusic playing sound %d", _soundNumber);
-	if (Sound.isRoland() && !_isMusic)
-		_mt32Driver->allocateSourceChannels(_source, _numChannels);
+	if (Sound.isRoland() && !_isMusic) {
+		bool result = _mt32Driver->allocateSourceChannels(_source, _numChannels);
+		if (!result) {
+			stopMusic();
+			return;
+		}
+	}
 	_parser->loadMusic(_soundData, _soundSize);
 	_parser->setTrack(0);
 	_isPlaying = true;
@@ -920,12 +926,13 @@ void MidiDriver_ADLIB_Lure::channelAftertouch(uint8 channel, uint8 pressure, uin
 	_activeNotesMutex.lock();
 
 	// Find the active note on the specified channel.
-	for (int i = 0; i < determineNumOplChannels(); i++) {
-		if (_activeNotes[i].noteActive && _activeNotes[i].source == source &&
-				_activeNotes[i].channel == channel) {
+	for (int i = 0; i < _numMelodicChannels; i++) {
+		uint8 oplChannel = _melodicChannels[i];
+		if (_activeNotes[oplChannel].noteActive && _activeNotes[oplChannel].source == source &&
+				_activeNotes[oplChannel].channel == channel) {
 			// Set the velocity of the note and recalculate and write the
 			// volume.
-			_activeNotes[i].velocity = pressure;
+			_activeNotes[oplChannel].velocity = pressure;
 
 			recalculateVolumes(channel, source);
 
@@ -982,7 +989,7 @@ void MidiDriver_ADLIB_Lure::metaEvent(int8 source, byte type, byte *data, uint16
 }
 
 MidiDriver_ADLIB_Lure::InstrumentInfo MidiDriver_ADLIB_Lure::determineInstrument(uint8 channel, uint8 source, uint8 note) {
-	InstrumentInfo instrument = { 0, 0, 0 };
+	InstrumentInfo instrument = { 0, nullptr, 0 };
 
 	// Lure does not use a rhythm channel.
 	instrument.oplNote = note;

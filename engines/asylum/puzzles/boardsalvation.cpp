@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -107,7 +106,57 @@ static const PuzzleBoard::PuzzleData puzzleSalvationData[] = {
 		true,
 		4, 0,
 		"D U   S A L U T "
-	}
+	},
+	// Hebrew
+	{
+		31,
+		kGameFlag281,
+		431,
+		3,
+		{{0, false}, {1, false}, {2, false}},
+		9,
+		{
+			{'\xE5', 585,  58},
+			{'\xE4', 218,  58},
+			{'\xEC', 134,  87},
+			{'\xE4', 465, 138},
+			{'\xE0',  64, 154},
+			{'\xF2', 523, 203},
+			{'\xE9', 511, 219},
+			{'\xF9',  91, 234},
+			{'\0',     0,   0},
+			{'\0',     0,   0},
+			{'\0',     0,   0}
+		},
+		false,
+		12, 0,
+		"\xE4 \xF2 \xE5 \xF9 \xE9 \xE4   \xEC \xE0 "
+	},
+	// Basque
+	{
+		31,
+		kGameFlag281,
+		455,
+		3,
+		{{0, false}, {1, false}, {2, false}},
+		10,
+		{
+			{'B',   49,  56},
+			{'A',  317,  56},
+			{'O',  546,  85},
+			{'L',  267, 122},
+			{'Z',  157, 152},
+			{'R',  264, 184},
+			{'A',  564, 216},
+			{'I',  452, 231},
+			{'S',  251, 247},
+			{'A',  485, 279},
+			{'\0',   0,   0}
+		},
+		false,
+		0, 0,
+		"S A L B A Z I O R A "
+	},
 };
 
 static const uint32 puzzleSalvationSoundResourceIndex[11] = {5, 6, 7, 10, 11, 28, 29, 30, 31, 32, 36};
@@ -154,11 +203,10 @@ bool PuzzleBoardSalvation::mouseLeftDown(const AsylumEvent &) {
 	return true;
 }
 
-bool PuzzleBoardSalvation::mouseRightDown(const AsylumEvent &) {
+bool PuzzleBoardSalvation::exitPuzzle() {
 	if (!stopSound()) {
 		checkANALText();
-		getScreen()->clear();
-		_vm->switchEventHandler(getScene());
+		return PuzzleBoard::exitPuzzle();
 	}
 
 	return true;

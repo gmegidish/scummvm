@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -147,17 +146,17 @@ Intrinsic RemorseIntrinsics[] = {
 	Item::I_setNpcNum, // void Item::I_setSomething068(Item *, int16 something) , see VALUEBOX:ordinal20
 	Item::I_andStatus, // void Intrinsic069(6 bytes)
 	Item::I_move, // void Intrinsic06A(10 bytes)
-	UCMachine::I_true, // Note: This is actualy "is compiled with VIOLENCE=1" (was set to 0 in germany). For now just always say yes.
+	UCMachine::I_true, // Note: This is actually "is compiled with VIOLENCE=1" (was set to 0 in germany). For now just always say yes.
 	Kernel::I_resetRef, // void Intrinsic06C(4 bytes)
 	Item::I_getNpcNum, // based on same coff as 102 (-> variable name in TRIGGER::ordinal21)
 	Item::I_andStatus, // void Intrinsic06E(6 bytes)
 	Item::I_isCompletelyOn,
 	// 0x070
-	Ultima8Engine::I_getUnkCrusaderFlag, // int Intrinsic070(void)
-	Ultima8Engine::I_setUnkCrusaderFlag, // void Intrinsic071(void)
+	Ultima8Engine::I_getCrusaderTeleporting, // int Intrinsic070(void)
+	Ultima8Engine::I_setCrusaderTeleporting, // void Intrinsic071(void)
 	Ultima8Engine::I_setCruStasis,
 	Actor::I_setDead,
-	Ultima8Engine::I_clrUnkCrusaderFlag, // void Intrinsic074(void)
+	Ultima8Engine::I_clrCrusaderTeleporting, // void Intrinsic074(void)
 	Ultima8Engine::I_clrCruStasis,
 	AudioProcess::I_stopSFXCru, // takes Item *, from disasm
 	PaletteFaderProcess::I_fadeToBlack, // void Intrinsic077(void)
@@ -491,11 +490,11 @@ Intrinsic RemorseDemoIntrinsics[] = {
 	Item::I_getNpcNum,              // Intrinsic06F 10a0:0c40
 	// 0x70
 	Item::I_andStatus,              // Intrinsic070 10a0:258b
-	Ultima8Engine::I_getUnkCrusaderFlag, // Intrinsic071 13e8:0e27
-	Ultima8Engine::I_setUnkCrusaderFlag, // Intrinsic072 13e8:0e2b
+	Ultima8Engine::I_getCrusaderTeleporting, // Intrinsic071 13e8:0e27
+	Ultima8Engine::I_setCrusaderTeleporting, // Intrinsic072 13e8:0e2b
 	Ultima8Engine::I_setCruStasis,  // Intrinsic073 13e8:0071
 	Actor::I_setDead,               // Intrinsic074 10e8:2010
-	Ultima8Engine::I_clrUnkCrusaderFlag, // Intrinsic075 13e8:0e21
+	Ultima8Engine::I_clrCrusaderTeleporting, // Intrinsic075 13e8:0e21
 	Ultima8Engine::I_clrCruStasis,  // Intrinsic076 13e8:0077
 	AudioProcess::I_stopSFXCru,     // Intrinsic077 10a0:39cf
 	PaletteFaderProcess::I_fadeToBlack, // Intrinsic078 1440:06e6
@@ -828,11 +827,11 @@ Intrinsic RemorseEsIntrinsics[] = {
 	UCMachine::I_true,              // Intrinsic070 1050:00a1
 	Item::I_getNpcNum,              // Intrinsic071 10a8:0c40
 	Item::I_andStatus,              // Intrinsic072 10a8:258b
-	Ultima8Engine::I_getUnkCrusaderFlag, // Intrinsic073 13e8:0e27
-	Ultima8Engine::I_setUnkCrusaderFlag, // Intrinsic074 13e8:0e2b
+	Ultima8Engine::I_getCrusaderTeleporting, // Intrinsic073 13e8:0e27
+	Ultima8Engine::I_setCrusaderTeleporting, // Intrinsic074 13e8:0e2b
 	Ultima8Engine::I_setCruStasis,  // Intrinsic075 13e8:0071
 	Actor::I_setDead,               // Intrinsic076 10f0:2010
-	Ultima8Engine::I_clrUnkCrusaderFlag, // Intrinsic077 13e8:0e21
+	Ultima8Engine::I_clrCrusaderTeleporting, // Intrinsic077 13e8:0e21
 	Ultima8Engine::I_clrCruStasis,  // Intrinsic078 13e8:0077
 	AudioProcess::I_stopSFXCru,     // Intrinsic079 10a8:39cf
 	PaletteFaderProcess::I_fadeToBlack, // Intrinsic07A 1440:06e6
@@ -1158,11 +1157,11 @@ Intrinsic RemorseFrIntrinsics[] = {
 	Item::I_getNpcNum,              // Intrinsic06F 10a8:0c40
 	// 0x070
 	Item::I_andStatus,              // Intrinsic070 10a8:258b
-	Ultima8Engine::I_getUnkCrusaderFlag, // Intrinsic071 13e8:0e27
-	Ultima8Engine::I_setUnkCrusaderFlag, // Intrinsic072 13e8:0e2b
+	Ultima8Engine::I_getCrusaderTeleporting, // Intrinsic071 13e8:0e27
+	Ultima8Engine::I_setCrusaderTeleporting, // Intrinsic072 13e8:0e2b
 	Ultima8Engine::I_setCruStasis,  // Intrinsic073 13e8:0071
 	Actor::I_setDead,               // Intrinsic074 10f0:2010
-	Ultima8Engine::I_clrUnkCrusaderFlag, // Intrinsic075 13e8:0e21
+	Ultima8Engine::I_clrCrusaderTeleporting, // Intrinsic075 13e8:0e21
 	Ultima8Engine::I_clrCruStasis,  // Intrinsic076 13e8:0077
 	AudioProcess::I_stopSFXCru,     // Intrinsic077 10a8:39cf
 	PaletteFaderProcess::I_fadeToBlack, // Intrinsic078 1440:06e6

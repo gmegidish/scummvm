@@ -96,7 +96,7 @@ namespace DBOPL {
 #endif
 
 
-//How much to substract from the base value for the final attenuation
+//How much to subtract from the base value for the final attenuation
 static const Bit8u KslCreateTable[16] = {
 	//0 will always be be lower than 7 * 8
 	64, 32, 24, 19,
@@ -216,7 +216,7 @@ static inline Bits MakeVolume( Bitu wave, Bitu volume ) {
 #if 0
 	//Check if we overflow the 31 shift limit
 	if ( exp >= 32 ) {
-		LOG_MSG( "WTF %d %d", total, exp );
+		LOG_MSG( "Overflow %d %d", total, exp );
 	}
 #endif
 	return (sig >> exp);
@@ -907,7 +907,7 @@ Channel* Channel::BlockTemplate( Chip* chip, Bit32u samples, Bit32s* output ) {
 	default:
 		break;
 	}
-	//Init the operators with the the current vibrato and tremolo values
+	//Init the operators with the current vibrato and tremolo values
 	Op( 0 )->Prepare( chip );
 	Op( 1 )->Prepare( chip );
 	if ( mode > sm4Start ) {
@@ -1022,7 +1022,7 @@ Channel* Channel::BlockTemplate( Chip* chip, Bit32u samples, Bit32s* output ) {
 	default:
 		break;
 	}
-	return 0;
+	return nullptr;
 }
 
 /*
@@ -1066,7 +1066,7 @@ INLINE Bit32u Chip::ForwardLFO( Bit32u samples ) {
 		lfoCounter &= (LFO_MAX - 1);
 		//Maximum of 7 vibrato value * 4
 		vibratoIndex = ( vibratoIndex + 1 ) & 31;
-		//Clip tremolo to the the table size
+		//Clip tremolo to the table size
 		if ( tremoloIndex + 1 < TREMOLO_TABLE  )
 			++tremoloIndex;
 		else
@@ -1239,9 +1239,7 @@ void Chip::GenerateBlock2( Bitu total, Bit32s* output ) {
 	while ( total > 0 ) {
 		Bit32u samples = ForwardLFO( total );
 		memset(output, 0, sizeof(Bit32s) * samples);
-		int count = 0;
 		for( Channel* ch = chan; ch < chan + 9; ) {
-			count++;
 			ch = (ch->*(ch->synthHandler))( this, samples, output );
 		}
 		total -= samples;
@@ -1253,9 +1251,7 @@ void Chip::GenerateBlock3( Bitu total, Bit32s* output  ) {
 	while ( total > 0 ) {
 		Bit32u samples = ForwardLFO( total );
 		memset(output, 0, sizeof(Bit32s) * samples * 2);
-		int count = 0;
 		for( Channel* ch = chan; ch < chan + 18; ) {
-			count++;
 			ch = (ch->*(ch->synthHandler))( this, samples, output );
 		}
 		total -= samples;
@@ -1480,7 +1476,7 @@ void InitTables( void ) {
 		TremoloTable[TREMOLO_TABLE - 1 - i] = val;
 	}
 	//Create a table with offsets of the channels from the start of the chip
-	DBOPL::Chip* chip = 0;
+	DBOPL::Chip* chip = nullptr;
 	for ( Bitu i = 0; i < 32; i++ ) {
 		Bitu index = i & 0xf;
 		if ( index >= 9 ) {
@@ -1508,7 +1504,7 @@ void InitTables( void ) {
 		if ( chNum >= 12 )
 			chNum += 16 - 12;
 		Bitu opNum = ( i % 8 ) / 3;
-		DBOPL::Channel* chan = 0;
+		DBOPL::Channel* chan = nullptr;
 		Bitu blah = reinterpret_cast<size_t>( &(chan->op[opNum]) );
 		OpOffsetTable[i] = ChanOffsetTable[ chNum ] + blah;
 	}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,6 +48,7 @@ typedef void (*sighandler_t)(int);
 
 #if defined(USE_NULL_DRIVER)
 #include "backends/modular-backend.h"
+#include "backends/mutex/null/null-mutex.h"
 #include "base/main.h"
 
 #ifndef NULL_DRIVER_USE_FOR_TEST
@@ -56,7 +56,6 @@ typedef void (*sighandler_t)(int);
 #include "backends/timer/default/default-timer.h"
 #include "backends/events/default/default-events.h"
 #include "backends/mixer/null/null-mixer.h"
-#include "backends/mutex/null/null-mutex.h"
 #include "backends/graphics/null/null-graphics.h"
 #include "gui/debugger.h"
 #endif
@@ -76,15 +75,16 @@ typedef void (*sighandler_t)(int);
 	#include "backends/fs/windows/windows-fs-factory.h"
 #endif
 
-class OSystem_NULL : public ModularMutexBackend, public ModularMixerBackend, public ModularGraphicsBackend, Common::EventSource {
+class OSystem_NULL : public ModularMixerBackend, public ModularGraphicsBackend, Common::EventSource {
 public:
-	OSystem_NULL();
+	OSystem_NULL(bool silenceLogs);
 	virtual ~OSystem_NULL();
 
 	virtual void initBackend();
 
 	virtual bool pollEvent(Common::Event &event);
 
+	virtual Common::MutexInternal *createMutex();
 	virtual uint32 getMillis(bool skipRecord = false);
 	virtual void delayMillis(uint msecs);
 	virtual void getTimeAndDate(TimeDate &td, bool skipRecord = false) const;
@@ -101,9 +101,11 @@ private:
 #elif defined(WIN32)
 	DWORD _startTime;
 #endif
+	bool _silenceLogs;
 };
 
-OSystem_NULL::OSystem_NULL() {
+OSystem_NULL::OSystem_NULL(bool silenceLogs) :
+	_silenceLogs(silenceLogs) {
 	#if defined(__amigaos4__)
 		_fsFactory = new AmigaOSFilesystemFactory();
 	#elif defined(__MORPHOS__)
@@ -145,7 +147,6 @@ void OSystem_NULL::initBackend() {
 	last_handler = signal(SIGINT, intHandler);
 #endif
 
-	_mutexManager = new NullMutexManager();
 	_timerManager = new DefaultTimerManager();
 	_eventManager = new DefaultEventManager(this);
 	_savefileManager = new DefaultSaveFileManager();
@@ -185,6 +186,10 @@ bool OSystem_NULL::pollEvent(Common::Event &event) {
 	return false;
 }
 
+Common::MutexInternal *OSystem_NULL::createMutex() {
+	return new NullMutexInternal();
+}
+
 uint32 OSystem_NULL::getMillis(bool skipRecord) {
 #ifdef POSIX
 	timeval curTime;
@@ -220,11 +225,16 @@ void OSystem_NULL::getTimeAndDate(TimeDate &td, bool skipRecord) const {
 	td.tm_wday = t.tm_wday;
 }
 
+#ifndef NULL_DRIVER_USE_FOR_TEST
 void OSystem_NULL::quit() {
 	exit(0);
 }
+#endif
 
 void OSystem_NULL::logMessage(LogMessageType::Type type, const char *message) {
+	if (_silenceLogs)
+		return;
+
 	FILE *output = 0;
 
 	if (type == LogMessageType::kInfo || type == LogMessageType::kDebug)
@@ -241,13 +251,13 @@ void OSystem_NULL::addSysArchivesToSearchSet(Common::SearchSet &s, int priority)
 	s.add("gui/themes", new Common::FSDirectory("gui/themes", 4), priority);
 }
 
-OSystem *OSystem_NULL_create() {
-	return new OSystem_NULL();
+OSystem *OSystem_NULL_create(bool silenceLogs) {
+	return new OSystem_NULL(silenceLogs);
 }
 
 #ifndef NULL_DRIVER_USE_FOR_TEST
 int main(int argc, char *argv[]) {
-	g_system = OSystem_NULL_create();
+	g_system = OSystem_NULL_create(false);
 	assert(g_system);
 
 	// Invoke the actual ScummVM main entry point:
@@ -259,7 +269,8 @@ int main(int argc, char *argv[]) {
 
 #else /* USE_NULL_DRIVER */
 
-OSystem *OSystem_NULL_create() {
+OSystem *OSystem_NULL_create(bool silenceLogs) {
+	(void)silenceLogs;
 	return NULL;
 }
 

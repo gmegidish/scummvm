@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,7 +52,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x0c, o_loadSound);
 	OPCODE(0x0d, o_printEgo);
 	OPCODE(0x0e, o_putActorAtObject);
-	OPCODE(0x0f, o2_clearState02);
+	OPCODE(0x0f, o2_setStateTouchable);
 	/* 10 */
 	OPCODE(0x10, o5_breakHere);
 	OPCODE(0x11, o_animateActor);
@@ -63,7 +62,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x14, o_print);
 	OPCODE(0x15, o5_walkActorToActor);
 	OPCODE(0x16, o5_getRandomNr);
-	OPCODE(0x17, o2_clearState08);
+	OPCODE(0x17, o2_setStateIntrinsicOff);
 	/* 18 */
 	OPCODE(0x18, o5_jumpRelative);
 	OPCODE(0x19, o_stopCurrentScript);
@@ -73,7 +72,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x1c, o5_startSound);
 	OPCODE(0x1d, o_setBitVar);
 	OPCODE(0x1e, o2_walkActorTo);
-	OPCODE(0x1f, o2_ifState04);
+	OPCODE(0x1f, o2_ifStateUnlocked);
 	/* 20 */
 	OPCODE(0x20, o5_stopMusic);
 	OPCODE(0x21, o2_putActor);
@@ -93,7 +92,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x2c, o_stopCurrentScript);
 	OPCODE(0x2d, o2_putActorInRoom);
 	OPCODE(0x2e, o_print);
-	OPCODE(0x2f, o2_ifState08);
+	OPCODE(0x2f, o2_ifStateIntrinsicOff);
 	/* 30 */
 	OPCODE(0x30, o_loadCostume);
 	OPCODE(0x31, o_getBitVar);
@@ -103,7 +102,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x34, o5_getDist);
 	OPCODE(0x35, o_stopCurrentScript);
 	OPCODE(0x36, o_walkActorToObject);
-	OPCODE(0x37, o2_clearState04);
+	OPCODE(0x37, o2_setStateUnlocked);
 	/* 38 */
 	OPCODE(0x38, o2_isLessEqual);
 	OPCODE(0x39, o_stopCurrentScript);
@@ -113,7 +112,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x3c, o5_stopSound);
 	OPCODE(0x3d, o_setBitVar);
 	OPCODE(0x3e, o2_walkActorTo);
-	OPCODE(0x3f, o2_ifState02);
+	OPCODE(0x3f, o2_ifStateTouchable);
 	/* 40 */
 	OPCODE(0x40, o_cutscene);
 	OPCODE(0x41, o2_putActor);
@@ -133,7 +132,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x4c, o_loadScript);
 	OPCODE(0x4d, o_lockRoom);
 	OPCODE(0x4e, o_putActorAtObject);
-	OPCODE(0x4f, o2_clearState02);
+	OPCODE(0x4f, o2_setStateTouchable);
 	/* 50 */
 	OPCODE(0x50, o_nop);
 	OPCODE(0x51, o_animateActor);
@@ -143,7 +142,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x54, o_setObjectName);
 	OPCODE(0x55, o5_walkActorToActor);
 	OPCODE(0x56, o_getActorMoving);
-	OPCODE(0x57, o2_clearState08);
+	OPCODE(0x57, o2_setStateIntrinsicOff);
 	/* 58 */
 	OPCODE(0x58, o2_beginOverride);
 	OPCODE(0x59, o_stopCurrentScript);
@@ -153,7 +152,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x5c, o5_startSound);
 	OPCODE(0x5d, o_setBitVar);
 	OPCODE(0x5e, o2_walkActorTo);
-	OPCODE(0x5f, o2_ifState04);
+	OPCODE(0x5f, o2_ifStateUnlocked);
 	/* 60 */
 	OPCODE(0x60, o_setMode);
 	OPCODE(0x61, o2_putActor);
@@ -173,7 +172,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x6c, o_stopCurrentScript);
 	OPCODE(0x6d, o2_putActorInRoom);
 	OPCODE(0x6e, o_screenPrepare);
-	OPCODE(0x6f, o2_ifState08);
+	OPCODE(0x6f, o2_ifStateIntrinsicOff);
 	/* 70 */
 	OPCODE(0x70, o_lights);
 	OPCODE(0x71, o_getBitVar);
@@ -183,7 +182,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x74, o5_getDist);
 	OPCODE(0x75, o_printEgo);
 	OPCODE(0x76, o_walkActorToObject);
-	OPCODE(0x77, o2_clearState04);
+	OPCODE(0x77, o2_setStateUnlocked);
 	/* 78 */
 	OPCODE(0x78, o2_isGreater);
 	OPCODE(0x79, o_stopCurrentScript);
@@ -193,7 +192,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x7c, o5_isSoundRunning);
 	OPCODE(0x7d, o_setBitVar);
 	OPCODE(0x7e, o2_walkActorTo);
-	OPCODE(0x7f, o2_ifNotState02);
+	OPCODE(0x7f, o2_ifStateUntouchable);
 	/* 80 */
 	OPCODE(0x80, o_stopCurrentScript);
 	OPCODE(0x81, o2_putActor);
@@ -213,7 +212,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x8c, o_loadSound);
 	OPCODE(0x8d, o_stopCurrentScript);
 	OPCODE(0x8e, o_putActorAtObject);
-	OPCODE(0x8f, o2_setState02);
+	OPCODE(0x8f, o2_setStateUntouchable);
 	/* 90 */
 	OPCODE(0x90, o_pickupObject);
 	OPCODE(0x91, o_animateActor);
@@ -223,7 +222,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x94, o5_print);
 	OPCODE(0x95, o2_actorFromPos);
 	OPCODE(0x96, o_stopCurrentScript);
-	OPCODE(0x97, o2_setState08);
+	OPCODE(0x97, o2_setStateIntrinsicOn);
 	/* 98 */
 	OPCODE(0x98, o2_restart);
 	OPCODE(0x99, o_stopCurrentScript);
@@ -233,7 +232,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0x9c, o5_startSound);
 	OPCODE(0x9d, o_setBitVar);
 	OPCODE(0x9e, o2_walkActorTo);
-	OPCODE(0x9f, o2_ifNotState04);
+	OPCODE(0x9f, o2_ifStateLocked);
 	/* A0 */
 	OPCODE(0xa0, o5_stopObjectCode);
 	OPCODE(0xa1, o2_putActor);
@@ -253,7 +252,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0xac, o_stopCurrentScript);
 	OPCODE(0xad, o2_putActorInRoom);
 	OPCODE(0xae, o_print);
-	OPCODE(0xaf, o2_ifNotState08);
+	OPCODE(0xaf, o2_ifStateIntrinsicOn);
 	/* B0 */
 	OPCODE(0xb0, o_loadCostume);
 	OPCODE(0xb1, o_getBitVar);
@@ -263,7 +262,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0xb4, o5_getDist);
 	OPCODE(0xb5, o_stopCurrentScript);
 	OPCODE(0xb6, o_walkActorToObject);
-	OPCODE(0xb7, o2_setState04);
+	OPCODE(0xb7, o2_setStateLocked);
 	/* B8 */
 	OPCODE(0xb8, o2_isLessEqual);
 	OPCODE(0xb9, o_stopCurrentScript);
@@ -273,7 +272,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0xbc, o5_stopSound);
 	OPCODE(0xbd, o_setBitVar);
 	OPCODE(0xbe, o2_walkActorTo);
-	OPCODE(0xbf, o2_ifNotState02);
+	OPCODE(0xbf, o2_ifStateUntouchable);
 	/* C0 */
 	OPCODE(0xc0, o_endCutscene);
 	OPCODE(0xc1, o2_putActor);
@@ -293,7 +292,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0xcc, o_loadScript);
 	OPCODE(0xcd, o_unlockRoom);
 	OPCODE(0xce, o_putActorAtObject);
-	OPCODE(0xcf, o2_setState02);
+	OPCODE(0xcf, o2_setStateUntouchable);
 	/* D0 */
 	OPCODE(0xd0, o_nop);
 	OPCODE(0xd1, o_animateActor);
@@ -303,7 +302,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0xd4, o_setObjectName);
 	OPCODE(0xd5, o2_actorFromPos);
 	OPCODE(0xd6, o_getActorMoving);
-	OPCODE(0xd7, o2_setState08);
+	OPCODE(0xd7, o2_setStateIntrinsicOn);
 	/* D8 */
 	OPCODE(0xd8, o_stopCurrentScript);
 	OPCODE(0xd9, o_stopCurrentScript);
@@ -313,7 +312,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0xdc, o5_startSound);
 	OPCODE(0xdd, o_setBitVar);
 	OPCODE(0xde, o2_walkActorTo);
-	OPCODE(0xdf, o2_ifNotState04);
+	OPCODE(0xdf, o2_ifStateLocked);
 	/* E0 */
 	OPCODE(0xe0, o_setMode);
 	OPCODE(0xe1, o2_putActor);
@@ -333,7 +332,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0xec, o_stopCurrentScript);
 	OPCODE(0xed, o2_putActorInRoom);
 	OPCODE(0xee, o2_dummy);
-	OPCODE(0xef, o2_ifNotState08);
+	OPCODE(0xef, o2_ifStateIntrinsicOn);
 	/* F0 */
 	OPCODE(0xf0, o_lights);
 	OPCODE(0xf1, o_getBitVar);
@@ -343,7 +342,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0xf4, o5_getDist);
 	OPCODE(0xf5, o_stopCurrentScript);
 	OPCODE(0xf6, o_walkActorToObject);
-	OPCODE(0xf7, o2_setState04);
+	OPCODE(0xf7, o2_setStateLocked);
 	/* F8 */
 	OPCODE(0xf8, o2_isGreater);
 	OPCODE(0xf9, o_stopCurrentScript);
@@ -353,7 +352,7 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0xfc, o5_isSoundRunning);
 	OPCODE(0xfd, o_setBitVar);
 	OPCODE(0xfe, o2_walkActorTo);
-	OPCODE(0xff, o2_ifState02);
+	OPCODE(0xff, o2_ifStateTouchable);
 }
 
 int ScummEngine_v0::getVarOrDirectWord(byte mask) {
@@ -394,25 +393,29 @@ void ScummEngine_v0::decodeParseString() {
 	}
 	*ptr = 0;
 
+	int pixelXOffset = (_game.platform == Common::kPlatformC64) ? 1 : 0;
 	int textSlot = 0;
-	_string[textSlot].xpos = 0;
+	_string[textSlot].xpos = 0 + pixelXOffset;
 	_string[textSlot].ypos = 0;
-	_string[textSlot].right = _screenWidth - 1;
+	_string[textSlot].right = _screenWidth - 1 + pixelXOffset;
 	_string[textSlot].center = false;
 	_string[textSlot].overhead = false;
 
 	if (_actorToPrintStrFor == 0xFF)
-		_string[textSlot].color = 14;
+		_string[textSlot].color = (_game.platform == Common::kPlatformApple2GS && !enhancementEnabled(kEnhVisualChanges)) ? 1 : 14;
 
 	actorTalk(buffer);
 }
 
 void ScummEngine_v0::clearSentenceLine() {
 	Common::Rect sentenceline;
-	sentenceline.top = _virtscr[kVerbVirtScreen].topline;
-	sentenceline.bottom = _virtscr[kVerbVirtScreen].topline + 8;
-	sentenceline.left = 0;
-	sentenceline.right = _virtscr[kVerbVirtScreen].w - 1;
+	int pixelYOffset = (_game.platform == Common::kPlatformC64) ? 1 : 0;
+	int pixelXOffset = (_game.platform == Common::kPlatformC64) ? 1 : 0;
+
+	sentenceline.top = _virtscr[kVerbVirtScreen].topline + pixelYOffset;
+	sentenceline.bottom = _virtscr[kVerbVirtScreen].topline + 8 + pixelYOffset;
+	sentenceline.left = 0 + pixelXOffset;
+	sentenceline.right = _virtscr[kVerbVirtScreen].w - 1 + pixelXOffset;
 	restoreBackground(sentenceline);
 }
 
@@ -420,6 +423,8 @@ void ScummEngine_v0::flushSentenceLine() {
 	byte string[80];
 	const char *ptr = _sentenceBuf.c_str();
 	int i = 0, len = 0;
+	int pixelYOffset = (_game.platform == Common::kPlatformC64) ? 1 : 0;
+	int pixelXOffset = (_game.platform == Common::kPlatformC64) ? 1 : 0;
 
 	// Maximum length of printable characters
 	int maxChars = 40;
@@ -436,10 +441,10 @@ void ScummEngine_v0::flushSentenceLine() {
 	string[i] = 0;
 
 	_string[2].charset = 1;
-	_string[2].ypos = _virtscr[kVerbVirtScreen].topline;
-	_string[2].xpos = 0;
-	_string[2].right = _virtscr[kVerbVirtScreen].w - 1;
-	_string[2].color = 16;
+	_string[2].ypos = _virtscr[kVerbVirtScreen].topline + pixelYOffset;
+	_string[2].xpos = 0 + pixelXOffset;
+	_string[2].right = _virtscr[kVerbVirtScreen].w - 1 + pixelXOffset;
+	_string[2].color = (_game.platform == Common::kPlatformApple2GS && !enhancementEnabled(kEnhVisualChanges)) ? 1 : 16;
 	drawString(2, (byte *)string);
 }
 
@@ -772,7 +777,7 @@ void ScummEngine_v0::o_pickupObject() {
 	addObjectToInventory(obj, _roomResource);
 	markObjectRectAsDirty(obj);
 	putOwner(obj, VAR(VAR_EGO));
-	putState(obj, getState(obj) | kObjectState_08 | kObjectStateUntouchable);
+	putState(obj, getState(obj) | kObjectStateIntrinsic | kObjectStateUntouchable);
 	clearDrawObjectQueue();
 
 	runInventoryScript(1);
@@ -961,7 +966,7 @@ void ScummEngine_v0::o_endCutscene() {
 	setMode(vm.cutSceneData[0]);
 
 	if (_currentMode == kModeKeypad) {
-		startScene(vm.cutSceneData[2], 0, 0);
+		startScene(vm.cutSceneData[2], nullptr, 0);
 		// in contrast to the normal keypad behavior we unfreeze scripts here
 		unfreezeScripts();
 	} else {

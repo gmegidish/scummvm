@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,10 +37,10 @@ namespace GUI {
  * ...
  */
 
-Dialog::Dialog(int x, int y, int w, int h)
-	: GuiObject(x, y, w, h),
+Dialog::Dialog(int x, int y, int w, int h, bool scale)
+	: GuiObject(x, y, w, h, scale),
 	  _mouseWidget(nullptr), _focusedWidget(nullptr), _dragWidget(nullptr), _tickleWidget(nullptr), _visible(false),
-	_backgroundType(GUI::ThemeEngine::kDialogBackgroundDefault) {
+	_backgroundType(GUI::ThemeEngine::kDialogBackgroundDefault), _handlingMouseWheel(false) {
 	// Some dialogs like LauncherDialog use internally a fixed size, even though
 	// their widgets rely on the layout to be initialized correctly by the theme.
 	// Thus we need to catch screen changes here too. If we do not do that, it
@@ -56,14 +55,14 @@ Dialog::Dialog(int x, int y, int w, int h)
 Dialog::Dialog(const Common::String &name)
 	: GuiObject(name),
 	  _mouseWidget(nullptr), _focusedWidget(nullptr), _dragWidget(nullptr), _tickleWidget(nullptr), _visible(false),
-	_backgroundType(GUI::ThemeEngine::kDialogBackgroundDefault) {
+	_backgroundType(GUI::ThemeEngine::kDialogBackgroundDefault), _handlingMouseWheel(false) {
 
 	// It may happen that we have 3x scaler in launcher (960xY) and then 640x480
 	// game will be forced to 1x. At this stage GUI will not be aware of
 	// resolution change, so widgets will be off screen. This forces it to
 	// recompute
 	//
-	// Fixes bug #2892: "HE: When 3x graphics are choosen, F5 crashes game"
+	// Fixes bug #2892: "HE: When 3x graphics are chosen, F5 crashes game"
 	// and bug #2903: "SCUMM: F5 crashes game (640x480)"
 	g_gui.checkScreenChange();
 
@@ -174,6 +173,10 @@ void Dialog::drawDialog(DrawLayer layerToDraw) {
 	g_gui.theme()->drawDialogBackground(Common::Rect(_x, _y, _x + _w, _y + _h), _backgroundType);
 
 	markWidgetsAsDirty();
+
+#ifdef LAYOUT_DEBUG_DIALOG
+	return;
+#endif
 	drawWidgets();
 }
 
@@ -229,21 +232,32 @@ void Dialog::handleMouseUp(int x, int y, int button, int clickCount) {
 	if (w)
 		w->handleMouseUp(x - (w->getAbsX() - _x), y - (w->getAbsY() - _y), button, clickCount);
 
-	_dragWidget = nullptr;
+	if (_dragWidget) {
+		_dragWidget = nullptr;
+		// Fake a mouse move to refresh now hovered widget
+		handleMouseMoved(x, y, button);
+	}
 }
 
 void Dialog::handleMouseWheel(int x, int y, int direction) {
-	Widget *w;
+	// Guard against recursive call.
+	// This can happen as we call handleMouseWheel() on the widget under the mouse,
+	// and the default implementation of Widget::handleMouseWheel() is to call it
+	// for the widget boss, which can be this dialog.
+	if (_handlingMouseWheel)
+		return;
+	_handlingMouseWheel = true;
 
 	// This may look a bit backwards, but I think it makes more sense for
 	// the mouse wheel to primarily affect the widget the mouse is at than
 	// the widget that happens to be focused.
-
-	w = findWidget(x, y);
+	Widget *w = findWidget(x, y);
 	if (!w)
 		w = _focusedWidget;
 	if (w)
 		w->handleMouseWheel(x - (w->getAbsX() - _x), y - (w->getAbsY() - _y), direction);
+
+	_handlingMouseWheel = false;
 }
 
 void Dialog::handleKeyDown(Common::KeyState state) {
@@ -358,6 +372,11 @@ void Dialog::handleTickle() {
 
 	if (_tickleWidget && _tickleWidget->getFlags() & WIDGET_WANT_TICKLE)
 		_tickleWidget->handleTickle();
+}
+
+void Dialog::handleOtherEvent(const Common::Event &evt) {
+	if (_focusedWidget)
+		_focusedWidget->handleOtherEvent(evt);
 }
 
 void Dialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {

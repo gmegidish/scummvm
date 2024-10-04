@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,7 +70,7 @@ char *Script::readLineIntern(char *buf, size_t bufSize) {
 		warning("overflow in readLineIntern (line %i)", _line);
 	}
 	if (i == 0 && _input->eos()) {
-		return 0;
+		return nullptr;
 	}
 	buf[i] = '\0';
 	return buf;
@@ -93,11 +92,11 @@ char *Script::readLine(char *buf, size_t bufSize) {
 	bool inBlockComment = false;
 	bool ignoreLine = true;
 
-	char *line = 0;
+	char *line = nullptr;
 	do {
 		line = readLineIntern(buf, bufSize);
-		if (line == 0) {
-			return 0;
+		if (line == nullptr) {
+			return nullptr;
 		}
 
 		if (line[0] == '\0')
@@ -227,8 +226,8 @@ uint16 Script::readLineToken(bool errorOnEOF) {
 
 
 void Parser::reset() {
-	_currentOpcodes = 0;
-	_currentStatements = 0;
+	_currentOpcodes = nullptr;
+	_currentStatements = nullptr;
 	_lookup = 0;
 
 	_statements.clear();
@@ -251,7 +250,7 @@ void Parser::popTables() {
 }
 
 void Parser::parseStatement() {
-	assert(_currentOpcodes != 0);
+	assert(_currentOpcodes != nullptr);
 
 	_lookup = _currentStatements->lookup(_tokens[0]);
 

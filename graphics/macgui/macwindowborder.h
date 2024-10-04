@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,6 @@
 #include "common/list.h"
 
 #include "graphics/managed_surface.h"
-#include "graphics/transparent_surface.h"
 #include "graphics/primitives.h"
 
 #include "image/bmp.h"
@@ -44,6 +42,16 @@ enum {
 	kWindowBorderScrollbar = 1 << 2,
 
 	kWindowBorderMaxFlag   = 1 << 3
+};
+
+enum {
+	kBorderScroll = 1000
+};
+
+enum {
+	kWinBorderWin95Scrollbar = kBorderScroll + 0x00,
+	kWindowBorderWin95NoBorderScrollbar,
+	kWindowBorderMacOSNoBorderScrollbar
 };
 
 struct BorderOffsets {
@@ -78,12 +86,12 @@ public:
 
 	/**
 	 * Add the given surface as the display of the border in the state that is instructed by flag.
-	 * Will fail if there is already an border.
+	 * Will fail if there is already a border.
 	 * @param The surface that will be displayed.
 	 * @param The border type indicated by flag
 	 * @param The title position of bmp image
 	 */
-	void addBorder(TransparentSurface *source, uint32 flags, int titlePos = 0);
+	void addBorder(ManagedSurface *source, uint32 flags, int titlePos = 0);
 
 	/**
 	 * Accessor function for the custom offsets.
@@ -145,8 +153,8 @@ public:
 	void loadBorder(Common::SeekableReadStream &file, uint32 flags, BorderOffsets offsets);
 	void loadInternalBorder(uint32 flags);
 
-	void setBorder(Graphics::TransparentSurface *surface, uint32 flags, int lo = -1, int ro = -1, int to = -1, int bo = -1);
-	void setBorder(Graphics::TransparentSurface *surface, uint32 flags, BorderOffsets offsets);
+	void setBorder(Graphics::ManagedSurface *surface, uint32 flags, int lo = -1, int ro = -1, int to = -1, int bo = -1);
+	void setBorder(Graphics::ManagedSurface *surface, uint32 flags, BorderOffsets offsets);
 private:
 	int _scrollPos, _scrollSize;
 	Common::String _title;

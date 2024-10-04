@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,6 +44,7 @@ namespace Common {
  */
 
 class FSNode;
+class FSDirectory;
 class SeekableReadStream;
 class WriteStream;
 class SeekableWriteStream;
@@ -69,6 +69,7 @@ class FSList : public Array<FSNode> {};
 class FSNode : public ArchiveMember {
 private:
 	friend class ::AbstractFSNode;
+	friend class FSDirectory;
 	SharedPtr<AbstractFSNode>	_realNode;
 	/**
 	 * Construct an FSNode from a backend's AbstractFSNode implementation.
@@ -105,8 +106,7 @@ public:
 	 * used (usually the root directory).
 	 */
 	explicit FSNode(const Path &path);
-
-	virtual ~FSNode() {}
+	~FSNode();
 
 	/**
 	 * Compare the name of this node to the name of another. Directories
@@ -155,7 +155,7 @@ public:
 	 *
 	 * @return The display name.
 	 */
-	virtual U32String getDisplayName() const;
+	U32String getDisplayName() const override;
 
 	/**
 	 * Return a string representation of the name of the file. This can be
@@ -165,21 +165,43 @@ public:
 	 *
 	 * @return The file name.
 	 */
-	virtual String getName() const;
+	String getName() const override;
 
 	/**
-	 * Return a string representation of the file that is suitable for
-	 * archiving (i.e. writing to the config file). This will usually be a
-	 * 'path' (hence the name of the method), but can be anything that meets
-	 * the above criteria. What a 'path' is differs greatly from system to
-	 * system.
+	 * Return a string representation of the name of the file.
 	 *
-	 * @note Do not assume that this string contains (back)slashes or any
-	 *       other kind of 'path separators'.
+	 * @return The file name.
+	 */
+	String getFileName() const override;
+
+	/**
+	 * Return a string representation of the name of the file.  Since FSNode
+	 * parents are always the parent FSDirectory, this will not return a full
+	 * path, only the file name.
+	 *
+	 * @return The file name.
+	 */
+	Path getPathInArchive() const override;
+
+	/**
+	 * Return a string representation of the name of the file, without any
+	 * Punycode transformation. This can be used e.g. by detection code that
+	 * relies on matching the name of a given file. However, it is *not*
+	 * suitable for use with fopen / File::open, nor should it be archived.
+	 *
+	 * @return The file name.
+	 */
+	virtual String getRealName() const;
+
+	/**
+	 * Return a path representation of the file that is suitable for
+	 * archiving (i.e. writing to the config file).
+	 * What a 'path' is differs greatly from system to
+	 * system.
 	 *
 	 * @return The 'path' represented by this file system node.
 	 */
-	String getPath() const;
+	Path getPath() const;
 
 	/**
 	 * Get the parent node of this node. If this node has no parent node,
@@ -196,7 +218,13 @@ public:
 	 * Or even replace isDirectory by a getType() method that can return values like
 	 * kDirNodeType, kFileNodeType, kInvalidNodeType.
 	 */
-	bool isDirectory() const;
+	bool isDirectory() const override;
+
+	/**
+	 * Adds the immediate children of this FSNode to a list, optionally matching a pattern.
+	 * Has no effect if this FSNode is not a directory.
+	 */
+	void listChildren(Common::ArchiveMemberList &childList, const char *pattern = nullptr) const override;
 
 	/**
 	 * Indicate whether the object referred by this node can be read from or not.
@@ -229,9 +257,19 @@ public:
 	 * referred by this node. This assumes that the node actually refers
 	 * to a readable file. If this is not the case, 0 is returned.
 	 *
-	 * @return Pointer to the stream object, 0 in case of a failure.
+	 * @return Pointer to the stream object, nullptr in case of a failure.
 	 */
-	virtual SeekableReadStream *createReadStream() const;
+	SeekableReadStream *createReadStream() const override;
+
+	/**
+	 * Create a SeekableReadStream instance corresponding to an alternate stream
+	 * of the file referred by this node. This assumes that the node actually
+	 * refers to a readable file and the alternate stream exists.  If either is
+	 * not the case, nullptr is returned.
+	 *
+	 * @return Pointer to the stream object, nullptr in case of a failure.
+	 */
+	SeekableReadStream *createReadStreamForAltStream(AltStreamType altStreamType) const override;
 
 	/**
 	 * Create a WriteStream instance corresponding to the file
@@ -302,17 +340,17 @@ class FSDirectory : public Archive {
 	bool _ignoreClashes;
 	bool _includeDirectories;
 
-	String	_prefix; // string that is prepended to each cache item key
-	void setPrefix(const String &prefix);
+	Path	_prefix; // string that is prepended to each cache item key
+	void setPrefix(const Path &prefix);
 
 	// Caches are case insensitive, clashes are dealt with when creating
 	// Key is stored in lowercase.
-	typedef HashMap<String, FSNode, IgnoreCase_Hash, IgnoreCase_EqualTo> NodeCache;
+	typedef HashMap<Path, FSNode, Path::IgnoreCaseAndMac_Hash, Path::IgnoreCaseAndMac_EqualTo> NodeCache;
 	mutable NodeCache	_fileCache, _subDirCache;
 	mutable bool _cached;
 
 	// look for a match
-	FSNode *lookupCache(NodeCache &cache, const String &name) const;
+	FSNode *lookupCache(NodeCache &cache, const Path &name) const;
 
 	// cache management
 	void cacheDirectoryRecursive(FSNode node, int depth, const Path& prefix) const;
@@ -371,29 +409,40 @@ public:
 	 * Check for the existence of a file in the cache. A full match of relative path and file name
 	 * is needed for success.
 	 */
-	virtual bool hasFile(const Path &path) const;
+	bool hasFile(const Path &path) const override;
+
+	/**
+	 * Check if a specified subpath is a directory.
+	 */
+	bool isPathDirectory(const Path &path) const override;
 
 	/**
 	 * Return a list of matching file names. Pattern can use GLOB wildcards.
 	 */
-	virtual int listMatchingMembers(ArchiveMemberList &list, const Path &pattern) const;
+	int listMatchingMembers(ArchiveMemberList &list, const Path &pattern, bool matchPathComponents = false) const override;
 
 	/**
 	 * Return a list of all the files in the cache.
 	 */
-	virtual int listMembers(ArchiveMemberList &list) const;
+	int listMembers(ArchiveMemberList &list) const override;
 
 	/**
 	 * Get an ArchiveMember representation of the specified file. A full match of relative
 	 * path and file name is needed for success.
 	 */
-	virtual const ArchiveMemberPtr getMember(const Path &path) const;
+	const ArchiveMemberPtr getMember(const Path &path) const override;
 
 	/**
 	 * Open the specified file. A full match of relative path and file name is needed
 	 * for success.
 	 */
-	virtual SeekableReadStream *createReadStreamForMember(const Path &path) const;
+	SeekableReadStream *createReadStreamForMember(const Path &path) const override;
+
+	/**
+	 * Open an alternate stream for a specified file. A full match of relative path and file name is needed
+	 * for success.
+	 */
+	SeekableReadStream *createReadStreamForMemberAltStream(const Path &path, AltStreamType altStreamType) const override;
 };
 
 /** @} */

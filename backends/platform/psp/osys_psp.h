@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 
 #include "common/scummsys.h"
 #include "graphics/surface.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "audio/mixer_intern.h"
 #include "backends/base-backend.h"
 #include "backends/fs/psp/psp-fs-factory.h"
@@ -102,7 +101,7 @@ public:
 	void setShakePos(int shakeXOffset, int shakeYOffset);
 
 	// Overlay related
-	void showOverlay();
+	void showOverlay(bool inGUI);
 	void hideOverlay();
 	bool isOverlayVisible() const;
 	void clearOverlay();
@@ -115,7 +114,7 @@ public:
 	// Mouse related
 	bool showMouse(bool visible);
 	void warpMouse(int x, int y);
-	void setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format);
+	void setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format, const byte *mask);
 
 	// Events and input
 	bool pollEvent(Common::Event &event);
@@ -126,10 +125,7 @@ public:
 	void delayMillis(uint msecs);
 
 	// Mutex
-	MutexRef createMutex(void);
-	void lockMutex(MutexRef mutex);
-	void unlockMutex(MutexRef mutex);
-	void deleteMutex(MutexRef mutex);
+	Common::MutexInternal *createMutex(void);
 
 	// Sound
 	static void mixCallback(void *sys, byte *samples, int len);
@@ -145,7 +141,7 @@ public:
 
 	void logMessage(LogMessageType::Type type, const char *message);
 
-	virtual Common::String getDefaultConfigFileName();
+	virtual Common::Path getDefaultConfigFileName();
 };
 
 #endif /* OSYS_PSP_H */

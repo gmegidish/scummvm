@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,9 +55,9 @@ bool Debugger::cmdDumpPic(int argc, const char **argv) {
 		Common::File f;
 		int picNum = strToInt(argv[1]);
 
-		Common::String filename = Common::String::format("pic%d.png", picNum);
+		Common::Path filename(Common::String::format("pic%d.png", picNum));
 		if (!f.exists(filename))
-			filename = Common::String::format("pic%d.jpg", picNum);
+			filename = Common::Path(Common::String::format("pic%d.jpg", picNum));
 
 		if (f.open(filename)) {
 			// png or jpeg file
@@ -75,15 +74,15 @@ bool Debugger::cmdDumpPic(int argc, const char **argv) {
 			} else {
 				debugPrintf("Could not find specified picture\n");
 			}
-		} else if (f.exists(Common::String::format("pic%d.rect", picNum))) {
+		} else if (f.exists(Common::Path(Common::String::format("pic%d.rect", picNum)))) {
 			debugPrintf("Picture is only a placeholder rectangle\n");
-		} else if (f.open(Common::String::format("pic%d.raw", picNum))) {
+		} else if (f.open(Common::Path(Common::String::format("pic%d.raw", picNum)))) {
 			// Raw picture
 #ifdef USE_PNG
 			Common::DumpFile df;
 			RawDecoder rd;
 
-			if (rd.loadStream(f) && df.open(Common::String::format("pic%d.png", picNum))) {
+			if (rd.loadStream(f) && df.open(Common::Path(Common::String::format("pic%d.png", picNum)))) {
 				saveRawPicture(rd, df);
 				debugPrintf("Dumped picture\n");
 			} else {
@@ -105,8 +104,9 @@ void Debugger::saveRawPicture(const RawDecoder &rd, Common::WriteStream &ws) {
 	const Graphics::Surface *surface = rd.getSurface();
 	const byte *palette = rd.getPalette();
 	int paletteCount = rd.getPaletteColorCount();
-	int palStart = rd.getPaletteStartIndex();
-	int transColor = rd.getTransparentColor();
+	int palStart = 0;
+	bool hasTransColor = rd.hasTransparentColor();
+	uint32 transColor = rd.getTransparentColor();
 
 	// If the image doesn't have a palette, we can directly write out the image
 	if (!palette) {
@@ -123,7 +123,7 @@ void Debugger::saveRawPicture(const RawDecoder &rd, Common::WriteStream &ws) {
 		uint32 *destP = (uint32 *)destSurface.getBasePtr(0, y);
 
 		for (int x = 0; x < surface->w; ++x, ++srcP, ++destP) {
-			if ((int)*srcP == transColor || (int)*srcP < palStart) {
+			if ((hasTransColor && (uint32)*srcP == transColor) || (int)*srcP < palStart) {
 				*destP = format.ARGBToColor(0, 0, 0, 0);
 			} else {
 				assert(*srcP < paletteCount);

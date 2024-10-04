@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -424,7 +423,7 @@ void NoradDelta::arriveAtNorad68West() {
 
 	BiochipItem *retScan = _vm->getCurrentBiochip();
 
-	if (retScan != 0 && retScan->getObjectID() == kRetinalScanBiochip) {
+	if (retScan != nullptr && retScan->getObjectID() == kRetinalScanBiochip) {
 		((RetScanChip *)retScan)->searchForLaser();
 		succeedRetinalScan();
 	} else {
@@ -836,7 +835,7 @@ Hotspot *NoradDelta::getItemScreenSpot(Item *item, DisplayElement *element) {
 	return Norad::getItemScreenSpot(item, element);
 }
 
-Common::String NoradDelta::getEnvScanMovie() {
+Common::Path NoradDelta::getEnvScanMovie() {
 	return "Images/AI/Norad/XNE2";
 }
 
@@ -864,7 +863,7 @@ uint NoradDelta::getNumHints() {
 		case MakeRoomView(kNorad68, kWest):
 			if (_vm->playerHasItemID(kRetinalScanBiochip)) {
 				BiochipItem *retScan = _vm->getCurrentBiochip();
-				if (retScan == 0 || retScan->getObjectID() != kRetinalScanBiochip)
+				if (retScan == nullptr || retScan->getObjectID() != kRetinalScanBiochip)
 					numHints = 2;
 			} else if (!GameState.isCurrentDoorOpen()) {
 				numHints = 2;
@@ -878,8 +877,8 @@ uint NoradDelta::getNumHints() {
 	return numHints;
 }
 
-Common::String NoradDelta::getHintMovie(uint hintNum) {
-	Common::String movieName = Neighborhood::getHintMovie(hintNum);
+Common::Path NoradDelta::getHintMovie(uint hintNum) {
+	Common::Path movieName = Neighborhood::getHintMovie(hintNum);
 
 	if (movieName.empty()) {
 		switch (GameState.getCurrentRoomAndView()) {
@@ -943,7 +942,7 @@ bool NoradDelta::canSolve() {
 
 	if (GameState.getCurrentRoomAndView() == MakeRoomView(kNorad68, kWest)) {
 		BiochipItem *biochip = _vm->getCurrentBiochip();
-		if (biochip != 0 && biochip->getObjectID() != kRetinalScanBiochip)
+		if (biochip != nullptr && biochip->getObjectID() != kRetinalScanBiochip)
 			return true;
 	}
 
@@ -958,7 +957,7 @@ void NoradDelta::doSolve() {
 			_vm->addItemToBiochips((BiochipItem *)_vm->getAllItems().findItemByID(kRetinalScanBiochip));
 
 		BiochipItem *biochip = _vm->getCurrentBiochip();
-		if (biochip != 0 && biochip->getObjectID() != kRetinalScanBiochip && g_interface)
+		if (biochip != nullptr && biochip->getObjectID() != kRetinalScanBiochip && g_interface)
 			g_interface->setCurrentBiochipID(kRetinalScanBiochip);
 
 		Hotspot *spot = _vm->getAllHotspots().findHotspotByID(kNorad68WestSpotID);
@@ -974,11 +973,11 @@ void NoradDelta::setSoundFXLevel(const uint16 level) {
 		_loop2Fader.setMasterVolume(level);
 }
 
-Common::String NoradDelta::getSoundSpotsName() {
+Common::Path NoradDelta::getSoundSpotsName() {
 	return "Sounds/Norad/Norad Delta Spots";
 }
 
-Common::String NoradDelta::getNavMovieName() {
+Common::Path NoradDelta::getNavMovieName() {
 	return "Images/Norad Delta/Norad Delta.movie";
 }
 

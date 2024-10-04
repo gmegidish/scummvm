@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,14 +27,19 @@
 
 namespace Scumm {
 
-MacM68kDriver::MacM68kDriver(Audio::Mixer *mixer)
-	: MidiDriver_Emulated(mixer) {
+IMuseDriver_MacM68k::IMuseDriver_MacM68k(Audio::Mixer *mixer)
+	: MidiDriver_Emulated(mixer), _mixBuffer(nullptr), _mixBufferLength(0), _volumeTable(nullptr), _lastUsedVoiceChannel(0), _defaultInstrument() {
+	memset(_channels, 0, sizeof(_channels));
+	memset(_pitchTable, 0, sizeof(_pitchTable));
+	memset(_voiceChannels, 0, sizeof(_voiceChannels));
 }
 
-MacM68kDriver::~MacM68kDriver() {
+IMuseDriver_MacM68k::~IMuseDriver_MacM68k() {
+	for (uint i = 0; i < ARRAYSIZE(_channels); ++i)
+		delete _channels[i];
 }
 
-int MacM68kDriver::open() {
+int IMuseDriver_MacM68k::open() {
 	if (_isOpen) {
 		return MERR_ALREADY_OPEN;
 	}
@@ -46,7 +50,8 @@ int MacM68kDriver::open() {
 	}
 
 	for (uint i = 0; i < ARRAYSIZE(_channels); ++i) {
-		_channels[i].init(this, i);
+		delete _channels[i];
+		_channels[i] = new MidiChannel_MacM68k(this, i);
 	}
 
 	memset(_voiceChannels, 0, sizeof(_voiceChannels));
@@ -77,7 +82,7 @@ int MacM68kDriver::open() {
 		}
 	}
 
-	_mixBuffer = 0;
+	_mixBuffer = nullptr;
 	_mixBufferLength = 0;
 
 	// We set the output sound type to music here to allow sound volume
@@ -89,7 +94,7 @@ int MacM68kDriver::open() {
 	return 0;
 }
 
-void MacM68kDriver::close() {
+void IMuseDriver_MacM68k::close() {
 	if (!_isOpen) {
 		return;
 	}
@@ -101,31 +106,27 @@ void MacM68kDriver::close() {
 	}
 	_instruments.clear();
 	delete[] _volumeTable;
-	_volumeTable = 0;
+	_volumeTable = nullptr;
 	delete[] _mixBuffer;
-	_mixBuffer = 0;
+	_mixBuffer = nullptr;
 	_mixBufferLength = 0;
 }
 
-void MacM68kDriver::send(uint32 d) {
+void IMuseDriver_MacM68k::send(uint32 d) {
 	assert(false);
 }
 
-void MacM68kDriver::sysEx_customInstrument(byte channel, uint32 type, const byte *instr) {
-	assert(false);
-}
-
-MidiChannel *MacM68kDriver::allocateChannel() {
+MidiChannel *IMuseDriver_MacM68k::allocateChannel() {
 	for (uint i = 0; i < ARRAYSIZE(_channels); ++i) {
-		if (_channels[i].allocate()) {
-			return &_channels[i];
+		if (_channels[i]->allocate()) {
+			return _channels[i];
 		}
 	}
 
-	return 0;
+	return nullptr;
 }
 
-MacM68kDriver::Instrument MacM68kDriver::getInstrument(int idx) const {
+IMuseDriver_MacM68k::Instrument IMuseDriver_MacM68k::getInstrument(int idx) const {
 	InstrumentMap::const_iterator i = _instruments.find(idx);
 	if (i != _instruments.end()) {
 		return i->_value;
@@ -134,7 +135,7 @@ MacM68kDriver::Instrument MacM68kDriver::getInstrument(int idx) const {
 	}
 }
 
-void MacM68kDriver::generateSamples(int16 *buf, int len) {
+void IMuseDriver_MacM68k::generateSamples(int16 *buf, int len) {
 	int silentChannels = 0;
 
 	if (_mixBufferLength < len) {
@@ -192,7 +193,7 @@ void MacM68kDriver::generateSamples(int16 *buf, int len) {
 	}
 }
 
-void MacM68kDriver::loadAllInstruments() {
+void IMuseDriver_MacM68k::loadAllInstruments() {
 	Common::MacResManager resource;
 	if (resource.open("iMUSE Setups")) {
 		if (!resource.hasResFork()) {
@@ -226,7 +227,7 @@ void MacM68kDriver::loadAllInstruments() {
 	}
 }
 
-void MacM68kDriver::addInstrument(int idx, Common::SeekableReadStream *data) {
+void IMuseDriver_MacM68k::addInstrument(int idx, Common::SeekableReadStream *data) {
 	// We parse the "SND" files manually here, since we need special data
 	// from their header and need to work on them raw while mixing.
 	data->skip(2);
@@ -252,7 +253,7 @@ void MacM68kDriver::addInstrument(int idx, Common::SeekableReadStream *data) {
 	_instruments[idx] = inst;
 }
 
-void MacM68kDriver::setPitch(OutputChannel *out, int frequency) {
+void IMuseDriver_MacM68k::setPitch(OutputChannel *out, int frequency) {
 	out->frequency = frequency;
 	out->isFinished = false;
 
@@ -267,23 +268,23 @@ void MacM68kDriver::setPitch(OutputChannel *out, int frequency) {
 	}
 }
 
-void MacM68kDriver::VoiceChannel::off() {
+void IMuseDriver_MacM68k::VoiceChannel::off() {
 	if (out.start) {
 		out.isFinished = true;
 	}
 
 	part->removeVoice(this);
-	part = 0;
+	part = nullptr;
 }
 
-void MacM68kDriver::MidiChannel_MacM68k::release() {
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::release() {
 	_allocated = false;
 	while (_voice) {
 		_voice->off();
 	}
 }
 
-void MacM68kDriver::MidiChannel_MacM68k::send(uint32 b) {
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::send(uint32 b) {
 	uint8 type = b & 0xF0;
 	uint8 p1 = (b >> 8) & 0xFF;
 	uint8 p2 = (b >> 16) & 0xFF;
@@ -314,7 +315,7 @@ void MacM68kDriver::MidiChannel_MacM68k::send(uint32 b) {
 	}
 }
 
-void MacM68kDriver::MidiChannel_MacM68k::noteOff(byte note) {
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::noteOff(byte note) {
 	for (VoiceChannel *i = _voice; i; i = i->next) {
 		if (i->note == note) {
 			if (_sustain) {
@@ -326,7 +327,7 @@ void MacM68kDriver::MidiChannel_MacM68k::noteOff(byte note) {
 	}
 }
 
-void MacM68kDriver::MidiChannel_MacM68k::noteOn(byte note, byte velocity) {
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::noteOn(byte note, byte velocity) {
 	// Do not start a not unless there is an instrument set up
 	if (!_instrument.data) {
 		return;
@@ -352,7 +353,7 @@ void MacM68kDriver::MidiChannel_MacM68k::noteOn(byte note, byte velocity) {
 		voice->out.loopStart = _instrument.data + _instrument.loopStart;
 		voice->out.loopEnd   = _instrument.data + _instrument.loopEnd;
 	} else {
-		voice->out.loopStart = 0;
+		voice->out.loopStart = nullptr;
 		voice->out.loopEnd   = voice->out.soundEnd;
 	}
 
@@ -360,25 +361,25 @@ void MacM68kDriver::MidiChannel_MacM68k::noteOn(byte note, byte velocity) {
 	voice->out.end   = voice->out.loopEnd;
 
 	// Set up the pitch
-	_owner->setPitch(&voice->out, (note << 7) + _pitchBend);
+	_owner->setPitch(&voice->out, ((note + _transpose) << 7) + ((_pitchBend * _pitchBendFactor) >> 6) + _detune);
 
 	// Set up the sample position
 	voice->out.instrument = voice->out.soundStart;
 	voice->out.subPos = 0;
 }
 
-void MacM68kDriver::MidiChannel_MacM68k::programChange(byte program) {
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::programChange(byte program) {
 	_instrument = _owner->getInstrument(program + kProgramChangeBase);
 }
 
-void MacM68kDriver::MidiChannel_MacM68k::pitchBend(int16 bend) {
-	_pitchBend = (bend * _pitchBendFactor) >> 6;
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::pitchBend(int16 bend) {
+	_pitchBend = bend;
 	for (VoiceChannel *i = _voice; i; i = i->next) {
-		_owner->setPitch(&i->out, (i->note << 7) + _pitchBend);
+		_owner->setPitch(&i->out, ((i->note + _transpose) << 7) + ((_pitchBend * _pitchBendFactor) >> 6) + _detune);
 	}
 }
 
-void MacM68kDriver::MidiChannel_MacM68k::controlChange(byte control, byte value) {
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::controlChange(byte control, byte value) {
 	switch (control) {
 	// volume change
 	case 7:
@@ -413,45 +414,55 @@ void MacM68kDriver::MidiChannel_MacM68k::controlChange(byte control, byte value)
 	}
 }
 
-void MacM68kDriver::MidiChannel_MacM68k::pitchBendFactor(byte value) {
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::pitchBendFactor(byte value) {
 	_pitchBendFactor = value;
 }
 
-void MacM68kDriver::MidiChannel_MacM68k::priority(byte value) {
-	_priority = value;
-}
 
-void MacM68kDriver::MidiChannel_MacM68k::sysEx_customInstrument(uint32 type, const byte *instr) {
-	assert(instr);
-	if (type == 'MAC ') {
-		_instrument = _owner->getInstrument(*instr + kSysExBase);
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::transpose(int8 value) {
+	_transpose = value;
+	for (VoiceChannel *i = _voice; i; i = i->next) {
+		_owner->setPitch(&i->out, ((i->note + _transpose) << 7) + ((_pitchBend * _pitchBendFactor) >> 6) + _detune);
 	}
 }
 
-void MacM68kDriver::MidiChannel_MacM68k::init(MacM68kDriver *owner, byte channel) {
-	_owner = owner;
-	_number = channel;
-	_allocated = false;
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::detune(int16 value) {
+	_detune = (int8)value;
+	for (VoiceChannel *i = _voice; i; i = i->next) {
+		_owner->setPitch(&i->out, ((i->note + _transpose) << 7) + ((_pitchBend * _pitchBendFactor) >> 6) + _detune);
+	}
 }
 
-bool MacM68kDriver::MidiChannel_MacM68k::allocate() {
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::priority(byte value) {
+	_priority = value;
+}
+
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::sysEx_customInstrument(uint32 type, const byte *instr, uint32 dataSize) {
+	assert(instr);
+	if (type == 'MAC ' && dataSize == sizeof(byte)) 
+		_instrument = _owner->getInstrument(*instr + kSysExBase);
+	else if (type != 'MAC ')
+		warning("MidiChannel_MacM68k: Receiving '%c%c%c%c' instrument data. Probably loading a savegame with that sound setting", (type >> 24) & 0xFF, (type >> 16) & 0xFF, (type >> 8) & 0xFF, type & 0xFF);
+}
+
+bool IMuseDriver_MacM68k::MidiChannel_MacM68k::allocate() {
 	if (_allocated) {
 		return false;
 	}
 
 	_allocated = true;
-	_voice = 0;
+	_voice = nullptr;
 	_priority = 0;
-	memset(&_instrument, 0, sizeof(_instrument));
+	_instrument.reset();
 	_pitchBend = 0;
-	_pitchBendFactor = 0;
+	_pitchBendFactor = 2;
 	_volume = 0;
 	return true;
 }
 
-void MacM68kDriver::MidiChannel_MacM68k::addVoice(VoiceChannel *voice) {
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::addVoice(VoiceChannel *voice) {
 	voice->next = _voice;
-	voice->prev = 0;
+	voice->prev = nullptr;
 	voice->part = this;
 	if (_voice) {
 		_voice->prev = voice;
@@ -459,7 +470,7 @@ void MacM68kDriver::MidiChannel_MacM68k::addVoice(VoiceChannel *voice) {
 	_voice = voice;
 }
 
-void MacM68kDriver::MidiChannel_MacM68k::removeVoice(VoiceChannel *voice) {
+void IMuseDriver_MacM68k::MidiChannel_MacM68k::removeVoice(VoiceChannel *voice) {
 	VoiceChannel *i = _voice;
 	while (i && i != voice) {
 		i = i->next;
@@ -478,8 +489,8 @@ void MacM68kDriver::MidiChannel_MacM68k::removeVoice(VoiceChannel *voice) {
 	}
 }
 
-MacM68kDriver::VoiceChannel *MacM68kDriver::allocateVoice(int priority) {
-	VoiceChannel *channel = 0;
+IMuseDriver_MacM68k::VoiceChannel *IMuseDriver_MacM68k::allocateVoice(int priority) {
+	VoiceChannel *channel = nullptr;
 	for (int i = 0; i < kChannelCount; ++i) {
 		if (++_lastUsedVoiceChannel == kChannelCount) {
 			_lastUsedVoiceChannel = 0;
@@ -505,7 +516,7 @@ MacM68kDriver::VoiceChannel *MacM68kDriver::allocateVoice(int priority) {
 	return channel;
 }
 
-const int MacM68kDriver::_volumeBaseTable[32] = {
+const int IMuseDriver_MacM68k::_volumeBaseTable[32] = {
 	  0,   0,   1,   1,   2,   3,   5,   6,
 	  8,  11,  13,  16,  19,  22,  26,  30,
 	 34,  38,  43,  48,  53,  58,  64,  70,

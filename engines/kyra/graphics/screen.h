@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,10 +49,10 @@ struct ScreenDim {
 	uint16 sy;
 	uint16 w;
 	uint16 h;
-	uint16 unk8;
-	uint16 unkA;
-	uint16 unkC;
-	uint16 unkE;
+	uint16 col1;
+	uint16 col2;
+	uint16 line;
+	uint16 column;
 };
 
 /**
@@ -67,8 +66,10 @@ public:
 	 */
 	enum Type {
 		kASCII = 0,
+		kJIS_X0201,
 		kSJIS,
-		kBIG5
+		kBIG5,
+		kJohab
 	};
 
 public:
@@ -240,8 +241,6 @@ public:
 protected:
 	const uint8 *_colorMap;
 	Common::SharedPtr<Graphics::FontSJIS> _font;
-	int _sjisWidth, _asciiWidth;
-	int _fontHeight;
 	const bool _drawOutline;
 	int _style;
 
@@ -255,30 +254,186 @@ private:
 	const int _sjisWidthOffset;
 };
 
-class Big5Font : public Font {
+class ChineseFont : public Font {
 public:
-	Big5Font(const uint8 *oneByteData, int pitch);
-	~Big5Font() override;
+	ChineseFont(int pitch, int renderWidth, int renderHeight, int spacingWidth, int spacingHeight, int extraSpacingWidth, int extraSpacingHeight);
+	~ChineseFont() override;
 
-	Type getType() const override { return kBIG5; }
+	virtual Type getType() const override { return kBIG5; }
 
 	bool load(Common::SeekableReadStream &data) override;
-	int getHeight() const override { return _border ? 16 : 14; }
-	int getWidth() const override { return 18; }
-	int getCharWidth(uint16 c) const override;
-	void setColorMap(const uint8 *src) override;
+
 	void setStyles(int styles) override { _border = (styles & kStyleBorder); }
+	int getHeight() const override { return _spacingHeight + (_border ? _borderExtraSpacingHeight : 0); }
+	int getWidth() const override { return _spacingWidth + (_border ? _borderExtraSpacingWidth : 0); }
+	int getCharWidth(uint16 c) const override { return hasGlyphForCharacter(c) ? getWidth() : -1; }
+	int getCharHeight(uint16 c) const override { return hasGlyphForCharacter(c) ? _renderHeight + (_border ? _borderExtraSpacingHeight : 0) : -1; }
+	void setColorMap(const uint8 *src) override;
+	void drawChar(uint16 c, byte *dst, int pitch, int) const override;
+
+protected:
+	uint32 getGlyphDataSize() const { return _glyphDataSize; }
+	uint16 _textColor[2];
+	bool _pixelColorShading;
+	const uint8 *_colorMap;
+	bool _border;
+
+private:
+	virtual bool hasGlyphForCharacter(uint16 c) const = 0;
+	virtual uint32 getFontOffset(uint16 c) const = 0;
+	virtual void processColorMap() = 0;
+
+	const int _spacingWidth, _spacingHeight;
+	const int _borderExtraSpacingWidth, _borderExtraSpacingHeight;
+	const int _renderWidth, _renderHeight;
+
+	const uint8 *_glyphData;
+	uint32 _glyphDataSize;
+	const uint16 _pitch;
+};
+
+class JohabFontLoK final : public Font {
+public:
+	JohabFontLoK(Font *&font8fat, const uint16 *lookupTable, uint32 lookupTableSize);
+	~JohabFontLoK() override;
+
+	enum {
+		kNumJongseong = 191,
+		kNumJungseong = 85,
+		kNumChoseong = 109
+	};
+
+	bool load(Common::SeekableReadStream &data) override;
+	Type getType() const override { return kJohab; }
+	int getHeight() const override { return _height; }
+	int getWidth() const override { return _width; }
+	int getCharWidth(uint16 c) const override;
+	int getCharHeight(uint16 c) const override;
+	void setColorMap(const uint8 *src) override;
 	void drawChar(uint16 c, byte *dst, int pitch, int) const override;
 
 private:
-	const uint8 *_oneByteData;
-	const uint8 *_twoByteData;
-	uint32 _twoByteNumChar;
-	uint32 _twoByteDataSize;
+	const uint8 *createGlyph(uint16 chr) const;
+	void processColorMap();
+	void renderGlyph(byte *dst, const uint8 *glyph, uint8 col, int pitch) const;
+
+	int _width, _height;
 	const uint8 *_colorMap;
-	uint16 _textColor[2];
-	const uint16 _pitch;
-	bool _border;
+
+	Font *&_font8fat;
+	const uint8 *_fileData;
+	const uint8 *_glyphData[3];
+	const uint16 *_2byteTables[7];
+	uint8 *_glyphTemp;
+};
+
+class ChineseOneByteFontLoK final : public ChineseFont {
+public:
+	ChineseOneByteFontLoK(int pitch);
+private:
+	bool hasGlyphForCharacter(uint16 c) const override { return !(c & 0x80); }
+	uint32 getFontOffset(uint16 c) const override { return (c & 0x7F) * 14; }
+	void processColorMap() override;
+};
+
+class ChineseTwoByteFontLoK final : public ChineseFont {
+public:
+	ChineseTwoByteFontLoK(int pitch, const uint16 *lookupTable, uint32 lookupTableSize);
+private:
+	bool hasGlyphForCharacter(uint16 c) const override;
+	uint32 getFontOffset(uint16 c) const override;
+	void processColorMap() override;
+
+	const uint16 *_lookupTable;
+	uint32 _lookupTableSize;
+};
+
+class ChineseOneByteFontMR final : public ChineseFont {
+public:
+	ChineseOneByteFontMR(int pitch) : ChineseFont(pitch, 7, 14, 9, 14, 0, 2) {}
+private:
+	bool hasGlyphForCharacter(uint16 c) const override { return (c == 0x6187) || !(c & 0x80); }
+	uint32 getFontOffset(uint16 c) const override { return ((c == 0x6187) ? 128 : (c & 0x7F)) * 14; }
+	void processColorMap() override;
+};
+
+class ChineseTwoByteFontMR final : public ChineseFont {
+public:
+	ChineseTwoByteFontMR(int pitch) : ChineseFont(pitch, 15, 14, 18, 14, 0, 2) {}
+private:
+	bool hasGlyphForCharacter(uint16 c) const override { return (c != 0x6187) && (c & 0x80); }
+	uint32 getFontOffset(uint16 c) const override;
+	void processColorMap() override;
+};
+
+#ifdef ENABLE_LOL
+
+class ChineseOneByteFontLoL final : public ChineseFont {
+public:
+	ChineseOneByteFontLoL(int pitch) : ChineseFont(pitch, 8, 14, 8, 16, 0, 0) { _pixelColorShading = false; }
+	void setStyles(int styles) override {}
+	
+private:
+	bool hasGlyphForCharacter(uint16 c) const override { return !(c & 0x80); }
+	uint32 getFontOffset(uint16 c) const override { return (c & 0x7F) * 14; }
+	void processColorMap() override;
+};
+
+class ChineseTwoByteFontLoL final : public ChineseFont {
+public:
+	ChineseTwoByteFontLoL(int pitch) : ChineseFont(pitch, 16, 14, 16, 16, 0, 0) { _pixelColorShading = false; }
+	void setStyles(int styles) override {}
+
+private:
+	bool hasGlyphForCharacter(uint16 c) const override { return (c & 0x80) && getFontOffset(c) < getGlyphDataSize(); }
+	uint32 getFontOffset(uint16 c) const override;
+	void processColorMap() override;
+};
+
+#endif
+
+class ChineseOneByteFontHOF final : public ChineseFont {
+public:
+	ChineseOneByteFontHOF(int pitch) : ChineseFont(pitch, 8, 14, 9, 15, 0, 0) {}
+private:
+	bool hasGlyphForCharacter(uint16 c) const override { return !(c & 0x80); }
+	uint32 getFontOffset(uint16 c) const override { return (c & 0x7F) * 14; }
+	void processColorMap() override;
+};
+
+class ChineseTwoByteFontHOF final : public ChineseFont {
+public:
+	ChineseTwoByteFontHOF(int pitch) : ChineseFont(pitch, 16, 14, 18, 15, 0, 0) {}
+private:
+	bool hasGlyphForCharacter(uint16 c) const override { return (c & 0x80); }
+	uint32 getFontOffset(uint16 c) const override;
+	void processColorMap() override;
+};
+
+class MultiSubsetFont final : public Font {
+public:
+	MultiSubsetFont(Common::Array<Font*> *subsets) : Font(), _subsets(subsets) {}
+	~MultiSubsetFont() override;
+	Type getType() const override { return kBIG5; }
+
+	// Caveat: This method will try to load a font into the first subset slot it finds.
+	// It expects the load method of the subset font to return false if the slot has
+	// already been filled. It will then try the next slot. So, unlike other fonts the
+	// subset fonts cannot be allowed to call the load method as often as they want
+	// (which we never did anyway - we only ever load each font exactly one time).
+	// But this also means that different 
+	bool load(Common::SeekableReadStream &data) override;
+
+	void setStyles(int styles) override;
+	int getHeight() const override;
+	int getWidth() const override;
+	int getCharWidth(uint16 c) const override;
+	int getCharHeight(uint16 c) const override;
+	void setColorMap(const uint8 *src) override;
+	void drawChar(uint16 c, byte *dst, int pitch, int) const override;
+
+private:
+	Common::Array<Font*> *_subsets;
 };
 
 /**
@@ -416,7 +571,10 @@ public:
 		SCREEN_PAGE_SIZE = 320 * 200 + 1024,
 		SCREEN_OVL_SJIS_SIZE = 640 * 400,
 		SCREEN_PAGE_NUM = 16,
-		SCREEN_OVLS_NUM = 6
+		SCREEN_OVLS_NUM = 6,
+
+		SCREEN_IDLEREFRESH_RESTART_MSEC = 250,
+		SCREEN_IDLEREFRESH_RATE_MSEC = 16
 	};
 
 	enum CopyRegionFlags {
@@ -424,16 +582,19 @@ public:
 	};
 
 	enum DrawShapeFlags {
-		DSF_X_FLIPPED  = 0x01,
-		DSF_Y_FLIPPED  = 0x02,
-		DSF_SCALE      = 0x04,
-		DSF_WND_COORDS = 0x10,
-		DSF_CENTER     = 0x20,
-
-		DSF_SHAPE_FADING		= 0x100,
-		DSF_TRANSPARENCY		= 0x1000,
-		DSF_BACKGROUND_FADING	= 0x2000,
-		DSF_CUSTOM_PALETTE		= 0x8000
+		kDRAWSHP_XFLIP			= 0x01,
+		kDRAWSHP_YFLIP			= 0x02,
+		kDRAWSHP_SCALE			= 0x04,
+		kDRAWSHP_WINREL			= 0x10,
+		kDRAWSHP_CENTER			= 0x20,
+		kDRAWSHP_FADE			= 0x100,
+		kDRAWSHP_PREDATOR		= 0x200,
+		kDRAWSHP_COMPACT		= 0x400,
+		kDRAWSHP_PRIORITY		= 0x800,
+		kDRAWSHP_TRANSPARENT	= 0x1000,
+		kDRAWSHP_BCKGRNDFADE	= 0x2000,
+		kDRAWSHP_MORPH			= 0x4000,
+		kDRAWSHP_COLOR			= 0x8000
 	};
 
 	enum FontId {
@@ -450,6 +611,7 @@ public:
 		FID_SJIS_LARGE_FNT,
 		FID_SJIS_SMALL_FNT,
 		FID_CHINESE_FNT,
+		FID_KOREAN_FNT,
 		FID_NUM
 	};
 
@@ -461,7 +623,11 @@ public:
 	virtual void setResolution();
 	virtual void enableHiColorMode(bool enabled);
 
-	void updateScreen();
+	// refresh
+	int updateScreen();
+	void updateBackendScreen(bool force);
+
+	uint32 _idleUpdateTimer;
 
 	// debug functions
 	bool queryScreenDebug() const { return _debugEnabled; }
@@ -555,8 +721,11 @@ public:
 
 	void setTextMarginRight(int x) { _textMarginRight = x; }
 	uint16 _textMarginRight;
+	bool _overdrawMargin;
 
 	const ScreenDim *_curDim;
+
+	Common::String _lineBreakChars;
 
 	// shape handling
 	uint8 *encodeShape(int x, int y, int w, int h, int flags);
@@ -658,6 +827,7 @@ protected:
 	template<bool noXor> static void wrapped_decodeFrameDeltaPage(uint8 *dst, const uint8 *src, const int pitch);
 
 	uint8 *_pagePtrs[16];
+	const uint8 *_pagePtrsBuff;
 	uint8 *_sjisOverlayPtrs[SCREEN_OVLS_NUM];
 	uint8 _pageMapping[SCREEN_PAGE_NUM];
 
@@ -730,16 +900,20 @@ protected:
 	KyraEngine_v1 *_vm;
 
 	// shape
+	typedef void (Screen::*DsPlotFunc)(uint8*, uint8);
+	typedef int (Screen::*DsMarginSkipFunc)(uint8*&, const uint8*&, int&);
+	typedef void (Screen::*DsLineFunc)(uint8*&, const uint8*&, const DsPlotFunc, int&, int16);
+
 	int drawShapeMarginNoScaleUpwind(uint8 *&dst, const uint8 *&src, int &cnt);
 	int drawShapeMarginNoScaleDownwind(uint8 *&dst, const uint8 *&src, int &cnt);
 	int drawShapeMarginScaleUpwind(uint8 *&dst, const uint8 *&src, int &cnt);
 	int drawShapeMarginScaleDownwind(uint8 *&dst, const uint8 *&src, int &cnt);
 	int drawShapeSkipScaleUpwind(uint8 *&dst, const uint8 *&src, int &cnt);
 	int drawShapeSkipScaleDownwind(uint8 *&dst, const uint8 *&src, int &cnt);
-	void drawShapeProcessLineNoScaleUpwind(uint8 *&dst, const uint8 *&src, int &cnt, int16 scaleState);
-	void drawShapeProcessLineNoScaleDownwind(uint8 *&dst, const uint8 *&src, int &cnt, int16 scaleState);
-	void drawShapeProcessLineScaleUpwind(uint8 *&dst, const uint8 *&src, int &cnt, int16 scaleState);
-	void drawShapeProcessLineScaleDownwind(uint8 *&dst, const uint8 *&src, int &cnt, int16 scaleState);
+	void drawShapeProcessLineNoScaleUpwind(uint8 *&dst, const uint8 *&src, const DsPlotFunc plot, int &cnt, int16);
+	void drawShapeProcessLineNoScaleDownwind(uint8 *&dst, const uint8 *&src, const DsPlotFunc plot, int &cnt, int16);
+	void drawShapeProcessLineScaleUpwind(uint8 *&dst, const uint8 *&src, const DsPlotFunc plot, int &cnt, int16 scaleState);
+	void drawShapeProcessLineScaleDownwind(uint8 *&dst, const uint8 *&src, const DsPlotFunc plot, int &cnt, int16 scaleState);
 
 	void drawShapePlotType0(uint8 *dst, uint8 cmd);
 	void drawShapePlotType1(uint8 *dst, uint8 cmd);
@@ -760,15 +934,6 @@ protected:
 	void drawShapePlotType37(uint8 *dst, uint8 cmd);
 	void drawShapePlotType48(uint8 *dst, uint8 cmd);
 	void drawShapePlotType52(uint8 *dst, uint8 cmd);
-
-	typedef int (Screen::*DsMarginSkipFunc)(uint8 *&dst, const uint8 *&src, int &cnt);
-	typedef void (Screen::*DsLineFunc)(uint8 *&dst, const uint8 *&src, int &cnt, int16 scaleState);
-	typedef void (Screen::*DsPlotFunc)(uint8 *dst, uint8 cmd);
-
-	DsMarginSkipFunc _dsProcessMargin;
-	DsMarginSkipFunc _dsScaleSkip;
-	DsLineFunc _dsProcessLine;
-	DsPlotFunc _dsPlot;
 
 	const uint8 *_dsShapeFadingTable;
 	int _dsShapeFadingLevel;

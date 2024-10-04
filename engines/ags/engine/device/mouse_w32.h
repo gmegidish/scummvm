@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,15 +34,6 @@ class Bitmap;
 
 using namespace AGS; // FIXME later
 
-void msetgraphpos(int, int);
-void mgetgraphpos();
-// Sets the area of the game frame (zero-based coordinates) where the mouse cursor is allowed to move;
-// this function was meant to be used to achieve gameplay effect
-void msetcursorlimit(int x1, int y1, int x2, int y2);
-void msetgraphpos(int xa, int ya);
-void msethotspot(int xx, int yy);
-int minstalled();
-
 struct Mouse {
 	// Tells whether mouse was locked to the game window
 	bool LockedToWindow = false;
@@ -61,8 +51,13 @@ struct Mouse {
 	// Actual speed factor (cached)
 	float Speed = 1.f;
 
-
+	// Converts real window coordinates to native game coords
 	void WindowToGame(int &x, int &y);
+	// Sets mouse position in system coordinates, syncs with the real mouse cursor
+	void SetSysPosition(int x, int y);
+
+	// Tells the number of supported mouse buttons
+	int GetButtonCount();
 
 	// Get if mouse is locked to the game window
 	bool IsLockedToWindow();
@@ -82,13 +77,20 @@ struct Mouse {
 	// Get speed factor
 	float GetSpeed();
 
+	// Updates limits of the area inside which the standard OS cursor is not shown;
+	// uses game's main viewport (in native coordinates) to calculate real area on screen
+	void UpdateGraphicArea();
 	// Limits the area where the game cursor can move on virtual screen;
 	// parameter must be in native game coordinates
 	void SetMoveLimit(const Rect &r);
-	// Set actual OS cursor position on screen; parameter must be in native game coordinates
-	void SetPosition(const Point p);
 
-	void UpdateGraphicArea();
+	// Polls the cursor position, updates mousex, mousey
+	void Poll();
+	// Set actual OS cursor position on screen; in native game coordinates
+	void SetPosition(const Point &p);
+	// Sets the relative position of the cursor's hotspot, in native pixels
+	void SetHotspot(int x, int y);
+
 	void SetMovementControl(bool flag);
 };
 

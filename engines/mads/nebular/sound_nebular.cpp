@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -156,10 +155,10 @@ AdlibSample::AdlibSample(Common::SeekableReadStream &s) {
 
 /*-----------------------------------------------------------------------*/
 
-ASound::ASound(Audio::Mixer *mixer, OPL::OPL *opl, const Common::String &filename, int dataOffset) {
+ASound::ASound(Audio::Mixer *mixer, OPL::OPL *opl, const Common::Path &filename, int dataOffset) {
 	// Open up the appropriate sound file
 	if (!_soundFile.open(filename))
-		error("Could not open file - %s", filename.c_str());
+		error("Could not open file - %s", filename.toString().c_str());
 
 	// Initialize fields
 	_commandParam = 0;
@@ -237,14 +236,14 @@ void ASound::validate() {
 	};
 
 	for (int i = 1; i <= 9; ++i) {
-		Common::String filename = Common::String::format("ASOUND.00%d", i);
+		Common::Path filename(Common::String::format("ASOUND.00%d", i));
 		if (!f.open(filename))
-			error("Could not process - %s", filename.c_str());
+			error("Could not process - %s", filename.toString().c_str());
 		Common::String md5str = Common::computeStreamMD5AsString(f, 8192);
 		f.close();
 
 		if (md5str != MD5[i - 1])
-			error("Invalid sound file - %s", filename.c_str());
+			error("Invalid sound file - %s", filename.toString().c_str());
 	}
 }
 

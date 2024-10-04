@@ -18,17 +18,17 @@ When you're playing a game and you're ready to save, press :kbd:`Ctrl+F5` (:kbd:
 
 	The Global Main Menu (GMM).
 
-There are two views: list view and tile view. Click the list and tile icons at the bottom left of the window to toggle between the two.
+There are two views: list view and grid view. Click the list and grid icons at the bottom left of the window to toggle between the two.
 
 In tile view, click on the **New Save** tile. Enter a description for the game, then click **OK**.
 
-.. figure:: ../images/Launcher/save_game_tile.png
+.. figure:: ../images/Launcher/save_game_grid.png
 
-	Saving a game, tile view.
+	Saving a game, grid view.
 
-.. figure:: ../images/Launcher/save_game_tile_desc.png
+.. figure:: ../images/Launcher/save_game_grid_desc.png
 
-	Save game decription, tile view.
+	Save game decription, grid view.
 
 In list view, click on a slot to save the game to that slot. Enter a description for the game, then click **Save**.
 
@@ -49,50 +49,25 @@ The save directory can be changed with the savepath setting in the :doc:`Paths t
 
 Default saved game paths are shown below.
 
-.. tabbed:: Windows
+.. tab-set::
 
-	.. panels::
-		:column: col-lg-12 mb-2
+    .. tab-item:: Windows
 
-		Windows NT4
-		^^^^^^^^^^^^
-
-		``C:\WINDOWS\Profiles\username\Application Data\ScummVM\Saved games\``
-
-		---
-		:column: col-lg-12 mb-2
-
-		Windows 2000/XP
-		^^^^^^^^^^^^^^^^^
-		``\Documents and Settings\username\Application Data\ScummVM\Saved games\``
-
-		---
-		:column: col-lg-12 mb-2
-
-		Window Vista/7/8/10
-		^^^^^^^^^^^^^^^^^^^^^^
-		``%APPDATA%\ScummVM\Saved games``
+        ``%APPDATA%\ScummVM\Saved games``
 
 
-.. tabbed:: macOS
+    .. tab-item:: macOS
 
-	.. panels::
-		:column: col-lg-12 mb-2
-
-		``~/Documents/ScummVM Savegames/``
+        ``~/Documents/ScummVM Savegames/``
 
 
-.. tabbed:: Linux/Unix
+    .. tab-item:: Linux/Unix
 
-	.. panels::
-		:column: col-lg-12 mb-2
+        ScummVM follows the XDG Base Directory Specification, so by default the saved games can be found at ``~/.local/share/scummvm/saves/``, but this location might vary depending on the value of the ``XDG_DATA_HOME`` environment variable.
 
+        ``.local`` is a hidden directory. To view it use ``ls -a`` on the command line.
 
-		ScummVM follows the XDG Base Directory Specification, so by default the saved games can be found at ``~/.local/share/scummvm/saves/``, but this location might vary depending on the value of the ``XDG_DATA_HOME`` environment variable.
-
-		``.local`` is a hidden directory. To view it use ``ls -a`` on the command line.
-
-		If ScummVM was installed using Snap, the saves can be found at ``~/snap/scummvm/current/.local/share/scummvm/saves/``
+        If ScummVM was installed using Snap, the saves can be found at ``~/snap/scummvm/current/.local/share/scummvm/saves/``
 
 
 
@@ -114,11 +89,11 @@ To delete a saved game, highlight the saved game and click **Delete**.
 
 	Loading a game, list view.
 
-In tile view, each tile shows a screenshot of the saved state, as well as a description and a save slot number. Click on the tile to load that saved game.
+In grid view, each tile shows a screenshot of the saved state, as well as a description and a save slot number. Click on the tile to load that saved game.
 
-.. figure:: ../images/Launcher/load_game_tile.png
+.. figure:: ../images/Launcher/load_game_grid.png
 
-  Loading a game, tile view.
+  Loading a game, grid view.
 
 
 .. _savelocation:

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #include "scumm/object.h"
 #include "scumm/resource.h"
 #include "scumm/scumm_v3.h"
+#include "scumm/scumm_v7.h"
 #include "scumm/sound.h"
 #include "scumm/util.h"
 
@@ -44,14 +44,19 @@ void ScummEngine::startScene(int room, Actor *a, int objectNr) {
 
 	debugC(DEBUG_GENERAL, "Loading room %d", room);
 
+#ifdef ENABLE_SCUMM_7_8
+	if (_game.version >= 7) {
+		((ScummEngine_v7 *)this)->removeBlastTexts();
+	}
+#endif
+
 	stopTalk();
 
 	fadeOut(_switchRoomEffect2);
 	_newEffect = _switchRoomEffect;
 
-	ScriptSlot *ss = &vm.slot[_currentScript];
-
 	if (_currentScript != 0xFF) {
+		ScriptSlot *ss = &vm.slot[_currentScript];
 		if (ss->where == WIO_ROOM || ss->where == WIO_FLOBJECT) {
 			if (ss->cutsceneOverride && _game.version >= 5)
 				error("Object %d stopped with active cutscene/override in exit", ss->number);
@@ -76,6 +81,9 @@ void ScummEngine::startScene(int room, Actor *a, int objectNr) {
 	if (_game.version >= 4 && _game.heversion <= 62)
 		stopCycle(0);
 
+	if (_game.heversion > 0 && _game.heversion <= 70)
+		_palManipCounter = 0;
+
 	if (_game.id == GID_SAMNMAX) {
 		// WORKAROUND bug #1132 SAM: Overlapping music at Bigfoot convention
 		// Added sound queue processing between execution of exit
@@ -92,6 +100,13 @@ void ScummEngine::startScene(int room, Actor *a, int objectNr) {
 	for (i = 0; i < _numRoomVariables; i++)
 		_roomVars[i] = 0;
 	nukeArrays(0xFF);
+
+	// I don't know if this also belongs into v0, so I limit it to v1/2.
+	// I do suspect that v0 should have it, since the other use cases in
+	// o_loadRoomWithEgo/o2_loadRoomWithEgo and o_cutscene/o2_cutscene
+	// are also the same.
+	if (_game.version >= 1 && _game.version <= 2)
+		resetSentence();
 
 	for (i = 1; i < _numActors; i++) {
 		_actors[i]->hideActor();
@@ -111,6 +126,25 @@ void ScummEngine::startScene(int room, Actor *a, int objectNr) {
 		if (_game.features & GF_SMALL_HEADER)
 			setDirtyColors(0, 255);
 	}
+	
+	// WORKAROUND: In the CD version of MI1 a certain palette slot (47)
+	// points to a dark blue color in room 36 (the Marley Mansion outside view).
+	// The same palette slot points to white in the Floppy VGA version.
+	// 
+	// This is believed to be an oversight in the scripts/datafiles, as it affects:
+	// - The "Important Notice" sign about how the dogs are only sleeping.
+	// - The color of some of the stars in the sky.
+	//
+	// It has been noted that the Mac version apparently fixes that on the fly
+	// within the interpreter, so we do that as well even if kEnhVisualChanges
+	// is not active.
+	// 
+	// The SEGA CD version points to the correct color, and the FM Towns
+	// version makes the text more readable by giving it a black outline.
+	// The Ultimate Talkie version already takes care of that within the data files.
+
+	if (haveToApplyMonkey1PaletteFix() && room == 36)
+		_roomPalette[47] = 15;
 
 	VAR(VAR_ROOM) = room;
 	_fullRedraw = true;
@@ -137,6 +171,11 @@ void ScummEngine::startScene(int room, Actor *a, int objectNr) {
 		_ENCD_offs = _EXCD_offs = 0;
 		_numObjectsInRoom = 0;
 		return;
+	} else if (_game.id == GID_LOOM && _game.version == 4) {
+		// This is specific for LOOM VGA Talkie. It forces a
+		// redraw of the verbs screen. The original interpreter
+		// does this here...
+		VAR(66) = 1;
 	}
 
 	setupRoomSubBlocks();
@@ -198,7 +237,7 @@ void ScummEngine::startScene(int room, Actor *a, int objectNr) {
 
 	runEntryScript();
 	if (_game.version >= 1 && _game.version <= 2) {
-		runScript(5, 0, 0, 0);
+		runScript(5, 0, 0, nullptr);
 	} else if (_game.version >= 5 && _game.version <= 6) {
 		if (a && !_egoPositioned) {
 			int x, y;
@@ -217,11 +256,24 @@ void ScummEngine::startScene(int room, Actor *a, int objectNr) {
 
 	// Hint the backend about the virtual keyboard during copy protection screens
 	if (_game.id == GID_MONKEY2) {
-		if (_system->getFeatureState(OSystem::kFeatureVirtualKeyboard)) {
-			if (room != 108)
-				_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, false);
-		} else if (room == 108)
-			_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, true);
+		bool hasCopyProtectionScreen = true;
+
+		// The Macintosh version skips the copy protection screen with
+		// a boot param, unless you ask it not to.
+		if (_game.platform == Common::kPlatformMacintosh && _bootParam == -7873)
+			hasCopyProtectionScreen = false;
+
+		// The unofficial talkie never shows any copy protection screen.
+		if (_game.features & GF_ULTIMATE_TALKIE)
+			hasCopyProtectionScreen = false;
+
+		if (hasCopyProtectionScreen) {
+			if (_system->getFeatureState(OSystem::kFeatureVirtualKeyboard)) {
+				if (room != 108)
+					_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, false);
+			} else if (room == 108)
+				_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, true);
+		}
 	} else if (_game.id == GID_MONKEY_EGA) {	// this is my estimation that the room code is 90 (untested)
 		if (_system->getFeatureState(OSystem::kFeatureVirtualKeyboard)) {
 			if (room != 90)
@@ -242,7 +294,7 @@ void ScummEngine::startScene(int room, Actor *a, int objectNr) {
 void ScummEngine::setupRoomSubBlocks() {
 	int i;
 	const byte *ptr;
-	byte *roomptr, *searchptr, *roomResPtr = 0;
+	byte *roomptr, *searchptr, *roomResPtr = nullptr;
 	const RoomHeader *rmhd;
 
 	_ENCD_offs = 0;
@@ -323,14 +375,14 @@ void ScummEngine::setupRoomSubBlocks() {
 
 	if (_game.features & GF_SMALL_HEADER) {
 		ResourceIterator localScriptIterator(searchptr, true);
-		while ((ptr = localScriptIterator.findNext(MKTAG('L','S','C','R'))) != NULL) {
+		while ((ptr = localScriptIterator.findNext(MKTAG('L','S','C','R'))) != nullptr) {
 			int id = 0;
 			ptr += _resourceHeaderSize;	/* skip tag & size */
 			id = ptr[0];
 
 			if (_dumpScripts) {
 				char buf[32];
-				sprintf(buf, "room-%d-", _roomResource);
+				Common::sprintf_s(buf, "room-%d-", _roomResource);
 				dumpResource(buf, id, ptr - _resourceHeaderSize);
 			}
 
@@ -338,7 +390,7 @@ void ScummEngine::setupRoomSubBlocks() {
 		}
 	} else if (_game.heversion >= 90) {
 		ResourceIterator localScriptIterator2(searchptr, false);
-		while ((ptr = localScriptIterator2.findNext(MKTAG('L','S','C','2'))) != NULL) {
+		while ((ptr = localScriptIterator2.findNext(MKTAG('L','S','C','2'))) != nullptr) {
 			int id = 0;
 
 			ptr += _resourceHeaderSize;	/* skip tag & size */
@@ -350,13 +402,13 @@ void ScummEngine::setupRoomSubBlocks() {
 
 			if (_dumpScripts) {
 				char buf[32];
-				sprintf(buf, "room-%d-", _roomResource);
+				Common::sprintf_s(buf, "room-%d-", _roomResource);
 				dumpResource(buf, id, ptr - _resourceHeaderSize);
 			}
 		}
 
 		ResourceIterator localScriptIterator(searchptr, false);
-		while ((ptr = localScriptIterator.findNext(MKTAG('L','S','C','R'))) != NULL) {
+		while ((ptr = localScriptIterator.findNext(MKTAG('L','S','C','R'))) != nullptr) {
 			int id = 0;
 
 			ptr += _resourceHeaderSize;	/* skip tag & size */
@@ -366,14 +418,14 @@ void ScummEngine::setupRoomSubBlocks() {
 
 			if (_dumpScripts) {
 				char buf[32];
-				sprintf(buf, "room-%d-", _roomResource);
+				Common::sprintf_s(buf, "room-%d-", _roomResource);
 				dumpResource(buf, id, ptr - _resourceHeaderSize);
 			}
 		}
 
 	} else {
 		ResourceIterator localScriptIterator(searchptr, false);
-		while ((ptr = localScriptIterator.findNext(MKTAG('L','S','C','R'))) != NULL) {
+		while ((ptr = localScriptIterator.findNext(MKTAG('L','S','C','R'))) != nullptr) {
 			int id = 0;
 
 			ptr += _resourceHeaderSize;	/* skip tag & size */
@@ -393,7 +445,7 @@ void ScummEngine::setupRoomSubBlocks() {
 
 			if (_dumpScripts) {
 				char buf[32];
-				sprintf(buf, "room-%d-", _roomResource);
+				Common::sprintf_s(buf, "room-%d-", _roomResource);
 				dumpResource(buf, id, ptr - _resourceHeaderSize);
 			}
 		}
@@ -444,13 +496,20 @@ void ScummEngine::setupRoomSubBlocks() {
 
 	// WORKAROUND bug #1831: The dreaded DOTT "Can't get teeth" bug
 	// makes it impossible to go on playing w/o cheating in some way.
-	// It's not quite clear what causes it, but the effect is that object
-	// 182, the teeth, are still in class 32 (kObjectClassUntouchable),
-	// when they shouldn't be. Luckily, bitvar69 is set to 1 if and only if
-	// the teeth are trapped and have not yet been taken by the player. So
-	// we can make use of that fact to fix the object class of obj 182.
+	// Before the GDC17 conference where Oliver Franzke gave more
+	// background about this, it wasn't quite clear what caused this issue,
+	// but the effect is that object 182, the teeth, are still in class 32
+	// (kObjectClassUntouchable), when they shouldn't be. Luckily, bitvar69
+	// (teeth-caught) is set to 1 if and only if the teeth are trapped and
+	// have not yet been taken by the player. So we can make use of that
+	// fact to fix the object class of obj 182. This should match what the
+	// 2016 remaster did.
+	//
+	// Using `kEnhGameBreakingBugFixes`, since leaving the room too quickly
+	// would just make this puzzle impossible to complete.
 	if (_game.id == GID_TENTACLE && _roomResource == 26 && readVar(0x8000 + 69)
-			&& getClass(182, kObjectClassUntouchable)) {
+			&& getClass(182, kObjectClassUntouchable)
+			&& enhancementEnabled(kEnhGameBreakingBugFixes)) {
 		putClass(182, kObjectClassUntouchable, 0);
 	}
 
@@ -703,7 +762,7 @@ void ScummEngine_v3old::setupRoomSubBlocks() {
 
 			if (_dumpScripts) {
 				char buf[32];
-				sprintf(buf, "room-%d-", _roomResource);
+				Common::sprintf_s(buf, "room-%d-", _roomResource);
 
 				// HACK: to determine the sizes of the local scripts, we assume that
 				// a) their order in the data file is the same as in the index

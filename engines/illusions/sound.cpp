@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,10 +51,17 @@ void MusicPlayer::play(uint32 musicId, bool looping, int16 volume, int16 pan) {
 		} else {
 			_flags &= ~8;
 		}
-		Common::String filename = Common::String::format("%08x.wav", _musicId);
+		Common::Path filename(Common::String::format("%08x.wav", _musicId));
 		Common::File *fd = new Common::File();
-		fd->open(filename);
-		Audio::AudioStream *audioStream = Audio::makeLoopingAudioStream(Audio::makeWAVStream(fd, DisposeAfterUse::YES), looping ? 0 : 1);
+		if (!fd->open(filename)) {
+			delete fd;
+			error("MusicPlayer::play() Could not open %s", filename.toString().c_str());
+		}
+		Audio::SeekableAudioStream *wavStream = Audio::makeWAVStream(fd, DisposeAfterUse::YES);
+		if (wavStream == nullptr) {
+			error("MusicPlayer::play() Could not load %s", filename.toString().c_str());
+		}
+		Audio::AudioStream *audioStream = Audio::makeLoopingAudioStream(wavStream, looping ? 0 : 1);
 		g_system->getMixer()->playStream(Audio::Mixer::kMusicSoundType, &_soundHandle, audioStream, -1, volume, pan);
 	}
 }
@@ -81,9 +87,9 @@ bool MusicPlayer::isPlaying() {
 MidiPlayer::MidiPlayer()
 	: _isIdle(true), _isPlaying(false), _isCurrentlyPlaying(false), _isLooped(false),
 	_loopedMusicId(0), _queuedMusicId(0), _loadedMusicId(0),
-	_data(0), _dataSize(0) {
+	_data(nullptr), _dataSize(0) {
 
-	_data = 0;
+	_data = nullptr;
 	_dataSize = 0;
 	_isGM = false;
 
@@ -152,12 +158,12 @@ void MidiPlayer::stop() {
 void MidiPlayer::sysMidiPlay(uint32 musicId) {
 	Common::StackLock lock(_mutex);
 
-	Common::String filename = Common::String::format("%08x.mid", musicId);
-	debug(0, "MidiPlayer::sysMidiPlay() %s", filename.c_str());
+	Common::Path filename(Common::String::format("%08x.mid", musicId));
+	debug(0, "MidiPlayer::sysMidiPlay() %s", filename.toString().c_str());
 
 	Common::File fd;
 	if (!fd.open(filename)) {
-		error("MidiPlayer::sysMidiPlay() Could not open %s", filename.c_str());
+		error("MidiPlayer::sysMidiPlay() Could not open %s", filename.toString().c_str());
 	}
 
 	_dataSize = fd.size();
@@ -186,7 +192,7 @@ void MidiPlayer::sysMidiPlay(uint32 musicId) {
 void MidiPlayer::sysMidiStop() {
 	Audio::MidiPlayer::stop();
 	delete[] _data;
-	_data = 0;
+	_data = nullptr;
 	_dataSize = 0;
 	_loadedMusicId = 0;
 }
@@ -253,10 +259,16 @@ void VoicePlayer::stopCueing() {
 }
 
 void VoicePlayer::start(int16 volume, int16 pan) {
-	Common::String filename = Common::String::format("%s.wav", _voiceName.c_str());
+	Common::Path filename(Common::String::format("%s.wav", _voiceName.c_str()));
 	Common::File *fd = new Common::File();
-	fd->open(filename);
+	if (!fd->open(filename)) {
+		delete fd;
+		error("VoicePlayer::start() Could not open %s", filename.toString().c_str());
+	}
 	Audio::AudioStream *audioStream = Audio::makeWAVStream(fd, DisposeAfterUse::YES);
+	if (audioStream == nullptr) {
+		error("VoicePlayer::start() Could not load %s", filename.toString().c_str());
+	}
 	g_system->getMixer()->playStream(Audio::Mixer::kSpeechSoundType, &_soundHandle, audioStream, -1, volume, pan);
 	_voiceStatus = 4;
 }
@@ -300,7 +312,7 @@ bool VoicePlayer::isCued() {
 // Sound
 
 Sound::Sound(uint32 soundEffectId, uint32 soundGroupId, bool looping)
-	: _stream(0), _soundEffectId(soundEffectId), _soundGroupId(soundGroupId), _looping(looping) {
+	: _stream(nullptr), _soundEffectId(soundEffectId), _soundGroupId(soundGroupId), _looping(looping) {
 	load();
 }
 
@@ -309,20 +321,23 @@ Sound::~Sound() {
 }
 
 void Sound::load() {
-	Common::String filename = Common::String::format("%08x/%08x.wav", _soundGroupId, _soundEffectId);
+	Common::Path filename(Common::String::format("%08x/%08x.wav", _soundGroupId, _soundEffectId));
 	Common::File *fd = new Common::File();
 	if (!fd->open(filename)) {
 		delete fd;
-		error("SoundMan::loadSound() Could not load %s", filename.c_str());
+		error("Sound::load() Could not open %s", filename.toString().c_str());
 	}
 	_stream = Audio::makeWAVStream(fd, DisposeAfterUse::YES);
+	if (_stream == nullptr) {
+		warning("Sound::load() Could not load %s", filename.toString().c_str());
+	}
 }
 
 void Sound::unload() {
 	debug(1, "Sound::unload() %08X", _soundEffectId);
 	stop();
 	delete _stream;
-	_stream = 0;
+	_stream = nullptr;
 }
 
 void Sound::play(int16 volume, int16 pan) {
@@ -480,11 +495,11 @@ Sound *SoundMan::getSound(uint32 soundEffectId) {
 		if ((*it)->_soundEffectId == soundEffectId)
 			return *it;
 	}
-	return 0;
+	return nullptr;
 }
 
 void SoundMan::updateMidi() {
-	if (_midiPlayer->isIdle() & !_midiMusicQueue.empty()) {
+	if (_midiPlayer->isIdle() && !_midiMusicQueue.empty()) {
 		uint32 musicId = _midiMusicQueue.front();
 		_midiMusicQueue.remove_at(0);
 		_midiPlayer->play(musicId);

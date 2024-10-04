@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef DIRECTOR_MOVIE_H
 #define DIRECTOR_MOVIE_H
+
+#define DEFAULT_CAST_LIB 1
+#define SHARED_CAST_LIB -1337
+#define CAST_LIB_OFFSET 1023
 
 namespace Common {
 struct Event;
@@ -89,22 +92,33 @@ public:
 	static Common::Rect readRect(Common::ReadStreamEndian &stream);
 	static InfoEntries loadInfoEntries(Common::SeekableReadStreamEndian &stream, uint16 version);
 
+	void loadCastLibMapping(Common::SeekableReadStreamEndian &stream);
 	bool loadArchive();
 	void setArchive(Archive *archive);
 	Archive *getArchive() const { return _movieArchive; };
 	Common::String getMacName() const { return _macName; }
 	Window *getWindow() const { return _window; }
 	DirectorEngine *getVM() const { return _vm; }
-	Cast *getCast() const { return _cast; }
+	Cast *getCast() const { return _casts.getValOrDefault(DEFAULT_CAST_LIB, nullptr); }
+	Cast *getCast(CastMemberID memberID);
 	Cast *getSharedCast() const { return _sharedCast; }
+	const Common::HashMap<int, Cast *> *getCasts() const { return &_casts; }
 	Score *getScore() const { return _score; }
 
 	void clearSharedCast();
-	void loadSharedCastsFrom(Common::String filename);
+	void loadSharedCastsFrom(Common::Path &filename);
+	Archive *loadExternalCastFrom(Common::Path &filename);
 
 	CastMember *getCastMember(CastMemberID memberID);
-	CastMember *getCastMemberByName(const Common::String &name, int castLib);
+	CastMember *createOrReplaceCastMember(CastMemberID memberID, CastMember *cast);
+	bool eraseCastMember(CastMemberID memberID);
+	bool duplicateCastMember(CastMemberID source, CastMemberID target);
+	CastMemberID getCastMemberIDByMember(int memberID);
+	int getCastLibIDByName(const Common::String &name);
+	CastMemberID getCastMemberIDByName(const Common::String &name);
+	CastMemberID getCastMemberIDByNameAndType(const Common::String &name, int castLib, CastType type);
 	CastMemberInfo *getCastMemberInfo(CastMemberID memberID);
+	bool isValidCastMember(CastMemberID memberID, CastType type);
 	const Stxt *getStxt(CastMemberID memberID);
 
 	LingoArchive *getMainLingoArch();
@@ -117,23 +131,24 @@ public:
 
 	// lingo/lingo-events.cpp
 	void setPrimaryEventHandler(LEvent event, const Common::String &code);
+	void resolveScriptEvent(LingoEvent &event);
 	void processEvent(LEvent event, int targetId = 0);
-	void queueUserEvent(LEvent event, int targetId = 0);
+	void queueInputEvent(LEvent event, int targetId = 0, Common::Point pos = Common::Point(-1, -1));
 
 private:
 	void loadFileInfo(Common::SeekableReadStreamEndian &stream);
 
-	void queueEvent(Common::Queue<LingoEvent> &queue, LEvent event, int targetId = 0);
+	void queueEvent(Common::Queue<LingoEvent> &queue, LEvent event, int targetId = 0, Common::Point pos = Common::Point(-1, -1));
 	void queueSpriteEvent(Common::Queue<LingoEvent> &queue, LEvent event, int eventId, int spriteId);
-	void queueFrameEvent(Common::Queue<LingoEvent> &queue, LEvent event, int eventId);
-	void queueMovieEvent(Common::Queue<LingoEvent> &queue, LEvent event, int eventId);
 
 public:
 	Archive *_movieArchive;
 	uint16 _version;
 	Common::Platform _platform;
 	Common::Rect _movieRect;
-	uint16 _currentClickOnSpriteId;
+	uint16 _currentActiveSpriteId;
+	uint16 _currentMouseSpriteId;
+	CastMemberID _currentMouseDownCastID;
 	uint16 _currentEditableTextChannel;
 	uint32 _lastEventTime;
 	uint32 _lastRollTime;
@@ -145,11 +160,16 @@ public:
 	uint32 _stageColor;
 	Cast *_sharedCast;
 	bool _allowOutdatedLingo;
+	bool _remapPalettesWhenNeeded;
+	Common::String _createdBy;
+	Common::String _changedBy;
+	Common::String _origDirectory;
+	CastMemberID _defaultPalette;
 
 	bool _videoPlayback;
 
 	int _nextEventId;
-	Common::Queue<LingoEvent> _userEventQueue;
+	Common::Queue<LingoEvent> _inputEventQueue;
 
 	unsigned char _key;
 	int _keyCode;
@@ -169,24 +189,26 @@ public:
 	bool _timeOutMouse;
 	bool _timeOutPlay;
 
+	bool _isBeepOn;
+
+	Common::String _script;
+
 private:
 	Window *_window;
 	DirectorEngine *_vm;
 	Lingo *_lingo;
 	Cast *_cast;
+	Common::HashMap<int, Cast *> _casts;
+	Common::HashMap<Common::String, int, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> _castNames;
 	Score *_score;
 
 	uint32 _flags;
 
 	Common::String _macName;
-	Common::String _createdBy;
-	Common::String _changedBy;
-	Common::String _script;
-	Common::String _directory;
 
 	bool _mouseDownWasInButton;
 	Channel *_currentDraggedChannel;
-	Common::Point _draggingSpritePos;
+	Common::Point _draggingSpriteOffset;
 };
 
 } // End of namespace Director

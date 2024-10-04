@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@ namespace TwinE {
 struct EntityBody {
 	int index; /**< index in file3d.hqr */
 	ActorBoundingBox actorBoundingBox;
-	int bodyIndex; /**< index in body.hqr */
+	int hqrBodyIndex; /**< index in body.hqr */
 };
 
 struct EntityAnim {
@@ -44,6 +43,12 @@ struct EntityAnim {
 	struct Action {
 		ActionType type = ActionType::ACTION_NOP;
 		uint8 animFrame = 0;
+		uint8 lastAnimFrame = 0;
+		int8 weight = 0;
+		byte sampleVolume = 0;
+		int16 pointIndex = 0;
+		int16 spriteIndex = 0;
+		uint8 targetActor = 0;
 		int16 sampleIndex = 0;
 		int16 frequency = 0;
 		int16 xAngle = 0;
@@ -56,9 +61,15 @@ struct EntityAnim {
 		int16 distanceY = 0;
 		int16 distanceZ = 0;
 		int16 yHeight = 0;
-		uint8 spriteIndex = 0;
-		uint8 targetActor = 0;
 		int16 repeat = 0;
+		int16 speed = 0;
+		int16 superHitX = 0;
+		int16 superHitY = 0;
+		int16 superHitZ = 0;
+		int16 sizeSuperHit = 0;
+		int16 decal = 0;
+		int32 scale = 0;
+		BoundingBox bbox;
 	};
 
 	Common::Array<Action> _actions;
@@ -72,8 +83,8 @@ private:
 	Common::Array<EntityBody> _bodies;
 	Common::Array<EntityAnim> _animations;
 
-	bool loadBody(Common::SeekableReadStream &stream);
-	bool loadAnim(Common::SeekableReadStream &stream);
+	bool loadBody(Common::SeekableReadStream &stream, bool lba1);
+	bool loadAnim(Common::SeekableReadStream &stream, bool lba1);
 
 protected:
 	void reset() override;

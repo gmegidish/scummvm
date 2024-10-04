@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,20 +44,20 @@ uint32 CSTimeView::getTime() {
 void CSTimeView::setupView() {
 	_rootNode = new NewFeature(this);
 	_cursorNode = new NewFeature(this);
-	_rootNode->setNodeDefaults(NULL, _cursorNode);
+	_rootNode->setNodeDefaults(nullptr, _cursorNode);
 	_rootNode->_id = 1; // TODO: 10 in new?
 	_rootNode->_data.enabled = 0;
 	_rootNode->_flags = kFeatureSortBackground;
-	_rootNode->_moveProc = NULL;
-	_rootNode->_drawProc = NULL;
-	_rootNode->_timeProc = NULL;
-	_cursorNode->setNodeDefaults(_rootNode, NULL);
+	_rootNode->_moveProc = nullptr;
+	_rootNode->_drawProc = nullptr;
+	_rootNode->_timeProc = nullptr;
+	_cursorNode->setNodeDefaults(_rootNode, nullptr);
 	_cursorNode->_id = 0xffff; // TODO: 1 in new?
 	_cursorNode->_data.enabled = 0;
 	_cursorNode->_flags = kFeatureOldSortForeground; // TODO: 0x4000 in new..
 	_cursorNode->_moveProc = (Module::FeatureProc)&CSTimeModule::cursorMoveProc;
 	_cursorNode->_drawProc = (Module::FeatureProc)&CSTimeModule::cursorDrawProc;
-	_cursorNode->_timeProc = NULL;
+	_cursorNode->_timeProc = nullptr;
 }
 
 Feature *CSTimeView::installViewFeature(uint16 scrbId, uint32 flags, Common::Point *pos) {
@@ -81,7 +80,7 @@ Feature *CSTimeView::installViewFeature(uint16 scrbId, uint32 flags, Common::Poi
 	feature->_pickupProc = (Module::PickupProc)&CSTimeModule::defaultPickupProc;
 	feature->_dropProc = (Module::FeatureProc)&CSTimeModule::defaultDropProc;
 	feature->_dragMoveProc = (Module::FeatureProc)&CSTimeModule::defaultDragMoveProc;
-	feature->_oldMoveProc = NULL;
+	feature->_oldMoveProc = nullptr;
 	feature->_dragFlags = 0x8000;
 
 	feature->_id = getNewFeatureId();

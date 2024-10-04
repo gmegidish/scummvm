@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,7 +44,7 @@ BitmapFont::BitmapFont(const Graphics::Surface &src, const Common::Point &size,
 		Common::Rect charBounds(r.left, r.top, r.left + srcCharWidth, r.bottom);
 
 		_chars[idx].create(destCharWidth, size.y, src.format);
-		_chars[idx].transBlitFrom(src, charBounds, Common::Rect(0, 0, _chars[idx].w, _chars[idx].h));
+		_chars[idx].blitFrom(src, charBounds, Common::Rect(0, 0, _chars[idx].w, _chars[idx].h));
 	}
 }
 
@@ -55,7 +54,7 @@ void BitmapFont::drawChar(Graphics::Surface *dst, uint32 chr, int x, int y, uint
 		const byte *srcP = (const byte *)c.getBasePtr(0, yCtr);
 
 		for (int xCtr = 0; xCtr < c.w; ++xCtr, ++srcP) {
-			if (!*srcP)
+			if (*srcP)
 				dst->hLine(x + xCtr, y + yCtr, x + xCtr, color);
 		}
 	}
@@ -74,7 +73,7 @@ int BitmapFont::getSourceCharacterWidth(uint charIndex, const Graphics::Surface 
 		const byte *srcP = (const byte *)src.getBasePtr(charBounds.left, y);
 
 		for (int x = 0; x < charBounds.width(); ++x, ++srcP) {
-			if (!*srcP)
+			if (*srcP)
 				rowX = x;
 		}
 

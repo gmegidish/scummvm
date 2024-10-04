@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -38,10 +37,9 @@ APPFUNC(cmdModalWindow);
 void ModalModeSetup() {}
 void ModalModeCleanup() {}
 void ModalModeHandleTask() {}
-void ModalModeHandleKey(short, short);
 
 GameMode        ModalMode = {
-	NULL,                                   // no previous mode
+	nullptr,                                // no previous mode
 	false,                                  // mode is not nestable
 	ModalModeSetup,
 	ModalModeCleanup,
@@ -56,14 +54,14 @@ extern void updateWindowSection(const Rect16 &r);
    Modal Window class member functions
  * ===================================================================== */
 
-ModalWindow *ModalWindow::current = NULL;
+ModalWindow *ModalWindow::_current = nullptr;
 
 ModalWindow::ModalWindow(const Rect16 &r, uint16 ident, AppFunc *cmd)
 		: DecoratedWindow(r, ident, "DialogWindow", cmd) {
-	prevModeStackCtr = 0;
+	_prevModeStackCtr = 0;
 
-	for (int i = 0; i < Max_Modes; i++)
-		prevModeStackPtr[i] = 0;
+	for (int i = 0; i < kMax_Modes; i++)
+		_prevModeStackPtr[i] = nullptr;
 }
 
 ModalWindow::~ModalWindow() {
@@ -74,22 +72,20 @@ ModalWindow::~ModalWindow() {
 }
 
 bool ModalWindow::isModal() {
-	return openFlag;
+	return _openFlag;
 }
 
 bool ModalWindow::open() {
 	g_vm->_mouseInfo->replaceObject();
 	g_vm->_mouseInfo->clearGauge();
-	g_vm->_mouseInfo->setText(NULL);
-	g_vm->_mouseInfo->setIntent(GrabInfo::WalkTo);
+	g_vm->_mouseInfo->setText(nullptr);
+	g_vm->_mouseInfo->setIntent(GrabInfo::kIntWalkTo);
 
-	prevModeStackCtr = GameMode::getStack(prevModeStackPtr);
+	_prevModeStackCtr = GameMode::getStack(_prevModeStackPtr);
 
 	GameMode *gameModes[] = {&PlayMode, &TileMode, &ModalMode};
 	GameMode::SetStack(gameModes, 3);
-	current = this;
-
-
+	_current = this;
 
 	return gWindow::open();
 }
@@ -97,7 +93,7 @@ bool ModalWindow::open() {
 void ModalWindow::close() {
 	gWindow::close();
 
-	GameMode::SetStack(prevModeStackPtr, prevModeStackCtr);
+	GameMode::SetStack(_prevModeStackPtr, _prevModeStackCtr);
 	updateWindowSection(_extent);
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@
 #include "backends/vkeybd/keycode-descriptions.h"
 #include "common/config-manager.h"
 #include "common/textconsole.h"
-#include "common/unzip.h"
+#include "common/compression/unzip.h"
 
 #define KEY_START_CHAR ('[')
 #define KEY_END_CHAR (']')
@@ -78,11 +77,15 @@ void VirtualKeyboard::reset() {
 }
 
 bool VirtualKeyboard::openPack(const String &packName, Archive *searchPath, DisposeAfterUse::Flag disposeSearchPath) {
-	if (searchPath->hasFile(packName + ".xml")) {
+	Common::Path xmlPackName(packName), zipPackName(packName);
+	xmlPackName.appendInPlace(".xml");
+	zipPackName.appendInPlace(".zip");
+
+	if (searchPath->hasFile(xmlPackName)) {
 		_fileArchive.reset(searchPath, disposeSearchPath);
 
 		// uncompressed keyboard pack
-		if (!_parser->loadStream(searchPath->createReadStreamForMember(packName + ".xml"))) {
+		if (!_parser->loadStream(searchPath->createReadStreamForMember(xmlPackName))) {
 			_fileArchive.reset();
 			return false;
 		}
@@ -90,12 +93,12 @@ bool VirtualKeyboard::openPack(const String &packName, Archive *searchPath, Disp
 		return true;
 	}
 
-	if (searchPath->hasFile(packName + ".zip")) {
+	if (searchPath->hasFile(zipPackName)) {
 		// compressed keyboard pack
-		Archive *zip = makeZipArchive(searchPath->createReadStreamForMember(packName + ".zip"));
+		Archive *zip = makeZipArchive(searchPath->createReadStreamForMember(zipPackName));
 		_fileArchive.reset(zip, DisposeAfterUse::YES);
-		if (_fileArchive && _fileArchive->hasFile(packName + ".xml")) {
-			if (!_parser->loadStream(_fileArchive->createReadStreamForMember(packName + ".xml"))) {
+		if (_fileArchive && _fileArchive->hasFile(xmlPackName)) {
+			if (!_parser->loadStream(_fileArchive->createReadStreamForMember(xmlPackName))) {
 				_fileArchive.reset();
 				return false;
 			}
@@ -119,9 +122,9 @@ bool VirtualKeyboard::loadKeyboardPack(const String &packName) {
 
 	bool opened = false;
 	if (ConfMan.hasKey("vkeybdpath"))
-		opened = openPack(packName, new FSDirectory(ConfMan.get("vkeybdpath")), DisposeAfterUse::YES);
+		opened = openPack(packName, new FSDirectory(ConfMan.getPath("vkeybdpath")), DisposeAfterUse::YES);
 	else if (ConfMan.hasKey("extrapath"))
-		opened = openPack(packName, new FSDirectory(ConfMan.get("extrapath")), DisposeAfterUse::YES);
+		opened = openPack(packName, new FSDirectory(ConfMan.getPath("extrapath")), DisposeAfterUse::YES);
 
 	// fallback to SearchMan
 	if (!opened)

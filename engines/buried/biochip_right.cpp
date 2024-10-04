@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -114,6 +113,13 @@ bool BioChipRightWindow::destroyBioChipViewWindow() {
 	}
 
 	return true;
+}
+
+void BioChipRightWindow::swapAIBioChipIfActive() {
+	if (_curBioChip == kItemBioChipAI) {
+		_curBioChip = kItemBioChipBlank;
+		invalidateWindow(false);
+	}
 }
 
 void BioChipRightWindow::sceneChanged() {
@@ -224,6 +230,22 @@ void BioChipRightWindow::onPaint() {
 	}
 }
 
+void BioChipRightWindow::toggleBioChip() {
+	if (_status == 0) {
+		_status = 1;
+		showBioChipMainView();
+		invalidateWindow(false);
+	} else {
+		_status = 0;
+		destroyBioChipViewWindow();
+		invalidateWindow(false);
+	}
+}
+
+int BioChipRightWindow::getCurrentBioChip() const {
+	return _bioChipViewWindow ? _curBioChip : -1;
+}
+
 void BioChipRightWindow::onEnable(bool enable) {
 	if (enable)
 		_vm->removeMouseMessages(this);
@@ -250,7 +272,7 @@ void BioChipRightWindow::onLButtonUp(const Common::Point &point, uint flags) {
 				((GameUIWindow *)_parent)->_navArrowWindow->updateAllArrows(0, 0, 0, 0, 0);
 
 				VideoWindow *video = new VideoWindow(_vm, this);
-				video->setWindowPos(0, 2, 22, 0, 0, kWindowPosNoSize | kWindowPosNoZOrder | kWindowPosHideWindow);
+				video->setWindowPos(nullptr, 2, 22, 0, 0, kWindowPosNoSize | kWindowPosNoZOrder | kWindowPosHideWindow);
 				if (!video->openVideo(_vm->getFilePath(IDS_BC_CLOAKING_MOVIE_FILENAME))) {
 					error("Failed to load cloaking video");
 				}
@@ -261,7 +283,7 @@ void BioChipRightWindow::onLButtonUp(const Common::Point &point, uint flags) {
 				video->playToFrame(23);
 
 				while (!_vm->shouldQuit() && video->getMode() != VideoWindow::kModeStopped) {
-					_vm->yield();
+					_vm->yield(video, -1);
 					_vm->_sound->timerCallback();
 				}
 
@@ -286,7 +308,7 @@ void BioChipRightWindow::onLButtonUp(const Common::Point &point, uint flags) {
 				_status = 0;
 
 				VideoWindow *video = new VideoWindow(_vm, this);
-				video->setWindowPos(0, 2, 22, 0, 0, kWindowPosNoSize | kWindowPosNoZOrder | kWindowPosHideWindow);
+				video->setWindowPos(nullptr, 2, 22, 0, 0, kWindowPosNoSize | kWindowPosNoZOrder | kWindowPosHideWindow);
 				if (!video->openVideo(_vm->getFilePath(IDS_BC_CLOAKING_MOVIE_FILENAME))) {
 					error("Failed to load cloaking video");
 				}
@@ -298,7 +320,7 @@ void BioChipRightWindow::onLButtonUp(const Common::Point &point, uint flags) {
 				video->playToFrame(47);
 
 				while (!_vm->shouldQuit() && video->getMode() != VideoWindow::kModeStopped) {
-					_vm->yield();
+					_vm->yield(video, -1);
 					_vm->_sound->timerCallback();
 				}
 
@@ -342,42 +364,14 @@ void BioChipRightWindow::onLButtonUp(const Common::Point &point, uint flags) {
 		}
 		break;
 	case kItemBioChipFiles:
-		if (upperButton.contains(point)) {
-			if (_status == 0) {
-				_status = 1;
-				showBioChipMainView();
-				invalidateWindow(false);
-			} else {
-				_status = 0;
-				destroyBioChipViewWindow();
-				invalidateWindow(false);
-			}
-		}
-		break;
 	case kItemBioChipInterface:
 		if (upperButton.contains(point)) {
-			if (_status == 0) {
-				_status = 1;
-				showBioChipMainView();
-				invalidateWindow(false);
-			} else {
-				_status = 0;
-				destroyBioChipViewWindow();
-				invalidateWindow(false);
-			}
+			toggleBioChip();
 		}
 		break;
 	case kItemBioChipJump:
 		if (upperButton.contains(point)) {
-			if (_status == 0) {
-				_status = 1;
-				showBioChipMainView();
-				invalidateWindow(false);
-			} else {
-				_status = 0;
-				destroyBioChipViewWindow();
-				invalidateWindow(false);
-			}
+			toggleBioChip();
 		} else if (lowerButton.contains(point)) {
 			Location currentLocation;
 			if (((GameUIWindow *)_parent)->_sceneViewWindow->getCurrentSceneLocation(currentLocation)) {

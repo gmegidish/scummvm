@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@ TextDisplayer_MR::TextDisplayer_MR(KyraEngine_MR *vm, Screen_MR *screen)
 char *TextDisplayer_MR::preprocessString(const char *str) {
 	if (_talkBuffer != str) {
 		assert(strlen(str) < sizeof(_talkBuffer) - 1);
-		strcpy(_talkBuffer, str);
+		Common::strlcpy(_talkBuffer, str, sizeof(_talkBuffer));
 	}
 
 	char *p = _talkBuffer;
@@ -162,7 +161,16 @@ void TextDisplayer_MR::printText(const Common::String &str, int x, int y, uint8 
 	colorMap[3] = c1;
 	_screen->setTextColor(colorMap, 0, 3);
 	_screen->_charSpacing = -2;
-	_screen->printText(str.c_str(), x, y, c0, c2);
+
+	Common::String revBuffer;
+	const char *cstr = str.c_str();
+	if (_vm->gameFlags().lang == Common::HE_ISR) {
+		for (int i = str.size() - 1; i >= 0; --i)
+			revBuffer += str[i];
+		cstr = revBuffer.c_str();
+	}
+
+	_screen->printText(cstr, x, y, c0, c2);
 	_screen->_charSpacing = 0;
 }
 
@@ -272,7 +280,7 @@ void KyraEngine_MR::objectChatInit(const char *str, int object, int vocHigh, int
 		xPos = _talkObjectList[object].x;
 	}
 
-	_text->_talkMessageH = lineNum * (_screen->getFontHeight() + _screen->_lineSpacing);
+	_text->_talkMessageH = lineNum * _screen->getFontHeight() + (lineNum - 1) * _screen->_lineSpacing;
 	yPos -= _text->_talkMessageH;
 	yPos = MAX(yPos, 0);
 	_text->_talkMessageY = yPos;
@@ -549,7 +557,7 @@ void KyraEngine_MR::albumChatInit(const char *str, int object, int vocHigh, int 
 		xPos = _talkObjectList[object].x;
 	}
 
-	_text->_talkMessageH = lineNum * (_screen->getFontHeight() + _screen->_lineSpacing);
+	_text->_talkMessageH = lineNum * _screen->getFontHeight() + (lineNum - 1) * _screen->_lineSpacing;
 	yPos -= _text->_talkMessageH;
 	yPos = MAX(yPos, 0);
 	_text->_talkMessageY = yPos;
@@ -597,7 +605,7 @@ void KyraEngine_MR::albumChatWaitToFinish() {
 				frame = 13;
 
 			albumRestoreRect();
-			_album.wsa->displayFrame(frame, 2, -100, 90, 0x4000, 0, 0);
+			_album.wsa->displayFrame(frame, 2, -100, 90, 0x4000, nullptr, nullptr);
 			albumUpdateRect();
 
 			nextFrame = _system->getMillis() + _rnd.getRandomNumberRng(4, 8) * _tickLength;
@@ -650,14 +658,14 @@ void KyraEngine_MR::updateDlgBuffer() {
 	if (_curDlgIndex == _mainCharacter.dlgIndex && _curDlgChapter == _currentChapter && _curDlgLang == _lang)
 		return;
 
-	Common::String dlgFile = Common::String::format("CH%.02d-S%.02d.%s", _currentChapter, _mainCharacter.dlgIndex, _languageExtension[_lang]);
-	Common::String cnvFile = Common::String::format("CH%.02d-S%.02d.CNV", _currentChapter, _mainCharacter.dlgIndex);
+	Common::Path dlgFile(Common::String::format("CH%.02d-S%.02d.%s", _currentChapter, _mainCharacter.dlgIndex, _languageExtension[_lang]));
+	Common::Path cnvFile(Common::String::format("CH%.02d-S%.02d.CNV", _currentChapter, _mainCharacter.dlgIndex));
 
 	delete _cnvFile;
 	delete _dlgBuffer;
 
-	_res->exists(cnvFile.c_str(), true);
-	_res->exists(dlgFile.c_str(), true);
+	_res->exists(cnvFile, true);
+	_res->exists(dlgFile, true);
 	_cnvFile = _res->createReadStream(cnvFile);
 	_dlgBuffer = _res->createReadStream(dlgFile);
 	assert(_cnvFile);
@@ -736,7 +744,7 @@ void KyraEngine_MR::processDialog(int vocHighIndex, int vocHighBase, int funcNum
 			setDlgIndex(vocHighBase);
 		} else if (cmd == 11) {
 			int strSize = _cnvFile->readUint16LE();
-			vocLow = _cnvFile->readUint16LE();
+			_cnvFile->readUint16LE();
 			_cnvFile->read(_stringBuffer, strSize);
 			_stringBuffer[strSize] = 0;
 		} else {
@@ -754,10 +762,8 @@ void KyraEngine_MR::processDialog(int vocHighIndex, int vocHighBase, int funcNum
 
 			if (cmd != 12) {
 				if (object != script) {
-					if (script >= 0) {
+					if (script >= 0)
 						dialogEndScript(script);
-						script = -1;
-					}
 
 					dialogStartScript(object, funcNum);
 					script = object;

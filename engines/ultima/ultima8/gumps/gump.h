@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 
 #include "ultima/ultima8/kernel/object.h"
 #include "ultima/ultima8/misc/rect.h"
-#include "ultima/ultima8/graphics/frame_id.h"
+#include "ultima/ultima8/gfx/frame_id.h"
 #include "ultima/shared/std/containers.h"
 #include "ultima/ultima8/misc/classtype.h"
 
@@ -226,7 +225,9 @@ public:
 		BOTTOM_LEFT = 4,
 		BOTTOM_RIGHT = 5,
 		TOP_CENTER = 6,
-		BOTTOM_CENTER = 7
+		BOTTOM_CENTER = 7,
+		LEFT_CENTER = 8,
+		RIGHT_CENTER = 9
 	};
 
 	//! Moves this gump to a relative location on the parent gump
@@ -308,6 +309,9 @@ public:
 	//
 	// A mouse click on a gump will make it focus, IF it wants it.
 	//
+	// It is often preferrable to handle both click and double events
+	// rather than only the up event to avoid unintended clicks after
+	// performing intended action.
 
 	// Return Gump that handled event
 	virtual Gump       *onMouseDown(int button, int32 mx, int32 my);
@@ -382,12 +386,11 @@ public:
 		return _index;
 	}
 
-	// Dragging
-	//! Called when a child gump starts to be dragged.
-	//! \return false if the child isn't allowed to be dragged.
-	virtual bool StartDraggingChild(Gump *gump, int32 mx, int32 my);
-	virtual void DraggingChild(Gump *gump, int mx, int my);
-	virtual void StopDraggingChild(Gump *gump);
+	//! Called when a gump starts to be dragged.
+	//! \return false if the gump isn't allowed to be dragged.
+	virtual bool onDragStart(int32 mx, int32 my);
+	virtual void onDragStop(int32 mx, int32 my);
+	virtual void onDrag(int32 mx, int32 my);
 
 	//! This will be called when an item in this gump starts to be dragged.
 	//! \return false if the item isn't allowed to be dragged.

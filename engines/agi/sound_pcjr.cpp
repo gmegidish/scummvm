@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -126,7 +125,7 @@ SoundGenPCJr::SoundGenPCJr(AgiBase *vm, Audio::Mixer *pMixer) : SoundGen(vm, pMi
 
 	_mixer->playStream(Audio::Mixer::kMusicSoundType, _soundHandle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO, true);
 
-	_v1data = NULL;
+	_v1data = nullptr;
 	_v1size = 0;
 }
 
@@ -160,7 +159,7 @@ void SoundGenPCJr::play(int resnum) {
 	_v1size = pcjrSound->getLength() - 1;
 }
 
-void SoundGenPCJr::stop(void) {
+void SoundGenPCJr::stop() {
 	int i;
 
 	for (i = 0; i < CHAN_MAX; i++) {
@@ -297,7 +296,7 @@ int SoundGenPCJr::getNextNote_v1(int ch) {
 	byte *data = _v1data;
 	uint32 len = _v1size;
 
-	if (len <= 0 || data == NULL) {
+	if (len <= 0 || data == nullptr) {
 		_channel[ch].avail = 0;
 		_channel[ch].attenuation = 0x0F;
 		_channel[ch].attenuationCopy = 0x0F;

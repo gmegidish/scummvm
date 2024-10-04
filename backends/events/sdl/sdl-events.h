@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -144,6 +143,11 @@ protected:
 	virtual int mapSDLControllerButtonToOSystem(Uint8 sdlButton);
 	virtual bool handleControllerButton(const SDL_Event &ev, Common::Event &event, bool buttonUp);
 	virtual bool handleControllerAxisMotion(const SDL_Event &ev, Common::Event &event);
+
+	virtual bool isTouchPortTouchpadMode(SDL_TouchID port);
+	virtual bool isTouchPortActive(SDL_TouchID port);
+	virtual Common::Point getTouchscreenSize();
+	virtual void convertTouchXYToGameXY(float touchX, float touchY, int *gameX, int *gameY);
 #endif
 
 	//@}
@@ -217,6 +221,46 @@ protected:
 	 * KEYDOWN event.
 	 */
 	Common::Event _fakeKeyUp;
+
+	enum {
+		MAX_NUM_FINGERS = 3, // number of fingers to track per panel
+		MAX_TAP_TIME = 250, // taps longer than this will not result in mouse click events
+		MAX_TAP_MOTION_DISTANCE = 10, // max distance finger motion in Vita screen pixels to be considered a tap
+		SIMULATED_CLICK_DURATION = 50, // time in ms how long simulated mouse clicks should be
+		FINGER_SUBPIXEL_MULTIPLIER = 16 // multiplier for sub-pixel resolution
+	};
+
+	struct TouchFinger {
+		int id = -1; // -1: no touch
+		uint32 timeLastDown = 0;
+		int lastX = 0; // last known screen coordinates
+		int lastY = 0; // last known screen coordinates
+		float lastDownX = 0; // SDL touch coordinates when last pressed down
+		float lastDownY = 0; // SDL touch coordinates when last pressed down
+	};
+
+	enum DraggingType {
+		DRAG_NONE = 0,
+		DRAG_TWO_FINGER,
+		DRAG_THREE_FINGER,
+	};
+
+	struct TouchPanelState {
+		TouchFinger _finger[MAX_NUM_FINGERS]; // keep track of finger status
+		DraggingType _multiFingerDragging = DRAG_NONE; // keep track whether we are currently drag-and-dropping
+		unsigned int _simulatedClickStartTime[2] = {0, 0}; // initiation time of last simulated left or right click (zero if no click)
+		int _hiresDX = 0; // keep track of slow, sub-pixel, finger motion across multiple frames
+		int _hiresDY = 0;
+		bool _tapMade = false;
+	};
+
+	Common::HashMap<unsigned long, TouchPanelState> _touchPanels;
+
+private:
+	void preprocessFingerDown(SDL_Event *event);
+	bool preprocessFingerUp(SDL_Event *event, Common::Event *ev);
+	void preprocessFingerMotion(SDL_Event *event);
+	void finishSimulatedMouseClicks(void);
 #endif
 };
 

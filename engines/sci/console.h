@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
- // Console module header file
 
 #ifndef SCI_CONSOLE_H
 #define SCI_CONSOLE_H
@@ -54,11 +51,11 @@ private:
 	// General
 	bool cmdHelp(int argc, const char **argv);
 	// Kernel
-//	bool cmdClasses(int argc, const char **argv);	// TODO
 	bool cmdOpcodes(int argc, const char **argv);
 	bool cmdSelector(int argc, const char **argv);
 	bool cmdSelectors(int argc, const char **argv);
 	bool cmdKernelFunctions(int argc, const char **argv);
+	bool cmdKernelCall(int argc, const char **argv);
 	bool cmdClassTable(int argc, const char **argv);
 	// Parser
 	bool cmdSuffixes(int argc, const char **argv);
@@ -147,6 +144,10 @@ private:
 	bool cmdGo(int argc, const char **argv);
 	bool cmdLogKernel(int argc, const char **argv);
 	bool cmdMapVocab994(int argc, const char **argv);
+	bool cmdGameFlagsInit(int argc, const char **argv);
+	bool cmdGameFlagsTest(int argc, const char **argv);
+	bool cmdGameFlagsSet(int argc, const char **argv);
+	bool cmdGameFlagsClear(int argc, const char **argv);
 	// Breakpoints
 	bool cmdBreakpointList(int argc, const char **argv);
 	bool cmdBreakpointDelete(int argc, const char **argv);
@@ -164,6 +165,7 @@ private:
 	bool cmdScriptSaid(int argc, const char **argv);
 	bool cmdVMVarlist(int argc, const char **argv);
 	bool cmdVMVars(int argc, const char **argv);
+	bool cmdLocalVars(int argc, const char **argv);
 	bool cmdStack(int argc, const char **argv);
 	bool cmdValueType(int argc, const char **argv);
 	bool cmdViewListNode(int argc, const char **argv);
@@ -172,6 +174,8 @@ private:
 	bool cmdViewObject(int argc, const char **argv);
 	bool cmdViewActiveObject(int argc, const char **argv);
 	bool cmdViewAccumulatorObject(int argc, const char **argv);
+	// Variables
+	bool cmdSpeedThrottle(int argc, const char **argv);
 
 	bool parseInteger(const char *argument, int &result);
 	bool parseResourceNumber36(const char *userParameter, uint16 &resourceNumber, uint32 &resourceTuple);
@@ -201,11 +205,19 @@ private:
 #endif
 
 	void writeIntegrityDumpLine(const Common::String &statusName, const Common::String &resourceName, Common::WriteStream &out, Common::ReadStream *const data, const int size, const bool writeHash);
+	
+	enum GameFlagsOperation {
+		kGameFlagsTest,
+		kGameFlagsSet,
+		kGameFlagsClear
+	};
+	bool processGameFlagsOperation(GameFlagsOperation operation, int argc, const char **argv);
 
 	SciEngine *_engine;
 	DebugState &_debugState;
-	Common::String _videoFile;
+	Common::Path _videoFile;
 	int _videoFrameDelay;
+	uint16 _gameFlagsGlobal;
 };
 
 } // End of namespace Sci

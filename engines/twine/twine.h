@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define TWINE_TWINE_H
 
 #include "backends/keymapper/keymap.h"
+#include "common/platform.h"
 #include "common/random.h"
 #include "common/rect.h"
 #include "engines/advancedDetector.h"
@@ -37,6 +37,9 @@
 #include "twine/detection.h"
 #include "twine/input.h"
 #include "twine/scene/actor.h"
+#include "twine/script/script_life.h"
+#include "twine/script/script_move.h"
+#include "twine/shared.h"
 
 namespace TwinE {
 
@@ -49,6 +52,7 @@ namespace TwinE {
 
 /** Default frames per second */
 #define DEFAULT_FRAMES_PER_SECOND 20
+#define DEFAULT_HZ (1000 / DEFAULT_FRAMES_PER_SECOND)
 
 #define ORIGINAL_WIDTH 640
 #define ORIGINAL_HEIGHT 480
@@ -56,13 +60,14 @@ namespace TwinE {
 static const struct TwinELanguage {
 	const char *name;
 	const char *id;
+	const int voice;
 } LanguageTypes[] = {
-	{"English", "EN_"},
-	{"French", "FR_"},
-	{"German", "DE_"},
-	{"Spanish", "SP_"},
-	{"Italian", "IT_"},
-	{"Portuguese", ""}};
+	{"English", "EN_", 1},
+	{"French", "FR_", 2},
+	{"German", "DE_", 3},
+	{"Spanish", "SP_", 1},
+	{"Italian", "IT_", 1},
+	{"Portuguese", "", 1}};
 
 enum MidiFileType {
 	MIDIFILE_NONE,
@@ -84,8 +89,7 @@ enum MovieType {
 	All the settings with (*) means they are new and only exist in this engine. */
 struct ConfigFile {
 	/** Index into the LanguageTypes array. */
-	int32 LanguageId = 0;
-	bool Voice = true;
+	int32 _languageId = 0;
 	/** Enable/Disable game dialogues */
 	bool FlagDisplayText = false;
 	/** Flag to display game debug */
@@ -94,8 +98,6 @@ struct ConfigFile {
 	MidiFileType MidiType = MIDIFILE_NONE;
 	/** Game version */
 	int32 Version = EUROPE_VERSION;
-	/** If you want to use the LBA CD or not */
-	int32 UseCD = 0;
 	/** Allow various sound types */
 	int32 Sound = 0;
 	/** Allow various movie types */
@@ -104,13 +106,11 @@ struct ConfigFile {
 	int32 Fps = 0;
 
 	// these settings are not available in the original version
-	/** Use cross fade effect while changing images, or be as the original */
-	bool CrossFade = false;
 	/** Flag to toggle Wall Collision */
 	bool WallCollision = false;
 	/** Use original autosaving system or save when you want */
 	bool UseAutoSaving = false;
-	bool Mouse = false;
+	bool Mouse = true;
 
 	// these settings can be changed in-game - and must be persisted
 	/** Shadow mode type, value: all, character only, none */
@@ -137,8 +137,8 @@ class Renderer;
 class Resources;
 class Scene;
 class Screens;
-class ScriptLife;
-class ScriptMove;
+class ScriptLifeV1;
+class ScriptMoveV1;
 class Holomap;
 class Sound;
 class Text;
@@ -147,6 +147,12 @@ struct Keyboard;
 class Debug;
 class DebugScene;
 
+// lba2
+class Buggy;
+class Dart;
+class Rain;
+class Wagon;
+
 enum class EngineState {
 	Menu,
 	GameLoop,
@@ -154,9 +160,15 @@ enum class EngineState {
 	QuitGame
 };
 
+enum class SceneLoopState {
+	Continue = -1,
+	ReturnToMenu = 0,
+	Finished = 1
+};
+
 struct ScopedEngineFreeze {
 	TwinEEngine *_engine;
-	ScopedEngineFreeze(TwinEEngine *engine);
+	ScopedEngineFreeze(TwinEEngine *engine, bool pause = false);
 	~ScopedEngineFreeze();
 };
 
@@ -180,6 +192,7 @@ class TwineScreen : public Graphics::Screen {
 private:
 	using Super = Graphics::Screen;
 	TwinEEngine *_engine;
+	int _lastFrame = -1;
 
 public:
 	TwineScreen(TwinEEngine *engine);
@@ -212,7 +225,7 @@ private:
 	void initConfigurations();
 	/** Initialize all needed stuffs at first time running engine */
 	void initAll();
-	void initEngine();
+	void playIntro();
 	void processActorSamplePosition(int32 actorIdx);
 	/** Allocate video memory, both front and back buffers */
 	void allocVideoMemory(int32 w, int32 h);
@@ -221,20 +234,21 @@ private:
 	 * Game engine main loop
 	 * @return true if we want to show credit sequence
 	 */
-	int32 runGameEngine();
+	bool runGameEngine();
 public:
-	TwinEEngine(OSystem *system, Common::Language language, uint32 flagsTwineGameType, TwineGameType gameType);
+	TwinEEngine(OSystem *system, Common::Language language, uint32 flagsTwineGameType, Common::Platform platform, TwineGameType gameType);
 	~TwinEEngine() override;
 
 	Common::Error run() override;
 	bool hasFeature(EngineFeature f) const override;
 
-	bool canLoadGameStateCurrently() override { return true; }
-	bool canSaveGameStateCurrently() override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return true; }
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 
 	Common::Error loadGameStream(Common::SeekableReadStream *stream) override;
 	Common::Error saveGameStream(Common::WriteStream *stream, bool isAutosave = false) override;
 
+	int32 toSeconds(int x) const;
 	void wipeSaveSlot(int slot);
 	SaveStateList getSaveSlots() const;
 	void autoSave();
@@ -242,11 +256,26 @@ public:
 	void pushMouseCursorVisible();
 	void popMouseCursorVisible();
 
+	bool isCDROM() const { return true; /* TODO */}
 	bool isLBA1() const { return _gameType == TwineGameType::GType_LBA; }
 	bool isLBA2() const { return _gameType == TwineGameType::GType_LBA2; }
+	bool isLBASlideShow() const { return _gameType == TwineGameType::GType_LBASHOW; }
 	bool isMod() const { return (_gameFlags & TwinE::TF_MOD) != 0; }
+	bool isDotEmuEnhanced() const { return (_gameFlags & TwinE::TF_DOTEMU_ENHANCED) != 0; }
+	bool isLba1Classic() const { return (_gameFlags & TwinE::TF_LBA1_CLASSIC) != 0; }
 	bool isDemo() const { return (_gameFlags & ADGF_DEMO) != 0; };
+	bool isAndroid() const { return _platform == Common::Platform::kPlatformAndroid; };
 	const char *getGameId() const;
+	Common::Language getGameLang() const;
+
+	inline int numHoloPos() const {
+		const int maxLocations = isLBA1() ? MAX_HOLO_POS : MAX_HOLO_POS_2;
+		return maxLocations;
+	}
+
+	inline int getMaxLife() const {
+		return isLBA1() ? 50 : 255;
+	}
 
 	bool unlockAchievement(const Common::String &id);
 
@@ -259,7 +288,7 @@ public:
 	Movements *_movements;
 	Interface *_interface;
 	Menu *_menu;
-	Movies *_flaMovies;
+	Movies *_movie;
 	MenuOptions *_menuOptions;
 	Music *_music;
 	Redraw *_redraw;
@@ -273,19 +302,25 @@ public:
 	DebugGrid *_debugGrid;
 	Input *_input;
 	Debug *_debug;
+	Buggy *_buggy; // lba2
+	Dart *_dart; // lba2
+	Rain *_rain; // lba2
+	Wagon *_wagon; // lba2
 	DebugScene *_debugScene;
 
 	/** Configuration file structure
-	 * Contains all the data used in the engine to configurated the game in particulary ways. */
+	 * Contains all the data used in the engine to configurate the game in particularly ways. */
 	ConfigFile _cfgfile;
 
 	int32 _frameCounter = 0;
-	int32 _quitGame = 0;
-	int32 _lbaTime = 0;
+	SceneLoopState _sceneLoopState = SceneLoopState::ReturnToMenu; // FlagTheEnd
+	int32 timerRef = 0;
 
 	int32 _loopInventoryItem = 0;
-	int32 _loopActorStep = 0;
-	uint32 _gameFlags;
+	int32 _stepFalling = 0;
+	uint32 _gameFlags = 0u;
+	Common::Platform _platform;
+	bool _flagRain = false;
 
 	/** Disable screen recenter */
 	bool _disableScreenRecenter = false;
@@ -298,14 +333,23 @@ public:
 
 	int width() const;
 	int height() const;
+
+	// the resolution the game was meant to be played with
+	int originalWidth() const;
+	int originalHeight() const;
+
 	Common::Rect rect() const;
 	Common::Rect centerOnScreen(int32 w, int32 h) const;
 	Common::Rect centerOnScreenX(int32 w, int32 y, int32 h) const;
 
-	void initSceneryView();
-	void exitSceneryView();
+	void extInitMcga();
+	void extInitSvga();
+	void testRestoreModeSVGA(bool redraw);
 
 	void queueMovie(const char *filename);
+
+	void clearScreenMinMax(Common::Rect &rect);
+	void adjustScreenMax(Common::Rect &rect, int16 x, int16 y);
 
 	/**
 	 * @return A random value between [0-max)
@@ -317,7 +361,7 @@ public:
 	void restoreFrontBuffer();
 	void saveFrontBuffer();
 
-	void freezeTime();
+	void freezeTime(bool pause);
 	void unfreezeTime();
 
 	/**
@@ -329,6 +373,7 @@ public:
 	/**
 	 * Deplay certain seconds till proceed - Can also Skip this delay
 	 * @param time time in milliseconds to delay
+	 * @return @c true if the delay was aborted, @c false otherwise
 	 */
 	bool delaySkip(uint32 time);
 
@@ -356,11 +401,6 @@ public:
 	void copyBlockPhys(int32 left, int32 top, int32 right, int32 bottom);
 	void copyBlockPhys(const Common::Rect &rect);
 
-	/** Cross fade feature
-	 * @param palette new palette to cross fade
-	 */
-	void crossFade(const uint32 *palette);
-
 	/** Handle keyboard pressed keys */
 	void readKeys();
 
@@ -385,6 +425,15 @@ inline int TwinEEngine::height() const {
 inline Common::Rect TwinEEngine::rect() const {
 	return Common::Rect(0, 0, _frontVideoBuffer.w - 1, _frontVideoBuffer.h - 1);
 }
+
+inline int TwinEEngine::originalWidth() const {
+	return 640;
+}
+
+inline int TwinEEngine::originalHeight() const {
+	return 480;
+}
+
 
 } // namespace TwinE
 

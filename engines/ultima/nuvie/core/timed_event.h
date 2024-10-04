@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,7 +51,7 @@ public:
 	}
 
 	bool empty() const {
-		return (tq.empty());
+		return tq.empty();
 	}
 	void clear();
 	void add_timer(TimedEvent *tevent);
@@ -155,7 +154,7 @@ public:
 	void init(MapCoord *d, MapCoord *t, Obj *use_obj);
 	void timed(uint32 evtime) override;
 
-	uint16 callback(uint16 msg, CallBack *caller, void *data = NULL) override;
+	uint16 callback(uint16 msg, CallBack *caller, void *data = nullptr) override;
 
 protected:
 	bool move_party();
@@ -188,7 +187,7 @@ public:
 #endif
 
 
-//FIXME: It isnt container search. Its a msgscroll effect to print one line at a time.
+//FIXME: It isn't container search. Its a msgscroll effect to print one line at a time.
 /* Dump one item at a time out of a container, and print it's name to MsgScroll.
  */
 class TimedContainerSearch : public TimedEvent {
@@ -214,7 +213,7 @@ public:
 	~TimedCallback() override {  }
 	void timed(uint32 evtime) override;
 	void clear_target() {
-		set_target(NULL);
+		set_target(nullptr);
 	}
 };
 
@@ -246,7 +245,7 @@ public:
 	void init(uint16 min, uint16 r); // start time advance
 
 	void timed(uint32 evtime) override;
-	bool time_passed(); // returns true if stop time has passed
+	bool time_passed() const; // returns true if stop time has passed
 	void get_time_from_string(uint8 &hour, uint8 &minute, Std::string timestring);
 };
 

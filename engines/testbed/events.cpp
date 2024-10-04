@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -113,17 +112,17 @@ char EventTests::keystrokeToChar() {
 }
 
 Common::Rect EventTests::drawFinishZone() {
-	Graphics::Surface *screen = g_system->lockScreen();
 	const Graphics::Font &font(*FontMan.getFontByUsage(Graphics::FontManager::kBigGUIFont));
 	int width = 35;
 	int height = 20;
 	int right = g_system->getWidth();
 	Common::Rect rect(0, 0, right, height);
 	Common::Rect rect2(0, 0, right - width, height);
-	screen->fillRect(rect, kColorSpecial);
-	screen->fillRect(rect2, kColorBlack);
-	g_system->unlockScreen();
+	g_system->fillScreen(rect, kColorSpecial);
+	g_system->fillScreen(rect2, kColorBlack);
+	Graphics::Surface *screen = g_system->lockScreen();
 	font.drawString(screen, "Close", rect.left, rect.top, screen->w, kColorBlack, Graphics::kTextAlignRight);
+	g_system->unlockScreen();
 	g_system->updateScreen();
 	return Common::Rect(right - width, 0, right, height);
 }
@@ -265,6 +264,48 @@ TestExitStatus EventTests::mouseEvents() {
 	return passed;
 }
 
+TestExitStatus EventTests::doubleClickTime() {
+	Testsuite::clearScreen();
+
+	uint32 dclickTime = g_system->getDoubleClickTime();
+
+	if (dclickTime == 0) {
+		if (Testsuite::handleInteractiveInput("Double-click time returned 0, meaning it isn't configurable on this operating system.\nIs that correct ?", "Yes", "No", kOptionLeft)) {
+			Testsuite::logDetailedPrintf("Unsupported double-click time check failed");
+			return kTestFailed;
+		}
+	}
+
+	Common::String info = "Testing double click time detection.\n "
+						  "This should report the correct double-click time for the system";
+
+	if (Testsuite::handleInteractiveInput(info, "OK", "Skip", kOptionRight)) {
+		Testsuite::logPrintf("Info! Skipping test : double click time\n");
+		return kTestSkipped;
+	}
+
+	info = Common::String::format("Double-click time was reported as: %u msec\nDoes this seem correct?", static_cast<unsigned int>(dclickTime));
+
+	if (Testsuite::handleInteractiveInput(info, "Yes", "No", kOptionRight)) {
+		Testsuite::logDetailedPrintf("Double-click time failed");
+		return kTestFailed;
+	}
+
+	if (Testsuite::handleInteractiveInput("Do you want to test for detecting configuration changes?\nIf so, change the OS double-click time now, then click 'Yes'", "Yes", "No", kOptionLeft)) {
+		dclickTime = g_system->getDoubleClickTime();
+
+		info = Common::String::format("Double-click time was reported as: %u msec\nDoes this seem correct?", static_cast<unsigned int>(dclickTime));
+
+		if (Testsuite::handleInteractiveInput(info, "Yes", "No", kOptionRight)) {
+			Testsuite::logDetailedPrintf("Double-click time reconfiguration failed");
+			return kTestFailed;
+		}
+	}
+
+
+	return kTestPassed;
+}
+
 TestExitStatus EventTests::kbdEvents() {
 
 	Testsuite::clearScreen();
@@ -331,6 +372,7 @@ TestExitStatus EventTests::showMainMenu() {
 
 EventTestSuite::EventTestSuite() {
 	addTest("MouseEvents", &EventTests::mouseEvents);
+	addTest("DoubleClickTime", &EventTests::doubleClickTime);
 	addTest("KeyboardEvents", &EventTests::kbdEvents);
 	addTest("MainmenuEvent", &EventTests::showMainMenu);
 }

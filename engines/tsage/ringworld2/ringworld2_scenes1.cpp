@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "common/math.h"
 #include "graphics/cursorman.h"
+#include "math/utils.h"
 
 #include "tsage/scenes.h"
 #include "tsage/dialogs.h"
@@ -3911,8 +3910,8 @@ void Scene1575::postInit(SceneObjectList *OwnerList) {
 		_arrActor[i].postInit();
 		_arrActor[i].setup(1575, 2, k5A7F6[3 * i + 2]);
 
-		double v1 = Common::hypotenuse<double>(2.0, 3 - k5A7F6[3 * i]);
-		v1 += Common::hypotenuse<double>(2.0, 3 - k5A7F6[3 * i + 1]);
+		double v1 = Math::hypotenuse<double>(2.0, 3 - k5A7F6[3 * i]);
+		v1 += Math::hypotenuse<double>(2.0, 3 - k5A7F6[3 * i + 1]);
 		int yp = (int)(sqrt(v1) * 75.0 / 17.0 - 161.0);
 
 		int angle = R2_GLOBALS._gfxManagerInstance.getAngle(

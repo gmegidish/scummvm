@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,7 @@
 #include "illusions/duckman/duckman_videoplayer.h"
 #include "illusions/actor.h"
 #include "illusions/camera.h"
+#include "illusions/console.h"
 #include "illusions/cursor.h"
 #include "illusions/dictionary.h"
 #include "illusions/gamresourcereader.h"
@@ -69,7 +69,6 @@
 #include "graphics/cursorman.h"
 #include "graphics/font.h"
 #include "graphics/fontman.h"
-#include "graphics/palette.h"
 #include "graphics/surface.h"
 
 namespace Illusions {
@@ -83,7 +82,7 @@ IllusionsEngine_Duckman::IllusionsEngine_Duckman(OSystem *syst, const IllusionsG
 Common::Error IllusionsEngine_Duckman::run() {
 
 	// Init search paths
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "music");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "sfx", 0, 2);
 	SearchMan.addSubDirectoryMatching(gameDataDir, "video");
@@ -103,6 +102,8 @@ Common::Error IllusionsEngine_Duckman::run() {
 	_resSys->addResourceLoader(0x00110000, new BackgroundResourceLoader(this));
 	_resSys->addResourceLoader(0x00120000, new FontResourceLoader(this));
 	_resSys->addResourceLoader(0x00190000, new GenericResourceLoader(this));
+
+	setDebugger(new Console(this));
 
 	_screen = new Screen8Bit(this, 320, 200);
 	_screenPalette = new ScreenPalette(this);
@@ -138,7 +139,7 @@ Common::Error IllusionsEngine_Duckman::run() {
 	_unpauseControlActorFlag = false;
 	_lastUpdateTime = 0;
 
-	_currWalkOverlappedControl = 0;
+	_currWalkOverlappedControl = nullptr;
 
 	_pauseCtr = 0;
 	_doScriptThreadInit = false;
@@ -212,6 +213,7 @@ Common::Error IllusionsEngine_Duckman::run() {
 	_resSys->unloadResourceById(0x120002);
 	_resSys->unloadResourceById(0x120003);
 	_resSys->unloadResourceById(0x000D0001);
+	_resSys->unloadAllResources();
 
 	delete _stack;
 	delete _scriptOpcodes;
@@ -253,26 +255,24 @@ bool IllusionsEngine_Duckman::hasFeature(EngineFeature f) const {
 
 void IllusionsEngine_Duckman::initInput() {
 	_input->setInputEvent(kEventLeftClick, 0x01)
-		.addMouseButton(MOUSE_LEFT_BUTTON)
-		.addKey(Common::KEYCODE_RETURN);
+		.addMouseButton(MOUSE_LEFT_BUTTON);
 	_input->setInputEvent(kEventRightClick, 0x02)
-		.addMouseButton(MOUSE_RIGHT_BUTTON)
-		.addKey(Common::KEYCODE_BACKSPACE);
+		.addMouseButton(MOUSE_RIGHT_BUTTON);
 	// 0x04 is unused
 	_input->setInputEvent(kEventInventory, 0x08)
-		.addKey(Common::KEYCODE_TAB);
+		.addKey(kActionInventory);
 	_input->setInputEvent(kEventAbort, 0x10)
-		.addKey(Common::KEYCODE_ESCAPE);
+		.addKey(kActionAbort);
 	_input->setInputEvent(kEventSkip, 0x20)
 		.addMouseButton(MOUSE_LEFT_BUTTON)
-		.addKey(Common::KEYCODE_SPACE);
+		.addKey(kActionSkip);
 	_input->setInputEvent(kEventUp, 0x40)
-		.addKey(Common::KEYCODE_UP);
+		.addKey(kActionCursorUp);
 	_input->setInputEvent(kEventDown, 0x80)
 		.addMouseButton(MOUSE_RIGHT_BUTTON)
-		.addKey(Common::KEYCODE_DOWN);
+		.addKey(kActionCursorDown);
 	_input->setInputEvent(kEventF1, 0x100)
-		.addKey(Common::KEYCODE_F1);
+		.addKey(kActionCheatMode);
 }
 
 #define UPDATEFUNCTION(priority, sceneId, callback) \
@@ -352,7 +352,7 @@ int IllusionsEngine_Duckman::updateScreenShaker(uint flags) {
 	if (_screenShaker->_finished) {
 		notifyThreadId(_screenShaker->_notifyThreadId);
 		delete _screenShaker;
-		_screenShaker = 0;
+		_screenShaker = nullptr;
 		_screen->setScreenOffset(Common::Point(0, 0));
 		return 2;
 	}
@@ -447,6 +447,7 @@ void IllusionsEngine_Duckman::loadSpecialCode(uint32 resId) {
 
 void IllusionsEngine_Duckman::unloadSpecialCode(uint32 resId) {
 	delete _specialCode;
+	_specialCode = nullptr;
 }
 
 void IllusionsEngine_Duckman::notifyThreadId(uint32 &threadId) {
@@ -472,7 +473,7 @@ bool IllusionsEngine_Duckman::testMainActorCollision(Control *control) {
 			if (runTriggerCause(9, 0, overlappedControl->_objectId)) {
 				delete control->_actor->_pathNode;
 				control->_actor->_flags &= ~Illusions::ACTOR_FLAG_400;
-				control->_actor->_pathNode = 0;
+				control->_actor->_pathNode = nullptr;
 				control->_actor->_pathPoints = 0;
 				control->_actor->_pathPointsCount = 0;
 				_threads->terminateThreadChain(control->_actor->_walkCallerThreadId1);
@@ -484,7 +485,7 @@ bool IllusionsEngine_Duckman::testMainActorCollision(Control *control) {
 			}
 		}
 	} else {
-		_currWalkOverlappedControl = 0;
+		_currWalkOverlappedControl = nullptr;
 	}
 	return result;
 }
@@ -598,7 +599,7 @@ void IllusionsEngine_Duckman::placeCursorControl(Control *control, uint32 sequen
 	_cursor._control = control;
 	_cursor._actorIndex = 1;
 	_cursor._savedActorIndex = 1;
-	_cursor._currOverlappedControl = 0;
+	_cursor._currOverlappedControl = nullptr;
 	_cursor._sequenceId1 = sequenceId;
 	_cursor._field14[0] = true;
 	_cursor._field14[1] = true;
@@ -613,7 +614,7 @@ void IllusionsEngine_Duckman::placeCursorControl(Control *control, uint32 sequen
 	_cursor._field14[6] = _cursor._sequenceId2 != 0 && _cursor._objectId != 0;
 	_cursor._field14[7] = false;
 	_cursor._field14[8] = false;
-	_cursor._op113_choiceOfsPtr = 0;
+	_cursor._op113_choiceOfsPtr = nullptr;
 	_cursor._notifyThreadId30 = 0;
 	_cursor._dialogItemsCount = 0;
 	_cursor._overlappedObjectId = 0;
@@ -640,13 +641,13 @@ void IllusionsEngine_Duckman::hideCursor() {
 
 void IllusionsEngine_Duckman::initCursor() {
 	_cursor._gameState = 1;
-	_cursor._control = 0;
+	_cursor._control = nullptr;
 	_cursor._position.x = 160;
 	_cursor._position.y = 100;
 	_cursor._objectId = 0;
 	_cursor._actorIndex = 1;
 	_cursor._savedActorIndex = 1;
-	_cursor._currOverlappedControl = 0;
+	_cursor._currOverlappedControl = nullptr;
 	_cursor._sequenceId1 = 0;
 	_cursor._sequenceId2 = 0;
 	_cursor._field14[0] = true;
@@ -662,7 +663,7 @@ void IllusionsEngine_Duckman::initCursor() {
 	_cursor._field14[10] = false;
 	_cursor._field14[11] = false;
 	_cursor._field14[12] = false;
-	_cursor._op113_choiceOfsPtr = 0;
+	_cursor._op113_choiceOfsPtr = nullptr;
 	_cursor._notifyThreadId30 = 0;
 	_cursor._dialogItemsCount = 0;
 	_cursor._overlappedObjectId = 0;
@@ -699,7 +700,7 @@ void IllusionsEngine_Duckman::disableCursorVerb(int verbNum) {
 		_cursor._actorIndex = getCursorActorIndex();
 		setCursorActorIndex(_cursor._actorIndex, 1, 0);
 		startCursorSequence();
-		_cursor._currOverlappedControl = 0;
+		_cursor._currOverlappedControl = nullptr;
 	}
 }
 
@@ -765,7 +766,7 @@ void IllusionsEngine_Duckman::startCursorHoldingObject(uint32 objectId, uint32 s
 	_cursor._field14[6] = true;
 	_cursor._control->startSequenceActor(sequenceId, 2, 0);
 	setCursorActorIndex(_cursor._actorIndex, 1, 0);
-	_cursor._currOverlappedControl = 0;
+	_cursor._currOverlappedControl = nullptr;
 }
 
 void IllusionsEngine_Duckman::stopCursorHoldingObject() {
@@ -1075,7 +1076,7 @@ void IllusionsEngine_Duckman::updateGameState2() {
 			setCursorActorIndex(_cursor._actorIndex, 1, 0);
 			startCursorSequence();
 		}
-		_cursor._currOverlappedControl = 0;
+		_cursor._currOverlappedControl = nullptr;
 		foundOverlapped = false;
 	}
 
@@ -1101,7 +1102,7 @@ void IllusionsEngine_Duckman::updateGameState2() {
 			_cursor._actorIndex = _cursor._savedActorIndex;
 		setCursorActorIndex(_cursor._actorIndex, 1, 0);
 		startCursorSequence();
-		_cursor._currOverlappedControl = 0;
+		_cursor._currOverlappedControl = nullptr;
 	}
 
 	if (_input->pollEvent(kEventLeftClick)) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,7 @@
 #include "ags/shared/ac/dynobj/script_audio_clip.h"
 #include "ags/shared/game/interactions.h"
 #include "ags/shared/util/aligned_stream.h"
+#include "ags/shared/util/string_utils.h"
 #include "ags/globals.h"
 
 namespace AGS3 {
@@ -36,12 +36,7 @@ using namespace AGS::Shared;
 GameSetupStruct::GameSetupStruct()
 	: filever(0)
 	, roomCount(0)
-	, roomNumbers(nullptr)
-	, roomNames(nullptr)
 	, scoreClipID(0) {
-	memset(invinfo, 0, sizeof(invinfo));
-	for (int i = 0; i < MAX_CURSOR; ++i)
-		mcurs[i].clear();
 	memset(lipSyncFrameLetters, 0, sizeof(lipSyncFrameLetters));
 	memset(guid, 0, sizeof(guid));
 	memset(saveGameFileExtension, 0, sizeof(saveGameFileExtension));
@@ -55,40 +50,46 @@ GameSetupStruct::~GameSetupStruct() {
 void GameSetupStruct::Free() {
 	GameSetupStructBase::Free();
 
+	fonts.clear();
+	mcurs.clear();
+
 	intrChar.clear();
 	charScripts.clear();
+	charProps.clear();
 	numcharacters = 0;
 
 	// TODO: find out if it really needs to begin with 1 here?
-	for (size_t i = 1; i < (size_t)MAX_INV; i++)
+	for (size_t i = 1; i < (size_t)MAX_INV; i++) {
 		intrInv[i].reset();
+		invProps[i].clear();
+	}
 	invScripts.clear();
 	numinvitems = 0;
 
-	for (int i = 0; i < roomCount; i++)
-		delete roomNames[i];
-	delete[] roomNames;
-	delete[] roomNumbers;
+	viewNames.clear();
+	dialogScriptNames.clear();
+
+	roomNames.clear();
+	roomNumbers.clear();
 	roomCount = 0;
 
 	audioClips.clear();
 	audioClipTypes.clear();
 
-	charProps.clear();
-	viewNames.clear();
+	SpriteInfos.clear();
 }
 
 // Assigns font info parameters using legacy flags value read from the game data
 void SetFontInfoFromLegacyFlags(FontInfo &finfo, const uint8_t data) {
 	finfo.Flags = (data >> 6) & 0xFF;
-	finfo.SizePt = data & FFLG_LEGACY_SIZEMASK;
+	finfo.Size = data & FFLG_LEGACY_SIZEMASK;
 }
 
 void AdjustFontInfoUsingFlags(FontInfo &finfo, const uint32_t flags) {
 	finfo.Flags = flags;
 	if ((flags & FFLG_SIZEMULTIPLIER) != 0) {
-		finfo.SizeMultiplier = finfo.SizePt;
-		finfo.SizePt = 0;
+		finfo.SizeMultiplier = finfo.Size;
+		finfo.Size = 0;
 	}
 }
 
@@ -111,9 +112,9 @@ ScriptAudioClip *GetAudioClipForOldStyleNumber(GameSetupStruct &game, bool is_mu
 
 void GameSetupStruct::read_savegame_info(Shared::Stream *in, GameDataVersion data_ver) {
 	if (data_ver > kGameVersion_272) { // only 3.x
-		in->Read(&guid[0], MAX_GUID_LENGTH);
-		in->Read(&saveGameFileExtension[0], MAX_SG_EXT_LENGTH);
-		in->Read(&saveGameFolderName[0], MAX_SG_FOLDER_LEN);
+		StrUtil::ReadCStrCount(guid, in, MAX_GUID_LENGTH);
+		StrUtil::ReadCStrCount(saveGameFileExtension, in, MAX_SG_EXT_LENGTH);
+		StrUtil::ReadCStrCount(saveGameFolderName, in, MAX_SG_FOLDER_LEN);
 	}
 }
 
@@ -129,15 +130,15 @@ void GameSetupStruct::read_font_infos(Shared::Stream *in, GameDataVersion data_v
 		for (int i = 0; i < numfonts; ++i) {
 			fonts[i].YOffset = in->ReadInt32();
 			if (data_ver >= kGameVersion_341_2)
-				fonts[i].LineSpacing = Math::Max<int32_t>(0, in->ReadInt32());
+				fonts[i].LineSpacing = MAX<int32_t>(0, in->ReadInt32());
 		}
 	} else {
 		for (int i = 0; i < numfonts; ++i) {
 			uint32_t flags = in->ReadInt32();
-			fonts[i].SizePt = in->ReadInt32();
+			fonts[i].Size = in->ReadInt32();
 			fonts[i].Outline = in->ReadInt32();
 			fonts[i].YOffset = in->ReadInt32();
-			fonts[i].LineSpacing = Math::Max<int32_t>(0, in->ReadInt32());
+			fonts[i].LineSpacing = MAX<int32_t>(0, in->ReadInt32());
 			AdjustFontInfoUsingFlags(fonts[i], flags);
 		}
 	}
@@ -159,10 +160,7 @@ void GameSetupStruct::WriteInvInfo_Aligned(Stream *out) {
 	}
 }
 
-HGameFileError GameSetupStruct::read_cursors(Shared::Stream *in, GameDataVersion data_ver) {
-	if (numcursors > MAX_CURSOR)
-		return new MainGameFileError(kMGFErr_TooManyCursors, String::FromFormat("Count: %d, max: %d", numcursors, MAX_CURSOR));
-
+HGameFileError GameSetupStruct::read_cursors(Shared::Stream *in) {
 	ReadMouseCursors_Aligned(in);
 	return HGameFileError::None();
 }
@@ -199,6 +197,7 @@ void GameSetupStruct::read_words_dictionary(Shared::Stream *in) {
 }
 
 void GameSetupStruct::ReadMouseCursors_Aligned(Stream *in) {
+	mcurs.resize(numcursors);
 	AlignedStream align_s(in, Shared::kAligned_Read);
 	for (int iteratorCount = 0; iteratorCount < numcursors; ++iteratorCount) {
 		mcurs[iteratorCount].ReadFromFile(&align_s);
@@ -217,10 +216,10 @@ void GameSetupStruct::WriteMouseCursors_Aligned(Stream *out) {
 //-----------------------------------------------------------------------------
 // Reading Part 2
 
-void GameSetupStruct::read_characters(Shared::Stream *in, GameDataVersion data_ver) {
-	chars = new CharacterInfo[numcharacters + 5]; // TODO: why +5, is this really needed?
+void GameSetupStruct::read_characters(Shared::Stream *in) {
+	chars = new CharacterInfo[numcharacters];
 
-	ReadCharacters_Aligned(in);
+	ReadCharacters_Aligned(in, false);
 }
 
 void GameSetupStruct::read_lipsync(Shared::Stream *in, GameDataVersion data_ver) {
@@ -229,12 +228,12 @@ void GameSetupStruct::read_lipsync(Shared::Stream *in, GameDataVersion data_ver)
 }
 
 void GameSetupStruct::read_messages(Shared::Stream *in, GameDataVersion data_ver) {
-	for (int ee = 0; ee < MAXGLOBALMES; ee++) {
-		if (!load_messages[ee]) continue;
-		messages[ee] = new char[GLOBALMESLENGTH];
-
+	char mbuf[GLOBALMESLENGTH];
+	for (int i = 0; i < MAXGLOBALMES; ++i) {
+		if (!load_messages[i])
+			continue;
 		if (data_ver < kGameVersion_261) { // Global messages are not encrypted on < 2.61
-			char *nextchar = messages[ee];
+			char *nextchar = mbuf;
 
 			// TODO: probably this is same as fgetstring
 			while (1) {
@@ -243,17 +242,21 @@ void GameSetupStruct::read_messages(Shared::Stream *in, GameDataVersion data_ver
 					break;
 				nextchar++;
 			}
-		} else
-			read_string_decrypt(in, messages[ee], GLOBALMESLENGTH);
+		} else {
+			read_string_decrypt(in, mbuf, GLOBALMESLENGTH);
+		}
+		messages[i] = mbuf;
 	}
 	delete[] load_messages;
 	load_messages = nullptr;
 }
 
-void GameSetupStruct::ReadCharacters_Aligned(Stream *in) {
+void GameSetupStruct::ReadCharacters_Aligned(Stream *in, bool is_save) {
 	AlignedStream align_s(in, Shared::kAligned_Read);
+	const GameDataVersion data_ver = is_save ? kGameVersion_Undefined : _G(loaded_game_file_version);
+	const int save_ver = is_save ? 0 : -1;
 	for (int iteratorCount = 0; iteratorCount < numcharacters; ++iteratorCount) {
-		chars[iteratorCount].ReadFromFile(&align_s);
+		chars[iteratorCount].ReadFromFile(&align_s, data_ver, save_ver);
 		align_s.Reset();
 	}
 }
@@ -329,14 +332,11 @@ HGameFileError GameSetupStruct::read_audio(Shared::Stream *in, GameDataVersion d
 void GameSetupStruct::read_room_names(Stream *in, GameDataVersion data_ver) {
 	if ((data_ver >= kGameVersion_301) && (options[OPT_DEBUGMODE] != 0)) {
 		roomCount = in->ReadInt32();
-		roomNumbers = new int[roomCount];
-		roomNames = new char *[roomCount];
-		String pexbuf;
-		for (int bb = 0; bb < roomCount; bb++) {
-			roomNumbers[bb] = in->ReadInt32();
-			pexbuf.Read(in, STD_BUFFER_SIZE);
-			roomNames[bb] = new char[pexbuf.GetLength() + 1];
-			strcpy(roomNames[bb], pexbuf.GetCStr());
+		roomNumbers.resize(roomCount);
+		roomNames.resize(roomCount);
+		for (int i = 0; i < roomCount; ++i) {
+			roomNumbers[i] = in->ReadInt32();
+			roomNames[i].Read(in);
 		}
 	} else {
 		roomCount = 0;
@@ -351,18 +351,16 @@ void GameSetupStruct::ReadAudioClips_Aligned(Shared::Stream *in, size_t count) {
 	}
 }
 
-void GameSetupStruct::ReadFromSaveGame_v321(Stream *in, char *gswas, ccScript *compsc, CharacterInfo *chwas,
-        WordsDictionary *olddict, char **mesbk) {
-	int bb;
-
+void GameSetupStruct::ReadFromSaveGame_v321(Stream *in, GameDataVersion data_ver, char *gswas, ccScript *compsc, CharacterInfo *chwas,
+											WordsDictionary *olddict, std::vector<String> &mesbk) {
 	ReadInvInfo_Aligned(in);
 	ReadMouseCursors_Aligned(in);
 
-	if (_G(loaded_game_file_version) <= kGameVersion_272) {
-		for (bb = 0; bb < numinvitems; bb++)
-			intrInv[bb]->ReadTimesRunFromSave_v321(in);
-		for (bb = 0; bb < numcharacters; bb++)
-			intrChar[bb]->ReadTimesRunFromSave_v321(in);
+	if (data_ver <= kGameVersion_272) {
+		for (int i = 0; i < numinvitems; ++i)
+			intrInv[i]->ReadTimesRunFromSave_v321(in);
+		for (int i = 0; i < numcharacters; ++i)
+			intrChar[i]->ReadTimesRunFromSave_v321(in);
 	}
 
 	// restore pointer members
@@ -370,18 +368,19 @@ void GameSetupStruct::ReadFromSaveGame_v321(Stream *in, char *gswas, ccScript *c
 	compiled_script = compsc;
 	chars = chwas;
 	dict = olddict;
-	for (int vv = 0; vv < MAXGLOBALMES; vv++) messages[vv] = mesbk[vv];
-
+	for (size_t i = 0; i < MAXGLOBALMES; ++i)
+		messages[i] = mesbk[i];
 	in->ReadArrayOfInt32(&options[0], OPT_HIGHESTOPTION_321 + 1);
 	options[OPT_LIPSYNCTEXT] = in->ReadByte();
 
-	ReadCharacters_Aligned(in);
+	ReadCharacters_Aligned(in, true);
 }
 
 //=============================================================================
+#if defined (OBSOLETE)
 
 void ConvertOldGameStruct(OldGameSetupStruct *ogss, GameSetupStruct *gss) {
-	strcpy(gss->gamename, ogss->gamename);
+	snprintf(gss->gamename, sizeof(GameSetupStruct::gamename), "%s", ogss->gamename);
 	for (int i = 0; i < 20; i++)
 		gss->options[i] = ogss->options[i];
 	memcpy(&gss->paluses[0], &ogss->paluses[0], 256);
@@ -411,7 +410,8 @@ void ConvertOldGameStruct(OldGameSetupStruct *ogss, GameSetupStruct *gss) {
 	}
 
 	memcpy(&gss->invinfo[0], &ogss->invinfo[0], 100 * sizeof(InventoryItemInfo));
-	memcpy(&gss->mcurs[0], &ogss->mcurs[0], 10 * sizeof(MouseCursor));
+	for (int i = 0; i < 10; ++i)
+		gss->mcurs[i] = ogss->mcurs[i];
 	for (int i = 0; i < MAXGLOBALMES; i++)
 		gss->messages[i] = ogss->messages[i];
 	gss->dict = ogss->dict;
@@ -420,6 +420,7 @@ void ConvertOldGameStruct(OldGameSetupStruct *ogss, GameSetupStruct *gss) {
 	gss->compiled_script = ogss->compiled_script;
 	gss->numcursors = 10;
 }
+#endif // OBSOLETE
 
 void GameSetupStruct::ReadFromSavegame(Stream *in) {
 	// of GameSetupStruct

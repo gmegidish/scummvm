@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,8 @@
 #include "common/array.h"
 #include "common/rect.h"
 #include "graphics/font.h"
+
+//#define LAYOUT_DEBUG_DIALOG "Dialog.Launcher"
 
 #ifdef LAYOUT_DEBUG_DIALOG
 namespace Graphics {
@@ -49,6 +50,7 @@ public:
 		kLayoutHorizontal,
 		kLayoutWidget,
 		kLayoutTabWidget,
+		kLayoutScrollContainerWidget,
 		kLayoutSpace
 	};
 
@@ -75,7 +77,7 @@ public:
 
 	void addChild(ThemeLayout *child) { _children.push_back(child); }
 
-	void setPadding(int8 left, int8 right, int8 top, int8 bottom) {
+	void setPadding(int16 left, int16 right, int16 top, int16 bottom) {
 		_padding.left = left;
 		_padding.right = right;
 		_padding.top = top;
@@ -124,10 +126,9 @@ public:
 	Graphics::TextAlign getTextHAlign() { return _textHAlign; }
 
 #ifdef LAYOUT_DEBUG_DIALOG
-	void debugDraw(Graphics::Surface *screen, const Graphics::Font *font);
-
-	virtual const char *getName() const = 0;
+	void debugDraw(Graphics::ManagedSurface *screen, const Graphics::Font *font);
 #endif
+	virtual const char *getName() const { return "<override-me>"; }
 
 protected:
 	ThemeLayout *_parent;
@@ -159,7 +160,7 @@ public:
 		_y = _defaultY;
 	}
 
-	const char *getName() const { return _name.c_str(); }
+	virtual const char *getName() const override { return _name.c_str(); }
 
 protected:
 	LayoutType getLayoutType() const override { return kLayoutMain; }
@@ -192,7 +193,7 @@ public:
 	void reflowLayoutVertical(Widget *widgetChain);
 
 #ifdef LAYOUT_DEBUG_DIALOG
-	const char *getName() const {
+	const char *getName() const override {
 		return (_type == kLayoutVertical)
 			? "Vertical Layout" : "Horizontal Layout";
 	}
@@ -234,7 +235,7 @@ public:
 
 	void reflowLayout(Widget *widgetChain) override;
 
-	virtual const char *getName() const { return _name.c_str(); }
+	virtual const char *getName() const override { return _name.c_str(); }
 
 protected:
 	LayoutType getLayoutType() const override { return kLayoutWidget; }
@@ -285,6 +286,40 @@ protected:
 	}
 };
 
+class ThemeLayoutScrollContainerWidget : public ThemeLayoutWidget {
+	int _scrollWidth;
+
+public:
+	ThemeLayoutScrollContainerWidget(ThemeLayout *p, const Common::String &name, int16 w, int16 h, Graphics::TextAlign align, int scrollWidth):
+		ThemeLayoutWidget(p, name, w, h, align, p->getUseRTL()) {
+		_scrollWidth = scrollWidth;
+	}
+
+	void reflowLayout(Widget *widgetChain) override {
+		for (uint i = 0; i < _children.size(); ++i) {
+			_children[i]->reflowLayout(widgetChain);
+		}
+	}
+
+	bool getWidgetData(const Common::String &name, int16 &x, int16 &y, int16 &w, int16 &h, bool &useRTL) override {
+		if (ThemeLayoutWidget::getWidgetData(name, x, y, w, h, useRTL)) {
+			w -= _scrollWidth;
+			return true;
+		}
+
+		return false;
+	}
+
+protected:
+	LayoutType getLayoutType() const override { return kLayoutScrollContainerWidget; }
+
+	ThemeLayout *makeClone(ThemeLayout *newParent) override {
+		ThemeLayoutScrollContainerWidget *n = new ThemeLayoutScrollContainerWidget(*this);
+		n->_parent = newParent;
+		return n;
+	}
+};
+
 class ThemeLayoutSpacing : public ThemeLayout {
 public:
 	ThemeLayoutSpacing(ThemeLayout *p, int size) : ThemeLayout(p) {
@@ -300,7 +335,7 @@ public:
 	bool getWidgetData(const Common::String &name, int16 &x, int16 &y, int16 &w, int16 &h, bool &useRTL) override { return false; }
 	void reflowLayout(Widget *widgetChain) override {}
 #ifdef LAYOUT_DEBUG_DIALOG
-	const char *getName() const { return "SPACE"; }
+	const char *getName() const override { return "SPACE"; }
 #endif
 
 protected:

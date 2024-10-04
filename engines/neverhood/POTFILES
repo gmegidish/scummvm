@@ -1,2 +1,2 @@
-engines/neverhood/detection.cpp
+engines/neverhood/dialogs.cpp
 engines/neverhood/menumodule.cpp

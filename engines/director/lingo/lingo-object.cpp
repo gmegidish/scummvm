@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,30 +24,121 @@
 #include "graphics/macgui/mactext.h"
 
 #include "director/director.h"
-#include "director/cast.h"
-#include "director/channel.h"
-#include "director/castmember.h"
+#include "director/movie.h"
 #include "director/window.h"
-#include "director/util.h"
-#include "director/lingo/lingo.h"
+#include "director/lingo/lingo-ast.h"
 #include "director/lingo/lingo-code.h"
-#include "director/lingo/lingo-object.h"
 #include "director/lingo/lingo-the.h"
 
+#include "director/lingo/xlibs/aiff.h"
+#include "director/lingo/xlibs/applecdxobj.h"
+#include "director/lingo/xlibs/askuser.h"
+#include "director/lingo/xlibs/backdrop.h"
+#include "director/lingo/xlibs/barakeobj.h"
+#include "director/lingo/xlibs/batqt.h"
+#include "director/lingo/xlibs/bimxobj.h"
+#include "director/lingo/xlibs/blitpict.h"
 #include "director/lingo/xlibs/cdromxobj.h"
+#include "director/lingo/xlibs/closebleedwindowxcmd.h"
+#include "director/lingo/xlibs/colorxobj.h"
+#include "director/lingo/xlibs/colorcursorxobj.h"
+#include "director/lingo/xlibs/consumer.h"
+#include "director/lingo/xlibs/cursorxobj.h"
+#include "director/lingo/xlibs/darkenscreen.h"
+#include "director/lingo/xlibs/dateutil.h"
+#include "director/lingo/xlibs/developerStack.h"
+#include "director/lingo/xlibs/dialogsxobj.h"
+#include "director/lingo/xlibs/dirutil.h"
+#include "director/lingo/xlibs/dllglue.h"
+#include "director/lingo/xlibs/dpwavi.h"
+#include "director/lingo/xlibs/dpwqtw.h"
+#include "director/lingo/xlibs/draw.h"
+#include "director/lingo/xlibs/ednox.h"
+#include "director/lingo/xlibs/eventq.h"
+#include "director/lingo/xlibs/fadegammadownxcmd.h"
+#include "director/lingo/xlibs/fadegammaupxcmd.h"
+#include "director/lingo/xlibs/fadegammaxcmd.h"
+#include "director/lingo/xlibs/fedracul.h"
+#include "director/lingo/xlibs/feimasks.h"
+#include "director/lingo/xlibs/feiprefs.h"
+#include "director/lingo/xlibs/fileexists.h"
 #include "director/lingo/xlibs/fileio.h"
+#include "director/lingo/xlibs/findereventsxcmd.h"
+#include "director/lingo/xlibs/findfolder.h"
+#include "director/lingo/xlibs/findsys.h"
+#include "director/lingo/xlibs/findwin.h"
 #include "director/lingo/xlibs/flushxobj.h"
 #include "director/lingo/xlibs/fplayxobj.h"
+#include "director/lingo/xlibs/fsutil.h"
+#include "director/lingo/xlibs/genutils.h"
+#include "director/lingo/xlibs/getscreenrectsxfcn.h"
+#include "director/lingo/xlibs/getscreensizexfcn.h"
+#include "director/lingo/xlibs/gpid.h"
+#include "director/lingo/xlibs/henry.h"
+#include "director/lingo/xlibs/hitmap.h"
+#include "director/lingo/xlibs/inixobj.h"
+#include "director/lingo/xlibs/instobj.h"
+#include "director/lingo/xlibs/jwxini.h"
+#include "director/lingo/xlibs/iscd.h"
+#include "director/lingo/xlibs/ispippin.h"
+#include "director/lingo/xlibs/jitdraw3.h"
 #include "director/lingo/xlibs/labeldrvxobj.h"
+#include "director/lingo/xlibs/maniacbg.h"
+#include "director/lingo/xlibs/mapnavigatorxobj.h"
+#include "director/lingo/xlibs/memcheckxobj.h"
 #include "director/lingo/xlibs/memoryxobj.h"
+#include "director/lingo/xlibs/misc.h"
+#include "director/lingo/xlibs/miscx.h"
+#include "director/lingo/xlibs/mmaskxobj.h"
+#include "director/lingo/xlibs/mmovie.h"
+#include "director/lingo/xlibs/moovxobj.h"
+#include "director/lingo/xlibs/movemousejp.h"
 #include "director/lingo/xlibs/movemousexobj.h"
+#include "director/lingo/xlibs/movieidxxobj.h"
+#include "director/lingo/xlibs/movutils.h"
+#include "director/lingo/xlibs/mystisle.h"
+#include "director/lingo/xlibs/openbleedwindowxcmd.h"
 #include "director/lingo/xlibs/orthoplayxobj.h"
+#include "director/lingo/xlibs/paco.h"
 #include "director/lingo/xlibs/palxobj.h"
+#include "director/lingo/xlibs/panel.h"
 #include "director/lingo/xlibs/popupmenuxobj.h"
+#include "director/lingo/xlibs/porta.h"
+#include "director/lingo/xlibs/portaxcmd.h"
+#include "director/lingo/xlibs/prefpath.h"
+#include "director/lingo/xlibs/printomatic.h"
+#include "director/lingo/xlibs/processxobj.h"
+#include "director/lingo/xlibs/qtmovie.h"
+#include "director/lingo/xlibs/qtcatmovieplayerxobj.h"
+#include "director/lingo/xlibs/qtvr.h"
+#include "director/lingo/xlibs/quicktime.h"
+#include "director/lingo/xlibs/registercomponent.h"
+#include "director/lingo/xlibs/remixxcmd.h"
 #include "director/lingo/xlibs/serialportxobj.h"
 #include "director/lingo/xlibs/soundjam.h"
+#include "director/lingo/xlibs/spacemgr.h"
+#include "director/lingo/xlibs/stagetc.h"
+#include "director/lingo/xlibs/syscolor.h"
+#include "director/lingo/xlibs/unittest.h"
+#include "director/lingo/xlibs/valkyrie.h"
 #include "director/lingo/xlibs/videodiscxobj.h"
+#include "director/lingo/xlibs/vmisonxfcn.h"
+#include "director/lingo/xlibs/volumelist.h"
+#include "director/lingo/xlibs/widgetxobj.h"
+#include "director/lingo/xlibs/window.h"
+#include "director/lingo/xlibs/wininfo.h"
 #include "director/lingo/xlibs/winxobj.h"
+#include "director/lingo/xlibs/xcmdglue.h"
+#include "director/lingo/xlibs/xio.h"
+#include "director/lingo/xlibs/xplayanim.h"
+#include "director/lingo/xlibs/xsoundxfcn.h"
+#include "director/lingo/xlibs/xwin.h"
+#include "director/lingo/xlibs/yasix.h"
+#include "director/lingo/xtras/directsound.h"
+#include "director/lingo/xtras/keypoll.h"
+#include "director/lingo/xtras/qtvrxtra.h"
+#include "director/lingo/xtras/scrnutil.h"
+#include "director/lingo/xtras/timextra.h"
 
 namespace Director {
 
@@ -61,23 +151,23 @@ static struct PredefinedProto {
 	int version;
 } predefinedMethods[] = {
 	// all except window
-	{ "new",					LM::m_new,					-1, 0,	kAllObj, 				200 },	// D2
+	{ "new",					LM::m_new,					-1, 0,	kAllObj,				200 },	// D2
 
 	// factory and XObject
 	{ "describe",				LM::m_describe,				 0, 0,	kXObj,					200 },	// D2
 	{ "dispose",				LM::m_dispose,				 0, 0,	kFactoryObj | kXObj,	200 },	// D2
 	{ "get",					LM::m_get,					 1, 1,	kFactoryObj,			200 },	// D2
-	{ "instanceRespondsTo",		LM::m_instanceRespondsTo,	 1, 1,	kXObj,					300 },		// D3
-	{ "messageList",			LM::m_messageList,			 0, 0,	kXObj,					300 },		// D3
-	{ "name",					LM::m_name,					 0, 0,	kXObj,					300 },		// D3
-	{ "perform",				LM::m_perform,				-1, 0,	kFactoryObj | kXObj, 	300 },		// D3
+	{ "instanceRespondsTo",		LM::m_instanceRespondsTo,	 1, 1,	kXObj,					300 },	// D3
+	{ "messageList",			LM::m_messageList,			 0, 0,	kXObj,					300 },	// D3
+	{ "name",					LM::m_name,					 0, 0,	kXObj,					300 },	// D3
+	{ "perform",				LM::m_perform,				-1, 0,	kFactoryObj | kXObj,	300 },	// D3
 	{ "put",					LM::m_put,					 2, 2,	kFactoryObj,			200 },	// D2
 	{ "respondsTo",				LM::m_respondsTo,			 1, 1,	kXObj,					200 },	// D2
 
 	// script object and Xtra
-	{ "birth",					LM::m_new,					-1, 0,	kScriptObj | kXtraObj, 	400 },			// D4
+	{ "birth",					LM::m_new,					-1, 0,	kScriptObj | kXtraObj,	400 },	// D4
 
-	{ 0, 0, 0, 0, 0, 0 }
+	{ nullptr, nullptr, 0, 0, 0, 0 }
 };
 
 static MethodProto windowMethods[] = {
@@ -87,7 +177,7 @@ static MethodProto windowMethods[] = {
 	{ "open",					LM::m_open,					 0, 0,	400 },			// D4
 	{ "moveToBack",				LM::m_moveToBack,			 0, 0,	400 },			// D4
 	{ "moveToFront",			LM::m_moveToFront,			 0, 0,	400 },			// D4
-	{ 0, 0, 0, 0, 0 }
+	{ nullptr, nullptr, 0, 0, 0 }
 };
 
 void Lingo::initMethods() {
@@ -112,28 +202,127 @@ void Lingo::cleanupMethods() {
 	Window::cleanupMethods();
 }
 
+#define XLIBDEF(class, flags, version) \
+	{ class::fileNames, class::open, class::close, flags, version }
+
 static struct XLibProto {
-	const char **names;
-	XLibFunc opener;
-	XLibFunc closer;
+	const XlibFileDesc *names;
+	XLibOpenerFunc opener;
+	XLibCloserFunc closer;
 	int type;
 	int version;
 } xlibs[] = {
-	{ CDROMXObj::fileNames,			CDROMXObj::open,		CDROMXObj::close,			kXObj,					200 },	// D2
-	{ FileIO::fileNames,			FileIO::open,			FileIO::close,				kXObj | kXtraObj,		200 },	// D2
-	{ FlushXObj::fileNames,			FlushXObj::open,		FlushXObj::close,			kXObj,					400 },	// D4
-	{ FPlayXObj::fileNames,			FPlayXObj::open,		FPlayXObj::close,			kXObj,					200 },	// D2
-	{ LabelDrvXObj::fileNames,		LabelDrvXObj::open,		LabelDrvXObj::close,		kXObj,					400 }, 	// D4
-	{ OrthoPlayXObj::fileNames,		OrthoPlayXObj::open,	OrthoPlayXObj::close,		kXObj,					400 }, 	// D4
-	{ PalXObj::fileNames,			PalXObj::open,			PalXObj::close,				kXObj,					400 }, 	// D4
-	{ PopUpMenuXObj::fileNames,		PopUpMenuXObj::open,	PopUpMenuXObj::close,		kXObj,					200 }, 	// D2
-	{ SerialPortXObj::fileNames,	SerialPortXObj::open,	SerialPortXObj::close,		kXObj,					200 },	// D2
-	{ SoundJam::fileNames,			SoundJam::open,			SoundJam::close,			kXObj,					400 },	// D4
-	{ VideodiscXObj::fileNames,		VideodiscXObj::open,	VideodiscXObj::close,		kXObj,					200 }, 	// D2
-	{ RearWindowXObj::fileNames,	RearWindowXObj::open,	RearWindowXObj::close,		kXObj,					400 },	// D4
-	{ MoveMouseXObj::fileNames,		MoveMouseXObj::open,	MoveMouseXObj::close,		kXObj,					400 },	// D4
-	{ 0, 0, 0, 0, 0 }
-
+	XLIBDEF(AiffXObj,			kXObj,			400),	// D4
+	XLIBDEF(AppleCDXObj,		kXObj,			300),	// D3
+	XLIBDEF(AskUser,			kXObj,			400),	// D4
+	XLIBDEF(BackdropXObj,		kXObj,			400),	// D4
+	XLIBDEF(BarakeObj,			kXObj,			400),	// D4
+	XLIBDEF(BatQT,				kXObj,			400),	// D4
+	XLIBDEF(BIMXObj,			kXObj,			400),	// D4
+	XLIBDEF(BlitPictXObj,		kXObj,			400),	// D4
+	XLIBDEF(CDROMXObj,			kXObj,			200),	// D2
+	XLIBDEF(CloseBleedWindowXCMD,kXObj,			300),	// D3
+	XLIBDEF(ColorXObj,			kXObj,			400),	// D4
+	XLIBDEF(ColorCursorXObj,	kXObj,			400),	// D4
+	XLIBDEF(ConsumerXObj,		kXObj,			400),	// D4
+	XLIBDEF(CursorXObj,			kXObj,			400),	// D4
+	XLIBDEF(DLLGlueXObj,		kXObj,			400),	// D4
+	XLIBDEF(DPWAVIXObj,			kXObj,			300),	// D3
+	XLIBDEF(DPWQTWXObj,			kXObj,			300),	// D3
+	XLIBDEF(DarkenScreen,		kXObj,			300),	// D3
+	XLIBDEF(DateUtilXObj,			kXObj,					400),	// D4
+	XLIBDEF(DeveloperStack,		kXObj,			300),	// D3
+	XLIBDEF(DialogsXObj,		kXObj,			400),	// D4
+	XLIBDEF(DirUtilXObj,		kXObj,			400),	// D4
+	XLIBDEF(DirectsoundXtra,	kXtraObj,		500),	// D5
+	XLIBDEF(DrawXObj,			kXObj,			400),	// D4
+	XLIBDEF(Ednox,				kXObj,			300),	// D3
+	XLIBDEF(EventQXObj,			kXObj,			400),	// D4
+	XLIBDEF(FEDraculXObj,		kXObj,			400),	// D4
+	XLIBDEF(FEIMasksXObj,		kXObj,			400),	// D4
+	XLIBDEF(FEIPrefsXObj,		kXObj,			400),	// D4
+	XLIBDEF(FSUtilXObj,			kXObj,					400),	// D4
+	XLIBDEF(FadeGammaDownXCMD,	kXObj,			400),	// D4
+	XLIBDEF(FadeGammaUpXCMD,	kXObj,			400),	// D4
+	XLIBDEF(FadeGammaXCMD,		kXObj,			400),	// D4
+	XLIBDEF(FileExists,			kXObj,			300),	// D3
+	XLIBDEF(FileIO,				kXObj | kXtraObj,200),	// D2
+	XLIBDEF(FindFolder,			kXObj,			300),	// D3
+	XLIBDEF(FindSys,			kXObj,			400),	// D4
+	XLIBDEF(FindWin,			kXObj,			400),	// D4
+	XLIBDEF(FinderEventsXCMD,	kXObj,			400),	// D4
+	XLIBDEF(FlushXObj,			kXObj,			300),	// D3
+	XLIBDEF(FPlayXObj,			kXObj,			200),	// D2
+	XLIBDEF(GenUtilsXObj,		kXObj,			400),	// D4
+	XLIBDEF(GetScreenRectsXFCN,	kXObj,			300),	// D3
+	XLIBDEF(GetScreenSizeXFCN,	kXObj,			300),	// D3
+	XLIBDEF(GpidXObj,			kXObj,			400),	// D4
+	XLIBDEF(HenryXObj,			kXObj,					400),	// D4
+	XLIBDEF(HitMap,				kXObj,			400),	// D4
+	XLIBDEF(IniXObj,			kXObj,			400),	// D4
+	XLIBDEF(InstObjXObj,		kXObj,			400),	// D4
+	XLIBDEF(IsCD,				kXObj,			300),	// D3
+	XLIBDEF(IsPippin,			kXObj,			400),	// D4
+	XLIBDEF(JITDraw3XObj,		kXObj,			400),	// D4
+	XLIBDEF(JourneyWareXINIXObj,kXObj,			400),	// D4
+	XLIBDEF(KeypollXtra,		kXtraObj,		500),	// D5
+	XLIBDEF(LabelDrvXObj,		kXObj,			400),	// D4
+	XLIBDEF(MMovieXObj,			kXObj,			400),	// D4
+	XLIBDEF(ManiacBgXObj,		kXObj,			300),	// D3
+	XLIBDEF(MapNavigatorXObj,	kXObj,			400),	// D4
+	XLIBDEF(MemCheckXObj,		kXObj,			400),	// D4
+	XLIBDEF(MemoryXObj,			kXObj,			300),	// D3
+	XLIBDEF(Misc,				kXObj,			400),	// D4
+	XLIBDEF(MiscX,				kXObj,			400),	// D4
+	XLIBDEF(MMaskXObj,			kXObj,			400),	// D4
+	XLIBDEF(MoovXObj,			kXObj,			300),	// D3
+	XLIBDEF(MovUtilsXObj,		kXObj,			400),	// D4
+	XLIBDEF(MoveMouseJPXObj,			kXObj,					400),	// D4
+	XLIBDEF(MoveMouseXObj,		kXObj,			400),	// D4
+	XLIBDEF(MovieIdxXObj,		kXObj,			400),	// D4
+	XLIBDEF(MovUtilsXObj,		kXObj,			400),	// D4
+	XLIBDEF(MystIsleXObj,			kXObj,					400),	// D4
+	XLIBDEF(OpenBleedWindowXCMD,kXObj,			300),	// D3
+	XLIBDEF(OrthoPlayXObj,		kXObj,			400),	// D4
+	XLIBDEF(PACoXObj,			kXObj,			300),	// D3
+	XLIBDEF(PalXObj,			kXObj,			400),	// D4
+	XLIBDEF(PanelXObj,			kXObj,			200),	// D2
+	XLIBDEF(PopUpMenuXObj,		kXObj,			200),	// D2
+	XLIBDEF(Porta,				kXObj,			300),	// D3
+	XLIBDEF(PortaXCMD,			kXObj,			300),	// D3
+	XLIBDEF(PrefPath,			kXObj,			400),	// D4
+	XLIBDEF(PrintOMaticXObj,	kXObj,			400),	// D4
+	XLIBDEF(ProcessXObj,		kXObj,			400),	// D4
+	XLIBDEF(QTCatMoviePlayerXObj,kXObj,			400),	// D4
+	XLIBDEF(QTMovie,			kXObj,			400),	// D4
+	XLIBDEF(QTVR,				kXObj,			400),	// D4
+	XLIBDEF(QtvrxtraXtra,		kXtraObj,		500),	// D5
+	XLIBDEF(Quicktime,			kXObj,			300),	// D3
+	XLIBDEF(RearWindowXObj,		kXObj,			400),	// D4
+	XLIBDEF(RegisterComponent,	kXObj,			400),	// D4
+	XLIBDEF(RemixXCMD,			kXObj,			300),	// D3
+	XLIBDEF(ScrnUtilXtra,		kXtraObj,		500),	// D5
+	XLIBDEF(SerialPortXObj,		kXObj,			200),	// D2
+	XLIBDEF(SoundJam,			kXObj,			400),	// D4
+	XLIBDEF(SpaceMgr,			kXObj,			400),	// D4
+	XLIBDEF(StageTCXObj,		kXObj,			400),	// D4
+	XLIBDEF(SysColorXObj,			kXObj,					400),	// D4
+	XLIBDEF(TimextraXtra,		kXtraObj,		500),	// D5
+	XLIBDEF(UnitTestXObj,		kXObj,			400),	// D4
+	XLIBDEF(VMisOnXFCN,			kXObj,			400),	// D4
+	XLIBDEF(ValkyrieXObj,		kXObj,			400),	// D4
+	XLIBDEF(VideodiscXObj,		kXObj,			200),	// D2
+	XLIBDEF(VolumeList,			kXObj,			300),	// D3
+	XLIBDEF(WinInfoXObj,		kXObj,			400),	// D4
+	XLIBDEF(WidgetXObj, 		kXObj,			400),	// D4
+	XLIBDEF(WindowXObj,			kXObj,			200),	// D2
+	XLIBDEF(XCMDGlueXObj,		kXObj,			200),	// D2
+	XLIBDEF(XSoundXFCN,			kXObj,			400),	// D4
+	XLIBDEF(XWINXObj,			kXObj,			300),	// D3
+	XLIBDEF(XioXObj,			kXObj,			400),	// D3
+	XLIBDEF(XPlayAnim,			kXObj,			300),	// D3
+	XLIBDEF(Yasix,				kXObj,			300),	// D3
+	{ nullptr, nullptr, nullptr, 0, 0 }
 };
 
 void Lingo::initXLibs() {
@@ -141,9 +330,16 @@ void Lingo::initXLibs() {
 		if (lib->version > _vm->getVersion())
 			continue;
 
-		for (uint i = 0; lib->names[i]; i++) {
-			_xlibOpeners[lib->names[i]] = lib->opener;
-			_xlibClosers[lib->names[i]] = lib->closer;
+		for (uint i = 0; lib->names[i].name; i++) {
+			// If this entry belongs to a specific game, skip it unless matched
+			if (lib->names[i].gameId && strcmp(lib->names[i].gameId, g_director->getGameId()))
+				continue;
+
+			if (_xlibOpeners.contains(lib->names[i].name))
+				warning("Lingo::initXLibs(): Duplicate entry for %s", lib->names[i].name);
+
+			_xlibOpeners[lib->names[i].name] = lib->opener;
+			_xlibClosers[lib->names[i].name] = lib->closer;
 		}
 	}
 }
@@ -154,14 +350,23 @@ void Lingo::cleanupXLibs() {
 }
 
 Common::String Lingo::normalizeXLibName(Common::String name) {
+	// Normalize to remove machintosh path delimiters (':', '@:')
+	name = convertPath(name);
+
+	size_t pos = name.findLastOf(g_director->_dirSeparator);
+	if (pos != Common::String::npos)
+		name = name.substr(pos + 1, name.size());
+
 	Common::Platform platform = _vm->getPlatform();
 	if (platform == Common::kPlatformMacintosh || platform == Common::kPlatformMacintoshII) {
-		int pos = name.findLastOf(':');
-		name = name.substr(pos + 1, name.size());
 		if (name.hasSuffixIgnoreCase(".xlib"))
 			name = name.substr(0, name.size() - 5);
 	} else if (platform == Common::kPlatformWindows) {
 		if (name.hasSuffixIgnoreCase(".dll"))
+			name = name.substr(0, name.size() - 4);
+		if (name.hasSuffixIgnoreCase(".x16"))
+			name = name.substr(0, name.size() - 4);
+		if (name.hasSuffixIgnoreCase(".x32"))
 			name = name.substr(0, name.size() - 4);
 	}
 
@@ -170,7 +375,7 @@ Common::String Lingo::normalizeXLibName(Common::String name) {
 	return name;
 }
 
-void Lingo::openXLib(Common::String name, ObjectType type) {
+void Lingo::openXLib(Common::String name, ObjectType type, const Common::Path &path) {
 	name = normalizeXLibName(name);
 
 	if (_openXLibs.contains(name))
@@ -179,7 +384,7 @@ void Lingo::openXLib(Common::String name, ObjectType type) {
 	_openXLibs[name] = type;
 
 	if (_xlibOpeners.contains(name)) {
-		(*_xlibOpeners[name])(type);
+		(*_xlibOpeners[name])(type, path);
 	} else {
 		warning("Lingo::openXLib: Unimplemented xlib: '%s'", name.c_str());
 	}
@@ -204,16 +409,17 @@ void Lingo::closeXLib(Common::String name) {
 }
 
 void Lingo::closeOpenXLibs() {
-	for (OpenXLibsHash::iterator it = _openXLibs.begin(); it != _openXLibs.end(); ++it) {
-		closeXLib(it->_key);
+	for (auto &it : _openXLibs) {
+		closeXLib(it._key);
 	}
 }
 
 void Lingo::reloadOpenXLibs() {
 	OpenXLibsHash openXLibsCopy = _openXLibs;
-	for (OpenXLibsHash::iterator it = openXLibsCopy.begin(); it != openXLibsCopy.end(); ++it) {
-		closeXLib(it->_key);
-		openXLib(it->_key, it->_value);
+	for (auto &it : openXLibsCopy) {
+		closeXLib(it._key);
+		// FIXME: keep track of where the xlib path is
+		openXLib(it._key, it._value, Common::Path());
 	}
 }
 
@@ -222,11 +428,11 @@ void Lingo::reloadOpenXLibs() {
 void LM::m_new(int nargs) {
 	// This is usually overridden by a user-defined mNew
 	g_lingo->printSTUBWithArglist("m_new", nargs);
-	g_lingo->push(g_lingo->_currentMe);
+	g_lingo->push(g_lingo->_state->me);
 }
 
 void LM::m_dispose(int nargs) {
-	g_lingo->_currentMe.u.obj->dispose();
+	g_lingo->_state->me.u.obj->dispose();
 }
 
 /* ScriptContext */
@@ -239,24 +445,26 @@ ScriptContext::ScriptContext(Common::String name, ScriptType type, int id)
 ScriptContext::ScriptContext(const ScriptContext &sc) : Object<ScriptContext>(sc) {
 	_scriptType = sc._scriptType;
 	_functionNames = sc._functionNames;
-	for (SymbolHash::iterator it = sc._functionHandlers.begin(); it != sc._functionHandlers.end(); ++it) {
-		_functionHandlers[it->_key] = it->_value;
-		_functionHandlers[it->_key].ctx = this;
+	for (auto &it : sc._functionHandlers) {
+		_functionHandlers[it._key] = it._value;
+		_functionHandlers[it._key].ctx = this;
 	}
-	for (Common::HashMap<uint32, Symbol>::iterator it = sc._eventHandlers.begin(); it != sc._eventHandlers.end(); ++it) {
-		_eventHandlers[it->_key] = it->_value;
-		_eventHandlers[it->_key].ctx = this;
+	for (auto &it : sc._eventHandlers) {
+		_eventHandlers[it._key] = it._value;
+		_eventHandlers[it._key].ctx = this;
 	}
 	_constants = sc._constants;
 	_properties = sc._properties;
+	_propertyNames = sc._propertyNames;
 
 	_id = sc._id;
 }
 
-ScriptContext::~ScriptContext() {}
+ScriptContext::~ScriptContext() {
+}
 
 Common::String ScriptContext::asString() {
-	return Common::String::format("script: #%s %d %p", _name.c_str(), _inheritanceLevel, (void *)this);
+	return Common::String::format("script: %d \"%s\" %d %p", _id, _name.c_str(), _inheritanceLevel, (void *)this);
 }
 
 Symbol ScriptContext::define(const Common::String &name, ScriptData *code, Common::Array<Common::String> *argNames, Common::Array<Common::String> *varNames) {
@@ -271,12 +479,7 @@ Symbol ScriptContext::define(const Common::String &name, ScriptData *code, Commo
 	sym.ctx = this;
 
 	if (debugChannelSet(1, kDebugCompile)) {
-		uint pc = 0;
-		while (pc < sym.u.defn->size()) {
-			uint spc = pc;
-			Common::String instr = g_lingo->decodeInstruction(sym.u.defn, pc, &pc);
-			debugC(1, kDebugCompile, "[%5d] %s", spc, instr.c_str());
-		}
+		debugC(1, kDebugCompile, "%s", g_lingo->formatFunctionBody(sym).c_str());
 		debugC(1, kDebugCompile, "<end define code>");
 	}
 
@@ -305,8 +508,9 @@ Symbol ScriptContext::getMethod(const Common::String &methodName) {
 		if (_properties.contains("ancestor") && _properties["ancestor"].type == OBJECT
 				&& (_properties["ancestor"].u.obj->getObjType() & (kScriptObj | kXtraObj))) {
 			// ancestor method
-			debugC(3, kDebugLingoExec, "Calling method '%s' on ancestor: <%s>", methodName.c_str(), _properties["ancestor"].asString(true).c_str());
-			return _properties["ancestor"].u.obj->getMethod(methodName);
+			sym = _properties["ancestor"].u.obj->getMethod(methodName);
+			if (sym.type != VOIDSYM)
+				debugC(3, kDebugLingoExec, "Calling method '%s' on ancestor: <%s>", methodName.c_str(), _properties["ancestor"].asString(true).c_str());
 		}
 	}
 
@@ -343,10 +547,26 @@ Datum ScriptContext::getProp(const Common::String &propName) {
 			return _properties["ancestor"].u.obj->getProp(propName);
 		}
 	}
+	_propertyNames.push_back(propName);
 	return _properties[propName]; // return new property
 }
 
-bool ScriptContext::setProp(const Common::String &propName, const Datum &value) {
+Common::String ScriptContext::getPropAt(uint32 index) {
+	uint32 target = 1;
+	for (auto &it : _propertyNames) {
+		if (target == index) {
+			return it;
+		}
+		target += 1;
+	}
+	return Common::String();
+}
+
+uint32 ScriptContext::getPropCount() {
+	return _propertyNames.size();
+}
+
+bool ScriptContext::setProp(const Common::String &propName, const Datum &value, bool force) {
 	if (_disposed) {
 		error("Property '%s' accessed on disposed object <%s>", propName.c_str(), Datum(this).asString(true).c_str());
 	}
@@ -354,20 +574,39 @@ bool ScriptContext::setProp(const Common::String &propName, const Datum &value) 
 		_properties[propName] = value;
 		return true;
 	}
-	if (_objType == kScriptObj) {
+	if (force) {
+		// used by e.g. the script compiler to add properties
+		_propertyNames.push_back(propName);
+		_properties[propName] = value;
+		return true;
+	} else if (_objType == kScriptObj) {
 		if (_properties.contains("ancestor") && _properties["ancestor"].type == OBJECT
 				&& (_properties["ancestor"].u.obj->getObjType() & (kScriptObj | kXtraObj))) {
 			debugC(3, kDebugLingoExec, "Getting prop '%s' from ancestor: <%s>", propName.c_str(), _properties["ancestor"].asString(true).c_str());
-			return _properties["ancestor"].u.obj->setProp(propName, value);
+			return _properties["ancestor"].u.obj->setProp(propName, value, force);
 		}
+	} else if (_objType == kFactoryObj) {
+		// D3 style anonymous objects/factories, set whatever properties you like
+		_propertyNames.push_back(propName);
+		_properties[propName] = value;
+		return true;
 	}
 	return false;
 }
 
+Common::String ScriptContext::formatFunctionList(const char *prefix) {
+	Common::String result;
+	for (auto it = _functionHandlers.begin(); it != _functionHandlers.end(); ++it) {
+		result += Common::String::format("%s%s\n", prefix, g_lingo->formatFunctionName(it->_value).c_str());
+	}
+	return result;
+}
+
+
 // Object array
 
 void LM::m_get(int nargs) {
-	ScriptContext *me = static_cast<ScriptContext *>(g_lingo->_currentMe.u.obj);
+	ScriptContext *me = static_cast<ScriptContext *>(g_lingo->_state->me.u.obj);
 	Datum indexD = g_lingo->pop();
 	uint index = MAX(0, indexD.asInt());
 	if (me->_objArray.contains(index)) {
@@ -378,7 +617,7 @@ void LM::m_get(int nargs) {
 }
 
 void LM::m_put(int nargs) {
-	ScriptContext *me = static_cast<ScriptContext *>(g_lingo->_currentMe.u.obj);
+	ScriptContext *me = static_cast<ScriptContext *>(g_lingo->_state->me.u.obj);
 	Datum value = g_lingo->pop();
 	Datum indexD = g_lingo->pop();
 	uint index = MAX(0, indexD.asInt());
@@ -388,15 +627,22 @@ void LM::m_put(int nargs) {
 // Other
 
 void LM::m_perform(int nargs) {
+	bool allowRetVal = g_lingo->pop().asInt() != 0; // Pop allowRetVal that should be used for the LC::Call
+
 	// Lingo doesn't seem to bother cloning the object when
 	// mNew is called with mPerform
-	Datum d(g_lingo->_currentMe);
+	Datum d(g_lingo->_state->me);
 	AbstractObject *me = d.u.obj;
 	Datum methodName = g_lingo->_stack.remove_at(g_lingo->_stack.size() - nargs); // Take method name out of stack
 	Symbol funcSym = me->getMethod(*methodName.u.s);
 	// Object methods expect the first argument to be the object
 	g_lingo->_stack.insert_at(g_lingo->_stack.size() - nargs + 1, d);
-	LC::call(funcSym, nargs, true);
+	LC::call(funcSym, nargs, allowRetVal);
+
+	if (allowRetVal) {
+		// If the method expects a return value, push dummy on stack
+		g_lingo->pushVoid();
+	}
 }
 
 // XObject
@@ -406,7 +652,7 @@ void LM::m_describe(int nargs) {
 }
 
 void LM::m_instanceRespondsTo(int nargs) {
-	AbstractObject *me = g_lingo->_currentMe.u.obj;
+	AbstractObject *me = g_lingo->_state->me.u.obj;
 	Datum d = g_lingo->pop();
 	Common::String methodName = d.asString();
 
@@ -423,12 +669,12 @@ void LM::m_messageList(int nargs) {
 }
 
 void LM::m_name(int nargs) {
-	AbstractObject *me = g_lingo->_currentMe.u.obj;
+	AbstractObject *me = g_lingo->_state->me.u.obj;
 	g_lingo->push(me->getName());
 }
 
 void LM::m_respondsTo(int nargs) {
-	AbstractObject *me = g_lingo->_currentMe.u.obj;
+	AbstractObject *me = g_lingo->_state->me.u.obj;
 	Datum d = g_lingo->pop();
 	Common::String methodName = d.asString();
 
@@ -461,7 +707,7 @@ Datum Window::getProp(const Common::String &propName) {
 	return Datum();
 }
 
-bool Window::setProp(const Common::String &propName, const Datum &value) {
+bool Window::setProp(const Common::String &propName, const Datum &value, bool force) {
 	Common::String fieldName = Common::String::format("%d%s", kTheWindow, propName.c_str());
 	if (g_lingo->_theEntityFields.contains(fieldName)) {
 		return setField(g_lingo->_theEntityFields[fieldName]->field, value);
@@ -476,6 +722,7 @@ bool Window::hasField(int field) {
 	case kTheDrawRect:
 	case kTheFileName:
 	case kTheModal:
+	case kTheRect:
 	case kTheSourceRect:
 	case kTheTitle:
 	case kTheTitleVisible:
@@ -498,6 +745,18 @@ Datum Window::getField(int field) {
 		return isVisible();
 	case kTheWindowType:
 		return getWindowType();
+	case kTheRect:
+		return getStageRect();
+	case kTheModal:
+		return getModal();
+	case kTheFileName:
+		return getFileName();
+	case kTheDrawRect:
+	case kTheSourceRect:
+	// case kTheImage:
+	// case kThePicture::
+		ensureMovieIsLoaded();  // Remove fallthrough once implemented
+		// fallthrough
 	default:
 		warning("Window::getField: unhandled field '%s'", g_lingo->field2str(field));
 		return Datum();
@@ -518,6 +777,14 @@ bool Window::setField(int field, const Datum &value) {
 	case kTheWindowType:
 		setWindowType(value.asInt());
 		return true;
+	case kTheRect:
+		return setStageRect(value);
+	case kTheModal:
+		setModal((bool)value.asInt());
+		return true;
+	case kTheFileName:
+		setFileName(value.asString());
+		return true;
 	default:
 		warning("Window::setField: unhandled field '%s'", g_lingo->field2str(field));
 		return false;
@@ -525,40 +792,47 @@ bool Window::setField(int field, const Datum &value) {
 }
 
 void LM::m_close(int nargs) {
-	Window *me = static_cast<Window *>(g_lingo->_currentMe.u.obj);
+	Window *me = static_cast<Window *>(g_lingo->_state->me.u.obj);
 	me->setVisible(false);
 }
 
 void LM::m_forget(int nargs) {
-	Window *me = static_cast<Window *>(g_lingo->_currentMe.u.obj);
+	Window *me = static_cast<Window *>(g_lingo->_state->me.u.obj);
 	FArray *windowList = g_lingo->_windowList.u.farr;
 
-	uint i;
-	for (i = 0; i < windowList->arr.size(); i++) {
+	int windowIndex = -1;
+	for (int i = 0; i < (int)windowList->arr.size(); i++) {
 		if (windowList->arr[i].type != OBJECT || windowList->arr[i].u.obj->getObjType() != kWindowObj)
 			continue;
 
 		Window *window = static_cast<Window *>(windowList->arr[i].u.obj);
-		if (window == me)
+		if (window == me) {
+			windowIndex = i;
 			break;
+		}
 	}
 
-	if (i < windowList->arr.size())
-		windowList->arr.remove_at(i);
+	if (windowIndex == -1) {
+		warning("m_forget: me object %s not found in window list", g_lingo->_state->me.asString().c_str());
+		return;
+	}
+
+	if (windowIndex < (int)windowList->arr.size())
+		windowList->arr.remove_at(windowIndex);
 
 	// remove me from global vars
-	for (DatumHash::iterator it = g_lingo->_globalvars.begin(); it != g_lingo->_globalvars.end(); ++it) {
-		if (it->_value.type != OBJECT || it->_value.u.obj->getObjType() != kWindowObj)
+	for (auto &it : g_lingo->_globalvars) {
+		if (it._value.type != OBJECT || it._value.u.obj->getObjType() != kWindowObj)
 			continue;
 
-		Window *window = static_cast<Window *>(windowList->arr[i].u.obj);
-		if (window == me)
-			g_lingo->_globalvars[it->_key] = 0;
+		if (it._value.u.obj == me)
+			g_lingo->_globalvars[it._key] = 0;
 	}
+
 }
 
 void LM::m_open(int nargs) {
-	Window *me = static_cast<Window *>(g_lingo->_currentMe.u.obj);
+	Window *me = static_cast<Window *>(g_lingo->_state->me.u.obj);
 	me->setVisible(true);
 }
 
@@ -569,565 +843,10 @@ void LM::m_moveToBack(int nargs) {
 
 void LM::m_moveToFront(int nargs) {
 	g_lingo->printSTUBWithArglist("m_moveToFront", nargs);
+
+	Window *me = static_cast<Window *>(g_lingo->_state->me.u.obj);
+	me->ensureMovieIsLoaded();
 	g_lingo->dropStack(nargs);
-}
-
-// CastMember
-
-bool CastMember::hasProp(const Common::String &propName) {
-	Common::String fieldName = Common::String::format("%d%s", kTheCast, propName.c_str());
-	return g_lingo->_theEntityFields.contains(fieldName) && hasField(g_lingo->_theEntityFields[fieldName]->field);
-}
-
-Datum CastMember::getProp(const Common::String &propName) {
-	Common::String fieldName = Common::String::format("%d%s", kTheCast, propName.c_str());
-	if (g_lingo->_theEntityFields.contains(fieldName)) {
-		return getField(g_lingo->_theEntityFields[fieldName]->field);
-	}
-
-	warning("CastMember::getProp: unknown property '%s'", propName.c_str());
-	return Datum();
-}
-
-bool CastMember::setProp(const Common::String &propName, const Datum &value) {
-	Common::String fieldName = Common::String::format("%d%s", kTheCast, propName.c_str());
-	if (g_lingo->_theEntityFields.contains(fieldName)) {
-		return setField(g_lingo->_theEntityFields[fieldName]->field, value);
-	}
-
-	warning("CastMember::setProp: unknown property '%s'", propName.c_str());
-	return false;
-}
-
-bool CastMember::hasField(int field) {
-	switch (field) {
-	case kTheBackColor:
-	case kTheCastType:
-	case kTheFileName:
-	case kTheForeColor:
-	case kTheHeight:
-	case kTheLoaded:
-	case kTheModified:
-	case kTheName:
-	case kTheNumber:
-	case kTheRect:
-	case kThePurgePriority:
-	case kTheScriptText:
-	case kTheSize:
-	case kTheWidth:
-		return true;
-	default:
-		break;
-	}
-	return false;
-}
-
-Datum CastMember::getField(int field) {
-	Datum d;
-
-	CastMemberInfo *castInfo = _cast->getCastMemberInfo(_castId);
-	if (!castInfo)
-		warning("CastMember::getField(): CastMember info for %d not found", _castId);
-
-	switch (field) {
-	case kTheBackColor:
-		d = (int)getBackColor();
-		break;
-	case kTheCastType:
-		d.type = SYMBOL;
-		d.u.s = new Common::String(castTypeToString(_type));
-		break;
-	case kTheFileName:
-		if (castInfo)
-			d = Datum(castInfo->fileName);
-		break;
-	case kTheForeColor:
-		d = (int)getForeColor();
-		break;
-	case kTheHeight:
-		d = _cast->getCastMemberInitialRect(_castId).height();
-		break;
-	case kTheLoaded:
-		d = 1; // Not loaded handled in Lingo::getTheCast
-		break;
-	case kTheModified:
-		warning("STUB: CastMember::getField():: Unprocessed getting field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-		break;
-	case kTheName:
-		if (castInfo)
-			d = Datum(castInfo->name);
-		break;
-	case kTheNumber:
-		d = _castId;
-		break;
-	case kTheRect:
-		// not sure get the initial rect would be fine to castmember
-		d = Datum(_cast->getCastMember(_castId)->_initialRect);
-		break;
-	case kThePurgePriority:
-		d = _purgePriority;
-		break;
-	case kTheScriptText:
-		if (castInfo)
-			d = Datum(castInfo->script);
-		break;
-	case kTheSize:
-		d = (int)_size;
-		break;
-	case kTheWidth:
-		d = _cast->getCastMemberInitialRect(_castId).width();
-		break;
-	default:
-		warning("CastMember::getField(): Unprocessed getting field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-	//TODO find out about String fields
-	}
-
-	return d;
-}
-
-bool CastMember::setField(int field, const Datum &d) {
-	CastMemberInfo *castInfo = _cast->getCastMemberInfo(_castId);
-
-	switch (field) {
-	case kTheBackColor:
-		warning("STUB: CastMember::setField(): Unprocessed setting field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-		return false;
-	case kTheCastType:
-		warning("CastMember::setField(): Attempt to set read-only field %s of cast %d", g_lingo->entity2str(field), _castId);
-		return false;
-	case kTheFileName:
-		if (!castInfo) {
-			warning("CastMember::setField(): CastMember info for %d not found", _castId);
-			return false;
-		}
-		castInfo->fileName = d.asString();
-		return true;
-	case kTheForeColor:
-		warning("STUB: CastMember::setField(): Unprocessed setting field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-		return false;
-	case kTheHeight:
-		warning("CastMember::setField(): Attempt to set read-only field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-		return false;
-	case kTheName:
-		if (!castInfo) {
-			warning("CastMember::setField(): CastMember info for %d not found", _castId);
-			return false;
-		}
-		castInfo->name = d.asString();
-		return true;
-	case kTheRect:
-		warning("STUB: CastMember::setField(): Unprocessed setting field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-		return false;
-	case kThePurgePriority:
-		_purgePriority = CLIP<int>(d.asInt(), 0, 3);
-		return true;
-	case kTheScriptText:
-		if (!castInfo) {
-			warning("CastMember::setField(): CastMember info for %d not found", _castId);
-			return false;
-		}
-		_cast->_lingoArchive->replaceCode(*d.u.s, kCastScript, _castId);
-		castInfo->script = d.asString();
-		return true;
-	case kTheWidth:
-		warning("CastMember::setField(): Attempt to set read-only field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-		return false;
-	default:
-		warning("CastMember::setField(): Unprocessed setting field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-	}
-
-	return false;
-}
-
-bool DigitalVideoCastMember::hasField(int field) {
-	switch (field) {
-	case kTheCenter:
-	case kTheController:
-	case kTheCrop:
-	case kTheDirectToStage:
-	case kTheDuration:
-	case kTheFrameRate:
-	case kTheLoop:
-	case kTheMovieRate:
-	case kTheMovieTime:
-	case kThePausedAtStart:
-	case kThePreLoad:
-	case kTheSound:
-	case kTheVideo:
-	case kTheVolume:
-		return true;
-	default:
-		break;
-	}
-	return CastMember::hasField(field);
-}
-
-Datum DigitalVideoCastMember::getField(int field) {
-	Datum d;
-
-	switch (field) {
-	case kTheCenter:
-		d = _center;
-		break;
-	case kTheController:
-		d = _showControls;
-		break;
-	case kTheCrop:
-		d = _crop;
-		break;
-	case kTheDirectToStage:
-		d = _directToStage;
-		break;
-	case kTheDuration:
-		// sometimes, we will get duration before we start video.
-		// _duration is initialized in startVideo, thus we will not get the correct number.
-		d.type = INT;
-		d.u.i = getDuration();
-		break;
-	case kTheFrameRate:
-		d = _frameRate;
-		break;
-	case kTheLoop:
-		d = _looping;
-		break;
-	case kThePausedAtStart:
-		d = _pausedAtStart;
-		break;
-	case kThePreLoad:
-		d = _preload;
-		break;
-	case kTheSound:
-		d = _enableSound;
-		break;
-	case kTheVideo:
-		d = _enableVideo;
-		break;
-	default:
-		d = CastMember::getField(field);
-	}
-
-	return d;
-}
-
-bool DigitalVideoCastMember::setField(int field, const Datum &d) {
-	switch (field) {
-	case kTheCenter:
-		_center = (bool)d.asInt();
-		return true;
-	case kTheController:
-		_showControls = (bool)d.asInt();
-		return true;
-	case kTheCrop:
-		_crop = (bool)d.asInt();
-		return true;
-	case kTheDirectToStage:
-		_directToStage = (bool)d.asInt();
-		return true;
-	case kTheDuration:
-		warning("DigitalVideoCastMember::setField(): Attempt to set read-only field %s of cast %d", g_lingo->entity2str(field), _castId);
-		return false;
-	case kTheFrameRate:
-		_frameRate = d.asInt();
-		setFrameRate(d.asInt());
-		return true;
-	case kTheLoop:
-		_looping = (bool)d.asInt();
-		if (_looping && _channel && _channel->_movieRate == 0.0) {
-			setMovieRate(1.0);
-		}
-		return true;
-	case kThePausedAtStart:
-		_pausedAtStart = (bool)d.asInt();
-		return true;
-	case kThePreLoad:
-		_preload = (bool)d.asInt();
-		return true;
-	case kTheSound:
-		_enableSound = (bool)d.asInt();
-		return true;
-	case kTheVideo:
-		_enableVideo = (bool)d.asInt();
-		return true;
-	default:
-		break;
-	}
-
-	return CastMember::setField(field, d);
-}
-
-bool BitmapCastMember::hasField(int field) {
-	switch (field) {
-	case kTheDepth:
-	case kTheRegPoint:
-	case kThePalette:
-	case kThePicture:
-		return true;
-	default:
-		break;
-	}
-	return CastMember::hasField(field);
-}
-
-Datum BitmapCastMember::getField(int field) {
-	Datum d;
-
-	switch (field) {
-	case kTheDepth:
-		warning("STUB: BitmapCastMember::getField(): Unprocessed getting field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-		break;
-	case kTheRegPoint:
-		warning("STUB: BitmapCastMember::getField(): Unprocessed getting field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-		break;
-	case kThePalette:
-		d = _clut;
-		break;
-	case kThePicture:
-		warning("STUB: BitmapCastMember::getField(): Unprocessed getting field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-		break;
-	default:
-		d = CastMember::getField(field);
-	}
-
-	return d;
-}
-
-bool BitmapCastMember::setField(int field, const Datum &d) {
-	switch (field) {
-	case kTheDepth:
-		warning("STUB: BitmapCastMember::setField(): Unprocessed setting field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-		return false;
-	case kTheRegPoint:
-		warning("STUB: BitmapCastMember::setField(): Unprocessed setting field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-		return false;
-	case kThePalette:
-		_clut = d.asInt();
-		return true;
-	case kThePicture:
-		warning("STUB: BitmapCastMember::setField(): Unprocessed setting field \"%s\" of cast %d", g_lingo->field2str(field), _castId);
-		return false;
-	default:
-		break;
-	}
-
-	return CastMember::setField(field, d);
-}
-
-bool TextCastMember::hasField(int field) {
-	switch (field) {
-	case kTheHilite:
-	case kTheText:
-	case kTheTextAlign:
-	case kTheTextFont:
-	case kTheTextHeight:
-	case kTheTextSize:
-	case kTheTextStyle:
-		return true;
-	default:
-		break;
-	}
-	return CastMember::hasField(field);
-}
-
-Datum TextCastMember::getField(int field) {
-	Datum d;
-
-	switch (field) {
-	case kTheHilite:
-		d = _hilite;
-		break;
-	case kTheText:
-		d = getText().encode(Common::kUtf8);
-		break;
-	case kTheTextAlign:
-		d.type = STRING;
-		switch (_textAlign) {
-		case kTextAlignLeft:
-			d.u.s = new Common::String("left");
-			break;
-		case kTextAlignCenter:
-			d.u.s = new Common::String("center");
-			break;
-		case kTextAlignRight:
-			d.u.s = new Common::String("right");
-			break;
-		default:
-			warning("TextCastMember::getField(): Invalid text align spec");
-			break;
-		}
-		break;
-	case kTheTextFont:
-		d.u.i = _fontId;
-		break;
-	case kTheTextHeight:
-		d.u.i = getTextHeight();
-		break;
-	case kTheTextSize:
-		d.u.i = getTextSize();
-		break;
-	case kTheTextStyle:
-		d.u.i = _textSlant;
-		break;
-	default:
-		d = CastMember::getField(field);
-	}
-
-	return d;
-}
-
-bool TextCastMember::setField(int field, const Datum &d) {
-	switch (field) {
-	case kTheBackColor:
-		{
-			uint32 color = g_director->transformColor(d.asInt());
-			setColors(nullptr, &color);
-		}
-		return true;
-	case kTheForeColor:
-		{
-			uint32 color = g_director->transformColor(d.asInt());
-			setColors(&color, nullptr);
-		}
-		return true;
-	case kTheHilite:
-		// TODO: Understand how texts can be selected programmatically as well.
-		// since hilite won't affect text castmember, and we may have button info in text cast in D2/3. so don't check type here
-		_hilite = (bool)d.asInt();
-		_modified = true;
-		return true;
-		break;
-	case kTheText:
-		setText(d.asString());
-		return true;
-	case kTheTextAlign:
-		{
-			Common::String select = d.asString(true);
-			select.toLowercase();
-
-			TextAlignType align;
-			if (select == "\"left\"") {
-				align = kTextAlignLeft;
-			} else if (select == "\"center\"") {
-				align = kTextAlignCenter;
-			} else if (select == "\"right\"") {
-				align = kTextAlignRight;
-			} else {
-				warning("TextCastMember::setField(): Unknown text align spec: %s", d.asString(true).c_str());
-				break;
-			}
-
-			_textAlign = align;
-			_modified = true;
-	}
-		return true;
-	case kTheTextFont:
-		_fontId = d.asInt();
-		_modified = true;
-		return false;
-	case kTheTextHeight:
-		_lineSpacing = d.asInt();
-		_modified = true;
-		return false;
-	case kTheTextSize:
-		setTextSize(d.asInt());
-		return false;
-	case kTheTextStyle:
-		_textSlant = d.asInt();
-		_modified = true;
-		return false;
-	default:
-		break;
-	}
-
-	return CastMember::setField(field, d);
-}
-
-bool TextCastMember::hasChunkField(int field) {
-	switch (field) {
-	case kTheForeColor:
-	case kTheTextFont:
-	case kTheTextHeight:
-	case kTheTextSize:
-	case kTheTextStyle:
-		return true;
-	default:
-		break;
-	}
-	return false;
-}
-
-Datum TextCastMember::getChunkField(int field, int start, int end) {
-	Datum d;
-
-	Graphics::MacText *macText = ((Graphics::MacText *)_widget);
-	if (!_widget)
-		warning("TextCastMember::getChunkField getting chunk field when there is no linked widget, returning the default value");
-
-	switch (field) {
-	case kTheForeColor:
-		if (_widget)
-			d.u.i = macText->getTextColor(start, end);
-		else
-			d.u.i = getForeColor();
-		break;
-	case kTheTextFont:
-		if (_widget)
-			d.u.i = macText->getTextFont(start, end);
-		else
-			d.u.i = _fontId;
-		break;
-	case kTheTextHeight:
-		warning("TextCastMember::getChunkField getting text height(line spacing) is not implemented yet, returning the default one");
-		d.u.i = _lineSpacing;
-		break;
-	case kTheTextSize:
-		if (_widget)
-			d.u.i = macText->getTextSize(start, end);
-		else
-			d.u.i = _fontSize;
-		break;
-	case kTheTextStyle:
-		if (_widget)
-			d.u.i = macText->getTextSlant(start, end);
-		else
-			d.u.i = _textSlant;
-		break;
-	default:
-		break;
-	}
-
-	return d;
-}
-
-bool TextCastMember::setChunkField(int field, int start, int end, const Datum &d) {
-	Graphics::MacText *macText = ((Graphics::MacText *)_widget);
-	if (!_widget)
-		warning("TextCastMember::setChunkField setting chunk field when there is no linked widget");
-
-	switch (field) {
-	case kTheForeColor:
-		if (_widget)
-			macText->setTextColor(d.asInt(), start, end);
-		return true;
-	case kTheTextFont:
-		if (_widget)
-			macText->setTextFont(d.asInt(), start, end);
-		return true;
-	case kTheTextHeight:
-		warning("TextCastMember::setChunkField setting text height(line spacing) is not implemented yet");
-		return false;
-	case kTheTextSize:
-		if (_widget)
-			macText->setTextSize(d.asInt(), start, end);
-		return true;
-	case kTheTextStyle:
-		if (_widget)
-			macText->setTextSlant(d.asInt(), start, end);
-		return true;
-	default:
-		break;
-	}
-
-	return false;
 }
 
 } // End of namespace Director

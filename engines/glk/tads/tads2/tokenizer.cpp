@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -98,7 +97,7 @@ static tokdfdef *tok_find_define(tokcxdef *ctx, const char *sym, int len)
 					l = linlnum(ctx->tokcxlin);
 
 					/* convert it to a textual format for the expansion */
-					sprintf(df->expan, "%lu", l);
+					Common::sprintf_s(df->expan, "%lu", l);
 
 					/* set the expanded value's length */
 					df->explen = strlen(df->expan);
@@ -115,7 +114,7 @@ static tokdfdef *tok_find_define(tokcxdef *ctx, const char *sym, int len)
 	}
 
 	/* didn't find anything */
-	return 0;
+	return nullptr;
 }
 
 /*
@@ -254,7 +253,7 @@ void tok_add_define_num_cvtcase(tokcxdef *ctx, char *sym, int len, int num)
 	char buf[20];
 
 	/* convert the value to a string */
-	sprintf(buf, "%d", num);
+	Common::sprintf_s(buf, "%d", num);
 
 	/* add the text value */
 	tok_add_define_cvtcase(ctx, sym, len, buf, strlen(buf));
@@ -271,7 +270,7 @@ void tok_del_define(tokcxdef *ctx, const char *sym, int len)
 	hsh = tokdfhsh(sym, len);
 
 	/* search the chain for this symbol */
-	for (prv = 0, df = ctx->tokcxdf[hsh] ; df ; prv = df, df = df->nxt)
+	for (prv = nullptr, df = ctx->tokcxdf[hsh] ; df ; prv = df, df = df->nxt)
 	{
 		/* if this one matches, delete it */
 		if (df->len == len && !memcmp(df->nm, sym, (size_t)len))
@@ -391,7 +390,7 @@ static void tok_ifdef_ifndef(tokcxdef *ctx, const char *p, int len, int is_ifdef
 	sym = tok_casefold_defsym(ctx, mysym, sym, symlen);
 
 	/* see if we can find it in the table, and set the status accordingly */
-	found = (tok_find_define(ctx, sym, symlen) != 0);
+	found = (tok_find_define(ctx, sym, symlen) != nullptr);
 
 	/* invert the test if this is an ifndef */
 	if (!is_ifdef) found = !found;
@@ -1001,12 +1000,12 @@ nexttoken:
 
 			/* check to see if it's defined */
 			tok->toktyp = TOKTNUMBER;
-			tok->tokval = (tok_find_define(ctx, q, symlen) != 0);
+			tok->tokval = (tok_find_define(ctx, q, symlen) != nullptr);
 			goto done;
 		}
 
 		/* substitute the preprocessor #define, if any */
-		if ((df = tok_find_define(ctx, tok->toknam, l)) != 0)
+		if ((df = tok_find_define(ctx, tok->toknam, l)) != nullptr)
 		{
 			/* save the current parsing position */
 			if (ctx->tokcxmlvl >= TOKMACNEST)
@@ -1487,7 +1486,7 @@ void tokaddinc(tokcxdef *ctx, char *path, int pathlen)
 								(sizeof(tokpdef) + pathlen - 1),
 								"tokaddinc");
 	newpath->tokplen = pathlen;
-	newpath->tokpnxt = (tokpdef *)0;
+	newpath->tokpnxt = (tokpdef *)nullptr;
 	memcpy(newpath->tokpdir, path, (size_t)pathlen);
 
 	/* link in at end of list (if no list yet, newpath becomes first entry) */

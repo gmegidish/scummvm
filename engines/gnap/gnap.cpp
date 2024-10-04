@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,7 @@
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
 #include "common/timer.h"
-#include "common/winexe_pe.h"
+#include "common/formats/winexe_pe.h"
 
 #include "graphics/wincursor.h"
 
@@ -235,10 +234,9 @@ Common::Error GnapEngine::run() {
 
 #ifdef USE_FREETYPE2
 	Common::SeekableReadStream *stream = _exe->getResource(Common::kWinFont, 2000);
-	_font = Graphics::loadTTFFont(*stream, 24);
+	_font = Graphics::loadTTFFont(stream, DisposeAfterUse::YES, 24);
 	if (!_font)
 		warning("Unable to load font");
-	delete stream;
 #else
 	_font = nullptr;
 #endif
@@ -452,7 +450,7 @@ void GnapEngine::updateCursorByHotspot() {
 		if (_debugger->_showHotspotNumber) {
 			// NOTE This causes some display glitches
 			char t[256];
-			sprintf(t, "hotspot = %2d", hotspotIndex);
+			Common::sprintf_s(t, "hotspot = %2d", hotspotIndex);
 			if (!_font)
 				_gameSys->fillSurface(nullptr, 10, 10, 80, 16, 0, 0, 0);
 			else

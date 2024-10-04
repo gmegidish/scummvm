@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,10 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+#include "audio/decoders/voc.h"
 
 #include "common/debug.h"
 #include "common/endian.h"
@@ -32,8 +33,6 @@
 #include "audio/decoders/voc.h"
 
 namespace Audio {
-
-namespace {
 
 bool checkVOCHeader(Common::ReadStream &stream) {
 	VocFileHeader fileHeader;
@@ -73,83 +72,6 @@ bool checkVOCHeader(Common::ReadStream &stream) {
 
 	return true;
 }
-
-class VocStream : public SeekableAudioStream {
-public:
-	VocStream(Common::SeekableReadStream *stream, bool isUnsigned, DisposeAfterUse::Flag disposeAfterUse);
-	~VocStream();
-
-	virtual int readBuffer(int16 *buffer, const int numSamples);
-
-	virtual bool isStereo() const { return false; }
-
-	virtual int getRate() const { return _rate; }
-
-	virtual bool endOfData() const { return (_curBlock == _blocks.end()) && (_blockLeft == 0); }
-
-	virtual bool seek(const Timestamp &where);
-
-	virtual Timestamp getLength() const { return _length; }
-private:
-	void preProcess();
-
-	Common::SeekableReadStream *const _stream;
-	const DisposeAfterUse::Flag _disposeAfterUse;
-
-	const bool _isUnsigned;
-
-	int _rate;
-	Timestamp _length;
-
-	struct Block {
-		uint8 code;
-		uint32 length;
-
-		union {
-			struct {
-				uint32 offset;
-				int rate;
-				int samples;
-			} sampleBlock;
-
-			struct {
-				int count;
-			} loopBlock;
-		};
-	};
-
-	typedef Common::List<Block> BlockList;
-	BlockList _blocks;
-
-	BlockList::const_iterator _curBlock;
-	uint32 _blockLeft;
-
-	/**
-	 * Advance one block in the stream in case
-	 * the current one is empty.
-	 */
-	void updateBlockIfNeeded();
-
-	// Do some internal buffering for systems with really slow slow disk i/o
-	enum {
-		/**
-		 * How many samples we can buffer at once.
-		 *
-		 * TODO: Check whether this size suffices
-		 * for systems with slow disk I/O.
-		 */
-		kSampleBufferLength = 2048
-	};
-	byte _buffer[kSampleBufferLength];
-
-	/**
-	 * Fill the temporary sample buffer used in readBuffer.
-	 *
-	 * @param maxSamples Maximum samples to read.
-	 * @return actual count of samples read.
-	 */
-	int fillBuffer(int maxSamples);
-};
 
 VocStream::VocStream(Common::SeekableReadStream *stream, bool isUnsigned, DisposeAfterUse::Flag disposeAfterUse)
 	: _stream(stream), _disposeAfterUse(disposeAfterUse), _isUnsigned(isUnsigned), _rate(0),
@@ -246,9 +168,9 @@ int VocStream::fillBuffer(int maxSamples) {
 		maxSamples -= samplesRead;
 		_blockLeft -= samplesRead;
 
-		// In case of an error we will stop
+		// In case of an error or end of stream we will stop
 		// stream playback.
-		if (_stream->err()) {
+		if (_stream->err() || _stream->eos()) {
 			_blockLeft = 0;
 			_curBlock = _blocks.end();
 			break;
@@ -534,8 +456,6 @@ void VocStream::preProcess() {
 	rewind();
 }
 
-} // End of anonymous namespace
-
 int getSampleRateFromVOCRate(int vocSR) {
 	if (vocSR == 0xa5 || vocSR == 0xa6) {
 		return 11025;
@@ -554,14 +474,14 @@ SeekableAudioStream *makeVOCStream(Common::SeekableReadStream *stream, byte flag
 	if (!checkVOCHeader(*stream)) {
 		if (disposeAfterUse == DisposeAfterUse::YES)
 			delete stream;
-		return 0;
+		return nullptr;
 	}
 
 	SeekableAudioStream *audioStream = new VocStream(stream, (flags & Audio::FLAG_UNSIGNED) != 0, disposeAfterUse);
 
 	if (audioStream->endOfData()) {
 		delete audioStream;
-		return 0;
+		return nullptr;
 	} else {
 		return audioStream;
 	}

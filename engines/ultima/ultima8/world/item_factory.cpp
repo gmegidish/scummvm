@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,16 +15,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
+#include "ultima/ultima8/misc/common_types.h"
 
 #include "ultima/ultima8/world/item_factory.h"
 #include "ultima/ultima8/games/game_data.h"
-#include "ultima/ultima8/graphics/main_shape_archive.h"
+#include "ultima/ultima8/gfx/main_shape_archive.h"
 #include "ultima/ultima8/world/actors/main_actor.h"
 #include "ultima/ultima8/world/glob_egg.h"
 #include "ultima/ultima8/world/monster_egg.h"
@@ -100,7 +99,8 @@ Item *ItemFactory::createItem(uint32 shape, uint32 frame, uint16 quality,
 		if (GAME_IS_CRUSADER) {
 			if (info->_damageInfo && info->_damageInfo->takesDamage()) {
 				item->setDamagePoints(info->_damageInfo->damagePoints());
-			}
+			} // else damage points is default 1 (set in Item constructor)
+
 			if (info->_family == ShapeInfo::SF_CRUWEAPON && info->_weaponInfo &&
 				info->_weaponInfo->_clipSize) {
 				item->setQuality(info->_weaponInfo->_clipSize);
@@ -126,11 +126,6 @@ static Actor *getActorForNpcNum(uint32 npcnum) {
 Actor *ItemFactory::createActor(uint32 shape, uint32 frame, uint16 quality,
 								uint16 flags, uint16 npcnum, uint16 mapnum,
 								uint32 extendedflags, bool objId) {
-	/*
-	    // This makes it rather hard to create new NPCs...
-	    if (npcnum == 0) // or do monsters have npcnum 0? we'll see...
-	        return nullptr;
-	*/
 	// New actor, no lerping
 	extendedflags |= Item::EXT_LERP_NOPREV;
 

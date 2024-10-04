@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -31,14 +30,15 @@
 namespace Saga2 {
 
 size_t Messager::va(const char *format, va_list argptr) {
-	if (enabled) {
+	if (_enabled) {
 		char tempBuf[256];
 		size_t size;
 
-		size = vsprintf((char *) tempBuf, format, argptr);
+		size = Common::vsprintf_s(tempBuf, format, argptr);
 
 		if (size) {
-			if (tempBuf[size - 1] != '\n') {
+			if ((size < sizeof(tempBuf) - 2) &&
+				tempBuf[size - 1] != '\n') {
 				tempBuf[size++] = '\n';
 				tempBuf[size] = '\0';
 			}
@@ -49,7 +49,7 @@ size_t Messager::va(const char *format, va_list argptr) {
 }
 
 size_t Messager::operator()(const char *format, ...) {
-	if (enabled) {
+	if (_enabled) {
 		size_t size;
 		va_list argptr;
 
@@ -70,39 +70,39 @@ uint16 heightStatusF = 11;
 int StatusLineMessager::dumpit(char *s, size_t size) {
 	Rect16          r;
 
-	r.x = atX;
-	r.y = atY;
-	r.width = atW;
+	r.x = _atX;
+	r.y = _atY;
+	r.width = _atW;
 	r.height = heightStatusF;
 
-	textPort->setColor(blackStatusF);
-	textPort->fillRect(r);
-	textPort->setColor(atColor);
-	textPort->setStyle(0);
-	textPort->drawTextInBox(s, size, r, textPosLeft, Point16(2, 1));
+	_textPort->setColor(blackStatusF);
+	_textPort->fillRect(r);
+	_textPort->setColor(_atColor);
+	_textPort->setStyle(0);
+	_textPort->drawTextInBox(s, size, r, kTextPosLeft, Point16(2, 1));
 
 	return 0;
 }
 
 StatusLineMessager::StatusLineMessager(const char *entry, int lineno, gDisplayPort *mp, int32 x, int32 y, int32 w, int16 color)
 	: Messager(entry) {
-	line = lineno;
-	textPort = mp;
-	atX = (x >= 0 ? x : defaultStatusFX);
-	atY = (y >= 0 ? y : defaultStatusFY + line * heightStatusF);
-	atW = (w >= 0 ? w : 640 - (defaultStatusFX - 16) - 20);
-	atColor = (color >= 0 ? color : line * 16 + 12);
-	operator()("Status Line %d", line);
+	_line = lineno;
+	_textPort = mp;
+	_atX = (x >= 0 ? x : defaultStatusFX);
+	_atY = (y >= 0 ? y : defaultStatusFY + _line * heightStatusF);
+	_atW = (w >= 0 ? w : 640 - (defaultStatusFX - 16) - 20);
+	_atColor = (color >= 0 ? color : _line * 16 + 12);
+	operator()("Status Line %d", _line);
 }
 
 StatusLineMessager::StatusLineMessager(int lineno, gDisplayPort *mp, int32 x, int32 y, int32 w, int16 color) {
-	line = lineno;
-	textPort = mp;
-	atX = (x >= 0 ? x : defaultStatusFX);
-	atY = (y >= 0 ? y : defaultStatusFY + line * heightStatusF);
-	atW = (w >= 0 ? w : 640 - (defaultStatusFX - 16) - 20);
-	atColor = (color >= 0 ? color : line * 16 + 12);
-	operator()("Status Line %d", line);
+	_line = lineno;
+	_textPort = mp;
+	_atX = (x >= 0 ? x : defaultStatusFX);
+	_atY = (y >= 0 ? y : defaultStatusFY + _line * heightStatusF);
+	_atW = (w >= 0 ? w : 640 - (defaultStatusFX - 16) - 20);
+	_atColor = (color >= 0 ? color : _line * 16 + 12);
+	operator()("Status Line %d", _line);
 }
 
 StatusLineMessager::~StatusLineMessager() {

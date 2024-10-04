@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -87,7 +86,7 @@ WindowBlock *AGOSEngine::openWindow(uint x, uint y, uint w, uint h, uint flags, 
 void AGOSEngine::changeWindow(uint a) {
 	a &= 7;
 
-	if (_windowArray[a] == NULL || _curWindow == a)
+	if (_windowArray[a] == nullptr || _curWindow == a)
 		return;
 
 	_curWindow = a;
@@ -97,13 +96,13 @@ void AGOSEngine::changeWindow(uint a) {
 }
 
 void AGOSEngine::closeWindow(uint a) {
-	if (_windowArray[a] == NULL)
+	if (_windowArray[a] == nullptr)
 		return;
 	removeIconArray(a);
 	resetWindow(_windowArray[a]);
-	_windowArray[a] = NULL;
+	_windowArray[a] = nullptr;
 	if (_curWindow == a) {
-		_textWindow = NULL;
+		_textWindow = nullptr;
 		changeWindow(0);
 	}
 }
@@ -308,17 +307,17 @@ void AGOSEngine::waitWindow(WindowBlock *window) {
 	ha->priority = 999;
 
 	while (!shouldQuit()) {
-		_lastHitArea = NULL;
-		_lastHitArea3 = NULL;
+		_lastHitArea = nullptr;
+		_lastHitArea3 = nullptr;
 
 		while (!shouldQuit()) {
-			if (_lastHitArea3 != 0)
+			if (_lastHitArea3 != nullptr)
 				break;
 			delay(1);
 		}
 
 		ha = _lastHitArea;
-		if (ha == NULL) {
+		if (ha == nullptr) {
 		} else if (ha->id == 0x7FFF) {
 			break;
 		}

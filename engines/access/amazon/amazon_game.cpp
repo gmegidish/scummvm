@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -356,9 +355,9 @@ void AmazonEngine::updateSummary(int chap) {
 
 	for (int i = celSubFile; i < 16; ++i) {
 		if (i > 7)
-			warning("TODO: DRAWOBJECT");
+			warning("TODO: DRAWOBJECT (i > 7)");
 		else
-			warning("TODO: DRAWOBJECT");
+			warning("TODO: DRAWOBJECT (i <= 7)");
 	}
 
 	delete _objectsTable[93];
@@ -368,9 +367,9 @@ void AmazonEngine::updateSummary(int chap) {
 		celSubFile = i;
 		loadCells(summaryCells);
 		if (i > 8)
-			warning("TODO: DRAWOBJECT");
+			warning("TODO: DRAWOBJECT (i > 8)");
 		else
-			warning("TODO: DRAWOBJECT");
+			warning("TODO: DRAWOBJECT (i <= 8)");
 
 		delete _objectsTable[93];
 		_objectsTable[93] = nullptr;
@@ -666,6 +665,9 @@ void AmazonEngine::startChapter(int chapter) {
 			_scripts->cmdRetPos();
 		}
 	}
+
+	delete _establish;
+	_establish = nullptr;
 }
 
 

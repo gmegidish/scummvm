@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,7 +55,7 @@ enum ScriptOffsetEntryTypes {
 	SCI_SCR_OFFSET_TYPE_SAID
 };
 
-enum {
+enum : uint {
 	kNoRelocation = 0xFFFFFFFF
 };
 
@@ -76,7 +75,7 @@ private:
 	SciSpan<byte> _script; /**< Script size includes alignment byte */
 	SciSpan<byte> _heap; /**< Start of heap if SCI1.1, NULL otherwise */
 
-	int _lockers; /**< Number of classes and objects that require this script */
+	uint _lockers; /**< Number of classes and objects that require this script */
 
 	SciSpan<const uint16> _exports; /**< Exports block or 0 if not present */
 	uint16 _numExports; /**< Number of export entries */
@@ -126,7 +125,11 @@ public:
 	void syncLocalsBlock(SegManager *segMan);
 	ObjMap &getObjectMap() { return _objects; }
 	const ObjMap &getObjectMap() const { return _objects; }
-	bool offsetIsObject(uint32 offset) const;
+
+	// speed optimization: inline due to frequent calling
+	bool offsetIsObject(uint32 offset) const {
+		return _buf->getUint16SEAt(offset + SCRIPT_OBJECT_MAGIC_OFFSET) == SCRIPT_OBJECT_MAGIC_NUMBER;
+	}
 
 public:
 	Script();
@@ -173,13 +176,15 @@ public:
 	void initializeLocals(SegManager *segMan);
 
 	/**
-	 * Adds the script's classes to the segment manager's class table
+	 * Adds a script's class to the segment manager's class table
 	 * @param segMan	A reference to the segment manager
+	 * @param species	The class number (index)
+	 * @param position	The position of the class (object) in the script
 	 */
-	void initializeClasses(SegManager *segMan);
+	void initializeClass(SegManager *segMan, uint16 species, uint32 position);
 
 	/**
-	 * Initializes the script's objects (SCI0)
+	 * Initializes the script's objects
 	 * @param segMan	          A reference to the segment manager
 	 * @param segmentId	          The script's segment id
 	 * @param applyScriptPatches  Apply patches for the script, if available
@@ -198,10 +203,10 @@ public:
 	 * Retrieves the number of locks held on this script.
 	 * @return the number of locks held on the previously identified script
 	 */
-	int getLockers() const;
+	uint getLockers() const;
 
 	/** Sets the number of locks held on this script. */
-	void setLockers(int lockers);
+	void setLockers(uint lockers);
 
 	/**
 	 * Retrieves the offset of the export table in the script
@@ -359,6 +364,11 @@ private:
 	 * Identifies certain offsets within script data and set up lookup-table
 	 */
 	void identifyOffsets();
+
+	/**
+	 * Apply workarounds to known broken Said strings
+	 */
+	void applySaidWorkarounds();
 };
 
 } // End of namespace Sci

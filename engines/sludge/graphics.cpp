@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,17 +63,14 @@ void GraphicsManager::init() {
 	// Back drop
 	_backdropExists = false;
 
-	// Sprites
-	_spriteLayers = new SpriteLayers;
-	_spriteLayers->numLayers = 0;
-
 	// Sprite Bank
 	_allLoadedBanks.clear();
 
 	// ZBuffer
 	_zBuffer = new ZBufferData;
 	_zBuffer->originalNum = -1;
-	_zBuffer->sprites = nullptr;
+	_zBuffer->tex = nullptr;
+	_zBufferSurface = nullptr;
 
 	// Colors
 	_currentBlankColour = _renderSurface.format.ARGBToColor(0xff, 0, 0, 0);
@@ -109,13 +105,6 @@ void GraphicsManager::kill() {
 		killMe = _frozenStuff;
 	}
 
-	// kill sprite layers
-	if (_spriteLayers) {
-		killSpriteLayers();
-		delete _spriteLayers;
-		_spriteLayers = nullptr;
-	}
-
 	// kill sprite banks
 	LoadedSpriteBanks::iterator it;
 	for (it = _allLoadedBanks.begin(); it != _allLoadedBanks.end(); ++it) {
@@ -134,6 +123,11 @@ void GraphicsManager::kill() {
 	// kill surfaces
 	if (_renderSurface.getPixels())
 		_renderSurface.free();
+
+	if (_zBufferSurface) {
+		delete[] _zBufferSurface;
+		_zBufferSurface = nullptr;
+	}
 
 	if (_snapshotSurface.getPixels())
 		_snapshotSurface.free();
@@ -154,6 +148,8 @@ void GraphicsManager::kill() {
 bool GraphicsManager::initGfx() {
 	initGraphics(_winWidth, _winHeight, _vm->getScreenPixelFormat());
 	_renderSurface.create(_winWidth, _winHeight, *_vm->getScreenPixelFormat());
+
+	_zBufferSurface = new uint8[_winWidth * _winHeight];
 
 	if (!killResizeBackdrop(_winWidth, _winHeight))
 		return fatal("Couldn't allocate memory for backdrop");

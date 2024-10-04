@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,21 +47,25 @@ class Menu;
 class Router;
 class Screen;
 class Mouse;
-class Music;
+class Control;
 
 class Logic;
 typedef int (Logic::*BSMcodeTable)(Object *, int32, int32, int32, int32, int32, int32, int32);
 
 class Logic {
+	friend class Control;
 public:
-	Logic(SwordEngine *vm, ObjectMan *pObjMan, ResMan *resMan, Screen *pScreen, Mouse *pMouse, Sound *pSound, Music *pMusic, Menu *pMenu, OSystem *system, Audio::Mixer *mixer);
+	Logic(SwordEngine *vm, ObjectMan *pObjMan, ResMan *resMan, Screen *pScreen, Mouse *pMouse, Sound *pSound, Menu *pMenu, OSystem *system, Audio::Mixer *mixer);
 	~Logic();
 	void initialize();
+	void setControlPanelObject(Control *control);
 	void newScreen(uint32 screen);
 	void engine();
 	void updateScreenParams();
 	void runMouseScript(Object *cpt, int32 scriptId);
 	void startPositions(uint32 pos);
+	bool canShowDebugTextNumber();
+	void plotRouteGrid(Object *megaObject);
 
 	static uint32 _scriptVars[NUM_SCRIPT_VARS];
 // public for mouse (menu looking)
@@ -80,11 +83,11 @@ private:
 	Text *_textMan;
 	EventManager *_eventMan;
 	Menu *_menu;
-	Music *_music;
+	Control *_control;
 	uint32 _newScript; // <= ugly, but I can't avoid it.
-	bool _speechRunning, _speechFinished, _textRunning;
-	uint8 _speechClickDelay;
+	uint8 _speechClickDelay = 0;
 	Common::RandomSource _rnd;
+	bool _psxFudgeRandom = false; // Used within fnIdle() and fnRandom() for the PSX version
 
 	int scriptManager(Object *compact, uint32 id);
 	void processLogic(Object *compact, uint32 id);

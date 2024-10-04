@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,8 @@
 
 #include "engines/nancy/state/scene.h"
 
+#include "common/serializer.h"
+
 namespace Nancy {
 namespace Action {
 
@@ -37,16 +38,16 @@ void PlaySecondaryVideo::init() {
 		_decoder.close();
 	}
 
-	if (!_decoder.loadFile(_filename + ".avf")) {
-		error("Couldn't load video file %s", _filename.c_str());
+	if (!_decoder.loadFile(_filename.append(".avf"))) {
+		error("Couldn't load video file %s", _filename.toString().c_str());
 	}
 
 	// Every secondary video frame (in nancy1) plays exactly 12ms slower than what its metadata says.
 	// I'm still not sure how/why that happens so for now I'm using this hack to fix the timings
 	_decoder.addFrameTime(12);
-	_drawSurface.create(_decoder.getWidth(), _decoder.getHeight(), g_nancy->_graphicsManager->getInputPixelFormat());
+	_drawSurface.create(_decoder.getWidth(), _decoder.getHeight(), g_nancy->_graphics->getInputPixelFormat());
 
-	if (_paletteFilename.size()) {
+	if (!_paletteFilename.empty()) {
 		GraphicsManager::loadSurfacePalette(_fullFrame, _paletteFilename);
 	}
 
@@ -62,7 +63,7 @@ void PlaySecondaryVideo::updateGraphics() {
 		return;
 	}
 
-	if (_isInFrame) {
+	if (_isInFrame && _decoder.isPlaying() ? _decoder.needsUpdate() || _decoder.atEnd() : true) {
 		int lastAnimationFrame = -1;
 		switch (_hoverState) {
 		case kNoHover:
@@ -83,7 +84,6 @@ void PlaySecondaryVideo::updateGraphics() {
 					_decoder.start();
 				}
 
-				_decoder.seekToFrame(_onHoverEndLastFrame);
 				_decoder.setRate(-_decoder.getRate());
 			} else {
 				lastAnimationFrame = _onHoverLastFrame;
@@ -101,11 +101,15 @@ void PlaySecondaryVideo::updateGraphics() {
 			}
 		}
 
-		if (_decoder.isPlaying() && _decoder.needsUpdate()) {
-			GraphicsManager::copyToManaged(*_decoder.decodeNextFrame(), _fullFrame, _paletteFilename.size() > 0);
-			_needsRedraw = true;
+		if (_decoder.isPlaying()) {
+			if (_decoder.needsUpdate()) {
+				GraphicsManager::copyToManaged(*_decoder.decodeNextFrame(), _fullFrame, !_paletteFilename.empty(), _videoFormat == kSmallVideoFormat);
+				_needsRedraw = true;
+			}
 
-			if (lastAnimationFrame > -1 && _decoder.getCurFrame() == lastAnimationFrame + (_decoder.getRate().getNumerator() > 0 ? 1 : -1)) {
+			if (lastAnimationFrame > -1 &&
+					(_decoder.atEnd() ||
+					 _decoder.getCurFrame() == lastAnimationFrame)) {
 				if (_hoverState == kNoHover) {
 					_decoder.seekToFrame(_loopFirstFrame);
 				} else {
@@ -113,18 +117,21 @@ void PlaySecondaryVideo::updateGraphics() {
 				}
 			}
 		}
+	}
 
-		if (_needsRedraw && _isVisible) {
-			int vpFrame = -1;
-			for (uint i = 0; i < _videoDescs.size(); ++i) {
-				if (_videoDescs[i].frameID == _currentViewportFrame) {
-					vpFrame = i;
-					break;
-				}
+	if (_needsRedraw && _isVisible) {
+		int vpFrame = -1;
+		for (uint i = 0; i < _videoDescs.size(); ++i) {
+			if (_videoDescs[i].frameID == _currentViewportFrame) {
+				vpFrame = i;
+				break;
 			}
+		}
 
-			_drawSurface.create(_fullFrame, _videoDescs[vpFrame].srcRect);
-			_screenPosition = _videoDescs[vpFrame].destRect;
+		_drawSurface.create(_fullFrame, _videoDescs[vpFrame].srcRect);
+		moveTo(_videoDescs[vpFrame].destRect);
+
+		if (_videoHotspots == kVideoHotspots) {
 			_hotspot = _screenPosition;
 			_hotspot.clip(NancySceneState.getViewport().getBounds());
 			_hasHotspot = true;
@@ -136,10 +143,7 @@ void PlaySecondaryVideo::updateGraphics() {
 
 void PlaySecondaryVideo::onPause(bool pause) {
 	_decoder.pauseVideo(pause);
-
-	if (!pause) {
-		registerGraphics();
-	}
+	RenderActionRecord::onPause(pause);
 }
 
 void PlaySecondaryVideo::handleInput(NancyInput &input) {
@@ -151,33 +155,33 @@ void PlaySecondaryVideo::handleInput(NancyInput &input) {
 }
 
 void PlaySecondaryVideo::readData(Common::SeekableReadStream &stream) {
+	Common::Serializer ser(&stream, nullptr);
+	ser.setVersion(g_nancy->getGameType());
+
 	readFilename(stream, _filename);
 	readFilename(stream, _paletteFilename);
-	stream.skip(10);
+	ser.skip(10); // video overlay bitmap filename
 
-	if (_paletteFilename.size()) {
-		stream.skip(14); // unknown data
-	}
+	ser.skip(2, kGameTypeVampire, kGameTypeVampire);
+	ser.syncAsUint16LE(_videoFormat, kGameTypeVampire, kGameTypeVampire);
+	ser.skip(8, kGameTypeVampire, kGameTypeVampire);
 
-	_loopFirstFrame = stream.readUint16LE();
-	_loopLastFrame = stream.readUint16LE();
-	_onHoverFirstFrame = stream.readUint16LE();
-	_onHoverLastFrame = stream.readUint16LE();
-	_onHoverEndFirstFrame = stream.readUint16LE();
-	_onHoverEndLastFrame = stream.readUint16LE();
+	ser.syncAsUint16LE(_videoHotspots, kGameTypeVampire, kGameTypeVampire);
 
-	_sceneChange.readData(stream);
+	ser.syncAsUint16LE(_loopFirstFrame);
+	ser.syncAsUint16LE(_loopLastFrame);
+	ser.syncAsUint16LE(_onHoverFirstFrame);
+	ser.syncAsUint16LE(_onHoverLastFrame);
+	ser.syncAsUint16LE(_onHoverEndFirstFrame);
+	ser.syncAsUint16LE(_onHoverEndLastFrame);
 
-	if (_paletteFilename.size()) {
-		stream.skip(3);
-	} else {
-		stream.skip(1);
-	}
+	_sceneChange.readData(stream, ser.getVersion() == kGameTypeVampire);
+	ser.skip(1, kGameTypeNancy1);
 
-	uint16 numVideoDescs = stream.readUint16LE();
-	_videoDescs.reserve(numVideoDescs);
+	uint16 numVideoDescs = 0;
+	ser.syncAsUint16LE(numVideoDescs);
+	_videoDescs.resize(numVideoDescs);
 	for (uint i = 0; i < numVideoDescs; ++i) {
-		_videoDescs.push_back(SecondaryVideoDescription());
 		_videoDescs[i].readData(stream);
 	}
 }
@@ -213,13 +217,13 @@ void PlaySecondaryVideo::execute() {
 				}
 
 				_isInFrame = true;
-				_hoverState = kNoHover;
 				setVisible(true);
 			} else {
 				if (_isVisible) {
 					setVisible(false);
 					_hasHotspot = false;
 					_isInFrame = false;
+					_hoverState = kNoHover;
 					_decoder.stop();
 				}
 			}

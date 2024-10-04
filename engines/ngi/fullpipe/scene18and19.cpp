@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@
 #include "ngi/interaction.h"
 #include "ngi/behavior.h"
 
-#include "common/math.h"
+#include "math/utils.h"
 
 namespace NGI {
 
@@ -51,12 +50,12 @@ struct Swinger {
 
 
 void scene18_preload() {
-	g_nmi->_scene3 = 0;
+	g_nmi->_scene3 = nullptr;
 
 	for (SceneTagList::iterator s = g_nmi->_gameProject->_sceneTagList->begin(); s != g_nmi->_gameProject->_sceneTagList->end(); ++s) {
 		if (s->_sceneId == SC_18) {
 			g_nmi->_scene3 = s->_scene;
-			s->_scene = 0;
+			s->_scene = nullptr;
 
 			g_nmi->_scene3->getStaticANIObject1ById(ANI_WHIRLIGIG_18, -1)->freeMovementsPixelData();
 
@@ -148,7 +147,7 @@ void scene18_setupSwingers(StaticANIObject *ani, Scene *sc) {
 	for (int i = 0; i < 8; i++) {
 		swinger = new Swinger;
 
-		swinger->angle = (double)i * Common::deg2rad<double>(45.0);
+		swinger->angle = (double)i * Math::deg2rad<double>(45.0);
 		swinger->sx = g_vars->scene18_wheelCenterX - (int)(cos(swinger->angle) * -575.0);
 		swinger->sy = g_vars->scene18_wheelCenterY - (int)(sin(swinger->angle) * -575.0) + 87;
 		swinger->ix = swinger->sx;
@@ -292,7 +291,7 @@ void scene18_initScene1(Scene *sc) {
 
 	if (g_vars->scene18_enteredTrubaRight) {
 		if (sc->_sceneId == SC_19)
-			g_nmi->_aniMan2 = 0;
+			g_nmi->_aniMan2 = nullptr;
 		else
 			g_nmi->_aniMan2 = g_vars->scene18_swingers[g_vars->scene18_manWheelPosTo]->ani;
 	} else {
@@ -345,7 +344,7 @@ void scene18_initScene2(Scene *sc) {
 }
 
 void scene19_initScene2() {
-	g_nmi->_aniMan2 = 0;
+	g_nmi->_aniMan2 = nullptr;
 }
 
 int scene18_updateCursor() {
@@ -439,7 +438,7 @@ void sceneHandler18and19_showManJump() {
 		g_vars->scene18_enteredTrubaRight = false;
 
 		mq->setFlags(mq->getFlags() | 1);
-		mq->chain(0);
+		mq->chain(nullptr);
 	}
 
 	g_vars->scene18_swingers[g_vars->scene18_manWheelPos]->sflags = 1;
@@ -554,11 +553,11 @@ void sceneHandler18and19_drawRiders() {
 
 		double oldangle = swinger->angle;
 
-		swinger->angle += Common::deg2rad<double>(1.0);
+		swinger->angle += Math::deg2rad<double>(1.0);
 
-		if (swinger->angle > Common::deg2rad<double>(360.0)) {
-			swinger->angle -= Common::deg2rad<double>(360.0);
-			oldangle -= Common::deg2rad<double>(360.0);
+		if (swinger->angle > Math::deg2rad<double>(360.0)) {
+			swinger->angle -= Math::deg2rad<double>(360.0);
+			oldangle -= Math::deg2rad<double>(360.0);
 		}
 
 		int ix = g_vars->scene18_wheelCenterX - (int)(cos(swinger->angle) * -575.0);
@@ -567,7 +566,7 @@ void sceneHandler18and19_drawRiders() {
 		if (!g_vars->scene18_rotationCounter) {
 			ix = swinger->sx;
 			iy = swinger->sy;
-			swinger->angle = (double)i * Common::deg2rad<double>(45.0);
+			swinger->angle = (double)i * Math::deg2rad<double>(45.0);
 		}
 
 		if (swinger->ani->_movement)
@@ -599,27 +598,27 @@ void sceneHandler18and19_drawRiders() {
 		}
 
 		if (g_vars->scene18_wheelIsTurning) {
-			if ((swinger->sflags & 2) && swinger->angle >= Common::deg2rad<double>(160.0) && oldangle < Common::deg2rad<double>(160.0)) {
+			if ((swinger->sflags & 2) && swinger->angle >= Math::deg2rad<double>(160.0) && oldangle < Math::deg2rad<double>(160.0)) {
 				swinger->sflags = 8;
 				swinger->ani->changeStatics2(ST_KSL_BOY);
 				swinger->ani->startAnim(MV_KSL_JUMPBOY, 0, -1);
 				g_vars->scene18_kidWheelPos = i;
-			} else if ((swinger->sflags & 4) && swinger->angle >= Common::deg2rad<double>(162.0) && oldangle < Common::deg2rad<double>(162.0)) {
+			} else if ((swinger->sflags & 4) && swinger->angle >= Math::deg2rad<double>(162.0) && oldangle < Math::deg2rad<double>(162.0)) {
 				swinger->sflags = 16;
 				swinger->ani->changeStatics2(ST_KSL_GIRL);
 				swinger->ani->startAnim(MV_KSL_JUMPGIRL, 0, -1);
 				g_vars->scene18_kidWheelPos = i;
 			} else if (g_vars->scene18_kidIsOnWheel) {
-				if (g_vars->scene18_boyIsOnWheel > 0 && (swinger->sflags & 1) && swinger->angle >= Common::deg2rad<double>(185.0) && oldangle < Common::deg2rad<double>(185.0)) {
+				if (g_vars->scene18_boyIsOnWheel > 0 && (swinger->sflags & 1) && swinger->angle >= Math::deg2rad<double>(185.0) && oldangle < Math::deg2rad<double>(185.0)) {
 					g_vars->scene18_kidWheelPosTo = i;
 					sceneHandler18and19_boyJumpTo();
 				}
-			} else if (g_vars->scene18_girlIsOnWheel > 0 && (swinger->sflags & 1) && swinger->angle >= Common::deg2rad<double>(187.0) && oldangle < Common::deg2rad<double>(187.0)) {
+			} else if (g_vars->scene18_girlIsOnWheel > 0 && (swinger->sflags & 1) && swinger->angle >= Math::deg2rad<double>(187.0) && oldangle < Math::deg2rad<double>(187.0)) {
 				g_vars->scene18_kidWheelPosTo = i;
 				sceneHandler18and19_girlJumpTo();
 			}
 
-			if (swinger->angle >= Common::deg2rad<double>(200.0) && oldangle < Common::deg2rad<double>(200.0)) {
+			if (swinger->angle >= Math::deg2rad<double>(200.0) && oldangle < Math::deg2rad<double>(200.0)) {
 				if (g_vars->scene18_boyJumpedOff)
 					g_vars->scene18_boyIsOnWheel++;
 
@@ -627,7 +626,7 @@ void sceneHandler18and19_drawRiders() {
 			}
 		}
 
-		if (g_vars->scene18_manIsReady && (swinger->sflags & 1) && swinger->angle >= Common::deg2rad<double>(83.0) && oldangle < Common::deg2rad<double>(83.0)) {
+		if (g_vars->scene18_manIsReady && (swinger->sflags & 1) && swinger->angle >= Math::deg2rad<double>(83.0) && oldangle < Math::deg2rad<double>(83.0)) {
 			g_vars->scene18_manWheelPosTo = i;
 			sceneHandler18and19_manStandArmchair();
 		}
@@ -636,18 +635,18 @@ void sceneHandler18and19_drawRiders() {
 			continue;
 
 		if ((int)i == g_vars->scene18_manWheelPosTo) {
-			if (swinger->angle >= Common::deg2rad<double>(170.0) && oldangle < Common::deg2rad<double>(170.0)) {
+			if (swinger->angle >= Math::deg2rad<double>(170.0) && oldangle < Math::deg2rad<double>(170.0)) {
 				g_nmi->_gameLoader->preloadScene(SC_18, TrubaRight);
-			} else if (swinger->angle >= Common::deg2rad<double>(25.0) && oldangle < Common::deg2rad<double>(25.0)) {
+			} else if (swinger->angle >= Math::deg2rad<double>(25.0) && oldangle < Math::deg2rad<double>(25.0)) {
 				g_nmi->_gameLoader->preloadScene(SC_19, TrubaRight);
-			} else if (swinger->angle >= Common::deg2rad<double>(270.0) && oldangle < Common::deg2rad<double>(270.0)) {
+			} else if (swinger->angle >= Math::deg2rad<double>(270.0) && oldangle < Math::deg2rad<double>(270.0)) {
 				g_nmi->_sceneRect.translate(1200, 0);
 			}
 		}
 
 		if (g_vars->scene18_jumpDistance > 0) {
 			if (swinger->sflags & 0x20) {
-				double newa = (double)g_vars->scene18_jumpAngle * Common::deg2rad<double>(1.0);
+				double newa = (double)g_vars->scene18_jumpAngle * Math::deg2rad<double>(1.0);
 
 				if (newa <= swinger->angle && oldangle < newa) {
 					swinger->ani->changeStatics2(ST_KSL_MAN);

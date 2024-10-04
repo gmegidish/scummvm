@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,14 +46,11 @@ bool ImageViewer::load(int imageNum) {
 		unload();
 
 	// build string
-	char number[8];
-	sprintf(number, "%d", imageNum);
-	Common::String imageNameStr(imageName);
-	Common::String specificImageName = imageNameStr + Common::String(number) + Common::String(".png");
+	Common::Path specificImageName(Common::String::format("%s%d.png",imageName, imageNum));
 
 	// search for image file
 	if (!SearchMan.hasFile(specificImageName)) {
-		PSP_ERROR("file %s not found\n", specificImageName.c_str());
+		PSP_ERROR("file %s not found\n", specificImageName.toString(Common::Path::kNativeSeparator).c_str());
 		return false;
 	}
 
@@ -75,19 +71,19 @@ bool ImageViewer::load(int imageNum) {
 
 	char error[100];
 	if (status == PngLoader::BAD_FILE) {
-		sprintf(error, "Cannot display %s. Not a proper PNG file", specificImageName.c_str());
+		Common::sprintf_s(error, "Cannot display %s. Not a proper PNG file", specificImageName.toString(Common::Path::kNativeSeparator).c_str());
 		GUI::TimedMessageDialog dialog(Common::U32String(error), 4000);
 		dialog.runModal();
 		return false;
 	} else if (status == PngLoader::OUT_OF_MEMORY) {
-		sprintf(error, "Out of memory loading %s. Try making the image smaller", specificImageName.c_str());
+		Common::sprintf_s(error, "Out of memory loading %s. Try making the image smaller", specificImageName.toString(Common::Path::kNativeSeparator).c_str());
 		GUI::TimedMessageDialog dialog(Common::U32String(error), 4000);
 		dialog.runModal();
 		return false;
 	}
 	// try to load the image file
 	if (!image.load()) {
-		sprintf(error, "Cannot display %s. Not a proper PNG file", specificImageName.c_str());
+		Common::sprintf_s(error, "Cannot display %s. Not a proper PNG file", specificImageName.toString(Common::Path::kNativeSeparator).c_str());
 		GUI::TimedMessageDialog dialog(Common::U32String(error), 4000);
 		dialog.runModal();
 		return false;

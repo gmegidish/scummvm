@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -89,7 +88,7 @@ int *container_resolve(const char *container_name) {
 	/* IN JACL, A 'CONTAINER' IS ANYTHING THAT CAN STORE AN INTEGER */
 	struct integer_type *resolved_integer;
 
-	if ((resolved_integer = integer_resolve(container_name)) != NULL)
+	if ((resolved_integer = integer_resolve(container_name)) != nullptr)
 		return (&resolved_integer->value);
 	else if (object_element_resolve(container_name))
 		return (object_element_address);
@@ -106,7 +105,7 @@ int *container_resolve(const char *container_name) {
 	else if (!strcmp(container_name, "here"))
 		return (&object[player]->PARENT);
 	else
-		return ((int *) NULL);
+		return ((int *) nullptr);
 }
 
 const char *var_text_of_word(int wordnumber) {
@@ -171,23 +170,23 @@ const char *text_of(const char *string) {
 
 	/* CHECK IF THE SUPPLIED STRING IS THE NAME OF A STRING CONSTANT,
 	 * IF NOT, RETURN THE STRING LITERAL */
-	if ((return_string = macro_resolve(string)) != NULL) {
+	if ((return_string = macro_resolve(string)) != nullptr) {
 		value_has_been_resolved = FALSE;
 		return (return_string);
-	} else if ((resolved_integer = integer_resolve(string)) != NULL) {
+	} else if ((resolved_integer = integer_resolve(string)) != nullptr) {
 		value_has_been_resolved = FALSE;
 		integer_buffer[0] = 0;
-		sprintf(integer_buffer, "%d", resolved_integer->value);
+		Common::sprintf_s(integer_buffer, "%d", resolved_integer->value);
 		return (integer_buffer);
-	} else if ((resolved_cinteger = cinteger_resolve(string)) != NULL) {
+	} else if ((resolved_cinteger = cinteger_resolve(string)) != nullptr) {
 		value_has_been_resolved = FALSE;
 		integer_buffer[0] = 0;
-		sprintf(integer_buffer, "%d", resolved_cinteger->value);
+		Common::sprintf_s(integer_buffer, "%d", resolved_cinteger->value);
 		return (integer_buffer);
 	} else if (object_element_resolve(string)) {
 		value_has_been_resolved = FALSE;
 		integer_buffer[0] = 0;
-		sprintf(integer_buffer, "%d", oec);
+		Common::sprintf_s(integer_buffer, "%d", oec);
 		return (integer_buffer);
 	} else if ((index = object_resolve(string)) != -1) {
 		value_has_been_resolved = FALSE;
@@ -197,13 +196,13 @@ const char *text_of(const char *string) {
 		} else {
 			return (object[index]->label);
 		}
-	} else if ((resolved_string = string_resolve(string)) != NULL) {
+	} else if ((resolved_string = string_resolve(string)) != nullptr) {
 		return (resolved_string->value);
-	} else if ((resolved_cstring = cstring_resolve(string)) != NULL) {
+	} else if ((resolved_cstring = cstring_resolve(string)) != nullptr) {
 		return (resolved_cstring->value);
-	} else if (function_resolve(string) != NULL) {
+	} else if (function_resolve(string) != nullptr) {
 		value_has_been_resolved = FALSE;
-		sprintf(integer_buffer, "%d", execute(string));
+		Common::sprintf_s(integer_buffer, "%d", execute(string));
 		return (integer_buffer);
 #ifndef GLK
 #ifndef __NDS__
@@ -228,12 +227,12 @@ const char *arg_text_of(const char *string) {
 
 	/* CHECK IF THE SUPPLIED STRING IS THE NAME OF A STRING CONSTANT,
 	 * IF NOT, RETURN THE STRING LITERAL */
-	if ((macro_text = macro_resolve(string)) != NULL) {
+	if ((macro_text = macro_resolve(string)) != nullptr) {
 		value_has_been_resolved = FALSE;
 		return (macro_text);
-	} else if ((resolved_string = string_resolve(string)) != NULL) {
+	} else if ((resolved_string = string_resolve(string)) != nullptr) {
 		return (resolved_string->value);
-	} else if ((resolved_cstring = cstring_resolve(string)) != NULL) {
+	} else if ((resolved_cstring = cstring_resolve(string)) != nullptr) {
 		value_has_been_resolved = FALSE;
 		return (resolved_cstring->value);
 	} else {
@@ -246,7 +245,7 @@ int validate(const char *string) {
 	int             index,
 	                count;
 
-	if (string == NULL) {
+	if (string == nullptr) {
 		return (FALSE);
 	}
 
@@ -320,11 +319,11 @@ long value_of(const char *value, int run_time) {
 		return g_system->getMillis() / 1000;
 	} else if (validate(value)) {
 		return (atoi(value));
-	} else if ((resolved_cinteger = cinteger_resolve(value)) != NULL) {
+	} else if ((resolved_cinteger = cinteger_resolve(value)) != nullptr) {
 		return (resolved_cinteger->value);
-	} else if ((resolved_integer = integer_resolve(value)) != NULL) {
+	} else if ((resolved_integer = integer_resolve(value)) != nullptr) {
 		return (resolved_integer->value);
-	} else if (function_resolve(value) != NULL) {
+	} else if (function_resolve(value) != nullptr) {
 		return (execute(value));
 	} else if (object_element_resolve(value)) {
 		return (oec);
@@ -379,13 +378,13 @@ struct integer_type *integer_resolve(const char *name) {
 		} else if (expression[index] == '<') {
 			/* HIT A < BEFORE A [ THEREFORE */
 			/* IS A FUNCTION CALL, NOT AN ARRAY */
-			return (NULL);
+			return (nullptr);
 		} else if (expression[index] == '(') {
 			/* HIT A ( BEFORE A [ THEREFORE */
 			/* IS AN OBJECT ELEMENT, NOT AN ARRAY */
-			return (NULL);
+			return (nullptr);
 		} else if (expression[index] == ' ')
-			return (NULL);
+			return (nullptr);
 	}
 
 	// NO DELIMITER FOUND, TRY AS UNINDEXED VARIABLE
@@ -395,7 +394,7 @@ struct integer_type *integer_resolve(const char *name) {
 
 	// NO STRING BEFORE DELIMITER
 	if (delimiter == 1) {
-		return (NULL);
+		return (nullptr);
 	}
 
 	counter = value_of(&expression[delimiter], TRUE);
@@ -404,15 +403,15 @@ struct integer_type *integer_resolve(const char *name) {
 		return (integer_resolve_indexed(expression, counter));
 	} else {
 		/* INDEX OUT OF RANGE */
-		return (NULL);
+		return (nullptr);
 	}
 }
 
 struct integer_type *integer_resolve_indexed(const char *name, int index) {
 	struct integer_type *pointer = integer_table;
 
-	if (pointer == NULL)
-		return (NULL);
+	if (pointer == nullptr)
+		return (nullptr);
 
 	do {
 		if (!strcmp(name, pointer->name)) {
@@ -426,10 +425,10 @@ struct integer_type *integer_resolve_indexed(const char *name, int index) {
 			}
 		} else
 			pointer = pointer->next_integer;
-	} while (pointer != NULL);
+	} while (pointer != nullptr);
 
 	/* IF index != 0, INDEX OUT OF RANGE, OTHERWISE NOT VARIABLE */
-	return (NULL);
+	return (nullptr);
 }
 
 struct cinteger_type *cinteger_resolve(const char *name) {
@@ -464,13 +463,13 @@ struct cinteger_type *cinteger_resolve(const char *name) {
 		} else if (expression[index] == '<') {
 			/* HIT A < BEFORE A [ THEREFORE */
 			/* IS A FUNCTION CALL, NOT AN ARRAY */
-			return (NULL);
+			return (nullptr);
 		} else if (expression[index] == '(') {
 			/* HIT A ( BEFORE A [ THEREFORE */
 			/* IS AN OBJECT ELEMENT, NOT AN ARRAY */
-			return (NULL);
+			return (nullptr);
 		} else if (expression[index] == ' ')
-			return (NULL);
+			return (nullptr);
 	}
 
 	// NO DELIMITER FOUND, TRY AS UNINDEXED CONSTANT
@@ -480,7 +479,7 @@ struct cinteger_type *cinteger_resolve(const char *name) {
 
 	// NO STRING BEFORE DELIMITER
 	if (delimiter == 1) {
-		return (NULL);
+		return (nullptr);
 	}
 
 	counter = value_of(&expression[delimiter], TRUE);
@@ -489,15 +488,15 @@ struct cinteger_type *cinteger_resolve(const char *name) {
 		return (cinteger_resolve_indexed(expression, counter));
 	} else {
 		/* INDEX OUT OF RANGE */
-		return (NULL);
+		return (nullptr);
 	}
 }
 
 struct cinteger_type *cinteger_resolve_indexed(const char *name, int index) {
 	struct cinteger_type *pointer = cinteger_table;
 
-	if (pointer == NULL)
-		return (NULL);
+	if (pointer == nullptr)
+		return (nullptr);
 
 	do {
 		if (!strcmp(name, pointer->name)) {
@@ -511,10 +510,10 @@ struct cinteger_type *cinteger_resolve_indexed(const char *name, int index) {
 			}
 		} else
 			pointer = pointer->next_cinteger;
-	} while (pointer != NULL);
+	} while (pointer != nullptr);
 
 	/* IF index != 0, INDEX OUT OF RANGE, OTHERWISE NOT VARIABLE */
-	return (NULL);
+	return (nullptr);
 }
 
 struct string_type *string_resolve(const char *name) {
@@ -542,13 +541,13 @@ struct string_type *string_resolve(const char *name) {
 		} else if (expression[index] == '<') {
 			/* HIT A < BEFORE A [ THEREFORE */
 			/* IS A FUNCTION CALL, NOT AN ARRAY */
-			return (NULL);
+			return (nullptr);
 		} else if (expression[index] == '(') {
 			/* HIT A ( BEFORE A [ THEREFORE */
 			/* IS AN OBJECT ELEMENT, NOT AN ARRAY */
-			return (NULL);
+			return (nullptr);
 		} else if (expression[index] == ' ')
-			return (NULL);
+			return (nullptr);
 	}
 
 	if (delimiter == 0) {
@@ -558,7 +557,7 @@ struct string_type *string_resolve(const char *name) {
 
 	if (delimiter == 1) {
 		/* NO STRING BEFORE DELIMITER */
-		return (NULL);
+		return (nullptr);
 	}
 
 	counter = value_of(&expression[delimiter], TRUE);
@@ -566,14 +565,14 @@ struct string_type *string_resolve(const char *name) {
 	if (counter > -1) {
 		return (string_resolve_indexed(expression, counter));
 	} else
-		return (NULL);
+		return (nullptr);
 }
 
 struct string_type *string_resolve_indexed(const char *name, int index) {
 	struct string_type *pointer = string_table;
 
-	if (pointer == NULL)
-		return (NULL);
+	if (pointer == nullptr)
+		return (nullptr);
 
 	do {
 		if (!strcmp(name, pointer->name)) {
@@ -588,9 +587,9 @@ struct string_type *string_resolve_indexed(const char *name, int index) {
 		} else {
 			pointer = pointer->next_string;
 		}
-	} while (pointer != NULL);
+	} while (pointer != nullptr);
 
-	return (NULL);
+	return (nullptr);
 }
 
 struct string_type *cstring_resolve(const char *name) {
@@ -618,13 +617,13 @@ struct string_type *cstring_resolve(const char *name) {
 		} else if (expression[index] == '<') {
 			/* HIT A < BEFORE A [ THEREFORE */
 			/* IS A FUNCTION CALL, NOT AN ARRAY */
-			return (NULL);
+			return (nullptr);
 		} else if (expression[index] == '(') {
 			/* HIT A ( BEFORE A [ THEREFORE */
 			/* IS AN OBJECT ELEMENT, NOT AN ARRAY */
-			return (NULL);
+			return (nullptr);
 		} else if (expression[index] == ' ')
-			return (NULL);
+			return (nullptr);
 	}
 
 	if (delimiter == 0) {
@@ -634,7 +633,7 @@ struct string_type *cstring_resolve(const char *name) {
 
 	if (delimiter == 1) {
 		/* NO STRING BEFORE DELIMITER */
-		return (NULL);
+		return (nullptr);
 	}
 
 	counter = value_of(&expression[delimiter], TRUE);
@@ -642,14 +641,14 @@ struct string_type *cstring_resolve(const char *name) {
 	if (counter > -1) {
 		return (cstring_resolve_indexed(expression, counter));
 	} else
-		return (NULL);
+		return (nullptr);
 }
 
 struct string_type *cstring_resolve_indexed(const char *name, int index) {
 	struct string_type *pointer = cstring_table;
 
-	if (pointer == NULL)
-		return (NULL);
+	if (pointer == nullptr)
+		return (nullptr);
 
 	do {
 		if (!strcmp(name, pointer->name)) {
@@ -664,9 +663,9 @@ struct string_type *cstring_resolve_indexed(const char *name, int index) {
 		} else {
 			pointer = pointer->next_string;
 		}
-	} while (pointer != NULL);
+	} while (pointer != nullptr);
 
-	return (NULL);
+	return (nullptr);
 }
 
 struct function_type *function_resolve(const char *name) {
@@ -676,8 +675,8 @@ struct function_type *function_resolve(const char *name) {
 
 	struct function_type *pointer = function_table;
 
-	if (function_table == NULL)
-		return (NULL);
+	if (function_table == nullptr)
+		return (nullptr);
 
 	/* STRIP ARGUMENTS OFF FIRST, THEN EXPAND RESOLVE NAME */
 	index = 0;
@@ -701,10 +700,10 @@ struct function_type *function_resolve(const char *name) {
 			return (pointer);
 		else
 			pointer = pointer->next_function;
-	} while (pointer != NULL);
+	} while (pointer != nullptr);
 
 	/* RETURN A POINTER TO THE STRUCTURE THAT ENCAPSULATES THE FUNCTION */
-	return (NULL);
+	return (nullptr);
 }
 
 const char *expand_function(const char *name) {
@@ -741,17 +740,17 @@ const char *expand_function(const char *name) {
 		return ((const char *) name);
 	}
 
-	if (cinteger_resolve(&expression[delimiter]) != NULL ||
-	        integer_resolve(&expression[delimiter]) != NULL ||
+	if (cinteger_resolve(&expression[delimiter]) != nullptr ||
+	        integer_resolve(&expression[delimiter]) != nullptr ||
 	        object_element_resolve(&expression[delimiter])) {
 		/* THE DELIMETER RESOLVES TO A CONSTANT, VARIABLE OR OBJECT
 		 * ELEMENT, SO TAKE NOTE OF THAT */
-		sprintf(function_name, "%ld", value_of(&expression[delimiter], TRUE));
+		Common::sprintf_s(function_name, 81, "%ld", value_of(&expression[delimiter], TRUE));
 	} else {
-		strcpy(function_name, &expression[delimiter]);
+		Common::strcpy_s(function_name, 81, &expression[delimiter]);
 	}
-	strcat(function_name, "_");
-	strcat(function_name, object[index]->label);
+	Common::strcat_s(function_name, 81, "_");
+	Common::strcat_s(function_name, 81, object[index]->label);
 
 	return ((const char *) function_name);
 }
@@ -775,7 +774,7 @@ char *macro_resolve(const char *testString) {
 	}
 
 	if (delimiter == FALSE)
-		return (NULL);
+		return (nullptr);
 
 	if (*expression != 0) {
 		index = value_of(expression, TRUE);
@@ -786,196 +785,197 @@ char *macro_resolve(const char *testString) {
 	if (!strcmp(&expression[delimiter], "list")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (list_output(index, FALSE));
 		}
 	} else if (!strcmp(&expression[delimiter], "plain")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (plain_output(index, FALSE));
 		}
 	} else if (!strcmp(&expression[delimiter], "long")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (long_output(index));
 		}
 	} else if (!strcmp(&expression[delimiter], "sub")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (sub_output(index, FALSE));
 		}
 	} else if (!strcmp(&expression[delimiter], "obj")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (obj_output(index, FALSE));
 		}
 	} else if (!strcmp(&expression[delimiter], "that")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (that_output(index, FALSE));
 		}
 	} else if (!strcmp(&expression[delimiter], "it")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (it_output(index, FALSE));
 		}
 	} else if (!strcmp(&expression[delimiter], "doesnt")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (doesnt_output(index, FALSE));
 		}
 	} else if (!strcmp(&expression[delimiter], "does")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (does_output(index, FALSE));
 		}
 	} else if (!strcmp(&expression[delimiter], "isnt")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (isnt_output(index, FALSE));
 		}
 	} else if (!strcmp(&expression[delimiter], "is")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (is_output(index, FALSE));
 		}
 	} else if (!strcmp(&expression[delimiter], "the")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (sentence_output(index, FALSE));
 		}
 	} else if (!strcmp(&expression[delimiter], "s")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			if (object[index]->attributes & PLURAL) {
-				strcpy(temp_buffer, "");
+				temp_buffer[0] = '\0';
 			} else {
-				strcpy(temp_buffer, "s");
+				temp_buffer[0] = 's';
+				temp_buffer[1] = '\0';
 			}
 			return (temp_buffer);
 		}
 	} else if (!strcmp(&expression[delimiter], "names")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (object_names(index, temp_buffer));
 		}
 	} else if (!strcmp(&expression[delimiter], "label")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (object[index]->label);
 		}
 	} else if (!strcmp(&expression[delimiter], "List")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (list_output(index, TRUE));
 		}
 	} else if (!strcmp(&expression[delimiter], "Plain")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (plain_output(index, TRUE));
 		}
 	} else if (!strcmp(&expression[delimiter], "Sub")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (sub_output(index, TRUE));
 		}
 	} else if (!strcmp(&expression[delimiter], "Obj")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (obj_output(index, TRUE));
 		}
 	} else if (!strcmp(&expression[delimiter], "That")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (that_output(index, TRUE));
 		}
 	} else if (!strcmp(&expression[delimiter], "It")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (it_output(index, TRUE));
 		}
 	} else if (!strcmp(&expression[delimiter], "Doesnt")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (doesnt_output(index, TRUE));
 		}
 	} else if (!strcmp(&expression[delimiter], "Does")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (does_output(index, TRUE));
 		}
 	} else if (!strcmp(&expression[delimiter], "Isnt")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (isnt_output(index, TRUE));
 		}
 	} else if (!strcmp(&expression[delimiter], "Is")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (is_output(index, TRUE));
 		}
 	} else if (!strcmp(&expression[delimiter], "The")) {
 		if (index < 1 || index > objects) {
 			badptrrun(expression, index);
-			return (NULL);
+			return (nullptr);
 		} else {
 			return (sentence_output(index, TRUE));
 		}
 	} else {
-		strcpy(macro_function, "+macro_");
-		strcat(macro_function, &expression[delimiter]);
-		strcat(macro_function, "<");
-		sprintf(temp_buffer, "%d", index);
-		strcat(macro_function, temp_buffer);
+		Common::strcpy_s(macro_function, "+macro_");
+		Common::strcat_s(macro_function, &expression[delimiter]);
+		Common::strcat_s(macro_function, "<");
+		Common::sprintf_s(temp_buffer, 1024, "%d", index);
+		Common::strcat_s(macro_function, temp_buffer);
 
 		// BUILD THE FUNCTION NAME AND PASS THE OBJECT AS
 		// THE ONLY ARGUMENT
@@ -984,17 +984,17 @@ char *macro_resolve(const char *testString) {
 		}
 	}
 
-	return (NULL);
+	return (nullptr);
 }
 
 int count_resolve(const char *testString) {
-	struct function_type    *resolved_function = NULL;
+	struct function_type    *resolved_function = nullptr;
 
 	if (*(testString + 1) == 0) {
 		// @ ON ITS OWN, SO RETURN THE CALL COUNT OF THE CURRENTLY EXECUTING
 		// FUNCTION
 		return (executing_function->call_count);
-	} else if ((resolved_function = function_resolve(testString + 1)) != NULL) {
+	} else if ((resolved_function = function_resolve(testString + 1)) != nullptr) {
 		return (resolved_function->call_count);
 	} else {
 		return array_length_resolve(testString);
@@ -1010,13 +1010,13 @@ int array_length_resolve(const char *testString) {
 	struct string_type *string_pointer = string_table;
 	struct string_type *cstring_pointer = cstring_table;
 
-	if (integer_pointer != NULL) {
+	if (integer_pointer != nullptr) {
 		do {
 			if (!strcmp(array_name, integer_pointer->name)) {
 				counter++;
 			}
 			integer_pointer = integer_pointer->next_integer;
-		} while (integer_pointer != NULL);
+		} while (integer_pointer != nullptr);
 	}
 
 	/* IF ONE OR MORE INTEGERS WITH THIS NAME WERE FOUND
@@ -1024,13 +1024,13 @@ int array_length_resolve(const char *testString) {
 	if (counter)
 		return (counter);
 
-	if (string_pointer != NULL) {
+	if (string_pointer != nullptr) {
 		do {
 			if (!strcmp(array_name, string_pointer->name)) {
 				counter++;
 			}
 			string_pointer = string_pointer->next_string;
-		} while (string_pointer != NULL);
+		} while (string_pointer != nullptr);
 	}
 
 	/* IF ONE OR MORE STRINGS WITH THIS NAME WERE FOUND
@@ -1038,13 +1038,13 @@ int array_length_resolve(const char *testString) {
 	if (counter)
 		return (counter);
 
-	if (cinteger_pointer != NULL) {
+	if (cinteger_pointer != nullptr) {
 		do {
 			if (!strcmp(array_name, cinteger_pointer->name)) {
 				counter++;
 			}
 			cinteger_pointer = cinteger_pointer->next_cinteger;
-		} while (cinteger_pointer != NULL);
+		} while (cinteger_pointer != nullptr);
 	}
 
 	/* IF ONE OR MORE INTEGER CONSTANTS WITH THIS NAME WERE FOUND
@@ -1052,13 +1052,13 @@ int array_length_resolve(const char *testString) {
 	if (counter)
 		return (counter);
 
-	if (cstring_pointer != NULL) {
+	if (cstring_pointer != nullptr) {
 		do {
 			if (!strcmp(array_name, cstring_pointer->name)) {
 				counter++;
 			}
 			cstring_pointer = cstring_pointer->next_string;
-		} while (cstring_pointer != NULL);
+		} while (cstring_pointer != nullptr);
 	}
 
 	/* IF ONE OR MORE STRING CONSTANTS WITH THIS NAME WERE FOUND
@@ -1133,9 +1133,9 @@ int object_element_resolve(const char *testString) {
 		//write_text(temp_buffer);
 
 		// COULDN'T BE RESOLVED AS AN OBJECT, TRY AS A VARIABLE
-		if ((resolved_integer = integer_resolve(expression)) != NULL) {
+		if ((resolved_integer = integer_resolve(expression)) != nullptr) {
 			index = resolved_integer->value;
-		} else if ((resolved_cinteger = cinteger_resolve(expression)) != NULL) {
+		} else if ((resolved_cinteger = cinteger_resolve(expression)) != nullptr) {
 			index = resolved_cinteger->value;
 		}
 	}
@@ -1148,7 +1148,7 @@ int object_element_resolve(const char *testString) {
 	counter = value_of(&expression[delimiter], TRUE);
 
 	if (counter < 0 || counter > 15) {
-		sprintf(error_buffer,
+		Common::sprintf_s(error_buffer, 1024,
 		        "ERROR: In function \"%s\", element \"%s\" out of range (%d).^",
 		        executing_function->name, &expression[delimiter], counter);
 		write_text(error_buffer);
@@ -1177,8 +1177,8 @@ int object_resolve(const char *object_string) {
 		return (HERE);
 	else if (!strcmp(object_string, "self") ||
 	         !strcmp(object_string, "this")) {
-		if (executing_function != NULL && executing_function->self == 0) {
-			sprintf(error_buffer,
+		if (executing_function != nullptr && executing_function->self == 0) {
+			Common::sprintf_s(error_buffer, 1024,
 			        "ERROR: Reference to 'self' from global function \"%s\".^",
 			        executing_function->name);
 			write_text(error_buffer);
@@ -1301,7 +1301,7 @@ long attribute_resolve(const char *attribute) {
 long user_attribute_resolve(const char *name) {
 	struct attribute_type *pointer = attribute_table;
 
-	if (pointer == NULL)
+	if (pointer == nullptr)
 		return (0);
 
 	do {
@@ -1309,7 +1309,7 @@ long user_attribute_resolve(const char *name) {
 			return (pointer->value);
 		} else
 			pointer = pointer->next_attribute;
-	} while (pointer != NULL);
+	} while (pointer != nullptr);
 
 	/* ATTRIBUTE NOT FOUND */
 	return (0);

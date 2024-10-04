@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -373,7 +372,7 @@ int voctok(voccxdef *ctx, char *cmd, char *outbuf,
 		   char **wrd, int lower, int cvt_ones, int show_errors);
 
 /* get types for a word list */
-int vocgtyp(voccxdef *ctx, char **cmd, int *types, char *orgbuf);
+int vocgtyp(voccxdef *ctx, char **cmd, int *types, char *orgbuf, size_t orgbuflen);
 
 /* execute a player command */
 int voccmd(voccxdef *ctx, char *cmd, uint cmdlen);
@@ -383,7 +382,7 @@ int vocdisambig(voccxdef *ctx, vocoldef *outlist, vocoldef *inlist,
 				prpnum defprop, prpnum accprop, prpnum verprop,
 				char *cmd[], objnum otherobj, objnum cmdActor,
 				objnum cmdVerb, objnum cmdPrep, char *cmdbuf,
-				int silent);
+				size_t cmdlen, int silent);
 
 /* display a multiple-object prefix */
 void voc_multi_prefix(voccxdef *ctx, objnum objn,
@@ -393,8 +392,8 @@ void voc_multi_prefix(voccxdef *ctx, objnum objn,
 /* low-level executor */
 int execmd(voccxdef *ctx, objnum actor, objnum prep,
 		   char *vverb, char *vprep, vocoldef *dolist, vocoldef *iolist,
-		   char **cmd, int *typelist,
-		   char *cmdbuf, int wrdcnt, uchar **preparse_list, int *next_start);
+		   char **cmd, int *typelist, char *cmdbuf, size_t cmdlen,
+		   int wrdcnt, uchar **preparse_list, int *next_start);
 
 /* recursive command execution */
 int execmd_recurs(voccxdef *ctx, objnum actor, objnum verb,

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,8 +25,9 @@
 #include "common/archive.h"
 #include "common/config-manager.h"
 #include "common/file.h"
+#include "common/memstream.h"
 #include "common/translation.h"
-#include "common/unzip.h"
+#include "common/compression/unzip.h"
 
 namespace Networking {
 
@@ -38,7 +38,7 @@ namespace Networking {
 Common::Archive *HandlerUtils::getZipArchive() {
 	// first search in themepath
 	if (ConfMan.hasKey("themepath")) {
-		const Common::FSNode &node = Common::FSNode(ConfMan.get("themepath"));
+		const Common::FSNode &node = Common::FSNode(ConfMan.getPath("themepath"));
 		if (node.exists() && node.isReadable() && node.isDirectory()) {
 			Common::FSNode fileNode = node.getChild(ARCHIVE_NAME);
 			if (fileNode.exists() && fileNode.isReadable() && !fileNode.isDirectory()) {
@@ -74,11 +74,11 @@ Common::ArchiveMemberList HandlerUtils::listArchive() {
 	return resultList;
 }
 
-Common::SeekableReadStream *HandlerUtils::getArchiveFile(Common::String name) {
+Common::SeekableReadStream *HandlerUtils::getArchiveFile(const Common::String &name) {
 	Common::SeekableReadStream *result = nullptr;
 	Common::Archive *zipArchive = getZipArchive();
 	if (zipArchive) {
-		const Common::ArchiveMemberPtr ptr = zipArchive->getMember(name);
+		const Common::ArchiveMemberPtr ptr = zipArchive->getMember(Common::Path(name, '/'));
 		if (ptr.get() == nullptr)
 			return nullptr;
 		result = ptr->createReadStream();
@@ -96,6 +96,12 @@ Common::String HandlerUtils::readEverythingFromStream(Common::SeekableReadStream
 		result += Common::String(buf, readBytes);
 	}
 	return result;
+}
+
+Common::SeekableReadStream *HandlerUtils::makeResponseStreamFromString(const Common::String &response) {
+	byte *data = new byte[response.size()];
+	memcpy(data, response.c_str(), response.size());
+	return new Common::MemoryReadStream(data, response.size(), DisposeAfterUse::YES);
 }
 
 Common::String HandlerUtils::normalizePath(const Common::String &path) {
@@ -127,7 +133,7 @@ bool HandlerUtils::hasForbiddenCombinations(const Common::String &path) {
 	return (path.contains("/../") || path.contains("\\..\\") || path.contains("\\../") || path.contains("/..\\"));
 }
 
-bool HandlerUtils::isBlacklisted(const Common::String &path) {
+bool HandlerUtils::isBlacklisted(const Common::Path &path) {
 	const char *blacklist[] = {
 		"/etc",
 		"/bin",
@@ -135,44 +141,44 @@ bool HandlerUtils::isBlacklisted(const Common::String &path) {
 	};
 
 	// normalize path
-	Common::String normalized = normalizePath(path);
+	Common::Path normalized = path.normalize();
 
 	uint32 size = sizeof(blacklist) / sizeof(const char *);
 	for (uint32 i = 0; i < size; ++i)
-		if (normalized.hasPrefix(blacklist[i]))
+		if (normalized.isRelativeTo(Common::Path(blacklist[i], '/')))
 			return true;
 
 	return false;
 }
 
-bool HandlerUtils::hasPermittedPrefix(const Common::String &path) {
+bool HandlerUtils::hasPermittedPrefix(const Common::Path &path) {
 	// normalize path
-	Common::String normalized = normalizePath(path);
+	Common::Path normalized = path.normalize();
 
 	// prefix for /root/
-	Common::String prefix;
+	Common::Path prefix;
 	if (ConfMan.hasKey("rootpath", "cloud")) {
-		prefix = normalizePath(ConfMan.get("rootpath", "cloud"));
-		if (prefix == "/" || normalized.hasPrefix(prefix))
+		prefix = ConfMan.getPath("rootpath", "cloud").normalize();
+		if (normalized.isRelativeTo(prefix))
 			return true;
 	}
 
 	// prefix for /saves/
 #ifdef USE_LIBCURL
 	DefaultSaveFileManager *manager = dynamic_cast<DefaultSaveFileManager *>(g_system->getSavefileManager());
-	prefix = (manager ? manager->concatWithSavesPath("") : ConfMan.get("savepath"));
+	prefix = (manager ? manager->concatWithSavesPath("") : ConfMan.getPath("savepath"));
 #else
-	prefix = ConfMan.get("savepath");
+	prefix = ConfMan.getPath("savepath");
 #endif
-	return normalized.hasPrefix(normalizePath(prefix))
-	       || normalizePath(prefix).compareTo(normalized + "/") == 0;
+	prefix = prefix.normalize();
+	return normalized.isRelativeTo(prefix);
 }
 
-bool HandlerUtils::permittedPath(const Common::String path) {
+bool HandlerUtils::permittedPath(const Common::Path &path) {
 	return hasPermittedPrefix(path) && !isBlacklisted(path);
 }
 
-void HandlerUtils::setMessageHandler(Client &client, Common::String message, Common::String redirectTo) {
+void HandlerUtils::setMessageHandler(Client &client, const Common::String &message, const Common::String &redirectTo) {
 	Common::String response = "<html><head><title>ScummVM</title><meta charset=\"utf-8\"/></head><body>{message}</body></html>";
 
 	// load stylish response page from the archive
@@ -187,7 +193,7 @@ void HandlerUtils::setMessageHandler(Client &client, Common::String message, Com
 		LocalWebserver::setClientRedirectHandler(client, response, redirectTo);
 }
 
-void HandlerUtils::setFilesManagerErrorMessageHandler(Client &client, Common::String message, Common::String redirectTo) {
+void HandlerUtils::setFilesManagerErrorMessageHandler(Client &client, const Common::String &message, const Common::String &redirectTo) {
 	setMessageHandler(
 		client,
 		Common::String::format(

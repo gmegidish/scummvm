@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -351,6 +350,7 @@ class LastExpress_ADPCMStream : public Audio::ADPCMStream {
 public:
 	LastExpress_ADPCMStream(Common::SeekableReadStream *stream, DisposeAfterUse::Flag disposeAfterUse, uint32 size, uint32 blockSize, uint32 volume, bool looped) :
 			Audio::ADPCMStream(stream, disposeAfterUse, size, 44100, 1, blockSize) {
+		_decodedSampleCount = 0;
 		_currentVolume = 0;
 		_nextVolume = volume;
 		_smoothChangeTarget = volume;
@@ -370,12 +370,6 @@ public:
 
 	int readBuffer(int16 *buffer, const int numSamples) override {
 		int samples = 0;
-		// Temporary data
-		int step = 0;
-		int sample = 0;
-		byte idx = 0;
-
-		assert(numSamples % 2 == 0);
 
 		while (_running && samples < numSamples) {
 			if (Audio::ADPCMStream::endOfData()) {
@@ -404,21 +398,32 @@ public:
 				_currentVolume = _nextVolume;
 			}
 
-			for (; samples < numSamples && _blockPos[0] < _blockAlign && !_stream->eos() && _stream->pos() < _endpos; samples += 2) {
-				byte data = _stream->readByte();
-				_blockPos[0]++;
+			for (; samples < numSamples && _blockPos[0] < _blockAlign && !_stream->eos() && _stream->pos() < _endpos; samples++) {
+				if (_decodedSampleCount == 0) {
+					int step, sample;
+					byte idx;
 
-				// First nibble
-				idx = data >> 4;
-				step = stepTable[idx + _status.ima_ch[0].stepIndex / 4];
-				sample = CLIP<int>(imaTable[idx + _status.ima_ch[0].stepIndex / 4] + _status.ima_ch[0].last, -32767, 32767);
-				buffer[samples] = (sample * _currentVolume) >> 4;
+					byte data = _stream->readByte();
+					_blockPos[0]++;
 
-				// Second nibble
-				idx = data & 0xF;
-				_status.ima_ch[0].stepIndex = stepTable[idx + step / 4];
-				_status.ima_ch[0].last = CLIP(imaTable[idx + step / 4] + sample, -32767, 32767);
-				buffer[samples + 1] = (_status.ima_ch[0].last * _currentVolume) >> 4;
+					// First nibble
+					idx = data >> 4;
+					step = stepTable[idx + _status.ima_ch[0].stepIndex / 4];
+					sample = CLIP<int>(imaTable[idx + _status.ima_ch[0].stepIndex / 4] + _status.ima_ch[0].last, -32767, 32767);
+					_decodedSamples[0] = (sample * _currentVolume) >> 4;
+
+					// Second nibble
+					idx = data & 0xF;
+					_status.ima_ch[0].stepIndex = stepTable[idx + step / 4];
+					_status.ima_ch[0].last = CLIP(imaTable[idx + step / 4] + sample, -32767, 32767);
+					_decodedSamples[1] = (_status.ima_ch[0].last * _currentVolume) >> 4;
+
+					_decodedSampleCount = 2;
+				}
+
+				// (1 - (count - 1)) ensures that _decodedSamples acts as a FIFO of depth 2
+				buffer[samples] = _decodedSamples[1 - (_decodedSampleCount - 1)];
+				_decodedSampleCount--;
 			}
 		}
 
@@ -429,6 +434,9 @@ public:
 	void setVolumeSmoothly(uint32 newVolume) { _smoothChangeTarget = newVolume; }
 
 private:
+	uint8 _decodedSampleCount;
+	int16 _decodedSamples[2];
+
 	uint32 _currentVolume;
 	uint32 _nextVolume;
 	uint32 _smoothChangeTarget;
@@ -489,12 +497,12 @@ uint32 SimpleSound::getTimeMS() {
 //////////////////////////////////////////////////////////////////////////
 // StreamedSound
 //////////////////////////////////////////////////////////////////////////
-StreamedSound::StreamedSound() : _as(NULL), _loaded(false) {}
+StreamedSound::StreamedSound() : _as(nullptr), _loaded(false) {}
 
 StreamedSound::~StreamedSound() {
 	stop(); // should execute before disposal of _as, so don't move in ~SimpleSound
 	delete _as;
-	_as = NULL;
+	_as = nullptr;
 }
 
 bool StreamedSound::load(Common::SeekableReadStream *stream, uint32 volume, bool looped, uint32 startBlock) {
@@ -563,7 +571,7 @@ AppendableSound::~AppendableSound() {
 	finish();
 	stop();
 
-	_as = NULL;
+	_as = nullptr;
 }
 
 void AppendableSound::queueBuffer(const byte *data, uint32 size) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -197,7 +196,7 @@ class File : public Common::File {
 public:
 	static File *openForReading(const Common::String &name) {
 		File *f = new File();
-		if (f->open(name))
+		if (f->open(Common::Path(name)))
 			return f;
 
 		delete f;
@@ -206,7 +205,7 @@ public:
 
 	static Common::WriteStream *openForWriting(const Common::String &name) {
 		Common::DumpFile *df = new Common::DumpFile();
-		if (df->open(name))
+		if (df->open(Common::Path(name)))
 			return df;
 
 		delete df;
@@ -214,7 +213,7 @@ public:
 	}
 public:
 	File() : Common::File() {}
-	File(const Common::String &name) {
+	File(const Common::Path &name) {
 		Common::File::open(name);
 		assert(isOpen());
 	}

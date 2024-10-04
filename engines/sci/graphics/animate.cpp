@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,8 +44,8 @@
 
 namespace Sci {
 
-GfxAnimate::GfxAnimate(EngineState *state, ScriptPatcher *scriptPatcher, GfxCache *cache, GfxPorts *ports, GfxPaint16 *paint16, GfxScreen *screen, GfxPalette *palette, GfxCursor *cursor, GfxTransitions *transitions)
-	: _s(state), _scriptPatcher(scriptPatcher), _cache(cache), _ports(ports), _paint16(paint16), _screen(screen), _palette(palette), _cursor(cursor), _transitions(transitions) {
+GfxAnimate::GfxAnimate(EngineState *state, ScriptPatcher *scriptPatcher, GfxCache *cache, GfxCompare *compare, GfxPorts *ports, GfxPaint16 *paint16, GfxScreen *screen, GfxPalette *palette, GfxCursor *cursor, GfxTransitions *transitions)
+	: _s(state), _scriptPatcher(scriptPatcher), _cache(cache), _compare(compare), _ports(ports), _paint16(paint16), _screen(screen), _palette(palette), _cursor(cursor), _transitions(transitions) {
 	init();
 }
 
@@ -136,11 +135,9 @@ void GfxAnimate::disposeLastCast() {
 bool GfxAnimate::invoke(List *list, int argc, reg_t *argv) {
 	reg_t curAddress = list->first;
 	Node *curNode = _s->_segMan->lookupNode(curAddress);
-	reg_t curObject;
-	uint16 signal;
 
 	while (curNode) {
-		curObject = curNode->value;
+		reg_t curObject = curNode->value;
 
 		if (_fastCastEnabled) {
 			// Check if the game has a fastCast object set
@@ -153,7 +150,7 @@ bool GfxAnimate::invoke(List *list, int argc, reg_t *argv) {
 			}
 		}
 
-		signal = readSelectorValue(_s->_segMan, curObject, SELECTOR(signal));
+		uint16 signal = readSelectorValue(_s->_segMan, curObject, SELECTOR(signal));
 		if (!(signal & kSignalFrozen)) {
 			// Call .doit method of that object
 			invokeSelector(_s, curObject, SELECTOR(doit), argc, argv, 0);
@@ -200,7 +197,7 @@ void GfxAnimate::makeSortedList(List *list) {
 	_lastCastData.clear();
 
 	// Fill the list
-	for (listNr = 0; curNode != 0; listNr++) {
+	for (listNr = 0; curNode != nullptr; listNr++) {
 		AnimateEntry listEntry;
 		const reg_t curObject = curNode->value;
 		listEntry.object = curObject;
@@ -255,7 +252,7 @@ void GfxAnimate::makeSortedList(List *list) {
 }
 
 void GfxAnimate::fill(byte &old_picNotValid) {
-	GfxView *view = NULL;
+	GfxView *view = nullptr;
 	AnimateList::iterator it;
 	const AnimateList::iterator end = _list.end();
 
@@ -319,7 +316,7 @@ void GfxAnimate::adjustInvalidCels(GfxView *view, AnimateList::iterator it) {
 
 void GfxAnimate::processViewScaling(GfxView *view, AnimateList::iterator it) {
 	if (!view->isScaleable()) {
-		// Laura Bow 2 (especially floppy) depends on this, some views are not supposed to be scaleable
+		// Laura Bow 2 (especially floppy) depends on this, some views are not supposed to be scalable
 		//  this "feature" was removed in later versions of SCI1.1
 		it->scaleSignal = 0;
 		it->scaleY = it->scaleX = 128;
@@ -372,7 +369,7 @@ void GfxAnimate::setNsRect(GfxView *view, AnimateList::iterator it) {
 		//  This special handling is not included in the other SCI1.1 interpreters and MUST NOT be
 		//  checked in those cases, otherwise we will break games (e.g. EcoQuest 2, room 200)
 		if ((g_sci->getGameId() == GID_HOYLE4) && (it->scaleSignal & kScaleSignalHoyle4SpecialHandling)) {
-			it->celRect = g_sci->_gfxCompare->getNSRect(it->object);
+			it->celRect = _compare->getNSRect(it->object);
 			view->getCelSpecialHoyle4Rect(it->loopNo, it->celNo, it->x, it->y, it->z, it->celRect);
 			shouldSetNsRect = false;
 		} else {
@@ -381,7 +378,7 @@ void GfxAnimate::setNsRect(GfxView *view, AnimateList::iterator it) {
 	}
 
 	if (shouldSetNsRect) {
-		g_sci->_gfxCompare->setNSRect(it->object, it->celRect);
+		_compare->setNSRect(it->object, it->celRect);
 	}
 }
 
@@ -576,7 +573,7 @@ void GfxAnimate::reAnimate(Common::Rect rect) {
 
 void GfxAnimate::addToPicDrawCels() {
 	reg_t curObject;
-	GfxView *view = NULL;
+	GfxView *view = nullptr;
 	AnimateList::iterator it;
 	const AnimateList::iterator end = _list.end();
 
@@ -603,7 +600,7 @@ void GfxAnimate::addToPicDrawCels() {
 				applyGlobalScaling(it, view);
 			}
 			view->getCelScaledRect(it->loopNo, it->celNo, it->x, it->y, it->z, it->scaleX, it->scaleY, it->celRect);
-			g_sci->_gfxCompare->setNSRect(curObject, it->celRect);
+			_compare->setNSRect(curObject, it->celRect);
 		} else {
 			view->getCelRect(it->loopNo, it->celNo, it->x, it->y, it->z, it->celRect);
 		}
@@ -711,52 +708,7 @@ void GfxAnimate::kernelAnimate(reg_t listReference, bool cycle, int argc, reg_t 
 	_ports->setPort(oldPort);
 
 	// Now trigger speed throttler
-	throttleSpeed();
-}
-
-void GfxAnimate::throttleSpeed() {
-	switch (_lastCastData.size()) {
-	case 0:
-		// No entries drawn -> no speed throttler triggering
-		break;
-	case 1: {
-
-		// One entry drawn -> check if that entry was a speed benchmark view, if not enable speed throttler
-		AnimateEntry *onlyCast = &_lastCastData[0];
-		if ((onlyCast->viewId == 0) && (onlyCast->loopNo == 13) && (onlyCast->celNo == 0)) {
-			// this one is used by jones talkie
-			if ((onlyCast->celRect.height() == 8) && (onlyCast->celRect.width() == 8)) {
-				_s->_gameIsBenchmarking = true;
-				return;
-			}
-		}
-		// first loop and first cel used?
-		if ((onlyCast->loopNo == 0) && (onlyCast->celNo == 0)) {
-			// and that cel has a known speed benchmark resolution
-			int16 onlyHeight = onlyCast->celRect.height();
-			int16 onlyWidth = onlyCast->celRect.width();
-			if (((onlyWidth == 12) && (onlyHeight == 35)) || // regular benchmark view ("fred", "Speedy", "ego")
-				((onlyWidth == 29) && (onlyHeight == 45)) || // King's Quest 5 french "fred"
-				((onlyWidth == 1) && (onlyHeight == 5)) || // Freddy Pharkas "fred"
-				((onlyWidth == 1) && (onlyHeight == 1))) { // Laura Bow 2 Talkie
-				// check further that there is only one cel in that view
-				GfxView *onlyView = _cache->getView(onlyCast->viewId);
-				if ((onlyView->getLoopCount() == 1) && (onlyView->getCelCount(0))) {
-					_s->_gameIsBenchmarking = true;
-					return;
-				}
-			}
-		}
-		_s->_gameIsBenchmarking = false;
-		_s->_throttleTrigger = true;
-		break;
-	}
-	default:
-		// More than 1 entry drawn -> time for speed throttling
-		_s->_gameIsBenchmarking = false;
-		_s->_throttleTrigger = true;
-		break;
-	}
+	_s->_throttleTrigger = true;
 }
 
 void GfxAnimate::addToPicSetPicNotValid() {

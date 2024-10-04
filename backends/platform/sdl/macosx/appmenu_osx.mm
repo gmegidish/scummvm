@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,10 +40,15 @@
 #endif
 
 #if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_5
+// https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Cocoa64BitGuide/64BitChangesCocoa/64BitChangesCocoa.html
+#if __LP64__ || NS_BUILD_32_LIKE_64
 typedef unsigned long NSUInteger;
+#else
+typedef unsigned int NSUInteger;
+#endif
 
 // Those are not defined in the 10.4 SDK, but they are defined when targeting
-// Mac OS X 10.4 or above in the 10.5 SDK. So hopefully that means it works with 10.4 as well.
+// Mac OS X 10.4 or above in the 10.5 SDK, and they do work with 10.4.
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4
 enum {
 	NSUTF32StringEncoding = 0x8c000100,
@@ -81,14 +85,27 @@ static void openFromBundle(NSString *file) {
 		}
 	}
 
+	// RTF and HTML files are widely recognized and we can rely on the default
+	// file association working for those. For the other ones this might not be
+	// the case so we explicitly indicate they should be open with TextEdit.
 	if (path) {
-		// RTF and HTML files are widely recognized and we can rely on the default
-		// file association working for those. For the other ones this might not be
-		// the case so we explicitly indicate they should be open with TextEdit.
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_15
 		if ([path hasSuffix:@".html"] || [path hasSuffix:@".rtf"])
 			[[NSWorkspace sharedWorkspace] openFile:path];
 		else
 			[[NSWorkspace sharedWorkspace] openFile:path withApplication:@"TextEdit"];
+#else
+		NSURL *pathUrl = [NSURL fileURLWithPath:path isDirectory:NO];
+		if ([path hasSuffix:@".html"] || [path hasSuffix:@".rtf"]) {
+			[[NSWorkspace sharedWorkspace] openURL:pathUrl];
+		} else {
+			[[NSWorkspace sharedWorkspace] openURLs:[NSArray arrayWithObjects:pathUrl, nil]
+				withApplicationAtURL:[[NSWorkspace sharedWorkspace] URLForApplicationWithBundleIdentifier:@"com.apple.TextEdit"]
+				configuration:[NSWorkspaceOpenConfiguration configuration]
+				completionHandler:nil
+			];
+		}
+#endif
 	}
 }
 
@@ -96,10 +113,20 @@ static void openFromBundle(NSString *file) {
 }
 - (void) openReadme;
 - (void) openLicenseGPL;
-- (void) openLicenseLGPL;
-- (void) openLicenseFreefont;
-- (void) openLicenseOFL;
+- (void) openLicenseApache;
 - (void) openLicenseBSD;
+- (void) openLicenseBSL;
+- (void) openLicenseFreefont;
+- (void) openLicenseGLAD;
+- (void) openLicenseISC;
+- (void) openLicenseLGPL;
+- (void) openLicenseLUA;
+- (void) openLicenseMIT;
+- (void) openLicenseMKV;
+- (void) openLicenseMPL;
+- (void) openLicenseOFL;
+- (void) openLicenseTinyGL;
+- (void) openLicenseCatharon;
 - (void) openNews;
 - (void) openUserManual;
 - (void) openCredits;
@@ -114,20 +141,60 @@ static void openFromBundle(NSString *file) {
 	openFromBundle(@"COPYING");
 }
 
-- (void)openLicenseLGPL {
-	openFromBundle(@"COPYING-LGPL");
+- (void)openLicenseApache {
+	openFromBundle(@"COPYING-Apache");
+}
+
+- (void)openLicenseBSD {
+	openFromBundle(@"COPYING-BSD");
+}
+
+- (void)openLicenseBSL {
+	openFromBundle(@"COPYING-BSL");
 }
 
 - (void)openLicenseFreefont {
 	openFromBundle(@"COPYING-FREEFONT");
 }
 
+- (void)openLicenseGLAD {
+	openFromBundle(@"COPYING-GLAD");
+}
+
+- (void)openLicenseISC {
+	openFromBundle(@"COPYING-ISC");
+}
+
+- (void)openLicenseLGPL {
+	openFromBundle(@"COPYING-LGPL");
+}
+
+- (void)openLicenseLUA {
+	openFromBundle(@"COPYING-LUA");
+}
+
+- (void)openLicenseMIT {
+	openFromBundle(@"COPYING-MIT");
+}
+
+- (void)openLicenseMKV {
+	openFromBundle(@"COPYING-MKV");
+}
+
+- (void)openLicenseMPL {
+	openFromBundle(@"COPYING-MPL");
+}
+
 - (void)openLicenseOFL {
 	openFromBundle(@"COPYING-OFL");
 }
 
-- (void)openLicenseBSD {
-	openFromBundle(@"COPYING-BSD");
+- (void)openLicenseTinyGL {
+	openFromBundle(@"COPYING-TINYGL");
+}
+
+- (void)openLicenseCatharon {
+	openFromBundle(@"CatharonLicense-txt");
 }
 
 - (void)openNews {
@@ -141,9 +208,14 @@ static void openFromBundle(NSString *file) {
 		NSArray *dirContents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:bundlePath error:nil];
 		NSEnumerator *dirEnum = [dirContents objectEnumerator];
 		NSString *file;
-		while (file = [dirEnum nextObject]) {
+		while ((file = [dirEnum nextObject])) {
 			if ([file hasPrefix:@"ScummVM Manual"] && [file hasSuffix:@".pdf"]) {
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_15
 				[[NSWorkspace sharedWorkspace] openFile:[bundlePath stringByAppendingPathComponent:file]];
+#else
+				NSURL *fileUrl = [NSURL fileURLWithPath:[bundlePath stringByAppendingPathComponent:file] isDirectory:NO];
+				[[NSWorkspace sharedWorkspace] openURL:fileUrl];
+#endif
 				return;
 			}
 		}
@@ -235,6 +307,8 @@ void replaceApplicationMenuItems() {
 		addMenuItem(_("Minimize"), nil, @selector(performMiniaturize:), @"m", windowMenu);
 	}
 
+	// Note: this part is expected not to work at run-time on 10.5 and earlier,
+	// because setHelpMenu is only available on 10.6+ (see Bug#11260).
 	NSMenu *helpMenu = addMenu(_("Help"), @"", @selector(setHelpMenu:));
 	if (helpMenu) {
 		if (!delegate) {
@@ -251,6 +325,17 @@ void replaceApplicationMenuItems() {
 		addMenuItem(_("Freefont License"), delegate, @selector(openLicenseFreefont), @"", helpMenu);
 		addMenuItem(_("OFL License"), delegate, @selector(openLicenseOFL), @"", helpMenu);
 		addMenuItem(_("BSD License"), delegate, @selector(openLicenseBSD), @"", helpMenu);
+
+		addMenuItem(_("Apache License"), delegate, @selector(openLicenseApache), @"", helpMenu);
+		addMenuItem(_("BSL License"), delegate, @selector(openLicenseBSL), @"", helpMenu);
+		addMenuItem(_("GLAD License"), delegate, @selector(openLicenseGLAD), @"", helpMenu);
+		addMenuItem(_("ISC License"), delegate, @selector(openLicenseISC), @"", helpMenu);
+		addMenuItem(_("Lua License"), delegate, @selector(openLicenseLUA), @"", helpMenu);
+		addMenuItem(_("MIT License"), delegate, @selector(openLicenseMIT), @"", helpMenu);
+		addMenuItem(_("MKV License"), delegate, @selector(openLicenseMKV), @"", helpMenu);
+		addMenuItem(_("MPL License"), delegate, @selector(openLicenseMPL), @"", helpMenu);
+		addMenuItem(_("TinyGL License"), delegate, @selector(openLicenseTinyGL), @"", helpMenu);
+		addMenuItem(_("Catharon License"), delegate, @selector(openLicenseCatharon), @"", helpMenu);
 	}
 
 	[appleMenu release];

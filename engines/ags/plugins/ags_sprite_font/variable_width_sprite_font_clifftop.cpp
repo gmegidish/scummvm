@@ -4,9 +4,9 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
  * of the License, or(at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,30 +32,11 @@ VariableWidthSpriteFontRendererClifftop::VariableWidthSpriteFontRendererClifftop
 VariableWidthSpriteFontRendererClifftop::~VariableWidthSpriteFontRendererClifftop(void) {
 }
 
-int VariableWidthSpriteFontRendererClifftop::GetTextHeight(const char *text, int fontNumber) {
-	VariableWidthFont *font = getFontFor(fontNumber);
-	if (strcmp("<LINE_SPACING>", text) == 0)
-		return font->LineSpacingOverride;
-
-	for (int i = 0; i < (int)strlen(text); i++) {
-		if (font->characters.count(text[i]) > 0) {
-			int height = font->characters[text[i]].Height;
-
-			if (strcmp("ZHwypgfjqhkilIK", text) == 0 || strcmp("ZhypjIHQFb", text) == 0 || strcmp("YpyjIHgMNWQ", text) == 0 || strcmp("BigyjTEXT", text) == 0)
-				height += font->LineSpacingAdjust;
-			else
-				height += font->LineHeightAdjust;
-
-			return height;
-		}
-	}
-	return 0;
-}
-
 void VariableWidthSpriteFontRendererClifftop::RenderText(const char *text, int fontNumber, BITMAP *destination, int x, int y, int colour) {
 	VariableWidthFont *font = getFontFor(fontNumber);
 	int totalWidth = 0;
-	for (int i = 0; i < (int)strlen(text); i++) {
+	int len_text = (int)strlen(text);
+	for (int i = 0; i < len_text; i++) {
 		char c = text[i];
 
 		BITMAP *src = _engine->GetSpriteGraphic(font->SpriteNumber);

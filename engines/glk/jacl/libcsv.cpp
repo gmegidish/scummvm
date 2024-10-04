@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -93,7 +92,7 @@ const char *csv_strerror(int status) {
 
 int csv_get_opts(struct csv_parser *p) {
 	/* Return the currently set options of parser */
-	if (p == NULL)
+	if (p == nullptr)
 		return -1;
 
 	return p->options;
@@ -101,7 +100,7 @@ int csv_get_opts(struct csv_parser *p) {
 
 int csv_set_opts(struct csv_parser *p, unsigned char options) {
 	/* Set the options */
-	if (p == NULL)
+	if (p == nullptr)
 		return -1;
 
 	p->options = options;
@@ -110,10 +109,10 @@ int csv_set_opts(struct csv_parser *p, unsigned char options) {
 
 int csv_init(struct csv_parser *p, unsigned char options) {
 	/* Initialize a csv_parser object returns 0 on success, -1 on error */
-	if (p == NULL)
+	if (p == nullptr)
 		return -1;
 
-	p->entry_buf = NULL;
+	p->entry_buf = nullptr;
 	p->pstate = ROW_NOT_BEGUN;
 	p->quoted = 0;
 	p->spaces = 0;
@@ -123,10 +122,10 @@ int csv_init(struct csv_parser *p, unsigned char options) {
 	p->options = options;
 	p->quote_char = CSV_QUOTE;
 	p->delim_char = CSV_COMMA;
-	p->is_space = NULL;
-	p->is_term = NULL;
+	p->is_space = nullptr;
+	p->is_term = nullptr;
 	p->blk_size = MEM_BLK_SIZE;
-	p->malloc_func = NULL;
+	p->malloc_func = nullptr;
 	p->realloc_func = realloc;
 	p->free_func = free;
 
@@ -135,13 +134,13 @@ int csv_init(struct csv_parser *p, unsigned char options) {
 
 void csv_free(struct csv_parser *p) {
 	/* Free the entry_buffer of csv_parser object */
-	if (p == NULL)
+	if (p == nullptr)
 		return;
 
 	if (p->entry_buf)
 		p->free_func(p->entry_buf);
 
-	p->entry_buf = NULL;
+	p->entry_buf = nullptr;
 	p->entry_size = 0;
 
 	return;
@@ -154,7 +153,7 @@ int csv_fini(struct csv_parser *p, void (*cb1)(void *, size_t, void *), void (*c
 	size_t spaces = p->spaces;
 	size_t entry_pos = p->entry_pos;
 
-	if (p == NULL)
+	if (p == nullptr)
 		return -1;
 
 
@@ -258,7 +257,7 @@ static int csv_increase_buffer(struct csv_parser *p) {
 		return -1;
 	}
 
-	while ((vp = p->realloc_func(p->entry_buf, p->entry_size + to_add)) == NULL) {
+	while ((vp = p->realloc_func(p->entry_buf, p->entry_size + to_add)) == nullptr) {
 		to_add /= 2;
 		if (!to_add) {
 			p->status = CSV_ENOMEM;
@@ -298,7 +297,7 @@ size_t csv_parse(struct csv_parser *p, const void *s, size_t len, void (*cb1)(vo
 	}
 
 	while (pos < len) {
-		/* Check memory usage, increase buffer if neccessary */
+		/* Check memory usage, increase buffer if necessary */
 		if (entry_pos == ((p->options & CSV_APPEND_NULL) ? p->entry_size - 1 : p->entry_size)) {
 			if (csv_increase_buffer(p) != 0) {
 				p->quoted = quoted, p->pstate = pstate, p->spaces = spaces, p->entry_pos = entry_pos;
@@ -423,10 +422,10 @@ size_t csv_write(void *dest, size_t dest_size, const void *src, size_t src_size)
 	const unsigned char *csrc = (const unsigned char *)src;
 	size_t chars = 0;
 
-	if (src == NULL)
+	if (src == nullptr)
 		return 0;
 
-	if (cdest == NULL)
+	if (cdest == nullptr)
 		dest_size = 0;
 
 	if (dest_size > 0)
@@ -456,7 +455,7 @@ size_t csv_write(void *dest, size_t dest_size, const void *src, size_t src_size)
 int csv_fwrite(Common::WriteStream *fp, const void *src, size_t src_size) {
 	const unsigned char *csrc = (const unsigned char *)src;
 
-	if (fp == NULL || src == NULL)
+	if (fp == nullptr || src == nullptr)
 		return 0;
 
 	fp->writeByte('"');
@@ -479,10 +478,10 @@ size_t csv_write2(void *dest, size_t dest_size, const void *src, size_t src_size
 	const unsigned char *csrc = (const unsigned char *)src;
 	size_t chars = 0;
 
-	if (src == NULL)
+	if (src == nullptr)
 		return 0;
 
-	if (dest == NULL)
+	if (dest == nullptr)
 		dest_size = 0;
 
 	if (dest_size > 0)
@@ -512,7 +511,7 @@ size_t csv_write2(void *dest, size_t dest_size, const void *src, size_t src_size
 int csv_fwrite2(Common::WriteStream *fp, const void *src, size_t src_size, unsigned char quote) {
 	const unsigned char *csrc = (const unsigned char *)src;
 
-	if (fp == NULL || src == NULL)
+	if (fp == nullptr || src == nullptr)
 		return 0;
 
 	fp->writeByte(quote);

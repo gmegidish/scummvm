@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,19 +64,15 @@ bool FileStream::IsValid() const {
 
 bool FileStream::EOS() const {
 	Common::ReadStream *rs = dynamic_cast<Common::ReadStream *>(_file);
-	return !rs || rs->eos();
+	return rs && rs->eos();
 }
 
 soff_t FileStream::GetLength() const {
-	if (IsValid()) {
-		soff_t pos = (soff_t)ags_ftell(_file);
-		ags_fseek(_file, 0, SEEK_END);
-		soff_t end = (soff_t)ags_ftell(_file);
-		ags_fseek(_file, pos, SEEK_SET);
-		return end;
-	}
-
-	return 0;
+	soff_t pos = (soff_t)ags_ftell(_file);
+	ags_fseek(_file, 0, SEEK_END);
+	soff_t end = (soff_t)ags_ftell(_file);
+	ags_fseek(_file, pos, SEEK_SET);
+	return end;
 }
 
 soff_t FileStream::GetPosition() const {
@@ -141,10 +136,6 @@ int32_t FileStream::WriteByte(uint8_t val) {
 }
 
 bool FileStream::Seek(soff_t offset, StreamSeek origin) {
-	if (!_file) {
-		return false;
-	}
-
 	int stdclib_origin;
 	switch (origin) {
 	case kSeekBegin:
@@ -172,13 +163,8 @@ void FileStream::Open(const String &file_name, FileOpenMode open_mode, FileWorkM
 
 		} else {
 			// First try to open file in game folder
-			Common::File *f = new Common::File();
-			if (!f->open(getFSNode(file_name.GetCStr()))) {
-				delete f;
-				_file = nullptr;
-			} else {
-				_file = f;
-			}
+			Common::ArchiveMemberPtr desc = getFile(file_name.GetCStr());
+			_file = desc ? desc->createReadStream() : nullptr;
 		}
 
 	} else {
@@ -203,9 +189,10 @@ void FileStream::Open(const String &file_name, FileOpenMode open_mode, FileWorkM
 
 		if (!_file)
 			error("Invalid attempt to create file - %s", file_name.GetCStr());
+
+		_fileName = file_name;
 	}
 }
-
 
 String FileStream::getSaveName(const String &filename) {
 	return String(filename.GetCStr() + strlen(SAVE_FOLDER_PREFIX));
@@ -217,7 +204,7 @@ Common::OutSaveFile *FileStream::openForWriting(const String &saveName, FileOpen
 	if (work_mode == kFile_Read || work_mode == kFile_ReadWrite)
 		// In the original these modes result in [aw]+b, which seems to result
 		// in a file with arbitrary reading, but writing always appending
-		warning("FileOpen: independant read/write positions not supported");
+		warning("FileOpen: independent read/write positions not supported");
 
 	Common::InSaveFile *existing = nullptr;
 	if (open_mode == kFile_Create &&

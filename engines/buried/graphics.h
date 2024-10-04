@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -82,8 +81,9 @@ public:
 	byte *getDefaultPalette() const { return _palette; }
 	Graphics::Font *createFont(int size, bool bold = false) const;
 	Cursor setCursor(Cursor newCursor);
+	void toggleCursor(bool show);
 	Graphics::Surface *getBitmap(uint32 bitmapID);
-	Graphics::Surface *getBitmap(const Common::String &fileName);
+	Graphics::Surface *getBitmap(const Common::Path &fileName, bool required = true);
 	uint32 getColor(byte r, byte g, byte b);
 
 	void invalidateRect(const Common::Rect &rect, bool erase = true);
@@ -98,9 +98,11 @@ public:
 	void blit(const Graphics::Surface *surface, int x, int y, uint width, uint height);
 	void blit(const Graphics::Surface *surface, const Common::Rect &srcRect, const Common::Rect &dstRect);
 	void fillRect(const Common::Rect &rect, uint32 color);
-	void opaqueTransparentBlit(Graphics::Surface *dst, int xDst, int yDst, int w, int h, const Graphics::Surface *src, int xSrc, int ySrc, int opacityValue, byte r, byte g, byte b);
+	void keyBlit(Graphics::Surface *dst, int xDst, int yDst, int w, int h, const Graphics::Surface *src, uint xSrc, uint ySrc, uint32 transColor);
+	void keyBlit(Graphics::Surface *dst, int xDst, int yDst, int w, int h, const Graphics::Surface *src, uint xSrc, uint ySrc, byte rTrans, byte gTrans, byte bTrans);
+	void opaqueTransparentBlit(Graphics::Surface *dst, int xDst, int yDst, int w, int h, const Graphics::Surface *src, uint xSrc, uint ySrc, int opacityValue, byte r, byte g, byte b);
 	bool checkPointAgainstMaskedBitmap(const Graphics::Surface *bitmap, int x, int y, const Common::Point &point, byte rTrans, byte gTrans, byte bTrans);
-	void crossBlit(Graphics::Surface *dst, int xDst, int yDst, uint w, uint h, const Graphics::Surface *src, int xSrc, int ySrc);
+	void crossBlit(Graphics::Surface *dst, int xDst, int yDst, uint w, uint h, const Graphics::Surface *src, uint xSrc, uint ySrc);
 	void renderText(Graphics::Surface *dst, Graphics::Font *font, const Common::String &text, int x, int y, int w, int h, uint32 color, int lineHeight, TextAlign textAlign = kTextAlignLeft, bool centerVertically = false);
 	void renderText(Graphics::Surface *dst, Graphics::Font *font, const Common::U32String &text, int x, int y, int w, int h, uint32 color, int lineHeight, TextAlign textAlign = kTextAlignLeft, bool centerVertically = false);
 	void drawEllipse(const Common::Rect &rect, uint32 color);

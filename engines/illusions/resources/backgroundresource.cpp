@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -204,9 +203,9 @@ void PathWalkRects::load(byte *dataStart, Common::SeekableReadStream &stream) {
 // BackgroundResource
 
 BackgroundResource::BackgroundResource()
-	: _bgInfos(0), _scaleLayers(0), _priorityLayers(0), _regionLayers(0),
-	_regionSequences(0), _backgroundObjects(0), _pathWalkPoints(0),
-	_pathWalkRects(0), _palettes(0) {
+	: _bgInfos(nullptr), _scaleLayers(nullptr), _priorityLayers(nullptr), _regionLayers(nullptr),
+	_regionSequences(nullptr), _backgroundObjects(nullptr), _pathWalkPoints(nullptr),
+	_pathWalkRects(nullptr), _palettes(nullptr) {
 }
 
 BackgroundResource::~BackgroundResource() {
@@ -382,7 +381,11 @@ bool BackgroundResource::findNamedPoint(uint32 namedPointId, Common::Point &pt) 
 // BackgroundInstance
 
 BackgroundInstance::BackgroundInstance(IllusionsEngine *vm)
-	: _vm(vm), _sceneId(0), _pauseCtr(0), _bgRes(0), _savedPalette(0) {
+	: _vm(vm), _sceneId(0), _pauseCtr(0), _bgRes(nullptr), _savedPalette(nullptr) {
+}
+
+BackgroundInstance::~BackgroundInstance() {
+	delete[] _savedPalette;
 }
 
 void BackgroundInstance::load(Resource *resource) {
@@ -442,7 +445,7 @@ void BackgroundInstance::unpause() {
 		initSurface();
 		_vm->_screenPalette->setPalette(_savedPalette, 1, 256);
 		delete[] _savedPalette;
-		_savedPalette = 0;
+		_savedPalette = nullptr;
 		_vm->clearFader();
 		_vm->_camera->setActiveState(_savedCameraState);
 		_vm->_backgroundInstances->refreshPan();
@@ -465,7 +468,7 @@ void BackgroundInstance::unregisterResources() {
 
 void BackgroundInstance::initSurface() {
 	for (uint i = 0; i < kMaxBackgroundItemSurfaces; ++i) {
-		_surfaces[i] = 0;
+		_surfaces[i] = nullptr;
 	}
 	for (uint i = 0; i < _bgRes->_bgInfosCount; ++i) {
 		BgInfo *bgInfo = &_bgRes->_bgInfos[i];
@@ -490,7 +493,7 @@ void BackgroundInstance::freeSurface() {
 		if (_surfaces[i]) {
 			_surfaces[i]->free();
 			delete _surfaces[i];
-			_surfaces[i] = 0;
+			_surfaces[i] = nullptr;
 		}
 	}
 }
@@ -598,7 +601,7 @@ BackgroundInstance *BackgroundInstanceList::findActiveBackgroundInstance() {
 		if ((*it)->_pauseCtr == 0)
 			return (*it);
 	}
-	return 0;
+	return nullptr;
 }
 
 BackgroundInstance *BackgroundInstanceList::findBackgroundByResource(BackgroundResource *backgroundResource) {
@@ -606,14 +609,14 @@ BackgroundInstance *BackgroundInstanceList::findBackgroundByResource(BackgroundR
 		if ((*it)->_bgRes == backgroundResource)
 			return (*it);
 	}
-	return 0;
+	return nullptr;
 }
 
 BackgroundResource *BackgroundInstanceList::getActiveBgResource() {
 	BackgroundInstance *background = findActiveBackgroundInstance();
 	if (background)
 		return background->_bgRes;
-	return 0;
+	return nullptr;
 }
 
 WidthHeight BackgroundInstanceList::getMasterBgDimensions() {

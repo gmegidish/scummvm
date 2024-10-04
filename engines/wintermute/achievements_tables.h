@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef WINTERMUTE_ACHIEVEMENTS_H
 #define WINTERMUTE_ACHIEVEMENTS_H
 
-#include "common/achievements.h"
+#include "engines/achievements.h"
 
 namespace Wintermute {
 
@@ -36,6 +35,7 @@ static const Common::AchievementDescriptionList achievementDescriptionList[] = {
 	{"corrosion", Common::STEAM_ACHIEVEMENTS, "349140"},
 	{"drdoylemotch", Common::STEAM_ACHIEVEMENTS, "574420"},
 	{"erinmyers", Common::STEAM_ACHIEVEMENTS, "1064660"},
+	{"jamesperis2", Common::STEAM_ACHIEVEMENTS, "1642970"},
 	{"juliastars", Common::GALAXY_ACHIEVEMENTS, "1457085654"},
 	{"juliastars", Common::STEAM_ACHIEVEMENTS, "257690"},
 	{"juliauntold", Common::GALAXY_ACHIEVEMENTS, "1457085654"},

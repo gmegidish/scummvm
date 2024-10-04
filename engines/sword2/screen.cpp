@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 // ---------------------------------------------------------------------------
@@ -48,7 +47,7 @@ namespace Sword2 {
 Screen::Screen(Sword2Engine *vm, int16 width, int16 height) {
 	_vm = vm;
 
-	_dirtyGrid = _buffer = NULL;
+	_dirtyGrid = _buffer = nullptr;
 
 	_screenWide = width;
 	_screenDeep = height;
@@ -68,9 +67,9 @@ Screen::Screen(Sword2Engine *vm, int16 width, int16 height) {
 		error("Could not initialize display");
 
 	for (int i = 0; i < ARRAYSIZE(_blockSurfaces); i++)
-		_blockSurfaces[i] = NULL;
+		_blockSurfaces[i] = nullptr;
 
-	_lightMask = NULL;
+	_lightMask = nullptr;
 	_needFullRedraw = false;
 
 	memset(&_thisScreen, 0, sizeof(_thisScreen));
@@ -86,8 +85,8 @@ Screen::Screen(Sword2Engine *vm, int16 width, int16 height) {
 	_largestLayerArea = 0;
 	_largestSpriteArea = 0;
 
-	strcpy(_largestLayerInfo,  "largest layer:  none registered");
-	strcpy(_largestSpriteInfo, "largest sprite: none registered");
+	Common::strcpy_s(_largestLayerInfo,  "largest layer:  none registered");
+	Common::strcpy_s(_largestSpriteInfo, "largest sprite: none registered");
 
 	_fadeStatus = RDFADE_NONE;
 	_renderAverageTime = 60;
@@ -100,9 +99,9 @@ Screen::Screen(Sword2Engine *vm, int16 width, int16 height) {
 	_pauseStartTick = 0;
 
 	// Clean the cache for PSX version SCREENS.CLU
-	_psxScrCache[0] = NULL;
-	_psxScrCache[1] = NULL;
-	_psxScrCache[2] = NULL;
+	_psxScrCache[0] = nullptr;
+	_psxScrCache[1] = nullptr;
+	_psxScrCache[2] = nullptr;
 	_psxCacheEnabled[0] = true;
 	_psxCacheEnabled[1] = true;
 	_psxCacheEnabled[2] = true;
@@ -538,7 +537,7 @@ void Screen::processLayer(byte *file, uint32 layer_number) {
 
 	if (current_layer_area > _largestLayerArea) {
 		_largestLayerArea = current_layer_area;
-		sprintf(_largestLayerInfo,
+		Common::sprintf_s(_largestLayerInfo,
 			"largest layer:  %s layer(%d) is %dx%d",
 			_vm->_resman->fetchName(_thisScreen.background_layer_id),
 			layer_number, layer_head.width, layer_head.height);
@@ -561,7 +560,7 @@ void Screen::processImage(BuildUnit *build_unit) {
 		return;
 
 	byte *file = _vm->_resman->openResource(build_unit->anim_resource);
-	byte *colTablePtr = NULL;
+	byte *colTablePtr = nullptr;
 
 	byte *frame = _vm->fetchFrameHeader(file, build_unit->anim_pc);
 
@@ -643,7 +642,7 @@ void Screen::processImage(BuildUnit *build_unit) {
 
 	if (current_sprite_area > _largestSpriteArea) {
 		_largestSpriteArea = current_sprite_area;
-		sprintf(_largestSpriteInfo,
+		Common::sprintf_s(_largestSpriteInfo,
 			"largest sprite: %s frame(%d) is %dx%d",
 			_vm->_resman->fetchName(build_unit->anim_resource),
 			build_unit->anim_pc,
@@ -857,7 +856,7 @@ struct CreditsLine {
 	byte *sprite;
 
 	CreditsLine() {
-		sprite = NULL;
+		sprite = nullptr;
 	}
 
 	~CreditsLine() {
@@ -924,7 +923,7 @@ void Screen::rollCredits() {
 
 	uint16 logoWidth = 0;
 	uint16 logoHeight = 0;
-	byte *logoData = NULL;
+	byte *logoData = nullptr;
 	byte palette[256 * 3];
 
 	if (f.open("credits.bmp")) {
@@ -1117,7 +1116,7 @@ void Screen::rollCredits() {
 				debug(2, "Freeing line %d: '%s'", i, creditsLines[i]->str.c_str());
 
 				delete creditsLines[i];
-				creditsLines[i] = NULL;
+				creditsLines[i] = nullptr;
 
 				startLine = i + 1;
 			} else if (creditsLines[i]->top < scrollPos + 400) {
@@ -1229,11 +1228,11 @@ void Screen::rollCredits() {
 void Screen::splashScreen() {
 	byte *bgfile = _vm->_resman->openResource(2950);
 
-	initializeBackgroundLayer(NULL);
-	initializeBackgroundLayer(NULL);
+	initializeBackgroundLayer(nullptr);
+	initializeBackgroundLayer(nullptr);
 	initializeBackgroundLayer(_vm->fetchBackgroundLayer(bgfile));
-	initializeBackgroundLayer(NULL);
-	initializeBackgroundLayer(NULL);
+	initializeBackgroundLayer(nullptr);
+	initializeBackgroundLayer(nullptr);
 
 	_vm->fetchPalette(bgfile, _palette);
 	setPalette(0, 256, _palette, RDPAL_FADE);
@@ -1307,7 +1306,7 @@ byte *Screen::getPsxScrCache(uint8 level) {
 	if (_psxCacheEnabled[level])
 		return _psxScrCache[level];
 	else
-		return NULL;
+		return nullptr;
 }
 
 bool Screen::getPsxScrCacheStatus(uint8 level) {
@@ -1321,7 +1320,7 @@ bool Screen::getPsxScrCacheStatus(uint8 level) {
 void Screen::flushPsxScrCache() {
 	for (uint8 i = 0; i < 3; i++) {
 		free(_psxScrCache[i]);
-		_psxScrCache[i] = NULL;
+		_psxScrCache[i] = nullptr;
 		_psxCacheEnabled[i] = true;
 	}
 }

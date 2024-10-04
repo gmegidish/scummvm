@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -29,7 +28,7 @@
 
 namespace Saga2 {
 
-const int           maxBanks = 64;          // 64 banks maximum
+const int           kMaxBanks = 64;          // 64 banks maximum
 
 /* ============================================================================ *
    TileBank request bits
@@ -41,7 +40,7 @@ const int           maxBanks = 64;          // 64 banks maximum
 
 class BankBits {
 public:
-	uint32 _b[maxBanks / 32];
+	uint32 _b[kMaxBanks / 32];
 
 	// constructors
 	BankBits() {}
@@ -133,7 +132,7 @@ public:
 template<int size> class FixedBitArray {
 private:
 	enum {
-		lWords = ((size + 31) / 32)
+		klWords = ((size + 31) / 32)
 	};
 
 	int16 WORDNUM(int n) {
@@ -146,7 +145,7 @@ private:
 		return (1 << (n & 31));
 	}
 
-	uint32  _b[lWords];
+	uint32  _b[klWords];
 
 	void clear() {
 		memset(&_b, 0, sizeof _b);
@@ -182,7 +181,7 @@ public:
 	friend FixedBitArray operator& (FixedBitArray c, FixedBitArray d) {
 		FixedBitArray   t;
 
-		for (uint16 i = 0; i < lWords; i++)
+		for (uint16 i = 0; i < klWords; i++)
 			t._b[i] = c._b[i] & d._b[i];
 		return t;
 	}
@@ -190,19 +189,19 @@ public:
 	friend FixedBitArray operator| (FixedBitArray c, FixedBitArray d) {
 		FixedBitArray t;
 
-		for (uint16 i = 0; i < lWords; i++)
+		for (uint16 i = 0; i < klWords; i++)
 			t._b[i] = c._b[i] | d._b[i];
 		return t;
 	}
 
 	friend FixedBitArray &operator|= (FixedBitArray c, FixedBitArray d) {
-		for (uint16 i = 0; i < lWords; i++)
+		for (uint16 i = 0; i < klWords; i++)
 			c._b[i] |= d._b[i];
 		return c;
 	}
 
 	friend bool operator!= (FixedBitArray c, FixedBitArray d) {
-		for (uint16 i = 0; i < lWords; i++)
+		for (uint16 i = 0; i < klWords; i++)
 			if (c._b[i] != d._b[i]) return true;
 		return false;
 	}
@@ -210,7 +209,7 @@ public:
 	friend FixedBitArray operator^ (FixedBitArray c, FixedBitArray d) {
 		FixedBitArray t;
 
-		for (uint16 i = 0; i < lWords; i++)
+		for (uint16 i = 0; i < klWords; i++)
 			t._b[i] = c._b[i] ^ d._b[i];
 		return t;
 	}

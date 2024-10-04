@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -81,7 +80,7 @@ struct GeasFile {
 	const GeasBlock &block(String type, uint index) const;
 	uint size(String type) const;
 
-	void read_into(const Common::Array<String> &, String, uint, bool, const reserved_words &, const reserved_words &);
+	void read_into(const Common::Array<String> &, String, uint, bool, const reserved_words &, const reserved_words &, const reserved_words &);
 
 
 
@@ -99,7 +98,7 @@ struct GeasFile {
 	bool type_of_type(String subtype, String supertype) const;
 
 	Set<String> get_obj_keys(String obj) const;
-	void get_obj_keys(String, Set<String> &) const;
+	void get_obj_keys(String, Set<String> &, const reserved_words &obj_tag_property) const;
 	void get_type_keys(String, Set<String> &) const;
 
 	bool obj_has_action(String objname, String propname) const;

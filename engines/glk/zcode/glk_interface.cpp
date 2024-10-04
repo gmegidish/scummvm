@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 #include "glk/conf.h"
 #include "glk/screen.h"
 #include "common/config-manager.h"
-#include "common/unzip.h"
+#include "common/compression/unzip.h"
 
 namespace Glk {
 namespace ZCode {
@@ -230,7 +229,7 @@ void GlkInterface::initialize() {
 }
 
 void GlkInterface::addSound() {
-	Common::FSNode gameDir(ConfMan.get("path"));
+	Common::FSNode gameDir(ConfMan.getPath("path"));
 	SoundSubfolder::check(gameDir);
 	SoundZip::check(gameDir, _storyId);
 }
@@ -516,7 +515,7 @@ void GlkInterface::showBeyondZorkTitle() {
 	int saveSlot = ConfMan.hasKey("save_slot") ? ConfMan.getInt("save_slot") : -1;
 
 	if (saveSlot == -1) {
-		winid_t win = glk_window_open(0, 0, 0, wintype_Graphics, 0);
+		winid_t win = glk_window_open(nullptr, 0, 0, wintype_Graphics, 0);
 		if (glk_image_draw_scaled(win, 1, 0, 0, g_vm->_screen->w, g_vm->_screen->h))
 			_events->waitForPress();
 

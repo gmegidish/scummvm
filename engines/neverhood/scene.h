@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,12 +45,12 @@ public:
 	void draw() override;
 	void addEntity(Entity *entity);
 	bool removeEntity(Entity *entity);
-	void addSurface(BaseSurface *surface);
-	bool removeSurface(BaseSurface *surface);
+	void addSurface(const Common::SharedPtr<BaseSurface> &surface);
+	bool removeSurface(const Common::SharedPtr<BaseSurface> &surface);
 	void printSurfaces(Console *con);
 	Sprite *addSprite(Sprite *sprite);
 	void removeSprite(Sprite *sprite);
-	void setSurfacePriority(BaseSurface *surface, int priority);
+	void setSurfacePriority(const Common::SharedPtr<BaseSurface> &surface, int priority);
 	void setSpriteSurfacePriority(Sprite *sprite, int priority);
 	void deleteSprite(Sprite **sprite);
 	Background *addBackground(Background *background);
@@ -169,7 +168,7 @@ public:
 protected:
 	Module *_parentModule;
 	Common::Array<Entity*> _entities;
-	Common::Array<BaseSurface*> _surfaces;
+	Common::Array<Common::SharedPtr<BaseSurface>> _surfaces;
 
 	Klaymen *_klaymen;
 	Background *_background;

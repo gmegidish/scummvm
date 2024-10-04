@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -188,7 +187,7 @@ void Puzzles::leversBall(int16 var) {
 		NewPosition p[2];
 	};
 
-	static const Move moves[] =	{
+	static const Move moves[] = {
 		{   0,   1,   2, { { 1,   1,   2, 127, 147,   0,   0 }, { 0,   0,   0, 703, 735,   0,   0 } } },
 		{   0,   0,   4, { { 1,   0,   4,  43,  63,   0,   0 }, { 0,   1,   4,  64,  84,   0,   0 } } },
 		{   0,   0,   1, { { 1,   0,   1,  85, 105,   0,   0 }, { 0,   1,   1,  22,  42,   0,   0 } } },
@@ -219,9 +218,7 @@ void Puzzles::leversBall(int16 var) {
 
 	const Move *move = nullptr;
 	for (uint i = _vm->_state->getBallDoorOpen() ? 0 : 1; i < ARRAYSIZE(moves); i++)
-		if (moves[i].oldBallPosition == oldPosition
-				&& moves[i].oldLeft == oldLeverLeft
-				&& moves[i].oldRight == oldLeverRight) {
+		if (moves[i].oldBallPosition == oldPosition && moves[i].oldLeft == oldLeverLeft && moves[i].oldRight == oldLeverRight) {
 			move = &moves[i];
 			break;
 		}
@@ -231,8 +228,7 @@ void Puzzles::leversBall(int16 var) {
 
 	const NewPosition *position = nullptr;
 	for (uint i = 0; i < ARRAYSIZE(move->p); i++)
-		if (move->p[i].newLeft == newLeverLeft
-				&& move->p[i].newRight == newLeverRight) {
+		if (move->p[i].newLeft == (newLeverLeft != 0) && move->p[i].newRight == (newLeverRight != 0)) {
 			position = &move->p[i];
 			break;
 		}
@@ -333,8 +329,8 @@ void Puzzles::tesla(int16 movie, int16 var, int16 move) {
 	_vm->_state->setVar(var, absPosition);
 
 	bool puzzleSolved = _vm->_state->getTeslaTopAligned() == 1
-			&& _vm->_state->getTeslaMiddleAligned() == 1
-			&& _vm->_state->getTeslaBottomAligned() == 1;
+	                 && _vm->_state->getTeslaMiddleAligned() == 1
+	                 && _vm->_state->getTeslaBottomAligned() == 1;
 
 	_vm->_state->setTeslaAllAligned(puzzleSolved);
 }
@@ -440,7 +436,7 @@ void Puzzles::resonanceRingsLaunchBall() {
 
 		bool isOnLightButton = false;
 
-		const LightFrames *frames = 0;
+		const LightFrames *frames = nullptr;
 		int32 currentLightFrame = _vm->_state->getVar(33);
 
 		// Look is the mini ball is on a light button
@@ -788,7 +784,7 @@ void Puzzles::pinball(int16 var) {
 			int32 jumpPositionLeft = 50 * ((leftSideFrame + 25) / 50);
 			int32 jumpPositionRight = 50 * ((rightSideFrame + 25) / 50);
 
-			const BallJump *jump = 0;
+			const BallJump *jump = nullptr;
 
 			for (uint i = 0; i < ARRAYSIZE(jumps); i++) {
 				int32 filter = jumps[i].filter;
@@ -983,7 +979,7 @@ void Puzzles::pinball(int16 var) {
 }
 
 const Puzzles::PegCombination *Puzzles::_pinballFindCombination(uint16 var, const PegCombination pegs[], uint16 size) {
-	const PegCombination *combination = 0;
+	const PegCombination *combination = nullptr;
 
 	for (uint i = 0; i < size; i++) {
 		bool good = true;
@@ -1152,9 +1148,7 @@ void Puzzles::journalSaavedro(int16 move) {
 			leftBitmap->create(bitmap->w / 2, bitmap->h, Texture::getRGBAPixelFormat());
 
 			for (int i = 0; i < bitmap->h; i++) {
-				memcpy(leftBitmap->getBasePtr(0, i),
-						bitmap->getBasePtr(0, i),
-						leftBitmap->w * 4);
+				memcpy(leftBitmap->getBasePtr(0, i), bitmap->getBasePtr(0, i), leftBitmap->w * 4);
 			}
 
 			bitmap->free();
@@ -1289,7 +1283,7 @@ void Puzzles::symbolCodesInit(uint16 var, uint16 posX, uint16 posY) {
 
 	uint16 node = _vm->_state->getLocationNode();
 
-	const CodeData *code = 0;
+	const CodeData *code = nullptr;
 	for (uint i = 0; i < ARRAYSIZE(codes); i++)
 		if (codes[i].node == node) {
 			code = &codes[i];
@@ -1407,7 +1401,7 @@ void Puzzles::railRoadSwitchs() {
 		endFrame = 12;
 		break;
 	default:
-		error("Bad railroad switchs start value %d", startFrame);
+		error("Bad railroad switches start value %d", startFrame);
 		return;
 	}
 
@@ -1519,7 +1513,7 @@ static void copySurfaceRect(Graphics::Surface *dest, const Common::Point &destPo
 }
 
 void Puzzles::projectorLoadBitmap(uint16 bitmap) {
-	assert(_vm->_projectorBackground == 0 && "Previous background not yet used.");
+	assert(_vm->_projectorBackground == nullptr && "Previous background not yet used.");
 
 	// This surface is freed by the destructor of the movie that uses it
 	_vm->_projectorBackground = new Graphics::Surface();
@@ -1533,8 +1527,8 @@ void Puzzles::projectorLoadBitmap(uint16 bitmap) {
 	// Rebuild the complete background image from the frames of the bink movie
 	Common::SeekableReadStream *movieStream = movieDesc.getData();
 	Video::BinkDecoder bink;
-	bink.setDefaultHighColorFormat(Texture::getRGBAPixelFormat());
 	bink.loadStream(movieStream);
+	bink.setOutputPixelFormat(Texture::getRGBAPixelFormat());
 	bink.start();
 
 	for (uint i = 0; i < 1024; i += 256) {
@@ -1546,7 +1540,7 @@ void Puzzles::projectorLoadBitmap(uint16 bitmap) {
 }
 
 void Puzzles::projectorAddSpotItem(uint16 bitmap, uint16 x, uint16 y) {
-	assert(_vm->_projectorBackground != 0 && "Projector background already used.");
+	assert(_vm->_projectorBackground != nullptr && "Projector background already used.");
 
 	// Nothing to do if the spotitem is not enabled
 	if (!_vm->_state->getVar(26))
@@ -1560,8 +1554,8 @@ void Puzzles::projectorAddSpotItem(uint16 bitmap, uint16 x, uint16 y) {
 	// Rebuild the complete background image from the frames of the bink movie
 	Common::SeekableReadStream *movieStream = movieDesc.getData();
 	Video::BinkDecoder bink;
-	bink.setDefaultHighColorFormat(Texture::getRGBAPixelFormat());
 	bink.loadStream(movieStream);
+	bink.setOutputPixelFormat(Texture::getRGBAPixelFormat());
 	bink.start();
 
 	const Graphics::Surface *frame = bink.decodeNextFrame();

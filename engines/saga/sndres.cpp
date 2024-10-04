@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,24 +47,24 @@ namespace Saga {
 #define RID_IHNM_SFX_LUT 265
 #define RID_IHNMDEMO_SFX_LUT 222
 
-SndRes::SndRes(SagaEngine *vm) : _vm(vm), _sfxContext(NULL), _voiceContext(NULL), _voiceSerial(-1) {
+SndRes::SndRes(SagaEngine *vm) : _vm(vm), _sfxContext(nullptr), _voiceContext(nullptr), _voiceSerial(-1) {
 
 	// Load sound module resource file contexts
 	_sfxContext = _vm->_resource->getContext(GAME_SOUNDFILE);
-	if (_sfxContext == NULL) {
-		error("SndRes::SndRes resource context not found");
+	if (_sfxContext == nullptr) {
+		warning("SndRes::SndRes resource context not found");
 	}
 
 	setVoiceBank(0);
 
-	if (_vm->getGameId() == GID_ITE) {
+	if (_vm->getGameId() == GID_ITE && _sfxContext) {
 		_fxTable.resize(ITE_SFXCOUNT);
 		for (uint i = 0; i < _fxTable.size(); i++) {
 			_fxTable[i].res = ITE_SfxTable[i].res;
 			_fxTable[i].vol = ITE_SfxTable[i].vol;
 		}
 #ifdef ENABLE_IHNM
-	} else if (_vm->getGameId() == GID_IHNM) {
+	} else if (_vm->getGameId() == GID_IHNM && _sfxContext) {
 		ResourceContext *resourceContext;
 
 		resourceContext = _vm->_resource->getContext(GAME_SOUNDFILE);
@@ -105,7 +104,6 @@ SndRes::~SndRes() {
 }
 
 void SndRes::setVoiceBank(int serial) {
-	Common::File *file;
 	if (_voiceSerial == serial)
 		return;
 
@@ -125,11 +123,8 @@ void SndRes::setVoiceBank(int serial) {
 		return;
 
 	// Close previous voice bank file
-	if (_voiceContext != NULL) {
-		file = _voiceContext->getFile(NULL);
-		if (file->isOpen()) {
-			file->close();
-		}
+	if (_voiceContext != nullptr) {
+		_voiceContext->closeFile();
 	}
 
 	_voiceSerial = serial;
@@ -141,6 +136,12 @@ void SndRes::playSound(uint32 resourceId, int volume, bool loop) {
 	SoundBuffer buffer;
 
 	debug(4, "SndRes::playSound %i", resourceId);
+
+	if (_sfxContext == nullptr)
+		return;
+
+	if (!_sfxContext->validResourceId(resourceId))
+		return;
 
 	if (!load(_sfxContext, resourceId, buffer, false)) {
 		warning("Failed to load sound");
@@ -194,7 +195,10 @@ bool SndRes::load(ResourceContext *context, uint32 resourceId, SoundBuffer &buff
 	bool result = false;
 	GameSoundType resourceType = kSoundPCM;
 	int rate = 0, size = 0;
-	Common::File *file;
+	Common::SeekableReadStream *file;
+
+	if (context == nullptr)
+		return false;
 
 	if (resourceId == (uint32)-1) {
 		return false;
@@ -208,18 +212,19 @@ bool SndRes::load(ResourceContext *context, uint32 resourceId, SoundBuffer &buff
 
 		if ((context->fileType() & GAME_VOICEFILE) != 0) {
 			if (_voiceSerial == 0) {
-				sprintf(soundFileName, "Voices/VoicesS/Voices%d/VoicesS%03x", dirIndex, resourceId);
+				Common::sprintf_s(soundFileName, "Voices/VoicesS/Voices%d/VoicesS%03x", dirIndex, resourceId);
 			} else {
-				sprintf(soundFileName, "Voices/Voices%d/Voices%d/Voices%d%03x", _voiceSerial, dirIndex, _voiceSerial, resourceId);
+				Common::sprintf_s(soundFileName, "Voices/Voices%d/Voices%d/Voices%d%03x", _voiceSerial, dirIndex, _voiceSerial, resourceId);
 			}
 		} else {
-			sprintf(soundFileName, "SFX/SFX%d/SFX%03x", dirIndex, resourceId);
+			Common::sprintf_s(soundFileName, "SFX/SFX%d/SFX%03x", dirIndex, resourceId);
 		}
 
-		file = new Common::File();
+		Common::File *actualFile = new Common::File();
 
-		file->open(soundFileName);
-		soundResourceLength = file->size();
+		actualFile->open(soundFileName);
+		soundResourceLength = actualFile->size();
+		file = actualFile;
 	} else
 #endif
 	{
@@ -249,7 +254,7 @@ bool SndRes::load(ResourceContext *context, uint32 resourceId, SoundBuffer &buff
 
 		// If patch data exists for sound resource 4 (used in ITE intro), don't treat this sound as compressed
 		// Patch data for this resource is in file p2_a.iaf or p2_a.voc
-		if (_vm->getGameId() == GID_ITE && resourceId == 4 && context->getResourceData(resourceId)->patchData != NULL)
+		if (_vm->getGameId() == GID_ITE && resourceId == 4 && context->getResourceData(resourceId)->patchData != nullptr)
 			uncompressedSound = true;
 
 		// FIXME: Currently, the SFX.RES file in IHNM cannot be compressed
@@ -285,7 +290,7 @@ bool SndRes::load(ResourceContext *context, uint32 resourceId, SoundBuffer &buff
 		}
 	}
 
-	buffer.stream = 0;
+	buffer.stream = nullptr;
 
 	// Check for LE sounds
 	if (!context->isBigEndian())
@@ -301,7 +306,8 @@ bool SndRes::load(ResourceContext *context, uint32 resourceId, SoundBuffer &buff
 		if ((soundResourceLength & 1) && (rawFlags & Audio::FLAG_16BITS))
 			soundResourceLength &= ~1;
 
-		Audio::SeekableAudioStream *audStream = Audio::makeRawStream(READ_STREAM(soundResourceLength), 22050, rawFlags);
+		Audio::SeekableAudioStream *audStream = Audio::makeRawStream(READ_STREAM(soundResourceLength),
+									     _vm->getPlatform() == Common::Platform::kPlatformAmiga ? 11025 : 22050, rawFlags);
 		buffer.stream = audStream;
 		buffer.streamLength = audStream->getLength();
 		result = true;
@@ -409,7 +415,7 @@ bool SndRes::load(ResourceContext *context, uint32 resourceId, SoundBuffer &buff
 	case kSoundFLAC: {
 		readS.skip(9); // skip sfx header
 
-		Audio::SeekableAudioStream *audStream = 0;
+		Audio::SeekableAudioStream *audStream = nullptr;
 		Common::SeekableReadStream *memStream = READ_STREAM(soundResourceLength - 9);
 
 		if (resourceType == kSoundMP3) {
@@ -445,7 +451,7 @@ bool SndRes::load(ResourceContext *context, uint32 resourceId, SoundBuffer &buff
 
 	if (onlyHeader) {
 		delete buffer.stream;
-		buffer.stream = 0;
+		buffer.stream = nullptr;
 	}
 
 	return result;

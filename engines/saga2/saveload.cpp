@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -38,6 +37,7 @@
 #include "saga2/mission.h"
 #include "saga2/tilemode.h"
 #include "saga2/magic.h"
+#include "saga2/display.h"
 #include "saga2/intrface.h"
 #include "saga2/vpal.h"
 #include "saga2/palette.h"
@@ -49,13 +49,12 @@ namespace Saga2 {
 void updateMainDisplay();
 void fadeUp();
 void fadeDown();
-void enablePaletteChanges();
 
 const ChunkID   gameID = MKTAG('F', 'T', 'A', '2');
 
 void SaveFileHeader::read(Common::InSaveFile *in) {
 	char fileName[SaveFileHeader::kSaveNameSize];
-	gameID = in->readUint32BE();;
+	gameID = in->readUint32BE();
 	in->read(fileName, SaveFileHeader::kSaveNameSize);
 	saveName = fileName;
 }
@@ -79,7 +78,7 @@ void SaveFileHeader::write(Common::OutSaveFile *out) {
 //	The following resources are included in the save file
 //		GLOB -  miscellaneous globals
 //		TIME -  game timer
-//		CALE -  game calender
+//		CALE -  game calendar
 //		WRLD -  worlds
 //		ACTR -  actors
 //		OBJS -  objects
@@ -115,7 +114,7 @@ void initGameState() {
 	pauseTimer();
 
 	initGlobals();
-	initCalender();
+	initCalendar();
 	initWorlds();
 	initActors();
 	initObjects();
@@ -160,7 +159,7 @@ void saveGame(Common::OutSaveFile *out, Common::String saveName) {
 
 	saveGlobals(out);
 	saveTimer(out);
-	saveCalender(out);
+	saveCalendar(out);
 	saveWorlds(out);
 	saveActors(out);
 	saveObjects(out);
@@ -229,7 +228,7 @@ void loadSavedGameState(int16 saveNo) {
 	enum {
 		loadGlobalsFlag             = (1 << 0),
 		loadTimerFlag               = (1 << 1),
-		loadCalenderFlag            = (1 << 2),
+		loadCalendarFlag            = (1 << 2),
 		loadWorldsFlag              = (1 << 3),
 		loadActorsFlag              = (1 << 4),
 		loadObjectsFlag             = (1 << 5),
@@ -283,8 +282,8 @@ void loadSavedGameState(int16 saveNo) {
 			break;
 
 		case MKTAG('C', 'A', 'L', 'E'):
-			loadCalender(in);
-			loadFlags |= loadCalenderFlag;
+			loadCalendar(in);
+			loadFlags |= loadCalendarFlag;
 			break;
 
 		case MKTAG('W', 'R', 'L', 'D'):
@@ -473,8 +472,8 @@ void loadSavedGameState(int16 saveNo) {
 	if (!(loadFlags & loadTimerFlag))
 		error("Timer not loaded");
 
-	if (!(loadFlags & loadCalenderFlag))
-		error("Game calender not loaded");
+	if (!(loadFlags & loadCalendarFlag))
+		error("Game calendar not loaded");
 
 	if (!(loadFlags & loadWorldsFlag))
 		error("Worlds not loaded");
@@ -521,7 +520,7 @@ void loadGame(int16 saveNo) {
 	cleanupGameState();
 	fadeDown();
 	loadSavedGameState(saveNo);
-	if (GameMode::newmodeFlag)
+	if (GameMode::_newmodeFlag)
 		GameMode::update();
 	updateActiveRegions();
 	enableUserControls();

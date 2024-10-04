@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -80,6 +79,8 @@ AnimationType::AnimationType(Animation *anim) {
 	_fgBubbleCol = kColorWhite;
 	_bgBubbleCol = kColorBlack;
 	_id = 177;
+	_oldX[0] = _oldX[1] = 0;
+	_oldY[0] = _oldY[1] = 0;
 }
 
 /**
@@ -92,9 +93,9 @@ void AnimationType::init(byte spritenum, bool doCheck) {
 		return; // Already running!
 
 	Common::File inf;
-	Common::String filename = Common::String::format("sprite%d.avd", spritenum);
+	Common::Path filename(Common::String::format("sprite%d.avd", spritenum));
 	if (!inf.open(filename))
-		error("AVALANCHE: Trip: File not found: %s", filename.c_str());
+		error("AVALANCHE: Trip: File not found: %s", filename.toString(Common::Path::kNativeSeparator).c_str());
 
 	inf.seek(177);
 
@@ -231,7 +232,7 @@ void AnimationType::walk() {
 		}
 
 		byte magicColor = _anim->checkFeet(_x, _x + _xLength, _oldY[_anim->_vm->_cp], _y, _yLength) - 1;
-		// -1  is because the modified array indexes of magics[] compared to Pascal .
+		// -1  is because the modified array indices of magics[] compared to Pascal.
 
 		if ((magicColor != 255) & !_anim->_vm->_doingSpriteRun) {
 			MagicType *magic = &_anim->_vm->_magics[magicColor];
@@ -1054,7 +1055,7 @@ void Animation::faceAvvy(byte tripnum) {
 
 void Animation::arrowProcs(byte tripnum) {
 	AnimationType *tripSpr = _sprites[tripnum];
-	AnimationType *avvy = _sprites[tripnum];
+	AnimationType *avvy = _sprites[0];
 
 	if (tripSpr->_homing) {
 		// Arrow is still in flight.

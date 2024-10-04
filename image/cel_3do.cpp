@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -109,8 +108,10 @@ bool Cel3DODecoder::loadStream(Common::SeekableReadStream &stream) {
 	}
 
 	// Only RGB555 is supported
-	if ((pre0 & 0x17) != 0x16)
+	if ((pre0 & 0x17) != 0x16) {
+		delete surface;
 		return false;
+	}
 
 	if(!(flags & kCCBPacked)) {
 		// RAW
@@ -131,18 +132,18 @@ bool Cel3DODecoder::loadStream(Common::SeekableReadStream &stream) {
 					stopLine = true;
 					break;
 				case 1: // copy
-					for (uint i = 0; i <= (lead & 0x3f) && linerem > 0 && linecomprem > 0;
+					for (uint i = 0; i <= (lead & 0x3fu) && linerem > 0 && linecomprem > 0;
 					     i++, linerem--, linecomprem -= 2)
 						*dst++ = stream.readUint16BE();
 					break;
 				case 2: // black
-					for (uint i = 0; i <= (lead & 0x3f) && linerem > 0; i++, linerem--)
+					for (uint i = 0; i <= (lead & 0x3fu) && linerem > 0; i++, linerem--)
 						*dst++ = 0;
 					break;
 				case 3: { // RLE multiply
 					uint16 rleval = stream.readUint16BE();
 					linecomprem -= 2;
-					for (uint i = 0; i <= (lead & 0x3f) && linerem > 0; i++, linerem--)
+					for (uint i = 0; i <= (lead & 0x3fu) && linerem > 0; i++, linerem--)
 						*dst++ = rleval;
 					break;
 				}

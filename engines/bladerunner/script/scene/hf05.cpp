@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -487,6 +486,7 @@ void SceneScriptHF05::dialogueWithCrazylegs1() {
 		}
 		Actor_Says(kActorCrazylegs, 510, kAnimationModeTalk);
 		if (_vm->_cutContent) {
+			// TODO ASDF Test animation
 			Actor_Says(kActorCrazylegs, 520, kAnimationModeTalk);
 		}
 		Actor_Says(kActorMcCoy, 1920, 23);
@@ -623,7 +623,19 @@ void SceneScriptHF05::dialogueWithCrazylegs2() { // Restored feature - Original:
 	if (answer == 1250) { // ARREST
 		Actor_Says(kActorMcCoy, 1955, 17);
 		Actor_Says(kActorMcCoy, 1960, 23);
-		Item_Pickup_Spin_Effect(kModelAnimationSpinnerKeys, 315, 327);
+		if (_vm->_cutContent) {
+			// This extra check is required to fix a problematic saved game where
+			// the clue kClueGrigoriansResources was acquired in Vanilla Mode,
+			// due to a bug that affected ScummVM 2.5.0, 2.5.1 and 2.6.0.
+			// This bug only occurs if the game's data files contain
+			// separate CDFRAMESx.DAT files instead of a single HDFRAMES.DAT file.
+			// In Vanilla Mode the currently loaded CDFRAMES files
+			// is missing an animation (Bug #13727).
+			// In Restored Content mode we load all animation files
+			// so the bug, expectedly, does not manifest there.
+			// The animation for the keys item is the culprit.
+			Item_Pickup_Spin_Effect(kModelAnimationSpinnerKeys, 315, 327);
+		}
 		Delay(2000);
 		Actor_Says(kActorMcCoy, 1980, 23);
 		Actor_Says(kActorMcCoy, 1985, kAnimationModeTalk);

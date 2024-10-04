@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -126,7 +125,7 @@ bool AIScriptSteele::Update() {
 		break;
 
 	case 3:
-		if (Global_Variable_Query(kVariableChapter) != 3) { // why is this here? double check?
+		if (Global_Variable_Query(kVariableChapter) != 3) { // TODO A BUG? why is this here? double check? redundant?
 			break;
 		}
 
@@ -1292,6 +1291,9 @@ bool AIScriptSteele::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 		Actor_Says(kActorSteele, 850, 16);
 		Actor_Says(kActorDispatcher, 0, kAnimationModeTalk);
 		Actor_Says(kActorDispatcher, 10, kAnimationModeTalk);
+		if (_vm->_cutContent) {
+			Actor_Says(kActorDispatcher, 20, kAnimationModeTalk);
+		}
 		Actor_Face_Actor(kActorMcCoy, kActorSteele, true);
 		Actor_Says(kActorMcCoy, 2980, 12);
 		Actor_Says(kActorSteele, 860, 14);
@@ -2006,6 +2008,7 @@ bool AIScriptSteele::UpdateAnimation(int *animation, int *frame) {
 		// Dummy placeholder, kModelAnimationZubenIdle (406) is a Zuben animation
 		*animation = kModelAnimationZubenIdle;
 		_animationFrame = 0;
+		debugC(6, kDebugAnimation, "AIScriptSteele::UpdateAnimation() - Current _animationState (%d) is placeholder", _animationState);
 		break;
 	}
 	*frame = _animationFrame;

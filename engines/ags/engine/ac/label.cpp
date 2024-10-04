@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,8 @@
 
 namespace AGS3 {
 
+using namespace AGS::Shared;
+
 // ** LABEL FUNCTIONS
 
 const char *Label_GetText_New(GUILabel *labl) {
@@ -40,7 +41,7 @@ const char *Label_GetText_New(GUILabel *labl) {
 }
 
 void Label_GetText(GUILabel *labl, char *buffer) {
-	strcpy(buffer, labl->GetText().GetCStr());
+	snprintf(buffer, MAX_MAXSTRLEN, "%s", labl->GetText().GetCStr());
 }
 
 void Label_SetText(GUILabel *labl, const char *newtx) {
@@ -52,13 +53,21 @@ void Label_SetText(GUILabel *labl, const char *newtx) {
 }
 
 int Label_GetTextAlignment(GUILabel *labl) {
-	return labl->TextAlignment;
+	return (_G(loaded_game_file_version) >= kGameVersion_350) ?
+		(int)labl->TextAlignment :
+		(int)GetLegacyGUIAlignment(labl->TextAlignment);
 }
 
 void Label_SetTextAlignment(GUILabel *labl, int align) {
-	if (labl->TextAlignment != align) {
-		labl->TextAlignment = (HorAlignment)align;
-		labl->NotifyParentChanged();
+	// NOTE: some custom engines supported Label.TextAlignment
+	// before 3.5.0 got this added officially
+	HorAlignment use_align =
+		(_G(loaded_game_file_version) >= kGameVersion_350) ?
+		(HorAlignment)align :
+		ConvertLegacyGUIAlignment((LegacyGUIAlignment)align);
+	if (labl->TextAlignment != use_align) {
+		labl->TextAlignment = use_align;
+		labl->MarkChanged();
 	}
 }
 
@@ -69,7 +78,7 @@ int Label_GetColor(GUILabel *labl) {
 void Label_SetColor(GUILabel *labl, int colr) {
 	if (labl->TextColor != colr) {
 		labl->TextColor = colr;
-		labl->NotifyParentChanged();
+		labl->MarkChanged();
 	}
 }
 
@@ -83,7 +92,7 @@ void Label_SetFont(GUILabel *guil, int fontnum) {
 
 	if (fontnum != guil->Font) {
 		guil->Font = fontnum;
-		guil->NotifyParentChanged();
+		guil->MarkChanged();
 	}
 }
 

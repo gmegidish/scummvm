@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -232,7 +231,7 @@ void Room::mudd3Tick1() {
 	if (!_awayMission->mudd.muddVisitedDatabaseRoom && _awayMission->mudd.translatedAlienLanguage && !_awayMission->mudd.muddUnavailable) {
 		_awayMission->mudd.muddVisitedDatabaseRoom = true;
 		loadActorAnim(OBJECT_MUDD, "s4lbhs", 0xa2, 0x9f);
-		playMidiMusicTracks(3);
+		playMidiMusicTracks(MIDITRACK_3);
 		_awayMission->mudd.muddInDatabaseRoom = true;
 		_awayMission->timers[2] = 10;
 	}
@@ -451,7 +450,7 @@ void Room::mudd3Timer2Expired() {
 		showText(TX_SPEAKER_MUDD, TX_MUD3_064);
 		_awayMission->timers[4] = 98;
 		_awayMission->disableInput = 2;
-		playMidiMusicTracks(26);
+		playMidiMusicTracks(MIDITRACK_26);
 		loadActorAnim(OBJECT_MUDD, "s4lbhb", 0xa2, 0x9f);
 	}
 }

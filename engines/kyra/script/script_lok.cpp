@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -402,7 +401,7 @@ int KyraEngine_LoK::o1_openWSAFile(EMCState *script) {
 	const char *filename = stackPosString(0);
 	int wsaIndex = stackPos(1);
 
-	_movieObjects[wsaIndex]->open(filename, (stackPos(3) != 0) ? 1 : 0, 0);
+	_movieObjects[wsaIndex]->open(filename, (stackPos(3) != 0) ? 1 : 0, nullptr);
 	assert(_movieObjects[wsaIndex]->opened());
 
 	return 0;
@@ -435,7 +434,7 @@ int KyraEngine_LoK::o1_runWSAFromBeginningToEnd(EMCState *script) {
 	while (running) {
 		const uint32 continueTime = waitTime * _tickLength + _system->getMillis();
 
-		_movieObjects[wsaIndex]->displayFrame(wsaFrame++, 0, xpos, ypos, 0, 0, 0);
+		_movieObjects[wsaIndex]->displayFrame(wsaFrame++, 0, xpos, ypos, 0, nullptr, nullptr);
 		if (wsaFrame >= _movieObjects[wsaIndex]->frames())
 			running = false;
 
@@ -456,7 +455,7 @@ int KyraEngine_LoK::o1_displayWSAFrame(EMCState *script) {
 	int wsaIndex = stackPos(4);
 	_screen->hideMouse();
 	const uint32 continueTime = waitTime * _tickLength + _system->getMillis();
-	_movieObjects[wsaIndex]->displayFrame(frame, 0, xpos, ypos, 0, 0, 0);
+	_movieObjects[wsaIndex]->displayFrame(frame, 0, xpos, ypos, 0, nullptr, nullptr);
 	delayUntil(continueTime, false, true);
 	_screen->showMouse();
 	return 0;
@@ -488,7 +487,7 @@ int KyraEngine_LoK::o1_runWSAFrames(EMCState *script) {
 	_screen->hideMouse();
 	for (; startFrame <= endFrame; ++startFrame) {
 		const uint32 nextRun = _system->getMillis() + delayTime * _tickLength;
-		_movieObjects[wsaIndex]->displayFrame(startFrame, 0, xpos, ypos, 0, 0, 0);
+		_movieObjects[wsaIndex]->displayFrame(startFrame, 0, xpos, ypos, 0, nullptr, nullptr);
 		delayUntil(nextRun, false, true);
 	}
 	_screen->showMouse();
@@ -544,6 +543,8 @@ int KyraEngine_LoK::o1_popBrandonIntoScene(EMCState *script) {
 	return 0;
 }
 
+bool workaround_removeTextfield = false;
+
 int KyraEngine_LoK::o1_restoreAllObjectBackgrounds(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_LoK::o1_restoreAllObjectBackgrounds(%p) (%d)", (const void *)script, stackPos(0));
 	int disable = stackPos(0);
@@ -552,6 +553,13 @@ int KyraEngine_LoK::o1_restoreAllObjectBackgrounds(EMCState *script) {
 		activeBackup = _animator->actors()->active;
 		_animator->actors()->active = 0;
 	}
+
+	// WORKAROUND: See o1_customPrintTalkString() for more info.
+	if (workaround_removeTextfield) {
+		_text->restoreTalkTextMessageBkgd(2, 0);
+		workaround_removeTextfield = false;
+	}
+
 	_animator->restoreAllObjectBackgrounds();
 	if (disable)
 		_animator->actors()->active = activeBackup;
@@ -593,8 +601,14 @@ int KyraEngine_LoK::o1_customPrintTalkString(EMCState *script) {
 		}
 
 		resetSkipFlag();
-		if (textEnabled())
+		if (textEnabled()) {
+			// WORKAROUND: This string appears only in the talkie versions. The engine would need to remove it via
+			// o1_restoreCustomPrintBackground(), but it doesn't happen. Most of the text gets cleared when the
+			// animation background is restored, but not all of it. We just set a notification to have it cleared manually...
+			if (!strcmp(stackPosString(1), "AARGH!"))
+				workaround_removeTextfield = true;
 			_text->printTalkTextMessage(stackPosString(1), stackPos(2), stackPos(3), stackPos(4) & 0xFF, 0, 2);
+		}
 	} else {
 		debugC(3, kDebugLevelScriptFuncs, "KyraEngine_LoK::o1_customPrintTalkString(%p) ('%s', %d, %d, %d)", (const void *)script, stackPosString(0), stackPos(1), stackPos(2), stackPos(3) & 0xFF);
 		resetSkipFlag();
@@ -675,7 +689,7 @@ int KyraEngine_LoK::o1_displayWSAFrameOnHidPage(EMCState *script) {
 
 	_screen->hideMouse();
 	const uint32 continueTime = waitTime * _tickLength + _system->getMillis();
-	_movieObjects[wsaIndex]->displayFrame(frame, 2, xpos, ypos, 0, 0, 0);
+	_movieObjects[wsaIndex]->displayFrame(frame, 2, xpos, ypos, 0, nullptr, nullptr);
 	delayUntil(continueTime, false, true);
 	_screen->showMouse();
 
@@ -740,7 +754,7 @@ int KyraEngine_LoK::o1_displayWSASequentialFrames(EMCState *script) {
 	// does not use the specified paramaeters like these, it is safe to enable
 	// it for all versions.
 	if (startFrame == 18 && endFrame == 18 && waitTime == 10 && wsaIndex == 0 && _currentRoom == 45) {
-		_movieObjects[wsaIndex]->displayFrame(18, 0, xpos, ypos, 0, 0, 0);
+		_movieObjects[wsaIndex]->displayFrame(18, 0, xpos, ypos, 0, nullptr, nullptr);
 		// We call delayMillis manually here to avoid the screen getting
 		// updated.
 		_system->delayMillis(waitTime * _tickLength);
@@ -754,7 +768,7 @@ int KyraEngine_LoK::o1_displayWSASequentialFrames(EMCState *script) {
 			int frame = startFrame;
 			while (endFrame >= frame) {
 				const uint32 continueTime = waitTime * _tickLength + _system->getMillis();
-				_movieObjects[wsaIndex]->displayFrame(frame, 0, xpos, ypos, 0, 0, 0);
+				_movieObjects[wsaIndex]->displayFrame(frame, 0, xpos, ypos, 0, nullptr, nullptr);
 				delayUntil(continueTime, false, true);
 				++frame;
 			}
@@ -762,7 +776,7 @@ int KyraEngine_LoK::o1_displayWSASequentialFrames(EMCState *script) {
 			int frame = startFrame;
 			while (endFrame <= frame) {
 				const uint32 continueTime = waitTime * _tickLength + _system->getMillis();
-				_movieObjects[wsaIndex]->displayFrame(frame, 0, xpos, ypos, 0, 0, 0);
+				_movieObjects[wsaIndex]->displayFrame(frame, 0, xpos, ypos, 0, nullptr, nullptr);
 				delayUntil(continueTime, false, true);
 				--frame;
 			}
@@ -1014,7 +1028,7 @@ int KyraEngine_LoK::o1_walkCharacterToPoint(EMCState *script) {
 		if (forceContinue || !running)
 			continue;
 
-		setCharacterPosition(character, 0);
+		setCharacterPosition(character, nullptr);
 		++curPos;
 
 		delayUntil(nextFrame = _timer->getDelay(5 + character) * _tickLength + _system->getMillis(), true, true);
@@ -1029,22 +1043,30 @@ int KyraEngine_LoK::o1_specialEventDisplayBrynnsNote(EMCState *script) {
 	_screen->savePageToDisk("SEENPAGE.TMP", 0);
 	if (_flags.isTalkie) {
 		if (_flags.lang == Common::EN_ANY || _flags.lang == Common::IT_ITA)
-			_screen->loadBitmap("NOTEENG.CPS", 3, 3, 0);
+			_screen->loadBitmap("NOTEENG.CPS", 3, 3, nullptr);
 		else if (_flags.lang == Common::FR_FRA)
-			_screen->loadBitmap("NOTEFRE.CPS", 3, 3, 0);
+			_screen->loadBitmap("NOTEFRE.CPS", 3, 3, nullptr);
 		else if (_flags.lang == Common::DE_DEU)
-			_screen->loadBitmap("NOTEGER.CPS", 3, 3, 0);
+			_screen->loadBitmap("NOTEGER.CPS", 3, 3, nullptr);
 		else if (_flags.lang == Common::RU_RUS)
-			_screen->loadBitmap("NOTEENG.CPS", 3, 3, 0);
+			_screen->loadBitmap("NOTEENG.CPS", 3, 3, nullptr);
 	} else {
-		_screen->loadBitmap("NOTE.CPS", 3, 3, 0);
+		if (_flags.lang == Common::KO_KOR)
+			_screen->loadBitmap("HAN_NOTE.CPS", 3, 3, nullptr);
+		else
+			_screen->loadBitmap("NOTE.CPS", 3, 3, nullptr);
 	}
-	_screen->copyRegion(63, 8, 63, 8, 194, 128, 2, 0);
+
+	if (_flags.lang == Common::KO_KOR)
+		_screen->copyRegion(13, 1, 13, 1, 296, 156, 2, 0);
+	else
+		_screen->copyRegion(63, 8, 63, 8, 194, 128, 2, 0);
 	_screen->updateScreen();
 	_screen->showMouse();
 
-	if (_flags.platform != Common::kPlatformAmiga && !_flags.isTalkie && _flags.lang != Common::JA_JPN)
-		_screen->setFont(Screen::FID_6_FNT);
+	// For Amiga and DOS CD this is actually an irrelevant call, since the note text is part of the
+	// bitmap and the script function for printing the text on it will not be called in these versions.
+	_screen->setFont(_noteFont);
 	return 0;
 }
 
@@ -1056,8 +1078,7 @@ int KyraEngine_LoK::o1_specialEventRemoveBrynnsNote(EMCState *script) {
 	_screen->updateScreen();
 	_screen->showMouse();
 
-	if (_flags.platform != Common::kPlatformAmiga && !_flags.isTalkie && _flags.lang != Common::JA_JPN)
-		_screen->setFont(Screen::FID_8_FNT);
+	_screen->setFont(_defaultFont);
 	return 0;
 }
 
@@ -1137,10 +1158,10 @@ int KyraEngine_LoK::o1_findBrightestFireberry(EMCState *script) {
 	if (_currentCharacter->sceneId >= 187 && _currentCharacter->sceneId <= 198)
 		return 29;
 
-	// The following rooms are only a "A fireberry bush" scene in the CD version
-	// of Kyrandia 1. In all other versions they are a usual dark cave, thus we do only
-	// return a glow value of "29" over here, when we are running a CD version.
-	if (_flags.isTalkie) {
+	// The following rooms are only a "A fireberry bush" scene in the DOS CD, Macintosh and FM-Towns versions of
+	// Kyrandia 1. In the DOS floppy, PC-98 and Amiga versions they are a usual dark cave, thus we do only return
+	// a glow value of "29" here, when we are running a DOS CD, Macintosh or FM-Towns version.
+	if (_flags.isTalkie || (_flags.platform == Common::kPlatformMacintosh) || (_flags.platform == Common::kPlatformFMTowns)) {
 		if (_currentCharacter->sceneId == 133 || _currentCharacter->sceneId == 137 ||
 		        _currentCharacter->sceneId == 165 || _currentCharacter->sceneId == 173)
 			return 29;
@@ -1267,7 +1288,7 @@ int KyraEngine_LoK::o1_makeAmuletAppear(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_LoK::o1_makeAmuletAppear(%p) ()", (const void *)script);
 	Movie *amulet = createWSAMovie();
 	assert(amulet);
-	amulet->open("AMULET.WSA", 1, 0);
+	amulet->open("AMULET.WSA", 1, nullptr);
 
 	if (amulet->opened()) {
 		assert(_amuleteAnim);
@@ -1286,7 +1307,7 @@ int KyraEngine_LoK::o1_makeAmuletAppear(EMCState *script) {
 			if (code == 14)
 				snd_playSoundEffect(0x73);
 
-			amulet->displayFrame(code, 0, 224, 152, 0, 0, 0);
+			amulet->displayFrame(code, 0, 224, 152, 0, nullptr, nullptr);
 			delayUntil(nextTime, false, true);
 		}
 		_screen->showMouse();
@@ -1332,14 +1353,14 @@ int KyraEngine_LoK::o1_waitForConfirmationMouseClick(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_LoK::o1_waitForConfirmationMouseClick(%p) ()", (const void *)script);
 
 	_eventList.clear();
-	while (true) {
+	while (!shouldQuit()) {
 		updateMousePointer();
 		_sprites->updateSceneAnims();
 		_animator->updateAllObjectShapes();
 
 		updateInput();
 
-		int input = checkInput(0, false) & 0xFF;
+		int input = checkInput(nullptr, false) & 0xFF;
 		removeInputTop();
 		if (input == 200)
 			break;
@@ -1770,7 +1791,7 @@ typedef Common::Functor1Mem<EMCState *, int, KyraEngine_LoK> OpcodeV1;
 #define SetOpcodeTable(x) table = &x;
 #define Opcode(x) table->push_back(new OpcodeV1(this, &KyraEngine_LoK::x))
 void KyraEngine_LoK::setupOpcodeTable() {
-	Common::Array<const Opcode *> *table = 0;
+	Common::Array<const Opcode *> *table = nullptr;
 
 	_opcodes.reserve(157);
 	SetOpcodeTable(_opcodes);

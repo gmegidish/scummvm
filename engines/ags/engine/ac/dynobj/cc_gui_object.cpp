@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,31 +23,33 @@
 #include "ags/engine/ac/dynobj/script_gui.h"
 #include "ags/shared/gui/gui_main.h"
 #include "ags/shared/gui/gui_object.h"
+#include "ags/shared/util/stream.h"
 #include "ags/globals.h"
 
 namespace AGS3 {
 
-using AGS::Shared::GUIObject;
+using namespace AGS::Shared;
 
 // return the type name of the object
 const char *CCGUIObject::GetType() {
 	return "GUIObject";
 }
 
-// serialize the object into BUFFER (which is BUFSIZE bytes)
-// return number of bytes used
-int CCGUIObject::Serialize(const char *address, char *buffer, int bufsize) {
-	const GUIObject *guio = (const GUIObject *)address;
-	StartSerialize(buffer);
-	SerializeInt(guio->ParentId);
-	SerializeInt(guio->Id);
-	return EndSerialize();
+size_t CCGUIObject::CalcSerializeSize() {
+	return sizeof(int32_t) * 2;
 }
 
-void CCGUIObject::Unserialize(int index, const char *serializedData, int dataSize) {
-	StartUnserialize(serializedData, dataSize);
-	int guinum = UnserializeInt();
-	int objnum = UnserializeInt();
+// serialize the object into BUFFER (which is BUFSIZE bytes)
+// return number of bytes used
+void CCGUIObject::Serialize(const char *address, Stream *out) {
+	const GUIObject *guio = (const GUIObject *)address;
+	out->WriteInt32(guio->ParentId);
+	out->WriteInt32(guio->Id);
+}
+
+void CCGUIObject::Unserialize(int index, Stream *in, size_t data_sz) {
+	int guinum = in->ReadInt32();
+	int objnum = in->ReadInt32();
 	ccRegisterUnserializedObject(index, _GP(guis)[guinum].GetControl(objnum), this);
 }
 

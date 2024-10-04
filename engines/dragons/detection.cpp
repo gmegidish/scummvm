@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 
 static const PlainGameDescriptor dragonsGames[] = {
 		{ "dragons", "Blazing Dragons" },
-		{ 0, 0 }
+		{ nullptr, nullptr }
 };
 
 namespace Dragons {
@@ -35,7 +34,7 @@ static const DragonsGameDescription gameDescriptions[] = {
 	{
 			{
 					"dragons",
-					0,
+					nullptr,
 					AD_ENTRY1s("bigfile.dat", "02c26712bee57266f28235fdc0207725", 44990464),
 					Common::EN_USA,
 					Common::kPlatformPSX,
@@ -47,7 +46,7 @@ static const DragonsGameDescription gameDescriptions[] = {
 	{
 			{
 					"dragons",
-					0,
+					nullptr,
 					AD_ENTRY1s("bigfile.dat", "02c26712bee57266f28235fdc0207725", 44992512),
 					Common::EN_GRB,
 					Common::kPlatformPSX,
@@ -59,7 +58,7 @@ static const DragonsGameDescription gameDescriptions[] = {
 	{
 			{
 					"dragons",
-					0,
+					nullptr,
 					AD_ENTRY1s("bigfile.dat", "9854fed0d2b48522a62973e99b52a0be", 45099008),
 					Common::DE_DEU,
 					Common::kPlatformPSX,
@@ -71,7 +70,7 @@ static const DragonsGameDescription gameDescriptions[] = {
 	{
 			{
 					"dragons",
-					0,
+					nullptr,
 					AD_ENTRY1s("bigfile.dat", "9854fed0d2b48522a62973e99b52a0be", 45107200),
 					Common::FR_FRA,
 					Common::kPlatformPSX,
@@ -84,7 +83,7 @@ static const DragonsGameDescription gameDescriptions[] = {
 	{
 			{
 					"dragons",
-					0,
+					nullptr,
 					AD_ENTRY2s("bigfile.dat", "02c26712bee57266f28235fdc0207725", 44990464,
 							   "dtspeech.xa", "7f7ace860e5dd3696b51eace20215274", 182138880),
 					Common::RU_RUS,
@@ -100,7 +99,7 @@ static const DragonsGameDescription gameDescriptions[] = {
 	{
 			{
 					"dragons",
-					0,
+					nullptr,
 					AD_ENTRY1s("bigfile.dat", "92b938703611789e1a007d6dfac7ef7e", 51668736),
 					Common::EN_USA,
 					Common::kPlatformPSX,
@@ -117,25 +116,25 @@ static const DragonsGameDescription gameDescriptions[] = {
 
 static const char * const directoryGlobs[] = {
 	"resource",
-	0
+	nullptr
 };
 
-class DragonsMetaEngineDetection : public AdvancedMetaEngineDetection {
+class DragonsMetaEngineDetection : public AdvancedMetaEngineDetection<Dragons::DragonsGameDescription> {
 public:
-	DragonsMetaEngineDetection() : AdvancedMetaEngineDetection(Dragons::gameDescriptions, sizeof(Dragons::DragonsGameDescription), dragonsGames) {
+	DragonsMetaEngineDetection() : AdvancedMetaEngineDetection(Dragons::gameDescriptions, dragonsGames) {
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "dragons";
 	}
 
-	virtual const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Blazing Dragons";
 	}
 
-	virtual const char *getOriginalCopyright() const override {
+	const char *getOriginalCopyright() const override {
 		return "(C) 1996 The Illusions Gaming Company";
 	}
 };

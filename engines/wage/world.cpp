@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * MIT License:
  *
@@ -49,6 +48,7 @@
 #include "graphics/macgui/macwindowmanager.h"
 #include "graphics/macgui/macfontmanager.h"
 #include "graphics/macgui/macmenu.h"
+#include "graphics/fontman.h"
 
 #include "wage/wage.h"
 #include "wage/entities.h"
@@ -160,11 +160,11 @@ bool World::loadWorld(Common::MacResManager *resMan) {
 		res->skip(3);
 		_aboutMessage = res->readPascalString();
 
-		if (!scumm_stricmp(resMan->getBaseFileName().toString().c_str(), "Scepters"))
+		if (!scumm_stricmp(_name.c_str(), "Scepters"))
 			res->skip(1); // ????
 
-		_soundLibrary1 = res->readPascalString();
-		_soundLibrary2 = res->readPascalString();
+		_soundLibrary1 = Common::Path(res->readPascalString());
+		_soundLibrary2 = Common::Path(res->readPascalString());
 
 		delete res;
 	}
@@ -215,8 +215,14 @@ bool World::loadWorld(Common::MacResManager *resMan) {
 		if (res != NULL) {
 			scene->_textBounds = readRect(res);
 			int fontType = res->readUint16BE();
+			// WORKAROUND: Dune Eternity has a weird fontType ID so we override it to the correct one
+			if (_name == "***DUNE ETERNITY*** ")
+				fontType = 3;
+
 			int fontSize = res->readUint16BE();
-			scene->_font = new Graphics::MacFont(fontType, fontSize, Graphics::kMacFontRegular, Graphics::FontManager::kConsoleFont);
+			scene->_font = new Graphics::MacFont(fontType, fontSize, Graphics::kMacFontRegular);
+			const Graphics::Font *fallback = FontMan.getFontByUsage(Graphics::FontManager::kConsoleFont);
+			scene->_font->setFallback(fallback);
 
 			Common::String text;
 			while (res->pos() < res->size()) {
@@ -305,7 +311,33 @@ bool World::loadWorld(Common::MacResManager *resMan) {
 		/* Enchanted Scepters did not use the PAT# resource for the textures. */
 		res = resMan->getResource(MKTAG('C','O','D','E'), 1);
 		if (res != NULL) {
-			res->skip(0x55ac);
+			const char *magic = "\x92\x40\x15\x81\x20\x00\x4E\x75";
+
+			int cnt = 0;
+			bool found = false;
+
+			while (!res->eos()) {
+				byte b = res->readByte();
+
+				if (b == (byte)magic[cnt]) {
+					cnt++;
+
+					if (cnt == 8) {
+						found = true;
+						break;
+					}
+				} else {
+					cnt = 0;
+				}
+			}
+
+			if (!found)
+				error("World::loadWorld(): Could not find Enhanced Scepters' patterns");
+
+			res->skip(8); // Skip 8 more bytes
+
+			debug(3, "Loading 29 patterns for Enhanced Scepters at %" PRId64, res->pos());
+
 			for (int i = 0; i < 29; i++) {
 				byte *pattern = (byte *)malloc(8);
 
@@ -358,10 +390,10 @@ void World::addSound(Sound *sound) {
 	_orderedSounds.push_back(sound);
 }
 
-void World::loadExternalSounds(Common::String fname) {
+void World::loadExternalSounds(const Common::Path &fname) {
 	Common::MacResManager resMan;
 	if (!resMan.open(fname)) {
-		warning("Cannot load sound file <%s>", fname.c_str());
+		warning("Cannot load sound file <%s>", fname.toString().c_str());
 		return;
 	}
 
@@ -505,7 +537,7 @@ const char *World::getAboutMenuItemName() {
 	*menu = '\0';
 
 	if (_aboutMenuItemName.empty()) {
-		sprintf(menu, "About %s...", _name.c_str());
+		Common::sprintf_s(menu, "About %s...", _name.c_str());
 	} else { // Replace '@' with name
 		const char *str = _aboutMenuItemName.c_str();
 		const char *pos = strchr(str, '@');

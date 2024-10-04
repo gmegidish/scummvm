@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,32 +15,26 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/endian.h"
-#include "common/foreach.h"
 #include "common/savefile.h"
 #include "common/config-manager.h"
 
 #include "engines/grim/remastered/lua_remastered.h"
 #include "engines/grim/remastered/overlay.h"
 #include "engines/grim/remastered/hotspot.h"
-
 #include "engines/grim/grim.h"
 #include "engines/grim/font.h"
 #include "engines/grim/resource.h"
 #include "engines/grim/registry.h"
-
 #include "engines/grim/localize.h"
-
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/luadebug.h"
 
 namespace Grim {
-
 
 void Lua_Remastered::WidescreenCorrectionFactor() {
 	warning("Stub function: WidescreenCorrectionFactor, returns 1");
@@ -50,14 +44,14 @@ void Lua_Remastered::WidescreenCorrectionFactor() {
 void Lua_Remastered::GetFontDimensions() {
 	// Taken from Lua_v2 and modified
 	lua_Object fontObj = lua_getparam(1);
-	if (!lua_isuserdata(fontObj) || lua_tag(fontObj) != Font::getStaticTag())
+	if (!lua_isuserdata(fontObj))
 		return;
 
-	Font *font = Font::getPool().getObject(lua_getuserdata(fontObj));
+	Font *font = getfont(fontObj);
 
 	if (font) {
 		int32 h = font->getKernedHeight();
-		int32 w = font->getCharKernedWidth('w');
+		int32 w = font->getFontWidth();
 		lua_pushnumber(w);
 		lua_pushnumber(h);
 	} else {
@@ -182,7 +176,7 @@ void Lua_Remastered::QueryActiveHotspots() {
 	Math::Vector2d pos(g_grim->_cursorX*scaleX, g_grim->_cursorY*scaleY);
 	lua_Object result = lua_createtable();
 	int count = 0;
-	foreach (Hotspot *h, Hotspot::getPool()) {
+	for (Hotspot *h : Hotspot::getPool()) {
 		if (!h->_rect.containsPoint(pos)) {
 			continue;
 		}
@@ -213,7 +207,6 @@ void Lua_Remastered::QueryActiveHotspots() {
 		lua_pushobject(inner);
 		lua_settable();
 	}
-
 
 	lua_pushobject(result);
 }
@@ -400,7 +393,7 @@ void Lua_Remastered::AddHotspot() {
 	assert(lua_isnumber(param5));
 	assert(lua_isnumber(param6));
 	assert(lua_isnumber(param7));
-//	assert(lua_isnumber(param8));
+	//assert(lua_isnumber(param8));
 	assert(lua_isnumber(param11));
 
 	const char *p9str = "nil";
@@ -462,7 +455,6 @@ void Lua_Remastered::FindSaveGames() {
 					filename, savedState->saveMajorVersion(), savedState->saveMinorVersion(),
 					SaveGame::SAVEGAME_MAJOR_VERSION, SaveGame::SAVEGAME_MINOR_VERSION);
 			}
-			delete savedState;
 			return;
 		}
 		int slot = atoi((*it).c_str() + 6);
@@ -528,7 +520,7 @@ void Lua_Remastered::FindSaveGames() {
 
 void Lua_Remastered::Load() {
 	lua_Object fileName = lua_getparam(1);
-//	lua_Object param2 = lua_getparam(2);
+	//lua_Object param2 = lua_getparam(2);
 
 	if (lua_isnil(fileName)) {
 		g_grim->loadGame("");
@@ -619,7 +611,6 @@ STUB_FUNC(Lua_Remastered::StartCheckOfCrossSaveStatus)
 STUB_FUNC(Lua_Remastered::GetCrossSaveStatus)
 STUB_FUNC(Lua_Remastered::GetFloorWalkPos)
 STUB_FUNC(Lua_Remastered::CursorMovieEnabled)
-
 
 struct luaL_reg remasteredMainOpcodes[] = {
 	{ "GetPlatform", LUA_OPCODE(Lua_Remastered, GetPlatform) },

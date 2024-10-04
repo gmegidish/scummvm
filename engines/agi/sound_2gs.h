@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -149,30 +148,27 @@ public:
 
 class IIgsMidi : public AgiSound {
 public:
-	IIgsMidi(uint8 *data, uint32 len, int resnum);
-	~IIgsMidi() override { if (_data != NULL) free(_data); }
-	uint16 type() override { return _type; }
+	IIgsMidi(byte resourceNr, byte *data, uint32 length, uint16 type);
 	virtual const uint8 *getPtr() { return _ptr; }
 	virtual void setPtr(const uint8 *ptr) { _ptr = ptr; }
 	virtual void rewind() { _ptr = _data + 2; _ticks = 0; }
 protected:
-	uint8 *_data; ///< Raw sound resource data
 	const uint8 *_ptr; ///< Pointer to the current position in the MIDI data
-	uint32 _len; ///< Length of the raw sound resource
-	uint16 _type; ///< Sound resource type
 public:
 	uint _ticks; ///< MIDI song position in ticks (1/60ths of a second)
 };
 
 class IIgsSample : public AgiSound {
 public:
-	IIgsSample(uint8 *data, uint32 len, int16 resourceNr);
+	IIgsSample(byte resourceNr, byte *data, uint32 length, uint16 type);
 	~IIgsSample() override { delete[] _sample; }
 	uint16 type() override { return _header.type; }
 	const IIgsSampleHeader &getHeader() const { return _header; }
+	bool isValid() override { return _isValid; }
 protected:
 	IIgsSampleHeader _header;   ///< Apple IIGS AGI sample header
 	int8 *_sample;              ///< Sample data (8-bit signed format)
+	bool _isValid;
 };
 
 /** Apple IIGS MIDI program change to instrument number mapping. */
@@ -223,7 +219,7 @@ public:
 	~SoundGen2GS() override;
 
 	void play(int resnum) override;
-	void stop(void) override;
+	void stop() override;
 
 	int readBuffer(int16 *buffer, const int numSamples) override;
 
@@ -234,8 +230,8 @@ public:
 private:
 	// Loader methods
 	bool loadInstruments();
-	bool loadInstrumentHeaders(Common::String &exePath, const IIgsExeInfo &exeInfo);
-	bool loadWaveFile(Common::String &wavePath, const IIgsExeInfo &exeInfo);
+	bool loadInstrumentHeaders(const Common::Path &exePath, const IIgsExeInfo &exeInfo);
+	bool loadWaveFile(const Common::Path &wavePath, const IIgsExeInfo &exeInfo);
 
 	const IIgsExeInfo *getIIgsExeInfo(enum AgiGameID gameid) const;
 	void setProgramChangeMapping(const IIgsMidiProgramMapping *mapping);

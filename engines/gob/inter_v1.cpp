@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -252,7 +257,7 @@ void Inter_v1::checkSwitchTable(uint32 &offset) {
 	len = _vm->_game->_script->readInt8();
 	while (len != -5) {
 		for (int i = 0; i < len; i++) {
-			_vm->_game->_script->evalExpr(0);
+			_vm->_game->_script->evalExpr(nullptr);
 
 			if (_terminate)
 				return;
@@ -471,12 +476,12 @@ void Inter_v1::o1_initMult() {
 		delete[] _vm->_mult->_objects;
 		delete[] _vm->_mult->_renderData;
 
-		_vm->_mult->_objects = 0;
-		_vm->_mult->_renderObjs = 0;
+		_vm->_mult->_objects = nullptr;
+		_vm->_mult->_renderObjs = nullptr;
 
 	}
 
-	if (_vm->_mult->_objects == 0) {
+	if (_vm->_mult->_objects == nullptr) {
 		_vm->_mult->_renderData = new int16[_vm->_mult->_objCount * 9];
 		memset(_vm->_mult->_renderData, 0,
 				_vm->_mult->_objCount * 9 * sizeof(int16));
@@ -497,6 +502,10 @@ void Inter_v1::o1_initMult() {
 
 			_vm->_mult->_objects[i].pAnimData->isStatic = 1;
 			_vm->_mult->_objects[i].tick = 0;
+			_vm->_mult->_objects[i].animName[0] = '\0';
+			_vm->_mult->_objects[i].videoSlot = 0;
+			_vm->_mult->_objects[i].animVariables = nullptr;
+			_vm->_mult->_objects[i].ownAnimVariables = false;
 			_vm->_mult->_objects[i].lastLeft = -1;
 			_vm->_mult->_objects[i].lastRight = -1;
 			_vm->_mult->_objects[i].lastTop = -1;
@@ -603,8 +612,10 @@ void Inter_v1::o1_getObjAnimSize() {
 					animData.animation, 0, *(_vm->_mult->_objects[objIndex].pPosX),
 					*(_vm->_mult->_objects[objIndex].pPosY), 0);
 
-		_vm->_scenery->_toRedrawLeft = MAX<int16>(_vm->_scenery->_toRedrawLeft, 0);
-		_vm->_scenery->_toRedrawTop  = MAX<int16>(_vm->_scenery->_toRedrawTop , 0);
+		if (_vm->getGameType() != kGameTypeAdibou1) {
+			_vm->_scenery->_toRedrawLeft = MAX<int16>(_vm->_scenery->_toRedrawLeft, 0);
+			_vm->_scenery->_toRedrawTop  = MAX<int16>(_vm->_scenery->_toRedrawTop , 0);
+		}
 	}
 
 	WRITE_VAR_OFFSET(varLeft  , _vm->_scenery->_toRedrawLeft);
@@ -701,6 +712,13 @@ void Inter_v1::o1_callSub(OpFuncParams &params) {
 		return;
 	}
 
+	// Skipping the copy protection screen in Adibou 1
+	if (!_vm->_copyProtection && (_vm->getGameType() == kGameTypeAdibou1) && (offset == 1746) &&
+		_vm->isCurrentTot("base.tot")) {
+		debugC(2, kDebugGameFlow, "Skipping copy protection screen");
+		return;
+	}
+
 	_vm->_game->_script->call(offset);
 
 	if ((params.counter == params.cmdCount) && (params.retFlag == 2)) {
@@ -733,8 +751,12 @@ void Inter_v1::o1_loadCursor(OpFuncParams &params) {
 			index * _vm->_draw->_cursorWidth + _vm->_draw->_cursorWidth - 1,
 			_vm->_draw->_cursorHeight - 1, 0);
 
+	int16 width = resource->getWidth();
+	int16 height = resource->getHeight();
+	_vm->_draw->adjustCoords(0, &width, &height);
+
 	_vm->_video->drawPackedSprite(resource->getData(),
-			resource->getWidth(), resource->getHeight(),
+			width, height,
 			index * _vm->_draw->_cursorWidth, 0, 0, *_vm->_draw->_cursorSprites);
 	_vm->_draw->_cursorAnimLow[index] = 0;
 
@@ -775,6 +797,17 @@ void Inter_v1::o1_repeatUntil(OpFuncParams &params) {
 		size = _vm->_game->_script->peekUint16(2) + 2;
 
 		funcBlock(1);
+		if (_vm->getGameType() == kGameTypeAdibou1) {
+			// WORKAROUND: some Adibou1 scripts have loops checking for
+			// VAR(1) (= isSoundPlaying) without calling opcodes which
+			// usually update this variable, leading to an infinite loop.
+			// This may be a script bug that was innocuous in the original
+			// version due to slightly different timing of sound state
+			// transition.
+			bool isSoundPlaying = _vm->_sound->blasterPlayingSound() ||
+								  _vm->_vidPlayer->isSoundPlaying();
+			WRITE_VAR(1, isSoundPlaying);
+		}
 
 		_vm->_game->_script->seek(blockPos + size + 1);
 
@@ -838,7 +871,54 @@ void Inter_v1::o1_if(OpFuncParams &params) {
 		WRITE_VAR(285, 0);
 	}
 
+	if (_vm->getGameType() == kGameTypeAdibou2 &&
+		_vm->_enableAdibou2FlowersInfiniteLoopWorkaround &&
+		_vm->isCurrentTot("FLORAL.tot") &&
+		(_vm->_game->_script->pos() == 30743 ||
+		 _vm->_game->_script->pos() == 31074 ||
+		 _vm->_game->_script->pos() == 31109) &&
+		_vm->_game->_script->peekByte() == 15 && // "offset from an array"
+		_vm->_game->_script->peekByte(7) == OP_LOAD_VAR_INT32 &&
+		_vm->_game->_script->peekByte(11) == 97 && // end of "offset from an array"
+		_vm->_game->_script->peekByte(12) == OP_LOAD_VAR_INT32 &&
+		_vm->_game->_script->peekByte(13) == 2 && // offset of the flower state in the flower struct
+		_vm->_game->_script->peekByte(15) == OP_GREATER) {
+		// WORKAROUND an infinite loop in Adibou2 "Flower Garden" activity.
+		// At most 30 flowers can exist at the same time. When the max is reached,
+		// the script iterates over the possible spots until it finds one that is
+		// occupied by a flower (status >= 1) and removes it. But it wrongly checks
+		// for strict inequality ("status > 1") instead of "status >= 1", so if all
+		// flowers happen to be at status 1 (meaning they have not grown at all yet),
+		// the script loops forever.
+		// We fix this by changing the comparison operator to ">=".
+		_vm->_game->_script->writeByte(15, OP_GEQ);
+	}
+
+	int pos = _vm->_game->_script->pos();
 	boolRes = _vm->_game->_script->evalBool();
+
+	// Skipping copy protection screen of Adibou 1 applications
+	if (!_vm->_copyProtection &&
+		_vm->getGameType() == kGameTypeAdibou1 &&
+		(pos == 162 ||
+		 pos == 165 ||
+		 pos == 170 ||
+		 pos == 173 ||
+		 pos == 167 ||
+		 pos == 182 ||
+		 pos == 185 ||
+		 pos == 188) &&
+		(_vm->isCurrentTot("C51INTRO.tot") ||
+		 _vm->isCurrentTot("C61INTRO.tot") ||
+		 _vm->isCurrentTot("L51INTRO.tot") ||
+		 _vm->isCurrentTot("L61INTRO.tot"))) {
+		if (pos == 162 || pos == 165 || pos == 170 || pos == 173)
+			boolRes = false; // First, bypass the copy protection screen
+		else
+			boolRes = true; // Then bypass the check of the copy protection test result
+		debugC(2, kDebugGameFlow, "Skipping copy protection screen");
+	}
+
 	if (boolRes) {
 		if ((params.counter == params.cmdCount) && (params.retFlag == 2)) {
 			params.doReturn = true;
@@ -962,13 +1042,13 @@ void Inter_v1::o1_printText(OpFuncParams &params) {
 			switch (_vm->_game->_script->peekByte()) {
 			case TYPE_VAR_INT32:
 			case TYPE_ARRAY_INT32:
-				sprintf(buf + i, "%d",
+				Common::sprintf_s(buf + i, sizeof(buf) - i, "%d",
 					(int32)VAR_OFFSET(_vm->_game->_script->readVarIndex()));
 				break;
 
 			case TYPE_VAR_STR:
 			case TYPE_ARRAY_STR:
-				sprintf(buf + i, "%s",
+				Common::sprintf_s(buf + i, sizeof(buf) - i, "%s",
 					GET_VARO_STR(_vm->_game->_script->readVarIndex()));
 				break;
 
@@ -1147,6 +1227,19 @@ void Inter_v1::o1_palLoad(OpFuncParams &params) {
 		memset((char *)_vm->_draw->_vgaPalette, 0, 768);
 		break;
 
+	case 55:
+		// TODO case 55 implementation
+		warning("STUB: o1_palLoad case 55 not implemented");
+		_vm->_game->_script->skip(2);
+		_vm->_draw->_applyPal = false;
+		return;
+
+	case 56:
+		// TODO case 56 implementation
+		warning("STUB: o1_palLoad case 56 not implemented");
+		_vm->_game->_script->skip(2);
+		break;
+
 	case 61:
 		index1 =  _vm->_game->_script->readByte();
 		index2 = (_vm->_game->_script->readByte() - index1 + 1) * 3;
@@ -1166,6 +1259,15 @@ void Inter_v1::o1_palLoad(OpFuncParams &params) {
 			_vm->_draw->_vgaPalette[0].blue  = 0;
 		}
 
+		if (_vm->getGameType() == kGameTypeAdibou2) {
+			_vm->_draw->_vgaPalette[0].red = 0;
+			_vm->_draw->_vgaPalette[0].green = 0;
+			_vm->_draw->_vgaPalette[0].blue = 0;
+			_vm->_draw->_vgaPalette[255].red = 63;
+			_vm->_draw->_vgaPalette[255].green = 63;
+			_vm->_draw->_vgaPalette[255].blue = 63;
+		}
+
 		if (_vm->_draw->_applyPal) {
 			_vm->_draw->_applyPal = false;
 			_vm->_video->setFullPalette(_vm->_global->_pPaletteDesc);
@@ -1178,6 +1280,14 @@ void Inter_v1::o1_palLoad(OpFuncParams &params) {
 	}
 
 	if (!_vm->_draw->_applyPal) {
+		if (_vm->getGameType() == kGameTypeAdibou2) {
+			if (_vm->_global->_pPaletteDesc)
+				_vm->_video->setFullPalette(_vm->_global->_pPaletteDesc);
+			else
+				_vm->_util->clearPalette();
+			return;
+		}
+
 		_vm->_global->_pPaletteDesc->unused2 = _vm->_draw->_unusedPalette2;
 		_vm->_global->_pPaletteDesc->unused1 = _vm->_draw->_unusedPalette1;
 
@@ -1219,9 +1329,6 @@ void Inter_v1::o1_keyFunc(OpFuncParams &params) {
 	int16 key;
 
 	switch (cmd) {
-	case -1:
-		break;
-
 	case 0:
 		_vm->_draw->_showCursor &= ~2;
 		_vm->_util->longDelay(1);
@@ -1231,9 +1338,27 @@ void Inter_v1::o1_keyFunc(OpFuncParams &params) {
 		_vm->_util->clearKeyBuf();
 		break;
 
+	case -1:
+		if (_vm->getGameType() != kGameTypeAdibou2)
+			break;
+		// fall through
 	case 1:
-		if (_vm->getGameType() != kGameTypeFascination)
+		if (_vm->getGameType() != kGameTypeFascination && _vm->getGameType() != kGameTypeAdibou2)
 			_vm->_util->forceMouseUp(true);
+
+		// FIXME This is a hack to fix an issue with "text" tool in Adibou2 paint game.
+		// keyFunc() is called twice in a loop before testing its return value.
+		// If the first keyFunc call catches the key event, the second call will reset
+		// the key buffer, and the loop continues.
+		// Strangely in the original game it seems that the event is always caught by the
+		// second keyFunc.
+		if (_vm->getGameType() == kGameTypeAdibou2
+			&&
+			(_vm->_game->_script->pos() == 18750 || _vm->_game->_script->pos() == 18955)
+			&&
+			_vm->isCurrentTot("palette.tot"))
+			break;
+
 		key = _vm->_game->checkKeys(&_vm->_global->_inter_mouseX,
 				&_vm->_global->_inter_mouseY, &_vm->_game->_mouseButtons, 0);
 		storeKey(key);
@@ -1267,7 +1392,7 @@ void Inter_v1::o1_capturePush(OpFuncParams &params) {
 	width = _vm->_game->_script->readValExpr();
 	height = _vm->_game->_script->readValExpr();
 
-	if ((width < 0) || (height < 0))
+	if ((width <= 0) || (height <= 0))
 		return;
 
 	_vm->_game->capturePush(left, top, width, height);
@@ -1335,7 +1460,7 @@ void Inter_v1::o1_goblinFunc(OpFuncParams &params) {
 	int16 cmd;
 
 	gobParams.extraData = 0;
-	gobParams.objDesc = 0;
+	gobParams.objDesc = nullptr;
 	gobParams.retVarPtr.set(*_variables, 236);
 
 	cmd = _vm->_game->_script->readInt16();
@@ -1397,6 +1522,7 @@ void Inter_v1::o1_createSprite(OpFuncParams &params) {
 		height = _vm->_game->_script->readValExpr();
 	}
 
+	_vm->_draw->adjustCoords(0, &width, &height);
 	flag = _vm->_game->_script->readInt16();
 	_vm->_draw->initSpriteSurf(index, width, height, flag ? 2 : 0);
 }
@@ -1631,7 +1757,7 @@ void Inter_v1::o1_insertStr(OpFuncParams &params) {
 	int16 strVar;
 
 	strVar = _vm->_game->_script->readVarIndex();
-	_vm->_game->_script->evalExpr(0);
+	_vm->_game->_script->evalExpr(nullptr);
 	pos = _vm->_game->_script->readValExpr();
 
 	char *str = GET_VARO_FSTR(strVar);
@@ -1655,7 +1781,7 @@ void Inter_v1::o1_strstr(OpFuncParams &params) {
 	int16 pos;
 
 	strVar = _vm->_game->_script->readVarIndex();
-	_vm->_game->_script->evalExpr(0);
+	_vm->_game->_script->evalExpr(nullptr);
 	resVar = _vm->_game->_script->readVarIndex();
 
 	char *res = strstr(GET_VARO_STR(strVar), _vm->_game->_script->getResultStr());
@@ -1677,6 +1803,7 @@ void Inter_v1::o1_istrlen(OpFuncParams &params) {
 void Inter_v1::o1_setMousePos(OpFuncParams &params) {
 	_vm->_global->_inter_mouseX = _vm->_game->_script->readValExpr();
 	_vm->_global->_inter_mouseY = _vm->_game->_script->readValExpr();
+	_vm->_draw->adjustCoords(0, &_vm->_global->_inter_mouseX, &_vm->_global->_inter_mouseY);
 	_vm->_global->_inter_mouseX -= _vm->_video->_scrollOffsetX;
 	_vm->_global->_inter_mouseY -= _vm->_video->_scrollOffsetY;
 	if (_vm->_global->_useMouse != 0)
@@ -1723,7 +1850,7 @@ void Inter_v1::o1_freeFont(OpFuncParams &params) {
 	}
 
 	delete _vm->_draw->_fonts[index];
-	_vm->_draw->_fonts[index] = 0;
+	_vm->_draw->_fonts[index] = nullptr;
 }
 
 void Inter_v1::o1_readData(OpFuncParams &params) {
@@ -1775,7 +1902,7 @@ void Inter_v1::o1_manageDataFile(OpFuncParams &params) {
 	Common::String file = _vm->_game->_script->evalString();
 
 	if (!file.empty()) {
-		_vm->_dataIO->openArchive(file, true);
+		_vm->_dataIO->openArchive(Common::Path(file, '\\').toString('/'), true);
 	} else {
 		_vm->_dataIO->closeArchive(true);
 

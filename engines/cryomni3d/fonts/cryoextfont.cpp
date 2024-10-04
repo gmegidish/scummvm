@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@ CryoExtFont::~CryoExtFont() {
 	delete _crf;
 }
 
-void CryoExtFont::load(const Common::String &fontFile, Common::CodePage codepage) {
+void CryoExtFont::load(const Common::Path &fontFile, Common::CodePage codepage) {
 	// For now only CP950 is supported
 	assert(codepage == Common::kWindows950);
 
@@ -41,7 +40,7 @@ void CryoExtFont::load(const Common::String &fontFile, Common::CodePage codepage
 	Common::File *crf = new Common::File();
 
 	if (!crf->open(fontFile)) {
-		error("can't open file %s", fontFile.c_str());
+		error("can't open file %s", fontFile.toString(Common::Path::kNativeSeparator).c_str());
 	}
 
 	_crf = crf;
@@ -64,16 +63,16 @@ void CryoExtFont::load(const Common::String &fontFile, Common::CodePage codepage
 	_crf->read(_comment, sizeof(_comment));
 	//debug("Comment %s", _comment);
 
-	Common::String offsetsFile = fontFile;
+	Common::String offsetsFile = fontFile.baseName();
 	offsetsFile.setChar('I', offsetsFile.size() - 1);
-	loadOffsets(offsetsFile);
+	loadOffsets(fontFile.getParent().appendComponent(offsetsFile));
 }
 
-void CryoExtFont::loadOffsets(const Common::String &offsetsFile) {
+void CryoExtFont::loadOffsets(const Common::Path &offsetsFile) {
 	Common::File cri;
 
 	if (!cri.open(offsetsFile)) {
-		error("can't open file %s", offsetsFile.c_str());
+		error("can't open file %s", offsetsFile.toString(Common::Path::kNativeSeparator).c_str());
 	}
 
 	uint32 counts = cri.size() / sizeof(uint32);
@@ -251,7 +250,7 @@ uint32 CryoExtFont::mapGlyph(uint32 chr) const {
 	}
 }
 
-CryoExtFont::Glyph::Glyph() : offX(0), offY(0), advance(0), bitmap(nullptr) {
+CryoExtFont::Glyph::Glyph() : h(0), w(0), offX(0), offY(0), advance(0), bitmap(nullptr) {
 }
 
 CryoExtFont::Glyph::~Glyph() {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 #include "tsage/tsage.h"
 #include "tsage/core.h"
 #include "common/algorithm.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/surface.h"
 #include "tsage/globals.h"
 
@@ -609,7 +608,7 @@ void GfxElement::highlight() {
 	GfxManager &gfxManager = g_globals->gfxManager();
 	Graphics::Surface surface = gfxManager.lockSurface();
 
-	// Scan through the contents of the element, switching any occurances of the foreground
+	// Scan through the contents of the element, switching any occurrences of the foreground
 	// color with the background color and vice versa
 	Rect tempRect(_bounds);
 	tempRect.collapse(g_globals->_gfxEdgeAdjust - 1, g_globals->_gfxEdgeAdjust - 1);
@@ -1276,7 +1275,7 @@ void GfxFont::setFontNumber(uint32 fontNumber) {
 		_fontData = g_resourceManager->getResource(RES_FONT, _fontNumber, 0);
 
 	// Since some TsAGE game versions don't have a valid character count at offset 4, use the offset of the
-	// first charactre data to calculate the number of characters in the offset table preceeding it
+	// first character data to calculate the number of characters in the offset table preceding it
 	_numChars = (READ_LE_UINT32(_fontData + 12) - 12) / 4;
 	assert(_numChars <= 256);
 
@@ -1476,7 +1475,7 @@ void GfxFont::writeString(const char *s, int numChars) {
 }
 
 /**
- * Writes the the specified string at the current text position
+ * Writes the specified string at the current text position
  *
  * @s String to display
  */

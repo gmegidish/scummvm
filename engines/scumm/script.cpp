@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,12 +37,29 @@ namespace Scumm {
 /* Start executing script 'script' with the given parameters */
 void ScummEngine::runScript(int script, bool freezeResistant, bool recursive, int *lvarptr, int cycle) {
 	ScriptSlot *s;
-	//byte *scriptPtr;
+
 	uint32 scriptOffs;
 	byte scriptType;
 	int slot;
 
-	if (!script)
+	// WORKAROUND for crash (#15256) in Maniac Mansion C64 demo:
+	// Attempting to, as any character, give the can of Pepsi to any other character
+	// attempts to start script 43. Unfortunately script 43 does not exist in
+	// the resources and crashes the game even on the original executable :-)
+	if (enhancementEnabled(kEnhGameBreakingBugFixes) && _game.id == GID_MANIAC &&
+		_game.version == 0 && (_game.features & GF_DEMO) && script == 43)
+		return;
+
+	// WORKAROUND for bug in v0/v1 Zak McKracken:
+	// Picking up the yellow shard in the Mexican Temple while playing as Annie was not possible.
+	// This was fixed in v2.
+	if (enhancementEnabled(kEnhGameBreakingBugFixes) && _game.id == GID_ZAK &&
+		_game.version < 2 && script == 119 && VAR(VAR_EGO) == 2) {
+		addObjectToInventory(56, 14);
+		putOwner(56, VAR(VAR_EGO));
+	}
+
+ 	if (!script)
 		return;
 
 	if (!recursive)
@@ -70,7 +86,7 @@ void ScummEngine::runScript(int script, bool freezeResistant, bool recursive, in
 	}
 
 	if (cycle == 0)
-		cycle = (_game.heversion >= 90) ? VAR(VAR_SCRIPT_CYCLE) : 1;
+		cycle = (_game.heversion >= 90) ? VAR(VAR_DEFAULT_SCRIPT_PRIORITY) : 1;
 
 	slot = getScriptSlot();
 
@@ -119,7 +135,7 @@ void ScummEngine::runObjectScript(int object, int entry, bool freezeResistant, b
 		return;
 
 	if (cycle == 0)
-		cycle = (_game.heversion >= 90) ? VAR(VAR_SCRIPT_CYCLE) : 1;
+		cycle = (_game.heversion >= 90) ? VAR(VAR_DEFAULT_SCRIPT_PRIORITY) : 1;
 
 	s = &vm.slot[slot];
 	s->number = object;
@@ -154,7 +170,20 @@ int ScummEngine::getVerbEntrypoint(int obj, int entry) {
 
 	// WORKAROUND for bug #2826: Disallow pulling the rope if it's
 	// already in the player's inventory.
-	if (_game.id == GID_MONKEY2 && obj == 1047 && entry == 6 && whereIsObject(obj) == WIO_INVENTORY) {
+	//
+	// Doing so would cause fatal errors, such as "Object 1047 not
+	// found in room 98" in (at least) the original DOS/English
+	// release, if one loads the savegame in the bug ticket above,
+	// and pulls the rope after moving to the first room on the
+	// right. The same error happened with the original interpreter.
+	//
+	// Script 97-1047 was fixed in later releases, in different ways.
+	// On Amiga, a getObjectOwner() check was added; the Macintosh
+	// release completely disables pulling the rope, instead. We
+	// choose to follow the latter, as it's simpler, and the former
+	// made Guybrush silent when trying to trigger this action.
+	if (_game.id == GID_MONKEY2 && obj == 1047 && entry == 6 && whereIsObject(obj) == WIO_INVENTORY &&
+		enhancementEnabled(kEnhGameBreakingBugFixes)) {
 		return 0;
 	}
 
@@ -314,7 +343,8 @@ void ScummEngine::runScriptNested(int script) {
 
 	updateScriptPtr();
 
-	if (vm.numNestedScripts >= kMaxScriptNesting)
+	// Backyard Basketball is one of the games which requires more than 15 nested scripts
+	if (vm.numNestedScripts >= (_game.heversion >= 99 ? kMaxScriptNestingHE : kMaxScriptNesting))
 		error("Too many nested scripts");
 
 	nest = &vm.nest[vm.numNestedScripts];
@@ -429,7 +459,7 @@ void ScummEngine::getScriptBaseAddress() {
 	}
 
 	// The following fixes bug #2028. Confirmed against disasm.
-	if (_game.version <= 2 && _scriptOrgPointer == NULL) {
+	if (_game.version <= 2 && _scriptOrgPointer == nullptr) {
 		ss->status = ssDead;
 		_currentScript = 0xFF;
 	}
@@ -559,6 +589,23 @@ int ScummEngine::readVar(uint var) {
 			return !ConfMan.getBool("subtitles");
 		}
 
+#if defined(USE_ENET) && defined(USE_LIBCURL)
+		if (_enableHECompetitiveOnlineMods) {
+			// HACK: If we're reading var586, competitive mods enabled, playing online,
+			// successfully fetched custom teams, and we're not in one of the three scripts
+			// that cause bugs if 263 is returned here, return 263.
+			if (_game.id == GID_BASEBALL2001 && var == 586 && readVar(399) == 1 && readVar(747) == 1 &&
+				!(_currentRoom == 4 && (vm.slot[_currentScript].number == 2150 || vm.slot[_currentScript].number == 2208 || vm.slot[_currentScript].number == 2210))) {
+				return 263;
+			}
+			// Mod for Backyard Baseball 2001 online competitive play: allow random bounces
+			// Normally they only happen offline; this script checks var399, here we tell this
+			// script that we're not in online play even if we are
+			if (_game.id == GID_BASEBALL2001 && vm.slot[_currentScript].number == 39 && var == 399) {
+				return 0;
+			}
+		}
+#endif
 		assertRange(0, var, _numVariables - 1, "variable (reading)");
 		return _scummVars[var];
 	}
@@ -567,6 +614,18 @@ int ScummEngine::readVar(uint var) {
 		if (_game.heversion >= 80) {
 			var &= 0xFFF;
 			assertRange(0, var, _numRoomVariables - 1, "room variable (reading)");
+
+#if defined(USE_ENET) && defined(USE_LIBCURL)
+			if (_enableHECompetitiveOnlineMods) {
+				// Mod for Backyard Baseball 2001 online competitive play: don't give powerups for double plays
+				// Return true for this variable, which dictates whether powerups are disabled, but only in this script
+				// that detects double plays (among other things)
+				if (_game.id == GID_BASEBALL2001 && _currentRoom == 3 && vm.slot[_currentScript].number == 2099 && var == 32 && readVar(399) == 1) {
+					return 1;
+				}
+			}
+#endif
+
 			return _roomVars[var];
 
 		} else if (_game.version <= 3 && !(_game.id == GID_INDY3 && _game.platform == Common::kPlatformFMTowns) &&
@@ -607,6 +666,32 @@ int ScummEngine::readVar(uint var) {
 			assertRange(0, var, 25, "local variable (reading)");
 		else
 			assertRange(0, var, 20, "local variable (reading)");
+#if defined(USE_ENET) && defined(USE_LIBCURL)
+		// Mod for Backyard Baseball 2001 online competitive play: change impact of
+		// batter's power stat on hit power
+		if (_enableHECompetitiveOnlineMods) {
+			if (_game.id == GID_BASEBALL2001 &&
+				_currentRoom == 4 && vm.slot[_currentScript].number == 2090  // The script that calculates hit power
+				&& readVar(399) == 1  // Check that we're playing online
+				&& var == 2  // Local var for batter's hitting power stat
+			) {
+				int swingType = vm.localvar[_currentScript][0];
+				int powerStat, powerStatModified;
+				switch (swingType) {
+				case 2:  // Line drive or grounder swing
+					powerStat = vm.localvar[_currentScript][var];
+					powerStatModified = 20 + powerStat * 4 / 5;
+					return powerStatModified;
+				case 1:  // Power swing
+					powerStat = vm.localvar[_currentScript][var];
+					powerStatModified = 10 + powerStat * 17 / 20;;
+					return powerStatModified;
+				default:
+					break;
+				}
+			}
+		}
+#endif
 		return vm.localvar[_currentScript][var];
 	}
 
@@ -636,37 +721,57 @@ void ScummEngine::writeVar(uint var, int value) {
 		}
 
 		if (var == VAR_CHARINC) {
-			// Did the user override the talkspeed manually? Then use that.
-			// Otherwise, use the value specified by the game script.
+			// Use the value specified by the game script, everywhere except
+			// at game boot-up: if there was a user override, then use that.
+			//
 			// Note: To determine whether there was a user override, we only
 			// look at the target specific settings, assuming that any global
 			// value is likely to be bogus. See also bug #4008.
-			if (ConfMan.hasKey("talkspeed", _targetName)) {
-				value = getTalkSpeed();
+			if (_currentRoom == 0 && ConfMan.hasKey("talkspeed", _targetName)) {
+				value = 9 - getTalkSpeed();
 			} else {
 				// Save the new talkspeed value to ConfMan
-				setTalkSpeed(value);
+				setTalkSpeed(9 - value);
+			}
+		}
+
+		// WORKAROUND bug #13378: For whatever reason, the German and
+		// Italian talkie versions (I can't check the floppy versions)
+		// set the game to run much too fast in some parts of the intro.
+		// Some differences are natural because of the different lengths
+		// of the spoken lines, but 1 or 2 is too fast.
+		//
+		// Any modifications here depend on knowing if the script will
+		// set the timer value back to something sensible afterwards.
+
+		if (_game.id == GID_SAMNMAX && vm.slot[_currentScript].number == 65 && var == VAR_TIMER_NEXT && enhancementEnabled(kEnhTimingChanges)) {
+			// "Wirst Du brutzeln, wie eine grobe Bratwurst!"
+			if (value == 1 && _language == Common::DE_DEU)
+				value = 4;
+
+			// Max beats up the scientist. This was probably to
+			// match the subtitles to the speech better, but this
+			// is just too much! The floppy version doesn't do this
+			// but there's no need to explicitly test this since
+			// the script never sets the value to 2 there.
+			if (value == 2 && _language == Common::IT_ITA)
+				value = 3;
+		}
+
+		// WORKAROUND: When the Loom messenger nymph flies to wake up
+		// Bobbin, the whole game is sped up. Slow down the fire
+		// animation so that it appears to run at constant speed
+		// throughout the intro. This does not apply to the VGA talkie
+		// version, because there the fire isn't animated.
+
+		else if (_game.id == GID_LOOM && !(_game.features & GF_DEMO) && _game.version < 4 && vm.slot[_currentScript].number == 44 && var == VAR_TIMER_NEXT && enhancementEnabled(kEnhTimingChanges)) {
+			Actor *a = derefActorSafe(4, "writeVar");
+			if (a) {
+				a->setAnimSpeed((value == 0) ? 6 : 0);
 			}
 		}
 
 		_scummVars[var] = value;
-
-		// Unlike the PC version, the Macintosh version of Loom appears
-		// to hard-code the drawing of the practice mode box. This is
-		// handled by script 27 in both versions, but wherease the PC
-		// version draws the notes, the the Mac version this just sets
-		// variables 50 and 54.
-		//
-		// In this script, the variables are set to the same value but
-		// it appears that only variable 50 is cleared when the box is
-		// supposed to disappear. I don't know what the purpose of
-		// variable 54 is.
-
-		if (_game.id == GID_LOOM && _game.platform == Common::kPlatformMacintosh) {
-			if (VAR(128) == 0 && var == 50) {
-				mac_drawLoomPracticeMode();
-			}
-		}
 
 		if ((_varwatch == (int)var || _varwatch == 0) && _currentScript < NUM_SCRIPT_SLOT) {
 			if (vm.slot[_currentScript].number < 100)
@@ -739,6 +844,7 @@ int ScummEngine::pop() {
 void ScummEngine::stopObjectCode() {
 	ScriptSlot *ss;
 
+	assert(_currentScript != 0xFF);
 	ss = &vm.slot[_currentScript];
 	if (_game.version <= 2) {
 		if (ss->where == WIO_GLOBAL || ss->where == WIO_LOCAL) {
@@ -775,78 +881,15 @@ void ScummEngine::stopObjectCode() {
 
 void ScummEngine::runInventoryScript(int i) {
 	if (VAR(VAR_INVENTORY_SCRIPT)) {
-		if (_game.id == GID_INDY3 && _game.platform == Common::kPlatformMacintosh) {
-			inventoryScriptIndy3Mac();
-		} else {
-			int args[NUM_SCRIPT_LOCAL];
-			memset(args, 0, sizeof(args));
-			args[0] = i;
-			runScript(VAR(VAR_INVENTORY_SCRIPT), 0, 0, args);
-		}
+		int args[NUM_SCRIPT_LOCAL];
+		memset(args, 0, sizeof(args));
+		args[0] = i;
+		runScript(VAR(VAR_INVENTORY_SCRIPT), 0, 0, args);
 	}
 }
 
-void ScummEngine::inventoryScriptIndy3Mac() {
-	int slot;
-
-	// VAR(67) controls the scroll offset of the inventory in Indy3 for Macintosh.
-	// The inventory consists of two columns with three items visible in each,
-	// so a maximum of six items are visible at once.
-
-	// The scroll offset must be non-negative and if there are six or less items
-	// in the inventory, the inventory is fixed in the top position.
-	const int invCount = getInventoryCount(VAR(VAR_EGO));
-	if (VAR(67) < 0 || invCount <= 6) {
-		VAR(67) = 0;
-	}
-
-	// If there are more than six items in the inventory, clamp the scroll position
-	// to be at most invCount-6, rounded up to the next even integer.
-	bool scrolledToBottom = false;
-	if (invCount > 6 && VAR(67) >= invCount - 6) {
-		VAR(67) = invCount - 6;
-		// Odd number of inventory items? -> increment VAR(67) to make it even
-		if (invCount & 1) {
-			VAR(67)++;
-		}
-		scrolledToBottom = true;
-	}
-
-	// Now update var 83 till 89 to contain the inventory IDs of the
-	// corresponding inventory slots.
-	// Also setup fake verbs for the inventory
-	byte tmp[6] = { 0xFF, 0x06, 0x52, 0x00, 0x00, 0x00 };
-	for (int j = 1; j < 7; j++) {
-		int tmpA = (VAR(67) + j);
-		int tmpB = findInventory(VAR(VAR_EGO), tmpA);
-		VAR(82 + j) = tmpB;
-
-		// Setup fake verb
-		tmp[2] = 0x52 + j;
-		slot = getVerbSlot(100 + j, 0);
-		loadPtrToResource(rtVerb, slot, tmp);
-
-		VerbSlot *vs = &_verbs[slot];
-		vs->type = kTextVerbType;
-		vs->imgindex = 0;
-		vs->curmode = 1;
-		drawVerb(slot, 0);
-	}
-
-	// Enable up arrow if there are more than six items and we are not already
-	// scrolled all the way up.
-	slot = getVerbSlot(107, 0);
-	_verbs[slot].curmode = (invCount > 6 && VAR(67)) ? 1 : 0;
-	drawVerb(slot, 0);
-
-	// Enable down arrow if there are more than six items and we are not already
-	// scrolled all the way down.
-	slot = getVerbSlot(108, 0);
-	_verbs[slot].curmode = (invCount > 6 && !scrolledToBottom) ? 1 : 0;
-	drawVerb(slot, 0);
-
-	// Redraw!
-	verbMouseOver(0);
+void ScummEngine::runInventoryScriptEx(int i) {
+	runInventoryScript(i);
 }
 
 void ScummEngine::freezeScripts(int flag) {
@@ -861,8 +904,9 @@ void ScummEngine::freezeScripts(int flag) {
 		return;
 	}
 
+	bool flagCondition = _game.version >= 7 ? flag == 2 : flag >= 0x80;
 	for (i = 0; i < NUM_SCRIPT_SLOT; i++) {
-		if (_currentScript != i && vm.slot[i].status != ssDead && (!vm.slot[i].freezeResistant || flag >= 0x80)) {
+		if (_currentScript != i && vm.slot[i].status != ssDead && (!vm.slot[i].freezeResistant || flagCondition)) {
 			vm.slot[i].status |= 0x80;
 			vm.slot[i].freezeCount++;
 		}
@@ -909,7 +953,7 @@ void ScummEngine::runAllScripts() {
 		vm.slot[i].didexec = false;
 
 	_currentScript = 0xFF;
-	int numCycles = (_game.heversion >= 90) ? VAR(VAR_NUM_SCRIPT_CYCLES) : 1;
+	int numCycles = (_game.heversion >= 90) ? VAR(VAR_LAST_SCRIPT_PRIORITY) : 1;
 
 	for (int cycle = 1; cycle <= numCycles; cycle++) {
 		for (i = 0; i < NUM_SCRIPT_SLOT; i++) {
@@ -925,7 +969,7 @@ void ScummEngine::runAllScripts() {
 
 void ScummEngine::runExitScript() {
 	if (VAR_EXIT_SCRIPT != 0xFF && VAR(VAR_EXIT_SCRIPT))
-		runScript(VAR(VAR_EXIT_SCRIPT), 0, 0, 0);
+		runScript(VAR(VAR_EXIT_SCRIPT), 0, 0, nullptr);
 	if (_EXCD_offs) {
 		int slot = getScriptSlot();
 		vm.slot[slot].status = ssRunning;
@@ -950,27 +994,33 @@ void ScummEngine::runExitScript() {
 			}
 		}
 
-		initializeLocals(slot, 0);
+		initializeLocals(slot, nullptr);
 		runScriptNested(slot);
 	}
 	if (VAR_EXIT_SCRIPT2 != 0xFF && VAR(VAR_EXIT_SCRIPT2))
-		runScript(VAR(VAR_EXIT_SCRIPT2), 0, 0, 0);
+		runScript(VAR(VAR_EXIT_SCRIPT2), 0, 0, nullptr);
 
-#ifdef ENABLE_SCUMM_7_8
-	// WORKAROUND: The spider lair (room 44) will optionally play the sound
-	// of trickling water (sound 215), but it never stops it. The same sound
-	// effect is also used in room 33, so let's do the same fade out that it
-	// does in that room's exit script.
-	if (_game.id == GID_DIG && _currentRoom == 44) {
-		int scriptCmds[] = { 14, 215, 0x600, 0, 30, 0, 0, 0 };
+	// WORKAROUND: Once the water has been diverted to the grate, but
+	// before Maggie has been freed, the spider lair (room 44) will play
+	// the sound of trickling water (sound 215). It doesn't seem to trigger
+	// the first time you enter the room, only but if you leave and
+	// re-enter it. Which is probably why it's so rarely noticed.
+	//
+	// The sound is not stopped when you leave the room, so it will keep
+	// playing even where it makes no sense. This also happens with the
+	// original interpreter.
+	//
+	// The same sound effect is also used in the underwater cavern (room
+	// 33), so we do the same fade out as in that room's exit script.
+	if (_game.id == GID_DIG && _currentRoom == 44 && enhancementEnabled(kEnhAudioChanges)) {
+		int scriptCmds[] = { 14, 215, 0x600, 0, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		_sound->soundKludge(scriptCmds, ARRAYSIZE(scriptCmds));
 	}
-#endif
 }
 
 void ScummEngine::runEntryScript() {
 	if (VAR_ENTRY_SCRIPT != 0xFF && VAR(VAR_ENTRY_SCRIPT))
-		runScript(VAR(VAR_ENTRY_SCRIPT), 0, 0, 0);
+		runScript(VAR(VAR_ENTRY_SCRIPT), 0, 0, nullptr);
 	if (_ENCD_offs) {
 		int slot = getScriptSlot();
 		vm.slot[slot].status = ssRunning;
@@ -982,11 +1032,11 @@ void ScummEngine::runEntryScript() {
 		vm.slot[slot].freezeCount = 0;
 		vm.slot[slot].delayFrameCount = 0;
 		vm.slot[slot].cycle = 1;
-		initializeLocals(slot, 0);
+		initializeLocals(slot, nullptr);
 		runScriptNested(slot);
 	}
 	if (VAR_ENTRY_SCRIPT2 != 0xFF && VAR(VAR_ENTRY_SCRIPT2))
-		runScript(VAR(VAR_ENTRY_SCRIPT2), 0, 0, 0);
+		runScript(VAR(VAR_ENTRY_SCRIPT2), 0, 0, nullptr);
 }
 
 void ScummEngine::runQuitScript() {
@@ -1040,6 +1090,10 @@ void ScummEngine::killScriptsAndResources() {
 					// In FOA in the sentry room, in the chest plate of the statue,
 					// the pegs may be renamed to mouth: this custom name is lost
 					// when leaving the room; this hack prevents this).
+					//
+					// TODO: investigate this bug report from 2004, and see if the
+					// issue appears with an original interpreter, and with our current
+					// (much more accurate) SCUMMv5 implementation.
 					if (owner == OF_OWNER_ROOM && _game.id == GID_INDY4 && 336 <= obj && obj <= 340)
 						continue;
 
@@ -1320,7 +1374,7 @@ void ScummEngine_v0::runSentenceScript() {
 		// do not read in the dark
 		if (!(_cmdVerb == kVerbRead && _currentLights == 0)) {
 			VAR(VAR_ACTIVE_OBJECT2) = OBJECT_V0_ID(_cmdObject2);
-			runObjectScript(_cmdObject, _cmdVerb, false, false, NULL);
+			runObjectScript(_cmdObject, _cmdVerb, false, false, nullptr);
 			return;
 		}
 	} else {
@@ -1336,7 +1390,7 @@ void ScummEngine_v0::runSentenceScript() {
 	if (_cmdVerb != kVerbWalkTo) {
 		// perform verb's fallback action
 		VAR(VAR_ACTIVE_VERB) = _cmdVerb;
-		runScript(3, 0, 0, 0);
+		runScript(3, 0, 0, nullptr);
 	}
 }
 
@@ -1384,21 +1438,6 @@ void ScummEngine::runInputScript(int clickArea, int val, int mode) {
 
 	// Macintosh version of indy3ega used different interface, so adjust values.
 	if (_game.id == GID_INDY3 && _game.platform == Common::kPlatformMacintosh) {
-		if (clickArea == kVerbClickArea && (val >= 101 && val <= 108)) {
-			if (val == 107) {
-				VAR(67) -= 2;
-				inventoryScriptIndy3Mac();
-				return;
-			} else if (val == 108) {
-				VAR(67) += 2;
-				inventoryScriptIndy3Mac();
-				return;
-			} else {
-				args[0] = kInventoryClickArea;
-				args[1] = VAR(82 + (val - 100));
-			}
-		}
-
 		// Clicks are handled differently in Indy3 mac: param 2 of the
 		// input script is set to 0 for normal clicks, and to 1 for double clicks.
 		// The EGA DOS version of Loom also checks that the second click happens
@@ -1412,26 +1451,8 @@ void ScummEngine::runInputScript(int clickArea, int val, int mode) {
 		_lastInputScriptTime = time;
 	}
 
-	if (verbScript) {
-		// It seems that script 18 expects to be called twice: Once
-		// with parameter 1 (kVerbClickArea) to clear all the verbs,
-		// and once with 3 (kInventoryClickArea) to print the "Take
-		// this <something>" message.
-		//
-		// In the 256-color DOS version, this is all done in the same
-		// call to the script.
-		//
-		// Should this workaround apply to other input scripts
-		// as well? I don't know.
-		if (_game.id == GID_INDY3 && _game.platform == Common::kPlatformMacintosh && verbScript == 18 && val >= 101 && val <= 106) {
-			args[0] = kVerbClickArea;
-			runScript(verbScript, 0, 0, args);
-
-			args[0] = kInventoryClickArea;
-			runScript(verbScript, 0, 0, args);
-		} else
-			runScript(verbScript, 0, 0, args);
-	}
+	if (verbScript)
+		runScript(verbScript, 0, 0, args);
 }
 
 void ScummEngine::decreaseScriptDelay(int amount) {
@@ -1507,30 +1528,39 @@ void ScummEngine::copyScriptString(byte *dst) {
 int ScummEngine::resStrLen(const byte *src) {
 	int num = 0;
 	byte chr;
-	if (src == NULL) {
+	if (src == nullptr) {
 		refreshScriptPointer();
 		src = _scriptPointer;
 	}
 	while ((chr = *src++) != 0) {
 		num++;
-		if (_game.heversion <= 71 && chr == 0xFF) {
+		if (_game.version == 8 && chr == 0xFF) {
+			src += 5;
+			num += 5;
+		} else if (_game.heversion <= 71 && chr == 0xFF) {
 			chr = *src++;
 			num++;
 
-			// WORKAROUND for bug #1675, a script bug in Indy3. See also
-			// the corresponding code in ScummEngine::convertMessageToString().
-			if (_game.id == GID_INDY3 && chr == 0x2E) {
+			// WORKAROUND for bugs #1675 and #2715, script bugs in German Indy3.
+			// For more information, See the the corresponding workaround in
+			// ScummEngine::convertMessageToString().
+			//
+			// While the twin workaround in convertMessageToString() can be optional,
+			// our code diverges from the original just enough that we can't ignore the
+			// invalid control code at least in INDY3 VGA DE, so the following has to
+			// run regardless of the enhancement settings. Therefore, kEnhGameBreakingBugFixes
+			// is the appropriate class here.
+			if (enhancementEnabled(kEnhGameBreakingBugFixes) && _game.id == GID_INDY3 && _language == Common::DE_DEU &&
+			    ((_roomResource == 23 && chr == 0x2E) ||
+			     (_roomResource == 21 && chr == 0x20))) {
+				num--;
+				src--;
 				continue;
 			}
 
 			if (chr != 1 && chr != 2 && chr != 3 && chr != 8) {
-				if (_game.version == 8) {
-					src += 4;
-					num += 4;
-				} else {
-					src += 2;
-					num += 2;
-				}
+				src += 2;
+				num += 2;
 			}
 		}
 	}
@@ -1577,6 +1607,10 @@ void ScummEngine::endCutscene() {
 		// WORKAROUND bug #5624: Due to poor translation of the v2 script to
 		// v5 an if statement jumps in the middle of a cutscene causing a
 		// endCutscene() without a begin cutscene()
+		//
+		// TODO: see what the original interpreter did when encountering this
+		// script bug (with UNZ, DREAMM or TOWNSEMU), and decide which
+		// Enhancement setting should be used in this case.
 		if (_game.id == GID_ZAK && _game.platform == Common::kPlatformFMTowns &&
 			vm.slot[_currentScript].number == 205 && _currentRoom == 185) {
 			return;

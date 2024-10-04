@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,7 +43,6 @@ class Items;
 typedef bool (Items::*IsInInventoryProc)(int item);
 typedef void (Items::*InventoryActionProc)(int item);
 
-#include "common/pack-start.h"	// START STRUCT PACKING
 struct ItemLocation {
 	const char *_name;
 	const char *_shortName;
@@ -54,8 +52,7 @@ struct ItemLocation {
 	InventoryActionProc _useItem;
 	int _data;
 	byte _conditions;
-} PACKED_STRUCT;
-#include "common/pack-end.h"	// END STRUCT PACKING
+};
 
 typedef void (*DestroyAllCreaturesCallback)();
 #define N_ITEMS 34

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/file.h"
@@ -41,6 +40,7 @@ static const PlainGameDescriptor sludgeGames[] = {
 	{ "sludge",			"Sludge Game" },
 	{ "welcome",		"Welcome Example" },
 	{ "verbcoin",		"Verb Coin" },
+	{ "parallax",		"Parallax Demo" },
 	{ "robinsrescue",	"Robin's Rescue" },
 	{ "outoforder",		"Out Of Order" },
 	{ "frasse",			"Frasse and the Peas of Kejick" },
@@ -75,17 +75,17 @@ static Sludge::SludgeGameDescription s_fallbackDesc =
 
 static char s_fallbackFileNameBuffer[51];
 
-class SludgeMetaEngineDetection : public AdvancedMetaEngineDetection {
+class SludgeMetaEngineDetection : public AdvancedMetaEngineDetection<Sludge::SludgeGameDescription> {
 public:
-	SludgeMetaEngineDetection() : AdvancedMetaEngineDetection(Sludge::gameDescriptions, sizeof(Sludge::SludgeGameDescription), sludgeGames) {
+	SludgeMetaEngineDetection() : AdvancedMetaEngineDetection(Sludge::gameDescriptions, sludgeGames) {
 		_maxScanDepth = 1;
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "sludge";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Sludge";
 	}
 
@@ -115,9 +115,9 @@ ADDetectedGame SludgeMetaEngineDetection::fallbackDetect(const FileMap &allFiles
 		if (file->isDirectory())
 			continue;
 
-		Common::String fileName = file->getName();
+		Common::Path fileName = file->getPathInArchive();
 		fileName.toLowercase();
-		if (!(fileName.hasSuffix(".slg") || fileName == "gamedata"))
+		if (!(fileName.baseName().hasSuffix(".slg") || fileName == "gamedata"))
 			continue;
 
 		Common::File f;
@@ -141,7 +141,7 @@ ADDetectedGame SludgeMetaEngineDetection::fallbackDetect(const FileMap &allFiles
 			continue;
 		}
 
-		strncpy(s_fallbackFileNameBuffer, fileName.c_str(), 50);
+		strncpy(s_fallbackFileNameBuffer, fileName.toString('/').c_str(), 50);
 		s_fallbackFileNameBuffer[50] = '\0';
 		s_fallbackDesc.desc.filesDescriptions[0].fileName = s_fallbackFileNameBuffer;
 
@@ -149,7 +149,7 @@ ADDetectedGame SludgeMetaEngineDetection::fallbackDetect(const FileMap &allFiles
 		game.desc = &s_fallbackDesc.desc;
 
 		FileProperties tmp;
-		if (getFileProperties(allFiles, s_fallbackDesc.desc, fileName, tmp)) {
+		if (getFileProperties(allFiles, kMD5Head, fileName, tmp)) {
 			game.hasUnknownFiles = true;
 			game.matchedFiles[fileName] = tmp;
 		}

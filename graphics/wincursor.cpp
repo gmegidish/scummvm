@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/ptr.h"
 #include "common/stream.h"
+#include "common/system.h"
 #include "common/textconsole.h"
 
 #include "graphics/wincursor.h"
@@ -31,31 +31,35 @@ namespace Graphics {
 /** A Windows cursor. */
 class WinCursor : public Cursor {
 public:
-	WinCursor();
+	WinCursor(uint16 hotspotX, uint16 hotspotY);
 	~WinCursor();
 
 	/** Return the cursor's width. */
-	uint16 getWidth() const;
+	uint16 getWidth() const override;
 	/** Return the cursor's height. */
-	uint16 getHeight() const;
+	uint16 getHeight() const override;
 	/** Return the cursor's hotspot's x coordinate. */
-	uint16 getHotspotX() const;
+	uint16 getHotspotX() const override;
 	/** Return the cursor's hotspot's y coordinate. */
-	uint16 getHotspotY() const;
+	uint16 getHotspotY() const override;
 	/** Return the cursor's transparent key. */
-	byte getKeyColor() const;
+	byte getKeyColor() const override;
 
-	const byte *getSurface() const { return _surface; }
+	const byte *getSurface() const override { return _surface; }
+	const byte *getMask() const override { return _mask; }
 
-	const byte *getPalette() const { return _palette; }
-	byte getPaletteStartIndex() const { return 0; }
-	uint16 getPaletteCount() const { return 256; }
+	const byte *getPalette() const override { return _palette; }
+	byte getPaletteStartIndex() const override { return 0; }
+	uint16 getPaletteCount() const override { return 256; }
 
 	/** Read the cursor's data out of a stream. */
 	bool readFromStream(Common::SeekableReadStream &stream);
 
 private:
+	WinCursor() = delete;
+
 	byte *_surface;
+	byte *_mask;
 	byte _palette[256 * 3];
 
 	uint16 _width;    ///< The cursor's width.
@@ -68,12 +72,13 @@ private:
 	void clear();
 };
 
-WinCursor::WinCursor() {
+WinCursor::WinCursor(uint16 hotspotX, uint16 hotspotY) {
 	_width    = 0;
 	_height   = 0;
-	_hotspotX = 0;
-	_hotspotY = 0;
-	_surface  = 0;
+	_hotspotX = hotspotX;
+	_hotspotY = hotspotY;
+	_surface  = nullptr;
+	_mask     = nullptr;
 	_keyColor = 0;
 	memset(_palette, 0, 256 * 3);
 }
@@ -105,8 +110,8 @@ byte WinCursor::getKeyColor() const {
 bool WinCursor::readFromStream(Common::SeekableReadStream &stream) {
 	clear();
 
-	_hotspotX = stream.readUint16LE();
-	_hotspotY = stream.readUint16LE();
+	const bool supportOpacity = g_system->hasFeature(OSystem::kFeatureCursorMask);
+	const bool supportInvert = g_system->hasFeature(OSystem::kFeatureCursorMaskInvert);
 
 	// Check header size
 	if (stream.readUint32LE() != 40)
@@ -145,8 +150,10 @@ bool WinCursor::readFromStream(Common::SeekableReadStream &stream) {
 	if (numColors == 0)
 		numColors = 1 << bitsPerPixel;
 
+	// Skip number of important colors
+	stream.skip(4);
+
 	// Reading the palette
-	stream.seek(40 + 4);
 	for (uint32 i = 0 ; i < numColors; i++) {
 		_palette[i * 3 + 2] = stream.readByte();
 		_palette[i * 3 + 1] = stream.readByte();
@@ -162,6 +169,8 @@ bool WinCursor::readFromStream(Common::SeekableReadStream &stream) {
 	// Parse the XOR map
 	const byte *src = initialSource;
 	_surface = new byte[_width * _height];
+	if (supportOpacity)
+		_mask = new byte[_width * _height];
 	byte *dest = _surface + _width * (_height - 1);
 	uint32 imagePitch = _width * bitsPerPixel / 8;
 
@@ -224,9 +233,36 @@ bool WinCursor::readFromStream(Common::SeekableReadStream &stream) {
 	src += andWidth * (_height - 1);
 
 	for (uint32 y = 0; y < _height; y++) {
-		for (uint32 x = 0; x < _width; x++)
-			if (src[x / 8] & (1 << (7 - x % 8)))
-				_surface[y * _width + x] = _keyColor;
+		for (uint32 x = 0; x < _width; x++) {
+			byte &surfaceByte = _surface[y * _width + x];
+			if (src[x / 8] & (1 << (7 - x % 8))) {
+				const byte *paletteEntry = &_palette[surfaceByte * 3];
+
+				// Per WDDM spec, white with 1 in the AND mask is inverted, any other color with 1 is transparent.
+				// Riven depends on this behavior for proper cursor transparency, since it uses cursors where the
+				// transparent pixels have a non-zero non-black color.
+				const bool isTransparent = (paletteEntry[0] != 255 || paletteEntry[1] != 255 || paletteEntry[2] != 255);
+
+				if (_mask) {
+					byte &maskByte = _mask[y * _width + x];
+
+					if (isTransparent) {
+						maskByte = 0;
+					} else {
+						// Inverted, if the backend supports invert then emit an inverted pixel, otherwise opaque
+						maskByte = supportInvert ? kCursorMaskInvert : kCursorMaskOpaque;
+					}
+				} else {
+					// Don't support mask or invert, leave this as opaque if it's XOR so it's visible
+					if (isTransparent)
+						surfaceByte = _keyColor;
+				}
+			} else {
+				// Opaque pixel
+				if (_mask)
+					_mask[y * _width + x] = kCursorMaskOpaque;
+			}
+		}
 
 		src -= andWidth;
 	}
@@ -236,7 +272,8 @@ bool WinCursor::readFromStream(Common::SeekableReadStream &stream) {
 }
 
 void WinCursor::clear() {
-	delete[] _surface; _surface = 0;
+	delete[] _surface; _surface = nullptr;
+	delete[] _mask; _mask = nullptr;
 }
 
 WinCursorGroup::WinCursorGroup() {
@@ -264,13 +301,8 @@ WinCursorGroup *WinCursorGroup::createCursorGroup(Common::WinResources *exe, con
 	for (uint32 i = 0; i < cursorCount; i++) {
 		stream->readUint16LE(); // width
 		stream->readUint16LE(); // height
-
-		// Plane count
-		if (stream->readUint16LE() != 1) {
-			warning("PlaneCount is not 1.");
-		}
-
-		stream->readUint16LE(); // bits per pixel
+		stream->readUint16LE(); // x hotspot
+		stream->readUint16LE(); // y hotspot
 		stream->readUint32LE(); // data size
 		uint32 cursorId = stream->readUint16LE();
 
@@ -280,11 +312,14 @@ WinCursorGroup *WinCursorGroup::createCursorGroup(Common::WinResources *exe, con
 			return 0;
 		}
 
-		WinCursor *cursor = new WinCursor();
-		if (!cursor->readFromStream(*cursorStream)) {
-			delete cursor;
+		uint16 hotspotX = cursorStream->readUint16LE();
+		uint16 hotspotY = cursorStream->readUint16LE();
+
+		Cursor *cursor = loadWindowsCursorFromDIB(*cursorStream, hotspotX, hotspotY);
+
+		if (!cursor) {
 			delete group;
-			return 0;
+			return nullptr;
 		}
 
 		CursorItem item;
@@ -304,13 +339,13 @@ public:
 	DefaultWinCursor() {}
 	~DefaultWinCursor() {}
 
-	uint16 getWidth() const { return 12; }
-	uint16 getHeight() const { return 20; }
-	uint16 getHotspotX() const { return 0; }
-	uint16 getHotspotY() const { return 0; }
-	byte getKeyColor() const { return 0; }
+	uint16 getWidth() const override { return 12; }
+	uint16 getHeight() const override { return 20; }
+	uint16 getHotspotX() const override { return 0; }
+	uint16 getHotspotY() const override { return 0; }
+	byte getKeyColor() const override { return 0; }
 
-	const byte *getSurface() const {
+	const byte *getSurface() const override {
 		static const byte defaultCursor[] = {
 			1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 			1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -337,7 +372,7 @@ public:
 		return defaultCursor;
 	}
 
-	const byte *getPalette() const {
+	const byte *getPalette() const override {
 		static const byte bwPalette[] = {
 			0x00, 0x00, 0x00,	// Black
 			0xFF, 0xFF, 0xFF	// White
@@ -345,8 +380,8 @@ public:
 
 		return bwPalette;
 	}
-	byte getPaletteStartIndex() const { return 1; }
-	uint16 getPaletteCount() const { return 2; }
+	byte getPaletteStartIndex() const override { return 1; }
+	uint16 getPaletteCount() const override { return 2; }
 };
 
 Cursor *makeDefaultWinCursor() {
@@ -361,13 +396,13 @@ public:
 	BusyWinCursor() {}
 	~BusyWinCursor() {}
 
-	uint16 getWidth() const { return 15; }
-	uint16 getHeight() const { return 27; }
-	uint16 getHotspotX() const { return 7; }
-	uint16 getHotspotY() const { return 13; }
-	byte getKeyColor() const { return 0; }
+	uint16 getWidth() const override { return 15; }
+	uint16 getHeight() const override { return 27; }
+	uint16 getHotspotX() const override { return 7; }
+	uint16 getHotspotY() const override { return 13; }
+	byte getKeyColor() const override { return 0; }
 
-	const byte *getSurface() const {
+	const byte *getSurface() const override {
 		static const byte busyCursor[] = {
 			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -401,7 +436,7 @@ public:
 		return busyCursor;
 	}
 
-	const byte *getPalette() const {
+	const byte *getPalette() const override {
 		static const byte bwPalette[] = {
 			0x00, 0x00, 0x00,	// Black
 			0xFF, 0xFF, 0xFF	// White
@@ -409,12 +444,22 @@ public:
 
 		return bwPalette;
 	}
-	byte getPaletteStartIndex() const { return 1; }
-	uint16 getPaletteCount() const { return 2; }
+	byte getPaletteStartIndex() const override { return 1; }
+	uint16 getPaletteCount() const override { return 2; }
 };
 
 Cursor *makeBusyWinCursor() {
 	return new BusyWinCursor();
+}
+
+Cursor *loadWindowsCursorFromDIB(Common::SeekableReadStream &stream, uint16 hotspotX, uint16 hotspotY) {
+	WinCursor *cursor = new WinCursor(hotspotX, hotspotY);
+	if (!cursor->readFromStream(stream)) {
+		delete cursor;
+		return nullptr;
+	}
+
+	return cursor;
 }
 
 } // End of namespace Graphics

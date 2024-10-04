@@ -1,11 +1,12 @@
-/*
- * This file is part of the Scale2x project.
+/* ScummVM - Graphic Adventure Engine
  *
- * Copyright (C) 2001, 2002, 2003, 2004 Andrea Mazzoleni
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -14,16 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
  */
 
 /*
  * This file contains a C and MMX implementation of the Scale2x effect.
  *
- * You can find an high level description of the effect at :
+ * You can find a high-level description of the effect at:
  *
- * http://scale2x.sourceforge.net/
+ * https://www.scale2x.it
  *
  * Alternatively at the previous license terms, you are allowed to use this
  * code in your program with these conditions:

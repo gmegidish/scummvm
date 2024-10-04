@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,13 +34,13 @@ CachedSourceListingProvider::CachedSourceListingProvider() {
 CachedSourceListingProvider::~CachedSourceListingProvider() {
 	delete _sourceListingProvider;
 	delete _fallbackListingProvider;
-	for (Common::HashMap<Common::String, SourceListing*>::iterator it = _cached.begin();
+	for (CacheMap::iterator it = _cached.begin();
 			it != _cached.end(); it++) {
 		delete (it->_value);
 	}
 }
 
-Listing *CachedSourceListingProvider::getListing(const Common::String &filename, Wintermute::ErrorCode &error) {
+Listing *CachedSourceListingProvider::getListing(const Common::Path &filename, Wintermute::ErrorCode &error) {
 	if (_cached.contains(filename)) {
 		error = OK;
 		SourceListing *copy = new SourceListing(*_cached.getVal(filename));
@@ -61,19 +60,19 @@ Listing *CachedSourceListingProvider::getListing(const Common::String &filename,
 }
 
 void CachedSourceListingProvider::invalidateCache() {
-	for (Common::HashMap<Common::String, SourceListing*>::iterator it = _cached.begin();
+	for (CacheMap::iterator it = _cached.begin();
 			it != _cached.end(); it++) {
 		delete (it->_value);
 	}
 	_cached.clear();
 }
 
-ErrorCode CachedSourceListingProvider::setPath(const Common::String &path) {
+ErrorCode CachedSourceListingProvider::setPath(const Common::Path &path) {
 	invalidateCache();
 	return _sourceListingProvider->setPath(path);
 }
 
-Common::String CachedSourceListingProvider::getPath() const {
+Common::Path CachedSourceListingProvider::getPath() const {
 	return _sourceListingProvider->getPath();
 }
 

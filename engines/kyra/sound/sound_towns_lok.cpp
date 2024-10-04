@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,8 +31,8 @@
 namespace Kyra {
 
 SoundTowns_LoK::SoundTowns_LoK(KyraEngine_v1 *vm, Audio::Mixer *mixer)
-	: Sound(vm, mixer), _lastTrack(-1), _musicTrackData(0), _sfxFileData(0), _cdaPlaying(0),
-	_sfxFileIndex((uint)-1), _musicFadeTable(0), _sfxWDTable(0), _sfxBTTable(0), _sfxChannel(0x46), _currentResourceSet(0) {
+	: Sound(vm, mixer), _lastTrack(-1), _musicTrackData(nullptr), _sfxFileData(nullptr), _cdaPlaying(false),
+	_sfxFileIndex((uint)-1), _musicFadeTable(nullptr), _sfxWDTable(nullptr), _sfxBTTable(nullptr), _sfxChannel(0x46), _currentResourceSet(0) {
 	memset(&_resInfo, 0, sizeof(_resInfo));
 	_player = new EuphonyPlayer(_mixer);
 }
@@ -45,7 +44,7 @@ SoundTowns_LoK::~SoundTowns_LoK() {
 	delete[] _musicTrackData;
 	delete[] _sfxFileData;
 	for (int i = 0; i < 3; i++)
-		initAudioResourceInfo(i, 0);
+		initAudioResourceInfo(i, nullptr);
 }
 
 bool SoundTowns_LoK::init() {
@@ -127,7 +126,7 @@ void SoundTowns_LoK::haltTrack() {
 void SoundTowns_LoK::initAudioResourceInfo(int set, void *info) {
 	if (set >= kMusicIntro && set <= kMusicFinale) {
 		delete _resInfo[set];
-		_resInfo[set] = info ? new SoundResourceInfo_Towns(*(SoundResourceInfo_Towns*)info) : 0;
+		_resInfo[set] = info ? new SoundResourceInfo_Towns(*(SoundResourceInfo_Towns*)info) : nullptr;
 	}
 }
 
@@ -140,7 +139,7 @@ void SoundTowns_LoK::selectAudioResourceSet(int set) {
 
 bool SoundTowns_LoK::hasSoundFile(uint file) const {
 	if (file < res()->fileListSize)
-		return (res()->fileList[file] != 0);
+		return (res()->fileList[file] != nullptr);
 	return false;
 }
 
@@ -149,7 +148,7 @@ void SoundTowns_LoK::loadSoundFile(uint file) {
 		return;
 	_sfxFileIndex = file;
 	delete[] _sfxFileData;
-	_sfxFileData = _vm->resource()->fileData(res()->fileList[file], 0);
+	_sfxFileData = _vm->resource()->fileData(res()->fileList[file], nullptr);
 }
 
 void SoundTowns_LoK::playSoundEffect(uint16 track, uint8) {
@@ -244,6 +243,12 @@ void SoundTowns_LoK::updateVolumeSettings() {
 	_player->driver()->setSoundEffectVolume((mute ? 0 : ConfMan.getInt("sfx_volume")));
 }
 
+void SoundTowns_LoK::enableMusic(int enable) {
+	if (enable && enable != _musicEnabled && _lastTrack != -1)
+		haltTrack();
+	_musicEnabled = enable;
+}
+
 void SoundTowns_LoK::stopAllSoundEffects() {
 	_player->driver()->channelVolume(0x46, 0);
 	_player->driver()->channelVolume(0x47, 0);
@@ -277,7 +282,7 @@ void SoundTowns_LoK::beginFadeOut() {
 		_player->driver()->setOutputVolume(1, 0, 0);
 
 	} else {
-		if (_lastTrack == -1)
+		if (_lastTrack == -1 || !_player->isPlaying())
 			return;
 
 		uint32 ticks = 2;
@@ -320,7 +325,7 @@ void SoundTowns_LoK::beginFadeOut() {
 }
 
 bool SoundTowns_LoK::loadInstruments() {
-	uint8 *twm = _vm->resource()->fileData("twmusic.pak", 0);
+	uint8 *twm = _vm->resource()->fileData("twmusic.pak", nullptr);
 	if (!twm)
 		return false;
 
@@ -347,7 +352,7 @@ bool SoundTowns_LoK::loadInstruments() {
 }
 
 void SoundTowns_LoK::playEuphonyTrack(uint32 offset, int loop) {
-	uint8 *twm = _vm->resource()->fileData("twmusic.pak", 0);
+	uint8 *twm = _vm->resource()->fileData("twmusic.pak", nullptr);
 	Screen::decodeFrame4(twm + 19312 + offset, _musicTrackData, 50570);
 	delete[] twm;
 

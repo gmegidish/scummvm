@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,15 +26,22 @@
 
 namespace Sword1 {
 
-#define LOOPED 1
-
-#define FRAME_RATE          12                      // number of frames per second (max rate)
-#define SCREEN_WIDTH        640
-#define SCREEN_DEPTH        400
-#define SCREEN_LEFT_EDGE    128
-#define SCREEN_RIGHT_EDGE   (128+SCREEN_WIDTH-1)
-#define SCREEN_TOP_EDGE     128
-#define SCREEN_BOTTOM_EDGE  (128+SCREEN_DEPTH-1)
+#define LOOPED                1
+#define DEFAULT_FRAME_TIME    80  // 80ms, for exactly 12.5Hz
+#define FAST_FRAME_TIME       10  // 10ms, for 100Hz
+#define SLOW_FRAME_TIME       500 // 500ms, for 2Hz
+#define PAUSE_FRAME_RATE      12  // This frame time is only used in fnPauseSeconds(), like for the original
+#define TIMER_RATE            100
+#define TIMER_USEC            1000000 / TIMER_RATE
+#define PALETTE_FADE_RATE     60
+#define PALETTE_FADE_USEC     16667
+#define SCREEN_WIDTH          640
+#define SCREEN_DEPTH          400
+#define SCREEN_FULL_DEPTH     480 // Including top and bottom 40+40 px spaces for menu bars
+#define SCREEN_LEFT_EDGE      128
+#define SCREEN_RIGHT_EDGE     (128+SCREEN_WIDTH-1)
+#define SCREEN_TOP_EDGE       128
+#define SCREEN_BOTTOM_EDGE    (128+SCREEN_DEPTH-1)
 #define TYPE_FLOOR 1
 #define TYPE_MOUSE 2
 #define TYPE_SPRITE 3
@@ -132,6 +138,12 @@ struct WalkGridHeader {
 	int32 numNodes;
 } PACKED_STRUCT;
 
+struct Sprite {
+	Header header;
+	int32 totalSprites;
+	uint32 spriteOffset[2];
+} PACKED_STRUCT;
+
 #include "common/pack-end.h"    // END STRUCT PACKING
 
 enum fileTypes {
@@ -141,7 +153,6 @@ enum fileTypes {
 	TYPE_IMMED,
 	TYPE_SPEECH1,
 	TYPE_SPEECH2,
-	TYPE_SPEECH
 };
 
 enum fileFlags {
@@ -151,7 +162,6 @@ enum fileFlags {
 	FLAG_IMMED   = (1 << TYPE_IMMED),       // this file is needed immediately, game won't start without it
 	FLAG_SPEECH1 = (1 << TYPE_SPEECH1),
 	FLAG_SPEECH2 = (1 << TYPE_SPEECH2),
-	FLAG_SPEECH  = (1 << TYPE_SPEECH)
 };
 
 struct CdFile {
@@ -1578,6 +1588,7 @@ enum ScriptVariableNames {
 #define SAND_25 1638407
 #define HOLDING_REPLICA_25 1638408
 #define GMASTER_79 5177345
+#define SCR_george_rest_anim_script (0 * 0x10000 + 1)
 #define SCR_std_off (0*0x10000 + 6)
 #define SCR_exit0 (0*0x10000 + 7)
 #define SCR_exit1 (0*0x10000 + 8)

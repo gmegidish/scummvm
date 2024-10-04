@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 
 #include "common/list.h"
 #include "common/scummsys.h"
-#include "common/str.h"
+#include "common/path.h"
 
 namespace Graphics {
 struct Surface;
@@ -42,10 +41,10 @@ namespace Buried {
 
 class AVIFrames {
 public:
-	AVIFrames(const Common::String &fileName = "", uint cachedFrames = 0);
+	AVIFrames(const Common::Path &fileName = Common::Path(), uint cachedFrames = 0);
 	~AVIFrames();
 
-	bool open(const Common::String &fileName, uint cachedFrames = 0);
+	bool open(const Common::Path &fileName, uint cachedFrames = 0);
 	void close();
 
 	const Graphics::Surface *getFrame(int frameIndex);
@@ -69,13 +68,13 @@ private:
 
 	typedef Common::List<CachedFrame> FrameList;
 
-	Common::String _fileName;
+	Common::Path _fileName;
 	FrameList _cachedFrames;
 	uint _maxCachedFrames;
 	Video::VideoDecoder *_video;
 	bool _cacheEnabled;
 
-	Graphics::Surface *_lastFrame;
+	const Graphics::Surface *_lastFrame;
 	Graphics::Surface *_tempFrame;
 	int _lastFrameIndex;
 };

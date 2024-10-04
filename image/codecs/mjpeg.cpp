@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,7 +40,13 @@ namespace Image {
 
 MJPEGDecoder::MJPEGDecoder() : Codec() {
 	_pixelFormat = g_system->getScreenFormat();
+
+	// Default to a 32bpp format, if in 8bpp mode
+	if (_pixelFormat.bytesPerPixel == 1)
+		_pixelFormat = Graphics::PixelFormat(4, 8, 8, 8, 8, 8, 16, 24, 0);
+
 	_surface = 0;
+	_accuracy = CodecAccuracy::Default;
 }
 
 MJPEGDecoder::~MJPEGDecoder() {
@@ -200,6 +205,7 @@ const Graphics::Surface *MJPEGDecoder::decodeFrame(Common::SeekableReadStream &s
 
 	Common::MemoryReadStream convertedStream(data, outputSize, DisposeAfterUse::YES);
 	JPEGDecoder jpeg;
+	jpeg.setCodecAccuracy(_accuracy);
 	jpeg.setOutputPixelFormat(_pixelFormat);
 
 	if (!jpeg.loadStream(convertedStream)) {
@@ -218,6 +224,10 @@ const Graphics::Surface *MJPEGDecoder::decodeFrame(Common::SeekableReadStream &s
 	assert(_surface->format == _pixelFormat);
 
 	return _surface;
+}
+
+void MJPEGDecoder::setCodecAccuracy(CodecAccuracy accuracy) {
+	_accuracy = accuracy;
 }
 
 } // End of namespace Image

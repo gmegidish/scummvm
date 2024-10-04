@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,7 +59,7 @@ reg_t GameFeatures::getDetectionAddr(const Common::String &objName, Selector slc
 	}
 
 	if (methodNum == -1) {
-		if (lookupSelector(_segMan, objAddr, slc, NULL, &addr) != kSelectorMethod) {
+		if (lookupSelector(_segMan, objAddr, slc, nullptr, &addr) != kSelectorMethod) {
 			error("getDetectionAddr: target selector is not a method of object %s", objName.c_str());
 			return NULL_REG;
 		}
@@ -127,9 +126,7 @@ bool GameFeatures::autoDetectSoundType() {
 					_doSoundType = foundTarget ? SCI_VERSION_1_LATE : SCI_VERSION_1_EARLY;
 					break;
 				}
-
-				if (_doSoundType != SCI_VERSION_NONE)
-					return true;
+				return true;
 			}
 		}
 	}
@@ -234,7 +231,7 @@ SciVersion GameFeatures::detectSetCursorType() {
 	return _setCursorType;
 }
 
-bool GameFeatures::autoDetectLofsType(Common::String gameSuperClassName, int methodNum) {
+bool GameFeatures::autoDetectLofsType(const Common::String &gameSuperClassName, int methodNum) {
 	// Look up the script address
 	reg_t addr = getDetectionAddr(gameSuperClassName.c_str(), -1, methodNum);
 
@@ -356,15 +353,23 @@ bool GameFeatures::autoDetectGfxFunctionsType(int methodNum) {
 
 		if (opcode == op_callk) {
 			uint16 kFuncNum = opparams[0];
-			uint16 argc = opparams[1];
+			uint16 argc = opparams[1] / 2;
 
 			if (kFuncNum == 8) {	// kDrawPic	(SCI0 - SCI11)
-				// If kDrawPic is called with 6 parameters from the overlay
-				// selector, the game is using old graphics functions.
-				// Otherwise, if it's called with 8 parameters (e.g. SQ3) or 4 parameters
-				// (e.g. Hoyle 1/2), it's using new graphics functions.
-				_gfxFunctionsType = (argc == 6) ? SCI_VERSION_0_EARLY : SCI_VERSION_0_LATE;
-				return true;
+				// If kDrawPic is called with 3 parameters from the overlay
+				// method then the game is using old graphics functions.
+				// If instead it's called with 4 parameters then it's using
+				// the newer ones. (KQ4 late, SQ3 1.018)
+				// Ignore other arg counts as those are unrelated to overlays
+				// and this detection gets run on all Rm methods when the
+				// overlay selector doesn't exist.
+				if (argc == 3) {
+					_gfxFunctionsType = SCI_VERSION_0_EARLY;
+					return true;
+				} else if (argc == 4) {
+					_gfxFunctionsType = SCI_VERSION_0_LATE;
+					return true;
+				}
 			}
 		}
 	}
@@ -388,7 +393,7 @@ SciVersion GameFeatures::detectGfxFunctionsType() {
 			if (SELECTOR(overlay) != -1) {
 				// The game has an overlay selector, check how it calls kDrawPic
 				// to determine the graphics functions type used
-				if (lookupSelector(_segMan, rmObjAddr, SELECTOR(overlay), NULL, NULL) == kSelectorMethod) {
+				if (lookupSelector(_segMan, rmObjAddr, SELECTOR(overlay), nullptr, nullptr) == kSelectorMethod) {
 					if (!autoDetectGfxFunctionsType()) {
 						warning("Graphics functions detection failed, taking an educated guess");
 
@@ -425,9 +430,9 @@ SciVersion GameFeatures::detectGfxFunctionsType() {
 				}
 
 				if (!found) {
-					// No method of the Rm object is calling kDrawPic, thus the
-					// game doesn't have overlays and is using older graphics
-					// functions
+					// No method of the Rm object is calling kDrawPic with
+					// 3 or 4 parameters, thus we assume that the game doesn't
+					// have overlays and is using older graphics functions.
 					_gfxFunctionsType = SCI_VERSION_0_EARLY;
 				}
 			}
@@ -561,7 +566,6 @@ bool GameFeatures::supportsSpeechWithSubtitles() const {
 	case GID_LAURABOW2:
 	case GID_KQ6:
 #ifdef ENABLE_SCI32
-	// TODO: SCI3
 	case GID_GK1:
 	case GID_KQ7:
 	case GID_LSL6HIRES:
@@ -582,7 +586,6 @@ bool GameFeatures::audioVolumeSyncUsesGlobals() const {
 	switch (g_sci->getGameId()) {
 	case GID_GK1:
 	case GID_GK2:
-	case GID_HOYLE5:
 	case GID_LSL6:
 	case GID_LSL6HIRES:
 	case GID_LSL7:
@@ -591,6 +594,9 @@ bool GameFeatures::audioVolumeSyncUsesGlobals() const {
 	case GID_RAMA:
 	case GID_TORIN:
 		return true;
+	case GID_HOYLE5:
+		// Hoyle school house math does not use a volume global
+		return !g_sci->getResMan()->testResource(ResourceId(kResourceTypeView, 21));
 	default:
 		return false;
 	}
@@ -607,7 +613,6 @@ MessageTypeSyncStrategy GameFeatures::getMessageTypeSyncStrategy() const {
 
 #ifdef ENABLE_SCI32
 	switch (g_sci->getGameId()) {
-	// TODO: SCI3
 	case GID_GK1:
 	case GID_PQ4:
 	case GID_QFG4:
@@ -617,7 +622,6 @@ MessageTypeSyncStrategy GameFeatures::getMessageTypeSyncStrategy() const {
 	case GID_LSL7:
 	case GID_MOTHERGOOSEHIRES:
 	case GID_PHANTASMAGORIA:
-	case GID_SQ6:
 	case GID_TORIN:
 		return kMessageTypeSyncStrategyDefault;
 
@@ -626,6 +630,13 @@ MessageTypeSyncStrategy GameFeatures::getMessageTypeSyncStrategy() const {
 
 	case GID_SHIVERS:
 		return kMessageTypeSyncStrategyShivers;
+
+	case GID_SQ6:
+		// don't sync the early demos; they are speechless and
+		// require the message type global to remain unchanged.
+		return (g_sci->isDemo() && getSciVersion() < SCI_VERSION_2_1_MIDDLE) ?
+			kMessageTypeSyncStrategyNone :
+			kMessageTypeSyncStrategyDefault;
 
 	case GID_GK2:
 	case GID_PQSWAT:
@@ -847,6 +858,108 @@ bool GameFeatures::hasScriptObjectNames() const {
 	
 	default:
 		return true;
+	}
+}
+
+bool GameFeatures::canSaveFromGMM() const {
+	switch (g_sci->getGameId()) {
+	// ==== Demos/mini-games with no saving functionality ====
+	case GID_ASTROCHICKEN:
+	case GID_CHEST:
+	case GID_CHRISTMAS1988:
+	case GID_CHRISTMAS1990:
+	case GID_CHRISTMAS1992:
+	case GID_CNICK_KQ:
+	case GID_CNICK_LAURABOW:
+	case GID_CNICK_LONGBOW:
+	case GID_CNICK_LSL:
+	case GID_CNICK_SQ:
+	case GID_FUNSEEKER:
+	case GID_INNDEMO:
+	case GID_KQUESTIONS:
+	case GID_MSASTROCHICKEN:
+	// ==== Games with a different saving scheme =============
+	case GID_HOYLE1:
+	case GID_HOYLE2:
+	case GID_HOYLE3:
+	case GID_HOYLE4:
+	case GID_HOYLE5:
+	case GID_JONES:
+	case GID_MOTHERGOOSE:
+	case GID_MOTHERGOOSE256:
+	case GID_MOTHERGOOSEHIRES:
+	case GID_PHANTASMAGORIA:
+	case GID_RAMA:
+	case GID_SLATER:
+		return false;
+	default:
+		return true;
+	}
+}
+
+uint16 GameFeatures::getGameFlagsGlobal() const {
+	Common::Platform platform = g_sci->getPlatform();
+	switch (g_sci->getGameId()) {
+	case GID_CAMELOT: return 250;
+	case GID_CASTLEBRAIN: return 250;
+	case GID_ECOQUEST: return (getSciVersion() == SCI_VERSION_1_1) ? 152 : 150;
+	case GID_ECOQUEST2: return 110;
+	case GID_FAIRYTALES: return 250;
+	case GID_FREDDYPHARKAS: return 186;
+	case GID_GK1: return 127;
+	case GID_GK2: return 150;
+	// ICEMAN uses object properties
+	case GID_ISLANDBRAIN: return 250;
+	case GID_KQ1: return 150;
+	// KQ4 has no flags
+	case GID_KQ5: return 129;
+	case GID_KQ6: return 137;
+	case GID_KQ7: return 127;
+	case GID_LAURABOW: return 440;
+	case GID_LAURABOW2: return 186;
+	case GID_LIGHTHOUSE: return 116;
+	case GID_LONGBOW: return 200;
+	case GID_LSL1: return 111;
+	// LSL2 has no flags
+	case GID_LSL3: return 111;
+	case GID_LSL5: return 186;
+	case GID_LSL6: return 137;
+	// LSL6HIRES uses a flags object
+	case GID_PEPPER: return 134;
+	case GID_PHANTASMAGORIA: return 250;
+	case GID_PHANTASMAGORIA2: return 101;
+	case GID_PQ1: return 134;
+	case GID_PQ2: return (platform != Common::kPlatformPC98) ? 250 : 245;
+	case GID_PQ3: return 165;
+	// PQ4 uses object properties
+	case GID_PQSWAT: return 150;
+	case GID_QFG1: return 350;
+	case GID_QFG1VGA: return 290;
+	case GID_QFG2: return 700;
+	case GID_QFG3: return 500;
+	case GID_QFG4: return 500;
+	case GID_RAMA: return 300;
+	case GID_SHIVERS: return 209;
+	case GID_SQ1: return 118;
+	case GID_SQ4: return 114;
+	case GID_SQ5: return 183;
+	case GID_SQ6: return 250;
+	// TORIN uses a flags object
+	default: return 0;
+	}
+}
+
+bool GameFeatures::isGameFlagBitOrderNormal() const {
+	// Most games store flags in reverse bit order
+	switch (g_sci->getGameId()) {
+	case GID_KQ5:
+	case GID_LAURABOW:
+	case GID_PEPPER:
+	case GID_PQ1:
+	case GID_PQ3:
+		return true;
+	default:
+		return false;
 	}
 }
 

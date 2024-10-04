@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -62,8 +61,9 @@ void CruAvatarMoverProcess::run() {
 	if (!avatar)
 		return;
 
-	// When not in combat the angle is kept as -1
-	if (avatar->isInCombat()) {
+	// When in combat and not running, update the angle.
+	// Otherwise, angle is kept as -1 and direction is just actor dir.
+	if (avatar->isInCombat() && (avatar->getLastAnim() != Animation::run)) {
 		if (_avatarAngle < 0) {
 			_avatarAngle = Direction_ToCentidegrees(avatar->getDir());
 		}
@@ -138,8 +138,63 @@ static bool _isAnimRunningJumping(Animation::Sequence anim) {
 }
 
 static bool _isAnimStartRunning(Animation::Sequence anim) {
-	return (anim == Animation::startRun || anim == Animation::startRunSmallWeapon ||
-			anim == Animation::startRunLargeWeapon);
+	return (anim == Animation::startRun || anim == Animation::startRunSmallWeapon /*||
+			// don't test this as it overlaps with kneel :(
+			anim == Animation::startRunLargeWeapon*/);
+}
+
+bool CruAvatarMoverProcess::checkOneShotMove(Direction direction) {
+	Actor *avatar = getControlledActor();
+	MainActor *mainactor = dynamic_cast<MainActor *>(avatar);
+
+	static const MovementFlags oneShotFlags[] = {
+		MOVE_ROLL_LEFT, MOVE_ROLL_RIGHT,
+		MOVE_STEP_LEFT, MOVE_STEP_RIGHT,
+		MOVE_STEP_FORWARD, MOVE_STEP_BACK,
+		MOVE_SHORT_JUMP, MOVE_TOGGLE_CROUCH
+	};
+
+	static const Animation::Sequence oneShotAnims[] = {
+		Animation::combatRollLeft, Animation::combatRollRight,
+		Animation::slideLeft, Animation::slideRight,
+		Animation::advance, Animation::retreat,
+		Animation::jumpForward, Animation::kneelStartCru
+	};
+
+	static const Animation::Sequence oneShotKneelingAnims[] = {
+		Animation::kneelCombatRollLeft, Animation::kneelCombatRollRight,
+		Animation::slideLeft, Animation::slideRight,
+		Animation::kneelingAdvance, Animation::kneelingRetreat,
+		Animation::jumpForward, Animation::kneelEndCru
+	};
+
+	for (int i = 0; i < ARRAYSIZE(oneShotFlags); i++) {
+		if (hasMovementFlags(oneShotFlags[i])) {
+			Animation::Sequence anim = (avatar->isKneeling() ?
+							oneShotKneelingAnims[i] : oneShotAnims[i]);
+
+			// All the animations should finish with gun drawn, *except*
+			// jump which should finish with gun stowed.  For other cases we should
+			// toggle.
+			bool incombat = avatar->isInCombat();
+			bool isjump = (anim == Animation::jumpForward);
+			if (mainactor && (incombat == isjump)) {
+				mainactor->toggleInCombat();
+			}
+
+			clearMovementFlag(oneShotFlags[i]);
+
+			if (anim == Animation::advance || anim == Animation::retreat ||
+				anim == Animation::kneelingAdvance || anim == Animation::kneelingRetreat) {
+				step(anim, direction);
+			} else {
+				avatar->doAnim(anim, direction);
+			}
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void CruAvatarMoverProcess::handleCombatMode() {
@@ -159,6 +214,9 @@ void CruAvatarMoverProcess::handleCombatMode() {
 	_idleTime = 0;
 
 	if (stasis)
+		return;
+
+	if (checkOneShotMove(direction))
 		return;
 
 	if (hasMovementFlags(MOVE_FORWARD)) {
@@ -342,6 +400,9 @@ void CruAvatarMoverProcess::handleNormalMode() {
 	if (stasis)
 		return;
 
+	if (checkOneShotMove(direction))
+		return;
+
 	bool moving = (lastanim == Animation::step || lastanim == Animation::run || lastanim == Animation::walk);
 
 	DirectionMode dirmode = avatar->animDirMode(Animation::step);
@@ -428,15 +489,10 @@ void CruAvatarMoverProcess::step(Animation::Sequence action, Direction direction
 
 		Direction dir_right = Direction_TurnByDelta(direction, 4, dirmode_16dirs);
 		Direction dir_left = Direction_TurnByDelta(direction, -4, dirmode_16dirs);
-		Point3 origpt;
-		avatar->getLocation(origpt);
+		Point3 origpt = avatar->getLocation();
 
 		int32 dims[3];
 		avatar->getFootpadWorld(dims[0], dims[1], dims[2]);
-		int32 start[3];
-		start[0] = origpt.x;
-		start[1] = origpt.y;
-		start[2] = origpt.z;
 
 		// Double the values in original to match our coordinate space
 		static const int ADJUSTMENTS[] = {0x20, 0x20, 0x40, 0x40, 0x60, 0x60,
@@ -456,12 +512,9 @@ void CruAvatarMoverProcess::step(Animation::Sequence action, Direction direction
 			//
 			bool startvalid = true;
 			Std::list<CurrentMap::SweepItem> collisions;
-			int32 end[3];
-			end[0] = x;
-			end[1] = y;
-			end[2] = z;
-			avatar->setLocation(origpt.x, origpt.y, origpt.z);
-			currentmap->sweepTest(start, end, dims, avatar->getShapeInfo()->_flags,
+			Point3 end(x, y, z);
+			avatar->setLocation(origpt);
+			currentmap->sweepTest(origpt, end, dims, avatar->getShapeInfo()->_flags,
 								  avatar->getObjId(), true, &collisions);
 			for (Std::list<CurrentMap::SweepItem>::iterator it = collisions.begin();
 				 it != collisions.end(); it++) {
@@ -476,7 +529,7 @@ void CruAvatarMoverProcess::step(Animation::Sequence action, Direction direction
 				res = avatar->tryAnim(testaction, direction);
 				if (res == Animation::SUCCESS) {
 					// move to starting point for real (trigger fast area updates etc)
-					avatar->setLocation(origpt.x, origpt.y, origpt.z);
+					avatar->setLocation(origpt);
 					avatar->move(x, y, z);
 					break;
 				}
@@ -486,7 +539,7 @@ void CruAvatarMoverProcess::step(Animation::Sequence action, Direction direction
 		if (res != Animation::SUCCESS) {
 			// reset location and result (in case it's END_OFF_LAND now)
 			// couldn't find a better move.
-			avatar->setLocation(origpt.x, origpt.y, origpt.z);
+			avatar->setLocation(origpt);
 			res = initialres;
 		}
 	}
@@ -536,7 +589,7 @@ void CruAvatarMoverProcess::tryAttack() {
 	AudioProcess *audio = AudioProcess::get_instance();
 	const WeaponInfo *wpninfo = wpn->getShapeInfo()->_weaponInfo;
 
-	if (avatar->getObjId() != 1) {
+	if (avatar->getObjId() != kMainActorId) {
 		// Non-avatar NPCs never need to reload or run out of energy.
 		Animation::Sequence fireanim = (avatar->isKneeling() ?
 										Animation::kneelAndFire : Animation::attack);
@@ -569,7 +622,7 @@ void CruAvatarMoverProcess::tryAttack() {
 			if (wpninfo->_reloadSound) {
 				audio->playSFX(0x2a, 0x80, avatar->getObjId(), 1);
 			}
-			if (avatar->getObjId() == 1 && !avatar->isKneeling()) {
+			if (avatar->getObjId() == kMainActorId && !avatar->isKneeling()) {
 				avatar->doAnim(Animation::reloadSmallWeapon, dir_current);
 			}
 
@@ -585,7 +638,7 @@ void CruAvatarMoverProcess::tryAttack() {
 			if (wpninfo->_reloadSound) {
 				audio->playSFX(0x2a, 0x80, avatar->getObjId(), 1);
 			}
-			if (avatar->getObjId() == 1) {
+			if (avatar->getObjId() == kMainActorId) {
 				avatar->doAnim(Animation::reloadSmallWeapon, dir_current);
 			}
 			_SGA1Loaded = true;

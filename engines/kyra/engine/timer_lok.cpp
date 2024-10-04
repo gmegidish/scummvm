@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,41 +29,41 @@ namespace Kyra {
 
 void KyraEngine_LoK::setupTimers() {
 	for (int i = 0; i <= 4; ++i)
-		_timer->addTimer(i, 0, -1, 1);
+		_timer->addTimer(i, nullptr, -1, true);
 
-	_timer->addTimer(5, 0,  5, 1);
-	_timer->addTimer(6, 0,  7, 1);
-	_timer->addTimer(7, 0,  8, 1);
-	_timer->addTimer(8, 0,  9, 1);
-	_timer->addTimer(9, 0,  7, 1);
+	_timer->addTimer(5, nullptr, 5, true);
+	_timer->addTimer(6, nullptr, 7, true);
+	_timer->addTimer(7, nullptr, 8, true);
+	_timer->addTimer(8, nullptr, 9, true);
+	_timer->addTimer(9, nullptr, 7, true);
 
 	for (int i = 10; i <= 13; ++i)
-		_timer->addTimer(i, 0, 420, 1);
+		_timer->addTimer(i, nullptr, 420, true);
 
-	_timer->addTimer(14, TimerV1(timerAsWillowispTimeout), 600, 1);
-	_timer->addTimer(15, TimerV1(timerUpdateHeadAnims), 11, 1);
-	_timer->addTimer(16, TimerV1(timerTulipCreator), 7200, 1);
-	_timer->addTimer(17, TimerV1(timerRubyCreator), 7200, 1);
-	_timer->addTimer(18, TimerV1(timerAsInvisibleTimeout), 600, 1);
-	_timer->addTimer(19, TimerV1(timerRedrawAmulet), 600, 1);
+	_timer->addTimer(14, TimerV1(timerAsWillowispTimeout), 600, true);
+	_timer->addTimer(15, TimerV1(timerUpdateHeadAnims), 11, true);
+	_timer->addTimer(16, TimerV1(timerTulipCreator), 7200, true);
+	_timer->addTimer(17, TimerV1(timerRubyCreator), 7200, true);
+	_timer->addTimer(18, TimerV1(timerAsInvisibleTimeout), 600, true);
+	_timer->addTimer(19, TimerV1(timerRedrawAmulet), 600, true);
 
-	_timer->addTimer(20, 0, 7200, 1);
-	_timer->addTimer(21, TimerV1(timerLavenderRoseCreator), 18000, 1);
-	_timer->addTimer(22, 0, 7200, 1);
+	_timer->addTimer(20, nullptr, 7200, true);
+	_timer->addTimer(21, TimerV1(timerLavenderRoseCreator), 18000, true);
+	_timer->addTimer(22, nullptr, 7200, true);
 
-	_timer->addTimer(23, 0, 10800, 1);
-	_timer->addTimer(24, TimerV1(timerAcornCreator), 10800, 1);
-	_timer->addTimer(25, 0, 10800, 1);
-	_timer->addTimer(26, TimerV1(timerBlueberryCreator), 10800, 1);
-	_timer->addTimer(27, 0, 10800, 1);
+	_timer->addTimer(23, nullptr, 10800, true);
+	_timer->addTimer(24, TimerV1(timerAcornCreator), 10800, true);
+	_timer->addTimer(25, nullptr, 10800, true);
+	_timer->addTimer(26, TimerV1(timerBlueberryCreator), 10800, true);
+	_timer->addTimer(27, nullptr, 10800, true);
 
-	_timer->addTimer(28, 0, 21600, 1);
-	_timer->addTimer(29, 0, 7200, 1);
-	_timer->addTimer(30, 0, 10800, 1);
+	_timer->addTimer(28, nullptr, 21600, true);
+	_timer->addTimer(29, nullptr, 7200, true);
+	_timer->addTimer(30, nullptr, 10800, true);
 
-	_timer->addTimer(31, TimerV1(timerFadeText), -1, 1);
-	_timer->addTimer(32, TimerV1(timerWillowispFrameTimer), 9, 1);
-	_timer->addTimer(33, TimerV1(timerInvisibleFrameTimer), 3, 1);
+	_timer->addTimer(31, TimerV1(timerFadeText), -1, true);
+	_timer->addTimer(32, TimerV1(timerWillowispFrameTimer), 9, true);
+	_timer->addTimer(33, TimerV1(timerInvisibleFrameTimer), 3, true);
 }
 
 void KyraEngine_LoK::timerUpdateHeadAnims(int timerNum) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -103,7 +102,8 @@ public:
 		kPCSpkr,
 		kPCjr,
 		kAmiga,
-		kSegaCD
+		kSegaCD,
+		kMac
 	};
 
 	virtual kType getMusicType() const = 0;
@@ -165,18 +165,18 @@ public:
 	 * Load a sound file for playing music
 	 * (and sometimes sound effects) from.
 	 */
-	virtual void loadSoundFile(Common::String file) = 0;
+	virtual void loadSoundFile(const Common::Path &file) = 0;
 
 	/**
 	* Unload a specifc sound file that has been loaded before.
 	*/
-	virtual void unloadSoundFile(Common::String file) {}
+	virtual void unloadSoundFile(const Common::String &file) {}
 
 	/**
 	 * Load a sound file for playing sound
 	 * effects from.
 	 */
-	virtual void loadSfxFile(Common::String file) {}
+	virtual void loadSfxFile(const Common::Path &file) {}
 
 	/**
 	 * Plays the specified track.
@@ -226,7 +226,7 @@ public:
 	*/
 	virtual void pause(bool paused) {}
 
-	void enableMusic(int enable) { _musicEnabled = enable; }
+	virtual void enableMusic(int enable) { _musicEnabled = enable; }
 	int musicEnabled() const { return _musicEnabled; }
 	void enableSFX(bool enable) { _sfxEnabled = enable; }
 	bool sfxEnabled() const { return _sfxEnabled; }
@@ -342,9 +342,9 @@ public:
 	void selectAudioResourceSet(int set) override;
 	bool hasSoundFile(uint file) const override;
 	void loadSoundFile(uint file) override;
-	void loadSoundFile(Common::String file) override;
+	void loadSoundFile(const Common::Path &file) override;
 
-	void loadSfxFile(Common::String file) override;
+	void loadSfxFile(const Common::Path &file) override;
 
 	void playTrack(uint8 track) override;
 	void haltTrack() override;

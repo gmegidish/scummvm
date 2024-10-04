@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "glk/screen.h"
 #include "glk/conf.h"
-#include "common/unzip.h"
+#include "common/compression/unzip.h"
 #include "image/bmp.h"
 #include "graphics/fonts/ttf.h"
 #include "graphics/fontman.h"
@@ -121,16 +120,16 @@ void Screen::loadFonts(Common::Archive *archive) {
 }
 
 const Graphics::Font *Screen::loadFont(FACES face, Common::Archive *archive, double size, double aspect, int style) {
-	Common::File f;
+	Common::File *f = new Common::File();
 	const char *const FILENAMES[8] = {
 		"GoMono-Regular.ttf", "GoMono-Bold.ttf", "GoMono-Italic.ttf", "GoMono-Bold-Italic.ttf",
 		"NotoSerif-Regular.ttf", "NotoSerif-Bold.ttf", "NotoSerif-Italic.ttf", "NotoSerif-Bold-Italic.ttf"
 	};
 
-	if (!f.open(FILENAMES[face], *archive))
+	if (!f->open(FILENAMES[face], *archive))
 		error("Could not load %s from fonts file", FILENAMES[face]);
 
-	return Graphics::loadTTFFont(f, (int)size, Graphics::kTTFSizeModeCharacter);
+	return Graphics::loadTTFFont(f, DisposeAfterUse::YES, (int)size, Graphics::kTTFSizeModeCharacter);
 }
 
 FACES Screen::getFontId(const Common::String &name) {

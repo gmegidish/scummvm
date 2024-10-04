@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "saga/saga.h"
@@ -47,17 +46,37 @@ int SagaEngine::processInput() {
 		}
 
 		switch (event.type) {
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+			switch (event.customType) {
+			case kActionPause:
+				_render->toggleFlag(RF_RENDERPAUSE);
+				break;
+			case kActionAbortSpeech:
+				_actor->abortSpeech();
+				break;
+			case kActionBossKey:
+				_interface->keyBoss();
+				break;
+			case kActionShowDialogue:
+				_interface->draw();
+				break;
+			case kActionOptions:
+				if (_interface->getSaveReminderState() > 0)
+					_interface->setMode(kPanelOption);
+				break;
+			default:
+				_interface->processAscii(event.kbd, event.customType);
+				break;
+			};
+
+			break;
 		case Common::EVENT_KEYDOWN:
 			if (_interface->_textInput || _interface->_statusTextInput) {
-				_interface->processAscii(event.kbd);
+				_interface->processAscii(event.kbd, event.customType);
 				return SUCCESS;
 			}
 
 			switch (event.kbd.keycode) {
-			case Common::KEYCODE_r:
-				_interface->draw();
-				break;
-
 #if 0
 			case Common::KEYCODE_KP_MINUS:
 			case Common::KEYCODE_KP_PLUS:
@@ -87,13 +106,6 @@ int SagaEngine::processInput() {
 			case Common::KEYCODE_F4:
 				_render->toggleFlag(RF_OBJECTMAP_TEST);
 				break;
-#endif
-			case Common::KEYCODE_F5:
-				if (_interface->getSaveReminderState() > 0)
-					_interface->setMode(kPanelOption);
-				break;
-
-#ifdef SAGA_DEBUG
 			case Common::KEYCODE_F6:
 				_render->toggleFlag(RF_ACTOR_PATH_TEST);
 				break;
@@ -103,21 +115,8 @@ int SagaEngine::processInput() {
 			case Common::KEYCODE_F8:
 				break;
 #endif
-
-			case Common::KEYCODE_F9:
-				_interface->keyBoss();
-				break;
-
-			// Actual game keys
-			case Common::KEYCODE_SPACE:
-				_actor->abortSpeech();
-				break;
-			case Common::KEYCODE_PAUSE:
-			case Common::KEYCODE_z:
-				_render->toggleFlag(RF_RENDERPAUSE);
-				break;
 			default:
-				_interface->processAscii(event.kbd);
+				_interface->processAscii(event.kbd, event.customType);
 				break;
 			}
 			break;
@@ -146,6 +145,17 @@ int SagaEngine::processInput() {
 		default:
 			break;
 		}
+
+		Common::Keymapper *keymapper = SagaEngine::getEventManager()->getKeymapper();
+		if (_interface->_textInput || _interface->_statusTextInput) {
+			keymapper->getKeymap("game-shortcuts")->setEnabled(false);
+			keymapper->getKeymap("save-panel")->setEnabled(false);
+		} else {
+			keymapper->getKeymap("game-shortcuts")->setEnabled(true);
+			keymapper->getKeymap("save-panel")->setEnabled(true);
+		}
+
+		enableKeyMap(_interface->getMode());
 	}
 
 	return SUCCESS;

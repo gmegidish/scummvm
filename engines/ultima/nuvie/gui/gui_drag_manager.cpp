@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,17 +29,12 @@
 namespace Ultima {
 namespace Nuvie {
 
-GUI_DragManager::GUI_DragManager(Screen *s) {
-	screen = s;
-
-	message = 0;
-	data = NULL;
-	drag_source = NULL;
-	is_out_of_range = false;
+GUI_DragManager::GUI_DragManager(Screen *s): screen(s), message(0),
+		data(nullptr), drag_source(nullptr), is_out_of_range(false) {
 }
 
 GUI_status GUI_DragManager::start_drag(GUI_DragArea *src, int msg, void *d, unsigned char *icon_buf, uint16 w, uint16 h, uint8 bpp, bool out_of_range) {
-	DEBUG(0, LEVEL_DEBUGGING, "Start Drag\n");
+	DEBUG(false, LEVEL_DEBUGGING, "Start Drag\n");
 
 	drag_source = src;
 	message = msg;
@@ -70,7 +64,7 @@ void GUI_DragManager::drop(GUI_DragArea *drag_target, int x, int y) {
 		drag_source->drag_drop_failed(x, y, message, data);
 
 
-	drag_source = NULL;
+	drag_source = nullptr;
 
 	return;
 }

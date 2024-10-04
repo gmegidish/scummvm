@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/myst3/inventory.h"
-
 #include "engines/myst3/cursor.h"
 #include "engines/myst3/database.h"
 #include "engines/myst3/scene.h"
@@ -43,19 +41,19 @@ const Inventory::ItemData Inventory::_availableItems[8] = {
 Inventory::Inventory(Myst3Engine *vm) :
 		Window(),
 		_vm(vm),
-		_texture(0) {
+		_texture(nullptr) {
 	_scaled = !_vm->isWideScreenModEnabled();
 	initializeTexture();
 }
 
 Inventory::~Inventory() {
-	_vm->_gfx->freeTexture(_texture);
+	delete _texture;
 }
 
 void Inventory::initializeTexture() {
 	Graphics::Surface *s = _vm->loadTexture(1204);
 
-	_texture = _vm->_gfx->createTexture(s);
+	_texture = _vm->_gfx->createTexture2D(s);
 
 	s->free();
 	delete s;
@@ -327,7 +325,7 @@ void Inventory::updateCursor() {
 
 DragItem::DragItem(Myst3Engine *vm, uint id):
 		_vm(vm),
-		_texture(0),
+		_texture(nullptr),
 		_frame(1) {
 	// Draw on the whole screen
 	_isConstrainedToWindow = false;
@@ -340,16 +338,16 @@ DragItem::DragItem(Myst3Engine *vm, uint id):
 
 	// Load the movie
 	_movieStream = movieDesc.getData();
-	_bink.setDefaultHighColorFormat(Texture::getRGBAPixelFormat());
 	_bink.loadStream(_movieStream);
+	_bink.setOutputPixelFormat(Texture::getRGBAPixelFormat());
 	_bink.start();
 
 	const Graphics::Surface *frame = _bink.decodeNextFrame();
-	_texture = _vm->_gfx->createTexture(frame);
+	_texture = _vm->_gfx->createTexture2D(frame);
 }
 
 DragItem::~DragItem() {
-	_vm->_gfx->freeTexture(_texture);
+	delete _texture;
 }
 
 void DragItem::drawOverlay() {

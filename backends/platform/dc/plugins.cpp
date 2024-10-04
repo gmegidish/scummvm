@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,14 +29,11 @@
 #include "common/fs.h"
 
 #include "dcloader.h"
-
-extern void draw_solid_quad(float x1, float y1, float x2, float y2,
-			    int c0, int c1, int c2, int c3);
+#include "dcutils.h"
 
 static void drawPluginProgress(const Common::String &filename)
 {
-  ta_sync();
-  void *mark = ta_txmark();
+  TextureStack txstack;
   const char *fn = filename.c_str();
   Label lab1, lab2, lab3;
   char buf[32];
@@ -62,36 +58,7 @@ static void drawPluginProgress(const Common::String &filename)
   lab2.draw(100.0, 190.0, 0xffaaffaa);
   lab3.draw(100.0, 230.0, 0xffffffff);
   ta_commit_frame();
-  ta_sync();
-  ta_txrelease(mark);
 }
-
-extern int getCdState();
-extern "C" {
-  int dummy_cdfs_get_volume_id(char *, unsigned int) {
-    return -1;
-  }
-  int cdfs_get_volume_id(char *, unsigned int) __attribute__ ((weak, alias ("dummy_cdfs_get_volume_id")));
-}
-
-class DiscLabel {
-private:
-	char buf[32];
-public:
-	DiscLabel() {
-		if (cdfs_get_volume_id(buf, 32) < 0)
-			memset(buf, '*', 32);
-	}
-
-	bool operator==(const DiscLabel &other) const {
-		return !memcmp(buf, other.buf, 32);
-	}
-
-	void get(char *p) const {
-		memcpy(p, buf, 32);
-		p[32] = 0;
-	}
-};
 
 class OSystem_Dreamcast::DCPlugin : public DynamicPlugin {
 protected:
@@ -101,7 +68,7 @@ protected:
 	virtual VoidFunc findSymbol(const char *symbol) {
 		void *func = dlsym(_dlHandle, symbol);
 		if (!func)
-			warning("Failed loading symbol '%s' from plugin '%s' (%s)", symbol, _filename.c_str(), dlerror());
+			warning("Failed loading symbol '%s' from plugin '%s' (%s)", symbol, _filename.toString(Common::Path::kNativeSeparator).c_str(), dlerror());
 
 		// FIXME HACK: This is a HACK to circumvent a clash between the ISO C++
 		// standard and POSIX: ISO C++ disallows casting between function pointers
@@ -116,19 +83,19 @@ protected:
 	void checkDisc(const DiscLabel &);
 
 public:
-	DCPlugin(const Common::String &filename)
+	DCPlugin(const Common::Path &filename)
 		: DynamicPlugin(filename), _dlHandle(0) {}
 
 	bool loadPlugin() {
 		assert(!_dlHandle);
 		DiscLabel original;
 		checkDisc(_label);
-		drawPluginProgress(_filename);
-		_dlHandle = dlopen(_filename.c_str(), RTLD_LAZY);
+		drawPluginProgress(_filename.toString(Common::Path::kNativeSeparator));
+		_dlHandle = dlopen(_filename.toString(Common::Path::kNativeSeparator).c_str(), RTLD_LAZY);
 
 		if (!_dlHandle) {
 			checkDisc(original);
-			warning("Failed loading plugin '%s' (%s)", _filename.c_str(), dlerror());
+			warning("Failed loading plugin '%s' (%s)", _filename.toString(Common::Path::kNativeSeparator).c_str(), dlerror());
 			return false;
 		}
 
@@ -145,7 +112,7 @@ public:
 		DynamicPlugin::unloadPlugin();
 		if (_dlHandle) {
 			if (dlclose(_dlHandle) != 0)
-				warning("Failed unloading plugin '%s' (%s)", _filename.c_str(), dlerror());
+				warning("Failed unloading plugin '%s' (%s)", _filename.toString(Common::Path::kNativeSeparator).c_str(), dlerror());
 			_dlHandle = 0;
 		}
 	}
@@ -158,33 +125,11 @@ void OSystem_Dreamcast::DCPlugin::checkDisc(const DiscLabel &target)
     if (current == target)
 	return;
 
-    Label lab;
-    int wasopen = 0;
-    ta_sync();
-    void *mark = ta_txmark();
     char buf[32+24];
-    strcpy(buf, "Please insert disc '");
+    Common::strcpy_s(buf, "Please insert disc '");
     target.get(buf+strlen(buf));
-    strcat(buf, "'");
-    lab.create_texture(buf);
-    for (;;) {
-      int s = getCdState();
-      if (s >= 6)
-	wasopen = 1;
-      if (s > 0 && s < 6 && wasopen) {
-	cdfs_reinit();
-	chdir("/");
-	chdir("/");
-	ta_sync();
-	ta_txrelease(mark);
-	break;
-      }
-
-      ta_begin_frame();
-      ta_commit_end();
-      lab.draw(100.0, 200.0, 0xffffffff);
-      ta_commit_frame();
-    }
+    Common::strcat_s(buf, "'");
+    DiscSwap(buf, 0xffffffff).run();
   }
 }
 

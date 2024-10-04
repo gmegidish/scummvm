@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -114,33 +113,33 @@ void SetCharacterIdle(int who, int iview, int itime) {
 int GetCharacterWidth(int ww) {
 	CharacterInfo *char1 = &_GP(game).chars[ww];
 
-	if (_G(charextra)[ww].width < 1) {
+	if (_GP(charextra)[ww].width < 1) {
 		if ((char1->view < 0) ||
-		        (char1->loop >= _G(views)[char1->view].numLoops) ||
-		        (char1->frame >= _G(views)[char1->view].loops[char1->loop].numFrames)) {
+		        (char1->loop >= _GP(views)[char1->view].numLoops) ||
+		        (char1->frame >= _GP(views)[char1->view].loops[char1->loop].numFrames)) {
 			debug_script_warn("GetCharacterWidth: Character %s has invalid frame: view %d, loop %d, frame %d", char1->scrname, char1->view + 1, char1->loop, char1->frame);
 			return data_to_game_coord(4);
 		}
 
-		return _GP(game).SpriteInfos[_G(views)[char1->view].loops[char1->loop].frames[char1->frame].pic].Width;
+		return _GP(game).SpriteInfos[_GP(views)[char1->view].loops[char1->loop].frames[char1->frame].pic].Width;
 	} else
-		return _G(charextra)[ww].width;
+		return _GP(charextra)[ww].width;
 }
 
 int GetCharacterHeight(int charid) {
 	CharacterInfo *char1 = &_GP(game).chars[charid];
 
-	if (_G(charextra)[charid].height < 1) {
+	if (_GP(charextra)[charid].height < 1) {
 		if ((char1->view < 0) ||
-		        (char1->loop >= _G(views)[char1->view].numLoops) ||
-		        (char1->frame >= _G(views)[char1->view].loops[char1->loop].numFrames)) {
+		        (char1->loop >= _GP(views)[char1->view].numLoops) ||
+		        (char1->frame >= _GP(views)[char1->view].loops[char1->loop].numFrames)) {
 			debug_script_warn("GetCharacterHeight: Character %s has invalid frame: view %d, loop %d, frame %d", char1->scrname, char1->view + 1, char1->loop, char1->frame);
 			return data_to_game_coord(2);
 		}
 
-		return _GP(game).SpriteInfos[_G(views)[char1->view].loops[char1->loop].frames[char1->frame].pic].Height;
+		return _GP(game).SpriteInfos[_GP(views)[char1->view].loops[char1->loop].frames[char1->frame].pic].Height;
 	} else
-		return _G(charextra)[charid].height;
+		return _GP(charextra)[charid].height;
 }
 
 
@@ -402,7 +401,7 @@ void RunCharacterInteraction(int cc, int mood) {
 	_G(evblocknum) = cc;
 	if (_G(loaded_game_file_version) > kGameVersion_272) {
 		if (passon >= 0)
-			run_interaction_script(_GP(game).charScripts[cc].get(), passon, 4, (passon == 3));
+			run_interaction_script(_GP(game).charScripts[cc].get(), passon, 4);
 		run_interaction_script(_GP(game).charScripts[cc].get(), 4);  // any click on char
 	} else {
 		if (passon >= 0)
@@ -466,7 +465,7 @@ void SetActiveInventory(int iit) {
 
 void update_invorder() {
 	for (int cc = 0; cc < _GP(game).numcharacters; cc++) {
-		_G(charextra)[cc].invorder_count = 0;
+		_GP(charextra)[cc].invorder_count = 0;
 		int ff, howmany;
 		// Iterate through all inv items, adding them once (or multiple
 		// times if requested) to the list.
@@ -476,16 +475,16 @@ void update_invorder() {
 				howmany = 1;
 
 			for (int ts = 0; ts < howmany; ts++) {
-				if (_G(charextra)[cc].invorder_count >= MAX_INVORDER)
+				if (_GP(charextra)[cc].invorder_count >= MAX_INVORDER)
 					quit("!Too many inventory items to display: 500 max");
 
-				_G(charextra)[cc].invorder[_G(charextra)[cc].invorder_count] = ff;
-				_G(charextra)[cc].invorder_count++;
+				_GP(charextra)[cc].invorder[_GP(charextra)[cc].invorder_count] = ff;
+				_GP(charextra)[cc].invorder_count++;
 			}
 		}
 	}
 	// backwards compatibility
-	_GP(play).obsolete_inv_numorder = _G(charextra)[_GP(game).playercharacter].invorder_count;
+	_GP(play).obsolete_inv_numorder = _GP(charextra)[_GP(game).playercharacter].invorder_count;
 	GUI::MarkInventoryForUpdate(_GP(game).playercharacter, true);
 }
 
@@ -495,7 +494,7 @@ void add_inventory(int inum) {
 
 	Character_AddInventory(_G(playerchar), &_G(scrInv)[inum], SCR_NO_VALUE);
 
-	_GP(play).obsolete_inv_numorder = _G(charextra)[_GP(game).playercharacter].invorder_count;
+	_GP(play).obsolete_inv_numorder = _GP(charextra)[_GP(game).playercharacter].invorder_count;
 }
 
 void lose_inventory(int inum) {
@@ -504,7 +503,7 @@ void lose_inventory(int inum) {
 
 	Character_LoseInventory(_G(playerchar), &_G(scrInv)[inum]);
 
-	_GP(play).obsolete_inv_numorder = _G(charextra)[_GP(game).playercharacter].invorder_count;
+	_GP(play).obsolete_inv_numorder = _GP(charextra)[_GP(game).playercharacter].invorder_count;
 }
 
 void AddInventoryToCharacter(int charid, int inum) {
@@ -549,20 +548,19 @@ void DisplaySpeechAt(int xx, int yy, int wii, int aschar, const char *spch) {
 
 int DisplaySpeechBackground(int charid, const char *speel) {
 	// remove any previous background speech for this character
-	int cc;
-	for (cc = 0; cc < _G(numscreenover); cc++) {
-		if (_G(screenover)[cc].bgSpeechForChar == charid) {
-			remove_screen_overlay_index(cc);
-			cc--;
-		}
+	for (size_t i = 0; i < _GP(screenover).size();) {
+		if (_GP(screenover)[i].bgSpeechForChar == charid)
+			remove_screen_overlay_index(i);
+		else
+			i++;
 	}
 
 	int ovrl = CreateTextOverlay(OVR_AUTOPLACE, charid, _GP(play).GetUIViewport().GetWidth() / 2, FONT_SPEECH,
 	                             -_GP(game).chars[charid].talkcolor, get_translation(speel), DISPLAYTEXT_NORMALOVERLAY);
 
 	int scid = find_overlay_of_type(ovrl);
-	_G(screenover)[scid].bgSpeechForChar = charid;
-	_G(screenover)[scid].timeout = GetTextDisplayTime(speel, 1);
+	_GP(screenover)[scid].bgSpeechForChar = charid;
+	_GP(screenover)[scid].timeout = GetTextDisplayTime(speel, 1);
 	return ovrl;
 }
 

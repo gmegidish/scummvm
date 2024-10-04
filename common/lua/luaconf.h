@@ -182,11 +182,7 @@
 #define LUAI_FUNC	static
 #define LUAI_DATA	/* empty */
 
-#elif GCC_ATLEAST(3, 2) && defined(__ELF__)
-/*
-** The PS2 gcc compiler doesn't like the visibility attribute, so
-** we use the normal "extern" definitions in the block below
-*/
+#elif defined(__GNUC__) && defined(__ELF__)
 #define LUAI_FUNC	__attribute__((visibility("hidden"))) extern
 #define LUAI_DATA	LUAI_FUNC
 
@@ -523,7 +519,7 @@
 */
 #define LUA_NUMBER_SCAN		"%lf"
 #define LUA_NUMBER_FMT		"%.14g"
-#define lua_number2str(s,n)	sprintf((s), LUA_NUMBER_FMT, (n))
+#define lua_number2str(s,n)	snprintf((s), LUAI_MAXNUMBER2STR, LUA_NUMBER_FMT, (n))
 #define LUAI_MAXNUMBER2STR	32 /* 16 digits, sign, point, and \0 */
 #define lua_str2number(s,p)	strtod((s), (p))
 
@@ -657,7 +653,7 @@ union luai_Cast { double l_d; long l_l; };
 ** also add -DLUA_USE_DLOPEN.)
 ** If you do not want any kind of dynamic library, undefine all these
 ** options.
-** By default, _WIN32 gets LUA_DL_DLL and MAC OS X gets LUA_DL_DYLD.
+** By default, _WIN32 gets LUA_DL_DLL and macOS gets LUA_DL_DYLD.
 */
 #if defined(LUA_USE_DLOPEN)
 #define LUA_DL_DLOPEN

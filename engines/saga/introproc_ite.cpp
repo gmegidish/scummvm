@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -70,40 +69,97 @@ namespace Saga {
 #define MUSIC_INTRO 9
 #define MUSIC_TITLE_THEME 10
 
-LoadSceneParams ITE_IntroList[] = {
+static LoadSceneParams ITE_IntroListDefault[] = {
 	{RID_ITE_INTRO_ANIM_SCENE, kLoadByResourceId, Scene::SC_ITEIntroAnimProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
 	{RID_ITE_CAVE_SCENE_1, kLoadByResourceId, Scene::SC_ITEIntroCave1Proc, false, kTransitionFade, 0, NO_CHAPTER_CHANGE},
 	{RID_ITE_CAVE_SCENE_2, kLoadByResourceId, Scene::SC_ITEIntroCave2Proc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
 	{RID_ITE_CAVE_SCENE_3, kLoadByResourceId, Scene::SC_ITEIntroCave3Proc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
 	{RID_ITE_CAVE_SCENE_4, kLoadByResourceId, Scene::SC_ITEIntroCave4Proc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
-	{RID_ITE_VALLEY_SCENE, kLoadByResourceId, Scene::SC_ITEIntroValleyProc, false, kTransitionFade, 0, NO_CHAPTER_CHANGE},
+	{RID_ITE_VALLEY_SCENE, (Saga::SceneLoadFlags) (kLoadByResourceId | kLoadBgMaskIsImage), Scene::SC_ITEIntroValleyProc, false, kTransitionFade, 0, NO_CHAPTER_CHANGE},
 	{RID_ITE_TREEHOUSE_SCENE, kLoadByResourceId, Scene::SC_ITEIntroTreeHouseProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
 	{RID_ITE_FAIREPATH_SCENE, kLoadByResourceId, Scene::SC_ITEIntroFairePathProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
-	{RID_ITE_FAIRETENT_SCENE, kLoadByResourceId, Scene::SC_ITEIntroFaireTentProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE}
+	{RID_ITE_FAIRETENT_SCENE, kLoadByResourceId, Scene::SC_ITEIntroFaireTentProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{0, kLoadByResourceId, nullptr, false, kTransitionNoFade, 0, 0}
 };
 
-LoadSceneParams ITE_DOS_Demo_IntroList[] = {
+static const LoadSceneParams ITE_AmigaEnglishECSCD_IntroList[] = {
+	{1544, kLoadByResourceId, Scene::SC_ITEIntroAnimProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1548, kLoadByResourceId, Scene::SC_ITEIntroCave1Proc, false, kTransitionFade, 0, NO_CHAPTER_CHANGE},
+	{1551, kLoadByResourceId, Scene::SC_ITEIntroCave2Proc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1554, kLoadByResourceId, Scene::SC_ITEIntroCave3Proc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1557, kLoadByResourceId, Scene::SC_ITEIntroCave4Proc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1562, (Saga::SceneLoadFlags) (kLoadByResourceId | kLoadBgMaskIsImage), Scene::SC_ITEIntroValleyProc, false, kTransitionFade, 0, NO_CHAPTER_CHANGE},
+	{1566, kLoadByResourceId, Scene::SC_ITEIntroTreeHouseProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1570, kLoadByResourceId, Scene::SC_ITEIntroFairePathProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1573, kLoadByResourceId, Scene::SC_ITEIntroFaireTentProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{0, kLoadByResourceId, nullptr, false, kTransitionNoFade, 0, 0}
+};
+
+static const LoadSceneParams ITE_AmigaGermanAGA_IntroList[] = {
+	{1538, kLoadByResourceId, Scene::SC_ITEIntroAnimProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1543, kLoadByResourceId, Scene::SC_ITEIntroCave1Proc, false, kTransitionFade, 0, NO_CHAPTER_CHANGE},
+	{1547, kLoadByResourceId, Scene::SC_ITEIntroCave2Proc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1551, kLoadByResourceId, Scene::SC_ITEIntroCave3Proc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1555, kLoadByResourceId, Scene::SC_ITEIntroCave4Proc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1560, (Saga::SceneLoadFlags) (kLoadByResourceId | kLoadBgMaskIsImage), Scene::SC_ITEIntroValleyProc, false, kTransitionFade, 0, NO_CHAPTER_CHANGE},
+	{1564, kLoadByResourceId, Scene::SC_ITEIntroTreeHouseProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1568, kLoadByResourceId, Scene::SC_ITEIntroFairePathProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1571, kLoadByResourceId, Scene::SC_ITEIntroFaireTentProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{0, kLoadByResourceId, nullptr, false, kTransitionNoFade, 0, 0}
+};
+
+static const LoadSceneParams ITE_AmigaGermanECS_IntroList[] = {
+	{1544, kLoadByResourceId, Scene::SC_ITEIntroAnimProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1549, kLoadByResourceId, Scene::SC_ITEIntroCave1Proc, false, kTransitionFade, 0, NO_CHAPTER_CHANGE},
+	{1553, kLoadByResourceId, Scene::SC_ITEIntroCave2Proc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1557, kLoadByResourceId, Scene::SC_ITEIntroCave3Proc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1561, kLoadByResourceId, Scene::SC_ITEIntroCave4Proc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1566, (Saga::SceneLoadFlags) (kLoadByResourceId | kLoadBgMaskIsImage), Scene::SC_ITEIntroValleyProc, false, kTransitionFade, 0, NO_CHAPTER_CHANGE},
+	{1570, kLoadByResourceId, Scene::SC_ITEIntroTreeHouseProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1574, kLoadByResourceId, Scene::SC_ITEIntroFairePathProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{1577, kLoadByResourceId, Scene::SC_ITEIntroFaireTentProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
+	{0, kLoadByResourceId, nullptr, false, kTransitionNoFade, 0, 0}
+};
+
+static const LoadSceneParams ITE_DOS_Demo_IntroList[] = {
 	{RID_ITE_INTRO_ANIM_SCENE_DOS_DEMO, kLoadByResourceId, Scene::SC_ITEIntroAnimProc, false, kTransitionNoFade, 0, NO_CHAPTER_CHANGE},
 	{RID_ITE_CAVE_SCENE_DOS_DEMO, kLoadByResourceId, Scene::SC_ITEIntroCaveDemoProc, false, kTransitionFade, 0, NO_CHAPTER_CHANGE},
 	{RID_ITE_VALLEY_SCENE_DOS_DEMO, kLoadByResourceId, Scene::SC_ITEIntroValleyProc, false, kTransitionFade, 0, NO_CHAPTER_CHANGE},
+	{0, kLoadByResourceId, nullptr, false, kTransitionNoFade, 0, 0}
+};
+
+static const LoadSceneParams *ITE_IntroLists[INTROLIST_MAX] = {
+	/* INTROLIST_ITE_NONE */                 nullptr,
+	/* INTROLIST_ITE_DEFAULT */              ITE_IntroListDefault,
+	/* INTROLIST_ITE_AMIGA_ENGLISH_ECS_CD */ ITE_AmigaEnglishECSCD_IntroList,
+	/* INTROLIST_ITE_AMIGA_GERMAN_AGA */     ITE_AmigaGermanAGA_IntroList,
+	/* INTROLIST_ITE_AMIGA_GERMAN_ECS */     ITE_AmigaGermanECS_IntroList,
+	/* INTROLIST_ITE_DOS_DEMO */             ITE_DOS_Demo_IntroList
 };
 
 int Scene::ITEStartProc() {
 	LoadSceneParams firstScene;
 	LoadSceneParams tempScene;
-	bool dosDemo = (_vm->getFeatures() & GF_ITE_DOS_DEMO);
-	int scenesCount = (!dosDemo) ? ARRAYSIZE(ITE_IntroList) : ARRAYSIZE(ITE_DOS_Demo_IntroList);
+	const LoadSceneParams *scenes = nullptr;
 
-	for (int i = 0; i < scenesCount; i++) {
-		tempScene = (!dosDemo) ? ITE_IntroList[i] : ITE_DOS_Demo_IntroList[i];
-		tempScene.sceneDescriptor = _vm->_resource->convertResourceId(tempScene.sceneDescriptor);
-		_vm->_scene->queueScene(tempScene);
+	GameIntroList index = _vm->getIntroList();
+	if (index < INTROLIST_MAX && index > INTROLIST_NONE)
+		scenes = ITE_IntroLists[index];
+
+	if (scenes) {
+		for (int i = 0; scenes[i].sceneDescriptor; i++) {
+			tempScene = scenes[i];
+			tempScene.sceneDescriptor = _vm->_resource->convertResourceId(tempScene.sceneDescriptor);
+			_vm->_scene->queueScene(tempScene);
+		}
+	} else {
+		warning("Missing intro list");
 	}
 
 	firstScene.loadFlag = kLoadBySceneNumber;
 	firstScene.sceneDescriptor = _vm->getStartSceneNumber();
 	firstScene.sceneSkipTarget = true;
-	firstScene.sceneProc = NULL;
+	firstScene.sceneProc = nullptr;
 	firstScene.transitionType = kTransitionFade;
 	firstScene.actorsEntrance = 0;
 	firstScene.chapter = -1;
@@ -257,7 +313,7 @@ EventColumns *Scene::queueCredits(int delta_time, int duration, int n_credits, c
 	TextListEntry textEntry;
 	TextListEntry *entry;
 	Event event;
-	EventColumns *eventColumns = NULL;
+	EventColumns *eventColumns = nullptr;
 
 	textEntry.knownColor = (_vm->getPlatform() == Common::kPlatformPC98) ? kKnownColorBrightWhite : kKnownColorSubtitleTextColor;
 	textEntry.effectKnownColor = (_vm->getPlatform() == Common::kPlatformPC98) ? kKnownColorVerbTextShadow : kKnownColorTransparent;
@@ -352,31 +408,45 @@ int Scene::ITEIntroAnimProc(int param) {
 		debug(3, "Intro animation procedure started.");
 		debug(3, "Linking animation resources...");
 
-		_vm->_anim->setFrameTime(0, INTRO_FRAMETIME);
+		// Some demos lack animations
+		if (_vm->_anim->hasAnimation(0)) {
+			_vm->_anim->setFrameTime(0, INTRO_FRAMETIME);
 
-		// Link this scene's animation resources for continuous
-		// playback
-		int lastAnim;
+			// Link this scene's animation resources for continuous
+			// playback
+			int lastAnim;
 
-		if (hasWyrmkeepCredits || isMultiCD || isDemo)
-			lastAnim = isMac ? 3 : 2;
-		else
-			lastAnim = isMac ? 4 : 5;
+			if (hasWyrmkeepCredits || isMultiCD || isDemo)
+				lastAnim = isMac ? 3 : 2;
+			else
+				lastAnim = isMac ? 4 : 5;
 
-		for (int i = 0; i < lastAnim; i++)
-			_vm->_anim->link(i, i+1);
+			for (int i = 0; i < lastAnim; i++) {
+				if (!_vm->_anim->hasAnimation(i+1)) {
+					lastAnim = i;
+					break;
+				}
+				_vm->_anim->link(i, i+1);
+			}
 
-		_vm->_anim->setFlag(lastAnim, ANIM_FLAG_ENDSCENE);
+			_vm->_anim->setFlag(lastAnim, ANIM_FLAG_ENDSCENE);
 
-		debug(3, "Beginning animation playback.");
+			debug(3, "Beginning animation playback.");
 
-		// Begin the animation
-		event.type = kEvTOneshot;
-		event.code = kAnimEvent;
-		event.op = kEventPlay;
-		event.param = 0;
-		event.time = 0;
-		_vm->_events->chain(eventColumns, event);
+			// Begin the animation
+			event.type = kEvTOneshot;
+			event.code = kAnimEvent;
+			event.op = kEventPlay;
+			event.param = 0;
+			event.time = 0;
+			_vm->_events->chain(eventColumns, event);
+		} else {
+			event.type = kEvTOneshot;
+			event.code = kSceneEvent;
+			event.op = kEventEnd;
+			event.time = 1000;
+			_vm->_events->chain(eventColumns, event);
+		}
 
 		// Queue intro music playback
 		_vm->_events->chainMusic(eventColumns, MUSIC_INTRO, true);
@@ -394,22 +464,9 @@ int Scene::ITEIntroAnimProc(int param) {
 
 int Scene::ITEIntroCaveCommonProc(int param, int caveScene) {
 	Event event;
-	EventColumns *eventColumns = NULL;
+	EventColumns *eventColumns = nullptr;
 	const IntroDialogue *dialogue;
-
-	int lang = 0;
-
-	if (_vm->getLanguage() == Common::DE_DEU)
-		lang = 1;
-	else if (_vm->getLanguage() == Common::IT_ITA)
-		lang = 2;
-	else if (_vm->getLanguage() == Common::FR_FRA)
-		lang = 3;
-	else if (_vm->getLanguage() == Common::JA_JPN)
-		lang = 4;
-	else if (_vm->getLanguage() == Common::RU_RUS)
-		lang = 5;
-
+	int lang = _vm->getLanguageIndex();
 	int n_dialogues = 0;
 
 	switch (caveScene) {
@@ -476,7 +533,7 @@ int Scene::ITEIntroCaveCommonProc(int param, int caveScene) {
 
 int Scene::ITEIntroCaveDemoProc(int param) {
 	Event event;
-	EventColumns *eventColumns = NULL;
+	EventColumns *eventColumns = nullptr;
 
 	switch (param) {
 	case SCENE_BEGIN:

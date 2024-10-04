@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef STARK_RESOURCES_ANIM_H
 #define STARK_RESOURCES_ANIM_H
 
+#include "common/path.h"
 #include "common/rect.h"
 #include "common/str.h"
 
@@ -216,10 +216,10 @@ protected:
 	void printData() override;
 
 	Common::String _field_3C;
-	Common::Array<Common::String> _meshFilenames;
-	Common::String _textureFilename;
+	Common::Array<Common::Path> _meshFilenames;
+	Common::Path _textureFilename;
 	uint32 _movementSpeed;
-	Common::String _archiveName;
+	Common::Path _archiveName;
 
 	VisualProp *_visual;
 };
@@ -257,8 +257,8 @@ protected:
 	/** Update the position of the video for the current frame */
 	void updateSmackerPosition();
 
-	Common::String _smackerFile;
-	Common::String _archiveName;
+	Common::Path _smackerFile;
+	Common::Path _archiveName;
 
 	VisualSmacker *_smacker;
 
@@ -314,8 +314,8 @@ protected:
 	void printData() override;
 
 	bool _castsShadow;
-	Common::String _archiveName;
-	Common::String _animFilename;
+	Common::Path _archiveName;
+	Common::Path _animFilename;
 	bool _loop;
 	uint32 _movementSpeed;
 	uint32 _idleActionFrequency;

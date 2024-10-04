@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -93,6 +92,10 @@ namespace Mohawk {
 #define ID_BMAP MKTAG('B','M','A','P') // Old Mohawk Bitmap
 #define ID_BCOD MKTAG('B','C','O','D') // Book Code
 
+// JamesMath Resource FourCC's
+#define ID_TANM MKTAG('t','A','N','M') // Animation?
+#define ID_TMFO MKTAG('t','M','F','O') // ???
+
 // CSTime Resource FourCC's
 #define ID_CINF MKTAG('C','I','N','F') // Case Info
 #define ID_CONV MKTAG('C','O','N','V') // Conversation
@@ -107,6 +110,10 @@ namespace Mohawk {
 #define ID_ADPC MKTAG('A','D','P','C') // Game Sound Chunk
 #define ID_DATA MKTAG('D','a','t','a') // Game Sound Chunk
 #define ID_CUE  MKTAG('C','u','e','#') // Game Sound Chunk
+
+// Mohawk MIDI Tags
+#define ID_MIDI MKTAG('M','I','D','I') // Game Sound (Third Tag), instead of WAVE
+#define ID_PRG  MKTAG('P','r','g','#') // MIDI Patch
 
 // Common Resource FourCC's
 #define ID_TBMP MKTAG('t','B','M','P') // Standard Mohawk Bitmap
@@ -129,7 +136,7 @@ public:
 	Archive();
 	virtual ~Archive();
 
-	bool openFile(const Common::String &fileName);
+	bool openFile(const Common::Path &fileName);
 	virtual bool openStream(Common::SeekableReadStream *stream) = 0;
 	void close();
 

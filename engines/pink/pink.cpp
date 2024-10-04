@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/debug-channels.h"
-#include "common/winexe_pe.h"
+#include "common/formats/winexe_pe.h"
 #include "common/config-manager.h"
+#include "common/compression/installshield_cab.h"
 
 #include "engines/advancedDetector.h"
 #include "engines/util.h"
@@ -34,19 +34,26 @@
 
 #include "pink/pink.h"
 #include "pink/console.h"
-#include "pink/director.h"
+#include "pink/screen.h"
 #include "pink/objects/module.h"
 #include "pink/objects/actors/lead_actor.h"
 
 namespace Pink {
 
+Graphics::PaletteLookup *g_paletteLookup;
+
 PinkEngine::PinkEngine(OSystem *system, const ADGameDescription *desc)
 	: Engine(system), _rnd("pink"), _exeResources(nullptr),
 	_desc(desc), _bro(nullptr), _menu(nullptr), _actor(nullptr),
-	_module(nullptr), _director(nullptr), _pdaMgr(this) {
+	_module(nullptr), _screen(nullptr), _pdaMgr(this) {
 
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "install");
+
+	g_paletteLookup = new Graphics::PaletteLookup;
+
+	_isPeril = !strcmp(_desc->gameId, kPeril);
+	_isPerilDemo = _isPeril  && (_desc->flags & ADGF_DEMO);
 }
 
 PinkEngine::~PinkEngine() {
@@ -59,7 +66,9 @@ PinkEngine::~PinkEngine() {
 	for (uint j = 0; j < _cursors.size(); ++j) {
 		delete _cursors[j];
 	}
-	delete _director;
+	delete _screen;
+
+	delete g_paletteLookup;
 }
 
 Common::Error PinkEngine::init() {
@@ -67,18 +76,29 @@ Common::Error PinkEngine::init() {
 	initGraphics(640, 480);
 
 	_exeResources = new Common::PEResources();
-	Common::String fileName = isPeril() ? "pptp.exe" : "hpp.exe";
+	Common::Path fileName = isPeril() ? "pptp.exe" : "hpp.exe";
+
+	if ((_desc->flags & GF_COMPRESSED) && isPeril()) {
+		fileName = "pptp.ex_";
+
+		Common::Archive *cabinet = Common::makeInstallShieldArchive("data");
+		if (!cabinet)
+			error("Failed to open the InstallShield cabinet");
+
+		SearchMan.add("data1.cab", cabinet);
+	}
+
 	if (!_exeResources->loadFromEXE(fileName)) {
 		return Common::kNoGameDataFoundError;
 	}
 
 	setDebugger(new Console(this));
-	_director = new Director(this);
+	_screen = new Screen(this);
 
 	initMenu();
 
-	Common::String orbName;
-	Common::String broName;
+	Common::Path orbName;
+	Common::Path broName;
 	if (isPeril()) {
 		orbName = "PPTP.ORB";
 		broName = "PPTP.BRO";
@@ -124,7 +144,7 @@ Common::Error Pink::PinkEngine::run() {
 	while (!shouldQuit()) {
 		Common::Event event;
 		while (_eventMan->pollEvent(event)) {
-			if (_director->processEvent(event))
+			if (_screen->processEvent(event))
 				continue;
 
 			switch (event.type) {
@@ -153,7 +173,7 @@ Common::Error Pink::PinkEngine::run() {
 		}
 
 		_actor->update();
-		_director->update();
+		_screen->update();
 		_system->delayMillis(10);
 	}
 
@@ -166,9 +186,15 @@ void PinkEngine::load(Archive &archive) {
 	_modules.deserialize(archive);
 }
 
-void PinkEngine::initModule(const Common::String &moduleName, const Common::String &pageName, Archive *saveFile) {
+void PinkEngine::initModule(const Common::String moduleName, const Common::String pageName, Archive *saveFile) {
 	if (_module)
 		removeModule();
+
+	if (moduleName == _modules[0]->getName()) {
+		// new game
+		_variables.clear();
+		debugC(6, kPinkDebugGeneral, "Global Game Variables cleared");
+	}
 
 	addModule(moduleName);
 	if (saveFile)
@@ -176,12 +202,12 @@ void PinkEngine::initModule(const Common::String &moduleName, const Common::Stri
 
 	debugC(6, kPinkDebugGeneral, "Module added");
 
-	_module->init(saveFile ? kLoadingSave : kLoadingNewGame, pageName);
+	_module->init(saveFile != nullptr, pageName);
 }
 
 void PinkEngine::changeScene() {
 	setCursor(kLoadingCursor);
-	_director->clear();
+	_screen->clear();
 
 	if (!_nextModule.empty() && _nextModule != _module->getName())
 		initModule(_nextModule, _nextPage, nullptr);
@@ -207,7 +233,7 @@ void PinkEngine::removeModule() {
 	for (uint i = 0; i < _modules.size(); ++i) {
 		if (_module == _modules[i]) {
 			_pdaMgr.close();
-			_modules[i] = new ModuleProxy(_module->getName());
+			_modules[i] = new ModuleProxy(Common::String(_module->getName()));
 			delete _module;
 			_module = nullptr;
 			break;
@@ -269,11 +295,11 @@ void PinkEngine::setCursor(uint cursorIndex) {
 	CursorMan.showMouse(true);
 }
 
-bool PinkEngine::canLoadGameStateCurrently() {
+bool PinkEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return true;
 }
 
-bool PinkEngine::canSaveGameStateCurrently() {
+bool PinkEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return true;
 }
 
@@ -287,11 +313,15 @@ bool PinkEngine::hasFeature(Engine::EngineFeature f) const {
 
 void PinkEngine::pauseEngineIntern(bool pause) {
 	Engine::pauseEngineIntern(pause);
-	_director->pause(pause);
+	_screen->pause(pause);
 }
 
 bool PinkEngine::isPeril() const {
-	return !strcmp(_desc->gameId, kPeril);
+	return _isPeril;
+}
+
+bool PinkEngine::isPerilDemo() const {
+	return _isPerilDemo;
 }
 
 }

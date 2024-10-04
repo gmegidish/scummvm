@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -82,34 +81,38 @@ void AvatarMoverProcess::run() {
 bool AvatarMoverProcess::checkTurn(Direction direction, bool moving) {
 	Actor *avatar = getControlledActor();
 	Direction curdir = avatar->getDir();
-	bool combat = avatar->isInCombat() && !avatar->hasActorFlags(Actor::ACT_COMBATRUN);
+	if (direction == curdir)
+		return false;
 
-	// Note: don't need to turn if moving backward in combat stance
-	// CHECKME: currently, first turn in the right direction
-	if (direction != curdir && !(combat && Direction_Invert(direction) == curdir)) {
-		Animation::Sequence lastanim = avatar->getLastAnim();
-
-		if (moving &&
-				(lastanim == Animation::walk || lastanim == Animation::run ||
-				 lastanim == Animation::combatStand ||
-				 (GAME_IS_CRUSADER && (lastanim == Animation::startRunSmallWeapon ||
-				 lastanim == Animation::combatRunSmallWeapon))) &&
-				(ABS(direction - curdir) + 2) % 16 <= 4) {
-			// don't need to explicitly do a turn animation
-			return false;
-		}
-
-		if (moving && lastanim == Animation::run) {
-			// slow down to a walk first
-			waitFor(avatar->doAnim(Animation::walk, curdir));
-			return true;
-		}
-
+	if (!moving) {
 		turnToDirection(direction);
 		return true;
 	}
 
-	return false;
+	// Do not turn if moving backward in combat stance
+	bool combat = avatar->isInCombat() && !avatar->hasActorFlags(Actor::ACT_COMBATRUN);
+	if (combat && Direction_Invert(direction) == curdir)
+		return false;
+
+	Animation::Sequence lastanim = avatar->getLastAnim();
+
+	// Check if we don't need to explicitly do a turn animation
+	if ((lastanim == Animation::walk || lastanim == Animation::run ||
+		 lastanim == Animation::combatStand ||
+		 (GAME_IS_CRUSADER && (lastanim == Animation::startRunSmallWeapon ||
+							   lastanim == Animation::combatRunSmallWeapon))) &&
+		(ABS(direction - curdir) + 2) % 16 <= 4) {
+		return false;
+	}
+
+	if (lastanim == Animation::run) {
+		// slow down to a walk first
+		waitFor(avatar->doAnim(Animation::walk, curdir));
+		return true;
+	}
+
+	turnToDirection(direction);
+	return true;
 }
 
 void AvatarMoverProcess::turnToDirection(Direction direction) {
@@ -140,7 +143,14 @@ bool AvatarMoverProcess::standUpIfNeeded(Direction direction) {
 
 	if (lastanim == Animation::die || lastanim == Animation::fallBackwards) {
 		if (!stasis) {
-			waitFor(avatar->doAnim(Animation::standUp, direction));
+			ProcId pid = avatar->doAnim(Animation::standUp, direction);
+			if (avatar->hasActorFlags(Actor::ACT_STUNNED)) {
+				avatar->clearActorFlag(Actor::ACT_STUNNED);
+				// Shake head twice
+				pid = avatar->doAnimAfter(Animation::shakeHead, direction, pid);
+				pid = avatar->doAnimAfter(Animation::shakeHead, direction, pid);
+			}
+			waitFor(pid);
 		}
 		return true;
 	}
@@ -179,16 +189,16 @@ void AvatarMoverProcess::onMouseDown(int button, int32 mx, int32 my) {
 	int bid = 0;
 
 	switch (button) {
-	case Shared::BUTTON_LEFT: {
+	case Mouse::BUTTON_LEFT: {
 		bid = 0;
 		break;
 	}
-	case Shared::BUTTON_RIGHT: {
+	case Mouse::BUTTON_RIGHT: {
 		bid = 1;
 		break;
 	}
 	default:
-		CANT_HAPPEN_MSG("invalid MouseDown passed to AvatarMoverProcess");
+		warning("Invalid MouseDown passed to AvatarMoverProcess");
 		break;
 	};
 
@@ -201,17 +211,155 @@ void AvatarMoverProcess::onMouseDown(int button, int32 mx, int32 my) {
 void AvatarMoverProcess::onMouseUp(int button) {
 	int bid = 0;
 
-	if (button == Shared::BUTTON_LEFT) {
+	if (button == Mouse::BUTTON_LEFT) {
 		bid = 0;
-	} else if (button == Shared::BUTTON_RIGHT) {
+	} else if (button == Mouse::BUTTON_RIGHT) {
 		bid = 1;
 	} else {
-		CANT_HAPPEN_MSG("invalid MouseUp passed to AvatarMoverProcess");
+		warning("Invalid MouseUp passed to AvatarMoverProcess");
 	}
 
 	_mouseButton[bid].clearState(MBS_DOWN);
 }
 
+bool AvatarMoverProcess::onActionDown(KeybindingAction action) {
+	bool handled = true;
+	switch (action) {
+	case ACTION_JUMP:
+		setMovementFlag(MOVE_JUMP);
+		break;
+	case ACTION_SHORT_JUMP:
+		setMovementFlag(MOVE_SHORT_JUMP);
+		break;
+	case ACTION_TURN_LEFT:
+		setMovementFlag(MOVE_TURN_LEFT);
+		break;
+	case ACTION_TURN_RIGHT:
+		setMovementFlag(MOVE_TURN_RIGHT);
+		break;
+	case ACTION_MOVE_FORWARD:
+		setMovementFlag(MOVE_FORWARD);
+		break;
+	case ACTION_MOVE_BACK:
+		setMovementFlag(MOVE_BACK);
+		break;
+	case ACTION_MOVE_UP:
+		setMovementFlag(MOVE_UP);
+		break;
+	case ACTION_MOVE_DOWN:
+		setMovementFlag(MOVE_DOWN);
+		break;
+	case ACTION_MOVE_LEFT:
+		setMovementFlag(MOVE_LEFT);
+		break;
+	case ACTION_MOVE_RIGHT:
+		setMovementFlag(MOVE_RIGHT);
+		break;
+	case ACTION_MOVE_RUN:
+		setMovementFlag(MOVE_RUN);
+		break;
+	case ACTION_MOVE_STEP:
+		setMovementFlag(MOVE_STEP);
+		break;
+	case ACTION_ATTACK:
+		setMovementFlag(MOVE_ATTACKING);
+		break;
+	case ACTION_STEP_LEFT:
+		setMovementFlag(MOVE_STEP_LEFT);
+		break;
+	case ACTION_STEP_RIGHT:
+		setMovementFlag(MOVE_STEP_RIGHT);
+		break;
+	case ACTION_STEP_FORWARD:
+		setMovementFlag(MOVE_STEP_FORWARD);
+		break;
+	case ACTION_STEP_BACK:
+		setMovementFlag(MOVE_STEP_BACK);
+		break;
+	case ACTION_ROLL_LEFT:
+		setMovementFlag(MOVE_ROLL_LEFT);
+		break;
+	case ACTION_ROLL_RIGHT:
+		setMovementFlag(MOVE_ROLL_RIGHT);
+		break;
+	case ACTION_TOGGLE_CROUCH:
+		setMovementFlag(MOVE_TOGGLE_CROUCH);
+		break;
+	default:
+		handled = false;
+	}
+	return handled;
+}
+
+bool AvatarMoverProcess::onActionUp(KeybindingAction action) {
+	bool handled = true;
+	switch (action) {
+	case ACTION_JUMP:
+		clearMovementFlag(MOVE_JUMP);
+		break;
+	case ACTION_SHORT_JUMP:
+		// Cleared when handled
+		break;
+	case ACTION_TURN_LEFT:
+		clearMovementFlag(MOVE_TURN_LEFT);
+		break;
+	case ACTION_TURN_RIGHT:
+		clearMovementFlag(MOVE_TURN_RIGHT);
+		break;
+	case ACTION_MOVE_FORWARD:
+		clearMovementFlag(MOVE_FORWARD);
+		break;
+	case ACTION_MOVE_BACK:
+		// Clear both back and forward as avatar turns then moves forward when not in combat
+		clearMovementFlag(MOVE_BACK | MOVE_FORWARD);
+		break;
+	case ACTION_MOVE_UP:
+		clearMovementFlag(MOVE_UP);
+		break;
+	case ACTION_MOVE_DOWN:
+		clearMovementFlag(MOVE_DOWN);
+		break;
+	case ACTION_MOVE_LEFT:
+		clearMovementFlag(MOVE_LEFT);
+		break;
+	case ACTION_MOVE_RIGHT:
+		clearMovementFlag(MOVE_RIGHT);
+		break;
+	case ACTION_MOVE_RUN:
+		clearMovementFlag(MOVE_RUN);
+		break;
+	case ACTION_MOVE_STEP:
+		clearMovementFlag(MOVE_STEP);
+		break;
+	case ACTION_ATTACK:
+		clearMovementFlag(MOVE_ATTACKING);
+		break;
+	case ACTION_STEP_LEFT:
+		// Cleared when handled
+		break;
+	case ACTION_STEP_RIGHT:
+		// Cleared when handled
+		break;
+	case ACTION_STEP_FORWARD:
+		// Cleared when handled
+		break;
+	case ACTION_STEP_BACK:
+		// Cleared when handled
+		break;
+	case ACTION_ROLL_LEFT:
+		// Cleared when handled
+		break;
+	case ACTION_ROLL_RIGHT:
+		// Cleared when handled
+		break;
+	case ACTION_TOGGLE_CROUCH:
+		// Cleared when handled
+		break;
+	default:
+		handled = false;
+	}
+	return handled;
+}
 
 void AvatarMoverProcess::saveData(Common::WriteStream *ws) {
 	Process::saveData(ws);

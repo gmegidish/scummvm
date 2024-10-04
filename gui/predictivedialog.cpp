@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,14 +63,14 @@ enum {
 };
 
 PredictiveDialog::PredictiveDialog() : Dialog("Predictive") {
-	new StaticTextWidget(this, "Predictive.Headline", Common::U32String("Enter Text"));
+	new StaticTextWidget(this, "Predictive.Headline", _("Enter Text"));
 
 	_button[kCancelAct] =  new ButtonWidget(this, "Predictive.Cancel",  _("Cancel")   , Common::U32String(), kCancelCmd);
-	_button[kOkAct] =      new ButtonWidget(this, "Predictive.OK",      _("Ok")       , Common::U32String(), kOkCmd);
+	_button[kOkAct] =      new ButtonWidget(this, "Predictive.OK",      _("OK")       , Common::U32String(), kOkCmd);
 
 	if (g_gui.useRTL()) {
 		/** If using RTL, swap the internal name of odd columns, to be flipped again when drawing.
-			We flip them back to orignal, because the keyboard layout stays the same in LTR & RTL.
+			We flip them back to original, because the keyboard layout stays the same in LTR & RTL.
 			The rest, like okButton, cancel, etc are all flipped.
 		*/
 
@@ -106,8 +105,7 @@ PredictiveDialog::PredictiveDialog() : Dialog("Predictive") {
 #ifndef DISABLE_FANCY_THEMES
 	if (g_gui.xmlEval()->getVar("Globals.Predictive.ShowDeletePic") == 1 && g_gui.theme()->supportsImages()) {
 		_button[kDelAct] = new PicButtonWidget(this, "Predictive.Delete", _("Delete char"), kDelCmd);
-		((PicButtonWidget *)_button[kDelAct])->useThemeTransparency(true);
-		((PicButtonWidget *)_button[kDelAct])->setGfx(g_gui.theme()->getImageSurface(ThemeEngine::kImageDelButton));
+		((PicButtonWidget *)_button[kDelAct])->setGfxFromTheme(ThemeEngine::kImageDelButton);
 	} else
 #endif
 		_button[kDelAct] = new ButtonWidget(this, "Predictive.Delete" , _("<") , Common::U32String(), kDelCmd);
@@ -183,8 +181,7 @@ void PredictiveDialog::reflowLayout() {
 
 	if (g_gui.xmlEval()->getVar("Globals.Predictive.ShowDeletePic") == 1 && g_gui.theme()->supportsImages()) {
 		_button[kDelAct] = new PicButtonWidget(this, "Predictive.Delete", _("Delete char"), kDelCmd);
-		((PicButtonWidget *)_button[kDelAct])->useThemeTransparency(true);
-		((PicButtonWidget *)_button[kDelAct])->setGfx(g_gui.theme()->getImageSurface(ThemeEngine::kImageDelButton));
+		((PicButtonWidget *)_button[kDelAct])->setGfxFromTheme(ThemeEngine::kImageDelButton);
 	} else {
 		_button[kDelAct] = new ButtonWidget(this, "Predictive.Delete" , _("<") , Common::U32String(), kDelCmd);
 	}
@@ -510,8 +507,7 @@ void PredictiveDialog::processButton(ButtonId button) {
 			if (_mode == kModePre && _unitedDict.dictActLine && _numMatchingWords > 1 && _wordNumber != 0)
 				bringWordtoTop(_unitedDict.dictActLine, _wordNumber);
 
-			strncpy(_temp, _currentWord.c_str(), _currentCode.size());
-			_temp[_currentCode.size()] = 0;
+			Common::strcpy_s(_temp, _currentWord.c_str());
 			_prefix += _temp;
 			_prefix += " ";
 			_currentCode.clear();
@@ -565,8 +561,7 @@ void PredictiveDialog::processButton(ButtonId button) {
 				if (_unitedDict.dictActLine && _numMatchingWords > 1) {
 					_wordNumber = (_wordNumber + 1) % _numMatchingWords;
 					char tmp[kMaxLineLen];
-					strncpy(tmp, _unitedDict.dictActLine, kMaxLineLen);
-					tmp[kMaxLineLen - 1] = 0;
+					Common::strlcpy(tmp, _unitedDict.dictActLine, kMaxLineLen);
 					char *tok = strtok(tmp, " ");
 					for (uint8 i = 0; i <= _wordNumber; i++)
 						tok = strtok(nullptr, " ");
@@ -698,8 +693,7 @@ void PredictiveDialog::bringWordtoTop(char *str, int wordnum) {
 
 	if (!str)
 		return;
-	strncpy(buf, str, kMaxLineLen);
-	buf[kMaxLineLen - 1] = 0;
+	Common::strlcpy(buf, str, kMaxLineLen);
 	char *word = strtok(buf, " ");
 	if (!word) {
 		debug(5, "Predictive Dialog: Invalid dictionary line");
@@ -772,8 +766,7 @@ bool PredictiveDialog::matchWord() {
 	_wordNumber = 0;
 	if (0 == strncmp(_unitedDict.dictLine[line], _currentCode.c_str(), _currentCode.size())) {
 		char tmp[kMaxLineLen];
-		strncpy(tmp, _unitedDict.dictLine[line], kMaxLineLen);
-		tmp[kMaxLineLen - 1] = 0;
+		Common::strlcpy(tmp, _unitedDict.dictLine[line], kMaxLineLen);
 		char *tok;
 		strtok(tmp, " ");
 		tok = strtok(nullptr, " ");
@@ -822,10 +815,10 @@ void PredictiveDialog::addWord(Dict &dict, const Common::String &word, const Com
 			newLine = (char *)malloc(newLineSize + 1);
 
 			char *ptr = newLine;
-			strncpy(ptr, dict.dictLine[line], oldLineSize);
+			Common::strcpy_s(ptr, newLineSize + 1, dict.dictLine[line]);
 			ptr += oldLineSize;
-			Common::String tmp = ' ' + word + '\0';
-			strncpy(ptr, tmp.c_str(), tmp.size());
+			Common::String tmp = ' ' + word;
+			Common::strcpy_s(ptr, newLineSize + 1 - oldLineSize, tmp.c_str());
 
 			dict.dictLine[line] = newLine;
 			_memoryList[_numMemory++] = newLine;
@@ -847,7 +840,7 @@ void PredictiveDialog::addWord(Dict &dict, const Common::String &word, const Com
 					int len = (predictLine == _predictiveDict.dictLineCount - 1) ? &_predictiveDict.dictText[_predictiveDict.dictTextSize] - _predictiveDict.dictLine[predictLine] :
 					          _predictiveDict.dictLine[predictLine + 1] - _predictiveDict.dictLine[predictLine];
 					newLine = (char *)malloc(len);
-					strncpy(newLine, _predictiveDict.dictLine[predictLine], len);
+					Common::strlcpy(newLine, _predictiveDict.dictLine[predictLine], len);
 				} else {
 					// if there is no word in predictive dictionary, we need to copy to
 					// user dictionary mathed line + new word.
@@ -855,27 +848,26 @@ void PredictiveDialog::addWord(Dict &dict, const Common::String &word, const Com
 					          _predictiveDict.dictLine[predictLine + 1] - _predictiveDict.dictLine[predictLine];
 					newLine = (char *)malloc(len + word.size() + 1);
 					char *ptr = newLine;
-					strncpy(ptr, _predictiveDict.dictLine[predictLine], len);
+					Common::strlcpy(ptr, _predictiveDict.dictLine[predictLine], len);
 					ptr[len - 1] = ' ';
 					ptr += len;
-					strncpy(ptr, word.c_str(), word.size());
-					ptr[len + word.size()] = '\0';
+					Common::strlcpy(ptr, word.c_str(), word.size() + 1);
 				}
 			} else {
-				// if we didnt find line in predictive dialog, we should copy to user dictionary
+				// if we didn't find line in predictive dialog, we should copy to user dictionary
 				// code + word
 				Common::String tmp;
-				tmp = tmpCode + word + '\0';
-				newLine = (char *)malloc(tmp.size());
-				strncpy(newLine, tmp.c_str(), tmp.size());
+				tmp = tmpCode + word;
+				newLine = (char *)malloc(tmp.size() + 1);
+				Common::strcpy_s(newLine, tmp.size() + 1, tmp.c_str());
 			}
 		} else {
 			// if want to insert line to different from user dictionary, we should copy to this
 			// dictionary code + word
 			Common::String tmp;
-			tmp = tmpCode + word + '\0';
-			newLine = (char *)malloc(tmp.size());
-			strncpy(newLine, tmp.c_str(), tmp.size());
+			tmp = tmpCode + word;
+			newLine = (char *)malloc(tmp.size() + 1);
+			Common::strcpy_s(newLine, tmp.size() + 1, tmp.c_str());
 		}
 	}
 
@@ -992,7 +984,7 @@ void PredictiveDialog::loadAllDictionary(Dict &dict) {
 
 	if (dict.nameDict == "predictive_dictionary") {
 		Common::File *inFile = new Common::File();
-		if (!inFile->open(ConfMan.get(dict.nameDict))) {
+		if (!inFile->open(ConfMan.getPath(dict.nameDict))) {
 			warning("Predictive Dialog: cannot read file: %s", dict.defaultFilename.c_str());
 			delete inFile;
 			return;
@@ -1013,7 +1005,6 @@ void PredictiveDialog::pressEditText() {
 	Common::strlcat(_predictiveResult, _currentWord.c_str(), sizeof(_predictiveResult));
 	_editText->setEditString(Common::convertToU32String(_predictiveResult));
 	//_editText->setCaretPos(_prefix.size() + _currentWord.size());
-	_editText->markAsDirty();
 }
 
 } // namespace GUI

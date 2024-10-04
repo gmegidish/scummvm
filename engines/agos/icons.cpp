@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@ void AGOSEngine::loadIconFile() {
 
 		uint32 dstSize = READ_BE_UINT32(srcBuf + srcSize - 4);
 		_iconFilePtr = (byte *)malloc(dstSize);
-		if (_iconFilePtr == NULL)
+		if (_iconFilePtr == nullptr)
 			error("Out of icon memory");
 
 		decrunchFile(srcBuf, _iconFilePtr, srcSize);
@@ -55,14 +54,14 @@ void AGOSEngine::loadIconFile() {
 	} else if (getGameType() == GType_PN && getPlatform() == Common::kPlatformAtariST) {
 		// The icon data is hard coded in the program file.
 		_iconFilePtr = (byte *)malloc(15038);
-		if (_iconFilePtr == NULL)
+		if (_iconFilePtr == nullptr)
 			error("Out of icon memory");
 
 		in.seek(48414);
 		in.read(_iconFilePtr, 15038);
 	} else {
 		_iconFilePtr = (byte *)malloc(srcSize);
-		if (_iconFilePtr == NULL)
+		if (_iconFilePtr == nullptr)
 			error("Out of icon memory");
 
 		in.read(_iconFilePtr, srcSize);
@@ -77,7 +76,7 @@ void AGOSEngine::loadIconData() {
 	byte *src = vpe->vgaFile2 + READ_LE_UINT32(vpe->vgaFile2 + 8);
 
 	_iconFilePtr = (byte *)malloc(43 * 336);
-	if (_iconFilePtr == NULL)
+	if (_iconFilePtr == nullptr)
 		error("Out of icon memory");
 
 	memcpy(_iconFilePtr, src, 43 * 336);
@@ -90,7 +89,7 @@ static void decompressIconPlanar(byte *dst, byte *src, uint width, uint height, 
 	byte *i, *icon_pln, *o, *srcPtr;
 	byte x, y;
 
-	icon_pln = 0;
+	icon_pln = nullptr;
 	srcPtr = src;
 
 	if (decompress) {
@@ -500,7 +499,7 @@ void AGOSEngine::drawIconArray(uint num, Item *itemRef, int line, int classMask)
 		height = window->height / 3;
 	}
 
-	if (window == NULL)
+	if (window == nullptr)
 		return;
 
 	if (window->iconPtr)
@@ -524,7 +523,7 @@ void AGOSEngine::drawIconArray(uint num, Item *itemRef, int line, int classMask)
 		}
 	}
 
-	if (itemRef == NULL) {
+	if (itemRef == nullptr) {
 		window->iconPtr->line = 0;
 		itemRef = derefItem(item_ptr_org->child);
 	}
@@ -554,7 +553,7 @@ void AGOSEngine::drawIconArray(uint num, Item *itemRef, int line, int classMask)
 				}
 				k++;
 			} else {
-				window->iconPtr->iconArray[k].item = NULL;
+				window->iconPtr->iconArray[k].item = nullptr;
 				showArrows = 1;
 			}
 
@@ -569,7 +568,7 @@ void AGOSEngine::drawIconArray(uint num, Item *itemRef, int line, int classMask)
 		itemRef = derefItem(itemRef->next);
 	}
 
-	window->iconPtr->iconArray[k].item = NULL;
+	window->iconPtr->iconArray[k].item = nullptr;
 
 	if (showArrows != 0 || window->iconPtr->line != 0) {
 		/* Plot arrows and add their boxes */
@@ -1004,7 +1003,7 @@ void AGOSEngine::removeIconArray(uint num) {
 	window = _windowArray[num & 7];
 	curWindow = _curWindow;
 
-	if (window == NULL || window->iconPtr == NULL)
+	if (window == nullptr || window->iconPtr == nullptr)
 		return;
 
 	if (getGameType() != GType_FF && getGameType() != GType_PP) {
@@ -1013,7 +1012,7 @@ void AGOSEngine::removeIconArray(uint num) {
 		changeWindow(curWindow);
 	}
 
-	for (i = 0; window->iconPtr->iconArray[i].item != NULL; i++) {
+	for (i = 0; window->iconPtr->iconArray[i].item != nullptr; i++) {
 		freeBox(window->iconPtr->iconArray[i].boxCode);
 	}
 
@@ -1027,7 +1026,7 @@ void AGOSEngine::removeIconArray(uint num) {
 	}
 
 	free(window->iconPtr);
-	window->iconPtr = NULL;
+	window->iconPtr = nullptr;
 
 	_fcsData1[num] = 0;
 	_fcsData2[num] = 0;
@@ -1075,7 +1074,7 @@ void AGOSEngine_PN::iconPage() {
 	uint8 objRoom = getptr(_quickptr[12] + _variableArray[210] * _quickshort[5] + 20);
 	uint8 iconNum = getptr(_quickptr[0] + objRoom * _quickshort[0] + 4);
 
-	drawIcon(NULL, iconNum, 6, 12);
+	drawIcon(nullptr, iconNum, 6, 12);
 
 	HitArea *ha = _invHitAreas + 5;
 	for (uint8 r = 0; r < 5; r++) {
@@ -1107,7 +1106,7 @@ bool AGOSEngine_PN::testSeen(uint16 a) {
 void AGOSEngine_PN::printIcon(HitArea *ha, uint8 i, uint8 r) {
 	 if (_objects == _objectCountS) {
 		ha->flags |= kOBFBoxDisabled;
-		drawIcon(NULL, 0xFF, 12 + i * 3, 12 + 24 * r);
+		drawIcon(nullptr, 0xFF, 12 + i * 3, 12 + 24 * r);
 	} else {
 		_objectCountS++;
 		if (!ifObjectInInv(_objectCountS) || !testObvious(_objectCountS)) {
@@ -1115,7 +1114,7 @@ void AGOSEngine_PN::printIcon(HitArea *ha, uint8 i, uint8 r) {
 		} else {
 
 			uint8 iconNum = getptr(_quickptr[0] + _objectCountS * _quickshort[0] + 4);
-			drawIcon(NULL, iconNum, 12 + i * 3, 12 + 24 * r);
+			drawIcon(nullptr, iconNum, 12 + i * 3, 12 + 24 * r);
 
 			ha->msg1 = _objectCountS | 0x8000;
 			ha->flags &= ~kOBFBoxDisabled;

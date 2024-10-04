@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,7 +40,7 @@ bool ScriptResourceLoader::isFlag(int flag) {
 // Properties
 
 Properties::Properties()
-	: _count(0), _properties(0) {
+	: _count(0), _properties(nullptr) {
 }
 
 void Properties::init(uint count, byte *properties) {
@@ -100,7 +99,7 @@ void Properties::getProperyPos(uint32 propertyId, uint &index, byte &mask) {
 // BlockCounters
 
 BlockCounters::BlockCounters()
-	: _count(0), _blockCounters(0) {
+	: _count(0), _blockCounters(nullptr) {
 }
 
 void BlockCounters::init(uint count, byte *blockCounters) {
@@ -165,7 +164,7 @@ void TriggerCause::load(Common::SeekableReadStream &stream) {
 // TriggerObject
 
 TriggerObject::TriggerObject()
-	: _causesCount(0), _causes(0) {
+	: _causesCount(0), _causes(nullptr) {
 }
 
 TriggerObject::~TriggerObject() {
@@ -213,8 +212,8 @@ void TriggerObject::fixupSceneInfosDuckman() {
 // SceneInfo
 
 SceneInfo::SceneInfo()
-	: _triggerObjectsCount(0), _triggerObjects(0),
-	_resourcesCount(0), _resources(0) {
+	: _triggerObjectsCount(0), _triggerObjects(nullptr),
+	_resourcesCount(0), _resources(nullptr) {
 }
 
 SceneInfo::~SceneInfo() {
@@ -267,7 +266,7 @@ TriggerObject *SceneInfo::findTriggerObject(uint32 objectId) {
 		if (_triggerObjects[i]._objectId == objectId)
 			return &_triggerObjects[i];
 	}
-	return 0;
+	return nullptr;
 }
 
 void SceneInfo::fixupSceneInfosDuckman() {
@@ -279,11 +278,12 @@ void SceneInfo::fixupSceneInfosDuckman() {
 // ScriptResource
 
 ScriptResource::ScriptResource()
-	: _codeOffsets(0), _objectMap(0) {
+	: _codeOffsets(nullptr), _sceneInfos(nullptr), _objectMap(nullptr)  {
 }
 
 ScriptResource::~ScriptResource() {
 	delete[] _codeOffsets;
+	delete[] _sceneInfos;
 	delete[] _objectMap;
 }
 
@@ -381,7 +381,7 @@ byte *ScriptResource::getCode(uint32 codeOffs) {
 SceneInfo *ScriptResource::getSceneInfo(uint32 index) {
 	if (index > 0 && index <= _sceneInfosCount)
 		return &_sceneInfos[index - 1];
-	return 0;
+	return nullptr;
 }
 
 uint32 ScriptResource::getObjectActorTypeId(uint32 objectId) {
@@ -407,7 +407,7 @@ void ScriptInstance::load(Resource *resource) {
 
 void ScriptInstance::unload() {
 	delete _vm->_scriptResource;
-	_vm->_scriptResource = 0;
+	_vm->_scriptResource = nullptr;
 }
 
 } // End of namespace Illusions

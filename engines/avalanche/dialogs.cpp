@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -707,7 +706,7 @@ void Dialogs::displayText(Common::String text) {
 
 				if (_param == 0)
 					setBubbleStateNatural();
-				else if ((1 <= _param) && (_param <= 9)) {
+				else if (_param <= 9) {
 					assert(_param - 1 < _vm->_animation->kSpriteNumbMax);
 					AnimationType *spr = _vm->_animation->_sprites[_param - 1];
 					if ((_param > _vm->_animation->kSpriteNumbMax) || (!spr->_quick)) { // Not valid.
@@ -715,7 +714,7 @@ void Dialogs::displayText(Common::String text) {
 						setBubbleStateNatural();
 					} else
 						spr->chatter(); // Normal sprite talking routine.
-				} else if ((10 <= _param) && (_param <= 36)) {
+				} else if (_param <= 36) {
 					// Quasi-peds. (This routine performs the same
 					// thing with QPs as triptype.chatter does with the
 					// sprites.)

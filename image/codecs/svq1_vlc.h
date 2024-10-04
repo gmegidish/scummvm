@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -86,12 +85,12 @@ static const uint32 s_svq1IntraMultistageCodes5[8] = {
 	1, 1, 1, 1, 1, 1, 0, 1
 };
 
-static const byte *s_svq1IntraMultistageLengths[6] = {
+static const byte *const s_svq1IntraMultistageLengths[6] = {
 	s_svq1IntraMultistageLengths0, s_svq1IntraMultistageLengths1, s_svq1IntraMultistageLengths2,
 	s_svq1IntraMultistageLengths3, s_svq1IntraMultistageLengths4, s_svq1IntraMultistageLengths5
 };
 
-static const uint32 *s_svq1IntraMultistageCodes[6] = {
+static const uint32 *const s_svq1IntraMultistageCodes[6] = {
 	s_svq1IntraMultistageCodes0, s_svq1IntraMultistageCodes1, s_svq1IntraMultistageCodes2,
 	s_svq1IntraMultistageCodes3, s_svq1IntraMultistageCodes4, s_svq1IntraMultistageCodes5
 };
@@ -144,12 +143,12 @@ static const uint32 s_svq1InterMultistageCodes5[8] = {
 	1, 1, 1, 3, 2, 1, 1, 0
 };
 
-static const byte *s_svq1InterMultistageLengths[6] = {
+static const byte *const s_svq1InterMultistageLengths[6] = {
 	s_svq1InterMultistageLengths0, s_svq1InterMultistageLengths1, s_svq1InterMultistageLengths2,
 	s_svq1InterMultistageLengths3, s_svq1InterMultistageLengths4, s_svq1InterMultistageLengths5
 };
 
-static const uint32 *s_svq1InterMultistageCodes[6] = {
+static const uint32 *const s_svq1InterMultistageCodes[6] = {
 	s_svq1InterMultistageCodes0, s_svq1InterMultistageCodes1, s_svq1InterMultistageCodes2,
 	s_svq1InterMultistageCodes3, s_svq1InterMultistageCodes4, s_svq1InterMultistageCodes5
 };

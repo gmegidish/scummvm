@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@ namespace BladeRunner {
 enum kCT01Loops {
 	kCT01LoopInshotFromCT12WithSpinner = 0, //   0 -  14
 	kCT01LoopInshot                    = 1, //  15 - 194
-	kCT01LoopMainLoop                  = 2, // 195 - 255
+	kCT01LoopMainLoop                  = 2, // 195 - 255 (plays up to 254 due to a bug fix)
 	kCT01LoopDoorAnim                  = 4, // 256 - 315
 	kCT01LoopOutshot                   = 5, // 316 - 435
 	kCT01LoopInshotFromCT12NoSpinner   = 6, // 436 - 450
@@ -484,14 +483,14 @@ void SceneScriptCT01::SceneFrameAdvanced(int frame) {
 	) {
 		int v3 = Random_Query(0, 6);
 		if (v3 == 0) {
-			Overlay_Play("ct01spnr", 0, false, true, 0);
+			Overlay_Play("CT01SPNR", 0, false, true, 0);
 			if (Random_Query(0, 1)) {
 				Ambient_Sounds_Play_Sound(kSfxSPIN2B, Random_Query(33, 50), 0, 0, 0);
 			} else {
 				Ambient_Sounds_Play_Sound(kSfxSPIN2A, Random_Query(33, 50), 0, 0, 0);
 			}
 		} else if (v3 == 1) {
-			Overlay_Play("ct01spnr", 1, false, true, 0);
+			Overlay_Play("CT01SPNR", 1, false, true, 0);
 			if (Random_Query(0, 1)) {
 				Ambient_Sounds_Play_Sound(kSfxSPIN3A, Random_Query(33, 50), 0, 0, 0);
 			} else {

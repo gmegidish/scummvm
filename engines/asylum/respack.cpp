@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -75,7 +74,7 @@ ResourceEntry *ResourceManager::get(ResourceId id) {
 			if (_vm->checkGameVersion("Demo"))
 				pack = new ResourcePack("res.002");
 			else
-				pack = new ResourcePack(Common::String::format("mus.%03d", _musicPackId));
+				pack = new ResourcePack(Common::Path(Common::String::format("mus.%03d", _musicPackId)));
 		} else {
 			if (packId == kResourcePackSharedSound) {
 				if (_vm->checkGameVersion("Demo")) {
@@ -87,7 +86,7 @@ ResourceEntry *ResourceManager::get(ResourceId id) {
 				if (_cdNumber == -1)
 					error("[ResourceManager::get] Cd number has not been set!");
 
-				pack = new ResourcePack(Common::String::format("res.%01d%02d", _cdNumber, packId));
+				pack = new ResourcePack(Common::Path(Common::String::format("res.%01d%02d", _cdNumber, packId)));
 
 				// WORKAROUND to support combined resource packs (used by GOG and Steam versions)
 				if (pack->_packFile.size() == 299872422)
@@ -95,7 +94,7 @@ ResourceEntry *ResourceManager::get(ResourceId id) {
 						if (_cdNumber == patchedSizes[i].cdNumber)
 							pack->_resources[RESOURCE_INDEX(patchedSizes[i].resourceId)].size = patchedSizes[i].size;
 			} else {
-				pack = new ResourcePack(Common::String::format("res.%03d", packId));
+				pack = new ResourcePack(Common::Path(Common::String::format("res.%03d", packId)));
 			}
 		}
 
@@ -120,7 +119,7 @@ void ResourceManager::unload(ResourcePackId id) {
 //////////////////////////////////////////////////////////////////////////
 // ResourcePack
 //////////////////////////////////////////////////////////////////////////
-ResourcePack::ResourcePack(const Common::String &filename) {
+ResourcePack::ResourcePack(const Common::Path &filename) {
 	init(filename);
 }
 
@@ -132,9 +131,9 @@ ResourcePack::~ResourcePack() {
 	_packFile.close();
 }
 
-void ResourcePack::init(const Common::String &filename) {
+void ResourcePack::init(const Common::Path &filename) {
 	if (!_packFile.open(filename))
-		error("[ResourcePack::init] Could not open resource file: %s", filename.c_str());
+		error("[ResourcePack::init] Could not open resource file: %s", filename.toString(Common::Path::kNativeSeparator).c_str());
 
 	uint32 entryCount = _packFile.readUint32LE();
 	_resources.resize(entryCount);
@@ -149,7 +148,7 @@ void ResourcePack::init(const Common::String &filename) {
 		// Read the offset of the next entry to determine the size of this one
 		nextOffset = (i < entryCount - 1) ? _packFile.readUint32LE() : (uint32)_packFile.size();
 		entry.size = (nextOffset > 0) ? nextOffset - prevOffset : (uint32)_packFile.size() - prevOffset;
-		entry.data = NULL;
+		entry.data = nullptr;
 
 		_resources[i] = entry;
 
@@ -159,7 +158,7 @@ void ResourcePack::init(const Common::String &filename) {
 
 ResourceEntry *ResourcePack::get(uint16 index) {
 	if (index > _resources.size() - 1)
-		return NULL;
+		return nullptr;
 
 	if (!_resources[index].data) {
 		// Load the requested resource if it's not loaded already

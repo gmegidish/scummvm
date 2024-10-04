@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,10 @@
 
 namespace Common {
 class File;
+}
+
+namespace Image {
+class ImageDecoder;
 }
 
 namespace Ultima {
@@ -114,7 +117,7 @@ public:
 	bool _xu4Graphic;            /**< an original xu4 graphic not part of u4dos or the VGA upgrade */
 	ImageFixup _fixup;           /**< a routine to do miscellaneous fixes to the image */
 	Image *_image;               /**< the image we're describing */
-	Std::map<Common::String, SubImage *> _subImages;
+	Common::HashMap<Common::String, SubImage *> _subImages;
 
 	bool hasBlackBackground();
 };
@@ -192,8 +195,13 @@ private:
 	 */
 	void update(Settings *newSettings);
 
+	/**
+	 * Create an image decoder for the specified file type.
+	 */
+	::Image::ImageDecoder *createDecoder(const Common::String &fileType, int width, int height, int bpp);
+
 	static ImageMgr *_instance;
-	Std::map<Common::String, ImageSet *> _imageSets;
+	Common::HashMap<Common::String, ImageSet *> _imageSets;
 	Std::vector<Common::String> _imageSetNames;
 	ImageSet *_baseSet;
 	ImageInfo _screenInfo;

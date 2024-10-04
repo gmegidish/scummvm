@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,13 +40,13 @@ static const CoordType kMaxVelocity = 20;
 PlanetMover::PlanetMover() {
 	setScale(kRovingScale);
 	_dropping = false;
-	_planetMovie = 0;
+	_planetMovie = nullptr;
 }
 
 void PlanetMover::startMoving(Movie *planetMovie) {
 	_planetMovie = planetMovie;
 	_p4 = kPlanetStartTop;
-	_r4 = ((PegasusEngine *)g_engine)->getRandomNumber(kMaxVelocity - 1);
+	_r4 = g_vm->getRandomNumber(kMaxVelocity - 1);
 	if (_r4 + _p4 < kPlanetStopTop)
 		_r4 = kPlanetStopTop - _p4;
 	newDestination();
@@ -76,14 +75,14 @@ void PlanetMover::newDestination() {
 	_p1 = _p4;
 	_r1 = _r4;
 
-	_p4 = kPlanetStopTop + ((PegasusEngine *)g_engine)->getRandomNumber(kPlanetStartTop - kPlanetStopTop - 1);
-	_r4 = ((PegasusEngine *)g_engine)->getRandomNumber(kMaxVelocity - 1);
+	_p4 = kPlanetStopTop + g_vm->getRandomNumber(kPlanetStartTop - kPlanetStopTop - 1);
+	_r4 = g_vm->getRandomNumber(kMaxVelocity - 1);
 
 	if (_r4 + _p4 < kPlanetStopTop)
 		_r4 = kPlanetStopTop - _p4;
 
 	stop();
-	_duration = kRovingTime + ((PegasusEngine *)g_engine)->getRandomNumber(kRovingSlop - 1);
+	_duration = kRovingTime + g_vm->getRandomNumber(kRovingSlop - 1);
 	setSegment(0, _duration);
 	setTime(0);
 	start();

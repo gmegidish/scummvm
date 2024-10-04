@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,7 @@ static void decrypt(byte *buffer, uint32 size) {
 	}
 }
 
-bool PtcArchive::open(const Common::String &filename) {
+bool PtcArchive::open(const Common::Path &filename) {
 	_stream = SearchMan.createReadStreamForMember(filename);
 	if (!_stream)
 		return false;
@@ -79,7 +78,7 @@ bool PtcArchive::open(const Common::String &filename) {
 	return true;
 }
 
-bool PtcArchive::openTranslation(const Common::String &filename) {
+bool PtcArchive::openTranslation(const Common::Path &filename) {
 	_stream = SearchMan.createReadStreamForMember(filename);
 	if (!_stream)
 		return false;
@@ -140,7 +139,7 @@ int PtcArchive::listMembers(Common::ArchiveMemberList &list) const {
 	int matches = 0;
 
 	for (FileMap::const_iterator it = _items.begin(); it != _items.end(); ++it) {
-		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(it->_key, this)));
+		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(it->_key, *this)));
 		matches++;
 	}
 
@@ -148,17 +147,16 @@ int PtcArchive::listMembers(Common::ArchiveMemberList &list) const {
 }
 
 const Common::ArchiveMemberPtr PtcArchive::getMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	if (!_items.contains(name)) {
+	if (!hasFile(path)) {
 		Common::ArchiveMemberPtr();
 	}
-	return Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(name, this));
+	return Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(path, *this));
 }
 
 Common::SeekableReadStream *PtcArchive::createReadStreamForMember(const Common::Path &path) const {
 	Common::String name = path.toString();
 	if (!_items.contains(name)) {
-		return 0;
+		return nullptr;
 	}
 
 	debug(8, "PtcArchive::createReadStreamForMember(%s)", name.c_str());
@@ -166,7 +164,7 @@ Common::SeekableReadStream *PtcArchive::createReadStreamForMember(const Common::
 	const FileEntry &entryHeader = _items[name];
 
 	if (entryHeader._size < 4)
-		return 0;
+		return nullptr;
 
 	uint32 size = entryHeader._size;
 

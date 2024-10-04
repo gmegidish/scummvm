@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,21 +30,24 @@
 namespace GUI {
 
 #if defined(USE_CLOUD) && defined(USE_LIBCURL)
-enum SaveLoadCloudSyncProgress {
-	kSavesSyncProgressCmd = 'SSPR',
-	kSavesSyncEndedCmd = 'SSEN'
-};
+class SaveLoadChooserDialog;
 
 class SaveLoadCloudSyncProgressDialog : public Dialog { //protected?
 	StaticTextWidget *_label, *_percentLabel;
 	SliderWidget *_progressBar;
+	SaveLoadChooserDialog *_parent;
 	bool _close;
+	int _pollFrame;
+
 public:
-	SaveLoadCloudSyncProgressDialog(bool canRunInBackground);
+	SaveLoadCloudSyncProgressDialog(bool canRunInBackground, SaveLoadChooserDialog *parent);
 	~SaveLoadCloudSyncProgressDialog() override;
 
 	void handleCommand(CommandSender *sender, uint32 cmd, uint32 data) override;
 	void handleTickle() override;
+
+private:
+	void pollCloudMan();
 };
 #endif
 
@@ -92,7 +94,7 @@ public:
 #endif // !DISABLE_SAVELOADCHOOSER_GRID
 
 	int run(const Common::String &target, const MetaEngine *metaEngine);
-	virtual const Common::U32String &getResultString() const = 0;
+	virtual const Common::U32String getResultString() const = 0;
 
 protected:
 	virtual int runIntern() = 0;
@@ -131,20 +133,25 @@ protected:
 	void addChooserButtons();
 	ButtonWidget *createSwitchButton(const Common::String &name, const Common::U32String &desc, const Common::U32String &tooltip, const char *image, uint32 cmd = 0);
 #endif // !DISABLE_SAVELOADCHOOSER_GRID
+
+#if defined(USE_CLOUD) && defined(USE_LIBCURL)
+	int _pollFrame;
+	bool _didUpdateAfterSync;
+
+	/** If CloudMan is syncing, this will refresh the list of saves. */
+	void pollCloudMan();
+
+	friend class SaveLoadCloudSyncProgressDialog;
+#endif
 };
 
 class SaveLoadChooserSimple : public SaveLoadChooserDialog {
-	typedef Common::String String;
-	typedef Common::Array<Common::String> StringArray;
-
-	typedef Common::U32String U32String;
-	typedef Common::Array<Common::U32String> U32StringArray;
 public:
-	SaveLoadChooserSimple(const U32String &title, const U32String &buttonLabel, bool saveMode);
+	SaveLoadChooserSimple(const Common::U32String &title, const Common::U32String &buttonLabel, bool saveMode);
 
 	void handleCommand(CommandSender *sender, uint32 cmd, uint32 data) override;
 
-	const Common::U32String &getResultString() const override;
+	const Common::U32String getResultString() const override;
 
 	void reflowLayout() override;
 
@@ -200,7 +207,7 @@ public:
 	SaveLoadChooserGrid(const Common::U32String &title, bool saveMode);
 	~SaveLoadChooserGrid() override;
 
-	const Common::U32String &getResultString() const override;
+	const Common::U32String getResultString() const override;
 
 	void open() override;
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,7 +65,7 @@ void _aa_prepare_for_24bpp() {
 /*
  * Add r, g, b values of pixels.
  */
-void _aa_add_rgb8(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num) {
+void _aa_add_rgb8(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num) {
 	unsigned char *sline;
 	int sx, sx1i, sx1f, sx2i, sx2f;
 	int sy, sy1i, sy1f, sy2i, sy2f;
@@ -184,7 +183,7 @@ void _aa_add_rgb8(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned
 }
 
 #ifdef ALLEGRO_COLOR16
-void _aa_add_rgb15(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num) {
+void _aa_add_rgb15(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num) {
 	unsigned short *sline;
 	int sx, sx1i, sx1f, sx2i, sx2f;
 	int sy, sy1i, sy1f, sy2i, sy2f;
@@ -301,7 +300,7 @@ void _aa_add_rgb15(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigne
 	}
 }
 
-void _aa_add_rgb16(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num) {
+void _aa_add_rgb16(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num) {
 	unsigned short *sline;
 	int sx, sx1i, sx1f, sx2i, sx2f;
 	int sy, sy1i, sy1f, sy2i, sy2f;
@@ -420,7 +419,7 @@ void _aa_add_rgb16(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigne
 #endif
 
 #ifdef ALLEGRO_COLOR24
-void _aa_add_rgb24(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num) {
+void _aa_add_rgb24(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num) {
 	unsigned char *sline;
 	int sx, sx1i, sx1f, sx2i, sx2f;
 	int sy, sy1i, sy1f, sy2i, sy2f;
@@ -529,7 +528,7 @@ void _aa_add_rgb24(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigne
 #endif
 
 #ifdef ALLEGRO_COLOR32
-void _aa_add_rgb32(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num) {
+void _aa_add_rgb32(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num) {
 	unsigned int *sline;
 	int sx, sx1i, sx1f, sx2i, sx2f;
 	int sy, sy1i, sy1f, sy2i, sy2f;
@@ -676,13 +675,13 @@ void _aa_put_rgb32(byte *addr, int _x) {
 /*
  * Add masked r, g, b values of pixels.
  */
-void _aa_masked_add_rgb8(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num) {
+void _aa_masked_add_rgb8(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num) {
 	unsigned char *sline;
 	int sx, sx1i, sx1f, sx2i, sx2f;
 	int sy, sy1i, sy1f, sy2i, sy2f;
-	unsigned long r1, g1, b1;
-	unsigned long r2, g2, b2, t2;
-	unsigned long scolor;
+	uint32_t r1, g1, b1;
+	uint32_t r2, g2, b2, t2;
+	uint32_t scolor;
 
 	sy1i = _sy1 >> aa_BITS;
 	sy = sy1i;
@@ -834,7 +833,7 @@ void _aa_masked_add_rgb8(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, u
 }
 
 #ifdef ALLEGRO_COLOR16
-void _aa_masked_add_rgb15(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num) {
+void _aa_masked_add_rgb15(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num) {
 	unsigned short *sline;
 	int sx, sx1i, sx1f, sx2i, sx2f;
 	int sy, sy1i, sy1f, sy2i, sy2f;
@@ -991,7 +990,7 @@ void _aa_masked_add_rgb15(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, 
 		_aa.transparent = 1;
 }
 
-void _aa_masked_add_rgb16(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num) {
+void _aa_masked_add_rgb16(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num) {
 	unsigned short *sline;
 	int sx, sx1i, sx1f, sx2i, sx2f;
 	int sy, sy1i, sy1f, sy2i, sy2f;
@@ -1150,7 +1149,7 @@ void _aa_masked_add_rgb16(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, 
 #endif
 
 #ifdef ALLEGRO_COLOR24
-void _aa_masked_add_rgb24(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num) {
+void _aa_masked_add_rgb24(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num) {
 	unsigned char *sline;
 	int sx, sx1i, sx1f, sx2i, sx2f;
 	int sy, sy1i, sy1f, sy2i, sy2f;
@@ -1372,7 +1371,7 @@ void _aa_masked_add_rgb24(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, 
 #endif
 
 #ifdef ALLEGRO_COLOR32
-void _aa_masked_add_rgb32(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num) {
+void _aa_masked_add_rgb32(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num) {
 	unsigned int *sline;
 	int sx, sx1i, sx1f, sx2i, sx2f;
 	int sy, sy1i, sy1f, sy2i, sy2f;

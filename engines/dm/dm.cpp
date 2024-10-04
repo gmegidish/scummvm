@@ -1,29 +1,28 @@
 /* ScummVM - Graphic Adventure Engine
-*
-* ScummVM is the legal property of its developers, whose names
-* are too numerous to list here. Please refer to the COPYRIGHT
-* file distributed with this source distribution.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2
-* of the License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-*
-*/
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 /*
-* Based on the Reverse Engineering work of Christophe Fontanel,
-* maintainer of the Dungeon Master Encyclopaedia (http://dmweb.free.fr/)
-*/
+ * Based on the Reverse Engineering work of Christophe Fontanel,
+ * maintainer of the Dungeon Master Encyclopaedia (http://dmweb.free.fr/)
+ */
 
 #include "advancedDetector.h"
 
@@ -45,7 +44,6 @@
 #include "engines/engine.h"
 
 #include "graphics/cursorman.h"
-#include "graphics/palette.h"
 #include "graphics/surface.h"
 
 #include "gui/saveload.h"
@@ -143,7 +141,6 @@ DMEngine::DMEngine(OSystem *syst, const DMADGameDescription *desc) :
 	_groupMan = nullptr;
 	_timeline = nullptr;
 	_projexpl = nullptr;
-	_displayMan = nullptr;
 	_sound = nullptr;
 
 	_engineShouldQuit = false;
@@ -228,7 +225,7 @@ Common::Error DMEngine::loadGameState(int slot) {
 	return Common::kNoGameDataFoundError;
 }
 
-bool DMEngine::canLoadGameStateCurrently() {
+bool DMEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return _canLoadFromGMM;
 }
 
@@ -753,7 +750,7 @@ void DMEngine::drawEntrance() {
 	/* Atari ST: { 0x000, 0x333, 0x444, 0x420, 0x654, 0x210, 0x040, 0x050, 0x432, 0x700, 0x543, 0x321, 0x222, 0x555, 0x310, 0x777 }, RGB colors are different */
 	static uint16 palEntrance[16] = {0x000, 0x666, 0x888, 0x840, 0xCA8, 0x0C0, 0x080, 0x0A0, 0x864, 0xF00, 0xA86, 0x642, 0x444, 0xAAA, 0x620, 0xFFF}; // @ G0020_aui_Graphic562_Palette_Entrance
 
-	byte *microDungeonCurrentMapData[32];
+	byte **microDungeonCurrentMapData = new byte*[32];
 
 	_dungeonMan->_partyMapIndex = kDMMapIndexEntrance;
 	_displayMan->_drawFloorAndCeilingRequested = true;
@@ -846,7 +843,7 @@ void DMEngine::drawTittle() {
 	_displayMan->startEndFadeToPalette(blitPalette);
 	_displayMan->fillScreen(kDMColorBlack);
 	// uncomment this to draw 'Presents'
-	//_displayMan->f132_blitToBitmap(L1384_puc_Bitmap_Title, _displayMan->_g348_bitmapScreen, G0005_s_Graphic562_Box_Title_Presents, 0, 137, k160_byteWidthScreen, k160_byteWidthScreen, kM1_ColorNoTransparency, k200_heightScreen, k200_heightScreen);
+	_displayMan->blitToBitmap(bitmapTitle, _displayMan->_bitmapScreen, boxTitlePresents, 0, 137, k160_byteWidthScreen, k160_byteWidthScreen, kDMColorNoTransparency, k200_heightScreen, k200_heightScreen);
 	blitPalette[15] = D09_RGB_WHITE;
 	_displayMan->startEndFadeToPalette(blitPalette);
 	byte *masterStrikesBack = titleSteps;
@@ -1004,7 +1001,8 @@ void DMEngine::fuseSequence() {
 	while (textStringThingCount--) {
 		for (int16 idx = 0; idx < maxCount; idx++) {
 			char decodedString[200];
-			_dungeonMan->decodeText(decodedString, textStringThings[idx], (TextType)(kDMTextTypeMessage | kDMMaskDecodeEvenIfInvisible));
+			_dungeonMan->decodeText(decodedString, sizeof(decodedString),
+					textStringThings[idx], (TextType)(kDMTextTypeMessage | kDMMaskDecodeEvenIfInvisible));
 			if (decodedString[1] == textFirstChar) {
 				_textMan->clearAllRows();
 				decodedString[1] = '\n'; /* New line */

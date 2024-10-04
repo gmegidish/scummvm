@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -89,6 +88,15 @@ void TattooEngine::initialize() {
 void TattooEngine::startScene() {
 	TattooUserInterface &ui = *(TattooUserInterface *)_ui;
 
+	if (_scene->_goToScene == OVERHEAD_MAP || _scene->_goToScene == OVERHEAD_MAP2) {
+		// Show the map
+		_scene->_currentScene = OVERHEAD_MAP;
+		_scene->_goToScene = _map->show();
+
+		_people->_savedPos = Common::Point(-1, -1);
+		_people->_savedPos._facing = -1;
+	}
+
 	switch (_scene->_goToScene) {
 	case 7:
 	case 8:
@@ -96,7 +104,7 @@ void TattooEngine::startScene() {
 	case 53:
 	case 68:
 		// Load overlay mask(s) for the scene
-		ui._mask = _res->load(Common::String::format("res%02d.msk", _scene->_goToScene));
+		ui._mask = _res->load(Common::Path(Common::String::format("res%02d.msk", _scene->_goToScene)));
 		if (_scene->_goToScene == 8)
 			ui._mask1 = _res->load("res08a.msk");
 		else if (_scene->_goToScene == 18 || _scene->_goToScene == 68)
@@ -106,16 +114,6 @@ void TattooEngine::startScene() {
 	case STARTING_INTRO_SCENE:
 		// Disable input so that the intro can't be skipped until the game's logo has been shown
 		ui._lockoutTimer = STARTUP_KEYS_DISABLED_DELAY;
-		break;
-
-	case OVERHEAD_MAP:
-	case OVERHEAD_MAP2:
-		// Show the map
-		_scene->_currentScene = OVERHEAD_MAP;
-		_scene->_goToScene = _map->show();
-
-		_people->_savedPos = Common::Point(-1, -1);
-		_people->_savedPos._facing = -1;
 		break;
 
 	case 101:
@@ -204,12 +202,12 @@ void TattooEngine::saveConfig() {
 	ConfMan.flushToDisk();
 }
 
-bool TattooEngine::canLoadGameStateCurrently() {
+bool TattooEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	TattooUserInterface &ui = *(TattooUserInterface *)_ui;
 	return _canLoadSave && !ui._creditsWidget.active() && !_runningProlog;
 }
 
-bool TattooEngine::canSaveGameStateCurrently() {
+bool TattooEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	TattooUserInterface &ui = *(TattooUserInterface *)_ui;
 	return _canLoadSave && !ui._creditsWidget.active() && !_runningProlog;
 }

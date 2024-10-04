@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -101,7 +100,7 @@
 #include "engines/wintermute/ad/ad_path3d.h"
 #include "engines/wintermute/ad/ad_path_point3d.h"
 #include "engines/wintermute/ad/ad_scene_geometry.h"
-#include "engines/wintermute/base/gfx/x/modelx.h"
+#include "engines/wintermute/base/gfx/xmodel.h"
 #endif
 
 // SystemClass adds these objects to the registry, thus they aren't as leaked as they look
@@ -194,7 +193,7 @@ void SystemClassRegistry::register3DClasses() {
 	REGISTER_CLASS(AdPath3D, false)
 	REGISTER_CLASS(AdPathPoint3D, false)
 	REGISTER_CLASS(AdSceneGeometry, false)
-	REGISTER_CLASS(ModelX, false)
+	REGISTER_CLASS(XModel, false)
 }
 #endif
 

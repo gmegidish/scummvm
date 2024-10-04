@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,13 +37,13 @@ Player_MOD::Player_MOD(Audio::Mixer *mixer)
 		_channels[i].id = 0;
 		_channels[i].vol = 0;
 		_channels[i].freq = 0;
-		_channels[i].input = NULL;
+		_channels[i].input = nullptr;
 		_channels[i].ctr = 0;
 		_channels[i].pos = 0;
 	}
 
-	_playproc = NULL;
-	_playparam = NULL;
+	_playproc = nullptr;
+	_playparam = nullptr;
 
 	_mixer->playStream(Audio::Mixer::kPlainSoundType, &_soundHandle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO, true);
 }
@@ -70,8 +69,8 @@ void Player_MOD::setUpdateProc(ModUpdateProc *proc, void *param, int freq) {
 }
 void Player_MOD::clearUpdateProc() {
 	Common::StackLock lock(_mutex);
-	_playproc = NULL;
-	_playparam = NULL;
+	_playproc = nullptr;
+	_playparam = nullptr;
 	_mixamt = 0;
 }
 
@@ -114,7 +113,7 @@ void Player_MOD::stopChannel(int id) {
 	for (int i = 0; i < MOD_MAXCHANS; i++) {
 		if (_channels[i].id == id) {
 			delete _channels[i].input;
-			_channels[i].input = NULL;
+			_channels[i].input = nullptr;
 			_channels[i].id = 0;
 			_channels[i].vol = 0;
 			_channels[i].freq = 0;
@@ -178,7 +177,7 @@ void Player_MOD::do_mix(int16 *data, uint len) {
 				_mixpos = 0;
 				len -= dlen;
 			} else {
-				_mixpos = len;
+				_mixpos += len;
 				dlen = len;
 				len = 0;
 			}

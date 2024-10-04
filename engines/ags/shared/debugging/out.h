@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -113,8 +112,8 @@ enum MessageType {
 
 // This enumeration is a list of common hard-coded groups, but more could
 // be added via debugging configuration interface (see 'debug/debug.h').
-enum CommonDebugGroup {
-	kDbgGroup_None = -1,
+enum CommonDebugGroup : uint32 {
+	kDbgGroup_None = UINT32_MAX,
 	// Main debug group is for reporting general engine status and issues
 	kDbgGroup_Main = 0,
 	// Game group is for logging game logic state and issues

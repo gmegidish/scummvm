@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,23 +15,119 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ags/lib/std/memory.h"
+#include "common/std/memory.h"
 #include "ags/shared/util/file.h"
 #include "ags/shared/util/ini_util.h"
 #include "ags/shared/util/ini_file.h"
 #include "ags/shared/util/stream.h"
+#include "ags/shared/util/string_utils.h"
 #include "ags/shared/util/text_stream_writer.h"
 
 namespace AGS3 {
 namespace AGS {
 namespace Shared {
 
+//-----------------------------------------------------------------------------
+// ConfigReader
+//-----------------------------------------------------------------------------
+
+bool CfgReadItem(const ConfigTree &cfg, const String &sectn, const String &item, String &value) {
+	const auto sec_it = cfg.find(sectn);
+	if (sec_it != cfg.end()) {
+		const auto item_it = sec_it->_value.find(item);
+		if (item_it != sec_it->_value.end()) {
+			value = item_it->_value;
+			return true;
+		}
+	}
+	return false;
+}
+
+int CfgReadInt(const ConfigTree &cfg, const String &sectn, const String &item, int def) {
+	String str;
+	if (!CfgReadItem(cfg, sectn, item, str))
+		return def;
+	return StrUtil::StringToInt(str, def);
+}
+
+int CfgReadInt(const ConfigTree &cfg, const String &sectn, const String &item, int min, int max, int def) {
+	int val = CfgReadInt(cfg, sectn, item, def);
+	if ((val < min) || (val > max))
+		return def;
+	return val;
+}
+
+float CfgReadFloat(const ConfigTree &cfg, const String &sectn, const String &item, float def) {
+	String str;
+	if (!CfgReadItem(cfg, sectn, item, str))
+		return def;
+	return StrUtil::StringToFloat(str, def);
+}
+
+float CfgReadFloat(const ConfigTree &cfg, const String &sectn, const String &item, float min, float max, float def) {
+	float val = CfgReadFloat(cfg, sectn, item, def);
+	if ((val < min) || (val > max))
+		return def;
+	return val;
+}
+
+String CfgReadString(const ConfigTree &cfg, const String &sectn, const String &item, const String &def) {
+	String str;
+	if (!CfgReadItem(cfg, sectn, item, str))
+		return def;
+	return str;
+}
+
+String CfgFindKey(const ConfigTree &cfg, const String &sectn, const String &item, bool nocase) {
+	const auto sec_it = cfg.find(sectn);
+	if (sec_it == cfg.end())
+		return "";
+	if (nocase) {
+		for (auto item_it : sec_it->_value) {
+			if (item_it._key.CompareNoCase(item) == 0)
+				return item_it._key;
+		}
+	} else {
+		const auto item_it = sec_it->_value.find(item);
+		if (item_it != sec_it->_value.end())
+			return item_it->_key;
+	}
+	return "";
+}
+
+//-----------------------------------------------------------------------------
+// ConfigWriter
+//-----------------------------------------------------------------------------
+
+void CfgWriteInt(ConfigTree &cfg, const String &sectn, const String &item, int value) {
+	cfg[sectn][item].Format("%d", value);
+}
+
+void CfgWriteFloat(ConfigTree &cfg, const String &sectn, const String &item, float value) {
+	cfg[sectn][item].Format("%f", value);
+}
+
+void CfgWriteFloat(ConfigTree &cfg, const String &sectn, const String &item, float value, unsigned precision) {
+	char fmt[10];
+	snprintf(fmt, sizeof(fmt), "%%0.%df", precision);
+	cfg[sectn][item].Format(fmt, value);
+}
+
+void CfgWriteString(ConfigTree &cfg, const String &sectn, const String &item, const String &value) {
+	cfg[sectn][item] = value;
+}
+
+//-----------------------------------------------------------------------------
+// IniUtil
+//-----------------------------------------------------------------------------
+
 typedef std::unique_ptr<Stream>       UStream;
+typedef StringOrderMap::const_iterator StrStrOIter;
+typedef ConfigTree::const_iterator    ConfigNode;
 typedef IniFile::SectionIterator      SectionIterator;
 typedef IniFile::ConstSectionIterator CSectionIterator;
 typedef IniFile::ItemIterator         ItemIterator;

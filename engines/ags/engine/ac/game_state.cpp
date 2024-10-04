@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ags/lib/std/algorithm.h"
+#include "common/std/algorithm.h"
 #include "ags/engine/ac/draw.h"
 #include "ags/shared/ac/game_version.h"
 #include "ags/engine/ac/game_state.h"
@@ -58,7 +57,7 @@ GameState::GameState() {
 	Common::fill(&music_queue[0], &music_queue[MAX_QUEUED_MUSIC], 0);
 	Common::fill(&takeover_from[0], &takeover_from[50], 0);
 	Common::fill(&playmp3file_name[0], &playmp3file_name[PLAYMP3FILE_MAX_FILENAME_LEN], 0);
-	Common::fill(&globalstrings[0][0], &globalstrings[MAXGLOBALSTRINGS][0], 0);
+	Common::fill(&globalstrings[0][0], &globalstrings[MAXGLOBALSTRINGS - 1][MAX_MAXSTRLEN], 0);
 	Common::fill(&lastParserEntry[0], &lastParserEntry[MAX_MAXSTRLEN], 0);
 	Common::fill(&game_name[0], &game_name[100], 0);
 	Common::fill(&default_audio_type_volumes[0], &default_audio_type_volumes[MAX_AUDIO_TYPES], 0);
@@ -68,8 +67,11 @@ GameState::GameState() {
 }
 
 void GameState::Free() {
+	_GP(play).FreeProperties();
+	_GP(play).FreeViewportsAndCameras();
+	do_once_tokens.clear();
 	raw_drawing_surface.reset();
-	FreeProperties();
+	gui_draw_order.clear();
 }
 
 bool GameState::IsAutoRoomViewport() const {
@@ -81,19 +83,27 @@ void GameState::SetAutoRoomViewport(bool on) {
 }
 
 void GameState::SetMainViewport(const Rect &viewport) {
-	_mainViewport.SetRect(viewport);
+	_mainViewport = viewport;
 	_GP(mouse).UpdateGraphicArea();
-	_GP(scsystem).viewport_width = game_to_data_coord(_mainViewport.GetRect().GetWidth());
-	_GP(scsystem).viewport_height = game_to_data_coord(_mainViewport.GetRect().GetHeight());
+	_GP(scsystem).viewport_width = game_to_data_coord(_mainViewport.GetWidth());
+	_GP(scsystem).viewport_height = game_to_data_coord(_mainViewport.GetHeight());
 	_mainViewportHasChanged = true;
 }
 
 const Rect &GameState::GetMainViewport() const {
-	return _mainViewport.GetRect();
+	return _mainViewport;
 }
 
 const Rect &GameState::GetUIViewport() const {
-	return _uiViewport.GetRect();
+	return _uiViewport;
+}
+
+SpriteTransform GameState::GetGlobalTransform(bool full_frame_rend) const {
+	// NOTE: shake_screen is not applied to the sprite batches,
+	// but only as a final render factor (optimization)
+	// TODO: also add global flip to the same transform, instead of passing separately?
+	return SpriteTransform(_mainViewport.Left, _mainViewport.Top +
+												   shake_screen_yoff * static_cast<int>(full_frame_rend));
 }
 
 PViewport GameState::GetRoomViewport(int index) const {
@@ -112,16 +122,12 @@ PViewport GameState::GetRoomViewportAt(int x, int y) const {
 	return nullptr;
 }
 
-Rect GameState::GetUIViewportAbs() const {
-	return Rect::MoveBy(_uiViewport.GetRect(), _mainViewport.GetRect().Left, _mainViewport.GetRect().Top);
-}
-
 Rect GameState::GetRoomViewportAbs(int index) const {
-	return Rect::MoveBy(_roomViewports[index]->GetRect(), _mainViewport.GetRect().Left, _mainViewport.GetRect().Top);
+	return Rect::MoveBy(_roomViewports[index]->GetRect(), _mainViewport.Left, _mainViewport.Top);
 }
 
 void GameState::SetUIViewport(const Rect &viewport) {
-	_uiViewport.SetRect(viewport);
+	_uiViewport = viewport;
 }
 
 static bool ViewportZOrder(const PViewport e1, const PViewport e2) {
@@ -143,7 +149,7 @@ void GameState::UpdateViewports() {
 		}
 		_roomViewportZOrderChanged = false;
 	}
-	size_t vp_changed = (size_t)-1;
+	size_t vp_changed = SIZE_MAX;
 	for (size_t i = _roomViewportsSorted.size(); i-- > 0;) {
 		auto vp = _roomViewportsSorted[i];
 		if (vp->HasChangedSize() || vp->HasChangedPosition() || vp->HasChangedVisible()) {
@@ -152,7 +158,7 @@ void GameState::UpdateViewports() {
 			vp->ClearChangedFlags();
 		}
 	}
-	if (vp_changed != (size_t)-1)
+	if (vp_changed != SIZE_MAX)
 		detect_roomviewport_overlaps(vp_changed);
 	for (auto cam : _roomCameras) {
 		if (cam->HasChangedSize() || cam->HasChangedPosition()) {
@@ -205,17 +211,20 @@ VpPoint GameState::ScreenToRoomImpl(int scrx, int scry, int view_index, bool cli
 	PViewport view;
 	if (view_index < 0) {
 		view = GetRoomViewportAt(scrx, scry);
-		if (!view)
-			return std::make_pair(Point(), -1);
+		if (!view) {
+			if (clip_viewport)
+				return std::make_pair(Point(), -1);
+			view = _roomViewports[0]; // use primary viewport
+		}
 	} else {
 		view = _roomViewports[view_index];
 	}
 	return view->ScreenToRoom(scrx, scry, clip_viewport, convert_cam_to_data);
 }
 
-VpPoint GameState::ScreenToRoom(int scrx, int scry) {
+VpPoint GameState::ScreenToRoom(int scrx, int scry, bool restrict) {
 	if (_GP(game).options[OPT_BASESCRIPTAPI] >= kScriptAPI_v3507)
-		return ScreenToRoomImpl(scrx, scry, -1, true, false);
+		return ScreenToRoomImpl(scrx, scry, -1, restrict, false);
 	return ScreenToRoomImpl(scrx, scry, 0, false, false);
 }
 
@@ -242,10 +251,9 @@ PViewport GameState::CreateRoomViewport() {
 	int index = (int)_roomViewports.size();
 	PViewport viewport(new Viewport());
 	viewport->SetID(index);
-	viewport->SetRect(_mainViewport.GetRect());
-	ScriptViewport *scv = new ScriptViewport(index);
+	viewport->SetRect(_mainViewport);
 	_roomViewports.push_back(viewport);
-	_scViewportRefs.push_back(std::make_pair<ScriptViewport*, int32_t>(scv, 0));
+	_scViewportHandles.push_back(0);
 	_roomViewportsSorted.push_back(viewport);
 	_roomViewportZOrderChanged = true;
 	on_roomviewport_created(index);
@@ -255,32 +263,37 @@ PViewport GameState::CreateRoomViewport() {
 ScriptViewport *GameState::RegisterRoomViewport(int index, int32_t handle) {
 	if (index < 0 || (size_t)index >= _roomViewports.size())
 		return nullptr;
-	auto &scobj = _scViewportRefs[index];
+	auto scview = new ScriptViewport(index);
 	if (handle == 0) {
-		handle = ccRegisterManagedObject(scobj.first, scobj.first);
+		handle = ccRegisterManagedObject(scview, scview);
 		ccAddObjectReference(handle); // one reference for the GameState
 	} else {
-		ccRegisterUnserializedObject(handle, scobj.first, scobj.first);
+		ccRegisterUnserializedObject(handle, scview, scview);
 	}
-	scobj.second = handle;
-	return scobj.first;
+	_scViewportHandles[index] = handle; // save handle for us
+	return scview;
 }
 
 void GameState::DeleteRoomViewport(int index) {
-	// NOTE: viewport 0 can not be deleted
-	if (index <= 0 || (size_t)index >= _roomViewports.size())
+	if (index < 0 || (size_t)index >= _roomViewports.size())
 		return;
-	auto scobj = _scViewportRefs[index];
-	scobj.first->Invalidate();
-	ccReleaseObjectReference(scobj.second);
+	auto handle = _scViewportHandles[index];
+	auto scobj = const_cast<ScriptViewport*>((const ScriptViewport*)ccGetObjectAddressFromHandle(handle));
+	if (scobj) {
+		scobj->Invalidate();
+		ccReleaseObjectReference(handle);
+	}
 	auto cam = _roomViewports[index]->GetCamera();
 	if (cam)
 		cam->UnlinkFromViewport(index);
 	_roomViewports.erase(_roomViewports.begin() + index);
-	_scViewportRefs.erase(_scViewportRefs.begin() + index);
+	_scViewportHandles.erase(_scViewportHandles.begin() + index);
 	for (size_t i = index; i < _roomViewports.size(); ++i) {
 		_roomViewports[i]->SetID(i);
-		_scViewportRefs[i].first->SetID(i);
+		handle = _scViewportHandles[index];
+		scobj = const_cast<ScriptViewport*>((const ScriptViewport*)ccGetObjectAddressFromHandle(handle));
+		if (scobj)
+			scobj->SetID(i);
 	}
 	for (size_t i = 0; i < _roomViewportsSorted.size(); ++i) {
 		if (_roomViewportsSorted[i]->GetID() == index) {
@@ -300,9 +313,8 @@ PCamera GameState::CreateRoomCamera() {
 	PCamera camera(new Camera());
 	camera->SetID(index);
 	camera->SetAt(0, 0);
-	camera->SetSize(_mainViewport.GetRect().GetSize());
-	ScriptCamera *scam = new ScriptCamera(index);
-	_scCameraRefs.push_back(std::make_pair<ScriptCamera*, int32_t>(scam, 0));
+	camera->SetSize(_mainViewport.GetSize());
+	_scCameraHandles.push_back(0);
 	_roomCameras.push_back(camera);
 	return camera;
 }
@@ -310,34 +322,39 @@ PCamera GameState::CreateRoomCamera() {
 ScriptCamera *GameState::RegisterRoomCamera(int index, int32_t handle) {
 	if (index < 0 || (size_t)index >= _roomCameras.size())
 		return nullptr;
-	auto &scobj = _scCameraRefs[index];
+	auto sccamera = new ScriptCamera(index);
 	if (handle == 0) {
-		handle = ccRegisterManagedObject(scobj.first, scobj.first);
+		handle = ccRegisterManagedObject(sccamera, sccamera);
 		ccAddObjectReference(handle); // one reference for the GameState
 	} else {
-		ccRegisterUnserializedObject(handle, scobj.first, scobj.first);
+		ccRegisterUnserializedObject(handle, sccamera, sccamera);
 	}
-	scobj.second = handle;
-	return scobj.first;
+	_scCameraHandles[index] = handle;
+	return sccamera;
 }
 
 void GameState::DeleteRoomCamera(int index) {
-	// NOTE: camera 0 can not be deleted
-	if (index <= 0 || (size_t)index >= _roomCameras.size())
+	if (index < 0 || (size_t)index >= _roomCameras.size())
 		return;
-	auto scobj = _scCameraRefs[index];
-	scobj.first->Invalidate();
-	ccReleaseObjectReference(scobj.second);
+	auto handle = _scCameraHandles[index];
+	auto scobj = const_cast<ScriptCamera*>((const ScriptCamera*)ccGetObjectAddressFromHandle(handle));
+	if (scobj) {
+		scobj->Invalidate();
+		ccReleaseObjectReference(handle);
+	}
 	for (auto &viewref : _roomCameras[index]->GetLinkedViewports()) {
 		auto view = viewref.lock();
 		if (view)
 			view->LinkCamera(nullptr);
 	}
 	_roomCameras.erase(_roomCameras.begin() + index);
-	_scCameraRefs.erase(_scCameraRefs.begin() + index);
+	_scCameraHandles.erase(_scCameraHandles.begin() + index);
 	for (size_t i = index; i < _roomCameras.size(); ++i) {
 		_roomCameras[i]->SetID(i);
-		_scCameraRefs[i].first->SetID(i);
+		handle = _scCameraHandles[index];
+		scobj = const_cast<ScriptCamera*>((const ScriptCamera*)ccGetObjectAddressFromHandle(handle));
+		if (scobj)
+			scobj->SetID(i);
 	}
 }
 
@@ -347,14 +364,14 @@ int GameState::GetRoomCameraCount() const {
 
 ScriptViewport *GameState::GetScriptViewport(int index) {
 	if (index < 0 || (size_t)index >= _roomViewports.size())
-		return NULL;
-	return _scViewportRefs[index].first;
+		return nullptr;
+	return const_cast<ScriptViewport*>((const ScriptViewport*)ccGetObjectAddressFromHandle(_scViewportHandles[index]));
 }
 
 ScriptCamera *GameState::GetScriptCamera(int index) {
 	if (index < 0 || (size_t)index >= _roomCameras.size())
-		return NULL;
-	return _scCameraRefs[index].first;
+		return nullptr;
+	return const_cast<ScriptCamera*>((const ScriptCamera*)ccGetObjectAddressFromHandle(_scCameraHandles[index]));
 }
 
 bool GameState::IsIgnoringInput() const {
@@ -377,11 +394,9 @@ void GameState::SetWaitSkipResult(int how, int data) {
 }
 
 int GameState::GetWaitSkipResult() const {
-	switch (wait_skipped_by) {
-	case SKIP_KEYPRESS: return wait_skipped_by_data;
-	case SKIP_MOUSECLICK: return -(wait_skipped_by_data + 1); // convert to 1-based code and negate
-	default: return 0;
-	}
+	// NOTE: we remove timer flag to make timeout reason = 0
+	return ((wait_skipped_by & ~SKIP_AUTOTIMER) << SKIP_RESULT_TYPE_SHIFT)
+		| (wait_skipped_by_data & SKIP_RESULT_DATA_MASK);
 }
 
 bool GameState::IsBlockingVoiceSpeech() const {
@@ -394,11 +409,12 @@ bool GameState::IsNonBlockingVoiceSpeech() const {
 
 bool GameState::ShouldPlayVoiceSpeech() const {
 	return !_GP(play).fast_forward &&
-	       (_GP(play).want_speech >= 1) && (!_GP(ResPaths).SpeechPak.Name.IsEmpty());
+		(_GP(play).speech_mode != kSpeech_TextOnly) && (_GP(play).voice_avail);
 }
 
-void GameState::ReadFromSavegame(Shared::Stream *in, GameStateSvgVersion svg_ver, RestoredData &r_data) {
+void GameState::ReadFromSavegame(Shared::Stream *in, GameDataVersion data_ver, GameStateSvgVersion svg_ver, RestoredData &r_data) {
 	const bool old_save = svg_ver < kGSSvgVersion_Initial;
+	const bool extended_old_save = old_save && (data_ver >= kGameVersion_340_4);
 	score = in->ReadInt32();
 	usedmode = in->ReadInt32();
 	disabled_user_interface = in->ReadInt32();
@@ -523,8 +539,8 @@ void GameState::ReadFromSavegame(Shared::Stream *in, GameStateSvgVersion svg_ver
 	entered_at_x = in->ReadInt32();
 	entered_at_y = in->ReadInt32();
 	entered_edge = in->ReadInt32();
-	want_speech = in->ReadInt32();
-	cant_skip_speech = in->ReadInt32();
+	speech_mode = (SpeechMode)in->ReadInt32();
+	speech_skip_style = in->ReadInt32();
 	in->ReadArrayOfInt32(script_timers, MAX_TIMERS);
 	sound_volume = in->ReadInt32();
 	speech_volume = in->ReadInt32();
@@ -532,7 +548,7 @@ void GameState::ReadFromSavegame(Shared::Stream *in, GameStateSvgVersion svg_ver
 	speech_font = in->ReadInt32();
 	key_skip_wait = in->ReadInt8();
 	swap_portrait_lastchar = in->ReadInt32();
-	separate_music_lib = in->ReadInt32();
+	separate_music_lib = in->ReadInt32() != 0;
 	in_conversation = in->ReadInt32();
 	screen_tint = in->ReadInt32();
 	num_parsed_words = in->ReadInt32();
@@ -556,7 +572,7 @@ void GameState::ReadFromSavegame(Shared::Stream *in, GameStateSvgVersion svg_ver
 	rtint_blue = in->ReadInt32();
 	rtint_level = in->ReadInt32();
 	rtint_light = in->ReadInt32();
-	if (!old_save || _G(loaded_game_file_version) >= kGameVersion_340_4)
+	if (!old_save || extended_old_save)
 		rtint_enabled = in->ReadBool();
 	else
 		rtint_enabled = rtint_level > 0;
@@ -590,7 +606,7 @@ void GameState::ReadFromSavegame(Shared::Stream *in, GameStateSvgVersion svg_ver
 	in->Read(playmp3file_name, PLAYMP3FILE_MAX_FILENAME_LEN);
 	in->Read(globalstrings, MAXGLOBALSTRINGS * MAX_MAXSTRLEN);
 	in->Read(lastParserEntry, MAX_MAXSTRLEN);
-	in->Read(game_name, 100);
+	StrUtil::ReadCStrCount(game_name, in, MAX_GAME_STATE_NAME_LENGTH);
 	ground_level_areas_disabled = in->ReadInt32();
 	next_screen_transition = in->ReadInt32();
 	in->ReadInt32(); // gamma_adjustment -- do not apply gamma level from savegame
@@ -727,8 +743,8 @@ void GameState::WriteForSavegame(Shared::Stream *out) const {
 	out->WriteInt32(entered_at_x);
 	out->WriteInt32(entered_at_y);
 	out->WriteInt32(entered_edge);
-	out->WriteInt32(want_speech);
-	out->WriteInt32(cant_skip_speech);
+	out->WriteInt32(speech_mode);
+	out->WriteInt32(speech_skip_style);
 	out->WriteArrayOfInt32(script_timers, MAX_TIMERS);
 	out->WriteInt32(sound_volume);
 	out->WriteInt32(speech_volume);
@@ -736,7 +752,7 @@ void GameState::WriteForSavegame(Shared::Stream *out) const {
 	out->WriteInt32(speech_font);
 	out->WriteInt8(key_skip_wait);
 	out->WriteInt32(swap_portrait_lastchar);
-	out->WriteInt32(separate_music_lib);
+	out->WriteInt32(separate_music_lib ? 1 : 0);
 	out->WriteInt32(in_conversation);
 	out->WriteInt32(screen_tint);
 	out->WriteInt32(num_parsed_words);
@@ -782,7 +798,7 @@ void GameState::WriteForSavegame(Shared::Stream *out) const {
 	out->Write(playmp3file_name, PLAYMP3FILE_MAX_FILENAME_LEN);
 	out->Write(globalstrings, MAXGLOBALSTRINGS * MAX_MAXSTRLEN);
 	out->Write(lastParserEntry, MAX_MAXSTRLEN);
-	out->Write(game_name, 100);
+	out->Write(game_name, MAX_GAME_STATE_NAME_LENGTH);
 	out->WriteInt32(ground_level_areas_disabled);
 	out->WriteInt32(next_screen_transition);
 	out->WriteInt32(gamma_adjustment);
@@ -819,21 +835,27 @@ void GameState::FreeProperties() {
 void GameState::FreeViewportsAndCameras() {
 	_roomViewports.clear();
 	_roomViewportsSorted.clear();
-	for (auto &scobj : _scViewportRefs) {
-		scobj.first->Invalidate();
-		ccReleaseObjectReference(scobj.second);
+	for (auto handle : _scViewportHandles) {
+		auto scview = const_cast<ScriptViewport*>((const ScriptViewport*)ccGetObjectAddressFromHandle(handle));
+		if (scview) {
+			scview->Invalidate();
+			ccReleaseObjectReference(handle);
+		}
 	}
-	_scViewportRefs.clear();
+	_scViewportHandles.clear();
 	_roomCameras.clear();
-	for (auto &scobj : _scCameraRefs) {
-		scobj.first->Invalidate();
-		ccReleaseObjectReference(scobj.second);
+	for (auto handle : _scCameraHandles) {
+		auto sccam = const_cast<ScriptCamera*>((const ScriptCamera*)ccGetObjectAddressFromHandle(handle));
+		if (sccam) {
+			sccam->Invalidate();
+			ccReleaseObjectReference(handle);
+		}
 	}
-	_scCameraRefs.clear();
+	_scCameraHandles.clear();
 }
 
-void GameState::ReadCustomProperties_v340(Shared::Stream *in) {
-	if (_G(loaded_game_file_version) >= kGameVersion_340_4) {
+void GameState::ReadCustomProperties_v340(Shared::Stream *in, GameDataVersion data_ver) {
+	if (data_ver >= kGameVersion_340_4) {
 		// After runtime property values were read we also copy missing default,
 		// because we do not keep defaults in the saved game, and also in case
 		// this save is made by an older game version which had different
@@ -845,8 +867,8 @@ void GameState::ReadCustomProperties_v340(Shared::Stream *in) {
 	}
 }
 
-void GameState::WriteCustomProperties_v340(Shared::Stream *out) const {
-	if (_G(loaded_game_file_version) >= kGameVersion_340_4) {
+void GameState::WriteCustomProperties_v340(Shared::Stream *out, GameDataVersion data_ver) const {
+	if (data_ver >= kGameVersion_340_4) {
 		// We temporarily remove properties that kept default values
 		// just for the saving data time to avoid getting lots of
 		// redundant data into saved games

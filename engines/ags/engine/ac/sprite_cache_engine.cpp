@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,13 +24,6 @@
 // Implementation from sprcache.cpp specific to Engine runtime
 //
 //=============================================================================
-
-// Headers, as they are in sprcache.cpp
-#ifdef _MANAGED
-// ensure this doesn't get compiled to .NET IL
-#pragma unmanaged
-#pragma warning (disable: 4996 4312)  // disable deprecation warnings
-#endif
 
 #include "ags/shared/ac/game_struct_defines.h"
 #include "ags/shared/ac/sprite_cache.h"
@@ -43,7 +35,7 @@ namespace AGS3 {
 // Engine-specific implementation split out of sprcache.cpp
 //=============================================================================
 
-void SpriteCache::InitNullSpriteParams(sprkey_t index) {
+void AGS::Shared::SpriteCache::InitNullSpriteParams(sprkey_t index) {
 	// make it a blue cup, to avoid crashes
 	_sprInfos[index].Width = _sprInfos[0].Width;
 	_sprInfos[index].Height = _sprInfos[0].Height;

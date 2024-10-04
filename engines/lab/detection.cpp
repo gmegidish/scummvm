@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,8 +31,8 @@
 #include "lab/detection.h"
 
 static const PlainGameDescriptor lab_setting[] = {
-	{ "lab", "Labyrinth of Time" },
-	{ 0, 0 }
+	{ "lab", "The Labyrinth of Time" },
+	{ nullptr, nullptr }
 };
 
 static const ADGameDescription labDescriptions[] = {
@@ -64,7 +63,7 @@ static const ADGameDescription labDescriptions[] = {
 			{ "doors",   0, "d77536010e7e5ae17ee066323ceb9585", 2537 }, // game/doors
 			{ "noteold.fon", 0, "6c1d90ad55149556e79d3f7bfddb4bd7", 9252 }, // game/spict/noteold.fon
 			{ "wyrmkeep",0, "97c7064c54c28b952d37c4ebff6efa50", 52286 }, // game/spict/intro
-			{ NULL, 0, NULL, 0 }
+			{ nullptr, 0, nullptr, 0 }
 		},
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -90,29 +89,29 @@ static const char *const directoryGlobs[] = {
 		"rooms",
 		"h2",
 		"intro",
-		0
+		nullptr
 };
 
 
 
-class LabMetaEngineDetection : public AdvancedMetaEngineDetection {
+class LabMetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	LabMetaEngineDetection() : AdvancedMetaEngineDetection(labDescriptions, sizeof(ADGameDescription), lab_setting) {
+	LabMetaEngineDetection() : AdvancedMetaEngineDetection(labDescriptions, lab_setting) {
 		_maxScanDepth = 4;
 		_directoryGlobs = directoryGlobs;
 		_flags = kADFlagUseExtraAsHint;
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "lab";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Labyrinth of Time";
 	}
 
 	const char *getOriginalCopyright() const override {
-		return "Labyrinth of Time (C) 2004 The Wyrmkeep Entertainment Co. and Terra Nova Development";
+		return "The Labyrinth of Time (C) 2004 The Wyrmkeep Entertainment Co. and Terra Nova Development";
 	}
 };
 

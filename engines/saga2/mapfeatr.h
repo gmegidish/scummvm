@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -45,10 +44,10 @@ class gPixelMap;
 // Pure virtual base class for map features
 
 class CMapFeature {
-	bool        visible;
-	int16       world;
-	TilePoint   featureCoords;
-	char        name[MAX_MAP_FEATURE_NAME_LENGTH];
+	bool        _visible;
+	int16       _world;
+	TilePoint   _featureCoords;
+	char        _name[MAX_MAP_FEATURE_NAME_LENGTH];
 
 
 public:
@@ -56,21 +55,24 @@ public:
 	virtual ~CMapFeature() {}
 
 	void expose(bool canSee = true) {
-		visible = canSee;
+		_visible = canSee;
 	}
 	void draw(TileRegion tr, int16 inWorld, TilePoint bc, gPort &tport);
 	bool hitCheck(TileRegion vr, int16 inWorld, TilePoint bc, TilePoint cp);
 	int16 getWorld() {
-		return world;
+		return _world;
 	}
 	int16 getU() {
-		return featureCoords.u;
+		return _featureCoords.u;
 	}
 	int16 getV() {
-		return featureCoords.v;
+		return _featureCoords.v;
+	}
+	TilePoint getLocation() {
+		return _featureCoords;
 	}
 	char *getText() {
-		return name;
+		return _name;
 	}
 
 	// The only aspect of different map features is what they look like
@@ -86,7 +88,7 @@ typedef CMapFeature *pCMapFeature;
 // class for map features with static icons
 
 class CStaticMapFeature : public CMapFeature {
-	int16 color;
+	int16 _color;
 
 public:
 	CStaticMapFeature(TilePoint where, int16 inWorld, const char *desc, int16 bColor);
@@ -100,7 +102,7 @@ public:
 // class for map features with static icons
 
 class CPictureMapFeature : public CMapFeature {
-	gPixelMap *pic;
+	gPixelMap *_pic;
 
 public:
 	CPictureMapFeature(TilePoint where, int16 inWorld, char *desc, gPixelMap *pm);

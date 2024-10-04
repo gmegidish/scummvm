@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  *              Originally written by Syn9 in FreeBASIC with SDL
@@ -554,7 +553,7 @@ void GriffonEngine::damageNPC(int npcnum, int damage, int spell) {
 	int fcol;
 
 	if (damage == 0) {
-		strcpy(line, "miss!");
+		Common::strcpy_s(line, "miss!");
 		fcol = 2;
 	} else {
 		int ratio = 0;
@@ -573,14 +572,14 @@ void GriffonEngine::damageNPC(int npcnum, int damage, int spell) {
 			if (_npcInfo[npcnum].hp < 0)
 				_npcInfo[npcnum].hp = 0;
 
-			sprintf(line, "-%i", damage);
+			Common::sprintf_s(line, "-%i", damage);
 			fcol = 1;
 		} else {
 			_npcInfo[npcnum].hp += damage;
 			if (_npcInfo[npcnum].hp > _npcInfo[npcnum].maxhp)
 				_npcInfo[npcnum].hp = _npcInfo[npcnum].maxhp;
 
-			sprintf(line, "+%i", damage);
+			Common::sprintf_s(line, "+%i", damage);
 			fcol = 5;
 		}
 
@@ -731,7 +730,7 @@ void GriffonEngine::damageNPC(int npcnum, int damage, int spell) {
 			rcDest.setWidth(16);
 			rcDest.setHeight(16);
 
-			_tiles[curTileL]->blit(*_mapBg, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
+			_tiles[curTileL]->blendBlitTo(*_mapBg, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
 		}
 
 		// firehydra sword chest
@@ -1020,9 +1019,9 @@ void GriffonEngine::damagePlayer(int damage) {
 	if (_player.hp < 0)
 		_player.hp = 0;
 
-	sprintf(line, "-%i", damage);
+	Common::sprintf_s(line, "-%i", damage);
 	if (damage == 0)
-		strcpy(line, "miss!");
+		Common::strcpy_s(line, "miss!");
 
 	addFloatText(line, _player.px + 12 - 4 * strlen(line), _player.py + 16, 4);
 

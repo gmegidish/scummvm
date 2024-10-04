@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,8 +39,8 @@ namespace LastExpress {
 //////////////////////////////////////////////////////////////////////////
 class Subtitle {
 public:
-	Subtitle() : _timeStart(0), _timeStop(0), _topLength(0), _topText(NULL),
-		_bottomLength(0), _bottomText(NULL) {}
+	Subtitle() : _timeStart(0), _timeStop(0), _topLength(0), _topText(nullptr),
+		_bottomLength(0), _bottomText(nullptr) {}
 	~Subtitle() { reset(); }
 
 	bool load(Common::SeekableReadStream *in);
@@ -66,8 +65,8 @@ private:
 void Subtitle::reset() {
 	delete[] _topText;
 	delete[] _bottomText;
-	_topText = NULL;
-	_bottomText = NULL;
+	_topText = nullptr;
+	_bottomText = nullptr;
 }
 
 template<typename T>
@@ -76,7 +75,7 @@ T *newArray(size_t n) {
 		return new T[n];
 
 	// n is too large
-	return NULL;
+	return nullptr;
 }
 
 bool Subtitle::load(Common::SeekableReadStream *in) {
@@ -146,7 +145,7 @@ SubtitleManager::~SubtitleManager() {
 	reset();
 
 	// Zero passed pointers
-	_font = NULL;
+	_font = nullptr;
 }
 
 void SubtitleManager::reset() {

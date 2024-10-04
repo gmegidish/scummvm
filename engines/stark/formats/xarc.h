@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,12 +32,12 @@ class XARCMember;
 
 class XARCArchive : public Common::Archive {
 public:
-	bool open(const Common::String &filename);
-	Common::String getFilename() const;
+	bool open(const Common::Path &filename);
+	Common::Path getFilename() const;
 
 	// Archive API
 	bool hasFile(const Common::Path &path) const;
-	int listMatchingMembers(Common::ArchiveMemberList &list, const Common::Path &pattern) const;
+	int listMatchingMembers(Common::ArchiveMemberList &list, const Common::Path &pattern, bool matchPathComponents = false) const;
 	int listMembers(Common::ArchiveMemberList &list) const;
 	const Common::ArchiveMemberPtr getMember(const Common::Path &path) const;
 	Common::SeekableReadStream *createReadStreamForMember(const Common::Path &path) const;
@@ -46,7 +45,7 @@ public:
 	Common::SeekableReadStream *createReadStreamForMember(const XARCMember *member) const;
 
 private:
-	Common::String _filename;
+	Common::Path _filename;
 	Common::ArchiveMemberList _members;
 };
 

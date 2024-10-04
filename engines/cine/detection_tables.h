@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 namespace Cine {
-
-#define GAMEOPTION_ORIGINAL_SAVELOAD   GUIO_GAMEOPTIONS1
-#define GAMEOPTION_TRANSPARENT_DIALOG_BOXES   GUIO_GAMEOPTIONS2
 
 static const CINEGameDescription gameDescriptions[] = {
 	{
@@ -46,8 +42,8 @@ static const CINEGameDescription gameDescriptions[] = {
 		{
 			"fw",
 			"Sony CD version",
-			AD_ENTRY2s("AUTO00.PRC",	"4fe1e7930b38e3c63f0f2474d471bf8f", -1,
-					   "PART01", 		"61d003202d301c29dd399acfb1354310", -1),
+			AD_ENTRY2s("AUTO00.PRC",	"4fe1e7930b38e3c63f0f2474d471bf8f", AD_NO_SIZE,
+					   "PART01", 		"61d003202d301c29dd399acfb1354310", AD_NO_SIZE),
 			Common::EN_USA,
 			Common::kPlatformDOS,
 			ADGF_CD,
@@ -63,8 +59,8 @@ static const CINEGameDescription gameDescriptions[] = {
 		{
 			"fw",
 			"Sony CD version with French translation patch",
-			AD_ENTRY2s("AUTO00.PRC",	"4fe1e7930b38e3c63f0f2474d471bf8f", -1,
-					   "PART01",		"5d1acb97abe9591f9008e00d07add95a", -1),
+			AD_ENTRY2s("AUTO00.PRC",	"4fe1e7930b38e3c63f0f2474d471bf8f", AD_NO_SIZE,
+					   "PART01",		"5d1acb97abe9591f9008e00d07add95a", AD_NO_SIZE),
 			Common::FR_FRA,
 			Common::kPlatformDOS,
 			ADGF_CD,
@@ -219,8 +215,8 @@ static const CINEGameDescription gameDescriptions[] = {
 		{
 			"fw",
 			"Demo",
-			AD_ENTRY2s("demo",		"0f50767cd964e302d3af0ba2528df8c4", -1,
-					   "demo.prc",	"d2ac3a743d288359c63644ea7071edae", -1),
+			AD_ENTRY2s("demo",		"0f50767cd964e302d3af0ba2528df8c4", AD_NO_SIZE,
+					   "demo.prc",	"d2ac3a743d288359c63644ea7071edae", AD_NO_SIZE),
 			Common::EN_ANY,
 			Common::kPlatformAmiga,
 			ADGF_DEMO,
@@ -357,8 +353,8 @@ static const CINEGameDescription gameDescriptions[] = {
 		{
 			"os",
 			"256 colors",
-			AD_ENTRY2s("procs1",	"74c2dabd9d212525fca8875a5f6d8994", -1,
-					   "sds1",		"75443ba39cdc95667e07d7118e5c151c", -1),
+			AD_ENTRY2s("procs1",	"74c2dabd9d212525fca8875a5f6d8994", AD_NO_SIZE,
+					   "sds1",		"75443ba39cdc95667e07d7118e5c151c", AD_NO_SIZE),
 			Common::ES_ESP,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,

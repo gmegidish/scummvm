@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,11 +26,28 @@
 
 namespace DreamWeb {
 
-#define GAMEOPTION_ORIGINAL_SAVELOAD GUIO_GAMEOPTIONS1
-#define GAMEOPTION_BRIGHTPALETTE     GUIO_GAMEOPTIONS2
-
-
 static const DreamWebGameDescription gameDescriptions[] = {
+	// International floppy release
+	{
+		{
+			"dreamweb",
+			"Installer",
+			{
+				{"dreamw_1.rnc", 0, "4b8a92191219cc7e84d50837e1acca93", 1400000},
+				{"dreamw_2.rnc", 0, "603e053b763c54c13a1e5e28be2ea839", 1457664},
+				{"dreamw_3.rnc", 0, "1b273aa05a6afb8e7cd3c2defe2e334f", 1457664},
+				{"dreamw_4.rnc", 0, "f7bc7a8e1147d7379272c6dbfb5e7246", 1457664},
+				{"dreamw_5.rnc", 0, "0349950d94fee72b8fd57a22f7c465d1", 1457664},
+				{"dreamw_6.rnc", 0, "c99629c842967e5e41e1c298cb58274f", 662246},
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformDOS,
+			GF_INSTALLER,
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
+		},
+	},
+
 	// International floppy release
 	{
 		{
@@ -46,7 +62,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			0,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -60,7 +76,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_CD,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -75,13 +91,13 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			{
 				{"dreamweb.r00", 0, "3b5c87717fc40cc5a5ae19c155662ee3", 152918},
 				{"dreamweb.r02", 0, "28458718167a040d7e988cf7d2298eae", 210466},
-				{"dreamweb.exe", 0, "dd1c7793b151489e67b83cd1ecab51cd", -1},
+				{"dreamweb.exe", 0, "dd1c7793b151489e67b83cd1ecab51cd", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::EN_GRB,
 			Common::kPlatformDOS,
 			ADGF_CD,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -95,7 +111,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::EN_USA,
 			Common::kPlatformDOS,
 			ADGF_CD,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -109,7 +125,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformDOS,
 			ADGF_CD,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -124,7 +140,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformDOS,
 			ADGF_CD,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -138,7 +154,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformDOS,
 			0,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -152,7 +168,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformDOS,
 			ADGF_CD,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -166,7 +182,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::ES_ESP,
 			Common::kPlatformDOS,
 			0,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -180,7 +196,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::ES_ESP,
 			Common::kPlatformDOS,
 			ADGF_CD,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -195,7 +211,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::ES_ESP,
 			Common::kPlatformDOS,
 			ADGF_CD,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -209,7 +225,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::IT_ITA,
 			Common::kPlatformDOS,
 			0,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -227,7 +243,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::IT_ITA,
 			Common::kPlatformDOS,
 			ADGF_CD,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -243,10 +259,10 @@ static const DreamWebGameDescription gameDescriptions[] = {
 				{"dreamweb.exe", 0, "40cc15bdc8fa3a785b5fd1ecd6194119", 65440},
 				AD_LISTEND
 			},
-			Common::CZ_CZE,
+			Common::CS_CZE,
 			Common::kPlatformDOS,
 			ADGF_CD,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -264,7 +280,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::RU_RUS,
 			Common::kPlatformDOS,
 			ADGF_CD,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
 		},
 	},
 
@@ -282,7 +298,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_DEMO,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO0()
 		},
 	},
 
@@ -300,7 +316,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_CD|ADGF_DEMO,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO0()
 		},
 	},
 
@@ -318,7 +334,7 @@ static const DreamWebGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformAmiga,
 			ADGF_DEMO,
-			GUIO2(GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_BRIGHTPALETTE)
+			GUIO0()
 		},
 	},
 

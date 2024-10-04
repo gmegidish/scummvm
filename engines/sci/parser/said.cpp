@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -91,7 +90,7 @@ static ParseTreeNode* said_next_node() {
 static ParseTreeNode* said_leaf_node(ParseTreeNode* pos, int value) {
 	pos->type = kParseTreeLeafNode;
 	pos->value = value;
-	pos->right = 0;
+	pos->right = nullptr;
 
 	return pos;
 }
@@ -99,7 +98,7 @@ static ParseTreeNode* said_leaf_node(ParseTreeNode* pos, int value) {
 static ParseTreeNode* said_word_node(ParseTreeNode* pos, int value) {
 	pos->type = kParseTreeWordNode;
 	pos->value = value;
-	pos->right = 0;
+	pos->right = nullptr;
 
 	return pos;
 }
@@ -163,7 +162,7 @@ static bool said_attach_subtree(ParseTreeNode* pos, int major, int minor,
 				said_leaf_node(said_next_node(), major),
 				said_branch_attach_left(subtree,
 					said_leaf_node(said_next_node(), minor))),
-			0));
+			nullptr));
 
 	return retval;
 }
@@ -206,7 +205,7 @@ static bool parsePart2(ParseTreeNode* parentNode, bool& nonempty) {
 	int curTreePos = said_tree_pos;
 	ParseTreeNode* curRightChild = parentNode->right;
 
-	ParseTreeNode* newNode = said_branch_node(said_next_node(), 0, 0);
+	ParseTreeNode* newNode = said_branch_node(said_next_node(), nullptr, nullptr);
 
 	nonempty = true;
 
@@ -263,7 +262,7 @@ static bool parsePart3(ParseTreeNode* parentNode, bool& nonempty) {
 	int curTreePos = said_tree_pos;
 	ParseTreeNode* curRightChild = parentNode->right;
 
-	ParseTreeNode* newNode = said_branch_node(said_next_node(), 0, 0);
+	ParseTreeNode* newNode = said_branch_node(said_next_node(), nullptr, nullptr);
 
 	bool found;
 
@@ -345,7 +344,7 @@ static bool parseRef(ParseTreeNode* parentNode) {
 	int curTreePos = said_tree_pos;
 	ParseTreeNode* curRightChild = parentNode->right;
 
-	ParseTreeNode* newNode = said_branch_node(said_next_node(), 0, 0);
+	ParseTreeNode* newNode = said_branch_node(said_next_node(), nullptr, nullptr);
 
 	ParseTreeNode* newParent = parentNode;
 
@@ -362,7 +361,7 @@ static bool parseRef(ParseTreeNode* parentNode) {
 
 			newParent = newParent->right;
 
-			newNode = said_branch_node(said_next_node(), 0, 0);
+			newNode = said_branch_node(said_next_node(), nullptr, nullptr);
 
 			found = parseRef(newNode);
 
@@ -435,7 +434,7 @@ static bool parseListEntry(ParseTreeNode* parentNode) {
 	int curTreePos = said_tree_pos;
 	ParseTreeNode* curRightChild = parentNode->right;
 
-	ParseTreeNode* newNode = said_branch_node(said_next_node(), 0, 0);
+	ParseTreeNode* newNode = said_branch_node(said_next_node(), nullptr, nullptr);
 
 	bool found;
 
@@ -522,7 +521,7 @@ static bool parseExpr(ParseTreeNode* parentNode) {
 	int curTreePos = said_tree_pos;
 	ParseTreeNode* curRightChild = parentNode->right;
 
-	ParseTreeNode* newNode = said_branch_node(said_next_node(), 0, 0);
+	ParseTreeNode* newNode = said_branch_node(said_next_node(), nullptr, nullptr);
 
 	bool ret = false;
 	bool found;
@@ -557,7 +556,7 @@ static bool parseSpec(ParseTreeNode* parentNode) {
 	int curTreePos = said_tree_pos;
 	ParseTreeNode* curRightChild = parentNode->right;
 
-	ParseTreeNode* newNode = said_branch_node(said_next_node(), 0, 0);
+	ParseTreeNode* newNode = said_branch_node(said_next_node(), nullptr, nullptr);
 
 	bool ret = false;
 
@@ -600,7 +599,7 @@ static bool parseSpec(ParseTreeNode* parentNode) {
 	if (said_tokens[said_token] == TOKEN_GT) {
 		said_token++;
 
-		newNode = said_branch_node(said_next_node(), 0,
+		newNode = said_branch_node(said_next_node(), nullptr,
 						said_leaf_node(said_next_node(), TOKEN_GT));
 
 		said_attach_subtree(newParent, 0x14B, TOKEN_GT, newNode);
@@ -622,7 +621,7 @@ static bool parseSpec(ParseTreeNode* parentNode) {
 static bool buildSaidTree() {
 	said_branch_node(said_tree, &said_tree[1], &said_tree[2]);
 	said_leaf_node(&said_tree[1], 0x141); // Magic number #1
-	said_branch_node(&said_tree[2], &said_tree[3], 0);
+	said_branch_node(&said_tree[2], &said_tree[3], nullptr);
 	said_leaf_node(&said_tree[3], 0x13f); // Magic number #2
 
 	said_tree_pos = SAID_TREE_START;
@@ -636,7 +635,7 @@ static bool buildSaidTree() {
 		// No terminator, so parse error.
 
 		// Rollback
-		said_tree[2].right = 0;
+		said_tree[2].right = nullptr;
 		said_token = 0;
 		said_tree_pos = SAID_TREE_START;
 		return false;

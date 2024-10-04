@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,17 +26,19 @@
 
 namespace AGS3 {
 
-const char *get_engine_name();
-const char *get_engine_version();
+const char			*get_engine_name();
+const char			*get_engine_version();
+AGS::Shared::String  get_engine_version_and_build();
+
 void        show_preload();
 void        engine_init_game_settings();
 int         initialize_engine(const AGS::Shared::ConfigTree &startup_opts);
 
-struct ScreenSetup;
+struct DisplayModeSetup;
 // Try to set new graphics mode deduced from given configuration;
 // if requested mode fails, tries to find any compatible mode close to the
 // requested one.
-bool        engine_try_set_gfxmode_any(const ScreenSetup &setup);
+bool        engine_try_set_gfxmode_any(const DisplayModeSetup &setup);
 // Tries to switch between fullscreen and windowed mode; uses previously saved
 // setup if it is available, or default settings for the new mode
 bool        engine_try_switch_windowed_gfxmode();
@@ -64,7 +65,8 @@ struct ResourcePaths {
 	// This is bit ugly, but remain so until more flexible configuration is designed
 	String       DataDir2;   // optional data directory
 	String       AudioDir2;  // optional audio directory
-	String       VoiceDir2;  // optional voice-over directory
+	String       VoiceDir2;  // optional voice-over directory (base)
+	String       VoiceDirSub;// full voice-over directory with optional sub-dir
 };
 
 // (Re-)Assign all known asset search paths to the AssetManager

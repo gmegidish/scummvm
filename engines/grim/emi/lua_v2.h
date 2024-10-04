@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@ public:
 	void registerOpcodes() override;
 
 protected:
-	virtual bool findCostume(lua_Object costumeObj, Actor *actor, Costume **costume) override;
+	bool findCostume(lua_Object costumeObj, Actor *actor, Costume **costume) override;
 	void setChoreAndCostume(lua_Object choreObj, lua_Object costumeObj, Actor *actor, Costume *&costume, int &chore);
 	static uint convertEmiVolumeToMixer(uint emiVolume);
 	static uint convertMixerVolumeToEmi(uint volume);
@@ -136,7 +135,6 @@ protected:
 	DECLARE_LUA_OPCODE(ImPause) override;
 	DECLARE_LUA_OPCODE(ImResume) override;
 	DECLARE_LUA_OPCODE(GetSectorName);
-	DECLARE_LUA_OPCODE(GetCameraPosition) override;
 	DECLARE_LUA_OPCODE(GetCameraYaw);
 	DECLARE_LUA_OPCODE(YawCamera);
 	DECLARE_LUA_OPCODE(GetCameraPitch);
@@ -182,11 +180,11 @@ protected:
 	DECLARE_LUA_OPCODE(LocalizeString) override;
 	DECLARE_LUA_OPCODE(WorldToScreen) override;
 	DECLARE_LUA_OPCODE(RenderModeUser) override;
-	//PS2:
+	// PS2:
 	DECLARE_LUA_OPCODE(GetMemoryCardId);
 	DECLARE_LUA_OPCODE(OverWorldToScreen);
 	DECLARE_LUA_OPCODE(SetReplayMode);
-	//ResidualVM-hacks:
+	// ResidualVM-hacks:
 	DECLARE_LUA_OPCODE(GetResidualVMPreference);
 	DECLARE_LUA_OPCODE(SetResidualVMPreference);
 };

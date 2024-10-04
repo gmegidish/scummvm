@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,7 +64,7 @@ using namespace Gen;
 using namespace Settings;
 
 extern int PRIVATE_lex();
-extern int PRIVATE_parse();
+//extern int PRIVATE_parse();
 
 void PRIVATE_xerror(const char *str) {
 }
@@ -88,7 +87,7 @@ int PRIVATE_wrap() {
 %token<s> NAME
 %token<sym> STRING NUM
 %type <inst> body if startp cond end expr statements statement fcall value
-%token LTE GTE NEQ EQ FALSETOK TRUETOK NULLTOK IFTOK ELSETOK RECT GOTOTOK DEBUGTOK DEFINETOK SETTINGTOK RANDOMTOK
+%token LTE GTE NEQ EQ FALSETOK TRUETOK NULLTOK IFTOK ELSETOK RECT GOTOTOK DEBUGTOK EMITCODEONTOK EMITCODEOFFTOK RESETIDTOK DEFINETOK SETTINGTOK RANDOMTOK
 %type<narg> params
 
 %%
@@ -97,8 +96,11 @@ lines:   line lines
        | line
        ;
 
-line:     DEBUGTOK '{' debug '}'	     { /* Not used in the game */ }
-	| DEFINETOK NAME '{' define '}'      { g_private->maps.installAll($NAME); }
+line: DEBUGTOK '{' debug '}' { /* Not used in the game */ }
+	| EMITCODEONTOK { /* Unclear what this is */ }
+	| EMITCODEOFFTOK { /* Unclear what this is */ }
+	| RESETIDTOK { /* Unclear what this is */ }
+	| DEFINETOK NAME '{' define '}' { g_private->maps.installAll($NAME); }
 	| SETTINGTOK NAME '{' statements '}' { g_setts->save($NAME);
 					       g_setts->init(); }
 	;

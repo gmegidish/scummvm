@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -746,7 +745,7 @@ void buildPolyModel(int positionX, int positionY, int scale, char *pMask, char *
 
 	dataPointer += 5;
 
-	m_coordCount = (*(dataPointer++)) + 1;	// original uses +1 here but its later substracted again, we could skip it
+	m_coordCount = (*(dataPointer++)) + 1;	// original uses +1 here but its later subtracted again, we could skip it
 	m_first_X = *(dataPointer);
 	dataPointer++;
 	m_first_Y = *(dataPointer);
@@ -834,7 +833,7 @@ void buildPolyModel(int positionX, int positionY, int scale, char *pMask, char *
 
 	// position of the dataPointer is m_coordCount * 2
 
-	int polygonCount = 0;
+	//int polygonCount = 0;
 
 	do {
 		int linesToDraw = *dataPointer++;
@@ -869,7 +868,7 @@ void buildPolyModel(int positionX, int positionY, int scale, char *pMask, char *
 			dataPointer += 4;
 		}
 
-		polygonCount ++;
+		//polygonCount++;
 	} while (*dataPointer != 0xFF);
 }
 
@@ -903,7 +902,7 @@ bool findPoly(char* dataPtr, int positionX, int positionY, int scale, int mouseX
 
 	dataPointer += 5;
 
-	m_coordCount = (*(dataPointer++)) + 1;	// original uses +1 here but its later substracted again, we could skip it
+	m_coordCount = (*(dataPointer++)) + 1;	// original uses +1 here but its later subtracted again, we could skip it
 	m_first_X = *(dataPointer);
 	dataPointer++;
 	m_first_Y = *(dataPointer);
@@ -992,7 +991,7 @@ bool findPoly(char* dataPtr, int positionX, int positionY, int scale, int mouseX
 
 	// position of the dataPointer is m_coordCount * 2
 
-	int polygonCount = 0;
+	//int polygonCount = 0;
 
 	do {
 		int linesToDraw = *dataPointer++;
@@ -1032,7 +1031,7 @@ bool findPoly(char* dataPtr, int positionX, int positionY, int scale, int mouseX
 			dataPointer += 4;
 		}
 
-		polygonCount ++;
+		//polygonCount++;
 	} while (*dataPointer != 0xFF);
 
 	return false;
@@ -1272,7 +1271,7 @@ void drawCtp() {
 #endif
 
 void drawMenu(menuStruct *pMenu) {
-	if (pMenu == NULL)
+	if (pMenu == nullptr)
 		return;
 
 	if (pMenu->numElements == 0)
@@ -1405,7 +1404,7 @@ void mainDraw(bool waitFl) {
 		}
 	}
 
-	autoCellHead.next = NULL;
+	autoCellHead.next = nullptr;
 
 	currentObjPtr = cellHead.next;
 

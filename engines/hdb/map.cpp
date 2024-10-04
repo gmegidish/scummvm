@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -296,7 +295,6 @@ bool Map::loadMap(char *name) {
 	Common::SeekableReadStream *mapStream = g_hdb->_fileMan->findFirstData(name, TYPE_BINARY);
 	if (mapStream == nullptr) {
 		warning("The %s MPC entry can't be found", name);
-		delete mapStream;
 		return false;
 	}
 
@@ -307,7 +305,7 @@ bool Map::loadMap(char *name) {
 }
 
 bool Map::load(Common::SeekableReadStream *stream) {
-	debug(5, "map stream size: %ld(%lx)", stream->size(), stream->size());
+	debug(5, "map stream size: %ld(%lx)", long(stream->size()), long(stream->size()));
 
 	// Load MSM data header
 	stream->read(_name, 32);
@@ -640,6 +638,11 @@ bool Map::load(Common::SeekableReadStream *stream) {
 	// Scan all icons and init all Entities
 	g_hdb->setupProgressBar(_iconNum);
 	for (int i = 0; i < _iconNum; i++) {
+		if (_iconList[i].icon == 65535) {
+			warning("Map::load(): Icon index at pos %d is too big: %d", i, _iconList[i].icon);
+			continue;
+		}
+
 		debug(5, "%s, %d,%d,%s,%s,%s,%d,%d,%d,%d", AIType2Str(aiInfo[_iconList[i].icon].type), _iconList[i].x, _iconList[i].y, _iconList[i].funcInit,
 				_iconList[i].funcAction, _iconList[i].funcUse, _iconList[i].dir, _iconList[i].level,
 				_iconList[i].value1, _iconList[i].value2);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -85,9 +84,9 @@ protected:
 	AdLibVoice *_voice;
 	int16 _pitchBend;
 	byte _pitchBendFactor;
-	//int8 _transposeEff;
+	int8 _transposeEff;
 	byte _volEff;
-	int8 _detuneEff;
+	int16 _detuneEff;
 	byte _modWheel;
 	bool _pedal;
 	byte _program;
@@ -108,10 +107,10 @@ protected:
 
 public:
 	AdLibPart() {
-		_voice = 0;
+		_voice = nullptr;
 		_pitchBend = 0;
 		_pitchBendFactor = 2;
-		//_transposeEff = 0;
+		_transposeEff = 0;
 		_volEff = 0;
 		_detuneEff = 0;
 		_modWheel = 0;
@@ -120,7 +119,7 @@ public:
 		_priEff = 0;
 		_pan = 64;
 
-		_owner = 0;
+		_owner = nullptr;
 		_allocated = false;
 		_channel = 0;
 
@@ -130,33 +129,34 @@ public:
 #endif
 	}
 
-	MidiDriver *device();
-	byte getNumber() { return _channel; }
-	void release() { _allocated = false; }
+	MidiDriver *device() override;
+	byte getNumber() override { return _channel; }
+	void release() override { _allocated = false; }
 
-	void send(uint32 b);
+	void send(uint32 b) override;
 
 	// Regular messages
-	void noteOff(byte note);
-	void noteOn(byte note, byte velocity);
-	void programChange(byte program);
-	void pitchBend(int16 bend);
+	void noteOff(byte note) override;
+	void noteOn(byte note, byte velocity) override;
+	void programChange(byte program) override;
+	void pitchBend(int16 bend) override;
 
 	// Control Change messages
-	void controlChange(byte control, byte value);
-	void modulationWheel(byte value);
-	void volume(byte value);
-	void panPosition(byte value);
-	void pitchBendFactor(byte value);
-	void detune(byte value);
-	void priority(byte value);
-	void sustain(bool value);
-	void effectLevel(byte value) { return; } // Not supported
-	void chorusLevel(byte value) { return; } // Not supported
-	void allNotesOff();
+	void controlChange(byte control, byte value) override;
+	void modulationWheel(byte value) override;
+	void volume(byte value) override;
+	void panPosition(byte value) override;
+	void pitchBendFactor(byte value) override;
+	void detune(int16 value) override;
+	void transpose(int8 value) override;
+	void priority(byte value) override;
+	void sustain(bool value) override;
+	void effectLevel(byte value) override { return; } // Not supported
+	void chorusLevel(byte value) override { return; } // Not supported
+	void allNotesOff() override;
 
 	// SysEx messages
-	void sysEx_customInstrument(uint32 type, const byte *instr);
+	void sysEx_customInstrument(uint32 type, const byte *instr, uint32 dataSize) override;
 };
 
 // FYI (Jamieson630)
@@ -173,19 +173,19 @@ protected:
 public:
 	~AdLibPercussionChannel();
 
-	void noteOff(byte note);
-	void noteOn(byte note, byte velocity);
-	void programChange(byte program) { }
+	void noteOff(byte note) override;
+	void noteOn(byte note, byte velocity) override;
+	void programChange(byte program) override { }
 
 	// Control Change messages
-	void modulationWheel(byte value) { }
-	void pitchBendFactor(byte value) { }
-	void detune(byte value) { }
-	void priority(byte value) { }
-	void sustain(bool value) { }
+	void modulationWheel(byte value) override { }
+	void pitchBendFactor(byte value) override { }
+	void detune(int16 value) override { }
+	void priority(byte value) override { }
+	void sustain(bool value) override { }
 
 	// SysEx messages
-	void sysEx_customInstrument(uint32 type, const byte *instr);
+	void sysEx_customInstrument(uint32 type, const byte *instr, uint32 datasize) override;
 
 private:
 	byte _notes[256];
@@ -463,7 +463,7 @@ static const AdLibInstrument g_gmInstruments[128] = {
 	{ 0x00, 0x3F, 0x4C, 0xFB, 0x00, 0x00, 0x3F, 0x0A, 0xE9, 0x7C, 0x0E, 0, { 0, 0, 0, 0, 0, 0, 0, 0 }, 0, { 0, 0, 0, 0, 0, 0, 0, 0 }, 0x05 }
 };
 
-static AdLibInstrument g_gmPercussionInstruments[39] = {
+static const AdLibInstrument g_gmPercussionInstruments[39] = {
 	{ 0x1A, 0x3F, 0x15, 0x05, 0x7C, 0x02, 0x21, 0x2B, 0xE4, 0x7C, 0x0E, 0, { 0, 0, 0, 0, 0, 0, 0, 0 }, 0, { 0, 0, 0, 0, 0, 0, 0, 0 }, 0x06 },
 	{ 0x11, 0x12, 0x04, 0x07, 0x7C, 0x02, 0x23, 0x0B, 0xE5, 0x7C, 0x0E, 0, { 0, 0, 0, 0, 0, 0, 0, 0 }, 0, { 0, 0, 0, 0, 0, 0, 0, 0 }, 0x05 },
 	{ 0x0A, 0x3F, 0x0B, 0x01, 0x7C, 0x1F, 0x1C, 0x46, 0xD0, 0x7C, 0x0E, 0, { 0, 0, 0, 0, 0, 0, 0, 0 }, 0, { 0, 0, 0, 0, 0, 0, 0, 0 }, 0x01 },
@@ -942,12 +942,11 @@ public:
 	uint32 getBaseTempo() override { return 1000000 / OPL::OPL::kDefaultCallbackFrequency; }
 
 	void setPitchBendRange(byte channel, uint range) override;
-	void sysEx_customInstrument(byte channel, uint32 type, const byte *instr) override;
 
 	MidiChannel *allocateChannel() override;
 	MidiChannel *getPercussionChannel() override { return &_percussion; } // Percussion partially supported
 
-	virtual void setTimerCallback(void *timerParam, Common::TimerManager::TimerProc timerProc) override;
+	void setTimerCallback(void *timerParam, Common::TimerManager::TimerProc timerProc) override;
 
 private:
 	bool _scummSmallHeader; // FIXME: This flag controls a special mode for SCUMM V3 games
@@ -1091,11 +1090,11 @@ void AdLibPart::pitchBend(int16 bend) {
 #ifdef ENABLE_OPL3
 		if (!_owner->_opl3Mode) {
 #endif
-			_owner->adlibNoteOn(voice->_channel, voice->_note/* + _transposeEff*/,
+			_owner->adlibNoteOn(voice->_channel, voice->_note + _transposeEff,
 								  (_pitchBend * _pitchBendFactor >> 6) + _detuneEff);
 #ifdef ENABLE_OPL3
 		} else {
-			_owner->adlibNoteOn(voice->_channel, voice->_note, _pitchBend >> 1);
+			_owner->adlibNoteOn(voice->_channel, voice->_note + _transposeEff, ((_pitchBend * _pitchBendFactor) >> 5) + _detuneEff);
 		}
 #endif
 	}
@@ -1196,41 +1195,48 @@ void AdLibPart::panPosition(byte value) {
 }
 
 void AdLibPart::pitchBendFactor(byte value) {
-#ifdef ENABLE_OPL3
-	// Not supported in OPL3 mode.
-	if (_owner->_opl3Mode) {
-		return;
-	}
-#endif
-
 	AdLibVoice *voice;
 
 	_pitchBendFactor = value;
 	for (voice = _voice; voice; voice = voice->_next) {
-		_owner->adlibNoteOn(voice->_channel, voice->_note/* + _transposeEff*/,
+#ifdef ENABLE_OPL3
+		if (!_owner->_opl3Mode) {
+#endif
+			_owner->adlibNoteOn(voice->_channel, voice->_note + _transposeEff,
 							  (_pitchBend * _pitchBendFactor >> 6) + _detuneEff);
+#ifdef ENABLE_OPL3
+		} else {
+			_owner->adlibNoteOn(voice->_channel, voice->_note + _transposeEff, ((_pitchBend * _pitchBendFactor) >> 5) + _detuneEff);
+		}
+#endif
 	}
 }
 
-void AdLibPart::detune(byte value) {
-	// Sam&Max's OPL3 driver uses this for a completly different purpose. It
-	// is related to voice allocation. We ignore this for now.
-	// TODO: We probably need to look how the interpreter side of Sam&Max's
-	// iMuse version handles all this too. Implementing the driver side here
-	// would be not that hard.
+void AdLibPart::detune(int16 value) {
+	int shr = 6;
 #ifdef ENABLE_OPL3
-	if (_owner->_opl3Mode) {
-		//_maxNotes = value;
-		return;
-	}
+	if (_owner->_opl3Mode)
+		shr = 5;
 #endif
-
 	AdLibVoice *voice;
 
 	_detuneEff = value;
 	for (voice = _voice; voice; voice = voice->_next) {
-		_owner->adlibNoteOn(voice->_channel, voice->_note/* + _transposeEff*/,
-							  (_pitchBend * _pitchBendFactor >> 6) + _detuneEff);
+		_owner->adlibNoteOn(voice->_channel, voice->_note + _transposeEff,
+							((_pitchBend * _pitchBendFactor) >> shr) + _detuneEff);
+	}
+}
+
+void AdLibPart::transpose(int8 value) {
+	int shr = 6;
+#ifdef ENABLE_OPL3
+	if (_owner->_opl3Mode)
+		shr = 5;
+#endif
+	_transposeEff = value;
+	for (AdLibVoice *voice = _voice; voice; voice = voice->_next) {
+		_owner->adlibNoteOn(voice->_channel, voice->_note + _transposeEff,
+			(_pitchBend * _pitchBendFactor >> shr) + _detuneEff);
 	}
 }
 
@@ -1255,7 +1261,7 @@ void AdLibPart::allNotesOff() {
 		_owner->mcOff(_voice);
 }
 
-void AdLibPart::sysEx_customInstrument(uint32 type, const byte *instr) {
+void AdLibPart::sysEx_customInstrument(uint32 type, const byte *instr, uint32 dataSize) {
 	// Sam&Max allows for instrument overwrites, but we will not support it
 	// until we can find any track actually using it.
 #ifdef ENABLE_OPL3
@@ -1265,8 +1271,10 @@ void AdLibPart::sysEx_customInstrument(uint32 type, const byte *instr) {
 	}
 #endif
 
-	if (type == 'ADL ') {
+	if (type == 'ADL ' && instr && dataSize == sizeof(AdLibInstrument))
 		memcpy(&_partInstr, instr, sizeof(AdLibInstrument));
+	else if (type != 'ADL '){
+		warning("AdLibPart: Receiving '%c%c%c%c' instrument data. Probably loading a savegame with that sound setting", (type >> 24) & 0xFF, (type >> 16) & 0xFF, (type >> 8) & 0xFF, type & 0xFF);
 	}
 }
 
@@ -1302,8 +1310,8 @@ void AdLibPercussionChannel::noteOff(byte note) {
 }
 
 void AdLibPercussionChannel::noteOn(byte note, byte velocity) {
-	const AdLibInstrument *inst = NULL;
-	const AdLibInstrument *sec  = NULL;
+	const AdLibInstrument *inst = nullptr;
+	const AdLibInstrument *sec  = nullptr;
 
 	// The custom instruments have priority over the default mapping
 	// We do not support custom instruments in OPL3 mode though.
@@ -1342,7 +1350,7 @@ void AdLibPercussionChannel::noteOn(byte note, byte velocity) {
 	_owner->partKeyOn(this, inst, note, velocity, sec, _pan);
 }
 
-void AdLibPercussionChannel::sysEx_customInstrument(uint32 type, const byte *instr) {
+void AdLibPercussionChannel::sysEx_customInstrument(uint32 type, const byte *instr, uint32 dataSize) {
 	// We do not allow custom instruments in OPL3 mode right now.
 #ifdef ENABLE_OPL3
 	if (_owner->_opl3Mode) {
@@ -1351,7 +1359,7 @@ void AdLibPercussionChannel::sysEx_customInstrument(uint32 type, const byte *ins
 	}
 #endif
 
-	if (type == 'ADLP') {
+	if (type == 'ADLP' && instr && dataSize) {
 		byte note = instr[0];
 		_notes[note] = instr[1];
 
@@ -1373,6 +1381,8 @@ void AdLibPercussionChannel::sysEx_customInstrument(uint32 type, const byte *ins
 		_customInstruments[note]->carSustainRelease     = instr[10];
 		_customInstruments[note]->carWaveformSelect     = instr[11];
 		_customInstruments[note]->feedback               = instr[12];
+	} else if (type != 'ADLP'){
+		warning("AdLibPercussionChannel: Receiving '%c%c%c%c' instrument data. Probably loading a savegame with that sound setting", (type >> 24) & 0xFF, (type >> 16) & 0xFF, (type >> 8) & 0xFF, type & 0xFF);
 	}
 }
 
@@ -1386,9 +1396,9 @@ MidiDriver_ADLIB::MidiDriver_ADLIB() {
 	_opl3Mode = false;
 #endif
 
-	_regCache = 0;
+	_regCache = nullptr;
 #ifdef ENABLE_OPL3
-	_regCacheSecondary = 0;
+	_regCacheSecondary = nullptr;
 #endif
 
 	_timerCounter = 0;
@@ -1403,9 +1413,9 @@ MidiDriver_ADLIB::MidiDriver_ADLIB() {
 	_percussion.init(this, 9);
 	_timerIncrease = 0xD69;
 	_timerThreshold = 0x411B;
-	_opl = 0;
-	_adlibTimerProc = 0;
-	_adlibTimerParam = 0;
+	_opl = nullptr;
+	_adlibTimerProc = nullptr;
+	_adlibTimerParam = nullptr;
 	_isOpen = false;
 }
 
@@ -1476,7 +1486,7 @@ void MidiDriver_ADLIB::close() {
 
 	// Turn off the OPL emulation
 	delete _opl;
-	_opl = 0;
+	_opl = nullptr;
 
 	free(_regCache);
 #ifdef ENABLE_OPL3
@@ -1558,25 +1568,22 @@ uint32 MidiDriver_ADLIB::property(int prop, uint32 param) {
 }
 
 void MidiDriver_ADLIB::setPitchBendRange(byte channel, uint range) {
-#ifdef ENABLE_OPL3
-	// Not supported in OPL3 mode.
-	if (_opl3Mode) {
-		return;
-	}
-#endif
-
 	AdLibVoice *voice;
 	AdLibPart *part = &_parts[channel];
 
 	part->_pitchBendFactor = range;
 	for (voice = part->_voice; voice; voice = voice->_next) {
-		adlibNoteOn(voice->_channel, voice->_note/* + part->_transposeEff*/,
-					  (part->_pitchBend * part->_pitchBendFactor >> 6) + part->_detuneEff);
+#ifdef ENABLE_OPL3
+		if (!_opl3Mode) {
+#endif
+			adlibNoteOn(voice->_channel, voice->_note + part->_transposeEff,
+						(part->_pitchBend * part->_pitchBendFactor >> 6) + part->_detuneEff);
+#ifdef ENABLE_OPL3
+		} else {
+			adlibNoteOn(voice->_channel, voice->_note + part->_transposeEff, ((part->_pitchBend * part->_pitchBendFactor) >> 5) + part->_detuneEff);
+		}
+#endif
 	}
-}
-
-void MidiDriver_ADLIB::sysEx_customInstrument(byte channel, uint32 type, const byte *instr) {
-	_parts[channel].sysEx_customInstrument(type, instr);
 }
 
 MidiChannel *MidiDriver_ADLIB::allocateChannel() {
@@ -1590,7 +1597,7 @@ MidiChannel *MidiDriver_ADLIB::allocateChannel() {
 			return part;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 // All the code brought over from IMuseAdLib
@@ -1676,7 +1683,7 @@ void MidiDriver_ADLIB::mcOff(AdLibVoice *voice) {
 		tmp->_next = voice->_next;
 	else
 		voice->_part->_voice = voice->_next;
-	voice->_part = NULL;
+	voice->_part = nullptr;
 }
 
 void MidiDriver_ADLIB::mcIncStuff(AdLibVoice *voice, Struct10 *s10, Struct11 *s11) {
@@ -1887,8 +1894,8 @@ void MidiDriver_ADLIB::struct10Setup(Struct10 *s10) {
 
 void MidiDriver_ADLIB::adlibPlayNote(int channel, int note) {
 	byte old, oct, notex;
-	int note2;
-	int i;
+	uint8 note2;
+	int i; 
 
 	note2 = (note >> 7) - 4;
 	note2 = (note2 < 128) ? note2 : 0;
@@ -1917,6 +1924,7 @@ void MidiDriver_ADLIB::adlibPlayNote(int channel, int note) {
 	}
 
 	i = (notex << 3) + ((note >> 4) & 0x7);
+	assert(i < ARRAYSIZE(g_noteFrequencies));
 	adlibWrite(channel + 0xA0, g_noteFrequencies[i]);
 	adlibWrite(channel + 0xB0, oct | 0x20);
 }
@@ -1957,7 +1965,7 @@ void MidiDriver_ADLIB::partKeyOn(AdLibPart *part, const AdLibInstrument *instr, 
 }
 
 AdLibVoice *MidiDriver_ADLIB::allocateVoice(byte pri) {
-	AdLibVoice *ac, *best = NULL;
+	AdLibVoice *ac, *best = nullptr;
 	int i;
 
 	for (i = 0; i < 9; i++) {
@@ -1976,7 +1984,7 @@ AdLibVoice *MidiDriver_ADLIB::allocateVoice(byte pri) {
 
 	/* SCUMM V3 games don't have note priorities, first comes wins. */
 	if (_scummSmallHeader)
-		return NULL;
+		return nullptr;
 
 	if (best)
 		mcOff(best);
@@ -1987,7 +1995,7 @@ void MidiDriver_ADLIB::linkMc(AdLibPart *part, AdLibVoice *voice) {
 	voice->_part = part;
 	voice->_next = (AdLibVoice *)part->_voice;
 	part->_voice = voice;
-	voice->_prev = NULL;
+	voice->_prev = nullptr;
 
 	if (voice->_next)
 		voice->_next->_prev = voice;
@@ -2075,7 +2083,7 @@ void MidiDriver_ADLIB::mcKeyOn(AdLibVoice *voice, const AdLibInstrument *instr, 
 #ifdef ENABLE_OPL3
 	if (!_opl3Mode) {
 #endif
-		adlibNoteOnEx(voice->_channel, /*part->_transposeEff + */note, part->_detuneEff + (part->_pitchBend * part->_pitchBendFactor >> 6));
+		adlibNoteOnEx(voice->_channel, note + part->_transposeEff, part->_detuneEff + (part->_pitchBend * part->_pitchBendFactor >> 6));
 
 		if (instr->flagsA & 0x80) {
 			mcInitStuff(voice, &voice->_s10a, &voice->_s11a, instr->flagsA, &instr->extraA);
@@ -2091,7 +2099,7 @@ void MidiDriver_ADLIB::mcKeyOn(AdLibVoice *voice, const AdLibInstrument *instr, 
 #ifdef ENABLE_OPL3
 	} else {
 		adlibSetupChannelSecondary(voice->_channel, second, secVol1, secVol2, pan);
-		adlibNoteOnEx(voice->_channel, note, part->_pitchBend >> 1);
+		adlibNoteOnEx(voice->_channel, note + part->_transposeEff, ((part->_pitchBend * part->_pitchBendFactor) >> 5) + part->_detuneEff);
 	}
 #endif
 }
@@ -2289,16 +2297,16 @@ void MidiDriver_ADLIB::adlibNoteOnEx(int chan, byte note, int mod) {
 
 class AdLibEmuMusicPlugin : public MusicPluginObject {
 public:
-	const char *getName() const {
+	const char *getName() const override {
 		return _s("AdLib emulator");
 	}
 
-	const char *getId() const {
+	const char *getId() const override {
 		return "adlib";
 	}
 
-	MusicDevices getDevices() const;
-	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const;
+	MusicDevices getDevices() const override;
+	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const override;
 };
 
 MusicDevices AdLibEmuMusicPlugin::getDevices() const {

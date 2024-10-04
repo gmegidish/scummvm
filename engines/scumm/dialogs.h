@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,6 +35,11 @@ class StaticTextWidget;
 
 
 namespace Scumm {
+
+struct ResString {
+	int num;
+	char string[80];
+};
 
 class ScummEngine;
 
@@ -63,7 +67,7 @@ protected:
 
 /**
  * A dialog which displays an arbitrary message to the user and returns
- * ther users reply as its result value. More specifically, it returns
+ * the users reply as its result value. More specifically, it returns
  * the ASCII code of the key used to close the dialog (0 if a mouse
  * click closed the dialog).
  */
@@ -92,11 +96,13 @@ public:
 	}
 
 	void reflowLayout() override;
+	const char *getPlainEngineString(int stringno, bool forceHardcodedString = false);
 
 protected:
-
 	// Query a string from the resources
 	const U32String queryResString(int stringno);
+	// Query hard coded string (copied over from the executable)
+	const ResString &getStaticResString(Common::Language lang, int stringno);
 };
 
 /**
@@ -209,6 +215,219 @@ private:
 
 	int _difficulty;
 };
+
+/**
+ * Common options widget stuff.
+ */
+class ScummOptionsContainerWidget : public GUI::OptionsContainerWidget {
+public:
+	ScummOptionsContainerWidget(GuiObject *boss, const Common::String &name, const Common::String &dialogLayout, const Common::String &domain) :
+		OptionsContainerWidget(boss, name, dialogLayout, domain) {
+	}
+
+	enum {
+		kEnhancementGroup1Cmd = 'ENH1',
+		kEnhancementGroup2Cmd = 'ENH2',
+		kEnhancementGroup3Cmd = 'ENH3',
+		kEnhancementGroup4Cmd = 'ENH4'
+	};
+
+	void load() override;
+	bool save() override;
+
+protected:
+	void createEnhancementsWidget(GuiObject *boss, const Common::String &name);
+	GUI::ThemeEval &addEnhancementsLayout(GUI::ThemeEval &layouts) const;
+	GUI::CheckboxWidget *createOriginalGUICheckbox(GuiObject *boss, const Common::String &name);
+	GUI::CheckboxWidget *createCopyProtectionCheckbox(GuiObject *boss, const Common::String &name);
+	void updateAdjustmentSlider(GUI::SliderWidget *slider, GUI::StaticTextWidget *value);
+
+	Common::Array<GUI::CheckboxWidget *> _enhancementsCheckboxes;
+
+};
+
+/**
+ * Options widget for SCUMM games in general.
+ */
+class ScummGameOptionsWidget : public ScummOptionsContainerWidget {
+public:
+	ScummGameOptionsWidget(GuiObject *boss, const Common::String &name, const Common::String &domain, const ExtraGuiOptions &options);
+	~ScummGameOptionsWidget() override {};
+
+	void load() override;
+	bool save() override;
+
+private:
+	enum {
+		kSmoothScrollCmd = 'SMSC'
+	};
+
+	GUI::CheckboxWidget *_smoothScrollCheckbox;
+	GUI::CheckboxWidget *_semiSmoothScrollCheckbox;
+
+	void defineLayout(GUI::ThemeEval &layouts, const Common::String &layoutName, const Common::String &overlayedLayout) const override;
+	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
+
+	ExtraGuiOptions _options;
+	Common::Array<GUI::CheckboxWidget *> _checkboxes;
+};
+
+/**
+ * Options widget for EGA Loom.
+ */
+class LoomEgaGameOptionsWidget : public ScummOptionsContainerWidget {
+public:
+	LoomEgaGameOptionsWidget(GuiObject *boss, const Common::String &name, const Common::String &domain);
+	~LoomEgaGameOptionsWidget() override {};
+
+	void load() override;
+	bool save() override;
+
+private:
+	enum {
+		kOvertureTicksChanged = 'OTCH'
+	};
+
+	void defineLayout(GUI::ThemeEval &layouts, const Common::String &layoutName, const Common::String &overlayedLayout) const override;
+	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
+
+	GUI::CheckboxWidget *_enableOriginalGUICheckbox;
+	GUI::CheckboxWidget *_enableCopyProtectionCheckbox;
+
+	GUI::SliderWidget *_overtureTicksSlider;
+	GUI::StaticTextWidget *_overtureTicksValue;
+
+	void updateOvertureTicksValue();
+};
+
+/**
+* Options widget for Mac Loom.
+*/
+class LoomMonkeyMacGameOptionsWidget : public ScummOptionsContainerWidget {
+public:
+	LoomMonkeyMacGameOptionsWidget(GuiObject *boss, const Common::String &name, const Common::String &domain, int gameId);
+	~LoomMonkeyMacGameOptionsWidget() override {};
+
+	void load() override;
+	bool save() override;
+private:
+	enum {
+		kQualitySliderUpdate = 'QUAL'
+	};
+	void defineLayout(GUI::ThemeEval &layouts, const Common::String &layoutName, const Common::String &overlayedLayout) const override;
+	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
+	void updateQualitySlider();
+
+	GUI::CheckboxWidget *_enableOriginalGUICheckbox;
+	GUI::CheckboxWidget *_enableCopyProtectionCheckbox;
+	GUI::SliderWidget *_sndQualitySlider;
+	GUI::StaticTextWidget *_sndQualityValue;
+	int _quality;
+};
+
+/**
+ * Options widget for VGA Loom (DOS CD).
+ */
+class LoomVgaGameOptionsWidget : public ScummOptionsContainerWidget {
+public:
+	LoomVgaGameOptionsWidget(GuiObject *boss, const Common::String &name, const Common::String &domain);
+	~LoomVgaGameOptionsWidget() override {};
+
+	void load() override;
+	bool save() override;
+
+private:
+	enum {
+		kPlaybackAdjustmentChanged = 'PBAC'
+	};
+
+	void defineLayout(GUI::ThemeEval &layouts, const Common::String &layoutName, const Common::String &overlayedLayout) const override;
+	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
+
+	GUI::CheckboxWidget *_enableOriginalGUICheckbox;
+
+	GUI::SliderWidget *_playbackAdjustmentSlider;
+	GUI::StaticTextWidget *_playbackAdjustmentValue;
+
+	void updatePlaybackAdjustmentValue();
+};
+
+/**
+ * Options widget for CD Monkey Island 1.
+ */
+class MI1CdGameOptionsWidget : public ScummOptionsContainerWidget {
+public:
+	MI1CdGameOptionsWidget(GuiObject *boss, const Common::String &name, const Common::String &domain);
+	~MI1CdGameOptionsWidget() override {};
+
+	void load() override;
+	bool save() override;
+
+private:
+	enum {
+		kIntroAdjustmentChanged = 'IACH',
+		kOutlookAdjustmentChanged = 'OACH'
+	};
+
+	void defineLayout(GUI::ThemeEval &layouts, const Common::String &layoutName, const Common::String &overlayedLayout) const override;
+	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
+
+	GUI::CheckboxWidget *_enableOriginalGUICheckbox;
+
+	GUI::SliderWidget *_introAdjustmentSlider;
+	GUI::StaticTextWidget *_introAdjustmentValue;
+	GUI::SliderWidget *_outlookAdjustmentSlider;
+	GUI::StaticTextWidget *_outlookAdjustmentValue;
+
+	void updateIntroAdjustmentValue();
+	void updateOutlookAdjustmentValue();
+};
+
+#ifdef USE_ENET
+/**
+ * Options widget for network supported HE games
+ * (Football 1999/2002, Baseball 2001 and
+ * Moonbase Commander).
+ */
+class HENetworkGameOptionsWidget : public ScummOptionsContainerWidget {
+public:
+	HENetworkGameOptionsWidget(GuiObject *boss, const Common::String &name, const Common::String &domain, const Common::String &&gameid);
+	~HENetworkGameOptionsWidget() override {};
+
+	void load() override;
+	bool save() override;
+
+private:
+	enum {
+		kEnableSessionCmd = 'ENBS',
+		kResetServersCmd = 'CLRS',
+	};
+
+	Common::String _gameid;
+
+	void defineLayout(GUI::ThemeEval &layouts, const Common::String &layoutName, const Common::String &overlayedLayout) const override;
+	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
+
+	GUI::CheckboxWidget *_audioOverride;
+
+	GUI::CheckboxWidget *_enableSessionServer;
+
+	GUI::EditTextWidget *_sessionServerAddr;
+	GUI::ButtonWidget *_serverResetButton;
+
+	GUI::CheckboxWidget *_enableLANBroadcast;
+
+	GUI::CheckboxWidget *_generateRandomMaps;
+
+	GUI::EditTextWidget *_lobbyServerAddr;
+
+#ifdef USE_LIBCURL
+	GUI::CheckboxWidget *_enableCompetitiveMods;
+#endif
+
+	GUI::StaticTextWidget *_networkVersion;
+};
+#endif
 
 } // End of namespace Scumm
 

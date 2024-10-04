@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -68,10 +67,10 @@ ResourceManager::ResourceManager(Sword2Engine *vm) {
 	_vm = vm;
 
 	_totalClusters = 0;
-	_resList = NULL;
-	_resConvTable = NULL;
-	_cacheStart = NULL;
-	_cacheEnd = NULL;
+	_resList = nullptr;
+	_resConvTable = nullptr;
+	_cacheStart = nullptr;
+	_cacheEnd = nullptr;
 	_usedMem = 0;
 }
 
@@ -123,7 +122,7 @@ bool ResourceManager::init() {
 			buf[pos - 1] = 0;
 
 		_resFiles[_totalClusters].numEntries = -1;
-		_resFiles[_totalClusters].entryTab = NULL;
+		_resFiles[_totalClusters].entryTab = nullptr;
 		if (++_totalClusters >= MAX_res_files) {
 			GUIErrorMessage("Broken Sword II: Too many entries in resource.inf");
 			return false;
@@ -231,6 +230,9 @@ bool ResourceManager::init() {
 				return false;
 			}
 
+			// Use korean.clu instead of TEXT.CLU
+			if (_vm->_isKorTrs && !scumm_stricmp(_resFiles[i].fileName, "TEXT.CLU"))
+				Common::strcpy_s(_resFiles[i].fileName, 20, "korean.clu");
 			_resFiles[i].cd = cdInf[j].cd;
 		}
 	}
@@ -244,10 +246,10 @@ bool ResourceManager::init() {
 	_resList = (Resource *)malloc(_totalResFiles * sizeof(Resource));
 
 	for (i = 0; i < _totalResFiles; i++) {
-		_resList[i].ptr = NULL;
+		_resList[i].ptr = nullptr;
 		_resList[i].size = 0;
 		_resList[i].refCount = 0;
-		_resList[i].prev = _resList[i].next = NULL;
+		_resList[i].prev = _resList[i].next = nullptr;
 	}
 
 	return true;
@@ -295,7 +297,7 @@ byte *ResourceManager::openResource(uint32 res, bool dump) {
 
 		Common::File *file = openCluFile(cluFileNum);
 
-		if (_resFiles[cluFileNum].entryTab == NULL) {
+		if (_resFiles[cluFileNum].entryTab == nullptr) {
 			// we didn't read from this file before, get its index table
 			readCluIndex(cluFileNum, file);
 		}
@@ -309,12 +311,35 @@ byte *ResourceManager::openResource(uint32 res, bool dump) {
 
 		debug(6, "res len %d", len);
 
-		// Ok, we know the length so try and allocate the memory.
-		_resList[res].ptr = _vm->_memory->memAlloc(len, res);
-		_resList[res].size = len;
-		_resList[res].refCount = 0;
+		if (res == ENGLISH_SPEECH_FONT_ID && _vm->_isKorTrs) {
+			// Load Korean Font
+			uint32 korFontSize = 0;
+			Common::File korFontFile;
+			korFontFile.open("bs2k.fnt");
+			if (korFontFile.isOpen()) {
+				korFontSize = korFontFile.size();
+			}
 
-		file->read(_resList[res].ptr, len);
+			// Ok, we know the length so try and allocate the memory.
+			_resList[res].ptr = _vm->_memory->memAlloc(len + korFontSize, res);
+			_resList[res].size = len + korFontSize;
+			_resList[res].refCount = 0;
+
+			file->read(_resList[res].ptr, len);
+
+			if (korFontSize > 0) {
+				korFontFile.read(_resList[res].ptr + len, korFontSize);
+			}
+
+			len += korFontSize;
+		} else {
+			// Ok, we know the length so try and allocate the memory.
+			_resList[res].ptr = _vm->_memory->memAlloc(len, res);
+			_resList[res].size = len;
+			_resList[res].refCount = 0;
+
+			file->read(_resList[res].ptr, len);
+		}
 
 		debug(3, "Loaded resource '%s' (%d) from '%s' on CD %d (%d)", fetchName(_resList[res].ptr), res, _resFiles[cluFileNum].fileName, getCD(), _resFiles[cluFileNum].cd);
 
@@ -367,7 +392,7 @@ byte *ResourceManager::openResource(uint32 res, bool dump) {
 				break;
 			}
 
-			sprintf(buf, "dumps/%s-%d.dmp", tag, res);
+			Common::sprintf_s(buf, "dumps/%s-%d.dmp", tag, res);
 
 			if (!Common::File::exists(buf)) {
 				Common::DumpFile out;
@@ -396,7 +421,7 @@ void ResourceManager::closeResource(uint32 res) {
 	// Don't try to close the resource if it has already been forcibly
 	// closed, e.g. by fnResetGlobals().
 
-	if (_resList[res].ptr == NULL)
+	if (_resList[res].ptr == nullptr)
 		return;
 
 	assert(_resList[res].refCount > 0);
@@ -427,11 +452,11 @@ void ResourceManager::removeFromCacheList(Resource *res) {
 		res->prev->next = res->next;
 	if (res->next)
 		res->next->prev = res->prev;
-	res->prev = res->next = NULL;
+	res->prev = res->next = nullptr;
 }
 
 void ResourceManager::addToCacheList(Resource *res) {
-	res->prev = NULL;
+	res->prev = nullptr;
 	res->next = _cacheStart;
 	if (_cacheStart)
 		_cacheStart->prev = res;
@@ -454,7 +479,7 @@ Common::File *ResourceManager::openCluFile(uint16 fileNum) {
 		// playing a demo, then we're in trouble if the file
 		// can't be found!
 
-		if ((_vm->_features & GF_DEMO) || _resFiles[fileNum].cd == 0)
+		if ((_vm->_features & ADGF_DEMO) || _resFiles[fileNum].cd == 0)
 			error("Could not find '%s'", _resFiles[fileNum].fileName);
 
 		askForCD(_resFiles[fileNum].cd);
@@ -464,7 +489,7 @@ Common::File *ResourceManager::openCluFile(uint16 fileNum) {
 
 void ResourceManager::readCluIndex(uint16 fileNum, Common::File *file) {
 	// we didn't read from this file before, get its index table
-	assert(_resFiles[fileNum].entryTab == NULL);
+	assert(_resFiles[fileNum].entryTab == nullptr);
 	assert(file);
 
 	// 1st DWORD of a cluster is an offset to the look-up table
@@ -549,7 +574,7 @@ uint32 ResourceManager::fetchLen(uint32 res) {
 	// first we have to find the file via the _resConvTable
 	// open the cluster file
 
-	if (_resFiles[parent_res_file].entryTab == NULL) {
+	if (_resFiles[parent_res_file].entryTab == nullptr) {
 		Common::File *file = openCluFile(parent_res_file);
 		readCluIndex(parent_res_file, file);
 		delete file;
@@ -564,11 +589,11 @@ void ResourceManager::checkMemUsage() {
 		// we start freeing from the end, to free the oldest items first
 		if (_cacheEnd) {
 			Resource *tmp = _cacheEnd;
-			assert((tmp->refCount == 0) && (tmp->ptr) && (tmp->next == NULL));
+			assert((tmp->refCount == 0) && (tmp->ptr) && (tmp->next == nullptr));
 			removeFromCacheList(tmp);
 
 			_vm->_memory->memFree(tmp->ptr);
-			tmp->ptr = NULL;
+			tmp->ptr = nullptr;
 			_usedMem -= tmp->size;
 		} else {
 			warning("%d bytes of memory used, but cache list is empty", _usedMem);
@@ -582,7 +607,7 @@ void ResourceManager::remove(int res) {
 		removeFromCacheList(_resList + res);
 
 		_vm->_memory->memFree(_resList[res].ptr);
-		_resList[res].ptr = NULL;
+		_resList[res].ptr = nullptr;
 		_resList[res].refCount = 0;
 		_usedMem -= _resList[res].size;
 	}

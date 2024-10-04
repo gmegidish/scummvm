@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -142,9 +141,9 @@ void Module1400::updateScene() {
 }
 
 Scene1401::Scene1401(NeverhoodEngine *vm, Module *parentModule, int which)
-	: Scene(vm, parentModule), _projectorBorderFlag(false), _ssFloorButton(NULL), _asProjector(NULL),
-	_asPipe(NULL), _asMouse(NULL), _asCheese(NULL), _asBackDoor(NULL),
-	_sprite1(NULL), _sprite2(NULL), _sprite3(NULL), _ssButton(NULL) {
+	: Scene(vm, parentModule), _projectorBorderFlag(false), _ssFloorButton(nullptr), _asProjector(nullptr),
+	_asPipe(nullptr), _asMouse(nullptr), _asCheese(nullptr), _asBackDoor(nullptr),
+	_sprite1(nullptr), _sprite2(nullptr), _sprite3(nullptr), _ssButton(nullptr) {
 
 	SetMessageHandler(&Scene1401::handleMessage);
 	SetUpdateHandler(&Scene1401::update);
@@ -286,7 +285,7 @@ uint32 Scene1401::handleMessage(int messageNum, const MessageParam &param, Entit
 }
 
 Scene1402::Scene1402(NeverhoodEngine *vm, Module *parentModule, int which)
-	: Scene(vm, parentModule), _isShaking(false), _asPuzzleBox(NULL), _asProjector(NULL) {
+	: Scene(vm, parentModule), _isShaking(false), _asPuzzleBox(nullptr), _asProjector(nullptr) {
 
 	SetMessageHandler(&Scene1402::handleMessage);
 
@@ -343,7 +342,7 @@ Scene1402::Scene1402(NeverhoodEngine *vm, Module *parentModule, int which)
 		_asPuzzleBox->setClipRect(0, 0, 640, _ssBridgePart3->getDrawRect().y2());
 
 	if (getGlobalVar(V_PROJECTOR_LOCATION) == 1) {
-		_asProjector = insertSprite<AsCommonProjector>(this, _klaymen, (Sprite*)NULL);
+		_asProjector = insertSprite<AsCommonProjector>(this, _klaymen, (Sprite*)nullptr);
 		addCollisionSprite(_asProjector);
 		if (getGlobalVar(V_PROJECTOR_SLOT) == 4) {
 			sendEntityMessage(_klaymen, 0x1014, _asProjector);
@@ -495,7 +494,7 @@ uint32 Scene1407::handleMessage(int messageNum, const MessageParam &param, Entit
 }
 
 Scene1403::Scene1403(NeverhoodEngine *vm, Module *parentModule, int which)
-	: Scene(vm, parentModule), _asProjector(NULL), _isProjecting(false) {
+	: Scene(vm, parentModule), _asProjector(nullptr), _isProjecting(false) {
 
 	SetMessageHandler(&Scene1403::handleMessage);
 
@@ -527,7 +526,7 @@ Scene1403::Scene1403(NeverhoodEngine *vm, Module *parentModule, int which)
 	_klaymen->setRepl(64, 0);
 
 	if (getGlobalVar(V_PROJECTOR_LOCATION) == 0) {
-		_asProjector = insertSprite<AsCommonProjector>(this, _klaymen, (Sprite*)NULL);
+		_asProjector = insertSprite<AsCommonProjector>(this, _klaymen, (Sprite*)nullptr);
 		addCollisionSprite(_asProjector);
 		if (getGlobalVar(V_PROJECTOR_SLOT) == 4) {
 			sendEntityMessage(_klaymen, 0x1014, _asProjector);
@@ -599,7 +598,7 @@ uint32 Scene1403::handleMessage(int messageNum, const MessageParam &param, Entit
 }
 
 Scene1404::Scene1404(NeverhoodEngine *vm, Module *parentModule, int which)
-	: Scene(vm, parentModule), _asProjector(NULL), _asKey(NULL) {
+	: Scene(vm, parentModule), _asProjector(nullptr), _asKey(nullptr) {
 
 	if (getGlobalVar(V_HAS_FINAL_KEY) && getGlobalVar(V_KEY3_LOCATION) == 0)
 		setGlobalVar(V_KEY3_LOCATION, 5);
@@ -645,7 +644,7 @@ Scene1404::Scene1404(NeverhoodEngine *vm, Module *parentModule, int which)
 	}
 
 	if (getGlobalVar(V_PROJECTOR_LOCATION) == 3) {
-		_asProjector = insertSprite<AsCommonProjector>(this, _klaymen, (Sprite*)NULL);
+		_asProjector = insertSprite<AsCommonProjector>(this, _klaymen, (Sprite*)nullptr);
 		addCollisionSprite(_asProjector);
 		if (getGlobalVar(V_PROJECTOR_SLOT) == 0) {
 			sendEntityMessage(_klaymen, 0x1014, _asProjector);

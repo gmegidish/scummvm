@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -24,7 +23,7 @@
  *   (c) 1993-1996 The Wyrmkeep Entertainment Co.
  */
 
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "video/smk_decoder.h"
 
 #include "saga2/saga2.h"
@@ -42,7 +41,7 @@ void Saga2Engine::startVideo(const char *fileName, int x, int y) {
 	if (!_smkDecoder)
 		_smkDecoder = new Video::SmackerDecoder();
 
-	if (!_smkDecoder->loadFile(fname)) {
+	if (!_smkDecoder->loadFile(Common::Path(fname))) {
 		warning("startVideo: Cannot open file %s", fname.c_str());
 
 		return;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,9 +43,9 @@ void scene20_setExits(Scene *sc) {
 		thingpar = 1;
 	else if (g_nmi->getObjectState(sO_Grandma) == g_nmi->getObjectEnumState(sO_Grandma, sO_NearPipe)
 			 || g_nmi->getObjectState(sO_Grandma) == g_nmi->getObjectEnumState(sO_Grandma, sO_NearPipeWithStool)) {
-		getSc2MctlCompoundBySceneId(sc->_sceneId)->enableLinks(sO_CloseThing, 1);
-		getSc2MctlCompoundBySceneId(sc->_sceneId)->enableLinks(sO_CloseThing2, 1);
-		getSc2MctlCompoundBySceneId(sc->_sceneId)->enableLinks(sO_CloseThing3, 0);
+		getSc2MctlCompoundBySceneId(sc->_sceneId)->enableLinks(sO_CloseThing, true);
+		getSc2MctlCompoundBySceneId(sc->_sceneId)->enableLinks(sO_CloseThing2, true);
+		getSc2MctlCompoundBySceneId(sc->_sceneId)->enableLinks(sO_CloseThing3, false);
 
 		return;
 	} else {
@@ -54,8 +53,8 @@ void scene20_setExits(Scene *sc) {
 	}
 
 	getSc2MctlCompoundBySceneId(sc->_sceneId)->enableLinks(sO_CloseThing, thingpar);
-	getSc2MctlCompoundBySceneId(sc->_sceneId)->enableLinks(sO_CloseThing2, 0);
-	getSc2MctlCompoundBySceneId(sc->_sceneId)->enableLinks(sO_CloseThing3, 1);
+	getSc2MctlCompoundBySceneId(sc->_sceneId)->enableLinks(sO_CloseThing2, false);
+	getSc2MctlCompoundBySceneId(sc->_sceneId)->enableLinks(sO_CloseThing3, true);
 }
 
 void scene20_initScene(Scene *sc) {

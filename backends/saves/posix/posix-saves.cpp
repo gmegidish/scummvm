@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 
 // Re-enable some forbidden symbols to avoid clashes with stat.h and unistd.h.
-// Also with clock() in sys/time.h in some Mac OS X SDKs.
+// Also with clock() in sys/time.h in some macOS SDKs.
 #define FORBIDDEN_SYMBOL_EXCEPTION_time_h	//On IRIX, sys/stat.h includes sys/time.h
 #define FORBIDDEN_SYMBOL_EXCEPTION_mkdir
 #define FORBIDDEN_SYMBOL_EXCEPTION_getenv
@@ -42,13 +41,13 @@
 
 POSIXSaveFileManager::POSIXSaveFileManager() {
 	// Register default savepath.
-	Common::String savePath;
+	Common::Path savePath;
 
 #if defined(MACOSX)
 	const char *home = getenv("HOME");
 	if (home && *home && strlen(home) < MAXPATHLEN) {
 		savePath = home;
-		savePath += "/Documents/ScummVM Savegames";
+		savePath.joinInPlace("Documents/ScummVM Savegames");
 
 		ConfMan.registerDefault("savepath", savePath);
 	}
@@ -57,14 +56,14 @@ POSIXSaveFileManager::POSIXSaveFileManager() {
 	const char *envVar;
 
 	// Previously we placed our default savepath in HOME. If the directory
-	// still exists, we will use it for backwards compatability.
+	// still exists, we will use it for backwards compatibility.
 	envVar = getenv("HOME");
 	if (envVar && *envVar) {
 		savePath = envVar;
-		savePath += "/.scummvm";
+		savePath.joinInPlace("/.scummvm");
 
 		struct stat sb;
-		if (stat(savePath.c_str(), &sb) != 0 || !S_ISDIR(sb.st_mode)) {
+		if (stat(savePath.toString(Common::Path::kNativeSeparator).c_str(), &sb) != 0 || !S_ISDIR(sb.st_mode)) {
 			savePath.clear();
 		}
 	}
@@ -74,29 +73,29 @@ POSIXSaveFileManager::POSIXSaveFileManager() {
 
 		// On POSIX systems we follow the XDG Base Directory Specification for
 		// where to store files. The version we based our code upon can be found
-		// over here: http://standards.freedesktop.org/basedir-spec/basedir-spec-0.8.html
+		// over here: https://specifications.freedesktop.org/basedir-spec/basedir-spec-0.8.html
 		envVar = getenv("XDG_DATA_HOME");
 		if (!envVar || !*envVar) {
 			envVar = getenv("HOME");
 			if (envVar && *envVar) {
 				prefix = envVar;
-				savePath = ".local/share/";
+				savePath = Common::Path(".local/share");
 			}
 		} else {
 			prefix = envVar;
 		}
 
 		// Our default save path is '$XDG_DATA_HOME/scummvm/saves'
-		savePath += "scummvm/saves";
+		savePath.joinInPlace("scummvm/saves");
 
-		if (!Posix::assureDirectoryExists(savePath, prefix.c_str())) {
+		if (!Posix::assureDirectoryExists(savePath.toString(Common::Path::kNativeSeparator), prefix.c_str())) {
 			savePath.clear();
 		} else {
-			savePath = prefix + '/' + savePath;
+			savePath = Common::Path(prefix).join(savePath);
 		}
 	}
 
-	if (!savePath.empty() && savePath.size() < MAXPATHLEN) {
+	if (!savePath.empty() && savePath.toString(Common::Path::kNativeSeparator).size() < MAXPATHLEN) {
 		ConfMan.registerDefault("savepath", savePath);
 	}
 #endif
@@ -117,7 +116,7 @@ POSIXSaveFileManager::POSIXSaveFileManager() {
 			} else if (!saveDir.isWritable()) {
 				warning("Ignoring non-writable SCUMMVM_SAVEPATH '%s'", dir);
 			} else {
-				ConfMan.set("savepath", dir, Common::ConfigManager::kTransientDomain);
+				ConfMan.setPath("savepath", dir, Common::ConfigManager::kTransientDomain);
 			}
 		}
 	}

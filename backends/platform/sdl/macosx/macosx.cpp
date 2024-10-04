@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #include "backends/audiocd/macosx/macosx-audiocd.h"
 #include "backends/platform/sdl/macosx/appmenu_osx.h"
 #include "backends/platform/sdl/macosx/macosx.h"
+#include "backends/platform/sdl/macosx/macosx-touchbar.h"
 #include "backends/platform/sdl/macosx/macosx-window.h"
 #include "backends/updates/macosx/macosx-updates.h"
 #include "backends/taskbar/macosx/macosx-taskbar.h"
@@ -43,8 +43,8 @@
 #include "common/fs.h"
 #include "common/translation.h"
 
-#include "ApplicationServices/ApplicationServices.h"	// for LSOpenFSRef
-#include "CoreFoundation/CoreFoundation.h"	// for CF* stuff
+#include <ApplicationServices/ApplicationServices.h>	// for LSOpenFSRef
+#include <CoreFoundation/CoreFoundation.h>	// for CF* stuff
 
 // For querying number of MIDI devices
 #include <pthread.h>
@@ -60,6 +60,10 @@ void *coreMIDIthread(void *threadarg) {
 
 OSystem_MacOSX::~OSystem_MacOSX() {
 	releaseMenu();
+
+#if defined(USE_OSD)
+	macOSTouchbarDestroy();
+#endif
 }
 
 void OSystem_MacOSX::init() {
@@ -74,6 +78,10 @@ void OSystem_MacOSX::init() {
 #if defined(USE_SYSDIALOGS)
 	// Initialize dialog manager
 	_dialogManager = new MacOSXDialogManager();
+#endif
+
+#if defined(USE_OSD)
+	macOSTouchbarCreate();
 #endif
 
 	// The call to query the number of MIDI devices is ubiquitously slow
@@ -96,7 +104,7 @@ void OSystem_MacOSX::initBackend() {
 	TransMan.setLanguage(ConfMan.get("gui_language").c_str());
 #endif // USE_TRANSLATION
 
-	// Replace the SDL generated menu items with our own translated ones on Mac OS X
+	// Replace the SDL generated menu items with our own translated ones on macOS
 	replaceApplicationMenuItems();
 
 #ifdef USE_SPARKLE
@@ -124,17 +132,10 @@ void OSystem_MacOSX::addSysArchivesToSearchSet(Common::SearchSet &s, int priorit
 	OSystem_POSIX::addSysArchivesToSearchSet(s, priority);
 
 	// Get URL of the Resource directory of the .app bundle
-	CFURLRef fileUrl = CFBundleCopyResourcesDirectoryURL(CFBundleGetMainBundle());
-	if (fileUrl) {
-		// Try to convert the URL to an absolute path
-		UInt8 buf[MAXPATHLEN];
-		if (CFURLGetFileSystemRepresentation(fileUrl, true, buf, sizeof(buf))) {
-			// Success: Add it to the search path
-			Common::String bundlePath((const char *)buf);
-			// Search with a depth of 2 so the shaders are found
-			s.add("__OSX_BUNDLE__", new Common::FSDirectory(bundlePath, 2), priority);
-		}
-		CFRelease(fileUrl);
+	Common::Path bundlePath(getResourceAppBundlePathMacOSX(), Common::Path::kNativeSeparator);
+	if (!bundlePath.empty()) {
+		// Success: search with a depth of 2 so the shaders are found
+		s.add("__OSX_BUNDLE__", new Common::FSDirectory(bundlePath, 2), priority);
 	}
 }
 
@@ -156,23 +157,13 @@ bool OSystem_MacOSX::displayLogFile() {
 	if (_logFilePath.empty())
 		return false;
 
-	CFURLRef url = CFURLCreateFromFileSystemRepresentation(kCFAllocatorDefault, (const UInt8 *)_logFilePath.c_str(), _logFilePath.size(), false);
+	Common::String logFilePath(_logFilePath.toString(Common::Path::kNativeSeparator));
+
+	CFURLRef url = CFURLCreateFromFileSystemRepresentation(kCFAllocatorDefault, (const UInt8 *)logFilePath.c_str(), logFilePath.size(), false);
 	OSStatus err = LSOpenCFURLRef(url, NULL);
 	CFRelease(url);
 
 	return err != noErr;
-}
-
-bool OSystem_MacOSX::hasTextInClipboard() {
-	return hasTextInClipboardMacOSX();
-}
-
-Common::U32String OSystem_MacOSX::getTextFromClipboard() {
-	return getTextFromClipboardMacOSX();
-}
-
-bool OSystem_MacOSX::setTextInClipboard(const Common::U32String &text) {
-	return setTextInClipboardMacOSX(text);
 }
 
 bool OSystem_MacOSX::openUrl(const Common::String &url) {
@@ -229,17 +220,16 @@ Common::String OSystem_MacOSX::getSystemLanguage() const {
 #endif // USE_DETECTLANG
 }
 
-Common::String OSystem_MacOSX::getDefaultConfigFileName() {
-	const Common::String baseConfigName = "Library/Preferences/ScummVM Preferences";
+Common::Path OSystem_MacOSX::getDefaultConfigFileName() {
+	const Common::String baseConfigName = "Library/Preferences/" + getMacBundleName() + " Preferences";
 
-	Common::String configFile;
+	Common::Path configFile;
 
 	Common::String prefix = getenv("HOME");
 
 	if (!prefix.empty() && (prefix.size() + 1 + baseConfigName.size()) < MAXPATHLEN) {
 		configFile = prefix;
-		configFile += '/';
-		configFile += baseConfigName;
+		configFile.joinInPlace(baseConfigName);
 	} else {
 		configFile = baseConfigName;
 	}
@@ -247,26 +237,49 @@ Common::String OSystem_MacOSX::getDefaultConfigFileName() {
 	return configFile;
 }
 
-Common::String OSystem_MacOSX::getDefaultLogFileName() {
+Common::Path OSystem_MacOSX::getDefaultLogFileName() {
 	const char *prefix = getenv("HOME");
 	if (prefix == nullptr) {
-		return Common::String();
+		return Common::Path();
 	}
 
 	if (!Posix::assureDirectoryExists("Library/Logs", prefix)) {
-		return Common::String();
+		return Common::Path();
 	}
 
-	return Common::String(prefix) + "/Library/Logs/scummvm.log";
+	Common::String appName = getMacBundleName();
+	appName.toLowercase();
+	return Common::Path(prefix).join(Common::String("Library/Logs/") + appName + ".log");
 }
 
-Common::String OSystem_MacOSX::getScreenshotsPath() {
-	Common::String path = ConfMan.get("screenshotpath");
-	if (path.empty())
-		path = getDesktopPathMacOSX();
-	if (!path.empty() && !path.hasSuffix("/"))
-		path += "/";
-	return path;
+Common::Path OSystem_MacOSX::getDefaultIconsPath() {
+	const Common::String defaultIconsPath = getAppSupportPathMacOSX() + "/Icons";
+
+	if (!Posix::assureDirectoryExists(defaultIconsPath)) {
+		return Common::Path();
+	}
+
+	return Common::Path(defaultIconsPath);
+}
+
+Common::Path OSystem_MacOSX::getDefaultDLCsPath() {
+	const Common::Path defaultDLCsPath(getAppSupportPathMacOSX() + "/DLCs");
+
+	if (!Posix::assureDirectoryExists(defaultDLCsPath.toString(Common::Path::kNativeSeparator))) {
+		return Common::Path();
+	}
+
+	return defaultDLCsPath;
+}
+
+Common::Path OSystem_MacOSX::getScreenshotsPath() {
+	// If the user has configured a screenshots path, use it
+	const Common::Path path = OSystem_SDL::getScreenshotsPath();
+	if (!path.empty())
+		return path;
+
+	Common::Path desktopPath(getDesktopPathMacOSX(), Common::Path::kNativeSeparator);
+	return desktopPath;
 }
 
 AudioCDManager *OSystem_MacOSX::createAudioCDManager() {

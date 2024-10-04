@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -304,6 +303,7 @@ int Events::handleOneShot(Event *event) {
 		{
 			Surface *backGroundSurface = _vm->_render->getBackGroundSurface();
 			BGInfo bgInfo;
+			byte black = _vm->iteColorBlack();
 
 			if (!(_vm->_scene->getFlags() & kSceneFlagISO)) {
 				_vm->_scene->getBGInfo(bgInfo);
@@ -321,10 +321,10 @@ int Events::handleOneShot(Event *event) {
 					rect3.moveTo(bgInfo.bounds.right, bgInfo.bounds.top - 2);
 					rect4.moveTo(bgInfo.bounds.left - 2, bgInfo.bounds.bottom);
 
-					backGroundSurface->drawRect(rect1, kITEColorBlack);
-					backGroundSurface->drawRect(rect2, kITEColorBlack);
-					backGroundSurface->drawRect(rect3, kITEColorBlack);
-					backGroundSurface->drawRect(rect4, kITEColorBlack);
+					backGroundSurface->drawRect(rect1, black);
+					backGroundSurface->drawRect(rect2, black);
+					backGroundSurface->drawRect(rect3, black);
+					backGroundSurface->drawRect(rect4, black);
 				}
 
 				if (event->param == kEvPSetPalette) {
@@ -572,7 +572,7 @@ int Events::handleInterval(Event *event) {
 
 EventColumns *Events::chain(EventColumns *eventColumns, const Event &event) {
 
-	if (eventColumns == NULL) {
+	if (eventColumns == nullptr) {
 		EventColumns tmp;
 
 		_eventList.push_back(tmp);

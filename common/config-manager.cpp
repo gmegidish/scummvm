@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,6 +39,7 @@ DECLARE_SINGLETON(ConfigManager);
 
 char const *const ConfigManager::kApplicationDomain = "scummvm";
 char const *const ConfigManager::kTransientDomain = "__TRANSIENT";
+char const *const ConfigManager::kSessionDomain = "__SESSION";
 
 char const *const ConfigManager::kKeymapperDomain = "keymapper";
 
@@ -67,6 +67,7 @@ void ConfigManager::copyFrom(ConfigManager &source) {
 	_appDomain = source._appDomain;
 	_defaultsDomain = source._defaultsDomain;
 	_keymapperDomain = source._keymapperDomain;
+	_sessionDomain = source._sessionDomain;
 #ifdef USE_CLOUD
 	_cloudDomain = source._cloudDomain;
 #endif
@@ -77,38 +78,57 @@ void ConfigManager::copyFrom(ConfigManager &source) {
 }
 
 
-void ConfigManager::loadDefaultConfigFile() {
+bool ConfigManager::loadDefaultConfigFile(const Path &fallbackFilename) {
 	// Open the default config file
 	assert(g_system);
 	SeekableReadStream *stream = g_system->createConfigReadStream();
 	_filename.clear(); // clear the filename to indicate that we are using the default config file
 
+	bool loadResult = false;
 	// ... load it, if available ...
 	if (stream) {
-		loadFromStream(*stream);
+		loadResult = loadFromStream(*stream);
 
 		// ... and close it again.
 		delete stream;
 
 	} else {
-		// No config file -> create new one!
-		debug("Default configuration file missing, creating a new one");
+		// No config file -> try to load fallback, flush initial config to disk
+		if (!loadFallbackConfigFile(fallbackFilename))
+			debug("Default configuration file missing, creating a new one");
 
 		flushToDisk();
+		loadResult = true;
 	}
+	return loadResult;
 }
 
-void ConfigManager::loadConfigFile(const String &filename) {
+bool ConfigManager::loadConfigFile(const Path &filename, const Path &fallbackFilename) {
 	_filename = filename;
 
 	FSNode node(filename);
 	File cfg_file;
 	if (!cfg_file.open(node)) {
-		debug("Creating configuration file: %s", filename.c_str());
+		if (!loadFallbackConfigFile(fallbackFilename))
+			debug("Creating configuration file: %s", filename.toString(Common::Path::kNativeSeparator).c_str());
 	} else {
-		debug("Using configuration file: %s", _filename.c_str());
-		loadFromStream(cfg_file);
+		debug("Using configuration file: %s", _filename.toString(Common::Path::kNativeSeparator).c_str());
+		return loadFromStream(cfg_file);
 	}
+	return true;
+}
+
+bool ConfigManager::loadFallbackConfigFile(const Path &filename) {
+	if (filename.empty())
+		return false;
+
+	File fallbackFile;
+	if (!fallbackFile.open(FSNode(filename)))
+		return false;
+
+	debug("Using initial configuration file: %s", filename.toString(Common::Path::kNativeSeparator).c_str());
+	loadFromStream(fallbackFile);
+	return true;
 }
 
 /**
@@ -150,7 +170,8 @@ void ConfigManager::addDomain(const String &domainName, const ConfigManager::Dom
 }
 
 
-void ConfigManager::loadFromStream(SeekableReadStream &stream) {
+bool ConfigManager::loadFromStream(SeekableReadStream &stream) {
+	static const byte UTF8_BOM[] = {0xEF, 0xBB, 0xBF};
 	String domainName;
 	String comment;
 	Domain domain;
@@ -161,6 +182,7 @@ void ConfigManager::loadFromStream(SeekableReadStream &stream) {
 	_miscDomains.clear();
 	_transientDomain.clear();
 	_domainSaveOrder.clear();
+	_sessionDomain.clear();
 
 	_keymapperDomain.clear();
 #ifdef USE_CLOUD
@@ -175,6 +197,11 @@ void ConfigManager::loadFromStream(SeekableReadStream &stream) {
 
 		// Read a line
 		String line = stream.readLine();
+
+		// Skip UTF-8 byte-order mark if added by a text editor.
+		if (lineno == 1 && memcmp(line.c_str(), UTF8_BOM, 3) == 0) {
+			line.erase(0, 3);
+		}
 
 		if (line.size() == 0) {
 			// Do nothing
@@ -196,10 +223,13 @@ void ConfigManager::loadFromStream(SeekableReadStream &stream) {
 			while (*p && (isAlnum(*p) || *p == '-' || *p == '_'))
 				p++;
 
-			if (*p == '\0')
-				error("Config file buggy: missing ] in line %d", lineno);
-			else if (*p != ']')
-				error("Config file buggy: Invalid character '%c' occurred in section name in line %d", *p, lineno);
+			if (*p == '\0') {
+				warning("Config file buggy: missing ] in line %d", lineno);
+				return false;
+			} else if (*p != ']') {
+				warning("Config file buggy: Invalid character '%c' occurred in section name in line %d", *p, lineno);
+				return false;
+			}
 
 			domainName = String(line.c_str() + 1, p);
 
@@ -220,13 +250,16 @@ void ConfigManager::loadFromStream(SeekableReadStream &stream) {
 
 			// If no domain has been set, this config file is invalid!
 			if (domainName.empty()) {
-				error("Config file buggy: Key/value pair found outside a domain in line %d", lineno);
+				warning("Config file buggy: Key/value pair found outside a domain in line %d", lineno);
+				return false;
 			}
 
 			// Split string at '=' into 'key' and 'value'. First, find the "=" delimeter.
 			const char *p = strchr(t, '=');
-			if (!p)
-				error("Config file buggy: Junk found in line line %d: '%s'", lineno, t);
+			if (!p) {
+				warning("Config file buggy: Junk found in line %d: '%s'", lineno, t);
+				return false;
+			}
 
 			// Extract the key/value pair
 			String key(t, p);
@@ -246,6 +279,8 @@ void ConfigManager::loadFromStream(SeekableReadStream &stream) {
 	}
 
 	addDomain(domainName, domain); // Add the last domain found
+
+	return true;
 }
 
 void ConfigManager::flushToDisk() {
@@ -263,7 +298,7 @@ void ConfigManager::flushToDisk() {
 		assert(dump);
 
 		if (!dump->open(_filename)) {
-			warning("Unable to write configuration file: %s", _filename.c_str());
+			warning("Unable to write configuration file: %s", _filename.toString(Common::Path::kNativeSeparator).c_str());
 			delete dump;
 			return;
 		}
@@ -365,6 +400,8 @@ const ConfigManager::Domain *ConfigManager::getDomain(const String &domName) con
 		return &_appDomain;
 	if (domName == kKeymapperDomain)
 		return &_keymapperDomain;
+	if (domName == kSessionDomain)
+		return &_sessionDomain;
 #ifdef USE_CLOUD
 	if (domName == kCloudDomain)
 		return &_cloudDomain;
@@ -387,6 +424,8 @@ ConfigManager::Domain *ConfigManager::getDomain(const String &domName) {
 		return &_appDomain;
 	if (domName == kKeymapperDomain)
 		return &_keymapperDomain;
+	if (domName == kSessionDomain)
+		return &_sessionDomain;
 #ifdef USE_CLOUD
 	if (domName == kCloudDomain)
 		return &_cloudDomain;
@@ -406,11 +445,15 @@ ConfigManager::Domain *ConfigManager::getDomain(const String &domName) {
 bool ConfigManager::hasKey(const String &key) const {
 	// Search the domains in the following order:
 	// 1) the transient domain,
-	// 2) the active game domain (if any),
-	// 3) the application domain.
+	// 2) the session domain,
+	// 3) the active game domain (if any),
+	// 4) the application domain.
 	// The defaults domain is explicitly *not* checked.
 
 	if (_transientDomain.contains(key))
+		return true;
+
+	if (_sessionDomain.contains(key))
 		return true;
 
 	if (_activeDomain && _activeDomain->contains(key))
@@ -429,11 +472,18 @@ bool ConfigManager::hasKey(const String &key, const String &domName) const {
 	if (domName.empty())
 		return hasKey(key);
 
+	if (_sessionDomain.contains(key))
+		return true;
+
 	const Domain *domain = getDomain(domName);
 
 	if (!domain)
 		return false;
 	return domain->contains(key);
+}
+
+bool ConfigManager::hasDefault(const String &key) const {
+	return _defaultsDomain.contains(key);
 }
 
 void ConfigManager::removeKey(const String &key, const String &domName) {
@@ -444,6 +494,7 @@ void ConfigManager::removeKey(const String &key, const String &domName) {
 		      key.c_str(), domName.c_str());
 
 	domain->erase(key);
+	_sessionDomain.erase(key);
 }
 
 
@@ -453,6 +504,8 @@ void ConfigManager::removeKey(const String &key, const String &domName) {
 const String &ConfigManager::get(const String &key) const {
 	if (_transientDomain.contains(key))
 		return _transientDomain[key];
+	else if (_sessionDomain.contains(key))
+		return _sessionDomain[key];
 	else if (_activeDomain && _activeDomain->contains(key))
 		return (*_activeDomain)[key];
 	else if (_appDomain.contains(key))
@@ -467,6 +520,9 @@ const String &ConfigManager::get(const String &key, const String &domName) const
 	// and should be removed ASAP.
 	if (domName.empty())
 		return get(key);
+
+	if (_sessionDomain.contains(key))
+		return _sessionDomain.getVal(key);
 
 	const Domain *domain = getDomain(domName);
 
@@ -511,13 +567,34 @@ bool ConfigManager::getBool(const String &key, const String &domName) const {
 	      key.c_str(), domName.c_str(), value.c_str());
 }
 
+Path ConfigManager::getPath(const String &key, const String &domName) const {
+	return Path::fromConfig(get(key, domName));
+}
+
+float ConfigManager::getFloat(const String &key, const String &domName) const {
+	String value(get(key, domName));
+	char *pend;
+
+	if (value.empty()) {
+		return 0.0f;
+	}
+
+	float fvalue = strtof(value.c_str(), &pend);
+	if (value.c_str() == pend)
+		error("ConfigManager::getFloat(%s,%s): '%s' is not a valid float",
+		      key.c_str(), domName.c_str(), value.c_str());
+
+	return fvalue;
+}
+
 
 #pragma mark -
 
 
 void ConfigManager::set(const String &key, const String &value) {
-	// Remove the transient domain value, if any.
+	// Remove the transient and session domain value, if any.
 	_transientDomain.erase(key);
+	_sessionDomain.erase(key);
 
 	// Write the new key/value pair into the active domain, resp. into
 	// the application domain if no game domain is active.
@@ -555,9 +632,12 @@ void ConfigManager::set(const String &key, const String &value, const String &do
 		error("ConfigManager::set(%s,%s,%s) called on non-existent domain",
 		      key.c_str(), value.c_str(), domName.c_str());
 
+	if (domName != kSessionDomain && domName != kTransientDomain)
+		_sessionDomain.erase(key);
+
 	(*domain).setVal(key, value);
 
-	// TODO/FIXME: We used to erase the given key from the transient domain
+		// TODO/FIXME: We used to erase the given key from the transient domain
 	// here. Do we still want to do that?
 	// It was probably there to simplify the options dialogs code:
 	// Imagine you are editing the current options (via the SCUMM ConfigDialog,
@@ -593,6 +673,14 @@ void ConfigManager::setBool(const String &key, bool value, const String &domName
 	set(key, String(value ? "true" : "false"), domName);
 }
 
+void ConfigManager::setPath(const String &key, const Path &value, const String &domName) {
+	set(key, value.toConfig(), domName);
+}
+
+void ConfigManager::setFloat(const String &key, float value, const String &domName) {
+	set(key, String::format("%f", value), domName);
+}
+
 
 #pragma mark -
 
@@ -611,6 +699,10 @@ void ConfigManager::registerDefault(const String &key, int value) {
 
 void ConfigManager::registerDefault(const String &key, bool value) {
 	registerDefault(key, value ? "true" : "false");
+}
+
+void ConfigManager::registerDefault(const String &key, const Path &value) {
+	registerDefault(key, value.toConfig());
 }
 
 
@@ -707,6 +799,10 @@ bool ConfigManager::hasGameDomain(const String &domName) const {
 bool ConfigManager::hasMiscDomain(const String &domName) const {
 	assert(!domName.empty());
 	return isValidDomainName(domName) && _miscDomains.contains(domName);
+}
+
+bool ConfigManager::isKeyTemporary(const String &key) const {
+	return _transientDomain.contains(key) || _sessionDomain.contains(key);
 }
 
 #pragma mark -

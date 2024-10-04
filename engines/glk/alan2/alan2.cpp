@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,7 +59,7 @@ bool Alan2::initialize() {
 		_advName = Common::String(_advName.c_str(), _advName.size() - 4);
 
 	// first, open a window for error output
-	glkMainWin = g_vm->glk_window_open(0, 0, 0, wintype_TextBuffer, 0);
+	glkMainWin = g_vm->glk_window_open(nullptr, 0, 0, wintype_TextBuffer, 0);
 	if (glkMainWin == nullptr)
 		::error("FATAL ERROR: Cannot open initial window");
 
@@ -77,14 +76,15 @@ bool Alan2::initialize() {
 		return false;
 	}
 
-	if (_gameFile.readUint32BE() != MKTAG(2, 8, 1, 0)) {
+	uint32 version = _gameFile.readUint32BE();
+	if (version != MKTAG(2, 8, 1, 0) && version != MKTAG(2, 6, 0, 0)) {
 		GUIErrorMessage(_("This is not a valid Alan2 file."));
 		return false;
 	}
 
 	// Open up the text file
 	txtfil = new Common::File();
-	if (!txtfil->open(Common::String::format("%s.dat", _advName.c_str()))) {
+	if (!txtfil->open(Common::Path(Common::String::format("%s.dat", _advName.c_str())))) {
 		GUIErrorMessage("Could not open adventure text data file");
 		delete txtfil;
 		return false;
@@ -119,9 +119,11 @@ Common::Error Alan2::writeGameData(Common::WriteStream *ws) {
 }
 
 // This works around gcc errors for passing packed structure fields
-void syncVal(Common::Serializer &s, uint32 *fld) {
-	uint32 &v = *fld;
+void syncVal(Common::Serializer &s, void *fld) {
+	uint32 v = READ_UINT32(fld);
 	s.syncAsUint32LE(v);
+	if (s.isLoading())
+		WRITE_UINT32(fld, v);
 }
 
 static void syncActors(Common::Serializer &s) {

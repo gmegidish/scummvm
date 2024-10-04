@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,13 +45,13 @@ class PartyView : public View {
 	SunMoonStripWidget *sun_moon_widget;
 
 public:
-	PartyView(Configuration *cfg);
+	PartyView(const Configuration *cfg);
 	~PartyView() override;
 
 	bool init(void *vm, uint16 x, uint16 y, Font *f, Party *p, Player *pl, TileManager *tm, ObjManager *om);
 	GUI_status MouseUp(int x, int y, Shared::MouseButton button) override;
 	GUI_status MouseDown(int x, int y, Shared::MouseButton button) override {
-		return (GUI_YUM);
+		return GUI_YUM;
 	}
 	GUI_status MouseWheel(sint32 x, sint32 y) override;
 	bool drag_accept_drop(int x, int y, int message, void *data) override;

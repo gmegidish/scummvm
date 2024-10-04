@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/grim/costume.h"
 #include "engines/grim/savegame.h"
 #include "engines/grim/textsplit.h"
-
 #include "engines/grim/costume/chore.h"
 #include "engines/grim/costume/component.h"
 #include "engines/grim/costume/keyframe_component.h"
@@ -34,7 +32,6 @@ namespace Grim {
 Chore::Chore(char name[32], int id, Costume *owner, int length, int numTracks) :
 		_hasPlayed(false), _playing(false), _looping(false), _paused(false), _currTime(-1),
 		_numTracks(numTracks), _length(length), _choreId(id), _owner(owner) {
-
 	memcpy(_name, name, 32);
 	_tracks = new ChoreTrack[_numTracks];
 }

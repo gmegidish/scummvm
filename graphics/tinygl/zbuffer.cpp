@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 /*
- * This file is based on, or a modified version of code from TinyGL (C) 1997-1998 Fabrice Bellard,
- * which is licensed under the zlib-license (see LICENSE).
+ * This file is based on, or a modified version of code from TinyGL (C) 1997-2022 Fabrice Bellard,
+ * which is licensed under the MIT license (see LICENSE).
  * It also has modifications by the ResidualVM-team, which are covered under the GPLv2 (or later).
  */
 
@@ -30,127 +29,46 @@
 
 #include "common/scummsys.h"
 #include "common/endian.h"
+#include "common/memory.h"
 
 #include "graphics/tinygl/zbuffer.h"
 #include "graphics/tinygl/zgl.h"
 
 namespace TinyGL {
 
-// adr must be aligned on an 'int'
-void memset_s(void *adr, int val, int count) {
-	int n, v;
-	unsigned int *p;
-	unsigned short *q;
+FrameBuffer::FrameBuffer(int width, int height, const Graphics::PixelFormat &format, bool enableStencilBuffer) {
+	_pbufWidth = width;
+	_pbufHeight = height;
+	_pbufFormat = format;
+	_pbufBpp = _pbufFormat.bytesPerPixel;
+	_pbufPitch = (_pbufWidth * _pbufBpp + 3) & ~3;
 
-	p = (unsigned int *)adr;
-	v = val | (val << 16);
+	_pbuf = (byte *)gl_zalloc(_pbufHeight * _pbufPitch * sizeof(byte));
+	_zbuf = (uint *)gl_zalloc(_pbufWidth * _pbufHeight * sizeof(uint));
+	if (enableStencilBuffer)
+		_sbuf = (byte *)gl_zalloc(_pbufWidth * _pbufHeight * sizeof(byte));
+	else
+		_sbuf = nullptr;
 
-	n = count >> 3;
-	for (int i = 0; i < n; i++) {
-		p[0] = v;
-		p[1] = v;
-		p[2] = v;
-		p[3] = v;
-		p += 4;
-	}
+	_offscreenBuffer.pbuf = _pbuf;
+	_offscreenBuffer.zbuf = _zbuf;
 
-	q = (unsigned short *) p;
-	n = count & 7;
-	for (int i = 0; i < n; i++)
-		*q++ = val;
-}
+	_currentTexture = nullptr;
 
-void memset_l(void *adr, int val, int count) {
-	int n, v;
-	unsigned int *p;
-
-	p = (unsigned int *)adr;
-	v = val;
-	n = count >> 2;
-	for (int i = 0; i < n; i++) {
-		p[0] = v;
-		p[1] = v;
-		p[2] = v;
-		p[3] = v;
-		p += 4;
-	}
-
-	n = count & 3;
-	for (int i = 0; i < n; i++)
-		*p++ = val;
-}
-
-FrameBuffer::FrameBuffer(int width, int height, const Graphics::PixelBuffer &frame_buffer) : _depthWrite(true), _enableScissor(false) {
-	this->xsize = width;
-	this->ysize = height;
-	this->cmode = frame_buffer.getFormat();
-	this->pixelbytes = this->cmode.bytesPerPixel;
-	this->linesize = (xsize * this->pixelbytes + 3) & ~3;
-
-	int size = this->xsize * this->ysize * sizeof(unsigned int);
-
-	this->_zbuf = (unsigned int *)gl_malloc(size);
-	memset(this->_zbuf, 0, size);
-
-	this->frame_buffer_allocated = 0;
-	this->pbuf = frame_buffer;
-
-	this->current_texture = NULL;
-	this->shadow_mask_buf = NULL;
-
-	this->buffer.pbuf = this->pbuf.getRawBuffer();
-	this->buffer.zbuf = this->_zbuf;
-	_blendingEnabled = false;
-	_alphaTestEnabled = false;
-	_depthTestEnabled = false;
-	_depthFunc = TGL_LESS;
-	_offsetStates = 0;
-	_offsetFactor = 0.0f;
-	_offsetUnits = 0.0f;
-}
-
-FrameBuffer::FrameBuffer(int width, int height, const Graphics::PixelFormat &format) : _depthWrite(true), _enableScissor(false) {
-	this->xsize = width;
-	this->ysize = height;
-	this->cmode = format;
-	this->pixelbytes = this->cmode.bytesPerPixel;
-	this->linesize = (xsize * this->pixelbytes + 3) & ~3;
-
-	int size = this->xsize * this->ysize * sizeof(unsigned int);
-
-	this->_zbuf = (unsigned int *)gl_malloc(size);
-	memset(this->_zbuf, 0, size);
-
-	byte *pixelBuffer = (byte *)gl_malloc(this->ysize * this->linesize);
-	this->pbuf.set(this->cmode, pixelBuffer);
-	this->frame_buffer_allocated = 1;
-
-	this->current_texture = NULL;
-	this->shadow_mask_buf = NULL;
-
-	this->buffer.pbuf = this->pbuf.getRawBuffer();
-	this->buffer.zbuf = this->_zbuf;
-	_blendingEnabled = false;
-	_alphaTestEnabled = false;
-	_depthTestEnabled = false;
-	_depthFunc = TGL_LESS;
-	_offsetStates = 0;
-	_offsetFactor = 0.0f;
-	_offsetUnits = 0.0f;
+	_enableScissor = false;
 }
 
 FrameBuffer::~FrameBuffer() {
-	if (frame_buffer_allocated)
-		pbuf.free();
+	gl_free(_pbuf);
 	gl_free(_zbuf);
+	if (_sbuf)
+		gl_free(_sbuf);
 }
 
 Buffer *FrameBuffer::genOffscreenBuffer() {
 	Buffer *buf = (Buffer *)gl_malloc(sizeof(Buffer));
-	buf->pbuf = (byte *)gl_malloc(this->ysize * this->linesize);
-	int size = this->xsize * this->ysize * sizeof(unsigned int);
-	buf->zbuf = (unsigned int *)gl_malloc(size);
-
+	buf->pbuf = (byte *)gl_zalloc(_pbufHeight * _pbufPitch);
+	buf->zbuf = (uint *)gl_zalloc(_pbufWidth * _pbufHeight * sizeof(uint));
 	return buf;
 }
 
@@ -160,99 +78,111 @@ void FrameBuffer::delOffscreenBuffer(Buffer *buf) {
 	gl_free(buf);
 }
 
-void FrameBuffer::clear(int clearZ, int z, int clearColor, int r, int g, int b) {
+void FrameBuffer::clear(int clearZ, int z, int clearColor, int r, int g, int b,
+                        bool clearStencil, int stencilValue) {
 	if (clearZ) {
 		const uint8 *zc = (const uint8 *)&z;
-		unsigned int i;
+		uint i;
 		for (i = 1; i < sizeof(z) && zc[0] == zc[i]; i++) { ; }
 		if (i == sizeof(z)) {
 			// All "z" bytes are identical, use memset (fast)
-			memset(this->_zbuf, zc[0], sizeof(*this->_zbuf) * this->xsize * this->ysize);
+			memset(_zbuf, zc[0], sizeof(uint) * _pbufWidth * _pbufHeight);
 		} else {
-			// Cannot use memset, use a variant working on integers (slow)
-			memset_l(this->_zbuf, z, this->xsize * this->ysize);
+			// Cannot use memset, use a variant working on integers (possibly slower)
+			Common::memset32((uint32 *)_zbuf, z, _pbufWidth * _pbufHeight);
 		}
 	}
 	if (clearColor) {
-		byte *pp = this->pbuf.getRawBuffer();
-		uint32 color = this->cmode.RGBToColor(r, g, b);
+		byte *pp = _pbuf;
+		uint32 color = _pbufFormat.RGBToColor(r, g, b);
 		const uint8 *colorc = (uint8 *)&color;
-		unsigned int i;
+		uint i;
 		for (i = 1; i < sizeof(color) && colorc[0] == colorc[i]; i++) { ; }
 		if (i == sizeof(color)) {
 			// All "color" bytes are identical, use memset (fast)
-			memset(pp, colorc[0], this->linesize * this->ysize);
+			memset(pp, colorc[0], _pbufPitch * _pbufHeight);
 		} else {
-			// Cannot use memset, use a variant working on shorts/ints (slow)
-			switch(this->pixelbytes) {
+			// Cannot use memset, use a variant working on shorts/ints (possibly slower)
+			switch(_pbufBpp) {
 			case 2:
-				memset_s(pp, color, this->xsize * this->ysize);
+				Common::memset16((uint16 *)pp, color, _pbufWidth * _pbufHeight);
 				break;
 			case 4:
-				memset_l(pp, color, this->xsize * this->ysize);
+				Common::memset32((uint32 *)pp, color, _pbufWidth * _pbufHeight);
 				break;
 			default:
-				error("Unsupported pixel size %i", this->pixelbytes);
+				error("Unsupported pixel size %i", _pbufBpp);
 			}
 		}
 	}
+	if (_sbuf && clearStencil) {
+		memset(_sbuf, stencilValue, _pbufWidth * _pbufHeight);
+	}
 }
 
-void FrameBuffer::clearRegion(int x, int y, int w, int h, int clearZ, int z, int clearColor, int r, int g, int b) {
+void FrameBuffer::clearRegion(int x, int y, int w, int h, bool clearZ, int z,
+                              bool clearColor, int r, int g, int b, bool clearStencil, int stencilValue) {
 	if (clearZ) {
 		int height = h;
-		unsigned int *zbuf = this->_zbuf + (y * this->xsize);
+		uint *zbuf = _zbuf + (y * _pbufWidth) + x;
 		const uint8 *zc = (const uint8 *)&z;
-		unsigned int i;
+		uint i;
 		for (i = 1; i < sizeof(z) && zc[0] == zc[i]; i++) { ; }
 		if (i == sizeof(z)) {
 			// All "z" bytes are identical, use memset (fast)
 			while (height--) {
-				memset(zbuf + x, zc[0], sizeof(*zbuf) * w);
-				zbuf += this->xsize;
+				memset(zbuf, zc[0], sizeof(*zbuf) * w);
+				zbuf += _pbufWidth;
 			}
 		} else {
-			// Cannot use memset, use a variant working on integers (slow)
+			// Cannot use memset, use a variant working on integers (possibly slower)
 			while (height--) {
-				memset_l(zbuf + x, z, w);
-				zbuf += this->xsize;
+				Common::memset32((uint32 *)zbuf, z, w);
+				zbuf += _pbufWidth;
 			}
 		}
 	}
 	if (clearColor) {
 		int height = h;
-		byte *pp = this->pbuf.getRawBuffer() + y * this->linesize + x * this->pixelbytes;
-		uint32 color = this->cmode.RGBToColor(r, g, b);
+		byte *pp = _pbuf + y * _pbufPitch + x * _pbufBpp;
+		uint32 color = _pbufFormat.RGBToColor(r, g, b);
 		const uint8 *colorc = (uint8 *)&color;
-		unsigned int i;
+		uint i;
 		for (i = 1; i < sizeof(color) && colorc[0] == colorc[i]; i++) { ; }
 		if (i == sizeof(color)) {
 			// All "color" bytes are identical, use memset (fast)
 			while (height--) {
-				memset(pp, colorc[0], this->pixelbytes * w);
-				pp += this->linesize;
+				memset(pp, colorc[0], _pbufBpp * w);
+				pp += _pbufPitch;
 			}
 		} else {
-			// Cannot use memset, use a variant working on shorts/ints (slow)
+			// Cannot use memset, use a variant working on shorts/ints (possibly slower)
 			while (height--) {
-				switch(this->pixelbytes) {
+				switch(_pbufBpp) {
 				case 2:
-					memset_s(pp, color, w);
+					Common::memset16((uint16 *)pp, color, w);
 					break;
 				case 4:
-					memset_l(pp, color, w);
+					Common::memset32((uint32 *)pp, color, w);
 					break;
 				default:
-					error("Unsupported pixel size %i", this->pixelbytes);
+					error("Unsupported pixel size %i", _pbufBpp);
 				}
-				pp += this->linesize;
+				pp += _pbufPitch;
 			}
+		}
+	}
+	if (_sbuf && clearStencil) {
+		byte *pp = _sbuf + y * _pbufWidth + x;
+		for (int i = y; i < y + h; i++) {
+			memset(pp, stencilValue, w);
+			pp += _pbufWidth;
 		}
 	}
 }
 
-inline static void blitPixel(uint8 offset, unsigned int *from_z, unsigned int *to_z, unsigned int z_length, byte *from_color, byte *to_color, unsigned int color_length) {
-	const unsigned int d = from_z[offset];
+inline static void blitPixel(uint8 offset, uint *from_z, uint *to_z, uint z_length, byte *from_color, byte *to_color, uint color_length) {
+	const uint d = from_z[offset];
 	if (d > to_z[offset]) {
 		memcpy(to_color + offset, from_color + offset, color_length);
 		memcpy(to_z + offset, &d, z_length);
@@ -263,13 +193,13 @@ void FrameBuffer::blitOffscreenBuffer(Buffer *buf) {
 	// TODO: could be faster, probably.
 #define UNROLL_COUNT 16
 	if (buf->used) {
-		const int pixel_bytes = this->pixelbytes;
+		const int pixel_bytes = _pbufBpp;
 		const int unrolled_pixel_bytes = pixel_bytes * UNROLL_COUNT;
-		byte *to = this->pbuf.getRawBuffer();
+		byte *to = _pbuf;
 		byte *from = buf->pbuf;
-		unsigned int *to_z = this->_zbuf;
-		unsigned int *from_z = buf->zbuf;
-		int count = this->xsize * this->ysize;
+		uint *to_z = _zbuf;
+		uint *from_z = buf->zbuf;
+		int count = _pbufWidth * _pbufHeight;
 		while (count >= UNROLL_COUNT) {
 			blitPixel(0x0, from_z, to_z, sizeof(int), from, to, pixel_bytes);
 			blitPixel(0x1, from_z, to_z, sizeof(int), from, to, pixel_bytes);
@@ -316,25 +246,31 @@ void FrameBuffer::blitOffscreenBuffer(Buffer *buf) {
 
 void FrameBuffer::selectOffscreenBuffer(Buffer *buf) {
 	if (buf) {
-		this->pbuf = buf->pbuf;
-		this->_zbuf = buf->zbuf;
+		_pbuf = buf->pbuf;
+		_zbuf = buf->zbuf;
 		buf->used = true;
 	} else {
-		this->pbuf = this->buffer.pbuf;
-		this->_zbuf = this->buffer.zbuf;
+		_pbuf = _offscreenBuffer.pbuf;
+		_zbuf = _offscreenBuffer.zbuf;
 	}
 }
 
 void FrameBuffer::clearOffscreenBuffer(Buffer *buf) {
-	memset(buf->pbuf, 0, this->ysize * this->linesize);
-	memset(buf->zbuf, 0, this->ysize * this->xsize * sizeof(unsigned int));
+	memset(buf->pbuf, 0, _pbufHeight * _pbufPitch);
+	memset(buf->zbuf, 0, _pbufHeight * _pbufWidth * sizeof(uint));
 	buf->used = false;
 }
 
-void FrameBuffer::setTexture(const Graphics::TexelBuffer *texture, unsigned int wraps, unsigned int wrapt) {
-	current_texture = texture;
-	wrapS = wraps;
-	wrapT = wrapt;
+void getSurfaceRef(Graphics::Surface &surface) {
+	GLContext *c = gl_get_context();
+	assert(c->fb);
+	c->fb->getSurfaceRef(surface);
+}
+
+Graphics::Surface *copyFromFrameBuffer(const Graphics::PixelFormat &dstFormat) {
+	GLContext *c = gl_get_context();
+	assert(c->fb);
+	return c->fb->copyFromFrameBuffer(dstFormat);
 }
 
 } // end of namespace TinyGL

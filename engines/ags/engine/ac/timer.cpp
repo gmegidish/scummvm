@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ags/lib/std/thread.h"
+#include "common/std/thread.h"
 #include "ags/engine/ac/timer.h"
 #include "ags/shared/core/platform.h"
 #include "ags/engine/ac/sys_events.h"
@@ -31,7 +30,7 @@
 namespace AGS3 {
 
 namespace {
-const auto MAXIMUM_FALL_BEHIND = 3;
+const auto MAXIMUM_FALL_BEHIND = 3; // number of full frames
 }
 
 std::chrono::microseconds GetFrameDuration() {
@@ -41,12 +40,18 @@ std::chrono::microseconds GetFrameDuration() {
 	return _G(tick_duration);
 }
 
-void setTimerFps(int new_fps) {
+int setTimerFps(int new_fps) {
+	assert(new_fps >= 0);
+	if (new_fps <= 0)
+		return _G(framerate);
+	int old_fps = _G(framerate);
 	_G(tick_duration) = std::chrono::microseconds(1000000LL / new_fps);
+	_G(framerate) = new_fps;
 	_G(framerate_maxed) = new_fps >= 1000;
 
-	_G(last_tick_time) = AGS_Clock::now();
-	_G(next_frame_timestamp) = AGS_Clock::now();
+	// Update next frame time
+	_G(next_frame_timestamp) = _G(last_tick_time) + _G(tick_duration);
+	return old_fps;
 }
 
 bool isTimerFpsMaxed() {
@@ -54,14 +59,15 @@ bool isTimerFpsMaxed() {
 }
 
 void WaitForNextFrame() {
-	auto now = AGS_Clock::now();
-	auto frameDuration = GetFrameDuration();
+	const auto now = AGS_Clock::now();
+	const auto frameDuration = GetFrameDuration();
 
 	// early exit if we're trying to maximise framerate
 	if (frameDuration <= std::chrono::milliseconds::zero()) {
+		_G(last_tick_time) = _G(next_frame_timestamp);
 		_G(next_frame_timestamp) = now;
 		// suspend while the game is being switched out
-		while (_G(game_update_suspend)) {
+		while (_G(game_update_suspend) && !_G(want_exit) && !_G(abort_engine)) {
 			sys_evt_process_pending();
 			_G(platform)->YieldCPU();
 		}
@@ -78,10 +84,11 @@ void WaitForNextFrame() {
 		std::this_thread::sleep_for(frame_time_remaining);
 	}
 
+	_G(last_tick_time) = _G(next_frame_timestamp);
 	_G(next_frame_timestamp) += frameDuration;
 
 	// suspend while the game is being switched out
-	while (_G(game_update_suspend)) {
+	while (_G(game_update_suspend) && !_G(want_exit) && !_G(abort_engine)) {
 		sys_evt_process_pending();
 		_G(platform)->YieldCPU();
 	}

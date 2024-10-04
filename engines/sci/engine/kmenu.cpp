@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,14 +41,12 @@ reg_t kAddMenu(EngineState *s, int argc, reg_t *argv) {
 reg_t kSetMenu(EngineState *s, int argc, reg_t *argv) {
 	uint16 menuId = argv[0].toUint16() >> 8;
 	uint16 itemId = argv[0].toUint16() & 0xFF;
-	uint16 attributeId;
 	int argPos = 1;
-	reg_t value;
 
 	while (argPos < argc) {
-		attributeId = argv[argPos].toUint16();
+		uint16 attributeId = argv[argPos].toUint16();
 		// Happens in the fanmade game Cascade Quest when loading - bug #5118
-		value = (argPos + 1 < argc) ? argv[argPos + 1] : NULL_REG;
+		reg_t value = (argPos + 1 < argc) ? argv[argPos + 1] : NULL_REG;
 		g_sci->_gfxMenu->kernelSetAttribute(menuId, itemId, attributeId, value);
 		argPos += 2;
 	}
@@ -72,7 +69,7 @@ reg_t kDrawStatus(EngineState *s, int argc, reg_t *argv) {
 	int16 colorBack = (argc > 2) ? argv[2].toSint16() : g_sci->_gfxScreen->getColorWhite();
 
 	if (!textReference.isNull()) {
-		// Sometimes this is called without giving text, if thats the case dont process it.
+		// Sometimes this is called without giving text, if that's the case don't process it.
 		text = s->_segMan->getString(textReference);
 
 		if (text == "Replaying sound") {
@@ -80,7 +77,7 @@ reg_t kDrawStatus(EngineState *s, int argc, reg_t *argv) {
 			return s->r_acc;
 		}
 
-		g_sci->_gfxMenu->kernelDrawStatus(g_sci->strSplit(text.c_str(), NULL).c_str(), colorPen, colorBack);
+		g_sci->_gfxMenu->kernelDrawStatus(g_sci->strSplit(text.c_str(), nullptr).c_str(), colorPen, colorBack);
 	}
 	return s->r_acc;
 }

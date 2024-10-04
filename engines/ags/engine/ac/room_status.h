@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define AGS_ENGINE_AC_ROOM_STATUS_H
 
 #include "ags/engine/ac/room_object.h"
+#include "ags/engine/game/savegame.h"
 #include "ags/shared/game/room_struct.h"
 #include "ags/shared/game/interactions.h"
 #include "ags/shared/util/string_types.h"
@@ -40,33 +40,57 @@ class Stream;
 using AGS::Shared::Stream;
 using AGS::Shared::Interaction;
 
-// This struct is saved in the save games - it contains everything about
-// a room that could change
+struct HotspotState {
+	bool Enabled = false;
+	Shared::String Name;
+
+	void ReadFromSavegame(Shared::Stream *in, int save_ver);
+	void WriteToSavegame(Shared::Stream *out) const;
+};
+
+// Savegame data format for RoomStatus
+// TODO: fill in other versions (lookup the code history)
+enum RoomStatSvgVersion {
+	kRoomStatSvgVersion_Initial = 0,
+	kRoomStatSvgVersion_36025 = 3,
+	kRoomStatSvgVersion_36041 = 4,
+	kRoomStatSvgVersion_Current = kRoomStatSvgVersion_36041
+};
+
+// RoomStatus contains everything about a room that could change at runtime.
 struct RoomStatus {
 	int   beenhere = 0;
-	int   numobj = 0;
-	RoomObject obj[MAX_ROOM_OBJECTS];
-	short flagstates[MAX_FLAGS];
-	int   tsdatasize = 0;
-	char *tsdata = nullptr;
+	uint32_t numobj = 0;
+	std::vector<RoomObject> obj;
+	uint32_t tsdatasize = 0;
+	std::vector<char> tsdata;
 	Interaction intrHotspot[MAX_ROOM_HOTSPOTS];
-	Interaction intrObject[MAX_ROOM_OBJECTS];
+	std::vector<Interaction> intrObject;
 	Interaction intrRegion[MAX_ROOM_REGIONS];
 	Interaction intrRoom;
 
 	Shared::StringIMap roomProps;
 	Shared::StringIMap hsProps[MAX_ROOM_HOTSPOTS];
-	Shared::StringIMap objProps[MAX_ROOM_OBJECTS];
-	// [IKM] 2012-06-22: not used anywhere
-#ifdef UNUSED_CODE
+	std::vector<Shared::StringIMap> objProps;
+	HotspotState hotspot[MAX_ROOM_HOTSPOTS];
+	int8  region_enabled[MAX_ROOM_REGIONS];
+	short walkbehind_base[MAX_WALK_BEHINDS];
+	int32_t interactionVariableValues[MAX_GLOBAL_VARIABLES];
+
+	// Likely pre-2.5 data
+#if defined (OBSOLETE)
+	short flagstates[MAX_LEGACY_ROOM_FLAGS]{};
 	EventBlock hscond[MAX_ROOM_HOTSPOTS];
 	EventBlock objcond[MAX_ROOM_OBJECTS];
 	EventBlock misccond;
 #endif
-	int8  hotspot_enabled[MAX_ROOM_HOTSPOTS];
-	int8  region_enabled[MAX_ROOM_REGIONS];
-	short walkbehind_base[MAX_WALK_BEHINDS];
-	int32_t interactionVariableValues[MAX_GLOBAL_VARIABLES];
+
+	// A version of a save this RoomStatus was restored from.
+	// This is used as a hint when merging RoomStatus with the loaded room file (upon room enter).
+	// We need this for cases when an old format save is restored within an upgraded game
+	// (for example, game was upgraded from 3.4.0 to 3.6.0, but player tries loading 3.4.0 save),
+	// because room files are only loaded once entered, so we cannot fixup all RoomStatuses at once.
+	RoomStatSvgVersion contentFormat;
 
 	RoomStatus();
 	~RoomStatus();
@@ -74,10 +98,10 @@ struct RoomStatus {
 	void FreeScriptData();
 	void FreeProperties();
 
-	void ReadFromFile_v321(Shared::Stream *in);
+	void ReadFromFile_v321(Shared::Stream *in, GameDataVersion data_ver);
 	void ReadRoomObjects_Aligned(Shared::Stream *in);
-	void ReadFromSavegame(Shared::Stream *in);
-	void WriteToSavegame(Shared::Stream *out) const;
+	void ReadFromSavegame(Shared::Stream *in, GameDataVersion data_ver, RoomStatSvgVersion save_ver);
+	void WriteToSavegame(Shared::Stream *out, GameDataVersion data_ver) const;
 };
 
 // Replaces all accesses to the roomstats array

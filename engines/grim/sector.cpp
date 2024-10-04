@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -126,7 +125,7 @@ void Sector::load(TextSplitter &ts) {
 		ts.scanString(" sector %256s", 1, buf);
 	else {
 		ts.nextLine();
-		strcpy(buf, "");
+		buf[0] = '\0';
 	}
 
 	ts.scanString(" id %d", 1, &ident);
@@ -167,8 +166,7 @@ void Sector::load(TextSplitter &ts) {
 	// Repeat the last vertex for convenience
 	_vertices[_numVertices] = _vertices[0];
 
-	_normal = Math::Vector3d::crossProduct(_vertices[1] - _vertices[0],
-										   _vertices[_numVertices - 1] - _vertices[0]);
+	_normal = Math::Vector3d::crossProduct(_vertices[1] - _vertices[0], _vertices[_numVertices - 1] - _vertices[0]);
 	float length = _normal.getMagnitude();
 	if (length > 0)
 		_normal /= length;
@@ -198,8 +196,7 @@ void Sector::loadBinary(Common::SeekableReadStream *data) {
 	// Repeat the last vertex for convenience
 	_vertices[_numVertices] = _vertices[0];
 
-	_normal = Math::Vector3d::crossProduct(_vertices[1] - _vertices[0],
-										   _vertices[_numVertices - 1] - _vertices[0]);
+	_normal = Math::Vector3d::crossProduct(_vertices[1] - _vertices[0], _vertices[_numVertices - 1] - _vertices[0]);
 	float length = _normal.getMagnitude();
 	if (length > 0)
 		_normal /= length;
@@ -328,7 +325,6 @@ bool Sector::isPointInSector(const Math::Vector3d &point) const {
 	// Calculate the distance of the point from the plane of the sector.
 	// Return false if it isn't within a margin.
 	if (_height < 9000.f) { // No need to check when height is 9999.
-
 		float dist = distanceToPoint(point);
 
 		if (fabsf(dist) > _height + 0.01) // Add an error margin
@@ -375,8 +371,8 @@ Common::List<Math::Line3d> Sector::getBridgesTo(Sector *sector) const {
 			delta_b2 = bridge.end() - line.begin();
 			Math::Vector3d cross_b1 = Math::Vector3d::crossProduct(edge, delta_b1);
 			Math::Vector3d cross_b2 = Math::Vector3d::crossProduct(edge, delta_b2);
-			bool b1_out = cross_b1.dotProduct(_normal) < 0;
-			bool b2_out = cross_b2.dotProduct(_normal) < 0;
+			bool b1_out = cross_b1.dotProduct(_normal) < -1e-7;
+			bool b2_out = cross_b2.dotProduct(_normal) < -1e-7;
 
 			bool useXZ = (g_grim->getGameType() == GType_MONKEY4);
 
@@ -413,13 +409,13 @@ Common::List<Math::Line3d> Sector::getBridgesTo(Sector *sector) const {
 			// The value of at least 0.1 was chosen to fix a path finding issue
 			// in set pac when guybrush tried to reach the pile of rocks.
 			if (fabs(getProjectionToPlane((*it).begin()).y() - sector->getProjectionToPlane((*it).begin()).y()) > 0.1f ||
-					fabs(getProjectionToPlane((*it).end()).y() - sector->getProjectionToPlane((*it).end()).y()) > 0.1f) {
+			    fabs(getProjectionToPlane((*it).end()).y() - sector->getProjectionToPlane((*it).end()).y()) > 0.1f) {
 				it = bridges.erase(it);
 				continue;
 			}
 		} else {
 			if (fabs(getProjectionToPlane((*it).begin()).z() - sector->getProjectionToPlane((*it).begin()).z()) > 0.01f ||
-					fabs(getProjectionToPlane((*it).end()).z() - sector->getProjectionToPlane((*it).end()).z()) > 0.01f) {
+			    fabs(getProjectionToPlane((*it).end()).z() - sector->getProjectionToPlane((*it).end()).z()) > 0.01f) {
 				it = bridges.erase(it);
 				continue;
 			}
@@ -549,15 +545,14 @@ Sector &Sector::operator=(const Sector &other) {
 
 bool Sector::operator==(const Sector &other) const {
 	bool ok = _numVertices == other._numVertices &&
-			  _id == other._id &&
-			  _name == other._name &&
-			  _type == other._type &&
-			  _visible == other._visible;
+	          _id == other._id &&
+	          _name == other._name &&
+	          _type == other._type &&
+	          _visible == other._visible;
 	for (int i = 0; i < _numVertices + 1; ++i) {
 		ok = ok && _vertices[i] == other._vertices[i];
 	}
-	ok = ok && _height == other._height &&
-		 _normal == other._normal;
+	ok = ok && _height == other._height && _normal == other._normal;
 
 	return ok;
 }

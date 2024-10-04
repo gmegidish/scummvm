@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,10 +45,10 @@ class Request;
  */
 
 template<typename T> struct Response {
-	Request *request;
+	const Request *request;
 	T value;
 
-	Response(Request *rq, T v) : request(rq), value(v) {}
+	Response(const Request *rq, T v) : request(rq), value(v) {}
 };
 
 /**
@@ -78,13 +77,13 @@ struct ErrorResponse {
 	Common::String response;
 	long httpResponseCode;
 
-	ErrorResponse(Request *rq, Common::String resp);
-	ErrorResponse(Request *rq, bool interrupt, bool failure, Common::String resp, long httpCode);
+	ErrorResponse(Request *rq, const Common::String &resp);
+	ErrorResponse(Request *rq, bool interrupt, bool failure, const Common::String &resp, long httpCode);
 };
 
 typedef Response<void *> DataResponse;
-typedef Common::BaseCallback<DataResponse> *DataCallback;
-typedef Common::BaseCallback<ErrorResponse> *ErrorCallback;
+typedef Common::BaseCallback<const DataResponse &> *DataCallback;
+typedef Common::BaseCallback<const ErrorResponse &> *ErrorCallback;
 
 /**
  * RequestState is used to indicate current Request state.
@@ -149,7 +148,7 @@ protected:
 	uint32 _retryInSeconds;
 
 	/** Sets FINISHED state and calls the _errorCallback with given error. */
-	virtual void finishError(ErrorResponse error);
+	virtual void finishError(const ErrorResponse &error, RequestState state = FINISHED);
 
 	/** Sets FINISHED state. Implementations might extend it if needed. */
 	virtual void finishSuccess();

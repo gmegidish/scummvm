@@ -38,16 +38,20 @@ devtools/convbdf$(EXEEXT): $(srcdir)/devtools/convbdf.cpp
 
 devtools/md5table$(EXEEXT): $(srcdir)/devtools/md5table.cpp
 	$(QUIET)$(MKDIR) devtools/$(DEPDIR)
-	+$(QUIET_LINK)$(LD) $(CFLAGS) -Wall -o $@ $<
+	+$(QUIET_LINK)$(LD) $(CXXFLAGS) -Wall -o $@ $<
 
 devtools/make-scumm-fontdata$(EXEEXT): $(srcdir)/devtools/make-scumm-fontdata.cpp
 	$(QUIET)$(MKDIR) devtools/$(DEPDIR)
-	+$(QUIET_LINK)$(LD) $(CFLAGS) -Wall -o $@ $<
+	+$(QUIET_LINK)$(LD) $(CXXFLAGS) -Wall -o $@ $<
 
 # Rule to explicitly rebuild the wwwroot archive
 wwwroot:
 	$(srcdir)/devtools/make-www-archive.py $(srcdir)/dists/networking/
 
+# Rule to explicitly rebuild the fonts archive
+fonts.dat:
+	$(srcdir)/devtools/make-fonts-archive.py $(srcdir)/gui/themes/fonts $(srcdir)/dists/engine-data/fonts.dat
+	$(srcdir)/devtools/make-fonts-archive.py $(srcdir)/gui/themes/fonts-cjk $(srcdir)/dists/engine-data/fonts-cjk.dat
 
 #
 # Rules to explicitly rebuild the credits / MD5 tables.

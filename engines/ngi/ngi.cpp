@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -78,12 +77,12 @@ NGIEngine::NGIEngine(OSystem *syst, const NGIGameDescription *gameDesc) :
 	_lastInputTicks = 0;
 	_lastButtonUpTicks = 0;
 
-	_currArchive = 0;
+	_currArchive = nullptr;
 
 	_soundEnabled = true;
 	_flgSoundList = true;
 
-	_inputController = 0;
+	_inputController = nullptr;
 	_inputDisabled = false;
 
 	_normalSpeed = true;
@@ -91,9 +90,9 @@ NGIEngine::NGIEngine(OSystem *syst, const NGIGameDescription *gameDesc) :
 	_currentCheat = -1;
 	_currentCheatPos = 0;
 
-	_liftEnterMQ = 0;
-	_liftExitMQ = 0;
-	_lift = 0;
+	_liftEnterMQ = nullptr;
+	_liftExitMQ = nullptr;
+	_lift = nullptr;
 	_lastLiftButton = nullptr;
 	_liftX = 0;
 	_liftY = 0;
@@ -111,7 +110,7 @@ NGIEngine::NGIEngine(OSystem *syst, const NGIGameDescription *gameDesc) :
 	_isProcessingMessages = false;
 
 	_musicAllowed = -1;
-	_musicGameVar = 0;
+	_musicGameVar = nullptr;
 	_musicMinDelay = 0;
 	_musicMaxDelay = 0;
 	_musicLocal = 0;
@@ -159,7 +158,7 @@ NGIEngine::NGIEngine(OSystem *syst, const NGIGameDescription *gameDesc) :
 
 	_minCursorId = 0xffff;
 	_maxCursorId = 0;
-	_objectAtCursor = 0;
+	_objectAtCursor = nullptr;
 	_objectIdAtCursor = 0;
 
 	_arcadeOverlay = nullptr;
@@ -455,9 +454,9 @@ void NGIEngine::freeGameLoader() {
 	setCursor(0);
 	_floaters->stopAll();
 	_gameLoader.reset();
-	_currentScene = 0;
-	_scene2 = 0;
-	_loaderScene = 0;
+	_currentScene = nullptr;
+	_scene2 = nullptr;
+	_loaderScene = nullptr;
 }
 
 void NGIEngine::cleanup() {
@@ -493,7 +492,7 @@ void NGIEngine::updateScreen() {
 	//if (inputArFlag)
 	//	updateGame_inputArFlag();
 
-	if (_modalObject || (_flgGameIsRunning && (_gameLoader->updateSystems(42), _modalObject != 0))) {
+	if (_modalObject || (_flgGameIsRunning && (_gameLoader->updateSystems(42), _modalObject != nullptr))) {
 		if (_flgGameIsRunning) {
 			if (_modalObject->init(42)) {
 				_modalObject->update();

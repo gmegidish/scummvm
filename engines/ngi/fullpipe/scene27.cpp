@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -124,7 +123,7 @@ void sceneHandler27_winArcade() {
 	if (g_nmi->getObjectState(sO_Driver) == g_nmi->getObjectEnumState(sO_Driver, sO_WithSteering)) {
 		g_vars->scene27_dudeIsAiming = false;
 
-		g_nmi->_aniMan->_callback2 = 0; // Really NULL
+		g_nmi->_aniMan->_callback2 = nullptr; // Really NULL
 		g_nmi->_aniMan->changeStatics2(ST_MAN_RIGHT);
 
 		sceneHandler27_driverGiveVent();
@@ -147,7 +146,7 @@ void sceneHandler27_showNextBat() {
 		MessageQueue *mq = new MessageQueue(g_nmi->_currentScene->getMessageQueueById(QU_SC27_SHOWBET), 0, 1);
 
 		mq->setParamInt(-1, g_vars->scene27_bat->_odelay);
-		mq->chain(0);
+		mq->chain(nullptr);
 	}
 
 	g_vars->scene27_batHandler->_priority = 1045;
@@ -159,7 +158,7 @@ int sceneHandler27_updateScreenCallback() {
 	res = g_nmi->drawArcadeOverlay(getGameLoaderInteractionController()->_flag24 == 0);
 
 	if (!res)
-		g_nmi->_updateScreenCallback = 0;
+		g_nmi->_updateScreenCallback = nullptr;
 
 	return res;
 }
@@ -248,7 +247,7 @@ void sceneHandler27_startAiming() {
 	g_vars->scene27_dudeIsAiming = false;
 	g_vars->scene27_maxPhaseReached = false;
 
-	g_nmi->_aniMan->_callback2 = 0; // Really NULL
+	g_nmi->_aniMan->_callback2 = nullptr; // Really NULL
 
 	g_vars->scene27_launchPhase = g_nmi->_aniMan->_movement->_currDynamicPhaseIndex - 6;
 
@@ -498,9 +497,9 @@ void sceneHandler27_batLogic() {
 		ex->_excFlags |= 3;
 		mq->addExCommandToEnd(ex);
 
-		mq->chain(0);
+		mq->chain(nullptr);
 	} else {
-		g_vars->scene27_bat = 0;
+		g_vars->scene27_bat = nullptr;
 	}
 }
 

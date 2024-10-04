@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Prototypes of actor functions
  */
@@ -28,7 +27,7 @@
 #include "tinsel/dw.h"		// for SCNHANDLE
 #include "tinsel/events.h"	// for TINSEL_EVENT
 #include "tinsel/palette.h"	// for COLORREF
-#include "tinsel/movers.h"	// for PMOVER
+#include "tinsel/movers.h"	// for MOVER *
 
 namespace Common {
 class Serializer;
@@ -40,8 +39,6 @@ struct FREEL;
 struct INT_CONTEXT;
 struct MOVER;
 struct OBJECT;
-struct T1_ACTOR_STRUC;
-struct T2_ACTOR_STRUC;
 struct ACTORINFO;
 struct Z_POSITIONS;
 
@@ -81,7 +78,14 @@ struct Z_POSITIONS {
 	int z;
 };
 
-typedef SAVED_ACTOR *PSAVED_ACTOR;
+struct ACTORDATA {
+	int32 masking;        ///< type of actor masking (Tinsel V1)
+	SCNHANDLE hActorId;   ///< handle actor ID string index
+	SCNHANDLE hActorCode; ///< handle to actor script
+	SCNHANDLE hTagText;   // tag (Tinsel V2)
+	int32 tagPortionV;    // defines tag area (Tinsel V2)
+	int32 tagPortionH;    // defines tag area (Tinsel V2)
+};
 
 /*----------------------------------------------------------------------*/
 
@@ -181,8 +185,8 @@ public:
 	void NotPlayingReel(int actor, int filmNumber, int column);
 	bool ActorReelPlaying(int actor, int column);
 
-	int SaveActors(PSAVED_ACTOR sActorInfo);
-	void RestoreActors(int numActors, PSAVED_ACTOR sActorInfo);
+	int SaveActors(SAVED_ACTOR *sActorInfo);
+	void RestoreActors(int numActors, SAVED_ACTOR *sActorInfo);
 
 	void SaveZpositions(void *zpp);
 	void RestoreZpositions(void *zpp);
@@ -195,7 +199,7 @@ public:
 	void syncAllActorsAlive(Common::Serializer &s);
 
 private:
-	void StartActor(const T1_ACTOR_STRUC *as, bool bRunScript);
+	void StartActor(const ACTORDATA *ad, bool bRunScript);
 	void GetActorTagPortion(int ano, unsigned *top, unsigned *bottom, unsigned *left, unsigned *right);
 
 	ACTORINFO *_actorInfo;

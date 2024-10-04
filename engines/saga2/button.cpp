@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -43,7 +42,7 @@ extern void playMemSound(uint32 s); // play click # s
  * ======================================================================= */
 
 void GfxCompImage::init() {
-	_compImages      = NULL;
+	_compImages      = nullptr;
 	_max             = 0;
 	_min             = 0;
 	_internalAlloc   = false;
@@ -53,7 +52,7 @@ void GfxCompImage::init() {
 }
 
 GfxCompImage::GfxCompImage(gPanelList &list, const Rect16 &box, void *image, uint16 ident,
-                       AppFunc *cmd) : gControl(list, box, NULL, ident, cmd) {
+                       AppFunc *cmd) : gControl(list, box, nullptr, ident, cmd) {
 	// setup a single image configuration
 
 	init();
@@ -72,7 +71,7 @@ GfxCompImage::GfxCompImage(gPanelList &list,
                        char a, char b, char c,
                        uint16 resNum, uint16 numImages,
                        uint16 ident,
-                       AppFunc *cmd) : gControl(list, box, NULL, ident, cmd) {
+                       AppFunc *cmd) : gControl(list, box, nullptr, ident, cmd) {
 	uint16 i, rNum;
 
 	init();
@@ -95,7 +94,7 @@ GfxCompImage::GfxCompImage(gPanelList &list,
 
 	// get rid of this context
 	resFile->disposeContext(resContext);
-	resContext = NULL;
+	resContext = nullptr;
 }
 
 GfxCompImage::GfxCompImage(gPanelList &list, const Rect16 &box, void *image, const char *text, textPallete &pal, uint16 ident,
@@ -111,14 +110,14 @@ GfxCompImage::GfxCompImage(gPanelList &list, const Rect16 &box, void *image, con
 	_compImages[0] = image;
 	_max             = 0;
 	_numPtrAlloc     = 1;
-	title           = text;
+	_title           = text;
 	_textFont        = &Onyx10Font;  // >>> this should be dynamic
 	_textPal         = pal;
 }
 
 GfxCompImage::GfxCompImage(gPanelList &list, const Rect16 &box, void **images,
                        int16 numRes, int16 initial,
-                       uint16 ident, AppFunc *cmd) : gControl(list, box, NULL, ident, cmd) {
+                       uint16 ident, AppFunc *cmd) : gControl(list, box, nullptr, ident, cmd) {
 	init();
 
 	if (!images)
@@ -144,7 +143,7 @@ GfxCompImage::GfxCompImage(gPanelList &list, const Rect16 &box, void **images,
 		_currentImage    = clamp(_min, initial, _max);
 	}
 
-	title       = text;
+	_title       = text;
 	_textFont    = &Onyx10Font;  // >>> this should be dynamic
 	_textPal     = pal;
 }
@@ -162,7 +161,7 @@ GfxCompImage::GfxCompImage(gPanelList &list, const StaticRect &box, void **image
 		_currentImage = clamp(_min, initial, _max);
 	}
 
-	title    = text;
+	_title    = text;
 	_textFont = &Onyx10Font;  // >>> this should be dynamic
 	_textPal  = pal;
 }
@@ -170,9 +169,9 @@ GfxCompImage::GfxCompImage(gPanelList &list, const StaticRect &box, void **image
 
 GfxCompImage::~GfxCompImage() {
 	// delete any allocated image pointers
-	// for JEFFL: I took out the winklude #ifdefs becuase I belive
+	// for JEFFL: I took out the winklude #ifdefs because I believe
 	// I fixed the problem that was causing the crash under win32
-	// 11-14-95, I should talk to you tommorow. This is note is
+	// 11-14-95, I should talk to you tomorrow. This note is
 	// a precaution
 
 	// if we LoadRes'ed image internally RDispose those
@@ -192,7 +191,7 @@ void GfxCompImage::pointerMove(gPanelMessage &msg) {
 	// call the superclass's pointerMove
 	gControl::pointerMove(msg);
 
-	notify(gEventMouseMove, (msg.pointerEnter ? enter : 0) | (msg.pointerLeave ? leave : 0));
+	notify(kEventMouseMove, (msg._pointerEnter ? kEnter : 0) | (msg._pointerLeave ? kLeave : 0));
 }
 
 void GfxCompImage::enable(bool abled) {
@@ -200,12 +199,12 @@ void GfxCompImage::enable(bool abled) {
 }
 
 void GfxCompImage::invalidate(Rect16 *) {
-	window.update(_extent);
+	_window.update(_extent);
 }
 
 void GfxCompImage::draw() {
-	gPort   &port = window.windowPort;
-	Rect16  rect = window.getExtent();
+	gPort   &port = _window._windowPort;
+	Rect16  rect = _window.getExtent();
 
 	SAVE_GPORT_STATE(port);                  // save pen color, etc.
 	g_vm->_pointer->hide(port, _extent);              // hide mouse pointer
@@ -219,11 +218,11 @@ void *GfxCompImage::getCurrentCompImage() {
 	if (_compImages) {
 		return _compImages[_currentImage];  // return the image pointed to by compImage
 	} else {
-		return NULL;
+		return nullptr;
 	}
 }
 
-// waring! : the number of images has has to be == to the inital number
+// warning! : the number of images has has to be == to the initial number
 void GfxCompImage::setImages(void **images) {
 	if (images) {
 		_compImages = images;
@@ -242,7 +241,7 @@ void GfxCompImage::select(uint16 val) {
 	setCurrent(val);
 
 	if (getEnabled()) {
-		window.update(_extent);
+		_window.update(_extent);
 	}
 }
 
@@ -281,12 +280,12 @@ void GfxCompImage::drawClipped(gPort &port,
 			else drawCompressedImage(port, pos, dispImage);
 
 			// this could be modified to get the current text coloring
-			if (title) {
+			if (_title) {
 				Rect16 textRect = _extent;
 				textRect.x -= offset.x;
 				textRect.y -= offset.y;
 
-				writePlaqText(port, textRect, _textFont, 0, _textPal, selected, title);
+				writePlaqText(port, textRect, _textFont, 0, _textPal, _selected, _title);
 			}
 		}
 	}
@@ -297,7 +296,7 @@ void GfxCompImage::drawClipped(gPort &port,
  * ===================================================================== */
 
 GfxSpriteImage::GfxSpriteImage(gPanelList &list, const Rect16 &box, GameObject *object, char,
-                           uint16 ident, AppFunc *cmd) : GfxCompImage(list, box, NULL, ident, cmd) {
+                           uint16 ident, AppFunc *cmd) : GfxCompImage(list, box, nullptr, ident, cmd) {
 	// get the prototype for the object
 	ProtoObj *proto = object->proto();
 
@@ -305,7 +304,7 @@ GfxSpriteImage::GfxSpriteImage(gPanelList &list, const Rect16 &box, GameObject *
 	object->getColorTranslation(_objColors);
 
 	// assing the sprite pointer
-	_sprPtr = proto->getSprite(object, ProtoObj::objInContainerView).sp;
+	_sprPtr = proto->getSprite(object, ProtoObj::kObjInContainerView).sp;
 }
 
 // getCurrentCompImage() is virtual function that should return
@@ -320,23 +319,23 @@ void GfxSpriteImage::drawClipped(gPort &port,
 	// if there's a sprite present
 	gPixelMap       map;
 
-	//map.size = Point16( extent.height, extent.width );
-	map.size = _sprPtr->size;
+	//map._size = Point16( extent.height, extent.width );
+	map._size = _sprPtr->size;
 
-	map.data = (uint8 *)malloc(map.bytes() * sizeof(uint8));
-	if (map.data == NULL) return;
+	map._data = (uint8 *)malloc(map.bytes() * sizeof(uint8));
+	if (map._data == nullptr) return;
 
-	memset(map.data, 0, map.bytes());
+	memset(map._data, 0, map.bytes());
 
 	//  Render the sprite into the bitmap image sequence
 	ExpandColorMappedSprite(map, _sprPtr, _objColors);
 
-	port.setMode(drawModeMatte);
+	port.setMode(kDrawModeMatte);
 	port.bltPixels(map, 0, 0,
 	               _extent.x - offset.x, _extent.y - offset.y,
-	               map.size.x, map.size.y);
+	               map._size.x, map._size.y);
 
-	free(map.data);
+	free(map._data);
 }
 
 /* ===================================================================== *
@@ -347,11 +346,11 @@ void GfxCompButton::loadImages(hResContext *con, hResID res1, hResID res2) {
 	if (con) {
 		_forImage = LoadResource(con, res1, "CBtn fore image");
 		_resImage = LoadResource(con, res2, "CBtn res image");
-		_dimImage    = NULL;
+		_dimImage    = nullptr;
 	} else {
-		_forImage    = NULL;
-		_resImage    = NULL;
-		_dimImage    = NULL;
+		_forImage    = nullptr;
+		_resImage    = nullptr;
+		_dimImage    = nullptr;
 	}
 
 	_internalAlloc   = true;
@@ -368,40 +367,40 @@ void GfxCompButton::loadImages(hResID contextID, hResID res1, hResID res2) {
 }
 
 GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, hResContext *con, hResID resID1, hResID resID2, uint16 ident,
-                         AppFunc *cmd) : GfxCompImage(list, box, NULL, ident, cmd), _extent(box) {
+                         AppFunc *cmd) : GfxCompImage(list, box, nullptr, ident, cmd), _extent(box) {
 	loadImages(con, resID1, resID2);
 }
 
 GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, hResID contextID, hResID resID1, hResID resID2, uint16 ident,
-                         AppFunc *cmd) : GfxCompImage(list, box, NULL, ident, cmd), _extent(box) {
+                         AppFunc *cmd) : GfxCompImage(list, box, nullptr, ident, cmd), _extent(box) {
 	loadImages(contextID, resID1, resID2);
 }
 
 GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, hResContext *con, char a, char b, char c, int16 butNum_1, int16 butNum_2, uint16 ident,
-                         AppFunc *cmd) : GfxCompImage(list, box, NULL, ident, cmd), _extent(box) {
+                         AppFunc *cmd) : GfxCompImage(list, box, nullptr, ident, cmd), _extent(box) {
 	loadImages(con, MKTAG(a, b, c, butNum_1), MKTAG(a, b, c, butNum_2));
 }
 
 GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, hResID contextID, char a, char b, char c, int16 butNum_1, int16 butNum_2, uint16 ident,
-                         AppFunc *cmd) : GfxCompImage(list, box, NULL, ident, cmd), _extent(box) {
+                         AppFunc *cmd) : GfxCompImage(list, box, nullptr, ident, cmd), _extent(box) {
 	loadImages(contextID, MKTAG(a, b, c, butNum_1), MKTAG(a, b, c, butNum_2));
 }
 
 GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, hResContext *con, int16 butNum, uint16 ident,
-                         AppFunc *cmd) : GfxCompImage(list, box, NULL, ident, cmd), _extent(box) {
+                         AppFunc *cmd) : GfxCompImage(list, box, nullptr, ident, cmd), _extent(box) {
 	loadImages(con, MKTAG('B', 'T', 'N', butNum), MKTAG('B', 'T', 'N', butNum + 1));
 }
 
 GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, void **images, int16 numRes, uint16 ident,
-                         AppFunc *cmd) : GfxCompImage(list, box, NULL, ident, cmd) {
+                         AppFunc *cmd) : GfxCompImage(list, box, nullptr, ident, cmd) {
 	if (images[0] && images[1] && numRes == 2) {
 		_forImage    = images[0];
 		_resImage    = images[1];
-		_dimImage    = NULL;
+		_dimImage    = nullptr;
 	} else {
-		_forImage    = NULL;
-		_resImage    = NULL;
-		_dimImage    = NULL;
+		_forImage    = nullptr;
+		_resImage    = nullptr;
+		_dimImage    = nullptr;
 	}
 
 	_internalAlloc   = false;
@@ -410,15 +409,15 @@ GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, void **images,
 }
 
 GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, void **images, int16 numRes, const char *text, textPallete &pal, uint16 ident,
-                         AppFunc *cmd) : GfxCompImage(list, box, NULL, 0, 0, text, pal, ident, cmd) {
+                         AppFunc *cmd) : GfxCompImage(list, box, nullptr, 0, 0, text, pal, ident, cmd) {
 	if (images[0] && images[1] && numRes == 2) {
 		_forImage    = images[0];
 		_resImage    = images[1];
-		_dimImage    = NULL;
+		_dimImage    = nullptr;
 	} else {
-		_forImage    = NULL;
-		_resImage    = NULL;
-		_dimImage    = NULL;
+		_forImage    = nullptr;
+		_resImage    = nullptr;
+		_dimImage    = nullptr;
 	}
 
 	_internalAlloc   = false;
@@ -427,19 +426,19 @@ GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, void **images,
 }
 
 GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, void **images, int16 numRes, void *newDimImage, bool dimNess, uint16 ident,
-                         AppFunc *cmd) : GfxCompImage(list, box, NULL, ident, cmd) {
+                         AppFunc *cmd) : GfxCompImage(list, box, nullptr, ident, cmd) {
 	if (images[0] && images[1] && numRes == 2) {
 		_forImage    = images[0];
 		_resImage    = images[1];
 	} else {
-		_forImage    = NULL;
-		_resImage    = NULL;
+		_forImage    = nullptr;
+		_resImage    = nullptr;
 	}
 
 	if (newDimImage) {
 		_dimImage = newDimImage;
 	} else {
-		_dimImage = NULL;
+		_dimImage = nullptr;
 	}
 
 	_internalAlloc   = false;
@@ -449,17 +448,17 @@ GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, void **images,
 
 
 GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, void *image, uint16 ident,
-                         AppFunc *cmd) : GfxCompImage(list, box, NULL, ident, cmd)
+                         AppFunc *cmd) : GfxCompImage(list, box, nullptr, ident, cmd)
 
 {
 	if (image) {
 		_forImage    = image;
 		_resImage    = image;
-		_dimImage    = NULL;
+		_dimImage    = nullptr;
 	} else {
-		_forImage    = NULL;
-		_resImage    = NULL;
-		_dimImage    = NULL;
+		_forImage    = nullptr;
+		_resImage    = nullptr;
+		_dimImage    = nullptr;
 	}
 
 	_internalAlloc   = false;
@@ -467,7 +466,7 @@ GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, void *image, u
 	_extent          = box;
 }
 
-GfxCompButton::GfxCompButton(gPanelList &list, const StaticRect &box, void **images, int16 numRes, const char *text, textPallete &pal, uint16 ident, AppFunc *cmd) : GfxCompImage(list, box, NULL, 0, 0, text, pal, ident, cmd) {
+GfxCompButton::GfxCompButton(gPanelList &list, const StaticRect &box, void **images, int16 numRes, const char *text, textPallete &pal, uint16 ident, AppFunc *cmd) : GfxCompImage(list, box, nullptr, 0, 0, text, pal, ident, cmd) {
 	if (images[0] && images[1] && numRes == 2) {
 		_forImage = images[0];
 		_resImage = images[1];
@@ -483,10 +482,10 @@ GfxCompButton::GfxCompButton(gPanelList &list, const StaticRect &box, void **ima
 	_extent        = box;
 }
 
-GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, AppFunc *cmd) : GfxCompImage(list, box, NULL, 0, cmd) {
-	_forImage    = NULL;
-	_resImage    = NULL;
-	_dimImage    = NULL;
+GfxCompButton::GfxCompButton(gPanelList &list, const Rect16 &box, AppFunc *cmd) : GfxCompImage(list, box, nullptr, 0, cmd) {
+	_forImage    = nullptr;
+	_resImage    = nullptr;
+	_dimImage    = nullptr;
 
 	_internalAlloc   = false;
 	_dimmed          = false;
@@ -497,17 +496,17 @@ GfxCompButton::~GfxCompButton() {
 	if (_internalAlloc) {
 		if (_forImage) {
 			free(_forImage);
-			_forImage = NULL;
+			_forImage = nullptr;
 		}
 
 		if (_resImage) {
 			free(_resImage);
-			_resImage = NULL;
+			_resImage = nullptr;
 		}
 
 		if (_dimImage) {
 			free(_dimImage);
-			_dimImage = NULL;
+			_dimImage = nullptr;
 		}
 	}
 }
@@ -521,23 +520,23 @@ void GfxCompButton::dim(bool enableFlag) {
 			_dimmed = false;
 	}
 
-	window.update(_extent);
+	_window.update(_extent);
 }
 
 
 void GfxCompButton::deactivate() {
-	selected = 0;
-	window.update(_extent);
+	_selected = 0;
+	_window.update(_extent);
 	gPanel::deactivate();
 }
 
 bool GfxCompButton::activate(gEventType why) {
-	selected = 1;
-	window.update(_extent);
+	_selected = 1;
+	_window.update(_extent);
 
-	if (why == gEventKeyDown) { // momentarily depress
+	if (why == kEventKeyDown) { // momentarily depress
 		deactivate();
-		notify(gEventNewValue, 1);       // notify App of successful hit
+		notify(kEventNewValue, 1);       // notify App of successful hit
 	}
 	playMemSound(2);
 	return false;
@@ -547,7 +546,7 @@ void GfxCompButton::pointerMove(gPanelMessage &msg) {
 	if (_dimmed)
 		return;
 
-	//notify( gEventMouseMove, (msg.pointerEnter ? enter : 0)|(msg.pointerLeave ? leave : 0));
+	//notify( kEventMouseMove, (msg.pointerEnter ? enter : 0)|(msg.pointerLeave ? leave : 0));
 	GfxCompImage::pointerMove(msg);
 }
 
@@ -555,23 +554,23 @@ bool GfxCompButton::pointerHit(gPanelMessage &) {
 	if (_dimmed)
 		return false;
 
-	activate(gEventMouseDown);
+	activate(kEventMouseDown);
 	return true;
 }
 
 void GfxCompButton::pointerRelease(gPanelMessage &) {
 	//  We have to test selected first because deactivate clears it.
 
-	if (selected) {
+	if (_selected) {
 		deactivate();                       // give back input focus
-		notify(gEventNewValue, 1);       // notify App of successful hit
+		notify(kEventNewValue, 1);       // notify App of successful hit
 	} else deactivate();
 }
 
 void GfxCompButton::pointerDrag(gPanelMessage &msg) {
-	if (selected != msg.inPanel) {
-		selected = msg.inPanel;
-		window.update(_extent);
+	if (_selected != msg._inPanel) {
+		_selected = msg._inPanel;
+		_window.update(_extent);
 	}
 }
 
@@ -580,13 +579,13 @@ void GfxCompButton::enable(bool abled) {
 }
 
 void GfxCompButton::invalidate(Rect16 *) {
-	window.update(_extent);
+	_window.update(_extent);
 }
 
 
 void GfxCompButton::draw() {
-	gPort   &port = window.windowPort;
-	Rect16  rect = window.getExtent();
+	gPort   &port = _window._windowPort;
+	Rect16  rect = _window.getExtent();
 
 	SAVE_GPORT_STATE(port);                  // save pen color, etc.
 	g_vm->_pointer->hide(port, _extent);              // hide mouse pointer
@@ -597,7 +596,7 @@ void GfxCompButton::draw() {
 void *GfxCompButton::getCurrentCompImage() {
 	if (_dimmed) {
 		return _dimImage;
-	} else if (selected) {
+	} else if (_selected) {
 		return _resImage;
 	} else {
 		return _forImage;
@@ -615,27 +614,27 @@ GfxOwnerSelCompButton::GfxOwnerSelCompButton(gPanelList &list, const Rect16 &box
 }
 
 bool GfxOwnerSelCompButton::activate(gEventType why) {
-	if (why == gEventKeyDown || why == gEventMouseDown) {
+	if (why == kEventKeyDown || why == kEventMouseDown) {
 //		selected = !selected;
 //		window.update( extent );
 		gPanel::deactivate();
-		notify(gEventNewValue, selected);    // notify App of successful hit
+		notify(kEventNewValue, _selected);    // notify App of successful hit
 		playMemSound(2);
 	}
 	return false;
 }
 
 bool GfxOwnerSelCompButton::pointerHit(gPanelMessage &) {
-	return activate(gEventMouseDown);
+	return activate(kEventMouseDown);
 }
 
 void GfxOwnerSelCompButton::select(uint16 val) {
-	selected = val;
+	_selected = val;
 
 	setCurrent(val);
 
 	if (getEnabled()) {
-		window.update(_extent);
+		_window.update(_extent);
 	}
 }
 
@@ -644,7 +643,7 @@ void GfxOwnerSelCompButton::select(uint16 val) {
 ************************************************************************/
 
 GfxMultCompButton::GfxMultCompButton(gPanelList &list, const Rect16 &box, hResContext *con, char a, char b, char c, int16 resStart, int16 numRes, int16 initial, uint16 ident,
-                                 AppFunc *cmd) : GfxCompButton(list, box, (hResContext *)NULL, 0, ident, cmd) {
+                                 AppFunc *cmd) : GfxCompButton(list, box, (hResContext *)nullptr, 0, ident, cmd) {
 	int16   i, k;
 
 
@@ -664,9 +663,9 @@ GfxMultCompButton::GfxMultCompButton(gPanelList &list, const Rect16 &box, hResCo
 }
 
 GfxMultCompButton::GfxMultCompButton(gPanelList &list, const Rect16 &box, void **newImages, int16 numRes, int16 initial, uint16 ident,
-                                 AppFunc *cmd) : GfxCompButton(list, box, (hResContext *)NULL, 0, ident, cmd) {
+                                 AppFunc *cmd) : GfxCompButton(list, box, (hResContext *)nullptr, 0, ident, cmd) {
 	if (!newImages) {
-		_images  = NULL;
+		_images  = nullptr;
 		_max     = 0;
 		_min     = 0;
 		_current = 0;
@@ -687,9 +686,9 @@ GfxMultCompButton::GfxMultCompButton(gPanelList &list, const Rect16 &box, void *
 
 GfxMultCompButton::GfxMultCompButton(gPanelList &list, const Rect16 &box, void **newImages,
                                  int16 numRes, int16 initial, bool hitResponse, uint16 ident,
-                                 AppFunc *cmd) : GfxCompButton(list, box, (hResContext *)NULL, 0, ident, cmd) {
+                                 AppFunc *cmd) : GfxCompButton(list, box, (hResContext *)nullptr, 0, ident, cmd) {
 	if (!newImages) {
-		_images  = NULL;
+		_images  = nullptr;
 		_max     = 0;
 		_min     = 0;
 		_current = 0;
@@ -719,21 +718,21 @@ GfxMultCompButton::~GfxMultCompButton() {
 		}
 
 		free(_images);
-		_images = NULL;
+		_images = nullptr;
 	}
 }
 
 bool GfxMultCompButton::activate(gEventType why) {
-	if (why == gEventKeyDown || why == gEventMouseDown) {
+	if (why == kEventKeyDown || why == kEventMouseDown) {
 		if (_response) {
 			if (++_current > _max) {
 				_current = 0;
 			}
-			window.update(_extent);
+			_window.update(_extent);
 		}
 
 		gPanel::deactivate();
-		notify(gEventNewValue, _current);     // notify App of successful hit
+		notify(kEventNewValue, _current);     // notify App of successful hit
 		playMemSound(1);
 //		playSound( MKTAG('C','B','T',5) );
 	}
@@ -741,7 +740,7 @@ bool GfxMultCompButton::activate(gEventType why) {
 }
 
 bool GfxMultCompButton::pointerHit(gPanelMessage &) {
-	return activate(gEventMouseDown);
+	return activate(kEventMouseDown);
 }
 
 void *GfxMultCompButton::getCurrentCompImage() {
@@ -806,7 +805,7 @@ int16 GfxSlider::getSliderLenVal() {
 }
 
 void GfxSlider::draw() {
-	gPort   &port   = window.windowPort;
+	gPort   &port   = _window._windowPort;
 	Point16 offset  = Point16(0, 0);
 
 	SAVE_GPORT_STATE(port);                  // save pen color, etc.
@@ -838,59 +837,59 @@ void GfxSlider::drawClipped(gPort &port,
 }
 
 bool GfxSlider::activate(gEventType why) {
-	if (why == gEventKeyDown || why == gEventMouseDown) {
-		selected = 1;
-		window.update(_extent);
+	if (why == kEventKeyDown || why == kEventMouseDown) {
+		_selected = 1;
+		_window.update(_extent);
 		gPanel::deactivate();
-		notify(gEventNewValue, _slCurrent);   // notify App of successful hit
+		notify(kEventNewValue, _slCurrent);   // notify App of successful hit
 	}
 	return false;
 }
 
 void GfxSlider::deactivate() {
-	selected = 0;
-	window.update(_extent);
+	_selected = 0;
+	_window.update(_extent);
 	gPanel::deactivate();
 }
 
 bool GfxSlider::pointerHit(gPanelMessage &msg) {
 	// update the image index
-	updateSliderIndexes(msg.pickPos);
+	updateSliderIndexes(msg._pickPos);
 
 	// redraw the control should any visual change hath occurred
-	window.update(_extent);
+	_window.update(_extent);
 
-	activate(gEventMouseDown);
+	activate(kEventMouseDown);
 	return true;
 }
 
 void GfxSlider::pointerMove(gPanelMessage &msg) {
-	if (selected) {
+	if (_selected) {
 		// update the image index
-		updateSliderIndexes(msg.pickPos);
+		updateSliderIndexes(msg._pickPos);
 
 		// redraw the control should any visual change hath occurred
-		window.update(_extent);
+		_window.update(_extent);
 
-		notify(gEventMouseMove, _slCurrent);
+		notify(kEventMouseMove, _slCurrent);
 	}
 }
 
 void GfxSlider::pointerRelease(gPanelMessage &) {
 	//  We have to test selected first because deactivate clears it.
-	if (selected) {
+	if (_selected) {
 		deactivate();                       // give back input focus
-		notify(gEventNewValue, _slCurrent);       // notify App of successful hit
+		notify(kEventNewValue, _slCurrent);       // notify App of successful hit
 	} else deactivate();
 }
 
 void GfxSlider::pointerDrag(gPanelMessage &msg) {
 	// update the image index
-	updateSliderIndexes(msg.pickPos);
+	updateSliderIndexes(msg._pickPos);
 
-	notify(gEventNewValue, _slCurrent);       // notify App of successful hit
+	notify(kEventNewValue, _slCurrent);       // notify App of successful hit
 	// redraw the control should any visual change hath occurred
-	window.update(_extent);
+	_window.update(_extent);
 }
 
 void GfxSlider::updateSliderIndexes(Point16 &pos) {

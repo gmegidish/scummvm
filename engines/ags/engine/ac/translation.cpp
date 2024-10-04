@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,22 +29,17 @@
 #include "ags/engine/ac/runtime_defines.h"
 #include "ags/engine/ac/translation.h"
 #include "ags/shared/ac/words_dictionary.h"
+#include "ags/shared/core/asset_manager.h"
 #include "ags/shared/debugging/out.h"
 #include "ags/shared/game/tra_file.h"
 #include "ags/shared/util/stream.h"
+#include "ags/shared/util/string_utils.h"
 #include "ags/shared/core/asset_manager.h"
 #include "ags/globals.h"
 
 namespace AGS3 {
 
 using namespace AGS::Shared;
-
-// TODO: Since ScummVM can't use uconvert, this is a dummy implementation for now
-const char *convert_utf8_to_ascii(const char *mbstr, const char *loc_name) {
-	_G(mbbuf).resize(strlen(mbstr) + 1);
-	strcpy(&_G(mbbuf)[0], mbstr);
-	return &_G(mbbuf)[0];
-}
 
 void close_translation() {
 	_GP(transtree).clear();
@@ -54,13 +48,16 @@ void close_translation() {
 	_G(trans_filename) = "";
 
 	// Return back to default game's encoding
-	set_uformat(U_ASCII);
+	if (_GP(game).options[OPT_GAMETEXTENCODING] == 65001) // utf-8 codepage number
+		set_uformat(U_UTF8);
+	else
+		set_uformat(U_ASCII);
 }
 
-bool init_translation(const String &lang, const String &fallback_lang, bool quit_on_error) {
-
+bool init_translation(const String &lang, const String &fallback_lang) {
 	if (lang.IsEmpty())
 		return false;
+	_G(trans_name) = lang;
 	_G(trans_filename) = String::FromFormat("%s.tra", lang.GetCStr());
 
 	std::unique_ptr<Stream> in(_GP(AssetMgr)->OpenAsset(_G(trans_filename)));
@@ -81,23 +78,19 @@ bool init_translation(const String &lang, const String &fallback_lang, bool quit
 
 	// Process errors
 	if (!err) {
-		String err_msg = String::FromFormat("Failed to read translation file: %s:\n%s",
+		close_translation();
+		Debug::Printf(kDbgMsg_Error, "Failed to read translation file: %s:\n%s",
 			_G(trans_filename).GetCStr(),
 			err->FullMessage().GetCStr());
-		close_translation();
-		if (quit_on_error) {
-			quitprintf("!%s", err_msg.GetCStr());
-		} else {
-			Debug::Printf(kDbgMsg_Error, err_msg);
-			if (!fallback_lang.IsEmpty()) {
-				Debug::Printf("Fallback to translation: %s", fallback_lang.GetCStr());
-				init_translation(fallback_lang, "", false);
-			}
-			return false;
+		if (!fallback_lang.IsEmpty()) {
+			Debug::Printf("Fallback to translation: %s", fallback_lang.GetCStr());
+			init_translation(fallback_lang, "");
 		}
+		return false;
 	}
 
 	// Translation read successfully
+	Debug::Printf("Translation loaded: %s", _G(trans_filename).GetCStr());
 	// Configure new game settings
 	if (_GP(trans).NormalFont >= 0)
 		SetNormalFont(_GP(trans).NormalFont);
@@ -117,24 +110,37 @@ bool init_translation(const String &lang, const String &fallback_lang, bool quit
 		set_uformat(U_UTF8);
 	else
 		set_uformat(U_ASCII);
+	String encoding_msg = !encoding.IsEmpty() ? encoding : "presume ASCII";
+	Debug::Printf("Translation's encoding: %s", encoding_msg.GetCStr());
 
 	// Mixed encoding support: 
 	// original text unfortunately may contain extended ASCII chars (> 127);
 	// if translation is UTF-8 but game is extended ASCII, then the translation
-	// dictionary keys won't match.
-	// With that assumption we must convert dictionary keys into ASCII using
-	// provided locale hint.
-	String key_enc = _GP(trans).StrOptions["gameencoding"];
-	if (!key_enc.IsEmpty()) {
-		StringMap conv_map;
-		for (const auto &item : _GP(trans).Dict) {
-			String key = convert_utf8_to_ascii(item._key.GetCStr(), key_enc.GetCStr());
-			conv_map.insert(std::make_pair(key, item._value));
+	// dictionary keys won't match. With that assumption we must convert
+	// dictionary keys into ASCII using provided locale hint.
+	int game_codepage = _GP(game).options[OPT_GAMETEXTENCODING];
+	if ((get_uformat() == U_UTF8) && (game_codepage != 65001)) {
+		String key_enc = (game_codepage > 0) ?
+			String::FromFormat(".%d", game_codepage) :
+			_GP(trans).StrOptions["gameencoding"];
+		Debug::Printf("Game's source encoding hint: own: %d, from TRA: %s", game_codepage, _GP(trans).StrOptions["gameencoding"].GetCStr());
+		if (!key_enc.IsEmpty()) {
+			StringMap conv_map;
+			std::vector<char> ascii; // ascii buffer
+			Debug::Printf("Converting UTF-8 TRA keys to the game's encoding (%s)", key_enc.GetCStr());
+			for (const auto &item : _GP(trans).Dict) {
+				ascii.resize(item._key.GetLength() + 1); // ascii len will be <= utf-8 len
+				StrUtil::ConvertUtf8ToAscii(item._key.GetCStr(), key_enc.GetCStr(), &ascii[0], ascii.size());
+				conv_map.insert(std::make_pair(String(&ascii[0]), item._value));
+			}
+			_GP(trans).Dict = conv_map;
 		}
-		_GP(trans).Dict = conv_map;
+		else {
+			Debug::Printf(kDbgMsg_Warn, "WARNING: UTF-8 translation in the ASCII/ANSI game, but no encoding hint for TRA keys conversion");
+		}
 	}
 
-	Debug::Printf("Translation initialized: %s", _G(trans_filename).GetCStr());
+	Debug::Printf(kDbgMsg_Info, "Translation initialized: %s (format: %s)", _G(trans_name).GetCStr(), encoding_msg.GetCStr());
 	return true;
 }
 

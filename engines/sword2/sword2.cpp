@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "base/plugins.h"
@@ -33,6 +32,7 @@
 
 #include "sword2/sword2.h"
 #include "sword2/defs.h"
+#include "sword2/detection.h"
 #include "sword2/header.h"
 #include "sword2/console.h"
 #include "sword2/controls.h"
@@ -49,39 +49,31 @@ namespace Sword2 {
 
 Common::Platform Sword2Engine::_platform;
 
-Sword2Engine::Sword2Engine(OSystem *syst) : Engine(syst), _rnd("sword2") {
+Sword2Engine::Sword2Engine(OSystem *syst, const ADGameDescription *gameDesc) : Engine(syst), _rnd("sword2") {
 	// Add default file directories
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "clusters");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "sword2");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "video");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "smacks");
+	SearchMan.addSubDirectoryMatching(gameDataDir, "extras"); // GOG.com
 	SearchMan.addSubDirectoryMatching(gameDataDir, "streams"); // PSX video
 
-	if (!scumm_stricmp(ConfMan.get("gameid").c_str(), "sword2demo") || !scumm_stricmp(ConfMan.get("gameid").c_str(), "sword2psxdemo"))
-		_features = GF_DEMO;
-	else if (!scumm_stricmp(ConfMan.get("gameid").c_str(), "sword2demo-es"))
-		_features = GF_DEMO | GF_SPANISHDEMO;
-	else
-		_features = 0;
-
-	// Check if we are running PC or PSX version.
-	if (!scumm_stricmp(ConfMan.get("gameid").c_str(), "sword2psx") || !scumm_stricmp(ConfMan.get("gameid").c_str(), "sword2psxdemo"))
-		Sword2Engine::_platform = Common::kPlatformPSX;
-	else
-		Sword2Engine::_platform = Common::kPlatformWindows;
+	_features = gameDesc->flags;
+	Sword2Engine::_platform = gameDesc->platform;
 
 	_bootParam = ConfMan.getInt("boot_param");
 	_saveSlot = ConfMan.getInt("save_slot");
 
-	_memory = NULL;
-	_resman = NULL;
-	_sound = NULL;
-	_screen = NULL;
-	_mouse = NULL;
-	_logic = NULL;
-	_fontRenderer = NULL;
-	_debugger = NULL;
+	_memory = nullptr;
+	_resman = nullptr;
+	_sound = nullptr;
+	_screen = nullptr;
+	_mouse = nullptr;
+	_logic = nullptr;
+	_fontRenderer = nullptr;
+	_isRTL = Common::parseLanguage(ConfMan.get("language")) == Common::HE_ISR;
+	_debugger = nullptr;
 
 	_keyboardEvent.pending = false;
 	_mouseEvent.pending = false;
@@ -92,9 +84,16 @@ Sword2Engine::Sword2Engine(OSystem *syst) : Engine(syst), _rnd("sword2") {
 	_gameSpeed = 1;
 
 	_gmmLoadSlot = -1; // Used to manage GMM Loading
+
+	_isKorTrs = gameDesc->language == Common::KO_KOR;
 }
 
 Sword2Engine::~Sword2Engine() {
+	// Unpause the game now, or it will be done automatically when the
+	// game engine is half-deleted, causing it to crash.
+	if (isPaused())
+		_gamePauseToken.clear();
+
 	//_debugger is deleted by Engine
 	delete _sound;
 	delete _fontRenderer;
@@ -182,14 +181,14 @@ Common::Error Sword2Engine::run() {
 	// Get some falling RAM and put it in your pocket, never let it slip
 	// away
 
-	_debugger = NULL;
-	_sound = NULL;
-	_fontRenderer = NULL;
-	_screen = NULL;
-	_mouse = NULL;
-	_logic = NULL;
-	_resman = NULL;
-	_memory = NULL;
+	_debugger = nullptr;
+	_sound = nullptr;
+	_fontRenderer = nullptr;
+	_screen = nullptr;
+	_mouse = nullptr;
+	_logic = nullptr;
+	_resman = nullptr;
+	_memory = nullptr;
 
 	initGraphics(640, 480);
 	_screen = new Screen(this, 640, 480);
@@ -212,6 +211,8 @@ Common::Error Sword2Engine::run() {
 	_fontRenderer = new FontRenderer(this);
 	_sound = new Sound(this);
 	_mouse = new Mouse(this);
+	
+	_fontRenderer->loadTranslations();
 
 	registerDefaultSettings();
 	readSettings();
@@ -225,7 +226,7 @@ Common::Error Sword2Engine::run() {
 	setupPersistentResources();
 	initializeFontResourceFlags();
 
-	if (_features & GF_DEMO)
+	if (_features & ADGF_DEMO)
 		_logic->writeVar(DEMO, 1);
 	else
 		_logic->writeVar(DEMO, 0);
@@ -305,7 +306,7 @@ Common::Error Sword2Engine::run() {
 				case Common::KEYCODE_c:
 					if (!_logic->readVar(DEMO) && !_mouse->isChoosing()) {
 						ScreenInfo *screenInfo = _screen->getScreenInfo();
-						_logic->fnPlayCredits(NULL);
+						_logic->fnPlayCredits(nullptr);
 						screenInfo->new_palette = 99;
 					}
 					break;
@@ -401,7 +402,7 @@ bool Sword2Engine::checkForMouseEvents() {
 
 MouseEvent *Sword2Engine::mouseEvent() {
 	if (!_mouseEvent.pending)
-		return NULL;
+		return nullptr;
 
 	_mouseEvent.pending = false;
 	return &_mouseEvent;
@@ -409,7 +410,7 @@ MouseEvent *Sword2Engine::mouseEvent() {
 
 KeyboardEvent *Sword2Engine::keyboardEvent() {
 	if (!_keyboardEvent.pending)
-		return NULL;
+		return nullptr;
 
 	_keyboardEvent.pending = false;
 	return &_keyboardEvent;
@@ -581,7 +582,7 @@ Common::Error Sword2Engine::saveGameState(int slot, const Common::String &desc, 
 		return Common::kUnknownError;
 }
 
-bool Sword2Engine::canSaveGameStateCurrently() {
+bool Sword2Engine::canSaveGameStateCurrently(Common::U32String *msg) {
 	bool canSave = true;
 
 	// No save if dead
@@ -611,7 +612,7 @@ Common::Error Sword2Engine::loadGameState(int slot) {
 	return Common::kNoError;
 }
 
-bool Sword2Engine::canLoadGameStateCurrently() {
+bool Sword2Engine::canLoadGameStateCurrently(Common::U32String *msg) {
 	bool canLoad = true;
 
 	// No load if mouse is disabled

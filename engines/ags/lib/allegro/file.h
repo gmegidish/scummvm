@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,20 +23,15 @@
 #define AGS_LIB_ALLEGRO_FILE_H
 
 #include "ags/lib/allegro/alconfig.h"
+#include "ags/shared/core/types.h"
 #include "common/file.h"
 
 namespace AGS3 {
 
 #define F_READ          "r"
 #define F_WRITE         "w"
-#define F_READ_PACKED   "rp"
-#define F_WRITE_PACKED  "wp"
-#define F_WRITE_NOPACK  "w!"
 
 #define F_BUF_SIZE      4096           /* 4K buffer for caching data */
-#define F_PACK_MAGIC    0x736C6821L    /* magic number for packed files */
-#define F_NOPACK_MAGIC  0x736C682EL    /* magic number for autodetect */
-#define F_EXE_MAGIC     0x736C682BL    /* magic number for appended data */
 
 struct _al_normal_packfile_details {
 	int hndl;                           /* DOS file handle */
@@ -46,11 +40,7 @@ struct _al_normal_packfile_details {
 	int buf_size;                       /* number of bytes in the buffer */
 	long todo;                          /* number of bytes still on the disk */
 	struct PACKFILE *parent;            /* nested, parent file */
-	struct LZSS_PACK_DATA *pack_data;   /* for LZSS compression */
-	struct LZSS_UNPACK_DATA *unpack_data; /* for LZSS decompression */
 	char *filename;                     /* name of the file */
-	char *passdata;                     /* encryption key data */
-	char *passpos;                      /* current key position */
 	unsigned char buf[F_BUF_SIZE];      /* the actual data buffer */
 };
 
@@ -90,13 +80,13 @@ struct PACKFILE {
 	PACKFILE *pack_fopen_chunk(int pack);
 	PACKFILE *pack_fclose_chunk();
 	int pack_igetw();
-	long pack_igetl();
+	int32_t pack_igetl();
 	int pack_iputw(int w);
-	long pack_iputl(long l);
+	int32_t pack_iputl(int32_t l);
 	int pack_mgetw();
-	long pack_mgetl();
+	int32_t pack_mgetl();
 	int pack_mputw(int w);
-	long pack_mputl(long l);
+	int32_t pack_mputl(int32_t l);
 	char *pack_fgets(char *p, int max);
 	int pack_fputs(AL_CONST char *p);
 	};
@@ -193,7 +183,7 @@ public:
 		return _vTable->pf_ferror(_userData);
 	}
 
-	virtual void *pack_get_userdata() const override {
+	void *pack_get_userdata() const override {
 		return _userData;
 	}
 };
@@ -218,13 +208,13 @@ AL_FUNC(int, pack_putc, (int c, PACKFILE *f));
 AL_FUNC(int, pack_feof, (PACKFILE *f));
 AL_FUNC(int, pack_ferror, (PACKFILE *f));
 AL_FUNC(int, pack_igetw, (PACKFILE *f));
-AL_FUNC(long, pack_igetl, (PACKFILE *f));
+AL_FUNC(int32_t, pack_igetl, (PACKFILE *f));
 AL_FUNC(int, pack_iputw, (int w, PACKFILE *f));
-AL_FUNC(long, pack_iputl, (long l, PACKFILE *f));
+AL_FUNC(int32_t, pack_iputl, (int32_t l, PACKFILE *f));
 AL_FUNC(int, pack_mgetw, (PACKFILE *f));
-AL_FUNC(long, pack_mgetl, (PACKFILE *f));
+AL_FUNC(int32_t, pack_mgetl, (PACKFILE *f));
 AL_FUNC(int, pack_mputw, (int w, PACKFILE *f));
-AL_FUNC(long, pack_mputl, (long l, PACKFILE *f));
+AL_FUNC(int32_t, pack_mputl, (int32_t l, PACKFILE *f));
 AL_FUNC(long, pack_fread, (void *p, long n, PACKFILE *f));
 AL_FUNC(long, pack_fwrite, (AL_CONST void *p, long n, PACKFILE *f));
 AL_FUNC(int, pack_ungetc, (int c, PACKFILE *f));

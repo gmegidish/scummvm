@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,7 +63,7 @@ void SoundManager::play(int soundId) {
 
 		if (curRoom->_sounds[soundSlot] == soundId) {
 			const SoundType soundType = (_gSample[soundId]._flag & kSoundFlagBgMusic) ? kSoundTypeMusic : kSoundTypeSfx;
-			Common::SeekableReadStream *soundFileStream = _vm->_dataFile.createReadStreamForMember(_gSample[soundId]._name);
+			Common::SeekableReadStream *soundFileStream = _vm->_dataFile.createReadStreamForMember(Common::Path(_gSample[soundId]._name));
 			if (!soundFileStream)
 				continue;
 
@@ -192,7 +191,7 @@ void SoundManager::soundStep(int midx, int midz, int act, int frame) {
 
 		if (stepRight && (_gSample[soundId]._flag & kSoundFlagStepRight)) {
 			if (!_stepRightStream) {
-				Common::SeekableReadStream *soundFileStream = _vm->_dataFile.createReadStreamForMember(_gSample[soundId]._name);
+				Common::SeekableReadStream *soundFileStream = _vm->_dataFile.createReadStreamForMember(Common::Path(_gSample[soundId]._name));
 				_stepRightStream = loadWAV(soundFileStream);
 			}
 			break;
@@ -200,7 +199,7 @@ void SoundManager::soundStep(int midx, int midz, int act, int frame) {
 
 		if (stepLeft && (_gSample[soundId]._flag & kSoundFlagStepLeft)) {
 			if (!_stepLeftStream) {
-				Common::SeekableReadStream *soundFileStream = _vm->_dataFile.createReadStreamForMember(_gSample[soundId]._name);
+				Common::SeekableReadStream *soundFileStream = _vm->_dataFile.createReadStreamForMember(Common::Path(_gSample[soundId]._name));
 				_stepLeftStream = loadWAV(soundFileStream);
 			}
 			break;
@@ -233,7 +232,7 @@ void SoundManager::soundStep(int midx, int midz, int act, int frame) {
 	);
 }
 
-int32 SoundManager::talkStart(const Common::String &name) {
+int32 SoundManager::talkStart(const Common::Path &name) {
 	if (!_speechFile.isOpen())
 		return 0;
 

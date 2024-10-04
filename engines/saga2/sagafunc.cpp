@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,15 +16,12 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
  *   Faery Tale II -- The Halls of the Dead
  *   (c) 1993-1996 The Wyrmkeep Entertainment Co.
  */
-
-#define FORBIDDEN_SYMBOL_ALLOW_ALL // FIXME: Remove
 
 #include "common/debug.h"
 
@@ -54,7 +51,7 @@
 void drawMainDisplay();
 
 #define MONOLOG(s) {debugC(2, kDebugScripts, "cfunc: " #s );}
-#define OBJLOG(s) {debugC(2, kDebugScripts, "cfunc: [%s]." #s , (((ObjectData *)thisThread->thisObject)->obj)->objName() );}
+#define OBJLOG(s) {debugC(2, kDebugScripts, "cfunc: [%s]." #s , (((ObjectData *)thisThread->_thisObject)->obj)->objName() );}
 
 namespace Saga2 {
 
@@ -137,7 +134,7 @@ int stringf(char *buffer, long maxlen, int formatStr, int16 *args) {
 
 int16 scriptGameObjectThisID(int16 *args) {
 	OBJLOG(ThisID);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->thisID();
 }
@@ -148,7 +145,7 @@ int16 scriptGameObjectThisID(int16 *args) {
 
 int16 scriptGameObjectRecharge(int16 *args) {
 	OBJLOG(Recharge);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	obj->recharge();
 	return 0;
@@ -161,7 +158,7 @@ int16 scriptGameObjectRecharge(int16 *args) {
 
 int16 scriptGameObjectGetChargeType(int16 *args) {
 	OBJLOG(GetChargeType);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->getChargeType();
 }
@@ -173,13 +170,13 @@ int16 scriptGameObjectGetChargeType(int16 *args) {
 
 int16 scriptActorMove(int16 *args) {
 	OBJLOG(Move);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	//  Move the object to a new location
 	obj->move(TilePoint(args[0], args[1], args[2]));
 
 	//  If optional 4th parameter is present, then set actor facing
-	if (thisThread->argCount > 3 && isActor(obj)) {
+	if (thisThread->_argCount > 3 && isActor(obj)) {
 		Actor       *a = (Actor *)obj;
 
 		a->_currentFacing = args[3];
@@ -197,12 +194,12 @@ extern const StaticTilePoint dirTable[8];
 
 int16 scriptActorMoveRel(int16 *args) {
 	OBJLOG(MoveRel);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj,
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj,
 	                 *baseObj = GameObject::objectAddress(args[0]);
 	Location        l;
 	TilePoint       tp;
 
-	l.context   = baseObj->IDParent();
+	l._context   = baseObj->IDParent();
 	tp          = baseObj->getLocation();
 
 	//  Add offset for angle and distance
@@ -213,7 +210,7 @@ int16 scriptActorMoveRel(int16 *args) {
 	obj->move(l);
 
 	//  If optional 4th parameter is present, then set actor facing
-	if (thisThread->argCount > 3 && isActor(obj)) {
+	if (thisThread->_argCount > 3 && isActor(obj)) {
 		Actor       *a = (Actor *)obj;
 
 		a->_currentFacing = args[3];
@@ -229,12 +226,12 @@ int16 scriptActorMoveRel(int16 *args) {
 
 int16 scriptActorTransfer(int16 *args) {
 	OBJLOG(Transfer);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	//  Move the object to a new location
 	if ((isObject(args[0])
 	        && (GameObject::protoAddress(args[0])->containmentSet()
-	            &   ProtoObj::isContainer))
+	            &   ProtoObj::kIsContainer))
 	        ||  isActor(args[0])) {
 		ObjectID        targetID = args[0];
 		GameObject      *target = GameObject::objectAddress(targetID);
@@ -246,8 +243,8 @@ int16 scriptActorTransfer(int16 *args) {
 			uint16      cSet = target->proto()->containmentSet();
 
 			obj->move(Location(targetSlot, targetID));
-			if ((cSet & (ProtoObj::isIntangible | ProtoObj::isContainer))
-			        == (ProtoObj::isIntangible | ProtoObj::isContainer))
+			if ((cSet & (ProtoObj::kIsIntangible | ProtoObj::kIsContainer))
+			        == (ProtoObj::kIsIntangible | ProtoObj::kIsContainer))
 				g_vm->_cnm->setUpdate(targetID);
 		}
 	} else {
@@ -255,7 +252,7 @@ int16 scriptActorTransfer(int16 *args) {
 	}
 
 	//  If optional 5th parameter is present, then set actor facing
-	if (thisThread->argCount > 4 && isActor(obj)) {
+	if (thisThread->_argCount > 4 && isActor(obj)) {
 		Actor       *a = (Actor *)obj;
 
 		a->_currentFacing = args[4];
@@ -270,7 +267,7 @@ int16 scriptActorTransfer(int16 *args) {
 
 int16 scriptMoveRandom(int16 *args) {
 	OBJLOG(MoveRandom);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	TilePoint       tpMin, tpMax;
 	int16           distance = args[3];
 
@@ -292,7 +289,7 @@ int16 scriptMoveRandom(int16 *args) {
 
 int16 scriptActorGetName(int16 *) {
 	OBJLOG(GetName);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	int16           oldName = obj->getNameIndex();
 
 	return oldName;
@@ -304,7 +301,7 @@ int16 scriptActorGetName(int16 *) {
 
 int16 scriptActorSetName(int16 *args) {
 	OBJLOG(SetName);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	int16           oldName = obj->getNameIndex();
 
 	obj->setNameIndex(args[0]);
@@ -318,7 +315,7 @@ int16 scriptActorSetName(int16 *args) {
 
 int16 scriptActorGetProto(int16 *) {
 	OBJLOG(GetProto);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	return obj->getProtoNum();
 }
 
@@ -328,10 +325,10 @@ int16 scriptActorGetProto(int16 *) {
 
 int16 scriptActorSetProto(int16 *args) {
 	OBJLOG(SetProto);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	int16           oldProto = obj->getProtoNum();
 
-	if (isActor(obj) && (((Actor *)obj)->_flags & Actor::temporary)) {
+	if (isActor(obj) && (((Actor *)obj)->_flags & Actor::kAFTemporary)) {
 		decTempActorCount(oldProto);
 		incTempActorCount(args[0]);
 	}
@@ -347,7 +344,7 @@ int16 scriptActorSetProto(int16 *args) {
 
 int16 scriptActorGetProtoClass(int16 *) {
 	OBJLOG(GetProtoClass);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	ProtoObj        *objProto = obj->proto();
 
 	return objProto->classType;
@@ -359,7 +356,7 @@ int16 scriptActorGetProtoClass(int16 *) {
 
 int16 scriptActorGetScript(int16 *) {
 	OBJLOG(GetScript);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	return obj->getScript();
 }
 
@@ -369,7 +366,7 @@ int16 scriptActorGetScript(int16 *) {
 
 int16 scriptActorSetScript(int16 *args) {
 	OBJLOG(SetScript);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	int16           oldScript = obj->getScript();
 
 	obj->setScript(args[0]);
@@ -383,7 +380,7 @@ int16 scriptActorSetScript(int16 *args) {
 
 int16 scriptGameObjectUse(int16 *args) {
 	OBJLOG(Use);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->use(args[0]);
 }
@@ -394,7 +391,7 @@ int16 scriptGameObjectUse(int16 *args) {
 
 int16 scriptGameObjectUseOn(int16 *args) {
 	OBJLOG(UseOn);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->useOn(args[0], args[1]);
 }
@@ -405,7 +402,7 @@ int16 scriptGameObjectUseOn(int16 *args) {
 
 int16 scriptGameObjectUseOnTAI(int16 *args) {
 	OBJLOG(UseOnTAI);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->useOn(args[0], ActiveItem::activeItemAddress(args[1]));
 }
@@ -421,7 +418,7 @@ int16 scriptGameObjectUseOnTAI(int16 *args) {
 
 int16 scriptGameObjectDrop(int16 *args) {
 	OBJLOG(Drop);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return  obj->drop(
 	            args[0],
@@ -434,7 +431,7 @@ int16 scriptGameObjectDrop(int16 *args) {
 
 int16 scriptGameObjectDropOn(int16 *args) {
 	OBJLOG(DropOn);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->dropOn(args[0], args[1]);
 }
@@ -448,7 +445,7 @@ int16 scriptGameObjectDropOn(int16 *args) {
 
 int16 scriptGameObjectDropMergeableOn(int16 *args) {
 	OBJLOG(DropMergeableOn);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->dropOn(args[0], args[1], args[2]);
 }
@@ -465,7 +462,7 @@ int16 scriptGameObjectDropMergeableOn(int16 *args) {
 
 int16 scriptGameObjectDropOnTAI(int16 *args) {
 	OBJLOG(DropOnTAI);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return  obj->dropOn(
 	            args[0],
@@ -482,14 +479,14 @@ int16 scriptActorSay(int16 *args) {
 	//  Actor speech enums -- move these to include file
 	// MOVED TO SPEECH.H - EO
 //	enum {
-//		speakContinued  = (1<<0),           // Append next speech
-//		speakNoAnimate  = (1<<1),           // Don't animate speaking
-//		speakWait       = (1<<2),           // wait until speech finished
-//		speakLock       = (1<<3),           // LockUI while speaking
+//		kSpeakContinued  = (1<<0),           // Append next speech
+//		kSpeakNoAnimate  = (1<<1),           // Don't animate speaking
+//		kSpeakWait       = (1<<2),           // wait until speech finished
+//		kSpeakLock       = (1<<3),           // LockUI while speaking
 //	};
 
 	//  'obj' is the actor doing the speaking.
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	uint16          flags = args[0];
 	Speech          *sp;
 
@@ -503,20 +500,20 @@ int16 scriptActorSay(int16 *args) {
 	//  If so, then retrieve it. If not, then build a new one and
 	//  retrieve it.
 	sp = speechList.findSpeech(obj->thisID());
-	if (sp == NULL) {
+	if (sp == nullptr) {
 		uint16  spFlags = 0;
 
-		if (flags & speakNoAnimate) spFlags |= Speech::spNoAnimate;
-		if (flags & speakLock)      spFlags |= Speech::spLock;
+		if (flags & kSpeakNoAnimate) spFlags |= Speech::kSpNoAnimate;
+		if (flags & kSpeakLock)      spFlags |= Speech::kSpLock;
 
 		sp = speechList.newTask(obj->thisID(), spFlags);
 
-		if (sp == NULL) return 0;
+		if (sp == nullptr) return 0;
 	}
 
 	//  Loop through each of the arguments.
 	//  REM: Might want to do some range checking on the arguments.
-	for (int i = 1; i < thisThread->argCount; i += 2) {
+	for (int i = 1; i < thisThread->_argCount; i += 2) {
 		uint16      sampleNum = args[i];
 		char        *speechText = STRING(args[i + 1]);
 
@@ -525,10 +522,10 @@ int16 scriptActorSay(int16 *args) {
 	}
 
 	//  If we're ready to activate the speech
-	if (!(flags & speakContinued)) {
+	if (!(flags & kSpeakContinued)) {
 		//  If we're going to wait for it synchronously
-		if (flags & speakWait) {
-			thisThread->waitForEvent(Thread::waitOther, 0);
+		if (flags & kSpeakWait) {
+			thisThread->waitForEvent(Thread::kWaitOther, nullptr);
 			sp->setWakeUp(getThreadID(thisThread));
 		}
 
@@ -547,14 +544,14 @@ int16 scriptActorSay(int16 *args) {
 int16 scriptActorSayText(int16 *args) {
 	OBJLOG(SayText);
 	//  'obj' is the actor doing the speaking.
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	Speech          *sp;
 	char            buffer[256];
 
 	//  Determine if a speech record is being built for this actor.
 	//  If so, then retrieve it. If not, then fail.
 	sp = speechList.findSpeech(obj->thisID());
-	if (sp == NULL) return 0;
+	if (sp == nullptr) return 0;
 
 	stringf(buffer, sizeof buffer, args[0], &args[1]);
 	sp->append(buffer, 0);
@@ -567,7 +564,7 @@ int16 scriptActorSayText(int16 *args) {
 
 int16 scriptActorObjectType(int16 *) {
 	OBJLOG(ObjectType);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return (int16)(obj->containmentSet());
 }
@@ -578,7 +575,7 @@ int16 scriptActorObjectType(int16 *) {
 
 int16 scriptActorCopyObject(int16 *) {
 	OBJLOG(CopyObject);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	Location        l(0, 0, 0, Nothing);
 
 	return (int16)(obj->copy(l));
@@ -590,7 +587,7 @@ int16 scriptActorCopyObject(int16 *) {
 
 int16 scriptGameObjectIsActivated(int16 *args) {
 	OBJLOG(IsActivated);
-	return (((ObjectData *)thisThread->thisObject)->obj)->isActivated();
+	return (((ObjectData *)thisThread->_thisObject)->obj)->isActivated();
 }
 
 //-----------------------------------------------------------------------
@@ -598,55 +595,55 @@ int16 scriptGameObjectIsActivated(int16 *args) {
 
 int16 scriptActorGetOpen(int16 *) {
 	OBJLOG(GetOpen);
-	return (((ObjectData *)thisThread->thisObject)->obj)->isOpen();
+	return (((ObjectData *)thisThread->_thisObject)->obj)->isOpen();
 }
 
 int16 scriptActorGetLocked(int16 *) {
 	OBJLOG(GetLocked);
-	return (((ObjectData *)thisThread->thisObject)->obj)->isLocked();
+	return (((ObjectData *)thisThread->_thisObject)->obj)->isLocked();
 }
 
 int16 scriptActorGetImportant(int16 *) {
 	OBJLOG(GetImportant);
-	return (((ObjectData *)thisThread->thisObject)->obj)->isImportant();
+	return (((ObjectData *)thisThread->_thisObject)->obj)->isImportant();
 }
 
 int16 scriptActorGetScavengable(int16 *) {
 	OBJLOG(GetScavengable);
-	return (((ObjectData *)thisThread->thisObject)->obj)->isScavengable();
+	return (((ObjectData *)thisThread->_thisObject)->obj)->isScavengable();
 }
 
 /*
 int16 scriptActorSetOpen( int16 *args )
 {
-    (((ObjectData *)thisThread->thisObject)->obj)->setFlags(
+    (((ObjectData *)thisThread->_thisObject)->obj)->setFlags(
         args[0] ? 0xffff : 0,
-        objectOpen );
+        kObjectOpen );
     return 0;
 }
 
 int16 scriptActorSetLocked( int16 *args )
 {
-    (((ObjectData *)thisThread->thisObject)->obj)->setFlags(
+    (((ObjectData *)thisThread->_thisObject)->obj)->setFlags(
         args[0] ? 0xffff : 0,
-        objectLocked );
+        kObjectLocked );
     return 0;
 }
 */
 
 int16 scriptActorSetImportant(int16 *args) {
 	OBJLOG(SetImportant);
-	(((ObjectData *)thisThread->thisObject)->obj)->setFlags(
+	(((ObjectData *)thisThread->_thisObject)->obj)->setFlags(
 	    args[0] ? (int16) 0xffff : (int16) 0,
-	    objectImportant);
+	    kObjectImportant);
 	return 0;
 }
 
 int16 scriptActorSetScavengable(int16 *args) {
 	OBJLOG(SetScavengable);
-	(((ObjectData *)thisThread->thisObject)->obj)->setFlags(
+	(((ObjectData *)thisThread->_thisObject)->obj)->setFlags(
 	    args[0] ? (int16) 0xffff : (int16) 0,
-	    objectScavengable);
+	    kObjectScavengable);
 	return 0;
 }
 
@@ -656,7 +653,7 @@ int16 scriptActorSetScavengable(int16 *args) {
 
 int16 scriptGameObjectAddTimer(int16 *args) {
 	OBJLOG(AddTimer);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->addTimer(args[0], args[1]);
 }
@@ -668,7 +665,7 @@ int16 scriptGameObjectAddTimer(int16 *args) {
 
 int16 scriptGameObjectAddStdTimer(int16 *args) {
 	OBJLOG(AddStdTimer);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->addTimer(args[0]);
 }
@@ -679,7 +676,7 @@ int16 scriptGameObjectAddStdTimer(int16 *args) {
 
 int16 scriptGameObjectRemoveTimer(int16 *args) {
 	OBJLOG(RemoveTimer);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	obj->removeTimer(args[0]);
 
@@ -692,7 +689,7 @@ int16 scriptGameObjectRemoveTimer(int16 *args) {
 
 int16 scriptGameObjectRemoveAllTimers(int16 *args) {
 	OBJLOG(RemoveAllTimers);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	obj->removeAllTimers();
 
@@ -701,12 +698,12 @@ int16 scriptGameObjectRemoveAllTimers(int16 *args) {
 
 //-----------------------------------------------------------------------
 //	Create a sensor for this object to detect the proximity of a
-//	protaganist
+//	protagonist
 //		int "c" addProtaganistSensor( int sensorID, int range );
 
 int16 scriptGameObjectAddProtaganistSensor(int16 *args) {
 	OBJLOG(AddProtaganistSensor);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->addProtaganistSensor(args[0], args[1]);
 }
@@ -723,7 +720,7 @@ int16 scriptGameObjectAddSpecificActorSensor(int16 *args) {
 	OBJLOG(AddSpecificActorSensor);
 	assert(isActor(args[2]));
 
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return  obj->addSpecificActorSensor(
 	            args[0],
@@ -743,7 +740,7 @@ int16 scriptGameObjectAddSpecificObjectSensor(int16 *args) {
 	OBJLOG(AddSpecificObjectSensor);
 	assert(isObject(args[2]) || isActor(args[2]));
 
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->addSpecificObjectSensor(args[0], args[1], args[2]);
 }
@@ -758,7 +755,7 @@ int16 scriptGameObjectAddSpecificObjectSensor(int16 *args) {
 
 int16 scriptGameObjectAddActorPropertySensor(int16 *args) {
 	OBJLOG(AddActorPropertySensor);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->addActorPropertySensor(args[0], args[1], args[2]);
 }
@@ -773,7 +770,7 @@ int16 scriptGameObjectAddActorPropertySensor(int16 *args) {
 
 int16 scriptGameObjectAddObjectPropertySensor(int16 *args) {
 	OBJLOG(AddObjectPropertySensor);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->addObjectPropertySensor(args[0], args[1], args[2]);
 }
@@ -785,7 +782,7 @@ int16 scriptGameObjectAddObjectPropertySensor(int16 *args) {
 
 int16 scriptGameObjectAddEventSensor(int16 *args) {
 	OBJLOG(AddEventSensor);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return  obj->addEventSensor(
 	            args[0],
@@ -799,7 +796,7 @@ int16 scriptGameObjectAddEventSensor(int16 *args) {
 
 int16 scriptGameObjectRemoveSensor(int16 *args) {
 	OBJLOG(RemoveSensor);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	obj->removeSensor(args[0]);
 
@@ -812,7 +809,7 @@ int16 scriptGameObjectRemoveSensor(int16 *args) {
 
 int16 scriptGameObjectRemoveAllSensors(int16 *args) {
 	OBJLOG(RemoveAllSensors);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	obj->removeAllSensors();
 
@@ -820,16 +817,16 @@ int16 scriptGameObjectRemoveAllSensors(int16 *args) {
 }
 
 //-----------------------------------------------------------------------
-//	Determine if this object can sense the proximity of a protaganist
+//	Determine if this object can sense the proximity of a protagonist
 //		int "c" canSenseProtaganist( int range );
 
 int16 scriptGameObjectCanSenseProtaganist(int16 *args) {
 	OBJLOG(CanSenseProtaganist);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	SenseInfo       info;
 
 	if (obj->canSenseProtaganist(info, args[0])) {
-		scriptCallFrame     &scf = thisThread->threadArgs;
+		scriptCallFrame     &scf = thisThread->_threadArgs;
 
 		scf.enactor = obj->thisID();
 		scf.directObject = info.sensedObject->thisID();
@@ -849,14 +846,14 @@ int16 scriptGameObjectCanSenseSpecificActor(int16 *args) {
 	OBJLOG(CanSenseSpecificActor);
 	assert(isActor(args[1]));
 
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	SenseInfo       info;
 
 	if (obj->canSenseSpecificActor(
 	            info,
 	            args[0],
 	            (Actor *)GameObject::objectAddress(args[1]))) {
-		scriptCallFrame     &scf = thisThread->threadArgs;
+		scriptCallFrame     &scf = thisThread->_threadArgs;
 
 		scf.enactor = obj->thisID();
 		scf.directObject = info.sensedObject->thisID();
@@ -876,11 +873,11 @@ int16 scriptGameObjectCanSenseSpecificObject(int16 *args) {
 	OBJLOG(CanSenseSpecificObject);
 	assert(isObject(args[1]) || isActor(args[1]));
 
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	SenseInfo       info;
 
 	if (obj->canSenseSpecificObject(info, args[0], args[1])) {
-		scriptCallFrame     &scf = thisThread->threadArgs;
+		scriptCallFrame     &scf = thisThread->_threadArgs;
 
 		scf.enactor = obj->thisID();
 		scf.directObject = info.sensedObject->thisID();
@@ -898,11 +895,11 @@ int16 scriptGameObjectCanSenseSpecificObject(int16 *args) {
 
 int16 scriptGameObjectCanSenseActorProperty(int16 *args) {
 	OBJLOG(CanSenseActorProperty);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	SenseInfo       info;
 
 	if (obj->canSenseActorProperty(info, args[0], args[1])) {
-		scriptCallFrame     &scf = thisThread->threadArgs;
+		scriptCallFrame     &scf = thisThread->_threadArgs;
 
 		scf.enactor = obj->thisID();
 		scf.directObject = info.sensedObject->thisID();
@@ -920,11 +917,11 @@ int16 scriptGameObjectCanSenseActorProperty(int16 *args) {
 
 int16 scriptGameObjectCanSenseObjectProperty(int16 *args) {
 	OBJLOG(CanSenseObjectProperty);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	SenseInfo       info;
 
 	if (obj->canSenseObjectProperty(info, args[0], args[1])) {
-		scriptCallFrame     &scf = thisThread->threadArgs;
+		scriptCallFrame     &scf = thisThread->_threadArgs;
 
 		scf.enactor = obj->thisID();
 		scf.directObject = info.sensedObject->thisID();
@@ -941,7 +938,7 @@ int16 scriptGameObjectCanSenseObjectProperty(int16 *args) {
 
 int16 scriptGameObjectGetActualScript(int16 *) {
 	OBJLOG(GetActualScript);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	int16           script;
 
 	script = obj->getScript();
@@ -956,7 +953,7 @@ int16 scriptGameObjectGetActualScript(int16 *) {
 
 int16 scriptGameObjectGetProtoScript(int16 *) {
 	OBJLOG(GetProtoScript);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->proto()->script;
 }
@@ -967,9 +964,9 @@ int16 scriptGameObjectGetProtoScript(int16 *) {
 
 int16 scriptGameObjectGetMass(int16 *) {
 	OBJLOG(GetMass);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
-	return (obj->proto()->flags & ResourceObjectPrototype::objPropMergeable)
+	return (obj->proto()->flags & ResourceObjectPrototype::kObjPropMergeable)
 	       ? obj->getExtra() : 1;
 }
 
@@ -979,11 +976,11 @@ int16 scriptGameObjectGetMass(int16 *) {
 
 int16 scriptGameObjectSetMass(int16 *args) {
 	OBJLOG(SetMass);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
-	if (obj->proto()->flags & ResourceObjectPrototype::objPropMergeable) {
+	if (obj->proto()->flags & ResourceObjectPrototype::kObjPropMergeable) {
 		obj->setExtra(args[0]);
-		if (obj->proto()->flags & ResourceObjectPrototype::objPropMergeable) {
+		if (obj->proto()->flags & ResourceObjectPrototype::kObjPropMergeable) {
 			g_vm->_cnm->setUpdate(obj->IDParent());
 		}
 		return true;
@@ -996,7 +993,7 @@ int16 scriptGameObjectSetMass(int16 *args) {
 
 int16 scriptGameObjectGetExtra(int16 *) {
 	OBJLOG(GetExtra);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->getExtra();
 }
@@ -1007,7 +1004,7 @@ int16 scriptGameObjectGetExtra(int16 *) {
 
 int16 scriptGameObjectSetExtra(int16 *args) {
 	OBJLOG(SetExtra);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	obj->setExtra(args[0]);
 
@@ -1027,7 +1024,7 @@ int16 deepCopy(GameObject *src, ObjectID parentID, TilePoint tp) {
 	l.u = tp.u;
 	l.v = tp.v;
 	l.z = tp.z;
-	l.context = parentID;
+	l._context = parentID;
 
 	//  Make a copy of this object, and place it in the parent container we spec'd
 	newID = src->copy(l);
@@ -1045,7 +1042,7 @@ int16 deepCopy(GameObject *src, ObjectID parentID, TilePoint tp) {
 int16 scriptGameObjectDeepCopy(int16 *args) {
 	OBJLOG(DeepCopy);
 	ObjectID        newParentID = args[0];
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj,
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj,
 	                 *newParent = GameObject::objectAddress(newParentID),
 	                  *newObj;
 	ObjectID        id;
@@ -1072,7 +1069,7 @@ int16 scriptGameObjectDeepCopy(int16 *args) {
 
 int16 scriptGameObjectAddEnchantment(int16 *args) {
 	OBJLOG(Enchant);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return EnchantObject(obj->thisID(),
 	                     makeEnchantmentID(args[0], args[1], args[2]),
@@ -1085,7 +1082,7 @@ int16 scriptGameObjectAddEnchantment(int16 *args) {
 
 int16 scriptGameObjectRemoveEnchantment(int16 *args) {
 	OBJLOG(Disenchant);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return DispelObjectEnchantment(obj->thisID(),
 	                               makeEnchantmentID(args[0], args[1], 0));
@@ -1097,7 +1094,7 @@ int16 scriptGameObjectRemoveEnchantment(int16 *args) {
 
 int16 scriptGameObjectFindEnchantment(int16 *args) {
 	OBJLOG(FindEnchantment);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return FindObjectEnchantment(obj->thisID(),
 	                             makeEnchantmentID(args[0], args[1], 0));
@@ -1109,7 +1106,7 @@ int16 scriptGameObjectFindEnchantment(int16 *args) {
 
 int16 scriptGameObjectInUse(int16 *) {
 	OBJLOG(InUse);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	return obj->proto()->isObjectBeingUsed(obj);
 }
@@ -1120,8 +1117,8 @@ int16 scriptGameObjectInUse(int16 *) {
 
 int16 scriptActorGetScratchVar(int16 *args) {
 	OBJLOG(GetScratchVar);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		return a->_scriptVar[args[0]];
 	}
@@ -1135,8 +1132,8 @@ int16 scriptActorGetScratchVar(int16 *args) {
 
 int16 scriptActorSetScratchVar(int16 *args) {
 	OBJLOG(SetScratchVar);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 		int16       oldVal = a->_scriptVar[args[0]];
 
 		a->_scriptVar[args[0]] = args[1];
@@ -1153,8 +1150,8 @@ int16 scriptActorSetScratchVar(int16 *args) {
 
 int16 scriptActorGetDisposition(int16 *args) {
 	OBJLOG(GetDisposition);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		return a->getDisposition();
 	}
@@ -1168,8 +1165,8 @@ int16 scriptActorGetDisposition(int16 *args) {
 
 int16 scriptActorSetDisposition(int16 *args) {
 	OBJLOG(SetDisposition);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		return a->setDisposition(args[0]);
 	}
@@ -1183,8 +1180,8 @@ int16 scriptActorSetDisposition(int16 *args) {
 
 int16 scriptActorGetSkill(int16 *args) {
 	OBJLOG(GetSkill);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		return a->getStats()->skill(args[0]);
 	}
@@ -1198,8 +1195,8 @@ int16 scriptActorGetSkill(int16 *args) {
 
 int16 scriptActorSetSkill(int16 *args) {
 	OBJLOG(SetSkill);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 		uint8       &skillRef = a->getStats()->skill(args[0]);
 		uint8       oldVal = skillRef;
 
@@ -1217,8 +1214,8 @@ int16 scriptActorSetSkill(int16 *args) {
 
 int16 scriptActorGetBaseSkill(int16 *args) {
 	OBJLOG(GetBaseSkill);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		return a->getBaseStats()->skill(args[0]);
 	}
@@ -1232,8 +1229,8 @@ int16 scriptActorGetBaseSkill(int16 *args) {
 
 int16 scriptActorSetBaseSkill(int16 *args) {
 	OBJLOG(SetBaseSkill);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 		uint8       &skillRef = a->getBaseStats()->skill(args[0]);
 		uint8       oldVal = skillRef;
 
@@ -1253,8 +1250,8 @@ int16 scriptActorSetBaseSkill(int16 *args) {
 
 int16 scriptActorGetVitality(int16 *) {
 	OBJLOG(GetVitality);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		debugC(2, kDebugScripts, " - value = %d", a->getStats()->vitality);
 		return a->getStats()->vitality;
@@ -1269,8 +1266,8 @@ int16 scriptActorGetVitality(int16 *) {
 
 int16 scriptActorSetVitality(int16 *args) {
 	OBJLOG(SetVitality);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		if (a->_godmode)
 			return 0;
@@ -1295,8 +1292,8 @@ int16 scriptActorSetVitality(int16 *args) {
 
 int16 scriptActorGetBaseVitality(int16 *) {
 	OBJLOG(GetBaseVitality);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		return a->getBaseStats()->vitality;
 	}
@@ -1310,8 +1307,8 @@ int16 scriptActorGetBaseVitality(int16 *) {
 
 int16 scriptActorSetBaseVitality(int16 *args) {
 	OBJLOG(SetBaseVitality);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 		int16       &vitalityRef = a->getBaseStats()->vitality;
 		int16       oldVal = vitalityRef;
 		PlayerActorID   pID;
@@ -1334,8 +1331,8 @@ int16 scriptActorSetBaseVitality(int16 *args) {
 
 int16 scriptActorGetMana(int16 *args) {
 	OBJLOG(GetMana);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		return a->getStats()->mana(args[0]);
 	}
@@ -1349,8 +1346,8 @@ int16 scriptActorGetMana(int16 *args) {
 
 int16 scriptActorSetMana(int16 *args) {
 	OBJLOG(SetMana);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 		int16       &manaRef = a->getStats()->mana(args[0]);
 		int16       oldVal = manaRef;
 		PlayerActorID   pID;
@@ -1370,8 +1367,8 @@ int16 scriptActorSetMana(int16 *args) {
 
 int16 scriptActorGetBaseMana(int16 *args) {
 	OBJLOG(GetBaseMana);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		return a->getBaseStats()->mana(args[0]);
 	}
@@ -1385,8 +1382,8 @@ int16 scriptActorGetBaseMana(int16 *args) {
 
 int16 scriptActorSetBaseMana(int16 *args) {
 	OBJLOG(SetBaseMana);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 		int16       &manaRef = a->getBaseStats()->mana(args[0]);
 		int16       oldVal = manaRef;
 		PlayerActorID   pID;
@@ -1407,8 +1404,8 @@ int16 scriptActorSetBaseMana(int16 *args) {
 
 int16 scriptActorGetSchedule(int16 *args) {
 	OBJLOG(GetSchedule);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		return a->_schedule;
 	}
@@ -1422,13 +1419,13 @@ int16 scriptActorGetSchedule(int16 *args) {
 
 int16 scriptActorSetSchedule(int16 *args) {
 	OBJLOG(SetSchedule);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 		uint16      oldSchedule = a->_schedule;
 
 		a->_schedule = (uint16)args[0];
 
-		if (a->getAssignment() != NULL)
+		if (a->getAssignment() != nullptr)
 			delete a->getAssignment();
 
 		return (int16)oldSchedule;
@@ -1443,8 +1440,8 @@ int16 scriptActorSetSchedule(int16 *args) {
 
 int16 scriptActorLobotomize(int16 *args) {
 	OBJLOG(Lobotomize);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		a->lobotomize();
 	}
@@ -1458,8 +1455,8 @@ int16 scriptActorLobotomize(int16 *args) {
 
 int16 scriptActorDelobotomize(int16 *args) {
 	OBJLOG(Delobotomize);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		a->delobotomize();
 	}
@@ -1473,8 +1470,8 @@ int16 scriptActorDelobotomize(int16 *args) {
 
 int16 scriptActorIsActionAvailable(int16 *args) {
 	OBJLOG(IsActionAvailable);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		return a->isActionAvailable(args[0], args[1]);
 	}
@@ -1490,8 +1487,8 @@ int16 scriptActorIsActionAvailable(int16 *args) {
 
 int16 scriptActorSetAction(int16 *args) {
 	OBJLOG(SetAction);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		return a->setAction(args[0], args[1]);
 	}
@@ -1506,8 +1503,8 @@ int16 scriptActorSetAction(int16 *args) {
 
 int16 scriptActorAnimationFrames(int16 *args) {
 	OBJLOG(AnimationFrames);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		return a->animationFrames(args[0], args[1]);
 	}
@@ -1523,8 +1520,8 @@ int16 scriptActorAnimationFrames(int16 *args) {
 
 int16 scriptActorNextAnimationFrame(int16 *args) {
 	OBJLOG(NextAnimationFrame);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		return a->nextAnimationFrame();
 	}
@@ -1540,8 +1537,8 @@ int16 scriptActorFace(int16 *args) {
 	OBJLOG(Face);
 	int16           oldFacing = 0;
 
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		oldFacing = a->_currentFacing;
 
@@ -1560,10 +1557,10 @@ int16 scriptActorFaceTowards(int16 *args) {
 	OBJLOG(FaceTowards);
 	int16           oldFacing = 0;
 
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
 		assert(isObject(args[0]) || isActor(args[0]));
 
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		oldFacing = a->_currentFacing;
 
@@ -1581,19 +1578,19 @@ int16 scriptActorFaceTowards(int16 *args) {
 
 int16 scriptActorTurn(int16 *args) {
 	OBJLOG(Turn);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		if (a->isDead()) return 0;
 
 		uint16      flags = args[1];
 
-		if (flags & moveWait) {
-			thisThread->waitForEvent(Thread::waitOther, 0);
+		if (flags & kMoveWait) {
+			thisThread->waitForEvent(Thread::kWaitOther, nullptr);
 			MotionTask::turn(getThreadID(thisThread), *a, args[0] & 7);
 		} else {
 			MotionTask::turn(*a, args[0] & 7);
-			return motionStarted;
+			return kMotionStarted;
 		}
 	}
 
@@ -1606,10 +1603,10 @@ int16 scriptActorTurn(int16 *args) {
 
 int16 scriptActorTurnTowards(int16 *args) {
 	OBJLOG(TurnTowards);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
 		assert(isObject(args[0]) || isActor(args[0]));
 
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		if (a->isDead()) return 0;
 
@@ -1619,12 +1616,12 @@ int16 scriptActorTurnTowards(int16 *args) {
 		dir = (GameObject::objectAddress(args[0])->getLocation()
 		       -   a->getLocation()).quickDir();
 
-		if (flags & moveWait) {
-			thisThread->waitForEvent(Thread::waitOther, 0);
+		if (flags & kMoveWait) {
+			thisThread->waitForEvent(Thread::kWaitOther, nullptr);
 			MotionTask::turn(getThreadID(thisThread), *a, dir);
 		} else {
 			MotionTask::turn(*a, dir);
-			return motionStarted;
+			return kMotionStarted;
 		}
 	}
 
@@ -1636,21 +1633,21 @@ int16 scriptActorTurnTowards(int16 *args) {
 
 int16 scriptActorWalk(int16 *args) {
 	OBJLOG(Walk);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		if (a->isDead()) return 0;
 
 		TilePoint   dest(args[0], args[1], args[2]);
 		uint16      flags = args[3];
 
-		if (flags & moveWait) {
-			thisThread->waitForEvent(Thread::waitOther, 0);
+		if (flags & kMoveWait) {
+			thisThread->waitForEvent(Thread::kWaitOther, nullptr);
 			MotionTask::walkToDirect(
-			    getThreadID(thisThread), *a, dest, flags & moveRun);
+			    getThreadID(thisThread), *a, dest, flags & kMoveRun);
 		} else {
-			MotionTask::walkToDirect(*a, dest, flags & moveRun);
-			return motionStarted;
+			MotionTask::walkToDirect(*a, dest, flags & kMoveRun);
+			return kMotionStarted;
 		}
 	}
 
@@ -1668,21 +1665,21 @@ int16 scriptActorWalk(int16 *args) {
 
 int16 scriptActorAssignPatrolRoute(int16 *args) {
 	OBJLOG(AssignPatrolRoute);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		//  Delete the actor's current assignment
-		if (a->getAssignment() != NULL) delete a->getAssignment();
+		if (a->getAssignment() != nullptr) delete a->getAssignment();
 
 		if (new PatrolRouteAssignment(a,
 		            (uint16)args[0]
-		            *   CalenderTime::kFramesPerHour,
+		            *   CalendarTime::kFramesPerHour,
 		            args[1],
 		            (uint8)args[2],
-		            thisThread->argCount >= 4
+		            thisThread->_argCount >= 4
 		            ?   args[3]
 		            :   -1)
-		        !=  NULL)
+		        !=  nullptr)
 			return true;
 	}
 
@@ -1690,7 +1687,7 @@ int16 scriptActorAssignPatrolRoute(int16 *args) {
 }
 
 //-----------------------------------------------------------------------
-//	Assign a patrol route and specify the begining and ending waypoints
+//	Assign a patrol route and specify the beginning and ending waypoints
 //		int "c" assignPartialPatrolRoute(
 //			int untilHour,
 //			int routeNo,
@@ -1700,20 +1697,20 @@ int16 scriptActorAssignPatrolRoute(int16 *args) {
 
 int16 scriptActorAssignPartialPatrolRoute(int16 *args) {
 	OBJLOG(AssignPartialPatrolRoute);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		//  Delete the actor's current assignment
-		if (a->getAssignment() != NULL) delete a->getAssignment();
+		if (a->getAssignment() != nullptr) delete a->getAssignment();
 
 		if (new PatrolRouteAssignment(a,
 		            (uint16)args[0]
-		            *   CalenderTime::kFramesPerHour,
+		            *   CalendarTime::kFramesPerHour,
 		            args[1],
 		            (uint8)args[2],
 		            args[3],
 		            args[4])
-		        !=  NULL)
+		        !=  nullptr)
 			return true;
 	}
 
@@ -1732,18 +1729,18 @@ int16 scriptActorAssignPartialPatrolRoute(int16 *args) {
 
 int16 scriptActorAssignBeNearLocation(int16 *args) {
 	OBJLOG(AssignBeNearLocation);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 		TilePoint   targetLoc = TilePoint(args[1], args[2], args[3]);
 
 		//  Delete the actor's current assignment
-		if (a->getAssignment() != NULL) delete a->getAssignment();
+		if (a->getAssignment() != nullptr) delete a->getAssignment();
 
 		if (new HuntToBeNearLocationAssignment(a,
 		            args[0],
 		            targetLoc,
 		            args[4])
-		        !=  NULL)
+		        !=  nullptr)
 			return true;
 	}
 
@@ -1761,23 +1758,23 @@ int16 scriptActorAssignBeNearLocation(int16 *args) {
 
 int16 scriptActorAssignBeNearActor(int16 *args) {
 	OBJLOG(AssignBeNearActor);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
 		assert(isActor(args[1]));
 
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj,
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj,
 		             *targetActor;
 
 		targetActor = (Actor *)GameObject::objectAddress(args[1]);
 
 		//  Delete the actor's current assignment
-		if (a->getAssignment() != NULL) delete a->getAssignment();
+		if (a->getAssignment() != nullptr) delete a->getAssignment();
 
 		if (new HuntToBeNearActorAssignment(a,
 		            args[0],
 		            targetActor,
 		            args[2],
 		            args[3])
-		        !=  NULL)
+		        !=  nullptr)
 			return true;
 	}
 
@@ -1790,22 +1787,22 @@ int16 scriptActorAssignBeNearActor(int16 *args) {
 
 int16 scriptActorAssignKillActor(int16 *args) {
 	OBJLOG(AssignKillActor);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
 		assert(isActor(args[1]));
 
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj,
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj,
 		             *targetActor;
 
 		targetActor = (Actor *)GameObject::objectAddress(args[1]);
 
 		//  Delete the actor's current assignment
-		if (a->getAssignment() != NULL) delete a->getAssignment();
+		if (a->getAssignment() != nullptr) delete a->getAssignment();
 
 		if (new HuntToKillAssignment(a,
 		            args[0],
 		            targetActor,
 		            args[2])
-		        !=  NULL)
+		        !=  nullptr)
 			return true;
 	}
 
@@ -1823,11 +1820,11 @@ int16 scriptActorAssignKillActor(int16 *args) {
 
 int16 scriptActorAssignTetheredWander(int16 *args) {
 	OBJLOG(AssignTetheredWander);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		//  Delete the actor's current assignment
-		if (a->getAssignment() != NULL) delete a->getAssignment();
+		if (a->getAssignment() != nullptr) delete a->getAssignment();
 
 		TileRegion  tetherReg;
 		int16       &minU = args[1],
@@ -1852,9 +1849,9 @@ int16 scriptActorAssignTetheredWander(int16 *args) {
 
 		if (new TetheredWanderAssignment(a,
 		            (uint16)args[0]
-		            *   CalenderTime::kFramesPerHour,
+		            *   CalendarTime::kFramesPerHour,
 		            tetherReg)
-		        !=  NULL)
+		        !=  nullptr)
 			return true;
 	}
 
@@ -1867,18 +1864,18 @@ int16 scriptActorAssignTetheredWander(int16 *args) {
 
 int16 scriptActorAssignAttend(int16 *args) {
 	OBJLOG(AssignAttend);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		//  Delete the actor's current assignment
-		if (a->getAssignment() != NULL) delete a->getAssignment();
+		if (a->getAssignment() != nullptr) delete a->getAssignment();
 
 		if (new AttendAssignment(a,
-		            (g_vm->_calender->frameInDay()
+		            (g_vm->_calendar->frameInDay()
 		             + (uint16)args[0])
-		            %   CalenderTime::kFramesPerDay,
+		            %   CalendarTime::kFramesPerDay,
 		            GameObject::objectAddress(args[1]))
-		        !=  NULL)
+		        !=  nullptr)
 			return true;
 	}
 
@@ -1891,10 +1888,10 @@ int16 scriptActorAssignAttend(int16 *args) {
 
 int16 scriptActorRemoveAssignment(int16 *args) {
 	OBJLOG(removeAssignment);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
-		if (a->getAssignment() != NULL) delete a->getAssignment();
+		if (a->getAssignment() != nullptr) delete a->getAssignment();
 	}
 
 	return 0;
@@ -1906,8 +1903,8 @@ int16 scriptActorRemoveAssignment(int16 *args) {
 
 int16 scriptActorBandWith(int16 *args) {
 	OBJLOG(BandWith);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		assert(isActor(args[0]));
 
@@ -1923,8 +1920,8 @@ int16 scriptActorBandWith(int16 *args) {
 
 int16 scriptActorDisband(int16 *) {
 	OBJLOG(Disband);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		a->disband();
 	}
@@ -1938,10 +1935,10 @@ int16 scriptActorDisband(int16 *) {
 
 int16 scriptActorGetLeader(int16 *) {
 	OBJLOG(GetLeader);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
-		return a->_leader != NULL ? a->_leader->thisID() : Nothing;
+		return a->_leader != nullptr ? a->_leader->thisID() : Nothing;
 	}
 
 	return 0;
@@ -1953,10 +1950,10 @@ int16 scriptActorGetLeader(int16 *) {
 
 int16 scriptActorNumFollowers(int16 *) {
 	OBJLOG(ActorNumFollowers);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
-		return a->_followers != NULL ? a->_followers->size() : 0;
+		return a->_followers != nullptr ? a->_followers->size() : 0;
 	}
 
 	return 0;
@@ -1968,10 +1965,10 @@ int16 scriptActorNumFollowers(int16 *) {
 
 int16 scriptActorGetFollower(int16 *args) {
 	OBJLOG(GetFollower);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
-		assert(a->_followers != NULL);
+		assert(a->_followers != nullptr);
 		assert(args[0] < a->_followers->size());
 
 		return (*a->_followers)[args[0]]->thisID();
@@ -1987,13 +1984,13 @@ int16 scriptActorGetFollower(int16 *args) {
 
 int16 scriptActorUseKnowledge(int16 *) {
 	OBJLOG(UseKnowledge);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
-		a->useKnowledge(thisThread->threadArgs);
+		a->useKnowledge(thisThread->_threadArgs);
 	}
 
-	return thisThread->threadArgs.returnVal;
+	return thisThread->_threadArgs.returnVal;
 }
 
 //-----------------------------------------------------------------------
@@ -2002,8 +1999,8 @@ int16 scriptActorUseKnowledge(int16 *) {
 
 int16 scriptActorAddKnowledge(int16 *args) {
 	OBJLOG(AddKnowledge);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		a->addKnowledge(args[0]);
 	}
@@ -2017,8 +2014,8 @@ int16 scriptActorAddKnowledge(int16 *args) {
 
 int16 scriptActorDeleteKnowledge(int16 *args) {
 	OBJLOG(DeleteKnowledge);
-	if (isActor(((ObjectData *)thisThread->thisObject)->obj)) {
-		Actor       *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	if (isActor(((ObjectData *)thisThread->_thisObject)->obj)) {
+		Actor       *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 		if (args[0] == 0) a->clearKnowledge();
 		else a->removeKnowledge(args[0]);
@@ -2033,7 +2030,7 @@ int16 scriptActorDeleteKnowledge(int16 *args) {
 
 int16 scriptActorAddMissionKnowledge(int16 *args) {
 	OBJLOG(AddMissionKnowledge);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	ActiveMission   *am = ActiveMission::missionAddress(args[0]);
 
 	if (isActor(obj)) {
@@ -2048,7 +2045,7 @@ int16 scriptActorAddMissionKnowledge(int16 *args) {
 
 int16 scriptActorDeleteMissionKnowledge(int16 *args) {
 	OBJLOG(DeleteMissionKnowledge);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 	ActiveMission   *am = ActiveMission::missionAddress(args[0]);
 
 	if (isActor(obj)) {
@@ -2063,15 +2060,15 @@ int16 scriptActorDeleteMissionKnowledge(int16 *args) {
 
 int16 scriptActorDeductPayment(int16 *args) {
 	OBJLOG(DeductPayment);
-	Actor           *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	Actor           *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 	ProtoObj    *currencyProto = g_vm->_objectProtos[args[0]];
 	int32       paymentAmount = args[1];
 	int32       paymentFound = 0;
-	GameObject  *obj, *delObj = NULL;
+	GameObject  *obj, *delObj = nullptr;
 	ObjectID    id;
 	bool        mergeable =
-	    currencyProto->flags & ResourceObjectPrototype::objPropMergeable;
+	    currencyProto->flags & ResourceObjectPrototype::kObjPropMergeable;
 
 	RecursiveContainerIterator  iter(a);
 
@@ -2141,14 +2138,14 @@ int16 scriptActorDeductPayment(int16 *args) {
 
 int16 scriptActorCountPayment(int16 *args) {
 	OBJLOG(CountPayment);
-	Actor           *a = (Actor *)((ObjectData *)thisThread->thisObject)->obj;
+	Actor           *a = (Actor *)((ObjectData *)thisThread->_thisObject)->obj;
 
 	ProtoObj    *currencyProto = g_vm->_objectProtos[args[0]];
 	int32       paymentFound = 0;
 	GameObject  *obj = nullptr;
 	ObjectID    id;
 	bool        mergeable =
-	    currencyProto->flags & ResourceObjectPrototype::objPropMergeable;
+	    currencyProto->flags & ResourceObjectPrototype::kObjPropMergeable;
 
 	RecursiveContainerIterator  iter(a);
 
@@ -2168,7 +2165,7 @@ int16 scriptActorCountPayment(int16 *args) {
 
 int16 scriptActorAcceptHealing(int16 *args) {
 	OBJLOG(acceptHealing);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	obj->acceptHealing(obj->thisID(), args[0]);
 	return 0;
@@ -2180,7 +2177,7 @@ int16 scriptActorAcceptHealing(int16 *args) {
 
 int16 scriptActorAcceptDamage(int16 *args) {
 	OBJLOG(acceptHealing);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	obj->acceptDamage(args[0], args[1], (enum effectDamageTypes)args[2]);
 	return 0;
@@ -2192,7 +2189,7 @@ int16 scriptActorAcceptDamage(int16 *args) {
 
 int16 scriptActorImNotQuiteDead(int16 *args) {
 	OBJLOG(imNotQuiteDead);
-	GameObject      *obj = ((ObjectData *)thisThread->thisObject)->obj;
+	GameObject      *obj = ((ObjectData *)thisThread->_thisObject)->obj;
 
 	if (isActor(obj)) {
 		((Actor *)obj)->imNotQuiteDead();
@@ -2351,7 +2348,7 @@ CallTable   actorCFuncs = { actorCFuncList, ARRAYSIZE(actorCFuncList), 0 };
 
 int16 scriptTagThisID(int16 *) {
 	MONOLOG(TAG::ThisID);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	return ai->thisID();
 }
@@ -2362,7 +2359,7 @@ int16 scriptTagThisID(int16 *) {
 
 int16 scriptTagGetState(int16 *args) {
 	MONOLOG(TAG::GetState);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	return ai->getInstanceState(ai->getMapNum());
 }
@@ -2373,7 +2370,7 @@ int16 scriptTagGetState(int16 *args) {
 
 int16 scriptTagSetState(int16 *args) {
 	MONOLOG(TAG::SetState);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	ai->setInstanceState(ai->getMapNum(), args[0]);
 
@@ -2386,7 +2383,7 @@ int16 scriptTagSetState(int16 *args) {
 
 int16 scriptTagNumAssoc(int16 *args) {
 	MONOLOG(TAG::NumAssoc);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	return ai->_data.numAssociations;
 }
@@ -2397,7 +2394,7 @@ int16 scriptTagNumAssoc(int16 *args) {
 
 int16 scriptTagAssoc(int16 *args) {
 	MONOLOG(TAG::Assoc);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 	int mapNum       = ai->getMapNum();
 
 	assert(args[0] >= 0);
@@ -2414,7 +2411,7 @@ int16 scriptTagAssoc(int16 *args) {
 
 int16 scriptTagGetTargetU(int16 *args) {
 	MONOLOG(TAG::GetTargetU);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	return ai->_data.instance.targetU;
 }
@@ -2425,7 +2422,7 @@ int16 scriptTagGetTargetU(int16 *args) {
 
 int16 scriptTagGetTargetV(int16 *) {
 	MONOLOG(TAG::GetTargetV);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	return ai->_data.instance.targetV;
 }
@@ -2436,7 +2433,7 @@ int16 scriptTagGetTargetV(int16 *) {
 
 int16 scriptTagGetTargetZ(int16 *) {
 	MONOLOG(TAG::GetTargetZ);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	return ai->_data.instance.targetZ;
 }
@@ -2447,7 +2444,7 @@ int16 scriptTagGetTargetZ(int16 *) {
 
 int16 scriptTagGetTargetW(int16 *) {
 	MONOLOG(TAG::GetTargetW);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	return ai->_data.instance.worldNum;
 }
@@ -2458,7 +2455,7 @@ int16 scriptTagGetTargetW(int16 *) {
 
 int16 scriptTagIsLocked(int16 *) {
 	MONOLOG(TAG::IsLocked);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	return ai->isLocked() ? true : false;
 }
@@ -2470,7 +2467,7 @@ int16 scriptTagIsLocked(int16 *) {
 
 int16 scriptTagSetLocked(int16 *args) {
 	MONOLOG(TAG::SetLocked);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	ai->setLocked(args[0]);
 
@@ -2483,7 +2480,7 @@ int16 scriptTagSetLocked(int16 *args) {
 
 int16 scriptTagGetKeyType(int16 *) {
 	MONOLOG(TAG::GetKeyType);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	return ai->lockType();
 }
@@ -2494,7 +2491,7 @@ int16 scriptTagGetKeyType(int16 *) {
 
 int16 scriptTagUse(int16 *args) {
 	MONOLOG(TAG::Use);
-	ActiveItem      *tai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem      *tai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	return tai->use(args[0]);
 }
@@ -2510,7 +2507,7 @@ enum {
 int16 scriptTagSetAnimation(int16 *args) {
 	MONOLOG(TAG::SetAnimation);
 	extern uint32 parse_res_id(char IDstr[]);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 	//TilePoint tagLoc;
 	int32       soundID = parse_res_id(STRING(args[2]));
 	Location    ail = ai->getInstanceLocation();
@@ -2525,7 +2522,7 @@ int16 scriptTagSetAnimation(int16 *args) {
 	//  If we want to wait until finished
 	if (args[0] & tileAnimateWait) {
 		//  Wait for the animation
-		thisThread->waitForEvent(Thread::waitOther, 0);
+		thisThread->waitForEvent(Thread::kWaitOther, nullptr);
 
 		//  And start the tile animation
 		TileActivityTask::doScript(*ai, args[1], getThreadID(thisThread));
@@ -2544,11 +2541,11 @@ int16 scriptTagSetAnimation(int16 *args) {
 int16 scriptTagSetWait(int16 *args) {
 	MONOLOG(TAG::SetAnimation);
 	extern uint32 parse_res_id(char IDstr[]);
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	if (TileActivityTask::setWait(ai, getThreadID(thisThread))) {
 		//  Wait for the animation
-		thisThread->waitForEvent(Thread::waitOther, 0);
+		thisThread->waitForEvent(Thread::kWaitOther, nullptr);
 	}
 
 	return 0;
@@ -2564,7 +2561,7 @@ static int16 lockCount;
 #endif
 
 int16 scriptTagObtainLock(int16 *) {
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	if (ai->isExclusive() == false) {
 		ai->setExclusive(true);
@@ -2573,7 +2570,7 @@ int16 scriptTagObtainLock(int16 *) {
 		WriteStatusF(15, "Locked: %d\n", lockCount);
 #endif
 	} else {
-		thisThread->waitForEvent(Thread::waitTagSemaphore, ai);
+		thisThread->waitForEvent(Thread::kWaitTagSemaphore, ai);
 #if DEBUG*0
 		lockCount += 1;
 		WriteStatusF(15, "Locked: %d\n", lockCount);
@@ -2583,7 +2580,7 @@ int16 scriptTagObtainLock(int16 *) {
 }
 
 int16 scriptTagReleaseLock(int16 *) {
-	ActiveItem  *ai = ((ActiveItemData *)thisThread->thisObject)->aItem;
+	ActiveItem  *ai = ((ActiveItemData *)thisThread->_thisObject)->aItem;
 
 	ai->setExclusive(false);
 #if DEBUG*0
@@ -2624,7 +2621,7 @@ CallTable   tagCFuncs = { tagCFuncList, ARRAYSIZE(tagCFuncList), 0 };
 
 int16 scriptMissionDelete(int16 *args) {
 	MONOLOG(ActiveMission::Delete);
-	ActiveMission       *am = ((ActiveMissionData *)thisThread->thisObject)->aMission;
+	ActiveMission       *am = ((ActiveMissionData *)thisThread->_thisObject)->aMission;
 
 	am->cleanup();
 	return 0;
@@ -2640,7 +2637,7 @@ int16 scriptMakeObject(int16 *args);
 
 int16 scriptMissionMakeObject(int16 *args) {
 	MONOLOG(TAG::MakeObject);
-	ActiveMission       *am = ((ActiveMissionData *)thisThread->thisObject)->aMission;
+	ActiveMission       *am = ((ActiveMissionData *)thisThread->_thisObject)->aMission;
 	ObjectID            id;
 
 	//  If there's room in the mission to record the existence of the object
@@ -2669,7 +2666,7 @@ int16 scriptMakeActor(int16 *args);
 
 int16 scriptMissionMakeActor(int16 *args) {
 	MONOLOG(ActiveMission::MakeActor);
-	ActiveMission       *am = ((ActiveMissionData *)thisThread->thisObject)->aMission;
+	ActiveMission       *am = ((ActiveMissionData *)thisThread->_thisObject)->aMission;
 	ObjectID            id;
 
 	//  If there's room in the mission to record the existence of the actor
@@ -2677,7 +2674,7 @@ int16 scriptMissionMakeActor(int16 *args) {
 
 	//  Call the regular make-actor function. Add in the "permanent"
 	//  flag, since actor will be deleted at mission end.
-	args[6] |= actorPermanent;
+	args[6] |= kActorPermanent;
 	id = scriptMakeActor(args);
 
 	//  And record it in the mission object
@@ -2726,56 +2723,8 @@ int16 scriptStatus(int16 *args) {
 	return 0;
 }
 
-//-----------------------------------------------------------------------
-//	Write a message to a log file
-//		void "C" status( string caption, ... );
-/*
-void writeLog( char *str )
-{
-    static FILE     *logFile = NULL;
-
-    if (logFile == NULL)
-    {
-        logFile = fopen( "logfile.txt", "a+t" );
-    }
-
-    if (logFile) fputs( str, logFile );
-    fclose(logFile);
-}
-*/
-void writeLog(char *str) {
-	FILE        *logFile = NULL;
-#ifdef __WATCOMC__
-	time_t time_of_day;
-	auto char buf[26];
-	char strbuf[256];
-
-
-	logFile = fopen("logfile.txt", "a+t");
-	if (logFile) {
-		time_of_day = time(NULL);
-		_ctime(&time_of_day, buf);
-		buf[strlen(buf) - 1] = 0;
-		sprintf(strbuf, "%s: %s", buf, str);
-		fputs(strbuf, logFile);
-		fclose(logFile);
-	}
-#else
-	logFile = fopen("logfile.txt", "a+t");
-	if (logFile) {
-		fputs(str, logFile);
-		fclose(logFile);
-	}
-#endif
-}
-
 void writeObject(char *str) {
-	FILE        *logFile = NULL;
-	logFile = fopen("objfile.txt", "a+t");
-	if (logFile) {
-		fputs(str, logFile);
-		fclose(logFile);
-	}
+	warning("OBJ: %s", str);
 }
 
 int16 scriptWriteLog(int16 *args) {
@@ -2820,9 +2769,9 @@ int16 scriptMessageDialog(int16 *args) {
 
 	userDialog(STRING(args[0]),
 	           STRING(args[1]),
-	           args[2] ? STRING(args[2]) : NULL,
-	           NULL,
-	           NULL);
+	           args[2] ? STRING(args[2]) : nullptr,
+	           nullptr,
+	           nullptr);
 
 //	WriteStatusF( 1, buffer );
 	return 0;
@@ -2838,9 +2787,9 @@ int16 scriptChoiceDialog(int16 *args) {
 
 	userDialog(STRING(args[0]),
 	           STRING(args[1]),
-	           args[2] ? STRING(args[2]) : NULL,
-	           args[3] ? STRING(args[3]) : NULL,
-	           args[4] ? STRING(args[4]) : NULL);
+	           args[2] ? STRING(args[2]) : nullptr,
+	           args[3] ? STRING(args[3]) : nullptr,
+	           args[4] ? STRING(args[4]) : nullptr);
 
 //	WriteStatusF( 1, buffer );
 	return 0;
@@ -2901,16 +2850,16 @@ int16 scriptSetGameMode(int16 *args) {
 
 int16 scriptWait(int16 *args) {
 	MONOLOG(Wait);
-	thisThread->waitAlarm.set(args[0]);
-	thisThread->waitForEvent(Thread::waitDelay, 0);
+	thisThread->_waitAlarm.set(args[0]);
+	thisThread->waitForEvent(Thread::kWaitDelay, nullptr);
 	thisThread->setExtended();
 	return 0;
 }
 
 int16 scriptWaitFrames(int16 *args) {
 	MONOLOG(WaitFrames);
-	thisThread->waitFrameAlarm.set(args[0]);
-	thisThread->waitForEvent(Thread::waitFrameDelay, 0);
+	thisThread->_waitFrameAlarm.set(args[0]);
+	thisThread->waitForEvent(Thread::kWaitFrameDelay, nullptr);
 	thisThread->setExtended();
 	return 0;
 }
@@ -2965,7 +2914,7 @@ int16 scriptMakeObject(int16 *args) {
 
 	//  REM: We need to throw some kind of SAGA exception...?
 	//  (We don't have SAGA exceptions, only the C kind...)
-	if (obj == NULL) {
+	if (obj == nullptr) {
 		return 0;
 	}
 
@@ -2974,7 +2923,7 @@ int16 scriptMakeObject(int16 *args) {
 	obj->setScript(args[2]);
 
 	//  If it's a mergeable object, have it's mass count default to 1.
-	if (obj->proto()->flags & ResourceObjectPrototype::objPropMergeable)
+	if (obj->proto()->flags & ResourceObjectPrototype::kObjPropMergeable)
 		obj->setExtra(1);
 
 	return obj->thisID();
@@ -3025,7 +2974,7 @@ int16 scriptMakeActor(int16 *args) {
 
 	//  REM: We need to throw some kind of SAGA exception...?
 	//  (We don't have SAGA exceptions, only the C kind...)
-	if (a == NULL) {
+	if (a == nullptr) {
 		return 0;
 	}
 
@@ -3086,7 +3035,7 @@ int16 scriptPlaySoundFrom(int16 *args) {
 	int32       soundID;
 	soundID = parse_res_id(sID);
 	GameObject *go = GameObject::objectAddress(args[1]);
-	assert(go != NULL);
+	assert(go != nullptr);
 	if (soundID) playSoundAt(soundID, go->notGetWorldLocation());
 
 	return 0;
@@ -3130,7 +3079,7 @@ int16 scriptPlayVoice(int16 *args) {
 
 int16 scriptGetHour(int16 *) {
 	MONOLOG(GetHour);
-	return g_vm->_calender->_hour;
+	return g_vm->_calendar->_hour;
 }
 
 //-----------------------------------------------------------------------
@@ -3138,7 +3087,7 @@ int16 scriptGetHour(int16 *) {
 
 int16 scriptGetFrameInHour(int16 *) {
 	MONOLOG(GetFrameInHour);
-	return g_vm->_calender->_frameInHour;
+	return g_vm->_calendar->_frameInHour;
 }
 
 //-----------------------------------------------------------------------
@@ -3202,7 +3151,7 @@ int16 scriptWorldNum2Object(int16 *args) {
 int16 scriptAppendBookText(int16 *args) {
 	MONOLOG(AppendBookText);
 	//  If optional 4th parameter is present, then set actor facing
-	for (int i = 0; i < thisThread->argCount; i++) {
+	for (int i = 0; i < thisThread->_argCount; i++) {
 		char        *bookText = STRING(args[i]);
 
 		appendBookText(bookText);
@@ -3233,7 +3182,7 @@ int16 scriptAppendScrollTextF(int16 *args) {
 int16 scriptAppendScrollText(int16 *args) {
 	MONOLOG(AppendScrollText);
 	//  If optional 4th parameter is present, then set actor facing
-	for (int i = 0; i < thisThread->argCount; i++) {
+	for (int i = 0; i < thisThread->_argCount; i++) {
 		char        *ScrollText = STRING(args[i]);
 
 		appendBookText(ScrollText);
@@ -3278,7 +3227,7 @@ int16 scriptAssertEvent(int16 *args) {
 	ev.directObject = GameObject::objectAddress(args[1]);
 	ev.indirectObject = args[2] != Nothing
 	                    ?   GameObject::objectAddress(args[2])
-	                    :   NULL;
+	                    :   nullptr;
 
 	assertEvent(ev);
 
@@ -3409,7 +3358,7 @@ int16 scriptSelectNearbySite(int16 *args) {
 	                      args[6]);
 
 	if (tp == Nowhere) return 0;
-	scriptCallFrame     &scf = thisThread->threadArgs;
+	scriptCallFrame     &scf = thisThread->_threadArgs;
 
 	scf.coords = tp;
 	return true;
@@ -3424,7 +3373,7 @@ int16 scriptPickRandomLivingActor(int16 *args) {
 	int             livingCount = 0,
 	                i;
 
-	for (i = 0; i < thisThread->argCount; i++) {
+	for (i = 0; i < thisThread->_argCount; i++) {
 		if (isActor(args[i])) {
 			Actor       *a = (Actor *)GameObject::objectAddress(args[i]);
 
@@ -3436,7 +3385,7 @@ int16 scriptPickRandomLivingActor(int16 *args) {
 
 	livingCount = g_vm->_rnd->getRandomNumber(livingCount - 1);
 
-	for (i = 0; i < thisThread->argCount; i++) {
+	for (i = 0; i < thisThread->_argCount; i++) {
 		if (isActor(args[i])) {
 			Actor       *a = (Actor *)GameObject::objectAddress(args[i]);
 
@@ -3476,11 +3425,11 @@ int16 scriptFindMission(int16 *args) {
 
 int16 scriptSetTileCycleSpeed(int16 *args) {
 	MONOLOG(SetTileCycleSpeed);
-	extern CyclePtr  cycleList;          // list of tile cycling info
+	extern CyclePtr  _cycleList;          // list of tile cycling info
 
-	TileCycleData   &tcd = cycleList[args[0]];
+	TileCycleData   &tcd = _cycleList[args[0]];
 
-	tcd.cycleSpeed = args[1];
+	tcd._cycleSpeed = args[1];
 
 	return 0;
 }
@@ -3491,12 +3440,12 @@ int16 scriptSetTileCycleSpeed(int16 *args) {
 
 int16 scriptSetTileCycleState(int16 *args) {
 	MONOLOG(SetTileCycleState);
-	extern CyclePtr  cycleList;          // list of tile cycling info
+	extern CyclePtr  _cycleList;          // list of tile cycling info
 
-	TileCycleData   &tcd = cycleList[args[0]];
+	TileCycleData   &tcd = _cycleList[args[0]];
 
-	tcd.currentState = args[1];
-	tcd.counter = 0;
+	tcd._currentState = args[1];
+	tcd._counter = 0;
 
 	return 0;
 }
@@ -3519,7 +3468,7 @@ int16 scriptSearchRegion(int16 *args) {
 	//  Get a pointer to the world
 	assert(isWorld(args[0]));
 	worldPtr = (GameWorld *)GameObject::objectAddress(args[0]);
-	assert(worldPtr != NULL);
+	assert(worldPtr != nullptr);
 
 	minP.u = MIN(args[1], args[3]);
 	minP.v = MIN(args[2], args[4]);
@@ -3532,12 +3481,12 @@ int16 scriptSearchRegion(int16 *args) {
 	RegionalObjectIterator  iter(worldPtr, minP, maxP);
 
 	//  Iterate through the search region
-	for (searchObj = iter.first(NULL);
+	for (searchObj = iter.first(nullptr);
 	        searchObj != Nothing;
-	        searchObj = iter.next(NULL)) {
-		//  Starting from the 5th argument, until we reach argCount,
+	        searchObj = iter.next(nullptr)) {
+		//  Starting from the 5th argument, until we reach _argCount,
 		//  see if the iterated object matches one in the arg list
-		for (int i = 5; i < thisThread->argCount; i++) {
+		for (int i = 5; i < thisThread->_argCount; i++) {
 			if (args[i] == searchObj) {
 				count++;
 				break;
@@ -3561,9 +3510,9 @@ int countObjectsInRegion(GameWorld *worldPtr, TileRegion &tr) {
 	                             tr.min,
 	                             tr.max);
 
-	for (searchObj = iter.first(NULL), count = 0;
+	for (searchObj = iter.first(nullptr), count = 0;
 	        searchObj != Nothing;
-	        searchObj = iter.next(NULL)) {
+	        searchObj = iter.next(nullptr)) {
 		count++;
 	}
 
@@ -3584,9 +3533,9 @@ void listObjectsInRegion(
 	                             tr.min,
 	                             tr.max);
 
-	for (searchObj = iter.first(NULL);
+	for (searchObj = iter.first(nullptr);
 	        searchObj != Nothing;
-	        searchObj = iter.next(NULL)) {
+	        searchObj = iter.next(nullptr)) {
 		*list++ = searchObj;
 	}
 }
@@ -3617,8 +3566,8 @@ int16 scriptSwapRegions(int16 *args) {
 	worldPtr1 = (GameWorld *)GameObject::objectAddress(worldID1);
 	worldPtr2 = (GameWorld *)GameObject::objectAddress(worldID2);
 
-	assert(worldPtr1 != NULL);
-	assert(worldPtr2 != NULL);
+	assert(worldPtr1 != nullptr);
+	assert(worldPtr2 != nullptr);
 
 	region1.min.u = args[1];
 	region1.min.v = args[2];
@@ -3658,7 +3607,7 @@ int16 scriptSwapRegions(int16 *args) {
 
 		tp = obj->getLocation();
 
-		loc.context = worldID2;
+		loc._context = worldID2;
 		loc.u = tp.u + region2.min.u - region1.min.u;
 		loc.v = tp.v + region2.min.v - region1.min.v;
 		loc.z = tp.z;
@@ -3674,7 +3623,7 @@ int16 scriptSwapRegions(int16 *args) {
 
 		tp = obj->getLocation();
 
-		loc.context = worldID1;
+		loc._context = worldID1;
 		loc.u = tp.u + region1.min.u - region2.min.u;
 		loc.v = tp.v + region1.min.v - region2.min.v;
 		loc.z = tp.z;
@@ -3879,12 +3828,12 @@ int16 scriptFadeUp(int16 *) {
 int16 scriptSetSynchronous(int16 *args) {
 	MONOLOG(SetSynchronous);
 
-	int16       oldVal = (thisThread->flags & Thread::synchronous) != 0;
+	int16       oldVal = (thisThread->_flags & Thread::kTFSynchronous) != 0;
 
 	if (args[0])
-		thisThread->flags |= Thread::synchronous;
+		thisThread->_flags |= Thread::kTFSynchronous;
 	else
-		thisThread->flags &= ~Thread::synchronous;
+		thisThread->_flags &= ~Thread::kTFSynchronous;
 
 	return oldVal;
 }

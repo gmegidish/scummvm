@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef AUDIO_FMOPL_H
 #define AUDIO_FMOPL_H
 
-#include "audio/audiostream.h"
-
-#include "common/func.h"
-#include "common/ptr.h"
-#include "common/scummsys.h"
+#include "audio/chip.h"
 
 namespace Audio {
 class SoundHandle;
@@ -115,14 +110,9 @@ private:
 };
 
 /**
- * The type of the OPL timer callback functor.
- */
-typedef Common::Functor0<void> TimerCallback;
-
-/**
  * A representation of a Yamaha OPL chip.
  */
-class OPL {
+class OPL : virtual public Audio::Chip {
 private:
 	static bool _hasInstance;
 public:
@@ -150,14 +140,6 @@ public:
 	virtual void write(int a, int v) = 0;
 
 	/**
-	 * Reads a byte from the given I/O port.
-	 *
-	 * @param a		port address
-	 * @return		value read
-	 */
-	virtual byte read(int a) = 0;
-
-	/**
 	 * Function to directly write to a specific OPL register.
 	 * This writes to *both* chips for a Dual OPL2. We allow
 	 * writing to secondary OPL registers by using register
@@ -168,21 +150,8 @@ public:
 	 */
 	virtual void writeReg(int r, int v) = 0;
 
-	/**
-	 * Start the OPL with callbacks.
-	 */
-	void start(TimerCallback *callback, int timerFrequency = kDefaultCallbackFrequency);
-
-	/**
-	 * Stop the OPL
-	 */
-	void stop();
-
-	/**
-	 * Change the callback frequency. This must only be called from a
-	 * timer proc.
-	 */
-	virtual void setCallbackFrequency(int timerFrequency) = 0;
+	using Audio::Chip::start;
+	void start(TimerCallback *callback) { start(callback, kDefaultCallbackFrequency); }
 
 	enum {
 		/**
@@ -193,100 +162,31 @@ public:
 
 protected:
 	/**
-	 * Start the callbacks.
+	 * Initializes an OPL3 chip for emulating dual OPL2.
+	 * 
+	 * @param oplType The type of OPL configuration that the engine expects.
+	 * If this is not DualOpl2, this function will do nothing.
 	 */
-	virtual void startCallbacks(int timerFrequency) = 0;
+	void initDualOpl2OnOpl3(Config::OplType oplType);
 
 	/**
-	 * Stop the callbacks.
-	 */
-	virtual void stopCallbacks() = 0;
+	 * Processes the specified register write so it will be correctly handled
+	 * for emulating dual OPL2 on an OPL3 chip.
+	 * 
+	 * @param r The register that is written to.
+	 * @param v The value written to the register.
+	 * @param oplType The type of OPL configuration that the engine expects.
+	 * If this is not DualOpl2, this function will do nothing.
+	 * @return True if the register write can be processed normally; false if
+	 * it should be discarded. In this case, a new call to writeReg is usually
+	 * performed by this function to replace the discarded register write.
+	*/
+	bool emulateDualOpl2OnOpl3(int r, int v, Config::OplType oplType);
 
-	/**
-	 * The functor for callbacks.
-	 */
-	Common::ScopedPtr<TimerCallback> _callback;
+	bool _rhythmMode;
+	int _connectionFeedbackValues[3];
 };
 
-/**
- * An OPL that represents a real OPL, as opposed to an emulated one.
- *
- * This will use an actual timer instead of using one calculated from
- * the number of samples in an AudioStream::readBuffer call.
- */
-class RealOPL : public OPL {
-public:
-	RealOPL();
-	virtual ~RealOPL();
-
-	// OPL API
-	void setCallbackFrequency(int timerFrequency);
-
-protected:
-	// OPL API
-	void startCallbacks(int timerFrequency);
-	void stopCallbacks();
-
-private:
-	static void timerProc(void *refCon);
-	void onTimer();
-
-	uint _baseFreq;
-	uint _remainingTicks;
-
-	enum {
-		kMaxFreq = 100
-	};
-};
-
-/**
- * An OPL that represents an emulated OPL.
- *
- * This will send callbacks based on the number of samples
- * decoded in readBuffer().
- */
-class EmulatedOPL : public OPL, protected Audio::AudioStream {
-public:
-	EmulatedOPL();
-	virtual ~EmulatedOPL();
-
-	// OPL API
-	void setCallbackFrequency(int timerFrequency);
-
-	// AudioStream API
-	int readBuffer(int16 *buffer, const int numSamples);
-	int getRate() const;
-	bool endOfData() const { return false; }
-
-protected:
-	// OPL API
-	void startCallbacks(int timerFrequency);
-	void stopCallbacks();
-
-	/**
-	 * Read up to 'length' samples.
-	 *
-	 * Data will be in native endianess, 16 bit per sample, signed.
-	 * For stereo OPL, buffer will be filled with interleaved
-	 * left and right channel samples, starting with a left sample.
-	 * Furthermore, the samples in the left and right are summed up.
-	 * So if you request 4 samples from a stereo OPL, you will get
-	 * a total of two left channel and two right channel samples.
-	 */
-	virtual void generateSamples(int16 *buffer, int numSamples) = 0;
-
-private:
-	int _baseFreq;
-
-	enum {
-		FIXP_SHIFT = 16
-	};
-
-	int _nextTick;
-	int _samplesPerTick;
-
-	Audio::SoundHandle *_handle;
-};
 /** @} */
 } // End of namespace OPL
 

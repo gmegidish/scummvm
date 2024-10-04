@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +41,7 @@ namespace AGS3 {
 using namespace AGS::Shared;
 using namespace AGS::Engine;
 
-void my_fade_in(PALETTE p, int speed) {
+void fadein_impl(PALETTE p, int speed) {
 	if (_GP(game).color_depth > 1) {
 		set_palette(p);
 
@@ -71,7 +70,7 @@ void current_fade_out_effect() {
 		if (!_GP(play).keep_screen_during_instant_transition)
 			set_palette_range(_G(black_palette), 0, 255, 0);
 	} else if (theTransition == FADE_NORMAL) {
-		my_fade_out(5);
+		fadeout_impl(5);
 	} else if (theTransition == FADE_BOXOUT) {
 		_G(gfxDriver)->BoxOutEffect(true, get_fixed_pixel_size(16), 1000 / GetGameSpeed());
 		_GP(play).screen_is_faded_out = 1;
@@ -86,7 +85,6 @@ IDriverDependantBitmap *prepare_screen_for_transition_in() {
 	if (_G(saved_viewport_bitmap) == nullptr)
 		quit("Crossfade: buffer is null attempting transition");
 
-	_G(saved_viewport_bitmap) = ReplaceBitmapWithSupportedFormat(_G(saved_viewport_bitmap));
 	const Rect &viewport = _GP(play).GetMainViewport();
 	if (_G(saved_viewport_bitmap)->GetHeight() < viewport.GetHeight()) {
 		Bitmap *enlargedBuffer = BitmapHelper::CreateBitmap(_G(saved_viewport_bitmap)->GetWidth(), viewport.GetHeight(), _G(saved_viewport_bitmap)->GetColorDepth());
@@ -137,10 +135,10 @@ ScriptViewport *Screen_GetAnyViewport(int index) {
 	return _GP(play).GetScriptViewport(index);
 }
 
-ScriptUserObject *Screen_ScreenToRoomPoint(int scrx, int scry) {
+ScriptUserObject *Screen_ScreenToRoomPoint(int scrx, int scry, bool restrict) {
 	data_to_game_coords(&scrx, &scry);
 
-	VpPoint vpt = _GP(play).ScreenToRoom(scrx, scry);
+	VpPoint vpt = _GP(play).ScreenToRoom(scrx, scry, restrict);
 	if (vpt.second < 0)
 		return nullptr;
 
@@ -183,8 +181,14 @@ RuntimeScriptValue Sc_Screen_GetAnyViewport(const RuntimeScriptValue *params, in
 	API_SCALL_OBJAUTO_PINT(ScriptViewport, Screen_GetAnyViewport);
 }
 
-RuntimeScriptValue Sc_Screen_ScreenToRoomPoint(const RuntimeScriptValue *params, int32_t param_count) {
-	API_SCALL_OBJAUTO_PINT2(ScriptUserObject, Screen_ScreenToRoomPoint);
+RuntimeScriptValue Sc_Screen_ScreenToRoomPoint2(const RuntimeScriptValue *params, int32_t param_count) {
+	ASSERT_PARAM_COUNT(FUNCTION, 2);
+	ScriptUserObject* obj = Screen_ScreenToRoomPoint(params[0].IValue, params[1].IValue, true);
+	return RuntimeScriptValue().SetDynamicObject(obj, obj);
+}
+
+RuntimeScriptValue Sc_Screen_ScreenToRoomPoint3(const RuntimeScriptValue *params, int32_t param_count) {
+	API_SCALL_OBJAUTO_PINT3(ScriptUserObject, Screen_ScreenToRoomPoint);
 }
 
 RuntimeScriptValue Sc_Screen_RoomToScreenPoint(const RuntimeScriptValue *params, int32_t param_count) {
@@ -199,7 +203,8 @@ void RegisterScreenAPI() {
 	ccAddExternalStaticFunction("Screen::get_Viewport", Sc_Screen_GetViewport);
 	ccAddExternalStaticFunction("Screen::get_ViewportCount", Sc_Screen_GetViewportCount);
 	ccAddExternalStaticFunction("Screen::geti_Viewports", Sc_Screen_GetAnyViewport);
-	ccAddExternalStaticFunction("Screen::ScreenToRoomPoint", Sc_Screen_ScreenToRoomPoint);
+	ccAddExternalStaticFunction("Screen::ScreenToRoomPoint^2", Sc_Screen_ScreenToRoomPoint2);
+	ccAddExternalStaticFunction("Screen::ScreenToRoomPoint^3", Sc_Screen_ScreenToRoomPoint3);
 	ccAddExternalStaticFunction("Screen::RoomToScreenPoint", Sc_Screen_RoomToScreenPoint);
 }
 

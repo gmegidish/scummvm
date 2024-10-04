@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef WORLD_ACTORS_AVATARMOVERPROCESS_H
 #define WORLD_ACTORS_AVATARMOVERPROCESS_H
 
+#include "ultima/ultima8/metaengine.h"
 #include "ultima/ultima8/kernel/process.h"
 #include "ultima/ultima8/kernel/mouse.h"
 #include "ultima/ultima8/world/actors/animation.h"
@@ -46,7 +46,7 @@ public:
 	}
 
 	bool loadData(Common::ReadStream *rs, uint32 version);
-	virtual void saveData(Common::WriteStream *ws) override;
+	void saveData(Common::WriteStream *ws) override;
 
 	bool hasMovementFlags(uint32 flags) const {
 		return (_movementFlags & flags) != 0;
@@ -57,9 +57,15 @@ public:
 	virtual void clearMovementFlag(uint32 mask) {
 		_movementFlags &= ~mask;
 	}
-
+	void resetMovementFlags() {
+		_movementFlags = 0;
+	}
 	void onMouseDown(int button, int32 mx, int32 my);
 	void onMouseUp(int button);
+
+	// Return true if handled, false if not.
+	bool onActionDown(KeybindingAction action);
+	bool onActionUp(KeybindingAction action);
 
 	enum MovementFlags {
 		MOVE_MOUSE_DIRECTION = 0x001,
@@ -84,6 +90,16 @@ public:
 		// Pending turn (Crusader only)
 		MOVE_PENDING_TURN_LEFT  = 0x2000,
 		MOVE_PENDING_TURN_RIGHT = 0x4000,
+
+		// Single-button moves (Crusader only)
+		MOVE_SHORT_JUMP   = 0x008000,
+		MOVE_ROLL_LEFT    = 0x010000,
+		MOVE_ROLL_RIGHT   = 0x020000,
+		MOVE_STEP_LEFT    = 0x040000,
+		MOVE_STEP_RIGHT   = 0x080000,
+		MOVE_STEP_FORWARD = 0x100000,
+		MOVE_STEP_BACK    = 0x200000,
+		MOVE_TOGGLE_CROUCH = 0x400000,
 
 		MOVE_ANY_DIRECTION = MOVE_MOUSE_DIRECTION | MOVE_FORWARD | MOVE_BACK | MOVE_LEFT | MOVE_RIGHT | MOVE_UP | MOVE_DOWN
 	};

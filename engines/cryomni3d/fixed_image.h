@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,7 +68,7 @@ public:
 	void display() const;
 
 	/* These functions and attributes are used in image handler */
-	void load(const Common::String &image, const char *zone = nullptr);
+	void load(const Common::Path &image, const char *zone = nullptr);
 	void manage();
 	void updateSurface(const Graphics::Surface *newSurface);
 	const Graphics::Surface *surface() const { return _imageSurface; }
@@ -110,7 +109,7 @@ protected:
 		bool valid;
 	};
 
-	void loadZones(const Common::String &image);
+	void loadZones(const Common::Path &image);
 	void handleMouseZones(const Common::Array<Zone>::const_iterator &currentZone);
 
 	Image::ImageDecoder *_imageDecoder;

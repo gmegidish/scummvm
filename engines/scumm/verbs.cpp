@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,18 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "scumm/actor.h"
 #include "scumm/charset.h"
 #include "scumm/he/intern_he.h"
+#include "scumm/macgui/macgui.h"
 #include "scumm/object.h"
 #include "scumm/resource.h"
 #include "scumm/scumm_v0.h"
 #include "scumm/scumm_v7.h"
+#include "scumm/string_v7.h"
 #include "scumm/verbs.h"
 
 namespace Scumm {
@@ -135,11 +136,13 @@ void ScummEngine_v0::verbDrawDemoString(int VerbDemoNumber) {
 
 	}
 	string[i] = 0;
+	int pixelYOffset = (_game.platform == Common::kPlatformC64) ? 1 : 0;
+	int pixelXOffset = (_game.platform == Common::kPlatformC64) ? 1 : 0;
 
 	_string[2].charset = 1;
-	_string[2].ypos = _virtscr[kVerbVirtScreen].topline + (8 * VerbDemoNumber);
-	_string[2].xpos = 0;
-	_string[2].right = _virtscr[kVerbVirtScreen].w - 1;
+	_string[2].ypos = _virtscr[kVerbVirtScreen].topline + (8 * VerbDemoNumber) + pixelYOffset;
+	_string[2].xpos = 0 + pixelXOffset;
+	_string[2].right = _virtscr[kVerbVirtScreen].w - 1 + pixelXOffset;
 	_string[2].color = v0DemoStr[VerbDemoNumber].color;
 	drawString(2, (byte *)string);
 }
@@ -164,9 +167,9 @@ void ScummEngine_v0::resetVerbs() {
 	for (i = 1; i < 16; i++) {
 		vs = &_verbs[i];
 		vs->verbid = vtable[i - 1].id;
-		vs->color = 5;
-		vs->hicolor = 7;
-		vs->dimcolor = 11;
+		vs->color = (_game.platform == Common::kPlatformApple2GS && !enhancementEnabled(kEnhVisualChanges)) ? 1 : 5;
+		vs->hicolor = (_game.platform == Common::kPlatformApple2GS && !enhancementEnabled(kEnhVisualChanges)) ? 1 : 7;
+		vs->dimcolor = (_game.platform == Common::kPlatformApple2GS && !enhancementEnabled(kEnhVisualChanges)) ? 1 : 11;
 		vs->type = kTextVerbType;
 		vs->charset_nr = _string[0]._default.charset;
 		vs->curmode = 1;
@@ -194,67 +197,74 @@ void ScummEngine_v0::switchActor(int slot) {
 
 void ScummEngine_v2::initV2MouseOver() {
 	int i;
-	int arrow_color, color, hi_color;
+	int arrow_color, color;
+	_hiLiteColorVerbArrow = _hiLiteColorInvSentence = 14;
+	if (_renderMode == Common::kRenderCGA || _renderMode == Common::kRenderCGAComp)
+		_hiLiteColorInvSentence = 15;
+	else if (_renderMode == Common::kRenderHercA || _renderMode == Common::kRenderHercG || _renderMode == Common::kRenderCGA_BW)
+		_hiLiteColorVerbArrow = _hiLiteColorInvSentence = 15;
 
-	if (_game.version == 2) {
-		color = 13;
-		hi_color = 14;
-		arrow_color = 1;
+	if (_game.platform == Common::kPlatformC64 || _game.platform == Common::kPlatformApple2GS) {
+		color = (_game.platform == Common::kPlatformApple2GS && !enhancementEnabled(kEnhVisualChanges)) ? 1 : 16;
+		_hiLiteColorVerbArrow = _hiLiteColorInvSentence = (_game.platform == Common::kPlatformApple2GS && !enhancementEnabled(kEnhVisualChanges)) ? 1 : 7;
+		arrow_color = (_game.platform == Common::kPlatformApple2GS && !enhancementEnabled(kEnhVisualChanges)) ? 1 : 6;
 	} else {
-		color = 16;
-		hi_color = 7;
-		arrow_color = 6;
+		color = 13;
+		arrow_color = 1;
 	}
 
 	_mouseOverBoxV2 = -1;
 
+	int pixelYOffset = (_game.platform == Common::kPlatformC64) ? 1 : 0;
+	int pixelXOffset = (_game.platform == Common::kPlatformC64) ? 1 : 0;
+
 	// Inventory items
 
 	for (i = 0; i < 2; i++) {
-		_mouseOverBoxesV2[2 * i].rect.left = 0;
-		_mouseOverBoxesV2[2 * i].rect.right = 144;
-		_mouseOverBoxesV2[2 * i].rect.top = 32 + 8 * i;
+		_mouseOverBoxesV2[2 * i].rect.left = 0 + pixelXOffset;
+		_mouseOverBoxesV2[2 * i].rect.right = 144 + pixelXOffset;
+		_mouseOverBoxesV2[2 * i].rect.top = 32 + 8 * i + pixelYOffset;
 		_mouseOverBoxesV2[2 * i].rect.bottom = _mouseOverBoxesV2[2 * i].rect.top + 8;
 
 		_mouseOverBoxesV2[2 * i].color = color;
-		_mouseOverBoxesV2[2 * i].hicolor = hi_color;
+		_mouseOverBoxesV2[2 * i].hicolor = _hiLiteColorInvSentence;
 
-		_mouseOverBoxesV2[2 * i + 1].rect.left = 176;
-		_mouseOverBoxesV2[2 * i + 1].rect.right = 320;
+		_mouseOverBoxesV2[2 * i + 1].rect.left = 176 + pixelXOffset;
+		_mouseOverBoxesV2[2 * i + 1].rect.right = 320 + pixelXOffset;
 		_mouseOverBoxesV2[2 * i + 1].rect.top = _mouseOverBoxesV2[2 * i].rect.top;
 		_mouseOverBoxesV2[2 * i + 1].rect.bottom = _mouseOverBoxesV2[2 * i].rect.bottom;
 
 		_mouseOverBoxesV2[2 * i + 1].color = color;
-		_mouseOverBoxesV2[2 * i + 1].hicolor = hi_color;
+		_mouseOverBoxesV2[2 * i + 1].hicolor = _hiLiteColorInvSentence;
 	}
 
 	// Inventory arrows
 
-	_mouseOverBoxesV2[kInventoryUpArrow].rect.left = 144;
-	_mouseOverBoxesV2[kInventoryUpArrow].rect.right = 176;
-	_mouseOverBoxesV2[kInventoryUpArrow].rect.top = 32;
-	_mouseOverBoxesV2[kInventoryUpArrow].rect.bottom = 40;
+	_mouseOverBoxesV2[kInventoryUpArrow].rect.left = 144 + pixelXOffset;
+	_mouseOverBoxesV2[kInventoryUpArrow].rect.right = 176 + pixelXOffset;
+	_mouseOverBoxesV2[kInventoryUpArrow].rect.top = 32 + pixelYOffset;
+	_mouseOverBoxesV2[kInventoryUpArrow].rect.bottom = 40 + pixelYOffset;
 
 	_mouseOverBoxesV2[kInventoryUpArrow].color = arrow_color;
-	_mouseOverBoxesV2[kInventoryUpArrow].hicolor = hi_color;
+	_mouseOverBoxesV2[kInventoryUpArrow].hicolor = _hiLiteColorVerbArrow;
 
-	_mouseOverBoxesV2[kInventoryDownArrow].rect.left = 144;
-	_mouseOverBoxesV2[kInventoryDownArrow].rect.right = 176;
-	_mouseOverBoxesV2[kInventoryDownArrow].rect.top = 40;
-	_mouseOverBoxesV2[kInventoryDownArrow].rect.bottom = 48;
+	_mouseOverBoxesV2[kInventoryDownArrow].rect.left = 144 + pixelXOffset;
+	_mouseOverBoxesV2[kInventoryDownArrow].rect.right = 176 + pixelXOffset;
+	_mouseOverBoxesV2[kInventoryDownArrow].rect.top = 40 + pixelYOffset;
+	_mouseOverBoxesV2[kInventoryDownArrow].rect.bottom = 48 + pixelYOffset;
 
 	_mouseOverBoxesV2[kInventoryDownArrow].color = arrow_color;
-	_mouseOverBoxesV2[kInventoryDownArrow].hicolor = hi_color;
+	_mouseOverBoxesV2[kInventoryDownArrow].hicolor = _hiLiteColorVerbArrow;
 
 	// Sentence line
 
-	_mouseOverBoxesV2[kSentenceLine].rect.left = 0;
-	_mouseOverBoxesV2[kSentenceLine].rect.right = 320;
-	_mouseOverBoxesV2[kSentenceLine].rect.top = 0;
-	_mouseOverBoxesV2[kSentenceLine].rect.bottom = 8;
+	_mouseOverBoxesV2[kSentenceLine].rect.left = 0 + pixelXOffset;
+	_mouseOverBoxesV2[kSentenceLine].rect.right = 320 + pixelXOffset;
+	_mouseOverBoxesV2[kSentenceLine].rect.top = 0 + pixelYOffset;
+	_mouseOverBoxesV2[kSentenceLine].rect.bottom = 8 + pixelYOffset;
 
 	_mouseOverBoxesV2[kSentenceLine].color = color;
-	_mouseOverBoxesV2[kSentenceLine].hicolor = hi_color;
+	_mouseOverBoxesV2[kSentenceLine].hicolor = _hiLiteColorInvSentence;
 }
 
 void ScummEngine_v2::initNESMouseOver() {
@@ -377,7 +387,8 @@ void ScummEngine_v2::checkV2MouseOver(Common::Point pos) {
 }
 
 int ScummEngine_v2::checkV2Inventory(int x, int y) {
-	int inventoryArea = (_game.platform == Common::kPlatformNES) ? 48: 32;
+	bool isNES = (_game.platform == Common::kPlatformNES);
+	int inventoryArea = isNES ? 48 : 32;
 	int object = 0;
 
 	y -= _virtscr[kVerbVirtScreen].topline;
@@ -391,7 +402,7 @@ int ScummEngine_v2::checkV2Inventory(int x, int y) {
 			redrawV2Inventory();
 		}
 	} else if (_mouseOverBoxesV2[kInventoryDownArrow].rect.contains(x, y)) {
-		if (_inventoryOffset + 4 < getInventoryCount(_scummVars[VAR_EGO])) {
+		if (_inventoryOffset + (isNES ? 2 : 4) < getInventoryCount(_scummVars[VAR_EGO])) {
 			_inventoryOffset += 2;
 			redrawV2Inventory();
 		}
@@ -411,11 +422,13 @@ int ScummEngine_v2::checkV2Inventory(int x, int y) {
 
 void ScummEngine_v2::redrawV2Inventory() {
 	VirtScreen *vs = &_virtscr[kVerbVirtScreen];
-	int i;
-	int max_inv;
+	int maxVisibleInv, invCount, obj;
 	Common::Rect inventoryBox;
-	int inventoryArea = (_game.platform == Common::kPlatformNES) ? 48: 32;
-	int maxChars = (_game.platform == Common::kPlatformNES) ? 13: 18;
+	bool isNES = (_game.platform == Common::kPlatformNES);
+	int inventoryArea = isNES ? 48 : 32;
+	int maxChars = isNES ? 13 : 18;
+	int pixelYOffset = (_game.platform == Common::kPlatformC64) ? 1 : 0;
+	int pixelXOffset = (_game.platform == Common::kPlatformC64) ? 1 : 0;
 
 	_mouseOverBoxV2 = -1;
 
@@ -423,19 +436,26 @@ void ScummEngine_v2::redrawV2Inventory() {
 		return;
 
 	// Clear on all invocations
-	inventoryBox.top = vs->topline + inventoryArea;
-	inventoryBox.bottom = vs->topline + vs->h;
-	inventoryBox.left = 0;
-	inventoryBox.right = vs->w;
+	inventoryBox.top = vs->topline + inventoryArea + pixelYOffset;
+	inventoryBox.bottom = vs->topline + vs->h + pixelYOffset;
+	inventoryBox.left = 0 + pixelXOffset;
+	inventoryBox.right = vs->w + pixelXOffset;
 	restoreBackground(inventoryBox);
 
 	_string[1].charset = 1;
 
-	max_inv = getInventoryCount(_scummVars[VAR_EGO]) - _inventoryOffset;
-	if (max_inv > 4)
-		max_inv = 4;
-	for (i = 0; i < max_inv; i++) {
-		int obj = findInventory(_scummVars[VAR_EGO], i + 1 + _inventoryOffset);
+	invCount = getInventoryCount(_scummVars[VAR_EGO]);
+	maxVisibleInv = invCount - _inventoryOffset;
+	if (maxVisibleInv > 4)
+		maxVisibleInv = 4;
+
+	for (int i = 0; i < maxVisibleInv; i++) {
+		if (isNES) {
+			obj = findInventory(_scummVars[VAR_EGO], invCount - _inventoryOffset - i);
+		} else {
+			obj = findInventory(_scummVars[VAR_EGO], i + 1 + _inventoryOffset);
+		}
+
 		if (obj == 0)
 			break;
 
@@ -463,19 +483,19 @@ void ScummEngine_v2::redrawV2Inventory() {
 		_string[1].ypos = _mouseOverBoxesV2[kInventoryUpArrow].rect.top + vs->topline;
 		_string[1].right = _mouseOverBoxesV2[kInventoryUpArrow].rect.right - 1;
 		_string[1].color = _mouseOverBoxesV2[kInventoryUpArrow].color;
-		if (_game.platform == Common::kPlatformNES)
+		if (isNES)
 			drawString(1, (const byte *)"\x7E");
 		else
 			drawString(1, (const byte *)" \1\2");
 	}
 
 	// If necessary, draw "down" arrow
-	if (_inventoryOffset + 4 < getInventoryCount(_scummVars[VAR_EGO])) {
+	if (_inventoryOffset + (isNES ? 2 : 4) < getInventoryCount(_scummVars[VAR_EGO])) {
 		_string[1].xpos = _mouseOverBoxesV2[kInventoryDownArrow].rect.left;
 		_string[1].ypos = _mouseOverBoxesV2[kInventoryDownArrow].rect.top + vs->topline;
 		_string[1].right = _mouseOverBoxesV2[kInventoryDownArrow].rect.right - 1;
 		_string[1].color = _mouseOverBoxesV2[kInventoryDownArrow].color;
-		if (_game.platform == Common::kPlatformNES)
+		if (isNES)
 			drawString(1, (const byte *)"\x7F");
 		else
 			drawString(1, (const byte *)" \3\4");
@@ -551,11 +571,21 @@ void ScummEngine::checkExecVerbs() {
 		return;
 
 	if (_mouseAndKeyboardStat < MBS_MAX_KEY) {
+		bool ignoreVerbKeys = false;
+
+		// This is disabled in the SegaCD version as the "vs->key" values setup
+		// by script-17 conflict with the values expected by the generic keyboard
+		// input script. See tracker item #2013.
+		if (_game.id == GID_MONKEY && _game.platform == Common::kPlatformSegaCD)
+			ignoreVerbKeys = true;
+
+		// The Mac version of Last Crusade handles verb shortcut keys on
+		// its own, so that is also disabled here.
+		if (_macGui && _macGui->isVerbGuiActive())
+			ignoreVerbKeys = true;
+
 		/* Check keypresses */
-		if (!(_game.id == GID_MONKEY && _game.platform == Common::kPlatformSegaCD)) {
-			// This is disabled in the SegaCD version as the "vs->key" values setup
-			// by script-17 conflict with the values expected by the generic keyboard
-			// input script. See tracker item #2013.
+		if (!ignoreVerbKeys) {
 			vs = &_verbs[1];
 			for (i = 1; i < _numVerbs; i++, vs++) {
 				if (vs->verbid && vs->saveid == 0 && vs->curmode == 1) {
@@ -571,7 +601,7 @@ void ScummEngine::checkExecVerbs() {
 		if ((_game.id == GID_INDY4 || _game.id == GID_PASS) && _mouseAndKeyboardStat >= '0' && _mouseAndKeyboardStat <= '9') {
 			// To support keyboard fighting in FOA, we need to remap the number keys.
 			// FOA apparently expects PC scancode values (see script 46 if you want
-			// to know where I got these numbers from). Oddly enough, the The Indy 3
+			// to know where I got these numbers from). Oddly enough, the Indy 3
 			// part of the "Passport to Adventure" demo expects the same keyboard
 			// mapping, even though the full game doesn't.
 			static const int numpad[10] = {
@@ -613,12 +643,21 @@ void ScummEngine::checkExecVerbs() {
 		// Generic keyboard input
 		runInputScript(kKeyClickArea, _mouseAndKeyboardStat, 1);
 	} else if (_mouseAndKeyboardStat & MBS_MOUSE_MASK) {
-		VirtScreen *zone = findVirtScreen(_mouse.y);
-		const byte code = _mouseAndKeyboardStat & MBS_LEFT_CLICK ? 1 : 2;
+		const byte code = (_game.version > 3) ? (_mouseAndKeyboardStat & MBS_LEFT_CLICK ? 1 : 2) : 0;
+		if (_game.id == GID_SAMNMAX) {
+			// This has been simplified for SAMNMAX while DOTT still has the "normal" implementation
+			// (which makes sense, since it still has the "normal" verb interface). Anyway, we need this,
+			// it fixes bug #13761 ("SAMNMAX: Can't shoot names during the credits").
+			runInputScript(kSceneClickArea, 0, code);
+			return;
+		}
 
-		// This could be kUnkVirtScreen.
+		VirtScreen *zone = findVirtScreen(_mouse.y);
 		// Fixes bug #2773: "MANIACNES: Crash on click in speechtext-area"
 		if (!zone)
+			return;
+
+		if (_macGui && _macGui->isVerbGuiActive() && zone->number == kVerbVirtScreen)
 			return;
 
 		over = findVerbAtPos(_mouse.x, _mouse.y);
@@ -698,7 +737,6 @@ void ScummEngine_v2::checkExecVerbs() {
 		const byte code = _mouseAndKeyboardStat & MBS_LEFT_CLICK ? 1 : 2;
 		const int inventoryArea = (_game.platform == Common::kPlatformNES) ? 48: 32;
 
-		// This could be kUnkVirtScreen.
 		// Fixes bug #2773: "MANIACNES: Crash on click in speechtext-area"
 		if (!zone)
 			return;
@@ -706,7 +744,7 @@ void ScummEngine_v2::checkExecVerbs() {
 		if (zone->number == kVerbVirtScreen && _mouse.y <= zone->topline + 8) {
 			// Click into V2 sentence line
 			runInputScript(kSentenceClickArea, 0, 0);
-		} else if (zone->number == kVerbVirtScreen && _mouse.y > zone->topline + inventoryArea) {
+		} else if (zone->number == kVerbVirtScreen && _mouse.y >= zone->topline + inventoryArea) {
 			// Click into V2 inventory
 			int object = checkV2Inventory(_mouse.x, _mouse.y);
 			if (object > 0)
@@ -816,7 +854,7 @@ void ScummEngine_v0::checkExecVerbs() {
 			_activeVerb = kVerbPush;
 		}
 
-		if (_mouseAndKeyboardStat > 0 && _mouseAndKeyboardStat < MBS_MAX_KEY) {
+		if (!zone || (_mouseAndKeyboardStat > 0 && _mouseAndKeyboardStat < MBS_MAX_KEY)) {
 			// keys already checked by input handler
 		} else if ((_mouseAndKeyboardStat & MBS_MOUSE_MASK) || _activeVerb == kVerbWhatIs) {
 			// click region: sentence line
@@ -994,6 +1032,17 @@ void ScummEngine_v7::drawVerb(int verb, int mode) {
 		else if (mode && vs->hicolor)
 			color = vs->hicolor;
 
+		TextStyleFlags flags = kStyleAlignLeft;
+		int xpos = vs->origLeft;
+		int ypos = vs->curRect.top;
+
+		if (vs->center) {
+			flags = kStyleAlignCenter;
+		} else if (_language == Common::HE_ISR) {
+			flags = kStyleAlignRight;
+			xpos = _screenWidth - 1 - vs->origLeft;
+		}
+
 		const byte *msg = getResourceAddress(rtVerb, verb);
 		if (!msg)
 			return;
@@ -1013,54 +1062,37 @@ void ScummEngine_v7::drawVerb(int verb, int mode) {
 		_charset->setCurID(vs->charset_nr);
 
 		// Compute the text rect
-		int textWidth = 0;
-		vs->curRect.bottom = 0;
-		const byte *msg2 = msg;
-		while (*msg2) {
-			const int charWidth = _charset->getCharWidth(*msg2);
-			const int charHeight = _charset->getCharHeight(*msg2);
-			textWidth += charWidth;
-			if (vs->curRect.bottom < charHeight)
-				vs->curRect.bottom = charHeight;
-			msg2++;
-		}
-		vs->curRect.bottom += vs->curRect.top;
-		vs->oldRect = vs->curRect;
+		vs->curRect = _textV7->calcStringDimensions((const char*)msg, xpos, vs->curRect.top, flags);
 
-		const int maxWidth = _language == Common::HE_ISR ? vs->curRect.right + 1 : _screenWidth - vs->curRect.left;
-		if (_game.version == 8 && _charset->getStringWidth(0, buf) > maxWidth) {
+		const int maxWidth = _screenWidth - vs->curRect.left;
+		int finalWidth = maxWidth;
+
+		if (_game.version == 8 && _textV7->getStringWidth((const char*)buf) > maxWidth) {
 			byte tmpBuf[384];
-			memcpy(tmpBuf, msg, 384);
+			int len = resStrLen(msg);
+			memcpy(tmpBuf, msg, len);
+			len--;
 
-			int len = resStrLen(tmpBuf) - 1;
 			while (len >= 0) {
 				if (tmpBuf[len] == ' ') {
 					tmpBuf[len] = 0;
-					if (_charset->getStringWidth(0, tmpBuf) <= maxWidth) {
+					if ((finalWidth = _textV7->getStringWidth((const char*)tmpBuf)) <= maxWidth) {
 						break;
 					}
 				}
 				--len;
 			}
-			int16 leftPos = vs->curRect.left;
-			if (_language == Common::HE_ISR)
-				vs->curRect.left = vs->origLeft = leftPos = vs->curRect.right - _charset->getStringWidth(0, tmpBuf);
-			else
-				vs->curRect.right = vs->curRect.left + _charset->getStringWidth(0, tmpBuf);
-			enqueueText(tmpBuf, leftPos, vs->curRect.top, color, vs->charset_nr, vs->center);
-			if (len >= 0) {
-				if (_language == Common::HE_ISR)
-					leftPos = vs->curRect.right - _charset->getStringWidth(0, &msg[len + 1]);
-				enqueueText(&msg[len + 1], leftPos, vs->curRect.top + _verbLineSpacing, color, vs->charset_nr, vs->center);
-				vs->curRect.bottom += _verbLineSpacing;
-			}
+
+			enqueueText(tmpBuf, xpos, ypos, color, vs->charset_nr, flags);
+			enqueueText(&msg[len + 1], xpos, ypos + _verbLineSpacing, color, vs->charset_nr, flags);
+			vs->curRect.right = vs->curRect.left + finalWidth;
+			vs->curRect.bottom += _verbLineSpacing;
 		} else {
-			if (_language == Common::HE_ISR)
-				vs->curRect.left = vs->origLeft = vs->curRect.right - textWidth;
-			else
-				vs->curRect.right = vs->curRect.left + textWidth;
-			enqueueText(msg, vs->curRect.left, vs->curRect.top, color, vs->charset_nr, vs->center);
+			enqueueText(msg, xpos, ypos, color, vs->charset_nr, flags);
 		}
+
+		vs->oldRect = vs->curRect;
+		vs->curRect.top = ypos;
 		_charset->setCurID(oldID);
 	}
 }
@@ -1069,31 +1101,13 @@ void ScummEngine_v7::drawVerb(int verb, int mode) {
 void ScummEngine::drawVerb(int verb, int mode) {
 	VerbSlot *vs;
 	bool tmp;
+	int pixelYOffset = (_game.platform == Common::kPlatformC64) ? (_game.id == GID_ZAK ? 2 : 1) : 0;
+	int pixelXOffset = (_game.platform == Common::kPlatformC64) ? 1 : 0;
 
-	if (!verb)
+	if (_macGui && _game.id == GID_INDY3)
 		return;
 
-	// The way we implement high-resolution font on a scaled low-resolution
-	// background requires there to always be a text surface telling which
-	// pixels have been drawn on. This means that the "has mask" feature is
-	// not correctly implemented, and in most cases this works just fine
-	// for both Loom and Indiana Jones and the Last Crusade.
-	//
-	// However, there is at least one scene in Indiana Jones - room 80,
-	// where you escape from the zeppelin on a biplane - where the game
-	// (sloppily, in my opinion) draws two disabled verbs (Travel and Talk)
-	// and then counts on the background to draw over them. Obviously that
-	// won't work here.
-	//
-	// I thought it would be possible to base this workaround on room
-	// height, but then verbs aren't redrawn after reading books. So I
-	// guess the safest path is to limit it to this particular room.
-	//
-	// Note that with the low-resolution font, which does implement the
-	// "has mask" feature, the Macintosh version still needs a hack in
-	// printChar() for black text to work properly. This version of the
-	// game is weird.
-	if (_game.id == GID_INDY3 && _macScreen && _currentRoom == 80)
+	if (!verb)
 		return;
 
 	vs = &_verbs[verb];
@@ -1108,9 +1122,9 @@ void ScummEngine::drawVerb(int verb, int mode) {
 
 		const bool isRtl = _language == Common::HE_ISR && !vs->center;
 		_string[4].charset = vs->charset_nr;
-		_string[4].xpos = isRtl ? vs->origLeft : vs->curRect.left;
-		_string[4].ypos = vs->curRect.top;
-		_string[4].right = _screenWidth - 1;
+		_string[4].xpos = isRtl ? vs->origLeft : vs->curRect.left + pixelXOffset;
+		_string[4].ypos = vs->curRect.top + pixelYOffset;
+		_string[4].right = _screenWidth - 1 + pixelXOffset;
 		_string[4].center = vs->center;
 
 		if (vs->curmode == 2)
@@ -1136,8 +1150,8 @@ void ScummEngine::drawVerb(int verb, int mode) {
 
 		if (isRtl)
 			vs->curRect.left = _charset->_str.left;
-		vs->curRect.right = _charset->_str.right;
-		vs->curRect.bottom = _charset->_str.bottom;
+		vs->curRect.right = pixelXOffset + ((_game.version <= 2) ? MIN<int>(vs->curRect.left + (getResourceSize(rtVerb, verb) - 1) * 8, _screenWidth) : _charset->_str.right);
+		vs->curRect.bottom = _charset->_str.bottom + pixelYOffset;
 		vs->oldRect = _charset->_str;
 		_charset->_str.left = _charset->_str.right;
 	} else if (_game.id != GID_FT) {
@@ -1146,6 +1160,9 @@ void ScummEngine::drawVerb(int verb, int mode) {
 }
 
 void ScummEngine::restoreVerbBG(int verb) {
+	if (_macGui && _game.id == GID_INDY3)
+		return;
+
 	VerbSlot *vs;
 
 	vs = &_verbs[verb];
@@ -1156,6 +1173,14 @@ void ScummEngine::restoreVerbBG(int verb) {
 		vs->bkcolor;
 
 	if (vs->oldRect.left != -1) {
+		// Clip the dialog choices to a rectangle starting 35 pixels from the left
+		// for Japanese Monkey Island 1 SegaCD. _scummVars[451] is set by script 187,
+		// responsible for handling the dialog horizontal scrolling.
+		bool isSegaCDDialogChoice = _game.platform == Common::kPlatformSegaCD &&
+									_language == Common::JA_JPN &&  _scummVars[451] == 1;
+		if (isSegaCDDialogChoice && vs->oldRect.left < 35)
+			vs->oldRect.left = 35;
+
 		restoreBackground(vs->oldRect, col);
 		vs->oldRect.left = -1;
 	}
@@ -1165,14 +1190,14 @@ void ScummEngine::drawVerbBitmap(int verb, int x, int y) {
 	VerbSlot *vst = &_verbs[verb];
 	VirtScreen *vs;
 	bool twobufs;
-	const byte *imptr = 0;
+	const byte *imptr = nullptr;
 	int ydiff, xstrip;
 	int imgw, imgh;
 	int i, tmp;
 	byte *obim;
 	uint32 size;
 
-	if ((vs = findVirtScreen(y)) == NULL)
+	if ((vs = findVirtScreen(y)) == nullptr)
 		return;
 
 	_gdi->disableZBuffer();
@@ -1182,6 +1207,9 @@ void ScummEngine::drawVerbBitmap(int verb, int x, int y) {
 
 	xstrip = x / 8;
 	ydiff = y - vs->topline;
+
+	if (_game.version == 4)
+		ydiff &= ~7;
 
 	obim = getResourceAddress(rtVerb, verb);
 	assert(obim);
@@ -1277,6 +1305,15 @@ void ScummEngine::setVerbObject(uint room, uint object, uint verb) {
 
 	if (whereIsObject(object) == WIO_FLOBJECT)
 		error("Can't grab verb image from flobject");
+
+	// HACK: When the straw changes to gold, or the other way around, the
+	// object image changes, but the text is not undrawn. This causes the
+	// two object names to overlap each other. The text can be undrawn by
+	// script 8, but the logic for it is more convoluted in the Mac version
+	// than in the EGA DOS version, and I can't figure out how to bend it
+	// to my will. So hard-code the clearing here.
+	if (_game.id == GID_LOOM && verb == 53 && _game.platform == Common::kPlatformMacintosh)
+		drawBox(232, 152, 312, 192, 0);
 
 	if (_game.features & GF_OLD_BUNDLE) {
 		for (i = (_numLocalObjects-1); i > 0; i--) {

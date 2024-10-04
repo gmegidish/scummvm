@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,7 +70,7 @@ private:
 	RGBA _backgroundColor;
 	Image();                    /* use create method to construct images */
 
-	// disallow assignments, copy contruction
+	// disallow assignments, copy construction
 	Image(const Image &);
 	const Image &operator=(const Image &);
 
@@ -79,19 +78,17 @@ private:
 
 	uint getColor(byte r, byte g, byte b, byte a);
 public:
-	enum Type {
-		HARDWARE,
-		SOFTWARE
-	};
+	/**
+	 * Creates a new palette based image.  Scale is stored to allow drawing
+	 * using U4 (320x200) coordinates, regardless of the actual image scale.
+	 */
+	static Image *create(int w, int h);
 
 	/**
-	 * Creates a new image.  Scale is stored to allow drawing using U4
+	 * Creates a new RGB image.  Scale is stored to allow drawing using U4
 	 * (320x200) coordinates, regardless of the actual image scale.
-	 * Indexed is true for palette based images, or false for RGB images.
-	 * Image type determines whether to create a hardware (i.e. video ram)
-	 * or software (i.e. normal ram) image.
 	 */
-	static Image *create(int w, int h, bool paletted, Type type);
+	static Image *create(int w, int h, const Graphics::PixelFormat &format);
 
 	/**
 	 * Create a special purpose image the represents the whole screen.
@@ -101,20 +98,20 @@ public:
 	/**
 	 * Creates a duplicate of another image
 	 */
-	static Image *duplicate(Image *image);
+	static Image *duplicate(Image *image, const Graphics::PixelFormat &format);
 
 	/**
 	 * Frees the image.
 	 */
 	~Image();
 
-	void create(int w, int h, bool paletted);
+	void createInternal(int w, int h, const Graphics::PixelFormat &format);
 
 	/* palette handling */
 	/**
 	 * Sets the palette
 	 */
-	void setPalette(const RGBA *colors, unsigned n_colors);
+	void setPalette(const byte *colors, unsigned n_colors);
 
 	/**
 	 * Copies the palette from another image.
@@ -147,12 +144,8 @@ public:
 	/**
 	 * Sets the specified palette index to the specified RGB color
 	 */
-	bool setPaletteIndex(uint index, RGBA color);
+	bool setPaletteIndex(uint index, uint8 r, uint8 g, uint8 b);
 
-	/**
-	 * Returns the palette index of the specified RGB color
-	 */
-	int getPaletteIndex(RGBA color);
 	RGBA setColor(uint8 r, uint8 g, uint8 b, uint8 a = IM_OPAQUE);
 
 
@@ -251,6 +244,9 @@ public:
 	}
 	int height() const {
 		return _surface->h;
+	}
+	Graphics::PixelFormat format() const {
+		return _surface->format;
 	}
 	bool isIndexed() const {
 		return _paletted;

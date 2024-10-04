@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,8 +46,8 @@
 namespace LastExpress {
 
 Fight::FightData::FightData() {
-	player = NULL;
-	opponent = NULL;
+	player = nullptr;
+	opponent = nullptr;
 
 	index = 0;
 
@@ -62,15 +61,15 @@ Fight::FightData::~FightData() {
 	SAFE_DELETE(opponent);
 }
 
-Fight::Fight(LastExpressEngine *engine) : _engine(engine), _data(NULL), _endType(kFightEndLost), _state(0), _handleTimer(false) {
+Fight::Fight(LastExpressEngine *engine) : _engine(engine), _data(nullptr), _endType(kFightEndLost), _state(0), _handleTimer(false) {
 }
 
 Fight::~Fight() {
 	clearData();
-	_data = NULL;
+	_data = nullptr;
 
 	// Zero passed pointers
-	_engine = NULL;
+	_engine = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -108,7 +107,7 @@ void Fight::eventMouse(const Common::Event &ev) {
 
 		// Check hotspots
 		Scene *scene = getScenes()->get(getState()->scene);
-		SceneHotspot *hotspot = NULL;
+		SceneHotspot *hotspot = nullptr;
 
 		if (!scene->checkHotSpot(ev.mouse, &hotspot)) {
 			_engine->getCursor()->setStyle(kCursorNormal);
@@ -170,7 +169,7 @@ void Fight::handleTick(const Common::Event &ev, bool isProcessing) {
 	if (!_data || _data->index)
 		return;
 
-	SceneHotspot *hotspot = NULL;
+	SceneHotspot *hotspot = nullptr;
 	if (!getScenes()->get(getState()->scene)->checkHotSpot(ev.mouse, &hotspot) || !_data->player->canInteract((Fighter::FightAction)hotspot->action)) {
 		_engine->getCursor()->setStyle(kCursorNormal);
 	} else {

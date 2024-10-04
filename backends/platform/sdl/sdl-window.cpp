@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,8 @@
 #include "backends/platform/sdl/sdl-window.h"
 
 #include "common/textconsole.h"
+#include "common/util.h"
+#include "common/config-manager.h"
 
 #include "icons/scummvm.xpm"
 
@@ -39,6 +40,7 @@ SdlWindow::SdlWindow() :
 #endif
 	_inputGrabState(false), _inputLockState(false)
 	{
+		memset(&grabRect, 0, sizeof(grabRect));
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 #elif SDL_VERSION_ATLEAST(1, 2, 10)
@@ -51,6 +53,9 @@ SdlWindow::SdlWindow() :
 #elif defined(MAEMO)
 	// All supported Maemo devices have a display resolution of 800x480
 	_desktopRes = Common::Rect(800, 480);
+#elif defined(KOLIBRIOS)
+	// TODO: Use kolibriOS call to determine this.
+	_desktopRes = Common::Rect(640, 480);
 #else
 #error Unable to detect screen resolution
 #endif
@@ -150,6 +155,9 @@ void SdlWindow::grabMouse(bool grab) {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	if (_window) {
 		SDL_SetWindowGrab(_window, grab ? SDL_TRUE : SDL_FALSE);
+#if SDL_VERSION_ATLEAST(2, 0, 18)
+		SDL_SetWindowMouseRect(_window, grab ? &grabRect : NULL);
+#endif
 	}
 	_inputGrabState = grab;
 #else
@@ -160,6 +168,20 @@ void SdlWindow::grabMouse(bool grab) {
 		_inputGrabState = false;
 		if (!_inputLockState)
 			SDL_WM_GrabInput(SDL_GRAB_OFF);
+	}
+#endif
+}
+
+void SdlWindow::setMouseRect(const Common::Rect &rect) {
+	float dpiScale = getSdlDpiScalingFactor();
+	grabRect.x = (int)(rect.left / dpiScale + 0.5f);
+	grabRect.y = (int)(rect.top / dpiScale + 0.5f);
+	grabRect.w = (int)(rect.width() / dpiScale + 0.5f);
+	grabRect.h = (int)(rect.height() / dpiScale + 0.5f);
+
+#if SDL_VERSION_ATLEAST(2, 0, 18)
+	if (_inputGrabState || _lastFlags & fullscreenMask) {
+		SDL_SetWindowMouseRect(_window, &grabRect);
 	}
 #endif
 }
@@ -258,7 +280,7 @@ void SdlWindow::getDisplayDpi(float *dpi, float *defaultDpi) const {
 
 	if (dpi) {
 #if SDL_VERSION_ATLEAST(2, 0, 4)
-		if (SDL_GetDisplayDPI(getDisplayIndex(), NULL, dpi, NULL) != 0) {
+		if (SDL_GetDisplayDPI(getDisplayIndex(), nullptr, dpi, nullptr) != 0) {
 			*dpi = systemDpi;
 		}
 #else
@@ -268,11 +290,16 @@ void SdlWindow::getDisplayDpi(float *dpi, float *defaultDpi) const {
 }
 
 float SdlWindow::getDpiScalingFactor() const {
+	if (ConfMan.hasKey("forced_dpi_scaling"))
+		return ConfMan.getInt("forced_dpi_scaling") / 100.f;
+
 	float dpi, defaultDpi;
 	getDisplayDpi(&dpi, &defaultDpi);
-	debug(4, "dpi: %g default: %g", dpi, defaultDpi);
 	float ratio = dpi / defaultDpi;
-	return ratio;
+	debug(4, "Reported DPI: %g default: %g, ratio %g, clipped: %g", dpi, defaultDpi, ratio, CLIP(ratio, 1.0f, 4.0f));
+	// Getting the DPI can be unreliable, so clamp the scaling factor to make sure
+	// we do not return unreasonable values.
+	return CLIP(ratio, 1.0f, 4.0f);
 }
 
 float SdlWindow::getSdlDpiScalingFactor() const {
@@ -351,8 +378,15 @@ bool SdlWindow::createOrUpdateWindow(int width, int height, uint32 flags) {
 	// basically worthless. So we'll just try to keep things closeish to the
 	// maximum for now.
 	Common::Rect desktopRes = getDesktopResolution();
-	if (!fullscreenFlags) {
+	if (
+		!fullscreenFlags
+#if defined(MACOSX)
+		// On macOS a maximized window is borderless
+		&& !(flags & SDL_WINDOW_MAXIMIZED)
+#endif
+	) {
 		int top, left, bottom, right;
+
 #if SDL_VERSION_ATLEAST(2, 0, 5)
 		if (!_window || SDL_GetWindowBordersSize(_window, &top, &left, &bottom, &right) < 0)
 #endif
@@ -397,6 +431,9 @@ bool SdlWindow::createOrUpdateWindow(int width, int height, uint32 flags) {
 
 	const bool shouldGrab = (flags & SDL_WINDOW_INPUT_GRABBED) || fullscreenFlags;
 	SDL_SetWindowGrab(_window, shouldGrab ? SDL_TRUE : SDL_FALSE);
+#if SDL_VERSION_ATLEAST(2, 0, 18)
+	SDL_SetWindowMouseRect(_window, shouldGrab ? &grabRect : NULL);
+#endif
 
 	if (!_window) {
 		return false;
@@ -406,7 +443,7 @@ bool SdlWindow::createOrUpdateWindow(int width, int height, uint32 flags) {
 	// macOS windows with the flag SDL_WINDOW_FULLSCREEN_DESKTOP exiting their fullscreen space
 	// ignore the size set by SDL_SetWindowSize while they were in fullscreen mode.
 	// Instead, they revert back to their previous windowed mode size.
-	// This is a bug in SDL2: https://bugzilla.libsdl.org/show_bug.cgi?id=3719.
+	// This is a bug in SDL2: https://github.com/libsdl-org/SDL/issues/2518.
 	// TODO: Remove the call to SDL_SetWindowSize below once the SDL bug is fixed.
 
 	// In some cases at this point there may be a pending SDL resize event with the old size.

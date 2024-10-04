@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 // The new memory manager, now only used by the resource manager. The original
@@ -80,8 +79,8 @@ MemoryManager::MemoryManager() {
 
 	for (int i = 0; i < MAX_MEMORY_BLOCKS; i++) {
 		_idStack[i] = MAX_MEMORY_BLOCKS - i - 1;
-		_memBlocks[i].ptr = NULL;
-		_memBlockIndex[i] = NULL;
+		_memBlocks[i].ptr = nullptr;
+		_memBlockIndex[i] = nullptr;
 	}
 
 	_idStackPtr = MAX_MEMORY_BLOCKS;
@@ -96,7 +95,7 @@ MemoryManager::~MemoryManager() {
 }
 
 int32 MemoryManager::encodePtr(byte *ptr) {
-	if (ptr == NULL)
+	if (ptr == nullptr)
 		return 0;
 
 	int idx = findPointerInIndex(ptr);
@@ -115,7 +114,7 @@ int32 MemoryManager::encodePtr(byte *ptr) {
 
 byte *MemoryManager::decodePtr(int32 n) {
 	if (n == 0)
-		return NULL;
+		return nullptr;
 
 	uint32 id = ((n & 0xffc00000) >> 22) - 1;
 	uint32 offset = n & 0x003fffff;
@@ -234,7 +233,7 @@ void MemoryManager::memFree(byte *ptr) {
 
 	// Release the memory block
 	free(_memBlockIndex[idx]->ptr);
-	_memBlockIndex[idx]->ptr = NULL;
+	_memBlockIndex[idx]->ptr = nullptr;
 
 	_totAlloc -= _memBlockIndex[idx]->size;
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,10 +27,10 @@
 #include "avalanche/avalanche.h"
 #include "avalanche/graphics.h"
 
-#include "common/math.h"
 #include "common/system.h"
 #include "engines/util.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
+#include "math/utils.h"
 
 namespace Avalanche {
 
@@ -164,15 +163,15 @@ void GraphicManager::loadMouse(byte which) {
 	mask.free();
 	f.close();
 
-	CursorMan.replaceCursor(cursor.getPixels(), 16, 32, kMouseHotSpots[which]._horizontal, kMouseHotSpots[which]._vertical * 2, 255, false);
+	CursorMan.replaceCursor(cursor, kMouseHotSpots[which]._horizontal, kMouseHotSpots[which]._vertical * 2, 255, false);
 	cursor.free();
 }
 
-void GraphicManager::drawThinkPic(Common::String filename, int id) {
+void GraphicManager::drawThinkPic(const Common::Path &filename, int id) {
 	static const int16 picSize = 966;
 	Common::File file;
 	if (!file.open(filename))
-		error("drawThinkPic(): File not found: %s", filename.c_str());
+		error("drawThinkPic(): File not found: %s", filename.toString(Common::Path::kNativeSeparator).c_str());
 
 	file.seek(id * picSize + 65);
 	Graphics::Surface picture = loadPictureGraphic(file);
@@ -209,7 +208,7 @@ Common::Point GraphicManager::drawArc(Graphics::Surface &surface, int16 x, int16
 	if (yRadius == 0)
 		yRadius++;
 
-	// Check for an ellipse with negligable x and y radius.
+	// Check for an ellipse with negligible x and y radius.
 	if ((xRadius <= 1) && (yRadius <= 1)) {
 		*(byte *)_scrolls.getBasePtr(x, y) = color;
 		endPoint.x = x;
@@ -243,7 +242,7 @@ Common::Point GraphicManager::drawArc(Graphics::Surface &surface, int16 x, int16
 	uint16 deltaEnd = 91;
 
 	// Set the end point.
-	float tempTerm = Common::deg2rad<float>(endAngle);
+	float tempTerm = Math::deg2rad<float>(endAngle);
 	endPoint.x = (int16)floor(xRadius * cos(tempTerm) + 0.5) + x;
 	endPoint.y = (int16)floor(yRadius * sin(tempTerm + M_PI) + 0.5) + y;
 
@@ -254,7 +253,7 @@ Common::Point GraphicManager::drawArc(Graphics::Surface &surface, int16 x, int16
 		int16 xTemp = xNext;
 		int16 yTemp = yNext;
 		// This is used by both sin and cos.
-		tempTerm = Common::deg2rad<float>(j + delta);
+		tempTerm = Math::deg2rad<float>(j + delta);
 
 		xNext = (int16)floor(xRadius * cos(tempTerm) + 0.5);
 		yNext = (int16)floor(yRadius * sin(tempTerm + M_PI) + 0.5);
@@ -493,10 +492,10 @@ void GraphicManager::blackOutScreen() {
 
 void GraphicManager::nimLoad() {
 	Common::File file;
-	Common::String filename = "nim.avd";
+	Common::Path filename("nim.avd");
 
 	if (!file.open(filename))
-		error("AVALANCHE: Scrolls: File not found: %s", filename.c_str());
+		error("AVALANCHE: Scrolls: File not found: %s", filename.toString(Common::Path::kNativeSeparator).c_str());
 
 	file.seek(41);
 
@@ -1035,7 +1034,7 @@ void GraphicManager::drawSprite(AnimationType *sprite, byte picnum, int16 x, int
 	for (int j = 0; j < sprite->_yLength; j++) {
 		for (int i = 0; i < sprite->_xLength; i++) {
 			if ((x + i < _surface.w) && (y + j < _surface.h)) {
-				if (((*sprite->_sil[picnum])[j][i / 8] >> ((7 - i % 8)) & 1) == 0)
+				if (((*sprite->_sil[picnum])[j][i / 8] >> (7 - (i % 8)) & 1) == 0)
 					*(byte *)_surface.getBasePtr(x + i, y + j) = 0;
 			}
 		}
@@ -1112,10 +1111,10 @@ void GraphicManager::drawErrorLight(bool state) {
  */
 void GraphicManager::drawSign(Common::String fn, int16 xl, int16 yl, int16 y) {
 	Common::File file;
-	Common::String filename = Common::String::format("%s.avd", fn.c_str());
+	Common::Path filename(Common::String::format("%s.avd", fn.c_str()));
 
 	if (!file.open(filename))
-		error("AVALANCHE: Scrolls: File not found: %s", filename.c_str());
+		error("AVALANCHE: Scrolls: File not found: %s", filename.toString(Common::Path::kNativeSeparator).c_str());
 
 	Graphics::Surface sign; // We make a Surface object for the picture itself.
 	sign = loadPictureSign(file, xl, yl);

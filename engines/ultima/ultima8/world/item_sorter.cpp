@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
+#include "ultima/ultima.h"
+#include "ultima/ultima8/misc/common_types.h"
 #include "ultima/ultima8/world/item_sorter.h"
 #include "ultima/ultima8/world/item.h"
-#include "ultima/ultima8/graphics/shape.h"
-#include "ultima/ultima8/graphics/shape_frame.h"
-#include "ultima/ultima8/graphics/main_shape_archive.h"
-#include "ultima/ultima8/graphics/render_surface.h"
-#include "ultima/ultima8/misc/rect.h"
+#include "ultima/ultima8/gfx/shape.h"
+#include "ultima/ultima8/gfx/shape_frame.h"
+#include "ultima/ultima8/gfx/main_shape_archive.h"
+#include "ultima/ultima8/gfx/render_surface.h"
+#include "ultima/ultima8/gfx/texture.h"
 #include "ultima/ultima8/games/game_data.h"
 #include "ultima/ultima8/ultima8.h"
 
@@ -42,15 +42,22 @@
 namespace Ultima {
 namespace Ultima8 {
 
-ItemSorter::ItemSorter() :
-	_shapes(nullptr), _surf(nullptr), _items(nullptr), _itemsTail(nullptr),
-	_itemsUnused(nullptr), _sortLimit(0), _camSx(0), _camSy(0), _orderCounter(0) {
-	int i = 2048;
-	while (i--) _itemsUnused = new SortItem(_itemsUnused);
+static const uint32 TRANSPARENT_COLOR = TEX32_PACK_RGBA(0x7F, 0x00, 0x00, 0x7F);
+static const uint32 HIGHLIGHT_COLOR = TEX32_PACK_RGBA(0xFF, 0xFF, 0x00, 0x1F);
+
+ItemSorter::ItemSorter(int capacity) :
+	_shapes(nullptr), _clipWindow(0, 0, 0, 0), _items(nullptr), _itemsTail(nullptr),
+	_itemsUnused(nullptr), _painted(nullptr), _camSx(0), _camSy(0),
+	_sortLimit(0), _sortLimitChanged(false) {
+	int i = capacity;
+	while (i--) {
+		SortItem *next = _itemsUnused;
+		_itemsUnused = new SortItem();
+		_itemsUnused->_next = next;
+	}
 }
 
 ItemSorter::~ItemSorter() {
-	//
 	if (_itemsTail) {
 		_itemsTail->_next = _itemsUnused;
 		_itemsUnused = _items;
@@ -59,51 +66,63 @@ ItemSorter::~ItemSorter() {
 	_itemsTail = nullptr;
 
 	while (_itemsUnused) {
-		SortItem *_next = _itemsUnused->_next;
+		SortItem *next = _itemsUnused->_next;
 		delete _itemsUnused;
-		_itemsUnused = _next;
+		_itemsUnused = next;
 	}
-
-	delete [] _items;
 }
 
-void ItemSorter::BeginDisplayList(RenderSurface *rs,
-								  int32 camx, int32 camy, int32 camz) {
+void ItemSorter::BeginDisplayList(const Rect &clipWindow, const Point3 &cam) {
 	// Get the _shapes, if required
 	if (!_shapes) _shapes = GameData::get_instance()->getMainShapes();
 
-	//
+	// Set the clip window, and reset the item list
+	_clipWindow = clipWindow;
+
 	if (_itemsTail) {
 		_itemsTail->_next = _itemsUnused;
 		_itemsUnused = _items;
 	}
+
 	_items = nullptr;
 	_itemsTail = nullptr;
-
-	// Set the RenderSurface, and reset the item list
-	_surf = rs;
-	_orderCounter = 0;
+	_painted = nullptr;
 
 	// Screenspace bounding box bottom x coord (RNB x coord)
-	_camSx = (camx - camy) / 4;
+	int32 camSx = (cam.x - cam.y) / 4;
 	// Screenspace bounding box bottom extent  (RNB y coord)
-	_camSy = (camx + camy) / 8 - camz;
+	int32 camSy = (cam.x + cam.y) / 8 - cam.z;
+
+	if (camSx != _camSx || camSy != _camSy) {
+		_camSx = camSx;
+		_camSy = camSy;
+
+		// Reset sort limit debugging on camera move
+		_sortLimit = 0;
+	}
 }
 
-void ItemSorter::AddItem(int32 x, int32 y, int32 z, uint32 shapeNum, uint32 frame_num, uint32 flags, uint32 ext_flags, uint16 itemNum) {
+void ItemSorter::AddItem(const Point3 &pt, uint32 shapeNum, uint32 frame_num, uint32 flags, uint32 ext_flags, uint16 itemNum) {
 
 	// First thing, get a SortItem to use (first of unused)
 	if (!_itemsUnused)
-		_itemsUnused = new SortItem(0);
+		_itemsUnused = new SortItem();
 	SortItem *si = _itemsUnused;
 
 	si->_itemNum = itemNum;
 	si->_shape = _shapes->getShape(shapeNum);
 	si->_shapeNum = shapeNum;
 	si->_frame = frame_num;
-	const ShapeFrame *_frame = si->_shape ? si->_shape->getFrame(si->_frame) : nullptr;
-	if (!_frame) {
-		perr << "Invalid shape: " << si->_shapeNum << "," << si->_frame << Std::endl;
+	const ShapeFrame *frame = si->_shape ? si->_shape->getFrame(si->_frame) : nullptr;
+	if (!frame) {
+		// Keep the last shape we skipped so we don't spam the warnings too much
+		static uint32 last_invalid_shape = 0;
+		static uint32 last_invalid_frame = 0;
+		if (si->_shapeNum != last_invalid_shape || si->_frame != last_invalid_frame) {
+			warning("Skipping invalid shape in sorter: %d,%d", si->_shapeNum, si->_frame);
+			last_invalid_frame = si->_frame;
+			last_invalid_shape = si->_shapeNum;
+		}
 		return;
 	}
 
@@ -116,50 +135,39 @@ void ItemSorter::AddItem(int32 x, int32 y, int32 z, uint32 shapeNum, uint32 fram
 	info->getFootpadWorld(xd, yd, zd, flags & Item::FLG_FLIPPED);
 
 	// Worldspace bounding box
-	si->_x = x;
-	si->_y = y;
-	si->_z = z;
-	si->_xLeft = si->_x - xd;
-	si->_yFar = si->_y - yd;
-	si->_zTop = si->_z + zd;
+	Box box(pt.x, pt.y, pt.z, xd, yd, zd);
+	si->setBoxBounds(box, _camSx, _camSy);
 
-	// Screenspace bounding box left extent    (LNT x coord)
-	si->_sxLeft = si->_xLeft / 4 - si->_y / 4 - _camSx;
-	// Screenspace bounding box right extent   (RFT x coord)
-	si->_sxRight = si->_x / 4 - si->_yFar / 4 - _camSx;
-
-	// Screenspace bounding box top x coord    (LFT x coord)
-	si->_sxTop = si->_xLeft / 4 - si->_yFar / 4 - _camSx;
-	// Screenspace bounding box top extent     (LFT y coord)
-	si->_syTop = si->_xLeft / 8 + si->_yFar / 8 - si->_zTop - _camSy;
-
-	// Screenspace bounding box bottom x coord (RNB x coord)
-	si->_sxBot = si->_x / 4 - si->_y / 4 - _camSx;
-	// Screenspace bounding box bottom extent  (RNB y coord)
-	si->_syBot = si->_x / 8 + si->_y / 8 - si->_z - _camSy;
-
-	// Real Screenspace coords
-	si->_sx = si->_sxBot - _frame->_xoff;   // Left
-	si->_sy = si->_syBot - _frame->_yoff;   // Top
-	si->_sx2 = si->_sx + _frame->_width;    // Right
-	si->_sy2 = si->_sy + _frame->_height;   // Bottom
+	// Real Screenspace from shape frame
+	if (si->_flags & Item::FLG_FLIPPED) {
+		si->_sr.left = si->_sxBot + frame->_xoff - frame->_width;
+		si->_sr.top = si->_syBot - frame->_yoff;
+		si->_sr.right = si->_sr.left + frame->_width;
+		si->_sr.bottom = si->_sr.top + frame->_height;
+	} else {
+		si->_sr.left = si->_sxBot - frame->_xoff;
+		si->_sr.top = si->_syBot - frame->_yoff;
+		si->_sr.right = si->_sr.left + frame->_width;
+		si->_sr.bottom = si->_sr.top + frame->_height;
+	}
 
 	// Do Clipping here
-	int16 clipped = _surf->CheckClipped(Rect(si->_sx, si->_sy, si->_sx + _frame->_width, si->_sy + _frame->_height));
-	if (clipped < 0)
+	if (!_clipWindow.intersects(si->_sr)) {
 		// Clipped away entirely - don't add to the list.
 		return;
+	}
 
-	si->_clipped = (clipped != 0);
-
-	// These help out with sorting. We calc them now, so it will be faster
-	si->_fbigsq = (xd == 128 && yd == 128) || (xd == 256 && yd == 256) || (xd == 512 && yd == 512);
-	si->_flat = zd == 0;
+#ifdef SORTITEM_OCCLUSION_EXPERIMENTAL
+	si->_xAdjoin = nullptr;
+	si->_yAdjoin = nullptr;
+	si->_groupNum = 0;
+#endif // SORTITEM_OCCLUSION_EXPERIMENTAL
 
 	si->_draw = info->is_draw();
 	si->_solid = info->is_solid();
-	si->_occl = info->is_occl() && !(si->_flags & Item::FLG_INVISIBLE) &&
-			   !(si->_extFlags & Item::EXT_TRANSPARENT);
+	si->_occl = info->is_occl() && !info->is_translucent() &&
+				!(si->_flags & Item::FLG_INVISIBLE) &&
+				!(si->_extFlags & Item::EXT_TRANSPARENT);
 	si->_roof = info->is_roof();
 	si->_noisy = info->is_noisy();
 	si->_anim = info->_animType != 0;
@@ -185,31 +193,53 @@ void ItemSorter::AddItem(int32 x, int32 y, int32 z, uint32 shapeNum, uint32 fram
 	SortItem *addpoint = nullptr;
 	for (SortItem *si2 = _items; si2 != nullptr; si2 = si2->_next) {
 		// Get the insert point... which is before the first item that has higher z than us
-		if (!addpoint && si->ListLessThan(si2))
+		if (!addpoint && si->listLessThan(*si2))
 			addpoint = si2;
 
-		// Doesn't overlap
-		if (si2->_occluded || !si->overlap(*si2))
+		if (si2->_occluded)
 			continue;
 
-		// Attempt to find which is infront
-		if (si->below(*si2)) {
-			// si2 occludes si (us)
-			if (si2->_occl && si2->occludes(*si)) {
-				// No need to do any more checks, this isn't visible
-				si->_occluded = true;
-				break;
+#ifdef SORTITEM_OCCLUSION_EXPERIMENTAL
+		// Find adjoining rects for better occlusion
+		if (si->_occl && si2->_occl && si->_z == si2->_z) {
+			// Does this share an edge?
+			if (si->_y == si2->_y && si->_yFar == si2->_yFar) {
+				if (si->_xLeft == si2->_x) {
+					si->_xAdjoin = si2;
+				} else if (si->_x == si2->_xLeft) {
+					si2->_xAdjoin = si;
+				}
 			}
+			else if (si->_x == si2->_x && si->_xLeft == si2->_xLeft) {
+				if (si->_yFar == si2->_y) {
+					si->_yAdjoin = si2;
+				} else if (si->_y == si2->_yFar) {
+					si2->_yAdjoin = si;
+				}
+			}
+		}
+#endif // SORTITEM_OCCLUSION_EXPERIMENTAL
 
-			// si1 is behind si2, so add it to si2's dependency list
-			si2->_depends.insert_sorted(si);
-		} else {
-			// ss occludes si2. Sadly, we can't remove it from the list.
-			if (si->_occl && si->occludes(*si2))
-				si2->_occluded = true;
-			// si2 is behind si1, so add it to si1's dependency list
-			else
-				si->_depends.push_back(si2);
+		// Attempt to find paint dependency order
+		if (si->overlap(*si2)) {
+			if (si->below(*si2)) {
+				if (si2->_occl && si2->occludes(*si)) {
+					// No need to do any more checks, this isn't visible
+					si->_occluded = true;
+					break;
+				} else {
+					// si1 is behind si2, so add it to si2's dependency list
+					si2->_depends.insert_sorted(si);
+				}
+			} else {
+				if (si->_occl && si->occludes(*si2)) {
+					// Occluded, but we can't remove it from the list
+					si2->_occluded = true;
+				} else {
+					// si2 is behind si1, so add it to si1's dependency list
+					si->_depends.insert_sorted(si2);
+				}
+			}
 		}
 	}
 
@@ -240,21 +270,108 @@ void ItemSorter::AddItem(int32 x, int32 y, int32 z, uint32 shapeNum, uint32 fram
 }
 
 void ItemSorter::AddItem(const Item *add) {
-	int32 x, y, z;
-	add->getLerped(x, y, z);
-	AddItem(x, y, z, add->getShape(), add->getFrame(),
+	AddItem(add->getLerped(), add->getShape(), add->getFrame(),
 			add->getFlags(), add->getExtFlags(), add->getObjId());
 }
 
-SortItem *_prev = 0;
+void ItemSorter::PaintDisplayList(RenderSurface *surf, bool item_highlight, bool showFootpads) {
+	if (_sortLimit) {
+		// Clear the surface when debugging the sorter
+		uint32 color = TEX32_PACK_RGB(0, 0, 0);
+		surf->fill32(color, _clipWindow);
+	}
 
-void ItemSorter::PaintDisplayList(bool item_highlight) {
-	_prev = nullptr;
+#ifdef SORTITEM_OCCLUSION_EXPERIMENTAL
+	int32 minZ = _items ? _items->_z : 0;
+
+	// Reverse iterate to check higher z items first.
+	// This increases odds of occluding items below before checking them.
+	// Ignore items already occluded or at lowest Z as they are less likely occlude additional items.
+	for (SortItem *si1 = _itemsTail; si1 != nullptr; si1 = si1->_prev) {
+		// Check if item is part of a 2x2 rects square
+		if (si1->_occl && !si1->_occluded && si1->_z > minZ &&
+			si1->_xAdjoin && si1->_yAdjoin &&
+			si1->_xAdjoin->_yAdjoin && si1->_yAdjoin->_xAdjoin &&
+			si1->_xAdjoin->_yAdjoin == si1->_yAdjoin->_xAdjoin) {
+			SortItem *si2 = si1;
+			SortItem *siX = si1;
+			SortItem *siY = si1;
+
+			uint16 group = si1->_itemNum;
+			si1->_groupNum = group;
+
+			int32 zTop = si1->_zTop;
+
+			// Expand NxN rects square - up to 4x4 appears sufficient
+			for (int n = 2; n <= 4; n++) {
+				// Expand out 1 from X and Y edge points
+				SortItem *p1 = siX->_xAdjoin;
+				SortItem *p2 = siY->_yAdjoin;
+
+				if (!p1 || !p2)
+					break;
+
+				// Converge to meet
+				while (p1 != p2 && p1->_yAdjoin && p2->_xAdjoin) {
+					p1->_groupNum = group;
+					p2->_groupNum = group;
+
+					zTop = MIN(zTop, p1->_zTop);
+					zTop = MIN(zTop, p2->_zTop);
+
+					p1 = p1->_yAdjoin;
+					p2 = p2->_xAdjoin;
+				}
+
+				if (p1 != p2)
+					break;
+
+				// Set the new end point
+				si2 = p1;
+				si2->_groupNum = group;
+
+				zTop = MIN(zTop, p2->_zTop);
+
+				// Set the new edge points
+				siX = siX->_xAdjoin;
+				siY = siY->_yAdjoin;
+			}
+
+			if (si1 != si2) {
+				SortItem oc;
+				oc._occl = true;
+				oc._flat = si1->_flat;
+				oc._solid = si1->_solid;
+				oc._roof = si1->_roof;
+				oc._fixed = si1->_fixed;
+				oc._land = si1->_land;
+
+				Box box = si1->getBoxBounds();
+				box.extend(si2->getBoxBounds());
+
+				// Use min z top to avoid wrong occlusions caused by different heights
+				box._zd = zTop - box._z;
+
+				oc.setBoxBounds(box, _camSx, _camSy);
+
+				for (si2 = _items; si2 != nullptr; si2 = si2->_next) {
+					if (si2->_groupNum != group && !si2->_occluded &&
+						si2->overlap(oc) && si2->below(oc) && oc.occludes(*si2)) {
+						si2->_occluded = true;
+					}
+				}
+			}
+		}
+	}
+#endif
+
 	SortItem *it = _items;
 	SortItem *end = nullptr;
-	_orderCounter = 0;  // Reset the _orderCounter
+	_painted = nullptr;  // Reset the paint tracking
 	while (it != end) {
-		if (it->_order == -1) if (PaintSortItem(it)) return;
+		if (it->_order == -1)
+			if (PaintSortItem(surf, it, showFootpads))
+				return;
 		it = it->_next;
 	}
 
@@ -263,12 +380,13 @@ void ItemSorter::PaintDisplayList(bool item_highlight) {
 		it = _items;
 		while (it != end) {
 			if (!(it->_flags & (Item::FLG_DISPOSABLE | Item::FLG_FAST_ONLY)) && !it->_fixed) {
-				_surf->PaintHighlightInvis(it->_shape,
+				surf->PaintHighlightInvis(it->_shape,
 				                          it->_frame,
 				                          it->_sxBot,
 				                          it->_syBot,
 				                          it->_trans,
-				                          (it->_flags & Item::FLG_FLIPPED) != 0, 0x1f00ffff);
+				                          (it->_flags & Item::FLG_FLIPPED) != 0,
+										  HIGHLIGHT_COLOR);
 			}
 
 			it = it->_next;
@@ -281,7 +399,7 @@ void ItemSorter::PaintDisplayList(bool item_highlight) {
  * Recursively paint this item and all its dependencies.
  * Returns true if recursion should stop.
  */
-bool ItemSorter::PaintSortItem(SortItem *si) {
+bool ItemSorter::PaintSortItem(RenderSurface *surf, SortItem *si, bool showFootpad) {
 	// Don't paint this, or dependencies (yet) if occluded
 	if (si->_occluded)
 		return false;
@@ -294,99 +412,94 @@ bool ItemSorter::PaintSortItem(SortItem *si) {
 	SortItem::DependsList::iterator end = si->_depends.end();
 	while (it != end) {
 		if ((*it)->_order == -2) {
-			//warning("cycle in paint dependency graph %d -> %d -> ... -> %d",
-			//		si->_shapeNum, (*it)->_shapeNum, si->_shapeNum);
+			if (!_sortLimit) {
+				debugC(kDebugObject, "Cycle in paint dependency graph %d -> %d -> ... -> %d",
+					   si->_shapeNum, (*it)->_shapeNum, si->_shapeNum);
+			}
 			break;
 		}
 		else if ((*it)->_order == -1) {
-			if (PaintSortItem((*it)))
+			if (PaintSortItem(surf, *it, showFootpad))
 				return true;
 		}
 		++it;
 	}
 
-	// Set our painting _order
-	si->_order = _orderCounter;
-	_orderCounter++;
-
 	// Now paint us!
+	if (surf) {
+		if (si->_extFlags & Item::EXT_HIGHLIGHT && si->_extFlags & Item::EXT_TRANSPARENT)
+			surf->PaintHighlightInvis(si->_shape, si->_frame, si->_sxBot, si->_syBot, si->_trans, (si->_flags & Item::FLG_FLIPPED) != 0, TRANSPARENT_COLOR);
+		if (si->_extFlags & Item::EXT_HIGHLIGHT)
+			surf->PaintHighlight(si->_shape, si->_frame, si->_sxBot, si->_syBot, si->_trans, (si->_flags & Item::FLG_FLIPPED) != 0, TRANSPARENT_COLOR);
+		else if (si->_extFlags & Item::EXT_TRANSPARENT)
+			surf->PaintInvisible(si->_shape, si->_frame, si->_sxBot, si->_syBot, si->_trans, (si->_flags & Item::FLG_FLIPPED) != 0);
+		else if (si->_trans)
+			surf->PaintTranslucent(si->_shape, si->_frame, si->_sxBot, si->_syBot, (si->_flags & Item::FLG_FLIPPED) != 0);
+		else
+			surf->Paint(si->_shape, si->_frame, si->_sxBot, si->_syBot, (si->_flags & Item::FLG_FLIPPED) != 0);
 
-//	if (wire) si->info->draw_box_back(s, dispx, dispy, 255);
+		// Draw wire frame footpads
+		if (showFootpad) {
+			uint32 color = TEX32_PACK_RGB(0xFF, 0xFF, 0xFF);
 
-	if (si->_extFlags & Item::EXT_HIGHLIGHT && si->_extFlags & Item::EXT_TRANSPARENT)
-		_surf->PaintHighlightInvis(si->_shape, si->_frame, si->_sxBot, si->_syBot, si->_trans, (si->_flags & Item::FLG_FLIPPED) != 0, 0x7F00007F);
-	if (si->_extFlags & Item::EXT_HIGHLIGHT)
-		_surf->PaintHighlight(si->_shape, si->_frame, si->_sxBot, si->_syBot, si->_trans, (si->_flags & Item::FLG_FLIPPED) != 0, 0x7F00007F);
-	else if (si->_extFlags & Item::EXT_TRANSPARENT)
-		_surf->PaintInvisible(si->_shape, si->_frame, si->_sxBot, si->_syBot, si->_trans, (si->_flags & Item::FLG_FLIPPED) != 0);
-	else if (si->_flags & Item::FLG_FLIPPED)
-		_surf->PaintMirrored(si->_shape, si->_frame, si->_sxBot, si->_syBot, si->_trans);
-	else if (si->_trans)
-		_surf->PaintTranslucent(si->_shape, si->_frame, si->_sxBot, si->_syBot);
-	else if (!si->_clipped)
-		_surf->PaintNoClip(si->_shape, si->_frame, si->_sxBot, si->_syBot);
-	else
-		_surf->Paint(si->_shape, si->_frame, si->_sxBot, si->_syBot);
+			// NOTE: Precision loss from integer division is intention
+			int32 syLeftTop = si->_xLeft / 8 + si->_y / 8 - si->_zTop - _camSy;
+			int32 syRightTop = si->_x / 8 + si->_yFar / 8 - si->_zTop - _camSy;
+			int32 syNearTop = si->_x / 8 + si->_y / 8 - si->_zTop - _camSy;
 
-//	if (wire) si->info->draw_box_front(s, dispx, dispy, 255);
+			surf->drawLine32(color, si->_sxTop, si->_syTop, si->_sxLeft, syLeftTop);
+			surf->drawLine32(color, si->_sxTop, si->_syTop, si->_sxRight, syRightTop);
+			surf->drawLine32(color, si->_sxBot, syNearTop, si->_sxLeft, syLeftTop);
+			surf->drawLine32(color, si->_sxBot, syNearTop, si->_sxRight, syRightTop);
 
-	// weapon overlay
-	// FIXME: use highlight/invisibility, also add to Trace() ?
-	if (si->_shapeNum == 1 && si->_itemNum == 1) {
-		MainActor *av = getMainActor();
-		const WeaponOverlayFrame *wo_frame = nullptr;
-		uint32 wo_shapenum;
-		av->getWeaponOverlay(wo_frame, wo_shapenum);
-		if (wo_frame) {
-			const Shape *wo_shape = GameData::get_instance()->getMainShapes()->getShape(wo_shapenum);
-			_surf->Paint(wo_shape, wo_frame->_frame,
-			            si->_sxBot + wo_frame->_xOff,
-			            si->_syBot + wo_frame->_yOff);
+			if (si->_z < si->_zTop) {
+				int32 syLeftBot = si->_xLeft / 8 + si->_y / 8 - si->_z - _camSy;
+				int32 syRightBot = si->_x / 8 + si->_yFar / 8 - si->_z - _camSy;
+				surf->drawLine32(color, si->_sxLeft, syLeftTop, si->_sxLeft, syLeftBot);
+				surf->drawLine32(color, si->_sxRight, syRightTop, si->_sxRight, syRightBot);
+				surf->drawLine32(color, si->_sxBot, syNearTop, si->_sxBot, si->_syBot);
+				surf->drawLine32(color, si->_sxLeft, syLeftBot, si->_sxBot, si->_syBot);
+				surf->drawLine32(color, si->_sxRight, syRightBot, si->_sxBot, si->_syBot);
+			}
+		}
+
+		// weapon overlay
+		// FIXME: use highlight/invisibility, also add to Trace() ?
+		if (si->_shapeNum == 1 && si->_itemNum == kMainActorId) {
+			MainActor *av = getMainActor();
+			const WeaponOverlayFrame *wo_frame = nullptr;
+			uint32 wo_shapenum;
+			av->getWeaponOverlay(wo_frame, wo_shapenum);
+			if (wo_frame) {
+				const Shape *wo_shape = GameData::get_instance()->getMainShapes()->getShape(wo_shapenum);
+				surf->Paint(wo_shape, wo_frame->_frame,
+							si->_sxBot + wo_frame->_xOff,
+							si->_syBot + wo_frame->_yOff, false);
+			}
 		}
 	}
 
-	if (_sortLimit) {
-		if (_orderCounter == _sortLimit) {
-			static uint32 previt = 0;
-			if (!previt || previt != si->_itemNum) {
-				previt = si->_itemNum;
-				pout << "SortItem: " << *si << Std::endl;
-				if (_prev && si->overlap(_prev)) {
-					pout << "Overlaps: " << *_prev << Std::endl;
+	// Set our painting _order based on previously painted item
+	si->_order = _painted ? _painted->_order + 1 : 0;
+
+	if (_sortLimit && si->_order == _sortLimit) {
+		if (_sortLimitChanged) {
+			_sortLimitChanged = false;
+
+			debugC(kDebugObject, "SortItem: %s", si->dumpInfo().c_str());
+			if (_painted && si->overlap(*_painted)) {
+				debugC(kDebugObject, "Overlaps: %s", _painted->dumpInfo().c_str());
+				if (si->below(*_painted)) {
+					debugC(kDebugObject, "Paint order incorrect!");
 				}
 			}
-			return true;
 		}
-		_prev = si;
+
+		_painted = si;
+		return true;
 	}
 
-	return false;
-}
-
-bool ItemSorter::NullPaintSortItem(SortItem *si) {
-	// Don't paint this, or dependencies if occluded
-	if (si->_occluded) return false;
-
-	// Resursion, detection
-	si->_order = -2;
-
-	// Iterate through our dependancies, and paint them, if possible
-	SortItem::DependsList::iterator it = si->_depends.begin();
-	SortItem::DependsList::iterator end = si->_depends.end();
-	while (it != end) {
-		// Well, it can't. Implies recursive sorting. Can happen though so
-		// you had best leave this commented out
-		//if ((*it)->_order == -2) CANT_HAPPEN_MSG("Recursive item sorting");
-
-		if ((*it)->_order == -1) if (NullPaintSortItem((*it))) return true;
-
-		++it;
-	}
-
-	// Set our painting/sorting _order
-	si->_order = _orderCounter;
-	_orderCounter++;
-
+	_painted = si;
 	return false;
 }
 
@@ -394,11 +507,13 @@ uint16 ItemSorter::Trace(int32 x, int32 y, HitFace *face, bool item_highlight) {
 	SortItem *it;
 	SortItem *selected;
 
-	if (!_orderCounter) { // If no _orderCounter we need to sort the _items
+	if (!_painted) { // If no painted item found, we need to sort the items
 		it = _items;
-		_orderCounter = 0;  // Reset the _orderCounter
+		_painted = nullptr;
 		while (it != nullptr) {
-			if (it->_order == -1) if (NullPaintSortItem(it)) break;
+			if (it->_order == -1)
+				if (PaintSortItem(nullptr, it, false))
+					break;
 
 			it = it->_next;
 		}
@@ -412,11 +527,12 @@ uint16 ItemSorter::Trace(int32 x, int32 y, HitFace *face, bool item_highlight) {
 
 		for (it = _itemsTail; it != nullptr; it = it->_prev) {
 			if (!(it->_flags & (Item::FLG_DISPOSABLE | Item::FLG_FAST_ONLY)) && !it->_fixed) {
+				if (!it->_itemNum || !it->contains(x, y))
+					continue;
 
-				if (!it->_itemNum) continue;
-
-				// Doesn't Overlap
-				if (x < it->_sx || x >= it->_sx2 || y < it->_sy || y >= it->_sy2) continue;
+				// Skip transparent non-solids
+				if (!it->_solid && it->_trans)
+					continue;
 
 				// Now check the _frame itself
 				const ShapeFrame *_frame = it->_shape->getFrame(it->_frame);
@@ -440,11 +556,14 @@ uint16 ItemSorter::Trace(int32 x, int32 y, HitFace *face, bool item_highlight) {
 	// We then check to see if the item has a point where the trace goes.
 	// Finally we then set the selected SortItem if it's '_order' is highest
 
-	if (!selected) for (it = _items; it != nullptr; it = it->_next) {
-			if (!it->_itemNum) continue;
+	if (!selected) {
+		for (it = _items; it != nullptr; it = it->_next) {
+			if (!it->_itemNum || !it->contains(x, y))
+				continue;
 
-			// Doesn't Overlap
-			if (x < it->_sx || x >= it->_sx2 || y < it->_sy || y >= it->_sy2) continue;
+			// Skip transparent non-solids
+			if (!it->_solid && it->_trans)
+				continue;
 
 			// Now check the _frame itself
 			const ShapeFrame *_frame = it->_shape->getFrame(it->_frame);
@@ -460,6 +579,7 @@ uint16 ItemSorter::Trace(int32 x, int32 y, HitFace *face, bool item_highlight) {
 			// Ok now check against selected
 			if (!selected || (it->_order > selected->_order)) selected = it;
 		}
+	}
 
 	if (selected) {
 
@@ -506,6 +626,7 @@ uint16 ItemSorter::Trace(int32 x, int32 y, HitFace *face, bool item_highlight) {
 
 void ItemSorter::IncSortLimit(int count) {
 	_sortLimit += count;
+	_sortLimitChanged = true;
 	if (_sortLimit < 0)
 		_sortLimit = 0;
 }

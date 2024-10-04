@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,9 +26,12 @@
 #include "sci/graphics/helpers.h"
 #include "sci/graphics/view.h"
 
+#include "graphics/font.h"
 #include "graphics/sjis.h"
 #include "graphics/korfont.h"
 #include "graphics/pixelformat.h"
+
+#include "common/rendermode.h"
 
 namespace Sci {
 
@@ -57,6 +59,8 @@ enum {
 	DITHERED_BG_COLORS_SIZE = 256
 };
 
+class GfxDriver;
+
 /**
  * Screen class, actually creates 3 (4) screens internally:
  * - visual/display (for the user),
@@ -67,7 +71,7 @@ enum {
  */
 class GfxScreen {
 public:
-	GfxScreen(ResourceManager *resMan);
+	GfxScreen(ResourceManager *resMan, Common::RenderMode renderMode);
 	~GfxScreen();
 
 	uint16 getWidth() { return _width; }
@@ -92,7 +96,7 @@ public:
 	void bakDiscard();
 
 	// video frame displaying
-	void copyVideoFrameToScreen(const byte *buffer, int pitch, const Common::Rect &rect, bool is8bit);
+	void copyVideoFrameToScreen(const byte *buffer, int pitch, const Common::Rect &rect);
 
 	// Vector drawing
 private:
@@ -118,6 +122,7 @@ public:
 	}
 	void enableUndithering(bool flag);
 
+	void putMacChar(const Graphics::Font *commonFont, int16 x, int16 y, uint16 chr, byte color);
 	void putKanjiChar(Graphics::FontSJIS *commonFont, int16 x, int16 y, uint16 chr, byte color);
 	void putHangulChar(Graphics::FontKorean *commonFont, int16 x, int16 y, uint16 chr, byte color);
 
@@ -156,6 +161,8 @@ public:
 	void setPaletteMods(const PaletteMod *mods, unsigned int count);
 	bool paletteModsEnabled() const { return _paletteModsEnabled; }
 
+	GfxDriver *gfxDriver() const { return _gfxDrv; }
+
 private:
 	uint16 _width;
 	uint16 _height;
@@ -165,8 +172,6 @@ private:
 	uint16 _displayWidth;
 	uint16 _displayHeight;
 	uint _displayPixels;
-
-	Graphics::PixelFormat _format;
 
 	byte _colorWhite;
 	byte _colorDefaultVectorData;
@@ -197,10 +202,13 @@ private:
 	 * Only read from this buffer for Save/ShowBits usage.
 	 */
 	byte *_displayScreen;
+	Graphics::Surface _displayScreenSurface;
 
-	// Screens for RGB mode support
-	byte *_displayedScreen;
-	byte *_rgbScreen;
+	/**
+	 * Support for CGA and Hercules and other graphic modes that the original
+	 * interpreters allowed. It also performs the rgb rendering if needed.
+	 */
+	GfxDriver *_gfxDrv;
 
 	// For RGB per-view/pic palette mods
 	byte *_paletteMapScreen;
@@ -210,10 +218,7 @@ private:
 
 	byte *_backupScreen; // for bak* functions
 
-	void convertToRGB(const Common::Rect &rect);
-	void displayRectRGB(const Common::Rect &rect, int x, int y);
 	void displayRect(const Common::Rect &rect, int x, int y);
-	byte *_palette;
 
 	ResourceManager *_resMan;
 
@@ -228,6 +233,11 @@ private:
 	 * is used.
 	 */
 	GfxScreenUpscaledMode _upscaledHires;
+
+	/**
+	 * This buffer is used to draw a single hires font glyph.
+	 */
+	byte *_hiresGlyphBuffer;
 
 	/**
 	 * This here holds a translation for vertical+horizontal coordinates between native
@@ -473,4 +483,4 @@ public:
 
 } // End of namespace Sci
 
-#endif
+#endif // SCI_GRAPHICS_SCREEN_H

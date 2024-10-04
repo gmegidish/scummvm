@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
+#include "common/file.h"
+
+#include "ultima/ultima8/misc/debugger.h"
 #include "ultima/ultima8/conf/config_file_manager.h"
-#include "ultima/ultima8/filesys/file_system.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -32,21 +32,22 @@ using Std::string;
 ConfigFileManager *ConfigFileManager::_configFileManager = nullptr;
 
 ConfigFileManager::ConfigFileManager() {
-	debugN(MM_INFO, "Creating ConfigFileManager...\n");
+	debug(1, "Creating ConfigFileManager...");
 
 	_configFileManager = this;
 }
 
 ConfigFileManager::~ConfigFileManager() {
-	debugN(MM_INFO, "Destroying ConfigFileManager...\n");
+	debug(1, "Destroying ConfigFileManager...");
 
 	clear();
 	_configFileManager = nullptr;
 }
 
-bool ConfigFileManager::readConfigFile(string fname, const istring &category) {
-	Common::SeekableReadStream *f = FileSystem::get_instance()->ReadFile(fname);
-	if (!f) return false;
+bool ConfigFileManager::readConfigFile(const Common::Path &fname, const Std::string &category) {
+	Common::File f;
+	if (!f.open(fname))
+		return false;
 
 	ConfigFile *configFile = new ConfigFile();
 	configFile->_category = category;
@@ -54,7 +55,7 @@ bool ConfigFileManager::readConfigFile(string fname, const istring &category) {
 	// We need various characters as the inis are used for translations.
 	configFile->_iniFile.allowNonEnglishCharacters();
 
-	if (!configFile->_iniFile.loadFromStream(*f)) {
+	if (!configFile->_iniFile.loadFromStream(f)) {
 		delete configFile;
 		return false;
 	}
@@ -71,11 +72,11 @@ void ConfigFileManager::clear() {
 	_configFiles.clear();
 }
 
-void ConfigFileManager::clearRoot(const istring &category) {
+void ConfigFileManager::clearRoot(const Std::string &category) {
 	Std::vector<ConfigFile *>::iterator i = _configFiles.begin();
 
 	while (i != _configFiles.end()) {
-		if ((*i)->_category == category) {
+		if (category.equalsIgnoreCase((*i)->_category)) {
 			delete(*i);
 			i = _configFiles.erase(i);
 		} else {
@@ -84,10 +85,10 @@ void ConfigFileManager::clearRoot(const istring &category) {
 	}
 }
 
-bool ConfigFileManager::get(const istring &category, const istring &section, const istring &key, string &ret) {
-	Std::vector<ConfigFile*>::reverse_iterator i;
+bool ConfigFileManager::get(const Std::string &category, const Std::string &section, const Std::string &key, string &ret) const {
+	Std::vector<ConfigFile*>::const_reverse_iterator i;
 	for (i = _configFiles.rbegin(); i != _configFiles.rend(); ++i) {
-		if ((*i)->_category == category) {
+		if (category.equalsIgnoreCase((*i)->_category)) {
 			if ((*i)->_iniFile.getKey(key, section, ret)) {
 				return true;
 			}
@@ -98,7 +99,7 @@ bool ConfigFileManager::get(const istring &category, const istring &section, con
 }
 
 
-bool ConfigFileManager::get(const istring &category, const istring &section, const istring &key, int &ret) {
+bool ConfigFileManager::get(const Std::string &category, const Std::string &section, const Std::string &key, int &ret) const {
 	string stringval;
 	if (!get(category, section, key, stringval))
 		return false;
@@ -107,7 +108,7 @@ bool ConfigFileManager::get(const istring &category, const istring &section, con
 	return true;
 }
 
-bool ConfigFileManager::get(const istring &category, const istring &section, const istring &key, bool &ret) {
+bool ConfigFileManager::get(const Std::string &category, const Std::string &section, const Std::string &key, bool &ret) const {
 	string stringval;
 	if (!get(category, section, key, stringval))
 		return false;
@@ -116,12 +117,12 @@ bool ConfigFileManager::get(const istring &category, const istring &section, con
 	return true;
 }
 
-Std::vector<istring> ConfigFileManager::listSections(const istring &category) {
-	Std::vector<istring> sections;
+Std::vector<Std::string> ConfigFileManager::listSections(const Std::string &category) const {
+	Std::vector<Std::string> sections;
 	Std::vector<ConfigFile*>::const_iterator i;
 
 	for ( i = _configFiles.begin(); i != _configFiles.end(); ++i) {
-		if ((*i)->_category == category) {
+		if (category.equalsIgnoreCase((*i)->_category)) {
 			Common::INIFile::SectionList sectionList = (*i)->_iniFile.getSections();
 			Common::INIFile::SectionList::const_iterator j;
 			for (j = sectionList.begin(); j != sectionList.end(); ++j) {
@@ -133,13 +134,13 @@ Std::vector<istring> ConfigFileManager::listSections(const istring &category) {
 	return sections;
 }
 
-KeyMap ConfigFileManager::listKeyValues(const istring &category, const istring &section) {
+KeyMap ConfigFileManager::listKeyValues(const Std::string &category, const Std::string &section) const {
 	KeyMap values;
 	Std::vector<ConfigFile*>::const_iterator i;
 
 	for (i = _configFiles.begin(); i != _configFiles.end(); ++i) {
 		const ConfigFile *c = *i;
-		if (c->_category == category && c->_iniFile.hasSection(section)) {
+		if (category.equalsIgnoreCase((*i)->_category) && c->_iniFile.hasSection(section)) {
 			Common::INIFile::SectionKeyList keys = c->_iniFile.getKeys(section);
 			Common::INIFile::SectionKeyList::const_iterator j;
 			for (j = keys.begin(); j != keys.end(); ++j) {

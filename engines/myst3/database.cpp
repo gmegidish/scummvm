@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,8 +49,8 @@ class NodeTransformAddHotspots : public NodeTransform {
 public :
 	NodeTransformAddHotspots();
 
-	void read(Common::SeekableReadStream *file);
-	void apply(NodePtr &node);
+	void read(Common::SeekableReadStream *file) override;
+	void apply(NodePtr &node) override;
 
 private:
 	int32 _zipBitIndex;
@@ -372,70 +371,70 @@ NodeWalker::~NodeWalker() {
 }
 
 static const RoomData roomsXXXX[] = {
-		{ kRoomShared,        "XXXX" }
+	{ kRoomShared,        "XXXX" }
 };
 
 static const RoomData roomsINTR[] = {
-		{ kRoomIntro,         "INTR" }
+	{ kRoomIntro,         "INTR" }
 };
 
 static const RoomData roomsTOHO[] = {
-		{ kRoomTomahnaStart,  "TOHO" }
+	{ kRoomTomahnaStart,  "TOHO" }
 };
 
 static const RoomData roomsTOHB[] = {
-		{ kRoomTomahnaReturn, "TOHB" }
+	{ kRoomTomahnaReturn, "TOHB" }
 };
 
 static const RoomData roomsLE[] = {
-		{ kJnaninStart,       "LEIS" },
-		{ kRoomLeos,          "LEOS" },
-		{ kRoomLeet,          "LEET" },
-		{ kRoomLelt,          "LELT" },
-		{ kRoomLemt,          "LEMT" },
-		{ kRoomLeof,          "LEOF" }
+	{ kJnaninStart,       "LEIS" },
+	{ kRoomLeos,          "LEOS" },
+	{ kRoomLeet,          "LEET" },
+	{ kRoomLelt,          "LELT" },
+	{ kRoomLemt,          "LEMT" },
+	{ kRoomLeof,          "LEOF" }
 };
 
 static const RoomData roomsLI[] = {
-		{ kRoomEdannaStart,   "LIDR" },
-		{ kRoomLisw,          "LISW" },
-		{ kRoomLifo,          "LIFO" },
-		{ kRoomLisp,          "LISP" },
-		{ kRoomLine,          "LINE" }
+	{ kRoomEdannaStart,   "LIDR" },
+	{ kRoomLisw,          "LISW" },
+	{ kRoomLifo,          "LIFO" },
+	{ kRoomLisp,          "LISP" },
+	{ kRoomLine,          "LINE" }
 };
 
 static const RoomData roomsEN[] = {
-		{ kRoomVoltaicStart,  "ENSI" },
-		{ kRoomEnpp,          "ENPP" },
-		{ kRoomEnem,          "ENEM" },
-		{ kRoomEnlc,          "ENLC" },
-		{ kRoomEndd,          "ENDD" },
-		{ kRoomEnch,          "ENCH" },
-		{ kRoomEnli,          "ENLI" }
+	{ kRoomVoltaicStart,  "ENSI" },
+	{ kRoomEnpp,          "ENPP" },
+	{ kRoomEnem,          "ENEM" },
+	{ kRoomEnlc,          "ENLC" },
+	{ kRoomEndd,          "ENDD" },
+	{ kRoomEnch,          "ENCH" },
+	{ kRoomEnli,          "ENLI" }
 };
 
 static const RoomData roomsNA[] = {
-		{ kRoomNarayan,       "NACH" }
+	{ kRoomNarayan,       "NACH" }
 };
 
 static const RoomData roomsMENU[] = {
-		{ kRoomMenu,          "MENU" },
-		{ kRoomJournals,      "JRNL" },
-		{ kRoomDemo,          "DEMO" },
-		{ kRoomAtix,          "ATIX" }
+	{ kRoomMenu,          "MENU" },
+	{ kRoomJournals,      "JRNL" },
+	{ kRoomDemo,          "DEMO" },
+	{ kRoomAtix,          "ATIX" }
 };
 
 static const RoomData roomsMA[] = {
-		{ kRoomAmateriaStart, "MACA" },
-		{ kRoomMais,          "MAIS" },
-		{ kRoomMall,          "MALL" },
-		{ kRoomMass,          "MASS" },
-		{ kRoomMaww,          "MAWW" },
-		{ kRoomMato,          "MATO" }
+	{ kRoomAmateriaStart, "MACA" },
+	{ kRoomMais,          "MAIS" },
+	{ kRoomMall,          "MALL" },
+	{ kRoomMass,          "MASS" },
+	{ kRoomMaww,          "MAWW" },
+	{ kRoomMato,          "MATO" }
 };
 
 static const RoomData roomsLOGO[] = {
-		{ kLogo,              "LOGO" }
+	{ kLogo,              "LOGO" }
 };
 
 const AgeData Database::_ages[] = {
@@ -458,7 +457,6 @@ Database::Database(const Common::Platform platform, const Common::Language langu
 		_localizationType(localizationType),
 		_soundIdMin(0),
 		_soundIdMax(0) {
-
 	_datFile = SearchMan.createReadStreamForMember("myst3.dat");
 	if (!_datFile) {
 		error("Unable to find 'myst3.dat'");
@@ -881,15 +879,15 @@ void Database::patchLanguageMenu() {
 	// The scripts for the other languages only differ by the value set for AudioLanguage variable
 	// when the language selection is not English.
 	// This function patches the language selection script to set the appropriate value based
-	// on the detected game langage.
+	// on the detected game language.
 
 	// Script disassembly:
-	//	hotspot 5 > c[v1 != 0] (true)
-	//	rect > pitch: 373 heading: 114 width: 209 height: 28
-	//	op 206, soundPlayVolume ( 795 5 )
-	//	op 53, varSetValue ( vLanguageAudio 2 ) // <= The second argument of this opcode is patched
-	//	op 194, runPuzzle1 ( 18 )
-	//	op 194, runPuzzle1 ( 19 )
+	// hotspot 5 > c[v1 != 0] (true)
+	// rect > pitch: 373 heading: 114 width: 209 height: 28
+	// op 206, soundPlayVolume ( 795 5 )
+	// op 53, varSetValue ( vLanguageAudio 2 ) // <= The second argument of this opcode is patched
+	// op 194, runPuzzle1 ( 18 )
+	// op 194, runPuzzle1 ( 19 )
 
 	NodePtr languageMenu = getNodeData(530, kRoomMenu, 9);
 	languageMenu->hotspots[5].script[1].args[1] = getGameLanguageCode();

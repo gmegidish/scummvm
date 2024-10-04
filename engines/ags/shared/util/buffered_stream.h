@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+// BufferedStream represents a buffered file stream; uses memory buffer
+// during read and write operations to limit number reads and writes on disk
+// and thus improve i/o performance.
+//
+// BufferedSectionStream is a subclass stream that limits reading by an
+// arbitrary offset range.
 
 #ifndef AGS_SHARED_UTIL_BUFFEREDSTREAM_H
 #define AGS_SHARED_UTIL_BUFFEREDSTREAM_H
 
-#include "ags/lib/std/vector.h"
+#include "common/std/vector.h"
 #include "ags/shared/util/file_stream.h"
 #include "ags/shared/util/file.h" // TODO: extract filestream mode constants
 
@@ -31,21 +37,28 @@ namespace AGS3 {
 namespace AGS {
 namespace Shared {
 
-// Needs tuning depending on the platform.
-const auto BufferStreamSize = 8 * 1024;
-
 class BufferedStream : public FileStream {
 public:
-	// Represents an open _buffered_ file object
+	// Needs tuning depending on the platform.
+	static const size_t BufferSize = 1024u * 8;
+
 	// The constructor may raise std::runtime_error if
 	// - there is an issue opening the file (does not exist, locked, permissions, etc)
 	// - the open mode could not be determined
 	// - could not determine the length of the stream
 	// It is recommended to use File::OpenFile to safely construct this object.
 	BufferedStream(const String &file_name, FileOpenMode open_mode, FileWorkMode work_mode, DataEndianess stream_endianess = kLittleEndian);
+	~BufferedStream();
 
-	bool    EOS() const override; ///< Is end of stream
-	soff_t  GetPosition() const override; ///< Current position (if known)
+	// Is end of stream
+	bool    EOS() const override;
+	// Total length of stream (if known)
+	soff_t  GetLength() const override;
+	// Current position (if known)
+	soff_t  GetPosition() const override;
+
+	void    Close() override;
+	bool    Flush() override;
 
 	size_t  Read(void *buffer, size_t size) override;
 	int32_t ReadByte() override;
@@ -55,15 +68,18 @@ public:
 	bool    Seek(soff_t offset, StreamSeek origin) override;
 
 protected:
-	soff_t _start;
-	soff_t _end;
+	soff_t _start = 0; // valid section starting offset
+	soff_t _end = -1; // valid section ending offset
 
 private:
+	// Reads a chunk of file into the buffer, starting from the given offset
 	void FillBufferFromPosition(soff_t position);
+	// Writes a buffer into the file, and reposition to the new offset
+	void FlushBuffer(soff_t position);
 
-	soff_t _position;
-	soff_t _bufferPosition;
-	std::vector<char> _buffer;
+	soff_t _position = 0; // absolute read/write offset
+	soff_t _bufferPosition = 0; // buffer's location relative to file
+	std::vector<uint8_t> _buffer;
 };
 
 
@@ -72,9 +88,6 @@ class BufferedSectionStream : public BufferedStream {
 public:
 	BufferedSectionStream(const String &file_name, soff_t start_pos, soff_t end_pos,
 		FileOpenMode open_mode, FileWorkMode work_mode, DataEndianess stream_endianess = kLittleEndian);
-
-	soff_t  GetPosition() const override;
-	soff_t  GetLength() const override;
 };
 
 } // namespace Shared

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,15 +16,12 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
  *   Faery Tale II -- The Halls of the Dead
  *   (c) 1993-1996 The Wyrmkeep Entertainment Co.
  */
-
-//#define FORBIDDEN_SYMBOL_ALLOW_ALL // FIXME: Remove
 
 #include "saga2/saga2.h"
 #include "saga2/cmisc.h"
@@ -57,7 +54,7 @@ ObjectID EnchantObject(
 	enchProto = g_vm->_objectProtos[enchantmentProto];
 
 	ench = GameObject::newObject(); //Create Enchantment
-	if (ench == NULL) return Nothing;
+	if (ench == nullptr) return Nothing;
 
 	//  Fill in the enchantment object. Note that the 'hitpoints'
 	//  of an enchantment are actually the duration of it's life
@@ -79,8 +76,8 @@ ObjectID EnchantObject(
 
 	//  Now, change the object base on enchantments
 	obj->evalEnchantments();
-	assert(enchProto->containmentSet() & ProtoObj::isEnchantment);
-	assert((ench->protoAddress(ench->thisID()))->containmentSet() & ProtoObj::isEnchantment);
+	assert(enchProto->containmentSet() & ProtoObj::kIsEnchantment);
+	assert((ench->protoAddress(ench->thisID()))->containmentSet() & ProtoObj::kIsEnchantment);
 	return ench->thisID();
 }
 
@@ -121,7 +118,7 @@ ObjectID FindObjectEnchantment(
 	while ((objID = iter.next(&containedObj)) != Nothing) {
 		ProtoObj *proto = containedObj->proto();
 
-		if ((proto->containmentSet() & ProtoObj::isEnchantment)
+		if ((proto->containmentSet() & ProtoObj::kIsEnchantment)
 		        && ((containedObj->getExtra() & 0xFF00) == (enchantmentType & 0xFF00))) {
 			return objID;
 		}
@@ -163,22 +160,22 @@ void addEnchantment(Actor *a, uint16 enchantmentID) {
 	int16  eAmount = getEnchantmentAmount(enchantmentID);
 
 	switch (eType) {
-	case effectAttrib:
+	case kEffectAttrib:
 		stats[eSubType] = clamp(0, stats[eSubType] + eAmount, 100);
 		break;
-	case effectResist:
+	case kEffectResist:
 		a->setResist((effectResistTypes) eSubType, eAmount);
 		break;
-	case effectImmune:
+	case kEffectImmune:
 		a->setImmune((effectImmuneTypes) eSubType, eAmount);
 		break;
-	case effectOthers:
+	case kEffectOthers:
 		a->setEffect((effectOthersTypes) eSubType, eAmount);
 		break;
-	case effectSpecial:           // damage shouldn't be an enchantment
+	case kEffectSpecial:           // damage shouldn't be an enchantment
 	// Special code needed
-	case effectDamage:           // damage shouldn't be an enchantment
-	case effectNone:
+	case kEffectDamage:           // damage shouldn't be an enchantment
+	case kEffectNone:
 		break;
 	}
 
@@ -199,7 +196,7 @@ void evalActorEnchantments(Actor *a) {
 	for (id = iter.first(&obj); id != Nothing; id = iter.next(&obj)) {
 		ProtoObj *proto = obj->proto();
 
-		if (proto->containmentSet() & ProtoObj::isEnchantment) {
+		if (proto->containmentSet() & ProtoObj::kIsEnchantment) {
 			uint16 enchantmentID = obj->getExtra();
 			addEnchantment(a, enchantmentID);
 		}
@@ -209,7 +206,7 @@ void evalActorEnchantments(Actor *a) {
 		ProtoObj        *proto = obj->proto();
 		uint16          cSet = proto->containmentSet();
 
-		if ((cSet & (ProtoObj::isArmor | ProtoObj::isWeapon | ProtoObj::isWearable))
+		if ((cSet & (ProtoObj::kIsArmor | ProtoObj::kIsWeapon | ProtoObj::kIsWearable))
 		        &&  proto->isObjectBeingUsed(obj)) {
 			a->_effectiveResistance  |= proto->resistance;
 			a->_effectiveImmunity    |= proto->immunity;
@@ -233,12 +230,12 @@ void evalObjectEnchantments(GameObject *obj) {
 	//  If more enchantment types are added, then we'll
 	//  have to do this a bit differently...
 
-	if (FindObjectEnchantment(obj->thisID(), makeEnchantmentID(effectNonActor, objectInvisible, true)))
-		obj->setFlags((uint8) - 1, objectInvisible);
+	if (FindObjectEnchantment(obj->thisID(), makeEnchantmentID(kEffectNonActor, kObjectInvisible, true)))
+		obj->setFlags((uint8) - 1, kObjectInvisible);
 	else
-		obj->setFlags(0, objectInvisible);
-	if (FindObjectEnchantment(obj->thisID(), makeEnchantmentID(effectNonActor, objectLocked, false)))
-		obj->setFlags((uint8) - 1, objectLocked);
+		obj->setFlags(0, kObjectInvisible);
+	if (FindObjectEnchantment(obj->thisID(), makeEnchantmentID(kEffectNonActor, kObjectLocked, false)))
+		obj->setFlags((uint8) - 1, kObjectLocked);
 }
 
 //-------------------------------------------------------------------
@@ -246,13 +243,13 @@ void evalObjectEnchantments(GameObject *obj) {
 
 EnchantmentIterator::EnchantmentIterator(GameObject *container) {
 	//  Get the ID of the 1st object in the sector list
-	baseObject = container;
-	wornObject = NULL;
-	nextID = Nothing;
+	_baseObject = container;
+	_wornObject = nullptr;
+	_nextID = Nothing;
 }
 
 ObjectID EnchantmentIterator::first(GameObject **obj) {
-	nextID = baseObject->IDChild();
+	_nextID = _baseObject->IDChild();
 
 	return next(obj);
 }
@@ -262,13 +259,13 @@ ObjectID EnchantmentIterator::next(GameObject **obj) {
 	ObjectID            id;
 
 	for (;;) {
-		id = nextID;
+		id = _nextID;
 
 		if (id == Nothing) {
 			//  If we were searching a 'worn' object, then pop up a level
-			if (wornObject) {
-				nextID = wornObject->IDNext();
-				wornObject = NULL;
+			if (_wornObject) {
+				_nextID = _wornObject->IDNext();
+				_wornObject = nullptr;
 				continue;
 			}
 
@@ -281,17 +278,17 @@ ObjectID EnchantmentIterator::next(GameObject **obj) {
 		ProtoObj        *proto = object->proto();
 		uint16          cSet = proto->containmentSet();
 
-		if ((cSet & (ProtoObj::isArmor | ProtoObj::isWeapon | ProtoObj::isWearable))
-		        &&  wornObject == NULL
+		if ((cSet & (ProtoObj::kIsArmor | ProtoObj::kIsWeapon | ProtoObj::kIsWearable))
+		        &&  _wornObject == nullptr
 		        &&  proto->isObjectBeingUsed(object)) {
-			wornObject = object;
-			nextID = object->IDChild();
+			_wornObject = object;
+			_nextID = object->IDChild();
 			continue;
 		}
 
-		nextID = object->IDNext();
+		_nextID = object->IDNext();
 
-		if (cSet & ProtoObj::isEnchantment) break;
+		if (cSet & ProtoObj::kIsEnchantment) break;
 	}
 
 	if (obj) *obj = object;

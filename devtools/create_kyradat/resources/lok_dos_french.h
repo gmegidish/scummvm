@@ -221,10 +221,9 @@ static const char *const k1HealingTipStringDOSFrench[1] = {
 
 static const StringListProvider k1HealingTipStringDOSFrenchProvider = { ARRAYSIZE(k1HealingTipStringDOSFrench), k1HealingTipStringDOSFrench };
 
-static const char *const k1PoisonGoneStringDOSFrench[3] = {
+static const char *const k1PoisonGoneStringDOSFrench[2] = {
 	"G""\x82""nial!",
-	"Les effets du poison ont disparu!",
-	"MBL1ERREUR: Jeu sauvegard""\x82"" d'un autre produit."
+	"Les effets du poison ont disparu!"
 };
 
 static const StringListProvider k1PoisonGoneStringDOSFrenchProvider = { ARRAYSIZE(k1PoisonGoneStringDOSFrench), k1PoisonGoneStringDOSFrench };
@@ -311,7 +310,7 @@ static const char *const k1GUIStringsDOSFrench[28] = {
 	"d""\x82""sactiv""\x82",
 	"Oui",
 	"Non",
-	"6""\x0F""f+@""\x0F""f+E""\x0F""f+L""\x0F""f+S""\x0F""f+_""\x0F""f+i""\x0F""f+p""\x0F""f+w""\x0F""f+Vitesse de d""\x82""placement",
+	"Vitesse de d""\x82""placement",
 	"Vitesse du texte",
 	"La musique est ",
 	"Les sons sont "

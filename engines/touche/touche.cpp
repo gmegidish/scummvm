@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,7 +36,7 @@
 
 #include "engines/util.h"
 #include "graphics/cursorman.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "gui/debugger.h"
 
 #include "touche/midi.h"
@@ -99,7 +98,7 @@ ToucheEngine::ToucheEngine(OSystem *system, Common::Language language)
 	_menuRedrawCounter = 0;
 	memset(_paletteBuffer, 0, sizeof(_paletteBuffer));
 
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 
 	SearchMan.addSubDirectoryMatching(gameDataDir, "database");
 
@@ -401,41 +400,45 @@ void ToucheEngine::processEvents(bool handleKeyEvents) {
 	Common::Event event;
 	while (_eventMan->pollEvent(event)) {
 		switch (event.type) {
-		case Common::EVENT_KEYDOWN:
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
 			if (!handleKeyEvents) {
 				break;
 			}
-			_flagsTable[600] = event.kbd.keycode;
-			if (event.kbd.keycode == Common::KEYCODE_ESCAPE) {
+			if (event.customType == kToucheActionSkipOrQuit) {
+				_flagsTable[600] = Common::KEYCODE_ESCAPE;
 				if (_displayQuitDialog) {
 					if (displayQuitDialog()) {
 						quitGame();
 					}
 				}
-			} else if (event.kbd.keycode == Common::KEYCODE_F5) {
+			} else if (event.customType == kToucheActionOpenOptions) {
 				if (_flagsTable[618] == 0 && !_hideInventoryTexts) {
 					handleOptions(0);
 				}
-			} else if (event.kbd.keycode == Common::KEYCODE_F9) {
+			} else if (event.customType == kToucheActionEnableFastWalk) {
 				_fastWalkMode = true;
-			} else if (event.kbd.keycode == Common::KEYCODE_F10) {
+			} else if (event.customType == kToucheActionDisableFastWalk) {
 				_fastWalkMode = false;
 			}
-			if (event.kbd.hasFlags(Common::KBD_CTRL)) {
-				if (event.kbd.keycode == Common::KEYCODE_f) {
-					_fastMode = !_fastMode;
-				}
+			if (event.customType == kToucheActionToggleFastMode) {
+				_fastMode = !_fastMode;
 			} else {
-				if (event.kbd.keycode == Common::KEYCODE_t) {
+				if (event.customType == kToucheActionToggleTalkTextMode) {
 					++_talkTextMode;
 					if (_talkTextMode == kTalkModeCount) {
 						_talkTextMode = 0;
 					}
 					displayTextMode(-(92 + _talkTextMode));
-				} else if (event.kbd.keycode == Common::KEYCODE_SPACE) {
+				} else if (event.customType == kToucheActionSkipDialogue) {
 					updateKeyCharTalk(2);
 				}
 			}
+			break;
+		case Common::EVENT_KEYDOWN:
+			if (!handleKeyEvents) {
+				break;
+			}
+			_flagsTable[600] = event.kbd.keycode;
 			break;
 		case Common::EVENT_LBUTTONDOWN:
 			_inp_leftMouseButtonPressed = true;
@@ -2207,7 +2210,7 @@ void ToucheEngine::drawAmountOfMoneyInInventory() {
 
 void ToucheEngine::packInventoryItems(int index) {
 	int16 *p = _inventoryStateTable[index].itemsList;
-	for (int i = 0; *p != -1; ++i, ++p) {
+	for (; *p != -1; ++p) {
 		if (p[0] == 0 && p[1] != -1) {
 			p[0] = p[1];
 			p[1] = 0;
@@ -2238,7 +2241,7 @@ void ToucheEngine::addItemToInventory(int inventory, int16 item) {
 		appendItemToInventoryList(inventory);
 		assert(inventory >= 0 && inventory < 3);
 		int16 *p = _inventoryStateTable[inventory].itemsList;
-		for (int i = 0; *p != -1; ++i, ++p) {
+		for (; *p != -1; ++p) {
 			if (*p == 0) {
 				*p = item;
 				_inventoryItemsInfoTable[item] = inventory | 0x10;
@@ -2257,7 +2260,7 @@ void ToucheEngine::removeItemFromInventory(int inventory, int16 item) {
 	} else {
 		assert(inventory >= 0 && inventory < 3);
 		int16 *p = _inventoryStateTable[inventory].itemsList;
-		for (int i = 0; *p != -1; ++i, ++p) {
+		for (; *p != -1; ++p) {
 			if (*p == item) {
 				*p = 0;
 				packInventoryItems(0);
@@ -3407,11 +3410,11 @@ void ToucheEngine::updatePalette() {
 	_system->getPaletteManager()->setPalette(_paletteBuffer, 0, 256);
 }
 
-bool ToucheEngine::canLoadGameStateCurrently() {
+bool ToucheEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return _gameState == kGameStateGameLoop && _flagsTable[618] == 0 && !_hideInventoryTexts;
 }
 
-bool ToucheEngine::canSaveGameStateCurrently() {
+bool ToucheEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return _gameState == kGameStateGameLoop && _flagsTable[618] == 0 && !_hideInventoryTexts;
 }
 
@@ -3419,7 +3422,7 @@ void ToucheEngine::initMusic() {
 	// Detect External Music Files
 	bool extMusic = true;
 	for (int num = 0; num < 26 && extMusic; num++) {
-		Common::String extMusicFilename = Common::String::format("track%02d", num+1);
+		Common::Path extMusicFilename(Common::String::format("track%02d", num+1));
 		Audio::SeekableAudioStream *musicStream = Audio::SeekableAudioStream::openStreamFile(extMusicFilename);
 		if (!musicStream)
 			extMusic = false;
@@ -3444,10 +3447,10 @@ void ToucheEngine::startMusic(int num) {
 		_fData.seek(offs);
 		_midiPlayer->play(_fData, size, true);
 	} else {
-		Common::String extMusicFilename = Common::String::format("track%02d", num);
+		Common::Path extMusicFilename(Common::String::format("track%02d", num));
 		Audio::SeekableAudioStream *extMusicFileStream = Audio::SeekableAudioStream::openStreamFile(extMusicFilename);
 		if (!extMusicFileStream) {
-			error("Unable to open %s for reading", extMusicFilename.c_str());
+			error("Unable to open %s for reading", extMusicFilename.toString().c_str());
 		}
 		Audio::LoopingAudioStream *loopStream = new Audio::LoopingAudioStream(extMusicFileStream, 0);
 		_mixer->playStream(Audio::Mixer::kMusicSoundType, &_musicHandle, loopStream, -1, _musicVolume);

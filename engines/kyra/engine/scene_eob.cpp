@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -120,11 +119,16 @@ void EoBCoreEngine::readLevelFileData(int level) {
 
 	for (const char *const *sf = suffix; *sf && !s; sf++) {
 		file = Common::String::format("LEVEL%d.%s", level, *sf);
-		s = _res->createReadStream(file);
+		s = _res->createReadStream(Common::Path(file));
 	}
 
 	if (!s)
 		error("Failed to load level file LEVEL%d.INF/DRO/ELO/JOT", level);
+
+	if (_flags.gameID == GI_EOB2 && _flags.lang == Common::Language::ZH_TWN) {
+		_screen->loadChineseEOB2LZBitmap(s, 5, 15000);
+		return;
+	}
 
 	if (s->readUint16LE() + 2 == s->size()) {
 		// check for valid compression type
@@ -319,7 +323,7 @@ void EoBCoreEngine::addLevelItems() {
 
 void EoBCoreEngine::loadVcnData(const char *file, const uint8 *cgaMapping) {
 	uint32 vcnSize = 0;
-	Common::String fn = Common::String::format(_vcnFilePattern.c_str(), _lastBlockDataFile);
+	Common::String fn = Common::String::format(_vcnFilePattern.c_str(), _lastBlockDataFile.c_str());
 	_screen->loadBitmap(fn.c_str(), 3, 3, 0, true);
 
 	const uint8 *pos = _screen->getCPagePtr(3);
@@ -360,7 +364,7 @@ void EoBCoreEngine::loadVcnData(const char *file, const uint8 *cgaMapping) {
 }
 
 Common::SeekableReadStreamEndian *EoBCoreEngine::getVmpData(const char *file) {
-	return _res->createEndianAwareReadStream(Common::String::format(_vmpFilePattern.c_str(), file));
+	return _res->createEndianAwareReadStream(Common::Path(Common::String::format(_vmpFilePattern.c_str(), file)));
 }
 
 void EoBCoreEngine::loadBlockProperties(const char *mazFile) {
@@ -379,9 +383,13 @@ void EoBCoreEngine::loadBlockProperties(const char *mazFile) {
 }
 
 const uint8 *EoBCoreEngine::getBlockFileData(int) {
-	Common::SeekableReadStream *s = _res->createReadStream(_curBlockFile);
-	_screen->loadFileDataToPage(s, 15, s->size());
-	delete s;
+	if (_flags.gameID == GI_EOB2 && _flags.platform == Common::kPlatformPC98) {
+		_screen->loadBitmap(_curBlockFile.c_str(), 15, 15, 0);
+	} else {
+		Common::SeekableReadStream *s = _res->createReadStream(Common::Path(_curBlockFile));
+		_screen->loadFileDataToPage(s, 15, s->size());
+		delete s;
+	}
 	return _screen->getCPagePtr(15);
 }
 
@@ -425,8 +433,7 @@ void EoBCoreEngine::loadDecorations(const char *cpsFile, const char *decFile) {
 
 	_levelDecorationDataSize = s->readUint16();
 	delete[] _levelDecorationData;
-	_levelDecorationData = new LevelDecorationProperty[_levelDecorationDataSize];
-	memset(_levelDecorationData, 0, _levelDecorationDataSize * sizeof(LevelDecorationProperty));
+	_levelDecorationData = new LevelDecorationProperty[_levelDecorationDataSize]();
 
 	for (int i = 0; i < _levelDecorationDataSize; i++) {
 		LevelDecorationProperty *l = &_levelDecorationData[i];
@@ -580,7 +587,7 @@ void EoBCoreEngine::drawScene(int refresh) {
 		int diff = _flashShapeTimer - ct;
 		while ((diff > 0) && !shouldQuit()) {
 			updateInput();
-			updateAnimTimers();
+			updateAnimations();
 			uint32 step = MIN<uint32>(diff, _tickLength / 5);
 			_system->delayMillis(step);
 			diff -= step;

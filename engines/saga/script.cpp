@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,7 +52,7 @@ SAGA1Script::SAGA1Script(SagaEngine *vm) : Script(vm) {
 	//initialize member variables
 	_abortEnabled = true;
 	_skipSpeeches = false;
-	_conversingThread = NULL;
+	_conversingThread = nullptr;
 	_firstObjectSet = false;
 	_secondObjectNeeded = false;
 	_pendingVerb = getVerbType(kVerbNone);
@@ -69,12 +68,12 @@ SAGA1Script::SAGA1Script(SagaEngine *vm) : Script(vm) {
 	debug(8, "Initializing scripting subsystem");
 	// Load script resource file context
 	_scriptContext = _vm->_resource->getContext(GAME_SCRIPTFILE);
-	if (_scriptContext == NULL) {
+	if (_scriptContext == nullptr) {
 		error("Script::Script() script context not found");
 	}
 
 	resourceContext = _vm->_resource->getContext(GAME_RESOURCEFILE);
-	if (resourceContext == NULL) {
+	if (resourceContext == nullptr) {
 		error("Script::Script() resource context not found");
 	}
 
@@ -126,7 +125,7 @@ SAGA1Script::SAGA1Script(SagaEngine *vm) : Script(vm) {
 
 	_vm->_resource->loadResource(resourceContext, _vm->getResourceDescription()->mainStringsResourceId, stringsData);
 
-	_vm->loadStrings(_mainStrings, stringsData);
+	_vm->loadStrings(_mainStrings, stringsData, _vm->isBigEndian());
 
 	setupScriptOpcodeList();
 
@@ -907,7 +906,7 @@ void Script::loadModule(uint scriptModuleNumber) {
 
 	_vm->_resource->loadResource(_scriptContext, _modules[scriptModuleNumber].stringsResourceId, resourceData);
 
-	_vm->loadStrings(_modules[scriptModuleNumber].strings, resourceData);
+	_vm->loadStrings(_modules[scriptModuleNumber].strings, resourceData, _vm->isBigEndian() && !_vm->isITEAmiga());
 
 	if (_modules[scriptModuleNumber].voicesResourceId > 0) {
 		_vm->_resource->loadResource(_scriptContext, _modules[scriptModuleNumber].voicesResourceId, resourceData);
@@ -983,7 +982,7 @@ void Script::loadVoiceLUT(VoiceLUT &voiceLUT, const ByteArray &resourceData) {
 
 	voiceLUT.resize(resourceData.size() / 2);
 
-	ByteArrayReadStreamEndian scriptS(resourceData, _scriptContext->isBigEndian());
+	ByteArrayReadStreamEndian scriptS(resourceData, _scriptContext->isBigEndian() || _vm->getPlatform() == Common::Platform::kPlatformAmiga);
 
 	for (i = 0; i < voiceLUT.size(); i++) {
 		voiceLUT[i] = scriptS.readUint16();
@@ -1130,7 +1129,7 @@ void Script::setVerb(int verb) {
 bool Script::isNonInteractiveDemo() {
 	// This detection only works in ITE. The early non-interactive demos had
 	// a very small script file
-	return _vm->getGameId() == GID_ITE && _scriptContext->fileSize() < 50000;
+	return _vm->getGameId() == GID_ITE && _scriptContext->fileSize() < 50000 && !_vm->isITEAmiga();
 }
 
 void Script::setLeftButtonVerb(int verb) {
@@ -1196,7 +1195,7 @@ void Script::doVerb() {
 			scriptModuleNumber = _vm->_scene->getScriptModuleNumber();
 			hitZone = _vm->_scene->_objectMap->getHitZone(objectIdToIndex(_pendingObject[0]));
 
-			if (hitZone == NULL)
+			if (hitZone == nullptr)
 				return;
 
 			if ((hitZone->getFlags() & kHitZoneExit) == 0) {
@@ -1297,7 +1296,7 @@ void Script::hitObject(bool leftButton) {
 
 				_leftButtonVerb = verb;
 				if (_pendingVerb > getVerbType(kVerbNone))
-					showVerb(kITEColorBrightWhite);
+					showVerb(_vm->iteColorBrightWhite());
 				else
 					showVerb();
 
@@ -1331,7 +1330,7 @@ void Script::hitObject(bool leftButton) {
 
 		_leftButtonVerb = verb;
 		if (_pendingVerb > getVerbType(kVerbNone))
-			showVerb(kITEColorBrightWhite);
+			showVerb(_vm->iteColorBrightWhite());
 		else
 			showVerb();
 	}
@@ -1373,7 +1372,7 @@ void Script::playfieldClick(const Point& mousePoint, bool leftButton) {
 	}
 
 
-	hitZone = NULL;
+	hitZone = nullptr;
 
 	if (objectTypeId(_pendingObject[0]) == kGameObjectHitZone) {
 		 hitZone = _vm->_scene->_objectMap->getHitZone(objectIdToIndex(_pendingObject[0]));
@@ -1383,7 +1382,7 @@ void Script::playfieldClick(const Point& mousePoint, bool leftButton) {
 		}
 	}
 
-	if (hitZone != NULL) {
+	if (hitZone != nullptr) {
 		if (_vm->getGameId() == GID_ITE) {
 			if (hitZone->getFlags() & kHitZoneNoWalk) {
 				_vm->_actor->actorFaceTowardsPoint(ID_PROTAG, pickLocation);
@@ -1515,7 +1514,7 @@ void Script::whichObject(const Point& mousePoint) {
 	newRightButtonVerb = getVerbType(kVerbNone);
 
 	// _protagonist can be null while loading a game from the command line
-	if (_vm->_actor->_protagonist == NULL)
+	if (_vm->_actor->_protagonist == nullptr)
 		return;
 
 	if (_vm->_actor->_protagonist->_currentAction != kActionWalkDir) {

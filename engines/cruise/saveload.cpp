@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,7 +71,7 @@ WARN_UNUSED_RESULT bool readSavegameHeader(Common::InSaveFile *in, CruiseSavegam
 void writeSavegameHeader(Common::OutSaveFile *out, CruiseSavegameHeader &header) {
 	// Write out a savegame header
 	char saveIdentBuffer[6];
-	strcpy(saveIdentBuffer, "SVMCR");
+	Common::strcpy_s(saveIdentBuffer, "SVMCR");
 	out->write(saveIdentBuffer, 6);
 
 	out->writeByte(CRUISE_SAVEGAME_VERSION);
@@ -150,7 +149,7 @@ static void syncBackgroundTable(Common::Serializer &s) {
 			warning("Saving a background resource that has too long a name");
 
 		s.syncBytes((byte *)backgroundTable[i].name, 9);
-		s.syncBytes((byte *)backgroundTable[i].extention, 6);
+		s.syncBytes((byte *)backgroundTable[i].extension, 6);
 	}
 }
 
@@ -188,7 +187,7 @@ static void syncFilesDatabase(Common::Serializer &s) {
 		tmp = (fe.subData.ptr) ? 1 : 0;
 		s.syncAsUint32LE(tmp);
 		if (s.isLoading()) {
-			fe.subData.ptr = tmp ? (uint8 *)1 : 0;
+			fe.subData.ptr = tmp ? (uint8 *)1 : nullptr;
 		}
 
 		s.syncAsSint16LE(fe.subData.index);
@@ -201,7 +200,7 @@ static void syncFilesDatabase(Common::Serializer &s) {
 		tmp = (fe.subData.ptrMask) ? 1 : 0;
 		s.syncAsUint32LE(tmp);
 		if (s.isLoading()) {
-			fe.subData.ptrMask = tmp ? (uint8 *)1 : 0;
+			fe.subData.ptrMask = tmp ? (uint8 *)1 : nullptr;
 		}
 
 		s.syncAsUint16LE(fe.subData.resourceType);
@@ -276,8 +275,8 @@ static void syncOverlays2(Common::Serializer &s) {
 		} else {
 			// Loading code
 			ovlRestoreData[i]._sBssSize = ovlRestoreData[i]._sNumObj = 0;
-			ovlRestoreData[i]._pBss = NULL;
-			ovlRestoreData[i]._pObj = NULL;
+			ovlRestoreData[i]._pBss = nullptr;
+			ovlRestoreData[i]._pObj = nullptr;
 
 			if (overlayTable[i].alreadyLoaded) {
 				s.syncAsSint16LE(ovlRestoreData[i]._sBssSize);
@@ -352,7 +351,7 @@ void syncScript(Common::Serializer &s, scriptInstanceStruct *entry) {
 		}
 
 		if (s.isLoading()) {
-			ptr->nextScriptPtr = NULL;
+			ptr->nextScriptPtr = nullptr;
 			entry->nextScriptPtr = ptr;
 			entry = ptr;
 		} else {
@@ -374,7 +373,7 @@ static void syncCell(Common::Serializer &s) {
 			t = t->next;
 		}
 	} else {
-		cellHead.next = NULL; // Not in ASM code, but I guess the variable is defaulted in the EXE
+		cellHead.next = nullptr; // Not in ASM code, but I guess the variable is defaulted in the EXE
 	}
 	s.syncAsSint16LE(chunkCount);
 
@@ -413,7 +412,7 @@ static void syncCell(Common::Serializer &s) {
 		if (s.isSaving())
 			t = t->next;
 		else {
-			p->next = NULL;
+			p->next = nullptr;
 			t->next = p;
 			p->prev = cellHead.prev;
 			cellHead.prev = p;
@@ -479,7 +478,7 @@ static void syncIncrust(Common::Serializer &s) {
 		if (s.isSaving())
 			pl = pl->next;
 		else {
-			t->next = NULL;
+			t->next = nullptr;
 			pl->next = t;
 			t->prev = pl1->prev;
 			pl1->prev = t;
@@ -530,7 +529,7 @@ static void syncActors(Common::Serializer &s) {
 		if (s.isSaving())
 			ptr = ptr->next;
 		else {
-			p->next = NULL;
+			p->next = nullptr;
 			ptr->next = p;
 			p->prev = actorHead.prev;
 			actorHead.prev = p;
@@ -580,7 +579,7 @@ static void syncCT(Common::Serializer &s) {
 	int v = (_vm->_polyStruct) ? 1 : 0;
 	s.syncAsSint32LE(v);
 	if (s.isLoading())
-		_vm->_polyStruct = (v != 0) ? &_vm->_polyStructNorm : NULL;
+		_vm->_polyStruct = (v != 0) ? &_vm->_polyStructNorm : nullptr;
 
 	if (v == 0)
 		// There is no further data to load or save
@@ -602,7 +601,7 @@ static void syncCT(Common::Serializer &s) {
 
 		if (s.isLoading())
 			// Set up the pointer for the next structure
-			persoTable[i] = (v == 0) ? NULL : (persoStruct *)mallocAndZero(sizeof(persoStruct));
+			persoTable[i] = (v == 0) ? nullptr : (persoStruct *)mallocAndZero(sizeof(persoStruct));
 
 		if (v != 0)
 			syncPerso(s, *persoTable[i]);
@@ -644,9 +643,9 @@ void resetPreload() {
 		if (strlen(preloadData[i].name)) {
 			if (preloadData[i].ptr) {
 				MemFree(preloadData[i].ptr);
-				preloadData[i].ptr = NULL;
+				preloadData[i].ptr = nullptr;
 			}
-			strcpy(preloadData[i].name, "");
+			preloadData[i].name[0] = '\0';
 			preloadData[i].nofree = 0;
 		}
 	}
@@ -655,8 +654,8 @@ void resetPreload() {
 void unloadOverlay(const char*name, int overlayNumber) {
 	releaseOverlay(name);
 
-	strcpy(overlayTable[overlayNumber].overlayName, "");
-	overlayTable[overlayNumber].ovlData = NULL;
+	overlayTable[overlayNumber].overlayName[0] = '\0';
+	overlayTable[overlayNumber].ovlData = nullptr;
 	overlayTable[overlayNumber].alreadyLoaded = 0;
 }
 
@@ -708,7 +707,7 @@ void initVars() {
 	soundList[3].frameNum = -1;
 
 	for (unsigned long int i = 0; i < 8; i++) {
-		menuTable[i] = NULL;
+		menuTable[i] = nullptr;
 	}
 
 	for (unsigned long int i = 0; i < 2000; i++) {
@@ -720,8 +719,8 @@ void initVars() {
 	}
 
 	for (unsigned long int i = 0; i < NUM_FILE_ENTRIES; i++) {
-		filesDatabase[i].subData.ptr = NULL;
-		filesDatabase[i].subData.ptrMask = NULL;
+		filesDatabase[i].subData.ptr = nullptr;
+		filesDatabase[i].subData.ptrMask = nullptr;
 	}
 
 	initBigVar3();
@@ -784,7 +783,7 @@ Common::Error saveSavegameData(int saveGameIdx, const Common::String &saveName) 
 	const char *filename = _vm->getSavegameFile(saveGameIdx);
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
 	Common::OutSaveFile *f = saveMan->openForSaving(filename);
-	if (f == NULL)
+	if (f == nullptr)
 		return Common::kNoGameDataFoundError;
 
 	// Save the savegame header
@@ -798,7 +797,7 @@ Common::Error saveSavegameData(int saveGameIdx, const Common::String &saveName) 
 		return Common::kWritingFailed;
 	} else {
 		// Create the remainder of the savegame
-		Common::Serializer s(NULL, f);
+		Common::Serializer s(nullptr, f);
 		DoSync(s);
 
 		f->finalize();
@@ -814,7 +813,7 @@ Common::Error loadSavegameData(int saveGameIdx) {
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
 	Common::InSaveFile *f = saveMan->openForLoading(_vm->getSavegameFile(saveGameIdx));
 
-	if (f == NULL) {
+	if (f == nullptr) {
 		printInfoBlackBox("Savegame not found...");
 		waitForPlayerInput();
 		return Common::kNoGameDataFoundError;
@@ -833,7 +832,7 @@ Common::Error loadSavegameData(int saveGameIdx) {
 	}
 
 	// Synchronise the remaining data of the savegame
-	Common::Serializer s(f, NULL);
+	Common::Serializer s(f, nullptr);
 	DoSync(s);
 
 	delete f;
@@ -841,7 +840,7 @@ Common::Error loadSavegameData(int saveGameIdx) {
 	// Post processing
 
 	for (int j = 0; j < 64; j++)
-		preloadData[j].ptr = NULL;
+		preloadData[j].ptr = nullptr;
 
 	for (int j = 1; j < numOfLoadedOverlay; j++) {
 		if (overlayTable[j].alreadyLoaded) {
@@ -892,8 +891,8 @@ Common::Error loadSavegameData(int saveGameIdx) {
 				;
 
 			for (int k = i; k < j; k++) {
-				filesDatabase[k].subData.ptr = NULL;
-				filesDatabase[k].subData.ptrMask = NULL;
+				filesDatabase[k].subData.ptr = nullptr;
+				filesDatabase[k].subData.ptrMask = nullptr;
 			}
 
 			/*if (j < 2) {
@@ -903,8 +902,8 @@ Common::Error loadSavegameData(int saveGameIdx) {
 			if (strlen(filesDatabase[i].subData.name) > 0) {
 				loadFileRange(filesDatabase[i].subData.name, filesDatabase[i].subData.index, i, j - i);
 			} else {
-				filesDatabase[i].subData.ptr = NULL;
-				filesDatabase[i].subData.ptrMask = NULL;
+				filesDatabase[i].subData.ptr = nullptr;
+				filesDatabase[i].subData.ptrMask = nullptr;
 			}
 
 			i = j - 1;

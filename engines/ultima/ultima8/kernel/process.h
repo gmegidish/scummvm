@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 
 #include "ultima/shared/std/containers.h"
 #include "ultima/ultima8/misc/classtype.h"
-#include "ultima/ultima8/misc/pent_include.h"
+#include "ultima/ultima8/misc/debugger.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -111,8 +110,8 @@ public:
 		return _ticksPerRun;
 	}
 
-	//! dump some info about this process to pout
-	virtual void dumpInfo() const;
+	//! dump some info about this process to a string
+	virtual Common::String dumpInfo() const;
 
 	//! load Process data
 	bool loadData(Common::ReadStream *rs, uint32 version);
@@ -154,7 +153,9 @@ public:
 		PROC_TERMINATED  = 0x0004,
 		PROC_TERM_DEFERRED = 0x0008, //!< automatically call terminate next frame
 		PROC_FAILED      = 0x0010,
-		PROC_RUNPAUSED   = 0x0020    //!< run even if game is paused
+		PROC_RUNPAUSED   = 0x0020,    //!< run even if game is paused
+		PROC_TERM_DISPOSE = 0x0040,  //!< Dispose after termination
+		PROC_PREVENT_SAVE = 0x0080   //!< When set, prevent game from saving
 	};
 
 };

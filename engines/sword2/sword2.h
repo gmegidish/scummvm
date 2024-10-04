@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef	SWORD2_SWORD2_H
@@ -147,7 +146,7 @@ protected:
 	void pauseEngineIntern(bool pause) override;
 
 public:
-	Sword2Engine(OSystem *syst);
+	Sword2Engine(OSystem *syst, const ADGameDescription *gameDesc);
 	~Sword2Engine() override;
 
 	int getFramesPerSecond();
@@ -163,9 +162,9 @@ public:
 
 	// GMM Loading/Saving
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
-	bool canSaveGameStateCurrently() override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 	Common::Error loadGameState(int slot) override;
-	bool canLoadGameStateCurrently() override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
 
 	uint32 _features;
 
@@ -176,6 +175,8 @@ public:
 	Mouse *_mouse;
 	Logic *_logic;
 	FontRenderer *_fontRenderer;
+
+	bool _isRTL;
 
 	Debugger *_debugger;
 
@@ -196,6 +197,8 @@ public:
 	bool _wantSfxDebug;
 
 	int32 _gameCycle;
+
+	bool _isKorTrs;
 
 #if RIGHT_CLICK_CLEARS_LUGGAGE
 	bool heldIsInInventory();
@@ -222,7 +225,7 @@ public:
 	bool saveExists();
 	bool saveExists(uint16 slotNo);
 	uint32 restoreFromBuffer(byte *buffer, uint32 size);
-	virtual Common::String getSaveStateName(int slot) const override;
+	Common::String getSaveStateName(int slot) const override;
 	uint32 findBufferSize();
 
 	void startGame();
@@ -247,7 +250,7 @@ public:
 	// This is a bit hackish, of course :-).
 	uint32 getMillis();
 
-	//Used to check wether we are running PSX version
+	// Used to check whether we are running PSX version
 	static bool isPsx() { return _platform == Common::kPlatformPSX; }
 };
 

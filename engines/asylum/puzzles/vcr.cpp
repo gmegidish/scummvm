@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -82,16 +81,6 @@ bool PuzzleVCR::init(const AsylumEvent &)  {
 	} else {
 		getCursor()->set(getWorld()->graphicResourceIds[28]);
 	}
-
-	return true;
-}
-
-bool PuzzleVCR::key(const AsylumEvent &evt) {
-	getSound()->stop(getWorld()->graphicResourceIds[47]);
-	getScreen()->clearGraphicsInQueue();
-	getScreen()->clear();
-
-	_vm->switchEventHandler(getScene());
 
 	return true;
 }
@@ -260,11 +249,10 @@ bool PuzzleVCR::mouseLeftUp(const AsylumEvent &) {
 	return true;
 }
 
-bool PuzzleVCR::mouseRightDown(const AsylumEvent &) {
+bool PuzzleVCR::exitPuzzle() {
+	getSound()->stop(getWorld()->graphicResourceIds[47]);
 	getScreen()->clearGraphicsInQueue();
 	getScreen()->clear();
-
-	getSound()->stop(getWorld()->graphicResourceIds[47]);
 
 	_vm->switchEventHandler(getScene());
 
@@ -325,7 +313,7 @@ void PuzzleVCR::updateScreen() {
 		getScreen()->clear();
 
 		// setupPalette();
-		getScreen()->setupPalette(NULL, 0, 0);
+		getScreen()->setupPalette(nullptr, 0, 0);
 
 		int paletteId = _vm->checkGameVersion("Demo") ? 20 : 28;
 		getScreen()->setPalette(MAKE_RESOURCE(kResourcePackTowerCells, paletteId));

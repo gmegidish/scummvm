@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -109,7 +108,7 @@ void LocationName::bind(const char *s) {
 	char *tok = strtok(_buf.begin(), ".");
 	while (tok) {
 		list.push_back(tok);
-		tok = strtok(NULL, ".");
+		tok = strtok(nullptr, ".");
 	}
 
 	if (list.size() < 1 || list.size() > 4)
@@ -135,19 +134,19 @@ void LocationName::bind(const char *s) {
 }
 
 Parallaction_ns::Parallaction_ns(OSystem* syst, const PARALLACTIONGameDescription *gameDesc) : Parallaction(syst, gameDesc),
-	_locationParser(0), _programParser(0), _walker(0) {
-	_soundManI = 0;
+	_locationParser(nullptr), _programParser(nullptr), _walker(nullptr) {
+	_soundManI = nullptr;
 	_score = 0;
 	_inTestResult = 0;
-	_callables = 0;
+	_callables = nullptr;
 	num_foglie = 0;
 	_sarcophagusDeltaX = 0;
 	_movingSarcophagus = 0;
 	_freeSarcophagusSlotX = 0;
 	_intro = 0;
 
-	_testResultLabels[0] = 0;
-	_testResultLabels[1] = 0;
+	_testResultLabels[0] = nullptr;
+	_testResultLabels[1] = nullptr;
 }
 
 Common::Error Parallaction_ns::init() {
@@ -159,7 +158,7 @@ Common::Error Parallaction_ns::init() {
 		_disk = new DosDisk_ns(this);
 	} else {
 		if (getFeatures() & GF_DEMO) {
-			strcpy(_location._name, "fognedemo");
+			Common::strcpy_s(_location._name, "fognedemo");
 		}
 		_disk = new AmigaDisk_ns(this);
 	}
@@ -205,8 +204,8 @@ Common::Error Parallaction_ns::init() {
 
 	_score = 1;
 
-	_testResultLabels[0] = 0;
-	_testResultLabels[1] = 0;
+	_testResultLabels[0] = nullptr;
+	_testResultLabels[1] = nullptr;
 
 	Parallaction::init();
 
@@ -237,7 +236,7 @@ void Parallaction_ns::destroyTestResultLabels() {
 	for (int i = 0; i < 2; ++i) {
 		_gfx->unregisterLabel(_testResultLabels[i]);
 		delete _testResultLabels[i];
-		_testResultLabels[i] = 0;
+		_testResultLabels[i] = nullptr;
 	}
 }
 
@@ -248,10 +247,10 @@ void Parallaction_ns::freeFonts() {
 	delete _menuFont;
 	delete _introFont;
 
-	_menuFont  = 0;
-	_dialogueFont = 0;
-	_labelFont = 0;
-	_introFont = 0;
+	_menuFont  = nullptr;
+	_dialogueFont = nullptr;
+	_labelFont = nullptr;
+	_introFont = nullptr;
 }
 
 
@@ -319,7 +318,7 @@ void Parallaction_ns::changeBackground(const char* background, const char* mask,
 		return;
 	}
 
-	if (path == 0) {
+	if (path == nullptr) {
 		path = mask;
 	}
 
@@ -493,7 +492,7 @@ void Parallaction_ns::changeCharacter(const char *name) {
 			parseLocation("common");
 	}
 
-	strcpy(_characterName1, _char.getFullName());
+	Common::strcpy_s(_characterName1, _char.getFullName());
 
 	debugC(3, kDebugExec, "changeCharacter: switch completed");
 
@@ -509,12 +508,12 @@ void Parallaction_ns::freeCharacter() {
 	delete _objects;
 	delete _objectsNames;
 
-	_char._talk = 0;
-	_char._head = 0;
-	_char._ani->gfxobj = 0;
+	_char._talk = nullptr;
+	_char._head = nullptr;
+	_char._ani->gfxobj = nullptr;
 
-	_objects = 0;
-	_objectsNames = 0;
+	_objects = nullptr;
+	_objectsNames = nullptr;
 }
 
 void Parallaction_ns::freeLocation(bool removeAll) {

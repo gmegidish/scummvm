@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,20 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
  //=============================================================================
  //
- // A simple data extension format which may be useful as an ammendment to
+ // A simple data extension format which may be useful as an amendment to
  // any data file in the game.
  //
  // Format consists of a list of "blocks", each preceded with an integer and an
  // optional string identifier, and a size in bytes which lets a reader to skip
  // the block completely if necessary.
- // Because the serialization algorithm was accomodated to be shared among
+ // Because the serialization algorithm was accommodated to be shared among
  // several existing data files, few things in the meta info may be read
  // slightly differently depending on flags passed into the function.
  //
@@ -70,6 +69,8 @@ enum DataExtFlags {
 	kDataExt_NumID8 = 0x0000, // default
 	kDataExt_NumID32 = 0x0001,
 	// 32-bit or 64-bit file offset support
+	// NOTE: for historical reasons this refers to blocks with numeric ID ONLY;
+	// new-style blocks with a 16-char ID always write 64-bit offset
 	kDataExt_File32 = 0x0000, // default
 	kDataExt_File64 = 0x0002
 };
@@ -101,7 +102,7 @@ public:
 
 	// Provides a leeway for over-reading (reading past the reported block length):
 	// the parser will not error if the mistake is in this range of bytes
-	virtual soff_t GetOverLeeway(int block_id) const {
+	virtual soff_t GetOverLeeway(int /*block_id*/) const {
 		return 0;
 	}
 
@@ -157,7 +158,7 @@ protected:
 
 // Type of function that writes a single data block.
 typedef void(*PfnWriteExtBlock)(Stream *out);
-void WriteExtBlock(int block, const String &ext_id, PfnWriteExtBlock writer, int flags, Stream *out);
+void WriteExtBlock(int block, const String &ext_id, const PfnWriteExtBlock &writer, int flags, Stream *out);
 // Writes a block with a new-style string id
 inline void WriteExtBlock(const String &ext_id, PfnWriteExtBlock writer, int flags, Stream *out) {
 	WriteExtBlock(0, ext_id, writer, flags, out);

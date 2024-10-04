@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -2480,6 +2479,8 @@ void Scene60::signal() {
 
 			if (g_vm->getLanguage() == Common::ES_ESP) {
 				_gfxButton.setText(ESP_EXIT_MSG);
+			} else if (g_vm->getLanguage() == Common::RU_RUS) {
+				_gfxButton.setText(RUS_EXIT_MSG);
 			} else {
 				_gfxButton.setText(EXIT_MSG);
 			}
@@ -2827,7 +2828,7 @@ void Scene95::Action1::signal() {
 		break;
 	case 5:
 		SceneItem::display(95, 4, SET_Y, 45, SET_FONT, 2,
-			SET_BG_COLOR, -1, SET_EXT_BGCOLOR, 35, SET_WIDTH, 200,
+			SET_BG_COLOR, -1, SET_EXT_BGCOLOR, 13, SET_WIDTH, 200,
 			SET_KEEP_ONSCREEN, 1, LIST_END);
 		setDelay(240);
 		break;
@@ -2917,6 +2918,8 @@ void Scene6100::Action1::signal() {
 	case 0:
 		if (g_vm->getLanguage() == Common::ES_ESP) {
 			scene->showMessage(ESP_SCENE6100_CAREFUL, 13, this);
+		} if (g_vm->getLanguage() == Common::RU_RUS) {
+			scene->showMessage(RUS_SCENE6100_CAREFUL, 13, this);
 		} else {
 			scene->showMessage(SCENE6100_CAREFUL, 13, this);
 		}
@@ -2924,6 +2927,8 @@ void Scene6100::Action1::signal() {
 	case 1:
 		if (g_vm->getLanguage() == Common::ES_ESP) {
 			scene->showMessage(ESP_SCENE6100_TOUGHER, 35, this);
+		} else if (g_vm->getLanguage() == Common::RU_RUS) {
+			scene->showMessage(RUS_SCENE6100_TOUGHER, 35, this);
 		} else {
 			scene->showMessage(SCENE6100_TOUGHER, 35, this);
 		}
@@ -2944,6 +2949,8 @@ void Scene6100::Action2::signal() {
 	case 0:
 		if (g_vm->getLanguage() == Common::ES_ESP) {
 			scene->showMessage(ESP_SCENE6100_ONE_MORE_HIT, 13, this);
+		} else if (g_vm->getLanguage() == Common::RU_RUS) {
+			scene->showMessage(RUS_SCENE6100_ONE_MORE_HIT, 13, this);
 		} else {
 			scene->showMessage(SCENE6100_ONE_MORE_HIT, 13, this);
 		}
@@ -2951,6 +2958,8 @@ void Scene6100::Action2::signal() {
 	case 1:
 		if (g_vm->getLanguage() == Common::ES_ESP) {
 			scene->showMessage(ESP_SCENE6100_DOING_BEST, 35, this);
+		} else if (g_vm->getLanguage() == Common::RU_RUS) {
+			scene->showMessage(RUS_SCENE6100_DOING_BEST, 35, this);
 		} else {
 			scene->showMessage(SCENE6100_DOING_BEST, 35, this);
 		}
@@ -2992,6 +3001,8 @@ void Scene6100::Action3::signal() {
 	case 2:
 		if (g_vm->getLanguage() == Common::ES_ESP) {
 			scene->showMessage(ESP_SCENE6100_REPAIR, 7, this);
+		} else if (g_vm->getLanguage() == Common::RU_RUS) {
+			scene->showMessage(RUS_SCENE6100_REPAIR, 7, this);
 		} else {
 			scene->showMessage(SCENE6100_REPAIR, 7, this);
 		}
@@ -3019,6 +3030,8 @@ void Scene6100::Action4::signal() {
 	case 0:
 		if (g_vm->getLanguage() == Common::ES_ESP) {
 			scene->showMessage(ESP_SCENE6100_ROCKY_AREA, 13, this);
+		} else if (g_vm->getLanguage() == Common::RU_RUS) {
+			scene->showMessage(RUS_SCENE6100_ROCKY_AREA, 13, this);
 		} else {
 			scene->showMessage(SCENE6100_ROCKY_AREA, 13, this);
 		}
@@ -3026,6 +3039,8 @@ void Scene6100::Action4::signal() {
 	case 1:
 		if (g_vm->getLanguage() == Common::ES_ESP) {
 			scene->showMessage(ESP_SCENE6100_REPLY, 35, this);
+		} else if (g_vm->getLanguage() == Common::RU_RUS) {
+			scene->showMessage(RUS_SCENE6100_REPLY, 35, this);
 		} else {
 			scene->showMessage(SCENE6100_REPLY, 35, this);
 		}
@@ -3157,6 +3172,8 @@ void Scene6100::GetBoxAction::signal() {
 	case 1: {
 		if (g_vm->getLanguage() == Common::ES_ESP) {
 			scene->showMessage(ESP_SCENE6100_TAKE_CONTROLS, 35, this);
+		} else if (g_vm->getLanguage() == Common::RU_RUS) {
+			scene->showMessage(RUS_SCENE6100_TAKE_CONTROLS, 35, this);
 		} else {
 			scene->showMessage(SCENE6100_TAKE_CONTROLS, 35, this);
 		}
@@ -3171,6 +3188,8 @@ void Scene6100::GetBoxAction::signal() {
 		scene->_probe._percent = 4;
 		if (g_vm->getLanguage() == Common::ES_ESP) {
 			scene->showMessage(ESP_SCENE6100_SURPRISE, 13, this);
+		} else if (g_vm->getLanguage() == Common::RU_RUS) {
+			scene->showMessage(RUS_SCENE6100_SURPRISE, 13, this);
 		} else {
 			scene->showMessage(SCENE6100_SURPRISE, 13, this);
 		}
@@ -3178,6 +3197,8 @@ void Scene6100::GetBoxAction::signal() {
 	case 3:
 		if (g_vm->getLanguage() == Common::ES_ESP) {
 			scene->showMessage(ESP_SCENE6100_SWEAT, 35, this);
+		} else if (g_vm->getLanguage() == Common::RU_RUS) {
+			scene->showMessage(RUS_SCENE6100_SWEAT, 35, this);
 		} else {
 			scene->showMessage(SCENE6100_SWEAT, 35, this);
 		}
@@ -3185,6 +3206,8 @@ void Scene6100::GetBoxAction::signal() {
 	case 4:
 		if (g_vm->getLanguage() == Common::ES_ESP) {
 			scene->showMessage(ESP_SCENE6100_VERY_WELL, 13, this);
+		} else if (g_vm->getLanguage() == Common::RU_RUS) {
+			scene->showMessage(RUS_SCENE6100_VERY_WELL, 13, this);
 		} else {
 			scene->showMessage(SCENE6100_VERY_WELL, 13, this);
 		}

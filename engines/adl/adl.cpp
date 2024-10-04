@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,6 @@
 
 #include "engines/util.h"
 
-#include "graphics/palette.h"
 #include "graphics/thumbnail.h"
 
 #include "adl/adl.h"
@@ -122,8 +120,9 @@ bool AdlEngine::pollEvent(Common::Event &event) const {
 	return false;
 }
 
-Common::String AdlEngine::readString(Common::ReadStream &stream, byte until) const {
+Common::String AdlEngine::readString(Common::ReadStream &stream, byte until, const char *key) const {
 	Common::String str;
+	int keyLength = strlen(key);
 
 	while (1) {
 		byte b = stream.readByte();
@@ -134,8 +133,11 @@ Common::String AdlEngine::readString(Common::ReadStream &stream, byte until) con
 		if (b == until)
 			break;
 
+		if (keyLength)
+			b ^= key[str.size() % keyLength];
+
 		str += b;
-	};
+	}
 
 	return str;
 }
@@ -186,6 +188,7 @@ void AdlEngine::delay(uint32 ms) const {
 		pollEvent(event);
 		g_system->delayMillis(end - now < 16 ? end - now : 16);
 		now = g_system->getMillis();
+		g_system->updateScreen();
 	}
 }
 
@@ -292,6 +295,7 @@ byte AdlEngine::inputKey(bool showCursor) const {
 
 		_display->renderText();
 		g_system->delayMillis(16);
+		g_system->updateScreen();
 	}
 
 	_display->showCursor(false);
@@ -299,11 +303,46 @@ byte AdlEngine::inputKey(bool showCursor) const {
 	return key;
 }
 
-void AdlEngine::loadWords(Common::ReadStream &stream, WordMap &map, Common::StringArray &pri) const {
+void AdlEngine::waitKey(uint32 ms, Common::KeyCode keycode) const {
+	uint32 start = g_system->getMillis();
+
+	while (!shouldQuit()) {
+		Common::Event event;
+		if (pollEvent(event)) {
+			if (event.type == Common::EVENT_KEYDOWN)
+				if (keycode == Common::KEYCODE_INVALID || keycode == event.kbd.keycode)
+					return;
+		}
+
+		if (ms && g_system->getMillis() - start >= ms)
+			return;
+
+		g_system->delayMillis(16);
+		g_system->updateScreen();
+	}
+}
+
+void AdlEngine::loadWords(Common::ReadStream &stream, WordMap &map, Common::StringArray &pri, uint count) const {
 	uint index = 0;
 
 	map.clear();
 	pri.clear();
+
+	// WORKAROUND: Several games contain one or more word lists without a terminator
+	switch (getGameType()) {
+	case GAME_TYPE_HIRES3:
+		if (&map == &_verbs)
+			count = 72;
+		else
+			count = 113;
+		break;
+	case GAME_TYPE_HIRES5:
+		if (_state.region == 15 && &map == &_nouns)
+			count = 81;
+		break;
+	default:
+		break;
+	}
 
 	while (1) {
 		++index;
@@ -328,17 +367,8 @@ void AdlEngine::loadWords(Common::ReadStream &stream, WordMap &map, Common::Stri
 		if (synonyms == 0xff)
 			break;
 
-		// WORKAROUND: Missing verb list terminator in hires3
-		if (getGameType() == GAME_TYPE_HIRES3 && index == 72 && synonyms == 0)
-			return;
-
-		// WORKAROUND: Missing noun list terminator in hires3
-		if (getGameType() == GAME_TYPE_HIRES3 && index == 113)
-			return;
-
-		// WORKAROUND: Missing noun list terminator in hires5 region 15
-		if (getGameType() == GAME_TYPE_HIRES5 && _state.region == 15 && index == 81)
-			return;
+		if (index == count)
+			break;
 
 		for (uint i = 0; i < synonyms; ++i) {
 			if (stream.read((char *)buf, IDI_WORD_SIZE) < IDI_WORD_SIZE)
@@ -509,11 +539,13 @@ void AdlEngine::loadDroppedItemOffsets(Common::ReadStream &stream, byte count) {
 }
 
 void AdlEngine::drawPic(byte pic, Common::Point pos) const {
-	if (_roomData.pictures.contains(pic))
-		_graphics->drawPic(*_roomData.pictures[pic]->createReadStream(), pos);
-	else if (_pictures.contains(pic))
-		_graphics->drawPic(*_pictures[pic]->createReadStream(), pos);
-	else
+	if (_roomData.pictures.contains(pic)) {
+		Common::StreamPtr stream(_roomData.pictures[pic]->createReadStream());
+		_graphics->drawPic(*stream, pos);
+	} else if (_pictures.contains(pic)) {
+		Common::StreamPtr stream(_pictures[pic]->createReadStream());
+		_graphics->drawPic(*stream, pos);
+	} else
 		error("Picture %d not found", pic);
 }
 
@@ -550,6 +582,7 @@ bool AdlEngine::playTones(const Tones &tones, bool isMusic, bool allowSkip) cons
 		}
 
 		g_system->delayMillis(16);
+		g_system->updateScreen();
 	}
 
 	return false;
@@ -905,7 +938,7 @@ Common::Error AdlEngine::loadGameState(int slot) {
 	return Common::kNoError;
 }
 
-bool AdlEngine::canLoadGameStateCurrently() {
+bool AdlEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return _canRestoreNow;
 }
 
@@ -992,7 +1025,7 @@ Common::Error AdlEngine::saveGameState(int slot, const Common::String &desc, boo
 	return Common::kNoError;
 }
 
-bool AdlEngine::canSaveGameStateCurrently() {
+bool AdlEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	if (!_canSaveNow)
 		return false;
 

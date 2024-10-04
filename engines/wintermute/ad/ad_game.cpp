@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,6 +34,7 @@
 #include "engines/wintermute/ad/ad_inventory.h"
 #include "engines/wintermute/ad/ad_inventory_box.h"
 #include "engines/wintermute/ad/ad_item.h"
+#include "engines/wintermute/ad/ad_layer.h"
 #include "engines/wintermute/ad/ad_response.h"
 #include "engines/wintermute/ad/ad_response_box.h"
 #include "engines/wintermute/ad/ad_response_context.h"
@@ -66,6 +66,7 @@
 #include "engines/wintermute/video/video_player.h"
 #include "engines/wintermute/video/video_theora_player.h"
 #include "engines/wintermute/platform_osystem.h"
+
 #include "common/config-manager.h"
 #include "common/str.h"
 
@@ -99,6 +100,7 @@ AdGame::AdGame(const Common::String &gameId) : BaseGame(gameId) {
 	_texTalkLifeTime = 10000;
 
 	_talkSkipButton = TALK_SKIP_LEFT;
+	_videoSkipButton = VIDEO_SKIP_LEFT;
 
 	_sceneViewport = nullptr;
 
@@ -416,25 +418,6 @@ bool AdGame::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisStack, 
 		}
 		return STATUS_OK;
 	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// UnloadActor3D
-	//////////////////////////////////////////////////////////////////////////
-	else if (strcmp(name, "UnloadActor3D") == 0) {
-		// this does the same as UnloadActor etc. ..
-		// even WmeLite has this script call in AdScene
-		stack->correctParams(1);
-		ScValue *val = stack->pop();
-		AdObject *obj = static_cast<AdObject *>(val->getNative());
-
-		removeObject(obj);
-		if (val->getType() == VAL_VARIABLE_REF) {
-			val->setNULL();
-		}
-
-		stack->pushNULL();
-		return STATUS_OK;
-	}
 #endif
 
 	//////////////////////////////////////////////////////////////////////////
@@ -455,9 +438,13 @@ bool AdGame::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisStack, 
 	}
 
 	//////////////////////////////////////////////////////////////////////////
-	// UnloadObject / UnloadActor / UnloadEntity / DeleteEntity
+	// UnloadObject / UnloadActor / UnloadEntity / UnloadActor3D / DeleteEntity
 	//////////////////////////////////////////////////////////////////////////
-	else if (strcmp(name, "UnloadObject") == 0 || strcmp(name, "UnloadActor") == 0 || strcmp(name, "UnloadEntity") == 0 || strcmp(name, "DeleteEntity") == 0) {
+	else if (strcmp(name, "UnloadObject") == 0 || strcmp(name, "UnloadActor") == 0 || strcmp(name, "UnloadEntity") == 0 ||
+#ifdef ENABLE_WME3D
+	         strcmp(name, "UnloadActor3D") == 0 ||
+#endif
+	         strcmp(name, "DeleteEntity") == 0) {
 		stack->correctParams(1);
 		ScValue *val = stack->pop();
 		AdObject *obj = (AdObject *)val->getNative();
@@ -1107,16 +1094,13 @@ ScValue *AdGame::scGetProperty(const Common::String &name) {
 		return _scValue;
 	}
 
-#ifdef ENABLE_WME3D
 	//////////////////////////////////////////////////////////////////////////
 	// VideoSkipButton
 	//////////////////////////////////////////////////////////////////////////
 	else if (name == "VideoSkipButton") {
-		warning("AdGame::scGetProperty VideoSkipButton not implemented");
-		_scValue->setInt(0);
+		_scValue->setInt(_videoSkipButton);
 		return _scValue;
 	}
-#endif
 
 	//////////////////////////////////////////////////////////////////////////
 	// ChangingScene
@@ -1240,15 +1224,20 @@ bool AdGame::scSetProperty(const char *name, ScValue *value) {
 		return STATUS_OK;
 	}
 
-#ifdef ENABLE_WME3D
 	//////////////////////////////////////////////////////////////////////////
 	// VideoSkipButton
 	//////////////////////////////////////////////////////////////////////////
 	else if (strcmp(name, "VideoSkipButton") == 0) {
-		warning("AdGame::scSetProperty VideoSkipButton not implemented");
+		int val = value->getInt();
+		if (val < 0) {
+			val = 0;
+		}
+		if (val > VIDEO_SKIP_NONE) {
+			val = VIDEO_SKIP_NONE;
+		}
+		_videoSkipButton = (TVideoSkipButton)val;
 		return STATUS_OK;
 	}
-#endif
 
 	//////////////////////////////////////////////////////////////////////////
 	// StartupScene
@@ -1366,6 +1355,7 @@ TOKEN_DEF(INVENTORY_BOX)
 TOKEN_DEF(ITEMS)
 TOKEN_DEF(ITEM)
 TOKEN_DEF(TALK_SKIP_BUTTON)
+TOKEN_DEF(VIDEO_SKIP_BUTTON)
 TOKEN_DEF(SCENE_VIEWPORT)
 TOKEN_DEF(ENTITY_CONTAINER)
 TOKEN_DEF(EDITOR_PROPERTY)
@@ -1447,6 +1437,15 @@ bool AdGame::loadBuffer(char *buffer, bool complete) {
 					} else {
 						_talkSkipButton = TALK_SKIP_LEFT;
 					}
+					break;
+
+				case TOKEN_VIDEO_SKIP_BUTTON:
+					if (scumm_stricmp(params2, "right") == 0)
+						_videoSkipButton = VIDEO_SKIP_RIGHT;
+					else if (scumm_stricmp(params2, "both") == 0)
+						_videoSkipButton = VIDEO_SKIP_BOTH;
+					else
+						_videoSkipButton = VIDEO_SKIP_LEFT;
 					break;
 
 				case TOKEN_SCENE_VIEWPORT: {
@@ -1560,10 +1559,9 @@ void AdGame::setPrevSceneName(const char *name) {
 	delete[] _prevSceneName;
 	_prevSceneName = nullptr;
 	if (name) {
-		_prevSceneName = new char[strlen(name) + 1];
-		if (_prevSceneName) {
-			strcpy(_prevSceneName, name);
-		}
+		size_t nameSize = strlen(name) + 1;
+		_prevSceneName = new char[nameSize];
+		Common::strcpy_s(_prevSceneName, nameSize, name);
 	}
 }
 
@@ -1573,10 +1571,9 @@ void AdGame::setPrevSceneFilename(const char *name) {
 	delete[] _prevSceneFilename;
 	_prevSceneFilename = nullptr;
 	if (name) {
-		_prevSceneFilename = new char[strlen(name) + 1];
-		if (_prevSceneFilename) {
-			strcpy(_prevSceneFilename, name);
-		}
+		size_t nameSize = strlen(name) + 1;
+		_prevSceneFilename = new char[nameSize];
+		Common::strcpy_s(_prevSceneFilename, nameSize, name);
 	}
 }
 
@@ -1589,8 +1586,9 @@ bool AdGame::scheduleChangeScene(const char *filename, bool fadeIn) {
 	if (_scene && !_scene->_initialized) {
 		return changeScene(filename, fadeIn);
 	} else {
-		_scheduledScene = new char [strlen(filename) + 1];
-		strcpy(_scheduledScene, filename);
+		size_t filenameSize = strlen(filename) + 1;
+		_scheduledScene = new char [filenameSize];
+		Common::strcpy_s(_scheduledScene, filenameSize, filename);
 
 		_scheduledFadeIn = fadeIn;
 
@@ -1737,8 +1735,9 @@ bool AdGame::loadItemsFile(const char *filename, bool merge) {
 
 	bool ret;
 
-	//_filename = new char [strlen(filename)+1];
-	//strcpy(_filename, filename);
+	//size_t filenameSize = strlen(filename) + 1;
+	//_filename = new char [filenameSize];
+	//Common::strcpy_s(_filename, filenameSize, filename);
 
 	if (DID_FAIL(ret = loadItemsBuffer(buffer, merge))) {
 		_gameRef->LOG(0, "Error parsing ITEMS file '%s'", filename);
@@ -1808,8 +1807,9 @@ bool AdGame::loadItemsBuffer(char *buffer, bool merge) {
 
 //////////////////////////////////////////////////////////////////////////
 AdSceneState *AdGame::getSceneState(const char *filename, bool saving) {
-	char *filenameCor = new char[strlen(filename) + 1];
-	strcpy(filenameCor, filename);
+	size_t filenameSize = strlen(filename) + 1;
+	char *filenameCor = new char[filenameSize];
+	Common::strcpy_s(filenameCor, filenameSize, filename);
 	for (uint32 i = 0; i < strlen(filenameCor); i++) {
 		if (filenameCor[i] == '/') {
 			filenameCor[i] = '\\';
@@ -1836,32 +1836,6 @@ AdSceneState *AdGame::getSceneState(const char *filename, bool saving) {
 		return nullptr;
 	}
 }
-
-#ifdef ENABLE_WME3D
-//////////////////////////////////////////////////////////////////////////
-uint32 Wintermute::AdGame::getAmbientLightColor() {
-	if (_scene) {
-		return _scene->_ambientLightColor;
-	} else {
-		return BaseGame::getAmbientLightColor();
-	}
-}
-
-Wintermute::TShadowType Wintermute::AdGame::getMaxShadowType(Wintermute::BaseObject *object) {
-	TShadowType ret = BaseGame::getMaxShadowType(object);
-
-	return MIN(ret, _scene->_maxShadowType);
-}
-
-bool Wintermute::AdGame::getFogParams(FogParameters &fogParameters) {
-	if (_scene) {
-		fogParameters = _scene->_fogParameters;
-		return true;
-	} else {
-		return BaseGame::getFogParams(fogParameters);
-	}
-}
-#endif
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -1925,11 +1899,10 @@ bool AdGame::windowScriptMethodHook(UIWindow *win, ScScript *script, ScStack *st
 
 //////////////////////////////////////////////////////////////////////////
 bool AdGame::startDlgBranch(const char *branchName, const char *scriptName, const char *eventName) {
-	char *name = new char[strlen(branchName) + 1 + strlen(scriptName) + 1 + strlen(eventName) + 1];
-	if (name) {
-		sprintf(name, "%s.%s.%s", branchName, scriptName, eventName);
-		_dlgPendingBranches.add(name);
-	}
+	size_t sz = strlen(branchName) + 1 + strlen(scriptName) + 1 + strlen(eventName) + 1;
+	char *name = new char[sz];
+	Common::sprintf_s(name, sz, "%s.%s.%s", branchName, scriptName, eventName);
+	_dlgPendingBranches.add(name);
 	return STATUS_OK;
 }
 
@@ -1942,11 +1915,10 @@ bool AdGame::endDlgBranch(const char *branchName, const char *scriptName, const 
 		name = _dlgPendingBranches[_dlgPendingBranches.size() - 1];
 	} else {
 		if (branchName != nullptr) {
-			name = new char[strlen(branchName) + 1 + strlen(scriptName) + 1 + strlen(eventName) + 1];
-			if (name) {
-				sprintf(name, "%s.%s.%s", branchName, scriptName, eventName);
-				deleteName = true;
-			}
+			size_t sz = strlen(branchName) + 1 + strlen(scriptName) + 1 + strlen(eventName) + 1;
+			name = new char[sz];
+			Common::sprintf_s(name, sz, "%s.%s.%s", branchName, scriptName, eventName);
+			deleteName = true;
 		}
 	}
 
@@ -2301,10 +2273,11 @@ bool AdGame::addSpeechDir(const char *dir) {
 		return STATUS_FAILED;
 	}
 
-	char *temp = new char[strlen(dir) + 2];
-	strcpy(temp, dir);
-	if (temp[strlen(temp) - 1] != '\\' && temp[strlen(temp) - 1] != '/') {
-		strcat(temp, "\\");
+	size_t dirSize = strlen(dir) + 2;
+	char *temp = new char[dirSize];
+	Common::strcpy_s(temp, dirSize, dir);
+	if (temp[dirSize - 2 - 1] != '\\' && temp[dirSize - 2 - 1] != '/') {
+		Common::strcat_s(temp, dirSize, "\\");
 	}
 
 	for (uint32 i = 0; i < _speechDirs.size(); i++) {
@@ -2325,10 +2298,11 @@ bool AdGame::removeSpeechDir(const char *dir) {
 		return STATUS_FAILED;
 	}
 
-	char *temp = new char[strlen(dir) + 2];
-	strcpy(temp, dir);
-	if (temp[strlen(temp) - 1] != '\\' && temp[strlen(temp) - 1] != '/') {
-		strcat(temp, "\\");
+	size_t dirSize = strlen(dir) + 2;
+	char *temp = new char[dirSize];
+	Common::strcpy_s(temp, dirSize, dir);
+	if (temp[dirSize - 2 - 1] != '\\' && temp[dirSize - 2 - 1] != '/') {
+		Common::strcat_s(temp, dirSize, "\\");
 	}
 
 	bool found = false;
@@ -2351,12 +2325,12 @@ char *AdGame::findSpeechFile(char *stringID) {
 	char *ret = new char[MAX_PATH_LENGTH];
 
 	for (uint32 i = 0; i < _speechDirs.size(); i++) {
-		sprintf(ret, "%s%s.ogg", _speechDirs[i], stringID);
+		Common::sprintf_s(ret, MAX_PATH_LENGTH, "%s%s.ogg", _speechDirs[i], stringID);
 		if (BaseFileManager::getEngineInstance()->hasFile(ret)) {
 			return ret;
 		}
 
-		sprintf(ret, "%s%s.wav", _speechDirs[i], stringID);
+		Common::sprintf_s(ret, MAX_PATH_LENGTH, "%s%s.wav", _speechDirs[i], stringID);
 		if (BaseFileManager::getEngineInstance()->hasFile(ret)) {
 			return ret;
 		}
@@ -2510,14 +2484,79 @@ bool AdGame::onMouseRightUp() {
 bool AdGame::displayDebugInfo() {
 	char str[100];
 	if (_gameRef->_debugDebugMode) {
-		sprintf(str, "Mouse: %d, %d (scene: %d, %d)", _mousePos.x, _mousePos.y, _mousePos.x + (_scene ? _scene->getOffsetLeft() : 0), _mousePos.y + (_scene ? _scene->getOffsetTop() : 0));
+		Common::sprintf_s(str, "Mouse: %d, %d (scene: %d, %d)", _mousePos.x, _mousePos.y, _mousePos.x + (_scene ? _scene->getOffsetLeft() : 0), _mousePos.y + (_scene ? _scene->getOffsetTop() : 0));
 		_systemFont->drawText((byte *)str, 0, 90, _renderer->getWidth(), TAL_RIGHT);
 
-		sprintf(str, "Scene: %s (prev: %s)", (_scene && _scene->getName()) ? _scene->getName() : "???", _prevSceneName ? _prevSceneName : "???");
+		Common::sprintf_s(str, "Scene: %s (prev: %s)", (_scene && _scene->getName()) ? _scene->getName() : "???", _prevSceneName ? _prevSceneName : "???");
 		_systemFont->drawText((byte *)str, 0, 110, _renderer->getWidth(), TAL_RIGHT);
 	}
 	return BaseGame::displayDebugInfo();
 }
+
+
+#ifdef ENABLE_WME3D
+//////////////////////////////////////////////////////////////////////////
+Wintermute::TShadowType AdGame::getMaxShadowType(Wintermute::BaseObject *object) {
+	TShadowType ret = BaseGame::getMaxShadowType(object);
+
+	return MIN(ret, _scene->_maxShadowType);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+bool AdGame::getLayerSize(int *layerWidth, int *layerHeight, Rect32 *viewport, bool *customViewport) {
+	if (_scene && _scene->_mainLayer) {
+		int32 portX, portY, portWidth, portHeight;
+		_scene->getViewportOffset(&portX, &portY);
+		_scene->getViewportSize(&portWidth, &portHeight);
+		*customViewport = _sceneViewport || _scene->_viewport;
+
+		viewport->setRect(portX, portY, portX + portWidth, portY + portHeight);
+
+#ifdef ENABLE_WME3D
+		if (_scene->_scroll3DCompatibility) {
+			// backward compatibility hack
+			// WME pre-1.7 expects the camera to only view the top-left part of the scene
+			*layerWidth = _gameRef->_renderer->getWidth();
+			*layerHeight = _gameRef->_renderer->getHeight();
+			if (_gameRef->_editorResolutionWidth > 0)
+				*layerWidth = _gameRef->_editorResolutionWidth;
+			if (_gameRef->_editorResolutionHeight > 0)
+				*layerHeight = _gameRef->_editorResolutionHeight;
+		} else
+#endif
+		{
+			*layerWidth = _scene->_mainLayer->_width;
+			*layerHeight = _scene->_mainLayer->_height;
+		}
+		return true;
+	} else
+		return BaseGame::getLayerSize(layerWidth, layerHeight, viewport, customViewport);
+}
+
+#ifdef ENABLE_WME3D
+//////////////////////////////////////////////////////////////////////////
+uint32 AdGame::getAmbientLightColor() {
+	if (_scene) {
+		return _scene->_ambientLightColor;
+	} else {
+		return BaseGame::getAmbientLightColor();
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+bool AdGame::getFogParams(bool *fogEnabled, uint32 *fogColor, float *start, float *end) {
+	if (_scene) {
+		*fogEnabled = _scene->_fogEnabled;
+		*fogColor = _scene->_fogColor;
+		*start = _scene->_fogStart;
+		*end = _scene->_fogEnd;
+		return true;
+	} else {
+		return BaseGame::getFogParams(fogEnabled, fogColor, start, end);
+	}
+}
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////

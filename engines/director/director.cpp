@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,29 +15,30 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "backends/modular-backend.h"
+#include "backends/graphics/graphics.h"
+
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
-#include "common/error.h"
-#include "common/punycode.h"
 #include "common/tokenizer.h"
 
 #include "graphics/macgui/macwindowmanager.h"
 #include "graphics/wincursor.h"
 
 #include "director/director.h"
+#include "director/debugger.h"
 #include "director/archive.h"
 #include "director/cast.h"
 #include "director/movie.h"
+#include "director/picture.h"
 #include "director/score.h"
 #include "director/sound.h"
 #include "director/window.h"
-#include "director/lingo/lingo.h"
-#include "director/detection.h"
+#include "director/debugger/debugtools.h"
 
 /**
  * When detection is compiled dynamically, directory globs end up in detection plugin and
@@ -49,22 +50,26 @@
 
 namespace Director {
 
-const uint32 wmModeDesktop = Graphics::kWMModalMenuMode | Graphics::kWMModeManualDrawWidgets;
-const uint32 wmModeFullscreen = Graphics::kWMModalMenuMode | Graphics::kWMModeNoDesktop
-	| Graphics::kWMModeManualDrawWidgets | Graphics::kWMModeFullscreen;
-uint32 wmMode = 0;
-
 DirectorEngine *g_director;
 
 DirectorEngine::DirectorEngine(OSystem *syst, const DirectorGameDescription *gameDesc) : Engine(syst), _gameDescription(gameDesc) {
 	g_director = this;
+	g_debugger = new Debugger();
+	setDebugger(g_debugger);
 
-	_dirSeparator = ':';
+	// parseOptions depends on the _dirSeparator
+	_version = getDescriptionVersion();
+	if (getPlatform() == Common::kPlatformWindows && _version >= 400) {
+		_dirSeparator = '\\';
+	} else {
+		_dirSeparator = ':';
+	}
 
 	parseOptions();
 
 	// Setup mixer
 	syncSoundSettings();
+	_defaultVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kSFXSoundType);
 
 	// Load Palettes
 	loadDefaultPalettes();
@@ -75,7 +80,7 @@ DirectorEngine::DirectorEngine(OSystem *syst, const DirectorGameDescription *gam
 	// Load key codes
 	loadKeyCodes();
 
-	_currentPalette = nullptr;
+	memset(_currentPalette, 0, 768);
 	_currentPaletteLength = 0;
 	_stage = nullptr;
 	_windowList = new Datum;
@@ -84,30 +89,53 @@ DirectorEngine::DirectorEngine(OSystem *syst, const DirectorGameDescription *gam
 	_currentWindow = nullptr;
 	_cursorWindow = nullptr;
 	_lingo = nullptr;
-	_version = getDescriptionVersion();
+	_clipBoard = nullptr;
+	_fixStageSize = false;
+	_fixStageRect = Common::Rect();
+	_wmMode = 0;
+
+	_wmWidth = 1024;
+	_wmHeight = 768;
+
+	_fpsLimit = 0;
+	_forceDate.tm_sec = -1;
+	_forceDate.tm_min = -1;
+	_forceDate.tm_hour = -1;
+	_forceDate.tm_mday = -1;
+	_forceDate.tm_mon = -1;
+	_forceDate.tm_year = -1;
+	_forceDate.tm_wday = -1;
+	_loadSlowdownFactor = 0;
+	_loadSlowdownCooldownTime = 0;
 
 	_wm = nullptr;
 
-	_gameDataDir = Common::FSNode(ConfMan.get("path"));
+	_gameDataDir = Common::FSNode(ConfMan.getPath("path"));
 
-	// Meet Mediaband could have up to 5 levels of directories
-	SearchMan.addDirectory(_gameDataDir.getPath(), _gameDataDir, 0, 5);
-
-	SearchMan.addSubDirectoryMatching(_gameDataDir, "win_data", 0, 2);
+	SearchMan.addDirectory(_gameDataDir, 0, 5);
 
 	for (uint i = 0; Director::directoryGlobs[i]; i++) {
 		Common::String directoryGlob = directoryGlobs[i];
-		SearchMan.addSubDirectoryMatching(_gameDataDir, directoryGlob);
+		SearchMan.addSubDirectoryMatching(_gameDataDir, directoryGlob, 0, 5);
 	}
 
-	if (debugChannelSet(-1, kDebug32bpp))
+	if (debugChannelSet(-1, kDebug32bpp) || (getGameFlags() & GF_32BPP)) {
+#ifdef USE_RGB_COLOR
 		_colorDepth = 32;
-	else
+#else
+		warning("32-bpp color dept is not supported, forcing 8-bit");
+		_colorDepth = 8;
+#endif
+	} else {
 		_colorDepth = 8;	// 256-color
+	}
 
 	switch (getPlatform()) {
 	case Common::kPlatformMacintoshII:
 		_machineType = 4;
+		break;
+	case Common::kPlatformPippin:
+		_machineType = 71;
 		break;
 	case Common::kPlatformWindows:
 		_machineType = 256;
@@ -122,6 +150,7 @@ DirectorEngine::DirectorEngine(OSystem *syst, const DirectorGameDescription *gam
 	_centerStage = true;
 
 	_surface = nullptr;
+	_tickBaseline = 0;
 }
 
 DirectorEngine::~DirectorEngine() {
@@ -130,8 +159,8 @@ DirectorEngine::~DirectorEngine() {
 	delete _wm;
 	delete _surface;
 
-	for (Common::HashMap<Common::String, Archive *, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo>::iterator it = _openResFiles.begin(); it != _openResFiles.end(); ++it) {
-		delete it->_value;
+	for (auto &it : _allSeenResFiles) {
+		delete it._value;
 	}
 
 	for (uint i = 0; i < _winCursor.size(); i++)
@@ -143,11 +172,23 @@ DirectorEngine::~DirectorEngine() {
 Archive *DirectorEngine::getMainArchive() const { return _currentWindow->getMainArchive(); }
 Movie *DirectorEngine::getCurrentMovie() const { return _currentWindow->getCurrentMovie(); }
 Common::String DirectorEngine::getCurrentPath() const { return _currentWindow->getCurrentPath(); }
+Common::String DirectorEngine::getCurrentAbsolutePath() {
+	Common::String currentPath = getCurrentPath();
+	Common::String result;
+	result += (getPlatform() == Common::kPlatformWindows && _version >= 400) ? "C:\\" : "";
+	result += convertPath(currentPath);
+	return result;
+}
 
 static bool buildbotErrorHandler(const char *msg) { return true; }
 
-void DirectorEngine::setCurrentMovie(Movie *movie) {
-	_currentWindow = movie->getWindow();
+void DirectorEngine::setCurrentWindow(Window *window) {
+	if (_currentWindow == window)
+		return;
+	if (_currentWindow)
+		_currentWindow->decRefCount();
+	_currentWindow = window;
+	_currentWindow->incRefCount();
 }
 
 void DirectorEngine::setVersion(uint16 version) {
@@ -170,33 +211,59 @@ Common::Error DirectorEngine::run() {
 		return Common::kAudioDeviceInitFailed;
 	}
 
-	_currentPalette = nullptr;
+	memset(_currentPalette, 0, 768);
 
-	wmMode = debugChannelSet(-1, kDebugDesktop) ? wmModeDesktop : wmModeFullscreen;
+	//        we run mac-style menus     |   and we will redraw all widgets
+	_wmMode = Graphics::kWMModalMenuMode | Graphics::kWMModeManualDrawWidgets;
 
-	if (debugChannelSet(-1, kDebug32bpp))
-		wmMode |= Graphics::kWMMode32bpp;
+	if (!debugChannelSet(-1, kDebugDesktop))
+		_wmMode |= Graphics::kWMModeFullscreen | Graphics::kWMModeNoDesktop;
 
-	_wm = new Graphics::MacWindowManager(wmMode, &_director3QuickDrawPatterns, getLanguage());
+#ifdef USE_RGB_COLOR
+	if (debugChannelSet(-1, kDebug32bpp) || (getGameFlags() & GF_32BPP))
+		_wmMode |= Graphics::kWMMode32bpp;
+#endif
+
+	if (getGameFlags() & GF_DESKTOP)
+		_wmMode &= ~Graphics::kWMModeNoDesktop;
+
+	if (getGameFlags() & GF_640x480) {
+		_wmWidth = 640;
+		_wmHeight = 480;
+	}
+
+	_wm = new Graphics::MacWindowManager(_wmMode, &_director3QuickDrawPatterns, getLanguage());
 	_wm->setEngine(this);
 
+	gameQuirks(_gameDescription->desc.gameId, _gameDescription->desc.platform);
+
+	_wm->setDesktopMode(_wmMode);
+
+	_wm->printWMMode();
+
 	_pixelformat = _wm->_pixelformat;
+
+	debug("Director pixelformat is: %s", _pixelformat.toString().c_str());
 
 	_stage = new Window(_wm->getNextId(), false, false, false, _wm, this, true);
 	*_stage->_refCount += 1;
 
-	if (!debugChannelSet(-1, kDebugDesktop))
+	// Set this as background so it doesn't come to foreground when multiple windows present
+	_wm->setBackgroundWindow(_stage);
+
+	if (!desktopEnabled())
 		_stage->disableBorder();
 
 	_surface = new Graphics::ManagedSurface(1, 1);
 	_wm->setScreen(_surface);
 	_wm->addWindowInitialized(_stage);
 	_wm->setActiveWindow(_stage->getId());
-	setPalette(-1);
+	setPalette(CastMemberID(kClutSystemMac, -1));
 
-	_currentWindow = _stage;
+	setCurrentWindow(_stage);
 
 	_lingo = new Lingo(this);
+	_lingo->switchStateFromWindow();
 
 	if (getGameGID() == GID_TEST) {
 		_currentWindow->runTests();
@@ -209,8 +276,27 @@ Common::Error DirectorEngine::run() {
 		_machineType = 256; // IBM PC-type machine
 
 	Common::Error err = _currentWindow->loadInitialMovie();
+
+	// Exit gracefully when run with buildbot
+	if (debugChannelSet(-1, kDebugFewFramesOnly) && err.getCode() == Common::kNoGameDataFoundError)
+		return Common::kNoError;
+
 	if (err.getCode() != Common::kNoError)
 		return err;
+
+	if (debugChannelSet(-1, kDebugConsole)) {
+		g_debugger->attach();
+		g_system->updateScreen();
+	}
+
+#ifdef USE_IMGUI
+	ImGuiCallbacks callbacks;
+	bool drawImGui = debugChannelSet(-1, kDebugImGui);
+	callbacks.init = DT::onImGuiInit;
+	callbacks.render = drawImGui ? DT::onImGuiRender : nullptr;
+	callbacks.cleanup = DT::onImGuiCleanup;
+	_system->setImGuiCallbacks(callbacks);
+#endif
 
 	bool loop = true;
 
@@ -218,10 +304,9 @@ Common::Error DirectorEngine::run() {
 		if (_stage->getCurrentMovie())
 			processEvents();
 
-		_currentWindow = _stage;
-		g_lingo->loadStateFromWindow();
+		setCurrentWindow(_stage);
+		g_lingo->switchStateFromWindow();
 		loop = _currentWindow->step();
-		g_lingo->saveStateToWindow();
 
 		if (loop) {
 			FArray *windowList = g_lingo->_windowList.u.farr;
@@ -229,21 +314,39 @@ Common::Error DirectorEngine::run() {
 				if (windowList->arr[i].type != OBJECT || windowList->arr[i].u.obj->getObjType() != kWindowObj)
 					continue;
 
-				_currentWindow = static_cast<Window *>(windowList->arr[i].u.obj);
-				g_lingo->loadStateFromWindow();
+				setCurrentWindow(static_cast<Window *>(windowList->arr[i].u.obj));
+				g_lingo->switchStateFromWindow();
 				_currentWindow->step();
-				g_lingo->saveStateToWindow();
 			}
 		}
 
 		draw();
+		g_director->delayMillis(10);
+#ifdef USE_IMGUI
+		// For performance reasons, disable the renderer callback if the ImGui debug flag isn't set
+		if (debugChannelSet(-1, kDebugImGui) != drawImGui) {
+			drawImGui = !drawImGui;
+			callbacks.render = drawImGui ? DT::onImGuiRender : nullptr;
+			_system->setImGuiCallbacks(callbacks);
+		}
+#endif
 	}
 
 	return Common::kNoError;
 }
 
 Common::CodePage DirectorEngine::getPlatformEncoding() {
+	// Returns the default encoding for the platform we're pretending to be.
+	// (English Mac OS, Japanese Mac OS, English Windows, etc.)
 	return getEncoding(getPlatform(), getLanguage());
+}
+
+Common::String DirectorEngine::getRawEXEName() const {
+	if (!_gameDescription->desc.filesDescriptions[0].fileName)
+		return Common::String();
+
+	// Returns raw executable name (without getting overloaded from --start-movie option)
+	return Common::Path(_gameDescription->desc.filesDescriptions[0].fileName).toString(g_director->_dirSeparator);
 }
 
 Common::String DirectorEngine::getEXEName() const {
@@ -251,7 +354,7 @@ Common::String DirectorEngine::getEXEName() const {
 	if (startMovie.startMovie.size() > 0)
 		return startMovie.startMovie;
 
-	return Common::punycode_decodefilename(_gameDescription->desc.filesDescriptions[0].fileName);
+	return getRawEXEName();
 }
 
 void DirectorEngine::parseOptions() {
@@ -292,7 +395,7 @@ void DirectorEngine::parseOptions() {
 					_options.startMovie.startFrame = atoi(tail.c_str());
 			}
 
-			_options.startMovie.startMovie = Common::punycode_decodepath(_options.startMovie.startMovie).toString(_dirSeparator);
+			_options.startMovie.startMovie = Common::Path(_options.startMovie.startMovie).punycodeDecode().toString(_dirSeparator);
 
 			debug(2, "parseOptions(): Movie is: %s, frame is: %d", _options.startMovie.startMovie.c_str(), _options.startMovie.startFrame);
 		} else if (key == "startup") {
@@ -310,8 +413,16 @@ StartMovie DirectorEngine::getStartMovie() const {
 	return _options.startMovie;
 }
 
-Common::String DirectorEngine::getStartupPath() const {
-	return _options.startupPath;
+Common::Path DirectorEngine::getStartupPath() const {
+	return Common::Path(_options.startupPath, g_director->_dirSeparator);
+}
+
+bool DirectorEngine::desktopEnabled() {
+	return !(_wmMode & Graphics::kWMModeNoDesktop);
+}
+
+PatternTile::~PatternTile() {
+	delete img;
 }
 
 } // End of namespace Director

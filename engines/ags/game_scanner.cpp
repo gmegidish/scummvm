@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,21 +32,18 @@
 #include "common/hashmap.h"
 #include "common/md5.h"
 
+namespace AGS3 {
 /**
  * When detection is compiled dynamically, detection tables end up in detection plugin and
- * engine cannot link to them so duplicate them in the engine in this case
+ * engine cannot link to them so don't include the feature instead of duplicating the data
  */
-#ifndef DETECTION_STATIC
-#include "ags/detection_tables.h"
-#endif
-
-namespace AGS3 {
+#ifdef DETECTION_STATIC
 
 extern bool define_gamedata_location(const AGS::Shared::String &exe_path);
 extern bool engine_try_init_gamedata(AGS::Shared::String gamepak_path);
 
 
-void GameScanner::scan(const Common::String &startFolder) {
+void GameScanner::scan(const Common::Path &startFolder) {
 	detectClashes();
 
 	Common::FSNode folder(startFolder);
@@ -92,13 +88,13 @@ void GameScanner::scanFolder(const Common::FSNode &folder) {
 		} else if (filename.hasSuffixIgnoreCase(".exe") ||
 		           filename.hasSuffixIgnoreCase(".ags") ||
 		           filename.equalsIgnoreCase("ac2game.dat")) {
-			Common::String path = node.getPath();
+			Common::Path path = node.getPath();
 			scanFile(path);
 		}
 	}
 }
 
-void GameScanner::scanFile(const Common::String &filename) {
+void GameScanner::scanFile(const Common::Path &filename) {
 #ifdef TODO
 	Common::File f;
 	Common::FSNode fsNode(filename);
@@ -186,5 +182,6 @@ void GameScanner::detectClashes() {
 		gameNames[nameP->description] = true;
 	}
 }
+#endif
 
 } // namespace AGS3

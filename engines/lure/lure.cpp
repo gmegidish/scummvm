@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 #include "common/system.h"
 #include "common/savefile.h"
 #include "common/translation.h"
+#include "common/text-to-speech.h"
 
 #include "engines/util.h"
 
@@ -37,7 +37,7 @@
 
 namespace Lure {
 
-static LureEngine *int_engine = NULL;
+static LureEngine *int_engine = nullptr;
 
 LureEngine::LureEngine(OSystem *system, const LureGameDescription *gameDesc)
 	: Engine(system), _gameDescription(gameDesc), _rnd("lure") {
@@ -88,6 +88,10 @@ Common::Error LureEngine::init() {
 
 	// Setup mixer
 	syncSoundSettings();
+
+	Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+	if (ttsMan != nullptr)
+		ttsMan->enable(ConfMan.getBool("tts_narrator"));
 
 	return Common::kNoError;
 }
@@ -181,14 +185,14 @@ void LureEngine::pauseEngineIntern(bool pause) {
 const char *LureEngine::generateSaveName(int slotNumber) {
 	static char buffer[15];
 
-	sprintf(buffer, "lure.%.3d", slotNumber);
+	Common::sprintf_s(buffer, "lure.%.3d", slotNumber);
 	return buffer;
 }
 
 bool LureEngine::saveGame(uint8 slotNumber, Common::String &caption) {
 	Common::WriteStream *f = this->_saveFileMan->openForSaving(
 		generateSaveName(slotNumber));
-	if (f == NULL)
+	if (f == nullptr)
 		return false;
 
 	f->write("lure", 5);
@@ -212,7 +216,7 @@ bool LureEngine::saveGame(uint8 slotNumber, Common::String &caption) {
 bool LureEngine::loadGame(uint8 slotNumber) {
 	Common::ReadStream *f = this->_saveFileMan->openForLoading(
 		generateSaveName(slotNumber));
-	if (f == NULL)
+	if (f == nullptr)
 		return false;
 
 	// Check for header
@@ -257,8 +261,8 @@ void LureEngine::syncSoundSettings() {
 Common::String *LureEngine::detectSave(int slotNumber) {
 	Common::ReadStream *f = this->_saveFileMan->openForLoading(
 		generateSaveName(slotNumber));
-	if (f == NULL) return NULL;
-	Common::String *result = NULL;
+	if (f == nullptr) return nullptr;
+	Common::String *result = nullptr;
 
 	// Check for header
 	char buffer[5];

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,8 +26,8 @@
 #include "common/macresman.h"
 #include "common/system.h"
 #include "common/textconsole.h"
-#include "common/winexe_ne.h"
-#include "common/winexe_pe.h"
+#include "common/formats/winexe_ne.h"
+#include "common/formats/winexe_pe.h"
 #include "graphics/cursorman.h"
 #include "graphics/maccursor.h"
 #include "graphics/wincursor.h"
@@ -123,7 +122,7 @@ void MystCursorManager::setCursor(uint16 id) {
 		} else {
 			transparentColor = 255;
 		}
-		CursorMan.replaceCursor(surface->getPixels(), surface->w, surface->h, hotspotX, hotspotY, transparentColor);
+		CursorMan.replaceCursor(*surface, hotspotX, hotspotY, transparentColor);
 
 		// We're using the screen palette for the original game, but we need
 		// to use this for any 8bpp cursor in ME.
@@ -131,7 +130,7 @@ void MystCursorManager::setCursor(uint16 id) {
 			CursorMan.replaceCursorPalette(mhkSurface->getPalette(), 0, 256);
 	} else {
 		Graphics::PixelFormat pixelFormat = g_system->getScreenFormat();
-		CursorMan.replaceCursor(surface->getPixels(), surface->w, surface->h, hotspotX, hotspotY, pixelFormat.RGBToColor(255, 255, 255), false, &pixelFormat);
+		CursorMan.replaceCursor(*surface, hotspotX, hotspotY, pixelFormat.RGBToColor(255, 255, 255), false);
 	}
 }
 
@@ -141,7 +140,7 @@ void MystCursorManager::setDefaultCursor() {
 
 #endif
 
-MacCursorManager::MacCursorManager(const Common::String &appName) {
+MacCursorManager::MacCursorManager(const Common::Path &appName) {
 	if (!appName.empty()) {
 		_resFork = new Common::MacResManager();
 
@@ -211,7 +210,7 @@ void LivingBooksCursorManager_v2::setCursor(const Common::String &name) {
 		setCursor(id);
 }
 
-NECursorManager::NECursorManager(const Common::String &appName) {
+NECursorManager::NECursorManager(const Common::Path &appName) {
 	Common::NEResources *exe = new Common::NEResources();
 	if (exe->loadFromEXE(appName)) {
 		// Not all have cursors anyway, so it's not a problem if this fails
@@ -220,7 +219,7 @@ NECursorManager::NECursorManager(const Common::String &appName) {
 	delete exe;
 }
 
-PECursorManager::PECursorManager(const Common::String &appName) {
+PECursorManager::PECursorManager(const Common::Path &appName) {
 	Common::PEResources *exe = new Common::PEResources();
 	if (exe->loadFromEXE(appName)) {
 		// Not all have cursors anyway, so it's not a problem if this fails

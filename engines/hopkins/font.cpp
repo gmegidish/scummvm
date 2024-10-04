@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -61,7 +60,7 @@ void FontManager::loadZoneText() {
 }
 
 void FontManager::clearAll() {
-	_font = NULL;
+	_font = nullptr;
 	_fontFixedHeight = 0;
 	_fontFixedWidth = 0;
 
@@ -84,8 +83,8 @@ void FontManager::clearAll() {
 	for (int idx = 0; idx < 4048; idx++)
 		_index[idx] = 0;
 
-	_tempText = NULL;
-	_zoneText = NULL;
+	_tempText = nullptr;
+	_zoneText = nullptr;
 
 	_boxWidth = 240;
 }
@@ -143,7 +142,7 @@ void FontManager::setOptimalColor(int idx1, int idx2, int idx3, int idx4) {
 /**
  * Init text structure
  */
-void FontManager::initTextBuffers(int idx, int messageId, const Common::String &filename, int xp, int yp, int textType, int length, int color) {
+void FontManager::initTextBuffers(int idx, int messageId, const Common::Path &filename, int xp, int yp, int textType, int length, int color) {
 	assert(idx - 5 >= 0 && (idx - 5) <= MAX_TEXT);
 
 	TxtItem &txt = _text[idx - 5];
@@ -158,7 +157,7 @@ void FontManager::initTextBuffers(int idx, int messageId, const Common::String &
 }
 
 // Box
-void FontManager::box(int idx, int messageId, const Common::String &filename, int xp, int yp) {
+void FontManager::box(int idx, int messageId, const Common::Path &filename, int xp, int yp) {
 	int textPosX = xp;
 	if (idx < 0)
 		error("Bad number for text");
@@ -191,32 +190,33 @@ void FontManager::box(int idx, int messageId, const Common::String &filename, in
 			_textSortArray[i] = 0;
 
 		_text[idx]._textLoadedFl = true;
-		Common::String file = filename;
-		if (strncmp(file.c_str(), _oldName.c_str(), strlen(file.c_str())) != 0) {
+		Common::String basename(filename.baseName());
+		if (filename != _oldName) {
 			// Starting to access a new file, so read in the index file for the file
-			_oldName = file;
-			_indexName = Common::String(file.c_str(), file.size() - 3);
-			_indexName += "IND";
+			_oldName = filename;
+			_indexName = filename.getParent();
+			_indexName.joinInPlace(Common::String(basename.c_str(), basename.size() - 3));
+			_indexName.appendInPlace("IND");
 
 			Common::File f;
 			if (!f.open(_indexName))
-				error("Error opening file - %s", _indexName.c_str());
+				error("Error opening file - %s", _indexName.toString().c_str());
 			int filesize = f.size();
 			for (int i = 0; i < (filesize / 4); ++i)
 				_index[i] = f.readUint32LE();
 			f.close();
 		}
 		int bufSize;
-		if (filename[0] != 'Z' || filename[1] != 'O') {
+		if (basename[0] != 'Z' || basename[1] != 'O') {
 			Common::File f;
-			if (!f.open(file))
-				error("Error opening file - %s", _indexName.c_str());
+			if (!f.open(filename))
+				error("Error opening file - %s", _indexName.toString().c_str());
 
 			bufSize = 2048;
 			f.seek(_index[messageId]);
 
 			_tempText = _vm->_globals->allocMemory(2058);
-			if (_tempText == NULL)
+			if (_tempText == nullptr)
 				error("Error allocating text");
 
 			Common::fill(&_tempText[0], &_tempText[2058], 0);
@@ -360,7 +360,7 @@ void FontManager::box(int idx, int messageId, const Common::String &filename, in
 		if (textType == 1 || textType == 3 || textType == 5 || textType == 6) {
 			int size = saveHeight * saveWidth;
 			byte *ptrd = _vm->_globals->allocMemory(size);
-			if (ptrd == NULL)
+			if (ptrd == nullptr)
 				error("Cutting a block for text box (%d)", size);
 
 			_vm->_graphicsMan->copySurfaceRect(_vm->_graphicsMan->_frontBuffer, ptrd, posX, posY, saveWidth, saveHeight);
@@ -391,7 +391,7 @@ void FontManager::box(int idx, int messageId, const Common::String &filename, in
 			_text[idx]._textBlock = _vm->_globals->freeMemory(_text[idx]._textBlock);
 			int blockSize = blockHeight * blockWidth;
 			byte *ptre = _vm->_globals->allocMemory(blockSize + 20);
-			if (ptre == NULL)
+			if (ptre == nullptr)
 				error("Cutting a block for text box (%d)", blockSize);
 
 			_text[idx]._textBlock = ptre;

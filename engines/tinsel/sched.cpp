@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Process scheduler.
  */
@@ -31,15 +30,6 @@
 #include "common/util.h"
 
 namespace Tinsel {
-
-#include "common/pack-start.h"	// START STRUCT PACKING
-
-struct PROCESS_STRUC {
-	uint32 processId;		// ID of process
-	SCNHANDLE hProcessCode;	// handle to actor script
-} PACKED_STRUCT;
-
-#include "common/pack-end.h"	// END STRUCT PACKING
 
 //----------------- LOCAL GLOBAL DATA --------------------
 
@@ -75,7 +65,16 @@ static void RestoredProcessProcess(CORO_PARAM, const void *param) {
 	CORO_BEGIN_CODE(_ctx);
 
 	// get the stuff copied to process when it was created
+	// FIXME: Code without typedef emits -Wcast-qual GCC warning.
+	//        However, adding const casts break compilation with -fpermissive.
+	//        Reverted to local typedef for now until this can be avoided.
+#if 0
+	_ctx->pic = *(INT_CONTEXT **)param;
+	//_ctx->pic = *(const INT_CONTEXT **)param;
+#else
+	typedef INT_CONTEXT *PINT_CONTEXT;
 	_ctx->pic = *(const PINT_CONTEXT *)param;
+#endif
 
 	_ctx->pic = RestoreInterpretContext(_ctx->pic);
 	AttachInterpret(_ctx->pic, CoroScheduler.getCurrentProcess());
@@ -89,7 +88,16 @@ static void RestoredProcessProcess(CORO_PARAM, const void *param) {
  * Process Tinsel Process
  */
 static void ProcessTinselProcess(CORO_PARAM, const void *param) {
+	// FIXME: Code without typedef emits -Wcast-qual GCC warning.
+	//        However, adding const casts break compilation with -fpermissive.
+	//        Reverted to local typedef for now until this can be avoided.
+#if 0
+	//INT_CONTEXT **pPic = (INT_CONTEXT **)param;
+	const INT_CONTEXT **pPic = (const INT_CONTEXT **)param;
+#else
+	typedef INT_CONTEXT *PINT_CONTEXT;
 	const PINT_CONTEXT *pPic = (const PINT_CONTEXT *)param;
+#endif
 
 	CORO_BEGIN_CONTEXT;
 	CORO_END_CONTEXT(_ctx);
@@ -112,19 +120,17 @@ static void ProcessTinselProcess(CORO_PARAM, const void *param) {
  * Called to restore a scene process.
  */
 void RestoreSceneProcess(INT_CONTEXT *pic) {
-	uint32 i;
-	PROCESS_STRUC	*pStruc;
+	const PROCESS_STRUC *processes = _vm->_handle->GetProcessData(g_hSceneProcess, g_numSceneProcess);
 
-	pStruc = (PROCESS_STRUC *)_vm->_handle->LockMem(g_hSceneProcess);
-	for (i = 0; i < g_numSceneProcess; i++) {
-		if (FROM_32(pStruc[i].hProcessCode) == pic->hCode) {
+	for (uint32 i = 0; i < g_numSceneProcess; i++) {
+		if (processes[i].hProcessCode == pic->hCode) {
 			CoroScheduler.createProcess(PID_PROCESS + i, RestoredProcessProcess,
 					 &pic, sizeof(pic));
 			break;
 		}
 	}
 
-	assert(i < g_numSceneProcess);
+	delete[] processes;
 }
 
 /**
@@ -132,46 +138,47 @@ void RestoreSceneProcess(INT_CONTEXT *pic) {
  */
 void SceneProcessEvent(CORO_PARAM, uint32 procID, TINSEL_EVENT event, bool bWait, int myEscape,
 						bool *result) {
-	uint32 i;		// Loop counter
 	if (result) *result = false;
 
 	CORO_BEGIN_CONTEXT;
-		PROCESS_STRUC *pStruc;
+		const PROCESS_STRUC *processes;
 		Common::PPROCESS pProc;
-		PINT_CONTEXT pic;
+		INT_CONTEXT *pic;
 	CORO_END_CONTEXT(_ctx);
 
 	CORO_BEGIN_CODE(_ctx);
 
-	_ctx->pStruc = (PROCESS_STRUC *)_vm->_handle->LockMem(g_hSceneProcess);
-	for (i = 0; i < g_numSceneProcess; i++) {
-		if (FROM_32(_ctx->pStruc[i].processId) == procID) {
-			assert(_ctx->pStruc[i].hProcessCode);		// Must have some code to run
+	_ctx->processes = _vm->_handle->GetProcessData(g_hSceneProcess, g_numSceneProcess);
+	for (uint32 i = 0; i < g_numSceneProcess; i++) {
+		if (_ctx->processes[i].processId == procID) {
+			assert(_ctx->processes[i].hProcessCode); // Must have some code to run
 
 			_ctx->pic = InitInterpretContext(GS_PROCESS,
-				FROM_32(_ctx->pStruc[i].hProcessCode),
+				_ctx->processes[i].hProcessCode,
 				event,
-				NOPOLY,			// No polygon
+				NOPOLY,		// No polygon
 				0,			// No actor
-				NULL,			// No object
-				myEscape);
-			if (_ctx->pic == NULL)
-				return;
+				nullptr,	// No object
+				myEscape
+			);
 
-			_ctx->pProc = CoroScheduler.createProcess(PID_PROCESS + i, ProcessTinselProcess,
-				&_ctx->pic, sizeof(_ctx->pic));
-			AttachInterpret(_ctx->pic, _ctx->pProc);
+			if (_ctx->pic) {
+				_ctx->pProc = CoroScheduler.createProcess(
+					PID_PROCESS + i,
+					ProcessTinselProcess,
+					&_ctx->pic,
+					sizeof(_ctx->pic));
+				AttachInterpret(_ctx->pic, _ctx->pProc);				
+			}
+
 			break;
 		}
 	}
 
-	if (i == g_numSceneProcess)
-		return;
-
-	if (bWait) {
+	if (bWait && _ctx->pProc)
 		CORO_INVOKE_2(WaitInterpret, _ctx->pProc, result);
-	}
 
+	delete[] _ctx->processes;
 	CORO_END_CODE;
 }
 
@@ -179,16 +186,16 @@ void SceneProcessEvent(CORO_PARAM, uint32 procID, TINSEL_EVENT event, bool bWait
  * Kill all instances of a scene process.
  */
 void KillSceneProcess(uint32 procID) {
-	uint32 i;		// Loop counter
-	PROCESS_STRUC	*pStruc;
+	const PROCESS_STRUC *processes = _vm->_handle->GetProcessData(g_hSceneProcess, g_numSceneProcess);
 
-	pStruc = (PROCESS_STRUC *)_vm->_handle->LockMem(g_hSceneProcess);
-	for (i = 0; i < g_numSceneProcess; i++) {
-		if (FROM_32(pStruc[i].processId) == procID) {
+	for (uint32 i = 0; i < g_numSceneProcess; i++) {
+		if (processes[i].processId == procID) {
 			CoroScheduler.killMatchingProcess(PID_PROCESS + i, -1);
 			break;
 		}
 	}
+
+	delete[] processes;
 }
 
 /**
@@ -236,7 +243,7 @@ void KillGlobalProcesses() {
  */
 bool GlobalProcessEvent(CORO_PARAM, uint32 procID, TINSEL_EVENT event, bool bWait, int myEscape) {
 	CORO_BEGIN_CONTEXT;
-		PINT_CONTEXT	pic;
+		INT_CONTEXT *pic;
 		Common::PPROCESS	pProc;
 	CORO_END_CONTEXT(_ctx);
 

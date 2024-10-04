@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-2013 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,10 +64,10 @@ enum {
 
 
 TunnelPod::TunnelPod(Neighborhood *handler) : ChaseInteraction(kMarsTunnelPodInteractionID, handler,
-						kMarsTunnelPodNotificationID, (PegasusEngine *)g_engine), _tunnelMainMovie(kNoDisplayElement),
+						kMarsTunnelPodNotificationID, g_vm), _tunnelMainMovie(kNoDisplayElement),
 						_tunnelAltMovie(kNoDisplayElement), _deathMovie(kNoDisplayElement) {
-	_currentMovie = NULL;
-	_currentCallBack = NULL;
+	_currentMovie = nullptr;
+	_currentCallBack = nullptr;
 }
 
 void TunnelPod::setSoundFXLevel(const uint16 fxLevel) {
@@ -86,7 +85,7 @@ void TunnelPod::openInteraction() {
 	_tunnelCallBack.scheduleCallBack(kTriggerAtStop, 0, 0);
 
 	_tunnelMainMovie.initFromMovieFile("Images/Mars/Pod 2345M.mov");
-	_tunnelMainMovie.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+	_tunnelMainMovie.setVolume(g_vm->getSoundFXLevel());
 	_tunnelMainMovie.moveElementTo(kNavAreaLeft, kNavAreaTop);
 	_tunnelMainMovie.setDisplayOrder(kNavMovieOrder);
 
@@ -96,7 +95,7 @@ void TunnelPod::openInteraction() {
 	_tunnelMainCallBack.scheduleCallBack(kTriggerAtStop, 0, 0);
 
 	_tunnelAltMovie.initFromMovieFile("Images/Mars/Pod 345A.mov");
-	_tunnelAltMovie.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+	_tunnelAltMovie.setVolume(g_vm->getSoundFXLevel());
 	_tunnelAltMovie.moveElementTo(kNavAreaLeft, kNavAreaTop);
 	_tunnelAltMovie.setDisplayOrder(kNavMovieOrder);
 
@@ -106,7 +105,7 @@ void TunnelPod::openInteraction() {
 	_tunnelAltCallBack.scheduleCallBack(kTriggerAtStop, 0, 0);
 
 	_deathMovie.initFromMovieFile("Images/Mars/Pod 2D.mov");
-	_deathMovie.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+	_deathMovie.setVolume(g_vm->getSoundFXLevel());
 	_deathMovie.moveElementTo(kNavAreaLeft, kNavAreaTop);
 	_deathMovie.setDisplayOrder(kNavMovieOrder);
 
@@ -218,8 +217,8 @@ void TunnelPod::branchLeft() {
 	branchStart = 0;
 	branchEnd = 0;
 	flag = 0;
-	movie = NULL;
-	callBack = NULL;
+	movie = nullptr;
+	callBack = nullptr;
 	switch (_tunnelState) {
 	case kTunnelLaunch:
 		branchStart = kBranch1MainStart;
@@ -277,8 +276,8 @@ void TunnelPod::branchRight() {
 	branchStart = 0;
 	branchEnd = 0;
 	flag = 0;
-	movie = NULL;
-	callBack = NULL;
+	movie = nullptr;
+	callBack = nullptr;
 	switch (_tunnelState) {
 	case kTunnelLaunch:
 		switchTo(_deathMovie, _deathCallBack);
@@ -352,7 +351,7 @@ void TunnelPod::dontBranch() {
 
 void TunnelPod::switchTo(Movie &movie, NotificationCallBack &callBack) {
 	if (_currentMovie != &movie) {
-		if (_currentMovie != NULL) {
+		if (_currentMovie != nullptr) {
 			_currentMovie->stop();
 			_currentMovie->hide();
 			_currentMovie->stopDisplaying();

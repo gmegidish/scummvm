@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -210,7 +209,7 @@ static char *get_log(void)
 	s = (char *)rmalloc(1000);
 	s[0] = ' ';
 	s[1] = 0;
-	(void)textgets(log_in, s, 1000);
+	(void)readln(log_in, s, 1000);
 	if (texteof(log_in)) {  /* Reached end of logfile */
 		close_pfile(log_in, 1);
 		log_in = BAD_TEXTFILE;
@@ -223,11 +222,12 @@ static char *get_log(void)
 		} else {
 			logflag &= ~2;
 			fast_replay = 0;
+			if (s[0] != 0) writestr(s);
 		}
 	} else { /* Need to delay or wait for keypress */
 		if (logdelay == -1) agt_waitkey();
 		else agt_delay(logdelay);
-		if (s[0] != 0) writeln(s);
+		if (s[0] != 0) writestr(s);
 	}
 	return s;
 }
@@ -246,9 +246,10 @@ char *agt_readline(int in_type) {
 	char *s;
 
 	if (PURE_INPUT) agt_textcolor(-1);
-	if (logflag & 2)
+	if (logflag & 2) {
 		s = get_log();
-	else
+		agt_newline();
+	} else
 		s = agt_input(in_type);
 
 	if (g_vm->shouldQuit())
@@ -602,7 +603,7 @@ int agt_menu(const char *header, int size, int width, menuentry *menu)
 	for (i = 0; i < colheight; i++) {
 		for (j = 0; j < numcol; j++) {
 			if (j * colheight + i >= size) break;
-			sprintf(sbuff, "%2d.", j * colheight + i + 1);
+			Common::sprintf_s(sbuff, "%2d.", j * colheight + i + 1);
 			writestr(sbuff);
 			writestr(menu[j * colheight + i]);
 			if (j < numcol - 1) padout(width - 3 - strlen(menu[j * colheight + i]));
@@ -614,7 +615,7 @@ int agt_menu(const char *header, int size, int width, menuentry *menu)
 		i = read_number() - 1;
 		if (i < 0 || i >= size)
 			writeln("Please choose an option from the menu.");
-	} while (i < 0 || i >= size);
+	} while (!quitflag && (i < 0 || i >= size));
 	return i;
 }
 
@@ -630,7 +631,7 @@ void prompt_out(int n)
 	if (PURE_INPUT && n == 1) agt_textcolor(-1);
 	if (n == 1) {
 		agt_newline();
-		gen_sysmsg(1, ">", MSG_MAIN, NULL);
+		gen_sysmsg(1, ">", MSG_MAIN, nullptr);
 	}
 	if (n == 2) agt_puts("? ");
 	agt_textcolor(7);
@@ -672,30 +673,30 @@ void set_test_mode(fc_type fc) {
 	log_in = readopen(fc, fLOG, &errstr);
 
 	if (make_test) {
-		if (errstr == NULL)
+		if (errstr == nullptr)
 			fatal("Log file already exists.");
-		log_out = writeopen(fc, fLOG, NULL, &errstr);
-		if (errstr != NULL)
+		log_out = writeopen(fc, fLOG, nullptr, &errstr);
+		if (errstr != nullptr)
 			fatal("Couldn't create log file.");
 		logflag = 1;
 		return;
 	}
 
 	logdelay = 0;
-	if (errstr != NULL)
+	if (errstr != nullptr)
 		fatal("Couldn't open log file.");
 	logflag = 2;
 
 	script_on = 1;
-	scriptfile = writeopen(fc, fSCR, NULL, &errstr);
-	if (errstr != NULL)
+	scriptfile = writeopen(fc, fSCR, nullptr, &errstr);
+	if (errstr != nullptr)
 		fatal("Couldn't open script file.");
 }
 
 
 #ifndef REPLACE_GETFILE
 
-/* This opens the file refered to by fname and returns it */
+/* This opens the file referred to by fname and returns it */
 static genfile uf_open(fc_type fc, filetype ext, rbool rw) {
 	char *errstr;
 	genfile f;

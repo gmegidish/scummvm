@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,29 +43,29 @@ int32 g_mega_select_g = 200;
 int32 g_mega_select_b = 200;
 
 // holds info about current mission
-_mission *g_mission = NULL;
+_mission *g_mission = nullptr;
 
 // main buffer object
 // if this remains NULL then the system knows that there are no resources present
 // this should be used as a high level indication of the situation
-res_man *rs1 = NULL;
-res_man *rs2 = NULL;
-res_man *rs3 = NULL;
+res_man *rs1 = nullptr;
+res_man *rs2 = nullptr;
+res_man *rs3 = nullptr;
 
-res_man *private_session_resman = NULL;
+res_man *private_session_resman = nullptr;
 
-res_man *rs_bg = NULL;     // pointer to which res_man to use for background buffer
-res_man *rs_icons = NULL;  // pointer to which res_man to use for icons
-res_man *rs_anims = NULL;  // pointer to which res_man to use for animation data
-res_man *rs_remora = NULL; // pointer to which res_man to use for remora graphics
-res_man *rs_font = NULL;   // pointer to which res_man to use for font data
+res_man *rs_bg = nullptr;     // pointer to which res_man to use for background buffer
+res_man *rs_icons = nullptr;  // pointer to which res_man to use for icons
+res_man *rs_anims = nullptr;  // pointer to which res_man to use for animation data
+res_man *rs_remora = nullptr; // pointer to which res_man to use for remora graphics
+res_man *rs_font = nullptr;   // pointer to which res_man to use for font data
 
 // global test only
-res_man *global_text_resman = NULL;
-_linked_data_file *global_text;
+res_man *global_text_resman = nullptr;
+LinkedDataFile *global_text;
 
 // route-manager service object
-// doesnt depend on session specific extrernal data so we make it global service
+// doesn't depend on session specific external data so we make it global service
 // gets reset by the session constructor
 // the service exists to facilitate and coordinate the movement of non player characters - the player object has its own stuff
 //_route_manager        router;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,22 +28,18 @@
 namespace Ultima {
 namespace Nuvie {
 
-TMXMap::TMXMap(TileManager *tm, Map *m, ObjManager *om) {
-	tile_manager = tm;
-	map = m;
-	obj_manager = om;
-	mapdata = NULL;
-	game_type = NUVIE_GAME_NONE;
+TMXMap::TMXMap(TileManager *tm, Map *m, ObjManager *om) : tile_manager(tm),
+		map(m), obj_manager(om), mapdata(nullptr) {
 }
 
 TMXMap::~TMXMap() {
 
 }
 
-bool TMXMap::exportTmxMapFiles(Std::string dir, nuvie_game_t type) {
+bool TMXMap::exportTmxMapFiles(const Common::Path &dir, nuvie_game_t type) {
 	savedir = dir;
 	savename = get_game_tag(type);
-	Std::string filename;
+	Common::Path filename;
 	build_path(savedir, savename + "_tileset.bmp", filename);
 
 
@@ -60,12 +55,12 @@ bool TMXMap::exportTmxMapFiles(Std::string dir, nuvie_game_t type) {
 }
 
 void TMXMap::writeRoofTileset(uint8 level) {
-	if (map->get_roof_data(level) == NULL) {
+	if (map->get_roof_data(level) == nullptr) {
 		return;
 	}
 
-	Std::string filename = map->getRoofTilesetFilename();
-	Std::string destFilename;
+	Common::Path filename = map->getRoofTilesetFilename();
+	Common::Path destFilename;
 	build_path(savedir, savename + "_roof_tileset.bmp", destFilename);
 	NuvieIOFileRead read;
 	NuvieIOFileWrite write;
@@ -87,8 +82,6 @@ void TMXMap::writeLayer(NuvieIOFileWrite *tmx, uint16 sideLength, Std::string la
 
 	tmx->writeBuf((const unsigned char *)header.c_str(), header.length());
 
-	char buf[5]; // 'nnnn\0'
-
 	uint16 mx, my;
 	for (my = 0; my < sideLength; my++) {
 		for (mx = 0; mx < sideLength; mx++) {
@@ -98,8 +91,9 @@ void TMXMap::writeLayer(NuvieIOFileWrite *tmx, uint16 sideLength, Std::string la
 			} else { //everything else is uint16
 				gid = ((const uint16 *)data)[my * sideLength + mx] + 1 + gidOffset;
 			}
-			snprintf(buf, sizeof(buf), "%d", gid);
-			tmx->writeBuf((const unsigned char *)buf, strlen(buf));
+			// 'nnnn\0'
+			Common::String temp = Common::String::format("%d", gid);
+			tmx->writeBuf((const unsigned char *)temp.c_str(), temp.size());
 			if (mx < sideLength - 1 || my < sideLength - 1) { //don't write comma after last element in the array.
 				tmx->write1(',');
 			}
@@ -155,7 +149,7 @@ void TMXMap::writeObjects(NuvieIOFileWrite *tmx, uint8 level, bool forceLower, b
 		for (uint16 x = 0; x < width; x++) {
 			U6LList *list = obj_manager->get_obj_list(x, y, level);
 			if (list) {
-				for (U6Link *link = list->start(); link != NULL; link = link->next) {
+				for (U6Link *link = list->start(); link != nullptr; link = link->next) {
 					Obj *obj = (Obj *)link->data;
 					Tile *t = tile_manager->get_original_tile(obj_manager->get_obj_tile_num(obj->obj_n) + obj->frame_n);
 					Std::string s;
@@ -195,10 +189,9 @@ bool TMXMap::exportMapLevel(uint8 level) {
 	NuvieIOFileWrite tmx;
 	uint16 width = map->get_width(level);
 	mapdata = map->get_map_data(level);
-	char level_string[3]; // 'nn\0'
-	Std::string filename;
-	snprintf(level_string, sizeof(level_string), "%d", level);
-	build_path(savedir, savename + "_" + Std::string(level_string) + ".tmx", filename);
+	Common::String level_string = Common::String::format("%d", level); // 'nn\0'
+	Common::Path filename;
+	build_path(savedir, savename + "_" + Std::string(level_string.c_str()) + ".tmx", filename);
 
 	tmx.open(filename);
 	Std::string swidth = sint32ToString((sint32)width);
@@ -213,7 +206,7 @@ bool TMXMap::exportMapLevel(uint8 level) {
 	          + "_tileset.bmp\" trans=\"00dffc\" width=\"512\" height=\"1024\"/>\n";
 	header += " </tileset>\n";
 
-	if (map->get_roof_data(level) != NULL) {
+	if (map->get_roof_data(level) != nullptr) {
 		header +=
 		    " <tileset firstgid=\"2048\" name=\"roof_tileset\" tilewidth=\"16\" tileheight=\"16\">\n";
 		header += "  <image source=\"" + savename + "_roof_tileset.bmp\" trans=\"0070fc\" width=\"80\" height=\"3264\"/>\n";
@@ -226,7 +219,7 @@ bool TMXMap::exportMapLevel(uint8 level) {
 
 	writeObjectLayer(&tmx, level);
 
-	if (map->get_roof_data(level) != NULL) {
+	if (map->get_roof_data(level) != nullptr) {
 		writeLayer(&tmx, width, "RoofLayer", 2047, 16, (const unsigned char *)map->get_roof_data(level));
 	}
 

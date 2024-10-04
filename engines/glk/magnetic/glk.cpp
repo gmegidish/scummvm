@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -82,7 +81,7 @@ const gms_gamma_t Magnetic::GMS_GAMMA_TABLE[38] = {
 	{ "2.60", { 0, 121, 158, 184, 206, 224, 240, 255 }, true },
 	{ "2.65", { 0, 122, 159, 185, 206, 225, 241, 255 }, true },
 	{ "2.70", { 0, 124, 160, 186, 207, 225, 241, 255 }, true },
-	{ NULL,   { 0,   0,   0,   0,   0,   0,   0,   0 }, false }
+	{ nullptr, { 0,   0,   0,   0,   0,   0,   0,   0 }, false }
 };
 
 static gms_abbreviation_t GMS_ABBREVIATIONS[] = {
@@ -90,7 +89,7 @@ static gms_abbreviation_t GMS_ABBREVIATIONS[] = {
 	{'k', "attack"},   {'l', "look"},   {'p', "open"},
 	{'q', "quit"},     {'r', "drop"},   {'t', "take"},
 	{'x', "examine"},  {'y', "yes"},    {'z', "wait"},
-	{'\0', NULL}
+	{'\0', nullptr}
 };
 
 /*---------------------------------------------------------------------*/
@@ -196,15 +195,15 @@ void Magnetic::gms_fatal(const char *str) {
 		error("\n\nINTERNAL ERROR: %s", str);
 
 	/* Cancel all possible pending window input events. */
-	glk_cancel_line_event(gms_main_window, NULL);
+	glk_cancel_line_event(gms_main_window, nullptr);
 	glk_cancel_char_event(gms_main_window);
 	if (gms_hint_menu_window) {
 		glk_cancel_char_event(gms_hint_menu_window);
-		glk_window_close(gms_hint_menu_window, NULL);
+		glk_window_close(gms_hint_menu_window, nullptr);
 	}
 	if (gms_hint_text_window) {
 		glk_cancel_char_event(gms_hint_text_window);
-		glk_window_close(gms_hint_text_window, NULL);
+		glk_window_close(gms_hint_text_window, nullptr);
 	}
 
 	/* Print a message indicating the error. */
@@ -302,7 +301,7 @@ type32 Magnetic::gms_gameid_read_uint32(int offset, Common::SeekableReadStream *
 void Magnetic::gms_gameid_identify_game(const Common::String &text_file) {
 	Common::File stream;
 
-	if (!stream.open(text_file))
+	if (!stream.open(Common::Path(text_file)))
 		error("Error opening game file");
 
 	type32 game_size, game_pc;
@@ -314,7 +313,7 @@ void Magnetic::gms_gameid_identify_game(const Common::String &text_file) {
 
 	/* Search for these values in the table, and set game name if found. */
 	game = gms_gameid_lookup_game(game_size, game_pc);
-	gms_gameid_game_name = game ? game->name : NULL;
+	gms_gameid_game_name = game ? game->name : nullptr;
 }
 
 /*---------------------------------------------------------------------*/
@@ -330,13 +329,13 @@ int Magnetic::gms_graphics_open() {
 		                      wintype_Graphics, 0);
 	}
 
-	return gms_graphics_window != NULL;
+	return gms_graphics_window != nullptr;
 }
 
 void Magnetic::gms_graphics_close() {
 	if (gms_graphics_window) {
-		glk_window_close(gms_graphics_window, NULL);
-		gms_graphics_window = NULL;
+		glk_window_close(gms_graphics_window, nullptr);
+		gms_graphics_window = nullptr;
 	}
 }
 
@@ -546,7 +545,7 @@ gms_gammaref_t Magnetic::gms_graphics_equal_contrast_gamma(type16 palette[], lon
 	long lowest_variance;
 	assert(palette && color_usage);
 
-	result = NULL;
+	result = nullptr;
 	lowest_variance = INT32_MAX_VAL;
 
 	/* Search the gamma table for the entry with the lowest contrast variance. */
@@ -1204,7 +1203,7 @@ void Magnetic::gms_graphics_timeout() {
 		/* Save the color count for possible queries later. */
 		gms_graphics_count_colors(off_screen,
 		                          gms_graphics_width, gms_graphics_height,
-		                          &gms_graphics_color_count, NULL);
+		                          &gms_graphics_color_count, nullptr);
 	}
 
 	/*
@@ -1592,11 +1591,11 @@ int Magnetic::gms_graphics_interpreter_enabled() {
 
 void Magnetic::gms_graphics_cleanup() {
 	free(gms_graphics_bitmap);
-	gms_graphics_bitmap = NULL;
+	gms_graphics_bitmap = nullptr;
 	free(gms_graphics_off_screen);
-	gms_graphics_off_screen = NULL;
+	gms_graphics_off_screen = nullptr;
 	free(gms_graphics_on_screen);
-	gms_graphics_on_screen = NULL;
+	gms_graphics_on_screen = nullptr;
 
 	gms_graphics_animated = false;
 	gms_graphics_picture = 0;
@@ -1744,7 +1743,7 @@ void Magnetic::gms_status_redraw() {
 		 */
 		parent = glk_window_get_parent(gms_status_window);
 		glk_window_set_arrangement(parent,
-		                                 winmethod_Above | winmethod_Fixed, 1, NULL);
+		                                 winmethod_Above | winmethod_Fixed, 1, nullptr);
 
 		gms_status_update();
 	}
@@ -1802,7 +1801,7 @@ void Magnetic::gms_detect_game_prompt() {
 
 void Magnetic::gms_output_delete() {
 	free(gms_output_buffer);
-	gms_output_buffer = NULL;
+	gms_output_buffer = nullptr;
 	gms_output_allocation = gms_output_length = 0;
 }
 
@@ -1981,7 +1980,7 @@ const char *Magnetic::gms_get_hint_topic(const ms_hint hints_[], type16 node) {
 		 */
 		parent = hints_[node].parent;
 
-		topic = NULL;
+		topic = nullptr;
 		for (index = 0; index < hints_[parent].elcount; index++) {
 			if (hints_[parent].links[index] == node) {
 				topic = gms_get_hint_content(hints_, parent, index);
@@ -2016,8 +2015,8 @@ int Magnetic::gms_hint_open() {
 		                       | winmethod_Proportional,
 		                       100, wintype_TextBuffer, 0);
 		if (!gms_hint_text_window) {
-			glk_window_close(gms_hint_menu_window, NULL);
-			gms_hint_menu_window = NULL;
+			glk_window_close(gms_hint_menu_window, nullptr);
+			gms_hint_menu_window = nullptr;
 			return false;
 		}
 	}
@@ -2029,10 +2028,10 @@ void Magnetic::Magnetic::gms_hint_close() {
 	if (gms_hint_menu_window) {
 		assert(gms_hint_text_window);
 
-		glk_window_close(gms_hint_menu_window, NULL);
-		gms_hint_menu_window = NULL;
-		glk_window_close(gms_hint_text_window, NULL);
-		gms_hint_text_window = NULL;
+		glk_window_close(gms_hint_menu_window, nullptr);
+		gms_hint_menu_window = nullptr;
+		glk_window_close(gms_hint_text_window, nullptr);
+		gms_hint_text_window = nullptr;
 	}
 }
 
@@ -2192,7 +2191,7 @@ void Magnetic::gms_hint_arrange_windows(int requested_lines, glui32 *width, glui
 		parent = glk_window_get_parent(gms_hint_menu_window);
 		glk_window_set_arrangement(parent,
 		                                 winmethod_Above | winmethod_Fixed,
-		                                 requested_lines, NULL);
+		                                 requested_lines, nullptr);
 
 		uint width_temp, height_temp;
 
@@ -2297,7 +2296,7 @@ void Magnetic::gms_hint_display_text(const ms_hint hints_[],
 	for (index = 0; index < hints_[node].elcount; index++) {
 		char buf[16];
 
-		sprintf(buf, "%3d.  ", index + 1);
+		Common::sprintf_s(buf, "%3d.  ", index + 1);
 		gms_hint_text_print(buf);
 
 		gms_hint_text_print(index < cursor[node]
@@ -2545,9 +2544,9 @@ void Magnetic::gms_hint_redraw() {
 
 void Magnetic::gms_hints_cleanup() {
 	free(gms_hint_cursor);
-	gms_hint_cursor = NULL;
+	gms_hint_cursor = nullptr;
 
-	gms_hints = NULL;
+	gms_hints = nullptr;
 	gms_current_hint_node = 0;
 }
 
@@ -2600,10 +2599,10 @@ void Magnetic::gms_command_script(const char *argument) {
 			return;
 		}
 
-		glk_stream_close(gms_transcript_stream, NULL);
-		gms_transcript_stream = NULL;
+		glk_stream_close(gms_transcript_stream, nullptr);
+		gms_transcript_stream = nullptr;
 
-		glk_window_set_echo_stream(gms_main_window, NULL);
+		glk_window_set_echo_stream(gms_main_window, nullptr);
 
 		gms_normal_string("Glk transcript is now off.\n");
 	}
@@ -2659,8 +2658,8 @@ void Magnetic::gms_command_inputlog(const char *argument) {
 			return;
 		}
 
-		glk_stream_close(gms_inputlog_stream, NULL);
-		gms_inputlog_stream = NULL;
+		glk_stream_close(gms_inputlog_stream, nullptr);
+		gms_inputlog_stream = nullptr;
 
 		gms_normal_string("Glk input log is now off.\n");
 	}
@@ -2721,8 +2720,8 @@ void Magnetic::gms_command_readlog(const char *argument) {
 			return;
 		}
 
-		glk_stream_close(gms_readlog_stream, NULL);
-		gms_readlog_stream = NULL;
+		glk_stream_close(gms_readlog_stream, nullptr);
+		gms_readlog_stream = nullptr;
 
 		gms_normal_string("Glk read log is now off.\n");
 	}
@@ -2840,11 +2839,11 @@ void Magnetic::gms_command_graphics(const char *argument) {
 				gms_normal_string(is_animated ? "an animated" : "a");
 				gms_normal_string(" picture loaded, ");
 
-				sprintf(buf, "%d", width);
+				Common::sprintf_s(buf, "%d", width);
 				gms_normal_string(buf);
 				gms_normal_string(" by ");
 
-				sprintf(buf, "%d", height);
+				Common::sprintf_s(buf, "%d", height);
 				gms_normal_string(buf);
 
 				gms_normal_string(" pixels.\n");
@@ -2865,7 +2864,7 @@ void Magnetic::gms_command_graphics(const char *argument) {
 				gms_normal_string("Graphics are ");
 				gms_normal_string(is_active ? "active, " : "displayed, ");
 
-				sprintf(buf, "%d", color_count);
+				Common::sprintf_s(buf, "%d", color_count);
 				gms_normal_string(buf);
 				gms_normal_string(" colours");
 
@@ -2996,7 +2995,7 @@ void Magnetic::gms_command_animations(const char *argument) {
 		 * changing animation mode doesn't affect this picture.
 		 */
 		gms_animation_enabled = true;
-		if (gms_graphics_get_picture_details(NULL, NULL, &is_animated)) {
+		if (gms_graphics_get_picture_details(nullptr, nullptr, &is_animated)) {
 			if (is_animated)
 				gms_graphics_restart();
 		}
@@ -3013,7 +3012,7 @@ void Magnetic::gms_command_animations(const char *argument) {
 		}
 
 		gms_animation_enabled = false;
-		if (gms_graphics_get_picture_details(NULL, NULL, &is_animated)) {
+		if (gms_graphics_get_picture_details(nullptr, nullptr, &is_animated)) {
 			if (is_animated)
 				gms_graphics_restart();
 		}
@@ -3167,7 +3166,7 @@ void Magnetic::gms_command_help(const char *command) {
 		return;
 	}
 
-	matched = NULL;
+	matched = nullptr;
 	for (entry = GMS_COMMAND_TABLE; entry->command; entry++) {
 		if (gms_strncasecmp(command, entry->command, strlen(command)) == 0) {
 			if (matched) {
@@ -3330,8 +3329,9 @@ int Magnetic::gms_command_escape(const char *string_, int *undo_command) {
 		return false;
 
 	/* Take a copy of the string_, without any leading space or introducer. */
+	size_t ln = strlen(string_ + posn) + 1 - 3/*strlen("glk")*/;
 	string_copy = (char *)gms_malloc(strlen(string_ + posn) + 1 - strlen("glk"));
-	strcpy(string_copy, string_ + posn + strlen("glk"));
+	Common::strcpy_s(string_copy, ln, string_ + posn + 3/*strlen("glk")*/);
 
 	/*
 	 * Find the subcommand; the first word in the string copy.  Find its end,
@@ -3366,7 +3366,7 @@ int Magnetic::gms_command_escape(const char *string_, int *undo_command) {
 		 * the command passed in.
 		 */
 		matches = 0;
-		matched = NULL;
+		matched = nullptr;
 		for (entry = GMS_COMMAND_TABLE; entry->command; entry++) {
 			if (gms_strncasecmp(command, entry->command, strlen(command)) == 0) {
 				matches++;
@@ -3446,7 +3446,7 @@ void Magnetic::gms_expand_abbreviations(char *buffer_, int size) {
 
 	/* Scan the abbreviations table for a match. */
 	abbreviation = glk_char_to_lower((unsigned char) command[0]);
-	expansion = NULL;
+	expansion = nullptr;
 	for (entry = GMS_ABBREVIATIONS; entry->expansion; entry++) {
 		if (entry->abbreviation == abbreviation) {
 			expansion = entry->expansion;
@@ -3522,8 +3522,8 @@ void Magnetic::gms_buffer_input() {
 		 * We're at the end of the log stream.  Close it, and then continue
 		 * on to request a line from Glk.
 		 */
-		glk_stream_close(gms_readlog_stream, NULL);
-		gms_readlog_stream = NULL;
+		glk_stream_close(gms_readlog_stream, nullptr);
+		gms_readlog_stream = nullptr;
 	}
 
 	/*
@@ -3726,8 +3726,9 @@ void Magnetic::gms_establish_filenames(const char *name, char **text, char **gra
 	assert(name && text && graphics && hints_);
 
 	/* Take a destroyable copy of the input filename. */
-	base = (char *)gms_malloc(strlen(name) + 1);
-	strcpy(base, name);
+	size_t ln = strlen(name) + 1;
+	base = (char *)gms_malloc(ln);
+	Common::strcpy_s(base, ln, name);
 
 	/* If base has an extension .MAG, .GFX, or .HNT, remove it. */
 	if (strlen(base) > strlen(".XXX")) {
@@ -3738,25 +3739,26 @@ void Magnetic::gms_establish_filenames(const char *name, char **text, char **gra
 	}
 
 	/* Allocate space for the return text file. */
-	text_file = (char *)gms_malloc(strlen(base) + strlen(".MAG") + 1);
+	ln = strlen(base) + 4/*strlen(".MAG")*/ + 1;
+	text_file = (char *)gms_malloc(ln);
 
 	/* Form a candidate text file, by adding a .MAG extension. */
-	strcpy(text_file, base);
-	strcat(text_file, ".MAG");
+	Common::strcpy_s(text_file, ln, base);
+	Common::strcat_s(text_file, ln, ".MAG");
 
 	if (!stream.open(text_file)) {
 		/* Retry, using a .mag extension instead. */
-		strcpy(text_file, base);
-		strcat(text_file, ".mag");
+		Common::strcpy_s(text_file, ln, base);
+		Common::strcat_s(text_file, ln, ".mag");
 
 		if (!stream.open(text_file)) {
 			/*
 			 * No access to a usable game text file.  Return immediately,
 			 * without looking for any associated graphics or hints_ files.
 			 */
-			*text = NULL;
-			*graphics = NULL;
-			*hints_ = NULL;
+			*text = nullptr;
+			*graphics = nullptr;
+			*hints_ = nullptr;
 
 			free(text_file);
 			free(base);
@@ -3766,16 +3768,17 @@ void Magnetic::gms_establish_filenames(const char *name, char **text, char **gra
 	stream.close();
 
 	/* Now allocate space for the return graphics file. */
-	graphics_file = (char *)gms_malloc(strlen(base) + strlen(".GFX") + 1);
+	ln = strlen(base) + 4/*strlen(".GFX")*/ + 1;
+	graphics_file = (char *)gms_malloc(ln);
 
 	/* As above, form a candidate graphics file, using a .GFX extension. */
-	strcpy(graphics_file, base);
-	strcat(graphics_file, ".GFX");
+	Common::strcpy_s(graphics_file, ln, base);
+	Common::strcat_s(graphics_file, ln, ".GFX");
 
 	if (!stream.open(graphics_file)) {
 		/* Retry, using a .gfx extension instead. */
-		strcpy(graphics_file, base);
-		strcat(graphics_file, ".gfx");
+		Common::strcpy_s(graphics_file, ln, base);
+		Common::strcat_s(graphics_file, ln, ".gfx");
 
 		if (!stream.open(graphics_file)) {
 			/*
@@ -3783,22 +3786,23 @@ void Magnetic::gms_establish_filenames(const char *name, char **text, char **gra
 			 * reset graphics file to NULL.
 			 */
 			free(graphics_file);
-			graphics_file = NULL;
+			graphics_file = nullptr;
 		}
 	}
 	stream.close();
 
 	/* Now allocate space for the return hints_ file. */
-	hints_file = (char *)gms_malloc(strlen(base) + strlen(".HNT") + 1);
+	ln = strlen(base) + 4/*strlen(".HNT")*/ + 1;
+	hints_file = (char *)gms_malloc(ln);
 
 	/* As above, form a candidate graphics file, using a .HNT extension. */
-	strcpy(hints_file, base);
-	strcat(hints_file, ".HNT");
+	Common::strcpy_s(hints_file, ln, base);
+	Common::strcat_s(hints_file, ln, ".HNT");
 
 	if (!stream.open(hints_file)) {
 		/* Retry, using a .hnt extension instead. */
-		strcpy(hints_file, base);
-		strcat(hints_file, ".hnt");
+		Common::strcpy_s(hints_file, ln, base);
+		Common::strcat_s(hints_file, ln, ".hnt");
 
 		if (!stream.open(hints_file)) {
 			/*
@@ -3806,7 +3810,7 @@ void Magnetic::gms_establish_filenames(const char *name, char **text, char **gra
 			 * reset hints_ file to NULL.
 			 */
 			free(hints_file);
-			hints_file = NULL;
+			hints_file = nullptr;
 		}
 	}
 	stream.close();
@@ -3820,11 +3824,11 @@ void Magnetic::gms_establish_filenames(const char *name, char **text, char **gra
 }
 
 void Magnetic::gms_main() {
-	char *text_file = NULL, *graphics_file = NULL, *hints_file = NULL;
+	char *text_file = nullptr, *graphics_file = nullptr, *hints_file = nullptr;
 	int ms_init_status, is_running;
 
 	/* Create the main Glk window, and set its stream as current. */
-	gms_main_window = glk_window_open(0, 0, 0, wintype_TextBuffer, 0);
+	gms_main_window = glk_window_open(nullptr, 0, 0, wintype_TextBuffer, 0);
 	if (!gms_main_window) {
 		gms_fatal("GLK: Can't open main window");
 		glk_exit();
@@ -3875,14 +3879,14 @@ void Magnetic::gms_main() {
 	 */
 	if (gms_graphics_possible) {
 		assert(graphics_file);
-		ms_init_status = ms_init(text_file, graphics_file, hints_file, NULL);
+		ms_init_status = ms_init(text_file, graphics_file, hints_file, nullptr);
 	} else
-		ms_init_status = ms_init(text_file, NULL, hints_file, NULL);
+		ms_init_status = ms_init(text_file, nullptr, hints_file, nullptr);
 
 	/* Look for a complete failure to load the game. */
 	if (ms_init_status == 0) {
 		if (gms_status_window)
-			glk_window_close(gms_status_window, NULL);
+			glk_window_close(gms_status_window, nullptr);
 		gms_header_string("Glk Magnetic Error\n\n");
 		gms_normal_string("Can't load game '");
 		gms_normal_string(gameFile.c_str());
@@ -3940,16 +3944,16 @@ void Magnetic::gms_main() {
 
 	/* Close any open transcript, input log, and/or read log. */
 	if (gms_transcript_stream) {
-		glk_stream_close(gms_transcript_stream, NULL);
-		gms_transcript_stream = NULL;
+		glk_stream_close(gms_transcript_stream, nullptr);
+		gms_transcript_stream = nullptr;
 	}
 	if (gms_inputlog_stream) {
-		glk_stream_close(gms_inputlog_stream, NULL);
-		gms_inputlog_stream = NULL;
+		glk_stream_close(gms_inputlog_stream, nullptr);
+		gms_inputlog_stream = nullptr;
 	}
 	if (gms_readlog_stream) {
-		glk_stream_close(gms_readlog_stream, NULL);
-		gms_readlog_stream = NULL;
+		glk_stream_close(gms_readlog_stream, nullptr);
+		gms_readlog_stream = nullptr;
 	}
 
 	/* Free the text file path, and any graphics/hints file path. */

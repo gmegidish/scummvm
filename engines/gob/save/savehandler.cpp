@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -86,7 +91,7 @@ void SlotFileIndexed::buildIndex(byte *buffer, SavePartInfo &info,
 		Common::String slotFile = build(i);
 
 		if (!slotFile.empty()) {
-			char *desc = 0;
+			char *desc = nullptr;
 
 			if (converter && (desc = converter->getDescription(slotFile)))
 				// Old style save
@@ -117,7 +122,7 @@ void SlotFileIndexed::buildIndex(byte *buffer, SavePartInfo &info,
 
 bool SlotFileIndexed::exists(int slot) const {
 	Common::InSaveFile *in = openRead(slot);
-	bool result = (in != 0);
+	bool result = (in != nullptr);
 	delete in;
 	return result;
 }
@@ -125,7 +130,7 @@ bool SlotFileIndexed::exists(int slot) const {
 Common::InSaveFile *SlotFileIndexed::openRead(int slot) const {
 	Common::String name = build(slot);
 	if (name.empty())
-		return 0;
+		return nullptr;
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
 	Common::InSaveFile *result = saveMan->openForLoading(name);
 	return result;
@@ -134,7 +139,7 @@ Common::InSaveFile *SlotFileIndexed::openRead(int slot) const {
 Common::OutSaveFile *SlotFileIndexed::openWrite(int slot) const {
 	Common::String name = build(slot);
 	if (name.empty())
-		return 0;
+		return nullptr;
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
 	Common::OutSaveFile *result = saveMan->openForSaving(name);
 	return result;
@@ -182,7 +187,7 @@ Common::String SlotFileStatic::build() const {
 
 bool SlotFileStatic::exists() const {
 	Common::InSaveFile *in = openRead();
-	bool result = (in != 0);
+	bool result = (in != nullptr);
 	delete in;
 	return result;
 }
@@ -190,7 +195,7 @@ bool SlotFileStatic::exists() const {
 Common::InSaveFile *SlotFileStatic::openRead() const {
 	Common::String name = build();
 	if (name.empty())
-		return 0;
+		return nullptr;
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
 	Common::InSaveFile *result = saveMan->openForLoading(name);
 	return result;
@@ -199,7 +204,7 @@ Common::InSaveFile *SlotFileStatic::openRead() const {
 Common::OutSaveFile *SlotFileStatic::openWrite() const {
 	Common::String name = build();
 	if (name.empty())
-		return 0;
+		return nullptr;
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
 	Common::OutSaveFile *result = saveMan->openForSaving(name);
 	return result;
@@ -224,9 +229,19 @@ bool SaveHandler::deleteFile() {
 	return true;
 }
 
+bool SaveHandler::loadToRaw(byte *ptr, int32 size, int32 offset) {
+	warning("SaveHandler::loadToRaw() not implemented");
+	return false;
+}
+
+bool SaveHandler::saveFromRaw(const byte *ptr, int32 size, int32 offset) {
+	warning("SaveHandler::saveFromRaw() not implemented");
+	return false;
+}
+
 
 TempSpriteHandler::TempSpriteHandler(GobEngine *vm) : SaveHandler(vm) {
-	_sprite = 0;
+	_sprite = nullptr;
 }
 
 TempSpriteHandler::~TempSpriteHandler() {
@@ -308,7 +323,7 @@ bool TempSpriteHandler::save(int16 dataVar, int32 size, int32 offset) {
 
 bool TempSpriteHandler::create(uint32 width, uint32 height, bool trueColor) {
 	delete _sprite;
-	_sprite = 0;
+	_sprite = nullptr;
 
 	// Create a new temporary sprite
 	_sprite = new SavePartSprite(width, height, trueColor);
@@ -316,8 +331,36 @@ bool TempSpriteHandler::create(uint32 width, uint32 height, bool trueColor) {
 	return true;
 }
 
+bool TempSpriteHandler::loadToRaw(byte *ptr, int32 size, int32 offset) {
+	// Sprite available?
+	if (!_sprite)
+		return false;
+
+	Surface destSprite(1, size, 1);
+
+	// Load the sprite
+	if (!_sprite->writeSprite(destSprite))
+		return false;
+
+	// Copy the sprite to the buffer
+	memcpy(ptr, destSprite.getData(), size);
+
+	return true;
+}
+
+bool TempSpriteHandler::saveFromRaw(const byte *ptr, int32 size, int32 offset) {
+	create(1, size, false);
+
+	if (!_sprite->readSpriteRaw(ptr, size))
+		return false;
+
+	// Assume no palette used
+
+	return true;
+}
+
 bool TempSpriteHandler::createFromSprite(int16 dataVar, int32 size, int32 offset) {
-	return createSprite(dataVar, size, offset) != 0;
+	return createSprite(dataVar, size, offset) != nullptr;
 }
 
 SurfacePtr TempSpriteHandler::createSprite(int16 dataVar, int32 size, int32 offset) {
@@ -506,7 +549,7 @@ bool FakeFileHandler::load(int16 dataVar, int32 size, int32 offset) {
 	if ((uint32)(offset + size) > _data.size())
 		return false;
 
-	_vm->_inter->_variables->copyFrom(dataVar, &_data[0] + offset, size);
+	_vm->_inter->_variables->copyFrom((uint16) dataVar, &_data[0] + offset, size);
 
 	return true;
 }
@@ -518,7 +561,31 @@ bool FakeFileHandler::save(int16 dataVar, int32 size, int32 offset) {
 	if ((uint32)(offset + size) > _data.size())
 		_data.resize(offset + size);
 
-	_vm->_inter->_variables->copyTo(dataVar, &_data[0] + offset, size);
+	_vm->_inter->_variables->copyTo((uint16) dataVar, &_data[0] + offset, size);
+
+	return true;
+}
+
+bool FakeFileHandler::loadToRaw(byte *ptr, int32 size, int32 offset) {
+	if (size <= 0)
+		return false;
+
+	if ((uint32)(offset + size) > _data.size())
+		return false;
+
+	memcpy(ptr, &_data[0] + offset, size);
+
+	return true;
+}
+
+bool FakeFileHandler::saveFromRaw(const byte *ptr, int32 size, int32 offset) {
+	if (size <= 0)
+		return false;
+
+	if ((uint32)(offset + size) > _data.size())
+		_data.resize(offset + size);
+
+	memcpy(&_data[0] + offset, ptr, size);
 
 	return true;
 }

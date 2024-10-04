@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,8 +43,8 @@ namespace Wintermute {
 
 //////////////////////////////////////////////////////////////////////
 BaseParser::BaseParser() {
-	_whiteSpace = new char [strlen(WHITESPACE) + 1];
-	strcpy(_whiteSpace, WHITESPACE);
+	_whiteSpace = new char [sizeof(WHITESPACE)];
+	Common::strcpy_s(_whiteSpace, sizeof(WHITESPACE), WHITESPACE);
 }
 
 
@@ -94,7 +93,7 @@ int32 BaseParser::getObject(char **buf, const TokenDesc *tokens, char **name, ch
 		if (p && p > *buf) {
 			strncpy(_lastOffender, *buf, MIN((uint32)255, (uint32)(p - *buf))); // TODO, clean
 		} else {
-			strcpy(_lastOffender, "");
+			_lastOffender[0] = '\0';
 		}
 
 		return PARSERR_TOKENNOTFOUND;
@@ -157,7 +156,7 @@ char *BaseParser::getSubText(char **buf, char open, char close) {
 	char theChar;
 	long skip = 1;
 
-	if (open == close) {          // we cant nest identical delimiters
+	if (open == close) {          // we can't nest identical delimiters
 		open = 0;
 	}
 	while ((theChar = **buf) != 0) {
@@ -389,7 +388,9 @@ int32 BaseParser::scanStr(const char *in, const char *format, ...) {
 						Common::strlcpy(a, in, (int)(in2 - in) + 1);
 						in = in2 + 1;
 					} else {
-						strcpy(a, in);
+						// FIXME: Use a sensible value here
+						// Happily this is not used
+						Common::strcpy_s(a, 4096, in);
 						in = strchr(in, 0);
 					}
 				} else {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,6 +33,7 @@
 #include "common/array.h"
 #include "ags/shared/core/types.h"
 #include "ags/shared/font/ags_font_renderer.h"
+#include "ags/shared/util/string.h"
 #include "ags/plugins/plugin_base.h"
 #include "ags/engine/util/library_scummvm.h"
 
@@ -239,18 +239,20 @@ public:
 #define AGSE_TRANSITIONOUT   0x400
 // Below are interface 12 and later
 #define AGSE_FINALSCREENDRAW 0x800
-#define AGSE_TRANSLATETEXT  0x1000
+#define AGSE_TRANSLATETEXT   0x1000
 // Below are interface 13 and later
-#define AGSE_SCRIPTDEBUG    0x2000
-#define AGSE_AUDIODECODE    0x4000 // obsolete, no longer supported
+#define AGSE_SCRIPTDEBUG     0x2000
+#define AGSE_AUDIODECODE     0x4000 // obsolete, no longer supported
 // Below are interface 18 and later
-#define AGSE_SPRITELOAD     0x8000
+#define AGSE_SPRITELOAD      0x8000
 // Below are interface 21 and later
-#define AGSE_PRERENDER     0x10000
+#define AGSE_PRERENDER       0x10000
 // Below are interface 24 and later
 #define AGSE_PRESAVEGAME     0x20000
 #define AGSE_POSTRESTOREGAME 0x40000
-#define AGSE_TOOHIGH         0x80000
+// Below are interface 26 and later
+#define AGSE_POSTROOMDRAW    0x80000
+#define AGSE_TOOHIGH         0x100000
 
 // GetFontType font types
 #define FNT_INVALID 0
@@ -309,6 +311,18 @@ struct AGSRenderStageDesc {
 	AGSRenderMatrixes Matrixes;
 };
 
+// Game info
+struct AGSGameInfo {
+	// Which version of the plugin interface the struct corresponds to;
+	// this field must be filled by a plugin before passing the struct into the engine!
+	int Version;
+	// Game title (human-readable text)
+	char GameName[50];
+	// Game's GUID
+	char Guid[40];
+	// Random key identifying the game (deprecated)
+	int UniqueId;
+};
 
 // The plugin-to-engine interface
 class IAGSEngine {
@@ -562,11 +576,20 @@ public:
 	// fills the provided AGSRenderStageDesc struct with current render stage description;
 	// please note that plugin MUST fill the struct's Version field before passing it into the function!
 	AGSIFUNC(void)  GetRenderStageDesc(AGSRenderStageDesc *desc);
+
+	// *** BELOW ARE INTERFACE VERSION 26 AND ABOVE ONLY
+	// fills the provided AGSGameInfo struct
+	// please note that plugin MUST fill the struct's Version field before passing it into the function!
+	AGSIFUNC(void)  GetGameInfo(AGSGameInfo* ginfo);
+	// install a replacement renderer (extended interface) for the specified font number
+	AGSIFUNC(IAGSFontRenderer*) ReplaceFontRenderer2(int fontNumber, IAGSFontRenderer2* newRenderer);
+	// notify the engine that certain custom font has been updated
+	AGSIFUNC(void)  NotifyFontUpdated(int fontNumber);
 };
 
 struct EnginePlugin {
-	char filename[PLUGIN_FILENAME_MAX + 1] = { 0 };
-	AGS::Engine::Library   library;
+	AGS::Shared::String  filename;
+	AGS::Engine::Library library;
 	Plugins::PluginBase *_plugin = nullptr;
 	bool available = false;
 	char *savedata = nullptr;

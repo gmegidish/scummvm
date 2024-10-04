@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,16 +42,14 @@ System::System(CGE2Engine *vm) : Sprite(vm), _vm(vm) {
 	tick();
 }
 
-void System::touch(uint16 mask, V2D pos, Common::KeyCode keyCode) {
-	if (mask & kEventKeyb) {
-		if (keyCode == Common::KEYCODE_ESCAPE) {
-			// The original was calling keyClick()
-			// The sound is uselessly annoying and noisy, so it has been removed
-			_vm->killText();
-			if (_vm->_gamePhase == kPhaseIntro) {
-				_vm->_commandHandler->addCommand(kCmdClear, -1, 0, nullptr);
-				return;
-			}
+void System::touch(uint16 mask, V2D pos) {
+	if (mask & kEventEsc) {
+		// The original was calling keyClick()
+		// The sound is uselessly annoying and noisy, so it has been removed
+		_vm->killText();
+		if (_vm->_gamePhase == kPhaseIntro) {
+			_vm->_commandHandler->addCommand(kCmdClear, -1, 0, nullptr);
+			return;
 		}
 	} else {
 		if (_vm->_gamePhase != kPhaseInGame)
@@ -131,9 +128,9 @@ char *CGE2Engine::tail(char *s) {
 	return s;
 }
 
-int CGE2Engine::takeEnum(const char **tab, const char *text) {
+int CGE2Engine::takeEnum(const char *const *tab, const char *text) {
 	if (text) {
-		for (const char **e = tab; *e; e++) {
+		for (const char *const *e = tab; *e; e++) {
 			if (scumm_stricmp(text, *e) == 0)
 				return e - tab;
 		}
@@ -170,10 +167,11 @@ Sprite *CGE2Engine::loadSprite(const char *fname, int ref, int scene, V3D &pos) 
 	ID id;
 
 	char tmpStr[kLineMax + 1];
+	STATIC_ASSERT(sizeof(tmpStr) >= kPathMax, mergeExt_expects_kPathMax_buffer);
 	mergeExt(tmpStr, fname, kSprExt);
 
 	if (_resman->exist(tmpStr)) { // sprite description file exist
-		EncryptedStream sprf(this, tmpStr);
+		EncryptedStream sprf(_resman, tmpStr);
 		if (sprf.err())
 			error("Bad SPR [%s]", tmpStr);
 
@@ -310,13 +308,12 @@ Sprite *CGE2Engine::loadSprite(const char *fname, int ref, int scene, V3D &pos) 
 }
 
 void CGE2Engine::loadScript(const char *fname, bool onlyToolbar) {
-	EncryptedStream scrf(this, fname);
+	EncryptedStream scrf(_resman, fname);
 
 	if (scrf.err())
 		return;
 
 	bool ok = true;
-	int lcnt = 0;
 
 	char tmpStr[kLineMax + 1];
 	Common::String line;
@@ -325,7 +322,6 @@ void CGE2Engine::loadScript(const char *fname, bool onlyToolbar) {
 		if (line.empty())
 			continue;
 
-		lcnt++;
 		Common::strlcpy(tmpStr, line.c_str(), sizeof(tmpStr));
 
 		ok = false; // not OK if break
@@ -699,7 +695,7 @@ void CGE2Engine::loadPos() {
 		for (int cav = 0; cav < kSceneMax; cav++)
 			_heroTab[1]->_posTab[cav] = new V2D(this, 180, 10);
 
-		EncryptedStream file(this, "CGE.HXY");
+		EncryptedStream file(_resman, "CGE.HXY");
 
 		for (int cav = 0; cav < kSceneMax; cav++) {
 			_heroTab[0]->_posTab[cav] = new V2D(this);
@@ -721,7 +717,7 @@ void CGE2Engine::loadTab() {
 		*(_eyeTab[i]) = *_eye;
 
 	if  (_resman->exist(kTabName)) {
-		EncryptedStream f(this, kTabName);
+		EncryptedStream f(_resman, kTabName);
 
 		for (int i = 0; i < kSceneMax; i++) {
 			uint32 v = f.readUint32LE();
@@ -759,10 +755,10 @@ void CGE2Engine::cge2_main() {
 }
 
 char *CGE2Engine::mergeExt(char *buf, const char *name, const char *ext) {
-	strcpy(buf, name);
+	Common::strcpy_s(buf, kPathMax, name);
 	char *dot = strrchr(buf, '.');
 	if (!dot)
-		strcat(buf, ext);
+		Common::strcat_s(buf, kPathMax, ext);
 
 	return buf;
 }
@@ -778,8 +774,9 @@ void CGE2Engine::setEye(const V2D& e2, int z) {
 }
 
 void CGE2Engine::setEye(const char *s) {
-	char *tempStr = new char[strlen(s) + 1];
-	strcpy(tempStr, s);
+	size_t ln = strlen(s) + 1;
+	char *tempStr = new char[ln];
+	Common::strcpy_s(tempStr, ln, s);
 	_eye->_x = atoi(token(tempStr));
 	_eye->_y = atoi(token(nullptr));
 	_eye->_z = atoi(token(nullptr));
@@ -845,7 +842,7 @@ void CGE2Engine::switchHero(int sex) {
 		_commandHandler->addCommand(kCmdSeq, -1, 1, face);
 }
 
-void Sprite::touch(uint16 mask, V2D pos, Common::KeyCode keyCode) {
+void Sprite::touch(uint16 mask, V2D pos) {
 	if ((mask & kEventAttn) != 0)
 		return;
 

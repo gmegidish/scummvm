@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,8 +65,8 @@ struct BdfFont {
 	BdfBoundingBox *boxes;
 
 	void reset() {
-		familyName = 0;
-		slant = 0;
+		familyName = nullptr;
+		slant = nullptr;
 		maxAdvance = 0;
 		size = 0;
 		height = 0;
@@ -78,9 +77,9 @@ struct BdfFont {
 		defaultCharacter = 0;
 		numCharacters = 0;
 
-		bitmaps = 0;
-		advances = 0;
-		boxes = 0;
+		bitmaps = nullptr;
+		advances = nullptr;
+		boxes = nullptr;
 	}
 
 	BdfFont() {
@@ -231,7 +230,7 @@ int main(int argc, char *argv[]) {
 
 			int encoding = -1;
 			int xAdvance;
-			unsigned char *bitmap = 0;
+			unsigned char *bitmap = nullptr;
 			BdfBoundingBox bbox = font.defaultBox;
 
 			while (true) {
@@ -347,13 +346,13 @@ int main(int argc, char *argv[]) {
 	// Free the advance table, in case all glyphs use the same advance
 	if (hasFixedAdvance) {
 		delete[] font.advances;
-		font.advances = 0;
+		font.advances = nullptr;
 	}
 
 	// Free the box table, in case all glyphs use the same box
 	if (hasFixedBBox) {
 		delete[] font.boxes;
-		font.boxes = 0;
+		font.boxes = nullptr;
 	}
 
 	// Adapt for the fact that we never use encoding 0.
@@ -367,10 +366,10 @@ int main(int argc, char *argv[]) {
 	// Try to compact the tables
 	if (charsAvailable < font.numCharacters) {
 		unsigned char **bitmaps = new unsigned char *[charsAvailable];
-		BdfBoundingBox *boxes = 0;
+		BdfBoundingBox *boxes = nullptr;
 		if (!hasFixedBBox)
 			boxes = new BdfBoundingBox[charsAvailable];
-		unsigned char *advances = 0;
+		unsigned char *advances = nullptr;
 		if (!hasFixedAdvance)
 			advances = new unsigned char[charsAvailable];
 
@@ -384,7 +383,7 @@ int main(int argc, char *argv[]) {
 				if (!hasFixedAdvance)
 					advances[i] = font.advances[encoding];
 			} else {
-				bitmaps[i] = 0;
+				bitmaps[i] = nullptr;
 			}
 		}
 
@@ -399,7 +398,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	char dateBuffer[256];
-	time_t curTime = time(0);
+	time_t curTime = time(nullptr);
 	snprintf(dateBuffer, sizeof(dateBuffer), "%s", ctime(&curTime));
 
 	// Finally output the cpp source file to stdout

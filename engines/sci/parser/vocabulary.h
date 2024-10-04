@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#ifndef SCI_SCICORE_VOCABULARY_H
-#define SCI_SCICORE_VOCABULARY_H
+#ifndef SCI_PARSER_VOCABULARY_H
+#define SCI_PARSER_VOCABULARY_H
 
 #include "common/str.h"
 #include "common/hashmap.h"
@@ -48,6 +47,7 @@ enum {
 	VOCAB_RESOURCE_SELECTORS = 997,
 
 	VOCAB_RESOURCE_SCI0_MAIN_VOCAB = 0,
+	VOCAB_RESOURCE_SCUMM_LOC_VOCAB = 1, // Special fanmade format for vocab translate
 	VOCAB_RESOURCE_SCI0_PARSE_TREE_BRANCHES = 900,
 	VOCAB_RESOURCE_SCI0_SUFFIX_VOCAB = 901,
 
@@ -352,6 +352,12 @@ private:
 	 * @return true on success, false on failure
 	 */
 	bool loadParserWords();
+	
+	/**
+	 * Loads additional translated words from special format vocabulary.
+	 * @return true on success, false on failure
+	 */
+	void loadTranslatedWords();
 
 	/**
 	 * Loads all suffixes from the suffix vocabulary.
@@ -441,4 +447,4 @@ int said(const byte *spec, bool verbose);
 
 } // End of namespace Sci
 
-#endif // SCI_SCICORE_VOCABULARY_H
+#endif // SCI_PARSER_VOCABULARY_H

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,17 +58,17 @@ enum kMilesAdLibUpdateFlags {
 	kMilesAdLibUpdateFlags_Reg_All = 0x3F
 };
 
-uint16 milesAdLibOperator1Register[MILES_ADLIB_PHYSICAL_FMVOICES_COUNT_MAX] = {
+const uint16 milesAdLibOperator1Register[MILES_ADLIB_PHYSICAL_FMVOICES_COUNT_MAX] = {
 	0x0000, 0x0001, 0x0002, 0x0008, 0x0009, 0x000A, 0x0010, 0x0011, 0x0012,
 	0x0100, 0x0101, 0x0102, 0x0108, 0x0109, 0x010A, 0x0110, 0x0111, 0x0112
 };
 
-uint16 milesAdLibOperator2Register[MILES_ADLIB_PHYSICAL_FMVOICES_COUNT_MAX] = {
+const uint16 milesAdLibOperator2Register[MILES_ADLIB_PHYSICAL_FMVOICES_COUNT_MAX] = {
 	0x0003, 0x0004, 0x0005, 0x000B, 0x000C, 0x000D, 0x0013, 0x0014, 0x0015,
 	0x0103, 0x0104, 0x0105, 0x010B, 0x010C, 0x010D, 0x0113, 0x0114, 0x0115
 };
 
-uint16 milesAdLibChannelRegister[MILES_ADLIB_PHYSICAL_FMVOICES_COUNT_MAX] = {
+const uint16 milesAdLibChannelRegister[MILES_ADLIB_PHYSICAL_FMVOICES_COUNT_MAX] = {
 	0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008,
 	0x0100, 0x0101, 0x0102, 0x0103, 0x0104, 0x0105, 0x0106, 0x0107, 0x0108
 };
@@ -92,7 +91,7 @@ struct InstrumentEntry {
 };
 
 // hardcoded, dumped from ADLIB.MDI
-uint16 milesAdLibFrequencyLookUpTable[] = {
+const uint16 milesAdLibFrequencyLookUpTable[] = {
 	0x02B2, 0x02B4, 0x02B7, 0x02B9, 0x02BC, 0x02BE, 0x02C1, 0x02C3, 0x02C6, 0x02C9, 0x02CB, 0x02CE,
 	0x02D0, 0x02D3, 0x02D6, 0x02D8, 0x02DB, 0x02DD, 0x02E0, 0x02E3, 0x02E5, 0x02E8, 0x02EB, 0x02ED,
 	0x02F0, 0x02F3, 0x02F6, 0x02F8, 0x02FB, 0x02FE, 0x0301, 0x0303, 0x0306, 0x0309, 0x030C, 0x030F,
@@ -112,13 +111,13 @@ uint16 milesAdLibFrequencyLookUpTable[] = {
 };
 
 // hardcoded, dumped from ADLIB.MDI
-uint16 milesAdLibVolumeSensitivityTable[] = {
+const uint16 milesAdLibVolumeSensitivityTable[] = {
 	82, 85, 88, 91, 94, 97, 100, 103, 106, 109, 112, 115, 118, 121, 124, 127
 };
 
 // MIDI panning to register volume table for dual OPL2
 // hardcoded, dumped from ADLIB.MDI
-uint8 milesAdLibPanningVolumeLookUpTable[] = {
+const uint8 milesAdLibPanningVolumeLookUpTable[] = {
 	0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30,
 	32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62,
 	64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88, 90, 92, 94,
@@ -140,8 +139,8 @@ public:
 	void send(uint32 b) override;
 	void send(int8 source, uint32 b) override;
 	void metaEvent(int8 source, byte type, byte *data, uint16 length) override;
-	MidiChannel *allocateChannel() override { return NULL; }
-	MidiChannel *getPercussionChannel() override { return NULL; }
+	MidiChannel *allocateChannel() override { return nullptr; }
+	MidiChannel *getPercussionChannel() override { return nullptr; }
 
 	bool isOpen() const override { return _isOpen; }
 	uint32 getBaseTempo() override { return 1000000 / OPL::OPL::kDefaultCallbackFrequency; }
@@ -167,6 +166,7 @@ private:
 	struct MidiChannelEntry {
 		byte   currentPatchBank;
 		const  InstrumentEntry *currentInstrumentPtr;
+		byte   currentProgram;
 		uint16 currentPitchBender;
 		byte   currentPitchRange;
 		byte   currentVoiceProtection;
@@ -182,7 +182,8 @@ private:
 		byte   currentActiveVoicesCount;
 
 		MidiChannelEntry() : currentPatchBank(0),
-							currentInstrumentPtr(NULL),
+							currentInstrumentPtr(nullptr),
+							currentProgram(0),
 							currentPitchBender(MIDI_PITCH_BEND_DEFAULT),
 							currentPitchRange(0),
 							currentVoiceProtection(0),
@@ -214,7 +215,7 @@ private:
 
 		VirtualFmVoiceEntry(): inUse(false),
 								actualMidiChannel(0),
-								currentInstrumentPtr(NULL),
+								currentInstrumentPtr(nullptr),
 								isPhysical(false), physicalFmVoice(0),
 								currentPriority(0),
 								currentOriginalMidiNote(0),
@@ -285,10 +286,12 @@ private:
 	const InstrumentEntry *searchInstrument(byte bankId, byte patchId);
 
 	void pitchBendChange(byte MIDIchannel, byte parameter1, byte parameter2);
+
+	void applyControllerDefaults(uint8 source);
 };
 
 MidiDriver_Miles_AdLib::MidiDriver_Miles_AdLib(InstrumentEntry *instrumentTablePtr, uint16 instrumentTableCount)
-	: _masterVolume(15), _opl(0), _isOpen(false) {
+	: _masterVolume(15), _opl(nullptr), _isOpen(false) {
 
 	_instrumentTablePtr = instrumentTablePtr;
 	_instrumentTableCount = instrumentTableCount;
@@ -308,8 +311,6 @@ MidiDriver_Miles_AdLib::MidiDriver_Miles_AdLib(InstrumentEntry *instrumentTableP
 	circularPhysicalAssignment = true;
 	// this way the first circular physical FM-voice search will start at FM-voice 0
 	circularPhysicalAssignmentFmVoice = MILES_ADLIB_PHYSICAL_FMVOICES_COUNT_MAX;
-
-	resetData();
 }
 
 MidiDriver_Miles_AdLib::~MidiDriver_Miles_AdLib() {
@@ -346,6 +347,9 @@ int MidiDriver_Miles_AdLib::open() {
 	_opl->init();
 
 	_isOpen = true;
+
+	resetData();
+	applyControllerDefaults(0xFF);
 
 	_timerRate = getBaseTempo();
 	_opl->start(new Common::Functor0Mem<void, MidiDriver_Miles_AdLib>(this, &MidiDriver_Miles_AdLib::onTimer));
@@ -433,7 +437,7 @@ void MidiDriver_Miles_AdLib::resetAdLibFMVoiceChannelRegisters(byte baseRegister
 	}
 }
 
-// MIDI messages can be found at http://www.midi.org/techspecs/midimessages.php
+// MIDI messages can be found at https://web.archive.org/web/20120128110425/http://www.midi.org/techspecs/midimessages.php
 void MidiDriver_Miles_AdLib::send(uint32 b) {
 	byte command = b & 0xf0;
 	byte channel = b & 0xf;
@@ -551,7 +555,7 @@ int16 MidiDriver_Miles_AdLib::searchFreePhysicalFmVoiceChannel() {
 }
 
 void MidiDriver_Miles_AdLib::noteOn(byte midiChannel, byte note, byte velocity) {
-	const InstrumentEntry *instrumentPtr = NULL;
+	const InstrumentEntry *instrumentPtr = nullptr;
 
 	if (velocity == 0) {
 		noteOff(midiChannel, note);
@@ -1141,7 +1145,11 @@ void MidiDriver_Miles_AdLib::controlChange(byte midiChannel, byte controllerNumb
 }
 
 void MidiDriver_Miles_AdLib::programChange(byte midiChannel, byte patchId) {
-	const InstrumentEntry *instrumentPtr = NULL;
+	if (_instrumentRemapping && midiChannel != MIDI_RHYTHM_CHANNEL)
+		// Apply instrument remapping (if specified) to instrument channels.
+		patchId = _instrumentRemapping[patchId];
+
+	const InstrumentEntry *instrumentPtr = nullptr;
 	byte patchBank = _midiChannels[midiChannel].currentPatchBank;
 
 	//warning("patch channel %d, patch %x, bank %x", midiChannel, patchId, patchBank);
@@ -1155,6 +1163,7 @@ void MidiDriver_Miles_AdLib::programChange(byte midiChannel, byte patchId) {
 
 	// and remember it in that case for the current MIDI-channel
 	_midiChannels[midiChannel].currentInstrumentPtr = instrumentPtr;
+	_midiChannels[midiChannel].currentProgram = patchId;
 }
 
 const InstrumentEntry *MidiDriver_Miles_AdLib::searchInstrument(byte bankId, byte patchId) {
@@ -1167,7 +1176,7 @@ const InstrumentEntry *MidiDriver_Miles_AdLib::searchInstrument(byte bankId, byt
 		instrumentPtr++;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void MidiDriver_Miles_AdLib::pitchBendChange(byte midiChannel, byte parameter1, byte parameter2) {
@@ -1206,6 +1215,40 @@ void MidiDriver_Miles_AdLib::deinitSource(uint8 source) {
 
 	// Stop fades and turn off non-sustained notes.
 	MidiDriver_Multisource::deinitSource(source);
+
+	applyControllerDefaults(source);
+}
+
+void MidiDriver_Miles_AdLib::applyControllerDefaults(uint8 source) {
+	if (!(source == 0 || source == 0xFF))
+		return;
+
+	for (int i = 0; i < MIDI_CHANNEL_COUNT; i++) {
+		if (_controllerDefaults.program[i] >= 0) {
+			_midiChannels[i].currentProgram = _controllerDefaults.program[i];
+		}
+		if (_controllerDefaults.pitchBend >= 0) {
+			_midiChannels[i].currentPitchBender = _controllerDefaults.pitchBend;
+		}
+		if (_controllerDefaults.modulation >= 0) {
+			_midiChannels[i].currentModulation = _controllerDefaults.modulation;
+		}
+		if (_controllerDefaults.volume >= 0) {
+			_midiChannels[i].currentVolume = _controllerDefaults.volume;
+		}
+		if (_controllerDefaults.panning >= 0) {
+			_midiChannels[i].currentPanning = _controllerDefaults.panning;
+		}
+		if (_controllerDefaults.expression >= 0) {
+			_midiChannels[i].currentVolumeExpression = _controllerDefaults.expression;
+		}
+		if (_controllerDefaults.pitchBendSensitivity >= 0) {
+			_midiChannels[i].currentPitchRange = _controllerDefaults.pitchBendSensitivity;
+		}
+		// Controller defaults not supported by this driver:
+		// instrument bank, drumkit, channel pressure, RPN.
+		// Sustain is turned of by deinitSource.
+	}
 }
 
 void MidiDriver_Miles_AdLib::setRegister(int reg, int value) {
@@ -1228,9 +1271,9 @@ void MidiDriver_Miles_AdLib::setRegisterStereo(uint8 reg, uint8 valueLeft, uint8
 	_opl->write(0x223, valueRight);
 }
 
-MidiDriver_Multisource *MidiDriver_Miles_AdLib_create(const Common::String &filenameAdLib, const Common::String &filenameOPL3, Common::SeekableReadStream *streamAdLib, Common::SeekableReadStream *streamOPL3) {
+MidiDriver_Multisource *MidiDriver_Miles_AdLib_create(const Common::Path &filenameAdLib, const Common::Path &filenameOPL3, Common::SeekableReadStream *streamAdLib, Common::SeekableReadStream *streamOPL3) {
 	// Load adlib instrument data from file SAMPLE.AD (OPL3: SAMPLE.OPL)
-	Common::String              timbreFilename;
+	Common::Path                timbreFilename;
 	Common::SeekableReadStream *timbreStream = nullptr;
 
 	bool          preferOPL3 = false;
@@ -1331,12 +1374,12 @@ MidiDriver_Multisource *MidiDriver_Miles_AdLib_create(const Common::String &file
 			// If none of them exists and also no stream was passed, we can't do anything about it
 			if (!filenameAdLib.empty()) {
 				if (!filenameOPL3.empty()) {
-					error("MILES-ADLIB: could not open timbre file (%s or %s)", filenameAdLib.c_str(), filenameOPL3.c_str());
+					error("MILES-ADLIB: could not open timbre file (%s or %s)", filenameAdLib.toString(Common::Path::kNativeSeparator).c_str(), filenameOPL3.toString(Common::Path::kNativeSeparator).c_str());
 				} else {
-					error("MILES-ADLIB: could not open timbre file (%s)", filenameAdLib.c_str());
+					error("MILES-ADLIB: could not open timbre file (%s)", filenameAdLib.toString(Common::Path::kNativeSeparator).c_str());
 				}
 			} else {
-				error("MILES-ADLIB: could not open timbre file (%s)", filenameOPL3.c_str());
+				error("MILES-ADLIB: could not open timbre file (%s)", filenameOPL3.toString(Common::Path::kNativeSeparator).c_str());
 			}
 		}
 	}
@@ -1346,14 +1389,14 @@ MidiDriver_Multisource *MidiDriver_Miles_AdLib_create(const Common::String &file
 		// We prefer this situation
 
 		if (!fileStream->open(timbreFilename))
-			error("MILES-ADLIB: could not open timbre file (%s)", timbreFilename.c_str());
+			error("MILES-ADLIB: could not open timbre file (%s)", timbreFilename.toString(Common::Path::kNativeSeparator).c_str());
 
 		streamSize = fileStream->size();
 
 		streamDataPtr = new byte[streamSize];
 
 		if (fileStream->read(streamDataPtr, streamSize) != streamSize)
-			error("MILES-ADLIB: error while reading timbre file (%s)", timbreFilename.c_str());
+			error("MILES-ADLIB: error while reading timbre file (%s)", timbreFilename.toString(Common::Path::kNativeSeparator).c_str());
 		fileStream->close();
 
 	} else if (timbreStream) {

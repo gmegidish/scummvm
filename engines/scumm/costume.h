@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,10 +45,10 @@ public:
 
 	void loadCostume(int id) override;
 	void costumeDecodeData(Actor *a, int frame, uint usemask) override;
-	byte increaseAnims(Actor *a) override;
+	bool increaseAnims(Actor *a) override;
 
 protected:
-	byte increaseAnim(Actor *a, int slot);
+	bool increaseAnim(Actor *a, int slot);
 };
 
 class NESCostumeLoader : public BaseCostumeLoader {
@@ -59,13 +58,13 @@ public:
 	const byte *_dataOffsets;
 	byte _numAnim;
 
-	NESCostumeLoader(ScummEngine *vm) : BaseCostumeLoader(vm) {}
+	NESCostumeLoader(ScummEngine *vm) : BaseCostumeLoader(vm), _id(0), _baseptr(nullptr), _dataOffsets(nullptr), _numAnim(0) {}
 	void loadCostume(int id) override;
 	void costumeDecodeData(Actor *a, int frame, uint usemask) override;
-	byte increaseAnims(Actor *a) override;
+	bool increaseAnims(Actor *a) override;
 
 protected:
-	byte increaseAnim(Actor *a, int slot);
+	bool increaseAnim(Actor *a, int slot);
 };
 
 class V0CostumeLoader : public ClassicCostumeLoader {
@@ -73,11 +72,11 @@ public:
 	V0CostumeLoader(ScummEngine *vm) : ClassicCostumeLoader(vm) {}
 	void loadCostume(int id) override;
 	void costumeDecodeData(Actor *a, int frame, uint usemask) override;
-	byte increaseAnims(Actor *a) override;
+	bool increaseAnims(Actor *a) override;
 	byte getFrame(Actor *a, int limb);
 
 protected:
-	byte increaseAnim(Actor *a, int limb);
+	bool increaseAnim(Actor *a, int limb);
 };
 
 class ClassicCostumeRenderer : public BaseCostumeRenderer {
@@ -89,7 +88,9 @@ protected:
 	uint16 _palette[32];
 
 public:
-	ClassicCostumeRenderer(ScummEngine *vm) : BaseCostumeRenderer(vm), _loaded(vm) {}
+	ClassicCostumeRenderer(ScummEngine *vm) : BaseCostumeRenderer(vm), _loaded(vm), _scaleIndexX(0), _scaleIndexY(0) {
+		memset(_palette, 0, sizeof(_palette));
+	}
 
 	void setPalette(uint16 *palette) override;
 	void setFacing(const Actor *a) override;
@@ -98,12 +99,12 @@ public:
 protected:
 	byte drawLimb(const Actor *a, int limb) override;
 
-	void proc3(Codec1 &v1);
-	void proc3_ami(Codec1 &v1);
+	void proc3(ByleRLEData &v1);
+	void proc3_ami(ByleRLEData &v1);
 
-	void procC64(Codec1 &v1, int actor);
+	void procC64(ByleRLEData &v1, int actor);
 
-	void procPCEngine(Codec1 &v1);
+	void procPCEngine(ByleRLEData &v1);
 
 	byte mainRoutine(int xmoveCur, int ymoveCur);
 };

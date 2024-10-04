@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,12 +26,13 @@
 
 #include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/kernel/mouse.h"
-#include "ultima/ultima8/graphics/render_surface.h"
-#include "ultima/ultima8/graphics/palette_manager.h"
-#include "ultima/ultima8/graphics/fonts/rendered_text.h"
-#include "ultima/ultima8/graphics/fonts/font.h"
-#include "ultima/ultima8/graphics/fonts/font_manager.h"
-#include "ultima/ultima8/graphics/fonts/shape_font.h"
+#include "ultima/ultima8/gfx/render_surface.h"
+#include "ultima/ultima8/gfx/palette_manager.h"
+#include "ultima/ultima8/gfx/texture.h"
+#include "ultima/ultima8/gfx/fonts/rendered_text.h"
+#include "ultima/ultima8/gfx/fonts/font.h"
+#include "ultima/ultima8/gfx/fonts/font_manager.h"
+#include "ultima/ultima8/gfx/fonts/shape_font.h"
 #include "ultima/ultima8/audio/music_process.h"
 
 namespace Ultima {
@@ -52,15 +52,20 @@ CruCreditsGump::CruCreditsGump(Common::SeekableReadStream *txtrs,
 		_timer(0), _background(nullptr), _nextScreenStart(0), _screenNo(-1)
 {
 	Image::BitmapDecoder decoder;
-	_background = RenderSurface::CreateSecondaryRenderSurface(640, 480);
-	_background->Fill32(0xFF000000, 0, 0, 640, 480); // black background
+	Graphics::Screen *sc = Ultima8Engine::get_instance()->getScreen();
+	_background = new RenderSurface(640, 480, sc->format);
+
+	uint32 color = TEX32_PACK_RGB(0, 0, 0);
+	_background->fill32(color, 0, 0, 640, 480); // black background
 
 	if (decoder.loadStream(*bmprs)) {
 		// This does an extra copy via the ManagedSurface, but it's a once-off.
 		const Graphics::Surface *bmpsurf = decoder.getSurface();
-		Graphics::ManagedSurface *ms = new Graphics::ManagedSurface(bmpsurf);
-		ms->setPalette(decoder.getPalette(), decoder.getPaletteStartIndex(), decoder.getPaletteColorCount());
-		_background->Blit(ms, 0, 0, 640, 480, 0, 0);
+		Graphics::ManagedSurface ms;
+		ms.copyFrom(*bmpsurf);
+		ms.setPalette(decoder.getPalette(), 0, decoder.getPaletteColorCount());
+		Common::Rect srcRect(640, 480);
+		_background->Blit(ms, srcRect, 0, 0);
 	} else {
 		warning("couldn't load bitmap background for credits.");
 	}
@@ -113,8 +118,7 @@ CruCreditsGump::~CruCreditsGump() {
 void CruCreditsGump::InitGump(Gump *newparent, bool take_focus) {
 	ModalGump::InitGump(newparent, take_focus);
 
-	Mouse::get_instance()->pushMouseCursor();
-	Mouse::get_instance()->setMouseCursor(Mouse::MOUSE_NONE);
+	Mouse::get_instance()->pushMouseCursor(Mouse::MOUSE_NONE);
 
 	MusicProcess *musicproc = MusicProcess::get_instance();
 	if (musicproc) {
@@ -185,7 +189,8 @@ void CruCreditsGump::run() {
 }
 
 void CruCreditsGump::PaintThis(RenderSurface *surf, int32 lerp_factor, bool scaled) {
-	surf->Blit(_background->getRawSurface(), 0, 0, 640, 480, 0, 0);
+	Common::Rect srcRect(640, 480);
+	surf->Blit(*_background->getRawSurface(), srcRect, 0, 0);
 
 	unsigned int nlines = _currentLines.size();
 	if (!nlines)

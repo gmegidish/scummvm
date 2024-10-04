@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -30,7 +29,7 @@
 namespace Saga2 {
 /* ===================================================================== *
    class  GrabInfo
-   this will need to be transfered to grabinfo.h
+   this will need to be transferred to grabinfo.h
  * ===================================================================== */
 
 class GrabInfo {
@@ -38,45 +37,45 @@ class GrabInfo {
 public:
 
 	enum Intent {
-		None,
-		WalkTo,
-		PickUp,
-		Open,
-		Drop,
-		Use,
-		Attack,
-		Cast,               // for spells
+		kIntNone,
+		kIntWalkTo,
+		kIntPickUp,
+		kIntOpen,
+		kIntDrop,
+		kIntUse,
+		kIntAttack,
+		kIntCast,               // for spells
 
-		IntentCounts        // dummy to count enum
+		kIntIntentCounts        // dummy to count enum
 	};
 
 private:
 
 	enum {
-		bufSize = 60
+		kBufSize = 60
 	};
 
 protected:
 
 	// bitmaps for pointer
-	gPixelMap   pointerMap;
-	Point16     pointerOffset;          // mouse ptr hotspot
+	gPixelMap   _pointerMap;
+	Point16     _pointerOffset;          // mouse ptr hotspot
 
-	Location    from;                   // where the item was last
+	Location    _from;                   // where the item was last
 
-	ObjectID    grabId;                 // which object picked by mouse
-	GameObject  *grabObj;               // object being dragged
-	Intent      intention;              // pickup state
-	bool        intentDoable;           // is intention doable?
+	ObjectID    _grabId;                 // which object picked by mouse
+	GameObject  *_grabObj;               // object being dragged
+	Intent      _intention;              // pickup state
+	bool        _intentDoable;           // is intention doable?
 	// (i.e. display red X cursor)
-	bool        displayGauge;           // indicates wether or not to show
+	bool        _displayGauge;           // indicates whether or not to show
 	// the gauge
-	int16       gaugeNumerator,         // values to be displayed on the
-	            gaugeDenominator;       // gauge
+	int16       _gaugeNumerator,         // values to be displayed on the
+	            _gaugeDenominator;       // gauge
 
-	int16       moveCount;              // number of items being moved in cursor
+	int16       _moveCount;              // number of items being moved in cursor
 
-	char        textBuf[bufSize];
+	char        _textBuf[kBufSize];
 
 	// internal grab commonality
 	void setIcon();
@@ -97,38 +96,38 @@ public:
 	// mergeable or not.
 	void    setMoveCount(int16 val);
 	int16   getMoveCount() {
-		return moveCount;
+		return _moveCount;
 	}
 
 	// put object into mouse ptr
-	void    grabObject(ObjectID objid,  Intent in = Drop, int16 count = 1);
-	void    grabObject(GameObject *obj, Intent in = Drop, int16 count = 1);
+	void    grabObject(ObjectID objid,  Intent in = kIntDrop, int16 count = 1);
+	void    grabObject(GameObject *obj, Intent in = kIntDrop, int16 count = 1);
 
-	void    copyObject(ObjectID objid,  Intent in = Drop, int16 count = 1);
-	void    copyObject(GameObject *obj, Intent in = Drop, int16 count = 1);
+	void    copyObject(ObjectID objid,  Intent in = kIntDrop, int16 count = 1);
+	void    copyObject(GameObject *obj, Intent in = kIntDrop, int16 count = 1);
 
 	// non-destructive reads of the state
 	uint8       getIntent()       {
-		return intention;
+		return _intention;
 	}
 	bool        getDoable()       {
-		return intentDoable;
+		return _intentDoable;
 	}
 
 	// changes to GrabInfo state
 	uint8       setIntent(uint8 in);
 	void        setDoable(bool doable) {
-		if (doable != intentDoable) {
-			intentDoable = doable;
+		if (doable != _intentDoable) {
+			_intentDoable = doable;
 			setCursor();
 		}
 	}
 
 	GameObject  *getObject()  {
-		return grabObj;
+		return _grabObj;
 	}
 	ObjectID    getObjectId() {
-		return grabId;
+		return _grabId;
 	}
 
 	// free the cursor

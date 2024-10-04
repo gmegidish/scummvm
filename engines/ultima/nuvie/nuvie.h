@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef NUVIE_NUVIE_H
 #define NUVIE_NUVIE_H
 
+#include "ultima/shared/engine/events.h"
 #include "ultima/shared/engine/ultima.h"
 #include "ultima/shared/std/string.h"
 #include "ultima/nuvie/conf/configuration.h"
@@ -40,7 +40,7 @@ class Screen;
 class Script;
 class SoundManager;
 
-class NuvieEngine : public Ultima::Shared::UltimaEngine {
+class NuvieEngine : public Ultima::Shared::UltimaEngine, public Ultima::Shared::EventsCallback {
 private:
 	Configuration *_config;
 	Screen *_screen;
@@ -49,6 +49,7 @@ private:
 	SaveGame *_savegame;
 
 	SoundManager *_soundManager;
+	Ultima::Shared::EventsManager *_events;
 private:
 	void initConfig();
 	void assignGameConfigValues(uint8 game_type);
@@ -62,7 +63,7 @@ protected:
 	/**
 	 * Returns the data archive folder and version that's required
 	 */
-	bool isDataRequired(Common::String &folder, int &majorVersion, int &minorVersion) override;
+	bool isDataRequired(Common::Path &folder, int &majorVersion, int &minorVersion) override;
 public:
 	const Std::string c_empty_string;
 public:

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -173,14 +172,14 @@ IMPLEMENT_FUNCTION_IIS(10, August, callSavepointNoDrawing, EntityIndex, ActionIn
 
 	case kActionExitCompartment:
 		if (!params->param6)
-			getSavePoints()->call(kEntityAugust, (EntityIndex)params->param1, (ActionIndex)params->param2, (char *)&params->seq);
+			getSavePoints()->call(kEntityAugust, (EntityIndex)params->param1, (ActionIndex)params->param2, params->seq);
 
 		callbackAction();
 		break;
 
 	case kAction10:
 		if (!params->param6) {
-			getSavePoints()->call(kEntityAugust, (EntityIndex)params->param1, (ActionIndex)params->param2, (char *)&params->seq);
+			getSavePoints()->call(kEntityAugust, (EntityIndex)params->param1, (ActionIndex)params->param2, params->seq);
 			params->param6 = 1;
 		}
 		break;
@@ -349,29 +348,29 @@ IMPLEMENT_FUNCTION_II(19, August, function19, bool, bool)
 			break;
 
 		case kChapter1:
-			strcpy((char *)&parameters->seq1, "626");
+			Common::strcpy_s(parameters->seq1, "626");
 			break;
 
 		case kChapter2:
 		case kChapter3:
 			if (getData()->clothes != kClothes2) {
-				strcpy((char *)&parameters->seq1, "666");
+				Common::strcpy_s(parameters->seq1, "666");
 				break;
 			}
 			// fall through
 
 		case kChapter4:
 		case kChapter5:
-			strcpy((char *)&parameters->seq1, "696");
+			Common::strcpy_s(parameters->seq1, "696");
 			break;
 		}
 
 		getSavePoints()->push(kEntityAugust, kEntityMertens, kAction303343617);
 
-		strcpy((char *)&parameters->seq2, (char *)&parameters->seq1);
-		strcat((char *)&parameters->seq2, "Pc");
+		Common::strcpy_s(parameters->seq2, parameters->seq1);
+		Common::strcat_s(parameters->seq2, "Pc");
 
-		getEntities()->drawSequenceLeft(kEntityAugust, (char *)&parameters->seq2);
+		getEntities()->drawSequenceLeft(kEntityAugust, parameters->seq2);
 		getEntities()->enterCompartment(kEntityAugust, kObjectCompartment3, true);
 
 		setCallback(1);
@@ -384,20 +383,20 @@ IMPLEMENT_FUNCTION_II(19, August, function19, bool, bool)
 			break;
 
 		case 1:
-			strcpy((char *)&parameters->seq2, (char *)&parameters->seq1);
-			strcat((char *)&parameters->seq2, "Qc");
+			Common::strcpy_s(parameters->seq2, parameters->seq1);
+			Common::strcat_s(parameters->seq2, "Qc");
 
-			getEntities()->drawSequenceLeft(kEntityAugust, (char *)&parameters->seq2);
+			getEntities()->drawSequenceLeft(kEntityAugust, parameters->seq2);
 			if (parameters->param2)
 				getData()->inventoryItem = kItem147;
 			break;
 
 		case 2:
-			strcpy((char *)&parameters->seq2, (char *)&parameters->seq1);
-			strcat((char *)&parameters->seq2, parameters->param1 ? "Fc" : "Dc");
+			Common::strcpy_s(parameters->seq2, parameters->seq1);
+			Common::strcat_s(parameters->seq2, parameters->param1 ? "Fc" : "Dc");
 
 			setCallback(3);
-			setup_enterExitCompartment2((char *)&parameters->seq2, kObjectCompartment3);
+			setup_enterExitCompartment2(parameters->seq2, kObjectCompartment3);
 			break;
 
 		case 3:
@@ -434,39 +433,39 @@ IMPLEMENT_FUNCTION_I(20, August, function20, bool)
 			break;
 
 		case kChapter1:
-			strcpy((char *)&parameters->seq1, "626");
+			Common::strcpy_s(parameters->seq1, "626");
 			break;
 
 		case kChapter2:
 		case kChapter3:
 			if (getData()->clothes != kClothes2) {
-				strcpy((char *)&parameters->seq1, "666");
+				Common::strcpy_s(parameters->seq1, "666");
 				break;
 			}
 			// fall through
 
 		case kChapter4:
 		case kChapter5:
-			strcpy((char *)&parameters->seq1, "696");
+			Common::strcpy_s(parameters->seq1, "696");
 			break;
 		}
 
 		if (parameters->param1) {
-			Common::String sequence = Common::String::format("%s%s", (char *)&parameters->seq1, "Gc");
+			Common::String sequence = Common::String::format("%s%s", parameters->seq1, "Gc");
 			assert(sequence.size() <= 12); // .size() does not count terminating zero
 
-			strcpy((char *)&parameters->seq2, sequence.c_str());
+			Common::strcpy_s(parameters->seq2, sequence.c_str());
 
 			getObjects()->update(kObjectCompartment3, kEntityPlayer, kObjectLocation1, kCursorKeepValue, kCursorKeepValue);
 		} else {
-			Common::String sequence = Common::String::format("%s%s", (char *)&parameters->seq1, "Ec");
+			Common::String sequence = Common::String::format("%s%s", parameters->seq1, "Ec");
 			assert(sequence.size() <= 12);
 
-			strcpy((char *)&parameters->seq2, sequence.c_str());
+			Common::strcpy_s(parameters->seq2, sequence.c_str());
 		}
 
 		setCallback(1);
-		setup_enterExitCompartment((char *)&parameters->seq2, kObjectCompartment3);
+		setup_enterExitCompartment(parameters->seq2, kObjectCompartment3);
 		break;
 
 	case kActionCallback:
@@ -477,12 +476,12 @@ IMPLEMENT_FUNCTION_I(20, August, function20, bool)
 		case 1: {
 			getData()->location = kLocationOutsideCompartment;
 
-			Common::String sequence2 = Common::String::format("%s%s", (char *)&parameters->seq1, "Pc");
+			Common::String sequence2 = Common::String::format("%s%s", parameters->seq1, "Pc");
 			assert(sequence2.size() <= 12);
 
-			strcpy((char *)&parameters->seq2, sequence2.c_str());
+			Common::strcpy_s(parameters->seq2, sequence2.c_str());
 
-			getEntities()->drawSequenceLeft(kEntityAugust, (char *)&parameters->seq2);
+			getEntities()->drawSequenceLeft(kEntityAugust, parameters->seq2);
 			getEntities()->enterCompartment(kEntityAugust, kObjectCompartment3, true);
 
 			if (getProgress().chapter != kChapter3 || getState()->time >= kTime1998000) {
@@ -500,12 +499,12 @@ IMPLEMENT_FUNCTION_I(20, August, function20, bool)
 		case 3: {
 			getSavePoints()->push(kEntityAugust, kEntityMertens, kAction269436673);
 
-			Common::String sequence = Common::String::format("%s%s", (char *)&parameters->seq1, "Qc");
+			Common::String sequence = Common::String::format("%s%s", parameters->seq1, "Qc");
 			assert(sequence.size() <= 13);
 
-			strcpy((char *)&parameters->seq2, sequence.c_str());
+			Common::strcpy_s(parameters->seq2, sequence.c_str());
 
-			getEntities()->drawSequenceLeft(kEntityAugust, (char *)&parameters->seq2);
+			getEntities()->drawSequenceLeft(kEntityAugust, parameters->seq2);
 
 			}
 			break;

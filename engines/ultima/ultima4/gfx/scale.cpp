@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima4/gfx/image.h"
 #include "ultima/ultima4/gfx/scale.h"
 #include "ultima/ultima4/core/utils.h"
+#include "common/system.h"
 
 namespace Ultima {
 namespace Ultima4 {
@@ -59,7 +59,7 @@ Image *scalePoint(Image *src, int scale, int n) {
 	int x, y, i, j;
 	Image *dest;
 
-	dest = Image::create(src->width() * scale, src->height() * scale, src->isIndexed(), Image::HARDWARE);
+	dest = Image::create(src->width() * scale, src->height() * scale, src->format());
 	if (!dest)
 		return nullptr;
 
@@ -93,7 +93,8 @@ Image *scale2xBilinear(Image *src, int scale, int n) {
 	/* this scaler works only with images scaled by 2x */
 	assertMsg(scale == 2, "invalid scale: %d", scale);
 
-	dest = Image::create(src->width() * scale, src->height() * scale, false, Image::HARDWARE);
+	Graphics::PixelFormat format = src->isIndexed() ? g_system->getScreenFormat() : src->format();
+	dest = Image::create(src->width() * scale, src->height() * scale, format);
 	if (!dest)
 		return nullptr;
 
@@ -195,7 +196,8 @@ Image *scale2xSaI(Image *src, int scale, int N) {
 	/* this scaler works only with images scaled by 2x */
 	assertMsg(scale == 2, "invalid scale: %d", scale);
 
-	dest = Image::create(src->width() * scale, src->height() * scale, false, Image::HARDWARE);
+	Graphics::PixelFormat format = src->isIndexed() ? g_system->getScreenFormat() : src->format();
+	dest = Image::create(src->width() * scale, src->height() * scale, format);
 	if (!dest)
 		return nullptr;
 
@@ -361,7 +363,7 @@ Image *scaleScale2x(Image *src, int scale, int n) {
 	/* this scaler works only with images scaled by 2x or 3x */
 	assertMsg(scale == 2 || scale == 3, "invalid scale: %d", scale);
 
-	dest = Image::create(src->width() * scale, src->height() * scale, src->isIndexed(), Image::HARDWARE);
+	dest = Image::create(src->width() * scale, src->height() * scale, src->format());
 	if (!dest)
 		return nullptr;
 

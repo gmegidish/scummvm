@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,11 +47,11 @@ public:
 	 */
 	static void init(MADSEngine *vm);
 
-	static Common::String formatName(RESPREFIX resType, int id, const Common::String &ext);
-	static Common::String formatName(int prefix, char asciiCh, int id,
+	static Common::Path formatName(RESPREFIX resType, int id, const Common::String &ext);
+	static Common::Path formatName(int prefix, char asciiCh, int id,
 		EXTTYPE extType, const Common::String &suffix);
-	static Common::String formatResource(const Common::String &resName, const Common::String &hagFilename);
-	static Common::String formatAAName(int idx);
+	static Common::Path formatResource(const Common::String &resName, const Common::String &hagFilename);
+	static Common::Path formatAAName(int idx);
 };
 
 /**
@@ -68,12 +67,12 @@ public:
 	/**
 	 * Constructor
 	 */
-	File(const Common::String &filename) { openFile(filename); }
+	File(const Common::Path &filename) { openFile(filename); }
 
 	/**
 	 * Opens the given file, throwing an error if it can't be opened
 	 */
-	void openFile(const Common::String &filename);
+	void openFile(const Common::Path &filename);
 };
 
 class SynchronizedList : public Common::Array<int> {

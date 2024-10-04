@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -77,12 +76,12 @@ void SoundAmiga_EoB::selectAudioResourceSet(int set) {
 	_currentResourceSet = set;
 }
 
-void SoundAmiga_EoB::loadSoundFile(Common::String file) {
+void SoundAmiga_EoB::loadSoundFile(const Common::Path &file) {
 	if (!_ready)
 		return;
 
 	Common::SeekableReadStream *in = _vm->resource()->createReadStream(file);
-	debugC(6, kDebugLevelSound, "SoundAmiga_EoB::loadSoundFile(): Attempting to load sound file '%s'...%s", file.c_str(), in ? "SUCCESS" : "FILE NOT FOUND");
+	debugC(6, kDebugLevelSound, "SoundAmiga_EoB::loadSoundFile(): Attempting to load sound file '%s'...%s", file.toString().c_str(), in ? "SUCCESS" : "FILE NOT FOUND");
 	if (!in)
 		return;
 
@@ -111,17 +110,17 @@ void SoundAmiga_EoB::loadSoundFile(Common::String file) {
 	} else if (cmp == 4) {
 		Screen::decodeFrame4(_fileBuffer, buf, outSize);
 	} else {
-		error("SoundAmiga_EoB::loadSoundFile(): Failed to load sound file '%s'", file.c_str());
+		error("SoundAmiga_EoB::loadSoundFile(): Failed to load sound file '%s'", file.toString().c_str());
 	}
 
 	Common::MemoryReadStream soundFile(buf, outSize);
 	if (!_driver->loadRessourceFile(&soundFile))
-		error("SoundAmiga_EoB::loadSoundFile(): Failed to load sound file '%s'", file.c_str());
+		error("SoundAmiga_EoB::loadSoundFile(): Failed to load sound file '%s'", file.toString().c_str());
 
 	delete[] buf;
 }
 
-void SoundAmiga_EoB::unloadSoundFile(Common::String file) {
+void SoundAmiga_EoB::unloadSoundFile(const Common::String &file) {
 	if (!_ready)
 		return;
 	debugC(5, kDebugLevelSound, "SoundAmiga_EoB::unloadSoundFile(): Attempting to free resource '%s'...%s", file.c_str(), _driver->stopSound(file) ? "SUCCESS" : "FAILURE");
@@ -158,7 +157,7 @@ void SoundAmiga_EoB::playTrack(uint8 track) {
 
 	if (!newSound.empty() && _ready) {
 		_driver->startSound(newSound);
-		_lastSound = newSound;
+		_lastSound = Common::move(newSound);
 	}
 }
 
@@ -208,7 +207,7 @@ void SoundAmiga_EoB::playSoundEffect(uint16 track, uint8 volume) {
 				debugC(5, kDebugLevelSound, "SoundAmiga_EoB::playSoundEffect(): Triggered workaround for wrongly named resource: '%s'", newSound.c_str());
 		}
 
-		_lastSound = newSound;
+		_lastSound = Common::move(newSound);
 	}
 }
 

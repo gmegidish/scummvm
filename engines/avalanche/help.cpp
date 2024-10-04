@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -168,7 +167,7 @@ bool Help::handleMouse(const Common::Event &event) {
 	mousePos.x = event.mouse.x;
 	mousePos.y = event.mouse.y / 2;
 
-	int index = -1;
+	int index;
 
 	if (event.type == Common::EVENT_LBUTTONUP) { // Clicked *somewhere*...
 		_holdLeft = false;
@@ -179,6 +178,7 @@ bool Help::handleMouse(const Common::Event &event) {
 			index = ((mousePos.y - 13) / 27) - 1;
 	} else { // LBUTTONDOWN or MOUSEMOVE
 		int highlightIs = 0;
+		index = -1;
 
 		// Decide which button we are hovering the cursor over:
 		if ((mousePos.x > 470) && (mousePos.x <= 550) && (((mousePos.y - 13) % 27) <= 20)) { // No click, so highlight.
@@ -209,12 +209,11 @@ bool Help::handleMouse(const Common::Event &event) {
 	if ((index >= 0) && (_buttons[index]._trigger != Common::KEYCODE_INVALID)) {
 		if (_buttons[index]._trigger == Common::KEYCODE_ESCAPE)
 			return true;
-		else {
-			_vm->fadeOut();
-			switchPage(_buttons[index]._whither);
-			_vm->fadeIn();
-			return false;
-		}
+
+		_vm->fadeOut();
+		switchPage(_buttons[index]._whither);
+		_vm->fadeIn();
+		return false;
 	}
 
 	return false;

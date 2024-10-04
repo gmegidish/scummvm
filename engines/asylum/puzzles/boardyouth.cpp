@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -103,7 +102,57 @@ static const PuzzleBoard::PuzzleData puzzleYouthData[] = {
 		true,
 		6, 0,
 		"E S T   J E U N E S S E "
-	}
+	},
+	// Hebrew
+	{
+		55,
+		kGameFlag282,
+		431,
+		2,
+		{{3, false}, {4, false}, {0, false}},
+		8,
+		{
+			{'\xF0', 596,  59},
+			{'\xE5', 226,  58},
+			{'\xE4', 113,  74},
+			{'\xE0', 494, 106},
+			{'\xF8', 461, 122},
+			{'\xF2',  76, 155},
+			{'\xFA', 141, 186},
+			{'\0',     0,   0},
+			{'\0',     0,   0},
+			{'\0',     0,   0},
+			{'\0',     0,   0}
+		},
+		true,
+		10, 0,
+		"\xF8 \xF2 \xE5 \xF0 \xE4   \xFA \xE0 "
+	},
+	// Basque
+	{
+		55,
+		kGameFlag282,
+		431,
+		2,
+		{{3, false}, {4, false}, {0, false}},
+		9,
+		{
+			{'A',   32,  56},
+			{'T',   81,  68},
+			{'K',  124, 102},
+			{'A',  554, 118},
+			{'G',  331, 149},
+			{'Z',  152, 182},
+			{'E',  581, 182},
+			{'I',  304, 198},
+			{'D',  445, 231},
+			{'\0',   0,   0},
+			{'\0',   0,   0}
+		},
+		false,
+		0, 0,
+		"G A Z T E D I A K "
+	},
 };
 
 PuzzleBoardYouth::PuzzleBoardYouth(AsylumEngine *engine) : PuzzleBoard(engine, puzzleYouthData) {

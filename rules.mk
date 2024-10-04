@@ -48,7 +48,7 @@ ifdef PLUGIN
 PLUGIN-$(MODULE) := plugins/$(PLUGIN_PREFIX)$(notdir $(MODULE))$(PLUGIN_SUFFIX)
 $(PLUGIN-$(MODULE)): $(MODULE_OBJS-$(MODULE)) $(PLUGIN_EXTRA_DEPS)
 	$(QUIET)$(MKDIR) plugins
-	+$(QUIET_PLUGIN)$(LD) $(SAVED_LDFLAGS) $(filter-out $(PLUGIN_EXTRA_DEPS),$+) $(PLUGIN_LDFLAGS) -o $@
+	+$(QUIET_PLUGIN)$(LD) $(filter-out $(PLUGIN_EXTRA_DEPS),$+) $(PLUGIN_LDFLAGS) -o $@
 
 # Reset PLUGIN var
 PLUGIN:=
@@ -57,9 +57,6 @@ PLUGIN:=
 plugins: $(PLUGIN-$(MODULE))
 
 ifdef SPLIT_DWARF
-$(PLUGIN-$(MODULE)).dwp: $(PLUGIN-$(MODULE))
-	$(QUIET_DWP)$(DWP) -e $<
-
 plugins: $(PLUGIN-$(MODULE)).dwp
 endif
 
@@ -84,6 +81,7 @@ $(MODULE_LIB-$(MODULE)): $(MODULE_OBJS-$(MODULE))
 	$(QUIET)-$(RM) $@
 	$(QUIET_AR)$(AR) $@ $+
 	$(QUIET_RANLIB)$(RANLIB) $@
+	$(QUIET)$(LS) $@
 
 # Pseudo target for comfort, allows for "make common", "make gui" etc.
 $(MODULE): $(MODULE_LIB-$(MODULE))

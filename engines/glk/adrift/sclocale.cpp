@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -135,7 +134,7 @@ struct sc_locale_table_t {
  * Define a single static locale table set.  This set re-initializes if it
  * detects a locale change.
  */
-static sc_locale_table_t loc_locale_tables = {NULL, {0}, {0}, {0}, {0}, {0}};
+static sc_locale_table_t loc_locale_tables = {nullptr, {0}, {0}, {0}, {0}, {0}};
 
 
 /*
@@ -225,7 +224,7 @@ static const sc_locale_t CYRILLIC_LOCALE = {
 static const sc_locale_t *const AVAILABLE_LOCALES[] = {
 	&LATIN1_LOCALE,
 	&CYRILLIC_LOCALE,
-	NULL
+	nullptr
 };
 
 /*
@@ -256,7 +255,7 @@ static const sc_char *loc_locate_signature_in_date(const sc_char *date) {
 	if (converted == 3 && strlen(signature) == SIGNATURE_LENGTH)
 		return strstr(date, signature);
 	else
-		return NULL;
+		return nullptr;
 }
 
 
@@ -297,7 +296,7 @@ static sc_bool loc_compare_locale_signatures(const char *signature, const sc_loc
 static const sc_locale_t *loc_find_matching_locale(const sc_char *date,
 		const sc_locale_t *const *locales) {
 	const sc_char *signature;
-	const sc_locale_t *matched = NULL;
+	const sc_locale_t *matched = nullptr;
 
 	/* Get the month part of date, and if valid, search locale signatures. */
 	signature = loc_locate_signature_in_date(date);
@@ -385,7 +384,7 @@ static sc_int loc_ascii_strncasecmp(const sc_char *s1, const sc_char *s2, sc_int
  * if none yet set.
  */
 sc_bool loc_set_locale(const sc_char *name) {
-	const sc_locale_t *matched = NULL;
+	const sc_locale_t *matched = nullptr;
 	const sc_locale_t *const *iterator;
 	assert(name);
 

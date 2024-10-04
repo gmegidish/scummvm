@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,7 +55,7 @@ static const uint8 OPL2LPTRegisterWrite[] = {
 namespace OPL {
 namespace OPL2LPT {
 
-class OPL : public ::OPL::RealOPL {
+class OPL : public ::OPL::OPL, public Audio::RealChip {
 private:
 	struct parport *_pport;
 	Config::OplType _type;
@@ -70,7 +69,6 @@ public:
 	void reset();
 
 	void write(int a, int v);
-	byte read(int a);
 
 	void writeReg(int r, int v);
 };
@@ -122,12 +120,14 @@ void OPL::reset() {
 	for(int i = 0; i < 256; i ++) {
 		writeReg(i, 0);
 	}
-	if (_type == Config::kOpl3) {
+	if (_type == Config::kOpl3 || _type == Config::kDualOpl2) {
 		for (int i = 0; i < 256; i++) {
 			writeReg(i + 256, 0);
 		}
 	}
 	index = 0;
+	
+	initDualOpl2OnOpl3(_type);
 }
 
 void OPL::write(int port, int val) {
@@ -139,6 +139,7 @@ void OPL::write(int port, int val) {
 			index = val & 0xff;
 			break;
 		case Config::kOpl3:
+		case Config::kDualOpl2:
 			index = (val & 0xff) | ((port << 7) & 0x100);
 			break;
 		default:
@@ -148,18 +149,16 @@ void OPL::write(int port, int val) {
 	}
 }
 
-byte OPL::read(int port) {
-	// No read support for the OPL2LPT
-	return 0;
-}
-
 void OPL::writeReg(int r, int v) {
-	if (_type == Config::kOpl3) {
+	if (_type == Config::kOpl3 || _type == Config::kDualOpl2) {
 		r &= 0x1ff;
 	} else {
 		r &= 0xff;
 	}
 	v &= 0xff;
+
+	if (!emulateDualOpl2OnOpl3(r, v, _type))
+		return;
 
 	ieee1284_write_data(_pport, r & 0xff);
 	if (r < 0x100) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,21 @@
 #include "common/singleton.h"
 #include "common/str.h"
 
-#include "engines/metaengine.h"
+/**
+ * debug channels structure
+ */
+struct DebugChannelDef {
+	uint32 channel;				/*!< enum value, channel id, e.g. kDebugGlobalDetection */
+	const char *name;			/*!< name of debug channel, e.g. "detection" */
+	const char *description;	/*!< description of debug channel, e.g. "track scripts" */
+};
+
+/**
+ * delimiter of the array of DebugChannelDef
+ */
+#define DEBUG_CHANNEL_END {0, NULL, NULL}
+
+extern const DebugChannelDef gDebugChannels[];
 
 namespace Common {
 
@@ -48,15 +61,14 @@ class DebugManager : public Singleton<DebugManager> {
 public:
 
 	struct DebugChannel {
-		DebugChannel() : channel(0), enabled(false) {}
+		DebugChannel() : channel(0) {}
 		DebugChannel(uint32 c, const String &n, const String &d)
-			: name(n), description(d), channel(c), enabled(false) {}
+			: name(n), description(d), channel(c) {}
 
 		String name; /*!< Name of the channel */
 		String description; /*!< Description of the channel */
 
-		uint32 channel; /*!< Channel number. */
-		bool enabled; /*!< Whether the channel is enabled. */
+		uint32 channel; /*!< Channel ID */
 	};
 
 	/**
@@ -75,7 +87,7 @@ public:
 	 * specific debug channels. Those functions will only show output, when *both* criteria
 	 * are satisfied.
 	 *
-	 * @param channel     Channel flag (should be OR-able i.e. first one should be 1 then 2, 4, etc.).
+	 * @param channel     Channel ID.
 	 * @param name        The option name that is used in the debugger/on the command line to enable
 	 *                    this special debug level (case will be ignored).
 	 * @param description The description that shows up in the debugger.
@@ -122,7 +134,7 @@ public:
 	/**
 	 * @overload bool disableDebugChannel(uint32 channel)
 	 *
-	 * @param channel The debug channel
+	 * @param channel The debug channel ID
 	 * @return true on success, false on failure
 	 */
 	bool disableDebugChannel(uint32 channel);
@@ -154,9 +166,10 @@ public:
 
 private:
 	typedef HashMap<String, DebugChannel, IgnoreCase_Hash, IgnoreCase_EqualTo> DebugChannelMap;
+	typedef HashMap<uint32, bool> EnabledChannelsMap;
 
 	DebugChannelMap _debugChannels;
-	uint32 _debugChannelsEnabled;
+	EnabledChannelsMap _debugChannelsEnabled;
 	uint32 _globalChannelsMask;
 
 	friend class Singleton<SingletonBaseType>;

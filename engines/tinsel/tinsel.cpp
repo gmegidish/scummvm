@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,6 +59,8 @@
 #include "tinsel/sysvar.h"
 #include "tinsel/timers.h"
 #include "tinsel/tinsel.h"
+#include "tinsel/noir/notebook.h"
+#include "tinsel/noir/sysreel.h"
 
 namespace Tinsel {
 
@@ -76,23 +77,19 @@ extern SCNHANDLE GetSceneHandle();
 
 extern void ResetVarsDrives();
 extern void ResetVarsEvents();
-extern void RebootScalingReels();
 extern void ResetVarsMove();
 extern void ResetVarsPalette();
 extern void ResetVarsPCode();
 extern void ResetVarsPDisplay();
 extern void ResetVarsPlay();
 extern void ResetVarsPolygons();
-extern void RebootMovers();
 extern void ResetVarsSaveLoad();
 extern void ResetVarsSaveScn();
 extern void ResetVarsScene();
 extern void ResetVarsSched();
 extern void ResetVarsStrRes();
-extern void FreeTextBuffer();
 extern void ResetVarsSysVar();
 extern void FreeAllTokens();
-extern void RebootTimers();
 extern void ResetVarsTinlib();
 
 //----------------- FORWARD DECLARATIONS  ---------------------
@@ -173,50 +170,76 @@ void KeyboardProcess(CORO_PARAM, const void *) {
 					ProcessButEvent(PLR_DRAG2_END);
 			}
 			continue;
-
-		case Common::KEYCODE_LCTRL:
-		case Common::KEYCODE_RCTRL:
-			if (evt.type == Common::EVENT_KEYDOWN) {
-				ProcessKeyEvent(PLR_LOOK);
-			} else {
-				// Control key release
-			}
-			continue;
-
 		default:
 			break;
 		}
 
 		// At this point only key down events need processing
-		if (evt.type == Common::EVENT_KEYUP)
+		if (evt.type == Common::EVENT_KEYUP || evt.customType == Common::EVENT_CUSTOM_ENGINE_ACTION_END)
 			continue;
 
 		if (_vm->_keyHandler != NULL)
 			// Keyboard is hooked, so pass it on to that handler first
-			if (!_vm->_keyHandler(evt.kbd))
+			if (!_vm->_keyHandler(evt.kbd, evt.customType))
 				continue;
 
-		switch (evt.kbd.keycode) {
+		switch (evt.customType) {
 		/*** SPACE = WALKTO ***/
-		case Common::KEYCODE_SPACE:
+		case kActionWalkTo:
 			ProcessKeyEvent(PLR_WALKTO);
 			continue;
 
 		/*** RETURN = ACTION ***/
-		case Common::KEYCODE_RETURN:
-		case Common::KEYCODE_KP_ENTER:
+		case kActionAction:
 			ProcessKeyEvent(PLR_ACTION);
 			continue;
 
 		/*** l = LOOK ***/
-		case Common::KEYCODE_l:		// LOOK
+		case kActionLook:		// LOOK
 			ProcessKeyEvent(PLR_LOOK);
 			continue;
 
-		case Common::KEYCODE_ESCAPE:
+		case kActionEscape:
 			ProcessKeyEvent(PLR_ESCAPE);
 			continue;
+		case kActionOptionsDialog:
+			// Options dialog
+			ProcessKeyEvent(PLR_MENU);
+			continue;
+		case kActionInventory:
+			ProcessKeyEvent(PLR_INVENTORY);
+			continue;
+		case kActionNotebook:
+			ProcessKeyEvent(PLR_NOTEBOOK);
+			continue;
+		case kActionSave:
+			// Save game
+			ProcessKeyEvent(PLR_SAVE);
+			continue;
+		case kActionLoad:
+			// Load game
+			ProcessKeyEvent(PLR_LOAD);
+			continue;
+		case kActionQuit:
+			ProcessKeyEvent(PLR_QUIT);
+			continue;
+		case kActionPageUp:
+			ProcessKeyEvent(PLR_PGUP);
+			continue;
+		case kActionPageDown:
+			ProcessKeyEvent(PLR_PGDN);
+			continue;
+		case kActionHome:
+			ProcessKeyEvent(PLR_HOME);
+			continue;
+		case kActionEnd:
+			ProcessKeyEvent(PLR_END);
+			continue;
+		default:
+			break;
+		}
 
+		switch (evt.kbd.keycode) {
 #ifdef SLOW_RINCE_DOWN
 		case '>':
 			AddInterlude(1);
@@ -225,47 +248,13 @@ void KeyboardProcess(CORO_PARAM, const void *) {
 			AddInterlude(-1);
 			continue;
 #endif
-
-		case Common::KEYCODE_1:
-		case Common::KEYCODE_F1:
-			// Options dialog
-			ProcessKeyEvent(PLR_MENU);
-			continue;
-		case Common::KEYCODE_5:
-		case Common::KEYCODE_F5:
-			// Save game
-			ProcessKeyEvent(PLR_SAVE);
-			continue;
-		case Common::KEYCODE_7:
-		case Common::KEYCODE_F7:
-			// Load game
-			ProcessKeyEvent(PLR_LOAD);
-			continue;
 		case Common::KEYCODE_m:
 			// Debug facility - scene hopper
-			if (TinselV2 && (evt.kbd.hasFlags(Common::KBD_ALT)))
-				ProcessKeyEvent(PLR_JUMP);
+			if (TinselVersion >= 2) {
+				if (evt.kbd.hasFlags(Common::KBD_ALT))
+					ProcessKeyEvent(PLR_JUMP);
+			}
 			break;
-		case Common::KEYCODE_q:
-			if ((evt.kbd.hasFlags(Common::KBD_CTRL)) || (evt.kbd.hasFlags(Common::KBD_ALT)))
-				ProcessKeyEvent(PLR_QUIT);
-			continue;
-		case Common::KEYCODE_PAGEUP:
-		case Common::KEYCODE_KP9:
-			ProcessKeyEvent(PLR_PGUP);
-			continue;
-		case Common::KEYCODE_PAGEDOWN:
-		case Common::KEYCODE_KP3:
-			ProcessKeyEvent(PLR_PGDN);
-			continue;
-		case Common::KEYCODE_HOME:
-		case Common::KEYCODE_KP7:
-			ProcessKeyEvent(PLR_HOME);
-			continue;
-		case Common::KEYCODE_END:
-		case Common::KEYCODE_KP1:
-			ProcessKeyEvent(PLR_END);
-			continue;
 		default:
 			ProcessKeyEvent(PLR_NOEVENT);
 			break;
@@ -342,7 +331,7 @@ static void MouseProcess(CORO_PARAM, const void *) {
 			if (DwGetCurrentTime() - _ctx->lastLeftClick < (uint32)_vm->_config->_dclickSpeed) {
 				// Left button double-click
 
-				if (TinselV2) {
+				if (TinselVersion >= 2) {
 					// Kill off the button process and fire off the action command
 					CoroScheduler.killMatchingProcess(PID_BTN_CLICK, -1);
 					PlayerEvent(PLR_ACTION, _ctx->clickPos);
@@ -359,7 +348,7 @@ static void MouseProcess(CORO_PARAM, const void *) {
 				// Initial mouse down - either for a single click, or potentially
 				// the start of a double-click action
 
-				if (TinselV2) {
+				if (TinselVersion >= 2) {
 					PlayerEvent(PLR_DRAG1_START, mousePos);
 
 					ProvNotProcessed();
@@ -386,14 +375,16 @@ static void MouseProcess(CORO_PARAM, const void *) {
 
 				// If player control is enabled, start a process which, if it times out,
 				// will activate a single button click
-				if (TinselV2 && ControlIsOn()) {
-					_ctx->clickPos = mousePos;
-					CoroScheduler.createProcess(PID_BTN_CLICK, SingleLeftProcess, &_ctx->clickPos, sizeof(Common::Point));
+				if (TinselVersion >= 2) {
+					if (ControlIsOn()) {
+						_ctx->clickPos = mousePos;
+						CoroScheduler.createProcess(PID_BTN_CLICK, SingleLeftProcess, &_ctx->clickPos, sizeof(Common::Point));
+					}
 				}
 			} else
 				_ctx->lastLeftClick -= _vm->_config->_dclickSpeed;
 
-			if (TinselV2)
+			if (TinselVersion >= 2)
 				// Signal left drag end
 				PlayerEvent(PLR_DRAG1_END, mousePos);
 			else
@@ -406,7 +397,7 @@ static void MouseProcess(CORO_PARAM, const void *) {
 
 			if (DwGetCurrentTime() - _ctx->lastRightClick < (uint32)_vm->_config->_dclickSpeed) {
 				// Right button double-click
-				if (TinselV2) {
+				if (TinselVersion >= 2) {
 					PlayerEvent(PLR_NOEVENT, _ctx->clickPos);
 				} else {
 					// signal right drag start
@@ -418,7 +409,7 @@ static void MouseProcess(CORO_PARAM, const void *) {
 
 				_ctx->lastRWasDouble = true;
 			} else {
-				if (TinselV2) {
+				if (TinselVersion >= 2) {
 					PlayerEvent(PLR_DRAG2_START, mousePos);
 					PlayerEvent(PLR_LOOK, mousePos);
 				} else {
@@ -442,7 +433,7 @@ static void MouseProcess(CORO_PARAM, const void *) {
 			else
 				_ctx->lastRightClick -= _vm->_config->_dclickSpeed;
 
-			if (TinselV2)
+			if (TinselVersion >= 2)
 				// Signal left drag end
 				PlayerEvent(PLR_DRAG2_END, mousePos);
 			else
@@ -485,7 +476,7 @@ static void MasterScriptProcess(CORO_PARAM, const void *) {
  * Store the facts pertaining to a scene change.
  */
 void SetNewScene(SCNHANDLE scene, int entrance, int transition) {
-	if (!g_bCuttingScene && TinselV2)
+	if (!g_bCuttingScene && TinselVersion >= 2)
 		WrapScene();
 
 	// If we're loading from the GMM, load the scene as a delayed one
@@ -538,8 +529,8 @@ void SetNewScene(SCNHANDLE scene, int entrance, int transition) {
 	// right items: player must have Mambo the swamp dragon, and mustn't have fireworks (used on
 	// the swamp dragon previously to "load it up").
 	if (TinselV1PSX && g_NextScene.scene == 0x1800000 && g_NextScene.entry == 2) {
-		if ((_vm->_dialogs->IsInInventory(261, INV_1) || _vm->_dialogs->IsInInventory(261, INV_2)) &&
-		    (!_vm->_dialogs->IsInInventory(232, INV_1) && !_vm->_dialogs->IsInInventory(232, INV_2)))
+		if ((_vm->_dialogs->isInInventory(261, INV_1) || _vm->_dialogs->isInInventory(261, INV_2)) &&
+		    (!_vm->_dialogs->isInInventory(232, INV_1) && !_vm->_dialogs->isInInventory(232, INV_2)))
 			g_NextScene.entry = 1;
 	}
 }
@@ -630,7 +621,7 @@ static void RestoredProcess(CORO_PARAM, const void *param) {
 	_ctx->pic = *((INT_CONTEXT * const *)param);
 
 	_ctx->pic = RestoreInterpretContext(_ctx->pic);
-	_ctx->bConverse = TinselV2 && (_ctx->pic->event == CONVERSE);
+	_ctx->bConverse = (TinselVersion >= 2) && (_ctx->pic->event == CONVERSE);
 
 	CORO_INVOKE_1(Interpret, _ctx->pic);
 
@@ -681,12 +672,12 @@ bool ChangeScene(bool bReset) {
 				// Trigger pre-load and fade and start countdown
 				CountOut = COUNTOUT_COUNT;
 				FadeOutFast();
-				if (TinselV2)
+				if (TinselVersion >= 2)
 					_vm->_pcmMusic->startFadeOut(COUNTOUT_COUNT);
 				break;
 			}
 		} else if (--CountOut == 0) {
-			if (!TinselV2)
+			if (TinselVersion <= 1)
 				ClearScreen();
 
 			StartNewScene(g_NextScene.scene, g_NextScene.entry);
@@ -765,7 +756,7 @@ GameChunk createGameChunkV2() {
 	cptr = FindChunk(MASTER_SCNHANDLE, CHUNK_TOTAL_POLY);
 	chunk.numPolygons = (cptr != NULL) ? READ_32(cptr) : 0;
 
-	if (TinselV2) {
+	if (TinselVersion >= 2) {
 		cptr = FindChunk(MASTER_SCNHANDLE, CHUNK_NUM_PROCESSES);
 		assert(cptr && (*cptr < 100));
 		chunk.numProcesses = *cptr;
@@ -780,7 +771,7 @@ GameChunk createGameChunkV2() {
 }
 
 GameChunk loadGameChunk() {
-	if (TinselV3) {
+	if (TinselVersion == 3) {
 		return loadGameChunkV3();
 	} else {
 		return createGameChunkV2();
@@ -802,23 +793,13 @@ void LoadBasicChunks() {
 	RegisterGlobals(game.numGlobals);
 
 	cptr = FindChunk(INV_OBJ_SCNHANDLE, CHUNK_OBJECTS);
-
-	// Convert to native endianness
-	INV_OBJECT *io = (INV_OBJECT *)cptr;
-	for (int i = 0; i < game.numObjects; i++, io++) {
-		io->id        = FROM_32(io->id);
-		io->hIconFilm = FROM_32(io->hIconFilm);
-		io->hScript   = FROM_32(io->hScript);
-		io->attribute = FROM_32(io->attribute);
-	}
-
-	_vm->_dialogs->RegisterIcons(cptr, game.numObjects);
+	_vm->_dialogs->registerIcons(cptr, game.numObjects);
 
 	// Max polygons are 0 in the original DW1 V0 demo and in DW1 Mac (both in the demo and the full version)
 	if (game.numPolygons != 0)
 		MaxPolygons(game.numPolygons);
 
-	if (TinselV2) {
+	if (TinselVersion >= 2) {
 		// Global processes
 		cptr = FindChunk(MASTER_SCNHANDLE, CHUNK_PROCESSES);
 		assert(!game.numProcesses || cptr);
@@ -903,7 +884,17 @@ const char *const TinselEngine::_textFiles[][3] = {
 	{ "japanese.txt", "japanese1.txt", "japanese2.txt" },	// Japanese
 	{ "us.txt", "us1.txt", "us2.txt" }					// US English
 };
-
+const char *const TinselEngine::_sceneFiles[] = {
+	"english.scn", // English
+	"french.scn", // French
+	"german.scn", // German
+	"italian.scn", // Italian
+	"spanish.scn", // Spanish
+	"english.scn", // Hebrew (FIXME: not sure if this is correct)
+	"english.scn", // Hungarian (FIXME: not sure if this is correct)
+	"japanese.scn", // Japanese
+	"us.scn"  // US English
+};
 
 TinselEngine::TinselEngine(OSystem *syst, const TinselGameDescription *gameDesc) :
 		Engine(syst), _gameDescription(gameDesc), _random("tinsel"),
@@ -989,7 +980,7 @@ Common::String TinselEngine::getSavegameFilename(int16 saveNum) const {
 void TinselEngine::initializePath(const Common::FSNode &gamePath) {
 	if (TinselV1PSX) {
 		// Add subfolders needed for PSX versions of Discworld 1
-		SearchMan.addDirectory(gamePath.getPath(), gamePath, 0, 3, true);
+		SearchMan.addDirectory(gamePath, 0, 3, true);
 	} else {
 		// Add DW2 subfolder to search path in case user is running directly from the CDs
 		SearchMan.addSubDirectoryMatching(gamePath, "dw2");
@@ -1014,10 +1005,17 @@ Common::Error TinselEngine::run() {
 	_scroll = new Scroll();
 	_dialogs = new Dialogs();
 
+	if (TinselVersion == 3) {
+		_notebook = new Notebook();
+		_systemReel = new SystemReel();
+	}
+
 	// Initialize backend
 	if (getGameID() == GID_NOIR) {
 		int width = 640;
 		int height = 480;
+		if (ConfMan.getBool("crop_black_bars"))
+			height = 432;
 
 		Graphics::PixelFormat noirFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
 
@@ -1025,11 +1023,10 @@ Common::Error TinselEngine::run() {
 
 		_screenSurface.create(width, 432, noirFormat);
 	} else if (getGameID() == GID_DW2) {
-#ifndef DW2_EXACT_SIZE
-		initGraphics(640, 480);
-#else
-		initGraphics(640, 432);
-#endif
+		if (ConfMan.getBool("crop_black_bars"))
+			initGraphics(640, 432);
+		else
+			initGraphics(640, 480);
 		_screenSurface.create(640, 432, Graphics::PixelFormat::createFormatCLUT8());
 	} else {
 		initGraphics(320, 200);
@@ -1190,7 +1187,9 @@ bool TinselEngine::pollEvent() {
 		{
 			// This fragment takes care of Tinsel 2 when it's been compiled with
 			// blank areas at the top and bottom of the screen
-			int ySkip = TinselV2 ? (g_system->getHeight() - _vm->screen().h) / 2 : 0;
+			int ySkip = 0;
+			if (TinselVersion >= 2)
+				ySkip = (g_system->getHeight() - _vm->screen().h) / 2;
 			if ((event.mouse.y >= ySkip) && (event.mouse.y < (g_system->getHeight() - ySkip)))
 				_mousePos = Common::Point(event.mouse.x, event.mouse.y - ySkip);
 		}
@@ -1198,9 +1197,9 @@ bool TinselEngine::pollEvent() {
 
 	case Common::EVENT_KEYDOWN:
 	case Common::EVENT_KEYUP:
+	case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
 		ProcessKeyEvent(event);
 		break;
-
 	default:
 		break;
 	}
@@ -1224,7 +1223,7 @@ void TinselEngine::CreateConstProcesses() {
  * Restart the game
  */
 void TinselEngine::RestartGame() {
-	_vm->_dialogs->HoldItem(INV_NOICON); // Holding nothing
+	_vm->_dialogs->holdItem(INV_NOICON); // Holding nothing
 
 	_bg->DropBackground();	// No background
 
@@ -1309,28 +1308,24 @@ void TinselEngine::ChopDrivers() {
 void TinselEngine::ProcessKeyEvent(const Common::Event &event) {
 	// Check for movement keys
 	int idx = 0;
-	switch (event.kbd.keycode) {
-	case Common::KEYCODE_UP:
-	case Common::KEYCODE_KP8:
+	switch (event.customType) {
+	case kActionMoveUp:
 		idx = MSK_UP;
 		break;
-	case Common::KEYCODE_DOWN:
-	case Common::KEYCODE_KP2:
+	case kActionMoveDown:
 		idx = MSK_DOWN;
 		break;
-	case Common::KEYCODE_LEFT:
-	case Common::KEYCODE_KP4:
+	case kActionMoveLeft:
 		idx = MSK_LEFT;
 		break;
-	case Common::KEYCODE_RIGHT:
-	case Common::KEYCODE_KP6:
+	case kActionMoveRight:
 		idx = MSK_RIGHT;
 		break;
 	default:
 		break;
 	}
 	if (idx != 0) {
-		if (event.type == Common::EVENT_KEYDOWN)
+		if (event.type == Common::EVENT_CUSTOM_ENGINE_ACTION_START)
 			_dosPlayerDir |= idx;
 		else
 			_dosPlayerDir &= ~idx;
@@ -1344,7 +1339,7 @@ void TinselEngine::ProcessKeyEvent(const Common::Event &event) {
 const char *TinselEngine::getSampleIndex(LANGUAGE lang) {
 	int cd;
 
-	if (TinselV2) {
+	if (TinselVersion >= 2) {
 		cd = GetCurrentCD();
 		assert((cd == 1) || (cd == 2));
 		assert(((unsigned int) lang) < NUM_LANGUAGES);
@@ -1365,7 +1360,7 @@ const char *TinselEngine::getSampleIndex(LANGUAGE lang) {
 const char *TinselEngine::getSampleFile(LANGUAGE lang) {
 	int cd;
 
-	if (TinselV2) {
+	if (TinselVersion >= 2) {
 		cd = GetCurrentCD();
 		assert((cd == 1) || (cd == 2));
 		assert(((unsigned int) lang) < NUM_LANGUAGES);
@@ -1388,7 +1383,7 @@ const char *TinselEngine::getTextFile(LANGUAGE lang) {
 
 	int cd;
 
-	if (TinselV2) {
+	if (TinselVersion >= 2) {
 		cd = GetCurrentCD();
 		assert((cd == 1) || (cd == 2));
 
@@ -1400,6 +1395,20 @@ const char *TinselEngine::getTextFile(LANGUAGE lang) {
 		cd = 0;
 
 	return _textFiles[lang][cd];
+}
+
+/**
+ * Return the loading screen(?) scene file specific to the given language.
+ *
+ * @param lang index of the language
+ */
+const char *TinselEngine::getSceneFile(LANGUAGE lang) {
+	assert(((unsigned int) lang) < NUM_LANGUAGES);
+
+	if (!Common::File::exists(_sceneFiles[lang]))
+		lang = TXT_ENGLISH; // fallback to ENGLISH.SCN if <LANG>.IDX is not found
+
+	return _sceneFiles[lang];
 }
 
 } // End of namespace Tinsel

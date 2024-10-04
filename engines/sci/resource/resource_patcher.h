@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,11 +43,18 @@ enum ResourcePatchOp {
 	kEndOfPatch
 };
 
+enum SciMedia : uint;
+
 struct GameResourcePatch {
 	/**
 	 * The game to patch.
 	 */
 	SciGameId gameId;
+
+	/**
+	 * The media to patch. Use SCI_MEDIA_ALL for all.
+	 */
+	SciMedia media;
 
 	/**
 	 * The language to patch. Use `Common::UNK_LANG` to apply the patch to all
@@ -83,7 +89,7 @@ struct GameResourcePatch {
  */
 class ResourcePatcher : public ResourceSource {
 public:
-	ResourcePatcher(const SciGameId gameId, const Common::Language gameLanguage);
+	ResourcePatcher(const SciGameId gameId, const bool isCD, const Common::Platform platform, const Common::Language gameLanguage);
 
 	~ResourcePatcher() override {}
 
@@ -146,7 +152,7 @@ private:
 	PatchSizes calculatePatchSizes(const byte *patchData) const;
 
 	/**
-	 * Reads an block size from the patch data, validates it, and advances the
+	 * Reads a block size from the patch data, validates it, and advances the
 	 * patch data pointer.
 	 */
 	int32 readBlockSize(const byte * &patchData) const;

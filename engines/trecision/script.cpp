@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,8 @@
 #include "graphics/scaler.h"
 
 #include "trecision/actor.h"
-#include "trecision/anim.h"
+#include "trecision/animmanager.h"
+#include "trecision/animtype.h"
 #include "trecision/defines.h"
 #include "trecision/dialog.h"
 #include "trecision/graphics.h"
@@ -119,8 +119,10 @@ bool TrecisionEngine::quitPrompt() {
 
 	_graphicsMgr->clearScreenBufferTop();
 
-	const Common::KeyCode ch = waitKey();
-	return (ch == Common::KEYCODE_y || ch == Common::KEYCODE_j); // German confirmation is J, English and French use 'Y'
+	waitKey();
+	Common::CustomEventType customType = _curAction;
+	_curAction = kActionNone;
+	return (customType == kActionYes); // German confirmation is J, English and French use 'Y'
 }
 
 void TrecisionEngine::demoOver() {
@@ -406,19 +408,15 @@ void TrecisionEngine::changeRoom(uint16 room, uint16 action, byte position) {
 }
 
 void TrecisionEngine::doIdle() {
-	uint16 c = getKey();
-	switch (c) {
-	// Quit
-	case 'q':
-	case 'Q':
+	uint16 a = getAction();
+	switch (a) {
+	case kActionQuit:
 		if (!_flagDialogActive && !_flagDialogMenuActive) {
 			if (quitPrompt())
 				quitGame();
 		}
 		break;
-
-	// Skip
-	case 0x1B:
+	case kActionSkipVideo:
 		if (canPlayerInteract()) {
 			::createThumbnailFromScreen(&_thumbnail);
 			_actor->actorStop();
@@ -430,8 +428,7 @@ void TrecisionEngine::doIdle() {
 		}
 		break;
 
-	// Sys
-	case 0x3B:
+	case kActionSystemMenu:
 		if (canPlayerInteract()) {
 			::createThumbnailFromScreen(&_thumbnail);
 			_actor->actorStop();
@@ -443,8 +440,7 @@ void TrecisionEngine::doIdle() {
 		}
 		break;
 
-	// Save
-	case 0x3C:
+	case kActionSave:
 		if (canPlayerInteract()) {
 			::createThumbnailFromScreen(&_thumbnail);
 			dataSave();
@@ -454,8 +450,7 @@ void TrecisionEngine::doIdle() {
 		}
 		break;
 
-	// Load
-	case 0x3D:
+	case kActionLoad:
 		if (canPlayerInteract()) {
 			::createThumbnailFromScreen(&_thumbnail);
 			if (!dataLoad()) {
@@ -465,6 +460,7 @@ void TrecisionEngine::doIdle() {
 			}
 		}
 		break;
+
 	default:
 		break;
 	}

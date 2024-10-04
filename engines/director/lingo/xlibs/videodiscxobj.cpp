@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,10 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+/*************************************
+ *
+ * USED IN:
+ * Standard Macromedia Director XObject
+ *
+ *************************************/
 
 /*
  * mNew, portObject, baudRate, playerType  creates a
@@ -104,14 +110,16 @@
 #include "director/director.h"
 #include "director/lingo/lingo.h"
 #include "director/lingo/lingo-object.h"
+#include "director/lingo/lingo-utils.h"
 #include "director/lingo/xlibs/videodiscxobj.h"
 
 namespace Director {
 
 const char *VideodiscXObj::xlibName = "LaserDisc";
-const char *VideodiscXObj::fileNames[] = {
-	"Videodisc XObj",
-	0
+const XlibFileDesc VideodiscXObj::fileNames[] = {
+	{ "Videodisc XObj",	nullptr },
+	{ "LaserDisc",		nullptr },
+	{ nullptr,			nullptr },
 };
 
 static MethodProto xlibMethods[] = {
@@ -140,18 +148,18 @@ static MethodProto xlibMethods[] = {
 	{ "VideoControl",	VideodiscXObj::m_videoControl,	 1, 1,	200 },	// D2
 	{ "AudioControl",	VideodiscXObj::m_audioControl,	 1, 1,	200 },	// D2
 	{ "Status",			VideodiscXObj::m_status,		 0, 0,	200 },	// D2
-	{ 0, 0, 0, 0, 0 }
+	{ nullptr, nullptr, 0, 0, 0 }
 };
 
-void VideodiscXObj::open(int type) {
+void VideodiscXObj::open(ObjectType type, const Common::Path &path) {
 	if (type == kXObj) {
 		VideodiscXObject::initMethods(xlibMethods);
 		VideodiscXObject *xobj = new VideodiscXObject(kXObj);
-		g_lingo->_globalvars[xlibName] = xobj;
+		g_lingo->exposeXObject(xlibName, xobj);
 	}
 }
 
-void VideodiscXObj::close(int type) {
+void VideodiscXObj::close(ObjectType type) {
 	if (type == kXObj) {
 		VideodiscXObject::cleanupMethods();
 		g_lingo->_globalvars[xlibName] = Datum();
@@ -166,152 +174,32 @@ VideodiscXObject::VideodiscXObject(ObjectType ObjectType) :Object<VideodiscXObje
 void VideodiscXObj::m_new(int nargs) {
 	g_lingo->printSTUBWithArglist("VideodiscXObj::m_new", nargs);
 	g_lingo->dropStack(nargs);
-	g_lingo->push(g_lingo->_currentMe);
+	g_lingo->push(g_lingo->_state->me);
 }
 
-void VideodiscXObj::m_name(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_name", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_player(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_player", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_play(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_play", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_playRev(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_playRev", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_fastFwd(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_fastFwd", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_fastRev(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_fastRev", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_slowFwd(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_slowFwd", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_slowRev(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_slowRev", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_stepFwd(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_stepFwd", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_stepRev(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_stepRev", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_playJog(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_playJog", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_playSpeed(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_playSpeed", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_playSegment(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_playSegment", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_pause(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_pause", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_stop(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_stop", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_eject(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_eject", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_stopAtFrame(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_stopAtFrame", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_searchWait(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_searchWait", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_readPos(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_readPos", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_showDisplay(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_showDisplay", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_clear(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_clear", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_videoControl(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_videoControl", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_audioControl(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_audioControl", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void VideodiscXObj::m_status(int nargs) {
-	g_lingo->printSTUBWithArglist("VideodiscXObj::m_status", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
+XOBJSTUBV(VideodiscXObj::m_name)
+XOBJSTUBV(VideodiscXObj::m_player)
+XOBJSTUBV(VideodiscXObj::m_play)
+XOBJSTUBV(VideodiscXObj::m_playRev)
+XOBJSTUBV(VideodiscXObj::m_fastFwd)
+XOBJSTUBV(VideodiscXObj::m_fastRev)
+XOBJSTUBV(VideodiscXObj::m_slowFwd)
+XOBJSTUBV(VideodiscXObj::m_slowRev)
+XOBJSTUBV(VideodiscXObj::m_stepFwd)
+XOBJSTUBV(VideodiscXObj::m_stepRev)
+XOBJSTUBV(VideodiscXObj::m_playJog)
+XOBJSTUBV(VideodiscXObj::m_playSpeed)
+XOBJSTUBV(VideodiscXObj::m_playSegment)
+XOBJSTUBV(VideodiscXObj::m_pause)
+XOBJSTUBV(VideodiscXObj::m_stop)
+XOBJSTUBV(VideodiscXObj::m_eject)
+XOBJSTUBV(VideodiscXObj::m_stopAtFrame)
+XOBJSTUBV(VideodiscXObj::m_searchWait)
+XOBJSTUBV(VideodiscXObj::m_readPos)
+XOBJSTUBV(VideodiscXObj::m_showDisplay)
+XOBJSTUBV(VideodiscXObj::m_clear)
+XOBJSTUBV(VideodiscXObj::m_videoControl)
+XOBJSTUBV(VideodiscXObj::m_audioControl)
+XOBJSTUBV(VideodiscXObj::m_status)
 
 } // End of namespace Director

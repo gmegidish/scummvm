@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,7 @@ namespace BladeRunner {
 // and one cutscene:
 //  - TB_FLY
 // In the in-game scenes (not cutscenes) this speech is played as ambient sound
-// using Ambient_Sounds_Add_Speech_Sound() and is thus not subtitles as of yet.
+// using Ambient_Sounds_Add_Speech_Sound() and is thus not subtitled as of yet.
 // TODO: maybe we could support dual subtitles being displayed on-screen for cases when Ambient Speech Sound
 // would overlap over character speech.
 // The Blimp Guy's speech in the TB_FLY VQA cutscene is subtitled.

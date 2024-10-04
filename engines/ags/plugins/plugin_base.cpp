@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ags/lib/allegro.h"
 #include "ags/plugins/plugin_base.h"
 #include "ags/plugins/ags_agi/ags_agi.h"
+#include "ags/plugins/ags_app_open_url/ags_app_open_url.h"
 #include "ags/plugins/ags_blend/ags_blend.h"
+#include "ags/plugins/ags_bm_font_renderer/ags_bm_font_renderer.h"
 #include "ags/plugins/ags_clipboard/ags_clipboard.h"
+#include "ags/plugins/ags_collision_detector/ags_collision_detector.h"
+#include "ags/plugins/ags_consoles/ags_consoles.h"
 #include "ags/plugins/ags_controller/ags_controller.h"
+#include "ags/plugins/ags_controller/ags_controller_arcnor.h"
 #include "ags/plugins/ags_creditz/ags_creditz1.h"
 #include "ags/plugins/ags_creditz/ags_creditz2.h"
 #include "ags/plugins/ags_fire/ags_fire.h"
@@ -41,8 +45,10 @@
 #include "ags/plugins/ags_sock/ags_sock.h"
 #include "ags/plugins/ags_sprite_font/ags_sprite_font.h"
 #include "ags/plugins/ags_sprite_font/ags_sprite_font_clifftop.h"
+#include "ags/plugins/ags_sprite_video/ags_sprite_video.h"
 #include "ags/plugins/ags_tcp_ip/ags_tcp_ip.h"
 #include "ags/plugins/ags_touch/ags_touch.h"
+#include "ags/plugins/ags_trans/ags_trans.h"
 #include "ags/plugins/ags_wadjet_util/ags_wadjet_util.h"
 #include "ags/plugins/ags_waves/ags_waves.h"
 #include "ags/ags.h"
@@ -71,20 +77,38 @@ Plugins::PluginBase *pluginOpen(const char *filename) {
 	if (fname.equalsIgnoreCase("AGS_AGI"))
 		return new AGSAgi::AGSAgi();
 
+	if (fname.equalsIgnoreCase("agsappopenurl"))
+		return new AGSAppOpenURL::AGSAppOpenURL();
+
 	if (fname.equalsIgnoreCase("AGSBlend"))
 		return new AGSBlend::AGSBlend();
+
+	if (fname.equalsIgnoreCase("AGSBMFontRenderer"))
+		return new AGSBMFontRenderer::AGSBMFontRenderer();
 
 	if (fname.equalsIgnoreCase("AGSClipboard"))
 		return new AGSClipboard::AGSClipboard();
 
+	if (fname.equalsIgnoreCase("AGSConsoles"))
+		return new AGSConsoles::AGSConsoles();
+
 	if (fname.equalsIgnoreCase("AGSController"))
 		return new AGSController::AGSController();
+
+	if (fname.equalsIgnoreCase("agscontrollerplugin"))
+		return new AGSController::AGSControllerArcnor();
+
+	if (fname.equalsIgnoreCase("AGS_Collision_Detector"))
+		return new AGSCollisionDetector::AGSCollisionDetector();
 
 	if (fname.equalsIgnoreCase("agsCreditz"))
 		return new AGSCreditz::AGSCreditz1();
 
 	if (fname.equalsIgnoreCase("agsCreditz2"))
 		return new AGSCreditz::AGSCreditz2();
+
+	if (fname.equalsIgnoreCase("ags_d3d") || fname.equalsIgnoreCase("ags_spritevideo"))
+		return new AGSSpriteVideo::AGSSpriteVideo();
 
 	if (fname.equalsIgnoreCase("AGS_Fire"))
 		return new AGSFire::AGSFire();
@@ -111,11 +135,11 @@ Plugins::PluginBase *pluginOpen(const char *filename) {
 	if (fname.equalsIgnoreCase("AGSSock"))
 		return new AGSSock::AGSSock();
 
-	if ((fname.equalsIgnoreCase("AGSSpriteFont") && version == ::AGS::kClifftopGames))
-		return new AGSSpriteFont::AGSSpriteFontClifftopGames();
-
-	if (fname.equalsIgnoreCase("AGSSpriteFont") || fname.equalsIgnoreCase("agsplugin.spritefont"))
+	if (fname.equalsIgnoreCase("AGSSpriteFont") || fname.equalsIgnoreCase("agsplugin.spritefont")) {
+		if (version == ::AGS::kClifftopGames)
+			return new AGSSpriteFont::AGSSpriteFontClifftopGames();
 		return new AGSSpriteFont::AGSSpriteFont();
+	}
 
 	if (fname.equalsIgnoreCase("agsgalaxy") || fname.equalsIgnoreCase("agsgalaxy-unified") ||
 	        fname.equalsIgnoreCase("agsgalaxy-disjoint"))
@@ -133,6 +157,9 @@ Plugins::PluginBase *pluginOpen(const char *filename) {
 
 	if (fname.equalsIgnoreCase("AGSTouch"))
 		return new AGSTouch::AGSTouch();
+
+	if (fname.equalsIgnoreCase("AGSTrans"))
+		return new AGSTrans::AGSTrans();
 
 	if (fname.equalsIgnoreCase("AGSWadjetUtil"))
 		return new AGSWadjetUtil::AGSWadjetUtil();

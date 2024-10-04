@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,10 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+#include "common/config-manager.h"
 
 #include "hdb/hdb.h"
 #include "hdb/ai.h"
@@ -426,9 +427,9 @@ bool AI::cacheEntGfx(AIEntity *e, bool initFlag) {
 			e->aiInit = aiEntList[i].initFunc;
 			e->aiInit2 = aiEntList[i].initFunc2;
 			if (initFlag) {
-				e->aiInit(e);
+				e->aiInit(e, 0, 0);
 				if (e->aiInit2)
-					e->aiInit2(e);
+					e->aiInit2(e, 0, 0);
 
 				if (e->luaFuncInit[0]) {
 					g_hdb->_lua->callFunction(e->luaFuncInit, 2);
@@ -442,7 +443,7 @@ bool AI::cacheEntGfx(AIEntity *e, bool initFlag) {
 						Common::strlcpy(e->printedName, str2, 32);
 				}
 			} else if (e->aiInit2)
-				e->aiInit2(e);
+				e->aiInit2(e, 0, 0);
 
 			break; // Entity Initiated
 		}
@@ -609,7 +610,7 @@ bool AI::useLuaEntity(const char *initName) {
 	for (Common::Array<AIEntity *>::iterator it = _ents->begin(); it != _ents->end(); ++it) {
 		AIEntity *e = *it;
 		if (!scumm_stricmp(initName, e->entityName)) {
-			e->aiUse(e);
+			e->aiUse(e, 0, 0);
 			checkActionList(e, e->tileX, e->tileY, true);
 			if (e->luaFuncUse[0])
 				g_hdb->_lua->callFunction(e->luaFuncUse, 0);
@@ -718,7 +719,7 @@ void AI::setEntityGoal(AIEntity *e, int x, int y) {
 // Initializes each entity after map is loaded
 void AI::initAllEnts() {
 	for (Common::Array<AIEntity *>::iterator it = _ents->begin(); it != _ents->end(); ++it) {
-		(*it)->aiInit((*it));
+		(*it)->aiInit((*it), 0, 0);
 		if ((*it)->luaFuncInit[0]) {
 			if (g_hdb->_lua->callFunction((*it)->luaFuncInit, 2)) {
 				Common::strlcpy((*it)->entityName, g_hdb->_lua->getStringOffStack(), 32);
@@ -826,7 +827,7 @@ void AI::killPlayer(Death method) {
 	}
 
 	// sound.StopMusic();
-	if (!g_hdb->_sound->getMusicVolume())
+	if (ConfMan.getInt(CONFIG_MUSICVOL) == 0)
 		g_hdb->_sound->playSound(SND_TRY_AGAIN);
 }
 
@@ -1243,7 +1244,7 @@ void AI::animateEntity(AIEntity *e) {
 						g_hdb->_sound->playSound(SND_SPLASH);
 					} else if (!checkFloating(e->tileX, e->tileY)) {
 						if (e->type == AI_BOOMBARREL) {
-							aiBarrelExplode(e);
+							aiBarrelExplode(e, 0, 0);
 							aiBarrelBlowup(e, e->tileX, e->tileY);
 							return;
 						} else {
@@ -1569,7 +1570,7 @@ void AI::animEntFrames(AIEntity *e) {
 		max = e->special1Frames;
 		if (e->type == AI_BOOMBARREL) {
 			// while exploding, call this function
-			aiBarrelExplodeSpread(e);
+			aiBarrelExplodeSpread(e, 0, 0);
 			if (e->animFrame == max - 1) {
 				removeEntity(e);
 				return;
@@ -1918,7 +1919,7 @@ void AI::moveEnts() {
 	// Call aiAction for Floating Entities
 	for (Common::Array<AIEntity *>::iterator it = _floats->begin(); it != _floats->end(); ++it) {
 		if ((*it)->aiAction)
-			(*it)->aiAction((*it));
+			(*it)->aiAction((*it), 0, 0);
 	}
 
 	// Call aiAction for all other Entities
@@ -1940,7 +1941,7 @@ void AI::moveEnts() {
 			}
 			// Stunned Entity Timer
 			if (!e->stunnedWait)
-				e->aiAction(e);
+				e->aiAction(e, 0, 0);
 			else if (e->stunnedWait < (int32)g_hdb->getTimeSlice())
 				e->stunnedWait = 0;
 		}
@@ -2135,7 +2136,7 @@ void AI::laserScan() {
 	for (uint i = 0; i < _ents->size(); i++) {
 		AIEntity *e = _ents->operator[](i);
 		if (e->type == AI_LASER)
-			aiLaserAction(e);
+			aiLaserAction(e, 0, 0);
 	}
 }
 
@@ -2382,6 +2383,12 @@ void AI::movePlayer(uint16 buttons) {
 		int nx = _player->tileX + xva[_player->dir];
 		int ny = _player->tileY + yva[_player->dir];
 		AIEntity *hit = findEntity(nx, ny);
+
+		if (hit && hit->type == AI_NONE) {
+			AIEntity *temp = g_hdb->_ai->findEntityIgnore(nx, ny, hit);
+			if (temp)
+				hit = temp;
+		}
 
 		// the reason to check for no entity or an AI_NONE is because
 		// there's a possibility that an actual entity and a LUA entity

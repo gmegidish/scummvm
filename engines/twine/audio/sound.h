@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef TWINE_SOUND_H
 #define TWINE_SOUND_H
 
+#include "audio/audiostream.h"
 #include "audio/mixer.h"
 #include "common/scummsys.h"
 #include "common/types.h"
@@ -63,7 +63,7 @@ private:
 	/** Samples playing at a actors position */
 	int32 samplesPlayingActors[NUM_CHANNELS]{0};
 
-	bool playSample(int channelIdx, int index, uint8 *sampPtr, int32 sampSize, int32 loop, const char *name, Audio::Mixer::SoundType soundType = Audio::Mixer::kPlainSoundType, DisposeAfterUse::Flag disposeFlag = DisposeAfterUse::YES);
+	bool playSample(int channelIdx, int index, Audio::SeekableAudioStream *audioStream, int32 loop, const char *name, Audio::Mixer::SoundType soundType = Audio::Mixer::kPlainSoundType);
 
 	bool isChannelPlaying(int32 channel);
 
@@ -100,8 +100,8 @@ public:
 	 * @param z sound generating entity z position
 	 * @param actorIdx
 	 */
-	void playSample(int32 index, int32 repeat = 1, int32 x = 128, int32 y = 128, int32 z = 128, int32 actorIdx = -1);
-	void playSample(int32 index, int32 repeat, const IVec3 &pos, int32 actorIdx = -1) {
+	void playSample(int32 index, int32 repeat = 1, int32 x = 128, int32 y = 128, int32 z = 128, int32 actorIdx = -1); // HQ_3D_MixSample
+	void playSample(int32 index, int32 repeat, const IVec3 &pos, int32 actorIdx = -1) { // HQ_MixSample
 		playSample(index, repeat, pos.x, pos.y, pos.z, actorIdx);
 	}
 
@@ -111,6 +111,8 @@ public:
 	/** Resume samples */
 	void resumeSamples();
 
+	void startRainSample();
+
 	/** Stop samples */
 	void stopSamples();
 
@@ -118,10 +120,10 @@ public:
 	int32 getActorChannel(int32 index);
 
 	/** Stops a specific sample */
-	void stopSample(int32 index);
+	void stopSample(int32 index); // HQ_StopOneSample
 
 	/** Check if a sample is playing */
-	int32 isSamplePlaying(int32 index);
+	int32 isSamplePlaying(int32 index); // IsSamplePlaying
 
 	/** Play VOX sample */
 	bool playVoxSample(const TextEntry *text);

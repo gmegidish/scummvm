@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -335,8 +334,7 @@ void AVIDecoder::handleStreamHeader(uint32 size) {
 		byte *initialPalette = 0;
 
 		if (bmInfo.bitCount == 8) {
-			initialPalette = new byte[256 * 3];
-			memset(initialPalette, 0, 256 * 3);
+			initialPalette = new byte[256 * 3]();
 
 			byte *palette = initialPalette;
 			for (uint32 i = 0; i < bmInfo.clrUsed; i++) {
@@ -347,7 +345,7 @@ void AVIDecoder::handleStreamHeader(uint32 size) {
 			}
 		}
 
-		AVIVideoTrack *track = new AVIVideoTrack(_header.totalFrames, sHeader, bmInfo, initialPalette);
+		AVIVideoTrack *track = new AVIVideoTrack(_header.totalFrames, sHeader, bmInfo, initialPalette, _videoCodecAccuracy);
 		if (track->isValid())
 			addTrack(track);
 		else
@@ -385,8 +383,8 @@ void AVIDecoder::readStreamName(uint32 size) {
 		skipChunk(size);
 	} else {
 		// Get in the name
-		assert(size > 0 && size < 64);
-		char buffer[64];
+		assert(size > 0 && size < 128);
+		char buffer[128];
 		_fileStream->read(buffer, size);
 		if (size & 1)
 			_fileStream->skip(1);
@@ -947,8 +945,8 @@ VideoDecoder::AudioTrack *AVIDecoder::getAudioTrack(int index) {
 	return (AudioTrack *)track;
 }
 
-AVIDecoder::AVIVideoTrack::AVIVideoTrack(int frameCount, const AVIStreamHeader &streamHeader, const BitmapInfoHeader &bitmapInfoHeader, byte *initialPalette)
-		: _frameCount(frameCount), _vidsHeader(streamHeader), _bmInfo(bitmapInfoHeader), _initialPalette(initialPalette) {
+AVIDecoder::AVIVideoTrack::AVIVideoTrack(int frameCount, const AVIStreamHeader &streamHeader, const BitmapInfoHeader &bitmapInfoHeader, byte *initialPalette, Image::CodecAccuracy accuracy)
+		: _frameCount(frameCount), _vidsHeader(streamHeader), _bmInfo(bitmapInfoHeader), _initialPalette(initialPalette), _accuracy(accuracy) {
 	_videoCodec = createCodec();
 	_lastFrame = 0;
 	_curFrame = -1;
@@ -985,6 +983,13 @@ Graphics::PixelFormat AVIDecoder::AVIVideoTrack::getPixelFormat() const {
 		return _videoCodec->getPixelFormat();
 
 	return Graphics::PixelFormat();
+}
+
+bool AVIDecoder::AVIVideoTrack::setOutputPixelFormat(const Graphics::PixelFormat &format) {
+	if (_videoCodec)
+		return _videoCodec->setOutputPixelFormat(format);
+
+	return false;
 }
 
 void AVIDecoder::AVIVideoTrack::loadPaletteFromChunkRaw(Common::SeekableReadStream *chunk, int firstEntry, int numEntries) {
@@ -1036,7 +1041,7 @@ void AVIDecoder::AVIVideoTrack::forceDimensions(uint16 width, uint16 height) {
 
 bool AVIDecoder::AVIVideoTrack::rewind() {
 	_curFrame = -1;
-
+	 
 	useInitialPalette();
 
 	delete _videoCodec;
@@ -1046,8 +1051,12 @@ bool AVIDecoder::AVIVideoTrack::rewind() {
 }
 
 Image::Codec *AVIDecoder::AVIVideoTrack::createCodec() {
-	return Image::createBitmapCodec(_bmInfo.compression, _vidsHeader.streamHandler, _bmInfo.width,
+	Image::Codec *codec = Image::createBitmapCodec(_bmInfo.compression, _vidsHeader.streamHandler, _bmInfo.width,
 									_bmInfo.height, _bmInfo.bitCount);
+
+	codec->setCodecAccuracy(_accuracy);
+
+	return codec;
 }
 
 void AVIDecoder::AVIVideoTrack::forceTrackEnd() {
@@ -1093,6 +1102,15 @@ bool AVIDecoder::AVIVideoTrack::canDither() const {
 void AVIDecoder::AVIVideoTrack::setDither(const byte *palette) {
 	assert(_videoCodec);
 	_videoCodec->setDither(Image::Codec::kDitherTypeVFW, palette);
+}
+
+void AVIDecoder::AVIVideoTrack::setCodecAccuracy(Image::CodecAccuracy accuracy) {
+	if (_accuracy != accuracy) {
+		_accuracy = accuracy;
+
+		if (_videoCodec)
+			_videoCodec->setCodecAccuracy(accuracy);
+	}
 }
 
 AVIDecoder::AVIAudioTrack::AVIAudioTrack(const AVIStreamHeader &streamHeader, const PCMWaveFormat &waveFormat, Audio::Mixer::SoundType soundType) :

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * $URL: https://scummvm-startrek.googlecode.com/svn/trunk/lzss.cpp $
  * $Id: lzss.cpp 18 2010-12-17 01:22:54Z clone2727 $
@@ -33,8 +32,7 @@ namespace StarTrek {
 
 Common::SeekableReadStream *decodeLZSS(Common::SeekableReadStream *indata, uint32 uncompressedSize) {
 	uint32 N = 0x1000; /* History buffer size */
-	byte *histbuff = new byte[N]; /* History buffer */
-	memset(histbuff, 0, N);
+	byte *histbuff = new byte[N](); /* History buffer */
 	uint32 outstreampos = 0;
 	uint32 bufpos = 0;
 	byte *outLzssBufData = (byte *)malloc(uncompressedSize);

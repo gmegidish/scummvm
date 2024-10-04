@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -206,10 +205,6 @@ gte_lcirbk();
 
 //------------------------------------------------------------------------
 
-#if CD_MODE == 0
-
-//------------------------------------------------------------------------
-
 // Flat, Un-Textured, Self-Luminous, triangles
 void drawFUS3PC(uint32 *polyStart, const uint32 n, SVECTORPC *pVertex) {
 	SVECTORPC *v0;
@@ -350,8 +345,6 @@ void drawFUS3PC(uint32 *polyStart, const uint32 n, SVECTORPC *pVertex) {
 		}
 	}
 }
-
-//------------------------------------------------------------------------
 
 // Gouraud, Un-Textured, Self-Luminous, triangles
 void drawGUS3PC(uint32 *polyStart, const uint32 n, SVECTORPC *pVertex) {
@@ -678,7 +671,7 @@ void drawFTS3PC(uint32 *polyStart, const uint32 n, SVECTORPC *pVertex) {
 				if (selFace == i)
 					setRGB0(poly, selPRed, selPGreen, selPBlue);
 				else
-					setRGB0(poly, rgbIn->r, rgbIn->b, rgbIn->b);
+					setRGB0(poly, rgbIn->r, rgbIn->g, rgbIn->b);
 
 				// Put it into the global ot at the correct place
 				myAddPrimClip(avgz, drawpacket);
@@ -1394,7 +1387,7 @@ void drawGUL3PC(uint32 *polyStart, const uint32 n, SVECTORPC *pVertex, SVECTOR *
 				setLineG4(line);
 				int32 cval;
 				if (_drawGouraud) {
-					// Give each vertex a seperate colour
+					// Give each vertex a separate colour
 					// Compute the colour scaling and clip it
 					if (rgbIn.r != 0) {
 						cval = ((wfrmRed * rgb0.r) / rgbIn.r);
@@ -1883,7 +1876,7 @@ void drawFTL3PC(uint32 *polyStart, const uint32 n, SVECTORPC *pVertex, SVECTOR *
 				} else {
 					// No light source calculation
 					// So just set base colour
-					setRGB0(poly, rgbIn.r, rgbIn.b, rgbIn.b);
+					setRGB0(poly, rgbIn.r, rgbIn.g, rgbIn.b);
 				}
 				if (selFace == i) {
 					setRGB0(poly, selPRed, selPGreen, selPBlue);
@@ -2191,7 +2184,7 @@ void drawGTL3PC(uint32 *polyStart, const uint32 n, SVECTORPC *pVertex, SVECTOR *
 				setLineG4(line);
 				int32 cval;
 				if (_drawGouraud) {
-					// Give each vertex a seperate colour
+					// Give each vertex a separate colour
 					// Compute the colour scaling and clip it
 					if (rgbIn.r != 0) {
 						cval = ((wfrmRed * rgb0.r) / rgbIn.r);
@@ -2621,8 +2614,6 @@ void drawTRI3PC(uint32 *polyStart, const uint32 n, SVECTORPC *pVertex) {
 		}
 	}
 }
-
-#endif // #if CD_MODE == 0
 
 // Flat, Un-Textured, Self-Luminous, triangles
 void fastDrawFUS3PC(uint32 *polyStart, const uint32 n, SVECTORPC *pVertex) {
@@ -3493,8 +3484,6 @@ void fastDrawGTL3PC(uint32 *polyStart, const uint32 n, SVECTORPC *pVertex, SVECT
 // and do flat & goraud shading
 // Assume the GTE lighting registers to be pre-prepared
 
-#if CD_MODE == 0
-
 void drawSolidBboxPC(SVECTOR *scrn, CVECTOR *rgbIn) {
 	// 6 POLY_F4's i.e. 6 faces
 	// The 8 verticies are:
@@ -3526,7 +3515,7 @@ void drawSolidBboxPC(SVECTOR *scrn, CVECTOR *rgbIn) {
 	int32 z0, flag;
 	SVECTOR normal;
 	CVECTOR rgb;
-	POLY_F4 *face = NULL;
+	POLY_F4 *face = nullptr;
 
 	gte_NormalClip_pc(&(scrn[0]), &(scrn[1]), &(scrn[2]), &flag);
 	if (flag > 0) {
@@ -3654,8 +3643,6 @@ void drawSolidBboxPC(SVECTOR *scrn, CVECTOR *rgbIn) {
 		myAddPacket(sizeof(POLY_F4));
 	}
 }
-
-#endif // #if CD_MODE == 0
 
 // Simple flat untextured triangles
 // draw backfacing triangles as well

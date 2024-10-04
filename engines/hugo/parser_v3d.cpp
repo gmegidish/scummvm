@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,7 +63,7 @@ void Parser_v3d::lineHandler() {
 		return;
 	}
 
-	Utils::strlwr(_vm->_line);                      // Convert to lower case
+	Utils::hugo_strlwr(_vm->_line);                      // Convert to lower case
 
 	// God Mode cheat commands:
 	// goto <screen>                                Takes hero to named screen
@@ -322,16 +321,16 @@ bool Parser_v3d::isNear_v3(Object *obj, const char *verb, char *comment) const {
 	if (obj->_screenIndex != *_vm->_screenPtr) {
 		// Not in same screen
 		if (obj->_objValue)
-			strcpy(comment, _vm->_text->getTextParser(kCmtAny1));
+			Common::strcpy_s(comment, kCompLineSize * 5, _vm->_text->getTextParser(kCmtAny1));
 		else
-			strcpy(comment, _vm->_text->getTextParser(kCmtAny2));
+			Common::strcpy_s(comment, kCompLineSize * 5, _vm->_text->getTextParser(kCmtAny2));
 		return false;
 	}
 
 	if (obj->_cycling == kCycleInvisible) {
 		if (obj->_seqNumb) {
 			// There is an image
-			strcpy(comment, _vm->_text->getTextParser(kCmtAny3));
+			Common::strcpy_s(comment, kCompLineSize * 5, _vm->_text->getTextParser(kCmtAny3));
 			return false;
 		} else {
 			// No image, assume visible
@@ -342,9 +341,9 @@ bool Parser_v3d::isNear_v3(Object *obj, const char *verb, char *comment) const {
 			} else {
 				// User is not close enough
 				if (obj->_objValue && (verb != _vm->_text->getVerb(_vm->_take, 0)))
-					strcpy(comment, _vm->_text->getTextParser(kCmtAny1));
+					Common::strcpy_s(comment, kCompLineSize * 5, _vm->_text->getTextParser(kCmtAny1));
 				else
-					strcpy(comment, _vm->_text->getTextParser(kCmtClose));
+					Common::strcpy_s(comment, kCompLineSize * 5, _vm->_text->getTextParser(kCmtClose));
 				return false;
 			}
 		}
@@ -357,9 +356,9 @@ bool Parser_v3d::isNear_v3(Object *obj, const char *verb, char *comment) const {
 	} else {
 		// User is not close enough
 		if (obj->_objValue && (verb != _vm->_text->getVerb(_vm->_take, 0)))
-			strcpy(comment, _vm->_text->getTextParser(kCmtAny1));
+			Common::strcpy_s(comment, kCompLineSize * 5, _vm->_text->getTextParser(kCmtAny1));
 		else
-			strcpy(comment, _vm->_text->getTextParser(kCmtClose));
+			Common::strcpy_s(comment, kCompLineSize * 5, _vm->_text->getTextParser(kCmtClose));
 		return false;
 	}
 	return true;

@@ -1,13 +1,13 @@
 /* ScummVM - Graphic Adventure Engine
  *
  * ScummVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@
 #include "engines/grim/update/update.h"
 
 #include "common/algorithm.h"
-#include "common/zlib.h"
+#include "common/compression/deflate.h"
 #include "common/memstream.h"
 #include "common/file.h"
 #include "common/config-manager.h"
@@ -79,9 +78,10 @@ ResourceLoader::ResourceLoader() {
 	Lab *l;
 	Common::ArchiveMemberList files, updFiles;
 
-	//Load the update from the executable, if needed
+	// Load the update from the executable, if needed
 	const char *updateFilename = nullptr;
-	if (g_grim->getGameType() == GType_GRIM && !(g_grim->getGameFlags() & ADGF_REMASTERED)) {
+	if ((g_grim->getGameType() == GType_GRIM && !g_grim->isRemastered())
+	    || g_grim->getGameType() == GType_MONKEY4) {
 		updateFilename = g_grim->getUpdateFilename();
 	}
 	if (updateFilename) {
@@ -96,19 +96,21 @@ ResourceLoader::ResourceLoader() {
 		// Check if the update has been correctly loaded
 		if (!SearchMan.hasArchive("update")) {
 			Common::U32String errorMessage;
+			Common::String urlForPatchDownload = Common::String::format("https://downloads.scummvm.org/frs/extras/patches/%s",
+			                                     (g_grim->getGameType() == GType_GRIM)? "gfupd101.exe" : "");
 			if (g_grim->getGameType() == GType_GRIM) {
-				errorMessage = _("The original patch of Grim Fandango\n"
+				errorMessage = Common::U32String::format(_("The original patch of Grim Fandango\n"
 								"is missing. Please download it from\n"
-								"https://downloads.scummvm.org/frs/extras/patches/gfupd101.exe\n"
-								"and put it in the game data files directory");
+								"%s\n"
+								"and put it in the game data files directory"), urlForPatchDownload.c_str());
 			} else if (g_grim->getGameType() == GType_MONKEY4) {
-				errorMessage = _("The original patch of Escape from Monkey Island is missing. \n"
-								"Please download it from https://downloads.scummvm.org/frs/extras/patches/\n"
+				errorMessage = Common::U32String::format(_("The original patch of Escape from Monkey Island is missing. \n"
+								"Please download it from %s\n"
 								"and put it in the game data files directory.\n"
-								"Pay attention to download the correct version according to the game's language");
+								"Pay attention to download the correct version according to the game's language!"), urlForPatchDownload.c_str());
 			}
 
-			GUI::displayErrorDialog(errorMessage);
+			GUIErrorMessageWithURL(errorMessage, urlForPatchDownload.c_str());
 			error("%s not found", updateFilename);
 		}
 	}
@@ -136,16 +138,17 @@ ResourceLoader::ResourceLoader() {
 			SearchMan.listMatchingMembers(files, "year?mus.lab");
 			SearchMan.listMatchingMembers(files, "local.lab");
 			SearchMan.listMatchingMembers(files, "credits.lab");
+			SearchMan.listMatchingMembers(files, "rus_font.lab");
 
-			if (g_grim->getGameFlags() & ADGF_REMASTERED) {
+			if (g_grim->isRemastered()) {
 				SearchMan.listMatchingMembers(files, "commentary.lab");
 				SearchMan.listMatchingMembers(files, "images.lab");
 			}
-			//Sort the archives in order to ensure that they are loaded with the correct order
+			// Sort the archives in order to ensure that they are loaded with the correct order
 			Common::sort(files.begin(), files.end(), LabListComperator());
 
-			//Check the presence of datausr.lab and if the user wants to load it.
-			//In this case put it in the top of the list
+			// Check the presence of datausr.lab and if the user wants to load it.
+			// In this case put it in the top of the list
 			const char *datausr_name = "datausr.lab";
 			if (SearchMan.hasFile(datausr_name) && ConfMan.getBool("datausr_load")) {
 				warning("%s", "Loading datausr.lab. Please note that the ScummVM team doesn't provide support for using such patches");
@@ -165,9 +168,8 @@ ResourceLoader::ResourceLoader() {
 			SearchMan.listMatchingMembers(files, "tile.lab");
 			SearchMan.listMatchingMembers(files, "voice.lab");
 		} else {
-
-			//Keep i9n.m4b before patch.m4b for a better efficiency
-			//in decompressing from Monkey Update.exe
+			// Keep i9n.m4b before patch.m4b for a better efficiency
+			// in decompressing from Monkey Update.exe
 			SearchMan.listMatchingMembers(files, "i9n.m4b");
 			SearchMan.listMatchingMembers(files, "patch.m4b");
 			SearchMan.listMatchingMembers(files, "art???.m4b");
@@ -181,8 +183,8 @@ ResourceLoader::ResourceLoader() {
 				SearchMan.listMatchingMembers(files, "???.m4b");
 			}
 
-			//Check the presence of datausr.m4b and if the user wants to load it.
-			//In this case put it in the top of the list
+			// Check the presence of datausr.m4b and if the user wants to load it.
+			// In this case put it in the top of the list
 			const char *datausr_name = "datausr.m4b";
 			if (SearchMan.hasFile(datausr_name) && ConfMan.getBool("datausr_load")) {
 				warning("%s", "Loading datausr.m4b. Please note that the ScummVM team doesn't provide support for using such patches");
@@ -194,13 +196,13 @@ ResourceLoader::ResourceLoader() {
 	if (files.empty())
 		error("%s", "Cannot find game data - check configuration file");
 
-	//load labs
-	int priority = files.size();
+	// Load labs
+	int priority = -1;
 	for (Common::ArchiveMemberList::const_iterator x = files.begin(); x != files.end(); ++x) {
 		Common::String filename = (*x)->getName();
 		filename.toLowercase();
 
-		//Avoid duplicates
+		// Avoid duplicates
 		if (SearchMan.hasArchive(filename))
 			continue;
 
@@ -209,7 +211,7 @@ ResourceLoader::ResourceLoader() {
 		// we _COULD_ protect this with a platform check, but the file isn't
 		// really big anyhow...
 		bool useCache = (filename == "local.m4b");
-		if (l->open(filename, useCache))
+		if (l->open((*x)->getPathInArchive(), useCache))
 			SearchMan.add(filename, l, priority--, true);
 		else
 			delete l;
@@ -244,16 +246,15 @@ static int sortCallback(const void *entry1, const void *entry2) {
 	return scumm_stricmp(((const ResourceLoader::ResourceCache *)entry1)->fname, ((const ResourceLoader::ResourceCache *)entry2)->fname);
 }
 
-Common::SeekableReadStream *ResourceLoader::getFileFromCache(const Common::String &filename) const {
+Common::SeekableReadStream *ResourceLoader::getFileFromCache(const Common::Path &filename) const {
 	ResourceLoader::ResourceCache *entry = getEntryFromCache(filename);
 	if (!entry)
 		return nullptr;
 
 	return new Common::MemoryReadStream(entry->resPtr, entry->len);
-
 }
 
-ResourceLoader::ResourceCache *ResourceLoader::getEntryFromCache(const Common::String &filename) const {
+ResourceLoader::ResourceCache *ResourceLoader::getEntryFromCache(const Common::Path &filename) const {
 	if (_cache.empty())
 		return nullptr;
 
@@ -262,13 +263,15 @@ ResourceLoader::ResourceCache *ResourceLoader::getEntryFromCache(const Common::S
 		_cacheDirty = false;
 	}
 
+	Common::String sFilename(filename.toString('/'));
+
 	ResourceCache key;
-	key.fname = const_cast<char *>(filename.c_str());
+	key.fname = const_cast<char *>(sFilename.c_str());
 
 	return (ResourceLoader::ResourceCache *)bsearch(&key, _cache.begin(), _cache.size(), sizeof(ResourceCache), sortCallback);
 }
 
-Common::SeekableReadStream *ResourceLoader::loadFile(const Common::String &filename) const {
+Common::SeekableReadStream *ResourceLoader::loadFile(const Common::Path &filename) const {
 	Common::SeekableReadStream *rs = nullptr;
 	if (SearchMan.hasFile(filename))
 		rs = SearchMan.createReadStreamForMember(filename);
@@ -279,37 +282,40 @@ Common::SeekableReadStream *ResourceLoader::loadFile(const Common::String &filen
 	return rs;
 }
 
-Common::SeekableReadStream *ResourceLoader::openNewStreamFile(Common::String fname, bool cache) const {
+Common::SeekableReadStream *ResourceLoader::openNewStreamFile(const Common::String &fname, bool cache) const {
 	Common::SeekableReadStream *s;
-	fname.toLowercase();
+	Common::Path path(fname, '/');
+	path.toLowercase();
 
 	if (cache) {
-		s = getFileFromCache(fname);
+		s = getFileFromCache(path);
 		if (!s) {
-			s = loadFile(fname);
+			s = loadFile(path);
 			if (!s)
 				return nullptr;
 
 			uint32 size = s->size();
 			byte *buf = new byte[size];
 			s->read(buf, size);
-			putIntoCache(fname, buf, size);
+			putIntoCache(path, buf, size);
 			delete s;
 			s = new Common::MemoryReadStream(buf, size);
 		}
 	} else {
-		s = loadFile(fname);
+		s = loadFile(path);
 	}
 	// This will only have an effect if the stream is actually compressed.
 	return Common::wrapCompressedReadStream(s);
 }
 
-void ResourceLoader::putIntoCache(const Common::String &fname, byte *res, uint32 len) const {
+void ResourceLoader::putIntoCache(const Common::Path &fname, byte *res, uint32 len) const {
+	Common::String sFilename(fname.toString('/'));
+
 	ResourceCache entry;
 	entry.resPtr = res;
 	entry.len = len;
-	entry.fname = new char[fname.size() + 1];
-	strcpy(entry.fname, fname.c_str());
+	entry.fname = new char[sFilename.size() + 1];
+	Common::strcpy_s(entry.fname, sFilename.size() + 1, sFilename.c_str());
 	_cacheMemorySize += len;
 	_cache.push_back(entry);
 	_cacheDirty = true;
@@ -367,7 +373,10 @@ Costume *ResourceLoader::loadCostume(const Common::String &filename, Actor *owne
 Font *ResourceLoader::loadFont(const Common::String &filename) {
 	Common::SeekableReadStream *stream;
 
-	if (g_grim->getGameType() == GType_GRIM && (g_grim->getGameFlags() & ADGF_REMASTERED)) {
+	if (g_grim->_overrideFont)
+		return g_grim->_overrideFont;
+
+	if (g_grim->getGameType() == GType_GRIM && g_grim->isRemastered()) {
 		Common::String name = "FontsHD/" + filename + ".txt";
 		stream = openNewStreamFile(name, true);
 		if (stream) {
@@ -388,13 +397,36 @@ Font *ResourceLoader::loadFont(const Common::String &filename) {
 			result->loadTTF(font, stream, s);
 			return result;
 		}
+	} else if (g_grim->getGameType() == GType_GRIM && g_grim->getGameLanguage() == Common::KO_KOR) {
+		Common::String name = filename + ".txt";
+		stream = openNewStreamFile(name, true);
+		if (stream) {
+			Common::String line = stream->readLine();
+			Common::String font;
+			Common::String size;
+			for (uint i = 0; i < line.size(); ++i) {
+				if (line[i] == ' ') {
+					font = Common::String(line.c_str(), i);
+					size = Common::String(line.c_str() + i + 1, line.size() - i - 2);
+				}
+			}
+
+			int s = atoi(size.c_str());
+			delete stream;
+			stream = openNewStreamFile(font.c_str(), true);
+			FontTTF *result = new FontTTF();
+			result->loadTTF(filename, stream, s);
+			delete stream;
+
+			return result;
+		}
 	}
 
 	stream = openNewStreamFile(filename.c_str(), true);
 	if (!stream)
 		error("Could not find font file %s", filename.c_str());
 
-	Font *result = new Font();
+	BitmapFont *result = new BitmapFont();
 	result->load(filename, stream);
 	delete stream;
 
@@ -452,6 +484,12 @@ Material *ResourceLoader::loadMaterial(const Common::String &filename, CMap *c, 
 			return loadMaterial(replacement, nullptr, clamp);
 		} else {
 			error("Could not find material %s", filename.c_str());
+		}
+	}
+	if (!stream) {
+		// Specialty materials are not loaded from files.
+		if (!filename.hasPrefix("specialty")) {
+			error("Couldn't open %s", fname.c_str());
 		}
 	}
 
@@ -561,9 +599,10 @@ Overlay *ResourceLoader::loadOverlay(const Common::String &filename) {
 	return result;
 }
 
-void ResourceLoader::uncache(const char *filename) const {
-	Common::String fname = filename;
-	fname.toLowercase();
+void ResourceLoader::uncache(const Common::Path &filename) const {
+	Common::Path lower(filename);
+	lower.toLowercase();
+	Common::String fname(lower.toString('/'));
 
 	if (_cacheDirty) {
 		qsort(_cache.begin(), _cache.size(), sizeof(ResourceCache), sortCallback);
@@ -571,7 +610,7 @@ void ResourceLoader::uncache(const char *filename) const {
 	}
 
 	for (unsigned int i = 0; i < _cache.size(); i++) {
-		if (fname.compareTo(_cache[i].fname) == 0) {
+		if (fname.equals(_cache[i].fname)) {
 			delete[] _cache[i].fname;
 			_cacheMemorySize -= _cache[i].len;
 			delete[] _cache[i].resPtr;

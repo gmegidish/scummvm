@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,14 +29,16 @@
  * ScummVM Meta Engine interface
  */
 class GlkMetaEngineDetection : public MetaEngineDetection {
+private:
+	Common::String findFileByGameId(const Common::String &gameId);
 public:
 	GlkMetaEngineDetection() : MetaEngineDetection() {}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Glk";
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "glk";
 	}
 
@@ -57,22 +58,23 @@ public:
 	 * (possibly empty) list of games supported by the engine which it was able
 	 * to detect amongst the given files.
 	 */
-	DetectedGames detectGames(const Common::FSList &fslist) const override;
+	DetectedGames detectGames(const Common::FSList &fslist, uint32 skipADFlags = 0, bool skipIncomplete = false) override;
 
 	/**
 	 * Query the engine for a PlainGameDescriptor for the specified gameid, if any.
 	 */
 	PlainGameDescriptor findGame(const char *gameId) const override;
 
+	Common::Error identifyGame(DetectedGame &game, const void **descriptor) override;
+
 	/**
 	 * Calls each sub-engine in turn to ensure no game Id accidentally shares the same Id
 	 */
 	void detectClashes() const;
 
-	/**
-	 * Return a list of extra GUI options for the specified target.
-	 */
-	const ExtraGuiOptions getExtraGuiOptions(const Common::String &target) const override;
+	uint getMD5Bytes() const override;
+
+	void dumpDetectionEntries() const override final {}
 };
 
 namespace Glk {
@@ -112,7 +114,7 @@ public:
 	GlkDetectedGame(const char *id, const char *desc, const Common::String &filename,
 		GameSupportLevel supportLevel = kStableGame);
 	GlkDetectedGame(const char *id, const char *desc, const Common::String &filename,
-		Common::Language lang, GameSupportLevel supportLevel = kStableGame);
+		Common::Language lang, Common::Platform platform, GameSupportLevel supportLevel = kStableGame);
 	GlkDetectedGame(const char *id, const char *desc, const Common::String &filename,
 		const Common::String &md5, size_t filesize, GameSupportLevel supportLevel = kStableGame);
 	GlkDetectedGame(const char *id, const char *desc, const char *extra,
@@ -131,14 +133,19 @@ struct GlkDetectionEntry {
 	const char *const _md5;
 	size_t _filesize;
 	Common::Language _language;
+	Common::Platform _platform;
 };
 
-#define DT_ENTRY0(ID, MD5, FILESIZE) { ID, "", MD5, FILESIZE, Common::EN_ANY }
-#define DT_ENTRY1(ID, EXTRA, MD5, FILESIZE) { ID, EXTRA, MD5, FILESIZE, Common::EN_ANY }
-#define DT_ENTRYL0(ID, LANG, MD5, FILESIZE) { ID, "", MD5, FILESIZE, LANG }
-#define DT_ENTRYL1(ID, LANG, EXTRA, MD5, FILESIZE) { ID, EXTRA, MD5, FILESIZE, LANG }
+#define DT_ENTRY0(ID, MD5, FILESIZE) { ID, "", MD5, FILESIZE, Common::EN_ANY, Common::kPlatformUnknown }
+#define DT_ENTRY1(ID, EXTRA, MD5, FILESIZE) { ID, EXTRA, MD5, FILESIZE, Common::EN_ANY, Common::kPlatformUnknown }
+#define DT_ENTRYL0(ID, LANG, MD5, FILESIZE) { ID, "", MD5, FILESIZE, LANG, Common::kPlatformUnknown }
+#define DT_ENTRYL1(ID, LANG, EXTRA, MD5, FILESIZE) { ID, EXTRA, MD5, FILESIZE, LANG, Common::kPlatformUnknown }
+#define DT_ENTRYP0(ID, MD5, FILESIZE, PLATFORM) { ID, "", MD5, FILESIZE, Common::EN_ANY, PLATFORM}
+#define DT_ENTRYP1(ID, EXTRA, MD5, FILESIZE, PLATFORM) { ID, EXTRA, MD5, FILESIZE, Common::EN_ANY, PLATFORM }
+#define DT_ENTRYLP0(ID, LANG, MD5, FILESIZE, PLATFORM) { ID, "", MD5, FILESIZE, LANG, PLATFORM}
+#define DT_ENTRYLP1(ID, LANG, EXTRA, MD5, FILESIZE, PLATFORM) { ID, EXTRA, MD5, FILESIZE, LANG, PLATFORM }
 
-#define DT_END_MARKER { nullptr, nullptr, nullptr, 0, Common::EN_ANY }
+#define DT_END_MARKER { nullptr, nullptr, nullptr, 0, Common::EN_ANY, Common::kPlatformUnknown }
 
 } // End of namespace Glk
 

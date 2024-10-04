@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -888,11 +887,11 @@ const uint16 dsAddr_inventoryItemDataPtrTable = 0xc4a6;
 const uint16 dsAddr_lansAnimationTablePtr = 0xd89e;
 
 // Spoken With Mansion Guard Flag : 0xda96
-// FIXME - This is probably unecessary as although this location is set, it
+// FIXME - This is probably unnecessary as although this location is set, it
 //         doesn't now appear to be read.
 const uint16 dsAddr_spokenWithMansionGuardFlag = 0xda96; // 1 byte
 // Have Not Spoken With Mansion Guard Flag : 0xda97
-// FIXME - This is probably unecessary as although this location is set, it
+// FIXME - This is probably unnecessary as although this location is set, it
 //         doesn't now appear to be read.
 const uint16 dsAddr_haveNotSpokenWithMansionGuardFlag = 0xda97; // 1 byte
 

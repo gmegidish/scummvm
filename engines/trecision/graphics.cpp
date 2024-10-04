@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,8 @@
 #include "graphics/surface.h"
 
 #include "trecision/actor.h"
-#include "trecision/anim.h"
+#include "trecision/animmanager.h"
+#include "trecision/animtype.h"
 #include "trecision/defines.h"
 #include "trecision/graphics.h"
 #include "trecision/pathfinding3d.h"
@@ -262,8 +262,11 @@ void GraphicsManager::drawTexturePixel(uint16 textureX, uint16 textureY, uint16 
 	_screenBuffer.setPixel(screenX, screenY, texturePixel);
 }
 
-void GraphicsManager::loadBackground(Common::SeekableReadStream *stream, uint16 width, uint16 height) {
-	readSurface(stream, &_background, width, height);
+void GraphicsManager::loadBackground(Common::SeekableReadStream *stream) {
+	SObject bgInfo;
+	bgInfo.readRect(stream);
+
+	readSurface(stream, &_background, bgInfo._rect.width(), bgInfo._rect.height());
 	_smkBackground.copyFrom(_background);
 	memcpy(_screenBuffer.getBasePtr(0, TOP), _background.getPixels(), _background.pitch * _background.h);
 }
@@ -745,10 +748,10 @@ void GraphicsManager::hideCursor() {
 }
 
 void GraphicsManager::loadFont() {
-	Common::String fileName = "nlfont.fnt";
+	const char *fileName = "nlfont.fnt";
 	Common::SeekableReadStream *fontStream = _vm->_dataFile.createReadStreamForMember(fileName);
 	if (fontStream == nullptr)
-		error("readData(): File %s not found", fileName.c_str());
+		error("readData(): File %s not found", fileName);
 
 	uint16 fontDataOffset = 768;
 

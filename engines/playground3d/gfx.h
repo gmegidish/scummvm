@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,9 @@
 #include "math/matrix4.h"
 #include "math/vector3d.h"
 
+#include "graphics/surface.h"
+#include "graphics/pixelformat.h"
+
 namespace Playground3d {
 
 class Renderer {
@@ -38,6 +40,7 @@ public:
 	virtual ~Renderer();
 
 	virtual void init() = 0;
+	virtual void deinit() = 0;
 	virtual void clear(const Math::Vector4d &clearColor) = 0;
 
 	/**
@@ -54,9 +57,19 @@ public:
 
 	void computeScreenViewport();
 
+	virtual void setupViewport(int x, int y, int width, int height) = 0;
+	virtual void loadTextureRGBA(Graphics::Surface *texture) = 0;
+	virtual void loadTextureRGB(Graphics::Surface *texture) = 0;
+	virtual void loadTextureRGB565(Graphics::Surface *texture) = 0;
+	virtual void loadTextureRGBA5551(Graphics::Surface *texture) = 0;
+	virtual void loadTextureRGBA4444(Graphics::Surface *texture) = 0;
 	virtual void drawCube(const Math::Vector3d &pos, const Math::Vector3d &roll) = 0;
 	virtual void drawPolyOffsetTest(const Math::Vector3d &pos, const Math::Vector3d &roll) = 0;
 	virtual void dimRegionInOut(float fade) = 0;
+	virtual void drawInViewport() = 0;
+	virtual void drawRgbaTexture() = 0;
+
+	virtual void enableFog(const Math::Vector4d &fogColor) = 0;
 
 protected:
 	OSystem *_system;
@@ -68,6 +81,7 @@ protected:
 	Math::Matrix4 _mvpMatrix;
 
 	static const float cubeVertices[11 * 6 * 4];
+	Graphics::Surface *_texture;
 
 	Math::Matrix4 makeProjectionMatrix(float fov, float nearClip, float farClip) const;
 };

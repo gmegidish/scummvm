@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,12 +26,7 @@
 
 static const PlainGameDescriptor chewyGames[] = {
 	{"chewy", "Chewy: Esc from F5"},
-	{0, 0}
-};
-
-static const char *directoryGlobs[] = {
-	"txt",
-	0
+	{nullptr, nullptr}
 };
 
 namespace Chewy {
@@ -42,12 +36,12 @@ static const ChewyGameDescription gameDescriptions[] = {
 	{
 		{
 			"chewy",
-			0,
-			AD_ENTRY1s("atds.tap", "e6050c144dd4f23d79ea4f89a8ef306e", 218857),
+			nullptr,
+			AD_ENTRY1s("txt/atds.tap", "e6050c144dd4f23d79ea4f89a8ef306e", 218857),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
-			GUIO1(GUIO_NOMIDI)
+			GUIO2(GUIO_NOMIDI, GAMEOPTION_ORIGINAL_SAVELOAD)
 		},
 	},
 
@@ -55,46 +49,36 @@ static const ChewyGameDescription gameDescriptions[] = {
 		// Chewy - ESC from F5 - Spanish fanmade translation
 		{
 			"chewy",
-			0,
-			AD_ENTRY1s("atds.tap", "b1210066a524fe0f88862f44671ed97d", 226988),
+			nullptr,
+			AD_ENTRY1s("txt/atds.tap", "b1210066a524fe0f88862f44671ed97d", 226988),
 			Common::ES_ESP,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
-			GUIO1(GUIO_NOMIDI)
+			GUIO2(GUIO_NOMIDI, GAMEOPTION_ORIGINAL_SAVELOAD)
 		},
 	},
 
 	{
-		// Chewy - ESC von F5 - German
-		// Master version 1.1 (CHEWY.EXE - offset 0x8AB28)
-		// The source CD-ROM has the Matrix code SONOPRESS R-7885 B
-		// The disc contains several demos and files from 1996
-		// Provided by lotharsm
 		{
 			"chewy",
-			0,
-			AD_ENTRY1s("atds.tap", "c117e884cc5b4bbe50ae1217d13916c4", 231071),
+			nullptr,
+			AD_ENTRY1s("txt/atds.tap", "c117e884cc5b4bbe50ae1217d13916c4", 231071),
 			Common::DE_DEU,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
-			GUIO1(GUIO_NOMIDI)
+			GUIO2(GUIO_NOMIDI, GAMEOPTION_ORIGINAL_SAVELOAD)
 		},
 	},
 
 	{
-		// Chewy - ESC von F5 - German
-		// Master version 1.0 (CHEWY.EXE - offset 0x8AB10)
-		// The source CD-ROM has the Matrix code SONOPRESS M-2742 A
-		// CD-ROM has the label "CHEWY_V1_0"
-		// Provided by lotharsm
 		{
 			"chewy",
-			0,
-			AD_ENTRY1s("atds.tap", "e22f97761c0e7772ec99660f2277b1a4", 231001),
+			nullptr,
+			AD_ENTRY1s("txt/atds.tap", "e22f97761c0e7772ec99660f2277b1a4", 231001),
 			Common::DE_DEU,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
-			GUIO1(GUIO_NOMIDI)
+			GUIO2(GUIO_NOMIDI, GAMEOPTION_ORIGINAL_SAVELOAD)
 		},
 	},
 
@@ -106,32 +90,32 @@ static const ChewyGameDescription gameDescriptions[] = {
 		// CD-ROM has the label "DEMO"
 		{
 			"chewy",
-			0,
-			AD_ENTRY1s("atds.tap", "c3be5641e90dd01274309b778cf8146d", 230686),
+			nullptr,
+			AD_ENTRY1s("txt/atds.tap", "c3be5641e90dd01274309b778cf8146d", 230686),
 			Common::DE_DEU,
 			Common::kPlatformDOS,
-			ADGF_DEMO,
-			GUIO1(GUIO_NOMIDI)
+			ADGF_DEMO | ADGF_UNSUPPORTED,
+			GUIO2(GUIO_NOMIDI, GAMEOPTION_ORIGINAL_SAVELOAD)
 		},
 	},
 
 	{ AD_TABLE_END_MARKER }
 };
 
-} // End of namespace Chewy
+} // namespace Chewy
 
-class ChewyMetaEngineDetection : public AdvancedMetaEngineDetection {
+class ChewyMetaEngineDetection : public AdvancedMetaEngineDetection<Chewy::ChewyGameDescription> {
 public:
-	ChewyMetaEngineDetection() : AdvancedMetaEngineDetection(Chewy::gameDescriptions, sizeof(Chewy::ChewyGameDescription), chewyGames) {
+	ChewyMetaEngineDetection() : AdvancedMetaEngineDetection(Chewy::gameDescriptions, chewyGames) {
 		_maxScanDepth = 2;
-		_directoryGlobs = directoryGlobs;
-	}
-
-	const char *getEngineId() const override {
-		return "chewy";
+		_flags = kADFlagMatchFullPaths;
 	}
 
 	const char *getName() const override {
+		return "chewy";
+	}
+
+	const char *getEngineName() const override {
 		return "Chewy: Esc from F5";
 	}
 

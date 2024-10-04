@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,7 @@
 #include "common/file.h"
 #include "common/system.h"
 #include "common/util.h"
+#include "common/formats/cue.h"
 
 DefaultAudioCDManager::DefaultAudioCDManager() {
 	_cd.playing = false;
@@ -64,7 +64,7 @@ void DefaultAudioCDManager::fillPotentialTrackNames(Common::Array<Common::String
 	trackNames.push_back(Common::String::format("track_%02d", track));
 }
 
-bool DefaultAudioCDManager::existExtractedCDAudioFiles() {
+bool DefaultAudioCDManager::existExtractedCDAudioFiles(uint track) {
 	// keep this in sync with STREAM_FILEFORMATS
 	const char *extensions[] = {
 #ifdef USE_VORBIS
@@ -82,12 +82,12 @@ bool DefaultAudioCDManager::existExtractedCDAudioFiles() {
 	};
 
 	Common::Array<Common::String> trackNames;
-	fillPotentialTrackNames(trackNames, 1);
+	fillPotentialTrackNames(trackNames, track);
 
 	for (Common::Array<Common::String>::iterator i = trackNames.begin(); i != trackNames.end(); ++i) {
 		for (const char **ext = extensions; *ext; ++ext) {
 			const Common::String &filename = Common::String::format("%s.%s", i->c_str(), *ext);
-			if (Common::File::exists(filename)) {
+			if (Common::File::exists(Common::Path(filename, '/'))) {
 				return true;
 			}
 		}
@@ -110,13 +110,13 @@ bool DefaultAudioCDManager::play(int track, int numLoops, int startFrame, int du
 		// the requested track.
 		Common::Array<Common::String> trackNames;
 		fillPotentialTrackNames(trackNames, track);
-		Audio::SeekableAudioStream *stream = 0;
+		Audio::SeekableAudioStream *stream = nullptr;
 
 		for (Common::Array<Common::String>::iterator i = trackNames.begin(); !stream && i != trackNames.end(); ++i) {
-			stream = Audio::SeekableAudioStream::openStreamFile(*i);
+			stream = Audio::SeekableAudioStream::openStreamFile(Common::Path(*i, '/'));
 		}
 
-		if (stream != 0) {
+		if (stream != nullptr) {
 			Audio::Timestamp start = Audio::Timestamp(0, startFrame, 75);
 			Audio::Timestamp end = duration ? Audio::Timestamp(0, startFrame + duration, 75) : stream->getLength();
 
@@ -133,6 +133,28 @@ bool DefaultAudioCDManager::play(int track, int numLoops, int startFrame, int du
 	}
 
 	return false;
+}
+
+bool DefaultAudioCDManager::playAbsolute(int startFrame, int numLoops, int duration, bool onlyEmulate,
+		Audio::Mixer::SoundType soundType, const char *cuesheet) {
+
+	Common::File cuefile;
+	if (!cuefile.open(cuesheet)) {
+		return false;
+	}
+	Common::String cuestring = cuefile.readString(0, cuefile.size());
+	Common::CueSheet cue(cuestring.c_str());
+
+	Common::CueSheet::CueTrack *track = cue.getTrackAtFrame(startFrame);
+	if (track == nullptr) {
+		warning("Unable to locate track for frame %i", startFrame);
+		return false;
+	} else {
+		warning("Playing from frame %i", startFrame);
+	}
+	int firstFrame = track->indices[0] == -1 ? track->indices[1] : track->indices[0];
+
+	return play(track->number, numLoops, startFrame - firstFrame, duration, onlyEmulate);
 }
 
 void DefaultAudioCDManager::stop() {
@@ -197,7 +219,7 @@ bool DefaultAudioCDManager::openRealCD() {
 
 	// If not an integer, treat as a drive path
 	if (endPos == cdrom.c_str())
-		return openCD(cdrom);
+		return openCD(Common::Path::fromConfig(cdrom));
 
 	if (drive < 0)
 		return false;

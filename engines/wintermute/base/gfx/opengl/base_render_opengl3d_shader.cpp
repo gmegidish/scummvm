@@ -1,22 +1,21 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,11 +23,16 @@
 #include "engines/wintermute/ad/ad_generic.h"
 #include "engines/wintermute/ad/ad_walkplane.h"
 #include "engines/wintermute/base/base_game.h"
-#include "engines/wintermute/base/gfx/3ds/camera3d.h"
+#include "engines/wintermute/base/gfx/base_image.h"
+#include "engines/wintermute/base/gfx/3dcamera.h"
+
 #include "graphics/opengl/system_headers.h"
+
+#include "common/config-manager.h"
+
 #include "math/glmath.h"
 
-#if defined(USE_OPENGL_SHADERS) || defined(USE_GLES2)
+#if defined(USE_OPENGL_SHADERS)
 
 #include "engines/wintermute/base/gfx/opengl/base_render_opengl3d_shader.h"
 #include "engines/wintermute/base/gfx/opengl/base_surface_opengl3d.h"
@@ -37,11 +41,11 @@
 #include "engines/wintermute/base/gfx/opengl/shadow_volume_opengl_shader.h"
 
 namespace Wintermute {
+
 BaseRenderer3D *makeOpenGL3DShaderRenderer(BaseGame *inGame) {
 	return new BaseRenderOpenGL3DShader(inGame);
-}
 
-#include "common/pack-start.h"
+}
 
 struct SpriteVertexShader {
 	float x;
@@ -52,9 +56,7 @@ struct SpriteVertexShader {
 	float g;
 	float b;
 	float a;
-} PACKED_STRUCT;
-
-#include "common/pack-end.h"
+};
 
 BaseRenderOpenGL3DShader::BaseRenderOpenGL3DShader(BaseGame *inGame)
 	: BaseRenderer3D(inGame), _spriteBatchMode(false), _flatShadowMaskShader(nullptr) {
@@ -109,8 +111,8 @@ void BaseRenderOpenGL3DShader::setAmbientLight() {
 	value.z() = b / 255.0f;
 	value.w() = a / 255.0f;
 
-	_modelXShader->use();
-	_modelXShader->setUniform("ambientLight", value);
+	_xmodelShader->use();
+	_xmodelShader->setUniform("ambientLight", value);
 }
 
 int BaseRenderOpenGL3DShader::maximumLightsCount() {
@@ -118,18 +120,20 @@ int BaseRenderOpenGL3DShader::maximumLightsCount() {
 }
 
 void BaseRenderOpenGL3DShader::enableLight(int index) {
-	_modelXShader->use();
+	_xmodelShader->use();
 	Common::String uniform = Common::String::format("lights[%i].enabled", index);
-	_modelXShader->setUniform1f(uniform.c_str(), 1.0f);
+	_xmodelShader->setUniform1f(uniform.c_str(), 1.0f);
 }
 
 void BaseRenderOpenGL3DShader::disableLight(int index) {
-	_modelXShader->use();
+	_xmodelShader->use();
 	Common::String uniform = Common::String::format("lights[%i].enabled", index);
-	_modelXShader->setUniform1f(uniform.c_str(), -1.0f);
+	_xmodelShader->setUniform1f(uniform.c_str(), -1.0f);
 }
 
-void BaseRenderOpenGL3DShader::setLightParameters(int index, const Math::Vector3d &position, const Math::Vector3d &direction, const Math::Vector4d &diffuse, bool spotlight) {
+void BaseRenderOpenGL3DShader::setLightParameters(int index, const Math::Vector3d &position,
+                                                  const Math::Vector3d &direction,
+                                                  const Math::Vector4d &diffuse, bool spotlight) {
 	Math::Vector4d position4d;
 	position4d.x() = position.x();
 	position4d.y() = position.y();
@@ -146,16 +150,16 @@ void BaseRenderOpenGL3DShader::setLightParameters(int index, const Math::Vector3
 		direction4d.w() = -1.0f;
 	}
 
-	_modelXShader->use();
+	_xmodelShader->use();
 
 	Common::String uniform = Common::String::format("lights[%i]._position", index);
-	_modelXShader->setUniform(uniform.c_str(), position4d);
+	_xmodelShader->setUniform(uniform.c_str(), position4d);
 
 	uniform = Common::String::format("lights[%i]._direction", index);
-	_modelXShader->setUniform(uniform.c_str(), direction4d);
+	_xmodelShader->setUniform(uniform.c_str(), direction4d);
 
 	uniform = Common::String::format("lights[%i]._color", index);
-	_modelXShader->setUniform(uniform.c_str(), diffuse);
+	_xmodelShader->setUniform(uniform.c_str(), diffuse);
 }
 
 void BaseRenderOpenGL3DShader::enableCulling() {
@@ -175,7 +179,7 @@ bool BaseRenderOpenGL3DShader::enableShadows() {
 
 		float nearPlane = 1.0f;
 		float farPlane = 10000.0f;
-		float fovy = M_PI / 4.0f;
+		float fovy = static_cast<float>(M_PI / 4.0f);
 
 		float top = nearPlane *  tanf(fovy * 0.5f);
 		float bottom = -top;
@@ -187,8 +191,8 @@ bool BaseRenderOpenGL3DShader::enableShadows() {
 
 		Math::Matrix4 lightProjection = Math::makeFrustumMatrix(left + deltaX, right + deltaX, bottom + deltaY, top + deltaY, nearPlane, farPlane);
 
-		_flatShadowModelXShader->use();
-		_flatShadowModelXShader->setUniform("projMatrix", lightProjection);
+		_flatShadowXModelShader->use();
+		_flatShadowXModelShader->setUniform("projMatrix", lightProjection);
 
 		glGenTextures(1, &_flatShadowRenderTexture);
 		glBindTexture(GL_TEXTURE_2D, _flatShadowRenderTexture);
@@ -231,7 +235,7 @@ bool BaseRenderOpenGL3DShader::enableShadows() {
 		glBufferData(GL_ARRAY_BUFFER, 4 * 12, flatShadowMaskVertices, GL_STATIC_DRAW);
 
 		static const char *flatShadowMaskAttributes[] = { "position", nullptr };
-		_flatShadowMaskShader = OpenGL::ShaderGL::fromFiles("wme_flat_shadow_mask", flatShadowMaskAttributes);
+		_flatShadowMaskShader = OpenGL::Shader::fromFiles("wme_flat_shadow_mask", flatShadowMaskAttributes);
 		_flatShadowMaskShader->enableVertexAttribute("position", _flatShadowMaskVBO, 3, GL_FLOAT, false, 12, 0);
 
 		_flatShadowMaskShader->use();
@@ -268,12 +272,12 @@ void BaseRenderOpenGL3DShader::displayShadow(BaseObject *object, const Math::Vec
 		translation.transpose();
 		lightViewMatrix = translation * lightViewMatrix;
 
-		_flatShadowModelXShader->use();
-		_flatShadowModelXShader->setUniform("viewMatrix", lightViewMatrix);
+		_flatShadowXModelShader->use();
+		_flatShadowXModelShader->setUniform("viewMatrix", lightViewMatrix);
 
 		Math::Matrix4 tmp = object->_worldMatrix;
 		tmp.transpose();
-		_flatShadowModelXShader->setUniform("modelMatrix", tmp);
+		_flatShadowXModelShader->setUniform("modelMatrix", tmp);
 
 		byte a = RGBCOLGetA(object->_shadowColor);
 		byte r = RGBCOLGetR(object->_shadowColor);
@@ -284,7 +288,7 @@ void BaseRenderOpenGL3DShader::displayShadow(BaseObject *object, const Math::Vec
 		_flatShadowColor.y() = g / 255.0f;
 		_flatShadowColor.z() = b / 255.0f;
 		_flatShadowColor.w() = a / 255.0f;
-		_flatShadowModelXShader->setUniform("shadowColor", _flatShadowColor);
+		_flatShadowXModelShader->setUniform("shadowColor", _flatShadowColor);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, _flatShadowFrameBuffer);
 
@@ -295,7 +299,7 @@ void BaseRenderOpenGL3DShader::displayShadow(BaseObject *object, const Math::Vec
 		glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		object->_modelX->renderFlatShadowModel();
+		object->_xmodel->renderFlatShadowModel();
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -332,17 +336,30 @@ bool BaseRenderOpenGL3DShader::stencilSupported() {
 }
 
 BaseImage *BaseRenderOpenGL3DShader::takeScreenshot() {
-	warning("BaseRenderOpenGL3DShader::takeScreenshot not yet implemented");
-	return nullptr;
-}
+	BaseImage *screenshot = new BaseImage();
+	Graphics::Surface *surface = new Graphics::Surface();
+#ifdef SCUMM_BIG_ENDIAN
+	Graphics::PixelFormat format(4, 8, 8, 8, 8, 24, 16, 8, 0);
+#else
+	Graphics::PixelFormat format(4, 8, 8, 8, 8, 0, 8, 16, 24);
+#endif
+	surface->create(_viewportRect.width(), _viewportRect.height(), format);
 
-bool BaseRenderOpenGL3DShader::saveScreenShot(const Common::String &filename, int sizeX, int sizeY) {
-	warning("BaseRenderOpenGL3DShader::saveScreenshot not yet implemented");
-	return true;
+	glReadPixels(_viewportRect.left, g_system->getHeight() - _viewportRect.bottom, _viewportRect.width(), _viewportRect.height(),
+	             GL_RGBA, GL_UNSIGNED_BYTE, surface->getPixels());
+	flipVertical(surface);
+	Graphics::Surface *converted = surface->convertTo(getPixelFormat());
+	screenshot->copyFrom(converted);
+	delete surface;
+	delete converted;
+	return screenshot;
 }
 
 void BaseRenderOpenGL3DShader::setWindowed(bool windowed) {
-	warning("BaseRenderOpenGL3DShader::setWindowed not yet implemented");
+	ConfMan.setBool("fullscreen", !windowed);
+	g_system->beginGFXTransaction();
+	g_system->setFeatureState(OSystem::kFeatureFullscreenMode, !windowed);
+	g_system->endGFXTransaction();
 }
 
 void BaseRenderOpenGL3DShader::fadeToColor(byte r, byte g, byte b, byte a) {
@@ -370,7 +387,7 @@ void BaseRenderOpenGL3DShader::fadeToColor(byte r, byte g, byte b, byte a) {
 }
 
 bool BaseRenderOpenGL3DShader::fill(byte r, byte g, byte b, Common::Rect *rect) {
-	glClearColor(float(r) / 255.0f, float(g) / 255.0f, float(b) / 255.0f, 1.0f);
+	glClearColor(r / 255.0f, g / 255.0f, b / 255.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	return true;
 }
@@ -387,9 +404,9 @@ bool BaseRenderOpenGL3DShader::drawLine(int x1, int y1, int x2, int y2, uint32 c
 	float lineCoords[4];
 
 	lineCoords[0] = x1;
-	lineCoords[1] = y1;
+	lineCoords[1] = _height - y1;
 	lineCoords[2] = x2;
-	lineCoords[3] = y2;
+	lineCoords[3] = _height - y2;
 
 	glBufferSubData(GL_ARRAY_BUFFER, 0, 2 * 8, lineCoords);
 
@@ -406,16 +423,11 @@ bool BaseRenderOpenGL3DShader::drawLine(int x1, int y1, int x2, int y2, uint32 c
 
 	_lineShader->use();
 	_lineShader->setUniform("color", colorValue);
-	_fadeShader->setUniform("projMatrix", _projectionMatrix2d);
+	_lineShader->setUniform("projMatrix", _projectionMatrix2d);
 
 	glDrawArrays(GL_LINES, 0, 2);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	return true;
-}
-
-bool BaseRenderOpenGL3DShader::drawRect(int x1, int y1, int x2, int y2, uint32 color, int width) {
-	warning("BaseRenderOpenGL3DShader::drawRect not yet implemented");
 	return true;
 }
 
@@ -425,9 +437,9 @@ bool BaseRenderOpenGL3DShader::setProjection() {
 	float viewportHeight = _viewportRect.bottom - _viewportRect.top;
 
 	float verticalViewAngle = _fov;
-	float aspectRatio = float(viewportWidth) / float(viewportHeight);
+	float aspectRatio = viewportWidth / viewportHeight;
 
-	float scaleMod = float(_height) / float(viewportHeight);
+	float scaleMod = _height / viewportHeight;
 
 	float top = _nearPlane * tanf(verticalViewAngle * 0.5f);
 
@@ -465,21 +477,21 @@ void BaseRenderOpenGL3DShader::setWorldTransform(const Math::Matrix4 &transform)
 	newInvertedTranspose.inverse();
 	newInvertedTranspose.transpose();
 
-	_modelXShader->use();
-	_modelXShader->setUniform("modelMatrix", tmp);
-	_modelXShader->setUniform("normalMatrix", newInvertedTranspose);
+	_xmodelShader->use();
+	_xmodelShader->setUniform("modelMatrix", tmp);
+	_xmodelShader->setUniform("normalMatrix", newInvertedTranspose);
 
 	_shadowVolumeShader->use();
 	_shadowVolumeShader->setUniform("modelMatrix", tmp);
 }
 
 bool BaseRenderOpenGL3DShader::windowedBlt() {
-	warning("BaseRenderOpenGL3DShader::windowedBlt not yet implemented");
+	flip();
 	return true;
 }
 
 void Wintermute::BaseRenderOpenGL3DShader::onWindowChange() {
-	warning("BaseRenderOpenGL3DShader::onWindowChange not yet implemented");
+	_windowed = !g_system->getFeatureState(OSystem::kFeatureFullscreenMode);
 }
 
 bool BaseRenderOpenGL3DShader::initRenderer(int width, int height, bool windowed) {
@@ -489,26 +501,26 @@ bool BaseRenderOpenGL3DShader::initRenderer(int width, int height, bool windowed
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	static const char *spriteAttributes[] = {"position", "texcoord", "color", nullptr};
-	_spriteShader = OpenGL::ShaderGL::fromFiles("wme_sprite", spriteAttributes);
+	_spriteShader = OpenGL::Shader::fromFiles("wme_sprite", spriteAttributes);
 
 	_spriteShader->enableVertexAttribute("position", _spriteVBO, 2, GL_FLOAT, false, sizeof(SpriteVertexShader), 0);
 	_spriteShader->enableVertexAttribute("texcoord", _spriteVBO, 2, GL_FLOAT, false, sizeof(SpriteVertexShader), 8);
 	_spriteShader->enableVertexAttribute("color", _spriteVBO, 4, GL_FLOAT, false, sizeof(SpriteVertexShader), 16);
 
 	static const char *geometryAttributes[] = { "position", nullptr };
-	_geometryShader = OpenGL::ShaderGL::fromFiles("wme_geometry", geometryAttributes);
+	_geometryShader = OpenGL::Shader::fromFiles("wme_geometry", geometryAttributes);
 
 	static const char *shadowVolumeAttributes[] = { "position", nullptr };
-	_shadowVolumeShader = OpenGL::ShaderGL::fromFiles("wme_shadow_volume", shadowVolumeAttributes);
+	_shadowVolumeShader = OpenGL::Shader::fromFiles("wme_shadow_volume", shadowVolumeAttributes);
 
 	static const char *shadowMaskAttributes[] = { "position", nullptr };
-	_shadowMaskShader = OpenGL::ShaderGL::fromFiles("wme_shadow_mask", shadowMaskAttributes);
+	_shadowMaskShader = OpenGL::Shader::fromFiles("wme_shadow_mask", shadowMaskAttributes);
 
 	_transformStack.push_back(Math::Matrix4());
 	_transformStack.back().setToIdentity();
 
-	static const char *modelXAttributes[] = {"position", "texcoord", "normal", nullptr};
-	_modelXShader = OpenGL::ShaderGL::fromFiles("wme_modelx", modelXAttributes);
+	static const char *XModelAttributes[] = {"position", "texcoord", "normal", nullptr};
+	_xmodelShader = OpenGL::Shader::fromFiles("wme_modelx", XModelAttributes);
 
 	setDefaultAmbientLightColor();
 
@@ -517,7 +529,7 @@ bool BaseRenderOpenGL3DShader::initRenderer(int width, int height, bool windowed
 		disableLight(i);
 	}
 
-	_windowed = windowed;
+	_windowed = !ConfMan.getBool("fullscreen");
 	_width = width;
 	_height = height;
 
@@ -543,8 +555,7 @@ bool BaseRenderOpenGL3DShader::initRenderer(int width, int height, bool windowed
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	static const char *fadeAttributes[] = { "position", nullptr };
-	_fadeShader = OpenGL::ShaderGL::fromFiles("wme_fade", fadeAttributes);
-
+	_fadeShader = OpenGL::Shader::fromFiles("wme_fade", fadeAttributes);
 	_fadeShader->enableVertexAttribute("position", _fadeVBO, 2, GL_FLOAT, false, 8, 0);
 
 	glGenBuffers(1, &_lineVBO);
@@ -553,11 +564,11 @@ bool BaseRenderOpenGL3DShader::initRenderer(int width, int height, bool windowed
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	static const char *lineAttributes[] = { "position", nullptr };
-	_lineShader = OpenGL::ShaderGL::fromFiles("wme_line", lineAttributes);
+	_lineShader = OpenGL::Shader::fromFiles("wme_line", lineAttributes);
 	_lineShader->enableVertexAttribute("position", _lineVBO, 2, GL_FLOAT, false, 8, 0);
 
-	static const char *flatShadowModelXAttributes[] = { "position", nullptr };
-	_flatShadowModelXShader = OpenGL::ShaderGL::fromFiles("wme_flat_shadow_modelx", flatShadowModelXAttributes);
+	static const char *flatShadowXModelAttributes[] = { "position", nullptr };
+	_flatShadowXModelShader = OpenGL::Shader::fromFiles("wme_flat_shadow_modelx", flatShadowXModelAttributes);
 
 	_active = true;
 	// setup a proper state
@@ -571,12 +582,12 @@ bool Wintermute::BaseRenderOpenGL3DShader::flip() {
 }
 
 bool BaseRenderOpenGL3DShader::indicatorFlip() {
-	warning("BaseRenderOpenGL3DShader::indicatorFlip not yet implemented");
+	flip();
 	return true;
 }
 
 bool BaseRenderOpenGL3DShader::forcedFlip() {
-	warning("BaseRenderOpenGL3DShader::forcedFlip not yet implemented");
+	flip();
 	return true;
 }
 
@@ -631,17 +642,18 @@ bool BaseRenderOpenGL3DShader::setup3D(Camera3D *camera, bool force) {
 			_lastViewMatrix = viewMatrix;
 		}
 
-		FogParameters fogParameters;
+		bool fogEnabled;
+		uint32 fogColor;
+		float fogStart, fogEnd;
 
-		_gameRef->getFogParams(fogParameters);
-
-		if (fogParameters._enabled) {
+		_gameRef->getFogParams(&fogEnabled, &fogColor, &fogStart, &fogEnd);
+		if (fogEnabled) {
 			// TODO: Implement fog
 			GLfloat color[4];
-			color[0] = RGBCOLGetR(fogParameters._color) / 255.0f;
-			color[1] = RGBCOLGetG(fogParameters._color) / 255.0f;
-			color[2] = RGBCOLGetB(fogParameters._color) / 255.0f;
-			color[3] = RGBCOLGetA(fogParameters._color) / 255.0f;
+			color[0] = RGBCOLGetR(fogColor) / 255.0f;
+			color[1] = RGBCOLGetG(fogColor) / 255.0f;
+			color[2] = RGBCOLGetB(fogColor) / 255.0f;
+			color[3] = RGBCOLGetA(fogColor) / 255.0f;
 			debug(5, "BaseRenderOpenGL3DShader::setup3D fog not yet implemented! [%f %f %f %f]", color[0], color[1], color[2], color[3]);
 		} else {
 			// TODO: Disable fog in shader
@@ -653,11 +665,11 @@ bool BaseRenderOpenGL3DShader::setup3D(Camera3D *camera, bool force) {
 		setProjection();
 	}
 
-	_modelXShader->use();
-	_modelXShader->setUniform("viewMatrix", _lastViewMatrix);
-	_modelXShader->setUniform("projMatrix", _projectionMatrix3d);
+	_xmodelShader->use();
+	_xmodelShader->setUniform("viewMatrix", _lastViewMatrix);
+	_xmodelShader->setUniform("projMatrix", _projectionMatrix3d);
 	// this is 8 / 255, since 8 is the value used by wme (as a DWORD)
-	_modelXShader->setUniform1f("alphaRef", 0.031f);
+	_xmodelShader->setUniform1f("alphaRef", 0.031f);
 
 	_geometryShader->use();
 	_geometryShader->setUniform("viewMatrix", _lastViewMatrix);
@@ -687,9 +699,10 @@ BaseSurface *Wintermute::BaseRenderOpenGL3DShader::createSurface() {
 }
 
 bool BaseRenderOpenGL3DShader::drawSpriteEx(BaseSurfaceOpenGL3D &tex, const Wintermute::Rect32 &rect,
-											const Wintermute::Vector2 &pos, const Wintermute::Vector2 &rot, const Wintermute::Vector2 &scale,
-											float angle, uint32 color, bool alphaDisable, Graphics::TSpriteBlendMode blendMode,
-											bool mirrorX, bool mirrorY) {
+	                                    const Wintermute::Vector2 &pos, const Wintermute::Vector2 &rot,
+	                                    const Wintermute::Vector2 &scale, float angle, uint32 color,
+	                                    bool alphaDisable, Graphics::TSpriteBlendMode blendMode,
+	                                    bool mirrorX, bool mirrorY) {
 	// original wme has a batch mode for sprites, we ignore this for the moment
 
 	if (_forceAlphaColor != 0) {
@@ -741,17 +754,17 @@ bool BaseRenderOpenGL3DShader::drawSpriteEx(BaseSurfaceOpenGL3D &tex, const Wint
 	vertices[3].v = texBottom;
 
 	// position coords
-	vertices[0].x = pos.x - 0.5f;
-	vertices[0].y = correctedYPos - 0.5f;
+	vertices[0].x = pos.x;
+	vertices[0].y = correctedYPos;
 
-	vertices[1].x = pos.x - 0.5f;
-	vertices[1].y = correctedYPos - height - 0.5f;
+	vertices[1].x = pos.x;
+	vertices[1].y = correctedYPos - height;
 
-	vertices[2].x = pos.x + width - 0.5f;
-	vertices[2].y = correctedYPos - 0.5f;
+	vertices[2].x = pos.x + width;
+	vertices[2].y = correctedYPos;
 
-	vertices[3].x = pos.x + width - 0.5f;
-	vertices[3].y = correctedYPos - height - 0.5;
+	vertices[3].x = pos.x + width;
+	vertices[3].y = correctedYPos - height;
 
 	// not exactly sure about the color format, but this seems to work
 	byte a = RGBCOLGetA(color);
@@ -791,11 +804,12 @@ bool BaseRenderOpenGL3DShader::drawSpriteEx(BaseSurfaceOpenGL3D &tex, const Wint
 }
 
 void BaseRenderOpenGL3DShader::renderSceneGeometry(const BaseArray<AdWalkplane *> &planes, const BaseArray<AdBlock *> &blocks,
-												   const BaseArray<AdGeneric *> &generics, const BaseArray<Light3D *> &lights, Camera3D *camera) {
+	                                           const BaseArray<AdGeneric *> &generics, const BaseArray<Light3D *> &lights, Camera3D *camera) {
 	// don't render scene geometry, as OpenGL ES 2 has no wireframe rendering and we don't have a shader alternative yet
 }
 
-void BaseRenderOpenGL3DShader::renderShadowGeometry(const BaseArray<AdWalkplane *> &planes, const BaseArray<AdBlock *> &blocks, const BaseArray<AdGeneric *> &generics, Camera3D *camera) {
+void BaseRenderOpenGL3DShader::renderShadowGeometry(const BaseArray<AdWalkplane *> &planes, const BaseArray<AdBlock *> &blocks,
+                                                    const BaseArray<AdGeneric *> &generics, Camera3D *camera) {
 	setup3D(camera, true);
 
 	// disable color write
@@ -832,8 +846,8 @@ Mesh3DS *BaseRenderOpenGL3DShader::createMesh3DS() {
 	return new Mesh3DSOpenGLShader(_geometryShader);
 }
 
-MeshX *BaseRenderOpenGL3DShader::createMeshX() {
-	return new MeshXOpenGLShader(_gameRef, _modelXShader, _flatShadowModelXShader);
+XMesh *BaseRenderOpenGL3DShader::createXMesh() {
+	return new XMeshOpenGLShader(_gameRef, _xmodelShader, _flatShadowXModelShader);
 }
 
 ShadowVolume *BaseRenderOpenGL3DShader::createShadowVolume() {
@@ -842,4 +856,4 @@ ShadowVolume *BaseRenderOpenGL3DShader::createShadowVolume() {
 
 } // namespace Wintermute
 
-#endif // defined(USE_GLES2) || defined(USE_OPENGL_SHADERS)
+#endif // defined(USE_OPENGL_SHADERS)

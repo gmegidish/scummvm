@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,6 +39,7 @@ enum CodePage {
 	kWindows1256,
 	kWindows1257,
 	kWindows932,
+	kWindows936,
 	kWindows949,
 	kWindows950,
 	kISO8859_1,
@@ -50,11 +50,19 @@ enum CodePage {
 	kDos850,
 	kDos862,
 	kDos866,
+	kJohab,
 	kASCII,
 
 	kLatin1 = kISO8859_1,
 	kBig5 = kWindows950,
+	kGBK = kWindows936,
+	kEUCCN = kWindows936,
 	kLastEncoding = kASCII
+};
+
+enum StringEncodingResult {
+	kStringEncodingResultSucceeded,
+	kStringEncodingResultHasErrors,
 };
 
 U32String convertUtf8ToUtf32(const String &str);
@@ -63,6 +71,8 @@ String convertUtf32ToUtf8(const U32String &str);
 U32String convertToU32String(const char *str, CodePage page = kUtf8);
 String convertFromU32String(const U32String &str, CodePage page = kUtf8);
 uint16 convertUHCToUCS(uint8 high, uint8 low);
+
+void releaseCJKTables();
 } // End of namespace Common
 
 #endif

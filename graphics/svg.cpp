@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,97 +15,57 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-#include "common/scummsys.h"
-#include "common/stream.h"
-#include "common/textconsole.h"
-
-#include "graphics/managed_surface.h"
-#include "graphics/pixelformat.h"
 
 #include "graphics/svg.h"
 
-
+#include "common/endian.h"
+#include "common/stream.h"
+#include "common/textconsole.h"
+#include "graphics/pixelformat.h"
 #define NANOSVG_IMPLEMENTATION
 #include "graphics/nanosvg/nanosvg.h"
 #define NANOSVGRAST_IMPLEMENTATION
 #include "graphics/nanosvg/nanosvgrast.h"
 
+#ifdef SCUMM_BIG_ENDIAN
+#define PIXELFORMAT Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0)
+#else
+#define PIXELFORMAT Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24)
+#endif
+
 namespace Graphics {
 
-SVGBitmap::SVGBitmap(Common::SeekableReadStream *in) {
-	int32 size = in->size();
-	char *data = (char *)malloc(size + 1);
+SVGBitmap::SVGBitmap(Common::SeekableReadStream *in, int dw, int dh)
+	: ManagedSurface(dw, dh, PIXELFORMAT) {
+	if (dw == 0 || dh == 0)
+		return;
+
+	int64 size = in->size();
+	char *data = new char[size + 1];
 
 	in->read(data, size);
 	data[size] = '\0';
 
-	_svg = nsvgParse(data, "px", 96);
-
-	if (_svg == NULL)
+	NSVGimage *svg = nsvgParse(data, "px", 96);
+	if (svg == NULL)
 		error("Cannot parse SVG image");
 
-	_rasterizer = NULL;
-	_cachedW = _cachedH = -1;
-	_cache = NULL;
-	_render = NULL;
+	delete[] data;
+	data = nullptr;
 
-#ifdef SCUMM_BIG_ENDIAN
-	_pixelformat = new Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0);
-#else
-	_pixelformat = new Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24);
-#endif
-}
+	// Maintain aspect ratio
+	float xRatio = 1.0f * dw / svg->width;
+	float yRatio = 1.0f * dh / svg->height;
+	float ratio = xRatio < yRatio ? xRatio : yRatio;
 
-SVGBitmap::~SVGBitmap() {
-	if (_rasterizer)
-		nsvgDeleteRasterizer(_rasterizer);
+	NSVGrasterizer *rasterizer = nsvgCreateRasterizer();
 
-	nsvgDelete(_svg);
+	nsvgRasterize(rasterizer, svg, 0, 0, ratio, (byte *)getPixels(), dw, dh, pitch);
 
-	delete _render;
-}
-
-void SVGBitmap::render(Graphics::ManagedSurface &target, int dw, int dh) {
-	if (dw == 0 || dh == 0)
-		return;
-
-	if (_rasterizer == NULL)
-		_rasterizer = nsvgCreateRasterizer();
-
-	if (_cachedW != dw || _cachedH != dh) {
-		if (_cache)
-			free(_cache);
-
-		_cache = (byte *)malloc(dw * dh * 4);
-
-		// Maintain aspect ratio
-		float xRatio = 1.0f * dw / _svg->width;
-		float yRatio = 1.0f * dh / _svg->height;
-		float ratio = xRatio < yRatio ? xRatio : yRatio;
-
-		nsvgRasterize(_rasterizer, _svg, 0, 0, ratio, _cache, dw, dh, dw * 4);
-
-		_cachedW = dw;
-		_cachedH = dh;
-
-		if (_render)
-			delete _render;
-
-		Graphics::Surface tmp;;
-		tmp.init(dw, dh, dw * 4, _cache, *_pixelformat);
-
-		_render = new ManagedSurface(dw, dh, *_pixelformat);
-
-		_render->transBlitFrom(tmp);
-
-		tmp.free();
-	}
-
-	target.blitFrom(_render->rawSurface());
+	nsvgDeleteRasterizer(rasterizer);
+	nsvgDelete(svg);
 }
 
 } // end of namespace Graphics

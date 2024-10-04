@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "pink/archive.h"
 #include "pink/cursor_mgr.h"
 #include "pink/pink.h"
-#include "pink/director.h"
+#include "pink/screen.h"
 #include "pink/objects/actions/action.h"
 #include "pink/objects/actors/supporting_actor.h"
 #include "pink/objects/actors/lead_actor.h"
@@ -60,9 +59,9 @@ void LeadActor::loadState(Archive &archive) {
 	_stateBeforeInventory = (State)archive.readByte();
 	_stateBeforePDA = (State)archive.readByte();
 	_isHaveItem = archive.readByte();
-	Common::String recepient = archive.readString();
-	if (!recepient.empty())
-		_recipient = _page->findActor(recepient);
+	Common::String recipient = archive.readString();
+	if (!recipient.empty())
+		_recipient = _page->findActor(recipient);
 	else
 		_recipient = nullptr;
 	_sequencer->loadState(archive);
@@ -109,6 +108,7 @@ void LeadActor::start(bool isHandler) {
 	case kPDA:
 		if (_stateBeforePDA == kInventory)
 			startInventory(1);
+		_page->getGame()->getScreen()->saveStage();
 		loadPDA(_page->getGame()->getPdaMgr().getSavedPageName());
 		break;
 	default:
@@ -156,12 +156,12 @@ void LeadActor::loadPDA(const Common::String &pageName) {
 	if (_state != kPDA) {
 		if (_state == kMoving)
 			cancelInteraction();
-		if (_state != kInventory)
+		if (_state != kInventory && !_page->getGame()->getScreen()->isMenuActive())
 			_page->pause(true);
 
 		_stateBeforePDA = _state;
 		_state = kPDA;
-		_page->getGame()->getDirector()->saveStage();
+		_page->getGame()->getScreen()->saveStage();
 	}
 	_page->getGame()->getPdaMgr().setLead(this);
 	_page->getGame()->getPdaMgr().goToPage(pageName);
@@ -314,11 +314,12 @@ void LeadActor::onWalkEnd(const Common::String &stopName) {
 
 void LeadActor::onPDAClose() {
 	_page->initPalette();
-	_page->getGame()->getDirector()->loadStage();
+	_page->getGame()->getScreen()->loadStage();
 
 	_state = _stateBeforePDA;
+	_stateBeforePDA = kUndefined;
 	if (_state != kInventory)
-		_page->pause(0);
+		_page->pause(false);
 }
 
 bool LeadActor::isInteractingWith(const Actor *actor) const {
@@ -337,7 +338,7 @@ void LeadActor::setNextExecutors(const Common::String &nextModule, const Common:
 
 void LeadActor::forceUpdateCursor() {
 	PinkEngine *vm =_page->getGame();
-	vm->getDirector()->update(); // we have actions, that should be drawn to properly update cursor
+	vm->getScreen()->update(); // we have actions, that should be drawn to properly update cursor
 	Common::Point point = vm->getEventManager()->getMousePos();
 	updateCursor(point);
 }
@@ -397,7 +398,7 @@ WalkLocation *LeadActor::getWalkDestination() {
 }
 
 Actor *LeadActor::getActorByPoint(Common::Point point) {
-	return _page->getGame()->getDirector()->getActorByPoint(point);
+	return _page->getGame()->getScreen()->getActorByPoint(point);
 }
 
 void LeadActor::startInventory(bool paused) {

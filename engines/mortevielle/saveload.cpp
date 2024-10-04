@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,6 +31,8 @@
 
 #include "common/file.h"
 #include "common/system.h"
+
+#include "graphics/paletteman.h"
 
 namespace Mortevielle {
 
@@ -77,8 +78,8 @@ bool SavegameManager::loadSavegame(const Common::String &filename) {
 	Common::SeekableReadStream *stream = g_system->getSavefileManager()->openForLoading(filename);
 
 	Common::File f;
-	if (stream == NULL) {
-		if (!f.open(filename)) {
+	if (stream == nullptr) {
+		if (!f.open(Common::Path(filename))) {
 			warning("Unable to open save file '%s'", filename.c_str());
 			return false;
 		}
@@ -101,7 +102,7 @@ bool SavegameManager::loadSavegame(const Common::String &filename) {
 	}
 
 	// Read the game contents
-	Common::Serializer sz(stream, NULL);
+	Common::Serializer sz(stream, nullptr);
 	sync_save(sz);
 
 	g_vm->_coreVar = g_vm->_saveStruct;
@@ -158,7 +159,7 @@ Common::Error SavegameManager::saveGame(int n, const Common::String &saveName) {
 	writeSavegameHeader(f, saveName);
 
 	// Write out the savegame contents
-	Common::Serializer sz(NULL, f);
+	Common::Serializer sz(nullptr, f);
 	sync_save(sz);
 
 	// Close the save file

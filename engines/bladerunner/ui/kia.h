@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,7 @@
 
 namespace Common {
 struct KeyState;
+struct Event;
 }
 
 namespace BladeRunner {
@@ -117,6 +117,10 @@ class KIA {
 
 
 public:
+	// Indicates when KIA opens after player has died
+	// or the game just launched and there are existing saved games to load.
+	// In forced open mode, certain KIA tabs are not available,
+	// such as the Save Game tab and the Crime Scene, Suspect, Clue database tabs.
 	bool              _forceOpen;
 
 	KIALog           *_log;
@@ -144,6 +148,8 @@ public:
 	void handleMouseScroll(int mouseX, int mouseY, int direction); // Added by ScummVM team
 	void handleKeyUp(const Common::KeyState &kbd);
 	void handleKeyDown(const Common::KeyState &kbd);
+	void handleCustomEventStop(const Common::Event &evt);
+	void handleCustomEventStart(const Common::Event &evt);
 
 	void playerReset();
 	void playActorDialogue(int actorId, int sentenceId);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,8 @@
 #include "ultima/ultima8/world/actors/actor.h"
 #include "ultima/ultima8/world/actors/actor_anim_process.h"
 #include "ultima/ultima8/world/get_object.h"
+#include "ultima/ultima8/world/current_map.h"
+#include "ultima/ultima8/world/world.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -97,28 +98,22 @@ void GravityProcess::run() {
 	//     - bounce off the item (need to consider FLG_LOW_FRICTION?)
 	//     - call the relevant events: hit/gothit ?
 
-	int32 ix, iy, iz;
-	item->getLocation(ix, iy, iz);
+	Point3 pt = item->getLocation();
 
-	//
-	// Shouldn't go very negative as item should always hit the floor.
-	//
-	// Slight hack here because Mordea falls through the floor when she
-	// wakes up - set a value big enough that the next event can happen
-	// before we destroy the actor.
-	//
-	if (iz < -5000) {
-		warning("Item %d fell too far, stopping GravityProcess", _itemNum);
-		terminate();
-		_itemNum = 0;
-		item->destroy();
+	// Shouldn't go negative as original did not allow it
+	if (pt.z <= 0 && _zSpeed < 0) {
+		terminateDeferred();
+		fallStopped();
 		return;
 	}
 
 	int32 tx, ty, tz;
-	tx = ix + _xSpeed;
-	ty = iy + _ySpeed;
-	tz = iz + _zSpeed;
+	tx = pt.x + _xSpeed;
+	ty = pt.y + _ySpeed;
+	tz = pt.z + _zSpeed;
+
+	if (tz < 0)
+		tz = 0;
 
 //#define BOUNCE_DIAG
 
@@ -155,11 +150,35 @@ void GravityProcess::run() {
 		Item *hititem = getItem(hititemid);
 		if (!hititem)
 			return; // shouldn't happen..
-		if (_zSpeed < -2 && !dynamic_cast<Actor *>(item)) {
+
+		CurrentMap *cm = World::get_instance()->getCurrentMap();
+		Box target = item->getWorldBox();
+		Box empty;
+		PositionInfo info = cm->getPositionInfo(target, empty, item->getShapeInfo()->_flags, _itemNum);
+		if (!info.valid || !info.supported) {
+			// Reset speed and continue to slip off
+			termFlag = false;
+			_zSpeed = 0;
+
+			pt = item->getCentre();
+			target = hititem->getWorldBox();
+			if (ABS(_xSpeed) < 16) {
+				if (pt.x + 16 > target._x)
+					_xSpeed = 16;
+				else if (pt.x - 16 < target._x - target._xd)
+					_xSpeed = -16;
+			}
+
+			if (ABS(_ySpeed) < 16) {
+				if (pt.y + 16 > target._y)
+					_ySpeed = 16;
+				else if (pt.y - 16 < target._y - target._yd)
+					_ySpeed = -16;
+			}
+		} else if (_zSpeed < -2 && !actor) {
 #ifdef BOUNCE_DIAG
-			pout << "item " << _itemNum << " bounce ["
-			     << Kernel::get_instance()->getFrameNum()
-			     << "]: hit " << hititem->getObjId() << Std::endl;
+			debugC(kDebugObject, "item %u bounce [%u]: hit %u",
+				_itemNum, Kernel::get_instance()->getFrameNum(), hititem->getObjId());
 #endif
 
 			if (GAME_IS_U8 && (!hititem->getShapeInfo()->is_land() || _zSpeed < -2 * _gravity)) {
@@ -173,11 +192,12 @@ void GravityProcess::run() {
 				_zSpeed = 0 - _zSpeed / 3;
 				int approx_v = ABS(_xSpeed) + ABS(_ySpeed) + _zSpeed;
 
+				Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
+
 				// Apply an impulse on the x/y plane in a random direction
-				// in a 180 degree pie around the orginal vector in x/y
+				// in a 180 degree pie around the original vector in x/y
 				double heading_r = atan2((double)_ySpeed, (double)_xSpeed);
-				double deltah_r = static_cast<double>(getRandom())
-				                  * M_PI / U8_RAND_MAX - M_PI / 2;
+				double deltah_r = static_cast<double>(rs.getRandomNumber(UINT_MAX)) * M_PI / UINT_MAX - M_PI / 2.0;
 #ifdef BOUNCE_DIAG
 				double headingold_r = heading_r;
 #endif
@@ -196,7 +216,8 @@ void GravityProcess::run() {
 					_xSpeed /= 4;
 					_ySpeed /= 4;
 					_zSpeed /= 2;
-					if (_zSpeed == 0) termFlag = true;
+					if (_zSpeed == 0)
+						termFlag = true;
 				} else {
 					// Not on land; this bounce approximates what's seen
 					// in the original U8 when Kilandra's daughters ghost
@@ -205,37 +226,33 @@ void GravityProcess::run() {
 					if (ABS(_xSpeed) > 2) _xSpeed /= 2;
 				}
 #ifdef BOUNCE_DIAG
-				pout << "item " << _itemNum << " bounce ["
-				     << Kernel::get_instance()->getFrameNum()
-				     << "]: speed was (" << xspeedold << ","
-				     << yspeedold << "," << zspeedold << ") new _zSpeed "
-				     << _zSpeed << " heading " << headingold_r
-				     << " impulse " << heading_r << " ("
-				     << (_xSpeed - xspeedold) << "," << (_ySpeed - yspeedold)
-				     << "), termFlag: " << termFlag << Std::endl;
+				debugc(kDebugObject, "item %u bounce [%u]: speed was (%d, %d, %d) new _zSpeed %d heading %lf impulse %lf (%d, %d), termFlag: %d",
+					  _itemNum, Kernel::get_instance()->getFrameNum(),
+					  xspeedold, yspeedold, zspeedold
+					  _zSpeed, headingold_r, heading_r,
+					  (_xSpeed - xspeedold), (_ySpeed - yspeedold), termFlag);
 #endif
 			} else {
 #ifdef BOUNCE_DIAG
-				pout << "item " << _itemNum << " bounce ["
-				     << Kernel::get_instance()->getFrameNum()
-				     << "]: no bounce" << Std::endl;
+				debugC(kDebugObject, "item %u bounce [%u]: no bounce",
+					  _itemNum, Kernel::get_instance()->getFrameNum());
 #endif
 			}
 		} else {
 #ifdef BOUNCE_DIAG
-			pout << "item " << _itemNum << " bounce ["
-			     << Kernel::get_instance()->getFrameNum()
-			     << "]: slow hit" << Std::endl;
+			debugC(kDebugObject, "item %u bounce [%u]: slow hit",
+				  _itemNum, Kernel::get_instance()->getFrameNum());
 #endif
 		}
+
 		if (termFlag) {
 			item->clearFlag(Item::FLG_BOUNCING);
 			terminateDeferred();
 		} else {
 			item->setFlag(Item::FLG_BOUNCING);
 		}
-		fallStopped();
 
+		fallStopped();
 	} else {
 
 		// blocked in some other direction than strictly downward
@@ -256,11 +273,10 @@ void GravityProcess::run() {
 			_zSpeed = -_zSpeed / 2;
 
 #ifdef BOUNCE_DIAG
-		pout << "item " << _itemNum << " bounce ["
-		     << Kernel::get_instance()->getFrameNum()
-		     << "]: speed was (" << xspeedold << ","
-		     << yspeedold << "," << zspeedold << ") new speed ("
-		     << _xSpeed << "," << _ySpeed << "," << _zSpeed << ")" << Std::endl;
+		debugC(kDebugObject, "item %u bounce [%u]: speed was (%d, %d, %d) new speed (%d, %d, %d)",
+			  _itemNum, Kernel::get_instance()->getFrameNum(),
+			  xspeedold, yspeedold, zspeedold ,
+			  _xSpeed, _ySpeed, _zSpeed);
 #endif
 
 		item->setFlag(Item::FLG_BOUNCING);
@@ -323,7 +339,7 @@ void GravityProcess::actorFallStoppedU8(Actor *actor, int height) {
 		if (audioproc) audioproc->playSFX(51, 250, _itemNum, 0); // CONSTANT!
 	}
 
-	if (!actor->isDead() && actor->getLastAnim() != Animation::die) {
+	if (!actor->isDead() && actor->getLastAnim() != Animation::die && !actor->hasActorFlags(Actor::ACT_STUNNED)) {
 		Kernel *kernel = Kernel::get_instance();
 
 		// play land animation, overriding other animations
@@ -353,8 +369,8 @@ void GravityProcess::actorFallStoppedCru(Actor *actor, int height) {
 		 lastanim != Animation::kneelCombatRollRight &&
 		 lastanim != Animation::run &&
 		 lastanim != Animation::jumpForward &&
-		 lastanim != Animation::unknownAnim30 &&
-		 lastanim != Animation::brightKneelAndFireLargeWeapon)) {
+		 lastanim != Animation::combatRunSmallWeapon &&
+		 lastanim != Animation::combatRunLargeWeapon)) {
 		// play land animation, overriding other animations
 		kernel->killProcesses(_itemNum, ActorAnimProcess::ACTOR_ANIM_PROC_TYPE, false); // CONSTANT!
 		ProcId lpid = actor->doAnim(Animation::jumpLanding, dir_current);
@@ -375,11 +391,9 @@ void GravityProcess::actorFallStoppedCru(Actor *actor, int height) {
 	}
 }
 
-void GravityProcess::dumpInfo() const {
-	Process::dumpInfo();
-
-	pout << "_gravity: " << _gravity << ", speed: (" << _xSpeed << ","
-	     << _ySpeed << "," << _zSpeed << ")" << Std::endl;
+Common::String GravityProcess::dumpInfo() const {
+	return Process::dumpInfo() +
+		Common::String::format(", _gravity: %d, speed: (%d, %d, %d)", _gravity, _xSpeed, _ySpeed, _zSpeed);
 }
 
 

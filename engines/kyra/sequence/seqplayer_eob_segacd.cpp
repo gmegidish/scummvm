@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -80,27 +79,21 @@ SegaSequencePlayer::SegaSequencePlayer(EoBEngine *vm, Screen_EoB *screen, SegaCD
 
 	_scrollManager = new ScrollManager(_renderer);
 	assert(_scrollManager);
-	_tileSets = new TileSet[100];
+	_tileSets = new TileSet[100]();
 	assert(_tileSets);
-	memset(_tileSets, 0, 100 * sizeof(TileSet));
-	_drawObjects = new DrawObject[100];
+	_drawObjects = new DrawObject[100]();
 	assert(_drawObjects);
-	memset(_drawObjects, 0, 100 * sizeof(DrawObject));
 
 	memset(_speechAnimDrawOps, 0, sizeof(_speechAnimDrawOps));
 
-	_scaleSrcBuffer = new uint8[0x5800];
+	_scaleSrcBuffer = new uint8[0x5800]();
 	assert(_scaleSrcBuffer);
-	memset(_scaleSrcBuffer, 0, 0x5800 * sizeof(uint8));
-	_scaleOutBuffer = new uint8[0x5800];
+	_scaleOutBuffer = new uint8[0x5800]();
 	assert(_scaleOutBuffer);
-	memset(_scaleOutBuffer, 0, 0x5800 * sizeof(uint8));
-	_scaleStampMap = new uint16[0x100];
+	_scaleStampMap = new uint16[0x100]();
 	assert(_scaleStampMap);
-	memset(_scaleStampMap, 0, 0x100 * sizeof(uint16));
-	_scaleTraceVectors = new uint16[0x580];
+	_scaleTraceVectors = new uint16[0x580]();
 	assert(_scaleTraceVectors);
-	memset(_scaleTraceVectors, 0, 0x580 * sizeof(uint16));
 
 	int temp;
 	_wdDsX = _vm->staticres()->loadRawDataBe16(kEoB1IntroWdDsX, temp);
@@ -227,8 +220,8 @@ bool SegaSequencePlayer::play(int id) {
 	return true;
 }
 
-void SegaSequencePlayer::pause(bool pause) {
-	if (pause)
+void SegaSequencePlayer::pause(bool togglePause) {
+	if (togglePause)
 		_pauseStart = _vm->_system->getMillis();
 	else
 		_frameTimer += (_vm->_system->getMillis() - _pauseStart);

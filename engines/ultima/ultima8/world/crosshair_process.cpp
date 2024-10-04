@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
+#include "ultima/ultima8/misc/debugger.h"
 
 #include "ultima/ultima8/kernel/kernel.h"
 #include "ultima/ultima8/world/actors/main_actor.h"
@@ -30,7 +29,7 @@
 #include "ultima/ultima8/world/get_object.h"
 #include "ultima/ultima8/ultima8.h"
 
-#include "common/math.h"
+#include "math/utils.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -60,13 +59,12 @@ void CrosshairProcess::run() {
 	if (actor->isInCombat()) {
 		Kernel *kernel = Kernel::get_instance();
 		assert(kernel);
-		int32 ax, ay, az;
-		actor->getLocation(ax, ay, az);
-		actor->addFireAnimOffsets(ax, ay, az);
+		Point3 pt = actor->getLocation();
+		actor->addFireAnimOffsets(pt.x, pt.y, pt.z);
 
 		const CruAvatarMoverProcess *mover = dynamic_cast<CruAvatarMoverProcess *>(Ultima8Engine::get_instance()->getAvatarMoverProcess());
 		if (!mover) {
-			warning("lost CruAvatarMoverProcess!");
+			warning("lost CruAvatarMoverProcess");
 			return;
 		}
 		double angle = mover->getAvatarAngleDegrees() + 90.0;
@@ -75,11 +73,11 @@ void CrosshairProcess::run() {
 			return;
 		}
 		// Convert angle to 0~2pi
-		double rads = Common::deg2rad(angle);
+		double rads = Math::deg2rad(angle);
 		float xoff = CROSSHAIR_DIST * cos(rads);
 		float yoff = CROSSHAIR_DIST * sin(rads);
-		ax -= static_cast<int32>(xoff);
-		ay -= static_cast<int32>(yoff);
+		pt.x -= static_cast<int32>(xoff);
+		pt.y -= static_cast<int32>(yoff);
 
 		Item *item;
 		if (_itemNum) {
@@ -91,7 +89,7 @@ void CrosshairProcess::run() {
 			setItemNum(item->getObjId());
 		}
 		if (item)
-			item->move(ax, ay, az);
+			item->move(pt.x, pt.y, pt.z);
 		else
 			_itemNum = 0; // sprite gone? can happen during teleport.
 	} else {
@@ -109,7 +107,9 @@ void CrosshairProcess::saveData(Common::WriteStream *ws) {
 }
 
 bool CrosshairProcess::loadData(Common::ReadStream *rs, uint32 version) {
-	return Process::loadData(rs, version);
+	if (!Process::loadData(rs, version)) return false;
+	_type = 1; // should be persistent but older savegames may not know that.
+	return true;
 }
 
 } // End of namespace Ultima8

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -110,7 +109,7 @@ IntroBinData::~IntroBinData() {
 }
 
 void IntroBinData::openFile(Shared::File &f, const Common::String &name) {
-	f.open(Common::String::format("data/intro/%s.dat", name.c_str()));
+	f.open(Common::Path(Common::String::format("data/intro/%s.dat", name.c_str())));
 }
 
 bool IntroBinData::load() {
@@ -190,7 +189,7 @@ IntroController::IntroController() : Controller(1),
 	Common::fill(&_questionTree[0], &_questionTree[15], -1);
 
 	// Setup a separate image surface for rendering the animated map on
-	_mapScreen = Image::create(g_screen->w, g_screen->h, false, Image::HARDWARE);
+	_mapScreen = Image::create(g_screen->w, g_screen->h, g_screen->format);
 	_mapArea.setDest(_mapScreen);
 
 	// initialize menus
@@ -585,7 +584,7 @@ void IntroController::drawBeastie(int beast, int vertoffset, int frame) {
 
 	assertMsg(beast == 0 || beast == 1, "invalid beast: %d", beast);
 
-	sprintf(buffer, "beast%dframe%02d", beast, frame);
+	Common::sprintf_s(buffer, "beast%dframe%02d", beast, frame);
 
 	destx = beast ? (320 - 48) : 0;
 	_backgroundArea.draw(buffer, destx, vertoffset);
@@ -764,7 +763,7 @@ void IntroController::finishInitiateGame(const Common::String &nameBuffer, SexTy
 
 		_justInitiatedNewGame = true;
 
-		// show the text thats segues into the main game
+		// show the text that's segues into the main game
 		showText(_binData->_introGypsy[GYP_SEGUE1]);
 #ifdef IOS_ULTIMA4
 		U4IOS::switchU4IntroControllerToContinueButton();
@@ -1494,8 +1493,7 @@ void IntroController::getTitleSourceData() {
 			_titles[i]._srcImage = Image::create(
 				_titles[i]._rw * info->_prescale,
 				_titles[i]._rh * info->_prescale,
-			    info->_image->isIndexed() && _titles[i]._method != MAP,
-				Image::HARDWARE);
+				_titles[i]._method == MAP ? _mapScreen->format() : info->_image->format());
 			if (_titles[i]._srcImage->isIndexed())
 				_titles[i]._srcImage->setPaletteFromImage(info->_image);
 
@@ -1591,14 +1589,12 @@ void IntroController::getTitleSourceData() {
 		if (_titles[i]._srcImage)
 			_titles[i]._srcImage->alphaOff();
 
-		bool indexed = info->_image->isIndexed() && _titles[i]._method != MAP;
 		// create the initial animation frame
 		_titles[i]._destImage = Image::create(
 			2 + (_titles[i]._prescaled ? SCALED(_titles[i]._rw) : _titles[i]._rw) * info->_prescale ,
-		    2 + (_titles[i]._prescaled ? SCALED(_titles[i]._rh) : _titles[i]._rh) * info->_prescale,
-		    indexed,
-			Image::HARDWARE);
-		if (indexed)
+			2 + (_titles[i]._prescaled ? SCALED(_titles[i]._rh) : _titles[i]._rh) * info->_prescale,
+			_titles[i]._method == MAP ? _mapScreen->format() : info->_image->format());
+		if (_titles[i]._destImage->isIndexed())
 			_titles[i]._destImage->setPaletteFromImage(info->_image);
 	}
 

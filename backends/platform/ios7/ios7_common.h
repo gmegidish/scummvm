@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,12 +26,13 @@
 
 
 enum InputEvent {
-	kInputMouseDown,
-	kInputMouseUp,
-	kInputMouseDragged,
-	kInputMouseSecondDragged,
-	kInputMouseSecondDown,
-	kInputMouseSecondUp,
+	kInputTouchBegan,
+	kInputTouchMoved,
+	kInputMouseLeftButtonDown,
+	kInputMouseLeftButtonUp,
+	kInputMouseRightButtonDown,
+	kInputMouseRightButtonUp,
+	kInputMouseDelta,
 	kInputOrientationChanged,
 	kInputKeyPressed,
 	kInputApplicationSuspended,
@@ -42,14 +42,31 @@ enum InputEvent {
 	kInputApplicationRestoreState,
 	kInputSwipe,
 	kInputTap,
-	kInputMainMenu
+	kInputLongPress,
+	kInputMainMenu,
+	kInputJoystickAxisMotion,
+	kInputJoystickButtonDown,
+	kInputJoystickButtonUp,
+	kInputScreenChanged,
+	kInputTouchModeChanged
 };
 
 enum ScreenOrientation {
+	kScreenOrientationAuto,
 	kScreenOrientationPortrait,
 	kScreenOrientationFlippedPortrait,
 	kScreenOrientationLandscape,
 	kScreenOrientationFlippedLandscape
+};
+
+enum DirectionalInput {
+	kDirectionalInputThumbstick,
+	kDirectionalInputDpad,
+};
+
+enum TouchMode {
+	kTouchModeDirect,
+	kTouchModeTouchpad,
 };
 
 enum UIViewSwipeDirection {
@@ -64,34 +81,9 @@ enum UIViewTapDescription {
 	kUIViewTapDouble = 2
 };
 
-struct VideoContext {
-	VideoContext() : asprectRatioCorrection(), screenWidth(), screenHeight(), overlayVisible(false),
-	                 overlayWidth(), overlayHeight(), mouseX(), mouseY(),
-	                 mouseHotspotX(), mouseHotspotY(), mouseWidth(), mouseHeight(),
-	                 mouseIsVisible(), filtering(false), shakeXOffset(), shakeYOffset() {
-	}
-
-	// Game screen state
-	bool asprectRatioCorrection;
-	uint screenWidth, screenHeight;
-	Graphics::Surface screenTexture;
-
-	// Overlay state
-	bool overlayVisible;
-	uint overlayWidth, overlayHeight;
-	Graphics::Surface overlayTexture;
-
-	// Mouse cursor state
-	uint mouseX, mouseY;
-	int mouseHotspotX, mouseHotspotY;
-	uint mouseWidth, mouseHeight;
-	bool mouseIsVisible;
-	Graphics::Surface mouseTexture;
-
-	// Misc state
-	bool filtering;
-	int shakeXOffset;
-	int shakeYOffset;
+enum UIViewLongPressDescription {
+	UIViewLongPressStarted = 1,
+	UIViewLongPressEnded = 2
 };
 
 struct InternalEvent {
@@ -107,15 +99,13 @@ struct InternalEvent {
 extern int iOS7_argc;
 extern char **iOS7_argv;
 
-void iOS7_updateScreen();
 bool iOS7_fetchEvent(InternalEvent *event);
 bool iOS7_isBigDevice();
 
 void iOS7_buildSharedOSystemInstance();
 void iOS7_main(int argc, char **argv);
-const char *iOS7_getDocumentsDir();
-bool iOS7_touchpadModeEnabled();
-
-uint getSizeNextPOT(uint size);
+Common::String iOS7_getDocumentsDir();
+Common::String iOS7_getAppBundleDir();
+TouchMode iOS7_getCurrentTouchMode();
 
 #endif

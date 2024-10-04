@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,13 +70,14 @@ protected:
 	Widget		*_firstWidget;
 
 public:
-	GuiObject(int x, int y, int w, int h);
+	GuiObject(int x, int y, int w, int h, bool scale = false);
 	GuiObject(const Common::String &name);
 	~GuiObject() override;
 
 	virtual void setTextDrawableArea(const Common::Rect &r) { _textDrawableArea = r; }
 
 	virtual void resize(int x, int y, int w, int h, bool scale = true);
+	virtual Widget *addChild(Widget *newChild);
 
 	virtual int16	getRelX() const		{ return _x; }
 	virtual int16	getRelY() const		{ return _y; }
@@ -103,6 +103,8 @@ public:
 	 */
 	virtual Common::Rect getClipRect() const;
 
+	virtual void handleMouseWheel(int x, int y, int direction) {};
+	virtual void handleTooltipUpdate(int x, int y) {};
 protected:
 	virtual void	releaseFocus() = 0;
 };

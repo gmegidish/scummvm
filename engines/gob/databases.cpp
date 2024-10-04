@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -59,7 +64,7 @@ void Databases::setLanguage(Common::Language language) {
 	_language = lang;
 }
 
-bool Databases::open(const Common::String &id, const Common::String &file) {
+bool Databases::open(const Common::String &id, const Common::Path &file) {
 	if (_databases.contains(id)) {
 		warning("Databases::open(): A database with the ID \"%s\" already exists", id.c_str());
 		return false;
@@ -67,13 +72,13 @@ bool Databases::open(const Common::String &id, const Common::String &file) {
 
 	Common::File dbFile;
 	if (!dbFile.open(file)) {
-		warning("Databases::open(): No such file \"%s\"", file.c_str());
+		warning("Databases::open(): No such file \"%s\"", file.toString().c_str());
 		return false;
 	}
 
 	dBase db;
 	if (!db.load(dbFile)) {
-		warning("Databases::open(): Failed loading database file \"%s\"", file.c_str());
+		warning("Databases::open(): Failed loading database file \"%s\"", file.toString().c_str());
 		return false;
 	}
 
@@ -82,7 +87,7 @@ bool Databases::open(const Common::String &id, const Common::String &file) {
 	assert(map != _databases.end());
 
 	if (!buildMap(db, map->_value)) {
-		warning("Databases::open(): Failed building a map for database \"%s\"", file.c_str());
+		warning("Databases::open(): Failed building a map for database \"%s\"", file.toString().c_str());
 		_databases.erase(map);
 		return false;
 	}
@@ -93,7 +98,7 @@ bool Databases::open(const Common::String &id, const Common::String &file) {
 bool Databases::close(const Common::String &id) {
 	DBMap::iterator db = _databases.find(id);
 	if (db == _databases.end()) {
-		warning("Databases::open(): A database with the ID \"%s\" does not exist", id.c_str());
+		warning("Databases::close(): A database with the ID \"%s\" does not exist", id.c_str());
 		return false;
 	}
 

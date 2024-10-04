@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,6 @@ namespace Nuvie {
 
 using Std::string;
 using Std::list;
-using Std::map;
 using Std::vector;
 
 class Sound {
@@ -42,12 +40,21 @@ public:
 	virtual bool Stop() = 0;
 	virtual bool FadeOut(float seconds) = 0;
 	virtual bool SetVolume(uint8 volume) = 0; //range 0..255
-	string GetName() {
+	const string &GetName() const {
 		return m_Filename;
 	}
+	string GetTitle() {
+		return m_Title;
+	}
+	string GetId() {
+		return m_FileId;
+	}
 protected:
+	// TODO: determine if filename should be a Common::Path
 	string m_Filename;
-//	static SoundManager *gpSM;
+	string m_Title;
+	string m_FileId;
+	//	static SoundManager *gpSM;
 };
 
 class SoundCollection {

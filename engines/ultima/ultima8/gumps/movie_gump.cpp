@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,20 +15,23 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "common/file.h"
+
 #include "ultima/ultima8/gumps/movie_gump.h"
 
-#include "ultima/ultima8/graphics/avi_player.h"
-#include "ultima/ultima8/graphics/skf_player.h"
-#include "ultima/ultima8/graphics/gump_shape_archive.h"
-#include "ultima/ultima8/graphics/shape.h"
-#include "ultima/ultima8/graphics/shape_frame.h"
-#include "ultima/ultima8/graphics/palette_manager.h"
-#include "ultima/ultima8/graphics/fade_to_modal_process.h"
+#include "ultima/ultima8/gfx/avi_player.h"
+#include "ultima/ultima8/gfx/skf_player.h"
+#include "ultima/ultima8/gfx/gump_shape_archive.h"
+#include "ultima/ultima8/gfx/shape.h"
+#include "ultima/ultima8/gfx/shape_frame.h"
+#include "ultima/ultima8/gfx/palette.h"
+#include "ultima/ultima8/gfx/palette_manager.h"
+#include "ultima/ultima8/gfx/texture.h"
+#include "ultima/ultima8/gfx/fade_to_modal_process.h"
 #include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/games/game_data.h"
 #include "ultima/ultima8/games/game.h"
@@ -40,8 +43,6 @@
 #include "ultima/ultima8/gumps/gump_notify_process.h"
 #include "ultima/ultima8/gumps/cru_status_gump.h"
 #include "ultima/ultima8/gumps/widgets/text_widget.h"
-
-#include "ultima/ultima8/filesys/file_system.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -78,14 +79,14 @@ static Std::string _fixCrusaderMovieName(const Std::string &s) {
 
 static Common::SeekableReadStream *_tryLoadCruMovieFile(const Std::string &filename, const char *extn) {
 	const Std::string path = Std::string::format("flics/%s.%s", filename.c_str(), extn);
-	FileSystem *filesys = FileSystem::get_instance();
-	Common::SeekableReadStream *rs = filesys->ReadFile(path);
-	if (!rs) {
+	auto *rs = new Common::File();
+	if (!rs->open(path.c_str())) {
 		// Try with a "0" in the name
 		const Std::string adjustedfn = Std::string::format("flics/0%s.%s", filename.c_str(), extn);
-		rs = filesys->ReadFile(adjustedfn);
-		if (!rs)
+		if (!rs->open(adjustedfn.c_str())) {
+			delete rs;
 			return nullptr;
+		}
 	}
 	return rs;
 }
@@ -135,8 +136,7 @@ void MovieGump::InitGump(Gump *newparent, bool take_focus) {
 
 	_player->start();
 
-	Mouse::get_instance()->pushMouseCursor();
-	Mouse::get_instance()->setMouseCursor(Mouse::MOUSE_NONE);
+	Mouse::get_instance()->pushMouseCursor(Mouse::MOUSE_NONE);
 
 	CruStatusGump *statusgump = CruStatusGump::get_instance();
 	if (statusgump) {
@@ -179,7 +179,7 @@ void MovieGump::run() {
 				widget->InitGump(this);
 				widget->setRelativePosition(BOTTOM_CENTER, 0, -10);
 				// Subtitles should be white.
-				widget->setBlendColour(0xffffffff);
+				widget->setBlendColour(TEX32_PACK_RGBA(0xFF, 0xFF, 0xFF, 0xFF));
 				_subtitleWidget = widget->getObjId();
 			}
 		}
@@ -205,7 +205,7 @@ void MovieGump::PaintThis(RenderSurface *surf, int32 lerp_factor, bool scaled) {
 			subtitle->getLocation(x, y);
 			subtitle->GetDims(textdims);
 			surf->GetSurfaceDims(screendims);
-			surf->Fill32(surf->getPixelFormat().RGBToColor(0, 0, 0),
+			surf->fill32(TEX32_PACK_RGB(0, 0, 0),
 						 screendims.width() / 2 - 300 - screendims.left,
 						 y - 3,
 						 600,
@@ -380,7 +380,7 @@ uint32 MovieGump::I_playMovieOverlay(const uint8 *args,
 		const Palette *pal = palman->getPalette(PaletteManager::Pal_Game);
 		assert(pal);
 
-		CruMovieViewer(name, x, y, pal->_palette, nullptr, 52);
+		CruMovieViewer(name, x, y, pal->data(), nullptr, 52);
 	}
 
 	return 0;

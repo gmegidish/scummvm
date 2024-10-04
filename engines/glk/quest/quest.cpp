@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -78,7 +77,7 @@ void Quest::playGame() {
 		else
 			glk_put_cstring("\n");
 
-		sprintf(cur_buf, "> ");
+		Common::sprintf_s(cur_buf, "> ");
 		glk_put_string_stream(inputwinstream, cur_buf);
 
 		glk_request_line_event(inputwin, buf, (sizeof buf) - 1, 0);
@@ -122,7 +121,7 @@ bool Quest::initialize() {
 	glk_stylehint_set(wintype_TextBuffer, style_User2, stylehint_ReverseColor, 1);
 
 	// Open the main window
-	mainglkwin = glk_window_open(0, 0, 0, wintype_TextBuffer, 1);
+	mainglkwin = glk_window_open(nullptr, 0, 0, wintype_TextBuffer, 1);
 	if (!mainglkwin)
 		return false;
 	glk_set_window(mainglkwin);
@@ -137,7 +136,7 @@ bool Quest::initialize() {
 			winmethod_Below | winmethod_Fixed,
 			1, wintype_TextBuffer, 0);
 	else
-		inputwin = NULL;
+		inputwin = nullptr;
 
 	if (!inputwin)
 		inputwin = mainglkwin;

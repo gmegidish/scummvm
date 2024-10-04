@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,9 +40,9 @@ Localizer::Localizer() {
 	bool isFrench = g_grim->getGameLanguage() == Common::FR_FRA;
 	bool isItalian = g_grim->getGameLanguage() == Common::IT_ITA;
 	bool isSpanish = g_grim->getGameLanguage() == Common::ES_ESP;
+	bool isKorean = g_grim->getGameLanguage() == Common::KO_KOR;	// Korean Fan Translation
 	bool isTranslatedGrimDemo = (isGerman || isFrench || isItalian || isSpanish) && isGrimDemo;
 	bool isPS2 = g_grim->getGamePlatform() == Common::kPlatformPS2;
-	bool isRemastered = g_grim->getGameFlags() & ADGF_REMASTERED; // TODO: Add handling of this from g_grim.
 
 	if (isGrimDemo && !isTranslatedGrimDemo)
 		return;
@@ -52,10 +51,12 @@ Localizer::Localizer() {
 	if (g_grim->getGameType() == GType_MONKEY4) {
 		filename = "script.tab";
 	} else {
-		if (isRemastered) {
+		if (g_grim->isRemastered()) {
 			filename = Common::String("grim.") + g_grim->getLanguagePrefix() + Common::String(".tab"); // TODO: Detect based on language.
 		} else if (isTranslatedGrimDemo) {
 			filename = "language.tab";
+		} else if (isKorean) {
+			filename = "grim.ko.tab";
 		} else {
 			filename = "grim.tab";
 		}
@@ -75,7 +76,7 @@ Localizer::Localizer() {
 	data[filesize] = '\0';
 	delete f;
 
-	if (isRemastered) {
+	if (g_grim->isRemastered()) {
 		parseRemasteredData(Common::String(data));
 		return;
 	}
@@ -100,7 +101,19 @@ Localizer::Localizer() {
 			}
 		case MKTAG('D', 'O', 'E', 'L'):
 		case MKTAG('a', 'r', 't', 'p'):
+		case MKTAG('s', 's', 'I', 'N'):
+		case MKTAG('I', 'N', 'T', 'T'):
+		case MKTAG('6', '6', '6', 'I'):
 			break;
+		case 0xfffe4600: {
+			Common::String n = Common::U32String::decodeUTF16LE((const uint16 *) (data + 2), (filesize - 2) / 2).encode();
+			delete[] data;
+			data = new char[n.size() + 1];
+			memcpy(data, n.c_str(), n.size() + 1);
+			filesize = n.size();
+			g_grim->_isUtf8 = true;
+			break;
+		}
 		default:
 			error("Invalid magic reading %s: %08x (%s)", filename.c_str(), READ_BE_UINT32(data), tag2str(READ_BE_UINT32(data)));
 		}
@@ -108,19 +121,15 @@ Localizer::Localizer() {
 
 	char *nextline = data;
 	Common::String last_entry;
-	//Read file till end
-	for (char *line = data + 4; line - data <= filesize; line = nextline + 1) {
-		if (line == nullptr || nextline == nullptr) {
-			break;
-		}
-
+	// Read file till end
+	for (char *line = data + 4; nextline != nullptr && (line - data <= filesize); nextline != nullptr && (line = nextline + 1)) {
 		nextline = strchr(line, '\n');
-		//if there is no next line we arrived the last one
+		// If there is no next line we arrived the last one
 		if (nextline == nullptr) {
 			nextline = strchr(line, '\0');
 		}
 
-		//in grim we have to exit on first empty line else skip line
+		// In grim we have to exit on first empty line else skip line
 		if (*line == '\r') {
 			if (g_grim->getGameType() == GType_GRIM) {
 				break;
@@ -130,7 +139,7 @@ Localizer::Localizer() {
 			continue;
 		}
 
-		//EMI has an garbage line which should be ignored
+		// EMI has a garbage line which should be ignored
 		if (g_grim->getGameType() == GType_MONKEY4 && *line == '\x1A')
 			continue;
 
@@ -147,6 +156,11 @@ Localizer::Localizer() {
 			_entries[last_entry] += cont;
 		} else {
 			_entries[last_entry = Common::String(line, tab - line)] = Common::String(tab + 1, (nextline - tab - 2));
+		}
+	}
+	if (g_grim->_transcodeChineseToSimplified && g_grim->_isUtf8) {
+		for (Common::StringMap::iterator it = _entries.begin(); it != _entries.end(); it++) {
+			it->_value = it->_value.decode(Common::CodePage::kUtf8).transcodeChineseT2S().encode(Common::CodePage::kUtf8);
 		}
 	}
 	delete[] data;

@@ -6,6 +6,7 @@
 #define FORBIDDEN_SYMBOL_EXCEPTION_setjmp
 #define FORBIDDEN_SYMBOL_EXCEPTION_longjmp
 #define FORBIDDEN_SYMBOL_EXCEPTION_printf
+#define FORBIDDEN_SYMBOL_EXCEPTION_sprintf
 
 #include "common/util.h"
 
@@ -56,11 +57,10 @@ static void nextvar() {
 
 static void foreachvar() {
 	TObject f = *luaA_Address(luaL_functionarg(1));
-	GCnode *g;
 	StkId name = lua_state->Cstack.base++;  // place to keep var name (to avoid GC)
 	ttype(lua_state->stack.stack + name) = LUA_T_NIL;
 	lua_state->stack.top++;
-	for (g = rootglobal.next; g; g = g->next) {
+	for (GCnode *g = rootglobal.next; g; g = g->next) {
 		TaggedString *s = (TaggedString *)g;
 		if (s->globalval.ttype != LUA_T_NIL) {
 			ttype(lua_state->stack.stack + name) = LUA_T_STRING;
@@ -68,9 +68,9 @@ static void foreachvar() {
 			luaA_pushobject(&f);
 			pushstring(s);
 			luaA_pushobject(&s->globalval);
-			lua_state->state_counter1++;
+			lua_state->preventBreakCounter++;
 			luaD_call((lua_state->stack.top - lua_state->stack.stack) - 2, 1);
-			lua_state->state_counter1--;
+			lua_state->preventBreakCounter--;
 			if (ttype(lua_state->stack.top - 1) != LUA_T_NIL)
 				return;
 			lua_state->stack.top--;
@@ -91,16 +91,15 @@ static void next() {
 static void foreach() {
 	TObject t = *luaA_Address(luaL_tablearg(1));
 	TObject f = *luaA_Address(luaL_functionarg(2));
-	int32 i;
-	for (i = 0; i < avalue(&t)->nhash; i++) {
+	for (int32 i = 0; i < avalue(&t)->nhash; i++) {
 		Node *nd = &(avalue(&t)->node[i]);
 		if (ttype(ref(nd)) != LUA_T_NIL && ttype(val(nd)) != LUA_T_NIL) {
 			luaA_pushobject(&f);
 			luaA_pushobject(ref(nd));
 			luaA_pushobject(val(nd));
-			lua_state->state_counter1++;
+			lua_state->preventBreakCounter++;
 			luaD_call((lua_state->stack.top - lua_state->stack.stack) - 2, 1);
-			lua_state->state_counter1--;
+			lua_state->preventBreakCounter--;
 			if (ttype(lua_state->stack.top - 1) != LUA_T_NIL)
 				return;
 			lua_state->stack.top--;
@@ -119,23 +118,24 @@ static void internaldostring() {
 static const char *to_string(lua_Object obj) {
 	char *buff = luaL_openspace(30);
 	TObject *o = luaA_Address(obj);
+
 	switch (ttype(o)) {
 	case LUA_T_NUMBER:
 	case LUA_T_STRING:
 		return lua_getstring(obj);
 	case LUA_T_ARRAY:
 		{
-			sprintf(buff, "table: %p", (void *)o->value.a);
+			snprintf(buff, 30, "table: %p", (void *)o->value.a);
 			return buff;
 		}
 	case LUA_T_CLOSURE:
 		{
-			sprintf(buff, "function: %p", (void *)o->value.cl);
+			snprintf(buff, 30, "function: %p", (void *)o->value.cl);
 			return buff;
 		}
 	case LUA_T_PROTO:
 		{
-			sprintf(buff, "function: %p", (void *)o->value.tf);
+			snprintf(buff, 30, "function: %p", (void *)o->value.tf);
 			return buff;
 		}
 	case LUA_T_CPROTO:
@@ -149,17 +149,17 @@ static const char *to_string(lua_Object obj) {
 
 			ptrUnion.funcPtr = o->value.f;
 
-			sprintf(buff, "function: %p", ptrUnion.objPtr);
+			snprintf(buff, 30, "function: %p", ptrUnion.objPtr);
 			return buff;
 		}
 	case LUA_T_USERDATA:
 		{
-			sprintf(buff, "userdata: %08X", o->value.ud.id);
+			snprintf(buff, 30, "userdata: %08X", o->value.ud.id);
 			return buff;
 		}
 	case LUA_T_TASK:
 		{
-			sprintf(buff, "task: %d", (int)o->value.n);
+			snprintf(buff, 30, "task: %d", (int)o->value.n);
 			return buff;
 		}
 	case LUA_T_NIL:
@@ -199,9 +199,8 @@ static void tonumber() {
 	} else {
 		const char *s = luaL_check_string(1);
 		char *e;
-		int32 n;
 		luaL_arg_check(0 <= base && base <= 36, 2, "base out of range");
-		n = (int32)strtol(s, &e, base);
+		int32 n = (int32)strtol(s, &e, base);
 		while (Common::isSpace(*e))
 			e++; // skip trailing spaces
 		if (*e)

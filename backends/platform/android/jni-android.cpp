@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
-#if defined(__ANDROID__)
 
 // Allow use of stuff in <time.h> and abort()
 #define FORBIDDEN_SYMBOL_EXCEPTION_time_h
@@ -33,12 +30,18 @@
 // which gets messed up by our override mechanism; this could
 // be avoided by either changing the Android SDK to use the equally
 // legal and valid
-//   __attribute__ ((format(printf, 3, 4)))
+//   __attribute__ ((format(__printf__, 3, 4)))
 // or by refining our printf override to use a varadic macro
 // (which then wouldn't be portable, though).
 // Anyway, for now we just disable the printf override globally
 // for the Android port
 #define FORBIDDEN_SYMBOL_EXCEPTION_printf
+
+#include <android/bitmap.h>
+
+#include "backends/platform/android/android.h"
+#include "backends/platform/android/jni-android.h"
+#include "backends/platform/android/asset-archive.h"
 
 #include "base/main.h"
 #include "base/version.h"
@@ -46,15 +49,14 @@
 #include "common/error.h"
 #include "common/textconsole.h"
 #include "engines/engine.h"
-
-#include "backends/platform/android/android.h"
-#include "backends/platform/android/asset-archive.h"
-#include "backends/platform/android/jni-android.h"
+#include "graphics/surface.h"
 
 __attribute__ ((visibility("default")))
 jint JNICALL JNI_OnLoad(JavaVM *vm, void *) {
 	return JNI::onLoad(vm);
 }
+
+pthread_key_t JNI::_env_tls;
 
 JavaVM *JNI::_vm = 0;
 jobject JNI::_jobj = 0;
@@ -62,17 +64,21 @@ jobject JNI::_jobj_audio_track = 0;
 jobject JNI::_jobj_egl = 0;
 jobject JNI::_jobj_egl_display = 0;
 jobject JNI::_jobj_egl_surface = 0;
+int JNI::_egl_version = 0;
 
 Common::Archive *JNI::_asset_archive = 0;
 OSystem_Android *JNI::_system = 0;
 
 bool JNI::pause = false;
-sem_t JNI::pause_sem = { 0 };
+sem_t JNI::pause_sem;
 
 int JNI::surface_changeid = 0;
 int JNI::egl_surface_width = 0;
 int JNI::egl_surface_height = 0;
+int JNI::egl_bits_per_pixel = 0;
 bool JNI::_ready_for_events = 0;
+bool JNI::virt_keyboard_state = false;
+int32 JNI::gestures_insets[4] = { 0, 0, 0, 0 };
 
 jmethodID JNI::_MID_getDPI = 0;
 jmethodID JNI::_MID_displayMessageOnOSD = 0;
@@ -83,16 +89,22 @@ jmethodID JNI::_MID_setTextInClipboard = 0;
 jmethodID JNI::_MID_isConnectionLimited = 0;
 jmethodID JNI::_MID_setWindowCaption = 0;
 jmethodID JNI::_MID_showVirtualKeyboard = 0;
-jmethodID JNI::_MID_showKeyboardControl = 0;
-jmethodID JNI::_MID_showSAFRevokePermsControl = 0;
+jmethodID JNI::_MID_showOnScreenControls = 0;
+jmethodID JNI::_MID_setTouchMode = 0;
+jmethodID JNI::_MID_getTouchMode = 0;
+jmethodID JNI::_MID_setOrientation = 0;
+jmethodID JNI::_MID_getScummVMBasePath;
+jmethodID JNI::_MID_getScummVMConfigPath;
+jmethodID JNI::_MID_getScummVMLogPath;
+jmethodID JNI::_MID_setCurrentGame = 0;
 jmethodID JNI::_MID_getSysArchives = 0;
 jmethodID JNI::_MID_getAllStorageLocations = 0;
 jmethodID JNI::_MID_initSurface = 0;
 jmethodID JNI::_MID_deinitSurface = 0;
-jmethodID JNI::_MID_createDirectoryWithSAF = 0;
-jmethodID JNI::_MID_createFileWithSAF = 0;
-jmethodID JNI::_MID_closeFileWithSAF = 0;
-jmethodID JNI::_MID_isDirectoryWritableWithSAF = 0;
+jmethodID JNI::_MID_eglVersion = 0;
+jmethodID JNI::_MID_getNewSAFTree = 0;
+jmethodID JNI::_MID_getSAFTrees = 0;
+jmethodID JNI::_MID_findSAFTree = 0;
 
 jmethodID JNI::_MID_EGL10_eglSwapBuffers = 0;
 
@@ -112,14 +124,22 @@ const JNINativeMethod JNI::_natives[] = {
 		(void *)JNI::create },
 	{ "destroy", "()V",
 		(void *)JNI::destroy },
-	{ "setSurface", "(II)V",
+	{ "setSurface", "(III)V",
 		(void *)JNI::setSurface },
 	{ "main", "([Ljava/lang/String;)I",
 		(void *)JNI::main },
 	{ "pushEvent", "(IIIIIII)V",
 		(void *)JNI::pushEvent },
+	{ "updateTouch", "(IIII)V",
+		(void *)JNI::updateTouch },
+	{ "setupTouchMode", "(II)V",
+		(void *)JNI::setupTouchMode },
+	{ "syncVirtkeyboardState", "(Z)V",
+		(void *)JNI::syncVirtkeyboardState },
 	{ "setPause", "(Z)V",
 		(void *)JNI::setPause },
+	{ "systemInsetsUpdated", "([I)V",
+		(void *)JNI::systemInsetsUpdated },
 	{ "getNativeVersionInfo", "()Ljava/lang/String;",
 		(void *)JNI::getNativeVersionInfo }
 };
@@ -131,6 +151,10 @@ JNI::~JNI() {
 }
 
 jint JNI::onLoad(JavaVM *vm) {
+	if (pthread_key_create(&_env_tls, NULL)) {
+		return JNI_ERR;
+	}
+
 	_vm = vm;
 
 	JNIEnv *env;
@@ -138,22 +162,23 @@ jint JNI::onLoad(JavaVM *vm) {
 	if (_vm->GetEnv((void **)&env, JNI_VERSION_1_2))
 		return JNI_ERR;
 
-#ifdef BACKEND_ANDROID3D
-	jclass cls = env->FindClass("org/residualvm/residualvm/ResidualVM");
-#else
+	if (pthread_setspecific(_env_tls, env)) {
+		return JNI_ERR;
+	}
+
 	jclass cls = env->FindClass("org/scummvm/scummvm/ScummVM");
-#endif
 	if (cls == 0)
 		return JNI_ERR;
 
 	if (env->RegisterNatives(cls, _natives, ARRAYSIZE(_natives)) < 0)
 		return JNI_ERR;
 
+	env->DeleteLocalRef(cls);
 	return JNI_VERSION_1_2;
 }
 
-JNIEnv *JNI::getEnv() {
-	JNIEnv *env = 0;
+JNIEnv *JNI::fetchEnv() {
+	JNIEnv *env;
 
 	jint res = _vm->GetEnv((void **)&env, JNI_VERSION_1_2);
 
@@ -161,6 +186,8 @@ JNIEnv *JNI::getEnv() {
 		LOGE("GetEnv() failed: %d", res);
 		abort();
 	}
+
+	pthread_setspecific(_env_tls, env);
 
 	return env;
 }
@@ -174,9 +201,16 @@ void JNI::attachThread() {
 		LOGE("AttachCurrentThread() failed: %d", res);
 		abort();
 	}
+
+	if (pthread_setspecific(_env_tls, env)) {
+		LOGE("pthread_setspecific() failed");
+		abort();
+	}
 }
 
 void JNI::detachThread() {
+	pthread_setspecific(_env_tls, NULL);
+
 	jint res = _vm->DetachCurrentThread();
 
 	if (res != JNI_OK) {
@@ -187,6 +221,19 @@ void JNI::detachThread() {
 
 void JNI::setReadyForEvents(bool ready) {
 	_ready_for_events = ready;
+}
+
+void JNI::wakeupForQuit() {
+	if (!_system)
+		return;
+
+	if (pause) {
+		pause = false;
+
+		// wake up all threads except the main one as we are run from it
+		for (uint i = 0; i < 2; ++i)
+			sem_post(&pause_sem);
+	}
 }
 
 void JNI::throwByName(JNIEnv *env, const char *name, const char *msg) {
@@ -205,13 +252,15 @@ void JNI::throwRuntimeException(JNIEnv *env, const char *msg) {
 
 // calls to the dark side
 
-void JNI::getDPI(float *values) {
-	values[0] = 0.0;
-	values[1] = 0.0;
+void JNI::getDPI(DPIValues &values) {
+	// Use sane defaults in case something goes wrong
+	values[0] = 160.0;
+	values[1] = 160.0;
+	values[2] = 1.0;
 
 	JNIEnv *env = JNI::getEnv();
 
-	jfloatArray array = env->NewFloatArray(2);
+	jfloatArray array = env->NewFloatArray(3);
 
 	env->CallVoidMethod(_jobj, _MID_getDPI, array);
 
@@ -221,16 +270,15 @@ void JNI::getDPI(float *values) {
 		env->ExceptionDescribe();
 		env->ExceptionClear();
 	} else {
-		jfloat *res = env->GetFloatArrayElements(array, 0);
+		env->GetFloatArrayRegion(array, 0, 3, values);
+		if (env->ExceptionCheck()) {
+			LOGE("Failed to get DPIs");
 
-		if (res) {
-			values[0] = res[0];
-			values[1] = res[1];
-
-			env->ReleaseFloatArrayElements(array, res, 0);
+			env->ExceptionDescribe();
+			env->ExceptionClear();
 		}
 	}
-	LOGD("JNI::getDPI() xdpi: %f, ydpi: %f", values[0], values[1]);
+	LOGD("JNI::getDPI() xdpi: %f, ydpi: %f, density: %f", values[0], values[1], values[2]);
 	env->DeleteLocalRef(array);
 }
 
@@ -373,37 +421,159 @@ void JNI::showVirtualKeyboard(bool enable) {
 	}
 }
 
-void JNI::showKeyboardControl(bool enable) {
+void JNI::showOnScreenControls(int enableMask) {
 	JNIEnv *env = JNI::getEnv();
 
-	env->CallVoidMethod(_jobj, _MID_showKeyboardControl, enable);
+	env->CallVoidMethod(_jobj, _MID_showOnScreenControls, enableMask);
 
 	if (env->ExceptionCheck()) {
-		LOGE("Error trying to show virtual keyboard control");
+		LOGE("Error trying to show on screen controls");
 
 		env->ExceptionDescribe();
 		env->ExceptionClear();
 	}
 }
 
-void JNI::showSAFRevokePermsControl(bool enable) {
-#ifndef BACKEND_ANDROID3D
+void JNI::setTouchMode(int touchMode) {
 	JNIEnv *env = JNI::getEnv();
 
-	env->CallVoidMethod(_jobj, _MID_showSAFRevokePermsControl, enable);
+	env->CallVoidMethod(_jobj, _MID_setTouchMode, touchMode);
 
 	if (env->ExceptionCheck()) {
-		LOGE("Error trying to show the revoke SAF permissions button");
+		LOGE("Error trying to set touch controls mode");
 
 		env->ExceptionDescribe();
 		env->ExceptionClear();
 	}
-#endif
+}
+
+int JNI::getTouchMode() {
+	JNIEnv *env = JNI::getEnv();
+
+	int mode = env->CallIntMethod(_jobj, _MID_getTouchMode);
+
+	if (env->ExceptionCheck()) {
+		LOGE("Error trying to get touch controls status");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+	}
+
+	return mode;
+}
+
+void JNI::setOrientation(int orientation) {
+	JNIEnv *env = JNI::getEnv();
+
+	env->CallVoidMethod(_jobj, _MID_setOrientation, orientation);
+
+	if (env->ExceptionCheck()) {
+		LOGE("Error trying to set orientation");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+	}
+}
+
+Common::String JNI::getScummVMBasePath() {
+	JNIEnv *env = JNI::getEnv();
+
+	jstring pathObj = (jstring)env->CallObjectMethod(_jobj, _MID_getScummVMBasePath);
+
+	if (env->ExceptionCheck()) {
+		LOGE("Failed to get ScummVM base folder path");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+
+		return Common::String();
+	}
+
+	Common::String path;
+	const char *pathP = env->GetStringUTFChars(pathObj, 0);
+	if (pathP != 0) {
+		path = Common::String(pathP);
+		env->ReleaseStringUTFChars(pathObj, pathP);
+	}
+	env->DeleteLocalRef(pathObj);
+
+	return path;
+}
+
+Common::String JNI::getScummVMConfigPath() {
+	JNIEnv *env = JNI::getEnv();
+
+	jstring pathObj = (jstring)env->CallObjectMethod(_jobj, _MID_getScummVMConfigPath);
+
+	if (env->ExceptionCheck()) {
+		LOGE("Failed to get ScummVM config file path");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+
+		return Common::String();
+	}
+
+	Common::String path;
+	const char *pathP = env->GetStringUTFChars(pathObj, 0);
+	if (pathP != 0) {
+		path = Common::String(pathP);
+		env->ReleaseStringUTFChars(pathObj, pathP);
+	}
+	env->DeleteLocalRef(pathObj);
+
+	return path;
+}
+
+Common::String JNI::getScummVMLogPath() {
+	JNIEnv *env = JNI::getEnv();
+
+	jstring pathObj = (jstring)env->CallObjectMethod(_jobj, _MID_getScummVMLogPath);
+
+	if (env->ExceptionCheck()) {
+		LOGE("Failed to get ScummVM log file path");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+
+		return Common::String();
+	}
+
+	Common::String path;
+	const char *pathP = env->GetStringUTFChars(pathObj, 0);
+	if (pathP != 0) {
+		path = Common::String(pathP);
+		env->ReleaseStringUTFChars(pathObj, pathP);
+	}
+	env->DeleteLocalRef(pathObj);
+
+	return path;
+}
+
+void JNI::setCurrentGame(const Common::String &target) {
+	JNIEnv *env = JNI::getEnv();
+	jstring java_target = nullptr;
+	if (!target.empty()) {
+		java_target = convertToJString(env, Common::U32String(target));
+	}
+
+	env->CallVoidMethod(_jobj, _MID_setCurrentGame, java_target);
+
+	if (env->ExceptionCheck()) {
+		LOGE("Failed to set current game");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+	}
+
+	if (java_target) {
+		env->DeleteLocalRef(java_target);
+	}
 }
 
 // The following adds assets folder to search set.
 // However searching and retrieving from "assets" on Android this is slow
-// so we also make sure to add the "path" directory, with a higher priority
+// so we also make sure to add the base directory, with a higher priority
 // This is done via a call to ScummVMActivity's (java) getSysArchives
 void JNI::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
 	JNIEnv *env = JNI::getEnv();
@@ -434,6 +604,7 @@ void JNI::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
 
 		env->DeleteLocalRef(path_obj);
 	}
+	env->DeleteLocalRef(array);
 
 	// add the internal asset (android's structure) with a lower priority,
 	// since:
@@ -460,12 +631,16 @@ bool JNI::initSurface() {
 	}
 
 	_jobj_egl_surface = env->NewGlobalRef(obj);
+	env->DeleteLocalRef(obj);
 
 	return true;
 }
 
 void JNI::deinitSurface() {
 	JNIEnv *env = JNI::getEnv();
+
+	env->DeleteGlobalRef(_jobj_egl_surface);
+	_jobj_egl_surface = 0;
 
 	env->CallVoidMethod(_jobj, _MID_deinitSurface);
 
@@ -475,9 +650,23 @@ void JNI::deinitSurface() {
 		env->ExceptionDescribe();
 		env->ExceptionClear();
 	}
+}
 
-	env->DeleteGlobalRef(_jobj_egl_surface);
-	_jobj_egl_surface = 0;
+int JNI::fetchEGLVersion() {
+	JNIEnv *env = JNI::getEnv();
+
+	_egl_version = env->CallIntMethod(_jobj, _MID_eglVersion);
+
+	if (env->ExceptionCheck()) {
+		LOGE("eglVersion failed");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+
+		_egl_version = 0;
+	}
+
+	return _egl_version;
 }
 
 void JNI::setAudioPause() {
@@ -533,19 +722,11 @@ void JNI::setAudioStop() {
 void JNI::create(JNIEnv *env, jobject self, jobject asset_manager,
 				jobject egl, jobject egl_display,
 				jobject at, jint audio_sample_rate, jint audio_buffer_size) {
-	LOGI("%s", gScummVMFullVersion);
+	LOGI("Native version: %s", gScummVMFullVersion);
 
 	assert(!_system);
 
-	pause = false;
-	// initial value of zero!
-	sem_init(&pause_sem, 0, 0);
-
-	_asset_archive = new AndroidAssetArchive(asset_manager);
-	assert(_asset_archive);
-
-	_system = new OSystem_Android(audio_sample_rate, audio_buffer_size);
-	assert(_system);
+	// Resolve every JNI method before anything else in case we need it
 
 	// weak global ref to allow class to be unloaded
 	// ... except dalvik implements NewWeakGlobalRef only on froyo
@@ -555,11 +736,13 @@ void JNI::create(JNIEnv *env, jobject self, jobject asset_manager,
 
 	jclass cls = env->GetObjectClass(_jobj);
 
-#define FIND_METHOD(prefix, name, signature) do {							\
-		_MID_ ## prefix ## name = env->GetMethodID(cls, #name, signature);	\
-		if (_MID_ ## prefix ## name == 0)									\
-			return;															\
-	} while (0)
+#define FIND_METHOD(prefix, name, signature) do {                           \
+    _MID_ ## prefix ## name = env->GetMethodID(cls, #name, signature);      \
+        if (_MID_ ## prefix ## name == 0) {                                 \
+            LOGE("Can't find function %s", #name);                          \
+            abort();                                                        \
+        }                                                                   \
+    } while (0)
 
 	FIND_METHOD(, setWindowCaption, "(Ljava/lang/String;)V");
 	FIND_METHOD(, getDPI, "([F)V");
@@ -570,21 +753,29 @@ void JNI::create(JNIEnv *env, jobject self, jobject asset_manager,
 	FIND_METHOD(, setTextInClipboard, "(Ljava/lang/String;)Z");
 	FIND_METHOD(, isConnectionLimited, "()Z");
 	FIND_METHOD(, showVirtualKeyboard, "(Z)V");
-	FIND_METHOD(, showKeyboardControl, "(Z)V");
+	FIND_METHOD(, showOnScreenControls, "(I)V");
+	FIND_METHOD(, setTouchMode, "(I)V");
+	FIND_METHOD(, getTouchMode, "()I");
+	FIND_METHOD(, setOrientation, "(I)V");
+	FIND_METHOD(, getScummVMBasePath, "()Ljava/lang/String;");
+	FIND_METHOD(, getScummVMConfigPath, "()Ljava/lang/String;");
+	FIND_METHOD(, getScummVMLogPath, "()Ljava/lang/String;");
+	FIND_METHOD(, setCurrentGame, "(Ljava/lang/String;)V");
 	FIND_METHOD(, getSysArchives, "()[Ljava/lang/String;");
 	FIND_METHOD(, getAllStorageLocations, "()[Ljava/lang/String;");
 	FIND_METHOD(, initSurface, "()Ljavax/microedition/khronos/egl/EGLSurface;");
 	FIND_METHOD(, deinitSurface, "()V");
-#ifndef BACKEND_ANDROID3D
-	FIND_METHOD(, showSAFRevokePermsControl, "(Z)V");
-	FIND_METHOD(, createDirectoryWithSAF, "(Ljava/lang/String;)Z");
-	FIND_METHOD(, createFileWithSAF, "(Ljava/lang/String;)Ljava/lang/String;");
-	FIND_METHOD(, closeFileWithSAF, "(Ljava/lang/String;)V");
-	FIND_METHOD(, isDirectoryWritableWithSAF, "(Ljava/lang/String;)Z");
-#endif
+	FIND_METHOD(, eglVersion, "()I");
+	FIND_METHOD(, getNewSAFTree,
+	            "(ZZLjava/lang/String;Ljava/lang/String;)Lorg/scummvm/scummvm/SAFFSTree;");
+	FIND_METHOD(, getSAFTrees, "()[Lorg/scummvm/scummvm/SAFFSTree;");
+	FIND_METHOD(, findSAFTree, "(Ljava/lang/String;)Lorg/scummvm/scummvm/SAFFSTree;");
 
 	_jobj_egl = env->NewGlobalRef(egl);
 	_jobj_egl_display = env->NewGlobalRef(egl_display);
+	_egl_version = 0;
+
+	env->DeleteLocalRef(cls);
 
 	cls = env->GetObjectClass(_jobj_egl);
 
@@ -594,6 +785,8 @@ void JNI::create(JNIEnv *env, jobject self, jobject asset_manager,
 
 	_jobj_audio_track = env->NewGlobalRef(at);
 
+	env->DeleteLocalRef(cls);
+
 	cls = env->GetObjectClass(_jobj_audio_track);
 
 	FIND_METHOD(AudioTrack_, flush, "()V");
@@ -602,7 +795,18 @@ void JNI::create(JNIEnv *env, jobject self, jobject asset_manager,
 	FIND_METHOD(AudioTrack_, stop, "()V");
 	FIND_METHOD(AudioTrack_, write, "([BII)I");
 
+	env->DeleteLocalRef(cls);
 #undef FIND_METHOD
+
+	pause = false;
+	// initial value of zero!
+	sem_init(&pause_sem, 0, 0);
+
+	_asset_archive = new AndroidAssetArchive(asset_manager);
+	assert(_asset_archive);
+
+	_system = new OSystem_Android(audio_sample_rate, audio_buffer_size);
+	assert(_system);
 
 	g_system = _system;
 }
@@ -630,9 +834,10 @@ void JNI::destroy(JNIEnv *env, jobject self) {
 	JNI::getEnv()->DeleteGlobalRef(_jobj);
 }
 
-void JNI::setSurface(JNIEnv *env, jobject self, jint width, jint height) {
+void JNI::setSurface(JNIEnv *env, jobject self, jint width, jint height, jint bpp) {
 	egl_surface_width = width;
 	egl_surface_height = height;
+	egl_bits_per_pixel = bpp;
 	surface_changeid++;
 }
 
@@ -713,6 +918,32 @@ void JNI::pushEvent(JNIEnv *env, jobject self, int type, int arg1, int arg2,
 	_system->pushEvent(type, arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
+void JNI::updateTouch(JNIEnv *env, jobject self, int action, int ptr, int x, int y) {
+	// drop events until we're ready and after we quit
+	if (!_ready_for_events) {
+		LOGW("dropping event");
+		return;
+	}
+
+	assert(_system);
+
+	_system->getTouchControls().update((TouchControls::Action) action, ptr, x, y);
+}
+
+void JNI::setupTouchMode(JNIEnv *env, jobject self, jint oldValue, jint newValue) {
+	if (!_system)
+		return;
+
+	_system->setupTouchMode(oldValue, newValue);
+}
+
+void JNI::syncVirtkeyboardState(JNIEnv *env, jobject self, jboolean newState) {
+	if (!_system)
+		return;
+
+	JNI::virt_keyboard_state = newState;
+}
+
 void JNI::setPause(JNIEnv *env, jobject self, jboolean value) {
 	if (!_system)
 		return;
@@ -722,29 +953,51 @@ void JNI::setPause(JNIEnv *env, jobject self, jboolean value) {
 
 		if (value)
 			JNI::_pauseToken = g_engine->pauseEngine();
-		else
+		else if (JNI::_pauseToken.isActive())
 			JNI::_pauseToken.clear();
-
-#ifdef BACKEND_ANDROID3D
-		if (value &&
-				g_engine->hasFeature(Engine::kSupportsSavingDuringRuntime) &&
-				g_engine->canSaveGameStateCurrently())
-			g_engine->saveGameState(0, "Android parachute");
-#endif
 	}
 
-	pause = value;
+	if (pause != value) {
+		pause = value;
 
-	if (!pause) {
-		// wake up all threads
-		for (uint i = 0; i < 3; ++i)
-			sem_post(&pause_sem);
+		if (!pause) {
+			// wake up all threads
+			for (uint i = 0; i < 3; ++i)
+				sem_post(&pause_sem);
+		}
 	}
 }
 
+void JNI::systemInsetsUpdated(JNIEnv *env, jobject self, jintArray insets) {
+	assert(env->GetArrayLength(insets) == ARRAYSIZE(gestures_insets));
+
+	env->GetIntArrayRegion(insets, 0, ARRAYSIZE(gestures_insets), gestures_insets);
+}
 
 jstring JNI::getNativeVersionInfo(JNIEnv *env, jobject self) {
 	return convertToJString(env, Common::U32String(gScummVMVersion));
+}
+
+jint JNI::getAndroidSDKVersionId() {
+	// based on: https://stackoverflow.com/a/10511880
+	JNIEnv *env = JNI::getEnv();
+	// VERSION is a nested class within android.os.Build (hence "$" rather than "/")
+	jclass versionClass = env->FindClass("android/os/Build$VERSION");
+	if (!versionClass) {
+		return 0;
+	}
+
+	jfieldID sdkIntFieldID = NULL;
+	sdkIntFieldID = env->GetStaticFieldID(versionClass, "SDK_INT", "I");
+	if (!sdkIntFieldID) {
+		return 0;
+	}
+
+	jint sdkInt = env->GetStaticIntField(versionClass, sdkIntFieldID);
+	//LOGD("sdkInt = %d", sdkInt);
+
+	env->DeleteLocalRef(versionClass);
+	return sdkInt;
 }
 
 jstring JNI::convertToJString(JNIEnv *env, const Common::U32String &str) {
@@ -768,7 +1021,7 @@ Common::U32String JNI::convertFromJString(JNIEnv *env, const jstring &jstr) {
 
 // TODO should this be a U32String array?
 Common::Array<Common::String> JNI::getAllStorageLocations() {
-	Common::Array<Common::String> *res = new Common::Array<Common::String>();
+	Common::Array<Common::String> res;
 
 	JNIEnv *env = JNI::getEnv();
 
@@ -781,7 +1034,7 @@ Common::Array<Common::String> JNI::getAllStorageLocations() {
 		env->ExceptionDescribe();
 		env->ExceptionClear();
 
-		return *res;
+		return res;
 	}
 
 	jsize size = env->GetArrayLength(array);
@@ -790,99 +1043,85 @@ Common::Array<Common::String> JNI::getAllStorageLocations() {
 		const char *path = env->GetStringUTFChars(path_obj, 0);
 
 		if (path != 0) {
-			res->push_back(path);
+			res.push_back(path);
 			env->ReleaseStringUTFChars(path_obj, path);
 		}
 
 		env->DeleteLocalRef(path_obj);
 	}
 
-	return *res;
+	env->DeleteLocalRef(array);
+	return res;
 }
 
-bool JNI::createDirectoryWithSAF(const Common::String &dirPath) {
-#ifndef BACKEND_ANDROID3D
+jobject JNI::getNewSAFTree(bool folder, bool writable, const Common::String &initURI,
+                           const Common::String &prompt) {
 	JNIEnv *env = JNI::getEnv();
-	jstring javaDirPath = env->NewStringUTF(dirPath.c_str());
+	jstring javaInitURI = env->NewStringUTF(initURI.c_str());
+	jstring javaPrompt = env->NewStringUTF(prompt.c_str());
 
-	bool created = env->CallBooleanMethod(_jobj, _MID_createDirectoryWithSAF, javaDirPath);
+	jobject tree = env->CallObjectMethod(_jobj, _MID_getNewSAFTree,
+	                                     folder, writable, javaInitURI, javaPrompt);
 
 	if (env->ExceptionCheck()) {
-		LOGE("JNI - Failed to create directory with SAF enhanced method");
+		LOGE("getNewSAFTree: error");
 
 		env->ExceptionDescribe();
 		env->ExceptionClear();
-		created = false;
+
+		return nullptr;
 	}
 
-	return created;
-#else
-	return false;
-#endif
+	env->DeleteLocalRef(javaInitURI);
+	env->DeleteLocalRef(javaPrompt);
+
+	return tree;
 }
 
-Common::U32String JNI::createFileWithSAF(const Common::String &filePath) {
-#ifndef BACKEND_ANDROID3D
+Common::Array<jobject> JNI::getSAFTrees() {
+	Common::Array<jobject> res;
+
 	JNIEnv *env = JNI::getEnv();
-	jstring javaFilePath = env->NewStringUTF(filePath.c_str());
 
-	jstring hackyFilenameJSTR = (jstring)env->CallObjectMethod(_jobj, _MID_createFileWithSAF, javaFilePath);
-
+	jobjectArray array =
+	    (jobjectArray)env->CallObjectMethod(_jobj, _MID_getSAFTrees);
 
 	if (env->ExceptionCheck()) {
-		LOGE("JNI - Failed to create file with SAF enhanced method");
+		LOGE("getSAFTrees: error");
 
 		env->ExceptionDescribe();
 		env->ExceptionClear();
-		hackyFilenameJSTR = env->NewStringUTF("");
+
+		return res;
 	}
 
-	Common::U32String hackyFilenameStr = convertFromJString(env, hackyFilenameJSTR);
+	jsize size = env->GetArrayLength(array);
+	for (jsize i = 0; i < size; ++i) {
+		jobject tree = env->GetObjectArrayElement(array, i);
+		res.push_back(tree);
+	}
+	env->DeleteLocalRef(array);
 
-	env->DeleteLocalRef(hackyFilenameJSTR);
-
-	return hackyFilenameStr;
-#else
-	return Common::U32String();
-#endif
+	return res;
 }
 
-void JNI::closeFileWithSAF(const Common::String &hackyFilename) {
-#ifndef BACKEND_ANDROID3D
+jobject JNI::findSAFTree(const Common::String &name) {
 	JNIEnv *env = JNI::getEnv();
-	jstring javaHackyFilename = env->NewStringUTF(hackyFilename.c_str());
 
-	env->CallVoidMethod(_jobj, _MID_closeFileWithSAF, javaHackyFilename);
+	jstring nameObj = env->NewStringUTF(name.c_str());
+
+	jobject tree = env->CallObjectMethod(_jobj, _MID_findSAFTree, nameObj);
+
+	env->DeleteLocalRef(nameObj);
 
 	if (env->ExceptionCheck()) {
-		LOGE("JNI - Failed to close file with SAF enhanced method");
+		LOGE("findSAFTree: error");
 
 		env->ExceptionDescribe();
 		env->ExceptionClear();
-	}
-#endif
-}
 
-bool JNI::isDirectoryWritableWithSAF(const Common::String &dirPath) {
-#ifndef BACKEND_ANDROID3D
-	JNIEnv *env = JNI::getEnv();
-	jstring javaDirPath = env->NewStringUTF(dirPath.c_str());
-
-	bool isWritable = env->CallBooleanMethod(_jobj, _MID_isDirectoryWritableWithSAF, javaDirPath);
-
-	if (env->ExceptionCheck()) {
-		LOGE("JNI - Failed to check if directory is writable SAF enhanced method");
-
-		env->ExceptionDescribe();
-		env->ExceptionClear();
-		isWritable = false;
+		return nullptr;
 	}
 
-	return isWritable;
-#else
-	return false;
-#endif
+	return tree;
 }
-
-#endif
-

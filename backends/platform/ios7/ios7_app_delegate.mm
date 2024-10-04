@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,15 +43,13 @@
 - (void)applicationDidFinishLaunching:(UIApplication *)application {
 	CGRect rect = [[UIScreen mainScreen] bounds];
 
-#ifdef IPHONE_SANDBOXED
 	// Create the directory for savegames
 	NSFileManager *fm = [NSFileManager defaultManager];
-	NSString *documentPath = [NSString stringWithUTF8String:iOS7_getDocumentsDir()];
+	NSString *documentPath = [NSString stringWithUTF8String:iOS7_getDocumentsDir().c_str()];
 	NSString *savePath = [documentPath stringByAppendingPathComponent:@"Savegames"];
 	if (![fm fileExistsAtPath:savePath]) {
 		[fm createDirectoryAtPath:savePath withIntermediateDirectories:YES attributes:nil error:nil];
 	}
-#endif
 
 	_window = [[UIWindow alloc] initWithFrame:rect];
 	[_window retain];
@@ -60,17 +57,15 @@
 	_controller = [[iOS7ScummVMViewController alloc] init];
 
 	_view = [[iPhoneView alloc] initWithFrame:rect];
-	_view.multipleTouchEnabled = YES;
+#if TARGET_OS_IOS
+	// This property does not affect the gesture recognizers attached to the view.
+	// Gesture recognizers receive all touches that occur in the view.
+	_view.multipleTouchEnabled = NO;
+#endif
 	_controller.view = _view;
 
 	[_window setRootViewController:_controller];
 	[_window makeKeyAndVisible];
-
-	[[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
-	[[NSNotificationCenter defaultCenter] addObserver:self
-	                                         selector:@selector(didRotate:)
-	                                             name:@"UIDeviceOrientationDidChangeNotification"
-	                                           object:nil];
 
 	// Force creation of the shared instance on the main thread
 	iOS7_buildSharedOSystemInstance();
@@ -92,10 +87,11 @@
 - (void)applicationDidBecomeActive:(UIApplication *)application {
 	[_view applicationResume];
 
+#if TARGET_OS_IOS
 	// Make sure we have the correct orientation in case the orientation was changed while
 	// the app was inactive.
-	UIDeviceOrientation screenOrientation = [[UIDevice currentDevice] orientation];
-	[_view deviceOrientationChanged:screenOrientation];
+	[_controller updateCurrentOrientation];
+#endif
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application {
@@ -115,13 +111,18 @@
 	return YES;
 }
 
-- (void)application:(UIApplication *)application didDecodeRestorableStateWithCoder:(NSCoder *)coder {
-	_restoreState = YES;
+#ifdef __IPHONE_13_2
+- (BOOL)application:(UIApplication *)application shouldSaveSecureApplicationState:(NSCoder *)coder {
+	return YES;
 }
 
-- (void)didRotate:(NSNotification *)notification {
-	UIDeviceOrientation screenOrientation = [[UIDevice currentDevice] orientation];
-	[_view deviceOrientationChanged:screenOrientation];
+- (BOOL)application:(UIApplication *)application shouldRestoreSecureApplicationState:(NSCoder *)coder {
+	return YES;
+}
+#endif
+
+- (void)application:(UIApplication *)application didDecodeRestorableStateWithCoder:(NSCoder *)coder {
+	_restoreState = YES;
 }
 
 + (iOS7AppDelegate *)iOS7AppDelegate {
@@ -143,10 +144,11 @@
 	return appDelegate->_view;
 }
 
-@end
-
-const char *iOS7_getDocumentsDir() {
-	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-	NSString *documentsDirectory = [paths objectAtIndex:0];
-	return [documentsDirectory UTF8String];
+#if TARGET_OS_IOS
++ (UIInterfaceOrientation)currentOrientation {
+	iOS7AppDelegate *appDelegate = [self iOS7AppDelegate];
+	return [appDelegate->_controller currentOrientation];
 }
+#endif
+
+@end

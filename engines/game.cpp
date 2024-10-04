@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/game.h"
 #include "common/gui_options.h"
+#include "common/punycode.h"
 #include "common/translation.h"
 
 
@@ -165,6 +165,38 @@ Common::U32String DetectionResults::generateUnknownGameReport(bool translate, ui
 	return ::generateUnknownGameReport(_detectedGames, translate, false, wordwrapAt);
 }
 
+Common::String md5PropToCachePrefix(MD5Properties flags) {
+	Common::String res;
+
+	if (flags & kMD5Tail) {
+		res += 't';
+	} else {
+		res += 'f';
+	}
+
+	switch (flags & kMD5MacMask) {
+	case kMD5MacDataFork: 
+		res += 'd';
+		break;
+
+	case kMD5MacResOrDataFork:
+		res += 'm';
+		break;
+
+	case kMD5MacResFork:
+		res += 'r';
+		break;
+
+	default:
+		break;
+	}
+
+	if (flags & kMD5Archive)
+		res += 'A';
+
+	return res;
+}
+
 Common::U32String generateUnknownGameReport(const DetectedGames &detectedGames, bool translate, bool fullPath, uint32 wordwrapAt) {
 	assert(!detectedGames.empty());
 
@@ -176,12 +208,12 @@ Common::U32String generateUnknownGameReport(const DetectedGames &detectedGames, 
 
 	Common::U32String report = Common::U32String::format(
 			translate ? _(reportStart) : Common::U32String(reportStart),
-			fullPath ? detectedGames[0].path.c_str() : detectedGames[0].shortPath.c_str(),
+			fullPath ? detectedGames[0].path.toString(Common::Path::kNativeSeparator).c_str() : detectedGames[0].shortPath.c_str(),
 			"https://bugs.scummvm.org/"
 	);
 	report += Common::U32String("\n");
 
-	FilePropertiesMap matchedFiles;
+	CachedPropertiesMap matchedFiles;
 
 	Common::String currentEngineId;
 	for (uint i = 0; i < detectedGames.size(); i++) {
@@ -211,7 +243,8 @@ Common::U32String generateUnknownGameReport(const DetectedGames &detectedGames, 
 
 		// Consolidate matched files across all engines and detection entries
 		for (FilePropertiesMap::const_iterator it = game.matchedFiles.begin(); it != game.matchedFiles.end(); it++) {
-			matchedFiles.setVal(it->_key, it->_value);
+			Common::String key = Common::String::format("%s:%s", md5PropToCachePrefix(it->_value.md5prop).c_str(), it->_key.punycodeEncode().toString('/').c_str());
+			matchedFiles.setVal(key, it->_value);
 		}
 	}
 
@@ -221,8 +254,30 @@ Common::U32String generateUnknownGameReport(const DetectedGames &detectedGames, 
 
 	report += Common::U32String("\n\n");
 
-	for (FilePropertiesMap::const_iterator file = matchedFiles.begin(); file != matchedFiles.end(); ++file)
-		report += Common::String::format("  {\"%s\", 0, \"%s\", %lld},\n", file->_key.c_str(), file->_value.md5.c_str(), (long long)file->_value.size);
+	Common::StringArray filenames;
+	for (CachedPropertiesMap::const_iterator file = matchedFiles.begin(); file != matchedFiles.end(); ++file) {
+		filenames.push_back(file->_key);
+	}
+	Common::sort(filenames.begin(), filenames.end());
+	for (uint i = 0; i < filenames.size(); ++i) {
+		const FileProperties &file = matchedFiles[filenames[i]];
+		Common::String md5Prefix;
+
+		if (file.md5prop & kMD5MacResFork)
+			md5Prefix += "r";
+		if (file.md5prop & kMD5MacDataFork)
+			md5Prefix += "d";
+		if (file.md5prop & kMD5Tail)
+			md5Prefix += "t";
+		if (!md5Prefix.empty())
+			md5Prefix += ":";
+
+		// Skip the md5 prefix and since we could have full paths, take it into account
+		Common::Path filepath(strchr(filenames[i].c_str(), ':') + 1);
+		report += Common::String::format("  {\"%s\", 0, \"%s%s\", %lld},\n",
+			filepath.punycodeEncode().toString().c_str(),
+			md5Prefix.c_str(), file.md5.c_str(), (long long)file.size);
+	}
 
 	report += Common::U32String("\n");
 

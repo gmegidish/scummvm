@@ -4,19 +4,18 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software{} you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation{} either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY{} without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program{} if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -63,8 +62,18 @@ WindowStyleStatic G_STYLES[style_NUMSTYLES] = {
 Conf *g_conf;
 
 Conf::Conf(InterpreterType interpType) : _interpType(interpType), _graphics(true),
-		_width(640), _height(400), _screenFormat(2, 5, 6, 5, 0, 11, 5, 0, 0),
-		_rows(25), _cols(60), _lockRows(0), _lockCols(0), _wPaddingX(0), _wPaddingY(0),
+#ifndef USE_HIGHRES
+		_width(320), _height(200),
+#else
+		_width(640), _height(400),
+#endif
+		_screenFormat(2, 5, 6, 5, 0, 11, 5, 0, 0),
+#ifndef USE_HIGHRES
+		_rows(12), _cols(30),
+#else
+		_rows(25), _cols(60),
+#endif
+		_lockRows(0), _lockCols(0), _wPaddingX(0), _wPaddingY(0),
 		_wBorderX(0), _wBorderY(0), _tMarginX(7), _tMarginY(7), _gamma(1.0),
 		_borderColor(0), _borderSave(0),
 		_windowColor(parseColor(WHITE)), _windowSave(parseColor(WHITE)),
@@ -217,21 +226,21 @@ void Conf::synchronize() {
 
 	const char *const TG_COLOR[2] = { "tcolor_%d", "gcolor_%d" };
 	for (int tg = 0; tg < 2; ++tg) {
+		WindowStyle *pStyles = (tg == 0) ? _tStyles : _gStyles;
 		for (int style = 0; style <= 10; ++style) {
 			Common::String key = Common::String::format(TG_COLOR[tg], style);
-
 			if (_isLoading) {
 				if (exists(key)) {
 					Common::String line = ConfMan.get(key);
 					if (line.find(',') == 6) {
-						_tStyles[style].fg = parseColor(Common::String(line.c_str(), 6));
-						_tStyles[style].bg = parseColor(Common::String(line.c_str() + 7));
+						pStyles[style].fg = parseColor(Common::String(line.c_str(), 6));
+						pStyles[style].bg = parseColor(Common::String(line.c_str() + 7));
 					}
 				}
 			} else {
 				Common::String line = Common::String::format("%s,%s",
-					encodeColor(_tStyles[style].fg).c_str(),
-					encodeColor(_tStyles[style].bg).c_str()
+					encodeColor(pStyles[style].fg).c_str(),
+					encodeColor(pStyles[style].bg).c_str()
 				);
 				ConfMan.set(key, line);
 			}
@@ -240,19 +249,16 @@ void Conf::synchronize() {
 
 	const char *const TG_FONT[2] = { "tfont_%d", "gfont_%d" };
 	for (int tg = 0; tg < 2; ++tg) {
+		WindowStyle *pStyles = (tg == 0) ? _tStyles : _gStyles;
 		for (int style = 0; style <= 10; ++style) {
 			Common::String key = Common::String::format(TG_FONT[tg], style);
-
 			if (_isLoading) {
 				if (exists(key)) {
 					FACES font = Screen::getFontId(ConfMan.get(key));
-					if (tg == 0)
-						_tStyles[style].font = font;
-					else
-						_gStyles[style].font = font;
+					pStyles[style].font = font;
 				}
 			} else {
-				FACES font = (tg == 0) ? _tStyles[style].font : _gStyles[style].font;
+				FACES font = pStyles[style].font;
 				ConfMan.set(key, Screen::getFontName(font));
 			}
 		}

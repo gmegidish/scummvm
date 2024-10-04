@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -449,20 +448,16 @@ void ScValue::setString(const Common::String &val) {
 
 //////////////////////////////////////////////////////////////////////////
 void ScValue::setStringVal(const char *val) {
-	if (_valString) {
-		delete[] _valString;
-		_valString = nullptr;
-	}
+	delete[] _valString;
+	_valString = nullptr;
 
 	if (val == nullptr) {
-		_valString = nullptr;
 		return;
 	}
 
-	_valString = new char [strlen(val) + 1];
-	if (_valString) {
-		strcpy(_valString, val);
-	}
+	size_t valSize = strlen(val) + 1;
+	_valString = new char[valSize];
+	Common::strcpy_s(_valString, valSize, val);
 }
 
 
@@ -661,14 +656,14 @@ const char *ScValue::getString() {
 
 	case VAL_INT: {
 		char dummy[50];
-		sprintf(dummy, "%d", _valInt);
+		Common::sprintf_s(dummy, "%d", _valInt);
 		setStringVal(dummy);
 		break;
 	}
 
 	case VAL_FLOAT: {
 		char dummy[50];
-		sprintf(dummy, "%f", _valFloat);
+		Common::sprintf_s(dummy, "%f", _valFloat);
 		setStringVal(dummy);
 		break;
 	}

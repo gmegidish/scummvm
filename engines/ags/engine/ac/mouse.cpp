@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,8 +52,6 @@ namespace AGS3 {
 
 using namespace AGS::Shared;
 using namespace AGS::Engine;
-
-extern void ags_domouse(int str);
 
 // The mouse functions are static so the script doesn't pass
 // in an object parameter
@@ -102,7 +99,7 @@ void SetMouseBounds(int x1, int y1, int x2, int y2) {
 // set_mouse_cursor: changes visual appearance to specified cursor
 void set_mouse_cursor(int newcurs) {
 	const int hotspotx = _GP(game).mcurs[newcurs].hotx, hotspoty = _GP(game).mcurs[newcurs].hoty;
-	msethotspot(hotspotx, hotspoty);
+	_GP(mouse).SetHotspot(hotspotx, hotspoty);
 
 	// if it's same cursor and there's animation in progress, then don't assign a new pic just yet
 	if (newcurs == _G(cur_cursor) && _GP(game).mcurs[newcurs].view >= 0 &&
@@ -187,13 +184,15 @@ void ChangeCursorHotspot(int curs, int x, int y) {
 		set_mouse_cursor(_G(cur_cursor));
 }
 
-void Mouse_ChangeModeView(int curs, int newview) {
+void Mouse_ChangeModeViewEx(int curs, int newview, int delay) {
 	if ((curs < 0) || (curs >= _GP(game).numcursors))
 		quit("!Mouse.ChangeModeView: invalid mouse cursor");
 
 	newview--;
 
 	_GP(game).mcurs[curs].view = newview;
+	if (delay != SCR_NO_VALUE)
+		_GP(game).mcurs[curs].animdelay = delay;
 
 	if (newview >= 0) {
 		precache_view(newview);
@@ -201,6 +200,10 @@ void Mouse_ChangeModeView(int curs, int newview) {
 
 	if (curs == _G(cur_cursor))
 		_G(mouse_delay) = 0;  // force update
+}
+
+void Mouse_ChangeModeView(int curs, int newview) {
+	Mouse_ChangeModeViewEx(curs, newview, SCR_NO_VALUE);
 }
 
 void SetNextCursor() {
@@ -234,6 +237,10 @@ void set_cursor_mode(int newmode) {
 }
 
 void enable_cursor_mode(int modd) {
+	if (modd < 0 || modd >= (int)_GP(game).mcurs.size()) {
+		warning("Attempt to enable invalid cursor (%d), ignoring", modd);
+		return;
+	}
 	_GP(game).mcurs[modd].flags &= ~MCF_DISABLED;
 	// now search the interfaces for related buttons to re-enable
 	int uu, ww;
@@ -242,8 +249,8 @@ void enable_cursor_mode(int modd) {
 		for (ww = 0; ww < _GP(guis)[uu].GetControlCount(); ww++) {
 			if (_GP(guis)[uu].GetControlType(ww) != kGUIButton) continue;
 			GUIButton *gbpt = (GUIButton *)_GP(guis)[uu].GetControl(ww);
-			if (gbpt->ClickAction[kMouseLeft] != kGUIAction_SetMode) continue;
-			if (gbpt->ClickData[kMouseLeft] != modd) continue;
+			if (gbpt->ClickAction[kGUIClickLeft] != kGUIAction_SetMode) continue;
+			if (gbpt->ClickData[kGUIClickLeft] != modd) continue;
 			gbpt->SetEnabled(true);
 		}
 	}
@@ -258,8 +265,8 @@ void disable_cursor_mode(int modd) {
 		for (ww = 0; ww < _GP(guis)[uu].GetControlCount(); ww++) {
 			if (_GP(guis)[uu].GetControlType(ww) != kGUIButton) continue;
 			GUIButton *gbpt = (GUIButton *)_GP(guis)[uu].GetControl(ww);
-			if (gbpt->ClickAction[kMouseLeft] != kGUIAction_SetMode) continue;
-			if (gbpt->ClickData[kMouseLeft] != modd) continue;
+			if (gbpt->ClickAction[kGUIClickLeft] != kGUIAction_SetMode) continue;
+			if (gbpt->ClickData[kGUIClickLeft] != modd) continue;
 			gbpt->SetEnabled(false);
 		}
 	}
@@ -267,7 +274,7 @@ void disable_cursor_mode(int modd) {
 }
 
 void RefreshMouse() {
-	ags_domouse(DOMOUSE_NOCURSOR);
+	ags_domouse();
 	_GP(scmouse).x = game_to_data_coord(_G(mousex));
 	_GP(scmouse).y = game_to_data_coord(_G(mousey));
 }
@@ -294,11 +301,9 @@ int GetCursorMode() {
 }
 
 int IsButtonDown(int which) {
-	if ((which < 1) || (which > 3))
+	if ((which < kMouseLeft) || (which > kMouseMiddle))
 		quit("!IsButtonDown: only works with eMouseLeft, eMouseRight, eMouseMiddle");
-	if (ags_misbuttondown(which - 1))
-		return 1;
-	return 0;
+	return ags_misbuttondown(static_cast<eAGSMouseButton>(which)) ? 1 : 0;
 }
 
 int IsModeEnabled(int which) {
@@ -313,6 +318,20 @@ void Mouse_EnableControl(bool on) {
 	    (_GP(usetup).mouse_ctrl_when == kMouseCtrl_Fullscreen && (_GP(scsystem).windowed == 0));
 	_GP(mouse).SetMovementControl(should_control_mouse & on);
 	_GP(usetup).mouse_ctrl_enabled = on; // remember setting in config
+}
+
+bool Mouse_IsAutoLocking() {
+	return _GP(usetup).mouse_auto_lock;
+}
+
+void Mouse_SetAutoLock(bool on) {
+	_GP(usetup).mouse_auto_lock = on;
+	if (_GP(scsystem).windowed) {
+		if (_GP(usetup).mouse_auto_lock)
+			_GP(mouse).TryLockToWindow();
+		else
+			_GP(mouse).UnlockFromWindow();
+	}
 }
 
 //=============================================================================
@@ -440,8 +459,12 @@ RuntimeScriptValue Sc_ChangeCursorHotspot(const RuntimeScriptValue *params, int3
 }
 
 // void (int curs, int newview)
-RuntimeScriptValue Sc_Mouse_ChangeModeView(const RuntimeScriptValue *params, int32_t param_count) {
+RuntimeScriptValue Sc_Mouse_ChangeModeView_2(const RuntimeScriptValue *params, int32_t param_count) {
 	API_SCALL_VOID_PINT2(Mouse_ChangeModeView);
+}
+
+RuntimeScriptValue Sc_Mouse_ChangeModeView(const RuntimeScriptValue *params, int32_t param_count) {
+	API_SCALL_VOID_PINT3(Mouse_ChangeModeViewEx);
 }
 
 // void (int modd)
@@ -541,6 +564,13 @@ RuntimeScriptValue Sc_Mouse_SetControlEnabled(const RuntimeScriptValue *params, 
 	API_SCALL_VOID_PBOOL(Mouse_EnableControl);
 }
 
+RuntimeScriptValue Sc_Mouse_GetAutoLock(const RuntimeScriptValue *params, int32_t param_count) {
+	API_SCALL_BOOL(Mouse_IsAutoLocking);
+}
+
+RuntimeScriptValue Sc_Mouse_SetAutoLock(const RuntimeScriptValue *params, int32_t param_count) {
+	API_SCALL_VOID_PBOOL(Mouse_SetAutoLock);
+}
 
 RuntimeScriptValue Sc_Mouse_GetSpeed(const RuntimeScriptValue *params, int32_t param_count) {
 	API_SCALL_FLOAT(_GP(mouse).GetSpeed);
@@ -555,7 +585,8 @@ RuntimeScriptValue Sc_Mouse_SetSpeed(const RuntimeScriptValue *params, int32_t p
 void RegisterMouseAPI() {
 	ccAddExternalStaticFunction("Mouse::ChangeModeGraphic^2", Sc_ChangeCursorGraphic);
 	ccAddExternalStaticFunction("Mouse::ChangeModeHotspot^3", Sc_ChangeCursorHotspot);
-	ccAddExternalStaticFunction("Mouse::ChangeModeView^2", Sc_Mouse_ChangeModeView);
+	ccAddExternalStaticFunction("Mouse::ChangeModeView^2", Sc_Mouse_ChangeModeView_2);
+	ccAddExternalStaticFunction("Mouse::ChangeModeView^3", Sc_Mouse_ChangeModeView);
 	ccAddExternalStaticFunction("Mouse::Click^1", Sc_Mouse_Click);
 	ccAddExternalStaticFunction("Mouse::DisableMode^1", Sc_disable_cursor_mode);
 	ccAddExternalStaticFunction("Mouse::EnableMode^1", Sc_enable_cursor_mode);
@@ -570,6 +601,8 @@ void RegisterMouseAPI() {
 	ccAddExternalStaticFunction("Mouse::Update^0", Sc_RefreshMouse);
 	ccAddExternalStaticFunction("Mouse::UseDefaultGraphic^0", Sc_set_default_cursor);
 	ccAddExternalStaticFunction("Mouse::UseModeGraphic^1", Sc_set_mouse_cursor);
+	ccAddExternalStaticFunction("Mouse::get_AutoLock", Sc_Mouse_GetAutoLock);
+	ccAddExternalStaticFunction("Mouse::set_AutoLock", Sc_Mouse_SetAutoLock);
 	ccAddExternalStaticFunction("Mouse::get_ControlEnabled", Sc_Mouse_GetControlEnabled);
 	ccAddExternalStaticFunction("Mouse::set_ControlEnabled", Sc_Mouse_SetControlEnabled);
 	ccAddExternalStaticFunction("Mouse::get_Mode", Sc_GetCursorMode);

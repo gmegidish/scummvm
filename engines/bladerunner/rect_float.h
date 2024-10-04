@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,9 +23,9 @@
 #define BLADERUNNER_RECT_FLOAT_H
 
 #include "common/debug.h"
-#include "common/math.h"
 #include "common/types.h"
 #include "common/util.h"
+#include "math/utils.h"
 
 namespace BladeRunner {
 
@@ -51,10 +50,10 @@ struct RectFloat {
 	}
 
 	void trunc_2_decimals() {
-		x0 = Common::trunc(x0 * 100.0f) / 100.0f;
-		y0 = Common::trunc(y0 * 100.0f) / 100.0f;
-		x1 = Common::trunc(x1 * 100.0f) / 100.0f;
-		y1 = Common::trunc(y1 * 100.0f) / 100.0f;
+		x0 = Math::trunc(x0 * 100.0f) / 100.0f;
+		y0 = Math::trunc(y0 * 100.0f) / 100.0f;
+		x1 = Math::trunc(x1 * 100.0f) / 100.0f;
+		y1 = Math::trunc(y1 * 100.0f) / 100.0f;
 	}
 };
 

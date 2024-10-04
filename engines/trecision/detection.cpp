@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "base/plugins.h"
 #include "common/translation.h"
 #include "engines/advancedDetector.h"
+
+#include "trecision/detection.h"
 
 static const PlainGameDescriptor trecisionGames[] = {
 	{"aot", "Ark of Time"},
@@ -35,16 +36,16 @@ namespace Trecision {
 #define AD_NL_ENTRY(md5, size) \
 	{ \
 		{"data.nl", 0, md5, size}, \
-		{"nlanim.cd1", 0, nullptr, -1}, \
-		{"nlanim.cd2", 0, nullptr, -1}, \
-		{"nlanim.cd3", 0, nullptr, -1}, \
+		{"nlanim.cd1", 0, nullptr, AD_NO_SIZE}, \
+		{"nlanim.cd2", 0, nullptr, AD_NO_SIZE}, \
+		{"nlanim.cd3", 0, nullptr, AD_NO_SIZE}, \
 		AD_LISTEND \
 	}
 
 #define AD_NL_DEMO_ENTRY(md5, size) \
 	{ \
 		{"data.nl", 0, md5, size}, \
-		{"nlanim.cd1", 0, nullptr, -1}, \
+		{"nlanim.cd1", 0, nullptr, AD_NO_SIZE}, \
 		AD_LISTEND \
 	}
 
@@ -197,7 +198,7 @@ static const ADGameDescription gameDescriptions[] = {
 	},
 	{
 		"aot",
-		_s("Missing game code"),
+		MetaEngineDetection::GAME_NOT_IMPLEMENTED,
 		{
 			{"dialogue.dat", 0, "afc71fe29b1be3a9b145b8d61dfa4539", 166155130},
 			{"sentence.dat", 0, "f38afcd22e7de14f9a2343e911eaa126", 75668232},
@@ -210,43 +211,27 @@ static const ADGameDescription gameDescriptions[] = {
 	AD_TABLE_END_MARKER
 };
 
-#define GAMEOPTION_ORIGINAL_SAVELOAD GUIO_GAMEOPTIONS1
-
-static const ADExtraGuiOptionsMap optionsList[] = {
-
-	{
-		GAMEOPTION_ORIGINAL_SAVELOAD,
-		{
-			_s("Use original save/load screens"),
-			_s("Use the original save/load screens instead of the ScummVM ones"),
-			"originalsaveload",
-			false
-		}
-	},
-	AD_EXTRA_GUI_OPTIONS_TERMINATOR
-};
-
 } // End of namespace Trecision
 
-static const char *directoryGlobs[] = {
+static const char *const directoryGlobs[] = {
 	"autorun",
 	"data",
 	0
 };
 
-class TrecisionMetaEngineDetection : public AdvancedMetaEngineDetection {
+class TrecisionMetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	TrecisionMetaEngineDetection() : AdvancedMetaEngineDetection(Trecision::gameDescriptions, sizeof(ADGameDescription), trecisionGames, Trecision::optionsList) {
+	TrecisionMetaEngineDetection() : AdvancedMetaEngineDetection(Trecision::gameDescriptions, trecisionGames) {
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 		_guiOptions = GUIO2(GUIO_NOMIDI, GAMEOPTION_ORIGINAL_SAVELOAD);
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "trecision";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Trecision Adventure Module";
 	}
 

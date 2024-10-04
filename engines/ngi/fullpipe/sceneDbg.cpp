@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,12 +36,12 @@ namespace NGI {
 void sceneDbgMenu_initScene(Scene *sc) {
 	g_vars->selector = sc->getPictureObjectById(PIC_SCD_SEL, 0);
 	getGameLoaderInteractionController()->disableFlag24();
-	setInputDisabled(0);
+	setInputDisabled(false);
 }
 
 GameObject *sceneHandlerDbgMenu_getObjectAtXY(int x, int y) {
 	if (!g_nmi->_currentScene)
-		return 0;
+		return nullptr;
 
 	for (uint i = 1; i < g_nmi->_currentScene->_picObjList.size(); i++) {
 		PictureObject *pic = g_nmi->_currentScene->_picObjList[i];
@@ -54,7 +53,7 @@ GameObject *sceneHandlerDbgMenu_getObjectAtXY(int x, int y) {
 		}
 	}
 
-	return 0;
+	return nullptr;
 }
 
 int sceneHandlerDbgMenu(ExCommand *ex) {
@@ -66,9 +65,9 @@ int sceneHandlerDbgMenu(ExCommand *ex) {
 
 	if (ex->_messageNum == 29) {
 		GameObject *obj = sceneHandlerDbgMenu_getObjectAtXY(mx, my);
-		if (obj && canInteractAny(0, obj, -3) ) {
+		if (obj && canInteractAny(nullptr, obj, -3) ) {
 			getGameLoaderInteractionController()->enableFlag24();
-			handleObjectInteraction(0, obj, 0);
+			handleObjectInteraction(nullptr, obj, 0);
 		}
 		return 0;
 	}
@@ -83,14 +82,14 @@ int sceneHandlerDbgMenu(ExCommand *ex) {
 	g_nmi->_cursorId = PIC_CSR_DEFAULT;
 	GameObject *obj = g_nmi->_currentScene->getStaticANIObjectAtPos(mx, my);
 	if (obj) {
-		if (canInteractAny(0, obj, -3)) {
+		if (canInteractAny(nullptr, obj, -3)) {
 			g_nmi->_cursorId = PIC_CSR_DEFAULT;
 			g_nmi->setCursor(PIC_CSR_DEFAULT);
 			return 0;
 		}
 	} else {
 		obj = sceneHandlerDbgMenu_getObjectAtXY(mx, my);
-		if (obj && canInteractAny(0, obj, -3) ) {
+		if (obj && canInteractAny(nullptr, obj, -3) ) {
 			g_vars->selector->_flags |= 4;
 			g_vars->selector->setOXY(obj->_ox, obj->_oy);
 			g_nmi->_cursorId = PIC_CSR_DEFAULT;

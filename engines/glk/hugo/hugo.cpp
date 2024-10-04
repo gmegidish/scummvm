@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -84,22 +83,22 @@ Hugo::Hugo(OSystem *syst, const GlkGameDescription &gameDesc) : GlkAPI(syst, gam
 #endif
 		{
 	g_vm = this;
-	strcpy(gamefile, "");
+	gamefile[0] = '\0';
 
 	// heexpr
 	Common::fill(&eval[0], &eval[MAX_EVAL_ELEMENTS], 0);
 	Common::fill(&var[0], &var[MAXLOCALS + MAXGLOBALS], 0);
 
 	// hemedia
-	Common::fill(&resids[0][0], &resids[2][0], 0);
+	Common::fill(&resids[0][0], &resids[1][MAXRES], 0);
 	numres[0] = numres[1] = 0;
 
 	// hemisc
-	Common::fill(&context_command[0][0], &context_command[MAX_CONTEXT_COMMANDS][0], 0);
+	Common::fill(&context_command[0][0], &context_command[MAX_CONTEXT_COMMANDS - 1][64], 0);
 	Common::fill(&id[0], &id[3], '\0');
 	Common::fill(&serial[0], &serial[9], '\0');
 	Common::fill(&pbuffer[0], &pbuffer[MAXBUFFER * 2 + 1], 0);
-	Common::fill(&undostack[0][0], &undostack[MAXUNDO][0], 0);
+	Common::fill(&undostack[0][0], &undostack[MAXUNDO - 1][5], 0);
 
 	// heparse
 	Common::fill(&buffer[0], &buffer[MAXBUFFER + MAXWORDS], '\0');
@@ -147,8 +146,8 @@ void Hugo::runGame() {
 
 	SetupDisplay();
 
-	strcpy(gamefile, getFilename().c_str());
-	strcpy(pbuffer, "");
+	Common::strcpy_s(gamefile, getFilename().c_str());
+	pbuffer[0] = '\0';
 
 	ResourceArchive *res = new ResourceArchive();
 	SearchMan.add("Resouces", res);

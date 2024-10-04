@@ -4,9 +4,9 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
  * of the License, or(at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,6 @@ namespace AGSSnowRain {
 const unsigned int Magic = 0xCAFE0000;
 const unsigned int Version = 2;
 const unsigned int SaveMagic = Magic + Version;
-const float PI = 3.14159265f;
 
 
 void View::syncGame(Serializer &s) {
@@ -100,7 +98,7 @@ void Weather::UpdateWithDrift() {
 	for (i = 0; i < _mAmount * 2; i++) {
 		_mParticles[i].y += _mParticles[i].speed;
 		drift = _mParticles[i].drift * sin((float)(_mParticles[i].y +
-		                                   _mParticles[i].drift_offset) * _mParticles[i].drift_speed * 2.0f * PI / 360.0f);
+		                                   _mParticles[i].drift_offset) * _mParticles[i].drift_speed * 2.0f * M_PI / 360.0f);
 
 		if (signum(_mWindSpeed) == signum(drift))
 			_mParticles[i].x += _mWindSpeed;
@@ -194,6 +192,10 @@ bool Weather::IsActive() {
 
 void Weather::EnterRoom() {
 	_mAmount = _mTargetAmount;
+
+	// If baseline is not fixed, reset and clamp to the new screenHeight
+	if (!_mBaselineFixed)
+		ResetBaseline();
 }
 
 void Weather::ClipToRange(int &variable, int min, int max) {
@@ -210,7 +212,7 @@ void Weather::Initialize() {
 
 	SetTransparency(0, 0);
 	SetWindSpeed(0);
-	SetBaseline(0, 200);
+	ResetBaseline();
 
 	if (_mIsSnow)
 		SetFallSpeed(10, 70);
@@ -348,6 +350,15 @@ void Weather::SetBaseline(int top, int bottom) {
 
 	if (_mDeltaBaseline == 0)
 		_mDeltaBaseline = 1;
+
+	_mBaselineFixed = true;
+}
+
+void Weather::ResetBaseline() {
+	_mTopBaseline = 0;
+	_mBottomBaseline = _screenHeight;
+	_mDeltaBaseline = _screenHeight;
+	_mBaselineFixed = false;
 }
 
 void Weather::SetAmount(int amount) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -35,11 +34,11 @@ namespace Saga2 {
 
 class CImageNode {
 private:
-	uint32      contextID;  // ID of context
-	uint32      resourceID;     // RES_ID of  image
+	uint32      _contextID;  // ID of context
+	uint32      _resourceID;     // RES_ID of  image
 
-	uint16  requested;  // the number of allocation requests made to node
-	void    *image;     // the image
+	uint16  _requested;  // the number of allocation requests made to node
+	void    *_image;     // the image
 
 public:
 	CImageNode(hResContext *con, uint32 resID);
@@ -49,7 +48,7 @@ public:
 	bool    isSameImage(hResContext *con, uint32 resID);
 	bool    isSameImage(void *imagePtr);
 	uint16  getNumRequested() {
-		return requested;
+		return _requested;
 	}
 	bool    releaseRequest();
 };

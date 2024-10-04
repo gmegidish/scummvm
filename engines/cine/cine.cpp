@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,10 +23,12 @@
 #include "common/debug-channels.h"
 #include "common/events.h"
 
+#include "backends/keymapper/keymapper.h"
+
 #include "engines/util.h"
 
 #include "graphics/cursorman.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 
 #include "image/iff.h"
 
@@ -41,9 +42,9 @@
 
 namespace Cine {
 
-Sound *g_sound = 0;
+Sound *g_sound = nullptr;
 
-CineEngine *g_cine = 0;
+CineEngine *g_cine = nullptr;
 
 CineEngine::CineEngine(OSystem *syst, const CINEGameDescription *gameDesc)
 	: Engine(syst),
@@ -101,7 +102,7 @@ Common::Error CineEngine::run() {
 	initGraphics(320, 200);
 
 	if (g_cine->getGameType() == GType_FW && (g_cine->getFeatures() & GF_CD)) {
-		if (!existExtractedCDAudioFiles()
+		if (!existExtractedCDAudioFiles(19)  // tracks <19 are not used
 		    && !isDataAndCDAudioReadFromSameCD()) {
 			warnMissingExtractedCDAudio();
 		}
@@ -196,8 +197,7 @@ void CineEngine::initialize() {
 	lastSafeControlObjIdx = -1;
 	currentDisk = 1;
 
-	collisionPage = new byte[320 * 200];
-	memset(collisionPage, 0, 320 * 200);
+	collisionPage = new byte[320 * 200]();
 
 	// Clear part buffer as there's nothing loaded into it yet.
 	// Its size will change when loading data into it with the loadPart function.
@@ -265,7 +265,7 @@ void CineEngine::initialize() {
 	if (getGameType() == Cine::GType_OS && !(getFeatures() & GF_DEMO) &&
 		(getPlatform() == Common::kPlatformDOS || getPlatform() == Common::kPlatformAtariST)) {
 		loadPrc(BOOT_PRC_NAME);
-		strcpy(currentPrcName, BOOT_PRC_NAME);
+		Common::strcpy_s(currentPrcName, BOOT_PRC_NAME);
 		addScriptToGlobalScripts(BOOT_SCRIPT_INDEX);
 		runOnlyUntilFreePartRangeFirst200 = true;
 		executeGlobalScripts();
@@ -281,7 +281,7 @@ void CineEngine::initialize() {
 
 	if (!_preLoad) {
 		loadPrc(BOOT_PRC_NAME);
-		strcpy(currentPrcName, BOOT_PRC_NAME);
+		Common::strcpy_s(currentPrcName, BOOT_PRC_NAME);
 		setMouseCursor(MOUSE_CURSOR_NORMAL);
 	}
 }
@@ -312,15 +312,19 @@ void CineEngine::showSplashScreen() {
 		uint32 now = g_system->getMillis();
 
 		while (!done && g_system->getMillis() - now < 2000) {
+			Common::Keymapper *keymapper = _eventMan->getKeymapper();
+			keymapper->getKeymap("intro-shortcuts")->setEnabled(true);
+
 			Common::Event event;
 			while (eventMan->pollEvent(event)) {
-				if (event.type == Common::EVENT_KEYDOWN && event.kbd.keycode == Common::KEYCODE_ESCAPE) {
+				if (event.type == Common::EVENT_CUSTOM_ENGINE_ACTION_START && event.customType == kActionExitSonyScreen) {
 					done = true;
 					break;
 				}
 				if (shouldQuit())
 					done = true;
 			}
+			keymapper->getKeymap("intro-shortcuts")->setEnabled(false);
 		}
 	}
 

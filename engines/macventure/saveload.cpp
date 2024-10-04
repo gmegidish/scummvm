@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -141,7 +140,7 @@ void writeMetaData(Common::OutSaveFile *file, Common::String desc) {
 Common::Error MacVentureEngine::loadGameState(int slot) {
 	Common::String saveFileName = getSaveStateName(slot);
 	Common::InSaveFile *file;
-	if(!(file = getSaveFileManager()->openForLoading(saveFileName))) {
+	if (!(file = Common::MacResManager::openFileOrDataFork(Common::Path(saveFileName)))) {
 		error("ENGINE: Missing savegame file %s", saveFileName.c_str());
 	}
 	_world->loadGameFrom(file);
@@ -183,7 +182,7 @@ bool MacVentureEngine::scummVMSaveLoadDialog(bool isSave) {
 	Common::String desc = dialog.getResultString();
 
 	if (desc.empty()) {
-		// create our own description for the saved game, the user didnt enter it
+		// create our own description for the saved game, the user didn't enter it
 		desc = dialog.createDefaultSaveDescription(slot);
 	}
 
@@ -197,11 +196,11 @@ bool MacVentureEngine::scummVMSaveLoadDialog(bool isSave) {
 	return saveGameState(slot, desc).getCode() == Common::kNoError;
 }
 
-bool MacVentureEngine::canLoadGameStateCurrently() {
+bool MacVentureEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return true;
 }
 
-bool MacVentureEngine::canSaveGameStateCurrently() {
+bool MacVentureEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return true;
 }
 

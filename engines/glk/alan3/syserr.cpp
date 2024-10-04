@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -68,7 +67,7 @@ void setSyserrHandler(void (*f)(const char *)) {
 // TODO Make syserr() use ... as printf()
 void syserr(const char *description) {
 	lin = 0;
-	if (handler == NULL) {
+	if (handler == nullptr) {
 		const char *blurb = "<If you are the creator of this piece of Interactive Fiction, \
 please help debug this Alan system error. Collect *all* the sources, and, if possible, an \
 exact transcript of the commands that led to this error, in a zip-file and send \
@@ -81,7 +80,7 @@ it to support@alanif.se. Thank you!>";
 
 /*======================================================================*/
 void apperr(const char *description) {
-	if (handler == NULL) {
+	if (handler == nullptr) {
 		const char *blurb = "<If you are playing this piece of Interactive Fiction, \
 please help the author to debug this programming error. Send an exact \
 transcript of the commands that led to this error to the author. Thank you! \
@@ -93,7 +92,7 @@ If you *are* the author, then you have to figure this out before releasing the g
 
 /*======================================================================*/
 void playererr(CONTEXT, const char *description) {
-	if (handler == NULL) {
+	if (handler == nullptr) {
 		const char *blurb = "<You have probably done something that is not exactly right.>";
 		runtimeError(context, "PLAYER ERROR: ", description, blurb);
 	} else

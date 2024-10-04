@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,21 +15,20 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "audio/mixer.h"
 #include "audio/audiostream.h"
-#include "common/system.h"
-#include "engines/grim/set.h"
 
+#include "common/system.h"
+
+#include "engines/grim/set.h"
 #include "engines/grim/emi/sound/emisound.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/poolsound.h"
 #include "engines/grim/lua/lua.h"
-
 #include "engines/grim/debug.h"
 #include "engines/grim/sound.h"
 #include "engines/grim/grim.h"
@@ -246,7 +245,6 @@ static Common::String addSoundSuffix(const char *fname) {
 	return filename;
 }
 
-
 void Lua_V2::LoadSound() {
 	lua_Object strObj = lua_getparam(1);
 
@@ -273,7 +271,7 @@ void Lua_V2::PlayLoadedSound() {
 	lua_Object idObj = lua_getparam(1);
 	lua_Object loopingObj = lua_getparam(2);
 	lua_Object volumeObj = lua_getparam(3);
-	/* FIXME: unknown parameter */
+	// FIXME: unknown parameter
 	/*lua_Object bool2Obj =*/ lua_getparam(4);
 
 	if (!lua_isuserdata(idObj) || lua_tag(idObj) != MKTAG('A', 'I', 'F', 'F')) {
@@ -333,7 +331,7 @@ void Lua_V2::PlayLoadedSoundFrom() {
 
 	if (lua_isnumber(volumeOrLoopingObj)) {
 		volume = (int)lua_getnumber(volumeOrLoopingObj);
-		/* special handling if 5th parameter is a boolean */
+		// special handling if 5th parameter is a boolean
 		if (volume <= 1) {
 			looping = volume;
 			volume = (int)lua_getnumber(volumeObj);
@@ -420,7 +418,7 @@ void Lua_V2::PlaySoundFrom() {
 	lua_Object xObj = lua_getparam(2);
 	lua_Object yObj = lua_getparam(3);
 	lua_Object zObj = lua_getparam(4);
-	/* FIXME: unknown parameter */
+	// FIXME: unknown parameter
 	lua_Object volumeOrUnknownObj = lua_getparam(5);
 	lua_Object volumeObj = lua_getparam(6);
 

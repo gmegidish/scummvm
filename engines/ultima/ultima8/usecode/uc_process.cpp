@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ UCProcess::~UCProcess() {
 void UCProcess::load(uint16 classid, uint16 offset, uint32 this_ptr,
 					 int thissize, const uint8 *args, int argsize) {
 	if (_usecode->get_class_size(classid) == 0)
-		perr << "Class is empty..." << Std::endl;
+		warning("Class is empty.");
 
 	_classId = 0xFFFF;
 	_ip = 0xFFFF;
@@ -109,7 +108,7 @@ bool UCProcess::ret() {
 void UCProcess::freeOnTerminate(uint16 index, int type) {
 	assert(type >= 1 && type <= 3);
 
-	Std::pair<uint16, int> p;
+	Common::Pair<uint16, int> p;
 	p.first = index;
 	p.second = type;
 
@@ -117,7 +116,7 @@ void UCProcess::freeOnTerminate(uint16 index, int type) {
 }
 
 void UCProcess::terminate() {
-	Std::list<Std::pair<uint16, int> >::iterator i;
+	Std::list<Common::Pair<uint16, int> >::iterator i;
 
 	for (i = _freeOnTerminate.begin(); i != _freeOnTerminate.end(); ++i) {
 		uint16 index = (*i).first;
@@ -141,16 +140,17 @@ void UCProcess::terminate() {
 	Process::terminate();
 }
 
-void UCProcess::dumpInfo() const {
-	Process::dumpInfo();
+Common::String UCProcess::dumpInfo() const {
+	Common::String info = Process::dumpInfo();
 
 	if (_classId == 0xFFFF) {
-		pout.Print("IP undefined\n");
+		info += ", IP undefined";
 	} else {
 		const char *classname = GameData::get_instance()->getMainUsecode()->
 		                        get_class_name(_classId);
-		pout.Print("classname: %s, IP: %04X:%04X\n", classname, _classId, _ip);
+		info += Common::String::format(", classname: %s, IP: %04X:%04X", classname, _classId, _ip);
 	}
+	return info;
 }
 
 void UCProcess::saveData(Common::WriteStream *ws) {
@@ -161,7 +161,7 @@ void UCProcess::saveData(Common::WriteStream *ws) {
 	ws->writeUint16LE(_ip);
 	ws->writeUint32LE(_temp32);
 	ws->writeUint32LE(static_cast<uint32>(_freeOnTerminate.size()));
-	Std::list<Std::pair<uint16, int> >::iterator iter;
+	Std::list<Common::Pair<uint16, int> >::iterator iter;
 	for (iter = _freeOnTerminate.begin(); iter != _freeOnTerminate.end(); ++iter) {
 		ws->writeUint16LE(iter->first);
 		ws->writeUint32LE(static_cast<uint32>(iter->second));
@@ -178,7 +178,7 @@ bool UCProcess::loadData(Common::ReadStream *rs, uint32 version) {
 	_temp32 = rs->readUint32LE();
 	uint32 freecount = rs->readUint32LE();
 	for (unsigned int i = 0; i < freecount; ++i) {
-		Std::pair<uint16, int> p;
+		Common::Pair<uint16, int> p;
 		p.first = rs->readUint16LE();
 		p.second = static_cast<int>(rs->readUint32LE());
 		_freeOnTerminate.push_back(p);

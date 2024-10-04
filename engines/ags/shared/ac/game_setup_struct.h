@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef AGS_SHARED_AC_GAME_SETUP_STRUCT_H
 #define AGS_SHARED_AC_GAME_SETUP_STRUCT_H
 
-#include "ags/lib/std/vector.h"
+#include "common/std/vector.h"
 #include "ags/shared/ac/audio_clip_type.h"
 #include "ags/shared/ac/character_info.h" // TODO: constants to separate header
 #include "ags/shared/ac/game_setup_struct_base.h"
@@ -48,7 +47,6 @@ typedef std::shared_ptr<InteractionScripts> PInteractionScripts;
 using AGS::Shared::PInteraction;
 using AGS::Shared::PInteractionScripts;
 using AGS::Shared::HGameFileError;
-struct OldGameSetupStruct;
 
 
 // TODO: split GameSetupStruct into struct used to hold loaded game data, and actual runtime object
@@ -57,8 +55,8 @@ struct GameSetupStruct : public GameSetupStructBase {
 	// font parameters are then put and queried in the fonts module
 	// TODO: split into installation params (used only when reading) and runtime params
 	std::vector<FontInfo> fonts;
-	InventoryItemInfo invinfo[MAX_INV];
-	MouseCursor       mcurs[MAX_CURSOR];
+	InventoryItemInfo invinfo[MAX_INV]{};
+	std::vector<MouseCursor> mcurs;
 	std::vector<PInteraction> intrChar;
 	PInteraction intrInv[MAX_INV];
 	std::vector<PInteractionScripts> charScripts;
@@ -82,13 +80,17 @@ struct GameSetupStruct : public GameSetupStructBase {
 	// NOTE: saveGameFolderName is generally used to create game subdirs in common user directories
 	char              saveGameFolderName[MAX_SG_FOLDER_LEN];
 	int               roomCount;
-	int *roomNumbers;
-	char **roomNames;
+	std::vector<int>  roomNumbers;
+	std::vector<Shared::String> roomNames;
 	std::vector<ScriptAudioClip> audioClips;
 	std::vector<AudioClipType> audioClipTypes;
 	// A clip to play when player gains score in game
 	// TODO: find out why OPT_SCORESOUND option cannot be used to store this in >=3.2 games
 	int               scoreClipID;
+	// number of accessible game audio channels (the ones under direct user control)
+	int               numGameChannels = 0;
+	// backward-compatible channel limit that may be exported to script and reserved by audiotypes
+	int               numCompatGameChannels = 0;
 
 	// TODO: I converted original array of sprite infos to vector here, because
 	// statistically in most games sprites go in long continious sequences with minimal
@@ -131,7 +133,7 @@ struct GameSetupStruct : public GameSetupStructBase {
 	// Part 1
 	void read_savegame_info(Shared::Stream *in, GameDataVersion data_ver);
 	void read_font_infos(Shared::Stream *in, GameDataVersion data_ver);
-	HGameFileError read_cursors(Shared::Stream *in, GameDataVersion data_ver);
+	HGameFileError read_cursors(Shared::Stream *in);
 	void read_interaction_scripts(Shared::Stream *in, GameDataVersion data_ver);
 	void read_words_dictionary(Shared::Stream *in);
 
@@ -141,11 +143,11 @@ struct GameSetupStruct : public GameSetupStructBase {
 	void WriteMouseCursors_Aligned(Shared::Stream *out);
 	//------------------------------
 	// Part 2
-	void read_characters(Shared::Stream *in, GameDataVersion data_ver);
+	void read_characters(Shared::Stream *in);
 	void read_lipsync(Shared::Stream *in, GameDataVersion data_ver);
 	void read_messages(Shared::Stream *in, GameDataVersion data_ver);
 
-	void ReadCharacters_Aligned(Shared::Stream *in);
+	void ReadCharacters_Aligned(Shared::Stream *in, bool is_save);
 	void WriteCharacters_Aligned(Shared::Stream *out);
 	//------------------------------
 	// Part 3
@@ -157,16 +159,19 @@ struct GameSetupStruct : public GameSetupStructBase {
 	//--------------------------------------------------------------------
 
 	// Functions for reading and writing appropriate data from/to save game
-	void ReadFromSaveGame_v321(Shared::Stream *in, char *gswas, ccScript *compsc, CharacterInfo *chwas,
-							   WordsDictionary *olddict, char **mesbk);
+	void ReadFromSaveGame_v321(Shared::Stream *in, GameDataVersion data_ver, char *gswas, ccScript *compsc, CharacterInfo *chwas,
+							   WordsDictionary *olddict, std::vector<String> &mesbk);
 
 	void ReadFromSavegame(Shared::Stream *in);
 	void WriteForSavegame(Shared::Stream *out);
 };
 
 //=============================================================================
-// TODO: find out how this function was supposed to be used
+#if defined (OBSOLETE)
+struct OldGameSetupStruct;
 void ConvertOldGameStruct(OldGameSetupStruct *ogss, GameSetupStruct *gss);
+#endif // OBSOLETE
+
 // Finds an audio clip using legacy convention index
 ScriptAudioClip *GetAudioClipForOldStyleNumber(GameSetupStruct &game, bool is_music, int num);
 

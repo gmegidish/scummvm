@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -43,12 +48,12 @@ Sound::Sound(GobEngine *vm) : _vm(vm) {
 	_pcspeaker = new PCSpeaker(*_vm->_mixer);
 	_blaster = new SoundBlaster(*_vm->_mixer);
 
-	_adlPlayer = 0;
-	_mdyPlayer = 0;
-	_infogrames = 0;
-	_protracker = 0;
-	_cdrom = 0;
-	_bgatmos = 0;
+	_adlPlayer = nullptr;
+	_mdyPlayer = nullptr;
+	_infogrames = nullptr;
+	_protracker = nullptr;
+	_cdrom = nullptr;
+	_bgatmos = nullptr;
 
 	_hasAdLib = (!_vm->_noMusic && _vm->hasAdLib());
 
@@ -90,14 +95,14 @@ void Sound::convToSigned(byte *buffer, int length) {
 
 SoundDesc *Sound::sampleGetBySlot(int slot) {
 	if ((slot < 0) || (slot >= kSoundsCount))
-		return 0;
+		return nullptr;
 
 	return &_sounds[slot];
 }
 
 const SoundDesc *Sound::sampleGetBySlot(int slot) const {
 	if ((slot < 0) || (slot >= kSoundsCount))
-		return 0;
+		return nullptr;
 
 	return &_sounds[slot];
 }
@@ -332,7 +337,7 @@ void Sound::adlibPlayTrack(const char *trackname) {
 }
 
 void Sound::adlibPlayBgMusic() {
-	if (!_hasAdLib || _hasAdLibBg)
+	if (!_hasAdLib || !_hasAdLibBg) // If one of those is disabled, then stop there 
 		return;
 
 	createADLPlayer();
@@ -354,7 +359,7 @@ void Sound::adlibPlayBgMusic() {
 		"musmac5.mid"
 	};
 
-	const char *track = 0;
+	const char *track = nullptr;
 	if (_vm->getPlatform() == Common::kPlatformWindows)
 		track = tracksWin[_vm->_util->getRandom(ARRAYSIZE(tracksWin))];
 	else
@@ -754,7 +759,7 @@ void Sound::createMDYPlayer() {
 		return;
 
 	delete _adlPlayer;
-	_adlPlayer = 0;
+	_adlPlayer = nullptr;
 
 	_mdyPlayer = new MUSPlayer();
 }
@@ -764,7 +769,7 @@ void Sound::createADLPlayer() {
 		return;
 
 	delete _mdyPlayer;
-	_mdyPlayer= 0;
+	_mdyPlayer= nullptr;
 
 	_adlPlayer = new ADLPlayer();
 }

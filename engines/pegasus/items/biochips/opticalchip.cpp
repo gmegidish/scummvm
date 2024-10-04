@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@
 
 namespace Pegasus {
 
-OpticalChip *g_opticalChip = 0;
+OpticalChip *g_opticalChip = nullptr;
 
 OpticalChip::OpticalChip(const ItemID id, const NeighborhoodID neighborhood, const RoomID room, const DirectionConstant direction) :
 		BiochipItem(id, neighborhood, room, direction), _ariesHotspot(kAriesSpotID), _mercuryHotspot(kMercurySpotID),
@@ -124,14 +123,14 @@ void OpticalChip::clickInOpticalHotspot(HotSpotID id) {
 }
 
 void OpticalChip::playOpMemMovie(HotSpotID id) {
-	Common::String movieName;
+	Common::Path movieName;
 	switch (id) {
 	case kAriesSpotID:
 		// WORKAROUND: The original CD release played the ares video even
 		// when you destroyed the shuttle. For the DVD release, we have
 		// some new videos that can be played instead to workaround a plot
 		// loophole.
-		if (!((PegasusEngine *)g_engine)->isDVD() || _opticalFlags.getFlag(kOpticalAriesExposed))
+		if (!g_vm->isDVD() || _opticalFlags.getFlag(kOpticalAriesExposed))
 			movieName = "Images/AI/Globals/OMAI";
 		else if (_itemOwnerID == kPlayerID)
 			movieName = "Images/AI/Globals/OMN1";

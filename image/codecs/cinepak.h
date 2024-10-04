@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,7 @@ struct CinepakStrip {
 	uint16 length;
 	Common::Rect rect;
 	CinepakCodebook v1_codebook[256], v4_codebook[256];
-	byte v1_dither[256 * 4 * 4 * 4], v4_dither[256 * 4 * 4 * 4];
+	uint32 v1_dither[256 * 4 * 4], v4_dither[256 * 4 * 4];
 };
 
 struct CinepakFrame {
@@ -71,16 +70,17 @@ struct CinepakFrame {
 class CinepakDecoder : public Codec {
 public:
 	CinepakDecoder(int bitsPerPixel = 24);
-	~CinepakDecoder();
+	~CinepakDecoder() override;
 
-	const Graphics::Surface *decodeFrame(Common::SeekableReadStream &stream);
-	Graphics::PixelFormat getPixelFormat() const { return _pixelFormat; }
+	const Graphics::Surface *decodeFrame(Common::SeekableReadStream &stream) override;
+	Graphics::PixelFormat getPixelFormat() const override { return _pixelFormat; }
+	bool setOutputPixelFormat(const Graphics::PixelFormat &format) override;
 
-	bool containsPalette() const { return _ditherPalette != 0; }
-	const byte *getPalette() { _dirtyPalette = false; return _ditherPalette; }
-	bool hasDirtyPalette() const { return _dirtyPalette; }
-	bool canDither(DitherType type) const;
-	void setDither(DitherType type, const byte *palette);
+	bool containsPalette() const override { return _ditherPalette != 0; }
+	const byte *getPalette() override { _dirtyPalette = false; return _ditherPalette; }
+	bool hasDirtyPalette() const override { return _dirtyPalette; }
+	bool canDither(DitherType type) const override;
+	void setDither(DitherType type, const byte *palette) override;
 
 private:
 	CinepakFrame _curFrame;
@@ -96,11 +96,13 @@ private:
 
 	void initializeCodebook(uint16 strip, byte codebookType);
 	void loadCodebook(Common::SeekableReadStream &stream, uint16 strip, byte codebookType, byte chunkID, uint32 chunkSize);
-	void decodeVectors(Common::SeekableReadStream &stream, uint16 strip, byte chunkID, uint32 chunkSize);
+	void decodeVectors8(Common::SeekableReadStream &stream, uint16 strip, byte chunkID, uint32 chunkSize);
+	void decodeVectors24(Common::SeekableReadStream &stream, uint16 strip, byte chunkID, uint32 chunkSize);
 
 	byte findNearestRGB(int index) const;
 	void ditherVectors(Common::SeekableReadStream &stream, uint16 strip, byte chunkID, uint32 chunkSize);
 	void ditherCodebookQT(uint16 strip, byte codebookType, uint16 codebookIndex);
+	void ditherCodebookVFW(uint16 strip, byte codebookType, uint16 codebookIndex);
 };
 
 } // End of namespace Image

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "base/plugins.h"
 #include "engines/advancedDetector.h"
-#include "common/translation.h"
 
 #include "hopkins/detection.h"
 #include "hopkins/hopkins.h"
@@ -35,53 +33,29 @@ static const DebugChannelDef debugFlagList[] = {
 
 static const PlainGameDescriptor hopkinsGames[] = {
 	{"hopkins", "Hopkins FBI"},
-	{0, 0}
+	{nullptr, nullptr}
 };
 
 #include "hopkins/detection_tables.h"
 
-static const ADExtraGuiOptionsMap optionsList[] = {
-	{
-		GAMEOPTION_GORE_DEFAULT_OFF,
-		{
-			_s("Gore Mode"),
-			_s("Enable Gore Mode when available"),
-			"enable_gore",
-			false
-		}
-	},
-
-	{
-		GAMEOPTION_GORE_DEFAULT_ON,
-		{
-			_s("Gore Mode"),
-			_s("Enable Gore Mode when available"),
-			"enable_gore",
-			true
-		}
-	},
-
-	AD_EXTRA_GUI_OPTIONS_TERMINATOR
-};
-
-const static char *directoryGlobs[] = {
+const static char *const directoryGlobs[] = {
 	"voice",
 	"link",
-	0
+	nullptr
 };
 
-class HopkinsMetaEngineDetection : public AdvancedMetaEngineDetection {
+class HopkinsMetaEngineDetection : public AdvancedMetaEngineDetection<Hopkins::HopkinsGameDescription> {
 public:
-	HopkinsMetaEngineDetection() : AdvancedMetaEngineDetection(Hopkins::gameDescriptions, sizeof(Hopkins::HopkinsGameDescription), hopkinsGames, optionsList) {
+	HopkinsMetaEngineDetection() : AdvancedMetaEngineDetection(Hopkins::gameDescriptions, hopkinsGames) {
 		_maxScanDepth = 3;
 		_directoryGlobs = directoryGlobs;
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "hopkins";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Hopkins FBI";
 	}
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * MIT License:
  *
@@ -65,10 +64,10 @@ namespace Wage {
 static const Graphics::MacMenuData menuSubItems[] = {
 	{ kMenuHighLevel, "File",	0, 0, false },
 	{ kMenuHighLevel, "Edit",	0, 0, false },
-	{ kMenuFile, "New",			kMenuActionNew, 0, false },
+	{ kMenuFile, "New",			kMenuActionNew, 0, true },
 	{ kMenuFile, "Open...",		kMenuActionOpen, 0, true },
-	{ kMenuFile, "Close",		kMenuActionClose, 0, true },
-	{ kMenuFile, "Save",		kMenuActionSave, 0, true },
+	{ kMenuFile, "Close",		kMenuActionClose, 0, false },
+	{ kMenuFile, "Save",		kMenuActionSave, 0, false },
 	{ kMenuFile, "Save as...",	kMenuActionSaveAs, 0, true },
 	{ kMenuFile, "Revert",		kMenuActionRevert, 0, false },
 	{ kMenuFile, "Quit",		kMenuActionQuit, 0, true },
@@ -132,6 +131,7 @@ Gui::Gui(WageEngine *engine) {
 	uint maxWidth = _screen.w;
 
 	_consoleWindow = _wm->addTextWindow(font, kColorBlack, kColorWhite, maxWidth, Graphics::kTextAlignLeft, _menu);
+	_consoleWindow->setEditable(true);
 
 	loadBorders();
 }
@@ -157,8 +157,8 @@ void Gui::draw() {
 
 		_scene = _engine->_world->_player->_currentScene;
 
-		_sceneWindow->setDimensions(*_scene->_designBounds);
 		_sceneWindow->setTitle(_scene->_name);
+		_sceneWindow->setDimensions(*_scene->_designBounds);
 		_consoleWindow->setDimensions(*_scene->_textBounds);
 
 		_wm->setFullRefresh(true);
@@ -264,18 +264,36 @@ void menuCommandsCallback(int action, Common::String &text, void *data) {
 void Gui::executeMenuCommand(int action, Common::String &text) {
 	switch(action) {
 	case kMenuActionAbout:
+		_engine->aboutDialog();
+		break;
+
 	case kMenuActionNew:
+		_engine->_restartRequested = true;
+		break;
+
 	case kMenuActionClose:
+		// This is a no-op as we do not let new game to be opened
+		break;
+
 	case kMenuActionRevert:
-	case kMenuActionQuit:
-		warning("STUB: executeMenuCommand: action: %d", action);
+		if (_engine->_defaultSaveSlot != -1) {
+			_engine->_isGameOver = false;
+			_engine->loadGameState(_engine->_defaultSaveSlot);
+		}
 		break;
 
 	case kMenuActionOpen:
 		_engine->scummVMSaveLoadDialog(false);
 		break;
 
+	case kMenuActionQuit:
+		_engine->saveDialog();
+		break;
+
 	case kMenuActionSave:
+		_engine->saveGame();
+		break;
+
 	case kMenuActionSaveAs:
 		_engine->scummVMSaveLoadDialog(true);
 		break;
@@ -396,6 +414,14 @@ void Gui::enableNewGameMenus() {
 	_menu->enableCommand(kMenuFile, kMenuActionNew, true);
 	_menu->enableCommand(kMenuFile, kMenuActionOpen, true);
 	_menu->enableCommand(kMenuFile, kMenuActionQuit, true);
+}
+
+void Gui::enableSave() {
+	_menu->enableCommand(kMenuFile, kMenuActionSave, true);
+}
+
+void Gui::enableRevert() {
+	_menu->enableCommand(kMenuFile, kMenuActionRevert, true);
 }
 
 } // End of namespace Wage

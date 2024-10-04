@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -221,7 +220,7 @@ int global_messageHandler1(ExCommand *cmd) {
 				if (!g_nmi->_currSelectedInventoryItemId && !g_nmi->_aniMan->_movement &&
 					!(g_nmi->_aniMan->_flags & 0x100) && g_nmi->_aniMan->isIdle()) {
 					int st = g_nmi->_aniMan->_statics->_staticsId;
-					ExCommand *newex = 0;
+					ExCommand *newex = nullptr;
 
 					if (st == ST_MAN_RIGHT) {
 						newex = new ExCommand(g_nmi->_aniMan->_id, 1, rMV_MAN_LOOKUP, 0, 0, 0, 1, 0, 0, 0);
@@ -308,7 +307,7 @@ int global_messageHandler2(ExCommand *cmd) {
 				ani->_callback2 = staticANIObjectCallback;
 			} else {
 				ani->setFlags40(false);
-				ani->_callback2 = 0; // Really NULL
+				ani->_callback2 = nullptr; // Really NULL
 			}
 		}
 		break;
@@ -524,7 +523,7 @@ int global_messageHandler3(ExCommand *cmd) {
 }
 
 int global_messageHandler4(ExCommand *cmd) {
-	StaticANIObject *ani = 0;
+	StaticANIObject *ani = nullptr;
 
 	switch (cmd->_messageKind) {
 	case 18: {
@@ -610,7 +609,7 @@ int global_messageHandler4(ExCommand *cmd) {
 		if (!ani)
 			break;
 
-		ani->queueMessageQueue(0);
+		ani->queueMessageQueue(nullptr);
 		ani->playIdle();
 		break;
 	case 9:
@@ -665,7 +664,7 @@ int global_messageHandler4(ExCommand *cmd) {
 		break;
 
 	case 27:
-		if (!g_nmi->_currentScene || g_nmi->_currentScene->getStaticANIObject1ById(cmd->_parentId, cmd->_param) == 0) {
+		if (!g_nmi->_currentScene || g_nmi->_currentScene->getStaticANIObject1ById(cmd->_parentId, cmd->_param) == nullptr) {
 			ani = g_nmi->accessScene(cmd->_invId)->getStaticANIObject1ById(cmd->_parentId, -1);
 			if (ani) {
 				ani = new StaticANIObject(ani);
@@ -769,7 +768,7 @@ int MovGraph::messageHandler(ExCommand *cmd) {
 
 	MovGraph *gr = getSc2MovGraphBySceneId(g_nmi->_currentScene->_sceneId);
 
-	MovGraphLink *link = 0;
+	MovGraphLink *link = nullptr;
 	double mindistance = 1.0e10;
 	Common::Point point;
 

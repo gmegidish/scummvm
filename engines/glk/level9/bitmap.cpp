@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,7 +34,7 @@ L9BOOL bitmap_exists(char *file) {
 }
 
 L9BYTE *bitmap_load(char *file, L9UINT32 *size) {
-	L9BYTE *data = NULL;
+	L9BYTE *data = nullptr;
 
 	Common::File f;
 	if (f.open(file)) {
@@ -49,7 +48,7 @@ L9BYTE *bitmap_load(char *file, L9UINT32 *size) {
 }
 
 Bitmap *bitmap_alloc(int x, int y) {
-	Bitmap *b = NULL;
+	Bitmap *b = nullptr;
 	L9Allocate((L9BYTE **)&b, sizeof(Bitmap) + (x * y));
 
 	b->width = x;
@@ -257,13 +256,13 @@ L9UINT32 bitmap_st1_decode_pixels(L9BYTE *pic, L9BYTE *data, L9UINT32 count, L9U
 	block in a row.)
 */
 L9BOOL bitmap_st1_decode(char *file, int x, int y) {
-	L9BYTE *data = NULL;
+	L9BYTE *data = nullptr;
 	int i, xi, yi, max_x, max_y, last_block;
 	int bitplanes_row, bitmaps_row, pixel_count, get_pixels;
 
 	L9UINT32 size;
 	data = bitmap_load(file, &size);
-	if (data == NULL)
+	if (data == nullptr)
 		return FALSE;
 
 	bitplanes_row = data[35] + data[34] * 256;
@@ -293,7 +292,7 @@ L9BOOL bitmap_st1_decode(char *file, int x, int y) {
 			free(bitmap);
 		bitmap = bitmap_alloc(max_x, max_y);
 	}
-	if (bitmap == NULL) {
+	if (bitmap == nullptr) {
 		free(data);
 		return FALSE;
 	}
@@ -329,7 +328,7 @@ void bitmap_st2_name(int num, char *dir, char *out) {
 	/* title picture is #30 */
 	if (num == 0)
 		num = 30;
-	sprintf(out, "%s%d.squ", dir, num);
+	Common::sprintf_s(out, MAX_PATH, "%s%d.squ", dir, num);
 }
 
 /*
@@ -347,7 +346,7 @@ void bitmap_pc_name(int num, char *dir, char *out) {
 	/* title picture is #30 */
 	if (num == 0)
 		num = 30;
-	sprintf(out, "%s%d.pic", dir, num);
+	Common::sprintf_s(out, MAX_PATH, "%s%d.pic", dir, num);
 }
 
 /*
@@ -389,12 +388,12 @@ Colour bitmap_pc1_colour(int i) {
 	bottom left last, each row in turn.
 */
 L9BOOL bitmap_pc1_decode(char *file, int x, int y) {
-	L9BYTE *data = NULL;
+	L9BYTE *data = nullptr;
 	int i, xi, yi, max_x, max_y;
 
 	L9UINT32 size;
 	data = bitmap_load(file, &size);
-	if (data == NULL)
+	if (data == nullptr)
 		return FALSE;
 
 	max_x = data[2] + data[3] * 256;
@@ -409,7 +408,7 @@ L9BOOL bitmap_pc1_decode(char *file, int x, int y) {
 			free(bitmap);
 		bitmap = bitmap_alloc(max_x, max_y);
 	}
-	if (bitmap == NULL) {
+	if (bitmap == nullptr) {
 		free(data);
 		return FALSE;
 	}
@@ -503,7 +502,7 @@ L9BOOL bitmap_pc1_decode(char *file, int x, int y) {
 	high byte of theBitStreamBuffer.
 
 	Set a counter (theBufferBitCounter) to 8 which you will use to keep track
-	of when it is necesary to refill the buffer.
+	of when it is necessary to refill the buffer.
 
 	Set a L9BYTE variable (theNewPixel) to byte 40 (seedByte) of the header.
 	We need to do this because as part of identifying the pixel being
@@ -550,7 +549,7 @@ L9BOOL bitmap_pc1_decode(char *file, int x, int y) {
 	In this case, instead of the above routine we begin by removing
 	the low eight bits from the theBitStreamBuffer. We use the same
 	ono-by-one bit shift right process described above to do this,
-	again checking after each shift if it is necesary to refill the
+	again checking after each shift if it is necessary to refill the
 	buffer's high byte.
 
 	When the eight bits have been removed we set theNewPixelIndex to
@@ -584,7 +583,7 @@ L9BOOL bitmap_pc1_decode(char *file, int x, int y) {
 	Gerin Philippe for NoSTalgia <http://users.skynet.be/sky39147/>.
 */
 L9BOOL bitmap_pc2_decode(char *file, int x, int y) {
-	L9BYTE *data = NULL;
+	L9BYTE *data = nullptr;
 	int i, xi, yi, max_x, max_y;
 
 	L9BYTE theNewPixel, theNewPixelIndex;
@@ -594,7 +593,7 @@ L9BOOL bitmap_pc2_decode(char *file, int x, int y) {
 
 	L9UINT32 size;
 	data = bitmap_load(file, &size);
-	if (data == NULL)
+	if (data == nullptr)
 		return FALSE;
 
 	max_x = data[37] + data[36] * 256;
@@ -609,7 +608,7 @@ L9BOOL bitmap_pc2_decode(char *file, int x, int y) {
 			free(bitmap);
 		bitmap = bitmap_alloc(max_x, max_y);
 	}
-	if (bitmap == NULL) {
+	if (bitmap == nullptr) {
 		free(data);
 		return FALSE;
 	}
@@ -738,14 +737,14 @@ BitmapType bitmap_pc_type(char *file) {
 
 void bitmap_noext_name(int num, char *dir, char *out) {
 	if (num == 0) {
-		sprintf(out, "%stitle", dir);
+		Common::sprintf_s(out, MAX_PATH, "%stitle", dir);
 		if (Common::File::exists(out))
 			return;
 
 		num = 30;
 	}
 
-	sprintf(out, "%s%d", dir, num);
+	Common::sprintf_s(out, MAX_PATH, "%s%d", dir, num);
 }
 
 int bitmap_amiga_intensity(int col) {
@@ -792,12 +791,12 @@ Colour bitmap_amiga_colour(int i1, int i2) {
 	high bit of the f5-bit pixel.
 */
 L9BOOL bitmap_amiga_decode(char *file, int x, int y) {
-	L9BYTE *data = NULL;
+	L9BYTE *data = nullptr;
 	int i, xi, yi, max_x, max_y, p, b;
 
 	L9UINT32 size;
 	data = bitmap_load(file, &size);
-	if (data == NULL)
+	if (data == nullptr)
 		return FALSE;
 
 	max_x = (((((data[64] << 8) | data[65]) << 8) | data[66]) << 8) | data[67];
@@ -812,7 +811,7 @@ L9BOOL bitmap_amiga_decode(char *file, int x, int y) {
 			free(bitmap);
 		bitmap = bitmap_alloc(max_x, max_y);
 	}
-	if (bitmap == NULL) {
+	if (bitmap == nullptr) {
 		free(data);
 		return FALSE;
 	}
@@ -914,12 +913,12 @@ BitmapType bitmap_noext_type(char *file) {
 	for sub-images.
 */
 L9BOOL bitmap_mac_decode(char *file, int x, int y) {
-	L9BYTE *data = NULL;
+	L9BYTE *data = nullptr;
 	int xi, yi, max_x, max_y;
 
 	L9UINT32 size;
 	data = bitmap_load(file, &size);
-	if (data == NULL)
+	if (data == nullptr)
 		return FALSE;
 
 	max_x = data[3] + data[2] * 256;
@@ -937,7 +936,7 @@ L9BOOL bitmap_mac_decode(char *file, int x, int y) {
 			free(bitmap);
 		bitmap = bitmap_alloc(max_x, max_y);
 	}
-	if (bitmap == NULL) {
+	if (bitmap == nullptr) {
 		free(data);
 		return FALSE;
 	}
@@ -1003,34 +1002,34 @@ const Colour bitmap_bbc_colours[] = {
 
 void bitmap_c64_name(int num, char *dir, char *out) {
 	if (num == 0)
-		sprintf(out, "%stitle mpic", dir);
+		Common::sprintf_s(out, MAX_PATH, "%stitle mpic", dir);
 	else
-		sprintf(out, "%spic%d", dir, num);
+		Common::sprintf_s(out, MAX_PATH, "%spic%d", dir, num);
 }
 
 void bitmap_bbc_name(int num, char *dir, char *out) {
 	if (num == 0) {
-		sprintf(out, "%sP.Title", dir);
+		Common::sprintf_s(out, MAX_PATH, "%sP.Title", dir);
 		if (Common::File::exists(out))
 			return;
 
-		sprintf(out, "%stitle", dir);
+		Common::sprintf_s(out, MAX_PATH, "%stitle", dir);
 	} else {
-		sprintf(out, "%sP.Pic%d", dir, num);
+		Common::sprintf_s(out, MAX_PATH, "%sP.Pic%d", dir, num);
 		if (Common::File::exists(out))
 			return;
 
-		sprintf(out, "%spic%d", dir, num);
+		Common::sprintf_s(out, MAX_PATH, "%spic%d", dir, num);
 	}
 }
 
 void bitmap_cpc_name(int num, char *dir, char *out) {
 	if (num == 0)
-		sprintf(out, "%stitle.pic", dir);
+		Common::sprintf_s(out, MAX_PATH, "%stitle.pic", dir);
 	else if (num == 1)
-		sprintf(out, "%s1.pic", dir);
+		Common::sprintf_s(out, MAX_PATH, "%s1.pic", dir);
 	else
-		sprintf(out, "%sallpics.pic", dir);
+		Common::sprintf_s(out, MAX_PATH, "%sallpics.pic", dir);
 }
 
 BitmapType bitmap_c64_type(char *file) {
@@ -1089,13 +1088,13 @@ BitmapType bitmap_c64_type(char *file) {
 	byte header).
 */
 L9BOOL bitmap_c64_decode(char *file, BitmapType type, int num) {
-	L9BYTE *data = NULL;
+	L9BYTE *data = nullptr;
 	int i = 0, xi, yi, max_x = 0, max_y = 0, cx, cy, px, py, p;
 	int off = 0, off_scr = 0, off_col = 0, off_bg = 0, col_comp = 0;
 
 	L9UINT32 size;
 	data = bitmap_load(file, &size);
-	if (data == NULL)
+	if (data == nullptr)
 		return FALSE;
 
 	if (type == C64_BITMAPS) {
@@ -1184,7 +1183,7 @@ L9BOOL bitmap_c64_decode(char *file, BitmapType type, int num) {
 	if (bitmap)
 		free(bitmap);
 	bitmap = bitmap_alloc(max_x, max_y);
-	if (bitmap == NULL) {
+	if (bitmap == nullptr) {
 		free(data);
 		return FALSE;
 	}
@@ -1453,7 +1452,7 @@ Bitmap *DecodeBitmap(char *dir, BitmapType type, int num, int x, int y) {
 		break;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 } // End of namespace Level9

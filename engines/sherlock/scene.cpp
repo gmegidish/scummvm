@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -247,7 +246,7 @@ void Scene::selectScene() {
 	ui._menuMode = STD_MODE;
 
 	// Load the scene
-	Common::String sceneFile = Common::String::format("res%02d", _goToScene);
+	Common::Path sceneFile(Common::String::format("res%02d", _goToScene));
 	// _rrmName gets set during loadScene()
 	// _rrmName is for ScalpelScene::startCAnim
 	_currentScene = _goToScene;
@@ -304,7 +303,7 @@ void Scene::freeScene() {
 	_currentScene = -1;
 }
 
-bool Scene::loadScene(const Common::String &filename) {
+bool Scene::loadScene(const Common::Path &filename) {
 	Events &events = *_vm->_events;
 	Music &music = *_vm->_music;
 	People &people = *_vm->_people;
@@ -332,7 +331,7 @@ bool Scene::loadScene(const Common::String &filename) {
 
 	if (!IS_3DO) {
 		// PC version
-		Common::String roomFilename = filename + ".rrm";
+		Common::Path roomFilename = filename.append(".rrm");
 		_roomFilename = roomFilename;
 
 		flag = _vm->_res->exists(roomFilename);
@@ -479,7 +478,10 @@ bool Scene::loadScene(const Common::String &filename) {
 				_bgShapes[idx]._imageFrame = !_bgShapes[idx]._images ? (ImageFrame *)nullptr :
 					&(*_bgShapes[idx]._images)[0];
 
-				_bgShapes[idx]._examine = Common::String(&_descText[_bgShapes[idx]._descOffset]);
+				if (_bgShapes[idx]._descOffset >= _descText.size())
+					_bgShapes[idx]._examine = "";
+				else
+					_bgShapes[idx]._examine = Common::String(&_descText[_bgShapes[idx]._descOffset]);
 				_bgShapes[idx]._sequences = &_sequenceBuffer[_bgShapes[idx]._sequenceOffset];
 				_bgShapes[idx]._misc = 0;
 				_bgShapes[idx]._seqCounter = 0;
@@ -499,9 +501,8 @@ bool Scene::loadScene(const Common::String &filename) {
 					rrmStream->readStream(animSize * bgHeader._numcAnimations);
 
 				// Load cAnim offset table as well
-				uint32 *cAnimOffsetTablePtr = new uint32[bgHeader._numcAnimations];
+				uint32 *cAnimOffsetTablePtr = new uint32[bgHeader._numcAnimations]();
 				uint32 *cAnimOffsetPtr = cAnimOffsetTablePtr;
-				memset(cAnimOffsetTablePtr, 0, bgHeader._numcAnimations * sizeof(uint32));
  				if (IS_SERRATED_SCALPEL) {
 					// Save current stream offset
 					int32 curOffset = rrmStream->pos();
@@ -658,7 +659,7 @@ bool Scene::loadScene(const Common::String &filename) {
 
 	} else {
 		// === 3DO version ===
-		_roomFilename = "rooms/" + filename + ".rrm";
+		_roomFilename = Common::Path("rooms/").appendInPlace(filename).appendInPlace(".rrm");
 		flag = _vm->_res->exists(_roomFilename);
 		if (!flag)
 			error("loadScene: 3DO room data file not found");
@@ -836,10 +837,9 @@ bool Scene::loadScene(const Common::String &filename) {
 			roomStream->seek(header3DO_cAnim_offset);
 			Common::SeekableReadStream *cAnimStream = roomStream->readStream(header3DO_cAnim_size);
 
-			uint32 *cAnimOffsetTablePtr = new uint32[header3DO_numAnimations];
+			uint32 *cAnimOffsetTablePtr = new uint32[header3DO_numAnimations]();
 			uint32 *cAnimOffsetPtr = cAnimOffsetTablePtr;
 			uint32 cAnimOffset = 0;
-			memset(cAnimOffsetTablePtr, 0, header3DO_numAnimations * sizeof(uint32));
 
 			// Seek to end of graphics data and load cAnim offset table from there
 			roomStream->seek(header3DO_bgGraphicData_offset + header3DO_bgGraphicData_size);
@@ -956,18 +956,20 @@ bool Scene::loadScene(const Common::String &filename) {
 		// load from file rooms\[filename].bg
 		// it's uncompressed 15-bit RGB555 data
 
-		Common::String roomBackgroundFilename = "rooms/" + filename + ".bg";
+		Common::Path roomBackgroundFilename("rooms/");
+		roomBackgroundFilename.appendInPlace(filename);
+		roomBackgroundFilename.appendInPlace(".bg");
 		flag = _vm->_res->exists(roomBackgroundFilename);
 		if (!flag)
-			error("loadScene: 3DO room background file not found (%s)", roomBackgroundFilename.c_str());
+			error("loadScene: 3DO room background file not found (%s)", roomBackgroundFilename.toString().c_str());
 
 		Common::File roomBackgroundStream;
 		if (!roomBackgroundStream.open(roomBackgroundFilename))
-			error("Could not open file - %s", roomBackgroundFilename.c_str());
+			error("Could not open file - %s", roomBackgroundFilename.toString().c_str());
 
 		int totalPixelCount = SHERLOCK_SCREEN_WIDTH * SHERLOCK_SCENE_HEIGHT;
-		uint16 *roomBackgroundDataPtr = NULL;
-		uint16 *pixelSourcePtr = NULL;
+		uint16 *roomBackgroundDataPtr = nullptr;
+		uint16 *pixelSourcePtr = nullptr;
 		uint16 *pixelDestPtr = (uint16 *)screen._backBuffer1.getPixels();
 		uint16  curPixel = 0;
 		uint32  roomBackgroundStreamSize = roomBackgroundStream.size();
@@ -1058,7 +1060,7 @@ void Scene::loadSceneSounds() {
 	Sound &sound = *_vm->_sound;
 
 	for (uint idx = 0; idx < _sounds.size(); ++idx)
-		sound.loadSound(_sounds[idx]._name, _sounds[idx]._priority);
+		sound.loadSound(Common::Path(_sounds[idx]._name), _sounds[idx]._priority);
 }
 
 void Scene::checkSceneStatus() {

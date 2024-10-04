@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,17 +32,17 @@
 
 namespace LastExpress {
 
-HPFArchive::HPFArchive(const Common::String &path) {
+HPFArchive::HPFArchive(const Common::Path &path) {
 	_filename = path;
 
 	// Open a stream to the archive
 	Common::SeekableReadStream *archive = SearchMan.createReadStreamForMember(_filename);
 	if (!archive) {
-		debugC(2, kLastExpressDebugResource, "Error opening file: %s", path.c_str());
+		debugC(2, kLastExpressDebugResource, "Error opening file: %s", path.toString(Common::Path::kNativeSeparator).c_str());
 		return;
 	}
 
-	debugC(2, kLastExpressDebugResource, "Opened archive: %s", path.c_str());
+	debugC(2, kLastExpressDebugResource, "Opened archive: %s", path.toString(Common::Path::kNativeSeparator).c_str());
 
 	// Read header to get the number of files
 	uint32 numFiles = archive->readUint32LE();
@@ -83,7 +82,7 @@ int HPFArchive::listMembers(Common::ArchiveMemberList &list) const {
 	int numMembers = 0;
 
 	for (FileMap::const_iterator i = _files.begin(); i != _files.end(); ++i) {
-		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(i->_key, this)));
+		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(i->_key, *this)));
 		numMembers++;
 	}
 
@@ -91,23 +90,22 @@ int HPFArchive::listMembers(Common::ArchiveMemberList &list) const {
 }
 
 const Common::ArchiveMemberPtr HPFArchive::getMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	if (!hasFile(name))
+	if (!hasFile(path))
 		return Common::ArchiveMemberPtr();
 
-	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
+	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(path, *this));
 }
 
 Common::SeekableReadStream *HPFArchive::createReadStreamForMember(const Common::Path &path) const {
 	Common::String name = path.toString();
 	FileMap::const_iterator fDesc = _files.find(name);
 	if (fDesc == _files.end())
-		return NULL;
+		return nullptr;
 
 	Common::File *archive = new Common::File();
 	if (!archive->open(_filename)) {
 		delete archive;
-		return NULL;
+		return nullptr;
 	}
 
 	return new Common::SeekableSubReadStream(archive, fDesc->_value.offset * _archiveSectorSize, fDesc->_value.offset * _archiveSectorSize + fDesc->_value.size * _archiveSectorSize, DisposeAfterUse::YES);

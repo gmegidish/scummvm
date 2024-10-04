@@ -5,9 +5,10 @@
 *.o
 *.o.tmp
 *.dwo
-scummvm.dwp
+*.dwp
 lib*.a
 .deps
+*_pch.cpp
 
 /config.log
 /scummvm
@@ -39,6 +40,7 @@ lib*.a
 /*.bnr
 /romfs
 /dist_3ds
+/dist-generic
 /.project
 /.cproject
 /.settings
@@ -81,12 +83,10 @@ lib*.a
 /backends/platform/dc/SCUMMVM.BIN
 /backends/platform/dc/*.PLG
 
-/backends/platform/maemo/scummvm
+/backends/platform/ds/gfx/*.s
+/backends/platform/ds/gfx/*.h
 
-/backends/platform/symbian/mmp/*.mmp
-/backends/platform/symbian/*/ScummVM_*.mmp
-!/backends/platform/symbian/*/ScummVM_*_App.mmp
-/backends/platform/symbian/*/BLD.INF
+/backends/platform/maemo/scummvm
 
 /dists/rpl.exe
 
@@ -102,12 +102,10 @@ lib*.a
 #Ignore XCode user data and build files
 xcuserdata
 project.xcworkspace
-/dists/iphone/build
-/dists/iphone/scummvm.xcodeproj
-/dists/iphone/create_project
 /dists/macosx/build
 /dists/macosx/scummvm.xcodeproj
 /dists/macosx/create_project
+/dists/ios7/create_project
 /devtools/create_project/xcode/build
 
 /dists/msvc/[Dd]ebug*/
@@ -122,6 +120,8 @@ project.xcworkspace
 /dists/engine-data/testbed-audiocd-files/testbed.config
 /dists/engine-data/testbed-audiocd-files/testbed.out
 /dists/engine-data/playground3d
+
+/dists/scummvm_rc_*.rh
 
 
 /doc/*.aux
@@ -145,8 +145,11 @@ project.xcworkspace
 /devtools/convbdf
 /devtools/convbdf.dSYM
 /devtools/md5table
+/devtools/md5table.dSYM
 /devtools/make-scumm-fontdata
+/devtools/make-scumm-fontdata.dSYM
 /devtools/create_access/create_access
+/devtools/create_engine/create_engine
 /devtools/create_cryo/create_cryo_dat
 /devtools/create_cryomni3d/create_cryomni3d_dat
 /devtools/create_drascula/create_drascula
@@ -154,8 +157,11 @@ project.xcworkspace
 /devtools/create_hugo/create_hugo
 /devtools/create_kyradat/create_kyradat
 /devtools/create_lure/create_lure
+/devtools/create_mm/create_xeen/create_mm
+/devtools/create_mm/create_xeen/create_xeen
 /devtools/create_mortdat/create_mortdat
 /devtools/create_myst3/create_myst3
+/devtools/create_nancy/create_nancy
 /devtools/create_neverhood/create_neverhood
 /devtools/create_project/create_project
 /devtools/create_supernova/create_supernova
@@ -166,12 +172,13 @@ project.xcworkspace
 /devtools/create_toon/create_toon
 /devtools/create_translations/create_translations
 /devtools/create_ultima/create_ultima
-/devtools/create_xeen/create_xeen
 /devtools/extract_mort/extract_mort
 /devtools/qtable/qtable
 /devtools/skycpt/skycpt
 
-#ignore thumbnails created by windows
+/snapshots
+
+#Ignore thumbnails created by Windows
 Thumbs.db
 #Ignore files build by Visual Studio
 *.obj
@@ -230,6 +237,8 @@ ScummVM.config
 ScummVM.creator
 ScummVM.files
 ScummVM.includes
+ScummVM.cflags
+ScummVM.cxxflags
 
 #Ignore Komodo IDE/Edit project files
 *.komodoproject
@@ -287,3 +296,7 @@ android_project
 dists/emscripten/libs/
 dists/emscripten/games/
 dists/emscripten/emsdk-*
+
+#Ignore Atari/FreeMiNT files
+scummvm.gtp
+scummvm.ttp

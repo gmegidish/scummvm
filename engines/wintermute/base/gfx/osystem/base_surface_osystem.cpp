@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,15 +32,17 @@
 #include "engines/wintermute/base/gfx/osystem/base_render_osystem.h"
 #include "engines/wintermute/base/gfx/base_image.h"
 #include "engines/wintermute/platform_osystem.h"
-#include "graphics/transparent_surface.h"
+
+#include "graphics/managed_surface.h"
 #include "graphics/transform_tools.h"
 #include "graphics/pixelformat.h"
 #include "graphics/surface.h"
+
 #include "common/stream.h"
 #include "common/system.h"
 
 #define TS_COLOR(wmeColor) \
-	TS_ARGB(RGBCOLGetA(wmeColor), RGBCOLGetR(wmeColor), RGBCOLGetG(wmeColor), RGBCOLGetB(wmeColor))
+	MS_ARGB(RGBCOLGetA(wmeColor), RGBCOLGetR(wmeColor), RGBCOLGetG(wmeColor), RGBCOLGetB(wmeColor))
 
 namespace Wintermute {
 
@@ -70,39 +71,6 @@ BaseSurfaceOSystem::~BaseSurfaceOSystem() {
 	_gameRef->addMem(-_width * _height * 4);
 	BaseRenderOSystem *renderer = static_cast<BaseRenderOSystem *>(_gameRef->_renderer);
 	renderer->invalidateTicketsFromSurface(this);
-}
-
-Graphics::AlphaType hasTransparencyType(const Graphics::Surface *surf) {
-	if (surf->format.bytesPerPixel != 4) {
-		warning("hasTransparencyType:: non 32 bpp surface passed as argument");
-		return Graphics::ALPHA_OPAQUE;
-	}
-	uint8 r, g, b, a;
-	bool seenAlpha = false;
-	bool seenFullAlpha = false;
-	for (int i = 0; i < surf->h; i++) {
-		if (seenFullAlpha) {
-			break;
-		}
-		for (int j = 0; j < surf->w; j++) {
-			uint32 pix = *(const uint32 *)surf->getBasePtr(j, i);
-			surf->format.colorToARGB(pix, a, r, g, b);
-			if (a != 255) {
-				seenAlpha = true;
-				if (a != 0) {
-					seenFullAlpha = true;
-					break;
-				}
-			}
-		}
-	}
-	if (seenFullAlpha) {
-		return Graphics::ALPHA_FULL;
-	} else if (seenAlpha) {
-		return Graphics::ALPHA_BINARY;
-	} else {
-		return Graphics::ALPHA_OPAQUE;
-	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -184,11 +152,10 @@ bool BaseSurfaceOSystem::finishLoad() {
 	}
 
 	if (needsColorKey) {
-		Graphics::TransparentSurface trans(*_surface);
-		trans.applyColorKey(_ckRed, _ckGreen, _ckBlue, replaceAlpha);
+		_surface->applyColorKey(_ckRed, _ckGreen, _ckBlue, replaceAlpha);
 	}
 
-	_alphaType = hasTransparencyType(_surface);
+	_alphaType = _surface->detectAlpha();
 	_valid = true;
 
 	_gameRef->addMem(_width * _height * 4);
@@ -353,13 +320,11 @@ bool BaseSurfaceOSystem::endPixelOp() {
 	return STATUS_OK;
 }
 
-
 //////////////////////////////////////////////////////////////////////////
 bool BaseSurfaceOSystem::display(int x, int y, Rect32 rect, Graphics::TSpriteBlendMode blendMode, bool mirrorX, bool mirrorY) {
 	_rotation = 0;
 	return drawSprite(x, y, &rect, nullptr, Graphics::TransformStruct(Graphics::kDefaultZoomX, Graphics::kDefaultZoomY,  mirrorX, mirrorY));
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 bool BaseSurfaceOSystem::displayTrans(int x, int y, Rect32 rect, uint32 alpha, Graphics::TSpriteBlendMode blendMode, bool mirrorX, bool mirrorY, int offsetX, int offsetY) {
@@ -372,7 +337,6 @@ bool BaseSurfaceOSystem::displayTransZoom(int x, int y, Rect32 rect, float zoomX
 	_rotation = 0;
 	return drawSprite(x, y, &rect, nullptr, Graphics::TransformStruct((int32)zoomX, (int32)zoomY, blendMode, TS_COLOR(alpha), mirrorX, mirrorY));
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 bool BaseSurfaceOSystem::displayTransRotate(int x, int y, uint32 angle, int32 hotspotX, int32 hotspotY, Rect32 rect, float zoomX, float zoomY, uint32 alpha, Graphics::TSpriteBlendMode blendMode, bool mirrorX, bool mirrorY) {
@@ -399,7 +363,6 @@ bool BaseSurfaceOSystem::displayTiled(int x, int y, Rect32 rect, int numTimesX, 
 	Graphics::TransformStruct transform(numTimesX, numTimesY);
 	return drawSprite(x, y, &rect, nullptr, transform);
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 bool BaseSurfaceOSystem::drawSprite(int x, int y, Rect32 *rect, Rect32 *newRect, Graphics::TransformStruct transform) {

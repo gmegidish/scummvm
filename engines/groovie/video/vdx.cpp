@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@
 #include "audio/audiostream.h"
 #include "audio/mixer.h"
 #include "audio/decoders/raw.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 
 #define TILE_SIZE 4			// Size of each tile on the image: only ever seen 4 so far
 #define VDX_IDENT 0x9267	// 37479
@@ -60,7 +59,7 @@ void VDXPlayer::stopAudioStream() {
 	if (_audioStream) {
 		g_system->getMixer()->stopHandle(_soundHandle);
 	}
-	_audioStream = NULL;
+	_audioStream = nullptr;
 }
 
 uint16 VDXPlayer::loadInternal() {
@@ -126,18 +125,18 @@ uint16 VDXPlayer::loadInternal() {
 
 	// Skip unknown data: 6 bytes, ref Martine
 	tmp = _file->readUint16LE();
-	debugC(2, kDebugVideo | kDebugUnknown, "Groovie::VDX: Martine1 = 0x%04X", tmp);
+	debugC(2, kDebugVideo, "Groovie::VDX: Martine1 = 0x%04X", tmp);
 	tmp = _file->readUint16LE();
-	debugC(2, kDebugVideo | kDebugUnknown, "Groovie::VDX: Martine2 = 0x%04X", tmp);
+	debugC(2, kDebugVideo, "Groovie::VDX: Martine2 = 0x%04X", tmp);
 	tmp = _file->readUint16LE();
-	debugC(2, kDebugVideo | kDebugUnknown, "Groovie::VDX: Martine3 (FPS?) = %d", tmp);
+	debugC(2, kDebugVideo, "Groovie::VDX: Martine3 (FPS?) = %d", tmp);
 
 	return tmp;
 }
 
 bool VDXPlayer::playFrameInternal() {
 	byte currRes = 0x80;
-	Common::ReadStream *vdxData = 0;
+	Common::ReadStream *vdxData = nullptr;
 	while (currRes == 0x80) {
 		currRes = _file->readByte();
 
@@ -151,7 +150,7 @@ bool VDXPlayer::playFrameInternal() {
 		if (_file->eos())
 			break;
 
-		debugC(5, kDebugVideo | kDebugUnknown, "Groovie::VDX: Edward = 0x%04X", tmp);
+		debugC(5, kDebugVideo, "Groovie::VDX: Edward = 0x%04X", tmp);
 
 		// Read the chunk data and decompress if needed
 		if (compSize)
@@ -184,7 +183,7 @@ bool VDXPlayer::playFrameInternal() {
 				error("Groovie::VDX: Invalid resource type: %d", currRes);
 		}
 		delete vdxData;
-		vdxData = 0;
+		vdxData = nullptr;
 	}
 
 	// Wait until the current frame can be shown
@@ -411,7 +410,10 @@ void VDXPlayer::getStill(Common::ReadStream *in) {
 		// Apply the palette
 		if (_flagNine) {
 			// Flag 9 starts a fade in
-			fadeIn(_palBuf);
+			if (!isFastForwarding())
+				fadeIn(_palBuf);
+			else
+				setPalette(_palBuf);
 		} else {
 			if (!_flagOne && !_flagSeven) {
 				// Actually apply the palette
@@ -505,7 +507,7 @@ void VDXPlayer::decodeBlockDelta(uint32 offset, byte *colors, uint16 imageWidth)
 	// Move the pointers to the beginning of the current block
 	int32 blockOff = _origX + _origY * imageWidth;
 	dest += blockOff;
-	byte *fgBuf = 0;
+	byte *fgBuf = nullptr;
 	if (_flagSeven) {
 		fgBuf = (byte *)_fg->getPixels() + offset + blockOff;
 		//byte *bgBuf = (byte *)_bg->getPixels() + offset + blockOff;
@@ -560,7 +562,7 @@ void VDXPlayer::fadeIn(uint8 *targetpal) {
 	if (_flagSkipPalette)
 		return;
 
-	// TODO: Is it required? If so, move to an appropiate place
+	// TODO: Is it required? If so, move to an appropriate place
 	// Copy the foreground to the background
 	memcpy((byte *)_vm->_graphicsMan->_foreground.getPixels(), (byte *)_vm->_graphicsMan->_background.getPixels(), 640 * 320);
 

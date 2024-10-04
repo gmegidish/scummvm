@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,8 +33,8 @@ int convert_to_utf32(unsigned char *text);
 
 uint                status_width, status_height;
 
-schanid_t           sound_channel[8] = { NULL, NULL, NULL, NULL,
-										 NULL, NULL, NULL, NULL
+schanid_t           sound_channel[8] = { nullptr, nullptr, nullptr, nullptr,
+										 nullptr, nullptr, nullptr, nullptr
 									   };
 
 event_t             *cancelled_event;
@@ -89,7 +88,7 @@ char            oops_buffer[1024];
 char            oopsed_current[1024];
 char            last_command[1024];
 const char      *blank_command = "blankjacl\0";
-const char      *current_command = (const char *)NULL;
+const char      *current_command = (const char *)nullptr;
 char            command_buffer[1024];
 #ifndef NOUNICODE
 glui32          command_buffer_uni[1024];
@@ -105,15 +104,15 @@ int             objects, integers, functions, strings;
 int             jpp_error = FALSE;
 
 /* A STREAM FOR THE GAME FILE, WHEN IT'S OPEN. */
-strid_t         game_stream = NULL;
+strid_t         game_stream = nullptr;
 
 /* THE STREAM FOR OPENING UP THE ARCHIVE CONTAINING GRAPHICS AND SOUND */
 strid_t             blorb_stream;
 
 /* A FILE REFERENCE FOR THE TRANSCRIPT FILE. */
-static frefid_t script_fref = NULL;
+static frefid_t script_fref = nullptr;
 /* A STREAM FOR THE TRANSCRIPT FILE, WHEN IT'S OPEN. */
-static strid_t script_stream = NULL;
+static strid_t script_stream = nullptr;
 
 int             noun[4];
 int             player = 0;
@@ -133,17 +132,17 @@ int             delay = 0;
 /* START OF GLK STUFF */
 
 /* POINTERS TO THE GLK WINDOWS */
-winid_t mainwin = NULL;
-winid_t statuswin = NULL;
-winid_t promptwin = NULL;
-winid_t inputwin = NULL;
-winid_t current_window = NULL;
+winid_t mainwin = nullptr;
+winid_t statuswin = nullptr;
+winid_t promptwin = nullptr;
+winid_t inputwin = nullptr;
+winid_t current_window = nullptr;
 
 /* POINTERS TO THE WINDOWS STREAMS */
-strid_t mainstr = NULL;
-strid_t statusstr = NULL;
-strid_t promptstr = NULL;
-strid_t inputstr = NULL;
+strid_t mainstr = nullptr;
+strid_t statusstr = nullptr;
+strid_t promptstr = nullptr;
+strid_t inputstr = nullptr;
 
 /* END OF GLK STUFF */
 
@@ -155,18 +154,18 @@ char            game_file[256] = "\0";
 char            processed_file[256] = "\0";
 
 struct object_type *object[MAX_OBJECTS];
-struct integer_type *integer_table = NULL;
-struct cinteger_type *cinteger_table = NULL;
-struct window_type *window_table = NULL;
-struct attribute_type *attribute_table = NULL;
-struct string_type *string_table = NULL;
-struct string_type *cstring_table = NULL;
-struct function_type *function_table = NULL;
-struct function_type *executing_function = NULL;
-struct command_type *completion_list = NULL;
-struct word_type *grammar_table = NULL;
-struct synonym_type *synonym_table = NULL;
-struct filter_type *filter_table = NULL;
+struct integer_type *integer_table = nullptr;
+struct cinteger_type *cinteger_table = nullptr;
+struct window_type *window_table = nullptr;
+struct attribute_type *attribute_table = nullptr;
+struct string_type *string_table = nullptr;
+struct string_type *cstring_table = nullptr;
+struct function_type *function_table = nullptr;
+struct function_type *executing_function = nullptr;
+struct command_type *completion_list = nullptr;
+struct word_type *grammar_table = nullptr;
+struct synonym_type *synonym_table = nullptr;
+struct filter_type *filter_table = nullptr;
 
 // Forward declarations
 static void word_check();
@@ -179,7 +178,7 @@ void glk_main() {
 	override_[0] = 0;
 
 	/* ALLOC AN EVENT TO STORE A CANCELLED EVENT IN */
-	if ((cancelled_event = (event_t *) malloc(sizeof(event_t))) == NULL)
+	if ((cancelled_event = (event_t *) malloc(sizeof(event_t))) == nullptr)
 		outofmem();
 
 	/* CREATE style_User1 FOR USE IN THE STATUS LINE */
@@ -187,7 +186,7 @@ void glk_main() {
 	g_vm->glk_stylehint_set(wintype_TextBuffer, style_User2, stylehint_ReverseColor, 1);
 
 	/* OPEN THE MAIN WINDOW THE GLK WINDOWS */
-	mainwin = g_vm->glk_window_open(0, 0, 0, wintype_TextBuffer, 1);
+	mainwin = g_vm->glk_window_open(nullptr, 0, 0, wintype_TextBuffer, 1);
 
 	if (!mainwin) {
 		/* IT'S POSSIBLE THAT THE MAIN WINDOW FAILED TO OPEN. THERE's
@@ -206,7 +205,7 @@ void glk_main() {
 	//promptwin = g_vm->glk_window_open(mainwin, winmethod_Below | winmethod_Fixed,
 	//    3, wintype_TextBuffer, 0);
 
-	/* SET THIS TO DETERMINE THE SYTEM OF INPUT TO USE */
+	/* SET THIS TO DETERMINE THE SYSTEM OF INPUT TO USE */
 	//inputwin = promptwin;
 	inputwin = mainwin;
 
@@ -232,7 +231,7 @@ void glk_main() {
 	                                  0, wintype_TextGrid, 0);
 
 	// GET A REFERENCE TO statuswin's STREAM
-	if (statuswin != NULL) {
+	if (statuswin != nullptr) {
 		statusstr = g_vm->glk_window_get_stream(statuswin);
 	}
 
@@ -240,7 +239,7 @@ void glk_main() {
 	if ((resolved_string = cstring_resolve("game_title")) != NULL) {
 		wing_vm->glk_window_set_title(resolved_string->value);
 	} else {
-		sprintf(temp_buffer, "JACL v%d.%d.%d ", J_VERSION, J_RELEASE, J_BUILD);
+		Common::sprintf_s(temp_buffer, "JACL v%d.%d.%d ", J_VERSION, J_RELEASE, J_BUILD);
 		wing_vm->glk_window_set_title(temp_buffer);
 	}
 #endif
@@ -256,7 +255,7 @@ void glk_main() {
 
 	execute("+intro");
 
-	if (object[2] == NULL) {
+	if (object[2] == nullptr) {
 		log_error(CANT_RUN, PLUS_STDERR);
 		terminate(43);
 		return;
@@ -283,8 +282,8 @@ void glk_main() {
 
 		status_line();
 
-		if (current_command != NULL) {
-			strcpy(last_command, current_command);
+		if (current_command != nullptr) {
+			Common::strcpy_s(last_command, current_command);
 		}
 
 		if (inputwin == promptwin) {
@@ -343,7 +342,7 @@ void glk_main() {
 					/* A SOUND HAS FINISHED PLAYING CALL +sound_finished
 					 * WITH THE RESOUCE NUMBER AS THE FIRST ARGUMENT
 					 * AND THE CHANNEL NUMBER AS THE SECOND ARGUMENT */
-					sprintf(temp_buffer, "+sound_finished<%d<%d", (int) ev.val1, (int) ev.val2 - 1);
+					Common::sprintf_s(temp_buffer, "+sound_finished<%d<%d", (int) ev.val1, (int) ev.val2 - 1);
 					execute(temp_buffer);
 					break;
 
@@ -405,7 +404,7 @@ void glk_main() {
 		if (text_buffer[0] == 0) {
 			/* NO COMMAND WAS SPECIFIED, FILL THE COMMAND IN AS 'blankjacl'
 			 * FOR THE GAME TO PROCESS AS DESIRED */
-			strcpy(text_buffer, "blankjacl");
+			Common::strcpy_s(text_buffer, 1024, "blankjacl");
 			current_command = blank_command;
 		}
 
@@ -420,7 +419,7 @@ void glk_main() {
 
 		interrupted = FALSE;
 
-		if (word[0] != NULL) {
+		if (word[0] != nullptr) {
 			if (strcmp(word[0], "undo")) {
 				/* COMMAND DOES NOT EQUAL undo */
 				save_game_state();
@@ -439,7 +438,7 @@ void glk_main() {
 		} else {
 			/* NO COMMAND WAS SPECIFIED, FILL THE COMMAND IN AS 'blankjacl'
 			 * FOR THE GAME TO PROCESS AS DESIRED */
-			strcpy(text_buffer, "blankjacl");
+			Common::strcpy_s(text_buffer, 1024, "blankjacl");
 			command_encapsulate();
 			preparse();
 		}
@@ -451,7 +450,7 @@ void preparse() {
 
 	// THE INTERRUPTED VARIABLE IS USED TO STOP LATER ACTIONS IN A COMMAND
 	// IF ANY ONE
-	while (word[wp] != NULL && INTERRUPTED->value == FALSE) {
+	while (word[wp] != nullptr && INTERRUPTED->value == FALSE) {
 		//printf("--- preparse %s\n", word[wp]);
 		// PROCESS THE CURRENT COMMAND
 		// CREATE THE command STRINGS FROM THIS POINT ONWARDS SO THE VERB OF
@@ -461,7 +460,7 @@ void preparse() {
 
 		position = wp;
 
-		while (word[position] != NULL && strcmp(word[position], cstring_resolve("THEN_WORD")->value)) {
+		while (word[position] != nullptr && strcmp(word[position], cstring_resolve("THEN_WORD")->value)) {
 			add_cstring("command", word[position]);
 			position++;
 		};
@@ -470,8 +469,8 @@ void preparse() {
 		word_check();
 
 		/* THE PREVIOUS COMMAND HAS FINISHED, LOOK FOR ANOTHER COMMAND */
-		while (word[wp] != NULL) {
-			if (word[wp] != NULL && !strcmp(word[wp], cstring_resolve("THEN_WORD")->value)) {
+		while (word[wp] != nullptr) {
+			if (word[wp] != nullptr && !strcmp(word[wp], cstring_resolve("THEN_WORD")->value)) {
 				wp++;
 				break;
 			}
@@ -521,7 +520,7 @@ void word_check() {
 		}
 	} else if (!strcmp(word[wp], cstring_resolve("OOPS_WORD")->value) || !strcmp(word[wp], "o")) {
 		//printf("--- oops word is %d\n", oops_word);
-		if (word[++wp] != NULL) {
+		if (word[++wp] != nullptr) {
 			if (oops_word == -1) {
 				if (TOTAL_MOVES->value == 0) {
 					write_text(cstring_resolve("NO_MOVES")->value);
@@ -531,8 +530,8 @@ void word_check() {
 					TIME->value = FALSE;
 				}
 			} else {
-				strcpy(oops_buffer, word[wp]);
-				strcpy(text_buffer, last_command);
+				Common::strcpy_s(oops_buffer, word[wp]);
+				Common::strcpy_s(text_buffer, 1024, last_command);
 				command_encapsulate();
 				//printf("--- trying to replace %s with %s\n", word[oops_word], oops_buffer);
 				jacl_truncate();
@@ -542,12 +541,12 @@ void word_check() {
 				oopsed_current[0] = 0;
 				index = 0;
 
-				while (word[index] != NULL) {
+				while (word[index] != nullptr) {
 					if (oopsed_current[0] != 0) {
-						strcat(oopsed_current, " ");
+						Common::strcat_s(oopsed_current, " ");
 					}
 
-					strcat(oopsed_current, word[index]);
+					Common::strcat_s(oopsed_current, word[index]);
 
 					index++;
 				}
@@ -571,7 +570,7 @@ void word_check() {
 			write_text(cstring_resolve("NOT_CLEVER")->value);
 			TIME->value = FALSE;
 		} else {
-			strcpy(text_buffer, last_command);
+			Common::strcpy_s(text_buffer, 1024, last_command);
 			current_command = last_command;
 			command_encapsulate();
 			jacl_truncate();
@@ -587,9 +586,9 @@ void word_check() {
 		} else {
 			/* Close the file. */
 			g_vm->glk_put_string_stream(script_stream, "\nEND OF A TRANSCRIPT\n");
-			g_vm->glk_stream_close(script_stream, NULL);
+			g_vm->glk_stream_close(script_stream, nullptr);
 			write_text(cstring_resolve("SCRIPTING_OFF")->value);
-			script_stream = NULL;
+			script_stream = nullptr;
 		}
 	} else if (!strcmp(word[wp], cstring_resolve("WALKTHRU_WORD")->value)) {
 		walking_thru();
@@ -597,7 +596,7 @@ void word_check() {
 		version_info();
 		write_text("you can redistribute it and/or modify it under the ");
 		write_text("terms of the GNU General Public License as published by ");
-		write_text("the Free Software Foundation; either version 2 of the ");
+		write_text("the Free Software Foundation; either version 3 of the ");
 		write_text("License, or any later version.^^");
 		write_text("This program is distributed in the hope that it will be ");
 		write_text("useful, but WITHOUT ANY WARRANTY; without even the ");
@@ -608,7 +607,7 @@ void word_check() {
 		write_text("Public License along with this program; if not, write ");
 		write_text("to the Free Software Foundation, Inc., 675 Mass Ave, ");
 		write_text("Cambridge, MA 02139, USA.^^");
-		sprintf(temp_buffer, "OBJECTS DEFINED:   %d^", objects);
+		Common::sprintf_s(temp_buffer, "OBJECTS DEFINED:   %d^", objects);
 		write_text(temp_buffer);
 		TIME->value = FALSE;
 	} else {
@@ -625,10 +624,10 @@ void word_check() {
 void version_info() {
 	char            buffer[80];
 
-	sprintf(buffer, "JACL Interpreter v%d.%d.%d ", J_VERSION, J_RELEASE,
+	Common::sprintf_s(buffer, "JACL Interpreter v%d.%d.%d ", J_VERSION, J_RELEASE,
 	        J_BUILD);
 	write_text(buffer);
-	sprintf(buffer, "/ %d object.^", MAX_OBJECTS);
+	Common::sprintf_s(buffer, "/ %d object.^", MAX_OBJECTS);
 	write_text(buffer);
 	write_text("Copyright (c) 1992-2010 Stuart Allen.^^");
 }
@@ -645,12 +644,12 @@ void save_game_state() {
 	do {
 		current_function->call_count_backup = current_function->call_count;
 		current_function = current_function->next_function;
-	} while (current_function != NULL);
+	} while (current_function != nullptr);
 
 	do {
 		current_integer->value_backup = current_integer->value;
 		current_integer = current_integer->next_integer;
-	} while (current_integer != NULL);
+	} while (current_integer != nullptr);
 
 	for (index = 1; index <= objects; index++) {
 		if (object[index]->nosave)
@@ -690,13 +689,13 @@ void restore_game_state() {
 	do {
 		current_function->call_count = current_function->call_count_backup;
 		current_function = current_function->next_function;
-	} while (current_function != NULL);
+	} while (current_function != nullptr);
 
 
 	do {
 		current_integer->value = current_integer->value_backup;
 		current_integer = current_integer->next_integer;
-	} while (current_integer != NULL);
+	} while (current_integer != nullptr);
 
 	for (index = 1; index <= objects; index++) {
 		if (object[index]->nosave)
@@ -803,7 +802,7 @@ void status_line() {
 
 		/* BUILD THE SCORE/ MOVES STRING */
 		temp_buffer[0] = 0;
-		sprintf(temp_buffer, "Score: %d  Moves: %d", SCORE->value, TOTAL_MOVES->value);
+		Common::sprintf_s(temp_buffer, "Score: %d  Moves: %d", SCORE->value, TOTAL_MOVES->value);
 
 		cursor = status_width - strlen(temp_buffer);
 		cursor--;
@@ -869,7 +868,7 @@ int get_number(int insist, int low, int high) {
 
 	status_line();
 
-	sprintf(temp_buffer, cstring_resolve("TYPE_NUMBER")->value, low, high);
+	Common::sprintf_s(temp_buffer, cstring_resolve("TYPE_NUMBER")->value, low, high);
 
 	/* THIS LOOP IS IDENTICAL TO THE MAIN COMMAND LOOP IN g_vm->glk_main(). */
 
@@ -1096,7 +1095,7 @@ strid_t open_glk_file(uint usage, uint mode, char *filename) {
 		}
 	}
 
-	return (strid_t) NULL;
+	return (strid_t) nullptr;
 }
 
 void scripting() {
@@ -1147,10 +1146,10 @@ void walking_thru() {
 	char script_line[81];
 
 	/* A FILE REFERENCE FOR THE WALKTHRU FILE. */
-	frefid_t walkthru_fref = NULL;
+	frefid_t walkthru_fref = nullptr;
 
 	/* A STREAM FOR THE WALKTHRU FILE, WHEN IT'S OPEN. */
-	strid_t walkthru_stream = NULL;
+	strid_t walkthru_stream = nullptr;
 
 	walkthru_fref = g_vm->glk_fileref_create_by_prompt(fileusage_Data | fileusage_TextMode, filemode_Read, 0);
 
@@ -1187,7 +1186,7 @@ void walking_thru() {
 		}
 	}
 
-	strcpy(script_line, text_buffer);
+	Common::strcpy_s(script_line, text_buffer);
 
 	while (result && INTERRUPTED->value == FALSE) {
 		/* THERE COULD BE A LOT OF PROCESSING GOING ON HERE BEFORE GETTING
@@ -1195,7 +1194,7 @@ void walking_thru() {
 		g_vm->glk_tick();
 		command_encapsulate();
 		jacl_truncate();
-		if (word[0] != NULL) {
+		if (word[0] != nullptr) {
 			custom_error = FALSE;
 
 			execute("+bottom");
@@ -1223,11 +1222,11 @@ void walking_thru() {
 			}
 		}
 
-		strcpy(script_line, text_buffer);
+		Common::strcpy_s(script_line, text_buffer);
 	}
 
 	/* CLOSE THE STREAM */
-	g_vm->glk_stream_close(walkthru_stream, NULL);
+	g_vm->glk_stream_close(walkthru_stream, nullptr);
 
 	/* FINISH UP */
 	walkthru_running = FALSE;
@@ -1288,7 +1287,7 @@ const char *object_generator(const char *text, int state) {
 	static int len;
 	static struct command_type *now;
 	struct command_type *to_send;
-	struct name_type *current_name = (struct name_type *) NULL;
+	struct name_type *current_name = (struct name_type *) nullptr;
 
 	/* IF THIS IS A NEW WORD TO COMPLETE, INITIALIZE NOW. THIS INCLUDES
 	SAVING THE LENGTH OF TEXT FOR EFFICIENCY, AND INITIALIZING THE INDEX
@@ -1297,7 +1296,7 @@ const char *object_generator(const char *text, int state) {
 	if (!state) {
 		/* BUILD THE LIST */
 		int index;
-		completion_list = NULL;
+		completion_list = nullptr;
 
 		/* LOOP THROUGH ALL THE OBJECTS AND SEE IF THEY ARE IN
 		   THE CURRENT LOCATION */
@@ -1316,7 +1315,7 @@ const char *object_generator(const char *text, int state) {
 		len = strlen(text);
 	}
 
-	while (now != NULL) {
+	while (now != nullptr) {
 		if (!strncmp(text, now->word, len)) {
 			to_send = now;
 			now = now->next;
@@ -1325,7 +1324,7 @@ const char *object_generator(const char *text, int state) {
 		now = now->next;
 	}
 
-	return (const char *)NULL;
+	return (const char *)nullptr;
 }
 
 const char *verb_generator(const char *text, int state) {
@@ -1340,10 +1339,10 @@ const char *verb_generator(const char *text, int state) {
 
 	if (!state) {
 		/* BUILD THE LIST */
-		completion_list = NULL;
+		completion_list = nullptr;
 
 		pointer = grammar_table;
-		while (pointer != NULL) {
+		while (pointer != nullptr) {
 			add_word(pointer->word);
 			pointer = pointer->next_sibling;
 		}
@@ -1354,7 +1353,7 @@ const char *verb_generator(const char *text, int state) {
 		len = strlen(text);
 	}
 
-	while (now != NULL) {
+	while (now != nullptr) {
 		if (!strncmp(text, now->word, len)) {
 			to_send = now;
 			now = now->next;
@@ -1365,34 +1364,34 @@ const char *verb_generator(const char *text, int state) {
 		now = now->next;
 	}
 
-	return (const char *)NULL;
+	return (const char *)nullptr;
 }
 
 /* ADD A COPY OF STRING TO A LIST OF STRINGS IF IT IS NOT
    ALREADY IN THE LIST. THIS IS FOR THE USE OF READLINE */
 void add_word(const char *newWord) {
-	static struct command_type *current_word = NULL;
-	struct command_type *previous_word = NULL;
+	static struct command_type *current_word = nullptr;
+	struct command_type *previous_word = nullptr;
 
 	/* DON'T ADD WORDS SUCH AS *present TO THE LIST*/
 	if (*newWord == '*')
 		return;
 
-	if (current_word != NULL)
+	if (current_word != nullptr)
 		previous_word = current_word;
 
 	current_word = (struct command_type *) malloc(sizeof(struct command_type));
 
-	if (current_word != NULL) {
-		if (completion_list == NULL) {
+	if (current_word != nullptr) {
+		if (completion_list == nullptr) {
 			completion_list = current_word;
 		}
 
 		strncpy(current_word->word, newWord, 40);
 		current_word->word[40] = 0;
-		current_word->next = NULL;
+		current_word->next = nullptr;
 
-		if (previous_word != NULL) {
+		if (previous_word != nullptr) {
 			previous_word->next = current_word;
 		}
 	}

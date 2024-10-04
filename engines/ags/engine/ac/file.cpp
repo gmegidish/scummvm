@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -63,6 +62,9 @@ int File_Exists(const char *fnmm) {
 	if (!ResolveScriptPath(fnmm, true, rp))
 		return 0;
 
+	if (rp.AssetMgr)
+		return _GP(AssetMgr)->DoesAssetExist(rp.FullPath);
+
 	return (File::TestReadFile(rp.FullPath) || File::TestReadFile(rp.AltPath)) ? 1 : 0;
 }
 
@@ -108,34 +110,58 @@ void File_WriteRawChar(sc_File *fil, int towrite) {
 	FileWriteRawChar(fil->handle, towrite);
 }
 
+void File_WriteRawInt(sc_File *fil, int towrite) {
+	Stream *out = get_valid_file_stream_from_handle(fil->handle, "FileWriteRawInt");
+	out->WriteInt32(towrite);
+}
+
 void File_WriteRawLine(sc_File *fil, const char *towrite) {
 	FileWriteRawLine(fil->handle, towrite);
 }
 
-void File_ReadRawLine(sc_File *fil, char *buffer) {
+// Reads line of chars until linebreak is met or buffer is filled;
+// returns whether reached the end of line (false in case not enough buffer);
+// guarantees null-terminator in the buffer.
+static bool File_ReadRawLineImpl(sc_File *fil, char *buffer, size_t buf_len) {
+	if (buf_len == 0) return false;
 	Stream *in = get_valid_file_stream_from_handle(fil->handle, "File.ReadRawLine");
-	check_strlen(buffer);
-	int i = 0;
-	while (i < _G(MAXSTRLEN) - 1) {
-		buffer[i] = in->ReadInt8();
-		if (buffer[i] == '\r') {
-			// CR -- skip LF and abort
-			in->ReadInt8();
-			break;
+	for (size_t i = 0; i < buf_len - 1; ++i) {
+		int c = in->ReadByte();
+		if (c < 0 || c == '\n') // EOF or LF
+		{
+			buffer[i] = 0;
+			return true;
 		}
-		if (buffer[i] == '\n')  // LF only -- abort
-			break;
-		if (in->EOS())  // EOF -- abort
-			break;
-		i++;
+		if (c == '\r') // CR or CRLF
+		{
+			c = in->ReadByte();
+			// Look for '\n', but it may be missing, which is also a valid case
+			if (c >= 0 && c != '\n') in->Seek(-1, kSeekCurrent);
+			buffer[i] = 0;
+			return true;
+		}
+		buffer[i] = c;
 	}
-	buffer[i] = 0;
+	buffer[buf_len - 1] = 0;
+	return false; // not enough buffer
+}
+
+void File_ReadRawLine(sc_File *fil, char *buffer) {
+	check_strlen(buffer);
+	File_ReadRawLineImpl(fil, buffer, _G(MAXSTRLEN));
 }
 
 const char *File_ReadRawLineBack(sc_File *fil) {
-	char readbuffer[MAX_MAXSTRLEN + 1];
-	File_ReadRawLine(fil, readbuffer);
-	return CreateNewScriptString(readbuffer);
+	char readbuffer[MAX_MAXSTRLEN];
+	if (File_ReadRawLineImpl(fil, readbuffer, MAX_MAXSTRLEN))
+		return CreateNewScriptString(readbuffer);
+	String sbuf = readbuffer;
+	bool done = false;
+	while (!done) {
+		done = File_ReadRawLineImpl(fil, readbuffer, MAX_MAXSTRLEN);
+		sbuf.Append(readbuffer);
+	};
+	return CreateNewScriptString(sbuf.GetCStr());
 }
 
 void File_ReadString(sc_File *fil, char *toread) {
@@ -207,6 +233,7 @@ const char *GameInstallRootToken = "$INSTALLDIR$";
 const char *UserSavedgamesRootToken = "$MYDOCS$";
 const char *GameSavedgamesDirToken = "$SAVEGAMEDIR$";
 const char *GameDataDirToken = "$APPDATADIR$";
+const char *GameAssetToken = "$DATA$";
 const char *UserConfigFileToken = "$CONFIGFILE$";
 
 void FixupFilename(char *filename) {
@@ -228,6 +255,12 @@ String PathFromInstallDir(const String &path) {
 	return path;
 }
 
+FSLocation PathFromInstallDir(const FSLocation &fsloc) {
+	if (is_relative_filename(fsloc.FullDir))
+		return FSLocation(_GP(ResPaths).DataDir).Rebase(fsloc.FullDir);
+	return fsloc;
+}
+
 String PreparePathForWriting(const FSLocation &fsloc, const String &filename) {
 	if (Directory::CreateAllDirectories(fsloc.BaseDir, fsloc.SubDir))
 		return Path::ConcatPaths(fsloc.FullDir, filename);
@@ -235,67 +268,88 @@ String PreparePathForWriting(const FSLocation &fsloc, const String &filename) {
 }
 
 FSLocation GetGlobalUserConfigDir() {
-	String dir = _G(platform)->GetUserGlobalConfigDirectory();
-	if (Path::IsRelativePath(dir)) // relative dir is resolved relative to the game data dir
-		return FSLocation(_GP(ResPaths).DataDir, dir);
-	return FSLocation(dir);
+	FSLocation dir = _G(platform)->GetUserGlobalConfigDirectory();
+	if (is_relative_filename(dir.FullDir)) // relative dir is resolved relative to the game data dir
+		return FSLocation(_GP(ResPaths).DataDir).Rebase(dir.FullDir);
+	return dir;
 }
 
 FSLocation GetGameUserConfigDir() {
-	String dir = _G(platform)->GetUserConfigDirectory();
-	if (Path::IsRelativePath(dir)) // relative dir is resolved relative to the game data dir
-		return FSLocation(_GP(ResPaths).DataDir, dir);
+	FSLocation dir = _G(platform)->GetUserConfigDirectory();
+	if (is_relative_filename(dir.FullDir)) // relative dir is resolved relative to the game data dir
+		return FSLocation(_GP(ResPaths).DataDir).Rebase(dir.FullDir);
 	else if (_GP(usetup).local_user_conf) // directive to use game dir location
 		return FSLocation(_GP(ResPaths).DataDir);
 	// For absolute dir, we assume it's a special directory prepared for AGS engine
-	// and therefore amend it with a game own subdir
-	return FSLocation(dir, _GP(game).saveGameFolderName);
+	// and therefore append a game's own subdir
+	return dir.Concat(_GP(game).saveGameFolderName);
 }
 
-// A helper function that deduces a data directory either using default system location,
-// or user option from config. In case of a default location a path is appended with
-// game's "save folder" name, which is meant to separate files from different games.
-static FSLocation MakeGameDataDir(const String &default_dir, const String &user_option) {
-	if (user_option.IsEmpty()) {
-		String dir = default_dir;
-		if (Path::IsRelativePath(dir)) // relative dir is resolved relative to the game data dir
-			return FSLocation(_GP(ResPaths).DataDir, dir);
-		// For absolute dir, we assume it's a special directory prepared for AGS engine
-		// and therefore amend it with a game own subdir
-		return FSLocation(dir, _GP(game).saveGameFolderName);
-	}
-	// If this location is set up by user config, then use it as is (resolving relative path if necessary)
-	String dir = user_option;
-	if (Path::IsSameOrSubDir(_GP(ResPaths).DataDir, dir)) // check if it's inside game dir
-		return FSLocation(_GP(ResPaths).DataDir, Path::MakeRelativePath(_GP(ResPaths).DataDir, dir));
-	dir = Path::MakeAbsolutePath(dir);
-	return FSLocation(dir);
+// Constructs data dir using rules for default system location
+inline FSLocation MakeDefaultDataDir(const FSLocation &def_dir) {
+	// Relative dir is resolved relative to the game data dir
+	if (is_relative_filename(def_dir.FullDir))
+		return FSLocation(_GP(ResPaths).DataDir).Rebase(def_dir.FullDir);
+	// For absolute dir, we assume it's a special directory prepared for AGS engine
+	// and therefore amend it with a game's own subdir (to separate files from different games)
+	return def_dir.Concat(_GP(game).saveGameFolderName);
+}
+
+// Constructs data dir using rules for the user-specified location
+inline FSLocation MakeUserDataDir(const String &user_dir) {
+	// If user-set location is inside game dir, then form a relative path
+	if (is_relative_filename(user_dir))
+		return FSLocation(_GP(ResPaths).DataDir).Rebase(user_dir);
+	// Otherwise treat it as an absolute path
+	return FSLocation(Path::MakeAbsolutePath(user_dir));
 }
 
 FSLocation GetGameAppDataDir() {
-	return MakeGameDataDir(_G(platform)->GetAllUsersDataDirectory(), _GP(usetup).shared_data_dir);
+	if (_GP(usetup).shared_data_dir.IsEmpty())
+		return MakeDefaultDataDir(_G(platform)->GetAllUsersDataDirectory());
+	return MakeUserDataDir(_GP(usetup).shared_data_dir);
 }
 
 FSLocation GetGameUserDataDir() {
-	return MakeGameDataDir(_G(platform)->GetUserSavedgamesDirectory(), _GP(usetup).user_data_dir);
+	if (_GP(usetup).user_data_dir.IsEmpty())
+		return MakeDefaultDataDir(_G(platform)->GetUserSavedgamesDirectory());
+	return MakeUserDataDir(_GP(usetup).user_data_dir);
 }
 
 bool ResolveScriptPath(const String &orig_sc_path, bool read_only, ResolvedPath &rp) {
-	debugC(::AGS::kDebugFilePath, "ResolveScriptPath(%s)", orig_sc_path.GetCStr());
 	rp = ResolvedPath();
 
-	bool is_absolute = !is_relative_filename(orig_sc_path.GetCStr());
-	if (is_absolute && !read_only) {
-		debug_script_warn("Attempt to access file '%s' denied (cannot write to absolute path)", orig_sc_path.GetCStr());
-		return false;
-	}
+	// Make sure that the file path has system-compatible form
+	String sc_path = orig_sc_path;
+	sc_path.Replace('\\', '/');
 
-	if (is_absolute) {
-		rp = ResolvedPath(orig_sc_path);
+	// File tokens (they must be the only thing in script path)
+	if (sc_path.Compare(UserConfigFileToken) == 0) {
+		auto loc = GetGameUserConfigDir();
+		rp = ResolvedPath(loc, DefaultConfigFileName);
 		return true;
 	}
 
-	String sc_path = orig_sc_path;
+	// Test absolute paths
+	if (!Path::IsRelativePath(sc_path)) {
+		if (!read_only) {
+			debug_script_warn("Attempt to access file '%s' denied (cannot write to absolute path)", sc_path.GetCStr());
+			return false;
+		}
+		rp = ResolvedPath(sc_path);
+		return true;
+	}
+
+	if (sc_path.CompareLeft(GameAssetToken, strlen(GameAssetToken)) == 0) {
+		if (!read_only) {
+			debug_script_warn("Attempt to access file '%s' denied (cannot write to game assets)", orig_sc_path.GetCStr());
+			return false;
+		}
+		rp.FullPath = sc_path.Mid(strlen(GameAssetToken) + 1);
+		rp.AssetMgr = true;
+		return true;
+	}
+
 	FSLocation parent_dir;
 	String child_path;
 	String alt_path;
@@ -327,8 +381,16 @@ bool ResolveScriptPath(const String &orig_sc_path, bool read_only, ResolvedPath 
 		}
 #endif
 	} else if (sc_path.CompareLeft(GameDataDirToken) == 0) {
+#if AGS_PLATFORM_SCUMMVM
+		// the shared data dir should be remapped to the savedir otherwise some games
+		// are unable to create additional files
+		debugC(::AGS::kDebugFilePath, "Remapping %s to save folder", GameDataDirToken);
+		parent_dir = get_save_game_directory();
+		child_path = sc_path.Mid(strlen(GameSavedgamesDirToken));
+#else
 		parent_dir = GetGameAppDataDir();
 		child_path = sc_path.Mid(strlen(GameDataDirToken));
+#endif
 	} else {
 		child_path = sc_path;
 
@@ -356,13 +418,25 @@ bool ResolveScriptPath(const String &orig_sc_path, bool read_only, ResolvedPath 
 		debugC(::AGS::kDebugFilePath, "Adding ScummVM game target prefix and flatten path");
 		child_path.Replace('/', '-');
 		String gameTarget = ConfMan.getActiveDomainName();
-		if (child_path.CompareLeftNoCase(gameTarget) != 0)
-			child_path = String::FromFormat("%s-%s", gameTarget.GetCStr(), child_path.GetCStr());
+
+		// When in Quest for Glory II "import a hero" window, don't add the gamename prefix when listing saves. This way
+		// we can show saves created by the Sierra games
+		if (strcmp(_GP(game).guid, "{a46a9171-f6f9-456c-9b2b-a509b560ddc0}") || !(_G(displayed_room) == 1) || !read_only) {
+			if (child_path.CompareLeftNoCase(gameTarget) != 0)
+				child_path = String::FromFormat("%s-%s", gameTarget.GetCStr(), child_path.GetCStr());
+		} else {
+			debug("ResolveScriptPath: Skipping gameprefix for QfG2AGDI!");
+		}
 	}
+#else
+	// Create a proper ResolvedPath with FSLocation separating base location
+	// (which the engine is not allowed to create) and sub-dirs (created by the engine).
+	parent_dir = parent_dir.Concat(Path::GetDirectoryPath(child_path));
+	child_path = Path::GetFilename(child_path);
 #endif
 
-	// don't allow write operations for relative paths outside game dir
 	ResolvedPath test_rp = ResolvedPath(parent_dir, child_path, alt_path);
+	// don't allow write operations for relative paths outside game dir
 	if (!read_only) {
 		if (!Path::IsSameOrSubDir(test_rp.Loc.FullDir, test_rp.FullPath)) {
 			debug_script_warn("Attempt to access file '%s' denied (outside of game directory)", sc_path.GetCStr());
@@ -389,13 +463,8 @@ bool ResolveWritePathAndCreateDirs(const String &sc_path, ResolvedPath &rp) {
 	return true;
 }
 
-Stream *LocateAsset(const AssetPath &path, size_t &asset_size) {
-	String assetname = path.Name;
-	String filter = path.Filter;
-	soff_t asset_sz = 0;
-	Stream *asset_stream = _GP(AssetMgr)->OpenAsset(assetname, filter, &asset_sz);
-	asset_size = asset_sz;
-	return asset_stream;
+bool CreateFSDirs(const FSLocation &fs) {
+	return Directory::CreateAllDirectories(fs.BaseDir, fs.FullDir);
 }
 
 //
@@ -415,29 +484,29 @@ static int ags_pf_getc(void *userdata) {
 	return -1;
 }
 
-static int ags_pf_ungetc(int c, void *userdata) {
+static int ags_pf_ungetc(int /*c*/, void * /*userdata*/) {
 	return -1; // we do not want to support this
 }
 
 static long ags_pf_fread(void *p, long n, void *userdata) {
 	AGS_PACKFILE_OBJ *obj = (AGS_PACKFILE_OBJ *)userdata;
 	if (obj->remains > 0) {
-		size_t read = Math::Min(obj->remains, (size_t)n);
+		size_t read = MIN(obj->remains, (size_t)n);
 		obj->remains -= read;
 		return obj->stream->Read(p, read);
 	}
 	return -1;
 }
 
-static int ags_pf_putc(int c, void *userdata) {
+static int ags_pf_putc(int /*c*/, void * /*userdata*/) {
 	return -1;  // don't support write
 }
 
-static long ags_pf_fwrite(AL_CONST void *p, long n, void *userdata) {
+static long ags_pf_fwrite(AL_CONST void * /*p*/, long /*n*/, void * /*userdata*/) {
 	return -1; // don't support write
 }
 
-static int ags_pf_fseek(void *userdata, int offset) {
+static int ags_pf_fseek(void * /*userdata*/, int /*offset*/) {
 	return -1; // don't support seek
 }
 
@@ -463,29 +532,24 @@ static PACKFILE_VTABLE ags_packfile_vtable = {
 };
 //
 
-PACKFILE *PackfileFromAsset(const AssetPath &path, size_t &asset_size) {
-	Stream *asset_stream = LocateAsset(path, asset_size);
-	if (asset_stream && asset_size > 0) {
-		AGS_PACKFILE_OBJ *obj = new AGS_PACKFILE_OBJ;
-		obj->stream.reset(asset_stream);
-		obj->asset_size = asset_size;
-		obj->remains = asset_size;
-		return pack_fopen_vtable(&ags_packfile_vtable, obj);
-	}
-	return nullptr;
-}
-
-bool DoesAssetExistInLib(const AssetPath &path) {
-	String assetname = path.Name;
-	String filter = path.Filter;
-	return _GP(AssetMgr)->DoesAssetExist(assetname, filter);
+PACKFILE *PackfileFromAsset(const AssetPath &path) {
+	Stream *asset_stream = _GP(AssetMgr)->OpenAsset(path);
+	if (!asset_stream) return nullptr;
+	const size_t asset_size = asset_stream->GetLength();
+	if (asset_size == 0) return nullptr;
+	AGS_PACKFILE_OBJ *obj = new AGS_PACKFILE_OBJ;
+	obj->stream.reset(asset_stream);
+	obj->asset_size = asset_size;
+	obj->remains = asset_size;
+	return pack_fopen_vtable(&ags_packfile_vtable, obj);
 }
 
 String find_assetlib(const String &filename) {
 	String libname = File::FindFileCI(_GP(ResPaths).DataDir, filename);
 	if (AssetManager::IsDataFile(libname))
 		return libname;
-	if (Path::ComparePaths(_GP(ResPaths).DataDir, _GP(ResPaths).DataDir2) != 0) {
+	if (!_GP(ResPaths).DataDir2.IsEmpty() &&
+		Path::ComparePaths(_GP(ResPaths).DataDir, _GP(ResPaths).DataDir2) != 0) {
 		// Hack for running in Debugger
 		libname = File::FindFileCI(_GP(ResPaths).DataDir2, filename);
 		if (AssetManager::IsDataFile(libname))
@@ -494,7 +558,8 @@ String find_assetlib(const String &filename) {
 	return "";
 }
 
-AssetPath get_audio_clip_assetpath(int bundling_type, const String &filename) {
+AssetPath get_audio_clip_assetpath(int /*bundling_type*/, const String &filename) {
+	// NOTE: bundling_type is ignored now
 	return AssetPath(filename, "audio");
 }
 
@@ -610,6 +675,10 @@ RuntimeScriptValue Sc_File_WriteRawChar(void *self, const RuntimeScriptValue *pa
 	API_OBJCALL_VOID_PINT(sc_File, File_WriteRawChar);
 }
 
+RuntimeScriptValue Sc_File_WriteRawInt(void *self, const RuntimeScriptValue *params, int32_t param_count) {
+	API_OBJCALL_VOID_PINT(sc_File, File_WriteRawInt);
+}
+
 // void (sc_File *fil, const char *towrite)
 RuntimeScriptValue Sc_File_WriteRawLine(void *self, const RuntimeScriptValue *params, int32_t param_count) {
 	API_OBJCALL_VOID_POBJ(sc_File, File_WriteRawLine, const char);
@@ -653,6 +722,7 @@ void RegisterFileAPI() {
 	ccAddExternalObjectFunction("File::ReadStringBack^0", Sc_File_ReadStringBack);
 	ccAddExternalObjectFunction("File::WriteInt^1", Sc_File_WriteInt);
 	ccAddExternalObjectFunction("File::WriteRawChar^1", Sc_File_WriteRawChar);
+	ccAddExternalObjectFunction("File::WriteRawInt^1", Sc_File_WriteRawInt);
 	ccAddExternalObjectFunction("File::WriteRawLine^1", Sc_File_WriteRawLine);
 	ccAddExternalObjectFunction("File::WriteString^1", Sc_File_WriteString);
 	ccAddExternalObjectFunction("File::Seek^2", Sc_File_Seek);

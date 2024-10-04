@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
-#if defined(__ANDROID__)
 
 #define FORBIDDEN_SYMBOL_EXCEPTION_getenv(a)
 
@@ -34,26 +31,38 @@
 // which gets messed up by our override mechanism; this could
 // be avoided by either changing the Android SDK to use the equally
 // legal and valid
-//   __attribute__ ((format(printf, 3, 4)))
+//   __attribute__ ((format(__printf__, 3, 4)))
 // or by refining our printf override to use a varadic macro
 // (which then wouldn't be portable, though).
 // Anyway, for now we just disable the printf override globally
 // for the Android port
 #define FORBIDDEN_SYMBOL_EXCEPTION_printf
 
+#define FORBIDDEN_SYMBOL_EXCEPTION_FILE
+#define FORBIDDEN_SYMBOL_EXCEPTION_fopen
+#define FORBIDDEN_SYMBOL_EXCEPTION_fclose
+#define FORBIDDEN_SYMBOL_EXCEPTION_ftell
+
+#include <EGL/egl.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/system_properties.h>
 #include <time.h>
 #include <unistd.h>
+#include <dlfcn.h>
 
-#include "common/util.h"
-#include "common/textconsole.h"
-#include "common/rect.h"
-#include "common/queue.h"
-#include "common/mutex.h"
-#include "common/events.h"
-#include "common/config-manager.h"
+#if defined(__arm__) || defined(__x86_64__) || defined(__i386__)
+#include <cpu-features.h>
+#endif
+
+#include "backends/platform/android/android.h"
+#include "backends/platform/android/jni-android.h"
+#include "backends/fs/android/android-fs.h"
+#include "backends/fs/android/android-fs-factory.h"
+#include "backends/fs/posix/posix-iostream.h"
+
+#include "backends/graphics/android/android-graphics.h"
+#include "backends/graphics3d/android/android-graphics3d.h"
 
 #include "backends/audiocd/default/default-audiocd.h"
 #include "backends/events/default/default-events.h"
@@ -65,9 +74,15 @@
 #include "backends/keymapper/keymapper-defaults.h"
 #include "backends/keymapper/standard-actions.h"
 
-#include "backends/platform/android/jni-android.h"
-#include "backends/platform/android/android.h"
-#include "backends/platform/android/graphics.h"
+#include "common/util.h"
+#include "common/textconsole.h"
+#include "common/rect.h"
+#include "common/queue.h"
+#include "common/mutex.h"
+#include "common/events.h"
+#include "common/config-manager.h"
+#include "common/translation.h"
+#include "graphics/cursorman.h"
 
 const char *android_log_tag = "ScummVM";
 
@@ -88,20 +103,85 @@ extern "C" {
 	}
 }
 
+#ifdef ANDROID_DEBUG_GL
+static const char *getGlErrStr(GLenum error) {
+	switch (error) {
+	case GL_INVALID_ENUM:
+		return "GL_INVALID_ENUM";
+	case GL_INVALID_VALUE:
+		return "GL_INVALID_VALUE";
+	case GL_INVALID_OPERATION:
+		return "GL_INVALID_OPERATION";
+	case GL_STACK_OVERFLOW:
+		return "GL_STACK_OVERFLOW";
+	case GL_STACK_UNDERFLOW:
+		return "GL_STACK_UNDERFLOW";
+	case GL_OUT_OF_MEMORY:
+		return "GL_OUT_OF_MEMORY";
+	}
+
+	static char buf[40];
+	snprintf(buf, sizeof(buf), "(Unknown GL error code 0x%x)", error);
+
+	return buf;
+}
+
+void checkGlError(const char *expr, const char *file, int line) {
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		LOGE("GL ERROR: %s on %s (%s:%d)", getGlErrStr(error), expr, file, line);
+}
+#endif
+
+class AndroidSaveFileManager : public DefaultSaveFileManager {
+public:
+	AndroidSaveFileManager(const Common::Path &defaultSavepath) : DefaultSaveFileManager(defaultSavepath) {}
+
+	bool removeSavefile(const Common::String &filename) override {
+		Common::String path = getSavePath().join(filename).toString(Common::Path::kNativeSeparator);
+		AbstractFSNode *node = AndroidFilesystemFactory::instance().makeFileNodePath(path);
+
+		if (!node) {
+			return false;
+		}
+
+		AndroidFSNode *anode = dynamic_cast<AndroidFSNode *>(node);
+
+		if (!anode) {
+			// This should never happen
+			warning("Invalid node received");
+			delete node;
+			return false;
+		}
+
+		bool ret = anode->remove();
+
+		delete anode;
+
+		if (!ret) {
+			setError(Common::kUnknownError, Common::String::format("Couldn't delete the save file: %s", path.c_str()));
+		}
+		return ret;
+	}
+};
+
 OSystem_Android::OSystem_Android(int audio_sample_rate, int audio_buffer_size) :
 	_audio_sample_rate(audio_sample_rate),
 	_audio_buffer_size(audio_buffer_size),
 	_screen_changeid(0),
 	_mixer(0),
-	_queuedEventTime(0),
 	_event_queue_lock(0),
 	_touch_pt_down(),
 	_touch_pt_scroll(),
 	_touch_pt_dt(),
 	_eventScaleX(100),
 	_eventScaleY(100),
+#if defined(USE_OPENGL) && defined(USE_GLAD)
+	_gles2DL(nullptr),
+#endif
 	// TODO put these values in some option dlg?
-	_touchpad_mode(true),
+	_touch_mode(TOUCH_MODE_TOUCHPAD),
 	_touchpad_scale(66),
 	_dpad_scale(4),
 //	_fingersDown(0),
@@ -109,18 +189,38 @@ OSystem_Android::OSystem_Android(int audio_sample_rate, int audio_buffer_size) :
 	_secondPointerId(-1),
 	_thirdPointerId(-1),
 	_trackball_scale(2),
-	_joystick_scale(10) {
+	_joystick_scale(10),
+	_engineRunning(false),
+	_defaultConfigFileName(),
+	_defaultLogFileName(),
+	_systemPropertiesSummaryStr(""),
+	_systemSDKdetectedStr(""),
+	_logger(nullptr) {
 
-	_fsFactory = new POSIXFilesystemFactory();
+	_systemPropertiesSummaryStr = Common::String::format("Running on: [%s] [%s] [%s] [%s] [%s] SDK:%s ABI:%s\n",
+	                                                   getSystemProperty("ro.product.manufacturer").c_str(),
+	                                                   getSystemProperty("ro.product.model").c_str(),
+	                                                   getSystemProperty("ro.product.brand").c_str(),
+	                                                   getSystemProperty("ro.build.fingerprint").c_str(),
+	                                                   getSystemProperty("ro.build.display.id").c_str(),
+	                                                   getSystemProperty("ro.build.version.sdk").c_str(),
+	                                                   getSystemProperty("ro.product.cpu.abi").c_str()) ;
 
-	LOGI("Running on: [%s] [%s] [%s] [%s] [%s] SDK:%s ABI:%s",
-			getSystemProperty("ro.product.manufacturer").c_str(),
-			getSystemProperty("ro.product.model").c_str(),
-			getSystemProperty("ro.product.brand").c_str(),
-			getSystemProperty("ro.build.fingerprint").c_str(),
-			getSystemProperty("ro.build.display.id").c_str(),
-			getSystemProperty("ro.build.version.sdk").c_str(),
-			getSystemProperty("ro.product.cpu.abi").c_str());
+	LOGI("%s", _systemPropertiesSummaryStr.c_str());
+	// JNI::getAndroidSDKVersionId() should be identical to the result from ("ro.build.version.sdk"),
+	// though getting it via JNI is maybe the most reliable option (?)
+	// Also __system_property_get which is used by getSystemProperty() is being deprecated in recent NDKs
+
+	int sdkVersion = JNI::getAndroidSDKVersionId();
+
+	_systemSDKdetectedStr = Common::String::format("SDK Version: %d\n", sdkVersion) ;
+	LOGI("%s", _systemSDKdetectedStr.c_str());
+
+	AndroidFilesystemFactory &fsFactory = AndroidFilesystemFactory::instance();
+	if (sdkVersion >= 24) {
+		fsFactory.initSAF();
+	}
+	_fsFactory = &fsFactory;
 }
 
 OSystem_Android::~OSystem_Android() {
@@ -139,8 +239,8 @@ OSystem_Android::~OSystem_Android() {
 	_audiocdManager = 0;
 	delete _mixer;
 	_mixer = 0;
-	delete _fsFactory;
 	_fsFactory = 0;
+	AndroidFilesystemFactory::destroy();
 	delete _timerManager;
 	_timerManager = 0;
 
@@ -148,6 +248,13 @@ OSystem_Android::~OSystem_Android() {
 
 	delete _savefileManager;
 	_savefileManager = 0;
+
+	// Uninitialize graphics manager now to avoid it to be done later when touch controls are destroyed
+	delete _graphicsManager;
+	_graphicsManager = 0;
+
+	delete _logger;
+	_logger = nullptr;
 }
 
 void *OSystem_Android::timerThreadFunc(void *arg) {
@@ -321,10 +428,25 @@ void OSystem_Android::initBackend() {
 
 	_main_thread = pthread_self();
 
-	// TODO Setting debug level to 3, temporarily
-	//      only for catching the level 3 messages from the new (Apr 2021)
-	//      gui-scale (hidpi) code
-	gDebugLevel = 3;
+	if (!_logger)
+		_logger = new Backends::Log::Log(this);
+
+	if (_logger) {
+		Common::WriteStream *logFile = createLogFileForAppending();
+		if (logFile) {
+			_logger->open(logFile);
+
+			if (!_systemPropertiesSummaryStr.empty())
+				_logger->print(_systemPropertiesSummaryStr.c_str());
+
+			if (!_systemSDKdetectedStr.empty())
+				_logger->print(_systemSDKdetectedStr.c_str());
+		} else {
+			LOGE("Error when opening log file for writing upon initializing backend");
+			//_logger->close();
+			_logger = nullptr;
+		}
+	}
 
 	// Warning: ConfMan.registerDefault() can be used for a Session of ScummVM
 	//          but:
@@ -352,6 +474,10 @@ void OSystem_Android::initBackend() {
 	ConfMan.registerDefault("aspect_ratio", true);
 	ConfMan.registerDefault("filtering", false);
 	ConfMan.registerDefault("autosave_period", 0);
+	// slow down a bit virtual mouse speed (typical default seems to be "3") - eg. when controlling the virtual mouse cursor with DPAD keys
+	// Also see declaration of support for feature kFeatureKbdMouseSpeed bellow
+	ConfMan.registerDefault("kbdmouse_speed", 2);
+	ConfMan.registerDefault("joystick_deadzone", 3);
 
 	// explicitly set this, since fullscreen cannot be changed from GUI
 	// and for Android it should be persisted (and ConfMan.hasKey("fullscreen") check should return true for it)
@@ -397,42 +523,30 @@ void OSystem_Android::initBackend() {
 	}
 
 	if (!ConfMan.hasKey("browser_lastpath")) {
-		ConfMan.set("browser_lastpath", "/");
+		ConfMan.setPath("browser_lastpath", "/");
 	}
 
-	if (!ConfMan.hasKey("gui_scale")) {
-		// Until a proper scale detection is done (especially post PR https://github.com/scummvm/scummvm/pull/3264/commits/8646dfca329b6fbfdba65e0dc0802feb1382dab2),
-		// set scale by default to large, if not set, and then let the user set it manually from the launcher -> Options -> Misc tab
-		// Otherwise the screen may default to very tiny and indiscernible text and be barely usable.
-		// TODO We need a proper scale detection for Android, see: (float) AndroidGraphicsManager::getHiDPIScreenFactor() in android/graphics.cpp
-		ConfMan.setInt("gui_scale", 125); // "Large" (see gui/options.cpp and guiBaseValues[])
-	}
+	Common::String basePath = JNI::getScummVMBasePath();
 
-	// BUG: "transient" ConfMan settings get nuked by the options
-	// screen. Passing the savepath in this way makes it stick
-	// (via ConfMan.registerDefault() which is called from DefaultSaveFileManager constructor (backends/saves/default/default-saves.cpp))
-	// Note: The aforementioned bug is probably the one reported here:
-	//  https://bugs.scummvm.org/ticket/3712
-	//  and maybe here:
-	//  https://bugs.scummvm.org/ticket/7389
-	// However, we do NOT set the savepath key explicitly for ConfMan
-	//          and thus the savepath will only be persisted as "default" config
-	//          for the rest of the app session (until exit).
-	//          It will NOT be reflected on the GUI, if it's not set explicitly by the user there
-	// TODO Why do we need it not shown on the GUI though?
-	//      Btw, this is a ScummVM thing, the "defaults" do not show they values on our GUI)
-	_savefileManager = new DefaultSaveFileManager(ConfMan.get("savepath"));
+	_savefileManager = new AndroidSaveFileManager(Common::Path(basePath, Common::Path::kNativeSeparator).joinInPlace("saves"));
 	// TODO remove the debug message eventually
-	LOGD("Setting DefaultSaveFileManager path to: %s", ConfMan.get("savepath").c_str());
+	LOGD("Setting DefaultSaveFileManager path to: %s", ConfMan.getPath("savepath").toString(Common::Path::kNativeSeparator).c_str());
 
-	_mutexManager = new PthreadMutexManager();
+
+	ConfMan.registerDefault("iconspath", Common::Path(basePath, Common::Path::kNativeSeparator).joinInPlace("icons"));
+	// TODO remove the debug message eventually
+	LOGD("Setting Default Icons and Shaders path to: %s", ConfMan.getPath("iconspath").toString(Common::Path::kNativeSeparator).c_str());
+
 	_timerManager = new DefaultTimerManager();
 
 	_event_queue_lock = new Common::Mutex();
 
 	gettimeofday(&_startTime, 0);
 
-	_mixer = new Audio::MixerImpl(_audio_sample_rate);
+	// The division by four happens because the Mixer stores the size in frame units
+	// instead of bytes; this means that, since we have audio in stereo (2 channels)
+	// with a word size of 16 bit (2 bytes), we have to divide the effective size by 4.
+	_mixer = new Audio::MixerImpl(_audio_sample_rate, true, _audio_buffer_size / 4);
 	_mixer->setReady(true);
 
 	_timer_thread_exit = false;
@@ -440,6 +554,10 @@ void OSystem_Android::initBackend() {
 
 	_audio_thread_exit = false;
 	pthread_create(&_audio_thread, 0, audioThreadFunc, this);
+
+	JNI::DPIValues dpi;
+	JNI::getDPI(dpi);
+	_touchControls.init(dpi[2]);
 
 	_graphicsManager = new AndroidGraphicsManager();
 
@@ -455,14 +573,144 @@ void OSystem_Android::initBackend() {
 	BaseBackend::initBackend();
 }
 
+void OSystem_Android::engineInit() {
+	_engineRunning = true;
+	updateOnScreenControls();
+	dynamic_cast<AndroidCommonGraphics *>(_graphicsManager)->applyTouchSettings();
+
+	JNI::setCurrentGame(ConfMan.getActiveDomainName());
+}
+
+void OSystem_Android::engineDone() {
+	_engineRunning = false;
+	updateOnScreenControls();
+	JNI::setCurrentGame("");
+}
+
+void OSystem_Android::updateOnScreenControls() {
+	int enableMask = SHOW_ON_SCREEN_ALL;
+	if (!ConfMan.getBool("onscreen_control")) {
+		enableMask = SHOW_ON_SCREEN_NONE;
+	} else if (!_engineRunning) {
+		// Don't show the menu icon if the engine is not running
+		enableMask &= ~SHOW_ON_SCREEN_MENU;
+	}
+	JNI::showOnScreenControls(enableMask);
+}
+
+Common::Path OSystem_Android::getDefaultConfigFileName() {
+	// if possible, skip JNI call which is more costly (performance wise)
+	if (_defaultConfigFileName.empty()) {
+		_defaultConfigFileName = JNI::getScummVMConfigPath();
+	}
+	return _defaultConfigFileName;
+}
+
+Common::Path OSystem_Android::getDefaultLogFileName() {
+	if (_defaultLogFileName.empty()) {
+		_defaultLogFileName = JNI::getScummVMLogPath();
+	}
+	return _defaultLogFileName;
+}
+
+Common::WriteStream *OSystem_Android::createLogFileForAppending() {
+	Common::String logPath(getDefaultLogFileName().toString(Common::Path::kNativeSeparator));
+
+	if (logPath.empty()) {
+		__android_log_write(ANDROID_LOG_ERROR, android_log_tag, "Log file path is not known upon create attempt!");
+		return nullptr;
+	}
+
+	FILE *scvmLogFilePtr = fopen(logPath.c_str(), "a");
+	if (scvmLogFilePtr != nullptr) {
+		// We check for log file size; if it's too big, we rewrite it.
+		// This happens only upon app launch, in initBackend() when createLogFileForAppending() is called
+		// NOTE: We don't check for file size each time we write a log message.
+		long sz = ftell(scvmLogFilePtr);
+		if (sz > MAX_ANDROID_SCUMMVM_LOG_FILESIZE_IN_BYTES) {
+			fclose(scvmLogFilePtr);
+			__android_log_write(ANDROID_LOG_WARN, android_log_tag, "Default log file is bigger than 100KB. It will be overwritten!");
+			if (!logPath.empty()) {
+				// Create the log file from scratch overwriting the previous one
+				scvmLogFilePtr = fopen(logPath.c_str(), "w");
+				if (scvmLogFilePtr == nullptr) {
+					__android_log_write(ANDROID_LOG_ERROR, android_log_tag, "Could not open default log file for rewrite!");
+					return nullptr;
+				}
+			} else {
+				__android_log_write(ANDROID_LOG_ERROR, android_log_tag, "Log file path is not known upon rewrite attempt!");
+				return nullptr;
+			}
+		}
+	} else {
+		__android_log_write(ANDROID_LOG_ERROR, android_log_tag, "Could not open default log file for writing/appending.");
+		__android_log_write(ANDROID_LOG_ERROR, android_log_tag, logPath.c_str());
+	}
+	return new PosixIoStream(scvmLogFilePtr);
+}
+
 bool OSystem_Android::hasFeature(Feature f) {
 	if (f == kFeatureFullscreenMode)
 		return false;
 	if (f == kFeatureVirtualKeyboard ||
 			f == kFeatureOpenUrl ||
-			f == kFeatureClipboardSupport) {
+			f == kFeatureClipboardSupport ||
+			f == kFeatureKbdMouseSpeed ||
+			f == kFeatureJoystickDeadzone ||
+			f == kFeatureTouchscreen) {
 		return true;
 	}
+	/* Even if we are using the 2D graphics manager,
+	 * we are at one initGraphics3d call of supporting GLES2 */
+	if (f == kFeatureOpenGLForGame) return true;
+	/* GLES2 always supports shaders */
+	if (f == kFeatureShadersForGame) return true;
+
+	if (f == kFeatureCpuNEON) {
+#if defined(__aarch64__)
+		// ARMv8 mandates NEON
+		return true;
+#elif defined(__arm__)
+		return (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON);
+#else
+		return false;
+#endif
+	}
+
+	if (f == kFeatureCpuSSE2) {
+#if defined(__x86_64__)
+		// x86_64 mandates SSE2
+		return true;
+#elif defined(__i386__) && defined(__SSE2__)
+		// Android NDK mandates SSE2 starting with Jellybean but some people tried hacks
+		// Allow to disable SSE2
+		return true;
+#else
+		return false;
+#endif
+	}
+
+	if (f == kFeatureCpuSSE41) {
+#if defined(__x86_64__) || defined(__i386__)
+		return (android_getCpuFeatures() & ANDROID_CPU_X86_FEATURE_SSE4_1);
+#else
+		return false;
+#endif
+	}
+
+	if (f == kFeatureCpuAVX2) {
+#if defined(__x86_64__)
+		// No AVX2 in 32-bits
+		return (android_getCpuFeatures() & ANDROID_CPU_X86_FEATURE_AVX2);
+#else
+		return false;
+#endif
+	}
+
+	if (f == kFeatureCpuAltivec) {
+		return false;
+	}
+
 	return ModularGraphicsBackend::hasFeature(f);
 }
 
@@ -471,7 +719,6 @@ void OSystem_Android::setFeatureState(Feature f, bool enable) {
 
 	switch (f) {
 	case kFeatureVirtualKeyboard:
-		_virtkeybd_on = enable;
 		JNI::showVirtualKeyboard(enable);
 		break;
 	default:
@@ -543,6 +790,31 @@ Common::KeymapperDefaultBindings *OSystem_Android::getKeymapperDefaultBindings()
 	// See: backends/keymapper/remap-widget.cpp:	kCloseCmd        = 'CLOS'
 	keymapperDefaultBindings->setDefaultBinding(Common::kGuiKeymapName, "CLOS", "AC_BACK");
 
+	// By default DPAD directions will be used for virtual mouse in GUI context
+	// If the user wants to remap them, they will be able to navigate to Global Options -> Keymaps and do so.
+	// In some devices (eg. Android TV) with only the remote control as DPAD input, it is impossible to navigate the launcher GUI,
+	// if the DPAD actions are mapped to "UP", "DOWN", "LEFT", "RIGHT" directions (GUI context) and not mouse cursor movement.
+	// TODO If/when full key-based (ie. non-mouse) navigation of the ScummVM GUI is implemented,
+	// we can revert back to the core behavior of DPAD being mapped to "up", "down", "left", "right" directions.
+	keymapperDefaultBindings->addDefaultBinding(Common::kGlobalKeymapName, "VMOUSEUP", "JOY_LEFT_STICK_Y-");
+	keymapperDefaultBindings->addDefaultBinding(Common::kGlobalKeymapName, "VMOUSEUP", "JOY_UP");
+	keymapperDefaultBindings->addDefaultBinding(Common::kGlobalKeymapName, "VMOUSEDOWN", "JOY_LEFT_STICK_Y+");
+	keymapperDefaultBindings->addDefaultBinding(Common::kGlobalKeymapName, "VMOUSEDOWN", "JOY_DOWN");
+	keymapperDefaultBindings->addDefaultBinding(Common::kGlobalKeymapName, "VMOUSELEFT", "JOY_LEFT_STICK_X-");
+	keymapperDefaultBindings->addDefaultBinding(Common::kGlobalKeymapName, "VMOUSELEFT", "JOY_LEFT");
+	keymapperDefaultBindings->addDefaultBinding(Common::kGlobalKeymapName, "VMOUSERIGHT", "JOY_LEFT_STICK_X+");
+	keymapperDefaultBindings->addDefaultBinding(Common::kGlobalKeymapName, "VMOUSERIGHT", "JOY_RIGHT");
+	keymapperDefaultBindings->addDefaultBinding(Common::kGlobalKeymapName, "VMOUSESLOW", "JOY_RIGHT_SHOULDER");
+	keymapperDefaultBindings->addDefaultBinding(Common::kGlobalKeymapName, "VMOUSESLOW", "AUDIOPLAYPAUSE");
+	keymapperDefaultBindings->addDefaultBinding(Common::kGuiKeymapName, Common::kStandardActionInteract, "JOY_A");
+	keymapperDefaultBindings->addDefaultBinding(Common::kGuiKeymapName, Common::kStandardActionInteract, "JOY_CENTER");
+	keymapperDefaultBindings->addDefaultBinding(Common::kGuiKeymapName, Common::kStandardActionInteract, "SELECT");
+	// NOTE using nullptr as the third argument clears the bindings for the action.
+	keymapperDefaultBindings->setDefaultBinding(Common::kGuiKeymapName, Common::kStandardActionMoveUp, "UP");
+	keymapperDefaultBindings->setDefaultBinding(Common::kGuiKeymapName, Common::kStandardActionMoveDown, "DOWN");
+	keymapperDefaultBindings->setDefaultBinding(Common::kGuiKeymapName, Common::kStandardActionMoveLeft, "LEFT");
+	keymapperDefaultBindings->setDefaultBinding(Common::kGuiKeymapName, Common::kStandardActionMoveRight, "RIGHT");
+
 	return keymapperDefaultBindings;
 }
 
@@ -559,15 +831,20 @@ void OSystem_Android::delayMillis(uint msecs) {
 	usleep(msecs * 1000);
 }
 
+Common::MutexInternal *OSystem_Android::createMutex() {
+	return createPthreadMutexInternal();
+}
+
 void OSystem_Android::quit() {
 	ENTER();
 
+	_audio_thread_exit = true;
+	_timer_thread_exit = true;
+
+	JNI::wakeupForQuit();
 	JNI::setReadyForEvents(false);
 
-	_audio_thread_exit = true;
 	pthread_join(_audio_thread, 0);
-
-	_timer_thread_exit = true;
 	pthread_join(_timer_thread, 0);
 }
 
@@ -618,6 +895,11 @@ void OSystem_Android::logMessage(LogMessageType::Type type, const char *message)
 		__android_log_write(ANDROID_LOG_ERROR, android_log_tag, message);
 		break;
 	}
+
+	// Then log into file (via the logger)
+	if (_logger)
+		_logger->print(message);
+
 }
 
 Common::String OSystem_Android::getSystemLanguage() const {
@@ -654,4 +936,226 @@ Common::String OSystem_Android::getSystemProperty(const char *name) const {
 	return Common::String(value, len);
 }
 
+const OSystem::GraphicsMode *OSystem_Android::getSupportedGraphicsModes() const {
+	// We only support one mode
+	static const OSystem::GraphicsMode s_supportedGraphicsModes[] = {
+		{ "default", "Default", 0 },
+		{ 0, 0, 0 },
+	};
+
+	return s_supportedGraphicsModes;
+}
+
+int OSystem_Android::getDefaultGraphicsMode() const {
+	// We only support one mode
+	return 0;
+}
+
+bool OSystem_Android::setGraphicsMode(int mode, uint flags) {
+	bool render3d = flags & OSystem::kGfxModeRender3d;
+
+	// Very hacky way to set up the old graphics manager state, in case we
+	// switch from SDL->OpenGL or OpenGL->SDL.
+	//
+	// This is a probably temporary workaround to fix bugs like #5799
+	// "SDL/OpenGL: Crash when switching renderer backend".
+	//
+	// It's also used to restore state from 3D to 2D GFX manager
+	AndroidCommonGraphics *androidGraphicsManager = dynamic_cast<AndroidCommonGraphics *>(_graphicsManager);
+	AndroidCommonGraphics::State gfxManagerState = androidGraphicsManager->getState();
+	bool supports3D = _graphicsManager->hasFeature(kFeatureOpenGLForGame);
+
+	bool switchedManager = false;
+
+	// If the new mode and the current mode are not from the same graphics
+	// manager, delete and create the new mode graphics manager
+	debug(5, "requesting 3D: %d, supporting 3D: %d", render3d, supports3D);
+	if (render3d && !supports3D) {
+		debug(5, "switching to 3D graphics");
+		delete _graphicsManager;
+		_graphicsManager = nullptr;
+		AndroidGraphics3dManager *manager = new AndroidGraphics3dManager();
+		_graphicsManager = manager;
+		androidGraphicsManager = manager;
+		switchedManager = true;
+	} else if (!render3d && supports3D) {
+		debug(5, "switching to 2D graphics");
+		delete _graphicsManager;
+		_graphicsManager = nullptr;
+		AndroidGraphicsManager *manager = new AndroidGraphicsManager();
+		_graphicsManager = manager;
+		androidGraphicsManager = manager;
+		switchedManager = true;
+	}
+
+	androidGraphicsManager->syncVirtkeyboardState(_virtkeybd_on);
+
+	if (switchedManager) {
+		// Setup the graphics mode and size first
+		// This is needed so that we can check the supported pixel formats when
+		// restoring the state.
+		_graphicsManager->beginGFXTransaction();
+		if (!_graphicsManager->setGraphicsMode(mode, flags))
+			return false;
+		_graphicsManager->initSize(gfxManagerState.screenWidth, gfxManagerState.screenHeight);
+		_graphicsManager->endGFXTransaction();
+
+		// This failing will probably have bad consequences...
+		if (!androidGraphicsManager->setState(gfxManagerState)) {
+			return false;
+		}
+
+		// Next setup the cursor again
+		CursorMan.pushCursor(0, 0, 0, 0, 0, 0);
+		CursorMan.popCursor();
+
+		// Next setup cursor palette if needed
+		if (_graphicsManager->getFeatureState(kFeatureCursorPalette)) {
+			CursorMan.pushCursorPalette(0, 0, 0);
+			CursorMan.popCursorPalette();
+		}
+
+		_graphicsManager->beginGFXTransaction();
+		return true;
+	} else {
+		return _graphicsManager->setGraphicsMode(mode, flags);
+	}
+}
+
+int OSystem_Android::getGraphicsMode() const {
+	// We only support one mode
+	return 0;
+}
+
+#if defined(USE_OPENGL) && defined(USE_GLAD)
+void *OSystem_Android::getOpenGLProcAddress(const char *name) const {
+	// eglGetProcAddress exists since Android 2.3 (API Level 9)
+	// EGL 1.5+ supports loading core functions too: try to optimize
+	if (JNI::eglVersion() >= 0x00010005) {
+		return (void *)eglGetProcAddress(name);
+	}
+
+	if (!_gles2DL) {
+		_gles2DL = dlopen("libGLESv2.so", RTLD_NOW | RTLD_LOCAL);
+		if (!_gles2DL) {
+			error("Can't load libGLESv2.so with old EGL context");
+		}
+	}
+
+	void *ptr = dlsym(_gles2DL, name);
+	if (!ptr) {
+		ptr = (void *)eglGetProcAddress(name);
+	}
+	return ptr;
+}
 #endif
+
+static const char * const helpTabs[] = {
+
+_s("Getting help"),
+"",
+_s(
+"## Help, I'm lost!\n"
+"\n"
+"First, make sure you have the games and necessary game files ready. Check the **Where to Get the Games** section under the **General** tab. Once obtained, follow the steps outlined in the **Adding Games** tab to finish adding them on this device. Take a moment to review this process carefully, as some users encountered challenges here owing to recent Android changes.\n"
+"\n"
+"Need more help? Refer to our [online documentation for Android](https://docs.scummvm.org/en/latest/other_platforms/android.html). Got questions? Swing by our [support forums](https://forums.scummvm.org/viewforum.php?f=17) or hop on our [Discord server](https://discord.gg/4cDsMNtcpG), which includes an [Android support channel](https://discord.com/channels/581224060529148060/1135579923185139862).\n"
+"\n"
+"Oh, and heads up, many of our supported games are intentionally tricky, sometimes mind-bogglingly so. If you're stuck in a game, think about checking out a game walkthrough. Good luck!\n"
+),
+
+_s("Touch Controls"),
+"android-help.zip",
+_s(
+"## Touch control modes\n"
+"The touch control mode can be changed by tapping or clicking on the controller icon in the upper right corner"
+"\n"
+"### Direct mouse \n"
+"\n"
+"The touch controls are direct. The pointer jumps to where the finger touches the screen (default for menus).\n"
+"\n"
+"  ![Direct mouse mode](mouse.png \"Direct mouse mode\"){w=10em}\n"
+"\n"
+"### Touchpad emulation \n"
+"\n"
+"The touch controls are indirect, like on a laptop touchpad.\n"
+"\n"
+"  ![Touchpad mode](touchpad.png \"Touchpad mode\"){w=10em}\n"
+"\n"
+"### Gamepad emulation \n"
+"\n"
+"Fingers must be placed on lower left and right of the screen to emulate a directional pad and action buttons.\n"
+"\n"
+"  ![Gamepad mode](gamepad.png \"Gamepad mode\"){w=10em}\n"
+"\n"
+"To select the preferred touch mode for menus, 2D games, and 3D games, go to **Global Options > Backend > Choose the preferred touch mode**.\n"
+"\n"
+"## Touch actions \n"
+"\n"
+"### Two finger scroll \n"
+"\n"
+"To scroll, slide two fingers up or down the screen"
+"\n"
+"### Two finger tap\n"
+"\n"
+"To do a two finger tap, hold one finger down and then tap with a second finger.\n"
+"\n"
+"### Three finger tap\n"
+"\n"
+"To do a three finger tap, start with holding down one finger and progressively touch down the other two fingers, one at a time, while still holding down the previous fingers. Imagine you are impatiently tapping your fingers on a surface, but then slow down that movement so it is rhythmic, but not too slow.\n"
+"\n"
+"### Immersive Sticky fullscreen mode\n"
+"\n"
+"Swipe from the edge to reveal the system bars.  They remain semi-transparent and disappear after a few seconds unless you interact with them.\n"
+"\n"
+"### Global Main Menu\n"
+"\n"
+"To open the Global Main Menu, tap on the menu icon at the top right of the screen.\n"
+"\n"
+"  ![Menu icon](menu.png \"Menu icon\"){w=10em}\n"
+"\n"
+"## Virtual keyboard\n"
+"\n"
+"To open the virtual keyboard, long press on the controller icon at the top right of the screen, or tap on any editable text field. To hide the virtual keyboard, tap the controller icon again, or tap outside the text field.\n"
+"\n"
+"\n"
+"  ![Keyboard icon](keyboard.png \"Keyboard icon\"){w=10em}\n"
+"\n"
+	),
+
+_s("Adding Games"),
+"android-help.zip",
+_s(
+"## Adding Games \n"
+"\n"
+"1. Select **Add Game...** from the launcher. \n"
+"\n"
+"2. Inside the ScummVM file browser, select **Go Up** until you reach the root folder which has the **<Add a new folder>** option. \n"
+"\n"
+"  ![ScummVM file browser root](browser-root.png \"ScummVM file browser root\"){w=70%}\n"
+"\n"
+"3. Double-tap **<Add a new folder>**. In your device's file browser, navigate to the folder containing all your game folders. For example, **SD Card > ScummVMgames**. \n"
+"\n"
+"4. Select **Use this folder**. \n"
+"\n"
+"  ![OS selectable folder](fs-folder.png \"OS selectable folder\"){w=70%}\n"
+"\n"
+"5. Select **ALLOW** to give ScummVM permission to access the folder. \n"
+"\n"
+"  ![OS access permission dialog](fs-permission.png \"OS access permission\"){w=70%}\n"
+"\n"
+"6. In the ScummVM file browser, double-tap to browse through your added folder. Add a game by selecting the sub-folder containing the game files, then tap **Choose**. \n"
+"\n"
+"  ![SAF folder added](browser-folder-in-list.png \"SAF folder added\"){w=70%}\n"
+"\n"
+"Step 2 and 3 are done only once. To add more games, repeat Steps 1 and 6. \n"
+"\n"
+"See our [Android documentation](https://docs.scummvm.org/en/latest/other_platforms/android.html) for more information.\n"
+	),
+
+0 // End of list
+};
+
+const char * const *OSystem_Android::buildHelpDialogData() {
+	return helpTabs;
+}

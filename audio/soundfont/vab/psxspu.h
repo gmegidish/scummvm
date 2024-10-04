@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 /*
@@ -29,6 +28,7 @@
 
 #include "audio/soundfont/common.h"
 #include "common/str.h"
+#include "common/util.h"
 #include "audio/soundfont/vgminstrset.h"
 #include "audio/soundfont/vgmsamp.h"
 #include "audio/soundfont/vgmitem.h"
@@ -171,7 +171,7 @@ void PSXConvADSR(T *realADSR, uint8 Am, uint8 Ar, uint8 Dr, uint8 Sl, uint8 Sm,
 		samples = (unsigned long)(0x60000000 / rate);
 		remainder = 0x60000000 % rate;
 		rate = RateTable[RoundToZero((Ar ^ 0x7F) - 0x18) + 32];
-		samples += ceil(fmax(0, 0x1FFFFFFF - (long) remainder) / (double) rate);
+		samples += ceil(MAX<double>(0, 0x1FFFFFFF - (long) remainder) / (double) rate);
 	}
 	timeInSecs = samples / sampleRate;
 	realADSR->_attack_time = timeInSecs;

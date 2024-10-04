@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -391,12 +390,10 @@ SegaRenderer::SegaRenderer(Screen_EoB *screen) : _screen(screen), _prioChainStar
 , _renderLineFragmentD(0), _renderLineFragmentM(0)
 #endif
 {
-	_vram = new uint8[0x10000];
+	_vram = new uint8[0x10000]();
 	assert(_vram);
-	memset(_vram, 0, 0x10000 * sizeof(uint8));
-	_vsram = new uint16[40];
+	_vsram = new uint16[40]();
 	assert(_vsram);
-	memset(_vsram, 0, 40 * sizeof(uint16));
 
 #if SEGA_PERFORMANCE
 	static const SegaRenderer::renderFuncD funcD[8] = {
@@ -445,9 +442,8 @@ void SegaRenderer::setResolution(int w, int h) {
 	_numSpritesMax = w >> 2;
 
 	delete[] _spriteMask;
-	_spriteMask = new uint8[w * h];
+	_spriteMask = new uint8[w * h]();
 	assert(_spriteMask);
-	memset(_spriteMask, 0, w * h * sizeof(uint8));
 }
 
 void SegaRenderer::setPlaneTableLocation(int plane, uint16 addr) {
@@ -650,7 +646,7 @@ void SegaRenderer::render(int destPageNum, int renderBlockX, int renderBlockY, i
 	}
 
 	// Sprites
-	memset(_spriteMask, 0xFF, _screenW * _screenH * sizeof(uint8));
+	memset(_spriteMask, 0xFF, (uint32)_screenW * (uint32)_screenH * sizeof(uint8));
 	const uint16 *pos = _spriteTable;
 	for (int i = 0; i < _numSpritesMax && pos; ++i) {
 		int y = *pos++ & 0x3FF;
@@ -956,12 +952,10 @@ void SegaRenderer::clearPrioChain() {
 }
 
 SegaAnimator::SegaAnimator(SegaRenderer *renderer) : _renderer(renderer), _needUpdate(false) {
-	_sprites = new Sprite[80];
+	_sprites = new Sprite[80]();
 	assert(_sprites);
-	memset(_sprites, 0, sizeof(Sprite) * 80);
-	_tempBuffer = new uint16[320];
+	_tempBuffer = new uint16[320]();
 	assert(_tempBuffer);
-	memset(_tempBuffer, 0, sizeof(uint16) * 320);
 	int linkCnt = 1;
 	for (int i = 1; i < 317; i += 4)
 		_tempBuffer[i] = linkCnt++;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #include "common/list.h"
 #include "common/hash-str.h"
 #include "common/hashmap.h"
+#include "common/macresman.h"
 #include "common/stream.h"
 #include "common/ptr.h"
 #include "common/archive.h"
@@ -52,28 +52,30 @@ public:
 
 	bool reset();
 
-	bool loadPakFile(Common::String filename);
-	bool loadPakFile(Common::String name, Common::ArchiveMemberPtr file);
+	bool loadPakFile(const Common::Path &filename);
+	bool loadPakFile(const Common::String &name, Common::ArchiveMemberPtr file);
 
-	void unloadPakFile(Common::String filename, bool remFromCache = false);
+	void unloadPakFile(const Common::String &name, bool remFromCache = false);
+	void unloadPakFile(const char *name, bool remFromCache = false) { unloadPakFile(Common::String(name), remFromCache); }
+	void unloadPakFile(const Common::Path &name, bool remFromCache = false) { unloadPakFile(name.toString('/'), remFromCache); }
 
-	bool isInPakList(Common::String filename);
+	bool isInPakList(const Common::String &name);
 
-	bool isInCacheList(Common::String name);
+	bool isInCacheList(const Common::String &name);
 
-	bool loadFileList(const Common::String &filedata);
+	bool loadFileList(const Common::Path &filedata);
 	bool loadFileList(const char *const *filelist, uint32 numFiles);
 
 	// This unloads *all* pakfiles, even kyra.dat and protected ones.
 	// It does not remove files from cache though!
 	void unloadAllPakFiles();
 
-	void listFiles(const Common::String &pattern, Common::ArchiveMemberList &list);
+	void listFiles(const Common::Path &pattern, Common::ArchiveMemberList &list);
 
-	bool exists(const char *file, bool errorOutOnFail=false);
-	uint32 getFileSize(const char *file);
-	uint8 *fileData(const char *file, uint32 *size);
-	Common::SeekableReadStream *createReadStream(const Common::String &file);
+	bool exists(const Common::Path &file, bool errorOutOnFail=false);
+	uint32 getFileSize(const Common::Path &file);
+	uint8 *fileData(const Common::Path &file, uint32 *size);
+	Common::SeekableReadStream *createReadStream(const Common::Path &file);
 
 	enum Endianness {
 		kPlatformEndianness = 0,
@@ -81,9 +83,12 @@ public:
 		kForceBE
 	};
 
-	Common::SeekableReadStreamEndian *createEndianAwareReadStream(const Common::String &file, int endianness = kPlatformEndianness);
+	Common::SeekableReadStreamEndian *createEndianAwareReadStream(const Common::Path &file, int endianness = kPlatformEndianness);
 
-	bool loadFileToBuf(const char *file, void *buf, uint32 maxSize);
+	bool loadFileToBuf(const Common::Path &file, void *buf, uint32 maxSize);
+
+	Common::Archive *getCachedArchive(const Common::String &file) const;
+
 protected:
 	typedef Common::HashMap<Common::String, Common::Archive *, Common::CaseSensitiveString_Hash, Common::CaseSensitiveString_EqualTo> ArchiveMap;
 	ArchiveMap _archiveCache;
@@ -93,7 +98,10 @@ protected:
 	Common::SearchSet _protectedFiles;
 
 	Common::Archive *loadArchive(const Common::String &name, Common::ArchiveMemberPtr member);
-	Common::Archive *loadInstallerArchive(const Common::String &file, const Common::String &ext, const uint8 offset);
+	Common::Archive *loadInstallerArchive(const Common::Path &file, const Common::String &ext, const uint8 offset);
+	Common::Archive *loadStuffItArchive(const Common::Path &file, const Common::String &canonicalName);
+	Common::Archive *loadStuffItArchive(Common::SeekableReadStream *stream, const Common::String &canonicalName, const Common::String &debugName);
+	Common::Archive *loadKyra1MacInstaller();
 
 	bool loadProtectedFiles(const char *const * list);
 
@@ -210,6 +218,7 @@ enum KyraResources {
 
 	k1GUIStrings,
 	k1ConfigStrings,
+	k1ConfigStrings2,
 
 	k1AudioTracks,
 	k1AudioTracksIntro,
@@ -226,6 +235,8 @@ enum KyraResources {
 
 	k1AmigaIntroSFXTable,
 	k1AmigaGameSFXTable,
+
+	k1TwoByteFontLookupTable,
 
 	k2SeqplayPakFiles,
 	k2SeqplayCredits,
@@ -249,6 +260,7 @@ enum KyraResources {
 	k2IngameTimJpStrings,
 	k2IngameShapeAnimData,
 	k2IngameTlkDemoStrings,
+	k2FontData,
 
 	k3MainMenuStrings,
 	k3MusicFiles,
@@ -258,7 +270,6 @@ enum KyraResources {
 	k3ItemAnimData,
 	k3ItemMagicTable,
 	k3ItemStringMap,
-	k3FontData,
 
 	k3VqaSubtitlesIntro,
 	k3VqaSubtitlesBoat,
@@ -834,6 +845,12 @@ enum KyraResources {
 	kEoB2IntroAnimData42,
 	kEoB2IntroAnimData43,
 
+	// extra entries for PC-98
+	kEoB2IntroAnimData44,
+	kEoB2IntroAnimData45,
+	kEoB2IntroAnimData46,
+	kEoB2IntroAnimData47,
+
 	kEoB2IntroShapes00,
 	kEoB2IntroShapes01,
 	kEoB2IntroShapes04,
@@ -1129,7 +1146,8 @@ enum KyraResources {
 
 	kEoB2UtilMenuStrings,
 	kEoB2Config2431Strings,
-	kEoB2FontDmpSearchTbl,
+	kEoB2FontLookupTbl,
+	kEoB2FontConvertTbl,
 	kEoB2Ascii2SjisTables,
 	kEoB2Ascii2SjisTables2,
 	kEoB2PcmSoundEffectsIngame,
@@ -1249,8 +1267,8 @@ public:
 	const HoFSeqData *loadHoFSequenceData(int id, int &entries);
 	const HoFSeqItemAnimData *loadHoFSeqItemAnimData(int id, int &entries);
 	const ItemAnimDefinition *loadItemAnimDefinition(int id, int &entries);
-#if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	const uint16 *loadRawDataBe16(int id, int &entries);
+#if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	const uint32 *loadRawDataBe32(int id, int &entries);
 #endif // (ENABLE_EOB || ENABLE_LOL)
 #ifdef ENABLE_LOL
@@ -1266,6 +1284,11 @@ public:
 	const EoBCharacter *loadEoBNpcData(int id, int &entries);
 #endif // ENABLE_EOB
 
+	// This sets up the internal resource mapping for the selected language. It should
+	// usually called with id '-1' so as to map all resources for the game, because the
+	// mapping is necessary to load a resource. Calling this will automatically unload
+	// the resource (all of them for id '-1').
+	bool setLanguage(Common::Language lang, int id = -1);
 	// use '-1' to prefetch/unload all ids
 	// prefetchId retruns false if only on of the resources
 	// can't be loaded and it breaks then the first res
@@ -1273,7 +1296,7 @@ public:
 	bool prefetchId(int id);
 	void unloadId(int id);
 private:
-	bool tryKyraDatLoad();
+	Common::SeekableReadStream *loadIdMap(Common::Language lang);
 
 	KyraEngine_v1 *_vm;
 
@@ -1292,8 +1315,8 @@ private:
 	bool loadHoFSequenceData(Common::SeekableReadStream &stream, void *&ptr, int &size);
 	bool loadHoFSeqItemAnimData(Common::SeekableReadStream &stream, void *&ptr, int &size);
 	bool loadItemAnimDefinition(Common::SeekableReadStream &stream, void *&ptr, int &size);
-#if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	bool loadRawDataBe16(Common::SeekableReadStream &stream, void *&ptr, int &size);
+#if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	bool loadRawDataBe32(Common::SeekableReadStream &stream, void *&ptr, int &size);
 #endif // (ENABLE_LOL || ENABLE_EOB)
 #ifdef ENABLE_LOL
@@ -1318,8 +1341,8 @@ private:
 	void freeHoFSequenceData(void *&ptr, int &size);
 	void freeHoFSeqItemAnimData(void *&ptr, int &size);
 	void freeItemAnimDefinition(void *&ptr, int &size);
-#if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	void freeRawDataBe16(void *&ptr, int &size);
+#if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	void freeRawDataBe32(void *&ptr, int &size);
 #endif // (ENABLE_EOB || ENABLE_LOL)
 #ifdef ENABLE_LOL

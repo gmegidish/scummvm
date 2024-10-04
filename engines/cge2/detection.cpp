@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,9 +25,9 @@
  */
 
 #include "engines/advancedDetector.h"
-#include "common/translation.h"
 #include "cge2/fileio.h"
 #include "cge2/cge2.h"
+#include "cge2/detection.h"
 
 static const DebugChannelDef debugFlagList[] = {
 	{CGE2::kCGE2DebugOpcode, "opcode", "CGE2 opcode debug channel"},
@@ -37,13 +36,9 @@ static const DebugChannelDef debugFlagList[] = {
 
 namespace CGE2 {
 
-#define GAMEOPTION_COLOR_BLIND_DEFAULT_OFF  GUIO_GAMEOPTIONS1
-#define GAMEOPTION_TTS_OBJECTS				GUIO_GAMEOPTIONS2
-#define GAMEOPTION_TTS_SPEECH				GUIO_GAMEOPTIONS3
-
 static const PlainGameDescriptor CGE2Games[] = {
 		{ "sfinx", "Sfinx" },
-		{ 0, 0 }
+		{ nullptr, nullptr }
 };
 
 static const ADGameDescription gameDescriptions[] = {
@@ -99,52 +94,16 @@ static const ADGameDescription gameDescriptions[] = {
 		AD_TABLE_END_MARKER
 };
 
-static const ADExtraGuiOptionsMap optionsList[] = {
-		{
-			GAMEOPTION_COLOR_BLIND_DEFAULT_OFF,
-			{
-				_s("Color Blind Mode"),
-				_s("Enable Color Blind Mode by default"),
-				"enable_color_blind",
-				false
-			}
-		},
-
-#ifdef USE_TTS
-	{
-		GAMEOPTION_TTS_OBJECTS,
-		{
-			_s("Enable Text to Speech for Objects and Options"),
-			_s("Use TTS to read the descriptions (if TTS is available)"),
-			"tts_enabled_objects",
-			false
-		}
-	},
-
-	{
-		GAMEOPTION_TTS_SPEECH,
-		{
-			_s("Enable Text to Speech for Subtitles"),
-			_s("Use TTS to read the subtitles (if TTS is available)"),
-			"tts_enabled_speech",
-			false
-		}
-	},
-#endif
-
-		AD_EXTRA_GUI_OPTIONS_TERMINATOR
-};
-
-class CGE2MetaEngineDetection : public AdvancedMetaEngineDetection {
+class CGE2MetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	CGE2MetaEngineDetection() : AdvancedMetaEngineDetection(gameDescriptions, sizeof(ADGameDescription), CGE2Games, optionsList) {
-	}
-
-	const char *getEngineId() const override {
-		return "cge2";
+	CGE2MetaEngineDetection() : AdvancedMetaEngineDetection(gameDescriptions, CGE2Games) {
 	}
 
 	const char *getName() const override {
+		return "cge2";
+	}
+
+	const char *getEngineName() const override {
 		return "CGE2";
 	}
 
@@ -162,7 +121,7 @@ public:
 static ADGameDescription s_fallbackDesc = {
 	"sfinx",
 	"Unknown version",
-	AD_ENTRY1(0, 0), // This should always be AD_ENTRY1(0, 0) in the fallback descriptor
+	AD_ENTRY1(nullptr, nullptr), // This should always be AD_ENTRY1(0, 0) in the fallback descriptor
 	Common::UNK_LANG,
 	Common::kPlatformDOS,
 	ADGF_NO_FLAGS,
@@ -170,8 +129,8 @@ static ADGameDescription s_fallbackDesc = {
 };
 
 static const ADFileBasedFallback fileBasedFallback[] = {
-	{ &s_fallbackDesc, { "vol.cat", "vol.dat", 0 } },
-	{ 0, { 0 } }
+	{ &s_fallbackDesc, { "vol.cat", "vol.dat", nullptr } },
+	{ nullptr, { nullptr } }
 };
 
 // This fallback detection looks identical to the one used for CGE. In fact, the difference resides

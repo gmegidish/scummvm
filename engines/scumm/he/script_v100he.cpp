@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,9 +35,12 @@
 #include "scumm/he/sprite_he.h"
 #include "scumm/util.h"
 
+#include "scumm/he/moonbase/moonbase.h"
+#include "scumm/he/moonbase/map_main.h"
+
 namespace Scumm {
 
-#define OPCODE(i, x)	_opcodes[i]._OPCODE(ScummEngine_v100he, x)
+#define OPCODE(i, x2)	_opcodes[i]._OPCODE(ScummEngine_v100he, x2)
 
 void ScummEngine_v100he::setupOpcodes() {
 	/* 00 */
@@ -150,8 +152,8 @@ void ScummEngine_v100he::setupOpcodes() {
 	OPCODE(0x57, o6_printSystem);
 	/* 58 */
 	OPCODE(0x58, o6_printText);
-	OPCODE(0x59, o100_jumpToScriptUnk);
-	OPCODE(0x5a, o100_startScriptUnk);
+	OPCODE(0x59, o100_priorityChainScript);
+	OPCODE(0x5a, o100_priorityStartScript);
 	OPCODE(0x5b, o6_pseudoRoom);
 	/* 5C */
 	OPCODE(0x5c, o6_pushByte);
@@ -235,8 +237,8 @@ void ScummEngine_v100he::setupOpcodes() {
 	OPCODE(0x9e, o6_getObjectX);
 	OPCODE(0x9f, o6_getObjectY);
 	/* A0 */
-	OPCODE(0xa0, o90_atan2);
-	OPCODE(0xa1, o90_getSegmentAngle);
+	OPCODE(0xa0, o90_getAngleFromDelta);
+	OPCODE(0xa1, o90_getAngleFromLine);
 	OPCODE(0xa2, o90_getActorAnimProgress);
 	OPCODE(0xa3, o90_getDistanceBetweenPoints);
 	/* A4 */
@@ -257,7 +259,7 @@ void ScummEngine_v100he::setupOpcodes() {
 	OPCODE(0xb0, o72_findObjectWithClassOf);
 	OPCODE(0xb1, o71_polygonHit);
 	OPCODE(0xb2, o90_getLinesIntersectionPoint);
-	OPCODE(0xb3, o90_fontUnk);
+	OPCODE(0xb3, o90_fontEnum);
 	/* B4 */
 	OPCODE(0xb4, o72_getNumFreeArrays);
 	OPCODE(0xb5, o72_getArrayDimSize);
@@ -280,7 +282,7 @@ void ScummEngine_v100he::setupOpcodes() {
 	/* C4 */
 	OPCODE(0xc4, o90_getObjectData);
 	OPCODE(0xc5, o72_openFile);
-	OPCODE(0xc6, o90_getPolygonOverlap);
+	OPCODE(0xc6, o90_getOverlap);
 	OPCODE(0xc7, o6_getOwner);
 	/* C8 */
 	OPCODE(0xc8, o100_getPaletteData);
@@ -303,7 +305,7 @@ void ScummEngine_v100he::setupOpcodes() {
 	OPCODE(0xd7, o90_sin);
 	/* D8 */
 	OPCODE(0xd8, o72_getSoundPosition);
-	OPCODE(0xd9, o6_isSoundRunning);
+	OPCODE(0xd9, o60_isSoundRunning);
 	OPCODE(0xda, o80_getSoundVar);
 	OPCODE(0xdb, o100_getSpriteInfo);
 	/* DC */
@@ -341,7 +343,7 @@ void ScummEngine_v100he::o100_actorOps() {
 	byte string[256];
 
 	byte subOp = fetchScriptByte();
-	if (subOp == 129) {
+	if (subOp == SO_ACTOR_INIT) {
 		_curActor = pop();
 		return;
 	}
@@ -351,94 +353,101 @@ void ScummEngine_v100he::o100_actorOps() {
 		return;
 
 	switch (subOp) {
-	case 0:
+	case SO_INIT:
 		// freddicove Ru Updated
 		// FIXME: check stack parameters
 		debug(0,"o100_actorOps: case 0 UNHANDLED");
 		break;
-	case 3:			// SO_ANIMATION
+	case SO_ANIMATION:
 		pop();
 		pop();
 		pop();
 		break;
-	case 4:			// SO_ANIMATION_SPEED
+	case SO_ANIMATION_SPEED:
 		a->setAnimSpeed(pop());
 		break;
-	case 6:			// SO_AT
+	case SO_AT:
 		j = pop();
 		i = pop();
 		a->putActor(i, j);
 		break;
-	case 8:			// SO_BACKGROUND_OFF
+	case SO_BACKGROUND_OFF:
 		a->_drawToBackBuf = false;
 		a->_needRedraw = true;
 		a->_needBgReset = true;
 		break;
-	case 9:			// SO_BACKGROUND_ON
+	case SO_BACKGROUND_ON:
 		a->drawActorToBackBuf(a->getPos().x, a->getPos().y);
 		break;
-	case 14:		// SO_CHARSET
+	case SO_CHARSET_SET:
 		a->_charset = pop();
 		break;
-	case 18:		// SO_CLIPPED
-		a->_clipOverride.bottom = pop();
-		a->_clipOverride.right = pop();
-		a->_clipOverride.top = pop();
-		a->_clipOverride.left = pop();
-		adjustRect(a->_clipOverride);
+	case SO_CLIPPED:
+	{
+		int x1, y1, x2, y2;
+		y2 = pop();
+		x2 = pop();
+		y1 = pop();
+		x1 = pop();
+		if (_curActor) {
+			setActorClippingRect(_curActor, x1, y1, x2, y2);
+		}
 		break;
-	case 22:		// SO_CONDITION
+	}
+	case SO_CONDITION:
 		k = getStackList(args, ARRAYSIZE(args));
 		for (i = 0; i < k; ++i) {
 			a->setUserCondition(args[i] & 0x7F, args[i] & 0x80);
 		}
 		break;
-	case 25:		// SO_COSTUME
+	case SO_COSTUME:
 		a->setActorCostume(pop());
 		break;
-	case 27:		// SO_DEFAULT
+	case SO_DEFAULT:
 		a->initActor(0);
 		break;
-	case 32:		// SO_ERASE
-		k = pop();
-		a->setHEFlag(1, k);
+	case SO_ERASE:
+		a->setActorEraseType(pop());
 		break;
-	case 52:		// SO_ACTOR_NAME
+	case SO_NAME:
 		copyScriptString(string, sizeof(string));
 		loadPtrToResource(rtActorName, a->_number, string);
 		break;
-	case 53:		// SO_ACTOR_NEW
+	case SO_NEW:
 		a->initActor(2);
 		break;
-	case 57:		// SO_PALETTE
+	case SO_PALETTE:
 		j = pop();
 		i = pop();
 		assertRange(0, i, 255, "palette slot");
 		a->remapActorPaletteColor(i, j);
 		a->_needRedraw = true;
 		break;
-	case 59:		// SO_PRIORITY
+	case SO_PRIORITY:
 		a->_layer = pop();
+		a->_needBgReset = true;
 		a->_needRedraw = true;
 		break;
-	case 63:		// SO_ROOM_PALETTE
+	case SO_ROOM_PALETTE:
 		a->_hePaletteNum = pop();
+		a->_needBgReset = true;
 		a->_needRedraw = true;
 		break;
-	case 65:		// SO_SCALE
+	case SO_SCALE:
 		i = pop();
 		a->setScale(i, i);
 		break;
-	case 70:		// SO_SHADOW
-		a->_heXmapNum = pop();
+	case SO_SHADOW:
+		a->_heShadow = pop();
+		a->_needBgReset = true;
 		a->_needRedraw = true;
 		break;
-	case 74:		// SO_STEP_DIST
+	case SO_STEP_DIST:
 		j = pop();
 		i = pop();
 		a->setActorWalkSpeed(i, j);
 		break;
-	case 78:		// SO_TALKIE
+	case SO_TALKIE:
 		{
 		copyScriptString(string, sizeof(string));
 		int slot = pop();
@@ -451,84 +460,87 @@ void ScummEngine_v100he::o100_actorOps() {
 		a->_heTalkQueue[slot].color = a->_talkColor;
 		}
 		break;
-	case 83:		// SO_ACTOR_VARIABLE
+	case SO_VARIABLE:
 		i = pop();
 		a->setAnimVar(pop(), i);
 		break;
-	case 87:		// SO_ALWAYS_ZCLIP
+	case SO_ALWAYS_ZCLIP:
 		a->_forceClip = pop();
 		break;
-	case 89:		// SO_NEVER_ZCLIP
+	case SO_NEVER_ZCLIP:
 		a->_forceClip = 0;
 		break;
-	case 128:		// SO_ACTOR_DEFAULT_CLIPPED
-		_actorClipOverride.bottom = pop();
-		_actorClipOverride.right = pop();
-		_actorClipOverride.top = pop();
-		_actorClipOverride.left = pop();
-		adjustRect(_actorClipOverride);
+	case SO_ACTOR_DEFAULT_CLIPPED:
+	{
+		int x1, y1, x2, y2;
+		y2 = pop();
+		x2 = pop();
+		y1 = pop();
+		x1 = pop();
+		setActorClippingRect(-1, x1, y1, x2, y2);
 		break;
-	case 130:		// SO_SOUND
+	}
+	case SO_ACTOR_SOUNDS:
 		k = getStackList(args, ARRAYSIZE(args));
 		for (i = 0; i < k; i++)
 			a->_sound[i] = args[i];
 		break;
-	case 131:		// SO_ACTOR_WIDTH
+	case SO_ACTOR_WIDTH:
 		a->_width = pop();
 		break;
-	case 132:		// SO_ANIMATION_DEFAULT
+	case SO_ANIMATION_DEFAULT:
 		a->_initFrame = 1;
 		a->_walkFrame = 2;
 		a->_standFrame = 3;
 		a->_talkStartFrame = 4;
 		a->_talkStopFrame = 5;
 		break;
-	case 133:		// SO_ELEVATION
+	case SO_ELEVATION:
 		a->setElevation(pop());
 		break;
-	case 134:		// SO_FOLLOW_BOXES
+	case SO_FOLLOW_BOXES:
 		a->_ignoreBoxes = 0;
 		a->_forceClip = 0;
 		if (a->isInCurrentRoom())
 			a->putActor();
 		break;
-	case 135:		// SO_IGNORE_BOXES
+	case SO_IGNORE_BOXES:
 		a->_ignoreBoxes = 1;
 		a->_forceClip = 0;
 		if (a->isInCurrentRoom())
 			a->putActor();
 		break;
-	case 136:		// SO_ACTOR_IGNORE_TURNS_OFF
+	case SO_ACTOR_IGNORE_TURNS_OFF:
 		a->_ignoreTurns = false;
 		break;
-	case 137:		// SO_ACTOR_IGNORE_TURNS_ON
+	case SO_ACTOR_IGNORE_TURNS_ON:
 		a->_ignoreTurns = true;
 		break;
-	case 138:		// SO_INIT_ANIMATION
+	case SO_INIT_ANIMATION:
 		a->_initFrame = pop();
 		break;
-	case 139:		// SO_STAND_ANIMATION
+	case SO_STAND_ANIMATION:
 		a->_standFrame = pop();
 		break;
-	case 140:		// SO_TALK_ANIMATION
+	case SO_TALK_ANIMATION:
 		a->_talkStopFrame = pop();
 		a->_talkStartFrame = pop();
 		break;
-	case 141:		// SO_TALK_COLOR
+	case SO_TALK_COLOR:
 		a->_talkColor = pop();
 		break;
-	case 142:		// SO_TALK_CONDITION
+	case SO_TALK_CONDITION:
 		k = pop();
 		if (k == 0)
 			k = _rnd.getRandomNumberRng(1, 10);
 		a->_heNoTalkAnimation = 1;
 		a->setTalkCondition(k);
 		break;
-	case 143:		// SO_TEXT_OFFSET
+	case SO_TEXT_OFFSET:
 		a->_talkPosY = pop();
 		a->_talkPosX = pop();
 		break;
-	case 144:		// SO_WALK_ANIMATION
+	case SO_WALK_ANIMATION:
 		a->_walkFrame = pop();
 		break;
 	default:
@@ -539,7 +551,7 @@ void ScummEngine_v100he::o100_actorOps() {
 void ScummEngine_v100he::o100_arrayOps() {
 	byte *data;
 	byte string[1024];
-	int dim1end, dim1start, dim2end, dim2start;
+	int acrossMax, acrossMin, downMax, downMin;
 	int id, len, b, c, list[128];
 	int offs, tmp, tmp2;
 	uint tmp3, type;
@@ -549,20 +561,20 @@ void ScummEngine_v100he::o100_arrayOps() {
 	debug(9,"o100_arrayOps: array %d case %d", array, subOp);
 
 	switch (subOp) {
-	case 35:			// SO_FORMATTED_STRING
+	case SO_FORMATTED_STRING:
 		decodeScriptString(string);
 		len = resStrLen(string);
 		data = defineArray(array, kStringArray, 0, 0, 0, len);
 		memcpy(data, string, len);
 		break;
-	case 77:			// SO_STRING
+	case SO_STRING:
 		copyScriptString(string, sizeof(string));
 		len = resStrLen(string);
 		data = defineArray(array, kStringArray, 0, 0, 0, len);
 		memcpy(data, string, len);
 		break;
 
-	case 128:			// SO_ASSIGN_2DIM_LIST
+	case SO_ASSIGN_2DIM_LIST:
 		len = getStackList(list, ARRAYSIZE(list));
 		id = readVar(array);
 		if (id == 0)
@@ -572,7 +584,7 @@ void ScummEngine_v100he::o100_arrayOps() {
 			writeArray(array, c, len, list[len]);
 		}
 		break;
-	case 129:			// SO_ASSIGN_INT_LIST
+	case SO_ASSIGN_INT_LIST:
 		b = pop();
 		c = pop();
 		id = readVar(array);
@@ -583,31 +595,31 @@ void ScummEngine_v100he::o100_arrayOps() {
 			writeArray(array, 0, b + c, pop());
 		}
 		break;
-	case 130:			// SO_COMPLEX_ARRAY_ASSIGNMENT
+	case SO_COMPLEX_ARRAY_ASSIGNMENT:
 		len = getStackList(list, ARRAYSIZE(list));
-		dim1end = pop();
-		dim1start = pop();
-		dim2end = pop();
-		dim2start = pop();
+		acrossMax = pop();
+		acrossMin = pop();
+		downMax = pop();
+		downMin = pop();
 		id = readVar(array);
 		if (id == 0) {
-			defineArray(array, kDwordArray, dim2start, dim2end, dim1start, dim1end);
+			defineArray(array, kDwordArray, downMin, downMax, acrossMin, acrossMax);
 		}
-		checkArrayLimits(array, dim2start, dim2end, dim1start, dim1end);
+		checkArrayLimits(array, downMin, downMax, acrossMin, acrossMax);
 
 		tmp2 = 0;
-		while (dim2start <= dim2end) {
-			tmp = dim1start;
-			while (tmp <= dim1end) {
-				writeArray(array, dim2start, tmp, list[tmp2++]);
+		while (downMin <= downMax) {
+			tmp = acrossMin;
+			while (tmp <= acrossMax) {
+				writeArray(array, downMin, tmp, list[tmp2++]);
 				if (tmp2 == len)
 					tmp2 = 0;
 				tmp++;
 			}
-			dim2start++;
+			downMin++;
 		}
 		break;
-	case 131:			// SO_COMPLEX_ARRAY_COPY_OPERATION
+	case SO_COMPLEX_ARRAY_COPY_OPERATION:
 		{
 			int a2_dim1end = pop();
 			int a2_dim1start = pop();
@@ -624,7 +636,7 @@ void ScummEngine_v100he::o100_arrayOps() {
 			copyArray(array, a1_dim2start, a1_dim2end, a1_dim1start, a1_dim1end, array2, a2_dim2start, a2_dim2end, a2_dim1start, a2_dim1end);
 		}
 		break;
-	case 132:			// SO_COMPLEX_ARRAY_MATH_OPERATION
+	case SO_COMPLEX_ARRAY_MATH_OPERATION:
 		{
 			// Used by room 2 script 2180 in Moonbase Commander (modify-line-of-sight)
 			int array2 = fetchScriptWord();
@@ -638,10 +650,10 @@ void ScummEngine_v100he::o100_arrayOps() {
 			int a2_dim1start = pop();
 			int a2_dim2end = pop();
 			int a2_dim2start = pop();
-			dim1end = pop();
-			dim1start = pop();
-			dim2end = pop();
-			dim2start = pop();
+			acrossMax = pop();
+			acrossMin = pop();
+			downMax = pop();
+			downMin = pop();
 
 			debug(0, "Complex: %d = %d[%d to %d][%d to %d] %c %d[%d to %d][%d to %d]", array,
 				array1, a1_dim1start, a1_dim2end, a1_dim1start, a1_dim2end,
@@ -652,21 +664,21 @@ void ScummEngine_v100he::o100_arrayOps() {
 			int a11_num = a1_dim1end - a1_dim1start + 1;
 			int a22_num = a2_dim2end - a2_dim2start + 1;
 			int a21_num = a2_dim1end - a2_dim1start + 1;
-			int d12_num = dim2end - dim2start + 1;
-			int d11_num = dim1end - dim1start + 1;
+			int d12_num = downMax - downMin + 1;
+			int d11_num = acrossMax - acrossMin + 1;
 
 			id = readVar(array);
 			if (id == 0) {
-				defineArray(array, kDwordArray, dim2start, dim2end, dim1start, dim1end);
+				defineArray(array, kDwordArray, downMin, downMax, acrossMin, acrossMax);
 			}
 			if (a12_num != a22_num || a12_num != d12_num || a11_num != a21_num || a11_num != d11_num) {
 				error("Operation size mismatch (%d vs %d)(%d vs %d)", a12_num, a22_num, a11_num, a21_num);
 			}
 
-			for (; a1_dim2start <= a1_dim2end; ++a1_dim2start, ++a2_dim2start, ++dim2start) {
+			for (; a1_dim2start <= a1_dim2end; ++a1_dim2start, ++a2_dim2start, ++downMin) {
 				int a2dim1 = a2_dim1start;
 				int a1dim1 = a1_dim1start;
-				int dim1 = dim1start;
+				int dim1 = acrossMin;
 				for (; a1dim1 <= a1_dim1end; ++a1dim1, ++a2dim1, ++dim1) {
 					int val1 = readArray(array1, a1_dim2start, a1dim1);
 					int val2 = readArray(array2, a2_dim2start, a2dim1);
@@ -691,40 +703,40 @@ void ScummEngine_v100he::o100_arrayOps() {
 					default:
 						error("o100_arrayOps: case 132 unknown type %d)", type);
 					}
-					writeArray(array, dim2start, dim1, res);
+					writeArray(array, downMin, dim1, res);
 				}
 			}
 			break;
 		}
-	case 133:			// SO_RANGE_ARRAY_ASSIGNMENT
+	case SO_RANGE_ARRAY_ASSIGNMENT:
 		b = pop();
 		c = pop();
-		dim1end = pop();
-		dim1start = pop();
-		dim2end = pop();
-		dim2start = pop();
+		acrossMax = pop();
+		acrossMin = pop();
+		downMax = pop();
+		downMin = pop();
 		id = readVar(array);
 		if (id == 0) {
-			defineArray(array, kDwordArray, dim2start, dim2end, dim1start, dim1end);
+			defineArray(array, kDwordArray, downMin, downMax, acrossMin, acrossMax);
 		}
-		checkArrayLimits(array, dim2start, dim2end, dim1start, dim1end);
+		checkArrayLimits(array, downMin, downMax, acrossMin, acrossMax);
 
 		offs = (b >= c) ? 1 : -1;
 		tmp2 = c;
-		tmp3 = c - b + 1;
-		while (dim2start <= dim2end) {
-			tmp = dim1start;
-			while (tmp <= dim1end) {
-				writeArray(array, dim2start, tmp, tmp2);
+		tmp3 = ABS(c - b) + 1;
+		while (downMin <= downMax) {
+			tmp = acrossMin;
+			while (tmp <= acrossMax) {
+				writeArray(array, downMin, tmp, tmp2);
 				if (--tmp3 == 0) {
 					tmp2 = c;
-					tmp3 = c - b + 1;
+					tmp3 = ABS(c - b) + 1;
 				} else {
 					tmp2 += offs;
 				}
 				tmp++;
 			}
-			dim2start++;
+			downMin++;
 		}
 		break;
 	default:
@@ -741,24 +753,23 @@ void ScummEngine_v100he::o100_jumpToScript() {
 	script = pop();
 	flags = fetchScriptByte();
 	stopObjectCode();
-	runScript(script, (flags == 128 || flags == 129), (flags == 130 || flags == 129), args);
+	runScript(script, (flags == SO_BAK || flags == SO_BAKREC), (flags == SO_REC || flags == SO_BAKREC), args);
 }
 
 void ScummEngine_v100he::o100_createSound() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 0:
+	case SO_INIT: // 0
 		_heSndResId = pop();
 		break;
-	case 53:
-		createSound(_heSndResId, -1);
+	case SO_NEW: // 53
+		((SoundHE *)_sound)->createSound(_heSndResId, -1);
 		break;
-	case 92:
-		// dummy case
+	case SO_SOUND_ADD: // 128
+		((SoundHE *)_sound)->createSound(_heSndResId, pop());
 		break;
-	case 128:
-		createSound(_heSndResId, pop());
+	case SO_END: // 92
 		break;
 	default:
 		error("o100_createSound: default case %d", subOp);
@@ -766,36 +777,36 @@ void ScummEngine_v100he::o100_createSound() {
 }
 
 void ScummEngine_v100he::o100_dim2dimArray() {
-	int data, dim1end, dim2end;
+	int data, acrossMax, downMax;
 
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 41:		// SO_BIT_ARRAY
+	case SO_BIT:
 		data = kBitArray;
 		break;
-	case 42:		// SO_INT_ARRAY
+	case SO_INT:
 		data = kIntArray;
 		break;
-	case 43:
+	case SO_DWORD:
 		data = kDwordArray;
 		break;
-	case 44:		// SO_NIBBLE_ARRAY
+	case SO_NIBBLE:
 		data = kNibbleArray;
 		break;
-	case 45:		// SO_BYTE_ARRAY
+	case SO_BYTE:
 		data = kByteArray;
 		break;
-	case 77:		// SO_STRING_ARRAY
+	case SO_STRING:
 		data = kStringArray;
 		break;
 	default:
 		error("o100_dim2dimArray: default case %d", subOp);
 	}
 
-	dim1end = pop();
-	dim2end = pop();
-	defineArray(fetchScriptWord(), data, 0, dim2end, 0, dim1end);
+	acrossMax = pop();
+	downMax = pop();
+	defineArray(fetchScriptWord(), data, 0, downMax, 0, acrossMax);
 }
 
 void ScummEngine_v100he::o100_dimArray() {
@@ -804,25 +815,25 @@ void ScummEngine_v100he::o100_dimArray() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 41:		// SO_BIT_ARRAY
+	case SO_BIT:
 		data = kBitArray;
 		break;
-	case 42:		// SO_INT_ARRAY
+	case SO_INT:
 		data = kIntArray;
 		break;
-	case 43:
+	case SO_DWORD:
 		data = kDwordArray;
 		break;
-	case 44:		// SO_NIBBLE_ARRAY
+	case SO_NIBBLE:
 		data = kNibbleArray;
 		break;
-	case 45:		// SO_BYTE_ARRAY
+	case SO_BYTE:
 		data = kByteArray;
 		break;
-	case 77:		// SO_STRING_ARRAY
+	case SO_STRING:
 		data = kStringArray;
 		break;
-	case 135:		// SO_UNDIM_ARRAY
+	case SO_UNDIM_ARRAY:
 		nukeArray(fetchScriptWord());
 		return;
 	default:
@@ -833,26 +844,26 @@ void ScummEngine_v100he::o100_dimArray() {
 }
 
 void ScummEngine_v100he::o100_drawLine() {
-	int id, unk1, unk2, x, x1, y1;
+	int color, y2, step, x2, x1, y1;
 
-	unk2 = pop();
-	id = pop();
-	unk1 = pop();
-	x = pop();
+	step = pop();
+	color = pop();
+	y2 = pop();
+	x2 = pop();
 	y1 = pop();
 	x1 = pop();
 
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 1:
-		drawLine(x1, y1, x, unk1, unk2, 2, id);
+	case SO_ACTOR:
+		drawLine(x1, y1, x2, y2, step, 2, color);
 		break;
-	case 20:
-		drawLine(x1, y1, x, unk1, unk2, 1, id);
+	case SO_COLOR:
+		drawLine(x1, y1, x2, y2, step, 1, color);
 		break;
-	case 40:
-		drawLine(x1, y1, x, unk1, unk2, 3, id);
+	case SO_IMAGE:
+		drawLine(x1, y1, x2, y2, step, 3, color);
 		break;
 	default:
 		error("o100_drawLine: default case %d", subOp);
@@ -865,17 +876,17 @@ void ScummEngine_v100he::o100_drawObject() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 6:
+	case SO_AT:
 		state = 1;
 		y = pop();
 		x = pop();
 		break;
-	case 7:
+	case SO_AT_IMAGE:
 		state = pop();
 		y = pop();
 		x = pop();
 		break;
-	case 40:
+	case SO_IMAGE:
 		state = pop();
 		if (state == 0)
 			state = 1;
@@ -905,33 +916,31 @@ void ScummEngine_v100he::o100_floodFill() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 0:
-		_floodFillParams.reset();
-		_floodFillParams.box.left = 0;
-		_floodFillParams.box.top = 0;
-		_floodFillParams.box.right = 639;
-		_floodFillParams.box.bottom = 479;
-		adjustRect(_floodFillParams.box);
+	case SO_INIT:
+		_floodFillCommand.reset();
+		_floodFillCommand.box.left = 0;
+		_floodFillCommand.box.top = 0;
+		_floodFillCommand.box.right = 639;
+		_floodFillCommand.box.bottom = 479;
 		break;
-	case 6:
-		_floodFillParams.y = pop();
-		_floodFillParams.x = pop();
+	case SO_AT:
+		_floodFillCommand.y = pop();
+		_floodFillCommand.x = pop();
 		break;
-	case 18:
-		_floodFillParams.box.bottom = pop();
-		_floodFillParams.box.right = pop();
-		_floodFillParams.box.top = pop();
-		_floodFillParams.box.left = pop();
-		adjustRect(_floodFillParams.box);
+	case SO_CLIPPED:
+		_floodFillCommand.box.bottom = pop();
+		_floodFillCommand.box.right = pop();
+		_floodFillCommand.box.top = pop();
+		_floodFillCommand.box.left = pop();
 		break;
-	case 20:
-		_floodFillParams.flags = pop();
+	case SO_COLOR:
+		_floodFillCommand.color = pop();
 		break;
-	case 67:
-		pop();
+	case SO_SET_FLAGS:
+		_floodFillCommand.flags |= pop();
 		break;
-	case 92:
-		floodFill(&_floodFillParams, this);
+	case SO_END:
+		_wiz->pgFloodFillCmd(_floodFillCommand.x, _floodFillCommand.y, _floodFillCommand.color, &_floodFillCommand.box);
 		break;
 	default:
 		error("o100_floodFill: Unknown case %d", subOp);
@@ -940,159 +949,144 @@ void ScummEngine_v100he::o100_floodFill() {
 
 void ScummEngine_v100he::o100_setSpriteGroupInfo() {
 	byte string[260];
-	int type, value1, value2, value3, value4;
+	int type, value1, value2, value3, value4, propertyCode;
 
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 0: // SO_INIT
+	case SO_INIT: // 0
 		_curSpriteGroupId = pop();
 		break;
-	case 6: // SO_MOVE
+	case SO_AT: // 6
 		value2 = pop();
 		value1 = pop();
-		if (!_curSpriteGroupId)
-			break;
+		if (_curSpriteGroupId)
+			_sprite->setGroupPoint(_curSpriteGroupId, value1, value2);
 
-		_sprite->setGroupPosition(_curSpriteGroupId, value1, value2);
 		break;
-	case 18: // SO_CLIPPED
+	case SO_CLIPPED: // 18
 		value4 = pop();
 		value3 = pop();
 		value2 = pop();
 		value1 = pop();
-		if (!_curSpriteGroupId)
-			break;
+		if (_curSpriteGroupId)
+			_sprite->setGroupClipRect(_curSpriteGroupId, value1, value2, value3, value4);
 
-		_sprite->setGroupBounds(_curSpriteGroupId, value1, value2, value3, value4);
 		break;
-	case 38: // SO_GROUP
-		type = pop() - 1;
+	case SO_GROUP: // 38
+		type = pop();
 		switch (type) {
-		case 0: // SPRGRPOP_MOVE
-			value2 = pop();
-			value1 = pop();
-			if (!_curSpriteGroupId)
-				break;
+		case SPRGRPOP_MOVE: // 1
+			value2 = pop(); // dy
+			value1 = pop(); // dx
+			if (_curSpriteGroupId)
+				_sprite->moveGroupMembers(_curSpriteGroupId, value1, value2);
 
-			_sprite->moveGroupMembers(_curSpriteGroupId, value1, value2);
 			break;
-		case 1: // SPRGRPOP_ORDER
-			value1 = pop();
-			if (!_curSpriteGroupId)
-				break;
+		case SPRGRPOP_ORDER: // 2
+			value1 = pop();  // order
+			if (_curSpriteGroupId)
+				_sprite->setGroupMembersPriority(_curSpriteGroupId, value1);
 
-			_sprite->setGroupMembersPriority(_curSpriteGroupId, value1);
 			break;
-		case 2: // SPRGRPOP_NEW_GROUP
-			value1 = pop();
-			if (!_curSpriteGroupId)
-				break;
+		case SPRGRPOP_NEW_GROUP: // 3
+			value1 = pop();      // newGroup
+			if (_curSpriteGroupId)
+				_sprite->changeGroupMembersGroup(_curSpriteGroupId, value1);
 
-			_sprite->setGroupMembersGroup(_curSpriteGroupId, value1);
 			break;
-		case 3: // SPRGRPOP_UPDATE_TYPE
-			value1 = pop();
-			if (!_curSpriteGroupId)
-				break;
+		case SPRGRPOP_UPDATE_TYPE: // 4
+			value1 = pop();        // updateType
+			if (_curSpriteGroupId)
+				_sprite->setGroupMembersUpdateType(_curSpriteGroupId, value1);
 
-			_sprite->setGroupMembersUpdateType(_curSpriteGroupId, value1);
 			break;
-		case 4: // SPRGRPOP_NEW
-			if (!_curSpriteGroupId)
-				break;
+		case SPRGRPOP_NEW: // 5
+			if (_curSpriteGroupId)
+				_sprite->performNewOnGroupMembers(_curSpriteGroupId);
 
-			_sprite->setGroupMembersResetSprite(_curSpriteGroupId);
 			break;
-		case 5: // SPRGRPOP_ANIMATION_SPEED
-			value1 = pop();
-			if (!_curSpriteGroupId)
-				break;
+		case SPRGRPOP_ANIMATION_SPEED: // 6
+			value1 = pop();            // animationSpeed
+			if (_curSpriteGroupId)
+				_sprite->setGroupMembersAnimationSpeed(_curSpriteGroupId, value1);
 
-			_sprite->setGroupMembersAnimationSpeed(_curSpriteGroupId, value1);
 			break;
-		case 6: // SPRGRPOP_ANIMATION_TYPE
-			value1 = pop();
-			if (!_curSpriteGroupId)
-				break;
+		case SPRGRPOP_ANIMATION_TYPE: // 7
+			value1 = pop();           // animationType
+			if (_curSpriteGroupId)
+				_sprite->setGroupMembersAutoAnimFlag(_curSpriteGroupId, value1);
 
-			_sprite->setGroupMembersAutoAnimFlag(_curSpriteGroupId, value1);
 			break;
-		case 7: // SPRGRPOP_SHADOW
-			value1 = pop();
-			if (!_curSpriteGroupId)
-				break;
+		case SPRGRPOP_SHADOW: // 8
+			value1 = pop();   // shadowNum
+			if (_curSpriteGroupId)
+				_sprite->setGroupMembersShadow(_curSpriteGroupId, value1);
 
-			_sprite->setGroupMembersShadow(_curSpriteGroupId, value1);
 			break;
 		default:
 			error("o100_setSpriteGroupInfo subOp 38: Unknown case %d", subOp);
 		}
 		break;
-	case 40: // SO_IMAGE
+	case SO_IMAGE: // 40
 		value1 = pop();
-		if (!_curSpriteGroupId)
-			break;
+		if (_curSpriteGroupId)
+			_sprite->setGroupImage(_curSpriteGroupId, value1);
 
-		_sprite->setGroupImage(_curSpriteGroupId, value1);
 		break;
-	case 49: // SO_AT
+	case SO_MOVE: // 49
 		value2 = pop();
 		value1 = pop();
-		if (!_curSpriteGroupId)
-			break;
+		if (_curSpriteGroupId)
+			_sprite->moveGroup(_curSpriteGroupId, value1, value2);
 
-		_sprite->moveGroup(_curSpriteGroupId, value1, value2);
 		break;
-	case 52: // SO_NAME
+	case SO_NAME: // 52
 		copyScriptString(string, sizeof(string));
 		break;
-	case 53: // SO_NEW
-		if (!_curSpriteGroupId)
-			break;
+	case SO_NEW: // 53
+		if (_curSpriteGroupId)
+			_sprite->newGroup(_curSpriteGroupId);
 
-		_sprite->resetGroup(_curSpriteGroupId);
 		break;
-	case 54: // SO_NEW_GENERAL_PROPERTY
+	case SO_NEW_GENERAL_PROPERTY: // 54
 		// dummy case
 		pop();
 		pop();
 		break;
-	case 59: // SO_PRIORITY
+	case SO_PRIORITY: // 59
 		value1 = pop();
-		if (!_curSpriteGroupId)
-			break;
+		if (_curSpriteGroupId)
+			_sprite->setGroupPriority(_curSpriteGroupId, value1);
 
-		_sprite->setGroupPriority(_curSpriteGroupId, value1);
 		break;
-	case 60: // SO_PROPERTY
-		type = pop();
+	case SO_PROPERTY: // 60
+		propertyCode = pop();
 		value1 = pop();
-		if (!_curSpriteGroupId)
-			break;
-
-		switch (type) {
-		case 0: // SPRGRPPROP_XMUL
-			_sprite->setGroupXMul(_curSpriteGroupId, value1);
-			break;
-		case 1: // SPRGRPPROP_XDIV
-			_sprite->setGroupXDiv(_curSpriteGroupId, value1);
-			break;
-		case 2: // SPRGRPPROP_YMUL
-			_sprite->setGroupYMul(_curSpriteGroupId, value1);
-			break;
-		case 3: // SPRGRPPROP_YDIV
-			_sprite->setGroupYDiv(_curSpriteGroupId, value1);
-			break;
-		default:
-			error("o100_setSpriteGroupInfo subOp 60: Unknown case %d", subOp);
+		if (_curSpriteGroupId) {
+			switch (propertyCode) {
+			case SPRGRPPROP_XMUL: // 0
+				_sprite->setGroupXMul(_curSpriteGroupId, value1);
+				break;
+			case SPRGRPPROP_XDIV: // 1
+				_sprite->setGroupXDiv(_curSpriteGroupId, value1);
+				break;
+			case SPRGRPPROP_YMUL: // 2
+				_sprite->setGroupYMul(_curSpriteGroupId, value1);
+				break;
+			case SPRGRPPROP_YDIV: // 3
+				_sprite->setGroupYDiv(_curSpriteGroupId, value1);
+				break;
+			default:
+				error("o100_setSpriteGroupInfo subOp 60: Unknown case %d", subOp);
+			}
 		}
-		break;
-	case 89: // SO_NEVER_ZCLIP
-		if (!_curSpriteGroupId)
-			break;
 
-		_sprite->resetGroupBounds(_curSpriteGroupId);
+		break;
+	case SO_NEVER_ZCLIP: // 89
+		if (_curSpriteGroupId)
+			_sprite->clearGroupClipRect(_curSpriteGroupId);
+
 		break;
 	default:
 		error("o100_setSpriteGroupInfo: Unknown case %d", subOp);
@@ -1105,23 +1099,23 @@ void ScummEngine_v100he::o100_resourceRoutines() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 14:
+	case SO_CHARSET_SET:
 		_heResType = rtCharset;
 		_heResId = pop();
 		break;
-	case 25:
+	case SO_COSTUME:
 		_heResType = rtCostume;
 		_heResId = pop();
 		break;
-	case 34:
+	case SO_FLOBJECT:
 		_heResType = rtFlObject;
 		_heResId = pop();
 		break;
-	case 40:
+	case SO_IMAGE:
 		_heResType = rtImage;
 		_heResId = pop();
 		break;
-	case 47:
+	case SO_LOAD:
 		if (_heResType == rtFlObject) {
 			room = getObjectRoom(_heResId);
 			loadFlObject(_heResId, room);
@@ -1131,26 +1125,26 @@ void ScummEngine_v100he::o100_resourceRoutines() {
 			ensureResourceLoaded(_heResType, _heResId);
 		}
 		break;
-	case 62:
+	case SO_ROOM:
 		_heResType = rtRoom;
 		_heResId = pop();
 		break;
-	case 66:
+	case SO_SCRIPT:
 		_heResType = rtScript;
 		_heResId = pop();
 		break;
-	case 72:
+	case SO_SOUND:
 		_heResType = rtSound;
 		_heResId = pop();
 		break;
-	case 128:
+	case SO_CLEAR_HEAP:
 		// TODO: Clear Heap
 		warning("STUB: o100_resourceRoutines: clear Heap");
 		break;
-	case 129:
+	case SO_PRELOAD_FLUSH:
 		// Dummy case
 		break;
-	case 132:
+	case SO_LOCK:
 		if (_heResType == rtScript && _heResId >= _numGlobalScripts)
 			break;
 
@@ -1163,23 +1157,23 @@ void ScummEngine_v100he::o100_resourceRoutines() {
 			_res->lock(_heResType, _heResId);
 		}
 		break;
-	case 133:
+	case SO_NUKE:
 		if (_heResType == rtCharset)
 			nukeCharset(_heResId);
 		else
 			_res->nukeResource(_heResType, _heResId);
 		break;
-	case 134:
-	case 135:
+	case SO_OFF_HEAP:
+	case SO_ON_HEAP:
 		// Heap related
 		break;
-	case 136:
+	case SO_PRELOAD:
 		if (_heResType == rtScript && _heResId >= _numGlobalScripts)
 			break;
 
 		//queueLoadResource(_heResType, _heResId);
 		break;
-	case 137:
+	case SO_UNLOCK:
 		if (_heResType == rtScript && _heResId >= _numGlobalScripts)
 			break;
 
@@ -1203,219 +1197,222 @@ void ScummEngine_v100he::o100_wizImageOps() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 0:
-		_wizParams.img.resNum = pop();
-		_wizParams.processMode = 0;
-		_wizParams.processFlags = 0;
-		_wizParams.remapNum = 0;
-		_wizParams.img.flags = 0;
-		_wizParams.params1 = 0;
-		_wizParams.params2 = 0;
-		_wizParams.spriteId = 0;
-		_wizParams.spriteGroup = 0;
+	case SO_INIT: // 0
+		_wizImageCommand.image = pop();
+		_wizImageCommand.actionType = kWAUnknown;
+		_wizImageCommand.actionFlags = 0;
+		_wizImageCommand.remapCount = 0;
+		_wizImageCommand.flags = 0;
+		_wizImageCommand.propertyValue = 0;
+		_wizImageCommand.propertyNumber = 0;
+		_wizImageCommand.extendedRenderInfo.sprite = 0;
+		_wizImageCommand.extendedRenderInfo.group = 0;
 		break;
-	case 2:
-		_wizParams.processFlags |= kWPFRotate;
-		_wizParams.angle = pop();
+	case SO_ANGLE: // 2
+		_wizImageCommand.actionFlags |= kWAFAngle;
+		_wizImageCommand.angle = pop();
 		break;
-	case 6:
-	case 132:
-		_wizParams.processFlags |= kWPFSetPos;
-		_wizParams.img.y1 = pop();
-		_wizParams.img.x1 = pop();
+	case SO_AT: // 6
+	case SO_CURSOR_HOTSPOT: // 132
+		_wizImageCommand.actionFlags |= kWAFSpot;
+		_wizImageCommand.yPos = pop();
+		_wizImageCommand.xPos = pop();
 		break;
-	case 7:
-		_wizParams.processFlags |= kWPFMaskImg;
-		_wizParams.sourceImage = pop();
+	case SO_AT_IMAGE: // 7
+		_wizImageCommand.actionFlags |= kWAFSourceImage;
+		_wizImageCommand.sourceImage = pop();
 		break;
-	case 11:
-		_wizParams.processFlags |= kWPFClipBox | 0x100;
-		_wizParams.processMode = 2;
-		_wizParams.box.bottom = pop();
-		_wizParams.box.right = pop();
-		_wizParams.box.top = pop();
-		_wizParams.box.left = pop();
-		_wizParams.compType = pop();
-		adjustRect(_wizParams.box);
+	case SO_CAPTURE: // 11
+		_wizImageCommand.actionFlags |= kWAFRect | kWAFCompressionType;
+		_wizImageCommand.actionType = kWACapture;
+		_wizImageCommand.box.bottom = pop();
+		_wizImageCommand.box.right = pop();
+		_wizImageCommand.box.top = pop();
+		_wizImageCommand.box.left = pop();
+		_wizImageCommand.compressionType = pop();
 		break;
-	case 18:
-		_wizParams.processFlags |= kWPFClipBox;
-		_wizParams.box.bottom = pop();
-		_wizParams.box.right = pop();
-		_wizParams.box.top = pop();
-		_wizParams.box.left = pop();
-		adjustRect(_wizParams.box);
+	case SO_CLIPPED: // 18
+		_wizImageCommand.actionFlags |= kWAFRect;
+		_wizImageCommand.box.bottom = pop();
+		_wizImageCommand.box.right = pop();
+		_wizImageCommand.box.top = pop();
+		_wizImageCommand.box.left = pop();
 		break;
-	case 21:
+	case SO_COLOR_LIST: // 21
 		b = pop();
 		a = pop();
-		_wizParams.processFlags |= kWPFRemapPalette;
-		_wizParams.processMode = 6;
-		if (_wizParams.remapNum == 0) {
-			memset(_wizParams.remapIndex, 0, sizeof(_wizParams.remapIndex));
+		_wizImageCommand.actionFlags |= kWAFRemapList;
+		_wizImageCommand.actionType = kWAModify;
+		if (_wizImageCommand.remapCount == 0) {
+			memset(_wizImageCommand.remapList, 0, sizeof(_wizImageCommand.remapList));
 		} else {
-			assert(_wizParams.remapNum < ARRAYSIZE(_wizParams.remapIndex));
-			_wizParams.remapIndex[_wizParams.remapNum] = a;
-			_wizParams.remapColor[a] = b;
-			++_wizParams.remapNum;
+			assert(_wizImageCommand.remapCount < ARRAYSIZE(_wizImageCommand.remapList));
+			_wizImageCommand.remapList[_wizImageCommand.remapCount] = a;
+			_wizImageCommand.remapTable[a] = b;
+			++_wizImageCommand.remapCount;
 		}
 		break;
-	case 29:
-		_wizParams.processMode = 1;
+	case SO_DRAW: // 29
+		_wizImageCommand.actionType = kWADraw;
 		break;
-	case 36:
-		_wizParams.box.bottom = pop();
-		_wizParams.box.right = pop();
-		_wizParams.box.top = pop();
-		_wizParams.box.left = pop();
+	case SO_GENERAL_CLIP_RECT: // 36
+		_wizImageCommand.box.bottom = pop();
+		_wizImageCommand.box.right = pop();
+		_wizImageCommand.box.top = pop();
+		_wizImageCommand.box.left = pop();
 		break;
-	case 37:
+	case SO_GENERAL_CLIP_STATE: // 37
 		// Dummy case
 		pop();
 		break;
-	case 39:
-		_wizParams.processFlags |= kWPFUseDefImgHeight;
-		_wizParams.resDefImgH = pop();
+	case SO_HEIGHT: // 39
+		_wizImageCommand.actionFlags |= kWAFHeight;
+		_wizImageCommand.height = pop();
 		break;
-	case 47:
-		_wizParams.processFlags |= kWPFUseFile;
-		_wizParams.processMode = 3;
-		copyScriptString(_wizParams.filename, sizeof(_wizParams.filename));
+	case SO_LOAD: // 47
+		_wizImageCommand.actionFlags |= kWAFFilename;
+		_wizImageCommand.actionType = kWALoad;
+		copyScriptString(_wizImageCommand.filename, sizeof(_wizImageCommand.filename));
 		break;
-	case 53:
-		_wizParams.processMode = 8;
+	case SO_NEW: // 53
+		_wizImageCommand.actionType = kWANew;
 		break;
-	case 54:
-		_wizParams.processFlags |= kWPFParams;
-		_wizParams.params1 = pop();
-		_wizParams.params2 = pop();
+	case SO_NEW_GENERAL_PROPERTY: // 54
+		_wizImageCommand.actionFlags |= kWAFProperty;
+		_wizImageCommand.propertyValue = pop();
+		_wizImageCommand.propertyNumber = pop();
 		break;
-	case 55:
-		_wizParams.img.flags = pop();
-		_wizParams.img.state = pop();
-		_wizParams.img.y1 = pop();
-		_wizParams.img.x1 = pop();
-		_wizParams.spriteId = 0;
-		_wizParams.spriteGroup = 0;
-		_wizParams.img.resNum = pop();
-		_wiz->displayWizImage(&_wizParams.img);
+	case SO_NOW: // 55
+		_wizImageCommand.flags = pop();
+		_wizImageCommand.state = pop();
+		_wizImageCommand.yPos = pop();
+		_wizImageCommand.xPos = pop();
+		_wizImageCommand.image = pop();
+
+		_wizImageCommand.extendedRenderInfo.sprite = 0;
+		_wizImageCommand.extendedRenderInfo.group = 0;
+
+		_wiz->simpleDrawAWiz(
+			_wizImageCommand.image,
+			_wizImageCommand.state,
+			_wizImageCommand.xPos,
+			_wizImageCommand.yPos,
+			_wizImageCommand.flags
+		);
+
 		break;
-	case 57:
-		_wizParams.processFlags |= kWPFPaletteNum;
-		_wizParams.img.palette = pop();
+	case SO_PALETTE: // 57
+		_wizImageCommand.actionFlags |= kWAFPalette;
+		_wizImageCommand.palette = pop();
 		break;
-	case 58:
-		_wizParams.processFlags |= 0x1000 | 0x100 | 0x2;
-		_wizParams.processMode = 7;
-		_wizParams.polygonId2 = pop();
-		_wizParams.polygonId1 = pop();
-		_wizParams.compType = pop();
+	case SO_POLY_TO_POLY: // 58
+		_wizImageCommand.actionFlags |= kWAFPolygon2 | kWAFCompressionType | kWAFPolygon;
+		_wizImageCommand.actionType = kWAPolyCapture;
+		_wizImageCommand.polygon2 = pop();
+		_wizImageCommand.polygon = pop();
+		_wizImageCommand.compressionType = pop();
 		break;
-	case 64:
-		_wizParams.processFlags |= kWPFUseFile;
-		_wizParams.processMode = 4;
-		copyScriptString(_wizParams.filename, sizeof(_wizParams.filename));
-		_wizParams.fileWriteMode = pop();
+	case SO_SAVE: // 64
+		_wizImageCommand.actionFlags |= kWAFFilename;
+		_wizImageCommand.actionType = kWASave;
+		copyScriptString(_wizImageCommand.filename, sizeof(_wizImageCommand.filename));
+		_wizImageCommand.fileType = pop();
 		break;
-	case 65:
-		_wizParams.processFlags |= kWPFScaled;
-		_wizParams.scale = pop();
+	case SO_SCALE: // 65
+		_wizImageCommand.actionFlags |= kWAFScale;
+		_wizImageCommand.scale = pop();
 		break;
-	case 67:
-		_wizParams.processFlags |= kWPFNewFlags;
-		_wizParams.img.flags |= pop();
+	case SO_SET_FLAGS: // 67
+		_wizImageCommand.actionFlags |= kWAFFlags;
+		_wizImageCommand.flags |= pop();
 		break;
-	case 68:
-		_wizParams.processFlags |= kWPFNewFlags | kWPFSetPos | 2;
-		_wizParams.img.flags |= kWIFIsPolygon;
-		_wizParams.polygonId1 = _wizParams.img.y1 = _wizParams.img.x1 = pop();
+	case SO_SET_POLYGON: // 68
+		_wizImageCommand.actionFlags |= kWAFFlags | kWAFSpot | kWAFPolygon;
+		_wizImageCommand.flags |= kWRFPolygon;
+		_wizImageCommand.polygon = _wizImageCommand.yPos = _wizImageCommand.xPos = pop();
 		break;
-	case 70:
-		_wizParams.processFlags |= kWPFShadow;
-		_wizParams.img.shadow = pop();
+	case SO_SHADOW: // 70
+		_wizImageCommand.actionFlags |= kWAFShadow;
+		_wizImageCommand.shadow = pop();
 		break;
-	case 73:
-		_wizParams.processFlags |= kWPFNewState;
-		_wizParams.img.state = pop();
+	case SO_STATE: // 73
+		_wizImageCommand.actionFlags |= kWAFState;
+		_wizImageCommand.state = pop();
 		break;
-	case 84:
-		_wizParams.processFlags |= kWPFUseDefImgWidth;
-		_wizParams.resDefImgW = pop();
+	case SO_WIDTH: // 84
+		_wizImageCommand.actionFlags |= kWAFWidth;
+		_wizImageCommand.width = pop();
 		break;
-	case 92:
-		if (_wizParams.img.resNum)
-			_wiz->processWizImage(&_wizParams);
+	case SO_END: // 92
+		if (_wizImageCommand.image)
+			_wiz->processWizImageCmd(&_wizImageCommand);
 		break;
-	case 128: // Font create
-		_wizParams.processMode = 15;
-		_wizParams.fontProperties.bgColor = pop();
-		_wizParams.fontProperties.fgColor = pop();
-		_wizParams.fontProperties.size = pop();
-		_wizParams.fontProperties.style = pop();
-		copyScriptString(_wizParams.fontProperties.fontName, sizeof(_wizParams.fontProperties.fontName));
+	case SO_FONT_CREATE: // 128
+		_wizImageCommand.actionType = kWAFontCreate;
+		_wizImageCommand.fontProperties.bgColor = pop();
+		_wizImageCommand.fontProperties.fgColor = pop();
+		_wizImageCommand.fontProperties.size = pop();
+		_wizImageCommand.fontProperties.style = pop();
+		copyScriptString(_wizImageCommand.fontProperties.fontName, sizeof(_wizImageCommand.fontProperties.fontName));
 		break;
-	case 129:
-		_wizParams.processMode = 14;
+	case SO_FONT_END: // 129
+		_wizImageCommand.actionType = kWAFontEnd;
 		break;
-	case 130: // Font render
-		_wizParams.processMode = 16;
-		_wizParams.fontProperties.yPos = pop();
-		_wizParams.fontProperties.xPos = pop();
-		copyScriptString(_wizParams.fontProperties.string, sizeof(_wizParams.fontProperties.string));
+	case SO_FONT_RENDER: // 130
+		_wizImageCommand.actionType = kWAFontRender;
+		_wizImageCommand.fontProperties.yPos = pop();
+		_wizImageCommand.fontProperties.xPos = pop();
+		copyScriptString(_wizImageCommand.fontProperties.string, sizeof(_wizImageCommand.fontProperties.string));
 		break;
-	case 131:
-		_wizParams.processMode = 13;
+	case SO_FONT_START: // 131
+		_wizImageCommand.actionType = kWAFontStart;
 		break;
-	case 133: // Render ellipse
-		_wizParams.processMode = 17;
-		_wizParams.ellipseProperties.color = pop();
-		_wizParams.ellipseProperties.lod = pop();
-		_wizParams.ellipseProperties.ky = pop();
-		_wizParams.ellipseProperties.kx = pop();
-		_wizParams.ellipseProperties.qy = pop();
-		_wizParams.ellipseProperties.qx = pop();
-		_wizParams.ellipseProperties.py = pop();
-		_wizParams.ellipseProperties.px = pop();
+	case SO_RENDER_ELLIPSE: // 133
+		_wizImageCommand.actionType = kWARenderEllipse;
+		_wizImageCommand.ellipseProperties.color = pop();
+		_wizImageCommand.ellipseProperties.lod = pop();
+		_wizImageCommand.ellipseProperties.ky = pop();
+		_wizImageCommand.ellipseProperties.kx = pop();
+		_wizImageCommand.ellipseProperties.qy = pop();
+		_wizImageCommand.ellipseProperties.qx = pop();
+		_wizImageCommand.ellipseProperties.py = pop();
+		_wizImageCommand.ellipseProperties.px = pop();
 		break;
-	case 134:
-		_wizParams.processFlags |= kWPFFillColor | kWPFClipBox2;
-		_wizParams.processMode = 12;
-		_wizParams.fillColor = pop();
-		_wizParams.box2.top = _wizParams.box2.bottom = pop();
-		_wizParams.box2.left = _wizParams.box2.right = pop();
-		adjustRect(_wizParams.box2);
+	case SO_RENDER_FLOOD_FILL: // 134
+		_wizImageCommand.actionFlags |= kWAFColor | kWAFRenderCoords;
+		_wizImageCommand.actionType = kWARenderFloodFill;
+		_wizImageCommand.colorValue = pop();
+		_wizImageCommand.renderCoords.top = _wizImageCommand.renderCoords.bottom = pop();
+		_wizImageCommand.renderCoords.left = _wizImageCommand.renderCoords.right = pop();
 		break;
-	case 135:
-		_wizParams.processFlags |= kWPFDstResNum;
-		_wizParams.dstResNum = pop();
+	case SO_RENDER_INTO_IMAGE: // 135
+		_wizImageCommand.actionFlags |= kWAFDestImage;
+		_wizImageCommand.destImageNumber = pop();
 		break;
-	case 136:
-		_wizParams.processFlags |= kWPFFillColor | kWPFClipBox2;
-		_wizParams.processMode = 10;
-		_wizParams.fillColor = pop();
-		_wizParams.box2.bottom = pop();
-		_wizParams.box2.right = pop();
-		_wizParams.box2.top = pop();
-		_wizParams.box2.left = pop();
-		adjustRect(_wizParams.box2);
+	case SO_RENDER_LINE: // 136
+		_wizImageCommand.actionFlags |= kWAFColor | kWAFRenderCoords;
+		_wizImageCommand.actionType = kWARenderLine;
+		_wizImageCommand.colorValue = pop();
+		_wizImageCommand.renderCoords.bottom = pop();
+		_wizImageCommand.renderCoords.right = pop();
+		_wizImageCommand.renderCoords.top = pop();
+		_wizImageCommand.renderCoords.left = pop();
 		break;
-	case 137:
-		_wizParams.processFlags |= kWPFFillColor | kWPFClipBox2;
-		_wizParams.processMode = 11;
-		_wizParams.fillColor = pop();
-		_wizParams.box2.top = _wizParams.box2.bottom = pop();
-		_wizParams.box2.left = _wizParams.box2.right = pop();
-		adjustRect(_wizParams.box2);
+	case SO_RENDER_PIXEL: // 137
+		_wizImageCommand.actionFlags |= kWAFColor | kWAFRenderCoords;
+		_wizImageCommand.actionType = kWARenderPixel;
+		_wizImageCommand.colorValue = pop();
+		_wizImageCommand.renderCoords.top = _wizImageCommand.renderCoords.bottom = pop();
+		_wizImageCommand.renderCoords.left = _wizImageCommand.renderCoords.right = pop();
 		break;
-	case 138:
-		_wizParams.processFlags |= kWPFFillColor | kWPFClipBox2;
-		_wizParams.processMode = 9;
-		_wizParams.fillColor = pop();
-		_wizParams.box2.bottom = pop();
-		_wizParams.box2.right = pop();
-		_wizParams.box2.top = pop();
-		_wizParams.box2.left = pop();
-		adjustRect(_wizParams.box2);
+	case SO_RENDER_RECTANGLE: // 138
+		_wizImageCommand.actionFlags |= kWAFColor | kWAFRenderCoords;
+		_wizImageCommand.actionType = kWARenderRectangle;
+		_wizImageCommand.colorValue = pop();
+		_wizImageCommand.renderCoords.bottom = pop();
+		_wizImageCommand.renderCoords.right = pop();
+		_wizImageCommand.renderCoords.top = pop();
+		_wizImageCommand.renderCoords.left = pop();
 		break;
 	default:
 		error("o100_wizImageOps: Unknown case %d", subOp);
@@ -1423,27 +1420,27 @@ void ScummEngine_v100he::o100_wizImageOps() {
 }
 
 void ScummEngine_v100he::o100_dim2dim2Array() {
-	int data, dim1start, dim1end, dim2start, dim2end;
+	int data, acrossMin, acrossMax, downMin, downMax;
 
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 41:		// SO_BIT_ARRAY
+	case SO_BIT:
 		data = kBitArray;
 		break;
-	case 42:		// SO_INT_ARRAY
+	case SO_INT:
 		data = kIntArray;
 		break;
-	case 43:
+	case SO_DWORD:
 		data = kDwordArray;
 		break;
-	case 44:		// SO_NIBBLE_ARRAY
+	case SO_NIBBLE:
 		data = kNibbleArray;
 		break;
-	case 45:		// SO_BYTE_ARRAY
+	case SO_BYTE:
 		data = kByteArray;
 		break;
-	case 77:		// SO_STRING_ARRAY
+	case SO_STRING:
 		data = kStringArray;
 		break;
 	default:
@@ -1451,18 +1448,18 @@ void ScummEngine_v100he::o100_dim2dim2Array() {
 	}
 
 	if (pop() == 2) {
-		dim1end = pop();
-		dim1start = pop();
-		dim2end = pop();
-		dim2start = pop();
+		acrossMax = pop();
+		acrossMin = pop();
+		downMax = pop();
+		downMin = pop();
 	} else {
-		dim2end = pop();
-		dim2start = pop();
-		dim1end = pop();
-		dim1start = pop();
+		downMax = pop();
+		downMin = pop();
+		acrossMax = pop();
+		acrossMin = pop();
 	}
 
-	defineArray(fetchScriptWord(), data, dim2start, dim2end, dim1start, dim1end);
+	defineArray(fetchScriptWord(), data, downMin, downMax, acrossMin, acrossMax);
 }
 
 void ScummEngine_v100he::o100_redim2dimArray() {
@@ -1475,13 +1472,13 @@ void ScummEngine_v100he::o100_redim2dimArray() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 42:
+	case SO_INT:
 		redimArray(fetchScriptWord(), a, b, c, d, kIntArray);
 		break;
-	case 43:
+	case SO_DWORD:
 		redimArray(fetchScriptWord(), a, b, c, d, kDwordArray);
 		break;
-	case 45:
+	case SO_BYTE:
 		redimArray(fetchScriptWord(), a, b, c, d, kByteArray);
 		break;
 	default:
@@ -1495,10 +1492,10 @@ void ScummEngine_v100he::o100_paletteOps() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 0:
+	case SO_INIT:
 		_hePaletteNum = pop();
 		break;
-	case 20:
+	case SO_COLOR:
 		e = pop();
 		d = pop();
 		c = pop();
@@ -1510,38 +1507,38 @@ void ScummEngine_v100he::o100_paletteOps() {
 			}
 		}
 		break;
-	case 25:
+	case SO_COSTUME:
 		a = pop();
 		if (_hePaletteNum != 0) {
 			setHEPaletteFromCostume(_hePaletteNum, a);
 		}
 		break;
-	case 40:
+	case SO_IMAGE:
 		b = pop();
 		a = pop();
 		if (_hePaletteNum != 0) {
 			setHEPaletteFromImage(_hePaletteNum, a, b);
 		}
 		break;
-	case 53:
+	case SO_NEW:
 		if (_hePaletteNum != 0) {
 			restoreHEPalette(_hePaletteNum);
 		}
 		break;
-	case 57:
+	case SO_PALETTE:
 		a = pop();
 		if (_hePaletteNum != 0) {
 			copyHEPalette(_hePaletteNum, a);
 		}
 		break;
-	case 63:
+	case SO_ROOM_PALETTE:
 		b = pop();
 		a = pop();
 		if (_hePaletteNum != 0) {
 			setHEPaletteFromRoom(_hePaletteNum, a, b);
 		}
 		break;
-	case 81:
+	case SO_TO:
 		c = pop();
 		b = pop();
 		a = pop();
@@ -1551,7 +1548,7 @@ void ScummEngine_v100he::o100_paletteOps() {
 			}
 		}
 		break;
-	case 92:
+	case SO_END:
 		_hePaletteNum = 0;
 		break;
 	default:
@@ -1559,7 +1556,7 @@ void ScummEngine_v100he::o100_paletteOps() {
 	}
 }
 
-void ScummEngine_v100he::o100_jumpToScriptUnk() {
+void ScummEngine_v100he::o100_priorityChainScript() {
 	int args[25];
 	int script, cycle;
 	byte flags;
@@ -1569,10 +1566,10 @@ void ScummEngine_v100he::o100_jumpToScriptUnk() {
 	script = pop();
 	flags = fetchScriptByte();
 	stopObjectCode();
-	runScript(script, (flags == 128 || flags == 129), (flags == 130 || flags == 129), args, cycle);
+	runScript(script, (flags == SO_BAK || flags == SO_BAKREC), (flags == SO_REC || flags == SO_BAKREC), args, cycle);
 }
 
-void ScummEngine_v100he::o100_startScriptUnk() {
+void ScummEngine_v100he::o100_priorityStartScript() {
 	int args[25];
 	int script, cycle;
 	byte flags;
@@ -1581,7 +1578,7 @@ void ScummEngine_v100he::o100_startScriptUnk() {
 	cycle = pop();
 	script = pop();
 	flags = fetchScriptByte();
-	runScript(script, (flags == 128 || flags == 129), (flags == 130 || flags == 129), args, cycle);
+	runScript(script, (flags == SO_BAK || flags == SO_BAKREC), (flags == SO_REC || flags == SO_BAKREC), args, cycle);
 }
 
 void ScummEngine_v100he::o100_redimArray() {
@@ -1592,13 +1589,13 @@ void ScummEngine_v100he::o100_redimArray() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 42:
+	case SO_INT:
 		redimArray(fetchScriptWord(), 0, newX, 0, newY, kIntArray);
 		break;
-	case 43:
+	case SO_DWORD:
 		redimArray(fetchScriptWord(), 0, newX, 0, newY, kDwordArray);
 		break;
-	case 45:
+	case SO_BYTE:
 		redimArray(fetchScriptWord(), 0, newX, 0, newY, kByteArray);
 		break;
 	default:
@@ -1612,7 +1609,7 @@ void ScummEngine_v100he::o100_roomOps() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 63:		// SO_ROOM_PALETTE
+	case SO_ROOM_PALETTE:
 		d = pop();
 		c = pop();
 		b = pop();
@@ -1620,13 +1617,13 @@ void ScummEngine_v100he::o100_roomOps() {
 		setPalColor(d, a, b, c);
 		break;
 
-	case 129:		// SO_OBJECT_ORDER
+	case SO_OBJECT_ORDER:
 		b = pop();
 		a = pop();
 		swapObjects(a, b);
 		break;
 
-	case 130:		// SO_ROOM_COPY_PALETTE
+	case SO_ROOM_COPY_PALETTE:
 		a = pop();
 		b = pop();
 		if (_game.features & GF_16BIT_COLOR)
@@ -1635,19 +1632,19 @@ void ScummEngine_v100he::o100_roomOps() {
 			copyPalColor(a, b);
 		break;
 
-	case 131:		// SO_ROOM_FADE
+	case SO_ROOM_FADE:
 		// Defaults to 1 but doesn't use fade effects
 		a = pop();
 		break;
 
-	case 132:		// SO_ROOM_INTENSITY
+	case SO_ROOM_INTENSITY:
 		c = pop();
 		b = pop();
 		a = pop();
 		darkenPalette(a, a, a, b, c);
 		break;
 
-	case 133:		// SO_RGB_ROOM_INTENSITY
+	case SO_ROOM_INTENSITY_RGB:
 		e = pop();
 		d = pop();
 		c = pop();
@@ -1656,24 +1653,24 @@ void ScummEngine_v100he::o100_roomOps() {
 		darkenPalette(a, b, c, d, e);
 		break;
 
-	case 134:		// SO_ROOM_NEW_PALETTE
+	case SO_ROOM_NEW_PALETTE:
 		a = pop();
 		setCurrentPalette(a);
 		break;
 
-	case 135:		// SO_ROOM_PALETTE_IN_ROOM
+	case SO_ROOM_PALETTE_IN_ROOM:
 		b = pop();
 		a = pop();
 		setRoomPalette(a, b);
 		break;
 
-	case 136:		// SO_ROOM_SAVEGAME
+	case SO_ROOM_SAVEGAME:
 		_saveTemporaryState = true;
 		_saveLoadSlot = pop();
 		_saveLoadFlag = pop();
 		break;
 
-	case 137:		// SO_ROOM_SAVEGAME_BY_NAME
+	case SO_ROOM_SAVEGAME_BY_NAME:
 		byte buffer[256];
 
 		copyScriptString((byte *)buffer, sizeof(buffer));
@@ -1686,13 +1683,13 @@ void ScummEngine_v100he::o100_roomOps() {
 		_saveTemporaryState = true;
 		break;
 
-	case 138:		// SO_ROOM_SCREEN
+	case SO_ROOM_SCREEN:
 		b = pop();
 		a = pop();
 		initScreens(a, _screenHeight);
 		break;
 
-	case 139:		// SO_ROOM_SCROLL
+	case SO_ROOM_SCROLL:
 		b = pop();
 		a = pop();
 		if (a < (_screenWidth / 2))
@@ -1719,7 +1716,7 @@ void ScummEngine_v100he::o100_setSystemMessage() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 80: // Set Window Caption
+	case SO_TITLE_BAR: // Set Window Caption
 		// TODO: The 'name' string can contain non-ASCII data. This can lead to
 		// problems, because the encoding used for "name" is not clear,
 		//
@@ -1728,7 +1725,7 @@ void ScummEngine_v100he::o100_setSystemMessage() {
 		// - Try to translate the text to UTF-32.
 		//_system->setWindowCaption(Common::U32String((const char *)name));
 		break;
-	case 131: // Set Version
+	case SO_PAUSE_TITLE: // Set Version
 		debug(1,"o100_setSystemMessage: (%d) %s", subOp, name);
 		break;
 	default:
@@ -1743,57 +1740,64 @@ void ScummEngine_v100he::o100_soundOps() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 6:		// SO_AT
+	case SO_AT: // 6
 		_heSndFlags |= HE_SND_OFFSET;
 		_heSndOffset = pop();
 		break;
-	case 47:	// SO_LOAD
+	case SO_LOAD: // 47
 		copyScriptString(filename, sizeof(filename));
 		_heSndSoundId = pop();
 		if (_heSndSoundId)
 			debug(0, "Load sound %d from file %s\n", _heSndSoundId, filename);
 		break;
-	case 55:	// SO_NOW
+	case SO_NOW: // 55
 		_heSndFlags |= HE_SND_QUICK_START;
 		break;
-	case 83:	// SO_VARIABLE
+	case SO_VARIABLE: // 83
 		value = pop();
 		var = pop();
 		_heSndSoundId = pop();
 		((SoundHE *)_sound)->setSoundVar(_heSndSoundId, var, value);
 		break;
-	case 92:	// SO_END
-		_sound->addSoundToQueue(_heSndSoundId, _heSndOffset, _heSndChannel, _heSndFlags, _heSndSoundFreq, _heSndPan, _heSndVol);
+	case SO_END: // 92
+		if (_heSndStartNewSoundFlag) {
+			_sound->startSound(_heSndSoundId, _heSndOffset, _heSndChannel, _heSndFlags, _heSndFrequencyShift, _heSndPan, _heSndVol);
+		} else {
+			_sound->modifySound(_heSndSoundId, _heSndOffset, _heSndFrequencyShift, _heSndPan, _heSndVol, _heSndFlags);
+		}
 		break;
-	case 128:	// SO_SOUND_ADD
+	case SO_SOUND_ADD: // 128
 		_heSndFlags |= HE_SND_APPEND;
 		break;
-	case 129:	// SO_SOUND_CHANNEL
+	case SO_SOUND_CHANNEL: // 129
 		_heSndChannel = pop();
 		break;
-	case 130:	// SO_SOUND_FREQUENCY
+	case SO_SOUND_FREQUENCY: // 130
 		_heSndFlags |= HE_SND_FREQUENCY;
-		_heSndSoundFreq = pop();
+		_heSndFrequencyShift = pop();
 		break;
-	case 131:	// SO_SOUND_LOOPING
+	case SO_SOUND_LOOPING: // 131
 		_heSndFlags |= HE_SND_LOOP;
 		break;
-	case 132:	// SO_SOUND_MODIFY
-	case 134:	// SO_SOUND_START
+	case SO_SOUND_MODIFY: // 132
+	case SO_SOUND_START: // 134
+		_heSndStartNewSoundFlag = (SO_SOUND_START == subOp);
 		_heSndSoundId = pop();
 		_heSndOffset = 0;
-		_heSndSoundFreq = 11025;
+		_heSndFrequencyShift = HSND_SOUND_FREQ_BASE;
 		_heSndChannel = VAR(VAR_SOUND_CHANNEL);
+		_heSndVol = HSND_MAX_VOLUME;
+		_heSndPan = HSND_SOUND_PAN_CENTER;
 		_heSndFlags = 0;
 		break;
-	case 133:	// SO_SOUND_PAN
+	case SO_SOUND_PAN: // 133
 		_heSndFlags |= HE_SND_PAN;
 		_heSndPan = pop();
 		break;
-	case 135:	// SO_SOUND_SOFT
+	case SO_SOUND_SOFT: // 135
 		_heSndFlags |= HE_SND_SOFT_SOUND;
 		break;
-	case 136:	// SO_SOUND_VOLUME
+	case SO_SOUND_VOLUME: // 136
 		_heSndFlags |= HE_SND_VOL;
 		_heSndVol = pop();
 		break;
@@ -1811,342 +1815,342 @@ void ScummEngine_v100he::o100_setSpriteInfo() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 0: // SO_INIT
-		_curMaxSpriteId = pop();
-		_curSpriteId = pop();
+	case SO_INIT: // 0
+		_maxSpriteNum = pop();
+		_minSpriteNum = pop();
 
-		if (_curSpriteId > _curMaxSpriteId)
-			SWAP(_curSpriteId, _curMaxSpriteId);
+		if (_minSpriteNum > _maxSpriteNum)
+			SWAP(_minSpriteNum, _maxSpriteNum);
 		break;
-	case 2: // SO_ANGLE
+	case SO_ANGLE: // 2
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->setSpriteAngle(spriteId, args[0]);
 		break;
-	case 3: // SO_ANIMATION
+	case SO_ANIMATION: // 3
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
-			_sprite->setSpriteFlagAutoAnim(spriteId, args[0]);
+		for (; spriteId <= _maxSpriteNum; spriteId++)
+			_sprite->setSpriteAutoAnimFlag(spriteId, args[0]);
 		break;
-	case 4: // SO_ANIMATION_SPEED
+	case SO_ANIMATION_SPEED: // 4
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->setSpriteAnimSpeed(spriteId, args[0]);
 		break;
-	case 6: // SO_AT
+	case SO_AT: // 6
 		args[1] = pop();
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->setSpritePosition(spriteId, args[0], args[1]);
 		break;
-	case 7: // SO_AT_IMAGE
+	case SO_AT_IMAGE: // 7
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
-			_sprite->setSpriteSourceImage(spriteId, args[0]);
+		for (; spriteId <= _maxSpriteNum; spriteId++)
+			_sprite->setSourceImage(spriteId, args[0]);
 		break;
-	case 16: // SO_CLASS
+	case SO_CLASS: // 16
 		n = getStackList(args, ARRAYSIZE(args));
-		if (_curSpriteId != 0 && _curMaxSpriteId != 0 && n != 0) {
+		if (_minSpriteNum != 0 && _maxSpriteNum != 0 && n != 0) {
 			int *p = &args[n - 1];
 			do {
 				int code = *p;
 				if (code == 0) {
-					for (int i = _curSpriteId; i <= _curMaxSpriteId; ++i) {
-						_sprite->setSpriteResetClass(i);
+					for (int i = _minSpriteNum; i <= _maxSpriteNum; ++i) {
+						_sprite->clearSpriteClasses(i);
 					}
 				} else if (code & 0x80) {
-					for (int i = _curSpriteId; i <= _curMaxSpriteId; ++i) {
-						_sprite->setSpriteSetClass(i, code & 0x7F, 1);
+					for (int i = _minSpriteNum; i <= _maxSpriteNum; ++i) {
+						_sprite->setSpriteClass(i, code & 0x7F, 1);
 					}
 				} else {
-					for (int i = _curSpriteId; i <= _curMaxSpriteId; ++i) {
-						_sprite->setSpriteSetClass(i, code & 0x7F, 0);
+					for (int i = _minSpriteNum; i <= _maxSpriteNum; ++i) {
+						_sprite->setSpriteClass(i, code & 0x7F, 0);
 					}
 				}
 				--p;
 			} while (--n);
 		}
 		break;
-	case 32: // SO_ERASE
+	case SO_ERASE: // 32
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
-			_sprite->setSpriteFlagEraseType(spriteId, args[0]);
+		for (; spriteId <= _maxSpriteNum; spriteId++)
+			_sprite->setSpriteEraseType(spriteId, args[0]);
 		break;
-	case 38: // SO_GROUP
+	case SO_GROUP: // 38
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->setSpriteGroup(spriteId, args[0]);
 		break;
-	case 40: // SO_IMAGE
+	case SO_IMAGE: // 40
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->setSpriteImage(spriteId, args[0]);
 		break;
-	case 48: // SO_MASK
+	case SO_MASK: // 48
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
-			_sprite->setSpriteMaskImage(spriteId, args[0]);
+		for (; spriteId <= _maxSpriteNum; spriteId++)
+			_sprite->setMaskImage(spriteId, args[0]);
 		break;
-	case 49: // SO_MOVE
+	case SO_MOVE: // 49
 		args[1] = pop();
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->moveSprite(spriteId, args[0], args[1]);
 		break;
-	case 52: // SO_NAME
+	case SO_NAME: // 52
 		copyScriptString(string, sizeof(string));
 		break;
-	case 53: // SO_NEW
-		if (_curSpriteId > _curMaxSpriteId)
+	case SO_NEW: // 53
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
-			_sprite->resetSprite(spriteId);
+		for (; spriteId <= _maxSpriteNum; spriteId++)
+			_sprite->newSprite(spriteId);
 		break;
-	case 54: // SO_NEW_GENERAL_PROPERTY
+	case SO_NEW_GENERAL_PROPERTY: // 54
 		args[1] = pop();
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->setSpriteGeneralProperty(spriteId, args[0], args[1]);
 		break;
-	case 57: // SO_PALETTE
+	case SO_PALETTE: // 57
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->setSpritePalette(spriteId, args[0]);
 		break;
-	case 59: // SO_PRIORITY
+	case SO_PRIORITY: // 59
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->setSpritePriority(spriteId, args[0]);
 		break;
-	case 60: // SO_PROPERTY
+	case SO_PROPERTY: // 60
 		args[1] = pop();
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			switch (args[1]) {
-			case 0:
-				_sprite->setSpriteFlagXFlipped(spriteId, args[0]);
+			case SPRPROP_HFLIP: // 0
+				_sprite->setSpriteHorzFlip(spriteId, args[0]);
 				break;
-			case 1:
-				_sprite->setSpriteFlagYFlipped(spriteId, args[0]);
+			case SPRPROP_VFLIP: // 1
+				_sprite->setSpriteVertFlip(spriteId, args[0]);
 				break;
-			case 2:
-				_sprite->setSpriteFlagActive(spriteId, args[0]);
+			case SPRPROP_ACTIVE: // 2
+				_sprite->setSpriteActiveFlag(spriteId, args[0]);
 				break;
-			case 3:
-				_sprite->setSpriteFlagDoubleBuffered(spriteId, args[0]);
+			case SPRPROP_BACKGROUND_RENDER: // 3
+				_sprite->setSpriteRenderToBackground(spriteId, args[0]);
 				break;
-			case 4:
-				_sprite->setSpriteFlagRemapPalette(spriteId, args[0]);
+			case SPRPROP_USE_IMAGE_REMAP_TABLE: // 4
+				_sprite->setSpriteImageRemapFlag(spriteId, args[0]);
 				break;
 			default:
 				warning("Unknown sprite property %d for sprite %d", args[0], spriteId);
 				break;
 			}
 		break;
-	case 61: // SO_RESTART
-		_sprite->resetTables(true);
+	case SO_RESTART: // 61
+		_sprite->resetSpriteSystem(true);
 		break;
-	case 65: // SO_SCALE
+	case SO_SCALE: // 65
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->setSpriteScale(spriteId, args[0]);
 		break;
-	case 70: // SO_SHADOW
+	case SO_SHADOW: // 70
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->setSpriteShadow(spriteId, args[0]);
 		break;
-	case 73: // SO_STATE
+	case SO_STATE: // 73
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->setSpriteImageState(spriteId, args[0]);
 		break;
-	case 74: // SO_STEP_DIST
+	case SO_STEP_DIST: // 74
 		args[1] = pop();
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
-			_sprite->setSpriteDist(spriteId, args[0], args[1]);
+		for (; spriteId <= _maxSpriteNum; spriteId++)
+			_sprite->setDelta(spriteId, args[0], args[1]);
 		break;
-	case 75: // SO_STEP_DIST_X
+	case SO_STEP_DIST_X: // 75
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++) {
-			_sprite->getSpriteDist(spriteId, tmp[0], tmp[1]);
-			_sprite->setSpriteDist(spriteId, args[0], tmp[1]);
+		for (; spriteId <= _maxSpriteNum; spriteId++) {
+			_sprite->getDelta(spriteId, tmp[0], tmp[1]);
+			_sprite->setDelta(spriteId, args[0], tmp[1]);
 		}
 		break;
-	case 76: // SO_STEP_DIST_Y
+	case SO_STEP_DIST_Y: // 76
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++) {
-			_sprite->getSpriteDist(spriteId, tmp[0], tmp[1]);
-			_sprite->setSpriteDist(spriteId, tmp[0], args[0]);
+		for (; spriteId <= _maxSpriteNum; spriteId++) {
+			_sprite->getDelta(spriteId, tmp[0], tmp[1]);
+			_sprite->setDelta(spriteId, tmp[0], args[0]);
 		}
 		break;
-	case 82: // SO_UPDATE
+	case SO_UPDATE: // 82
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
-			_sprite->setSpriteFlagUpdateType(spriteId, args[0]);
+		for (; spriteId <= _maxSpriteNum; spriteId++)
+			_sprite->setSpriteUpdateType(spriteId, args[0]);
 		break;
-	case 83: // SO_VARIABLE
+	case SO_VARIABLE: // 83
 		args[1] = pop();
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
-			_sprite->setSpriteUserValue(spriteId, args[0], args[1]);
+		for (; spriteId <= _maxSpriteNum; spriteId++)
+			_sprite->setUserValue(spriteId, args[0], args[1]);
 		break;
-	case 88: // SO_IMAGE_ZCLIP
+	case SO_IMAGE_ZCLIP: // 88
 		args[0] = pop();
-		if (_curSpriteId > _curMaxSpriteId)
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->setSpriteZBuffer(spriteId, args[0]);
 		break;
-	case 89: // SO_NEVER_ZCLIP
-		if (_curSpriteId > _curMaxSpriteId)
+	case SO_NEVER_ZCLIP: // 89
+		if (_minSpriteNum > _maxSpriteNum)
 			break;
-		spriteId = _curSpriteId;
+		spriteId = _minSpriteNum;
 		if (!spriteId)
 			spriteId++;
 
-		for (; spriteId <= _curMaxSpriteId; spriteId++)
+		for (; spriteId <= _maxSpriteNum; spriteId++)
 			_sprite->setSpriteZBuffer(spriteId, 0);
 		break;
 	default:
@@ -2162,7 +2166,35 @@ void ScummEngine_v100he::o100_startScript() {
 	getStackList(args, ARRAYSIZE(args));
 	script = pop();
 	flags = fetchScriptByte();
-	runScript(script, (flags == 128 || flags == 129), (flags == 130 || flags == 129), args);
+
+	if (_game.id == GID_MOONBASE && _roomResource == 5 &&
+		((!strcmp(_game.variant, "1.1") && script == 2178) || script == 2177) &&
+		readVar(253) == 24) {
+		// Only run the generator if we're doing a single-player skirmesh.
+		_moonbase->_map->generateNewMap();
+	} else if (_game.id == GID_MOONBASE && _roomResource == 5 &&
+		((!strcmp(_game.variant, "1.1") && script == 2252) || script == 2251) &&
+		readArray(231, readVar(230) + 1, 10) == 1 && _moonbase->_map->mapGenerated()) {
+		// (setup-gameoversetup)
+		// If we are playing on a generated map, we have to indicate that we are
+		// playing on a temporary map (normally happens if a host choses their custom
+		// made map during multiplayer setup).  That way, the map properly gets saved
+		// alongside replays.  Bonus side-effect: The players can save the map itself
+		// if they'd like.
+
+		// gMapSaved = FALSE (This gets set to true if player is the host)
+		writeVar(272, 0);
+
+		// gSetupArray[(gMaxPlayers + 1)][SETUP-MAP] = 66
+		// (The game checks if it's greater than 65)
+		writeArray(231, readVar(230) + 1, 10, 66);
+	} else if (_game.id == GID_MOONBASE && _roomResource == 5 && script == 2048) {
+		// (setup-mainmenu)
+		// Delete generated map if there is any.
+		_moonbase->_map->deleteMap();
+	}
+
+	runScript(script, (flags == SO_BAK || flags == SO_BAKREC), (flags == SO_REC || flags == SO_BAKREC), args);
 }
 
 void ScummEngine_v100he::o100_systemOps() {
@@ -2171,29 +2203,34 @@ void ScummEngine_v100he::o100_systemOps() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 61:
+	case SO_RESTART:
 		restart();
 		break;
-	case 128:
+	case SO_FLUSH_OBJECT_DRAW_QUEUE:
 		clearDrawObjectQueue();
 		break;
-	case 132:
+	case SO_QUIT:
 		// Confirm shutdown
-		confirmExitDialog();
+		if (_game.id == GID_MOONBASE)
+			// Moonbase uses this subOp to quit the game (The confirmation dialog
+			// exists inside the game).
+			quitGame();
+		else
+			confirmExitDialog();
 		break;
-	case 133:
+	case SO_QUIT_QUIT:
 		quitGame();
 		break;
-	case 134:
+	case SO_RESTART_STRING:
 		copyScriptString(string, sizeof(string));
 		debug(0, "Start game (%s)", string);
 		break;
-	case 135:
+	case SO_START_SYSTEM_STRING:
 		copyScriptString(string, sizeof(string));
 		debug(0, "Start executable (%s)", string);
 		break;
-	case 136:
-		restoreBackgroundHE(Common::Rect(_screenWidth, _screenHeight));
+	case SO_UPDATE_SCREEN:
+		backgroundToForegroundBlit(Common::Rect(_screenWidth, _screenHeight));
 		updatePalette();
 		break;
 	default:
@@ -2202,55 +2239,58 @@ void ScummEngine_v100he::o100_systemOps() {
 }
 
 void ScummEngine_v100he::o100_cursorCommand() {
-	int a, b, i;
+	int a, b;
 	int args[16];
 
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 0xE:		// SO_CHARSET_SET
+	case SO_CHARSET_SET:
 		initCharset(pop());
 		break;
-	case 0xF:		// SO_CHARSET_COLOR
+	case SO_CHARSET_COLOR:
 		getStackList(args, ARRAYSIZE(args));
-		for (i = 0; i < 16; i++)
+		for (int i = 0; i < 16; i++)
 			_charsetColorMap[i] = _charsetData[_string[1]._default.charset][i] = (unsigned char)args[i];
 		break;
-	case 0x80:
-	case 0x81:
+	case SO_CURSOR_IMAGE:
 		a = pop();
-		_wiz->loadWizCursor(a, 0);
+		_wiz->loadWizCursor(a, 0, false);
 		break;
-	case 0x82:
+	case SO_CURSOR_COLOR_IMAGE:
+		a = pop();
+		_wiz->loadWizCursor(a, 0, true);
+		break;
+	case SO_CURSOR_COLOR_PAL_IMAGE:
 		b = pop();
 		a = pop();
-		_wiz->loadWizCursor(a, b);
+		_wiz->loadWizCursor(a, b, true);
 		break;
-	case 0x86:		// SO_CURSOR_ON Turn cursor on
+	case SO_CURSOR_ON:		// Turn cursor on
 		_cursor.state = 1;
 		break;
-	case 0x87:		// SO_CURSOR_OFF Turn cursor off
+	case SO_CURSOR_OFF:		// Turn cursor off
 		_cursor.state = 0;
 		break;
-	case 0x88:		// SO_CURSOR_SOFT_ON Turn soft cursor on
+	case SO_CURSOR_SOFT_ON:		// Turn soft cursor on
 		_cursor.state++;
 		if (_cursor.state > 1)
 			error("o100_cursorCommand: Cursor state greater than 1 in script");
 		break;
 
-	case 0x89:		// SO_CURSOR_SOFT_OFF Turn soft cursor off
+	case SO_CURSOR_SOFT_OFF:		// Turn soft cursor off
 		_cursor.state--;
 		break;
-	case 0x8B:		// SO_USERPUT_ON
+	case SO_USERPUT_ON:
 		_userPut = 1;
 		break;
-	case 0x8C:		// SO_USERPUT_OFF
+	case SO_USERPUT_OFF:
 		_userPut = 0;
 		break;
-	case 0x8D:		// SO_USERPUT_SOFT_ON
+	case SO_USERPUT_SOFT_ON:
 		_userPut++;
 		break;
-	case 0x8E:		// SO_USERPUT_SOFT_OFF
+	case SO_USERPUT_SOFT_OFF:
 		_userPut--;
 		break;
 	default:
@@ -2266,7 +2306,7 @@ void ScummEngine_v100he::o100_videoOps() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 0: // SO_INIT
+	case SO_INIT:
 		memset(_videoParams.filename, 0, sizeof(_videoParams.filename));
 		_videoParams.status = 0;
 		_videoParams.flags = 0;
@@ -2276,33 +2316,33 @@ void ScummEngine_v100he::o100_videoOps() {
 		if (_videoParams.number != 1 && _videoParams.number != -1)
 			warning("o100_videoOps: number: %d", _videoParams.number);
 		break;
-	case 19: // SO_CLOSE
-		_videoParams.status = 19;
+	case SO_CLOSE:
+		_videoParams.status = SO_CLOSE;
 		break;
-	case 40: // SO_IMAGE
+	case SO_IMAGE:
 		_videoParams.wizResNum = pop();
 		if (_videoParams.wizResNum)
-			_videoParams.flags |= 2;
+			_videoParams.flags |= MoviePlayer::vfImageSurface;
 		break;
-	case 47: // SO_LOAD
+	case SO_LOAD:
 		copyScriptString(_videoParams.filename, sizeof(_videoParams.filename));
-		_videoParams.status = 47;
+		_videoParams.status = SO_LOAD;
 		break;
-	case 67: // SO_SET_FLAGS
+	case SO_SET_FLAGS:
 		_videoParams.flags |= pop();
 		break;
-	case 92: // SO_END
-		if (_videoParams.status == 47) { // SO_LOAD
+	case SO_END:
+		if (_videoParams.status == SO_LOAD) {
 			// Start video
 			if (_videoParams.flags == 0)
-				_videoParams.flags = 4;
+				_videoParams.flags = MoviePlayer::vfDefault;
 
-			if (_videoParams.flags & 2) {
-				VAR(119) = _moviePlay->load(convertFilePath(_videoParams.filename), _videoParams.flags, _videoParams.wizResNum);
+			if (_videoParams.flags & MoviePlayer::vfImageSurface) {
+				VAR(VAR_OPERATION_FAILURE) = _moviePlay->load(convertFilePath(_videoParams.filename), _videoParams.flags, _videoParams.wizResNum);
 			} else {
-				VAR(119) = _moviePlay->load(convertFilePath(_videoParams.filename), _videoParams.flags);
+				VAR(VAR_OPERATION_FAILURE) = _moviePlay->load(convertFilePath(_videoParams.filename), _videoParams.flags);
 			}
-		} else if (_videoParams.status == 19) { // SO_CLOSE
+		} else if (_videoParams.status == SO_CLOSE) {
 			// Stop video
 			_moviePlay->close();
 		}
@@ -2322,22 +2362,22 @@ void ScummEngine_v100he::o100_wait() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 128:		// SO_WAIT_FOR_ACTOR Wait for actor
+	case SO_WAIT_FOR_ACTOR:		// Wait for actor
 		offs = fetchScriptWordSigned();
 		actnum = pop();
 		a = derefActor(actnum, "o100_wait:168");
 		if (a->_moving)
 			break;
 		return;
-	case 129:		// SO_WAIT_FOR_CAMERA Wait for camera
+	case SO_WAIT_FOR_CAMERA:		// Wait for camera
 		if (camera._cur.x / 8 != camera._dest.x / 8)
 			break;
 		return;
-	case 130:		// SO_WAIT_FOR_MESSAGE Wait for message
+	case SO_WAIT_FOR_MESSAGE:		// Wait for message
 		if (VAR(VAR_HAVE_MSG))
 			break;
 		return;
-	case 131:		// SO_WAIT_FOR_SENTENCE
+	case SO_WAIT_FOR_SENTENCE:
 		if (_sentenceNum) {
 			if (_sentence[_sentenceNum - 1].freezeCount && !isScriptInUse(VAR(VAR_SENTENCE_SCRIPT)))
 				return;
@@ -2360,19 +2400,28 @@ void ScummEngine_v100he::o100_writeFile() {
 
 	byte subOp = fetchScriptByte();
 
-	assert(_hOutFileTable[slot]);
+	// The original doesn't make assumptions of any
+	// kind when the slot is -1 (which is a possible
+	// value from the scripts) and does NOPs instead...
+	if (slot != -1)
+		assert(_hOutFileTable[slot]);
+
+	// Arrays will handle the -1 value by themselves...
+	if (slot == -1 && subOp != SO_ARRAY)
+		return;
+
 	switch (subOp) {
-	case 5:
+	case SO_ARRAY:
 		fetchScriptByte();
 		writeFileFromArray(slot, resID);
 		break;
-	case 42:
+	case SO_INT:
 		_hOutFileTable[slot]->writeUint16LE(resID);
 		break;
-	case 43:
+	case SO_DWORD:
 		_hOutFileTable[slot]->writeUint32LE(resID);
 		break;
-	case 45:
+	case SO_BYTE:
 		_hOutFileTable[slot]->writeByte(resID);
 		break;
 	default:
@@ -2391,19 +2440,19 @@ void ScummEngine_v100he::o100_debugInput() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 0:
+	case SO_INIT:
 		copyScriptString(_debugInputBuffer, sizeof(_debugInputBuffer));
 		break;
-	case 26:
+	case SO_COUNT:
 		pop();
 		break;
-	case 27:
+	case SO_DEFAULT:
 		copyScriptString(_debugInputBuffer, sizeof(_debugInputBuffer));
 		break;
-	case 80:
+	case SO_TITLE_BAR:
 		copyScriptString(_debugInputBuffer, sizeof(_debugInputBuffer));
 		break;
-	case 92:
+	case SO_END:
 		debugInput(_debugInputBuffer);
 		break;
 	default:
@@ -2419,19 +2468,19 @@ void ScummEngine_v100he::o100_isResourceLoaded() {
 	int idx = pop();
 
 	switch (subOp) {
-	case 25:
+	case SO_COSTUME:
 		type = rtCostume;
 		break;
-	case 40:
+	case SO_IMAGE:
 		type = rtImage;
 		break;
-	case 62:
+	case SO_ROOM:
 		type = rtRoom;
 		break;
-	case 66:
+	case SO_SCRIPT:
 		type = rtScript;
 		break;
-	case 72:
+	case SO_SOUND:
 		type = rtSound;
 		break;
 	default:
@@ -2451,21 +2500,32 @@ void ScummEngine_v100he::o100_getResourceSize() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 25:
+	case SO_COSTUME:
 		type = rtCostume;
 		break;
-	case 40:
+	case SO_IMAGE:
 		type = rtImage;
 		break;
-	case 62:
+	case SO_ROOM:
 		type = rtRoomImage;
 		break;
-	case 66:
+	case SO_SCRIPT:
 		type = rtScript;
 		break;
-	case 72:
-		push(getSoundResourceSize(resid));
-		return;
+	case SO_SOUND:
+		if (resid >= _numSounds) {
+			push(getSoundResourceSize(resid));
+			return;
+		} else {
+			if (getResourceAddress(rtSound, resid) == nullptr) {
+				type = rtSound;
+			} else {
+				push(getSoundResourceSize(resid));
+				return;
+			}
+
+			break;
+		}
 	default:
 		error("o100_getResourceSize: default type %d", subOp);
 	}
@@ -2473,6 +2533,12 @@ void ScummEngine_v100he::o100_getResourceSize() {
 	ptr = getResourceAddress(type, resid);
 	assert(ptr);
 	size = READ_BE_UINT32(ptr + 4) - 8;
+
+	// Remove the size of the sound header
+	if (type == rtSound) {
+		size -= 40;
+	}
+
 	push(size);
 }
 
@@ -2482,52 +2548,51 @@ void ScummEngine_v100he::o100_getSpriteGroupInfo() {
 
 	byte subOp = fetchScriptByte();
 
-	warning("o100_getSpriteGroupInfo, subop %d", subOp);
-
 	switch (subOp) {
-	case 5: // SO_ARRAY
+	case SO_ARRAY:
 		spriteGroupId = pop();
 		if (spriteGroupId)
 			push(getGroupSpriteArray(spriteGroupId));
 		else
 			push(0);
 		break;
-	case 40: // SO_IMAGE
+	case SO_IMAGE:
 		spriteGroupId = pop();
 		if (spriteGroupId)
-			push(_sprite->getGroupDstResNum(spriteGroupId));
+			push(_sprite->getGroupImage(spriteGroupId));
 		else
 			push(0);
 		break;
-	case 54: // SO_NEW_GENERAL_PROPERTY
-		// TODO: U32 related
-		pop();
-		pop();
-		push(0);
-		warning("STUB: o100_getSpriteGroupInfo, subop 54");
+	case SO_NEW_GENERAL_PROPERTY:
+		type = pop();
+		spriteGroupId = pop();
+		if (spriteGroupId)
+			push(_sprite->getGroupGeneralProperty(spriteGroupId, type));
+		else
+			push(0);
 		break;
-	case 59: // SO_PRIORITY
+	case SO_PRIORITY:
 		spriteGroupId = pop();
 		if (spriteGroupId)
 			push(_sprite->getGroupPriority(spriteGroupId));
 		else
 			push(0);
 		break;
-	case 60: // SO_PROPERTY
+	case SO_PROPERTY:
 		type = pop();
 		spriteGroupId = pop();
 		if (spriteGroupId) {
 			switch (type) {
-			case 0: // SPRGRPPROP_XMUL
+			case SPRGRPPROP_XMUL: // 0
 				push(_sprite->getGroupXMul(spriteGroupId));
 				break;
-			case 1: // SPRGRPPROP_XDIV
+			case SPRGRPPROP_XDIV: // 1
 				push(_sprite->getGroupXDiv(spriteGroupId));
 				break;
-			case 2: // SPRGRPPROP_YMUL
+			case SPRGRPPROP_YMUL: // 2
 				push(_sprite->getGroupYMul(spriteGroupId));
 				break;
-			case 3: // SPRGRPPROP_YDIV
+			case SPRGRPPROP_YDIV: // 3
 				push(_sprite->getGroupYDiv(spriteGroupId));
 				break;
 			default:
@@ -2537,19 +2602,19 @@ void ScummEngine_v100he::o100_getSpriteGroupInfo() {
 			push(0);
 		}
 		break;
-	case 85: // SO_XPOS
+	case SO_XPOS:
 		spriteGroupId = pop();
 		if (spriteGroupId) {
-			_sprite->getGroupPosition(spriteGroupId, tx, ty);
+			_sprite->getGroupPoint(spriteGroupId, tx, ty);
 			push(tx);
 		} else {
 			push(0);
 		}
 		break;
-	case 86: // SO_YPOS
+	case SO_YPOS:
 		spriteGroupId = pop();
 		if (spriteGroupId) {
-			_sprite->getGroupPosition(spriteGroupId, tx, ty);
+			_sprite->getGroupPoint(spriteGroupId, tx, ty);
 			push(ty);
 		} else {
 			push(0);
@@ -2563,80 +2628,85 @@ void ScummEngine_v100he::o100_getSpriteGroupInfo() {
 void ScummEngine_v100he::o100_getWizData() {
 	byte filename[4096];
 	int resId, state, type;
+	Common::Rect clipRect;
 	int32 w, h;
 	int32 x, y;
 
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 20: // SO_COLOR
+	case SO_COLOR:
 		y = pop();
 		x = pop();
 		state = pop();
 		resId = pop();
-		push(_wiz->getWizPixelColor(resId, state, x, y));
+		push(_wiz->pixelHitTestWiz(resId, state, x, y, 0));
 		break;
-	case 26: // SO_COUNT
-		resId = pop();
-		push(_wiz->getWizImageStates(resId));
+	case SO_COUNT:
+		push(_wiz->getWizStateCount(pop()));
 		break;
-	case 33: // SO_FIND
+	case SO_FIND:
 		y = pop();
 		x = pop();
 		state = pop();
 		resId = pop();
-		push(_wiz->isWizPixelNonTransparent(resId, state, x, y, 0));
+		push(_wiz->hitTestWiz(resId, state, x, y, 0));
 		break;
-	case 39: // SO_HEIGHT
+	case SO_HEIGHT:
 		state = pop();
 		resId = pop();
 		_wiz->getWizImageDim(resId, state, w, h);
 		push(h);
 		break;
-	case 54: // SO_NEW_GENERAL_PROPERTY
+	case SO_NEW_GENERAL_PROPERTY:
 		type = pop();
 		state = pop();
 		resId = pop();
-		push(_wiz->getWizImageData(resId, state, type));
+		if (resId != 0) {
+			push(_wiz->dwGetImageGeneralProperty(resId, state, type));
+		} else {
+			push(0);
+		}
 		break;
-	case 84: // SO_WIDTH
+	case SO_WIDTH:
 		state = pop();
 		resId = pop();
 		_wiz->getWizImageDim(resId, state, w, h);
 		push(w);
 		break;
-	case 85: // SO_XPOS
+	case SO_XPOS:
 		state = pop();
 		resId = pop();
-		_wiz->getWizImageSpot(resId, state, x, y);
+		_wiz->getWizSpot(resId, state, x, y);
 		push(x);
 		break;
-	case 86: // SO_YPOS
+	case SO_YPOS:
 		state = pop();
 		resId = pop();
-		_wiz->getWizImageSpot(resId, state, x, y);
+		_wiz->getWizSpot(resId, state, x, y);
 		push(y);
 		break;
-	case 131: // SO_FONT_START
+	case SO_FONT_START:
 		pop();
 		copyScriptString(filename, sizeof(filename));
 		pop();
 		push(0);
 		debug(0, "o100_getWizData() case 111 unhandled");
 		break;
-	case 132: // SO_HISTOGRAM
-		h = pop();
-		w = pop();
-		y = pop();
-		x = pop();
+	case SO_HISTOGRAM:
+		clipRect.bottom = pop();
+		clipRect.right = pop();
+		clipRect.top = pop();
+		clipRect.left = pop();
 		state = pop();
 		resId = pop();
-		if (x == -1 && y == -1 && w == -1 && h == -1) {
+		if (clipRect.left == -1 && clipRect.top == -1 &&
+			clipRect.right == -1 && clipRect.bottom == -1) {
 			_wiz->getWizImageDim(resId, state, w, h);
-			x = 0;
-			y = 0;
+			_wiz->makeSizedRect(&clipRect, w, h);
 		}
-		push(computeWizHistogram(resId, state, x, y, w, h));
+
+		push(_wiz->createHistogramArrayForImage(resId, state, &clipRect));
 		break;
 	default:
 		error("o100_getWizData: Unknown case %d", subOp);
@@ -2651,7 +2721,7 @@ void ScummEngine_v100he::o100_getPaletteData() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 13:
+	case SO_CHANNEL:
 		c = pop();
 		b = pop();
 		if (_game.features & GF_16BIT_COLOR)
@@ -2659,12 +2729,12 @@ void ScummEngine_v100he::o100_getPaletteData() {
 		else
 			push(getHEPaletteColorComponent(1, b, c));
 		break;
-	case 20:
+	case SO_COLOR:
 		color = pop();
 		palSlot = pop();
 		push(getHEPaletteColor(palSlot, color));
 		break;
-	case 33:
+	case SO_FIND:
 		e = pop();
 		d = pop();
 		palSlot = pop();
@@ -2673,7 +2743,7 @@ void ScummEngine_v100he::o100_getPaletteData() {
 		r = pop();
 		push(getHEPaletteSimilarColor(palSlot, r, g, d, e));
 		break;
-	case 53:
+	case SO_NEW:
 		b = pop();
 		b = MAX(0, b);
 		b = MIN(b, 255);
@@ -2689,7 +2759,7 @@ void ScummEngine_v100he::o100_getPaletteData() {
 			push(getHEPaletteSimilarColor(1, r, g, 10, 245));
 		}
 		break;
-	case 73:
+	case SO_STATE:
 		c = pop();
 		b = pop();
 		palSlot = pop();
@@ -2707,29 +2777,44 @@ void ScummEngine_v100he::o100_readFile() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 5:
+	case SO_ARRAY:
 		fetchScriptByte();
 		size = pop();
 		slot = pop();
 		val = readFileToArray(slot, size);
 		push(val);
 		break;
-	case 42:
+	case SO_INT:
 		slot = pop();
-		assert(_hInFileTable[slot]);
-		val = _hInFileTable[slot]->readUint16LE();
+		if (slot == -1) {
+			val = 0;
+		} else {
+			assert(_hInFileTable[slot]);
+			val = _hInFileTable[slot]->readUint16LE();
+		}
+
 		push(val);
 		break;
-	case 43:
+	case SO_DWORD:
 		slot = pop();
-		assert(_hInFileTable[slot]);
-		val = _hInFileTable[slot]->readUint32LE();
+		if (slot == -1) {
+			val = 0;
+		} else {
+			assert(_hInFileTable[slot]);
+			val = _hInFileTable[slot]->readUint32LE();
+		}
+
 		push(val);
 		break;
-	case 45:
+	case SO_BYTE:
 		slot = pop();
-		assert(_hInFileTable[slot]);
-		val = _hInFileTable[slot]->readByte();
+		if (slot == -1) {
+			val = 0;
+		} else {
+			assert(_hInFileTable[slot]);
+			val = _hInFileTable[slot]->readByte();
+		}
+
 		push(val);
 		break;
 	default:
@@ -2739,86 +2824,90 @@ void ScummEngine_v100he::o100_readFile() {
 
 void ScummEngine_v100he::o100_getSpriteInfo() {
 	int args[16];
-	int spriteId, flags, groupId, type;
+	int spriteId, flags, groupId, quickCheck, classCount, count;
 	int32 x, y;
 
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 3:
+	case SO_ANIMATION:
 		spriteId = pop();
 		if (spriteId)
-			push(_sprite->getSpriteFlagAutoAnim(spriteId));
+			push(_sprite->getSpriteAutoAnimFlag(spriteId));
 		else
 			push(0);
 		break;
-	case 4:
+	case SO_ANIMATION_SPEED:
 		spriteId = pop();
 		if (spriteId)
 			push(_sprite->getSpriteAnimSpeed(spriteId));
 		else
 			push(1);
 		break;
-	case 7:
+	case SO_AT_IMAGE:
 		spriteId = pop();
 		if (spriteId)
-			push(_sprite->getSpriteSourceImage(spriteId));
+			push(_sprite->getSourceImage(spriteId));
 		else
 			push(0);
 		break;
-	case 16:
-		flags = getStackList(args, ARRAYSIZE(args));
+	case SO_CLASS:
+		count = getStackList(args, ARRAYSIZE(args));
 		spriteId = pop();
 		if (spriteId) {
-			push(_sprite->getSpriteClass(spriteId, flags, args));
+			if (!count) {
+				push(_sprite->getSpriteClass(spriteId, -1));
+			} else {
+				push(_sprite->checkSpriteClassAgaintClassSet(spriteId, count, args));
+			}
 		} else {
 			push(0);
 		}
 		break;
-	case 26:
+	case SO_COUNT:
 		spriteId = pop();
 		if (spriteId)
 			push(_sprite->getSpriteImageStateCount(spriteId));
 		else
 			push(0);
 		break;
-	case 30:
+	case SO_DRAW_XPOS:
 		spriteId = pop();
 		if (spriteId)
 			push(_sprite->getSpriteDisplayX(spriteId));
 		else
 			push(0);
 		break;
-	case 31:
+	case SO_DRAW_YPOS:
 		spriteId = pop();
 		if (spriteId)
 			push(_sprite->getSpriteDisplayY(spriteId));
 		else
 			push(0);
 		break;
-	case 32:
+	case SO_ERASE:
 		spriteId = pop();
 		if (spriteId)
-			push(_sprite->getSpriteFlagEraseType(spriteId));
+			push(_sprite->getSpriteEraseType(spriteId));
 		else
 			push(1);
 		break;
-	case 33:
-		flags = getStackList(args, ARRAYSIZE(args));
-		type = pop();
+	case SO_FIND:
+		classCount = getStackList(args, ARRAYSIZE(args));
+		quickCheck = pop();
 		groupId = pop();
 		y = pop();
 		x = pop();
-		push(_sprite->findSpriteWithClassOf(x, y, groupId, type, flags, args));
+		push(_sprite->spriteFromPoint(x, y, groupId, quickCheck, classCount, args));
 		break;
-	case 38:
+	case SO_GROUP:
 		spriteId = pop();
 		if (spriteId)
 			push(_sprite->getSpriteGroup(spriteId));
 		else
 			push(0);
 		break;
-	case 39:
+	case SO_HEIGHT:
 		spriteId = pop();
 		if (spriteId) {
 			_sprite->getSpriteImageDim(spriteId, x, y);
@@ -2827,21 +2916,21 @@ void ScummEngine_v100he::o100_getSpriteInfo() {
 			push(0);
 		}
 		break;
-	case 40:
+	case SO_IMAGE:
 		spriteId = pop();
 		if (spriteId)
 			push(_sprite->getSpriteImage(spriteId));
 		else
 			push(0);
 		break;
-	case 48:
+	case SO_MASK:
 		spriteId = pop();
 		if (spriteId)
-			push(_sprite->getSpriteMaskImage(spriteId));
+			push(_sprite->getMaskImage(spriteId));
 		else
 			push(0);
 		break;
-	case 54:
+	case SO_NEW_GENERAL_PROPERTY:
 		flags = pop();
 		spriteId = pop();
 		if (spriteId)
@@ -2849,39 +2938,39 @@ void ScummEngine_v100he::o100_getSpriteInfo() {
 		else
 			push(0);
 		break;
-	case 57:
+	case SO_PALETTE:
 		spriteId = pop();
 		if (spriteId)
 			push(_sprite->getSpritePalette(spriteId));
 		else
 			push(0);
 		break;
-	case 59:
+	case SO_PRIORITY:
 		spriteId = pop();
 		if (spriteId)
 			push(_sprite->getSpritePriority(spriteId));
 		else
 			push(0);
 		break;
-	case 60:
+	case SO_PROPERTY:
 		flags = pop();
 		spriteId = pop();
 		if (spriteId) {
 			switch (flags) {
-			case 0:
-				push(_sprite->getSpriteFlagXFlipped(spriteId));
+			case SPRPROP_HFLIP: // 0
+				push(_sprite->getSpriteHorzFlip(spriteId));
 				break;
-			case 1:
-				push(_sprite->getSpriteFlagYFlipped(spriteId));
+			case SPRPROP_VFLIP: // 1
+				push(_sprite->getSpriteVertFlip(spriteId));
 				break;
-			case 2:
-				push(_sprite->getSpriteFlagActive(spriteId));
+			case SPRPROP_ACTIVE: // 2
+				push(_sprite->getSpriteActiveFlag(spriteId));
 				break;
-			case 3:
-				push(_sprite->getSpriteFlagDoubleBuffered(spriteId));
+			case SPRPROP_BACKGROUND_RENDER: // 3
+				push(_sprite->getSpriteRenderToBackground(spriteId));
 				break;
-			case 4:
-				push(_sprite->getSpriteFlagRemapPalette(spriteId));
+			case SPRPROP_USE_IMAGE_REMAP_TABLE: // 4
+				push(_sprite->getSpriteImageRemapFlag(spriteId));
 				break;
 			default:
 				push(0);
@@ -2890,61 +2979,61 @@ void ScummEngine_v100he::o100_getSpriteInfo() {
 			push(0);
 		}
 		break;
-	case 65:
+	case SO_SCALE:
 		spriteId = pop();
 		if (spriteId)
 			push(_sprite->getSpriteScale(spriteId));
 		else
 			push(0);
 		break;
-	case 70:
+	case SO_SHADOW:
 		spriteId = pop();
 		if (spriteId)
 			push(_sprite->getSpriteShadow(spriteId));
 		else
 			push(0);
 		break;
-	case 73:
+	case SO_STATE:
 		spriteId = pop();
 		if (spriteId)
 			push(_sprite->getSpriteImageState(spriteId));
 		else
 			push(0);
 		break;
-	case 75:
+	case SO_STEP_DIST_X:
 		spriteId = pop();
 		if (spriteId) {
-			_sprite->getSpriteDist(spriteId, x, y);
+			_sprite->getDelta(spriteId, x, y);
 			push(x);
 		} else {
 			push(0);
 		}
 		break;
-	case 76:
+	case SO_STEP_DIST_Y:
 		spriteId = pop();
 		if (spriteId) {
-			_sprite->getSpriteDist(spriteId, x, y);
+			_sprite->getDelta(spriteId, x, y);
 			push(y);
 		} else {
 			push(0);
 		}
 		break;
-	case 82:
+	case SO_UPDATE:
 		spriteId = pop();
 		if (spriteId)
-			push(_sprite->getSpriteFlagUpdateType(spriteId));
+			push(_sprite->getSpriteUpdateType(spriteId));
 		else
 			push(0);
 		break;
-	case 83:
+	case SO_VARIABLE:
 		pop();
 		spriteId = pop();
 		if (spriteId)
-			push(_sprite->getSpriteUserValue(spriteId));
+			push(_sprite->getUserValue(spriteId));
 		else
 			push(0);
 		break;
-	case 84:
+	case SO_WIDTH:
 		spriteId = pop();
 		if (spriteId) {
 			_sprite->getSpriteImageDim(spriteId, x, y);
@@ -2953,7 +3042,7 @@ void ScummEngine_v100he::o100_getSpriteInfo() {
 			push(0);
 		}
 		break;
-	case 85:
+	case SO_XPOS:
 		spriteId = pop();
 		if (spriteId) {
 			_sprite->getSpritePosition(spriteId, x, y);
@@ -2962,7 +3051,7 @@ void ScummEngine_v100he::o100_getSpriteInfo() {
 			push(0);
 		}
 		break;
-	case 86:
+	case SO_YPOS:
 		spriteId = pop();
 		if (spriteId) {
 			_sprite->getSpritePosition(spriteId, x, y);
@@ -2981,27 +3070,27 @@ void ScummEngine_v100he::o100_getVideoData() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 26:
+	case SO_COUNT:
 		pop();
 		push(_moviePlay->getFrameCount());
 		break;
-	case 39:
+	case SO_HEIGHT:
 		pop();
 		push(_moviePlay->getHeight());
 		break;
-	case 40:
+	case SO_IMAGE:
 		pop();
 		push(_moviePlay->getImageNum());
 		break;
-	case 54:
+	case SO_NEW_GENERAL_PROPERTY:
 		debug(0, "o100_getVideoData: subOp 28 stub (%d, %d)", pop(), pop());
 		push(0);
 		break;
-	case 73:
+	case SO_STATE:
 		pop();
 		push(_moviePlay->getCurFrame());
 		break;
-	case 84:
+	case SO_WIDTH:
 		pop();
 		push(_moviePlay->getWidth());
 		break;
@@ -3019,22 +3108,22 @@ void ScummEngine_v100he::decodeParseString(int m, int n) {
 	byte b = fetchScriptByte();
 
 	switch (b) {
-	case 6:		// SO_AT
+	case SO_AT:
 		_string[m].ypos = pop();
 		_string[m].xpos = pop();
 		_string[m].overhead = false;
 		break;
-	case 12:		// SO_CENTER
+	case SO_CENTER:
 		_string[m].center = true;
 		_string[m].overhead = false;
 		break;
-	case 18:		// SO_CLIPPED
+	case SO_CLIPPED:
 		_string[m].right = pop();
 		break;
-	case 20:		// SO_COLOR
+	case SO_COLOR:
 		_string[m].color = pop();
 		break;
-	case 21:
+	case SO_COLOR_LIST:
 		colors = pop();
 		if (colors == 1) {
 			_string[m].color = pop();
@@ -3046,22 +3135,22 @@ void ScummEngine_v100he::decodeParseString(int m, int n) {
 			_string[m].color = _charsetColorMap[0];
 		}
 		break;
-	case 35:
+	case SO_FORMATTED_STRING:
 		decodeScriptString(name, true);
 		printString(m, name);
 		break;
-	case 46:		// SO_LEFT
+	case SO_LEFT:
 		_string[m].center = false;
 		_string[m].overhead = false;
 		break;
-	case 51:		// SO_MUMBLE
+	case SO_MUMBLE:
 		_string[m].no_talk_anim = true;
 		break;
-	case 56:		// SO_OVERHEAD
+	case SO_OVERHEAD:
 		_string[m].overhead = true;
 		_string[m].no_talk_anim = false;
 		break;
-	case 78:
+	case SO_TALKIE:
 		{
 		byte *dataPtr = getResourceAddress(rtTalkie, pop());
 		byte *text = findWrappedBlock(MKTAG('T','E','X','T'), dataPtr, 0, 0);
@@ -3070,11 +3159,11 @@ void ScummEngine_v100he::decodeParseString(int m, int n) {
 		printString(m, name);
 		}
 		break;
-	case 79:		// SO_TEXTSTRING
+	case SO_TEXTSTRING:
 		printString(m, _scriptPointer);
 		_scriptPointer += resStrLen(_scriptPointer) + 1;
 		break;
-	case 91:
+	case SO_BASEOP:
 		_string[m].loadDefault();
 		if (n) {
 			_actorToPrintStrFor = pop();
@@ -3084,7 +3173,7 @@ void ScummEngine_v100he::decodeParseString(int m, int n) {
 			}
 		}
 		break;
-	case 92:
+	case SO_END:
 		_string[m].saveDefault();
 		break;
 	default:

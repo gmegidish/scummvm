@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -117,26 +116,20 @@ bool BaseClass::parseEditorProperty(char *buffer, bool complete) {
 
 	while ((cmd = parser.getCommand(&buffer, commands, &params)) > 0) {
 		switch (cmd) {
-		case TOKEN_NAME:
+		case TOKEN_NAME: {
 			delete[] propName;
-			propName = new char[strlen(params) + 1];
-			if (propName) {
-				strcpy(propName, params);
-			} else {
-				cmd = PARSERR_GENERIC;
-			}
+			size_t propNameSize = strlen(params) + 1;
+			propName = new char[propNameSize];
+			Common::strcpy_s(propName, propNameSize, params);
 			break;
-
-		case TOKEN_VALUE:
+		}
+		case TOKEN_VALUE: {
 			delete[] propValue;
-			propValue = new char[strlen(params) + 1];
-			if (propValue) {
-				strcpy(propValue, params);
-			} else {
-				cmd = PARSERR_GENERIC;
-			}
+			size_t propValueSize = strlen(params) + 1;
+			propValue = new char[propValueSize];
+			Common::strcpy_s(propValue, propValueSize, params);
 			break;
-
+		}
 		default:
 			break;
 		}

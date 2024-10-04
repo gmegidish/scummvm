@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,7 +34,6 @@
 namespace Kyra {
 
 int EoBEngine::clickedCamp(Button *button) {
-	uint32 startTime = _system->getMillis();
 	gui_resetAnimations();
 
 	if (_flags.platform == Common::kPlatformSegaCD)
@@ -47,7 +45,6 @@ int EoBEngine::clickedCamp(Button *button) {
 		return button->arg;
 
 	gui_resetAnimations();
-	_totalPlaySecs += ((_system->getMillis() - startTime) / 1000);
 
 	return button->arg;
 }
@@ -232,7 +229,6 @@ void EoBEngine::gui_drawCharacterStatsPage() {
 }
 
 void EoBEngine::gui_displayMap() {
-	uint32 startTime = _system->getMillis();
 	disableSysTimer(2);
 
 	_screen->sega_fadeToBlack(2);
@@ -294,7 +290,7 @@ void EoBEngine::gui_displayMap() {
 		removeInputTop();
 
 		drawMapSpots(level, animState < 20 ? 0 : 1);
-		bool update = (animState == 0 || animState == 20);
+		bool needupdate = (animState == 0 || animState == 20);
 		if (++animState == 40)
 			animState = 0;
 
@@ -306,7 +302,7 @@ void EoBEngine::gui_displayMap() {
 				drawMapPage(level);
 		}
 
-		if (update) {
+		if (needupdate) {
 			r->render(0);
 			_screen->updateScreen();
 		}
@@ -323,7 +319,6 @@ void EoBEngine::gui_displayMap() {
 	snd_playLevelScore();
 
 	enableSysTimer(2);
-	_totalPlaySecs += ((_system->getMillis() - startTime) / 1000);
 }
 
 void EoBEngine::gui_drawSpellbook() {
@@ -351,7 +346,7 @@ void EoBEngine::gui_drawSpellbook() {
 		printSpellbookString(&_tempPattern[(i + 1) * 12], _openBookSpellList[d], (i == _openBookSpellSelectedItem) ? 0x6223 : 0x63C9);
 	}
 
-	r->fillRectWithTiles(0, 10, 15, 12, 6, 0, true, false, _tempPattern);
+	r->fillRectWithTiles(0, 10, 15, 12, 7, 0, true, false, _tempPattern);
 	r->render(Screen_EoB::kSegaRenderPage, 10, 15, 12, 7);
 
 	// The original SegaCD version actually doesn't disable the spell book after use but closes it instead.
@@ -916,6 +911,13 @@ int GUI_EoB_SegaCD::getHighlightSlot() {
 	return res;
 }
 
+int GUI_EoB_SegaCD::mapPointToEntry(const Common::Point &p) const {
+	if (_vm->posWithinRect(p.x, p.y, 8, 80, 168, 152))
+		return (p.y - 80) / 8;
+
+	return -1;
+}
+
 void GUI_EoB_SegaCD::memorizePrayMenuPrintString(int spellId, int bookPageIndex, int spellType, bool noFill, bool highLight) {
 	if (bookPageIndex < 0)
 		return;
@@ -925,7 +927,7 @@ void GUI_EoB_SegaCD::memorizePrayMenuPrintString(int spellId, int bookPageIndex,
 		Common::String s = Common::String::format(_vm->_menuStringsMgc[0], spellType ? _vm->_clericSpellList[spellId] : _vm->_mageSpellList[spellId], _numAssignedSpellsOfType[spellId * 2 - 2]);
 		if (_vm->gameFlags().lang == Common::JA_JPN) {
 			for (int i = 0; i < 19; ++i) {
-				if (s[i] == -34 || s[i] == -33)
+				if ((int8)s[i] == -34 || (int8)s[i] == -33)
 					s.insertChar(' ', 18);
 			}
 		}
@@ -970,7 +972,7 @@ void GUI_EoB_SegaCD::restParty_updateRestTime(int hours, bool init) {
 	_screen->sega_loadTextBufferToVRAM(0, 0x5060, 5120);
 	r->fillRectWithTiles(0, 1, 4, 20, 2, 0x6000);
 	r->fillRectWithTiles(0, 1, 6, 20, 6, 0x6283, true);
-	r->render(0, 0, 0, 22, 16);
+	r->render(0, 0, 0, 22, 17);
 	_screen->updateScreen();
 	_vm->delay(160);
 }

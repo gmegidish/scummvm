@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,7 +66,7 @@ _TSrtn text_sprite::GetRenderCoords(const int32 pinX,           // screen x-coor
 
 	case PIN_AT_CENTRE_OF_BASE:               // this one is used for SPEECH TEXT to keep it centred above the talker's head
 		renderX = pinX - spriteWidth / 2; // subtract half the sprite-width from the pin x-coordinate
-		renderY = pinY - spriteHeight;    // substract the sprite-height from the pin y-coordinate
+		renderY = pinY - spriteHeight;    // subtract the sprite-height from the pin y-coordinate
 		break;
 
 	case PIN_AT_CENTRE_OF_LEFT:
@@ -295,17 +294,25 @@ _TSrtn text_sprite::AnalyseSentence() {
 
 uint32 text_sprite::CharWidth(const uint8 ch, const char *fontRes, uint32 fontRes_hash) {
 	_pxBitmap *charSet = LoadFont(fontRes, fontRes_hash);
-	_pxSprite *spr = (_pxSprite *)charSet->Fetch_item_by_number(ch - ' ');
+
+	uint32 nNumber = ch - ' ';
+	assert(nNumber < FROM_LE_32(charSet->num_sprites));
+
+	_pxSprite *spr = (_pxSprite *)((byte *)charSet + FROM_LE_32(charSet->sprite_offsets[nNumber]));
 	return (spr->width);
 }
 
 uint32 text_sprite::CharHeight(const char *fontRes, uint32 fontRes_hash) { // assume all chars the same height!
 	_pxBitmap *charSet = LoadFont(fontRes, fontRes_hash);
-	_pxSprite *spr = (_pxSprite *)charSet->Fetch_item_by_number(0);
+	_pxSprite *spr = (_pxSprite *)((byte *)charSet + FROM_LE_32(charSet->sprite_offsets[0]));
 	return spr->height;
 }
 
-_pxSprite *text_sprite::FindChar(uint8 ch, _pxBitmap *charSet) { return ((_pxSprite *)charSet->Fetch_item_by_number(ch - ' ')); }
+_pxSprite *text_sprite::FindChar(uint8 ch, _pxBitmap *charSet) {
+	uint32 nNumber = ch - ' ';
+	assert(nNumber < FROM_LE_32(charSet->num_sprites));
+	return ((_pxSprite *)((byte *)charSet + FROM_LE_32(charSet->sprite_offsets[nNumber])));
+}
 
 void text_sprite::CopyChar(_pxSprite *charPtr, uint8 *spritePtr, uint8 *pal) { // copy character into sprite, based on params
 	uint8 *rowPtr;

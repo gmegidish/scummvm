@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,18 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/gumps/slider_gump.h"
 #include "ultima/ultima8/games/game_data.h"
-#include "ultima/ultima8/graphics/gump_shape_archive.h"
+#include "ultima/ultima8/gfx/gump_shape_archive.h"
 #include "ultima/ultima8/gumps/widgets/sliding_widget.h"
-#include "ultima/ultima8/graphics/fonts/font.h"
-#include "ultima/ultima8/graphics/fonts/rendered_text.h"
-#include "ultima/ultima8/graphics/fonts/font_manager.h"
+#include "ultima/ultima8/gfx/fonts/font.h"
+#include "ultima/ultima8/gfx/fonts/rendered_text.h"
+#include "ultima/ultima8/gfx/fonts/font_manager.h"
 #include "ultima/ultima8/gumps/widgets/button_widget.h"
 #include "ultima/ultima8/usecode/uc_process.h"
 #include "ultima/ultima8/kernel/kernel.h"
@@ -68,8 +67,8 @@ static const int slidershape = 45;
 static const int sliderframe = 0;
 static const int slidery = 17;
 static const int sliderminx = 55;
-static const int slidermaxx = 130;
-static const int labelx = 161;
+static const int slidermaxx = 140;
+static const int labelx = 18;
 static const int labely = 26;
 static const int labelfont = 0;
 
@@ -78,21 +77,10 @@ static const int LEFT_INDEX = 2;
 static const int RIGHT_INDEX = 3;
 static const int SLIDER_INDEX = 4;
 
-int SliderGump::getSliderPos() {
-	return sliderminx + (_value - _min) * (slidermaxx - sliderminx) / (_max - _min);
-}
-
-void SliderGump::setValueFromSlider(int sliderx) {
-	int val = (sliderx - sliderminx) * (_max - _min) / (slidermaxx - sliderminx) + _min;
-	if (val < _min) val = _min;
-	if (val > _max) val = _max;
-	_value = _min + _delta * (static_cast<int16>(val / _delta));
-}
-
 void SliderGump::setSliderPos() {
-	Gump *slider = Gump::FindGump<SlidingWidget>();
+	SlidingWidget *slider = dynamic_cast<SlidingWidget *>(Gump::FindGump<SlidingWidget>());
 	assert(slider);
-	slider->Move(getSliderPos(), slidery);
+	slider->setValueForRange(_value, _min, _max);
 }
 
 void SliderGump::drawText(RenderSurface *surf) {
@@ -100,7 +88,7 @@ void SliderGump::drawText(RenderSurface *surf) {
 		Font *font;
 		font = FontManager::get_instance()->getGameFont(labelfont);
 		char buf[10]; // more than enough for a int16
-		sprintf(buf, "%d", _value);
+		Common::sprintf_s(buf, "%d", _value);
 
 		unsigned int remaining;
 		delete _renderedText;
@@ -124,24 +112,22 @@ void SliderGump::InitGump(Gump *newparent, bool take_focus) {
 	_shape = GameData::get_instance()->getGumps()->getShape(gumpshape);
 	UpdateDimsFromShape();
 
-	const Shape *childshape = GameData::get_instance()->
-	                    getGumps()->getShape(slidershape);
-
 	// Create the SlidingWidget
-	Gump *widget = new SlidingWidget(getSliderPos(), slidery,
-	                                 childshape, sliderframe);
-	widget->SetIndex(SLIDER_INDEX);
-	widget->InitGump(this);
+	FrameID frame(GameData::GUMPS, slidershape, sliderframe);
+	SlidingWidget *slider = new SlidingWidget(sliderminx, slidery, frame, Rect(sliderminx, slidery, slidermaxx, slidery));
+	slider->SetIndex(SLIDER_INDEX);
+	slider->InitGump(this);
+	slider->setValueForRange(_value, _min, _max);
 
 	FrameID button_up(GameData::GUMPS, okshape, 0);
 	FrameID button_down(GameData::GUMPS, okshape, 1);
 
-	widget = new ButtonWidget(14, 17, button_up, button_down);
+	Gump *widget = new ButtonWidget(158, 17, button_up, button_down);
 	widget->SetIndex(OK_INDEX);
 	widget->InitGump(this);
 
 	FrameID buttonleft_up(GameData::GUMPS, leftshape, 0);
-	FrameID buttonleft_down(GameData::GUMPS, leftshape, 1);
+	FrameID buttonleft_down(GameData::GUMPS, leftshape, 0);
 
 	widget = new ButtonWidget(36, 17, buttonleft_up, buttonleft_down);
 	widget->SetIndex(LEFT_INDEX);
@@ -149,7 +135,7 @@ void SliderGump::InitGump(Gump *newparent, bool take_focus) {
 
 
 	FrameID buttonright_up(GameData::GUMPS, rightshape, 0);
-	FrameID buttonright_down(GameData::GUMPS, rightshape, 1);
+	FrameID buttonright_down(GameData::GUMPS, rightshape, 0);
 
 	widget = new ButtonWidget(141, 17, buttonright_up, buttonright_down);
 	widget->SetIndex(RIGHT_INDEX);
@@ -157,25 +143,40 @@ void SliderGump::InitGump(Gump *newparent, bool take_focus) {
 }
 
 void SliderGump::ChildNotify(Gump *child, uint32 message) {
-	if (message == ButtonWidget::BUTTON_CLICK) {
-		switch (child->GetIndex()) {
-		case OK_INDEX:
+	switch (child->GetIndex()) {
+	case OK_INDEX:
+		if (message == ButtonWidget::BUTTON_CLICK || message == ButtonWidget::BUTTON_DOUBLE)
 			Close();
-			break;
-		case LEFT_INDEX:
+		break;
+	case LEFT_INDEX:
+		if (message == ButtonWidget::BUTTON_UP) {
 			_value -= _delta;
-			if (_value < _min) _value = _min;
+			if (_value < _min)
+				_value = _min;
 			setSliderPos();
-			break;
-		case RIGHT_INDEX:
-			_value += _delta;
-			if (_value > _max) _value = _max;
-			setSliderPos();
-			break;
 		}
+		break;
+	case RIGHT_INDEX:
+		if (message == ButtonWidget::BUTTON_UP) {
+			_value += _delta;
+			if (_value > _max)
+				_value = _max;
+			setSliderPos();
+		}
+		break;
+	case SLIDER_INDEX:
+		if (message == SlidingWidget::DRAGGING) {
+			SlidingWidget *slider = dynamic_cast<SlidingWidget *>(child);
+			assert(slider);
+			_value = slider->getValueForRange(_min, _max);
+			_value = _min + _delta * (static_cast<int16>(_value / _delta));
+
+			// Set value to force slider to snap to increment
+			slider->setValueForRange(_value, _min, _max);
+		}
+		break;
 	}
 }
-
 
 void SliderGump::Close(bool no_del) {
 	_processResult = _value;
@@ -188,28 +189,6 @@ void SliderGump::Close(bool no_del) {
 	}
 
 	ModalGump::Close(no_del);
-}
-
-bool SliderGump::StartDraggingChild(Gump *gump, int32 mx, int32 my) {
-	if (gump->GetIndex() == SLIDER_INDEX) {
-		gump->ParentToGump(mx, my);
-		Mouse::get_instance()->setDraggingOffset(mx, 0);
-		return true;
-	}
-
-	return false;
-}
-
-void SliderGump::DraggingChild(Gump *gump, int mx, int my) {
-	if (gump->GetIndex() == SLIDER_INDEX) {
-		int32 dox, doy;
-		Mouse::get_instance()->getDraggingOffset(dox, doy);
-		setValueFromSlider(mx - dox);
-		gump->Move(getSliderPos(), slidery);
-	}
-}
-
-void SliderGump::StopDraggingChild(Gump *gump) {
 }
 
 bool SliderGump::OnKeyDown(int key, int mod) {
@@ -240,11 +219,11 @@ void SliderGump::setUsecodeNotify(UCProcess *ucp) {
 }
 
 void SliderGump::saveData(Common::WriteStream *ws) {
-	CANT_HAPPEN_MSG("Trying to save ModalGump");
+	warning("Trying to save ModalGump");
 }
 
 bool SliderGump::loadData(Common::ReadStream *rs, uint32 version) {
-	CANT_HAPPEN_MSG("Trying to load ModalGump");
+	warning("Trying to load ModalGump");
 
 	return false;
 }

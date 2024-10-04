@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,28 +26,28 @@
 namespace Neverhood {
 
 Scene::Scene(NeverhoodEngine *vm, Module *parentModule)
-	: Entity(vm, 0), _parentModule(parentModule), _dataResource(vm), _hitRects(NULL),
+	: Entity(vm, 0), _parentModule(parentModule), _dataResource(vm), _hitRects(nullptr),
 	_mouseCursorWasVisible(true) {
 
 	_isKlaymenBusy = false;
 	_doConvertMessages = false;
-	_messageList = NULL;
+	_messageList = nullptr;
 	_rectType = 0;
 	_mouseClickPos.x = 0;
 	_mouseClickPos.y = 0;
 	_mouseClicked = false;
-	_rectList = NULL;
-	_klaymen = NULL;
-	_mouseCursor = NULL;
-	_palette = NULL;
-	_background = NULL;
+	_rectList = nullptr;
+	_klaymen = nullptr;
+	_mouseCursor = nullptr;
+	_palette = nullptr;
+	_background = nullptr;
 	clearHitRects();
 	clearCollisionSprites();
 	_vm->_screen->setFps(24);
-	_vm->_screen->setSmackerDecoder(NULL);
+	_vm->_screen->setSmackerDecoder(nullptr);
 	_canAcceptInput = true;
-	_messageList2 = NULL;
-	_smackerPlayer = NULL;
+	_messageList2 = nullptr;
+	_smackerPlayer = nullptr;
 	_isMessageListBusy = false;
 	_messageValue = -1;
 	_messageListStatus = 0;
@@ -65,7 +64,7 @@ Scene::Scene(NeverhoodEngine *vm, Module *parentModule)
 
 Scene::~Scene() {
 
-	_vm->_screen->setSmackerDecoder(NULL);
+	_vm->_screen->setSmackerDecoder(nullptr);
 
 	if (_palette) {
 		removeEntity(_palette);
@@ -88,7 +87,7 @@ void Scene::draw() {
 		if (_smackerPlayer->getSurface())
 			_smackerPlayer->getSurface()->draw();
 	} else {
-		for (Common::Array<BaseSurface*>::iterator iter = _surfaces.begin(); iter != _surfaces.end(); iter++)
+		for (Common::Array<Common::SharedPtr<BaseSurface>>::iterator iter = _surfaces.begin(); iter != _surfaces.end(); iter++)
 			(*iter)->draw();
 	}
 }
@@ -117,10 +116,10 @@ bool Scene::removeEntity(Entity *entity) {
 	return false;
 }
 
-void Scene::addSurface(BaseSurface *surface) {
+void Scene::addSurface(const Common::SharedPtr<BaseSurface> &surface) {
 	if (surface) {
 		int index = 0, insertIndex = -1;
-		for (Common::Array<BaseSurface*>::iterator iter = _surfaces.begin(); iter != _surfaces.end(); iter++) {
+		for (Common::Array<Common::SharedPtr<BaseSurface>>::iterator iter = _surfaces.begin(); iter != _surfaces.end(); iter++) {
 			if ((*iter)->getPriority() > surface->getPriority()) {
 				insertIndex = index;
 				break;
@@ -134,9 +133,9 @@ void Scene::addSurface(BaseSurface *surface) {
 	}
 }
 
-bool Scene::removeSurface(BaseSurface *surface) {
+bool Scene::removeSurface(const Common::SharedPtr<BaseSurface> &surface) {
 	for (uint index = 0; index < _surfaces.size(); index++) {
-		if (_surfaces[index] == surface) {
+		if (_surfaces[index].get() == surface.get()) {
 			_surfaces.remove_at(index);
 			return true;
 		}
@@ -159,6 +158,7 @@ void Scene::printSurfaces(Console *con) {
 Sprite *Scene::addSprite(Sprite *sprite) {
 	addEntity(sprite);
 	addSurface(sprite->getSurface());
+	addSurface(sprite->getSubtitleSurface());
 	return sprite;
 }
 
@@ -167,7 +167,7 @@ void Scene::removeSprite(Sprite *sprite) {
 	removeEntity(sprite);
 }
 
-void Scene::setSurfacePriority(BaseSurface *surface, int priority) {
+void Scene::setSurfacePriority(const Common::SharedPtr<BaseSurface> &surface, int priority) {
 	surface->setPriority(priority);
 	if (removeSurface(surface))
 		addSurface(surface);
@@ -183,7 +183,7 @@ void Scene::deleteSprite(Sprite **sprite) {
 	removeSurface((*sprite)->getSurface());
 	removeEntity(*sprite);
 	delete *sprite;
-	*sprite = NULL;
+	*sprite = nullptr;
 }
 
 Background *Scene::addBackground(Background *background) {
@@ -314,7 +314,7 @@ uint32 Scene::handleMessage(int messageNum, const MessageParam &param, Entity *s
 		// This cancels the current message list and sets Klaymen into the idle state.
 		if (_isKlaymenBusy) {
 			_isKlaymenBusy = false;
-			_messageList = NULL;
+			_messageList = nullptr;
 			sendMessage(_klaymen, NM_KLAYMEN_STAND_IDLE, 0);
 		}
 		break;
@@ -419,7 +419,7 @@ void Scene::processMessageList() {
 	_isMessageListBusy = true;
 
 	if (!_messageList) {
-		_messageList2 = NULL;
+		_messageList2 = nullptr;
 		_messageListStatus = 0;
 	}
 
@@ -473,7 +473,7 @@ void Scene::processMessageList() {
 			}
 			if (_messageListIndex == _messageListCount) {
 				_canAcceptInput = true;
-				_messageList = NULL;
+				_messageList = nullptr;
 			}
 		}
 	}
@@ -484,7 +484,7 @@ void Scene::processMessageList() {
 
 void Scene::cancelMessageList() {
 	_isKlaymenBusy = false;
-	_messageList = NULL;
+	_messageList = nullptr;
 	_canAcceptInput = true;
 	sendMessage(_klaymen, NM_KLAYMEN_STAND_IDLE, 0);
 }
@@ -499,7 +499,7 @@ void Scene::setRectList(RectList *rectList) {
 }
 
 void Scene::clearRectList() {
-	_rectList = NULL;
+	_rectList = nullptr;
 	_rectType = 0;
 }
 
@@ -549,7 +549,7 @@ uint16 Scene::convertMessageNum(uint32 messageNum) {
 }
 
 void Scene::clearHitRects() {
-	_hitRects = NULL;
+	_hitRects = nullptr;
 }
 
 HitRect *Scene::findHitRectAtPos(int16 x, int16 y) {

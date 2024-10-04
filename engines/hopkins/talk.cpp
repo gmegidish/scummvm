@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,17 +36,17 @@ namespace Hopkins {
 
 TalkManager::TalkManager(HopkinsEngine *vm) {
 	_vm = vm;
-	_characterBuffer = NULL;
-	_characterPalette = NULL;
-	_characterSprite = NULL;
-	_characterAnim = NULL;
+	_characterBuffer = nullptr;
+	_characterPalette = nullptr;
+	_characterSprite = nullptr;
+	_characterAnim = nullptr;
 	_characterSize = 0;
 	_dialogueMesgId1 = _dialogueMesgId2 = _dialogueMesgId3 = _dialogueMesgId4 = 0;
 	_paletteBufferIdx = 0;
 }
 
-void TalkManager::startAnimatedCharacterDialogue(const Common::String &filename) {
-	Common::String spriteFilename;
+void TalkManager::startAnimatedCharacterDialogue(const Common::Path &filename) {
+	Common::Path spriteFilename;
 
 	_vm->_fontMan->hideText(5);
 	_vm->_fontMan->hideText(9);
@@ -154,7 +153,7 @@ void TalkManager::startAnimatedCharacterDialogue(const Common::String &filename)
 	_vm->_graphicsMan->_scrollStatus = 0;
 }
 
-void TalkManager::startStaticCharacterDialogue(const Common::String &filename) {
+void TalkManager::startStaticCharacterDialogue(const Common::Path &filename) {
 	// TODO: The original disables the mouse cursor here
 	bool oldDisableInventFl = _vm->_globals->_disableInventFl;
 	_vm->_globals->_disableInventFl = true;
@@ -227,7 +226,7 @@ void TalkManager::startStaticCharacterDialogue(const Common::String &filename) {
 	_vm->_globals->_disableInventFl = oldDisableInventFl;
 }
 
-void TalkManager::getStringFromBuffer(int srcStart, Common::String &dest, const char *srcData) {
+void TalkManager::getStringFromBuffer(int srcStart, Common::Path &dest, const char *srcData) {
 	dest = Common::String(srcData + srcStart);
 }
 
@@ -508,20 +507,22 @@ void TalkManager::dialogEndTalk() {
 	}
 }
 
-int TalkManager::countBoxLines(int idx, const Common::String &file) {
+int TalkManager::countBoxLines(int idx, const Common::Path &file) {
 	_vm->_fontMan->_fontFixedWidth = 11;
 
 	// Build up the filename
 	Common::String filename;
-	Common::String dest;
-	filename = dest = file;
+	filename = file.baseName();
 	while (filename.lastChar() != '.')
 		filename.deleteLastChar();
 	filename += "IND";
 
+	Common::Path indname(file.getParent());
+	indname.joinInPlace(filename);
+
 	Common::File f;
-	if (!f.open(filename))
-		error("Could not open file - %s", filename.c_str());
+	if (!f.open(indname))
+		error("Could not open file - %s", indname.toString().c_str());
 	int filesize = f.size();
 	assert(filesize < 16188);
 
@@ -530,8 +531,8 @@ int TalkManager::countBoxLines(int idx, const Common::String &file) {
 		indexData[i] = f.readUint32LE();
 	f.close();
 
-	if (!f.open(dest))
-		error("Error opening file - %s", dest.c_str());
+	if (!f.open(file))
+		error("Error opening file - %s", file.toString().c_str());
 
 	f.seek(indexData[idx]);
 	byte *decryptBuf = _vm->_globals->allocMemory(2058);
@@ -719,7 +720,7 @@ bool TalkManager::searchCharacterAnim(int idx, const byte *bufPerso, int animId,
 					loopCond = true;
 				if (bufIndx > bufferSize) {
 					_vm->_animMan->_animBqe[idx]._enabledFl = false;
-					_vm->_animMan->_animBqe[idx]._data = NULL;
+					_vm->_animMan->_animBqe[idx]._data = nullptr;
 					return false;
 				}
 				++bufIndx;
@@ -768,11 +769,11 @@ void TalkManager::handleAnswer(int zone, int verb) {
 	byte verbObj = verb;
 
 	bool outerLoopFl;
-	byte *ptr = NULL;
+	byte *ptr = nullptr;
 	do {
 		outerLoopFl = false;
 		bool tagFound = false;
-		if (_vm->_globals->_answerBuffer == NULL)
+		if (_vm->_globals->_answerBuffer == nullptr)
 			return;
 
 		byte *curAnswerBuf = _vm->_globals->_answerBuffer;
@@ -969,7 +970,7 @@ void TalkManager::handleForestAnswser(int zone, int verb) {
 	}
 }
 
-void TalkManager::animateObject(const Common::String &filename) {
+void TalkManager::animateObject(const Common::Path &filename) {
 	_vm->_fontMan->hideText(5);
 	_vm->_fontMan->hideText(9);
 	_vm->_events->refreshScreenAndEvents();
@@ -991,9 +992,9 @@ void TalkManager::animateObject(const Common::String &filename) {
 		_characterBuffer = _vm->_fileIO->loadFile(filename);
 		_characterSize = _vm->_fileIO->fileSize(filename);
 	}
-	Common::String screenFilename;
-	Common::String spriteFilename;
-	Common::String curScreenFilename;
+	Common::Path screenFilename;
+	Common::Path spriteFilename;
+	Common::Path curScreenFilename;
 	getStringFromBuffer(40, spriteFilename, (const char *)_characterBuffer);
 	getStringFromBuffer(0, screenFilename, (const char *)_characterBuffer);
 	getStringFromBuffer(20, curScreenFilename, (const char *)_characterBuffer);
@@ -1019,7 +1020,7 @@ void TalkManager::animateObject(const Common::String &filename) {
 	searchCharacterPalette(_paletteBufferIdx, true);
 	startCharacterAnim0(_paletteBufferIdx, false);
 	byte *oldAnswerBufferPtr = _vm->_globals->_answerBuffer;
-	_vm->_globals->_answerBuffer = NULL;
+	_vm->_globals->_answerBuffer = nullptr;
 	_vm->_globals->_freezeCharacterFl = true;
 	_vm->_objectsMan->loadLinkFile(screenFilename);
 	_vm->_objectsMan->_charactersEnabledFl = true;

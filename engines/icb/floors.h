@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,7 +64,7 @@ public:
 
 	PXreal Floor_safe_gravitise_y(PXreal fY);
 
-	void Allign_with_floor(_mega *mega);
+	void Align_with_floor(_mega *mega);
 	PXreal Return_true_y(PXreal y);
 	bool8 On_a_floor(_mega *mega);
 
@@ -78,7 +77,7 @@ public:
 
 	int32 Project_point_down_through_floors(int32 nX, int32 nY, int32 nZ);
 
-	_linked_data_file *floors; // the floor definition file
+	LinkedDataFile *floors; // the floor definition file
 
 private:
 	uint32 total_floors; // total number of individual floors
@@ -93,7 +92,7 @@ inline PXreal _floor_world::Fetch_floors_volume_height(uint32 num) { return floo
 
 inline PXreal _floor_world::Fetch_height(uint32 height) {
 	if (height >= total_heights) {
-		Fatal_error("cant get %d height of %d", height, total_heights);
+		Fatal_error("can't get %d height of %d", height, total_heights);
 	}
 
 	return (heights[height]);
@@ -104,13 +103,13 @@ inline int32 _floor_world::Fetch_total_heights() { return (total_heights); }
 inline uint32 _floor_world::Fetch_total_floors() { return (total_floors); }
 
 inline _floor *_floor_world::Fetch_named_floor(const char *name) {
-	// return a pointer to a named floor to an external routine - most likely a fn_funtion
-	return ((_floor *)floors->Fetch_item_by_name(name));
+	// return a pointer to a named floor to an external routine - most likely a fn_function
+	return ((_floor *)LinkedDataObject::Fetch_item_by_name(floors, name));
 }
 
 inline _floor *_floor_world::Fetch_floor_number(uint32 num) {
-	// return a pointer to a named floor to an external routine - most likely a fn_funtion
-	return ((_floor *)floors->Fetch_item_by_number(num));
+	// return a pointer to a named floor to an external routine - most likely a fn_function
+	return ((_floor *)LinkedDataObject::Fetch_item_by_number(floors, num));
 }
 
 } // End of namespace ICB

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 #include "ultima/nuvie/core/u6_objects.h"
 #include "ultima/nuvie/sound/sound_manager.h"
 #include "ultima/nuvie/sound/adplug/emu_opl.h"
-#include "ultima/nuvie/sound/song_adplug.h"
+#include "ultima/nuvie/sound/song_filename.h"
 #include "ultima/nuvie/core/game.h"
 #include "ultima/nuvie/core/player.h"
 #include "ultima/nuvie/gui/widgets/map_window.h"
@@ -35,8 +34,12 @@
 #include "ultima/nuvie/sound/pc_speaker_sfx_manager.h"
 #include "ultima/nuvie/sound/towns_sfx_manager.h"
 #include "ultima/nuvie/sound/custom_sfx_manager.h"
+#include "ultima/nuvie/files/u6_lzw.h"
+
 #include "audio/mixer.h"
+
 #include "common/algorithm.h"
+#include "common/config-manager.h"
 
 namespace Ultima {
 namespace Nuvie {
@@ -56,7 +59,21 @@ static const ObjSfxLookup u6_obj_lookup_tbl[] = {
 	{OBJ_U6_WATER_WHEEL, NUVIE_SFX_WATER_WHEEL}
 };
 
-
+// This is the default MT-32 instrument mapping specified in MIDI.DAT
+const SoundManager::SongMT32InstrumentMapping SoundManager::DEFAULT_MT32_INSTRUMENT_MAPPING[12] = {
+	{'1', "ultima.m",	{{1,  25}, {2,  50}, {3,  24}, {4,  27}, {-1,  0}}},
+	{'2', "bootup.m",	{{1,  37}, {2,  38}, {-1,  0}}},
+	{'3', "intro.m",	{{1,  61}, {2,  60}, {3,  55}, {4, 117}, {5, 117}, {-1,  0}}},
+	{'4', "create.m",	{{1,   6}, {2,   1}, {3,  33}, {-1,  0}}},
+	{'5', "forest.m",	{{1,  59}, {2,  60}, {-1,  0}}},
+	{'6', "hornpipe.m",	{{1,  87}, {2,  60}, {3,  59}, {-1,  0}}},
+	{'7', "engage.m",	{{1,  49}, {2,  26}, {3,  18}, {4,  16}, {-1,  0}}},
+	{'8', "stones.m",	{{1,   6}, {2,  32}, {-1,  0}}},
+	{'9', "dungeon.m",	{{1,  37}, {2, 113}, {3,  55}, {-1,  0}}},
+	{'0', "brit.m",		{{1,  12}, {-1,  0}}},
+	{'-', "gargoyle.m",	{{1,  38}, {2,   5}, {-1,  0}}},
+	{'=', "end.m",		{{1,  38}, {2,  12}, {3,  50}, {4,  94}, {-1,  0}}}
+};
 
 bool SoundManager::g_MusicFinished;
 
@@ -64,24 +81,36 @@ void musicFinished() {
 	SoundManager::g_MusicFinished = true;
 }
 
-SoundManager::SoundManager(Audio::Mixer *mixer) : _mixer(mixer) {
-	m_pCurrentSong = NULL;
+SoundManager::SoundManager(Audio::Mixer *mixer) : _mixer(mixer),
+		m_pCurrentSong(nullptr), audio_enabled(false), music_enabled(false),
+		sfx_enabled(false), m_Config(nullptr), m_SfxManager(nullptr), opl(nullptr),
+		stop_music_on_group_change(true), speech_enabled(true), music_volume(0),
+		sfx_volume(0), game_type(NUVIE_GAME_NONE), _midiDriver(nullptr),
+		_mt32MidiDriver(nullptr), _midiParser(nullptr), _deviceType(MT_NULL),
+		_musicData(nullptr), _mt32InstrumentMapping(nullptr) {
 	m_CurrentGroup = "";
 	g_MusicFinished = true;
-
-	audio_enabled = false;
-	music_enabled = false;
-	sfx_enabled = false;
-
-	m_Config = NULL;
-	m_SfxManager = NULL;
-
-	opl = NULL;
 }
 
 SoundManager::~SoundManager() {
 	// Stop all mixing
 	_mixer->stopAll();
+
+	musicPause();
+
+	if (_midiDriver) {
+		_midiDriver->setTimerCallback(nullptr, nullptr);
+		_midiDriver->close();
+	}
+
+	Common::StackLock lock(_musicMutex);
+
+	if (_midiParser) {
+		delete _midiParser;
+	}
+	if (_midiDriver) {
+		delete _midiDriver;
+	}
 
 	//thanks to wjp for this one
 	while (!m_Songs.empty()) {
@@ -105,43 +134,17 @@ SoundManager::~SoundManager() {
 	delete m_SfxManager;
 }
 
-bool SoundManager::nuvieStartup(Configuration *config) {
+bool SoundManager::nuvieStartup(const Configuration *config) {
 	Std::string config_key;
 	Std::string music_style;
 	Std::string music_cfg_file; //full path and filename to music.cfg
 	Std::string sound_dir;
 	Std::string sfx_style;
-	bool val;
 
 	m_Config = config;
 
-	m_Config->value("config/mute", val, false);
-	audio_enabled = !val;
 	m_Config->value("config/GameType", game_type);
 	m_Config->value("config/audio/stop_music_on_group_change", stop_music_on_group_change, true);
-
-	/*  if(audio_enabled == false) // commented out to allow toggling
-	     {
-	      music_enabled = false;
-	      sfx_enabled = false;
-	      music_volume = 0;
-	      sfx_volume = 0;
-	      mixer = NULL;
-	      return false;
-	     }*/
-
-	m_Config->value("config/music_mute", val, false);
-	music_enabled = !val;
-	m_Config->value("config/sfx_mute", val, false);
-	sfx_enabled = !val;
-
-	int volume;
-
-	m_Config->value("config/music_volume", volume, Audio::Mixer::kMaxChannelVolume);
-	music_volume = clamp(volume, 0, 255);
-
-	m_Config->value("config/sfx_volume", volume, Audio::Mixer::kMaxChannelVolume);
-	sfx_volume = clamp(volume, 0, 255);
 
 	config_key = config_get_game_key(config);
 	config_key.append("/music");
@@ -155,103 +158,152 @@ bool SoundManager::nuvieStartup(Configuration *config) {
 	config_key.append("/sounddir");
 	config->value(config_key, sound_dir, "");
 
-	if (game_type == NUVIE_GAME_U6) { // FM-Towns speech
-		config->value("config/speech_mute", val, false);
-		speech_enabled = !val;
-	} else {
-		speech_enabled = false;
-	}
-
 	if (!initAudio()) {
 		return false;
 	}
 
-//  if(music_enabled)  // commented out to allow toggling
-	{
-		if (music_style == "native") {
-			if (game_type == NUVIE_GAME_U6)
-				LoadNativeU6Songs(); //FIX need to handle MD & SE music too.
-		} else if (music_style == "custom")
-			LoadCustomSongs(sound_dir);
-		else
-			DEBUG(0, LEVEL_WARNING, "Unknown music style '%s'\n", music_style.c_str());
+	if (music_style == "native") {
+		if (game_type == NUVIE_GAME_U6)
+			LoadNativeU6Songs(); //FIX need to handle MD & SE music too.
+	} else if (music_style == "custom")
+		LoadCustomSongs(Common::Path(sound_dir));
+	else
+		DEBUG(0, LEVEL_WARNING, "Unknown music style '%s'\n", music_style.c_str());
 
-		musicPlayFrom("random");
-	}
+	musicPlayFrom("random");
 
-//  if(sfx_enabled)  // commented out to allow toggling
-	{
-		//LoadObjectSamples(sound_dir);
-		//LoadTileSamples(sound_dir);
-		LoadSfxManager(sfx_style);
-	}
+	//LoadObjectSamples(sound_dir);
+	//LoadTileSamples(sound_dir);
+	LoadSfxManager(sfx_style);
 
 	return true;
 }
 
 bool SoundManager::initAudio() {
-	opl = new CEmuopl(_mixer->getOutputRate(), true, true);
+	assert(!_midiDriver);
+
+	int devFlags = MDT_ADLIB | MDT_MIDI | MDT_PREFER_MT32;
+	if (game_type == NUVIE_GAME_U6)
+		// CMS, Tandy and SSI are only supported by Ultima 6 DOS.
+		devFlags |= MDT_CMS | MDT_PCJR | MDT_C64;
+
+	// Check the type of device that the user has configured.
+	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(devFlags);
+	_deviceType = MidiDriver::getMusicType(dev);
+
+	if (_deviceType == MT_GM && ConfMan.getBool("native_mt32"))
+		_deviceType = MT_MT32;
+
+	switch (_deviceType) {
+	case MT_ADLIB:
+		_midiDriver = new MidiDriver_M_AdLib();
+		break;
+	case MT_MT32:
+	case MT_GM:
+		_midiDriver = _mt32MidiDriver = new MidiDriver_M_MT32();
+		// TODO Parse MIDI.DAT
+		_mt32InstrumentMapping = DEFAULT_MT32_INSTRUMENT_MAPPING;
+		break;
+	case MT_CMS:
+	case MT_PCJR:
+	case MT_C64:
+	default:
+		// TODO Implement these
+		_midiDriver = new MidiDriver_NULL_Multisource();
+		break;
+	}
+	_midiDriver->property(MidiDriver::PROP_USER_VOLUME_SCALING, true);
+
+	// TODO Only Ultima 6 M format is supported.
+	_midiParser = new MidiParser_M(0);
+	_midiParser->property(MidiParser::mpDisableAutoStartPlayback, true);
+
+	// Open the MIDI driver(s).
+	int returnCode = _midiDriver->open();
+	if (returnCode != 0) {
+		warning("SoundManager::initAudio - Failed to open M music driver - error code %d.", returnCode);
+		return false;
+	}
+
+	syncSoundSettings();
+
+	// Connect the driver and the parser.
+	_midiParser->setMidiDriver(_midiDriver);
+	_midiParser->setTimerRate(_midiDriver->getBaseTempo());
+	_midiDriver->setTimerCallback(_midiParser, &_midiParser->timerCallback);
+
+	//opl = new CEmuopl(_mixer->getOutputRate(), true, true);
+
 	return true;
 }
 
 bool SoundManager::LoadNativeU6Songs() {
 	Song *song;
 
-	string filename;
+	Common::Path filename;
+	string fileId;
 
-	config_get_path(m_Config, "brit.m", filename);
-	song = new SongAdPlug(_mixer, opl);
-// loadSong(song, filename.c_str());
-	loadSong(song, filename.c_str(), "Rule Britannia");
+	fileId = "brit.m";
+	config_get_path(m_Config, fileId, filename);
+	song = new SongFilename();
+// loadSong(song, filename);
+	loadSong(song, filename, fileId.c_str(), "Rule Britannia");
 	groupAddSong("random", song);
 
-	config_get_path(m_Config, "forest.m", filename);
-	song = new SongAdPlug(_mixer, opl);
-	loadSong(song, filename.c_str(), "Wanderer (Forest)");
+	fileId = "forest.m";
+	config_get_path(m_Config, fileId, filename);
+	song = new SongFilename();
+	loadSong(song, filename, fileId.c_str(), "Wanderer (Forest)");
 	groupAddSong("random", song);
 
-	config_get_path(m_Config, "stones.m", filename);
-	song = new SongAdPlug(_mixer, opl);
-	loadSong(song, filename.c_str(), "Stones");
+	fileId = "stones.m";
+	config_get_path(m_Config, fileId, filename);
+	song = new SongFilename();
+	loadSong(song, filename, fileId.c_str(), "Stones");
 	groupAddSong("random", song);
 
-	config_get_path(m_Config, "ultima.m", filename);
-	song = new SongAdPlug(_mixer, opl);
-	loadSong(song, filename.c_str(), "Ultima VI Theme");
+	fileId = "ultima.m";
+	config_get_path(m_Config, fileId, filename);
+	song = new SongFilename();
+	loadSong(song, filename, fileId.c_str(), "Ultima VI Theme");
 	groupAddSong("random", song);
 
-	config_get_path(m_Config, "engage.m", filename);
-	song = new SongAdPlug(_mixer, opl);
-	loadSong(song, filename.c_str(), "Engagement and Melee");
+	fileId = "engage.m";
+	config_get_path(m_Config, fileId, filename);
+	song = new SongFilename();
+	loadSong(song, filename, fileId.c_str(), "Engagement and Melee");
 	groupAddSong("combat", song);
 
-	config_get_path(m_Config, "hornpipe.m", filename);
-	song = new SongAdPlug(_mixer, opl);
-	loadSong(song, filename.c_str(), "Captain Johne's Hornpipe");
+	fileId = "hornpipe.m";
+	config_get_path(m_Config, fileId, filename);
+	song = new SongFilename();
+	loadSong(song, filename, fileId.c_str(), "Captain Johne's Hornpipe");
 	groupAddSong("boat", song);
 
-	config_get_path(m_Config, "gargoyle.m", filename);
-	song = new SongAdPlug(_mixer, opl);
-	loadSong(song, filename.c_str(), "Audchar Gargl Zenmur");
+	fileId = "gargoyle.m";
+	config_get_path(m_Config, fileId, filename);
+	song = new SongFilename();
+	loadSong(song, filename, fileId.c_str(), "Audchar Gargl Zenmur");
 	groupAddSong("gargoyle", song);
 
-	config_get_path(m_Config, "dungeon.m", filename);
-	song = new SongAdPlug(_mixer, opl);
-	loadSong(song, filename.c_str(), "Dungeon");
+	fileId = "dungeon.m";
+	config_get_path(m_Config, fileId, filename);
+	song = new SongFilename();
+	loadSong(song, filename, fileId.c_str(), "Dungeon");
 	groupAddSong("dungeon", song);
 
 	return true;
 }
 
-bool SoundManager::LoadCustomSongs(string sound_dir) {
+bool SoundManager::LoadCustomSongs(const Common::Path &sound_dir) {
 	char seps[] = ";\r\n";
 	char *token1;
 	char *token2;
 	char *sz;
 	NuvieIOFileRead niof;
 	Song *song;
-	Std::string scriptname;
-	Std::string filename;
+	Common::Path scriptname;
+	Common::Path filename;
 
 	build_path(sound_dir, "music.cfg", scriptname);
 
@@ -260,17 +312,19 @@ bool SoundManager::LoadCustomSongs(string sound_dir) {
 
 	sz = (char *)niof.readAll();
 
-	if (sz == NULL)
+	if (sz == nullptr)
 		return false;
 
 	token1 = strtok(sz, seps);
-	for (; (token1 != NULL) && ((token2 = strtok(NULL, seps)) != NULL) ; token1 = strtok(NULL, seps)) {
+	for (; (token1 != nullptr) && ((token2 = strtok(nullptr, seps)) != nullptr) ; token1 = strtok(nullptr, seps)) {
 		build_path(sound_dir, token2, filename);
 
 		song = (Song *)SongExists(token2);
-		if (song == NULL) {
+		if (song == nullptr) {
+			// Note: the base class Song does not have an implementation for
+			// Init, so loading custom songs does not work.
 			song = new Song;
-			if (!loadSong(song, filename.c_str()))
+			if (!loadSong(song, filename, token2))
 				continue; //error loading song
 		}
 
@@ -283,31 +337,31 @@ bool SoundManager::LoadCustomSongs(string sound_dir) {
 	return true;
 }
 
-bool SoundManager::loadSong(Song *song, const char *filename) {
-	if (song->Init(filename)) {
+bool SoundManager::loadSong(Song *song, const Common::Path &filename, const char *fileId) {
+	if (song->Init(filename, fileId)) {
 		m_Songs.push_back(song);       //add it to our global list
 		return true;
 	} else {
-		DEBUG(0, LEVEL_ERROR, "could not load %s\n", filename);
+		DEBUG(0, LEVEL_ERROR, "could not load %s\n", filename.toString().c_str());
 	}
 
 	return false;
 }
 
 // (SB-X)
-bool SoundManager::loadSong(Song *song, const char *filename, const char *title) {
-	if (loadSong(song, filename) == true) {
-		song->SetName(title);
+bool SoundManager::loadSong(Song *song, const Common::Path &filename, const char *fileId, const char *title) {
+	if (loadSong(song, filename, fileId) == true) {
+		song->SetTitle(title);
 		return true;
 	}
 	return false;
 }
 
 bool SoundManager::groupAddSong(const char *group, Song *song) {
-	if (song != NULL) {
+	if (song != nullptr) {
 		//we have a valid song
 		SoundCollection *psc;
-		Std::map <Common::String, SoundCollection * >::iterator it;
+		Common::HashMap <Common::String, SoundCollection * >::iterator it;
 		it = m_MusicMap.find(group);
 		if (it == m_MusicMap.end()) {
 			//is there already a collection for this entry?
@@ -343,13 +397,13 @@ bool SoundManager::LoadObjectSamples (string sound_dir)
 
   token1 = strtok (sz, seps);
 
-  while ((token1 != NULL) && ((token2 = strtok (NULL, seps)) != NULL))
+  while ((token1 != nullptr) && ((token2 = strtok (nullptr, seps)) != nullptr))
 	{
 	  int id = atoi (token1);
 	  DEBUG(0,LEVEL_DEBUGGING,"%d : %s\n", id, token2);
 	  Sound *ps;
 	  ps = SampleExists (token2);
-	  if (ps == NULL)
+	  if (ps == nullptr)
 		{
 		  Sample *s;
 		  s = new Sample;
@@ -361,10 +415,10 @@ bool SoundManager::LoadObjectSamples (string sound_dir)
 		  ps = s;
 		  m_Samples.push_back (ps);     //add it to our global list
 		}
-	  if (ps != NULL)
+	  if (ps != nullptr)
 		{                       //we have a valid sound
 		  SoundCollection *psc;
-		  Std::map < int, SoundCollection * >::iterator it;
+		  Common::HashMap < int, SoundCollection * >::iterator it;
 		  it = m_ObjectSampleMap.find (id);
 		  if (it == m_ObjectSampleMap.end ())
 			{                   //is there already a collection for this entry?
@@ -378,7 +432,7 @@ bool SoundManager::LoadObjectSamples (string sound_dir)
 			  psc->m_Sounds.push_back (ps);     //add this sound to the collection
 			}
 		}
-	  token1 = strtok (NULL, seps);
+	  token1 = strtok (nullptr, seps);
 	}
   return true;
 };
@@ -405,13 +459,13 @@ bool SoundManager::LoadTileSamples (string sound_dir)
 
   token1 = strtok (sz, seps);
 
-  while ((token1 != NULL) && ((token2 = strtok (NULL, seps)) != NULL))
+  while ((token1 != nullptr) && ((token2 = strtok (nullptr, seps)) != nullptr))
 	{
 	  int id = atoi (token1);
 	  DEBUG(0,LEVEL_DEBUGGING,"%d : %s\n", id, token2);
 	  Sound *ps;
 	  ps = SampleExists (token2);
-	  if (ps == NULL)
+	  if (ps == nullptr)
 		{
 		  Sample *s;
 		  s = new Sample;
@@ -423,10 +477,10 @@ bool SoundManager::LoadTileSamples (string sound_dir)
 		  ps = s;
 		  m_Samples.push_back (ps);     //add it to our global list
 		}
-	  if (ps != NULL)
+	  if (ps != nullptr)
 		{                       //we have a valid sound
 		  SoundCollection *psc;
-		  Std::map < int, SoundCollection * >::iterator it;
+		  Common::HashMap < int, SoundCollection * >::iterator it;
 		  it = m_TileSampleMap.find (id);
 		  if (it == m_TileSampleMap.end ())
 			{                   //is there already a collection for this entry?
@@ -440,13 +494,13 @@ bool SoundManager::LoadTileSamples (string sound_dir)
 			  psc->m_Sounds.push_back (ps);     //add this sound to the collection
 			}
 		}
-	  token1 = strtok (NULL, seps);
+	  token1 = strtok (nullptr, seps);
 	}
   return true;
 };
 */
 bool SoundManager::LoadSfxManager(string sfx_style) {
-	if (m_SfxManager != NULL) {
+	if (m_SfxManager != nullptr) {
 		return false;
 	}
 
@@ -481,6 +535,8 @@ bool SoundManager::LoadSfxManager(string sfx_style) {
 }
 
 void SoundManager::musicPlayFrom(string group) {
+	Common::StackLock lock(_musicMutex);
+
 	if (!music_enabled || !audio_enabled)
 		return;
 	if (m_CurrentGroup != group) {
@@ -491,36 +547,68 @@ void SoundManager::musicPlayFrom(string group) {
 }
 
 void SoundManager::musicPause() {
-//Mix_PauseMusic();
-	if (m_pCurrentSong != NULL) {
-		m_pCurrentSong->Stop();
+	Common::StackLock lock(_musicMutex);
+
+	if (m_pCurrentSong != nullptr && _midiParser->isPlaying()) {
+		_midiParser->stopPlaying();
 	}
 }
 
 /* don't call if audio or music is disabled */
 void SoundManager::musicPlay() {
-// Mix_ResumeMusic();
+	Common::StackLock lock(_musicMutex);
 
-// (SB-X) Get a new song if stopped.
-	if (m_pCurrentSong == NULL)
-		m_pCurrentSong = RequestSong(m_CurrentGroup);
-
-	if (m_pCurrentSong != NULL) {
-		m_pCurrentSong->Play();
-		m_pCurrentSong->SetVolume(music_volume);
+	if (m_pCurrentSong != nullptr && _midiParser->isPlaying()) {
+		// Already playing a song.
+		return;
 	}
 
+	// (SB-X) Get a new song if stopped.
+	if (m_pCurrentSong == nullptr)
+		m_pCurrentSong = RequestSong(m_CurrentGroup);
+
+	if (m_pCurrentSong != nullptr) {
+		DEBUG(0, LEVEL_INFORMATIONAL, "assigning new song! '%s'\n", m_pCurrentSong->GetName().c_str());
+
+		// TODO Only Ultima 6 LZW format is supported.
+		uint32 decompressed_filesize;
+		U6Lzw lzw;
+
+		_musicData = lzw.decompress_file(Common::Path(m_pCurrentSong->GetName()), decompressed_filesize);
+
+		bool result = _midiParser->loadMusic(_musicData, decompressed_filesize);
+		if (result) {
+			_midiDriver->deinitSource(0);
+
+			if (_mt32MidiDriver) {
+				for (int i = 0; i < 12; i++) {
+					if (!strcmp(m_pCurrentSong->GetId().c_str(), DEFAULT_MT32_INSTRUMENT_MAPPING[i].filename)) {
+						_mt32MidiDriver->setInstrumentAssignments(DEFAULT_MT32_INSTRUMENT_MAPPING[i].instrumentMapping);
+						break;
+					}
+				}
+			}
+
+			result = _midiParser->startPlaying();
+			g_MusicFinished = false;
+		}
+		if (!result) {
+			DEBUG(0, LEVEL_ERROR, "play failed!\n");
+		}
+	}
 }
 
 void SoundManager::musicPlay(const char *filename, uint16 song_num) {
-	string path;
+	Common::Path path;
 
 	if (!music_enabled || !audio_enabled)
 		return;
 
 	config_get_path(m_Config, filename, path);
-	SongAdPlug *song = new SongAdPlug(_mixer, opl);
-	song->Init(path.c_str(), song_num);
+	SongFilename *song = new SongFilename();
+	song->Init(path, filename, song_num);
+
+	Common::StackLock lock(_musicMutex);
 
 	musicStop();
 	m_pCurrentSong = song;
@@ -530,8 +618,14 @@ void SoundManager::musicPlay(const char *filename, uint16 song_num) {
 
 // (SB-X) Stop the current song so a new song will play when resumed.
 void SoundManager::musicStop() {
+	Common::StackLock lock(_musicMutex);
+
 	musicPause();
-	m_pCurrentSong = NULL;
+	m_pCurrentSong = nullptr;
+	if (_musicData) {
+		free(_musicData);
+		_musicData = nullptr;
+	}
 }
 
 Std::list < SoundManagerSfx >::iterator SoundManagerSfx_find(Std::list < SoundManagerSfx >::iterator first, Std::list < SoundManagerSfx >::iterator last, const SfxIdType &value) {
@@ -555,27 +649,27 @@ void SoundManager::update_map_sfx() {
 	MapWindow *mw = Game::get_game()->get_map_window();
 
 	vector < SfxIdType >currentlyActiveSounds;
-	map < SfxIdType, float >volumeLevels;
+	Common::HashMap < SfxIdType, float >volumeLevels;
 
 	p->get_location(&x, &y, &l);
 
 	//m_ViewableTiles
 
 	//get a list of all the sounds
-	for (i = 0; i < mw->m_ViewableObjects.size(); i++) {
-		//DEBUG(0,LEVEL_DEBUGGING,"%d %s",mw->m_ViewableObjects[i]->obj_n,Game::get_game()->get_obj_manager()->get_obj_name(mw->m_ViewableObjects[i]));
-		SfxIdType sfx_id = RequestObjectSfxId(mw->m_ViewableObjects[i]->obj_n); //does this object have an associated sound?
+	for (const Obj *obj : mw->m_ViewableObjects) {
+		//DEBUG(0,LEVEL_DEBUGGING,"%d %s",obj->obj_n,Game::get_game()->get_obj_manager()->get_obj_name(obj));
+		SfxIdType sfx_id = RequestObjectSfxId(obj->obj_n); //does this object have an associated sound?
 		if (sfx_id != NUVIE_SFX_NONE) {
 			//calculate the volume
-			uint16 ox = mw->m_ViewableObjects[i]->x;
-			uint16 oy = mw->m_ViewableObjects[i]->y;
+			uint16 ox = obj->x;
+			uint16 oy = obj->y;
 			float dist = sqrtf((float)(x - ox) * (x - ox) + (float)(y - oy) * (y - oy));
 			float vol = (8.0f - dist) / 8.0f;
 			if (vol < 0)
 				vol = 0;
 			//sp->SetVolume(vol);
 			//need the map to adjust volume according to number of active elements
-			Std::map < SfxIdType, float >::iterator it;
+			Common::HashMap < SfxIdType, float >::iterator it;
 			it = volumeLevels.find(sfx_id);
 			if (it != volumeLevels.end()) {
 				if (volumeLevels[sfx_id] < vol)
@@ -591,7 +685,7 @@ void SoundManager::update_map_sfx() {
 	for (i = 0; i < mw->m_ViewableTiles.size(); i++)
 	  {
 	    Sound *sp = RequestTileSound (mw->m_ViewableTiles[i].t->tile_num);        //does this object have an associated sound?
-	    if (sp != NULL)
+	    if (sp != nullptr)
 	      {
 	        //calculate the volume
 	        short ox = mw->m_ViewableTiles[i].x - 5;
@@ -604,7 +698,7 @@ void SoundManager::update_map_sfx() {
 	          vol = 0;
 	        //sp->SetVolume(vol);
 	        //need the map to adjust volume according to number of active elements
-	        Std::map < Sound *, float >::iterator it;
+	        Common::HashMap < Sound *, float >::iterator it;
 	        it = volumeLevels.find (sp);
 	        if (it != volumeLevels.end ())
 	          {
@@ -661,66 +755,51 @@ void SoundManager::update_map_sfx() {
 
 void SoundManager::update() {
 	if (music_enabled && audio_enabled && g_MusicFinished) {
-		g_MusicFinished = false;
-		if (m_pCurrentSong != NULL) {
-			m_pCurrentSong->Stop();
-		}
+		Common::StackLock lock(_musicMutex);
 
-		if (m_CurrentGroup.length() > 0)
-			m_pCurrentSong = SoundManager::RequestSong(m_CurrentGroup);
-
-		if (m_pCurrentSong) {
-			DEBUG(0, LEVEL_INFORMATIONAL, "assigning new song! '%s'\n", m_pCurrentSong->GetName().c_str());
-			if (!m_pCurrentSong->Play(false)) {
-				DEBUG(0, LEVEL_ERROR, "play failed!\n");
-			}
-			m_pCurrentSong->SetVolume(music_volume);
-		}
+		musicStop();
+		musicPlay();
 	}
-
 }
 
-
-Sound *SoundManager::SongExists(string name) {
-	Std::list < Sound * >::iterator it;
-	for (it = m_Songs.begin(); it != m_Songs.end(); ++it) {
-		if ((*it)->GetName() == name)
-			return *it;
+Sound *SoundManager::SongExists(const string &name) {
+	for (Sound *song : m_Songs) {
+		if (song->GetName() == name)
+			return song;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
-Sound *SoundManager::SampleExists(string name) {
-	Std::list < Sound * >::iterator it;
-	for (it = m_Samples.begin(); it != m_Samples.end(); ++it) {
-		if ((*it)->GetName() == name)
-			return *it;
+Sound *SoundManager::SampleExists(const string &name) {
+	for (Sound *sample : m_Samples) {
+		if (sample->GetName() == name)
+			return sample;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 Sound *SoundManager::RequestTileSound(int id) {
-	Std::map < int, SoundCollection * >::iterator it;
+	Common::HashMap < int, SoundCollection * >::iterator it;
 	it = m_TileSampleMap.find(id);
 	if (it != m_TileSampleMap.end()) {
 		SoundCollection *psc;
 		psc = (*it)._value;
 		return psc->Select();
 	}
-	return NULL;
+	return nullptr;
 }
 
 Sound *SoundManager::RequestObjectSound(int id) {
-	Std::map < int, SoundCollection * >::iterator it;
+	Common::HashMap < int, SoundCollection * >::iterator it;
 	it = m_ObjectSampleMap.find(id);
 	if (it != m_ObjectSampleMap.end()) {
 		SoundCollection *psc;
 		psc = (*it)._value;
 		return psc->Select();
 	}
-	return NULL;
+	return nullptr;
 }
 
 uint16 SoundManager::RequestObjectSfxId(uint16 obj_n) {
@@ -734,18 +813,18 @@ uint16 SoundManager::RequestObjectSfxId(uint16 obj_n) {
 	return NUVIE_SFX_NONE;
 }
 
-Sound *SoundManager::RequestSong(string group) {
-	Std::map<Common::String, SoundCollection * >::iterator it;
+Sound *SoundManager::RequestSong(const string &group) {
+	Common::HashMap<Common::String, SoundCollection * >::iterator it;
 	it = m_MusicMap.find(group);
 	if (it != m_MusicMap.end()) {
 		SoundCollection *psc;
 		psc = (*it)._value;
 		return psc->Select();
 	}
-	return NULL;
+	return nullptr;
 }
 
-Audio::SoundHandle SoundManager::playTownsSound(Std::string filename, uint16 sample_num) {
+Audio::SoundHandle SoundManager::playTownsSound(const Common::Path &filename, uint16 sample_num) {
 	FMtownsDecoderStream *stream = new FMtownsDecoderStream(filename, sample_num);
 	Audio::SoundHandle handle;
 	_mixer->playStream(Audio::Mixer::kSpeechSoundType, &handle, stream, -1);
@@ -758,7 +837,7 @@ bool SoundManager::isSoundPLaying(Audio::SoundHandle handle) {
 }
 
 bool SoundManager::playSfx(uint16 sfx_id, bool async) {
-	if (m_SfxManager == NULL || audio_enabled == false || sfx_enabled == false)
+	if (m_SfxManager == nullptr || audio_enabled == false || sfx_enabled == false)
 		return false;
 
 	if (async) {
@@ -778,6 +857,24 @@ bool SoundManager::playSfx(uint16 sfx_id, bool async) {
 	}
 
 	return false;
+}
+
+void SoundManager::syncSoundSettings() {
+	set_audio_enabled(
+		!ConfMan.hasKey("mute") || !ConfMan.getBool("mute"));
+	set_sfx_enabled(
+		!ConfMan.hasKey("sfx_mute") || !ConfMan.getBool("sfx_mute"));
+	// TODO Music is disabled for SE and MD for now
+	set_music_enabled(game_type == NUVIE_GAME_U6 && 
+		(!ConfMan.hasKey("music_mute") || !ConfMan.getBool("music_mute")));
+	set_speech_enabled(game_type == NUVIE_GAME_U6 && 
+		(!ConfMan.hasKey("speech_mute") || !ConfMan.getBool("speech_mute")));
+
+	set_sfx_volume(ConfMan.hasKey("sfx_volume") ? clamp(ConfMan.getInt("sfx_volume"), 0, 255) : 255);
+	set_music_volume(ConfMan.hasKey("music_volume") ? clamp(ConfMan.getInt("music_volume"), 0, 255) : 255);
+
+	if (_midiDriver)
+		_midiDriver->syncSoundSettings();
 }
 
 void SoundManager::set_audio_enabled(bool val) {

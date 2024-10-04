@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,6 +36,10 @@ enum GameFlag {
 	kGameFlag86                   = 86,
 	kGameFlag87                   = 87,
 	kGameFlag88                   = 88,
+	kGameFlagBrokenPipeSpraying   = 96,
+	kGameFlagSmFtnOverflows       = 97,
+	kGameFlagFountainFilling      = 98,
+	kGameFlagSewerExplodes        = 99,
 	kGameFlag114                  = 114,
 	kGameFlag115                  = 115,
 	kGameFlag128                  = 128,
@@ -430,7 +433,7 @@ enum OpcodeType {
 	kOpcodePlaySpeechScene2,
 	kOpcodeMoveScenePositionFromActor,
 	kOpcodePaletteFade,
-	kOpcodeStartPaletteFadeThread,
+	kOpcodeQueuePaletteFade,
 	kOpcodePlaySoundUpdateObject,               // 70
 	kOpcodeActorFaceTarget,
 	kOpcodeHidMatteBars,
@@ -875,7 +878,18 @@ enum AsylumAction {
 	kAsylumActionQuickSave,
 	kAsylumActionSwitchToSarah,
 	kAsylumActionSwitchToGrimwall,
-	kAsylumActionSwitchToOlmec
+	kAsylumActionSwitchToOlmec,
+	kAsylumActionOpenInventory,
+	kAsylumActionShowMenu,
+	kAsylumActionMoveUp,
+	kAsylumActionMoveDown,
+	kAsylumActionMoveRight,
+	kAsylumActionMoveLeft,
+	kAsylumActionNextResource,
+	kAsylumActionPreviousResource,
+	kAsylumActionNextPalette,
+	kAsylumActionPreviousPalette,
+	kAsylumActionAnimate
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -918,10 +932,13 @@ enum AsylumAction {
 //////////////////////////////////////////////////////////////////////////
 // Sub-integer partial access macros
 //////////////////////////////////////////////////////////////////////////
+#if   defined SCUMM_LITTLE_ENDIAN
 #define LOBYTE(d)   (*((char *)&(d)))
 #define BYTE1(d)    (*((char *)&(d) + 1))   // Same as HIBYTE()
-#define BYTE2(d)    (*((char *)&(d) + 2))
-#define LOWORD(x)   (*((int16 *)&(x)))
+#elif defined SCUMM_BIG_ENDIAN
+#define LOBYTE(d)   (*((char *)&(d) + sizeof(d) - 1))
+#define BYTE1(d)    (*((char *)&(d) + sizeof(d) - 2))
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 // Resource ID macros

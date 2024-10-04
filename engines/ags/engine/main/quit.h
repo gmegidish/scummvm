@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,9 +25,15 @@
 namespace AGS3 {
 
 enum QuitReason {
+	// Flags defining the base reason, could be subtyped by summing
+	// with the other flags:
+	// - normal exit means everything is fine
 	kQuitKind_NormalExit = 0x01,
+	// - game was requested to abort
 	kQuitKind_DeliberateAbort = 0x02,
+	// - something was wrong with the game logic (script)
 	kQuitKind_GameException = 0x04,
+	// - something was wrong with the engine, which it could not handle
 	kQuitKind_EngineException = 0x08,
 
 	// user closed the window or script command QuitGame was executed

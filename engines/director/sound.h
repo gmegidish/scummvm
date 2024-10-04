@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,11 @@ namespace Audio {
 	class SoundHandle;
 	class PCSpeaker;
 	class RewindableAudioStream;
+	class LoopableAudioStream;
+}
+
+namespace Common {
+	class MacResManager;
 }
 
 namespace Director {
@@ -142,14 +146,19 @@ struct SoundChannel {
 	// And we will override the sound when ever the sound is changing. thus we use a flag to indicate whether the movie is changed.
 	bool movieChanged;
 
-	SoundChannel(): handle(), lastPlayedSound(SoundID()), stopOnZero(true), volume(255), fade(nullptr), puppet(SoundID()), newPuppet(false), movieChanged(false) {}
+	// Pointer for keeping track of a looping sound, used to signal
+	// a stop at the end of a loop.
+	Audio::LoopableAudioStream *loopPtr;
+
+	SoundChannel(): handle(), lastPlayedSound(SoundID()), stopOnZero(true), volume(255), fade(nullptr), puppet(SoundID()), newPuppet(false), movieChanged(false), loopPtr(nullptr) {}
 };
 
 class DirectorSound {
 
 private:
 	Window *_window;
-	Common::Array<SoundChannel> _channels;
+	Common::HashMap<int, SoundChannel *> _channels;
+	Common::HashMap<int, int> _volumes;
 	Audio::SoundHandle _scriptSound;
 	Audio::Mixer *_mixer;
 	Audio::PCSpeaker *_speaker;
@@ -176,18 +185,12 @@ public:
 	void playExternalSound(uint16 menu, uint16 submenu, uint8 soundChannel);
 	void playFPlaySound(const Common::Array<Common::String> &fplayList);
 	void playFPlaySound();
-	void setSouldLevel(int channel, uint8 soundLevel);
-	uint8 getSoundLevel(uint8 soundChannel);
 	void setSoundEnabled(bool enabled);
 	void systemBeep();
 	void changingMovie();
 
 	void loadSampleSounds(uint type);
 	void unloadSampleSounds();
-
-	void setLastPlayedSound(uint8 soundChannel, SoundID soundId, bool stopOnZero = true);
-	bool isLastPlayedSound(uint8 soundChannel, const SoundID &soundId);
-	bool shouldStopOnZero(uint8 soundChannel);
 
 	bool isChannelPuppet(uint8 soundChannel);
 	void setPuppetSound(SoundID soundId, uint8 soundChannel);
@@ -198,16 +201,22 @@ public:
 	Common::String getCurrentSound() { return _currentSoundName; }
 
 	void registerFade(uint8 soundChannel, bool fadeIn, int ticks);
-	bool fadeChannel(uint8 soundChannel);
+	bool fadeChannels();
 
 	bool isChannelActive(uint8 soundChannel);
+	uint8 getChannelVolume(uint8 soundChannel);
+	void setChannelVolume(int channel, uint8 volume);
 	void stopSound(uint8 soundChannel);
 	void stopSound();
+	void setChannelDefaultVolume(int soundChannel);
 
 private:
-	uint8 getChannelVolume(uint8 soundChannel);
-	void setSoundLevelInternal(uint8 soundChannel, uint8 soundLevel);
-	bool isChannelValid(uint8 soundChannel);
+	void setLastPlayedSound(uint8 soundChannel, SoundID soundId, bool stopOnZero = true);
+	bool isLastPlayedSound(uint8 soundChannel, const SoundID &soundId);
+	bool shouldStopOnZero(uint8 soundChannel);
+
+	void setChannelVolumeInternal(uint8 soundChannel, uint8 volume);
+	bool assertChannel(int soundChannel);
 	void cancelFade(uint8 soundChannel);
 };
 
@@ -230,6 +239,8 @@ public:
 	bool processBufferCommand(Common::SeekableReadStreamEndian &stream);
 	Audio::AudioStream *getAudioStream(bool looping = false, bool forPuppet = false, DisposeAfterUse::Flag disposeAfterUse = DisposeAfterUse::YES) override;
 	bool hasLoopBounds();
+	void resetLoopBounds();
+	bool hasValidLoopBounds();
 
 private:
 	byte *_data;
@@ -244,7 +255,7 @@ private:
 class AudioFileDecoder : public AudioDecoder {
 public:
 	AudioFileDecoder(Common::String &path);
-	~AudioFileDecoder() {};
+	~AudioFileDecoder();
 
 	void setPath(Common::String &path);
 
@@ -252,6 +263,7 @@ public:
 
 private:
 	Common::String _path;
+	Common::MacResManager *_macresman;
 };
 
 } // End of namespace Director

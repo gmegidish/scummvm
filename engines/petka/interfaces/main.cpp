@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/system.h"
 #include "common/stream.h"
 #include "common/events.h"
-#include "common/ini-file.h"
+#include "common/formats/ini-file.h"
 
 #include "petka/flc.h"
 #include "petka/objects/object_case.h"
@@ -44,8 +43,12 @@ namespace Petka {
 
 InterfaceMain::InterfaceMain() {
 	Common::ScopedPtr<Common::SeekableReadStream> stream(g_vm->openFile("backgrnd.bg", true));
+	_hasTextDesc = false;
+	_roomId = 0;
+
 	if (!stream)
 		return;
+
 	_bgs.resize(stream->readUint32LE());
 	for (uint i = 0; i < _bgs.size(); ++i) {
 		_bgs[i].objId = stream->readUint16LE();
@@ -97,7 +100,7 @@ void InterfaceMain::loadRoom(int id, bool fromSave) {
 	sys->_room = room;
 	_objs.push_back(room);
 
-	auto surface = resMgr->getSurface(room->_resourceId);
+	const auto *surface = resMgr->getSurface(room->_resourceId);
 	if (surface) {
 		assert(surface->w >= 640);
 		sys->_sceneWidth = MAX<int>(surface->w, 640);
@@ -259,10 +262,10 @@ void InterfaceMain::onMouseMove(Common::Point p) {
 	}
 }
 
-void InterfaceMain::setTextChoice(const Common::Array<Common::U32String> &choices, uint16 color, uint16 selectedColor) {
+void InterfaceMain::setTextChoice(const Common::Array<Common::U32String> &choices, uint16 color, uint16 outlineColor, uint16 selectedColor) {
 	removeTexts();
 	_objUnderCursor = nullptr;
-	_objs.push_back(new QTextChoice(choices, color, selectedColor));
+	_objs.push_back(new QTextChoice(choices, color, outlineColor, selectedColor));
 }
 
 void InterfaceMain::setTextDescription(const Common::U32String &text, int frame) {

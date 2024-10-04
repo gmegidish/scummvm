@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/world/sprite_process.h"
+#include "ultima/ultima8/world/coord_utils.h"
 #include "ultima/ultima8/world/item_factory.h"
 #include "ultima/ultima8/world/item.h"
 #include "ultima/ultima8/kernel/kernel.h"
@@ -106,7 +106,7 @@ uint32 SpriteProcess::I_createSprite(const uint8 *args, unsigned int argsize) {
 	ARG_SINT16(lastFrame);
 
 	if (argsize == 18) {
-		ARG_SINT16(unknown);
+		ARG_NULL16(); // unknown
 		ARG_SINT16(repeats_count);
 		repeats = repeats_count;
 	}
@@ -116,10 +116,7 @@ uint32 SpriteProcess::I_createSprite(const uint8 *args, unsigned int argsize) {
 	ARG_UINT16(y);
 	ARG_UINT8(z);
 
-	if (GAME_IS_CRUSADER) {
-		x *= 2;
-		y *= 2;
-	}
+	World_FromUsecodeXY(x, y);
 
 	Process *p = new SpriteProcess(shape, frame, lastFrame, repeats, delay, x, y, z);
 	return Kernel::get_instance()->addProcess(p);

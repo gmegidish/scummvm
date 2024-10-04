@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,9 +71,9 @@ FluidSynthSettingsDialog::FluidSynthSettingsDialog()
 
 	_reverbRoomSizeDesc = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Reverb.RoomSizeText", _("Room:"));
 	_reverbRoomSizeSlider = new SliderWidget(_tabWidget, "FluidSynthSettings_Reverb.RoomSizeSlider", Common::U32String(), kReverbRoomSizeChangedCmd);
-	// 0.00 - 1.20, Default: 0.20
+	// 0.00 - 1.00, Default: 0.20
 	_reverbRoomSizeSlider->setMinValue(0);
-	_reverbRoomSizeSlider->setMaxValue(120);
+	_reverbRoomSizeSlider->setMaxValue(100);
 	_reverbRoomSizeLabel = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Reverb.RoomSizeLabel", Common::U32String("20"));
 
 	_reverbDampingDesc = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Reverb.DampingText", _("Damp:"));
@@ -86,10 +85,10 @@ FluidSynthSettingsDialog::FluidSynthSettingsDialog()
 
 	_reverbWidthDesc = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Reverb.WidthText", _("Width:"));
 	_reverbWidthSlider = new SliderWidget(_tabWidget, "FluidSynthSettings_Reverb.WidthSlider", Common::U32String(), kReverbWidthChangedCmd);
-	// 0 - 100, Default: 1
+	// 0.0 - 100.0, Default: 0.5
 	_reverbWidthSlider->setMinValue(0);
-	_reverbWidthSlider->setMaxValue(100);
-	_reverbWidthLabel = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Reverb.WidthLabel", Common::U32String("1"));
+	_reverbWidthSlider->setMaxValue(1000);
+	_reverbWidthLabel = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Reverb.WidthLabel", Common::U32String("5"));
 
 	_reverbLevelDesc = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Reverb.LevelText", _("Level:"));
 	_reverbLevelSlider = new SliderWidget(_tabWidget, "FluidSynthSettings_Reverb.LevelSlider", Common::U32String(), kReverbLevelChangedCmd);
@@ -111,23 +110,23 @@ FluidSynthSettingsDialog::FluidSynthSettingsDialog()
 
 	_chorusLevelDesc = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Chorus.LevelText", _("Level:"));
 	_chorusLevelSlider = new SliderWidget(_tabWidget, "FluidSynthSettings_Chorus.LevelSlider", Common::U32String(), kChorusLevelChangedCmd);
-	// 0.00 - 1.00, Default: 1.00
+	// 0.00 - 10.00, Default: 2.00
 	_chorusLevelSlider->setMinValue(0);
-	_chorusLevelSlider->setMaxValue(100);
-	_chorusLevelLabel = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Chorus.LevelLabel", Common::U32String("100"));
+	_chorusLevelSlider->setMaxValue(1000);
+	_chorusLevelLabel = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Chorus.LevelLabel", Common::U32String("200"));
 
 	_chorusSpeedDesc = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Chorus.SpeedText", _("Speed:"));
 	_chorusSpeedSlider = new SliderWidget(_tabWidget, "FluidSynthSettings_Chorus.SpeedSlider", Common::U32String(), kChorusSpeedChangedCmd);
-	// 0.30 - 5.00, Default: 0.30
-	_chorusSpeedSlider->setMinValue(30);
+	// 0.10 - 5.00, Default: 0.30
+	_chorusSpeedSlider->setMinValue(10);
 	_chorusSpeedSlider->setMaxValue(500);
 	_chorusSpeedLabel = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Chorus.SpeedLabel", Common::U32String("30"));
 
 	_chorusDepthDesc = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Chorus.DepthText", _("Depth:"));
 	_chorusDepthSlider = new SliderWidget(_tabWidget, "FluidSynthSettings_Chorus.DepthSlider", Common::U32String(), kChorusDepthChangedCmd);
-	// 0.00 - 21.00, Default: 8.00
+	// 0.0 - 256.0, Default: 8.0
 	_chorusDepthSlider->setMinValue(0);
-	_chorusDepthSlider->setMaxValue(210);
+	_chorusDepthSlider->setMaxValue(2560);
 	_chorusDepthLabel = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Chorus.DepthLabel", Common::U32String("80"));
 
 	_chorusWaveFormTypePopUpDesc = new StaticTextWidget(_tabWidget, "FluidSynthSettings_Chorus.WaveFormTypeText", _("Type:"));
@@ -181,38 +180,30 @@ void FluidSynthSettingsDialog::handleCommand(CommandSender *sender, uint32 cmd, 
 		break;
 	case kChorusVoiceCountChangedCmd:
 		_chorusVoiceCountLabel->setLabel(Common::String::format("%d", _chorusVoiceCountSlider->getValue()));
-		_chorusVoiceCountLabel->markAsDirty();
 		break;
 	case kChorusLevelChangedCmd:
 		_chorusLevelLabel->setLabel(Common::String::format("%d", _chorusLevelSlider->getValue()));
-		_chorusLevelLabel->markAsDirty();
 		break;
 	case kChorusSpeedChangedCmd:
 		_chorusSpeedLabel->setLabel(Common::String::format("%d", _chorusSpeedSlider->getValue()));
-		_chorusSpeedLabel->markAsDirty();
 		break;
 	case kChorusDepthChangedCmd:
 		_chorusDepthLabel->setLabel(Common::String::format("%d", _chorusDepthSlider->getValue()));
-		_chorusDepthLabel->markAsDirty();
 		break;
 	case kActivateReverbCmd:
 		setReverbSettingsState(data);
 		break;
 	case kReverbRoomSizeChangedCmd:
 		_reverbRoomSizeLabel->setLabel(Common::String::format("%d", _reverbRoomSizeSlider->getValue()));
-		_reverbRoomSizeLabel->markAsDirty();
 		break;
 	case kReverbDampingChangedCmd:
 		_reverbDampingLabel->setLabel(Common::String::format("%d", _reverbDampingSlider->getValue()));
-		_reverbDampingLabel->markAsDirty();
 		break;
 	case kReverbWidthChangedCmd:
 		_reverbWidthLabel->setLabel(Common::String::format("%d", _reverbWidthSlider->getValue()));
-		_reverbWidthLabel->markAsDirty();
 		break;
 	case kReverbLevelChangedCmd:
 		_reverbLevelLabel->setLabel(Common::String::format("%d", _reverbLevelSlider->getValue()));
-		_reverbLevelLabel->markAsDirty();
 		break;
 	case kResetSettingsCmd: {
 		MessageDialog alert(_("Do you really want to reset all FluidSynth settings to their default values?"), _("Yes"), _("No"));

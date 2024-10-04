@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,17 +37,25 @@ namespace Common {
 
 class Mutex;
 
+class MutexInternal {
+public:
+	virtual ~MutexInternal() {}
+
+	virtual bool lock() = 0;
+	virtual bool unlock() = 0;
+};
+
 /**
- * Auxillary class to (un)lock a mutex on the stack.
+ * Auxiliary class to (un)lock a mutex on the stack.
  */
 class StackLock {
-	OSystem::MutexRef _mutex;
+	MutexInternal *_mutex;
 	const char *_mutexName;
 
-	void lock();
-	void unlock();
+	bool lock();
+	bool unlock();
 public:
-	explicit StackLock(OSystem::MutexRef mutex, const char *mutexName = nullptr);
+	explicit StackLock(MutexInternal *mutex, const char *mutexName = nullptr);
 	explicit StackLock(const Mutex &mutex, const char *mutexName = nullptr);
 	~StackLock();
 };
@@ -60,14 +67,14 @@ public:
 class Mutex {
 	friend class StackLock;
 
-	OSystem::MutexRef _mutex;
+	MutexInternal *_mutex;
 
 public:
 	Mutex();
 	~Mutex();
 
-	void lock();
-	void unlock();
+	bool lock();
+	bool unlock();
 };
 
 /** @} */

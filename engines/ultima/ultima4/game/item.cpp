@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -672,14 +671,12 @@ void Items::putReagentInInventory(int reag) {
 }
 
 bool Items::itemConditionsMet(byte conditions) {
-	int i;
-
 	if ((conditions & SC_NEWMOONS) &&
 	        !(g_ultima->_saveGame->_trammelPhase == 0 && g_ultima->_saveGame->_feluccaPhase == 0))
 		return false;
 
 	if (conditions & SC_FULLAVATAR) {
-		for (i = 0; i < VIRT_MAX; i++) {
+		for (int i = 0; i < VIRT_MAX; i++) {
 			if (g_ultima->_saveGame->_karma[i] != 0)
 				return false;
 		}
@@ -693,8 +690,7 @@ bool Items::itemConditionsMet(byte conditions) {
 }
 
 const ItemLocation *Items::itemAtLocation(const Map *map, const Coords &coords) {
-	uint i;
-	for (i = 0; i < N_ITEMS; i++) {
+	for (uint i = 0; i < N_ITEMS; i++) {
 		if (!ITEMS[i]._locationLabel)
 			continue;
 		if (map->getLabel(ITEMS[i]._locationLabel) == coords &&
@@ -705,10 +701,9 @@ const ItemLocation *Items::itemAtLocation(const Map *map, const Coords &coords) 
 }
 
 void Items::itemUse(const Common::String &shortName) {
-	uint i;
 	const ItemLocation *item = nullptr;
 
-	for (i = 0; i < N_ITEMS; i++) {
+	for (uint i = 0; i < N_ITEMS; i++) {
 		if (ITEMS[i]._shortName &&
 		        scumm_stricmp(ITEMS[i]._shortName, shortName.c_str()) == 0) {
 

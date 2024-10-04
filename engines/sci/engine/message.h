@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,6 +48,8 @@ struct MessageTuple {
 
 class CursorStack : public Common::Stack<MessageTuple> {
 public:
+	CursorStack() : Common::Stack<MessageTuple>(), _module(0) {}
+
 	void init(int module, MessageTuple t) {
 		clear();
 		push(t);
@@ -67,7 +68,7 @@ typedef Common::Stack<CursorStack> CursorStackStack;
 class MessageState {
 public:
 	MessageState(SegManager *segMan) : _segMan(segMan), _lastReturnedModule(0) { }
-	int getMessage(int module, MessageTuple &t, reg_t buf);
+	int getMessage(int module, const MessageTuple &t, reg_t buf);
 	int nextMessage(reg_t buf);
 	int messageSize(int module, MessageTuple &t);
 	bool messageRef(int module, const MessageTuple &t, MessageTuple &ref);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,8 @@
 
 namespace AGS3 {
 
+namespace AGS { namespace Shared { class Stream; } }
+
 struct AGSCCDynamicObject : ICCDynamicObject {
 protected:
 	virtual ~AGSCCDynamicObject() {}
@@ -35,7 +36,9 @@ public:
 	int Dispose(const char *address, bool force) override;
 
 	// TODO: pass savegame format version
-	virtual void Unserialize(int index, const char *serializedData, int dataSize) = 0;
+	int Serialize(const char *address, char *buffer, int bufsize) override;
+	// Try unserializing the object from the given input stream
+	virtual void Unserialize(int index, AGS::Shared::Stream *in, size_t data_sz) = 0;
 
 	// Legacy support for reading and writing object values by their relative offset
 	const char *GetFieldPtr(const char *address, intptr_t offset) override;
@@ -52,19 +55,10 @@ public:
 
 protected:
 	// Savegame serialization
-	// TODO: reimplement with the proper memory stream?!
-	int bytesSoFar = 0;
-	int totalBytes = 0;
-	char *serbuffer = nullptr;
-
-	void StartSerialize(char *sbuffer);
-	void SerializeInt(int val);
-	void SerializeFloat(float val);
-	int  EndSerialize();
-	void StartUnserialize(const char *sbuffer, int pTotalBytes);
-	int  UnserializeInt();
-	float UnserializeFloat();
-
+	// Calculate and return required space for serialization, in bytes
+	virtual size_t CalcSerializeSize() = 0;
+	// Write object data into the provided stream
+	virtual void Serialize(const char *address, AGS::Shared::Stream *out) = 0;
 };
 
 } // namespace AGS3

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -90,7 +89,7 @@ SsScene1302Fence::SsScene1302Fence(NeverhoodEngine *vm)
 	loadSound(1, 0x78184098);
 	SetUpdateHandler(&SsScene1302Fence::update);
 	SetMessageHandler(&SsScene1302Fence::handleMessage);
-	SetSpriteUpdate(NULL);
+	SetSpriteUpdate(nullptr);
 }
 
 void SsScene1302Fence::update() {
@@ -103,12 +102,12 @@ uint32 SsScene1302Fence::handleMessage(int messageNum, const MessageParam &param
 	switch (messageNum) {
 	case NM_KLAYMEN_OPEN_DOOR:
 		playSound(0);
-		SetMessageHandler(NULL);
+		SetMessageHandler(nullptr);
 		SetSpriteUpdate(&SsScene1302Fence::suMoveDown);
 		break;
 	case NM_KLAYMEN_CLOSE_DOOR:
 		playSound(1);
-		SetMessageHandler(NULL);
+		SetMessageHandler(nullptr);
 		SetSpriteUpdate(&SsScene1302Fence::suMoveUp);
 		break;
 	default:
@@ -122,7 +121,7 @@ void SsScene1302Fence::suMoveDown() {
 		_y += 8;
 	else {
 		SetMessageHandler(&SsScene1302Fence::handleMessage);
-		SetSpriteUpdate(NULL);
+		SetSpriteUpdate(nullptr);
 	}
 }
 
@@ -131,7 +130,7 @@ void SsScene1302Fence::suMoveUp() {
 		_y -= 8;
 	else {
 		SetMessageHandler(&SsScene1302Fence::handleMessage);
-		SetSpriteUpdate(NULL);
+		SetSpriteUpdate(nullptr);
 	}
 }
 
@@ -174,7 +173,7 @@ uint32 AsScene1303Balloon::hmBalloonPopped(int messageNum, const MessageParam &p
 		playSound(0, 0x470007EE);
 		stopAnimation();
 		setVisible(false);
-		SetMessageHandler(NULL);
+		SetMessageHandler(nullptr);
 		break;
 	default:
 		break;
@@ -204,7 +203,7 @@ uint32 AsScene1304Needle::handleMessage(int messageNum, const MessageParam &para
 	case NM_KLAYMEN_USE_OBJECT:
 		setGlobalVar(V_HAS_NEEDLE, 1);
 		setVisible(false);
-		SetMessageHandler(NULL);
+		SetMessageHandler(nullptr);
 		break;
 	default:
 		break;
@@ -401,7 +400,7 @@ void AsScene1307Key::suRemoveKey() {
 		updateBounds();
 		_pointIndex++;
 	} else {
-		SetSpriteUpdate(NULL);
+		SetSpriteUpdate(nullptr);
 	}
 }
 
@@ -414,7 +413,7 @@ void AsScene1307Key::suInsertKey() {
 		if (_pointIndex == 7)
 			playSound(0);
 	} else {
-		SetSpriteUpdate(NULL);
+		SetSpriteUpdate(nullptr);
 		sendMessage(_parentScene, NM_POSITION_CHANGE, 0);
 	}
 }
@@ -759,7 +758,7 @@ void KmScene1305::stCrashDown() {
 	_acceptInput = false;
 	startAnimationByHash(0x000BAB02, 0x88003000, 0);
 	SetUpdateHandler(&Klaymen::update);
-	SetSpriteUpdate(NULL);
+	SetSpriteUpdate(nullptr);
 	SetMessageHandler(&Klaymen::hmLowLevelAnimation);
 	NextState(&KmScene1305::stCrashDownFinished);
 }

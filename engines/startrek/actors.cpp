@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -1172,7 +1171,7 @@ int StarTrekEngine::showInventoryMenu(int x, int y, bool restoreMouse) {
 
 	while (itemIndex < NUM_OBJECTS) {
 		if (_itemList[itemIndex].have) {
-			strcpy(itemNames[numItems], _itemList[itemIndex].name);
+			Common::strcpy_s(itemNames[numItems], _itemList[itemIndex].name);
 
 			int16 itemX = (numItems % ITEMS_PER_ROW) * 32 + x;
 			int16 itemY = (numItems / ITEMS_PER_ROW) * 32 + y;
@@ -1296,7 +1295,7 @@ int StarTrekEngine::showInventoryMenu(int x, int y, bool restoreMouse) {
 		removeNextEvent();
 	}
 
-	_sound->playSoundEffectIndex(0x10);
+	_sound->playSoundEffectIndex(kSfxSelection);
 	if (lastItemIndex >= 0)
 		drawMenuButtonOutline(itemSprites[lastItemIndex].bitmap, 0);
 
@@ -1415,7 +1414,6 @@ void StarTrekEngine::scaleBitmapRow(byte *src, byte *dest, uint16 origWidth, uin
 		uint16 var4 = scaledWidth << 1;
 		uint16 var6 = (scaledWidth - origWidth) << 1;
 		uint16 varE = 0;
-		uint16 varA = 0;
 		uint16 var8 = origWidth;
 		uint16 di = 0;
 
@@ -1438,13 +1436,11 @@ void StarTrekEngine::scaleBitmapRow(byte *src, byte *dest, uint16 origWidth, uin
 			}
 
 			di++;
-			varA++;
 		}
 	} else {
 		int16 var2 = ((origWidth - 1) << 1) - (scaledWidth - 1);
 		uint16 var4 = (origWidth - 1) << 1;
 		uint16 var6 = ((origWidth - 1) - (scaledWidth - 1)) << 1;
-		uint16 varA = 0;
 		uint16 var8 = scaledWidth;
 		uint16 di = 0;
 
@@ -1461,8 +1457,6 @@ void StarTrekEngine::scaleBitmapRow(byte *src, byte *dest, uint16 origWidth, uin
 				var2 += var6;
 				di++;
 			}
-
-			varA++;
 		}
 	}
 }

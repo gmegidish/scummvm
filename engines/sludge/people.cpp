@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -334,6 +333,15 @@ enum drawModes {
 };
 
 void PeopleManager::setMyDrawMode(OnScreenPerson *moveMe, int h) {
+	int hasBadDrawMode = 0;
+
+	if (gameVersion > VERSION(1, 7)) {
+		hasBadDrawMode = 1;
+		warning("Versions above 1.7 have bad values set for drawModeDark");
+	}
+
+	const int colourMix[2][3] = { {64, 128, 192}, {192, 128, 64} };
+
 	switch (h) {
 	case drawModeTransparent3:
 		moveMe->r = moveMe->g = moveMe->b = 0;
@@ -357,17 +365,17 @@ void PeopleManager::setMyDrawMode(OnScreenPerson *moveMe, int h) {
 		break;
 	case drawModeDark1:
 		moveMe->r = moveMe->g = moveMe->b = 0;
-		moveMe->colourmix = 192;
+		moveMe->colourmix = colourMix[hasBadDrawMode][0];
 		moveMe->transparency = 0;
 		break;
 	case drawModeDark2:
 		moveMe->r = moveMe->g = moveMe->b = 0;
-		moveMe->colourmix = 128;
+		moveMe->colourmix = colourMix[hasBadDrawMode][1];
 		moveMe->transparency = 0;
 		break;
 	case drawModeDark3:
 		moveMe->r = moveMe->g = moveMe->b = 0;
-		moveMe->colourmix = 64;
+		moveMe->colourmix = colourMix[hasBadDrawMode][2];
 		moveMe->transparency = 0;
 		break;
 	case drawModeBlack:
@@ -475,11 +483,29 @@ struct PeopleYComperator {
 	}
 };
 
+template<typename T, class StrictWeakOrdering>
+void bubble_sort(T first, T last, StrictWeakOrdering comp) {
+    bool swapped;
+    do {
+        swapped = false;
+        for (T i = first; i != last; ++i) {
+            T j = i;
+            ++j;
+            if (j != last && comp(*j, *i)) {
+                SWAP(*i, *j);
+                swapped = true;
+            }
+        }
+    } while (swapped);
+}
+
 void PeopleManager::shufflePeople() {
 	if (_allPeople->empty())
 		return;
 
-	Common::sort(_allPeople->begin(), _allPeople->end(), PeopleYComperator());
+	// Use a stable sorting algorithm to sort people to avoid
+	// equal elements moving around and causing flickering issues
+	bubble_sort(_allPeople->begin(), _allPeople->end(), PeopleYComperator());
 }
 
 void PeopleManager::drawPeople() {
@@ -854,10 +880,8 @@ void PeopleManager::removeOneCharacter(int i) {
 			abortFunction(removePerson->continueAfterWalking);
 		removePerson->continueAfterWalking = NULL;
 
-		_allPeople->remove(removePerson);
 		_vm->_objMan->removeObjectType(removePerson->thisType);
-		delete removePerson;
-		removePerson = nullptr;
+		_allPeople->remove(removePerson);
 	}
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/events.h"
 #include "ags/engine/ac/sys_events.h"
-//include <deque>
 #include "ags/shared/core/platform.h"
 #include "ags/shared/ac/common.h"
 #include "ags/shared/ac/game_setup_struct.h"
@@ -55,7 +53,9 @@ using namespace AGS::Shared;
 using namespace AGS::Engine;
 
 extern void domouse(int str);
-const int MB_ARRAY[3] = { MouseBitLeft, MouseBitRight, MouseBitMiddle };
+// Convert mouse button id to flags
+const int MouseButton2Bits[kNumMouseButtons] =
+	{ 0, MouseBitLeft, MouseBitRight, MouseBitMiddle };
 static void(*_on_quit_callback)(void) = nullptr;
 static void(*_on_switchin_callback)(void) = nullptr;
 static void(*_on_switchout_callback)(void) = nullptr;
@@ -64,11 +64,15 @@ static void(*_on_switchout_callback)(void) = nullptr;
 // KEYBOARD INPUT
 // ----------------------------------------------------------------------------
 
-KeyInput ags_keycode_from_scummvm(const Common::Event &event) {
+KeyInput ags_keycode_from_scummvm(const Common::Event &event, bool old_keyhandle) {
 	KeyInput ki;
 
-	ki.Key = ::AGS::g_events->scummvm_key_to_ags_key(event);
-
+	snprintf(ki.Text, KeyInput::UTF8_ARR_SIZE, "%c", event.kbd.ascii);
+	ki.UChar = event.kbd.ascii;
+	ki.Key = ::AGS::g_events->scummvm_key_to_ags_key(event, ki.Mod, old_keyhandle);
+	ki.CompatKey = ::AGS::g_events->scummvm_key_to_ags_key(event, ki.Mod, true);
+	if (!old_keyhandle && ki.CompatKey == eAGSKeyCodeNone)
+		ki.CompatKey = ki.Key;
 	return ki;
 }
 
@@ -81,7 +85,7 @@ Common::Event ags_get_next_keyevent() {
 }
 
 int ags_iskeydown(eAGSKeyCode ags_key) {
-	return ::AGS::g_events->isKeyPressed(ags_key);
+	return ::AGS::g_events->isKeyPressed(ags_key, _GP(game).options[OPT_KEYHANDLEAPI] == 0);
 }
 
 void ags_simulate_keypress(eAGSKeyCode ags_key) {
@@ -95,6 +99,8 @@ void ags_simulate_keypress(eAGSKeyCode ags_key) {
 	e.kbd.keycode = keycode[0];
 	e.kbd.ascii = (e.kbd.keycode >= 32 && e.kbd.keycode <= 127) ? e.kbd.keycode : 0;
 
+	::AGS::g_events->pushKeyboardEvent(e);
+	e.type = Common::EVENT_KEYUP;
 	::AGS::g_events->pushKeyboardEvent(e);
 }
 
@@ -157,65 +163,44 @@ static void on_mouse_wheel(const Common::Event &event) {
 		_G(sys_mouse_z)--;
 }
 
-int mgetbutton() {
-	int toret = MouseNone;
-	int butis = mouse_button_poll();
+static eAGSMouseButton mgetbutton() {
+	const int butis = mouse_button_poll();
 
 	if ((butis > 0) & (_G(butwas) > 0))
-		return MouseNone;  // don't allow holding button down
-
-	if (butis & MouseBitLeft)
-		toret = MouseLeft;
-	else if (butis & MouseBitRight)
-		toret = MouseRight;
-	else if (butis & MouseBitMiddle)
-		toret = MouseMiddle;
+		return kMouseNone;  // don't allow holding button down
 
 	_G(butwas) = butis;
-	return toret;
+	if (butis & MouseBitLeft)
+		return kMouseLeft;
+	else if (butis & MouseBitRight)
+		return kMouseRight;
+	else if (butis & MouseBitMiddle)
+		return kMouseMiddle;
+	return kMouseNone;
+}
 
-	// TODO: presumably this was a hack for 1-button Mac mouse;
-	// is this still necessary?
-	// find an elegant way to reimplement this; e.g. allow to configure key->mouse mappings?!
-#define AGS_SIMULATE_RIGHT_CLICK (AGS_PLATFORM_OS_MACOS)
-#if defined (AGS_SIMULATE_RIGHT_CLICK__FIXME)
-	// j Ctrl-left click should be right-click
-	if (ags_iskeypressed(__allegro_KEY_LCONTROL) || ags_iskeypressed(__allegro_KEY_RCONTROL)) {
-		toret = RIGHT;
+bool ags_misbuttondown(eAGSMouseButton but) {
+	return (mouse_button_poll() & MouseButton2Bits[but]) != 0;
+}
+
+eAGSMouseButton ags_mgetbutton() {
+	if (_G(pluginSimulatedClick) > kMouseNone) {
+		eAGSMouseButton mbut = _G(pluginSimulatedClick);
+		_G(pluginSimulatedClick) = kMouseNone;
+		return mbut;
 	}
-#endif
-	return 0;
+	return mgetbutton();
 }
 
-bool ags_misbuttondown(int but) {
-	return (mouse_button_poll() & MB_ARRAY[but]) != 0;
-}
-
-int ags_mgetbutton() {
-	int result;
-
-	if (_G(pluginSimulatedClick) > MouseNone) {
-		result = _G(pluginSimulatedClick);
-		_G(pluginSimulatedClick) = MouseNone;
-	} else {
-		result = mgetbutton();
-	}
-	return result;
-}
-
-void ags_mouse_get_relxy(int &x, int &y) {
+void ags_mouse_acquire_relxy(int &x, int &y) {
 	x = _G(mouse_accum_relx);
 	y = _G(mouse_accum_rely);
 	_G(mouse_accum_relx) = 0;
 	_G(mouse_accum_rely) = 0;
 }
 
-void ags_domouse(int what) {
-	// do mouse is "update the mouse x,y and also the cursor position", unless DOMOUSE_NOCURSOR is set.
-	if (what == DOMOUSE_NOCURSOR)
-		mgetgraphpos();
-	else
-		domouse(what);
+void ags_domouse() {
+	_GP(mouse).Poll();
 }
 
 int ags_check_mouse_wheel() {
@@ -238,11 +223,10 @@ int ags_check_mouse_wheel() {
 void ags_clear_input_state() {
 	// Clear everything related to the input field
 	::AGS::g_events->clearEvents();
-	_G(mouse_accum_relx) = 0;
-	_G(mouse_accum_rely) = 0;
 	_G(mouse_button_state) = 0;
 	_G(mouse_accum_button_state) = 0;
 	_G(mouse_clear_at_time) = AGS_Clock::now();
+	ags_clear_mouse_movement();
 }
 
 void ags_clear_input_buffer() {
@@ -250,8 +234,7 @@ void ags_clear_input_buffer() {
 	// accumulated state only helps to not miss clicks
 	_G(mouse_accum_button_state) = 0;
 	// forget about recent mouse relative movement too
-	_G(mouse_accum_relx) = 0;
-	_G(mouse_accum_rely) = 0;
+	ags_clear_mouse_movement();
 }
 
 void ags_clear_mouse_movement() {
@@ -311,6 +294,11 @@ void sys_evt_process_pending(void) {
 
 	while ((e = ::AGS::g_events->readEvent()).type != Common::EVENT_INVALID)
 		sys_process_event(e);
+}
+
+void sys_flush_events(void) {
+	::AGS::g_events->clearEvents();
+	ags_clear_input_state();
 }
 
 } // namespace AGS3

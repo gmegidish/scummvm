@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,8 +46,6 @@
 #include "sludge/timing.h"
 
 namespace Sludge {
-
-Variable *launchResult = NULL;
 
 extern bool allowAnyFilename;
 extern VariableStack *noStack;
@@ -253,7 +250,7 @@ builtIn(fileExists) {
 	bool exist = false;
 
 	Common::File fd;
-	if (fd.open(aaaaa)) {
+	if (fd.open(Common::Path(aaaaa))) {
 		exist = true;
 		fd.close();
 	} else {
@@ -825,10 +822,12 @@ builtIn(anim) {
 	// First store the frame numbers and take 'em off the stack
 	PersonaAnimation *ba = new PersonaAnimation(numParams - 1, fun->stack);
 
-	// Only remaining paramter is the file number
+	// Only remaining parameter is the file number
 	int fileNumber;
-	if (!fun->stack->thisVar.getValueType(fileNumber, SVT_FILE))
+	if (!fun->stack->thisVar.getValueType(fileNumber, SVT_FILE)) {
+		delete ba;
 		return BR_ERROR;
+	}
 	trimStack(fun->stack);
 
 	// Load the required sprite bank
@@ -880,20 +879,24 @@ builtIn(launch) {
 		(newTextA[4] == ':' || (newTextA[4] == 's' && newTextA[5] == ':'))) {
 
 		// IT'S A WEBSITE!
-		g_sludge->launchMe.clear();
-		g_sludge->launchMe = newTextA;
-	} else {
-		Common::String gameDir = g_sludge->gamePath;
-		gameDir += "/";
-		g_sludge->launchMe.clear();
-		g_sludge->launchMe = gameDir + newText;
-		if (g_sludge->launchMe.empty())
-			return BR_ERROR;
+		bool success = g_sludge->_system->openUrl(newTextA);
+		fun->reg.setVariable(SVT_INT, success);
+		return BR_CONTINUE;
 	}
-	fun->reg.setVariable(SVT_INT, 1);
-	launchResult = &fun->reg;
 
-	return BR_KEEP_AND_PAUSE;
+	// Convert game path to URL
+	Common::String gameDir = ConfMan.getPath("path").toString('/');
+	newText = gameDir + newText;
+
+	// local webpage?
+	if (newText.hasSuffixIgnoreCase(".htm") || newText.hasSuffixIgnoreCase(".html")) {
+		bool success = g_sludge->_system->openUrl("file:///" + newText);
+		fun->reg.setVariable(SVT_INT, success);
+	} else {
+		fun->reg.setVariable(SVT_INT, 0);
+	}
+
+	return BR_CONTINUE;
 }
 
 builtIn(pause) {
@@ -2384,7 +2387,7 @@ builtIn(_rem_launchWith) {
 	trimStack(fun->stack);
 
 	if (filename.hasSuffix(".exe")) {
-		const Common::FSNode gameDataDir(ConfMan.get("path"));
+		const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 		Common::FSList files;
 		gameDataDir.getChildren(files, Common::FSNode::kListFilesOnly);
 
@@ -2566,7 +2569,7 @@ BuiltReturn callBuiltIn(int whichFunc, int numParams, LoadedFunction *fun) {
 		if (builtInFunctionArray[whichFunc].func) {
 			debugC(3, kSludgeDebugBuiltin,
 					"Run built-in function %i : %s",
-					whichFunc, (whichFunc < numBIFNames) ? allBIFNames[whichFunc].c_str() : "Unknown");
+					whichFunc, (whichFunc < numBIFNames) ? allBIFNames[whichFunc].c_str() : builtInFunctionArray[whichFunc].name);
 			return builtInFunctionArray[whichFunc].func(numParams, fun);
 		}
 	}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,8 +23,7 @@
 #define COMMON_TOKENIZER_H
 
 #include "common/scummsys.h"
-#include "common/str.h"
-#include "common/ustr.h"
+#include "common/str-array.h"
 
 namespace Common {
 
@@ -56,6 +54,10 @@ public:
 	void reset();       ///< Resets the tokenizer to its initial state
 	bool empty() const; ///< Returns true if there are no more tokens left in the string, false otherwise
 	String nextToken(); ///< Returns the next token from the string (Or an empty string if there are no more tokens)
+	StringArray split(); ///< Returns StringArray with all tokens. Beware of the memory usage
+
+	String delimitersAtTokenBegin() const; ///< Returns a String with all delimiters between the current and previous token
+	String delimitersAtTokenEnd() const;   ///< Returns a String with all delimiters between the current and next token
 
 private:
 	const String _str;        ///< The string to be tokenized
@@ -83,6 +85,10 @@ public:
 	void reset();       ///< Resets the tokenizer to its initial state, i.e points boten token iterators to the beginning
 	bool empty() const; ///< Returns true if there are no more tokens left in the string, false otherwise
 	U32String nextToken(); ///< Returns the next token from the string (Or an empty string if there are no more tokens)
+	U32StringArray split(); ///< Returns StringArray with all tokens. Beware of the memory usage
+
+	U32String delimitersAtTokenBegin() const; ///< Returns a U32String with all delimiters between the current and previous token
+	U32String delimitersAtTokenEnd() const;   ///< Returns a U32String with all delimiters between the current and next token
 
 private:
 	const U32String _str;        ///< The unicode string to be tokenized

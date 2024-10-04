@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,18 +32,18 @@
 
 namespace Pegasus {
 
-Interface *g_interface = 0;
+Interface *g_interface = nullptr;
 
-Interface::Interface() : InputHandler(0), _interfaceNotification(kInterfaceNotificationID, (NotificationManager *)((PegasusEngine *)g_engine)),
+Interface::Interface() : InputHandler(nullptr), _interfaceNotification(kInterfaceNotificationID, (NotificationManager *)g_vm),
 			_currentItemSpot(kCurrentItemSpotID), _currentBiochipSpot(kCurrentBiochipSpotID),
 			_background1(kInterface1ID), _background2(kInterface2ID), _background3(kInterface3ID),
 			_background4(kInterface4ID), _datePicture(kDateID), _inventoryPush(kInventoryPushID),
 			_inventoryLid(kInventoryLidID, kNoDisplayElement),
-			_inventoryPanel(kNoDisplayElement, (InputHandler *)((PegasusEngine *)g_engine), ((PegasusEngine *)g_engine)->getItemsInventory()),
+			_inventoryPanel(kNoDisplayElement, (InputHandler *)g_vm, (g_vm)->getItemsInventory()),
 			_biochipPush(kBiochipPushID), _biochipLid(kBiochipLidID, kNoDisplayElement),
-			_biochipPanel(kNoDisplayElement, (InputHandler *)((PegasusEngine *)g_engine), ((PegasusEngine *)g_engine)->getBiochipsInventory()) {
-	g_energyMonitor = 0;
-	_previousHandler = 0;
+			_biochipPanel(kNoDisplayElement, (InputHandler *)g_vm, (g_vm)->getBiochipsInventory()) {
+	g_energyMonitor = nullptr;
+	_previousHandler = nullptr;
 	_inventoryRaised = false;
 	_biochipRaised = false;
 	_playingEndMessage = false;
@@ -53,7 +52,7 @@ Interface::Interface() : InputHandler(0), _interfaceNotification(kInterfaceNotif
 
 Interface::~Interface() {
 	throwAwayInterface();
-	g_interface = 0;
+	g_interface = nullptr;
 }
 
 void Interface::throwAwayInterface() {
@@ -127,7 +126,7 @@ void Interface::throwAwayDateMonitor() {
 
 void Interface::setDate(const uint16 dateResID) {
 	validateDateMonitor();
-	_datePicture.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, dateResID);
+	_datePicture.initFromPICTResource(g_vm->_resFork, dateResID);
 	_datePicture.triggerRedraw();
 }
 
@@ -160,7 +159,7 @@ void Interface::throwAwayNotifications() {
 
 void Interface::validateAIArea() {
 	if (!g_AIArea) {
-		new AIArea((InputHandler *)((PegasusEngine *)g_engine));
+		new AIArea((InputHandler *)g_vm);
 		if (g_AIArea)
 			g_AIArea->initAIArea();
 	}
@@ -175,7 +174,7 @@ void Interface::validateInventoryPanel() {
 		_inventoryPanel.initInventoryImage(&_inventoryPush);
 		_inventoryPanel.moveElementTo(kInventoryPushLeft, kInventoryPushTop);
 		_inventoryPush.setSlideDirection(kSlideUpMask);
-		_inventoryPush.setInAndOutElements(&_inventoryPanel, 0);
+		_inventoryPush.setInAndOutElements(&_inventoryPanel, nullptr);
 		_inventoryPush.setDisplayOrder(kInventoryPushOrder);
 		_inventoryPush.startDisplaying();
 
@@ -186,7 +185,7 @@ void Interface::validateInventoryPanel() {
 		_inventoryLid.setDisplayOrder(kInventoryLidOrder);
 		_inventoryLid.startDisplaying();
 
-		if (((PegasusEngine *)g_engine)->isDVD()) {
+		if (g_vm->isDVD()) {
 			_inventoryOpenSound.initFromAIFFFile("Sounds/Items/Inventory Panel Open.aif");
 			_inventoryCloseSound.initFromAIFFFile("Sounds/Items/Inventory Panel Close.aif");
 		}
@@ -225,7 +224,7 @@ void Interface::validateBiochipPanel() {
 		_biochipPanel.initInventoryImage(&_biochipPush);
 		_biochipPanel.moveElementTo(kBiochipPushLeft, kBiochipPushTop);
 		_biochipPush.setSlideDirection(kSlideUpMask);
-		_biochipPush.setInAndOutElements(&_biochipPanel, 0);
+		_biochipPush.setInAndOutElements(&_biochipPanel, nullptr);
 		_biochipPush.setDisplayOrder(kBiochipPushOrder);
 		_biochipPush.startDisplaying();
 
@@ -236,7 +235,7 @@ void Interface::validateBiochipPanel() {
 		_biochipLid.setDisplayOrder(kBiochipLidOrder);
 		_biochipLid.startDisplaying();
 
-		if (((PegasusEngine *)g_engine)->isDVD()) {
+		if (g_vm->isDVD()) {
 			_biochipOpenSound.initFromAIFFFile("Sounds/Items/Biochip Panel Open.aif");
 			_biochipCloseSound.initFromAIFFFile("Sounds/Items/Biochip Panel Close.aif");
 		}
@@ -398,9 +397,9 @@ void Interface::raiseInventoryDrawer(const bool doCallBacks) {
 	_inventoryPush.show();
 	_inventoryLid.start();
 
-	if (((PegasusEngine *)g_engine)->isDVD()) {
+	if (g_vm->isDVD()) {
 		_inventoryCloseSound.stopSound();
-		_inventoryOpenSound.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+		_inventoryOpenSound.setVolume(g_vm->getSoundFXLevel());
 		_inventoryOpenSound.playSound();
 	}
 }
@@ -418,7 +417,7 @@ void Interface::raiseInventoryDrawerForMessage() {
 
 	// The DVD version has a different image for the inventory
 	// for the end message.
-	if (((PegasusEngine *)g_engine)->isDVD()) {
+	if (g_vm->isDVD()) {
 		_inventoryPanel.setCommPicture();
 		_inventoryPanel.throwAwayInventoryImage();
 		_inventoryPanel.initInventoryImage(&_inventoryPush);
@@ -474,9 +473,9 @@ void Interface::lowerInventoryDrawer(const bool doCallBacks) {
 		moveSpec.makeTwoKnotFaderSpec(60, 0, 1000, 15, 0);
 		_inventoryPush.startFader(moveSpec);
 
-		if (((PegasusEngine *)g_engine)->isDVD()) {
+		if (g_vm->isDVD()) {
 			_inventoryOpenSound.stopSound();
-			_inventoryCloseSound.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+			_inventoryCloseSound.setVolume(g_vm->getSoundFXLevel());
 			_inventoryCloseSound.playSound();
 		}
 	}
@@ -521,9 +520,9 @@ void Interface::raiseBiochipDrawer(const bool doCallBacks) {
 	_biochipPush.show();
 	_biochipLid.start();
 
-	if (((PegasusEngine *)g_engine)->isDVD()) {
+	if (g_vm->isDVD()) {
 		_biochipCloseSound.stopSound();
-		_biochipOpenSound.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+		_biochipOpenSound.setVolume(g_vm->getSoundFXLevel());
 		_biochipOpenSound.playSound();
 	}
 }
@@ -561,9 +560,9 @@ void Interface::lowerBiochipDrawer(const bool doCallBacks) {
 		moveSpec.makeTwoKnotFaderSpec(60, 0, 1000, 9, 0);
 		_biochipPush.startFader(moveSpec);
 
-		if (((PegasusEngine *)g_engine)->isDVD()) {
+		if (g_vm->isDVD()) {
 			_biochipOpenSound.stopSound();
-			_biochipCloseSound.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+			_biochipCloseSound.setVolume(g_vm->getSoundFXLevel());
 			_biochipCloseSound.playSound();
 		}
 	}
@@ -598,14 +597,12 @@ void Interface::calibrateCompass() {
 
 	g_compass->startFader(compassMove);
 
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	while (g_compass->isFading()) {
-		vm->refreshDisplay();
+		g_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	g_vm->refreshDisplay();
 	g_compass->setFaderValue(currentValue);
 }
 
@@ -614,106 +611,98 @@ void Interface::calibrateEnergyBar() {
 }
 
 void Interface::raiseInventoryDrawerSync() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	raiseInventoryDrawer(false);
 
 	while (_inventoryLid.isRunning()) {
 		InputDevice.pumpEvents();
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		g_vm->checkCallBacks();
+		g_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	g_vm->refreshDisplay();
 	inventoryLidOpen(false);
 
 	while (_inventoryPush.isFading()) {
 		InputDevice.pumpEvents();
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		g_vm->checkCallBacks();
+		g_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	g_vm->refreshDisplay();
 	inventoryDrawerUp();
 }
 
 void Interface::lowerInventoryDrawerSync() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	lowerInventoryDrawer(false);
 
 	while (_inventoryPush.isFading()) {
 		InputDevice.pumpEvents();
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		g_vm->checkCallBacks();
+		g_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	g_vm->refreshDisplay();
 	inventoryDrawerDown(false);
 
 	while (_inventoryLid.isRunning()) {
 		InputDevice.pumpEvents();
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		g_vm->checkCallBacks();
+		g_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	g_vm->refreshDisplay();
 	inventoryLidClosed();
 }
 
 void Interface::raiseBiochipDrawerSync() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	raiseBiochipDrawer(false);
 
 	while (_biochipLid.isRunning()) {
 		InputDevice.pumpEvents();
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		g_vm->checkCallBacks();
+		g_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	g_vm->refreshDisplay();
 	biochipLidOpen(false);
 
 	while (_biochipPush.isFading()) {
 		InputDevice.pumpEvents();
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		g_vm->checkCallBacks();
+		g_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	g_vm->refreshDisplay();
 	biochipDrawerUp();
 }
 
 void Interface::lowerBiochipDrawerSync() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	lowerBiochipDrawer(false);
 
 	while (_biochipPush.isFading()) {
 		InputDevice.pumpEvents();
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		g_vm->checkCallBacks();
+		g_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	g_vm->refreshDisplay();
 	biochipDrawerDown(false);
 
 	while (_biochipLid.isRunning()) {
 		InputDevice.pumpEvents();
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		g_vm->checkCallBacks();
+		g_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	g_vm->refreshDisplay();
 	biochipLidClosed();
 }
 

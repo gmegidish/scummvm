@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,15 +56,15 @@ public:
 	U6Lib_n();
 	~U6Lib_n();
 
-	bool open(Std::string &filename, uint8 size, uint8 type = NUVIE_GAME_U6);
+	bool open(const Common::Path &filename, uint8 size, uint8 type = NUVIE_GAME_U6);
 	bool open(NuvieIO *new_data, uint8 size, uint8 type = NUVIE_GAME_U6);
 	void close();
-	bool create(Std::string &filename, uint8 size, uint8 type = NUVIE_GAME_U6);
+	bool create(const Common::Path &filename, uint8 size, uint8 type = NUVIE_GAME_U6);
 	uint8 get_game_type() {
 		return game_type;
 	}
 
-	unsigned char *get_item(uint32 item_number, unsigned char *buf = NULL); // read
+	unsigned char *get_item(uint32 item_number, unsigned char *buf = nullptr); // read
 	void set_item_data(uint32 item_number, unsigned char *src, uint32 src_len);
 
 	uint32 get_num_items();
@@ -74,7 +73,7 @@ public:
 	const char *get_item_name(uint32 item_number);
 	bool is_compressed(uint32 item_number);
 
-	void add_item(uint32 offset32, const char *name = NULL);
+	void add_item(uint32 offset32, const char *name = nullptr);
 	void write_item(uint32 item_number);
 	void write_items();
 

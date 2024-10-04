@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -77,7 +76,7 @@ static long tell_stream_wrap(void *datasource) {
 	return stream->pos();
 }
 
-static ov_callbacks g_stream_wrap = {
+static const ov_callbacks g_stream_wrap = {
 	read_stream_wrap, seek_stream_wrap, close_stream_wrap, tell_stream_wrap
 };
 
@@ -108,14 +107,14 @@ public:
 	VorbisStream(Common::SeekableReadStream *inStream, DisposeAfterUse::Flag dispose);
 	~VorbisStream();
 
-	int readBuffer(int16 *buffer, const int numSamples);
+	int readBuffer(int16 *buffer, const int numSamples) override;
 
-	bool endOfData() const		{ return _pos >= _bufferEnd; }
-	bool isStereo() const		{ return _isStereo; }
-	int getRate() const			{ return _rate; }
+	bool endOfData() const override		{ return _pos >= _bufferEnd; }
+	bool isStereo() const override		{ return _isStereo; }
+	int getRate() const override			{ return _rate; }
 
-	bool seek(const Timestamp &where);
-	Timestamp getLength() const { return _length; }
+	bool seek(const Timestamp &where) override;
+	Timestamp getLength() const override { return _length; }
 protected:
 	bool refill();
 };
@@ -125,7 +124,7 @@ VorbisStream::VorbisStream(Common::SeekableReadStream *inStream, DisposeAfterUse
 	_length(0, 1000),
 	_bufferEnd(ARRAYEND(_buffer)) {
 
-	int res = ov_open_callbacks(inStream, &_ovFile, NULL, 0, g_stream_wrap);
+	int res = ov_open_callbacks(inStream, &_ovFile, nullptr, 0, g_stream_wrap);
 	if (res < 0) {
 		warning("Could not create Vorbis stream (%d)", res);
 		_pos = _bufferEnd;
@@ -206,7 +205,7 @@ bool VorbisStream::refill() {
 						0,
 						2,	// 16 bit
 						1,	// signed
-						NULL);
+						nullptr);
 #endif
 #endif
 		if (result == OV_HOLE) {
@@ -246,7 +245,7 @@ SeekableAudioStream *makeVorbisStream(
 	SeekableAudioStream *s = new VorbisStream(stream, disposeAfterUse);
 	if (s && s->endOfData()) {
 		delete s;
-		return 0;
+		return nullptr;
 	} else {
 		return s;
 	}

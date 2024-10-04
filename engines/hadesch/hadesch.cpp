@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Copyright 2020 Google
  *
@@ -25,15 +24,16 @@
 #include "common/debug-channels.h"
 #include "common/error.h"
 #include "common/events.h"
-#include "common/ini-file.h"
+#include "common/formats/ini-file.h"
 #include "common/stream.h"
 #include "common/system.h"
 #include "common/file.h"
 #include "common/keyboard.h"
 #include "common/macresman.h"
 #include "common/util.h"
-#include "common/zlib.h"
+#include "common/compression/deflate.h"
 #include "common/config-manager.h"
+#include "common/translation.h"
 
 #include "engines/advancedDetector.h"
 #include "engines/util.h"
@@ -47,9 +47,8 @@
 #include "hadesch/video.h"
 #include "hadesch/pod_image.h"
 
-#include "graphics/palette.h"
 #include "common/memstream.h"
-#include "common/winexe_pe.h"
+#include "common/formats/winexe_pe.h"
 #include "common/substream.h"
 #include "common/md5.h"
 #include "graphics/wincursor.h"
@@ -130,8 +129,6 @@ void HadeschEngine::newGame() {
 	moveToRoom(kWallOfFameRoom);
 }
 
-#if defined(USE_ZLIB)
-
 struct WiseFile {
 	uint start;
 	uint end;
@@ -162,8 +159,10 @@ Common::MemoryReadStream *readWiseFile(Common::File &setupFile, const struct Wis
 	byte *uncompressedBuffer = new byte[wiseFile.uncompressedLength];
 	setupFile.seek(wiseFile.start);
 	setupFile.read(compressedBuffer, wiseFile.end - wiseFile.start - 4);
-	if (!Common::inflateZlibHeaderless(uncompressedBuffer, wiseFile.uncompressedLength,
-					   compressedBuffer, wiseFile.end - wiseFile.start - 4)) {
+
+	uint dstLen = wiseFile.uncompressedLength;
+	if (!Common::inflateZlibHeaderless(uncompressedBuffer, &dstLen,
+					   compressedBuffer, wiseFile.end - wiseFile.start - 4) || dstLen != wiseFile.uncompressedLength) {
 		debug("wise inflate failed");
 		delete[] compressedBuffer;
 		delete[] uncompressedBuffer;
@@ -173,11 +172,10 @@ Common::MemoryReadStream *readWiseFile(Common::File &setupFile, const struct Wis
 	delete[] compressedBuffer;
 	return new Common::MemoryReadStream(uncompressedBuffer, wiseFile.uncompressedLength);
 }
-#endif
 
-Common::ErrorCode HadeschEngine::loadWindowsCursors(Common::PEResources &exe) {
+Common::ErrorCode HadeschEngine::loadWindowsCursors(const Common::ScopedPtr<Common::PEResources>& exe) {
 	for (unsigned i = 0; i < ARRAYSIZE(cursorids); i++) {
-		Graphics::WinCursorGroup *group = Graphics::WinCursorGroup::createCursorGroup(&exe, cursorids[i]);
+		Graphics::WinCursorGroup *group = Graphics::WinCursorGroup::createCursorGroup(exe.get(), cursorids[i]);
 
 		if (!group) {
 			debug("Cannot find cursor group %d", cursorids[i]);
@@ -194,17 +192,22 @@ Common::ErrorCode HadeschEngine::loadWindowsCursors(Common::PEResources &exe) {
 Common::ErrorCode HadeschEngine::loadCursors() {
 	debug("HadeschEngine: loading cursors");
 
-	{
-		Common::PEResources exe = Common::PEResources();
-		if (exe.loadFromEXE("HADESCH.EXE")) {
-			return loadWindowsCursors(exe);
-		}
-	}
+	const char *const winPaths[] = {
+		"HADESCH.EXE",
+		"WIN95/HADESCH.EXE"
+	};
 
 	const char *const macPaths[] = {
 		"Hades_-_Copy_To_Hard_Drive/Hades_Challenge/Hades_Challenge_PPC",
 		"Hades - Copy To Hard Drive/Hades Challenge/Hades Challenge PPC"
 	};
+
+	for (uint j = 0; j < ARRAYSIZE(macPaths); ++j) {
+		Common::ScopedPtr<Common::PEResources> exe = Common::ScopedPtr<Common::PEResources>(new Common::PEResources());
+		if (exe->loadFromEXE(winPaths[j])) {
+			return loadWindowsCursors(exe);
+		}
+	}
 
 	for (uint j = 0; j < ARRAYSIZE(macPaths); ++j) {
 	  	Common::MacResManager resMan = Common::MacResManager();
@@ -213,7 +216,8 @@ Common::ErrorCode HadeschEngine::loadCursors() {
 		}
 
 		for (unsigned i = 0; i < ARRAYSIZE(cursorids); i++) {
-			Common::SeekableReadStream *stream = resMan.getResource(MKTAG('c','r','s','r'), cursorids[i]);
+			Common::ScopedPtr<Common::SeekableReadStream> stream = Common::ScopedPtr<Common::SeekableReadStream>(
+				resMan.getResource(MKTAG('c','r','s','r'), cursorids[i]));
 			if (!stream) {
 				debug("Couldn't load cursor %d", cursorids[i]);
 				return Common::kUnsupportedGameidError;
@@ -221,13 +225,11 @@ Common::ErrorCode HadeschEngine::loadCursors() {
 			Graphics::MacCursor *macCursor = new Graphics::MacCursor();
 			macCursor->readFromStream(*stream);
 			_cursors.push_back(macCursor);
-			delete stream;
 			_macCursors.push_back(macCursor);
 		}
 		return Common::kNoError;
 	}
 
-#if defined(USE_ZLIB)
 	Common::File setupFile;
 	if (setupFile.open("Setup.exe")) {
 		uint len = setupFile.size();
@@ -248,14 +250,14 @@ Common::ErrorCode HadeschEngine::loadCursors() {
 					return Common::kUnsupportedGameidError;
 				}
 
-				Common::PEResources exe = Common::PEResources();
-				if (exe.loadFromEXE(hadeschExe)) {
-					return loadWindowsCursors(exe);
+				Common::ScopedPtr<Common::PEResources> exe = Common::ScopedPtr<Common::PEResources>(new Common::PEResources());
+				if (exe->loadFromEXE(hadeschExe)) {
+					Common::ErrorCode status = loadWindowsCursors(exe);
+					return status;
 				}
 			}
 		}
 	}
-#endif
 
 	debug("Cannot open hadesch.exe");
 	return Common::kUnsupportedGameidError;
@@ -475,7 +477,7 @@ Common::Error HadeschEngine::run() {
 	_transMan->setLanguage(TransMan.getCurrentLanguage());
 #endif
 
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "WIN9x");
 
 	Common::ErrorCode err = loadCursors();
@@ -484,15 +486,16 @@ Common::Error HadeschEngine::run() {
 
 	if (!_wdPodFile) {
 		const char *const wdpodpaths[] = {
-			"WIN9x/WORLD/WD.POD", "WD.POD",
+			"WIN9x/WORLD/WD.POD", "WIN95/WORLD/WD.POD", "WD.POD",
 			"Hades_-_Copy_To_Hard_Drive/Hades_Challenge/World/wd.pod",
-			"Hades - Copy To Hard Drive/Hades Challenge/World/wd.pod"};
+			"Hades - Copy To Hard Drive/Hades Challenge/World/wd.pod"
+		};
 		debug("HadeschEngine: loading wd.pod");
 		for (uint i = 0; i < ARRAYSIZE(wdpodpaths); ++i) {
-			Common::SharedPtr<Common::File> file(new Common::File());
-			if (file->open(wdpodpaths[i])) {
+			Common::SharedPtr<Common::SeekableReadStream> stream(Common::MacResManager::openFileOrDataFork(wdpodpaths[i]));
+			if (stream) {
 				_wdPodFile = Common::SharedPtr<PodFile>(new PodFile("WD.POD"));
-				_wdPodFile->openStore(file);
+				_wdPodFile->openStore(stream);
 				break;
 			}
 		}
@@ -510,14 +513,14 @@ Common::Error HadeschEngine::run() {
 	// on cdScenePath
 	const char *const scenepaths[] = {"CDAssets/", "Scenes/"};
 	for (uint i = 0; i < ARRAYSIZE(scenepaths); ++i) {
-		Common::ScopedPtr<Common::File> file(new Common::File());
-		if (file->open(Common::String(scenepaths[i]) + "OLYMPUS/OL.POD")) {
+		Common::ScopedPtr<Common::SeekableReadStream> stream(Common::MacResManager::openFileOrDataFork(Common::Path(scenepaths[i]).appendInPlace("OLYMPUS/OL.POD")));
+		if (stream) {
 			_cdScenesPath = scenepaths[i];
 			break;
 		}
 	}
 
-	if (_cdScenesPath == "") {
+	if (_cdScenesPath.empty()) {
 		debug("Cannot find OL.POD");
 		return Common::kUnsupportedGameidError;
 	}
@@ -528,6 +531,7 @@ Common::Error HadeschEngine::run() {
 	_heroBelt = Common::SharedPtr<HeroBelt>(new HeroBelt());
 	_gfxContext = Common::SharedPtr<GfxContext8Bit>(new GfxContext8Bit(2 * kVideoWidth + 10, kVideoHeight + 50));
 	_isInOptions = false;
+	_lastFallbackSound = -1;
 
 	ConfMan.registerDefault("subtitles", "false");
 	ConfMan.registerDefault("sfx_volume", 192);
@@ -585,9 +589,11 @@ Common::Error HadeschEngine::run() {
 				}
 				const Common::String &q = getVideoRoom()->mapClick(event.mouse);
 				debug("handling click on <%s>", q.c_str());
-				if (getVideoRoom()->isHeroBeltEnabled() && _heroBelt->isHoldingItem())
-					getCurrentHandler()->handleClickWithItem(q, _heroBelt->getHoldingItem());
-				else {
+				if (getVideoRoom()->isHeroBeltEnabled() && _heroBelt->isHoldingItem()) {
+					if (!getCurrentHandler()->handleClickWithItem(q, _heroBelt->getHoldingItem())) {
+						fallbackClick();
+					}
+				} else {
 					getCurrentHandler()->handleAbsoluteClick(event.mouse);
 					getCurrentHandler()->handleClick(q);
 				}
@@ -600,13 +606,13 @@ Common::Error HadeschEngine::run() {
 				// TODO: make equivalents for mobile devices. Keyboard is
 				// used for 4 things:
 				//
-				// * Skipping cutscenes (press space)
+				// * Skipping cutscenes (press space or escape. In original: only space).
 				// * Entering name.
 				//      Original requires a non-empty name. We allow an
 				//      empty name.
 				// * Optional save name
 				// * Cheats
-				if (event.kbd.keycode == Common::KEYCODE_SPACE)
+				if (event.kbd.keycode == Common::KEYCODE_SPACE || event.kbd.keycode == Common::KEYCODE_ESCAPE)
 					stopVideo = true;
 				if ((event.kbd.ascii >= 'a' && event.kbd.ascii <= 'z')
 				    || (event.kbd.ascii >= '0' && event.kbd.ascii <= '9')) {
@@ -708,6 +714,34 @@ bool HadeschEngine::hasFeature(EngineFeature f) const {
 		f == kSupportsLoadingDuringRuntime ||
 		f == kSupportsSavingDuringRuntime ||
 		f == kSupportsChangingOptionsDuringRuntime;
+}
+
+static const TranscribedSound fallbackSounds[] = {
+	{"G0080nA0", _hs("Ho, not there")},
+	{"G0080nB0", _hs("Nope")},
+	{"G0080nC0", _hs("Time out, kid. That doesn't work there")},
+	{"G0080nD0", _hs("How about something else?")},
+	{"G0080nE0", _hs("Eh-Eh")},
+	{"G0080nF0", _hs("Not that one")},
+	{"G0080nG0", _hs("Are you kidding? Try something else")},
+	{"G0080nH0", _hs("Enough already. Give something else a try")},
+	{"G0080nI0", _hs("Something else might work better")},
+	{"G0080nJ0", _hs("You can come up with a better answer than that")},
+};
+
+void HadeschEngine::fallbackClick() {
+	int soundId = -1;
+	if (_lastFallbackSound < 0)
+		soundId = getRnd().getRandomNumberRng(0, ARRAYSIZE(fallbackSounds) - 1);
+	else {
+		soundId = getRnd().getRandomNumberRng(0, ARRAYSIZE(fallbackSounds) - 2);
+		if (soundId >= _lastFallbackSound)
+			soundId++;
+	}
+
+	_lastFallbackSound = soundId;
+	Common::SharedPtr<VideoRoom> room = g_vm->getVideoRoom();
+	room->playSpeech(fallbackSounds[soundId]);
 }
 
 Common::Error HadeschEngine::loadGameStream(Common::SeekableReadStream *stream) {

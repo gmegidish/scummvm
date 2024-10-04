@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, MojoTouch has exclusively licensed
+ * this code on November 10th, 2021, to be use in closed-source products.
+ * Therefore, any contributions (commits) to it will also be dual-licensed.
  *
  */
 
@@ -25,7 +30,7 @@
 
 namespace Groovie {
 
-MouseTrapGame::MouseTrapGame() : _random("MouseTrapGame") {
+MouseTrapGame::MouseTrapGame(bool easierAi) : _random("MouseTrapGame") {
 	_mouseTrapCounter = _mouseTrapCounter1 = 0;
 	_mouseTrapX = _mouseTrapY = 0;
 	memset(_mouseTrapRoute, 0, 75);
@@ -33,6 +38,7 @@ MouseTrapGame::MouseTrapGame() : _random("MouseTrapGame") {
 	_mouseTrapPosX = _mouseTrapPosY = 0;
 	memset(_mouseTrapCells, 0, 31);
 	_mouseTrapNumSteps = 0;
+	_easierAi = easierAi;
 }
 
 void MouseTrapGame::run(byte *scriptVariables) {
@@ -126,6 +132,10 @@ void MouseTrapGame::init() {
 	initX[5] = 3;
 	initX[6] = 4;
 	initX[7] = 4;
+
+	// easier AI gives a fixed board state, because the random configurations can give you some bad ones
+	if(_easierAi)
+		_random.setSeed(711);
 
 	for (int i = 7; i >= 0; i--) {
 		int8 j = _random.getRandomNumber(i);
@@ -549,6 +559,9 @@ void MouseTrapGame::goFarthest(int8 *x, int8 *y) {
 			flipField(x1, y1);
 
 			int8 dist = calcDistanceToExit();
+
+			if (_easierAi)
+				dist += _random.getRandomNumber(2);
 
 			if (_mouseTrapNumSteps && _random.getRandomNumber(1) != 0)
 				dist += 3;

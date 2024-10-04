@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,16 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef BACKENDS_GRAPHICS_OPENGL_PIPELINES_PIPELINE_H
 #define BACKENDS_GRAPHICS_OPENGL_PIPELINES_PIPELINE_H
 
-#include "backends/graphics/opengl/opengl-sys.h"
+#include "graphics/opengl/system_headers.h"
+
+#include "backends/graphics/opengl/framebuffer.h"
 #include "backends/graphics/opengl/texture.h"
+
+#include "math/matrix4.h"
 
 namespace OpenGL {
 
@@ -39,7 +42,7 @@ class Framebuffer;
 class Pipeline {
 public:
 	Pipeline();
-	virtual ~Pipeline() {}
+	virtual ~Pipeline() { if (isActive()) deactivate(); }
 
 	/**
 	 * Activate the pipeline.
@@ -80,16 +83,48 @@ public:
 	 * @param texture     Texture to use for drawing.
 	 * @param coordinates x1, y1, x2, y2 coordinates where to draw the texture.
 	 */
-	virtual void drawTexture(const GLTexture &texture, const GLfloat *coordinates) = 0;
+	inline void drawTexture(const GLTexture &texture, const GLfloat *coordinates, const GLfloat *texcoords) {
+		drawTextureInternal(texture, coordinates, texcoords);
+	}
 
-	void drawTexture(const GLTexture &texture, GLfloat x, GLfloat y, GLfloat w, GLfloat h) {
+	inline void drawTexture(const GLTexture &texture, const GLfloat *coordinates) {
+		drawTextureInternal(texture, coordinates, texture.getTexCoords());
+	}
+
+	inline void drawTexture(const GLTexture &texture, GLfloat x, GLfloat y, GLfloat w, GLfloat h) {
 		const GLfloat coordinates[4*2] = {
 			x,     y,
 			x + w, y,
 			x,     y + h,
 			x + w, y + h
 		};
-		drawTexture(texture, coordinates);
+		drawTextureInternal(texture, coordinates, texture.getTexCoords());
+	}
+
+	inline void drawTexture(const GLTexture &texture, GLfloat x, GLfloat y, GLfloat w, GLfloat h, const Common::Rect &clip) {
+		const GLfloat coordinates[4*2] = {
+			x,     y,
+			x + w, y,
+			x,     y + h,
+			x + w, y + h
+		};
+
+		const uint tw = texture.getWidth(),
+			  th = texture.getHeight();
+
+		if (tw == 0 || th == 0) {
+			// Nothing to display
+			return;
+		}
+
+		const GLfloat texcoords[4*2] = {
+			(float)clip.left  / tw, (float)clip.top    / th,
+			(float)clip.right / tw, (float)clip.top    / th,
+			(float)clip.left  / tw, (float)clip.bottom / th,
+			(float)clip.right / tw, (float)clip.bottom / th
+		};
+
+		drawTextureInternal(texture, coordinates, texcoords);
 	}
 
 	/**
@@ -97,7 +132,7 @@ public:
 	 *
 	 * This is intended to be only ever be used by Framebuffer subclasses.
 	 */
-	virtual void setProjectionMatrix(const GLfloat *projectionMatrix) = 0;
+	virtual void setProjectionMatrix(const Math::Matrix4 &projectionMatrix) = 0;
 
 protected:
 	/**
@@ -106,19 +141,22 @@ protected:
 	 * This sets the OpenGL state to make use of drawing with the given
 	 * OpenGL pipeline.
 	 */
-	virtual void activateInternal() = 0;
+	virtual void activateInternal();
 
 	/**
 	 * Deactivate the pipeline.
 	 */
-	virtual void deactivateInternal() {}
+	virtual void deactivateInternal();
 
-	bool isActive() const { return _isActive; }
+	virtual void drawTextureInternal(const GLTexture &texture, const GLfloat *coordinates, const GLfloat *texcoords) = 0;
+
+	bool isActive() const { return activePipeline == this; }
 
 	Framebuffer *_activeFramebuffer;
 
 private:
-	bool _isActive;
+	/** Currently active rendering pipeline. */
+	static Pipeline *activePipeline;
 };
 
 } // End of namespace OpenGL

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #include "audio/mididrv.h"
 #include "audio/mixer.h"
 #include "engines/engine.h"
+#include "common/config-manager.h"
 #include "common/func.h"
 
 namespace AGOS {
@@ -37,15 +37,15 @@ public:
 	};
 public:
 	PC98CommonDriver();
-	virtual ~PC98CommonDriver() override {};
+	~PC98CommonDriver() override {};
 
 	bool isOpen() const override { return _isOpen; }
 	void send(uint32 b) override;
 	void setTimerCallback(void *timerParam, Common::TimerManager::TimerProc timerProc) override;
 	uint32 property(int prop, uint32 param) override;
 	uint32 getBaseTempo() override { return _baseTempo; }
-	MidiChannel *allocateChannel() override { return 0; }
-	MidiChannel *getPercussionChannel() override { return 0; }
+	MidiChannel *allocateChannel() override { return nullptr; }
+	MidiChannel *getPercussionChannel() override { return nullptr; }
 
 protected:
 	void updateSounds();
@@ -155,6 +155,7 @@ private:
 
 	MidiDriver *_drv;
 	DeviceHandle _dev;
+	MusicType _devType;
 
 	uint8 _volSysex[9];
 	uint8 _partAssignSysexGS[9];
@@ -166,7 +167,7 @@ private:
 	static const uint8 _sysexMsg[3][9];
 };
 
-PC98CommonDriver::PC98CommonDriver() : _mixer(g_engine->_mixer), _baseTempo(0), _fadeVolumeAdjust(0), _allNotes(false), _programLock(false), _isOpen(false), _noFadeRemap(false), _delayedProgramChange(false), _ngDelay(0), _timerCb(0), _musicVolume(0xff), _sfxVolume(0xff), _internalUpdateTimer(0) {
+PC98CommonDriver::PC98CommonDriver() : _mixer(g_engine->_mixer), _baseTempo(0), _fadeVolumeAdjust(0), _allNotes(false), _programLock(false), _isOpen(false), _noFadeRemap(false), _delayedProgramChange(false), _ngDelay(0), _timerCb(nullptr), _musicVolume(0xff), _sfxVolume(0xff), _internalUpdateTimer(0) {
 	memset(_partPrograms, 0, sizeof(_partPrograms));
 	memset(_chanUse, 0, sizeof(_chanUse));
 }
@@ -208,7 +209,7 @@ void PC98CommonDriver::send(uint32 b) {
 
 void PC98CommonDriver::setTimerCallback(void *timerParam, Common::TimerManager::TimerProc timerProc) {
 	delete _timerCb;
-	_timerCb = (_isOpen && timerParam && timerProc) ? new TimerCb(timerProc, timerParam) : 0;
+	_timerCb = (_isOpen && timerParam && timerProc) ? new TimerCb(timerProc, timerParam) : nullptr;
 }
 
 uint32 PC98CommonDriver::property(int prop, uint32 param) {
@@ -269,7 +270,7 @@ void PC98CommonDriver::reset() {
 	_ngDelay = 0;
 }
 
-PC98FMDriver::PC98FMDriver() : PC98CommonDriver(), _pc98a(0) {
+PC98FMDriver::PC98FMDriver() : PC98CommonDriver(), _pc98a(nullptr) {
 	_baseTempo = 10080;
 	_instrumentsRemap = _instrumentsRemapFM;
 	_instrumentLevelAdjust = (const int8*)_instrumentLevelAdjustFM;
@@ -317,8 +318,8 @@ int PC98FMDriver::open() {
 void PC98FMDriver::close() {
 	_isOpen = false;
 	delete _pc98a;
-	_pc98a = 0;
-	setTimerCallback(0, 0);
+	_pc98a = nullptr;
+	setTimerCallback(nullptr, nullptr);
 }
 
 void PC98FMDriver::noteOn(uint8 part, uint8 note, uint8 velo) {
@@ -530,10 +531,10 @@ const uint16 PC98FMDriver::_frequency[12] = {
 
 #define MIDIMSG32(s, p1, p2) (p2 << 16 | p1 << 8 | s)
 
-PC98MidiDriver::PC98MidiDriver(MidiDriver::DeviceHandle dev) : _dev(dev), _drv(0) {
-	_instrumentsRemap = (getMusicType(dev) == MT_MT32) ? _instrumentsRemapMT32 : (getMusicType(dev) == MT_GM ? _instrumentsRemapGM : 0);
-	int8 *tbl2 = new int8[128];
-	memset(tbl2, 0, 128);
+PC98MidiDriver::PC98MidiDriver(MidiDriver::DeviceHandle dev) : _dev(dev), _drv(nullptr) {
+	_devType = (getMusicType(dev) == MT_MT32 || ConfMan.getBool("native_mt32")) ? MT_MT32 : MT_GM;
+	_instrumentsRemap = (_devType == MT_MT32) ? _instrumentsRemapMT32 : (_devType == MT_GM ? _instrumentsRemapGM : nullptr);
+	int8 *tbl2 = new int8[128]();
 	_instrumentLevelAdjust = tbl2;
 	_partsRemap = _partsRemapMidi;
 	memcpy(_volSysex, _sysexMsg[0], 9);
@@ -567,7 +568,7 @@ int PC98MidiDriver::open() {
 
 		property(kPropMusicVolume, Audio::Mixer::kMaxChannelVolume);
 
-		if (getMusicType(_dev) == MT_MT32) {
+		if (_devType == MT_MT32) {
 			_partAssignSysexGS[7] = 0x10;
 			for (uint8 i = 0x10; i < 0x20; ++i) {
 				_partAssignSysexGS[5] = i;
@@ -580,7 +581,7 @@ int PC98MidiDriver::open() {
 				sendSysexWithCheckSum(_partAssignSysexMT32);
 			}
 
-		} else if (getMusicType(_dev) == MT_GM) {
+		} else if (_devType == MT_GM) {
 			_partAssignSysexGS[5] = 0x10;
 			_partAssignSysexGS[7] = 9;
 			sendSysexWithCheckSum(_partAssignSysexGS);
@@ -613,14 +614,14 @@ void PC98MidiDriver::close() {
 	_isOpen = false;
 
 	if (_drv) {
-		_drv->setTimerCallback(0, 0);
+		_drv->setTimerCallback(nullptr, nullptr);
 		_mixer->stopAll();
 		_drv->close();
 		delete _drv;
-		_drv = 0;
+		_drv = nullptr;
 	}
 
-	setTimerCallback(0, 0);
+	setTimerCallback(nullptr, nullptr);
 }
 
 void PC98MidiDriver::timerCallback(void *obj) {
@@ -649,7 +650,7 @@ void PC98MidiDriver::setVolume(int musicVolume, int sfxVolume) {
 	if (!_isOpen)
 		return;
 
-	if (getMusicType(_dev) == MT_MT32) {
+	if (_devType == MT_MT32) {
 		_volSysex[7] = musicVolume * 100 / Audio::Mixer::kMaxChannelVolume;
 		sendSysexWithCheckSum(_volSysex);
 	} else {
@@ -714,7 +715,7 @@ MidiDriver *MidiDriverPC98_create(MidiDriver::DeviceHandle dev) {
 		return new PC98FMDriver();
 	else if (type == MT_GM || type == MT_MT32)
 		return new PC98MidiDriver(dev);
-	return 0;
+	return nullptr;
 }
 
 #undef MIDIMSG32

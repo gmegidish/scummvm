@@ -1,10 +1,10 @@
 /* Created by Eric Fry
  * Copyright (C) 2011 The Nuvie Team
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,7 +12,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *
  */
@@ -35,7 +35,7 @@ FMtownsDecoderStream::FMtownsDecoderStream(unsigned char *buf, uint32 len) {
 	should_free_raw_data = false;
 }
 
-FMtownsDecoderStream::FMtownsDecoderStream(Std::string filename, uint16 sample_num, bool isCompressed) {
+FMtownsDecoderStream::FMtownsDecoderStream(const Common::Path &filename, uint16 sample_num, bool isCompressed) {
 	unsigned char *item_data;
 	uint32 decomp_size;
 	U6Lib_n sam_file;
@@ -43,7 +43,7 @@ FMtownsDecoderStream::FMtownsDecoderStream(Std::string filename, uint16 sample_n
 
 	sam_file.open(filename, 4);
 
-	item_data = sam_file.get_item(sample_num, NULL);
+	item_data = sam_file.get_item(sample_num, nullptr);
 
 	if (isCompressed) {
 		raw_audio_buf = lzw.decompress_buffer(item_data, sam_file.get_item_size(sample_num), decomp_size);
@@ -75,7 +75,7 @@ int FMtownsDecoderStream::readBuffer(sint16 *buffer, const int numSamples) {
 	//DEBUG(0,LEVEL_INFORMATIONAL, "numSamples = %d. buf_pos = %d, buf_len = %d\n", numSamples, buf_pos, buf_len);
 
 	for (; j < numSamples && i < buf_len;) {
-		buffer[j] = convertSample(READ_LE_UINT16(&raw_audio_buf[i]));
+		buffer[j] = convertSample(static_cast<uint16>(raw_audio_buf[i]));
 		j++;
 		i++;
 	}

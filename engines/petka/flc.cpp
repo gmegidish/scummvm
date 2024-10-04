@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,20 +65,20 @@ void FlicDecoder::load(Common::SeekableReadStream *stream, Common::SeekableReadS
 	delete mskStream;
 }
 
-const Common::Rect &FlicDecoder::getBounds() const {
+const Common::Rect FlicDecoder::getBounds() const {
 	const Track *track = getTrack(0);
 	if (track)
 		return ((const FlicVideoTrack *)track)->getBounds();
 
-	return *(new Common::Rect(0, 0));
+	return Common::Rect(0, 0);
 }
 
-const Common::Array<Common::Rect> &FlicDecoder::getMskRects() const {
+const Common::Array<Common::Rect> FlicDecoder::getMskRects() const {
 	const Track *track = getTrack(0);
 	if (track)
 		return ((const FlicVideoTrack *)track)->getMskRects();
 
-	return *(new Common::Array<Common::Rect>());
+	return Common::Array<Common::Rect>();
 }
 
 uint32 FlicDecoder::getTransColor(const Graphics::PixelFormat &fmt) const {
@@ -161,7 +160,7 @@ bool FlicDecoder::FlicVideoTrack::loadMsk(Common::SeekableReadStream &stream) {
 	return true;
 }
 
-const Common::Rect &FlicDecoder::FlicVideoTrack::getBounds() const {
+const Common::Rect FlicDecoder::FlicVideoTrack::getBounds() const {
 	return _bounds;
 }
 
@@ -169,7 +168,7 @@ const Graphics::Surface *FlicDecoder::FlicVideoTrack::getSurface() const {
 	return _surface;
 }
 
-const Common::Array<Common::Rect> &FlicDecoder::FlicVideoTrack::getMskRects() const {
+const Common::Array<Common::Rect> FlicDecoder::FlicVideoTrack::getMskRects() const {
 	assert(_curFrame >= 0);
 	return _msk[_curFrame];
 }

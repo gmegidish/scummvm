@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -89,7 +88,7 @@ void Statement::load(Common::SeekableReadStream &s, bool isRoseTattoo) {
 /*----------------------------------------------------------------*/
 
 TalkHistoryEntry::TalkHistoryEntry() {
-	Common::fill(&_data[0], &_data[16], false);
+	Common::fill(&_data[0], &_data[32], false);
 }
 
 /*----------------------------------------------------------------*/
@@ -131,7 +130,7 @@ Talk::Talk(SherlockEngine *vm) : _vm(vm) {
 	_talkHistory.resize(IS_ROSE_TATTOO ? 1500 : 500);
 }
 
-void Talk::talkTo(const Common::String filename) {
+void Talk::talkTo(const Common::String &filename) {
 	Events &events = *_vm->_events;
 	Inventory &inv = *_vm->_inventory;
 	Journal &journal = *_vm->_journal;
@@ -177,8 +176,11 @@ void Talk::talkTo(const Common::String filename) {
 	if (people[HOLMES]._walkCount || (!people[HOLMES]._walkTo.empty() &&
 			(IS_SERRATED_SCALPEL || people._allowWalkAbort))) {
 		// Only interrupt if trying to do an action, and not just if player is walking around the scene
-		if (people._allowWalkAbort)
+		if (people._allowWalkAbort) {
 			abortFlag = true;
+			// an arrow zone might have been clicked before the interrupt, cancel the scene transition
+			ui._exitZone = -1;
+		}
 
 		people[HOLMES].gotoStand();
 	}
@@ -275,13 +277,13 @@ void Talk::talkTo(const Common::String filename) {
 			break;
 
 		case FILES_MODE:
-			ui.banishWindow(true);
+			ui.banishWindow();
 			ui._windowBounds.top = CONTROLS_Y1;
 			abortFlag = true;
 			break;
 
 		case SETUP_MODE:
-			ui.banishWindow(true);
+			ui.banishWindow();
 			ui._windowBounds.top = CONTROLS_Y1;
 			ui._temp = ui._oldTemp = ui._lookHelp = ui._invLookFlag = false;
 			ui._menuMode = STD_MODE;
@@ -342,7 +344,8 @@ void Talk::talkTo(const Common::String filename) {
 
 		// Handle replies until there's no further linked file,
 		// or the link file isn't a reply first cnversation
-		while (!_vm->shouldQuit()) {
+		bool done = false;
+		while (!done && !_vm->shouldQuit()) {
 			clearSequences();
 			_scriptSelect = select;
 			_speaker = _talkTo;
@@ -407,12 +410,16 @@ void Talk::talkTo(const Common::String filename) {
 				// If the new conversion is a reply first, then we don't need
 				// to display any choices, since the reply needs to be shown
 				if (!newStatement._statement.hasPrefix("*") && !newStatement._statement.hasPrefix("^")) {
+					clearSequences();
+					pushSequence(_talkTo);
+					people.setListenSequence(_talkTo, 129);
 					_talkIndex = select;
+					ui._selector = ui._oldSelector = -1;
 					showTalk();
 
 					// Break out of loop now that we're waiting for player input
 					events.setCursor(ARROW);
-					break;
+					done = true;
 				} else {
 					// Add the statement into the journal and talk history
 					if (_talkTo != -1 && !_talkHistory[_converseNum][select])
@@ -429,16 +436,16 @@ void Talk::talkTo(const Common::String filename) {
 
 				if (IS_SERRATED_SCALPEL) {
 					if (!ui._lookScriptFlag) {
-						ui.drawInterface(2);
+						ui.banishWindow();
 						ui._menuMode = STD_MODE;
 						ui._windowBounds.top = CONTROLS_Y1;
 					}
 				} else {
 					ui._menuMode = static_cast<Tattoo::TattooScene *>(_vm->_scene)->_labTableScene ? LAB_MODE : STD_MODE;
+					ui.banishWindow();
 				}
 
-				ui.banishWindow();
-				break;
+				done = true;
 			}
 		}
 	}
@@ -549,6 +556,7 @@ void Talk::initTalk(int objNum) {
 				}
 			} else {
 				_talkIndex = select;
+				ui._selector = ui._oldSelector = -1;
 				showTalk();
 
 				// Break out of loop now that we're waiting for player input
@@ -582,8 +590,8 @@ void Talk::loadTalkFile(const Common::String &filename) {
 	}
 
 	const char *chP = strchr(filename.c_str(), '.');
-	Common::String talkFile = chP ? Common::String(filename.c_str(), chP) + ".tlk" :
-		Common::String(filename.c_str(), filename.c_str() + 7) + ".tlk";
+	Common::Path talkFile = chP ? Common::Path(Common::String(filename.c_str(), chP)).appendInPlace(".tlk") :
+		Common::Path(Common::String(filename.c_str(), filename.c_str() + 7)).appendInPlace(".tlk");
 
 	// Create the base of the sound filename used for talking in Rose Tattoo
 	if (IS_ROSE_TATTOO && _scriptMoreFlag != 1)
@@ -610,7 +618,7 @@ void Talk::stripVoiceCommands() {
 	for (uint sIdx = 0; sIdx < _statements.size(); ++sIdx) {
 		Statement &statement = _statements[sIdx];
 
-		// Scan for an sound effect byte, which indicates to play a sound
+		// Scan for a sound effect byte, which indicates to play a sound
 		for (uint idx = 0; idx < statement._reply.size(); ++idx) {
 			if (statement._reply[idx] == (char)_opcodes[OP_SFX_COMMAND]) {
 				// Replace instruction character with a space, and delete the
@@ -695,6 +703,7 @@ void Talk::doScript(const Common::String &script) {
 	if (_scriptMoreFlag) {
 		_scriptMoreFlag = 0;
 		str = _scriptStart + _scriptSaveIndex;
+		assert(str <= _scriptEnd);
 	}
 
 	// Check if the script begins with a Stealh Mode Active command
@@ -768,8 +777,19 @@ void Talk::doScript(const Common::String &script) {
 			_endStr = true;
 		} else if (c == '{') {
 			// Start of comment, so skip over it
-			while (*str++ != '}')
-				;
+			if (Fonts::isBig5()) {
+				while (*str && *str != '}') {
+					if ((*str & 0x80) && str[1])
+						str += 2;
+					else
+						str++;
+				}
+				if (*str)
+					str++;
+			} else {
+				while (*str++ != '}')
+					;
+			}
 		} else if (isOpcode(c)) {
 			// the original interpreter checked for c being >= 0x80
 			// and if that is the case, it tried to process it as opcode, BUT ALSO ALWAYS skipped over it
@@ -860,7 +880,7 @@ int Talk::waitForMore(int delay) {
 	// Handle playing any speech associated with the text being displayed
 	switchSpeaker();
 	if (sound._speechOn && IS_ROSE_TATTOO) {
-		sound.playSpeech(sound._talkSoundFile);
+		sound.playSpeech(Common::Path(sound._talkSoundFile));
 		sound._talkSoundFile.setChar(sound._talkSoundFile.lastChar() + 1, sound._talkSoundFile.size() - 1);
 	}
 	playingSpeech = sound.isSpeechPlaying();
@@ -959,11 +979,19 @@ void Talk::popStack() {
 }
 
 void Talk::synchronize(Serializer &s) {
+	// Since save version 6: each TalkHistoryEntry now holds 32 flags
+	const int numFlags = s.getVersion() > 5 ? 32 : 16;
+	const auto flagSize = sizeof _talkHistory[0]._data[0];
+
 	for (uint idx = 0; idx < _talkHistory.size(); ++idx) {
 		TalkHistoryEntry &he = _talkHistory[idx];
 
-		for (int flag = 0; flag < 16; ++flag)
+		for (int flag = 0; flag < numFlags; ++flag)
 			s.syncAsByte(he._data[flag]);
+
+		// For old saves with less than 32 flags we zero the rest
+		if (s.isLoading() && numFlags < 32)
+			memset(he._data + flagSize * 16, 0, flagSize * 16);
 	}
 }
 

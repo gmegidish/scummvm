@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -79,6 +78,8 @@ enum __rtype {
 	__STARTB, // just our box
 	__LASER // straight there - no barriers
 };
+
+#define DEFAULT_interact_distance (500*500*REAL_ONE)
 
 #define MAX_extra_floors 12
 
@@ -153,7 +154,7 @@ typedef struct {
 #define MAX_stairs 32
 
 typedef struct {
-	_route_barrier bar;
+	RouteBarrier bar;
 	PXfloat pan, pan_ref, x, z;
 
 	uint8 units;
@@ -660,15 +661,39 @@ public:
 	mcodeFunctionReturnCodes fn_snap_to_ladder_bottom(int32 &, int32 *);
 	mcodeFunctionReturnCodes fn_snap_to_ladder_top(int32 &, int32 *);
 
+	mcodeFunctionReturnCodes fn_set_manual_interact_object(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_cancel_manual_interact_object(int32 &, int32 *);
+
 	mcodeFunctionReturnCodes fn_set_feet_to_pan(int32 &, int32 *);
 	mcodeFunctionReturnCodes fn_room_route(int32 &, int32 *);
 	mcodeFunctionReturnCodes fn_hard_load_generic_anim(int32 &, int32 *);
 	mcodeFunctionReturnCodes fn_hard_load_custom_anim(int32 &, int32 *);
 
 	mcodeFunctionReturnCodes fn_face_camera(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_set_interact_distance(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_display_objects_lvar(int32 &, int32 *);
 
 	mcodeFunctionReturnCodes fn_activate_sparkle(int32 &, int32 *);
 	mcodeFunctionReturnCodes fn_deactivate_sparkle(int32 &, int32 *);
+
+	mcodeFunctionReturnCodes fn_is_player_standing_still(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_set_override_pose(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_cancel_override_pose(int32 &, int32 *);
+
+	mcodeFunctionReturnCodes fn_preload_actor_file(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_preload_mesh(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_preload_texture(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_preload_palette(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_preload_animation(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_inventory_active(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_radial_interact(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_shutdown_inventory(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_hard_load_mesh(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_set_mega_height(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_shadow(int32 &, int32 *);
+
+	mcodeFunctionReturnCodes fn_is_actor_relative(int32 &, int32 *);
+	mcodeFunctionReturnCodes fn_can_save(int32 &, int32 *);
 
 	void Set_script(const char *script_name);
 	void Context_check(uint32 script_name);
@@ -685,7 +710,7 @@ public:
 
 	bool8 Call_socket(uint32 id, const char *script, int32 *retval);
 	uint32 socket_id;
-	c_game_object *socket_object;
+	CGame *socket_object;
 
 	void Create_initial_route(__rtype type);
 
@@ -734,7 +759,7 @@ public:
 #define CONV_ID 0
 
 	uint32 menu_number;
-	uint32 no_click_zone; // cant click past text until this reaches a certain number
+	uint32 no_click_zone; // can't click past text until this reaches a certain number
 
 	// The object ID of the currently highlighted prop
 	int32 selected_prop_id;
@@ -773,7 +798,7 @@ public:
 	PXfloat normalAngle;
 	__barrier_result Check_barrier_bump_and_bounce(PXreal newx, PXreal newy, PXreal newz, PXreal oldx, PXreal oldy, PXreal oldz, bool8 player);
 
-	__barrier_result Check_this_barrier(_route_barrier *bar, PXreal newx, PXreal newz, PXreal oldx, PXreal oldz, PXreal bar_close, int32 *ignore);
+	__barrier_result Check_this_barrier(RouteBarrier *bar, PXreal newx, PXreal newz, PXreal oldx, PXreal oldz, PXreal bar_close, int32 *ignore);
 
 	void Prepare_megas_route_barriers(bool8 player);
 	void Prepare_megas_abarriers(uint32 slice_number, uint32 parent_number);
@@ -939,14 +964,14 @@ public:
 	_barrier_handler *session_barriers; // pointer to _barrier_handler object - loads file so must be pointer
 
 	// game object stuff - objects.linked
-	_linked_data_file *objects;
+	LinkedDataFile *objects;
 	uint32 total_objects; // number of objects in the objects.object file - pulled out at session start for convenience
 	_logic *logic_structs[MAX_session_objects]; // pointers to current sessions logic structs
 	uint32 num_megas; // keeps a running total of megas initialised - used when assigning megas structures
 	uint32 num_vox_images; // as above but for vox_images - in theory these 2 counters are the same thing but that would be an assumption too far tbh
 
 	// and the scripts.linked file
-	_linked_data_file *scripts;
+	LinkedDataFile *scripts;
 
 	// handles player object and user interface
 	_player player;
@@ -956,10 +981,10 @@ public:
 	_marker markers;
 
 	// initial map tag positions of props, people, etc.
-	_linked_data_file *features;
+	LinkedDataFile *features;
 
 	// ascii speech text
-	_linked_data_file *text;
+	LinkedDataFile *text;
 
 	// list of auto interact objects
 	uint8 auto_interact_list[MAX_auto_interact];
@@ -971,13 +996,13 @@ public:
 	uint32 remora_font_hash;     // the hash value of the speech_font_one string
 
 	// prop animations
-	_linked_data_file *prop_anims; // prop anims are loaded into the special private_session_resman
+	LinkedDataFile *prop_anims; // prop anims are loaded into the special private_session_resman
 
 	// make los_timing be global so we can print it at a global level
 	uint32 los_time;
 
 	uint32 total_was; // how many individual walk-areas
-	_linked_data_file *walk_areas;
+	LinkedDataFile *walk_areas;
 	const __aWalkArea *wa_list[MAX_was]; // walk areas
 
 	bool8 manual_camera; // overiden by a script command
@@ -1006,7 +1031,7 @@ private:
 	_logic *L; // current objects logic structure
 	_vox_image *I; // pointer to current objects _voxel_image structure - megas only
 	_mega *M; // pointer to current objects _mega struct - megas only
-	c_game_object *object; // represents the current game object at logic run time
+	CGame *object; // represents the current game object at logic run time
 	uint32 script_var_value; // holds script variables passed back via fn_pass_flag_to_engine
 
 	// list of ids that are voxel characters - built per game cycle
@@ -1098,21 +1123,21 @@ inline uint32 _game_session::Fetch_no_megas_nudge_barriers() {
 
 inline uint32 _game_session::External_fetch_no_megas_barriers(uint32 id) {
 	// return number of current barriers
-	// we are not in logic loop so cant rely on M, I, L etc.
+	// we are not in logic loop so can't rely on M, I, L etc.
 
 	return (logic_structs[id]->mega->number_of_barriers);
 }
 
 inline uint32 _game_session::External_fetch_no_megas_anim_barriers(uint32 id) {
 	// return number of current barriers
-	// we are not in logic loop so cant rely on M, I, L etc.
+	// we are not in logic loop so can't rely on M, I, L etc.
 
 	return (logic_structs[id]->mega->number_of_animating);
 }
 
 inline uint32 _game_session::External_fetch_no_megas_nudge_barriers(uint32 id) {
 	// return number of current special player nudgebarriers
-	// we are not in logic loop so cant rely on M, I, L etc.
+	// we are not in logic loop so can't rely on M, I, L etc.
 
 	return (logic_structs[id]->mega->number_of_nudge);
 }
@@ -1182,22 +1207,22 @@ inline uint32 _game_session::Fetch_session_cluster_hash() {
 
 inline uint32 _game_session::Fetch_object_integer_variable(const char *pcName, const char *pcVar) const {
 	int32 nVariableNumber;
-	c_game_object *pGameObject;
+	CGame *pGameObject;
 
 	// Get the object itself.
-	pGameObject = (c_game_object *)objects->Fetch_item_by_name(pcName);
+	pGameObject = (CGame *)LinkedDataObject::Fetch_item_by_name(objects, pcName);
 
 	if (!pGameObject)
 		Fatal_error("_game_session::Fetch_object_integer_variable( %s, %s ) couldn't find object", pcName, pcVar);
 
 	// Find the position of the requested variable.
-	nVariableNumber = pGameObject->GetVariable(pcVar);
+	nVariableNumber = CGameObject::GetVariable(pGameObject, pcVar);
 
 	if (nVariableNumber == -1)
 		Fatal_error("_game_session::Fetch_object_integer_variable( %s, %s ) couldn't find variable", pcName, pcVar);
 
 	// Get the lvar.
-	return (pGameObject->GetIntegerVariable(nVariableNumber));
+	return (CGameObject::GetIntegerVariable(pGameObject, nVariableNumber));
 }
 
 inline PXcamera &_game_session::GetCamera() { return set.GetCamera(); }

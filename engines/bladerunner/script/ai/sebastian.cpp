@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "bladerunner/bladerunner.h"
 #include "bladerunner/script/ai_script.h"
 
 namespace BladeRunner {
@@ -95,7 +95,14 @@ void AIScriptSebastian::OtherAgentEnteredCombatMode(int otherActorId, int combat
 	if (otherActorId == kActorMcCoy
 	 && combatMode
 	) {
+#if BLADERUNNER_ORIGINAL_BUGS
 		Global_Variable_Increment(kVariableGunPulledInFrontOfSebastian, 1);
+#else
+		// This is a minor fix: Prevent increasing the value of kVariableGunPulledInFrontOfSebastian without restriction
+		if (Global_Variable_Query(kVariableGunPulledInFrontOfSebastian) < 2) {
+			Global_Variable_Increment(kVariableGunPulledInFrontOfSebastian, 1);
+		}
+#endif
 		Actor_Modify_Friendliness_To_Other(kActorSebastian, kActorMcCoy, -5);
 		AI_Movement_Track_Pause(kActorSebastian);
 		Actor_Face_Actor(kActorSebastian, kActorMcCoy, true);
@@ -265,6 +272,7 @@ bool AIScriptSebastian::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	default:
+		debugC(6, kDebugAnimation, "AIScriptSebastian::UpdateAnimation() - Current _animationState (%d) is not supported", _animationState);
 		break;
 	}
 	*frame = _animationFrame;
@@ -344,6 +352,10 @@ bool AIScriptSebastian::ChangeAnimationMode(int mode) {
 	case kAnimationModeDie:
 		_animationState = 3;
 		_animationFrame = 0;
+		break;
+
+	default:
+		debugC(6, kDebugAnimation, "AIScriptSebastian::ChangeAnimationMode(%d) - Target mode is not supported", mode);
 		break;
 	}
 

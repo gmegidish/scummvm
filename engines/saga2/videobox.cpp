@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -42,38 +41,38 @@ CVideoBox::CVideoBox(const Rect16 &box,
                      uint16 ident,
                      AppFunc *cmd) : ModalWindow(box, ident, cmd) {
 	// set the size of the window panes
-	vidPanRects[0] =  Rect16(x, y, xBrushSize, yBrushSize);
-	vidPanRects[1] =  Rect16(x, y + yBrushSize, xBrushSize, yBrushSize);
+	_vidPanRects[0] =  Rect16(kVBx, kVBy, kVBxBrushSize, kVByBrushSize);
+	_vidPanRects[1] =  Rect16(kVBx, kVBy + kVByBrushSize, kVBxBrushSize, kVByBrushSize);
 
 	// options dialog window decorations
-	vidDec[0].set(vidPanRects[0], vidPan1ResID);
-	vidDec[1].set(vidPanRects[1], vidPan2ResID);
+	_vidDec[0].set(_vidPanRects[0], kVBvidPan1ResID);
+	_vidDec[1].set(_vidPanRects[1], kVBvidPan2ResID);
 
-	// null out the decRes pointer
-	decRes = NULL;
+	// null out the _decRes pointer
+	_decRes = nullptr;
 
-	rInfo.result = -1;
-	rInfo.running = false;
+	_rInfo.result = -1;
+	_rInfo.running = false;
 }
 
 CVideoBox::~CVideoBox() {
 	// remove the resource handle
-	if (decRes)
-		resFile->disposeContext(decRes);
-	decRes = NULL;
+	if (_decRes)
+		resFile->disposeContext(_decRes);
+	_decRes = nullptr;
 
 	// stop video if not done
 	g_vm->abortVideo();
 }
 
 void CVideoBox::deactivate() {
-	selected = 0;
+	_selected = 0;
 	gPanel::deactivate();
 }
 
 bool CVideoBox::activate(gEventType why) {
-	if (why == gEventMouseDown) {        // momentarily depress
-		selected = 1;
+	if (why == kEventMouseDown) {        // momentarily depress
+		_selected = 1;
 		notify(why, 0);                      // notify App of successful hit
 		return true;
 	}
@@ -81,7 +80,7 @@ bool CVideoBox::activate(gEventType why) {
 }
 
 void CVideoBox::pointerMove(gPanelMessage &) {
-	notify(gEventMouseMove, 0);
+	notify(kEventMouseMove, 0);
 }
 
 bool CVideoBox::pointerHit(gPanelMessage &) {
@@ -90,25 +89,25 @@ bool CVideoBox::pointerHit(gPanelMessage &) {
 	requestInfo     *ri;
 
 	win = getWindow();      // get the window pointer
-	ri = win ? (requestInfo *)win->userData : NULL;
+	ri = win ? (requestInfo *)win->_userData : nullptr;
 
 	if (ri) {
 		ri->running = 0;
-		ri->result  = id;
+		ri->result  = _id;
 	}
 
-	activate(gEventMouseDown);
+	activate(kEventMouseDown);
 	return true;
 }
 
 void CVideoBox::pointerDrag(gPanelMessage &) {
-	if (selected) {
-		notify(gEventMouseDrag, 0);
+	if (_selected) {
+		notify(kEventMouseDrag, 0);
 	}
 }
 
 void CVideoBox::pointerRelease(gPanelMessage &) {
-	if (selected) notify(gEventMouseUp, 0);    // notify App of successful hit
+	if (_selected) notify(kEventMouseUp, 0);    // notify App of successful hit
 	deactivate();
 }
 
@@ -131,22 +130,22 @@ void CVideoBox::init() {
 	assert(resFile);
 
 	// set the result info to nominal startup values
-	rInfo.result    = -1;
-	rInfo.running   = true;
+	_rInfo.result    = -1;
+	_rInfo.running   = true;
 
 	// init the resource context handle
-	decRes = resFile->newContext(MKTAG('V', 'I', 'D', 'O'),
+	_decRes = resFile->newContext(MKTAG('V', 'I', 'D', 'O'),
 	                             "Video border resources");
 
 
 	// get the decorations for this window
-	setDecorations(vidDec,
-	               ARRAYSIZE(vidDec),
-	               decRes,
+	setDecorations(_vidDec,
+	               ARRAYSIZE(_vidDec),
+	               _decRes,
 	               'V', 'B', 'D');
 
 	// attach the result info struct to this window
-	userData = &rInfo;
+	_userData = &_rInfo;
 }
 
 int16 CVideoBox::openVidBox(char *fileName) {
@@ -157,16 +156,16 @@ int16 CVideoBox::openVidBox(char *fileName) {
 	ModalWindow::open();
 
 	// start the video playback
-	g_vm->startVideo(fileName, x + borderWidth, y + borderWidth);
+	g_vm->startVideo(fileName, kVBx + kVBborderWidth, kVBy + kVBborderWidth);
 
 	// run this modal event loop
-	//EventLoop( rInfo.running, true );
-	rInfo.running = g_vm->checkVideo();
-	while (rInfo.running)
-		rInfo.running = g_vm->checkVideo();
+	//EventLoop( _rInfo.running, true );
+	_rInfo.running = g_vm->checkVideo();
+	while (_rInfo.running)
+		_rInfo.running = g_vm->checkVideo();
 
 	// get the result
-	return rInfo.result;
+	return _rInfo.result;
 }
 
 // this opens a video box for business
@@ -176,13 +175,10 @@ int16 openVidBox(char *fileName) {
 
 	g_vm->_pal->quickSavePalette();
 	// create a video box
-	CVideoBox videoBox(area, 0, NULL);
+	CVideoBox videoBox(area, 0, nullptr);
 
 	// open this video box
 	int16 result = videoBox.openVidBox(fileName);
-
-	// get rid of the box when done
-	videoBox.~CVideoBox();
 
 	g_vm->_pal->quickRestorePalette();
 	// replace the damaged area

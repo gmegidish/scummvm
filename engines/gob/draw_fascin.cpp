@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -315,7 +320,7 @@ void Draw_Fascination::spriteOperation(int16 operation) {
 
 	if (operation == DRAW_PRINTTEXT) {
 		len = _fonts[_fontIndex]->getCharWidth();
-		adjustCoords(1, &len, 0);
+		adjustCoords(1, &len, nullptr);
 		_destSpriteX += len * strlen(_textToPrint);
 	}
 
@@ -983,7 +988,7 @@ void Draw_Fascination::activeWin(int16 id) {
 		nextId = id;
 
 		for (int j = 0; j < 10; j++) {
-			if (oldSrf[j] != 0)
+			if (oldSrf[j] != nullptr)
 				_fascinWin[j].savedSurface = oldSrf[j];
 		}
 	}
@@ -1029,7 +1034,7 @@ void Draw_Fascination::drawWinTrace(int16 left, int16 top, int16 width, int16 he
 
 	Pixel pixelTop = _frontSurface->get(left, top);
 	Pixel pixelBottom = _frontSurface->get(left, bottom);
-	for (int16 i = 0; i < width; i++, pixelTop++, pixelBottom++) {
+	for (int16 i = 0; i < width; i++, ++pixelTop, ++pixelBottom) {
 		pixelTop.set((pixelTop.get() + 128) & 0xFF);
 		pixelBottom.set((pixelBottom.get() + 128) & 0xFF);
 	}

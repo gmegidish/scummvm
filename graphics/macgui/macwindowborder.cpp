@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -81,22 +80,28 @@ bool MacWindowBorder::hasBorder(uint32 flags) {
 }
 
 void MacWindowBorder::disableBorder() {
-	Graphics::TransparentSurface *noborder = new Graphics::TransparentSurface();
-	noborder->create(3, 3, noborder->getSupportedPixelFormat());
-	uint32 colorBlack = noborder->getSupportedPixelFormat().RGBToColor(0, 0, 0);
-	uint32 colorPink = noborder->getSupportedPixelFormat().RGBToColor(255, 0, 255);
+	const byte palette[] = {
+		255, 0,   255,
+		0,   0,   0
+	};
+
+	Graphics::ManagedSurface *noborder = new Graphics::ManagedSurface();
+	noborder->create(3, 3, Graphics::PixelFormat::createFormatCLUT8());
+	noborder->setPalette(palette, 0, 2);
+	noborder->setTransparentColor(0);
 
 	for (int y = 0; y < 3; y++)
 		for (int x = 0; x < 3; x++)
-			*((uint32 *)noborder->getBasePtr(x, y)) = noborderData[y][x] ? colorBlack : colorPink;
+			*((byte *)noborder->getBasePtr(x, y)) = noborderData[y][x];
 
 	setBorder(noborder, kWindowBorderActive);
 
-	Graphics::TransparentSurface *noborder2 = new Graphics::TransparentSurface(*noborder, true);
+	Graphics::ManagedSurface *noborder2 = new Graphics::ManagedSurface();
+	noborder2->copyFrom(*noborder);
 	setBorder(noborder2, 0);
 }
 
-void MacWindowBorder::addBorder(TransparentSurface *source, uint32 flags, int titlePos) {
+void MacWindowBorder::addBorder(ManagedSurface *source, uint32 flags, int titlePos) {
 	if (flags >= kWindowBorderMaxFlag) {
 		warning("Accessing non-existed border type");
 		return;
@@ -145,7 +150,7 @@ void MacWindowBorder::setTitle(const Common::String& title, int width, MacWindow
 	_title = title;
 	const Graphics::Font *font = wm->_fontMan->getFont(Graphics::MacFont(kMacFontChicago, 12));
 	int sidesWidth = getOffset().left + getOffset().right;
-	int titleWidth = font->getStringWidth(_title) + 10;
+	int titleWidth = font->getStringWidth(_title) + 8;
 	int maxWidth = MAX<int>(width - sidesWidth - 7, 0);
 	if (titleWidth > maxWidth)
 		titleWidth = maxWidth;
@@ -171,7 +176,7 @@ void MacWindowBorder::drawScrollBar(ManagedSurface *g, MacWindowManager *wm) {
 	Common::Rect rr(rx1, ry1, rx2, ry2);
 
 	MacPlotData pd(g, nullptr,  &wm->getPatterns(), 1, 0, 0, 1, wm->_colorWhite, true);
-	Graphics::drawFilledRect(rr, wm->_colorWhite, wm->getDrawInvertPixel(), &pd);
+	Graphics::drawFilledRect1(rr, wm->_colorWhite, wm->getDrawInvertPixel(), &pd);
 
 	// after drawing, we set the _scrollSize negative, to indicate no more drawing is needed
 	// if win95 mode is enabled, then we keep on drawing the scrollbar
@@ -185,16 +190,18 @@ void MacWindowBorder::drawTitle(ManagedSurface *g, MacWindowManager *wm, int tit
 	int titleColor = getOffset().dark ? wm->_colorWhite: wm->_colorBlack;
 	int titleY = getOffset().titleTop;
 	int sidesWidth = getOffset().left + getOffset().right;
-	int titleWidth = font->getStringWidth(_title) + 10;
+	int titleWidth = font->getStringWidth(_title) + 8;
 	int yOff = wm->_fontMan->hasBuiltInFonts() ? 3 : 1;
 	int maxWidth = width - sidesWidth - 7;
 	if (titleWidth > maxWidth)
 		titleWidth = maxWidth;
 
-	font->drawString(g, _title, titleOffset + 5, titleY + yOff, titleWidth, titleColor);
+	font->drawString(g, _title, titleOffset + 4, titleY + yOff, titleWidth, titleColor);
 }
 
 void MacWindowBorder::setBorderType(int type) {
+	setOffsets(_window->_wm->getBorderOffsets(type));
+
 	_useInternalBorder = true;
 	_borderType = type;
 }
@@ -217,22 +224,32 @@ void MacWindowBorder::loadBorder(Common::SeekableReadStream &file, uint32 flags,
 
 void MacWindowBorder::loadBorder(Common::SeekableReadStream &file, uint32 flags, BorderOffsets offsets) {
 	Image::BitmapDecoder bmpDecoder;
-	Graphics::Surface *source;
-	Graphics::TransparentSurface *surface = new Graphics::TransparentSurface();
-
 	bmpDecoder.loadStream(file);
-	source = bmpDecoder.getSurface()->convertTo(surface->getSupportedPixelFormat(), bmpDecoder.getPalette());
 
-	surface->create(source->w, source->h, _window->_wm->_pixelformat);
-	surface->copyFrom(*source);
+	Graphics::ManagedSurface *surface = new Graphics::ManagedSurface();
+	surface->copyFrom(*bmpDecoder.getSurface());
+	surface->setPalette(bmpDecoder.getPalette(), 0,
+	                    bmpDecoder.getPaletteColorCount());
 
-	source->free();
-	delete source;
+	if (surface->format.isCLUT8()) {
+		const byte *palette = bmpDecoder.getPalette();
+		for (int i = 0; i < bmpDecoder.getPaletteColorCount(); i++) {
+			if (palette[0] == 255 && palette[1] == 0 && palette[2] == 255) {
+				surface->setTransparentColor(i);
+				break;
+			}
+			palette += 3;
+		}
+	} else {
+		const Graphics::PixelFormat requiredFormat_4byte(4, 8, 8, 8, 8, 24, 16, 8, 0);
+		surface->convertToInPlace(requiredFormat_4byte);
+		surface->setTransparentColor(surface->format.RGBToColor(255, 0, 255));
+	}
 
 	setBorder(surface, flags, offsets);
 }
 
-void MacWindowBorder::setBorder(Graphics::TransparentSurface *surface, uint32 flags, int lo, int ro, int to, int bo) {
+void MacWindowBorder::setBorder(Graphics::ManagedSurface *surface, uint32 flags, int lo, int ro, int to, int bo) {
 	BorderOffsets offsets;
 	offsets.left = lo;
 	offsets.right = ro;
@@ -245,8 +262,7 @@ void MacWindowBorder::setBorder(Graphics::TransparentSurface *surface, uint32 fl
 	setBorder(surface, flags, offsets);
 }
 
-void MacWindowBorder::setBorder(Graphics::TransparentSurface *surface, uint32 flags, BorderOffsets offsets) {
-	surface->applyColorKey(255, 0, 255, false);
+void MacWindowBorder::setBorder(Graphics::ManagedSurface *surface, uint32 flags, BorderOffsets offsets) {
 	addBorder(surface, flags, offsets.titlePos);
 
 	if ((flags & kWindowBorderActive) && offsets.left + offsets.right + offsets.top + offsets.bottom > -4) { // Checking against default -1
@@ -277,7 +293,6 @@ void MacWindowBorder::blitBorderInto(ManagedSurface &destination, uint32 flags, 
 		return;
 	}
 
-	TransparentSurface srf;
 	NinePatchBitmap *src = _border[flags];
 
 	if (!src) {
@@ -295,12 +310,7 @@ void MacWindowBorder::blitBorderInto(ManagedSurface &destination, uint32 flags, 
 		setTitle(_title, destination.w, wm);
 	}
 
-	srf.create(destination.w, destination.h, destination.format);
-	srf.fillRect(Common::Rect(srf.w, srf.h), wm->_colorGreen2);
-
-	src->blit(srf, 0, 0, srf.w, srf.h, NULL, 0, wm);
-	destination.transBlitFrom(srf, wm->_colorGreen2);
-	srf.free();
+	src->blit(destination, 0, 0, destination.w, destination.h, wm);
 
 	if (flags & kWindowBorderTitle)
 		drawTitle(&destination, wm, src->getTitleOffset());

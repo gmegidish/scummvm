@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -83,7 +82,7 @@ void Debugger::buildDebugText() {
 
 		_vm->_mouse->getPos(mouseX, mouseY);
 
-		sprintf(buf, "%d,%d", mouseX + screenInfo->scroll_offset_x, mouseY + screenInfo->scroll_offset_y);
+		Common::sprintf_s(buf, "%d,%d", mouseX + screenInfo->scroll_offset_x, mouseY + screenInfo->scroll_offset_y);
 		if (mouseX > 560)
 			makeDebugTextBlock(buf, mouseX - 50, mouseY - 15);
 		else
@@ -97,23 +96,23 @@ void Debugger::buildDebugText() {
 		// so we can see what's behind the lines
 		_rectFlicker = !_rectFlicker;
 
-		sprintf(buf, "x1=%d", _rectX1);
+		Common::sprintf_s(buf, "x1=%d", _rectX1);
 		makeDebugTextBlock(buf, 0, 120);
 
-		sprintf(buf, "y1=%d", _rectY1);
+		Common::sprintf_s(buf, "y1=%d", _rectY1);
 		makeDebugTextBlock(buf, 0, 135);
 
-		sprintf(buf, "x2=%d", _rectX2);
+		Common::sprintf_s(buf, "x2=%d", _rectX2);
 		makeDebugTextBlock(buf, 0, 150);
 
-		sprintf(buf, "y2=%d", _rectY2);
+		Common::sprintf_s(buf, "y2=%d", _rectY2);
 		makeDebugTextBlock(buf, 0, 165);
 	}
 
 	// testingSnR indicator
 
 	if (_testingSnR) {		// see fnAddHuman()
-		sprintf(buf, "TESTING LOGIC STABILITY!");
+		Common::sprintf_s(buf, "TESTING LOGIC STABILITY!");
 		makeDebugTextBlock(buf, 0, 105);
 	}
 
@@ -126,9 +125,9 @@ void Debugger::buildDebugText() {
 			_startTime = time;
 
 		time -= _startTime;
-		sprintf(buf, "Time %.2d:%.2d:%.2d.%.3d", (time / 3600000) % 60, (time / 60000) % 60, (time / 1000) % 60, time % 1000);
+		Common::sprintf_s(buf, "Time %.2d:%.2d:%.2d.%.3d", (time / 3600000) % 60, (time / 60000) % 60, (time / 1000) % 60, time % 1000);
 		makeDebugTextBlock(buf, 500, 360);
-		sprintf(buf, "Game %d", _vm->_gameCycle);
+		Common::sprintf_s(buf, "Game %d", _vm->_gameCycle);
 		makeDebugTextBlock(buf, 500, 380);
 	}
 
@@ -138,20 +137,20 @@ void Debugger::buildDebugText() {
 		if (_textNumber) {
 			if (_vm->_logic->readVar(SYSTEM_TESTING_TEXT)) {
 				if (_vm->_logic->readVar(SYSTEM_WANT_PREVIOUS_LINE))
-					sprintf(buf, "backwards");
+					Common::sprintf_s(buf, "backwards");
 				else
-					sprintf(buf, "forwards");
+					Common::sprintf_s(buf, "forwards");
 
 				makeDebugTextBlock(buf, 0, 340);
 			}
 
-			sprintf(buf, "res: %d", _textNumber / SIZE);
+			Common::sprintf_s(buf, "res: %d", _textNumber / SIZE);
 			makeDebugTextBlock(buf, 0, 355);
 
-			sprintf(buf, "pos: %d", _textNumber & 0xffff);
+			Common::sprintf_s(buf, "pos: %d", _textNumber & 0xffff);
 			makeDebugTextBlock(buf, 0, 370);
 
-			sprintf(buf, "TEXT: %d", _vm->_logic->_officialTextNumber);
+			Common::sprintf_s(buf, "TEXT: %d", _vm->_logic->_officialTextNumber);
 			makeDebugTextBlock(buf, 0, 385);
 		}
 	}
@@ -159,7 +158,7 @@ void Debugger::buildDebugText() {
 	// resource number currently being checking for animation
 
 	if (_vm->_logic->readVar(SYSTEM_TESTING_ANIMS)) {
-		sprintf(buf, "trying resource %d", _vm->_logic->readVar(SYSTEM_TESTING_ANIMS));
+		Common::sprintf_s(buf, "trying resource %d", _vm->_logic->readVar(SYSTEM_TESTING_ANIMS));
 		makeDebugTextBlock(buf, 0, 90);
 	}
 
@@ -168,20 +167,20 @@ void Debugger::buildDebugText() {
 	if (_displayDebugText) {
 /*
 		// CD in use
-		sprintf(buf, "CD-%d", currentCD);
+		Common::sprintf_s(buf, "CD-%d", currentCD);
 		makeDebugTextBlock(buf, 0, 0);
 */
 
 		// mouse coords & object pointed to
 
 		if (_vm->_logic->readVar(CLICKED_ID))
-			sprintf(buf, "last click at %d,%d (id %d: %s)",
+			Common::sprintf_s(buf, "last click at %d,%d (id %d: %s)",
 				_vm->_logic->readVar(MOUSE_X),
 				_vm->_logic->readVar(MOUSE_Y),
 				_vm->_logic->readVar(CLICKED_ID),
 				_vm->_resman->fetchName(_vm->_logic->readVar(CLICKED_ID)));
 		else
-			sprintf(buf, "last click at %d,%d (---)",
+			Common::sprintf_s(buf, "last click at %d,%d (---)",
 				_vm->_logic->readVar(MOUSE_X),
 				_vm->_logic->readVar(MOUSE_Y));
 
@@ -194,13 +193,13 @@ void Debugger::buildDebugText() {
 		_vm->_mouse->getPos(mouseX, mouseY);
 
 		if (mouseTouching)
-			sprintf(buf, "mouse %d,%d (id %d: %s)",
+			Common::sprintf_s(buf, "mouse %d,%d (id %d: %s)",
 				mouseX + screenInfo->scroll_offset_x,
 				mouseY + screenInfo->scroll_offset_y,
 				mouseTouching,
 				_vm->_resman->fetchName(mouseTouching));
 		else
-			sprintf(buf, "mouse %d,%d (not touching)",
+			Common::sprintf_s(buf, "mouse %d,%d (not touching)",
 				mouseX + screenInfo->scroll_offset_x,
 				mouseY + screenInfo->scroll_offset_y);
 
@@ -210,7 +209,7 @@ void Debugger::buildDebugText() {
 		// if player objct has a graphic
 
 		if (_graphAnimRes)
-			sprintf(buf, "player %d,%d %s (%d) #%d/%d",
+			Common::sprintf_s(buf, "player %d,%d %s (%d) #%d/%d",
 				screenInfo->player_feet_x,
 				screenInfo->player_feet_y,
 				_vm->_resman->fetchName(_graphAnimRes),
@@ -218,7 +217,7 @@ void Debugger::buildDebugText() {
 				_graphAnimPc,
 				_graphNoFrames);
 		else
-			sprintf(buf, "player %d,%d --- %d",
+			Common::sprintf_s(buf, "player %d,%d --- %d",
 				screenInfo->player_feet_x,
 				screenInfo->player_feet_y,
 				_graphAnimPc);
@@ -227,45 +226,45 @@ void Debugger::buildDebugText() {
 
 		// frames-per-second counter
 
-		sprintf(buf, "fps %d", _vm->_screen->getFps());
+		Common::sprintf_s(buf, "fps %d", _vm->_screen->getFps());
 		makeDebugTextBlock(buf, 440, 0);
 
 		// location number
 
-		sprintf(buf, "location=%d", _vm->_logic->readVar(LOCATION));
+		Common::sprintf_s(buf, "location=%d", _vm->_logic->readVar(LOCATION));
 		makeDebugTextBlock(buf, 440, 15);
 
 		// "result" variable
 
-		sprintf(buf, "result=%d", _vm->_logic->readVar(RESULT));
+		Common::sprintf_s(buf, "result=%d", _vm->_logic->readVar(RESULT));
 		makeDebugTextBlock(buf, 440, 30);
 
 		// no. of events in event list
 
-		sprintf(buf, "events=%d", _vm->_logic->countEvents());
+		Common::sprintf_s(buf, "events=%d", _vm->_logic->countEvents());
 		makeDebugTextBlock(buf, 440, 45);
 
 		// sprite list usage
 
-		sprintf(buf, "bgp0: %d/%d", _vm->_screen->getCurBgp0(), MAX_bgp0_sprites);
+		Common::sprintf_s(buf, "bgp0: %d/%d", _vm->_screen->getCurBgp0(), MAX_bgp0_sprites);
 		makeDebugTextBlock(buf, 560, 0);
 
-		sprintf(buf, "bgp1: %d/%d", _vm->_screen->getCurBgp1(), MAX_bgp1_sprites);
+		Common::sprintf_s(buf, "bgp1: %d/%d", _vm->_screen->getCurBgp1(), MAX_bgp1_sprites);
 		makeDebugTextBlock(buf, 560, 15);
 
-		sprintf(buf, "back: %d/%d", _vm->_screen->getCurBack(), MAX_back_sprites);
+		Common::sprintf_s(buf, "back: %d/%d", _vm->_screen->getCurBack(), MAX_back_sprites);
 		makeDebugTextBlock(buf, 560, 30);
 
-		sprintf(buf, "sort: %d/%d", _vm->_screen->getCurSort(), MAX_sort_sprites);
+		Common::sprintf_s(buf, "sort: %d/%d", _vm->_screen->getCurSort(), MAX_sort_sprites);
 		makeDebugTextBlock(buf, 560, 45);
 
-		sprintf(buf, "fore: %d/%d", _vm->_screen->getCurFore(), MAX_fore_sprites);
+		Common::sprintf_s(buf, "fore: %d/%d", _vm->_screen->getCurFore(), MAX_fore_sprites);
 		makeDebugTextBlock(buf, 560, 60);
 
-		sprintf(buf, "fgp0: %d/%d", _vm->_screen->getCurFgp0(), MAX_fgp0_sprites);
+		Common::sprintf_s(buf, "fgp0: %d/%d", _vm->_screen->getCurFgp0(), MAX_fgp0_sprites);
 		makeDebugTextBlock(buf, 560, 75);
 
-		sprintf(buf, "fgp1: %d/%d", _vm->_screen->getCurFgp1(), MAX_fgp1_sprites);
+		Common::sprintf_s(buf, "fgp1: %d/%d", _vm->_screen->getCurFgp1(), MAX_fgp1_sprites);
 		makeDebugTextBlock(buf, 560, 90);
 
 		// largest layer & sprite
@@ -278,7 +277,7 @@ void Debugger::buildDebugText() {
 		// fnTheyDoWeWait
 
 		if (_speechScriptWaiting) {
-			sprintf(buf, "script waiting for %s (%d)",
+			Common::sprintf_s(buf, "script waiting for %s (%d)",
 				_vm->_resman->fetchName(_speechScriptWaiting),
 				_speechScriptWaiting);
 			makeDebugTextBlock(buf, 0, 90);
@@ -295,7 +294,7 @@ void Debugger::buildDebugText() {
 			// anyway because it changes throughout the logic loop
 
 			if (varNo) {
-				sprintf(buf, "var(%d) = %d", varNo, _vm->_logic->readVar(varNo));
+				Common::sprintf_s(buf, "var(%d) = %d", varNo, _vm->_logic->readVar(varNo));
 				makeDebugTextBlock(buf, 530, showVarPos);
 				showVarPos += 15;	// next line down
 			}
@@ -308,11 +307,11 @@ void Debugger::buildDebugText() {
 		int16 numBlocks = _vm->_memory->getNumBlocks();
 
 		if (totAlloc < 1024)
-			sprintf(buf, "%u bytes in %d memory blocks", totAlloc, numBlocks);
+			Common::sprintf_s(buf, "%u bytes in %d memory blocks", totAlloc, numBlocks);
 		else if (totAlloc < 1024 * 1024)
-			sprintf(buf, "%uK in %d memory blocks", totAlloc / 1024, numBlocks);
+			Common::sprintf_s(buf, "%uK in %d memory blocks", totAlloc / 1024, numBlocks);
 		else
-			sprintf(buf, "%.02fM in %d memory blocks", totAlloc / 1048576., numBlocks);
+			Common::sprintf_s(buf, "%.02fM in %d memory blocks", totAlloc / 1048576., numBlocks);
 
 		makeDebugTextBlock(buf, 0, 0);
 	}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,8 @@
 #include "ags/engine/ac/runtime_defines.h"
 #include "ags/engine/ac/screen.h"
 #include "ags/engine/debugging/debug_log.h"
+#include "ags/engine/main/game_run.h"
+#include "ags/engine/media/audio/audio.h"
 #include "ags/engine/platform/base/ags_platform_driver.h"
 #include "ags/engine/gfx/graphics_driver.h"
 #include "ags/shared/gfx/bitmap.h"
@@ -39,14 +40,6 @@ namespace AGS3 {
 
 using namespace AGS::Shared;
 using namespace AGS::Engine;
-
-
-
-
-
-
-
-
 
 
 void FlipScreen(int amount) {
@@ -71,6 +64,9 @@ void ShakeScreen(int severe) {
 	_GP(play).shakesc_amount = severe;
 	_GP(play).mouse_cursor_hidden++;
 
+	// FIXME: we have to sync audio here explicitly, because ShakeScreen
+	// does not call any game update function while it works
+	sync_audio_playback();
 	if (_G(gfxDriver)->RequiresFullRedrawEachFrame()) {
 		for (int hh = 0; hh < 40; hh++) {
 			_G(loopcounter)++;
@@ -78,7 +74,7 @@ void ShakeScreen(int severe) {
 
 			render_graphics();
 
-			update_polled_stuff_if_runtime();
+			update_polled_stuff();
 		}
 	} else {
 		// Optimized variant for software render: create game scene once and shake it
@@ -89,11 +85,12 @@ void ShakeScreen(int severe) {
 			const int yoff = hh % 2 == 0 ? 0 : severe;
 			_GP(play).shake_screen_yoff = yoff;
 			render_to_screen();
-			update_polled_stuff_if_runtime();
+			update_polled_stuff();
 		}
 		clear_letterbox_borders();
 		render_to_screen();
 	}
+	sync_audio_playback();
 
 	_GP(play).mouse_cursor_hidden--;
 	_GP(play).shakesc_length = 0;
@@ -133,14 +130,23 @@ void TintScreen(int red, int grn, int blu) {
 	_GP(play).screen_tint = red + (grn << 8) + (blu << 16);
 }
 
-void my_fade_out(int spdd) {
+void FadeOut(int sppd) {
 	EndSkippingUntilCharStops();
 
 	if (_GP(play).fast_forward)
 		return;
 
-	if (_GP(play).screen_is_faded_out == 0)
+	// FIXME: we have to sync audio here explicitly, because FadeOut
+	// does not call any game update function while it works
+	sync_audio_playback();
+	fadeout_impl(sppd);
+	sync_audio_playback();
+}
+
+void fadeout_impl(int spdd) {
+	if (_GP(play).screen_is_faded_out == 0) {
 		_G(gfxDriver)->FadeOut(spdd, _GP(play).fade_to_red, _GP(play).fade_to_green, _GP(play).fade_to_blue);
+	}
 
 	if (_GP(game).color_depth > 1)
 		_GP(play).screen_is_faded_out = 1;
@@ -180,7 +186,11 @@ void FadeIn(int sppd) {
 	if (_GP(play).fast_forward)
 		return;
 
-	my_fade_in(_G(palette), sppd);
+	// FIXME: we have to sync audio here explicitly, because FadeIn
+	// does not call any game update function while it works
+	sync_audio_playback();
+	fadein_impl(_G(palette), sppd);
+	sync_audio_playback();
 }
 
 } // namespace AGS3

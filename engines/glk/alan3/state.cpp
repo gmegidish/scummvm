@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,7 +58,7 @@ struct game_state {
 
 /* PRIVATE DATA */
 static GameState gameState;     /* TODO: Make pointer, then we don't have to copy to stack, we can just use the pointer */
-static StateStackP stateStack = NULL;
+static StateStackP stateStack = nullptr;
 
 static char *playerCommand;
 
@@ -116,7 +115,7 @@ void deallocateGameState(GameState *gState) {
 
 	if (gState->eventQueueTop > 0) {
 		deallocate(gState->eventQueue);
-		gState->eventQueue = NULL;
+		gState->eventQueue = nullptr;
 	}
 	if (gState->scores)
 		deallocate(gState->scores);
@@ -133,14 +132,14 @@ void forgetGameState(void) {
 	char *playerCmd;
 	popGameState(stateStack, &gameState, &playerCmd);
 	deallocateGameState(&gameState);
-	if (playerCmd != NULL)
+	if (playerCmd != nullptr)
 		deallocate(playerCmd);
 }
 
 
 /*======================================================================*/
 void initStateStack(void) {
-	if (stateStack != NULL)
+	if (stateStack != nullptr)
 		deleteStateStack(stateStack);
 	stateStack = createStateStack(sizeof(GameState));
 }
@@ -149,7 +148,7 @@ void initStateStack(void) {
 /*======================================================================*/
 void terminateStateStack(void) {
 	deleteStateStack(stateStack);
-	stateStack = NULL;
+	stateStack = nullptr;
 }
 
 
@@ -166,7 +165,7 @@ static Set **collectSets(void) {
 	Set **sets;
 	int i;
 
-	if (count == 0) return NULL;
+	if (count == 0) return nullptr;
 
 	sets = (Set **)allocate(count * sizeof(Set));
 
@@ -185,7 +184,7 @@ static char **collectStrings(void) {
 	char **strings;
 	int i;
 
-	if (count == 0) return NULL;
+	if (count == 0) return nullptr;
 
 	strings = (char **)allocate(count * sizeof(char *));
 
@@ -225,8 +224,8 @@ static void collectInstanceData(void) {
 /*----------------------------------------------------------------------*/
 static void collectScores(void) {
 	gameState.score = current.score;
-	if (scores == NULL)
-		gameState.scores = NULL;
+	if (scores == nullptr)
+		gameState.scores = nullptr;
 	else
 		gameState.scores = (Aword *)duplicate(scores, header->scoreCount * sizeof(Aword));
 }
@@ -238,7 +237,7 @@ void rememberGameState(void) {
 	collectInstanceData();
 	collectScores();
 
-	if (stateStack == NULL)
+	if (stateStack == nullptr)
 		initStateStack();
 
 	pushGameState(stateStack, &gameState);
@@ -269,7 +268,7 @@ static void recallSets(Set **sets) {
 	entry = (SetInitEntry *)pointerTo(header->setInitTable);
 	for (i = 0; i < count; i++) {
 		setAttribute(admin[entry[i].instanceCode].attributes, entry[i].attributeCode, toAptr(sets[i]));
-		sets[i] = NULL; /* Since we reuse the saved set, we need to clear the pointer */
+		sets[i] = nullptr; /* Since we reuse the saved set, we need to clear the pointer */
 	}
 }
 
@@ -297,7 +296,7 @@ static void recallStrings(char **strings) {
 	entry = (StringInitEntry *)pointerTo(header->stringInitTable);
 	for (i = 0; i < count; i++) {
 		setAttribute(admin[entry[i].instanceCode].attributes, entry[i].attributeCode, toAptr(strings[i]));
-		strings[i] = NULL;      /* Since we reuse the saved, we need to clear the state */
+		strings[i] = nullptr;      /* Since we reuse the saved, we need to clear the state */
 	}
 }
 
@@ -315,7 +314,7 @@ static void recallEvents(void) {
 /*----------------------------------------------------------------------*/
 static void recallInstances(void) {
 
-	if (admin == NULL)
+	if (admin == nullptr)
 		syserr("admin[] == NULL in recallInstances()");
 
 	memcpy(admin, gameState.admin,

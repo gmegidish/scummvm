@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -90,7 +89,7 @@ Sprite *Hero::expand() {
 		curSeq = new Seq[_seqCnt];
 
 	if (_vm->_resman->exist(fname)) { // sprite description file exist
-		EncryptedStream sprf(_vm, fname);
+		EncryptedStream sprf(_vm->_resman, fname);
 		if (sprf.err())
 			error("Bad SPR [%s]", fname);
 
@@ -195,8 +194,9 @@ Sprite *Hero::expand() {
 	}
 
 	char *tempStr = _vm->_text->getText(_ref + 100);
-	char *text = new char[strlen(tempStr) + 1];
-	strcpy(text, tempStr);
+	size_t ln = strlen(tempStr) + 1;
+	char *text = new char[ln];
+	Common::strcpy_s(text, ln, tempStr);
 	_reachStart = atoi(_vm->token(text));
 	_reachCycle = atoi(_vm->token(nullptr));
 	_sayStart = atoi(_vm->token(nullptr));

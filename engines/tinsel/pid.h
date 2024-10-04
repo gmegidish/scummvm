@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * List of all process identifiers
  */
@@ -55,10 +54,12 @@ namespace Tinsel {
 
 #define PID_BTN_CLICK 0x110				// process to handle mouse button clicks
 
-#define PID_PROCESS	(0x0110 | PID_DESTROY)	// Scene process base
+#define PID_PROCESS	(((TinselVersion == 3) ? 0x0100 : 0x0110) | PID_DESTROY)	// Scene process base
 
-#define PID_GPROCESS	0x0120			// Global process base
+#define PID_GPROCESS ((TinselVersion == 3) ? ( 0x110 | PID_DESTROY) : 0x0120) // Global process base
 
+// distinction introduced by noir
+#define PID_SCENE	((TinselVersion == 3) ? (0x0001 | PID_TCODE) : PID_TCODE)	// Root scene process
 } // End of namespace Tinsel
 
 #endif	// TINSEL_PID_H

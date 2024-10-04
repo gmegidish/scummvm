@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,7 +42,6 @@
 #include "sword25/kernel/common.h"
 #include "common/rect.h"
 #include "sword25/gfx/graphicengine.h"
-#include "graphics/transparent_surface.h"
 
 namespace Sword25 {
 
@@ -78,7 +76,7 @@ public:
 	                The default value is 0.
 	    @param PosY the position on the Y-axis in the target image in pixels where the image is supposed to be rendered.<br>
 	                The default value is 0.
-	    @param Flipping how the the image should be flipped.<br>
+	    @param Flipping how the image should be flipped.<br>
 	                    The default value is Graphics::FLIP_NONE (no flipping)
 	    @param pSrcPartRect Pointer on Common::Rect which specifies the section to be rendered. If the whole image has to be rendered the Pointer is NULL.<br>
 	                        This referes to the unflipped and unscaled image.<br>
@@ -156,7 +154,7 @@ public:
 
 	/**
 	    @brief Checks, if the BS_Image can be a target image for a Blit call.
-	    @return Returns false, if a Blit() call with this object as an target is not allowed.
+	    @return Returns false, if a Blit() call with this object as a target is not allowed.
 	*/
 	virtual bool isBlitTarget() const = 0;
 

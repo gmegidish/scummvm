@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,13 +23,12 @@
 
 #include "engines/advancedDetector.h"
 #include "common/file.h"
-#include "common/translation.h"
 
 #include "neverhood/detection.h"
 
 static const PlainGameDescriptor neverhoodGames[] = {
-	{"neverhood", "The Neverhood Chronicles"},
-	{0, 0}
+	{"neverhood", "The Neverhood"},
+	{nullptr, nullptr}
 };
 
 namespace Neverhood {
@@ -40,7 +38,7 @@ static const ADGameDescription gameDescriptions[] = {
 	// Neverhood English version
 	{
 		"neverhood",
-		0,
+		nullptr,
 		AD_ENTRY1s("hd.blb", "22958d968458c9ff221aee38577bb2b2", 4279716),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -114,15 +112,26 @@ static const ADGameDescription gameDescriptions[] = {
 		GUIO1(GUIO_NONE)
 	},
 
+	// Alternative Neverhood Russian translation.
+	{
+		"neverhood",
+		"Stream",
+		AD_ENTRY1s("hd.blb", "1b6bfa33c5e9e7a7cc02964e9ea7a6f8", 4540208),
+		Common::RU_RUS,
+		Common::kPlatformWindows,
+		ADGF_DROPPLATFORM,
+		GUIO1(GUIO_NONE)
+	},
+
 	// Neverhood Japanese version
 	// Bugreport #11074
 	{
 		"neverhood",
-		_s("Missing game code"), // Reason for being unsupported
+		"",
 		AD_ENTRY1s("hd.blb", "c791725bbbc23c0f8bf78eece4555565", 4308928),
 		Common::JA_JPN,
 		Common::kPlatformWindows,
-		ADGF_DROPPLATFORM | ADGF_UNSUPPORTED,
+		ADGF_DROPPLATFORM,
 		GUIO1(GUIO_NONE)
 	},
 
@@ -131,55 +140,25 @@ static const ADGameDescription gameDescriptions[] = {
 
 } // End of namespace Neverhood
 
-static const ExtraGuiOption neverhoodExtraGuiOption1 = {
-	_s("Use original save/load screens"),
-	_s("Use the original save/load screens instead of the ScummVM ones"),
-	"originalsaveload",
-	false
-};
 
-static const ExtraGuiOption neverhoodExtraGuiOption2 = {
-	_s("Skip the Hall of Records storyboard scenes"),
-	_s("Allows the player to skip past the Hall of Records storyboard scenes"),
-	"skiphallofrecordsscenes",
-	false
-};
-
-static const ExtraGuiOption neverhoodExtraGuiOption3 = {
-	_s("Scale the making of videos to full screen"),
-	_s("Scale the making of videos, so that they use the whole screen"),
-	"scalemakingofvideos",
-	false
-};
-
-
-class NeverhoodMetaEngineDetection : public AdvancedMetaEngineDetection {
+class NeverhoodMetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	NeverhoodMetaEngineDetection() : AdvancedMetaEngineDetection(Neverhood::gameDescriptions, sizeof(ADGameDescription), neverhoodGames) {
-		_guiOptions = GUIO2(GUIO_NOSUBTITLES, GUIO_NOMIDI);
-	}
-
-	const char *getEngineId() const override {
-		return "neverhood";
+	NeverhoodMetaEngineDetection() : AdvancedMetaEngineDetection(Neverhood::gameDescriptions, neverhoodGames) {
+		_guiOptions = GUIO5(GUIO_NOMIDI, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_SKIP_HALL_OF_RECORDS,
+				    GAMEOPTION_SCALE_MAKING_OF_VIDEOS, GAMEOPTION_REPEAT_WILLIE_HINT);
 	}
 
 	const char *getName() const override {
-		return "The Neverhood Chronicles";
+		return "neverhood";
+	}
+
+	const char *getEngineName() const override {
+		return "The Neverhood";
 	}
 
 	const char *getOriginalCopyright() const override {
-		return "The Neverhood Chronicles (C) The Neverhood, Inc.";
+		return "The Neverhood (C) The Neverhood, Inc.";
 	}
-
-	const ExtraGuiOptions getExtraGuiOptions(const Common::String &target) const override;
 };
-
-const ExtraGuiOptions NeverhoodMetaEngineDetection::getExtraGuiOptions(const Common::String &target) const {
-	ExtraGuiOptions options;
-	options.push_back(neverhoodExtraGuiOption1);
-	options.push_back(neverhoodExtraGuiOption2);
-	options.push_back(neverhoodExtraGuiOption3);
-	return options;
-}
 
 REGISTER_PLUGIN_STATIC(NEVERHOOD_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, NeverhoodMetaEngineDetection);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -94,11 +93,18 @@ GameObject *GetOwner(GameObject *go) {
 // This call looks up a spells object prototype. It can accept either
 //   an object ID or a spell ID
 SkillProto *skillProtoFromID(int16 spellOrObjectID) {
+	SkillProto *sProto = (SkillProto *)GameObject::protoAddress(spellOrObjectID);
 	if (spellOrObjectID > MAX_SPELLS)
-		return (SkillProto *)GameObject::protoAddress(spellOrObjectID);
+		return sProto;
 
-	if (spellOrObjectID >= totalSpellBookPages)
-		error("Wrong spellID: %d > %d", spellOrObjectID, totalSpellBookPages);
+	// Can be spellId, check if this the prototype returned by spellOrObjectID refers to a spell
+	int16 manaColor = spellBook[sProto->getSpellID()].getManaType();
+	int16 manaCost  = spellBook[sProto->getSpellID()].getManaAmt();
+	if (manaColor >= ksManaIDRed &&  manaColor <= ksManaIDViolet &&  manaCost > 0) // A spell
+		return sProto;
+
+	if (spellOrObjectID >= kTotalSpellBookPages)
+		error("Wrong spellID: %d > %d", spellOrObjectID, kTotalSpellBookPages);
 
 	return spellBook[spellOrObjectID].getProto();
 }
@@ -106,8 +112,8 @@ SkillProto *skillProtoFromID(int16 spellOrObjectID) {
 //-----------------------------------------------------------------------
 // initialization call to connect skill prototypes with their spells
 void initializeSkill(SkillProto *oNo, SpellID sNo) {
-	if (sNo > 0 && sNo < totalSpellBookPages) {
-		if (spellBook[sNo].getProto() != NULL)
+	if (sNo > 0 && sNo < kTotalSpellBookPages) {
+		if (spellBook[sNo].getProto() != nullptr)
 			error("Duplicate prototype for spell %d", sNo);
 		spellBook[sNo].setProto(oNo);
 	} else
@@ -131,11 +137,11 @@ bool nonUsable(SkillProto *spell) {
 //-----------------------------------------------------------------------
 // test a target for viability in a given spell
 bool validTarget(GameObject *enactor, GameObject *target, ActiveItem *tag, SkillProto *skill) {
-	assert(enactor != NULL);
-	assert(skill != NULL);
+	assert(enactor != nullptr);
+	assert(skill != nullptr);
 	SpellStuff &sp = spellBook[skill->getSpellID()];
 	int32 range = sp.getRange();
-	if (target != NULL && target->thisID() != Nothing) {
+	if (target != nullptr && target->thisID() != Nothing) {
 #if RANGE_CHECKING
 		if (range > 0 &&
 		        range > (
@@ -148,20 +154,20 @@ bool validTarget(GameObject *enactor, GameObject *target, ActiveItem *tag, Skill
 		if (target->IDParent() != enactor->IDParent()) {
 			return false;
 		}
-		if (!lineOfSight(enactor, target, terrainTransparent))
+		if (!lineOfSight(enactor, target, kTerrainTransparent))
 			return false;
 
 		if (isActor(target)) {
 			Actor *a = (Actor *) target;
 			Actor *e = (Actor *) enactor;
-			if (a->hasEffect(actorInvisible) && !e->hasEffect(actorSeeInvis))
+			if (a->hasEffect(kActorInvisible) && !e->hasEffect(kActorSeeInvis))
 				return false;
 		}
 		if (target->thisID() == enactor->thisID())
-			return sp.canTarget(spellTargCaster);
-		return sp.canTarget(spellTargObject);
+			return sp.canTarget(kSpellTargCaster);
+		return sp.canTarget(kSpellTargObject);
 	}
-	if (tag != NULL) {
+	if (tag != nullptr) {
 		if (range > 0 &&
 		        range > (
 		            enactor->getWorldLocation() -
@@ -169,7 +175,7 @@ bool validTarget(GameObject *enactor, GameObject *target, ActiveItem *tag, Skill
 		        .magnitude()) {
 			return false;
 		}
-		return sp.canTarget(spellTargTAG);
+		return sp.canTarget(kSpellTargTAG);
 	}
 #if RANGE_CHECKING
 	if (sp.range > 0 &&
@@ -180,7 +186,7 @@ bool validTarget(GameObject *enactor, GameObject *target, ActiveItem *tag, Skill
 		return false;
 	}
 #endif
-	return sp.canTarget(spellTargLocation);
+	return sp.canTarget(kSpellTargLocation);
 }
 
 //-----------------------------------------------------------------------
@@ -191,12 +197,12 @@ bool canCast(GameObject *enactor, SkillProto *spell) {
 	ActorManaID ami = (ActorManaID)(sProto.getManaType());
 	int amt = sProto.getManaAmt();
 
-	if (ami == numManas)
+	if (ami == kNumManas)
 		return true;
 #if NPC_MANA_CHECK
 	if (isActor(enactor)) {
 		Actor *a = (Actor *) enactor;
-		assert(ami >= manaIDRed && ami <= manaIDViolet);
+		assert(ami >= kManaIDRed && ami <= kManaIDViolet);
 		if ((&a->effectiveStats.redMana)[ami] < amt)
 			return false;
 		return true;
@@ -279,7 +285,7 @@ bool implementSpell(GameObject *enactor, Location   &target, SkillProto *spell) 
 	SpellID s = spell->getSpellID();
 	SpellStuff &sProto = spellBook[s];
 
-	assert(sProto.shouldTarget(spellApplyLocation));
+	assert(sProto.shouldTarget(kSpellApplyLocation));
 
 	ActorManaID ami = (ActorManaID)(sProto.getManaType());
 
@@ -296,7 +302,7 @@ bool implementSpell(GameObject *enactor, Location   &target, SkillProto *spell) 
 		if (actorIDToPlayerID(enactor->thisID(), playerID)) {
 			PlayerActor     *player = getPlayerActorAddress(playerID);
 
-			player->skillAdvance(skillIDSpellcraft, sProto.getManaAmt() / 10);
+			player->skillAdvance(kSkillIDSpellcraft, sProto.getManaAmt() / 10);
 		}
 	} else {
 		if (!enactor->deductCharge(ami, sProto.getManaAmt())) {
@@ -315,11 +321,11 @@ bool implementSpell(GameObject *enactor, ActiveItem *target, SkillProto *spell) 
 	SpellID s = spell->getSpellID();
 	SpellStuff &sProto = spellBook[s];
 	Location l = Location(TAGPos(target), enactor->world()->thisID());
-	if (sProto.shouldTarget(spellApplyLocation)) {
+	if (sProto.shouldTarget(kSpellApplyLocation)) {
 		return implementSpell(enactor, l, spell);
 	}
-	assert(sProto.shouldTarget(spellApplyTAG));
-	assert(target->_data.itemType == activeTypeInstance);
+	assert(sProto.shouldTarget(kSpellApplyTAG));
+	assert(target->_data.itemType == kActiveTypeInstance);
 
 	ActorManaID ami = (ActorManaID)(sProto.getManaType());
 
@@ -336,7 +342,7 @@ bool implementSpell(GameObject *enactor, ActiveItem *target, SkillProto *spell) 
 		if (actorIDToPlayerID(enactor->thisID(), playerID)) {
 			PlayerActor     *player = getPlayerActorAddress(playerID);
 
-			player->skillAdvance(skillIDSpellcraft, sProto.getManaAmt() / 10);
+			player->skillAdvance(kSkillIDSpellcraft, sProto.getManaAmt() / 10);
 		}
 	} else {
 		if (!enactor->deductCharge(ami, sProto.getManaAmt())) {
@@ -355,9 +361,9 @@ bool implementSpell(GameObject *enactor, GameObject *target, SkillProto *spell) 
 	SpellID s = spell->getSpellID();
 	SpellStuff &sProto = spellBook[s];
 	Location l = Location(target->getWorldLocation(), enactor->world()->thisID());
-	if (sProto.shouldTarget(spellApplyLocation))
+	if (sProto.shouldTarget(kSpellApplyLocation))
 		return implementSpell(enactor, l, spell);
-	assert(sProto.shouldTarget(spellApplyObject));
+	assert(sProto.shouldTarget(kSpellApplyObject));
 
 	ActorManaID ami = (ActorManaID)(sProto.getManaType());
 
@@ -374,7 +380,7 @@ bool implementSpell(GameObject *enactor, GameObject *target, SkillProto *spell) 
 		if (actorIDToPlayerID(enactor->thisID(), playerID)) {
 			PlayerActor     *player = getPlayerActorAddress(playerID);
 
-			player->skillAdvance(skillIDSpellcraft, sProto.getManaAmt() / 10);
+			player->skillAdvance(kSkillIDSpellcraft, sProto.getManaAmt() / 10);
 		}
 	} else {
 		if (!enactor->deductCharge(ami, sProto.getManaAmt())) {

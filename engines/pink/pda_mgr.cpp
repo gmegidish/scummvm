@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "pink/pda_mgr.h"
 #include "pink/pink.h"
-#include "pink/director.h"
+#include "pink/screen.h"
 #include "pink/objects/actors/pda_button_actor.h"
 #include "pink/objects/actors/lead_actor.h"
 #include "pink/objects/pages/pda_page.h"
@@ -117,7 +116,7 @@ void PDAMgr::onLeftButtonClick(Common::Point point) {
 	Actor* rightHand = _globalPage->findActor(kRightHand);
 	if (rightHand)
 		static_cast<ActionStill*>(rightHand->getAction())->setFrame(1);
-	Actor *actor = _game->getDirector()->getActorByPoint(point);
+	Actor *actor = _game->getScreen()->getActorByPoint(point);
 	if (actor)
 		actor->onLeftClickMessage();
 }
@@ -129,7 +128,7 @@ void PDAMgr::onLeftButtonUp() {
 }
 
 void PDAMgr::onMouseMove(Common::Point point) {
-	Actor *actor = _game->getDirector()->getActorByPoint(point);
+	Actor *actor = _game->getScreen()->getActorByPoint(point);
 	if (actor && dynamic_cast<PDAButtonActor *>(actor))
 		actor->onMouseOver(point, &_cursorMgr);
 	else
@@ -182,11 +181,9 @@ void PDAMgr::close() {
 }
 
 void PDAMgr::loadGlobal() {
-	if (_globalPage)
-		return;
-
-	delete _globalPage;
-	_globalPage = new PDAPage("GLOBAL", getGame());
+	if (_globalPage == nullptr) {
+		_globalPage = new PDAPage("GLOBAL", getGame());
+	}
 }
 
 void PDAMgr::initPerilButtons() {

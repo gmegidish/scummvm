@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/system.h"
+#include "common/translation.h"
 
 #include "gui/gui-manager.h"
 #include "gui/ThemeEval.h"
@@ -71,17 +71,17 @@ InputDialog::InputDialog(const Common::String &message, const Common::String &st
 	int height = 10;
 	for (int i = 0; i < lineCount; i++) {
 		new GUI::StaticTextWidget(this, 10, height, maxlineWidth, kLineHeight,
-								  lines[i], Graphics::kTextAlignCenter);
+		                          lines[i], Graphics::kTextAlignCenter);
 		height += kLineHeight;
 	}
 	height += 10;
 	if (_hasTextField) {
-		m_text = new GUI::EditTextWidget(this, 10, height, _w - 20, kLineHeight, Common::U32String(string), Common::U32String("input"));
+		m_text = new GUI::EditTextWidget(this, 10, height, _w - 20, kLineHeight, Common::U32String(string), _("Input text"));
 		height += kLineHeight + 10;
 	}
 
-	new GUI::ButtonWidget(this, 10, height, buttonWidth, buttonHeight, Common::U32String("Ok"), Common::U32String(), GUI::kOKCmd, Common::ASCII_RETURN); // Confirm dialog
-	new GUI::ButtonWidget(this, _w - buttonWidth - 10, height, buttonWidth, buttonHeight, Common::U32String("Cancel"), Common::U32String(), GUI::kCloseCmd, Common::ASCII_ESCAPE);   // Cancel dialog
+	new GUI::ButtonWidget(this, 10, height, buttonWidth, buttonHeight, _("OK"), Common::U32String(), GUI::kOKCmd, Common::ASCII_RETURN); // Confirm dialog
+	new GUI::ButtonWidget(this, _w - buttonWidth - 10, height, buttonWidth, buttonHeight, _("Cancel"), Common::U32String(), GUI::kCloseCmd, Common::ASCII_ESCAPE);   // Cancel dialog
 }
 
 Common::String InputDialog::getString() {

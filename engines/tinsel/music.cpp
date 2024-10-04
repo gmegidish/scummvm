@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -269,9 +268,9 @@ void Music::SetMidiVolume(int vol) {
 void Music::OpenMidiFiles() {
 	Common::File midiStream;
 
-	if (TinselV0) {
+	if (TinselVersion == 0) {
 		// The early demo version of DW1 doesn't have MIDI
-	} else if (TinselV2) {
+	} else if (TinselVersion >= 2) {
 		// DW2 uses a different music mechanism
 	} else if (TinselV1Mac) {
 		// open MIDI sequence file in binary mode
@@ -398,7 +397,7 @@ void dumpMusic() {
 		if (midiOffsets[i] == 0)
 			break;
 
-		sprintf(outName, "track%03d.xmi", i + 1);
+		Common::sprintf_s(outName, "track%03d.xmi", i + 1);
 		outFile.open(outName);
 
 		if (i < total - 1)
@@ -593,13 +592,13 @@ void MidiMusicPlayer::playSEQ(uint32 size, bool loop) {
 	uint8 *midiData = _vm->_music->GetMidiBuffer();
 	// MIDI.DAT holds the file names in DW1 PSX
 	Common::String baseName((char *)midiData, size);
-	Common::String seqName = baseName + ".SEQ";
+	Common::Path seqName(baseName + ".SEQ");
 
 	// TODO: Load the instrument bank (<baseName>.VB and <baseName>.VH)
 
 	Common::File seqFile;
 	if (!seqFile.open(seqName))
-		error("Failed to open SEQ file '%s'", seqName.c_str());
+		error("Failed to open SEQ file '%s'", seqName.toString().c_str());
 
 	if (seqFile.readUint32LE() != MKTAG('S', 'E', 'Q', 'p'))
 		error("Failed to find SEQp tag");
@@ -694,6 +693,10 @@ PCMMusicPlayer::PCMMusicPlayer() {
 
 	_vm->_mixer->playStream(Audio::Mixer::kMusicSoundType,
 			&_handle, this, -1, _volume, 0, DisposeAfterUse::NO, true);
+
+	if (TinselVersion == 3) {
+		warning("Todo: remove workaround when deadlock in readBuffer is fixed");
+	}
 }
 
 PCMMusicPlayer::~PCMMusicPlayer() {
@@ -705,7 +708,7 @@ void PCMMusicPlayer::startPlay(int id) {
 	if (_filename.empty())
 		return;
 
-	debugC(DEBUG_DETAILED, kTinselDebugMusic, "Playing PCM music %s, index %d", _filename.c_str(), id);
+	debugC(DEBUG_DETAILED, kTinselDebugMusic, "Playing PCM music %s, index %d", _filename.toString().c_str(), id);
 
 	Common::StackLock slock(_mutex);
 
@@ -726,6 +729,10 @@ void PCMMusicPlayer::stopPlay() {
 
 int PCMMusicPlayer::readBuffer(int16 *buffer, const int numSamples) {
 	Common::StackLock slock(_mutex);
+
+	// Workaround for v3 to prevent deadlock due to missing chunk
+	if ((TinselVersion == 3) && !_curChunk && _state == S_MID)
+		return 0;
 
 	if (!_curChunk && ((_state == S_IDLE) || (_state == S_STOP)))
 		return 0;
@@ -766,7 +773,7 @@ int PCMMusicPlayer::readBuffer(int16 *buffer, const int numSamples) {
 }
 
 bool PCMMusicPlayer::isStereo() const {
-	if (TinselV3) {
+	if (TinselVersion == 3) {
 		return true;
 	} else {
 		return false;
@@ -774,7 +781,7 @@ bool PCMMusicPlayer::isStereo() const {
 }
 
 int PCMMusicPlayer::getRate() const {
-	if (TinselV3) {
+	if (TinselVersion == 3) {
 		if (_curChunk) {
 			return _curChunk->getRate();
 		} else {
@@ -832,6 +839,11 @@ void PCMMusicPlayer::restoreThatTune(void *voidPtr) {
 void PCMMusicPlayer::setMusicSceneDetails(SCNHANDLE hScript,
 		SCNHANDLE hSegment, const char *fileName) {
 
+	// A call to setVol(uint8) later in this method will lock the mixer.
+	// To match the locking order of the audio thread and prevent a deadlock,
+	// we preemptively lock it here first.
+	// See bug #13953
+	Common::StackLock mixerLock(_vm->_mixer->mutex());
 	Common::StackLock lock(_mutex);
 
 	stop();
@@ -956,21 +968,21 @@ void PCMMusicPlayer::fadeOutIteration() {
 	_vm->_mixer->setChannelVolume(_handle, _fadeOutVolume);
 }
 
-Common::MemoryReadStream *readSampleData(const Common::String &filename, uint32 sampleOffset, uint32 sampleLength) {
+Common::MemoryReadStream *readSampleData(const Common::Path &filename, uint32 sampleOffset, uint32 sampleLength) {
 	Common::File file;
 	if (!file.open(filename))
-		error(CANNOT_FIND_FILE, filename.c_str());
+		error(CANNOT_FIND_FILE, filename.toString().c_str());
 
 	file.seek(sampleOffset);
 	if (file.eos() || file.err() || (uint32)file.pos() != sampleOffset)
-		error(FILE_IS_CORRUPT, filename.c_str());
+		error(FILE_IS_CORRUPT, filename.toString().c_str());
 
 	byte *buffer = (byte *) malloc(sampleLength);
 	assert(buffer);
 
 	// read all of the sample
 	if (file.read(buffer, sampleLength) != sampleLength)
-		error(FILE_IS_CORRUPT, filename.c_str());
+		error(FILE_IS_CORRUPT, filename.toString().c_str());
 
 	return new Common::MemoryReadStream(buffer, sampleLength, DisposeAfterUse::YES);
 }
@@ -1024,7 +1036,7 @@ void PCMMusicPlayer::loadMP3MusicFromSegment(int segmentNum) {
 }
 
 void PCMMusicPlayer::loadMusicFromSegment(int segmentNum) {
-	if (TinselV3) {
+	if (TinselVersion == 3) {
 		loadMP3MusicFromSegment(segmentNum);
 	} else {
 		loadADPCMMusicFromSegment(segmentNum);

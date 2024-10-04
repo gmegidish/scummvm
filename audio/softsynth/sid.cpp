@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,8 @@
  */
 
 #ifndef DISABLE_SID
+
+#include "common/translation.h"
 
 #include "audio/softsynth/sid.h"
 #include "audio/null.h"
@@ -431,7 +432,7 @@ public:
 	}
 };
 
-fc_point Filter::f0_points_6581[] = {
+const fc_point Filter::f0_points_6581[] = {
 	//  FC      f         FCHI FCLO
 	// ----------------------------
 	{    0,   220 },   // 0x00      - repeated end point
@@ -799,7 +800,7 @@ void EnvelopeGenerator::reset() {
 	hold_zero = true;
 }
 
-reg16 EnvelopeGenerator::rate_counter_period[] = {
+const data16 EnvelopeGenerator::rate_counter_period[] = {
 	9,  //   2ms*1.0MHz/256 =     7.81
 	32,  //   8ms*1.0MHz/256 =    31.25
 	63,  //  16ms*1.0MHz/256 =    62.50
@@ -819,7 +820,7 @@ reg16 EnvelopeGenerator::rate_counter_period[] = {
 };
 
 
-reg8 EnvelopeGenerator::sustain_level[] = {
+const data8 EnvelopeGenerator::sustain_level[] = {
 	0x00,
 	0x11,
 	0x22,
@@ -1430,15 +1431,15 @@ int SID::updateClock(cycle_count& delta_t, short* buf, int n, int interleave) {
 
 class C64MusicPlugin : public NullMusicPlugin {
 public:
-	const char *getName() const {
+	const char *getName() const override {
 		return _s("C64 Audio emulator");
 	}
 
-	const char *getId() const {
+	const char *getId() const override {
 		return "C64";
 	}
 
-	MusicDevices getDevices() const;
+	MusicDevices getDevices() const override;
 };
 
 MusicDevices C64MusicPlugin::getDevices() const {

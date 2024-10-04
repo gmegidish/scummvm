@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -39,8 +38,8 @@ struct StaticTilePoint;
 class Effectron;
 
 enum nodeType {
-	nodeTypeObject = 0,
-	nodeTypeEffect
+	kNodeTypeObject = 0,
+	kNodeTypeEffect
 };
 
 
@@ -51,20 +50,20 @@ class DisplayNode {
 	friend ObjectID pickObject(const StaticPoint32 &mouse, StaticTilePoint &objPos);
 
 private:
-	DisplayNode             *nextDisplayed;         // pointer to next in display list
-	int16                   sortDepth;              // for sorting by depth
-	GameObject              *object;                // the object to display
-	Point16                 screenCoords;           // screen coordinates
-	Rect16                  hitBox;                 // hitbox for clicking this item
-	uint8                   flags;                  // various flags
+	DisplayNode             *_nextDisplayed;         // pointer to next in display list
+	int16                   _sortDepth;              // for sorting by depth
+	GameObject              *_object;                // the object to display
+	Point16                 _screenCoords;           // screen coordinates
+	Rect16                  _hitBox;                 // hitbox for clicking this item
+	uint8                   _flags;                  // various flags
 
 	enum {
-		displayIndicator = (1 << 0)
+		kDisplayIndicator = (1 << 0)
 	};
 
 public:
-	nodeType                type;
-	Effectron               *efx;
+	nodeType                _type;
+	Effectron               *_efx;
 
 	DisplayNode();
 
@@ -82,33 +81,33 @@ public:
 //  This class is used to form a list of objects to display on
 //  the screen.
 
-const int           maxDisplayed = 100;
+const int           kMaxDisplayed = 100;
 
 class DisplayNodeList {
 	friend ObjectID pickObject(const StaticPoint32 &mouse, StaticTilePoint &objPos);
 
 public:
-	uint16              count;                  // number of entries in list
-	DisplayNode         *displayList;       // table of displayed objects
-	static DisplayNode  *head;              // head of list
+	uint16              _count;                  // number of entries in list
+	DisplayNode         *_displayList;       // table of displayed objects
+	static DisplayNode  *_head;              // head of list
 
 	DisplayNodeList(uint16 newSize) {
-		displayList = (DisplayNode *)malloc(sizeof(DisplayNode) * newSize);
+		_displayList = (DisplayNode *)malloc(sizeof(DisplayNode) * newSize);
 		init(newSize);
-		count = 0;
+		_count = 0;
 	}
 	DisplayNodeList() {
-		displayList = (DisplayNode *)malloc(sizeof(DisplayNode) * maxDisplayed);
-		init(maxDisplayed);
-		count = 0;
+		_displayList = (DisplayNode *)malloc(sizeof(DisplayNode) * kMaxDisplayed);
+		init(kMaxDisplayed);
+		_count = 0;
 	}
 	~DisplayNodeList() {
-		free(displayList);
+		free(_displayList);
 	}
 
 	void reset() {
-		count = 0;
-		head = NULL;
+		_count = 0;
+		_head = NULL;
 	}
 
 	void  init(uint16 s);

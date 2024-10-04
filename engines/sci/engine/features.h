@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#ifndef SCI_INCLUDE_FEATURES_H
-#define SCI_INCLUDE_FEATURES_H
+#ifndef SCI_ENGINE_FEATURES_H
+#define SCI_ENGINE_FEATURES_H
 
 #include "sci/resource/resource.h"
 #include "sci/engine/seg_manager.h"
@@ -48,6 +47,10 @@ enum MessageTypeSyncStrategy {
 	kMessageTypeSyncStrategyLSL6Hires,
 	kMessageTypeSyncStrategyShivers
 #endif
+};
+
+enum {
+	kSpeedThrottleDefaultDelay = 30 // kGameIsRestarting default max delay in ms
 };
 
 class GameFeatures {
@@ -95,11 +98,14 @@ public:
 
 	inline bool usesModifiedAudioAttenuation() const {
 		switch (g_sci->getGameId()) {
-		// Assuming MGDX uses modified attenuation since SQ6 does and it was
-		// released earlier, but not verified (Phar Lap Windows-only release)
-		case GID_MOTHERGOOSEHIRES:
 		case GID_PQ4:
+		case GID_QFG4:
+			return g_sci->isCD();
+		case GID_MOTHERGOOSEHIRES:
 		case GID_SQ6:
+			// SQ6 1.0 uses modified attenuation, 1.11 does not.
+			// The interpreters are different even though they both have the
+			// same date and version string. ("May 24 1995", "2.100.002")
 			return true;
 		case GID_KQ7:
 			// KQ7 1.51 (SCI2.1early) uses the non-standard attenuation, but
@@ -276,10 +282,32 @@ public:
 	 */
 	bool hasScriptObjectNames() const;
 
+	/**
+	 * Returns if the game can be saved via the GMM.
+	 * Saving via the GMM doesn't work as expected in
+	 * games which don't follow the normal saving scheme.
+	*/
+	bool canSaveFromGMM() const;
+	
+	/**
+	 * Returns the global variable index to the start of the game's
+	 * global flags array. This is used by the console debugger.
+	 *
+	 * @return Non-zero index if successful, otherwise zero.
+	 */
+	uint16 getGameFlagsGlobal() const;
+
+	/**
+	 * Returns the bit order in which game flags are stored.
+	 *
+	 * @return true if bit order is normal or false if reversed.
+	 */
+	bool isGameFlagBitOrderNormal() const;
+
 private:
 	reg_t getDetectionAddr(const Common::String &objName, Selector slc, int methodNum = -1);
 
-	bool autoDetectLofsType(Common::String gameSuperClassName, int methodNum);
+	bool autoDetectLofsType(const Common::String& gameSuperClassName, int methodNum);
 	bool autoDetectGfxFunctionsType(int methodNum = -1);
 	bool autoDetectSoundType();
 	bool autoDetectMoveCountType();
@@ -305,4 +333,4 @@ private:
 
 } // End of namespace Sci
 
-#endif // SCI_INCLUDE_ENGINE_H
+#endif // SCI_ENGINE_FEATURES_H

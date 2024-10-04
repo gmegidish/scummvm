@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,7 @@
 
 #include "engines/stark/gfx/driver.h"
 #include "engines/stark/gfx/surfacerenderer.h"
-#include "engines/stark/gfx/texture.h"
+#include "engines/stark/gfx/bitmap.h"
 #include "engines/stark/scene.h"
 #include "engines/stark/services/services.h"
 #include "engines/stark/services/settings.h"
@@ -41,7 +40,7 @@ VisualSmacker::VisualSmacker(Gfx::Driver *gfx) :
 		Visual(TYPE),
 		_gfx(gfx),
 		_surface(nullptr),
-		_texture(nullptr),
+		_bitmap(nullptr),
 		_decoder(nullptr),
 		_position(0, 0),
 		_originalWidth(0),
@@ -51,13 +50,13 @@ VisualSmacker::VisualSmacker(Gfx::Driver *gfx) :
 }
 
 VisualSmacker::~VisualSmacker() {
-	delete _texture;
+	delete _bitmap;
 	delete _decoder;
 	delete _surfaceRenderer;
 }
 
 void VisualSmacker::loadSmacker(Common::SeekableReadStream *stream) {
-	delete _texture;
+	delete _bitmap;
 	delete _decoder;
 
 	_decoder = new Video::SmackerDecoder();
@@ -68,13 +67,14 @@ void VisualSmacker::loadSmacker(Common::SeekableReadStream *stream) {
 }
 
 void VisualSmacker::loadBink(Common::SeekableReadStream *stream) {
-	delete _texture;
+	delete _bitmap;
 	delete _decoder;
 
 	_decoder = new Video::BinkDecoder();
 	_decoder->setSoundType(Audio::Mixer::kSFXSoundType);
-	_decoder->setDefaultHighColorFormat(Gfx::Driver::getRGBAPixelFormat());
 	_decoder->loadStream(stream);
+	// We need a format with alpha transparency, so we can't use _bitmap->getBestPixelFormat() here.
+	_decoder->setOutputPixelFormat(Gfx::Driver::getRGBAPixelFormat());
 
 	init();
 }
@@ -85,8 +85,8 @@ void VisualSmacker::init() {
 
 	rewind();
 
-	_texture = _gfx->createBitmap();
-	_texture->setSamplingFilter(StarkSettings->getImageSamplingFilter());
+	_bitmap = _gfx->createBitmap();
+	_bitmap->setSamplingFilter(StarkSettings->getImageSamplingFilter());
 
 	update();
 }
@@ -103,7 +103,7 @@ void VisualSmacker::render(const Common::Point &position) {
 	assert(_decoder->getCurFrame() >= 0);
 
 	// The position argument contains the scroll offset
-	_surfaceRenderer->render(_texture, _position - position, _originalWidth, _originalHeight);
+	_surfaceRenderer->render(_bitmap, _position - position, _originalWidth, _originalHeight);
 }
 
 void VisualSmacker::update() {
@@ -142,11 +142,11 @@ void VisualSmacker::update() {
 				}
 			}
 
-			_texture->update(&convertedSurface);
+			_bitmap->update(&convertedSurface);
 
 			convertedSurface.free();
 		} else {
-			_texture->update(_surface);
+			_bitmap->update(_surface);
 		}
 	}
 }

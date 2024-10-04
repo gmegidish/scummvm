@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -91,13 +90,10 @@ int Game_GetMODPattern();
 //=============================================================================
 int Game_GetDialogCount();
 
-// Defines a custom save parent directory, which will replace $MYDOCS$/GameName
-// when a new save directory is set from the script
-bool SetCustomSaveParent(const Shared::String &path);
-// If explicit_path flag is false, the actual path will be constructed
-// as a relative to system's user saves directory
-bool SetSaveGameDirectoryPath(const Shared::String &newFolder, bool explicit_path = false);
-int Game_SetSaveGameDirectory(const Shared::String &newFolder);
+// Sets a default save directory, based on platform driver settings and user config
+void SetDefaultSaveDirectory();
+// Sets a new save directory within the save parent; copies "restart" slot if available
+int Game_SetSaveGameDirectory(const char *newFolder);
 const char *Game_GetSaveSlotDescription(int slnum);
 
 const char *Game_GetGlobalStrings(int index);
@@ -141,6 +137,8 @@ int Game_GetNormalFont();
 
 const char *Game_GetTranslationFilename();
 int Game_ChangeTranslation(const char *newFilename);
+const char *Game_GetSpeechVoxFilename();
+bool Game_ChangeSpeechVox(const char *newFilename);
 
 //=============================================================================
 
@@ -153,20 +151,28 @@ Shared::String get_save_game_suffix();
 void set_save_game_suffix(const Shared::String &suffix);
 // Returns full path to the save for the given slot number
 Shared::String get_save_game_path(int slotNum);
+// Try calling built-in restore game dialog;
+// NOTE: this is a script command; may be aborted according to the game & room settings
 void restore_game_dialog();
+// Unconditionally display a built-in restore game dialog
+bool do_restore_game_dialog();
+// Try calling built-in save game dialog;
+// NOTE: this is a script command; may be aborted according to the game & room settings
 void save_game_dialog();
+// Unconditionally display a built-in save game dialog
+bool do_save_game_dialog();
 void free_do_once_tokens();
 // Free all the memory associated with the game
-void unload_game_file();
+void unload_game();
 void save_game(int slotn, const char *descript);
 bool read_savedgame_description(const Shared::String &savedgame, Shared::String &description);
 bool read_savedgame_screenshot(const Shared::String &savedgame, int &want_shot);
-// Tries to restore saved game and displays an error on failure; if the error occured
+// Tries to restore saved game and displays an error on failure; if the error occurred
 // too late, when the game data was already overwritten, shuts engine down.
 bool try_restore_save(int slot);
 bool try_restore_save(const Shared::String &path, int slot);
 void serialize_bitmap(const Shared::Bitmap *thispic, Shared::Stream *out);
-// On Windows we could just use IIDFromString but this is platform-independant
+// On Windows we could just use IIDFromString but this is platform-independent
 void convert_guid_from_text_to_binary(const char *guidText, unsigned char *buffer);
 Shared::Bitmap *read_serialized_bitmap(Shared::Stream *in);
 void skip_serialized_bitmap(Shared::Stream *in);
@@ -195,7 +201,7 @@ void replace_tokens(const char *srcmes, char *destm, int maxlen = 99999);
 const char *get_global_message(int msnum);
 void get_message_text(int msnum, char *buffer, char giveErr = 1);
 
-bool unserialize_audio_script_object(int index, const char *objectType, const char *serializedData, int dataSize);
+bool unserialize_audio_script_object(int index, const char *objectType, AGS::Shared::Stream *in, size_t data_sz);
 
 // Notifies the game objects that certain sprite was updated.
 // This make them update their render states, caches, and so on.

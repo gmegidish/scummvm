@@ -4,6 +4,12 @@ MODULE_OBJS := \
 	sdl.o \
 	sdl-window.o
 
+ifdef KOLIBRIOS
+MODULE_OBJS += \
+	kolibrios/kolibrios-main.o \
+	kolibrios/kolibrios.o
+endif
+
 ifdef POSIX
 MODULE_OBJS += \
 	posix/posix-main.o \
@@ -14,8 +20,10 @@ ifdef MACOSX
 MODULE_OBJS += \
 	macosx/macosx-main.o \
 	macosx/macosx.o \
+	macosx/macosx-touchbar.o \
 	macosx/macosx-window.o \
 	macosx/macosx_wrapper.o \
+	macosx/macosx_osys_misc.o \
 	macosx/appmenu_osx.o
 endif
 
@@ -40,10 +48,22 @@ MODULE_OBJS += \
 	riscos/riscos.o
 endif
 
+ifdef MIYOO
+MODULE_OBJS += \
+	miyoo/miyoo-main.o \
+	miyoo/miyoo.o
+endif
+
 ifdef MORPHOS
 MODULE_OBJS += \
 	morphos/morphos-main.o \
 	morphos/morphos.o
+endif
+
+ifdef OPENDINGUX
+MODULE_OBJS += \
+	opendingux/opendingux-main.o \
+	opendingux/opendingux.o
 endif
 
 ifdef PLAYSTATION3
@@ -63,6 +83,12 @@ ifdef SWITCH
 MODULE_OBJS += \
 	switch/switch-main.o \
 	switch/switch.o
+endif
+
+ifdef EMSCRIPTEN
+MODULE_OBJS += \
+	emscripten/emscripten-main.o \
+	emscripten/emscripten.o
 endif
 
 # We don't use rules.mk but rather manually update OBJS and MODULE_DIRS.

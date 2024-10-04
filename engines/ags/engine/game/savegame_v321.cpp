@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,14 +28,17 @@
 //
 //=============================================================================
 
+#include "common/std/vector.h"
 #include "ags/shared/core/types.h"
 #include "ags/engine/ac/character_extras.h"
 #include "ags/shared/ac/common.h"
-#include "ags/shared/ac/dialog_topic.h"
+#include "ags/engine/ac/dialog.h"
+#include "ags/engine/ac/button.h"
 #include "ags/engine/ac/dynamic_sprite.h"
 #include "ags/engine/ac/game.h"
 #include "ags/shared/ac/game_setup_struct.h"
 #include "ags/engine/ac/game_state.h"
+#include "ags/engine/ac/game_setup.h"
 #include "ags/engine/ac/move_list.h"
 #include "ags/engine/ac/overlay.h"
 #include "ags/shared/ac/sprite_cache.h"
@@ -48,11 +50,17 @@
 #include "ags/engine/game/savegame_internal.h"
 #include "ags/engine/gui/animating_gui_button.h"
 #include "ags/shared/gui/gui_main.h"
+#include "ags/shared/gui/gui_button.h"
+#include "ags/shared/gui/gui_inv.h"
+#include "ags/shared/gui/gui_label.h"
+#include "ags/shared/gui/gui_listbox.h"
+#include "ags/shared/gui/gui_slider.h"
+#include "ags/shared/gui/gui_textbox.h"
 #include "ags/engine/media/audio/audio.h"
 #include "ags/plugins/ags_plugin.h"
 #include "ags/plugins/plugin_engine.h"
 #include "ags/engine/script/script.h"
-#include "ags/shared/script/cc_error.h"
+#include "ags/shared/script/cc_common.h"
 #include "ags/shared/util/aligned_stream.h"
 #include "ags/shared/util/string_utils.h"
 
@@ -61,7 +69,32 @@ namespace AGS3 {
 using namespace AGS::Shared;
 using namespace AGS::Engine;
 
-static const int32_t MAGICNUMBER = 0xbeefcafe;
+static const uint32_t MAGICNUMBER = 0xbeefcafe;
+
+inline bool AssertGameContent(HSaveError &err, int game_val, int sav_val, const char *content_name, bool warn_only = false) {
+	if (game_val != sav_val) {
+		String msg = String::FromFormat("Mismatching number of %s (game: %d, save: %d).", content_name, game_val, sav_val);
+		if (warn_only)
+			Debug::Printf(kDbgMsg_Warn, "WARNING: restored save may be incompatible: %s", msg.GetCStr());
+		else
+			err = new SavegameError(kSvgErr_GameContentAssertion, msg);
+	}
+	return warn_only || (game_val == sav_val);
+}
+
+template<typename TObject>
+inline bool AssertAndCopyGameContent(const std::vector<TObject> &old_list, std::vector<TObject> &new_list,
+									 HSaveError &err, const char *content_name, bool warn_only = false) {
+	if (!AssertGameContent(err, old_list.size(), new_list.size(), content_name, warn_only))
+		return false;
+
+	if (new_list.size() < old_list.size()) {
+		size_t copy_at = new_list.size();
+		new_list.resize(old_list.size());
+		Common::copy(old_list.begin() + copy_at, old_list.end(), new_list.begin() + copy_at);
+	}
+	return true;
+}
 
 static HSaveError restore_game_head_dynamic_values(Stream *in, RestoredData &r_data) {
 	r_data.FPS = in->ReadInt32();
@@ -87,64 +120,62 @@ static void restore_game_spriteset(Stream *in) {
 }
 
 static HSaveError restore_game_scripts(Stream *in, const PreservedParams &pp, RestoredData &r_data) {
+	HSaveError err;
 	// read the global script data segment
-	int gdatasize = in->ReadInt32();
-	if (pp.GlScDataSize != gdatasize) {
-		return new SavegameError(kSvgErr_GameContentAssertion, "Mismatching size of global script data.");
-	}
+	size_t gdatasize = (uint32_t)in->ReadInt32();
+	if (!AssertGameContent(err, pp.GlScDataSize, gdatasize, "global script data"))
+		return err;
 	r_data.GlobalScript.Len = gdatasize;
-	r_data.GlobalScript.Data.reset(new char[gdatasize]);
-	in->Read(r_data.GlobalScript.Data.get(), gdatasize);
+	r_data.GlobalScript.Data.resize(gdatasize);
+	if (gdatasize > 0)
+		in->Read(&r_data.GlobalScript.Data.front(), gdatasize);
 
-	if (in->ReadInt32() != _G(numScriptModules)) {
-		return new SavegameError(kSvgErr_GameContentAssertion, "Mismatching number of script modules.");
-	}
+	uint32_t num_modules = (uint32_t)in->ReadInt32();
+	if (!AssertGameContent(err, _G(numScriptModules), num_modules, "Script Modules"))
+		return err;
 	r_data.ScriptModules.resize(_G(numScriptModules));
-	for (int i = 0; i < _G(numScriptModules); ++i) {
-		int module_size = in->ReadInt32();
+	for (size_t i = 0; i < _G(numScriptModules); ++i) {
+		size_t module_size = (uint32_t)in->ReadInt32();
 		if (pp.ScMdDataSize[i] != module_size) {
-			return new SavegameError(kSvgErr_GameContentAssertion, String::FromFormat("Mismatching size of script module data, module %d.", i));
+			return new SavegameError(kSvgErr_GameContentAssertion, String::FromFormat("Mismatching size of script module data, module %zu.", i));
 		}
 		r_data.ScriptModules[i].Len = module_size;
-		r_data.ScriptModules[i].Data.reset(new char[module_size]);
-		in->Read(r_data.ScriptModules[i].Data.get(), module_size);
+		r_data.ScriptModules[i].Data.resize(module_size);
+		if (module_size > 0)
+			in->Read(&r_data.ScriptModules[i].Data.front(), module_size);
 	}
 	return HSaveError::None();
 }
 
-static void ReadRoomStatus_Aligned(RoomStatus *roomstat, Stream *in) {
+static void ReadRoomStatus_Aligned(RoomStatus *roomstat, Stream *in, GameDataVersion data_ver) {
 	AlignedStream align_s(in, Shared::kAligned_Read);
-	roomstat->ReadFromFile_v321(&align_s);
+	roomstat->ReadFromFile_v321(&align_s, data_ver);
 }
 
-static void restore_game_room_state(Stream *in) {
-	int vv;
-
+static void restore_game_room_state(Stream *in, GameDataVersion data_ver) {
 	_G(displayed_room) = in->ReadInt32();
 
 	// read the room state for all the rooms the player has been in
-	RoomStatus *roomstat;
-	int beenhere;
-	for (vv = 0; vv < MAX_ROOMS; vv++) {
-		beenhere = in->ReadByte();
+	for (int vv = 0; vv < MAX_ROOMS; vv++) {
+		int beenhere = in->ReadByte();
 		if (beenhere) {
-			roomstat = getRoomStatus(vv);
+			RoomStatus *roomstat = getRoomStatus(vv);
 			roomstat->beenhere = beenhere;
 
 			if (roomstat->beenhere) {
-				ReadRoomStatus_Aligned(roomstat, in);
+				ReadRoomStatus_Aligned(roomstat, in, data_ver);
 				if (roomstat->tsdatasize > 0) {
-					roomstat->tsdata = (char *)malloc(roomstat->tsdatasize + 8);  // JJS: Why allocate 8 additional bytes?
-					in->Read(&roomstat->tsdata[0], roomstat->tsdatasize);
+					roomstat->tsdata.resize(roomstat->tsdatasize);
+					in->Read(roomstat->tsdata.data(), roomstat->tsdatasize);
 				}
 			}
 		}
 	}
 }
 
-static void ReadGameState_Aligned(Stream *in, RestoredData &r_data) {
+static void ReadGameState_Aligned(Stream *in, GameDataVersion data_ver, RestoredData &r_data) {
 	AlignedStream align_s(in, Shared::kAligned_Read);
-	_GP(play).ReadFromSavegame(&align_s, kGSSvgVersion_OldFormat, r_data);
+	_GP(play).ReadFromSavegame(&align_s, data_ver, kGSSvgVersion_OldFormat, r_data);
 }
 
 static void restore_game_play_ex_data(Stream *in) {
@@ -154,43 +185,39 @@ static void restore_game_play_ex_data(Stream *in) {
 		_GP(play).do_once_tokens[i] = rbuffer;
 	}
 
-	in->ReadArrayOfInt32(&_GP(play).gui_draw_order[0], _GP(game).numgui);
+	in->Seek(_GP(game).numgui * sizeof(int32_t)); // gui_draw_order
 }
 
-static void restore_game_play(Stream *in, RestoredData &r_data) {
+static void restore_game_play(Stream *in, GameDataVersion data_ver, RestoredData &r_data) {
 	int screenfadedout_was = _GP(play).screen_is_faded_out;
 	int roomchanges_was = _GP(play).room_changes;
-	// make sure the pointer is preserved
-	int32_t *gui_draw_order_was = _GP(play).gui_draw_order;
 
-	ReadGameState_Aligned(in, r_data);
+	ReadGameState_Aligned(in, data_ver, r_data);
 	r_data.Cameras[0].Flags = r_data.Camera0_Flags;
 
 	_GP(play).screen_is_faded_out = screenfadedout_was;
 	_GP(play).room_changes = roomchanges_was;
-	_GP(play).gui_draw_order = gui_draw_order_was;
 
 	restore_game_play_ex_data(in);
 }
 
 static void ReadMoveList_Aligned(Stream *in) {
 	AlignedStream align_s(in, Shared::kAligned_Read);
-	for (int i = 0; i < _GP(game).numcharacters + MAX_ROOM_OBJECTS + 1; ++i) {
-		_G(mls)[i].ReadFromFile_Legacy(&align_s);
-
+	for (int i = 0; i < _GP(game).numcharacters + MAX_ROOM_OBJECTS_v300 + 1; ++i) {
+		_GP(mls)[i].ReadFromFile_Legacy(&align_s);
 		align_s.Reset();
 	}
 }
 
-static void ReadGameSetupStructBase_Aligned(Stream *in) {
+static void ReadGameSetupStructBase_Aligned(Stream *in, GameDataVersion data_ver) {
 	AlignedStream align_s(in, Shared::kAligned_Read);
-	_GP(game).GameSetupStructBase::ReadFromFile(&align_s);
+	_GP(game).GameSetupStructBase::ReadFromFile(&align_s, data_ver);
 }
 
 static void ReadCharacterExtras_Aligned(Stream *in) {
 	AlignedStream align_s(in, Shared::kAligned_Read);
 	for (int i = 0; i < _GP(game).numcharacters; ++i) {
-		_G(charextra)[i].ReadFromFile(&align_s);
+		_GP(charextra)[i].ReadFromSavegame(&align_s, 0);
 		align_s.Reset();
 	}
 }
@@ -212,33 +239,57 @@ static void restore_game_more_dynamic_values(Stream *in) {
 	_G(game_paused) = in->ReadInt32();
 }
 
-static void ReadAnimatedButtons_Aligned(Stream *in) {
+void ReadAnimatedButtons_Aligned(Stream *in, int num_abuts) {
 	AlignedStream align_s(in, Shared::kAligned_Read);
-	for (int i = 0; i < _G(numAnimButs); ++i) {
-		_G(animbuts)[i].ReadFromFile(&align_s);
+	for (int i = 0; i < num_abuts; ++i) {
+		AnimatingGUIButton abtn;
+		abtn.ReadFromSavegame(&align_s, 0);
+		AddButtonAnimation(abtn);
 		align_s.Reset();
 	}
 }
 
-static HSaveError restore_game_gui(Stream *in, int numGuisWas) {
-	HError err = GUI::ReadGUI(_GP(guis), in, true);
-	if (!err)
-		return new SavegameError(kSvgErr_GameObjectInitFailed, err);
+static HSaveError restore_game_gui(Stream *in) {
+	// Legacy saves allowed to resize gui lists, and stored full gui data
+	// (could be unintentional side effect). Here we emulate this for
+	// upgraded games by letting read **less** data from saves, and copying
+	// missing elements from reserved game data.
+	const std::vector<GUIMain> res_guis = std::move(_GP(guis));
+	const std::vector<GUIButton> res_guibuts = std::move(_GP(guibuts));
+	const std::vector<GUIInvWindow> res_guiinv = std::move(_GP(guiinv));
+	const std::vector<GUILabel> res_guilabels = std::move(_GP(guilabels));
+	const std::vector<GUIListBox> res_guilist = std::move(_GP(guilist));
+	const std::vector<GUISlider> res_guislider = std::move(_GP(guislider));
+	const std::vector<GUITextBox> res_guitext = std::move(_GP(guitext));
+
+	HError guierr = GUI::ReadGUI(in, true);
+	if (!guierr)
+		return new SavegameError(kSvgErr_GameObjectInitFailed, guierr);
+
+	HSaveError err;
+	const bool warn_only = _GP(usetup).legacysave_let_gui_diff;
+	if (!AssertAndCopyGameContent(res_guis, _GP(guis), err, "GUIs", warn_only) ||
+		!AssertAndCopyGameContent(res_guibuts, _GP(guibuts), err, "GUI Buttons", warn_only) ||
+		!AssertAndCopyGameContent(res_guiinv, _GP(guiinv), err, "GUI InvWindows", warn_only) ||
+		!AssertAndCopyGameContent(res_guilabels, _GP(guilabels), err, "GUI Labels", warn_only) ||
+		!AssertAndCopyGameContent(res_guilist, _GP(guilist), err, "GUI ListBoxes", warn_only) ||
+		!AssertAndCopyGameContent(res_guislider, _GP(guislider), err, "GUI Sliders", warn_only) ||
+		!AssertAndCopyGameContent(res_guitext, _GP(guitext), err, "GUI TextBoxes", warn_only))
+
+		return err;
+	GUI::RebuildGUI(); // rebuild guis in case they were copied from reserved game data
+
 	_GP(game).numgui = _GP(guis).size();
-
-	if (numGuisWas != _GP(game).numgui) {
-		return new SavegameError(kSvgErr_GameContentAssertion, "Mismatching number of GUI.");
-	}
-
-	_G(numAnimButs) = in->ReadInt32();
-	ReadAnimatedButtons_Aligned(in);
+	RemoveAllButtonAnimations();
+	int anim_count = in->ReadInt32();
+	ReadAnimatedButtons_Aligned(in, anim_count);
 	return HSaveError::None();
 }
 
 static HSaveError restore_game_audiocliptypes(Stream *in) {
-	if (in->ReadInt32() != (int)_GP(game).audioClipTypes.size()) {
-		return new SavegameError(kSvgErr_GameContentAssertion, "Mismatching number of Audio Clip Types.");
-	}
+	HSaveError err;
+	if (!AssertGameContent(err, _GP(game).audioClipTypes.size(), (uint32_t)in->ReadInt32(), "Audio Clip Types"))
+		return err;
 
 	for (size_t i = 0; i < _GP(game).audioClipTypes.size(); ++i) {
 		_GP(game).audioClipTypes[i].ReadFromFile(in);
@@ -254,11 +305,11 @@ static void restore_game_thisroom(Stream *in, RestoredData &r_data) {
 }
 
 static void restore_game_ambientsounds(Stream *in, RestoredData &r_data) {
-	for (int i = 0; i < MAX_SOUND_CHANNELS; ++i) {
+	for (int i = 0; i < MAX_GAME_CHANNELS_v320; ++i) {
 		_GP(ambient)[i].ReadFromFile(in);
 	}
 
-	for (int bb = 1; bb < MAX_SOUND_CHANNELS; bb++) {
+	for (int bb = NUM_SPEECH_CHANS; bb < MAX_GAME_CHANNELS_v320; bb++) {
 		if (_GP(ambient)[bb].channel == 0)
 			r_data.DoAmbient[bb] = 0;
 		else {
@@ -268,20 +319,25 @@ static void restore_game_ambientsounds(Stream *in, RestoredData &r_data) {
 	}
 }
 
-static void ReadOverlays_Aligned(Stream *in) {
+static void ReadOverlays_Aligned(Stream *in, std::vector<bool> &has_bitmap, size_t num_overs) {
 	AlignedStream align_s(in, Shared::kAligned_Read);
-	for (int i = 0; i < _G(numscreenover); ++i) {
-		_G(screenover)[i].ReadFromFile(&align_s, 0);
+	has_bitmap.resize(num_overs);
+	for (size_t i = 0; i < num_overs; ++i) {
+		bool has_bm;
+		_GP(screenover)[i].ReadFromFile(&align_s, has_bm, 0);
+		has_bitmap[i] = has_bm;
 		align_s.Reset();
 	}
 }
 
 static void restore_game_overlays(Stream *in) {
-	_G(numscreenover) = in->ReadInt32();
-	ReadOverlays_Aligned(in);
-	for (int bb = 0; bb < _G(numscreenover); bb++) {
-		if (_G(screenover)[bb].hasSerializedBitmap)
-			_G(screenover)[bb].pic = read_serialized_bitmap(in);
+	size_t num_overs = in->ReadInt32();
+	_GP(screenover).resize(num_overs);
+	std::vector<bool> has_bitmap;
+	ReadOverlays_Aligned(in, has_bitmap, num_overs);
+	for (size_t i = 0; i < num_overs; ++i) {
+		if (has_bitmap[i])
+			_GP(screenover)[i].SetImage(read_serialized_bitmap(in), _GP(screenover)[i].offsetX, _GP(screenover)[i].offsetY);
 	}
 }
 
@@ -298,7 +354,7 @@ static void restore_game_dynamic_surfaces(Stream *in, RestoredData &r_data) {
 	}
 }
 
-static void restore_game_displayed_room_status(Stream *in, RestoredData &r_data) {
+static void restore_game_displayed_room_status(Stream *in, GameDataVersion data_ver, RestoredData &r_data) {
 	int bb;
 	for (bb = 0; bb < MAX_ROOM_BGFRAMES; bb++)
 		r_data.RoomBkgScene[bb].reset();
@@ -317,20 +373,20 @@ static void restore_game_displayed_room_status(Stream *in, RestoredData &r_data)
 			_G(raw_saved_screen) = read_serialized_bitmap(in);
 
 		// get the current troom, in case they save in room 600 or whatever
-		ReadRoomStatus_Aligned(&_GP(troom), in);
+		ReadRoomStatus_Aligned(&_GP(troom), in, data_ver);
 
 		if (_GP(troom).tsdatasize > 0) {
-			_GP(troom).tsdata = (char *)malloc(_GP(troom).tsdatasize + 5);
-			in->Read(&_GP(troom).tsdata[0], _GP(troom).tsdatasize);
+			_GP(troom).tsdata.resize(_GP(troom).tsdatasize);
+			in->Read(_GP(troom).tsdata.data(), _GP(troom).tsdatasize);
 		} else
-			_GP(troom).tsdata = nullptr;
+			_GP(troom).tsdata.clear();
 	}
 }
 
 static HSaveError restore_game_globalvars(Stream *in) {
-	if (in->ReadInt32() != _G(numGlobalVars)) {
-		return new SavegameError(kSvgErr_GameContentAssertion, "Restore game error: mismatching number of Global Variables.");
-	}
+	HSaveError err;
+	if (!AssertGameContent(err, _G(numGlobalVars), in->ReadInt32(), "Global Variables"))
+		return err;
 
 	for (int i = 0; i < _G(numGlobalVars); ++i) {
 		_G(globalvars)[i].Read(in);
@@ -339,33 +395,33 @@ static HSaveError restore_game_globalvars(Stream *in) {
 }
 
 static HSaveError restore_game_views(Stream *in) {
-	if (in->ReadInt32() != _GP(game).numviews) {
-		return new SavegameError(kSvgErr_GameContentAssertion, "Mismatching number of Views.");
-	}
+	HSaveError err;
+	if (!AssertGameContent(err, _GP(game).numviews, in->ReadInt32(), "Views"))
+		return err;
 
 	for (int bb = 0; bb < _GP(game).numviews; bb++) {
-		for (int cc = 0; cc < _G(views)[bb].numLoops; cc++) {
-			for (int dd = 0; dd < _G(views)[bb].loops[cc].numFrames; dd++) {
-				_G(views)[bb].loops[cc].frames[dd].sound = in->ReadInt32();
-				_G(views)[bb].loops[cc].frames[dd].pic = in->ReadInt32();
+		for (int cc = 0; cc < _GP(views)[bb].numLoops; cc++) {
+			for (int dd = 0; dd < _GP(views)[bb].loops[cc].numFrames; dd++) {
+				_GP(views)[bb].loops[cc].frames[dd].sound = in->ReadInt32();
+				_GP(views)[bb].loops[cc].frames[dd].pic = in->ReadInt32();
 			}
 		}
 	}
 	return HSaveError::None();
 }
 
-static HSaveError restore_game_audioclips_and_crossfade(Stream *in, RestoredData &r_data) {
-	if (in->ReadInt32() != (int)_GP(game).audioClips.size()) {
-		return new SavegameError(kSvgErr_GameContentAssertion, "Mismatching number of Audio Clips.");
-	}
+static HSaveError restore_game_audio_and_crossfade(Stream *in, GameDataVersion data_ver, RestoredData &r_data) {
+	in->ReadInt32(); // audio clips count, ignore
 
-	for (int i = 0; i <= MAX_SOUND_CHANNELS; ++i) {
+	for (int i = 0; i < TOTAL_AUDIO_CHANNELS_v320; ++i) {
 		RestoredData::ChannelInfo &chan_info = r_data.AudioChans[i];
 		chan_info.Pos = 0;
 		chan_info.ClipID = in->ReadInt32();
 		if (chan_info.ClipID >= 0) {
 			if ((size_t)chan_info.ClipID >= _GP(game).audioClips.size()) {
-				return new SavegameError(kSvgErr_GameObjectInitFailed, "Invalid audio clip index.");
+				return new SavegameError(kSvgErr_GameObjectInitFailed,
+										 String::FromFormat("Invalid audio clip index %zu (valid range is 0..%zu)",
+															(size_t)chan_info.ClipID, _GP(game).audioClips.size() - 1));
 			}
 
 			chan_info.Pos = in->ReadInt32();
@@ -374,11 +430,11 @@ static HSaveError restore_game_audioclips_and_crossfade(Stream *in, RestoredData
 			chan_info.Priority = in->ReadInt32();
 			chan_info.Repeat = in->ReadInt32();
 			chan_info.Vol = in->ReadInt32();
-			chan_info.Pan = in->ReadInt32();
+			in->ReadInt32(); // unused
 			chan_info.VolAsPercent = in->ReadInt32();
-			chan_info.PanAsPercent = in->ReadInt32();
+			chan_info.Pan = in->ReadInt32();
 			chan_info.Speed = 1000;
-			if (_G(loaded_game_file_version) >= kGameVersion_340_2)
+			if (data_ver >= kGameVersion_340_2)
 				chan_info.Speed = in->ReadInt32();
 		}
 	}
@@ -389,21 +445,17 @@ static HSaveError restore_game_audioclips_and_crossfade(Stream *in, RestoredData
 	return HSaveError::None();
 }
 
-HSaveError restore_game_data(Stream *in, SavegameVersion svg_version, const PreservedParams &pp, RestoredData &r_data) {
-	int vv;
-
+HSaveError restore_save_data_v321(Stream *in, GameDataVersion data_ver, const PreservedParams &pp, RestoredData &r_data) {
 	HSaveError err = restore_game_head_dynamic_values(in, r_data);
 	if (!err)
 		return err;
 	restore_game_spriteset(in);
 
-	update_polled_stuff_if_runtime();
-
 	err = restore_game_scripts(in, pp, r_data);
 	if (!err)
 		return err;
-	restore_game_room_state(in);
-	restore_game_play(in, r_data);
+	restore_game_room_state(in, data_ver);
+	restore_game_play(in, data_ver, r_data);
 	ReadMoveList_Aligned(in);
 
 	// save pointer members before reading
@@ -411,44 +463,41 @@ HSaveError restore_game_data(Stream *in, SavegameVersion svg_version, const Pres
 	ccScript *compsc = _GP(game).compiled_script;
 	CharacterInfo *chwas = _GP(game).chars;
 	WordsDictionary *olddict = _GP(game).dict;
-	char *mesbk[MAXGLOBALMES];
-	int numchwas = _GP(game).numcharacters;
-	for (vv = 0; vv < MAXGLOBALMES; vv++) mesbk[vv] = _GP(game).messages[vv];
-	int numdiwas = _GP(game).numdialog;
-	int numinvwas = _GP(game).numinvitems;
-	int numviewswas = _GP(game).numviews;
-	int numGuisWas = _GP(game).numgui;
+	std::vector<String> mesbk(MAXGLOBALMES);
+	for (size_t i = 0; i < MAXGLOBALMES; ++i)
+		mesbk[i] = _GP(game).messages[i];
 
-	ReadGameSetupStructBase_Aligned(in);
+	// List of game objects, used to compare with the save contents
+	struct ObjectCounts {
+		int CharacterCount = _GP(game).numcharacters;
+		int DialogCount = _GP(game).numdialog;
+		int InvItemCount = _GP(game).numinvitems;
+		int ViewCount = _GP(game).numviews;
+	} objwas;
+
+	ReadGameSetupStructBase_Aligned(in, data_ver);
 
 	// Delete unneeded data
 	// TODO: reorganize this (may be solved by optimizing safe format too)
 	delete[] _GP(game).load_messages;
 	_GP(game).load_messages = nullptr;
 
-	if (_GP(game).numdialog != numdiwas) {
-		return new SavegameError(kSvgErr_GameContentAssertion, "Mismatching number of Dialogs.");
-	}
-	if (numchwas != _GP(game).numcharacters) {
-		return new SavegameError(kSvgErr_GameContentAssertion, "Mismatching number of Characters.");
-	}
-	if (numinvwas != _GP(game).numinvitems) {
-		return new SavegameError(kSvgErr_GameContentAssertion, "Mismatching number of Inventory Items.");
-	}
-	if (_GP(game).numviews != numviewswas) {
-		return new SavegameError(kSvgErr_GameContentAssertion, "Mismatching number of Views.");
-	}
+	if (!AssertGameContent(err, objwas.CharacterCount, _GP(game).numcharacters, "Characters") ||
+		!AssertGameContent(err, objwas.DialogCount, _GP(game).numdialog, "Dialogs") ||
+		!AssertGameContent(err, objwas.InvItemCount, _GP(game).numinvitems, "Inventory Items") ||
+		!AssertGameContent(err, objwas.ViewCount, _GP(game).numviews, "Views"))
+		return err;
 
-	_GP(game).ReadFromSaveGame_v321(in, gswas, compsc, chwas, olddict, mesbk);
+	_GP(game).ReadFromSaveGame_v321(in, data_ver, gswas, compsc, chwas, olddict, mesbk);
 
 	// Modified custom properties are read separately to keep existing save format
-	_GP(play).ReadCustomProperties_v340(in);
+	_GP(play).ReadCustomProperties_v340(in, data_ver);
 
 	ReadCharacterExtras_Aligned(in);
 	restore_game_palette(in);
 	restore_game_dialogs(in);
 	restore_game_more_dynamic_values(in);
-	err = restore_game_gui(in, numGuisWas);
+	err = restore_game_gui(in);
 	if (!err)
 		return err;
 	err = restore_game_audiocliptypes(in);
@@ -457,14 +506,8 @@ HSaveError restore_game_data(Stream *in, SavegameVersion svg_version, const Pres
 	restore_game_thisroom(in, r_data);
 	restore_game_ambientsounds(in, r_data);
 	restore_game_overlays(in);
-
-	update_polled_stuff_if_runtime();
-
 	restore_game_dynamic_surfaces(in, r_data);
-
-	update_polled_stuff_if_runtime();
-
-	restore_game_displayed_room_status(in, r_data);
+	restore_game_displayed_room_status(in, data_ver, r_data);
 	err = restore_game_globalvars(in);
 	if (!err)
 		return err;
@@ -472,11 +515,11 @@ HSaveError restore_game_data(Stream *in, SavegameVersion svg_version, const Pres
 	if (!err)
 		return err;
 
-	if ((uint32)in->ReadInt32() != (uint32)(MAGICNUMBER + 1)) {
-		return new SavegameError(kSvgErr_InconsistentFormat, "MAGICNUMBER not found before Audio Clips.");
+	if (static_cast<uint32_t>(in->ReadInt32()) != (MAGICNUMBER + 1)) {
+		return new SavegameError(kSvgErr_InconsistentFormat, "Audio section header expected but not found.");
 	}
 
-	err = restore_game_audioclips_and_crossfade(in, r_data);
+	err = restore_game_audio_and_crossfade(in, data_ver, r_data);
 	if (!err)
 		return err;
 
@@ -484,7 +527,7 @@ HSaveError restore_game_data(Stream *in, SavegameVersion svg_version, const Pres
 	pl_set_file_handle(pluginFileHandle, in);
 	pl_run_plugin_hooks(AGSE_RESTOREGAME, pluginFileHandle);
 	pl_clear_file_handle();
-	if ((uint32)in->ReadInt32() != (uint32)MAGICNUMBER)
+	if (static_cast<uint32_t>(in->ReadInt32()) != MAGICNUMBER)
 		return new SavegameError(kSvgErr_InconsistentPlugin);
 
 	// save the new room music vol for later use
@@ -492,7 +535,7 @@ HSaveError restore_game_data(Stream *in, SavegameVersion svg_version, const Pres
 
 	if (ccUnserializeAllObjects(in, &_GP(ccUnserializer))) {
 		return new SavegameError(kSvgErr_GameObjectInitFailed,
-		                         String::FromFormat("Managed pool deserialization failed: %s.", _G(ccErrorString).GetCStr()));
+		                         String::FromFormat("Managed pool deserialization failed: %s.", cc_get_error().ErrorString.GetCStr()));
 	}
 
 	// preserve legacy music type setting

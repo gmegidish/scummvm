@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -177,7 +176,7 @@ void Game::loadGameData(Common::ReadStream &rs) {
 
 int Game::findWord(const Common::String &word) const {
 	// Limit the word to the maximum allowable size
-	Common::String w(word.c_str(), word.c_str() + WORD_SIZE);
+	Common::String w(word.c_str(), MIN(word.size(), (uint)WORD_SIZE));
 
 	// Iterate over the dictionary for the word
 	for (int idx = 1; idx <= _wordCount; ++idx) {

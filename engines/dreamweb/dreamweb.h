@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,8 @@
 #include "common/system.h"
 
 #include "engines/engine.h"
+
+#include "graphics/surface.h"
 
 #include "dreamweb/console.h"
 
@@ -118,9 +119,6 @@ public:
 	Common::Error loadGameState(int slot) override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
 
-	bool canLoadGameStateCurrently() override;
-	bool canSaveGameStateCurrently() override;
-
 	uint8 randomNumber() { return _rnd.getRandomNumber(255); }
 
 	void mouseCall(uint16 *x, uint16 *y, uint16 *state); //fill mouse pos and button state
@@ -142,13 +140,13 @@ public:
 
 	Common::Language getLanguage() const;
 	uint8 modifyChar(uint8 c) const;
-	Common::String modifyFileName(const char *);
+	Common::Path modifyFileName(const char *);
 
 	const Common::String& getDatafilePrefix() { return _datafilePrefix; }
-	const Common::String& getSpeechDirName() { return _speechDirName; }
+	const Common::Path& getSpeechDirName() { return _speechDirName; }
 
 private:
-	// Keyboard buffer. _bufferIn and _bufferOut are indexes
+	// Keyboard buffer. _bufferIn and _bufferOut are indices
 	// into this, making it a ring buffer
 	uint8 _keyBuffer[16];
 	uint16 _bufferIn;
@@ -158,9 +156,10 @@ private:
 	void setSpeed(uint speed);
 
 	const DreamWebGameDescription	*_gameDescription;
+	Graphics::Surface				_thumbnail;
 	Common::RandomSource			_rnd;
 	Common::String _datafilePrefix;
-	Common::String _speechDirName;
+	Common::Path _speechDirName;
 
 	uint _speed;
 	bool _turbo;

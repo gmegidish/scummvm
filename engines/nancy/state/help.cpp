@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,32 +56,36 @@ void Help::process() {
 	case kRun:
 		run();
 		break;
-	case kWaitForSound:
-		waitForSound();
+	case kWait:
+		wait();
 		break;
 	}
 }
 
+void Help::onStateEnter(const NancyState::NancyState prevState) {
+	if (prevState == NancyState::kPause) {
+		g_nancy->_sound->pauseSound("MSND", false);
+	}
+}
+
+bool Help::onStateExit(const NancyState::NancyState nextState) {
+	// Handle the GMM being called
+	if (nextState == NancyState::kPause) {
+		g_nancy->_sound->pauseSound("MSND", true);
+
+		return false;
+	} else {
+		return true;
+	}
+}
+
 void Help::init() {
-	Common::SeekableReadStream *chunk = g_nancy->getBootChunkStream("HELP");
+	auto *helpData = GetEngineData(HELP);
+	assert(helpData);
 
-	chunk->seek(0);
-	Common::String imageName;
-	readFilename(*chunk, imageName);
-	_image.init(imageName);
+	_image.init(helpData->imageName);
 
-	chunk->skip(20);
-	Common::Rect buttonSrc, buttonDest;
-	buttonDest.left = chunk->readUint16LE();
-	buttonDest.top = chunk->readUint16LE();
-	buttonDest.right = chunk->readUint16LE();
-	buttonDest.bottom = chunk->readUint16LE();
-	buttonSrc.left = chunk->readUint16LE();
-	buttonSrc.top = chunk->readUint16LE();
-	buttonSrc.right = chunk->readUint16LE();
-	buttonSrc.bottom = chunk->readUint16LE();
-
-	_button = new UI::Button(_image, 5, _image._drawSurface, buttonSrc, buttonDest);
+	_button = new UI::Button(5, _image._drawSurface, helpData->buttonSrc, helpData->buttonDest, helpData->buttonHoverSrc);
 	_button->init();
 
 	_state = kBegin;
@@ -97,7 +100,7 @@ void Help::begin() {
 	_button->registerGraphics();
 	_image.setVisible(true);
 
-	g_nancy->_cursorManager->setCursorType(CursorManager::kNormalArrow);
+	g_nancy->_cursor->setCursorType(CursorManager::kNormalArrow);
 
 	_state = kRun;
 }
@@ -107,15 +110,18 @@ void Help::run() {
 	_button->handleInput(input);
 
 	if (_button->_isClicked) {
+		auto *bootSummary = GetEngineData(BSUM);
+		assert(bootSummary);
+
 		_button->_isClicked = false;
 		g_nancy->_sound->playSound("BUOK");
-		_state = kWaitForSound;
+		_buttonPressActivationTime = g_system->getMillis() + bootSummary->buttonPressTimeDelay;
+		_state = kWait;
 	}
 }
 
-void Help::waitForSound() {
-	if (!g_nancy->_sound->isSoundPlaying("BUOK")) {
-		g_nancy->_sound->stopSound("BUOK");
+void Help::wait() {
+	if (g_system->getMillis() > _buttonPressActivationTime) {
 		g_nancy->setToPreviousState();
 	}
 }

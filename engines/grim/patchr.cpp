@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/substream.h"
 #include "common/md5.h"
 #include "common/file.h"
-#include "common/zlib.h"
+#include "common/compression/deflate.h"
 #include "common/bufferedstream.h"
 
 #include "engines/grim/patchr.h"
@@ -36,23 +35,23 @@ public:
 	PatchedFile();
 	virtual ~PatchedFile();
 
-	bool load(Common::SeekableReadStream *file, const Common::String &patchName);
+	bool load(Common::SeekableReadStream *file, const Common::Path &patchName);
 
 	// Common::ReadStream implementation
-	virtual bool eos() const override;
-	virtual uint32 read(void *dataPtr, uint32 dataSize) override;
+	bool eos() const override;
+	uint32 read(void *dataPtr, uint32 dataSize) override;
 
 	// Common::SeekableReadStream implementation
-	virtual int64 pos() const override;
-	virtual int64 size() const override;
-	virtual bool seek(int64 offset, int whence = SEEK_SET) override;
+	int64 pos() const override;
+	int64 size() const override;
+	bool seek(int64 offset, int whence = SEEK_SET) override;
 
 private:
 	// Consts
 	static const uint32 _kDiffBufferSize, _kHeaderSize, _kMd5size;
 	static const uint16 _kVersionMajor, _kVersionMinor;
 
-	//Flags
+	// Flags
 	enum Flags {
 		FLAG_MIX_DIFF_EXTRA = 1 << 0,
 		FLAG_COMPRESS_CTRL = 1 << 1
@@ -73,7 +72,7 @@ private:
 
 	uint8 *_diffBuffer;
 
-	Common::String _patchName;
+	Common::Path _patchName;
 };
 
 const uint16 PatchedFile::_kVersionMajor = 2;
@@ -100,7 +99,7 @@ PatchedFile::~PatchedFile() {
 		delete _extra;
 }
 
-bool PatchedFile::load(Common::SeekableReadStream *file, const Common::String &patchName) {
+bool PatchedFile::load(Common::SeekableReadStream *file, const Common::Path &patchName) {
 	uint8 md5_p[16], md5_f[16];
 	uint32 zctrllen, zdatalen, zextralen;
 	Common::File patch;
@@ -109,19 +108,19 @@ bool PatchedFile::load(Common::SeekableReadStream *file, const Common::String &p
 
 	// Open the patch
 	if (!patch.open(_patchName)) {
-		error("Unable to open patchfile %s", _patchName.c_str());
+		error("Unable to open patchfile %s", _patchName.toString().c_str());
 		return false;
 	}
 
 	// Check for appropriate signature
 	if (patch.readUint32BE() != MKTAG('P','A','T','R')) {
-		error("%s patchfile is corrupted, wrong siganture", _patchName.c_str());
+		error("%s patchfile is corrupted, wrong siganture", _patchName.toString().c_str());
 		return false;
 	}
 
 	// Check the version number
 	if (patch.readUint16LE() != _kVersionMajor || patch.readUint16LE() > _kVersionMinor) {
-		error("%s has a wrong version number (must be major = %d, minor <= %d)", _patchName.c_str(), _kVersionMajor, _kVersionMinor);
+		error("%s has a wrong version number (must be major = %d, minor <= %d)", _patchName.toString().c_str(), _kVersionMajor, _kVersionMinor);
 		return false;
 	}
 
@@ -133,7 +132,7 @@ bool PatchedFile::load(Common::SeekableReadStream *file, const Common::String &p
 	patch.read(md5_p, 16);
 	uint32 fileSize = patch.readUint32LE();
 	if (memcmp(md5_p, md5_f, 16) != 0 || (uint32)file->size() != fileSize) {
-		Debug::debug(Debug::Patchr, "%s targets a different file", _patchName.c_str());
+		Debug::debug(Debug::Patchr, "%s targets a different file", _patchName.toString().c_str());
 		if (Debug::isChannelEnabled(Debug::Patchr)) {
 			Common::String md5_ps, md5_fs;
 			for (int i = 0; i < 16; i++) {
@@ -164,7 +163,7 @@ bool PatchedFile::load(Common::SeekableReadStream *file, const Common::String &p
 
 	//ctrl stream sanity checks
 	if (_ctrl->size() % (3 * sizeof(uint32)) != 0) {
-		error("%s patchfile is corrupted", _patchName.c_str());
+		error("%s patchfile is corrupted", _patchName.toString().c_str());
 		return false;
 	}
 
@@ -202,7 +201,7 @@ uint32 PatchedFile::read(void *dataPtr, uint32 dataSize) {
 			readSize = MIN(toRead, _diffCopy);
 			rd = _file->read(data, readSize);
 			if (_file->err() || rd != readSize)
-				error("%s: Corrupted patchfile", _patchName.c_str());
+				error("%s: Corrupted patchfile", _patchName.toString().c_str());
 
 			toRead -= readSize;
 			_diffCopy -= readSize;
@@ -213,7 +212,7 @@ uint32 PatchedFile::read(void *dataPtr, uint32 dataSize) {
 				diffRead = MIN(readSize, _kDiffBufferSize);
 				rd = _diff->read(_diffBuffer, diffRead);
 				if (_diff->err() || rd != diffRead)
-					error("%s: Corrupted patchfile", _patchName.c_str());
+					error("%s: Corrupted patchfile", _patchName.toString().c_str());
 
 				for (uint32 i = 0; i < diffRead / 4; ++i)
 					WRITE_UINT32((uint32 *)data + i, READ_UINT32((uint32 *)data + i) ^ READ_UINT32((uint32 *)_diffBuffer + i));
@@ -233,7 +232,7 @@ uint32 PatchedFile::read(void *dataPtr, uint32 dataSize) {
 			readSize = MIN(toRead, _extraCopy);
 			rd = _extra->read(data, readSize);
 			if (_extra->err() || rd != readSize)
-				error("%s: Corrupted patchfile", _patchName.c_str());
+				error("%s: Corrupted patchfile", _patchName.toString().c_str());
 
 			data += readSize;
 			toRead -= readSize;
@@ -269,11 +268,12 @@ bool PatchedFile::readNextInst() {
 
 	//Sanity checks
 	if (_ctrl->err() ||
-			(int32(_diffCopy) > _file->size() - _file->pos()) ||
-			(int32(_diffCopy) > _diff->size() - _diff->pos()) ||
-			(int32(_extraCopy) > _extra->size() - _extra->pos()) ||
-			(_jump > _file->size() - _file->pos()))
-		error("%s: Corrupted patchfile. istrleft = %d", _patchName.c_str(), _instrLeft);
+	    (int32(_diffCopy) > _file->size() - _file->pos()) ||
+	    (int32(_diffCopy) > _diff->size() - _diff->pos()) ||
+	    (int32(_extraCopy) > _extra->size() - _extra->pos()) ||
+	    (_jump > _file->size() - _file->pos())) {
+		error("%s: Corrupted patchfile. istrleft = %d", _patchName.toString().c_str(), _instrLeft);
+	}
 
 	--_instrLeft;
 	return true;
@@ -313,14 +313,14 @@ bool PatchedFile::seek(int64 offset, int whence) {
 			relOffset = (size() + offset) - pos();
 			break;
 		default:
-			error("%s: Invalid seek instruction", _patchName.c_str());
+			error("%s: Invalid seek instruction", _patchName.toString().c_str());
 	}
 
 	if (relOffset == 0)
 		return true;
 
 	if (relOffset < 0) {
-		Debug::debug(Debug::Patchr, "Seeking back to start %s", _patchName.c_str());
+		Debug::debug(Debug::Patchr, "Seeking back to start %s", _patchName.toString().c_str());
 		_file->seek(0, SEEK_SET);
 		_ctrl->seek(0, SEEK_SET);
 		_extra->seek(0, SEEK_SET);
@@ -361,24 +361,24 @@ bool PatchedFile::seek(int64 offset, int whence) {
 	return true;
 }
 
-Common::SeekableReadStream *wrapPatchedFile(Common::SeekableReadStream *rs, const Common::String &filename) {
+Common::SeekableReadStream *wrapPatchedFile(Common::SeekableReadStream *rs, const Common::Path &filename) {
 	if (!rs)
 		return nullptr;
 
-	Common::String patchfile = filename + ".patchr";
+	Common::Path patchfile = filename.append(".patchr");
 	int i = 1;
 	while (SearchMan.hasFile(patchfile)) {
-		Debug::debug(Debug::Patchr, "Patch requested for %s (patch filename %s)", filename.c_str(), patchfile.c_str());
+		Debug::debug(Debug::Patchr, "Patch requested for %s (patch filename %s)", filename.toString().c_str(), patchfile.toString().c_str());
 
 		PatchedFile *pf = new PatchedFile;
 		if (pf->load(rs, patchfile)) {
 			rs = Common::wrapBufferedSeekableReadStream(pf, 1024, DisposeAfterUse::YES);
-			Debug::debug(Debug::Patchr, "Patch for %s successfully loaded", filename.c_str());
+			Debug::debug(Debug::Patchr, "Patch for %s successfully loaded", filename.toString().c_str());
 			break;
 		}
 
 		delete pf;
-		patchfile = Common::String::format("%s_%d.patchr", filename.c_str(), i++);
+		patchfile = filename.append(Common::String::format("_%d.patchr", i++));
 	}
 
 	return rs;

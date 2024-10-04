@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,9 +48,9 @@ bool AIScriptLuther::Update() {
 	 && !Game_Flag_Query(kFlagUG16PulledGun)
 	 &&  Global_Variable_Query(kVariableChapter) == 4
 	) {
-		Actor_Says(kActorMcCoy, 5720, 12);
-		Actor_Says(kActorLuther, 80, 13);
-		Actor_Says(kActorLance, 40, 12);
+		Actor_Says(kActorMcCoy, 5720, 12); // Just a moment of your time, please.
+		Actor_Says(kActorLuther, 80, 13); // I am sick and tired of people waving those things around.
+		Actor_Says(kActorLance, 40, 12); // Just give it up. You got no jurisdiction down here.
 		Game_Flag_Set(kFlagUG16PulledGun);
 		return false;
 	}
@@ -375,6 +374,9 @@ bool AIScriptLuther::UpdateAnimation(int *animation, int *frame) {
 		}
 		break;
 
+	default:
+		debugC(6, kDebugAnimation, "AIScriptLuther::UpdateAnimation() - Current _animationState (%d) is not supported", _animationState);
+		break;
 	}
 	*frame = _animationFrame;
 
@@ -453,6 +455,10 @@ bool AIScriptLuther::ChangeAnimationMode(int mode) {
 	case 50:
 		_animationState = 11;
 		_animationFrame = 0;
+		break;
+
+	default:
+		debugC(6, kDebugAnimation, "AIScriptLuther::ChangeAnimationMode(%d) - Target mode is not supported", mode);
 		break;
 	}
 

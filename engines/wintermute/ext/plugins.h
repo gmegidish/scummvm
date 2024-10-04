@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,6 +39,7 @@ BaseScriptable *makeSXSteamAPI(BaseGame *inGame, ScStack *stack);
 BaseScriptable *makeSXWMEGalaxyAPI(BaseGame *inGame, ScStack *stack);
 BaseScriptable *makeSX3fStatistics(BaseGame *inGame, ScStack *stack);
 BaseScriptable *makeSXCommandLineHelper(BaseGame *inGame, ScStack *stack);
+BaseScriptable *makeSXSample(BaseGame *inGame, ScStack *stack);
 
 bool EmulatePluginCall(BaseGame *inGame, ScStack *stack, ScStack *thisStack, char *name) {
 	ScValue *thisObj;
@@ -87,6 +87,18 @@ bool EmulatePluginCall(BaseGame *inGame, ScStack *stack, ScStack *thisStack, cha
 		thisObj = thisStack->getTop();
 
 		thisObj->setNative(makeSXCommandLineHelper(inGame, stack));
+
+		stack->pushNULL();
+		return STATUS_OK;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Window mode changer (from wme_windowmode.dll of "lostbride" game)
+	//////////////////////////////////////////////////////////////////////////
+	else if (strcmp(name, "Sample") == 0) {
+		thisObj = thisStack->getTop();
+
+		thisObj->setNative(makeSXSample(inGame, stack));
 
 		stack->pushNULL();
 		return STATUS_OK;

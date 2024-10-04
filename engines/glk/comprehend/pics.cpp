@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -101,13 +100,12 @@ void Pics::ImageContext::lineFixes() {
 
 /*-------------------------------------------------------*/
 
-Pics::ImageFile::ImageFile(const Common::String &filename, bool isSingleImage) {
+Pics::ImageFile::ImageFile(const Common::String &filename, bool isSingleImage) : _filename(filename) {
 	Common::File f;
 	uint16 version;
 	int i;
 
-	_filename = filename;
-	if (!f.open(filename))
+	if (!f.open(_filename))
 		error("Could not open file - %s", filename.c_str());
 
 	if (isSingleImage) {
@@ -364,7 +362,7 @@ int Pics::getPictureNumber(const Common::String &filename) const {
 }
 
 bool Pics::hasFile(const Common::Path &path) const {
-	Common::String name = path.toString();
+	Common::String name = path.baseName();
 	int num = getPictureNumber(name);
 	if (num == -1)
 		return false;
@@ -384,18 +382,17 @@ int Pics::listMembers(Common::ArchiveMemberList &list) const {
 }
 
 const Common::ArchiveMemberPtr Pics::getMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	if (!hasFile(name))
+	if (!hasFile(path))
 		return Common::ArchiveMemberPtr();
 
-	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
+	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(path, *this));
 }
 
 Common::SeekableReadStream *Pics::createReadStreamForMember(const Common::Path &path) const {
-	Common::String name = path.toString();
+	Common::String name = path.baseName();
 	// Get the picture number
 	int num = getPictureNumber(name);
-	if (num == -1 || !hasFile(name))
+	if (num == -1 || !hasFile(path))
 		return nullptr;
 
 	// Draw the image

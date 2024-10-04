@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,6 +44,11 @@ enum class ScenePositionType {
 
 // ZONES
 
+#define ZONE_INIT_ON 1
+#define ZONE_ON 2
+#define ZONE_ACTIVE 4
+#define ZONE_OBLIGATOIRE 8
+
 /**
  * Special actions, like change scene, climbing a ladder, ...
  */
@@ -52,34 +56,23 @@ struct ZoneStruct {
 	IVec3 mins;
 	IVec3 maxs;
 	ZoneType type = ZoneType::kCube;
-	int16 snap = 0;
+	int32 num;
 	union {
 		struct {
-			int32 newSceneIdx;
 			int32 x;
 			int32 y;
 			int32 z;
 		} ChangeScene;
 		struct {
-			int32 dummy;
 			int32 x;
 			int32 y;
 			int32 z;
 		} CameraView;
-		struct {
-			int32 zoneIdx;
-		} Sceneric;
-		struct {
-			int32 newGrid;
-		} CeillingGrid;
-
 		/** show a text (e.g. when reading a sign) */
 		struct {
-			TextId textIdx;   /*!< text index in the current active text bank */
 			int32 textColor; /*!< text color (see @c ActorStruct::talkColor) */
 		} DisplayText;
 		struct {
-			int32 info0;
 			BonusParameter typesFlag;
 			int32 amount;
 			/**
@@ -124,6 +117,8 @@ class Scene {
 private:
 	TwinEEngine *_engine;
 
+	void loadModel(ActorStruct &actor, int32 modelIndex, bool lba1);
+
 	/** Process zone extra bonus */
 	void processZoneExtraBonus(ZoneStruct *zone);
 	void setActorStaticFlags(ActorStruct *act, uint32 staticFlags);
@@ -137,7 +132,7 @@ private:
 	void resetScene();
 
 	// the first actor is the own hero
-	ActorStruct _sceneActors[NUM_MAX_ACTORS];
+	ActorStruct _sceneActors[NUM_MAX_ACTORS]; // ListObjet
 	int32 _currentSceneSize = 0;
 	bool _isOutsideScene = false; // lba2
 
@@ -153,39 +148,49 @@ private:
 
 	int16 _samplePlayed = 0;
 
-	int16 _sceneMusic = 0;
-
+public:
+	int16 _cubeJingle = 0;
+private:
 	IVec3 _sceneHeroPos;
 	IVec3 _zoneHeroPos;
 
 	int32 _currentGameOverScene = 0;
 
 	uint8 *_currentScene = nullptr;
-
+	void dumpSceneScripts() const;
+	void dumpSceneScript(const char *type, int actorIdx, const uint8* script, int size) const;
 public:
 	Scene(TwinEEngine *engine) : _engine(engine) {}
 	~Scene();
 
 	int32 _needChangeScene = LBA1SceneId::Citadel_Island_Prison;
-	int32 _currentSceneIdx = LBA1SceneId::Citadel_Island_Prison;
+	int32 _currentSceneIdx = LBA1SceneId::Citadel_Island_Prison; // NumCube
 	int32 _previousSceneIdx = LBA1SceneId::Citadel_Island_Prison;
+
+	int32 _planet = -1;
 
 	int32 _holomapTrajectory = -1;
 
 	TextBankId _sceneTextBank = TextBankId::None;
-	int32 _alphaLight = ANGLE_0;
-	int32 _betaLight = ANGLE_0;
+	int32 _alphaLight = 0;
+	int32 _betaLight = 0;
+
+	uint8 _island = 0;
+	uint8 _shadowLevel = 0; // lba2
+	uint8 _modeLabyrinthe = 0; // lba2
+	uint8 _currentCubeX = 0; // lba2
+	uint8 _currentCubeY = 0; // lba2
 
 	IVec3 _newHeroPos;
 
 	/** Hero Y coordinate before fall */
-	int16 _heroYBeforeFall = 0;
+	int16 _startYFalling = 0;
 
 	/** Hero type of position in scene */
 	ScenePositionType _heroPositionType = ScenePositionType::kNoPosition; // twinsenPositionModeInNewCube
 
 	// ACTORS
-	int32 _sceneNumActors = 0;
+	int32 _nbObjets = 0;
 	ActorStruct *_sceneHero = nullptr;
 
 	/** Meca penguin actor index */
@@ -194,8 +199,8 @@ public:
 	/** Current followed actor in scene */
 	int16 _currentlyFollowedActor = OWN_ACTOR_SCENE_INDEX;
 	/** Current actor in zone - climbing a ladder */
-	bool _currentActorInZone = false;
-	bool _useScenePatches = true;
+	bool _flagClimbing = false;
+	bool _enableEnhancements = false;
 	/** Current actor manipulated in scripts */
 	int16 _currentScriptValue = 0;
 
@@ -207,19 +212,22 @@ public:
 
 	bool _enableGridTileRendering = true;
 
-	uint8 _sceneFlags[NUM_SCENES_FLAGS]{0};
+	uint8 _listFlagCube[NUM_SCENES_FLAGS]{0}; // ListVarCube
 
-	int32 _sceneNumZones = 0;
-	ZoneStruct _sceneZones[NUM_MAX_ZONES];
+	int32 _sceneNumZones = 0; // NbZones
+	ZoneStruct _sceneZones[NUM_MAX_ZONES]; // ListZone
 
-	ActorStruct *getActor(int32 actorIdx);
+	ActorStruct *getActor(int32 actorIdx); // ListObjet
 
 	void playSceneMusic();
 
 	void reloadCurrentScene();
 
 	/** Change to another scene */
-	void changeScene();
+	void changeCube();
+
+	/** For the buggy to get the 2D coordinates of an exterior cube in the map */
+	bool loadSceneCubeXY(int sceneNum, int32 *cubeX, int32 *cubeY);
 
 	/** Process scene environment sound */
 	void processEnvironmentSound();
@@ -232,7 +240,7 @@ public:
 	 * Process actor zones
 	 * @param actorIdx Process actor index
 	 */
-	void processActorZones(int32 actorIdx);
+	void checkZoneSce(int32 actorIdx);
 };
 
 inline bool Scene::isGameRunning() const {

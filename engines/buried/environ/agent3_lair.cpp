@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,10 +41,10 @@ namespace Buried {
 class LairEntry : public SceneBase {
 public:
 	LairEntry(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int preExitRoom(Window *viewWindow, const Location &newLocation);
-	int timerCallback(Window *viewWindow);
-	int onCharacter(Window *viewWindow, const Common::KeyState &character);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int preExitRoom(Window *viewWindow, const Location &newLocation) override;
+	int timerCallback(Window *viewWindow) override;
+	int onCharacter(Window *viewWindow, const Common::KeyState &character) override;
 
 private:
 	int _movieIndex;
@@ -68,6 +67,8 @@ LairEntry::LairEntry(BuriedEngine *vm, Window *viewWindow, const LocationStaticD
 }
 
 int LairEntry::postEnterRoom(Window *viewWindow, const Location &priorLocation) {
+	const int effectsIndexBase = 2;	// same as kEffectsIndexBase in SoundManager
+
 	// Force enable frame cycling
 	((SceneViewWindow *)viewWindow)->forceEnableCycling(true);
 
@@ -79,7 +80,7 @@ int LairEntry::postEnterRoom(Window *viewWindow, const Location &priorLocation) 
 
 	if (((SceneViewWindow *)viewWindow)->getGlobalFlags().alRestoreSkipAgent3Initial == 1) {
 		// Start new secondary ambient
-		_vm->_sound->setSecondaryAmbientSound(_vm->getFilePath(_staticData.location.timeZone, _staticData.location.environment, 14), 64);
+		_vm->_sound->setSecondaryAmbientSound(_vm->getFilePath(_staticData.location.timeZone, _staticData.location.environment, 14), true, 64);
 
 		_staticData.cycleStartFrame = 0;
 		_staticData.cycleFrameCount = 54;
@@ -134,7 +135,7 @@ int LairEntry::postEnterRoom(Window *viewWindow, const Location &priorLocation) 
 		}
 
 		_vm->_sound->timerCallback();
-		_vm->yield();
+		_vm->yield(nullptr, effectsIndexBase + _currentSoundID);
 	}
 
 	_vm->_sound->stopSoundEffect(_currentSoundID);
@@ -163,7 +164,7 @@ int LairEntry::postEnterRoom(Window *viewWindow, const Location &priorLocation) 
 		}
 
 		_vm->_sound->timerCallback();
-		_vm->yield();
+		_vm->yield(nullptr, effectsIndexBase + _currentSoundID);
 	}
 
 	_vm->_sound->stopSoundEffect(_currentSoundID);
@@ -179,7 +180,7 @@ int LairEntry::postEnterRoom(Window *viewWindow, const Location &priorLocation) 
 	_currentSoundID = _vm->_sound->playSoundEffect(_vm->getFilePath(IDS_AGENT3_VIRUS_SOUND_BASE + 6), 128, false, true);
 
 	// Start new secondary ambient
-	_vm->_sound->setSecondaryAmbientSound(_vm->getFilePath(_staticData.location.timeZone, _staticData.location.environment, 14), 64);
+	_vm->_sound->setSecondaryAmbientSound(_vm->getFilePath(_staticData.location.timeZone, _staticData.location.environment, 14), true, 64);
 
 	_passwordIndex = 0;
 	_stepDelay = 0;
@@ -282,6 +283,8 @@ int LairEntry::timerCallback(Window *viewWindow) {
 }
 
 int LairEntry::onCharacter(Window *viewWindow, const Common::KeyState &character) {
+	const int effectsIndexBase = 2; // same as kEffectsIndexBase in SoundManager
+
 	// Only accept input if we are beyond first voiceover
 	if (_passwordIndex <= 0)
 		return SC_TRUE;
@@ -337,12 +340,13 @@ int LairEntry::onCharacter(Window *viewWindow, const Common::KeyState &character
 					timerCallback(viewWindow);
 
 				_vm->_sound->timerCallback();
-				_vm->yield();
+				_vm->yield(nullptr, effectsIndexBase + _currentSoundID);
 			}
 
 			_vm->_sound->stopSoundEffect(_currentSoundID);
 			((GameUIWindow *)viewWindow->getParent())->_inventoryWindow->removeItem(kItemBioChipAI);
 			((GameUIWindow *)viewWindow->getParent())->_inventoryWindow->addItem(kItemBioChipBlank);
+			((GameUIWindow *)viewWindow->getParent())->_bioChipRightWindow->swapAIBioChipIfActive();
 
 			_vm->_sound->setAmbientSound(_vm->getFilePath(3, 2, SF_AMBIENT), false, 64);
 			_passwordIndex = 5;
@@ -352,15 +356,16 @@ int LairEntry::onCharacter(Window *viewWindow, const Common::KeyState &character
 		}
 
 		// Watch out, some curse words in here
-		Common::String vulgarLangA = (_vm->getVersion() >= MAKEVERSION(1, 0, 4, 0)) ? _vm->getString(IDS_AL_VULGAR_LANG_A) : "FUCKER";
-		Common::String vulgarLangB = (_vm->getVersion() >= MAKEVERSION(1, 0, 4, 0)) ? _vm->getString(IDS_AL_VULGAR_LANG_B) : "SHITHEAD";
-		Common::String vulgarLangC = (_vm->getVersion() >= MAKEVERSION(1, 0, 4, 0)) ? _vm->getString(IDS_AL_VULGAR_LANG_C) : "BITCH";
-		Common::String vulgarLangD = (_vm->getVersion() >= MAKEVERSION(1, 0, 4, 0)) ? _vm->getString(IDS_AL_VULGAR_LANG_D) : "CUNT";
-		Common::String vulgarLangE = (_vm->getVersion() >= MAKEVERSION(1, 0, 4, 0)) ? _vm->getString(IDS_AL_VULGAR_LANG_E) : "WHORE";
-		Common::String vulgarLangF = (_vm->getVersion() >= MAKEVERSION(1, 0, 4, 0)) ? _vm->getString(IDS_AL_VULGAR_LANG_F) : "ASSHOLE";
-		Common::String vulgarLangG = (_vm->getVersion() >= MAKEVERSION(1, 0, 4, 0)) ? _vm->getString(IDS_AL_VULGAR_LANG_G) : "TWAT";
-		Common::String vulgarLangH = (_vm->getVersion() >= MAKEVERSION(1, 0, 4, 0)) ? _vm->getString(IDS_AL_VULGAR_LANG_H) : "FUCK";
-		Common::String vulgarLangI = (_vm->getVersion() >= MAKEVERSION(1, 0, 4, 0)) ? _vm->getString(IDS_AL_VULGAR_LANG_I) : "SHIT";
+		bool newVersion = (_vm->getVersion() >= MAKEVERSION(1, 0, 4, 0));
+		Common::String vulgarLangA = newVersion ? _vm->getString(IDS_AL_VULGAR_LANG_A) : "FUCKER";
+		Common::String vulgarLangB = newVersion ? _vm->getString(IDS_AL_VULGAR_LANG_B) : "SHITHEAD";
+		Common::String vulgarLangC = newVersion ? _vm->getString(IDS_AL_VULGAR_LANG_C) : "BITCH";
+		Common::String vulgarLangD = newVersion ? _vm->getString(IDS_AL_VULGAR_LANG_D) : "CUNT";
+		Common::String vulgarLangE = newVersion ? _vm->getString(IDS_AL_VULGAR_LANG_E) : "WHORE";
+		Common::String vulgarLangF = newVersion ? _vm->getString(IDS_AL_VULGAR_LANG_F) : "ASSHOLE";
+		Common::String vulgarLangG = newVersion ? _vm->getString(IDS_AL_VULGAR_LANG_G) : "TWAT";
+		Common::String vulgarLangH = newVersion ? _vm->getString(IDS_AL_VULGAR_LANG_H) : "FUCK";
+		Common::String vulgarLangI = newVersion ? _vm->getString(IDS_AL_VULGAR_LANG_I) : "SHIT";
 
 		if (_passwordEntered == vulgarLangA || _passwordEntered == vulgarLangB || _passwordEntered == vulgarLangC ||
 				_passwordEntered == vulgarLangD || _passwordEntered == vulgarLangE || _passwordEntered == vulgarLangF ||
@@ -368,7 +373,7 @@ int LairEntry::onCharacter(Window *viewWindow, const Common::KeyState &character
 			liveText = _vm->getString(IDS_AGENT3_VIRUS_TEXT_A);
 			liveText += _passwordEntered;
 			liveText += _vm->getString(IDS_AGENT3_VIRUS_CURSOR);
-			liveText += (_vm->getVersion() >= MAKEVERSION(1, 0, 4, 0)) ? _vm->getString(IDS_AL_CASTRATION_TEXT) : "\nVULGAR LANGUAGE UNACCEPTABLE. CASTRATION TOOL ACTIVATED.";
+			liveText += newVersion ? _vm->getString(IDS_AL_CASTRATION_TEXT) : "\nVULGAR LANGUAGE UNACCEPTABLE. CASTRATION TOOL ACTIVATED.";
 			((SceneViewWindow  *)viewWindow)->displayLiveText(liveText, false);
 			_passwordIndex = 4;
 			_timerStart = 0;
@@ -397,9 +402,9 @@ int LairEntry::onCharacter(Window *viewWindow, const Common::KeyState &character
 class ReplicatorInterface : public SceneBase {
 public:
 	ReplicatorInterface(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postExitRoom(Window *viewWindow, const Location &newLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int postExitRoom(Window *viewWindow, const Location &newLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	int _currentItem;
@@ -482,12 +487,12 @@ class TransporterControls : public SceneBase {
 public:
 	TransporterControls(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
 	~TransporterControls();
-	void preDestructor();
-	int postExitRoom(Window *viewWindow, const Location &newLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
-	int onCharacter(Window *viewWindow, const Common::KeyState &character);
-	int gdiPaint(Window *viewWindow);
+	void preDestructor() override;
+	int postExitRoom(Window *viewWindow, const Location &newLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
+	int onCharacter(Window *viewWindow, const Common::KeyState &character) override;
+	int gdiPaint(Window *viewWindow) override;
 
 private:
 	Common::Rect _monitor, _retract;
@@ -578,7 +583,7 @@ int TransporterControls::onCharacter(Window *viewWindow, const Common::KeyState 
 					// Wait two seconds
 					uint32 startTime = g_system->getMillis();
 					while (!_vm->shouldQuit() && startTime + 2000 > g_system->getMillis())
-						_vm->yield();
+						_vm->yield(nullptr, -1);
 
 					// Move to a different depth to enter the transporter
 					DestinationScene newScene;
@@ -630,7 +635,7 @@ int TransporterControls::onCharacter(Window *viewWindow, const Common::KeyState 
 			// Wait two seconds
 			uint32 startTime = g_system->getMillis();
 			while (!_vm->shouldQuit() && startTime + 2000 > g_system->getMillis())
-				_vm->yield();
+				_vm->yield(nullptr, -1);
 
 			// Move to a different depth to enter the transporter
 			DestinationScene newScene;
@@ -671,8 +676,8 @@ int TransporterControls::gdiPaint(Window *viewWindow) {
 class GeneratorCoreZoom : public SceneBase {
 public:
 	GeneratorCoreZoom(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _clickableArea;
@@ -718,11 +723,11 @@ int GeneratorCoreZoom::specifyCursor(Window *viewWindow, const Common::Point &po
 class GeneratorCoreAcquire : public SceneBase {
 public:
 	GeneratorCoreAcquire(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseDown(Window *viewWindow, const Common::Point &pointLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int draggingItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags);
-	int droppedItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseDown(Window *viewWindow, const Common::Point &pointLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int draggingItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) override;
+	int droppedItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	int _currentStatus;
@@ -831,8 +836,8 @@ int GeneratorCoreAcquire::specifyCursor(Window *viewWindow, const Common::Point 
 class ZoomInPostItAndINN : public SceneBase {
 public:
 	ZoomInPostItAndINN(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _postItNote;
@@ -883,7 +888,7 @@ int ZoomInPostItAndINN::specifyCursor(Window *viewWindow, const Common::Point &p
 class CompleteTransport : public SceneBase {
 public:
 	CompleteTransport(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int timerCallback(Window *viewWindow);
+	int timerCallback(Window *viewWindow) override;
 };
 
 CompleteTransport::CompleteTransport(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation) :
@@ -939,7 +944,7 @@ ClickChangeScenePostIt::ClickChangeScenePostIt(BuriedEngine *vm, Window *viewWin
 class PlayTransporterClosing : public SceneBase {
 public:
 	PlayTransporterClosing(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postExitRoom(Window *viewWindow, const Location &newLocation);
+	int postExitRoom(Window *viewWindow, const Location &newLocation) override;
 };
 
 PlayTransporterClosing::PlayTransporterClosing(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation) :
@@ -966,12 +971,15 @@ bool SceneViewWindow::startAgent3LairAmbient(int oldTimeZone, int oldEnvironment
 }
 
 SceneBase *SceneViewWindow::constructAgent3LairSceneObject(Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation) {
+	SceneViewWindow *sceneView = ((SceneViewWindow *)viewWindow);
+	GlobalFlags &globalFlags = sceneView->getGlobalFlags();
+
 	switch (sceneStaticData.classID) {
 	case 0:
 		// Default scene
 		break;
 	case 1:
-		return new GenericItemAcquire(_vm, viewWindow, sceneStaticData, priorLocation, 177, 96, 231, 184, kItemGeneratorCore, 15, offsetof(GlobalFlags, alRDTakenLiveCore));
+		return new GenericItemAcquire(_vm, viewWindow, sceneStaticData, priorLocation, 177, 96, 231, 184, kItemGeneratorCore, 15, globalFlags.alRDTakenLiveCore);
 	case 2:
 		return new GeneratorCoreZoom(_vm, viewWindow, sceneStaticData, priorLocation);
 	case 3:

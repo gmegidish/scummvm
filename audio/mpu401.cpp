@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,9 +71,6 @@ void MidiChannel_MPU401::pitchBendFactor(byte value) {
 	_owner->setPitchBendRange(_channel, value);
 }
 
-void MidiChannel_MPU401::sysEx_customInstrument(uint32 type, const byte *instr) {
-	_owner->sysEx_customInstrument(_channel, type, instr);
-}
 
 const char *MidiDriver::getErrorName(int error_code) {
 	static const char *const midi_errors[] = {
@@ -92,7 +88,7 @@ const char *MidiDriver::getErrorName(int error_code) {
 
 MidiDriver_MPU401::MidiDriver_MPU401() :
 	MidiDriver(),
-	_timer_proc(0),
+	_timer_proc(nullptr),
 	_channel_mask(0xFFFF) // Permit all 16 channels by default
 {
 
@@ -108,7 +104,7 @@ MidiDriver_MPU401::~MidiDriver_MPU401() {
 void MidiDriver_MPU401::close() {
 	if (_timer_proc) {
 		g_system->getTimerManager()->removeTimerProc(_timer_proc);
-		_timer_proc = 0;
+		_timer_proc = nullptr;
 	}
 	if (isOpen()) {
 		for (int i = 0; i < 16; ++i)
@@ -140,7 +136,7 @@ MidiChannel *MidiDriver_MPU401::allocateChannel() {
 			return chan;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void MidiDriver_MPU401::setTimerCallback(void *timer_param, Common::TimerManager::TimerProc timer_proc) {

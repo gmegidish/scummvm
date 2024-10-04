@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -218,7 +217,7 @@ void SoundManager::installDriver(int driverNum) {
 	switch (driverNum) {
 	case ROLAND_DRIVER_NUM:
 	case ADLIB_DRIVER_NUM: {
-		// Handle loading bank infomation
+		// Handle loading bank information
 		byte *bankData = g_resourceManager->getResource(RES_BANK, driverNum, 0, true);
 		if (bankData) {
 			// Install the patch bank data
@@ -1293,7 +1292,7 @@ void SoundManager::sfUpdateVolume(Sound *sound) {
 }
 
 void SoundManager::sfDereferenceAll() {
-	// Orignal used handles for both the driver list and voiceTypeStructPtrs list. This method then refreshed
+	// Original used handles for both the driver list and voiceTypeStructPtrs list. This method then refreshed
 	// pointer lists based on the handles. Since in ScummVM we're just using pointers directly, this
 	// method doesn't need any implementation
 }
@@ -2554,7 +2553,7 @@ PlayStream::~PlayStream() {
 	remove();
 }
 
-bool PlayStream::setFile(const Common::String &filename) {
+bool PlayStream::setFile(const Common::Path &filename) {
 	remove();
 
 	// Open the resource file for access

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,7 @@ void KyraEngine_HoF::enterNewScene(uint16 newScene, int facing, int unk1, int un
 			_screen->updateScreen();
 			openTalkFile(_currentTalkFile);
 		}
-		showMessage(0, 207);
+		showMessage(nullptr, 207);
 		_screen->updateScreen();
 	}
 
@@ -301,7 +300,7 @@ int KyraEngine_HoF::trySceneChange(int *moveTable, int unk1, int updateChar) {
 
 		int ret = 0;
 		if (moveTable == moveTableStart || moveTable[1] == 8)
-			ret = updateCharPos(0);
+			ret = updateCharPos(nullptr);
 		else
 			ret = updateCharPos(moveTable);
 
@@ -390,10 +389,8 @@ void KyraEngine_HoF::loadScenePal() {
 	uint16 sceneId = _mainCharacter.sceneId;
 	_screen->copyPalette(1, 0);
 
-	char filename[14];
-	strcpy(filename, _sceneList[sceneId].filename1);
-	strcat(filename, ".COL");
-	_screen->loadBitmap(filename, 3, 3, 0);
+	Common::String filename = Common::String(_sceneList[sceneId].filename1) + ".COL";
+	_screen->loadBitmap(filename.c_str(), 3, 3, nullptr);
 	_screen->getPalette(1).copy(_screen->getCPagePtr(3), 0, 128);
 	_screen->getPalette(1).fill(0, 1, 0);
 	memcpy(_scenePal, _screen->getCPagePtr(3)+336, 432);
@@ -401,22 +398,17 @@ void KyraEngine_HoF::loadScenePal() {
 
 void KyraEngine_HoF::loadSceneMsc() {
 	uint16 sceneId = _mainCharacter.sceneId;
-	char filename[14];
-	strcpy(filename, _sceneList[sceneId].filename1);
-	strcat(filename, ".MSC");
-	_screen->loadBitmap(filename, 3, 5, 0);
+	_screen->loadBitmap((Common::String(_sceneList[sceneId].filename1) + ".MSC").c_str(), 3, 5, nullptr);
 }
 
 void KyraEngine_HoF::startSceneScript(int unk1) {
 	uint16 sceneId = _mainCharacter.sceneId;
-	char filename[14];
-
-	strcpy(filename, _sceneList[sceneId].filename1);
+	Common::String filename = _sceneList[sceneId].filename1;
 	if (sceneId == 68 && (queryGameFlag(0x1BC) || queryGameFlag(0x1BD)))
-		strcpy(filename, "DOORX");
-	strcat(filename, ".CPS");
+		filename = "DOORX";
+	filename += ".CPS";
 
-	_screen->loadBitmap(filename, 3, 3, 0);
+	_screen->loadBitmap(filename.c_str(), 3, 3, nullptr);
 	resetScaleTable();
 	_useCharPal = false;
 	memset(_charPalTable, 0, sizeof(_charPalTable));
@@ -435,12 +427,9 @@ void KyraEngine_HoF::startSceneScript(int unk1) {
 	_sceneCommentString = "Undefined scene comment string!";
 	_emc->init(&_sceneScriptState, &_sceneScriptData);
 
-	strcpy(filename, _sceneList[sceneId].filename1);
-	strcat(filename, ".");
-	strcat(filename, _scriptLangExt[(_flags.platform == Common::kPlatformDOS && !_flags.isTalkie) ? 0 : _lang]);
-
-	_res->exists(filename, true);
-	_emc->load(filename, &_sceneScriptData, &_opcodes);
+	filename = Common::String(_sceneList[sceneId].filename1) + "." + _scriptLangExt[(_flags.platform == Common::kPlatformDOS && !_flags.isTalkie) ? 0 : _lang];
+	_res->exists(filename.c_str(), true);
+	_emc->load(filename.c_str(), &_sceneScriptData, &_opcodes);
 	runSceneScript7();
 
 	_emc->start(&_sceneScriptState, 0);
@@ -532,7 +521,7 @@ void KyraEngine_HoF::initSceneAnims(int unk1) {
 	animState->needRefresh = 1;
 	animState->specialRefresh = 1;
 
-	_animList = 0;
+	_animList = nullptr;
 
 	AnimObj *charAnimState = animState;
 
@@ -564,7 +553,7 @@ void KyraEngine_HoF::initSceneAnims(int unk1) {
 		if (_sceneAnims[i].flags & 0x20)
 			animState->shapePtr = _sceneShapeTable[_sceneAnims[i].shapeIndex];
 		else
-			animState->shapePtr = 0;
+			animState->shapePtr = nullptr;
 
 		if (_sceneAnims[i].flags & 0x40) {
 			animState->shapeIndex3 = _sceneAnims[i].shapeIndex;
@@ -627,12 +616,7 @@ void KyraEngine_HoF::initSceneAnims(int unk1) {
 			animState->needRefresh = 1;
 			animState->specialRefresh = 1;
 
-			if (animInit) {
-				_animList = addToAnimListSorted(_animList, animState);
-			} else {
-				_animList = initAnimList(_animList, animState);
-				animInit = true;
-			}
+			_animList = addToAnimListSorted(_animList, animState);
 		}
 	}
 
@@ -688,7 +672,7 @@ void KyraEngine_HoF::freeSceneShapePtrs() {
 
 void KyraEngine_HoF::fadeScenePal(int srcIndex, int delayTime) {
 	_screen->getPalette(0).copy(_scenePal, srcIndex << 4, 16, 112);
-	_screen->fadePalette(_screen->getPalette(0), delayTime, &_updateFunctor);
+	_screen->fadePalette(_screen->getPalette(0), delayTime, delayTime ? &_updateFunctor : nullptr);
 }
 
 #pragma mark -

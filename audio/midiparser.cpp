@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,9 +30,10 @@
 //
 //////////////////////////////////////////////////
 
-MidiParser::MidiParser() :
+MidiParser::MidiParser(int8 source) :
+_source(source),
 _hangingNotesCount(0),
-_driver(0),
+_driver(nullptr),
 _timerRate(0x4A0000),
 _ppqn(96),
 _tempo(500000),
@@ -53,7 +53,7 @@ _doParse(true),
 _pause(false) {
 	memset(_activeNotes, 0, sizeof(_activeNotes));
 	memset(_tracks, 0, sizeof(_tracks));
-	_nextEvent.start = NULL;
+	_nextEvent.start = nullptr;
 	_nextEvent.delta = 0;
 	_nextEvent.event = 0;
 	_nextEvent.length = 0;
@@ -85,11 +85,19 @@ void MidiParser::property(int prop, int value) {
 }
 
 void MidiParser::sendToDriver(uint32 b) {
-	_driver->send(b);
+	if (_source < 0) {
+		_driver->send(b);
+	} else {
+		_driver->send(_source, b);
+	}
 }
 
 void MidiParser::sendMetaEventToDriver(byte type, byte *data, uint16 length) {
-	_driver->metaEvent(type, data, length);
+	if (_source < 0) {
+		_driver->metaEvent(type, data, length);
+	} else {
+		_driver->metaEvent(_source, type, data, length);
+	}
 }
 
 void MidiParser::setTempo(uint32 tempo) {
@@ -136,7 +144,7 @@ void MidiParser::activeNote(byte channel, byte note, bool active) {
 }
 
 void MidiParser::hangingNote(byte channel, byte note, uint32 timeLeft, bool recycle) {
-	NoteTimer *best = 0;
+	NoteTimer *best = nullptr;
 	NoteTimer *ptr = _hangingNotes;
 	int i;
 
@@ -161,7 +169,7 @@ void MidiParser::hangingNote(byte channel, byte note, uint32 timeLeft, bool recy
 		}
 	}
 
-	// Occassionally we might get a zero or negative note
+	// Occasionally we might get a zero or negative note
 	// length, if the note should be turned on and off in
 	// the same iteration. For now just set it to 1 and
 	// we'll turn it off in the next cycle.
@@ -187,7 +195,7 @@ void MidiParser::onTimer() {
 	// even if the parser does not parse events.
 	_sysExDelay -= (_sysExDelay > _timerRate) ? _timerRate : _sysExDelay;
 
-	if (!_position._playPos || !_driver || !_doParse || _pause || !_driver->isReady())
+	if (!_position._playPos || !_driver || !_doParse || _pause || !_driver->isReady(_source))
 		return;
 
 	_abortParse = false;
@@ -219,27 +227,29 @@ void MidiParser::onTimer() {
 		if (eventTime > endTime)
 			break;
 
-		// Process the next info.
-		if (info.event < 0x80) {
-			warning("Bad command or running status %02X", info.event);
-			_position._playPos = 0;
-			return;
-		}
+		if (!info.noop) {
+			// Process the next info.
+			if (info.event < 0x80) {
+				warning("Bad command or running status %02X", info.event);
+				_position._playPos = nullptr;
+				return;
+			}
 
-		if (info.command() == 0x8) {
-			activeNote(info.channel(), info.basic.param1, false);
-		} else if (info.command() == 0x9) {
-			if (info.length > 0)
-				hangingNote(info.channel(), info.basic.param1, info.length * _psecPerTick - (endTime - eventTime));
-			else
-				activeNote(info.channel(), info.basic.param1, true);
-		}
+			if (info.command() == 0x8) {
+				activeNote(info.channel(), info.basic.param1, false);
+			} else if (info.command() == 0x9) {
+				if (info.length > 0)
+					hangingNote(info.channel(), info.basic.param1, info.length * _psecPerTick - (endTime - eventTime));
+				else
+					activeNote(info.channel(), info.basic.param1, true);
+			}
 
-		// Player::metaEvent() in SCUMM will delete the parser object,
-		// so return immediately if that might have happened.
-		bool ret = processEvent(info);
-		if (!ret)
-			return;
+			// Player::metaEvent() in SCUMM will delete the parser object,
+			// so return immediately if that might have happened.
+			bool ret = processEvent(info);
+			if (!ret)
+				return;
+		}
 
 		loopEvent |= info.loop;
 
@@ -292,7 +302,6 @@ bool MidiParser::processEvent(const EventInfo &info, bool fireEvents) {
 			// as well as sending it to the output device.
 			if (_autoLoop) {
 				jumpToTick(0);
-				parseNextEvent(_nextEvent);
 			} else {
 				stopPlaying();
 				if (fireEvents)

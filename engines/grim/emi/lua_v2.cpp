@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,30 +15,26 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/endian.h"
-#include "common/foreach.h"
 #include "common/savefile.h"
+
+#include "graphics/surface.h"
 
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/emi_registry.h"
 #include "engines/grim/emi/sound/emisound.h"
 #include "engines/grim/lua/lauxlib.h"
-#include "graphics/pixelbuffer.h"
-
 #include "engines/grim/resource.h"
 #include "engines/grim/set.h"
 #include "engines/grim/grim.h"
 #include "engines/grim/gfx_base.h"
 #include "engines/grim/font.h"
-
 #include "engines/grim/emi/layer.h"
 #include "engines/grim/emi/emi.h"
-
 #include "engines/grim/movie/movie.h"
 
 namespace Grim {
@@ -115,7 +111,7 @@ void Lua_V2::MakeScreenTextures() {
 	lua_Object indexObj = lua_getparam(1);
 
 	if (!lua_isnil(indexObj) && lua_isnumber(indexObj)) {
-		/*int index = (int)lua_getnumber(indexObj);*/
+		//int index = (int)lua_getnumber(indexObj);
 		// The index does not seem to matter
 
 		g_driver->makeScreenTextures();
@@ -126,8 +122,8 @@ void Lua_V2::MakeScreenTextures() {
 }
 
 void Lua_V2::ClearSpecialtyTexture() {
-	//This seems to be used in the save/load menu
-	//Not sure why the specialty textures need to be cleared.
+	// This seems to be used in the save/load menu
+	// Not sure why the specialty textures need to be cleared.
 	warning("Lua_V2::ClearSpecialtyTexture: stub");
 }
 
@@ -223,18 +219,13 @@ void Lua_V2::GetFontDimensions() {
 
 	const char *fontName = lua_getstring(fontObj);
 
-	Font *font = nullptr;
-	foreach (Font *f, Font::getPool()) {
-		if (f->getFilename() == fontName) {
-			font = f;
-		}
-	}
+	Font *font = Font::getByFileName(fontName);
 	if (!font) {
 		font = g_resourceloader->loadFont(fontName);
 	}
 	if (font) {
 		int32 h = font->getBaseOffsetY();
-		int32 w = font->getCharKernedWidth('w');
+		int32 w = font->getFontWidth();
 		lua_pushnumber(w);
 		lua_pushnumber(h);
 	} else {
@@ -302,13 +293,6 @@ void Lua_V2::SetAmbientLight() {
 
 void Lua_V2::Display() {
 	// dummy
-}
-
-void Lua_V2::GetCameraPosition() {
-	Set::Setup *setup = g_grim->getCurrSet()->getCurrSetup();
-	lua_pushnumber(setup->_pos.x());
-	lua_pushnumber(setup->_pos.y());
-	lua_pushnumber(setup->_pos.z());
 }
 
 void Lua_V2::GetCameraPitch() {
@@ -507,7 +491,8 @@ void Lua_V2::ThumbnailFromFile() {
 	for (int l = 0; l < dataSize / 2; l++) {
 		data[l] = savedState->readLEUint16();
 	}
-	Graphics::PixelBuffer buf(Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0), (byte *)data);
+	Graphics::Surface buf;
+	buf.init(width, height, width * 2, (void *)data, Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0));
 	Bitmap *screenshot = new Bitmap(buf, width, height, "screenshot");
 	if (!screenshot) {
 		lua_pushnil();
@@ -519,7 +504,7 @@ void Lua_V2::ThumbnailFromFile() {
 	}
 
 	screenshot->_data->convertToColorFormat(Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
-	g_driver->createSpecialtyTexture(index, screenshot->getData(0).getRawBuffer(), width, height);
+	g_driver->createSpecialtyTexture(index, (const uint8 *)screenshot->getData(0).getPixels(), width, height);
 	delete screenshot;
 	delete[] data;
 	savedState->endSection();
@@ -562,7 +547,7 @@ void Lua_V2::LocalizeString() {
 	if (lua_isstring(strObj)) {
 		const char *str = lua_getstring(strObj);
 		Common::String msg = parseMsgText(str, msgId);
-		sprintf(buf, "/%s/%s", msgId, msg.c_str());
+		Common::sprintf_s(buf, "/%s/%s", msgId, msg.c_str());
 
 		lua_pushstring(buf);
 	}
@@ -631,7 +616,7 @@ void Lua_V2::NewLayer() {
 		til = lua_getstring(param1);
 		sortorder = (int)lua_getnumber(param2);
 
-		//This one is always specified, but also always 0...
+		// This one is always specified, but also always 0...
 		//zero = (int)lua_getnumber(param3);
 
 		Layer *layer = new Layer(til, sortorder);
@@ -766,7 +751,7 @@ void Lua_V2::RenderModeUser() {
 	}
 }
 
-// Monkey specific LUA_OPCODEs
+// Monkey specific LUA_OPCODEs only used for debug
 STUB_FUNC2(Lua_V2::ToggleDebugDraw)
 STUB_FUNC2(Lua_V2::ToggleDrawCameras)
 STUB_FUNC2(Lua_V2::ToggleDrawLights)

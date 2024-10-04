@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,16 +29,23 @@
 namespace Nancy {
 namespace UI {
 
-Scrollbar::Scrollbar(RenderObject &redrawFrom, uint16 zOrder, const Common::Rect &srcBounds, const Common::Point &topPosition, uint16 scrollDistance, bool isVertical) :
-		RenderObject(redrawFrom, zOrder),
+Scrollbar::Scrollbar(uint16 zOrder, const Common::Rect &srcBounds, const Common::Point &topPosition, uint16 scrollDistance, bool isVertical) :
+	Scrollbar(zOrder, srcBounds, g_nancy->_graphics->_object0, topPosition, scrollDistance, isVertical) {}
+
+Scrollbar::Scrollbar(uint16 zOrder, const Common::Rect &srcBounds, Graphics::ManagedSurface &srcSurf, const Common::Point &topPosition, uint16 scrollDistance, bool isVertical) :
+		RenderObject(zOrder),
 		_isVertical(isVertical),
 		_isClicked(false),
 		_currentPosition(0),
 		_maxDist(scrollDistance) {
-	_drawSurface.create(g_nancy->_graphicsManager->_object0, srcBounds);
+	_drawSurface.create(srcSurf, srcBounds);
 
 	_startPosition = topPosition;
 	_startPosition.x -= srcBounds.width() / 2;
+
+	if (!isVertical) {
+		_startPosition.y -= srcBounds.height() / 2;
+	}
 
 	_screenPosition = srcBounds;
 	_screenPosition.moveTo(_startPosition);
@@ -51,8 +57,11 @@ void Scrollbar::init() {
 }
 
 void Scrollbar::handleInput(NancyInput &input) {
-	if (_screenPosition.contains(input.mousePos)) {
-		g_nancy->_cursorManager->setCursorType(CursorManager::kHotspotArrow);
+	// Note: the original engine's scrollbars only work if the cursor is inside
+	// the hotspot (happens if we remove the _isClicked check below). This doesn't make
+	// for great UX, however, so it has been fixed.
+	if (_screenPosition.contains(input.mousePos) || _isClicked) {
+		g_nancy->_cursor->setCursorType(CursorManager::kHotspotArrow);
 
 		if (input.input & NancyInput::kLeftMouseButtonDown && !_isClicked) {
 			// Begin click and hold
@@ -88,8 +97,26 @@ void Scrollbar::handleInput(NancyInput &input) {
 		}
 	}
 
+	bool wasClicked = _isClicked;
 	if (input.input & NancyInput::kLeftMouseButtonUp) {
 		_isClicked = false;
+	}
+
+	// If the mouse is clicked and moves outside the scrollbar's hotspot, we don't want it
+	// to trigger other events. This only works if scrollbars are at the very top of the input priority.
+	// As a result, this effect won't be applied to the scrollbars in SoundEqualizerPuzzle
+	// In the future, this can be fixed by creating an input queue inside InputManager.
+	if (wasClicked) {
+		input.eatMouseInput();
+	}
+}
+
+void Scrollbar::setPosition(float pos) {
+	_currentPosition = pos;
+	if (_isVertical) {
+		moveTo(Common::Point(_screenPosition.left, _startPosition.y + (_maxDist * pos)));
+	} else {
+		moveTo(Common::Point(_startPosition.x + (_maxDist * pos), _screenPosition.top));
 	}
 }
 

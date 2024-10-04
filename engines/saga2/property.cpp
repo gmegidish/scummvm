@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -68,7 +67,7 @@ bool objIsPlayerActor(GameObject *obj) {
 	            &&  isPlayerActor((Actor *)obj);
 }
 
-//  Determine if this object is an enemy of the protaganists
+//  Determine if this object is an enemy of the protagonists
 bool objIsEnemy(GameObject *obj) {
 	return      isActor(obj)
 	            &&  isEnemy((Actor *)obj);
@@ -93,7 +92,7 @@ bool actorIsPlayerActor(Actor *a) {
 	return isPlayerActor(a);
 }
 
-//  Determine if this actor is an enemy of the protaganists
+//  Determine if this actor is an enemy of the protagonists
 bool actorIsEnemy(Actor *a) {
 	return isEnemy(a);
 }
@@ -104,7 +103,7 @@ bool actorIsEnemy(Actor *a) {
 
 //  Determine if this tile has water
 bool tileHasWater(TileInfo *ti) {
-	return (ti->combinedTerrainMask() & terrainWater) ? true : false;
+	return (ti->combinedTerrainMask() & kTerrainWater) ? true : false;
 }
 
 /* ===================================================================== *
@@ -120,7 +119,7 @@ bool SimpleMetaTileProperty::operator()(
     int16 mapNum,
     const TilePoint &tp) const {
 	//  Simply pass this call to the property evaluation function
-	return (*propertyFunc)(mt, mapNum, tp);
+	return (*_propertyFunc)(mt, mapNum, tp);
 }
 
 /* ===================================================================== *
@@ -134,18 +133,18 @@ CompoundMetaTileProperty::CompoundMetaTileProperty(
 	uint16  arrayBytes = sizeof(MetaTileProperty *) * size;
 
 	//  Allocate memory for a copy of the array
-	propertyArray = (MetaTileProperty **)malloc(arrayBytes);
+	_propertyArray = (MetaTileProperty **)malloc(arrayBytes);
 #if DEBUG
-	assert(propertyArray);
+	assert(_propertyArray);
 #endif
 	//  Copy the array
-	memcpy(propertyArray, array, arrayBytes);
-	arraySize = size;
+	memcpy(_propertyArray, array, arrayBytes);
+	_arraySize = size;
 }
 
 CompoundMetaTileProperty::~CompoundMetaTileProperty() {
 	//  Free the memory for the copy of the array
-	free(propertyArray);
+	free(_propertyArray);
 }
 
 /* ===================================================================== *
@@ -160,8 +159,8 @@ bool MetaTilePropertyAnd::operator()(
 
 	//  Iterate through each element in the array and if any evaluate to
 	//  false, return false immediately.
-	for (i = 0; i < arraySize; i++)
-		if ((*propertyArray[i])(mt, mapNum, tp) == false) return false;
+	for (i = 0; i < _arraySize; i++)
+		if ((*_propertyArray[i])(mt, mapNum, tp) == false) return false;
 
 	return true;
 }
@@ -178,8 +177,8 @@ bool MetaTilePropertyOr::operator()(
 
 	//  Iterate through each element in the array and if any evaluate to
 	//  true, return true immediately.
-	for (i = 0; i < arraySize; i++)
-		if ((*propertyArray[i])(mt, mapNum, tp)) return true;
+	for (i = 0; i < _arraySize; i++)
+		if ((*_propertyArray[i])(mt, mapNum, tp)) return true;
 
 	return false;
 }
@@ -194,7 +193,7 @@ bool metaTileHasWater(
 	            tCoords;
 
 	tCoords.z = 0;
-	for (int i = 0; i < maxPlatforms; i++) {
+	for (int i = 0; i < kMaxPlatforms; i++) {
 		Platform *p = mt->fetchPlatform(mapNum, i);
 
 		if (p) {
@@ -210,7 +209,7 @@ bool metaTileHasWater(
 					            origin,
 					            height,
 					            trFlags);
-					if (ti->combinedTerrainMask() & terrainWater)
+					if (ti->combinedTerrainMask() & kTerrainWater)
 						return true;
 				}
 			}

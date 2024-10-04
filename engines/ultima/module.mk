@@ -2,14 +2,22 @@ MODULE := engines/ultima
 
 MODULE_OBJS := \
 	metaengine.o \
+	shared/conf/xml_node.o \
+	shared/conf/xml_tree.o \
+	shared/core/file.o \
+	shared/engine/ultima.o \
+	shared/engine/data_archive.o \
+	shared/engine/debugger.o \
+	shared/engine/events.o \
+	shared/std/string.o
+
+ifdef ENABLE_ULTIMA1
+MODULE_OBJS += \
 	shared/actions/action.o \
 	shared/actions/huh.o \
 	shared/actions/pass.o \
-	shared/conf/xml_node.o \
-	shared/conf/xml_tree.o \
 	shared/core/base_object.o \
 	shared/core/character.o \
-	shared/core/file.o \
 	shared/core/lzw.o \
 	shared/core/map.o \
 	shared/core/message_target.o \
@@ -24,10 +32,6 @@ MODULE_OBJS := \
 	shared/early/game.o \
 	shared/early/game_base.o \
 	shared/early/ultima_early.o \
-	shared/engine/ultima.o \
-	shared/engine/data_archive.o \
-	shared/engine/debugger.o \
-	shared/engine/events.o \
 	shared/engine/input_handler.o \
 	shared/engine/input_translator.o \
 	shared/engine/messages.o \
@@ -52,7 +56,6 @@ MODULE_OBJS := \
 	shared/maps/map_tile.o \
 	shared/maps/map_widget.o \
 	shared/maps/creature.o \
-	shared/std/string.o \
 	ultima0/core/resources.o \
 	ultima0/game.o \
 	ultima0/resources.o \
@@ -132,7 +135,11 @@ MODULE_OBJS := \
 	ultima1/widgets/urban_player.o \
 	ultima1/widgets/urban_widget.o \
 	ultima1/widgets/wench.o \
-	ultima1/game.o \
+	ultima1/game.o
+endif
+
+ifdef ENABLE_ULTIMA4
+MODULE_OBJS += \
 	ultima4/controllers/alpha_action_controller.o \
 	ultima4/controllers/camp_controller.o \
 	ultima4/controllers/combat_controller.o \
@@ -188,7 +195,6 @@ MODULE_OBJS := \
 	ultima4/gfx/image.o \
 	ultima4/gfx/imageloader.o \
 	ultima4/gfx/imageloader_fmtowns.o \
-	ultima4/gfx/imageloader_png.o \
 	ultima4/gfx/imageloader_u4.o \
 	ultima4/gfx/imagemgr.o \
 	ultima4/gfx/scale.o \
@@ -218,9 +224,13 @@ MODULE_OBJS := \
 	ultima4/views/textview.o \
 	ultima4/views/tileview.o \
 	ultima4/views/view.o \
-	ultima4/meta_engine.o \
-	ultima4/ultima4.o \
-	nuvie/meta_engine.o \
+	ultima4/metaengine.o \
+	ultima4/ultima4.o
+endif
+
+ifdef ENABLE_ULTIMA6
+MODULE_OBJS += \
+	nuvie/metaengine.o \
 	nuvie/nuvie.o \
 	nuvie/actors/actor.o \
 	nuvie/actors/actor_manager.o \
@@ -298,6 +308,8 @@ MODULE_OBJS := \
 	nuvie/gui/widgets/map_window.o \
 	nuvie/keybinding/keys.o \
 	nuvie/keybinding/key_actions.o \
+	nuvie/keybinding/key_help_dialog.o \
+	nuvie/menus/asset_viewer_dialog.o \
 	nuvie/menus/audio_dialog.o \
 	nuvie/menus/cheats_dialog.o \
 	nuvie/menus/gameplay_dialog.o \
@@ -326,7 +338,6 @@ MODULE_OBJS := \
 	nuvie/save/save_game.o \
 	nuvie/screen/dither.o \
 	nuvie/screen/game_palette.o \
-	nuvie/screen/scale.o \
 	nuvie/screen/screen.o \
 	nuvie/screen/surface.o \
 	nuvie/script/script.o \
@@ -334,10 +345,14 @@ MODULE_OBJS := \
 	nuvie/script/script_cutscene.o \
 	nuvie/sound/adlib_sfx_manager.o \
 	nuvie/sound/custom_sfx_manager.o \
+	nuvie/sound/mididrv_m_adlib.o \
+	nuvie/sound/mididrv_m_mt32.o \
+	nuvie/sound/midiparser_m.o \
 	nuvie/sound/origin_fx_adib_driver.o \
 	nuvie/sound/pc_speaker_sfx_manager.o \
 	nuvie/sound/song.o \
 	nuvie/sound/song_adplug.o \
+	nuvie/sound/song_filename.o \
 	nuvie/sound/sound_manager.o \
 	nuvie/sound/towns_sfx_manager.o \
 	nuvie/sound/adplug/adplug_player.o \
@@ -375,9 +390,13 @@ MODULE_OBJS := \
 	nuvie/views/spell_view_gump.o \
 	nuvie/views/sun_moon_ribbon.o \
 	nuvie/views/sun_moon_strip_widget.o \
-	nuvie/views/vew.o \
-	nuvie/views/view_manager.o \
-	ultima8/meta_engine.o \
+	nuvie/views/view.o \
+	nuvie/views/view_manager.o
+endif
+
+ifdef ENABLE_ULTIMA8
+MODULE_OBJS += \
+	ultima8/metaengine.o \
 	ultima8/ultima8.o \
 	ultima8/audio/audio_channel.o \
 	ultima8/audio/audio_mixer.o \
@@ -397,8 +416,6 @@ MODULE_OBJS := \
 	ultima8/convert/u8/convert_shape_u8.o \
 	ultima8/convert/crusader/convert_shape_crusader.o \
 	ultima8/filesys/archive.o \
-	ultima8/filesys/archive_file.o \
-	ultima8/filesys/file_system.o \
 	ultima8/filesys/flex_file.o \
 	ultima8/filesys/raw_archive.o \
 	ultima8/filesys/savegame.o \
@@ -411,39 +428,37 @@ MODULE_OBJS := \
 	ultima8/games/start_u8_process.o \
 	ultima8/games/treasure_loader.o \
 	ultima8/games/u8_game.o \
-	ultima8/graphics/anim_dat.o \
-	ultima8/graphics/avi_player.o \
-	ultima8/graphics/base_soft_render_surface.o \
-	ultima8/graphics/cycle_process.o \
-	ultima8/graphics/frame_id.o \
-	ultima8/graphics/fade_to_modal_process.o \
-	ultima8/graphics/gump_shape_archive.o \
-	ultima8/graphics/inverter_process.o \
-	ultima8/graphics/main_shape_archive.o \
-	ultima8/graphics/palette.o \
-	ultima8/graphics/palette_fader_process.o \
-	ultima8/graphics/palette_manager.o \
-	ultima8/graphics/raw_shape_frame.o \
-	ultima8/graphics/render_surface.o \
-	ultima8/graphics/shape.o \
-	ultima8/graphics/shape_archive.o \
-	ultima8/graphics/shape_frame.o \
-	ultima8/graphics/shape_info.o \
-	ultima8/graphics/skf_player.o \
-	ultima8/graphics/soft_render_surface.o \
-	ultima8/graphics/type_flags.o \
-	ultima8/graphics/wpn_ovlay_dat.o \
-	ultima8/graphics/xform_blend.o \
-	ultima8/graphics/fonts/font.o \
-	ultima8/graphics/fonts/font_manager.o \
-	ultima8/graphics/fonts/font_shape_archive.o \
-	ultima8/graphics/fonts/jp_font.o \
-	ultima8/graphics/fonts/jp_rendered_text.o \
-	ultima8/graphics/fonts/rendered_text.o \
-	ultima8/graphics/fonts/shape_font.o \
-	ultima8/graphics/fonts/shape_rendered_text.o \
-	ultima8/graphics/fonts/ttf_rendered_text.o \
-	ultima8/graphics/fonts/tt_font.o \
+	ultima8/gfx/anim_dat.o \
+	ultima8/gfx/avi_player.o \
+	ultima8/gfx/cycle_process.o \
+	ultima8/gfx/frame_id.o \
+	ultima8/gfx/fade_to_modal_process.o \
+	ultima8/gfx/gump_shape_archive.o \
+	ultima8/gfx/inverter_process.o \
+	ultima8/gfx/main_shape_archive.o \
+	ultima8/gfx/palette.o \
+	ultima8/gfx/palette_fader_process.o \
+	ultima8/gfx/palette_manager.o \
+	ultima8/gfx/raw_shape_frame.o \
+	ultima8/gfx/render_surface.o \
+	ultima8/gfx/shape.o \
+	ultima8/gfx/shape_archive.o \
+	ultima8/gfx/shape_frame.o \
+	ultima8/gfx/shape_info.o \
+	ultima8/gfx/skf_player.o \
+	ultima8/gfx/type_flags.o \
+	ultima8/gfx/wpn_ovlay_dat.o \
+	ultima8/gfx/xform_blend.o \
+	ultima8/gfx/fonts/font.o \
+	ultima8/gfx/fonts/font_manager.o \
+	ultima8/gfx/fonts/font_shape_archive.o \
+	ultima8/gfx/fonts/jp_font.o \
+	ultima8/gfx/fonts/jp_rendered_text.o \
+	ultima8/gfx/fonts/rendered_text.o \
+	ultima8/gfx/fonts/shape_font.o \
+	ultima8/gfx/fonts/shape_rendered_text.o \
+	ultima8/gfx/fonts/ttf_rendered_text.o \
+	ultima8/gfx/fonts/tt_font.o \
 	ultima8/gumps/ask_gump.o \
 	ultima8/gumps/bark_gump.o \
 	ultima8/gumps/book_gump.o \
@@ -535,9 +550,11 @@ MODULE_OBJS := \
 	ultima8/world/item_sorter.o \
 	ultima8/world/map.o \
 	ultima8/world/map_glob.o \
+	ultima8/world/minimap.o \
 	ultima8/world/missile_tracker.o \
 	ultima8/world/monster_egg.o \
 	ultima8/world/snap_process.o \
+	ultima8/world/sort_item.o \
 	ultima8/world/split_item_process.o \
 	ultima8/world/sprite_process.o \
 	ultima8/world/super_sprite_process.o \
@@ -580,6 +597,7 @@ MODULE_OBJS := \
 	ultima8/world/actors/targeted_anim_process.o \
 	ultima8/world/actors/teleport_to_egg_process.o \
 	ultima8/world/actors/u8_avatar_mover_process.o
+endif
 
 # This module can be built as a plugin
 ifeq ($(ENABLE_ULTIMA), DYNAMIC_PLUGIN)

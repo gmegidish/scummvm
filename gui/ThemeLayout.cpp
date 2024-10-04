@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -146,7 +145,7 @@ int16 ThemeLayoutStacked::getParentHeight() {
 }
 
 #ifdef LAYOUT_DEBUG_DIALOG
-void ThemeLayout::debugDraw(Graphics::Surface *screen, const Graphics::Font *font) {
+void ThemeLayout::debugDraw(Graphics::ManagedSurface *screen, const Graphics::Font *font) {
 	uint32 color = 0xFFFFFFFF;
 	font->drawString(screen, getName(), _x, _y, _w, color, Graphics::kTextAlignRight, 0, true);
 	screen->hLine(_x, _y, _x + _w, color);
@@ -230,8 +229,8 @@ void ThemeLayoutMain::reflowLayout(Widget *widgetChain) {
 	} else if (_overlays == "screen_center") {
 		_x = -1;
 		_y = -1;
-		_w = _defaultW > 0 ? MIN(_defaultW, g_gui.getGUIWidth()) * g_gui.getScaleFactor() : -1;
-		_h = _defaultH > 0 ? MIN(_defaultH, g_gui.getGUIHeight()) * g_gui.getScaleFactor() : -1;
+		_w = _defaultW > 0 ? MIN(_defaultW, (int16)(g_gui.getGUIWidth() * g_gui.getScaleFactor())) : -1;
+		_h = _defaultH > 0 ? MIN(_defaultH, (int16)(g_gui.getGUIHeight() * g_gui.getScaleFactor())) : -1;
 	} else {
 		if (!g_gui.xmlEval()->getWidgetData(_overlays, _x, _y, _w, _h)) {
 			warning("Unable to retrieve overlayed dialog position %s", _overlays.c_str());

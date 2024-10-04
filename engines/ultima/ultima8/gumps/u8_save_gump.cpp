@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,8 +25,8 @@
 #include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/kernel/mouse.h"
 #include "ultima/ultima8/games/game_data.h"
-#include "ultima/ultima8/graphics/shape.h"
-#include "ultima/ultima8/graphics/shape_frame.h"
+#include "ultima/ultima8/gfx/shape.h"
+#include "ultima/ultima8/gfx/shape_frame.h"
 #include "ultima/ultima8/filesys/savegame.h"
 #include "ultima/ultima8/gumps/paged_gump.h"
 #include "ultima/ultima8/world/get_object.h"
@@ -35,6 +34,7 @@
 #include "common/config-manager.h"
 #include "common/savefile.h"
 #include "common/translation.h"
+#include "gui/message.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -139,7 +139,7 @@ void U8SaveGump::InitGump(Gump *newparent, bool take_focus) {
 				// load
 				Gump *widget = new TextWidget(xbase, entryheight + 4 + 40 * yi,
 				                              _descriptions[i], true, entryfont,
-				                              95);
+											  95, 38 - entryheight);
 				widget->InitGump(this, false);
 			}
 		}
@@ -171,7 +171,7 @@ Gump *U8SaveGump::onMouseDown(int button, int32 mx, int32 my) {
 
 
 void U8SaveGump::onMouseClick(int button, int32 mx, int32 my) {
-	if (button != Shared::BUTTON_LEFT) return;
+	if (button != Mouse::BUTTON_LEFT) return;
 
 	ParentToGump(mx, my);
 
@@ -203,7 +203,7 @@ void U8SaveGump::onMouseClick(int button, int32 mx, int32 my) {
 	}
 
 	if (!_save) {
-		// If our parent has a notifiy process, we'll put our result in it and wont actually load the game
+		// If our parent has a notifiy process, we'll put our result in it and won't actually load the game
 		GumpNotifyProcess *p = _parent ? _parent->GetNotifyProcess() : nullptr;
 		if (p) {
 			// Do nothing in this case
@@ -216,6 +216,10 @@ void U8SaveGump::onMouseClick(int button, int32 mx, int32 my) {
 
 		loadgame(index); // 'this' will be deleted here!
 	}
+}
+
+void U8SaveGump::onMouseDouble(int button, int32 mx, int32 my) {
+	onMouseClick(button, mx, my);
 }
 
 void U8SaveGump::ChildNotify(Gump *child, uint32 message) {
@@ -259,24 +263,30 @@ bool U8SaveGump::OnKeyDown(int key, int mod) {
 
 bool U8SaveGump::loadgame(int saveIndex) {
 	if (saveIndex == 1) {
-		Ultima8Engine::get_instance()->newGame();
-		return true;
-	} else {
-		return Ultima8Engine::get_instance()->loadGameState(saveIndex).getCode() == Common::kNoError;
+		return Ultima8Engine::get_instance()->newGame();
 	}
+
+	Common::Error loadError = Ultima8Engine::get_instance()->loadGameState(saveIndex);
+	if (loadError.getCode() != Common::kNoError) {
+		GUI::MessageDialog errorDialog(loadError.getDesc());
+		errorDialog.runModal();
+		return false;
+	}
+	return true;
 }
 
 bool U8SaveGump::savegame(int saveIndex, const Std::string &name) {
-	pout << "Save " << saveIndex << ": \"" << name << "\"" << Std::endl;
-
-	if (name.empty()) return false;
+	if (name.empty())
+		return false;
 
 	// We are saving, close parent (and ourselves) first so it doesn't
 	// block the save or appear in the screenshot
 	_parent->Close();
 
-	Ultima8Engine::get_instance()->saveGame(saveIndex, name);
-	return true;
+	if (!Ultima8Engine::get_instance()->canSaveGameStateCurrently())
+		return false;
+
+	return Ultima8Engine::get_instance()->saveGameState(saveIndex, name).getCode() == Common::kNoError;
 }
 
 void U8SaveGump::loadDescriptions() {
@@ -291,27 +301,7 @@ void U8SaveGump::loadDescriptions() {
 			continue;
 
 		const SavegameReader *sg = new SavegameReader(saveFile, true);
-		SavegameReader::State state = sg->isValid();
-		_descriptions[i] = "";
-
-		// FIXME: move version checks elsewhere!!
-		switch (state) {
-		case SavegameReader::SAVE_CORRUPT:
-			_descriptions[i] = Common::convertFromU32String(_("[corrupt]"));
-			break;
-		case SavegameReader::SAVE_OUT_OF_DATE:
-			_descriptions[i] = Common::convertFromU32String(_("[outdated]"));
-			break;
-		case SavegameReader::SAVE_TOO_RECENT:
-			_descriptions[i] = Common::convertFromU32String(_("[too modern]"));
-			break;
-		default:
-			break;
-		}
-
-		if (state != SavegameReader::SAVE_VALID)
-			_descriptions[i] += " ";
-		_descriptions[i] += sg->getDescription();
+		_descriptions[i] = sg->getDescription();
 		delete sg;
 	}
 }
@@ -326,7 +316,7 @@ Gump *U8SaveGump::showLoadSaveGump(Gump *parent, bool save) {
 		return nullptr;
 	}
 
-	if (save && !Ultima8Engine::get_instance()->canSaveGameStateCurrently(false)) {
+	if (save && !Ultima8Engine::get_instance()->canSaveGameStateCurrently()) {
 		return nullptr;
 	}
 
@@ -339,6 +329,10 @@ Gump *U8SaveGump::showLoadSaveGump(Gump *parent, bool save) {
 		gump->addPage(s);
 	}
 
+	int lastSave = ConfMan.hasKey("lastSave") ? ConfMan.getInt("lastSave") : -1;
+	if (lastSave > 0) {
+		gump->showPage((lastSave - 1) / 6);
+	}
 
 	gump->setRelativePosition(CENTER);
 

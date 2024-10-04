@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ags/engine/ac/dynobj/script_camera.h"
 #include "ags/engine/ac/game_state.h"
 #include "ags/shared/util/bbop.h"
+#include "ags/shared/util/stream.h"
 #include "ags/globals.h"
 
 namespace AGS3 {
@@ -43,24 +43,25 @@ int ScriptCamera::Dispose(const char *address, bool force) {
 	return 1;
 }
 
-int ScriptCamera::Serialize(const char *address, char *buffer, int bufsize) {
-	StartSerialize(buffer);
-	SerializeInt(_id);
-	return EndSerialize();
+size_t ScriptCamera::CalcSerializeSize() {
+	return sizeof(int32_t);
 }
 
-void ScriptCamera::Unserialize(int index, const char *serializedData, int dataSize) {
-	StartUnserialize(serializedData, dataSize);
-	_id = UnserializeInt();
+void ScriptCamera::Serialize(const char *address, Stream *out) {
+	out->WriteInt32(_id);
+}
+
+void ScriptCamera::Unserialize(int index, Stream *in, size_t data_sz) {
+	_id = in->ReadInt32();
 	ccRegisterUnserializedObject(index, this, this);
 }
 
-ScriptCamera *Camera_Unserialize(int handle, const char *serializedData, int dataSize) {
+ScriptCamera *Camera_Unserialize(int handle, Stream *in, size_t data_sz) {
 	// The way it works now, we must not create a new script object,
 	// but acquire one from the GameState, which keeps the first reference.
 	// This is essential because GameState should be able to invalidate any
 	// script references when Camera gets removed.
-	const int id = BBOp::Int32FromLE(*((const int *)serializedData));
+	const int id = in->ReadInt32();
 	if (id >= 0) {
 		auto scam = _GP(play).RegisterRoomCamera(id, handle);
 		if (scam)

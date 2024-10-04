@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -78,15 +77,15 @@ static const Graphics::MacMenuData menuSubItems[] = {
 	//{ kMenuAbout,		"About",			kMenuActionAbout, 0, true},
 
 	{ kMenuFile,		"New",				kMenuActionNew, 0, true },
-	{ kMenuFile,		NULL,				0, 0, false },
+	{ kMenuFile,		nullptr,				0, 0, false },
 	{ kMenuFile,		"Open...",			kMenuActionOpen, 0, true },
 	{ kMenuFile,		"Save",				kMenuActionSave, 0, true },
 	{ kMenuFile,		"Save as...",		kMenuActionSaveAs, 0, true },
-	{ kMenuFile,		NULL,				0, 0, false },
+	{ kMenuFile,		nullptr,				0, 0, false },
 	{ kMenuFile,		"Quit",				kMenuActionQuit, 0, true },
 
 	{ kMenuEdit,		"Undo",				kMenuActionUndo, 'Z', false },
-	{ kMenuEdit,		NULL,				0, 0, false },
+	{ kMenuEdit,		nullptr,				0, 0, false },
 	{ kMenuEdit,		"Cut",				kMenuActionCut, 'K', false },
 	{ kMenuEdit,		"Copy",				kMenuActionCopy, 'C', false },
 	{ kMenuEdit,		"Paste",			kMenuActionPaste, 'V', false },
@@ -95,7 +94,7 @@ static const Graphics::MacMenuData menuSubItems[] = {
 	{ kMenuSpecial,		"Clean Up",			kMenuActionCleanUp, 0, false },
 	{ kMenuSpecial,		"Mess Up",			kMenuActionMessUp, 0, false },
 
-	{ 0,				NULL,				0, 0, false }
+	{ 0,				nullptr,				0, 0, false }
 };
 
 
@@ -112,16 +111,16 @@ void menuCommandsCallback(int action, Common::String &text, void *data);
 Gui::Gui(MacVentureEngine *engine, Common::MacResManager *resman) {
 	_engine = engine;
 	_resourceManager = resman;
-	_windowData = NULL;
-	_controlData = NULL;
+	_windowData = nullptr;
+	_controlData = nullptr;
 	_draggedObj.id = 0;
 	_draggedObj.pos = Common::Point(0, 0);
-	_dialog = NULL;
+	_dialog = nullptr;
 
 	_cursor = new Cursor(this);
 
 	_consoleText = new ConsoleText(this);
-	_graphics = NULL;
+	_graphics = nullptr;
 
 	initGUI();
 }
@@ -226,7 +225,7 @@ void Gui::initWindows() {
 	bounds = getWindowData(kCommandsWindow).bounds;
 	bbs = borderBounds(findWindowData(kCommandsWindow).type);
 	loadBorders(_controlsWindow, findWindowData(kCommandsWindow).type);
-	_controlsWindow->resize(bounds.width(), bounds.height(), true);
+	_controlsWindow->resizeInner(bounds.width(), bounds.height());
 	_controlsWindow->move(bounds.left - bbs.leftOffset, bounds.top - bbs.topOffset);
 
 	_controlsWindow->setActive(false);
@@ -238,7 +237,7 @@ void Gui::initWindows() {
 	bbs = borderBounds(findWindowData(kMainGameWindow).type);
 
 	loadBorders(_mainGameWindow, findWindowData(kMainGameWindow).type);
-	_mainGameWindow->resize(bounds.width(), bounds.height(), true);
+	_mainGameWindow->resizeInner(bounds.width(), bounds.height());
 	_mainGameWindow->move(bounds.left - bbs.leftOffset, bounds.top - bbs.topOffset);
 
 	_mainGameWindow->setActive(false);
@@ -250,7 +249,7 @@ void Gui::initWindows() {
 	bounds = getWindowData(kOutConsoleWindow).bounds;
 	bbs = borderBounds(findWindowData(kOutConsoleWindow).type);
 	loadBorders(_outConsoleWindow, findWindowData(kOutConsoleWindow).type);
-	_outConsoleWindow->resize(bounds.width() - bbs.rightScrollbarWidth, bounds.height() - bbs.bottomScrollbarHeight, true);
+	_outConsoleWindow->resizeInner(bounds.width() - bbs.rightScrollbarWidth, bounds.height() - bbs.bottomScrollbarHeight);
 	_outConsoleWindow->move(bounds.left - bbs.leftOffset, bounds.top - bbs.topOffset);
 	_outConsoleWindow->setActive(false);
 	_outConsoleWindow->setCallback(outConsoleWindowCallback, this);
@@ -261,7 +260,7 @@ void Gui::initWindows() {
 	bounds = getWindowData(kSelfWindow).bounds;
 	bbs = borderBounds(findWindowData(kSelfWindow).type);
 	loadBorders(_selfWindow, findWindowData(kSelfWindow).type);
-	_selfWindow->resize(bounds.width(), bounds.height(), true);
+	_selfWindow->resizeInner(bounds.width(), bounds.height());
 	_selfWindow->move(bounds.left - bbs.leftOffset, bounds.top - bbs.topOffset);
 
 	_selfWindow->setActive(false);
@@ -273,7 +272,7 @@ void Gui::initWindows() {
 	bounds = getWindowData(kExitsWindow).bounds;
 	bbs = borderBounds(findWindowData(kExitsWindow).type);
 	loadBorders(_exitsWindow, findWindowData(kExitsWindow).type);
-	_exitsWindow->resize(bounds.width(), bounds.height(), true);
+	_exitsWindow->resizeInner(bounds.width(), bounds.height());
 	_exitsWindow->move(bounds.left - bbs.leftOffset, bounds.top - bbs.topOffset);
 
 	_exitsWindow->setActive(false);
@@ -382,7 +381,7 @@ WindowReference Gui::createInventoryWindow(ObjID objRef) {
 	//newWindow->setDimensions(newData.bounds);
 	//newWindow->setActive(false);
 	loadBorders(newWindow, newData.type);
-	newWindow->resize(newData.bounds.width() - bbs.rightScrollbarWidth, newData.bounds.height() - bbs.bottomScrollbarHeight, true);
+	newWindow->resizeInner(newData.bounds.width(), newData.bounds.height() - bbs.bottomScrollbarHeight);
 	newWindow->move(newData.bounds.left - bbs.leftOffset, newData.bounds.top - bbs.topOffset);
 	newWindow->setCallback(inventoryWindowCallback, this);
 	//newWindow->setCloseable(true);
@@ -401,7 +400,7 @@ void Gui::loadBorders(Graphics::MacWindow *target, MVWindowType type) {
 void Gui::loadBorder(Graphics::MacWindow *target, MVWindowType type, bool active) {
 	Common::SeekableReadStream *stream;
 
-	bool activeFlag = (active ? Graphics::kWindowBorderActive : 0);
+	uint32 activeFlag = (active ? Graphics::kWindowBorderActive : 0);
 	bool canHaveTitle = false;
 	bool canHaveScrollbar = false;
 
@@ -466,7 +465,6 @@ bool Gui::loadMenus() {
 	}
 
 	Common::MacResIDArray resArray;
-	Common::SeekableReadStream *res;
 	Common::MacResIDArray::const_iterator iter;
 
 	if ((resArray = _resourceManager->getResIDArray(MKTAG('M', 'E', 'N', 'U'))).size() == 0)
@@ -474,46 +472,8 @@ bool Gui::loadMenus() {
 
 	_menu->addMenuItem(nullptr, "Abb", kMenuActionAbout, 0, 'A', true);
 
-	int i = 1;
 	for (iter = resArray.begin(); iter != resArray.end(); ++iter) {
-		res = _resourceManager->getResource(MKTAG('M', 'E', 'N', 'U'), *iter);
-		uint16 key;
-		uint16 style;
-		uint8 titleLength;
-		char *title;
-
-		/* Skip menuID, width, height, resourceID, placeholder */
-		for (int skip = 0; skip < 5; skip++) {
-			res->readUint16BE();
-		}
-		titleLength = res->readByte();
-		title = new char[titleLength + 1];
-		res->read(title, titleLength);
-		title[titleLength] = '\0';
-
-		if (titleLength > 1) {
-			_menu->addMenuItem(nullptr, title);
-			Graphics::MacMenuSubMenu *submenu = _menu->addSubMenu(nullptr);
-
-			// Read submenu items
-			while ((titleLength = res->readByte())) {
-				title = new char[titleLength + 1];
-				res->read(title, titleLength);
-				title[titleLength] = '\0';
-				// Skip icon
-				res->readUint16BE();
-				// Read key
-				key = res->readUint16BE();
-				// Skip mark
-				res->readUint16BE();
-				// Read style
-				style = res->readUint16BE();
-				_menu->addMenuItem(submenu, title, 0, style, key, false);
-			}
-		}
-
-		i++;
-		delete res;
+		_menu->loadMenuResource(_resourceManager, *iter);
 	}
 
 	return true;
@@ -633,7 +593,7 @@ void Gui::drawCommandsWindow() {
 			srf,
 			_engine->getCommandsPausedString(),
 			0,
-			(srf->h / 2) - getCurrentFont().getFontHeight(),
+			(srf->h - getCurrentFont().getFontHeight()) / 2 - 1,
 			data.bounds.right - data.bounds.left,
 			kColorBlack,
 			Graphics::kTextAlignCenter);
@@ -715,6 +675,10 @@ void Gui::drawExitsWindow() {
 		CommandButton button = *it;
 		button.draw(*srf);
 	}
+
+	Graphics::BorderOffsets offsets = borderOffsets(MacVenture::kRDoc4);
+	offsets.dark = _exitsWindow->_active;
+	_exitsWindow->setBorderOffsets(offsets);
 
 	findWindow(kExitsWindow)->setDirty(true);
 }
@@ -931,7 +895,7 @@ void Gui::showPrebuiltDialog(PrebuiltDialogs type) {
 }
 
 bool Gui::isDialogOpen() {
-	return _dialog != NULL;
+	return _dialog != nullptr;
 }
 
 void Gui::setTextInput(const Common::String &str) {
@@ -940,7 +904,7 @@ void Gui::setTextInput(const Common::String &str) {
 
 void Gui::closeDialog() {
 	delete _dialog;
-	_dialog = NULL;
+	_dialog = nullptr;
 }
 
 void Gui::getTextFromUser() {
@@ -1037,7 +1001,7 @@ Graphics::MacWindow *Gui::findWindow(WindowReference reference) {
 	}
 	switch (reference) {
 	case MacVenture::kNoWindow:
-		return NULL;
+		return nullptr;
 	case MacVenture::kCommandsWindow:
 		return _controlsWindow;
 	case MacVenture::kMainGameWindow:
@@ -1051,9 +1015,9 @@ Graphics::MacWindow *Gui::findWindow(WindowReference reference) {
 	case MacVenture::kDiplomaWindow:
 		return _diplomaWindow;
 	default:
-		return NULL;
+		return nullptr;
 	}
-	return NULL;
+	return nullptr;
 }
 
 void Gui::ensureInventoryOpen(WindowReference reference, ObjID id) {

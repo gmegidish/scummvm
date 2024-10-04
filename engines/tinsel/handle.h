@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Graphics Memory Manager data structures
  */
@@ -24,7 +23,7 @@
 #ifndef TINSEL_HANDLE_H
 #define TINSEL_HANDLE_H
 
-#include "common/str.h"
+#include "common/path.h"
 #include "tinsel/dw.h"			// new data types
 
 namespace Common {
@@ -35,6 +34,10 @@ namespace Tinsel {
 
 struct FONT;
 struct MEMHANDLE;
+struct PALETTE;
+struct IMAGE;
+struct ACTORDATA;
+struct PROCESS_STRUC;
 
 class Handle {
 public:
@@ -47,7 +50,12 @@ public:
 	void SetupHandleTable();
 
 	FONT *GetFont(SCNHANDLE offset);
+	PALETTE *GetPalette(SCNHANDLE offset);
+	const IMAGE *GetImage(SCNHANDLE offset);
+	void SetImagePalette(SCNHANDLE offset, SCNHANDLE palHandle);
 	SCNHANDLE GetFontImageHandle(SCNHANDLE offset);
+	const ACTORDATA *GetActorData(SCNHANDLE offset, uint32 count);
+	const PROCESS_STRUC *GetProcessData(SCNHANDLE offset, uint32 count);
 	byte *LockMem(SCNHANDLE offset);
 
 	void LockScene(SCNHANDLE offset);
@@ -69,6 +77,9 @@ public:
 
 	int CdNumber(SCNHANDLE offset);
 
+	// Noir
+	SCNHANDLE FindLanguageSceneHandle(const char *fileName);
+
 #ifdef BODGE
 	bool ValidHandle(SCNHANDLE offset);
 #endif
@@ -89,7 +100,7 @@ private:
 	SCNHANDLE _cdBaseHandle, _cdTopHandle;
 	Common::File *_cdGraphStream;
 
-	Common::String _szCdPlayFile;
+	Common::Path _szCdPlayFile;
 };
 
 } // End of namespace Tinsel

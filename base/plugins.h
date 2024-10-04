@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,7 +55,7 @@ enum PluginType {
 #define PLUGIN_TYPE_DETECTION_VERSION 1
 #define PLUGIN_TYPE_SCALER_VERSION 1
 
-extern int pluginTypeVersions[PLUGIN_TYPE_MAX];
+extern const int pluginTypeVersions[PLUGIN_TYPE_MAX];
 
 
 // Plugin linking
@@ -86,11 +85,12 @@ extern int pluginTypeVersions[PLUGIN_TYPE_MAX];
  * @see REGISTER_PLUGIN_DYNAMIC
  */
 #define REGISTER_PLUGIN_STATIC(ID,TYPE,PLUGINCLASS) \
-	PluginType g_##ID##_type = TYPE; \
+	extern const PluginType g_##ID##_type; \
+	const PluginType g_##ID##_type = TYPE; \
 	PluginObject *g_##ID##_getObject() { \
 		return new PLUGINCLASS(); \
 	} \
-	void dummyFuncToAllowTrailingSemicolon()
+	void dummyFuncToAllowTrailingSemicolon_##ID##_()
 
 #ifdef DYNAMIC_MODULES
 
@@ -114,7 +114,7 @@ extern int pluginTypeVersions[PLUGIN_TYPE_MAX];
 			return new PLUGINCLASS(); \
 		} \
 	} \
-	void dummyFuncToAllowTrailingSemicolon()
+	void dummyFuncToAllowTrailingSemicolon_##ID##_()
 
 #endif // DYNAMIC_MODULES
 
@@ -134,18 +134,6 @@ public:
 
 	/** Returns the name of the plugin. */
 	virtual const char *getName() const = 0;
-
-	/**
-	 * Returns the engine id of the plugin, if implemented.
-	 * This mostly has the use with MetaEngines, but if another
-	 * type of plugins request this, we return a nullptr.
-	 * This is used because MetaEngines are now available in the
-	 * executable, and querying this we can match a MetaEngine
-	 * with it's related engine.
-	 */
-	virtual const char *getEngineId() const {
-		return nullptr;
-	}
 };
 
 /**
@@ -176,7 +164,6 @@ public:
 	 **/
 	PluginType getType() const;
 	const char *getName() const;
-	const char *getEngineId() const;
 
 	template <class T>
 	T &get() const {
@@ -192,7 +179,7 @@ public:
 	 * plugins that have files (ie. not static). It doesn't require the plugin
 	 * object to be loaded into memory, unlike getName()
 	 **/
-	virtual const char *getFileName() const { return 0; }
+	virtual Common::Path getFileName() const { return Common::Path(); }
 };
 
 class StaticPlugin : public Plugin {
@@ -305,12 +292,12 @@ protected:
 
 	bool tryLoadPlugin(Plugin *plugin);
 	void addToPluginsInMemList(Plugin *plugin);
-	const Plugin *findEnginePlugin(const Common::String &engineId);
 	const Plugin *findLoadedPlugin(const Common::String &engineId);
 
 	static PluginManager *_instance;
 	PluginManager();
 
+	void unloadAllPlugins();
 public:
 	virtual ~PluginManager();
 
@@ -320,28 +307,13 @@ public:
 	void addPluginProvider(PluginProvider *pp);
 
 	/**
-	 * A method which takes in a plugin of type ENGINE,
-	 * and returns the appropriate & matching METAENGINE.
-	 * It uses the Engine plugin's getName method, which is an identifier,
-	 * and then tries to matches it with each plugin present in memory.
+	 * A method which finds the METAENGINE plugin for the provided engineId
 	 *
-	 * @param plugin A plugin of type ENGINE.
+	 * @param engineId The engine ID
 	 *
 	 * @return A plugin of type METAENGINE.
 	 */
-	const Plugin *getMetaEngineFromEngine(const Plugin *plugin);
-
-	/**
-	 * A method which takes in a plugin of type METAENGINE,
-	 * and returns the appropriate & matching ENGINE.
-	 * It uses the MetaEngine's getEngineID to reconstruct the name
-	 * of engine plugin, and then tries to matches it with each plugin in memory.
-	 *
-	 * @param A plugin of type METAENGINE.
-	 *
-	 * @return A plugin of type ENGINE.
-	 */
-	const Plugin *getEngineFromMetaEngine(const Plugin *plugin);
+	const Plugin *findEnginePlugin(const Common::String &engineId);
 
 	// Functions used by the uncached PluginManager
 	virtual void init()	{}
@@ -355,7 +327,6 @@ public:
 	// Functions used only by the cached PluginManager
 	virtual void loadAllPlugins();
 	virtual void loadAllPluginsOfType(PluginType type);
-	void unloadAllPlugins();
 
 	void unloadPluginsExcept(PluginType type, const Plugin *plugin, bool deletePlugin = true);
 
@@ -376,21 +347,22 @@ protected:
 	bool _isDetectionLoaded;
 
 	PluginManagerUncached() : _isDetectionLoaded(false), _detectionPlugin(nullptr) {}
-	bool loadPluginByFileName(const Common::String &filename);
+	bool loadPluginByFileName(const Common::Path &filename);
 
 public:
-	virtual void init() override;
-	virtual void loadFirstPlugin() override;
-	virtual bool loadNextPlugin() override;
-	virtual bool loadPluginFromEngineId(const Common::String &engineId) override;
-	virtual void updateConfigWithFileName(const Common::String &engineId) override;
+	virtual ~PluginManagerUncached();
+	void init() override;
+	void loadFirstPlugin() override;
+	bool loadNextPlugin() override;
+	bool loadPluginFromEngineId(const Common::String &engineId) override;
+	void updateConfigWithFileName(const Common::String &engineId) override;
 #ifndef DETECTION_STATIC
-	virtual void loadDetectionPlugin() override;
-	virtual void unloadDetectionPlugin() override;
+	void loadDetectionPlugin() override;
+	void unloadDetectionPlugin() override;
 #endif
 
-	virtual void loadAllPlugins() override {} 	// we don't allow these
-	virtual void loadAllPluginsOfType(PluginType type) override {}
+	void loadAllPlugins() override {} 	// we don't allow these
+	void loadAllPluginsOfType(PluginType type) override {}
 };
 
 #endif

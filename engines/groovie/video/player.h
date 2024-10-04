@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define GROOVIE_VIDEO_PLAYER_H
 
 #include "common/system.h"
+#include "video/subtitles.h"
 
 namespace Audio {
 class QueuingAudioStream;
@@ -45,13 +45,18 @@ public:
 	virtual void stopAudioStream() = 0;
 	void fastForward();
 	bool isFastForwarding();
+	virtual void drawString(Graphics::Surface *surface, const Common::String text, int posx, int posy, uint32 color, bool blackBackground) {}
+	virtual void copyfgtobg(uint8 arg) {}
+	void setOverrideSpeed(bool isOverride);
+
+	void loadSubtitles(const char *fname) { _subtitles.loadSRTFile(fname); }
+	void unloadSubtitles();
 
 protected:
 	// To be implemented by subclasses
 	virtual uint16 loadInternal() = 0;
 	virtual bool playFrameInternal() = 0;
 
-	void setOverrideSpeed(bool isOverride);
 	bool getOverrideSpeed() const { return _overrideSpeed; }
 
 	GroovieEngine *_vm;
@@ -69,6 +74,9 @@ private:
 	float _millisBetweenFrames;
 	uint32 _lastFrameTime;
 	float _frameTimeDrift;
+	uint32 _startTime;
+
+	Video::Subtitles _subtitles;
 
 protected:
 	void waitFrame();

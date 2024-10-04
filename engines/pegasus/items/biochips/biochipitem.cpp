@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,9 +34,7 @@ namespace Pegasus {
 BiochipItem::BiochipItem(const ItemID id, const NeighborhoodID neighborhood, const RoomID room, const DirectionConstant direction) :
 		Item(id, neighborhood, room, direction) {
 
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
-	Common::SeekableReadStream *biochipInfo = vm->_resFork->getResource(MKTAG('B', 'i', 'o', 'I'), kItemBaseResID + id);
+	Common::SeekableReadStream *biochipInfo = g_vm->_resFork->getResource(MKTAG('B', 'i', 'o', 'I'), kItemBaseResID + id);
 	if (biochipInfo) {
 		_biochipInfoPanelTime = biochipInfo->readUint32BE();
 		delete biochipInfo;
@@ -45,7 +42,7 @@ BiochipItem::BiochipItem(const ItemID id, const NeighborhoodID neighborhood, con
 		_biochipInfoPanelTime = 0;
 	}
 
-	Common::SeekableReadStream *rightInfo = vm->_resFork->getResource(MKTAG('R', 'g', 'h', 't'), kItemBaseResID + id);
+	Common::SeekableReadStream *rightInfo = g_vm->_resFork->getResource(MKTAG('R', 'g', 'h', 't'), kItemBaseResID + id);
 	if (!rightInfo)
 		error("Could not find right info for biochip %d", id);
 

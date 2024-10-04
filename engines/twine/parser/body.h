@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,7 +36,7 @@ class BodyData : public Parser {
 private:
 	void loadVertices(Common::SeekableReadStream &stream);
 	void loadBones(Common::SeekableReadStream &stream);
-	void loadShades(Common::SeekableReadStream &stream);
+	void loadNormals(Common::SeekableReadStream &stream);
 	void loadPolygons(Common::SeekableReadStream &stream);
 	void loadLines(Common::SeekableReadStream &stream);
 	void loadSpheres(Common::SeekableReadStream &stream);
@@ -45,7 +44,7 @@ private:
 	Common::Array<BodyPolygon> _polygons;
 	Common::Array<BodyVertex> _vertices;
 	Common::Array<BodySphere> _spheres;
-	Common::Array<BodyShade> _shades;
+	Common::Array<BodyNormal> _normals;
 	Common::Array<BodyLine> _lines;
 	Common::Array<BodyBone> _bones;
 
@@ -92,12 +91,12 @@ public:
 		return _spheres;
 	}
 
-	const Common::Array<BodyShade> &getShades() const {
-		return _shades;
+	const Common::Array<BodyNormal> &getNormals() const {
+		return _normals;
 	}
 
-	const BodyShade &getShade(int16 shadeIdx) const {
-		return _shades[shadeIdx];
+	const BodyNormal &getNormal(int16 normalIdx) const {
+		return _normals[normalIdx];
 	}
 
 	const Common::Array<BodyLine> &getLines() const {

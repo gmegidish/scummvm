@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,6 +51,8 @@
 
 #include "common/lua/lua.h"
 #include "common/lua/lauxlib.h"
+#include "common/config-manager.h"
+
 enum {
 	BIT_DEPTH = 32,
 	BACKBUFFER_COUNT = 1
@@ -106,6 +107,7 @@ bool GraphicEngine::init(int width, int height, int bitDepth, int backbufferCoun
 	_screenRect.top = 0;
 	_screenRect.right = _width;
 	_screenRect.bottom = _height;
+    _isRTL = Common::parseLanguage(ConfMan.get("language")) == Common::HE_ISR;
 
 	const Graphics::PixelFormat format = g_system->getScreenFormat();
 
@@ -366,7 +368,7 @@ bool GraphicEngine::saveThumbnailScreenshot(const Common::String &filename) {
 	// until needed when creating savegame files
 	delete _thumbnail;
 
-	_thumbnail = Screenshot::createThumbnail(&_backSurface);
+	_thumbnail = Screenshot::createThumbnail(_backSurface.surfacePtr());
 
 	return true;
 }
@@ -452,6 +454,10 @@ bool GraphicEngine::unpersist(InputPersistenceBlock &reader) {
 	_renderObjectManagerPtr->unpersist(reader);
 
 	return reader.isGood();
+}
+
+bool GraphicEngine::isRTL() {
+    return _isRTL;
 }
 
 } // End of namespace Sword25

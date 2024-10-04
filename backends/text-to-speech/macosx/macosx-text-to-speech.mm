@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -135,10 +134,10 @@ bool MacOSXTextToSpeechManager::startNextSpeech() {
 bool MacOSXTextToSpeechManager::stop() {
 	_messageQueue.clear();
 	if (isSpeaking()) {
-		_currentSpeech.clear(); // so that it immediately reports that it is no longer speeking
+		_currentSpeech.clear(); // so that it immediately reports that it is no longer speaking
 		// Stop as soon as possible
 		// Also tell the MacOSXTextToSpeechManagerDelegate to ignore the next finishedSpeaking as
-		// it has already been handled, but we might have started another speach by the time we
+		// it has already been handled, but we might have started another speech by the time we
 		// receive it, and we don't want to stop that one.
 		[synthesizerDelegate ignoreNextFinishedSpeaking:YES];
 		[synthesizer stopSpeakingAtBoundary:NSSpeechImmediateBoundary];
@@ -160,7 +159,7 @@ bool MacOSXTextToSpeechManager::resume() {
 }
 
 bool MacOSXTextToSpeechManager::isSpeaking() {
-	// Because the NSSpeechSynthesizer is asynchronous, it doesn't start speeking immediately
+	// Because the NSSpeechSynthesizer is asynchronous, it doesn't start speaking immediately
 	// and thus using [synthesizer isSpeaking] just after [synthesizer startSpeakingString:]] is
 	// likely to return NO. So instead we check the _currentSpeech string (set when calling
 	// startSpeakingString, and cleared when we receive the didFinishSpeaking message).

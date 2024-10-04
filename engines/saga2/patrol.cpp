@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -86,10 +85,10 @@ PatrolRouteIterator::PatrolRouteIterator(uint8 map, int16 rte, uint8 type) :
 		_mapNum(map), _routeNo(rte), _flags(type & 0xF) {
 	const PatrolRoute &route = patrolRouteList[_mapNum]->getRoute(_routeNo);
 
-	if (_flags & patrolRouteRandom)
+	if (_flags & kPatrolRouteRandom)
 		_vertexNo = g_vm->_rnd->getRandomNumber(route.vertices() - 1);
 	else {
-		if (_flags & patrolRouteReverse)
+		if (_flags & kPatrolRouteReverse)
 			_vertexNo = route.vertices() - 1;
 		else
 			_vertexNo = 0;
@@ -125,12 +124,12 @@ void PatrolRouteIterator::increment() {
 	_vertexNo++;
 
 	if (_vertexNo >= route.vertices()) {
-		if (_flags & patrolRouteAlternate) {
+		if (_flags & kPatrolRouteAlternate) {
 			// If alternating, initialize for iteration in the alternate
 			// direction
-			_flags |= patrolRouteInAlternate;
+			_flags |= kPatrolRouteInAlternate;
 			_vertexNo = MAX(route.vertices() - 2, 0);
-		} else if (_flags & patrolRouteRepeat)
+		} else if (_flags & kPatrolRouteRepeat)
 			// If repeating, reset the waypoint index
 			_vertexNo = 0;
 	}
@@ -144,12 +143,12 @@ void PatrolRouteIterator::decrement() {
 	_vertexNo--;
 
 	if (_vertexNo < 0) {
-		if (_flags & patrolRouteAlternate) {
+		if (_flags & kPatrolRouteAlternate) {
 			// If alternating, initialize for iteration in the alternate
 			// direction
-			_flags |= patrolRouteInAlternate;
+			_flags |= kPatrolRouteInAlternate;
 			_vertexNo = MIN(1, route.vertices() - 1);
-		} else if (_flags & patrolRouteRepeat)
+		} else if (_flags & kPatrolRouteRepeat)
 			// If repeating, reset the waypoint index
 			_vertexNo = route.vertices() - 1;
 	}
@@ -162,10 +161,10 @@ void PatrolRouteIterator::altIncrement() {
 
 	_vertexNo++;
 
-	if (_vertexNo >= route.vertices() && (_flags & patrolRouteRepeat)) {
+	if (_vertexNo >= route.vertices() && (_flags & kPatrolRouteRepeat)) {
 		// If repeating, initialize for iteration in the standard
 		// direction, and reset the waypoint index
-		_flags &= ~patrolRouteInAlternate;
+		_flags &= ~kPatrolRouteInAlternate;
 		_vertexNo = MAX(route.vertices() - 2, 0);
 	}
 }
@@ -177,10 +176,10 @@ void PatrolRouteIterator::altDecrement() {
 
 	_vertexNo--;
 
-	if (_vertexNo < 0 && (_flags & patrolRouteRepeat)) {
+	if (_vertexNo < 0 && (_flags & kPatrolRouteRepeat)) {
 		// If repeating, initialize for iteration in the standard
 		// direction, and reset the waypoint index
-		_flags &= ~patrolRouteInAlternate;
+		_flags &= ~kPatrolRouteInAlternate;
 		_vertexNo = MIN(1, route.vertices() - 1);
 	}
 }
@@ -197,14 +196,14 @@ const PatrolRouteIterator &PatrolRouteIterator::operator++() {
 	const PatrolRoute &route = patrolRouteList[_mapNum]->getRoute(_routeNo);
 
 	if (_vertexNo >= 0 && _vertexNo < route.vertices()) {
-		if (!(_flags & patrolRouteRandom)) {
-			if (!(_flags & patrolRouteInAlternate)) {
-				if (!(_flags & patrolRouteReverse))
+		if (!(_flags & kPatrolRouteRandom)) {
+			if (!(_flags & kPatrolRouteInAlternate)) {
+				if (!(_flags & kPatrolRouteReverse))
 					increment();
 				else
 					decrement();
 			} else {
-				if (!(_flags & patrolRouteReverse))
+				if (!(_flags & kPatrolRouteReverse))
 					altDecrement();
 				else
 					altIncrement();

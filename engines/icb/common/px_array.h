@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -98,12 +97,12 @@ Type &T_MYACTARRAY::operator[](uint32 n) {
 
 MY_TEMPLATE
 const Type &T_MYACTARRAY::operator[](uint32 n) const {
-	// It is permissable to look at an element that has not been defined, as the constructor assures
+	// It is permissible to look at an element that has not been defined, as the constructor assures
 	// that the contents are valid
 	if (n >= m_userPosition) {
-		// We must cast this to a type that can change
-		((const rcActArray<Type> *)this)->ResizeArray(n);
-		((const rcActArray<Type> *)this)->m_userPosition = n + 1;
+		// Remove any 'constness' for a resize
+		(const_cast<rcActArray<Type> *>(this))->ResizeArray(n);
+		(const_cast<rcActArray<Type> *>(this))->m_userPosition = n + 1;
 	}
 
 	return (*(m_contents[n]));
@@ -199,7 +198,7 @@ Type *&T_MYPTRARRAY::operator[](uint32 n) {
 
 MY_TEMPLATE
 const Type *&T_MYPTRARRAY::operator[](uint32 n) const {
-	// It is permissable to look at an element that has not been defined, as it will be defined as NULL
+	// It is permissible to look at an element that has not been defined, as it will be defined as NULL
 	if (n >= m_userPosition) {
 		(const_cast<rcAutoPtrArray<Type> *>(this))->ResizeArray(n);
 		(const_cast<rcAutoPtrArray<Type> *>(this))->m_userPosition = n + 1;
@@ -302,11 +301,11 @@ template <class Type> Type &rcIntArray<Type>::operator[](uint32 index) {
 
 // This version of [] allows the array to be part of a const function
 template <class Type> const Type rcIntArray<Type>::operator[](uint32 index) const {
-	// It is permissable to look at an element that has not been defined, as it will have been set to 0
+	// It is permissible to look at an element that has not been defined, as it will have been set to 0
 	if (index >= m_userPosition) {
 		// Remove any 'constness' for a resize
-		((const rcIntArray<Type> *)this)->ResizeArray(index);
-		((const rcIntArray<Type> *)this)->m_userPosition = index + 1;
+		(const_cast<rcIntArray<Type> *>(this))->ResizeArray(index);
+		(const_cast<rcIntArray<Type> *>(this))->m_userPosition = index + 1;
 	}
 
 	return m_contents[index];

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * MIT License:
  *
@@ -107,15 +106,15 @@ Script::Script(Common::SeekableReadStream *data, int num, WageEngine *engine) : 
 
 	if (ConfMan.getBool("dump_scripts")) {
 		Common::DumpFile out;
-		Common::String name;
+		Common::Path name;
 
 		if (num == -1)
-			name = Common::String::format("./dumps/%s-global.txt", _engine->getTargetName());
+			name = Common::Path(Common::String::format("./dumps/%s-global.txt", _engine->getTargetName()));
 		else
-			name = Common::String::format("./dumps/%s-%d.txt", _engine->getTargetName(), num);
+			name = Common::Path(Common::String::format("./dumps/%s-%d.txt", _engine->getTargetName(), num));
 
 		if (!out.open(name)) {
-			warning("Can not open dump file %s", name.c_str());
+			warning("Can not open dump file %s", name.toString().c_str());
 			return;
 		}
 
@@ -352,11 +351,11 @@ Script::Operand *Script::readOperand() {
 	case 0xC3: // MONSTER@
 		return new Operand(_engine->getMonster(), CHR);
 	case 0xC4: // RANDOMSCN@
-		return new Operand(_world->_orderedScenes[_engine->_rnd->getRandomNumber(_world->_orderedScenes.size())], SCENE);
+		return new Operand(_world->_orderedScenes[_engine->_rnd->getRandomNumber(_world->_orderedScenes.size() - 1)], SCENE);
 	case 0xC5: // RANDOMCHR@
-		return new Operand(_world->_orderedChrs[_engine->_rnd->getRandomNumber(_world->_orderedChrs.size())], CHR);
+		return new Operand(_world->_orderedChrs[_engine->_rnd->getRandomNumber(_world->_orderedChrs.size() - 1)], CHR);
 	case 0xC6: // RANDOMOBJ@
-		return new Operand(_world->_orderedObjs[_engine->_rnd->getRandomNumber(_world->_orderedObjs.size())], OBJ);
+		return new Operand(_world->_orderedObjs[_engine->_rnd->getRandomNumber(_world->_orderedObjs.size() - 1)], OBJ);
 	case 0xB0: // VISITS#
 		return new Operand(cont->_visits, NUMBER);
 	case 0xB1: // RANDOM# for Star Trek, but VISITS# for some other games?

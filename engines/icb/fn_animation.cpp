@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -227,9 +226,9 @@ mcodeFunctionReturnCodes _game_session::fn_face_nicos_pan(int32 &, int32 *params
 
 	if (!L->looping) {
 		// setup
-		start_pos = (_feature_info *)features->Try_fetch_item_by_name(nico_name);
+		start_pos = (_feature_info *)LinkedDataObject::Try_fetch_item_by_name(features, nico_name);
 		if (!start_pos)
-			Fatal_error("no NICO marker (fn_face_nico) ob %s, nico %s", object->GetName(), nico_name);
+			Fatal_error("no NICO marker (fn_face_nico) ob %s, nico %s", CGameObject::GetName(object), nico_name);
 
 		new_pan = start_pos->direction;
 
@@ -293,7 +292,7 @@ mcodeFunctionReturnCodes _game_session::fn_face_object(int32 &, int32 *params) {
 		// setup
 		_logic *log;
 
-		uint32 id = objects->Fetch_item_number_by_name(object_name);
+		uint32 id = LinkedDataObject::Fetch_item_number_by_name(objects, object_name);
 
 		log = Fetch_object_struct(id);
 
@@ -342,7 +341,7 @@ mcodeFunctionReturnCodes _game_session::fn_fast_face_object(int32 &, int32 *para
 		// setup
 		_logic *log;
 
-		uint32 id = objects->Fetch_item_number_by_name(object_name);
+		uint32 id = LinkedDataObject::Fetch_item_number_by_name(objects, object_name);
 
 		log = Fetch_object_struct(id);
 
@@ -529,10 +528,10 @@ mcodeFunctionReturnCodes _game_session::fn_snap_face_object(int32 &, int32 *para
 
 	Zdebug("fn_snap_face_object [%s]", object_name);
 
-	uint32 id = objects->Fetch_item_number_by_name(object_name);
+	uint32 id = LinkedDataObject::Fetch_item_number_by_name(objects, object_name);
 
 	if (id == 0xffffffff)
-		Fatal_error("fn_snap_face_object cant find target object %s", object_name);
+		Fatal_error("fn_snap_face_object can't find target object %s", object_name);
 
 	log = Fetch_object_struct(id);
 
@@ -665,7 +664,7 @@ mcodeFunctionReturnCodes _game_session::fn_play_generic_anim(int32 &, int32 *par
 
 	bool8 ret;
 
-	const char *anim_name = NULL;
+	const char *anim_name = nullptr;
 	if (params && params[0]) {
 		anim_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 	}
@@ -735,7 +734,7 @@ mcodeFunctionReturnCodes _game_session::fn_easy_play_generic_anim(int32 &, int32
 	// return    IR_CONT or
 	//			IR_REPEAT
 
-	const char *anim_name = NULL;
+	const char *anim_name = nullptr;
 	if (params && params[0]) {
 		anim_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 	}
@@ -871,7 +870,7 @@ mcodeFunctionReturnCodes _game_session::fn_easy_play_custom_anim_with_pan(int32 
 
 	const char *anim_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 
-	Zdebug("fn_easy_play_custom_anim_with_pan %s %s", object->GetName(), anim_name);
+	Zdebug("fn_easy_play_custom_anim_with_pan %s %s", CGameObject::GetName(object), anim_name);
 
 	if (!L->looping) {
 		// set anim up
@@ -1155,7 +1154,7 @@ mcodeFunctionReturnCodes _game_session::fn_play_custom_anim(int32 &result, int32
 		return IR_REPEAT;
 	}
 
-	return (fn_play_generic_anim(result, 0));
+	return (fn_play_generic_anim(result, nullptr));
 }
 
 mcodeFunctionReturnCodes _game_session::fn_reverse_custom_anim(int32 &, int32 *params) {
@@ -1247,7 +1246,7 @@ mcodeFunctionReturnCodes _game_session::fn_easy_play_custom_anim(int32 &result, 
 		return (IR_REPEAT);
 	}
 
-	return (fn_easy_play_generic_anim(result, 0));
+	return (fn_easy_play_generic_anim(result, nullptr));
 }
 
 mcodeFunctionReturnCodes _game_session::fn_apply_bullet(int32 &, int32 *) {
@@ -1273,9 +1272,9 @@ mcodeFunctionReturnCodes _game_session::fn_sync_with_mega(int32 &, int32 *params
 	const char *mega_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 
 	if (!L->looping) {
-		L->list[0] = objects->Fetch_item_number_by_name(mega_name);
+		L->list[0] = LinkedDataObject::Fetch_item_number_by_name(objects, mega_name);
 		L->list[1] = 42;    // we are here
-		L->looping = TRUE8; // dont do this again
+		L->looping = TRUE8; // don't do this again
 	}
 
 	if (logic_structs[L->list[0]]->list[1] == 42) {
@@ -1313,7 +1312,7 @@ mcodeFunctionReturnCodes _game_session::fn_new_apply_bullet(int32 &, int32 *para
 
 	// gun sound
 	if (logic_structs[cur_id]->sfxVars[GUNSHOT_SFX_VAR] != 0)
-		RegisterSound(cur_id, NULL, logic_structs[cur_id]->sfxVars[GUNSHOT_SFX_VAR], gunDesc, (int8)127); // have to use full version so we can give hash instead of string
+		RegisterSound(cur_id, nullptr, logic_structs[cur_id]->sfxVars[GUNSHOT_SFX_VAR], gunDesc, (int8)127); // have to use full version so we can give hash instead of string
 	else
 		RegisterSound(cur_id, defaultGunSfx, gunDesc); // use small version as we have string not hash
 
@@ -1321,18 +1320,18 @@ mcodeFunctionReturnCodes _game_session::fn_new_apply_bullet(int32 &, int32 *para
 	// 0 - nothing on screen
 	// 1 - normal light/muzzleflash/cartridge case
 	// default is 1
-	int32 shotType = object->GetIntegerValueOrDefault("gun_effects", 1);
+	int32 shotType = CGameObject::GetIntegerValueOrDefault(object, "gun_effects", 1);
 
-	// if mega then do dynamic light (only if shotType isnt 0
+	// if mega then do dynamic light (only if shotType isn't 0)
 	if ((logic_structs[cur_id]->image_type == VOXEL) && (shotType == 1)) {
 		// dynamic light
 		M->SetDynamicLight(1, 255, 255, 255, 0, 150, 100, 200); // 2 metres
-		// Hey we are shooting someone (muzzle flash on / cartridge case on (we my want to split this!)
+		// Hey we are shooting someone (muzzle flash on / cartridge case on) - we may want to split this!
 		M->is_shooting = TRUE8;
 	}
 
 	// get id
-	tid = objects->Fetch_item_number_by_name(target_name);
+	tid = LinkedDataObject::Fetch_item_number_by_name(objects, target_name);
 
 	// how near
 	if (L->image_type == PROP) { // we are prop
@@ -1366,12 +1365,12 @@ mcodeFunctionReturnCodes _game_session::fn_new_apply_bullet(int32 &, int32 *para
 
 				// kick kinematic for the player if we are shooting the player
 				if (tid == player.Fetch_player_id()) {
-					MS->player.being_shot = 3;            // cant shoot for 3 cycles (engine anim over three frames)
+					MS->player.being_shot = 3;            // can't shoot for 3 cycles (engine anim over three frames)
 					MS->player.shot_by_id = (int8)cur_id; // shot by us...!
 
-					c_game_object *ob = (c_game_object *)objects->Fetch_item_by_number(player.Fetch_player_id());
-					int32 ret = ob->GetVariable("hits");
-					uint32 hits = ob->GetIntegerVariable(ret);
+					CGame *ob = (CGame *)LinkedDataObject::Fetch_item_by_number(objects, player.Fetch_player_id());
+					int32 ret = CGameObject::GetVariable(ob, "hits");
+					uint32 hits = CGameObject::GetIntegerVariable(ob, ret);
 
 					PXreal subp1, subp2;
 					if (L->image_type == PROP) { // we are prop
@@ -1396,7 +1395,7 @@ mcodeFunctionReturnCodes _game_session::fn_new_apply_bullet(int32 &, int32 *para
 					} else if (hits)
 						hits--;
 
-					ob->SetIntegerVariable(ret, hits);
+					CGameObject::SetIntegerVariable(ob, ret, hits);
 				}
 
 				MS->Call_socket(tid, "gun_shot", &retval); // the hit takes
@@ -1415,7 +1414,7 @@ mcodeFunctionReturnCodes _game_session::fn_new_apply_bullet(int32 &, int32 *para
 	if (missed) {
 		// gun sound
 		if (logic_structs[cur_id]->sfxVars[RICOCHET_SFX_VAR] != 0)
-			RegisterSound(cur_id, NULL, logic_structs[cur_id]->sfxVars[RICOCHET_SFX_VAR], ricochetDesc,
+			RegisterSound(cur_id, nullptr, logic_structs[cur_id]->sfxVars[RICOCHET_SFX_VAR], ricochetDesc,
 			              (int8)127); // have to use full version so we can give hash instead of string
 		else
 			RegisterSound(cur_id, defaultRicochetSfx, ricochetDesc); // use small version as we have string not hash
@@ -1426,27 +1425,27 @@ mcodeFunctionReturnCodes _game_session::fn_new_apply_bullet(int32 &, int32 *para
 		if (M->is_evil) {
 			// take chi and player out of the equation
 
-			int32 ret = object->GetVariable("cur_bullets");
+			int32 ret = CGameObject::GetVariable(object, "cur_bullets");
 			if (ret != -1) {
-				int32 result = object->GetIntegerVariable(ret);
+				int32 result = CGameObject::GetIntegerVariable(object, ret);
 
 				if (!result) { // no bullets
-					int32 clipret = object->GetVariable("number_of_clips");
-					int32 no_clips = object->GetIntegerVariable(clipret);
+					int32 clipret = CGameObject::GetVariable(object, "number_of_clips");
+					int32 no_clips = CGameObject::GetIntegerVariable(object, clipret);
 					if (no_clips == -1)
 						Fatal_error("object has no 'number_of_clips' variable");
 
 					if (no_clips) {     // has clips left
 						no_clips--; // 1 less
-						object->SetIntegerVariable(clipret, no_clips);
+						CGameObject::SetIntegerVariable(object, clipret, no_clips);
 
 						int32 bull_per_clip = MS->player.GetBulletsPerClip();
 
-						object->SetIntegerVariable(ret, bull_per_clip); // reload the gun
+						CGameObject::SetIntegerVariable(object, ret, bull_per_clip); // reload the gun
 					}
 				} else { // has bullets, fire one
 					result--;
-					object->SetIntegerVariable(ret, result); // reload
+					CGameObject::SetIntegerVariable(object, ret, result); // reload
 				}
 			}
 		}
@@ -1465,7 +1464,7 @@ mcodeFunctionReturnCodes _game_session::fn_apply_anim_y(int32 &, int32 *params) 
 
 	const char *anim_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 
-	// search for the named generic anim - cant use __ANIM_NAME from script unfortunately
+	// search for the named generic anim - can't use __ANIM_NAME from script unfortunately
 	for (k = 0; k < __TOTAL_ANIMS; k++) {
 		// we must search the table
 		if (!strcmp(anim_name, master_anim_name_table[k].name)) {
@@ -1477,9 +1476,9 @@ mcodeFunctionReturnCodes _game_session::fn_apply_anim_y(int32 &, int32 *params) 
 			PXreal yend;
 			PXreal ystart;
 
-			PXFrameEnOfAnim(pAnim->frame_qty - 1, pAnim)->markers[ORG_POS].GetXYZ(&x, &yend, &z);
+			PXmarker_PSX_Object::GetXYZ(&PXFrameEnOfAnim(pAnim->frame_qty - 1, pAnim)->markers[ORG_POS], &x, &yend, &z);
 
-			PXFrameEnOfAnim(0, pAnim)->markers[ORG_POS].GetXYZ(&x, &ystart, &z);
+			PXmarker_PSX_Object::GetXYZ(&PXFrameEnOfAnim(0, pAnim)->markers[ORG_POS], &x, &ystart, &z);
 
 			y_next = yend - ystart;
 
@@ -1490,7 +1489,7 @@ mcodeFunctionReturnCodes _game_session::fn_apply_anim_y(int32 &, int32 *params) 
 		}
 	}
 
-	Fatal_error("fn_apply_anim_y [%s] cant find generic anim [%s]", object->GetName(), anim_name);
+	Fatal_error("fn_apply_anim_y [%s] can't find generic anim [%s]", CGameObject::GetName(object), anim_name);
 
 	return IR_CONT;
 }
@@ -1501,11 +1500,11 @@ mcodeFunctionReturnCodes _game_session::fn_add_y(int32 &, int32 *params) {
 	// params        0   value
 
 	if (L->image_type == PROP)
-		Fatal_error("fn_add_y cant be used on a prop - %s", object->GetName());
+		Fatal_error("fn_add_y can't be used on a prop - %s", CGameObject::GetName(object));
 
 	M->actor_xyz.y += params[0];
 
-	Tdebug("fn_add_y.txt", "%s +%d to %3.1f", object->GetName(), params[0], M->actor_xyz.y);
+	Tdebug("fn_add_y.txt", "%s +%d to %3.1f", CGameObject::GetName(object), params[0], M->actor_xyz.y);
 
 	return IR_CONT;
 }

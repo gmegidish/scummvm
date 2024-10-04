@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,18 +36,23 @@ Image::Image() : _surface(nullptr), _disposeAfterUse(DisposeAfterUse::NO),
 		_paletted(false) {
 }
 
-Image *Image::create(int w, int h, bool paletted, Image::Type type) {
+Image *Image::create(int w, int h) {
 	Image *im = new Image();
-	im->create(w, h, paletted);
+	im->createInternal(w, h, Graphics::PixelFormat::createFormatCLUT8());
 
 	return im;
 }
 
-void Image::create(int w, int h, bool paletted) {
-	_paletted = paletted;
-	_surface = new Graphics::ManagedSurface(w, h, paletted ?
-		Graphics::PixelFormat::createFormatCLUT8() :
-		Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0));
+Image *Image::create(int w, int h, const Graphics::PixelFormat &format) {
+	Image *im = new Image();
+	im->createInternal(w, h, format);
+
+	return im;
+}
+
+void Image::createInternal(int w, int h, const Graphics::PixelFormat &format) {
+	_paletted = format.isCLUT8();
+	_surface = new Graphics::ManagedSurface(w, h, format);
 	_disposeAfterUse = DisposeAfterUse::YES;
 }
 
@@ -65,12 +69,12 @@ Image *Image::createScreenImage() {
 	return screen;
 }
 
-Image *Image::duplicate(Image *image) {
+Image *Image::duplicate(Image *image, const Graphics::PixelFormat &format) {
 	bool alphaOn = image->isAlphaOn();
-	Image *im = create(image->width(), image->height(), false, HARDWARE);
+	Image *im = create(image->width(), image->height(), format);
 
-//    if (image->isIndexed())
-//        im->setPaletteFromImage(image);
+	if (im->isIndexed())
+		im->setPaletteFromImage(image);
 
 	/* Turn alpha off before blitting to non-screen surfaces */
 	if (alphaOn)
@@ -91,25 +95,16 @@ Image::~Image() {
 		delete _surface;
 }
 
-void Image::setPalette(const RGBA *colors, unsigned n_colors) {
+void Image::setPalette(const byte *colors, unsigned n_colors) {
 	assertMsg(_paletted, "imageSetPalette called on non-paletted image");
-
-	byte *pal = new byte[n_colors * 3];
-	byte *palP = pal;
-	for (unsigned i = 0; i < n_colors; i++, palP += 3) {
-		palP[0] = colors[i].r;
-		palP[1] = colors[i].g;
-		palP[2] = colors[i].b;
-	}
-
-	_surface->setPalette(pal, 0, n_colors);
-	delete[] pal;
+	_surface->setPalette(colors, 0, n_colors);
 }
 
 void Image::setPaletteFromImage(const Image *src) {
 	assertMsg(_paletted && src->_paletted, "imageSetPaletteFromImage called on non-indexed image");
 
-	const uint32 *srcPal = src->_surface->getPalette();
+	uint8 srcPal[PALETTE_COUNT * 3];
+	src->_surface->grabPalette(srcPal, 0, PALETTE_COUNT);
 	_surface->setPalette(srcPal, 0, PALETTE_COUNT);
 }
 
@@ -117,30 +112,15 @@ RGBA Image::getPaletteColor(int index) {
 	RGBA color = RGBA(0, 0, 0, 0);
 
 	if (_paletted) {
-		uint32 pal = _surface->getPalette()[index];
-		color.r = (pal & 0xff);
-		color.g = (pal >> 8) & 0xff;
-		color.b = (pal >> 16) & 0xff;
+		uint8 pal[1 * 3];
+		_surface->grabPalette(pal, index, 1);
+		color.r = pal[0];
+		color.g = pal[1];
+		color.b = pal[2];
 		color.a = IM_OPAQUE;
 	}
 
 	return color;
-}
-
-int Image::getPaletteIndex(RGBA color) {
-	if (!_paletted)
-		return -1;
-
-	const uint32 *pal = _surface->getPalette();
-	uint32 color32 = color;
-
-	for (int i = 0; i < PALETTE_COUNT; ++i, ++pal) {
-		if (*pal == color32)
-			return i;
-	}
-
-	// return the proper palette index for the specified color
-	return -1;
 }
 
 RGBA Image::setColor(uint8 r, uint8 g, uint8 b, uint8 a) {
@@ -157,39 +137,39 @@ bool Image::setFontColor(ColorFG fg, ColorBG bg) {
 bool Image::setFontColorFG(ColorFG fg) {
 	switch (fg) {
 	case FG_GREY:
-		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   setColor(153, 153, 153))) return false;
-		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, setColor(102, 102, 102))) return false;
-		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    setColor(51, 51, 51))) return false;
+		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   153, 153, 153)) return false;
+		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, 102, 102, 102)) return false;
+		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    51, 51, 51)) return false;
 		break;
 	case FG_BLUE:
-		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   setColor(102, 102, 255))) return false;
-		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, setColor(51, 51, 204))) return false;
-		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    setColor(51, 51, 51))) return false;
+		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   102, 102, 255)) return false;
+		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, 51, 51, 204)) return false;
+		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    51, 51, 51)) return false;
 		break;
 	case FG_PURPLE:
-		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   setColor(255, 102, 255))) return false;
-		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, setColor(204, 51, 204))) return false;
-		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    setColor(51, 51, 51))) return false;
+		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   255, 102, 255)) return false;
+		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, 204, 51, 204)) return false;
+		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    51, 51, 51)) return false;
 		break;
 	case FG_GREEN:
-		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   setColor(102, 255, 102))) return false;
-		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, setColor(0, 153, 0))) return false;
-		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    setColor(51, 51, 51))) return false;
+		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   102, 255, 102)) return false;
+		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, 0, 153, 0)) return false;
+		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    51, 51, 51)) return false;
 		break;
 	case FG_RED:
-		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   setColor(255, 102, 102))) return false;
-		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, setColor(204, 51, 51))) return false;
-		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    setColor(51, 51, 51))) return false;
+		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   255, 102, 102)) return false;
+		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, 204, 51, 51)) return false;
+		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    51, 51, 51)) return false;
 		break;
 	case FG_YELLOW:
-		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   setColor(255, 255, 51))) return false;
-		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, setColor(204, 153, 51))) return false;
-		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    setColor(51, 51, 51))) return false;
+		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   255, 255, 51)) return false;
+		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, 204, 153, 51)) return false;
+		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    51, 51, 51)) return false;
 		break;
 	default:
-		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   setColor(255, 255, 255))) return false;
-		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, setColor(204, 204, 204))) return false;
-		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    setColor(68, 68, 68))) return false;
+		if (!setPaletteIndex(TEXT_FG_PRIMARY_INDEX,   255, 255, 255)) return false;
+		if (!setPaletteIndex(TEXT_FG_SECONDARY_INDEX, 204, 204, 204)) return false;
+		if (!setPaletteIndex(TEXT_FG_SHADOW_INDEX,    68, 68, 68)) return false;
 	}
 	return true;
 }
@@ -197,22 +177,24 @@ bool Image::setFontColorFG(ColorFG fg) {
 bool Image::setFontColorBG(ColorBG bg) {
 	switch (bg) {
 	case BG_BRIGHT:
-		if (!setPaletteIndex(TEXT_BG_INDEX, setColor(0, 0, 102)))
+		if (!setPaletteIndex(TEXT_BG_INDEX, 0, 0, 102))
 			return false;
 		break;
 	default:
-		if (!setPaletteIndex(TEXT_BG_INDEX, setColor(0, 0, 0)))
+		if (!setPaletteIndex(TEXT_BG_INDEX, 0, 0, 0))
 			return false;
 	}
 	return true;
 }
 
-bool Image::setPaletteIndex(uint index, RGBA color) {
+bool Image::setPaletteIndex(uint index, uint8 r, uint8 g, uint8 b) {
 	if (!_paletted)
 		return false;
 
-	uint32 color32 = color;
-	_surface->setPalette(&color32, index, 1);
+	const uint8 palette[1 * 3] = {
+		r, g, b
+	};
+	_surface->setPalette(palette, index, 1);
 
 	// success
 	return true;
@@ -247,18 +229,19 @@ void Image::alphaOff() {
 
 void Image::putPixel(int x, int y, int r, int g, int b, int a) {
 	uint32 color = getColor(r, g, b, a);
-	putPixelIndex(x, y, color);
+	_surface->setPixel(x, y, color);
 }
 
 uint Image::getColor(byte r, byte g, byte b, byte a) {
 	uint color;
 
 	if (_surface->format.bytesPerPixel == 1) {
-		const uint32 *pal = _surface->getPalette();
-		for (color = 0; color <= 0xfe; ++color, ++pal) {
-			byte rv = *pal & 0xff;
-			byte gv = (*pal >> 8) & 0xff;
-			byte bv = (*pal >> 16) & 0xff;
+		uint8 pal[256 * 3];
+		_surface->grabPalette(pal, 0, 256);
+		for (color = 0; color <= 0xfe; ++color) {
+			byte rv = pal[(color * 3) + 0];
+			byte gv = pal[(color * 3) + 1] & 0xff;
+			byte bv = pal[(color * 3) + 2] & 0xff;
 			if (r == rv && g == gv && b == bv)
 				break;
 		}
@@ -283,7 +266,7 @@ void Image::makeBackgroundColorTransparent(int haloSize, int shadowOpacity) {
 void Image::performTransparencyHack(uint colorValue, uint numFrames,
 									uint currentFrameIndex, uint haloWidth,
 									uint haloOpacityIncrementByPixelDistance) {
-	Common::List<Std::pair<uint, uint> > opaqueXYs;
+	Common::List<Common::Pair<uint, uint> > opaqueXYs;
 	int x, y;
 	byte t_r, t_g, t_b;
 
@@ -306,12 +289,12 @@ void Image::performTransparencyHack(uint colorValue, uint numFrames,
 			} else {
 				putPixel(x, y, r, g, b, a);
 				if (haloWidth)
-					opaqueXYs.push_back(Std::pair<uint, uint>(x, y));
+					opaqueXYs.push_back(Common::Pair<uint, uint>(x, y));
 			}
 		}
 	}
 	int ox, oy;
-	for (Common::List<Std::pair<uint, uint> >::iterator xy = opaqueXYs.begin();
+	for (Common::List<Common::Pair<uint, uint> >::iterator xy = opaqueXYs.begin();
 	        xy != opaqueXYs.end();
 	        ++xy) {
 		ox = xy->first;
@@ -344,28 +327,7 @@ void Image::setTransparentIndex(uint index) {
 }
 
 void Image::putPixelIndex(int x, int y, uint index) {
-	int bpp;
-	byte *p;
-
-	bpp = _surface->format.bytesPerPixel;
-	p = (byte *)_surface->getBasePtr(x, y);
-
-	switch (bpp) {
-	case 1:
-		*p = index;
-		break;
-
-	case 2:
-		*((uint16 *)p) = index;
-		break;
-
-	case 4:
-		*reinterpret_cast<uint32 *>(p) = index;
-		break;
-
-	default:
-		error("Unsupported format");
-	}
+	_surface->setPixel(x, y, index);
 }
 
 void Image::fillRect(int x, int y, int w, int h, int r, int g, int b, int a) {
@@ -377,14 +339,15 @@ void Image::getPixel(int x, int y, uint &r, uint &g, uint &b, uint &a) const {
 	uint index;
 	byte r1, g1, b1, a1;
 
-	getPixelIndex(x, y, index);
+	index = _surface->getPixel(x, y);
 
 	if (_surface->format.bytesPerPixel == 1) {
-		uint32 col = _surface->getPalette()[index];
-		r = col & 0xff;
-		g = (col >> 8) & 0xff;
-		b = (col >> 16) & 0xff;
-		a = (col >> 24) & 0xff;
+		uint8 pal[1 * 3];
+		_surface->grabPalette(pal, index, 1);
+		r = pal[0];
+		g = pal[1];
+		b = pal[2];
+		a = IM_OPAQUE;
 	} else {
 		_surface->format.colorToARGB(index, a1, r1, g1, b1);
 		r = r1;
@@ -395,26 +358,7 @@ void Image::getPixel(int x, int y, uint &r, uint &g, uint &b, uint &a) const {
 }
 
 void Image::getPixelIndex(int x, int y, uint &index) const {
-	int bpp = _surface->format.bytesPerPixel;
-
-	byte *p = (byte *)_surface->getBasePtr(x, y);
-
-	switch (bpp) {
-	case 1:
-		index = *p;
-		break;
-
-	case 2:
-		index = *reinterpret_cast<uint16 *>(p);
-		break;
-
-	case 4:
-		index = *reinterpret_cast<uint32 *>(p);
-		break;
-
-	default:
-		error("Unsupported format");
-	}
+	index = _surface->getPixel(x, y);
 }
 
 Graphics::ManagedSurface *Image::getSurface(Image *d) const {

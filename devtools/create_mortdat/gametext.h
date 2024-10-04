@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * This is a utility for extracting needed resource data from different language
  * version of the Mortevielle executable files into a new file mort.dat - this
@@ -57,6 +56,7 @@ const char *gameDataEn[] =  {
 	"The coat of arms$",
 	"$",
 	"Max, the servant, welcomes you and shows you to your room$",
+	// FIXME: Spelling incorrect. apropriate should be appropriate. Fixing changes game data and thus may cause issues
 	"Mortville     6/2/51@         My dear Jerome@Regarding my telegram, I must tell  you  the reason for my wor-@ries. A year ago, Murielle, my lady companion, disappeared. The de@part may have had something to do@with the financial success of themanor, or... A silence hard to un@derstand for my son Guy.  Not  ha@ving been able to see the  light of day over this affair, I count @on you to sort things out. If my state of health doesn't improve, @take the decisions that you feel @are apropriate.@             Kind regards, Julia DEFRANCK$",
 	"Later, Guy will inform you of Leo's suicide after a@heavy bet at the races$",
 	"F3: AGAIN             F8: STOP$",
@@ -357,6 +357,7 @@ const char *gameDataEn[] =  {
 	"With the cooking and the cleaning I do not have much time for you$",
 	"I do not know how he manages to do everything. That's wonderful!",
 	"He would do more if he showed less interest in gossip and alcohol$",
+	// FIXME: Spelling incorrect. independant should be independent. Fixing changes game data and thus may cause issues
 	"I am very independant. As long as nobody interferes in my business: No problem$",
 	"He is selfish. I wonder if he likes something other than his horses and grimoires$",
 	"I think he gets along well with everyone, except, perhaps, with Guy$",
@@ -377,6 +378,7 @@ const char *gameDataEn[] =  {
 	"Is it for an appointment?$",
 	"She is very lively! She does not burden herself with stupids prejudices$",
 	"In my line of work, one mostly encounters beautiful women and gangsters$",
+	// FIXME: Spelling incorrect. jewelery should be jewellery. Fixing changes game data and thus may cause issues
 	"The only sure thing he has going for him, it's his jewelery... And his wife, but he doesn't realize that$",
 	"It's an interesting character. Who is not always very easy to follow, but worth knowing$",
 	"I hate no one, but I like things and people when they stay where they should be$",
@@ -405,6 +407,7 @@ const char *gameDataEn[] =  {
 	"Apart from the letter for you I posted, nothing very important!$",
 	"I was very happy she gave me her bound bible as a present$",
 	"It happened fast and she didn't have time to make any particular will$",
+	// FIXME: Spelling incorrect. suprised should be surprised. Fixing changes game data and thus may cause issues
 	"Her last gift suprised me$",
 	"Which gift?$",
 	"A chandelier...$",

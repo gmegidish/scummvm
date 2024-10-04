@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,19 +26,19 @@
 #include "graphics/cursorman.h"
 #include "graphics/font.h"
 #include "graphics/fontman.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 
 namespace Voyeur {
 
 IntNode::IntNode() {
-	_intFunc = NULL;
+	_intFunc = nullptr;
 	_curTime = 0;
 	_timeReset = 0;
 	_flags = 0;
 }
 
 IntNode::IntNode(uint16 curTime, uint16 timeReset, uint16 flags) {
-	_intFunc = NULL;
+	_intFunc = nullptr;
 	_curTime = curTime;
 	_timeReset = timeReset;
 	_flags = flags;
@@ -55,7 +54,7 @@ IntData::IntData() {
 	_skipFading = false;
 	_palStartIndex = 0;
 	_palEndIndex = 0;
-	_palette = NULL;
+	_palette = nullptr;
 }
 
 /*------------------------------------------------------------------------*/
@@ -72,7 +71,7 @@ EventsManager::EventsManager(VoyeurEngine *vm) : _intPtr(_gameData),
 
 	Common::fill(&_cycleTime[0], &_cycleTime[4], 0);
 	Common::fill(&_cycleNext[0], &_cycleNext[4], (byte *)nullptr);
-	_cyclePtr = NULL;
+	_cyclePtr = nullptr;
 
 	_leftClick = _rightClick = false;
 	_mouseClicked = _newMouseClicked = false;
@@ -590,8 +589,13 @@ void EventsManager::stopEvidDim() {
 Common::String EventsManager::getEvidString(int eventIndex) {
 	assert(eventIndex <= _vm->_voy->_eventCount);
 	VoyeurEvent &e = _vm->_voy->_events[eventIndex];
+
+	if (_vm->getLanguage() == Common::DE_DEU)
+		return Common::String::format("%03d %.2d:%.2d %s %s", eventIndex + 1,
+									  e._isAM ? e._hour : e._hour + 12, e._minute, e._isAM ? AM_DE : PM_DE, EVENT_TYPE_STRINGS_DE[e._type - 1]);
+
 	return Common::String::format("%03d %.2d:%.2d %s %s", eventIndex + 1,
-		e._hour, e._minute, e._isAM ? AM : PM, EVENT_TYPE_STRINGS[e._type - 1]);
+		e._hour, e._minute, e._isAM ? AM_EN : PM_EN, EVENT_TYPE_STRINGS_EN[e._type - 1]);
 }
 
 } // End of namespace Voyeur

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/events.h"
+#include "common/stream.h"
 #include "common/system.h"
 #include "engines/engine.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "video/flic_decoder.h"
-
+#include "chewy/globals.h"
 #include "chewy/sound.h"
 #include "chewy/video/cfo_decoder.h"
 
@@ -68,12 +68,12 @@ bool CfoDecoder::loadStream(Common::SeekableReadStream *stream) {
 	uint16 width = stream->readUint16LE();
 	uint16 height = stream->readUint16LE();
 
-	addTrack(new CfoVideoTrack(stream, frameCount, width, height, _sound));
+	addTrack(new CfoVideoTrack(stream, frameCount, width, height, _sound, _disposeMusic));
 	return true;
 }
 
-CfoDecoder::CfoVideoTrack::CfoVideoTrack(Common::SeekableReadStream *stream, uint16 frameCount, uint16 width, uint16 height, Sound *sound) :
-	Video::FlicDecoder::FlicVideoTrack(stream, frameCount, width, height, true), _sound(sound) {
+CfoDecoder::CfoVideoTrack::CfoVideoTrack(Common::SeekableReadStream *stream, uint16 frameCount, uint16 width, uint16 height, Sound *sound, bool disposeMusic) :
+	Video::FlicDecoder::FlicVideoTrack(stream, frameCount, width, height, true), _sound(sound), _disposeMusic(disposeMusic) {
 	readHeader();
 
 	for (int i = 0; i < MAX_SOUND_EFFECTS; i++) {
@@ -83,16 +83,27 @@ CfoDecoder::CfoVideoTrack::CfoVideoTrack(Common::SeekableReadStream *stream, uin
 
 	_musicData = nullptr;
 	_musicSize = 0;
+
+	Common::fill(_sfxBalances, _sfxBalances + ARRAYSIZE(_sfxBalances), 63);
+	_sfxGlobalVolume = 63;
+	_musicVolume = 63;
 }
 
 CfoDecoder::CfoVideoTrack::~CfoVideoTrack() {
-	_sound->stopAll();
+	// Stop all sound effects.
+	_sound->stopAllSounds();
 
 	for (int i = 0; i < MAX_SOUND_EFFECTS; i++) {
 		delete[] _soundEffects[i];
 	}
 
-	delete[] _musicData;
+	// Only stop music if it is included in the video data.
+	if (_musicData) {
+		if (_disposeMusic)
+			_sound->stopMusic();
+		delete[] _musicData;
+		_musicData = nullptr;
+	}
 }
 
 void CfoDecoder::CfoVideoTrack::readHeader() {
@@ -106,7 +117,7 @@ void CfoDecoder::CfoVideoTrack::readHeader() {
 #define FRAME_TYPE 0xF1FA
 #define CUSTOM_FRAME_TYPE 0xFAF1
 
-const ::Graphics::Surface *CfoDecoder::CfoVideoTrack::decodeNextFrame() {
+const Graphics::Surface *CfoDecoder::CfoVideoTrack::decodeNextFrame() {
 	uint16 frameType;
 
 	// Read chunk
@@ -182,6 +193,7 @@ void CfoDecoder::CfoVideoTrack::handleCustomFrame() {
 	for (uint32 i = 0; i < chunkCount; ++i) {
 		uint32 frameSize = _fileStream->readUint32LE();
 		uint16 frameType = _fileStream->readUint16LE();
+		uint16 musicLoops = 0;
 
 		switch (frameType) {
 		case kChunkFadeIn:
@@ -195,7 +207,7 @@ void CfoDecoder::CfoVideoTrack::handleCustomFrame() {
 		case kChunkLoadMusic:
 			// Used in videos 0, 18, 34, 71
 			_musicSize = frameSize;
-			_musicData = new byte[frameSize];
+			_musicData = new uint8[frameSize];
 			_fileStream->read(_musicData, frameSize);
 			break;
 		case kChunkLoadRaw:
@@ -207,12 +219,12 @@ void CfoDecoder::CfoVideoTrack::handleCustomFrame() {
 			delete[] _soundEffects[number];
 
 			_soundEffectSize[number] = frameSize - 2;
-			_soundEffects[number] = new byte[frameSize - 2];
+			_soundEffects[number] = new uint8[frameSize - 2];
 			_fileStream->read(_soundEffects[number], frameSize - 2);
 			break;
 		case kChunkPlayMusic:
 			// Used in videos 0, 18, 34, 71
-			_sound->playMusic(_musicData, _musicSize, false, DisposeAfterUse::NO);
+			_sound->playMusic(_musicData, _musicSize, _musicVolume);
 			break;
 		case kChunkPlaySeq:
 			error("Unused chunk kChunkPlaySeq found");
@@ -225,6 +237,7 @@ void CfoDecoder::CfoVideoTrack::handleCustomFrame() {
 
 			// Game videos do not restart music after stopping it
 			delete[] _musicData;
+			_musicData = nullptr;
 			_musicSize = 0;
 			break;
 		case kChunkWaitMusicEnd:
@@ -233,11 +246,15 @@ void CfoDecoder::CfoVideoTrack::handleCustomFrame() {
 				while (g_system->getEventManager()->pollEvent(event)) {}	// ignore events
 				g_system->updateScreen();
 				g_system->delayMillis(10);
-			} while (_sound->isMusicActive());
+				// Await 100 loops (about 1 sec)
+				musicLoops++;
+			} while (_sound->isMusicActive() && musicLoops < 100);
 			break;
 		case kChunkSetMusicVolume:
-			volume = _fileStream->readUint16LE() * Audio::Mixer::kMaxChannelVolume / 63;
-			_sound->setMusicVolume(volume);
+			volume = _fileStream->readUint16LE();
+
+			_musicVolume = volume;
+			_sound->setActiveMusicVolume(volume);
 			break;
 		case kChunkSetLoopMode:
 			error("Unused chunk kChunkSetLoopMode found");
@@ -248,22 +265,27 @@ void CfoDecoder::CfoVideoTrack::handleCustomFrame() {
 		case kChunkPlayVoc:
 			number = _fileStream->readUint16LE();
 			channel = _fileStream->readUint16LE();
-			volume = _fileStream->readUint16LE() * Audio::Mixer::kMaxChannelVolume / 63;
+			volume = _fileStream->readUint16LE();
 			repeat = _fileStream->readUint16LE();
 			assert(number < MAX_SOUND_EFFECTS);
 
-			_sound->setSoundVolume(volume);
-			_sound->playSound(_soundEffects[number], _soundEffectSize[number], repeat, channel, DisposeAfterUse::NO);
+			// Repeat is the number of times the sound should be repeated, so
+			// 0 means play once, 1 twice etc. 255 means repeat until stopped.
+			_sound->playSound(_soundEffects[number], _soundEffectSize[number], channel, repeat == 255 ? 0 : repeat + 1,
+				volume * _sfxGlobalVolume / 63, _sfxBalances[channel], DisposeAfterUse::NO);
 			break;
 		case kChunkSetSoundVolume:
-			volume = _fileStream->readUint16LE() * Audio::Mixer::kMaxChannelVolume / 63;
-			_sound->setSoundVolume(volume);
+			volume = _fileStream->readUint16LE();
+			assert(volume >= 0 && volume < 64);
+			_sfxGlobalVolume = volume;
+			// This is only used once in the credits video, before any sounds
+			// are played, so no need to update volume of active sounds.
 			break;
 		case kChunkSetChannelVolume:
 			channel = _fileStream->readUint16LE();
-			volume = _fileStream->readUint16LE() * Audio::Mixer::kMaxChannelVolume / 63;
+			volume = _fileStream->readUint16LE();
 
-			_sound->setSoundChannelVolume(channel, volume);
+			_sound->setSoundChannelVolume(channel, volume * _sfxGlobalVolume / 63);
 			break;
 		case kChunkFreeSoundEffect:
 			number = _fileStream->readUint16LE();
@@ -277,13 +299,15 @@ void CfoDecoder::CfoVideoTrack::handleCustomFrame() {
 			break;
 		case kChunkMusicFadeOut:
 			// Used in videos 0, 71
-			warning("kChunkMusicFadeOut");
-			// TODO
-			_fileStream->skip(frameSize);
+			channel = _fileStream->readUint16LE();
+			// TODO: Reimplement
+			//_G(sndPlayer)->fadeOut(channel);
 			break;
 		case kChunkSetBalance:
 			channel = _fileStream->readUint16LE();
-			balance = (_fileStream->readUint16LE() * 2) - 127;
+			balance = _fileStream->readUint16LE();
+
+			_sfxBalances[channel] = balance;
 			_sound->setSoundChannelBalance(channel, balance);
 			break;
 		case kChunkSetSpeed:
@@ -310,6 +334,7 @@ void CfoDecoder::CfoVideoTrack::fadeOut() {
 				--_palette[i * 3 + 2];
 		}
 
+		//setScummVMPalette(_palette, 0, 256);
 		g_system->getPaletteManager()->setPalette(_palette, 0, 256);
 		g_system->updateScreen();
 		g_system->delayMillis(10);

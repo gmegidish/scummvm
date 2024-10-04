@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -506,6 +505,7 @@ bool AIScriptMutant2::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	default:
+		debugC(6, kDebugAnimation, "AIScriptMutant2::UpdateAnimation() - Current _animationState (%d) is not supported", _animationState);
 		break;
 	}
 	*frame = _animationFrame;
@@ -515,7 +515,7 @@ bool AIScriptMutant2::UpdateAnimation(int *animation, int *frame) {
 
 bool AIScriptMutant2::ChangeAnimationMode(int mode) {
 	switch (mode) {
-	case 0:
+	case kAnimationModeIdle:
 		if (_animationState >= 3 && _animationState <= 4) {
 			_resumeIdleAfterFramesetCompletesFlag = true;
 		} else {
@@ -524,21 +524,23 @@ bool AIScriptMutant2::ChangeAnimationMode(int mode) {
 		}
 		break;
 
-	case 1:
+	case kAnimationModeWalk:
 		// fall through
-	case 7:
+	case kAnimationModeCombatWalk:
 		_animationState = 1;
 		_animationFrame = 0;
 		break;
 
-	case 2:
+	case kAnimationModeRun:
 		// fall through
-	case 8:
+	case kAnimationModeCombatRun:
 		_animationState = 2;
 		_animationFrame = 0;
 		break;
 
 	case 3:
+		// fall through
+	case 12:
 		_animationState = 3;
 		_animationFrame = 0;
 		_resumeIdleAfterFramesetCompletesFlag = false;
@@ -558,12 +560,6 @@ bool AIScriptMutant2::ChangeAnimationMode(int mode) {
 		_animationFrame = 0;
 		break;
 
-	case 12:
-		_animationState = 3;
-		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
-		break;
-
 	case 21:
 		// fall through
 	case 22:
@@ -580,6 +576,10 @@ bool AIScriptMutant2::ChangeAnimationMode(int mode) {
 	case 88:
 		_animationState = 7;
 		_animationFrame = Slice_Animation_Query_Number_Of_Frames(kModelAnimationMutant2ShotDead) - 1;
+		break;
+
+	default:
+		debugC(6, kDebugAnimation, "AIScriptMutant2::ChangeAnimationMode(%d) - Target mode is not supported", mode);
 		break;
 	}
 

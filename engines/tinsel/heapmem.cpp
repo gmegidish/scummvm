@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * This file contains the handle based Memory Manager code.
  */
@@ -34,9 +33,11 @@ namespace Tinsel {
 // internal allocation flags
 #define	DWM_USED		0x0001	///< the objects memory block is in use
 #define	DWM_DISCARDED	0x0002	///< the objects memory block has been discarded
-#define	DWM_LOCKED		0x0004	///< the objects memory block is locked
+#define	DWM_LOCKED		((TinselVersion == 3) ? 0x0200 : 0x0004)	///< the objects memory block is locked
 #define	DWM_SENTINEL	0x0008	///< the objects memory block is a sentinel
-
+// Noir
+#define	DWM_V3X20		0x0020	///< unknown
+#define	DWM_V3X4		0x0004	///< unknown
 
 struct MEM_NODE {
 	MEM_NODE *pNext;	// link to the next node in the list
@@ -126,9 +127,9 @@ void MemoryInit() {
 
 	// store the current heap size in the sentinel
 	uint32 size = MemoryPoolSize[0];
-	if (TinselVersion == TINSEL_V1) size = MemoryPoolSize[1];
-	else if (TinselVersion == TINSEL_V2) size = MemoryPoolSize[2];
-	else if (TinselVersion == TINSEL_V3) {
+	if (TinselVersion == 1) size = MemoryPoolSize[1];
+	else if (TinselVersion == 2) size = MemoryPoolSize[2];
+	else if (TinselVersion == 3) {
 		warning("TODO: Find the correct memory pool size for Noir, using 512 MiB for now");
 		size = MemoryPoolSize[3];
 	}

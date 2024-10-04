@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,13 +31,13 @@
 
 namespace LastExpress {
 
-Beetle::Beetle(LastExpressEngine *engine) : _engine(engine), _data(NULL) {}
+Beetle::Beetle(LastExpressEngine *engine) : _engine(engine), _data(nullptr) {}
 
 Beetle::~Beetle() {
 	SAFE_DELETE(_data);
 
 	// Free passed pointers
-	_engine = NULL;
+	_engine = nullptr;
 }
 
 void Beetle::load() {
@@ -104,9 +103,9 @@ void Beetle::load() {
 	_data->field_D9 = 10;
 	_data->coordOffset = 5;
 	_data->coordY = 178;
-	_data->currentSequence = 0;
+	_data->currentSequence = nullptr;
 	_data->offset = 0;
-	_data->frame = NULL;
+	_data->frame = nullptr;
 	_data->field_D5 = 0;
 	_data->indexes[0] = 29;
 	_data->field_DD = 0;
@@ -195,7 +194,7 @@ void Beetle::drawUpdate() {
 	if (!_data)
 		error("[Beetle::drawUpdate] Sequences have not been loaded");
 
-	if (_data->frame != NULL) {
+	if (_data->frame != nullptr) {
 		getScenes()->setCoordinates(_data->frame);
 		getScenes()->removeFromQueue(_data->frame);
 	}
@@ -243,7 +242,7 @@ void Beetle::drawUpdate() {
 		_data->currentFrame = 0;
 		if (_data->indexes[_data->offset] == 29) {
 			SAFE_DELETE(_data->frame);
-			_data->currentSequence = NULL; // pointer to existing sequence
+			_data->currentSequence = nullptr; // pointer to existing sequence
 			return;
 		}
 	}

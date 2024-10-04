@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -820,7 +819,7 @@ public:
 	int init_profile();
 	void profile_set_call_counts(int flag);
 
-	#if VM_PROFILING
+#ifdef VM_PROFILING
 	uint profile_opcount;
 	#define profile_tick() (profile_opcount++)
 	int profile_profiling_active();
@@ -828,16 +827,16 @@ public:
 	void profile_out(uint stackuse);
 	void profile_fail(const char *reason);
 	void profile_quit();
-	#else /* VM_PROFILING */
+#else /* VM_PROFILING */
 	void profile_tick() {}
 	void profile_profiling_active() {}
 	void profile_in(uint addr, uint stackuse, int accel) {}
 	void profile_out(uint stackuse)  {}
 	void profile_fail(const char *reason) {}
 	void profile_quit() {}
-	#endif /* VM_PROFILING */
+#endif /* VM_PROFILING */
 
-#if VM_DEBUGGER
+#ifdef VM_DEBUGGER
 	unsigned long debugger_opcount;
 	void debugger_tick() { debugger_opcount++ }
 	int debugger_load_info_stream(strid_t stream);

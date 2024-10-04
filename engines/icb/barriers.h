@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@
 
 namespace ICB {
 
-#define MAX_slices 9
+#define MAX_slices 10
 
 //+1 for dummy top floor ceiling
 #define MAX_heights (MAX_slices + 1)
@@ -88,13 +87,13 @@ public:
 	void Form_route_barrier_list(PXreal x, PXreal y, PXreal z, PXreal x2, PXreal z2);
 	void Form_parent_barrier_list(PXreal x, PXreal y, PXreal z);
 
-	_parent_box *Fetch_parent_box_for_xyz(PXreal x, PXreal y, PXreal z, uint32 &par_num, uint32 &slice_num);
-	_parent_box *Fetch_parent_num_on_slice_y(uint32 requested_parent, PXreal y);
-	uint32 Fetch_number_of_child_boxes(_parent_box *parent);
-	_child_group *Fetch_child_box(_parent_box *parent, uint32 child);
-	_route_barrier *Fetch_barrier(uint32 num);
+	ParentBox *Fetch_parent_box_for_xyz(PXreal x, PXreal y, PXreal z, uint32 &par_num, uint32 &slice_num);
+	ParentBox *Fetch_parent_num_on_slice_y(uint32 requested_parent, PXreal y);
+	uint32 Fetch_number_of_child_boxes(ParentBox *parent);
+	ChildGroup *Fetch_child_box(ParentBox *parent, uint32 child);
+	RouteBarrier *Fetch_barrier(uint32 num);
 	uint32 Fetch_total_barriers();
-	_linked_data_file *Get_barrier_pointer() const { return raw_barriers; }
+	LinkedDataFile *Get_barrier_pointer() const { return raw_barriers; }
 	void Prepare_animating_barriers();
 	uint32 Get_anim_barriers(uint32 n, uint32 *oThisCubesBarriers, uint32 slice);
 
@@ -111,12 +110,12 @@ public:
 	_animating_parent anim_parent_table[MAX_floors]; // storage
 
 	// raw barriers
-	_linked_data_file *raw_barriers; // raw route barriers used for routing/line of sight and maybe shadow geometry
+	LinkedDataFile *raw_barriers; // raw route barriers used for routing/line of sight and maybe shadow geometry
 
 	uint32 total_barriers;
 
 	// route barrier wrapper file
-	_linked_data_file *route_wrapper;
+	LinkedDataFile *route_wrapper;
 
 	uint32 total_slices; // useful out of file
 
@@ -140,9 +139,9 @@ inline void _barrier_handler::Clear_route_barrier_mask() {
 	barrier_mask = FALSE8;
 }
 
-inline uint32 _barrier_handler::Fetch_number_of_child_boxes(_parent_box *parent) { return (parent->num_childgroups); }
+inline uint32 _barrier_handler::Fetch_number_of_child_boxes(ParentBox *parent) { return (parent->num_childgroups); }
 
-inline _child_group *_barrier_handler::Fetch_child_box(_parent_box *parent, uint32 child) { return ((_child_group *)(((uint8 *)parent) + parent->childgroups[child])); }
+inline ChildGroup *_barrier_handler::Fetch_child_box(ParentBox *parent, uint32 child) { return ((ChildGroup *)(((uint8 *)parent) + parent->childgroups[child])); }
 
 inline uint32 _barrier_handler::Fetch_total_barriers() { return (total_barriers); }
 

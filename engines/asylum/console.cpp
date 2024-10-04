@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,6 +34,7 @@
 
 #include "asylum/system/cursor.h"
 #include "asylum/system/graphics.h"
+#include "asylum/system/savegame.h"
 #include "asylum/system/screen.h"
 #include "asylum/system/text.h"
 
@@ -52,6 +52,7 @@ extern int g_debugActors;
 extern int g_debugDrawRects;
 extern int g_debugObjects;
 extern int g_debugPolygons;
+extern int g_debugPolygonIndex;
 extern int g_debugSceneRects;
 extern int g_debugScrolling;
 
@@ -289,6 +290,7 @@ Console::Console(AsylumEngine *engine) : _vm(engine), _insertDisc(engine), _resV
 
 	registerCmd("palette",        WRAP_METHOD(Console, cmdSetPalette));
 	registerCmd("view",           WRAP_METHOD(Console, cmdViewResource));
+	registerCmd("draw_area",      WRAP_METHOD(Console, cmdDrawActionArea));
 
 	registerCmd("toggle_flag",    WRAP_METHOD(Console, cmdToggleFlag));
 
@@ -337,7 +339,7 @@ bool Console::cmdHelp(int, const char **) {
 	debugPrintf(" scene       - change the scene\n");
 	debugPrintf(" show_script - show script commands\n");
 	debugPrintf(" kill_script - terminate a script\n");
-	debugPrintf(" puzzle      - run an puzzle\n");
+	debugPrintf(" puzzle      - run a puzzle\n");
 	debugPrintf(" insertdisc  - show Insert Disc screen\n");
 	debugPrintf("\n");
 	debugPrintf(" get_status  - get actor's status\n");
@@ -352,6 +354,7 @@ bool Console::cmdHelp(int, const char **) {
 	debugPrintf("\n");
 	debugPrintf(" palette     - set the screen palette\n");
 	debugPrintf(" view        - view game resources\n");
+	debugPrintf(" draw_area   - draw action area\n");
 	debugPrintf("\n");
 	debugPrintf(" toggle_flag - toggle a flag\n");
 	debugPrintf("\n");
@@ -368,7 +371,7 @@ bool Console::cmdListFiles(int argc, const char **argv) {
 		return true;
 	}
 
-	Common::String filter(const_cast<char *>(argv[1]));
+	Common::Path filter(const_cast<char *>(argv[1]), Common::Path::kNativeSeparator);
 
 	Common::ArchiveMemberList list;
 	int count = SearchMan.listMatchingMembers(list, filter);
@@ -773,9 +776,9 @@ bool Console::cmdChangeScene(int argc, const char **argv) {
 
 	_vm->_delayedSceneIndex = index;
 	_vm->_puzzles->reset();
-	_vm->resetFlags();
 
 	getMenu()->setGameStarted();
+	getSaveLoad()->resetVersion();
 
 	return false;
 }
@@ -919,7 +922,7 @@ bool Console::cmdRunPuzzle(int argc, const char **argv) {
 	}
 
 	EventHandler *puzzle = getPuzzles()->getPuzzle((uint32)index);
-	if (puzzle == NULL) {
+	if (puzzle == nullptr) {
 		debugPrintf("[Error] This puzzle does not exists (%d)", index);
 		return true;
 	}
@@ -1088,6 +1091,30 @@ bool Console::cmdViewResource(int argc, const char **argv) {
 		debugPrintf("[Error] Could not load resource 0x%X\n", resourceId);
 		return true;
 	}
+}
+
+bool Console::cmdDrawActionArea(int argc, const char **argv) {
+	if (argc == 1) {
+		if (g_debugPolygonIndex) {
+			g_debugPolygonIndex = 0;
+			return false;
+		} else {
+			debugPrintf("Syntax: %s (<area_index>)\n", argv[0]);
+			return true;
+		}
+	}
+
+	int areaIndex = getWorld()->getActionAreaIndexById(atoi(argv[1]));
+	if (areaIndex == -1) {
+		debugPrintf("No such area\n");
+		return true;
+	}
+
+	ActionArea *area = getWorld()->actions[areaIndex];
+	if (area->polygonIndex)
+		g_debugPolygonIndex = area->polygonIndex;
+
+	return false;
 }
 
 //////////////////////////////////////////////////////////////////////////

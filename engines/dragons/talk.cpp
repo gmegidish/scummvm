@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,7 +58,7 @@ bool Talk::loadText(uint32 textIndex, uint16 *textBuffer, uint16 bufferLength) {
 	uint32 fileNo = (textIndex >> 0xc) & 0xffff;
 	uint32 fileOffset = textIndex & 0xfff;
 
-	sprintf(filename, "drag%04d.txt", fileNo);
+	Common::sprintf_s(filename, "drag%04d.txt", fileNo);
 	uint32 size;
 	byte *data = _bigfileArchive->load(filename, size);
 	debug(1, "DIALOG: %s, %s, %d", filename, data, fileOffset);
@@ -622,6 +621,12 @@ bool Talk::talkToActor(ScriptOpCall &scriptOpCall) {
 				if (selectedDialogText->iniId != 0) {
 					iniId = selectedDialogText->iniId;
 				}
+
+				// WORKAROUMD: German release has no ini setup which leads to iniId - 1 < 0
+				// Bugreport #13925
+				if (iniId == 0)
+					iniId = 1;
+
 				Actor *iniActor = _vm->_dragonINIResource->getRecord(iniId - 1)->actor;
 				sequenceId = iniActor->_sequenceID;
 //				playSoundFromTxtIndex(selectedDialogText->textIndex1);

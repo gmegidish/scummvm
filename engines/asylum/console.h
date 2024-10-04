@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,23 +30,6 @@
 #include "views/resviewer.h"
 
 namespace Asylum {
-
-enum kDebugLevels {
-	kDebugLevelMain      = 1 << 0,
-	kDebugLevelResources = 1 << 1,
-	kDebugLevelSprites   = 1 << 2,
-	kDebugLevelInput     = 1 << 3,
-	kDebugLevelMenu      = 1 << 4,
-	kDebugLevelScripts   = 1 << 5,
-	kDebugLevelSound     = 1 << 6,
-	kDebugLevelSavegame  = 1 << 7,
-	kDebugLevelScene     = 1 << 8,
-	kDebugLevelObjects   = 1 << 9,
-	kDebugLevelActor     = 1 << 10,
-	kDebugLevelEncounter = 1 << 11,
-	kDebugLevelVideo     = 1 << 12,
-	kDebugLevelCommands  = 1 << 13
-};
 
 class AsylumEngine;
 
@@ -95,6 +77,7 @@ private:
 
 	bool cmdSetPalette(int argc, const char **argv);
 	bool cmdViewResource(int argc, const char **argv);
+	bool cmdDrawActionArea(int argc, const char **argv);
 
 	bool cmdToggleFlag(int argc, const char **argv);
 };

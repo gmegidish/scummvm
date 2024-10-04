@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -167,7 +166,7 @@ const Common::String MystAreaAction::describe() {
 }
 
 // In Myst/Making of Myst, the paths are hardcoded ala Windows style without extension. Convert them.
-Common::String MystAreaVideo::convertMystVideoName(const Common::String &name) {
+Common::Path MystAreaVideo::convertMystVideoName(const Common::String &name) {
 	Common::String temp;
 
 	for (uint32 i = 1; i < name.size(); i++) {
@@ -177,22 +176,23 @@ Common::String MystAreaVideo::convertMystVideoName(const Common::String &name) {
 			temp += name[i];
 	}
 
-	return temp + ".mov";
+	return Common::Path(temp + ".mov");
 }
 
 MystAreaVideo::MystAreaVideo(MohawkEngine_Myst *vm, ResourceType type, Common::SeekableReadStream *rlstStream, MystArea *parent) :
 		MystAreaAction(vm, type, rlstStream, parent) {
 	char c = 0;
 
+	Common::String videoFile;
 	while ((c = rlstStream->readByte()) != 0) {
-		_videoFile += c;
+		videoFile += c;
 	}
 
-	if ((_videoFile.size() & 1) == 0) {
+	if ((videoFile.size() & 1) == 0) {
 		rlstStream->skip(1);
 	}
 
-	_videoFile = convertMystVideoName(_videoFile);
+	_videoFile = convertMystVideoName(videoFile);
 	_videoFile = _vm->selectLocalizedMovieFilename(_videoFile);
 
 	// Position values require modulus 10000 to keep in sane range.
@@ -213,7 +213,7 @@ MystAreaVideo::MystAreaVideo(MohawkEngine_Myst *vm, ResourceType type, Common::S
 		_playOnCardChange = false;
 	}
 
-	debugC(kDebugResource, "\tvideoFile: \"%s\"", _videoFile.c_str());
+	debugC(kDebugResource, "\tvideoFile: \"%s\"", _videoFile.toString().c_str());
 	debugC(kDebugResource, "\tleft: %d", _left);
 	debugC(kDebugResource, "\ttop: %d", _top);
 	debugC(kDebugResource, "\tloop: %d", _loop);
@@ -231,7 +231,7 @@ VideoEntryPtr MystAreaVideo::playMovie() {
 	if (!handle) {
 		handle = _vm->_video->playMovie(_videoFile, Audio::Mixer::kSFXSoundType);
 		if (!handle)
-			error("Failed to open '%s'", _videoFile.c_str());
+			error("Failed to open '%s'", _videoFile.toString().c_str());
 
 		handle->moveTo(_left, _top);
 		handle->setLooping(_loop != 0);
@@ -270,7 +270,7 @@ VideoEntryPtr MystAreaVideo::getVideo() {
 		// If the video has not been loaded yet, do it but don't start playing it
 		handle = _vm->_video->playMovie(_videoFile, Audio::Mixer::kSFXSoundType);
 		if (!handle)
-			error("Failed to open '%s'", _videoFile.c_str());
+			error("Failed to open '%s'", _videoFile.toString().c_str());
 		handle->stop();
 	}
 

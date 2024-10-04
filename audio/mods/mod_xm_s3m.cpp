@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -162,10 +161,10 @@ public:
 	bool loadSuccess() const { return _loadSuccess; }
 
 	// Implement virtual functions
-	virtual int readBuffer(int16 *buffer, const int numSamples) override;
-	virtual bool isStereo() const override { return true; }
-	virtual int getRate() const override { return _sampleRate; }
-	virtual bool endOfData() const override { return _dataLeft <= 0; }
+	int readBuffer(int16 *buffer, const int numSamples) override;
+	bool isStereo() const override { return true; }
+	int getRate() const override { return _sampleRate; }
+	bool endOfData() const override { return _dataLeft <= 0; }
 
 	ModXmS3mStream(Common::SeekableReadStream *stream, int initialPos, int rate, int interpolation);
 	~ModXmS3mStream();
@@ -1347,8 +1346,7 @@ void ModXmS3mStream::setSequencePos(int pos) {
 	_playCount = new int8 *[_module.sequenceLen];
 	memset(_playCount, 0, _module.sequenceLen * sizeof(int8 *));
 	int len = initPlayCount(_playCount);
-	_playCount[0] = new int8[len];
-	memset(_playCount[0], 0, len * sizeof(int8));
+	_playCount[0] = new int8[len]();
 	initPlayCount(_playCount);
 
 	for (int idx = 0; idx < _module.numChannels; ++idx) {
@@ -1374,6 +1372,47 @@ RewindableAudioStream *makeModXmS3mStream(Common::SeekableReadStream *stream, Di
 	}
 
 	return soundStream;
+}
+
+bool probeModXmS3m(Common::SeekableReadStream *st) {
+	int32 setPos = st->pos();
+
+	// xm file
+	char sigXm[18] = { 0 };
+	st->read(sigXm, 17);
+	st->seek(setPos);
+	if (!memcmp(sigXm, "Extended Module: ", 17)) {
+		return true;
+	}
+
+	// s3m file
+	char sigS3m[4];
+	st->skip(44);
+	st->read(sigS3m, 4);
+	st->seek(setPos);
+	if (!memcmp(sigS3m, "SCRM", 4)) {
+		st->seek(setPos);
+		return true;
+	}
+
+	// amf file
+	char sigAmf[25] = {};
+	st->read(sigAmf, 24);
+	st->seek(setPos);
+	if (!memcmp(sigAmf, "ASYLUM Music Format V1.0", 24)) {
+		return true;
+	}
+
+	// mod file
+	char sigMod[4];
+	st->skip(1080);
+	st->read(sigMod, 4);
+	st->seek(setPos);
+	if (!memcmp(sigMod, "M.K.", 4) || !memcmp(sigMod, "M!K!", 4)) {
+		return true;
+	}
+
+	return false;
 }
 
 } // End of namespace Audio

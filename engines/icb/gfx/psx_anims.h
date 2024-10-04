@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,21 +33,15 @@
 
 namespace ICB {
 
-static inline PXframe_PSX *psxFrameEnOfAnim(uint32 n, PXanim_PSX *pAnim, const char *file, const int32 line) {
+inline PXframe_PSX *PXFrameEnOfAnim(uint32 n, PXanim_PSX *pAnim) {
 	// Convert to the new schema
 	ConvertPXanim(pAnim);
 	if (n >= pAnim->frame_qty) {
-		Real_Fatal_error("Illegal frame %d %d %s %d", n, pAnim->frame_qty, file, line);
+		Real_Fatal_error("Illegal frame %d %d %s %d", n, pAnim->frame_qty);
 		error("Should exit with error-code -1");
 		return NULL;
 	}
-	return (PXframe_PSX *)((uint8 *)pAnim + pAnim->offsets[n]);
-}
-
-static inline void psxMatrixToAngles(PXorient_PSX &orient, PXfloat &pan, PXfloat &tilt, PXfloat &cant) {
-	pan = orient.pan;
-	tilt = orient.tilt;
-	cant = orient.cant;
+	return (PXframe_PSX *)((uint8 *)pAnim + FROM_LE_16(pAnim->offsets[n]));
 }
 
 } // End of namespace ICB

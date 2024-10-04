@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,6 @@
 #include "common/memstream.h"
 #include "common/str-array.h"
 #include "common/file.h"
-#include "common/translation.h"
 #include "common/config-manager.h"
 
 #include "glk/detection.h"
@@ -61,7 +59,6 @@
 #include "graphics/surface.h"
 #include "common/config-manager.h"
 #include "common/file.h"
-#include "common/translation.h"
 
 static const DebugChannelDef debugFlagList[] = {
 	{Glk::kDebugCore, "core", "Core engine debug level"},
@@ -91,7 +88,7 @@ GlkDetectedGame::GlkDetectedGame(const char *id, const char *desc, const Common:
 }
 
 GlkDetectedGame::GlkDetectedGame(const char *id, const char *desc, const Common::String &filename,
-		Common::Language lang, GameSupportLevel supportLevel) : DetectedGame("glk", id, desc, lang, Common::kPlatformUnknown) {
+		Common::Language lang, Common::Platform p, GameSupportLevel supportLevel) : DetectedGame("glk", id, desc, lang, p) {
 	setGUIOptions(getGlkGUIOptions());
 	gameSupportLevel = supportLevel;
 	addExtraEntry("filename", filename);
@@ -119,7 +116,7 @@ GlkDetectedGame::GlkDetectedGame(const char *id, const char *desc, const Common:
 	FileProperties fp;
 	fp.md5 = md5;
 	fp.size = filesize;
-	matchedFiles[filename] = fp;
+	matchedFiles[Common::Path(filename)] = fp;
 }
 
 } // End of namespace Glk
@@ -181,7 +178,75 @@ PlainGameDescriptor GlkMetaEngineDetection::findGame(const char *gameId) const {
 
 #undef FIND_GAME
 
-DetectedGames GlkMetaEngineDetection::detectGames(const Common::FSList &fslist) const {
+Common::String GlkMetaEngineDetection::findFileByGameId(const Common::String &gameId) {
+	// Get the list of files in the folder and return detection against them
+	Common::FSNode folder = Common::FSNode(ConfMan.getPath("path"));
+	Common::FSList fslist;
+	folder.getChildren(fslist, Common::FSNode::kListFilesOnly);
+
+	// Iterate over the files
+	for (Common::FSList::iterator i = fslist.begin(); i != fslist.end(); ++i) {
+		// Run a detection on each file in the folder individually
+		Common::FSList singleList;
+		singleList.push_back(*i);
+		DetectedGames games = detectGames(singleList);
+
+		// If a detection was found with the correct game Id, we have a winner
+		if (!games.empty() && games.front().gameId == gameId)
+			return (*i).getName();
+	}
+
+	// No match found
+	return Common::String();
+}
+
+Common::Error GlkMetaEngineDetection::identifyGame(DetectedGame &game, const void **descriptor) {
+	*descriptor = nullptr;
+
+	// Populate the game description
+	Glk::GlkGameDescription *gameDesc = new Glk::GlkGameDescription;
+
+	gameDesc->_gameId = ConfMan.get("gameid");
+	gameDesc->_filename = ConfMan.get("filename");
+
+	gameDesc->_language = Common::UNK_LANG;
+	gameDesc->_platform = Common::kPlatformUnknown;
+	if (ConfMan.hasKey("language"))
+		gameDesc->_language = Common::parseLanguage(ConfMan.get("language"));
+	if (ConfMan.hasKey("platform"))
+		gameDesc->_platform = Common::parsePlatform(ConfMan.get("platform"));
+
+	// If the game description has no filename, the engine has been launched directly from
+	// the command line. Do a scan for supported games for that Id in the game folder
+	if (gameDesc->_filename.empty()) {
+		gameDesc->_filename = findFileByGameId(gameDesc->_gameId);
+		if (gameDesc->_filename.empty()) {
+			delete gameDesc;
+			return Common::kNoGameDataFoundError;
+		}
+	}
+
+	// Get the MD5
+	Common::File f;
+	if (!f.open(Common::FSNode(ConfMan.getPath("path")).getChild(gameDesc->_filename))) {
+		delete gameDesc;
+		return Common::kNoGameDataFoundError;
+	}
+
+	Common::String fileName = f.getName();
+	if (fileName.hasSuffixIgnoreCase(".D64"))
+		gameDesc->_md5 = Common::computeStreamMD5AsString(f);
+	else
+		gameDesc->_md5 = Common::computeStreamMD5AsString(f, 5000);
+	f.close();
+
+	*descriptor = gameDesc;
+
+	game = DetectedGame(getName(), findGame(ConfMan.get("gameid").c_str()));
+	return game.gameId.empty() ? Common::kUnknownError : Common::kNoError;
+}
+
+DetectedGames GlkMetaEngineDetection::detectGames(const Common::FSList &fslist, uint32 /*skipADFlags*/, bool /*skipIncomplete*/) {
 #ifndef RELEASE_BUILD
 	// This is as good a place as any to detect multiple sub-engines using the same Ids
 	detectClashes();
@@ -232,25 +297,8 @@ void GlkMetaEngineDetection::detectClashes() const {
 #endif
 }
 
-const ExtraGuiOptions GlkMetaEngineDetection::getExtraGuiOptions(const Common::String &) const {
-	ExtraGuiOptions  options;
-#if defined(USE_TTS)
-	static const ExtraGuiOption ttsSpeakOptions = {
-		_s("Enable Text to Speech"),
-		_s("Use TTS to read the text"),
-		"speak",
-		false
-	};
-	static const ExtraGuiOption ttsSpeakInputOptions = {
-		_s("Also read input text"),
-		_s("Use TTS to read the input text"),
-		"speak_input",
-		false
-	};
-	options.push_back(ttsSpeakOptions);
-	options.push_back(ttsSpeakInputOptions);
-#endif
-	return options;
+uint GlkMetaEngineDetection::getMD5Bytes() const {
+	return 5000;
 }
 
 REGISTER_PLUGIN_STATIC(GLK_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, GlkMetaEngineDetection);

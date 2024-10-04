@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,11 +31,10 @@
 namespace Ultima {
 namespace Nuvie {
 
-#define SIGN_BG_W (SCROLLWIDGETGUMP_W + 16)
-#define SIGN_BG_H (SCROLLWIDGETGUMP_H + 16)
+static const int SIGN_BG_W = (SCROLLWIDGETGUMP_W + 16);
+static const int SIGN_BG_H = (SCROLLWIDGETGUMP_H + 16);
 
-ScrollViewGump::ScrollViewGump(Configuration *cfg) : DraggableView(cfg) {
-	scroll_widget = NULL;
+ScrollViewGump::ScrollViewGump(const Configuration *cfg) : DraggableView(cfg), scroll_widget(nullptr) {
 }
 
 ScrollViewGump::~ScrollViewGump() {
@@ -84,7 +82,7 @@ void ScrollViewGump::Display(bool full_redraw) {
 	/*
 	Common::Rect dst;
 	dst = area;
-	SDL_BlitSurface(bg_image, NULL, surface, &dst);
+	SDL_BlitSurface(bg_image, nullptr, surface, &dst);
 	*/
 	screen->fill(26, area.left, area.top, area.width(), area.height());
 	DisplayChildren(full_redraw);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,8 +27,9 @@
 #include "common/config-manager.h"
 #include "common/fs.h"
 #include "common/str.h"
-
-#include "trecision/anim.h"
+#include "backends/keymapper/keymapper.h"
+#include "trecision/animmanager.h"
+#include "trecision/animtype.h"
 #include "trecision/actor.h"
 #include "trecision/console.h"
 #include "trecision/defines.h"
@@ -53,7 +53,7 @@ namespace Trecision {
 TrecisionEngine::TrecisionEngine(OSystem *syst, const ADGameDescription *desc) : Engine(syst), _gameDescription(desc) {
 	_gameId = !strcmp(_gameDescription->gameId, "nl") ? GID_NightLong : GID_ArkOfTime;
 
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "AUTORUN");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "DATA");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "FMV");
@@ -112,6 +112,7 @@ TrecisionEngine::TrecisionEngine(OSystem *syst, const ADGameDescription *desc) :
 	_nextRefresh = 0;
 
 	_curKey = Common::KEYCODE_INVALID;
+	_curAction = kActionNone;
 	_curAscii = 0;
 	_mousePos = Common::Point(0, 0);
 	_mouseMoved = _mouseLeftBtn = _mouseRightBtn = false;
@@ -237,6 +238,7 @@ Common::Error TrecisionEngine::run() {
 void TrecisionEngine::eventLoop() {
 	Common::Event event;
 	while (g_system->getEventManager()->pollEvent(event)) {
+		Common::Keymapper *keymapper = _eventMan->getKeymapper();
 		switch (event.type) {
 		case Common::EVENT_MOUSEMOVE:
 			_mouseMoved = true;
@@ -251,25 +253,38 @@ void TrecisionEngine::eventLoop() {
 			_mouseRightBtn = true;
 			break;
 
-		case Common::EVENT_KEYUP:
-			_curKey = event.kbd.keycode;
-			_curAscii = event.kbd.ascii;
-			switch (event.kbd.keycode) {
-			case Common::KEYCODE_p:
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_END:
+			_curAction = event.customType;
+			switch (event.customType) {
+			case kActionFastWalk:
+				_fastWalk ^= true;
+				break;
+			case kActionPause:
 				if (!_gamePaused && !_keybInput) {
 					_curKey = Common::KEYCODE_INVALID;
+					_curAction = kActionNone;
+					keymapper->getKeymap("game-shortcuts")->setEnabled(false);
+
 					_gamePaused = true;
 					waitKey();
 				}
+
+				keymapper->getKeymap("game-shortcuts")->setEnabled(true);
 				_gamePaused = false;
 				break;
 
-			case Common::KEYCODE_CAPSLOCK:
-				_fastWalk ^= true;
-				break;
 			default:
 				break;
 			}
+			return;
+
+		case Common::EVENT_KEYUP:
+			_curKey = event.kbd.keycode;
+			_curAscii = event.kbd.ascii;
+			break;
+
+		case Common::EVENT_JOYBUTTON_UP:
+			_joyButtonUp = true;
 			break;
 
 		default:
@@ -381,27 +396,27 @@ void TrecisionEngine::reEvent() {
 	_scheduler->doEvent(_curMessage->_class, _curMessage->_event, _curMessage->_priority, _curMessage->_u16Param1, _curMessage->_u16Param2, _curMessage->_u8Param, _curMessage->_u32Param);
 }
 
+Common::SeekableReadStreamEndian *TrecisionEngine::getLocStream() {
+	Common::Path filename(_room[_curRoom]._baseName);
+
+	if (isAmiga()) {
+		filename.appendInPlace(".bm");
+		return readEndian(_dataFile.createReadStreamForMember(filename));
+	} else {
+		filename.appendInPlace(".cr");
+		return readEndian(_dataFile.createReadStreamForCompressedMember(filename));
+	}
+}
+
 void TrecisionEngine::readLoc() {
 	_soundMgr->stopAllExceptMusic();
 
 	_graphicsMgr->clearScreenBufferTop();
-
-	Common::String filename;
-	Common::SeekableReadStreamEndian *picFile;
-	if (isAmiga()) {
-		filename = Common::String::format("%s.bm", _room[_curRoom]._baseName);
-		picFile = readEndian(_dataFile.createReadStreamForMember(filename));
-	} else {
-		filename = Common::String::format("%s.cr", _room[_curRoom]._baseName);
-		picFile = readEndian(_dataFile.createReadStreamForCompressedMember(filename));
-	}
-
-	SObject bgInfo;
-	bgInfo.readRect(picFile);
-
-	_graphicsMgr->loadBackground(picFile, bgInfo._rect.width(), bgInfo._rect.height());
 	_sortTable.clear();
 	_sortTableReplay.clear();
+
+	Common::SeekableReadStreamEndian *picFile = getLocStream();
+	_graphicsMgr->loadBackground(picFile);
 	readObj(picFile);
 
 	_soundMgr->stopAll();
@@ -409,7 +424,7 @@ void TrecisionEngine::readLoc() {
 	if (_room[_curRoom]._sounds[0] != 0)
 		_soundMgr->loadRoomSounds();
 
-	Common::String fname = Common::String::format("%s.3d", _room[_curRoom]._baseName);
+	Common::Path fname(Common::String::format("%s.3d", _room[_curRoom]._baseName));
 	read3D(fname);
 
 	if (_room[_curRoom]._bkgAnim) {
@@ -444,20 +459,8 @@ void TrecisionEngine::redrawRoom() {
 		}
 	}
 
-	Common::String filename;
-	Common::SeekableReadStreamEndian *picFile;
-	if (isAmiga()) {
-		filename = Common::String::format("%s.bm", _room[_curRoom]._baseName);
-		picFile = readEndian(_dataFile.createReadStreamForMember(filename));
-	} else {
-		filename = Common::String::format("%s.cr", _room[_curRoom]._baseName);
-		picFile = readEndian(_dataFile.createReadStreamForCompressedMember(filename));
-	}
-
-	SObject bgInfo;
-	bgInfo.readRect(picFile);
-
-	_graphicsMgr->loadBackground(picFile, bgInfo._rect.width(), bgInfo._rect.height());
+	Common::SeekableReadStreamEndian *picFile = getLocStream();
+	_graphicsMgr->loadBackground(picFile);
 	_sortTable.clear();
 	_sortTable = _sortTableReplay;
 

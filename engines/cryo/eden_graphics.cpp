@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,8 +25,7 @@
 #include "cryo/eden.h"
 #include "cryo/eden_graphics.h"
 
-#include "graphics/conversion.h"
-#include "graphics/palette.h"
+#include "graphics/blit.h"
 #include "video/hnm_decoder.h"
 
 namespace Cryo {
@@ -1208,11 +1206,10 @@ void EdenGraphics::showMovie(int16 num, char arg1) {
 		palette[j++] = palette16[i].b >> 8;
 	}
 
-	Video::VideoDecoder *decoder = new Video::HNMDecoder(false, palette);
+	Video::VideoDecoder *decoder = new Video::HNMDecoder(g_system->getScreenFormat(), false, palette);
 	if (!decoder->loadStream(stream)) {
 		warning("Could not load movie %d", num);
 		delete decoder;
-		delete stream;
 		return;
 	}
 

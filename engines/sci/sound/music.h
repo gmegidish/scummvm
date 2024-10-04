@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#ifndef SCI_MUSIC_H
-#define SCI_MUSIC_H
+#ifndef SCI_SOUND_MUSIC_H
+#define SCI_SOUND_MUSIC_H
 
 #include "common/serializer.h"
 #include "common/mutex.h"
@@ -66,7 +65,7 @@ struct MusicEntryChannel {
 	int8 _voices;
 	bool _dontRemap;
 	bool _dontMap;
-	bool _mute;
+	uint8 _mute;
 };
 
 
@@ -194,6 +193,8 @@ private:
 public:
 	void clearPlayList();
 	void pauseAll(bool pause);
+	bool isAllPaused() const { return (_globalPause > 0); }
+	void resetGlobalPauseCounter();
 	void stopAll();
 	void stopAllSamples();
 
@@ -216,7 +217,7 @@ public:
 	uint32 soundGetTempo() const { return _dwTempo; }
 	MusicType soundGetMusicType() const { return _musicType; }
 
-	bool soundIsActive(MusicEntry *pSnd) {
+	bool isSoundActive(MusicEntry *pSnd) {
 		assert(pSnd->pStreamAud != 0);
 		return _pMixer->isSoundHandleActive(pSnd->hCurrentAud);
 	}
@@ -257,10 +258,10 @@ public:
 	void saveLoadWithSerializer(Common::Serializer &ser) override;
 
 	// Mutex for music code. Used to guard access to the song playlist, to the
-	// MIDI parser and to the MIDI driver/player. Note that guarded code must NOT
-	// include references to the mixer, otherwise there will probably be situations
-	// where a deadlock can occur
-	Common::Mutex _mutex;
+	// MIDI parser and to the MIDI driver/player. We use a reference to
+	// the mixer's internal mutex to avoid deadlocks which sometimes occur when
+	// different threads lock each other up in different mutexes.
+	Common::Mutex &_mutex;
 
 protected:
 	void sortPlayList();
@@ -278,6 +279,12 @@ protected:
 	void remapChannels(bool mainThread = true);
 	ChannelRemapping *determineChannelMap();
 	void resetDeviceChannel(int devChannel, bool mainThread);
+
+public:
+	// The parsers need to know this for the dontMap channels...
+	bool isDeviceChannelMapped(int devChannel) const;
+
+	bool isDigitalSamplePlaying() const;
 
 private:
 	MusicList _playList;
@@ -306,4 +313,4 @@ private:
 
 } // End of namespace Sci
 
-#endif
+#endif // SCI_SOUND_MUSIC_H

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,24 +43,34 @@ Common::Platform Parallaction::getPlatform() const { return _gameDescription->de
 
 } // End of namespace Parallaction
 
-class ParallactionMetaEngine : public AdvancedMetaEngine {
+class ParallactionMetaEngine : public AdvancedMetaEngine<Parallaction::PARALLACTIONGameDescription> {
 public:
 	const char *getName() const override {
 		return "parallaction";
 	}
 
 	bool hasFeature(MetaEngineFeature f) const override;
-	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const Parallaction::PARALLACTIONGameDescription *desc) const override;
 	Common::KeymapArray initKeymaps(const char *target) const override;
 
 	SaveStateList listSaves(const char *target) const override;
 	int getMaximumSaveSlot() const override;
 	void removeSaveState(const char *target, int slot) const override;
+	Common::String getSavegameFile(int saveGameIdx, const char *target) const override {
+		if (!target)
+			target = getName();
+		const Common::String prefix = ConfMan.getDomain(target)->getVal("gameid");
+		if (saveGameIdx == kSavegameFilePattern)
+			return prefix + ".###";
+		else
+			return prefix + Common::String::format(".%03d", saveGameIdx);
+	}
 };
 
 bool ParallactionMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return
 		(f == kSupportsListSaves) ||
+		(f == kSimpleSavesNames) ||
 		(f == kSupportsDeleteSave);
 }
 
@@ -70,9 +79,7 @@ bool Parallaction::Parallaction::hasFeature(EngineFeature f) const {
 		(f == kSupportsReturnToLauncher);
 }
 
-Common::Error ParallactionMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	const Parallaction::PARALLACTIONGameDescription *gd = (const Parallaction::PARALLACTIONGameDescription *)desc;
-
+Common::Error ParallactionMetaEngine::createInstance(OSystem *syst, Engine **engine, const Parallaction::PARALLACTIONGameDescription *gd) const {
 	switch (gd->gameType) {
 	case Parallaction::GType_Nippon:
 		*engine = new Parallaction::Parallaction_ns(syst, gd);
@@ -94,7 +101,7 @@ Common::KeymapArray ParallactionMetaEngine::initKeymaps(const char *target) cons
 	Keymap *engineKeymap;
 
 	if (gameId == "nippon")
-		engineKeymap = new Keymap(Keymap::kKeymapTypeGame, "parallaction", "Nippon Safes Inc.");
+		engineKeymap = new Keymap(Keymap::kKeymapTypeGame, "parallaction", "Nippon Safes, Inc.");
 	else if (gameId == "bra")
 		engineKeymap = new Keymap(Keymap::kKeymapTypeGame, "parallaction", "The Big Red Adventure");
 	else
@@ -152,8 +159,7 @@ Common::KeymapArray ParallactionMetaEngine::initKeymaps(const char *target) cons
 SaveStateList ParallactionMetaEngine::listSaves(const char *target) const {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 
-	Common::String pattern(ConfMan.getDomain(target)->getVal("gameid") + ".0##");
-	Common::StringArray filenames = saveFileMan->listSavefiles(pattern);
+	Common::StringArray filenames = saveFileMan->listSavefiles(getSavegameFilePattern(target));
 
 	SaveStateList saveList;
 	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
@@ -178,10 +184,7 @@ SaveStateList ParallactionMetaEngine::listSaves(const char *target) const {
 int ParallactionMetaEngine::getMaximumSaveSlot() const { return 99; }
 
 void ParallactionMetaEngine::removeSaveState(const char *target, int slot) const {
-	Common::String filename = ConfMan.getDomain(target)->getVal("gameid");
-	filename += Common::String::format(".0%02d", slot);
-
-	g_system->getSavefileManager()->removeSavefile(filename);
+	g_system->getSavefileManager()->removeSavefile(getSavegameFile(slot, target));
 }
 
 #if PLUGIN_ENABLED_DYNAMIC(PARALLACTION)

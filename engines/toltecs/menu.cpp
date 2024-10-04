@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -300,12 +299,12 @@ void MenuSystem::initMenu(MenuID menuID) {
 			_savegames.push_back(SavegameItem(newSlotNum, Common::String::format("GAME %04d", _savegames.size())));
 			setSavegameCaptions(true);
 		} else {
-			GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Save game:"), _("Save"), true);
-			int slot = dialog->runModalWithCurrentTarget();
-			Common::String desc = dialog->getResultString();
+			GUI::SaveLoadChooser dialog(_("Save game:"), _("Save"), true);
+			int slot = dialog.runModalWithCurrentTarget();
+			Common::String desc = dialog.getResultString();
 			if (desc.empty()) {
 				// Create our own description for the saved game, the user didn't enter one
-				desc = dialog->createDefaultSaveDescription(slot);
+				desc = dialog.createDefaultSaveDescription(slot);
 			}
 
 			if (slot >= 0) {

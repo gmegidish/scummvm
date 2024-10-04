@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,8 @@
 #include "saga2/audio.h"
 #include "saga2/band.h"
 #include "saga2/beegee.h"
-#include "saga2/calender.h"
+#include "saga2/calendar.h"
+#include "saga2/console.h"
 #include "saga2/contain.h"
 #include "saga2/detection.h"
 #include "saga2/dispnode.h"
@@ -61,7 +61,7 @@ Saga2Engine *g_vm;
 
 Saga2Engine::Saga2Engine(OSystem *syst, const SAGA2GameDescription *desc)
 	: Engine(syst), _gameDescription(desc) {
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 
 	// Don't forget to register your random source
 	_rnd = new Common::RandomSource("saga2");
@@ -73,7 +73,7 @@ Saga2Engine::Saga2Engine(OSystem *syst, const SAGA2GameDescription *desc)
 	_audio = nullptr;
 	_pal = nullptr;
 	_act = nullptr;
-	_calender = nullptr;
+	_calendar = nullptr;
 	_tmm = nullptr;
 	_cnm = nullptr;
 
@@ -140,7 +140,7 @@ Saga2Engine::~Saga2Engine() {
 	delete _renderer;
 	delete _pal;
 	delete _act;
-	delete _calender;
+	delete _calendar;
 	delete _tmm;
 	delete _cnm;
 
@@ -168,7 +168,7 @@ Common::Error Saga2Engine::run() {
 
 	_pal = new PaletteManager;
 	_act = new ActorManager;
-	_calender = new CalenderTime;
+	_calendar = new CalendarTime;
 	_tmm = new TileModeManager;
 	_cnm = new ContainerManager;
 
@@ -360,7 +360,7 @@ struct dataChunks {
 	{ &pgRightImageData,		0x004EECB0, 256 },
 	{ &autoWalkImageData,		0x004EEDB0, 228 },
 	{ &gaugeImageData,			0x004EF257, 241 },
-	{ NULL,						0,			0 }
+	{ nullptr,						0,			0 }
 };
 
 void Saga2Engine::loadExeResources() {

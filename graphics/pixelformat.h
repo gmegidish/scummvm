@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -143,11 +142,10 @@ struct PixelFormat {
 	byte rShift, gShift, bShift, aShift; /**< Binary left shift of each color component in the pixel value. */
 
 	/** Default constructor that creates a null pixel format. */
-	inline PixelFormat() {
-		bytesPerPixel =
-		rLoss = gLoss = bLoss = aLoss =
-		rShift = gShift = bShift = aShift = 0;
-	}
+	constexpr PixelFormat() :
+		bytesPerPixel(0),
+		rLoss(0), gLoss(0), bLoss(0), aLoss(0),
+		rShift(0), gShift(0), bShift(0), aShift(0) {}
 
 	/** Construct a pixel format based on the provided arguments.
 	 *
@@ -167,18 +165,19 @@ struct PixelFormat {
 	 *  @endcode
 	 */
 
-	inline PixelFormat(byte BytesPerPixel,
+	constexpr PixelFormat(byte BytesPerPixel,
 						byte RBits, byte GBits, byte BBits, byte ABits,
-						byte RShift, byte GShift, byte BShift, byte AShift) {
-		bytesPerPixel = BytesPerPixel;
-		rLoss = 8 - RBits;
-		gLoss = 8 - GBits;
-		bLoss = 8 - BBits;
-		aLoss = 8 - ABits;
-		rShift = RShift;
-		gShift = GShift;
-		bShift = BShift;
-		aShift = AShift;
+						byte RShift, byte GShift, byte BShift, byte AShift) :
+		bytesPerPixel(BytesPerPixel),
+		rLoss(8 - RBits),
+		gLoss(8 - GBits),
+		bLoss(8 - BBits),
+		aLoss(8 - ABits),
+		rShift((RBits == 0) ? 0 : RShift),
+		gShift((GBits == 0) ? 0 : GShift),
+		bShift((BBits == 0) ? 0 : BShift),
+		aShift((ABits == 0) ? 0 : AShift)
+	{
 	}
 
 	/** Define a CLUT8 pixel format. */
@@ -188,7 +187,6 @@ struct PixelFormat {
 
 	/** Check if two pixel formats are the same */
 	inline bool operator==(const PixelFormat &fmt) const {
-		// TODO: If aLoss==8, then the value of aShift is irrelevant, and should be ignored.
 		return bytesPerPixel == fmt.bytesPerPixel &&
 		       rLoss == fmt.rLoss &&
 		       gLoss == fmt.gLoss &&
@@ -373,6 +371,12 @@ struct PixelFormat {
 	}
 	/** Return string representation. */
 	Common::String toString() const;
+
+	/** Shortcut method for checking if the current format is CLUT8 or not */
+	bool isCLUT8() const {
+		// We do not really need to check masks when all shifts equal zeroes
+		return bytesPerPixel == 1 && rShift == 0 && gShift == 0 && bShift == 0 && aShift == 0;
+	}
 };
 
 template<>

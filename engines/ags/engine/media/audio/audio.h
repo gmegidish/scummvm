@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,60 +15,48 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef AGS_ENGINE_MEDIA_AUDIO_AUDIO_H
 #define AGS_ENGINE_MEDIA_AUDIO_AUDIO_H
 
-#include "ags/lib/std/array.h"
+#include "common/std/array.h"
 #include "ags/engine/media/audio/audio_defines.h"
 #include "ags/shared/ac/dynobj/script_audio_clip.h"
 #include "ags/engine/ac/dynobj/script_audio_channel.h"
 #include "ags/engine/media/audio/ambient_sound.h"
-#include "ags/engine/util/mutex.h"
-#include "ags/engine/util/mutex_lock.h"
 #include "ags/engine/ac/timer.h"
 
 namespace AGS3 {
 
 struct SOUNDCLIP;
 
-//controls access to the channels, since that's the main point of synchronization between the streaming thread and the user code
-//this is going to be dependent on the underlying mutexes being recursive
-//yes, we will have more recursive traffic on mutexes than we need
-//however this should mostly be happening only when playing sounds, and possibly when sounds numbering only several
-//the load should not be high
-class AudioChannelsLock : public AGS::Engine::MutexLock {
-private:
-	AudioChannelsLock(AudioChannelsLock const &); // non-copyable
-	AudioChannelsLock &operator=(AudioChannelsLock const &); // not copy-assignable
-
+class AudioChans {
 public:
-	AudioChannelsLock();
-
 	// Gets a clip from the channel
-	SOUNDCLIP *GetChannel(int index);
+	static SOUNDCLIP *GetChannel(int index);
 	// Gets a clip from the channel but only if it's in playback state
-	SOUNDCLIP *GetChannelIfPlaying(int index);
+	static SOUNDCLIP *GetChannelIfPlaying(int index);
 	// Assign new clip to the channel
-	SOUNDCLIP *SetChannel(int index, SOUNDCLIP *clip);
+	static SOUNDCLIP *SetChannel(int index, SOUNDCLIP *clip);
 	// Move clip from one channel to another, clearing the first channel
-	SOUNDCLIP *MoveChannel(int to, int from);
+	static SOUNDCLIP *MoveChannel(int to, int from);
+
+	// Tells if channel has got a clip; does not care about its state
+	static inline bool ChannelHasClip(int index) {
+		return GetChannel(index) != nullptr;
+	}
+	// Tells if channel has got a clip and clip is in playback state
+	static inline bool ChannelIsPlaying(int index) {
+		return GetChannelIfPlaying(index) != nullptr;
+	}
+
+private:
+	AudioChans() = delete;
+	~AudioChans() = delete;
 };
-
-//
-// Channel helpers, autolock and perform a simple action on a channel.
-//
-// Tells if channel has got a clip; does not care about its state
-bool channel_has_clip(int chanid);
-// Tells if channel has got a clip and clip is in playback state
-bool channel_is_playing(int chanid);
-// Sets new clip to the channel
-void set_clip_to_channel(int chanid, SOUNDCLIP *clip);
-
 
 void        calculate_reserved_channel_count();
 void        update_clip_default_volume(ScriptAudioClip *audioClip);
@@ -84,6 +72,8 @@ ScriptAudioChannel *play_audio_clip(ScriptAudioClip *clip, int priority, int rep
 ScriptAudioChannel *play_audio_clip_by_index(int audioClipIndex);
 void        stop_and_destroy_channel_ex(int chid, bool resetLegacyMusicSettings);
 void        stop_and_destroy_channel(int chid);
+// Exports missing AudioChannel objects to script (for importing older saves)
+void		export_missing_audiochans();
 
 // ***** BACKWARDS COMPATIBILITY WITH OLD AUDIO SYSTEM ***** //
 int         get_old_style_number_for_sound(int sound_number);
@@ -110,12 +100,14 @@ void        play_next_queued();
 int         calculate_max_volume();
 // add/remove the volume drop to the audio channels while speech is playing
 void        apply_volume_drop_modifier(bool applyModifier);
+// syncs logical audio channels with the audio backend state
+void        sync_audio_playback();
 // Update the music, and advance the crossfade on a step
 // (this should only be called once per game loop);
 void        update_audio_system_on_game_loop();
 void        stopmusic();
 void        update_music_volume();
-void        post_new_music_check(int newchannel);
+void        post_new_music_check();
 // Sets up the crossfading for playing the new music track,
 // and returns the channel number to use; the channel is guaranteed to be free
 int         prepare_for_new_music();

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Save and restore scene and game.
  */
@@ -125,7 +124,7 @@ void DoSaveScene(SAVED_DATA *sd) {
 	sd->SavedNoBlocking = GetNoBlocking();
 	_vm->_scroll->GetNoScrollData(&sd->SavedNoScrollData);
 
-	if (TinselV2) {
+	if (TinselVersion >= 2) {
 		// Tinsel 2 specific data save
 		_vm->_actor->SaveActorZ(sd->savedActorZ);
 		_vm->_actor->SaveZpositions(sd->zPositions);
@@ -182,7 +181,7 @@ void FreeSaveScenes() {
  * Also 'stand' all the moving actors at their saved positions.
  */
 void sortActors(SAVED_DATA *sd) {
-	assert(!TinselV2);
+	assert(TinselVersion <= 1);
 	for (int i = 0; i < sd->NumSavedActors; i++) {
 		_vm->_actor->ActorsLife(sd->SavedActorInfo[i].actorID, sd->SavedActorInfo[i].bAlive);
 
@@ -253,9 +252,11 @@ static void SortMAProcess(CORO_PARAM, const void *) {
 
 void ResumeInterprets() {
 	// Master script only affected on restore game, not restore scene
-	if (!TinselV2 && (g_rsd == &g_sgData)) {
-		CoroScheduler.killMatchingProcess(PID_MASTER_SCR, -1);
-		FreeMasterInterpretContext();
+	if (TinselVersion <= 1) {
+		if (g_rsd == &g_sgData) {
+			CoroScheduler.killMatchingProcess(PID_MASTER_SCR, -1);
+			FreeMasterInterpretContext();
+		}
 	}
 
 	for (int i = 0; i < NUM_INTERPRET; i++) {
@@ -287,7 +288,7 @@ void ResumeInterprets() {
 			break;
 
 		case GS_ACTOR:
-			if (TinselV2)
+			if (TinselVersion >= 2)
 				RestoreProcess(&g_rsd->SavedICInfo[i]);
 			else
 				RestoreActorProcess(g_rsd->SavedICInfo[i].idActor, &g_rsd->SavedICInfo[i], g_rsd == &g_sgData);
@@ -319,7 +320,7 @@ static int DoRestoreSceneFrame(SAVED_DATA *sd, int n) {
 		_vm->_sound->stopAllSamples();
 		ClearScreen();
 
-		if (TinselV2) {
+		if (TinselVersion >= 2) {
 
 			// Master script only affected on restore game, not restore scene
 			if (sd == &g_sgData) {
@@ -351,7 +352,7 @@ static int DoRestoreSceneFrame(SAVED_DATA *sd, int n) {
 		g_bNoFade = false;
 		_vm->_bg->StartupBackground(Common::nullContext, sd->SavedBgroundHandle);
 
-		if (TinselV2) {
+		if (TinselVersion >= 2) {
 			Offset(EX_USEXY, sd->SavedLoffset, sd->SavedToffset);
 		} else {
 			_vm->_scroll->KillScroll();
@@ -361,7 +362,7 @@ static int DoRestoreSceneFrame(SAVED_DATA *sd, int n) {
 
 		_vm->_scroll->RestoreNoScrollData(&sd->SavedNoScrollData);
 
-		if (TinselV2) {
+		if (TinselVersion >= 2) {
 			// create process to sort out the moving actors
 			CoroScheduler.createProcess(PID_MOVER, SortMAProcess, NULL, 0);
 			g_bNotDoneYet = true;
@@ -381,12 +382,12 @@ static int DoRestoreSceneFrame(SAVED_DATA *sd, int n) {
 		break;
 
 	case 1:
-		if (TinselV2) {
+		if (TinselVersion >= 2) {
 			if (g_bNotDoneYet)
 				return n;
 
 			if (sd == &g_sgData)
-				_vm->_dialogs->HoldItem(g_thingHeld, true);
+				_vm->_dialogs->holdItem(g_thingHeld, true);
 			if (sd->bTinselDim)
 				_vm->_pcmMusic->dim(true);
 			_vm->_pcmMusic->restoreThatTune(sd->SavedTune);
@@ -412,7 +413,7 @@ static int DoRestoreSceneFrame(SAVED_DATA *sd, int n) {
  * @param num			num
  */
 void RestoreGame(int num) {
-	_vm->_dialogs->KillInventory();
+	_vm->_dialogs->killInventory();
 
 	RequestRestoreGame(num, &g_sgData, &g_savedSceneCount, g_ssData);
 

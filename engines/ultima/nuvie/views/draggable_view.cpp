@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,12 +31,9 @@
 namespace Ultima {
 namespace Nuvie {
 
-DraggableView::DraggableView(Configuration *cfg) : View(cfg) {
-	drag = false;
-	button_x = 0;
-	button_y = 0;
-	bg_image = NULL;
-	bg_color_key = 0;
+DraggableView::DraggableView(const Configuration *cfg) : View(cfg),
+		drag(false), button_x(0), button_y(0), bg_image(nullptr),
+		bg_color_key(0), always_need_full_redraw_when_moved(false) {
 	Game *game = Game::get_game();
 	if (game->is_orig_style() || game->is_original_plus_cutoff_map()) {
 		need_full_redraw_when_moved = true;
@@ -52,15 +48,15 @@ DraggableView::DraggableView(Configuration *cfg) : View(cfg) {
 
 DraggableView::~DraggableView() {
 	if (bg_image) {
-		SDL_FreeSurface(bg_image);
-		bg_image = NULL;
+		delete bg_image;
+		bg_image = nullptr;
 	}
 }
 
 void DraggableView::set_bg_color_key(uint8 r, uint8 g, uint8 b) {
 	if (bg_image) {
-		bg_color_key = SDL_MapRGB(bg_image->format, 0, 0x70, 0xfc);
-		SDL_SetColorKey(bg_image, SDL_TRUE, bg_color_key);
+		bg_color_key = bg_image->format.RGBToColor(0, 0x70, 0xfc);
+		bg_image->setTransparentColor(bg_color_key);
 	}
 }
 
@@ -109,7 +105,7 @@ GUI_status DraggableView::MouseMotion(int x, int y, uint8 state) {
 	GUI::get_gui()->moveWidget(this, dx, dy);
 // Redraw();
 
-	return (GUI_YUM);
+	return GUI_YUM;
 }
 
 void DraggableView::force_full_redraw_if_needed() {

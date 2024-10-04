@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -36,7 +41,7 @@ namespace Gob {
 
 SEQFile::SEQFile(GobEngine *vm, const Common::String &fileName) : _vm(vm) {
 	for (uint i = 0; i < kObjectCount; i++)
-		_objects[i].object = 0;
+		_objects[i].object = nullptr;
 
 	Common::SeekableReadStream *seq = _vm->_dataIO->getFile(Util::setExtension(fileName, ".SEQ"));
 	if (!seq) {
@@ -137,7 +142,7 @@ const ANIFile *SEQFile::findANI(uint16 index, uint16 &animation) {
 
 	// 0xFFFF = remove animation
 	if (index == 0xFFFF)
-		return 0;
+		return nullptr;
 
 	for (Animations::const_iterator a = _animations.begin(); a != _animations.end(); ++a) {
 		if (index < (*a)->getAnimationCount()) {
@@ -148,7 +153,7 @@ const ANIFile *SEQFile::findANI(uint16 index, uint16 &animation) {
 		index -= (*a)->getAnimationCount();
 	}
 
-	return 0;
+	return nullptr;
 }
 
 void SEQFile::play(bool abortable, uint16 endFrame, uint16 frameRate) {
@@ -164,7 +169,7 @@ void SEQFile::play(bool abortable, uint16 endFrame, uint16 frameRate) {
 	for (uint i = 0; i < kObjectCount; i++) {
 		delete _objects[i].object;
 
-		_objects[i].object = 0;
+		_objects[i].object = nullptr;
 		_objects[i].order  = 0;
 	}
 
@@ -253,7 +258,7 @@ void SEQFile::playFrame() {
 		Object &object = _objects[a->object];
 
 		delete object.object;
-		object.object = 0;
+		object.object = nullptr;
 
 		// No valid animation => remove
 		if ((a->animation == 0xFFFF) || !a->ani)

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,20 +32,19 @@ class SeekableReadStream;
 namespace Nancy {
 
 class NancyEngine;
-
-#define ID_DATA     MKTAG('D', 'A', 'T', 'A')
-#define ID_PCAL     MKTAG('P', 'C', 'A', 'L')
+class ResourceManager;
 
 class IFF {
+	friend class ResourceManager;
+private:
+	IFF(Common::SeekableReadStream *stream);
+
 public:
-	IFF(const Common::String &name) : _name(name) { };
 	~IFF();
 
-	bool load();
 	const byte *getChunk(uint32 id, uint &size, uint index = 0) const;
 	Common::SeekableReadStream *getChunkStream(const Common::String &id, uint index = 0) const;
 
-	// Debugger functions
 	void list(Common::Array<Common::String> &nameList) const;
 
 private:
@@ -61,8 +59,9 @@ private:
 		uint32 size;
 	};
 
+	const Common::SeekableReadStream *_stream;
 	Common::Array<Chunk> _chunks;
-	const Common::String _name;
+	uint32 _nextDATAChunk;
 };
 
 } // End of namespace Nancy

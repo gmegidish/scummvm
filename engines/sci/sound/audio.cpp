@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -151,7 +150,7 @@ void AudioPlayer::handleFanmadeSciAudio(reg_t sciAudioObject, SegManager *segMan
 			if (fileName[i] == '\\')
 				fileName.setChar('/', i);
 		}
-		sciAudioFile->open("sciAudio/" + fileName);
+		sciAudioFile->open(Common::Path("sciAudio/" + fileName, '/'));
 
 		Audio::RewindableAudioStream *audioStream = nullptr;
 
@@ -364,10 +363,10 @@ static byte *readSOLAudio(Common::SeekableReadStream *audioStream, uint32 &size,
 }
 
 Audio::RewindableAudioStream *AudioPlayer::getAudioStream(uint32 number, uint32 volume, int *sampleLen) {
-	Audio::SeekableAudioStream *audioSeekStream = 0;
-	Audio::RewindableAudioStream *audioStream = 0;
+	Audio::SeekableAudioStream *audioSeekStream = nullptr;
+	Audio::RewindableAudioStream *audioStream = nullptr;
 	uint32 size = 0;
-	byte *data = 0;
+	byte *data = nullptr;
 	byte flags = 0;
 	Sci::Resource *audioRes;
 
@@ -377,14 +376,14 @@ Audio::RewindableAudioStream *AudioPlayer::getAudioStream(uint32 number, uint32 
 		audioRes = _resMan->findResource(ResourceId(kResourceTypeAudio, number), false);
 		if (!audioRes) {
 			warning("Failed to find audio entry %i", number);
-			return NULL;
+			return nullptr;
 		}
 	} else {
 		audioRes = _resMan->findResource(ResourceId(kResourceTypeAudio36, volume, number), false);
 		if (!audioRes) {
 			warning("Failed to find audio entry (%i, %i, %i, %i, %i)", volume, (number >> 24) & 0xff,
 					(number >> 16) & 0xff, (number >> 8) & 0xff, number & 0xff);
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -400,30 +399,27 @@ Audio::RewindableAudioStream *AudioPlayer::getAudioStream(uint32 number, uint32 
 	uint32 audioCompressionType = audioRes->getAudioCompressionType();
 
 	if (audioCompressionType) {
-#if (defined(USE_MAD) || defined(USE_VORBIS) || defined(USE_FLAC))
 		// Compressed audio made by our tool
 		switch (audioCompressionType) {
-		case MKTAG('M','P','3',' '):
 #ifdef USE_MAD
+		case MKTAG('M','P','3',' '):
 			audioSeekStream = Audio::makeMP3Stream(memoryStream, DisposeAfterUse::YES);
-#endif
 			break;
-		case MKTAG('O','G','G',' '):
+#endif
 #ifdef USE_VORBIS
+		case MKTAG('O','G','G',' '):
 			audioSeekStream = Audio::makeVorbisStream(memoryStream, DisposeAfterUse::YES);
-#endif
 			break;
-		case MKTAG('F','L','A','C'):
+#endif
 #ifdef USE_FLAC
+		case MKTAG('F','L','A','C'):
 			audioSeekStream = Audio::makeFLACStream(memoryStream, DisposeAfterUse::YES);
-#endif
 			break;
+#endif
 		default:
+			error("Compressed audio file encountered, but no decoder compiled in for: '%s'", tag2str(audioCompressionType));
 			break;
 		}
-#else
-		error("Compressed audio file encountered, but no appropriate decoder is compiled in");
-#endif
 	} else {
 		// Original source file
 		if (audioRes->size() > 6 &&
@@ -449,7 +445,7 @@ Audio::RewindableAudioStream *AudioPlayer::getAudioStream(uint32 number, uint32 
 			if (!ret)
 				error("Failed to load WAV from stream");
 
-			*sampleLen = (waveFlags & Audio::FLAG_16BITS ? waveSize >> 1 : waveSize) * 60 / waveRate;
+			*sampleLen = ((waveFlags & Audio::FLAG_16BITS) ? (waveSize >> 1) : waveSize) * 60 / waveRate;
 
 			memoryStream->seek(0, SEEK_SET);
 			audioStream = Audio::makeWAVStream(memoryStream, DisposeAfterUse::YES);

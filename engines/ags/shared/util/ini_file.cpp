@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +41,7 @@ IniFile::ItemDef::ItemDef(const String &key, const String &value) {
 	Value.second = Value.first + value.GetLength();
 }
 
-IniFile::ItemDef::ItemDef(const String &line, const StrPos &key, const StrPos &value, int sep_at) {
+IniFile::ItemDef::ItemDef(const String &line, const StrPos &key, const StrPos &value, size_t sep_at) {
 	Line = line;
 	Key = key;
 	Value = value;
@@ -54,7 +53,7 @@ void IniFile::ItemDef::SetKey(const String &key) {
 		return;
 
 	if (IsKeyValue()) {
-		int diff = key.GetLength() - (Key.second - Key.first);
+		size_t diff = key.GetLength() - (Key.second - Key.first);
 		ReplaceSubString(Line, Key, key);
 		Key.second += diff;
 		Value.first += diff;
@@ -68,8 +67,8 @@ void IniFile::ItemDef::SetValue(const String &value) {
 	if (!IsKeyValue())
 		return; // no key
 
-	if (SepAt > 0) {   // replacing existing value
-		int diff = static_cast<int>(value.GetLength()) - (Value.second - Value.first);
+	if (SepAt != String::NoIndex) {   // replacing existing value
+		size_t diff = value.GetLength() - (Value.second - Value.first);
 		ReplaceSubString(Line, Value, value);
 		Value.second += diff;
 	} else {   // inserting value behind the key
@@ -99,7 +98,7 @@ void IniFile::SectionDef::SetName(const String &sec_name) {
 	if (sec_name.IsEmpty())
 		return;
 
-	int diff = sec_name.GetLength() - (Name.second - Name.first);
+	size_t diff = sec_name.GetLength() - (Name.second - Name.first);
 	ReplaceSubString(Header, Name, sec_name);
 	Name.second += diff;
 }
@@ -199,7 +198,7 @@ void IniFile::Read(Stream *in) {
 		if ((endl - pstr >= 2 && *pstr == '/' && *(pstr + 1) == '/') ||
 		        (endl - pstr >= 1 && (*pstr == '#' || *pstr == ';'))) {
 			StrPos nullpos(0, 0);
-			cur_section->InsertItem(cur_section->End(), ItemDef(line, nullpos, nullpos, -1));
+			cur_section->InsertItem(cur_section->End(), ItemDef(line, nullpos, nullpos, String::NoIndex));
 			continue;
 		}
 
@@ -232,7 +231,7 @@ void IniFile::Read(Stream *in) {
 			// Create an item and parse value, if any
 			StrPos keypos(str_at - cstr, str_end - cstr);
 			StrPos valpos(0, 0);
-			int sep_at = -1;
+			size_t sep_at = String::NoIndex;
 			if (pstr != endl) {
 				sep_at = pstr - cstr;
 				ParsePaddedString(++pstr, endl, str_at, str_end);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@ bool continued = FALSE;
 static char buf[1000]; /* The input buffer */
 static char isobuf[1000]; /* The input buffer in ISO */
 static bool eol = TRUE; /* Looking at End of line? Yes, initially */
-static char *token = NULL;
+static char *token = nullptr;
 
 
 /*======================================================================*/
@@ -102,7 +101,7 @@ static char *gettoken(char *txtBuf) {
 	static char *marker;
 	static char oldch;
 
-	if (txtBuf == NULL)
+	if (txtBuf == nullptr)
 		*marker = oldch;
 	else
 		marker = txtBuf;
@@ -121,7 +120,7 @@ static char *gettoken(char *txtBuf) {
 			marker++;
 		marker++;
 	} else if (*marker == '\0' || *marker == '\n' || *marker == ';')
-		return NULL;
+		return nullptr;
 	else
 		marker++;
 	oldch = *marker;
@@ -167,22 +166,22 @@ static void getLine(CONTEXT) {
 			LONG_JUMP_LABEL("forfeit")
 		}
 
-		strcpy(isobuf, buf);
+		Common::strcpy_s(isobuf, buf);
 		token = gettoken(isobuf);
-		if (token != NULL) {
+		if (token != nullptr) {
 			if (strcmp("debug", token) == 0 && header->debug) {
 				debugOption = TRUE;
 				CALL3(debug, FALSE, 0, 0)
 
-				token = NULL;
+				token = nullptr;
 			} else if (strcmp("undo", token) == 0) {
-				token = gettoken(NULL);
-				if (token != NULL) /* More tokens? */
+				token = gettoken(nullptr);
+				if (token != nullptr) /* More tokens? */
 					CALL1(error, M_WHAT)
 				CALL0(undo)
 			}
 		}
-	} while (token == NULL);
+	} while (token == nullptr);
 	eol = FALSE;
 }
 
@@ -196,8 +195,8 @@ void scan(CONTEXT) {
 	if (continued) {
 		/* Player used '.' to separate commands. Read next */
 		para();
-		token = gettoken(NULL); /* Or did he just finish the command with a full stop? */
-		if (token == NULL) {
+		token = gettoken(nullptr); /* Or did he just finish the command with a full stop? */
+		if (token == nullptr) {
 			CALL0(getLine)
 		}
 		continued = FALSE;
@@ -236,7 +235,7 @@ void scan(CONTEXT) {
 		} else
 			CALL1(unknown, token)
 		setEndOfArray(&playerWords[i]);
-		eol = (token = gettoken(NULL)) == NULL;
+		eol = (token = gettoken(nullptr)) == nullptr;
 	} while (!eol);
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/savefile.h"
-#include "ags/lib/std/math.h"
 #include "ags/shared/core/platform.h"
 #include "ags/shared/ac/audio_clip_type.h"
 #include "ags/engine/ac/global_game.h"
@@ -53,6 +51,7 @@
 #include "ags/engine/ac/system.h"
 #include "ags/engine/debugging/debugger.h"
 #include "ags/engine/debugging/debug_log.h"
+#include "ags/shared/font/fonts.h"
 #include "ags/engine/gui/gui_dialog.h"
 #include "ags/engine/main/engine.h"
 #include "ags/engine/main/game_run.h"
@@ -76,6 +75,11 @@
 namespace AGS3 {
 
 using namespace AGS::Shared;
+
+void AbortGame() {
+	// make sure scripts stop at the next step
+	cancel_all_scripts();
+}
 
 void GiveScore(int amnt) {
 	GUI::MarkSpecialLabelsForUpdate(kLabelMacro_AllScore);
@@ -116,12 +120,13 @@ void DeleteSaveSlot(int slnum) {
 
 void PauseGame() {
 	_G(game_paused)++;
-	debug_script_log("Game paused");
+	debug_script_log("Game paused (%d)", _G(game_paused));
 }
 void UnPauseGame() {
-	if (_G(game_paused) > 0)
+	if (_G(game_paused) > 0) {
 		_G(game_paused)--;
-	debug_script_log("Game UnPaused, pause level now %d", _G(game_paused));
+		debug_script_log("Game un-paused (%d)", _G(game_paused));
+	}
 }
 
 
@@ -164,8 +169,6 @@ int LoadSaveSlotScreenshot(int slnum, int width, int height) {
 	                   RectWH(0, 0, _GP(game).SpriteInfos[gotSlot].Width, _GP(game).SpriteInfos[gotSlot].Height),
 	                   RectWH(0, 0, width, height));
 
-	update_polled_stuff_if_runtime();
-
 	// replace the bitmap in the sprite set
 	free_dynamic_sprite(gotSlot);
 	add_dynamic_sprite(gotSlot, newPic);
@@ -186,8 +189,8 @@ void FillSaveList(std::vector<SaveListItem> &saves, size_t max_count) {
 	for (uint idx = 0; idx < saveList.size(); ++idx) {
 		int saveGameSlot = saveList[idx].getSaveSlot();
 
-		// only list games .000 to .099 (to allow higher slots for other perposes)
-		if (saveGameSlot > 99)
+		// only list games .000 to .xxx (to allow higher slots for other perposes)
+		if (saveGameSlot < 0 || saveGameSlot > TOP_LISTEDSAVESLOT)
 			continue;
 
 		String description;
@@ -200,7 +203,7 @@ void FillSaveList(std::vector<SaveListItem> &saves, size_t max_count) {
 
 void SetGlobalInt(int index, int valu) {
 	if ((index < 0) | (index >= MAXGSVALUES))
-		quit("!SetGlobalInt: invalid index");
+		quitprintf("!SetGlobalInt: invalid index %d, supported range is %d - %d", index, 0, MAXGSVALUES - 1);
 
 	if (_GP(play).globalscriptvars[index] != valu) {
 		debug_script_log("GlobalInt %d set to %d", index, valu);
@@ -212,23 +215,21 @@ void SetGlobalInt(int index, int valu) {
 
 int GetGlobalInt(int index) {
 	if ((index < 0) | (index >= MAXGSVALUES))
-		quit("!GetGlobalInt: invalid index");
+		quitprintf("!GetGlobalInt: invalid index %d, supported range is %d - %d", index, 0, MAXGSVALUES - 1);
 	return _GP(play).globalscriptvars[index];
 }
 
 void SetGlobalString(int index, const char *newval) {
 	if ((index < 0) | (index >= MAXGLOBALSTRINGS))
-		quit("!SetGlobalString: invalid index");
+		quitprintf("!SetGlobalString: invalid index %d, supported range is %d - %d", index, 0, MAXGLOBALSTRINGS - 1);
 	debug_script_log("GlobalString %d set to '%s'", index, newval);
-	strncpy(_GP(play).globalstrings[index], newval, MAX_MAXSTRLEN);
-	// truncate it to 200 chars, to be sure
-	_GP(play).globalstrings[index][MAX_MAXSTRLEN - 1] = 0;
+	snprintf(_GP(play).globalstrings[index], MAX_MAXSTRLEN, "%s", newval);
 }
 
 void GetGlobalString(int index, char *strval) {
 	if ((index < 0) | (index >= MAXGLOBALSTRINGS))
-		quit("!GetGlobalString: invalid index");
-	strcpy(strval, _GP(play).globalstrings[index]);
+		quitprintf("!GetGlobalString: invalid index %d, supported range is %d - %d", index, 0, MAXGLOBALSTRINGS - 1);
+	snprintf(strval, MAX_MAXSTRLEN, "%s", _GP(play).globalstrings[index]);
 }
 
 // TODO: refactor this method, and use same shared procedure at both normal stop/startup and in RunAGSGame
@@ -268,7 +269,7 @@ int RunAGSGame(const String &newgame, unsigned int mode, int data) {
 #if defined (AGS_AUTO_WRITE_USER_CONFIG)
 	save_config_file(); // save current user config in case engine fails to run new game
 #endif // AGS_AUTO_WRITE_USER_CONFIG
-	unload_game_file();
+	unload_game();
 
 	// Adjust config (NOTE: normally, RunAGSGame would need a redesign to allow separate config etc per each game)
 	_GP(usetup).translation = ""; // reset to default, prevent from trying translation file of game A in game B
@@ -326,14 +327,14 @@ int GetGameParameter(int parm, int data1, int data2, int data3) {
 		if ((data1 < 1) || (data1 > _GP(game).numviews)) {
 			quitprintf("!GetGameParameter: invalid view specified (v: %d, l: %d, f: %d)", data1, data2, data3);
 		}
-		if ((data2 < 0) || (data2 >= _G(views)[data1 - 1].numLoops)) {
+		if ((data2 < 0) || (data2 >= _GP(views)[data1 - 1].numLoops)) {
 			quitprintf("!GetGameParameter: invalid loop specified (v: %d, l: %d, f: %d)", data1, data2, data3);
 		}
-		if ((data3 < 0) || (data3 >= _G(views)[data1 - 1].loops[data2].numFrames)) {
+		if ((data3 < 0) || (data3 >= _GP(views)[data1 - 1].loops[data2].numFrames)) {
 			quitprintf("!GetGameParameter: invalid frame specified (v: %d, l: %d, f: %d)", data1, data2, data3);
 		}
 
-		ViewFrame *pvf = &_G(views)[data1 - 1].loops[data2].frames[data3];
+		ViewFrame *pvf = &_GP(views)[data1 - 1].loops[data2].frames[data3];
 
 		if (parm == GP_FRAMESPEED)
 			return pvf->speed;
@@ -395,47 +396,77 @@ int GetGameSpeed() {
 	return ::lround(get_current_fps()) - _GP(play).game_speed_modifier;
 }
 
-int SetGameOption(int opt, int setting) {
-	if (((opt < 1) || (opt > OPT_HIGHESTOPTION)) && (opt != OPT_LIPSYNCTEXT))
-		quit("!SetGameOption: invalid option specified");
+int SetGameOption(int opt, int newval) {
+	if (((opt < OPT_DEBUGMODE) || (opt > OPT_HIGHESTOPTION)) && (opt != OPT_LIPSYNCTEXT)) {
+		debug_script_warn("SetGameOption: invalid option specified: %d", opt);
+		return 0;
+	}
 
-	if (opt == OPT_ANTIGLIDE) {
+	// Handle forbidden options
+	const auto restricted_opts = GameSetupStructBase::GetRestrictedOptions();
+	for (auto r_opt : restricted_opts) {
+		if (r_opt == opt) {
+			debug_script_warn("SetGameOption: option %d cannot be modified at runtime", opt);
+			return _GP(game).options[opt];
+		}
+	}
+
+	// Test if option already has this value
+	if (_GP(game).options[opt] == newval)
+		return _GP(game).options[opt];
+
+	const int oldval = _GP(game).options[opt];
+	_GP(game).options[opt] = newval;
+
+	// Update the game in accordance to the new option value
+	switch (opt) {
+	case OPT_ANTIGLIDE:
 		for (int i = 0; i < _GP(game).numcharacters; i++) {
-			if (setting)
+			if (newval)
 				_GP(game).chars[i].flags |= CHF_ANTIGLIDE;
 			else
 				_GP(game).chars[i].flags &= ~CHF_ANTIGLIDE;
 		}
-	}
-
-	if ((opt == OPT_CROSSFADEMUSIC) && (_GP(game).audioClipTypes.size() > AUDIOTYPE_LEGACY_MUSIC)) {
-		// legacy compatibility -- changing crossfade speed here also
-		// updates the new audio clip type style
-		_GP(game).audioClipTypes[AUDIOTYPE_LEGACY_MUSIC].crossfadeSpeed = setting;
-	}
-
-	int oldval = _GP(game).options[opt];
-	_GP(game).options[opt] = setting;
-
-	if (opt == OPT_DUPLICATEINV)
-		update_invorder();
-	else if (opt == OPT_DISABLEOFF) {
-		_G(gui_disabled_style) = convert_gui_disabled_style(_GP(game).options[OPT_DISABLEOFF]);
+		break;
+	case OPT_DISABLEOFF:
+		GUI::Options.DisabledStyle = static_cast<GuiDisableStyle>(_GP(game).options[OPT_DISABLEOFF]);
 		// If GUI was disabled at this time then also update it, as visual style could've changed
 		if (_GP(play).disabled_user_interface > 0) {
-			GUI::MarkAllGUIForUpdate();
+			GUI::MarkAllGUIForUpdate(true, false);
 		}
-	} else if (opt == OPT_PORTRAITSIDE) {
-		if (setting == 0)  // set back to Left
+		break;
+	case OPT_CROSSFADEMUSIC:
+		if (_GP(game).audioClipTypes.size() > AUDIOTYPE_LEGACY_MUSIC) {
+			// legacy compatibility -- changing crossfade speed here also
+			// updates the new audio clip type style
+			_GP(game).audioClipTypes[AUDIOTYPE_LEGACY_MUSIC].crossfadeSpeed = newval;
+		}
+		break;
+	case OPT_ANTIALIASFONTS:
+		adjust_fonts_for_render_mode(newval != 0);
+		break;
+	case OPT_RIGHTLEFTWRITE:
+		GUI::MarkForTranslationUpdate();
+		break;
+	case OPT_DUPLICATEINV:
+		update_invorder();
+		break;
+	case OPT_PORTRAITSIDE:
+		if (newval == 0) // set back to Left
 			_GP(play).swap_portrait_side = 0;
+		break;
+	default:
+		break; // do nothing else
 	}
 
 	return oldval;
 }
 
 int GetGameOption(int opt) {
-	if (((opt < 1) || (opt > OPT_HIGHESTOPTION)) && (opt != OPT_LIPSYNCTEXT))
-		quit("!GetGameOption: invalid option specified");
+	if (((opt < OPT_DEBUGMODE) || (opt > OPT_HIGHESTOPTION)) && (opt != OPT_LIPSYNCTEXT)) {
+		debug_script_warn("GetGameOption: invalid option specified: %d", opt);
+		return 0;
+	}
 
 	return _GP(game).options[opt];
 }
@@ -468,7 +499,7 @@ void EndSkippingUntilCharStops() {
 }
 
 void StartCutscene(int skipwith) {
-	static ScriptPosition last_cutscene_script_pos;
+	ScriptPosition &last_cutscene_script_pos = _GP(last_cutscene_script_pos);
 
 	if (is_in_cutscene()) {
 		quitprintf("!StartCutscene: already in a cutscene; previous started in \"%s\", line %d",
@@ -548,7 +579,7 @@ void GetLocationName(int xxx, int yyy, char *tempo) {
 			if (_GP(play).get_loc_name_last_time != 1000 + mover)
 				GUI::MarkSpecialLabelsForUpdate(kLabelMacro_Overhotspot);
 			_GP(play).get_loc_name_last_time = 1000 + mover;
-			strcpy(tempo, get_translation(_GP(game).invinfo[mover].name));
+			snprintf(tempo, MAX_MAXSTRLEN, "%s", get_translation(_GP(game).invinfo[mover].name));
 		} else if ((_GP(play).get_loc_name_last_time > 1000) && (_GP(play).get_loc_name_last_time < 1000 + MAX_INV)) {
 			// no longer selecting an item
 			GUI::MarkSpecialLabelsForUpdate(kLabelMacro_Overhotspot);
@@ -578,7 +609,7 @@ void GetLocationName(int xxx, int yyy, char *tempo) {
 	// on character
 	if (loctype == LOCTYPE_CHAR) {
 		onhs = _G(getloctype_index);
-		strcpy(tempo, get_translation(_GP(game).chars[onhs].name));
+		snprintf(tempo, MAX_MAXSTRLEN, "%s", get_translation(_GP(game).chars[onhs].name));
 		if (_GP(play).get_loc_name_last_time != 2000 + onhs)
 			GUI::MarkSpecialLabelsForUpdate(kLabelMacro_Overhotspot);
 		_GP(play).get_loc_name_last_time = 2000 + onhs;
@@ -587,7 +618,7 @@ void GetLocationName(int xxx, int yyy, char *tempo) {
 	// on object
 	if (loctype == LOCTYPE_OBJ) {
 		aa = _G(getloctype_index);
-		strcpy(tempo, get_translation(_GP(thisroom).Objects[aa].Name.GetCStr()));
+		snprintf(tempo, MAX_MAXSTRLEN, "%s", get_translation(_G(croom)->obj[aa].name.GetCStr()));
 		// Compatibility: < 3.1.1 games returned space for nameless object
 		// (presumably was a bug, but fixing it affected certain games behavior)
 		if (_G(loaded_game_file_version) < kGameVersion_311 && tempo[0] == 0) {
@@ -600,19 +631,15 @@ void GetLocationName(int xxx, int yyy, char *tempo) {
 		return;
 	}
 	onhs = _G(getloctype_index);
-	if (onhs > 0) strcpy(tempo, get_translation(_GP(thisroom).Hotspots[onhs].Name.GetCStr()));
+	if (onhs > 0)
+		snprintf(tempo, MAX_MAXSTRLEN, "%s", get_translation(_G(croom)->hotspot[onhs].Name.GetCStr()));
 	if (_GP(play).get_loc_name_last_time != onhs)
 		GUI::MarkSpecialLabelsForUpdate(kLabelMacro_Overhotspot);
 	_GP(play).get_loc_name_last_time = onhs;
 }
 
 int IsKeyPressed(int keycode) {
-	auto status = ags_iskeydown(static_cast<eAGSKeyCode>(keycode));
-	if (status < 0) {
-		debug_script_log("IsKeyPressed: unsupported keycode %d", keycode);
-		return 0;
-	}
-	return status;
+	return ags_iskeydown(static_cast<eAGSKeyCode>(keycode));
 }
 
 int SaveScreenShot(const char *namm) {
@@ -636,16 +663,29 @@ int SaveScreenShot(const char *namm) {
 void SetMultitasking(int mode) {
 	if ((mode < 0) | (mode > 1))
 		quit("!SetMultitasking: invalid mode parameter");
+	// Save requested setting
+	_GP(usetup).multitasking = mode != 0;
 
-	if (_GP(usetup).override_multitasking >= 0) {
+	// Account for the override config option (must be checked first!)
+	if ((_GP(usetup).override_multitasking >= 0) && (mode != _GP(usetup).override_multitasking)) {
+		Debug::Printf("SetMultitasking: overridden by user config: %d -> %d", mode, _GP(usetup).override_multitasking);
 		mode = _GP(usetup).override_multitasking;
 	}
 
-	// Don't allow background running if full screen
-	if ((mode == 1) && (!_GP(scsystem).windowed))
+	// Must run on background if debugger is connected
+	if ((mode == 0) && (_G(editor_debugging_initialized) != 0)) {
+		Debug::Printf("SetMultitasking: overridden by the external debugger: %d -> 1", mode);
+		mode = 1;
+	}
+
+	// Regardless, don't allow background running if exclusive full screen
+	if ((mode == 1) && _G(gfxDriver)->GetDisplayMode().IsRealFullscreen()) {
+		Debug::Printf("SetMultitasking: overridden by fullscreen: %d -> 0", mode);
 		mode = 0;
+	}
 
 	// Install engine callbacks for switching in and out the window
+	Debug::Printf(kDbgMsg_Info, "Multitasking mode set: %d", mode);
 	if (mode == 0) {
 		sys_set_background_mode(false);
 		sys_evt_set_focus_callbacks(display_switch_in_resume, display_switch_out_suspend);
@@ -771,6 +811,10 @@ void SetGraphicalVariable(const char *varName, int p_value) {
 }
 
 int WaitImpl(int skip_type, int nloops) {
+	// if skipping cutscene and expecting user input: don't wait at all
+	if (_GP(play).fast_forward && ((skip_type & ~SKIP_AUTOTIMER) != 0))
+		return 0;
+
 	_GP(play).wait_counter = nloops;
 	_GP(play).wait_skipped_by = SKIP_NONE;
 	_GP(play).wait_skipped_by = SKIP_AUTOTIMER; // we set timer flag by default to simplify that case
@@ -781,9 +825,9 @@ int WaitImpl(int skip_type, int nloops) {
 
 	if (_GP(game).options[OPT_BASESCRIPTAPI] < kScriptAPI_v360) {
 		// < 3.6.0 return 1 is skipped by user input, otherwise 0
-		return (_GP(play).wait_skipped_by & (SKIP_KEYPRESS | SKIP_MOUSECLICK)) != 0 ? 1 : 0;
+		return ((_GP(play).wait_skipped_by & (SKIP_KEYPRESS | SKIP_MOUSECLICK)) != 0) ? 1 : 0;
 	}
-	// >= 3.6.0 return positive keycode, negative mouse button code, or 0 as time-out
+	// >= 3.6.0 return skip (input) type flags with keycode
 	return _GP(play).GetWaitSkipResult();
 }
 
@@ -803,8 +847,16 @@ int WaitMouseKey(int nloops) {
 	return WaitImpl(SKIP_KEYPRESS | SKIP_MOUSECLICK | SKIP_AUTOTIMER, nloops);
 }
 
+int WaitInput(int input_flags, int nloops) {
+	return WaitImpl((input_flags >> SKIP_RESULT_TYPE_SHIFT) | SKIP_AUTOTIMER, nloops);
+}
+
 void SkipWait() {
 	_GP(play).wait_counter = 0;
+}
+
+void scStartRecording(int /*keyToStop*/) {
+	debug_script_warn("StartRecording: not supported");
 }
 
 } // namespace AGS3

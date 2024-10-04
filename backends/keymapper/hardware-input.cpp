@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -229,7 +228,7 @@ const KeyTableEntry defaultKeys[] = {
 	{"LMETA",     KEYCODE_LMETA,     "Left "  META_KEY_NAME },
 	{"RMETA",     KEYCODE_RMETA,     "Right " META_KEY_NAME },
 
-	{0, KEYCODE_INVALID, 0}
+	{nullptr, KEYCODE_INVALID, nullptr}
 };
 
 // TODO: Add NUM_LOCK
@@ -268,6 +267,7 @@ const HardwareInputTableEntry defaultJoystickButtons[] = {
 	{ "JOY_DOWN",           JOYSTICK_BUTTON_DPAD_DOWN,      _s("D-pad Down")     },
 	{ "JOY_LEFT",           JOYSTICK_BUTTON_DPAD_LEFT,      _s("D-pad Left")     },
 	{ "JOY_RIGHT",          JOYSTICK_BUTTON_DPAD_RIGHT,     _s("D-pad Right")    },
+	{ "JOY_CENTER",         JOYSTICK_BUTTON_DPAD_CENTER,    _s("D-pad Center")   },
 	{ nullptr,              0,                              nullptr              }
 };
 
@@ -278,6 +278,8 @@ const AxisTableEntry defaultJoystickAxes[] = {
 	{ "JOY_LEFT_STICK_Y",  JOYSTICK_AXIS_LEFT_STICK_Y,  kAxisTypeFull, _s("Left Stick Y")  },
 	{ "JOY_RIGHT_STICK_X", JOYSTICK_AXIS_RIGHT_STICK_X, kAxisTypeFull, _s("Right Stick X") },
 	{ "JOY_RIGHT_STICK_Y", JOYSTICK_AXIS_RIGHT_STICK_Y, kAxisTypeFull, _s("Right Stick Y") },
+	{ "JOY_HAT_X",         JOYSTICK_AXIS_HAT_X,         kAxisTypeFull, _s("Hat X")         },
+	{ "JOY_HAT_Y",         JOYSTICK_AXIS_HAT_Y,         kAxisTypeFull, _s("Hat Y")         },
 	{ nullptr,             0,                           kAxisTypeFull, nullptr             }
 };
 

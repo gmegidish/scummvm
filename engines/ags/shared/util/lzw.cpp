@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,18 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 //=============================================================================
 //
-// LZW compression -- the LZW/GIF patent has expired, so we can use it now!!!
+// LZW compression.
 //
 //=============================================================================
 
+#include "ags/shared/util/lzw.h"
 #include "ags/shared/ac/common.h" // quit
+#include "ags/shared/util/bbop.h"
 #include "ags/shared/util/stream.h"
 #include "ags/globals.h"
 
@@ -61,7 +62,7 @@ int insert(int i, int run) {
 
 	k = l = 1;
 	match = THRESHOLD - 1;
-	p = &root[(unsigned char)_G(lzbuffer)[i]];
+	p = &root[_G(lzbuffer)[i]];
 	lson[i] = rson[i] = NIL;
 	while ((j = *p) != NIL) {
 		for (n = min(k, l); n < run && (c = (_G(lzbuffer)[j + n] - _G(lzbuffer)[i + n])) == 0; n++);
@@ -123,13 +124,13 @@ void _delete(int z) {
 	}
 }
 
-void lzwcompress(Stream *lzw_in, Stream *out) {
+bool lzwcompress(Stream *lzw_in, Stream *out) {
 	int ch, i, run, len, match, size, mask;
-	char buf[17];
+	uint8_t buf[17];
 
-	_G(lzbuffer) = (char *)malloc(N + F + (N + 1 + N + N + 256) * sizeof(int));       // 28.5 k !
+	_G(lzbuffer) = (uint8_t *)malloc(N + F + (N + 1 + N + N + 256) * sizeof(int));       // 28.5 k !
 	if (_G(lzbuffer) == nullptr) {
-		quit("unable to compress: out of memory");
+		return false;
 	}
 
 	_G(node) = (int *)(_G(lzbuffer) + N + F);
@@ -144,7 +145,7 @@ void lzwcompress(Stream *lzw_in, Stream *out) {
 	i = N - F - F;
 
 	for (len = 0; len < F && (ch = lzw_in->ReadByte()) != -1; len++) {
-		_G(lzbuffer)[i + F] = ch;
+		_G(lzbuffer)[i + F] = static_cast<uint8_t>(ch);
 		i = (i + 1) & (N - 1);
 	}
 
@@ -154,10 +155,10 @@ void lzwcompress(Stream *lzw_in, Stream *out) {
 		ch = lzw_in->ReadByte();
 		if (i >= N - F) {
 			_delete(i + F - N);
-			_G(lzbuffer)[i + F] = _G(lzbuffer)[i + F - N] = ch;
+			_G(lzbuffer)[i + F] = _G(lzbuffer)[i + F - N] = static_cast<uint8_t>(ch);
 		} else {
 			_delete(i + F);
-			_G(lzbuffer)[i + F] = ch;
+			_G(lzbuffer)[i + F] = static_cast<uint8_t>(ch);
 		}
 
 		match = insert(i, run);
@@ -170,7 +171,7 @@ void lzwcompress(Stream *lzw_in, Stream *out) {
 			if (match >= THRESHOLD) {
 				buf[0] |= mask;
 				// possible fix: change int* to short* ??
-				*(short *)(buf + size) = ((match - 3) << 12) | ((i - _G(pos) - 1) & (N - 1));
+				*(short *)(buf + size) = static_cast<short>(((match - 3) << 12) | ((i - _G(pos) - 1) & (N - 1)));
 				size += 2;
 				len -= match;
 			} else {
@@ -179,7 +180,7 @@ void lzwcompress(Stream *lzw_in, Stream *out) {
 			}
 
 			if (!((mask += mask) & 0xFF)) {
-				out->WriteArray(buf, size, 1);
+				out->Write(buf, size);
 				_G(outbytes) += size;
 				size = mask = 1;
 				buf[0] = 0;
@@ -189,86 +190,69 @@ void lzwcompress(Stream *lzw_in, Stream *out) {
 	} while (len > 0);
 
 	if (size > 1) {
-		out->WriteArray(buf, size, 1);
+		out->Write(buf, size);
 		_G(outbytes) += size;
 	}
 
 	free(_G(lzbuffer));
+	return true;
 }
 
-int expand_to_mem = 0;
-unsigned char *membfptr = nullptr;
-void myputc(int ccc, Stream *out) {
-	if (_G(maxsize) > 0) {
-		_G(putbytes)++;
-		if (_G(putbytes) > _G(maxsize))
-			return;
-	}
-
-	_G(outbytes)++;
-	if (expand_to_mem) {
-		membfptr[0] = ccc;
-		membfptr++;
-	} else
-		out->WriteInt8(ccc);
-}
-
-void lzwexpand(Stream *lzw_in, Stream *out) {
+bool lzwexpand(const uint8_t *src, size_t src_sz, uint8_t *dst, size_t dst_sz) {
 	int bits, ch, i, j, len, mask;
-	char *buf;
-	//  printf(" UnShrinking: %s ",filena);
-	_G(putbytes) = 0;
+	uint8_t *dst_ptr = dst;
+	const uint8_t *src_ptr = src;
 
-	buf = (char *)malloc(N);
-	if (buf == nullptr) {
-		quit("compress.cpp: unable to decompress: insufficient memory");
+	if (dst_sz == 0)
+		return false; // nowhere to expand to
+
+	_G(lzbuffer) = (uint8_t *)malloc(N);
+	if (_G(lzbuffer) == nullptr) {
+		return false;  // not enough memory
 	}
 	i = N - F;
 
-	// this end condition just checks for EOF, which is no good to us
-	while ((bits = lzw_in->ReadByte()) != -1) {
+	// Read from the src and expand, until either src or dst runs out of space
+	while ((static_cast<size_t>(src_ptr - src) < src_sz) &&
+		   (static_cast<size_t>(dst_ptr - dst) < dst_sz)) {
+		bits = *(src_ptr++);
 		for (mask = 0x01; mask & 0xFF; mask <<= 1) {
 			if (bits & mask) {
-				// MACPORT FIX: read to short and expand
+				if (static_cast<size_t>(src_ptr - src) > (src_sz - sizeof(int16_t)))
+					break;
+
 				short jshort = 0;
-				jshort = lzw_in->ReadInt16();
+				jshort = BBOp::Int16FromLE(*(reinterpret_cast<const int16_t *>(src_ptr)));
+				src_ptr += sizeof(int16_t);
 				j = jshort;
 
 				len = ((j >> 12) & 15) + 3;
 				j = (i - j - 1) & (N - 1);
 
+				if (static_cast<size_t>(dst_ptr - dst) > (dst_sz - len))
+					break; // not enough dest buffer
+
 				while (len--) {
-					myputc(buf[i] = buf[j], out);
+					*(dst_ptr++) = (_G(lzbuffer)[i] = _G(lzbuffer)[j]);
 					j = (j + 1) & (N - 1);
 					i = (i + 1) & (N - 1);
 				}
 			} else {
-				ch = lzw_in->ReadByte();
-				myputc(buf[i] = ch, out);
+				ch = *(src_ptr++);
+				*(dst_ptr++) = (_G(lzbuffer)[i] = static_cast<uint8_t>(ch));
 				i = (i + 1) & (N - 1);
 			}
 
-			if ((_G(putbytes) >= _G(maxsize)) && (_G(maxsize) > 0))
-				break;
+			if ((static_cast<size_t>(dst_ptr - dst) >= dst_sz) ||
+				(static_cast<size_t>(src_ptr - src) >= src_sz)) {
+				break; // not enough dest buffer for the next pass
+			}
+		} // end for mask
 
-			if ((lzw_in->EOS()) && (_G(maxsize) > 0))
-				quit("Read error decompressing image - file is corrupt");
-		}                           // end for mask
-
-		if ((_G(putbytes) >= _G(maxsize)) && (_G(maxsize) > 0))
-			break;
 	}
 
-	free(buf);
-	expand_to_mem = 0;
-}
-
-unsigned char *lzwexpand_to_mem(Stream *in) {
-	unsigned char *membuff = (unsigned char *)malloc(_G(maxsize) + 10);
-	expand_to_mem = 1;
-	membfptr = membuff;
-	lzwexpand(in, nullptr);
-	return membuff;
+	free(_G(lzbuffer));
+	return static_cast<size_t>(src_ptr - src) == src_sz;
 }
 
 } // namespace AGS3

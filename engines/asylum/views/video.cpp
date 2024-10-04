@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -110,7 +109,7 @@ bool VideoPlayer::handleEvent(const AsylumEvent &evt) {
 				getText()->draw(0, 99, kTextCenter, Common::Point(10, y), 20, 620, text);
 
 				if (_vm->checkGameVersion("Steam")) {
-					Graphics::Surface *st = getScreen()->getSurface().convertTo(g_system->getScreenFormat(), _subtitlePalette);
+					Graphics::Surface *st = getScreen()->getSurface()->convertTo(g_system->getScreenFormat(), _subtitlePalette);
 					g_system->copyRectToScreen((const byte *)st->getBasePtr(0, 400), st->pitch, 0, 400, 640, 80);
 					st->free();
 					delete st;
@@ -125,6 +124,8 @@ bool VideoPlayer::handleEvent(const AsylumEvent &evt) {
 
 	case Common::EVENT_LBUTTONDOWN:
 	case Common::EVENT_KEYDOWN:
+	case Common::EVENT_JOYBUTTON_DOWN:
+	case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
 		_done = true;
 		if (!_vm->checkGameVersion("Steam") && !_vm->isAltDemo())
 			getScreen()->clear();
@@ -159,7 +160,7 @@ void VideoPlayer::play(uint32 videoNumber, EventHandler *handler) {
 		filename = Common::String::format("mov%03d.avi", videoNumber);
 	else
 		filename = Common::String::format("mov%03d.smk", videoNumber);
-	play(filename, Config.showMovieSubtitles);
+	play(Common::Path(filename), Config.showMovieSubtitles);
 
 	// Cleanup and switch to previous event handler
 	getCursor()->show();
@@ -167,7 +168,7 @@ void VideoPlayer::play(uint32 videoNumber, EventHandler *handler) {
 	_vm->switchEventHandler(handler);
 }
 
-void VideoPlayer::play(const Common::String &filename, bool showSubtitles) {
+void VideoPlayer::play(const Common::Path &filename, bool showSubtitles) {
 	if (!_decoder->loadFile(filename))
 		error("[Video::playVideo] Invalid video index (%d)", _currentMovie);
 
@@ -189,13 +190,15 @@ void VideoPlayer::play(const Common::String &filename, bool showSubtitles) {
 	int32 frameEnd = 0;
 	int32 currentSubtitle = 0;
 
-	_decoder->start();
-
 	if (_vm->checkGameVersion("Steam") || _vm->isAltDemo()) {
-		Graphics::PixelFormat decoderFormat = Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0);
-		_decoder->setDefaultHighColorFormat(decoderFormat);
+		Graphics::PixelFormat bestFormat = g_system->getSupportedFormats().front();
+		_decoder->setOutputPixelFormat(bestFormat);
+
+		Graphics::PixelFormat decoderFormat = _decoder->getPixelFormat();
 		initGraphics(640, 480, &decoderFormat);
 	}
+
+	_decoder->start();
 
 	while (!_done && !Engine::shouldQuit() && !_decoder->endOfVideo()) {
 		_vm->handleEvents();
@@ -216,7 +219,7 @@ void VideoPlayer::play(const Common::String &filename, bool showSubtitles) {
 
 			if (showSubtitles) {
 				int32 currentFrame = _decoder->getCurFrame() + 1;
-				debugC(kDebugLevelVideo, "[Video] {%s} Playing Frame %d", filename.c_str(), currentFrame);
+				debugC(kDebugLevelVideo, "[Video] {%s} Playing Frame %d", filename.toString(Common::Path::kNativeSeparator).c_str(), currentFrame);
 				// Check for next frame
 				if (currentFrame > frameEnd) {
 					if (index < _subtitles.size()) {
@@ -252,7 +255,7 @@ void VideoPlayer::play(const Common::String &filename, bool showSubtitles) {
 
 void VideoPlayer::setupPalette() {
 	getScreen()->setMainPalette(_decoder->getPalette());
-	getScreen()->setupPalette(NULL, 0, 0);
+	getScreen()->setupPalette(nullptr, 0, 0);
 }
 
 void VideoPlayer::loadSubtitles() {
@@ -268,7 +271,7 @@ void VideoPlayer::loadSubtitles() {
 	buffer[fileSize] = 0;
 
 	char *start = strstr(buffer, movieToken);
-	char *line = 0;
+	char *line = nullptr;
 
 	if (start) {
 		start += 20; // skip token, newline and "CAPTION = "
@@ -285,19 +288,25 @@ void VideoPlayer::loadSubtitles() {
 			VideoSubtitle newSubtitle;
 			newSubtitle.frameStart = atoi(tok);
 
-			tok = strtok(NULL, " ");
+			tok = strtok(nullptr, " ");
 			if (!tok)
 				error("[Video::loadSubtitles] Invalid subtitle (frame end missing)!");
 
 			newSubtitle.frameEnd = atoi(tok);
 
-			tok = strtok(NULL, " ");
+			tok = strtok(nullptr, " ");
 			if (!tok)
 				error("[Video::loadSubtitles] Invalid subtitle (resource id missing)!");
 
-			newSubtitle.resourceId = (ResourceId)(atoi(tok) + video_subtitle_resourceIds[_currentMovie]);
+			int index = atoi(tok);
 
-			tok = strtok(NULL, " ");
+			// Original bug: index starts from 1 instead of 0
+			if (_currentMovie == 36)
+				index--;
+
+			newSubtitle.resourceId = (ResourceId)(index + video_subtitle_resourceIds[_currentMovie]);
+
+			tok = strtok(nullptr, " ");
 
 			_subtitles.push_back(newSubtitle);
 		}

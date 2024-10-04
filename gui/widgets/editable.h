@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,11 +39,8 @@ namespace GUI {
  * EditTextWidget.
  */
 class EditableWidget : public Widget, public CommandSender {
-public:
-	typedef Common::String String;
-	typedef Common::U32String U32String;
 protected:
-	U32String	_editString;
+	Common::U32String _editString;
 
 	uint32		_cmd;
 
@@ -56,6 +52,12 @@ protected:
 
 	int			_editScrollOffset;
 
+	int			_selCaretPos;
+	int			_selOffset;
+	bool		_shiftPressed;
+	bool		_isDragging;
+	bool		_disableSelection;
+
 	Graphics::TextAlign _align;
 	Graphics::TextAlign _drawAlign;
 
@@ -64,22 +66,33 @@ protected:
 	ThemeEngine::TextInversionState  _inversion;
 
 public:
+	EditableWidget(GuiObject *boss, int x, int y, int w, int h, bool scale, const Common::U32String &tooltip = Common::U32String(), uint32 cmd = 0);
 	EditableWidget(GuiObject *boss, int x, int y, int w, int h, const Common::U32String &tooltip = Common::U32String(), uint32 cmd = 0);
-	EditableWidget(GuiObject *boss, const String &name, const Common::U32String &tooltip = Common::U32String(), uint32 cmd = 0);
+	EditableWidget(GuiObject *boss, const Common::String &name, const Common::U32String &tooltip = Common::U32String(), uint32 cmd = 0);
 	~EditableWidget() override;
 
 	void init();
 
-	virtual void setEditString(const U32String &str);
-	virtual const U32String &getEditString() const		{ return _editString; }
+	virtual void setEditString(const Common::U32String &str);
+	virtual const Common::U32String &getEditString() const	{ return _editString; }
 
 	void handleTickle() override;
+	void handleMouseDown(int x, int y, int button, int clickCount) override;
+	void handleMouseUp(int x, int y, int button, int clickCount) override;
+	void handleMouseMoved(int x, int y, int button) override;
 	bool handleKeyDown(Common::KeyState state) override;
+	bool handleKeyUp(Common::KeyState state) override;
+	void handleOtherEvent(const Common::Event& evt) override;
 	void reflowLayout() override;
 
+	void moveCaretToStart(bool shiftPressed);
+	void moveCaretToEnd(bool shiftPressed);
 	bool setCaretPos(int newPos);
+	void setSelectionOffset(int newOffset);
 
 protected:
+	void drawWidget() override;
+
 	virtual void startEditMode() = 0;
 	virtual void endEditMode() = 0;
 	virtual void abortEditMode() = 0;
@@ -90,7 +103,8 @@ protected:
 	 */
 	virtual Common::Rect getEditRect() const = 0;
 	virtual int getCaretOffset() const;
-	void drawCaret(bool erase);
+	virtual int getSelectionCarretOffset() const;
+	void drawCaret(bool erase, bool useRelativeCoordinates = false);
 	bool adjustOffset();
 	void makeCaretVisible();
 
@@ -98,7 +112,13 @@ protected:
 
 	void setFontStyle(ThemeEngine::FontStyle font) { _font = font; }
 
-	virtual bool tryInsertChar(byte c, int pos);
+	virtual bool isCharAllowed(Common::u32char_type_t c) const;
+	bool tryInsertChar(Common::u32char_type_t c, int pos);
+
+	int caretVisualPos(int logicalPos) const;
+	int caretLogicalPos() const;
+
+	void clearSelection();
 };
 
 } // End of namespace GUI

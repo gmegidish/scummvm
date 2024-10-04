@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,11 +39,11 @@ namespace ICB {
 enum scriptInterpreterReturnCodes {
 	IR_RET_END_THE_CYCLE = 0,   // done enough this cycle
 	IR_RET_SCRIPT_FINISHED = 1, // current script has finished and hit closing brace
-	IR_RET_CONT_THIS_CYCLE = 2  // FN_ returned an IR_TERMINATE to interpretter so we just go around - new script or gosub
+	IR_RET_CONT_THIS_CYCLE = 2  // FN_ returned an IR_TERMINATE to interpreter so we just go around - new script or gosub
 };
 
 scriptInterpreterReturnCodes RunScript(const char *&scriptData, // A pointer to the script data that can be modified
-									   c_game_object *object,   // A pointer to the object that owns this object
+									   CGame *object,   // A pointer to the object that owns this object
 									   int32 *engineReturnValue = NULL,
 									   const char *scriptSourceName = NULL); // A value to return to the game engine
 
@@ -102,7 +101,7 @@ extern CpxGlobalScriptVariables *g_globalScriptVariables;
 #define OP_PLUS 31     // '+'
 #define OP_TIMES 32    // '*'
 #define OP_MINUS 33    // '-'
-#define OP_DEVIDE 34   // '/'
+#define OP_DIVIDE 34   // '/'
 #define OP_LSTHAN 35   // <
 #define OP_NOTEQUAL 36 // '!='
 #define OP_ANDAND 37   // &&

@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -61,7 +60,7 @@
 namespace Stark {
 namespace Formats {
 
-XRCReadStream::XRCReadStream(const Common::String &archiveName,
+XRCReadStream::XRCReadStream(const Common::Path &archiveName,
 		Common::SeekableReadStream *parentStream, DisposeAfterUse::Flag disposeParentStream) :
 		SeekableSubReadStream(parentStream, 0, parentStream->size(), disposeParentStream),
 		_archiveName(archiveName) {
@@ -127,7 +126,7 @@ bool XRCReadStream::isDataLeft() {
 	return pos() < size();
 }
 
-Common::String XRCReadStream::getArchiveName() const {
+Common::Path XRCReadStream::getArchiveName() const {
 	return _archiveName;
 }
 
@@ -136,14 +135,14 @@ Resources::Object *XRCReader::importTree(XARCArchive *archive) {
 	Common::ArchiveMemberList members;
 	archive->listMatchingMembers(members, "*.xrc");
 	if (members.size() == 0) {
-		error("No resource tree in archive '%s'", archive->getFilename().c_str());
+		error("No resource tree in archive '%s'", archive->getFilename().toString(Common::Path::kNativeSeparator).c_str());
 	}
 	if (members.size() > 1) {
-		error("Too many resource scripts in archive '%s'", archive->getFilename().c_str());
+		error("Too many resource scripts in archive '%s'", archive->getFilename().toString(Common::Path::kNativeSeparator).c_str());
 	}
 
 	// Open the XRC file
-	Common::SeekableReadStream *stream = archive->createReadStreamForMember(members.front()->getName());
+	Common::SeekableReadStream *stream = archive->createReadStreamForMember(members.front()->getPathInArchive());
 	XRCReadStream *xrcStream = new XRCReadStream(archive->getFilename(), stream);
 
 	// Import the resource tree

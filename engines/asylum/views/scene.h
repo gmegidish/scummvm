@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -74,6 +73,13 @@ enum HitType {
 enum ActionAreaType {
 	kActionAreaType1 = 1,
 	kActionAreaType2 = 2
+};
+
+enum KeyDirection {
+	kWalkUp = 1,
+	kWalkDown = 2,
+	kWalkLeft = 4,
+	kWalkRight = 8
 };
 
 class Scene : public EventHandler {
@@ -223,12 +229,18 @@ private:
 	Graphics::Surface _savedScreen;
 	byte _savedPalette[PALETTE_SIZE];
 
+	bool _debugShowVersion;
+
+	byte _keyState;
+	bool _rightButtonDown;
+
 	//////////////////////////////////////////////////////////////////////////
 	// Message handling
 	void activate();
 	bool init();
 	bool update();
-	bool action(AsylumAction a);
+	bool actionDown(AsylumAction a);
+	bool actionUp(AsylumAction a);
 	bool key(const AsylumEvent &evt);
 	bool clickDown(const AsylumEvent &evt);
 

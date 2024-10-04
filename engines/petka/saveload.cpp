@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/system.h"
 #include "common/savefile.h"
+#include "common/translation.h"
 
 #include "engines/savestate.h"
 
@@ -65,6 +65,12 @@ Common::Error PetkaEngine::saveGameState(int slot, const Common::String &desci, 
 	if (!out)
 		return Common::kUnknownError;
 
+	if (_qsystem->_currInterface == _qsystem->_panelInterface.get() ||
+		_qsystem->_currInterface == _qsystem->_saveLoadInterface.get())
+	{
+		_qsystem->goPrevInterface();
+	}
+
 	out->writeUint32BE(MKTAG('p', 'e', 't', 'k'));
 	out->writeByte(desci.size());
 	out->writeString(desci);
@@ -89,8 +95,15 @@ Common::Error PetkaEngine::saveGameState(int slot, const Common::String &desci, 
 	return Common::kNoError;
 }
 
-bool PetkaEngine::canSaveGameStateCurrently() {
-	if (isDemo() || !_qsystem)
+bool PetkaEngine::canSaveGameStateCurrently(Common::U32String *msg) {
+	if (isDemo()) {
+		if (msg)
+			*msg = _("This game does not support saving");
+
+		return false;
+	}
+
+	if (!_qsystem)
 		return false;
 
 	Interface *panel = _qsystem->_panelInterface.get();
@@ -102,8 +115,15 @@ bool PetkaEngine::canSaveGameStateCurrently() {
 	return prev == _qsystem->_mainInterface.get() && (curr == saveLoad || curr == panel);
 }
 
-bool PetkaEngine::canLoadGameStateCurrently() {
-	return !isDemo() && _qsystem;
+bool PetkaEngine::canLoadGameStateCurrently(Common::U32String *msg) {
+	if (isDemo()) {
+		if (msg)
+			*msg = _("This game does not support loading");
+
+		return false;
+	}
+
+	return _qsystem;
 }
 
 int PetkaEngine::getSaveSlot() {
@@ -144,4 +164,3 @@ Common::String generateSaveName(int slot, const char *gameId) {
 }
 
 }
-

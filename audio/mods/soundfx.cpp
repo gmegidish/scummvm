@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -62,7 +61,7 @@ protected:
 	void disablePaulaChannel(uint8 channel);
 	void setupPaulaChannel(uint8 channel, const int8 *data, uint16 len, uint16 repeatPos, uint16 repeatLen);
 
-	virtual void interrupt();
+	void interrupt() override;
 
 	uint8 _ticks;
 	uint16 _delay;
@@ -86,7 +85,7 @@ SoundFx::SoundFx(int rate, bool stereo, bool repeat, int periodScaleDivisor)
 	_curOrder = 0;
 	_curPos = 0;
 	memset(_ordersTable, 0, sizeof(_ordersTable));
-	_patternData = 0;
+	_patternData = nullptr;
 	memset(_effects, 0, sizeof(_effects));
 	_repeat = repeat;
 }
@@ -151,7 +150,7 @@ bool SoundFx::load(Common::SeekableReadStream *data, LoadSoundFxInstrumentCallba
 		} else {
 			if (ins->name[0]) {
 				ins->name[22] = '\0';
-				ins->data = (int8 *)(*loadCb)(ins->name, 0);
+				ins->data = (int8 *)(*loadCb)(ins->name, nullptr);
 				if (!ins->data) {
 					return false;
 				}
@@ -276,7 +275,7 @@ AudioStream *makeSoundFxStream(Common::SeekableReadStream *data, LoadSoundFxInst
 		return stream;
 	}
 	delete stream;
-	return 0;
+	return nullptr;
 }
 
 } // End of namespace Audio

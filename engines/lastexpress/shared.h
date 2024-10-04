@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -100,7 +99,7 @@ enum SoundTag {
     processes the sound as a payment for portability, so we can afford
     to just mix the silence without special processing of muted entries.
 */
-enum SoundFlag {
+enum SoundFlag : uint {
 	kSoundVolumeEntityDefault = 0xFFFFFFFF, // special value for SoundManager::playSound; choose volume based on distance to the entity
 
 	kVolumeNone               = 0x0,
@@ -173,7 +172,7 @@ enum AmbientSoundState {
 // Time is measured in ticks, with 15 ticks per second. One minute is 900
 // ticks, one hour is 54,000 ticks, and one day is 1,296,000 ticks.
 
-enum TimeValue {
+enum TimeValue : uint {
 	kTimeNone                 = 0,
 	kTime5933                 = 5933,
 
@@ -479,7 +478,7 @@ enum ChapterIndex {
 //////////////////////////////////////////////////////////////////////////
 // Index of scenes
 //////////////////////////////////////////////////////////////////////////
-enum SceneIndex {
+enum SceneIndex : uint {
 	kSceneNone                    = 0,
 	kSceneMenu                    = 1,
 
@@ -574,7 +573,7 @@ enum CityIndex {
 // Savegame ID
 //////////////////////////////////////////////////////////////////////////
 enum GameId {
-	kGameBlue,
+	kGameBlue = 0,
 	kGameRed,
 	kGameGreen,
 	kGamePurple,

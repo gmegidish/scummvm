@@ -1,22 +1,21 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,20 +26,19 @@
 #include "engines/wintermute/math/rect32.h"
 #include "engines/wintermute/math/vector2.h"
 #include "engines/wintermute/dctypes.h"
+
 #include "graphics/transform_struct.h"
+
 #include "math/matrix4.h"
 #include "math/ray.h"
 
-#if (defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)) && !defined(USE_GLES2)
+#if defined(USE_OPENGL_GAME)
 
 #include "graphics/opengl/system_headers.h"
-#include "graphics/opengl/texture.h"
 
 namespace Wintermute {
 
 class BaseSurfaceOpenGL3D;
-
-#include "common/pack-start.h"
 
 struct SimpleShadowVertex {
 	float u;
@@ -51,9 +49,7 @@ struct SimpleShadowVertex {
 	float x;
 	float y;
 	float z;
-} PACKED_STRUCT;
-
-#include "common/pack-end.h"
+};
 
 class BaseRenderOpenGL3D : public BaseRenderer3D {
 public:
@@ -79,15 +75,13 @@ public:
 
 	void dumpData(const char *filename) override {}
 	BaseImage *takeScreenshot() override;
-	bool saveScreenShot(const Common::String &filename, int sizeX = 0, int sizeY = 0) override;
 	void setWindowed(bool windowed) override;
 	void fadeToColor(byte r, byte g, byte b, byte a) override;
 
 	bool fill(byte r, byte g, byte b, Common::Rect *rect = nullptr) override;
 
 	bool setViewport(int left, int top, int right, int bottom) override;
-	bool drawLine(int x1, int y1, int x2, int y2, uint32 color) override; 	// Unused outside indicator-display
-	bool drawRect(int x1, int y1, int x2, int y2, uint32 color, int width = 1) override; 	// Unused outside indicator-display
+	bool drawLine(int x1, int y1, int x2, int y2, uint32 color) override;
 
 	bool setProjection() override;
 	bool setProjection2D() override;
@@ -138,7 +132,7 @@ public:
 	void renderShadowGeometry(const BaseArray<AdWalkplane *> &planes, const BaseArray<AdBlock *> &blocks, const BaseArray<AdGeneric *> &generics, Camera3D *camera) override;
 
 	Mesh3DS *createMesh3DS() override;
-	MeshX *createMeshX() override;
+	XMesh *createXMesh() override;
 	ShadowVolume *createShadowVolume() override;
 
 private:
@@ -154,6 +148,6 @@ private:
 
 } // wintermute namespace
 
-#endif // defined(USE_OPENGL_GAME) && !defined(USE_GLES2)
+#endif // defined(USE_OPENGL_GAME)
 
 #endif

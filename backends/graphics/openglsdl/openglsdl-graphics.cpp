@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,9 @@
 #include "backends/events/sdl/sdl-events.h"
 #include "backends/platform/sdl/sdl.h"
 #include "graphics/scaler/aspect.h"
+#ifdef USE_SCALERS
+#include "graphics/scalerplugin.h"
+#endif
 
 #include "common/textconsole.h"
 #include "common/config-manager.h"
@@ -39,20 +41,19 @@ OpenGLSdlGraphicsManager::OpenGLSdlGraphicsManager(SdlEventSource *eventSource, 
 #else
 	  _lastVideoModeLoad(0),
 #endif
-	  _graphicsScale(2), _ignoreLoadVideoMode(false), _gotResize(false), _wantsFullScreen(false), _ignoreResizeEvents(0),
+	  _graphicsScale(2), _gotResize(false), _wantsFullScreen(false), _ignoreResizeEvents(0),
 	  _desiredFullscreenWidth(0), _desiredFullscreenHeight(0) {
 	// Setup OpenGL attributes for SDL
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
 	// Set up proper SDL OpenGL context creation.
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-	OpenGL::ContextType glContextType;
-
-	// Context version 1.4 is choosen arbitrarily based on what most shader
+	// Context version 1.4 is chosen arbitrarily based on what most shader
 	// extensions were written against.
 	enum {
 		DEFAULT_GL_MAJOR = 1,
@@ -66,17 +67,17 @@ OpenGLSdlGraphicsManager::OpenGLSdlGraphicsManager(SdlEventSource *eventSource, 
 	};
 
 #if USE_FORCED_GL
-	glContextType = OpenGL::kContextGL;
+	_glContextType = OpenGL::kContextGL;
 	_glContextProfileMask = 0;
 	_glContextMajor = DEFAULT_GL_MAJOR;
 	_glContextMinor = DEFAULT_GL_MINOR;
 #elif USE_FORCED_GLES
-	glContextType = OpenGL::kContextGLES;
+	_glContextType = OpenGL::kContextGLES;
 	_glContextProfileMask = SDL_GL_CONTEXT_PROFILE_ES;
 	_glContextMajor = DEFAULT_GLES_MAJOR;
 	_glContextMinor = DEFAULT_GLES_MINOR;
 #elif USE_FORCED_GLES2
-	glContextType = OpenGL::kContextGLES2;
+	_glContextType = OpenGL::kContextGLES2;
 	_glContextProfileMask = SDL_GL_CONTEXT_PROFILE_ES;
 	_glContextMajor = DEFAULT_GLES2_MAJOR;
 	_glContextMinor = DEFAULT_GLES2_MINOR;
@@ -116,12 +117,12 @@ OpenGLSdlGraphicsManager::OpenGLSdlGraphicsManager(SdlEventSource *eventSource, 
 
 	if (_glContextProfileMask == SDL_GL_CONTEXT_PROFILE_ES) {
 		if (_glContextMajor >= 2) {
-			glContextType = OpenGL::kContextGLES2;
+			_glContextType = OpenGL::kContextGLES2;
 		} else {
-			glContextType = OpenGL::kContextGLES;
+			_glContextType = OpenGL::kContextGLES;
 		}
 	} else if (_glContextProfileMask == SDL_GL_CONTEXT_PROFILE_CORE) {
-		glContextType = OpenGL::kContextGL;
+		_glContextType = OpenGL::kContextGL;
 
 		// Core profile does not allow legacy functionality, which we use.
 		// Thus we request a standard OpenGL context.
@@ -129,14 +130,14 @@ OpenGLSdlGraphicsManager::OpenGLSdlGraphicsManager(SdlEventSource *eventSource, 
 		_glContextMajor = DEFAULT_GL_MAJOR;
 		_glContextMinor = DEFAULT_GL_MINOR;
 	} else {
-		glContextType = OpenGL::kContextGL;
+		_glContextType = OpenGL::kContextGL;
 	}
 #endif
-
-	setContextType(glContextType);
 #else
-	setContextType(OpenGL::kContextGL);
+	_glContextType = OpenGL::kContextGL;
 #endif
+
+	_vsync = ConfMan.getBool("vsync");
 
 	// Retrieve a list of working fullscreen modes
 	Common::Rect desktopRes = _window->getDesktopResolution();
@@ -145,6 +146,10 @@ OpenGLSdlGraphicsManager::OpenGLSdlGraphicsManager(SdlEventSource *eventSource, 
 	// Thus SDL always use the desktop resolution and it is useless to try to use something else.
 	// Do nothing here as adding the desktop resolution to _fullscreenVideoModes is done as a fallback.
 	_fullscreenVideoModes.push_back(VideoMode(desktopRes.width(), desktopRes.height()));
+
+	if (ConfMan.hasKey("force_frame_update")) {
+		_forceFrameUpdate = ConfMan.getInt("force_frame_update", Common::ConfigManager::kApplicationDomain);
+	}
 #else
 	const SDL_Rect *const *availableModes = SDL_ListModes(NULL, SDL_OPENGL | SDL_FULLSCREEN);
 	// TODO: NULL means that there are no fullscreen modes supported. We
@@ -190,8 +195,17 @@ OpenGLSdlGraphicsManager::OpenGLSdlGraphicsManager(SdlEventSource *eventSource, 
 
 OpenGLSdlGraphicsManager::~OpenGLSdlGraphicsManager() {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
+
+#ifdef USE_IMGUI
+	destroyImGui();
+#endif
+
 	notifyContextDestroy();
 	SDL_GL_DeleteContext(_glContext);
+#else
+	if (_hwScreen) {
+		notifyContextDestroy();
+	}
 #endif
 }
 
@@ -199,9 +213,10 @@ bool OpenGLSdlGraphicsManager::hasFeature(OSystem::Feature f) const {
 	switch (f) {
 	case OSystem::kFeatureFullscreenMode:
 	case OSystem::kFeatureIconifyWindow:
+	case OSystem::kFeatureVSync:
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	case OSystem::kFeatureFullscreenToggleKeepsContext:
-	case OSystem::kFeatureVSync:
+	case OSystem::kFeatureRotationMode:
 #endif
 		return true;
 
@@ -217,10 +232,19 @@ void OpenGLSdlGraphicsManager::setFeatureState(OSystem::Feature f, bool enable) 
 		_wantsFullScreen = enable;
 		break;
 
+	case OSystem::kFeatureVSync:
+		assert(getTransactionMode() != kTransactionNone);
+		_vsync = enable;
+		break;
+
 	case OSystem::kFeatureIconifyWindow:
 		if (enable) {
 			_window->iconifyWindow();
 		}
+		break;
+
+	case OSystem::kFeatureRotationMode:
+		notifyResize(getWindowWidth(), getWindowHeight());
 		break;
 
 	default:
@@ -244,10 +268,9 @@ bool OpenGLSdlGraphicsManager::getFeatureState(OSystem::Feature f) const {
 			return _wantsFullScreen;
 		}
 #endif
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+
 	case OSystem::kFeatureVSync:
-		return SDL_GL_GetSwapInterval() != 0;
-#endif
+		return _vsync;
 
 	default:
 		return OpenGLGraphicsManager::getFeatureState(f);
@@ -270,18 +293,50 @@ void OpenGLSdlGraphicsManager::initSize(uint w, uint h, const Graphics::PixelFor
 		_graphicsScale = 2;
 	}
 
+	if (ConfMan.getBool("force_resize", Common::ConfigManager::kApplicationDomain)) {
+		notifyResize(w, h);
+	}
+
 	return OpenGLGraphicsManager::initSize(w, h, format);
 }
 
 void OpenGLSdlGraphicsManager::updateScreen() {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	static uint32 lastUpdateTime = 0;
+
+	if (_forceFrameUpdate) {
+		if (_forceRedraw) {
+			lastUpdateTime = SDL_GetTicks();
+		} else {
+			// This works for the most part. Anything between 20 and 40 yields
+			// around 24fps. It's not till we set it to 20 that it changes and
+			// jumps to around 40fps.
+			// 50 ~ 16fps
+			// 40 ~ 24fps
+			// 20 ~ 45fps
+			if (SDL_GetTicks() - lastUpdateTime > _forceFrameUpdate) {
+				_forceRedraw = true;
+				lastUpdateTime = SDL_GetTicks();
+			}
+		}
+	}
+#endif
+
 	if (_ignoreResizeEvents) {
 		--_ignoreResizeEvents;
 	}
+
+#if defined(USE_IMGUI) && SDL_VERSION_ATLEAST(2, 0, 0)
+	if (_imGuiCallbacks.render) {
+		_forceRedraw = true;
+	}
+#endif
 
 	OpenGLGraphicsManager::updateScreen();
 }
 
 void OpenGLSdlGraphicsManager::notifyVideoExpose() {
+	_forceRedraw = true;
 }
 
 void OpenGLSdlGraphicsManager::notifyResize(const int width, const int height) {
@@ -296,7 +351,17 @@ void OpenGLSdlGraphicsManager::notifyResize(const int width, const int height) {
 	int currentWidth, currentHeight;
 	getWindowSizeFromSdl(&currentWidth, &currentHeight);
 	float dpiScale = _window->getSdlDpiScalingFactor();
+
+	if (ConfMan.getBool("force_resize", Common::ConfigManager::kApplicationDomain)) {
+		currentWidth = width;
+		currentHeight = height;
+	}
+
 	debug(3, "req: %d x %d  cur: %d x %d, scale: %f", width, height, currentWidth, currentHeight, dpiScale);
+
+	if (ConfMan.getBool("force_resize", Common::ConfigManager::kApplicationDomain)) {
+		createOrUpdateWindow(currentWidth, currentHeight, 0);
+	}
 
 	handleResize(currentWidth, currentHeight);
 
@@ -334,13 +399,6 @@ void OpenGLSdlGraphicsManager::notifyResize(const int width, const int height) {
 }
 
 bool OpenGLSdlGraphicsManager::loadVideoMode(uint requestedWidth, uint requestedHeight, const Graphics::PixelFormat &format) {
-	// In some cases we might not want to load the requested video mode. This
-	// will assure that the window size is not altered.
-	if (_ignoreLoadVideoMode) {
-		_ignoreLoadVideoMode = false;
-		return true;
-	}
-
 	// This function should never be called from notifyResize thus we know
 	// that the requested size came from somewhere else.
 	_gotResize = false;
@@ -420,6 +478,17 @@ bool OpenGLSdlGraphicsManager::loadVideoMode(uint requestedWidth, uint requested
 
 void OpenGLSdlGraphicsManager::refreshScreen() {
 	// Swap OpenGL buffers
+#ifdef EMSCRIPTEN
+	if (_queuedScreenshot) {
+		SdlGraphicsManager::saveScreenshot();
+		_queuedScreenshot = false;
+	}
+#endif
+
+#if defined(USE_IMGUI) && SDL_VERSION_ATLEAST(2, 0, 0)
+	renderImGui();
+#endif
+
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_GL_SwapWindow(_window->getSDLWindow());
 #else
@@ -427,16 +496,18 @@ void OpenGLSdlGraphicsManager::refreshScreen() {
 #endif
 }
 
-void *OpenGLSdlGraphicsManager::getProcAddress(const char *name) const {
-	return SDL_GL_GetProcAddress(name);
-}
-
 void OpenGLSdlGraphicsManager::handleResizeImpl(const int width, const int height) {
 	OpenGLGraphicsManager::handleResizeImpl(width, height);
 	SdlGraphicsManager::handleResizeImpl(width, height);
 }
 
-bool OpenGLSdlGraphicsManager::saveScreenshot(const Common::String &filename) const {
+#ifdef EMSCRIPTEN
+void OpenGLSdlGraphicsManager::saveScreenshot() {
+	_queuedScreenshot = true;
+}
+#endif
+
+bool OpenGLSdlGraphicsManager::saveScreenshot(const Common::Path &filename) const {
 	return OpenGLGraphicsManager::saveScreenshot(filename);
 }
 
@@ -496,6 +567,10 @@ bool OpenGLSdlGraphicsManager::setupMode(uint width, uint height) {
 	if (_glContext) {
 		notifyContextDestroy();
 
+#ifdef USE_IMGUI
+		destroyImGui();
+#endif
+
 		SDL_GL_DeleteContext(_glContext);
 		_glContext = nullptr;
 	}
@@ -544,14 +619,16 @@ bool OpenGLSdlGraphicsManager::setupMode(uint width, uint height) {
 		return false;
 	}
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	_vsync = ConfMan.getBool("vsync");
+#ifdef USE_IMGUI
+	// Setup Dear ImGui
+	initImGui(nullptr, _glContext);
+#endif
+
 	if (SDL_GL_SetSwapInterval(_vsync ? 1 : 0)) {
 		warning("Unable to %s VSync: %s", _vsync ? "enable" : "disable", SDL_GetError());
 	}
-#endif
 
-	notifyContextCreate(rgba8888, rgba8888);
+	notifyContextCreate(_glContextType, new OpenGL::Backbuffer(), rgba8888, rgba8888);
 	int actualWidth, actualHeight;
 	getWindowSizeFromSdl(&actualWidth, &actualHeight);
 
@@ -564,7 +641,7 @@ bool OpenGLSdlGraphicsManager::setupMode(uint width, uint height) {
 
 		// Read the current window position
 		int _xWindowPos;
-		SDL_GetWindowPosition(_window->getSDLWindow(), &_xWindowPos, NULL);
+		SDL_GetWindowPosition(_window->getSDLWindow(), &_xWindowPos, nullptr);
 
 		// Relocate the window to the center of the screen in case we try to draw
 		// outside the window area. In this case, _xWindowPos always returns 0.
@@ -604,6 +681,8 @@ bool OpenGLSdlGraphicsManager::setupMode(uint width, uint height) {
 		notifyContextDestroy();
 	}
 
+	SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, _vsync ? 1 : 0);
+
 	_hwScreen = SDL_SetVideoMode(width, height, 32, flags);
 
 	if (!_hwScreen) {
@@ -618,7 +697,7 @@ bool OpenGLSdlGraphicsManager::setupMode(uint width, uint height) {
 	_lastVideoModeLoad = SDL_GetTicks();
 
 	if (_hwScreen) {
-		notifyContextCreate(rgba8888, rgba8888);
+		notifyContextCreate(_glContextType, new OpenGL::Backbuffer(), rgba8888, rgba8888);
 		handleResize(_hwScreen->w, _hwScreen->h);
 	}
 
@@ -722,19 +801,61 @@ bool OpenGLSdlGraphicsManager::notifyEvent(const Common::Event &event) {
 		return true;
 	}
 
-	case kActionToggleAspectRatioCorrection:
-		// In case the user changed the window size manually we will
-		// not change the window size again here.
-		_ignoreLoadVideoMode = _gotResize;
+#ifdef USE_SCALERS
+	case kActionNextScaleFilter:
+	case kActionPreviousScaleFilter: {
+		if (_scalerPlugins.size() > 0) {
+			const int direction = event.customType == kActionNextScaleFilter ? 1 : -1;
 
+			uint scalerIndex = getScaler();
+			switch (direction) {
+			case 1:
+				if (scalerIndex >= _scalerPlugins.size() - 1) {
+					scalerIndex = 0;
+				} else {
+					++scalerIndex;
+				}
+				break;
+
+			case -1:
+			default:
+				if (scalerIndex == 0) {
+					scalerIndex = _scalerPlugins.size() - 1;
+				} else {
+					--scalerIndex;
+				}
+				break;
+			}
+
+			beginGFXTransaction();
+			setScaler(scalerIndex, getScaleFactor());
+			endGFXTransaction();
+
+#ifdef USE_OSD
+			int windowWidth = 0, windowHeight = 0;
+			getWindowSizeFromSdl(&windowWidth, &windowHeight);
+			const char *newScalerName = _scalerPlugins[scalerIndex]->get<ScalerPluginObject>().getPrettyName();
+			if (newScalerName) {
+				const Common::U32String message = Common::U32String::format(
+					"%S %s%d\n%d x %d",
+					_("Active graphics filter:").c_str(),
+					newScalerName,
+					getScaleFactor(),
+					windowWidth, windowHeight);
+				displayMessageOnOSD(message);
+			}
+#endif
+		}
+
+		return true;
+	}
+#endif // USE_SCALERS
+
+	case kActionToggleAspectRatioCorrection:
 		// Toggles the aspect ratio correction state.
 		beginGFXTransaction();
 			setFeatureState(OSystem::kFeatureAspectRatioCorrection, !getFeatureState(OSystem::kFeatureAspectRatioCorrection));
 		endGFXTransaction();
-
-		// Make sure we do not ignore the next resize. This
-		// effectively checks whether loadVideoMode has been called.
-		assert(!_ignoreLoadVideoMode);
 
 #ifdef USE_OSD
 		if (getFeatureState(OSystem::kFeatureAspectRatioCorrection))
@@ -746,18 +867,10 @@ bool OpenGLSdlGraphicsManager::notifyEvent(const Common::Event &event) {
 		return true;
 
 	case kActionToggleFilteredScaling:
-		// Never ever try to resize the window when we simply want to enable or disable filtering.
-		// This assures that the window size does not change.
-		_ignoreLoadVideoMode = true;
-
 		// Ctrl+Alt+f toggles filtering on/off
 		beginGFXTransaction();
 			setFeatureState(OSystem::kFeatureFilteringMode, !getFeatureState(OSystem::kFeatureFilteringMode));
 		endGFXTransaction();
-
-		// Make sure we do not ignore the next resize. This
-		// effectively checks whether loadVideoMode has been called.
-		assert(!_ignoreLoadVideoMode);
 
 #ifdef USE_OSD
 		if (getFeatureState(OSystem::kFeatureFilteringMode)) {
@@ -770,9 +883,6 @@ bool OpenGLSdlGraphicsManager::notifyEvent(const Common::Event &event) {
 		return true;
 
 	case kActionCycleStretchMode: {
-		// Never try to resize the window when changing the scaling mode.
-		_ignoreLoadVideoMode = true;
-
 		// Ctrl+Alt+s cycles through stretch mode
 		int index = 0;
 		const OSystem::GraphicsMode *stretchModes = getSupportedStretchModes();
@@ -805,3 +915,32 @@ bool OpenGLSdlGraphicsManager::notifyEvent(const Common::Event &event) {
 		return SdlGraphicsManager::notifyEvent(event);
 	}
 }
+
+#if defined(USE_IMGUI) && SDL_VERSION_ATLEAST(2, 0, 0)
+void *OpenGLSdlGraphicsManager::getImGuiTexture(const Graphics::Surface &image, const byte *palette, int palCount) {
+	// Create a OpenGL texture identifier
+	GLuint image_texture;
+	glGenTextures(1, &image_texture);
+	glBindTexture(GL_TEXTURE_2D, image_texture);
+
+	// Setup filtering parameters for display
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
+
+	// Upload pixels into texture
+	Graphics::Surface *s = image.convertTo(Graphics::PixelFormat(3, 8, 8, 8, 0, 0, 8, 16, 0), palette, palCount);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, s->format.bytesPerPixel);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, s->w, s->h, 0, GL_RGB, GL_UNSIGNED_BYTE, s->getPixels());
+	s->free();
+	delete s;
+	return (void *)(intptr_t)image_texture;
+}
+
+void OpenGLSdlGraphicsManager::freeImGuiTexture(void *texture) {
+	GLuint textureID = (intptr_t)texture;
+	glDeleteTextures(1, &textureID);
+}
+#endif

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,21 +15,34 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/savefile.h"
 #include "common/system.h"
+#include "common/translation.h"
 #include "base/plugins.h"
-
 #include "engines/advancedDetector.h"
-
 #include "chewy/chewy.h"
 #include "chewy/detection.h"
 
 namespace Chewy {
+
+static const ADExtraGuiOptionsMap optionsList[] = {
+	{
+		GAMEOPTION_ORIGINAL_SAVELOAD,
+		{
+			_s("Use original save/load screens"),
+			_s("Use the original save/load screens instead of the ScummVM ones"),
+			"original_menus",
+			false,
+			0,
+			0
+		}
+	},
+	AD_EXTRA_GUI_OPTIONS_TERMINATOR
+};
 
 uint32 ChewyEngine::getFeatures() const {
 	return _gameDescription->desc.flags;
@@ -41,30 +54,26 @@ Common::Language ChewyEngine::getLanguage() const {
 
 } // End of namespace Chewy
 
-class ChewyMetaEngine : public AdvancedMetaEngine {
+class ChewyMetaEngine : public AdvancedMetaEngine<Chewy::ChewyGameDescription> {
 public:
 	const char *getName() const override {
 		return "chewy";
 	}
 
-	bool hasFeature(MetaEngineFeature f) const override;
-	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	const ADExtraGuiOptionsMap *getAdvancedExtraGuiOptions() const override {
+		return Chewy::optionsList;
+	}
 
-	SaveStateList listSaves(const char *target) const override;
+	bool hasFeature(MetaEngineFeature f) const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const Chewy::ChewyGameDescription *desc) const override;
+
 	int getMaximumSaveSlot() const override;
-	void removeSaveState(const char *target, int slot) const override;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
 };
 
 bool ChewyMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return
-		(f == kSupportsListSaves) ||
 		(f == kSupportsLoadingDuringStartup) ||
-		(f == kSupportsDeleteSave) ||
-		(f == kSavesSupportMetaInfo) ||
-		(f == kSavesSupportThumbnail) ||
-		(f == kSavesSupportCreationDate) ||
-		(f == kSavesSupportPlayTime);
+		checkExtendedSaves(f);
 }
 
 bool Chewy::ChewyEngine::hasFeature(EngineFeature f) const {
@@ -74,26 +83,13 @@ bool Chewy::ChewyEngine::hasFeature(EngineFeature f) const {
 		(f == kSupportsSavingDuringRuntime);
 }
 
-Common::Error ChewyMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	*engine = new Chewy::ChewyEngine(syst, (const Chewy::ChewyGameDescription *)desc);
+Common::Error ChewyMetaEngine::createInstance(OSystem *syst, Engine **engine, const Chewy::ChewyGameDescription *desc) const {
+	*engine = new Chewy::ChewyEngine(syst,desc);
 	return Common::kNoError;
-}
-
-SaveStateList ChewyMetaEngine::listSaves(const char *target) const {
-	SaveStateList saveList;
-
-	return saveList;
 }
 
 int ChewyMetaEngine::getMaximumSaveSlot() const {
 	return 999;
-}
-
-void ChewyMetaEngine::removeSaveState(const char *target, int slot) const {
-}
-
-SaveStateDescriptor ChewyMetaEngine::querySaveMetaInfos(const char *target, int slot) const {
-	return SaveStateDescriptor();
 }
 
 #if PLUGIN_ENABLED_DYNAMIC(CHEWY)

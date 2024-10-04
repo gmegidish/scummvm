@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,7 +44,7 @@ enum {
 };
 
 RemapWidget::RemapWidget(GuiObject *boss, const Common::String &name, const KeymapArray &keymaps) :
-		OptionsContainerWidget(boss, name, "", true, ""),
+		OptionsContainerWidget(boss, name, "", ""),
 		_keymapTable(keymaps),
 		_remapKeymap(nullptr),
 		_remapAction(nullptr),
@@ -99,13 +98,18 @@ void RemapWidget::handleInputChanged() {
 	refreshKeymap();
 }
 
+void RemapWidget::reflowLayout() {
+	OptionsContainerWidget::reflowLayout();
+	reflowActionWidgets();
+}
+
 void RemapWidget::reflowActionWidgets() {
 	int buttonHeight = g_gui.xmlEval()->getVar("Globals.Button.Height", 0);
 
 	int spacing = g_gui.xmlEval()->getVar("Globals.KeyMapper.Spacing");
 	int keyButtonWidth = g_gui.xmlEval()->getVar("Globals.KeyMapper.ButtonWidth");
 	int resetButtonWidth = g_gui.xmlEval()->getVar("Globals.KeyMapper.ResetWidth");
-	int labelWidth = getWidth() - (spacing + keyButtonWidth + spacing);
+	int labelWidth = _w - (spacing + keyButtonWidth + spacing);
 	labelWidth = MAX(0, labelWidth);
 
 	uint textYOff = (buttonHeight - kLineHeight) / 2;
@@ -115,29 +119,35 @@ void RemapWidget::reflowActionWidgets() {
 	Keymap *previousKeymap = nullptr;
 
 	for (uint i = 0; i < _actions.size(); i++) {
-		uint x;
-
 		ActionRow &row = _actions[i];
 
 		if (previousKeymap != row.keymap) {
 			previousKeymap = row.keymap;
 
 			// Insert a keymap separator
-			x = 2 * spacing + keyButtonWidth;
+			uint descriptionX = 2 * spacing + keyButtonWidth;
+			uint resetX = _w - spacing - resetButtonWidth;
 
 			KeymapTitleRow keymapTitle = _keymapSeparators[row.keymap];
 			if (keymapTitle.descriptionText) {
-				int descriptionWidth = getWidth() - x - spacing - resetButtonWidth - spacing;
-				descriptionWidth = MAX(0, descriptionWidth);
+				int descriptionWidth = resetX - descriptionX - spacing;
+				int descriptionFullWidth = g_gui.getStringWidth(keymapTitle.descriptionText->getLabel());
 
-				keymapTitle.descriptionText->resize(x, y + textYOff, descriptionWidth, kLineHeight, false);
-				keymapTitle.resetButton->resize(x + descriptionWidth, y, resetButtonWidth, buttonHeight, false);
+				if (descriptionWidth < descriptionFullWidth) {
+					descriptionX -= (descriptionFullWidth - descriptionWidth);
+					descriptionWidth = descriptionFullWidth;
+				} else if (descriptionWidth < 0) {
+					descriptionWidth = 0;
+				}
+
+				keymapTitle.descriptionText->resize(descriptionX, y + textYOff, descriptionWidth, kLineHeight, false);
+				keymapTitle.resetButton->resize(resetX, y, resetButtonWidth, buttonHeight, false);
 			}
 
 			y += buttonHeight + spacing;
 		}
 
-		x = spacing;
+		uint x = spacing;
 
 		row.keyButton->resize(x, y, keyButtonWidth, buttonHeight, false);
 
@@ -159,8 +169,6 @@ void RemapWidget::handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 d
 		resetMapping(cmd - kResetActionCmd);
 	} else if (cmd >= kResetKeymapCmd && cmd < kResetKeymapCmd + _actions.size()) {
 		resetKeymap(cmd - kResetKeymapCmd);
-	} else if (cmd == kReflowCmd) {
-		reflowActionWidgets();
 	} else {
 		OptionsContainerWidget::handleCommand(sender, cmd, data);
 	}

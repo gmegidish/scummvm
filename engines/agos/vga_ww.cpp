@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,11 +24,12 @@
 
 #include "agos/agos.h"
 #include "agos/intern.h"
+#include "agos/midi.h"
 
 #include "common/system.h"
 
 #include "graphics/surface.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 
 namespace AGOS {
 
@@ -198,7 +198,7 @@ void AGOSEngine::vc61() {
 void AGOSEngine::vc62_fastFadeOut() {
 	vc29_stopAllSounds();
 
-	if (!_fastFadeOutFlag) {
+	if (!_neverFade && !_fastFadeOutFlag) {
 		uint i, fadeSize, fadeCount;
 
 		_fastFadeCount = 256;
@@ -220,12 +220,19 @@ void AGOSEngine::vc62_fastFadeOut() {
 			fadeSize = 4;
 		}
 
+		if (getGameType() == GType_SIMON2 && _nextMusicToPlay != -1)
+			// Music will be stopped after the screen fade, so fade out the
+			// music during the screen fade.
+			_midi->fadeOut();
+
 		for (i = fadeCount; i != 0; --i) {
 			paletteFadeOut(_currentPalette, _fastFadeCount, fadeSize);
 			_system->getPaletteManager()->setPalette(_currentPalette, 0, _fastFadeCount);
 			delay(5);
 		}
+	}
 
+	if (!_fastFadeOutFlag) {
 		if (getGameType() == GType_WW || getGameType() == GType_FF || getGameType() == GType_PP) {
 			clearSurfaces();
 		} else {

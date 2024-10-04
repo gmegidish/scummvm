@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/platform.h"
 #include "common/str.h"
+#include "common/algorithm.h"
 
 namespace Common {
 
@@ -34,10 +34,12 @@ const PlatformDescription g_platforms[] = {
 	{ "atari8", "atari8", "atari8", "Atari 8-bit", kPlatformAtari8Bit },
 	{ "atari", "atari-st", "st", "Atari ST", kPlatformAtariST },
 	{ "c64", "c64", "c64", "Commodore 64", kPlatformC64 },
+	{ "cpc", "cpc", "cpc", "Amstrad CPC", kPlatformAmstradCPC },
 	{ "pc", "dos", "ibm", "DOS", kPlatformDOS },
 	{ "pc98", "pc98", "pc98", "PC-98", kPlatformPC98 },
 	{ "wii", "wii", "wii", "Nintendo Wii", kPlatformWii },
-	{ "coco3", "coco3", "coco3", "CoCo3", kPlatformCoCo3 },
+	{ "coco", "coco", "coco", "CoCo", kPlatformCoCo },		// CoCo 1/2
+	{ "coco3", "coco3", "coco3", "CoCo3", kPlatformCoCo3 },	// CoCo 3 only
 
 	// The 'official' spelling seems to be "FM-TOWNS" (e.g. in the Indy4 demo).
 	// However, on the net many variations can be seen, like "FMTOWNS",
@@ -55,6 +57,7 @@ const PlatformDescription g_platforms[] = {
 	{ "xbox", "xbox", "xbox", "Microsoft Xbox", kPlatformXbox },
 	{ "cdi", "cdi", "cdi", "Philips CD-i", kPlatformCDi },
 	{ "ios", "ios", "ios", "Apple iOS", kPlatformIOS },
+	{ "android", "android", "android", "Android", kPlatformAndroid },
 	{ "os2", "os2", "os2", "OS/2", kPlatformOS2 },
 	{ "beos", "beos", "beos", "BeOS", kPlatformBeOS },
 	{ "ppc", "ppc", "ppc", "PocketPC", kPlatformPocketPC },
@@ -63,6 +66,8 @@ const PlatformDescription g_platforms[] = {
 	{ "pippin", "pippin", "pippin", "Pippin", kPlatformPippin },
 	{ "macintosh2", "macintosh2", "mac2", "Macintosh II", kPlatformMacintoshII },
 	{ "shockwave", "shockwave", "shock", "Shockwave", kPlatformShockwave },
+	{ "zx", "zx", "zx", "ZX Spectrum", kPlatformZX },
+	{ "ti994", "ti994", "ti994", "TI-99/4A", kPlatformTI994 },
 
 	{ nullptr, nullptr, nullptr, "Default", kPlatformUnknown }
 };
@@ -115,6 +120,17 @@ const char *getPlatformDescription(Platform id) {
 			return l->description;
 	}
 	return l->description;
+}
+
+List<String> getPlatformList() {
+	List<String> list;
+
+	for (const PlatformDescription *l = g_platforms; l->code; ++l)
+		list.push_back(l->code2);
+
+	 Common::sort(list.begin(), list.end());
+
+	 return list;
 }
 
 } // End of namespace Common

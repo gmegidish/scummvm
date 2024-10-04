@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,9 +46,9 @@
 namespace Queen {
 
 Logic::Logic(QueenEngine *vm)
-	: _credits(NULL), _objectData(NULL), _roomData(NULL), _sfxName(NULL),
-	_itemData(NULL), _graphicData(NULL), _walkOffData(NULL), _objectDescription(NULL),
-	_furnitureData(NULL), _actorData(NULL), _graphicAnim(NULL), _vm(vm) {
+	: _credits(nullptr), _objectData(nullptr), _roomData(nullptr), _sfxName(nullptr),
+	_itemData(nullptr), _graphicData(nullptr), _walkOffData(nullptr), _objectDescription(nullptr),
+	_furnitureData(nullptr), _actorData(nullptr), _graphicAnim(nullptr), _vm(vm) {
 	_joe.x = _joe.y = 0;
 	_joe.scale = 100;
 	_joe.walk = JWM_NORMAL;
@@ -103,7 +102,7 @@ void Logic::readQueenJas() {
 
 	if ((_vm->resource()->isDemo() && _vm->resource()->getPlatform() == Common::kPlatformDOS) ||
 		(_vm->resource()->isInterview() && _vm->resource()->getPlatform() == Common::kPlatformAmiga)) {
-		_sfxName = NULL;
+		_sfxName = nullptr;
 	} else {
 		_sfxName = new uint16[_numRooms + 1];
 		_sfxName[0] = 0;
@@ -373,7 +372,7 @@ WalkOffData *Logic::walkOffPointForObject(int16 obj) const {
 			return &_walkOffData[i];
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void Logic::joeWalk(JoeWalkMode walking) {
@@ -520,7 +519,7 @@ ActorData *Logic::findActor(uint16 noun, const char *name) const {
 	int16 img = objectData(obj)->image;
 	if (img != -3 && img != -4) {
 		warning("Logic::findActor() - Object %d is not a person", obj);
-		return NULL;
+		return nullptr;
 	}
 
 	// search Bob number for the person
@@ -537,18 +536,18 @@ ActorData *Logic::findActor(uint16 noun, const char *name) const {
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 bool Logic::initPerson(uint16 noun, const char *name, bool loadBank, Person *pp) {
 	const ActorData *pad = findActor(noun, name);
-	if (pad != NULL) {
+	if (pad != nullptr) {
 		pp->actor = pad;
 		pp->name = actorName(pad->name);
 		if (pad->anim != 0) {
 			pp->anim = actorAnim(pad->anim);
 		} else {
-			pp->anim = NULL;
+			pp->anim = nullptr;
 		}
 		if (loadBank && pad->file != 0) {
 			_vm->bankMan()->load(actorFile(pad->file), pad->bankNum);
@@ -557,7 +556,7 @@ bool Logic::initPerson(uint16 noun, const char *name, bool loadBank, Person *pp)
 		}
 		pp->bobFrame = 31 + pp->actor->bobNum;
 	}
-	return pad != NULL;
+	return pad != nullptr;
 }
 
 uint16 Logic::findPersonNumber(uint16 obj, uint16 room) const {
@@ -603,7 +602,7 @@ void Logic::setupJoeInRoom(bool autoPosition, uint16 scale) {
 		// find the walk off point for the entry object and make
 		// Joe walking to that point
 		const WalkOffData *pwo = walkOffPointForObject(_entryObj);
-		if (pwo != NULL) {
+		if (pwo != nullptr) {
 			oldx = pwo->x;
 			oldy = pwo->y;
 			// entryObj has a walk off point, then walk from there to object x,y
@@ -827,7 +826,7 @@ void Logic::startDialogue(const char *dlgFile, int personInRoom, char *cutaway) 
 			makeJoeSpeak(24 + _vm->randomizer.getRandomNumber(2));
 		} else {
 			char cutawayFile[20];
-			if (cutaway == NULL) {
+			if (cutaway == nullptr) {
 				cutaway = cutawayFile;
 			}
 			_vm->display()->fullscreen(true);
@@ -841,7 +840,7 @@ void Logic::startDialogue(const char *dlgFile, int personInRoom, char *cutaway) 
 
 void Logic::playCutaway(const char *cutFile, char *next) {
 	char nextFile[20];
-	if (next == NULL) {
+	if (next == nullptr) {
 		next = nextFile;
 	}
 	_vm->display()->clearTexts(CmdText::COMMAND_Y_POS, CmdText::COMMAND_Y_POS);
@@ -854,8 +853,8 @@ void Logic::makeJoeSpeak(uint16 descNum, bool objectType) {
 		descNum += JOE_RESPONSE_MAX;
 	}
 	char descFilePrefix[10];
-	sprintf(descFilePrefix, "JOE%04i", descNum);
-	makePersonSpeak(text, NULL, descFilePrefix);
+	Common::sprintf_s(descFilePrefix, "JOE%04i", descNum);
+	makePersonSpeak(text, nullptr, descFilePrefix);
 }
 
 uint16 Logic::findInventoryItem(int invSlot) const {
@@ -1441,7 +1440,7 @@ void Logic::changeRoom() {
 
 void Logic::executeSpecialMove(uint16 sm) {
 	debug(6, "Special move: %d", sm);
-	if (sm < ARRAYSIZE(_specialMoves) && _specialMoves[sm] != 0) {
+	if (sm < ARRAYSIZE(_specialMoves) && _specialMoves[sm] != nullptr) {
 		(this->*_specialMoves[sm])();
 	}
 }
@@ -2074,12 +2073,12 @@ void Logic::stopCredits() {
 	if (_credits) {
 		_vm->display()->clearTexts(0, 199);
 		delete _credits;
-		_credits = NULL;
+		_credits = nullptr;
 	}
 }
 
 void LogicDemo::useJournal() {
-	makePersonSpeak("This is a demo, so I can't load or save games*14", NULL, "");
+	makePersonSpeak("This is a demo, so I can't load or save games*14", nullptr, "");
 }
 
 bool LogicDemo::changeToSpecialRoom() {

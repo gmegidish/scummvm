@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -235,7 +234,7 @@ Audio32::~Audio32() {
 
 int Audio32::writeAudioInternal(Audio::AudioStream &sourceStream, Audio::RateConverter &converter, Audio::st_sample_t *targetBuffer, const int numSamples, const Audio::st_volume_t leftVolume, const Audio::st_volume_t rightVolume) {
 	const int samplePairsToRead = numSamples >> 1;
-	const int samplePairsWritten = converter.flow(sourceStream, targetBuffer, samplePairsToRead, leftVolume, rightVolume);
+	const int samplePairsWritten = converter.convert(sourceStream, targetBuffer, samplePairsToRead, leftVolume, rightVolume);
 	return samplePairsWritten << 1;
 }
 
@@ -695,7 +694,8 @@ bool Audio32::playRobotAudio(const RobotAudioStream::RobotAudioPacket &packet) {
 		channel.soundNode = NULL_REG;
 		channel.volume = kMaxVolume;
 		channel.pan = -1;
-		channel.converter.reset(Audio::makeRateConverter(RobotAudioStream::kRobotSampleRate, getRate(), false));
+		// TODO: Avoid unnecessary channel conversion
+		channel.converter.reset(Audio::makeRateConverter(RobotAudioStream::kRobotSampleRate, getRate(), false, true, false));
 		// The RobotAudioStream buffer size is
 		// ((bytesPerSample * channels * sampleRate * 2000ms) / 1000ms) & ~3
 		// where bytesPerSample = 2, channels = 1, and sampleRate = 22050
@@ -861,7 +861,8 @@ uint16 Audio32::play(int16 channelIndex, const ResourceId resourceId, const bool
 	}
 
 	channel.stream.reset(new MutableLoopAudioStream(audioStream, loop));
-	channel.converter.reset(Audio::makeRateConverter(channel.stream->getRate(), getRate(), channel.stream->isStereo(), false));
+	// TODO: Avoid unnecessary channel conversion
+	channel.converter.reset(Audio::makeRateConverter(channel.stream->getRate(), getRate(), channel.stream->isStereo(), true, false));
 
 	// SSCI sets up a decompression buffer here for the audio stream, plus
 	// writes information about the sample to the channel to convert to the
@@ -1122,8 +1123,30 @@ bool Audio32::fadeChannel(const int16 channelIndex, const int16 targetVolume, co
 
 	AudioChannel &channel = getChannel(channelIndex);
 
-	if (channel.id.getType() != kResourceTypeAudio || channel.volume == targetVolume) {
+	if (channel.id.getType() != kResourceTypeAudio) {
 		return false;
+	}
+
+	// Do nothing when volume is already at the target
+	if (channel.volume == targetVolume) {
+		// WORKAROUND: GK2 has a script bug that locks up the game in many places
+		// when the music volume slider is set to lowest. This also occurs in
+		// the original. Instead of using kDoSoundMasterVolume, the slider sets
+		// the volume of every sound object along with a global that limits the
+		// maximum volume that any sound object can be set to. At the lowest
+		// setting, all sound object volumes are zero and can only be set or
+		// faded to zero. GK2 also fades many sounds and waits for them to
+		// complete in HandsOff mode. But the interpreter ignores attempts to
+		// fade a sound whose volume is already at the target, turning every
+		// fade wait into a lockup. We work around this by allowing GK2 fades
+		// to proceed if the current and target volume are both zero.
+		// Ideally this would be a script patch, but it's unclear how to do that
+		// and keep the expected delays that fading provides. 
+		// Example: Start of chapter 1, exit the farm interior and re-enter.
+		bool allowFadeToCurrent = (g_sci->getGameId() == GID_GK2 && targetVolume == 0);
+		if (!allowFadeToCurrent) {
+			return false;
+		}
 	}
 
 	if (steps && speed) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -99,10 +98,10 @@ class FloatingWindow;
 class DragBar : public gControl {
 
 public:
-	static StaticPoint16  dragOffset,             // mouse offset
-	                      dragPos;                // new position of window
-	static bool     update;                 // true = update window pos
-	static FloatingWindow *dragWindow;      // which window to update
+	static StaticPoint16  _dragOffset,             // mouse offset
+	                      _dragPos;                // new position of window
+	static bool     _update;                 // true = update window pos
+	static FloatingWindow *_dragWindow;      // which window to update
 
 	DragBar(gPanelList &, const Rect16 &);
 
@@ -153,19 +152,19 @@ public:
 
 class gImageButton : public gButton {
 protected:
-	gPixelMap   *selImage,
-	            *deselImage;
+	gPixelMap   *_selImage,
+	            *_deselImage;
 
 public:
 	gImageButton(gPanelList &list, const Rect16 &box, gPixelMap &img1, gPixelMap &img2, uint16 ident, AppFunc *cmd = NULL) :
 		gButton(list, box, NULL, ident, cmd) {
-		selImage = &img1;
-		deselImage = &img2;
+		_selImage = &img1;
+		_deselImage = &img2;
 	}
 	gImageButton(gPanelList &list, const Rect16 &box, gPixelMap &img1, gPixelMap &img2, char *title_, uint16 ident, AppFunc *cmd = NULL) :
 		gButton(list, box, title_, ident, cmd) {
-		selImage = &img1;
-		deselImage = &img2;
+		_selImage = &img1;
+		_deselImage = &img2;
 	}
 
 	void drawClipped(gPort &port, const Point16 &offset, const Rect16 &r);
@@ -210,8 +209,8 @@ public:
 
 class DecoratedWindow : public gWindow {
 public:
-	WindowDecoration        *decorations;
-	int16                   numDecorations;
+	WindowDecoration        *_decorations;
+	int16                   _numDecorations;
 
 	//  For a future enhancement where different windows have
 	//  different animated areas.
@@ -272,17 +271,17 @@ public:
 
 class FloatingWindow : public DecoratedWindow {
 
-	DragBar     *db;                    // save address of drag bar
+	DragBar     *_db;                    // save address of drag bar
 
 	void toFront();
 
 	// original extent before movement
-	Point16 origPos;
+	Point16 _origPos;
 
 public:
 
 	// decoration position offset
-	Point16 decOffset;
+	Point16 _decOffset;
 
 	FloatingWindow(const Rect16 &, uint16, const char saveas[], AppFunc *cmd = NULL);
 
@@ -297,7 +296,7 @@ public:
 	// set the extent of the entire window ( including decorations )
 	void    setExtent(const Rect16 &);
 	const Point16 &getDecOffset() {
-		return decOffset;
+		return _decOffset;
 	}
 
 	bool open();

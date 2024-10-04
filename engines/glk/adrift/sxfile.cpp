@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@ struct sx_scr_stream_t {
 	sc_bool is_open;
 	sc_bool is_writable;
 };
-static sx_scr_stream_t scr_serialization_stream = {NULL, 0, FALSE, FALSE};
+static sx_scr_stream_t scr_serialization_stream = {nullptr, 0, FALSE, FALSE};
 
 
 /*
@@ -59,11 +58,11 @@ void *file_open_file_callback(sc_bool is_save) {
 	if (stream->is_open) {
 		error("File open error: %s",
 		                "stream is in use (script limitation)");
-		return NULL;
+		return nullptr;
 	} else if (is_save && stream->data) {
 		error("File open error: %s",
 		                "stream has not been read (script limitation)");
-		return NULL;
+		return nullptr;
 	}
 
 	/*
@@ -71,10 +70,10 @@ void *file_open_file_callback(sc_bool is_save) {
 	 * no data available for a read-only open.
 	 */
 	if (is_save) {
-		stream->data = NULL;
+		stream->data = nullptr;
 		stream->length = 0;
 	} else if (!stream->data)
-		return NULL;
+		return nullptr;
 
 	stream->is_open = TRUE;
 	stream->is_writable = is_save;
@@ -147,7 +146,7 @@ void file_close_file_callback(void *opaque) {
 	 */
 	if (!stream->is_writable) {
 		sx_free(stream->data);
-		stream->data = NULL;
+		stream->data = nullptr;
 		stream->length = 0;
 	}
 	stream->is_writable = FALSE;
@@ -164,7 +163,7 @@ void file_cleanup(void) {
 	sx_scr_stream_t *const stream = &scr_serialization_stream;
 
 	sx_free(stream->data);
-	stream->data = NULL;
+	stream->data = nullptr;
 	stream->length = 0;
 	stream->is_writable = FALSE;
 	stream->is_open = FALSE;

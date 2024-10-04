@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 /*
@@ -35,7 +34,7 @@ namespace Tony {
 namespace MPAL {
 
 /**
- * @defgroup Mathamatical operations
+ * @defgroup Mathematical operations
  */
 //@{
 
@@ -66,16 +65,16 @@ namespace MPAL {
 
 //@{
 /**
- * Mathamatical framework to manage operations
+ * Mathematical framework to manage operations
  */
 typedef struct {
 	byte _type;          // Object Type (see enum ExprListTypes)
 
 	union {
-		int _num;        // Identifier (if type == ELT_NUMBER)
+		int32 _num;      // Identifier (if type == ELT_NUMBER)
 		char *_name;     // Variable name (if type == ELT_VAR)
 		MpalHandle _son; // Handle expressions (if type == ELT_PARENTH)
-		byte *_pson;     // Handle lockato (if type == ELT_PARENTH2)
+		void *_pson;     // Handle lockato (if type == ELT_PARENTH2)
 	} _val;
 
 	byte _symbol;        // Mathematic symbols (see #define OP_*)
@@ -107,15 +106,15 @@ enum ExprListTypes {
  * will point to the area of memory containing the parsed expression
  * @returns		Pointer to the buffer immediately after the expression, or NULL if error.
  */
-const byte *parseExpression(const byte *lpBuf, MpalHandle *h);
+const byte *parseExpression(const byte *lpBuf, const Common::UnalignedPtr<MpalHandle> &h);
 
 /**
- * Calculate the value of a mathamatical expression
+ * Calculate the value of a mathematical expression
  *
  * @param h					Handle to the expression
  * @returns		Numeric value
  */
-int evaluateExpression(MpalHandle h);
+int32 evaluateExpression(MpalHandle h);
 
 /**
  * Compare two mathematical expressions together

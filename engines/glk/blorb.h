@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@ struct ChunkEntry {
 	uint _id;
 	size_t _offset;
 	size_t _size;
-	Common::String _filename;
+	Common::Path _filename;
 };
 
 enum {
@@ -82,7 +81,7 @@ enum {
  */
 class Blorb : public Common::Archive {
 private:
-	Common::String _filename;
+	Common::Path _filename;
 	Common::FSNode _fileNode;
 	InterpreterType _interpType;
 	Common::Array<ChunkEntry> _chunks;	///< list of chunk descriptors
@@ -95,12 +94,12 @@ private:
 	/**
 	 * Add possible Blorb filenames for Infocom games
 	 */
-	static void getInfocomBlorbFilenames(Common::StringArray &filenames, const Common::String &gameId);
+	static void getInfocomBlorbFilenames(Common::Array<Common::Path> &filenames, const Common::String &gameId);
 public:
 	/**
 	 * Constructor
 	 */
-	Blorb(const Common::String &filename, InterpreterType interpType);
+	Blorb(const Common::Path &filename, InterpreterType interpType);
 
 	/**
 	 * Constructor
@@ -147,7 +146,7 @@ public:
 	/**
 	 * Returns true if a given filename specifies a Blorb file
 	 */
-	static bool isBlorb(const Common::String &filename, uint32 type = 0);
+	static bool isBlorb(const Common::Path &filename, uint32 type = 0);
 
 	/**
 	 * Returns true if a given filename has a Blorb file extension
@@ -157,7 +156,7 @@ public:
 	/**
 	 * Return a list of possible filenames for blorb files
 	 */
-	static void getBlorbFilenames(const Common::String &srcFilename, Common::StringArray &filenames,
+	static void getBlorbFilenames(const Common::Path &srcFilename, Common::Array<Common::Path> &filenames,
 		InterpreterType interpType, const Common::String &gameId);
 };
 

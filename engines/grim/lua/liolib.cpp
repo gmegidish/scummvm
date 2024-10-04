@@ -8,6 +8,7 @@
 #define FORBIDDEN_SYMBOL_EXCEPTION_fread
 #define FORBIDDEN_SYMBOL_EXCEPTION_fwrite
 #define FORBIDDEN_SYMBOL_EXCEPTION_fseek
+#define FORBIDDEN_SYMBOL_EXCEPTION_sprintf
 #define FORBIDDEN_SYMBOL_EXCEPTION_stderr
 #define FORBIDDEN_SYMBOL_EXCEPTION_stdin
 #define FORBIDDEN_SYMBOL_EXCEPTION_stdout
@@ -28,13 +29,13 @@
 
 namespace Grim {
 
-#define CLOSEDTAG	2
-#define IOTAG		1
+#define CLOSEDTAG       2
+#define IOTAG           1
 
-#define FIRSTARG      3  // 1st and 2nd are upvalues
+#define FIRSTARG        3  // 1st and 2nd are upvalues
 
-#define FINPUT		"_INPUT"
-#define FOUTPUT		"_OUTPUT"
+#define FINPUT          "_INPUT"
+#define FOUTPUT         "_OUTPUT"
 
 LuaFile *g_stderr;
 
@@ -337,7 +338,7 @@ static void io_date() {
 	char b[BUFSIZ];
 
 	g_system->getTimeAndDate(t);
-	sprintf(b, "%02d.%02d.%d %02d:%02d.%02d", t.tm_mday, t.tm_mon + 1, 1900 + t.tm_year, t.tm_hour, t.tm_min, t.tm_sec);
+	snprintf(b, BUFSIZ, "%02d.%02d.%d %02d:%02d.%02d", t.tm_mday, t.tm_mon + 1, 1900 + t.tm_year, t.tm_hour, t.tm_min, t.tm_sec);
 	lua_pushstring(b);
 }
 
@@ -356,67 +357,66 @@ static void lua_printstack() {
 		const char *filename;
 		int32 linedefined;
 		lua_funcinfo(func, &filename, &linedefined);
-		sprintf(buf, (level == 2) ? "Active Stack:\n\t" : "\t");
+		snprintf(buf, 256, (level == 2) ? "Active Stack:\n\t" : "\t");
 		g_stderr->write(buf, strlen(buf));
 		switch (*lua_getobjname(func, &name)) {
 		case 'g':
-			sprintf(buf, "function %s", name);
+			snprintf(buf, 256, "function %s", name);
 			break;
 		case 't':
-			sprintf(buf, "`%s' tag method", name);
+			snprintf(buf, 256, "`%s' tag method", name);
 			break;
 		default:
 			{
 				if (linedefined == 0)
-					sprintf(buf, "main of %s", filename);
+					snprintf(buf, 256, "main of %s", filename);
 				else if (linedefined < 0)
-					sprintf(buf, "%s", filename);
+					snprintf(buf, 256, "%s", filename);
 				else
-					sprintf(buf, "function (%s:%d)", filename, (int)linedefined);
+					snprintf(buf, 256, "function (%s:%d)", filename, (int)linedefined);
 				filename = nullptr;
 			}
 		}
 		g_stderr->write(buf, strlen(buf));
 
 		if ((currentline = lua_currentline(func)) > 0) {
-			sprintf(buf, " at line %d", (int)currentline);
+			snprintf(buf, 256, " at line %d", (int)currentline);
 			g_stderr->write(buf, strlen(buf));
 		}
 		if (filename) {
-			sprintf(buf, " [in file %s]", filename);
+			snprintf(buf, 256, " [in file %s]", filename);
 			g_stderr->write(buf, strlen(buf));
 		}
-		sprintf(buf, "\n");
+		snprintf(buf, 256, "\n");
 		g_stderr->write(buf, strlen(buf));
 	}
 }
 
 static void errorfb() {
 	char buf[256];
-	sprintf(buf, "lua: %s\n", lua_getstring(lua_getparam(1)));
+	snprintf(buf, 256, "lua: %s\n", lua_getstring(lua_getparam(1)));
 	g_stderr->write(buf, strlen(buf));
 	lua_printstack();
 }
 
 static struct luaL_reg iolib[] = {
-	{ "date",			io_date },
-	{ "exit",			io_exit },
-	{ "print_stack",	errorfb }
+	{ "date",        io_date },
+	{ "exit",        io_exit },
+	{ "print_stack", errorfb }
 };
 
 static struct luaL_reg iolibtag[] = {
-	{ "readfrom",	io_readfrom },
-	{ "writeto",	io_writeto },
-	{ "appendto",	io_appendto },
-	{ "read",		io_read },
-	{ "write",		io_write }
+	{ "readfrom",    io_readfrom },
+	{ "writeto",     io_writeto },
+	{ "appendto",    io_appendto },
+	{ "read",        io_read },
+	{ "write",       io_write }
 };
 
 static void openwithtags() {
 	int32 iotag = lua_newtag();
 	int32 closedtag = lua_newtag();
-	uint32 i;
-	for (i = 0; i < sizeof(iolibtag) / sizeof(iolibtag[0]); i++) {
+	for (uint32 i = 0; i < sizeof(iolibtag) / sizeof(iolibtag[0]); i++) {
 		// put both tags as upvalues for these functions
 		lua_pushnumber(iotag);
 		lua_pushnumber(closedtag);

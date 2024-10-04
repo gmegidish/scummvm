@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,14 +27,16 @@
 #include "engines/wintermute/dctypes.h"
 #include "engines/wintermute/math/rect32.h"
 #include "engines/wintermute/math/vector2.h"
+
 #include "graphics/transform_struct.h"
+#include "graphics/surface.h"
+
 #include "math/matrix4.h"
 #include "math/ray.h"
 
 #if defined(USE_OPENGL_SHADERS)
 
 #include "graphics/opengl/system_headers.h"
-#include "graphics/opengl/texture.h"
 
 #endif
 
@@ -47,7 +48,7 @@ class AdWalkplane;
 class BaseSurfaceOpenGL3D;
 class Light3D;
 class Mesh3DS;
-class MeshX;
+class XMesh;
 class ShadowVolume;
 
 class BaseRenderer3D : public BaseRenderer {
@@ -65,7 +66,8 @@ public:
 	virtual int maximumLightsCount() = 0;
 	virtual void enableLight(int index) = 0;
 	virtual void disableLight(int index) = 0;
-	virtual void setLightParameters(int index, const Math::Vector3d &position, const Math::Vector3d &direction, const Math::Vector4d &diffuse, bool spotlight) = 0;
+	virtual void setLightParameters(int index, const Math::Vector3d &position, const Math::Vector3d &direction,
+	                                const Math::Vector4d &diffuse, bool spotlight) = 0;
 
 	virtual void setSpriteBlendMode(Graphics::TSpriteBlendMode blendMode) = 0;
 
@@ -95,11 +97,11 @@ public:
 	}
 
 	virtual Mesh3DS *createMesh3DS() = 0;
-	virtual MeshX *createMeshX() = 0;
+	virtual XMesh *createXMesh() = 0;
 	virtual ShadowVolume *createShadowVolume() = 0;
 
 	bool drawSprite(BaseSurfaceOpenGL3D &tex, const Rect32 &rect, float zoomX, float zoomY, const Vector2 &pos,
-					uint32 color, bool alphaDisable, Graphics::TSpriteBlendMode blendMode, bool mirrorX, bool mirrorY);
+	                uint32 color, bool alphaDisable, Graphics::TSpriteBlendMode blendMode, bool mirrorX, bool mirrorY);
 	virtual bool drawSpriteEx(BaseSurfaceOpenGL3D &tex, const Rect32 &rect, const Vector2 &pos, const Vector2 &rot, const Vector2 &scale,
 	                          float angle, uint32 color, bool alphaDisable, Graphics::TSpriteBlendMode blendMode, bool mirrorX, bool mirrorY) = 0;
 
@@ -113,6 +115,8 @@ protected:
 	Math::Matrix4 _lastViewMatrix;
 	Math::Matrix4 _projectionMatrix3d;
 	Rect32 _viewport3dRect;
+
+	void flipVertical(Graphics::Surface *s);
 };
 
 } // namespace Wintermute

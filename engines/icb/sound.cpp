@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -253,10 +252,10 @@ int32 EvalEnv(const CEnvelope &env, int32 x) {
 }
 
 // get the sfxlist file!
-_linked_data_file *GetMissionSfxFile() {
+LinkedDataFile *GetMissionSfxFile() {
 	uint32 fileHash;
 	uint32 clusterHash;
-	_linked_data_file *f = NULL;
+	LinkedDataFile *f = nullptr;
 
 	// if no mission return NULL
 	if (!g_mission) {
@@ -269,68 +268,68 @@ _linked_data_file *GetMissionSfxFile() {
 
 		fileHash = NULL_HASH;
 		clusterHash = MS->Fetch_session_cluster_hash();
-		f = (_linked_data_file *)private_session_resman->Res_open("m_sfxlist", fileHash, MS->Fetch_session_cluster(), clusterHash);
+		f = (LinkedDataFile *)private_session_resman->Res_open("m_sfxlist", fileHash, MS->Fetch_session_cluster(), clusterHash);
 
 	}
 
-	if ((f->GetHeaderVersion() != SFX_VERSION) || (f->header.type != FT_COMPILED_SFX))
-		Fatal_error("Sound: mission::the.cmpsfxlist, Header wrong, engine:%d,%08x file:%d,%08x\n", SFX_VERSION, FT_COMPILED_SFX, f->GetHeaderVersion(), f->header.type);
+	if ((LinkedDataObject::GetHeaderVersion(f) != SFX_VERSION) || (FROM_LE_32(f->header.type) != FT_COMPILED_SFX))
+		Fatal_error("Sound: mission::the.cmpsfxlist, Header wrong, engine:%d,%08x file:%d,%08x\n", SFX_VERSION, FT_COMPILED_SFX, LinkedDataObject::GetHeaderVersion(f), FROM_LE_32(f->header.type));
 
 	return f;
 }
 
-_linked_data_file *GetSessionSfxFile() {
+LinkedDataFile *GetSessionSfxFile() {
 
 	// if no session return NULL
 	if ((!g_mission) || (!(g_mission->session))) {
 		warning("no session so no sfx file!");
-		return NULL;
+		return nullptr;
 	}
 
 	uint32 fileHash = NULL_HASH;
 	uint32 clusterHash = MS->Fetch_session_cluster_hash();
-	_linked_data_file *f;
+	LinkedDataFile *f;
 
 	// For the PC clustering the sfx file does not have the path, just the name
 
-	f = (_linked_data_file *)private_session_resman->Res_open(
+	f = (LinkedDataFile *)private_session_resman->Res_open(
 
 	    "s_sfxlist",
 
 	    fileHash, MS->Fetch_session_cluster(), clusterHash);
 
-	if ((f->GetHeaderVersion() != SFX_VERSION) || (f->header.type != FT_COMPILED_SFX))
-		Fatal_error("Sound: session::the.cmpsfxlist, Header wrong, engine:%d,%08x file:%d,%08x\n", SFX_VERSION, FT_COMPILED_SFX, f->GetHeaderVersion(), f->header.type);
+	if ((LinkedDataObject::GetHeaderVersion(f) != SFX_VERSION) || (FROM_LE_32(f->header.type) != FT_COMPILED_SFX))
+		Fatal_error("Sound: session::the.cmpsfxlist, Header wrong, engine:%d,%08x file:%d,%08x\n", SFX_VERSION, FT_COMPILED_SFX, LinkedDataObject::GetHeaderVersion(f), FROM_LE_32(f->header.type));
 	return f;
 }
 
 // get a pointer to sfx (number) in the mission or session sfx file
 CSfx *GetMissionSfx(int32 number) {
-	_linked_data_file *linkedSfx;
+	LinkedDataFile *linkedSfx;
 
 	linkedSfx = GetMissionSfxFile();
 
-	return (CSfx *)linkedSfx->Fetch_item_by_number(number);
+	return (CSfx *)LinkedDataObject::Fetch_item_by_number(linkedSfx, number);
 }
 
 CSfx *GetSessionSfx(int32 number) {
-	_linked_data_file *linkedSfx;
+	LinkedDataFile *linkedSfx;
 
 	linkedSfx = GetSessionSfxFile();
 
-	return (CSfx *)linkedSfx->Fetch_item_by_number(number);
+	return (CSfx *)LinkedDataObject::Fetch_item_by_number(linkedSfx, number);
 }
 
 // return a number for the sfx (in either mision or session) -1 means the sfx is not in the sound file (probabily in the other one)
 int32 WhichMissionSfx(uint32 sfx) {
-	_linked_data_file *linkedSfx;
+	LinkedDataFile *linkedSfx;
 	uint32 n;
 
 	linkedSfx = GetMissionSfxFile();
-	if (linkedSfx == NULL)
+	if (linkedSfx == nullptr)
 		return -1;
 
-	n = linkedSfx->Fetch_item_number_by_hash(sfx);
+	n = LinkedDataObject::Fetch_item_number_by_hash(linkedSfx, sfx);
 
 	if (n == PX_LINKED_DATA_FILE_ERROR)
 		return -1;
@@ -339,14 +338,14 @@ int32 WhichMissionSfx(uint32 sfx) {
 }
 
 int32 WhichSessionSfx(uint32 sfx) {
-	_linked_data_file *linkedSfx;
+	LinkedDataFile *linkedSfx;
 	uint32 n;
 
 	linkedSfx = GetSessionSfxFile();
-	if (linkedSfx == NULL)
+	if (linkedSfx == nullptr)
 		return -1;
 
-	n = linkedSfx->Fetch_item_number_by_hash(sfx);
+	n = LinkedDataObject::Fetch_item_number_by_hash(linkedSfx, sfx);
 
 	if (n == PX_LINKED_DATA_FILE_ERROR)
 		return -1;
@@ -396,7 +395,7 @@ int32 GetFreeChannel() {
 
 // Get sfx for this registered sound
 CSfx *CRegisteredSound::GetSfx() {
-	CSfx *the_sfx = 0;
+	CSfx *the_sfx = nullptr;
 
 	if (m_sfxNumber == -1)
 		Fatal_error("sfx is not found in session or mission");
@@ -519,7 +518,7 @@ void CRegisteredSound::UpdateGameCycle(int32 newVol, int32 newPan) {
 			} else {                                // sample is looping or sound isn't on so just reset wave
 				m_position -= MAX_ENV_POSITION; // reset wave
 
-				if (m_position <= 0) // definately don't restart accidently
+				if (m_position <= 0) // definitely don't restart accidentally
 					m_position = 1;
 			}
 		}
@@ -637,7 +636,7 @@ bool8 CRegisteredSound::SetHearable() {
 
 		ch = GetSoundCloser(m_objID, m_x, m_y, m_z);
 		if (ch == -1)
-			return TRUE8; // still don't return true just dont set a channel
+			return TRUE8; // still don't return true just don't set a channel
 	}
 
 	SET_CHANNEL_USED(ch);
@@ -663,7 +662,7 @@ void CRegisteredSound::SetUnhearable() {
 
 	Tdebug("sounds.txt", "Sound is now unhearable");
 
-	// start turning off sound... (we are definately playing it...)
+	// start turning off sound... (we are definitely playing it...)
 	m_turnOff = TRUE8;
 	// don't remove though
 }
@@ -721,7 +720,7 @@ void CRegisteredSound::Register(const char *sndName, const char *sfxName, uint32
 	m_channel = -1;
 
 	m_volume = 0; // default, gets changed if sound is heard
-	m_pan = 0;    // default (centre) will get changed before playing if necesary
+	m_pan = 0;    // default (centre) will get changed before playing if necessary
 
 	m_sample_pitch = GetSamplePitch(sfx->GetSampleName(), m_inSession);
 
@@ -831,8 +830,10 @@ int32 assignedSounds = 0;
 void UpdateSounds10Hz() {
 	int32 i;
 
-	for (i = 0; i < MAX_REGISTERED_SOUNDS; i++)
-		g_registeredSounds[i]->Update10Hz();
+	for (i = 0; i < MAX_REGISTERED_SOUNDS; i++) {
+		if (g_registeredSounds[i])
+			g_registeredSounds[i]->Update10Hz();
+	}
 }
 
 // called every game cycle sets hearable and unhearable sounds...
@@ -888,7 +889,7 @@ void UpdateHearableSounds() {
 	if ((g_mission) && (g_mission->session) && (MS->speech_info[CONV_ID].total_subscribers > 0) && (GetSpeechVolume() > 0))
 		speechOnSliderTarget = SPEECH_ON_VOLUME;
 	// if remora active even lower volume
-	else if (g_oRemora->IsActive())
+	else if (g_icb->getGameType() == GType_ICB && g_oRemora->IsActive())
 		speechOnSliderTarget = REMORA_ACTIVE_VOLUME;
 	// otherwise our target is full volume
 	else
@@ -1025,7 +1026,7 @@ void RegisterSoundOffset(uint32 obj, const char *offsetName, const char *sfxName
 		g_registeredSounds[i]->RegisterFromAbsolute(obj, sndID, sfxName, sfxHash, xo, yo, zo, volume_offset);
 	}
 	// absolute sound (no name)
-	else if ((offsetName == NULL) || (strcmp(offsetName, "") == 0)) {
+	else if ((offsetName == nullptr) || (strcmp(offsetName, "") == 0)) {
 		// absolute address
 		g_registeredSounds[i]->RegisterFromAbsolute(obj, sndID, sfxName, sfxHash, xo, yo, zo, volume_offset);
 	}
@@ -1033,7 +1034,7 @@ void RegisterSoundOffset(uint32 obj, const char *offsetName, const char *sfxName
 	else if (isNico) {
 		// is nico so get position of it...
 		// x=, y=, z=
-		_feature_info *fi = (_feature_info *)(MS->features->Fetch_item_by_name(offsetName));
+		_feature_info *fi = (_feature_info *)(LinkedDataObject::Fetch_item_by_name(MS->features, offsetName));
 		x = fi->x;
 		y = fi->y;
 		z = fi->z;
@@ -1043,7 +1044,7 @@ void RegisterSoundOffset(uint32 obj, const char *offsetName, const char *sfxName
 	else {
 		// is mega object so attach sound to it
 		// obj=
-		obj = MS->objects->Fetch_item_number_by_name(offsetName);
+		obj = LinkedDataObject::Fetch_item_number_by_name(MS->objects, offsetName);
 		g_registeredSounds[i]->RegisterFromObject(obj, sndID, sfxName, sfxHash, xo, yo, zo, volume_offset);
 	}
 
@@ -1056,25 +1057,25 @@ void RegisterSound(uint32 obj, const char *sfxName, uint32 sfxHash, const char *
 	const char *name;
 
 	if (obj == SPECIAL_SOUND)
-		name = NULL;
+		name = nullptr;
 	else
-		name = (const char *)(MS->objects->Fetch_items_name_by_number(obj));
+		name = (const char *)(LinkedDataObject::Fetch_items_name_by_number(MS->objects, obj));
 
 	RegisterSoundOffset(obj, name, sfxName, sfxHash, sndID, (PXreal)0, (PXreal)0, (PXreal)0, 0, 0, volume_offset);
 }
 
 // register a sound from an absolute position
 void RegisterSoundAbsolute(uint32 obj, const char *sfxName, uint32 sfxHash, const char *sndID, PXreal x, PXreal y, PXreal z, int8 volume_offset) {
-	RegisterSoundOffset(obj, NULL, sfxName, sfxHash, sndID, x, y, z, 0, 0, volume_offset);
+	RegisterSoundOffset(obj, nullptr, sfxName, sfxHash, sndID, x, y, z, 0, 0, volume_offset);
 }
 
 void RegisterSoundTime(uint32 obj, const char *sfxName, uint32 sfxHash, const char *sndID, int32 time, int8 volume_offset) {
 	const char *name;
 
 	if (obj == SPECIAL_SOUND)
-		name = NULL;
+		name = nullptr;
 	else
-		name = (const char *)(MS->objects->Fetch_items_name_by_number(obj));
+		name = (const char *)(LinkedDataObject::Fetch_items_name_by_number(MS->objects, obj));
 
 	RegisterSoundOffset(obj, name, sfxName, sfxHash, sndID, (PXreal)0, (PXreal)0, (PXreal)0, 0, time, volume_offset);
 }
@@ -1083,14 +1084,14 @@ void RegisterSoundTime(uint32 obj, const char *sfxName, uint32 sfxHash, const ch
 // for menus
 void RegisterMenuSound(const char *sfxName, uint32 sfxHash, int32 volume, int32 pan, int8 volume_offset) {
 	// volume is z of position
-	RegisterSoundOffset(SPECIAL_SOUND, NULL, sfxName, sfxHash, menuSoundID, (PXreal)pan, (PXreal)0, (PXreal)volume, 0, 0, volume_offset);
+	RegisterSoundOffset(SPECIAL_SOUND, nullptr, sfxName, sfxHash, menuSoundID, (PXreal)pan, (PXreal)0, (PXreal)volume, 0, 0, volume_offset);
 }
 
 // special sound
 // for in game (these are paused just like any other...
 void RegisterSoundSpecial(const char *sfxName, uint32 sfxHash, const char *sndID, int32 volume, int32 pan, int8 volume_offset) {
 	// volume is z of position
-	RegisterSoundOffset(SPECIAL_SOUND, NULL, sfxName, sfxHash, sndID, (PXreal)pan, (PXreal)0, (PXreal)volume, 0, 0, volume_offset);
+	RegisterSoundOffset(SPECIAL_SOUND, nullptr, sfxName, sfxHash, sndID, (PXreal)pan, (PXreal)0, (PXreal)volume, 0, 0, volume_offset);
 }
 
 void RemoveRegisteredSound(uint32 obj, const char *sndID) {

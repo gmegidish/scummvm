@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,7 +66,7 @@ char G_os_gamename[OSFNMAX];
 int os_init(int *argc, char *argv[], const char *prompt,
 			char *buf, int bufsiz)
 {
-	mainwin = g_vm->glk_window_open(0, 0, 0, wintype_TextBuffer, 0);
+	mainwin = g_vm->glk_window_open(nullptr, 0, 0, wintype_TextBuffer, 0);
 	if (!mainwin)
 		error("fatal: could not open window!\n");
 
@@ -90,13 +89,13 @@ int os_init(int *argc, char *argv[], const char *prompt,
 		statusbg = 0;
 
 	/* close statuswin; reopened on request */
-	g_vm->glk_window_close(statuswin, 0);
+	g_vm->glk_window_close(statuswin, nullptr);
 
 	statuswin = nullptr;
 
 	g_vm->glk_set_window(mainwin);
 
-	strcpy(rbuf, "");
+	rbuf[0] = '\0';
 
 	return 0;
 }
@@ -318,14 +317,14 @@ void os_status(int stat)
 
 	if (stat == 1)
 	{
-		if (statuswin == NULL)
+		if (statuswin == nullptr)
 		{
 			g_vm->glk_stylehint_set(wintype_TextGrid, style_User1, stylehint_ReverseColor, 1);
 			statuswin = g_vm->glk_window_open(mainwin,
 										winmethod_Above | winmethod_Fixed, 1,
 										wintype_TextGrid, 0);
 		}
-		strcpy(lbuf, "");
+		lbuf[0] = '\0';
 	}
 }
 
@@ -346,7 +345,7 @@ int os_get_status()
 void os_score(int score, int turncount)
 {
 	char buf[40];
-	sprintf(buf, "%d/%d", score, turncount);
+	Common::sprintf_s(buf, "%d/%d", score, turncount);
 	os_strsc(buf);
 }
 
@@ -366,11 +365,11 @@ static void os_status_redraw(void) {
 	if (!statuswin)
 		return;
 
-	g_vm->glk_window_get_size(statuswin, &wid, NULL);
+	g_vm->glk_window_get_size(statuswin, &wid, nullptr);
 	div = wid - strlen(rbuf) - 3;
 
-	sprintf(fmt, " %%%ds %%s ", - (int)div);
-	sprintf(buf, fmt, lbuf, rbuf);
+	Common::sprintf_s(fmt, " %%%ds %%s ", - (int)div);
+	Common::sprintf_s(buf, fmt, lbuf, rbuf);
 
 	g_vm->glk_window_clear(statuswin);
 	g_vm->glk_set_window(statuswin);
@@ -532,10 +531,10 @@ int os_askfile(const char *prompt, char *fname_buf, int fname_buf_len,
 		gusage = fileusage_Data;
 
 	fileref = g_vm->glk_fileref_create_by_prompt(gusage, (FileMode)gprompt, 0);
-	if (fileref == NULL)
+	if (fileref == nullptr)
 		return OS_AFE_CANCEL;
 
-	strcpy(fname_buf, g_vm->garglk_fileref_get_name(fileref));
+	Common::strcpy_s(fname_buf, fname_buf_len, g_vm->garglk_fileref_get_name(fileref));
 
 	g_vm->glk_fileref_destroy(fileref);
 
@@ -968,7 +967,7 @@ osfildef *os_exeseek(const char *argv0, const char *typ) {
 }
 
 int os_get_str_rsc(int id, char *buf, size_t buflen) {
-	strcpy(buf, "");
+	buf[0] = '\0';
 	return 0;
 }
 
@@ -983,8 +982,9 @@ void os_dbg_vprintf(const char *fmt, va_list args) {
 int os_vasprintf(char **bufptr, const char *fmt, va_list ap) {
 	Common::String s = Common::String::vformat(fmt, ap);
 
-	*bufptr = (char *)malloc(s.size() + 1);
-	strcpy(*bufptr, s.c_str());
+	size_t ln = s.size() + 1;
+	*bufptr = (char *)malloc(ln);
+	Common::strcpy_s(*bufptr, ln, s.c_str());
 	return s.size();
 }
 
@@ -1011,12 +1011,12 @@ void os_xlat_html4(unsigned int html4_char, char *result, size_t result_len) {
 		case 132:                                      /* double back quote */
 			result[0] = '\"'; break;
 		case 153:                                             /* trade mark */
-			strcpy(result, "(tm)"); return;
+			Common::strcpy_s(result, result_len, "(tm)"); return;
 		case 140:                                            /* OE ligature */
 		case 338:                                            /* OE ligature */
-			strcpy(result, "OE"); return;
+			Common::strcpy_s(result, result_len, "OE"); return;
 		case 339:                                            /* oe ligature */
-			strcpy(result, "oe"); return;
+			Common::strcpy_s(result, result_len, "oe"); return;
 		case 159:                                                   /* Yuml */
 			result[0] = (char)255; return;
 		case 376:                                        /* Y with diaresis */
@@ -1030,7 +1030,7 @@ void os_xlat_html4(unsigned int html4_char, char *result, size_t result_len) {
 			result[0] = '-'; break;
 		case 151:                                                /* em dash */
 		case 8212:                                               /* em dash */
-			strcpy(result, "--"); return;
+			Common::strcpy_s(result, result_len, "--"); return;
 		case 145:                                      /* left single quote */
 		case 8216:                                     /* left single quote */
 			result[0] = '`'; break;

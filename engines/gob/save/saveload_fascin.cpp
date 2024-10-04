@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -28,22 +33,22 @@
 namespace Gob {
 
 SaveLoad_Fascination::SaveFile SaveLoad_Fascination::_saveFiles[] = {
-	{ "cat.cat",    kSaveModeSave, -1, 0, "savegame catalog"},
-	{ "save0.inf",  kSaveModeSave,  0, 0, "savegame"},
-	{ "save1.inf",  kSaveModeSave,  1, 0, "savegame"},
-	{ "save2.inf",  kSaveModeSave,  2, 0, "savegame"},
-	{ "save3.inf",  kSaveModeSave,  3, 0, "savegame"},
-	{ "save4.inf",  kSaveModeSave,  4, 0, "savegame"},
-	{ "save5.inf",  kSaveModeSave,  5, 0, "savegame"},
-	{ "save6.inf",  kSaveModeSave,  6, 0, "savegame"},
-	{ "save7.inf",  kSaveModeSave,  7, 0, "savegame"},
-	{ "save8.inf",  kSaveModeSave,  8, 0, "savegame"},
-	{ "save9.inf",  kSaveModeSave,  9, 0, "savegame"},
-	{ "save10.inf", kSaveModeSave, 10, 0, "savegame"},
-	{ "save11.inf", kSaveModeSave, 11, 0, "savegame"},
-	{ "save12.inf", kSaveModeSave, 12, 0, "savegame"},
-	{ "save13.inf", kSaveModeSave, 13, 0, "savegame"},
-	{ "save14.inf", kSaveModeSave, 14, 0, "savegame"},
+	{ "cat.cat",    kSaveModeSave, -1, nullptr, "savegame catalog"},
+	{ "save0.inf",  kSaveModeSave,  0, nullptr, "savegame"},
+	{ "save1.inf",  kSaveModeSave,  1, nullptr, "savegame"},
+	{ "save2.inf",  kSaveModeSave,  2, nullptr, "savegame"},
+	{ "save3.inf",  kSaveModeSave,  3, nullptr, "savegame"},
+	{ "save4.inf",  kSaveModeSave,  4, nullptr, "savegame"},
+	{ "save5.inf",  kSaveModeSave,  5, nullptr, "savegame"},
+	{ "save6.inf",  kSaveModeSave,  6, nullptr, "savegame"},
+	{ "save7.inf",  kSaveModeSave,  7, nullptr, "savegame"},
+	{ "save8.inf",  kSaveModeSave,  8, nullptr, "savegame"},
+	{ "save9.inf",  kSaveModeSave,  9, nullptr, "savegame"},
+	{ "save10.inf", kSaveModeSave, 10, nullptr, "savegame"},
+	{ "save11.inf", kSaveModeSave, 11, nullptr, "savegame"},
+	{ "save12.inf", kSaveModeSave, 12, nullptr, "savegame"},
+	{ "save13.inf", kSaveModeSave, 13, nullptr, "savegame"},
+	{ "save14.inf", kSaveModeSave, 14, nullptr, "savegame"},
 };
 
 
@@ -130,7 +135,7 @@ bool SaveLoad_Fascination::GameHandler::load(int16 dataVar, int32 size, int32 of
 
 		Common::String slotFile = _slotFile->build(slot);
 
-		SaveReader *reader = 0;
+		SaveReader *reader = nullptr;
 
 		// New save, load directly
 		reader = new SaveReader(2, slot, slotFile);
@@ -250,7 +255,7 @@ void SaveLoad_Fascination::GameHandler::buildIndex(byte *buffer) const {
 	SavePartInfo info(kSlotNameLength, (uint32) _vm->getGameType(),
 			0, _vm->getEndianness(), varSize);
 
-	_slotFile->buildIndex(buffer, info, 0);
+	_slotFile->buildIndex(buffer, info, nullptr);
 }
 
 
@@ -276,7 +281,7 @@ const SaveLoad_Fascination::SaveFile *SaveLoad_Fascination::getSaveFile(const ch
 		if (!scumm_stricmp(fileName, _saveFiles[i].sourceName))
 			return &_saveFiles[i];
 
-	return 0;
+	return nullptr;
 }
 
 SaveLoad_Fascination::SaveFile *SaveLoad_Fascination::getSaveFile(const char *fileName) {
@@ -286,7 +291,7 @@ SaveLoad_Fascination::SaveFile *SaveLoad_Fascination::getSaveFile(const char *fi
 		if (!scumm_stricmp(fileName, _saveFiles[i].sourceName))
 			return &_saveFiles[i];
 
-	return 0;
+	return nullptr;
 }
 
 SaveHandler *SaveLoad_Fascination::getHandler(const char *fileName) const {
@@ -295,7 +300,7 @@ SaveHandler *SaveLoad_Fascination::getHandler(const char *fileName) const {
 	if (saveFile)
 		return saveFile->handler;
 
-	return 0;
+	return nullptr;
 }
 
 const char *SaveLoad_Fascination::getDescription(const char *fileName) const {
@@ -304,7 +309,7 @@ const char *SaveLoad_Fascination::getDescription(const char *fileName) const {
 	if (saveFile)
 		return saveFile->description;
 
-	return 0;
+	return nullptr;
 }
 
 SaveLoad::SaveMode SaveLoad_Fascination::getSaveMode(const char *fileName) const {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -76,7 +75,7 @@ void FrameInfo::read(Common::SeekableReadStream *in, bool isSequence) {
 
 // AnimFrame
 
-AnimFrame::AnimFrame(Common::SeekableReadStream *in, const FrameInfo &f, bool /* ignoreSubtype */) : _palette(NULL) {
+AnimFrame::AnimFrame(Common::SeekableReadStream *in, const FrameInfo &f, bool /* ignoreSubtype */) : _palette(nullptr) {
 	_palSize = 1;
 	// TODO: use just the needed rectangle
 	_image.create(640, 480, Graphics::PixelFormat::createFormatCLUT8());
@@ -340,7 +339,7 @@ Sequence::~Sequence() {
 void Sequence::reset() {
 	_frames.clear();
 	delete _stream;
-	_stream = NULL;
+	_stream = nullptr;
 }
 
 Sequence *Sequence::load(Common::String name, Common::SeekableReadStream *stream, byte field30) {
@@ -348,7 +347,7 @@ Sequence *Sequence::load(Common::String name, Common::SeekableReadStream *stream
 
 	if (!sequence->load(stream, field30)) {
 		delete sequence;
-		return NULL;
+		return nullptr;
 	}
 
 	return sequence;
@@ -409,11 +408,11 @@ AnimFrame *Sequence::getFrame(uint16 index) {
 	FrameInfo *frame = getFrameInfo(index);
 
 	if (!frame)
-		return NULL;
+		return nullptr;
 
 	// Skip "invalid" frames
 	if (frame->compressionType == 0)
-		return NULL;
+		return nullptr;
 
 	debugC(9, kLastExpressDebugGraphics, "Decoding sequence %s: frame %d / %d", _name.c_str(), index, _frames.size() - 1);
 
@@ -427,7 +426,7 @@ SequenceFrame::~SequenceFrame() {
 		delete _sequence;
 	}
 
-	_sequence = NULL;
+	_sequence = nullptr;
 }
 
 Common::Rect SequenceFrame::draw(Graphics::Surface *surface) {

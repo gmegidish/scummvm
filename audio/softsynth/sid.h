@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,7 +49,10 @@ typedef unsigned int reg24;
 
 typedef int cycle_count;
 typedef int sound_sample;
-typedef sound_sample fc_point[2];
+
+typedef unsigned char data8;
+typedef unsigned short data16;
+typedef unsigned short fc_point[2];
 
 
 class WaveformGenerator {
@@ -117,10 +119,10 @@ protected:
 	reg12 outputNPST();
 
 	// Sample data for combinations of waveforms.
-	static const reg8 wave6581__ST[];
-	static const reg8 wave6581_P_T[];
-	static const reg8 wave6581_PS_[];
-	static const reg8 wave6581_PST[];
+	static const data8 wave6581__ST[];
+	static const data8 wave6581_P_T[];
+	static const data8 wave6581_PS_[];
+	static const data8 wave6581_PST[];
 
 	friend class Voice;
 	friend class SID;
@@ -187,8 +189,8 @@ protected:
 	// FC is an 11 bit register.
 	sound_sample f0_6581[2048];
 	sound_sample* f0;
-	static fc_point f0_points_6581[];
-	fc_point* f0_points;
+	static const fc_point f0_points_6581[];
+	const fc_point* f0_points;
 	int f0_count;
 
 	friend class SID;
@@ -230,10 +232,10 @@ protected:
 
 	// Lookup table to convert from attack, decay, or release value to rate
 	// counter period.
-	static reg16 rate_counter_period[];
+	static const data16 rate_counter_period[];
 
 	// The 16 selectable sustain levels.
-	static reg8 sustain_level[];
+	static const data8 sustain_level[];
 
 	friend class SID;
 };

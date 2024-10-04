@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,49 +57,50 @@ void ScummEngine_v70he::o70_soundOps() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 9:		// SO_SOUND_SOFT?
+	case SO_SOFT: // 9
 		_heSndFlags |= HE_SND_SOFT_SOUND;
 		break;
-	case 23:	// SO_VARIABLE
+	case SO_VARIABLE: // 23
 		value = pop();
 		var = pop();
 		_heSndSoundId = pop();
 		((SoundHE *)_sound)->setSoundVar(_heSndSoundId, var, value);
 		break;
-	case 25:	// SO_SOUND_VOLUME
+	case SO_SOUND_VOLUME: // 25
 		value = pop();
 		_heSndSoundId = pop();
-		_sound->addSoundToQueue(_heSndSoundId, 0, 0, HE_SND_VOL, 0, 0, value);
+		_sound->startSound(_heSndSoundId, 0, 0, HE_SND_VOL, HSND_BASE_FREQ_FACTOR, HSND_SOUND_PAN_CENTER, value);
 		break;
-	case 56:	// SO_NOW
+	case SO_NOW: // 56
 		_heSndFlags |= HE_SND_QUICK_START;
 		break;
-	case 164:	// SO_SOUND_ADD
+	case SO_SOUND_ADD: // 164
 		_heSndFlags |= HE_SND_APPEND;
 		break;
-	case 222:
+	case SO_SOUND_START_VOLUME: // 222
 		// WORKAROUND: For errors in room script 240 (room 4) of maze
 		break;
-	case 224:	// SO_SOUND_FREQUENCY
-		_heSndSoundFreq = pop();
+	case SO_SOUND_FREQUENCY: // 224
+		_heSndFrequency = pop();
 		break;
-	case 230:	// SO_SOUND_CHANNEL
+	case SO_SOUND_CHANNEL: // 230
 		_heSndChannel = pop();
 		break;
-	case 231:	// SO_AT
+	case SO_AT: // 231
 		_heSndOffset = pop();
 		break;
-	case 232:	// SO_SOUND_START
+	case SO_SOUND_START: // 232
 		_heSndSoundId = pop();
 		_heSndOffset = 0;
-		_heSndSoundFreq = 11025;
+		_heSndFrequency = 11025; // This is set but apparently is not used?
 		_heSndChannel = VAR(VAR_SOUND_CHANNEL);
 		break;
-	case 245:	// SO_SOUND_LOOPING
+	case SO_SOUND_LOOPING: // 245
 		_heSndFlags |= HE_SND_LOOP;
 		break;
-	case 255:	// SO_END
-		_sound->addSoundToQueue(_heSndSoundId, _heSndOffset, _heSndChannel, _heSndFlags, _heSndSoundFreq);
+	case SO_END: // 255
+		_sound->startSound(_heSndSoundId, _heSndOffset, _heSndChannel, _heSndFlags,
+			HSND_BASE_FREQ_FACTOR, HSND_SOUND_PAN_CENTER, HSND_MAX_VOLUME);
 		_heSndFlags = 0;
 		break;
 
@@ -144,153 +144,153 @@ void ScummEngine_v70he::o70_resourceRoutines() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 100:		// SO_LOAD_SCRIPT
+	case SO_LOAD_SCRIPT:
 		resid = pop();
 		ensureResourceLoaded(rtScript, resid);
 		break;
-	case 101:		// SO_LOAD_SOUND
+	case SO_LOAD_SOUND:
 		resid = pop();
 		ensureResourceLoaded(rtSound, resid);
 		break;
-	case 102:		// SO_LOAD_COSTUME
+	case SO_LOAD_COSTUME:
 		resid = pop();
 		ensureResourceLoaded(rtCostume, resid);
 		break;
-	case 103:		// SO_LOAD_ROOM
+	case SO_LOAD_ROOM:
 		resid = pop();
 		ensureResourceLoaded(rtRoomImage, resid);
 		ensureResourceLoaded(rtRoom, resid);
 		break;
-	case 104:		// SO_NUKE_SCRIPT
+	case SO_NUKE_SCRIPT:
 		resid = pop();
 		_res->nukeResource(rtScript, resid);
 		break;
-	case 105:		// SO_NUKE_SOUND
+	case SO_NUKE_SOUND:
 		resid = pop();
 		_res->nukeResource(rtSound, resid);
 		break;
-	case 106:		// SO_NUKE_COSTUME
+	case SO_NUKE_COSTUME:
 		resid = pop();
 		_res->nukeResource(rtCostume, resid);
 		break;
-	case 107:		// SO_NUKE_ROOM
+	case SO_NUKE_ROOM:
 		resid = pop();
 		_res->nukeResource(rtRoom, resid);
 		_res->nukeResource(rtRoomImage, resid);
 		break;
-	case 108:		// SO_LOCK_SCRIPT
+	case SO_LOCK_SCRIPT:
 		resid = pop();
 		if (resid >= _numGlobalScripts)
 			break;
 		_res->lock(rtScript, resid);
 		break;
-	case 109:		// SO_LOCK_SOUND
+	case SO_LOCK_SOUND:
 		resid = pop();
 		_res->lock(rtSound, resid);
 		break;
-	case 110:		// SO_LOCK_COSTUME
+	case SO_LOCK_COSTUME:
 		resid = pop();
 		_res->lock(rtCostume, resid);
 		break;
-	case 111:		// SO_LOCK_ROOM
+	case SO_LOCK_ROOM:
 		resid = pop();
 		if (_game.heversion <= 71 && resid > 0x7F)
 			resid = _resourceMapper[resid & 0x7F];
 		_res->lock(rtRoom, resid);
 		_res->lock(rtRoomImage, resid);
 		break;
-	case 112:		// SO_UNLOCK_SCRIPT
+	case SO_UNLOCK_SCRIPT:
 		resid = pop();
 		if (resid >= _numGlobalScripts)
 			break;
 		_res->unlock(rtScript, resid);
 		break;
-	case 113:		// SO_UNLOCK_SOUND
+	case SO_UNLOCK_SOUND:
 		resid = pop();
 		_res->unlock(rtSound, resid);
 		break;
-	case 114:		// SO_UNLOCK_COSTUME
+	case SO_UNLOCK_COSTUME:
 		resid = pop();
 		_res->unlock(rtCostume, resid);
 		break;
-	case 115:		// SO_UNLOCK_ROOM
+	case SO_UNLOCK_ROOM:
 		resid = pop();
 		if (_game.heversion <= 71 && resid > 0x7F)
 			resid = _resourceMapper[resid & 0x7F];
 		_res->unlock(rtRoom, resid);
 		_res->unlock(rtRoomImage, resid);
 		break;
-	case 116:
+	case SO_CLEAR_HEAP:
 		// TODO: Clear Heap
 		break;
-	case 117:		// SO_LOAD_CHARSET
+	case SO_LOAD_CHARSET:
 		resid = pop();
 		loadCharset(resid);
 		break;
-	case 118:		// SO_NUKE_CHARSET
+	case SO_NUKE_CHARSET:
 		resid = pop();
 		nukeCharset(resid);
 		break;
-	case 119:		// SO_LOAD_OBJECT
+	case SO_LOAD_OBJECT:
 		{
 			int obj = pop();
 			int room = getObjectRoom(obj);
 			loadFlObject(obj, room);
 			break;
 		}
-	case 120:
+	case SO_PRELOAD_SCRIPT:
 		resid = pop();
 		if (resid >= _numGlobalScripts)
 			break;
 		//queueLoadResource(rtScript, resid);
 		break;
-	case 121:
+	case SO_PRELOAD_SOUND:
 		resid = pop();
 		//queueLoadResource(rtSound, resid);
 		break;
-	case 122:
+	case SO_PRELOAD_COSTUME:
 		resid = pop();
 		//queueLoadResource(rtCostume, resid);
 		break;
-	case 123:
+	case SO_PRELOAD_ROOM:
 		resid = pop();
 		//queueLoadResource(rtRoomImage, resid);
 		break;
-	case 159:
+	case SO_UNLOCK_IMAGE:
 		resid = pop();
 		_res->unlock(rtImage, resid);
 		break;
-	case 192:
+	case SO_NUKE_IMAGE:
 		resid = pop();
 		_res->nukeResource(rtImage, resid);
 		break;
-	case 201:
+	case SO_LOAD_IMAGE:
 		resid = pop();
 		ensureResourceLoaded(rtImage, resid);
 		break;
-	case 202:
+	case SO_LOCK_IMAGE:
 		resid = pop();
 		_res->lock(rtImage, resid);
 		break;
-	case 203:
+	case SO_PRELOAD_IMAGE:
 		resid = pop();
 		//queueLoadResource(rtImage, resid);
 		break;
-	case 233:
+	case SO_LOCK_FLOBJECT:
 		resid = pop();
 		objidx = getObjectIndex(resid);
 		if (objidx == -1)
 			break;
 		_res->lock(rtFlObject, _objs[objidx].fl_object_index);
 		break;
-	case 235:
+	case SO_UNLOCK_FLOBJECT:
 		resid = pop();
 		objidx = getObjectIndex(resid);
 		if (objidx == -1)
 			break;
 		_res->unlock(rtFlObject, _objs[objidx].fl_object_index);
 		break;
-	case 239:
+	case SO_PRELOAD_FLUSH:
 		// Used in airport
 		break;
 	default:
@@ -305,36 +305,36 @@ void ScummEngine_v70he::o70_systemOps() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 158:
+	case SO_RESTART:
 		restart();
 		break;
-	case 160:
+	case SO_QUIT:
 		// Confirm shutdown
 		confirmExitDialog();
 		break;
-	case 244:
+	case SO_QUIT_QUIT:
 		quitGame();
 		break;
-	case 250:
+	case SO_START_SYSTEM:
 		id = pop();
 		src = getStringAddress(id);
 		len = resStrLen(src) + 1;
 		memcpy(string, src, len);
 		debug(0, "Start executable (%s)", string);
 		break;
-	case 251:
+	case SO_START_SYSTEM_STRING:
 		convertMessageToString(_scriptPointer, string, sizeof(string));
 		len = resStrLen(_scriptPointer);
 		_scriptPointer += len + 1;
 		debug(0, "Start executable (%s)", string);
 		break;
-	case 252:
+	case SO_RESTART_STRING:
 		convertMessageToString(_scriptPointer, string, sizeof(string));
 		len = resStrLen(_scriptPointer);
 		_scriptPointer += len + 1;
 		debug(0, "Start game (%s)", string);
 		break;
-	case 253:
+	case SO_RESTART_ARRAY:
 		id = pop();
 		src = getStringAddress(id);
 		len = resStrLen(src) + 1;
@@ -368,19 +368,19 @@ void ScummEngine_v70he::o70_isResourceLoaded() {
 	int idx = pop();
 
 	switch (subOp) {
-	case 18:
+	case SO_IMAGE_LOADED:
 		type = rtImage;
 		break;
-	case 226:
+	case SO_ROOM_LOADED:
 		type = rtRoom;
 		break;
-	case 227:
+	case SO_COSTUME_LOADED:
 		type = rtCostume;
 		break;
-	case 228:
+	case SO_SOUND_LOADED:
 		type = rtSound;
 		break;
-	case 229:
+	case SO_SCRIPT_LOADED:
 		type = rtScript;
 		break;
 	default:
@@ -479,16 +479,16 @@ void ScummEngine_v70he::o70_setSystemMessage() {
 	_scriptPointer += len + 1;
 
 	switch (subOp) {
-	case 240:
+	case SO_PAUSE_MESSAGE:
 		debug(1,"o70_setSystemMessage: (%d) %s", subOp, name);
 		break;
-	case 241: // Set Version
+	case SO_PAUSE_TITLE: // Set Version
 		debug(1,"o70_setSystemMessage: (%d) %s", subOp, name);
 		break;
-	case 242:
+	case SO_PAUSE_OPTION:
 		debug(1,"o70_setSystemMessage: (%d) %s", subOp, name);
 		break;
-	case 243: // Set Window Caption
+	case SO_TITLE_BAR: // Set Window Caption
 		// TODO: The 'name' string can contain non-ASCII data. This can lead to
 		// problems, because the encoding used for "name" is not clear.
 		//

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#ifndef SCI_ENGINE_SEGMAN_H
-#define SCI_ENGINE_SEGMAN_H
+#ifndef SCI_ENGINE_SEG_MANAGER_H
+#define SCI_ENGINE_SEG_MANAGER_H
 
 #include "common/scummsys.h"
 #include "common/serializer.h"
@@ -40,8 +39,8 @@ namespace Sci {
  */
 enum ScriptLoadType {
 	SCRIPT_GET_DONT_LOAD = 0, /**< Fail if not loaded */
-	SCRIPT_GET_LOAD = 1, /**< Load, if neccessary */
-	SCRIPT_GET_LOCK = 3 /**< Load, if neccessary, and lock */
+	SCRIPT_GET_LOAD = 1, /**< Load, if necessary */
+	SCRIPT_GET_LOCK = 3 /**< Load, if necessary, and lock */
 };
 
 class Script;
@@ -68,11 +67,10 @@ public:
 	/**
 	 * Allocate a script into the segment manager.
 	 * @param script_nr		The number of the script to load
-	 * @param seg_id		The segment ID of the newly allocated segment,
-	 * 						on success
-	 * @return				0 on failure, 1 on success
+	 * @param seg_id		The segment ID of the newly allocated segment.
+	 * @return				The script
 	 */
-	Script *allocateScript(int script_nr, SegmentId *seg_id);
+	Script *allocateScript(int script_nr, SegmentId &seg_id);
 
 	// The script must then be initialized; see section (1b.), below.
 
@@ -170,10 +168,9 @@ public:
 	/**
 	 * Allocates a data stack
 	 * @param size	Number of stack entries to reserve
-	 * @param segid	Segment ID of the stack
-	 * @return		The physical stack
+	 * @return		The data stack
 	 */
-	DataStack *allocateStack(int size, SegmentId *segid);
+	DataStack *allocateStack(int size);
 
 
 	// 5. System Strings
@@ -317,14 +314,14 @@ public:
 	 * src and dest can point to raw and non-raw segments.
 	 * Conversion is performed as required.
 	 */
-	void strcpy(reg_t dest, reg_t src);
+	void strcpy_(reg_t dest, reg_t src);
 
 	/**
 	 * Copies a string from src to dest.
 	 * dest can point to a raw or non-raw segment.
 	 * Conversion is performed as required.
 	 */
-	void strcpy(reg_t dest, const char *src);
+	void strcpy_(reg_t dest, const char *src);
 
 	/**
 	 * Copies a string from src to dest.
@@ -487,7 +484,7 @@ private:
 #endif
 
 public:
-	SegmentObj *allocSegment(SegmentObj *mem, SegmentId *segid);
+	SegmentId allocSegment(SegmentObj *mobj);
 
 private:
 	void deallocate(SegmentId seg);
@@ -510,4 +507,4 @@ private:
 
 } // End of namespace Sci
 
-#endif // SCI_ENGINE_SEGMAN_H
+#endif // SCI_ENGINE_SEG_MANAGER_H

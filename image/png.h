@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,6 +48,7 @@ namespace Image {
  *
  * Used in engines:
  * - Sword25
+ * - TwinE
  * - Wintermute
  * @{
  */
@@ -63,7 +63,8 @@ public:
 	const Graphics::Surface *getSurface() const override { return _outputSurface; }
 	const byte *getPalette() const override { return _palette; }
 	uint16 getPaletteColorCount() const override { return _paletteColorCount; }
-	int getTransparentColor() const { return _transparentColor; }
+	bool hasTransparentColor() const override { return _hasTransparentColor; }
+	uint32 getTransparentColor() const override { return _transparentColor; }
 	void setSkipSignature(bool skip) { _skipSignature = skip; }
 	void setKeepTransparencyPaletted(bool keep) { _keepTransparencyPaletted = keep; }
 private:
@@ -77,7 +78,8 @@ private:
 
 	// Flag to keep paletted images paletted, even when the image has transparency
 	bool _keepTransparencyPaletted;
-	int _transparentColor;
+	bool _hasTransparentColor;
+	uint32 _transparentColor;
 
 	Graphics::Surface *_outputSurface;
 };

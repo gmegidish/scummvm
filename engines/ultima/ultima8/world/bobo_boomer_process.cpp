@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,7 @@
 #include "ultima/ultima8/kernel/delay_process.h"
 #include "ultima/ultima8/world/item.h"
 #include "ultima/ultima8/world/fire_type.h"
+#include "ultima/ultima8/ultima8.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -39,7 +39,10 @@ _counter(0), _x(0), _y(0), _z(0)
 BoboBoomerProcess::BoboBoomerProcess(const Item *item) : Process(), _counter(0)
 {
 	assert(item);
-	item->getLocation(_x, _y, _z);
+	Point3 pt = item->getLocation();
+	_x = pt.x;
+	_y = pt.y;
+	_z = pt.z;
 	_type = 0x264;
 }
 
@@ -47,8 +50,9 @@ void BoboBoomerProcess::run() {
 	const FireType *firetype = GameData::get_instance()->getFireType(4);
 	assert(firetype);
 
-	int32 randx = static_cast<int32>(getRandom() % 15) - 7;
-	int32 randy = static_cast<int32>(getRandom() % 15) - 7;
+	Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
+	int32 randx = rs.getRandomNumberRngSigned(-7, 7);
+	int32 randy = rs.getRandomNumberRngSigned(-7, 7);
 	Point3 pt(_x + randx * 32, _y + randy * 32, _z);
 	firetype->makeBulletSplashShapeAndPlaySound(pt.x, pt.y, pt.z);
 
@@ -63,7 +67,7 @@ void BoboBoomerProcess::run() {
 		return;
 	}
 
-	int sleep = (getRandom() % 15) + 5;
+	int sleep = rs.getRandomNumberRng(5, 20);
 	Process *wait = new DelayProcess(sleep);
 	Kernel::get_instance()->addProcess(wait);
 	waitFor(wait);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,18 +36,21 @@
 
 namespace Sword25 {
 
-Common::String FileSystemUtil::getUserdataDirectory() {
+Common::Path FileSystemUtil::getUserdataDirectoryPath() {
 	// FIXME: This code is a hack which bypasses the savefile API,
 	// and should eventually be removed.
-	Common::String path = ConfMan.get("savepath");
+	Common::Path path = ConfMan.getPath("savepath");
 
 	if (path.empty()) {
 		error("No save path has been defined");
-		return "";
 	}
 
-	// Return the path
 	return path;
+}
+
+Common::String FileSystemUtil::getUserdataDirectory() {
+	// Return the path using / separator
+	return getUserdataDirectoryPath().toString('/');
 }
 
 Common::String FileSystemUtil::getPathSeparator() {
@@ -59,7 +61,7 @@ Common::String FileSystemUtil::getPathSeparator() {
 
 bool FileSystemUtil::fileExists(const Common::String &filename) {
 	Common::File f;
-	if (f.exists(filename))
+	if (f.exists(Common::Path(filename)))
 		return true;
 
 	// Check if the file exists in the save folder

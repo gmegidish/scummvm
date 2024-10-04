@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,7 @@ protected:
 
 	static void drawOutline(Graphics::Surface *surface, uint16 color);
 	static Common::Rect calculateBoundingBoxForText(const Common::U32String &text, Graphics::Font &font);
-	static void drawText(Graphics::Surface &s, int y, int maxWidth, const Common::U32String &text, uint color, Graphics::Font &font);
+	static void drawText(Graphics::Surface &s, int y, int maxWidth, const Common::U32String &text, uint color, Graphics::Font &font, Graphics::TextAlign alignment);
 
 protected:
 	Common::Rect _rect;
@@ -78,7 +77,7 @@ public:
 
 class QTextChoice : public QText {
 public:
-	QTextChoice(const Common::Array<Common::U32String> &choices, uint16 color, uint16 selectedColor);
+	QTextChoice(const Common::Array<Common::U32String> &choices, uint16 color, uint16 outlineColor, uint16 selectedColor);
 
 	void onMouseMove(Common::Point p) override;
 	void onClick(Common::Point p) override;
@@ -88,6 +87,7 @@ private:
 	Common::Array<Common::Rect> _rects;
 	Common::Array<Common::U32String> _choices;
 	uint _activeChoice;
+	uint16 _outlineColor;
 	uint16 _choiceColor;
 	uint16 _selectedColor;
 };

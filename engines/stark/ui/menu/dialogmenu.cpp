@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,32 +15,22 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/stark/ui/menu/dialogmenu.h"
-
 #include "engines/stark/services/services.h"
 #include "engines/stark/services/userinterface.h"
 #include "engines/stark/services/diary.h"
 #include "engines/stark/services/gamechapter.h"
 #include "engines/stark/services/staticprovider.h"
 #include "engines/stark/services/global.h"
-
 #include "engines/stark/gfx/renderentry.h"
-
 #include "engines/stark/resources/location.h"
 #include "engines/stark/resources/item.h"
 
 namespace Stark {
-
-const Color ChapterTitleText::_color = Color(0x68, 0x05, 0x04);
-const Color DialogTitleWidget::_textColorHovered = Color(0x1E, 0x1E, 0x96);
-const Color DialogTitleWidget::_textColorDefault = Color(0x00, 0x00, 0x00);
-const Color DialogLineText::_textColorApril = Color(0x68, 0x05, 0x04);
-const Color DialogLineText::_textColorNormal = Color(0x1E, 0x1E, 0x96);
 
 DialogScreen::DialogScreen(Gfx::Driver *gfx, Cursor *cursor) :
 		StaticLocationScreen(gfx, cursor, "DiaryLog", Screen::kScreenDialog),
@@ -338,7 +328,7 @@ DialogLineText::DialogLineText(Gfx::Driver *gfx, uint logIndex, uint lineIndex, 
 	Common::String name = StarkGlobal->getCharacterName(logLine.characterId);
 	name.toUppercase();
 
-	Color color = logLine.characterId == StarkGlobal->getApril()->getCharacterIndex() ? _textColorApril : _textColorNormal;
+	Gfx::Color color = logLine.characterId == StarkGlobal->getApril()->getCharacterIndex() ? _textColorApril : _textColorNormal;
 
 	_nameText.setText(name);
 	_nameText.setColor(color);
@@ -394,7 +384,7 @@ void DialogTitleWidget::onClick() {
 }
 
 void DialogTitleWidget::onScreenChanged() {
-	_text.resetTexture();
+	_text.reset();
 }
 
 } // End of namespace Stark

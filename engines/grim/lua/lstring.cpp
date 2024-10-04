@@ -5,6 +5,7 @@
 
 #define FORBIDDEN_SYMBOL_EXCEPTION_setjmp
 #define FORBIDDEN_SYMBOL_EXCEPTION_longjmp
+#define FORBIDDEN_SYMBOL_EXCEPTION_strcpy
 
 #include "common/util.h"
 
@@ -16,7 +17,7 @@
 
 namespace Grim {
 
-#define gcsizestring(l)	(1 + (l / 64))  // "weight" for a string with length 'l'
+#define gcsizestring(l)      (1 + (l / 64))  // "weight" for a string with length 'l'
 
 TaggedString EMPTY = {{nullptr, 2}, 0, 0L, {LUA_T_NIL, {nullptr}}, {0}};
 
@@ -155,12 +156,10 @@ static void remove_from_list(GCnode *l) {
 
 TaggedString *luaS_collector() {
 	TaggedString *frees = nullptr;
-	int32 i;
 	remove_from_list(&rootglobal);
-	for (i = 0; i < NUM_HASHS; i++) {
+	for (int32 i = 0; i < NUM_HASHS; i++) {
 		stringtable *tb = &string_root[i];
-		int32 j;
-		for (j = 0; j < tb->size; j++) {
+		for (int32 j = 0; j < tb->size; j++) {
 			TaggedString *t = tb->hash[j];
 			if (!t)
 				continue;
@@ -178,12 +177,10 @@ TaggedString *luaS_collector() {
 
 TaggedString *luaS_collectudata() {
 	TaggedString *frees = nullptr;
-	int32 i;
 	rootglobal.next = nullptr;  // empty list of globals
-	for (i = 0; i < NUM_HASHS; i++) {
+	for (int32 i = 0; i < NUM_HASHS; i++) {
 		stringtable *tb = &string_root[i];
-		int32 j;
-		for (j = 0; j < tb->size; j++) {
+		for (int32 j = 0; j < tb->size; j++) {
 			TaggedString *t = tb->hash[j];
 			if (!t || t == &EMPTY || t->constindex != -1)
 				continue;  // get only user data
@@ -196,8 +193,7 @@ TaggedString *luaS_collectudata() {
 }
 
 void luaS_freeall() {
-	int32 i;
-	for (i = 0; i < NUM_HASHS; i++) {
+	for (int32 i = 0; i < NUM_HASHS; i++) {
 		stringtable *tb = &string_root[i];
 		int32 j;
 		for (j = 0; j < tb->size; j++) {

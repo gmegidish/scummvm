@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ags/lib/std/algorithm.h"
+#include "common/std/algorithm.h"
 #include "ags/shared/ac/words_dictionary.h"
 #include "ags/shared/util/stream.h"
 #include "ags/shared/util/string_compat.h"
@@ -74,9 +73,9 @@ void WordsDictionary::sort() {
 
 				wordnum[aa] = wordnum[bb];
 				wordnum[bb] = temp;
-				strcpy(tempst, word[aa]);
-				strcpy(word[aa], word[bb]);
-				strcpy(word[bb], tempst);
+				snprintf(tempst, MAX_PARSER_WORD_LENGTH, "%s", word[aa]);
+				snprintf(word[aa], MAX_PARSER_WORD_LENGTH, "%s", word[bb]);
+				snprintf(word[bb], MAX_PARSER_WORD_LENGTH, "%s", tempst);
 				bb = aa;
 			}
 		}
@@ -111,7 +110,7 @@ void decrypt_text(char *toenc, size_t buf_sz) {
 
 void read_string_decrypt(Stream *in, char *buf, size_t buf_sz) {
 	size_t len = in->ReadInt32();
-	size_t slen = std::min(buf_sz - 1, len);
+	size_t slen = MIN(buf_sz - 1, len);
 	in->Read(buf, slen);
 	if (len > slen)
 		in->Seek(len - slen);
@@ -170,7 +169,7 @@ void write_dictionary(WordsDictionary *dict, Stream *out) {
 	out->WriteInt32(dict->num_words);
 	for (ii = 0; ii < dict->num_words; ii++) {
 		write_string_encrypt(out, dict->word[ii]);
-		out->WriteInt16(dict->wordnum[ii]);//__putshort__lilendian(dict->wordnum[ii], writeto);
+		out->WriteInt16(dict->wordnum[ii]);
 	}
 }
 

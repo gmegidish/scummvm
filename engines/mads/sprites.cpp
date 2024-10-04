@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/scummsys.h"
 #include "engines/util.h"
-#include "graphics/palette.h"
 #include "mads/mads.h"
 #include "mads/screen.h"
 #include "mads/msurface.h"
@@ -212,14 +210,17 @@ void SpriteSlots::fullRefresh(bool clearAll) {
 	push_back(SpriteSlot(IMG_REFRESH, -1));
 }
 
-void SpriteSlots::deleteTimer(int seqIndex) {
+int SpriteSlots::deleteTimer(int seqIndex) {
+	int deleted = -1;
 	for (uint idx = 0; idx < size(); ++idx) {
 		SpriteSlot &slot = (*this)[idx];
 		if (slot._seqIndex == seqIndex) {
 			slot._flags = IMG_ERASE;
-			return;
+			deleted = idx;
 		}
 	}
+
+	return deleted;
 }
 
 int SpriteSlots::add() {
@@ -384,7 +385,7 @@ int SpriteSets::add(SpriteAsset *asset, int idx) {
 	}
 }
 
-int SpriteSets::addSprites(const Common::String &resName, int flags) {
+int SpriteSets::addSprites(const Common::Path &resName, int flags) {
 	return add(new SpriteAsset(_vm, resName, flags));
 }
 

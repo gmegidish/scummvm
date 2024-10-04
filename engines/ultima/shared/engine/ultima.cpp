@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "ultima/ultima.h"
 #include "ultima/shared/engine/ultima.h"
 #include "ultima/shared/engine/data_archive.h"
 #include "ultima/shared/engine/events.h"
@@ -36,7 +36,7 @@ UltimaEngine * g_ultima;
 
 UltimaEngine::UltimaEngine(OSystem *syst, const Ultima::UltimaGameDescription *gameDesc) :
 		Engine(syst), _gameDescription(gameDesc), _randomSource("Ultima"),
-		_dataArchive(nullptr), _events(nullptr) {
+		_dataArchive(nullptr) {
 	g_ultima = this;
 }
 
@@ -45,11 +45,8 @@ UltimaEngine::~UltimaEngine() {
 }
 
 bool UltimaEngine::initialize() {
-	Common::String folder;
+	Common::Path folder;
 	int reqMajorVersion, reqMinorVersion;
-
-	DebugMan.addDebugChannel(kDebugPath, "Path", "Pathfinding debug level");
-	DebugMan.addDebugChannel(kDebugGraphics, "Graphics", "Graphics debug level");
 
 	// Call syncSoundSettings to get default volumes set
 	syncSoundSettings();
@@ -93,7 +90,7 @@ GameId UltimaEngine::getGameId() const {
 }
 
 Common::FSNode UltimaEngine::getGameDirectory() const {
-	return Common::FSNode(ConfMan.get("path"));
+	return Common::FSNode(ConfMan.getPath("path"));
 }
 
 } // End of namespace Shared

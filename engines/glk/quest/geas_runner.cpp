@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -378,7 +377,7 @@ void geas_implementation::display_error(String errorname, String obj) {
 	}
 
 	const GeasBlock *game = gf.find_by_name("game", "game");
-	assert(game != NULL);
+	assert(game != nullptr);
 	String tok;
 	uint c1, c2;
 	for (uint i = 0; i < game->data.size(); i ++) {
@@ -479,7 +478,7 @@ Common::Array<Common::Array<String> > geas_implementation::get_places(String roo
 	Common::Array<Common::Array<String> > rv;
 
 	const GeasBlock *gb = gf.find_by_name("room", room);
-	if (gb == NULL)
+	if (gb == nullptr)
 		return rv;
 
 	String line, tok;
@@ -570,7 +569,7 @@ Common::Array<Common::Array<String> > geas_implementation::get_places(String roo
 String geas_implementation::exit_dest(String room, String dir, bool *is_script) const {
 	uint c1, c2;
 	String tok;
-	if (is_script != NULL)
+	if (is_script != nullptr)
 		*is_script = false;
 	for (uint i = state.exits.size() - 1; i + 1 > 0; i --)
 		if (state.exits[i].src == room) {
@@ -607,7 +606,7 @@ String geas_implementation::exit_dest(String room, String dir, bool *is_script) 
 	*/
 
 	const GeasBlock *gb = gf.find_by_name("room", room);
-	if (gb == NULL) {
+	if (gb == nullptr) {
 		gi->debug_print(String("Trying to find exit <") + dir +
 		                "> of nonexistent room <" + room + ">.");
 		return "";
@@ -622,7 +621,7 @@ String geas_implementation::exit_dest(String room, String dir, bool *is_script) 
 			if (is_param(tok))
 				return param_contents(tok);
 			if (tok != "") {
-				if (is_script != NULL)
+				if (is_script != nullptr)
 					*is_script = true;
 				return trim(line.substr(line_start + 1));
 			}
@@ -980,7 +979,7 @@ String geas_implementation::substitute_synonyms(String s) const {
 	String orig = s;
 	cerr << "substitute_synonyms (" << s << ")\n";
 	const GeasBlock *gb = gf.find_by_name("synonyms", "");
-	if (gb != NULL) {
+	if (gb != nullptr) {
 		/* TODO: exactly in what order does it try synonyms?
 		 * Does it have to be flanked by whitespace?
 		 */
@@ -1103,7 +1102,7 @@ void geas_implementation::run_command(String s) {
 	dont_process = false;
 
 	const GeasBlock *gb = gf.find_by_name("room", state.location);
-	if (gb != NULL) {
+	if (gb != nullptr) {
 		String line, tok;
 		uint c1, c2;
 		for (uint i = 0; i < gb->data.size(); i ++) {
@@ -1128,7 +1127,7 @@ void geas_implementation::run_command(String s) {
 
 	if (!overridden) {
 		gb = gf.find_by_name("game", "game");
-		if (gb != NULL) {
+		if (gb != nullptr) {
 			String line, tok;
 			uint c1, c2;
 			for (uint i = 0; i < gb->data.size(); i ++) {
@@ -1163,7 +1162,7 @@ void geas_implementation::run_command(String s) {
 	overridden = false;
 
 	gb = gf.find_by_name("room", state.location);
-	if (gb != NULL) {
+	if (gb != nullptr) {
 		String line, tok;
 		uint c1, c2;
 		for (uint i = 0; i < gb->data.size(); i ++) {
@@ -1186,7 +1185,7 @@ void geas_implementation::run_command(String s) {
 	}
 	if (!overridden) {
 		gb = gf.find_by_name("game", "game");
-		if (gb != NULL) {
+		if (gb != nullptr) {
 			String line, tok;
 			uint c1, c2;
 			for (uint i = 0; i < gb->data.size(); i ++) {
@@ -1316,7 +1315,7 @@ bool geas_implementation::match_object(String text, String name, bool is_interna
 		return true;
 
 	const GeasBlock *gb = gf.find_by_name("object", name);
-	if (gb != NULL) {
+	if (gb != nullptr) {
 		String tok, line;
 		uint c1, c2;
 		for (uint ln = 0; ln < gb->data.size(); ln ++) {
@@ -1414,7 +1413,7 @@ bool geas_implementation::run_commands(String cmd, const GeasBlock *room, bool i
 	String line, tok;
 	match_rv match;
 
-	if (room != NULL) {
+	if (room != nullptr) {
 		for (uint i = 0; i < room->data.size(); i++) {
 			line = room->data[i];
 			tok = first_token(line, c1, c2);
@@ -1632,7 +1631,7 @@ bool geas_implementation::try_match(String cmd, bool is_internal, bool is_normal
 		}
 
 		const GeasBlock *gb = gf.find_by_name("object", obj);
-		if (gb != NULL) {
+		if (gb != nullptr) {
 			uint c1, c2, script_begins;
 			for (uint i = 0; i < gb->data.size(); i ++) {
 				line = gb->data[i];
@@ -1690,7 +1689,7 @@ bool geas_implementation::try_match(String cmd, bool is_internal, bool is_normal
 
 	if (cmd == "exit" || cmd == "out" || cmd == "go out") {
 		const GeasBlock *gb = gf.find_by_name("room", state.location);
-		if (gb == NULL) {
+		if (gb == nullptr) {
 			gi->debug_print("Bad room");
 			return true;
 		}
@@ -1801,7 +1800,7 @@ bool geas_implementation::try_match(String cmd, bool is_internal, bool is_normal
 
 	if (ci_equal(cmd, "about")) {
 		const GeasBlock *gb = gf.find_by_name("game", "game");
-		if (gb == NULL)
+		if (gb == nullptr)
 			return true;
 		cerr << *gb << endl;
 
@@ -1934,7 +1933,7 @@ void geas_implementation::run_script(String s, String &rv) {
 		}
 		tok = eval_param(tok);
 		const GeasBlock *gb = gf.find_by_name("selection", tok);
-		if (gb == NULL) {
+		if (gb == nullptr) {
 			gi->debug_print("No selection called " + tok + " found");
 			return;
 		}
@@ -2065,7 +2064,7 @@ void geas_implementation::run_script(String s, String &rv) {
 			return;
 		}
 		const GeasBlock *gb = gf.find_by_name("text", param_contents(tok));
-		if (gb != NULL) {
+		if (gb != nullptr) {
 			for (uint i = 0; i < gb->data.size(); i ++) {
 				print_formatted(gb->data[i]);
 				print_newline();
@@ -3507,7 +3506,7 @@ void geas_implementation::tick_timers() {
 				tr.is_running = false;
 				tr.timeleft = tr.interval;
 				const GeasBlock *gb = gf.find_by_name("timer", tr.name);
-				if (gb != NULL) {
+				if (gb != nullptr) {
 					//cout << "Running it!\n";
 					String tok, line;
 					uint c1, c2;

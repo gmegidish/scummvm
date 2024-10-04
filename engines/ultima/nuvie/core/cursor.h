@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@ typedef struct {
 class Cursor {
 	friend class Screen;
 	Screen *screen;
-	Configuration *config;
+	const Configuration *config;
 	sint32 cur_x, cur_y; // location on screen, unused normally
 	Std::vector<MousePointer *> cursors; // pointer list
 	uint8 cursor_id; // which pointer is active
@@ -69,8 +68,8 @@ public:
 	~Cursor()                              {
 		unload_all();
 	}
-	bool init(Configuration *c, Screen *s, nuvie_game_t game_type);
-	uint32 load_all(Std::string filename, nuvie_game_t game_type);
+	bool init(const Configuration *c, Screen *s, nuvie_game_t game_type);
+	uint32 load_all(const Common::Path &filename, nuvie_game_t game_type);
 	void unload_all();
 	bool set_pointer(uint8 ptr_num);
 
@@ -91,18 +90,18 @@ public:
 		hidden = false;
 	}
 
-	void get_hotspot(uint16 &x, uint16 &y) {
+	void get_hotspot(uint16 &x, uint16 &y) const {
 		x = cursors[cursor_id]->point_x;
 		y = cursors[cursor_id]->point_y;
 	}
 	bool display()                         {
-		return (display(cur_x, cur_y));
+		return display(cur_x, cur_y);
 	}
 	bool display(int px, int py);
 	void clear();
 	void update();
 
-	bool is_visible() {
+	bool is_visible() const {
 		return !hidden;
 	}
 };

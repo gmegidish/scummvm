@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -36,7 +41,7 @@
 
 namespace Gob {
 
-Inter::Inter(GobEngine *vm) : _vm(vm), _varStack(600) {
+Inter::Inter(GobEngine *vm) : _vm(vm), _varStack(1000) {
 	_terminate = 0;
 	_break = false;
 
@@ -46,8 +51,8 @@ Inter::Inter(GobEngine *vm) : _vm(vm), _varStack(600) {
 		_animPalDir[i] = 0;
 	}
 
-	_breakFromLevel = 0;
-	_nestLevel = 0;
+	_breakFromLevel = nullptr;
+	_nestLevel = nullptr;
 
 	_soundEndTimeKey = 0;
 	_soundStopVal = 0;
@@ -55,7 +60,7 @@ Inter::Inter(GobEngine *vm) : _vm(vm), _varStack(600) {
 	_lastBusyWait = 0;
 	_noBusyWait = false;
 
-	_variables = 0;
+	_variables = nullptr;
 }
 
 Inter::~Inter() {
@@ -78,8 +83,8 @@ void Inter::executeOpcodeDraw(byte i) {
 }
 
 void Inter::executeOpcodeFunc(byte i, byte j, OpFuncParams &params) {
-	debugC(1, kDebugFuncOp, "opcodeFunc %d.%d [0x%X.0x%X] (%s)",
-			i, j, i, j, getDescOpcodeFunc(i, j));
+	debugC(1, kDebugFuncOp, "%s:%08d: opcodeFunc %d.%d [0x%X.0x%X] (%s)",
+		   _vm->_game->_curTotFile.c_str(), _vm->_game->_script->pos(), i, j, i, j, getDescOpcodeFunc(i, j));
 
 	int n = i * 16 + j;
 	if ((i <= 4) && (j <= 15) && _opcodesFunc[n].proc && _opcodesFunc[n].proc->isValid())
@@ -92,7 +97,7 @@ void Inter::executeOpcodeGob(int i, OpGobParams &params) {
 	debugC(1, kDebugGobOp, "opcodeGoblin %d [0x%X] (%s)",
 			i, i, getDescOpcodeGob(i));
 
-	OpcodeEntry<OpcodeGob> *op = 0;
+	OpcodeEntry<OpcodeGob> *op = nullptr;
 
 	if (_opcodesGob.contains(i))
 		op = &_opcodesGob.getVal(i);
@@ -174,7 +179,11 @@ void Inter::storeKey(int16 key) {
 	WRITE_VAR(12, _vm->_util->getTimeKey() - _vm->_game->_startTimeKey);
 
 	storeMouse();
-	WRITE_VAR(1, _vm->_sound->blasterPlayingSound());
+	bool isSoundPlaying = _vm->_sound->blasterPlayingSound() ||
+						  (_vm->getGameType() == kGameTypeAdibou1 && // NOTE: may be needed by other games as well
+						   _vm->_vidPlayer->isSoundPlaying());
+
+	WRITE_VAR(1, isSoundPlaying);
 
 	if      (key == kKeyUp)
 		key =    kShortKeyUp;
@@ -363,7 +372,7 @@ void Inter::delocateVars() {
 		_vm->_game->deletedVars(_variables);
 
 	delete _variables;
-	_variables = 0;
+	_variables = nullptr;
 }
 
 void Inter::storeValue(uint16 index, uint16 type, uint32 value) {
@@ -386,7 +395,7 @@ void Inter::storeValue(uint16 index, uint16 type, uint32 value) {
 
 void Inter::storeValue(uint32 value) {
 	uint16 type;
-	uint16 index = _vm->_game->_script->readVarIndex(0, &type);
+	uint16 index = _vm->_game->_script->readVarIndex(nullptr, &type);
 
 	storeValue(index, type, value);
 }
@@ -405,7 +414,7 @@ void Inter::storeString(uint16 index, uint16 type, const char *value) {
 
 	case TYPE_IMM_INT8:
 	case TYPE_VAR_INT8:
-		strcpy(str, value);
+		Common::strcpy_s(str, maxLength, value);
 		break;
 
 	case TYPE_ARRAY_INT8:
@@ -431,7 +440,7 @@ void Inter::storeString(uint16 index, uint16 type, const char *value) {
 
 void Inter::storeString(const char *value) {
 	uint16 type;
-	uint16 varIndex = _vm->_game->_script->readVarIndex(0, &type);
+	uint16 varIndex = _vm->_game->_script->readVarIndex(nullptr, &type);
 
 	storeString(varIndex, type, value);
 }

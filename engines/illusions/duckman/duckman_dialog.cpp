@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -96,7 +95,7 @@ void DuckmanDialogSystem::startDialog(int16 *choiceOfsPtr, uint32 actorTypeId, u
 		_vm->_cursor._dialogItemsCount = 0;
 		_vm->_cursor._overlappedObjectId = 0;
 		_vm->_cursor._op113_choiceOfsPtr = choiceOfsPtr;
-		_vm->_cursor._currOverlappedControl = 0;
+		_vm->_cursor._currOverlappedControl = nullptr;
 
 		/* TODO?
 		if (!_vm->_input->getCursorMouseMode())
@@ -150,7 +149,7 @@ void DuckmanDialogSystem::updateDialogState() {
 		currOverlappedControl->setActorIndex(1);
 		currOverlappedControl->startSequenceActor(currOverlappedControl->_actor->_sequenceId, 2, 0);
 		_vm->playSoundEffect(10);
-		_vm->_cursor._currOverlappedControl = 0;
+		_vm->_cursor._currOverlappedControl = nullptr;
 		_vm->_cursor._overlappedObjectId = 0;
 		_vm->startCursorSequence();
 		_vm->setCursorActorIndex(6, 1, 0);
@@ -168,7 +167,7 @@ void DuckmanDialogSystem::updateDialogState() {
 			_vm->_cursor._gameState = 2;
 			_vm->_cursor._dialogItemsCount = 0;
 			_vm->_cursor._overlappedObjectId = 0;
-			_vm->_cursor._op113_choiceOfsPtr = 0;
+			_vm->_cursor._op113_choiceOfsPtr = nullptr;
 			_vm->_cursor._control->disappearActor();
 		}
 	}

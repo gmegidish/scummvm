@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,14 +46,18 @@ Module2200::~Module2200() {
 	_vm->_soundMan->deleteGroup(0x11391412);
 }
 
+bool Module2200::shouldSkipHall() {
+	return ConfMan.getBool("skiphallofrecordsscenes") || _vm->getLanguage() == Common::Language::JA_JPN;
+}
+
 void Module2200::createScene(int sceneNum, int which) {
-	if (sceneNum == 46 && ConfMan.getBool("skiphallofrecordsscenes")) {
+	if (sceneNum == 46 && shouldSkipHall()) {
 		// Skip the whole Hall of Records storyboard scenes,
 		// and teleport to the last scene
 		sceneNum = 41;
 	}
 
-	if (sceneNum == 40 && ConfMan.getBool("skiphallofrecordsscenes")) {
+	if (sceneNum == 40 && shouldSkipHall()) {
 		// Skip the whole Hall of Records storyboard scenes,
 		// and teleport back to the first scene
 		sceneNum = 5;
@@ -595,7 +598,7 @@ uint32 Scene2201::handleMessage(int messageNum, const MessageParam &param, Entit
 
 Scene2202::Scene2202(NeverhoodEngine *vm, Module *parentModule, int which)
 	: Scene(vm, parentModule), _isSolved(false), _leaveScene(false), _isCubeMoving(false),
-	_ssMovingCube(NULL), _ssDoneMovingCube(NULL) {
+	_ssMovingCube(nullptr), _ssDoneMovingCube(nullptr) {
 
 	_vm->gameModule()->initCubeSymbolsPuzzle();
 
@@ -648,14 +651,14 @@ void Scene2202::update() {
 		if (freeCubePosition != -1) {
 			setSurfacePriority(_ssMovingCube->getSurface(), 700);
 			sendMessage(_ssMovingCube, 0x2001, freeCubePosition);
-			_ssMovingCube = NULL;
+			_ssMovingCube = nullptr;
 			_isCubeMoving = true;
 		}
 	}
 
 	if (_ssDoneMovingCube) {
 		setSurfacePriority(_ssDoneMovingCube->getSurface(), _surfacePriority);
-		_ssDoneMovingCube = NULL;
+		_ssDoneMovingCube = nullptr;
 		if (testIsSolved()) {
 			playSound(0);
 			setGlobalVar(V_TILE_PUZZLE_SOLVED, 1);
@@ -1160,11 +1163,11 @@ Scene2207::Scene2207(NeverhoodEngine *vm, Module *parentModule)
 		insertSprite<SsScene2207Symbol>(kScene2207FileHashes[getSubVar(VA_GOOD_CANNON_SYMBOLS_1, 0)], 0);
 		insertSprite<SsScene2207Symbol>(kScene2207FileHashes[getSubVar(VA_GOOD_CANNON_SYMBOLS_1, 1)], 1);
 		insertSprite<SsScene2207Symbol>(kScene2207FileHashes[getSubVar(VA_GOOD_CANNON_SYMBOLS_1, 2)], 2);
-		_asTape = NULL;
-		_asLever = NULL;
-		_asWallRobotAnimation = NULL;
-		_asWallCannonAnimation = NULL;
-		_ssButton = NULL;
+		_asTape = nullptr;
+		_asLever = nullptr;
+		_asWallRobotAnimation = nullptr;
+		_asWallCannonAnimation = nullptr;
+		_ssButton = nullptr;
 		_klaymen->setClipRect(0, _ssMaskPart1->getDrawRect().y, 640, 480);
 		_asElevator->setClipRect(0, _ssMaskPart1->getDrawRect().y, 640, 480);
 	}
@@ -1452,7 +1455,11 @@ void Scene2208::drawRow(int16 rowIndex) {
 		_background->getSurface()->copyFrom(_backgroundSurface->getSurface(), 0, y, sourceRect);
 		if (rowIndex < (int)_strings.size()) {
 			const char *text = _strings[rowIndex];
-			_fontSurface->drawString(_background->getSurface(), 95, y, (const byte*)text);
+			int16 x = 95;
+			if (_vm->shouldOffsetFontNhc()) {
+				x += 15;
+			}
+			_fontSurface->drawString(_background->getSurface(), x, y, (const byte*)text);
 		}
 	}
 }

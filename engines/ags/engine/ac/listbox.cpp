@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/config-manager.h"
 #include "common/savefile.h"
-#include "ags/lib/std/algorithm.h"
-#include "ags/lib/std/set.h"
+#include "common/std/algorithm.h"
+#include "common/std/set.h"
 #include "ags/lib/allegro.h" // find files
 #include "ags/engine/ac/listbox.h"
 #include "ags/shared/ac/common.h"
@@ -42,6 +41,9 @@
 #include "ags/engine/ac/dynobj/script_string.h"
 #include "ags/ags.h"
 #include "ags/globals.h"
+
+#include "gui/message.h"
+#include "common/translation.h"
 
 namespace AGS3 {
 
@@ -67,9 +69,20 @@ void ListBox_Clear(GUIListBox *listbox) {
 
 static void FillSaveList(std::set<String> &files, const String &filePattern) {
 	size_t wildcard = filePattern.FindChar('*');
-	assert(wildcard != String::npos);
+	assert(wildcard != String::NoIndex);
 	Common::String prefix(filePattern.GetCStr(), wildcard);
-	Common::StringArray matches = g_system->getSavefileManager()->listSavefiles(filePattern);
+	Common::StringArray matches;
+
+	// WORKAROUND: For QfG2 AGDI import screen, list only the QfG1 exported characters
+	if ((strcmp(_GP(game).guid, "{a46a9171-f6f9-456c-9b2b-a509b560ddc0}") == 0) && _G(displayed_room) == 1) {
+		::GUI::MessageDialog dialog(_("The game will now list characters exported from the Sierra games that can be imported:\n"
+									  "1. Save files named qfg1*.sav or qfg1vga*.sav inside ScummVM save directory, or\n"
+									  "2. Any .sav file inside the QfG2 Remake game directory"), "Ok");
+		dialog.runModal();
+
+		matches = g_system->getSavefileManager()->listSavefiles("qfg1*.sav");
+	} else
+		matches = g_system->getSavefileManager()->listSavefiles(filePattern);
 
 	for (uint idx = 0; idx < matches.size(); ++idx) {
 		Common::String name = matches[idx];
@@ -87,7 +100,7 @@ void FillDirList(std::set<String> &files, const String &path) {
 		String subDir = dirName.Mid(_GP(ResPaths).DataDir.GetLength());
 		if (!subDir.IsEmpty() && subDir[0u] == '/')
 			subDir.ClipLeft(1);
-		dirName = ConfMan.get("path");
+		dirName = ConfMan.getPath("path").toString('/');
 	} else if (dirName.CompareLeftNoCase(get_save_game_directory()) == 0) {
 		// Save files listing
 		FillSaveList(files, filePattern);
@@ -108,6 +121,8 @@ void ListBox_FillDirList(GUIListBox *listbox, const char *filemask) {
 	ResolvedPath rp;
 	if (!ResolveScriptPath(filemask, true, rp))
 		return;
+
+	// TODO: support listing assets from AssetMgr
 
 	std::set<String> files;
 	FillDirList(files, rp.FullPath);
@@ -145,6 +160,15 @@ int ListBox_FillSaveGameList(GUIListBox *listbox) {
 	for (const auto &item : saveList) {
 		int slot = item.getSaveSlot();
 		Common::String desc = item.getDescription();
+		if (strcmp(_GP(game).guid, "{623a837d-9007-4174-b8be-af23192c3d73}" /* Blackwell Epiphany */) == 0 ||
+			strcmp(_GP(game).guid, "{139fc4b0-c680-4e03-984e-bda22af424e9}" /* Gemini Rue */) == 0 ||
+			strcmp(_GP(game).guid, "{db1e693d-3c6a-4565-ae08-45fe4c536498}" /* Old Skies */) == 0 ||
+			strcmp(_GP(game).guid, "{a0488eca-2275-47c8-860a-3b755fd51a59}" /* The Shivah: Kosher Edition */) == 0 ||
+			strcmp(_GP(game).guid, "{ea2bf7d0-7eca-4127-9970-031ee8f37eba}" /* Unavowed */) == 0)
+			if (slot == 101) {
+				debug(0, "Skipping game-managed autosave slot entry in savelist");
+				continue;
+			}
 
 		listbox->AddItem(desc);
 		listbox->SavedGameIndex[listbox->ItemCount - 1] = slot;
@@ -180,8 +204,7 @@ int ListBox_GetItemAtLocation(GUIListBox *listbox, int x, int y) {
 char *ListBox_GetItemText(GUIListBox *listbox, int index, char *buffer) {
 	if ((index < 0) || (index >= listbox->ItemCount))
 		quit("!ListBoxGetItemText: invalid item specified");
-	strncpy(buffer, listbox->Items[index].GetCStr(), 198);
-	buffer[199] = 0;
+	snprintf(buffer, MAX_MAXSTRLEN, "%s", listbox->Items[index].GetCStr());
 	return buffer;
 }
 
@@ -271,7 +294,7 @@ int ListBox_GetSelectedBackColor(GUIListBox *listbox) {
 void ListBox_SetSelectedBackColor(GUIListBox *listbox, int colr) {
 	if (listbox->SelectedBgColor != colr) {
 		listbox->SelectedBgColor = colr;
-		listbox->NotifyParentChanged();
+		listbox->MarkChanged();
 	}
 }
 
@@ -282,7 +305,7 @@ int ListBox_GetSelectedTextColor(GUIListBox *listbox) {
 void ListBox_SetSelectedTextColor(GUIListBox *listbox, int colr) {
 	if (listbox->SelectedTextColor != colr) {
 		listbox->SelectedTextColor = colr;
-		listbox->NotifyParentChanged();
+		listbox->MarkChanged();
 	}
 }
 
@@ -293,7 +316,7 @@ int ListBox_GetTextAlignment(GUIListBox *listbox) {
 void ListBox_SetTextAlignment(GUIListBox *listbox, int align) {
 	if (listbox->TextAlignment != align) {
 		listbox->TextAlignment = (HorAlignment)align;
-		listbox->NotifyParentChanged();
+		listbox->MarkChanged();
 	}
 }
 
@@ -304,7 +327,7 @@ int ListBox_GetTextColor(GUIListBox *listbox) {
 void ListBox_SetTextColor(GUIListBox *listbox, int colr) {
 	if (listbox->TextColor != colr) {
 		listbox->TextColor = colr;
-		listbox->NotifyParentChanged();
+		listbox->MarkChanged();
 	}
 }
 
@@ -327,7 +350,7 @@ void ListBox_SetSelectedIndex(GUIListBox *guisl, int newsel) {
 			if (newsel >= guisl->TopItem + guisl->VisibleItemCount)
 				guisl->TopItem = (newsel - guisl->VisibleItemCount) + 1;
 		}
-		guisl->NotifyParentChanged();
+		guisl->MarkChanged();
 	}
 
 }
@@ -337,13 +360,14 @@ int ListBox_GetTopItem(GUIListBox *listbox) {
 }
 
 void ListBox_SetTopItem(GUIListBox *guisl, int item) {
-	if ((guisl->ItemCount == 0) && (item == 0))
-		;  // allow resetting an empty box to the top
-	else if ((item >= guisl->ItemCount) || (item < 0))
-		quit("!ListBoxSetTopItem: tried to set top to beyond top or bottom of list");
-
-	guisl->TopItem = item;
-	guisl->NotifyParentChanged();
+	if ((item >= guisl->ItemCount) || (item < 0)) {
+		item = Math::Clamp<int>(item, 0, guisl->ItemCount);
+		debug_script_warn("ListBoxSetTopItem: tried to set top to beyond top or bottom of list");
+	}
+	if (guisl->TopItem != item) {
+		guisl->TopItem = item;
+		guisl->MarkChanged();
+	}
 }
 
 int ListBox_GetRowCount(GUIListBox *listbox) {
@@ -353,14 +377,14 @@ int ListBox_GetRowCount(GUIListBox *listbox) {
 void ListBox_ScrollDown(GUIListBox *listbox) {
 	if (listbox->TopItem + listbox->VisibleItemCount < listbox->ItemCount) {
 		listbox->TopItem++;
-		listbox->NotifyParentChanged();
+		listbox->MarkChanged();
 	}
 }
 
 void ListBox_ScrollUp(GUIListBox *listbox) {
 	if (listbox->TopItem > 0) {
 		listbox->TopItem--;
-		listbox->NotifyParentChanged();
+		listbox->MarkChanged();
 	}
 }
 

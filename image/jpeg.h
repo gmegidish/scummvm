@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,9 +39,10 @@ namespace Image {
  * @brief Decoder for JPEG images.
  *
  * Used in engines:
- * - Groovie
- * - Mohawk
- * - Wintermute
+ * - groovie
+ * - mohawk
+ * - vcruise
+ * - wintermute
  * @{
  */
 
@@ -52,13 +52,15 @@ public:
 	~JPEGDecoder();
 
 	// ImageDecoder API
-	virtual void destroy();
-	virtual bool loadStream(Common::SeekableReadStream &str);
-	virtual const Graphics::Surface *getSurface() const;
+	void destroy() override;
+	bool loadStream(Common::SeekableReadStream &str) override;
+	const Graphics::Surface *getSurface() const override;
 
 	// Codec API
-	const Graphics::Surface *decodeFrame(Common::SeekableReadStream &stream);
-	Graphics::PixelFormat getPixelFormat() const;
+	const Graphics::Surface *decodeFrame(Common::SeekableReadStream &stream) override;
+	void setCodecAccuracy(CodecAccuracy accuracy) override;
+	Graphics::PixelFormat getPixelFormat() const override;
+	bool setOutputPixelFormat(const Graphics::PixelFormat &format) override { _requestedPixelFormat = format; return true; }
 
 	// Special API for JPEG
 	enum ColorSpace {
@@ -95,17 +97,11 @@ public:
 	 */
 	void setOutputColorSpace(ColorSpace outSpace) { _colorSpace = outSpace; }
 
-	/**
-	 * Request the output pixel format. The JPEG decoder provides high performance
-	 * color conversion routines for some pixel formats. This setting allows to use
-	 * them and avoid costly subsequent color conversion.
-	 */
-	void setOutputPixelFormat(const Graphics::PixelFormat &format) { _requestedPixelFormat = format; }
-
 private:
 	Graphics::Surface _surface;
 	ColorSpace _colorSpace;
 	Graphics::PixelFormat _requestedPixelFormat;
+	CodecAccuracy _accuracy;
 
 	Graphics::PixelFormat getByteOrderRgbPixelFormat() const;
 };

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,24 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
 #include "base/plugins.h"
 #include "engines/advancedDetector.h"
+#include "engines/obsolete.h"
 
 #include "gob/dataio.h"
 #include "gob/detection/detection.h"
 #include "gob/detection/tables.h"
+#include "gob/obsolete.h" // Obsolete ID table.
 #include "gob/gob.h"
 
 static const DebugChannelDef debugFlagList[] = {
@@ -44,15 +51,24 @@ static const DebugChannelDef debugFlagList[] = {
 	DEBUG_CHANNEL_END
 };
 
-class GobMetaEngineDetection : public AdvancedMetaEngineDetection {
+class GobMetaEngineDetection : public AdvancedMetaEngineDetection<Gob::GOBGameDescription> {
 public:
 	GobMetaEngineDetection();
 
-	const char *getEngineId() const override {
+	PlainGameDescriptor findGame(const char *gameId) const override {
+		return Engines::findGameID(gameId, _gameIds, obsoleteGameIDsTable);
+	}
+
+	Common::Error identifyGame(DetectedGame &game, const void **descriptor) override {
+		Engines::upgradeTargetIfNecessary(obsoleteGameIDsTable);
+		return AdvancedMetaEngineDetection::identifyGame(game, descriptor);
+	}
+
+	const char *getName() const override {
 		return "gob";
 	}
 
-	const char *getName() const override;
+	const char *getEngineName() const override;
 	const char *getOriginalCopyright() const override;
 
 	const DebugChannelDef *getDebugChannels() const override {
@@ -69,7 +85,7 @@ private:
 };
 
 GobMetaEngineDetection::GobMetaEngineDetection() :
-	AdvancedMetaEngineDetection(Gob::gameDescriptions, sizeof(Gob::GOBGameDescription), gobGames) {
+	AdvancedMetaEngineDetection(Gob::gameDescriptions, gobGames) {
 
 	_guiOptions = GUIO1(GUIO_NOLAUNCHLOAD);
 }
@@ -82,7 +98,7 @@ ADDetectedGame GobMetaEngineDetection::fallbackDetect(const FileMap &allFiles, c
 
 	const Gob::GOBGameDescription *game = (const Gob::GOBGameDescription *)detectedGame.desc;
 
-	if (game->gameType == Gob::kGameTypeOnceUponATime) {
+	if (!strcmp(game->desc.gameId, "onceupon")) {
 		game = detectOnceUponATime(fslist);
 		if (game) {
 			detectedGame.desc = &game->desc;
@@ -95,7 +111,7 @@ ADDetectedGame GobMetaEngineDetection::fallbackDetect(const FileMap &allFiles, c
 const Gob::GOBGameDescription *GobMetaEngineDetection::detectOnceUponATime(const Common::FSList &fslist) {
 	// Add the game path to the search manager
 	SearchMan.clear();
-	SearchMan.addDirectory(fslist.begin()->getParent().getPath(), fslist.begin()->getParent());
+	SearchMan.addDirectory(fslist.begin()->getParent());
 
 	// Open the archives
 	Gob::DataIO dataIO;
@@ -104,7 +120,7 @@ const Gob::GOBGameDescription *GobMetaEngineDetection::detectOnceUponATime(const
 	    !dataIO.openArchive("stk3.stk", true)) {
 
 		SearchMan.clear();
-		return 0;
+		return nullptr;
 	}
 
 	Gob::OnceUponATime gameType         = Gob::kOnceUponATimeInvalid;
@@ -163,18 +179,18 @@ const Gob::GOBGameDescription *GobMetaEngineDetection::detectOnceUponATime(const
 	if ((gameType == Gob::kOnceUponATimeInvalid) || (platform == Gob::kOnceUponATimePlatformInvalid)) {
 		warning("GobMetaEngineDetection::detectOnceUponATime(): Detection failed (%d, %d)",
 		        (int)gameType, (int)platform);
-		return 0;
+		return nullptr;
 	}
 
 	return &Gob::fallbackOnceUpon[gameType][platform];
 }
 
-const char *GobMetaEngineDetection::getName() const {
+const char *GobMetaEngineDetection::getEngineName() const {
 	return "Gob";
 }
 
 const char *GobMetaEngineDetection::getOriginalCopyright() const {
-	return "Goblins Games (C) Coktel Vision";
+	return "Goblins Games (C) 1984-2011 Coktel Vision";
 }
 
 REGISTER_PLUGIN_STATIC(GOB_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, GobMetaEngineDetection);

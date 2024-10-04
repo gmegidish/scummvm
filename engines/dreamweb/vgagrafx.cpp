@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #include "common/file.h"
 #include "engines/util.h"
 #include "graphics/surface.h"
+#include "graphics/scaler/downscaler.h"
 #include "image/pcx.h"
 
 namespace DreamWeb {
@@ -155,16 +155,16 @@ void DreamWebEngine::setMode() {
 }
 
 void DreamWebEngine::showPCX(const Common::String &suffix) {
-	Common::String name = getDatafilePrefix() + suffix;
+	Common::Path name(getDatafilePrefix() + suffix);
 	Common::File pcxFile;
 	if (!pcxFile.open(name)) {
-		warning("showpcx: Could not open '%s'", name.c_str());
+		warning("showpcx: Could not open '%s'", name.toString(Common::Path::kNativeSeparator).c_str());
 		return;
 	}
 
 	Image::PCXDecoder pcx;
 	if (!pcx.loadStream(pcxFile)) {
-		warning("showpcx: Could not process '%s'", name.c_str());
+		warning("showpcx: Could not process '%s'", name.toString(Common::Path::kNativeSeparator).c_str());
 		return;
 	}
 
@@ -176,14 +176,19 @@ void DreamWebEngine::showPCX(const Common::String &suffix) {
 		_mainPal[i] >>= 2;
 	}
 
-	Graphics::Surface *s = g_system->lockScreen();
-	s->fillRect(Common::Rect(640, 480), 0);
 	const Graphics::Surface *pcxSurface = pcx.getSurface();
 	if (pcxSurface->format.bytesPerPixel != 1)
 		error("Invalid bytes per pixel in PCX surface (%d)", pcxSurface->format.bytesPerPixel);
-	for (uint16 y = 0; y < pcxSurface->h; y++)
-		memcpy((byte *)s->getBasePtr(0, y), pcxSurface->getBasePtr(0, y), pcxSurface->w);
-	g_system->unlockScreen();
+
+	g_system->fillScreen(0);
+	if (pcxSurface->w >= g_system->getWidth() * 2) {
+		Graphics::Surface *s = g_system->lockScreen();
+		Graphics::downscaleSurfaceByHalf(s, pcxSurface, _mainPal);
+		g_system->unlockScreen();
+	} else {
+		g_system->copyRectToScreen(pcxSurface->getPixels(), pcxSurface->pitch,
+		                           0, 0, pcxSurface->w, pcxSurface->h);
+	}
 }
 
 void DreamWebEngine::frameOutV(uint8 *dst, const uint8 *src, uint16 pitch, uint16 width, uint16 height, int16 x, int16 y) {
@@ -374,7 +379,7 @@ bool DreamWebEngine::pixelCheckSet(const ObjPos *pos, uint8 x, uint8 y) {
 void DreamWebEngine::loadPalFromIFF() {
 	Common::File palFile;
 	uint8* buf = new uint8[2000];
-	palFile.open(getDatafilePrefix() + "PAL");
+	palFile.open(Common::Path(getDatafilePrefix() + "PAL"));
 	palFile.read(buf, 2000);
 	palFile.close();
 

@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,19 +23,16 @@
 
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/lua/lua.h"
-
 #include "engines/grim/actor.h"
 #include "engines/grim/debug.h"
 #include "engines/grim/grim.h"
 #include "engines/grim/costume.h"
 #include "engines/grim/set.h"
-
 #include "engines/grim/emi/emi.h"
 #include "engines/grim/emi/costumeemi.h"
 #include "engines/grim/emi/skeleton.h"
 #include "engines/grim/emi/costume/emichore.h"
 #include "engines/grim/emi/costume/emiskel_component.h"
-
 #include "engines/grim/lua/lauxlib.h"
 
 namespace Grim {
@@ -45,7 +41,7 @@ void Lua_V2::SetActorLocalAlpha() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object vertexObj= lua_getparam(2);
 	lua_Object alphaObj = lua_getparam(3);
-	// lua_Object unknownObj = lua_getparam(4);
+	//lua_Object unknownObj = lua_getparam(4);
 
 	if (!lua_isuserdata(actorObj) || lua_tag(actorObj) != MKTAG('A','C','T','R'))
 		return;
@@ -72,7 +68,6 @@ void Lua_V2::SetActorLocalAlpha() {
 	}
 }
 
-
 void Lua_V2::SetActorGlobalAlpha() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object alphaObj = lua_getparam(2);
@@ -93,10 +88,8 @@ void Lua_V2::SetActorGlobalAlpha() {
 		mesh = lua_getstring(meshObj);
 	}
 	float alpha = lua_getnumber(alphaObj);
-	if (alpha == Actor::AlphaOff ||
-	    alpha == Actor::AlphaReplace ||
-	    alpha == Actor::AlphaModulate) {
-			actor->setAlphaMode((Actor::AlphaMode) (int) alpha, mesh);
+	if (alpha == Actor::AlphaOff || alpha == Actor::AlphaReplace || alpha == Actor::AlphaModulate) {
+		actor->setAlphaMode((Actor::AlphaMode) (int) alpha, mesh);
 	} else {
 		actor->setGlobalAlpha(alpha, mesh);
 	}
@@ -647,8 +640,6 @@ void Lua_V2::SetActorTurnChores() {
 	actor->setTurnChores(leftChore, rightChore, costume);
 }
 
-
-
 void Lua_V2::SetActorTalkChore() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object indexObj = lua_getparam(2);
@@ -874,7 +865,7 @@ void Lua_V2::GetActorPuckVector() {
 	// Note: The wear chore of dumbshadow.cos is only started from Lua if
 	// GetActorPuckVector returns a non-nil value. The original engine seems
 	// to return nil for all actors that have never followed walkboxes.
-	if (!actor || !actor->hasFollowedBoxes()) {
+	if (!actor || (!actor->hasFollowedBoxes() && !actor->hasFollowBoxes())) {
 		lua_pushnil();
 		return;
 	}
@@ -1034,15 +1025,15 @@ void Lua_V2::WalkActorToAvoiding() {
 
 void Lua_V2::WalkActorVector() {
 	lua_Object actorObj = lua_getparam(1);
-	//	lua_Object xObj = lua_getparam(3);
-	//	lua_Object yObj = lua_getparam(4);
-	//	lua_Object zObj = lua_getparam(5);
-	//	lua_Object param6Obj = lua_getparam(6);
+	//lua_Object xObj = lua_getparam(3);
+	//lua_Object yObj = lua_getparam(4);
+	//lua_Object zObj = lua_getparam(5);
+	//lua_Object param6Obj = lua_getparam(6);
 
 	if (!lua_isuserdata(actorObj) || lua_tag(actorObj) != MKTAG('A', 'C', 'T', 'R'))
 		return;
 
-	//	Actor *actor = static_cast<Actor *>(lua_getuserdata(actorObj));
+	//Actor *actor = static_cast<Actor *>(lua_getuserdata(actorObj));
 	Actor *actor2 = getactor(actorObj);
 
 	// TODO whole below part need rewrote to much original

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -276,7 +275,7 @@ extern const RoomText trial5Texts[] = {
 
 void Room::trial5Tick1() {
 	playVoc("TRI5LOOP");
-	playMidiMusicTracks(MIDITRACK_31, -1);
+	playMidiMusicTracks(MIDITRACK_31);
 
 	loadActorAnim2(OBJECT_REDGEM1, "redgem", REDGEM1_X, REDGEM1_Y);
 	loadActorAnim2(OBJECT_REDGEM2, "redgem", REDGEM2_X, REDGEM2_Y);
@@ -335,7 +334,7 @@ void Room::trial5VlictAppeared() {
 		endMission(_awayMission->trial.missionScore, 1, 4);
 	} else if (choice == 2) { // "I'll intervene if Quetzecoatl goes free"
 		showText(TX_SPEAKER_VLICT, TX_TRI5_019);
-		playMidiMusicTracks(MIDITRACK_28, -1);
+		playMidiMusicTracks(MIDITRACK_28);
 
 		showText(TX_SPEAKER_BIALBI, TX_TRI5_025);
 		_awayMission->trial.missionScore += 4;
@@ -364,7 +363,7 @@ void Room::trial5ReachedInterface() {
 		showText(TX_SPEAKER_BIALBI, TX_TRI5_024);
 		loadActorAnimC(OBJECT_VLICT, "vlict1", 0xbe, 0x91, &Room::trial5VlictAppeared);
 		_awayMission->trial.missionScore += 5;
-		playMidiMusicTracks(MIDITRACK_1, -1);
+		playMidiMusicTracks(MIDITRACK_1);
 	}
 }
 
@@ -612,7 +611,7 @@ void Room::trial5ReachedHoleToPutGem() {
 
 		if COMBO(RED, RED, RED) {
 			trial5ActivateLightOfWar();
-			playMidiMusicTracks(MIDITRACK_1, -1);
+			playMidiMusicTracks(MIDITRACK_1);
 			showText(TX_SPEAKER_LIGHT_OF_WAR, TX_TRI5_050); // All ships in orbit destroyed
 			showGameOverMenu();
 		} else if COMBO(RED, RED, GREEN) {

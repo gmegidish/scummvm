@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -154,8 +153,8 @@ void PoliceMaze::tick() {
 	}
 
 	if (_vm->_debugger->_showMazeScore && _isActive && !_isEnding) {
-		_vm->_subtitles->setGameSubsText(Common::String::format("Score: %02d", Global_Variable_Query(kVariablePoliceMazeScore)), true);
-		_vm->_subtitles->show();
+		_vm->_subtitles->setGameSubsText(BladeRunner::Subtitles::kSubtitlesSecondary, Common::String::format("Score: %02d", Global_Variable_Query(kVariablePoliceMazeScore)), true);
+		_vm->_subtitles->show(BladeRunner::Subtitles::kSubtitlesSecondary);
 	}
 
 	if (notFound && _isActive && !_isEnding) {

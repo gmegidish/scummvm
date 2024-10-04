@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,11 +26,41 @@ namespace Queen {
 
 #define SAVEGAME_SIZE	24622
 
+enum GameFeatures {
+	GF_DEMO      = 1 << 0, // demo
+	GF_TALKIE    = 1 << 1, // equivalent to cdrom version check
+	GF_FLOPPY    = 1 << 2, // floppy, ie. non-talkie version
+	GF_INTERVIEW = 1 << 3, // interview demo
+	GF_REBUILT   = 1 << 4  // version rebuilt with the 'compression_queen' tool
+};
+
 enum {
 	COMPRESSION_NONE  = 0,
 	COMPRESSION_MP3   = 1,
 	COMPRESSION_OGG   = 2,
 	COMPRESSION_FLAC  = 3
+};
+
+enum Version {
+	VER_ENG_FLOPPY     = 0,
+	VER_ENG_TALKIE     = 1,
+	VER_FRE_FLOPPY     = 2,
+	VER_FRE_TALKIE     = 3,
+	VER_GER_FLOPPY     = 4,
+	VER_GER_TALKIE     = 5,
+	VER_ITA_FLOPPY     = 6,
+	VER_ITA_TALKIE     = 7,
+	VER_SPA_TALKIE     = 8,
+	VER_HEB_TALKIE	   = 9,
+	VER_DEMO_PCGAMES   = 10,
+	VER_DEMO           = 11,
+	VER_INTERVIEW      = 12,
+	VER_AMI_ENG_FLOPPY = 13,
+	VER_AMI_DEMO       = 14,
+	VER_AMI_INTERVIEW  = 15,
+	VER_AMI_GER_FLOPPY = 16,
+
+	VER_COUNT          = 17
 };
 
 enum {

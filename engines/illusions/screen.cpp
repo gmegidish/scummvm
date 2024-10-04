@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,7 @@
 #include "illusions/screen.h"
 #include "illusions/resources/fontresource.h"
 #include "engines/util.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 
 namespace Illusions {
 
@@ -132,7 +131,7 @@ void SpriteDrawQueue::insertSurface(Graphics::Surface *surface, WidthHeight &dim
 	SpriteDrawQueueItem *item = new SpriteDrawQueueItem();
 	item->_surface = surface;
 	item->_dimensions = dimensions;
-	item->_drawFlags = 0;
+	item->_drawFlags = nullptr;
 	item->_kind = 0;
 	item->_drawPosition.x = -drawPosition.x;
 	item->_drawPosition.y = -drawPosition.y;
@@ -150,7 +149,7 @@ void SpriteDrawQueue::insertTextSurface(Graphics::Surface *surface, WidthHeight 
 	item->_surface = surface;
 	item->_drawPosition = drawPosition;
 	item->_dimensions = dimensions;
-	item->_drawFlags = 0;
+	item->_drawFlags = nullptr;
 	item->_kind = 0;
 	item->_controlPosition.x = 0;
 	item->_controlPosition.y = 0;
@@ -189,7 +188,7 @@ bool SpriteDrawQueue::calcItemRect(SpriteDrawQueueItem *item, Common::Rect &srcR
 	if (dstRect.left >= _screen->getScreenWidth() || dstRect.right <= 0 || dstRect.top >= _screen->getScreenHeight() || dstRect.bottom <= 0)
 		return false;
 
-	// Clip the sprite rect if neccessary
+	// Clip the sprite rect if necessary
 
 	if (dstRect.left < 0) {
 		srcRect.left += -100 * dstRect.left / item->_scale;
@@ -302,7 +301,7 @@ void ScreenPalette::updatePalette() {
 void ScreenPalette::updateFaderPalette() {
 	if (_newFaderValue >= 255) {
 		_newFaderValue -= 256;
-		for (int i = _firstFaderIndex; i <= _lastFaderIndex; ++i) {
+		for (int i = _firstFaderIndex; i < _lastFaderIndex; ++i) {
 			byte r = _mainPalette[i * 3 + 0];
 			byte g = _mainPalette[i * 3 + 1];
 			byte b = _mainPalette[i * 3 + 2];
@@ -311,7 +310,7 @@ void ScreenPalette::updateFaderPalette() {
 			_faderPalette[i * 3 + 2] = b - (((_newFaderValue * (255 - b)) >> 8) & 0xFF);
 		}
 	} else {
-		for (int i = _firstFaderIndex; i <= _lastFaderIndex; ++i) {
+		for (int i = _firstFaderIndex; i < _lastFaderIndex; ++i) {
 			byte r = _mainPalette[i * 3 + 0];
 			byte g = _mainPalette[i * 3 + 1];
 			byte b = _mainPalette[i * 3 + 2];

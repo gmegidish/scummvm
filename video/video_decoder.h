@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #include "common/rational.h"
 #include "common/str.h"
 #include "graphics/pixelformat.h"
+#include "image/codec-options.h"
 
 namespace Audio {
 class AudioStream;
@@ -115,14 +115,11 @@ public:
 	void stop();
 
 	/**
-	 * Set the rate of playback.
+	 * Set the rate (speed multiplier) of playback.
 	 *
 	 * For instance, a rate of 0 would stop the video, while a rate of 1
 	 * would play the video normally. Passing 2 to this function would
 	 * play the video at twice the normal speed.
-	 *
-	 * @note This function does not work for non-0/1 rates on videos that
-	 * have audio tracks.
 	 *
 	 * @todo This currently does not implement backwards playback, but will
 	 * be implemented soon.
@@ -130,7 +127,8 @@ public:
 	void setRate(const Common::Rational &rate);
 
 	/**
-	 * Returns the rate at which the video is being played.
+	 * Returns the rate (speed multiplier, not frame rate) at which the video
+	 * is being played.  Defaults to 1.0 when a video is started.
 	 */
 	Common::Rational getRate() const { return _playbackRate; }
 
@@ -193,8 +191,8 @@ public:
 	 * variables can be updated appropriately.
 	 *
 	 * This is a convenience method which automatically keeps track on how
-	 * often the video has been paused, ensuring that after pausing an video
-	 * e.g. twice, it has to be unpaused twice before actuallying resuming.
+	 * often the video has been paused, ensuring that after pausing a video
+	 * e.g. twice, it has to be unpaused twice before actually resuming.
 	 *
 	 * @param pause		true to pause the video, false to resume it
 	 */
@@ -229,6 +227,11 @@ public:
 	 * Get the stop time of the video (if not set, zero)
 	 */
 	Audio::Timestamp getEndTime() const { return _endTime; }
+
+	/**
+	 * Reset the playback start time to the current frame.
+	 */
+	void resetStartTime();
 
 
 	/////////////////////////////////////////
@@ -328,6 +331,12 @@ public:
 	bool hasDirtyPalette() const { return _dirtyPalette; }
 
 	/**
+	 * Delay/sleep for the specified amount of milliseconds, or until the next
+	 * frame should be displayed.
+	 */
+	void delayMillis(uint msecs);
+
+	/**
 	 * Return the time (in ms) until the next frame should be displayed.
 	 */
 	uint32 getTimeToNextFrame() const;
@@ -357,16 +366,6 @@ public:
 	virtual const Graphics::Surface *decodeNextFrame();
 
 	/**
-	 * Set the default high color format for videos that convert from YUV.
-	 *
-	 * By default, VideoDecoder will attempt to use the screen format
-	 * if it's >8bpp and use a 32bpp format when not.
-	 *
-	 * This must be set before calling loadStream().
-	 */
-	void setDefaultHighColorFormat(const Graphics::PixelFormat &format) { _defaultHighColorFormat = format; }
-
-	/**
 	 * Set the video to decode frames in reverse.
 	 *
 	 * By default, VideoDecoder will decode forward.
@@ -382,7 +381,7 @@ public:
 	 * Tell the video to dither to a palette.
 	 *
 	 * By default, VideoDecoder will return surfaces in native, or in the case
-	 * of YUV-based videos, the format set by setDefaultHighColorFormat().
+	 * of YUV-based videos, the format set by setOutputPixelFormat().
 	 * For video formats or codecs that support it, this will start outputting
 	 * its surfaces in 8bpp with this palette.
 	 *
@@ -396,6 +395,22 @@ public:
 	 * @return true on success, false otherwise
 	 */
 	bool setDitheringPalette(const byte *palette);
+
+	/**
+	 * Set the default high color format for videos that convert from YUV.
+	 *
+	 * This should be called after loadStream(), but before a decodeNextFrame()
+	 * call. This is enforced.
+	 *
+	 * @param format The preferred output pixel format
+	 * @return true on success, false otherwise
+	 */
+	bool setOutputPixelFormat(const Graphics::PixelFormat &format);
+
+	/**
+	 * Set the accuracy of the video decoder
+	 */
+	virtual void setVideoCodecAccuracy(Image::CodecAccuracy accuracy);
 
 	/////////////////////////////////////////
 	// Audio Control
@@ -444,11 +459,16 @@ public:
 	void setSoundType(Audio::Mixer::SoundType soundType);
 
 	/**
+	 * Add an audio track from a stream.
+	 */
+	bool addStreamTrack(Audio::SeekableAudioStream *stream);
+
+	/**
 	 * Add an audio track from a stream file.
 	 *
 	 * This calls SeekableAudioStream::openStreamFile() internally
 	 */
-	bool addStreamFileTrack(const Common::String &baseName);
+	bool addStreamFileTrack(const Common::Path &baseName);
 
 	/**
 	 * Set the internal audio track.
@@ -576,6 +596,16 @@ protected:
 		 * Get the pixel format of this track
 		 */
 		virtual Graphics::PixelFormat getPixelFormat() const = 0;
+
+		/**
+		 * Set the default high color format for videos that convert from YUV.
+		 */
+		virtual bool setOutputPixelFormat(const Graphics::PixelFormat &format) { return false; }
+
+		/**
+		 * Set the image codec accuracy
+		 */
+		virtual void setCodecAccuracy(Image::CodecAccuracy accuracy) {}
 
 		/**
 		 * Get the current frame of this track
@@ -710,6 +740,22 @@ protected:
 		void setVolume(byte volume);
 
 		/**
+		 * Get audio rate for this track (in Hz)
+		 */
+		uint32 getRate() const { return _rate; }
+
+		/**
+		 * Set audio rate for this track
+		 */
+		void setRate(uint32 rate);
+
+		/**
+		 * Set audio rate using relative playback rate wrt original rate
+		 * ie a rate of 2.0 will play the audio at twice the original rate
+		 */
+		void setRate(Common::Rational rate);
+
+		/**
 		 * Get the balance for this track
 		 */
 		int8 getBalance() const { return _balance; }
@@ -752,6 +798,7 @@ protected:
 		Audio::SoundHandle _handle;
 		Audio::Mixer::SoundType _soundType;
 		byte _volume;
+		uint32 _rate;
 		int8 _balance;
 		bool _muted;
 	};
@@ -809,6 +856,7 @@ protected:
 	class StreamFileAudioTrack : public SeekableAudioTrack {
 	public:
 		StreamFileAudioTrack(Audio::Mixer::SoundType soundType);
+		StreamFileAudioTrack(Audio::SeekableAudioStream *stream, Audio::Mixer::SoundType soundType);
 		~StreamFileAudioTrack();
 
 		/**
@@ -816,7 +864,7 @@ protected:
 		 *
 		 * @return true on success, false otherwise
 		 */
-		bool loadFromFile(const Common::String &baseName);
+		bool loadFromFile(const Common::Path &baseName);
 
 	protected:
 		Audio::SeekableAudioStream *_stream;
@@ -875,11 +923,6 @@ protected:
 	 * remaining audio in a file.
 	 */
 	bool endOfVideoTracks() const;
-
-	/**
-	 * Get the default high color format
-	 */
-	Graphics::PixelFormat getDefaultHighColorFormat() const { return _defaultHighColorFormat; }
 
 	/**
 	 * Set _nextVideoTrack to the video track with the lowest start time for the next frame.
@@ -948,21 +991,19 @@ private:
 	Audio::Timestamp _endTime;
 	bool _endTimeSet;
 	Common::Rational _playbackRate;
-	VideoTrack *_nextVideoTrack;
 
 	// Palette settings from individual tracks
 	mutable bool _dirtyPalette;
 	const byte *_palette;
 
-	// Enforcement of not being able to set dither
+	// Enforcement of not being able to set dither or set the default format
 	bool _canSetDither;
-
-	// Default PixelFormat settings
-	Graphics::PixelFormat _defaultHighColorFormat;
+	bool _canSetDefaultFormat;
 
 protected:
 	// Internal helper functions
 	void stopAudio();
+	void setAudioRate(Common::Rational rate);
 	void startAudio();
 	void startAudioLimit(const Audio::Timestamp &limit);
 	bool hasFramesLeft() const;
@@ -970,6 +1011,10 @@ protected:
 
 	Audio::Timestamp _lastTimeChange;
 	int32 _startTime;
+
+	VideoTrack *_nextVideoTrack;
+
+	Image::CodecAccuracy _videoCodecAccuracy;
 
 private:
 	uint32 _pauseLevel;

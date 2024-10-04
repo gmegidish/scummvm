@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef AGS_ENGINE_SCRIPT_CC_SYSTEM_IMPORTS_H
 #define AGS_ENGINE_SCRIPT_CC_SYSTEM_IMPORTS_H
 
-#include "ags/lib/std/map.h"
+#include "common/std/map.h"
 #include "ags/engine/script/cc_instance.h"    // ccInstance
 
 namespace AGS3 {
@@ -47,17 +46,17 @@ struct SystemImports {
 private:
 	// Note we can't use a hash-map here, because we sometimes need to search
 	// by partial keys.
-	typedef std::map<String, int> IndexMap;
+	typedef std::map<String, uint32_t> IndexMap;
 
 	std::vector<ScriptImport> imports;
 	IndexMap btree;
 
 public:
-	int  add(const String &name, const RuntimeScriptValue &value, ccInstance *inst);
+	uint32_t add(const String &name, const RuntimeScriptValue &value, ccInstance *inst);
 	void remove(const String &name);
 	const ScriptImport *getByName(const String &name);
-	int  get_index_of(const String &name);
-	const ScriptImport *getByIndex(int index);
+	uint32_t  get_index_of(const String &name);
+	const ScriptImport *getByIndex(uint32_t index);
 	String findName(const RuntimeScriptValue &value);
 	void RemoveScriptExports(ccInstance *inst);
 	void clear();

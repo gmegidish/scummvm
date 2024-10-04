@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -179,10 +178,10 @@ void Scheduler::newScreen(const int screenIndex) {
 
 	// Make sure the background file exists!
 	if (!_vm->isPacked()) {
-		Common::String filename = Common::String(_vm->_text->getScreenNames(screenIndex));
-		if (!Common::File::exists(_vm->_picDir + filename + ".PCX") &&
-			!Common::File::exists(filename + ".ART")) {
-				error("Unable to find background file for %s", filename.c_str());
+		Common::Path filename = _vm->_picDir.appendComponent(Common::String(_vm->_text->getScreenNames(screenIndex)));
+		if (!Common::File::exists(filename.append(".PCX")) &&
+			!Common::File::exists(filename.append(".ART"))) {
+				error("Unable to find background file for %s", filename.toString().c_str());
 			return;
 		}
 	}
@@ -1381,7 +1380,7 @@ Event *Scheduler::doAction(Event *curEvent) {
 		break;
 	case INIT_STORY_MODE:                             // act39: Init story_mode flag
 		// This is similar to the QUIET path mode, except that it is
-		// independant of it and it additionally disables the ">" prompt
+		// independent of it and it additionally disables the ">" prompt
 		gameStatus._storyModeFl = action->_a39._storyModeFl;
 		break;
 	case WARN:                                        // act40: Text box (CF TEXT)

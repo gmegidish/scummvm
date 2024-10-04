@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,8 @@
 
 #include "file.h"
 #include "script_responses.h"
+
+extern void writeEntryHeader(const char *name, uint offset, uint size);
 
 static const int DESKBOT_RESPONSES[128][5] = {
 	{ MKTAG('P','K','U','P'), 240573, 0, 0, 0 },
@@ -1272,10 +1273,10 @@ const int MAITRED_RESPONSES_DE[74][2] = {
 };
 
 void writeScriptResponses(const char *name, const int *tags, uint count, int valuesPerTag) {
-	outputFile.seek(dataOffset);
+	outputFile->seek(dataOffset);
 
 	for (uint idx = 0; idx < count * (valuesPerTag + 1); ++idx, ++tags)
-		outputFile.writeLong(*tags);
+		outputFile->writeLong(*tags);
 
 	writeEntryHeader(name, dataOffset, count * (valuesPerTag + 1) * 4);
 	dataOffset += count * (valuesPerTag + 1) * 4;

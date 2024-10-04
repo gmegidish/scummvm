@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,6 +37,157 @@ protected:
 		kDwordArray = 6
 	};
 
+	enum SubOpType {
+		SO_AT = 65,
+		SO_COLOR = 66,
+		SO_CLIPPED = 67,
+		SO_CENTER = 69,
+
+		SO_LEFT = 71,
+		SO_OVERHEAD = 72,
+
+		SO_MUMBLE = 74,
+		SO_TEXTSTRING = 75,
+		SO_COSTUME = 76,
+		SO_STEP_DIST = 77,
+		SO_SOUND = 78,
+		SO_WALK_ANIMATION = 79,
+		SO_TALK_ANIMATION = 80,
+		SO_STAND_ANIMATION = 81,
+		SO_ANIMATION = 82,
+		SO_DEFAULT = 83,
+		SO_ELEVATION = 84,
+		SO_ANIMATION_DEFAULT = 85,
+		SO_PALETTE = 86,
+		SO_TALK_COLOR = 87,
+		SO_ACTOR_NAME = 88,
+		SO_INIT_ANIMATION = 89,
+
+		SO_ACTOR_WIDTH = 91,
+		SO_SCALE = 92,
+		SO_NEVER_ZCLIP = 93,
+		SO_ALWAYS_ZCLIP = 94,
+		SO_IGNORE_BOXES = 95,
+		SO_FOLLOW_BOXES = 96,
+		SO_ANIMATION_SPEED = 97,
+		SO_SHADOW = 98,
+		SO_TEXT_OFFSET = 99,
+
+		SO_LOAD_SCRIPT = 100,
+		SO_LOAD_SOUND = 101,
+		SO_LOAD_COSTUME = 102,
+		SO_LOAD_ROOM = 103,
+		SO_NUKE_SCRIPT = 104,
+		SO_NUKE_SOUND = 105,
+		SO_NUKE_COSTUME = 106,
+		SO_NUKE_ROOM = 107,
+		SO_LOCK_SCRIPT = 108,
+		SO_LOCK_SOUND = 109,
+		SO_LOCK_COSTUME = 110,
+		SO_LOCK_ROOM = 111,
+		SO_UNLOCK_SCRIPT = 112,
+		SO_UNLOCK_SOUND = 113,
+		SO_UNLOCK_COSTUME = 114,
+		SO_UNLOCK_ROOM = 115,
+		SO_CLEAR_HEAP = 116,
+		SO_LOAD_CHARSET = 117,
+		SO_NUKE_CHARSET = 118,
+		SO_LOAD_OBJECT = 119,
+
+		SO_VERB_IMAGE = 124,
+		SO_VERB_NAME = 125,
+		SO_VERB_COLOR = 126,
+		SO_VERB_HICOLOR = 127,
+		SO_VERB_AT = 128,
+		SO_VERB_ON = 129,
+		SO_VERB_OFF = 130,
+		SO_VERB_DELETE = 131,
+		SO_VERB_NEW = 132,
+		SO_VERB_DIMCOLOR = 133,
+		SO_VERB_DIM = 134,
+		SO_VERB_KEY = 135,
+		SO_VERB_CENTER = 136,
+		SO_VERB_NAME_STR = 137,
+
+		SO_VERB_IMAGE_IN_ROOM = 139,
+		SO_VERB_BAKCOLOR = 140,
+		SO_SAVE_VERBS = 141,
+		SO_RESTORE_VERBS = 142,
+		SO_DELETE_VERBS = 143,
+		SO_CURSOR_ON = 144,
+		SO_CURSOR_OFF = 145,
+		SO_USERPUT_ON = 146,
+		SO_USERPUT_OFF = 147,
+		SO_CURSOR_SOFT_ON = 148,
+		SO_CURSOR_SOFT_OFF = 149,
+		SO_USERPUT_SOFT_ON = 150,
+		SO_USERPUT_SOFT_OFF = 151,
+
+		SO_CURSOR_IMAGE = 153,
+		SO_CURSOR_HOTSPOT = 154,
+
+		SO_CHARSET_SET = 156,
+		SO_CHARSET_COLOR = 157,
+		SO_RESTART = 158,
+		SO_PAUSE = 159,
+		SO_QUIT = 160,
+
+		SO_WAIT_FOR_ACTOR = 168,
+		SO_WAIT_FOR_MESSAGE = 169,
+		SO_WAIT_FOR_CAMERA = 170,
+		SO_WAIT_FOR_SENTENCE = 171,
+		SO_ROOM_SCROLL = 172,
+		SO_ROOM_SCREEN = 174,
+		SO_ROOM_PALETTE = 175,
+		SO_ROOM_SHAKE_ON = 176,
+		SO_ROOM_SHAKE_OFF = 177,
+		SO_ROOM_INTENSITY = 179,
+		SO_ROOM_SAVEGAME = 180,
+		SO_ROOM_FADE = 181,
+		SO_RGB_ROOM_INTENSITY = 182,
+		SO_ROOM_SHADOW = 183,
+		SO_SAVE_STRING = 184,
+		SO_LOAD_STRING = 185,
+		SO_ROOM_TRANSFORM = 186,
+		SO_CYCLE_SPEED = 187,
+
+		SO_VERB_INIT = 196,
+		SO_ACTOR_INIT = 197,
+		SO_ACTOR_VARIABLE = 198,
+		SO_INT_ARRAY = 199,
+		SO_BIT_ARRAY = 200,
+		SO_NIBBLE_ARRAY = 201,
+		SO_BYTE_ARRAY = 202,
+		SO_STRING_ARRAY = 203,
+		SO_UNDIM_ARRAY = 204,
+		SO_ASSIGN_STRING = 205,
+
+		SO_ASSIGN_INT_LIST = 208,
+
+		SO_ASSIGN_2DIM_LIST = 212,
+		SO_ROOM_NEW_PALETTE = 213,
+		SO_CURSOR_TRANSPARENT = 214,
+		SO_ACTOR_IGNORE_TURNS_ON = 215,
+		SO_ACTOR_IGNORE_TURNS_OFF = 216,
+		SO_NEW = 217,
+
+		SO_ALWAYS_ZCLIP_FT_DEMO = 225,
+		SO_WAIT_FOR_ANIMATION = 226,
+		SO_ACTOR_DEPTH = 227,
+		SO_ACTOR_WALK_SCRIPT = 228,
+		SO_ACTOR_STOP = 229,
+
+		SO_ACTOR_FACE = 230,
+		SO_ACTOR_TURN = 231,
+		SO_WAIT_FOR_TURN = 232,
+		SO_ACTOR_WALK_PAUSE = 233,
+		SO_ACTOR_WALK_RESUME = 234,
+		SO_ACTOR_TALK_SCRIPT = 235,
+
+		SO_BASEOP = 254,
+		SO_END = 255,
+	};
+
 #include "common/pack-start.h"	// START STRUCT PACKING
 
 	struct ArrayHeader {
@@ -53,7 +203,7 @@ protected:
 		int16 xpos, ypos;
 		byte color;
 		byte charset;
-		byte text[256];
+		byte text[512];
 
 		void clear() {
 			xpos = 0;
@@ -83,21 +233,9 @@ protected:
 	};
 
 	int _blastObjectQueuePos;
+	int _blastObjectRectsQueue = 0;
 	BlastObject _blastObjectQueue[200];
-
-	struct BlastText : TextObject {
-		Common::Rect rect;
-		bool center;
-
-		void clear() {
-			this->TextObject::clear();
-			rect = Common::Rect();
-			center = false;
-		}
-	};
-
-	int _blastTextQueuePos;
-	BlastText _blastTextQueue[50];
+	Common::Rect _blastObjectsRectsToBeRestored[200];
 
 	// Akos Class
 	struct {
@@ -123,6 +261,7 @@ public:
 protected:
 	void setupOpcodes() override;
 
+	void scummLoop_handleSaveLoad() override;
 	void scummLoop_handleActors() override;
 	void processKeyboard(Common::KeyState lastKeyHit) override;
 
@@ -144,33 +283,41 @@ protected:
 	int findFreeArrayId();
 public: // FIXME. TODO
 	void nukeArray(int array);
+	void removeBlastObjects();
+	void restoreBlastObjectsRects();
 
 protected:
 	virtual int readArray(int array, int index, int base);
 	virtual void writeArray(int array, int index, int base, int value);
 	void shuffleArray(int num, int minIdx, int maxIdx);
 
-	virtual void setDefaultCursor();
-	void setCursorTransparency(int a);
-	void setCursorHotspot(int x, int y);
+	void setDefaultCursor() override;
+	void setCursorTransparency(int a) override;
+	void setCursorHotspot(int x, int y) override;
 
 	virtual void setCursorFromImg(uint img, uint room, uint imgindex);
 	void useIm01Cursor(const byte *im, int w, int h);
 	void useBompCursor(const byte *im, int w, int h);
 	void grabCursor(int x, int y, int w, int h);
+	void setCursorFromBuffer(const byte *ptr, int width, int height, int pitch, bool preventScale = false) override;
+	void ditherCursor();
 
-	void enqueueText(const byte *text, int x, int y, byte color, byte charset, bool center, bool wrapped = false);
-	void drawBlastTexts();
-	void removeBlastTexts();
+	virtual void drawBlastTexts() {}
+	virtual void removeBlastTexts() {}
 
 	void enqueueObject(int objectNumber, int objectX, int objectY, int objectWidth,
 	                   int objectHeight, int scaleX, int scaleY, int image, int mode);
 	void drawBlastObjects();
 	void drawBlastObject(BlastObject *eo);
-	void removeBlastObjects();
-	void removeBlastObject(BlastObject *eo);
+
+	void restoreBlastObjectRect(Common::Rect r);
 
 	void clearDrawQueues() override;
+
+	int getBannerColor(int bannerId) override;
+	const char *getGUIString(int stringId) override;
+	void setSkipVideo(int value) override { _skipVideo = value; }
+	void setUpMainMenuControls() override;
 
 public:
 	bool akos_increaseAnims(const byte *akos, Actor *a);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,6 @@
 #include "common/str.h"
 #include "common/fs.h"
 #include "common/hash-str.h"
-#include <limits.h>
 
 /**
  * Provides a default savefile manager implementation for common platforms.
@@ -36,7 +34,7 @@
 class DefaultSaveFileManager : public Common::SaveFileManager {
 public:
 	DefaultSaveFileManager();
-	DefaultSaveFileManager(const Common::String &defaultSavepath);
+	DefaultSaveFileManager(const Common::Path &defaultSavepath);
 
 	void updateSavefilesList(Common::StringArray &lockedFiles) override;
 	Common::StringArray listSavefiles(const Common::String &pattern) override;
@@ -49,13 +47,13 @@ public:
 #ifdef USE_LIBCURL
 
 	static const uint32 INVALID_TIMESTAMP = UINT_MAX;
-	static const char *TIMESTAMPS_FILENAME;
+	static const char *const TIMESTAMPS_FILENAME;
 
 	static Common::HashMap<Common::String, uint32> loadTimestamps();
 	static void saveTimestamps(Common::HashMap<Common::String, uint32> &timestamps);
 #endif
 
-	static Common::String concatWithSavesPath(Common::String name);
+	static Common::Path concatWithSavesPath(Common::String name);
 
 protected:
 	/**
@@ -63,7 +61,7 @@ protected:
 	 * Should only be used internally since some platforms
 	 * might implement savefiles in a completely different way.
 	 */
-	virtual Common::String getSavePath() const;
+	virtual Common::Path getSavePath() const;
 
 	/**
 	 * Checks the given path for read access, existence, etc.
@@ -75,14 +73,14 @@ protected:
 	 * Removes the given file.
 	 * This is called from removeSavefile() with the full file path.
 	 */
-	virtual Common::ErrorCode removeFile(const Common::String &filepath);
+	virtual Common::ErrorCode removeFile(const Common::FSNode &fileNode);
 
 	/**
 	 * Assure that the given save path is cached.
 	 *
 	 * @param savePathName  String representation of save path to cache.
 	 */
-	void assureCached(const Common::String &savePathName);
+	void assureCached(const Common::Path &savePathName);
 
 	typedef Common::HashMap<Common::String, Common::FSNode, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> SaveFileCache;
 
@@ -105,7 +103,7 @@ private:
 	/**
 	 * The currently cached directory.
 	 */
-	Common::String _cachedDirectory;
+	Common::Path _cachedDirectory;
 };
 
 #endif

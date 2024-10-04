@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -123,7 +122,7 @@ bool checkThumbnailHeader(Common::SeekableReadStream &in) {
 	// TODO: It is not clear whether this is the best semantics. Now
 	// checkThumbnailHeader will return true even when the thumbnail header
 	// found is actually not usable. However, most engines seem to use this
-	// to detect the presence of any header and if there is none it wont even
+	// to detect the presence of any header and if there is none it won't even
 	// try to skip it. Thus, this looks like the best solution for now...
 	bool hasHeader = (loadHeader(in, header, false) != kHeaderNone);
 
@@ -199,6 +198,18 @@ bool loadThumbnail(Common::SeekableReadStream &in, Graphics::Surface *&thumbnail
 			assert(0);
 		}
 	}
+	return true;
+}
+
+bool createThumbnail(Graphics::Surface &thumb) {
+	if (thumb.getPixels())
+		thumb.free();
+
+	if (!createThumbnailFromScreen(&thumb)) {
+		warning("Couldn't create thumbnail from screen, aborting thumbnail save");
+		return false;
+	}
+
 	return true;
 }
 
@@ -280,7 +291,7 @@ int *scaleLine(int size, int srcSize) {
 	int scale = 100 * size / srcSize;
 	assert(scale > 0);
 	int *v = new int[size];
-	Common::fill(v, &v[size - 1], 0);
+	Common::fill(v, v + size, 0);
 
 	int distCtr = 0;
 	int *destP = v;

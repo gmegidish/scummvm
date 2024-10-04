@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -75,14 +74,14 @@ public:
 			DisposeAfterUse::Flag disposeAfterUse);
 	~ASFStream();
 
-	int readBuffer(int16 *buffer, const int numSamples);
+	int readBuffer(int16 *buffer, const int numSamples) override;
 
-	bool endOfData() const;
-	bool isStereo() const { return _channels == 2; }
-	int getRate() const { return _sampleRate; }
-	Timestamp getLength() const { return Audio::Timestamp(_duration / 10000, _sampleRate); }
-	bool seek(const Timestamp &where);
-	bool rewind();
+	bool endOfData() const override;
+	bool isStereo() const override { return _channels == 2; }
+	int getRate() const override { return _sampleRate; }
+	Timestamp getLength() const override { return Audio::Timestamp(_duration / 10000, _sampleRate); }
+	bool seek(const Timestamp &where) override;
+	bool rewind() override;
 
 private:
 	// Packet data
@@ -148,11 +147,11 @@ ASFStream::Packet::~Packet() {
 }
 
 ASFStream::ASFStream(Common::SeekableReadStream *stream, DisposeAfterUse::Flag disposeAfterUse) : _stream(stream), _disposeAfterUse(disposeAfterUse) {
-	_extraData = 0;
-	_lastPacket = 0;
+	_extraData = nullptr;
+	_lastPacket = nullptr;
 	_curPacket = 0;
-	_codec = 0;
-	_curAudioStream = 0;
+	_codec = nullptr;
+	_curAudioStream = nullptr;
 	_curSequenceNumber = 1; // They always start at one
 
 	ASFGUID guid = ASFGUID(*_stream);
@@ -274,10 +273,10 @@ bool ASFStream::rewind() {
 
 	// Reset our packet counter
 	_curPacket = 0;
-	delete _lastPacket; _lastPacket = 0;
+	delete _lastPacket; _lastPacket = nullptr;
 
 	// Delete a stream if we have one
-	delete _curAudioStream; _curAudioStream = 0;
+	delete _curAudioStream; _curAudioStream = nullptr;
 
 	// Reset this too
 	_curSequenceNumber = 1;
@@ -381,7 +380,7 @@ Codec *ASFStream::createCodec() {
 		error("ASFStream::createAudioStream(): Unknown compression 0x%04x", _compression);
 	}
 
-	return 0;
+	return nullptr;
 }
 
 AudioStream *ASFStream::createAudioStream() {
@@ -413,7 +412,7 @@ AudioStream *ASFStream::createAudioStream() {
 	if (_codec)
 		return _codec->decodeFrame(*stream);
 
-	return 0;
+	return nullptr;
 }
 
 int ASFStream::readBuffer(int16 *buffer, const int numSamples) {
@@ -425,7 +424,7 @@ int ASFStream::readBuffer(int16 *buffer, const int numSamples) {
 
 			if (_curAudioStream->endOfData()) {
 				delete _curAudioStream;
-				_curAudioStream = 0;
+				_curAudioStream = nullptr;
 			}
 		}
 
@@ -452,7 +451,7 @@ SeekableAudioStream *makeASFStream(
 
 	if (s && s->endOfData()) {
 		delete s;
-		return 0;
+		return nullptr;
 	}
 
 	return s;

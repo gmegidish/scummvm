@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -1469,13 +1468,13 @@ public:
 	bool isPlaying() const;
 	SoundType getSong() const;
 
-	void setVolume(int volume);
-
-	void update();
+	// The update() method is to be used for cross fading, fade-in and fade-out of music
+	// However, it's currently unused and only partially implemented.
+//	void update();
 
 private:
-	static Common::String getFileName(SoundType song);
-	Audio::AudioStream* createStream(Common::String fileName);
+	static Common::Path getFileName(SoundType song);
+	Audio::AudioStream* createStream(const Common::Path &fileName);
 
 	Audio::SoundHandle handle;
 
@@ -1502,16 +1501,6 @@ public:
 	void init();
 	void save(Common::OutSaveFile *out);
 	void loadSaveFile(Common::InSaveFile *in);
-	void setMusicVolume(int value);
-	int getMusicVolume() {
-		return _musicVolume;
-	}
-	void setSFXVolume(int value) {
-		_sfxVolume = value;
-	}
-	int getSFXVolume() {
-		return _sfxVolume;
-	}
 	void setVoiceStatus(bool value) {
 		_voicesOn = value;
 	}
@@ -1519,7 +1508,7 @@ public:
 		return _voicesOn;
 	}
 	void clearPersistent() {
-		memset(&_voicePlayed[0], 0, sizeof(_voicePlayed));
+		memset(_voicePlayed, 0, NUM_VOICES * sizeof(byte));
 	}
 
 	void playSound(int index);
@@ -1540,7 +1529,9 @@ public:
 	void fadeOutMusic(int ramp);
 	void stopMusic();
 	void beginMusic(SoundType song, bool fadeIn, int ramp);
-	void updateMusic();
+	// The updateMusic() method is to be used for cross fading, fade-in and fade-out of music
+	// However, it's currently unused and only partially implemented.
+//	void updateMusic();
 	bool songPlaying(SoundType song);
 	void stopChannel(int channel);
 	int registerSound(const char *name);
@@ -1571,13 +1562,11 @@ public:
 	// Music System Variables
 
 	Song _song1, _song2;
-	int _musicVolume;
 
 	// Sound Caching System Variables
 
 	SoundCache _soundCache[kMaxSounds];
 	int _numSounds;
-	int _sfxVolume;
 	Audio::SoundHandle _handles[kMaxSNDChannels];
 
 };

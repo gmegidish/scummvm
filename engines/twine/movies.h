@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,13 +36,11 @@ namespace TwinE {
 /** FLA movie header structure */
 struct FLAHeaderStruct {
 	/** FLA version */
-	int8 version[6] {0};
+	int8 version[5] {0};
 	/** Number of frames */
 	int32 numOfFrames = 0;
 	/** Frames per second */
-	int8 speed = 0;
-	/** Unknown var1 */
-	int8 var1 = 0;
+	int16 speed = 0;
 	/** Frame width */
 	int16 xsize = 0;
 	/** Frame height */
@@ -52,10 +49,8 @@ struct FLAHeaderStruct {
 
 /** FLA movie frame structure */
 struct FLAFrameDataStruct {
-	/** Current frame size */
-	int16 videoSize = 0;
-	/** Unknown frameVar0 */
-	int32 frameVar0 = 0;
+	int16 nbFrames = 0;
+	int32 offsetNextFrame = 0;
 };
 
 class TwinEEngine;
@@ -95,17 +90,17 @@ private:
 	void prepareGIF(int index);
 	void playGIFMovie(const char *flaName);
 
+	bool playSmkMovie(const char *name, int index);
+
 public:
 	Movies(TwinEEngine *engine);
 
 	/**
 	 * Play FLA movies
-	 * @param flaName FLA movie name
+	 * @param name FLA movie name
 	 * @return @c true if finished. @c false if aborted.
 	 */
-	bool playFlaMovie(const char *flaName);
-
-	void playSmkMovie(int index);
+	bool playMovie(const char *name);
 };
 
 } // namespace TwinE

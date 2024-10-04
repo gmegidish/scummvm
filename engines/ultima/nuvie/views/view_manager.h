@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,7 +57,7 @@ typedef enum { CURSOR_HEAD, CURSOR_NECK, CURSOR_CHEST, CURSOR_RIGHT_HAND, CURSOR
 class ViewManager {
 protected:
 
-	Configuration *config;
+	const Configuration *config;
 	int game_type;
 	GUI *gui;
 	Font *font;
@@ -84,11 +83,11 @@ protected:
 	SunMoonRibbon *ribbon;
 	MDSkyStripWidget *mdSkyWidget;
 
-	Std::string DollDataDirString;
+	Common::Path DollDataDirString;
 
 public:
 
-	ViewManager(Configuration *cfg);
+	ViewManager(const Configuration *cfg);
 	virtual ~ViewManager();
 
 	bool init(GUI *g, Font *f, Party *p, Player *player, TileManager *tm, ObjManager *om, Portrait *por);
@@ -105,22 +104,22 @@ public:
 	void close_spell_mode();
 
 	View *get_current_view() {
-		return (current_view);
+		return current_view;
 	}
 	ActorView *get_actor_view() {
-		return (actor_view);
+		return actor_view;
 	}
 	InventoryView *get_inventory_view() {
-		return (inventory_view);
+		return inventory_view;
 	}
 	PortraitView *get_portrait_view() {
-		return (portrait_view);
+		return portrait_view;
 	}
 	PartyView *get_party_view() {
-		return (party_view);
+		return party_view;
 	}
 	SpellView *get_spell_view() {
-		return (spell_view);
+		return spell_view;
 	}
 	MDSkyStripWidget *get_mdSkyWidget() {
 		return mdSkyWidget;
@@ -131,10 +130,10 @@ public:
 	void open_doll_view(Actor *actor);
 
 	void open_container_view(Obj *obj) {
-		open_container_view(NULL, obj);
+		open_container_view(nullptr, obj);
 	}
 	void open_container_view(Actor *actor) {
-		open_container_view(actor, NULL);
+		open_container_view(actor, nullptr);
 	}
 
 	void close_container_view(Actor *actor);
@@ -154,7 +153,7 @@ public:
 	unsigned int get_display_weight(float weight);
 
 // custom doll functions shared between DollWidget and DollViewGump
-	Std::string getDollDataDirString();
+	Common::Path getDollDataDirString();
 	Graphics::ManagedSurface *loadAvatarDollImage(Graphics::ManagedSurface *avatar_doll, bool orig = false);
 	Graphics::ManagedSurface *loadCustomActorDollImage(Graphics::ManagedSurface *actor_doll, uint8 actor_num, bool orig = false);
 	Graphics::ManagedSurface *loadGenericDollImage(bool orig);

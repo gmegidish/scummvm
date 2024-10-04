@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,21 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- */
-
-/*
- * The following functions: inverseTranslate, inverseRotate, transpose
- * are adapted from Portalib3d, which is no longer available on the net.
- * But is available through archive.org, for reference:
- * http://web.archive.org/web/20050205215104/http://rsn.gamedev.net/pl3d/changelog.html
- *
- * This code was originally made available under the LGPL license (no version specified).
- * Copyright (C)2000, 2001, Brett Porter. All Rights Reserved.
- *
- * This code (and our modifications) is made available here under the GPLv2 (or later).
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -108,11 +94,10 @@ void Matrix<4, 4>::translate(const Vector3d &vec) {
 
 /**
  * Generates a lookat matrix. For reference, see
- * http://clb.demon.fi/MathGeoLib/docs/float3x3_LookAt.php
+ * http://clb.confined.space/MathGeoLib/nightly/docs/float3x3_LookAt.php
  */
 void Matrix<4, 4>::buildFromTargetDir(const Math::Vector3d &modelForward, const Math::Vector3d &targetDirection,
-									  const Math::Vector3d &modelUp, const Math::Vector3d &worldUp)
-{
+                                      const Math::Vector3d &modelUp, const Math::Vector3d &worldUp) {
 	Matrix3 rotation;
 	rotation.buildFromTargetDir(modelForward, targetDirection, modelUp, worldUp);
 	this->setRotation(rotation);
@@ -129,23 +114,7 @@ void Matrix<4, 4>::invertAffineOrthonormal() {
 	setPosition(position);
 }
 
-void Matrix<4, 4>::inverseTranslate(Vector3d *v) const {
-	v->x() = v->x() - getValue(0, 3);
-	v->y() = v->y() - getValue(1, 3);
-	v->z() = v->z() - getValue(2, 3);
-}
-
-void Matrix<4, 4>::inverseRotate(Vector3d *v) const {
-	Vector3d temp;
-
-	temp.x() = v->x() * getValue(0, 0) + v->y() * getValue(1, 0) + v->z() * getValue(2, 0);
-	temp.y() = v->x() * getValue(0, 1) + v->y() * getValue(1, 1) + v->z() * getValue(2, 1);
-	temp.z() = v->x() * getValue(0, 2) + v->y() * getValue(1, 2) + v->z() * getValue(2, 2);
-
-	*v = temp;
-}
-
-void swap (float &a, float &b);
+void swap(float &a, float &b);
 
 void Matrix<4, 4>::transpose() {
 	swap(operator ()(0,1), operator ()(1,0));

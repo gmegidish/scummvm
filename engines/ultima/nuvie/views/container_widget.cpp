@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,22 +41,13 @@
 namespace Ultima {
 namespace Nuvie {
 
-ContainerWidget::ContainerWidget(Configuration *cfg, GUI_CallBack *callback): GUI_Widget(NULL, 0, 0, 0, 0) {
-	config = cfg;
-	callback_object = callback;
-
-	container_obj = NULL;
-	tile_manager = NULL;
-	obj_manager = NULL;
-	selected_obj = NULL;
-	target_cont = NULL;
-	actor = NULL;
-	target_obj = NULL;
-	fill_bg = false;
-	empty_tile = NULL;
-	ready_obj = NULL; // FIXME: this is unused but I might need it again -- SB-X
-	row_offset = 0;
-
+ContainerWidget::ContainerWidget(const Configuration *cfg, GUI_CallBack *callback)
+		: GUI_Widget(nullptr, 0, 0, 0, 0), config(cfg), callback_object(callback),
+		container_obj(nullptr), tile_manager(nullptr), obj_manager(nullptr),
+		selected_obj(nullptr), target_cont(nullptr), actor(nullptr),
+		target_obj(nullptr), fill_bg(false), empty_tile(nullptr), row_offset(0),
+		rows(0), cols(0), bg_color(0), obj_font_color(0) {
+	ready_obj = nullptr; // FIXME: this is unused but I might need it again -- SB-X
 	config->value("config/GameType", game_type);
 }
 
@@ -87,7 +77,7 @@ bool ContainerWidget::init(Actor *a, uint16 x, uint16 y, TileManager *tm, ObjMan
 	else
 		empty_tile = tile_manager->get_tile(392);
 
-	GUI_Widget::Init(NULL, x, y, cols * 16 + 8, (rows + 1) * 16);
+	GUI_Widget::Init(nullptr, x, y, cols * 16 + 8, (rows + 1) * 16);
 
 	set_actor(a);
 	set_accept_mouseclick(true, USE_BUTTON); // accept [double]clicks from button1 (even if double-click disabled we need clicks)
@@ -97,7 +87,7 @@ bool ContainerWidget::init(Actor *a, uint16 x, uint16 y, TileManager *tm, ObjMan
 
 void ContainerWidget::set_actor(Actor *a) {
 	actor = a;
-	container_obj = NULL;
+	container_obj = nullptr;
 	row_offset = 0;
 	Redraw();
 }
@@ -117,7 +107,7 @@ void ContainerWidget::display_inventory_list() {
 	const Tile *tile;
 	U6LList *objlist;
 	U6Link *link;
-	Obj *obj = NULL;
+	Obj *obj = nullptr;
 	uint16 i, j;
 	uint16 skip_num;
 
@@ -125,14 +115,14 @@ void ContainerWidget::display_inventory_list() {
 		objlist = container_obj->container;
 	else
 		objlist = actor->get_inventory_list();
-	if (objlist == NULL)
-		link = NULL;
+	if (objlist == nullptr)
+		link = nullptr;
 	else
 		link = objlist->start();
 
 //skip row_offset rows of objects.
 	skip_num = row_offset * cols;
-	for (i = 0; link != NULL && i < skip_num; link = link->next) {
+	for (i = 0; link != nullptr && i < skip_num; link = link->next) {
 		obj = (Obj *)link->data;
 		if (obj->is_readied() == false)
 			i++;
@@ -140,16 +130,16 @@ void ContainerWidget::display_inventory_list() {
 
 	for (i = 0; i < rows; i++) {
 		for (j = 0; j < cols; j++) {
-			if (link != NULL) {
+			if (link != nullptr) {
 				obj = (Obj *)link->data;
 				if (obj->is_readied()) { //skip any readied objects
-					for (; link != NULL && obj->is_readied(); link = link->next)
+					for (; link != nullptr && obj->is_readied(); link = link->next)
 						obj = (Obj *)link->data;
 				} else
 					link = link->next;
 
 				tile = tile_manager->get_tile(obj_manager->get_obj_tile_num(obj) + obj->frame_n);
-				if (link == NULL) {
+				if (link == nullptr) {
 					if (obj->is_readied()) //last object is readied so skip it.
 						tile = empty_tile;
 				}
@@ -178,7 +168,7 @@ void ContainerWidget::display_qty_string(uint16 x, uint16 y, uint16 qty) {
 	uint8 len, i, offset;
 	char buf[6];
 
-	sprintf(buf, "%d", qty);
+	Common::sprintf_s(buf, "%d", qty);
 	len = strlen(buf);
 
 	offset = (16 - len * 4) / 2;
@@ -205,7 +195,7 @@ GUI_status ContainerWidget::MouseDown(int x, int y, Shared::MouseButton button) 
 // ABOEING
 	if (/*actor && */(button == USE_BUTTON || button == ACTION_BUTTON || button == DRAG_BUTTON)) {
 		Obj *obj; // FIXME: duplicating code in DollWidget
-		if ((obj = get_obj_at_location(x, y)) != NULL) {
+		if ((obj = get_obj_at_location(x, y)) != nullptr) {
 			// send to View
 			if (callback_object->callback(INVSELECT_CB, this, obj) == GUI_PASS
 			        && button == DRAG_BUTTON)
@@ -230,22 +220,22 @@ Obj *ContainerWidget::get_obj_at_location(int x, int y) {
 	uint8 location;
 	U6LList *inventory;
 	U6Link *link;
-	Obj *obj =  NULL;
+	Obj *obj =  nullptr;
 	uint16 i;
 
 
-	location = get_list_position(x, y); //find the postion of the object we hit in the inventory
+	location = get_list_position(x, y); //find the position of the object we hit in the inventory
 
 	if (container_obj)
 		inventory = container_obj->container;
 	else
 		inventory = actor->get_inventory_list();
-	if (inventory == NULL)
-		link = NULL;
+	if (inventory == nullptr)
+		link = nullptr;
 	else
 		link = inventory->start();
 
-	for (i = 0; link != NULL && i <= location; link = link->next) {
+	for (i = 0; link != nullptr && i <= location; link = link->next) {
 		obj = (Obj *)link->data;
 		if (obj->is_readied() == false)
 			i++;
@@ -254,14 +244,14 @@ Obj *ContainerWidget::get_obj_at_location(int x, int y) {
 	if (i > location && obj && obj->is_readied() == false) // don't return readied or non existent objects
 		return obj;
 
-	return NULL;
+	return nullptr;
 }
 
 // change container, ready/unready object, activate arrows
-GUI_status ContainerWidget::MouseUp(int x, int y, Shared::MouseButton button) {
+GUI_status ContainerWidget::MouseUp(int /*x*/, int /*y*/, Shared::MouseButton button) {
 	if (button == USE_BUTTON) {
-		x -= area.left;
-		y -= area.top;
+		//x -= area.left;
+		//y -= area.top;
 
 		if (selected_obj) {
 			// only act now if objects can't be used with DoubleClick
@@ -272,7 +262,7 @@ GUI_status ContainerWidget::MouseUp(int x, int y, Shared::MouseButton button) {
 				ready_obj = selected_obj;
 			}
 
-			selected_obj = NULL;
+			selected_obj = nullptr;
 
 			return GUI_YUM;
 		}
@@ -336,14 +326,14 @@ void ContainerWidget::drag_drop_success(int x, int y, int message, void *data) {
 // else
 //   actor->inventory_remove_obj(selected_obj);
 
-	selected_obj = NULL;
+	selected_obj = nullptr;
 	Redraw();
 }
 
 void ContainerWidget::drag_drop_failed(int x, int y, int message, void *data) {
 	DEBUG(0, LEVEL_DEBUGGING, "ContainerWidget::drag_drop_failed()\n");
 	dragging = false;
-	selected_obj = NULL;
+	selected_obj = nullptr;
 }
 
 bool ContainerWidget::drag_set_target_obj(int x, int y) {
@@ -360,13 +350,13 @@ bool ContainerWidget::drag_accept_drop(int x, int y, int message, void *data) {
 		Obj *obj = (Obj *)data;
 		x -= area.left;
 		y -= area.top;
-		if (target_obj == NULL) { //we need to check this so we don't screw up target_obj on subsequent calls
+		if (target_obj == nullptr) { //we need to check this so we don't screw up target_obj on subsequent calls
 			if (drag_set_target_obj(x, y) == false) {
 				DEBUG(0, LEVEL_WARNING, "ContainerWidget: Didn't hit any widget object targets!\n");
 				return false;
 			}
 		}
-		Actor *container_owner = (container_obj ? container_obj->get_actor_holding_obj() : NULL);
+		Actor *container_owner = (container_obj ? container_obj->get_actor_holding_obj() : nullptr);
 		if (!container_owner)
 			container_owner = actor;
 		if (!obj->is_in_inventory()) {
@@ -422,12 +412,12 @@ bool ContainerWidget::drag_accept_drop(int x, int y, int message, void *data) {
 	return false;
 }
 
-void ContainerWidget::drag_perform_drop(int x, int y, int message, void *data) {
+void ContainerWidget::drag_perform_drop(int /*x*/, int /*y*/, int message, void *data) {
 	DEBUG(0, LEVEL_DEBUGGING, "ContainerWidget::drag_perform_drop()\n");
 	Obj *obj;
 
-	x -= area.left;
-	y -= area.top;
+	//x -= area.left;
+	//y -= area.top;
 
 	if (message == GUI_DRAG_OBJ) {
 		DEBUG(0, LEVEL_DEBUGGING, "Drop into inventory.\n");
@@ -452,7 +442,7 @@ void ContainerWidget::drag_perform_drop(int x, int y, int message, void *data) {
 	}
 
 	Game::get_game()->get_map_window()->updateBlacking();
-	target_obj = NULL;
+	target_obj = nullptr;
 
 	return;
 }
@@ -486,7 +476,7 @@ void ContainerWidget::drag_draw(int x, int y, int message, void *data) {
 void ContainerWidget::try_click() {
 	Events *event = Game::get_game()->get_event();
 	UseCode *usecode = Game::get_game()->get_usecode();
-	Actor *owner = NULL;
+	Actor *owner = nullptr;
 	if (!selected_obj)
 		selected_obj = ready_obj;
 	if (selected_obj)
@@ -513,7 +503,7 @@ void ContainerWidget::try_click() {
 		break;
 	}
 	case GET_MODE:
-		event->perform_get(selected_obj, NULL, Game::get_game()->get_player()->get_actor());
+		event->perform_get(selected_obj, nullptr, Game::get_game()->get_player()->get_actor());
 		break;
 	case ATTACK_MODE:
 		event->close_gumps();
@@ -522,30 +512,30 @@ void ContainerWidget::try_click() {
 		event->select_view_obj(selected_obj, owner);
 		break;
 	}
-	ready_obj = NULL;
-	selected_obj = NULL;
+	ready_obj = nullptr;
+	selected_obj = nullptr;
 }
 
 /* Use object. */
 GUI_status ContainerWidget::MouseDouble(int x, int y, Shared::MouseButton button) {
 	// we have to check if double-clicks are allowed here, since we use single-clicks
 	if (!Game::get_game()->get_map_window()->is_doubleclick_enabled())
-		return (GUI_PASS);
+		return GUI_PASS;
 	Obj *obj = selected_obj;
 
-	ready_obj = NULL;
-	selected_obj = NULL;
+	ready_obj = nullptr;
+	selected_obj = nullptr;
 
 //    if(!actor)
 //        return(GUI_YUM);
 	if (!obj)
-		return (MouseUp(x, y, button)); // probably hit an arrow
+		return MouseUp(x, y, button); // probably hit an arrow
 	Game::get_game()->get_view_manager()->double_click_obj(obj);
-	return (GUI_PASS);
+	return GUI_PASS;
 }
 
 GUI_status ContainerWidget::MouseClick(int x, int y, Shared::MouseButton button) {
-	return (MouseUp(x, y, button));
+	return MouseUp(x, y, button);
 }
 
 // change container, ready/unready object, activate arrows

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,69 +35,58 @@ NuvieFileList::NuvieFileList() : sort_mode(NUVIE_SORT_NAME_ASC) {
 NuvieFileList::~NuvieFileList() {
 }
 
-bool NuvieFileList::open(const char *directory, const char *search, uint8 s_mode) {
-	Common::FSNode dir(directory);
-	Common::FSList list;
+bool NuvieFileList::open(const Common::Path &directory, const char *search, uint8 s_mode) {
+	Common::ArchiveMemberPtr arcMember = SearchMan.getMember(directory);
 
-	search_prefix.assign(search);
 	sort_mode = s_mode;
 
-	if (!dir.isDirectory()) {
-		ConsoleAddWarning(Std::string("Failed to open ") + directory);
+	if (!arcMember || !arcMember->isDirectory()) {
+		ConsoleAddWarning(Std::string("Failed to open ") + directory.toString());
 		return false;
 	}
 
-	if (!dir.getChildren(list, Common::FSNode::kListFilesOnly)) {
-		ConsoleAddWarning(Std::string("Failed to get children of ") + directory);
+	Common::ArchiveMemberList children;
+
+	arcMember->listChildren(children, search);
+	if (children.empty()) {
+		ConsoleAddWarning(Std::string("Failed to get children of ") + directory.toString());
 		return false;
 	};
-	for (Common::FSList::iterator it = list.begin(); it != list.end(); ++it)
-		add_filename(*it);
+
+	for (const auto &child : children) {
+		if (!child->isDirectory())
+			add_filename(child->getFileName());
+	}
 
 	//sort list by time last modified in decending order.
 	Common::sort(file_list.begin(), file_list.end(), NuvieFileDesc());
-	list_ptr = file_list.begin();
 
 	return true;
 }
 
-bool NuvieFileList::add_filename(const Common::FSNode &file) {
+bool NuvieFileList::add_filename(const Common::String &fileName) {
 	NuvieFileDesc filedesc;
 	filedesc.m_time = 0;
-	filedesc.filename.assign(file.getName());
+	filedesc.filename = fileName;
 
 	file_list.push_front(filedesc);
 
 	return true;
 }
 
-Std::string *NuvieFileList::next() {
-	if (list_ptr != file_list.end()) {
-
-		Std::string *filename = &((*list_ptr).filename);
-		list_ptr++;
-
-		return filename;
-	}
-
-	return NULL;
-}
-
-Std::string *NuvieFileList::get_latest() {
-	Std::list<NuvieFileDesc>::iterator iter;
+const Std::string *NuvieFileList::get_latest() const {
+	Std::list<NuvieFileDesc>::const_iterator iter;
 
 	iter = file_list.begin();
 
 	if (iter != file_list.end()) {
-		Std::string *filename = &((*iter).filename);
-
-		return filename;
+		return &((*iter).filename);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
-uint32 NuvieFileList::get_num_files() {
+uint32 NuvieFileList::get_num_files() const {
 	return (uint32)file_list.size();
 }
 
@@ -106,9 +94,9 @@ void NuvieFileList::close() {
 	return;
 }
 
-Std::set<Std::string> NuvieFileList::get_filenames() {
+Std::set<Std::string> NuvieFileList::get_filenames() const {
 	Std::set<Std::string> filenames;
-	Std::list<NuvieFileDesc>::iterator iter = file_list.begin();
+	Std::list<NuvieFileDesc>::const_iterator iter = file_list.begin();
 
 	while (iter != file_list.end()) {
 		filenames.insert((*iter).filename);

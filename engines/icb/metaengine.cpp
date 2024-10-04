@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,20 +27,20 @@
 
 namespace ICB {
 
-class IcbMetaEngine : public AdvancedMetaEngine {
+class IcbMetaEngine : public AdvancedMetaEngine<IcbGameDescription> {
 public:
 	const char *getName() const override {
 		return "icb";
 	}
-	virtual bool hasFeature(MetaEngineFeature f) const override { return false; }
+	bool hasFeature(MetaEngineFeature f) const override { return false; }
 
-	virtual Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const IcbGameDescription *desc) const override;
 
 	Common::KeymapArray initKeymaps(const char *target) const override;
 };
 
-Common::Error IcbMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	*engine = new IcbEngine(syst, desc);
+Common::Error IcbMetaEngine::createInstance(OSystem *syst, Engine **engine, const IcbGameDescription *gd) const {
+	*engine = new IcbEngine(syst, gd);
 	return Common::kNoError;
 }
 
@@ -50,6 +49,8 @@ Common::KeymapArray IcbMetaEngine::initKeymaps(const char *target) const {
 
 	if (gameId == "icb") {
 		return ICB::IcbEngine::initKeymapsIcb(target);
+	} else if (gameId == "eldorado") {
+		return ICB::IcbEngine::initKeymapsEldorado(target);
 	}
 
 	return AdvancedMetaEngine::initKeymaps(target);

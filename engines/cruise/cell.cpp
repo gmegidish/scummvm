@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,8 +28,8 @@ namespace Cruise {
 cellStruct cellHead;
 
 void resetPtr(cellStruct *ptr) {
-	ptr->next = NULL;
-	ptr->prev = NULL;
+	ptr->next = nullptr;
+	ptr->prev = nullptr;
 }
 
 void freeMessageList(cellStruct *objPtr) {
@@ -51,7 +50,7 @@ cellStruct *addCell(cellStruct *pHead, int16 overlayIdx, int16 objIdx, int16 typ
 	cellStruct *currentHead3;
 
 	if (getSingleObjectParam(overlayIdx, objIdx, 2, &var) < 0) {
-		return 0;
+		return nullptr;
 	}
 
 	currentHead3 = currentHead;
@@ -76,7 +75,7 @@ cellStruct *addCell(cellStruct *pHead, int16 overlayIdx, int16 objIdx, int16 typ
 		        (currentHead2->idx == objIdx) &&
 		        (currentHead2->type == type))
 
-			return NULL;
+			return nullptr;
 	}
 
 	currentHead = currentHead2;
@@ -84,7 +83,7 @@ cellStruct *addCell(cellStruct *pHead, int16 overlayIdx, int16 objIdx, int16 typ
 	newElement = (cellStruct *) mallocAndZero(sizeof(cellStruct));
 
 	if (!newElement)
-		return 0;
+		return nullptr;
 
 	newElement->next = currentHead3->next;
 	currentHead3->next = newElement;
@@ -96,7 +95,7 @@ cellStruct *addCell(cellStruct *pHead, int16 overlayIdx, int16 objIdx, int16 typ
 	newElement->freeze = 0;
 	newElement->parent = scriptNumber;
 	newElement->parentOverlay = scriptOverlay;
-	newElement->gfxPtr = NULL;
+	newElement->gfxPtr = nullptr;
 	newElement->followObjectIdx = objIdx;
 	newElement->followObjectOverlayIdx = overlayIdx;
 	newElement->parentType = scriptType;
@@ -152,7 +151,7 @@ void createTextObject(cellStruct *pObject, int overlayIdx, int messageIdx, int x
 	pNewElement->freeze = 0;
 	pNewElement->parent = parentIdx;
 	pNewElement->parentOverlay = parentOvl;
-	pNewElement->gfxPtr = NULL;
+	pNewElement->gfxPtr = nullptr;
 
 	cx = savePObject;
 
@@ -257,15 +256,15 @@ void sortCells(int16 ovlIdx, int16 ovjIdx, cellStruct *objPtr) {
 	cellStruct prov;
 	int16 newz, objz, sobjz;
 
-	pl4 = NULL;
+	pl4 = nullptr;
 
 	getSingleObjectParam(ovlIdx, ovjIdx, 2, &sobjz);
 	pl = objPtr;
-	prov.next = NULL;
-	prov.prev = NULL;
+	prov.next = nullptr;
+	prov.prev = nullptr;
 
 	pl2 = pl->next;
-	pllast = NULL;
+	pllast = nullptr;
 	plz = objPtr;
 
 	while (pl2) {
@@ -287,11 +286,11 @@ void sortCells(int16 ovlIdx, int16 ovjIdx, cellStruct *objPtr) {
 				prov.prev = pl2;
 			}
 
-			pl2->prev = NULL;
+			pl2->prev = nullptr;
 			pl2->next = prov.next;
 			prov.next = pl2;
 
-			if (pllast == NULL) {
+			if (pllast == nullptr) {
 				pllast = pl2;
 			}
 		} else {

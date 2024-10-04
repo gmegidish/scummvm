@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,8 +38,8 @@ static const DebugChannelDef debugFlagList[] = {
 };
 
 static const PlainGameDescriptor draciGames[] = {
-	{ "draci", "Draci Historie" },
-	{ 0, 0 }
+	{ "draci", "Dra\304\215\303\255 Historie" },
+	{ nullptr, nullptr }
 };
 
 namespace Draci {
@@ -48,7 +47,7 @@ namespace Draci {
 const ADGameDescription gameDescriptions[] = {
 	{
 		"draci",
-		0,
+		nullptr,
 		AD_ENTRY1s("INIT.DFW", "b890a5aeebaf16af39219cba2416b0a3", 906),
 		Common::EN_ANY,
 		Common::kPlatformDOS,
@@ -58,9 +57,9 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"draci",
-		0,
+		nullptr,
 		AD_ENTRY1s("INIT.DFW", "9921c8f0045679a8f37eca8d41c5ec02", 906),
-		Common::CZ_CZE,
+		Common::CS_CZE,
 		Common::kPlatformDOS,
 		ADGF_NO_FLAGS,
 		GUIO0()
@@ -68,7 +67,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"draci",
-		0,
+		nullptr,
 		AD_ENTRY1s("INIT.DFW", "76b9b78a8a8809a240acc395df4d0715", 906),
 		Common::PL_POL,
 		Common::kPlatformDOS,
@@ -78,7 +77,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"draci",
-		0,
+		nullptr,
 		AD_ENTRY1s("INIT.DFW", "9a7115b91cdea361bcaff3e046ac7ded", 906),
 		Common::DE_DEU,
 		Common::kPlatformDOS,
@@ -91,21 +90,21 @@ const ADGameDescription gameDescriptions[] = {
 
 } // End of namespace Draci
 
-class DraciMetaEngineDetection : public AdvancedMetaEngineDetection {
+class DraciMetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	DraciMetaEngineDetection() : AdvancedMetaEngineDetection(Draci::gameDescriptions, sizeof(ADGameDescription), draciGames) {
-	}
-
-	const char *getEngineId() const override {
-		return "draci";
+	DraciMetaEngineDetection() : AdvancedMetaEngineDetection(Draci::gameDescriptions, draciGames) {
 	}
 
 	const char *getName() const override {
-		return "Draci Historie";
+		return "draci";
+	}
+
+	const char *getEngineName() const override {
+		return "Dra\304\215\303\255 Historie";
 	}
 
 	const char *getOriginalCopyright() const override {
-		return "Draci Historie (C) 1995 NoSense";
+		return "Dra\304\215\303\255 Historie (C) 1995 NoSense";
 	}
 
 	const DebugChannelDef *getDebugChannels() const override {

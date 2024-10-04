@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@ class PEResources;
 namespace Scumm {
 
 class AI;
-class Net;
+class Map;
 
 class Moonbase {
 public:
@@ -43,8 +42,6 @@ public:
 	void deallocateArray(int array);
 	int callScummFunction(int scriptNumber, int paramCount,...);
 
-	void blitT14WizImage(uint8 *dst, int dstw, int dsth, int dstPitch, const Common::Rect *clipBox,
-			 uint8 *wizd, int srcx, int srcy, int rawROP, int paramROP);
 	void blitDistortion(byte *bufferData, const int bufferWidth, const int bufferHeight, const int bufferPitch,
 			const Common::Rect *optionalClippingRect, byte *dataStream, const int x, const int y, byte *altSourceBuffer);
 
@@ -62,11 +59,11 @@ public:
 		int clipY1, int clipX2, int clipY2, int technique, int nFrame);
 
 
-	void renderFOW(uint8 *destSurface, int dstPitch, int dstType, int dstw, int dsth, int flags);
+	void renderFOW(WizMultiTypeBitmap *destSurface);
 
 private:
 	int readFOWVisibilityArray(int array, int y, int x);
-	void renderFOWState(uint8 *destSurface, int dstPitch, int dstType, int dstw, int dsth, int x, int y, int srcw, int srch, int state, int flags);
+	void renderFOWState(WizMultiTypeBitmap *destSurface, int x, int y, int state);
 
 public:
 	int _fowSentinelImage;
@@ -74,9 +71,7 @@ public:
 	uint32 _fowSentinelConditionBits;
 
 	AI *_ai;
-#ifdef USE_LIBCURL
-	Net *_net;
-#endif
+	Map *_map;
 
 private:
 	ScummEngine_v100he *_vm;
@@ -109,7 +104,7 @@ private:
 	int32 _fowRenderTable[32768];
 
 	Common::PEResources *_exe;
-	Common::String _fileName;
+	Common::Path _fileName;
 };
 
 } // End of namespace Scumm

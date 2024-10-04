@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,18 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/debug.h"
 #include "common/substream.h"
+#include "common/unicode-bidi.h"
 
-#include "graphics/transparent_surface.h"
+#include "graphics/paletteman.h"
 
 #include "pink/archive.h"
-#include "pink/director.h"
+#include "pink/screen.h"
 #include "pink/pink.h"
 #include "pink/objects/actors/actor.h"
 #include "pink/objects/actions/action_text.h"
@@ -66,8 +66,18 @@ void ActionText::deserialize(Archive &archive) {
 
 	_centered = archive.readDWORD();
 	_scrollBar = archive.readDWORD();
-	_textRGB = archive.readDWORD();
-	_backgroundRGB = archive.readDWORD();
+
+	byte r = archive.readByte();
+	byte g = archive.readByte();
+	byte b = archive.readByte();
+	(void)archive.readByte(); // skip Alpha
+	_textRGB = r << 16 | g << 8 | b;
+
+	r = archive.readByte();
+	g = archive.readByte();
+	b = archive.readByte();
+	(void)archive.readByte(); // skip Alpha
+	_backgroundRGB = r << 16 | g << 8 | b;
 }
 
 void ActionText::toConsole() const {
@@ -78,7 +88,7 @@ void ActionText::toConsole() const {
 
 void ActionText::start() {
 	findColorsInPalette();
-	Director *director = _actor->getPage()->getGame()->getDirector();
+	Screen *screen = _actor->getPage()->getGame()->getScreen();
 	Graphics::TextAlign align = _centered ? Graphics::kTextAlignCenter : Graphics::kTextAlignLeft;
 	Common::SeekableReadStream *stream = _actor->getPage()->getResourceStream(_fileName);
 
@@ -86,15 +96,27 @@ void ActionText::start() {
 	stream->read(str, stream->size());
 	delete stream;
 
-	switch(_actor->getPage()->getGame()->getLanguage()) {
-	case Common::DA_DAN:
+	Common::Language language = _actor->getPage()->getGame()->getLanguage();
+	screen->getWndManager()._language = language;
+	switch(language) {
+	case Common::DA_DNK:
+		// fall through
 	case Common::ES_ESP:
+		// fall through
 	case Common::FR_FRA:
+		// fall through
 	case Common::PT_BRA:
+		// fall through
+	case Common::DE_DEU:
+		// fall through
+	case Common::IT_ITA:
+		// fall through
+	case Common::NL_NLD:
 		_text = Common::String(str).decode(Common::kWindows1252);
 		break;
 
 	case Common::FI_FIN:
+		// fall through
 	case Common::SE_SWE:
 		_text = Common::String(str).decode(Common::kWindows1257);
 		break;
@@ -114,19 +136,23 @@ void ActionText::start() {
 		_text = Common::String(str).decode(Common::kWindows1251);
 		break;
 
+	case Common::EN_GRB:
+		// fall through
 	case Common::EN_ANY:
+		// fall through
 	default:
 		_text = Common::String(str);
 		break;
 	}
 
+	_text.trim();
 	delete[] str;
 
 	while ( _text.size() > 0 && (_text[ _text.size() - 1 ] == '\n' || _text[ _text.size() - 1 ] == '\r') )
 		_text.deleteLastChar();
 
 	if (_scrollBar) {
-		_txtWnd = director->getWndManager().addTextWindow(director->getTextFont(), _textColorIndex, _backgroundColorIndex,
+		_txtWnd = screen->getWndManager().addTextWindow(screen->getTextFont(), _textColorIndex, _backgroundColorIndex,
 														  _xRight - _xLeft, align, nullptr, false);
 		_txtWnd->setTextColorRGB(_textRGB);
 		_txtWnd->enableScrollbar(true);
@@ -138,17 +164,12 @@ void ActionText::start() {
 		_txtWnd->setSelectable(false);
 
 		_txtWnd->appendText(_text);
-		director->addTextWindow(_txtWnd);
+		screen->addTextWindow(_txtWnd);
 
 	} else {
-		director->addTextAction(this);
+		screen->addTextAction(this);
 
-		// alignment not working, thus we implement alignment for center manually
-		Graphics::TextAlign alignment = _centered ? Graphics::kTextAlignCenter : Graphics::kTextAlignLeft;
-		if (!_centered && _actor->getPage()->getGame()->getLanguage() == Common::HE_ISR) {
-			alignment = Graphics::kTextAlignRight;
-		}
-		_macText = new Graphics::MacText(_text, &director->getWndManager(), director->getTextFont(), _textColorIndex, _backgroundColorIndex, _xRight - _xLeft, alignment);
+		_macText = new Graphics::MacText(_text, &screen->getWndManager(), screen->getTextFont(), _textColorIndex, _backgroundColorIndex, _xRight - _xLeft, align);
 	}
 }
 
@@ -157,62 +178,42 @@ Common::Rect ActionText::getBound() {
 }
 
 void ActionText::end() {
-	Director *director = _actor->getPage()->getGame()->getDirector();
+	Screen *screen = _actor->getPage()->getGame()->getScreen();
+	screen->addDirtyRect(this->getBound());
 	if (_scrollBar && _txtWnd) {
-		director->getWndManager().removeWindow(_txtWnd);
-		director->removeTextWindow(_txtWnd);
+		screen->getWndManager().removeWindow(_txtWnd);
+		screen->removeTextWindow(_txtWnd);
 		_txtWnd = nullptr;
 	} else {
-		director->removeTextAction(this);
+		screen->removeTextAction(this);
 		delete _macText;
 	}
 }
 
 void ActionText::draw(Graphics::ManagedSurface *surface) {
-	int xOffset = 0, yOffset = 0;
+	int yOffset = 0;
 	// we need to first fill this area with backgroundColor, in order to wash away the previous text
 	surface->fillRect(Common::Rect(_xLeft, _yTop, _xRight, _yBottom), _backgroundColorIndex);
 
 	if (_centered) {
-		xOffset = (_xRight - _xLeft) / 2 - _macText->getTextMaxWidth() / 2;
 		yOffset = (_yBottom - _yTop) / 2 - _macText->getTextHeight() / 2;
 	}
-	_macText->drawToPoint(surface, Common::Rect(0, 0, _xRight - _xLeft, _yBottom - _yTop), Common::Point(_xLeft + xOffset, _yTop + yOffset));
+	_macText->drawToPoint(surface, Common::Rect(0, 0, _xRight - _xLeft, _yBottom - _yTop), Common::Point(_xLeft, _yTop + yOffset));
 }
 
 #define BLUE(rgb) ((rgb) & 0xFF)
 #define GREEN(rgb) (((rgb) >> 8) & 0xFF)
 #define RED(rgb) (((rgb) >> 16) & 0xFF)
 
-static uint findBestColor(byte *palette, uint32 rgb) {
-	uint bestColor = 0;
-	double min = 0xFFFFFFFF;
-	for (uint i = 0; i < 256; ++i) {
-		int rmean = (*(palette + 3 * i + 0) + RED(rgb)) / 2;
-		int r = *(palette + 3 * i + 0) - RED(rgb);
-		int g = *(palette + 3 * i + 1) - GREEN(rgb);
-		int b = *(palette + 3 * i + 2) - BLUE(rgb);
-
-		double dist = sqrt((((512 + rmean) * r * r) >> 8) + 4 * g * g + (((767 - rmean) * b * b) >> 8));
-		if (min > dist) {
-			bestColor = i;
-			min = dist;
-		}
-	}
-
-	debug(2, "for color %06x the best color is %02x%02x%02x", rgb, palette[bestColor * 3], palette[bestColor * 3 + 1], palette[bestColor * 3 + 2]);
-
-	return bestColor;
-}
-
 void ActionText::findColorsInPalette() {
 	byte palette[256 * 3];
 	g_system->getPaletteManager()->grabPalette(palette, 0, 256);
+	g_paletteLookup->setPalette(palette, 256);
 
 	debug(2, "textcolorindex: %06x", _textRGB);
-	_textColorIndex = findBestColor(palette, _textRGB);
+	_textColorIndex = g_paletteLookup->findBestColor(RED(_textRGB), GREEN(_textRGB), BLUE(_textRGB));
 	debug(2, "backgroundColorIndex: %06x", _backgroundRGB);
-	_backgroundColorIndex = findBestColor(palette, _backgroundRGB);
+	_backgroundColorIndex = g_paletteLookup->findBestColor(RED(_backgroundRGB), GREEN(_backgroundRGB), BLUE(_backgroundRGB));
 }
 
 } // End of namespace Pink

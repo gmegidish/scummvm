@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -173,6 +172,9 @@ void Kernel::mapSelectors() {
 	FIND_SELECTOR(owner);
 	FIND_SELECTOR(curPos);
 	FIND_SELECTOR(update);
+	FIND_SELECTOR(canInput);
+	FIND_SELECTOR(input);
+	FIND_SELECTOR(controls);
 
 #ifdef ENABLE_SCI32
 	FIND_SELECTOR(data);
@@ -232,7 +234,6 @@ void Kernel::mapSelectors() {
 	FIND_SELECTOR(scratch);
 	FIND_SELECTOR(num);
 	FIND_SELECTOR(reallyRestore);
-	FIND_SELECTOR(canInput);
 	FIND_SELECTOR(bookMark);
 	FIND_SELECTOR(fileNumber);
 	FIND_SELECTOR(description);
@@ -246,7 +247,7 @@ void Kernel::mapSelectors() {
 reg_t readSelector(SegManager *segMan, reg_t object, Selector selectorId) {
 	ObjVarRef address;
 
-	if (lookupSelector(segMan, object, selectorId, &address, NULL) != kSelectorVariable)
+	if (lookupSelector(segMan, object, selectorId, &address, nullptr) != kSelectorVariable)
 		return NULL_REG;
 
 	if (g_sci->_debugState._activeBreakpointTypes & BREAK_SELECTORREAD) {
@@ -270,13 +271,11 @@ void writeSelector(SegManager *segMan, reg_t object, Selector selectorId, reg_t 
 	ObjVarRef address;
 
 	if ((selectorId < 0) || (selectorId > (int)g_sci->getKernel()->getSelectorNamesSize())) {
-		const SciCallOrigin origin = g_sci->getEngineState()->getCurrentCallOrigin();
-		error("Attempt to write to invalid selector %d. Address %04x:%04x, %s", selectorId, PRINT_REG(object), origin.toString().c_str());
+		error("Attempt to write to invalid selector %d. Address %04x:%04x", selectorId, PRINT_REG(object));
 	}
 
-	if (lookupSelector(segMan, object, selectorId, &address, NULL) != kSelectorVariable) {
-		const SciCallOrigin origin = g_sci->getEngineState()->getCurrentCallOrigin();
-		error("Selector '%s' of object could not be written to. Address %04x:%04x, %s", g_sci->getKernel()->getSelectorName(selectorId).c_str(), PRINT_REG(object), origin.toString().c_str());
+	if (lookupSelector(segMan, object, selectorId, &address, nullptr) != kSelectorVariable) {
+		error("Selector '%s' of object could not be written to. Address %04x:%04x", g_sci->getKernel()->getSelectorName(selectorId).c_str(), PRINT_REG(object));
 	}
 
 	if (g_sci->_debugState._activeBreakpointTypes & BREAK_SELECTORWRITE) {
@@ -301,15 +300,13 @@ void invokeSelector(EngineState *s, reg_t object, int selectorId,
 	stackframe[0] = make_reg(0, selectorId);  // The selector we want to call
 	stackframe[1] = make_reg(0, argc); // Argument count
 
-	slc_type = lookupSelector(s->_segMan, object, selectorId, NULL, NULL);
+	slc_type = lookupSelector(s->_segMan, object, selectorId, nullptr, nullptr);
 
 	if (slc_type == kSelectorNone) {
-		const SciCallOrigin origin = g_sci->getEngineState()->getCurrentCallOrigin();
-		error("invokeSelector: Selector '%s' could not be invoked. Address %04x:%04x, %s", g_sci->getKernel()->getSelectorName(selectorId).c_str(), PRINT_REG(object), origin.toString().c_str());
+		error("invokeSelector: Selector '%s' could not be invoked. Address %04x:%04x", g_sci->getKernel()->getSelectorName(selectorId).c_str(), PRINT_REG(object));
 	}
 	if (slc_type == kSelectorVariable) {
-		const SciCallOrigin origin = g_sci->getEngineState()->getCurrentCallOrigin();
-		error("invokeSelector: Attempting to invoke variable selector %s. Address %04x:%04x, %s", g_sci->getKernel()->getSelectorName(selectorId).c_str(), PRINT_REG(object), origin.toString().c_str());
+		error("invokeSelector: Attempting to invoke variable selector %s. Address %04x:%04x", g_sci->getKernel()->getSelectorName(selectorId).c_str(), PRINT_REG(object));
 	}
 
 	for (i = 0; i < argc; i++)
@@ -337,8 +334,7 @@ SelectorType lookupSelector(SegManager *segMan, reg_t obj_location, Selector sel
 		selectorId &= ~1;
 
 	if (!obj) {
-		const SciCallOrigin origin = g_sci->getEngineState()->getCurrentCallOrigin();
-		error("lookupSelector: Attempt to send to non-object or invalid script. Address %04x:%04x, %s", PRINT_REG(obj_location), origin.toString().c_str());
+		error("lookupSelector: Attempt to send to non-object or invalid script. Address %04x:%04x", PRINT_REG(obj_location));
 	}
 
 	index = obj->locateVarSelector(segMan, selectorId);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,17 +27,17 @@ namespace Kyra {
 #define TimerV2(x) new Common::Functor1Mem<int, void, KyraEngine_HoF>(this, &KyraEngine_HoF::x)
 
 void KyraEngine_HoF::setupTimers() {
-	_timer->addTimer(0, 0, 5, 1);
-	_timer->addTimer(1, TimerV2(timerFadeOutMessage), -1, 1);
-	_timer->addTimer(2, TimerV2(timerCauldronAnimation), 1, 1);
-	_timer->addTimer(3, TimerV2(timerFunc4), 1, 0);
-	_timer->addTimer(4, TimerV2(timerFunc5), 1, 0);
-	_timer->addTimer(5, TimerV2(timerBurnZanthia), 1, 0);
+	_timer->addTimer(0, nullptr, 5, true);
+	_timer->addTimer(1, TimerV2(timerFadeOutMessage), -1, true);
+	_timer->addTimer(2, TimerV2(timerCauldronAnimation), 1, true);
+	_timer->addTimer(3, TimerV2(timerFunc4), 1, false);
+	_timer->addTimer(4, TimerV2(timerFunc5), 1, false);
+	_timer->addTimer(5, TimerV2(timerBurnZanthia), 1, false);
 }
 
 void KyraEngine_HoF::timerFadeOutMessage(int arg) {
 	if (!_shownMessage.empty())
-		_fadeMessagePalette = 1;
+		_fadeMessagePalette = true;
 }
 
 void KyraEngine_HoF::timerCauldronAnimation(int arg) {
@@ -53,11 +52,10 @@ void KyraEngine_HoF::timerCauldronAnimation(int arg) {
 		if (animation == -1)
 			animation = _rnd.getRandomNumberRng(1, 6);
 
-		char filename[13];
-		strcpy(filename, "CAULD00.WSA");
-		filename[5] = (animation / 10) + '0';
-		filename[6] = (animation % 10) + '0';
-		loadInvWsa(filename, 0, 8, 0, -1, -1, 1);
+		Common::String filename = "CAULD00.WSA";
+		filename.setChar((animation / 10) + '0', 5);
+		filename.setChar((animation % 10) + '0', 6);
+		loadInvWsa(filename.c_str(), 0, 8, 0, -1, -1, 1);
 	}
 }
 

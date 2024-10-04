@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,9 +39,6 @@
 namespace AGS3 {
 
 using namespace AGS::Shared;
-
-
-
 
 int IsGUIOn(int guinum) {
 	if ((guinum < 0) || (guinum >= _GP(game).numgui))
@@ -72,22 +68,20 @@ void InterfaceOn(int ifn) {
 	EndSkippingUntilCharStops();
 
 	if (_GP(guis)[ifn].IsVisible()) {
-		debug_script_log("GUIOn(%d) ignored (already on)", ifn);
 		return;
 	}
 	_GP(guis)[ifn].SetVisible(true);
 	debug_script_log("GUI %d turned on", ifn);
 	// modal interface
 	if (_GP(guis)[ifn].PopupStyle == kGUIPopupModal) PauseGame();
-	// clear the cached mouse position
-	_GP(guis)[ifn].OnControlPositionChanged();
-	_GP(guis)[ifn].Poll();
+	_GP(guis)[ifn].MarkControlsChanged();
+	_GP(guis)[ifn].ResetOverControl(); // clear the cached mouse position
+	_GP(guis)[ifn].Poll(_G(mousex), _G(mousey));
 }
 
 void InterfaceOff(int ifn) {
 	if ((ifn < 0) | (ifn >= _GP(game).numgui)) quit("!GUIOff: invalid GUI specified");
 	if (!_GP(guis)[ifn].IsVisible()) {
-		debug_script_log("GUIOff(%d) ignored (already off)", ifn);
 		return;
 	}
 	debug_script_log("GUI %d turned off", ifn);
@@ -95,9 +89,9 @@ void InterfaceOff(int ifn) {
 	if (_GP(guis)[ifn].MouseOverCtrl >= 0) {
 		// Make sure that the overpic is turned off when the GUI goes off
 		_GP(guis)[ifn].GetControl(_GP(guis)[ifn].MouseOverCtrl)->OnMouseLeave();
-		_GP(guis)[ifn].MouseOverCtrl = -1;
 	}
-	_GP(guis)[ifn].OnControlPositionChanged();
+	_GP(guis)[ifn].MarkControlsChanged();
+	_GP(guis)[ifn].ResetOverControl(); // clear the cached mouse position
 	// modal interface
 	if (_GP(guis)[ifn].PopupStyle == kGUIPopupModal) UnPauseGame();
 }
@@ -178,7 +172,7 @@ int GetTextWidth(const char *text, int fontnum) {
 	if ((fontnum < 0) || (fontnum >= _GP(game).numfonts))
 		quit("!GetTextWidth: invalid font number.");
 
-	return game_to_data_coord(wgettextwidth_compensate(text, fontnum));
+	return game_to_data_coord(get_text_width_outlined(text, fontnum));
 }
 
 int GetTextHeight(const char *text, int fontnum, int width) {
@@ -188,19 +182,19 @@ int GetTextHeight(const char *text, int fontnum, int width) {
 
 	if (break_up_text_into_lines(text, _GP(Lines), data_to_game_coord(width), fontnum) == 0)
 		return 0;
-	return game_to_data_coord(getheightoflines(fontnum, _GP(Lines).Count()));
+	return game_to_data_coord(get_text_lines_height(fontnum, _GP(Lines).Count()));
 }
 
 int GetFontHeight(int fontnum) {
 	if ((fontnum < 0) || (fontnum >= _GP(game).numfonts))
 		quit("!GetFontHeight: invalid font number.");
-	return game_to_data_coord(getfontheight_outlined(fontnum));
+	return game_to_data_coord(get_font_height_outlined(fontnum));
 }
 
 int GetFontLineSpacing(int fontnum) {
 	if ((fontnum < 0) || (fontnum >= _GP(game).numfonts))
 		quit("!GetFontLineSpacing: invalid font number.");
-	return game_to_data_coord(getfontspacing_outlined(fontnum));
+	return game_to_data_coord(get_font_linespacing(fontnum));
 }
 
 void SetGUIBackgroundPic(int guin, int slotn) {
@@ -211,10 +205,10 @@ void SetGUIBackgroundPic(int guin, int slotn) {
 }
 
 void DisableInterface() {
-	if (_GP(play).disabled_user_interface == 0 && // only if was enabled before
-	        _G(gui_disabled_style) != GUIDIS_UNCHANGED) { // If GUI looks change when disabled, then update them all
-		GUI::MarkAllGUIForUpdate();
-	}
+	// If GUI looks change when disabled, then mark all of them for redraw
+	bool redraw_gui = (_GP(play).disabled_user_interface == 0) && // only if was enabled before
+					  (GUI::Options.DisabledStyle != kGuiDis_Unchanged);
+	GUI::MarkAllGUIForUpdate(redraw_gui, true);
 	_GP(play).disabled_user_interface++;
 	set_mouse_cursor(CURS_WAIT);
 }
@@ -224,11 +218,11 @@ void EnableInterface() {
 	if (_GP(play).disabled_user_interface < 1) {
 		_GP(play).disabled_user_interface = 0;
 		set_default_cursor();
-		if (_G(gui_disabled_style) != GUIDIS_UNCHANGED) { // If GUI looks change when disabled, then update them all
-			GUI::MarkAllGUIForUpdate();
-		}
+		// If GUI looks change when disabled, then mark all of them for redraw
+		GUI::MarkAllGUIForUpdate(GUI::Options.DisabledStyle != kGuiDis_Unchanged, true);
 	}
 }
+
 // Returns 1 if user interface is enabled, 0 if disabled
 int IsInterfaceEnabled() {
 	return (_GP(play).disabled_user_interface > 0) ? 0 : 1;
@@ -245,11 +239,11 @@ int GetGUIObjectAt(int xx, int yy) {
 int GetGUIAt(int xx, int yy) {
 	data_to_game_coords(&xx, &yy);
 
-	int aa, ll;
-	for (ll = _GP(game).numgui - 1; ll >= 0; ll--) {
-		aa = _GP(play).gui_draw_order[ll];
-		if (_GP(guis)[aa].IsInteractableAt(xx, yy))
-			return aa;
+	// Test in the opposite order (from closer to further)
+	for (auto g = _GP(play).gui_draw_order.crbegin();
+			g < _GP(play).gui_draw_order.crend(); ++g) {
+		if (_GP(guis)[*g].IsInteractableAt(xx, yy))
+			return *g;
 	}
 	return -1;
 }

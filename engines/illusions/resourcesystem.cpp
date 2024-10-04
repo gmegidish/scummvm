@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,7 +53,7 @@ void Resource::loadData(BaseResourceReader *resReader) {
 
 void Resource::unloadData() {
 	free(_data);
-	_data = 0;
+	_data = nullptr;
 	_dataSize = 0;
 }
 
@@ -124,6 +123,13 @@ void ResourceSystem::unloadSceneResources(uint32 sceneId1, uint32 sceneId2) {
 		unloadResource(*it);
 		it = Common::find_if(it, _resources.end(), ResourceNotEqualByScenes(sceneId1, sceneId2));
 	}
+}
+
+void ResourceSystem::unloadAllResources() {
+	for (ResourcesArrayIterator it = _resources.begin(); it != _resources.end(); ++it) {
+		delete (*it);
+	}
+	_resources.clear();
 }
 
 BaseResourceLoader *ResourceSystem::getResourceLoader(uint32 resId) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,7 +49,7 @@ MenuBar::MenuBar(CGEEngine *vm, uint16 w) : Talk(vm), _vm(vm) {
 
 	_ts = new BitmapPtr[2];
 	_ts[0] = new Bitmap(_vm, w, h, p);
-	_ts[1] = NULL;
+	_ts[1] = nullptr;
 	setShapeList(_ts);
 
 	_flags._slav = true;
@@ -59,15 +58,14 @@ MenuBar::MenuBar(CGEEngine *vm, uint16 w) : Talk(vm), _vm(vm) {
 	_flags._bDel = true;
 }
 
-Vmenu *Vmenu::_addr = NULL;
+Vmenu *Vmenu::_addr = nullptr;
 int Vmenu::_recent = -1;
 
 Vmenu::Vmenu(CGEEngine *vm, Choice *list, int x, int y)
-	: Talk(vm, VMGather(list), kTBRect), _menu(list), _bar(NULL), _vmgt(NULL), _vm(vm) {
+	: Talk(vm, VMGather(list), kTBRect), _menu(list), _bar(nullptr), _vmgt(nullptr), _vm(vm) {
 	Choice *cp;
 
 	_addr = this;
-	delete[] _vmgt;
 	_items = 0;
 	for (cp = list; cp->_text; cp++)
 		_items++;
@@ -84,16 +82,16 @@ Vmenu::Vmenu(CGEEngine *vm, Choice *list, int x, int y)
 }
 
 Vmenu::~Vmenu() {
-	_addr = NULL;
+	_addr = nullptr;
 }
 
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
 
-void Vmenu::touch(uint16 mask, int x, int y, Common::KeyCode keyCode) {
+void Vmenu::touch(uint16 mask, int x, int y) {
 	if (!_items)
 		return;
 
-	Sprite::touch(mask, x, y, keyCode);
+	Sprite::touch(mask, x, y);
 
 	y -= kTextVMargin - 1;
 	int n = 0;
@@ -127,13 +125,14 @@ char *Vmenu::VMGather(Choice *list) {
 		len += strlen(cp->_text);
 		h++;
 	}
-	_vmgt = new char[len + h];
+	len += h;
+	_vmgt = new char[len];
 	if (_vmgt) {
 		*_vmgt = '\0';
 		for (cp = list; cp->_text; cp++) {
 			if (*_vmgt)
-				strcat(_vmgt, "|");
-			strcat(_vmgt, cp->_text);
+				Common::strcat_s(_vmgt, len, "|");
+			Common::strcat_s(_vmgt, len, cp->_text);
 			h++;
 		}
 	}

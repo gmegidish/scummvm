@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -472,7 +471,7 @@ void ThreadResource::parsePlayCommands() {
 						_vm->_bVoy->freeBoltMember(_vm->_playStampGroupId + i * 2 + 1);
 					}
 
-					Common::String file = Common::String::format("news%d.voc", i + 1);
+					Common::Path file(Common::String::format("news%d.voc", i + 1));
 					_vm->_soundManager->startVOCPlay(file);
 
 					while (!_vm->shouldQuit() && !_vm->_eventsManager->_mouseClicked &&
@@ -1298,9 +1297,6 @@ void ThreadResource::doRoom() {
 }
 
 int ThreadResource::doInterface() {
-	PictureResource *pic;
-	Common::Point pt;
-
 	_vm->_voy->_eventFlags |= EVTFLAG_TIME_DISABLED;
 	if (_vm->_voy->_abortInterface) {
 		_vm->_voy->_abortInterface = false;
@@ -1347,7 +1343,7 @@ int ThreadResource::doInterface() {
 	_vm->_currentVocId = 151 - _vm->getRandomNumber(5);
 	_vm->_voy->_vocSecondsOffset = _vm->getRandomNumber(29);
 
-	Common::String fname = _vm->_soundManager->getVOCFileName(_vm->_currentVocId);
+	Common::Path fname = _vm->_soundManager->getVOCFileName(_vm->_currentVocId);
 	_vm->_soundManager->startVOCPlay(fname);
 	_vm->_eventsManager->getMouseInfo();
 
@@ -1383,7 +1379,7 @@ int ThreadResource::doInterface() {
 		}
 
 		// Calculate the mouse position within the entire mansion
-		pt = _vm->_eventsManager->getMousePos();
+		Common::Point pt = _vm->_eventsManager->getMousePos();
 		if (!mansionViewBounds.contains(pt))
 			pt = Common::Point(-1, -1);
 		else
@@ -1431,13 +1427,19 @@ int ThreadResource::doInterface() {
 				_vm->_gameMinute % 10, Common::Point(201, 25));
 
 			if (_vm->_voy->_RTANum & 4) {
-				int v = _vm->_gameHour / 10;
-				_vm->_screen->drawANumber(_vm->_screen->_vPort,
-					v == 0 ? 10 : v, Common::Point(161, 25));
-				_vm->_screen->drawANumber(_vm->_screen->_vPort,
-					_vm->_gameHour % 10, Common::Point(172, 25));
+				int v1, v2;
+				if (!_vm->_voy->_isAM && _vm->getLanguage() == Common::DE_DEU) {
+					v1 = (_vm->_gameHour + 12) / 10;
+					v2 = (_vm->_gameHour + 12) % 10;
+				} else {
+					v1 = _vm->_gameHour / 10;
+					v2 = _vm->_gameHour % 10;
+				}
+				
+				_vm->_screen->drawANumber(_vm->_screen->_vPort, v1 == 0 ? 10 : v1, Common::Point(161, 25));
+				_vm->_screen->drawANumber(_vm->_screen->_vPort, v2, Common::Point(172, 25));
 
-				pic = _vm->_bVoy->boltEntry(_vm->_voy->_isAM ? 272 : 273)._picResource;
+				PictureResource *pic = _vm->_bVoy->boltEntry(_vm->_voy->_isAM ? 272 : 273)._picResource;
 				_vm->_screen->sDrawPic(pic, _vm->_screen->_vPort,
 					Common::Point(215, 27));
 			}

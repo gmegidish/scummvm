@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/system.h"
@@ -67,8 +66,9 @@ static const uint16 s_halfWidthSJISMap[256] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-EngineState::EngineState(SegManager *segMan)
-: _segMan(segMan),
+EngineState::EngineState(SegManager *segMan) :
+	_segMan(segMan),
+	_msgState(nullptr),
 	_dirseeker() {
 
 	reset(false);
@@ -94,8 +94,8 @@ void EngineState::reset(bool isRestoring) {
 
 	executionStackBase = 0;
 	_executionStackPosChanged = false;
-	stack_base = 0;
-	stack_top = 0;
+	stack_base = nullptr;
+	stack_top = nullptr;
 
 	r_acc = NULL_REG;
 	r_prev = NULL_REG;
@@ -105,13 +105,10 @@ void EngineState::reset(bool isRestoring) {
 
 	gcCountDown = 0;
 
-#ifdef ENABLE_SCI32
 	_eventCounter = 0;
-#endif
 	_paletteSetIntensityCounter = 0;
 	_throttleLastTime = 0;
 	_throttleTrigger = false;
-	_gameIsBenchmarking = false;
 
 	_lastSaveVirtualId = SAVEGAMEID_OFFICIALRANGE_START;
 	_lastSaveNewId = 0;
@@ -179,6 +176,11 @@ void EngineState::initGlobals() {
 	}
 }
 
+void EngineState::initMessageState() {
+	delete _msgState;
+	_msgState = new MessageState(_segMan);
+}
+
 uint16 EngineState::currentRoomNumber() const {
 	return variables[VAR_GLOBAL][kGlobalVarNewRoomNo].toUint16();
 }
@@ -221,6 +223,9 @@ static kLanguage charToLanguage(const char c) {
 Common::String SciEngine::getSciLanguageString(const Common::String &str, kLanguage requestedLanguage, kLanguage *secondaryLanguage, uint16 *languageSplitter) const {
 	kLanguage foundLanguage = K_LANG_NONE;
 	const byte *textPtr = (const byte *)str.c_str();
+	if (secondaryLanguage) {
+		*secondaryLanguage = K_LANG_NONE;
+	}
 	byte curChar = 0;
 	byte curChar2 = 0;
 
@@ -251,7 +256,6 @@ Common::String SciEngine::getSciLanguageString(const Common::String &str, kLangu
 			// Japanese including Kanji, displayed with system font
 			// Convert half-width characters to full-width equivalents
 			Common::String fullWidth;
-			uint16 mappedChar;
 
 			textPtr += 2; // skip over language splitter
 
@@ -261,38 +265,20 @@ Common::String SciEngine::getSciLanguageString(const Common::String &str, kLangu
 				switch (curChar) {
 				case 0: // Terminator NUL
 					return fullWidth;
-				case '\\':
-					// "\n", "\N", "\r" and "\R" were overwritten with SPACE + 0x0D in PC-9801 SSCI
-					//  inside GetLongest() (text16). We do it here, because it's much cleaner and
-					//  we have to process the text here anyway.
-					//  Occurs for example in Police Quest 2 intro
-					curChar2 = *(textPtr + 1);
-					switch (curChar2) {
-					case 'n':
-					case 'N':
-					case 'r':
-					case 'R':
-						fullWidth += ' ';
-						fullWidth += 0x0D; // CR
-						textPtr += 2;
-						continue;
-					default:
-						break;
-					}
 				default:
 					break;
 				}
 
 				textPtr++;
 
-				mappedChar = s_halfWidthSJISMap[curChar];
+				uint16 mappedChar = s_halfWidthSJISMap[curChar];
 				if (mappedChar) {
 					fullWidth += mappedChar >> 8;
 					fullWidth += mappedChar & 0xFF;
 				} else {
 					// Copy double-byte character
 					curChar2 = *(textPtr++);
-					if (!curChar) {
+					if (!curChar2) {
 						error("SJIS character %02X is missing second byte", curChar);
 						break;
 					}
@@ -387,7 +373,7 @@ Common::String SciEngine::strSplitLanguage(const char *str, uint16 *languageSpli
 
 	// Don't add subtitle when separator is not set, subtitle language is not set, or
 	// string contains only one language
-	if ((sep == NULL) || (subtitleLanguage == K_LANG_NONE) || (foundLanguage == K_LANG_NONE))
+	if ((sep == nullptr) || (subtitleLanguage == K_LANG_NONE) || (foundLanguage == K_LANG_NONE))
 		return retval;
 
 	// Add subtitle, unless the subtitle language doesn't match the languages in the string
@@ -420,6 +406,9 @@ SciCallOrigin EngineState::getCurrentCallOrigin() const {
 	Common::String curObjectName = _segMan->getObjectName(xs->sendp);
 	Common::String curMethodName;
 	const Script *localScript = _segMan->getScriptIfLoaded(xs->local_segment);
+	if (localScript == nullptr) {
+		error("current script not found at: %04x", xs->local_segment);
+	}
 	int curScriptNr = localScript->getScriptNumber();
 
 	Selector debugSelector = xs->debugSelector;
@@ -467,6 +456,25 @@ bool EngineState::callInStack(const reg_t object, const Selector selector) const
 	}
 
 	return false;
+}
+
+Common::String EngineState::getGameVersionFromGlobal() const {
+	// The version global was originally 28 but then became 27.
+	// When it was 28, 27 was a volume level, so differentiate by type.
+	reg_t versionRef = variables[VAR_GLOBAL][kGlobalVarVersionNew];
+	if (versionRef.isNumber()) {
+		versionRef = variables[VAR_GLOBAL][kGlobalVarVersionOld];
+	}
+#ifdef ENABLE_SCI32
+	// LSL7 and Phant2 store the version string as an object instead of a reference
+	if (_segMan->isObject(versionRef)) {
+		versionRef = readSelector(_segMan, versionRef, SELECTOR(data));
+	}
+#endif
+	if (versionRef.isPointer()) {
+		return _segMan->getString(versionRef);
+	}
+	return Common::String();
 }
 
 } // End of namespace Sci

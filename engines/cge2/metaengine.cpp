@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,16 +26,69 @@
 
 #include "engines/advancedDetector.h"
 
+#include "common/translation.h"
+
+#include "backends/keymapper/action.h"
+#include "backends/keymapper/keymapper.h"
+#include "backends/keymapper/standard-actions.h"
+
 #include "graphics/surface.h"
 
 #include "cge2/cge2.h"
+#include "cge2/detection.h"
 
 namespace CGE2 {
 
-class CGE2MetaEngine : public AdvancedMetaEngine {
+static const ADExtraGuiOptionsMap optionsList[] = {
+		{
+			GAMEOPTION_COLOR_BLIND_DEFAULT_OFF,
+			{
+				_s("Color Blind Mode"),
+				_s("Enable Color Blind Mode by default"),
+				"enable_color_blind",
+				false,
+				0,
+				0
+			}
+		},
+
+#ifdef USE_TTS
+	{
+		GAMEOPTION_TTS_OBJECTS,
+		{
+			_s("Enable Text to Speech for Objects and Options"),
+			_s("Use TTS to read the descriptions (if TTS is available)"),
+			"tts_enabled_objects",
+			false,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_TTS_SPEECH,
+		{
+			_s("Enable Text to Speech for Subtitles"),
+			_s("Use TTS to read the subtitles (if TTS is available)"),
+			"tts_enabled_speech",
+			false,
+			0,
+			0
+		}
+	},
+#endif
+
+		AD_EXTRA_GUI_OPTIONS_TERMINATOR
+};
+
+class CGE2MetaEngine : public AdvancedMetaEngine<ADGameDescription> {
 public:
 	const char *getName() const override {
 		return "cge2";
+	}
+
+	const ADExtraGuiOptionsMap *getAdvancedExtraGuiOptions() const override {
+		return optionsList;
 	}
 
 	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
@@ -45,6 +97,7 @@ public:
 	SaveStateList listSaves(const char *target) const override;
 	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
 	void removeSaveState(const char *target, int slot) const override;
+	Common::KeymapArray initKeymaps(const char *target) const override;
 };
 
 Common::Error CGE2MetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
@@ -153,6 +206,61 @@ void CGE2MetaEngine::removeSaveState(const char *target, int slot) const {
 	g_system->getSavefileManager()->removeSavefile(fileName);
 }
 
+Common::KeymapArray CGE2MetaEngine::initKeymaps(const char *target) const {
+	using namespace Common;
+
+	Keymap *keymap = new Keymap(Keymap::kKeymapTypeGame, "Sfinx", _("Game Keymappings"));
+
+	Common::Action *act;
+
+	act = new Common::Action(kStandardActionLeftClick, _("Left click"));
+	act->setLeftClickEvent();
+	act->addDefaultInputMapping("MOUSE_LEFT");
+	act->addDefaultInputMapping("JOY_A");
+	keymap->addAction(act);
+
+	act = new Common::Action(kStandardActionRightClick, _("Right click"));
+	act->setRightClickEvent();
+	act->addDefaultInputMapping("MOUSE_RIGHT");
+	act->addDefaultInputMapping("JOY_B");
+	keymap->addAction(act);
+
+	// I18N: This closes the Dialogue/text box.
+	act = new Common::Action("CLOSEBOX", _("Close the Dialogue box"));
+	act->setCustomEngineActionEvent(kActionEscape);
+	act->addDefaultInputMapping("ESCAPE");
+	act->addDefaultInputMapping("JOY_X");
+	keymap->addAction(act);
+
+	act = new Common::Action(kStandardActionSave, _("Save game"));
+	act->setCustomEngineActionEvent(kActionSave);
+	act->addDefaultInputMapping("F5");
+	act->addDefaultInputMapping("JOY_LEFT_SHOULDER");
+	keymap->addAction(act);
+
+	act = new Common::Action(kStandardActionLoad, _("Load game"));
+	act->setCustomEngineActionEvent(kActionLoad);
+	act->addDefaultInputMapping("F7");
+	act->addDefaultInputMapping("JOY_RIGHT_SHOULDER");
+	keymap->addAction(act);
+
+	// I18N: 3-4 dialogs of game version info, (translation) credits, etc.
+	act = new Common::Action("INFO", _("Game Info"));
+	act->setCustomEngineActionEvent(kActionInfo);
+	act->addDefaultInputMapping("F1");
+	act->addDefaultInputMapping("JOY_LEFT_TRIGGER");
+	keymap->addAction(act);
+
+	// I18N: This opens a Quit Prompt where you have to choose
+	// [Confirm] or [Continue Playing] lines with Left Click.
+	act = new Common::Action("QUIT", _("Quit Prompt"));
+	act->setCustomEngineActionEvent(kActionQuit);
+	act->addDefaultInputMapping("A+x");
+	act->addDefaultInputMapping("JOY_RIGHT_TRIGGER");
+	keymap->addAction(act);
+
+	return Keymap::arrayOf(keymap);
+}
 } // End of namespace CGE2
 
 #if PLUGIN_ENABLED_DYNAMIC(CGE2)

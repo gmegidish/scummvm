@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,14 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef ASYLUM_VIEWS_MENU_H
 #define ASYLUM_VIEWS_MENU_H
+
+#include "graphics/surface.h"
 
 #include "asylum/eventhandler.h"
 #include "asylum/shared.h"
@@ -65,6 +66,7 @@ public:
 	void setLoadingDuringStartup()  { _loadingDuringStartup = true; }
 
 	bool isEditingSavegameName() { return _activeScreen == kMenuSaveGame && _isEditingSavegameName; };
+	bool isConfiguringKeyboard() { return _activeScreen == kMenuKeyboardConfig && _selectedShortcutIndex != -1; }
 
 private:
 	AsylumEngine *_vm;
@@ -117,6 +119,7 @@ private:
 	int32            _caretBlink;
 	int32            _startIndex;
 	int32            _creditsFrameIndex;
+	int32            _creditsNumSteps;
 	bool             _showMovie;
 	uint32           _iconFrames[12];
 
@@ -129,6 +132,10 @@ private:
 	Common::String _previousName;
 	int32 _prefixWidth;
 	bool _loadingDuringStartup;
+
+	// Thumbnails
+	int _thumbnailIndex;
+	Graphics::Surface _thumbnailSurface;
 
 	/**
 	 * Setups menu screen
@@ -208,7 +215,8 @@ private:
 
 	// Thumbnails
 	bool hasThumbnail(int index);
-	void showThumbnail(int index);
+	void readThumbnail();
+	void showThumbnail();
 
 	// Update handlers
 	void updateNewGame();

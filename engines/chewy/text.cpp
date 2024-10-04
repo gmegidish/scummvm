@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,49 +15,72 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "common/rect.h"
 #include "common/system.h"
-
 #include "chewy/resource.h"
 #include "chewy/text.h"
+
+#include "types.h"
+#include "chewy/atds.h"
+#include "chewy/defines.h"
 
 namespace Chewy {
 
 Text::Text() : Resource("atds.tap") {
+	memset(_hotspotStrings, 0, sizeof(_hotspotStrings));
+
+	Common::File f;
+
+	if (!f.open(ROOM_ATS_STEUER))
+		error("Error reading file: %s", ROOM_ATS_STEUER);
+	for (int16 i = 0; i < ROOM_ATS_MAX; i++)
+		_hotspotStrings[i * MAX_ATS_STATUS] = f.readByte();
+
+	f.close();
+
+	if (!f.open(INV_ATS_STEUER))
+		error("Error reading file: %s", INV_ATS_STEUER);
+	for (int16 i = 0; i < MAX_MOV_OBJ; i++)
+		_inventoryStrings[i * MAX_ATS_STATUS] = f.readByte();
+
+	f.close();
+
+	// WORKAROUND: For English version, taxi hotspot in
+	// room 45 (Big City) isn't turned on by default
+	_hotspotStrings[295] = ATS_ACTION_BIT;
 }
 
 Text::~Text() {
 }
 
-TextEntryList *Text::getDialog(uint dialogNum, uint entryNum) {
-	if (dialogNum >= kADSTextMax)
-		error("getDialog(): Invalid entry number requested, %d (max %d)", dialogNum, kADSTextMax - 1);
+TextEntryList *Text::getDialog(uint chunk, uint entry) {
+	if (chunk >= kADSTextMax)
+		error("getDialog(): Invalid entry number requested, %d (max %d)", chunk, kADSTextMax - 1);
 
 	TextEntryList *l = new TextEntryList();
 
-	byte *data = getChunkData(dialogNum);
+	byte *data = getChunkData(chunk);
 	byte *ptr = data;
 
-	ptr += 2;	// entry number
-	ptr += 2;	// number of persons
-	ptr += 2;	// automove count
-	ptr += 2;	// cursor number
-	ptr += 13;	// misc data
+	ptr += 2;  // entry number
+	ptr += 2;  // number of persons
+	ptr += 2;  // automove count
+	ptr += 2;  // cursor number
+	ptr += 13; // misc data
 
-	for (uint i = 0; i <= entryNum; i++) {
+	for (uint i = 0; i <= entry; i++) {
 		do {
 			TextEntry curDialog;
-			ptr++;	// current entry
+			ptr++; // current entry
 			ptr += 2;
-			curDialog.speechId = READ_LE_UINT16(ptr) - VOICE_OFFSET;	ptr += 2;
+			curDialog._speechId = READ_LE_UINT16(ptr) - VOICE_OFFSET;
+			ptr += 2;
 
 			do {
-				curDialog.text += *ptr++;
+				curDialog._text += *ptr++;
 
 				if (*ptr == 0 && *(ptr + 1) != kEndText) {
 					// TODO: Split lines
@@ -65,14 +88,14 @@ TextEntryList *Text::getDialog(uint dialogNum, uint entryNum) {
 				}
 			} while (*ptr != kEndText);
 
-			if (i == entryNum)
+			if (i == entry)
 				l->push_back(curDialog);
 
 		} while (*(ptr + 1) != kEndEntry);
 
-		ptr += 2;	// kEndText, kEndEntry
+		ptr += 2; // kEndText, kEndEntry
 
-		if (*ptr == kEndBlock)	// not found
+		if (*ptr == kEndBlock) // not found
 			break;
 	}
 
@@ -81,39 +104,137 @@ TextEntryList *Text::getDialog(uint dialogNum, uint entryNum) {
 	return l;
 }
 
-TextEntry *Text::getText(uint dialogNum, uint entryNum) {
-	if (dialogNum < kADSTextMax)
-		error("getText(): Invalid entry number requested, %d (min %d)", dialogNum, kADSTextMax);
+TextEntry *Text::getText(uint chunk, uint entry, int type, int subEntry) {
+	bool isText = false;
+	bool isAutoDialog = false;
+	bool isInvDesc = false;
+	uint origChunk = chunk;
+
+	//debug("getText %d, %d, %d, %d", chunk, entry, type, subEntry);
+
+	switch (type) {
+	case AAD_DATA:
+		chunk += kADSTextMax + kATSTextMax;
+		isAutoDialog = true;
+		break;
+	case ATS_DATA:
+		chunk += kADSTextMax;
+		isText = true;
+		break;
+	case DIALOG_CLOSEUP_DATA:
+		// No change - chunk starts from 0
+		break;
+	case INV_USE_DATA:
+	case INV_USE_DEF:
+		chunk += kADSTextMax + kATSTextMax + kAADTextMax + kINVTextMax;
+		isInvDesc = true;
+		isText = true;
+		break;
+	case INV_ATS_DATA:
+		chunk += kADSTextMax + kATSTextMax + kAADTextMax;
+		isInvDesc = true;
+		break;
+	}
+
+	if (chunk < kADSTextMax)
+		error("getText(): Invalid chunk number requested, %d (min %d)", chunk, kADSTextMax);
 
 	TextEntry *d = new TextEntry();
-	bool isText = (dialogNum >= kADSTextMax && dialogNum < kADSTextMax + kATSTextMax);
-	bool isAutoDialog = (dialogNum >= kADSTextMax + kATSTextMax && dialogNum < kADSTextMax + kATSTextMax + kAADTextMax);
-	//bool isInvText = (dialogNum >= kADSTextMax + kATSTextMax + kAADTextMax && dialogNum < kADSTextMax + kATSTextMax + kAADTextMax + kINVTextMax);
+	const uint8 altSubString = !isInvDesc ?
+		getTextId(entry, subEntry, type) :
+		getTextId(origChunk, 0, type);
 
-	byte *data = getChunkData(dialogNum);
+	byte *data = getChunkData(chunk);
 	byte *ptr = data;
+	uint entryId = 0;
+	uint16 headerBytes, txtNum;
+	int curSubEntry = -1;
+
+	//Common::hexdump(data, _chunkList[chunk].size);
 
 	if (isAutoDialog)
 		ptr += 3;
 
-	for (uint i = 0; i <= entryNum; i++) {
-		ptr += 13;
-		d->speechId = READ_LE_UINT16(ptr) - VOICE_OFFSET;	ptr += 2;
+	while (true) {
+		ptr += 3;
+		headerBytes = READ_LE_UINT16(ptr);
+		ptr += 2;
+
+		if (headerBytes == 0xFEF2) {
+			// Start of subchunk
+			curSubEntry = *ptr;
+			ptr++;
+			headerBytes = READ_LE_UINT16(ptr);
+			ptr += 2;
+		}
+
+		if (headerBytes != 0xFEF0)
+			break;
+
+		txtNum = !isInvDesc ? READ_LE_UINT16(ptr) : entryId++;
+		ptr += 2;
+		ptr += 6;
+		d->_speechId = READ_LE_UINT16(ptr) - VOICE_OFFSET;
+		ptr += 2;
 
 		do {
-			if (i == entryNum)
-				d->text += *ptr++;
+			if (txtNum == entry && curSubEntry == subEntry)
+				d->_text += *ptr++;
 			else
 				ptr++;
 
-			if (*ptr == 0 && *(ptr + 1) != kEndText) {
-				// TODO: Split lines
-				*ptr = ' ';
-			}
+			if (*ptr == 0 && *(ptr + 1) != kEndText)
+				*ptr = '|';
 		} while (*ptr);
 
+		// Pick the appropriate substring
+		// Each substring starts with 0xf1 0xfe and ends with 0x0 0x0d
+		if (*(ptr + 1) == kEndText && *(ptr + 2) == 0xf1 && *(ptr + 3) == 0xfe) {
+			ptr += 6;
+			uint curSubString = 0;
+			bool endOfSubString = (*ptr == 0 && *(ptr + 1) == kEndText);
+			bool endOfChunk = (endOfSubString && *(ptr + 2) == kEndChunk);
+
+			if (txtNum == entry && curSubEntry == subEntry && curSubString < altSubString) {
+				d->_text = "";
+				d->_speechId++;
+				curSubString++;
+
+				while (!endOfChunk && curSubString <= altSubString) {
+					d->_text += *ptr++;
+
+					endOfSubString = (*ptr == 0 && *(ptr + 1) == kEndText);
+					endOfChunk = (endOfSubString && *(ptr + 2) == kEndChunk);
+
+					if (*ptr == 0 && *(ptr + 1) != kEndText)
+						*ptr = '|';
+
+					if (endOfSubString) {
+						if (curSubString < altSubString) {
+							d->_text = "";
+							d->_speechId++;
+							curSubString++;
+							ptr += 6;
+						} else {
+							break;
+						}
+					}
+				}
+			}
+
+			endOfSubString = (*ptr == 0 && *(ptr + 1) == kEndText);
+			endOfChunk = (endOfSubString && *(ptr + 2) == kEndChunk);
+
+			// Keep going until the chunk ends
+			while (!endOfChunk) {
+				ptr++;
+				endOfSubString = (*ptr == 0 && *(ptr + 1) == kEndText);
+				endOfChunk = (endOfSubString && *(ptr + 2) == kEndChunk);
+			}
+		}
+
 		if (*(ptr + 1) != kEndText || *(ptr + 2) != kEndChunk) {
-			warning("Invalid text resource - %d, %d", dialogNum, entryNum);
+			warning("Invalid text resource - %d, %d", chunk, entry);
 
 			delete[] data;
 			delete d;
@@ -122,11 +243,13 @@ TextEntry *Text::getText(uint dialogNum, uint entryNum) {
 		}
 
 		if (!isText)
-			ptr += 3;	// 0, kEndText, kEndChunk
+			ptr += 3; // 0, kEndText, kEndChunk
 		if (isAutoDialog)
 			ptr += 3;
 
-		if (i == entryNum) {
+		d->_text.trim();
+
+		if (txtNum == entry && curSubEntry == subEntry && d->_text.size() > 1) {
 			// Found
 			delete[] data;
 			return d;
@@ -140,81 +263,113 @@ TextEntry *Text::getText(uint dialogNum, uint entryNum) {
 	return nullptr;
 }
 
-Font::Font(Common::String filename) {
-	const uint32 headerFont = MKTAG('T', 'F', 'F', '\0');
-	Common::File stream;
+Common::StringArray Text::getTextArray(uint chunk, uint entry, int type, int subEntry) {
+	TextEntry *textData = getText(chunk, entry, type, subEntry);
+	Common::StringArray res;
+	Common::String txt = textData ? textData->_text : "";
+	char *text = new char[txt.size() + 1];
+	Common::strlcpy(text, txt.c_str(), txt.size() + 1);
+	char *line = strtok(text, "|");
 
-	stream.open(filename);
+	while (line) {
+		res.push_back(line);
+		line = strtok(nullptr, "|");
+	}
 
-	uint32 header = stream.readUint32BE();
+	_lastSpeechId = textData ? textData->_speechId : -1;
 
-	if (header != headerFont)
-		error("Invalid resource - %s", filename.c_str());
+	delete[] text;
+	delete textData;
 
-	stream.skip(4);	// total memory
-	_count = stream.readUint16LE();
-	_first = stream.readUint16LE();
-	_last = stream.readUint16LE();
-	_width = stream.readUint16LE();
-	_height = stream.readUint16LE();
+	return res;
+}
 
-	_fontSurface.create(_width * _count, _height, ::Graphics::PixelFormat::createFormatCLUT8());
+Common::String Text::getTextEntry(uint chunk, uint entry, int type, int subEntry) {
+	Common::StringArray res = getTextArray(chunk, entry, type, subEntry);
+	return res.size() > 0 ? res[0] : "";
+}
 
-	byte cur;
-	int bitIndex = 7;
-	byte *p;
+const char *Text::strPos(const char *txtAdr, int16 pos) {
+	const char *ptr = txtAdr;
+	for (int16 i = 0; i < pos;) {
+		if (*ptr == 0 || *ptr == '|')
+			++i;
+		++ptr;
+	}
 
-	cur = stream.readByte();
+	return ptr;
+}
 
-	for (uint n = 0; n < _count; n++) {
-		for (uint y = 0; y < _height; y++) {
-			p = (byte *)_fontSurface.getBasePtr(n * _width, y);
+void Text::syncHotspotStrings(Common::Serializer &s) {
+	for (size_t i = 0; i < sizeof(_hotspotStrings); ++i)
+		s.syncAsByte(_hotspotStrings[i]);
+}
 
-			for (uint x = n * _width; x < n * _width + _width; x++) {
-				*p++ = (cur & (1 << bitIndex)) ? 0 : 0xFF;
+void Text::syncInventoryStrings(Common::Serializer &s) {
+	for (size_t i = 0; i < sizeof(_inventoryStrings); ++i)
+		s.syncAsByte(_inventoryStrings[i]);
+}
 
-				bitIndex--;
-				if (bitIndex < 0) {
-					bitIndex = 7;
-					cur = stream.readByte();
-				}
-			}
-		}
+void Text::syncInventoryUseStrings(Common::Serializer &s) {
+	for (size_t i = 0; i < sizeof(_inventoryUseStrings); ++i)
+		s.syncAsByte(_inventoryUseStrings[i]);
+}
+
+bool Text::getControlBit(int16 txtNr, int16 bitIdx) {
+	return (_hotspotStrings[txtNr * MAX_ATS_STATUS] & bitIdx) != 0;
+}
+
+void Text::setControlBit(int16 txtNr, int16 bitIdx) {
+	_hotspotStrings[txtNr * MAX_ATS_STATUS] |= bitIdx;
+}
+
+void Text::delControlBit(int16 txtNr, int16 bitIdx) {
+	_hotspotStrings[txtNr * MAX_ATS_STATUS] &= ~bitIdx;
+}
+
+uint8 *Text::getBuffer(uint8 type) {
+	switch (type) {
+	case ATS_DATA:
+		return _hotspotStrings;
+	case INV_USE_DATA:
+		return _inventoryUseStrings;
+	case INV_ATS_DATA:
+		return _inventoryStrings;
+	default:
+		error("getBuffer called for type %d", type);
 	}
 }
 
-Font::~Font() {
-	_fontSurface.free();
+uint8 getNibble(uint8 value, uint8 subEntry) {
+	if ((subEntry + 1) % 2 == 0)
+		return value & 0x0F;
+	else
+		return (value >> 4) & 0x0F;
 }
 
-::Graphics::Surface *Font::getLine(const Common::String &text) {
-	::Graphics::Surface *line = new ::Graphics::Surface();
-	line->create(text.size() * _width, _height, ::Graphics::PixelFormat::createFormatCLUT8());
-
-	for (uint i = 0; i < text.size(); i++) {
-		uint x = (text[i] - _first) * _width;
-		line->copyRectToSurface(_fontSurface, i * _width, 0, Common::Rect(x, 0, x + _width, _height));
-	}
-
-	return line;
+uint8 setNibble(uint8 value, uint8 subEntry, uint8 nibble) {
+	if ((subEntry + 1) % 2 == 0)
+		return (nibble & 0x0F) | (value & 0xF0);
+	else
+		return (nibble << 4) | (value & 0x0F);
 }
 
-Common::String ErrorMessage::getErrorMessage(uint num) {
-	assert(num < _chunkList.size());
+uint8 Text::getTextId(uint16 entry, uint8 subEntry, uint8 type) {
+	if (type != ATS_DATA && type != INV_USE_DATA && type != INV_ATS_DATA)
+		return 0;
 
-	Chunk *chunk = &_chunkList[num];
-	Common::String str;
-	byte *data = new byte[chunk->size];
-
-	_stream.seek(chunk->pos, SEEK_SET);
-	_stream.read(data, chunk->size);
-	if (_encrypted)
-		decrypt(data, chunk->size);
-
-	str = (char *)data;
-	delete[] data;
-
-	return str;
+	const uint8 *buffer = getBuffer(type);
+	const uint8 value = buffer[(entry * MAX_ATS_STATUS) + (subEntry + 1) / 2];
+	return getNibble(value, subEntry);
 }
 
-} // End of namespace Chewy
+void Text::setTextId(uint16 entry, uint8 subEntry, uint8 strNr, uint8 type) {
+	if (type != ATS_DATA && type != INV_USE_DATA && type != INV_ATS_DATA)
+		return;
+
+	uint8 *buffer = getBuffer(type);
+	const uint8 value = buffer[(entry * MAX_ATS_STATUS) + (subEntry + 1) / 2];
+	buffer[(entry * MAX_ATS_STATUS) + (subEntry + 1) / 2] = setNibble(value, subEntry, (uint8)strNr);
+}
+
+} // namespace Chewy

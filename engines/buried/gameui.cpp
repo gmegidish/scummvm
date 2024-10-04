@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -86,17 +85,17 @@ bool GameUIWindow::startNewGameIntro(bool walkthrough) {
 
 	VideoWindow *video = new VideoWindow(_vm, this);
 
-	if (!video->openVideo(_vm->getFilePath(19972))) // FIXME: Why is this not a constant?
+	if (!video->openVideo(_vm->getFilePath(IDS_INTRO_FILENAME)))
 		error("Failed to load intro video");
 
-	video->setWindowPos(0, 104, 145, 0, 0, kWindowPosNoSize | kWindowPosNoZOrder);
+	video->setWindowPos(nullptr, 104, 145, 0, 0, kWindowPosNoSize | kWindowPosNoZOrder);
 	video->enableWindow(false);
 	video->showWindow(kWindowShow);
 	_vm->_sound->stop();
 	video->playVideo();
 
 	while (!_vm->shouldQuit() && video->getMode() != VideoWindow::kModeStopped)
-		_vm->yield();
+		_vm->yield(video, -1);
 
 	delete video;
 
@@ -174,7 +173,7 @@ bool GameUIWindow::flashWarningLight() {
 
 	uint32 startTime = g_system->getMillis();
 	while (!_vm->shouldQuit() && (startTime + 200) > g_system->getMillis()) {
-		_vm->yield();
+		_vm->yield(nullptr, -1);
 		_vm->_sound->timerCallback();
 	}
 
@@ -189,7 +188,7 @@ bool GameUIWindow::flashWarningLight() {
 
 	startTime = g_system->getMillis();
 	while (!_vm->shouldQuit() && (startTime + 250) > g_system->getMillis()) {
-		_vm->yield();
+		_vm->yield(nullptr, -1);
 		_vm->_sound->timerCallback();
 	}
 
@@ -202,7 +201,7 @@ bool GameUIWindow::flashWarningLight() {
 
 	startTime = g_system->getMillis();
 	while (!_vm->shouldQuit() && (startTime + 250) > g_system->getMillis()) {
-		_vm->yield();
+		_vm->yield(nullptr, -1);
 		_vm->_sound->timerCallback();
 	}
 
@@ -293,6 +292,9 @@ void GameUIWindow::onEnable(bool enable) {
 }
 
 void GameUIWindow::onKeyUp(const Common::KeyState &key, uint flags) {
+	const bool cloakingDisabled = _sceneViewWindow->getGlobalFlags().bcCloakingEnabled != 1;
+	const bool interfaceMenuActive = (_bioChipRightWindow->getCurrentBioChip() == kItemBioChipInterface);
+
 	switch (key.keycode) {
 	case Common::KEYCODE_KP4:
 	case Common::KEYCODE_LEFT:
@@ -307,26 +309,27 @@ void GameUIWindow::onKeyUp(const Common::KeyState &key, uint flags) {
 			_navArrowWindow->sendMessage(new KeyUpMessage(key, flags));
 		break;
 	case Common::KEYCODE_s:
-		if ((key.flags & Common::KBD_CTRL) && _sceneViewWindow->getGlobalFlags().bcCloakingEnabled != 1) {
-			_bioChipRightWindow->changeCurrentBioChip(kItemBioChipInterface);
-			_bioChipRightWindow->invalidateWindow(false);
-			_bioChipRightWindow->sendMessage(new LButtonUpMessage(Common::Point(50, 130), 0));
-			_vm->runSaveDialog();
-			return;
-		}
-		// Fall through
+		if ((key.flags & Common::KBD_CTRL) && cloakingDisabled && !interfaceMenuActive) {
+			_vm->handleSaveDialog();
+			((FrameWindow *)_vm->_mainWindow)->_controlDown = false;
+		} else if (_sceneViewWindow)
+			_sceneViewWindow->sendMessage(new KeyUpMessage(key, flags));
+		break;
 	case Common::KEYCODE_o:
 	case Common::KEYCODE_l:
-		if ((key.flags & Common::KBD_CTRL) && _sceneViewWindow->getGlobalFlags().bcCloakingEnabled != 1) {
-			_bioChipRightWindow->changeCurrentBioChip(kItemBioChipInterface);
-			_bioChipRightWindow->invalidateWindow(false);
-			_bioChipRightWindow->sendMessage(new LButtonUpMessage(Common::Point(50, 130), 0));
-
-			if (_vm->runLoadDialog().getCode() == Common::kUnknownError)
-				((FrameWindow *)_vm->_mainWindow)->showMainMenu();
-			return;
-		}
-		// Fall through
+		if ((key.flags & Common::KBD_CTRL) && cloakingDisabled && !interfaceMenuActive) {
+			_vm->handleRestoreDialog();
+			((FrameWindow *)_vm->_mainWindow)->_controlDown = false;
+		} else if (_sceneViewWindow)
+			_sceneViewWindow->sendMessage(new KeyUpMessage(key, flags));
+		break;
+	case Common::KEYCODE_p:
+		if ((key.flags & Common::KBD_CTRL) && cloakingDisabled && !interfaceMenuActive) {
+			_vm->pauseGame();
+			((FrameWindow *)_vm->_mainWindow)->_controlDown = false;
+		} else if (_sceneViewWindow)
+			_sceneViewWindow->sendMessage(new KeyUpMessage(key, flags));
+		break;
 	default:
 		if (_sceneViewWindow)
 			_sceneViewWindow->sendMessage(new KeyUpMessage(key, flags));

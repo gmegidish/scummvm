@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,18 +33,18 @@ namespace Kyra {
 
 SoundMidiPC::SoundMidiPC(KyraEngine_v1 *vm, Audio::Mixer *mixer, MidiDriver *driver, kType type) : Sound(vm, mixer) {
 	_driver = driver;
-	_output = 0;
+	_output = nullptr;
 
-	_musicFile = _sfxFile = 0;
+	_musicFile = _sfxFile = nullptr;
 	_currentResourceSet = 0;
 	memset(&_resInfo, 0, sizeof(_resInfo));
 
-	_music = MidiParser::createParser_XMIDI(MidiParser::defaultXMidiCallback, NULL, 0);
+	_music = MidiParser::createParser_XMIDI(MidiParser::defaultXMidiCallback, nullptr, 0);
 	assert(_music);
 	_music->property(MidiParser::mpDisableAllNotesOffMidiEvents, true);
 	_music->property(MidiParser::mpDisableAutoStartPlayback, true);
 	for (int i = 0; i < 3; ++i) {
-		_sfx[i] = MidiParser::createParser_XMIDI(MidiParser::defaultXMidiCallback, NULL, i + 1);
+		_sfx[i] = MidiParser::createParser_XMIDI(MidiParser::defaultXMidiCallback, nullptr, i + 1);
 		assert(_sfx[i]);
 		_sfx[i]->property(MidiParser::mpDisableAllNotesOffMidiEvents, true);
 		_sfx[i]->property(MidiParser::mpDisableAutoStartPlayback, true);
@@ -53,6 +52,7 @@ SoundMidiPC::SoundMidiPC(KyraEngine_v1 *vm, Audio::Mixer *mixer, MidiDriver *dri
 
 	_musicVolume = _sfxVolume = 0;
 	_fadeMusicOut = false;
+	_fadeStartTime = 0;
 
 	_type = type;
 	assert(_type == kMidiMT32 || _type == kMidiGM || _type == kPCSpkr);
@@ -84,7 +84,7 @@ SoundMidiPC::SoundMidiPC(KyraEngine_v1 *vm, Audio::Mixer *mixer, MidiDriver *dri
 
 SoundMidiPC::~SoundMidiPC() {
 	Common::StackLock lock(_mutex);
-	_output->setTimerCallback(0, 0);
+	_output->setTimerCallback(nullptr, nullptr);
 
 	delete _music;
 	for (int i = 0; i < 3; ++i)
@@ -99,7 +99,7 @@ SoundMidiPC::~SoundMidiPC() {
 	delete[] _musicFile;
 
 	for (int i = 0; i < 3; i++)
-		initAudioResourceInfo(i, 0);
+		initAudioResourceInfo(i, nullptr);
 }
 
 bool SoundMidiPC::init() {
@@ -125,8 +125,8 @@ bool SoundMidiPC::init() {
 	_output->setTimerCallback(this, SoundMidiPC::onTimer);
 
 	// Load MT-32 and GM initialization files
-	const char* midiFile = 0;
-	const char* pakFile = 0;
+	const char* midiFile = nullptr;
+	const char* pakFile = nullptr;
 	if (_nativeMT32 && _type == kMidiMT32) {
 		if (_vm->game() == GI_KYRA1) {
 			midiFile = "INTRO";
@@ -149,7 +149,7 @@ bool SoundMidiPC::init() {
 				}
 			} else {
 				if (_vm->gameFlags().isTalkie)
-					pakFile = "ENG/STARTUP.PAK";
+					pakFile =  (_vm->_flags.lang == Common::FR_FRA) ? "FRE/STARTUP.PAK" : (_vm->_flags.lang == Common::DE_DEU ? "GER/STARTUP.PAK" : "ENG/STARTUP.PAK");
 				else
 					pakFile = "INTROVOC.PAK";
 			}
@@ -176,7 +176,7 @@ bool SoundMidiPC::init() {
 
 	Common::Event event;
 	while (isPlaying() && !_vm->shouldQuit()) {
-		_vm->_system->updateScreen();
+		_vm->screen()->updateBackendScreen(true);
 		_vm->_eventMan->pollEvent(event);
 		_vm->_system->delayMillis(10);
 	}
@@ -210,7 +210,7 @@ void SoundMidiPC::updateVolumeSettings() {
 void SoundMidiPC::initAudioResourceInfo(int set, void *info) {
 	if (set >= kMusicIntro && set <= kMusicFinale) {
 		delete _resInfo[set];
-		_resInfo[set] = info ? new SoundResourceInfo_PC(*(SoundResourceInfo_PC*)info) : 0;
+		_resInfo[set] = info ? new SoundResourceInfo_PC(*(SoundResourceInfo_PC*)info) : nullptr;
 	}
 }
 
@@ -223,7 +223,7 @@ void SoundMidiPC::selectAudioResourceSet(int set) {
 
 bool SoundMidiPC::hasSoundFile(uint file) const {
 	if (file < res()->fileListSize)
-		return (res()->fileList[file] != 0);
+		return (res()->fileList[file] != nullptr);
 	return false;
 }
 
@@ -232,14 +232,14 @@ void SoundMidiPC::loadSoundFile(uint file) {
 		loadSoundFile(res()->fileList[file]);
 }
 
-void SoundMidiPC::loadSoundFile(Common::String file) {
+void SoundMidiPC::loadSoundFile(const Common::Path &file) {
 	Common::StackLock lock(_mutex);
-	file = getFileName(file);
+	Common::Path path = getFileName(file);
 
-	if (_mFileName == file)
+	if (_mFileName == path)
 		return;
 
-	if (!_vm->resource()->exists(file.c_str()))
+	if (!_vm->resource()->exists(path))
 		return;
 
 	haltTrack();
@@ -249,10 +249,51 @@ void SoundMidiPC::loadSoundFile(Common::String file) {
 
 	delete[] _musicFile;
 	uint32 fileSize = 0;
-	_musicFile = _vm->resource()->fileData(file.c_str(), &fileSize);
-	_mFileName = file;
+	_musicFile = _vm->resource()->fileData(path, &fileSize);
+	_mFileName = path;
 
 	_music->loadMusic(_musicFile, fileSize);
+
+	// WORKAROUND The track playing during the character selection screen has a
+	// bug: towards the end of the track, pitch bend events are sent on two
+	// channels, but pitch bend is not reset to neutral when the track loops.
+	// This causes two instruments to be out of tune after the track loops.
+	// This occurs in both the MT-32 and GM versions, but in the GM version the
+	// pitch bend is smaller, so it is much less noticeable. It was fixed in the
+	// CD version for MT-32 by adding pitch bend neutral events to the end of
+	// the track.
+	// It is fixed here for the MT-32 floppy version and both GM versions by
+	// moving the for loop event (indicating the start of the loop) before the
+	// pitch bend neutral events at the start of the track; position is swapped
+	// with the first pitch bend neutral event. (The pitch bend neutral events
+	// are sent in a different order, but that makes no practical difference.)
+	// The initial pitch bend neutral events are then sent again when the track
+	// loops.
+	if (path == "LOREINTR.XMI" && fileSize >= 0x6221 && _musicFile[0x6210] == 0xE1) {
+		// MT-32 floppy version.
+
+		// Overwrite first pitch bend event with for loop event.
+		_musicFile[0x6210] = 0xB6;
+		_musicFile[0x6211] = 0x74;
+		_musicFile[0x6212] = 0x00;
+
+		// Write pitch event in the old location of the for loop event.
+		_musicFile[0x621F] = 0xE1;
+		_musicFile[0x6220] = 0x00;
+		_musicFile[0x6221] = 0x40;
+	} else if (path == "LOREINTR.C55" && fileSize >= 0x216D && _musicFile[0x215C] == 0xE0) {
+		// GM floppy and CD version.
+
+		// Overwrite first pitch bend event with for loop event.
+		_musicFile[0x215C] = 0xB9;
+		_musicFile[0x215D] = 0x74;
+		_musicFile[0x215E] = 0x00;
+
+		// Write pitch event in the old location of the for loop event.
+		_musicFile[0x216B] = 0xE0;
+		_musicFile[0x216C] = 0x00;
+		_musicFile[0x216D] = 0x40;
+	}
 
 	// Since KYRA1 uses the same file for SFX and Music
 	// we setup sfx to play from music file as well
@@ -263,19 +304,19 @@ void SoundMidiPC::loadSoundFile(Common::String file) {
 	}
 }
 
-void SoundMidiPC::loadSfxFile(Common::String file) {
+void SoundMidiPC::loadSfxFile(const Common::Path &file) {
 	Common::StackLock lock(_mutex);
 
 	// Kyrandia 1 doesn't use a special sfx file
 	if (_vm->game() == GI_KYRA1)
 		return;
 
-	file = getFileName(file);
+	Common::Path path = getFileName(file);
 
-	if (_sFileName == file)
+	if (_sFileName == path)
 		return;
 
-	if (!_vm->resource()->exists(file.c_str()))
+	if (!_vm->resource()->exists(path))
 		return;
 
 	stopAllSoundEffects();
@@ -283,8 +324,8 @@ void SoundMidiPC::loadSfxFile(Common::String file) {
 	delete[] _sfxFile;
 
 	uint32 fileSize = 0;
-	_sfxFile = _vm->resource()->fileData(file.c_str(), &fileSize);
-	_sFileName = file;
+	_sfxFile = _vm->resource()->fileData(path, &fileSize);
+	_sFileName = path;
 
 	for (int i = 0; i < 3; ++i) {
 		_sfx[i]->loadMusic(_sfxFile, fileSize);
@@ -396,19 +437,19 @@ void SoundMidiPC::onTimer(void *data) {
 	}
 }
 
-Common::String SoundMidiPC::getFileName(const Common::String &str) {
-	Common::String file = str;
+Common::Path SoundMidiPC::getFileName(const Common::Path &str) {
+	Common::Path file(str);
 	if (_type == kMidiMT32)
-		file += ".XMI";
+		file.appendInPlace(".XMI");
 	else if (_type == kMidiGM)
-		file += ".C55";
+		file.appendInPlace(".C55");
 	else if (_type == kPCSpkr)
-		file += ".PCS";
+		file.appendInPlace(".PCS");
 
-	if (_vm->resource()->exists(file.c_str()))
+	if (_vm->resource()->exists(file))
 		return file;
 
-	return str + ".XMI";
+	return str.append(".XMI");
 }
 
 } // End of namespace Kyra

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -63,7 +62,7 @@ SoundManager::SoundManager(Audio::Mixer *mixer) : _mixer(mixer) {
 		if (i->getName() != "track")
 			continue;
 
-		_soundFilenames.push_back(i->getString("file"));
+		_soundFilenames.push_back(Common::Path(i->getString("file")));
 	}
 }
 
@@ -79,9 +78,10 @@ bool SoundManager::load(Sound sound) {
 	assertMsg(sound < SOUND_MAX, "Attempted to load an invalid sound");
 
 	if (_sounds[sound] == nullptr) {
-		Common::String pathname("data/sound/" + _soundFilenames[sound]);
-		Common::String basename = pathname.substr(pathname.findLastOf("/") + 1);
-		if (!basename.empty())
+		Common::Path pathname("data/sound/");
+		pathname.joinInPlace(_soundFilenames[sound]);
+		Common::String basename = pathname.baseName();
+		if (!basename.empty() && !basename.hasSuffix("/"))
 			return load_sys(sound, pathname);
 	}
 
@@ -104,28 +104,30 @@ void SoundManager::stop(int channel) {
 	stop_sys(channel);
 }
 
-bool SoundManager::load_sys(Sound sound, const Common::String &filename) {
+bool SoundManager::load_sys(Sound sound, const Common::Path &filename) {
 	Common::File f;
 	if (!f.open(filename))
 		return false;
 
 	Audio::SeekableAudioStream *audioStream = nullptr;
 
+	Common::String baseName(filename.baseName());
+
 #ifdef USE_FLAC
-	if (filename.hasSuffixIgnoreCase(".fla"))
+	if (baseName.hasSuffixIgnoreCase(".fla"))
 		audioStream = Audio::makeFLACStream(f.readStream(f.size()), DisposeAfterUse::YES);
 #endif
 #ifdef USE_VORBIS
-	if (filename.hasSuffixIgnoreCase(".ogg"))
+	if (baseName.hasSuffixIgnoreCase(".ogg"))
 		audioStream = Audio::makeVorbisStream(f.readStream(f.size()), DisposeAfterUse::YES);
 #endif
 #ifdef USE_MAD
-	if (filename.hasSuffixIgnoreCase(".mp3"))
+	if (baseName.hasSuffixIgnoreCase(".mp3"))
 		audioStream = Audio::makeMP3Stream(f.readStream(f.size()), DisposeAfterUse::YES);
 #endif
-	if (filename.hasSuffixIgnoreCase(".wav"))
+	if (baseName.hasSuffixIgnoreCase(".wav"))
 		audioStream = Audio::makeWAVStream(f.readStream(f.size()), DisposeAfterUse::YES);
-	if (filename.hasSuffixIgnoreCase(".voc"))
+	if (baseName.hasSuffixIgnoreCase(".voc"))
 		audioStream = Audio::makeVOCStream(f.readStream(f.size()), DisposeAfterUse::YES);
 
 	_sounds[sound] = audioStream;

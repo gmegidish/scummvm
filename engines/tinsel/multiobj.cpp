@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,18 +15,24 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * This file contains utilities to handle multi-part objects.
  */
 
+#include "tinsel/background.h"
+#include "tinsel/film.h"
 #include "tinsel/multiobj.h"
 #include "tinsel/handle.h"
 #include "tinsel/object.h"
 #include "tinsel/tinsel.h"
+#include "tinsel/noir/sysreel.h"
 
 namespace Tinsel {
+
+const FRAME *MULTI_INIT::GetFrame() const {
+	return (const FRAME *)_vm->_handle->LockMem(FROM_32(hMulFrame));
+}
 
 /**
  * Initialize a multi-part object using a list of images to init
@@ -38,11 +44,11 @@ namespace Tinsel {
 OBJECT *MultiInitObject(const MULTI_INIT *pInitTbl) {
 	OBJ_INIT obj_init;	// object init table
 	OBJECT *pFirst, *pObj;	// object pointers
-	FRAME *pFrame;		// list of images for the multi-part object
+	const FRAME *pFrame;		// list of images for the multi-part object
 
 	if (FROM_32(pInitTbl->hMulFrame)) {
 		// we have a frame handle
-		pFrame = (FRAME *)_vm->_handle->LockMem(FROM_32(pInitTbl->hMulFrame));
+		pFrame = pInitTbl->GetFrame();
 
 		obj_init.hObjImg  = READ_32(pFrame);	// first objects shape
 	} else {	// this must be a animation list for a NULL object
@@ -81,6 +87,28 @@ OBJECT *MultiInitObject(const MULTI_INIT *pInitTbl) {
 
 	// return master object
 	return pFirst;
+}
+
+OBJECT *InsertReelObj(const FREEL *reels) {
+	const MULTI_INIT *pmi = reels->GetMultiInit();
+	// Verify that there is an image defined
+	const FRAME *frame = pmi->GetFrame();
+	const IMAGE *image = (const IMAGE*)_vm->_handle->LockMem(*frame);
+	assert(image);
+
+	auto pInsObj = MultiInitObject(pmi);
+	MultiInsertObject(_vm->_bg->GetPlayfieldList(FIELD_STATUS), pInsObj);
+	return pInsObj; // Result
+}
+
+const FILM *GetSystemReelFilm(SysReel reelIndex) {
+	SCNHANDLE hFilm = _vm->_systemReel->get(reelIndex);
+	const FILM *pfilm = (const FILM *)_vm->_handle->LockMem(hFilm);
+	return pfilm;
+}
+
+OBJECT *InsertSystemReelObj(SysReel reelIndex) {
+	return InsertReelObj(GetSystemReelFilm(reelIndex)->reels);
 }
 
 /**
@@ -123,6 +151,19 @@ void MultiDeleteObject(OBJECT **pObjList, OBJECT *pMultiObj) {
 		// next obj in list
 		pMultiObj = pMultiObj->pSlave;
 	} while (pMultiObj != NULL);
+}
+
+/**
+ * Deletes all the pieces of a multi-part object from the
+ * specified playfield's object list, then sets the pointer to nullptr.
+ * @param which				The playfield whos object list we delete from.
+ * @param pMultiObj			Multi-part object to be deleted
+ */
+void MultiDeleteObjectIfExists(unsigned int playfield, OBJECT **pMultiObj) {
+	if (*pMultiObj) {
+		MultiDeleteObject(_vm->_bg->GetPlayfieldList(playfield), *pMultiObj);
+		*pMultiObj = nullptr;
+	}
 }
 
 /**
@@ -197,7 +238,7 @@ void MultiAdjustXY(OBJECT *pMultiObj, int deltaX, int deltaY) {
 	if (deltaX == 0 && deltaY == 0)
 		return;		// ignore no change
 
-	if (!TinselV2) {
+	if (TinselVersion <= 1) {
 		// *** This may be wrong!!!
 		if (pMultiObj->flags & DMA_FLIPH) {
 			// image is flipped horizontally - flip the x direction
@@ -281,6 +322,17 @@ void MultiSetAniXY(OBJECT *pMultiObj, int newAniX, int newAniY) {
 
 	// move all pieces by the difference
 	MultiMoveRelXY(pMultiObj, newAniX, newAniY);
+}
+
+/**
+ * Sets the x & y anim position of all pieces of a multi-part object, as well as the Z Position.
+ * @param pMultiObj			Multi-part object whose position is to be changed
+ * @param newAniX			New x animation position
+ * @param newAniY			New y animation position
+ */
+void MultiSetAniXYZ(OBJECT *pMultiObj, int newAniX, int newAniY, int zPosition) {
+	MultiSetAniXY(pMultiObj, newAniX, newAniY);
+	MultiSetZPosition(pMultiObj, zPosition);
 }
 
 /**
@@ -530,7 +582,7 @@ int MultiLowest(OBJECT *pMulti) {
  * @param pMulti		Multi-part object
  */
 
-bool MultiHasShape(POBJECT pMulti) {
+bool MultiHasShape(OBJECT *pMulti) {
 	return (pMulti->hShape != 0);
 }
 
@@ -539,7 +591,7 @@ bool MultiHasShape(POBJECT pMulti) {
  * @param pMultiObj			Multi-part object to be adjusted
  */
 
-void MultiForceRedraw(POBJECT pMultiObj) {
+void MultiForceRedraw(OBJECT *pMultiObj) {
 	// validate object pointer
 	assert(isValidObject(pMultiObj));
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -80,10 +79,10 @@ GameLoader::GameLoader() {
 
 	_field_FA = 0;
 	_field_F8 = 0;
-	_sceneSwitcher = 0;
-	_preloadCallback = 0;
-	_savegameCallback = 0;
-	_gameVar = 0;
+	_sceneSwitcher = nullptr;
+	_preloadCallback = nullptr;
+	_savegameCallback = nullptr;
+	_gameVar = nullptr;
 	_preloadSceneId = 0;
 	_preloadEntranceId = 0;
 	_updateCounter = 0;
@@ -205,7 +204,7 @@ bool GameLoader::gotoScene(int sceneId, int entranceId) {
 
 	GameVar *sg = _gameVar->getSubVarByName("OBJSTATES")->getSubVarByName("SAVEGAME");
 
-	if (sg || (sg = _gameVar->getSubVarByName("OBJSTATES")->addSubVarAsInt("SAVEGAME", 0)) != 0)
+	if (sg || (sg = _gameVar->getSubVarByName("OBJSTATES")->addSubVarAsInt("SAVEGAME", 0)) != nullptr)
 		sg->setSubVarAsInt("Entrance", entranceId);
 
 	if (!g_nmi->sceneSwitcher(_sc2array[sc2idx]._entranceData[entranceIdx]))
@@ -236,7 +235,7 @@ bool GameLoader::gotoScene(int sceneId, int entranceId) {
 
 		mq->setFlags(mq->getFlags() | 1);
 
-		if (!mq->chain(0)) {
+		if (!mq->chain(nullptr)) {
 			delete mq;
 
 			return false;
@@ -278,7 +277,7 @@ bool preloadCallback(PreloadItem &pre, int flag) {
 	} else {
 		if (g_nmi->_scene2) {
 			g_nmi->_aniMan = g_nmi->_scene2->getAniMan();
-			g_nmi->_scene2 = 0;
+			g_nmi->_scene2 = nullptr;
 			setInputDisabled(1);
 		}
 
@@ -296,7 +295,7 @@ bool preloadCallback(PreloadItem &pre, int flag) {
 				if (pre.preloadId1 != SC_18)
 					g_nmi->_gameLoader->unloadScene(SC_18);
 
-				g_nmi->_scene3 = 0;
+				g_nmi->_scene3 = nullptr;
 			}
 		} else {
 			scene19_setMovements(g_nmi->accessScene(pre.preloadId1), pre.param);
@@ -327,8 +326,8 @@ bool preloadCallback(PreloadItem &pre, int flag) {
 			pbar->startAnim(MV_PBAR_RUN, 0, -1);
 		}
 
-		g_nmi->_inventoryScene = 0;
-		g_nmi->_updateCursorCallback = 0;
+		g_nmi->_inventoryScene = nullptr;
+		g_nmi->_updateCursorCallback = nullptr;
 
 		g_nmi->_sceneRect.translate(-g_nmi->_sceneRect.left, -g_nmi->_sceneRect.top);
 
@@ -381,7 +380,7 @@ bool GameLoader::preloadScene(int sceneId, int entranceId) {
 	}
 
 	if (g_nmi->_currentScene && g_nmi->_currentScene->_sceneId == sceneId)
-		g_nmi->_currentScene = 0;
+		g_nmi->_currentScene = nullptr;
 
 	saveScenePicAniInfos(sceneId);
 	clearGlobalMessageQueueList1();
@@ -443,7 +442,7 @@ int GameLoader::getSceneTagBySceneId(int sceneId, SceneTag **st) {
 		}
 	}
 
-	*st = 0;
+	*st = nullptr;
 	return -1;
 }
 
@@ -550,7 +549,7 @@ PicAniInfoList GameLoader::savePicAniInfos(Scene *sc, int flag1, int flag2) {
 		}
 	}
 
-	debugC(4, kDebugBehavior | kDebugAnimation, "savePicAniInfos: Stored %d infos", res.size());
+	debugC(4, kDebugBehavior, "savePicAniInfos: Stored %d infos", res.size());
 
 	return res;
 }
@@ -648,7 +647,7 @@ bool PreloadItems::load(MfcArchive &file) {
 
 const char *getSavegameFile(int saveGameIdx) {
 	static char buffer[20];
-	sprintf(buffer, "fullpipe.s%02d", saveGameIdx);
+	Common::sprintf_s(buffer, "fullpipe.s%02d", saveGameIdx);
 	return buffer;
 }
 
@@ -665,14 +664,14 @@ GameVar *NGIEngine::getGameLoaderGameVar() {
 	if (_gameLoader)
 		return _gameLoader->_gameVar;
 	else
-		return 0;
+		return nullptr;
 }
 
 InputController *NGIEngine::getGameLoaderInputController() {
 	if (_gameLoader)
 		return _gameLoader->_inputController;
 	else
-		return 0;
+		return nullptr;
 }
 
 MctlCompound *getCurrSceneSc2MotionController() {

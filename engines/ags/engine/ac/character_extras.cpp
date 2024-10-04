@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@ namespace AGS3 {
 
 using AGS::Shared::Stream;
 
-void CharacterExtras::ReadFromFile(Stream *in) {
+void CharacterExtras::ReadFromSavegame(Stream *in, int save_ver) {
 	in->ReadArrayOfInt16(invorder, MAX_INVORDER);
 	invorder_count = in->ReadInt16();
 	width = in->ReadInt16();
@@ -43,9 +42,16 @@ void CharacterExtras::ReadFromFile(Stream *in) {
 	process_idle_this_time = in->ReadInt8();
 	slow_move_counter = in->ReadInt8();
 	animwait = in->ReadInt16();
+	if (save_ver >= 2) // expanded at ver 2
+	{
+		anim_volume = in->ReadInt8();
+		cur_anim_volume = in->ReadInt8();
+		in->ReadInt8(); // reserved to fill int32
+		in->ReadInt8();
+	}
 }
 
-void CharacterExtras::WriteToFile(Stream *out) {
+void CharacterExtras::WriteToSavegame(Stream *out) {
 	out->WriteArrayOfInt16(invorder, MAX_INVORDER);
 	out->WriteInt16(invorder_count);
 	out->WriteInt16(width);
@@ -61,6 +67,10 @@ void CharacterExtras::WriteToFile(Stream *out) {
 	out->WriteInt8(process_idle_this_time);
 	out->WriteInt8(slow_move_counter);
 	out->WriteInt16(animwait);
+	out->WriteInt8(static_cast<uint8_t>(anim_volume));
+	out->WriteInt8(static_cast<uint8_t>(cur_anim_volume));
+	out->WriteInt8(0); // reserved to fill int32
+	out->WriteInt8(0);
 }
 
 } // namespace AGS3

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,9 +24,9 @@
 #include "ultima/ultima8/gumps/menu_gump.h"
 #include "ultima/ultima8/gumps/cru_menu_gump.h"
 #include "ultima/ultima8/games/game_data.h"
-#include "ultima/ultima8/graphics/gump_shape_archive.h"
-#include "ultima/ultima8/graphics/shape.h"
-#include "ultima/ultima8/graphics/shape_frame.h"
+#include "ultima/ultima8/gfx/gump_shape_archive.h"
+#include "ultima/ultima8/gfx/shape.h"
+#include "ultima/ultima8/gfx/shape_frame.h"
 #include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/kernel/mouse.h"
 #include "ultima/ultima8/gumps/widgets/button_widget.h"
@@ -35,12 +34,12 @@
 #include "ultima/ultima8/gumps/quit_gump.h"
 #include "ultima/ultima8/games/game.h"
 #include "ultima/ultima8/world/actors/main_actor.h"
-#include "ultima/ultima8/graphics/palette_manager.h"
+#include "ultima/ultima8/gfx/palette_manager.h"
 #include "ultima/ultima8/audio/music_process.h"
 #include "ultima/ultima8/gumps/widgets/edit_widget.h"
 #include "ultima/ultima8/gumps/u8_save_gump.h"
 #include "ultima/ultima8/world/get_object.h"
-#include "ultima/ultima8/meta_engine.h"
+#include "ultima/ultima8/metaengine.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -52,11 +51,10 @@ MenuGump::MenuGump(bool nameEntryMode)
 	_nameEntryMode = nameEntryMode;
 
 	Mouse *mouse = Mouse::get_instance();
-	mouse->pushMouseCursor();
 	if (!_nameEntryMode)
-		mouse->setMouseCursor(Mouse::MOUSE_HAND);
+		mouse->pushMouseCursor(Mouse::MOUSE_HAND);
 	else
-		mouse->setMouseCursor(Mouse::MOUSE_NONE);
+		mouse->pushMouseCursor(Mouse::MOUSE_NONE);
 
 	// Save old music state
 	MusicProcess *musicprocess = MusicProcess::get_instance();
@@ -70,12 +68,9 @@ MenuGump::MenuGump(bool nameEntryMode)
 	PaletteManager *palman = PaletteManager::get_instance();
 	palman->getTransformMatrix(_oldPalTransform, PaletteManager::Pal_Game);
 	palman->untransformPalette(PaletteManager::Pal_Game);
-
-	MetaEngine::setGameMenuActive(true);
 }
 
 MenuGump::~MenuGump() {
-	MetaEngine::setGameMenuActive(false);
 }
 
 
@@ -183,6 +178,13 @@ void MenuGump::PaintThis(RenderSurface *surf, int32 lerp_factor, bool scaled) {
 	Gump::PaintThis(surf, lerp_factor, scaled);
 }
 
+void MenuGump::onMouseDouble(int button, int32 mx, int32 my) {
+	// FIXME: this check should probably be in Game or GUIApp
+	MainActor *av = getMainActor();
+	if (av && !av->hasActorFlags(Actor::ACT_DEAD))
+		Close(); // don't allow closing if dead/game over
+}
+
 bool MenuGump::OnKeyDown(int key, int mod) {
 	if (Gump::OnKeyDown(key, mod)) return true;
 
@@ -214,8 +216,10 @@ void MenuGump::ChildNotify(Gump *child, uint32 message) {
 	}
 
 	ButtonWidget *buttonWidget = dynamic_cast<ButtonWidget *>(child);
-	if (buttonWidget && message == ButtonWidget::BUTTON_CLICK) {
-		selectEntry(child->GetIndex());
+	if (buttonWidget) {
+		if (message == ButtonWidget::BUTTON_CLICK || message == ButtonWidget::BUTTON_DOUBLE) {
+			selectEntry(buttonWidget->GetIndex());
+		}
 	}
 }
 
@@ -260,18 +264,13 @@ bool MenuGump::OnTextInput(int unicode) {
 
 //static
 void MenuGump::showMenu() {
-	Gump *gump = Ultima8Engine::get_instance()->getMenuGump();
-
-	if (gump) {
-		gump->Close();
-	} else {
-		if (GAME_IS_U8)
-			gump = new MenuGump();
-		else
-			gump = new CruMenuGump();
-		gump->InitGump(0);
-		gump->setRelativePosition(CENTER);
-	}
+	ModalGump *gump;
+	if (GAME_IS_U8)
+		gump = new MenuGump();
+	else
+		gump = new CruMenuGump();
+	gump->InitGump(0);
+	gump->setRelativePosition(CENTER);
 }
 
 //static

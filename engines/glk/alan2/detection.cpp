@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,13 +51,16 @@ bool Alan2MetaEngine::detectGames(const Common::FSList &fslist, DetectedGames &g
 		if (file->isDirectory())
 			continue;
 		Common::String filename = file->getName();
-		bool hasExt = filename.hasSuffix(".acd");
+		bool hasExt = filename.hasSuffixIgnoreCase(".acd");
 		if (!hasExt)
 			continue;
 
 		// Open up the file and calculate the md5
 		Common::File gameFile;
-		if (!gameFile.open(*file) || gameFile.readUint32BE() != MKTAG(2, 8, 1, 0))
+		if (!gameFile.open(*file))
+			continue;
+		uint32 version = gameFile.readUint32BE();
+		if (version != MKTAG(2, 8, 1, 0) && version != MKTAG(2, 6, 0, 0))
 			continue;
 
 		gameFile.seek(0);
@@ -76,7 +78,7 @@ bool Alan2MetaEngine::detectGames(const Common::FSList &fslist, DetectedGames &g
 			gameList.push_back(GlkDetectedGame(desc.gameId, desc.description, filename, md5, filesize));
 		} else {
 			PlainGameDescriptor gameDesc = findGame(p->_gameId);
-			gameList.push_back(GlkDetectedGame(p->_gameId, gameDesc.description, filename));
+			gameList.push_back(GlkDetectedGame(p->_gameId, gameDesc.description, p->_extra, filename, p->_language));
 		}
 	}
 

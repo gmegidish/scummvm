@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "trecision/actor.h"
-#include "trecision/anim.h"
+#include "trecision/animtype.h"
 #include "trecision/graphics.h"
 #include "trecision/renderer3d.h"
 #include "trecision/trecision.h"
@@ -496,14 +495,14 @@ void Renderer3D::calcCharacterPoints() {
 	float l1 = 0.0f;
 	float l2 = 0.0f;
 
-	actor->_lim[0] = 32000;
-	actor->_lim[1] = -32000;
-	actor->_lim[2] = 32000;
-	actor->_lim[3] = -32000;
-	actor->_lim[4] = 32000;
-	actor->_lim[5] = -32000;
+	actor->_area[0] = 32000;
+	actor->_area[1] = -32000;
+	actor->_area[2] = 32000;
+	actor->_area[3] = -32000;
+	actor->_area[4] = 32000;
+	actor->_area[5] = -32000;
 
-	float t = (actor->_theta * PI2) / 360.0;
+	float t = (actor->_theta * M_PI * 2) / 360.0;
 	float cost = cos(t);
 	float sint = sin(t);
 
@@ -562,7 +561,7 @@ void Renderer3D::calcCharacterPoints() {
 				pa1 /= t;
 				pa2 /= t;
 
-				tz = acos((pa0 * l0) + (pa1 * l1) + (pa2 * l2)) * 360.0 / PI2;
+				tz = acos((pa0 * l0) + (pa1 * l1) + (pa2 * l2)) * 360.0 / (M_PI * 2);
 				tz = CLIP(tz, 0.f, 180.f);
 
 				// tx falloff
@@ -614,7 +613,7 @@ void Renderer3D::calcCharacterPoints() {
 				pa1 = curVertex->_ny;
 				pa2 = curVertex->_nz;
 
-				lint = (int)((acos(pa0 * l0 + pa1 * l1 + pa2 * l2) * 360.0) / PI);
+				lint = (int)((acos(pa0 * l0 + pa1 * l1 + pa2 * l2) * 360.0) / M_PI);
 				lint = CLIP(lint, 0, 180);
 
 				_vVertex[j]._angle -= (180 - lint);
@@ -663,49 +662,49 @@ void Renderer3D::calcCharacterPoints() {
 		_vVertex[i]._y = y2d;
 		_vVertex[i]._z = (int32)((dist - l2) * 128.0);
 
-		actor->_lim[0] = MIN(x2d, actor->_lim[0]);
-		actor->_lim[1] = MAX(x2d, actor->_lim[1]);
-		actor->_lim[2] = MIN(y2d, actor->_lim[2]);
-		actor->_lim[3] = MAX(y2d, actor->_lim[3]);
+		actor->_area[0] = MIN(x2d, actor->_area[0]);
+		actor->_area[1] = MAX(x2d, actor->_area[1]);
+		actor->_area[2] = MIN(y2d, actor->_area[2]);
+		actor->_area[3] = MAX(y2d, actor->_area[3]);
 
-		actor->_lim[4] = MIN<int32>(_vVertex[i]._z, actor->_lim[4]);
-		actor->_lim[5] = MAX<int32>(_vVertex[i]._z, actor->_lim[5]);
+		actor->_area[4] = MIN<int32>(_vVertex[i]._z, actor->_area[4]);
+		actor->_area[5] = MAX<int32>(_vVertex[i]._z, actor->_area[5]);
 
 		++curVertex;
 	}
-	actor->_lim[4] = (int)dist;
-	actor->_lim[5] = (int)dist;
+	actor->_area[4] = (int)dist;
+	actor->_area[5] = (int)dist;
 
 	// vertex clipping
-	if (actor->_lim[0] <= _minXClip + 1) {
-		actor->_lim[0] = _minXClip;
+	if (actor->_area[0] <= _minXClip + 1) {
+		actor->_area[0] = _minXClip;
 	} else {
-		--actor->_lim[0];
+		--actor->_area[0];
 	}
 
-	if (actor->_lim[1] >= _maxXClip - 1) {
-		actor->_lim[1] = _maxXClip;
+	if (actor->_area[1] >= _maxXClip - 1) {
+		actor->_area[1] = _maxXClip;
 	} else {
-		++actor->_lim[1];
+		++actor->_area[1];
 	}
 
-	if (actor->_lim[2] <= _minYClip + 1) {
-		actor->_lim[2] = _minYClip;
+	if (actor->_area[2] <= _minYClip + 1) {
+		actor->_area[2] = _minYClip;
 	} else {
-		--actor->_lim[2];
+		--actor->_area[2];
 	}
 
-	if (actor->_lim[3] >= _maxYClip - 1) {
-		actor->_lim[3] = _maxYClip;
+	if (actor->_area[3] >= _maxYClip - 1) {
+		actor->_area[3] = _maxYClip;
 	} else {
-		++actor->_lim[3];
+		++actor->_area[3];
 	}
 
 	if (actor->_curAction == hLAST) // exit displacer
-		actor->_lim[2] = actor->_lim[3] - (((actor->_lim[3] - actor->_lim[2]) * actor->_curFrame) / defActionLen[hLAST]);
+		actor->_area[2] = actor->_area[3] - (((actor->_area[3] - actor->_area[2]) * actor->_curFrame) / defActionLen[hLAST]);
 
 	// set zbuffer vars
-	setZBufferRegion(actor->_lim[0], actor->_lim[2], actor->_lim[1] - actor->_lim[0]);
+	setZBufferRegion(actor->_area[0], actor->_area[2], actor->_area[1] - actor->_area[0]);
 }
 
 void Renderer3D::drawCharacterFaces() {
@@ -715,7 +714,7 @@ void Renderer3D::drawCharacterFaces() {
 	int vertexNum = actor->_vertexNum;
 
 	if (actor->_curAction == hLAST)
-		setClipping(0, actor->_lim[2], MAXX, actor->_lim[3]);
+		setClipping(0, actor->_area[2], MAXX, actor->_area[3]);
 
 	for (int i = 0; i < _shadowLightNum; ++i) {
 		for (int j = 0; j < SHADOWFACESNUM; ++j) {
@@ -760,7 +759,7 @@ void Renderer3D::drawCharacterFaces() {
 	}
 
 	int p0 = 0;
-	for (int i = _zBufStartY; i < actor->_lim[3]; ++i) {
+	for (int i = _zBufStartY; i < actor->_area[3]; ++i) {
 		for (int j = 1; j < _zBufWid; ++j) {
 			int py1 = (_zBuffer[p0] >= 0x7FF0) * 0x8000;
 			int py2 = (_zBuffer[p0 + 1] >= 0x7FF0) * 0x8000;

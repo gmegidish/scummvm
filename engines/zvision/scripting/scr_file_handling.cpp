@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,16 +43,16 @@
 
 namespace ZVision {
 
-void ScriptManager::parseScrFile(const Common::String &fileName, ScriptScope &scope) {
+void ScriptManager::parseScrFile(const Common::Path &fileName, ScriptScope &scope) {
 	Common::File file;
 	if (!_engine->getSearchManager()->openFile(file, fileName)) {
-		error("Script file not found: %s", fileName.c_str());
+		error("Script file not found: %s", fileName.toString().c_str());
 	}
 
 	while (!file.eos()) {
 		Common::String line = file.readLine();
 		if (file.err()) {
-			error("Error parsing scr file: %s", fileName.c_str());
+			error("Error parsing scr file: %s", fileName.toString().c_str());
 		}
 
 		trimCommentsAndWhiteSpace(&line);
@@ -110,7 +109,7 @@ void ScriptManager::parsePuzzle(Puzzle *puzzle, Common::SeekableReadStream &stre
 			//
 			// Note that the bug only affects the DVD version. The CD
 			// version doesn't have a separate room for the cutscene.
-			else if (_engine->getGameId() == GID_GRANDINQUISITOR && (_engine->getFeatures() & GF_DVD) && puzzle->key == 10836)
+			else if (_engine->getGameId() == GID_GRANDINQUISITOR && (_engine->getFeatures() & ADGF_DVD) && puzzle->key == 10836)
 				puzzle->resultActions.push_front(new ActionAssign(_engine, 11, "10803, 0"));
 		} else if (line.matchString("flags {", true)) {
 			setStateFlag(puzzle->key, parseFlags(stream));

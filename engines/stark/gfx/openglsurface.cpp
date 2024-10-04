@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/stark/gfx/openglsurface.h"
-#include "engines/stark/gfx/texture.h"
+#include "engines/stark/gfx/bitmap.h"
+#include "engines/stark/gfx/color.h"
 
 #if defined(USE_OPENGL_GAME)
 
@@ -44,47 +44,16 @@ OpenGLSurfaceRenderer::OpenGLSurfaceRenderer(OpenGLDriver *gfx) :
 OpenGLSurfaceRenderer::~OpenGLSurfaceRenderer() {
 }
 
-void OpenGLSurfaceRenderer::render(const Texture *texture, const Common::Point &dest) {
-	render(texture, dest, texture->width(), texture->height());
+void OpenGLSurfaceRenderer::render(const Bitmap *bitmap, const Common::Point &dest) {
+	render(bitmap, dest, bitmap->width(), bitmap->height());
 }
 
-void OpenGLSurfaceRenderer::render(const Texture *texture, const Common::Point &dest, uint width, uint height) {
+void OpenGLSurfaceRenderer::render(const Bitmap *bitmap, const Common::Point &dest, uint width, uint height) {
 	// Destination rectangle with given width and height
 	_gfx->start2DMode();
 
-	const Math::Vector2d surfaceVertices[] = {
-		// X   Y
-		{ 0.0f, 0.0f },
-		{ 1.0f, 0.0f },
-		{ 0.0f, 1.0f },
-		{ 1.0f, 1.0f },
-	};
-
-	Math::Vector2d verSizeWH;
-	if (_noScalingOverride) {
-		verSizeWH = normalizeCurrentCoordinates(width, height);
-	} else {
-		verSizeWH = normalizeOriginalCoordinates(width, height);
-	}
-	auto verOffsetXY = normalizeOriginalCoordinates(dest.x, dest.y);
-	auto nativeViewport = _gfx->getViewport();
-	auto viewport = Math::Vector2d(nativeViewport.width(), nativeViewport.height());
-
 	SurfaceVertex vertices[4] = {};
-	for (int32 v = 0; v < 4; v++) {
-		Math::Vector2d pos = verOffsetXY + (surfaceVertices[v] * verSizeWH);
-
-		if (_snapToGrid) {
-			// Align vertex coordinates to the native pixel grid
-			// This ensures text does not get garbled by nearest neighbors scaling
-			pos.setX(floor(pos.getX() * viewport.getX() + 0.5) / viewport.getX());
-			pos.setY(floor(pos.getY() * viewport.getY() + 0.5) / viewport.getY());
-		}
-
-		// position coords
-		vertices[v].x = pos.getX() * 2.0 - 1.0;
-		vertices[v].y = -1.0 * (pos.getY() * 2.0 - 1.0);
-	}
+	convertToVertices(vertices, dest, width, height);
 
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
@@ -105,7 +74,7 @@ void OpenGLSurfaceRenderer::render(const Texture *texture, const Common::Point &
 	glTexCoordPointer(2, GL_FLOAT, 2 * sizeof(float), textCords);
 	glColor3f(1.0f - _fadeLevel, 1.0f - _fadeLevel, 1.0f - _fadeLevel);
 
-	texture->bind();
+	bitmap->bind();
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	glDisableClientState(GL_VERTEX_ARRAY);
@@ -118,6 +87,75 @@ void OpenGLSurfaceRenderer::render(const Texture *texture, const Common::Point &
 	glPopMatrix();
 
 	_gfx->end2DMode();
+}
+
+void OpenGLSurfaceRenderer::fill(const Color &color, const Common::Point &dest, uint width, uint height) {
+	_gfx->start2DMode();
+
+	SurfaceVertex vertices[4] = {};
+	convertToVertices(vertices, dest, width, height);
+
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+
+	glDisable(GL_TEXTURE_2D);
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+
+	glVertexPointer(2, GL_FLOAT, sizeof(SurfaceVertex), &vertices[0].x);
+	glColor4f((color.r / 255.0f) - _fadeLevel, (color.g / 255.0f) - _fadeLevel, (color.b / 255.0f) - _fadeLevel, color.a / 255.0f);
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	glDisableClientState(GL_VERTEX_ARRAY);
+
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+
+	_gfx->end2DMode();
+}
+
+void OpenGLSurfaceRenderer::convertToVertices(SurfaceVertex *vertices, const Common::Point &dest, uint width, uint height) const {
+	const Math::Vector2d surfaceVertices[] = {
+		// X   Y
+		{ 0.0f, 0.0f },
+		{ 1.0f, 0.0f },
+		{ 0.0f, 1.0f },
+		{ 1.0f, 1.0f },
+	};
+
+	Math::Vector2d verSizeWH;
+	if (_noScalingOverride) {
+		verSizeWH = normalizeCurrentCoordinates(width, height);
+	} else {
+		verSizeWH = normalizeOriginalCoordinates(width, height);
+	}
+	auto verOffsetXY = normalizeOriginalCoordinates(dest.x, dest.y);
+	auto nativeViewport = _gfx->getViewport();
+	auto viewport = Math::Vector2d(nativeViewport.width(), nativeViewport.height());
+
+	for (int32 v = 0; v < 4; v++) {
+		Math::Vector2d pos = verOffsetXY + (surfaceVertices[v] * verSizeWH);
+
+		if (_snapToGrid) {
+			// Align vertex coordinates to the native pixel grid
+			// This ensures text does not get garbled by nearest neighbors scaling
+			pos.setX(floor(pos.getX() * viewport.getX() + 0.5) / viewport.getX());
+			pos.setY(floor(pos.getY() * viewport.getY() + 0.5) / viewport.getY());
+		}
+
+		// position coords
+		vertices[v].x = pos.getX() * 2.0 - 1.0;
+		vertices[v].y = -1.0 * (pos.getY() * 2.0 - 1.0);
+	}
 }
 
 Math::Vector2d OpenGLSurfaceRenderer::normalizeOriginalCoordinates(int x, int y) const {

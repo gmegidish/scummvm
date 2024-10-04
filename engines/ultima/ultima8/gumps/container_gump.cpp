@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,21 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "ultima/ultima.h"
 #include "ultima/ultima8/gumps/container_gump.h"
 
-#include "ultima/ultima8/graphics/shape.h"
-#include "ultima/ultima8/graphics/shape_frame.h"
-#include "ultima/ultima8/graphics/render_surface.h"
+#include "ultima/ultima8/gfx/shape.h"
+#include "ultima/ultima8/gfx/shape_frame.h"
+#include "ultima/ultima8/gfx/render_surface.h"
 #include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/kernel/kernel.h"
 #include "ultima/ultima8/kernel/mouse.h"
 #include "ultima/ultima8/games/game_data.h"
-#include "ultima/ultima8/graphics/main_shape_archive.h"
+#include "ultima/ultima8/gfx/main_shape_archive.h"
 #include "ultima/ultima8/gumps/slider_gump.h"
 #include "ultima/ultima8/gumps/gump_notify_process.h"
 #include "ultima/ultima8/world/item_factory.h"
@@ -83,18 +83,71 @@ void ContainerGump::InitGump(Gump *newparent, bool take_focus) {
 	// U8 puts a container gump slightly to the left of an object
 }
 
+void ContainerGump::run() {
+	Gump::run();
+
+	Container *c = getContainer(_owner);
+	if (!c) {
+		// Container gone!?
+		Close();
+		return;
+	}
+
+	Std::list<Item *> &contents = c->_contents;
+	Std::list<Item *>::iterator iter;
+	for (iter = contents.begin(); iter != contents.end(); ++iter) {
+		Item *item = *iter;
+
+		int32 itemx, itemy;
+		item->getGumpLocation(itemx, itemy);
+
+		const Shape *sh = item->getShapeObject();
+		assert(sh);
+		const ShapeFrame *fr = sh->getFrame(item->getFrame());
+		assert(fr);
+
+		// Ensure item locations within item area.
+		int32 minx = fr->_xoff;
+		int32 miny = fr->_yoff;
+
+		int32 maxx = _itemArea.width() + fr->_xoff - fr->_width;
+		int32 maxy = _itemArea.height() + fr->_yoff - fr->_height;
+
+		if (itemx == 0xFF && itemy == 0xFF) {
+			// randomize position
+			// TODO: maybe try to put it somewhere where it doesn't overlap others?
+
+			Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
+			itemx = rs.getRandomNumberRng(minx, maxx);
+			itemy = rs.getRandomNumberRng(miny, maxy);
+
+			item->setGumpLocation(itemx, itemy);
+		}
+
+		if (itemx < minx) {
+			itemx = minx;
+			item->setGumpLocation(itemx, itemy);
+		}
+
+		if (itemx > maxx) {
+			itemx = maxx;
+			item->setGumpLocation(itemx, itemy);
+		}
+
+		if (itemy < miny) {
+			itemy = miny;
+			item->setGumpLocation(itemx, itemy);
+		}
+
+		if (itemy > maxy) {
+			itemy = maxy;
+			item->setGumpLocation(itemx, itemy);
+		}
+	}
+}
+
 void ContainerGump::getItemCoords(Item *item, int32 &itemx, int32 &itemy) {
 	item->getGumpLocation(itemx, itemy);
-
-	if (itemx == 0xFF && itemy == 0xFF) {
-		// randomize position
-		// TODO: maybe try to put it somewhere where it doesn't overlap others?
-
-		itemx = getRandom() % _itemArea.width();
-		itemy = getRandom() % _itemArea.height();
-
-		item->setGumpLocation(itemx, itemy);
-	}
 
 	itemx += _itemArea.left;
 	itemy += _itemArea.top;
@@ -220,16 +273,8 @@ void ContainerGump::GetItemLocation(int32 lerp_factor) {
 	}
 
 	int32 gx, gy;
-	Item *topitem = it;
-
-	Container *p = it->getParentAsContainer();
-	if (p) {
-		while (p->getParentAsContainer()) {
-			p = p->getParentAsContainer();
-		}
-
-		topitem = p;
-	}
+	Container *root = it->getRootContainer();
+	Item *topitem = root ? root : it;
 
 	Gump *gump = GetRootGump()->FindGump<GameMapGump>();
 	assert(gump);
@@ -302,22 +347,22 @@ Gump *ContainerGump::onMouseDown(int button, int32 mx, int32 my) {
 	if (handled) return handled;
 
 	// only interested in left clicks
-	if (button == Shared::BUTTON_LEFT)
+	if (button == Mouse::BUTTON_LEFT)
 		return this;
 
 	return nullptr;
 }
 
 void ContainerGump::onMouseClick(int button, int32 mx, int32 my) {
-	if (button == Shared::BUTTON_LEFT) {
+	if (button == Mouse::BUTTON_LEFT) {
 		uint16 objID = TraceObjId(mx, my);
 
 		Item *item = getItem(objID);
 		if (item) {
-			item->dumpInfo();
+			debugC(kDebugObject, "%s", item->dumpInfo().c_str());
 
 			if (Ultima8Engine::get_instance()->isAvatarInStasis()) {
-				pout << "Can't look: avatarInStasis" << Std::endl;
+				debugC(kDebugObject, "Can't look: avatarInStasis");
 			} else {
 				item->callUsecodeEvent_look();
 			}
@@ -326,7 +371,7 @@ void ContainerGump::onMouseClick(int button, int32 mx, int32 my) {
 }
 
 void ContainerGump::onMouseDouble(int button, int32 mx, int32 my) {
-	if (button == Shared::BUTTON_LEFT) {
+	if (button == Mouse::BUTTON_LEFT) {
 		uint16 objID = TraceObjId(mx, my);
 
 		if (objID == getObjId()) {
@@ -335,15 +380,21 @@ void ContainerGump::onMouseDouble(int button, int32 mx, int32 my) {
 
 		Item *item = getItem(objID);
 		if (item) {
-			item->dumpInfo();
+			debugC(kDebugObject, "%s", item->dumpInfo().c_str());
+
+			if (objID == _owner) {
+				// call the 'use' event
+				item->use();
+				return;
+			}
 
 			if (Ultima8Engine::get_instance()->isAvatarInStasis()) {
-				pout << "Can't use: avatarInStasis" << Std::endl;
+				debugC(kDebugObject, "Can't use: avatarInStasis");
 				return;
 			}
 
 			MainActor *avatar = getMainActor();
-			if (objID == _owner || avatar->canReach(item, 128)) { // CONSTANT!
+			if (avatar->canReach(item, 128)) { // CONSTANT!
 				// call the 'use' event
 				item->use();
 			} else {
@@ -458,9 +509,8 @@ void ContainerGump::DropItem(Item *item, int mx, int my) {
 			                  item->getFlags() & (Item::FLG_DISPOSABLE | Item::FLG_OWNED | Item::FLG_INVISIBLE | Item::FLG_FLIPPED | Item::FLG_FAST_ONLY | Item::FLG_LOW_FRICTION), item->getNpcNum(), item->getMapNum(),
 			                  item->getExtFlags() & (Item::EXT_SPRITE | Item::EXT_HIGHLIGHT | Item::EXT_TRANSPARENT), true);
 			if (!splittarget) {
-				perr << "ContainerGump failed to create item ("
-				     << item->getShape() << "," << item->getFrame()
-				     << ") while splitting" << Std::endl;
+				warning("ContainerGump failed to create item (%u,%u) while splitting",
+					item->getShape(), item->getFrame());
 				return;
 			}
 
@@ -491,10 +541,9 @@ void ContainerGump::DropItem(Item *item, int mx, int my) {
 		// try to combine items
 		if (item->canMergeWith(targetitem)) {
 			uint16 newquant = targetitem->getQuality() + item->getQuality();
-			// easter egg as in original: items stack to max quantity of 666
-			if (newquant > 666) {
-				item->setQuality(newquant - 666);
-				targetitem->setQuality(666);
+			if (newquant > Item::MAX_QUANTITY) {
+				item->setQuality(newquant - Item::MAX_QUANTITY);
+				targetitem->setQuality(Item::MAX_QUANTITY);
 				// maybe this isn't needed? original doesn't do it here..
 				targetitem->callUsecodeEvent_combine();
 			} else {

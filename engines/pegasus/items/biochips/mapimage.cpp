@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -267,14 +266,14 @@ void MapImage::readFromStream(Common::ReadStream *stream) {
 
 void MapImage::loadGearRoomIfNecessary() {
 	if (_whichArea != kMapGearRoom) {
-		_mapImage.getImageFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kMapOfGearRoomPICTID);
+		_mapImage.getImageFromPICTResource(g_vm->_resFork, kMapOfGearRoomPICTID);
 
 		Common::Rect bounds;
 		_mapImage.getSurfaceBounds(bounds);
 		_mapMask.allocateSurface(bounds);
 		_whichArea = kMapGearRoom;
 
-		GraphicsManager *gfx = ((PegasusEngine *)g_engine)->_gfx;
+		GraphicsManager *gfx = g_vm->_gfx;
 		gfx->setCurSurface(_mapMask.getSurface());
 
 		gfx->getCurSurface()->fillRect(bounds, g_system->getScreenFormat().RGBToColor(0xff, 0xff, 0xff));
@@ -290,14 +289,14 @@ void MapImage::loadGearRoomIfNecessary() {
 
 void MapImage::loadMazeIfNecessary() {
 	if (_whichArea != kMapMaze) {
-		_mapImage.getImageFromPICTResource(((PegasusEngine *)g_engine)->_resFork, kMapOfMazePICTID);
+		_mapImage.getImageFromPICTResource(g_vm->_resFork, kMapOfMazePICTID);
 
 		Common::Rect bounds;
 		_mapImage.getSurfaceBounds(bounds);
 		_mapMask.allocateSurface(bounds);
 		_whichArea = kMapMaze;
 
-		GraphicsManager *gfx = ((PegasusEngine *)g_engine)->_gfx;
+		GraphicsManager *gfx = g_vm->_gfx;
 		gfx->setCurSurface(_mapMask.getSurface());
 
 		gfx->getCurSurface()->fillRect(bounds, g_system->getScreenFormat().RGBToColor(0xff, 0xff, 0xff));
@@ -319,7 +318,7 @@ void MapImage::unloadImage() {
 }
 
 void MapImage::moveToMapLocation(const NeighborhoodID, const RoomID room, const DirectionConstant dir) {
-	GraphicsManager *gfx = ((PegasusEngine *)g_engine)->_gfx;
+	GraphicsManager *gfx = g_vm->_gfx;
 
 	int flag = ROOM_TO_FLAG(room, dir);
 
@@ -340,7 +339,7 @@ void MapImage::moveToMapLocation(const NeighborhoodID, const RoomID room, const 
 void MapImage::addFlagToMask(const int flag) {
 	Common::Rect r1;
 	getRevealedRects(flag, r1);
-	((PegasusEngine *)g_engine)->_gfx->getCurSurface()->fillRect(r1, g_system->getScreenFormat().RGBToColor(0, 0, 0));
+	g_vm->_gfx->getCurSurface()->fillRect(r1, g_system->getScreenFormat().RGBToColor(0, 0, 0));
 }
 
 // This function can even be sensitive to open doors.
@@ -369,7 +368,7 @@ void MapImage::getRevealedRects(const uint32 flag, Common::Rect &r1) {
 }
 
 void MapImage::drawPlayer() {
-	Graphics::Surface *screen = ((PegasusEngine *)g_engine)->_gfx->getCurSurface();
+	Graphics::Surface *screen = g_vm->_gfx->getCurSurface();
 
 	CoordType gridX, gridY;
 

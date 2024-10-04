@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,8 +36,8 @@ ModalGump::ModalGump() : Gump() {
 
 
 ModalGump::ModalGump(int x, int y, int width, int height, uint16 owner,
-					 uint32 flags, int32 layer)
-	: Gump(x, y, width, height, owner, flags, layer) {
+					 uint32 flags, int32 layer, bool pauseGame)
+	: Gump(x, y, width, height, owner, flags, layer), _pauseGame(pauseGame) {
 
 }
 
@@ -48,13 +47,13 @@ ModalGump::~ModalGump() {
 void ModalGump::InitGump(Gump *newparent, bool take_focus) {
 	Gump::InitGump(newparent, take_focus);
 
-	// lock keyboard
-	Ultima8Engine::get_instance()->enterTextMode(this);
+	if (_pauseGame) {
+		Kernel::get_instance()->pause();
 
-	Kernel::get_instance()->pause();
-
-	AudioProcess *ap = AudioProcess::get_instance();
-	if (ap) ap->pauseAllSamples();
+		AudioProcess *ap = AudioProcess::get_instance();
+		if (ap)
+			ap->pauseAllSamples();
+	}
 }
 
 Gump *ModalGump::FindGump(int mx, int my) {
@@ -76,13 +75,13 @@ uint16 ModalGump::TraceObjId(int32 mx, int32 my) {
 }
 
 void ModalGump::Close(bool no_del) {
-	// free keyboard
-	Ultima8Engine::get_instance()->leaveTextMode(this);
+	if (_pauseGame) {
+		Kernel::get_instance()->unpause();
 
-	Kernel::get_instance()->unpause();
-
-	AudioProcess *ap = AudioProcess::get_instance();
-	if (ap) ap->unpauseAllSamples();
+		AudioProcess *ap = AudioProcess::get_instance();
+		if (ap)
+			ap->unpauseAllSamples();
+	}
 
 	Gump::Close(no_del);
 }
@@ -95,11 +94,11 @@ Gump *ModalGump::onMouseDown(int button, int32 mx, int32 my) {
 
 
 void ModalGump::saveData(Common::WriteStream *ws) {
-	CANT_HAPPEN_MSG("Trying to save ModalGump");
+	warning("Trying to save ModalGump");
 }
 
 bool ModalGump::loadData(Common::ReadStream *rs, uint32 version) {
-	CANT_HAPPEN_MSG("Trying to load ModalGump");
+	warning("Trying to load ModalGump");
 	return false;
 }
 

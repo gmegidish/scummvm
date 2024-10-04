@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,7 +40,7 @@ GlkIO::GlkIO(OSystem *syst, const GlkGameDescription &gameDesc) : GlkAPI(syst, g
 
 bool GlkIO::initialize() {
 	// first, open a window for error output
-	glkMainWin = glk_window_open(0, 0, 0, wintype_TextBuffer, 0);
+	glkMainWin = glk_window_open(nullptr, 0, 0, wintype_TextBuffer, 0);
 	if (glkMainWin == nullptr)
 		return false;
 
@@ -136,7 +135,7 @@ void GlkIO::statusLine(CONTEXT) {
 
 	glk_set_window(glkStatusWin);
 	glk_window_clear(glkStatusWin);
-	glk_window_get_size(glkStatusWin, &glkWidth, NULL);
+	glk_window_get_size(glkStatusWin, &glkWidth, nullptr);
 
 	onStatusLine = TRUE;
 	col = 1;
@@ -145,9 +144,9 @@ void GlkIO::statusLine(CONTEXT) {
 
 		// TODO Add status message1  & 2 as author customizable messages
 		if (header->maximumScore > 0)
-			sprintf(line, "Score %d(%d)/%d moves", current.score, (int)header->maximumScore, current.tick);
+			Common::sprintf_s(line, "Score %d(%d)/%d moves", current.score, (int)header->maximumScore, current.tick);
 		else
-			sprintf(line, "%d moves", current.tick);
+			Common::sprintf_s(line, "%d moves", current.tick);
 	glk_window_move_cursor(glkStatusWin, glkWidth - strlen(line) - 1, 0);
 	glk_put_string(line);
 	needSpace = FALSE;
@@ -178,11 +177,11 @@ bool GlkIO::readLine(CONTEXT, char *buffer, size_t maxLen) {
 		// Return a "restore" command
 		forcePrint("> ");
 		forcePrint("restore\n");
-		strcpy(buffer, "restore");
+		Common::strcpy_s(buffer, maxLen, "restore");
 
 	} else if (readingCommands) {
 		if (glk_get_line_stream(commandFile, buffer, maxLen) == 0) {
-			glk_stream_close(commandFile, NULL);
+			glk_stream_close(commandFile, nullptr);
 			readingCommands = FALSE;
 		} else {
 			glk_set_style(style_Input);
@@ -211,7 +210,7 @@ bool GlkIO::readLine(CONTEXT, char *buffer, size_t maxLen) {
 			buffer[event.val1] = 0;
 			commandFileRef = glk_fileref_create_by_name(fileusage_InputRecord + fileusage_TextMode, &buffer[1], 0);
 			commandFile = glk_stream_open_file(commandFileRef, filemode_Read, 0);
-			if (commandFile != NULL)
+			if (commandFile != nullptr)
 				if (glk_get_line_stream(commandFile, buffer, maxLen) != 0) {
 					readingCommands = TRUE;
 					glk_set_style(style_Input);

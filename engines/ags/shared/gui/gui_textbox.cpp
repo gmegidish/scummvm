@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,20 +43,44 @@ GUITextBox::GUITextBox() {
 	_scEventArgs[0] = "GUIControl *control";
 }
 
+bool GUITextBox::HasAlphaChannel() const {
+	return is_font_antialiased(Font);
+}
+
 bool GUITextBox::IsBorderShown() const {
 	return (TextBoxFlags & kTextBox_ShowBorder) != 0;
 }
 
-void GUITextBox::Draw(Bitmap *ds) {
+Rect GUITextBox::CalcGraphicRect(bool clipped) {
+	if (clipped)
+		return RectWH(0, 0, Width, Height);
+
+	// TODO: need to find a way to cache text position, or there'll be some repetition
+	Rect rc = RectWH(0, 0, Width, Height);
+	Point text_at(1 + get_fixed_pixel_size(1), 1 + get_fixed_pixel_size(1));
+	Rect text_rc = GUI::CalcTextGraphicalRect(Text.GetCStr(), Font, text_at);
+	if (IsGUIEnabled(this)) {
+		// add a cursor
+		Rect cur_rc = RectWH(
+			text_rc.Right + 3,
+			1 + get_font_height(Font),
+			get_fixed_pixel_size(5),
+			get_fixed_pixel_size(1) - 1);
+		text_rc = SumRects(text_rc, cur_rc);
+	}
+	return SumRects(rc, text_rc);
+}
+
+void GUITextBox::Draw(Bitmap *ds, int x, int y) {
 	color_t text_color = ds->GetCompatibleColor(TextColor);
 	color_t draw_color = ds->GetCompatibleColor(TextColor);
 	if (IsBorderShown()) {
-		ds->DrawRect(RectWH(X, Y, Width, Height), draw_color);
+		ds->DrawRect(RectWH(x, y, Width, Height), draw_color);
 		if (get_fixed_pixel_size(1) > 1) {
-			ds->DrawRect(Rect(X + 1, Y + 1, X + Width - get_fixed_pixel_size(1), Y + Height - get_fixed_pixel_size(1)), draw_color);
+			ds->DrawRect(Rect(x + 1, y + 1, x + Width - get_fixed_pixel_size(1), y + Height - get_fixed_pixel_size(1)), draw_color);
 		}
 	}
-	DrawTextBoxContents(ds, text_color);
+	DrawTextBoxContents(ds, x, y, text_color);
 }
 
 // TODO: a shared utility function
@@ -73,28 +96,29 @@ static void Backspace(String &text) {
 }
 
 void GUITextBox::OnKeyPress(const KeyInput &ki) {
-	eAGSKeyCode keycode = ki.Key;
-
-	// other key, continue
-	if ((keycode >= 128) && (!font_supports_extended_characters(Font)))
-		return;
-	// return/enter
-	if (keycode == eAGSKeyCodeReturn) {
+	switch (ki.Key) {
+	case eAGSKeyCodeReturn:
 		IsActivated = true;
 		return;
-	}
-
-	NotifyParentChanged();
-	// backspace, remove character
-	if (keycode == eAGSKeyCodeBackspace) {
+	case eAGSKeyCodeBackspace:
 		Backspace(Text);
+		MarkChanged();
 		return;
+	default: break;
 	}
 
-	Text.AppendChar(keycode);
+	if (ki.UChar == 0)
+		return; // not a textual event
+	if ((ki.UChar >= 128) && (!font_supports_extended_characters(Font)))
+		return; // unsupported letter
+
+	(get_uformat() == U_UTF8) ?
+		Text.Append(ki.Text) :
+		Text.AppendChar(ki.UChar);
 	// if the new string is too long, remove the new character
-	if (wgettextwidth(Text.GetCStr(), Font) > (Width - (6 + get_fixed_pixel_size(5))))
+	if (get_text_width(Text.GetCStr(), Font) > (Width - (6 + get_fixed_pixel_size(5))))
 		Backspace(Text);
+	MarkChanged();
 }
 
 void GUITextBox::SetShowBorder(bool on) {

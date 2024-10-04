@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -124,7 +123,7 @@ static sc_commands_t MOVE_COMMANDS_4[] = {
 	{"{go {to {the}}} [down/d]", lib_cmd_go_down},
 	{"{go {to {the}}} [in]", lib_cmd_go_in},
 	{"{go {to {the}}} [out/o]", lib_cmd_go_out},
-	{NULL, NULL}
+	{nullptr, nullptr}
 };
 
 /* Movement commands for the eight point compass. */
@@ -141,7 +140,7 @@ static sc_commands_t MOVE_COMMANDS_8[] = {
 	{"{go {to {the}}} [southeast/south-east/se]", lib_cmd_go_southeast},
 	{"{go {to {the}}} [northwest/north-west/nw]", lib_cmd_go_northwest},
 	{"{go {to {the}}} [southwest/south-west/sw]", lib_cmd_go_southwest},
-	{NULL, NULL}
+	{nullptr, nullptr}
 };
 
 /* "Priority" library commands, may take precedence over the game. */
@@ -198,7 +197,7 @@ static sc_commands_t PRIORITY_COMMANDS[] = {
 	},
 	{"[drop/put down] %text%", lib_cmd_drop_multiple},
 	{"put %text% down", lib_cmd_drop_multiple},
-	{NULL, NULL}
+	{nullptr, nullptr}
 };
 
 /* Standard library commands, other than movement and priority above. */
@@ -466,7 +465,7 @@ static sc_commands_t STANDARD_COMMANDS[] = {
 	/* SCARE debugger hook command, placed last just in case... */
 	{"{#}debug{ger}", debug_cmd_debugger},
 
-	{NULL, NULL}
+	{nullptr, nullptr}
 };
 
 
@@ -571,7 +570,7 @@ static void run_update_status(sc_gameref_t game) {
 		pf_strip_tags(filtered);
 	} else
 		/* No status line, so use NULL. */
-		filtered = NULL;
+		filtered = nullptr;
 
 	/* Free any existing status line, then save this status text. */
 	sc_free(game->status_line);
@@ -603,12 +602,12 @@ static void run_notify_score_change(sc_gameref_t game) {
 	/* Note any change in the score. */
 	if (game->score > undo->score) {
 		if_print_string("(Your score has increased by ");
-		sprintf(buffer, "%ld", game->score - undo->score);
+		Common::sprintf_s(buffer, "%ld", game->score - undo->score);
 		if_print_string(buffer);
 		if_print_string(")\n");
 	} else if (game->score < undo->score) {
 		if_print_string("(Your score has decreased by ");
-		sprintf(buffer, "%ld", undo->score - game->score);
+		Common::sprintf_s(buffer, "%ld", undo->score - game->score);
 		if_print_string(buffer);
 		if_print_string(")\n");
 	}
@@ -739,7 +738,7 @@ static sc_bool run_task_is_loudly_restricted(sc_gameref_t game, sc_int task) {
 	}
 
 	/* Return TRUE if the task is restricted and indicates why. */
-	return !restrictions_passed && (fail_message != NULL);
+	return !restrictions_passed && (fail_message != nullptr);
 }
 
 
@@ -793,7 +792,7 @@ static sc_bool run_game_commands_common(sc_gameref_t game, const sc_char *string
 		is_matching = (sc_bool *)sc_malloc(task_count * sizeof(*is_matching));
 		memset(is_matching, FALSE, task_count * sizeof(*is_matching));
 	} else
-		is_matching = NULL;
+		is_matching = nullptr;
 
 	/*
 	 * Iterate over every task, ignoring those not runnable.  For each runnable
@@ -1055,7 +1054,7 @@ static sc_bool run_player_input(sc_gameref_t game) {
 		}
 
 		/* Make the last element the current input element. */
-		strcpy(line_element, prior_element);
+		Common::strcpy_s(line_element, prior_element);
 	} else {
 		sc_int length, extent;
 
@@ -1078,7 +1077,7 @@ static sc_bool run_player_input(sc_gameref_t game) {
 		 */
 		length = (line_buffer[0] == NUL) ? 0 : 1;
 		while (line_buffer[length] != NUL
-		        && strchr(SEPARATORS, line_buffer[length]) == NULL)
+		        && strchr(SEPARATORS, line_buffer[length]) == nullptr)
 			length++;
 
 		/*
@@ -1092,7 +1091,7 @@ static sc_bool run_player_input(sc_gameref_t game) {
 
 		extent = length;
 		extent += (line_buffer[length] == NUL
-		           || strchr(SEPARATORS, line_buffer[length]) == NULL) ? 0 : 1;
+		           || strchr(SEPARATORS, line_buffer[length]) == nullptr) ? 0 : 1;
 		extent += strspn(line_buffer + extent, WHITESPACE);
 		memmove(line_buffer,
 		        line_buffer + extent, strlen(line_buffer) - extent + 1);
@@ -1206,7 +1205,7 @@ static sc_bool run_player_input(sc_gameref_t game) {
 		 * up as do_again set in the game, where it wasn't when we entered here.
 		 */
 		if (!game->do_again && !is_rerunning)
-			strcpy(prior_element, line_element);
+			Common::strcpy_s(prior_element, line_element);
 
 		/*
 		 * If this was a request to run a command from the history, copy that
@@ -1219,7 +1218,7 @@ static sc_bool run_player_input(sc_gameref_t game) {
 
 			redo_command = memo_find_command(memento, game->redo_sequence);
 			if (redo_command)
-				strcpy(prior_element, redo_command);
+				Common::strcpy_s(prior_element, redo_command);
 			else {
 				sc_error("run_player_input: invalid redo sequence request\n");
 				game->do_again = FALSE;
@@ -1429,7 +1428,7 @@ sc_gameref_t run_create(sc_read_callbackref_t callback, void *opaque) {
 	/* Create a new TAF using the callback; return NULL if this fails. */
 	taf = taf_create(callback, opaque);
 	if (!taf)
-		return NULL;
+		return nullptr;
 	else if (if_get_trace_flag(SC_DUMP_TAF))
 		taf_debug_dump(taf);
 
@@ -1438,7 +1437,7 @@ sc_gameref_t run_create(sc_read_callbackref_t callback, void *opaque) {
 	if (!bundle) {
 		sc_error("run_create: error parsing game data\n");
 		taf_destroy(taf);
-		return NULL;
+		return nullptr;
 	} else if (if_get_trace_flag(SC_DUMP_PROPERTIES))
 		prop_debug_dump(bundle);
 
@@ -1507,9 +1506,9 @@ static void run_restart_handler(sc_gameref_t game) {
 
 	/* Destroy invalid game status strings. */
 	sc_free(game->current_room_name);
-	game->current_room_name = NULL;
+	game->current_room_name = nullptr;
 	sc_free(game->status_line);
-	game->status_line = NULL;
+	game->status_line = nullptr;
 
 	/*
 	 * Now it's safely copied, destroy the temporary new game, and its
@@ -1793,7 +1792,7 @@ sc_bool run_restore(CONTEXT, sc_gameref_t game, sc_read_callbackref_t callback, 
 sc_bool run_restore_prompted(CONTEXT, sc_gameref_t game) {
 	assert(gs_is_game_valid(game));
 
-	return run_restore_common(context, game, NULL, NULL);
+	return run_restore_common(context, game, nullptr, nullptr);
 }
 
 
@@ -1955,7 +1954,7 @@ void run_get_attributes(sc_gameref_t game, const sc_char **game_name, const sc_c
 			vt_key[0].string = "FontNameSize";
 			*preferred_font = prop_get_string(bundle, "S<-s", vt_key);
 		} else
-			*preferred_font = NULL;
+			*preferred_font = nullptr;
 	}
 
 	/* Return any other selected game attributes. */
@@ -2011,7 +2010,7 @@ sc_hintref_t run_hint_iterate(sc_gameref_t game, sc_hintref_t hint) {
 		task = hint - game->tasks;
 		if (task < 0 || task >= gs_task_count(game)) {
 			sc_error("run_hint_iterate: invalid iteration hint\n");
-			return NULL;
+			return nullptr;
 		}
 
 		/* Advance beyond current task. */
@@ -2025,7 +2024,7 @@ sc_hintref_t run_hint_iterate(sc_gameref_t game, sc_hintref_t hint) {
 	}
 
 	/* Return a pointer to the state of the task identified, or NULL. */
-	return task < gs_task_count(game) ? game->tasks + task : NULL;
+	return task < gs_task_count(game) ? game->tasks + task : nullptr;
 }
 
 
@@ -2054,10 +2053,10 @@ static const sc_char *run_get_hint_common(sc_gameref_t game, sc_hintref_t hint,
 	task = hint - game->tasks;
 	if (task < 0 || task >= gs_task_count(game)) {
 		sc_error("run_get_hint_common: invalid iteration hint\n");
-		return NULL;
+		return nullptr;
 	} else if (!task_has_hints(game, task)) {
 		sc_error("run_get_hint_common: task has no hint\n");
-		return NULL;
+		return nullptr;
 	}
 
 	/* Get the required game text by calling the given handler function. */
@@ -2073,7 +2072,7 @@ static const sc_char *run_get_hint_common(sc_gameref_t game, sc_hintref_t hint,
 	} else {
 		/* Hint text is empty; drop any text noted in game. */
 		sc_free(game->hint_text);
-		game->hint_text = NULL;
+		game->hint_text = nullptr;
 	}
 
 	return game->hint_text;

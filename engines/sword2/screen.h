@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef	SWORD2_SCREEN_H
@@ -135,7 +134,7 @@ struct ScreenInfo {
 	uint16 scroll_offset_y;		// Position y
 	uint16 max_scroll_offset_x;	// Calc'ed in fnInitBackground
 	uint16 max_scroll_offset_y;
-	int16 player_feet_x;		// Feet coordinates to use - cant just
+	int16 player_feet_x;		// Feet coordinates to use - can't just
 	int16 player_feet_y;		// fetch the player compact anymore
 	int16 feet_x;			// Special offset-to-player position -
 	int16 feet_y;			// tweek as desired - always set in
@@ -189,7 +188,7 @@ struct Parallax {
 		return 4;
 	}
 
-	void read(byte *addr);
+	void read(const byte *addr);
 	void write(byte *addr);
 };
 
@@ -329,7 +328,7 @@ private:
 
 	// This is used to cache PSX backgrounds and parallaxes
 	// data, as they are kept in a file unmanageable from
-	// resource manager. These gets freed everytime an user
+	// resource manager. These get freed every time a user
 	// exits from a room.
 	byte *_psxScrCache[3];
 	bool _psxCacheEnabled[3];
@@ -421,7 +420,7 @@ public:
 	void displayMsg(byte *text, int time);
 
 	int32 createSurface(SpriteInfo *s, byte **surface);
-	void drawSurface(SpriteInfo *s, byte *surface, Common::Rect *clipRect = NULL);
+	void drawSurface(SpriteInfo *s, byte *surface, Common::Rect *clipRect = nullptr);
 	void deleteSurface(byte *surface);
 	int32 drawSprite(SpriteInfo *s);
 
@@ -446,7 +445,7 @@ public:
 	void splashScreen();
 
 	// Some sprites are compressed in HIF format
-	static uint32 decompressHIF(byte *src, byte *dst, uint32 *skipData = NULL);
+	static uint32 decompressHIF(byte *src, byte *dst, uint32 *skipData = nullptr);
 	// This is used to resize psx sprites back to original resolution
 	static void resizePsxSprite(byte *dst, byte *src, uint16 destW, uint16 destH);
 	// Some sprites are divided into 254 pixel wide stripes, this recomposes them

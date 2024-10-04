@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,7 +55,7 @@ namespace ZVision {
 83, 86, 89, 92, 96, 99, 103, 107, 111, 115, 119, 123, 128, 133, 137, 143,
 148, 153, 159, 165, 171, 177, 184, 191, 198, 205, 212, 220, 228, 237, 245, 255};*/
 
-MusicNode::MusicNode(ZVision *engine, uint32 key, Common::String &filename, bool loop, uint8 volume)
+MusicNode::MusicNode(ZVision *engine, uint32 key, Common::Path &filename, bool loop, uint8 volume)
 	: MusicNodeBASE(engine, key, SCRIPTING_EFFECT_AUDIO) {
 	_loop = loop;
 	_volume = volume;
@@ -71,7 +70,7 @@ MusicNode::MusicNode(ZVision *engine, uint32 key, Common::String &filename, bool
 
 	Audio::RewindableAudioStream *audioStream = NULL;
 
-	if (filename.contains(".wav")) {
+	if (filename.baseName().contains(".wav")) {
 		Common::File *file = new Common::File();
 		if (_engine->getSearchManager()->openFile(*file, filename)) {
 			audioStream = Audio::makeWAVStream(file, DisposeAfterUse::YES);
@@ -94,13 +93,14 @@ MusicNode::MusicNode(ZVision *engine, uint32 key, Common::String &filename, bool
 			_engine->getScriptManager()->setStateValue(_key, 1);
 
 		// Change filename.raw into filename.sub
-		Common::String subname = filename;
+		Common::String subname = filename.baseName();
 		subname.setChar('s', subname.size() - 3);
 		subname.setChar('u', subname.size() - 2);
 		subname.setChar('b', subname.size() - 1);
 
-		if (_engine->getSearchManager()->hasFile(subname))
-			_sub = new Subtitle(_engine, subname);
+		Common::Path subpath(filename.getParent().appendComponent(subname));
+		if (_engine->getSearchManager()->hasFile(subpath))
+			_sub = new Subtitle(_engine, subpath);
 
 		_loaded = true;
 	}
@@ -225,7 +225,7 @@ bool PanTrackNode::process(uint32 deltaTimeInMillis) {
 		int deltaVol = balance;
 
 		// This value sets how fast volume goes off than sound source back of you
-		// By this value we can hack some "bugs" have place in originall game engine like beat sound in ZGI-dc10
+		// By this value we can hack some "bugs" have place in original game engine like beat sound in ZGI-dc10
 		int volumeCorrection = 2;
 
 		if (_engine->getGameId() == GID_GRANDINQUISITOR) {

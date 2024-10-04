@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 #include "common/debug-channels.h"
 #include "common/events.h"
 #include "common/file.h"
-#include "common/installshield_cab.h"
+#include "common/compression/installshield_cab.h"
 #include "common/translation.h"
 #include "tony/tony.h"
 #include "tony/custom.h"
@@ -47,7 +46,7 @@ TonyEngine::TonyEngine(OSystem *syst, const TonyGameDescription *gameDesc) : Eng
 	setDebugger(new Debugger());
 
 	// Add folders to the search directory list
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "Voices");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "Roasted");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "Music");
@@ -229,7 +228,7 @@ bool TonyEngine::loadTonyDat() {
 	case Common::RU_RUS:
 		expectedLangVariant = 2;
 		break;
-	case Common::CZ_CZE:
+	case Common::CS_CZE:
 		expectedLangVariant = 3;
 		break;
 	case Common::FR_FRA:
@@ -737,11 +736,11 @@ uint32 TonyEngine::getTime() {
 	return g_system->getMillis();
 }
 
-bool TonyEngine::canLoadGameStateCurrently() {
+bool TonyEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return GLOBALS._gfxEngine != NULL && GLOBALS._gfxEngine->canLoadSave();
 }
 
-bool TonyEngine::canSaveGameStateCurrently() {
+bool TonyEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return GLOBALS._gfxEngine != NULL && GLOBALS._gfxEngine->canLoadSave();
 }
 

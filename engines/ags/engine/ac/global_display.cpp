@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-//include <cstdio>
-//include <stdarg.h>
 #include "ags/shared/ac/common.h"
 #include "ags/engine/ac/character.h"
 #include "ags/engine/ac/display.h"
 #include "ags/engine/ac/draw.h"
 #include "ags/engine/ac/game.h"
 #include "ags/shared/ac/game_setup_struct.h"
+#include "ags/shared/font/fonts.h"
 #include "ags/engine/ac/game_state.h"
 #include "ags/engine/ac/global_character.h"
 #include "ags/engine/ac/global_display.h"
@@ -49,7 +47,7 @@ void Display(const char *texx, ...) {
 	char displbuf[STD_BUFFER_SIZE];
 	va_list ap;
 	va_start(ap, texx);
-	vsprintf(displbuf, get_translation(texx), ap);
+	vsnprintf(displbuf, sizeof(displbuf), get_translation(texx), ap);
 	va_end(ap);
 	DisplayAtY(-1, displbuf);
 }
@@ -73,7 +71,7 @@ void DisplayTopBar(int ypos, int ttexcol, int backcol, const char *title, const 
 
 	_GP(topBar).wantIt = 1;
 	_GP(topBar).font = FONT_NORMAL;
-	_GP(topBar).height = getfontheight_outlined(_GP(topBar).font);
+	_GP(topBar).height = get_font_height_outlined(_GP(topBar).font);
 	_GP(topBar).height += data_to_game_coord(_GP(play).top_bar_borderwidth) * 2 + get_fixed_pixel_size(1);
 
 	// they want to customize the font
@@ -81,7 +79,7 @@ void DisplayTopBar(int ypos, int ttexcol, int backcol, const char *title, const 
 		_GP(topBar).font = _GP(play).top_bar_font;
 
 	// DisplaySpeech normally sets this up, but since we're not going via it...
-	if (_GP(play).cant_skip_speech & SKIP_AUTOTIMER)
+	if (_GP(play).speech_skip_style & SKIP_AUTOTIMER)
 		_GP(play).messagetime = GetTextDisplayTime(text);
 
 	DisplayAtY(_GP(play).top_bar_ypos, text);
@@ -143,6 +141,9 @@ void DisplayMessage(int msnum) {
 }
 
 void DisplayAt(int xxp, int yyp, int widd, const char *text) {
+	if (_GP(play).screen_is_faded_out > 0)
+		debug_script_warn("Warning: blocking Display call during fade-out.");
+
 	data_to_game_coords(&xxp, &yyp);
 	widd = data_to_game_coord(widd);
 
@@ -155,6 +156,8 @@ void DisplayAtY(int ypos, const char *texx) {
 	const Rect &ui_view = _GP(play).GetUIViewport();
 	if ((ypos < -1) || (ypos >= ui_view.GetHeight()))
 		quitprintf("!DisplayAtY: invalid Y co-ordinate supplied (used: %d; valid: 0..%d)", ypos, ui_view.GetHeight());
+	if (_GP(play).screen_is_faded_out > 0)
+		debug_script_warn("Warning: blocking Display call during fade-out.");
 
 	// Display("") ... a bit of a stupid thing to do, so ignore it
 	if (texx[0] == 0)
@@ -191,11 +194,11 @@ void SetSkipSpeech(SkipSpeechStyle newval) {
 		quit("!SetSkipSpeech: invalid skip mode specified");
 
 	debug_script_log("SkipSpeech style set to %d", newval);
-	_GP(play).cant_skip_speech = user_to_internal_skip_speech((SkipSpeechStyle)newval);
+	_GP(play).speech_skip_style = user_to_internal_skip_speech((SkipSpeechStyle)newval);
 }
 
 SkipSpeechStyle GetSkipSpeech() {
-	return internal_skip_speech_to_user(_GP(play).cant_skip_speech);
+	return internal_skip_speech_to_user(_GP(play).speech_skip_style);
 }
 
 } // namespace AGS3

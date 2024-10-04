@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,20 +47,20 @@ public:
 		uint32      _curSpeechStart, _curSpeechEnd;
 		uint32      _pitchShift;    // PITCH_SHIFT_NONE is normal
 		uint16      _volume;         // 0-255
-		int16       _lVol;
-		int16       _rVol;
+		int16       _calcVol;
+		int8        _balance;
 		bool		_ambient;
 
 		SampleInfo() : _sfxNum(-1) { }
-		SampleInfo(int32 s, int32 p, ObjId o, int32 l, int32 c, uint32 ps, uint16 v, int16 lv, int16 rv, bool ambient) :
+		SampleInfo(int32 s, int32 p, ObjId o, int32 l, int32 c, uint32 ps, uint16 v, int16 cv, int8 bal, bool ambient) :
 			_sfxNum(s), _priority(p), _objId(o), _loops(l), _channel(c),
-			_pitchShift(ps), _volume(v), _lVol(lv), _rVol(rv),
+			_pitchShift(ps), _volume(v), _calcVol(cv), _balance(bal),
 			_curSpeechStart(0), _curSpeechEnd(0), _ambient(ambient) { }
 		SampleInfo(const Std::string &b, int32 shpnum, ObjId o, int32 c,
-				   uint32 s, uint32 e, uint32 ps, uint16 v, int16 lv, int16 rv, bool ambient) :
+				   uint32 s, uint32 e, uint32 ps, uint16 v, int16 cv, int8 bal, bool ambient) :
 			_sfxNum(-1), _priority(shpnum), _objId(o), _loops(0), _channel(c), _barked(b),
 			_curSpeechStart(s), _curSpeechEnd(e), _pitchShift(ps), _volume(v),
-			_lVol(lv), _rVol(rv), _ambient(ambient) { }
+			_calcVol(cv), _balance(bal), _ambient(ambient) { }
 	};
 
 	Std::list<SampleInfo> _sampleInfo;
@@ -84,6 +83,7 @@ public:
 	INTRINSIC(I_isSFXPlaying);
 	INTRINSIC(I_isSFXPlayingForObject);
 	INTRINSIC(I_setVolumeSFX);
+	INTRINSIC(I_setVolumeForObjectSFX);
 	INTRINSIC(I_stopSFX);
 	INTRINSIC(I_stopSFXCru);
 	INTRINSIC(I_stopAllSFX);
@@ -92,13 +92,13 @@ public:
 
 	void playSFX(int sfxNum, int priority, ObjId objId, int loops,
 				 bool no_duplicates, uint32 pitchShift,
-				 uint16 volume, int16 lVol, int16 rVol,
+				 uint16 volume, int16 calcVol, int8 balance,
 				 bool ambient);
 
 	void playSFX(int sfxNum, int priority, ObjId objId, int loops,
 				 bool no_duplicates = false, uint32 pitchShift = PITCH_SHIFT_NONE,
 				 uint16 volume = 0x80, bool ambient = false) {
-		playSFX(sfxNum, priority, objId, loops, no_duplicates, pitchShift, volume, -1, -1, ambient);
+		playSFX(sfxNum, priority, objId, loops, no_duplicates, pitchShift, volume, -1, 0, ambient);
 	}
 
 	//! stop sfx on object.  set sfxNum = -1 to stop all for object.
@@ -106,6 +106,7 @@ public:
 	bool isSFXPlaying(int sfxNum);
 	bool isSFXPlayingForObject(int sfxNum, ObjId objId);
 	void setVolumeSFX(int sfxNum, uint8 volume);
+	void setVolumeForObjectSFX(ObjId objId, int sfxNum, uint8 volume);
 
 	bool playSpeech(const Std::string &barked, int shapenum, ObjId objId,
 					uint32 pitchShift = PITCH_SHIFT_NONE, uint16 volume = 255);
@@ -118,8 +119,8 @@ public:
 	//! play a sample (without storing a SampleInfo)
 	//! returns channel sample is played on, or -1
 	int playSample(AudioSample *sample, int priority, int loops, bool isSpeech = false,
-				   uint32 pitchShift = PITCH_SHIFT_NONE, int16 lVol = 255,
-				   int16 rVol = 255, bool ambient = false);
+				   uint32 pitchShift = PITCH_SHIFT_NONE, int16 volume = 255,
+				   int8 balance = 0, bool ambient = false);
 
 	//! pause all currently playing samples
 	void pauseAllSamples();
@@ -140,7 +141,7 @@ private:
 	//! returns true if there was speech left to play, or false if finished
 	bool continueSpeech(SampleInfo &si);
 
-	bool calculateSoundVolume(ObjId objId, int16 &lVol, int16 &rVol) const;
+	bool calculateSoundVolume(ObjId objId, int16 &volume, int8 &balance) const;
 
 	static AudioProcess *_theAudioProcess;
 };

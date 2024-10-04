@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,7 +40,7 @@ const int32 PTR_ARRAY_MAX(1024);
 uint32 encodePtr(uint8 *ptr) {
 	PointerReference ptrRef;
 
-	ptrdiff_t diff = ptr - (uint8 *)0;
+	ptrdiff_t diff = ptr - (uint8 *)nullptr;
 	ptrRef.ref = (uint32)(diff & 0xFFFFFFFF);
 	ptrRef.ptr = ptr;
 
@@ -65,7 +64,7 @@ uint32 encodePtr(uint8 *ptr) {
 
 uint8 *resolvePtr(uint32 ref) {
 	if (ref == 0)
-		return NULL;
+		return nullptr;
 
 	// do a linear search
 	for (Common::Array<PointerReference>::iterator it = g_ptrArray->begin(); it < g_ptrArray->end(); it++) {
@@ -74,7 +73,7 @@ uint8 *resolvePtr(uint32 ref) {
 
 			// purge
 			it->ref = 0;
-			it->ptr = 0;
+			it->ptr = nullptr;
 
 			return ptr;
 		}
@@ -82,7 +81,7 @@ uint8 *resolvePtr(uint32 ref) {
 
 	error("MemoryUtil::resolvePtr(%08x) COULD NOT RESOLVE POINTER!\n", ref);
 
-	return NULL;
+	return nullptr;
 }
 
 void clearAllPtrs(void) { g_ptrArray->clear(); }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -169,13 +168,13 @@ bool TTsentence::fn3(const CString &str1, const CString &str2, const CString &st
 bool TTsentence::fn2(int slotIndex, const TTstring &str, const TTconceptNode *node) const {
 	if (!node)
 		node = &_sentenceConcept;
-	TTconcept *concept = getFrameSlot(slotIndex, node);
+	TTconcept *conceptP = getFrameSlot(slotIndex, node);
 
-	if (!concept)
+	if (!conceptP)
 		return str == "isEmpty";
 
 	bool abortFlag = false;
-	switch (concept->_scriptType) {
+	switch (conceptP->_scriptType) {
 	case 1:
 		if (str == "thePlayer")
 			abortFlag = 1;
@@ -195,9 +194,9 @@ bool TTsentence::fn2(int slotIndex, const TTstring &str, const TTconceptNode *no
 		break;
 	}
 
-	TTstring conceptText = concept->getText();
-	if (abortFlag || str == conceptText || concept->compareTo(str)) {
-		delete concept;
+	TTstring conceptText = conceptP->getText();
+	if (abortFlag || str == conceptText || conceptP->compareTo(str)) {
+		delete conceptP;
 		return true;
 	}
 
@@ -228,9 +227,9 @@ bool TTsentence::fn2(int slotIndex, const TTstring &str, const TTconceptNode *no
 
 	if (g_vm->_exeResources._owner->_concept1P && (slotIndex == 0 || slotIndex == 2)) {
 		if (conceptText == "?" && str == g_vm->_exeResources._owner->_concept1P->getText()) {
-			delete concept;
-			concept = getFrameSlot(5, node);
-			conceptText = concept->getText();
+			delete conceptP;
+			conceptP = getFrameSlot(5, node);
+			conceptText = conceptP->getText();
 
 			if (conceptText == "it" || conceptText == "that" || conceptText == "he" ||
 				conceptText == "she" || conceptText == "him" || conceptText == "her" ||
@@ -241,7 +240,7 @@ bool TTsentence::fn2(int slotIndex, const TTstring &str, const TTconceptNode *no
 	}
 
 exit:
-	delete concept;
+	delete conceptP;
 	return abortFlag;
 }
 
@@ -270,10 +269,10 @@ TTconcept *TTsentence::getFrameEntry(int slotIndex, const TTconceptNode *concept
 
 TTconcept *TTsentence::getFrameSlot(int slotIndex, const TTconceptNode *conceptNode) const {
 	TTconcept *newConcept = new TTconcept();
-	TTconcept *concept = getFrameEntry(slotIndex, conceptNode);
+	TTconcept *conceptP = getFrameEntry(slotIndex, conceptNode);
 
-	if (concept)
-		newConcept->copyFrom(concept);
+	if (conceptP)
+		newConcept->copyFrom(conceptP);
 
 	if (!newConcept->isValid()) {
 		delete newConcept;
@@ -284,9 +283,9 @@ TTconcept *TTsentence::getFrameSlot(int slotIndex, const TTconceptNode *conceptN
 }
 
 bool TTsentence::isFrameSlotClass(int slotIndex, WordClass wordClass, const TTconceptNode *conceptNode) const {
-	TTconcept *concept = getFrameEntry(slotIndex, conceptNode);
-	if (concept && concept->_wordP) {
-		return concept->_wordP->isClass(wordClass);
+	TTconcept *conceptP = getFrameEntry(slotIndex, conceptNode);
+	if (conceptP && conceptP->_wordP) {
+		return conceptP->_wordP->isClass(wordClass);
 	} else {
 		return false;
 	}
@@ -305,8 +304,8 @@ int TTsentence::is1C(int val, const TTconceptNode *node) const {
 }
 
 bool TTsentence::isConcept34(int slotIndex, const TTconceptNode *node) const {
-	TTconcept *concept = getFrameEntry(slotIndex, node);
-	return concept && concept->getState();
+	TTconcept *conceptP = getFrameEntry(slotIndex, node);
+	return conceptP && conceptP->getState();
 }
 
 bool TTsentence::localWord(const char *str) const {

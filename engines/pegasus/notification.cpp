@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@ Notification::Notification(const NotificationID id, NotificationManager *owner) 
 
 Notification::~Notification() {
 	for (uint i = 0; i < _receivers.size(); i++)
-		_receivers[i].receiver->newNotification(NULL);
+		_receivers[i].receiver->newNotification(nullptr);
 
 	if (_owner)
 		_owner->removeNotification(this);
@@ -98,7 +97,7 @@ int operator!=(const ReceiverEntry &entry1, const ReceiverEntry &entry2) {
 }
 
 NotificationReceiver::NotificationReceiver() {
-	_notification = NULL;
+	_notification = nullptr;
 }
 
 NotificationReceiver::~NotificationReceiver() {
@@ -137,7 +136,7 @@ void NotificationManager::removeNotification(Notification *notification) {
 
 void NotificationManager::detachNotifications() {
 	for (NotificationIterator it = _notifications.begin(); it != _notifications.end(); it++)
-		(*it)->_owner = 0;
+		(*it)->_owner = nullptr;
 }
 
 void NotificationManager::checkNotifications() {

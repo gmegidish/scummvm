@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,19 +55,19 @@ void _floor_world::___init() {
 
 	// load the file for this session
 	// When clustered the session files have the base stripped
-	len = sprintf(temp_buf, "%s", PX_FILENAME_FLOOR_MAP);
+	len = Common::sprintf_s(temp_buf, "%s", PX_FILENAME_FLOOR_MAP);
 	if (len > ENGINE_STRING_LEN)
 		Fatal_error("_floor_world::___init string len error");
 
 	uint32 cluster_hash = MS->Fetch_session_cluster_hash();
-	floors = (_linked_data_file *)private_session_resman->Res_open(temp_buf, buf_hash, MS->Fetch_session_cluster(), cluster_hash);
+	floors = (LinkedDataFile *)private_session_resman->Res_open(temp_buf, buf_hash, MS->Fetch_session_cluster(), cluster_hash);
 
 	// Check the file schema
-	if (floors->GetHeaderVersion() != VERSION_PXWGFLOORS)
-		Fatal_error("Incorrect version number for floor data [%s] - file has %d, engine has %d", temp_buf, floors->GetHeaderVersion(), VERSION_PXWGFLOORS);
+	if (LinkedDataObject::GetHeaderVersion(floors) != VERSION_PXWGFLOORS)
+		Fatal_error("Incorrect version number for floor data [%s] - file has %d, engine has %d", temp_buf, LinkedDataObject::GetHeaderVersion(floors), VERSION_PXWGFLOORS);
 
 	// set this for convenience
-	total_floors = floors->Fetch_number_of_items();
+	total_floors = LinkedDataObject::Fetch_number_of_items(floors);
 	Tdebug("floors.txt", "##total floors %d", total_floors);
 
 	// check for no floors
@@ -83,7 +82,7 @@ void _floor_world::___init() {
 
 	int32 nMissing = 0;
 	for (j = 0; j < total_floors; j++) {
-		floor = (_floor *)floors->Fetch_item_by_number(j);
+		floor = (_floor *)LinkedDataObject::Fetch_item_by_number(floors, j);
 
 		if (total_heights) {
 			// see if this height is already defined
@@ -136,7 +135,7 @@ void _floor_world::___init() {
 	// create room height table
 
 	for (j = 0; j < total_floors; j++) {
-		floor = (_floor *)floors->Fetch_item_by_number(j);
+		floor = (_floor *)LinkedDataObject::Fetch_item_by_number(floors, j);
 
 		for (k = 0; k < total_heights; k++) {
 			if (floor->base_height == heights[k]) {
@@ -159,10 +158,10 @@ bool8 _floor_world::On_a_floor(_mega *mega) {
 	return FALSE8;
 }
 
-void _floor_world::Allign_with_floor(_mega *mega) {
+void _floor_world::Align_with_floor(_mega *mega) {
 	uint32 j;
 
-	// check against actualy heights
+	// check against actual heights
 	for (j = 0; j < total_heights; j++) {
 		if (mega->actor_xyz.y == heights[j])
 			return;
@@ -182,7 +181,7 @@ PXreal _floor_world::Return_true_y(PXreal y) {
 	// used by walk area camera director
 	uint32 j;
 
-	// check against actualy heights
+	// check against actual heights
 	for (j = 0; j < total_heights; j++)
 		if (y == heights[j])
 			return y;
@@ -203,8 +202,8 @@ _floor_world::~_floor_world() {
 }
 
 uint32 _floor_world::Fetch_floor_number_by_name(const char *name) {
-	// return a pointer to a named floor to an external routine - most likely a fn_funtion
-	return (floors->Fetch_item_number_by_name(name));
+	// return a pointer to a named floor to an external routine - most likely a fn_function
+	return (LinkedDataObject::Fetch_item_number_by_name(floors, name));
 }
 
 uint32 _floor_world::Return_floor_rect(PXreal x, PXreal z, PXreal y, uint32 rubber) {
@@ -217,7 +216,7 @@ uint32 _floor_world::Return_floor_rect(PXreal x, PXreal z, PXreal y, uint32 rubb
 	for (j = 0; j < total_floors; j++) {
 		_floor *floor;
 
-		floor = (_floor *)floors->Fetch_item_by_number(j);
+		floor = (_floor *)LinkedDataObject::Fetch_item_by_number(floors, j);
 
 		if (floor->base_height == (int32)y) {
 			// this floor is in our view level
@@ -238,7 +237,7 @@ uint32 _floor_world::Return_floor_rect(PXreal x, PXreal z, PXreal y, uint32 rubb
 bool8 _floor_world::Point_on_rubber_floor(PXreal x, PXreal z, PXreal y, uint32 rubber, uint32 rect_num) {
 	_floor *floor;
 
-	floor = (_floor *)floors->Fetch_item_by_number(rect_num);
+	floor = (_floor *)LinkedDataObject::Fetch_item_by_number(floors, rect_num);
 
 	if (floor->base_height == (int32)y) {
 		// if  hit then return floor number
@@ -261,7 +260,7 @@ uint32 _floor_world::Locate_floor_rect(PXreal x, PXreal z, PXreal y, _floor **rc
 	for (j = 0; j < total_floors; j++) {
 		_floor *floor;
 
-		floor = (_floor *)floors->Fetch_item_by_number(j);
+		floor = (_floor *)LinkedDataObject::Fetch_item_by_number(floors, j);
 
 		if (floor->base_height == (int32)y) {
 			// this floor is in our view level
@@ -300,7 +299,7 @@ void _floor_world::Set_floor_rect_flag(_logic *log) {
 	// ylocking
 
 	// first see if we're one same one as last time
-	floor = (_floor *)floors->Fetch_item_by_number(log->owner_floor_rect);
+	floor = (_floor *)LinkedDataObject::Fetch_item_by_number(floors, log->owner_floor_rect);
 	if ((y >= (floor->base_height - (0 * REAL_ONE))) && ((y <= (floor_y_volume[log->owner_floor_rect] - (0 * REAL_ONE))))) // this floor is in our view level
 		if ((log->mega->actor_xyz.x >= (floor->rect.x1 - FLOOR_RUBBER)) && (log->mega->actor_xyz.x <= (floor->rect.x2 + FLOOR_RUBBER)) &&
 		    (log->mega->actor_xyz.z >= (floor->rect.z1 - FLOOR_RUBBER)) && (log->mega->actor_xyz.z <= (floor->rect.z2 + FLOOR_RUBBER))) {
@@ -310,7 +309,7 @@ void _floor_world::Set_floor_rect_flag(_logic *log) {
 
 	// search through all floors
 	for (j = 0; j < total_floors; j++) {
-		floor = (_floor *)floors->Fetch_item_by_number(j);
+		floor = (_floor *)LinkedDataObject::Fetch_item_by_number(floors, j);
 
 		if ((y >= (floor->base_height - (0 * REAL_ONE))) && ((y <= (floor_y_volume[j] - (0 * REAL_ONE))))) {
 			// this floor is in our view level
@@ -337,7 +336,7 @@ uint32 _floor_world::Return_non_rubber_floor_no(_logic *log, uint32 cur_rubber_f
 	_floor *floor;
 
 	// first see if we're one same one as last time
-	floor = (_floor *)floors->Fetch_item_by_number(cur_rubber_floor);
+	floor = (_floor *)LinkedDataObject::Fetch_item_by_number(floors, cur_rubber_floor);
 	if ((log->mega->actor_xyz.y >= floor->base_height) && ((log->mega->actor_xyz.y <= floor_y_volume[log->owner_floor_rect]))) // this floor is in our view level
 		if ((log->mega->actor_xyz.x >= (floor->rect.x1)) && (log->mega->actor_xyz.x <= (floor->rect.x2)) && (log->mega->actor_xyz.z >= (floor->rect.z1)) &&
 		    (log->mega->actor_xyz.z <= (floor->rect.z2))) {
@@ -346,7 +345,7 @@ uint32 _floor_world::Return_non_rubber_floor_no(_logic *log, uint32 cur_rubber_f
 
 	// search through all floors
 	for (j = 0; j < total_floors; j++) {
-		floor = (_floor *)floors->Fetch_item_by_number(j);
+		floor = (_floor *)LinkedDataObject::Fetch_item_by_number(floors, j);
 
 		if ((log->mega->actor_xyz.y >= floor->base_height) && ((log->mega->actor_xyz.y <= floor_y_volume[j]))) {
 			// this floor is in our view level
@@ -424,7 +423,7 @@ int32 _floor_world::Project_point_down_through_floors(int32 nX, int32 nY, int32 
 		nY = (int32)heights[nSliceIndex];
 
 		for (j = 0; j < total_floors; ++j) {
-			pFloor = (_floor *)floors->Fetch_item_by_number(j);
+			pFloor = (_floor *)LinkedDataObject::Fetch_item_by_number(floors, j);
 
 			if (pFloor->base_height == nY) {
 				// Floor at this height, so check its position.

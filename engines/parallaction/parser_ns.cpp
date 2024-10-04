@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -245,10 +244,10 @@ DECLARE_ANIM_PARSER(file)  {
 	debugC(7, kDebugParser, "ANIM_PARSER(file) ");
 
 	char vC8[200];
-	strcpy(vC8, _tokens[1]);
+	Common::strcpy_s(vC8, _tokens[1]);
 	if (g_engineFlags & kEngineTransformedDonna) {
 		if (!scumm_stricmp(_tokens[1], "donnap") || !scumm_stricmp(_tokens[1], "donnapa")) {
-			strcat(vC8, "tras");
+			Common::strcat_s(vC8, "tras");
 		}
 	}
 	ctxt.a->gfxobj = _vm->_gfx->loadAnim(vC8);
@@ -888,8 +887,8 @@ Answer *LocationParser_ns::parseAnswer() {
 Common::String LocationParser_ns::parseDialogueString() {
 	char buf[400];
 	char *line = _script->readLine(buf, 400);
-	if (line == 0) {
-		return 0;
+	if (line == nullptr) {
+		return nullptr;
 	}
 	return Common::String(line);
 }
@@ -916,7 +915,7 @@ DECLARE_LOCATION_PARSER(location)  {
 		mask++;
 	}
 
-	strcpy(_vm->_location._name, _tokens[1]);
+	Common::strcpy_s(_vm->_location._name, _tokens[1]);
 	_vm->changeBackground(_vm->_location._name, mask);
 
 	if (_tokens[2][0] != '\0') {
@@ -1021,7 +1020,7 @@ DECLARE_LOCATION_PARSER(sound)  {
 	debugC(7, kDebugParser, "LOCATION_PARSER(sound) ");
 
 	if (_vm->getPlatform() == Common::kPlatformAmiga) {
-		strcpy(_vm->_location._soundFile, _tokens[1]);
+		Common::strcpy_s(_vm->_location._soundFile, _tokens[1]);
 		_vm->_location._hasSound = true;
 	}
 }
@@ -1039,7 +1038,7 @@ void LocationParser_ns::parse(Script *script) {
 
 	ctxt.end = false;
 	_script = script;
-	ctxt.filename = 0;//filename;
+	ctxt.filename = nullptr;//filename;
 
 	_parser->reset();
 	_parser->pushTables(&_locationParsers, _locationStmt);
@@ -1107,7 +1106,7 @@ void LocationParser_ns::init() {
 	_locationZoneStmt = new Table(ARRAYSIZE(_locationZoneStmtRes_ns), _locationZoneStmtRes_ns);
 	_locationAnimStmt = new Table(ARRAYSIZE(_locationAnimStmtRes_ns), _locationAnimStmtRes_ns);
 
-	Common::Array<const Opcode *> *table = 0;
+	Common::Array<const Opcode *> *table = nullptr;
 
 	SetOpcodeTable(_commandParsers);
 	WARNING_PARSER(unexpected);
@@ -1177,7 +1176,7 @@ void ProgramParser_ns::init() {
 
 	_instructionNames = new Table(ARRAYSIZE(_instructionNamesRes_ns), _instructionNamesRes_ns);
 
-	Common::Array<const Opcode *> *table = 0;
+	Common::Array<const Opcode *> *table = nullptr;
 	SetOpcodeTable(_instructionParsers);
 	INSTRUCTION_PARSER(defLocal);	// invalid opcode -> local definition
 	INSTRUCTION_PARSER(animation);	// on
@@ -1220,7 +1219,7 @@ Common::String LocationParser_ns::parseComment() {
 	} while (true);
 
 	if (comment.size() == 0) {
-		return 0;
+		return nullptr;
 	}
 
 	return comment;
@@ -1446,19 +1445,19 @@ void LocationParser_ns::parseNoneData(ZonePtr z) {
 
 typedef void (LocationParser_ns::*ZoneTypeParser)(ZonePtr);
 static ZoneTypeParser parsers[] = {
-	0,	// no type
+	nullptr,	// no type
 	&LocationParser_ns::parseExamineData,
 	&LocationParser_ns::parseDoorData,
 	&LocationParser_ns::parseGetData,
 	&LocationParser_ns::parseMergeData,
-	0,	// taste
+	nullptr,	// taste
 	&LocationParser_ns::parseHearData,
-	0,	// feel
+	nullptr,	// feel
 	&LocationParser_ns::parseSpeakData,
 	&LocationParser_ns::parseNoneData,
-	0,	// trap
-	0,	// you
-	0	// command
+	nullptr,	// trap
+	nullptr,	// you
+	nullptr	// command
 };
 
 void LocationParser_ns::parseZoneTypeBlock(ZonePtr z) {

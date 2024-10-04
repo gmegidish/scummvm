@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,7 +57,7 @@ typedef Common::Functor2Mem<ScriptThread*, OpCall&, void, ScriptOpcodes_BBDOU> S
 void ScriptOpcodes_BBDOU::initOpcodes() {
 	// First clear everything
 	for (uint i = 0; i < 256; ++i) {
-		_opcodes[i] = 0;
+		_opcodes[i] = nullptr;
 	}
 	// Register opcodes
 	OPCODE(2, opSuspend);
@@ -282,7 +281,7 @@ void ScriptOpcodes_BBDOU::opEnterScene(ScriptThread *scriptThread, OpCall &opCal
 	uint scenesCount = _vm->_activeScenes.getActiveScenesCount();
 	if (scenesCount > 0) {
 		uint32 currSceneId;
-		_vm->_activeScenes.getActiveSceneInfo(scenesCount, &currSceneId, 0);
+		_vm->_activeScenes.getActiveSceneInfo(scenesCount, &currSceneId, nullptr);
 		// TODO krnfileDump(currSceneId);
 	}
 	if (!_vm->enterScene(sceneId, opCall._callerThreadId))

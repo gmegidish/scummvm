@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -146,7 +145,7 @@ AudioResourceManMusicItem *MusicResource::getMusicItem() {
 }
 
 MusicItem::MusicItem(NeverhoodEngine *vm, uint32 groupNameHash, uint32 musicFileHash)
-	: _vm(vm), _musicResource(NULL) {
+	: _vm(vm), _musicResource(nullptr) {
 
 	_groupNameHash = groupNameHash;
 	_fileHash = musicFileHash;
@@ -196,7 +195,7 @@ void MusicItem::update() {
 SoundItem::SoundItem(NeverhoodEngine *vm, uint32 groupNameHash, uint32 soundFileHash,
 	bool playOnceAfterRandomCountdown, int16 minCountdown, int16 maxCountdown,
 	bool playOnceAfterCountdown, int16 initialCountdown, bool playLooping, int16 currCountdown)
-	: _vm(vm), _soundResource(NULL), _groupNameHash(groupNameHash), _fileHash(soundFileHash),
+	: _vm(vm), _soundResource(nullptr), _groupNameHash(groupNameHash), _fileHash(soundFileHash),
 	_playOnceAfterRandomCountdown(false), _minCountdown(0), _maxCountdown(0),
 	_playOnceAfterCountdown(playOnceAfterCountdown), _initialCountdown(initialCountdown),
 	_playLooping(false), _currCountdown(currCountdown) {
@@ -500,14 +499,14 @@ MusicItem *SoundMan::getMusicItemByHash(uint32 musicFileHash) {
 	for (uint i = 0; i < _musicItems.size(); ++i)
 		if (_musicItems[i] && _musicItems[i]->getFileHash() == musicFileHash)
 			return _musicItems[i];
-	return NULL;
+	return nullptr;
 }
 
 SoundItem *SoundMan::getSoundItemByHash(uint32 soundFileHash) {
 	for (uint i = 0; i < _soundItems.size(); ++i)
 		if (_soundItems[i] && _soundItems[i]->getFileHash() == soundFileHash)
 			return _soundItems[i];
-	return NULL;
+	return nullptr;
 }
 
 int16 SoundMan::addMusicItem(MusicItem *musicItem) {
@@ -540,7 +539,7 @@ void SoundMan::deleteSoundByIndex(int index) {
 // NeverhoodAudioStream
 
 NeverhoodAudioStream::NeverhoodAudioStream(int rate, byte shiftValue, bool isLooping, DisposeAfterUse::Flag disposeStream, Common::SeekableReadStream *stream)
-	: _rate(rate), _shiftValue(shiftValue), _isLooping(isLooping), _isStereo(false), _stream(stream, disposeStream), _endOfData(false), _buffer(0),
+	: _rate(rate), _shiftValue(shiftValue), _isLooping(isLooping), _isStereo(false), _stream(stream, disposeStream), _endOfData(false), _buffer(nullptr),
 	_isCompressed(_shiftValue != 0xFF), _prevValue(0) {
 	// Setup our buffer for readBuffer
 	_buffer = new byte[kSampleBufferLength * (_isCompressed ? 1 : 2)];
@@ -591,7 +590,7 @@ int NeverhoodAudioStream::readBuffer(int16 *buffer, const int numSamples) {
 }
 
 AudioResourceManSoundItem::AudioResourceManSoundItem(NeverhoodEngine *vm, uint32 fileHash)
-	: _vm(vm), _fileHash(fileHash), _data(NULL), _isLoaded(false), _isPlaying(false),
+	: _vm(vm), _fileHash(fileHash), _data(nullptr), _isLoaded(false), _isPlaying(false),
 	_volume(100), _panning(50) {
 
 	_vm->_res->queryResource(_fileHash, _resourceHandle);
@@ -614,7 +613,7 @@ void AudioResourceManSoundItem::unloadSound() {
 	if (_vm->_mixer->isSoundHandleActive(*_soundHandle))
 		_vm->_mixer->stopHandle(*_soundHandle);
 	_vm->_res->unloadResource(_resourceHandle);
-	_data = NULL;
+	_data = nullptr;
 }
 
 void AudioResourceManSoundItem::setVolume(int16 volume) {

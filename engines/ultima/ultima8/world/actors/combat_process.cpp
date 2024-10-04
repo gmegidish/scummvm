@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "ultima/ultima.h"
+#include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/world/actors/combat_process.h"
 #include "ultima/ultima8/world/actors/actor.h"
 #include "ultima/ultima8/world/current_map.h"
@@ -80,8 +81,7 @@ void CombatProcess::run() {
 			return;
 		}
 
-		pout << "[COMBAT " << _itemNum << "] _target found: "
-		     << _target << Std::endl;
+		debugC(kDebugActor, "[COMBAT %u] _target found: %u", _itemNum, _target);
 		_combatMode = CM_WAITING;
 	}
 
@@ -94,13 +94,13 @@ void CombatProcess::run() {
 	if (inAttackRange()) {
 		_combatMode = CM_ATTACKING;
 
-		pout << "[COMBAT " << _itemNum << "] _target (" << _target
-		     << ") in range" << Std::endl;
+		debugC(kDebugActor, "[COMBAT %u] _target (%u) in range", _itemNum, _target);
 
+		Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
 		bool hasidle1 = a->hasAnim(Animation::idle1);
 		bool hasidle2 = a->hasAnim(Animation::idle2);
 
-		if ((hasidle1 || hasidle2) && (getRandom() % 5) == 0) {
+		if ((hasidle1 || hasidle2) && rs.getRandomNumber(4) == 0) {
 			// every once in a while, act threatening instead of attacking
 			// TODO: maybe make frequency depend on monster type
 			Animation::Sequence idleanim;
@@ -110,7 +110,7 @@ void CombatProcess::run() {
 			} else if (!hasidle2) {
 				idleanim = Animation::idle1;
 			} else {
-				if (getRandom() % 2)
+				if (rs.getRandomBit())
 					idleanim = Animation::idle1;
 				else
 					idleanim = Animation::idle2;
@@ -281,7 +281,8 @@ void CombatProcess::waitForTarget() {
 	const MonsterInfo *mi = nullptr;
 	if (shapeinfo) mi = shapeinfo->_monsterInfo;
 
-	if (mi && mi->_shifter && a->getMapNum() != 43 && (getRandom() % 2) == 0) {
+	Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
+	if (mi && mi->_shifter && a->getMapNum() != 43 && rs.getRandomBit()) {
 		// changelings (except the ones at the U8 endgame pentagram)
 
 		// shift into a tree if nobody is around
@@ -301,9 +302,9 @@ void CombatProcess::waitForTarget() {
 	}
 }
 
-void CombatProcess::dumpInfo() const {
-	Process::dumpInfo();
-	pout << "Target: " << _target << Std::endl;
+Common::String CombatProcess::dumpInfo() const {
+	return Process::dumpInfo() +
+		Common::String::format(", target: %u", _target);
 }
 
 void CombatProcess::saveData(Common::WriteStream *ws) {

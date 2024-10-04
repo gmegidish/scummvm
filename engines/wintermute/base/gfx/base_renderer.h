@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,7 @@
 
 #include "engines/wintermute/math/rect32.h"
 #include "engines/wintermute/base/base.h"
+
 #include "common/rect.h"
 #include "common/array.h"
 
@@ -89,8 +89,8 @@ public:
 	 */
 	virtual void fadeToColor(byte r, byte g, byte b, byte a) = 0;
 
-	virtual bool drawLine(int x1, int y1, int x2, int y2, uint32 color); 	// Unused outside indicator-display
-	virtual bool drawRect(int x1, int y1, int x2, int y2, uint32 color, int width = 1); 	// Unused outside indicator-display
+	virtual bool drawLine(int x1, int y1, int x2, int y2, uint32 color); // Unused outside indicator-display
+	virtual bool drawRect(int x1, int y1, int x2, int y2, uint32 color, int width = 1); // Unused outside indicator-display
 	BaseRenderer(BaseGame *inGame = nullptr);
 	~BaseRenderer() override;
 	virtual bool setProjection() {
@@ -112,7 +112,7 @@ public:
 	 * Flip the backbuffer onto the screen-buffer
 	 * The screen will NOT be updated before calling this function.
 	 *
-	 * @return true if successfull, false on error.
+	 * @return true if successful, false on error.
 	 */
 	virtual bool flip() = 0;
 	/**
@@ -151,7 +151,7 @@ public:
 	/**
 	 * Create a Surface fit for use with the renderer.
 	 * As diverse implementations of BaseRenderer might have different solutions for storing surfaces
-	 * this allows for a common interface for creating surface-handles. (Mostly usefull to ease future
+	 * this allows for a common interface for creating surface-handles. (Mostly useful to ease future
 	 * implementation of hw-accelerated rendering, or readding 3D-support at some point).
 	 *
 	 * @return a surface that can be used with this renderer

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,29 +52,29 @@ Graphics::ManagedSurface *GUI_LoadImage(int w, int h, uint8 *pal, uint8 *data) {
 /*                                                                      */
 /************************************************************************/
 
-static Graphics::ManagedSurface *the_font = NULL;
-static Graphics::ManagedSurface *the_font_6x8 = NULL;
-static Graphics::ManagedSurface *the_font_gump = NULL;
+static Graphics::ManagedSurface *the_font = nullptr;
+static Graphics::ManagedSurface *the_font_6x8 = nullptr;
+static Graphics::ManagedSurface *the_font_gump = nullptr;
 
 Graphics::ManagedSurface *GUI_DefaultFont(void) {
-	if (the_font == NULL) {
+	if (the_font == nullptr) {
 		the_font = GUI_LoadImage(font_w, font_h, font_pal, font_data);
 	}
-	return (the_font);
+	return the_font;
 }
 
 Graphics::ManagedSurface *GUI_Font6x8(void) {
-	if (the_font_6x8 == NULL) {
+	if (the_font_6x8 == nullptr) {
 		the_font_6x8 = GUI_LoadImage(font_6x8_w, font_6x8_h, font_pal, font_6x8_data);
 	}
-	return (the_font_6x8);
+	return the_font_6x8;
 }
 
 Graphics::ManagedSurface *GUI_FontGump(void) {
-	if (the_font_gump == NULL) {
+	if (the_font_gump == nullptr) {
 		the_font_gump = GUI_LoadImage(font_gump_w, font_gump_h, font_pal, font_gump_data);
 	}
-	return (the_font_gump);
+	return the_font_gump;
 }
 
 uint8 *GUI_FontGumpWData(void) {

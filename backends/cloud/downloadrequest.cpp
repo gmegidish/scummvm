@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 
 namespace Cloud {
 
-DownloadRequest::DownloadRequest(Storage *storage, Storage::BoolCallback callback, Networking::ErrorCallback ecb, Common::String remoteFileId, Common::DumpFile *dumpFile):
+DownloadRequest::DownloadRequest(Storage *storage, Storage::BoolCallback callback, Networking::ErrorCallback ecb, const Common::String &remoteFileId, Common::DumpFile *dumpFile):
 	Request(nullptr, ecb), _boolCallback(callback), _localFile(dumpFile), _remoteFileId(remoteFileId), _storage(storage),
 	_remoteFileStream(nullptr), _workingRequest(nullptr), _ignoreCallback(false), _buffer(new byte[DOWNLOAD_REQUEST_BUFFER_SIZE]) {
 	start();
@@ -51,19 +50,19 @@ void DownloadRequest::start() {
 
 	_workingRequest = _storage->streamFileById(
 		_remoteFileId,
-		new Common::Callback<DownloadRequest, Networking::NetworkReadStreamResponse>(this, &DownloadRequest::streamCallback),
-		new Common::Callback<DownloadRequest, Networking::ErrorResponse>(this, &DownloadRequest::streamErrorCallback)
+		new Common::Callback<DownloadRequest, const Networking::NetworkReadStreamResponse &>(this, &DownloadRequest::streamCallback),
+		new Common::Callback<DownloadRequest, const Networking::ErrorResponse &>(this, &DownloadRequest::streamErrorCallback)
 	);
 }
 
-void DownloadRequest::streamCallback(Networking::NetworkReadStreamResponse response) {
+void DownloadRequest::streamCallback(const Networking::NetworkReadStreamResponse &response) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;
-	_remoteFileStream = (Networking::NetworkReadStream *)response.value;
+	_remoteFileStream = response.value;
 }
 
-void DownloadRequest::streamErrorCallback(Networking::ErrorResponse error) {
+void DownloadRequest::streamErrorCallback(const Networking::ErrorResponse &error) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;
@@ -123,7 +122,7 @@ void DownloadRequest::finishDownload(bool success) {
 		(*_boolCallback)(Storage::BoolResponse(this, success));
 }
 
-void DownloadRequest::finishError(Networking::ErrorResponse error) {
+void DownloadRequest::finishError(const Networking::ErrorResponse &error, Networking::RequestState state) {
 	if (_localFile)
 		_localFile->close();
 	Request::finishError(error);

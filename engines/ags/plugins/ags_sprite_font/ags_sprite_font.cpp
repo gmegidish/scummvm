@@ -4,9 +4,9 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
  * of the License, or(at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -109,14 +108,20 @@ void AGSSpriteFont::SetSpriteFont(ScriptMethodParams &params) {
 	PARAMS9(int, fontNum, int, sprite, int, rows, int, columns, int, charWidth, int, charHeight, int, charMin, int, charMax, bool, use32bit);
 	_engine->PrintDebugConsole("AGSSpriteFont: SetSpriteFont");
 	_fontRenderer->SetSpriteFont(fontNum, sprite, rows, columns, charWidth, charHeight, charMin, charMax, use32bit);
-	_engine->ReplaceFontRenderer(fontNum, _fontRenderer);
+	if (_engine->version >= 26)
+		_engine->ReplaceFontRenderer2(fontNum, _fontRenderer);
+	else
+		_engine->ReplaceFontRenderer(fontNum, _fontRenderer);
 }
 
 void AGSSpriteFont::SetVariableSpriteFont(ScriptMethodParams &params) {
 	PARAMS2(int, fontNum, int, sprite);
 	_engine->PrintDebugConsole("AGSSpriteFont: SetVariableFont");
 	_vWidthRenderer->SetSprite(fontNum, sprite);
-	_engine->ReplaceFontRenderer(fontNum, _vWidthRenderer);
+	if (_engine->version >= 26)
+		_engine->ReplaceFontRenderer2(fontNum, _vWidthRenderer);
+	else
+		_engine->ReplaceFontRenderer(fontNum, _vWidthRenderer);
 }
 
 void AGSSpriteFont::SetGlyph(ScriptMethodParams &params) {

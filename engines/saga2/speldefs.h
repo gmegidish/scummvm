@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -115,7 +114,7 @@ typedef GameObject SpellCaster;
 
 inline TilePoint TAGPos(ActiveItem *ai) {
 	if (ai == NULL) return Nowhere;
-	assert(ai->_data.itemType == activeTypeInstance);
+	assert(ai->_data.itemType == kActiveTypeInstance);
 	return TilePoint(
 	           ai->_data.instance.u << kTileUVShift,
 	           ai->_data.instance.v << kTileUVShift,
@@ -142,115 +141,115 @@ class SpellTarget {
 
 public :
 	enum spellTargetType {
-		spellTargetNone         = 0,        // invalid
-		spellTargetPoint,                   // targeted on a particular point
-		spellTargetObjectPoint,             // targeted on an object's location
-		spellTargetObject,                  // targeted on an object (tracking)
-		spellTargetTAG                      // targeted on an object (tracking)
+		kSpellTargetNone         = 0,        // invalid
+		kSpellTargetPoint,                   // targeted on a particular point
+		kSpellTargetObjectPoint,             // targeted on an object's location
+		kSpellTargetObject,                  // targeted on an object (tracking)
+		kSpellTargetTAG                      // targeted on an object (tracking)
 	};
 
 private:
-	spellTargetType type;
+	spellTargetType _type;
 
-	TilePoint       loc;
-	GameObject      *obj;
-	ActiveItem      *tag;
+	TilePoint       _loc;
+	GameObject      *_obj;
+	ActiveItem      *_tag;
 
 public:
-	SpellTarget     *next;
+	SpellTarget     *_next;
 
 	SpellTarget() {
-		type = spellTargetNone;
-		obj = nullptr;
-		loc.u = 0;
-		loc.v = 0;
-		loc.z = 0;
-		next = nullptr;
-		tag = nullptr;
+		_type = kSpellTargetNone;
+		_obj = nullptr;
+		_loc.u = 0;
+		_loc.v = 0;
+		_loc.z = 0;
+		_next = nullptr;
+		_tag = nullptr;
 	}
 
 	// This constructor is for non-tracking targets
 	SpellTarget(GameObject &object) {
-		type = spellTargetObjectPoint;
-		loc = object.getWorldLocation();
-		loc.z += object.proto()->height / 2;
-		next = nullptr;
-		obj = &object;
-		tag = nullptr;
+		_type = kSpellTargetObjectPoint;
+		_loc = object.getWorldLocation();
+		_loc.z += object.proto()->height / 2;
+		_next = nullptr;
+		_obj = &object;
+		_tag = nullptr;
 	}
 
 	// This constructor is for tracking targets
 	SpellTarget(GameObject *object) {
-		type = spellTargetObject;
-		obj = object;
-		next = nullptr;
-		tag = nullptr;
+		_type = kSpellTargetObject;
+		_obj = object;
+		_next = nullptr;
+		_tag = nullptr;
 	}
 	SpellTarget(TilePoint &tp) {
-		type = spellTargetPoint;
-		loc = tp;
-		next = nullptr;
-		tag = nullptr;
-		obj = nullptr;
+		_type = kSpellTargetPoint;
+		_loc = tp;
+		_next = nullptr;
+		_tag = nullptr;
+		_obj = nullptr;
 	}
 	SpellTarget(ActiveItem *ai) {
-		type = spellTargetTAG;
-		tag = ai;
-		next = nullptr;
-		tag = nullptr;
-		obj = nullptr;
+		_type = kSpellTargetTAG;
+		_tag = ai;
+		_next = nullptr;
+		_tag = nullptr;
+		_obj = nullptr;
 	}
 	SpellTarget(StorageSpellTarget &sst);
 
 	SpellTarget &operator=(const SpellTarget &src) {
-		type = src.type;
-		loc = src.loc;
-		obj = src.obj;
-		tag = src.tag;
-		next = src.next;
+		_type = src._type;
+		_loc = src._loc;
+		_obj = src._obj;
+		_tag = src._tag;
+		_next = src._next;
 		return *this;
 	}
 	SpellTarget(const SpellTarget &src) {
-		type = src.type;
-		loc = src.loc;
-		obj = src.obj;
-		tag = src.tag;
-		next = src.next;
+		_type = src._type;
+		_loc = src._loc;
+		_obj = src._obj;
+		_tag = src._tag;
+		_next = src._next;
 	}
 
 	~SpellTarget() {
-		if (next)
-			delete next;
-		next = nullptr;
+		if (_next)
+			delete _next;
+		_next = nullptr;
 	};
 
 	TilePoint getPoint() {
-		switch (type) {
-		case spellTargetPoint       :
-		case spellTargetObjectPoint :
-			return loc;
-		case spellTargetObject      :
-			return objPos(obj);
-		case spellTargetTAG         :
-			return TAGPos(tag);
-		case spellTargetNone        :
+		switch (_type) {
+		case kSpellTargetPoint       :
+		case kSpellTargetObjectPoint :
+			return _loc;
+		case kSpellTargetObject      :
+			return objPos(_obj);
+		case kSpellTargetTAG         :
+			return TAGPos(_tag);
+		case kSpellTargetNone        :
 		default                     :
 			return Nowhere;
 		}
 	}
 
 	spellTargetType getType() {
-		return type;
+		return _type;
 	}
 
 	GameObject *getObject() {
-		assert(type == spellTargetObject);
-		return obj;
+		assert(_type == kSpellTargetObject);
+		return _obj;
 	}
 
 	ActiveItem *getTAG() {
-		assert(type == spellTargetTAG);
-		return tag;
+		assert(_type == kSpellTargetTAG);
+		return _tag;
 	}
 
 };
@@ -259,10 +258,10 @@ public:
 //	Effectron flags
 
 enum EffectronFlagMasks {
-	effectronOK     = 0,
-	effectronHidden = (1 << 0),
-	effectronDead   = (1 << 1),
-	effectronBumped = (1 << 2)
+	kEffectronOK     = 0,
+	kEffectronHidden = (1 << 0),
+	kEffectronDead   = (1 << 1),
+	kEffectronBumped = (1 << 2)
 };
 
 typedef uint32 EffectronFlags;
@@ -278,31 +277,31 @@ typedef Extent16 EffectronSize;
 class Effectron {
 	friend struct StorageEffectron;
 
-	EffectronFlags          flags;            // this effectrons status
-	EffectronSize           size;             // this effectrons size
-	Rect16                  hitBox;           // hitbox for clicking this item
+	EffectronFlags          _flags;            // this effectrons status
+	EffectronSize           _size;             // this effectrons size
+	Rect16                  _hitBox;           // hitbox for clicking this item
 	// dispnode needs the latter
 
 public:
-	SpellInstance           *parent;          // pointer back to the spell that spawned this
+	SpellInstance           *_parent;          // pointer back to the spell that spawned this
 
-	int16                   partno;           // Which effectron in a group this represents
-	Point16                 screenCoords;     // screen coordinates last drawn at
+	int16                   _partno;           // Which effectron in a group this represents
+	Point16                 _screenCoords;     // screen coordinates last drawn at
 
-	TilePoint               start,            // travelling from
-	                        finish,           // travelling to
-	                        current,          // current position
-	                        velocity,         // current velocity
-	                        acceleration;     // current acceleration
-	uint16                  totalSteps,       // discrete jumps in the path
-	                        stepNo;           // current jump
+	TilePoint               _start,            // travelling from
+	                        _finish,           // travelling to
+	                        _current,          // current position
+	                        _velocity,         // current velocity
+	                        _acceleration;     // current acceleration
+	uint16                  _totalSteps,       // discrete jumps in the path
+	                        _stepNo;           // current jump
 
-	spellHeight             hgt;              // collision detection stuff
-	spellBreadth            brd;
+	spellHeight             _hgt;              // collision detection stuff
+	spellBreadth            _brd;
 
-	SpellPositionSeed       pos;              // These three are part of an old way of
-	SpellSpritationSeed     spr;              // updating effectrons
-	SpellAge                age;
+	SpellPositionSeed       _pos;              // These three are part of an old way of
+	SpellSpritationSeed     _spr;              // updating effectrons
+	SpellAge                _age;
 
 
 
@@ -314,30 +313,30 @@ public:
 	void updateEffect(int32 deltaTime);
 
 	inline TilePoint SpellPos() {
-		return current;
+		return _current;
 	}
 	inline int32 spriteID()     {
-		return spr;
+		return _spr;
 	}
 
 	inline void hide()     {
-		flags |= effectronHidden;
+		_flags |= kEffectronHidden;
 	}
 	inline void unhide()   {
-		flags &= (~effectronHidden);
+		_flags &= (~kEffectronHidden);
 	}
 	inline bool isHidden() const {
-		return flags & effectronHidden;
+		return _flags & kEffectronHidden;
 	}
 	inline void kill()     {
-		flags |= effectronDead;
+		_flags |= kEffectronDead;
 	}
 	inline int isDead() const      {
-		return flags & effectronDead;
+		return _flags & kEffectronDead;
 	}
 	inline void bump();
 	inline int isBumped() const        {
-		return flags & effectronBumped;
+		return _flags & kEffectronBumped;
 	}
 
 	inline GameWorld *world() const;

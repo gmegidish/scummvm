@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -297,7 +296,7 @@ void GfxFontFromResource::draw(uint16 chr, int16 top, int16 left, byte color, bo
 				if (0 <= screenX && screenX < screenWidth && 0 <= screenY && screenY < screenHeight) {
 					_screen->putFontPixel(top, screenX, y, color);
 				} else {
-					warning("%s glpyh %d drawn out of bounds: %d, %d", _resource->name().c_str(), chr, screenX, screenY);
+					warning("%s glyph %d drawn out of bounds: %d, %d", _resource->name().c_str(), chr, screenX, screenY);
 				}
 			}
 			b = b << 1;
@@ -334,7 +333,7 @@ void GfxFontFromResource::drawToBuffer(uint16 chr, int16 top, int16 left, byte c
 					int offset = bufY * bufWidth + bufX;
 					buffer[offset] = color;
 				} else {
-					warning("%s glpyh %d drawn out of bounds: %d, %d", _resource->name().c_str(), chr, bufX, bufY);
+					warning("%s glyph %d drawn out of bounds: %d, %d", _resource->name().c_str(), chr, bufX, bufY);
 				}
 			}
 			b = b << 1;

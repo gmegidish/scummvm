@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/scummsys.h"
 #include "common/textconsole.h"
 #include "sci/sci.h"
+#include "sci/engine/workarounds.h" // for SciMedia
 #include "sci/resource/resource.h"
 #include "sci/resource/resource_patcher.h"
 
@@ -92,6 +92,28 @@ namespace Sci {
  * and no new patch operations will occur.
  */
 #define END kEndOfPatch
+
+#pragma mark -
+#pragma mark Laura Bow 2
+
+// LB2CD removed diagonal walking loops from the views of actors in the museum,
+//  but Sierra forgot to do this to the transparent placeholder view used when
+//  actors are in a different room. It remains 9 loops instead of 5 like the
+//  rest. The standing loop at the end is in position 8 instead of 4.
+//  This causes StopWalk to query the loop count when an actor is off screen
+//  and set their loop to an invalid index for their real view, causing all
+//  standing actors to appear to face north west instead of their real heading.
+//  Patching out diagonal loops 4-7 and using loop 8 as loop 4 fixes this.
+//  See also: script patch laurabow2CDPatchFixMuseumActorLoops
+static const byte lauraBow2CdView828[] = {
+	SKIP(0x02),
+	REPLACE(1, 0x05), // view header: 5 loops instead of 9
+	SKIP(0x51),
+	REPLACE(1, 0x08), // loop 4: 8 cels instead of 1
+	SKIP(0x09),
+	REPLACE_NUMBER(uint32, 0x01c2), // loop 4: offset to loop 8 cel data
+	END
+};
 
 #pragma mark -
 #pragma mark Leisure Suit Larry 1
@@ -488,25 +510,30 @@ static const byte torinPassageRussianPic61101[] = {
 #pragma mark Patch table
 
 static const GameResourcePatch resourcePatches[] = {
-	{ GID_LSL1,           Common::RU_RUS,   kResourceTypeSound,     205, lsl1RussianSound205,        false },
-	{ GID_LSL2,           Common::PL_POL,   kResourceTypeFont,        1, lsl2Lsl3PolishFont,         false },
-	{ GID_LSL2,           Common::PL_POL,   kResourceTypeFont,        7, lsl2Lsl3PolishFont,         false },
-	{ GID_LSL3,           Common::PL_POL,   kResourceTypeFont,        1, lsl2Lsl3PolishFont,         false },
-	{ GID_LSL3,           Common::PL_POL,   kResourceTypeFont,        9, lsl2Lsl3PolishFont,         false },
-	{ GID_PHANTASMAGORIA, Common::UNK_LANG, kResourceTypeView,    64001, phant1View64001Palette,     false },
-	{ GID_PQ4,            Common::EN_ANY,   kResourceTypeView,    10988, pq4EnhancedAudioToggleView, true  },
-	{ GID_QFG1VGA,        Common::UNK_LANG, kResourceTypePalette,   904, qfg1vgaPalette904,          false },
-	{ GID_TORIN,          Common::RU_RUS,   kResourceTypePic,     61101, torinPassageRussianPic61101,false }
+	{ GID_LAURABOW2,      SCI_MEDIA_CD,     Common::UNK_LANG, kResourceTypeView,      828, lauraBow2CdView828,         false },
+	{ GID_LSL1,           SCI_MEDIA_ALL,    Common::RU_RUS,   kResourceTypeSound,     205, lsl1RussianSound205,        false },
+	{ GID_LSL2,           SCI_MEDIA_ALL,    Common::PL_POL,   kResourceTypeFont,        1, lsl2Lsl3PolishFont,         false },
+	{ GID_LSL2,           SCI_MEDIA_ALL,    Common::PL_POL,   kResourceTypeFont,        7, lsl2Lsl3PolishFont,         false },
+	{ GID_LSL3,           SCI_MEDIA_ALL,    Common::PL_POL,   kResourceTypeFont,        1, lsl2Lsl3PolishFont,         false },
+	{ GID_LSL3,           SCI_MEDIA_ALL,    Common::PL_POL,   kResourceTypeFont,        9, lsl2Lsl3PolishFont,         false },
+	{ GID_PHANTASMAGORIA, SCI_MEDIA_ALL,    Common::UNK_LANG, kResourceTypeView,    64001, phant1View64001Palette,     false },
+	{ GID_PQ4,            SCI_MEDIA_CD,     Common::EN_ANY,   kResourceTypeView,    10988, pq4EnhancedAudioToggleView, true  },
+	{ GID_QFG1VGA,        SCI_MEDIA_ALL,    Common::UNK_LANG, kResourceTypePalette,   904, qfg1vgaPalette904,          false },
+	{ GID_TORIN,          SCI_MEDIA_ALL,    Common::RU_RUS,   kResourceTypePic,     61101, torinPassageRussianPic61101,false }
 };
 
 #pragma mark -
 #pragma mark ResourcePatcher
 
-ResourcePatcher::ResourcePatcher(const SciGameId gameId, const Common::Language gameLanguage) :
+ResourcePatcher::ResourcePatcher(const SciGameId gameId, const bool isCD, const Common::Platform platform, const Common::Language gameLanguage) :
 	ResourceSource(kSourceScummVM, "-scummvm-") {
 	for (int i = 0; i < ARRAYSIZE(resourcePatches); ++i) {
 		const GameResourcePatch &patch = resourcePatches[i];
 		if (patch.gameId == gameId &&
+			(patch.media == SCI_MEDIA_ALL ||
+			(patch.media == SCI_MEDIA_FLOPPY && !isCD) ||
+			(patch.media == SCI_MEDIA_CD && isCD) ||
+			(patch.media == SCI_MEDIA_MAC && platform == Common::kPlatformMacintosh && !isCD)) &&
 			(patch.gameLanguage == Common::UNK_LANG || patch.gameLanguage == gameLanguage)) {
 			_patches.push_back(patch);
 		}
@@ -667,7 +694,7 @@ void ResourcePatcher::patchResource(Resource &resource, const GameResourcePatch 
 		}
 	}
 
-	if (target != source) {
+	if (source && target != source) {
 		memcpy(target, source, resource._size - (target - resource._data));
 	}
 

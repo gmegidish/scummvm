@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,7 +58,7 @@ HugoEngine::HugoEngine(OSystem *syst, const HugoGameDescription *gd) : Engine(sy
 	_system = syst;
 
 	setDebugger(new HugoConsole(this));
-	_rnd = 0;
+	_rnd = nullptr;
 
 	_screen = nullptr;
 	_mouse = nullptr;
@@ -166,11 +165,11 @@ void HugoEngine::setMaxScore(const int newScore) {
 }
 
 Common::Error HugoEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
-	return (_file->saveGame(slot, desc) ? Common::kWritingFailed : Common::kNoError);
+	return (_file->saveGame(slot, desc) ? Common::kNoError : Common::kWritingFailed);
 }
 
 Common::Error HugoEngine::loadGameState(int slot) {
-	return (_file->restoreGame(slot) ? Common::kReadingFailed : Common::kNoError);
+	return (_file->restoreGame(slot) ? Common::kNoError : Common::kReadingFailed);
 }
 
 bool HugoEngine::hasFeature(EngineFeature f) const {
@@ -299,7 +298,7 @@ Common::Error HugoEngine::run() {
 			_status._skipIntroFl = true;
 			_file->restoreGame(loadSlot);
 		} else {
-			_file->saveGame(0, "New Game");
+			_file->saveGame(99, "New Game [reserved]");
 		}
 	}
 
@@ -312,6 +311,9 @@ Common::Error HugoEngine::run() {
 		Common::Event event;
 		while (_eventMan->pollEvent(event)) {
 			switch (event.type) {
+			case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+				_parser->actionHandler(event);
+				break;
 			case Common::EVENT_KEYDOWN:
 				_parser->keyHandler(event);
 				break;
@@ -530,13 +532,13 @@ bool HugoEngine::loadHugoDat() {
 }
 
 uint16 **HugoEngine::loadLongArray(Common::SeekableReadStream &in) {
-	uint16 **resArray = 0;
+	uint16 **resArray = nullptr;
 
 	for (int varnt = 0; varnt < _numVariant; varnt++) {
 		uint16 numRows = in.readUint16BE();
 		if (varnt == _gameVariant) {
 			resArray = (uint16 **)malloc(sizeof(uint16 *) * (numRows + 1));
-			resArray[numRows] = 0;
+			resArray[numRows] = nullptr;
 		}
 		for (int i = 0; i < numRows; i++) {
 			uint16 numElems = in.readUint16BE();
@@ -714,11 +716,11 @@ void HugoEngine::endGame() {
 	_status._viewState = kViewExit;
 }
 
-bool HugoEngine::canLoadGameStateCurrently() {
+bool HugoEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return true;
 }
 
-bool HugoEngine::canSaveGameStateCurrently() {
+bool HugoEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return (_status._viewState == kViewPlay);
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -61,6 +60,28 @@ void pauseFunction(LoadedFunction *fun) {
 			huntAndDestroy = &(*huntAndDestroy)->next;
 		}
 	}
+}
+
+void printStack(VariableStack *ptr) {
+	if (ptr == NULL)
+		debugN("<empty stack>");
+
+	while (ptr != NULL) {
+		ptr->thisVar.debugPrint();
+		ptr = ptr->next;
+	}
+
+	debug("%s", "");
+}
+
+void printLocals(Variable *localVars, int count) {
+	if (count == 0)
+		debugN("<none>");
+
+	for (int i = 0; i < count; i++)
+		localVars[i].debugPrint();
+
+	debug("%s", "");
 }
 
 void restartFunction(LoadedFunction *fun) {
@@ -196,7 +217,20 @@ bool continueFunction(LoadedFunction *fun) {
 		advanceNow = true;
 		param = fun->compiledLines[fun->runThisLine].param;
 		com = fun->compiledLines[fun->runThisLine].theCommand;
-		debugC(1, kSludgeDebugStackMachine, "Executing command line %i : %s(%s)", fun->runThisLine, sludgeText[com], getCommandParameter(com, param).c_str());
+
+		if (debugChannelSet(kSludgeDebugStackMachine, -1)) {
+			debugN("  Stack before: ");
+			printStack(fun->stack);
+
+			debugN("  Reg before: ");
+			fun->reg.debugPrint();
+			debug("%s", "");
+
+			debugN(" Locals before: ");
+			printLocals(fun->localVars, fun->numLocals);
+		}
+
+		debugC(1, kSludgeDebugStackMachine, "Executing command function %d line %i: %s(%s)", fun->originalNumber, fun->runThisLine, sludgeText[com], getCommandParameter(com, param).c_str());
 
 		if (numBIFNames) {
 			setFatalInfo((fun->originalNumber < numUserFunc) ? allUserFunc[fun->originalNumber] : "Unknown user function", (com < numSludgeCommands) ? sludgeText[com] : ERROR_UNKNOWN_MCODE);
@@ -622,8 +656,22 @@ bool continueFunction(LoadedFunction *fun) {
 			return fatal(ERROR_UNKNOWN_CODE);
 		}
 
-		if (advanceNow)
+		if (advanceNow) {
+			if (debugChannelSet(kSludgeDebugStackMachine, -1)) {
+				debugN("  Stack after: ");
+
+				printStack(fun->stack);
+
+				debugN("  Reg after: ");
+				fun->reg.debugPrint();
+				debug("%s", "");
+
+				debugN(" Locals after: ");
+				printLocals(fun->localVars, fun->numLocals);
+			}
+
 			fun->runThisLine++;
+		}
 
 	}
 	return true;

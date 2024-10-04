@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@
 #include "ags/shared/game/main_game_file.h"
 #include "ags/shared/font/fonts.h"
 #include "ags/shared/gui/gui_main.h"
-#include "ags/shared/script/cc_error.h"
+#include "ags/shared/script/cc_common.h"
 #include "ags/shared/util/aligned_stream.h"
 #include "ags/shared/util/data_ext.h"
 #include "ags/shared/util/path.h"
@@ -71,8 +70,6 @@ String GetMainGameFileErrorText(MainGameFileErrorType err) {
 		return "Unable to determine native game resolution.";
 	case kMGFErr_TooManySprites:
 		return "Too many sprites for this engine to handle.";
-	case kMGFErr_TooManyCursors:
-		return "Too many cursors for this engine to handle.";
 	case kMGFErr_InvalidPropertySchema:
 		return "Failed to deserialize custom properties schema.";
 	case kMGFErr_InvalidPropertyValues:
@@ -99,10 +96,8 @@ String GetMainGameFileErrorText(MainGameFileErrorType err) {
 	return "Unknown error.";
 }
 
-LoadedGameEntities::LoadedGameEntities(GameSetupStruct &game, DialogTopic *&dialogs, ViewStruct *&views)
+LoadedGameEntities::LoadedGameEntities(GameSetupStruct &game)
 	: Game(game)
-	, Dialogs(dialogs)
-	, Views(views)
 	, SpriteCount(0) {
 }
 
@@ -137,12 +132,12 @@ String FindGameData(const String &path, bool(*fn_testfile)(const String &)) {
 	if (folder.getChildren(files, Common::FSNode::kListFilesOnly)) {
 		for (Common::FSList::iterator it = files.begin(); it != files.end(); ++it) {
 			Common::String test_file = it->getName();
-			Common::String filePath = it->getPath();
+			Common::Path filePath = it->getPath();
 
 			if (test_file.hasSuffixIgnoreCase(".ags") ||
 			        test_file.equalsIgnoreCase("ac2game.dat") ||
 			        test_file.hasSuffixIgnoreCase(".exe")) {
-				if (IsMainGameLibrary(test_file.c_str()) && fn_testfile(filePath.c_str())) {
+				if (IsMainGameLibrary(test_file.c_str()) && fn_testfile(filePath.toString('/'))) {
 					Debug::Printf("Found game data pak: %s", test_file.c_str());
 					return test_file.c_str();
 				}
@@ -187,6 +182,7 @@ static HGameFileError OpenMainGameFileBase(Stream *in, MainGameSource &src) {
 	// rid of it too easily; the easy way is to set it whenever the main
 	// game file is opened.
 	_G(loaded_game_file_version) = src.DataVersion;
+	_G(game_compiled_version).SetFromString(src.CompiledWith);
 	return HGameFileError::None();
 }
 
@@ -196,24 +192,25 @@ HGameFileError OpenMainGameFile(const String &filename, MainGameSource &src) {
 	// Try to open given file
 	Stream *in = File::OpenFileRead(filename);
 	if (!in)
-		return new MainGameFileError(kMGFErr_FileOpenFailed, String::FromFormat("Filename: %s.", filename.GetCStr()));
+		return new MainGameFileError(kMGFErr_FileOpenFailed, String::FromFormat("Tried filename: %s.", filename.GetCStr()));
 	src.Filename = filename;
 	src.InputStream.reset(in);
 	return OpenMainGameFileBase(in, src);
 }
 
-HGameFileError OpenMainGameFileFromDefaultAsset(MainGameSource &src) {
+HGameFileError OpenMainGameFileFromDefaultAsset(MainGameSource &src, AssetManager *mgr) {
 	// Cleanup source struct
 	src = MainGameSource();
 	// Try to find and open main game file
 	String filename = MainGameSource::DefaultFilename_v3;
-	Stream *in = _GP(AssetMgr)->OpenAsset(filename);
+	Stream *in = mgr->OpenAsset(filename);
 	if (!in) {
 		filename = MainGameSource::DefaultFilename_v2;
-		in = _GP(AssetMgr)->OpenAsset(filename);
+		in = mgr->OpenAsset(filename);
 	}
 	if (!in)
-		return new MainGameFileError(kMGFErr_FileOpenFailed, String::FromFormat("Filename: %s.", filename.GetCStr()));
+		return new MainGameFileError(kMGFErr_FileOpenFailed,
+									 String::FromFormat("Tried filenames: %s, %s.", MainGameSource::DefaultFilename_v3, MainGameSource::DefaultFilename_v2));
 	src.Filename = filename;
 	src.InputStream.reset(in);
 	return OpenMainGameFileBase(in, src);
@@ -223,7 +220,7 @@ HGameFileError ReadDialogScript(PScript &dialog_script, Stream *in, GameDataVers
 	if (data_ver > kGameVersion_310) { // 3.1.1+ dialog script
 		dialog_script.reset(ccScript::CreateFromStream(in));
 		if (dialog_script == nullptr)
-			return new MainGameFileError(kMGFErr_CreateDialogScriptFailed, _G(ccErrorString));
+			return new MainGameFileError(kMGFErr_CreateDialogScriptFailed, cc_get_error().ErrorString);
 	} else { // 2.x and < 3.1.1 dialog
 		dialog_script.reset();
 	}
@@ -237,7 +234,7 @@ HGameFileError ReadScriptModules(std::vector<PScript> &sc_mods, Stream *in, Game
 		for (int i = 0; i < count; ++i) {
 			sc_mods[i].reset(ccScript::CreateFromStream(in));
 			if (sc_mods[i] == nullptr)
-				return new MainGameFileError(kMGFErr_CreateScriptModuleFailed, _G(ccErrorString));
+				return new MainGameFileError(kMGFErr_CreateScriptModuleFailed, cc_get_error().ErrorString);
 		}
 	} else {
 		sc_mods.resize(0);
@@ -254,28 +251,27 @@ void ReadViewStruct272_Aligned(std::vector<ViewStruct272> &oldv, Stream *in, siz
 	}
 }
 
-void ReadViews(GameSetupStruct &game, ViewStruct *&views, Stream *in, GameDataVersion data_ver) {
-	int count = _GP(game).numviews;
-	views = (ViewStruct *)calloc(sizeof(ViewStruct) * count, 1);
-	if (data_ver > kGameVersion_272) { // 3.x views
-		for (int i = 0; i < _GP(game).numviews; ++i) {
-			_G(views)[i].ReadFromFile(in);
+void ReadViews(GameSetupStruct &game, std::vector<ViewStruct> &views, Stream *in, GameDataVersion data_ver) {
+	views.resize(game.numviews);
+	if (data_ver > kGameVersion_272) // 3.x views
+	{
+		for (int i = 0; i < game.numviews; ++i) {
+			views[i].ReadFromFile(in);
 		}
-	} else { // 2.x views
+	} else // 2.x views
+	{
 		std::vector<ViewStruct272> oldv;
-		ReadViewStruct272_Aligned(oldv, in, count);
+		ReadViewStruct272_Aligned(oldv, in, game.numviews);
 		Convert272ViewsToNew(oldv, views);
 	}
 }
 
-void ReadDialogs(DialogTopic *&dialog,
-                 std::vector< std::shared_ptr<unsigned char> > &old_dialog_scripts,
+void ReadDialogs(std::vector<DialogTopic> &dialog,
+                 std::vector<std::vector<uint8_t>> &old_dialog_scripts,
                  std::vector<String> &old_dialog_src,
                  std::vector<String> &old_speech_lines,
                  Stream *in, GameDataVersion data_ver, int dlg_count) {
-	// TODO: I suspect +5 was a hacky way to "supress" memory access mistakes;
-	// double check and remove if proved unnecessary
-	dialog = (DialogTopic *)malloc(sizeof(DialogTopic) * dlg_count + 5);
+	dialog.resize(dlg_count);
 	for (int i = 0; i < dlg_count; ++i) {
 		dialog[i].ReadFromFile(in);
 	}
@@ -287,15 +283,15 @@ void ReadDialogs(DialogTopic *&dialog,
 	old_dialog_src.resize(dlg_count);
 	for (int i = 0; i < dlg_count; ++i) {
 		// NOTE: originally this was read into dialog[i].optionscripts
-		old_dialog_scripts[i].reset(new unsigned char[dialog[i].codesize]);
-		in->Read(old_dialog_scripts[i].get(), dialog[i].codesize);
+		old_dialog_scripts[i].resize(dialog[i].codesize);
+		in->Read(old_dialog_scripts[i].data(), dialog[i].codesize);
 
 		// Encrypted text script
 		int script_text_len = in->ReadInt32();
 		if (script_text_len > 1) {
 			// Originally in the Editor +20000 bytes more were allocated, with comment:
 			//   "add a large buffer because it will get added to if another option is added"
-			// which probably refered to this data used by old editor directly to edit dialogs
+			// which probably referred to this data used by old editor directly to edit dialogs
 			char *buffer = new char[script_text_len + 1];
 			in->Read(buffer, script_text_len);
 			if (data_ver > kGameVersion_260)
@@ -310,7 +306,7 @@ void ReadDialogs(DialogTopic *&dialog,
 
 	// Read the dialog lines
 	//
-	// TODO: investigate this: these strings were read much simplier in the editor, see code:
+	// TODO: investigate this: these strings were read much simpler in the editor, see code:
 	/*
 	    char stringbuffer[1000];
 	    for (bb=0;bb<thisgame.numdlgmessage;bb++) {
@@ -320,7 +316,7 @@ void ReadDialogs(DialogTopic *&dialog,
 	            fgetstring(stringbuffer, iii);
 	    }
 	*/
-	int i = 0;
+	//int i = 0;
 	char buffer[1000];
 	if (data_ver <= kGameVersion_260) {
 		// Plain text on <= 2.60
@@ -347,23 +343,23 @@ void ReadDialogs(DialogTopic *&dialog,
 				break;
 
 			old_speech_lines.push_back(buffer);
-			i++;
+			//i++;
 		}
 	} else {
 		// Encrypted text on > 2.60
 		while (1) {
-			size_t newlen = in->ReadInt32();
-			if (static_cast<uint32_t>(newlen) == 0xCAFEBEEF) { // GUI magic
+			size_t newlen = static_cast<uint32_t>(in->ReadInt32());
+			if (newlen == 0xCAFEBEEF) { // GUI magic
 				in->Seek(-4);
 				break;
 			}
 
-			newlen = Math::Min(newlen, sizeof(buffer) - 1);
+			newlen = MIN(newlen, sizeof(buffer) - 1);
 			in->Read(buffer, newlen);
 			decrypt_text(buffer, newlen);
 			buffer[newlen] = 0;
 			old_speech_lines.push_back(buffer);
-			i++;
+			//i++;
 		}
 	}
 }
@@ -384,8 +380,8 @@ HGameFileError ReadPlugins(std::vector<PluginInfo> &infos, Stream *in) {
 		PluginInfo info;
 		info.Name = name;
 		if (datasize > 0) {
-			info.Data.reset(new char[datasize]);
-			in->Read(info.Data.get(), datasize);
+			info.Data.resize(datasize);
+			in->Read(&info.Data.front(), datasize);
 		}
 		info.DataLen = datasize;
 		infos.push_back(info);
@@ -488,6 +484,11 @@ void UpgradeFonts(GameSetupStruct &game, GameDataVersion data_ver) {
 			}
 		}
 	}
+	if (data_ver < kGameVersion_360_11) { // use global defaults for the font load flags
+		for (int i = 0; i < game.numfonts; ++i) {
+			game.fonts[i].Flags |= FFLG_TTF_BACKCOMPATMASK;
+		}
+	}
 }
 
 // Convert audio data to the current version
@@ -523,7 +524,7 @@ void UpgradeAudio(GameSetupStruct &game, LoadedGameEntities &ents, GameDataVersi
 	// Read audio clip names from from registered libraries
 	for (size_t i = 0; i < _GP(AssetMgr)->GetLibraryCount(); ++i) {
 		const AssetLibInfo *game_lib = _GP(AssetMgr)->GetLibraryInfo(i);
-		if (Path::IsDirectory(game_lib->BasePath))
+		if (File::IsDirectory(game_lib->BasePath))
 			continue; // might be a directory
 
 		for (const AssetInfo &info : game_lib->AssetInfos) {
@@ -538,7 +539,7 @@ void UpgradeAudio(GameSetupStruct &game, LoadedGameEntities &ents, GameDataVersi
 	// but that have to be done consistently if done at all.
 	for (size_t i = 0; i < _GP(AssetMgr)->GetLibraryCount(); ++i) {
 		const AssetLibInfo *game_lib = _GP(AssetMgr)->GetLibraryInfo(i);
-		if (!Path::IsDirectory(game_lib->BasePath))
+		if (!File::IsDirectory(game_lib->BasePath))
 			continue; // might be a library
 
 
@@ -608,7 +609,7 @@ void UpgradeMouseCursors(GameSetupStruct &game, GameDataVersion data_ver) {
 }
 
 // Adjusts score clip id, depending on game data version
-void RemapLegacySoundNums(GameSetupStruct &game, ViewStruct *&views, GameDataVersion data_ver) {
+void RemapLegacySoundNums(GameSetupStruct &game, std::vector<ViewStruct> &views, GameDataVersion data_ver) {
 	if (data_ver >= kGameVersion_320)
 		return;
 
@@ -637,8 +638,8 @@ void SetDefaultGlmsg(GameSetupStruct &game, int msgnum, const char *val) {
 	// TODO: find out why the index should be lowered by 500
 	// (or rather if we may pass correct index right away)
 	msgnum -= 500;
-	if (_GP(game).messages[msgnum] == nullptr)
-		_GP(game).messages[msgnum] = ags_strdup(val);
+	if (_GP(game).messages[msgnum].IsEmpty())
+		_GP(game).messages[msgnum] = val;
 }
 
 // Sets up default global messages (these are used mainly in older games)
@@ -685,10 +686,8 @@ HGameFileError ReadSpriteFlags(LoadedGameEntities &ents, Stream *in, GameDataVer
 		return new MainGameFileError(kMGFErr_TooManySprites, String::FromFormat("Count: %zu, max: %zu", sprcount, (size_t)SpriteCache::MAX_SPRITE_INDEX + 1));
 
 	ents.SpriteCount = sprcount;
-	ents.SpriteFlags.clear();
 	ents.SpriteFlags.resize(sprcount);
-
-	in->Read(&ents.SpriteFlags[0], sprcount);
+	in->Read(ents.SpriteFlags.data(), sprcount);
 	return HGameFileError::None();
 }
 
@@ -709,13 +708,38 @@ protected:
 	GameDataVersion _dataVer;
 };
 
-HError GameDataExtReader::ReadBlock(int block_id, const String &ext_id,
-		soff_t block_len, bool &read_next) {
-    // Add extensions here checking ext_id, which is an up to 16-chars name, for example:
+HError GameDataExtReader::ReadBlock(int /*block_id*/, const String &ext_id,
+		soff_t /*block_len*/, bool &read_next) {
+	read_next = true;
+	// Add extensions here checking ext_id, which is an up to 16-chars name, for example:
     // if (ext_id.CompareNoCase("GUI_NEWPROPS") == 0)
     // {
     //     // read new gui properties
     // }
+	if (ext_id.CompareNoCase("v360_fonts") == 0) {
+		for (int i = 0; i < _ents.Game.numfonts; ++i) {
+			// adjustable font outlines
+			_ents.Game.fonts[i].AutoOutlineThickness = _in->ReadInt32();
+			_ents.Game.fonts[i].AutoOutlineStyle =
+				static_cast<enum FontInfo::AutoOutlineStyle>(_in->ReadInt32());
+			// reserved
+			_in->ReadInt32();
+			_in->ReadInt32();
+			_in->ReadInt32();
+			_in->ReadInt32();
+		}
+		return HError::None();
+	} else if (ext_id.CompareNoCase("v360_cursors") == 0) {
+		for (int i = 0; i < _ents.Game.numcursors; ++i) {
+			_ents.Game.mcurs[i].animdelay = _in->ReadInt32();
+			// reserved
+			_in->ReadInt32();
+			_in->ReadInt32();
+			_in->ReadInt32();
+		}
+		return HError::None();
+	}
+
     return new MainGameFileError(kMGFErr_ExtUnknown, String::FromFormat("Type: %s", ext_id.GetCStr()));
 }
 
@@ -727,10 +751,12 @@ HGameFileError ReadGameData(LoadedGameEntities &ents, Stream *in, GameDataVersio
 	//-------------------------------------------------------------------------
 	{
 		AlignedStream align_s(in, Shared::kAligned_Read);
-		game.GameSetupStructBase::ReadFromFile(&align_s);
+		game.GameSetupStructBase::ReadFromFile(&align_s, data_ver);
 	}
 
 	Debug::Printf(kDbgMsg_Info, "Game title: '%s'", game.gamename);
+	Debug::Printf(kDbgMsg_Info, "Game uid (old format): `%d`", game.uniqueid);
+	Debug::Printf(kDbgMsg_Info, "Game guid: '%s'", game.guid);
 
 	if (game.GetGameRes().IsNull())
 		return new MainGameFileError(kMGFErr_InvalidNativeResolution);
@@ -741,7 +767,7 @@ HGameFileError ReadGameData(LoadedGameEntities &ents, Stream *in, GameDataVersio
 	if (!err)
 		return err;
 	game.ReadInvInfo_Aligned(in);
-	err = game.read_cursors(in, data_ver);
+	err = game.read_cursors(in);
 	if (!err)
 		return err;
 	game.read_interaction_scripts(in, data_ver);
@@ -750,7 +776,7 @@ HGameFileError ReadGameData(LoadedGameEntities &ents, Stream *in, GameDataVersio
 	if (game.load_compiled_script) {
 		ents.GlobalScript.reset(ccScript::CreateFromStream(in));
 		if (!ents.GlobalScript)
-			return new MainGameFileError(kMGFErr_CreateGlobalScriptFailed, _G(ccErrorString));
+			return new MainGameFileError(kMGFErr_CreateGlobalScriptFailed, cc_get_error().ErrorString);
 		err = ReadDialogScript(ents.DialogScript, in, data_ver);
 		if (!err)
 			return err;
@@ -767,13 +793,13 @@ HGameFileError ReadGameData(LoadedGameEntities &ents, Stream *in, GameDataVersio
 		in->Seek(count * 0x204);
 	}
 
-	game.read_characters(in, data_ver);
+	game.read_characters(in);
 	game.read_lipsync(in, data_ver);
 	game.read_messages(in, data_ver);
 
 	ReadDialogs(ents.Dialogs, ents.OldDialogScripts, ents.OldDialogSources, ents.OldSpeechLines,
 		in, data_ver, game.numdialog);
-	HError err2 = GUI::ReadGUI(_GP(guis), in);
+	HError err2 = GUI::ReadGUI(in);
 	if (!err2)
 		return new MainGameFileError(kMGFErr_GameEntityFailed, err2);
 	game.numgui = _GP(guis).size();
@@ -834,7 +860,7 @@ HGameFileError UpdateGameData(LoadedGameEntities &ents, GameDataVersion data_ver
 void PreReadGameData(GameSetupStruct &game, Stream *in, GameDataVersion data_ver) {
 	{
 		AlignedStream align_s(in, Shared::kAligned_Read);
-		_GP(game).ReadFromFile(&align_s);
+		_GP(game).ReadFromFile(&align_s, data_ver);
 	}
 	// Discard game messages we do not need here
 	delete[] _GP(game).load_messages;

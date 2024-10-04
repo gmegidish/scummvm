@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,7 @@
 #include "ags/engine/ac/game_setup.h"
 #include "ags/shared/ac/game_setup_struct.h"
 #include "ags/engine/ac/game_state.h"
+#include "ags/engine/ac/global_game.h"
 #include "ags/engine/ac/mouse.h"
 #include "ags/engine/ac/runtime_defines.h"
 #include "ags/engine/ac/walk_behind.h"
@@ -38,6 +38,7 @@
 #include "ags/engine/gfx/graphics_driver.h"
 #include "ags/shared/gui/gui_main.h"
 #include "ags/shared/gui/gui_inv.h"
+#include "ags/engine/main/game_run.h"
 #include "ags/engine/main/graphics_mode.h"
 #include "ags/engine/main/engine_setup.h"
 #include "ags/engine/media/video/video.h"
@@ -108,23 +109,24 @@ void convert_objects_to_data_resolution(GameDataVersion filever) {
 		_GP(game).chars[i].y /= mul;
 	}
 
-	for (int i = 0; i < _G(numguiinv); ++i) {
-		_GP(guiinv)[i].ItemWidth /= mul;
-		_GP(guiinv)[i].ItemHeight /= mul;
-		_GP(guiinv)[i].OnResized();
+	for (auto &inv : _GP(guiinv)) {
+		inv.ItemWidth /= mul;
+		inv.ItemHeight /= mul;
+		inv.OnResized();
 	}
 }
 
 void engine_setup_system_gamesize() {
 	_GP(scsystem).width = _GP(game).GetGameRes().Width;
 	_GP(scsystem).height = _GP(game).GetGameRes().Height;
+	_GP(scsystem).coldepth = _GP(game).GetColorDepth();
 	_GP(scsystem).viewport_width = game_to_data_coord(_GP(play).GetMainViewport().GetWidth());
 	_GP(scsystem).viewport_height = game_to_data_coord(_GP(play).GetMainViewport().GetHeight());
 }
 
 void engine_init_resolution_settings(const Size game_size) {
 	Debug::Printf("Initializing resolution settings");
-	_GP(usetup).textheight = getfontheight_outlined(0) + 1;
+	_GP(usetup).textheight = get_font_height_outlined(0) + 1;
 
 	Debug::Printf(kDbgMsg_Info, "Game native resolution: %d x %d (%d bit)%s", game_size.Width, game_size.Height, _GP(game).color_depth * 8,
 	              _GP(game).IsLegacyLetterbox() ? " letterbox-by-design" : "");
@@ -138,40 +140,41 @@ void engine_init_resolution_settings(const Size game_size) {
 	engine_setup_system_gamesize();
 }
 
+void engine_adjust_for_rotation_settings() {
+#if 0
+	switch (_GP(usetup).rotation) {
+	case ScreenRotation::kScreenRotation_Portrait:
+		SDL_SetHint(SDL_HINT_ORIENTATIONS, "Portrait PortraitUpsideDown");
+		break;
+	case ScreenRotation::kScreenRotation_Landscape:
+		SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+		break;
+	case kScreenRotation_Unlocked:
+		// let the user rotate as wished. No adjustment needed.
+	default:
+		break;
+	}
+#endif
+}
+
 // Setup gfx driver callbacks and options
 void engine_post_gfxmode_driver_setup() {
-	_G(gfxDriver)->SetCallbackForPolling(update_polled_stuff_if_runtime);
+	_G(gfxDriver)->SetCallbackForPolling(update_polled_stuff);
 	_G(gfxDriver)->SetCallbackToDrawScreen(draw_game_screen_callback, construct_engine_overlay);
-	_G(gfxDriver)->SetCallbackForNullSprite(GfxDriverNullSpriteCallback);
+	_G(gfxDriver)->SetCallbackOnSpriteEvt(GfxDriverSpriteEvtCallback);
 }
 
 // Reset gfx driver callbacks
 void engine_pre_gfxmode_driver_cleanup() {
 	_G(gfxDriver)->SetCallbackForPolling(nullptr);
 	_G(gfxDriver)->SetCallbackToDrawScreen(nullptr, nullptr);
-	_G(gfxDriver)->SetCallbackForNullSprite(nullptr);
+	_G(gfxDriver)->SetCallbackOnSpriteEvt(nullptr);
 	_G(gfxDriver)->SetMemoryBackBuffer(nullptr);
-}
-
-// Setup virtual screen
-void engine_post_gfxmode_screen_setup(const DisplayMode &dm, bool recreate_bitmaps) {
-	if (recreate_bitmaps) {
-		// TODO: find out if
-		// - we need to support this case at all;
-		// - if yes then which bitmaps need to be recreated (probably only video bitmaps and textures?)
-	}
-}
-
-void engine_pre_gfxmode_screen_cleanup() {
-}
-
-// Release virtual screen
-void engine_pre_gfxsystem_screen_destroy() {
 }
 
 // Setup color conversion parameters
 void engine_setup_color_conversions(int coldepth) {
-	// default shifts for how we store the sprite data1
+	// default shifts for how we store the sprite data
 	_G(_rgb_r_shift_32) = 16;
 	_G(_rgb_g_shift_32) = 8;
 	_G(_rgb_b_shift_32) = 0;
@@ -182,31 +185,10 @@ void engine_setup_color_conversions(int coldepth) {
 	_G(_rgb_g_shift_15) = 5;
 	_G(_rgb_b_shift_15) = 0;
 
-	// Most cards do 5-6-5 RGB, which is the format the files are saved in
-	// Some do 5-6-5 BGR, or  6-5-5 RGB, in which case convert the gfx
-	if ((coldepth == 16) && ((_G(_rgb_b_shift_16) != 0) || (_G(_rgb_r_shift_16) != 11))) {
-		_G(convert_16bit_bgr) = 1;
-		if (_G(_rgb_r_shift_16) == 10) {
-			// some very old graphics cards lie about being 16-bit when they
-			// are in fact 15-bit ... get around this
-			_G(places_r) = 3;
-			_G(places_g) = 3;
-		}
-	}
-	if (coldepth > 16) {
-		// when we're using 32-bit colour, it converts hi-color images
-		// the wrong way round - so fix that
-
-		_G(_rgb_r_shift_16) = 11;
-		_G(_rgb_g_shift_16) = 5;
-		_G(_rgb_b_shift_16) = 0;
-	} else if (coldepth == 16) {
-		// ensure that any 32-bit graphics displayed are converted
-		// properly to the current depth
-		_G(_rgb_r_shift_32) = 16;
-		_G(_rgb_g_shift_32) = 8;
-		_G(_rgb_b_shift_32) = 0;
-	} else if (coldepth < 16) {
+	// TODO: investigate if this is still necessary, and under which circumstances?
+	// the color conversion should likely be done when preparing textures or
+	// rendering to final output instead, not in the main engine code.
+	if (coldepth < 16) {
 		// ensure that any 32-bit graphics displayed are converted
 		// properly to the current depth
 #if AGS_PLATFORM_OS_WINDOWS
@@ -240,7 +222,7 @@ void engine_pre_gfxmode_draw_cleanup() {
 }
 
 // Setup mouse control mode and graphic area
-void engine_post_gfxmode_mouse_setup(const DisplayMode &dm, const Size &init_desktop) {
+void engine_post_gfxmode_mouse_setup(const Size &init_desktop) {
 	// Assign mouse control parameters.
 	//
 	// NOTE that we setup speed and other related properties regardless of
@@ -249,7 +231,7 @@ void engine_post_gfxmode_mouse_setup(const DisplayMode &dm, const Size &init_des
 	if (_GP(usetup).mouse_speed_def == kMouseSpeed_CurrentDisplay) {
 		Size cur_desktop;
 		if (sys_get_desktop_resolution(cur_desktop.Width, cur_desktop.Height) == 0)
-			_GP(mouse).SetSpeedUnit(Math::Max((float)cur_desktop.Width / (float)init_desktop.Width,
+			_GP(mouse).SetSpeedUnit(MAX((float)cur_desktop.Width / (float)init_desktop.Width,
 			                                  (float)cur_desktop.Height / (float)init_desktop.Height));
 	}
 
@@ -273,24 +255,25 @@ void engine_pre_gfxmode_mouse_cleanup() {
 
 // Fill in _GP(scsystem) struct with display mode parameters
 void engine_setup_scsystem_screen(const DisplayMode &dm) {
-	_GP(scsystem).coldepth = dm.ColorDepth;
-	_GP(scsystem).windowed = dm.Windowed;
+	_GP(scsystem).windowed = dm.IsWindowed();
 	_GP(scsystem).vsync = dm.Vsync;
 }
 
-void engine_post_gfxmode_setup(const Size &init_desktop) {
+void engine_post_gfxmode_setup(const Size &init_desktop, const DisplayMode &old_dm) {
 	DisplayMode dm = _G(gfxDriver)->GetDisplayMode();
 	// If color depth has changed (or graphics mode was inited for the
 	// very first time), we also need to recreate bitmaps
-	bool has_driver_changed = _GP(scsystem).coldepth != dm.ColorDepth;
+	bool has_driver_changed = old_dm.ColorDepth != dm.ColorDepth;
 
 	engine_setup_scsystem_screen(dm);
 	engine_post_gfxmode_driver_setup();
 	if (has_driver_changed) {
 		engine_post_gfxmode_draw_setup(dm);
 	}
-	engine_post_gfxmode_screen_setup(dm, has_driver_changed);
-	engine_post_gfxmode_mouse_setup(dm, init_desktop);
+	engine_post_gfxmode_mouse_setup(init_desktop);
+
+	// reset multitasking (may be overridden by the current display mode)
+	SetMultitasking(_GP(usetup).multitasking);
 
 	invalidate_screen();
 }
@@ -298,13 +281,11 @@ void engine_post_gfxmode_setup(const Size &init_desktop) {
 void engine_pre_gfxmode_release() {
 	engine_pre_gfxmode_mouse_cleanup();
 	engine_pre_gfxmode_driver_cleanup();
-	engine_pre_gfxmode_screen_cleanup();
 }
 
 void engine_pre_gfxsystem_shutdown() {
 	engine_pre_gfxmode_release();
 	engine_pre_gfxmode_draw_cleanup();
-	engine_pre_gfxsystem_screen_destroy();
 }
 
 void on_coordinates_scaling_changed() {

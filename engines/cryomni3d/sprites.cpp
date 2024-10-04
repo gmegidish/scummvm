@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -111,10 +110,10 @@ void Sprites::setupMapTable(const uint *table, uint size) {
 		if (unswept) {
 			warning("We got %d unreachable sprites from map table. This should not happen."
 			        " Fixing it for now", unswept);
-			// Enlarge the map to hold new indexes
+			// Enlarge the map to hold new indices
 			_map->reserve(_map->size() + unswept);
 
-			// Set new indexes to unswept sprites
+			// Set new indices to unswept sprites
 			i = 0;
 			for (Common::Array<CryoCursor *>::iterator it = _cursors.begin(); it != _cursors.end(); it++, i++) {
 				if ((*it)->_constantId == -1u) {

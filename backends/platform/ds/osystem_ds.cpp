@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,18 +44,24 @@
 OSystem_DS *OSystem_DS::_instance = NULL;
 
 OSystem_DS::OSystem_DS()
-	: _eventSource(NULL), _disableCursorPalette(true),
+	: _eventSource(NULL), _engineRunning(false), _disableCursorPalette(true),
 	_graphicsMode(GFX_HWSCALE), _stretchMode(100),
-	_paletteDirty(false), _cursorDirty(false),
+	_paletteDirty(false), _cursorDirty(false), _overlayInGUI(false),
 	_pfCLUT8(Graphics::PixelFormat::createFormatCLUT8()),
 	_pfABGR1555(Graphics::PixelFormat(2, 5, 5, 5, 1, 0, 5, 10, 15)),
-	_callbackTimer(10), _currentTimeMillis(0)
+	_callbackTimer(10), _currentTimeMillis(0), _subScreenActive(true)
 {
 	_instance = this;
 
 	nitroFSInit(NULL);
-	_fsFactory = new DevoptabFilesystemFactory();
-	_mutexManager = new NullMutexManager();
+
+	DevoptabFilesystemFactory *fsFactory = new DevoptabFilesystemFactory();
+
+	// Disable newlib's buffering, since libfat handles caching.
+	fsFactory->configureBuffering(DrivePOSIXFilesystemNode::kBufferingModeDisabled, 0);
+
+	_fsFactory = fsFactory;
+
 }
 
 OSystem_DS::~OSystem_DS() {
@@ -71,8 +76,6 @@ void timerTickHandler() {
 }
 
 void OSystem_DS::initBackend() {
-	initGraphics();
-
 	defaultExceptionHandler();
 
 	ConfMan.setInt("autosave_period", 0);
@@ -87,6 +90,8 @@ void OSystem_DS::initBackend() {
 
 	_mixerManager = new MaxModMixerManager(11025, 32768);
 	_mixerManager->init();
+
+	initGraphics();
 
 	BaseBackend::initBackend();
 }
@@ -129,13 +134,38 @@ void OSystem_DS::getTimeAndDate(TimeDate &td, bool skipRecord) const {
 	td.tm_wday = t.tm_wday;
 }
 
+Common::MutexInternal *OSystem_DS::createMutex() {
+	return new NullMutexInternal();
+}
+
 void OSystem_DS::quit() {
 }
 
 void OSystem_DS::logMessage(LogMessageType::Type type, const char *message) {
 #ifndef DISABLE_TEXT_CONSOLE
-	printf("%s", message);
+	if (type == LogMessageType::kError) {
+		printf("\x1b[41m%s\x1b[39m", message);
+	} else {
+		printf("%s", message);
+	}
 #endif
+}
+
+void OSystem_DS::messageBox(LogMessageType::Type type, const char *message) {
+	if (type == LogMessageType::kError) {
+#ifdef DISABLE_TEXT_CONSOLE
+		consoleDemoInit();
+		printf("\x1b[41m%s\x1b[39m", message);
+#endif
+
+		printf("\nPress any button to continue\n");
+
+		while(1) {
+			swiWaitForVBlank();
+			scanKeys();
+			if (keysDown()) break;
+		}
+	}
 }
 
 static const Common::HardwareInputTableEntry ndsJoystickButtons[] = {
@@ -185,4 +215,12 @@ Common::String OSystem_DS::getSystemLanguage() const {
 		case 6: return "zh_CN";
 		default: return "en_US";
 	}
+}
+
+void OSystem_DS::engineInit() {
+	_engineRunning = true;
+}
+
+void OSystem_DS::engineDone() {
+	_engineRunning = false;
 }

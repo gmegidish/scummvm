@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@ struct AgiAppleIIgsDelayOverwriteRoomEntry {
 	int16 activePictureNr; // resource number of current active background picture
 	int16 timeDelayOverwrite; // time delay here is like on PC
 	// so 0 - unlimited, 1 - 20 cycles, 2 - 10 cycles, -1 means do not touch speed set by scripts
-	bool onlyWhenPlayerNotInControl; // only sets spee, when play is not in control
+	bool onlyWhenPlayerNotInControl; // only sets speed, when play is not in control
 };
 
 struct AgiAppleIIgsDelayOverwriteGameEntry {
@@ -95,6 +94,16 @@ static const AgiAppleIIgsDelayOverwriteGameEntry appleIIgsDelayOverwriteGameTabl
 	{ GID_SQ2,        2, appleIIgsDelayOverwriteSQ2 },
 	{ GID_AGIDEMO,   -1, nullptr }
 };
+
+static const AgiAppleIIgsDelayOverwriteGameEntry *getAppleIIgsDelayOverwriteGameEntry(uint32 gameId) {
+	const AgiAppleIIgsDelayOverwriteGameEntry *appleIIgsDelayOverwrite = appleIIgsDelayOverwriteGameTable;
+	while (appleIIgsDelayOverwrite->gameId != GID_AGIDEMO) {
+		if (appleIIgsDelayOverwrite->gameId == gameId)
+			break; // game found
+		appleIIgsDelayOverwrite++;
+	}
+	return appleIIgsDelayOverwrite;
+}
 
 } // End of namespace Agi
 

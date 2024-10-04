@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -51,6 +50,18 @@ int InventoryEntry::checkItem(int itemId) {
 		return _newItem2;
 	else
 		return -1;
+}
+
+/*------------------------------------------------------------------------*/
+
+InventoryManager::SavedFields::SavedFields() {
+	_vWindowHeight = _vWindowLinesTall = _vWindowWidth = _vWindowBytesWide = 0;
+	_playFieldHeight = _playFieldWidth = 0;
+	_windowXAdd = _windowYAdd = 0;
+	_screenYOff = 0;
+	_scrollX = _scrollY = 0;
+	_clipWidth = _clipHeight = 0;
+	_scrollCol = _scrollRow = 0;
 }
 
 /*------------------------------------------------------------------------*/
@@ -414,6 +425,10 @@ void InventoryManager::combineItems() {
 	screen._topSkip = screen._bottomSkip = 0;
 	screen._screenYOff = 0;
 
+	const Common::Rect screenBounds = screen.getBounds();
+	const int screenW = screenBounds.width();
+	const int screenH = screenBounds.height();
+
 	Common::Point tempMouse = events._mousePos;
 	Common::Point lastMouse = events._mousePos;
 
@@ -437,7 +452,7 @@ void InventoryManager::combineItems() {
 			continue;
 
 		lastMouse = events._mousePos;
-		Common::Rect lastRect(lastBox.x, lastBox.y, lastBox.x + 46, lastBox.y + 35);
+		Common::Rect lastRect(lastBox.x, lastBox.y, MIN(lastBox.x + 46, screenW), MIN(lastBox.y + 35, screenH));
 		screen.copyBlock(&_vm->_buffer2, lastRect);
 
 		Common::Point newPt;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,16 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ags/lib/std/algorithm.h"
+#include "common/std/algorithm.h"
 #include "ags/shared/font/wfn_font.h"
 #include "ags/shared/debugging/out.h"
 #include "ags/shared/util/memory.h"
 #include "ags/shared/util/stream.h"
+#include "ags/globals.h"
 
 namespace AGS3 {
 
@@ -45,7 +45,9 @@ void WFNChar::RestrictToBytes(size_t bytes) {
 		Height = static_cast<uint16_t>(bytes / GetRowByteCount());
 }
 
-const WFNChar WFNFont::_emptyChar;
+const WFNChar &WFNFont::GetChar(uint8_t code) const {
+	return code < _refs.size() ? *_refs[code] : _G(emptyChar);
+}
 
 void WFNFont::Clear() {
 	_refs.clear();
@@ -68,7 +70,8 @@ WFNError WFNFont::ReadFromFile(Stream *in, const soff_t data_size) {
 
 	const soff_t table_addr = static_cast<uint16_t>(in->ReadInt16()); // offset table relative address
 	if (table_addr < (soff_t)(WFN_FILE_SIG_LENGTH + sizeof(uint16_t)) || table_addr >= used_data_size) {
-		Debug::Printf(kDbgMsg_Error, "\tWFN: bad table address: %lld (%d - %d)", table_addr, WFN_FILE_SIG_LENGTH + sizeof(uint16_t), used_data_size);
+		Debug::Printf(kDbgMsg_Error, "\tWFN: bad table address: %llu (%llu - %llu)", static_cast<int64>(table_addr),
+			static_cast<int64>(WFN_FILE_SIG_LENGTH + sizeof(uint16_t)), static_cast<int64>(used_data_size));
 		return kWFNErr_BadTableAddress; // bad table address
 	}
 
@@ -169,7 +172,7 @@ WFNError WFNFont::ReadFromFile(Stream *in, const soff_t data_size) {
 		const uint16_t off = offset_table[i];
 		// if bad character offset - reference empty character
 		if (off < raw_data_offset || (soff_t)(off + MinCharDataSize) > table_addr) {
-			_refs[i] = &_emptyChar;
+			_refs[i] = &_G(emptyChar);
 		} else {
 			// in usual case the offset table references items in strict order
 			if (i < _items.size() && offs[i] == off)

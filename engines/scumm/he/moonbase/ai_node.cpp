@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,14 +31,14 @@ IContainedObject::IContainedObject(IContainedObject &sourceContainedObject) {
 int Node::_nodeCount = 0;
 
 Node::Node() {
-	_parent = NULL;
+	_parent = nullptr;
 	_depth = 0;
 	_nodeCount++;
-	_contents = NULL;
+	_contents = nullptr;
 }
 
 Node::Node(Node *sourceNode) {
-	_parent = NULL;
+	_parent = nullptr;
 	_children = sourceNode->getChildren();
 
 	_depth = sourceNode->getDepth();
@@ -48,9 +47,9 @@ Node::Node(Node *sourceNode) {
 }
 
 Node::~Node() {
-	if (_contents != NULL) {
+	if (_contents != nullptr) {
 		delete _contents;
-		_contents = NULL;
+		_contents = nullptr;
 	}
 
 	_nodeCount--;
@@ -72,7 +71,7 @@ int Node::generateChildren() {
 		int completionFlag;
 
 		IContainedObject *thisContObj = _contents->createChildObj(i, completionFlag);
-		assert(!(thisContObj != NULL && completionFlag == 0));
+		assert(!(thisContObj != nullptr && completionFlag == 0));
 
 		if (!completionFlag) {
 			_children.pop_back();
@@ -82,7 +81,7 @@ int Node::generateChildren() {
 
 		i++;
 
-		if (thisContObj != NULL) {
+		if (thisContObj != nullptr) {
 			tempNode->setContainedObject(thisContObj);
 		} else {
 			_children.pop_back();
@@ -113,7 +112,7 @@ int Node::generateNextChild() {
 	int compFlag;
 	IContainedObject *thisContObj = _contents->createChildObj(i, compFlag);
 
-	if (thisContObj != NULL) {
+	if (thisContObj != nullptr) {
 		tempNode->setContainedObject(thisContObj);
 	} else {
 		_children.pop_back();
@@ -139,10 +138,10 @@ Node *Node::popChild() {
 Node *Node::getFirstStep() {
 	Node *currentNode = this;
 
-	if (currentNode->getParent() == NULL)
+	if (currentNode->getParent() == nullptr)
 		return currentNode;
 
-	while (currentNode->getParent()->getParent() != NULL)
+	while (currentNode->getParent()->getParent() != nullptr)
 		currentNode = currentNode->getParent();
 
 	assert(currentNode->getDepth() == 1);

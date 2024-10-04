@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/stream.h"
 #include "common/mutex.h"
 #include "common/textconsole.h"
+
 #include "audio/audiostream.h"
 #include "audio/mixer.h"
 #include "audio/decoders/raw.h"
+
 #include "engines/grim/debug.h"
 #include "engines/grim/resource.h"
 #include "engines/grim/imuse/imuse_mcmp_mgr.h"
@@ -35,7 +36,7 @@ namespace Grim {
 
 struct Region {
 	int32 offset;       // offset of region
-	int32 length;       // lenght of region
+	int32 length;       // length of region
 };
 
 struct SoundDesc {
@@ -121,7 +122,7 @@ void VimaTrack::parseSoundHeader(SoundDesc *sound, int &headerSize) {
 	}
 }
 
-int32 VimaTrack::getDataFromRegion(SoundDesc *sound, int region, byte **buf, int32 offset, int32 size) {
+int32 VimaTrack::getDataFromRegion(SoundDesc *sound, int region, byte **buf, int32 offset, int32 size, int32 *flags) {
 	//assert(checkForProperHandle(sound));
 	assert(buf && offset >= 0 && size >= 0);
 	assert(region >= 0 && region < sound->numRegions);
@@ -138,10 +139,12 @@ int32 VimaTrack::getDataFromRegion(SoundDesc *sound, int region, byte **buf, int
 
 	if (sound->mcmpData) {
 		size = sound->mcmpMgr->decompressSample(region_offset + offset, size, buf);
+		*flags |= Audio::FLAG_LITTLE_ENDIAN;
 	} else {
 		*buf = new byte[size];
 		sound->inStream->seek(region_offset + offset + sound->headerSize, SEEK_SET);
 		sound->inStream->read(*buf, size);
+		*flags &= ~Audio::FLAG_LITTLE_ENDIAN;
 	}
 
 	return size;
@@ -190,7 +193,7 @@ void VimaTrack::playTrack(const Audio::Timestamp *start) {
 		return;
 
 	do {
-		result = getDataFromRegion(_desc, curRegion, &data, regionOffset, mixer_size);
+		result = getDataFromRegion(_desc, curRegion, &data, regionOffset, mixer_size, &mixerFlags);
 		if (channels == 1) {
 			result &= ~1;
 		}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,7 +57,7 @@ Set::~Set() {
 }
 
 bool Set::open(const Common::String &name) {
-	Common::ScopedPtr<Common::SeekableReadStream> s(_vm->getResourceStream(name));
+	Common::ScopedPtr<Common::SeekableReadStream> s(_vm->getResourceStream(_vm->_enhancedEdition ? ("scenes/" + name) : name));
 
 	uint32 sig = s->readUint32BE();
 	if (sig != kSet0)
@@ -488,11 +487,11 @@ void Set::overrideSceneObjectInfo(int objectId) const {
 	case kScenePS05:
 		if (objectId == 8 && _objects[objectId].name == "WIRE BASKET") {
 			// waste basket click box
-			_objects[objectId].bbox.setXYZ(706.32f, 0.0f, -350.80f, 724.90f, 15.15f, -330.09f);
+			_objects[objectId].bbox.setXYZ(707.30f, 0.14f, -350.80f, 724.90f, 15.15f, -330.09f);
 		} else if (objectId == 0 && _objects[objectId].name == "FIRE EXTINGISHER") {
 			// fire extinguisher is click-able (original game) but does nothing
-			// still it's best to fix its clickbox and remove clickable or restore functionality from
-			// the scene script
+			// still it's best to fix its clickbox and remove clickable
+			// or restore functionality from the scene script
 			_objects[objectId].bbox.setXYZ(695.63f, 42.65f, -628.10f, 706.71f, 69.22f, -614.47f);
 		}
 		break;

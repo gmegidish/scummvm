@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -36,13 +41,12 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeGob1,
 		kFeaturesNone,
 		0, 0, 0
 	},
 	{ //1
 		{
-			"gob1cd",
+			"gob1",
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
@@ -50,7 +54,6 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeGob1,
 		kFeaturesCD,
 		0, 0, 0
 	},
@@ -64,13 +67,12 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeGob2,
 		kFeaturesAdLib,
 		0, 0, 0
 	},
 	{ //3
 		{
-			"gob2mac",
+			"gob2",
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
@@ -78,13 +80,12 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeGob2,
 		kFeaturesAdLib,
 		0, 0, 0
 	},
 	{ //4
 		{
-			"gob2cd",
+			"gob2",
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
@@ -92,7 +93,6 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeGob2,
 		kFeaturesCD,
 		0, 0, 0
 	},
@@ -106,7 +106,6 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeBargon,
 		kFeaturesNone,
 		0, 0, 0
 	},
@@ -120,13 +119,12 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeGob3,
 		kFeaturesAdLib,
 		0, 0, 0
 	},
 	{ //7
 		{
-			"gob3cd",
+			"gob3",
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
@@ -134,7 +132,6 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeGob3,
 		kFeaturesCD,
 		0, 0, 0
 	},
@@ -144,17 +141,16 @@ static const GOBGameDescription fallbackDescs[] = {
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
-			kPlatformDOS,
+			kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUIO3(GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOASPECT)
 		},
-		kGameTypeWoodruff,
 		kFeatures640x480,
 		0, 0, 0
 	},
 	{ //9
 		{
-			"lostintime",
+			"lit",
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
@@ -162,13 +158,12 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeLostInTime,
 		kFeaturesAdLib,
 		0, 0, 0
 	},
 	{ //10
 		{
-			"lostintime",
+			"lit",
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
@@ -176,13 +171,12 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeLostInTime,
 		kFeaturesAdLib,
 		0, 0, 0
 	},
 	{ //11
 		{
-			"lostintime",
+			"lit",
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
@@ -190,7 +184,6 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeLostInTime,
 		kFeaturesCD,
 		0, 0, 0
 	},
@@ -200,11 +193,10 @@ static const GOBGameDescription fallbackDescs[] = {
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
-			kPlatformDOS,
+			kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUIO3(GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOASPECT)
 		},
-		kGameTypeUrban,
 		kFeatures640x480 | kFeaturesTrueColor,
 		0, 0, 0
 	},
@@ -214,11 +206,10 @@ static const GOBGameDescription fallbackDescs[] = {
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
-			kPlatformDOS,
+			kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUIO3(GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOASPECT)
 		},
-		kGameTypePlaytoons,
 		kFeatures640x480,
 		0, 0, 0
 	},
@@ -228,11 +219,10 @@ static const GOBGameDescription fallbackDescs[] = {
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
-			kPlatformDOS,
+			kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUIO3(GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOASPECT)
 		},
-		kGameTypePlaytoons,
 		kFeatures640x480,
 		0, 0, 0
 	},
@@ -242,11 +232,10 @@ static const GOBGameDescription fallbackDescs[] = {
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
-			kPlatformDOS,
+			kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUIO3(GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOASPECT)
 		},
-		kGameTypePlaytoons,
 		kFeatures640x480,
 		0, 0, 0
 	},
@@ -256,11 +245,10 @@ static const GOBGameDescription fallbackDescs[] = {
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
-			kPlatformDOS,
+			kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUIO3(GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOASPECT)
 		},
-		kGameTypePlaytoons,
 		kFeatures640x480,
 		0, 0, 0
 	},
@@ -270,25 +258,23 @@ static const GOBGameDescription fallbackDescs[] = {
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
-			kPlatformDOS,
+			kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUIO3(GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOASPECT)
 		},
-		kGameTypePlaytoons,
 		kFeatures640x480,
 		0, 0, 0
 	},
 	{ //18
 		{
-			"playtoons construction kit",
+			"playtnck1",
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
-			kPlatformDOS,
+			kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUIO3(GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOASPECT)
 		},
-		kGameTypePlaytoons,
 		kFeatures640x480,
 		0, 0, 0
 	},
@@ -298,11 +284,10 @@ static const GOBGameDescription fallbackDescs[] = {
 			"unknown",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
-			kPlatformDOS,
+			kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUIO3(GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOASPECT)
 		},
-		kGameTypeBambou,
 		kFeatures640x480,
 		0, 0, 0
 	},
@@ -316,7 +301,6 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeFascination,
 		kFeaturesAdLib,
 		"disk0.stk", 0, 0
 	},
@@ -330,7 +314,6 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeGeisha,
 		kFeaturesEGA | kFeaturesAdLib,
 		"disk1.stk", "intro.tot", 0
 	},
@@ -344,7 +327,6 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeLittleRed,
 		kFeaturesAdLib | kFeaturesEGA,
 		0, 0, 0
 	},
@@ -358,7 +340,6 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeLittleRed,
 		kFeaturesNone,
 		0, 0, 0
 	},
@@ -372,7 +353,6 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 		},
-		kGameTypeOnceUponATime,
 		kFeaturesEGA,
 		0, 0, 0
 	},
@@ -386,8 +366,7 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO3(GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOASPECT)
 		},
-		kGameTypeAdi2,
-		kFeatures640x480,
+		kFeatures640x400,
 		"adi2.stk", 0, 0
 	},
 	{ //26
@@ -396,11 +375,10 @@ static const GOBGameDescription fallbackDescs[] = {
 			"",
 			AD_ENTRY1(0, 0),
 			UNK_LANG,
-			kPlatformDOS,
+			kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUIO3(GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOASPECT)
 		},
-		kGameTypeAdi4,
 		kFeatures640x480,
 		"adif41.stk", 0, 0
 	},
@@ -414,7 +392,6 @@ static const GOBGameDescription fallbackDescs[] = {
 			ADGF_NO_FLAGS,
 			GUIO1(GUIO_NOASPECT)
 		},
-		kGameTypeUrban,
 		kFeaturesAdLib | kFeatures640x480 | kFeaturesSCNDemo,
 		"", "", 8
 	}
@@ -482,7 +459,6 @@ static const GOBGameDescription fallbackOnceUpon[kOnceUponATimeMAX][kOnceUponATi
 				ADGF_NO_FLAGS,
 				GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 			},
-			kGameTypeAbracadabra,
 			kFeaturesAdLib | kFeaturesEGA,
 			0, 0, 0
 		},
@@ -496,7 +472,6 @@ static const GOBGameDescription fallbackOnceUpon[kOnceUponATimeMAX][kOnceUponATi
 				ADGF_NO_FLAGS,
 				GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 			},
-			kGameTypeAbracadabra,
 			kFeaturesEGA,
 			0, 0, 0
 		},
@@ -510,7 +485,6 @@ static const GOBGameDescription fallbackOnceUpon[kOnceUponATimeMAX][kOnceUponATi
 				ADGF_NO_FLAGS,
 				GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 			},
-			kGameTypeAbracadabra,
 			kFeaturesEGA,
 			0, 0, 0
 		}
@@ -526,7 +500,6 @@ static const GOBGameDescription fallbackOnceUpon[kOnceUponATimeMAX][kOnceUponATi
 				ADGF_NO_FLAGS,
 				GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 			},
-			kGameTypeBabaYaga,
 			kFeaturesAdLib | kFeaturesEGA,
 			0, 0, 0
 		},
@@ -540,7 +513,6 @@ static const GOBGameDescription fallbackOnceUpon[kOnceUponATimeMAX][kOnceUponATi
 				ADGF_NO_FLAGS,
 				GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 			},
-			kGameTypeBabaYaga,
 			kFeaturesEGA,
 			0, 0, 0
 		},
@@ -554,7 +526,6 @@ static const GOBGameDescription fallbackOnceUpon[kOnceUponATimeMAX][kOnceUponATi
 				ADGF_NO_FLAGS,
 				GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 			},
-			kGameTypeBabaYaga,
 			kFeaturesEGA,
 			0, 0, 0
 		}

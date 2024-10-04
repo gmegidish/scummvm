@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@ class Mixer;
 }
 
 namespace Common {
-class String;
+class Path;
 }
 
 namespace Video {
@@ -40,12 +39,22 @@ namespace Scumm {
 class ScummEngine_v90he;
 
 class MoviePlayer {
+
 public:
+	enum VideoFlags {
+		vfBackground     = 0x00000001,
+		vfImageSurface   = 0x00000002,
+		vfForeground     = 0x00000004,
+		vfLooping        = 0x00000008,
+		vfAllowFrameSkip = 0x00000010,
+		vfDefault        = (vfForeground),
+	};
+
 	MoviePlayer(ScummEngine_v90he *vm, Audio::Mixer *mixer);
 	~MoviePlayer();
 
 	int getImageNum();
-	int load(const Common::String &filename, int flags, int image = 0);
+	int load(const Common::Path &filename, int flags, int image = 0);
 
 	void copyFrameToBuffer(byte *dst, int dstType, uint x, uint y, uint pitch);
 	void handleNextFrame();

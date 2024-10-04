@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,18 +23,16 @@
 
 namespace AGS3 {
 
-extern void quit(const char *);
-
-int SystemImports::add(const String &name, const RuntimeScriptValue &value, ccInstance *anotherscr) {
-	int ixof;
-
-	if ((ixof = get_index_of(name)) >= 0) {
+uint32_t SystemImports::add(const String &name, const RuntimeScriptValue &value, ccInstance *anotherscr) {
+	uint32_t ixof = get_index_of(name);
+	// Check if symbol already exists
+	if (ixof != UINT32_MAX) {
 		// Only allow override if not a script-exported function
 		if (anotherscr == nullptr) {
 			imports[ixof].Value = value;
 			imports[ixof].InstancePtr = anotherscr;
 		}
-		return 0;
+		return ixof;
 	}
 
 	ixof = imports.size();
@@ -47,17 +44,17 @@ int SystemImports::add(const String &name, const RuntimeScriptValue &value, ccIn
 	}
 
 	btree[name] = ixof;
-	if (ixof == (int)imports.size())
+	if (ixof == imports.size())
 		imports.push_back(ScriptImport());
-	imports[ixof].Name = name; // TODO: rather make a string copy here for safety reasons
+	imports[ixof].Name = name;
 	imports[ixof].Value = value;
 	imports[ixof].InstancePtr = anotherscr;
-	return 0;
+	return ixof;
 }
 
 void SystemImports::remove(const String &name) {
-	int idx = get_index_of(name);
-	if (idx < 0)
+	uint32_t idx = get_index_of(name);
+	if (idx == UINT32_MAX)
 		return;
 	btree.erase(imports[idx].Name);
 	imports[idx].Name = nullptr;
@@ -66,21 +63,21 @@ void SystemImports::remove(const String &name) {
 }
 
 const ScriptImport *SystemImports::getByName(const String &name) {
-	int o = get_index_of(name);
-	if (o < 0)
+	uint32_t o = get_index_of(name);
+	if (o == UINT32_MAX)
 		return nullptr;
 
 	return &imports[o];
 }
 
-const ScriptImport *SystemImports::getByIndex(int index) {
-	if ((size_t)index >= imports.size())
+const ScriptImport *SystemImports::getByIndex(uint32_t index) {
+	if (index >= imports.size())
 		return nullptr;
 
 	return &imports[index];
 }
 
-int SystemImports::get_index_of(const String &name) {
+uint32_t SystemImports::get_index_of(const String &name) {
 	IndexMap::const_iterator it = btree.find(name);
 	if (it != btree.end())
 		return it->_value;
@@ -94,20 +91,19 @@ int SystemImports::get_index_of(const String &name) {
 
 	if (name.GetLength() > 3) {
 		size_t c = name.FindCharReverse('^');
-		if (c != (size_t)-1 && (c == name.GetLength() - 2 || c == name.GetLength() - 3)) {
+		if (c != String::NoIndex && (c == name.GetLength() - 2 || c == name.GetLength() - 3)) {
 			// Function with number of prametrs on the end
 			// attempt to find it without the param count
 			return get_index_of(name.Left(c));
 		}
 	}
-
-	return -1;
+	return UINT32_MAX;
 }
 
 String SystemImports::findName(const RuntimeScriptValue &value) {
-	for (size_t i = 0; i < imports.size(); ++i) {
-		if (imports[i].Value == value) {
-			return imports[i].Name;
+	for (const auto &import : imports) {
+		if (import.Value == value) {
+			return import.Name;
 		}
 	}
 	return String();
@@ -118,15 +114,15 @@ void SystemImports::RemoveScriptExports(ccInstance *inst) {
 		return;
 	}
 
-	for (size_t i = 0; i < imports.size(); ++i) {
-		if (imports[i].Name == nullptr)
+	for (auto &import : imports) {
+		if (import.Name == nullptr)
 			continue;
 
-		if (imports[i].InstancePtr == inst) {
-			btree.erase(imports[i].Name);
-			imports[i].Name = nullptr;
-			imports[i].Value.Invalidate();
-			imports[i].InstancePtr = nullptr;
+		if (import.InstancePtr == inst) {
+			btree.erase(import.Name);
+			import.Name = nullptr;
+			import.Value.Invalidate();
+			import.InstancePtr = nullptr;
 		}
 	}
 }

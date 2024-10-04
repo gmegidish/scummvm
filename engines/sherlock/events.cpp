@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,7 +54,7 @@ Events::~Events() {
 	delete _cursorImages;
 }
 
-void Events::loadCursors(const Common::String &filename) {
+void Events::loadCursors(const Common::Path &filename) {
 	hideCursor();
 	delete _cursorImages;
 
@@ -97,9 +96,9 @@ void Events::setCursor(const Graphics::Surface &src, int hotspotX, int hotspotY)
 
 	if (!IS_3DO) {
 		// PC 8-bit palettized
-		CursorMan.replaceCursor(src.getPixels(), src.w, src.h, hotspotX, hotspotY, 0xff);
+		CursorMan.replaceCursor(src, hotspotX, hotspotY, 0xff);
 	} else if (!_vm->_isScreenDoubled) {
-		CursorMan.replaceCursor(src.getPixels(), src.w, src.h, hotspotX, hotspotY, 0x0000, false, &src.format);
+		CursorMan.replaceCursor(src, hotspotX, hotspotY, 0x0000, false);
 	} else {
 		Graphics::Surface tempSurface;
 		tempSurface.create(2 * src.w, 2 * src.h, src.format);
@@ -116,11 +115,10 @@ void Events::setCursor(const Graphics::Surface &src, int hotspotX, int hotspotY)
 		}
 
 		// 3DO RGB565
-		CursorMan.replaceCursor(tempSurface.getPixels(), tempSurface.w, tempSurface.h, 2 * hotspotX, 2 * hotspotY, 0x0000, false, &src.format);
+		CursorMan.replaceCursor(tempSurface, 2 * hotspotX, 2 * hotspotY, 0x0000, false);
 
 		tempSurface.free();
 	}
-	showCursor();
 }
 
 void Events::setCursor(CursorId cursorId, const Common::Point &cursorPos, const Graphics::Surface &surface) {
@@ -195,10 +193,6 @@ void Events::pollEvents() {
 
 	Common::Event event;
 	while (g_system->getEventManager()->pollEvent(event)) {
-		_mousePos = event.mouse;
-		if (_vm->_isScreenDoubled)
-			_mousePos = Common::Point(_mousePos.x / 2, _mousePos.y / 2);
-
 		// Handle events
 		switch (event.type) {
 		case Common::EVENT_QUIT:
@@ -226,6 +220,10 @@ void Events::pollEvents() {
  			break;
 		}
 	}
+
+	_mousePos = g_system->getEventManager()->getMousePos();
+	if (_vm->_isScreenDoubled)
+		_mousePos = Common::Point(_mousePos.x / 2, _mousePos.y / 2);
 }
 
 void Events::pollEventsAndWait() {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -144,7 +143,7 @@ void Resource::readViews(uint16 roomNum) {
 	delete dataFile;
 }
 
-Common::String Resource::translateFileName(const Common::String filename) {
+Common::Path Resource::translateFileName(const Common::String &filename) {
 	Common::String upperFilename;
 
 	// The DOS and Windows version aren't looking for the right file,
@@ -214,7 +213,7 @@ Common::String Resource::translateFileName(const Common::String filename) {
 
 	fileNameStrFinal += upperFilename;
 
-	return fileNameStrFinal;
+	return Common::Path(fileNameStrFinal);
 }
 
 Common::File *Resource::openDataFile(const Common::String filename, uint32 fileHeader) {
@@ -225,15 +224,16 @@ Common::File *Resource::openDataFile(const Common::String filename, uint32 fileH
 		// The DOS version is known to have some missing files
 		if (_vm->getPlatform() == Common::kPlatformDOS) {
 			warning("Incomplete DOS version, skipping file %s", filename.c_str());
+			delete dataFile;
 			return nullptr;
 		} else
-			error("openDataFile: Couldn't open %s (%s)", translateFileName(filename).c_str(), filename.c_str());
+			error("openDataFile: Couldn't open %s (%s)", translateFileName(filename).toString().c_str(), filename.c_str());
 	}
 	if (fileHeader > 0) {
 		uint32 headerTag = dataFile->readUint32BE();
 		if (headerTag != fileHeader) {
 			dataFile->close();
-			error("openDataFile: Unexpected header in %s (%s) - expected: %d, got: %d", translateFileName(filename).c_str(), filename.c_str(), fileHeader, headerTag);
+			error("openDataFile: Unexpected header in %s (%s) - expected: %d, got: %d", translateFileName(filename).toString().c_str(), filename.c_str(), fileHeader, headerTag);
 		}
 	}
 

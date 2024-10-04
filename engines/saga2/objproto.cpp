@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -109,8 +108,8 @@ bool ProtoObj::use(ObjectID dObj, ObjectID enactor) {
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onUse,
 	                        dObj, enactor, Nothing))
-	        !=  actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        !=  kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return useAction(dObj, enactor);
 }
@@ -136,8 +135,8 @@ bool ProtoObj::useOn(ObjectID dObj, ObjectID enactor, ObjectID item) {
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onUseOn,
 	                        dObj, enactor, item))
-	        !=  actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        !=  kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	//  If script has not aborted action call virtual useOnAction
 	//  function
@@ -152,7 +151,7 @@ bool ProtoObj::useOnAction(ObjectID dObj, ObjectID enactor, ObjectID item) {
 //  UseOn active item command
 bool ProtoObj::useOn(ObjectID dObj, ObjectID enactor, ActiveItem *item) {
 	assert(dObj != Nothing);
-	assert(item != NULL);
+	assert(item != nullptr);
 
 	int16   scrResult;
 
@@ -170,12 +169,12 @@ bool ProtoObj::useOn(ObjectID dObj, ObjectID enactor, ActiveItem *item) {
 
 	//  If the script actually ran, and it didn't return a code
 	//  telling us to abort the action...
-	if (sResult == scriptResultFinished)
+	if (sResult == kScriptResultFinished)
 		scrResult = scf.returnVal;
 	else
-		scrResult = actionResultNotDone;
-	if (scrResult != actionResultNotDone)
-		return scrResult == actionResultSuccess;
+		scrResult = kActionResultNotDone;
+	if (scrResult != kActionResultNotDone)
+		return scrResult == kActionResultSuccess;
 
 	return useOnAction(dObj, enactor, item);
 
@@ -189,12 +188,12 @@ bool ProtoObj::useOnAction(ObjectID dObj, ObjectID enactor, ActiveItem *item) {
 //  UseOn location command
 bool ProtoObj::useOn(ObjectID dObj, ObjectID enactor, const Location &loc) {
 	assert(dObj != Nothing);
-	assert(loc != Nowhere && loc.context != Nothing);
+	assert(loc != Nowhere && loc._context != Nothing);
 
 	/*  int16   scrResult;
 
 	    scriptCallFrame scf;
-	    scriptResult    sResult=(scriptResult) actionResultNotDone;
+	    scriptResult    sResult=(scriptResult) kActionResultNotDone;
 
 	    scf.invokedObject   = dObj;
 	    scf.enactor         = enactor;
@@ -208,23 +207,23 @@ bool ProtoObj::useOn(ObjectID dObj, ObjectID enactor, const Location &loc) {
 
 	        //  If the script actually ran, and it didn't return a code
 	        //  telling us to abort the action...
-	    if ( sResult == scriptResultFinished )
+	    if ( sResult == kScriptResultFinished )
 	        scrResult=scf.returnVal;
 	    else
-	        scrResult=actionResultNotDone;
+	        scrResult=kActionResultNotDone;
 	*//*
         //  Handle object script in a standard fashion
     if (    ( scriptResult =    stdActionScript(
                                     Method_GameObject_useOnTAI,
                                     dObj, enactor, item->thisID() ) )
-                !=  actionResultNotDone )
-        return scriptResult == actionResultSuccess;
+                !=  kActionResultNotDone )
+        return scriptResult == kActionResultSuccess;
 
         //  If script has not aborted action call virtual useOnAction
         //  function
 *//*
-    if ( scrResult != actionResultNotDone )
-        return scrResult == actionResultSuccess;
+    if ( scrResult != kActionResultNotDone )
+        return scrResult == kActionResultSuccess;
 */
 	return useOnAction(dObj, enactor, loc);
 }
@@ -261,8 +260,8 @@ bool ProtoObj::open(ObjectID dObj, ObjectID enactor) {
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onOpen,
 	                        dObj, enactor, Nothing))
-	        != actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        != kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return openAction(dObj, enactor);
 }
@@ -290,8 +289,8 @@ bool ProtoObj::close(ObjectID dObj, ObjectID enactor) {
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onClose,
 	                        dObj, enactor, Nothing))
-	        != actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        != kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return closeAction(dObj, enactor);
 }
@@ -315,8 +314,8 @@ bool ProtoObj::take(ObjectID dObj, ObjectID enactor, int16 num) {
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onTake,
 	                        dObj, enactor, Nothing))
-	        != actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        != kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return takeAction(dObj, enactor, num);
 }
@@ -345,7 +344,7 @@ bool ProtoObj::drop(ObjectID dObj, ObjectID enactor, const Location &loc, int16 
 	scf.invokedObject   = dObj;
 	scf.enactor         = enactor;
 	scf.directObject    = dObj;
-	scf.indirectObject  = loc.context;
+	scf.indirectObject  = loc._context;
 	scf.coords          = loc;
 	scf.value           = 0;
 
@@ -354,9 +353,9 @@ bool ProtoObj::drop(ObjectID dObj, ObjectID enactor, const Location &loc, int16 
 
 	//  If the script actually ran, and it didn't return a code
 	//  telling us to abort the action...
-	if (sResult == scriptResultFinished
-	        &&  scf.returnVal != actionResultNotDone)
-		return scf.returnVal == actionResultSuccess;
+	if (sResult == kScriptResultFinished
+	        &&  scf.returnVal != kActionResultNotDone)
+		return scf.returnVal == kActionResultSuccess;
 
 	return dropAction(dObj, enactor, loc, num);
 }
@@ -385,8 +384,8 @@ bool ProtoObj::dropOn(ObjectID dObj, ObjectID enactor, ObjectID target, int16 co
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onDropOn,
 	                        dObj, enactor, target, count))
-	        !=  actionResultNotDone) {
-		return scriptResult == actionResultSuccess;
+	        !=  kActionResultNotDone) {
+		return scriptResult == kActionResultSuccess;
 	}
 
 	//  At this point we should probably _split_ the object...
@@ -412,8 +411,8 @@ bool ProtoObj::dropOn(
     const Location  &loc,
     int16           num) {
 	assert(dObj != Nothing);
-	assert(target != NULL);
-	assert(isWorld(loc.context));
+	assert(target != nullptr);
+	assert(isWorld(loc._context));
 
 	return dropOnAction(dObj, enactor, target, loc, num);
 }
@@ -439,8 +438,8 @@ bool ProtoObj::strike(ObjectID dObj, ObjectID enactor, ObjectID item) {
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onStrike,
 	                        dObj, enactor, item))
-	        !=  actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        !=  kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return strikeAction(dObj, enactor, item);
 }
@@ -460,8 +459,8 @@ bool ProtoObj::damage(ObjectID dObj, ObjectID enactor, ObjectID target) {
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onDamage,
 	                        dObj, enactor, target))
-	        !=  actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        !=  kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return damageAction(dObj, enactor, target);
 }
@@ -482,8 +481,8 @@ bool ProtoObj::eat(ObjectID dObj, ObjectID enactor) {
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onEat,
 	                        dObj, enactor, Nothing))
-	        != actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        != kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return eatAction(dObj, enactor);
 }
@@ -505,8 +504,8 @@ bool ProtoObj::insert(ObjectID dObj, ObjectID enactor, ObjectID item) {
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onInsert,
 	                        dObj, enactor, item))
-	        !=  actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        !=  kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return insertAction(dObj, enactor, item);
 }
@@ -527,8 +526,8 @@ bool ProtoObj::remove(ObjectID dObj, ObjectID enactor) {
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onRemove,
 	                        dObj, enactor, Nothing))
-	        != actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        != kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return removeAction(dObj, enactor);
 }
@@ -553,8 +552,8 @@ bool ProtoObj::acceptDrop(
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onAcceptDrop,
 	                        dObj, enactor, droppedObj, count))
-	        !=  actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        !=  kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return acceptDropAction(dObj, enactor, droppedObj, count);
 }
@@ -579,8 +578,8 @@ bool ProtoObj::acceptDamage(
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onAcceptDamage,
 	                        dObj, enactor, Nothing))
-	        != actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        != kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return  acceptDamageAction(
 	            dObj,
@@ -645,8 +644,8 @@ bool ProtoObj::acceptStrike(
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onAcceptStrike,
 	                        dObj, enactor, strikingObj))
-	        !=  actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        !=  kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return  acceptStrikeAction(
 	            dObj,
@@ -680,8 +679,8 @@ bool ProtoObj::acceptLockToggle(
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onAcceptLockToggle,
 	                        dObj, enactor, Nothing))
-	        != actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        != kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return acceptLockToggleAction(dObj, enactor, keyCode);
 }
@@ -708,8 +707,8 @@ bool ProtoObj::acceptMix(ObjectID dObj, ObjectID enactor, ObjectID mixObj) {
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onAcceptMix,
 	                        dObj, enactor, mixObj))
-	        !=  actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        !=  kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return acceptMixAction(dObj, enactor, mixObj);
 }
@@ -736,8 +735,8 @@ bool ProtoObj::acceptInsertion(
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onAcceptInsertion,
 	                        dObj, enactor, item, count))
-	        != actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        != kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return acceptInsertionAction(dObj, enactor, item, count);
 }
@@ -765,8 +764,8 @@ bool ProtoObj::acceptInsertionAt(
 	if ((scriptResult = stdActionScript(
 	                        Method_GameObject_onAcceptInsertion,
 	                        dObj, enactor, item))
-	        != actionResultNotDone)
-		return scriptResult == actionResultSuccess;
+	        != kActionResultNotDone)
+		return scriptResult == kActionResultSuccess;
 
 	return acceptInsertionAtAction(dObj, enactor, item, where, num);
 }
@@ -791,11 +790,11 @@ uint16  ProtoObj::containmentSet() {
 
 //  return the sprite data
 ObjectSpriteInfo ProtoObj::getSprite(GameObject *obj, enum spriteTypes spr, int16 count) {
-	ObjectSpriteInfo    sprInfo = { NULL, static_cast<bool>((flags & objPropFlipped) != 0) };
-	int16               openOffset = ((flags & objPropVisOpen) && obj->isOpen()) ? 1 : 0;
+	ObjectSpriteInfo    sprInfo = { nullptr, static_cast<bool>((flags & kObjPropFlipped) != 0) };
+	int16               openOffset = ((flags & kObjPropVisOpen) && obj->isOpen()) ? 1 : 0;
 
 	switch (spr) {
-	case objOnGround:
+	case kObjOnGround:
 
 		//  If the object is a moving missile return the correct missile
 		//  sprite
@@ -815,17 +814,17 @@ ObjectSpriteInfo ProtoObj::getSprite(GameObject *obj, enum spriteTypes spr, int1
 		} else {
 			sprInfo.sp = objectSprites->sprite(groundSprite + openOffset + obj->getSprOffset(count));
 			sprInfo.flipped =
-			    (flags & ResourceObjectPrototype::objPropFlipped) != 0;
+			    (flags & ResourceObjectPrototype::kObjPropFlipped) != 0;
 		}
 
 		break;
 
-	case objInContainerView:
-	case objAsMousePtr:
+	case kObjInContainerView:
+	case kObjAsMousePtr:
 
 		sprInfo.sp = objectSprites->sprite(iconSprite + openOffset + obj->getSprOffset(count));
 		sprInfo.flipped =
-		    (flags & ResourceObjectPrototype::objPropFlipped) != 0;
+		    (flags & ResourceObjectPrototype::kObjPropFlipped) != 0;
 		break;
 	}
 	return sprInfo;
@@ -833,7 +832,7 @@ ObjectSpriteInfo ProtoObj::getSprite(GameObject *obj, enum spriteTypes spr, int1
 
 //  return the address of the sprite when held in hand
 Sprite *ProtoObj::getOrientedSprite(GameObject *obj, int16 offset) {
-	return NULL;
+	return nullptr;
 }
 
 int16 ProtoObj::stdActionScript(
@@ -855,10 +854,10 @@ int16 ProtoObj::stdActionScript(
 
 	//  If the script actually ran, and it didn't return a code
 	//  telling us to abort the action...
-	if (sResult == scriptResultFinished)
+	if (sResult == kScriptResultFinished)
 		return scf.returnVal;
 
-	return actionResultNotDone;
+	return kActionResultNotDone;
 }
 
 int16 ProtoObj::stdActionScript(
@@ -881,10 +880,10 @@ int16 ProtoObj::stdActionScript(
 
 	//  If the script actually ran, and it didn't return a code
 	//  telling us to abort the action...
-	if (sResult == scriptResultFinished)
+	if (sResult == kScriptResultFinished)
 		return scf.returnVal;
 
-	return actionResultNotDone;
+	return kActionResultNotDone;
 }
 
 //  Initiate an attack using this type of object
@@ -895,12 +894,12 @@ void ProtoObj::initiateDefense(ObjectID, ObjectID, ObjectID) {}
 
 //  Get projectile for missile weapons
 GameObject *ProtoObj::getProjectile(ObjectID, ObjectID) {
-	return NULL;
+	return nullptr;
 }
 
 //  Get spell from a magic object
 GameObject *ProtoObj::getSpell(ObjectID) {
-	return NULL;
+	return nullptr;
 }
 
 //  Determine if this type of object can block an attack
@@ -925,7 +924,7 @@ uint8 ProtoObj::adjustDamage(uint8 damage) {
 //	Return the fight stance approriate to this weapon
 
 int16 ProtoObj::fightStanceAction(ObjectID actor) {
-	return actionStand;
+	return kActionStand;
 }
 
 // ------------------------------------------------------------------------
@@ -1005,11 +1004,11 @@ uint16 ProtoObj::bulkCapacity(GameObject *) {
  * ==================================================================== */
 
 uint16 InventoryProto::containmentSet() {
-	return isTangible;
+	return kIsTangible;
 }
 
 bool InventoryProto::takeAction(ObjectID dObj, ObjectID enactor, int16 num) {
-	g_vm->_mouseInfo->copyObject(dObj, GrabInfo::Drop, num);
+	g_vm->_mouseInfo->copyObject(dObj, GrabInfo::kIntDrop, num);
 	return true;
 }
 
@@ -1020,14 +1019,14 @@ bool InventoryProto::canDropAt(
 	assert(enactor != Nothing);
 
 	//  If we're not dropping it onto a world, we're okay
-	if (!isWorld(loc.context)) return true;
+	if (!isWorld(loc._context)) return true;
 
 	GameObject      *enactorPtr = GameObject::objectAddress(enactor);
 
 	//  If we're trying to drop it into a different world or if
 	//  we're dropping it more than 4 metatile widths away from the
 	//  enactor, fail
-	if (enactorPtr->IDParent() != loc.context
+	if (enactorPtr->IDParent() != loc._context
 	        || (loc - enactorPtr->getLocation()).quickHDistance()
 	        >   kTileUVSize * kPlatformWidth * 4)
 		return false;
@@ -1040,7 +1039,7 @@ bool InventoryProto::dropAction(
     ObjectID        enactor,
     const Location  &loc,
     int16           num) {
-	assert(loc.context != Nothing);
+	assert(loc._context != Nothing);
 	assert(dObj != Nothing);
 	assert(enactor != Nothing);
 
@@ -1048,7 +1047,7 @@ bool InventoryProto::dropAction(
 	Actor       *enactorPtr = (Actor *)GameObject::objectAddress(enactor);
 
 	/*      //  Determine if we're dropping an object from the actor's hands.
-	    if ( enactor != loc.context )
+	    if ( enactor != loc._context )
 	    {
 	        if ( dObj == enactorPtr->rightHandObject )
 	            enactorPtr->rightHandObject = Nothing;
@@ -1063,11 +1062,11 @@ bool InventoryProto::dropAction(
 		dObjPtr->_data.currentTAG = NoActiveItem;
 	}
 
-	if (isWorld(loc.context)) {
+	if (isWorld(loc._context)) {
 		ProtoObj            *enactorProto = enactorPtr->proto();
 		TilePoint           enactorLoc(enactorPtr->getLocation());
 		TilePoint           vector = loc - enactorLoc;
-		GameObject          *extractedObj = NULL;
+		GameObject          *extractedObj = nullptr;
 
 		//  Split the merged object if needed.
 		if (dObjPtr->isMergeable()           //  If mergeable
@@ -1075,7 +1074,7 @@ bool InventoryProto::dropAction(
 			if (num == 0) return false;         //  If mergeing zero, then do nothing
 
 			extractedObj = dObjPtr->extractMerged(dObjPtr->getExtra() - num);
-			if (extractedObj == NULL)
+			if (extractedObj == nullptr)
 				return false;
 
 			extractedObj->move(
@@ -1105,19 +1104,19 @@ bool InventoryProto::dropAction(
 				testDir = (vectorDir + dirOffsetTable[i]) & 0x7;
 				testPt = enactorLoc + incDirTable[testDir] * offsetDist;
 				testPt.z += enactorProto->height >> 1;
-				if (checkBlocked(dObjPtr, mapNum, testPt) == blockageNone) {
+				if (checkBlocked(dObjPtr, mapNum, testPt) == kBlockageNone) {
 					startPt = testPt;
 					break;
 				}
 			}
 
 			if (startPt == Nowhere) {
-				if (extractedObj != NULL)
+				if (extractedObj != nullptr)
 					GameObject::mergeWith(extractedObj, dObjPtr, extractedObj->getExtra());
 				return false;
 			}
 
-			dObjPtr->move(Location(startPt, loc.context));
+			dObjPtr->move(Location(startPt, loc._context));
 
 			//  Make sure the game engine knows that it may scavenge this
 			//  object if necessary
@@ -1127,7 +1126,7 @@ bool InventoryProto::dropAction(
 			MotionTask::throwObjectTo(*dObjPtr, loc);
 		}
 	} else {
-		GameObject  *targetObj = GameObject::objectAddress(loc.context);
+		GameObject  *targetObj = GameObject::objectAddress(loc._context);
 
 		return targetObj->acceptInsertionAt(enactor, dObj, loc, num);
 	}
@@ -1142,8 +1141,8 @@ bool InventoryProto::dropOnAction(
     const Location  &loc,
     int16           num) {
 	assert(dObj != Nothing);
-	assert(target != NULL);
-	assert(isWorld(loc.context));
+	assert(target != nullptr);
+	assert(isWorld(loc._context));
 
 	if (drop(dObj, enactor, loc, num)) {
 		GameObject  *dObjPtr = GameObject::objectAddress(dObj);
@@ -1169,9 +1168,9 @@ bool InventoryProto::acceptDropAction(
 	GameObject  *targetObject   = GameObject::objectAddress(dObj);
 	int         mergeState      = GameObject::canStackOrMerge(dropObject, targetObject);
 
-	if (mergeState == canMerge)
+	if (mergeState == kCanMerge)
 		return targetObject->merge(enactor, droppedObj, count);
-	else if (mergeState == canStack)
+	else if (mergeState == kCanStack)
 		return targetObject->stack(enactor, droppedObj);
 
 	return ProtoObj::acceptDropAction(dObj, enactor, droppedObj, count);
@@ -1202,7 +1201,7 @@ bool InventoryProto::acceptStrikeAction(
 //	};
 
 uint16 PhysicalContainerProto::containmentSet() {
-	return InventoryProto::containmentSet() | isContainer;
+	return InventoryProto::containmentSet() | kIsContainer;
 }
 
 bool PhysicalContainerProto::canContain(ObjectID dObj, ObjectID item) {
@@ -1217,7 +1216,7 @@ bool PhysicalContainerProto::canContain(ObjectID dObj, ObjectID item) {
 	}
 
 	return      dObj != item
-	            && (itemPtr->containmentSet() & ProtoObj::isTangible);
+	            && (itemPtr->containmentSet() & ProtoObj::kIsTangible);
 }
 
 bool PhysicalContainerProto::canContainAt(
@@ -1232,7 +1231,7 @@ bool PhysicalContainerProto::useAction(ObjectID dObj, ObjectID enactor) {
 	bool          result;
 	GameObject    *dObjPtr = GameObject::objectAddress(dObj);
 
-	if (dObjPtr->_data.objectFlags & objectOpen)
+	if (dObjPtr->_data.objectFlags & kObjectOpen)
 		result = close(dObj, enactor);
 	else
 		result = open(dObj, enactor);
@@ -1257,7 +1256,7 @@ bool PhysicalContainerProto::openAction(ObjectID dObj, ObjectID) {
 
 	cn = CreateContainerNode(dObj, false);
 	cn->markForShow();                                      //  Deferred open
-	dObjPtr->_data.objectFlags |= objectOpen;         //  Set open bit;
+	dObjPtr->_data.objectFlags |= kObjectOpen;         //  Set open bit;
 	g_vm->_cnm->setUpdate(dObjPtr->IDParent());
 
 	return true;
@@ -1265,7 +1264,7 @@ bool PhysicalContainerProto::openAction(ObjectID dObj, ObjectID) {
 
 bool PhysicalContainerProto::closeAction(ObjectID dObj, ObjectID) {
 	GameObject      *dObjPtr = GameObject::objectAddress(dObj);
-	ContainerNode   *cn = g_vm->_cnm->find(dObj, ContainerNode::physicalType);
+	ContainerNode   *cn = g_vm->_cnm->find(dObj, ContainerNode::kPhysicalType);
 
 	assert(dObjPtr->isOpen());
 	assert(cn);
@@ -1274,7 +1273,7 @@ bool PhysicalContainerProto::closeAction(ObjectID dObj, ObjectID) {
 	cn->markForDelete();
 
 	//  Clear open bit
-	dObjPtr->_data.objectFlags &= ~objectOpen;
+	dObjPtr->_data.objectFlags &= ~kObjectOpen;
 	g_vm->_cnm->setUpdate(dObjPtr->IDParent());
 
 	return true;
@@ -1297,7 +1296,7 @@ bool PhysicalContainerProto::acceptLockToggleAction(
 	GameObject *dObjPtr = GameObject::objectAddress(dObj);
 
 	//  Toggle locked bit
-	dObjPtr->_data.objectFlags ^= objectLocked;
+	dObjPtr->_data.objectFlags ^= kObjectLocked;
 
 	return true;
 }
@@ -1315,7 +1314,7 @@ bool PhysicalContainerProto::acceptInsertionAction(
 	GameObject  *itemPtr = GameObject::objectAddress(item);
 
 	//  Place the object in the container (if possible)
-	if ((dObjPtr->_data.objectFlags & objectLocked)
+	if ((dObjPtr->_data.objectFlags & kObjectLocked)
 	        ||  !dObjPtr->placeObject(enactor, item, true, num)) {
 		if (isWorld(dObjPtr->IDParent()))
 			dObjPtr->dropInventoryObject(itemPtr, num);
@@ -1340,7 +1339,7 @@ bool PhysicalContainerProto::acceptInsertionAtAction(
 
 	GameObject  *dObjPtr = GameObject::objectAddress(dObj);
 	GameObject  *itemPtr = GameObject::objectAddress(item);
-	GameObject  *extractedObj = NULL;
+	GameObject  *extractedObj = nullptr;
 	Location    oldLoc(itemPtr->getLocation(), itemPtr->IDParent());
 
 	//  Split the merged object if needed.
@@ -1349,7 +1348,7 @@ bool PhysicalContainerProto::acceptInsertionAtAction(
 		if (num == 0) return false;         //  If mergeing zero, then do nothing
 
 		extractedObj = itemPtr->extractMerged(itemPtr->getExtra() - num);
-		if (extractedObj == NULL)
+		if (extractedObj == nullptr)
 			return false;
 
 		extractedObj->move(oldLoc);
@@ -1362,7 +1361,7 @@ bool PhysicalContainerProto::acceptInsertionAtAction(
 		return true;
 	}
 	itemPtr->move(oldLoc);
-	if (extractedObj != NULL)
+	if (extractedObj != nullptr)
 		GameObject::mergeWith(extractedObj, itemPtr, extractedObj->getExtra());
 
 	return false;
@@ -1432,7 +1431,7 @@ uint16 PhysicalContainerProto::bulkCapacity(GameObject *) {
 //  Put key into mouse with intention to use
 bool KeyProto::setUseCursor(ObjectID dObj) {
 	assert(g_vm->_mouseInfo->getObjectId() == Nothing);
-	g_vm->_mouseInfo->copyObject(GameObject::objectAddress(dObj), GrabInfo::Use);
+	g_vm->_mouseInfo->copyObject(GameObject::objectAddress(dObj), GrabInfo::kIntUse);
 	return true;
 }
 
@@ -1466,7 +1465,7 @@ bool KeyProto::useOnAction(ObjectID dObj, ObjectID enactor, ActiveItem *withTAI)
  * ==================================================================== */
 
 uint16 BottleProto::containmentSet() {
-	return InventoryProto::containmentSet() | isBottle;
+	return InventoryProto::containmentSet() | kIsBottle;
 }
 
 bool BottleProto::useAction(ObjectID dObj, ObjectID enactor) {
@@ -1480,7 +1479,7 @@ bool BottleProto::useAction(ObjectID dObj, ObjectID enactor) {
  * ==================================================================== */
 
 uint16 FoodProto::containmentSet() {
-	return InventoryProto::containmentSet() | isFood;
+	return InventoryProto::containmentSet() | kIsFood;
 }
 
 bool FoodProto::useAction(ObjectID dObj, ObjectID enactor) {
@@ -1492,7 +1491,7 @@ bool FoodProto::useAction(ObjectID dObj, ObjectID enactor) {
  * ==================================================================== */
 
 uint16 WearableProto::containmentSet() {
-	return InventoryProto::containmentSet() | isWearable;
+	return InventoryProto::containmentSet() | kIsWearable;
 }
 
 /* ==================================================================== *
@@ -1504,7 +1503,7 @@ weaponID WeaponProto::getWeaponID() {
 }
 
 uint16 WeaponProto::containmentSet() {
-	return InventoryProto::containmentSet() | isWeapon;
+	return InventoryProto::containmentSet() | kIsWeapon;
 }
 
 //  return the address of the sprite when held in hand
@@ -1549,10 +1548,10 @@ bool MeleeWeaponProto::useAction(ObjectID dObj, ObjectID enactor) {
 
 		leftHandObjectPtr = a->_leftHandObject != Nothing
 		                    ?   GameObject::objectAddress(a->_leftHandObject)
-		                    :   NULL;
+		                    :   nullptr;
 
 		if (dObjPtr->proto()->isTwoHanded(enactor)
-		        || (leftHandObjectPtr != NULL
+		        || (leftHandObjectPtr != nullptr
 		            &&  leftHandObjectPtr->proto()->isTwoHanded(enactor)))
 			a->holdInLeftHand(Nothing);
 
@@ -1620,7 +1619,7 @@ bool MeleeWeaponProto::damageAction(
 	    a,
 	    targetPtr,
 	    GameObject::objectAddress(dObj),
-	    effStats->getSkillLevel(skillIDBrawn));
+	    effStats->getSkillLevel(kSkillIDBrawn));
 
 	return true;
 }
@@ -1647,7 +1646,7 @@ bool MeleeWeaponProto::isTwoHanded(ObjectID attackerID) {
 	//  This weapon must be wielded in two hands if its bulk is greater
 	//  than a quarter of the bulk of the wielder or if the actor does not
 	//  have one handed fighing animation.
-	return      !attackerPtr->isActionAvailable(actionSwingHigh)
+	return      !attackerPtr->isActionAvailable(kActionSwingHigh)
 	            ||  bulk > attackerProto->bulk / 4;
 }
 
@@ -1693,7 +1692,7 @@ bool MeleeWeaponProto::canBlock() {
 //  Return a mask of bits indicating the directions relative to the
 //  wielders facing in which this object can defend
 uint8 MeleeWeaponProto::defenseDirMask() {
-	return 1 << dirUp;
+	return 1 << kDirUp;
 }
 
 //-----------------------------------------------------------------------
@@ -1710,7 +1709,7 @@ uint8 MeleeWeaponProto::weaponRating(
 
 	//  If the wielder is on screen yet does not have the attack frames
 	//  for this weapon then this weapon is useless
-	if (wielder->_appearance != NULL
+	if (wielder->_appearance != nullptr
 	        &&  !wielder->isActionAvailable(fightStanceAction(wielderID)))
 		return 0;
 
@@ -1718,7 +1717,7 @@ uint8 MeleeWeaponProto::weaponRating(
 	int16       dist = (target->getLocation() - wielder->getLocation()).quickHDistance();
 	uint8       rating = 0;
 
-	if (dist < maximumRange) rating += inRangeRatingBonus;
+	if (dist < maximumRange) rating += kInRangeRatingBonus;
 	//  Add in the value of the appropriate skill1
 	rating += getSkillValue(wielderID);
 
@@ -1729,7 +1728,7 @@ uint8 MeleeWeaponProto::weaponRating(
 //	Return the fight stance approriate to this weapon
 
 int16 MeleeWeaponProto::fightStanceAction(ObjectID actor) {
-	return isTwoHanded(actor) ? actionTwoHandSwingHigh : actionSwingHigh;
+	return isTwoHanded(actor) ? kActionTwoHandSwingHigh : kActionSwingHigh;
 }
 
 // ------------------------------------------------------------------------
@@ -1781,7 +1780,7 @@ uint8 BludgeoningWeaponProto::getSkillValue(ObjectID enactor) {
 	a = (Actor *)GameObject::objectAddress(enactor);
 	effStats = a->getStats();
 
-	return effStats->getSkillLevel(skillIDBludgeon);
+	return effStats->getSkillLevel(kSkillIDBludgeon);
 }
 
 // ------------------------------------------------------------------------
@@ -1795,10 +1794,10 @@ void BludgeoningWeaponProto::applySkillGrowth(ObjectID enactor, uint8 points) {
 	if (actorIDToPlayerID(enactor, playerID)) {
 		PlayerActor     *player = getPlayerActorAddress(playerID);
 
-		player->skillAdvance(skillIDBludgeon, points);
+		player->skillAdvance(kSkillIDBludgeon, points);
 
 		if (g_vm->_rnd->getRandomNumber(1))
-			player->skillAdvance(skillIDBrawn, points);
+			player->skillAdvance(kSkillIDBrawn, points);
 	}
 }
 
@@ -1818,7 +1817,7 @@ uint8 SlashingWeaponProto::getSkillValue(ObjectID enactor) {
 	a = (Actor *)GameObject::objectAddress(enactor);
 	effStats = a->getStats();
 
-	return effStats->getSkillLevel(skillIDSwordcraft);
+	return effStats->getSkillLevel(kSkillIDSwordcraft);
 }
 
 // ------------------------------------------------------------------------
@@ -1832,10 +1831,10 @@ void SlashingWeaponProto::applySkillGrowth(ObjectID enactor, uint8 points) {
 	if (actorIDToPlayerID(enactor, playerID)) {
 		PlayerActor     *player = getPlayerActorAddress(playerID);
 
-		player->skillAdvance(skillIDSwordcraft, points);
+		player->skillAdvance(kSkillIDSwordcraft, points);
 
 		if (g_vm->_rnd->getRandomNumber(1))
-			player->skillAdvance(skillIDBrawn, points);
+			player->skillAdvance(kSkillIDBrawn, points);
 	}
 }
 
@@ -1929,13 +1928,13 @@ uint8 BowProto::weaponRating(
 	assert(isActor(wielderID));
 	assert(isObject(targetID) || isActor(targetID));
 
-	if (getProjectile(weaponID_, wielderID) == NULL) return 0;
+	if (getProjectile(weaponID_, wielderID) == nullptr) return 0;
 
 	Actor       *wielder = (Actor *)GameObject::objectAddress(wielderID);
 
 	//  If the wielder is on screen yet does not have the attack frames
 	//  for this weapon then this weapon is useless
-	if (wielder->_appearance != NULL
+	if (wielder->_appearance != nullptr
 	        &&  !wielder->isActionAvailable(fightStanceAction(wielderID)))
 		return 0;
 
@@ -1944,8 +1943,8 @@ uint8 BowProto::weaponRating(
 	uint8       rating = 0;
 
 	if (dist < maximumRange && !wielder->inReach(target->getLocation()))
-		rating += inRangeRatingBonus;
-	rating += wielder->getStats()->getSkillLevel(skillIDArchery);
+		rating += kInRangeRatingBonus;
+	rating += wielder->getStats()->getSkillLevel(kSkillIDArchery);
 
 	return rating;
 }
@@ -1954,7 +1953,7 @@ uint8 BowProto::weaponRating(
 //	Return the fight stance approriate to this weapon
 
 int16 BowProto::fightStanceAction(ObjectID actor) {
-	return actionFireBow;
+	return kActionFireBow;
 }
 
 /* ==================================================================== *
@@ -2024,7 +2023,7 @@ uint8 WeaponWandProto::weaponRating(
 
 	//  If the wielder is on screen yet does not have the attack frames
 	//  for this weapon then this weapon is useless
-	if (wielder->_appearance != NULL
+	if (wielder->_appearance != nullptr
 	        &&  !wielder->isActionAvailable(fightStanceAction(wielderID)))
 		return 0;
 
@@ -2044,8 +2043,8 @@ uint8 WeaponWandProto::weaponRating(
 		return 0;
 
 	if (dist < maximumRange && !wielder->inReach(target->getLocation()))
-		rating += inRangeRatingBonus;
-	rating += wielder->getStats()->getSkillLevel(skillIDSpellcraft);
+		rating += kInRangeRatingBonus;
+	rating += wielder->getStats()->getSkillLevel(kSkillIDSpellcraft);
 
 	return rating;
 }
@@ -2054,7 +2053,7 @@ uint8 WeaponWandProto::weaponRating(
 //	Return the fight stance approriate to this weapon
 
 int16 WeaponWandProto::fightStanceAction(ObjectID actor) {
-	return actionUseWand;
+	return kActionUseWand;
 }
 
 /* ==================================================================== *
@@ -2065,7 +2064,7 @@ int16 WeaponWandProto::fightStanceAction(ObjectID actor) {
 //	return the address of the sprite when held in hand
 
 Sprite *ProjectileProto::getOrientedSprite(GameObject *, int16) {
-	return NULL;
+	return nullptr;
 }
 
 //-----------------------------------------------------------------------
@@ -2115,7 +2114,7 @@ bool ArrowProto::strikeAction(
 	return  itemPtr->acceptStrike(
 	            enactor,
 	            dObj,
-	            a->getStats()->getSkillLevel(skillIDArchery));
+	            a->getStats()->getSkillLevel(kSkillIDArchery));
 }
 
 bool ArrowProto::damageAction(
@@ -2143,7 +2142,7 @@ bool ArrowProto::damageAction(
 	    a,
 	    GameObject::objectAddress(target),
 	    GameObject::objectAddress(dObj),
-	    effStats->getSkillLevel(skillIDBrawn));
+	    effStats->getSkillLevel(kSkillIDBrawn));
 
 	return true;
 }
@@ -2159,10 +2158,10 @@ void ArrowProto::applySkillGrowth(ObjectID enactor, uint8 points) {
 	if (actorIDToPlayerID(enactor, playerID)) {
 		PlayerActor     *player = getPlayerActorAddress(playerID);
 
-		player->skillAdvance(skillIDArchery, points);
+		player->skillAdvance(kSkillIDArchery, points);
 
 		if (g_vm->_rnd->getRandomNumber(1))
-			player->skillAdvance(skillIDBrawn, points);
+			player->skillAdvance(kSkillIDBrawn, points);
 	}
 }
 
@@ -2171,7 +2170,7 @@ void ArrowProto::applySkillGrowth(ObjectID enactor, uint8 points) {
  * ==================================================================== */
 
 uint16 ArmorProto::containmentSet() {
-	return InventoryProto::containmentSet() | isWearable | isArmor;
+	return InventoryProto::containmentSet() | kIsWearable | kIsArmor;
 }
 
 //  Compute how much damage this defensive object will absorb
@@ -2179,7 +2178,7 @@ uint8 ArmorProto::adjustDamage(uint8 damage) {
 	//  Apply damage divider
 	if (damageDivider != 0) damage /= damageDivider;
 
-	//  Apply damage absorbtion
+	//  Apply damage absorption
 	if (damageAbsorbtion < damage)
 		damage -= damageAbsorbtion;
 	else
@@ -2247,7 +2246,7 @@ bool ArmorProto::useAction(ObjectID dObj, ObjectID enactor) {
  * ==================================================================== */
 
 uint16 ShieldProto::containmentSet() {
-	return InventoryProto::containmentSet() | isWearable | isArmor;
+	return InventoryProto::containmentSet() | kIsWearable | kIsArmor;
 }
 
 //  Place shield into left hand
@@ -2314,7 +2313,7 @@ bool ShieldProto::canBlock() {
 //  Return a mask of bits indicating the directions relative to the
 //  wielders facing in which this object can defend
 uint8 ShieldProto::defenseDirMask() {
-	return (1 << dirUp) | (1 << dirUpLeft);
+	return (1 << kDirUp) | (1 << kDirUpLeft);
 }
 
 //-----------------------------------------------------------------------
@@ -2369,7 +2368,7 @@ uint8 ShieldProto::getSkillValue(ObjectID enactor) {
 	a = (Actor *)GameObject::objectAddress(enactor);
 	effStats = a->getStats();
 
-	return effStats->getSkillLevel(skillIDShieldcraft);
+	return effStats->getSkillLevel(kSkillIDShieldcraft);
 }
 
 // ------------------------------------------------------------------------
@@ -2383,10 +2382,10 @@ void ShieldProto::applySkillGrowth(ObjectID enactor, uint8 points) {
 	if (actorIDToPlayerID(enactor, playerID)) {
 		PlayerActor     *player = getPlayerActorAddress(playerID);
 
-		player->skillAdvance(skillIDShieldcraft, points);
+		player->skillAdvance(kSkillIDShieldcraft, points);
 
 		if (g_vm->_rnd->getRandomNumber(1))
-			player->skillAdvance(skillIDBrawn, points);
+			player->skillAdvance(kSkillIDBrawn, points);
 	}
 }
 
@@ -2405,7 +2404,7 @@ uint8 ShieldProto::getDamageSound(const ObjectSoundFXs &soundFXs) {
 //  Put tool into mouse with intention to use
 bool ToolProto::setUseCursor(ObjectID dObj) {
 	assert(g_vm->_mouseInfo->getObjectId() == Nothing);
-	g_vm->_mouseInfo->copyObject(GameObject::objectAddress(dObj), GrabInfo::Use);
+	g_vm->_mouseInfo->copyObject(GameObject::objectAddress(dObj), GrabInfo::kIntUse);
 	return true;
 }
 
@@ -2418,7 +2417,7 @@ bool ToolProto::useOnAction(ObjectID, ObjectID, ObjectID) {
  * ==================================================================== */
 
 uint16 DocumentProto::containmentSet() {
-	return InventoryProto::containmentSet() | isDocument;
+	return InventoryProto::containmentSet() | kIsDocument;
 }
 
 /* ==================================================================== *
@@ -2469,7 +2468,7 @@ bool AutoMapProto::openAction(ObjectID, ObjectID) {
  * ==================================================================== */
 
 uint16 IntangibleObjProto::containmentSet() {
-	return isIntangible;
+	return kIsIntangible;
 }
 
 bool IntangibleObjProto::useAction(ObjectID dObj, ObjectID enactor) {
@@ -2502,7 +2501,7 @@ bool IntangibleObjProto::canDropAt(
     ObjectID,
     const Location  &loc) {
 	//  We can try dropping this object anywhere, except within a world
-	return !isWorld(loc.context);
+	return !isWorld(loc._context);
 }
 
 bool IntangibleObjProto::dropAction(
@@ -2511,10 +2510,10 @@ bool IntangibleObjProto::dropAction(
     const Location  &loc,
     int16) {
 	assert(isObject(dObj));
-	assert(loc.context != Nothing);
-	assert(!isWorld(loc.context));
+	assert(loc._context != Nothing);
+	assert(!isWorld(loc._context));
 
-	GameObject  *container = GameObject::objectAddress(loc.context);
+	GameObject  *container = GameObject::objectAddress(loc._context);
 
 	if (container->canContain(dObj)) {
 		GameObject  *dObjPtr = GameObject::objectAddress(dObj);
@@ -2574,15 +2573,15 @@ ObjectSpriteInfo IntangibleObjProto::getSprite(
     GameObject *obj,
     enum spriteTypes spr,
     int16) {
-	ObjectSpriteInfo    sprInfo = { NULL, false };
+	ObjectSpriteInfo    sprInfo = { nullptr, false };
 
 	switch (spr) {
-	case objOnGround:
+	case kObjOnGround:
 		sprInfo.sp = mentalSprites->sprite(groundSprite);
 		break;
 
-	case objInContainerView:
-	case objAsMousePtr:
+	case kObjInContainerView:
+	case kObjAsMousePtr:
 		sprInfo.sp = mentalSprites->sprite(iconSprite);
 	}
 	return sprInfo;
@@ -2595,7 +2594,7 @@ ObjectSpriteInfo IntangibleObjProto::getSprite(
 
 uint16 IdeaProto::containmentSet() {
 	//Maybe I Could Use This ID And Call IntanobjProt For Setting IsIntangible
-	return isConcept | isIntangible;
+	return kIsConcept | kIsIntangible;
 }
 
 /* ==================================================================== *
@@ -2604,7 +2603,7 @@ uint16 IdeaProto::containmentSet() {
 
 uint16 MemoryProto::containmentSet() {
 	//Maybe I Could Use This ID And Call IntanobjProt For Setting IsIntangible
-	return isConcept | isIntangible;
+	return kIsConcept | kIsIntangible;
 }
 
 /* ==================================================================== *
@@ -2613,7 +2612,7 @@ uint16 MemoryProto::containmentSet() {
 
 uint16 PsychProto::containmentSet() {
 	//Maybe I Could Use This ID And Call IntanobjProt For Setting IsIntangible
-	return isPsych | isIntangible;
+	return kIsPsych | kIsIntangible;
 }
 
 /* ==================================================================== *
@@ -2623,7 +2622,7 @@ uint16 PsychProto::containmentSet() {
 
 uint16 SkillProto::containmentSet() {
 	//Maybe I Could Use This ID And Call IntanobjProt For Setting IsIntangible
-	return isSkill | isIntangible;
+	return kIsSkill | kIsIntangible;
 }
 
 bool SkillProto::useAction(ObjectID dObj, ObjectID enactor) {
@@ -2634,7 +2633,7 @@ bool SkillProto::useAction(ObjectID dObj, ObjectID enactor) {
 		Actor   *attackerPtr = (Actor *) GameObject::objectAddress(enactor);
 		return castUntargetedSpell(attackerPtr, this);
 	}
-	g_vm->_mouseInfo->copyObject(dObj, GrabInfo::Use);
+	g_vm->_mouseInfo->copyObject(dObj, GrabInfo::kIntUse);
 	return true;
 }
 
@@ -2667,10 +2666,10 @@ bool SkillProto::canDropAt(ObjectID, ObjectID, const Location &) {
 bool SkillProto::dropAction(ObjectID dObj,  ObjectID enactor, const Location &loc, int16 num) {
 	assert(isActor(enactor));
 
-	if (isWorld(loc.context)) {
+	if (isWorld(loc._context)) {
 		Actor       *enactorPtr = (Actor *)GameObject::objectAddress(enactor);
 
-		if (validTarget(enactorPtr, NULL, NULL, this))
+		if (validTarget(enactorPtr, nullptr, nullptr, this))
 			return useOn(dObj, enactor, loc);
 
 		return false;
@@ -2688,7 +2687,7 @@ bool SkillProto::dropOnAction(ObjectID dObj, ObjectID enactor, ObjectID target, 
 	if (isWorld(targetPtr->IDParent())) {
 		Actor       *enactorPtr = (Actor *)GameObject::objectAddress(enactor);
 
-		if (validTarget(enactorPtr, targetPtr, NULL, this))
+		if (validTarget(enactorPtr, targetPtr, nullptr, this))
 			return useOn(dObj, enactor, target);
 	}
 
@@ -2703,10 +2702,10 @@ bool SkillProto::dropOnAction(
     int16           num) {
 	assert(isActor(enactor));
 
-	if (target != NULL) {
+	if (target != nullptr) {
 		Actor       *enactorPtr = (Actor *)GameObject::objectAddress(enactor);
 
-		if (validTarget(enactorPtr, NULL, target, this))
+		if (validTarget(enactorPtr, nullptr, target, this))
 			return useOn(dObj, enactor, target);
 	}
 
@@ -2738,7 +2737,7 @@ bool SkillProto::implementAction(SpellID dObj, ObjectID enactor, Location &loc) 
  * ==================================================================== */
 
 uint16 EnchantmentProto::containmentSet() {
-	return isEnchantment;
+	return kIsEnchantment;
 }
 
 // ------------------------------------------------------------------------
@@ -2758,7 +2757,7 @@ void EnchantmentProto::doBackgroundUpdate(GameObject *obj) {
 		uint16  type = getEnchantmentType(flgs),
 		        subType = getEnchantmentSubType(flgs);
 
-		if (type == effectOthers && subType == actorPoisoned) {
+		if (type == kEffectOthers && subType == kActorPoisoned) {
 			// get the damage amount for this poison
 			int16 damage = getEnchantmentAmount(flgs);
 
@@ -2789,7 +2788,7 @@ void EnchantmentProto::doBackgroundUpdate(GameObject *obj) {
  * ======================================================================== */
 
 uint16 GeneratorProto::containmentSet() {
-	return isIntangible;
+	return kIsIntangible;
 }
 
 /* ======================================================================== *
@@ -2823,7 +2822,7 @@ void EncounterGeneratorProto::doBackgroundUpdate(GameObject *obj) {
 		a->getWorldLocation(actorLoc);
 
 		//  If actor is in the same world as the generator
-		if (actorLoc.context == generatorLoc.context) {
+		if (actorLoc._context == generatorLoc._context) {
 			int32   dist,
 			        mtRadius = obj->getHitPoints(),// Radius in metatiles
 			        ptRadius = mtRadius * kTileUVSize * kPlatformWidth,
@@ -2892,14 +2891,14 @@ bool IntangibleContainerProto::canContain(ObjectID dObj, ObjectID item) {
 
 	GameObject      *itemPtr = GameObject::objectAddress(item);
 
-	return (itemPtr->containmentSet() & (isSkill | isConcept)) != 0;
+	return (itemPtr->containmentSet() & (kIsSkill | kIsConcept)) != 0;
 }
 
 bool IntangibleContainerProto::useAction(ObjectID dObj, ObjectID enactor) {
 	bool          result;
 	GameObject    *dObjPtr = GameObject::objectAddress(dObj);
 
-	if (dObjPtr->_data.objectFlags & objectOpen)
+	if (dObjPtr->_data.objectFlags & kObjectOpen)
 		result = close(dObj, enactor);
 	else
 		result = open(dObj, enactor);
@@ -2927,7 +2926,7 @@ bool IntangibleContainerProto::openAction(ObjectID dObj, ObjectID enactor) {
 }
 
 bool IntangibleContainerProto::closeAction(ObjectID dObj, ObjectID) {
-	ContainerNode *cn = g_vm->_cnm->find(dObj, ContainerNode::mentalType);
+	ContainerNode *cn = g_vm->_cnm->find(dObj, ContainerNode::kMentalType);
 
 	assert(cn);
 
@@ -2938,7 +2937,7 @@ bool IntangibleContainerProto::closeAction(ObjectID dObj, ObjectID) {
 }
 
 uint16 IntangibleContainerProto::containmentSet() {
-	return isContainer | isIntangible;
+	return kIsContainer | kIsIntangible;
 }
 /* ==================================================================== *
    IdeaContainerProto class

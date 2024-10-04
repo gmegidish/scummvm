@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,10 +43,11 @@ namespace Image {
 class XanDecoder : public Codec {
 public:
 	XanDecoder (int width, int height, int bitsPerPixel);
-	~XanDecoder();
+	~XanDecoder() override;
 
 	const Graphics::Surface *decodeFrame(Common::SeekableReadStream &stream) override;
-	Graphics::PixelFormat getPixelFormat() const override;
+	Graphics::PixelFormat getPixelFormat() const override { return _pixelFormat; }
+	bool setOutputPixelFormat(const Graphics::PixelFormat &format) override { _pixelFormat = format; return true; }
 
 private:
 	void decodeFrameType0(Common::SeekableReadStream &stream);
@@ -61,11 +61,14 @@ private:
 	/** convert the internally expanded YUV to the output RGBA surface */
 	void convertYUVtoRGBSurface();
 
-	/** A buffer to hold the final frame in RGBA */
-	Graphics::Surface _surface;
+	/** A buffer to hold the final frame */
+	Graphics::Surface *_surface;
 
 	/** Dest surface width and height */
 	int _width, _height;
+
+	/** Dest surface pixel format */
+	Graphics::PixelFormat _pixelFormat;
 
 	/** If true, decode chroma vals in Wing Commander 4 style (false = No Regret style) */
 	bool _wc4Mode;

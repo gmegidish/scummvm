@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,11 +38,11 @@ const FighterRecord initialFighterList[3] = {
 	0, 0, 0, 0, 0xDDC, PLAYER_ID}
 };
 
-FightsManager *int_fights = NULL;
+FightsManager *int_fights = nullptr;
 
 FightsManager::FightsManager() : _rnd(LureEngine::getReference().rnd()) {
 	int_fights = this;
-	_fightData = NULL;
+	_fightData = nullptr;
 	_mouseFlags = 0;
 	_keyDown = KS_UP;
 	reset();
@@ -171,16 +170,16 @@ void FightsManager::reset() {
 const CursorType moveList[] = {CURSOR_LEFT_ARROW, CURSOR_FIGHT_UPPER,
 	CURSOR_FIGHT_MIDDLE, CURSOR_FIGHT_LOWER, CURSOR_RIGHT_ARROW};
 
-struct KeyMapping {
-	Common::KeyCode keycode;
+struct ActionMapping {
+	Common::CustomEventType customAction;
 	uint8 moveNumber;
 };
 
-const KeyMapping keyList[] = {
-	{Common::KEYCODE_LEFT, 10}, {Common::KEYCODE_RIGHT, 14},
-	{Common::KEYCODE_KP7, 11}, {Common::KEYCODE_KP4, 12}, {Common::KEYCODE_KP1, 13},
-	{Common::KEYCODE_KP9, 6},  {Common::KEYCODE_KP6, 7},  {Common::KEYCODE_KP3, 8},
-	{Common::KEYCODE_INVALID, 0}};
+const ActionMapping actionList[] = {
+	{kActionFightMoveLeft, 10}, {kActionFightMoveRight, 14},
+	{kActionFightCursorLeftTop, 11}, {kActionFightCursorLeftMiddle, 12}, {kActionFightCursorLeftBottom, 13},
+	{kActionFightCursorRightTop, 6},  {kActionFightCursorRightMiddle, 7},  {kActionFightCursorRightBottom, 8},
+	{kActionNone, 0}};
 
 void FightsManager::checkEvents() {
 	LureEngine &engine = LureEngine::getReference();
@@ -191,26 +190,25 @@ void FightsManager::checkEvents() {
 	int moveNumber = 0;
 
 	while ((moveNumber == 0) && events.pollEvent()) {
-
-		if (events.type() == Common::EVENT_KEYDOWN) {
-			switch (events.event().kbd.keycode) {
-			case Common::KEYCODE_ESCAPE:
+		if (events.type() == Common::EVENT_CUSTOM_ENGINE_ACTION_START) {
+			switch (events.event().customType) {
+			case kActionEscape:
 				engine.quitGame();
 				return;
-
 			default:
 				// Scan through the mapping list for a move for the keypress
-				const KeyMapping *keyPtr = &keyList[0];
-				while ((keyPtr->keycode != Common::KEYCODE_INVALID) &&
-					(keyPtr->keycode != events.event().kbd.keycode))
-					++keyPtr;
-				if (keyPtr->keycode != Common::KEYCODE_INVALID) {
-					moveNumber = keyPtr->moveNumber;
+				const ActionMapping *actionPtr = &actionList[0];
+				while ((actionPtr->customAction != kActionNone) &&
+					   (actionPtr->customAction != events.event().customType))
+					++actionPtr;
+				if (actionPtr->customAction != kActionNone) {
+					moveNumber = actionPtr->moveNumber;
 					_keyDown = KS_KEYDOWN_1;
 				}
+
 			}
 
-		} else if (events.type() == Common::EVENT_KEYUP) {
+		} else if (events.type() == Common::EVENT_CUSTOM_ENGINE_ACTION_END) {
 			_keyDown = KS_UP;
 
 		} else if (events.type() == Common::EVENT_MOUSEMOVE) {

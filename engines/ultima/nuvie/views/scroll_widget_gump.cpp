@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +41,7 @@ namespace Nuvie {
 
 // ScrollWidgetGump Class
 
-ScrollWidgetGump::ScrollWidgetGump(Configuration *cfg, Screen *s) :
+ScrollWidgetGump::ScrollWidgetGump(const Configuration *cfg, Screen *s) :
 		arrow_up_rect(SCROLLWIDGETGUMP_W - 8 - 1, 4 + 1,
 			SCROLLWIDGETGUMP_W - 8 - 1 + 7, 4 + 1 + 5),
 		arrow_down_rect(SCROLLWIDGETGUMP_W - 8 - 1, SCROLLWIDGETGUMP_H - 8 + 3,
@@ -64,7 +63,7 @@ ScrollWidgetGump::ScrollWidgetGump(Configuration *cfg, Screen *s) :
 	show_up_arrow = false;
 	show_down_arrow = false;
 
-	GUI_Widget::Init(NULL, 0, 0, SCROLLWIDGETGUMP_W, SCROLLWIDGETGUMP_H);
+	GUI_Widget::Init(nullptr, 0, 0, SCROLLWIDGETGUMP_W, SCROLLWIDGETGUMP_H);
 
 	add_new_line(); //MsgScroll requires a line to start.
 
@@ -103,7 +102,7 @@ bool ScrollWidgetGump::parse_token(MsgText *token) {
 	return MsgScroll::parse_token(token);
 }
 
-void ScrollWidgetGump::display_string(Std::string s) {
+void ScrollWidgetGump::display_string(const Std::string &s) {
 	MsgScroll::display_string(s);
 	update_arrows();
 }
@@ -223,7 +222,7 @@ GUI_status ScrollWidgetGump::scroll_movement_event(ScrollEventType event) {
 	switch (event) {
 	case SCROLL_UP :
 		if (position > 0) {
-			//timer = new TimedCallback(this, NULL, 2000);
+			//timer = new TimedCallback(this, nullptr, 2000);
 			position--;
 			update_arrows();
 			//grab_focus();
@@ -231,7 +230,7 @@ GUI_status ScrollWidgetGump::scroll_movement_event(ScrollEventType event) {
 		return GUI_YUM;
 
 	case SCROLL_DOWN :
-		//timer = new TimedCallback(this, NULL, 2000);
+		//timer = new TimedCallback(this, nullptr, 2000);
 		if (page_break && position + scroll_height >= (int)msg_buf.size()) {
 			if (position + scroll_height == (int)msg_buf.size()) // break was just off the page so advance text
 				position++;
@@ -241,7 +240,7 @@ GUI_status ScrollWidgetGump::scroll_movement_event(ScrollEventType event) {
 			position++;
 			update_arrows();
 		}
-		return (GUI_YUM);
+		return GUI_YUM;
 	case SCROLL_PAGE_UP:
 		if (position > 0) {
 			position = position > scroll_height ? position - scroll_height : 0;
@@ -283,7 +282,7 @@ GUI_status ScrollWidgetGump::scroll_movement_event(ScrollEventType event) {
 		return GUI_YUM;
 	default :
 		//release_focus();
-		//new TimedCallback(this, NULL, 50);
+		//new TimedCallback(this, nullptr, 50);
 		break;
 	}
 

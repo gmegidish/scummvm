@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@ DataCk::~DataCk() {
 }
 
 Sound::Sound(CGEEngine *vm) : _vm(vm) {
-	_audioStream = NULL;
+	_audioStream = nullptr;
 	_soundRepeatCount = 1;
 	open();
 }
@@ -109,14 +108,14 @@ void Sound::stop() {
 void Sound::sndDigiStop(SmpInfo *PSmpInfo) {
 	if (_vm->_mixer->isSoundHandleActive(_soundHandle))
 		_vm->_mixer->stopHandle(_soundHandle);
-	_audioStream = NULL;
+	_audioStream = nullptr;
 }
 
-Fx::Fx(CGEEngine *vm, int size) : _current(NULL), _vm(vm) {
+Fx::Fx(CGEEngine *vm, int size) : _current(nullptr), _vm(vm) {
 	_cache = new Handler[size];
 	for (_size = 0; _size < size; _size++) {
 		_cache[_size]._ref = 0;
-		_cache[_size]._wav = NULL;
+		_cache[_size]._wav = nullptr;
 	}
 }
 
@@ -130,10 +129,10 @@ void Fx::clear() {
 		if (p->_ref) {
 			p->_ref = 0;
 			delete p->_wav;
-			p->_wav = NULL;
+			p->_wav = nullptr;
 		}
 	}
-	_current = NULL;
+	_current = nullptr;
 }
 
 int Fx::find(int ref) {
@@ -152,8 +151,8 @@ void Fx::preload(int ref0) {
 	char filename[12];
 
 	for (int ref = ref0; ref < ref0 + 10; ref++) {
-		sprintf(filename, "FX%05d.WAV", ref);
-		EncryptedStream file(_vm, filename);
+		Common::sprintf_s(filename, "FX%05d.WAV", ref);
+		EncryptedStream file(_vm->_resman, filename);
 		DataCk *wav = loadWave(&file);
 		if (wav) {
 			Handler *p = &_cache[find(0)];
@@ -172,9 +171,9 @@ void Fx::preload(int ref0) {
 
 DataCk *Fx::load(int idx, int ref) {
 	char filename[12];
-	sprintf(filename, "FX%05d.WAV", ref);
+	Common::sprintf_s(filename, "FX%05d.WAV", ref);
 
-	EncryptedStream file(_vm, filename);
+	EncryptedStream file(_vm->_resman, filename);
 	DataCk *wav = loadWave(&file);
 	if (wav) {
 		Handler *p = &_cache[idx];
@@ -191,7 +190,7 @@ DataCk *Fx::loadWave(EncryptedStream *file) {
 	byte *data = (byte *)malloc(file->size());
 
 	if (!data)
-		return 0;
+		return nullptr;
 
 	file->read(data, file->size());
 
@@ -213,7 +212,7 @@ DataCk *Fx::operator[](int ref) {
 }
 
 MusicPlayer::MusicPlayer(CGEEngine *vm) : _vm(vm) {
-	_data = NULL;
+	_data = nullptr;
 	_isGM = false;
 
 	MidiPlayer::createDriver();
@@ -242,7 +241,7 @@ void MusicPlayer::killMidi() {
 	Audio::MidiPlayer::stop();
 
 	free(_data);
-	_data = NULL;
+	_data = nullptr;
 }
 
 void MusicPlayer::loadMidi(int ref) {
@@ -255,7 +254,7 @@ void MusicPlayer::loadMidi(int ref) {
 	killMidi();
 
 	// Read in the data for the file
-	EncryptedStream mid(_vm, filename.c_str());
+	EncryptedStream mid(_vm->_resman, filename.c_str());
 	_dataSize = mid.size();
 	_data = (byte *)malloc(_dataSize);
 	mid.read(_data, _dataSize);

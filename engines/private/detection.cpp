@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,13 +34,13 @@ static const DebugChannelDef debugFlagList[] = {
 namespace Private {
 static const PlainGameDescriptor privateGames[] = {
 	{ "private-eye", "Private Eye" },
-	{ 0, 0 }
+	{ nullptr, nullptr }
 };
 
 static const ADGameDescription gameDescriptions[] = {
 	{
 		"private-eye",  // US release
-		0,
+		nullptr,
 		AD_ENTRY2s("pvteye.z", "b682118cda6a42fa89833cae2b8824bd", 271895,
 		   "intro.smk", "270a1d0a29df122fc3d1d38e655161a7", 7310984),
 		Common::EN_USA,
@@ -61,7 +60,7 @@ static const ADGameDescription gameDescriptions[] = {
 	},
 	{
 		"private-eye",  // EU release (UK)
-		0,
+		nullptr,
 		AD_ENTRY2s("pvteye.z", "d9ce391395701615e8b5d04bc4bf7ec3", 284699,
 		   "bklynlgo.bmp", "1dfb703349a46f8ec183de107992b7f5", 33118),
 		Common::EN_GRB,
@@ -101,7 +100,7 @@ static const ADGameDescription gameDescriptions[] = {
 	},
 	{
 		"private-eye", // EU release (ES)
-		0,
+		nullptr,
 		AD_ENTRY2s("pvteye.ex_", "f41770550ab717086b2d0c805fef4b8f", 498176,
 		   "bklynlgo.bmp", "1dfb703349a46f8ec183de107992b7f5", 33118),
 		Common::ES_ESP,
@@ -121,7 +120,7 @@ static const ADGameDescription gameDescriptions[] = {
 	},
 	{
 		"private-eye", // EU release (FR)
-		0,
+		nullptr,
 		AD_ENTRY2s("pvteye.ex_", "ae0dec43b2f54d45c8a1c93e97092141", 600576,
 		   "bklynlgo.bmp", "1dfb703349a46f8ec183de107992b7f5", 33118),
 		Common::FR_FRA,
@@ -131,7 +130,7 @@ static const ADGameDescription gameDescriptions[] = {
 	},
 	{
 		"private-eye", // EU release (DE)
-		0,
+		nullptr,
 		AD_ENTRY2s("pvteye.ex_", "5ca171c4e8d804c7277887277d049f03", 600576,
 		   "bklynlgo.bmp", "1dfb703349a46f8ec183de107992b7f5", 33118),
 		Common::DE_DEU,
@@ -161,7 +160,7 @@ static const ADGameDescription gameDescriptions[] = {
 	},
 	{
 		"private-eye",  // RU release
-		0,
+		nullptr,
 		AD_ENTRY2s("pvteye.z", "b682118cda6a42fa89833cae2b8824bd", 271895,
 		   "intro.smk", "61cc13c9e4e2affd574087209df5c4a4", 7241368),
 		Common::RU_RUS,
@@ -170,10 +169,30 @@ static const ADGameDescription gameDescriptions[] = {
 		GUIO1(GUIO_NOMIDI)
 	},
 	{
+		"private-eye",  // KO release
+		nullptr,
+		AD_ENTRY2s("pvteye.z", "b682118cda6a42fa89833cae2b8824bd", 271895,
+		   "intro.smk", "288f5f61311eb10fc6861707c340c15e", 7195200),
+		Common::KO_KOR,
+		Common::kPlatformWindows,
+		ADGF_NO_FLAGS,
+		GUIO1(GUIO_NOMIDI)
+	},
+	{
+		"private-eye",  // JP release
+		nullptr,
+		AD_ENTRY2s("pvteye.z", "f5fb6e89e98294a09ff21e72282b58dc", 239066,
+		   "intro.smk", "b8d15a522f896ccbe4539394b6b8ec8a", 7202836),
+		Common::JA_JPN,
+		Common::kPlatformWindows,
+		ADGF_NO_FLAGS,
+		GUIO1(GUIO_NOMIDI)
+	},
+	{
 		"private-eye", // MacOS release (US)
-		0,
-		AD_ENTRY2s("game.mac", "33553cc04813d3f658bbe9d548377878", 81894,
-		   "bklynlgo.bmp", "1dfb703349a46f8ec183de107992b7f5", 33118),
+		nullptr,
+		AD_ENTRY2s("game.mac", "d:33553cc04813d3f658bbe9d548377878", 81894,
+		   "bklynlgo.bmp", "d:1dfb703349a46f8ec183de107992b7f5", 33118),
 		Common::EN_USA,
 		Common::kPlatformMacintosh,
 		ADGF_NO_FLAGS,
@@ -181,18 +200,27 @@ static const ADGameDescription gameDescriptions[] = {
 	},
 	{
 		"private-eye", // MacOS release (US) uninstalled
-		_s("Compressed game detected. Please uncompress it as specified in the game description on our Wiki"),
-		AD_ENTRY1s("Private Eye Installer", "02533427ebdf26d5dd12cee8e9f4de4d", 1647309),
+		0,
+		AD_ENTRY1s("Private Eye Installer", "d:02533427ebdf26d5dd12cee8e9f4de4d", 1647309),
 		Common::EN_USA,
 		Common::kPlatformMacintosh,
-		ADGF_UNSUPPORTED,
+		ADGF_NO_FLAGS,
+		GUIO1(GUIO_NOMIDI)
+	},
+	{
+		"private-eye", // MacOS release (JP) uninstalled
+		0,
+		AD_ENTRY1s("xn--16jc8na7ay6a0eyg9e5nud0e4525d", "d:113b57e2f6bdaf1146fe83fe0f992891", 1477309),
+		Common::JA_JPN,
+		Common::kPlatformMacintosh,
+		ADGF_NO_FLAGS,
 		GUIO1(GUIO_NOMIDI)
 	},
 	{
 		"private-eye", // MacOS demo (US)
-		0,
-		AD_ENTRY2s("demogame.mac", "cfbceaa8b91f0f53c745db61d1bc9749", 6103,
-		    "bklynlgo.bmp", "1dfb703349a46f8ec183de107992b7f5", 33118),
+		nullptr,
+		AD_ENTRY2s("demogame.mac", "d:cfbceaa8b91f0f53c745db61d1bc9749", 6103,
+		    "bklynlgo.bmp", "d:1dfb703349a46f8ec183de107992b7f5", 33118),
 		Common::EN_USA,
 		Common::kPlatformMacintosh,
 		ADGF_DEMO,
@@ -200,11 +228,11 @@ static const ADGameDescription gameDescriptions[] = {
 	},
 	{
 		"private-eye", // MacOS demo (US) uninstalled
-		_s("Compressed game detected. Please uncompress it as specified in the game description on our Wiki"),
-		AD_ENTRY1s("Private Eye Demo Installer", "e7665ddc5e6d932c4a65598ecc4ec7d2", 1626393),
+		0,
+		AD_ENTRY1s("Private Eye Demo Installer", "d:e7665ddc5e6d932c4a65598ecc4ec7d2", 1626393),
 		Common::EN_USA,
 		Common::kPlatformMacintosh,
-		ADGF_DEMO | ADGF_UNSUPPORTED,
+		ADGF_DEMO,
 		GUIO1(GUIO_NOMIDI)
 	},
 	AD_TABLE_END_MARKER
@@ -214,21 +242,21 @@ static const ADGameDescription gameDescriptions[] = {
 static const char *const directoryGlobs[] = {
 	"support",
 	"intro",
-	0
+	nullptr
 };
 
-class PrivateMetaEngineDetection : public AdvancedMetaEngineDetection {
+class PrivateMetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	PrivateMetaEngineDetection() : AdvancedMetaEngineDetection(Private::gameDescriptions, sizeof(ADGameDescription), Private::privateGames) {
+	PrivateMetaEngineDetection() : AdvancedMetaEngineDetection(Private::gameDescriptions, Private::privateGames) {
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "private";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Private Eye";
 	}
 

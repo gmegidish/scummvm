@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,7 +43,7 @@ bool PegasusEngine::isDemo() const {
 }
 
 bool PegasusEngine::isDVD() const {
-	return (_gameDescription->desc.flags & GF_DVD) != 0;
+	return (_gameDescription->desc.flags & ADGF_DVD) != 0;
 }
 
 bool PegasusEngine::isDVDDemo() const {
@@ -65,19 +64,31 @@ bool PegasusEngine::isLinux() const {
 
 } // End of namespace Pegasus
 
-class PegasusMetaEngine : public AdvancedMetaEngine {
+class PegasusMetaEngine : public AdvancedMetaEngine<Pegasus::PegasusGameDescription> {
 public:
 	const char *getName() const override {
 		return "pegasus";
 	}
 
 	bool hasFeature(MetaEngineFeature f) const override;
-	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const Pegasus::PegasusGameDescription *desc) const override;
 
 	SaveStateList listSaves(const char *target) const override;
 	int getMaximumSaveSlot() const override { return 999; }
 	void removeSaveState(const char *target, int slot) const override;
 	Common::KeymapArray initKeymaps(const char *target) const override;
+	Common::String getSavegameFile(int saveGameIdx, const char *target) const override {
+		if (saveGameIdx == kSavegameFilePattern)
+			return Common::String::format("pegasus-*.sav");
+		Common::StringArray fileNames = Pegasus::PegasusEngine::listSaveFiles();
+		if (saveGameIdx < (int)fileNames.size())
+			return fileNames[saveGameIdx];
+		if (fileNames.empty())
+			return Common::String("pegasus-1.sav");
+		Common::String name = fileNames.back();
+		name.insertString("_last", name.size() - 4);
+		return name;
+	}
 };
 
 bool PegasusMetaEngine::hasFeature(MetaEngineFeature f) const {
@@ -116,8 +127,8 @@ Common::KeymapArray PegasusMetaEngine::initKeymaps(const char *target) const {
 	return Pegasus::PegasusEngine::initKeymaps();
 }
 
-Common::Error PegasusMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	*engine = new Pegasus::PegasusEngine(syst, (const Pegasus::PegasusGameDescription *)desc);
+Common::Error PegasusMetaEngine::createInstance(OSystem *syst, Engine **engine, const Pegasus::PegasusGameDescription *desc) const {
+	*engine = new Pegasus::PegasusEngine(syst,desc);
 	return Common::kNoError;
 }
 

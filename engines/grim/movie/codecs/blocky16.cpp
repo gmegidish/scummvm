@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -634,18 +633,15 @@ void Blocky16::init(int width, int height) {
 	// 200 bytes is enough for smush anims:
 	// lol, byeruba, crushed, eldepot, heltrain, hostage
 	uint32 deltaSize = size * 3 + 200;
-	_deltaBuf = new byte[deltaSize];
-	memset(_deltaBuf, 0, deltaSize);
+	_deltaBuf = new byte[deltaSize]();
 	_deltaBufs[0] = _deltaBuf;
 	_deltaBufs[1] = _deltaBuf + _frameSize;
 	_curBuf = _deltaBuf + _frameSize * 2;
 }
 
 Blocky16::Blocky16() {
-	_tableBig = new byte[99328];
-	_tableSmall = new byte[32768];
-	memset(_tableBig, 0, 99328);
-	memset(_tableSmall, 0, 32768);
+	_tableBig = new byte[99328]();
+	_tableSmall = new byte[32768]();
 	_deltaBuf = nullptr;
 	_deltaBufs[0] = nullptr;
 	_deltaBufs[1] = nullptr;

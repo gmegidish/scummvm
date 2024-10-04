@@ -4,6 +4,7 @@
 ** See Copyright Notice in lua.h
 */
 
+#define FORBIDDEN_SYMBOL_EXCEPTION_sprintf
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -412,13 +413,13 @@ static int io_readline (lua_State *L) {
   error("LUA I/O has been removed in ScummVM");
 /*
   FILE *f = *(FILE **)lua_touserdata(L, lua_upvalueindex(1));
-  int sucess;
+  int success;
   if (f == NULL)  // file is already closed?
     luaL_error(L, "file is already closed");
-  sucess = read_line(L, f);
+  success = read_line(L, f);
   if (ferror(f))
     return luaL_error(L, "%s", "LUA I/O error descriptions have been removed in ScummVM");
-  if (sucess) return 1;
+  if (success) return 1;
   else {  // EOF
     if (lua_toboolean(L, lua_upvalueindex(2))) {  // generator created file?
       lua_settop(L, 0);
@@ -440,8 +441,8 @@ static int g_write (lua_State *L, Lua::LuaFileProxy *f, int arg) {
     if (lua_type(L, arg) == LUA_TNUMBER) {
       // optimization: could be done exactly as for strings
 	  if (status) {
-        char buffer[22];
-		sprintf(buffer, LUA_NUMBER_FMT, lua_tonumber(L, arg));
+		char buffer[22];
+		snprintf(buffer, 22, LUA_NUMBER_FMT, lua_tonumber(L, arg));
 		status = f->write(buffer, strlen(buffer)) == strlen(buffer);
 	  }
 	}

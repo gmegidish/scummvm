@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,6 +38,7 @@ struct PSPPixelFormat {
 		Type_5551,
 		Type_5650,
 		Type_8888,
+		Type_8888_RGBA,
 		Type_Palette_8bit,
 		Type_Palette_4bit,
 		Type_Unknown
@@ -71,6 +71,7 @@ struct PSPPixelFormat {
 			color = (((b >> 3) << 11) | ((g >> 2) << 5) | ((r >> 3) << 0));
 			break;
 		case Type_8888:
+		case Type_8888_RGBA:
 			color = (((b >> 0) << 16) | ((g >> 0) << 8) | ((r >> 0) << 0) | ((a >> 0) << 24));
 			break;
 		default:
@@ -111,6 +112,7 @@ struct PSPPixelFormat {
 			r = r << 3 | r >> 2;
 			break;
 		case Type_8888:
+		case Type_8888_RGBA:
 			a = (color >> 24) & 0xFF;
 			b = (color >> 16) & 0xFF;
 			g = (color >> 8)  & 0xFF;
@@ -131,6 +133,7 @@ struct PSPPixelFormat {
 			color = (color & 0x7FFF) | (((uint32)alpha >> 7) << 15);
 			break;
 		case Type_8888:
+		case Type_8888_RGBA:
 			color = (color & 0x00FFFFFF) | ((uint32)alpha << 24);
 			break;
 		case Type_5650:
@@ -200,6 +203,10 @@ struct PSPPixelFormat {
 		case Type_8888:
 			output = (color & 0xff00ff00) |
 			         ((color & 0x000000ff) << 16) | ((color & 0x00ff0000) >> 16);
+			break;
+		case Type_8888_RGBA:
+			output = ((color & 0x000000ff) << 24) | ((color & 0x0000ff00) << 8) |
+			         ((color & 0x00ff0000) >> 8) | ((color & 0xff000000) >> 24);
 			break;
 		default:
 			PSP_ERROR("invalid format[%u] for swapping\n", format);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -173,7 +172,7 @@ void Room::mudd5Tick1() {
 
 	_awayMission->crewDirectionsAfterWalk[OBJECT_REDSHIRT] = DIR_E;
 	if (_awayMission->mudd.lifeSupportMalfunctioning) {
-		playMidiMusicTracks(19);
+		playMidiMusicTracks(MIDITRACK_19);
 		loadActorAnim(OBJECT_LIFE_SUPPORT_GENERATOR, "s4epls", GENERATOR_X, GENERATOR_Y);
 	} else {
 		loadActorAnim(OBJECT_LIFE_SUPPORT_GENERATOR, "s4eplo", GENERATOR_X, GENERATOR_Y);
@@ -183,7 +182,7 @@ void Room::mudd5Tick1() {
 			_awayMission->mudd.muddUnavailable = true;
 			_awayMission->mudd.numTimesEnteredRoom5 = 1;
 			_awayMission->disableInput = 2;
-			playMidiMusicTracks(3);
+			playMidiMusicTracks(MIDITRACK_3);
 			loadActorAnim(OBJECT_MUDD, "s4ephh", 0x0e, 0xa7);
 			_awayMission->timers[1] = 112;
 			_awayMission->crewDirectionsAfterWalk[OBJECT_KIRK] = DIR_W;
@@ -210,7 +209,7 @@ void Room::mudd5Timer1Expired() { // Mudd enters room through hatch
 void Room::mudd5Timer2Expired() { // Life-support generator starts acting up
 	_awayMission->disableInput = false;
 	_awayMission->mudd.lifeSupportMalfunctioning = true;
-	playMidiMusicTracks(19);
+	playMidiMusicTracks(MIDITRACK_19);
 	loadActorAnim(OBJECT_LIFE_SUPPORT_GENERATOR, "s4epls", GENERATOR_X, GENERATOR_Y);
 }
 
@@ -274,7 +273,7 @@ void Room::mudd5KirkReachedLifeSupportGenerator() {
 }
 
 void Room::mudd5KirkTimer4Expired() {
-	playMidiMusicTracks(-1);
+	playMidiMusicTracks(MIDITRACK_NONE);
 	loadActorAnim2(OBJECT_LIFE_SUPPORT_GENERATOR, "s4eplo");
 	_awayMission->mudd.repairedLifeSupportGenerator = true;
 	_awayMission->mudd.missionScore += 2;
@@ -286,7 +285,7 @@ void Room::mudd5KirkRepairedLifeSupportGenerator() {
 
 	_awayMission->mudd.lifeSupportMalfunctioning = false;
 	_awayMission->mudd.muddUnavailable = false;
-	playMidiMusicTracks(3);
+	playMidiMusicTracks(MIDITRACK_3);
 	loadActorAnim(OBJECT_MUDD, "s4ephh", 0x0e, 0xa7);
 	_awayMission->disableInput = true;
 

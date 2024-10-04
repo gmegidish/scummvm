@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 
 namespace Lilliput {
 
-LilliputScript::LilliputScript(LilliputEngine *vm) : _vm(vm), _currScript(NULL) {
+LilliputScript::LilliputScript(LilliputEngine *vm) : _vm(vm), _currScript(nullptr) {
 	_cubeSet = 0;
 	_lastRandomValue = 0;
 	_scriptForVal = 0;
@@ -47,7 +46,7 @@ LilliputScript::LilliputScript(LilliputEngine *vm) : _vm(vm), _currScript(NULL) 
 	_monitoredAttr[1] = 1;
 	_monitoredAttr[2] = 2;
 	_monitoredAttr[3] = 3;
-	_barAttrPtr = NULL;
+	_barAttrPtr = nullptr;
 	_word1825E = Common::Point(0, 0);
 
 	for (int i = 0; i < 20; i++) {
@@ -1232,10 +1231,10 @@ void LilliputScript::listAllTexts() {
 					++it;
 				} while (_vm->_packedStrings[index + variantCount + it] != 0x5B);
 			}
-		} else {*/
+		} else */ if (true) {
 			decodePackedText(&_vm->_packedStrings[index + variantCount]);
 			debugC(1, kDebugScript, "Text 0x%x variant 0 : %s", i, _vm->_displayStringBuf);
-		/* }*/
+		}
 	}
 }
 
@@ -1798,7 +1797,7 @@ byte LilliputScript::OC_CurrentCharacterVar0AndVar1Equals() {
 	byte var1 = _currScript->readUint16LE() & 0xFF;
 	byte var2 = _currScript->readUint16LE() & 0xFF;
 
-	assert(_vm->_currentCharacterAttributes != NULL);
+	assert(_vm->_currentCharacterAttributes != nullptr);
 
 	if ((var1 == _vm->_currentCharacterAttributes[0]) && (var2 == _vm->_currentCharacterAttributes[1]))
 		return 1;
@@ -1810,7 +1809,7 @@ byte LilliputScript::OC_CurrentCharacterVar0Equals() {
 	debugC(1, kDebugScript, "OC_CurrentCharacterVar0Equals()");
 
 	byte curByte = (_currScript->readUint16LE() & 0xFF);
-	assert(_vm->_currentCharacterAttributes != NULL);
+	assert(_vm->_currentCharacterAttributes != nullptr);
 	if (_vm->_currentCharacterAttributes[0] == curByte)
 		return 1;
 	return 0;
@@ -1891,7 +1890,7 @@ byte LilliputScript::OC_skipNextOpcode() {
 byte LilliputScript::OC_CheckCurrentCharacterAttr2() {
 	debugC(1, kDebugScript, "OC_CheckCurrentCharacterAttr2()");
 
-	assert(_vm->_currentCharacterAttributes != NULL);
+	assert(_vm->_currentCharacterAttributes != nullptr);
 	if (_vm->_currentCharacterAttributes[2] == 1)
 		return 1;
 	return 0;
@@ -1926,7 +1925,7 @@ byte LilliputScript::OC_CheckCurrentCharacterAttr0And() {
 byte LilliputScript::OC_IsCurrentCharacterAttr0LessEqualThan() {
 	debugC(1, kDebugScript, "OC_IsCurrentCharacterAttr0LessEqualThan()");
 
-	assert(_vm->_currentCharacterAttributes != NULL);
+	assert(_vm->_currentCharacterAttributes != nullptr);
 	byte curByte = (_currScript->readUint16LE() & 0xFF);
 
 	if (curByte <= _vm->_currentCharacterAttributes[0])
@@ -1950,7 +1949,7 @@ byte LilliputScript::OC_isCarried() {
 byte LilliputScript::OC_CheckCurrentCharacterAttr1() {
 	debugC(1, kDebugScript, "OC_CheckCurrentCharacterAttr1()");
 
-	assert(_vm->_currentCharacterAttributes != NULL);
+	assert(_vm->_currentCharacterAttributes != nullptr);
 	byte curByte = (_currScript->readUint16LE() & 0xFF);
 
 	if (_vm->_currentCharacterAttributes[1] == curByte)
@@ -1974,7 +1973,7 @@ byte LilliputScript::OC_isCurrentCharacterSpecial() {
 byte LilliputScript::OC_CurrentCharacterAttr3Equals1() {
 	debugC(1, kDebugScript, "OC_CurrentCharacterAttr3Equals1()");
 
-	assert(_vm->_currentCharacterAttributes != NULL);
+	assert(_vm->_currentCharacterAttributes != nullptr);
 	if (_vm->_currentCharacterAttributes[3] == 1)
 		return 1;
 
@@ -2411,7 +2410,7 @@ void LilliputScript::OC_setHost() {
 void LilliputScript::OC_changeMapCube() {
 	debugC(1, kDebugScript, "OC_changeMapCube()");
 
-	assert(_vm->_currentCharacterAttributes != NULL);
+	assert(_vm->_currentCharacterAttributes != nullptr);
 	Common::Point var1 = Common::Point(_vm->_currentCharacterAttributes[4], _vm->_currentCharacterAttributes[5]);
 	byte var2 = _vm->_currentCharacterAttributes[6];
 
@@ -2529,7 +2528,7 @@ void LilliputScript::OC_enableCurrentCharacterScript() {
 void LilliputScript::OC_IncCurrentCharacterVar1() {
 	debugC(1, kDebugScript, "OC_IncCurrentCharacterVar1()");
 
-	assert(_vm->_currentCharacterAttributes != NULL);
+	assert(_vm->_currentCharacterAttributes != nullptr);
 	++_vm->_currentCharacterAttributes[1];
 }
 
@@ -2707,14 +2706,14 @@ void LilliputScript::OC_setCurrentCharacterAttr2() {
 	debugC(1, kDebugScript, "OC_setCurrentCharacterAttr2()");
 
 	int curWord = _currScript->readUint16LE();
-	assert(_vm->_currentCharacterAttributes != NULL);
+	assert(_vm->_currentCharacterAttributes != nullptr);
 	_vm->_currentCharacterAttributes[2] = curWord & 0xFF;
 }
 
 void LilliputScript::OC_clearCurrentCharacterAttr2() {
 	debugC(1, kDebugScript, "OC_clearCurrentCharacterAttr2()");
 
-	assert(_vm->_currentCharacterAttributes != NULL);
+	assert(_vm->_currentCharacterAttributes != nullptr);
 	_vm->_currentCharacterAttributes[2] = 0;
 }
 
@@ -2973,7 +2972,7 @@ void LilliputScript::OC_loadAndDisplayCubesGfx() {
 
 	int setNumb = (_currScript->readUint16LE() & 0xFF);
 	assert((setNumb >= 0) && (setNumb <= 9));
-	Common::String fileName = Common::String::format("CUBES%d.GFX", setNumb);
+	Common::Path fileName(Common::String::format("CUBES%d.GFX", setNumb));
 	_cubeSet = setNumb; // Useless in this variant, keep for the moment for Rome
 
 	_vm->_bufferCubegfx = _vm->loadVGA(fileName, 61440, false);
@@ -2985,7 +2984,7 @@ void LilliputScript::OC_setCurrentCharacterAttr3() {
 	debugC(1, kDebugScript, "OC_setCurrentCharacterAttr3()");
 
 	byte var1 = _currScript->readUint16LE() & 0xFF;
-	assert(_vm->_currentCharacterAttributes != NULL);
+	assert(_vm->_currentCharacterAttributes != nullptr);
 
 	_vm->_currentCharacterAttributes[3] = var1;
 }
@@ -3148,7 +3147,7 @@ void LilliputScript::OC_displayVGAFile() {
 	_vm->paletteFadeOut();
 	int curWord = _currScript->readUint16LE();
 	int index = _vm->_packedStringIndex[curWord];
-	Common::String fileName = Common::String((const char *)&_vm->_packedStrings[index]);
+	Common::Path fileName((const char *)&_vm->_packedStrings[index]);
 	_talkingCharacter = -1;
 	_vm->displayVGAFile(fileName);
 	_vm->paletteFadeIn();

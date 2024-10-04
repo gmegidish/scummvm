@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
 #include "common/events.h"
 
 #include "common/system.h"
@@ -50,10 +48,15 @@ EventMapper::~EventMapper() {}
 
 EventManager::~EventManager() {}
 
-EventDispatcher::EventDispatcher() : _mapper(nullptr) {
+EventDispatcher::EventDispatcher() {
 }
 
 EventDispatcher::~EventDispatcher() {
+	for (List<MapperEntry>::iterator i = _mappers.begin(); i != _mappers.end(); ++i) {
+		if (i->autoFree)
+			delete i->mapper;
+	}
+
 	for (List<SourceEntry>::iterator i = _sources.begin(); i != _sources.end(); ++i) {
 		if (i->autoFree)
 			delete i->source;
@@ -67,6 +70,7 @@ EventDispatcher::~EventDispatcher() {
 
 void EventDispatcher::dispatch() {
 	Event event;
+	List<Event> mappedEvents;
 
 	dispatchPoll();
 
@@ -77,7 +81,7 @@ void EventDispatcher::dispatch() {
 			// We only try to process the events via the setup event mapper, when
 			// we have a setup mapper and when the event source allows mapping.
 			if (i->source->allowMapping()) {
-				assert(_mapper);
+				bool matchedAction = false;
 
 				// Backends may not produce directly action event types, those are meant
 				// to be the output of the event mapper.
@@ -86,13 +90,23 @@ void EventDispatcher::dispatch() {
 				assert(event.type != EVENT_CUSTOM_ENGINE_ACTION_START);
 				assert(event.type != EVENT_CUSTOM_ENGINE_ACTION_END);
 
+				for (List<MapperEntry>::iterator m = _mappers.begin(); m != _mappers.end(); ++m) {
+					if (!mappedEvents.empty())
+						mappedEvents.clear();
 
-				List<Event> mappedEvents = _mapper->mapEvent(event);
+					if (!m->mapper->mapEvent(event, mappedEvents))
+						continue;
 
-				for (List<Event>::iterator j = mappedEvents.begin(); j != mappedEvents.end(); ++j) {
-					const Event mappedEvent = *j;
-					dispatchEvent(mappedEvent);
+					for (List<Event>::iterator j = mappedEvents.begin(); j != mappedEvents.end(); ++j) {
+						const Event mappedEvent = *j;
+						dispatchEvent(mappedEvent);
+					}
+
+					matchedAction = true;
 				}
+
+				if (!matchedAction)
+					dispatchEvent(event);
 			} else {
 				dispatchEvent(event);
 			}
@@ -110,11 +124,27 @@ void EventDispatcher::clearEvents() {
 	}
 }
 
+void EventDispatcher::registerMapper(EventMapper *mapper, bool autoFree) {
+	MapperEntry newEntry;
 
-void EventDispatcher::registerMapper(EventMapper *mapper) {
-	_mapper = mapper;
+	newEntry.mapper = mapper;
+	newEntry.autoFree = autoFree;
+	newEntry.ignore = false;
+
+	_mappers.push_back(newEntry);
 }
 
+void EventDispatcher::unregisterMapper(EventMapper *mapper) {
+	for (List<MapperEntry>::iterator i = _mappers.begin(); i != _mappers.end(); ++i) {
+		if (i->mapper == mapper) {
+			if (i->autoFree)
+				delete mapper;
+
+			_mappers.erase(i);
+			return;
+		}
+	}
+}
 
 void EventDispatcher::registerSource(EventSource *source, bool autoFree) {
 	SourceEntry newEntry;
@@ -147,6 +177,7 @@ void EventDispatcher::ignoreSources(bool ignore) {
 void EventDispatcher::registerObserver(EventObserver *obs, uint priority, bool autoFree, bool notifyPoll) {
 	ObserverEntry newEntry;
 
+	newEntry.ignore = false;
 	newEntry.observer = obs;
 	newEntry.priority = priority;
 	newEntry.autoFree = autoFree;

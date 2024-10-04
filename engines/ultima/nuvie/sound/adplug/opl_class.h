@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,8 @@ namespace Ultima {
 namespace Nuvie {
 
 #define HAS_YM3812  1
+#define HAS_YM3526  0
+#define HAS_Y8950   0
 
 /* --- select emulation chips --- */
 #define BUILD_YM3812 (HAS_YM3812)
@@ -37,17 +38,6 @@ namespace Nuvie {
 
 /* select output bits size of output : 8 or 16 */
 #define OPL_SAMPLE_BITS 16
-
-/* compiler dependence */
-#ifndef OSD_CPU_H
-#define OSD_CPU_H
-typedef unsigned char   uint8;   /* unsigned  8bit */
-typedef unsigned short  UINT16;  /* unsigned 16bit */
-typedef unsigned int    uint32;  /* unsigned 32bit */
-typedef signed char     int8;    /* signed  8bit   */
-typedef signed short    int16;   /* signed 16bit   */
-typedef signed int      int32;   /* signed 32bit   */
-#endif
 
 #if (OPL_SAMPLE_BITS==16)
 typedef int16 OPLSAMPLE;
@@ -78,7 +68,7 @@ typedef struct {
 	uint32  Cnt;        /* frequency counter            */
 	uint32  Incr;       /* frequency counter step       */
 	uint8   FB;         /* feedback shift value         */
-	int32   *connect1;  /* slot1 output pointer         */
+	signed int *connect1;  /* slot1 output pointer         */
 	int32   op1_out[2]; /* slot1 output for feedback    */
 	uint8   CON;        /* connection (algorithm) type  */
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -125,7 +124,7 @@ void NewRoom(int nrnum) {
 		if (is_char_walking_ndirect(_G(playerchar))) {
 			// nasty hack - make sure it doesn't move the character
 			// to a walkable area
-			_G(mls)[_G(playerchar)->walking].direct = 1;
+			_GP(mls)[_G(playerchar)->walking].direct = 1;
 			StopMoving(_GP(game).playercharacter);
 		}
 	} else if (_G(in_graph_script))
@@ -178,8 +177,8 @@ void CallRoomScript(int value) {
 		quit("!CallRoomScript: not inside a script???");
 
 	_GP(play).roomscript_finished = 0;
-	RuntimeScriptValue rval_null;
-	_G(curscript)->run_another("on_call", kScInstRoom, 1, RuntimeScriptValue().SetInt32(value), rval_null);
+	RuntimeScriptValue params[]{ value , RuntimeScriptValue() };
+	_G(curscript)->run_another("on_call", kScInstRoom, 1, params);
 }
 
 int HasBeenToRoom(int roomnum) {

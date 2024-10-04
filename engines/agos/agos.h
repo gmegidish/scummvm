@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,9 @@
 #include "common/stack.h"
 #include "common/util.h"
 #include "audio/mixer.h"
+
+#include "backends/keymapper/action.h"
+#include "backends/keymapper/keymapper.h"
 
 #include "agos/vga.h"
 #include "agos/detection.h"
@@ -61,6 +63,10 @@ struct Surface;
 class FontSJIS;
 }
 
+namespace Audio {
+class SeekableAudioStream;
+}
+
 namespace AGOS {
 
 enum {
@@ -69,6 +75,33 @@ enum {
 	kDebugSubroutine = 1 << 2,
 	kDebugVGAScript = 1 << 3,
 	kDebugImageDump = 1 << 4
+};
+
+enum AGOSAction {
+	kActionNone,
+	kActionWalkForward,
+	kActionTurnBack,
+	kActionTurnLeft,
+	kActionTurnRight,
+	kActionMusicDown,
+	kActionMusicUp,
+	kActionExitCutscene,
+	kActionToggleMusic,
+	kActionToggleFastMode,
+	kActionToggleSwitchCharacter,
+	kActionToggleSubtitle,
+	kActionToggleSpeech,
+	kActionToggleHitboxName,
+	kActionToggleSoundEffects,
+	kActionToggleBackgroundSound,
+	kActionShowObjects,
+	kActionTextSpeedFast,
+	kActionTextSpeedMedium,
+	kActionTextSpeedSlow,
+	kActionSpeed_GTYPEPP,
+	kActionKeyYes,
+	kActionKeyNo,
+	kActionPause
 };
 
 uint fileReadItemID(Common::SeekableReadStream *in);
@@ -200,6 +233,15 @@ class Debugger;
 
 class AGOSEngine : public Engine {
 protected:
+	// List of Simon 1 DOS floppy SFX which use rhythm notes.
+	static const byte SIMON1_RHYTHM_SFX[];
+
+	// Music index base for Simon 2 GM data.
+	static const uint16 MUSIC_INDEX_BASE_SIMON2_GM = 1128 / 4;
+	// Music index base for Simon 2 MT-32 data.
+	static const uint16 MUSIC_INDEX_BASE_SIMON2_MT32 = (1128 + 612) / 4;
+
+protected:
 	friend class Debugger;
 
 	// Engine APIs
@@ -213,9 +255,12 @@ protected:
 		return go();
 	}
 
-	virtual bool hasFeature(EngineFeature f) const override;
-	virtual void syncSoundSettings() override;
-	virtual void pauseEngineIntern(bool pause) override;
+	bool hasFeature(EngineFeature f) const override;
+	void syncSoundSettings() override;
+	// Applies AGOS engine internal sound settings to ConfigManager, digital
+	// sound channels and MIDI.
+	void syncSoundSettingsIntern();
+	void pauseEngineIntern(bool pause) override;
 
 	virtual void setupOpcodes();
 	uint16 _numOpcodes, _opcode;
@@ -242,8 +287,6 @@ public:
 	const char *getFileName(int type) const;
 
 protected:
-	void playSting(uint16 a);
-
 	const byte *_vcPtr;								/* video code ptr */
 	uint16 _vcGetOutOfCode;
 
@@ -270,6 +313,8 @@ protected:
 
 	const GameSpecificSettings *gss;
 
+	AGOSAction _action;
+	Common::JoystickState _joyaction;
 	Common::KeyState _keyPressed;
 
 	Common::File *_gameFile;
@@ -445,6 +490,7 @@ protected:
 	bool _bottomPalette;
 	uint16 _fastFadeCount;
 	volatile uint16 _fastFadeInFlag;
+	bool _neverFade;
 
 	uint16 _screenWidth, _screenHeight;
 	uint16 _internalWidth, _internalHeight;
@@ -576,12 +622,21 @@ protected:
 	int _vgaTickCounter;
 
 	Audio::SoundHandle _modHandle;
+	Audio::SoundHandle _digitalMusicHandle;
+	Audio::SeekableAudioStream *_digitalMusicStream = nullptr;
 
 	Sound *_sound;
 
-	bool _effectsPaused;
-	bool _ambientPaused;
-	bool _musicPaused;
+	bool _effectsMuted;
+	bool _ambientMuted;
+	bool _musicMuted;
+	// The current music volume, or the last used music volume if music is
+	// currently muted.
+	uint16 _musicVolume;
+	// The current SFX and ambient volume, or the last used volume if SFX
+	// and/or ambient sounds are currently muted.
+	uint16 _effectsVolume;
+	bool _useDigitalSfx;
 
 	uint8 _saveGameNameLen;
 	uint16 _saveLoadRowCurPos;
@@ -636,8 +691,12 @@ protected:
 	void decompressPN(Common::Stack<uint32> &dataList, uint8 *&dataOut, int &dataOutSize);
 	void loadOffsets(const char *filename, int number, uint32 &file, uint32 &offset, uint32 &compressedSize, uint32 &size);
 	void loadSound(uint16 sound, int16 pan, int16 vol, uint16 type);
+	void playSfx(uint16 sound, uint16 freq, uint16 flags, bool digitalOnly = false, bool midiOnly = false);
 	void loadSound(uint16 sound, uint16 freq, uint16 flags);
+	void loadMidiSfx();
+	virtual void playMidiSfx(uint16 sound);
 	void loadVoice(uint speechId);
+	void stopAllSfx();
 
 	void loadSoundFile(const char *filename);
 
@@ -707,12 +766,12 @@ protected:
 	void uncompressText(byte *ptr);
 	byte *uncompressToken(byte a, byte *ptr);
 
-	void showMessageFormat(const char *s, ...) GCC_PRINTF(2, 3);
+	void showMessageFormat(MSVC_PRINTF const char *s, ...) GCC_PRINTF(2, 3);
 	const byte *getStringPtrByID(uint16 stringId, bool upperCase = false);
 	const byte *getLocalStringByID(uint16 stringId);
 	uint getNextStringID();
 
-	void addTimeEvent(uint16 timeout, uint16 subroutineId);
+	void addTimeEvent(int32 timeout, uint16 subroutineId);
 	void delTimeEvent(TimeEvent *te);
 
 	Item *findInByClass(Item *i, int16 m);
@@ -1277,7 +1336,12 @@ protected:
 	void windowScroll(WindowBlock *window);
 	virtual void windowDrawChar(WindowBlock *window, uint x, uint y, byte chr);
 
-	void loadMusic(uint16 track);
+	// Loads the MIDI data for the specified track. The forceSimon2GmData
+	// parameter forces loading the MIDI data from the GM data set.
+	// The useSimon2Remapping parameter activates GM to MT-32 instrument
+	// remapping. These parameters are useful only for a specific
+	// workaround (see AGOSEngine_Simon2::playMusic for more details).
+	void loadMusic(uint16 track, bool forceSimon2GmData = false, bool useSimon2Remapping = false);
 	void playModule(uint16 music);
 	virtual void playMusic(uint16 music, uint16 track);
 	void stopMusic();
@@ -1454,6 +1518,8 @@ protected:
 	int _linembr;
 	uint8 *_linebase;
 	uint8 *_workptr;
+
+	bool _keymapEnabled;
 
 	uint16 getptr(uint32 pos);
 	uint32 getlong(uint32 pos);
@@ -1812,6 +1878,10 @@ protected:
 };
 
 class AGOSEngine_Simon1 : public AGOSEngine_Waxworks {
+private:
+	// Simon 1 DOS CD and Acorn CD GMF data sizes.
+	static const int SIMON1_GMF_SIZE[];
+
 public:
 	AGOSEngine_Simon1(OSystem *system, const AGOSGameDescription *gd);
 	//~AGOSEngine_Simon1();
@@ -1879,6 +1949,7 @@ protected:
 	int userGameGetKey(bool *b, uint maxChar) override;
 
 	void playMusic(uint16 music, uint16 track) override;
+	void playMidiSfx(uint16 sound) override;
 
 	void vcStopAnimation(uint16 zone, uint16 sprite) override;
 
@@ -1927,6 +1998,10 @@ protected:
 	void clearVideoWindow(uint16 windowNum, uint16 color) override;
 
 	void playSpeech(uint16 speechId, uint16 vgaSpriteId) override;
+	// This overload plays the music track specified in the second parameter.
+	// The first parameter is ignored; music data must be loaded using the
+	// loadMusic method before calling this method.
+	void playMusic(uint16 music, uint16 track) override;
 
 	Common::String genSaveName(int slot) const override;
 };
@@ -2049,7 +2124,7 @@ protected:
 	void printScreenText(uint vgaSpriteId, uint color, const char *stringPtr, int16 x, int16 y, int16 width) override;
 
 	void printInteractText(uint16 num, const char *string);
-	void sendInteractText(uint16 num, const char *fmt, ...) GCC_PRINTF(3, 4);
+	void sendInteractText(uint16 num, MSVC_PRINTF const char *fmt, ...) GCC_PRINTF(3, 4);
 
 	void checkLinkBox();
 	void hyperLinkOn(uint16 x);

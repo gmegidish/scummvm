@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,12 +70,13 @@ struct GameSetupStructBase {
 	int               default_lipsync_frame; // used for unknown chars
 	int               invhotdotsprite;
 	int32_t           reserved[NUM_INTS_RESERVED];
-	char *messages[MAXGLOBALMES];
+	String			  messages[MAXGLOBALMES];
 	WordsDictionary *dict;
 	char *globalscript;
 	CharacterInfo *chars;
 	ccScript *compiled_script;
 
+	// TODO: refactor to not have this as struct members
 	int32_t *load_messages;
 	bool load_dictionary;
 	bool load_compiled_script;
@@ -92,9 +92,8 @@ struct GameSetupStructBase {
 	void SetDefaultResolution(Size game_res);
 	void SetGameResolution(GameResolutionType type);
 	void SetGameResolution(Size game_res);
-	void ReadFromFile(Shared::Stream *in);
-	void WriteToFile(Shared::Stream *out);
-
+	void ReadFromFile(Shared::Stream *in, GameDataVersion game_ver);
+	void WriteToFile(Shared::Stream *out) const;
 
 	//
 	// ** On game resolution.
@@ -217,6 +216,17 @@ struct GameSetupStructBase {
 	// Returns the expected filename of a digital audio package
 	inline AGS::Shared::String GetAudioVOXName() const {
 		return IsLegacyAudioSystem() ? "music.vox" : "audio.vox";
+	}
+
+	// Returns a list of game options that are forbidden to change at runtime
+	inline static Common::Array<int> GetRestrictedOptions() {
+		return Common::Array<int> {{
+			OPT_DEBUGMODE, OPT_LETTERBOX, OPT_HIRES_FONTS, OPT_SPLITRESOURCES,
+			OPT_STRICTSCRIPTING, OPT_LEFTTORIGHTEVAL, OPT_COMPRESSSPRITES, OPT_STRICTSTRINGS,
+			OPT_NATIVECOORDINATES, OPT_SAFEFILEPATHS, OPT_DIALOGOPTIONSAPI, OPT_BASESCRIPTAPI,
+			OPT_SCRIPTCOMPATLEV, OPT_RELATIVEASSETRES, OPT_GAMETEXTENCODING, OPT_KEYHANDLEAPI,
+			OPT_CUSTOMENGINETAG
+		}};
 	}
 
 private:

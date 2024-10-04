@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef COMMON_MEMORY_H
 #define COMMON_MEMORY_H
 
-#include "common/scummsys.h"
+#include "common/util.h"
 
 namespace Common {
 
@@ -36,6 +35,22 @@ namespace Common {
  */
 
 /**
+ * Fills memory [dst, dst + count) with the value val.
+ *
+ * This is a replacement function for Common::fill, using an unrolled
+ * loop to maximize performance on most architectures.
+ *
+ * This fill operation is extensively used throughout the graphics code,
+ * so this counts as one of the main bottlenecks. Please replace it with
+ * assembly when possible!
+ *
+ * Note that pointers passed to these functions must be aligned correctly.
+ */
+void memset16(uint16 *dst, uint16 val, size_t count);
+void memset32(uint32 *dst, uint32 val, size_t count);
+void memset64(uint64 *dst, uint64 val, size_t count);
+
+/**
  * Copies data from the range [first, last) to [dst, dst + (last - first)).
  * It requires the range [dst, dst + (last - first)) to be valid and
  * uninitialized.
@@ -44,6 +59,18 @@ template<class In, class Type>
 Type *uninitialized_copy(In first, In last, Type *dst) {
 	while (first != last)
 		new ((void *)dst++) Type(*first++);
+	return dst;
+}
+
+/**
+ * Moves data from the range [first, last) to [dst, dst + (last - first)).
+ * It requires the range [dst, dst + (last - first)) to be valid and
+ * uninitialized.
+ */
+template<class In, class Type>
+Type *uninitialized_move(In first, In last, Type *dst) {
+	while (first != last)
+		new ((void *)dst++) Type(Common::move(*first++));
 	return dst;
 }
 

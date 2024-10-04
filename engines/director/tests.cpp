@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/config-manager.h"
 #include "common/system.h"
-#include "common/zlib.h"
+#include "common/compression/deflate.h"
 
 #include "common/memstream.h"
 #include "common/macresman.h"
+#include "common/formats/cue.h"
 
 #include "graphics/fonts/macfont.h"
 #include "graphics/macgui/macfontmanager.h"
@@ -36,8 +36,10 @@
 #include "director/director.h"
 #include "director/archive.h"
 #include "director/movie.h"
+#include "director/picture.h"
 #include "director/window.h"
-#include "director/lingo/lingo.h"
+
+#include "image/pict.h"
 
 namespace Director {
 
@@ -50,7 +52,7 @@ void Window::testFontScaling() {
 	int w = g_system->getWidth();
 	int h = g_system->getHeight();
 
-	_vm->setPalette(-1);
+	_vm->setPalette(CastMemberID(kClutSystemMac, -1));
 
 	Graphics::ManagedSurface surface;
 
@@ -61,13 +63,13 @@ void Window::testFontScaling() {
 
 	const Graphics::MacFONTFont *font1 = (const Graphics::MacFONTFont *)_wm->_fontMan->getFont(origFont);
 
-	Graphics::MacFONTFont::testBlit(font1, &surface, 0, x, y + 200, 500);
+	Graphics::MacFONTFont::testBlit(font1, &surface, 0xff, x, y + 200, 500);
 
-	Graphics::MacFont bigFont(Graphics::kMacFontNewYork, 15);
+	Graphics::MacFont bigFont(Graphics::kMacFontChicago, 12);
 
 	font1 = (const Graphics::MacFONTFont *)_wm->_fontMan->getFont(bigFont);
 
-	Graphics::MacFONTFont::testBlit(font1, &surface, 0, x, y + 50 + 200, 500);
+	Graphics::MacFONTFont::testBlit(font1, &surface, 0xff, x, y + 50 + 170, w - 10);
 
 	const char *text = "d";
 
@@ -81,7 +83,7 @@ void Window::testFontScaling() {
 		Common::Rect bbox = font->getBoundingBox(text, x, y, w);
 		surface.frameRect(bbox, 15);
 
-		font->drawString(&surface, text, x, y, width, 0);
+		font->drawString(&surface, text, x, y, width, 0xFF);
 
 		x += width + 1;
 	}
@@ -100,12 +102,38 @@ void Window::testFontScaling() {
 		}
 	}
 
+	x = 10;
+	for (int i = 0; i < kNumBuiltinTiles; i++) {
+		Picture *tile = g_director->getTile(i);
+		surface.blitFrom(tile->_surface, Common::Point(x, 250));
+
+		x += tile->_surface.w + 10;
+	}
+
+	Common::String filename("blend2.pic");
+	Common::Path path = findPath(filename);
+	Common::File in;
+	in.open(path);
+
+	if (in.isOpen()) {
+		Image::PICTDecoder k;
+		k.loadStream(in);
+
+		Graphics::Surface *res = k.getSurface()->convertTo(_wm->_pixelformat, k.getPalette(), k.getPaletteSize(), _wm->getPalette(), _wm->getPaletteSize(), Graphics::kDitherNaive);
+		surface.blitFrom(*res, Common::Point(400, 280));
+		delete res;
+
+		in.close();
+	} else {
+		warning("b_importFileInto(): Cannot open file %s", path.toString().c_str());
+	}
+
 	g_system->copyRectToScreen(surface.getPixels(), surface.pitch, 0, 0, w, h); // testing fonts
 
 	Common::Event event;
 
 	while (true) {
-		if (g_system->getEventManager()->pollEvent(event))
+		if (g_director->pollEvent(event))
 			if (event.type == Common::EVENT_QUIT)
 				break;
 
@@ -115,21 +143,21 @@ void Window::testFontScaling() {
 }
 
 void Window::testFonts() {
-	Common::String fontName("Helvetica");
+	Common::Path fontName("Helvetica");
 
 	Common::MacResManager *fontFile = new Common::MacResManager();
 	if (!fontFile->open(fontName))
-		error("testFonts(): Could not open %s as a resource fork", fontName.c_str());
+		error("testFonts(): Could not open %s as a resource fork", fontName.toString(Common::Path::kNativeSeparator).c_str());
 
 	Common::MacResIDArray fonds = fontFile->getResIDArray(MKTAG('F','O','N','D'));
 	if (fonds.size() > 0) {
-		for (Common::Array<uint16>::iterator iterator = fonds.begin(); iterator != fonds.end(); ++iterator) {
-			Common::SeekableReadStream *stream = fontFile->getResource(MKTAG('F', 'O', 'N', 'D'), *iterator);
-			Common::String name = fontFile->getResName(MKTAG('F', 'O', 'N', 'D'), *iterator);
+		for (auto &iterator : fonds) {
+			Common::SeekableReadStream *stream = fontFile->getResource(MKTAG('F', 'O', 'N', 'D'), iterator);
+			Common::String name = fontFile->getResName(MKTAG('F', 'O', 'N', 'D'), iterator);
 
 			debug("Font: %s", name.c_str());
 
-			Graphics::MacFontFamily font;
+			Graphics::MacFontFamily font(name);
 			font.load(*stream);
 		}
 	}
@@ -140,7 +168,7 @@ void Window::testFonts() {
 //////////////////////
 // Movie iteration
 //////////////////////
-Common::HashMap<Common::String, Movie *> *Window::scanMovies(const Common::String &folder) {
+Common::HashMap<Common::String, Movie *> *Window::scanMovies(const Common::Path &folder) {
 	Common::FSNode directory(folder);
 	Common::FSList movies;
 	const char *sharedMMMname;
@@ -164,10 +192,8 @@ Common::HashMap<Common::String, Movie *> *Window::scanMovies(const Common::Strin
 				continue;
 			}
 
-			Archive *arc = _vm->createArchive();
-
 			warning("name: %s", i->getName().c_str());
-			arc->openFile(i->getName());
+			Archive *arc = _vm->openArchive(i->getPathInArchive());
 			Movie *m = new Movie(this);
 			m->setArchive(arc);
 			nameMap->setVal(m->getMacName(), m);
@@ -180,7 +206,7 @@ Common::HashMap<Common::String, Movie *> *Window::scanMovies(const Common::Strin
 }
 
 void Window::enqueueAllMovies() {
-	Common::FSNode dir(ConfMan.get("path"));
+	Common::FSNode dir(ConfMan.getPath("path"));
 	Common::FSList files;
 	if (!dir.getChildren(files, Common::FSNode::kListFilesOnly)) {
 		warning("DirectorEngine::enqueueAllMovies(): Failed inquiring file list");
@@ -277,9 +303,29 @@ void Window::runTests() {
 	Common::MemoryReadStream *movie = new Common::MemoryReadStream(testMovie, ARRAYSIZE(testMovie));
 	Common::SeekableReadStream *stream = Common::wrapCompressedReadStream(movie);
 
+	const char *cueTest =
+"PERFORMER \"Bloc Party\"\n"
+"TITLE \"Silent Alarm\"\n"
+"FILE \"Bloc Party - Silent Alarm.flac\" WAVE\n"
+   "TRACK 01 AUDIO\n"
+      "TITLE \"Like Eating Glass\"\n"
+      "PERFORMER \"Bloc Party\"\n"
+      "INDEX 00 00:00:00\n"
+      "INDEX 01 03:22:70\n"
+   "TRACK 02 AUDIO\n"
+      "TITLE \"Helicopter\"\n"
+      "PERFORMER \"Bloc Party\"\n"
+      "INDEX 00 07:42:69\n"
+      "INDEX 01 07:44:69\n"
+"";
+
+
+	Common::CueSheet cue(cueTest);
+
 	initGraphics(640, 480);
 
 	_mainArchive = new RIFXArchive();
+	g_director->_allSeenResFiles.setVal("test.dir", _mainArchive);
 	if (!_mainArchive->openStream(stream, 0)) {
 		error("DirectorEngine::runTests(): Bad movie data");
 	}

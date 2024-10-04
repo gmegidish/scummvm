@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/stark/gfx/tinyglactor.h"
-
 #include "engines/stark/model/model.h"
 #include "engines/stark/model/animhandler.h"
 #include "engines/stark/scene.h"
@@ -56,9 +54,9 @@ void TinyGLActorRenderer::render(const Math::Vector3d &position, float direction
 	_model->updateBoundingBox();
 
 	bool drawShadow = false;
-	if (_castsShadow
-			&& StarkScene->shouldRenderShadows()
-			&& StarkSettings->getBoolSetting(Settings::kShadow)) {
+	if (_castsShadow &&
+	    StarkScene->shouldRenderShadows() &&
+	    StarkSettings->getBoolSetting(Settings::kShadow)) {
 		drawShadow = true;
 	}
 
@@ -96,8 +94,6 @@ void TinyGLActorRenderer::render(const Math::Vector3d &position, float direction
 		lightDirection = getShadowLightDirection(lights, position, modelInverse.getRotation());
 	}
 
-	tglEnable(TGL_TEXTURE_2D);
-
 	Common::Array<Face *> faces = _model->getFaces();
 	Common::Array<Material *> mats = _model->getMaterials();
 	const Common::Array<BoneNode *> &bones = _model->getBones();
@@ -106,14 +102,19 @@ void TinyGLActorRenderer::render(const Math::Vector3d &position, float direction
 		const Material *material = mats[(*face)->materialId];
 		Math::Vector3d color;
 		const Gfx::Texture *tex = resolveTexture(material);
+		if (tex) {
+			tex->bind();
+			tglEnable(TGL_TEXTURE_2D);
+		} else {
+			tglBindTexture(TGL_TEXTURE_2D, 0);
+			tglDisable(TGL_TEXTURE_2D);
+		}
 		auto vertexIndices = _faceEBO[*face];
 		auto numVertexIndices = (*face)->vertexIndices.size();
 		for (uint32 i = 0; i < numVertexIndices; i++) {
 			if (tex) {
-				tex->bind();
 				color = Math::Vector3d(1.0f, 1.0f, 1.0f);
 			} else {
-				tglBindTexture(TGL_TEXTURE_2D, 0);
 				color = Math::Vector3d(material->r, material->g, material->b);
 			}
 			uint32 index = vertexIndices[i];
@@ -123,19 +124,19 @@ void TinyGLActorRenderer::render(const Math::Vector3d &position, float direction
 			Math::Vector3d position1 = Math::Vector3d(vertex.pos1x, vertex.pos1y, vertex.pos1z);
 			Math::Vector3d position2 = Math::Vector3d(vertex.pos2x, vertex.pos2y, vertex.pos2z);
 			Math::Vector3d bone1Position = Math::Vector3d(bones[bone1]->_animPos.x(),
-														  bones[bone1]->_animPos.y(),
-														  bones[bone1]->_animPos.z());
+			                                              bones[bone1]->_animPos.y(),
+			                                              bones[bone1]->_animPos.z());
 			Math::Vector3d bone2Position = Math::Vector3d(bones[bone2]->_animPos.x(),
-														  bones[bone2]->_animPos.y(),
-														  bones[bone2]->_animPos.z());
+			                                              bones[bone2]->_animPos.y(),
+			                                              bones[bone2]->_animPos.z());
 			Math::Quaternion bone1Rotation = Math::Quaternion(bones[bone1]->_animRot.x(),
-														  bones[bone1]->_animRot.y(),
-														  bones[bone1]->_animRot.z(),
-														  bones[bone1]->_animRot.w());
+			                                                  bones[bone1]->_animRot.y(),
+			                                                  bones[bone1]->_animRot.z(),
+			                                                  bones[bone1]->_animRot.w());
 			Math::Quaternion bone2Rotation = Math::Quaternion(bones[bone2]->_animRot.x(),
-														  bones[bone2]->_animRot.y(),
-														  bones[bone2]->_animRot.z(),
-														  bones[bone2]->_animRot.w());
+			                                                  bones[bone2]->_animRot.y(),
+			                                                  bones[bone2]->_animRot.z(),
+			                                                  bones[bone2]->_animRot.w());
 			float boneWeight = vertex.boneWeight;
 			Math::Vector3d normal = Math::Vector3d(vertex.normalx, vertex.normaly, vertex.normalz);
 
@@ -150,9 +151,9 @@ void TinyGLActorRenderer::render(const Math::Vector3d &position, float direction
 			vertex.z = modelPosition.z();
 			Math::Vector4d modelEyePosition;
 			modelEyePosition = modelViewMatrix * Math::Vector4d(modelPosition.x(),
-																	       modelPosition.y(),
-																	       modelPosition.z(),
-																	       1.0);
+			                                                    modelPosition.y(),
+			                                                    modelPosition.z(),
+			                                                    1.0);
 			// Compute the vertex normal in eye-space
 			Math::Vector3d n1 = normal;
 			bone1Rotation.transform(n1);
@@ -220,16 +221,15 @@ void TinyGLActorRenderer::render(const Math::Vector3d &position, float direction
 					default:
 						break;
 				}
-
-				lightColor.x() = CLIP(lightColor.x(), 0.0f, 1.0f);
-				lightColor.y() = CLIP(lightColor.y(), 0.0f, 1.0f);
-				lightColor.z() = CLIP(lightColor.z(), 0.0f, 1.0f);
-				color = color * lightColor;
-				vertex.r = color.x();
-				vertex.g = color.y();
-				vertex.b = color.z();
 			}
 
+			lightColor.x() = CLIP(lightColor.x(), 0.0f, 1.0f);
+			lightColor.y() = CLIP(lightColor.y(), 0.0f, 1.0f);
+			lightColor.z() = CLIP(lightColor.z(), 0.0f, 1.0f);
+			color = color * lightColor;
+			vertex.r = color.x();
+			vertex.g = color.y();
+			vertex.b = color.z();
 			_faceVBO[index] = vertex;
 		}
 
@@ -255,30 +255,24 @@ void TinyGLActorRenderer::render(const Math::Vector3d &position, float direction
 
 	if (drawShadow) {
 		tglEnable(TGL_BLEND);
+		tglEnable(TGL_STENCIL_TEST);
 		tglDisable(TGL_TEXTURE_2D);
-
-		tglMatrixMode(TGL_PROJECTION);
-		tglLoadMatrixf(projectionMatrix.getData());
-
-		tglMatrixMode(TGL_MODELVIEW);
-		tglLoadMatrixf(mvp.getData());
 
 		tglColor4f(0.0f, 0.0f, 0.0f, 0.5f);
 
 		for (Common::Array<Face *>::const_iterator face = faces.begin(); face != faces.end(); ++face) {
-			auto vertexIndices = _faceEBO[*face];
-
 			tglEnableClientState(TGL_VERTEX_ARRAY);
 
 			tglVertexPointer(3, TGL_FLOAT, sizeof(ActorVertex), &_faceVBO[0].sx);
 
-			tglDrawElements(TGL_TRIANGLES, (*face)->vertexIndices.size(), TGL_UNSIGNED_INT, vertexIndices);
+			tglDrawElements(TGL_TRIANGLES, (*face)->vertexIndices.size(), TGL_UNSIGNED_INT, _faceEBO[*face]);
 
 			tglDisableClientState(TGL_VERTEX_ARRAY);
 		}
 
 		tglEnable(TGL_TEXTURE_2D);
 		tglDisable(TGL_BLEND);
+		tglDisable(TGL_STENCIL_TEST);
 	}
 }
 
@@ -438,14 +432,14 @@ bool TinyGLActorRenderer::getDirectionalLightContribution(LightEntry *light, Mat
 	return true;
 }
 
-bool TinyGLActorRenderer::getSpotLightContribution(LightEntry *light,
-		const Math::Vector3d &actorPosition, Math::Vector3d &direction) {
+bool TinyGLActorRenderer::getSpotLightContribution(LightEntry *light, const Math::Vector3d &actorPosition,
+                                                   Math::Vector3d &direction) {
 	Math::Vector3d lightToActor = actorPosition - light->position;
 	lightToActor.normalize();
 
 	float cosAngle = MAX(0.0f, lightToActor.dotProduct(light->direction));
 	float cone = (cosAngle - light->innerConeAngle.getCosine()) /
-			MAX(0.001f, light->outerConeAngle.getCosine() - light->innerConeAngle.getCosine());
+	             MAX(0.001f, light->outerConeAngle.getCosine() - light->innerConeAngle.getCosine());
 	cone = CLIP(cone, 0.0f, 1.0f);
 
 	if (cone <= 0) {

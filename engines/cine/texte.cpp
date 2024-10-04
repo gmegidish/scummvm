@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -410,7 +409,7 @@ void initLanguage(Common::Language lang) {
 		"Could not create save file ...", //
 		"PAUSE",
 		"Sauvegarde de | %s",
-		"Sauvegarde Annul\x82""e ...",
+		("Sauvegarde Annul\x82""e ..."),
 		"Aucune sauvegarde dans le lecteur ...",
 		"Veuillez entrer le Nom de la Sauvegarde ."
 	};
@@ -515,7 +514,7 @@ void initLanguage(Common::Language lang) {
 		"Versuchen Sie, etwas anderes zu finden",
 		// OPERATE
 		"Es geht nicht",
-		"Sagen wir, das war ein Versuch, und reden wir nicht mehr dr\x81""ber",
+		("Sagen wir, das war ein Versuch, und reden wir nicht mehr dr\x81""ber"),
 		"Nichts passiert",
 		"Sie haben wirklich was Besseres zu tun",
 		// SPEAK
@@ -562,7 +561,7 @@ void initLanguage(Common::Language lang) {
 	};
 
 	static const CommandeType defaultActionCommand_DE[] = {
-		"Pr\x81""fe", // FIXME? The third letter should be Latin Small Letter U with diaeresis
+		("Pr\x81""fe"), // FIXME? The third letter should be Latin Small Letter U with diaeresis
 		"Nimm",
 		"Bestand",
 		"Benutze",
@@ -599,7 +598,7 @@ void initLanguage(Common::Language lang) {
 		"Diese Sicherungskopie gibt es nicht",
 		"Could not create save file ...", //
 		"PAUSE",
-		"Er L\x84""dt | %s",
+		("Er L\x84""dt | %s"),
 		"Ladevorgang Abgebrochen...",
 		"Kein Backup im Laufwerk...",
 		"Geben Sie den Namen|der Sicherungsdiskette ein"
@@ -795,7 +794,7 @@ void freeErrmessDat() {
 	if (allocatedFailureMessages) {
 		free(const_cast<const char **>(failureMessages));
 	}
-	failureMessages = 0;
+	failureMessages = nullptr;
 	allocatedFailureMessages = false;
 }
 

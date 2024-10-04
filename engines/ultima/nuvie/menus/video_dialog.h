@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,11 +39,9 @@ protected:
 	bool old_use_new_dolls, old_use_tile_lighting;
 	GUI_CallBack *callback_object;
 	GUI_Button *save_button, *cancel_button, *only2x_button;
-	GUI_TextToggleButton *scale_button, *scale_win_button, *scaler_button, *scaler_win_button,
-	                     *fullscreen_button, *non_square_pixels_button, *roof_button, *lighting_button, *dither_button,
+	GUI_TextToggleButton *fullscreen_button, *non_square_pixels_button, *roof_button, *lighting_button, *dither_button,
 	                     *game_style_button, *doll_button, *tile_lighting_b, *sprites_b;
 	GUI_Button *button_index[11]; // add to here when you add a button. Keep buttons in order by height
-	void rebuild_buttons(bool init);
 public:
 	VideoDialog(GUI_CallBack *callback);
 	~VideoDialog() override;

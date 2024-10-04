@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,20 @@
 #include "graphics/scaler/aspect.h"
 #ifdef USE_OSD
 #include "common/translation.h"
+#endif
+
+#ifdef EMSCRIPTEN
+#include "backends/platform/sdl/emscripten/emscripten.h"
+#endif
+
+#if defined(USE_IMGUI) && SDL_VERSION_ATLEAST(2, 0, 0)
+#include "backends/imgui/backends/imgui_impl_sdl2.h"
+#ifdef USE_OPENGL
+#include "backends/imgui/backends/imgui_impl_opengl3.h"
+#endif
+#ifdef USE_IMGUI_SDLRENDERER2
+#include "backends/imgui/backends/imgui_impl_sdlrenderer2.h"
+#endif
 #endif
 
 SdlGraphicsManager::SdlGraphicsManager(SdlEventSource *source, SdlWindow *window)
@@ -59,7 +72,7 @@ void SdlGraphicsManager::deactivateManager() {
 		g_system->getEventManager()->getEventDispatcher()->unregisterObserver(this);
 	}
 
-	_eventSource->setGraphicsManager(0);
+	_eventSource->setGraphicsManager(nullptr);
 }
 
 SdlGraphicsManager::State SdlGraphicsManager::getState() const {
@@ -70,10 +83,19 @@ SdlGraphicsManager::State SdlGraphicsManager::getState() const {
 	state.aspectRatio   = getFeatureState(OSystem::kFeatureAspectRatioCorrection);
 	state.fullscreen    = getFeatureState(OSystem::kFeatureFullscreenMode);
 	state.cursorPalette = getFeatureState(OSystem::kFeatureCursorPalette);
+	state.vsync         = getFeatureState(OSystem::kFeatureVSync);
 #ifdef USE_RGB_COLOR
 	state.pixelFormat   = getScreenFormat();
 #endif
 	return state;
+}
+
+Common::RotationMode SdlGraphicsManager::getRotationMode() const {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	return Common::parseRotationMode(ConfMan.getInt("rotation_mode"));
+#else
+	return Common::kRotationNormal;
+#endif
 }
 
 bool SdlGraphicsManager::setState(const State &state) {
@@ -94,6 +116,7 @@ bool SdlGraphicsManager::setState(const State &state) {
 		setFeatureState(OSystem::kFeatureAspectRatioCorrection, state.aspectRatio);
 		setFeatureState(OSystem::kFeatureFullscreenMode, state.fullscreen);
 		setFeatureState(OSystem::kFeatureCursorPalette, state.cursorPalette);
+		setFeatureState(OSystem::kFeatureVSync, state.vsync);
 
 	if (endGFXTransaction() != OSystem::kTransactionSuccess) {
 		return false;
@@ -139,26 +162,11 @@ bool SdlGraphicsManager::defaultGraphicsModeConfig() const {
 	return true;
 }
 
-int SdlGraphicsManager::getGraphicsModeIdByName(const Common::String &name) const {
-	if (name == "normal" || name == "default") {
-		return getDefaultGraphicsMode();
-	}
-
-	const OSystem::GraphicsMode *mode = getSupportedGraphicsModes();
-	while (mode && mode->name != nullptr) {
-		if (name.equalsIgnoreCase(mode->name)) {
-			return mode->id;
-		}
-		++mode;
-	}
-	return -1;
-}
-
 void SdlGraphicsManager::initSizeHint(const Graphics::ModeList &modes) {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	const bool useDefault = defaultGraphicsModeConfig();
 
-	int scale = getGraphicsModeScale(getGraphicsModeIdByName(ConfMan.get("gfx_mode")));
+	int scale = ConfMan.getInt("scale_factor");
 	if (scale == -1) {
 		warning("Unknown scaler; defaulting to 1");
 		scale = 1;
@@ -202,7 +210,7 @@ bool SdlGraphicsManager::showMouse(bool visible) {
 		return visible;
 	}
 
-	int showCursor = SDL_DISABLE;
+	bool showCursor = false;
 	if (visible) {
 		// _cursorX and _cursorY are currently always clipped to the active
 		// area, so we need to ask SDL where the system's mouse cursor is
@@ -210,10 +218,10 @@ bool SdlGraphicsManager::showMouse(bool visible) {
 		int x, y;
 		SDL_GetMouseState(&x, &y);
 		if (!_activeArea.drawRect.contains(Common::Point(x, y))) {
-			showCursor = SDL_ENABLE;
+			showCursor = true;
 		}
 	}
-	SDL_ShowCursor(showCursor);
+	showSystemMouseCursor(showCursor);
 
 	return WindowedGraphicsManager::showMouse(visible);
 }
@@ -223,10 +231,29 @@ bool SdlGraphicsManager::lockMouse(bool lock) {
 }
 
 bool SdlGraphicsManager::notifyMousePosition(Common::Point &mouse) {
-	mouse.x = CLIP<int16>(mouse.x, 0, _windowWidth - 1);
-	mouse.y = CLIP<int16>(mouse.y, 0, _windowHeight - 1);
+	switch (getRotationMode()) {
+	case Common::kRotationNormal:
+		break;
+	case Common::kRotation90: {
+		int x0 = mouse.x, y0 = mouse.y;
+		mouse.x = CLIP<int16>(y0, 0, _windowHeight - 1);
+		mouse.y = CLIP<int16>(_windowWidth - 1 - x0, 0, _windowWidth - 1);
+		break;
+	}
+	case Common::kRotation180: {
+		mouse.x = CLIP<int16>(_windowWidth - 1 - mouse.x, 0, _windowWidth - 1);
+		mouse.y = CLIP<int16>(_windowHeight - 1 - mouse.y, 0, _windowHeight - 1);
+		break;
+	}
+	case Common::kRotation270: {
+		int x0 = mouse.x, y0 = mouse.y;
+		mouse.x = CLIP<int16>(_windowHeight - 1 - y0, 0, _windowHeight - 1);
+		mouse.y = CLIP<int16>(x0, 0, _windowWidth - 1);
+		break;
+	}
+	}
 
-	int showCursor = SDL_DISABLE;
+	bool showCursor = false;
 	// Currently on macOS we need to scale the events for HiDPI screen, but on
 	// Windows we do not. We can find out if we need to do it by querying the
 	// SDL window size vs the SDL drawable size.
@@ -237,8 +264,14 @@ bool SdlGraphicsManager::notifyMousePosition(Common::Point &mouse) {
 	if (_activeArea.drawRect.contains(mouse)) {
 		_cursorLastInActiveArea = true;
 	} else {
-		mouse.x = CLIP<int>(mouse.x, _activeArea.drawRect.left, _activeArea.drawRect.right - 1);
-		mouse.y = CLIP<int>(mouse.y, _activeArea.drawRect.top, _activeArea.drawRect.bottom - 1);
+		// The right/bottom edges are not part of the drawRect. As the clipping
+		// is done in drawable area coordinates, but the mouse position is set
+		// in window coordinates, we need to subtract as many pixels from the
+		// edges as corresponds to one pixel in the window coordinates.
+		mouse.x = CLIP<int>(mouse.x, _activeArea.drawRect.left,
+							_activeArea.drawRect.right - (int)(1 * dpiScale + 0.5f));
+		mouse.y = CLIP<int>(mouse.y, _activeArea.drawRect.top,
+							_activeArea.drawRect.bottom - (int)(1 * dpiScale + 0.5f));
 
 		if (_window->mouseIsGrabbed() ||
 			// Keep the mouse inside the game area during dragging to prevent an
@@ -261,17 +294,21 @@ bool SdlGraphicsManager::notifyMousePosition(Common::Point &mouse) {
 			}
 
 			if (_cursorVisible) {
-				showCursor = SDL_ENABLE;
+				showCursor = true;
 			}
 		}
 	}
 
-	SDL_ShowCursor(showCursor);
+	showSystemMouseCursor(showCursor);
 	if (valid) {
 		setMousePosition(mouse.x, mouse.y);
 		mouse = convertWindowToVirtual(mouse.x, mouse.y);
 	}
 	return valid;
+}
+
+void SdlGraphicsManager::showSystemMouseCursor(bool visible) {
+	SDL_ShowCursor(visible ? SDL_ENABLE : SDL_DISABLE);
 }
 
 void SdlGraphicsManager::setSystemMousePosition(const int x, const int y) {
@@ -282,6 +319,10 @@ void SdlGraphicsManager::setSystemMousePosition(const int x, const int y) {
 	}
 }
 
+void SdlGraphicsManager::notifyActiveAreaChanged() {
+	_window->setMouseRect(_activeArea.drawRect);
+}
+
 void SdlGraphicsManager::handleResizeImpl(const int width, const int height) {
 	_forceRedraw = true;
 }
@@ -290,6 +331,13 @@ void SdlGraphicsManager::handleResizeImpl(const int width, const int height) {
 bool SdlGraphicsManager::createOrUpdateWindow(int width, int height, const Uint32 flags) {
 	if (!_window) {
 		return false;
+	}
+	Common::RotationMode rotation = getRotationMode();
+
+	if (rotation == Common::kRotation90 || rotation == Common::kRotation270) {
+		int w = width, h = height;
+		width = h;
+		height = w;
 	}
 
 	// width *=3;
@@ -303,7 +351,8 @@ bool SdlGraphicsManager::createOrUpdateWindow(int width, int height, const Uint3
 	// may change the scaler, which should reset the window size)
 	if (!_window->getSDLWindow() || _lastFlags != flags || _overlayVisible || _allowWindowSizeReset) {
 		const bool fullscreen = (flags & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP)) != 0;
-		if (!fullscreen) {
+		const bool maximized = (flags & SDL_WINDOW_MAXIMIZED);
+		if (!fullscreen && !maximized) {
 			if (_hintedWidth) {
 				width = _hintedWidth;
 			}
@@ -327,7 +376,7 @@ bool SdlGraphicsManager::createOrUpdateWindow(int width, int height, const Uint3
 void SdlGraphicsManager::saveScreenshot() {
 	Common::String filename;
 
-	Common::String screenshotsPath;
+	Common::Path screenshotsPath;
 	OSystem_SDL *sdl_g_system = dynamic_cast<OSystem_SDL*>(g_system);
 	if (sdl_g_system)
 		screenshotsPath = sdl_g_system->getScreenshotsPath();
@@ -345,26 +394,34 @@ void SdlGraphicsManager::saveScreenshot() {
 		filename = Common::String::format("scummvm%s%s-%05d.%s", currentTarget.empty() ? "" : "-",
 		                                  currentTarget.c_str(), n, extension);
 
-		Common::FSNode file = Common::FSNode(screenshotsPath + filename);
+		Common::FSNode file = Common::FSNode(screenshotsPath.appendComponent(filename));
 		if (!file.exists()) {
 			break;
 		}
 	}
 
-	if (saveScreenshot(screenshotsPath + filename)) {
+	if (saveScreenshot(screenshotsPath.appendComponent(filename))) {
 		if (screenshotsPath.empty())
 			debug("Saved screenshot '%s' in current directory", filename.c_str());
 		else
-			debug("Saved screenshot '%s' in directory '%s'", filename.c_str(), screenshotsPath.c_str());
+			debug("Saved screenshot '%s' in directory '%s'", filename.c_str(),
+					screenshotsPath.toString(Common::Path::kNativeSeparator).c_str());
 
 #ifdef USE_OSD
-		displayMessageOnOSD(Common::U32String::format(_("Saved screenshot '%s'"), filename.c_str()));
+		if (!ConfMan.getBool("disable_saved_screenshot_osd"))
+			displayMessageOnOSD(Common::U32String::format(_("Saved screenshot '%s'"), filename.c_str()));
+#endif
+
+#ifdef EMSCRIPTEN
+		// Users can't access the virtual emscripten filesystem in the browser, so we export the generated screenshot file via OSystem_Emscripten::exportFile.
+		OSystem_Emscripten *emscripten_g_system = dynamic_cast<OSystem_Emscripten*>(g_system);
+		emscripten_g_system->exportFile(screenshotsPath.appendComponent(filename));
 #endif
 	} else {
 		if (screenshotsPath.empty())
 			warning("Could not save screenshot in current directory");
 		else
-			warning("Could not save screenshot in directory '%s'", screenshotsPath.c_str());
+			warning("Could not save screenshot in directory '%s'", screenshotsPath.toString(Common::Path::kNativeSeparator).c_str());
 
 #ifdef USE_OSD
 		displayMessageOnOSD(_("Could not save screenshot"));
@@ -396,12 +453,14 @@ bool SdlGraphicsManager::notifyEvent(const Common::Event &event) {
 }
 
 void SdlGraphicsManager::toggleFullScreen() {
+	/* Don't use g_system for kFeatureOpenGLForGame as it's always supported
+	 * We want to check if we are a 3D graphics manager */
+	bool is3D = hasFeature(OSystem::kFeatureOpenGLForGame);
+
 	if (!g_system->hasFeature(OSystem::kFeatureFullscreenMode) ||
-	   (!g_system->hasFeature(OSystem::kFeatureFullscreenToggleKeepsContext) && g_system->hasFeature(OSystem::kFeatureOpenGLForGame))) {
+	   (!g_system->hasFeature(OSystem::kFeatureFullscreenToggleKeepsContext) && is3D)) {
 		return;
 	}
-
-	bool is3D = g_system->hasFeature(OSystem::kFeatureOpenGLForGame);
 
 	if (!is3D)
 		beginGFXTransaction();
@@ -473,15 +532,158 @@ Common::Keymap *SdlGraphicsManager::getKeymap() {
 	act->setCustomBackendActionEvent(kActionDecreaseScaleFactor);
 	keymap->addAction(act);
 
-	act = new Action("FLTN", _("Switch to the next scaler"));
-	act->addDefaultInputMapping("C+A+0");
-	act->setCustomBackendActionEvent(kActionNextScaleFilter);
-	keymap->addAction(act);
+	if (hasFeature(OSystem::kFeatureScalers)) {
+		act = new Action("FLTN", _("Switch to the next scaler"));
+		act->addDefaultInputMapping("C+A+0");
+		act->setCustomBackendActionEvent(kActionNextScaleFilter);
+		keymap->addAction(act);
 
-	act = new Action("FLTP", _("Switch to the previous scaler"));
-	act->addDefaultInputMapping("C+A+9");
-	act->setCustomBackendActionEvent(kActionPreviousScaleFilter);
-	keymap->addAction(act);
+		act = new Action("FLTP", _("Switch to the previous scaler"));
+		act->addDefaultInputMapping("C+A+9");
+		act->setCustomBackendActionEvent(kActionPreviousScaleFilter);
+		keymap->addAction(act);
+	}
 
 	return keymap;
 }
+
+#if defined(USE_IMGUI) && SDL_VERSION_ATLEAST(2, 0, 0)
+void SdlGraphicsManager::initImGui(SDL_Renderer *renderer, void *glContext) {
+	assert(!_imGuiReady);
+	_imGuiInited = false;
+
+	IMGUI_CHECKVERSION();
+	if (!ImGui::CreateContext()) {
+		return;
+	}
+	ImGuiIO &io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+	ImGui::StyleColorsDark();
+	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.WindowRounding = 0.0f;
+	style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+	io.IniFilename = nullptr;
+
+	_imGuiSDLRenderer = nullptr;
+#ifdef USE_OPENGL
+	if (!_imGuiReady && glContext) {
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
+
+		if (!ImGui_ImplSDL2_InitForOpenGL(_window->getSDLWindow(), glContext)) {
+			ImGui::DestroyContext();
+			return;
+		}
+
+		if (!ImGui_ImplOpenGL3_Init("#version 110")) {
+			ImGui_ImplSDL2_Shutdown();
+			ImGui::DestroyContext();
+			return;
+		}
+
+		_imGuiReady = true;
+	}
+#endif
+#ifdef USE_IMGUI_SDLRENDERER2
+	if (!_imGuiReady && renderer) {
+		if (!ImGui_ImplSDL2_InitForSDLRenderer(_window->getSDLWindow(), renderer)) {
+			ImGui::DestroyContext();
+			return;
+		}
+
+		if (!ImGui_ImplSDLRenderer2_Init(renderer)) {
+			ImGui_ImplSDL2_Shutdown();
+			ImGui::DestroyContext();
+			return;
+		}
+
+		_imGuiReady = true;
+		_imGuiSDLRenderer = renderer;
+	}
+#endif
+	if (!_imGuiReady) {
+		warning("No ImGui renderer has been found");
+		ImGui::DestroyContext();
+		return;
+	}
+
+	if (_imGuiCallbacks.init) {
+		_imGuiCallbacks.init();
+		_imGuiInited = true;
+	}
+}
+
+void SdlGraphicsManager::renderImGui() {
+	if (!_imGuiReady || !_imGuiCallbacks.render) {
+		return;
+	}
+
+	if (!_imGuiInited) {
+		if (_imGuiCallbacks.init) {
+			_imGuiCallbacks.init();
+		}
+		_imGuiInited = true;
+	}
+
+#ifdef USE_IMGUI_SDLRENDERER2
+	if (_imGuiSDLRenderer) {
+		ImGui_ImplSDLRenderer2_NewFrame();
+	} else {
+#endif
+#ifdef USE_OPENGL
+		ImGui_ImplOpenGL3_NewFrame();
+#endif
+#ifdef USE_IMGUI_SDLRENDERER2
+	}
+#endif
+	ImGui_ImplSDL2_NewFrame();
+
+	ImGui::NewFrame();
+	_imGuiCallbacks.render();
+	ImGui::Render();
+#ifdef USE_IMGUI_SDLRENDERER2
+	if (_imGuiSDLRenderer) {
+		ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), _imGuiSDLRenderer);
+	} else {
+#endif
+#ifdef USE_OPENGL
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		SDL_Window* backup_current_window = SDL_GL_GetCurrentWindow();
+		SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
+		SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
+#endif
+#ifdef USE_IMGUI_SDLRENDERER2
+	}
+#endif
+}
+
+void SdlGraphicsManager::destroyImGui() {
+	if (!_imGuiReady) {
+		return;
+	}
+
+	if (_imGuiCallbacks.cleanup) {
+		_imGuiCallbacks.cleanup();
+	}
+
+	_imGuiInited = false;
+	_imGuiReady = false;
+
+#ifdef USE_IMGUI_SDLRENDERER2
+	if (_imGuiSDLRenderer) {
+		ImGui_ImplSDLRenderer2_Shutdown();
+	} else {
+#endif
+#ifdef USE_OPENGL
+		ImGui_ImplOpenGL3_Shutdown();
+#endif
+#ifdef USE_IMGUI_SDLRENDERER2
+	}
+#endif
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
+}
+#endif

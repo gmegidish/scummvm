@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,8 +40,7 @@ MyPushButton::MyPushButton(int xx, int yy, int wi, int hi, const char *tex) {   
 	wid = wi;
 	hit = hi + 1;               //hit=hi;
 	state = 0;
-	strncpy(text, tex, 50);
-	text[49] = 0;
+	snprintf(text, sizeof(text), "%s", tex);
 }
 
 void MyPushButton::draw(Bitmap *ds) {
@@ -62,7 +60,7 @@ void MyPushButton::draw(Bitmap *ds) {
 
 	ds->DrawLine(Line(x, y, x + wid - 1, y), draw_color);
 	ds->DrawLine(Line(x, y, x, y + hit - 1), draw_color);
-	wouttextxy(ds, x + (wid / 2 - wgettextwidth(text, _G(cbuttfont)) / 2), y + 2, _G(cbuttfont), text_color, text);
+	wouttextxy(ds, x + (wid / 2 - get_text_width(text, _G(cbuttfont)) / 2), y + 2, _G(cbuttfont), text_color, text);
 	if (typeandflags & CNF_DEFAULT)
 		draw_color = ds->GetCompatibleColor(0);
 	else
@@ -71,21 +69,16 @@ void MyPushButton::draw(Bitmap *ds) {
 	ds->DrawRect(Rect(x - 1, y - 1, x + wid + 1, y + hit + 1), draw_color);
 }
 
-int MyPushButton::pressedon(int mousex, int mousey) {
+int MyPushButton::pressedon(int mx, int my) {
 	int wasstat;
-	while (mbutrelease(MouseLeft) == 0) {
+	while (!ags_misbuttondown(kMouseLeft) == 0) {
 
 		wasstat = state;
-		state = mouseisinarea(mousex, mousey);
-		// stop mp3 skipping if button held down
-		update_polled_stuff_if_runtime();
+		state = mouseisinarea(mx, my);
+		update_polled_stuff();
 		if (wasstat != state) {
-			//        ags_domouse(DOMOUSE_DISABLE);
 			draw(get_gui_screen());
-			//ags_domouse(DOMOUSE_ENABLE);
 		}
-
-		//      ags_domouse(DOMOUSE_UPDATE);
 
 		refresh_gui_screen();
 
@@ -93,13 +86,11 @@ int MyPushButton::pressedon(int mousex, int mousey) {
 	}
 	wasstat = state;
 	state = 0;
-	//    ags_domouse(DOMOUSE_DISABLE);
 	draw(get_gui_screen());
-	//  ags_domouse(DOMOUSE_ENABLE);
 	return wasstat;
 }
 
-int MyPushButton::processmessage(int mcode, int wParam, NumberPtr lParam) {
+int MyPushButton::processmessage(int /*mcode*/, int /*wParam*/, NumberPtr /*lParam*/) {
 	return -1;                  // doesn't support messages
 }
 

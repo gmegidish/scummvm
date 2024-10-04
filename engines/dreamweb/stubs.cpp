@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +41,7 @@ const Room g_roomData[] = {
 	  255,255,255,0,
 	  7,2,255,255,255,255,6,255,255,255,1 },
 
-	// location 2: Louis' (?)
+	// location 2: Louis'
 	{ "DREAMWEB.R02",
 	  2,255,33,0,
 	  255,255,255,0,
@@ -114,7 +113,7 @@ const Room g_roomData[] = {
 	  255,255,255,0,
 	  1,4,255,255,255,255,255,255,255,255,13 },
 
-	// location 14
+	// location 14: subway station
 	{ "DREAMWEB.R14",
 	  14,255,44,20,
 	  255,255,255,0,
@@ -731,7 +730,7 @@ void DreamWebEngine::dreamweb() {
 }
 
 void DreamWebEngine::loadTextFile(TextFile &file, const char *suffix) {
-	Common::String fileName = getDatafilePrefix() + suffix;
+	Common::Path fileName(getDatafilePrefix() + suffix);
 	FileHeader header;
 
 	Common::File f;
@@ -837,7 +836,7 @@ void DreamWebEngine::switchRyanOff() {
 }
 
 void DreamWebEngine::loadGraphicsFile(GraphicsFile &file, const char *suffix) {
-	Common::String fileName = getDatafilePrefix() + suffix;
+	Common::Path fileName(getDatafilePrefix() + suffix);
 	FileHeader header;
 
 	Common::File f;
@@ -1008,7 +1007,7 @@ void DreamWebEngine::dumpTimedText() {
 		assert(!_needToDumpTimed);
 
 		tt = &_previousTimedTemp;
-		_previousTimedTemp._string = 0;
+		_previousTimedTemp._string = nullptr;
 		_previousTimedTemp._timeCount = 0;
 	} else if (_needToDumpTimed != 1) {
 		return;
@@ -1780,7 +1779,7 @@ void DreamWebEngine::mainScreen() {
 			{ 226,244,26,40,&DreamWebEngine::saveLoad },
 			{ 240,260,100,124,&DreamWebEngine::madmanRun },
 			{ 0,320,0,200,&DreamWebEngine::identifyOb },
-			{ 0xFFFF,0,0,0,0 }
+			{ 0xFFFF,0,0,0,nullptr }
 		};
 		checkCoords(mainList);
 	} else {
@@ -1791,7 +1790,7 @@ void DreamWebEngine::mainScreen() {
 			{ 226+48,244+48,26,40,&DreamWebEngine::saveLoad },
 			{ 240,260,100,124,&DreamWebEngine::madmanRun },
 			{ 0,320,0,200,&DreamWebEngine::identifyOb },
-			{ 0xFFFF,0,0,0,0 }
+			{ 0xFFFF,0,0,0,nullptr }
 		};
 		checkCoords(mainList2);
 	}
@@ -2015,14 +2014,14 @@ void DreamWebEngine::getRidOfTempText() {
 
 void DreamWebEngine::getRidOfAll() {
 	delete[] _backdropBlocks;
-	_backdropBlocks = 0;
+	_backdropBlocks = nullptr;
 
 	_setFrames.clear();
 	_reel1.clear();
 	_reel2.clear();
 	_reel3.clear();
 	delete[] _reelList;
-	_reelList = 0;
+	_reelList = nullptr;
 	_personText.clear();
 	_setDesc.clear();
 	_blockDesc.clear();
@@ -2036,7 +2035,7 @@ void DreamWebEngine::loadRoomData(const Room &room, bool skipDat) {
 	processEvents();
 	Common::File file;
 	if (!file.open(modifyFileName(room.name)))
-		error("cannot open file %s", modifyFileName(room.name).c_str());
+		error("cannot open file %s", modifyFileName(room.name).toString(Common::Path::kNativeSeparator).c_str());
 
 	FileHeader header;
 	file.read((uint8 *)&header, sizeof(FileHeader));
@@ -2077,7 +2076,7 @@ void DreamWebEngine::loadRoomData(const Room &room, bool skipDat) {
 	delete[] _reelList;
 	if (len[7] <= 36*sizeof(RoomPaths)) {
 		file.read((uint8 *)_pathData, len[7]);
-		_reelList = 0;
+		_reelList = nullptr;
 	} else {
 		file.read((uint8 *)_pathData, 36*sizeof(RoomPaths));
 		unsigned int reelLen = len[7] - 36*sizeof(RoomPaths);
@@ -2122,7 +2121,7 @@ void DreamWebEngine::restoreReels() {
 	processEvents();
 	Common::File file;
 	if (!file.open(modifyFileName(room.name)))
-		error("cannot open file %s", modifyFileName(room.name).c_str());
+		error("cannot open file %s", modifyFileName(room.name).toString(Common::Path::kNativeSeparator).c_str());
 
 	FileHeader header;
 	file.read((uint8 *)&header, sizeof(FileHeader));
@@ -2228,19 +2227,26 @@ void DreamWebEngine::atmospheres() {
 			_sound->playChannel0(a->_sound, a->_repeat);
 
 			// NB: The asm here reads
-			//	cmp reallocation,2
+			//  cmp reallocation,2
 			//  cmp mapy,0
 			//  jz fullvol
 			//  jnz notlouisvol
-			//  I'm interpreting this as if the cmp reallocation is below the jz
+			// This should probably be interpreted like this:
+			//  cmp reallocation,2
+			//  jnz notlouisvol
+			//  cmp mapy,0
+			//  jz  fullvol
+			if (_realLocation == 2) {
+				if (_mapY == 0) {
+					_sound->volumeSet(0); // "fullvol"
+					return;
+				}
 
-			if (_mapY == 0) {
-				_sound->volumeSet(0); // "fullvol"
-				return;
+				if (_mapX == 22 && _mapY == 10) {
+					_sound->volumeSet(5); // "louisvol"
+					return;
+				}
 			}
-
-			if (_realLocation == 2 && _mapX == 22 && _mapY == 10)
-				_sound->volumeSet(5); // "louisvol"
 
 			if (hasSpeech() && _realLocation == 14) {
 				if (_mapX == 33) {
@@ -2627,7 +2633,7 @@ void DreamWebEngine::decide() {
 		{ kOpsx+20,kOpsx+87,kOpsy+10,kOpsy+59,&DreamWebEngine::DOSReturn },
 		{ kOpsx+123,kOpsx+190,kOpsy+10,kOpsy+59,&DreamWebEngine::loadOld },
 		{ 0,320,0,200,&DreamWebEngine::blank },
-		{ 0xFFFF,0,0,0,0 }
+		{ 0xFFFF,0,0,0,nullptr }
 	};
 
 	do {
@@ -2905,7 +2911,7 @@ void DreamWebEngine::clearChanges() {
 	_vars._exFramePos = 0;
 	_vars._exTextPos = 0;
 
-	memset(_exFrames._frames, 0xFF, kFrameBlocksize);
+	memset(_exFrames._frames, 0xFF, kGraphicsFileFrameSize * sizeof(Frame));
 	memset(_exFrames._data, 0xFF, kExframeslen);
 	memset(_exData, 0xFF, sizeof(_exData));
 	memset(_exText._offsetsLE, 0xFF, 2*(kNumexobjects+2));

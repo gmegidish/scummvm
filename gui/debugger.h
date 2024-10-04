@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,7 @@ public:
 
 	int getCharsPerLine();
 
-	int debugPrintf(const char *format, ...) GCC_PRINTF(2, 3);
+	int debugPrintf(MSVC_PRINTF const char *format, ...) GCC_PRINTF(2, 3);
 
 	void debugPrintColumns(const Common::StringArray &list);
 
@@ -76,6 +75,7 @@ public:
 	bool isActive() const { return _isActive; }
 
 protected:
+	typedef Common::Functor1<const char *, bool> defaultCommand;
 	typedef Common::Functor2<int, const char **, bool> Debuglet;
 
 	/**
@@ -88,6 +88,14 @@ protected:
 	 */
 	#define WRAP_METHOD(cls, method) \
 		new Common::Functor2Mem<int, const char **, bool, cls>(this, &cls::method)
+
+	/**
+	 * Convenience macro that makes it easier to register a defaultCommandProcessor
+	 * Usage example:
+	 * 	registerDefaultCmd(WRAP_DEFAULTCOMMAND(MyDebugger, myCmd));
+	 */
+	#define WRAP_DEFAULTCOMMAND(cls, command) \
+		new Common::Functor1Mem<const char *, bool, cls>(this, &cls::command)
 
 	enum VarType {
 		DVAR_BYTE,
@@ -144,9 +152,24 @@ protected:
 	void registerCmd(const Common::String &cmdname, Debuglet *debuglet);
 
 	/**
+	 * Register a default command processor with the debugger. This
+	 * allows an engine to receive all user input in the debugger.
+	 *
+	 * A defaultCommandProcessor has the following signature:
+	 * 		bool func(const char **inputOrig)
+	 *
+	 * To deactivate call with a nullptr.
+	 */
+	void registerDefaultCmd(defaultCommand *defaultCommandProcessor) {
+		_defaultCommandProcessor = defaultCommandProcessor; }
+
+	/**
 	 * Remove all vars except default "debug_countdown"
 	 */
 	void clearVars();
+
+	void setPrompt(Common::String prompt);
+	void resetPrompt();
 
 private:
 	/**
@@ -182,6 +205,11 @@ private:
 	 * time.
 	 */
 	bool _firstTime;
+
+	/**
+	 * A nullptr till set by via registerDefaultCommand.
+	 */
+	defaultCommand *_defaultCommandProcessor;
 
 protected:
 	PauseToken _debugPauseToken;
@@ -247,6 +275,7 @@ protected:
 	bool cmdDebugFlagsList(int argc, const char **argv);
 	bool cmdDebugFlagEnable(int argc, const char **argv);
 	bool cmdDebugFlagDisable(int argc, const char **argv);
+	bool cmdClearLog(int argc, const char **argv);
 	bool cmdExecFile(int argc, const char **argv);
 
 #ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER

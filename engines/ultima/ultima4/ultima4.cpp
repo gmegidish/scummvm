@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,7 +39,6 @@
 #include "ultima/ultima4/game/person.h"
 #include "ultima/ultima4/game/weapon.h"
 #include "ultima/ultima4/gfx/screen.h"
-#include "ultima/ultima4/gfx/imageloader.h"
 #include "ultima/ultima4/gfx/imagemgr.h"
 #include "ultima/ultima4/map/maploader.h"
 #include "ultima/ultima4/map/shrine.h"
@@ -60,7 +58,7 @@ Ultima4Engine::Ultima4Engine(OSystem *syst, const Ultima::UltimaGameDescription 
 		Shared::UltimaEngine(syst, gameDesc), _saveSlotToLoad(-1), _armors(nullptr),
 		_codex(nullptr), _config(nullptr), _context(nullptr), _death(nullptr),
 		_dialogueLoaders(nullptr), _game(nullptr), _items(nullptr), _music(nullptr),
-		_imageLoaders(nullptr), _mapLoaders(nullptr), _moongates(nullptr),
+		_mapLoaders(nullptr), _moongates(nullptr),
 		_responseParts(nullptr), _saveGame(nullptr), _screen(nullptr), _shrines(nullptr),
 		_soundManager(nullptr), _spells(nullptr), _tileMaps(nullptr), _tileRules(nullptr),
 		_tileSets(nullptr), _weapons(nullptr) {
@@ -93,7 +91,6 @@ Ultima4Engine::~Ultima4Engine() {
 	delete _death;
 	delete _dialogueLoaders;
 	delete _game;
-	delete _imageLoaders;
 	delete _items;
 	delete _mapLoaders;
 	delete _moongates;
@@ -139,7 +136,6 @@ bool Ultima4Engine::initialize() {
 	_tileSets = new TileSets();
 	_tileMaps = new TileMaps();
 	_game = new GameController();
-	_imageLoaders = new ImageLoaders();
 	_saveGame = new SaveGame();
 	_weapons = new Weapons();
 
@@ -190,7 +186,7 @@ Common::Error Ultima4Engine::run() {
 	return Common::kNoError;
 }
 
-bool Ultima4Engine::isDataRequired(Common::String &folder, int &majorVersion, int &minorVersion) {
+bool Ultima4Engine::isDataRequired(Common::Path &folder, int &majorVersion, int &minorVersion) {
 	folder = "ultima4";
 	majorVersion = 1;
 	minorVersion = 0;

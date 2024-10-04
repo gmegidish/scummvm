@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,23 +34,20 @@ namespace Ultima {
 namespace Nuvie {
 
 GUI_YesNoDialog::GUI_YesNoDialog(GUI *gui, int x, int y, int w, int h, const char *msg,
-		CallBack *yesCallback, CallBack *noCallback) :
-	GUI_Dialog(x, y, w, h, 244, 216, 131, GUI_DIALOG_MOVABLE) {
+		CallBack *yesCallback, CallBack *noCallback)
+	: GUI_Dialog(x, y, w, h, 244, 216, 131, GUI_DIALOG_MOVABLE), b_index_num(-1),
+	  yes_callback_object(yesCallback), no_callback_object(noCallback) {
 	GUI_Widget *widget;
-	b_index_num = -1;
 
-	yes_callback_object = yesCallback;
-	no_callback_object = noCallback;
-
-	yes_button = new GUI_Button(this, 100, 50, 40, 18, "Yes", gui->get_font(), BUTTON_TEXTALIGN_CENTER, 0, this, 0);
+	yes_button = new GUI_Button(this, 100, 50, 40, 18, "Yes", gui->get_font(), BUTTON_TEXTALIGN_CENTER, false, this, false);
 	AddWidget(yes_button);
 	button_index[0] = yes_button;
 
-	no_button = new GUI_Button(this, 30, 50, 40, 18, "No", gui->get_font(), BUTTON_TEXTALIGN_CENTER, 0, this, 0);
+	no_button = new GUI_Button(this, 30, 50, 40, 18, "No", gui->get_font(), BUTTON_TEXTALIGN_CENTER, false, this, false);
 	AddWidget(no_button);
 	button_index[1] = no_button;
 
-	widget = (GUI_Widget *) new GUI_Text(10, 25, 0, 0, 0, msg, gui->get_font());
+	widget = new GUI_Text(10, 25, 0, 0, 0, msg, gui->get_font());
 	AddWidget(widget);
 }
 

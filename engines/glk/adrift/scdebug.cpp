@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,7 +71,7 @@ static const sc_strings_t DEBUG_COMMANDS[] = {
 	{"clearevents", DEBUG_CLEAREVENTS}, {"cleartasks", DEBUG_CLEARTASKS},
 	{"clearvariables", DEBUG_CLEARVARIABLES}, {"watchall", DEBUG_WATCHALL},
 	{"clearall", DEBUG_CLEARALL}, {"random", DEBUG_RANDOM}, {"quit", DEBUG_QUIT},
-	{NULL, DEBUG_NONE}
+	{nullptr, DEBUG_NONE}
 };
 
 /*
@@ -204,7 +203,7 @@ static void debug_finalize(sc_gameref_t game) {
 	sc_free(debug);
 
 	/* Remove the debug reference from the game. */
-	game->debugger = NULL;
+	game->debugger = nullptr;
 }
 
 
@@ -557,7 +556,7 @@ static void debug_print_room(sc_gameref_t game, sc_int room) {
 
 	if_print_debug("Room ");
 	if (room < 0 || room >= gs_room_count(game)) {
-		sprintf(buffer, "%ld ", room);
+		Common::sprintf_s(buffer, "%ld ", room);
 		if_print_debug(buffer);
 		if_print_debug("[Out of range]");
 		return;
@@ -567,7 +566,7 @@ static void debug_print_room(sc_gameref_t game, sc_int room) {
 	vt_key[1].integer = room;
 	vt_key[2].string = "Short";
 	name = prop_get_string(bundle, "S<-sis", vt_key);
-	sprintf(buffer, "%ld ", room);
+	Common::sprintf_s(buffer, "%ld ", room);
 	if_print_debug(buffer);
 	debug_print_quoted(name);
 }
@@ -581,7 +580,7 @@ static void debug_print_object(sc_gameref_t game, sc_int object) {
 
 	if (object < 0 || object >= gs_object_count(game)) {
 		if_print_debug("Object ");
-		sprintf(buffer, "%ld ", object);
+		Common::sprintf_s(buffer, "%ld ", object);
 		if_print_debug(buffer);
 		if_print_debug("[Out of range]");
 		return;
@@ -599,7 +598,7 @@ static void debug_print_object(sc_gameref_t game, sc_int object) {
 		if_print_debug("Static ");
 	else
 		if_print_debug("Dynamic ");
-	sprintf(buffer, "%ld ", object);
+	Common::sprintf_s(buffer, "%ld ", object);
 	if_print_debug(buffer);
 	debug_print_quoted(prefix);
 	if_print_debug_character(' ');
@@ -614,7 +613,7 @@ static void debug_print_npc(sc_gameref_t game, sc_int npc) {
 
 	if_print_debug("NPC ");
 	if (npc < 0 || npc >= gs_npc_count(game)) {
-		sprintf(buffer, "%ld ", npc);
+		Common::sprintf_s(buffer, "%ld ", npc);
 		if_print_debug(buffer);
 		if_print_debug("[Out of range]");
 		return;
@@ -626,7 +625,7 @@ static void debug_print_npc(sc_gameref_t game, sc_int npc) {
 	prefix = prop_get_string(bundle, "S<-sis", vt_key);
 	vt_key[2].string = "Name";
 	name = prop_get_string(bundle, "S<-sis", vt_key);
-	sprintf(buffer, "%ld ", npc);
+	Common::sprintf_s(buffer, "%ld ", npc);
 	if_print_debug(buffer);
 	debug_print_quoted(prefix);
 	if_print_debug_character(' ');
@@ -641,7 +640,7 @@ static void debug_print_event(sc_gameref_t game, sc_int event) {
 
 	if_print_debug("Event ");
 	if (event < 0 || event >= gs_event_count(game)) {
-		sprintf(buffer, "%ld ", event);
+		Common::sprintf_s(buffer, "%ld ", event);
 		if_print_debug(buffer);
 		if_print_debug("[Out of range]");
 		return;
@@ -651,7 +650,7 @@ static void debug_print_event(sc_gameref_t game, sc_int event) {
 	vt_key[1].integer = event;
 	vt_key[2].string = "Short";
 	name = prop_get_string(bundle, "S<-sis", vt_key);
-	sprintf(buffer, "%ld ", event);
+	Common::sprintf_s(buffer, "%ld ", event);
 	if_print_debug(buffer);
 	debug_print_quoted(name);
 }
@@ -664,7 +663,7 @@ static void debug_print_task(sc_gameref_t game, sc_int task) {
 
 	if_print_debug("Task ");
 	if (task < 0 || task >= gs_task_count(game)) {
-		sprintf(buffer, "%ld ", task);
+		Common::sprintf_s(buffer, "%ld ", task);
 		if_print_debug(buffer);
 		if_print_debug("[Out of range]");
 		return;
@@ -675,7 +674,7 @@ static void debug_print_task(sc_gameref_t game, sc_int task) {
 	vt_key[2].string = "Command";
 	vt_key[3].integer = 0;
 	command = prop_get_string(bundle, "S<-sisi", vt_key);
-	sprintf(buffer, "%ld ", task);
+	Common::sprintf_s(buffer, "%ld ", task);
 	if_print_debug(buffer);
 	debug_print_quoted(command);
 }
@@ -690,7 +689,7 @@ static void debug_print_variable(sc_gameref_t game, sc_int variable) {
 
 	if (variable < 0 || variable >= debug_variable_count(game)) {
 		if_print_debug("Variable ");
-		sprintf(buffer, "%ld ", variable);
+		Common::sprintf_s(buffer, "%ld ", variable);
 		if_print_debug(buffer);
 		if_print_debug("[Out of range]");
 		return;
@@ -715,7 +714,7 @@ static void debug_print_variable(sc_gameref_t game, sc_int variable) {
 		}
 	} else
 		if_print_debug("[Invalid variable] ");
-	sprintf(buffer, "%ld ", variable);
+	Common::sprintf_s(buffer, "%ld ", variable);
 	if_print_debug(buffer);
 	debug_print_quoted(name);
 }
@@ -787,7 +786,7 @@ static void debug_game(sc_gameref_t game, sc_command_type_t type) {
 	vt_key[1].string = "WaitTurns";
 	waitturns = prop_get_integer(bundle, "I<-ss", vt_key);
 	if_print_debug(", Waitturns ");
-	sprintf(buffer, "%ld", waitturns);
+	Common::sprintf_s(buffer, "%ld", waitturns);
 	if_print_debug(buffer);
 
 	vt_key[0].string = "Globals";
@@ -808,28 +807,28 @@ static void debug_game(sc_gameref_t game, sc_command_type_t type) {
 		if_print_debug("    Battle system\n");
 
 	if_print_debug("    Room count ");
-	sprintf(buffer, "%ld", gs_room_count(game));
+	Common::sprintf_s(buffer, "%ld", gs_room_count(game));
 	if_print_debug(buffer);
 
 	if_print_debug(", Object count ");
-	sprintf(buffer, "%ld", gs_object_count(game));
+	Common::sprintf_s(buffer, "%ld", gs_object_count(game));
 	if_print_debug(buffer);
 
 	if_print_debug(", NPC count ");
-	sprintf(buffer, "%ld", gs_npc_count(game));
+	Common::sprintf_s(buffer, "%ld", gs_npc_count(game));
 	if_print_debug(buffer);
 	if_print_debug_character('\n');
 
 	if_print_debug("    Event count ");
-	sprintf(buffer, "%ld", gs_event_count(game));
+	Common::sprintf_s(buffer, "%ld", gs_event_count(game));
 	if_print_debug(buffer);
 
 	if_print_debug(", Task count ");
-	sprintf(buffer, "%ld", gs_task_count(game));
+	Common::sprintf_s(buffer, "%ld", gs_task_count(game));
 	if_print_debug(buffer);
 
 	if_print_debug(", Variable count ");
-	sprintf(buffer, "%ld", debug_variable_count(game));
+	Common::sprintf_s(buffer, "%ld", debug_variable_count(game));
 	if_print_debug(buffer);
 	if_print_debug_character('\n');
 
@@ -856,13 +855,13 @@ static void debug_game(sc_gameref_t game, sc_command_type_t type) {
 	if_print_debug_character('\n');
 
 	if_print_debug("    Score ");
-	sprintf(buffer, "%ld", game->score);
+	Common::sprintf_s(buffer, "%ld", game->score);
 	if_print_debug(buffer);
 	if_print_debug(", Turns ");
-	sprintf(buffer, "%ld", game->turns);
+	Common::sprintf_s(buffer, "%ld", game->turns);
 	if_print_debug(buffer);
 	if_print_debug(", Seconds ");
-	sprintf(buffer, "%lu", debug->elapsed_seconds);
+	Common::sprintf_s(buffer, "%lu", debug->elapsed_seconds);
 	if_print_debug(buffer);
 	if_print_debug_character('\n');
 }
@@ -1131,7 +1130,7 @@ static void debug_dump_object(sc_gameref_t game, sc_int object) {
 		const sc_char *states;
 
 		if_print_debug("    State ");
-		sprintf(buffer, "%ld", gs_object_state(game, object));
+		Common::sprintf_s(buffer, "%ld", gs_object_state(game, object));
 		if_print_debug(buffer);
 
 		vt_key[2].string = "States";
@@ -1196,11 +1195,11 @@ static void debug_dump_npc(sc_gameref_t game, sc_int npc) {
 		sc_int walk;
 
 		if_print_debug("    Walkstep count ");
-		sprintf(buffer, "%ld", gs_npc_walkstep_count(game, npc));
+		Common::sprintf_s(buffer, "%ld", gs_npc_walkstep_count(game, npc));
 		if_print_debug(buffer);
 		if_print_debug(", Walks { ");
 		for (walk = 0; walk < gs_npc_walkstep_count(game, npc); walk++) {
-			sprintf(buffer, "%ld", gs_npc_walkstep(game, npc, walk));
+			Common::sprintf_s(buffer, "%ld", gs_npc_walkstep(game, npc, walk));
 			if_print_debug(buffer);
 			if_print_debug_character(' ');
 		}
@@ -1247,7 +1246,7 @@ static void debug_dump_event(sc_gameref_t game, sc_int event) {
 	}
 
 	if_print_debug("    Time ");
-	sprintf(buffer, "%ld\n", gs_event_time(game, event));
+	Common::sprintf_s(buffer, "%ld\n", gs_event_time(game, event));
 	if_print_debug(buffer);
 }
 
@@ -1307,7 +1306,7 @@ static void debug_dump_variable(sc_gameref_t game, sc_int variable) {
 		case VAR_INTEGER: {
 			sc_char buffer[32];
 
-			sprintf(buffer, "%ld", vt_rvalue.integer);
+			Common::sprintf_s(buffer, "%ld", vt_rvalue.integer);
 			if_print_debug(buffer);
 			break;
 		}
@@ -1340,9 +1339,9 @@ static void debug_dump_common(sc_gameref_t game, sc_command_t command,
 
 	/* Initialize variables to avoid gcc warnings. */
 	limit = 0;
-	class_ = NULL;
-	filter_function = NULL;
-	dumper_function = NULL;
+	class_ = nullptr;
+	filter_function = nullptr;
+	dumper_function = nullptr;
 
 	/* Switch to undo game on relevant commands. */
 	switch (command) {
@@ -1405,7 +1404,7 @@ static void debug_dump_common(sc_gameref_t game, sc_command_t command,
 	case DEBUG_VARIABLES:
 	case DEBUG_OLDVARIABLES:
 		class_ = "Variable";
-		filter_function = NULL;
+		filter_function = nullptr;
 		dumper_function = debug_dump_variable;
 		limit = debug_variable_count(game);
 		break;
@@ -1428,7 +1427,7 @@ static void debug_dump_common(sc_gameref_t game, sc_command_t command,
 				sc_char buffer[32];
 
 				if_print_debug("; valid values are 0 to ");
-				sprintf(buffer, "%ld", limit - 1);
+				Common::sprintf_s(buffer, "%ld", limit - 1);
 				if_print_debug(buffer);
 				if_print_debug(".\n");
 			}
@@ -1489,10 +1488,10 @@ static void debug_print_resource(const sc_resource_t *resource) {
 
 	debug_print_quoted(resource->name);
 	if_print_debug(", offset ");
-	sprintf(buffer, "%ld", resource->offset);
+	Common::sprintf_s(buffer, "%ld", resource->offset);
 	if_print_debug(buffer);
 	if_print_debug(", length ");
-	sprintf(buffer, "%ld", resource->length);
+	Common::sprintf_s(buffer, "%ld", resource->length);
 	if_print_debug(buffer);
 }
 
@@ -1586,7 +1585,7 @@ static void debug_random(sc_command_type_t type, sc_int new_seed) {
 	sc_seed_random(new_seed);
 
 	if_print_debug("Set seed ");
-	sprintf(buffer, "%ld", new_seed);
+	Common::sprintf_s(buffer, "%ld", new_seed);
 	if_print_debug(buffer);
 	if_print_debug(" for the ");
 	if_print_debug(random_type);
@@ -1611,8 +1610,8 @@ static void debug_watchpoint_common(sc_gameref_t game, sc_command_t command,
 
 	/* Initialize variables to avoid gcc warnings. */
 	limit = 0;
-	class_ = NULL;
-	watchpoints = NULL;
+	class_ = nullptr;
+	watchpoints = nullptr;
 	action = FALSE;
 
 	/* Set action to TRUE or FALSE, for setting/clearing watchpoints. */
@@ -1704,7 +1703,7 @@ static void debug_watchpoint_common(sc_gameref_t game, sc_command_t command,
 				if_print_debug("; only 0 is valid.\n");
 			else {
 				if_print_debug("; valid values are 0 to ");
-				sprintf(buffer, "%ld", limit - 1);
+				Common::sprintf_s(buffer, "%ld", limit - 1);
 				if_print_debug(buffer);
 				if_print_debug(".\n");
 			}
@@ -1724,7 +1723,7 @@ static void debug_watchpoint_common(sc_gameref_t game, sc_command_t command,
 					if_print_debug(class_);
 					if_print_debug(" { ");
 				}
-				sprintf(buffer, "%ld", index_);
+				Common::sprintf_s(buffer, "%ld", index_);
 				if_print_debug(buffer);
 				if_print_debug_character(' ');
 				printed = TRUE;
@@ -1751,7 +1750,7 @@ static void debug_watchpoint_common(sc_gameref_t game, sc_command_t command,
 		if_print_debug("Set ");
 	else
 		if_print_debug("Cleared ");
-	sprintf(buffer, "%ld ", high - low + 1);
+	Common::sprintf_s(buffer, "%ld ", high - low + 1);
 	if_print_debug(buffer);
 	if_print_debug(class_);
 	if (high == low)
@@ -1956,7 +1955,7 @@ static sc_bool debug_check_class(sc_gameref_t from, sc_gameref_t with, const sc_
 				if_print_debug(class_);
 				if_print_debug(" watchpoint triggered { ");
 			}
-			sprintf(buffer, "%ld ", index_);
+			Common::sprintf_s(buffer, "%ld ", index_);
 			if_print_debug(buffer);
 			triggered = TRUE;
 		}
@@ -2484,7 +2483,7 @@ void debug_set_enabled(sc_gameref_t game, sc_bool enable) {
 sc_bool debug_get_enabled(sc_gameref_t game) {
 	const sc_debuggerref_t debug = debug_get_debugger(game);
 
-	return debug != NULL;
+	return debug != nullptr;
 }
 
 } // End of namespace Adrift

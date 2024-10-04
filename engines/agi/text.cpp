@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,7 +36,7 @@ TextMgr::TextMgr(AgiEngine *vm, Words *words, GfxMgr *gfx) {
 	_words = words;
 	_gfx = gfx;
 
-	_systemUI = NULL;
+	_systemUI = nullptr;
 
 	memset(&_messageState, 0, sizeof(_messageState));
 	_textPos.row = 0;
@@ -90,12 +89,12 @@ void TextMgr::init(SystemUI *systemUI) {
 	_systemUI = systemUI;
 }
 
-void TextMgr::configureScreen(uint16 row_Min) {
-	_window_Row_Min = row_Min;
-	_window_Row_Max = row_Min + 21;
+void TextMgr::configureScreen(uint16 gameRow) {
+	_window_Row_Min = gameRow;
+	_window_Row_Max = gameRow + 21;
 
 	// forward data to GfxMgr as well
-	_gfx->setRenderStartOffset(row_Min * FONT_VISUAL_HEIGHT);
+	_gfx->setRenderStartOffset(gameRow * FONT_VISUAL_HEIGHT);
 }
 uint16 TextMgr::getWindowRowMin() {
 	return _window_Row_Min;
@@ -239,8 +238,8 @@ byte TextMgr::calculateTextBackground(byte background) {
 }
 
 void TextMgr::display(int16 textNr, int16 textRow, int16 textColumn) {
-	const char *logicTextPtr = NULL;
-	char *processedTextPtr   = NULL;
+	const char *logicTextPtr = nullptr;
+	char *processedTextPtr   = nullptr;
 
 	charPos_Push();
 	charPos_Set(textRow, textColumn);
@@ -261,15 +260,12 @@ void TextMgr::display(int16 textNr, int16 textRow, int16 textColumn) {
 }
 
 void TextMgr::displayTextInsideWindow(const char *textPtr, int16 windowRow, int16 windowColumn) {
-	int16 textRow = 0;
-	int16 textColumn = 0;
-
 	if (!_messageState.window_Active)
 		return;
 
 	charPos_Push();
-	textRow = _messageState.textPos.row + windowRow;
-	textColumn = _messageState.textPos.column + windowColumn;
+	int16 textRow = _messageState.textPos.row + windowRow;
+	int16 textColumn = _messageState.textPos.column + windowColumn;
 	charPos_Set(textRow, textColumn);
 	displayText(textPtr);
 	charPos_Pop();
@@ -297,10 +293,9 @@ void TextMgr::displayText(const char *textPtr, bool disabledLook) {
 	}
 
 	const char *curTextPtr = textPtr;
-	byte  curCharacter = 0;
 
 	while (1) {
-		curCharacter = *curTextPtr;
+		byte curCharacter = *curTextPtr;
 		if (!curCharacter)
 			break;
 
@@ -347,7 +342,7 @@ void TextMgr::displayCharacter(byte character, bool disabledLook) {
 }
 
 void TextMgr::print(int16 textNr) {
-	const char *logicTextPtr = NULL;
+	const char *logicTextPtr = nullptr;
 	if (textNr >= 1 && textNr <= _vm->_game._curLogic->numTexts) {
 		logicTextPtr = _vm->_game._curLogic->texts[textNr - 1];
 		messageBox(logicTextPtr);
@@ -392,7 +387,9 @@ bool TextMgr::messageBox(const char *textPtr) {
 	uint32 windowTimer = _vm->getVar(VM_VAR_WINDOW_AUTO_CLOSE_TIMER);
 	debugC(3, kDebugLevelText, "blocking window v21=%d", windowTimer);
 
-	windowTimer = windowTimer * 10; // 1 = 0.5 seconds
+	// 1 = 0.5 seconds. NB: ScummVM runs at 40 fps, not 20, so we have
+	// to multiply by 20, not 10, to get the number of cycles.
+	windowTimer = windowTimer * 20;
 	_messageBoxCancelled = false;
 
 	_vm->inGameTimerResetPassedCycles();
@@ -551,7 +548,16 @@ bool TextMgr::isMouseWithinMessageBox() {
 
 void TextMgr::closeWindow() {
 	if (_messageState.window_Active) {
-		_gfx->render_Block(_messageState.backgroundPos_x, _messageState.backgroundPos_y, _messageState.backgroundSize_Width, _messageState.backgroundSize_Height);
+		// Close the window by copying the game screen to the display screen.
+		// Our graphics code was designed with the assumption that the window would
+		// always be contained within the game screen, but MUMG nursery rhymes pass
+		// y=0 to print.at to place the text at the top of the game screen with the
+		// window border over the menu bar. We now support this, but the background
+		// position is in game screen coordinates, so it will have a negative y value
+		// that we must limit to zero before copying. Bugs #13820, #15241
+		const int16 x = _messageState.backgroundPos_x;
+		const int16 y = MAX<int16>(0, _messageState.backgroundPos_y);
+		_gfx->render_Block(x, y, _messageState.backgroundSize_Width, _messageState.backgroundSize_Height);
 	}
 	_messageState.dialogue_Open = false;
 	_messageState.window_Active = false;
@@ -575,7 +581,7 @@ bool TextMgr::statusEnabled() {
 }
 
 void TextMgr::statusDraw() {
-	char *statusTextPtr = NULL;
+	char *statusTextPtr = nullptr;
 
 	charAttrib_Push();
 	charPos_Push();
@@ -712,7 +718,11 @@ void TextMgr::promptKeyPress(uint16 newKey) {
 	switch (_vm->getLanguage()) {
 	case Common::RU_RUS:
 	case Common::HE_ISR:
-		if (newKey >= 0x20)
+		if ((newKey >= 0x20) && (newKey <= 0xff))
+			acceptableInput = true;
+		break;
+	case Common::FR_FRA:
+		if ((newKey >= 0x20) && (newKey != 0x5e) && (newKey <= 0xff))
 			acceptableInput = true;
 		break;
 	default:
@@ -732,7 +742,7 @@ void TextMgr::promptKeyPress(uint16 newKey) {
 	if (_messageState.dialogue_Open) {
 		maxChars = TEXT_STRING_MAX_SIZE - 4;
 	} else {
-		maxChars = TEXT_STRING_MAX_SIZE - strlen(_vm->_game.strings[0]); // string 0 is the prompt string prefix
+		maxChars = TEXT_STRING_MAX_SIZE - strlen(_vm->_game.getString(0)); // string 0 is the prompt string prefix
 	}
 
 	if (_promptCursorPos)
@@ -825,8 +835,6 @@ void TextMgr::promptEchoLine() {
 }
 
 void TextMgr::promptRedraw() {
-	char *textPtr = nullptr;
-
 	if (_promptEnabled) {
 		if (_optionCommandPromptWindow) {
 			// Abort, in case command prompt window is active
@@ -838,7 +846,7 @@ void TextMgr::promptRedraw() {
 		charPos_Set(_promptRow, 0);
 		// agi_printf(str_wordwrap(msg, state.string[0], 40) );
 
-		textPtr = _vm->_game.strings[0];
+		const char *textPtr = _vm->_game.getString(0);
 		textPtr = stringPrintf(textPtr);
 		textPtr = stringWordWrap(textPtr, 40);
 
@@ -886,7 +894,7 @@ void TextMgr::promptCommandWindow(bool recallLastCommand, uint16 newKey) {
 	if (_systemUI->askForCommand(commandText)) {
 		if (commandText.size()) {
 			// Something actually was entered?
-			strncpy((char *)&_prompt, commandText.c_str(), sizeof(_prompt));
+			Common::strcpy_s((char *)_prompt, sizeof(_prompt), commandText.c_str());
 			promptRememberForAutoComplete(true);
 			memcpy(&_promptPrevious, &_prompt, sizeof(_prompt));
 			// parse text
@@ -1026,7 +1034,11 @@ void TextMgr::stringKeyPress(uint16 newKey) {
 			switch (_vm->getLanguage()) {
 			case Common::RU_RUS:
 			case Common::HE_ISR:
-				if (newKey >= 0x20)
+				if ((newKey >= 0x20) && (newKey <= 0xff))
+					acceptableInput = true;
+				break;
+			case Common::FR_FRA:
+				if ((newKey >= 0x20) && (newKey != 0x5e) && (newKey <= 0xff))
 					acceptableInput = true;
 				break;
 			default:
@@ -1078,10 +1090,8 @@ char *TextMgr::stringWordWrap(const char *originalText, int16 maxWidth, int16 *c
 	int16 lineWidthLeft = maxWidth; // width left of current line
 
 	int16 wordStartPos = 0;
-	int16 wordLen = 0;
 	int16 curReadPos = 0;
 	int16 curWritePos = 0;
-	byte  wordEndChar = 0;
 
 	//memset(resultWrappedBuffer, 0, sizeof(resultWrappedBuffer)); for debugging
 
@@ -1104,10 +1114,10 @@ char *TextMgr::stringWordWrap(const char *originalText, int16 maxWidth, int16 *c
 				break;
 			curReadPos++;
 		}
-		wordEndChar = originalText[curReadPos];
+		byte wordEndChar = originalText[curReadPos];
 
 		// Calculate word length
-		wordLen = curReadPos - wordStartPos;
+		int16 wordLen = curReadPos - wordStartPos;
 
 		if (wordLen >= lineWidthLeft) {
 			// Not enough space left
@@ -1182,7 +1192,7 @@ char *TextMgr::stringWordWrap(const char *originalText, int16 maxWidth, int16 *c
 // ===============================================================
 
 static void safeStrcat(Common::String &p, const char *t) {
-	if (t != NULL)
+	if (t != nullptr)
 		p += t;
 }
 
@@ -1207,15 +1217,15 @@ char *TextMgr::stringPrintf(const char *originalText) {
 			switch (*originalText++) {
 				int i;
 			case 'v':
-				i = strtoul(originalText, NULL, 10);
+				i = strtoul(originalText, nullptr, 10);
 				while (*originalText >= '0' && *originalText <= '9')
 					originalText++;
-				sprintf(z, "%015i", _vm->getVar(i));
+				Common::sprintf_s(z, "%015i", _vm->getVar(i));
 
 				i = 99;
 				if (*originalText == '|') {
 					originalText++;
-					i = strtoul(originalText, NULL, 10);
+					i = strtoul(originalText, nullptr, 10);
 					while (*originalText >= '0' && *originalText <= '9')
 						originalText++;
 				}
@@ -1231,23 +1241,23 @@ char *TextMgr::stringPrintf(const char *originalText) {
 				safeStrcat(resultString, z + i);
 				break;
 			case '0':
-				i = strtoul(originalText, NULL, 10) - 1;
+				i = strtoul(originalText, nullptr, 10) - 1;
 				safeStrcat(resultString, _vm->objectName(i));
 				break;
 			case 'g':
-				i = strtoul(originalText, NULL, 10) - 1;
+				i = strtoul(originalText, nullptr, 10) - 1;
 				safeStrcat(resultString, _vm->_game.logics[0].texts[i]);
 				break;
 			case 'w':
-				i = strtoul(originalText, NULL, 10) - 1;
+				i = strtoul(originalText, nullptr, 10) - 1;
 				safeStrcat(resultString, _vm->_words->getEgoWord(i));
 				break;
 			case 's':
-				i = strtoul(originalText, NULL, 10);
-				safeStrcat(resultString, stringPrintf(_vm->_game.strings[i]));
+				i = strtoul(originalText, nullptr, 10);
+				safeStrcat(resultString, stringPrintf(_vm->_game.getString(i)));
 				break;
 			case 'm':
-				i = strtoul(originalText, NULL, 10) - 1;
+				i = strtoul(originalText, nullptr, 10) - 1;
 				if (_vm->_game.logics[_vm->_game.curLogicNr].numTexts > i)
 					safeStrcat(resultString, stringPrintf(_vm->_game.logics[_vm->_game.curLogicNr].texts[i]));
 				break;

@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,12 +27,12 @@
 
 namespace Stark {
 
-ArchiveLoader::LoadedArchive::LoadedArchive(const Common::String& archiveName) :
+ArchiveLoader::LoadedArchive::LoadedArchive(const Common::Path& archiveName) :
 		_filename(archiveName),
 		_root(nullptr),
 		_useCount(0) {
 	if (!_xarc.open(archiveName)) {
-		error("Unable to open archive '%s'", archiveName.c_str());
+		error("Unable to open archive '%s'", archiveName.toString(Common::Path::kNativeSeparator).c_str());
 	}
 }
 
@@ -55,7 +54,7 @@ ArchiveLoader::~ArchiveLoader() {
 	}
 }
 
-bool ArchiveLoader::load(const Common::String &archiveName) {
+bool ArchiveLoader::load(const Common::Path &archiveName) {
 	if (hasArchive(archiveName)) {
 		// Already loaded
 		return false;
@@ -79,7 +78,7 @@ void ArchiveLoader::unloadUnused() {
 	}
 }
 
-ArchiveReadStream *ArchiveLoader::getFile(const Common::String &fileName, const Common::String &archiveName) {
+ArchiveReadStream *ArchiveLoader::getFile(const Common::Path &fileName, const Common::Path &archiveName) {
 	LoadedArchive *archive = findArchive(archiveName);
 	const Formats::XARCArchive &xarc = archive->getXArc();
 
@@ -91,14 +90,14 @@ ArchiveReadStream *ArchiveLoader::getFile(const Common::String &fileName, const 
 	return new ArchiveReadStream(stream);
 }
 
-bool ArchiveLoader::returnRoot(const Common::String &archiveName) {
+bool ArchiveLoader::returnRoot(const Common::Path &archiveName) {
 	LoadedArchive *archive = findArchive(archiveName);
 	archive->decUsage();
 
 	return !archive->isInUse();
 }
 
-bool ArchiveLoader::hasArchive(const Common::String &archiveName) const {
+bool ArchiveLoader::hasArchive(const Common::Path &archiveName) const {
 	for (LoadedArchiveList::const_iterator it = _archives.begin(); it != _archives.end(); it++) {
 		if ((*it)->getFilename() == archiveName) {
 			return true;
@@ -108,17 +107,17 @@ bool ArchiveLoader::hasArchive(const Common::String &archiveName) const {
 	return false;
 }
 
-ArchiveLoader::LoadedArchive *ArchiveLoader::findArchive(const Common::String &archiveName) const {
+ArchiveLoader::LoadedArchive *ArchiveLoader::findArchive(const Common::Path &archiveName) const {
 	for (LoadedArchiveList::const_iterator it = _archives.begin(); it != _archives.end(); it++) {
 		if ((*it)->getFilename() == archiveName) {
 			return *it;
 		}
 	}
 
-	error("The archive with name '%s' is not loaded.", archiveName.c_str());
+	error("The archive with name '%s' is not loaded.", archiveName.toString(Common::Path::kNativeSeparator).c_str());
 }
 
-Common::String ArchiveLoader::buildArchiveName(Resources::Level *level, Resources::Location *location) const {
+Common::Path ArchiveLoader::buildArchiveName(Resources::Level *level, Resources::Location *location) const {
 	Common::String archive;
 
 	if (!location) {
@@ -136,24 +135,23 @@ Common::String ArchiveLoader::buildArchiveName(Resources::Level *level, Resource
 		archive = Common::String::format("%02x/%02x/%02x.xarc", level->getIndex(), location->getIndex(), location->getIndex());
 	}
 
-	return archive;
+	return Common::Path(archive, '/');
 }
 
-Common::String ArchiveLoader::getExternalFilePath(const Common::String &fileName, const Common::String &archiveName) const {
-	static const char separator = '/';
-
+Common::Path ArchiveLoader::getExternalFilePath(const Common::Path &fileName, const Common::Path &archiveName) const {
 	// Build a path of the type 45/00/
-	Common::String filePath = archiveName;
-	while (filePath.lastChar() != separator && !filePath.empty()) {
-		filePath.deleteLastChar();
+	Common::Path filePath = archiveName;
+	if (!filePath.isSeparatorTerminated()) {
+		filePath = filePath.getParent();
 	}
-	filePath += "xarc/" + fileName;
+	filePath.joinInPlace("xarc");
+	filePath.joinInPlace(fileName);
 
 	return filePath;
 }
 
-Common::SeekableReadStream *ArchiveLoader::getExternalFile(const Common::String &fileName, const Common::String &archiveName) const {
-	Common::String filePath = getExternalFilePath(fileName, archiveName);
+Common::SeekableReadStream *ArchiveLoader::getExternalFile(const Common::Path &fileName, const Common::Path &archiveName) const {
+	Common::Path filePath = getExternalFilePath(fileName, archiveName);
 	return SearchMan.createReadStreamForMember(filePath);
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,13 @@ GUIObject::GUIObject() {
 	Height = 0;
 	ZOrder = -1;
 	IsActivated = false;
+	_transparency = 0;
 	_scEventCount = 0;
+	_hasChanged = true;
+}
+
+String GUIObject::GetScriptName() const {
+	return Name;
 }
 
 int GUIObject::GetEventCount() const {
@@ -86,26 +91,37 @@ void GUIObject::SetClickable(bool on) {
 }
 
 void GUIObject::SetEnabled(bool on) {
+	if (on != ((Flags & kGUICtrl_Enabled) != 0))
+		MarkChanged();
 	if (on)
 		Flags |= kGUICtrl_Enabled;
 	else
 		Flags &= ~kGUICtrl_Enabled;
-	NotifyParentChanged();
 }
 
 void GUIObject::SetTranslated(bool on) {
+	if (on != ((Flags & kGUICtrl_Translated) != 0))
+		MarkChanged();
 	if (on)
 		Flags |= kGUICtrl_Translated;
 	else
 		Flags &= ~kGUICtrl_Translated;
-	NotifyParentChanged();
 }
 
 void GUIObject::SetVisible(bool on) {
+	if (on != ((Flags & kGUICtrl_Visible) != 0))
+		NotifyParentChanged(); // for software mode
 	if (on)
 		Flags |= kGUICtrl_Visible;
 	else
 		Flags &= ~kGUICtrl_Visible;
+}
+
+void GUIObject::SetTransparency(int trans) {
+	if (_transparency != trans) {
+		_transparency = trans;
+		NotifyParentChanged(); // for software mode
+	}
 }
 
 // TODO: replace string serialization with StrUtil::ReadString and WriteString
@@ -169,6 +185,12 @@ void GUIObject::ReadFromSavegame(Stream *in, GuiSvgVersion svg_ver) {
 	ZOrder = in->ReadInt32();
 	// Dynamic state
 	IsActivated = in->ReadBool() ? 1 : 0;
+	if (svg_ver >= kGuiSvgVersion_36023) {
+		_transparency = in->ReadInt32();
+		in->ReadInt32(); // reserve 3 ints
+		in->ReadInt32();
+		in->ReadInt32();
+	}
 }
 
 void GUIObject::WriteToSavegame(Stream *out) const {
@@ -181,19 +203,33 @@ void GUIObject::WriteToSavegame(Stream *out) const {
 	out->WriteInt32(ZOrder);
 	// Dynamic state
 	out->WriteBool(IsActivated != 0);
+	out->WriteInt32(_transparency);
+	out->WriteInt32(0); // reserve 3 ints
+	out->WriteInt32(0);
+	out->WriteInt32(0);
 }
 
 
 HorAlignment ConvertLegacyGUIAlignment(LegacyGUIAlignment align) {
 	switch (align) {
-	case kLegacyGUIAlign_Left:
-		return kHAlignLeft;
 	case kLegacyGUIAlign_Right:
 		return kHAlignRight;
 	case kLegacyGUIAlign_Center:
 		return kHAlignCenter;
+	default:
+		return kHAlignLeft;
 	}
-	return kHAlignNone;
+}
+
+LegacyGUIAlignment GetLegacyGUIAlignment(HorAlignment align) {
+	switch (align) {
+	case kHAlignRight:
+		return kLegacyGUIAlign_Right;
+	case kHAlignCenter:
+		return kLegacyGUIAlign_Center;
+	default:
+		return kLegacyGUIAlign_Left;
+	}
 }
 
 } // namespace Shared

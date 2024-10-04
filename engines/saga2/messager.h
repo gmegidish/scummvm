@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -63,15 +62,15 @@ class gDisplayPort;
 
 class Messager {
 protected:
-	bool enabled;
+	bool _enabled;
 	virtual int dumpit(char *, size_t) = 0;
 
 public:
 	Messager() {
-		enabled = true;
+		_enabled = true;
 	}
 	Messager(const char *entry) {
-		enabled = true;
+		_enabled = true;
 	}
 	virtual ~Messager() {}
 
@@ -79,13 +78,13 @@ public:
 	size_t va(const char *format, va_list argptr);
 
 	void enable() {
-		enabled = true;
+		_enabled = true;
 	}
 	void disable() {
-		enabled = false;
+		_enabled = false;
 	}
 	bool active() {
-		return enabled;
+		return _enabled;
 	}
 };
 
@@ -101,10 +100,10 @@ typedef Messager *pMessager;
 
 class StatusLineMessager : public Messager {
 private:
-	int line;
-	int32 atX, atY, atW;
-	int16 atColor;
-	gDisplayPort *textPort;
+	int _line;
+	int32 _atX, _atY, _atW;
+	int16 _atColor;
+	gDisplayPort *_textPort;
 
 protected:
 	int dumpit(char *s, size_t size) ;

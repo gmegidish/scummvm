@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -117,8 +116,8 @@ public:
 	ChooseLanguageInputState_NS(Parallaction *vm, MenuInputHelper *helper) : MenuInputState("chooselanguage", helper), _vm(vm) {
 		_allowChoice = false;
 		_nextState = "selectgame";
-		_label = 0;
-		_blocks = 0;
+		_label = nullptr;
+		_blocks = nullptr;
 
 		_dosLanguageSelectBlocks[0] = Common::Rect(  80, 110, 128, 180 );	// Italian
 		_dosLanguageSelectBlocks[1] = Common::Rect( 129,  85, 177, 155 );	// French
@@ -159,7 +158,7 @@ public:
 	void destroyLabels() {
 		_vm->_gfx->unregisterLabel(_label);
 		delete _label;
-		_label = 0;
+		_label = nullptr;
 	}
 
 	MenuInputState* run() override {
@@ -225,8 +224,8 @@ public:
 		_nextState[0] = "newgame";
 		_nextState[1] = "loadgame";
 
-		_labels[0] = 0;
-		_labels[1] = 0;
+		_labels[0] = nullptr;
+		_labels[1] = nullptr;
 	}
 
 	~SelectGameInputState_NS() override {
@@ -238,8 +237,8 @@ public:
 		_vm->_gfx->unregisterLabel(_labels[1]);
 		delete _labels[0];
 		delete _labels[1];
-		_labels[0] = 0;
-		_labels[1] = 0;
+		_labels[0] = nullptr;
+		_labels[1] = nullptr;
 	}
 
 
@@ -305,7 +304,7 @@ public:
 		if (!_result) {
 			_vm->scheduleLocationSwitch("fogne.dough");
 		}
-		return 0;
+		return nullptr;
 	}
 
 	void enter() override {
@@ -323,10 +322,10 @@ class NewGameInputState_NS : public MenuInputState {
 
 public:
 	NewGameInputState_NS(Parallaction_ns *vm, MenuInputHelper *helper) : MenuInputState("newgame", helper), _vm(vm) {
-		_labels[0] = 0;
-		_labels[1] = 0;
-		_labels[2] = 0;
-		_labels[3] = 0;
+		_labels[0] = nullptr;
+		_labels[1] = nullptr;
+		_labels[2] = nullptr;
+		_labels[3] = nullptr;
 	}
 
 	~NewGameInputState_NS() override {
@@ -342,7 +341,7 @@ public:
 
 			if (event == kMouseLeftUp) {
 				_vm->scheduleLocationSwitch("fogne.dough");
-				return 0;
+				return nullptr;
 			}
 
 			return _helper->getState("selectcharacter");
@@ -360,10 +359,10 @@ public:
 		delete _labels[1];
 		delete _labels[2];
 		delete _labels[3];
-		_labels[0] = 0;
-		_labels[1] = 0;
-		_labels[2] = 0;
-		_labels[3] = 0;
+		_labels[0] = nullptr;
+		_labels[1] = nullptr;
+		_labels[2] = nullptr;
+		_labels[3] = nullptr;
 	}
 
 	void enter() override {
@@ -400,7 +399,7 @@ public:
 	MenuInputState* run() override {
 		_vm->scheduleLocationSwitch("fognedemo.dough");
 		_vm->_input->setMouseState(MOUSE_ENABLED_SHOW);
-		return 0;
+		return nullptr;
 	}
 
 	void enter() override {
@@ -475,8 +474,8 @@ public:
 	SelectCharacterInputState_NS(Parallaction_ns *vm, MenuInputHelper *helper) : MenuInputState("selectcharacter", helper), _vm(vm) {
 		_keys = (_vm->getPlatform() == Common::kPlatformAmiga && (_vm->getFeatures() & GF_LANG_MULT)) ? _amigaKeys : _pcKeys;
 		_block.create(BLOCK_WIDTH, BLOCK_HEIGHT, Graphics::PixelFormat::createFormatCLUT8());
-		_labels[0] = 0;
-		_labels[1] = 0;
+		_labels[0] = nullptr;
+		_labels[1] = nullptr;
 
 		_fail = false;
 		_len = 0;
@@ -516,8 +515,8 @@ public:
 		_vm->_gfx->unregisterLabel(_labels[1]);
 		delete _labels[0];
 		delete _labels[1];
-		_labels[0] = 0;
-		_labels[1] = 0;
+		_labels[0] = nullptr;
+		_labels[1] = nullptr;
 	}
 
 	void cleanup() {
@@ -616,7 +615,7 @@ public:
 
 		case SUCCESS:
 			success();
-			nextState = 0;
+			nextState = nullptr;
 			break;
 
 		default:
@@ -693,8 +692,8 @@ class ShowCreditsInputState_NS : public MenuInputState {
 
 public:
 	ShowCreditsInputState_NS(Parallaction *vm, MenuInputHelper *helper) : MenuInputState("showcredits", helper), _vm(vm) {
-		_labels[0] = 0;
-		_labels[1] = 0;
+		_labels[0] = nullptr;
+		_labels[1] = nullptr;
 
 		_current = 0;
 		_startTime = 0;
@@ -709,8 +708,8 @@ public:
 		_vm->_gfx->unregisterLabel(_labels[1]);
 		delete _labels[0];
 		delete _labels[1];
-		_labels[0] = 0;
-		_labels[1] = 0;
+		_labels[0] = nullptr;
+		_labels[1] = nullptr;
 	}
 
 	void drawCurrentLabel() {
@@ -771,7 +770,7 @@ class EndIntroInputState_NS : public MenuInputState {
 public:
 	EndIntroInputState_NS(Parallaction_ns *vm, MenuInputHelper *helper) : MenuInputState("endintro", helper), _vm(vm) {
 		_isDemo = (_vm->getFeatures() & GF_DEMO) != 0;
-		_label = 0;
+		_label = nullptr;
 	}
 
 	~EndIntroInputState_NS() override {
@@ -781,7 +780,7 @@ public:
 	void destroyLabels() {
 		_vm->_gfx->unregisterLabel(_label);
 		delete _label;
-		_label = 0;
+		_label = nullptr;
 	}
 
 	MenuInputState* run() override {
@@ -793,7 +792,7 @@ public:
 
 		if (_isDemo) {
 			_vm->quitGame();
-			return 0;
+			return nullptr;
 		}
 
 		destroyLabels();
@@ -832,10 +831,10 @@ class EndPartInputState_NS : public MenuInputState {
 
 public:
 	EndPartInputState_NS(Parallaction *vm, MenuInputHelper *helper) : MenuInputState("endpart", helper), _vm(vm) {
-		_labels[0] = 0;
-		_labels[1] = 0;
-		_labels[2] = 0;
-		_labels[3] = 0;
+		_labels[0] = nullptr;
+		_labels[1] = nullptr;
+		_labels[2] = nullptr;
+		_labels[3] = nullptr;
 
 		_allPartsComplete = false;
 	}
@@ -851,10 +850,10 @@ public:
 		delete _labels[2];
 		delete _labels[3];
 
-		_labels[0] = 0;
-		_labels[1] = 0;
-		_labels[2] = 0;
-		_labels[3] = 0;
+		_labels[0] = nullptr;
+		_labels[1] = nullptr;
+		_labels[2] = nullptr;
+		_labels[3] = nullptr;
 	}
 
 	MenuInputState* run() override {
@@ -867,7 +866,7 @@ public:
 
 		if (_allPartsComplete) {
 			_vm->scheduleLocationSwitch("estgrotta.drki");
-			return 0;
+			return nullptr;
 		}
 
 		return _helper->getState("selectcharacter");

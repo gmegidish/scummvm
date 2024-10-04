@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +41,6 @@
 #include "engines/stark/services/staticprovider.h"
 #include "engines/stark/tools/decompiler.h"
 
-#include <limits.h>
 #include "common/file.h"
 
 namespace Stark {
@@ -96,12 +94,12 @@ bool Console::Cmd_DumpArchive(int argc, const char **argv) {
 	xarc.listMembers(members);
 
 	for (Common::ArchiveMemberList::const_iterator it = members.begin(); it != members.end(); it++) {
-		Common::String fileName = Common::String::format("dump/%s", it->get()->getName().c_str());
+		Common::Path fileName(Common::String::format("dump/%s", it->get()->getName().c_str()));
 
 		// Open the output file
 		Common::DumpFile outFile;
 		if (!outFile.open(fileName, true)) {
-			debugPrintf("Unable to open file '%s' for writing\n", fileName.c_str());
+			debugPrintf("Unable to open file '%s' for writing\n", fileName.toString().c_str());
 			return true;
 		}
 
@@ -389,8 +387,8 @@ void Console::walkAllArchives(ArchiveVisitor *visitor) {
 	for (uint i = 0; i < levels.size(); i++) {
 		Resources::Level *level = levels[i];
 
-		Common::String levelArchive = archiveLoader->buildArchiveName(level);
-		debug("%s - %s", levelArchive.c_str(), level->getName().c_str());
+		Common::Path levelArchive = archiveLoader->buildArchiveName(level);
+		debug("%s - %s", levelArchive.toString(Common::Path::kNativeSeparator).c_str(), level->getName().c_str());
 
 		// Load the detailed level archive
 		archiveLoader->load(levelArchive);
@@ -405,8 +403,8 @@ void Console::walkAllArchives(ArchiveVisitor *visitor) {
 		for (uint j = 0; j < locations.size(); j++) {
 			Resources::Location *location = locations[j];
 
-			Common::String locationArchive = archiveLoader->buildArchiveName(level, location);
-			debug("%s - %s", locationArchive.c_str(), location->getName().c_str());
+			Common::Path locationArchive = archiveLoader->buildArchiveName(level, location);
+			debug("%s - %s", locationArchive.toString(Common::Path::kNativeSeparator).c_str(), location->getName().c_str());
 
 			// Load the detailed location archive
 			archiveLoader->load(locationArchive);
@@ -650,8 +648,8 @@ bool Console::Cmd_ListLocations(int argc, const char **argv) {
 	for (uint i = 0; i < levels.size(); i++) {
 		Resources::Level *level = levels[i];
 
-		Common::String levelArchive = archiveLoader->buildArchiveName(level);
-		debugPrintf("%s - %s\n", levelArchive.c_str(), level->getName().c_str());
+		Common::Path levelArchive = archiveLoader->buildArchiveName(level);
+		debugPrintf("%s - %s\n", levelArchive.toString(Common::Path::kNativeSeparator).c_str(), level->getName().c_str());
 
 		// Load the detailed level archive
 		archiveLoader->load(levelArchive);
@@ -663,8 +661,8 @@ bool Console::Cmd_ListLocations(int argc, const char **argv) {
 		for (uint j = 0; j < locations.size(); j++) {
 			Resources::Location *location = locations[j];
 
-			Common::String roomArchive = archiveLoader->buildArchiveName(level, location);
-			debugPrintf("%s - %s\n", roomArchive.c_str(), location->getName().c_str());
+			Common::Path roomArchive = archiveLoader->buildArchiveName(level, location);
+			debugPrintf("%s - %s\n", roomArchive.toString(Common::Path::kNativeSeparator).c_str(), location->getName().c_str());
 		}
 
 		archiveLoader->returnRoot(levelArchive);
@@ -682,7 +680,7 @@ bool Console::Cmd_ListLocations(int argc, const char **argv) {
 bool Console::Cmd_ChangeLocation(int argc, const char **argv) {
 	if (argc >= 3) {
 		// Assert indices
-		Common::String xarcFileName = Common::String::format("%s/%s/%s.xarc", argv[1], argv[2], argv[2]);
+		Common::Path xarcFileName(Common::String::format("%s/%s/%s.xarc", argv[1], argv[2], argv[2]));
 		if (!Common::File::exists(xarcFileName)) {
 			debugPrintf("Invalid location %s %s. Use listLocations to get correct indices\n", argv[1], argv[2]);
 			return true;

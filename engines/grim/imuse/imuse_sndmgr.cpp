@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,10 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+#include "audio/decoders/raw.h"
 
 #include "common/endian.h"
 #include "common/stream.h"
@@ -182,7 +183,7 @@ ImuseSndMgr::SoundDesc *ImuseSndMgr::openSound(const char *soundName, int volGro
 		error("ImuseSndMgr::openSound() Can't alloc free sound slot");
 	}
 
-	strcpy(sound->name, soundName);
+	Common::strcpy_s(sound->name, soundName);
 	sound->volGroupId = volGroupId;
 	sound->inStream = nullptr;
 
@@ -338,7 +339,7 @@ int ImuseSndMgr::getJumpFade(SoundDesc *sound, int number) {
 	return sound->jump[number].fadeDelay;
 }
 
-int32 ImuseSndMgr::getDataFromRegion(SoundDesc *sound, int region, byte **buf, int32 offset, int32 size) {
+int32 ImuseSndMgr::getDataFromRegion(SoundDesc *sound, int region, byte **buf, int32 offset, int32 size, int32 *flags) {
 	assert(checkForProperHandle(sound));
 	assert(buf && offset >= 0 && size >= 0);
 	assert(region >= 0 && region < sound->numRegions);
@@ -355,10 +356,12 @@ int32 ImuseSndMgr::getDataFromRegion(SoundDesc *sound, int region, byte **buf, i
 
 	if (sound->mcmpData) {
 		size = sound->mcmpMgr->decompressSample(region_offset + offset, size, buf);
+		*flags |= Audio::FLAG_LITTLE_ENDIAN;
 	} else {
 		*buf = static_cast<byte *>(malloc(size));
 		sound->inStream->seek(region_offset + offset + sound->headerSize, SEEK_SET);
 		sound->inStream->read(*buf, size);
+		*flags &= ~Audio::FLAG_LITTLE_ENDIAN;
 	}
 
 	return size;

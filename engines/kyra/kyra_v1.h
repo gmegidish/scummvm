@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,8 +68,7 @@ class KyraMetaEngine;
  * all sound drivers that the originals had.
  * Some execeptions:
  * - The PC-98 version of Eye of the Beholder II is not yet supported.
- * - We don't support NES or Gameboy versions of Eye of the Beholder.
- * - The Macintosh version of Kyrandia 1 lacks sound effects and music.
+ * - We don't support NES or Game Boy versions of Eye of the Beholder.
  *
  * The official translations of the games of which we are aware are mostly
  * supported. Some of the more rare versions (of which we don't even know
@@ -236,8 +234,8 @@ protected:
 		bool causedSkip;
 
 		Event() : event(), causedSkip(false) {}
-		Event(Common::Event e) : event(e), causedSkip(false) {}
-		Event(Common::Event e, bool skip) : event(e), causedSkip(skip) {}
+		Event(Common::Event e) : event(Common::move(e)), causedSkip(false) {}
+		Event(Common::Event e, bool skip) : event(Common::move(e)), causedSkip(skip) {}
 
 		operator Common::Event() const { return event; }
 	};
@@ -358,9 +356,9 @@ protected:
 
 	bool _isSaveAllowed;
 
-	bool canLoadGameStateCurrently() override { return _isSaveAllowed; }
-	bool canSaveGameStateCurrently() override { return _isSaveAllowed; }
-	virtual int getAutosaveSlot() const override { return 999; }
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return _isSaveAllowed; }
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override { return _isSaveAllowed; }
+	int getAutosaveSlot() const override { return 999; }
 
 	const char *getSavegameFilename(int num);
 	Common::String _savegameFilename;
@@ -377,6 +375,9 @@ protected:
 		bool oldHeader;     // old scummvm save header
 
 		Graphics::Surface *thumbnail;
+
+		TimeDate timeDate;
+		uint32 totalPlaySecs;
 	};
 
 	enum ReadSaveHeaderError {
@@ -400,6 +401,15 @@ protected:
 
 	// TODO: Consider moving this to Screen
 	virtual Graphics::Surface *generateSaveThumbnail() const { return 0; }
+
+	// Officially used in EOB SegaCD (appears in the final stats), but we also use this for the savegame metadata for all games.
+	void updatePlayTimer();
+	void restartPlayTimerAt(uint32 totalPlaySecs);
+	void pausePlayTimer(bool pause);
+
+	uint32 _lastSecTick;
+	uint32 _lastSecTickAtPauseStart;
+	uint32 _totalPlaySecs;
 };
 
 } // End of namespace Kyra

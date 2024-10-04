@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -114,7 +113,7 @@ public:
 	virtual void save(MfcArchive &out) { error("Not implemented for obj type: %d", _objtype); }
 	virtual ~CObject() {}
 
-	bool loadFile(const Common::String &fname);
+	bool loadFile(const Common::Path &fname);
 };
 
 template <class T>
@@ -142,7 +141,7 @@ class MemoryObject : CObject {
 	friend class Scene;
 
  protected:
-	Common::String _memfilename;
+	Common::Path _memfilename;
 	int _mfield_8;
 	int _mfield_C;
 	int _mfield_10;
@@ -157,7 +156,7 @@ class MemoryObject : CObject {
 	~MemoryObject() override;
 
 	bool load(MfcArchive &file) override;
-	void loadFile(const Common::String &filename);
+	void loadFile(const Common::Path &filename);
 	void load() { loadFile(_memfilename); }
 	byte *getData();
 	byte *loadData();
@@ -192,7 +191,7 @@ class DWordArray : public Common::Array<int32>, public CObject {
 	bool load(MfcArchive &file) override;
 };
 
-Common::String genFileName(int superId, int sceneId, const char *ext);
+Common::Path genFileName(int superId, int sceneId, const char *ext);
 byte *transCyrillic(const Common::String &str);
 
 } // End of namespace NGI

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,18 +34,18 @@
 #include <winsparkle.h>
 
 /**
- * Sparkle is a software update framework for Mac OS X which uses appcasts for
+ * Sparkle is a software update framework for macOS which uses appcasts for
  * release information. Appcasts are RSS-like XML feeds which contain information
  * about the most current version at the time. If a new version is available, the
- * user is presented the release-notes/changes/fixes and is asked if he wants to
+ * user is presented the release-notes/changes/fixes and is asked if they want to
  * update, and if yes the Sparkle framework downloads a signed update package
  * from the server and automatically installs and restarts the software.
  * More detailed information is available at the following address:
- * http://sparkle.andymatuschak.org/
+ * https://sparkle-project.org/
  *
  * WinSparkle is a heavily (to the point of being its almost-port) inspired by the
  * Sparkle framework originally by Andy Matuschak that became the de facto standard
- * for software updates on OS X.
+ * for software updates on macOS.
  * More detailed information is available at the following address:
  * https://winsparkle.org/
  *

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,9 +28,8 @@
 namespace Ultima {
 namespace Nuvie {
 
-SunMoonStripWidget::SunMoonStripWidget(Player *p, TileManager *tm): GUI_Widget(NULL, 0, 0, 0, 0) {
-	player = p;
-	tile_manager = tm;
+SunMoonStripWidget::SunMoonStripWidget(Player *p, TileManager *tm)
+	: GUI_Widget(nullptr, 0, 0, 0, 0), player(p), tile_manager(tm) {
 }
 
 SunMoonStripWidget::~SunMoonStripWidget() {
@@ -40,7 +38,7 @@ SunMoonStripWidget::~SunMoonStripWidget() {
 
 
 void SunMoonStripWidget::init(sint16 x, sint16 y) {
-	GUI_Widget::Init(NULL, x, y, 100, 20);
+	GUI_Widget::Init(nullptr, x, y, 100, 20);
 }
 
 void SunMoonStripWidget::Display(bool full_redraw) {
@@ -61,8 +59,6 @@ void SunMoonStripWidget::Display(bool full_redraw) {
 
 
 void SunMoonStripWidget::display_surface_strip() {
-	uint8 i;
-	Tile *tile;
 	GameClock *clock = Game::get_game()->get_clock();
 	Weather *weather = Game::get_game()->get_weather();
 	bool eclipse = weather->is_eclipse();
@@ -72,8 +68,8 @@ void SunMoonStripWidget::display_surface_strip() {
 	if (!eclipse)
 		display_moons(clock->get_day(), clock->get_hour());
 
-	for (i = 0; i < 9; i++) {
-		tile = tile_manager->get_tile(352 + i);
+	for (int i = 0; i < 9; i++) {
+		Tile *tile = tile_manager->get_tile(352 + i);
 		screen->blit(area.left + 8 + i * 16, area.top, tile->data, 8, 16, 16, 16, true);
 	}
 
@@ -81,15 +77,12 @@ void SunMoonStripWidget::display_surface_strip() {
 }
 
 void SunMoonStripWidget::display_dungeon_strip() {
-	uint8 i;
-	Tile *tile;
-
-	tile = tile_manager->get_tile(372);
+	Tile *tile = tile_manager->get_tile(372);
 	screen->blit(area.left + 8, area.top, tile->data, 8, 16, 16, 16, true);
 
 	tile = tile_manager->get_tile(373);
 
-	for (i = 1; i < 8; i++) {
+	for (int i = 1; i < 8; i++) {
 		screen->blit(area.left + 8 + i * 16, area.top, tile->data, 8, 16, 16, 16, true);
 	}
 
@@ -99,7 +92,7 @@ void SunMoonStripWidget::display_dungeon_strip() {
 	return;
 }
 // <SB-X>
-void SunMoonStripWidget::display_sun_moon(Tile *tile, uint8 pos) {
+void SunMoonStripWidget::display_sun_moon(const Tile *tile, uint8 pos) {
 	struct {
 		sint16 x, y;
 	} skypos[15] = { // sky positions relative to area
@@ -140,9 +133,8 @@ void SunMoonStripWidget::display_sun(uint8 hour, uint8 minute, bool eclipse) {
 }
 
 void SunMoonStripWidget::display_moons(uint8 day, uint8 hour, uint8 minute) {
-	uint8 phase = 0;
 	// trammel (starts 1 hour ahead of sun)
-	phase = uint8(nearbyint((day - 1) / TRAMMEL_PHASE)) % 8;
+	uint8 phase = uint8(nearbyint((day - 1) / TRAMMEL_PHASE)) % 8;
 	Tile *tileA = tile_manager->get_tile((phase == 0) ? 584 : 584 + (8 - phase)); // reverse order in tilelist
 	uint8 posA = ((hour + 1) + 3 * phase) % 24; // advance 3 positions each phase-change
 

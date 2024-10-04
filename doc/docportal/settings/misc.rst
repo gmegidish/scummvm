@@ -4,32 +4,15 @@ Miscellaneous
 
 Use the Misc tab to change miscellaneous settings that don’t belong on any of the other tabs.
 
-From the Launcher, select **Options**, click the **>** scroll arrow until the Misc tab is visible, and then select the **Misc** tab.
+From the Launcher, select **Global Options**, if necessary click the **>** scroll arrow until the Misc tab is visible, and then select the **Misc** tab.
 
 .. figure:: ../images/settings/misc.png
 
-    The Misc tab in the global settings.
+    The Misc tab in the Global Options menu
 
 All settings can also be changed in the :doc:`../advanced_topics/configuration_file`. The configuration key is listed in italics after each setting description.
 
-,,,,,,,,,,,,,,,
-
-.. _theme:
-
-Theme
-	Changes the visual appearance of the ScummVM Launcher
-
-	*gui_theme*
-
-GUI scale
-	Scale the ScummVM GUI to be bigger or smaller. Using a larger scale can help to make the text easier to read when using ScummVM on a big screen.
-
-	*gui_scale*
-
-GUI renderer
-	Defines how the ScummVM GUI is rendered; normal or antialiased.
-
-	*gui_renderer*
+,,,,,,,,,,,,,,,,,
 
 .. _autosave:
 
@@ -38,36 +21,21 @@ Autosave
 
 	*autosave_period*
 
+.. _seed:
 
-GUI language
-	Chooses the language of the ScummVM Launcher.
+Random seed
+	Every time you start ScummVM, a random seed is generated. Use this option to set a fixed seed, which ensures that random events in games play out the same way every time. 
 
-	*gui_language*
+	*random_seed*
 
-.. _guilanguage:
+.. _discord:
 
-Switch the ScummVM GUI language to the game language
-	If ticked, the Launcher language is the same as the game language.
+Enable Discord Integration
+	Show the currently running game in a Discord user's status (if Activity Status is also enabled in the Discord settings).
 
-	*gui_use_game_language*
+	.. figure:: ../images/settings/discord_integration.png
 
-.. _guibrowser:
+.. _updatecheck:
 
-Use native system file browser
-	Uses the system file browser instead of the ScummVM browser.
-
-	*gui_browser_native*
-
-.. _guireturn:
-
-Always return to the launcher when leaving a game
-	If ticked, removes the **Quit** option from the Global Main Menu. Only the **Return to Launcher** option remains.
-
-	*gui_return_to_launcher_at_exit*
-
-.. _guiconfirm:
-
-Ask for confirmation on exit
-	If ticked, a confirmation dialog appears when you choose **Quit** or **Return to Launcher** from the Global Main Menu.
-
-	*confirm_exit*
+Update check
+	Use this option to automatically check for updates to ScummVM. Click the Check now button to manually check for updates.

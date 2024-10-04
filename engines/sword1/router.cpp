@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -280,7 +279,7 @@ int32 Router::getRoute() {
 			extractRoute();
 
 			// route.X,route.Y and route.Dir now hold all the
-			// route infomation with the target dir or route
+			// route information with the target dir or route
 			// continuation
 		}
 	}
@@ -291,7 +290,7 @@ int32 Router::getRoute() {
 // THE SLIDY PATH ROUTINES
 
 int32 Router::smoothestPath() {
-	// This is the second big part of the route finder and the the only
+	// This is the second big part of the route finder and the only
 	// bit that tries to be clever (the other bits are clever).
 	//
 	// This part of the autorouter creates a list of modules from a set of
@@ -658,7 +657,7 @@ void Router::slidyWalkAnimator(WalkData *walkAnim) {
 	int32 frames;
 	int32 frame;
 
-	// start at the begining for a change
+	// start at the beginning for a change
 	p = 0;
 	lastDir = _modularPath[0].dir;
 	currentDir = _modularPath[1].dir;
@@ -1068,7 +1067,7 @@ int32 Router::solidWalkAnimator(WalkData *walkAnim) {
 	int32 lastCount;
 	int32 frame;
 
-	// start at the begining for a change
+	// start at the beginning for a change
 	lastDir = _modularPath[0].dir;
 	currentDir = _modularPath[1].dir;
 	module =    _framesPerChar + lastDir;
@@ -1954,7 +1953,7 @@ int32 Router::LoadWalkResources(Object *megaObject, int32 x, int32 y, int32 dir)
 
 	// mega data ready
 
-	// finish setting grid by putting mega _node at begining
+	// finish setting grid by putting mega _node at beginning
 	// and target _node at end  and reset current values
 	_node[0].x = _startX;
 	_node[0].y = _startY;

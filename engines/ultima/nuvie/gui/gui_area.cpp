@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,39 +27,23 @@ namespace Ultima {
 namespace Nuvie {
 
 GUI_Area:: GUI_Area(int x, int y, int w, int h, uint8 r, uint8 g, uint8 b, int aShape)
-	: GUI_Widget(NULL, x, y, w, h) {
-	R = r;
-	G = g;
-	B = b;
-	color = 0;
-	useFrame = 0;
-	shape = aShape;
-	frameThickness = 0;
+	: GUI_Widget(nullptr, x, y, w, h), R(r), G(g), B(b), color(0), useFrame(0), shape(aShape),
+	  frameThickness(0), fB(0), fG(0), fR(0), frameColor(0) {
 }
 
 GUI_Area:: GUI_Area(int x, int y, int w, int h, uint8 r, uint8 g, uint8 b,
 					uint8 fr, uint8 fg, uint8 fb, int fthick, int aShape)
-	: GUI_Widget(NULL, x, y, w, h) {
-	R = r;
-	G = g;
-	B = b;
-	color = 0;
-	useFrame = 1;
-	fR = fr;
-	fG = fg;
-	fB = fb;
-	frameColor = 0;
-	frameThickness = fthick;
-	shape = aShape;
+	: GUI_Widget(nullptr, x, y, w, h), R(r), G(g), B(b), color(0), useFrame(1),
+	  fR(fr), fG(fg), fB(fb), frameColor(0), frameThickness(fthick), shape(aShape) {
 }
 
 /* Map the color to the display */
 void
 GUI_Area:: SetDisplay(Screen *s) {
 	GUI_Widget::SetDisplay(s);
-	color = SDL_MapRGB(surface->format, R, G, B);
+	color = surface->format.RGBToColor(R, G, B);
 	if (useFrame)
-		frameColor = SDL_MapRGB(surface->format, fR, fG, fB);
+		frameColor = surface->format.RGBToColor(fR, fG, fB);
 }
 
 /* Show the widget  */

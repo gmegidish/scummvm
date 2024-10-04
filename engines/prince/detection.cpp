@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@
 
 static const PlainGameDescriptor princeGames[] = {
 	{"prince", "The Prince and the Coward"},
-	{0, 0}
+	{nullptr, nullptr}
 };
 
 static const DebugChannelDef debugFlagList[] = {
@@ -103,7 +102,7 @@ static const PrinceGameDescription gameDescriptions[] = {
 			"prince",
 			"w/translation",
 			AD_ENTRY2s("databank.ptc", "5fa03833177331214ec1354761b1d2ee", 3565031,
-					   "prince_translation.dat", 0, -1),
+					   "prince_translation.dat", nullptr, AD_NO_SIZE),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			GF_TRANSLATED | ADGF_DROPPLATFORM,
@@ -116,8 +115,36 @@ static const PrinceGameDescription gameDescriptions[] = {
 			"prince",
 			"w/translation",
 			AD_ENTRY2s("databank.ptc", "48ec9806bda9d152acbea8ce31c93c49", 3435298,
-					   "prince_translation.dat", 0, -1),
+					   "prince_translation.dat", nullptr, AD_NO_SIZE),
 			Common::EN_ANY,
+			Common::kPlatformWindows,
+			GF_TRANSLATED | ADGF_DROPPLATFORM,
+			GUIO1(GUIO_NONE)
+		},
+		kPrinceDataPL
+	},
+	{
+		{
+			"prince",
+			"w/translation",
+			AD_ENTRY3s("databank.ptc", "5fa03833177331214ec1354761b1d2ee", 3565031,
+					   "FONT1.RAW", "e80c50c8167d4d51c60d93e29bedb779", 27118,
+					   "prince_translation.dat", nullptr, AD_NO_SIZE),
+			Common::ES_ESP,
+			Common::kPlatformWindows,
+			GF_TRANSLATED | ADGF_DROPPLATFORM,
+			GUIO1(GUIO_NONE)
+		},
+		kPrinceDataDE
+	},
+	{
+		{
+			"prince",
+			"w/translation",
+			AD_ENTRY3s("databank.ptc", "48ec9806bda9d152acbea8ce31c93c49", 3435298,
+					   "FONT1.RAW", "e80c50c8167d4d51c60d93e29bedb779", 27118,
+					   "prince_translation.dat", nullptr, AD_NO_SIZE),
+			Common::ES_ESP,
 			Common::kPlatformWindows,
 			GF_TRANSLATED | ADGF_DROPPLATFORM,
 			GUIO1(GUIO_NONE)
@@ -129,23 +156,23 @@ static const PrinceGameDescription gameDescriptions[] = {
 
 } // End of namespace Prince
 
-const static char *directoryGlobs[] = {
+const static char *const directoryGlobs[] = {
 	"all",
-	0
+	nullptr
 };
 
-class PrinceMetaEngineDetection : public AdvancedMetaEngineDetection {
+class PrinceMetaEngineDetection : public AdvancedMetaEngineDetection<Prince::PrinceGameDescription> {
 public:
-	PrinceMetaEngineDetection() : AdvancedMetaEngineDetection(Prince::gameDescriptions, sizeof(Prince::PrinceGameDescription), princeGames) {
+	PrinceMetaEngineDetection() : AdvancedMetaEngineDetection(Prince::gameDescriptions, princeGames) {
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "prince";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "The Prince and the Coward";
 	}
 

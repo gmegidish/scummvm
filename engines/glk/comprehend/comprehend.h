@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -134,7 +133,8 @@ public:
 	/**
 	 * Print unicode-string to the buffer window
 	 */
-	void print(const Common::U32String fmt, ...);
+	template<class... TParam>
+	void print(const Common::U32String &fmt, TParam... param);
 
 	/**
 	 * Prints the room description in the room description window
@@ -195,14 +195,14 @@ public:
 	/**
 	 * Returns true if a savegame can be loaded
 	 */
-	bool canLoadGameStateCurrently() override {
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override {
 		return !_disableSaves && GlkAPI::canLoadGameStateCurrently();
 	}
 
 	/**
 	 * Returns true if the game can be saved
 	 */
-	bool canSaveGameStateCurrently() override {
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override {
 		return !_disableSaves && GlkAPI::canSaveGameStateCurrently();
 	}
 
@@ -217,7 +217,15 @@ public:
 	 * Returns true if an input line is currently active
 	 */
 	bool isInputLineActive() const;
+
+private:
+	void print_u32_internal(const Common::U32String *fmt, ...);
 };
+
+template<class... TParam>
+void Comprehend::print(const Common::U32String &fmt, TParam... param) {
+	print_u32_internal(&fmt, Common::forward<TParam>(param)...);
+}
 
 extern Comprehend *g_comprehend;
 

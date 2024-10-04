@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/endian.h"
+#include "common/util.h"
 
 namespace Grim {
 
@@ -117,7 +117,7 @@ void vimaInit(uint16 *destTable) {
 	}
 }
 
-void decompressVima(const byte *src, int16 *dest, int destLen, uint16 *destTable) {
+void decompressVima(const byte *src, int16 *dest, int destLen, uint16 *destTable, bool isSmush) {
 	int numChannels = 1;
 	byte sBytes[2];
 	int16 sWords[2];
@@ -136,6 +136,61 @@ void decompressVima(const byte *src, int16 *dest, int destLen, uint16 *destTable
 	}
 
 	int numSamples = destLen / (numChannels * 2);
+
+	if (READ_BE_UINT32(src) == MKTAG('I', 'M', 'A', '4')) {
+		int outputWord = 0;
+		int currTablePos = 0;
+		static const int tableDeltas[16] = {
+			-1,    -1,    -1,    -1,
+			 2,     4,     6,     8,
+			-1,    -1,    -1,    -1,
+			 2,     4,     6,     8
+		};
+		int16 *destPos = dest;
+		int curai = 7;
+		byte inputByte = 0;
+		bool nibbleSwitch = false;
+
+		src += 4;
+		if (isSmush) {
+			outputWord = READ_LE_INT16(src);
+			currTablePos = src[2];
+			src += 3;
+		}
+
+		for (int sample = 0; sample < numSamples; sample++) {
+			byte nibble;
+			if (!nibbleSwitch) {
+				inputByte = *src++;
+				nibble = inputByte >> 4;
+			} else
+				nibble = inputByte & 0xf;
+			nibbleSwitch = !nibbleSwitch;
+			currTablePos = CLIP(currTablePos + tableDeltas[nibble & 0xf], 0, 88);
+			int delta = curai >> 3;
+			if (nibble & 4) {
+				delta = delta + curai;
+			}
+			if (nibble & 2) {
+				delta = delta + (curai >> 1);
+			}
+			if (nibble & 1) {
+				delta = delta + (curai >> 2);
+			}
+			if (nibble & 8) {
+				delta = -delta;
+			}
+			outputWord = CLIP(outputWord + delta, -0x8000, 0x7fff);
+			if (currTablePos > 0)
+				curai = imcTable1[currTablePos];
+			for (int channel = 0; channel < numChannels; channel++)
+				WRITE_LE_UINT16(destPos + channel, outputWord);
+			destPos += numChannels;
+		}
+
+		return;
+	}
+
 	int bits = READ_BE_UINT16(src);
 	int bitPtr = 0;
 	src += 2;
@@ -183,7 +238,7 @@ void decompressVima(const byte *src, int16 *dest, int destLen, uint16 *destTable
 					outputWord = 0x7fff;
 			}
 
-			WRITE_BE_UINT16(destPos, outputWord);
+			WRITE_LE_UINT16(destPos, outputWord);
 			destPos += numChannels;
 
 			currTablePos += offsets[numBits - 2][val];

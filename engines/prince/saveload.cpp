@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@
 
 #include "graphics/thumbnail.h"
 #include "graphics/surface.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/scaler.h"
 
 #include "gui/saveload.h"
@@ -114,7 +113,7 @@ WARN_UNUSED_RESULT bool PrinceEngine::readSavegameHeader(Common::InSaveFile *in,
 	return true;
 }
 
-bool PrinceEngine::canSaveGameStateCurrently() {
+bool PrinceEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	if (_mouseFlag && _mouseFlag != 3) {
 		if (_mainHero->_visible) {
 			// 29 - Basement
@@ -129,7 +128,7 @@ bool PrinceEngine::canSaveGameStateCurrently() {
 	return false;
 }
 
-bool PrinceEngine::canLoadGameStateCurrently() {
+bool PrinceEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	if (_mouseFlag && _mouseFlag != 3) {
 		if (_mainHero->_visible) {
 			// 29 - Basement

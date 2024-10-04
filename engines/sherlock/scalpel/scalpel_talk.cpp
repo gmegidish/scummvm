@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -178,7 +177,7 @@ ScalpelTalk::ScalpelTalk(SherlockEngine *vm) : Talk(vm) {
 	_hotkeyWindowDown = toupper(_fixedTextWindowDown[0]);
 }
 
-void ScalpelTalk::talkTo(const Common::String filename) {
+void ScalpelTalk::talkTo(const Common::String &filename) {
 	ScalpelUserInterface &ui = *(ScalpelUserInterface *)_vm->_ui;
 
 	Talk::talkTo(filename);
@@ -187,10 +186,11 @@ void ScalpelTalk::talkTo(const Common::String filename) {
 		// WORKAROUND: Original game bug causes the results of testing the powdery substance
 		// to disappear too quickly. Introduce a delay to allow it to be properly displayed
 		ui._menuCounter = 30;
-	} else if (filename == "Lesl24z.tlk") {
-		// WORKAROUND: Walking to the flower girl the first time triggers
-		// this automatic talk. This should abort any other action, such
-		// as trying to look at her, else the UI gets corrupted
+	} else if (filename == "Lesl24z.tlk" || filename == "Beal40y.tlk") {
+		// WORKAROUND: Walking to the flower girl or housekeeper the
+		// first time triggers this automatic talk. This should abort
+		// any other action, such as trying to look at her, else the UI
+		// gets corrupted
 		_talkToAbort = true;
 	}
 }
@@ -199,6 +199,8 @@ void ScalpelTalk::talkInterface(const byte *&str) {
 	People &people = *_vm->_people;
 	ScalpelScreen &screen = *(ScalpelScreen *)_vm->_screen;
 	UserInterface &ui = *_vm->_ui;
+	int lineHeight = _vm->getLanguage() == Common::Language::ZH_TWN ? 16 : 9;
+	int maxLines = _vm->getLanguage() == Common::Language::ZH_TWN ? 3 : 5;
 
 	if (_vm->getLanguage() == Common::DE_DEU)
 		skipBadText(str);
@@ -228,15 +230,18 @@ void ScalpelTalk::talkInterface(const byte *&str) {
 			_openTalkWindow = true;
 		}
 
-		_yp += 9;
+		_yp += lineHeight;
 	}
 
 	// Find amount of text that will fit on the line
-	int width = 0, idx = 0;
+	int width = 0, idx = 0, last_space = 0, last_valid = 0;
 	do {
-		width += screen.charWidth(str[idx]);
-		++idx;
-		++_charCount;
+		int old_idx = idx;
+		if (str[idx] == ' ')
+			last_space = idx;
+		last_valid = idx;
+		width += screen.charWidth((const char *) str, idx);
+		_charCount += idx - old_idx;
 	} while (width < 298 && str[idx] && str[idx] != '{' && (!isOpcode(str[idx])));
 
 	if (str[idx] || width >= 298) {
@@ -250,9 +255,12 @@ void ScalpelTalk::talkInterface(const byte *&str) {
 
 	// If word wrap is needed, find the start of the current word
 	if (width >= 298) {
-		while (str[idx] != ' ') {
-			--idx;
-			--_charCount;
+		if (last_space > 0) {
+			_charCount -= idx - last_space;
+			idx = last_space;
+		} else {
+			_charCount -= idx - last_valid;
+			idx = last_valid;
 		}
 	}
 
@@ -279,16 +287,16 @@ void ScalpelTalk::talkInterface(const byte *&str) {
 	// Move to end of displayed line
 	str += idx;
 
-	// If line wrap occurred, then move to after the separating space between the words
-	if (str[0] && (!isOpcode(str[0])) && str[0] != '{')
+	// If line wrap with space occurred, then move to after the separating space between the words
+	if (str[0] == ' ')
 		++str;
 
-	_yp += 9;
+	_yp += lineHeight;
 	++_line;
 
 	// Certain different conditions require a wait
-	if ((_line == 4 && str < _scriptEnd && str[0] != _opcodes[OP_SFX_COMMAND] && str[0] != _opcodes[OP_PAUSE] && _speaker != -1) ||
-		(_line == 5 && str < _scriptEnd && str[0] != _opcodes[OP_PAUSE] && _speaker == -1) ||
+	if ((_line == (maxLines - 1) && str < _scriptEnd && str[0] != _opcodes[OP_SFX_COMMAND] && str[0] != _opcodes[OP_PAUSE] && _speaker != -1) ||
+		(_line == maxLines && str < _scriptEnd && str[0] != _opcodes[OP_PAUSE] && _speaker == -1) ||
 		_endStr) {
 		_wait = 1;
 	}
@@ -416,7 +424,7 @@ OpcodeReturn ScalpelTalk::cmdDisplayInfoLine(const byte *&str) {
 }
 
 OpcodeReturn ScalpelTalk::cmdElse(const byte *&str) {
-	// If this is encountered here, it means that a preceeding IF statement was found,
+	// If this is encountered here, it means that a preceding IF statement was found,
 	// and evaluated to true. Now all the statements for the true block are finished,
 	// so skip over the block of code that would have executed if the result was false
 	_wait = 0;
@@ -466,7 +474,7 @@ OpcodeReturn ScalpelTalk::cmdPlayPrologue(const byte *&str) {
 	for (int idx = 0; idx < 8 && str[idx] != '~'; ++idx)
 		tempString += str[idx];
 
-	anim.play(tempString, false, 1, 3, true, 4);
+	anim.play(Common::Path(tempString), false, 1, 3, true, 4);
 
 	return RET_SUCCESS;
 }
@@ -505,7 +513,7 @@ OpcodeReturn ScalpelTalk::cmdSfxCommand(const byte *&str) {
 	if (sound._voices) {
 		for (int idx = 0; idx < 8 && str[idx] != '~'; ++idx)
 			tempString += str[idx];
-		sound.playSpeech(tempString);
+		sound.playSpeech(Common::Path(tempString));
 
 		// Set voices to wait for more
 		sound._voices = 2;
@@ -626,18 +634,19 @@ bool ScalpelTalk::talk3DOMovieTrigger(int subIndex) {
 	screen.update();
 
 	// Figure out that movie filename
-	Common::String movieFilename;
+	Common::String movieName;
 
-	movieFilename = _scriptName;
-	movieFilename.deleteChar(1); // remove 2nd character of scriptname
+	movieName = _scriptName;
+	movieName.deleteChar(1); // remove 2nd character of scriptname
 	// cut scriptname to 6 characters
-	while (movieFilename.size() > 6) {
-		movieFilename.deleteChar(6);
+	while (movieName.size() > 6) {
+		movieName.deleteChar(6);
 	}
 
-	movieFilename.insertChar(selector + 'a', movieFilename.size());
-	movieFilename.insertChar(subIndex + 'a', movieFilename.size());
-	movieFilename = Common::String::format("movies/%02d/%s.stream", roomNr, movieFilename.c_str());
+	movieName.insertChar(selector + 'a', movieName.size());
+	movieName.insertChar(subIndex + 'a', movieName.size());
+
+	Common::Path movieFilename(Common::String::format("movies/%02d/%s.stream", roomNr, movieName.c_str()));
 
 	warning("3DO movie player:");
 	warning("room: %d", roomNr);
@@ -697,7 +706,7 @@ void ScalpelTalk::drawInterface() {
 	bb.fillRect(Common::Rect(0, SHERLOCK_SCREEN_HEIGHT - 1, SHERLOCK_SCREEN_WIDTH - 2,
 		SHERLOCK_SCREEN_HEIGHT), BORDER_COLOR);
 	bb.fillRect(Common::Rect(2, CONTROLS_Y + 10, SHERLOCK_SCREEN_WIDTH - 2,
-		SHERLOCK_SCREEN_HEIGHT - 2), INV_BACKGROUND);
+		SHERLOCK_SCREEN_HEIGHT - 1), INV_BACKGROUND);
 
 	if (_talkTo != -1) {
 		Common::String fixedText_Exit = FIXED(Window_Exit);
@@ -823,19 +832,27 @@ int ScalpelTalk::talkLine(int lineNum, int stateNum, byte color, int lineY, bool
 	for (;;) {
 		// Get as much of the statement as possible will fit on the
 		Common::String sLine;
-		const char *lineEndP = lineStartP;
 		int width = 0;
+		int lastSpace = 0;
+		int lastValid = 0;
+		int linePtr = 0;
+		int nextLine = -1;
 		do {
-			width += screen.charWidth(*lineEndP);
-		} while (*++lineEndP && width < maxWidth);
+			lastValid = linePtr;
+			if (lineStartP[linePtr] == ' ')
+				lastSpace = linePtr;
+			width += screen.charWidth(lineStartP, linePtr);
+		} while (lineStartP[linePtr] && width < maxWidth);
 
 		// Check if we need to wrap the line
 		if (width >= maxWidth) {
-			// Work backwards to the prior word's end
-			while (*--lineEndP != ' ')
-				;
-
-			sLine = Common::String(lineStartP, lineEndP++);
+			if (lastSpace > 0) {
+				sLine = Common::String(lineStartP, lastSpace);
+				nextLine = lastSpace + 1;
+			} else {
+				sLine = Common::String(lineStartP, lastValid);
+				nextLine = lastValid;
+			}
 		} else {
 			// Can display remainder of the statement on the current line
 			sLine = Common::String(lineStartP);
@@ -871,11 +888,10 @@ int ScalpelTalk::talkLine(int lineNum, int stateNum, byte color, int lineY, bool
 			}
 
 			// Move to next line, if any
-			lineY += 9;
-			lineStartP = lineEndP;
-
-			if (!*lineEndP)
+			lineY += _vm->getLanguage() == Common::Language::ZH_TWN ? 16 : 9;
+			if (nextLine < 0)
 				break;
+			lineStartP += nextLine;
 		} else {
 			// We're close to the bottom of the screen, so stop display
 			lineY = -1;
@@ -891,16 +907,9 @@ int ScalpelTalk::talkLine(int lineNum, int stateNum, byte color, int lineY, bool
 }
 
 void ScalpelTalk::showTalk() {
-	People &people = *_vm->_people;
 	ScalpelScreen &screen = *(ScalpelScreen *)_vm->_screen;
 	ScalpelUserInterface &ui = *(ScalpelUserInterface *)_vm->_ui;
 	byte color = ui._endKeyActive ? COMMAND_FOREGROUND : COMMAND_NULL;
-
-	clearSequences();
-	pushSequence(_talkTo);
-	people.setListenSequence(_talkTo);
-
-	ui._selector = ui._oldSelector = -1;
 
 	if (!ui._windowOpen) {
 		// Draw the talk interface on the back buffer

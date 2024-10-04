@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -107,7 +106,7 @@ int MyListBox::pressedon(int mousex, int mousey) {
 	if (mousex > x + wid - ARROWWIDTH) {
 		if ((mousey - y < hit / 2) & (topitem > 0))
 			topitem--;
-		else if ((mousey - y > hit / 2) & (topitem + numonscreen < items))
+		else if ((mousey - y > hit / 2) &(topitem + numonscreen < items))
 			topitem++;
 
 	} else {
@@ -117,9 +116,7 @@ int MyListBox::pressedon(int mousex, int mousey) {
 
 	}
 
-	//    ags_domouse(DOMOUSE_DISABLE);
 	draw(get_gui_screen());
-	//  ags_domouse(DOMOUSE_ENABLE);
 	_G(smcode) = CM_SELCHANGE;
 	return 0;
 }
@@ -127,8 +124,9 @@ int MyListBox::pressedon(int mousex, int mousey) {
 void MyListBox::additem(char *texx) {
 	if (items >= MAXLISTITEM)
 		quit("!CSCIUSER16: Too many items added to listbox");
-	itemnames[items] = (char *)malloc(strlen(texx) + 1);
-	strcpy(itemnames[items], texx);
+	size_t ln = strlen(texx) + 1;
+	itemnames[items] = (char *)malloc(ln);
+	Common::strcpy_s(itemnames[items], ln, texx);
 	items++;
 	needredraw = 1;
 }
@@ -149,14 +147,15 @@ int MyListBox::processmessage(int mcode, int wParam, NumberPtr lParam) {
 		if (topitem + numonscreen <= selected)
 			topitem = (selected + 1) - numonscreen;
 	} else if (mcode == CLB_GETTEXT)
-		strcpy((char *)lParam._ptr, itemnames[wParam]);
+		Common::strcpy_s((char *)lParam._ptr, 260, itemnames[wParam]);
 	else if (mcode == CLB_SETTEXT) {
 		if (wParam < items)
 			free(itemnames[wParam]);
 
 		char *newstri = (char *)lParam._ptr;
-		itemnames[wParam] = (char *)malloc(strlen(newstri) + 2);
-		strcpy(itemnames[wParam], newstri);
+		size_t ln = strlen(newstri) + 2;
+		itemnames[wParam] = (char *)malloc(ln);
+		Common::strcpy_s(itemnames[wParam], ln, newstri);
 
 	} else if (mcode == CTB_KEYPRESS) {
 		if ((wParam == eAGSKeyCodeDownArrow) && (selected < items - 1))

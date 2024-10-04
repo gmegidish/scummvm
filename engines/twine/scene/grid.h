@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -68,24 +67,26 @@ struct BrickEntry {
 /** Total number of bricks allowed in the game */
 #define NUM_BRICKS 9000
 
-/** Grip X size */
-#define GRID_SIZE_X 64
-/** Grip Y size */
-#define GRID_SIZE_Y 25
-/** Grip Z size */
-#define GRID_SIZE_Z GRID_SIZE_X
+/** Grid X size */
+#define SIZE_CUBE_X 64
+/** Grid Y size */
+#define SIZE_CUBE_Y 25
+/** Grid Z size */
+#define SIZE_CUBE_Z SIZE_CUBE_X
 
-#define BRICK_SIZE 512
-#define BRICK_HEIGHT 256
-
+#define ISO_SCALE 512
+#define SIZE_BRICK_XZ 512
+#define SIZE_BRICK_Y 256
+#define DEMI_BRICK_XZ 256
+#define DEMI_BRICK_Y 128
 // short max 32767 0x7FFF
 //           32256 0x7E00
 //           32000 0x7D00
-#define SCENE_SIZE_MAX (BRICK_SIZE * GRID_SIZE_X - 1)
+#define SCENE_SIZE_MAX (SIZE_BRICK_XZ * (SIZE_CUBE_X - 1))
 // short min -32768
-#define SCENE_SIZE_MIN (-BRICK_SIZE * GRID_SIZE_X)
-#define SCENE_SIZE_HALF (BRICK_SIZE * GRID_SIZE_X / 2)
-#define SCENE_SIZE_HALFF (BRICK_SIZE * GRID_SIZE_X / 2.0f)
+#define SCENE_SIZE_MIN (-SIZE_BRICK_XZ * SIZE_CUBE_X)
+#define SCENE_SIZE_HALF (SIZE_BRICK_XZ * SIZE_CUBE_X / 2)
+#define SCENE_SIZE_HALFF (SIZE_BRICK_XZ * SIZE_CUBE_X / 2.0f)
 
 #define MAXBRICKS 150
 
@@ -110,7 +111,7 @@ private:
 	 * @param y column y position in the current camera
 	 * @param z column z position in the current camera
 	 */
-	void getBrickPos(int32 x, int32 y, int32 z);
+	void getBrickPos(int32 x, int32 y, int32 z, int32 &_brickPixelPosX, int32 &_brickPixelPosY) const;
 	/**
 	 * Create celling grid map from celling grid to block library buffer
 	 * @param gridPtr celling grid buffer pointer
@@ -127,7 +128,7 @@ private:
 	 * @param gridEntry current grid index
 	 * @param dest destination block buffer
 	 */
-	void createGridColumn(const uint8 *gridEntry, uint32 gridEntrySize, uint8 *dest, uint32 destSize);
+	void decompColumn(const uint8 *gridEntry, uint32 gridEntrySize, uint8 *dest, uint32 destSize);
 	/**
 	 * Load grid bricks according with block librarie usage
 	 */
@@ -147,7 +148,7 @@ private:
 	 * @param y grid Y coordinate
 	 * @param buffer work video buffer
 	 */
-	void copyGridMask(int32 index, int32 x, int32 y, const Graphics::ManagedSurface &buffer);
+	void copyMask(int32 index, int32 x, int32 y, const Graphics::ManagedSurface &buffer);
 
 	/** Table with all loaded bricks */
 	uint8 *_brickTable[NUM_BRICKS]{nullptr};
@@ -170,20 +171,17 @@ private:
 	int16 *_brickInfoBuffer = nullptr;
 	int32 _brickInfoBufferSize = 0;
 
-	/** Current brick pixel X position */
-	int32 _brickPixelPosX = 0;
-	/** Current brick pixel Y position */
-	int32 _brickPixelPosY = 0;
-
 	/** Celling grid brick block buffer */
 	int32 _blockBufferSize = 0;
-	uint8 *_blockBuffer = nullptr;
+	uint8 *_bufCube = nullptr;
 
 	const BrickEntry* getBrickEntry(int32 j, int32 i) const;
 
 	const IVec3 &updateCollisionCoordinates(int32 x, int32 y, int32 z);
 
-	BlockEntry getBlockEntry(int32 x, int32 y, int32 z) const;
+	BlockEntry getBlockEntry(int32 xmap, int32 ymap, int32 zmap) const;
+
+	bool shouldCheckWaterCol(int32 actorIdx) const;
 public:
 	Grid(TwinEEngine *engine);
 	~Grid();
@@ -199,7 +197,7 @@ public:
 	IVec3 _newCamera;
 
 	/** Current grid camera x, y and z coordinates */
-	IVec3 _camera;
+	IVec3 _worldCube; // WorldXCube WorldYCube
 
 	/** Flag to know if the engine is using celling grids */
 	int16 _useCellingGrid = 0;
@@ -212,7 +210,7 @@ public:
 	 * @param y actor.y coordinate
 	 * @param z actor.z coordinate
 	 */
-	void drawOverModelActor(int32 x, int32 y, int32 z);
+	void drawOverBrick(int32 x, int32 y, int32 z);
 
 	/**
 	 * Draw sprite actor over bricks
@@ -220,7 +218,7 @@ public:
 	 * @param y actor.y coordinate
 	 * @param z actor.z coordinate
 	 */
-	void drawOverSpriteActor(int32 x, int32 y, int32 z);
+	void drawOverBrick3(int32 x, int32 y, int32 z);
 
 	/**
 	 * Get sprite width and height sizes
@@ -255,13 +253,12 @@ public:
 
 	/**
 	 * Draw sprite or bricks in the screen according with the type
-	 * @param index sprite index to draw
 	 * @param posX sprite X position to draw
 	 * @param posY sprite Y position to draw
 	 * @param ptr sprite buffer pointer to draw
 	 * @param isSprite allows to identify if the sprite to display is brick or a single sprite
 	 */
-	bool drawBrickSprite(int32 index, int32 posX, int32 posY, const uint8 *spritePtr, bool isSprite);
+	bool drawBrickSprite(int32 posX, int32 posY, const uint8 *spritePtr, bool isSprite);
 
 	/**
 	 * Get block library
@@ -269,10 +266,10 @@ public:
 	 * @return pointer to the current block index
 	 */
 	const BlockData *getBlockLibrary(int32 blockIdx) const;
-	const BlockDataEntry* getBlockPointer(int32 blockIdx, int32 tmpBrickIdx) const;
+	const BlockDataEntry* getAdrBlock(int32 blockIdx, int32 tmpBrickIdx) const;
 
 	/** Create grid map from current grid to block library buffer */
-	void createGridMap();
+	void copyMapToCube();
 
 	/**
 	 * Initialize grid (background scenearios)
@@ -289,18 +286,18 @@ public:
 	/** Redraw grid background */
 	void redrawGrid();
 
-	ShapeType getBrickShape(int32 x, int32 y, int32 z);
+	ShapeType worldColBrick(int32 x, int32 y, int32 z);
 
-	ShapeType getBrickShapeFull(int32 x, int32 y, int32 z, int32 y2);
+	ShapeType worldColBrickFull(int32 x, int32 y, int32 z, int32 y2, int32 actorIdx);
 
-	uint8 getBrickSoundType(int32 x, int32 y, int32 z);
+	uint8 worldCodeBrick(int32 x, int32 y, int32 z);
 
-	inline ShapeType getBrickShape(const IVec3 &pos) {
-		return getBrickShape(pos.x, pos.y, pos.z);
+	inline ShapeType worldColBrick(const IVec3 &pos) {
+		return worldColBrick(pos.x, pos.y, pos.z);
 	}
 
-	inline ShapeType getBrickShapeFull(const IVec3 &pos, int32 y2) {
-		return getBrickShapeFull(pos.x, pos.y, pos.z, y2);
+	inline ShapeType worldColBrickFull(const IVec3 &pos, int32 y2, int32 actorIdx) {
+		return worldColBrickFull(pos.x, pos.y, pos.z, y2, actorIdx);
 	}
 };
 

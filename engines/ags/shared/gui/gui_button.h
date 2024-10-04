@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef AGS_SHARED_GUI_GUI_BUTTON_H
 #define AGS_SHARED_GUI_GUI_BUTTON_H
 
-#include "ags/lib/std/vector.h"
+#include "common/std/vector.h"
+#include "ags/engine/ac/button.h"
 #include "ags/shared/gui/gui_object.h"
 #include "ags/shared/util/string.h"
 
@@ -34,10 +34,10 @@ namespace AGS3 {
 namespace AGS {
 namespace Shared {
 
-enum MouseButton {
-	kMouseNone = -1,
-	kMouseLeft = 0,
-	kMouseRight = 1,
+enum GUIClickMouseButton {
+	kGUIClickLeft  = 0,
+	kGUIClickRight = 1,
+	kNumGUIClicks
 };
 
 enum GUIClickAction {
@@ -58,16 +58,28 @@ enum LegacyButtonAlignment {
 	kLegacyButtonAlign_BottomRight = 8,
 };
 
+// Defines button placeholder mode; the mode is set
+// depending on special tags found in button text
+enum GUIButtonPlaceholder {
+	kButtonPlace_None,
+	kButtonPlace_InvItemStretch,
+	kButtonPlace_InvItemCenter,
+	kButtonPlace_InvItemAuto
+};
+
 class GUIButton : public GUIObject {
 public:
 	GUIButton();
 
+	bool HasAlphaChannel() const override;
 	const String &GetText() const;
 	bool IsImageButton() const;
 	bool IsClippingImage() const;
+	GUIButtonPlaceholder GetPlaceholder() const;
 
 	// Operations
-	void Draw(Bitmap *ds) override;
+	Rect CalcGraphicRect(bool clipped) override;
+	void Draw(Bitmap *ds, int x = 0, int y = 0) override;
 	void SetClipImage(bool on);
 	void SetText(const String &text);
 
@@ -94,27 +106,17 @@ public:
 	FrameAlignment TextAlignment;
 	// Click actions for left and right mouse buttons
 	// NOTE: only left click is currently in use
-	static const int ClickCount = kMouseRight + 1;
-	GUIClickAction ClickAction[ClickCount];
-	int32_t        ClickData[ClickCount];
+	GUIClickAction ClickAction[kNumGUIClicks];
+	int32_t        ClickData[kNumGUIClicks];
 
 	bool        IsPushed;
 	bool        IsMouseOver;
 
 private:
-	void DrawImageButton(Bitmap *ds, bool draw_disabled);
-	void DrawText(Bitmap *ds, bool draw_disabled);
-	void DrawTextButton(Bitmap *ds, bool draw_disabled);
+	void DrawImageButton(Bitmap *ds, int x, int y, bool draw_disabled);
+	void DrawText(Bitmap *ds, int x, int y, bool draw_disabled);
+	void DrawTextButton(Bitmap *ds, int x, int y, bool draw_disabled);
 	void PrepareTextToDraw();
-
-	// Defines button placeholder mode; the mode is set
-	// depending on special tags found in button text
-	enum GUIButtonPlaceholder {
-		kButtonPlace_None,
-		kButtonPlace_InvItemStretch,
-		kButtonPlace_InvItemCenter,
-		kButtonPlace_InvItemAuto
-	};
 
 	// Text property set by user
 	String _text;
@@ -130,9 +132,6 @@ private:
 
 } // namespace Shared
 } // namespace AGS
-
-int UpdateAnimatingButton(int bu);
-void StopButtonAnimation(int idxn);
 
 } // namespace AGS3
 

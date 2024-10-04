@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,11 +24,28 @@
 
 #include "backends/networking/curl/curlrequest.h"
 #include "common/memstream.h"
-#include "common/json.h"
+
+namespace Common {
+class DumpFile;
+class JSONValue;
+class Path;
+}
 
 namespace Networking {
 
 #define CURL_SESSION_REQUEST_BUFFER_SIZE 512 * 1024
+
+struct SessionFileResponse {
+	byte *buffer;
+	uint32 len;
+	bool eos;
+};
+
+/**
+ * @brief Class for reading file and storing locally
+ *
+ * @return Returns SessionFileResponse in the callback
+ */
 
 class SessionRequest: public CurlRequest {
 protected:
@@ -37,35 +53,49 @@ protected:
 	byte *_buffer;
 	char *_text;
 	bool _started, _complete, _success;
+	bool _binary;
+	Common::DumpFile *_localFile;
+	SessionFileResponse _response;
 
 	bool reuseStream();
 
 	/** Prepares raw bytes from _contentsStream. */
 	char *getPreparedContents();
 
-	virtual void finishError(ErrorResponse error);
-	virtual void finishSuccess();
+	void finishError(const ErrorResponse &error, RequestState state = PAUSED) override;
+	void finishSuccess() override;
+	void openLocalFile(const Common::Path &localFile);
 
 public:
-	SessionRequest(Common::String url, DataCallback cb = nullptr, ErrorCallback ecb = nullptr);
-	virtual ~SessionRequest();
+	SessionRequest(const Common::String &url, const Common::Path &localFile, DataCallback cb = nullptr, ErrorCallback ecb = nullptr, bool binary = false);
+	~SessionRequest() override;
 
 	void start();
 	void startAndWait();
 
-	void reuse(Common::String url, DataCallback cb = nullptr, ErrorCallback ecb = nullptr);
+	void reuse(const Common::String &url, const Common::Path &localFile, DataCallback cb = nullptr, ErrorCallback ecb = nullptr, bool binary = false);
 
-	virtual void handle();
-	virtual void restart();
+	void handle() override;
+	void restart() override;
 
 	/** This request DOES NOT delete automatically after calling callbacks. It gets PAUSED, and in order to make it FINISHED (i.e. delete), this method MUST be called. */
 	void close();
+
+	/**
+	 * @brief Closes the current request and removes any unfinished files
+	 *
+	 */
+	void abortRequest();
 
 	bool complete();
 	bool success();
 
 	char *text();
 	Common::JSONValue *json();
+
+	byte *getData() { return _contentsStream.getData(); }
+	uint32 getSize() { return _contentsStream.size(); }
+
 };
 
 } // End of namespace Networking

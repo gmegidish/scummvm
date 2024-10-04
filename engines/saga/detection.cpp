@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,24 +29,25 @@
 static const PlainGameDescriptor sagaGames[] = {
 	{"ite", "Inherit the Earth: Quest for the Orb"},
 	{"ihnm", "I Have No Mouth and I Must Scream"},
-	{0, 0}
+	{nullptr, nullptr}
 };
 
 #include "saga/detection_tables.h"
 
-class SagaMetaEngineDetection : public AdvancedMetaEngineDetection {
+class SagaMetaEngineDetection : public AdvancedMetaEngineDetection<Saga::SAGAGameDescription> {
 public:
-	SagaMetaEngineDetection() : AdvancedMetaEngineDetection(Saga::gameDescriptions, sizeof(Saga::SAGAGameDescription), sagaGames) {
-		static const char *const DIRECTORY_GLOBS[2] = { "music", 0 };
+	SagaMetaEngineDetection() : AdvancedMetaEngineDetection(Saga::gameDescriptions, sagaGames) {
+		static const char *const DIRECTORY_GLOBS[3] = { "music", "ITE Data Files", nullptr };
 		_maxScanDepth = 2;
 		_directoryGlobs = DIRECTORY_GLOBS;
-	}
-
-	const char *getEngineId() const override {
-		return "saga";
+		_flags = kADFlagUseExtraAsHint;
 	}
 
 	const char *getName() const override {
+		return "saga";
+	}
+
+	const char *getEngineName() const override {
 		return "SAGA ["
 
 #if defined(ENABLE_IHNM)

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,28 +15,23 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef CHEWY_RESOURCE_H
 #define CHEWY_RESOURCE_H
 
-
 #include "common/scummsys.h"
 #include "common/file.h"
-#include "common/util.h"
 #include "common/str.h"
-#include "common/hashmap.h"
-#include "common/hash-str.h"
-#include "common/random.h"
-#include "common/stream.h"
-#include "graphics/surface.h"
+#include "common/memstream.h"
+#include "common/rect.h"
 
 namespace Chewy {
 
 enum ResourceType {
+	kResourceUnknown = -1,
 	kResourcePCX = 0,		// unused
 	kResourceTBF = 1,		// background art, contained in TGPs
 	kResourceTAF = 2,
@@ -63,7 +58,8 @@ enum ResourceType {
 	kResourceTTP = 23,		// unused
 	kResourceTAP = 24,		// container for sound effects, music and cutscenes, used in sound/details.tap and cut/cut.tap
 	kResourceCFO = 25,		// unused
-	kResourceTCF = 26		// error messages, used in err/err_e.tcf (English) and err/err_d.tcf (German)
+	kResourceTCF = 26,		// error messages, used in err/err_e.tcf (English) and err/err_d.tcf (German)
+	kResourceGEP = 27		// barriers / walkable areas
 };
 
 // Generic chunk header
@@ -83,8 +79,8 @@ struct TBFChunk {
 	uint32 size;
 	uint16 width;
 	uint16 height;
-	byte palette[3 * 256];
-	byte *data;
+	uint8 palette[3 * 256];
+	uint8 *data;
 };
 
 // TAF (sprite) image data chunk header - 15 bytes
@@ -95,13 +91,13 @@ struct TAFChunk {
 	// 4 bytes next sprite offset
 	// 4 bytes sprite image offset
 	// 1 byte padding
-	byte *data;
+	uint8 *data;
 };
 
 // Sound chunk header
 struct SoundChunk {
 	uint32 size;
-	byte *data;
+	uint8 *data;
 };
 
 // Video chunk header
@@ -115,6 +111,15 @@ struct VideoChunk {
 	uint32 firstFrameOffset;
 };
 
+// Dialog chunk header (AdsBlock)
+// Original values are in diah.adh, and are synced
+// to saved games
+struct DialogChunk {
+	bool show[6];
+	uint8 next[6];
+	uint8 flags[6];
+};
+
 enum VideoFrameType {
 	kVideoFrameNormal = 0xF1FA,
 	kVideoFrameCustom = 0xFAF1
@@ -125,60 +130,120 @@ typedef Common::Array<TBFChunk> TBFChunkList;
 
 class Resource {
 public:
-	Resource(Common::String filename);
+	Resource(const Common::Path &filename);
 	virtual ~Resource();
 
-	ResourceType getType() const { return _resType; }
+	ResourceType getType() const {
+		return _resType;
+	}
+	uint32 getSize() const {
+		return _stream.size();
+	}
+	uint32 findLargestChunk(uint start, uint end);
 	uint32 getChunkCount() const;
 	Chunk *getChunk(uint num);
-	virtual byte *getChunkData(uint num);
+	virtual uint8 *getChunkData(uint num);
 
 protected:
-	void initSprite(Common::String filename);
-	void unpackRLE(byte *buffer, uint32 compressedSize, uint32 uncompressedSize);
-	void decrypt(byte *data, uint32 size);
+	void initSprite(const Common::Path &filename);
+	void unpackRLE(uint8 *buffer, uint32 compressedSize, uint32 uncompressedSize);
+	void decrypt(uint8 *data, uint32 size);
 
 	Common::File _stream;
 	uint16 _chunkCount;
 	ResourceType _resType;
 	bool _encrypted;
 
+	// Sprite specific
+	uint8 _spritePalette[3 * 256];
+	uint32 _allSize;
+	uint16 _spriteCorrectionsCount;
+	uint16 *_spriteCorrectionsTable;
+
 	ChunkList _chunkList;
 };
 
 class SpriteResource : public Resource {
 public:
-	SpriteResource(Common::String filename) : Resource(filename) {}
-	~SpriteResource() override {}
+	SpriteResource(const Common::Path &filename) : Resource(filename) {}
+	virtual ~SpriteResource() {}
 
 	TAFChunk *getSprite(uint num);
+	uint32 getSpriteData(uint num, uint8 **buf, bool initBuffer);
+	uint8 *getSpritePalette() { return _spritePalette; }
+	uint32 getAllSize() { return _allSize; }
+	uint16 getSpriteCorrectionsCount() { return _spriteCorrectionsCount; }
+	uint16 *getSpriteCorrectionsTable() { return _spriteCorrectionsTable; }
 };
 
 class BackgroundResource : public Resource {
 public:
-	BackgroundResource(Common::String filename) : Resource(filename) {}
-	~BackgroundResource() override {}
+	BackgroundResource(const Common::Path &filename) : Resource(filename) {}
+	virtual ~BackgroundResource() {}
 
-	TBFChunk *getImage(uint num);
+	TBFChunk *getImage(uint num, bool fixPalette);
 };
 
 class SoundResource : public Resource {
 public:
-	SoundResource(Common::String filename) : Resource(filename) {}
-	~SoundResource() override {}
+	SoundResource(const Common::Path &filename) : Resource(filename) {}
+	virtual ~SoundResource() {}
 
 	SoundChunk *getSound(uint num);
 };
 
 class VideoResource : public Resource {
 public:
-	VideoResource(Common::String filename) : Resource(filename) {}
-	~VideoResource() override {}
+	VideoResource(const Common::Path &filename) : Resource(filename) {}
+	virtual ~VideoResource() {}
 
 	VideoChunk *getVideoHeader(uint num);
 	Common::SeekableReadStream *getVideoStream(uint num);
 };
 
-} // End of namespace Chewy
+class DialogResource : public Resource {
+public:
+	DialogResource(const Common::Path &filename);
+	virtual ~DialogResource();
+
+	DialogChunk *getDialog(uint dialog, uint block);
+	bool isItemShown(uint dialog, uint block, uint num);
+	void setItemShown(uint dialog, uint block, uint num, bool shown);
+	bool hasExitBit(uint dialog, uint block, uint num);
+	bool hasRestartBit(uint dialog, uint block, uint num);
+	bool hasShowBit(uint dialog, uint block, uint num);
+	uint8 getNextBlock(uint dialog, uint block, uint num);
+
+	void loadStream(Common::SeekableReadStream *s);
+	void saveStream(Common::WriteStream *s);
+
+	uint32 getStreamSize() const {
+		return _stream.size();
+	}
+
+private:
+	Common::MemorySeekableReadWriteStream *_dialogStream;
+	byte *_dialogBuffer;
+};
+
+class BarrierResource : public Resource {
+public:
+	BarrierResource(const Common::Path &filename) : Resource(filename) {}
+	virtual ~BarrierResource() {}
+
+	void init(int16 room, int16 bgWidth, int16 bgHeight);
+
+	int16 getX() const { return _x; }
+	int16 getY() const { return _y; }
+	int16 getLevel() const { return _level; }
+	int16 getWidth() const { return _w; }
+	int16 getHeight() const { return _h; }
+	uint8 *getData() { return getChunkData(_room); }
+
+private:
+	int16 _x = 0, _y = 0, _level = 0, _w = 0, _h = 0, _room = 0;
+};
+
+} // namespace Chewy
 
 #endif

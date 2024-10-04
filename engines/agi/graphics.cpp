@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 #include "engines/util.h"
 
 #include "graphics/cursorman.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 
 #include "agi/agi.h"
 #include "agi/graphics.h"
@@ -40,10 +39,11 @@ namespace Agi {
 #include "agi/font.h"
 
 GfxMgr::GfxMgr(AgiBase *vm, GfxFont *font) : _vm(vm), _font(font) {
-	_agipalFileNum = 0;
-
 	memset(&_paletteGfxMode, 0, sizeof(_paletteGfxMode));
 	memset(&_paletteTextMode, 0, sizeof(_paletteTextMode));
+
+	memset(&_agipalPalette, 0, sizeof(_agipalPalette));
+	_agipalFileNum = 0;
 
 	memset(&_mouseCursor, 0, sizeof(_mouseCursor));
 	memset(&_mouseCursorBusy, 0, sizeof(_mouseCursorBusy));
@@ -65,18 +65,16 @@ GfxMgr::GfxMgr(AgiBase *vm, GfxFont *font) : _vm(vm), _font(font) {
 	_pixels = 0;
 	_displayPixels = 0;
 
-	_activeScreen = NULL;
-	_gameScreen = NULL;
-	_priorityScreen = NULL;
-	_displayScreen = NULL;
+	_activeScreen = nullptr;
+	_gameScreen = nullptr;
+	_priorityScreen = nullptr;
+	_displayScreen = nullptr;
 }
 
 /**
  * Initialize graphics device.
- *
- * @see deinit_video()
  */
-int GfxMgr::initVideo() {
+void GfxMgr::initVideo() {
 	bool forceHires = false;
 
 	// Set up palettes
@@ -107,7 +105,7 @@ int GfxMgr::initVideo() {
 				initPalette(_paletteGfxMode, PALETTE_AMIGA_V1, 16, 4);
 			else if (_vm->getVersion() == 0x2936)
 				initPalette(_paletteGfxMode, PALETTE_AMIGA_V2, 16, 4);
-			else if (_vm->getVersion() > 0x2936)
+			else
 				initPalette(_paletteGfxMode, PALETTE_AMIGA_V3, 16, 4);
 		} else {
 			// Set the old common alternative Amiga palette
@@ -149,11 +147,9 @@ int GfxMgr::initVideo() {
 		}
 		break;
 	default:
-		error("initVideo: unsupported render mode");
+		error("initVideo: unsupported render mode: %d", _vm->_renderMode);
 		break;
 	}
-
-	//bool forcedUpscale = true;
 
 	if (_font->isFontHires() || forceHires) {
 		// Upscaling enable
@@ -197,7 +193,7 @@ int GfxMgr::initVideo() {
 		initMouseCursor(&_mouseCursorBusy, MOUSECURSOR_MACINTOSH_BUSY, 10, 14, 7, 8);
 		break;
 	default:
-		error("initVideo: unsupported render mode");
+		error("initVideo: unsupported render mode: %d", _vm->_renderMode);
 		break;
 	}
 
@@ -217,27 +213,19 @@ int GfxMgr::initVideo() {
 	// set up mouse cursor palette
 	CursorMan.replaceCursorPalette(MOUSECURSOR_PALETTE, 1, ARRAYSIZE(MOUSECURSOR_PALETTE) / 3);
 	setMouseCursor();
-
-	return errOK;
 }
 
 /**
  * Deinitialize graphics device.
- *
- * @see init_video()
  */
-int GfxMgr::deinitVideo() {
+void GfxMgr::deinitVideo() {
 	// Free mouse cursors in case they were allocated
-	if (_mouseCursor.bitmapDataAllocated)
-		free(_mouseCursor.bitmapDataAllocated);
-	if (_mouseCursorBusy.bitmapDataAllocated)
-		free(_mouseCursorBusy.bitmapDataAllocated);
+	free(_mouseCursor.bitmapDataAllocated);
+	free(_mouseCursorBusy.bitmapDataAllocated);
 
 	free(_displayScreen);
 	free(_gameScreen);
 	free(_priorityScreen);
-
-	return errOK;
 }
 
 void GfxMgr::setRenderStartOffset(uint16 offsetY) {
@@ -323,7 +311,7 @@ void GfxMgr::copyDisplayRectToScreen(int16 x, int16 y, int16 width, int16 height
 	x = CLIP<int16>(x, 0, _displayScreenWidth-width);
 	y = CLIP<int16>(y, 0, _displayScreenHeight-height);
 
-	g_system->copyRectToScreen(_displayScreen + y * _displayScreenWidth + x, _displayScreenWidth, x, y, width, height);
+	_vm->_system->copyRectToScreen(_displayScreen + y * _displayScreenWidth + x, _displayScreenWidth, x, y, width, height);
 }
 void GfxMgr::copyDisplayRectToScreen(int16 x, int16 adjX, int16 y, int16 adjY, int16 width, int16 adjWidth, int16 height, int16 adjHeight) {
 	switch (_upscaledHires) {
@@ -339,18 +327,18 @@ void GfxMgr::copyDisplayRectToScreen(int16 x, int16 adjX, int16 y, int16 adjY, i
 	}
 	x += adjX; y += adjY;
 	width += adjWidth; height += adjHeight;
-	g_system->copyRectToScreen(_displayScreen + y * _displayScreenWidth + x, _displayScreenWidth, x, y, width, height);
+	_vm->_system->copyRectToScreen(_displayScreen + y * _displayScreenWidth + x, _displayScreenWidth, x, y, width, height);
 }
 void GfxMgr::copyDisplayRectToScreenUsingGamePos(int16 x, int16 y, int16 width, int16 height) {
 	translateGameRectToDisplayScreen(x, y, width, height);
-	g_system->copyRectToScreen(_displayScreen + (y * _displayScreenWidth) + x, _displayScreenWidth, x, y, width, height);
+	_vm->_system->copyRectToScreen(_displayScreen + (y * _displayScreenWidth) + x, _displayScreenWidth, x, y, width, height);
 }
 void GfxMgr::copyDisplayRectToScreenUsingVisualPos(int16 x, int16 y, int16 width, int16 height) {
 	translateVisualRectToDisplayScreen(x, y, width, height);
-	g_system->copyRectToScreen(_displayScreen + (y * _displayScreenWidth) + x, _displayScreenWidth, x, y, width, height);
+	_vm->_system->copyRectToScreen(_displayScreen + (y * _displayScreenWidth) + x, _displayScreenWidth, x, y, width, height);
 }
 void GfxMgr::copyDisplayToScreen() {
-	g_system->copyRectToScreen(_displayScreen, _displayScreenWidth, 0, 0, _displayScreenWidth, _displayScreenHeight);
+	_vm->_system->copyRectToScreen(_displayScreen, _displayScreenWidth, 0, 0, _displayScreenWidth, _displayScreenHeight);
 }
 
 void GfxMgr::translateFontPosToDisplayScreen(int16 &x, int16 &y) {
@@ -523,20 +511,22 @@ byte GfxMgr::getCGAMixtureColor(byte color) {
 // Attention: in our implementation, y-coordinate is upper left.
 // Sierra passed the lower left instead. We changed it to make upscaling easier.
 void GfxMgr::render_Block(int16 x, int16 y, int16 width, int16 height, bool copyToScreen) {
-	if (!render_Clip(x, y, width, height))
+	if (!render_Clip(x, y, width, height)) {
+		warning("render_Block ignored by clipping. x: %d, y: %d, w: %d, h: %d", x, y, width, height);
 		return;
+	}
 
 	switch (_vm->_renderMode) {
 	case Common::kRenderHercG:
 	case Common::kRenderHercA:
-		render_BlockHercules(x, y, width, height, copyToScreen);
+		render_BlockHercules(x, y, width, height);
 		break;
 	case Common::kRenderCGA:
-		render_BlockCGA(x, y, width, height, copyToScreen);
+		render_BlockCGA(x, y, width, height);
 		break;
 	case Common::kRenderEGA:
 	default:
-		render_BlockEGA(x, y, width, height, copyToScreen);
+		render_BlockEGA(x, y, width, height);
 		break;
 	}
 
@@ -545,21 +535,28 @@ void GfxMgr::render_Block(int16 x, int16 y, int16 width, int16 height, bool copy
 	}
 }
 
-bool GfxMgr::render_Clip(int16 &x, int16 &y, int16 &width, int16 &height, int16 clipAgainstWidth, int16 clipAgainstHeight) {
+// FIXME: This function needs clarification and cleanup. Half of the code is
+// logically dead or disabled. Is the purpose to adjust out-of-bounds coordinates
+// so that they fit within boundaries, or is it to identify out-of-bounds
+// coordinates so that the entire drawing operation can be rejected?
+bool GfxMgr::render_Clip(int16 &x, int16 &y, int16 &width, int16 &height, const int16 minY, const int16 clipAgainstWidth, const int16 clipAgainstHeight) {
 	if ((x >= clipAgainstWidth) || ((x + width - 1) < 0) ||
-	        (y < 0) || ((y + (height - 1)) >= clipAgainstHeight)) {
+	        (y < minY) || ((y + (height - 1)) >= clipAgainstHeight)) {
 		return false;
 	}
 
-	if (y < 0) {
+	// FIXME: this check is always false, see above
+	if (y < minY) {
 		height += y;
-		y = 0;
+		y = minY;
 	}
 
+	// FIXME: this check is always false, see above
 	if ((y + height - 1) >= clipAgainstHeight) {
 		height = clipAgainstHeight - y;
 	}
 
+	// FIXME: why is this disabled?
 #if 0
 	if ((y - height + 1) < 0)
 		height = y + 1;
@@ -581,16 +578,15 @@ bool GfxMgr::render_Clip(int16 &x, int16 &y, int16 &width, int16 &height, int16 
 	return true;
 }
 
-void GfxMgr::render_BlockEGA(int16 x, int16 y, int16 width, int16 height, bool copyToScreen) {
+void GfxMgr::render_BlockEGA(int16 x, int16 y, int16 width, int16 height) {
 	uint32 offsetVisual = SCRIPT_WIDTH * y + x;
 	uint32 offsetDisplay = getDisplayOffsetToGameScreenPos(x, y);
-	int16 remainingWidth = width;
 	int16 remainingHeight = height;
 	byte curColor = 0;
 	int16 displayWidth = width * (2 + _displayWidthMulAdjust);
 
 	while (remainingHeight) {
-		remainingWidth = width;
+		int16 remainingWidth = width;
 
 		switch (_upscaledHires) {
 		case DISPLAY_UPSCALED_DISABLED:
@@ -630,16 +626,15 @@ void GfxMgr::render_BlockEGA(int16 x, int16 y, int16 width, int16 height, bool c
 	}
 }
 
-void GfxMgr::render_BlockCGA(int16 x, int16 y, int16 width, int16 height, bool copyToScreen) {
+void GfxMgr::render_BlockCGA(int16 x, int16 y, int16 width, int16 height) {
 	uint32 offsetVisual = SCRIPT_WIDTH * y + x;
 	uint32 offsetDisplay = getDisplayOffsetToGameScreenPos(x, y);
-	int16 remainingWidth = width;
 	int16 remainingHeight = height;
 	byte curColor = 0;
 	int16 displayWidth = width * (2 + _displayWidthMulAdjust);
 
 	while (remainingHeight) {
-		remainingWidth = width;
+		int16 remainingWidth = width;
 
 		switch (_upscaledHires) {
 		case DISPLAY_UPSCALED_DISABLED:
@@ -705,10 +700,9 @@ static const uint8 herculesColorMapping[] = {
 };
 
 // Sierra actually seems to have rendered the whole screen all the time
-void GfxMgr::render_BlockHercules(int16 x, int16 y, int16 width, int16 height, bool copyToScreen) {
+void GfxMgr::render_BlockHercules(int16 x, int16 y, int16 width, int16 height) {
 	uint32 offsetVisual = SCRIPT_WIDTH * y + x;
 	uint32 offsetDisplay = getDisplayOffsetToGameScreenPos(x, y);
-	int16 remainingWidth = width;
 	int16 remainingHeight = height;
 	byte curColor = 0;
 	int16 displayWidth = width * (2 + _displayWidthMulAdjust);
@@ -722,7 +716,7 @@ void GfxMgr::render_BlockHercules(int16 x, int16 y, int16 width, int16 height, b
 	byte   herculesColors2 = 0;
 
 	while (remainingHeight) {
-		remainingWidth = width;
+		int16 remainingWidth = width;
 
 		lookupOffset1 = (lookupOffset1 + 0) & 0x07;
 		lookupOffset2 = (lookupOffset1 + 1) & 0x07;
@@ -816,14 +810,14 @@ void GfxMgr::transition_Amiga() {
 			case DISPLAY_UPSCALED_DISABLED:
 				for (int16 multiPixel = 0; multiPixel < 4; multiPixel++) {
 					screenStepPos = (posY * _displayScreenWidth) + posX;
-					g_system->copyRectToScreen(_displayScreen + screenStepPos, _displayScreenWidth, posX, posY, 2, 1);
+					_vm->_system->copyRectToScreen(_displayScreen + screenStepPos, _displayScreenWidth, posX, posY, 2, 1);
 					posY += 42;
 				}
 				break;
 			case DISPLAY_UPSCALED_640x400:
 				for (int16 multiPixel = 0; multiPixel < 4; multiPixel++) {
 					screenStepPos = (posY * _displayScreenWidth) + posX;
-					g_system->copyRectToScreen(_displayScreen + screenStepPos, _displayScreenWidth, posX, posY, 4, 2);
+					_vm->_system->copyRectToScreen(_displayScreen + screenStepPos, _displayScreenWidth, posX, posY, 4, 2);
 					posY += 42 * 2;
 				}
 				break;
@@ -835,8 +829,8 @@ void GfxMgr::transition_Amiga() {
 			stepCount++;
 			if (stepCount == 220) {
 				// 30 times for the whole transition, so should take around 0.5 seconds
-				g_system->updateScreen();
-				g_system->delayMillis(16);
+				_vm->_system->updateScreen();
+				_vm->_system->delayMillis(16);
 				stepCount = 0;
 			}
 		}
@@ -847,7 +841,7 @@ void GfxMgr::transition_Amiga() {
 		CursorMan.showMouse(true);
 	}
 
-	g_system->updateScreen();
+	_vm->_system->updateScreen();
 }
 
 // This transition code was not reverse engineered, but created based on the Amiga transition code
@@ -881,7 +875,7 @@ void GfxMgr::transition_AtariSt() {
 				posY += _renderStartDisplayOffsetY; // adjust to only update the main area, not the status bar
 				for (int16 multiPixel = 0; multiPixel < 8; multiPixel++) {
 					screenStepPos = (posY * _displayScreenWidth) + posX;
-					g_system->copyRectToScreen(_displayScreen + screenStepPos, _displayScreenWidth, posX, posY, 1, 1);
+					_vm->_system->copyRectToScreen(_displayScreen + screenStepPos, _displayScreenWidth, posX, posY, 1, 1);
 					posY += 21;
 				}
 				break;
@@ -890,7 +884,7 @@ void GfxMgr::transition_AtariSt() {
 				posY += _renderStartDisplayOffsetY; // adjust to only update the main area, not the status bar
 				for (int16 multiPixel = 0; multiPixel < 8; multiPixel++) {
 					screenStepPos = (posY * _displayScreenWidth) + posX;
-					g_system->copyRectToScreen(_displayScreen + screenStepPos, _displayScreenWidth, posX, posY, 2, 2);
+					_vm->_system->copyRectToScreen(_displayScreen + screenStepPos, _displayScreenWidth, posX, posY, 2, 2);
 					posY += 21 * 2;
 				}
 				break;
@@ -903,8 +897,8 @@ void GfxMgr::transition_AtariSt() {
 				// 40 times for the whole transition, so should take around 0.7 seconds
 				// When using an Atari ST emulator, the transition seems to be even slower than this
 				// TODO: should get checked on real hardware
-				g_system->updateScreen();
-				g_system->delayMillis(16);
+				_vm->_system->updateScreen();
+				_vm->_system->delayMillis(16);
 				stepCount = 0;
 			}
 		}
@@ -915,7 +909,7 @@ void GfxMgr::transition_AtariSt() {
 		CursorMan.showMouse(true);
 	}
 
-	g_system->updateScreen();
+	_vm->_system->updateScreen();
 }
 
 // Attention: y coordinate is here supposed to be the upper one!
@@ -979,8 +973,14 @@ void GfxMgr::block_restore(int16 x, int16 y, int16 width, int16 height, byte *bu
 //            Going beyond 160x168 will result in messageboxes not getting fully removed
 //            In KQ4's case, the scripts clear the screen that's why it works.
 void GfxMgr::drawBox(int16 x, int16 y, int16 width, int16 height, byte backgroundColor, byte lineColor) {
-	if (!render_Clip(x, y, width, height, VISUAL_WIDTH, VISUAL_HEIGHT - _renderStartVisualOffsetY))
+	// Allow rendering all the way to the top of the visual screen, even if there
+	// is a menu bar. MMMG nursery rhyme message boxes appear over the menu bar
+	// when the scripts pass a y-coordinate of zero to print.at(). Bug #13820
+	const int16 minY = 0 - _renderStartDisplayOffsetY;
+	if (!render_Clip(x, y, width, height, minY, VISUAL_WIDTH, VISUAL_HEIGHT - _renderStartVisualOffsetY)) {
+		warning("drawBox ignored by clipping. x: %d, y: %d, w: %d, h: %d", x, y, width, height);
 		return;
+	}
 
 	// coordinate translation: visual-screen -> display-screen
 	translateVisualRectToDisplayScreen(x, y, width, height);
@@ -1077,7 +1077,6 @@ void GfxMgr::drawDisplayRectEGA(int16 x, int16 y, int16 width, int16 height, byt
 void GfxMgr::drawDisplayRectCGA(int16 x, int16 y, int16 width, int16 height, byte color) {
 	uint32 offsetDisplay = (y * _displayScreenWidth) + x;
 	int16 remainingHeight = height;
-	int16 remainingWidth = width;
 	byte CGAMixtureColor = getCGAMixtureColor(color);
 	byte *displayScreen = nullptr;
 
@@ -1085,7 +1084,7 @@ void GfxMgr::drawDisplayRectCGA(int16 x, int16 y, int16 width, int16 height, byt
 	assert((width & 1) == 0);
 
 	while (remainingHeight) {
-		remainingWidth = width;
+		int16 remainingWidth = width;
 
 		// set up pointer
 		displayScreen = _displayScreen + offsetDisplay;
@@ -1192,43 +1191,33 @@ void GfxMgr::drawCharacterOnDisplay(int16 x, int16 y, const byte character, byte
 #define SHAKE_VERTICAL_PIXELS 4
 #define SHAKE_HORIZONTAL_PIXELS 4
 
-// Sierra used some EGA port trickery to do it, we have to do it by copying pixels around
+// Sierra used some EGA port trickery to do it, we let the backend take care of it.
 //
 // Shaking locations:
 // - Fanmade "Enclosure" right during the intro
 // - Space Quest 2 almost right at the start when getting captured (after walking into the space ship)
 void GfxMgr::shakeScreen(int16 repeatCount) {
-	int shakeNr, shakeCount;
-	uint8 *blackSpace;
 	int16 shakeHorizontalPixels = SHAKE_HORIZONTAL_PIXELS * (2 + _displayWidthMulAdjust);
 	int16 shakeVerticalPixels = SHAKE_VERTICAL_PIXELS * (1 + _displayHeightMulAdjust);
 
-	if ((blackSpace = (uint8 *)calloc(shakeHorizontalPixels * _displayScreenWidth, 1)) == NULL)
-		return;
-
-	shakeCount = repeatCount * 8; // effectively 4 shakes per repeat
+	int shakeCount = repeatCount * 8; // effectively 4 shakes per repeat
 
 	// it's 4 pixels down and 8 pixels to the right
 	// and it's also filling the remaining space with black
-	for (shakeNr = 0; shakeNr < shakeCount; shakeNr++) {
+	for (int shakeNr = 0; shakeNr < shakeCount; shakeNr++) {
 		if (shakeNr & 1) {
 			// move back
-			copyDisplayToScreen();
+			_vm->_system->setShakePos(0, 0);
 		} else {
-			g_system->copyRectToScreen(_displayScreen, _displayScreenWidth, shakeHorizontalPixels, shakeVerticalPixels, _displayScreenWidth - shakeHorizontalPixels, _displayScreenHeight - shakeVerticalPixels);
-			// additionally fill the remaining space with black
-			g_system->copyRectToScreen(blackSpace, _displayScreenWidth, 0, 0, _displayScreenWidth, shakeVerticalPixels);
-			g_system->copyRectToScreen(blackSpace, shakeHorizontalPixels, 0, 0, shakeHorizontalPixels, _displayScreenHeight);
+			_vm->_system->setShakePos(shakeHorizontalPixels, shakeVerticalPixels);
 		}
-		g_system->updateScreen();
-		g_system->delayMillis(66); // Sierra waited for 4 V'Syncs, which is around 66 milliseconds
+		_vm->_system->updateScreen();
+		_vm->_system->delayMillis(66); // Sierra waited for 4 V'Syncs, which is around 66 milliseconds
 	}
-
-	free(blackSpace);
 }
 
 void GfxMgr::updateScreen() {
-	g_system->updateScreen();
+	_vm->_system->updateScreen();
 }
 
 void GfxMgr::initPriorityTable() {
@@ -1238,24 +1227,21 @@ void GfxMgr::initPriorityTable() {
 }
 
 void GfxMgr::createDefaultPriorityTable(uint8 *priorityTable) {
-	int16 priority, step;
 	int16 yPos = 0;
 
-	for (priority = 1; priority < 15; priority++) {
-		for (step = 0; step < 12; step++) {
+	for (int16 priority = 1; priority < 15; priority++) {
+		for (int16 step = 0; step < 12; step++) {
 			priorityTable[yPos++] = priority < 4 ? 4 : priority;
 		}
 	}
 }
 
 void GfxMgr::setPriorityTable(int16 priorityBase) {
-	int16 x, priorityY, priority;
-
 	_priorityTableSet = true;
-	x = (SCRIPT_HEIGHT - priorityBase) * SCRIPT_HEIGHT / 10;
+	int16 x = (SCRIPT_HEIGHT - priorityBase) * SCRIPT_HEIGHT / 10;
 
-	for (priorityY = 0; priorityY < SCRIPT_HEIGHT; priorityY++) {
-		priority = (priorityY - priorityBase) < 0 ? 4 : (priorityY - priorityBase) * SCRIPT_HEIGHT / x + 5;
+	for (int16 priorityY = 0; priorityY < SCRIPT_HEIGHT; priorityY++) {
+		int16 priority = (priorityY - priorityBase) < 0 ? 4 : (priorityY - priorityBase) * SCRIPT_HEIGHT / x + 5;
 		if (priority > 15)
 			priority = 15;
 		_priorityTable[priorityY] = priority;
@@ -1296,8 +1282,6 @@ void GfxMgr::saveLoadFigureOutPriorityTableModifiedBool() {
  * Convert sprite priority to y value.
  */
 int16 GfxMgr::priorityToY(int16 priority) {
-	int16 currentY;
-
 	if (!_priorityTableSet) {
 		// priority table wasn't set by scripts? calculate directly
 		return (priority - 5) * 12 + 48;
@@ -1324,7 +1308,7 @@ int16 GfxMgr::priorityToY(int16 priority) {
 		return 168; // Buggy behavior, see above
 	}
 
-	currentY = 167;
+	int16 currentY = 167;
 	while (_priorityTable[currentY] >= priority) {
 		currentY--;
 		if (currentY < 0) // Original AGI didn't do this, we abort in that case and return -1
@@ -1372,9 +1356,9 @@ void GfxMgr::initPaletteCLUT(uint8 *destPalette, const uint16 *paletteCLUTData, 
 
 void GfxMgr::setPalette(bool gfxModePalette) {
 	if (gfxModePalette) {
-		g_system->getPaletteManager()->setPalette(_paletteGfxMode, 0, 256);
+		_vm->_system->getPaletteManager()->setPalette(_paletteGfxMode, 0, 256);
 	} else {
-		g_system->getPaletteManager()->setPalette(_paletteTextMode, 0, 256);
+		_vm->_system->getPaletteManager()->setPalette(_paletteTextMode, 0, 256);
 	}
 }
 
@@ -1385,7 +1369,7 @@ void GfxMgr::setAGIPal(int p0) {
 		return;
 
 	char filename[15];
-	sprintf(filename, "pal.%d", p0);
+	Common::sprintf_s(filename, "pal.%d", p0);
 
 	Common::File agipal;
 	if (!agipal.open(filename)) {
@@ -1477,17 +1461,9 @@ void GfxMgr::initMouseCursor(MouseCursorData *mouseCursor, const byte *bitmapDat
 }
 
 void GfxMgr::setMouseCursor(bool busy) {
-	MouseCursorData *mouseCursor = nullptr;
+	MouseCursorData &mouseCursor = busy ? _mouseCursorBusy : _mouseCursor;
 
-	if (!busy) {
-		mouseCursor = &_mouseCursor;
-	} else {
-		mouseCursor = &_mouseCursorBusy;
-	}
-
-	if (mouseCursor) {
-		CursorMan.replaceCursor(mouseCursor->bitmapData, mouseCursor->width, mouseCursor->height, mouseCursor->hotspotX, mouseCursor->hotspotY, 0);
-	}
+	CursorMan.replaceCursor(mouseCursor.bitmapData, mouseCursor.width, mouseCursor.height, mouseCursor.hotspotX, mouseCursor.hotspotY, 0);
 }
 
 #if 0

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,7 +39,9 @@
 #include <CoreFoundation/CFString.h>
 
 // NSDockTile was introduced with Mac OS X 10.5.
-// Try provide backward compatibility by avoiding NSDockTile symbols.
+// The following makes it possible to compile this feature with the 10.4
+// SDK (by avoiding any NSDockTile symbol), while letting the same build
+// use this feature at run-time on 10.5+.
 #if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_5
 typedef id NSDockTilePtr;
 #else
@@ -68,8 +69,6 @@ MacOSXTaskbarManager::MacOSXTaskbarManager() : _progress(-1.0) {
 	_dockTile = nil;
 	_applicationIconView = nil;
 	_overlayIconView = nil;
-
-
 }
 
 MacOSXTaskbarManager::~MacOSXTaskbarManager() {
@@ -120,19 +119,19 @@ void MacOSXTaskbarManager::setOverlayIcon(const Common::String &name, const Comm
 	if (!hasDockTile())
 		return;
 
-    if (name.empty()) {
+	if (name.empty()) {
 		clearOverlayIconView();
 		[_dockTile performSelector:@selector(display)];
 		return;
 	}
 
-	Common::String path = getIconPath(name, ".png");
+	Common::Path path = getIconPath(name, ".png");
 	if (path.empty())
 		return;
 
 	initOverlayIconView();
 
-	CFStringRef imageFile = CFStringCreateWithCString(0, path.c_str(), kCFStringEncodingASCII);
+	CFStringRef imageFile = CFStringCreateWithCString(0, path.toString(Common::Path::kNativeSeparator).c_str(), kCFStringEncodingASCII);
 	NSImage *image = [[NSImage alloc] initWithContentsOfFile:(NSString *)imageFile];
 	[_overlayIconView setImage:image];
 	[image release];
@@ -150,7 +149,7 @@ void MacOSXTaskbarManager::setProgressValue(int completed, int total) {
 	else if (_progress < 0)
 		_progress = 0.0;
 
-	 NSImage *mainIcon = [[NSApp applicationIconImage] copy];
+	NSImage *mainIcon = [[NSApp applicationIconImage] copy];
 	double barSize = [mainIcon size].width;
 	double progressSize = barSize * _progress;
 	[mainIcon lockFocus];
@@ -210,7 +209,7 @@ void MacOSXTaskbarManager::clearError() {
 	if (!hasDockTile())
 		return;
 
-    clearOverlayIconView();
+	clearOverlayIconView();
 	[_dockTile performSelector:@selector(display)];
 	return;
 }
@@ -233,9 +232,9 @@ void MacOSXTaskbarManager::addRecent(const Common::String &name, const Common::S
 	[dict setObject:(NSString *)desc forKey:@"description"];
 
 	// Icon
-	Common::String iconPath = getIconPath(name, ".png");
+	Common::Path iconPath = getIconPath(name, ".png");
 	if (!iconPath.empty()) {
-		CFStringRef icon = CFStringCreateWithCString(0, iconPath.c_str(), kCFStringEncodingASCII);
+		CFStringRef icon = CFStringCreateWithCString(0, iconPath.toString(Common::Path::kNativeSeparator).c_str(), kCFStringEncodingASCII);
 		[dict setObject:(NSString *)icon forKey:@"icon"];
 		CFRelease(icon);
 	}

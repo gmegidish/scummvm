@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,14 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef NANCY_INPUT_H
 #define NANCY_INPUT_H
+
+#include "engines/nancy/commontypes.h"
 
 #include "common/rect.h"
 #include "common/keyboard.h"
@@ -39,20 +40,22 @@ class State;
 
 struct NancyInput {
 	enum InputType : uint16 {
-		kLeftMouseButtonDown    = 1 << 0,
-		kLeftMouseButtonHeld    = 1 << 1,
-		kLeftMouseButtonUp      = 1 << 2,
-		kRightMouseButtonDown   = 1 << 3,
-		kRightMouseButtonHeld   = 1 << 4,
-		kRightMouseButtonUp     = 1 << 5,
-		kMoveUp                 = 1 << 6,
-		kMoveDown               = 1 << 7,
-		kMoveLeft               = 1 << 8,
-		kMoveRight              = 1 << 9,
-		kMoveFastModifier       = 1 << 10,
+		kLeftMouseButtonDown	= 1 << 0,
+		kLeftMouseButtonHeld	= 1 << 1,
+		kLeftMouseButtonUp		= 1 << 2,
+		kRightMouseButtonDown	= 1 << 3,
+		kRightMouseButtonHeld	= 1 << 4,
+		kRightMouseButtonUp		= 1 << 5,
+		kMoveUp					= 1 << 6,
+		kMoveDown				= 1 << 7,
+		kMoveLeft				= 1 << 8,
+		kMoveRight				= 1 << 9,
+		kMoveFastModifier		= 1 << 10,
+		kOpenMainMenu			= 1 << 11,
+		kRaycastMap				= 1 << 12,
 
-		kLeftMouseButton        = kLeftMouseButtonDown | kLeftMouseButtonHeld | kLeftMouseButtonUp,
-		kRightMouseButton       = kRightMouseButtonDown | kRightMouseButtonHeld | kRightMouseButtonUp
+		kLeftMouseButton		= kLeftMouseButtonDown | kLeftMouseButtonHeld | kLeftMouseButtonUp,
+		kRightMouseButton		= kRightMouseButtonDown | kRightMouseButtonHeld | kRightMouseButtonUp
 	};
 
 	Common::Point mousePos;
@@ -75,16 +78,8 @@ enum NancyAction {
 	kNancyActionMoveFast,
 	kNancyActionLeftClick,
 	kNancyActionRightClick,
-	kNancyActionFastConvoToggle,
-	kNancyActionEndConvoToggle,
-	kNancyActionReloadSave,
-	kNancyActionRequestMainMenu,
-	kNancyActionRequestSaveLoad,
-	kNancyActionRequestSetupMenu,
-	kNancyActionRequestCredits,
-	kNancyActionRequestMap,
-	kNancyActionRequestCheatMenu,
-	kNancyActionRequestEventMenu
+	kNancyActionOpenMainMenu,
+	kNancyActionShowRaycastMap
 };
 
 public:
@@ -98,8 +93,12 @@ public:
 	NancyInput getInput() const;
 	void forceCleanInput();
 	void setMouseInputEnabled(bool enabled) { _mouseEnabled = enabled; }
+	void setKeymapEnabled(Common::String keymapName, bool enabled);
+	void setVKEnabled(bool enabled);
 
-	static void initKeymaps(Common::KeymapArray &keymaps);
+	static void initKeymaps(Common::KeymapArray &keymaps, const char *target);
+
+	static const char *_mazeKeymapID;
 
 private:
 	uint16 _inputs;

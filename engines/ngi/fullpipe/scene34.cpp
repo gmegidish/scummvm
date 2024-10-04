@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -187,7 +186,7 @@ void sceneHandler34_fromCactus(ExCommand *cmd) {
 	mq->addExCommandToEnd(ex);
 
 	mq->setFlags(mq->getFlags() | 1);
-	mq->chain(0);
+	mq->chain(nullptr);
 
 	g_nmi->_aniMan->_flags |= 0x100;
 }
@@ -198,7 +197,7 @@ void sceneHandler34_animateLeaveBoard(ExCommand *cmd) {
 
 		mq->addExCommandToEnd(cmd->createClone());
 		mq->setFlags(mq->getFlags() | 1);
-		mq->chain(0);
+		mq->chain(nullptr);
 	}
 
 	cmd->_messageKind = 0;
@@ -228,7 +227,7 @@ void sceneHandler34_animateAction(ExCommand *cmd) {
 				MessageQueue *mq = new MessageQueue(g_nmi->_currentScene->getMessageQueueById(QU_SC34_FROMBOX), 0, 0);
 
 				mq->addExCommandToEnd(cmd->createClone());
-				mq->chain(0);
+				mq->chain(nullptr);
 
 				sceneHandler34_setExits();
 
@@ -245,7 +244,7 @@ void sceneHandler34_animateAction(ExCommand *cmd) {
 			MessageQueue *mq = new MessageQueue(g_nmi->_currentScene->getMessageQueueById(qId), 0, 0);
 
 			mq->addExCommandToEnd(cmd->createClone());
-			mq->chain(0);
+			mq->chain(nullptr);
 		}
 
 		return;

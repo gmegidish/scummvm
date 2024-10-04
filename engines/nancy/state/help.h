@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,9 +25,8 @@
 #include "common/singleton.h"
 
 #include "engines/nancy/commontypes.h"
-
+#include "engines/nancy/time.h"
 #include "engines/nancy/state/state.h"
-
 #include "engines/nancy/ui/fullscreenimage.h"
 
 namespace Nancy {
@@ -41,23 +39,25 @@ namespace State {
 
 class Help : public State, public Common::Singleton<Help> {
 public:
-	enum State { kInit, kBegin, kRun, kWaitForSound };
+	enum State { kInit, kBegin, kRun, kWait };
 	Help();
 	virtual ~Help();
 
 	// State API
-	virtual void process() override;
-	virtual void onStateExit() override { destroy(); };
+	void process() override;
+	void onStateEnter(const NancyState::NancyState prevState) override;
+	bool onStateExit(const NancyState::NancyState nextState) override;
 
 private:
 	void init();
 	void begin();
 	void run();
-	void waitForSound();
+	void wait();
 
 	State _state;
 	UI::FullScreenImage _image;
 	UI::Button *_button;
+	Time _buttonPressActivationTime;
 };
 
 #define NancyHelpState Nancy::State::Help::instance()

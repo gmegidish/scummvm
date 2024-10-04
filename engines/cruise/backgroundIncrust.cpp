@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,13 +27,13 @@ namespace Cruise {
 backgroundIncrustStruct backgroundIncrustHead;
 
 void resetBackgroundIncrustList(backgroundIncrustStruct *pHead) {
-	pHead->next = NULL;
-	pHead->prev = NULL;
+	pHead->next = nullptr;
+	pHead->prev = nullptr;
 }
 
 // blit background to another one
 void addBackgroundIncrustSub1(int fileIdx, int X, int Y, char *ptr2, int16 scale, char *destBuffer, char *dataPtr) {
-	assert((dataPtr != NULL) && (*dataPtr != 0));
+	assert((dataPtr != nullptr) && (*dataPtr != 0));
 
 	buildPolyModel(X, Y, scale, ptr2, destBuffer, dataPtr);
 }
@@ -63,11 +62,11 @@ void restoreBackground(backgroundIncrustStruct *pIncrust) {
 		return;
 	if (pIncrust->type != 1)
 		return;
-	if (pIncrust->ptr == NULL)
+	if (pIncrust->ptr == nullptr)
 		return;
 
 	uint8* pBackground = backgroundScreens[pIncrust->backgroundIdx];
-	if (pBackground == NULL)
+	if (pBackground == nullptr)
 		return;
 
 	backgroundChanged[pIncrust->backgroundIdx] = true;
@@ -96,14 +95,14 @@ backgroundIncrustStruct *addBackgroundIncrust(int16 overlayIdx,	int16 objectIdx,
 
 	// Don't process any further if not a sprite or polygon
 	if (!ptr)
-		return NULL;
+		return nullptr;
 
 	if ((filesDatabase[params.fileIdx].subData.resourceType != OBJ_TYPE_SPRITE) &&
 		(filesDatabase[params.fileIdx].subData.resourceType != OBJ_TYPE_POLY))
-		return NULL;
+		return nullptr;
 
 	uint8 *backgroundPtr = backgroundScreens[backgroundIdx];
-	assert(backgroundPtr != NULL);
+	assert(backgroundPtr != nullptr);
 
 	backgroundChanged[backgroundIdx] = true;
 	backgroundIncrustStruct *currentHead = pHead;
@@ -117,7 +116,7 @@ backgroundIncrustStruct *addBackgroundIncrust(int16 overlayIdx,	int16 objectIdx,
 	backgroundIncrustStruct *newElement = (backgroundIncrustStruct *)mallocAndZero(sizeof(backgroundIncrustStruct));
 
 	if (!newElement)
-		return NULL;
+		return nullptr;
 
 	newElement->next = currentHead->next;
 	currentHead->next = newElement;
@@ -138,8 +137,8 @@ backgroundIncrustStruct *addBackgroundIncrust(int16 overlayIdx,	int16 objectIdx,
 	newElement->scale = params.scale;
 	newElement->frame = params.fileIdx;
 	newElement->spriteId = filesDatabase[params.fileIdx].subData.index;
-	newElement->ptr = NULL;
-	strcpy(newElement->name, filesDatabase[params.fileIdx].subData.name);
+	newElement->ptr = nullptr;
+	Common::strcpy_s(newElement->name, filesDatabase[params.fileIdx].subData.name);
 
 	if (filesDatabase[params.fileIdx].subData.resourceType == OBJ_TYPE_SPRITE) {
 		// sprite
@@ -148,7 +147,7 @@ backgroundIncrustStruct *addBackgroundIncrust(int16 overlayIdx,	int16 objectIdx,
 		if (saveBuffer == 1)
 			backupBackground(newElement, newElement->X, newElement->Y, width, height, backgroundPtr);
 
-		drawSprite(width, height, NULL, filesDatabase[params.fileIdx].subData.ptr, newElement->Y,
+		drawSprite(width, height, nullptr, filesDatabase[params.fileIdx].subData.ptr, newElement->Y,
 			newElement->X, backgroundPtr, filesDatabase[params.fileIdx].subData.ptrMask);
 	} else {
 		// poly
@@ -172,7 +171,7 @@ backgroundIncrustStruct *addBackgroundIncrust(int16 overlayIdx,	int16 objectIdx,
 			backupBackground(newElement, sizeTable[0] - 2, sizeTable[2], width, height, backgroundPtr);
 		}
 
-		addBackgroundIncrustSub1(params.fileIdx, newElement->X, newElement->Y, NULL, params.scale, (char *)backgroundPtr, (char *)filesDatabase[params.fileIdx].subData.ptr);
+		addBackgroundIncrustSub1(params.fileIdx, newElement->X, newElement->Y, nullptr, params.scale, (char *)backgroundPtr, (char *)filesDatabase[params.fileIdx].subData.ptr);
 	}
 
 	return newElement;
@@ -189,7 +188,7 @@ void regenerateBackgroundIncrust(backgroundIncrustStruct *pHead) {
 		if (frame < 0)
 			error("regenerateBackgroundIncrust() : Unexpected use of negative frame index");
 
-		if ((filesDatabase[frame].subData.ptr == NULL) || (strcmp(pl->name, filesDatabase[frame].subData.name))) {
+		if ((filesDatabase[frame].subData.ptr == nullptr) || (strcmp(pl->name, filesDatabase[frame].subData.name))) {
 			frame = NUM_FILE_ENTRIES - 1;
 			if (loadFile(pl->name, frame, pl->spriteId) < 0)
 				frame = -1;
@@ -201,10 +200,10 @@ void regenerateBackgroundIncrust(backgroundIncrustStruct *pHead) {
 				int width = filesDatabase[frame].width;
 				int height = filesDatabase[frame].height;
 
-				drawSprite(width, height, NULL, filesDatabase[frame].subData.ptr, pl->Y, pl->X, backgroundScreens[pl->backgroundIdx], filesDatabase[frame].subData.ptrMask);
+				drawSprite(width, height, nullptr, filesDatabase[frame].subData.ptr, pl->Y, pl->X, backgroundScreens[pl->backgroundIdx], filesDatabase[frame].subData.ptrMask);
 			} else {
 				// Poly
-				addBackgroundIncrustSub1(frame, pl->X, pl->Y, NULL, pl->scale, (char *)backgroundScreens[pl->backgroundIdx], (char *)filesDatabase[frame].subData.ptr);
+				addBackgroundIncrustSub1(frame, pl->X, pl->Y, nullptr, pl->scale, (char *)backgroundScreens[pl->backgroundIdx], (char *)filesDatabase[frame].subData.ptr);
 			}
 
 			backgroundChanged[pl->backgroundIdx] = true;

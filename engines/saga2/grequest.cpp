@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -41,7 +40,7 @@ const int           maxLines = 16,
                     buttonWidth = 60;
 
 //  This function takes a string which is composed of several
-//  substrings, each seperated by a delimiter character, and
+//  substrings, each separated by a delimiter character, and
 //  breaks it up into the individual sub-strings.
 
 int16 SplitString(
@@ -53,7 +52,7 @@ int16 SplitString(
 
 	for (count = 0; count < maxStrings;) {
 		textStart[count++] = text;
-		if ((text = strchr(text, delimiter)) == NULL) break;
+		if ((text = strchr(text, delimiter)) == nullptr) break;
 		*text++ = '\0';
 	}
 	return count;
@@ -64,13 +63,13 @@ static void handleRequestEvent(gEvent &ev) {
 	gWindow         *win;
 	requestInfo     *ri;
 
-	if (ev.panel && ev.eventType == gEventNewValue && ev.value) {
+	if (ev.panel && ev.eventType == kEventNewValue && ev.value) {
 		win = ev.panel->getWindow();        // get the window pointer
-		ri = win ? (requestInfo *)win->userData : NULL;
+		ri = win ? (requestInfo *)win->_userData : nullptr;
 
 		if (ri) {
 			ri->running = 0;
-			ri->result = ev.panel->id;
+			ri->result = ev.panel->_id;
 		}
 	}
 }
@@ -81,10 +80,10 @@ static void handleRequestEvent(gEvent &ev) {
 
 class ModalDialogWindow : public ModalWindow {
 
-	int16   titleCount;
-	Point16 titlePos[maxLines];
-	char    *titleStrings[maxLines];
-	char    titleBuf[maxText];
+	int16   _titleCount;
+	Point16 _titlePos[maxLines];
+	char    *_titleStrings[maxLines];
+	char    _titleBuf[maxText];
 
 	void positionText(
 	    char *windowText,
@@ -107,7 +106,7 @@ public:
 	void drawClipped(
 	    gPort         &port,
 	    const Point16 &offset,
-	    const Rect16  &r);
+	    const Rect16  &r) override;
 };
 
 void ModalDialogWindow::positionText(
@@ -122,28 +121,28 @@ void ModalDialogWindow::positionText(
 		int16   fontHeight = mainFont->height;
 
 		// make a copy of the window text string
-		vsprintf(titleBuf, windowText, args);
+		Common::vsprintf_s(_titleBuf, windowText, args);
 
 		//  break up the title text string
-		titleCount = SplitString(titleBuf, titleStrings, maxLines, '\n');
+		_titleCount = SplitString(_titleBuf, _titleStrings, maxLines, '\n');
 
 		yPos = textArea.y +
-		       ((textArea.height - titleCount * fontHeight) >> 1);
+		       ((textArea.height - _titleCount * fontHeight) >> 1);
 		yPos = MAX(yPos, textArea.y);
 
 		maxY = textArea.y + textArea.height - fontHeight;
 
-		for (i = 0; i < titleCount; i++, yPos += fontHeight) {
+		for (i = 0; i < _titleCount; i++, yPos += fontHeight) {
 			if (yPos < maxY) {
-				titlePos[i].y = yPos;
-				titlePos[i].x =
+				_titlePos[i].y = yPos;
+				_titlePos[i].x =
 				    textArea.x +
 				    ((textArea.width -
-				      TextWidth(mainFont, titleStrings[i], -1, 0))
+				      TextWidth(mainFont, _titleStrings[i], -1, 0))
 				     >> 1);
-			} else titleCount = i;
+			} else _titleCount = i;
 		}
-	} else titleCount = 0;
+	} else _titleCount = 0;
 }
 
 
@@ -196,18 +195,18 @@ void ModalDialogWindow::drawClipped(
 	port.fillRect(rect);
 
 	port.setFont(textFont);
-	for (i = 0; i < titleCount; i++) {
-		Point16 textPos = origin + titlePos[i];
+	for (i = 0; i < _titleCount; i++) {
+		Point16 textPos = origin + _titlePos[i];
 
 		port.moveTo(textPos + Point16(-1, -1));
 		port.setColor(2);
-		port.drawText(titleStrings[i], -1);
+		port.drawText(_titleStrings[i], -1);
 		port.moveTo(textPos + Point16(1, 1));
 		port.setColor(14);
-		port.drawText(titleStrings[i], -1);
+		port.drawText(_titleStrings[i], -1);
 		port.moveTo(textPos);
 		port.setColor(8);
-		port.drawText(titleStrings[i], -1);
+		port.drawText(_titleStrings[i], -1);
 	}
 
 	ModalWindow::drawClipped(port, offset, r);
@@ -218,7 +217,7 @@ void ModalDialogWindow::drawClipped(
  * ===================================================================== */
 
 class ModalRequestWindow : public ModalDialogWindow {
-	char    buttonBuf[maxButtonText];
+	char    _buttonBuf[maxButtonText];
 
 	static Rect16 getTextArea(const Rect16 &r) {
 		return Rect16(2, 2, r.width - 4, r.height - mainFont->height - 12);
@@ -254,10 +253,10 @@ ModalRequestWindow::ModalRequestWindow(
 
 	int16   fontHeight = mainFont->height;
 
-	Common::strlcpy(buttonBuf, (buttonText ? buttonText : "_OK"), sizeof(buttonBuf));
+	Common::strlcpy(_buttonBuf, (buttonText ? buttonText : "_OK"), sizeof(_buttonBuf));
 
 	//  break up the button text string
-	buttonCount = SplitString(buttonBuf, buttonStrings, maxButtons, '|');
+	buttonCount = SplitString(_buttonBuf, buttonStrings, maxButtons, '|');
 
 	extraSpace = r.width - buttonWidth * buttonCount;
 
@@ -317,17 +316,17 @@ public:
 		ModalDialogWindow(r, ident, cmd, windowText, args) {
 	}
 
-	void pointerRelease(gPanelMessage &);
-	bool keyStroke(gPanelMessage &);
+	void pointerRelease(gPanelMessage &) override;
+	bool keyStroke(gPanelMessage &) override;
 };
 
 void ModalDisplayWindow::pointerRelease(gPanelMessage &) {
-	requestInfo     *ri = (requestInfo *)userData;
+	requestInfo     *ri = (requestInfo *)_userData;
 	if (ri) ri->running = false;
 }
 
 bool ModalDisplayWindow::keyStroke(gPanelMessage &) {
-	requestInfo     *ri = (requestInfo *)userData;
+	requestInfo     *ri = (requestInfo *)_userData;
 	if (ri) ri->running = false;
 	return true;
 }
@@ -349,22 +348,22 @@ int16 GameDialogA(
 	rInfo.running = true;
 
 	win = new ModalRequestWindow(
-	          Rect16((drawPage->size.x - 200) / 2,
-	                 (drawPage->size.y - 100) / 3,
+	          Rect16((drawPage->_size.x - 200) / 2,
+	                 (drawPage->_size.y - 100) / 3,
 	                 200,
 	                 100),
 	          0,
-	          NULL,
+	          nullptr,
 	          windowText,
 	          buttonText,
 	          args);
 
-	if (win == NULL) {
+	if (win == nullptr) {
 		//  REM: perhaps a memory alert of some sort???
 		error("Unable to open requester window.");
 	}
 
-	win->userData = &rInfo;
+	win->_userData = &rInfo;
 	win->open();
 
 	EventLoop(rInfo.running, false);
@@ -402,21 +401,21 @@ int16 GameDisplayA(
 	rInfo.running = true;
 
 	win = new ModalDisplayWindow(
-	          Rect16((drawPage->size.x - 200) / 2,
-	                 (drawPage->size.y - 100) / 3,
+	          Rect16((drawPage->_size.x - 200) / 2,
+	                 (drawPage->_size.y - 100) / 3,
 	                 200,
 	                 100),
 	          0,
-	          NULL,
+	          nullptr,
 	          windowText,
 	          args);
 
-	if (win == NULL) {
+	if (win == nullptr) {
 		//  REM: perhaps a memory alert of some sort???
 		error("Unable to open requester window.");
 	}
 
-	win->userData = &rInfo;
+	win->_userData = &rInfo;
 	win->open();
 
 	EventLoop(rInfo.running, false);

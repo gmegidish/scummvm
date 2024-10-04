@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -37,7 +42,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesAdLib,
 	0, 0, 0
 },
@@ -51,7 +55,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesAdLib,
 	0, 0, 0
 },
@@ -65,7 +68,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesAdLib,
 	0, 0, 0
 },
@@ -79,11 +81,10 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Bugreport #11524
+{ // Supplied by eolyn in Bugreport #11524
 	{
 		"ween",
 		"",
@@ -93,7 +94,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesAdLib,
 	0, 0, 0
 },
@@ -107,7 +107,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesAdLib,
 	0, 0, 0
 },
@@ -121,7 +120,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesAdLib,
 	0, 0, 0
 },
@@ -139,7 +137,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesNone,
 	0, 0, 0
 },
@@ -153,7 +150,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesNone,
 	0, 0, 0
 },
@@ -167,7 +163,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesNone,
 	0, 0, 0
 },
@@ -181,7 +176,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesNone,
 	0, 0, 0
 },
@@ -196,7 +190,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesNone,
 	0, 0, 0
 },
@@ -211,7 +204,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesNone,
 	0, 0, 0
 },
@@ -229,7 +221,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesNone,
 	0, 0, 0
 },
@@ -243,7 +234,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesNone,
 	0, 0, 0
 },
@@ -255,26 +245,24 @@
 		"ween",
 		"Demo",
 		AD_ENTRY1("intro.stk", "2e9c2898f6bf206ede801e3b2e7ee428"),
-		UNK_LANG,
+		EN_USA,
 		kPlatformDOS,
 		ADGF_DEMO,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesAdLib,
 	0, "show.tot", 0
 },
 {
 	{
 		"ween",
-		"Demo",
+		"Demo (v2.0)", // dated 8/1/93
 		AD_ENTRY1s("intro.stk", "15fb91a1b9b09684b28ac75edf66e504", 2340230),
 		EN_USA,
 		kPlatformDOS,
 		ADGF_DEMO,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesAdLib,
 	0, "show.tot", 0
 },
@@ -288,7 +276,6 @@
 		ADGF_DEMO,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesAdLib,
 	0, 0, 0
 },
@@ -302,12 +289,11 @@
 		ADGF_DEMO,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesAdLib,
 	0, 0, 0
 },
 {
-	{
+	{ // Supplied by trembyle
 		"ween",
 		"v1.2 Demo",
 		AD_ENTRY1s("intro.stk", "dcff8f3a7dd1f4c33fd94aa7659b7578", 2425477),
@@ -316,7 +302,6 @@
 		ADGF_DEMO,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeWeen,
 	kFeaturesAdLib,
 	0, 0, 0
 },

@@ -4,9 +4,9 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
  * of the License, or(at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -15,23 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "audio/decoders/vorbis.h"
-#include "common/file.h"
-#include "common/fs.h"
 #include "common/util.h"
 #include "ags/plugins/ags_waves/ags_waves.h"
+#include "ags/shared/util/stdio_compat.h"
 #include "ags/ags.h"
 
 namespace AGS3 {
 namespace Plugins {
 namespace AGSWaves {
 
-const float PI = 3.14159265f;
+//const float PI = 3.14159265f;
 
 void AGSWaves::SFX_Play(ScriptMethodParams &params) {
 	PARAMS2(int, sfxNum, int, repeat);
@@ -47,10 +45,9 @@ void AGSWaves::SFX_Play(ScriptMethodParams &params) {
 	}
 	_mixer->stopHandle(effect._soundHandle);
 
-	Common::FSNode fsNode = ::AGS::g_vm->getGameFolder().getChild(
-		"sounds").getChild(Common::String::format("sound%d.sfx", sfxNum));
+	Common::ArchiveMemberPtr member = getFile(Common::String::format("sounds/sound%d.sfx", sfxNum).c_str());
 
-	Audio::AudioStream *sound = loadOGG(fsNode);
+	Audio::AudioStream *sound = loadOGG(member);
 
 	if (sound != nullptr) {
 		effect._volume = 255;
@@ -100,11 +97,12 @@ void AGSWaves::SFX_Stop(ScriptMethodParams &params) {
 }
 
 void AGSWaves::SFX_SetPosition(ScriptMethodParams &params) {
+#if 0
 	PARAMS4(int, sfxNum, int, xS, int, yS, int, intensity);
 
 	SoundEffect &effect = SFX[sfxNum];
 
-	if (_mixer->isSoundHandleActive(effect._soundHandle)) { 
+	if (_mixer->isSoundHandleActive(effect._soundHandle)) {
 		int angle = 0;
 		int dist = 0;
 
@@ -139,6 +137,8 @@ void AGSWaves::SFX_SetPosition(ScriptMethodParams &params) {
 		(void)angle;
 		(void)dist;
 	}
+#endif
+	debug(0, "TODO: SFX_Setposition positional sound not yet implemented");
 }
 
 void AGSWaves::SFX_SetGlobalVolume(ScriptMethodParams &params) {
@@ -174,15 +174,10 @@ void AGSWaves::SFX_Filter(ScriptMethodParams &params) {
 	SFX[sfxNum]._filter = enable;
 }
 
-Audio::AudioStream *AGSWaves::loadOGG(const Common::FSNode &fsNode) {
+Audio::AudioStream *AGSWaves::loadOGG(const Common::ArchiveMemberPtr member) {
 #ifdef USE_VORBIS
-	if (fsNode.exists()) {
-		Common::File *soundFile = new Common::File();
-		if (!soundFile->open(fsNode))
-			error("Failed to open");
-
-		Audio::AudioStream *stream = Audio::makeVorbisStream(soundFile, DisposeAfterUse::YES);
-		assert(stream);
+	if (member) {
+		Audio::AudioStream *stream = Audio::makeVorbisStream(member->createReadStream(), DisposeAfterUse::YES);
 		return stream;
 	}
 #endif
@@ -247,9 +242,8 @@ void AGSWaves::MusicPlay(int MusicToPlay, int repeat, int fadeinMS, int fadeoutM
 	_mixer->stopHandle(MFXStream._soundHandle);
 
 	// Load OGG file for music
-	Common::FSNode fsNode = ::AGS::g_vm->getGameFolder().getChild(
-		"Music").getChild(Common::String::format("music%d.mfx", MusicToPlay));
-	Audio::AudioStream *musicStream = loadOGG(fsNode);
+	Common::ArchiveMemberPtr member = getFile(Common::String::format("music/music%d.mfx", MusicToPlay).c_str());
+	Audio::AudioStream *musicStream = loadOGG(member);
 	if (!musicStream)
 		return;
 

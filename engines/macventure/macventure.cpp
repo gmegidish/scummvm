@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,7 @@
 #include "common/debug.h"
 #include "common/error.h"
 #include "common/config-manager.h"
+#include "common/str-enc.h"
 #include "engines/util.h"
 
 #include "macventure/macventure.h"
@@ -42,20 +42,6 @@
 
 namespace MacVenture {
 
-// HACK, see below
-void toASCII(Common::String &str) {
-	debugC(3, kMVDebugMain, "toASCII: %s", str.c_str());
-	Common::String::iterator it = str.begin();
-	for (; it != str.end(); it++) {
-		if (*it == '\216') {
-			str.replace(it, it + 1, "e");
-		}
-		if (*it == '\210') {
-			str.replace(it, it + 1, "a");
-		}
-	}
-}
-
 enum {
 	kMaxMenuTitleLength = 30
 };
@@ -64,21 +50,21 @@ MacVentureEngine::MacVentureEngine(OSystem *syst, const ADGameDescription *gameD
 	_gameDescription = gameDesc;
 	_rnd = new Common::RandomSource("macventure");
 
-	_resourceManager = NULL;
-	_globalSettings = NULL;
-	_gui = NULL;
-	_world = NULL;
-	_scriptEngine = NULL;
-	_filenames = NULL;
+	_resourceManager = nullptr;
+	_globalSettings = nullptr;
+	_gui = nullptr;
+	_world = nullptr;
+	_scriptEngine = nullptr;
+	_filenames = nullptr;
 
-	_decodingDirectArticles = NULL;
-	_decodingNamingArticles = NULL;
-	_decodingIndirectArticles = NULL;
-	_textHuffman = NULL;
+	_decodingDirectArticles = nullptr;
+	_decodingNamingArticles = nullptr;
+	_decodingIndirectArticles = nullptr;
+	_textHuffman = nullptr;
 
-	_soundManager = NULL;
+	_soundManager = nullptr;
 
-	_dataBundle = NULL;
+	_dataBundle = nullptr;
 
 	debug("MacVenture::MacVentureEngine()");
 }
@@ -458,7 +444,7 @@ Common::String MacVentureEngine::getUserInput() {
 }
 
 
-Common::String MacVentureEngine::getStartGameFileName() {
+Common::Path MacVentureEngine::getStartGameFileName() {
 	Common::SeekableReadStream *res;
 	res = _resourceManager->getResource(MKTAG('S', 'T', 'R', ' '), kStartGameFilenameID);
 	if (!res)
@@ -468,14 +454,13 @@ Common::String MacVentureEngine::getStartGameFileName() {
 	char *fileName = new char[length + 1];
 	res->read(fileName, length);
 	fileName[length] = '\0';
-	Common::String result = Common::String(fileName, length);
-	// HACK, see definition of toASCII
-	toASCII(result);
+
+	Common::U32String result(fileName, Common::kMacRoman);
 
 	delete[] fileName;
 	delete res;
 
-	return result;
+	return Common::Path(result);
 }
 
 const GlobalSettings& MacVentureEngine::getGlobalSettings() const {
@@ -492,6 +477,7 @@ void MacVentureEngine::processEvents() {
 
 		switch (event.type) {
 		case Common::EVENT_QUIT:
+		case Common::EVENT_RETURN_TO_LAUNCHER:
 			_gameState = kGameStateQuitting;
 			break;
 		default:
@@ -785,7 +771,12 @@ void MacVentureEngine::openObject(ObjID objID) {
 	} else { // Open inventory window
 		Common::Point p(_world->getObjAttr(objID, kAttrPosX), _world->getObjAttr(objID, kAttrPosY));
 		WindowReference invID = _gui->createInventoryWindow(objID);
-		_gui->setWindowTitle(invID, _world->getText(objID, objID, objID));
+		Common::String title = _world->getText(objID, objID, objID);
+		// HACK, trim titletext to fit initial inventory size
+		while (title.size() > 6) {
+			title.deleteLastChar();
+		}
+		_gui->setWindowTitle(invID, title);
 		_gui->updateWindowInfo(invID, objID, _world->getChildren(objID, true));
 		_gui->updateWindow(invID, _world->getObjAttr(objID, kAttrContainerOpen));
 	}
@@ -951,11 +942,11 @@ Common::String MacVentureEngine::getCommandsPausedString() const {
 	return Common::String("Click to continue");
 }
 
-Common::String MacVentureEngine::getFilePath(FilePathID id) const {
+Common::Path MacVentureEngine::getFilePath(FilePathID id) const {
 	if (id <= 3) { // We don't want a file in the subdirectory
-		return _filenames->getString(id);
+		return Common::Path(_filenames->getString(id));
 	} else { // We want a game file
-		return _filenames->getString(3) + "/" + _filenames->getString(id);
+		return Common::Path(_filenames->getString(3) + "/" + _filenames->getString(id));
 	}
 }
 

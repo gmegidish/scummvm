@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,10 +27,10 @@
 #include "common/array.h"
 #include "common/file.h"
 #include "common/list.h"
+#include "common/macresman.h"
 
 namespace Saga {
 
-#define MAC_BINARY_HEADER_SIZE 128
 #define RSC_TABLEINFO_SIZE 8
 #define RSC_TABLEENTRY_SIZE 8
 
@@ -40,15 +39,40 @@ namespace Saga {
 class SagaEngine;
 class ByteArray;
 
-struct PatchData {
-	Common::File *_patchFile;
+class PatchData {
+private:
+	Common::SeekableReadStream *_patchFile;
 	const char *_fileName;
 	bool _deletePatchFile;
+	bool _patchFileOpened;
 
-	PatchData(const char *fileName): _fileName(fileName), _deletePatchFile(true) {
-		_patchFile = new Common::File();
+public:
+	PatchData(const char *fileName): _fileName(fileName), _deletePatchFile(true), _patchFile(nullptr), _patchFileOpened(false) {
 	}
-	PatchData(Common::File *patchFile, const char *fileName): _patchFile(patchFile), _fileName(fileName), _deletePatchFile(false) {
+	PatchData(Common::SeekableReadStream *patchFile, const char *fileName): _patchFile(patchFile), _fileName(fileName), _deletePatchFile(false), _patchFileOpened(true) {
+	}
+
+	Common::SeekableReadStream *getStream() {
+		if (_patchFileOpened)
+			return _patchFile;
+		
+		Common::File *file = new Common::File();
+		_patchFileOpened = true;
+		if (!file->open(_fileName)) {
+			_patchFile = nullptr;
+			delete file;
+			return nullptr;
+		}
+		_patchFile = file;
+		return _patchFile;
+	}
+
+	void closeStream() {
+		if (_deletePatchFile && _patchFileOpened) {
+			delete _patchFile;
+			_patchFile = nullptr;
+			_patchFileOpened = false;
+		}
 	}
 
 	~PatchData() {
@@ -61,10 +85,11 @@ struct PatchData {
 struct ResourceData {
 	size_t offset;
 	size_t size;
+	int diskNum; // -1 = without disk id. -2 = mac res fork
 	PatchData *patchData;
 
 	ResourceData() :
-		offset(0), size(0), patchData(NULL) {
+		offset(0), size(0), patchData(NULL), diskNum(-1) {
 	}
 
 	~ResourceData() {
@@ -84,7 +109,7 @@ public:
 	ResourceContext():
 		_fileName(NULL), _fileType(0), _isCompressed(false), _serial(0),
 		_isBigEndian(false),
-		_fileSize(0) {
+		_fileSize(0), _tombstone(false) {
 	}
 
 	virtual ~ResourceContext() { }
@@ -96,19 +121,17 @@ public:
 	bool isBigEndian() const { return _isBigEndian; }
 	const char * fileName() const {	return _fileName; }
 
-	Common::File *getFile(ResourceData *resourceData) {
-		Common::File *file;
-		const char * fn;
+	Common::SeekableReadStream *getFile(ResourceData *resourceData) {
 		if (resourceData && resourceData->patchData != NULL) {
-			file = resourceData->patchData->_patchFile;
-			fn = resourceData->patchData->_fileName;
+			return resourceData->patchData->getStream();
 		} else {
-			file = &_file;
-			fn = _fileName;
+			if (!_file && !_tombstone)
+				_file.reset(Common::MacResManager::openFileOrDataFork(_fileName));
+			if (!_file)
+				_tombstone = true;
+
+			return _file.get();
 		}
-		if (!file->isOpen())
-			file->open(fn);
-		return file;
 	}
 
 	bool validResourceId(uint32 resourceId) const {
@@ -122,6 +145,10 @@ public:
 		return &_table[resourceId];
 	}
 
+	void closeFile() {
+		_file.reset();
+	}
+
 protected:
 	const char *_fileName;
 	uint16 _fileType;
@@ -130,14 +157,17 @@ protected:
 
 	bool _isBigEndian;
 	ResourceDataArray _table;
-	Common::File _file;
+	Common::ScopedPtr<Common::SeekableReadStream> _file;
+	Common::ScopedPtr<Common::MacResManager> _macRes;
 	int32 _fileSize;
+	bool _tombstone;
 
 	bool load(SagaEngine *_vm, Resource *resource);
-	bool loadResV1(uint32 contextOffset, uint32 contextSize);
+	bool loadResV1();
+	bool loadResIteAmiga(SagaEngine *_vm, int type, bool isFloppy);
+	bool loadResIteAmigaSound(SagaEngine *_vm, int type);
 
-	virtual bool loadMacMIDI() { return false; }
-	virtual bool loadRes(uint32 contextOffset, uint32 contextSize) = 0;
+	virtual bool loadRes(SagaEngine *_vm, int type) = 0;
 	virtual void processPatches(Resource *resource, const GamePatchDescription *patchFiles) { }
 };
 
@@ -193,11 +223,22 @@ protected:
 // ITE
 class ResourceContext_RSC: public ResourceContext {
 protected:
-	bool loadMacMIDI() override;
-	bool loadRes(uint32 contextOffset, uint32 contextSize) override {
-		return loadResV1(contextOffset, contextSize);
+	bool loadRes(SagaEngine *_vm, int type) override {
+		return loadResV1();
 	}
 	void processPatches(Resource *resource, const GamePatchDescription *patchFiles) override;
+};
+
+class ResourceContext_RSC_ITE_Amiga: public ResourceContext {
+public:
+	ResourceContext_RSC_ITE_Amiga(bool isFloppy) : _isFloppy(isFloppy) {}
+
+protected:
+	bool loadRes(SagaEngine *_vm, int type) override {
+		return loadResIteAmiga(_vm, type, _isFloppy);
+	}
+
+	bool _isFloppy;
 };
 
 class Resource_RSC : public Resource {
@@ -213,6 +254,9 @@ public:
 	}
 protected:
 	ResourceContext *createContext() override {
+		if (_vm->getPlatform() == Common::kPlatformAmiga && _vm->getGameId() == GID_ITE) {
+			return new ResourceContext_RSC_ITE_Amiga(_vm->getFeatures() & GF_ITE_FLOPPY);
+		}
 		return new ResourceContext_RSC();
 	}
 };
@@ -221,8 +265,8 @@ protected:
 // IHNM
 class ResourceContext_RES: public ResourceContext {
 protected:
-	bool loadRes(uint32 contextOffset, uint32 contextSize) override {
-		return loadResV1(0, contextSize);
+	bool loadRes(SagaEngine *_vm, int type) override {
+		return loadResV1();
 	}
 
 	void processPatches(Resource *resource, const GamePatchDescription *patchFiles) override;
@@ -231,7 +275,7 @@ protected:
 // TODO: move load routines from sndres
 class VoiceResourceContext_RES: public ResourceContext {
 protected:
-	bool loadRes(uint32 contextOffset, uint32 contextSize) override {
+	bool loadRes(SagaEngine *_vm, int type) override {
 		return false;
 	}
 public:

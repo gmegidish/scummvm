@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,12 +39,12 @@ private:
 	 * Details of a single entry in a HAG file index
 	 */
 	struct HagEntry {
-		Common::String _resourceName;
+		Common::Path _resourceName;
 		uint32 _offset;
 		uint32 _size;
 
 		HagEntry() : _offset(0), _size(0) {}
-		HagEntry(Common::String resourceName, uint32 offset, uint32 size)
+		HagEntry(const Common::Path &resourceName, uint32 offset, uint32 size)
 			: _resourceName(resourceName), _offset(offset), _size(size) {
 		}
 	};
@@ -53,7 +52,7 @@ private:
 	class HagIndex {
 	public:
 		Common::List<HagEntry> _entries;
-		Common::String _filename;
+		Common::Path _filename;
 	};
 
 	Common::Array<HagIndex> _index;
@@ -67,12 +66,12 @@ private:
 	 * Given a resource name, opens up the correct HAG file and returns whether
 	 * an entry with the given name exists.
 	 */
-	bool getHeaderEntry(const Common::String &resourceName, HagIndex &hagIndex, HagEntry &hagEntry) const;
+	bool getHeaderEntry(const Common::Path &resourceName, HagIndex &hagIndex, HagEntry &hagEntry) const;
 
 	/**
 	 * Returns the HAG resource filename that will contain a given resource
 	 */
-	Common::String getResourceFilename(const Common::String &resourceName) const;
+	Common::Path getResourceFilename(const Common::Path &resourceName) const;
 
 	/**
 	 * Return a resource type given a resource name
@@ -100,10 +99,9 @@ HagArchive::~HagArchive() {
 
 // Archive implementation
 bool HagArchive::hasFile(const Common::Path &path) const {
-	Common::String name = path.toString();
 	HagIndex hagIndex;
 	HagEntry hagEntry;
-	return getHeaderEntry(name, hagIndex, hagEntry);
+	return getHeaderEntry(path, hagIndex, hagEntry);
 }
 
 int HagArchive::listMembers(Common::ArchiveMemberList &list) const {
@@ -115,7 +113,7 @@ int HagArchive::listMembers(Common::ArchiveMemberList &list) const {
 
 		for (i = hagIndex._entries.begin(); i != hagIndex._entries.end(); ++i) {
 			list.push_back(Common::ArchiveMemberList::value_type(
-				new Common::GenericArchiveMember((*i)._resourceName, this)));
+				new Common::GenericArchiveMember((*i)._resourceName, *this)));
 			++members;
 		}
 	}
@@ -124,19 +122,17 @@ int HagArchive::listMembers(Common::ArchiveMemberList &list) const {
 }
 
 const Common::ArchiveMemberPtr HagArchive::getMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	if (!hasFile(name))
+	if (!hasFile(path))
 		return Common::ArchiveMemberPtr();
 
-	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
+	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(path, *this));
 }
 
 Common::SeekableReadStream *HagArchive::createReadStreamForMember(const Common::Path &path) const {
-	Common::String name = path.toString();
 	HagIndex hagIndex;
 	HagEntry hagEntry;
 
-	if (getHeaderEntry(name, hagIndex, hagEntry)) {
+	if (getHeaderEntry(path, hagIndex, hagEntry)) {
 		// Entry found. If the correct file is not already open, open it
 		Common::File f;
 		if (!f.open(hagIndex._filename))
@@ -157,20 +153,32 @@ void HagArchive::loadIndex(MADSEngine *vm) {
  		if (sectionIndex == 0 && !Common::File::exists("SECTION0.HAG"))
 			continue;
 
+		// Rex Nebular and Dragonsphere demos only have sections 1 and 9 - skip the rest
+		if ((vm->getGameID() == GType_RexNebular || vm->getGameID() == GType_Dragonsphere) && vm->isDemo())  {
+			if (sectionIndex != 1 && sectionIndex != 9)
+				continue;
+		}
+
+		// Phantom demo only has sections 1, 2 and 9 - skip the rest
+		if (vm->getGameID() == GType_Phantom && vm->isDemo())  {
+			if (sectionIndex != 1 && sectionIndex != 2 && sectionIndex != 9)
+				continue;
+		}
+
 		// Dragonsphere does not have some sections - skip them
 		if (vm->getGameID() == GType_Dragonsphere)  {
 			if (sectionIndex == 7 || sectionIndex == 8)
 				continue;
 		}
 
-		// Phantom does not have some sections - skip them
-		if (vm->getGameID() == GType_Phantom)  {
+		// Phantom and Forest don't have some sections - skip them
+		if (vm->getGameID() == GType_Phantom || vm->getGameID() == GType_Forest)  {
 			if (sectionIndex == 6 || sectionIndex == 7 || sectionIndex == 8)
 				continue;
 		}
 
-		Common::String filename = (sectionIndex == -1) ? "GLOBAL.HAG" :
-			Common::String::format("SECTION%d.HAG", sectionIndex);
+		Common::Path filename = (sectionIndex == -1) ? Common::Path("GLOBAL.HAG") :
+			Common::Path(Common::String::format("SECTION%d.HAG", sectionIndex));
 		if (sectionIndex == 10) {
 			// Speech
 			if (!Common::File::exists("SPEECH.HAG"))
@@ -179,7 +187,7 @@ void HagArchive::loadIndex(MADSEngine *vm) {
 				filename = "SPEECH.HAG";
 		}
 		if (!hagFile.open(filename))
-			error("Could not locate HAG file - %s", filename.c_str());
+			error("Could not locate HAG file - %s", filename.toString().c_str());
 
 		// Check for header
 		char headerBuffer[16];
@@ -208,14 +216,17 @@ void HagArchive::loadIndex(MADSEngine *vm) {
 	}
 }
 
-bool HagArchive::getHeaderEntry(const Common::String &resourceName,
+bool HagArchive::getHeaderEntry(const Common::Path &resourceName,
 		HagIndex &hagIndex, HagEntry &hagEntry) const {
-	Common::String resName = resourceName;
+	Common::Path resName = resourceName;
 	resName.toUppercase();
-	if (resName[0] == '*')
-		resName.deleteChar(0);
+	Common::String baseName(resName.baseName());
+	if (baseName[0] == '*') {
+		baseName.deleteChar(0);
+		resName = resName.getParent().appendComponent(baseName);
+	}
 
-	Common::String hagFilename = getResourceFilename(resName);
+	Common::Path hagFilename = getResourceFilename(resName);
 
 	// Find the index for the given file
 	for (uint hagCtr = 0; hagCtr < _index.size(); ++hagCtr) {
@@ -225,7 +236,7 @@ bool HagArchive::getHeaderEntry(const Common::String &resourceName,
 			Common::List<HagEntry>::iterator ei;
 			for (ei = hagIndex._entries.begin(); ei != hagIndex._entries.end(); ++ei) {
 				hagEntry = *ei;
-				if (hagEntry._resourceName.compareToIgnoreCase(resName) == 0)
+				if (hagEntry._resourceName.equalsIgnoreCase(resName))
 					return true;
 			}
 		}
@@ -234,16 +245,17 @@ bool HagArchive::getHeaderEntry(const Common::String &resourceName,
 	return false;
 }
 
-Common::String HagArchive::getResourceFilename(const Common::String &resourceName) const {
-	ResourceType resType = getResourceType(resourceName);
-	Common::String outputFilename = "GLOBAL.HAG";
+Common::Path HagArchive::getResourceFilename(const Common::Path &resourceName) const {
+	Common::String baseName(resourceName.baseName());
+	ResourceType resType = getResourceType(baseName);
+	Common::Path outputFilename = "GLOBAL.HAG";
 
 	if ((resType == RESTYPE_ROOM) || (resType == RESTYPE_SC)) {
-		int value = atoi(resourceName.c_str() + 2);
+		int value = atoi(baseName.c_str() + 2);
 		int hagFileNum = (resType == RESTYPE_ROOM) ? value / 100 : value;
 
 		if (hagFileNum >= 0)
-			outputFilename = Common::String::format("SECTION%d.HAG", hagFileNum);
+			outputFilename = Common::Path(Common::String::format("SECTION%d.HAG", hagFileNum));
 	}
 
 	if (resType == RESTYPE_SPEECH)
@@ -301,7 +313,7 @@ void Resources::init(MADSEngine *vm) {
 	SearchMan.add("HAG", new HagArchive(vm));
 }
 
-Common::String Resources::formatName(RESPREFIX resType, int id, const Common::String &ext) {
+Common::Path Resources::formatName(RESPREFIX resType, int id, const Common::String &ext) {
 	Common::String result = "*";
 
 	if (resType == 3 && !id) {
@@ -326,10 +338,10 @@ Common::String Resources::formatName(RESPREFIX resType, int id, const Common::St
 		result += ext;
 	}
 
-	return result;
+	return Common::Path(result);
 }
 
-Common::String Resources::formatName(int prefix, char asciiCh, int id, EXTTYPE extType,
+Common::Path Resources::formatName(int prefix, char asciiCh, int id, EXTTYPE extType,
 		const Common::String &suffix) {
 	Common::String result;
 	if (prefix <= 0) {
@@ -368,10 +380,10 @@ Common::String Resources::formatName(int prefix, char asciiCh, int id, EXTTYPE e
 		break;
 	}
 
-	return result;
+	return Common::Path(result);
 }
 
-Common::String Resources::formatResource(const Common::String &resName,
+Common::Path Resources::formatResource(const Common::String &resName,
 		const Common::String &hagFilename) {
 //	int v1 = 0, v2 = 0;
 
@@ -380,19 +392,19 @@ Common::String Resources::formatResource(const Common::String &resName,
 		error("TODO: formatResource");
 	} else {
 		// File outside of hag file
-		return resName;
+		return Common::Path(resName);
 	}
 }
 
-Common::String Resources::formatAAName(int idx) {
+Common::Path Resources::formatAAName(int idx) {
 	return formatName(0, 'I', idx, EXT_AA, "");
 }
 
 /*------------------------------------------------------------------------*/
 
-void File::openFile(const Common::String &filename) {
+void File::openFile(const Common::Path &filename) {
 	if (!Common::File::open(filename))
-		error("Could not open file - %s", filename.c_str());
+		error("Could not open file - %s", filename.toString().c_str());
 }
 
 /*------------------------------------------------------------------------*/

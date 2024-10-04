@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,12 +27,14 @@ class SeekableReadStream;
 typedef SeekableReadStream InSaveFile;
 class OutSaveFile;
 class MemoryWriteStreamDynamic;
+class String;
 }
 
 namespace Director {
 
 enum FileIOError {
 	kErrorNone = 0,
+	kErrorMemAlloc = 1,
 	kErrorEOF = -1,
 	kErrorDirectoryFull = -33,
 	kErrorVolumeFull = -34,
@@ -53,29 +54,33 @@ enum FileIOError {
 class FileObject : public Object<FileObject> {
 public:
 	Common::String *_filename;
-	Common::InSaveFile *_inFile;
 	Common::SeekableReadStream *_inStream;
 	Common::OutSaveFile *_outFile;
 	Common::MemoryWriteStreamDynamic *_outStream;
+	FileIOError _lastError;
 
 public:
 	FileObject(ObjectType objType);
 	FileObject(const FileObject &obj);
 	~FileObject() override;
 
+	bool hasProp(const Common::String &propName) override;
+	Datum getProp(const Common::String &propName) override;
+
+	FileIOError open(const Common::String &origpath, const Common::String &mode);
 	void clear();
+	FileIOError saveFileError();
 	void dispose() override;
 };
 
 namespace FileIO {
 	extern const char *xlibName;
-	extern const char *fileNames[];
+	extern const XlibFileDesc fileNames[];
 
-	void open(int type);
-	void close(int type);
+	void open(ObjectType type, const Common::Path &path);
+	void close(ObjectType type);
 
 	bool charInMatchString(char ch, const Common::String &matchString);
-	void saveFileError();
 	void m_delete(int nargs);
 	void m_dispose(int nargs);
 	void m_error(int nargs);
@@ -87,6 +92,7 @@ namespace FileIO {
 	void m_readChar(int nargs);
 	void m_readFile(int nargs);
 	void m_readLine(int nargs);
+	void m_readPict(int nargs);
 	void m_readToken(int nargs);
 	void m_readWord(int nargs);
 	void m_setFinderInfo(int nargs);
@@ -94,6 +100,16 @@ namespace FileIO {
 	void m_status(int nargs);
 	void m_writeChar(int nargs);
 	void m_writeString(int nards);
+
+	void m_setOverrideDrive(int nargs);
+
+	void m_closeFile(int nargs);
+	void m_createFile(int nargs);
+	void m_displayOpen(int nargs);
+	void m_displaySave(int nargs);
+	void m_openFile(int nargs);
+	void m_setFilterMask(int nargs);
+	void m_getOSDirectory(int nargs);
 
 } // End of namespace FileIO
 

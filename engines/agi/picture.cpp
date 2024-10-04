@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@ PictureMgr::PictureMgr(AgiBase *agi, GfxMgr *gfx) {
 	_gfx = gfx;
 
 	_resourceNr = 0;
-	_data = NULL;
+	_data = nullptr;
 	_dataSize = 0;
 	_dataOffset = 0;
 	_dataOffsetNibble = false;
@@ -74,6 +73,16 @@ byte PictureMgr::getNextByte() {
 	}
 }
 
+bool PictureMgr::getNextParamByte(byte &b) {
+	byte value = getNextByte();
+	if (value >= _minCommand) {
+		_dataOffset--;
+		return false;
+	}
+	b = value;
+	return true;
+}
+
 byte PictureMgr::getNextNibble() {
 	if (!_dataOffsetNibble) {
 		_dataOffsetNibble = true;
@@ -90,42 +99,34 @@ byte PictureMgr::getNextNibble() {
 ** Draws an xCorner  (drawing action 0xF5)
 **************************************************************************/
 void PictureMgr::draw_xCorner(bool skipOtherCoords) {
-	int x1, x2, y1, y2;
+	byte x1, x2, y1, y2, dummy;
 
-	if ((x1 = getNextByte()) >= _minCommand ||
-	        (y1 = getNextByte()) >= _minCommand) {
-		_dataOffset--;
+	if (!(getNextParamByte(x1) && getNextParamByte(y1)))
 		return;
-	}
 
 	putVirtPixel(x1, y1);
 
 	for (;;) {
-		x2 = getNextByte();
-
-		if (x2 >= _minCommand)
+		if (!getNextParamByte(x2))
 			break;
 
 		if (skipOtherCoords)
-			if (getNextByte() >= _minCommand)
+			if (!getNextParamByte(dummy))
 				break;
 
 		draw_Line(x1, y1, x2, y1);
 		x1 = x2;
 
 		if (skipOtherCoords)
-			if (getNextByte() >= _minCommand)
+			if (!getNextParamByte(dummy))
 				break;
 
-		y2 = getNextByte();
-
-		if (y2 >= _minCommand)
+		if (!getNextParamByte(y2))
 			break;
 
 		draw_Line(x1, y1, x1, y2);
 		y1 = y2;
 	}
-	_dataOffset--;
 }
 
 /**************************************************************************
@@ -134,42 +135,33 @@ void PictureMgr::draw_xCorner(bool skipOtherCoords) {
 ** Draws an yCorner  (drawing action 0xF4)
 **************************************************************************/
 void PictureMgr::yCorner(bool skipOtherCoords) {
-	int x1, x2, y1, y2;
+	byte x1, x2, y1, y2, dummy;
 
-	if ((x1 = getNextByte()) >= _minCommand ||
-	        (y1 = getNextByte()) >= _minCommand) {
-		_dataOffset--;
+	if (!(getNextParamByte(x1) && getNextParamByte(y1)))
 		return;
-	}
 
 	putVirtPixel(x1, y1);
 
 	for (;;) {
 		if (skipOtherCoords)
-			if (getNextByte() >= _minCommand)
+			if (!getNextParamByte(dummy))
 				break;
 
-		y2 = getNextByte();
-
-		if (y2 >= _minCommand)
+		if (!getNextParamByte(y2))
 			break;
 
 		draw_Line(x1, y1, x1, y2);
 		y1 = y2;
-		x2 = getNextByte();
-
-		if (x2 >= _minCommand)
+		if (!getNextParamByte(x2))
 			break;
 
 		if (skipOtherCoords)
-			if (getNextByte() >= _minCommand)
+			if (!getNextParamByte(dummy))
 				break;
 
 		draw_Line(x1, y1, x2, y1);
 		x1 = x2;
 	}
-
-	_dataOffset--;
 }
 
 /**************************************************************************
@@ -217,7 +209,7 @@ void PictureMgr::plotPattern(int x, int y) {
 	circle_ptr = &circle_data[circle_list[pen_size]];
 
 	// SGEORGE : Fix v3 picture data for drawing circles. Manifests in goldrush
-	if (_pictureVersion == 3) {
+	if (_pictureVersion == AGIPIC_V2) {
 		circle_data[1] = 0;
 		circle_data[3] = 0;
 	}
@@ -303,26 +295,18 @@ void PictureMgr::plotPattern(int x, int y) {
 ** Plots points and various brush patterns.
 **************************************************************************/
 void PictureMgr::plotBrush() {
-	int x1, y1;
-
 	for (;;) {
 		if (_patCode & 0x20) {
-			byte b = getNextByte();
-			if (b >= _minCommand)
+			if (!getNextParamByte(_patNum))
 				break;
-			_patNum = b;
 		}
 
-		if ((x1 = getNextByte()) >= _minCommand)
-			break;
-
-		if ((y1 = getNextByte()) >= _minCommand)
+		byte x1, y1;
+		if (!(getNextParamByte(x1) && getNextParamByte(y1)))
 			break;
 
 		plotPattern(x1, y1);
 	}
-
-	_dataOffset--;
 }
 
 /**************************************************************************
@@ -393,6 +377,7 @@ void PictureMgr::drawPictureC64() {
 			_scrOn = true;
 			break;
 		case 0xe6:  // plot brush
+			// TODO: should this be getNextParamByte()?
 			_patCode = getNextByte();
 			plotBrush();
 			break;
@@ -552,6 +537,7 @@ void PictureMgr::drawPictureV2() {
 			draw_Fill();
 			break;
 		case 0xf9:
+			// TODO: should this be getNextParamByte()?
 			_patCode = getNextByte();
 
 			if (_vm->getGameType() == GType_PreAGI)
@@ -619,7 +605,7 @@ void PictureMgr::drawPictureAGI256() {
 	}
 
 	if (_dataSize < maxFlen) {
-		warning("Undersized AGI256 picture resource %d, using it anyway. Filling rest with white.", _resourceNr);
+		warning("Undersized AGI256 picture resource %d, using it anyway. Filling rest with white", _resourceNr);
 		while (_dataSize < maxFlen) {
 			x++;
 			if (x >= _width) {
@@ -635,7 +621,8 @@ void PictureMgr::drawPictureAGI256() {
 }
 
 void PictureMgr::draw_SetColor() {
-	_scrColor = getNextByte();
+	if (!getNextParamByte(_scrColor))
+		return;
 
 	// For CGA, replace the color with its mixture color
 	switch (_vm->_renderMode) {
@@ -648,7 +635,7 @@ void PictureMgr::draw_SetColor() {
 }
 
 void PictureMgr::draw_SetPriority() {
-	_priColor = getNextByte();
+	getNextParamByte(_priColor);
 }
 
 // this gets a nibble instead of a full byte
@@ -765,22 +752,19 @@ void PictureMgr::draw_Line(int16 x1, int16 y1, int16 x2, int16 y2) {
  * Draws short lines relative to last position. (drawing action 0xF7)
  */
 void PictureMgr::draw_LineShort() {
-	int x1, y1, disp, dx, dy;
+	byte x1, y1, disp;
 
-	if ((x1 = getNextByte()) >= _minCommand ||
-	        (y1 = getNextByte()) >= _minCommand) {
-		_dataOffset--;
+	if (!(getNextParamByte(x1) && getNextParamByte(y1)))
 		return;
-	}
 
 	putVirtPixel(x1, y1);
 
 	for (;;) {
-		if ((disp = getNextByte()) >= _minCommand)
+		if (!getNextParamByte(disp))
 			break;
 
-		dx = ((disp & 0xf0) >> 4) & 0x0f;
-		dy = (disp & 0x0f);
+		int dx = ((disp & 0xf0) >> 4) & 0x0f;
+		int dy = (disp & 0x0f);
 
 		if (dx & 0x08)
 			dx = -(dx & 0x07);
@@ -791,7 +775,6 @@ void PictureMgr::draw_LineShort() {
 		x1 += dx;
 		y1 += dy;
 	}
-	_dataOffset--;
 }
 
 /**************************************************************************
@@ -800,38 +783,29 @@ void PictureMgr::draw_LineShort() {
 ** Draws long lines to actual locations (cf. relative) (drawing action 0xF6)
 **************************************************************************/
 void PictureMgr::draw_LineAbsolute() {
-	int16 x1, y1, x2, y2;
+	byte x1, y1, x2, y2;
 
-	if ((x1 = getNextByte()) >= _minCommand ||
-	        (y1 = getNextByte()) >= _minCommand) {
-		_dataOffset--;
+	if (!(getNextParamByte(x1) && getNextParamByte(y1)))
 		return;
-	}
 
 	putVirtPixel(x1, y1);
 
 	for (;;) {
-		if ((x2 = getNextByte()) >= _minCommand)
-			break;
-
-		if ((y2 = getNextByte()) >= _minCommand)
+		if (!(getNextParamByte(x2) && getNextParamByte(y2)))
 			break;
 
 		draw_Line(x1, y1, x2, y2);
 		x1 = x2;
 		y1 = y2;
 	}
-	_dataOffset--;
 }
 
 // flood fill
 void PictureMgr::draw_Fill() {
-	int16 x1, y1;
+	byte x1, y1;
 
-	while ((x1 = getNextByte()) < _minCommand && (y1 = getNextByte()) < _minCommand)
+	while (getNextParamByte(x1) && getNextParamByte(y1))
 		draw_Fill(x1, y1);
-
-	_dataOffset--;
 }
 
 void PictureMgr::draw_Fill(int16 x, int16 y) {
@@ -984,16 +958,15 @@ int PictureMgr::decodePicture(byte *data, uint32 length, int clr, int pic_width,
  * Unload an AGI picture resource.
  * This function unloads an AGI picture resource and deallocates
  * resource data.
- * @param n AGI picture resource number
+ * @param picNr AGI picture resource number
  */
-int PictureMgr::unloadPicture(int n) {
+void PictureMgr::unloadPicture(int picNr) {
 	// remove visual buffer & priority buffer if they exist
-	if (_vm->_game.dirPic[n].flags & RES_LOADED) {
-		free(_vm->_game.pictures[n].rdata);
-		_vm->_game.dirPic[n].flags &= ~RES_LOADED;
+	if (_vm->_game.dirPic[picNr].flags & RES_LOADED) {
+		free(_vm->_game.pictures[picNr].rdata);
+		_vm->_game.pictures[picNr].rdata = nullptr;
+		_vm->_game.dirPic[picNr].flags &= ~RES_LOADED;
 	}
-
-	return errOK;
 }
 
 void PictureMgr::clear() {

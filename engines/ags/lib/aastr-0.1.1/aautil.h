@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -101,16 +100,16 @@ extern "C" {
 void _aa_prepare_for_24bpp(void);
 
 /* Add r,g,b values from source bitmap.  */
-void _aa_add_rgb8(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num);
+void _aa_add_rgb8(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num);
 #ifdef ALLEGRO_COLOR16
-void _aa_add_rgb15(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num);
-void _aa_add_rgb16(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num);
+void _aa_add_rgb15(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num);
+void _aa_add_rgb16(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num);
 #endif
 #ifdef ALLEGRO_COLOR24
-void _aa_add_rgb24(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num);
+void _aa_add_rgb24(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num);
 #endif
 #ifdef ALLEGRO_COLOR32
-void _aa_add_rgb32(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, unsigned long _num);
+void _aa_add_rgb32(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2, uint32_t _num);
 #endif
 
 /* Put pixel to destination bitmap.  */
@@ -128,20 +127,20 @@ void _aa_put_rgb32(byte *addr, int _x);
 
 /* Add r,g,b and transparency values from source bitmap.  */
 void _aa_masked_add_rgb8(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2,
-                         unsigned long _num);
+                         uint32_t _num);
 #ifdef ALLEGRO_COLOR16
 void _aa_masked_add_rgb15(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2,
-                          unsigned long _num);
+                          uint32_t _num);
 void _aa_masked_add_rgb16(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2,
-                          unsigned long _num);
+                          uint32_t _num);
 #endif
 #ifdef ALLEGRO_COLOR24
 void _aa_masked_add_rgb24(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2,
-                          unsigned long _num);
+                          uint32_t _num);
 #endif
 #ifdef ALLEGRO_COLOR32
 void _aa_masked_add_rgb32(BITMAP *_src, int _sx1, int _sx2, int _sy1, int _sy2,
-                          unsigned long _num);
+                          uint32_t _num);
 #endif
 
 /* Put masked pixel to destination bitmap.  */

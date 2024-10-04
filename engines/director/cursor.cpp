@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "image/image_decoder.h"
@@ -24,9 +23,12 @@
 #include "graphics/wincursor.h"
 
 #include "director/director.h"
+#include "director/cast.h"
 #include "director/cursor.h"
 #include "director/movie.h"
-#include "director/castmember.h"
+#include "director/castmember/bitmap.h"
+#include "director/picture.h"
+#include "director/lingo/lingo-code.h"
 
 namespace Director {
 
@@ -61,7 +63,7 @@ void Cursor::readFromCast(Datum cursorCasts) {
 		warning("Cursor::readFromCast: Needs array of 2");
 		return;
 	}
-	if (_cursorResId == cursorCasts)
+	if (_cursorResId.type == ARRAY && LC::eqData(_cursorResId, cursorCasts).asInt())
 		return;
 
 	CastMemberID cursorId = cursorCasts.u.farr->arr[0].asMemberID();
@@ -81,7 +83,13 @@ void Cursor::readFromCast(Datum cursorCasts) {
 	_usePalette = false;
 	_keyColor = 3;
 
-	resetCursor(Graphics::kMacCursorCustom, true, cursorCasts);
+	Datum cursorRes;
+	if (g_director->getVersion() < 500) {
+		cursorRes = Datum(cursorId.member);
+	} else {
+		cursorRes = Datum((cursorId.castLib << 16) + cursorId.member);
+	}
+	resetCursor(Graphics::kMacCursorCustom, true, cursorRes);
 
 	BitmapCastMember *cursorBitmap = (BitmapCastMember *)cursorCast;
 	BitmapCastMember *maskBitmap = (BitmapCastMember *)maskCast;
@@ -92,22 +100,22 @@ void Cursor::readFromCast(Datum cursorCasts) {
 	for (int y = 0; y < 16; y++) {
 		const byte *cursor = nullptr, *mask = nullptr;
 
-		if (y < cursorBitmap->_img->getSurface()->h &&
-				y < maskBitmap->_img->getSurface()->h) {
-			cursor = (const byte *)cursorBitmap->_img->getSurface()->getBasePtr(0, y);
-			mask = (const byte *)maskBitmap->_img->getSurface()->getBasePtr(0, y);
+		if (y < cursorBitmap->_picture->_surface.h &&
+				y < maskBitmap->_picture->_surface.h) {
+			cursor = (const byte *)cursorBitmap->_picture->_surface.getBasePtr(0, y);
+			mask = (const byte *)maskBitmap->_picture->_surface.getBasePtr(0, y);
 		}
 
 		for (int x = 0; x < 16; x++) {
-			if (x >= cursorBitmap->_img->getSurface()->w ||
-					x >= maskBitmap->_img->getSurface()->w) {
+			if (x >= cursorBitmap->_picture->_surface.w ||
+					x >= maskBitmap->_picture->_surface.w) {
 				cursor = mask = nullptr;
 			}
 
 			if (!cursor) {
 				*dst = 3;
 			} else {
-				*dst = *mask ? 3 : (*cursor ? 1 : 0);
+				*dst = *mask ? (*cursor ? 0 : 1) : 3;
 				cursor++;
 				mask++;
 			}
@@ -116,8 +124,17 @@ void Cursor::readFromCast(Datum cursorCasts) {
 	}
 
 	BitmapCastMember *bc = (BitmapCastMember *)(cursorCast);
-	_hotspotX = bc->_regX - bc->_initialRect.left;
-	_hotspotY = bc->_regY - bc->_initialRect.top;
+	int offX = bc->_regX - bc->_initialRect.left;
+	int offY = bc->_regY - bc->_initialRect.top;
+	if ((offX < 0) || (offX >= 16) || (offY < 0) || (offY >= 16) ||
+		(g_director->getVersion() < 500 && g_director->getPlatform() == Common::kPlatformWindows)) {
+		// Hotspots that are outside the 16x16 crop will be recentered in the middle.
+		// Pre-5 versions of Windows Director do not respect hotspots at all?
+		offX = 8;
+		offY = 8;
+	}
+	_hotspotX = (uint16)offX;
+	_hotspotY = (uint16)offY;
 }
 
 void Cursor::readBuiltinType(Datum resourceId) {
@@ -176,21 +193,23 @@ void Cursor::readFromResource(Datum resourceId) {
 	default:
 		bool readSuccessful = false;
 
-		for (Common::HashMap<Common::String, Archive *, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo>::iterator it = g_director->_openResFiles.begin(); it != g_director->_openResFiles.end(); ++it) {
-			Common::SeekableReadStreamEndian *cursorStream;
-
-			cursorStream = ((MacArchive *)it->_value)->getResource(MKTAG('C', 'U', 'R', 'S'), resourceId.asInt());
-			if (!cursorStream)
-				cursorStream = ((MacArchive *)it->_value)->getResource(MKTAG('C', 'R', 'S', 'R'), resourceId.asInt());
-
-			if (cursorStream && readFromStream(*((Common::SeekableReadStream *)cursorStream), false, 0)) {
-				_usePalette = true;
-				_keyColor = 0xff;
-				readSuccessful = true;
-
-				resetCursor(Graphics::kMacCursorCustom, false, resourceId);
+		Cast *cast = g_director->getCurrentMovie()->getCast();
+		if (cast && cast->getArchive()) {
+			readSuccessful = readFromArchive(cast->getArchive(), resourceId.asInt());
+			if (readSuccessful)
 				break;
-			}
+		}
+
+		for (auto &it : g_director->_allOpenResFiles) {
+			readSuccessful = readFromArchive(g_director->_allSeenResFiles[it], resourceId.asInt());
+			if (readSuccessful)
+				break;
+		}
+
+		// Cursors can be located in the main archive, which may not
+		// be in _allOpenResFiles
+		if (!readSuccessful && g_director->getPlatform() == Common::kPlatformMacintosh) {
+			readSuccessful = readFromArchive(g_director->getMainArchive(), resourceId.asInt());
 		}
 
 		// TODO: figure out where to read custom cursor in windows platform
@@ -218,6 +237,26 @@ void Cursor::readFromResource(Datum resourceId) {
 		if (!readSuccessful)
 			readBuiltinType(resourceId.asInt() & 0x7f);
 	}
+}
+
+bool Cursor::readFromArchive(Archive *archive, uint16 resourceId) {
+	bool readSuccessful = false;
+	Common::SeekableReadStreamEndian *cursorStream = nullptr;
+	if (archive->hasResource(MKTAG('C', 'U', 'R', 'S'), resourceId))
+		cursorStream = archive->getResource(MKTAG('C', 'U', 'R', 'S'), resourceId);
+
+	if (!cursorStream && archive->hasResource(MKTAG('C', 'R', 'S', 'R'), resourceId))
+		cursorStream = archive->getResource(MKTAG('C', 'R', 'S', 'R'), resourceId);
+
+	if (cursorStream && readFromStream(*((Common::SeekableReadStream *)cursorStream), false, 0)) {
+		_usePalette = true;
+		_keyColor = 0xff;
+		readSuccessful = true;
+
+		resetCursor(Graphics::kMacCursorCustom, false, resourceId);
+	}
+	delete cursorStream;
+	return readSuccessful;
 }
 
 void Cursor::resetCursor(Graphics::MacCursorType type, bool shouldClear, Datum resId) {

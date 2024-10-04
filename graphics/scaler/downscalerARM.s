@@ -4,10 +4,10 @@
 @ are too numerous to list here. Please refer to the COPYRIGHT
 @ file distributed with this source distribution.
 @
-@ This program is free software; you can redistribute it and/or
-@ modify it under the terms of the GNU General Public License
-@ as published by the Free Software Foundation; either version 2
-@ of the License, or (at your option) any later version.
+@ This program is free software: you can redistribute it and/or modify
+@ it under the terms of the GNU General Public License as published by
+@ the Free Software Foundation, either version 3 of the License, or
+@ (at your option) any later version.
 @
 @ This program is distributed in the hope that it will be useful,
 @ but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
 @ GNU General Public License for more details.
 @
 @ You should have received a copy of the GNU General Public License
-@ along with this program; if not, write to the Free Software
-@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 @
 @ @author Robin Watts (robin@wss.co.uk)
 
 	.text
 
-	.global	DownscaleAllByHalfARM
+	.global	downscaleAllByHalfARM
 
 	@ ARM implementation of DownscaleAllByHalf scaler.
 	@ Scales a width x height block of 16bpp pixels from srcPtr to
@@ -30,7 +29,7 @@
 	@ lines. redblueMask and round allow for one routine to do both
 	@ 565 and 555 formats.
 	.align 2
-DownscaleAllByHalfARM:
+downscaleAllByHalfARM:
 	@ r0 = srcPtr
 	@ r1 = srcPitch
 	@ r2 = dstPtr

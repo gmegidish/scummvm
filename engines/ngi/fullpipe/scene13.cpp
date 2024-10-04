@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,7 +59,7 @@ void scene13_initScene(Scene *sc) {
 
 		g_nmi->playSound(SND_13_018, 1);
 
-		g_vars->scene13_whirlgig->_callback2 = 0; // Really NULL
+		g_vars->scene13_whirlgig->_callback2 = nullptr; // Really NULL
 	} else {
 		g_vars->scene13_bridge->changeStatics2(ST_BDG_OPEN2);
 
@@ -85,6 +84,7 @@ void scene13_initScene(Scene *sc) {
 
 void sceneHandler13_openBridge() {
 	Movement *mov = g_vars->scene13_bridge->_movement;
+	g_nmi->setObjectState(sO_Bridge, g_nmi->getObjectEnumState(sO_Bridge, sO_IsFree));
 
 	if (mov && mov->_id == MV_BDG_CLOSE) {
 		int sz;
@@ -170,7 +170,7 @@ void sceneHandler13_stopWhirlgig() {
 }
 
 void sceneHandler13_startWhirlgig() {
-	g_vars->scene13_whirlgig->_callback2 = 0; // Really NULL
+	g_vars->scene13_whirlgig->_callback2 = nullptr; // Really NULL
 
 	g_nmi->playSound(SND_13_018, 1);
 	g_nmi->playSound(SND_13_034, 0);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,7 @@
 #include "common/stack.h"
 #include "common/str.h"
 #include "common/list.h"
+#include "common/mutex.h"
 
 #include "gui/ThemeEngine.h"
 #include "gui/widget.h"
@@ -36,6 +36,7 @@ class OSystem;
 
 namespace Graphics {
 class Font;
+class MacWindowManager;
 }
 
 namespace Common {
@@ -44,6 +45,20 @@ namespace Common {
 }
 
 namespace GUI {
+
+enum {
+	kActionEnd,
+	kActionShiftEnd,
+	kActionHome,
+	kActionShiftHome,
+	kActionCopy,
+	kActionCut,
+	kActionPaste,
+};
+
+enum {
+	kIconsSetLoadedCmd  = 'icns'
+};
 
 class Dialog;
 class ThemeEval;
@@ -65,7 +80,7 @@ typedef Common::FixedStack<Dialog *> DialogStack;
 /**
  * GUI manager singleton.
  */
-class GuiManager : public Common::Singleton<GuiManager> {
+class GuiManager : public Common::Singleton<GuiManager>, public CommandSender {
 	friend class Dialog;
 	friend class Common::Singleton<SingletonBaseType>;
 	GuiManager();
@@ -84,6 +99,7 @@ public:
 	void processEvent(const Common::Event &event, Dialog *const activeDialog);
 	Common::Keymap *getKeymap() const;
 	void scheduleTopDialogRedraw();
+	void scheduleFullRedraw();
 
 	bool isActive() const	{ return ! _dialogStack.empty(); }
 
@@ -92,10 +108,16 @@ public:
 
 	ThemeEval *xmlEval() { return _theme->getEvaluator(); }
 
+	void lockIconsSet() { _iconsMutex.lock(); }
+	void unlockIconsSet()  { _iconsMutex.unlock(); }
+	Common::SearchSet &getIconsSet() { return _iconsSet; }
+
 	int16 getGUIWidth() const { return _baseWidth; }
 	int16 getGUIHeight() const { return _baseHeight; }
 	float getScaleFactor() const { return _scaleFactor; }
 	void computeScaleFactor();
+
+	bool useLowResGUI() const { return _baseWidth <= 320; }
 
 	bool useRTL() const { return _useRTL; }
 	void setLanguageRTL();
@@ -107,8 +129,8 @@ public:
 	int getFontHeight(ThemeEngine::FontStyle style = ThemeEngine::kFontStyleBold) const { return _theme->getFontHeight(style); }
 	int getStringWidth(const Common::String &str, ThemeEngine::FontStyle style = ThemeEngine::kFontStyleBold) const { return _theme->getStringWidth(str, style); }
 	int getStringWidth(const Common::U32String &str, ThemeEngine::FontStyle style = ThemeEngine::kFontStyleBold) const { return _theme->getStringWidth(str, style); }
-	int getCharWidth(byte c, ThemeEngine::FontStyle style = ThemeEngine::kFontStyleBold) const { return _theme->getCharWidth(c, style); }
-	int getKerningOffset(byte left, byte right, ThemeEngine::FontStyle font = ThemeEngine::kFontStyleBold) const { return _theme->getKerningOffset(left, right, font); }
+	int getCharWidth(uint32 c, ThemeEngine::FontStyle style = ThemeEngine::kFontStyleBold) const { return _theme->getCharWidth(c, style); }
+	int getKerningOffset(uint32 left, uint32 right, ThemeEngine::FontStyle font = ThemeEngine::kFontStyleBold) const { return _theme->getKerningOffset(left, right, font); }
 
 	/**
 	 * Tell the GuiManager to check whether the screen resolution has changed.
@@ -129,6 +151,12 @@ public:
 	bool _launched;
 
 	void redrawFull();
+
+	void initIconsSet();
+
+	void displayTopDialogOnly(bool mode);
+
+	Graphics::MacWindowManager *getWM();
 
 protected:
 	enum RedrawStatus {
@@ -159,6 +187,14 @@ protected:
 	int			_topDialogLeftPadding;
 	int			_topDialogRightPadding;
 
+	bool		_displayTopDialogOnly;
+
+	Common::Mutex _iconsMutex;
+	Common::SearchSet _iconsSet;
+	bool _iconsSetChanged;
+
+	Graphics::MacWindowManager *_wm = nullptr;
+
 	// position and time of last mouse click (used to detect double clicks)
 	struct MousePos {
 		MousePos() : x(-1), y(-1), count(0) { time = 0; }
@@ -175,8 +211,8 @@ protected:
 	} _lastTooltipShown;
 
 	// mouse cursor state
-	int		_cursorAnimateCounter;
-	int		_cursorAnimateTimer;
+	uint32	_cursorAnimateCounter;
+	uint32	_cursorAnimateTimer;
 	byte	_cursor[2048];
 
 	// delayed deletion of GuiObject
@@ -196,6 +232,8 @@ protected:
 	void closeTopDialog();
 
 	void redraw();
+	void redrawInternalTopDialogOnly();
+	void redrawInternal();
 
 	void setupCursor();
 	void animateCursor();

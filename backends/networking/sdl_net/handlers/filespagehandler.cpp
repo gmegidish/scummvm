@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,7 @@ FilesPageHandler::FilesPageHandler() {}
 FilesPageHandler::~FilesPageHandler() {}
 
 namespace {
-Common::String encodeDoubleQuotes(Common::String s) {
+Common::String encodeDoubleQuotes(const Common::String &s) {
 	Common::String result = "";
 	for (uint32 i = 0; i < s.size(); ++i)
 		if (s[i] == '"') {
@@ -47,7 +46,7 @@ Common::String encodeDoubleQuotes(Common::String s) {
 	return result;
 }
 
-Common::String encodeHtmlEntities(Common::String s) {
+Common::String encodeHtmlEntities(const Common::String &s) {
 	Common::String result = "";
 	for (uint32 i = 0; i < s.size(); ++i)
 		if (s[i] == '<')
@@ -62,7 +61,7 @@ Common::String encodeHtmlEntities(Common::String s) {
 	return result;
 }
 
-Common::String getDisplayPath(Common::String s) {
+Common::String getDisplayPath(const Common::String &s) {
 	Common::String result = "";
 	for (uint32 i = 0; i < s.size(); ++i)
 		if (s[i] == '\\')
@@ -75,24 +74,24 @@ Common::String getDisplayPath(Common::String s) {
 }
 }
 
-bool FilesPageHandler::listDirectory(Common::String path, Common::String &content, const Common::String &itemTemplate) {
-	if (path == "" || path == "/") {
+bool FilesPageHandler::listDirectory(const Common::String &path_, Common::String &content, const Common::String &itemTemplate) {
+	if (path_ == "" || path_ == "/") {
 		if (ConfMan.hasKey("rootpath", "cloud"))
 			addItem(content, itemTemplate, IT_DIRECTORY, "/root/", Common::convertFromU32String(_("File system root")));
 		addItem(content, itemTemplate, IT_DIRECTORY, "/saves/", Common::convertFromU32String(_("Saved games")));
 		return true;
 	}
 
-	if (HandlerUtils::hasForbiddenCombinations(path))
+	if (HandlerUtils::hasForbiddenCombinations(path_))
 		return false;
 
-	Common::String prefixToRemove = "", prefixToAdd = "";
-	if (!transformPath(path, prefixToRemove, prefixToAdd))
+	Common::String path = path_;
+	Common::String basePath;
+	Common::Path baseFSPath, fsPath;
+	if (!urlToPath(path, fsPath, basePath, baseFSPath))
 		return false;
 
-	Common::FSNode node = Common::FSNode(path);
-	if (path == "/")
-		node = node.getParent(); // absolute root
+	Common::FSNode node = Common::FSNode(fsPath);
 
 	if (!HandlerUtils::permittedPath(node.getPath()))
 		return false;
@@ -109,13 +108,11 @@ bool FilesPageHandler::listDirectory(Common::String path, Common::String &conten
 
 	// add parent directory link
 	{
-		Common::String filePath = path;
-		if (filePath.hasPrefix(prefixToRemove))
-			filePath.erase(0, prefixToRemove.size());
-		if (filePath == "" || filePath == "/" || filePath == "\\")
-			filePath = "/";
-		else
-			filePath = parentPath(prefixToAdd + filePath);
+		Common::Path relPath = fsPath.relativeTo(baseFSPath);
+		relPath = relPath.getParent();
+		Common::String filePath("/");
+		if (!relPath.empty())
+			filePath = basePath + relPath.toString('/');
 		addItem(content, itemTemplate, IT_PARENT_DIRECTORY, filePath, Common::convertFromU32String(_("Parent directory")));
 	}
 
@@ -125,10 +122,9 @@ bool FilesPageHandler::listDirectory(Common::String path, Common::String &conten
 		if (i->isDirectory())
 			name += "/";
 
-		Common::String filePath = i->getPath();
-		if (filePath.hasPrefix(prefixToRemove))
-			filePath.erase(0, prefixToRemove.size());
-		filePath = prefixToAdd + filePath;
+		Common::Path relPath = i->getPath().relativeTo(baseFSPath);
+		Common::String filePath(basePath);
+		filePath += relPath.toString('/');
 
 		addItem(content, itemTemplate, detectType(i->isDirectory(), name), filePath, name);
 	}
@@ -148,7 +144,7 @@ FilesPageHandler::ItemType FilesPageHandler::detectType(bool isDirectory, const 
 	return IT_UNKNOWN;
 }
 
-void FilesPageHandler::addItem(Common::String &content, const Common::String &itemTemplate, ItemType itemType, Common::String path, Common::String name, Common::String size) const {
+void FilesPageHandler::addItem(Common::String &content, const Common::String &itemTemplate, ItemType itemType, const Common::String &path, const Common::String &name, const Common::String &size) const {
 	Common::String item = itemTemplate, icon;
 	bool isDirectory = (itemType == IT_DIRECTORY || itemType == IT_PARENT_DIRECTORY);
 	switch (itemType) {
@@ -205,7 +201,7 @@ void FilesPageHandler::handle(Client &client) {
 		"</html>";
 	Common::String itemTemplate = "<tr><td><img src=\"icons/{icon}\"/></td><td><a href=\"{link}\">{name}</a></td><td>{size}</td></tr>\n"; //TODO: load this template too?
 
-																																		  // load stylish response page from the archive
+	// load stylish response page from the archive
 	Common::SeekableReadStream *const stream = HandlerUtils::getArchiveFile(FILES_PAGE_NAME);
 	if (stream)
 		response = HandlerUtils::readEverythingFromStream(stream);
@@ -219,7 +215,7 @@ void FilesPageHandler::handle(Client &client) {
 		return;
 	}
 
-	//these occur twice:
+	//some of these occur twice:
 	replace(response, "{create_directory_button}", _("Create directory").encode());
 	replace(response, "{create_directory_button}", _("Create directory").encode());
 	replace(response, "{path}", encodeDoubleQuotes(client.queryParameter("path")));

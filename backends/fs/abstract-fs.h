@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -182,6 +181,16 @@ public:
 	 * @return pointer to the stream object, 0 in case of a failure
 	 */
 	virtual Common::SeekableReadStream *createReadStream() = 0;
+
+	/**
+	 * Creates a SeekableReadStream instance corresponding to an alternate
+	 * stream of the file referred by this node. This assumes that the node
+	 * actually refers to a readable file and the alt stream exists.
+	 * If either is not the case, 0 is returned.
+	 *
+	 * @return pointer to the stream object, 0 in case of a failure
+	 */
+	virtual Common::SeekableReadStream *createReadStreamForAltStream(Common::AltStreamType altStreamType);
 
 	/**
 	 * Creates a WriteStream instance corresponding to the file

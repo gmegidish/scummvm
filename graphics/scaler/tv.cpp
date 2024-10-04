@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,20 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "graphics/scaler/tv.h"
 #include "graphics/scaler.h"
 #include "graphics/colormasks.h"
 
-TVPlugin::TVPlugin() {
-	_factor = 2;
-	_factors.push_back(2);
-}
-
-void TVPlugin::scaleIntern(const uint8 *srcPtr, uint32 srcPitch,
+void TVScaler::scaleIntern(const uint8 *srcPtr, uint32 srcPitch,
 							uint8 *dstPtr, uint32 dstPitch, int width, int height, int x, int y) {
 	if (_format.bytesPerPixel == 2) {
 		if (_format.gLoss == 2)
@@ -44,24 +38,16 @@ void TVPlugin::scaleIntern(const uint8 *srcPtr, uint32 srcPitch,
 
 }
 
-uint TVPlugin::increaseFactor() {
+uint TVScaler::increaseFactor() {
 	return _factor;
 }
 
-uint TVPlugin::decreaseFactor() {
+uint TVScaler::decreaseFactor() {
 	return _factor;
-}
-
-const char *TVPlugin::getName() const {
-	return "tv";
-}
-
-const char *TVPlugin::getPrettyName() const {
-	return "TV";
 }
 
 template<typename ColorMask>
-void TVPlugin::scaleIntern(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch,
+void TVScaler::scaleIntern(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch,
 					int width, int height) {
 	typedef typename ColorMask::PixelType Pixel;
 
@@ -92,6 +78,35 @@ void TVPlugin::scaleIntern(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, 
 		p += nextlineSrc;
 		q += nextlineDst << 1;
 	}
+}
+
+
+class TVPlugin final : public ScalerPluginObject {
+public:
+	TVPlugin();
+
+	Scaler *createInstance(const Graphics::PixelFormat &format) const override;
+
+	bool canDrawCursor() const override { return false; }
+	uint extraPixels() const override { return 0; }
+	const char *getName() const override;
+	const char *getPrettyName() const override;
+};
+
+TVPlugin::TVPlugin() {
+	_factors.push_back(2);
+}
+
+Scaler *TVPlugin::createInstance(const Graphics::PixelFormat &format) const {
+	return new TVScaler(format);
+}
+
+const char *TVPlugin::getName() const {
+	return "tv";
+}
+
+const char *TVPlugin::getPrettyName() const {
+	return "TV";
 }
 
 REGISTER_PLUGIN_STATIC(TV, PLUGIN_TYPE_SCALER, TVPlugin);

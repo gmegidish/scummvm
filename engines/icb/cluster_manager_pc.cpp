@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -84,14 +83,14 @@ ClusterManager::ClusterManager() {
 	m_filelistCursor = -1;
 	m_filelistSize = 0;
 
-	m_src_fp = NULL;
-	m_dst_fp = NULL;
+	m_src_fp = nullptr;
+	m_dst_fp = nullptr;
 
 	m_currentFileSize = 0;
 	m_chunkCounter = 0;
 	m_bytesDone = 0;
 
-	m_movieMemoryPointer = NULL;
+	m_movieMemoryPointer = nullptr;
 
 	m_installDone = FALSE8;
 
@@ -194,8 +193,8 @@ int32 ClusterManager::WhichCD(MISSION_ID mission) {
 }
 
 bool8 ClusterManager::CheckForCD(int32 /*number*/) {
-	strcpy(m_cdroot1, "");
-	strcpy(m_cdroot2, "");
+	m_cdroot1[0] = '\0';
+	m_cdroot2[0] = '\0';
 	return TRUE8;
 }
 
@@ -244,7 +243,7 @@ char *ClusterManager::GetFileListEntry() {
 	if (m_filelistCursor == -1)
 		Fatal_error("Can't retrieve filelist entry without loading a filelist first!");
 
-	char *line = NULL;
+	char *line = nullptr;
 
 	// End of file check
 	if (m_filelistCursor < m_filelistSize) {
@@ -399,7 +398,7 @@ const char *MissionIdToName(MISSION_ID mission) {
 	}
 
 	Fatal_error("MissionIdToName() should never get here - smack AndyB");
-	return NULL;
+	return nullptr;
 }
 
 void MakeDirectoryTree(MISSION_ID /*mission*/) {

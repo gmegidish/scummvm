@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 // dirty rectangles technique.
 //
 // TODO: do research/profiling to find out if this dirty rectangles thing
-// is still giving ANY notable perfomance boost at all.
+// is still giving ANY notable performance boost at all.
 //
 // TODO: would that give any benefit to reorganize the code and move dirty
 // rectangles into SoftwareGraphicDriver?
@@ -46,7 +45,7 @@
 //
 //=============================================================================
 
-#include "ags/lib/std/vector.h"
+#include "common/std/vector.h"
 #include "ags/engine/ac/draw_software.h"
 #include "ags/shared/gfx/bitmap.h"
 #include "ags/shared/util/scaling.h"
@@ -186,17 +185,20 @@ void invalidate_rect_on_surf(int x1, int y1, int x2, int y2, DirtyRects &rects) 
 		return;
 	}
 
+	if (x1 > x2 || y1 > y2)
+		return;
+
 	int a;
 
 	const Size &surfsz = rects.SurfaceSize;
-	if (x1 >= surfsz.Width) x1 = surfsz.Width - 1;
-	if (y1 >= surfsz.Height) y1 = surfsz.Height - 1;
+
+	if (x1 >= surfsz.Width || y1 >= surfsz.Height || x2 < 0 || y2 < 0)
+		return;
+
 	if (x2 >= surfsz.Width) x2 = surfsz.Width - 1;
 	if (y2 >= surfsz.Height) y2 = surfsz.Height - 1;
 	if (x1 < 0) x1 = 0;
 	if (y1 < 0) y1 = 0;
-	if (x2 < 0) x2 = 0;
-	if (y2 < 0) y2 = 0;
 	rects.NumDirtyRegions++;
 
 	// ** Span code
@@ -232,23 +234,23 @@ void invalidate_rect_on_surf(int x1, int y1, int x2, int y2, DirtyRects &rects) 
 			dirtyRow[a].numSpans++;
 		} else {
 			// didn't fit in an existing span, and there are none spare
-			int nearestDist = 99999, nearestWas = -1, extendLeft = false;
-			int tleft, tright;
+			int nearestDist = 99999, nearestWas = -1, extendLeft = 0;
 			// find the nearest span, and enlarge that to include this rect
 			for (s = 0; s < dirtyRow[a].numSpans; s++) {
-				tleft = dirtyRow[a].span[s].x1 - x2;
+				int tleft = dirtyRow[a].span[s].x1 - x2;
 				if ((tleft > 0) && (tleft < nearestDist)) {
 					nearestDist = tleft;
 					nearestWas = s;
 					extendLeft = 1;
 				}
-				tright = x1 - dirtyRow[a].span[s].x2;
+				int tright = x1 - dirtyRow[a].span[s].x2;
 				if ((tright > 0) && (tright < nearestDist)) {
 					nearestDist = tright;
 					nearestWas = s;
 					extendLeft = 0;
 				}
 			}
+			assert(nearestWas >= 0);
 			if (extendLeft)
 				dirtyRow[a].span[nearestWas].x1 = x1;
 			else

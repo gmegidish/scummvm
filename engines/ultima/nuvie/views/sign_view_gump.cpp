@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,15 +30,15 @@
 namespace Ultima {
 namespace Nuvie {
 
-#define SIGN_BG_W 246
-#define SIGN_BG_H 101
+static const int SIGN_BG_W = 246;
+static const int SIGN_BG_H = 101;
 
-SignViewGump::SignViewGump(Configuration *cfg) : DraggableView(cfg) {
+SignViewGump::SignViewGump(const Configuration *cfg) : DraggableView(cfg), sign_text(nullptr) {
 	font = new BMPFont();
 
-	Std::string datadir = GUI::get_gui()->get_data_dir();
-	Std::string imagefile;
-	Std::string path;
+	Common::Path datadir = GUI::get_gui()->get_data_dir();
+	Common::Path imagefile;
+	Common::Path path;
 
 	build_path(datadir, "images", path);
 	datadir = path;
@@ -51,8 +50,6 @@ SignViewGump::SignViewGump(Configuration *cfg) : DraggableView(cfg) {
 	build_path(datadir, "sign_font", imagefile);
 
 	((BMPFont *)font)->init(imagefile, true);
-
-	sign_text = NULL;
 }
 
 SignViewGump::~SignViewGump() {
@@ -74,9 +71,9 @@ bool SignViewGump::init(Screen *tmp_screen, void *view_manager, Font *f, Party *
 	View::init(x_off, y_off, f, p, tm, om);
 	SetRect(area.left, area.top, SIGN_BG_W, SIGN_BG_H);
 
-	Std::string datadir = GUI::get_gui()->get_data_dir();
-	Std::string imagefile;
-	Std::string path;
+	Common::Path datadir = GUI::get_gui()->get_data_dir();
+	Common::Path imagefile;
+	Common::Path path;
 
 	build_path(datadir, "images", path);
 	datadir = path;
@@ -86,7 +83,7 @@ bool SignViewGump::init(Screen *tmp_screen, void *view_manager, Font *f, Party *
 	datadir = path;
 
 	build_path(datadir, "sign_bg.bmp", imagefile);
-	bg_image = SDL_LoadBMP(imagefile.c_str());
+	bg_image = SDL_LoadBMP(imagefile);
 
 	set_bg_color_key(0, 0x70, 0xfc);
 
@@ -101,7 +98,7 @@ bool SignViewGump::init(Screen *tmp_screen, void *view_manager, Font *f, Party *
 void SignViewGump::Display(bool full_redraw) {
 	Common::Rect dst;
 	dst = area;
-	SDL_BlitSurface(bg_image, NULL, surface, &dst);
+	SDL_BlitSurface(bg_image, nullptr, surface, &dst);
 
 	DisplayChildren(full_redraw);
 

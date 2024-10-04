@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -121,6 +120,26 @@ SystemUI::SystemUI(AgiEngine *vm, GfxMgr *gfx, TextMgr *text) {
 		_textRestoreGameSelectSlot = "\xe4\xf9\xfa\xee\xf9\xe5 \xe1\xee\xf7\xf9\xe9 \xe4\xe7\xe9\xf6\xe9\xed \xf2\xec \xee\xf0\xfa \xec\xe1\xe7\xe5\xf8 \xe0\xfa \xe4\xee\xf9\xe7\xf7 \xf9\xfa\xf8\xf6\xe5 \xec\xf9\xe7\xe6\xf8. \xec\xe7\xf6\xe5 \xf2\xec ENTER \xec\xf9\xe7\xe6\xe5\xf8 \xe4\xee\xf9\xe7\xf7, ESC \xec\xe1\xe9\xe8\xe5\xec.";
 		_textRestoreGameError = "\xf9\xe2\xe9\xe0\xe4 \xe1\xf0\xe9\xf1\xe9\xe5\xef \xec\xf9\xe7\xe6\xe5\xf8 \xee\xf9\xe7\xf7.\n\xec\xe7\xf6\xe5 \xf2\xec ENTER \xec\xe9\xf6\xe9\xe0\xe4.";
 		_textRestoreGameVerify = "\xe1\xe7\xf8\xfa \xec\xf9\xe7\xe6\xf8 \xe0\xfa \xe4\xee\xf9\xe7\xf7\n\xf2\xed \xe4\xfa\xe9\xe0\xe5\xf8:\n\n%s\n\n\xee\xe4\xf7\xe5\xe1\xf5:\n%s\n\n\xec\xe7\xf6\xe5 \xf2\xec ENTER \xec\xe4\xee\xf9\xea.\n\xec\xe7\xf6\xe5 \xf2\xec ESC \xec\xe1\xe9\xe8\xe5\xec.";
+		break;
+	case Common::FR_FRA:
+		_textStatusScore = "Score : %v3 sur %v7";
+		_textStatusSoundOn = "Son : Oui";
+		_textStatusSoundOff = "Son : Non";
+		_textEnterCommand = "Entrer une donn\x82\x65 :\n\n";
+		_textPause = "       Pause.\n\n\"Entr\x82\x65\" pour jouer.";
+		_textRestart = "\"Entr\x82\x65\" pour rejouer.\n\"Esc\" pour annuler.";
+		_textQuit = "\"Entr\x82\x65\" pour quitter.\n\"Esc\" pour annuler.";
+		_textInventoryYouAreCarrying = "  Tu poss\x8A\x64\x65\x73 :";
+		_textInventoryNothing = "Rien !";
+		_textInventorySelectItems = "\"Entr\x82\x65\" = Choisir & \"Esc\" = Quitter";
+		_textInventoryReturnToGame = "Appuie sur une touche pour jouer.";
+		_textSaveGameSelectSlot = "Sauvegarde ou remplace\nune sauvegarde existante.\n\"Entr\x82\x65\" pour confirmer.\n\"Esc\" pour annuler.";
+		_textSaveGameEnterDescription = "Nomme ta sauvegarde :\n\n\n";
+		_textSaveGameVerify = "Merci de confirmer.\n\n%s\n\ndans :\n%s\n\n\"Entr\x82\x65\" pour confirmer.\n\"Esc\" pour annuler.";
+		_textRestoreGameNoSlots = "Aucune sauvegarde dans :\n\nScummVM.\n\n\"Entr\x82\x65\" pour continuer.";
+		_textRestoreGameSelectSlot = "Charge une sauvegarde au choix.\n\"Entr\x82\x65\" pour confirmer.\n\"Esc\" pour annuler.";
+		_textRestoreGameError = "Sauvegarde non conforme.\n\"Esc\" pour quitter.";
+		_textRestoreGameVerify = "Merci de confirmer.\n\n%s\n\ndans :\n%s\n\n\"Entr\x82\x65\" pour accepter.\n\"Esc\" pour annuler.";
 		break;
 	default:
 		break;
@@ -286,7 +305,7 @@ int16 SystemUI::figureOutAutomaticSaveGameSlot(const char *automaticSaveDescript
 
 	// Walk through saved game slots
 	// check, if description matches and return the slot
-	// if no match can be found, return the first non-existant slot
+	// if no match can be found, return the first non-existent slot
 	// if all slots exist, return -1
 	figureOutAutomaticSavedGameSlot(automaticSaveDescription, matchedGameSlotId, freshGameSlotId);
 
@@ -294,7 +313,7 @@ int16 SystemUI::figureOutAutomaticSaveGameSlot(const char *automaticSaveDescript
 		return matchedGameSlotId; // return matched slot
 
 	if (freshGameSlotId >= 0)
-		return freshGameSlotId; // return first non-existant slot
+		return freshGameSlotId; // return first non-existent slot
 
 	return -1; // no slots exist, not match found
 }
@@ -304,7 +323,7 @@ int16 SystemUI::figureOutAutomaticRestoreGameSlot(const char *automaticSaveDescr
 	int16 freshGameSlotId   = -1;
 
 	// Fill saved game slot cache
-	readSavedGameSlots(true, false); // filter non-existant/invalid saves, also don't include auto-save slot
+	readSavedGameSlots(true, false); // filter non-existent/invalid saves, also don't include auto-save slot
 
 	// Walk through saved game slots
 	// check, if description matches and return the slot. Otherwise return -1
@@ -568,7 +587,7 @@ void SystemUI::createSavedGameDisplayText(char *destDisplayText, const char *act
 	memset(destDisplayText, fillUpChar, SYSTEMUI_SAVEDGAME_DISPLAYTEXT_LEN);
 
 	// create fixed prefix (" 1:", "10:", etc.)
-	sprintf(slotIdChar, "%02d", slotId);
+	Common::sprintf_s(slotIdChar, "%02d", slotId);
 	memcpy(destDisplayText, slotIdChar, 2);
 	destDisplayText[2] = ':';
 
@@ -607,7 +626,7 @@ void SystemUI::readSavedGameSlots(bool filterNonexistant, bool withAutoSaveSlot)
 	SavedGameSlotIdArray::iterator it;
 	SavedGameSlotIdArray::iterator end = slotIdArray.end();
 
-	for (it = slotIdArray.begin(); it != end; it++) {
+	for (it = slotIdArray.begin(); it != end; ++it) {
 		curSlotId = *it;
 
 		assert(curSlotId > lastSlotId); // safety check

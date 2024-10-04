@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,8 @@
 
 #include "file.h"
 #include "script_quotes.h"
+
+extern void writeEntryHeader(const char *name, uint offset, uint size);
 
 static const ScriptQuote BARBOT_QUOTES[] = {
 	{ 0x0003d722, 0x0003d372, 0x0000001e },
@@ -447,18 +448,18 @@ static const ScriptQuote MAITRED_QUOTES[] = {
 
 void writeScriptQuotes(const char *name, const ScriptQuote *quotes,
 		uint rangeStart, uint rangeEnd, uint incr) {
-	outputFile.seek(dataOffset);
-	outputFile.writeLong(rangeStart);
-	outputFile.writeLong(rangeEnd);
-	outputFile.writeLong(incr);
+	outputFile->seek(dataOffset);
+	outputFile->writeLong(rangeStart);
+	outputFile->writeLong(rangeEnd);
+	outputFile->writeLong(incr);
 
 	for (; quotes->_index; ++quotes) {
-		outputFile.writeLong(quotes->_tag1);
-		outputFile.writeLong(quotes->_tag2);
-		outputFile.writeLong(quotes->_index);
+		outputFile->writeLong(quotes->_tag1);
+		outputFile->writeLong(quotes->_tag2);
+		outputFile->writeLong(quotes->_index);
 	}
 
-	uint size = outputFile.size() - dataOffset;
+	uint size = outputFile->size() - dataOffset;
 	writeEntryHeader(name, dataOffset, size);
 	dataOffset += size;
 }

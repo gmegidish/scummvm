@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,10 +41,10 @@ Anim::Anim(SagaEngine *vm) : _vm(vm) {
 	_cutawayActive = false;
 
 	for (i = 0; i < MAX_ANIMATIONS; i++)
-		_animations[i] = NULL;
+		_animations[i] = nullptr;
 
 	for (i = 0; i < ARRAYSIZE(_cutawayAnimations); i++)
-		_cutawayAnimations[i] = NULL;
+		_cutawayAnimations[i] = nullptr;
 }
 
 Anim::~Anim() {
@@ -380,20 +379,23 @@ void Anim::returnFromVideo() {
 #endif
 
 void Anim::load(uint16 animId, const ByteArray &resourceData) {
-	AnimationData *anim;
+	AnimationData *anim = new AnimationData();
 	uint16 temp;
 
-	if (animId >= MAX_ANIMATIONS) {
-		if (animId >= MAX_ANIMATIONS + ARRAYSIZE(_cutawayAnimations))
-			error("Anim::load could not find unused animation slot");
-		anim = _cutawayAnimations[animId - MAX_ANIMATIONS] = new AnimationData();
-	} else
-		anim = _animations[animId] = new AnimationData();
-
-	ByteArrayReadStreamEndian headerReadS(resourceData, _vm->isBigEndian());
+	ByteArrayReadStreamEndian headerReadS(resourceData, _vm->isBigEndian() && !_vm->isAGA() && !_vm->isECS());
 	anim->magic = headerReadS.readUint16LE(); // cause ALWAYS LE
+	if (anim->magic != 0x0044) {
+		warning ("Anim::load animId=%d animation magic mismatch (0x%x vs 0x%x), skipping", animId, anim->magic, 0x0044);
+		delete anim;
+		return;
+	}
 	anim->screenWidth = headerReadS.readUint16();
 	anim->screenHeight = headerReadS.readUint16();
+	if (anim->screenHeight > 2000 || anim->screenWidth > 2000) {
+		warning ("Anim::load animId=%d Excessive dimensions %dx%d, skipping", animId, anim->screenWidth, anim->screenHeight);
+		delete anim;
+		return;
+	}
 
 	anim->unknown06 = headerReadS.readByte();
 	anim->unknown07 = headerReadS.readByte();
@@ -438,6 +440,13 @@ void Anim::load(uint16 animId, const ByteArray &resourceData) {
 	anim->flags = ANIM_FLAG_NONE;
 	anim->linkId = -1;
 	anim->state = ANIM_PAUSE;
+
+	if (animId >= MAX_ANIMATIONS) {
+		if (animId >= MAX_ANIMATIONS + ARRAYSIZE(_cutawayAnimations))
+			error("Anim::load could not find unused animation slot");
+		_cutawayAnimations[animId - MAX_ANIMATIONS] = anim;
+	} else
+		_animations[animId] = anim;
 }
 
 void Anim::link(int16 animId1, int16 animId2) {
@@ -461,7 +470,7 @@ void Anim::setCycles(uint16 animId, int cycles) {
 }
 
 int Anim::getCycles(uint16 animId) {
-	if (animId >= MAX_ANIMATIONS && _cutawayAnimations[animId - MAX_ANIMATIONS] == NULL)
+	if (animId >= MAX_ANIMATIONS && _cutawayAnimations[animId - MAX_ANIMATIONS] == nullptr)
 		return 0;
 
 	return getAnimation(animId)->cycles;
@@ -483,7 +492,7 @@ void Anim::play(uint16 animId, int vectorTime, bool playing) {
 	if (animId < MAX_ANIMATIONS && _cutawayActive)
 		return;
 
-	if (animId >= MAX_ANIMATIONS && _cutawayAnimations[animId - MAX_ANIMATIONS] == NULL) {
+	if (animId >= MAX_ANIMATIONS && _cutawayAnimations[animId - MAX_ANIMATIONS] == nullptr) {
 		// In IHNM, cutaways without an animation bit are not rendered, but the framecount
 		// needs to be updated
 		_vm->_frameCount++;
@@ -610,16 +619,16 @@ void Anim::reset() {
 	uint16 i;
 
 	for (i = 0; i < MAX_ANIMATIONS; i++) {
-		if (_animations[i] != NULL) {
+		if (_animations[i] != nullptr) {
 			delete _animations[i];
-			_animations[i] = NULL;
+			_animations[i] = nullptr;
 		}
 	}
 
 	for (i = 0; i < ARRAYSIZE(_cutawayAnimations); i++) {
-		if (_cutawayAnimations[i] != NULL) {
+		if (_cutawayAnimations[i] != nullptr) {
 			delete _cutawayAnimations[i];
-			_cutawayAnimations[i] = NULL;
+			_cutawayAnimations[i] = nullptr;
 		}
 	}
 }
@@ -649,7 +658,7 @@ int16 Anim::getCurrentFrame(uint16 animId) {
 }
 
 void Anim::decodeFrame(AnimationData *anim, size_t frameOffset, byte *buf, size_t bufLength) {
-	byte *writePointer = NULL;
+	byte *writePointer = nullptr;
 
 	uint16 xStart = 0;
 	uint16 yStart = 0;
@@ -690,6 +699,70 @@ void Anim::decodeFrame(AnimationData *anim, size_t frameOffset, byte *buf, size_
 #define VALIDATE_WRITE_POINTER
 #endif
 
+	if (_vm->isAGA() || _vm->isECS()) {
+		int curY = 0, curX = 0;
+		unsigned realY = 0;
+		unsigned outbit = 0;
+		// TODO: Check if we want to use templates instead to optimize AGA case
+		unsigned int pixelSize = _vm->isAGA() ? 8 : 5;
+		while (1) {
+			markByte = readS.readByte();
+			if (markByte == SAGA_FRAME_AMIGA_END)
+				break;
+			if (markByte == SAGA_FRAME_AMIGA_START) {
+				xStart = readS.readByte();
+				yStart = readS.readUint16BE();
+				/* int xPos = */ readS.readUint16BE();
+				/* int yPos = */ readS.readUint16BE();
+				/* int width = */ readS.readUint16BE();
+				/*int height = */ readS.readUint16BE();
+				curX = xStart;
+				curY = yStart;
+				realY = curY / pixelSize;
+				outbit = curY % pixelSize;
+				continue;
+			}
+
+			uint8 param = markByte & SAGA_FRAME_AMIGA_PARAM_MASK;
+			
+			switch (markByte & SAGA_FRAME_AMIGA_OPCODE_MASK) {
+			case SAGA_FRAME_AMIGA_OPCODE_LITERAL:
+				for (i = 0; i < param + 1; i++, curX++) {
+					byte b = readS.readByte();
+					for (unsigned inbit = 0;inbit < 8; inbit++) {
+						unsigned realX = (curX << 3) + 7 - inbit;
+						if (realX < screenWidth && realY < screenHeight) {
+							buf[realX + realY * screenWidth] =
+								(buf[realX + realY * screenWidth] & (~(1 << outbit))) | (((b >> inbit) & 1) << outbit);
+						}
+					}
+				}
+				continue;
+
+			case SAGA_FRAME_AMIGA_OPCODE_TRANSPARENT:
+				curX += param;
+				continue;
+				
+			case SAGA_FRAME_AMIGA_OPCODE_NEWLINE:
+				curY++;
+				curX = param;
+				outbit++;
+				if (outbit >= pixelSize) {
+					outbit -= pixelSize;
+					realY++;
+				}
+				continue;
+			case SAGA_FRAME_AMIGA_OPCODE_REPOSITION:
+				curY = readS.readUint16BE();
+				realY = curY / pixelSize;
+				outbit = curY % pixelSize;
+				curX = param;
+				continue;
+			}
+		}
+		
+		return;
+	}
 
 	// Begin RLE decompression to output buffer
 	do {
@@ -816,6 +889,44 @@ int Anim::fillFrameOffsets(AnimationData *anim, bool reallyFill) {
 
 	Common::MemoryReadStreamEndian readS(&anim->resourceData.front(), anim->resourceData.size(), !_vm->isBigEndian()); // RLE has inversion BE<>LE
 
+	if (_vm->isAGA() || _vm->isECS()) {
+	  	while (readS.pos() != readS.size()) {
+			if (reallyFill) {
+				anim->frameOffsets[currentFrame] = readS.pos();
+
+				if (currentFrame == anim->maxFrame) {
+					break;
+				}
+			}
+			currentFrame++;
+
+			while (1) {
+				markByte = readS.readByte();
+
+				// debug(7, "_pos=%X currentFrame=%i markByte=%X", (int) readS.pos(), (int) currentFrame, (int) markByte);
+				if (markByte == SAGA_FRAME_AMIGA_END)
+					break;
+				if (markByte == SAGA_FRAME_AMIGA_START) {
+					readS.seek(11, SEEK_CUR);
+					continue;
+				}
+				switch (markByte & SAGA_FRAME_AMIGA_OPCODE_MASK) {
+				case SAGA_FRAME_AMIGA_OPCODE_LITERAL:
+					readS.seek((markByte & SAGA_FRAME_AMIGA_PARAM_MASK) + 1, SEEK_CUR);
+					continue;
+
+				case SAGA_FRAME_AMIGA_OPCODE_TRANSPARENT:
+				case SAGA_FRAME_AMIGA_OPCODE_NEWLINE:
+					continue;
+				case SAGA_FRAME_AMIGA_OPCODE_REPOSITION:
+					readS.readSint16BE();
+					continue;
+				}
+			}
+		}
+		return currentFrame;
+	}
+
 	while (readS.pos() != readS.size()) {
 		if (reallyFill) {
 			anim->frameOffsets[currentFrame] = readS.pos();
@@ -917,7 +1028,7 @@ void Anim::animInfo() {
 	_vm->_console->debugPrintf("There are %d animations loaded:\n", animCount);
 
 	for (i = 0; i < MAX_ANIMATIONS; i++) {
-		if (_animations[i] == NULL) {
+		if (_animations[i] == nullptr) {
 			continue;
 		}
 

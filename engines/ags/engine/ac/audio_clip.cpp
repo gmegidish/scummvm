@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,11 +25,14 @@
 #include "ags/engine/ac/audio_channel.h"
 #include "ags/shared/ac/common.h"
 #include "ags/shared/ac/game_setup_struct.h"
+#include "ags/shared/core/asset_manager.h"
 #include "ags/engine/ac/dynobj/cc_audio_channel.h"
 #include "ags/engine/script/runtime_script_value.h"
 #include "ags/globals.h"
 
 namespace AGS3 {
+
+using namespace AGS::Shared;
 
 int AudioClip_GetID(ScriptAudioClip *clip) {
 	return clip->id;
@@ -44,14 +46,13 @@ int AudioClip_GetType(ScriptAudioClip *clip) {
 	return clip->type;
 }
 int AudioClip_GetIsAvailable(ScriptAudioClip *clip) {
-	return DoesAssetExistInLib(get_audio_clip_assetpath(clip->bundlingType, clip->fileName)) ? 1 : 0;
+	return _GP(AssetMgr)->DoesAssetExist(get_audio_clip_assetpath(clip->bundlingType, clip->fileName)) ? 1 : 0;
 }
 
 void AudioClip_Stop(ScriptAudioClip *clip) {
-	AudioChannelsLock lock;
-	for (int i = 0; i < MAX_SOUND_CHANNELS; i++) {
-		auto *ch = lock.GetChannelIfPlaying(i);
-		if ((ch != nullptr) && (ch->_sourceClip == clip)) {
+	for (int i = NUM_SPEECH_CHANS; i < _GP(game).numGameChannels; i++) {
+		auto *ch = AudioChans::GetChannelIfPlaying(i);
+		if ((ch != nullptr) && (ch->_sourceClipID == clip->id)) {
 			AudioChannel_Stop(&_G(scrAudioChannel)[i]);
 		}
 	}
@@ -73,8 +74,9 @@ ScriptAudioChannel *AudioClip_PlayQueued(ScriptAudioClip *clip, int priority, in
 }
 
 ScriptAudioChannel *AudioClip_PlayOnChannel(ScriptAudioClip *clip, int chan, int priority, int repeat) {
-	if (chan < 1 || chan >= MAX_SOUND_CHANNELS)
-		quitprintf("!AudioClip.PlayOnChannel: invalid channel %d, the range is %d - %d", chan, 1, MAX_SOUND_CHANNELS - 1);
+	if (chan < NUM_SPEECH_CHANS || chan >= _GP(game).numGameChannels)
+		quitprintf("!AudioClip.PlayOnChannel: invalid channel %d, the range is %d - %d",
+			chan, NUM_SPEECH_CHANS, _GP(game).numGameChannels - 1);
 	if (priority == SCR_NO_VALUE)
 		priority = clip->defaultPriority;
 	if (repeat == SCR_NO_VALUE)

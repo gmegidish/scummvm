@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,7 @@
 #include "bladerunner/audio_player.h"
 #include "bladerunner/audio_speech.h"
 #include "bladerunner/bladerunner.h"
+#include "bladerunner/debugger.h"
 #include "bladerunner/crimes_database.h"
 #include "bladerunner/combat.h"
 #include "bladerunner/dialogue_menu.h"
@@ -897,10 +897,10 @@ bool ScriptBase::Item_Query_Visible(int itemId) {
 
 // Show text as subtitles mainly for debugging purposes
 // eg. display debug data on screen as subtitles
-void ScriptBase::Set_Subtitle_Text_On_Screen(Common::String displayText) {
-	debugC(kDebugScript, "Set_Subtitle_Text_On_Screen(%s)", displayText.c_str());
-	_vm->_subtitles->setGameSubsText(displayText, true);
-	_vm->_subtitles->show();
+void ScriptBase::Set_Subtitle_Text_On_Screen(int subtitlesRole, Common::String displayText) {
+	debugC(kDebugScript, "Set_Subtitle_Text_On_Screen(%d, %s)", subtitlesRole, displayText.c_str());
+	_vm->_subtitles->setGameSubsText(subtitlesRole, displayText, true);
+	_vm->_subtitles->show(subtitlesRole);
 }
 
 #if BLADERUNNER_ORIGINAL_BUGS
@@ -1102,11 +1102,16 @@ int ScriptBase::Random_Query(int min, int max) {
 	return _vm->_rnd.getRandomNumberRng(min, max);
 }
 
+// volume should be in [0, 100]
+// panStart, panEnd should be in [-100, 100]
+// priority should be in [0, 100]
 void ScriptBase::Sound_Play(int id, int volume, int panStart, int panEnd, int priority) {
 	debugC(6, kDebugScript, "Sound_Play(%d, %d, %d, %d, %d)", id, volume, panStart, panEnd, priority);
 	_vm->_audioPlayer->playAud(_vm->_gameInfo->getSfxTrack(id), volume, panStart, panEnd, priority);
 }
 
+// volume should be in [0, 100]
+// priority should be in [0, 100]
 void ScriptBase::Sound_Play_Speech_Line(int actorId, int sentenceId, int volume, int a4, int priority) {
 	debugC(kDebugScript, "Sound_Play_Speech_Line(%d, %d, %d, %d, %d)", actorId, sentenceId, volume, a4, priority);
 	_vm->_audioSpeech->playSpeechLine(actorId, sentenceId, volume, a4, priority);
@@ -1177,11 +1182,16 @@ void ScriptBase::Footstep_Sound_Override_Off() {
 	_vm->_scene->_set->resetFoodstepSoundOverride();
 }
 
+// volume should be in [0, 100]
+// pan should be in [-100, 100]
+// A negative (typically -1) value for timePlaySeconds, means "play the whole music track"
 bool ScriptBase::Music_Play(int musicId, int volume, int pan, int32 timeFadeInSeconds, int32 timePlaySeconds, int loop, int32 timeFadeOutSeconds) {
 	debugC(kDebugScript, "Music_Play(%d, %d, %d, %d, %d, %d, %d)", musicId, volume, pan, timeFadeInSeconds, timePlaySeconds, loop, timeFadeOutSeconds);
 	return _vm->_music->play(_vm->_gameInfo->getMusicTrack(musicId), volume, pan, timeFadeInSeconds, timePlaySeconds, loop, timeFadeOutSeconds);
 }
 
+// volume should be in [0, 100], with "-1" being a special value for skipping volume adjustment 
+// pan should be in [-100, 100], with "-101" being a special value for skipping pan (balance) adjustment
 void ScriptBase::Music_Adjust(int volume, int pan, uint32 delaySeconds) {
 	debugC(kDebugScript, "Music_Adjust(%d, %d, %u)", volume, pan, delaySeconds);
 	_vm->_music->adjust(volume, pan, delaySeconds);
@@ -1228,6 +1238,10 @@ void ScriptBase::Outtake_Play(int id, int noLocalization, int container) {
 	_vm->outtakePlay(id, noLocalization, container);
 }
 
+// volumeMin, volumeMax should be in [0, 100]
+// panStartMin, panStartMax should be in [-100, 100]
+// panEndMin, panEndMax should be in [-100, 100], with "-101" being a special value for skipping pan (balance) adjustment
+// priority should be in [0, 100]
 void ScriptBase::Ambient_Sounds_Add_Sound(int sfxId, uint32 delayMinSeconds, uint32 delayMaxSeconds, int volumeMin, int volumeMax, int panStartMin, int panStartMax, int panEndMin, int panEndMax, int priority, int unk) {
 	debugC(kDebugScript, "Ambient_Sounds_Add_Sound(%d, %u, %u, %d, %d, %d, %d, %d, %d, %d, %d)", sfxId, delayMinSeconds, delayMaxSeconds, volumeMin, volumeMax, panStartMin, panStartMax, panEndMin, panEndMax, priority, unk);
 	_vm->_ambientSounds->addSound(sfxId, delayMinSeconds, delayMaxSeconds, volumeMin, volumeMax, panStartMin, panStartMax, panEndMin, panEndMax, priority, unk);
@@ -1238,6 +1252,10 @@ void  ScriptBase::Ambient_Sounds_Remove_Sound(int sfxId, bool stopPlaying) {
 	_vm->_ambientSounds->removeNonLoopingSound(sfxId,  stopPlaying);
 }
 
+// volumeMin, volumeMax should be in [0, 100]
+// panStartMin, panStartMax should be in [-100, 100]
+// panEndMin, panEndMax should be in [-100, 100], with "-101" being a special value for skipping pan (balance) adjustment
+// priority should be in [0, 100]
 void ScriptBase::Ambient_Sounds_Add_Speech_Sound(int actorId, int sentenceId, uint32 delayMinSeconds, uint32 delayMaxSeconds, int volumeMin, int volumeMax, int panStartMin, int panStartMax, int panEndMin, int panEndMax, int priority, int unk) {
 	debugC(kDebugScript, "Ambient_Sounds_Add_Speech_Sound(%d, %d, %u, %u, %d, %d, %d, %d, %d, %d, %d, %d)", actorId, sentenceId, delayMinSeconds, delayMaxSeconds, volumeMin, volumeMax, panStartMin, panStartMax, panEndMin, panEndMax, priority, unk);
 	_vm->_ambientSounds->addSpeech(actorId, sentenceId, delayMinSeconds, delayMaxSeconds, volumeMin, volumeMax, panStartMin, panStartMax, panEndMin, panEndMax, priority, unk);
@@ -1245,11 +1263,18 @@ void ScriptBase::Ambient_Sounds_Add_Speech_Sound(int actorId, int sentenceId, ui
 
 // ScriptBase::Ambient_Sounds_Remove_Speech_Sound
 
+
+// volume should be in [0, 100]
+// panStart, panEnd should be in [-100, 100]
+// priority should be in [0, 100]
 void ScriptBase::Ambient_Sounds_Play_Sound(int sfxId, int volume, int panStart, int panEnd, int priority) {
 	debugC(kDebugScript, "Ambient_Sounds_Play_Sound(%d, %d, %d, %d, %d)", sfxId, volume, panStart, panEnd, priority);
 	_vm->_ambientSounds->playSound(sfxId, volume, panStart, panEnd, priority);
 }
 
+// volume should be in [0, 100]
+// panStart, panEnd should be in [-100, 100]
+// priority should be in [0, 100]
 void ScriptBase::Ambient_Sounds_Play_Speech_Sound(int actorId, int sentenceId, int volume, int panStart, int panEnd, int priority) {
 	debugC(kDebugScript, "Ambient_Sounds_Play_Speech_Sound(%d, %d, %d, %d, %d, %d)", actorId, sentenceId, volume, panStart, panEnd, priority);
 	_vm->_ambientSounds->playSpeech(actorId, sentenceId, volume, panStart, panEnd, priority);
@@ -1260,11 +1285,15 @@ void ScriptBase::Ambient_Sounds_Remove_All_Non_Looping_Sounds(bool stopPlaying) 
 	_vm->_ambientSounds->removeAllNonLoopingSounds(stopPlaying);
 }
 
+// volume should be in [0, 100]
+// pan should be in [-100, 100]
 void ScriptBase::Ambient_Sounds_Add_Looping_Sound(int sfxId, int volume, int pan, uint32 delaySeconds) {
 	debugC(kDebugScript, "Ambient_Sounds_Add_Looping_Sound(%d, %d, %d, %u)", sfxId, volume, pan, delaySeconds);
 	_vm->_ambientSounds->addLoopingSound(sfxId, volume, pan, delaySeconds);
 }
 
+// volume should be in [0, 100], with "-1" being a special value for skipping volume adjustment 
+// pan should be in [-100, 100], with "-101" being a special value for skipping pan (balance) adjustment
 void ScriptBase::Ambient_Sounds_Adjust_Looping_Sound(int sfxId, int volume, int pan, uint32 delaySeconds) {
 	debugC(kDebugScript, "Ambient_Sounds_Adjust_Looping_Sound(%d, %d, %d, %u)", sfxId, volume, pan, delaySeconds);
 	_vm->_ambientSounds->adjustLoopingSound(sfxId, volume, pan, delaySeconds);
@@ -1443,6 +1472,11 @@ int ScriptBase::Police_Maze_Query_Score() {
 void ScriptBase::Police_Maze_Zero_Score() {
 	debugC(kDebugScript, "Police_Maze_Zero_Score()");
 	Global_Variable_Reset(kVariablePoliceMazeScore);
+	// Police_Maze_Zero_Score is called when exiting from the maze
+	if (_vm->_debugger->_showMazeScore) {
+		_vm->_subtitles->setGameSubsText(BladeRunner::Subtitles::kSubtitlesSecondary, "", false);
+		_vm->_subtitles->hide(BladeRunner::Subtitles::kSubtitlesSecondary);
+	}
 }
 
 void ScriptBase::Police_Maze_Increment_Score(int delta) {
@@ -1720,6 +1754,19 @@ void ScriptBase::Autosave_Game(int textId) {
 void ScriptBase::I_Sez(const char *str) {
 	debugC(kDebugScript, "I_Sez(%s)", str);
 	_vm->ISez(str);
+//	Add_Subtitle_To_Queue(str, 2000);
+}
+
+void ScriptBase::Add_Subtitle_To_Queue(Common::String dbgQuote, uint32 duration) {
+	debugC(kDebugScript, "Add_Subtitle_To_Queue(%s, %u)", dbgQuote.c_str(), duration);
+	if (!dbgQuote.empty()) {
+		_vm->_subtitles->addGameSubsTextToQueue(dbgQuote, duration);
+	}
+}
+
+void ScriptBase::Clear_Subtitle_Queue() {
+	debugC(kDebugScript, "Clear_Subtitle_Queue()");
+	_vm->_subtitles->clearQueue();
 }
 
 void ScriptBase::AI_Countdown_Timer_Start(int actorId, signed int timer, int32 seconds) {

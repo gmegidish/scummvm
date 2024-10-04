@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,18 +54,15 @@ Breakpoint breakpoint[BREAKPOINTMAX];
 /*----------------------------------------------------------------------*/
 static void showAttributes(AttributeEntry *attrib) {
 	AttributeEntry *at;
-	int i;
 	char str[80];
 
-	if (attrib == 0)
+	if (attrib == nullptr)
 		return;
 
-	i = 1;
 	for (at = attrib; !isEndOfArray(at); at++) {
-		sprintf(str, "$i$t%s[%d] = %d", (char *) pointerTo(at->id), at->code, (int)at->value);
+		Common::sprintf_s(str, "$i$t%s[%d] = %d", (char *) pointerTo(at->id), at->code, (int)at->value);
 
 		output(str);
-		i++;
 	}
 }
 
@@ -84,7 +80,7 @@ static void showContents(CONTEXT, int cnt) {
 				found = TRUE;
 			output("$i$t");
 			say(context, i);
-			sprintf(str, "[%d] ", i);
+			Common::sprintf_s(str, "[%d] ", i);
 			output(str);
 		}
 	}
@@ -105,7 +101,7 @@ static char *idOfInstance(CONTEXT, int instance) {
 static void sayInstanceNumberAndName(CONTEXT, int ins) {
 	char buf[1000];
 
-	sprintf(buf, "[%d] %s (\"$$", ins, idOfInstance(context, ins));
+	Common::sprintf_s(buf, "[%d] %s (\"$$", ins, idOfInstance(context, ins));
 	output(buf);
 	say(context, ins);
 	output("$$\")");
@@ -151,7 +147,7 @@ static void listInstances(CONTEXT, char *pattern) {
 	bool found = FALSE;
 
 	for (ins = 1; ins <= header->instanceMax; ins++) {
-		if (pattern == NULL || (pattern != NULL && match(pattern, idOfInstance(context, ins)))) {
+		if (pattern == nullptr || (pattern != nullptr && match(pattern, idOfInstance(context, ins)))) {
 			if (!found) {
 				output("Instances:");
 				found = TRUE;
@@ -159,7 +155,7 @@ static void listInstances(CONTEXT, char *pattern) {
 			CALL1(listInstance, ins)
 		}
 	}
-	if (pattern != NULL && !found)
+	if (pattern != nullptr && !found)
 		output("No instances matched the pattern.");
 }
 
@@ -168,7 +164,7 @@ static void showInstance(CONTEXT, int ins) {
 	char str[80];
 
 	if (ins > (int)header->instanceMax || ins < 1) {
-		sprintf(str, "Instance index %d is out of range.", ins);
+		Common::sprintf_s(str, "Instance index %d is out of range.", ins);
 		output(str);
 		return;
 	}
@@ -176,12 +172,12 @@ static void showInstance(CONTEXT, int ins) {
 	output("The");
 	CALL1(sayInstanceNumberAndName, ins)
 	if (instances[ins].parent) {
-		sprintf(str, "Isa %s[%d]", idOfClass(instances[ins].parent), instances[ins].parent);
+		Common::sprintf_s(str, "Isa %s[%d]", idOfClass(instances[ins].parent), instances[ins].parent);
 		output(str);
 	}
 
 	if (!isA(ins, header->locationClassId) || (isA(ins, header->locationClassId) && admin[ins].location != 0)) {
-		sprintf(str, "$iLocation:");
+		Common::sprintf_s(str, "$iLocation:");
 		output(str);
 		needSpace = TRUE;
 		CALL2(sayLocationOfInstance, ins, "")
@@ -197,7 +193,7 @@ static void showInstance(CONTEXT, int ins) {
 		if (admin[ins].script == 0)
 			output("$iIs idle");
 		else {
-			sprintf(str, "$iExecuting script: %d, Step: %d", admin[ins].script, admin[ins].step);
+			Common::sprintf_s(str, "$iExecuting script: %d, Step: %d", admin[ins].script, admin[ins].step);
 			output(str);
 		}
 	}
@@ -221,7 +217,7 @@ static void showObject(CONTEXT, int obj) {
 
 
 	if (!isAObject(obj)) {
-		sprintf(str, "Instance %d is not an object", obj);
+		Common::sprintf_s(str, "Instance %d is not an object", obj);
 		output(str);
 		return;
 	}
@@ -259,7 +255,7 @@ static void showClassInheritance(int c) {
 	if (classes[c].parent != 0) {
 		output(", Isa");
 		printClassName(classes[c].parent);
-		sprintf(str, "[%d]", classes[c].parent);
+		Common::sprintf_s(str, "[%d]", classes[c].parent);
 		output(str);
 	}
 }
@@ -270,14 +266,14 @@ static void showClass(int cla) {
 	char str[80];
 
 	if (cla < 1) {
-		sprintf(str, "Class index %d is out of range.", cla);
+		Common::sprintf_s(str, "Class index %d is out of range.", cla);
 		output(str);
 		return;
 	}
 
 	output("$t");
 	printClassName(cla);
-	sprintf(str, "[%d]", cla);
+	Common::sprintf_s(str, "[%d]", cla);
 	output(str);
 	showClassInheritance(cla);
 }
@@ -287,7 +283,7 @@ static void showClass(int cla) {
 static void listClass(int c) {
 	char str[80];
 
-	sprintf(str, "%3d: ", c);
+	Common::sprintf_s(str, "%3d: ", c);
 	output(str);
 	printClassName(c);
 	showClassInheritance(c);
@@ -329,14 +325,14 @@ static void showLocation(CONTEXT, int loc) {
 
 
 	if (!isALocation(loc)) {
-		sprintf(str, "Instance %d is not a location.", loc);
+		Common::sprintf_s(str, "Instance %d is not a location.", loc);
 		output(str);
 		return;
 	}
 
 	output("The ");
 	CALL1(say, loc)
-	sprintf(str, "(%d) Isa location :", loc);
+	Common::sprintf_s(str, "(%d) Isa location :", loc);
 	output(str);
 
 	output("$iAttributes =");
@@ -360,7 +356,7 @@ static void showActor(CONTEXT, int act) {
 	char str[80];
 
 	if (!isAActor(act)) {
-		sprintf(str, "Instance %d is not an actor.", act);
+		Common::sprintf_s(str, "Instance %d is not an actor.", act);
 		output(str);
 		return;
 	}
@@ -378,7 +374,7 @@ static void showEvents(CONTEXT) {
 
 	output("Events:");
 	for (event = 1; event <= header->eventMax; event++) {
-		sprintf(str, "$i%d [%s]:", event, (char *)pointerTo(events[event].id));
+		Common::sprintf_s(str, "$i%d [%s]:", event, (char *)pointerTo(events[event].id));
 
 		output(str);
 		scheduled = FALSE;
@@ -386,7 +382,7 @@ static void showEvents(CONTEXT) {
 			if ((scheduled = (eventQueue[i].event == (int)event)))
 				break;
 		if (scheduled) {
-			sprintf(str, "Scheduled for +%d, at ", eventQueue[i].after);
+			Common::sprintf_s(str, "Scheduled for +%d, at ", eventQueue[i].after);
 			output(str);
 			CALL1(say, eventQueue[i].where)
 		} else
@@ -428,13 +424,13 @@ char *readSourceLine(int file, int line) {
 	frefid_t sourceFileRef = g_vm->glk_fileref_create_by_name(fileusage_TextMode, sourceFileName(file), 0);
 	strid_t sourceFile = g_vm->glk_stream_open_file(sourceFileRef, filemode_Read, 0);
 
-	if (sourceFile != NULL) {
+	if (sourceFile != nullptr) {
 		for (count = 0; count < line; count++) {
 			if (!readLine(*sourceFile, buffer, SOURCELINELENGTH))
-				return NULL;
+				return nullptr;
 
 			// If not read the whole line, or no newline, try to read again
-			while (strchr(buffer, '\n') == NULL) {
+			while (strchr(buffer, '\n') == nullptr) {
 				if (!readLine(*sourceFile, buffer, SOURCELINELENGTH))
 					break;
 			}
@@ -444,13 +440,13 @@ char *readSourceLine(int file, int line) {
 		return buffer;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 /*======================================================================*/
 void showSourceLine(int fileNumber, int line) {
 	char *buffer = readSourceLine(fileNumber, line);
-	if (buffer != NULL) {
+	if (buffer != nullptr) {
 		if (buffer[strlen(buffer) - 1] == '\n')
 			buffer[strlen(buffer) - 1] = '\0';
 		printf("<%05d>: %s", line, buffer);
@@ -542,7 +538,7 @@ static void setBreakpoint(int file, int line) {
 				printf("Line %d not available\n", line);
 			} else {
 				if (entry[lineIndex].line != line)
-					sprintf(leadingText, "Line %d not available, breakpoint instead", line);
+					Common::sprintf_s(leadingText, "Line %d not available, breakpoint instead", line);
 				breakpoint[i].file = entry[lineIndex].file;
 				breakpoint[i].line = entry[lineIndex].line;
 				printf("%s set at %s:%d\n", leadingText, sourceFileName(entry[lineIndex].file), entry[lineIndex].line);
@@ -653,7 +649,7 @@ static const DebugParseEntry commandEntries[] = {
 	{"exit", "", EXIT_COMMAND, "exit to game, enter 'debug' to get back"},
 	{"x", "", EXIT_COMMAND, "d:o"},
 	{"quit", "", QUIT_COMMAND, "quit game"},
-	{NULL, NULL, '\0', NULL}
+	{nullptr, nullptr, '\0', nullptr}
 };
 
 static const DebugParseEntry traceSubcommand[] = {
@@ -662,7 +658,7 @@ static const DebugParseEntry traceSubcommand[] = {
 	{"instructions", "", TRACE_INSTRUCTION_COMMAND, ""},
 	{"pushs", "", TRACE_PUSH_COMMAND, ""},
 	{"stacks", "", TRACE_STACK_COMMAND, ""},
-	{NULL, NULL, '\0', NULL}
+	{nullptr, nullptr, '\0', nullptr}
 };
 
 
@@ -691,15 +687,15 @@ static void handleHelpCommand() {
 	const DebugParseEntry *entry = commandEntries;
 
 	int maxLength = 0;
-	for (entry = commandEntries; entry->command != NULL; entry++) {
+	for (entry = commandEntries; entry->command != nullptr; entry++) {
 		if (strlen(entry->command) + strlen(entry->parameter) > (uint)maxLength)
 			maxLength = strlen(entry->command) + strlen(entry->parameter);
 	}
 
 	output("$nADBG Commands (can be abbreviated):");
-	for (entry = commandEntries; entry->command != NULL; entry++) {
+	for (entry = commandEntries; entry->command != nullptr; entry++) {
 		char buf[200];
-		sprintf(buf, "$i%s %s %s$n$t$t-- %s", entry->command, entry->parameter, padding(entry, maxLength), entry->helpText);
+		Common::sprintf_s(buf, "$i%s %s %s$n$t$t-- %s", entry->command, entry->parameter, padding(entry, maxLength), entry->helpText);
 		output(buf);
 	}
 }
@@ -707,22 +703,22 @@ static void handleHelpCommand() {
 
 /*----------------------------------------------------------------------*/
 static const DebugParseEntry *findEntry(char *command, const DebugParseEntry *entry) {
-	while (entry->command != NULL) {
+	while (entry->command != nullptr) {
 		if (scumm_strnicmp(command, entry->command, strlen(command)) == 0)
 			return entry;
 		entry++;
 	}
-	return NULL;
+	return nullptr;
 }
 
 
 /*----------------------------------------------------------------------*/
 static char parseDebugCommand(char *command) {
 	const DebugParseEntry *entry = findEntry(command, commandEntries);
-	if (entry != NULL) {
+	if (entry != nullptr) {
 		if (strlen(command) < strlen(entry->command)) {
 			/* See if there are any more partial matches */
-			if (findEntry(command, entry + 1) != NULL)
+			if (findEntry(command, entry + 1) != nullptr)
 				/* TODO: we should list the possible matches somehow */
 				return AMBIGUOUS_COMMAND;
 		}
@@ -813,15 +809,15 @@ static void toggleStackTrace() {
 
 /*----------------------------------------------------------------------*/
 static int parseTraceCommand() {
-	char *subcommand = strtok(NULL, "");
+	char *subcommand = strtok(nullptr, "");
 	const DebugParseEntry *entry;
-	if (subcommand == 0)
+	if (subcommand == nullptr)
 		return UNKNOWN_COMMAND;
 	else {
 		entry = findEntry(subcommand, traceSubcommand);
-		if (entry != NULL) {
+		if (entry != nullptr) {
 			if (strlen(subcommand) < strlen(entry->command)) {
-				if (findEntry(subcommand, entry + 1) != NULL)
+				if (findEntry(subcommand, entry + 1) != nullptr)
 					return AMBIGUOUS_COMMAND;
 			}
 			return entry->code;
@@ -880,16 +876,16 @@ static void handleTraceCommand() {
 
 /*----------------------------------------------------------------------*/
 static void handleBreakCommand(int fileNumber) {
-	char *parameter = strtok(NULL, ":");
-	if (parameter != NULL && Common::isAlpha((int)parameter[0])) {
+	char *parameter = strtok(nullptr, ":");
+	if (parameter != nullptr && Common::isAlpha((int)parameter[0])) {
 		fileNumber = sourceFileNumber(parameter);
 		if (fileNumber == -1) {
 			printf("No such file: '%s'\n", parameter);
 			return;
 		}
-		parameter = strtok(NULL, "");
+		parameter = strtok(nullptr, "");
 	}
-	if (parameter == NULL)
+	if (parameter == nullptr)
 		listBreakpoints();
 	else
 		setBreakpoint(fileNumber, atoi(parameter));
@@ -898,8 +894,8 @@ static void handleBreakCommand(int fileNumber) {
 
 /*----------------------------------------------------------------------*/
 static void handleDeleteCommand(bool calledFromBreakpoint, int line, int fileNumber) {
-	char *parameter = strtok(NULL, "");
-	if (parameter == NULL) {
+	char *parameter = strtok(nullptr, "");
+	if (parameter == nullptr) {
 		if (calledFromBreakpoint)
 			deleteBreakpoint(line, fileNumber);
 		else
@@ -921,8 +917,8 @@ static void handleNextCommand(bool calledFromBreakpoint) {
 
 /*----------------------------------------------------------------------*/
 static void handleLocationsCommand(CONTEXT) {
-	char *parameter = strtok(NULL, "");
-	if (parameter == 0)
+	char *parameter = strtok(nullptr, "");
+	if (parameter == nullptr)
 		listLocations(context);
 	else
 		showLocation(context, atoi(parameter));
@@ -931,8 +927,8 @@ static void handleLocationsCommand(CONTEXT) {
 
 /*----------------------------------------------------------------------*/
 static void handleActorsCommand(CONTEXT) {
-	char *parameter = strtok(NULL, "");
-	if (parameter == NULL)
+	char *parameter = strtok(nullptr, "");
+	if (parameter == nullptr)
 		listActors(context);
 	else
 		showActor(context, atoi(parameter));
@@ -941,8 +937,8 @@ static void handleActorsCommand(CONTEXT) {
 
 /*----------------------------------------------------------------------*/
 static void handleClassesCommand(CONTEXT) {
-	char *parameter = strtok(NULL, "");
-	if (parameter == NULL || strchr(parameter, '*') != 0) {
+	char *parameter = strtok(nullptr, "");
+	if (parameter == nullptr || strchr(parameter, '*') != nullptr) {
 		output("Classes:");
 		showClassHierarchy(1, 0);
 		listInstances(context, parameter);
@@ -956,8 +952,8 @@ static void handleClassesCommand(CONTEXT) {
 
 /*----------------------------------------------------------------------*/
 static void handleObjectsCommand(CONTEXT) {
-	char *parameter = strtok(NULL, "");
-	if (parameter == NULL)
+	char *parameter = strtok(nullptr, "");
+	if (parameter == nullptr)
 		listObjects(context);
 	else
 		showObject(context, atoi(parameter));
@@ -966,10 +962,10 @@ static void handleObjectsCommand(CONTEXT) {
 
 /*----------------------------------------------------------------------*/
 static void handleInstancesCommand(CONTEXT) {
-	char *parameter = strtok(NULL, "");
+	char *parameter = strtok(nullptr, "");
 	uint i;
 
-	if (parameter == NULL || strchr(parameter, '*') != 0)
+	if (parameter == nullptr || strchr(parameter, '*') != nullptr)
 		listInstances(context, parameter);
 	else if (Common::isDigit((int)parameter[0]))
 		showInstance(context, atoi(parameter));

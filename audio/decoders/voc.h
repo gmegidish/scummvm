@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
  * @file
  * Sound decoder used in engines:
  *  - agos
+ *  - chewy (subclass)
  *  - kyra
  *  - saga
  *  - scumm
@@ -33,6 +33,9 @@
 #ifndef AUDIO_VOC_H
 #define AUDIO_VOC_H
 
+#include "audio/audiostream.h"
+
+#include "common/list.h"
 #include "common/scummsys.h"
 #include "common/types.h"
 
@@ -64,6 +67,84 @@ struct VocBlockHeader {
 } PACKED_STRUCT;
 
 #include "common/pack-end.h"	// END STRUCT PACKING
+
+class VocStream : public SeekableAudioStream {
+public:
+	VocStream(Common::SeekableReadStream *stream, bool isUnsigned, DisposeAfterUse::Flag disposeAfterUse);
+	virtual ~VocStream();
+
+	int readBuffer(int16 *buffer, const int numSamples) override;
+
+	bool isStereo() const override { return false; }
+
+	int getRate() const override { return _rate; }
+
+	bool endOfData() const override { return (_curBlock == _blocks.end()) && (_blockLeft == 0); }
+
+	bool seek(const Timestamp &where) override;
+
+	Timestamp getLength() const override { return _length; }
+
+protected:
+	void preProcess();
+
+	Common::SeekableReadStream *const _stream;
+	const DisposeAfterUse::Flag _disposeAfterUse;
+
+	const bool _isUnsigned;
+
+	int _rate;
+	Timestamp _length;
+
+	struct Block {
+		uint8 code;
+		uint32 length;
+
+		union {
+			struct {
+				uint32 offset;
+				int rate;
+				int samples;
+			} sampleBlock;
+
+			struct {
+				int count;
+			} loopBlock;
+		};
+	};
+
+	typedef Common::List<Block> BlockList;
+	BlockList _blocks;
+
+	BlockList::const_iterator _curBlock;
+	uint32 _blockLeft;
+
+	/**
+	 * Advance one block in the stream in case
+	 * the current one is empty.
+	 */
+	void updateBlockIfNeeded();
+
+	// Do some internal buffering for systems with really slow slow disk i/o
+	enum {
+		/**
+		 * How many samples we can buffer at once.
+		 *
+		 * TODO: Check whether this size suffices
+		 * for systems with slow disk I/O.
+		 */
+		kSampleBufferLength = 2048
+	};
+	byte _buffer[kSampleBufferLength];
+
+	/**
+	 * Fill the temporary sample buffer used in readBuffer.
+	 *
+	 * @param maxSamples Maximum samples to read.
+	 * @return actual count of samples read.
+	 */
+	int fillBuffer(int maxSamples);
+};
 
 /**
  * Take a sample rate parameter as it occurs in a VOC sound header, and

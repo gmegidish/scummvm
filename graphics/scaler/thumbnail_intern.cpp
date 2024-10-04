@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,8 @@
 #include "graphics/colormasks.h"
 #include "graphics/scaler.h"
 #include "graphics/scaler/intern.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
+#include "graphics/managed_surface.h"
 
 template<typename ColorMask>
 uint16 quadBlockInterpolate(const uint8 *src, uint32 srcPitch) {
@@ -258,6 +258,21 @@ bool createThumbnail(Graphics::Surface *surf, const uint8 *pixels, int w, int h,
 	}
 
 	return createThumbnail(*surf, screen);
+}
+
+bool createThumbnail(Graphics::Surface *surf, Graphics::ManagedSurface *in) {
+	assert(surf);
+
+	Graphics::Surface screen;
+
+	if (in->hasPalette()) {
+		uint8 palette[3 * 256];
+		in->grabPalette(palette, 0, 256);
+		return createThumbnail(surf, (const uint8 *)in->getPixels(), in->w, in->h, palette);
+	} else {
+		screen.convertFrom(in->rawSurface(), Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0));
+		return createThumbnail(*surf, screen);
+	}
 }
 
 // this is somewhat awkward, but createScreenShot should logically be in graphics,

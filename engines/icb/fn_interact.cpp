@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -83,7 +82,7 @@ mcodeFunctionReturnCodes _game_session::fn_set_interacting(int32 &, int32 *param
 
 	const char *object_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 
-	uint32 id = objects->Fetch_item_number_by_name(object_name);
+	uint32 id = LinkedDataObject::Fetch_item_number_by_name(objects, object_name);
 	if (id == 0xffffffff)
 		Fatal_error("fn_set_interacting - illegal object [%s]", object_name);
 
@@ -101,7 +100,7 @@ mcodeFunctionReturnCodes _game_session::fn_clear_interacting(int32 &, int32 *) {
 }
 
 mcodeFunctionReturnCodes _game_session::fn_route_to_generic_prop_interact(int32 &result, int32 *params) {
-	// WALK-TO interact with a prop BUT DOESNT play a generic animation
+	// WALK-TO interact with a prop BUT DOESN'T play a generic animation
 	// will call a trigger script if finds marker and script
 
 	// params        0   name of generic animation
@@ -120,7 +119,7 @@ mcodeFunctionReturnCodes _game_session::fn_route_to_generic_prop_interact(int32 
 }
 
 mcodeFunctionReturnCodes _game_session::fn_route_to_custom_prop_interact(int32 &result, int32 *params) {
-	// WALK-TO interact with a prop BUT DOESNT play a custom non generic animation
+	// WALK-TO interact with a prop BUT DOESN'T play a custom non generic animation
 	// then return to script
 
 	// params        0   name of custom animation
@@ -162,7 +161,7 @@ mcodeFunctionReturnCodes _game_session::fn_sony_door_interact(int32 &result, int
 	if (!L->looping) {
 		// work out which button to interact with
 
-		id = objects->Fetch_item_number_by_name(button1_name);
+		id = LinkedDataObject::Fetch_item_number_by_name(objects, button1_name);
 		if (id == 0xffffffff)
 			Fatal_error("fn_sony_door_interact - illegal object [%s]", button1_name);
 
@@ -195,7 +194,7 @@ mcodeFunctionReturnCodes _game_session::fn_sony_door_interact(int32 &result, int
 			}
 
 			// there is another button so lets take a look to see it is named correctly
-			id = objects->Fetch_item_number_by_name(button2_name);
+			id = LinkedDataObject::Fetch_item_number_by_name(objects, button2_name);
 			if (id == 0xffffffff)
 				Fatal_error("fn_sony_door_interact - illegal object [%s]", button2_name);
 
@@ -262,7 +261,7 @@ mcodeFunctionReturnCodes _game_session::Core_prop_interact(int32 & /*result*/, i
 	//				4 play target anim
 	//				5
 
-	const char *anim_name = NULL;
+	const char *anim_name = nullptr;
 	if (params && params[0]) {
 		anim_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 	}
@@ -279,10 +278,10 @@ mcodeFunctionReturnCodes _game_session::Core_prop_interact(int32 & /*result*/, i
 			// get anim type
 			res = I->Find_anim_type(&anim, anim_name);
 			if (!res)
-				Fatal_error("Core_prop_interact cant indentify animation %s", anim_name);
+				Fatal_error("Core_prop_interact can't indentify animation %s", anim_name);
 
 			if (!I->IsAnimTable(anim))
-				Fatal_error("Core_prop_interact finds [%s] doesnt have a [%s] animation", object->GetName(), params[0]);
+				Fatal_error("Core_prop_interact finds [%s] doesn't have a [%s] animation", CGameObject::GetName(object), params[0]);
 		} else {
 			Zdebug("calc *custom* target anim [%s]", anim_name);
 			I->Init_custom_animation(anim_name);
@@ -290,7 +289,7 @@ mcodeFunctionReturnCodes _game_session::Core_prop_interact(int32 & /*result*/, i
 		}
 
 		// start psx asyncing the anim - may already be doing so if scripts are written properly!
-		if (rs_anims->Res_open(I->get_info_name(anim), I->info_name_hash[anim], I->base_path, I->base_path_hash) == 0)
+		if (rs_anims->Res_open(I->get_info_name(anim), I->info_name_hash[anim], I->base_path, I->base_path_hash) == nullptr)
 			return IR_REPEAT;
 
 		// we are now looping, having done the init
@@ -484,7 +483,7 @@ mcodeFunctionReturnCodes _game_session::Core_prop_interact(int32 & /*result*/, i
 		for (j = 0; j < M->anim_speed; j++) {
 			PXframe *frame = PXFrameEnOfAnim(L->anim_pc + j, pAnim);
 
-			if ((frame->marker_qty > INT_POS) && (INT_TYPE == (frame->markers[INT_POS].GetType()))) {
+			if ((frame->marker_qty > INT_POS) && (INT_TYPE == (PXmarker_PSX_Object::GetType(&frame->markers[INT_POS])))) {
 				//          run the trigger anim
 				if (!MS->Call_socket(M->target_id, "trigger", &retval)) {
 					Message_box("[%s] interact marker but no trigger script", (const char *)L->GetName());
@@ -521,7 +520,7 @@ mcodeFunctionReturnCodes _game_session::fn_is_object_interact_object(int32 &resu
 
 	const char *object_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 
-	uint32 id = objects->Fetch_item_number_by_name(object_name);
+	uint32 id = LinkedDataObject::Fetch_item_number_by_name(objects, object_name);
 	if (id == 0xffffffff)
 		Fatal_error("fn_is_object_interact_object - object [%s] does not exist", object_name);
 
@@ -539,13 +538,13 @@ mcodeFunctionReturnCodes _game_session::fn_unregister_for_auto_interaction(int32
 
 	for (j = 0; j < MAX_auto_interact; j++) {
 		if (auto_interact_list[j] == (uint8)(cur_id + 1)) {
-			Tdebug("auto_interact.txt", "- [%s] %d", object->GetName(), j);
+			Tdebug("auto_interact.txt", "- [%s] %d", CGameObject::GetName(object), j);
 			auto_interact_list[j] = 0; // slot not empty
 			return IR_CONT;
 		}
 	}
 
-	Fatal_error("fn_unregister_for_auto_interaction cant unregister non registered object [%s]", object->GetName());
+	Fatal_error("fn_unregister_for_auto_interaction can't unregister non registered object [%s]", CGameObject::GetName(object));
 
 	return IR_CONT;
 }
@@ -557,16 +556,16 @@ mcodeFunctionReturnCodes _game_session::fn_register_for_auto_interaction(int32 &
 
 	for (j = 0; j < MAX_auto_interact; j++) {
 		if (auto_interact_list[j] == (uint8)(cur_id + 1))
-			Fatal_error("fn_register_for_auto_interaction finds double registration of %s", object->GetName());
+			Fatal_error("fn_register_for_auto_interaction finds double registration of %s", CGameObject::GetName(object));
 
 		if (!auto_interact_list[j]) { // empty slot
 			auto_interact_list[j] = (uint8)(cur_id + 1);
-			Tdebug("auto_interact.txt", "+ [%s] %d", object->GetName(), j);
+			Tdebug("auto_interact.txt", "+ [%s] %d", CGameObject::GetName(object), j);
 			return IR_CONT;
 		}
 	}
 
-	Fatal_error("fn_register_for_auto_interaction - list full - [%s]", object->GetName());
+	Fatal_error("fn_register_for_auto_interaction - list full - [%s]", CGameObject::GetName(object));
 
 	return IR_CONT;
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,7 @@
 #include "tinsel/music.h"
 #include "tinsel/font.h"
 #include "tinsel/strres.h"
+#include "tinsel/noir/notebook.h"
 
 namespace Tinsel {
 
@@ -62,6 +62,12 @@ int strToInt(const char *s) {
 //----------------- CONSOLE CLASS  ---------------------
 
 Console::Console() : GUI::Debugger() {
+	if (TinselVersion == 3) {
+		registerCmd("add_clue",		WRAP_METHOD(Console, cmd_add_clue));
+		registerCmd("add_all_clues",	WRAP_METHOD(Console, cmd_add_all_clues));
+		registerCmd("cross_clue",		WRAP_METHOD(Console, cmd_cross_clue));
+		registerCmd("list_clues",		WRAP_METHOD(Console, cmd_list_clues));
+	}
 	registerCmd("item",		WRAP_METHOD(Console, cmd_item));
 	registerCmd("scene",		WRAP_METHOD(Console, cmd_scene));
 	registerCmd("music",		WRAP_METHOD(Console, cmd_music));
@@ -79,8 +85,8 @@ bool Console::cmd_item(int argc, const char **argv) {
 		return true;
 	}
 
-	_vm->_dialogs->HoldItem(INV_NOICON);
-	_vm->_dialogs->HoldItem(strToInt(argv[1]));
+	_vm->_dialogs->holdItem(INV_NOICON);
+	_vm->_dialogs->holdItem(strToInt(argv[1]));
 	return false;
 }
 
@@ -135,7 +141,7 @@ bool Console::cmd_sound(int argc, const char **argv) {
 
 	int id = strToInt(argv[1]);
 	if (_vm->_sound->sampleExists(id)) {
-		if (!TinselV2)
+		if (TinselVersion <= 1)
 			_vm->_sound->playSample(id, Audio::Mixer::kSpeechSoundType);
 		else
 			_vm->_sound->playSample(id, 0, false, 0, 0, PRIORITY_TALK, Audio::Mixer::kSpeechSoundType);
@@ -158,6 +164,45 @@ bool Console::cmd_string(int argc, const char **argv) {
 	LoadStringRes(id, tmp, TBUFSZ);
 	debugPrintf("%s\n", tmp);
 
+	return true;
+}
+
+// Noir:
+bool Console::cmd_add_clue(int argc, const char **argv) {
+	if (argc < 2) {
+		debugPrintf("%s clue_id\n", argv[0]);
+		debugPrintf("Adds a clue to the notebook\n");
+		return true;
+	}
+
+	_vm->_notebook->addClue(strToInt(argv[1]));
+	return false;
+}
+
+bool Console::cmd_add_all_clues(int argc, const char **argv) {
+	auto clues = _vm->_dialogs->getAllNotebookClues();
+	for (auto clue : clues) {
+		_vm->_notebook->addClue(clue);
+	}
+	return false;
+}
+
+bool Console::cmd_cross_clue(int argc, const char **argv) {
+	if (argc < 2) {
+		debugPrintf("%s clue_id\n", argv[0]);
+		debugPrintf("Crosses out a clue in the notebook\n");
+		return true;
+	}
+
+	_vm->_notebook->crossClue(strToInt(argv[1]));
+	return false;
+}
+
+bool Console::cmd_list_clues(int argc, const char **argv) {
+	auto clues = _vm->_dialogs->getAllNotebookClues();
+	for (auto clue : clues) {
+		debugPrintf("%d\n", clue);
+	}
 	return true;
 }
 

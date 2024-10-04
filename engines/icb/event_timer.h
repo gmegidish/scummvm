@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -107,7 +106,7 @@ inline _event_timer::_event_timer(const _event_timer &oX) {
 	m_nEnd = oX.m_nEnd;
 	m_nInterval = oX.m_nInterval;
 	m_nCurrentTime = oX.m_nCurrentTime;
-	strcpy(m_pcEventName, oX.m_pcEventName);
+	Common::strcpy_s(m_pcEventName, oX.m_pcEventName);
 }
 
 inline const _event_timer &_event_timer::operator=(const _event_timer &oOpB) {
@@ -116,7 +115,7 @@ inline const _event_timer &_event_timer::operator=(const _event_timer &oOpB) {
 	m_nEnd = oOpB.m_nEnd;
 	m_nInterval = oOpB.m_nInterval;
 	m_nCurrentTime = oOpB.m_nCurrentTime;
-	strcpy(m_pcEventName, oOpB.m_pcEventName);
+	Common::strcpy_s(m_pcEventName, oOpB.m_pcEventName);
 
 	return (*this);
 }
@@ -125,7 +124,7 @@ inline void _event_timer::SetEventName(const char *pcEventName) {
 	if (strlen(pcEventName) >= MAXLEN_EVENT_NAME)
 		Fatal_error("Event name [%s] too long (max %d) in _event_timer::SetEventName()", pcEventName, MAXLEN_EVENT_NAME - 1);
 
-	strcpy(m_pcEventName, pcEventName);
+	Common::strcpy_s(m_pcEventName, pcEventName);
 }
 
 } // End of namespace ICB

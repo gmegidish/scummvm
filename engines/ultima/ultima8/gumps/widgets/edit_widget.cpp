@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/gumps/widgets/edit_widget.h"
-#include "ultima/ultima8/graphics/fonts/rendered_text.h"
-#include "ultima/ultima8/graphics/render_surface.h"
-#include "ultima/ultima8/graphics/fonts/font_manager.h"
+#include "ultima/ultima8/gfx/fonts/rendered_text.h"
+#include "ultima/ultima8/gfx/render_surface.h"
+#include "ultima/ultima8/gfx/fonts/font_manager.h"
 #include "common/system.h"
 #include "common/events.h"
 
@@ -70,7 +69,8 @@ Font *EditWidget::getFont() const {
 void EditWidget::setText(const Std::string &t) {
 	_text = t;
 	_cursor = _text.size();
-	FORGET_OBJECT(_cachedText);
+	delete _cachedText;
+	_cachedText = nullptr;
 }
 
 void EditWidget::ensureCursorVisible() {
@@ -125,7 +125,8 @@ void EditWidget::renderText() {
 	}
 
 	if (cv != _cursorVisible) {
-		FORGET_OBJECT(_cachedText);
+		delete _cachedText;
+		_cachedText = nullptr;
 		_cursorVisible = cv;
 	}
 
@@ -146,7 +147,14 @@ void EditWidget::renderText() {
 		_cachedText = font->renderText(_text, remaining,
 		                               max_width, max_height,
 		                               Font::TEXT_LEFT,
-		                               false, cv ? _cursor : Std::string::npos);
+		                               false, false,
+		                               cv ? _cursor : Std::string::npos);
+
+		// Trim text to fit
+		if (remaining < _text.length()) {
+			_text.resize(remaining);
+			_cursor = _text.size();
+		}
 	}
 }
 
@@ -157,7 +165,6 @@ void EditWidget::PaintThis(RenderSurface *surf, int32 lerp_factor, bool scaled) 
 	renderText();
 
 	if (scaled && _gameFont && getFont()->isHighRes()) {
-		surf->FillAlpha(0xFF, _dims.left, _dims.top, _dims.width(), _dims.height());
 		return;
 	}
 
@@ -177,7 +184,6 @@ void EditWidget::PaintComposited(RenderSurface *surf, int32 lerp_factor, int32 s
 
 	Rect rect(_dims);
 	GumpRectToScreenSpace(rect, ROUND_OUTSIDE);
-	surf->FillAlpha(0x00, rect.left, rect.top, rect.width(), rect.height());
 }
 
 // don't handle any mouse motion events, so let parent handle them for us.
@@ -197,27 +203,31 @@ bool EditWidget::OnKeyDown(int key, int mod) {
 	case Common::KEYCODE_BACKSPACE:
 		if (_cursor > 0) {
 			_text.erase(--_cursor, 1);
-			FORGET_OBJECT(_cachedText);
+			delete _cachedText;
+			_cachedText = nullptr;
 			ensureCursorVisible();
 		}
 		break;
 	case Common::KEYCODE_DELETE:
 		if (_cursor != _text.size()) {
 			_text.erase(_cursor, 1);
-			FORGET_OBJECT(_cachedText);
+			delete _cachedText;
+			_cachedText = nullptr;
 		}
 		break;
 	case Common::KEYCODE_LEFT:
 		if (_cursor > 0) {
 			_cursor--;
-			FORGET_OBJECT(_cachedText);
+			delete _cachedText;
+			_cachedText = nullptr;
 			ensureCursorVisible();
 		}
 		break;
 	case Common::KEYCODE_RIGHT:
 		if (_cursor < _text.size()) {
 			_cursor++;
-			FORGET_OBJECT(_cachedText);
+			delete _cachedText;
+			_cachedText = nullptr;
 			ensureCursorVisible();
 		}
 		break;
@@ -248,7 +258,8 @@ bool EditWidget::OnTextInput(int unicode) {
 	if (textFits(newtext)) {
 		_text = newtext;
 		_cursor++;
-		FORGET_OBJECT(_cachedText);
+		delete _cachedText;
+		_cachedText = nullptr;
 	}
 
 	return true;

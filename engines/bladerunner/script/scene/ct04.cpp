@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -109,11 +108,20 @@ bool SceneScriptCT04::ClickedOn3DObject(const char *objectName, bool a2) {
 
 		if (Game_Flag_Query(kFlagCT04HomelessBodyInDumpster)) {
 			if (Game_Flag_Query(kFlagCT04HomelessBodyThrownAway)) {
+				// Thrown away (garbage collected) happens in Act 3
+				// see transient AI.
 				Actor_Voice_Over(270, kActorVoiceOver);
 				Actor_Voice_Over(280, kActorVoiceOver);
 			} else if (Game_Flag_Query(kFlagCT04HomelessBodyFound)) {
 				Actor_Voice_Over(250, kActorVoiceOver);
-				Actor_Voice_Over(260, kActorVoiceOver);
+				if (!_vm->_cutContent
+				 || !Game_Flag_Query(kFlagMcCoyConfessedKillingHomelessInCT04)) {
+					// When McCoy confesses in the Restored Content mode,
+					// the body gets found. So it's gone (but not thrown with the trash).
+					// Since McCoy has confessed though, he shouldn't say the following quote
+					// "I'd screwed up and screwed up bad. But maybe there was still a way to make it right.".
+					Actor_Voice_Over(260, kActorVoiceOver);
+				}
 			} else {
 				Actor_Voice_Over(230, kActorVoiceOver);
 				Actor_Voice_Over(240, kActorVoiceOver);

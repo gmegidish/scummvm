@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  *              Originally written by Syn9 in FreeBASIC with SDL
@@ -67,36 +66,36 @@ void GriffonEngine::initialize() {
 		_floatIcon[i].ico = 0;
 	}
 
-	_video = new Graphics::TransparentSurface;
+	_video = new Graphics::ManagedSurface;
 	_video->create(320, 240, g_system->getScreenFormat());
-	_videoBuffer = new Graphics::TransparentSurface;
+	_videoBuffer = new Graphics::ManagedSurface;
 	_videoBuffer->create(320, 240, g_system->getScreenFormat());
-	_videoBuffer2 = new Graphics::TransparentSurface;
+	_videoBuffer2 = new Graphics::ManagedSurface;
 	_videoBuffer2->create(320, 240, g_system->getScreenFormat());
-	_videoBuffer3 = new Graphics::TransparentSurface;
+	_videoBuffer3 = new Graphics::ManagedSurface;
 	_videoBuffer3->create(320, 240, g_system->getScreenFormat());
-	_mapBg = new Graphics::TransparentSurface;
+	_mapBg = new Graphics::ManagedSurface;
 	_mapBg->create(320, 240, g_system->getScreenFormat());
-	_clipBg = new Graphics::TransparentSurface;
+	_clipBg = new Graphics::ManagedSurface;
 	_clipBg->create(320, 240, g_system->getScreenFormat());
-	_clipBg2 = new Graphics::TransparentSurface;
+	_clipBg2 = new Graphics::ManagedSurface;
 	_clipBg2->create(320, 240, g_system->getScreenFormat());
 
 	for (int i = 0; i <= 3; i++) {
 		char name[128];
 
-		sprintf(name, "art/map%i.bmp", i + 1);
+		Common::sprintf_s(name, "art/map%i.bmp", i + 1);
 		mapImg[i] = loadImage(name, true);
 	}
 
 	_cloudImg = loadImage("art/clouds.bmp", true);
-	_cloudImg->setAlpha(64, true);
+	_cloudImg->surfacePtr()->setAlpha(64, true);
 
 	_saveLoadImg = nullptr;
 
 	_titleImg = loadImage("art/titleb.bmp");
 	_titleImg2 = loadImage("art/titlea.bmp", true);
-	//_titleimg2->setAlpha(204, true);
+	//_titleimg2->surfacePtr()->setAlpha(204, true);
 
 	_inventoryImg = loadImage("art/inventory.bmp", true);
 
@@ -131,7 +130,7 @@ void GriffonEngine::initialize() {
 	setupAudio();
 }
 
-Graphics::TransparentSurface *GriffonEngine::loadImage(const char *name, bool colorkey) {
+Graphics::ManagedSurface *GriffonEngine::loadImage(const char *name, bool colorkey) {
 	Common::File file;
 
 	file.open(name);
@@ -145,10 +144,11 @@ Graphics::TransparentSurface *GriffonEngine::loadImage(const char *name, bool co
 	bitmapDecoder.loadStream(file);
 	file.close();
 
-	Graphics::TransparentSurface *surface = new Graphics::TransparentSurface(*bitmapDecoder.getSurface()->convertTo(g_system->getScreenFormat()));
+	Graphics::ManagedSurface *surface = new Graphics::ManagedSurface();
+	surface->convertFrom(*bitmapDecoder.getSurface(), g_system->getScreenFormat());
 
 	if (colorkey)
-		surface->applyColorKey(255, 0, 255);
+		surface->surfacePtr()->applyColorKey(255, 0, 255);
 
 	return surface;
 }
@@ -211,7 +211,7 @@ void GriffonEngine::loadMap(int mapnum) {
 
 	char name[256];
 	// read *.map file
-	sprintf(name, "mapdb/%04i.map", mapnum);
+	Common::sprintf_s(name, "mapdb/%04i.map", mapnum);
 	debug(1, "Reading %s", name);
 
 	Common::File file;
@@ -233,7 +233,7 @@ void GriffonEngine::loadMap(int mapnum) {
 	}
 
 	// read *.trg file
-	sprintf(name, "mapdb/%04i.trg", mapnum);
+	Common::sprintf_s(name, "mapdb/%04i.trg", mapnum);
 	debug(1, "Reading %s", name);
 	file.open(name);
 
@@ -322,7 +322,7 @@ void GriffonEngine::loadMap(int mapnum) {
 						}
 					}
 
-					_tiles[curtilel]->blit(*_mapBg, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, TS_ARGB(alpha, 255, 255, 255));
+					_tiles[curtilel]->blendBlitTo(*_mapBg, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, MS_ARGB(alpha, 255, 255, 255));
 
 					rcDest.left = x * 8;
 					rcDest.top = y * 8;
@@ -481,7 +481,7 @@ void GriffonEngine::loadMap(int mapnum) {
 		_roomLock = true;
 
 	// read *.npc file
-	sprintf(name, "mapdb/%04i.npc", mapnum);
+	Common::sprintf_s(name, "mapdb/%04i.npc", mapnum);
 	debug(1, "Reading %s", name);
 	file.open(name);
 
@@ -1088,10 +1088,10 @@ void GriffonEngine::loadAnims() {
 }
 
 void GriffonEngine::loadItemImgs() {
-	Graphics::TransparentSurface *temp = loadImage("art/icons.bmp", true);
+	Graphics::ManagedSurface *temp = loadImage("art/icons.bmp", true);
 
 	for (int i = 0; i <= 20; i++) {
-		_itemImg[i] = new Graphics::TransparentSurface;
+		_itemImg[i] = new Graphics::ManagedSurface;
 		_itemImg[i]->create(16, 16, g_system->getScreenFormat());
 
 		rcSrc.left = i * 16;
@@ -1099,20 +1099,20 @@ void GriffonEngine::loadItemImgs() {
 		rcSrc.setWidth(16);
 		rcSrc.setHeight(16);
 
-		temp->blit(*_itemImg[i], 0, 0, Graphics::FLIP_NONE, &rcSrc);
+		temp->blendBlitTo(*_itemImg[i], 0, 0, Graphics::FLIP_NONE, &rcSrc);
 	}
 
-	temp->free();
+	delete temp;
 }
 
 void GriffonEngine::loadFont() {
-	Graphics::TransparentSurface *font = loadImage("art/font.bmp", true);
+	Graphics::ManagedSurface *font = loadImage("art/font.bmp", true);
 
 	for (int i = 32; i <= 255; i++)
 		for (int f = 0; f <= 4; f++) {
 			int i2 = i - 32;
 
-			_fontChr[i2][f] = new Graphics::TransparentSurface;
+			_fontChr[i2][f] = new Graphics::ManagedSurface;
 			_fontChr[i2][f]->create(8, 8, g_system->getScreenFormat());
 
 			int col = i2 % 40;
@@ -1126,10 +1126,10 @@ void GriffonEngine::loadFont() {
 
 			rcDest.left = 0;
 			rcDest.top = 0;
-			font->blit(*_fontChr[i2][f], rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
+			font->blendBlitTo(*_fontChr[i2][f], rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
 		}
 
-	font->free();
+	delete font;
 }
 
 void GriffonEngine::loadTiles() {

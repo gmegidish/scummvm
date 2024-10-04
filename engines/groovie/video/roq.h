@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,6 +45,9 @@ public:
 		return _soundHandle;
 	}
 
+	void drawString(Graphics::Surface *surface, const Common::String text, int posx, int posy, uint32 color, bool blackBackground) override;
+	void copyfgtobg(uint8 arg) override;
+
 protected:
 	uint16 loadInternal() override;
 	bool playFrameInternal() override;
@@ -69,7 +71,9 @@ private:
 	bool processBlockSoundMono(ROQBlockHeader &blockHeader);
 	bool processBlockSoundStereo(ROQBlockHeader &blockHeader);
 	bool processBlockAudioContainer(ROQBlockHeader &blockHeader);
-	bool playFirstFrame() { return _flagOne; }; // _alpha && !_flagTwo; }
+	bool playFirstFrame() { return _flagNoPlay; }; // _alpha && !_flagOverlay; }
+	void clearOverlay();
+	void dumpAllSurfaces(const Common::String funcname);
 
 	void paint2(byte i, int destx, int desty);
 	void paint4(byte i, int destx, int desty);
@@ -78,7 +82,7 @@ private:
 
 	// Origin
 	int16 _origX, _origY;
-	int16 _screenOffset;
+	//int16 _screenOffset;
 	void calcStartStop(int &start, int &stop, int origin, int length);
 
 	// Block coding type
@@ -93,12 +97,13 @@ private:
 	byte _codebook4[256 * 4];
 
 	// Flags
-	bool _flagOne;	 //!< Play only first frame and do not print the image to the screen
-	bool _flagTwo;	 //!< If _flagOne is set. Copy frame to the foreground otherwise to the background
+	bool _flagNoPlay;	 //!< Play only first frame and do not print the image to the screen
+	bool _flagOverlay;	 //!< If _flagNoPlay is set. Copy frame to the foreground otherwise to the background
 	bool _altMotionDecoder; // Some ROQ vids use a variation on the copy codeblock
 	bool _flagMasked; //!< Clear the video instead of play it, used in pente
 
 	// Buffers
+	void redrawRestoreArea(int screenOffset, bool force);
 	void buildShowBuf();
 	byte _scaleX, _scaleY;
 	byte _offScale;

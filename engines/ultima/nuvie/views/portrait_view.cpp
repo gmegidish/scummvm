@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,19 +42,13 @@
 namespace Ultima {
 namespace Nuvie {
 
-PortraitView::PortraitView(Configuration *cfg) : View(cfg) {
-	portrait_data = NULL;
-	portrait = NULL;
-	bg_data = NULL;
-	name_string = new string;
-	show_cursor = false;
-	doll_widget = NULL;
-	waiting = false;
-	display_doll = false;
-	cur_actor_num = 0;
+PortraitView::PortraitView(const Configuration *cfg) : View(cfg),
+		portrait_data(nullptr), portrait(nullptr),	bg_data(nullptr),
+		name_string(new string), show_cursor(false), doll_widget(nullptr),
+		waiting(false), display_doll(false), cur_actor_num(0) {
 	gametype = get_game_type(cfg);
 
-//FIXME: Portraits in SE/MD are different size than in U6! 79x85 76x83
+	//FIXME: Portraits in SE/MD are different size than in U6! 79x85 76x83
 	switch (gametype) {
 	case NUVIE_GAME_U6:
 		portrait_width = 56;
@@ -69,14 +62,16 @@ PortraitView::PortraitView(Configuration *cfg) : View(cfg) {
 		portrait_width = 76;
 		portrait_height = 83;
 		break;
+	default:
+		error("Unsupported game type in PortraitView");
 	}
 }
 
 PortraitView::~PortraitView() {
-	if (portrait_data != NULL)
+	if (portrait_data != nullptr)
 		free(portrait_data);
 
-	if (bg_data != NULL)
+	if (bg_data != nullptr)
 		delete bg_data;
 
 	delete name_string;
@@ -88,7 +83,7 @@ bool PortraitView::init(uint16 x, uint16 y, Font *f, Party *p, Player *player, T
 	portrait = port;
 
 	doll_widget = new DollWidget(config, this);
-	doll_widget->init(NULL, 0, 16, tile_manager, obj_manager, true);
+	doll_widget->init(nullptr, 0, 16, tile_manager, obj_manager, true);
 
 	AddWidget(doll_widget);
 	doll_widget->Hide();
@@ -110,7 +105,7 @@ bool PortraitView::init(uint16 x, uint16 y, Font *f, Party *p, Player *player, T
 void PortraitView::load_background(const char *f, uint8 lib_offset) {
 	U6Lib_n file;
 	bg_data = new U6Shape();
-	Std::string path;
+	Common::Path path;
 	config_get_path(config, f, path);
 	file.open(path, 4, gametype);
 	unsigned char *temp_buf = file.get_item(lib_offset);
@@ -122,7 +117,7 @@ void PortraitView::Display(bool full_redraw) {
 
 	if (Game::get_game()->is_new_style() || Game::get_game()->is_original_plus_full_map())
 		screen->fill(bg_color, area.left, area.top, area.width(), area.height());
-	if (portrait_data != NULL/* && (full_redraw || update_display)*/) {
+	if (portrait_data != nullptr/* && (full_redraw || update_display)*/) {
 		update_display = false;
 		if (gametype == NUVIE_GAME_U6) {
 			if (display_doll)
@@ -160,13 +155,13 @@ bool PortraitView::set_portrait(Actor *actor, const char *name) {
 	cur_actor_num = actor->get_actor_num();
 	int doll_x_offset = 0;
 
-	if (portrait_data != NULL)
+	if (portrait_data != nullptr)
 		free(portrait_data);
 
 	portrait_data = portrait->get_portrait_data(actor);
 
 	if (gametype == NUVIE_GAME_U6 && actor->has_readied_objects()) {
-		if (portrait_data == NULL)
+		if (portrait_data == nullptr)
 			doll_x_offset = 34;
 
 		doll_widget->MoveRelativeToParent(doll_x_offset, 16);
@@ -177,15 +172,15 @@ bool PortraitView::set_portrait(Actor *actor, const char *name) {
 	} else {
 		display_doll = false;
 		doll_widget->Hide();
-		doll_widget->set_actor(NULL);
+		doll_widget->set_actor(nullptr);
 
-		if (portrait_data == NULL)
+		if (portrait_data == nullptr)
 			return false;
 	}
 
-	if (name == NULL)
+	if (name == nullptr)
 		name = actor->get_name();
-	if (name == NULL)
+	if (name == nullptr)
 		name_string->assign("");  // just in case
 	else
 		name_string->assign(name);
@@ -225,9 +220,9 @@ GUI_status PortraitView::HandleEvent(const Common::Event *event) {
 		// Game::get_game()->get_scroll()->set_input_mode(false);
 		Game::get_game()->get_scroll()->message("\n");
 		set_waiting(false);
-		return (GUI_YUM);
+		return GUI_YUM;
 	}
-	return (GUI_PASS);
+	return GUI_PASS;
 }
 
 
@@ -235,7 +230,7 @@ GUI_status PortraitView::HandleEvent(const Common::Event *event) {
  * MsgScroll.
  */
 void PortraitView::set_waiting(bool state) {
-	if (state == true && display_doll == false && portrait_data == NULL) { // don't wait for nothing
+	if (state == true && display_doll == false && portrait_data == nullptr) { // don't wait for nothing
 		if (Game::get_game()->is_new_style())
 			this->Hide();
 		return;
@@ -243,7 +238,7 @@ void PortraitView::set_waiting(bool state) {
 	waiting = state;
 	set_show_cursor(waiting);
 	Game::get_game()->get_scroll()->set_show_cursor(!waiting);
-	Game::get_game()->get_gui()->lock_input(waiting ? this : NULL);
+	Game::get_game()->get_gui()->lock_input(waiting ? this : nullptr);
 }
 
 } // End of namespace Nuvie

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,9 +28,9 @@ namespace CryOmni3D {
 // We use files common to all installations except the documentation links and the binary
 // We only check the file presence to simplify and use program to discriminate the version
 #define VERSAILLES_ENTRY(f, x, s, lien_doc_ext) { \
-	{ "11D_LEB1.HNM", 0, nullptr, -1}, \
-	{ "COFBOUM.HNM", 0, nullptr, -1}, \
-	{ "lien_doc." lien_doc_ext, 0, nullptr, -1}, \
+	{ "11D_LEB1.HNM", 0, nullptr, AD_NO_SIZE}, \
+	{ "COFBOUM.HNM", 0, nullptr, AD_NO_SIZE}, \
+	{ "lien_doc." lien_doc_ext, 0, nullptr, AD_NO_SIZE}, \
 	{ f, 0, x, s}, \
 	AD_LISTEND}
 
@@ -571,7 +570,7 @@ static const CryOmni3DGameDescription gameDescriptions[] = {
 	{ AD_TABLE_END_MARKER, 0, 0 }
 };
 
-static const char *directoryGlobs[] = {
+static const char *const directoryGlobs[] = {
 	/** Versailles 1685 **/
 	/* DATAS_V/ANIMACTI/LEVEL1/11D_LEB1.HNM
 	 * DATAS_V/ANIMACTI/LEVEL7/COFBOUM.HNM */
@@ -593,7 +592,9 @@ static const char *directoryGlobs[] = {
 	/* Mac Setup */
 	/* Versailles Folder/DATAV_HD/TEXTES/LIEN_DOC.TXT
 	 * Versailles Folder/Versailles */
-	"*Versailles*",
+	"Versailles Ordner",
+	"Versailles Folder",
+	"Dossier Versailles",
 	"DATAV_HD",
 	/* lien_doc.* */
 	"TEXTES",

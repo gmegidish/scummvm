@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,28 +15,25 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
-#include "engines/stark/gfx/tinygl.h"
 
 #include "common/system.h"
 #include "common/config-manager.h"
 
 #include "math/matrix4.h"
 
+#include "engines/stark/gfx/tinygl.h"
 #include "engines/stark/gfx/tinyglactor.h"
+#include "engines/stark/gfx/tinyglbitmap.h"
 #include "engines/stark/gfx/tinyglprop.h"
 #include "engines/stark/gfx/tinyglsurface.h"
 #include "engines/stark/gfx/tinyglfade.h"
 #include "engines/stark/gfx/tinygltexture.h"
-#include "engines/stark/gfx/tinyglbitmap.h"
 #include "engines/stark/scene.h"
 #include "engines/stark/services/services.h"
 
-#include "graphics/pixelbuffer.h"
 #include "graphics/surface.h"
 
 namespace Stark {
@@ -46,15 +43,13 @@ TinyGLDriver::TinyGLDriver() {
 }
 
 TinyGLDriver::~TinyGLDriver() {
+	TinyGL::destroyContext();
 }
 
 void TinyGLDriver::init() {
 	computeScreenViewport();
 
-	_fb = new TinyGL::FrameBuffer(kOriginalWidth, kOriginalHeight, g_system->getScreenFormat());
-	TinyGL::glInit(_fb, 512);
-	//tglEnableDirtyRects(ConfMan.getBool("dirtyrects"));
-	tglEnableDirtyRects(false);
+	TinyGL::createContext(kOriginalWidth, kOriginalHeight, g_system->getScreenFormat(), 512, true, ConfMan.getBool("dirtyrects"));
 
 	tglMatrixMode(TGL_PROJECTION);
 	tglLoadIdentity();
@@ -76,15 +71,11 @@ void TinyGLDriver::setScreenViewport(bool noScaling) {
 }
 
 void TinyGLDriver::setViewport(const Common::Rect &rect) {
-	_viewport = Common::Rect(
-			_screenViewport.width() * rect.width() / kOriginalWidth,
-			_screenViewport.height() * rect.height() / kOriginalHeight
-			);
+	_viewport = Common::Rect(_screenViewport.width() * rect.width() / kOriginalWidth,
+	                         _screenViewport.height() * rect.height() / kOriginalHeight);
 
-	_viewport.translate(
-			_screenViewport.left + _screenViewport.width() * rect.left / kOriginalWidth,
-			_screenViewport.top + _screenViewport.height() * rect.top / kOriginalHeight
-			);
+	_viewport.translate(_screenViewport.left + _screenViewport.width() * rect.left / kOriginalWidth,
+	                    _screenViewport.top + _screenViewport.height() * rect.top / kOriginalHeight);
 
 	_unscaledViewport = rect;
 
@@ -92,26 +83,31 @@ void TinyGLDriver::setViewport(const Common::Rect &rect) {
 }
 
 void TinyGLDriver::clearScreen() {
-	tglClear(TGL_COLOR_BUFFER_BIT | TGL_DEPTH_BUFFER_BIT);
+	tglClear(TGL_COLOR_BUFFER_BIT | TGL_DEPTH_BUFFER_BIT | TGL_STENCIL_BUFFER_BIT);
 }
 
 void TinyGLDriver::flipBuffer() {
-	TinyGL::tglPresentBuffer();
-	g_system->copyRectToScreen(_fb->getPixelBuffer(), _fb->linesize, 0, 0, _fb->xsize, _fb->ysize);
+	Common::List<Common::Rect> dirtyAreas;
+	TinyGL::presentBuffer(dirtyAreas);
+
+	Graphics::Surface glBuffer;
+	TinyGL::getSurfaceRef(glBuffer);
+
+	if (!dirtyAreas.empty()) {
+		for (Common::List<Common::Rect>::iterator itRect = dirtyAreas.begin(); itRect != dirtyAreas.end(); ++itRect) {
+			g_system->copyRectToScreen(glBuffer.getBasePtr((*itRect).left, (*itRect).top), glBuffer.pitch,
+			                           (*itRect).left, (*itRect).top, (*itRect).width(), (*itRect).height());
+		}
+	}
+
 	g_system->updateScreen();
 }
 
-Texture *TinyGLDriver::createTexture(const Graphics::Surface *surface, const byte *palette) {
-	TinyGlTexture *texture = new TinyGlTexture();
-
-	if (surface) {
-		texture->update(surface, palette);
-	}
-
-	return texture;
+Texture *TinyGLDriver::createTexture() {
+	return new TinyGlTexture();
 }
 
-Texture *TinyGLDriver::createBitmap(const Graphics::Surface *surface, const byte *palette) {
+Bitmap *TinyGLDriver::createBitmap(const Graphics::Surface *surface, const byte *palette) {
 	TinyGlBitmap *texture = new TinyGlBitmap();
 
 	if (surface) {
@@ -157,6 +153,11 @@ void TinyGLDriver::end2DMode() {
 void TinyGLDriver::set3DMode() {
 	tglEnable(TGL_DEPTH_TEST);
 	tglDepthFunc(TGL_LESS);
+
+	// Stencil test are only used in rendering shadows
+	// They are manually enabled and disabled there
+	tglStencilFunc(TGL_EQUAL, 0, 0xFF);
+	tglStencilOp(TGL_KEEP, TGL_KEEP, TGL_INCR);
 }
 
 bool TinyGLDriver::computeLightsEnabled() {
@@ -172,11 +173,14 @@ Common::Rect TinyGLDriver::getUnscaledViewport() const {
 }
 
 Graphics::Surface *TinyGLDriver::getViewportScreenshot() const {
+	Graphics::Surface *tmp = TinyGL::copyFromFrameBuffer(getRGBAPixelFormat());
 	Graphics::Surface *s = new Graphics::Surface();
 	s->create(_viewport.width(), _viewport.height(), getRGBAPixelFormat());
-	Graphics::PixelBuffer buf(s->format, (byte *)s->getPixels());
-	_fb->copyToBuffer(buf);
-	flipVertical(s);
+	byte *src = (byte *)tmp->getPixels();
+	s->copyRectToSurface(src + tmp->pitch * _viewport.top + _viewport.left * tmp->format.bytesPerPixel,
+	                     tmp->pitch, 0, 0, _viewport.width(), _viewport.height());
+	tmp->free();
+	delete tmp;
 	return s;
 }
 

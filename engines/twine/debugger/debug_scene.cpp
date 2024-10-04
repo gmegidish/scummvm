@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +41,7 @@ void DebugScene::drawClip(const Common::Rect &rect) {
 }
 
 void DebugScene::projectBoundingBoxPoints(IVec3 *pPoint3d, IVec3 *pPoint3dProjected) {
-	*pPoint3dProjected = _engine->_renderer->projectPositionOnScreen(*pPoint3d);
+	*pPoint3dProjected = _engine->_renderer->projectPoint(*pPoint3d);
 }
 
 bool DebugScene::checkZoneType(ZoneType type) const {
@@ -71,32 +70,32 @@ bool DebugScene::checkZoneType(ZoneType type) const {
 DebugScene::ScenePositionsProjected DebugScene::calculateBoxPositions(const IVec3 &mins, const IVec3 &maxs) {
 	ScenePositionsProjected positions;
 	// compute the points in 3D
-	positions.frontBottomLeftPoint.x = mins.x - _engine->_grid->_camera.x;
-	positions.frontBottomLeftPoint.y = mins.y - _engine->_grid->_camera.y;
-	positions.frontBottomLeftPoint.z = maxs.z - _engine->_grid->_camera.z;
+	positions.frontBottomLeftPoint.x = mins.x - _engine->_grid->_worldCube.x;
+	positions.frontBottomLeftPoint.y = mins.y - _engine->_grid->_worldCube.y;
+	positions.frontBottomLeftPoint.z = maxs.z - _engine->_grid->_worldCube.z;
 
-	positions.frontBottomRightPoint.x = maxs.x - _engine->_grid->_camera.x;
-	positions.frontBottomRightPoint.y = mins.y - _engine->_grid->_camera.y;
-	positions.frontBottomRightPoint.z = maxs.z - _engine->_grid->_camera.z;
+	positions.frontBottomRightPoint.x = maxs.x - _engine->_grid->_worldCube.x;
+	positions.frontBottomRightPoint.y = mins.y - _engine->_grid->_worldCube.y;
+	positions.frontBottomRightPoint.z = maxs.z - _engine->_grid->_worldCube.z;
 
-	positions.frontTopLeftPoint.x = mins.x - _engine->_grid->_camera.x;
-	positions.frontTopLeftPoint.y = maxs.y - _engine->_grid->_camera.y;
-	positions.frontTopLeftPoint.z = maxs.z - _engine->_grid->_camera.z;
+	positions.frontTopLeftPoint.x = mins.x - _engine->_grid->_worldCube.x;
+	positions.frontTopLeftPoint.y = maxs.y - _engine->_grid->_worldCube.y;
+	positions.frontTopLeftPoint.z = maxs.z - _engine->_grid->_worldCube.z;
 
-	positions.frontTopRightPoint = maxs - _engine->_grid->_camera;
-	positions.backBottomLeftPoint = mins - _engine->_grid->_camera;
+	positions.frontTopRightPoint = maxs - _engine->_grid->_worldCube;
+	positions.backBottomLeftPoint = mins - _engine->_grid->_worldCube;
 
-	positions.backBottomRightPoint.x = maxs.x - _engine->_grid->_camera.x;
-	positions.backBottomRightPoint.y = mins.y - _engine->_grid->_camera.y;
-	positions.backBottomRightPoint.z = mins.z - _engine->_grid->_camera.z;
+	positions.backBottomRightPoint.x = maxs.x - _engine->_grid->_worldCube.x;
+	positions.backBottomRightPoint.y = mins.y - _engine->_grid->_worldCube.y;
+	positions.backBottomRightPoint.z = mins.z - _engine->_grid->_worldCube.z;
 
-	positions.backTopLeftPoint.x = mins.x - _engine->_grid->_camera.x;
-	positions.backTopLeftPoint.y = maxs.y - _engine->_grid->_camera.y;
-	positions.backTopLeftPoint.z = mins.z - _engine->_grid->_camera.z;
+	positions.backTopLeftPoint.x = mins.x - _engine->_grid->_worldCube.x;
+	positions.backTopLeftPoint.y = maxs.y - _engine->_grid->_worldCube.y;
+	positions.backTopLeftPoint.z = mins.z - _engine->_grid->_worldCube.z;
 
-	positions.backTopRightPoint.x = maxs.x - _engine->_grid->_camera.x;
-	positions.backTopRightPoint.y = maxs.y - _engine->_grid->_camera.y;
-	positions.backTopRightPoint.z = mins.z - _engine->_grid->_camera.z;
+	positions.backTopRightPoint.x = maxs.x - _engine->_grid->_worldCube.x;
+	positions.backTopRightPoint.y = maxs.y - _engine->_grid->_worldCube.y;
+	positions.backTopRightPoint.z = mins.z - _engine->_grid->_worldCube.z;
 
 	// project all points
 
@@ -143,10 +142,10 @@ bool DebugScene::drawBox(const ScenePositionsProjected &positions, uint8 color) 
 
 bool DebugScene::displayActors() {
 	bool state = false;
-	for (int32 a = 0; a < _engine->_scene->_sceneNumActors; a++) {
+	for (int32 a = 0; a < _engine->_scene->_nbObjets; a++) {
 		const ActorStruct *actorPtr = _engine->_scene->getActor(a);
-		const IVec3 &pos = actorPtr->pos();
-		const BoundingBox &bbox = actorPtr->_boudingBox;
+		const IVec3 &pos = actorPtr->posObj();
+		const BoundingBox &bbox = actorPtr->_boundingBox;
 		const ScenePositionsProjected &positions = calculateBoxPositions(pos + bbox.mins, pos + bbox.maxs);
 		if (!drawBox(positions, COLOR_WHITE)) {
 			continue;

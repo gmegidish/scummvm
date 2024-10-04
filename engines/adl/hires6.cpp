@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,7 +59,7 @@ private:
 	void printString(const Common::String &str) override;
 
 	// Engine
-	bool canSaveGameStateCurrently() override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 
 	int o_fluteSound(ScriptEnv &e);
 
@@ -140,7 +139,7 @@ int HiRes6Engine::o_fluteSound(ScriptEnv &e) {
 	return 0;
 }
 
-bool HiRes6Engine::canSaveGameStateCurrently() {
+bool HiRes6Engine::canSaveGameStateCurrently(Common::U32String *msg) {
 	if (!_canSaveNow)
 		return false;
 
@@ -149,7 +148,7 @@ bool HiRes6Engine::canSaveGameStateCurrently() {
 	const byte var24 = getVar(24);
 	const bool abortScript = _abortScript;
 
-	const bool retval = AdlEngine_v5::canSaveGameStateCurrently();
+	const bool retval = AdlEngine_v5::canSaveGameStateCurrently(msg);
 
 	setVar(2, var2);
 	setVar(24, var24);
@@ -162,13 +161,13 @@ bool HiRes6Engine::canSaveGameStateCurrently() {
 #define SECTORS_PER_TRACK 16
 #define BYTES_PER_SECTOR 256
 
-static Common::MemoryReadStream *loadSectors(DiskImage *disk, byte track, byte sector = SECTORS_PER_TRACK - 1, byte count = SECTORS_PER_TRACK) {
+static Common::MemoryReadStream *loadSectors(Common::DiskImage *disk, byte track, byte sector = SECTORS_PER_TRACK - 1, byte count = SECTORS_PER_TRACK) {
 	const int bufSize = count * BYTES_PER_SECTOR;
 	byte *const buf = (byte *)malloc(bufSize);
 	byte *p = buf;
 
 	while (count-- > 0) {
-		StreamPtr stream(disk->createReadStream(track, sector, 0, 0));
+		Common::StreamPtr stream(disk->createReadStream(track, sector, 0, 0));
 		stream->read(p, BYTES_PER_SECTOR);
 
 		if (stream->err() || stream->eos())
@@ -196,7 +195,7 @@ void HiRes6Engine::runIntro() {
 
 	insertDisk(0);
 
-	StreamPtr stream(loadSectors(_disk, 11, 1, 96));
+	Common::StreamPtr stream(loadSectors(_disk, 11, 1, 96));
 
 	display->setMode(Display::kModeGraphics);
 	display->loadFrameBuffer(*stream);
@@ -210,7 +209,7 @@ void HiRes6Engine::runIntro() {
 	display->loadFrameBuffer(*stream);
 
 	// Load copyright string from boot file
-	Files_AppleDOS *files(new Files_AppleDOS());
+	Common::Files_AppleDOS *files(new Common::Files_AppleDOS());
 
 	if (!files->open(getDiskImageName(0)))
 		error("Failed to open disk volume 0");
@@ -233,7 +232,7 @@ void HiRes6Engine::init() {
 
 	insertDisk(0);
 
-	StreamPtr stream(_disk->createReadStream(0x3, 0xf, 0x05));
+	Common::StreamPtr stream(_disk->createReadStream(0x3, 0xf, 0x05));
 	loadRegionLocations(*stream, kRegions);
 
 	stream.reset(_disk->createReadStream(0x5, 0xa, 0x07));
@@ -274,7 +273,7 @@ void HiRes6Engine::initGameState() {
 
 	insertDisk(0);
 
-	StreamPtr stream(_disk->createReadStream(0x3, 0xe, 0x03));
+	Common::StreamPtr stream(_disk->createReadStream(0x3, 0xe, 0x03));
 	loadItems(*stream);
 
 	// A combined total of 91 rooms

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -133,11 +132,11 @@ public:
 	byte getAlsoColor(int x1, int y1, int x2, int y2);
 	byte getScreenColor(Common::Point pos);
 
-	// Further information about this: http://www.shikadi.net/moddingwiki/Raw_EGA_data
+	// Further information about this: https://moddingwiki.shikadi.net/wiki/Raw_EGA_data
 	Graphics::Surface loadPictureRaw(Common::File &file, uint16 width, uint16 height);
 
 	void drawSprite(AnimationType *sprite, byte picnum, int16 x, int16 y);
-	void drawThinkPic(Common::String filename, int id);
+	void drawThinkPic(const Common::Path &filename, int id);
 	void drawToolbar();
 	void drawCursor(byte pos);
 	void drawReadyLight(Color color);
@@ -173,7 +172,7 @@ private:
 	Graphics::Surface _backup;
 	Graphics::Surface _digits[10]; // digitsize and rwlitesize are defined in loadDigits() !!!
 	Graphics::Surface _directions[9]; // Maybe it will be needed to move them to the class itself instead.
-	Graphics::Surface _magics; // Lucerna::draw_also_lines() draws the "magical" lines here. Further information: https://github.com/urukgit/avalot/wiki/Also
+	Graphics::Surface _magics; // Lucerna::draw_also_lines() draws the "magical" lines here. Further information: https://github.com/marnanel/avalot/wiki/Also
 	Graphics::Surface _screen; // Only used in refreshScreen() to make it more optimized. (No recreation of it at every call of the function.)
 	Graphics::Surface _scrolls;
 	Graphics::Surface _surface;
@@ -193,7 +192,7 @@ private:
 
 	void skipDifference(int size, const Graphics::Surface &picture, Common::File &file);
 
-	// Further information about these two: http://www.shikadi.net/moddingwiki/Raw_EGA_data
+	// Further information about these two: https://moddingwiki.shikadi.net/wiki/Raw_EGA_data
 	Graphics::Surface loadPictureGraphic(Common::File &file); // Reads Graphic-planar EGA data.
 	Graphics::Surface loadPictureSign(Common::File &file, uint16 width, uint16 height); // Reads a tricky type of picture used for the "game over"/"about" scrolls and in the mini-game Nim.
 

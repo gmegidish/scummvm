@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,9 +25,7 @@
 #include "common/stream.h"
 
 #include "graphics/managed_surface.h"
-#include "graphics/transparent_surface.h"
 #include "graphics/nine_patch.h"
-#include "graphics/palette.h"
 #include "graphics/font.h"
 
 #include "graphics/macgui/macwidget.h"
@@ -184,6 +181,8 @@ protected:
 	void *_dataPtr;
 
 	bool _visible;
+
+	bool _draggable;
 };
 
 /**
@@ -213,12 +212,18 @@ public:
 	void move(int x, int y);
 
 	/*
-	 * Change the width and the height of the window.
+	 * Change the width and the height of the window (outer dimensions).
 	 * @param w New width of the window.
 	 * @param h New height of the window.
-	 * @param inner True to set the inner dimensions.
 	 */
-	virtual void resize(int w, int h, bool inner = false);
+	virtual void resize(int w, int h);
+
+	/*
+	 * Change the width and the height of the inner window.
+	 * @param w New width of the window.
+	 * @param h New height of the window.
+	 */
+	virtual void resizeInner(int w, int h);
 
 	/**
 	 * Change the dimensions of the window ([0, 0, 0, 0] by default).
@@ -226,7 +231,15 @@ public:
 	 * of the window, although move() and resize() might be more comfortable.
 	 * @param r The desired dimensions of the window.
 	 */
-	virtual void setDimensions(const Common::Rect &r) override;
+	void setDimensions(const Common::Rect &r) override;
+
+	/**
+	 * Change the inner dimension of the window.
+	 * Note that this changes the window inner dimension and calculates
+	 * outer dimension (ie with border, etc)
+	 * @param r The desired dimensions of the window.
+	 */
+	void setInnerDimensions(const Common::Rect &r);
 
 	/**
 	 * Set a background pattern for the window.
@@ -239,13 +252,13 @@ public:
 	 * @param g See BaseMacWindow.
 	 * @param forceRedraw If true, the borders are guarranteed to redraw.
 	 */
-	virtual bool draw(ManagedSurface *g, bool forceRedraw = false) override;
+	bool draw(ManagedSurface *g, bool forceRedraw = false) override;
 
-	virtual bool draw(bool forceRedraw = false) override;
-	virtual void blit(ManagedSurface *g, Common::Rect &dest) override;
+	bool draw(bool forceRedraw = false) override;
+	void blit(ManagedSurface *g, Common::Rect &dest) override;
 
-	virtual const Common::Rect &getInnerDimensions() override { return _innerDims; }
-	virtual ManagedSurface *getBorderSurface() override { return &_borderSurface; }
+	const Common::Rect &getInnerDimensions() override { return _innerDims; }
+	ManagedSurface *getBorderSurface() override { return &_borderSurface; }
 
 	/**
 	 * Centers the window using the dimensions of the parent window manager, or undoes this; does
@@ -258,7 +271,7 @@ public:
 	 * Most often called from the WM.
 	 * @param active Target state.
 	 */
-	virtual void setActive(bool active) override;
+	void setActive(bool active) override;
 	/**
 	 * Accessor to determine whether a window is active.
 	 * @return True if the window is active.
@@ -270,6 +283,18 @@ public:
 	 * @param title Target title.
 	 */
 	void setTitle(const Common::String &title);
+
+	/**
+	 * Set visibility of window title.
+	 * @param visible visibility of window.
+	 */
+	virtual void setTitleVisible(bool visible);
+
+	/**
+	 * Get visibility of window title.
+	 */
+	bool isTitleVisible();
+
 	/**
 	 * Accessor to get the title of the window.
 	 * @return Title.
@@ -291,8 +316,8 @@ public:
 	/**
 	 * See BaseMacWindow.
 	 */
-	virtual bool processEvent(Common::Event &event) override;
-	virtual bool hasAllFocus() override { return _beingDragged || _beingResized; }
+	bool processEvent(Common::Event &event) override;
+	bool hasAllFocus() override { return _beingDragged || _beingResized; }
 
 	/**
 	 * Set arbitrary border from a BMP data stream, with custom border offsets.
@@ -307,9 +332,9 @@ public:
 	 */
 	void loadBorder(Common::SeekableReadStream &file, uint32 flags, int lo = -1, int ro = -1, int to = -1, int bo = -1);
 	void loadBorder(Common::SeekableReadStream &file, uint32 flags, BorderOffsets offsets);
-	void setBorder(Graphics::TransparentSurface *surface, uint32 flags, BorderOffsets offsets);
+	void setBorder(Graphics::ManagedSurface *surface, uint32 flags, BorderOffsets offsets);
 	void disableBorder();
-	void loadWin95Border(const Common::String &filename, uint32 flags);
+	void loadInternalBorder(uint32 flags);
 	/**
 	 * we better set this before we load the border
 	 * @param scrollbar state
@@ -344,20 +369,23 @@ public:
 	void markAllDirty();
 	void mergeDirtyRects();
 
-	virtual bool isDirty() override { return _borderIsDirty || _contentIsDirty; }
+	bool isDirty() override { return _borderIsDirty || _contentIsDirty; }
 
 	void setBorderDirty(bool dirty) { _borderIsDirty = true; }
 	void resizeBorderSurface();
 
 	void setMode(uint32 mode) { _mode = mode; }
+	void setBorderOffsets(BorderOffsets &offsets) { _macBorder.setOffsets(offsets); }
+
+	void updateInnerDims();
 
 private:
+	void rebuildSurface(); // Propagate dimensions change and recreate patter/borders, etc.
 	void drawBorderFromSurface(ManagedSurface *g, uint32 flags);
 	void drawPattern();
 	void drawBox(ManagedSurface *g, int x, int y, int w, int h);
 	void fillRect(ManagedSurface *g, int x, int y, int w, int h, int color);
 	const Font *getTitleFont();
-	void updateInnerDims();
 	void updateOuterDims();
 
 	bool isInCloseButton(int x, int y) const;
@@ -389,6 +417,7 @@ private:
 	bool _resizable;
 
 	bool _closeable;
+	bool _isTitleVisible;
 
 	int _borderWidth;
 
@@ -398,6 +427,7 @@ private:
 	WindowClick _highlightedPart;
 
 	Common::String _title;
+	Common::String _shadowedTitle;
 
 	int _borderType;
 };

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,7 +36,7 @@
  * In the package manager, note the following:
  * 1. It creates a completely new (virtual) directory tree in the packages and directories
  *    can be mounted.
- * 2. To seperate elements of a directory path '/' must be used rather than '\'
+ * 2. To separate elements of a directory path '/' must be used rather than '\'
  * 3. LoadDirectoryAsPackage should only be used for testing. The final release will be
  *    have all files in packages.
  *
@@ -65,7 +64,7 @@ namespace Sword25 {
  *
  * 1. It creates a completely new (virtual) directory tree in the packages and directories
  *    can be mounted.
- * 2. To seperate elements of a directory path '/' must be used rather than '\'
+ * 2. To separate elements of a directory path '/' must be used rather than '\'
  * 3. LoadDirectoryAsPackage should only be used for testing. The final release will be
  *    have all files in packages.
  */
@@ -88,7 +87,7 @@ private:
 	Common::FSNode _rootFolder;
 	Common::List<ArchiveEntry *> _archiveList;
 	bool _extractedFiles;
-	Common::String _directoryName;
+	Common::Path _directoryName;
 
 	bool _useEnglishSpeech;
 	Common::String ensureSpeechLang(const Common::String &fileName);
@@ -108,7 +107,7 @@ public:
 	 *
 	 * Set the PackageManager to run on extracted game files.s
 	 */
-	void setRunWithExtractedFiles(const Common::String &directoryName) {
+	void setRunWithExtractedFiles(const Common::Path &directoryName) {
 		_extractedFiles = true;
 		_directoryName = directoryName;
 	}
@@ -119,14 +118,14 @@ public:
 	 * @param MountPosition The directory name under which the package should be mounted
 	 * @return              Returns true if the mount was successful, otherwise false.
 	 */
-	bool loadPackage(const Common::String &fileName, const Common::String &mountPosition);
+	bool loadPackage(const Common::Path &fileName, const Common::String &mountPosition);
 	/**
 	 * Mounts the contents of a directory in the specified directory in the directory tree.
 	 * @param               The name of the directory to mount
 	 * @param MountPosition The directory name under which the package should be mounted
 	 * @return              Returns true if the mount was successful, otherwise false.
 	 */
-	bool loadDirectoryAsPackage(const Common::String &directoryName, const Common::String &mountPosition);
+	bool loadDirectoryAsPackage(const Common::Path &directoryName, const Common::String &mountPosition);
 	/**
 	 * Downloads a file from the directory tree
 	 * @param FileName      The filename of the file to load
@@ -154,13 +153,14 @@ public:
 		const char *versionStr = "<?xml version=\"1.0\"?>";
 		uint fileSize;
 		char *data = (char *)getFile(fileName, &fileSize);
-		char *result = (char *)malloc(fileSize + strlen(versionStr) + 1);
+		size_t resultSize = fileSize + strlen(versionStr) + 1;
+		char *result = (char *)malloc(resultSize);
 		if (!result)
 			error("[PackageManager::getXmlFile] Cannot allocate memory");
 
-		strcpy(result, versionStr);
+		Common::strcpy_s(result, resultSize, versionStr);
 		Common::copy(data, data + fileSize, result + strlen(versionStr));
-		result[fileSize + strlen(versionStr)] = '\0';
+		result[resultSize - 1] = '\0';
 
 		delete[] data;
 		if (pFileSize)

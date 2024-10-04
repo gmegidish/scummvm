@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,7 +68,7 @@ const char *Parser_v1d::findNextNoun(const char *noun) const {
 				return _vm->_text->getNoun(i, 0);
 		}
 	}
-	return 0;
+	return nullptr;
 }
 
 /**
@@ -89,13 +88,13 @@ bool Parser_v1d::isNear_v1(const char *verb, const char *noun, Object *obj, char
 		return true;
 	} else if (obj->_screenIndex != *_vm->_screenPtr) { // Not in same screen
 		if (obj->_objValue)
-			strcpy (comment, _vm->_text->getTextParser(kCmtAny4));
+			Common::strcpy_s(comment, kCompLineSize * 5, _vm->_text->getTextParser(kCmtAny4));
 		return false;
 	}
 
 	if (obj->_cycling == kCycleInvisible) {
 		if (obj->_seqNumb) {                         // There is an image
-			strcpy(comment, _vm->_text->getTextParser(kCmtAny5));
+			Common::strcpy_s(comment, kCompLineSize * 5, _vm->_text->getTextParser(kCmtAny5));
 			return false;
 		} else {                                    // No image, assume visible
 			if ((obj->_radius < 0) ||
@@ -107,9 +106,9 @@ bool Parser_v1d::isNear_v1(const char *verb, const char *noun, Object *obj, char
 				// or is not carrying it (small, portable objects of value)
 				if (noun) {                         // Don't say unless object specified
 					if (obj->_objValue && (verb != _vm->_text->getVerb(_vm->_take, 0)))
-						strcpy(comment, _vm->_text->getTextParser(kCmtAny4));
+						Common::strcpy_s(comment, kCompLineSize * 5, _vm->_text->getTextParser(kCmtAny4));
 					else
-						strcpy(comment, _vm->_text->getTextParser(kCmtClose));
+						Common::strcpy_s(comment, kCompLineSize * 5, _vm->_text->getTextParser(kCmtClose));
 					}
 				return false;
 			}
@@ -125,9 +124,9 @@ bool Parser_v1d::isNear_v1(const char *verb, const char *noun, Object *obj, char
 		// or is not carrying it (small, portable objects of value)
 		if (noun) {                                 // Don't say unless object specified
 			if (obj->_objValue && (verb != _vm->_text->getVerb(_vm->_take, 0)))
-				strcpy(comment, _vm->_text->getTextParser(kCmtAny4));
+				Common::strcpy_s(comment, kCompLineSize * 5, _vm->_text->getTextParser(kCmtAny4));
 			else
-				strcpy(comment, _vm->_text->getTextParser(kCmtClose));
+				Common::strcpy_s(comment, kCompLineSize * 5, _vm->_text->getTextParser(kCmtClose));
 		}
 		return false;
 	}
@@ -314,7 +313,7 @@ void Parser_v1d::lineHandler() {
 		return;
 	}
 
-	Utils::strlwr(_vm->_line);                      // Convert to lower case
+	Utils::hugo_strlwr(_vm->_line);                      // Convert to lower case
 
 	// God Mode cheat commands:
 	// goto <screen>                                Takes hero to named screen
@@ -395,7 +394,7 @@ void Parser_v1d::lineHandler() {
 
 	// Find the first verb in the line
 	const char *verb = findVerb();
-	const char *noun = 0;                           // Noun not found yet
+	const char *noun = nullptr;                           // Noun not found yet
 	char farComment[kCompLineSize * 5] = "";        // hold 5 line comment if object not nearby
 
 	if (verb) {                                     // OK, verb found.  Try to match with object

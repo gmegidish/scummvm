@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -27,6 +26,7 @@
 #include "common/config-manager.h"
 
 #include "saga2/saga2.h"
+#include "saga2/annoy.h"
 #include "saga2/detection.h"
 #include "saga2/fta.h"
 #include "saga2/player.h"
@@ -61,7 +61,6 @@ int16 OptionsDialog(bool disableSaveResume = false);
 void SystemEventLoop();
 void freeAllTileBanks();
 void resetInputDevices();
-void blackOut();
 void cursorFullHide(bool onOff);
 
 static void doIntro();
@@ -117,7 +116,7 @@ void dumpGBASE(char *msg);
 void setLostroMode() {
 	abortFlag = false;
 	allPlayerActorsDead = false;
-	if (GameMode::newmodeFlag)
+	if (GameMode::_newmodeFlag)
 		GameMode::update();
 
 	if (!abortFlag) {
@@ -150,7 +149,7 @@ static void TroModeSetup() {
 	g_vm->_pointer->hide();
 	g_vm->_pal->quickSavePalette();
 	blackOut();
-	displayDisable(PlayingVideo);
+	displayDisable(kDisPlayingVideo);
 	pushVidState();
 	resetInputDevices();
 	abortFlag = false;
@@ -162,7 +161,7 @@ static void TroModeSetup() {
 static void TroModeCleanup() {
 	g_vm->endVideo();
 	popVidState();
-	displayEnable(PlayingVideo);
+	displayEnable(kDisPlayingVideo);
 	blackOut();
 	g_vm->_pal->quickRestorePalette();
 	resumeAudio();

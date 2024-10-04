@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,13 +65,13 @@ Actor::Actor(IllusionsEngine *vm)
 	_surfInfo._pixelSize = 0;
 	_surfInfo._dimensions._width = 0;
 	_surfInfo._dimensions._height = 0;
-	_surface = 0;
-	_frames = 0;
-	_scaleLayer = 0;
-	_priorityLayer = 0;
-	_regionLayer = 0;
-	_pathWalkPoints = 0;
-	_pathWalkRects = 0;
+	_surface = nullptr;
+	_frames = nullptr;
+	_scaleLayer = nullptr;
+	_priorityLayer = nullptr;
+	_regionLayer = nullptr;
+	_pathWalkPoints = nullptr;
+	_pathWalkRects = nullptr;
 	_position.x = 0;
 	_position.y = 0;
 	_position2.x = 0;
@@ -89,8 +88,8 @@ Actor::Actor(IllusionsEngine *vm)
 	}
 	_notifyThreadId1 = 0;
 	_notifyThreadId2 = 0;
-	_entryTblPtr = 0;
-	_seqCodeIp = 0;
+	_entryTblPtr = nullptr;
+	_seqCodeIp = nullptr;
 	_sequenceId = 0;
 	_seqCodeValue1 = 0;
 	_seqCodeValue2 = 600;
@@ -98,7 +97,7 @@ Actor::Actor(IllusionsEngine *vm)
 
 	_notifyId3C = 0;
 
-	_controlRoutine = 0;
+	_controlRoutine = nullptr;
 	setControlRoutine(new Common::Functor2Mem<Control*, uint32, void, Controls>(_vm->_controls, &Controls::actorControlRoutine));
 
 	_walkCallerThreadId1 = 0;
@@ -112,7 +111,7 @@ Actor::Actor(IllusionsEngine *vm)
 	_pathPoints = 0;
 	_pathPointIndex = 0;
 	_pathPointsCount = 0;
-	_pathNode = 0;
+	_pathNode = nullptr;
 
 }
 
@@ -149,7 +148,7 @@ void Actor::destroySurface() {
 	if (_surface) {
 		_surface->free();
 		delete _surface;
-		_surface = 0;
+		_surface = nullptr;
 	}
 }
 
@@ -201,7 +200,7 @@ Control::Control(IllusionsEngine *vm)
 	_position.x = 0;
 	_position.y = 0;
 	_actorTypeId = 0;
-	_actor = 0;
+	_actor = nullptr;
 	_sceneId = _vm->getCurrentScene();
 }
 
@@ -211,9 +210,9 @@ Control::~Control() {
 void Control::pause() {
 
 	if (_vm->getGameId() == kGameIdBBDOU || !(_flags & 4)) {
-		_vm->_dict->setObjectControl(_objectId, 0);
+		_vm->_dict->setObjectControl(_objectId, nullptr);
 		if (_objectId == Illusions::CURSOR_OBJECT_ID)
-			_vm->setCursorControl(0);
+			_vm->setCursorControl(nullptr);
 	}
 
 	if (_actor && !(_actor->_flags & Illusions::ACTOR_FLAG_200))
@@ -387,12 +386,12 @@ void Control::clearNotifyThreadId2() {
 		if (_actor->_subobjects[i]) {
 			Control *subControl = _vm->_dict->getObjectControl(_actor->_subobjects[i]);
 			subControl->_actor->_flags &= ~Illusions::ACTOR_FLAG_80;
-			subControl->_actor->_entryTblPtr = 0;
+			subControl->_actor->_entryTblPtr = nullptr;
 			subControl->_actor->_notifyThreadId2 = 0;
 		}
 	}
 	_actor->_flags &= ~Illusions::ACTOR_FLAG_80;
-	_actor->_entryTblPtr = 0;
+	_actor->_entryTblPtr = nullptr;
 	_actor->_notifyThreadId2 = 0;
 }
 
@@ -551,13 +550,13 @@ void Control::setActorFrameIndex(int16 frameIndex) {
 }
 
 void Control::stopActor() {
-	_actor->_seqCodeIp = 0;
+	_actor->_seqCodeIp = nullptr;
 	if (_actor->_pathNode) {
 		if (_actor->_flags & Illusions::ACTOR_FLAG_400) {
 			delete _actor->_pathNode;
 			_actor->_flags &= ~Illusions::ACTOR_FLAG_400;
 		}
-		_actor->_pathNode = 0;
+		_actor->_pathNode = nullptr;
 		_actor->_pathPoints = 0;
 		_actor->_pathPointsCount = 0;
 		_actor->_pathPointIndex = 0;
@@ -570,7 +569,7 @@ void Control::stopActor() {
 }
 
 void Control::startSequenceActor(uint32 sequenceId, int value, uint32 notifyThreadId) {
-	startSequenceActorIntern(sequenceId, value, 0, notifyThreadId);
+	startSequenceActorIntern(sequenceId, value, nullptr, notifyThreadId);
 }
 
 void Control::stopSequenceActor() {
@@ -654,7 +653,7 @@ void Control::sequenceActor() {
 
 	if (sequenceFinished) {
 		//debug(1, "Sequence has finished");
-		_actor->_seqCodeIp = 0;
+		_actor->_seqCodeIp = nullptr;
 	}
 }
 
@@ -705,7 +704,7 @@ void Control::stopSubSequence(int linkIndex) {
 		linkedActor->_seqCodeValue1 = _actor->_seqCodeValue1;
 		linkedActor->_seqCodeValue3 = _actor->_seqCodeValue3;
 		_actor->_flags &= ~Illusions::ACTOR_FLAG_80;
-		_actor->_entryTblPtr = 0;
+		_actor->_entryTblPtr = nullptr;
 		_actor->_notifyThreadId1 = 0;
 		_actor->_notifyThreadId2 = 0;
 	}
@@ -760,8 +759,8 @@ void Control::startMoveActor(uint32 sequenceId, Common::Point destPt, uint32 cal
 }
 
 PointArray *Control::createPath(Common::Point destPt) {
-	PointArray *walkPoints = (_actor->_flags & Illusions::ACTOR_FLAG_HAS_WALK_POINTS) ? _actor->_pathWalkPoints->_points : 0;
-	PathLines *walkRects = (_actor->_flags & Illusions::ACTOR_FLAG_HAS_WALK_RECTS) ? _actor->_pathWalkRects->_rects : 0;
+	PointArray *walkPoints = (_actor->_flags & Illusions::ACTOR_FLAG_HAS_WALK_POINTS) ? _actor->_pathWalkPoints->_points : nullptr;
+	PathLines *walkRects = (_actor->_flags & Illusions::ACTOR_FLAG_HAS_WALK_RECTS) ? _actor->_pathWalkRects->_rects : nullptr;
 	PathFinder pathFinder;
 	WidthHeight bgDimensions = _vm->_backgroundInstances->getMasterBgDimensions();
 	PointArray *path = pathFinder.findPath(_vm->_camera, _actor->_position, destPt, walkPoints, walkRects, bgDimensions);
@@ -780,7 +779,7 @@ void Control::updateActorMovement(uint32 deltaTime) {
 			fastWalked = true;
 			disappearActor();
 			_actor->_flags |= Illusions::ACTOR_FLAG_8000;
-			_actor->_seqCodeIp = 0;
+			_actor->_seqCodeIp = nullptr;
 			deltaTime = 2;
 		}
 
@@ -892,7 +891,7 @@ void Control::updateActorMovement(uint32 deltaTime) {
 					delete _actor->_pathNode;
 					_actor->_flags &= ~Illusions::ACTOR_FLAG_400;
 				}
-				_actor->_pathNode = 0;
+				_actor->_pathNode = nullptr;
 				_actor->_pathPoints = 0;
 				_actor->_pathPointsCount = 0;
 				_actor->_pathPointIndex = 0;
@@ -948,7 +947,7 @@ void Control::startSequenceActorIntern(uint32 sequenceId, int value, byte *entry
 	_actor->_notifyThreadId1 = notifyThreadId;
 	_actor->_notifyId3C = 0;
 	_actor->_walkCallerThreadId1 = 0;
-	_actor->_entryTblPtr = 0;
+	_actor->_entryTblPtr = nullptr;
 
 	Sequence *sequence = _vm->_dict->findSequence(sequenceId);
 
@@ -1113,7 +1112,7 @@ void Controls::placeSequenceLessActor(uint32 objectId, Common::Point placePt, Wi
 	control->_position.y = 0;
 	control->_actorTypeId = 0x50004;
 	control->_actor = actor;
-	actor->setControlRoutine(0);
+	actor->setControlRoutine(nullptr);
 	actor->_surfInfo._pixelSize = dimensions._width * dimensions._height;
 	actor->_surfInfo._dimensions = dimensions;
 	actor->createSurface(actor->_surfInfo);
@@ -1121,7 +1120,7 @@ void Controls::placeSequenceLessActor(uint32 objectId, Common::Point placePt, Wi
 	actor->_position2 = placePt;
 	actor->_facing = 64;
 	actor->_scale = 100;
-	actor->_namedPoints = 0;
+	actor->_namedPoints = nullptr;
 	actor->_pathCtrY = 140;
 
 	_controls.push_front(control);
@@ -1140,7 +1139,7 @@ void Controls::placeActorLessObject(uint32 objectId, Common::Point feetPt, Commo
 	control->_position.x = 0;
 	control->_position.y = 0;
 	control->_actorTypeId = 0;
-	control->_actor = 0;
+	control->_actor = nullptr;
 	_controls.push_front(control);
 	_vm->_dict->setObjectControl(objectId, control);
 }
@@ -1272,7 +1271,7 @@ void Controls::unpauseControlsBySceneId(uint32 sceneId) {
 }
 
 bool Controls::getOverlappedObject(Control *control, Common::Point pt, Control **outOverlappedControl, int minPriority) {
-	Control *foundControl = 0;
+	Control *foundControl = nullptr;
 	uint32 foundPriority = 0;
 	uint32 minPriorityExt = _vm->getPriorityFromBase(minPriority);
 
@@ -1302,11 +1301,11 @@ bool Controls::getOverlappedObject(Control *control, Common::Point pt, Control *
 		*outOverlappedControl = foundControl;
 	}
 
-	return foundControl != 0;
+	return foundControl != nullptr;
 }
 
 bool Controls::getOverlappedObjectAccurate(Control *control, Common::Point pt, Control **outOverlappedControl, int minPriority) {
-	Control *foundControl = 0;
+	Control *foundControl = nullptr;
 	uint32 foundPriority = 0;
 	uint32 minPriorityExt = _vm->getPriorityFromBase(minPriority);
 
@@ -1337,11 +1336,11 @@ bool Controls::getOverlappedObjectAccurate(Control *control, Common::Point pt, C
 		*outOverlappedControl = foundControl;
 	}
 
-	return foundControl != 0;
+	return foundControl != nullptr;
 }
 
 bool Controls::getDialogItemAtPos(Control *control, Common::Point pt, Control **outOverlappedControl) {
-	Control *foundControl = 0;
+	Control *foundControl = nullptr;
 	for (ItemsIterator it = _controls.begin(); it != _controls.end(); ++it) {
 		Control *testControl = *it;
 		if (testControl != control && testControl->_pauseCtr == 0 &&
@@ -1354,11 +1353,11 @@ bool Controls::getDialogItemAtPos(Control *control, Common::Point pt, Control **
 		}
 	}
 	*outOverlappedControl = foundControl;
-	return foundControl != 0;
+	return foundControl != nullptr;
 }
 
 bool Controls::getOverlappedWalkObject(Control *control, Common::Point pt, Control **outOverlappedControl) {
-	Control *foundControl = 0;
+	Control *foundControl = nullptr;
 	for (ItemsIterator it = _controls.begin(); it != _controls.end(); ++it) {
 		Control *testControl = *it;
 		if (testControl != control && testControl->_pauseCtr == 0 &&
@@ -1372,7 +1371,7 @@ bool Controls::getOverlappedWalkObject(Control *control, Common::Point pt, Contr
 	}
 	if (foundControl)
 		*outOverlappedControl = foundControl;
-	return foundControl != 0;
+	return foundControl != nullptr;
 }
 
 void Controls::destroyControl(Control *control) {
@@ -1468,10 +1467,10 @@ uint32 Controls::newTempObjectId() {
 void Controls::destroyControlInternal(Control *control) {
 
 	if ((_vm->getGameId() == kGameIdBBDOU || !(control->_flags & 4)) && control->_pauseCtr <= 0)
-		_vm->_dict->setObjectControl(control->_objectId, 0);
+		_vm->_dict->setObjectControl(control->_objectId, nullptr);
 
 	if ((_vm->getGameId() == kGameIdBBDOU || !(control->_flags & 4)) && control->_objectId == Illusions::CURSOR_OBJECT_ID && control->_pauseCtr <= 0)
-		_vm->setCursorControl(0);
+		_vm->setCursorControl(nullptr);
 
 	if (control->_actor) {
 		if (control->_actor->_pathNode && (control->_actor->_flags & Illusions::ACTOR_FLAG_400))
@@ -1479,7 +1478,7 @@ void Controls::destroyControlInternal(Control *control) {
 		if (!(control->_actor->_flags & Illusions::ACTOR_FLAG_200))
 			control->_actor->destroySurface();
 		delete control->_actor;
-		control->_actor = 0;
+		control->_actor = nullptr;
 	}
 
 	delete control;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/system.h"
 #include "common/config-manager.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/cursorman.h"
 
 #include "supernova/screen.h"
@@ -2095,7 +2094,7 @@ bool Ship::interact(Action verb, Object &obj1, Object &obj2) {
 void Ship::outro() {
 	_vm->_screen->paletteFadeOut(100);
 	_vm->renderImage(13);
-	// Because the screen is partialy faded out, the original values (63, 20, 20)
+	// Because the screen is partially faded out, the original values (63, 20, 20)
 	// should be multiplied by 2.55, but are multiplied by 3.5, because the color
 	// looks closer to the original
 	byte palette[768];

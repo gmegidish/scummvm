@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@
 #include "common/system.h"
 #include "common/events.h"
 
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/surface.h"
 
 namespace Kyra {
@@ -59,7 +58,7 @@ static uint32 readTag(Common::SeekableReadStream *stream) {
 	return tag;
 }
 
-VQADecoder::VQADecoder() {
+VQADecoder::VQADecoder() : _fileStream(nullptr), _frameInfo(nullptr) {
 	memset(&_header, 0, sizeof(_header));
 }
 
@@ -92,7 +91,7 @@ bool VQADecoder::loadStream(Common::SeekableReadStream *stream) {
 	bool foundVQHD = false;
 	bool foundFINF = false;
 
-	VQAAudioTrack *audioTrack = NULL;
+	VQAAudioTrack *audioTrack = nullptr;
 
 	// The information we need is stored in two chunks: VQHD and FINF. We
 	// need both of them before we can begin decoding the movie.
@@ -414,16 +413,12 @@ VQADecoder::VQAVideoTrack::VQAVideoTrack(const VQAHeader *header) {
 
 	_codeBookSize = 0xF00 * header->blockW * header->blockH;
 	_compressedCodeBook = false;
-	_codeBook = new byte[_codeBookSize];
+	_codeBook = new byte[_codeBookSize]();
 	_partialCodeBookSize = 0;
 	_numPartialCodeBooks = 0;
-	_partialCodeBook = new byte[_codeBookSize];
+	_partialCodeBook = new byte[_codeBookSize]();
 	_numVectorPointers = (header->width / header->blockW) * (header->height * header->blockH);
-	_vectorPointers = new uint16[_numVectorPointers];
-
-	memset(_codeBook, 0, _codeBookSize);
-	memset(_partialCodeBook, 0, _codeBookSize);
-	memset(_vectorPointers, 0, _numVectorPointers);
+	_vectorPointers = new uint16[_numVectorPointers]();
 
 	_surface = new Graphics::Surface();
 	_surface->create(header->width, header->height, Graphics::PixelFormat::createFormatCLUT8());
@@ -658,7 +653,7 @@ void VQAMovie::play() {
 				_system->copyRectToScreen((const byte *)surface->getBasePtr(0, 0), surface->pitch, x, y, width, height);
 			}
 
-			_system->updateScreen();
+			_screen->updateBackendScreen(true);
 			_system->delayMillis(10);
 		}
 	}

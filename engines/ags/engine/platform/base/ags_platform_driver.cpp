@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,8 +36,8 @@
 #include "ags/engine/ac/timer.h"
 #include "ags/engine/media/audio/audio_system.h"
 #include "ags/lib/system/datetime.h"
-#include "ags/lib/std/algorithm.h"
-#include "ags/lib/std/thread.h"
+#include "common/std/algorithm.h"
+#include "common/std/thread.h"
 #include "ags/globals.h"
 
 #if defined (AGS_HAS_CD_AUDIO)
@@ -53,9 +52,6 @@ using namespace AGS::Engine;
 AGSPlatformDriver *AGSPlatformDriver::instance = nullptr;
 
 // ******** DEFAULT IMPLEMENTATIONS *******
-
-void AGSPlatformDriver::AboutToQuitGame() {
-}
 
 void AGSPlatformDriver::PostAllegroInit(bool windowed) {
 }
@@ -96,10 +92,11 @@ void AGSPlatformDriver::AdjustWindowStyleForFullscreen() {
 void AGSPlatformDriver::AdjustWindowStyleForWindowed() {
 }
 
-void AGSPlatformDriver::RegisterGameWithGameExplorer() {
-}
-
-void AGSPlatformDriver::UnRegisterGameWithGameExplorer() {
+Size AGSPlatformDriver::ValidateWindowSize(const Size &sz, bool borderless) const {
+	// TODO: ScummVM screen limits are hardcoded to 9999x9999
+	// in sys_get_desktop_resolution
+	Size w(9999,9999);
+	return w;
 }
 
 void AGSPlatformDriver::PlayVideo(const char *name, int skip, int flags) {
@@ -164,8 +161,17 @@ void AGSPlatformDriver::FinishedUsingGraphicsMode() {
 	// don't need to do anything on any OS except DOS
 }
 
-SetupReturnValue AGSPlatformDriver::RunSetup(const ConfigTree &cfg_in, ConfigTree &cfg_out) {
+SetupReturnValue AGSPlatformDriver::RunSetup(const ConfigTree & /*cfg_in*/, ConfigTree & /*cfg_out*/) {
 	return kSetup_Cancel;
+}
+
+void AGSPlatformDriver::SetCommandArgs(const char *const argv[], size_t argc) {
+	_cmdArgs = argv;
+	_cmdArgCount = argc;
+}
+
+Common::String AGSPlatformDriver::GetCommandArg(size_t arg_index) {
+	return arg_index < _cmdArgCount ? _cmdArgs[arg_index] : nullptr;
 }
 
 void AGSPlatformDriver::SetGameWindowIcon() {
@@ -256,7 +262,7 @@ void AGSPlatformDriver::Delay(int millis) {
 			break;
 		}
 
-		auto duration = std::min<std::chrono::milliseconds>(delayUntil - now,
+		auto duration = MIN<std::chrono::milliseconds>(delayUntil - now,
 		                _G(MaximumDelayBetweenPolling));
 		std::this_thread::sleep_for(duration);
 		now = AGS_Clock::now(); // update now

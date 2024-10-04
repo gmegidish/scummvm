@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -51,6 +50,8 @@ public:
 	/** In-game palette (should not be used, except in special case. otherwise use other images functions instead) */
 	uint8 _palette[NUMOFCOLORS * 3]{0};
 
+	int32 mapLba2Palette(int32 palIndex);
+
 	/** converted in-game palette */
 	uint32 _paletteRGBA[NUMOFCOLORS]{0};
 
@@ -61,7 +62,7 @@ public:
 	bool _palResetted = false;
 
 	/** flag to check if the main flag is locked */
-	bool _lockPalette = false;
+	bool _fadePalette = false;
 
 	/** flag to check if we are using a different palette than the main one */
 	bool _useAlternatePalette = false;
@@ -75,6 +76,16 @@ public:
 	void convertPalToRGBA(const uint8 *in, uint32 *out);
 
 	/**
+	 * @sa setNormalPal
+	 */
+	void setDarkPal();
+	/**
+	 * @sa setDarkPal()
+	 * Reset the palette to the main palette after the script changed it via @c setDarkPal()
+	 */
+	void setNormalPal();
+
+	/**
 	 * Load a custom palette
 	 * @param index \a RESS.HQR entry index (starting from 0)
 	 */
@@ -84,7 +95,7 @@ public:
 	void loadMenuImage(bool fadeIn = true);
 
 	/**
-	 * Load and display a particulary image on \a RESS.HQR file with cross fade effect
+	 * Load and display a particularly image on \a RESS.HQR file with cross fade effect
 	 * @param index \a RESS.HQR entry index (starting from 0)
 	 * @param paletteIndex \a RESS.HQR entry index of the palette for the given image. This is often the @c index + 1
 	 * @param fadeIn if we fade in before using the palette
@@ -92,13 +103,15 @@ public:
 	void loadImage(TwineImage image, bool fadeIn = true);
 
 	/**
-	 * Load and display a particulary image on \a RESS.HQR file with cross fade effect and delay
+	 * Load and display a particularly image on \a RESS.HQR file with cross fade effect and delay
 	 * @param index \a RESS.HQR entry index (starting from 0)
 	 * @param paletteIndex \a RESS.HQR entry index of the palette for the given image. This is often the @c index + 1
 	 * @param seconds number of seconds to delay
 	 * @return @c true if aborted
 	 */
 	bool loadImageDelay(TwineImage image, int32 seconds);
+
+	bool loadBitmapDelay(const char *image, int32 seconds);
 
 	/**
 	 * Fade image in

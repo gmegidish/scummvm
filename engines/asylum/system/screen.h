@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,9 +23,9 @@
 #define ASYLUM_SYSTEM_SCREEN_H
 
 #include "common/array.h"
+#include "common/queue.h"
 #include "common/rect.h"
 
-#include "graphics/palette.h"
 #include "graphics/surface.h"
 
 #include "asylum/shared.h"
@@ -70,6 +69,14 @@ typedef struct GraphicQueueItem {
 	}
 } GraphicQueueItem;
 
+struct FadeParameters {
+	ResourceId resourceId;
+	int  ticksWait;
+	int  delta;
+	uint nextTick;
+	int  step;
+};
+
 class Screen {
 public:
 	Screen(AsylumEngine *_vm);
@@ -83,6 +90,7 @@ public:
 	void drawTransparent(ResourceId resourceId, uint32 frameIndex, const Common::Point &source, DrawFlags flags, uint32 transTableNum);
 	void drawTransparent(GraphicResource *resource, uint32 frameIndex, const Common::Point &source, DrawFlags flags, uint32 transTableNum);
 	void draw(ResourceId resourceId, uint32 frameIndex, const Common::Point &source, DrawFlags flags, ResourceId resourceId2, const Common::Point &destination, bool colorKey = true);
+	void draw(const Graphics::Surface &surface, int x, int y);
 
 	// Misc
 	void clear();
@@ -102,10 +110,12 @@ public:
 	void updatePalette(int32 param);
 	void setupPalette(byte *buffer, int start, int count);
 
-	void startPaletteFade(ResourceId resourceId, int32 ticksWait, int32 delta);
+	bool isFading() { return _isFading; }
+	void queuePaletteFade(ResourceId resourceId, int32 ticksWait, int32 delta);
 	void paletteFade(uint32 start, int32 ticksWait, int32 delta);
 	void stopPaletteFade(char red, char green, char blue);
 	void stopPaletteFadeAndSet(ResourceId id, int32 ticksWait, int32 delta);
+	void processPaletteFadeQueue();
 
 	// Gamma
 	void setPaletteGamma(ResourceId id);
@@ -136,13 +146,8 @@ public:
 	void drawRect(const Common::Rect &rect, uint32 color = 0xFF);
 	void copyToBackBufferClipped(Graphics::Surface *surface, int16 x, int16 y);
 
-	// Used by Writings puzzle
-	const Graphics::Surface &getSurface() const { return _backBuffer; };
-
-protected:
-	// Palette fading Timer
-	static void paletteFadeTimer(void *ptr);
-	void handlePaletteFadeTimer();
+	// Used by Writings puzzle and Chinese renderer
+	Graphics::Surface *getSurface() { return &_backBuffer; };
 
 private:
 	AsylumEngine *_vm;
@@ -163,18 +168,18 @@ private:
 	// Palette
 	byte _currentPalette[PALETTE_SIZE];
 	byte _mainPalette[PALETTE_SIZE];
+	byte _fromPalette[PALETTE_SIZE];
+	byte _toPalette[PALETTE_SIZE];
 	bool _isFading;
 	bool _fadeStop;
-	ResourceId _fadeResourceId;
-	int32 _fadeTicksWait;
-	int32 _fadeDelta;
-
+	Common::Queue<FadeParameters> _fadeQueue;
 
 	byte *getPaletteData(ResourceId id);
 	void setPaletteGamma(byte *data, byte *target = NULL);
 
-	void paletteFadeWorker(ResourceId id, int32 ticksWait, int32 delta);
-	void stopPaletteFadeTimer();
+	void stopQueuedPaletteFade();
+	void initQueuedPaletteFade(ResourceId id, int32 delta);
+	void runQueuedPaletteFade(ResourceId id, int32 delta, int i);
 
 	// Graphic queue
 	static bool graphicQueueItemComparator(const GraphicQueueItem &item1, const GraphicQueueItem &item2);

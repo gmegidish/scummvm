@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,6 @@
 #include "common/translation.h"
 #include "sky/compact.h"
 #include "gui/message.h"
-#include <stddef.h>	// for ptrdiff_t
 
 namespace Sky {
 
@@ -290,7 +288,7 @@ Compact *SkyCompact::fetchCpt(uint16 cptId) {
 	return _compacts[cptId >> 12][cptId & 0xFFF];
 }
 
-Compact *SkyCompact::fetchCptInfo(uint16 cptId, uint16 *elems, uint16 *type, char *name) {
+Compact *SkyCompact::fetchCptInfo(uint16 cptId, uint16 *elems, uint16 *type, char *name, size_t nameSize) {
 	assert(((cptId >> 12) < _numDataLists) && ((cptId & 0xFFF) < _dataListLen[cptId >> 12]));
 	if (elems)
 		*elems = _cptSizes[cptId >> 12][cptId & 0xFFF];
@@ -298,9 +296,9 @@ Compact *SkyCompact::fetchCptInfo(uint16 cptId, uint16 *elems, uint16 *type, cha
 		*type  = _cptTypes[cptId >> 12][cptId & 0xFFF];
 	if (name) {
 		if (_cptNames[cptId >> 12][cptId & 0xFFF] != NULL)
-			strcpy(name, _cptNames[cptId >> 12][cptId & 0xFFF]);
+			Common::strcpy_s(name, nameSize, _cptNames[cptId >> 12][cptId & 0xFFF]);
 		else
-			strcpy(name, "(null)");
+			Common::strcpy_s(name, nameSize, "(null)");
 	}
 	return fetchCpt(cptId);
 }

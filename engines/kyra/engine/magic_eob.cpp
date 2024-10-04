@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -220,10 +219,12 @@ void EoBCoreEngine::castSpell(int spell, int weaponSlot) {
 		}
 	}
 
-
 	int cs = (_flags.platform == Common::kPlatformSegaCD && _flags.lang == Common::JA_JPN) ? _screen->setFontStyles(_screen->_currentFont, Font::kStyleNarrow1) : -1;
 
 	_txt->printMessage(_magicStrings1[4], -1, c->name, s->name);
+
+	if (_flags.lang == Common::ZH_TWN)
+		_txt->printMessage("\r", -1);
 
 	if (cs != -1)
 		_screen->setFontStyles(_screen->_currentFont, cs);
@@ -246,7 +247,9 @@ void EoBCoreEngine::removeCharacterEffect(int spell, int charIndex, int showWarn
 		int od = _screen->curDimIndex();
 		Screen::FontId of = _screen->setFont(_conFont);
 		_screen->setScreenDim(7);
+
 		printWarning(Common::String::format(_magicStrings3[_flags.gameID == GI_EOB1 ? 3 : 2], c->name, s->name).c_str());
+
 		_screen->setScreenDim(od);
 		_screen->setFont(of);
 	}
@@ -428,7 +431,7 @@ void EoBCoreEngine::sparkEffectDefensive(int charIndex) {
 				_screen->drawShape(0, _sparkShapes[shpIndex - 1], x, y, 0);
 			}
 		}
-		updateAnimTimers();
+		updateAnimations();
 		_screen->updateScreen();
 		delay(_tickLength >> 1);
 	}
@@ -447,7 +450,7 @@ void EoBCoreEngine::sparkEffectOffensive() {
 
 	for (int i = 0; i < 44; i++) {
 		bool sceneShake = _sceneShakeCountdown;
-		updateAnimTimers();
+		updateAnimations();
 		if (sceneShake) {
 			_screen->copyRegion(0, 0, 0, 0, 176, 120, 0, 2, Screen::CR_NO_P_CHECK);
 			if (!_sceneShakeCountdown) {

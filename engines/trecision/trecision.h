@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,6 +35,7 @@
 #include "trecision/fastfile.h"
 #include "trecision/struct.h"
 #include "trecision/scheduler.h"
+#include <common/events.h>
 
 namespace Trecision {
 class AnimManager;
@@ -81,6 +81,18 @@ enum TrecisionMessageIds {
 	kMessageWith = 24,
 	kMessageGoto = 25,
 	kMessageGoto2 = 26
+};
+
+enum TRECISIONAction {
+	kActionNone,
+	kActionSkipVideo,
+	kActionFastWalk,
+	kActionPause,
+	kActionQuit,
+	kActionSystemMenu,
+	kActionSave,
+	kActionLoad,
+	kActionYes
 };
 
 typedef Common::List<Common::Rect>::iterator DirtyRectsIterator;
@@ -136,6 +148,7 @@ class TrecisionEngine : public Engine {
 	// Utils
 	char *getNextSentence();
 	uint16 getKey();
+	uint16 getAction();
 	void processTime();
 	void processMouse();
 	static bool isBetween(int a, int x, int b);
@@ -170,15 +183,15 @@ public:
 	bool isDemo() const { return _gameDescription->flags & ADGF_DEMO; }
 	bool isAmiga() const { return _gameDescription->platform == Common::kPlatformAmiga; }
 	bool hasFeature(EngineFeature f) const override;
-	bool canLoadGameStateCurrently() override { return canPlayerInteract() && _curRoom != kRoomIntro; }
-	bool canSaveGameStateCurrently() override { return canPlayerInteract() && _curRoom != kRoomIntro; }
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return canPlayerInteract() && _curRoom != kRoomIntro; }
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override { return canPlayerInteract() && _curRoom != kRoomIntro; }
 	Common::Error loadGameStream(Common::SeekableReadStream *stream) override;
 	Common::Error saveGameStream(Common::WriteStream *stream, bool isAutosave = false) override;
 	bool syncGameStream(Common::Serializer &ser);
 
 	// Data files
 	Common::SeekableReadStreamEndian *readEndian(Common::SeekableReadStream *stream, DisposeAfterUse::Flag disposeParentStream = DisposeAfterUse::YES);
-	void read3D(const Common::String &c);
+	void read3D(const Common::Path &c);
 
 	// Inventory
 	void setInventoryStart(uint8 startIcon, uint8 startLine);
@@ -233,16 +246,18 @@ public:
 	void setObjectAnim(uint16 objectId, uint16 animId);
 	void redrawRoom();
 	void readLoc();
+	Common::SeekableReadStreamEndian *getLocStream();
 	void tendIn();
 	void readExtraObj2C();
 	void readPositionerSnapshots();
 
 	// Data files
-	byte *readData(const Common::String &fileName);
+	byte *readData(const Common::Path &fileName);
 
 	const ADGameDescription *_gameDescription;
 
 	Graphics::Surface _thumbnail;
+	bool _controlPanelSave = false;
 
 	uint16 _curRoom;
 	uint16 _oldRoom;
@@ -293,6 +308,8 @@ public:
 	Common::Point _mousePos;
 	bool _mouseMoved, _mouseLeftBtn, _mouseRightBtn;
 	Common::KeyCode _curKey;
+	Common::CustomEventType _curAction;
+	bool _joyButtonUp = false;
 
 	bool _flagScriptActive;
 	SScriptFrame _scriptFrame[MAXSCRIPTFRAME];

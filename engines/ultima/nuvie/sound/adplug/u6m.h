@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,15 +32,16 @@ class Cu6mPlayer: public CPlayer {
 public:
 	static CPlayer *factory(Copl *newopl);
 
-	Cu6mPlayer(Copl *newopl) : CPlayer(newopl), song_data(0), driver_active(0),
-		songend(0), song_pos(0), loop_position(0), read_delay(0) {
+	Cu6mPlayer(Copl *newopl) : CPlayer(newopl), song_data(0), driver_active(false),
+		songend(false), song_pos(0), loop_position(0), read_delay(0), played_ticks(0) {
+		ARRAYCLEAR(channel_freq);
 	}
 
 	~Cu6mPlayer() override;
 
 
 
-	bool load(const Std::string &filename) override;
+	bool load(const Common::Path &filename) override;
 	bool update() override;
 	void rewind(int subsong) override;
 	float getrefresh() override;

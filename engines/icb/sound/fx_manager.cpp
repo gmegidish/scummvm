@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,7 +54,7 @@ FxManager::FxManager() {
 		m_effects[id].pitch = 0;
 		m_effects[id].pan = 0;
 		m_effects[id].volume = 0;
-		m_effects[id]._stream = NULL;
+		m_effects[id]._stream = nullptr;
 	}
 }
 
@@ -98,7 +97,6 @@ bool8 FxManager::Poll() {
 			if (m_effects[id].delay != 0)
 				break;
 			// falls through
-			// FIXME: fallthrough intentional?
 
 		// It's waiting to play
 		case Effect::QUEUED: {
@@ -135,7 +133,7 @@ int32 FxManager::Register(const int32 id, const char *name, const int32 delay, u
 	}
 
 	// Record the samples name so we know it is currently loaded in memory
-	strcpy(m_effects[id].name, name);
+	Common::strcpy_s(m_effects[id].name, name);
 
 	// Setup the delay if there is one
 	m_effects[id].delay = delay;
@@ -273,7 +271,7 @@ int32 FxManager::GetDefaultRateByName(const char * /*name*/, uint32 byteOffsetIn
 	delete stream;
 
 	// Return the wavs sampling rate
-	return (header.samplesPerSec);
+	return (FROM_LE_32(header.samplesPerSec));
 }
 
 bool8 FxManager::Load(int32 id, const char * /*name*/, uint32 byteOffsetInCluster) {
@@ -296,11 +294,11 @@ bool8 FxManager::Load(int32 id, const char * /*name*/, uint32 byteOffsetInCluste
 	}
 
 	// Straighten out the block align. (someties it's per second and sometime per sample)
-	if (header.blockAlign > 16)
-		header.blockAlign = (uint16)(header.channels * header.bitsPerSample / 8);
+	if (FROM_LE_16(header.blockAlign) > 16)
+		header.blockAlign = TO_LE_16((uint16)(FROM_LE_16(header.channels) * FROM_LE_16(header.bitsPerSample) / 8));
 
 	// Store buffer sampling rate for easy access later
-	m_effects[id].rate = header.samplesPerSec;
+	m_effects[id].rate = FROM_LE_32(header.samplesPerSec);
 	m_effects[id]._stream = Audio::makeWAVStream(stream, DisposeAfterUse::YES);
 
 	if (m_effects[id].rate != 0)

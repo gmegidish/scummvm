@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,15 +29,17 @@
 #include "lure/sound.h"
 #include "lure/strings.h"
 
+#include "backends/keymapper/keymapper.h"
+
 #include "common/config-manager.h"
 #include "common/system.h"
 
 namespace Lure {
 
-static Game *int_game = NULL;
+static Game *int_game = nullptr;
 
 bool Game::isCreated() {
-	return int_game != NULL;
+	return int_game != nullptr;
 }
 
 Game &Game::getReference() {
@@ -51,7 +52,6 @@ Game::Game() {
 	_fastTextFlag = false;
 	_preloadFlag = false;
 	_debugFlag = gDebugLevel >= ERROR_BASIC;
-
 	_soundFlag = true;
 }
 
@@ -186,29 +186,44 @@ void Game::execute() {
 			}
 
 			while (events.pollEvent()) {
+				// Handle special keys
+				if (events.type() == Common::EVENT_CUSTOM_ENGINE_ACTION_START) {
+					bool handled = true;
+					switch (events.customType()) {
+					case kActionSaveGame:
+						if (isMenuAvailable())
+							SaveRestoreDialog::show(true);
+						break;
+
+					case kActionRestoreGame:
+						SaveRestoreDialog::show(false);
+						break;
+
+					case kActionRestartGame:
+						doRestart();
+						break;
+
+					case kActionEscape:
+						doQuit();
+						break;
+
+					default:
+						handled = false;
+					}
+					if (handled)
+						continue;
+				}
+
 				if (events.type() == Common::EVENT_KEYDOWN) {
 					uint16 roomNum = room.roomNumber();
 
 					// Handle special keys
 					bool handled = true;
 					switch (events.event().kbd.keycode) {
-					case Common::KEYCODE_F5:
-						if (isMenuAvailable())
-							SaveRestoreDialog::show(true);
-						break;
-
-					case Common::KEYCODE_F7:
-						SaveRestoreDialog::show(false);
-						break;
-
-					case Common::KEYCODE_F9:
-						doRestart();
-						break;
-
 					case Common::KEYCODE_KP_PLUS:
 						if (_debugFlag) {
 							while (++roomNum <= 51)
-								if (res.getRoom(roomNum) != NULL) break;
+								if (res.getRoom(roomNum) != nullptr) break;
 							if (roomNum == 52) roomNum = 1;
 							room.setRoomNumber(roomNum);
 						}
@@ -217,7 +232,7 @@ void Game::execute() {
 					case Common::KEYCODE_KP_MINUS:
 						if (_debugFlag) {
 							if (roomNum == 1) roomNum = 55;
-							while (res.getRoom(--roomNum) == NULL)
+							while (res.getRoom(--roomNum) == nullptr)
 								;
 							room.setRoomNumber(roomNum);
 						}
@@ -233,10 +248,6 @@ void Game::execute() {
 					case Common::KEYCODE_SLASH:
 						if (_debugFlag)
 							room.setShowInfo(!room.showInfo());
-						break;
-
-					case Common::KEYCODE_ESCAPE:
-						doQuit();
 						break;
 
 					default:
@@ -255,7 +266,7 @@ void Game::execute() {
 			destRoom = fields.getField(NEW_ROOM_NUMBER);
 			if (destRoom != 0) {
 				// Need to change the current room
-				strcpy(room.statusLine(), "");
+				room.statusLine()[0] = '\0';
 				bool remoteFlag = fields.getField(OLD_ROOM_NUMBER) != 0;
 				room.setRoomNumber(destRoom, remoteFlag);
 				fields.setField(NEW_ROOM_NUMBER, 0);
@@ -406,7 +417,7 @@ void Game::displayChuteAnimation() {
 	delete anim;
 
 	if (result != ABORT_END_INTRO) {
-		anim = new AnimationSequence(CHUTE2_ANIM_ID, palette, true, 5, NULL, 4);
+		anim = new AnimationSequence(CHUTE2_ANIM_ID, palette, true, 5, nullptr, 4);
 		result = anim->show();
 		delete anim;
 	}
@@ -539,19 +550,19 @@ void Game::handleRightClickMenu() {
 		actions &= 0xFF7FFFFF;
 
 	action = NONE;
-	hotspot = NULL;
+	hotspot = nullptr;
 
 	bool breakFlag = false;
 	while (!breakFlag) {
 		statusLine = room.statusLine();
-		strcpy(statusLine, "");
+		statusLine[0] = '\0';
 		room.update();
 		screen.update();
 
 		action = PopupMenu::Show(actions);
 
 		if (action != NONE) {
-			sprintf(statusLine, "%s ", stringList.getString(action));
+			Common::sprintf_s(statusLine, MAX_DESC_SIZE, "%s ", stringList.getString(action));
 			statusLine += strlen(statusLine);
 		}
 
@@ -627,14 +638,14 @@ void Game::handleRightClickMenu() {
 	if (action != NONE) {
 		player->stopWalking();
 
-		if (hotspot == NULL) {
+		if (hotspot == nullptr) {
 			doAction(action, 0, itemId);
 		} else {
 			if (action != TELL) {
 				// Add the hotspot name to the status line and then go do the action
 				if ((itemId != 0xffff) && (action != GIVE) && (action != USE)) {
 					HotspotData *itemHotspot = res.getHotspot(itemId);
-					if (itemHotspot != NULL)
+					if (itemHotspot != nullptr)
 						strings.getString(itemHotspot->nameId, statusLine);
 				}
 				else
@@ -645,7 +656,7 @@ void Game::handleRightClickMenu() {
 		}
 	} else {
 		// Clear the status line
-		strcpy(room.statusLine(), "");
+		room.statusLine()[0] = '\0';
 	}
 }
 
@@ -661,11 +672,11 @@ void Game::handleLeftClick() {
 	player->stopWalking();
 	player->setDestHotspot(0);
 	player->setActionCtr(0);
-	strcpy(room.statusLine(), "");
+	room.statusLine()[0] = '\0';
 
 	if ((room.destRoomNumber() == 0) && (room.hotspotId() != 0)) {
 		// Handle look at hotspot
-		sprintf(room.statusLine(), "%s ", stringList.getString(LOOK_AT));
+		Common::sprintf_s(room.statusLine(), MAX_DESC_SIZE, "%s ", stringList.getString(LOOK_AT));
 		HotspotData *hotspot = res.getHotspot(room.hotspotId());
 		assert(hotspot);
 		strings.getString(hotspot->nameId, room.statusLine() + strlen(room.statusLine()));
@@ -690,7 +701,8 @@ bool Game::GetTellActions() {
 	Room &room = Room::getReference();
 	StringData &strings = StringData::getReference();
 	StringList &stringList = res.stringList();
-	char *statusLine = room.statusLine();
+	char *origStatusLine = room.statusLine();
+	char *statusLine = origStatusLine;
 	uint16 *commands = &_tellCommands[1];
 	char *statusLinePos[MAX_TELL_COMMANDS][4];
 	int paramIndex = 0;
@@ -723,7 +735,7 @@ bool Game::GetTellActions() {
 			screen.update();
 
 			switch (paramIndex) {
-			case 0:
+			case 0: {
 				// Prompt for selection of action to perform
 				action = PopupMenu::Show(0x6A07FD);
 				if (action == NONE) {
@@ -740,7 +752,8 @@ bool Game::GetTellActions() {
 				}
 
 				// Add the action to the status line
-				sprintf(statusLine + strlen(statusLine), "%s ", stringList.getString(action));
+				size_t pos = strlen(statusLine);
+				Common::sprintf_s(statusLine + pos, MAX_DESC_SIZE - (statusLine - origStatusLine) - pos, "%s ", stringList.getString(action));
 
 				// Handle any processing for the action
 				commands[_numTellCommands * 3] = (uint16) action;
@@ -748,7 +761,7 @@ bool Game::GetTellActions() {
 				commands[_numTellCommands * 3 + 2] = 0;
 				++paramIndex;
 				break;
-
+			}
 			case 1:
 				// First parameter
 				action = (Action) commands[_numTellCommands * 3];
@@ -779,7 +792,7 @@ bool Game::GetTellActions() {
 
 					// Store selected entry
 					commands[_numTellCommands * 3 + 1] = selectionId;
-					strcat(statusLine, selectionName);
+					Common::strcat_s(statusLine, MAX_DESC_SIZE - (statusLine - origStatusLine), selectionName);
 				}
 
 				++paramIndex;
@@ -811,7 +824,7 @@ bool Game::GetTellActions() {
 					hotspot = res.getHotspot(selectionId);
 					assert(hotspot);
 					strings.getString(hotspot->nameId, selectionName);
-					strcat(statusLine, selectionName);
+					Common::strcat_s(statusLine, MAX_DESC_SIZE - (statusLine - origStatusLine), selectionName);
 
 					commands[_numTellCommands * 3 + 2] = selectionId;
 					++paramIndex;
@@ -829,13 +842,14 @@ bool Game::GetTellActions() {
 					selectionId = PopupMenu::Show(2, continueStrsList);
 
 					switch (selectionId) {
-					case 0:
+					case 0: {
 						// Get ready for next command
-						sprintf(statusLine + strlen(statusLine), " %s ", continueStrsList[0]);
+						size_t pos = strlen(statusLine);
+						Common::sprintf_s(statusLine + pos, MAX_DESC_SIZE - (statusLine - origStatusLine) - pos, " %s ", continueStrsList[0]);
 						++_numTellCommands;
 						paramIndex = 0;
 						break;
-
+					}
 					case 1:
 						// Increment for just selected command, and add a large amount
 						// to signal that the command sequence is complete
@@ -873,7 +887,7 @@ bool Game::GetTellActions() {
 	if (result) {
 		_numTellCommands &= 0xff;
 		assert((_numTellCommands > 0) && (_numTellCommands <= MAX_TELL_COMMANDS));
-		strcpy(statusLinePos[0][0], "..");
+		Common::strcpy_s(statusLinePos[0][0], MAX_DESC_SIZE - (statusLinePos[0][0] - origStatusLine), "..");
 		room.update();
 		screen.update();
 	}
@@ -1026,13 +1040,6 @@ bool Game::getYN() {
 	Resources &res = Resources::getReference();
 	LureEngine &engine = LureEngine::getReference();
 
-	Common::Language l = LureEngine::getReference().getLanguage();
-	Common::KeyCode y = Common::KEYCODE_y;
-	if (l == Common::FR_FRA) y = Common::KEYCODE_o;
-	else if ((l == Common::DE_DEU) || (l == Common::NL_NLD)) y = Common::KEYCODE_j;
-	else if ((l == Common::ES_ESP) || (l == Common::IT_ITA)) y = Common::KEYCODE_s;
-	else if (l == Common::RU_RUS) y = Common::KEYCODE_l;
-
 	bool vKbdFlag = g_system->hasFeature(OSystem::kFeatureVirtualKeyboard);
 	if (!vKbdFlag)
 		mouse.cursorOff();
@@ -1046,19 +1053,17 @@ bool Game::getYN() {
 	bool breakFlag = false;
 	bool result = false;
 
+	Common::Keymapper *keymapper = LureEngine::getReference().getEventManager()->getKeymapper();
+	keymapper->getKeymap("yesno-shortcut")->setEnabled(true);
+
 	do {
 		while (events.pollEvent()) {
-			if (events.event().type == Common::EVENT_KEYDOWN) {
-				Common::KeyCode key = events.event().kbd.keycode;
-				if (l == Common::RU_RUS) {
-					if ((key == y) || (key == Common::KEYCODE_y) || (key == Common::KEYCODE_ESCAPE)) {
-						breakFlag = true;
-						result = key == y;
-					}
-				} else if ((key == y) || (key == Common::KEYCODE_n) ||
-					(key == Common::KEYCODE_ESCAPE)) {
+			if (events.event().type == Common::EVENT_CUSTOM_ENGINE_ACTION_START) {
+				Common::CustomEventType key = events.event().customType;
+				if ((key == kActionYes) || (key == kActionNo) ||
+					(key == kActionEscape)) {
 					breakFlag = true;
-					result = key == y;
+					result = key == kActionYes;
 				}
 			}
 			if (events.event().type == Common::EVENT_LBUTTONUP) {
@@ -1073,6 +1078,8 @@ bool Game::getYN() {
 
 		g_system->delayMillis(10);
 	} while (!engine.shouldQuit() && !breakFlag);
+
+	keymapper->getKeymap("yesno-shortcut")->setEnabled(false);
 
 	screen.update();
 	if (!vKbdFlag)

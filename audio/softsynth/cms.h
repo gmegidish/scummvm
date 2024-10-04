@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef AUDIO_SOFTSYNTH_CMS_H
 #define AUDIO_SOFTSYNTH_CMS_H
 
-#include "common/scummsys.h"
+#include "audio/cms.h"
 
 /* this structure defines a channel */
 struct saa1099_channel {
@@ -35,16 +34,16 @@ struct saa1099_channel {
 	int envelope[2];			/* envelope (0x00..0x0f or 0x10 == off) */
 
 	/* vars to simulate the square wave */
-	double counter;
-	double freq;
+	int32 counter;
+	int32 freq;
 	int level;
 };
 
 /* this structure defines a noise channel */
 struct saa1099_noise {
 	/* vars to simulate the noise generator output */
-	double counter;
-	double freq;
+	int32 counter;
+	int32 freq;
 	int level;				/* noise polynomal shifter */
 };
 
@@ -65,21 +64,27 @@ struct SAA1099 {
 	struct saa1099_noise noise[2];		/* noise generators */
 };
 
-class CMSEmulator {
+class DOSBoxCMS : public ::CMS::CMS, public Audio::EmulatedChip {
 public:
-	CMSEmulator(uint32 sampleRate) {
-		// In PCs the chips run at 7.15909 MHz instead of 8 MHz.
-		// Adjust sampling rate upwards to bring pitch down.
-		_sampleRate = (sampleRate * 352) / 315;
+	DOSBoxCMS(uint32 basePort = 0x220) {
 		memset(_saa1099, 0, sizeof(SAA1099)*2);
+		_basePort = basePort;
 	}
 
-	~CMSEmulator() { }
+	~DOSBoxCMS() override { }
 
-	void portWrite(int port, int val);
-	void readBuffer(int16 *buffer, const int numSamples);
+	bool init() override;
+	void reset() override;
+	void write(int a, int v) override;
+	void writeReg(int r, int v) override;
+
+	bool isStereo() const override { return true; }
+
+protected:
+	void generateSamples(int16 *buffer, int numSamples) override;
+
 private:
-	uint32 _sampleRate;
+	uint32 _basePort;
 
 	SAA1099 _saa1099[2];
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,14 +29,14 @@ namespace Kyra {
 #define TimerV3(x) new Common::Functor1Mem<int, void, KyraEngine_MR>(this, &KyraEngine_MR::x)
 
 void KyraEngine_MR::setupTimers() {
-	_timer->addTimer(0, TimerV3(timerRestoreCommandLine), -1, 1);
+	_timer->addTimer(0, TimerV3(timerRestoreCommandLine), -1, true);
 	for (int i = 1; i <= 3; ++i)
-		_timer->addTimer(i, TimerV3(timerRunSceneScript7), -1, 0);
-	_timer->addTimer(4, TimerV3(timerFleaDeath), -1, 0);
+		_timer->addTimer(i, TimerV3(timerRunSceneScript7), -1, false);
+	_timer->addTimer(4, TimerV3(timerFleaDeath), -1, false);
 	for (int i = 5; i <= 11; ++i)
-		_timer->addTimer(i, TimerV3(timerRunSceneScript7), -1, 0);
+		_timer->addTimer(i, TimerV3(timerRunSceneScript7), -1, false);
 	for (int i = 12; i <= 13; ++i)
-		_timer->addTimer(i, TimerV3(timerRunSceneScript7), 0, 0);
+		_timer->addTimer(i, TimerV3(timerRunSceneScript7), 0, false);
 }
 
 void KyraEngine_MR::timerRestoreCommandLine(int arg) {
@@ -59,7 +58,7 @@ void KyraEngine_MR::timerRunSceneScript7(int arg) {
 
 void KyraEngine_MR::timerFleaDeath(int arg) {
 	_timer->setCountdown(4, 5400);
-	saveGameStateIntern(999, "Autosave", 0);
+	saveGameStateIntern(999, "Autosave", nullptr);
 	_screen->hideMouse();
 	_timer->disable(4);
 	runAnimationScript("FLEADTH1.EMC", 0, 0, 1, 1);

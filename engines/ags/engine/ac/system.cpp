@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -128,8 +127,14 @@ int System_GetVsync() {
 }
 
 void System_SetVsync(int newValue) {
-	if (ags_stricmp(_G(gfxDriver)->GetDriverID(), "D3D9") != 0)
-		_GP(scsystem).vsync = newValue;
+	if (_G(gfxDriver)->DoesSupportVsyncToggle()) {
+		System_SetVSyncInternal(newValue != 0);
+	}
+}
+
+void System_SetVSyncInternal(bool vsync) {
+	_GP(scsystem).vsync = vsync;
+	_GP(usetup).Screen.Params.VSync = vsync;
 }
 
 int System_GetWindowed() {
@@ -163,12 +168,13 @@ void System_SetGamma(int newValue) {
 }
 
 int System_GetAudioChannelCount() {
-	return MAX_SOUND_CHANNELS;
+	return _GP(game).numGameChannels;
 }
 
 ScriptAudioChannel *System_GetAudioChannels(int index) {
-	if ((index < 0) || (index >= MAX_SOUND_CHANNELS))
-		quit("!System.AudioChannels: invalid sound channel index");
+	if ((index < 0) || (index >= _GP(game).numGameChannels))
+		quitprintf("!System.AudioChannels: invalid sound channel index %d, supported %d - %d",
+			index, 0, _GP(game).numGameChannels - 1);
 
 	return &_G(scrAudioChannel)[index];
 }
@@ -180,6 +186,9 @@ int System_GetVolume() {
 void System_SetVolume(int newvol) {
 	if ((newvol < 0) || (newvol > 100))
 		quit("!System.Volume: invalid volume - must be from 0-100");
+
+	if (newvol == _GP(play).digital_master_volume)
+		return;
 
 	_GP(play).digital_master_volume = newvol;
 
@@ -342,7 +351,7 @@ RuntimeScriptValue Sc_System_SaveConfigToFile(const RuntimeScriptValue *params, 
 
 RuntimeScriptValue Sc_System_Log(const RuntimeScriptValue *params, int32_t param_count) {
 	API_SCALL_SCRIPT_SPRINTF_PURE(Sc_System_Log, 2);
-	Debug::Printf(kDbgGroup_Script, (MessageType)params[0].IValue, String::Wrapper(scsf_buffer));
+	Debug::Printf(kDbgGroup_Script, (MessageType)params[0].IValue, "%s", scsf_buffer);
 	return RuntimeScriptValue((int32_t)0);
 }
 

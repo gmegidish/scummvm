@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,7 +44,7 @@ Common::Error EoBCoreEngine::loadGameState(int slot) {
 	if (!saveFile)
 		return Common::Error(Common::kReadingFailed);
 
-	Common::SeekableSubReadStreamEndian in(saveFile, saveFile->pos(), saveFile->size(), !header.originalSave, DisposeAfterUse::YES);
+	Common::SeekableReadStreamEndianWrapper in(saveFile, !header.originalSave, DisposeAfterUse::YES);
 	_loading = true;
 
 	if (slot != -1)
@@ -86,6 +85,8 @@ Common::Error EoBCoreEngine::loadGameState(int slot) {
 		in.read(c->level, 3);
 		for (int ii = 0; ii < 3; ii++)
 			c->experience[ii] = in.readUint32BE();
+		if (header.version >= 22)
+			c->hitPointsDividend = in.readSint16BE();
 		delete[] c->faceShape;
 		c->faceShape = 0;
 		in.read(c->mageSpells, 80);
@@ -114,7 +115,7 @@ Common::Error EoBCoreEngine::loadGameState(int slot) {
 	if (slot == -1) {
 		// Skip all settings which aren't necessary for party transfer.
 		// Jump directly to the items list.
-		in.skip(header.version > 18 ? 124 : 108);
+		in.skip(header.version > 18 ? (header.version < 21 ? 124 : 120) : 108);
 	} else {
 		_currentLevel = in.readByte();
 		_currentSub = in.readSByte();
@@ -141,7 +142,8 @@ Common::Error EoBCoreEngine::loadGameState(int slot) {
 		_returnAfterSpellCallback = in.readByte() ? true : false;
 
 		if (_flags.platform == Common::kPlatformSegaCD || header.version > 18) {
-			_totalPlaySecs = in.readUint32BE();
+			if (header.version < 21)
+				header.totalPlaySecs = in.readUint32BE();
 			_totalEnemiesKilled = in.readUint32BE();
 			_totalSteps = in.readUint32BE();
 			_levelMaps = in.readUint32BE();
@@ -313,6 +315,8 @@ Common::Error EoBCoreEngine::loadGameState(int slot) {
 	if (_flags.platform != Common::kPlatformSegaCD)
 		_screen->fadeFromBlack(20);
 
+	restartPlayTimerAt(header.totalPlaySecs);
+
 	_loading = false;
 	removeInputTop();
 
@@ -379,6 +383,7 @@ Common::Error EoBCoreEngine::saveGameStateIntern(int slot, const char *saveName,
 		out->write(c->level, 3);
 		for (int ii = 0; ii < 3; ii++)
 			out->writeUint32BE(c->experience[ii]);
+		out->writeSint16BE(c->hitPointsDividend);
 		out->write(c->mageSpells, 80);
 		out->write(c->clericSpells, 80);
 		out->writeUint32BE(c->mageSpellsAvailableFlags);
@@ -420,7 +425,6 @@ Common::Error EoBCoreEngine::saveGameStateIntern(int slot, const char *saveName,
 	out->writeByte(_returnAfterSpellCallback ? 1 : 0);
 
 	// SegaCD specific
-	out->writeUint32BE(_totalPlaySecs);
 	out->writeUint32BE(_totalEnemiesKilled);
 	out->writeUint32BE(_totalSteps);
 	out->writeUint32BE(_levelMaps);
@@ -567,11 +571,11 @@ void EoBCoreEngine::makeFaceShapes(int charId) {
 	_screen->_curPage = 0;
 }
 
-bool EoBCoreEngine::importOriginalSaveFile(int destSlot, const char *sourceFile) {
-	Common::Array<Common::String> origFiles;
+bool EoBCoreEngine::importOriginalSaveFile(int destSlot, const Common::Path &sourceFile) {
+	Common::Array<Common::Path> origFiles;
 	Common::Array<int> newSlots;
 
-	if (sourceFile) {
+	if (!sourceFile.empty()) {
 		// If a source file is specified via the console command we just check whether it exists.
 		if (Common::File::exists(sourceFile))
 			origFiles.push_back(sourceFile);
@@ -582,18 +586,19 @@ bool EoBCoreEngine::importOriginalSaveFile(int destSlot, const char *sourceFile)
 		int numMax = (_flags.gameID == GI_EOB1) ? 1 : 6;
 		const char *pattern = (_flags.gameID == GI_EOB1) ? "EOBDATA.SAV" : "EOBDATA%d.SAV";
 		for (int i = 0; i < numMax; ++i) {
-			Common::String temp = Common::String::format(pattern, i);
+			Common::Path temp(Common::String::format(pattern, i));
 			Common::SeekableReadStream *fs = _res->createReadStream(temp);
 			if (fs) {
-				Common::String dsc;
+				Common::U32String dsc;
 				if (_flags.gameID == GI_EOB2) {
 					char descStr[20];
 					fs->read(descStr, 20);
-					dsc = Common::String::format("(\"%s\")", descStr).c_str();
+					dsc = Common::U32String(descStr, _flags.lang == Common::ZH_TWN ? Common::CodePage::kBig5 : Common::CodePage::kLatin1);
+					dsc = "(\"" + dsc + "\")";
 				}
 
 				delete fs;
-				::GUI::MessageDialog dialog(Common::U32String::format(_("The following original saved game file has been found in your game path:\n\n%s %s\n\nDo you wish to use this saved game file with ScummVM?\n\n"), temp.c_str(), dsc.c_str()), _("Yes"), _("No"));
+				::GUI::MessageDialog dialog(Common::U32String::format(_("The following original saved game file has been found in your game path:\n\n%s %S\n\nDo you wish to use this saved game file with ScummVM?\n\n"), temp.toString(Common::Path::kNativeSeparator).c_str(), dsc.c_str()), _("Yes"), _("No"));
 				if (dialog.runModal() == ::GUI::kMessageOK)
 					origFiles.push_back(temp);
 			}
@@ -636,14 +641,14 @@ bool EoBCoreEngine::importOriginalSaveFile(int destSlot, const char *sourceFile)
 	for (int i = 0; i < numFilesFound; i++) {
 		Common::String desc = readOriginalSaveFile(origFiles[i]);
 		if (desc.empty()) {
-			warning("Unable to import original save file '%s'", origFiles[i].c_str());
+			warning("Unable to import original save file '%s'", origFiles[i].toString().c_str());
 		} else {
 			// We can't make thumbnails here, since we do not want to load all the level data, monsters, etc. for each save we convert.
 			// Instead, we use an empty surface to avoid that createThumbnailFromScreen() makes a completely pointless thumbnail from
 			// whatever screen that is currently shown when this function is called.
 			Graphics::Surface dummy;
 			saveGameStateIntern(newSlots[i], desc.c_str(), &dummy);
-			warning("Imported original save file '%s' ('%s')", origFiles[i].c_str(), desc.c_str());
+			warning("Imported original save file '%s' ('%s')", origFiles[i].toString().c_str(), desc.c_str());
 			importedCount++;
 		}
 	}
@@ -666,7 +671,7 @@ bool EoBCoreEngine::importOriginalSaveFile(int destSlot, const char *sourceFile)
 	return true;
 }
 
-Common::String EoBCoreEngine::readOriginalSaveFile(Common::String &file) {
+Common::String EoBCoreEngine::readOriginalSaveFile(const Common::Path &file) {
 	Common::String desc;
 
 	Common::SeekableReadStream *fs = _res->createReadStream(file);
@@ -697,7 +702,7 @@ Common::String EoBCoreEngine::readOriginalSaveFile(Common::String &file) {
 	if (sourcePlatform == Common::kPlatformDOS && padding && (exp & 0xFF000000))
 		sourcePlatform = Common::kPlatformAmiga;
 
-	Common::SeekableSubReadStreamEndian in(fs, 0, fs->size(), sourcePlatform == Common::kPlatformAmiga, DisposeAfterUse::YES);
+	Common::SeekableReadStreamEndianWrapper in(fs, sourcePlatform == Common::kPlatformAmiga, DisposeAfterUse::YES);
 
 	if (_flags.gameID == GI_EOB1) {
 		// Nothing to read here for EOB 1. Original EOB 1 has
@@ -706,7 +711,10 @@ Common::String EoBCoreEngine::readOriginalSaveFile(Common::String &file) {
 	} else {
 		char tempStr[30];
 		in.read(tempStr, sourcePlatform == Common::kPlatformFMTowns ? 30 : 20);
-		desc = tempStr;
+		if (_flags.lang == Common::ZH_TWN) {
+			desc = Common::U32String(tempStr, Common::CodePage::kBig5).encode(Common::CodePage::kUtf8);
+		} else
+			desc = tempStr;
 	}
 
 	for (int i = 0; i < 6; i++) {
@@ -784,7 +792,7 @@ Common::String EoBCoreEngine::readOriginalSaveFile(Common::String &file) {
 		if (c->effectFlags && _flags.gameID == GI_EOB1) {
 			// Spell effect flags are completely different in EOB I. We only use EOB II style flags in ScummVM.
 			// Doesn't matter much, since these are only temporary spell effects.
-			warning("EoBCoreEngine::readOriginalSaveFile(): Unhandled character effect flags encountered in original EOB1 save file '%s' ('%s')", file.c_str(), desc.c_str());
+			warning("EoBCoreEngine::readOriginalSaveFile(): Unhandled character effect flags encountered in original EOB1 save file '%s' ('%s')", file.toString().c_str(), desc.c_str());
 			c->effectFlags = 0;
 		}
 		c->damageTaken = in.readByte();
@@ -804,7 +812,7 @@ Common::String EoBCoreEngine::readOriginalSaveFile(Common::String &file) {
 	if (_partyEffectFlags && _flags.gameID == GI_EOB1) {
 		// Spell effect flags are completely different in EOB I. We only use EOB II style flags in ScummVM.
 		// Doesn't matter much, since these are only temporary spell effects.
-		warning("EoBCoreEngine::readOriginalSaveFile(): Unhandled party effect flags encountered in original EOB1 save file '%s' ('%s')", file.c_str(), desc.c_str());
+		warning("EoBCoreEngine::readOriginalSaveFile(): Unhandled party effect flags encountered in original EOB1 save file '%s' ('%s')", file.toString().c_str(), desc.c_str());
 		_partyEffectFlags = 0;
 	}
 	if (_flags.gameID == GI_EOB2)
@@ -856,14 +864,11 @@ Common::String EoBCoreEngine::readOriginalSaveFile(Common::String &file) {
 		l->wallsXorData = new uint8[4096];
 		l->flags = new uint16[1024];
 		memset(l->flags, 0, 1024 * sizeof(uint16));
-		EoBMonsterInPlay *lm = new EoBMonsterInPlay[30];
-		memset(lm, 0, 30 * sizeof(EoBMonsterInPlay));
+		EoBMonsterInPlay *lm = new EoBMonsterInPlay[30]();
 		l->monsters = lm;
-		EoBFlyingObject *lf = new EoBFlyingObject[_numFlyingObjects];
-		memset(lf, 0, _numFlyingObjects * sizeof(EoBFlyingObject));
+		EoBFlyingObject *lf = new EoBFlyingObject[_numFlyingObjects]();
 		l->flyingObjects = lf;
-		WallOfForce *lw = new WallOfForce[5];
-		memset(lw, 0, 5 * sizeof(WallOfForce));
+		WallOfForce *lw = new WallOfForce[5]();
 		l->wallsOfForce = lw;
 
 		if (sourcePlatform == Common::kPlatformFMTowns) {
@@ -959,7 +964,7 @@ Common::String EoBCoreEngine::readOriginalSaveFile(Common::String &file) {
 		t->extraProperties = in.readUint16();
 	}
 
-	return in.err() ? Common::String() : desc;
+	return in.err() ? Common::String() : Common::move(desc);
 }
 
 static uint32 encodeFrame4(const uint8 *src, uint8 *dst, uint32 insize) {
@@ -1078,9 +1083,7 @@ bool EoBCoreEngine::saveAsOriginalSaveFile(int slot) {
 	if (_flags.gameID == GI_EOB2 && (slot < 0 || slot > 5))
 		return false;
 
-	Common::String dir = ConfMan.get("savepath");
-	if (dir == "None")
-		dir.clear();
+	Common::Path dir = ConfMan.getPath("savepath");
 
 	Common::FSNode nd(dir);
 	if (!nd.isDirectory())
@@ -1289,7 +1292,7 @@ bool EoBCoreEngine::saveAsOriginalSaveFile(int slot) {
 		Common::String curBlockFile = _curBlockFile;
 		_curBlockFile = getBlockFileName(i + 1, 0);
 		const uint8 *p = getBlockFileData(i + 1);
-		_curBlockFile = curBlockFile;
+		_curBlockFile = Common::move(curBlockFile);
 		uint16 len = READ_LE_UINT16(p + 4);
 		p += 6;
 

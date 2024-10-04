@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -85,7 +84,7 @@ Common::Error saveSavegameData(int saveGameIdx, const Common::String &saveName, 
 	Common::String filename = vm.getSavegameFile(saveGameIdx);
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
 	Common::OutSaveFile *f = saveMan->openForSaving(filename);
-	if (f == NULL)
+	if (f == nullptr)
 		return Common::kNoGameDataFoundError;
 
 	TimeDate curTime;
@@ -105,7 +104,7 @@ Common::Error saveSavegameData(int saveGameIdx, const Common::String &saveName, 
 		return Common::kWritingFailed;
 	} else {
 		// Create the remainder of the savegame
-		Common::Serializer s(NULL, f);
+		Common::Serializer s(nullptr, f);
 		vm._game->synchronize(s, header.version);
 
 		f->finalize();
@@ -120,7 +119,7 @@ Common::Error loadSavegameData(int saveGameIdx, DraciEngine *vm) {
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
 	Common::InSaveFile *f = saveMan->openForLoading(vm->getSavegameFile(saveGameIdx));
 
-	if (f == NULL) {
+	if (f == nullptr) {
 		return Common::kNoGameDataFoundError;
 	}
 
@@ -135,7 +134,7 @@ Common::Error loadSavegameData(int saveGameIdx, DraciEngine *vm) {
 	vm->_game->deleteObjectAnimations();
 
 	// Synchronise the remaining data of the savegame
-	Common::Serializer s(f, NULL);
+	Common::Serializer s(f, nullptr);
 	vm->_game->synchronize(s, header.version);
 	delete f;
 

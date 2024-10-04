@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -63,15 +62,15 @@ bool File::open(const FSNode &node) {
 	assert(!_handle);
 
 	if (!node.exists()) {
-		warning("File::open: '%s' does not exist", node.getPath().c_str());
+		warning("File::open: node does not exist");
 		return false;
 	} else if (node.isDirectory()) {
-		warning("File::open: '%s' is a directory", node.getPath().c_str());
+		warning("File::open: '%s' is a directory", node.getPath().toString(Common::Path::kNativeSeparator).c_str());
 		return false;
 	}
 
 	SeekableReadStream *stream = node.createReadStream();
-	return open(stream, node.getPath());
+	return open(stream, node.getPath().toString(Common::Path::kNativeSeparator));
 }
 
 bool File::open(SeekableReadStream *stream, const String &name) {
@@ -151,24 +150,38 @@ DumpFile::~DumpFile() {
 	close();
 }
 
-bool DumpFile::open(const String &filename, bool createPath) {
+bool DumpFile::open(const Path &filename, bool createPath) {
 	assert(!filename.empty());
 	assert(!_handle);
 
 	if (createPath) {
-		for (uint32 i = 0; i < filename.size(); ++i) {
-			if (filename[i] == '/' || filename[i] == '\\') {
-				Common::String subpath = filename;
-				subpath.erase(i);
-				if (subpath.empty() || subpath == ".") continue;
-				AbstractFSNode *node = g_system->getFilesystemFactory()->makeFileNodePath(subpath);
+		Common::Path dirname(filename.getParent());
+
+		// If the parent directory already exists keep it simple
+		AbstractFSNode *node = g_system->getFilesystemFactory()->makeFileNodePath(dirname.toString(Common::Path::kNativeSeparator));
+		if (!node->exists()) {
+			delete node;
+
+			dirname = dirname.normalize();
+			StringArray components = dirname.splitComponents();
+
+			Common::Path subpath;
+			for (StringArray::iterator it = components.begin(); it != components.end(); ++it) {
+				subpath.appendInPlace(*it, Common::Path::kNoSeparator);
+				// Add a trailing path separator
+				subpath.appendInPlace("/");
+				node = g_system->getFilesystemFactory()->makeFileNodePath(subpath.toString(Common::Path::kNativeSeparator));
 				if (node->exists()) {
 					delete node;
 					continue;
 				}
-				if (!node->createDirectory()) warning("DumpFile: unable to create directories from path prefix (%s)", subpath.c_str());
+				if (!node->createDirectory()) {
+					warning("DumpFile: unable to create directories from path prefix (%s)", subpath.toString(Common::Path::kNativeSeparator).c_str());
+				}
 				delete node;
 			}
+		} else {
+			delete node;
 		}
 	}
 

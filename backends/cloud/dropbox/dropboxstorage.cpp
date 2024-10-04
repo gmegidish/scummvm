@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,18 +32,22 @@
 #include "backends/networking/curl/curljsonrequest.h"
 #include "common/config-manager.h"
 #include "common/debug.h"
-#include "common/json.h"
+#include "common/formats/json.h"
 
 namespace Cloud {
 namespace Dropbox {
 
 #define DROPBOX_API_FILES_DOWNLOAD "https://content.dropboxapi.com/2/files/download"
 
-DropboxStorage::DropboxStorage(Common::String accessToken, Common::String refreshToken, bool enabled):
+DropboxStorage::DropboxStorage(const Common::String &accessToken, const Common::String &refreshToken, bool enabled):
 	BaseStorage(accessToken, refreshToken, enabled) {}
 
-DropboxStorage::DropboxStorage(Common::String code, Networking::ErrorCallback cb): BaseStorage() {
+DropboxStorage::DropboxStorage(const Common::String &code, Networking::ErrorCallback cb): BaseStorage() {
 	getAccessToken(code, cb);
+}
+
+DropboxStorage::DropboxStorage(const Networking::JsonResponse &codeFlowJson, Networking::ErrorCallback cb) : BaseStorage() {
+	codeFlowComplete(cb, codeFlowJson);
 }
 
 DropboxStorage::~DropboxStorage() {}
@@ -57,7 +60,7 @@ bool DropboxStorage::needsRefreshToken() { return true; }
 
 bool DropboxStorage::canReuseRefreshToken() { return true; }
 
-void DropboxStorage::saveConfig(Common::String keyPrefix) {
+void DropboxStorage::saveConfig(const Common::String &keyPrefix) {
 	ConfMan.set(keyPrefix + "access_token", _token, ConfMan.kCloudDomain);
 	ConfMan.set(keyPrefix + "refresh_token", _refreshToken, ConfMan.kCloudDomain);
 	saveIsEnabledFlag(keyPrefix);
@@ -67,15 +70,15 @@ Common::String DropboxStorage::name() const {
 	return "Dropbox";
 }
 
-Networking::Request *DropboxStorage::listDirectory(Common::String path, ListDirectoryCallback outerCallback, Networking::ErrorCallback errorCallback, bool recursive) {
+Networking::Request *DropboxStorage::listDirectory(const Common::String &path, ListDirectoryCallback outerCallback, Networking::ErrorCallback errorCallback, bool recursive) {
 	return addRequest(new DropboxListDirectoryRequest(this, path, outerCallback, errorCallback, recursive));
 }
 
-Networking::Request *DropboxStorage::upload(Common::String path, Common::SeekableReadStream *contents, UploadCallback callback, Networking::ErrorCallback errorCallback) {
+Networking::Request *DropboxStorage::upload(const Common::String &path, Common::SeekableReadStream *contents, UploadCallback callback, Networking::ErrorCallback errorCallback) {
 	return addRequest(new DropboxUploadRequest(this, path, contents, callback, errorCallback));
 }
 
-Networking::Request *DropboxStorage::streamFileById(Common::String path, Networking::NetworkReadStreamCallback callback, Networking::ErrorCallback errorCallback) {
+Networking::Request *DropboxStorage::streamFileById(const Common::String &path, Networking::NetworkReadStreamCallback callback, Networking::ErrorCallback errorCallback) {
 	Common::JSONObject jsonRequestParameters;
 	jsonRequestParameters.setVal("path", new Common::JSONValue(path));
 	Common::JSONValue value(jsonRequestParameters);
@@ -88,10 +91,10 @@ Networking::Request *DropboxStorage::streamFileById(Common::String path, Network
 	Networking::NetworkReadStreamResponse response = request->execute();
 	if (callback)
 		(*callback)(response);
-	return response.request; // no leak here, response.request == request
+	return request; // no leak here, response.request == request
 }
 
-Networking::Request *DropboxStorage::createDirectory(Common::String path, BoolCallback callback, Networking::ErrorCallback errorCallback) {
+Networking::Request *DropboxStorage::createDirectory(const Common::String &path, BoolCallback callback, Networking::ErrorCallback errorCallback) {
 	if (!errorCallback)
 		errorCallback = getErrorPrintingCallback();
 	return addRequest(new DropboxCreateDirectoryRequest(this, path, callback, errorCallback));
@@ -105,7 +108,7 @@ Networking::Request *DropboxStorage::info(StorageInfoCallback callback, Networki
 
 Common::String DropboxStorage::savesDirectoryPath() { return "/saves/"; }
 
-DropboxStorage *DropboxStorage::loadFromConfig(Common::String keyPrefix) {
+DropboxStorage *DropboxStorage::loadFromConfig(const Common::String &keyPrefix) {
 	if (!ConfMan.hasKey(keyPrefix + "access_token", ConfMan.kCloudDomain)) {
 		warning("DropboxStorage: no access_token found");
 		return nullptr;
@@ -121,7 +124,7 @@ DropboxStorage *DropboxStorage::loadFromConfig(Common::String keyPrefix) {
 	return new DropboxStorage(accessToken, refreshToken, loadIsEnabledFlag(keyPrefix));
 }
 
-void DropboxStorage::removeFromConfig(Common::String keyPrefix) {
+void DropboxStorage::removeFromConfig(const Common::String &keyPrefix) {
 	ConfMan.removeKey(keyPrefix + "access_token", ConfMan.kCloudDomain);
 	ConfMan.removeKey(keyPrefix + "refresh_token", ConfMan.kCloudDomain);
 	removeIsEnabledFlag(keyPrefix);

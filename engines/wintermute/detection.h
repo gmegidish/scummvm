@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,12 +34,14 @@ enum WMETargetExecutable {
 	WME_1_0_22, // DEAD:CODE 2003
 	WME_1_0_24, // DEAD:CODE 2003
 	WME_1_0_25, // DEAD:CODE 2003
+	WME_1_0_26, // DEAD:CODE 2003
 	WME_1_0_28, // DEAD:CODE 2003
 	WME_1_0_30, // DEAD:CODE 2003
 	WME_1_0_31, // DEAD:CODE 2003
 	WME_1_1_33, // DEAD:CODE 2003
 	WME_1_1_35, // DEAD:CODE 2003
 	WME_1_1_37, // DEAD:CODE 2003
+	WME_1_1_38, // DEAD:CODE 2003
 	WME_1_1_39, // DEAD:CODE 2004
 	WME_1_2_43, // DEAD:CODE 2004
 	WME_1_2_44, // DEAD:CODE 2004
@@ -53,6 +54,7 @@ enum WMETargetExecutable {
 	WME_1_5_2,  // DEAD:CODE 2005
 	WME_1_6_0,  // DEAD:CODE 2006
 	WME_1_6_1,  // DEAD:CODE 2006
+	WME_1_6_2,  // DEAD:CODE 2006
 	WME_1_7_0,  // DEAD:CODE 2007
 	WME_1_7_1,  // DEAD:CODE 2007
 	WME_1_7_2,  // DEAD:CODE 2007
@@ -113,7 +115,9 @@ enum WMETargetExecutable {
 	FOXTAIL_1_2_527,
 	FOXTAIL_1_2_896,
 	FOXTAIL_1_2_902,
-	FOXTAIL_LATEST_VERSION
+	FOXTAIL_LATEST_VERSION,
+
+	WME_MAHJONG
 };
 
 enum WintermuteGameFeatures {
@@ -125,9 +129,17 @@ enum WintermuteGameFeatures {
 };
 
 struct WMEGameDescription {
+	AD_GAME_DESCRIPTION_HELPERS(adDesc);
+
 	ADGameDescription adDesc;
 	WMETargetExecutable targetExecutable;
 };
+
+#define GAMEOPTION_SHOW_FPS          GUIO_GAMEOPTIONS1
+#define GAMEOPTION_BILINEAR          GUIO_GAMEOPTIONS2
+#ifdef ENABLE_WME3D
+#define GAMEOPTION_FORCE_2D_RENDERER GUIO_GAMEOPTIONS3
+#endif
 
 } // End of namespace Wintermute
 

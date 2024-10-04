@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -84,6 +83,8 @@ enum BlenderMode {
 	kTintLightBlenderMode
 };
 
+extern int makecol(byte r, byte g, byte b);
+
 AL_ARRAY(const int, _rgb_scale_5);
 AL_ARRAY(const int, _rgb_scale_6);
 
@@ -148,11 +149,6 @@ extern int getr32(int c);
 extern int getg32(int c);
 extern int getb32(int c);
 extern int geta32(int c);
-
-extern int getr_depth(int color_depth, int c);
-extern int getg_depth(int color_depth, int c);
-extern int getb_depth(int color_depth, int c);
-extern int geta_depth(int color_depth, int c);
 
 } // namespace AGS3
 

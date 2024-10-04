@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -150,8 +149,8 @@ void SceneScriptMA06::PlayerWalkedIn() {
 			Ambient_Sounds_Remove_Looping_Sound(kSfxAPRTFAN1, 1u);         // stop other ambient
 			Ambient_Sounds_Remove_Looping_Sound(kSfxELEAMB3,  1u);         // stop other ambient
 			Actor_Says_With_Pause(kActorRachael, 300, 1.0f, 14);  // GoodbyeMcCoy
-			Actor_Says(kActorRachael, 310, 14);                   // Isnt ThisYourFloor --
-			Actor_Says(kActorMcCoy, 2860, 14);                    // YouTakeCareOfYoursel
+			Actor_Says(kActorRachael, 310, 14);                   // IsntThisYourFloor --
+			Actor_Says(kActorMcCoy, 2860, 14);                    // YouTakeCareOfYourself
 
 			Set_Enter(kSetMA02_MA04, kSceneMA02);
 			Scene_Loop_Start_Special(kSceneLoopModeChangeSet, kMA06LoopDoorClose, true);

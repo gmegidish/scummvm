@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,19 +35,16 @@
 #include "engines/grim/set.h"
 #include "engines/grim/gfx_base.h"
 #include "engines/grim/model.h"
-
 #include "engines/grim/emi/emi.h"
 #include "engines/grim/emi/costumeemi.h"
 #include "engines/grim/emi/skeleton.h"
 #include "engines/grim/emi/costume/emiskel_component.h"
 #include "engines/grim/emi/modelemi.h"
 
-#include "common/foreach.h"
-
 namespace Grim {
 
 Shadow::Shadow() :
-		shadowMask(nullptr), shadowMaskSize(0), active(false), dontNegate(false), userData(nullptr) {
+		active(false), dontNegate(false), userData(nullptr) {
 }
 
 static int animTurn(float turnAmt, const Math::Angle &dest, Math::Angle *cur) {
@@ -222,8 +218,7 @@ void Actor::saveState(SaveGame *savedState) const {
 			savedState->writeString(p.sector->getName());
 		}
 
-		savedState->writeLESint32(shadow.shadowMaskSize);
-		savedState->write(shadow.shadowMask, shadow.shadowMaskSize);
+		savedState->writeLESint32(0);
 		savedState->writeBool(shadow.active);
 		savedState->writeBool(shadow.dontNegate);
 	}
@@ -406,13 +401,9 @@ bool Actor::restoreState(SaveGame *savedState) {
 			}
 		}
 
-		shadow.shadowMaskSize = savedState->readLESint32();
-		delete[] shadow.shadowMask;
-		if (shadow.shadowMaskSize > 0) {
-			shadow.shadowMask = new byte[shadow.shadowMaskSize];
-			savedState->read(shadow.shadowMask, shadow.shadowMaskSize);
-		} else {
-			shadow.shadowMask = nullptr;
+		int shadowMaskSize = savedState->readLESint32();
+		for (int s = 0; s < shadowMaskSize; s++) {
+			savedState->readByte();
 		}
 		shadow.active = savedState->readBool();
 		shadow.dontNegate = savedState->readBool();
@@ -523,7 +514,7 @@ void Actor::setPos(const Math::Vector3d &position) {
 
 	if (g_grim->getGameType() == GType_MONKEY4) {
 		Math::Vector3d moveVec = position - _pos;
-		foreach (Actor *a, g_grim->getActiveActors()) {
+		for (Actor *a : g_grim->getActiveActors()) {
 			handleCollisionWith(a, _collisionMode, &moveVec);
 		}
 	}
@@ -799,7 +790,7 @@ void Actor::moveTo(const Math::Vector3d &pos) {
 	}
 
 	Math::Vector3d moveVec = pos - _pos;
-	foreach (Actor *a, g_grim->getActiveActors()) {
+	for (Actor *a : g_grim->getActiveActors()) {
 		handleCollisionWith(a, mode, &moveVec);
 	}
 	_pos += moveVec;
@@ -823,7 +814,7 @@ void Actor::walkForward() {
 
 	if (!_followBoxes) {
 		Math::Vector3d forwardVec(-_moveYaw.getSine() * _pitch.getCosine(),
-								  _moveYaw.getCosine() * _pitch.getCosine(), _pitch.getSine());
+		                           _moveYaw.getCosine() * _pitch.getCosine(), _pitch.getSine());
 
 		// EMI: Y is up-down, actors use an X-Z plane for movement
 		if (g_grim->getGameType() == GType_MONKEY4) {
@@ -852,7 +843,7 @@ void Actor::walkForward() {
 		g_grim->getCurrSet()->findClosestSector(_pos, &currSector, &_pos);
 		if (!currSector) { // Shouldn't happen...
 			Math::Vector3d forwardVec(-_moveYaw.getSine() * _pitch.getCosine(),
-									  _moveYaw.getCosine() * _pitch.getCosine(), _pitch.getSine());
+			                           _moveYaw.getCosine() * _pitch.getCosine(), _pitch.getSine());
 
 			// EMI: Y is up-down, actors use an X-Z plane for movement
 			if (g_grim->getGameType() == GType_MONKEY4) {
@@ -883,7 +874,7 @@ void Actor::walkForward() {
 				float z1 = -_moveYaw.getCosine() * (ay - _pitch).getCosine();
 				float z2 = _moveYaw.getSine() * (ax - _pitch).getCosine();
 				forwardVec = Math::Vector3d(-_moveYaw.getSine() * ax.getSine() * _pitch.getCosine(),
-											_moveYaw.getCosine() * ay.getSine() * _pitch.getCosine(), z1 + z2);
+				                             _moveYaw.getCosine() * ay.getSine() * _pitch.getCosine(), z1 + z2);
 			} else {
 				Math::Angle ax = Math::Vector2d(normal.x(), normal.y()).getAngle();
 				Math::Angle az = Math::Vector2d(normal.z(), normal.y()).getAngle();
@@ -891,7 +882,7 @@ void Actor::walkForward() {
 				float y1 = _moveYaw.getCosine() * (az - _pitch).getCosine();
 				float y2 = _moveYaw.getSine() * (ax - _pitch).getCosine();
 				forwardVec = Math::Vector3d(-_moveYaw.getSine() * ax.getSine() * _pitch.getCosine(), y1 + y2,
-											-_moveYaw.getCosine() * az.getSine() * _pitch.getCosine());
+				                            -_moveYaw.getCosine() * az.getSine() * _pitch.getCosine());
 			}
 
 			if (backwards)
@@ -1173,7 +1164,7 @@ void Actor::sayLine(const char *msgId, bool background, float x, float y) {
 	Common::String soundName = id;
 
 	if (g_grim->getGameType() == GType_GRIM) {
-		if (g_grim->getGameFlags() & ADGF_REMASTERED) {
+		if (g_grim->isRemastered()) {
 			soundName = g_grim->getLanguagePrefix() + "_" + soundName;
 		}
 		soundName += ".wav";
@@ -1246,14 +1237,14 @@ void Actor::sayLine(const char *msgId, bool background, float x, float y) {
 			// if we're talking background draw the text object only if there are no no-background
 			// talking actors. This prevents glottis and nick subtitles overlapping in the high roller lounge,
 			// where glottis is background and nick isn't. (https://github.com/residualvm/residualvm/issues/685)
-			foreach (Actor *a, g_grim->getTalkingActors()) {
+			for (Actor *a : g_grim->getTalkingActors()) {
 				if (!a->_backgroundTalk && a->_sayLineText) {
 					return;
 				}
 			}
 		} else {
 			// if we're not background then delete the TextObject of any talking background actor.
-			foreach (Actor *a, g_grim->getTalkingActors()) {
+			for (Actor *a : g_grim->getTalkingActors()) {
 				if (a->_backgroundTalk && a->_sayLineText) {
 					delete TextObject::getPool().getObject(a->_sayLineText);
 					a->_sayLineText = 0;
@@ -1520,8 +1511,8 @@ void Actor::updateWalk() {
 		if (_path.empty()) {
 			_walking = false;
 			_pos = destPos;
-// It seems that we need to allow an already active turning motion to
-// continue or else turning actors away from barriers won't work right
+			// It seems that we need to allow an already active turning motion to
+			// continue or else turning actors away from barriers won't work right
 			_turning = false;
 			return;
 		}
@@ -1746,16 +1737,6 @@ bool Actor::updateTalk(uint frameTime) {
 }
 
 void Actor::draw() {
-	if (!g_driver->isHardwareAccelerated() && g_grim->getFlagRefreshShadowMask()) {
-		for (int l = 0; l < MAX_SHADOWS; l++) {
-			if (!_shadowArray[l].active)
-				continue;
-			g_driver->setShadow(&_shadowArray[l]);
-			g_driver->drawShadowPlanes();
-			g_driver->setShadow(nullptr);
-		}
-	}
-
 	// FIXME: if isAttached(), factor in the joint rotation as well.
 	const Math::Vector3d &absPos = getWorldPos();
 	if (!_costumeStack.empty()) {
@@ -1810,8 +1791,7 @@ void Actor::drawCostume(Costume *costume) {
 			continue;
 		g_driver->setShadow(&_shadowArray[l]);
 		g_driver->setShadowMode();
-		if (g_driver->isHardwareAccelerated())
-			g_driver->drawShadowPlanes();
+		g_driver->drawShadowPlanes();
 		g_driver->startActorDraw(this);
 		costume->draw();
 		g_driver->finishActorDraw();
@@ -1855,7 +1835,10 @@ bool Actor::shouldDrawShadow(int shadowId) {
 		return false;
 
 	// Don't draw a shadow if the shadow caster and the actor are on different sides
-	// of the the shadow plane.
+	// of the shadow plane.
+
+	if (shadow->planeList.size() == 0)
+		return false;
 	Sector *sector = shadow->planeList.front().sector;
 	Math::Vector3d n = sector->getNormal();
 	Math::Vector3d p = sector->getVertices()[0];
@@ -1923,9 +1906,6 @@ void Actor::clearShadowPlane(int i) {
 		delete shadow->planeList.back().sector;
 		shadow->planeList.pop_back();
 	}
-	delete[] shadow->shadowMask;
-	shadow->shadowMaskSize = 0;
-	shadow->shadowMask = nullptr;
 	shadow->active = false;
 	shadow->dontNegate = false;
 
@@ -2012,7 +1992,7 @@ Math::Vector3d Actor::handleCollisionTo(const Math::Vector3d &from, const Math::
 
 	Math::Vector3d p = pos;
 	Math::Vector3d moveVec = pos - _pos;
-	foreach (Actor *a, Actor::getPool()) {
+	for (Actor *a : Actor::getPool()) {
 		if (a != this && a->isInSet(_setName) && a->isVisible()) {
 			p = a->getTangentPos(from, p);
 			handleCollisionWith(a, _collisionMode, &moveVec);
@@ -2040,7 +2020,7 @@ Math::Vector3d Actor::getTangentPos(const Math::Vector3d &pos, const Math::Vecto
 	Math::Segment2d segment(p1, p2);
 
 	// TODO: collision with Box
-//  if (_collisionMode == CollisionSphere) {
+//	if (_collisionMode == CollisionSphere) {
 	Math::Vector2d center(p.x(), p.y());
 
 	Math::Vector2d inter;
@@ -2054,9 +2034,8 @@ Math::Vector3d Actor::getTangentPos(const Math::Vector3d &pos, const Math::Vecto
 
 		return Math::Vector3d(v.getX(), v.getY(), dest.z());
 	}
-//  } else {
-
-//  }
+//	} else {
+//	}
 
 	return dest;
 }
@@ -2146,8 +2125,7 @@ bool Actor::handleCollisionWith(Actor *actor, CollisionMode mode, Math::Vector3d
 	// because it seems the original does so.
 	// if you change this code test this places: the rocks in lb and bv (both when booting directly in the
 	// set and when coming in from another one) and the poles in xb.
-	if (!this->getSphereInfo(true, size1, p1) ||
-	    !actor->getSphereInfo(false, size2, p2)) {
+	if (!this->getSphereInfo(true, size1, p1) || !actor->getSphereInfo(false, size2, p2)) {
 		return false;
 	}
 
@@ -2590,13 +2568,11 @@ unsigned const int Actor::ActionChore::talkFadeTime = 50;
 Actor::ActionChore::ActionChore() :
 	_costume(nullptr),
 	_chore(-1) {
-
 }
 
 Actor::ActionChore::ActionChore(Costume *cost, int chore) :
 	_costume(cost),
 	_chore(chore) {
-
 }
 
 void Actor::ActionChore::play(bool fade, unsigned int time) {

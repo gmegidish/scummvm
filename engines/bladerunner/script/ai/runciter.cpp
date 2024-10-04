@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -176,7 +175,10 @@ void AIScriptRunciter::OtherAgentEnteredCombatMode(int otherActorId, int combatM
 #endif // BLADERUNNER_ORIGINAL_BUGS
 			Actor_Says(kActorMcCoy, 4745, -1);
 			Actor_Says(kActorMcCoy, 4750, -1);
-			Actor_Says(kActorRunciter, 520, 17);
+			if (_vm->_cutContent) {
+				Actor_Says(kActorMcCoy, 4755, -1); // M: Was the tiger a fake?
+			}
+			Actor_Says(kActorRunciter, 520, 17);   // R: No! The tiger was real. I swear it.
 			Actor_Says(kActorRunciter, 530, 18);
 			Actor_Says(kActorRunciter, 540, 16);
 		}
@@ -531,6 +533,7 @@ bool AIScriptRunciter::UpdateAnimation(int *animation, int *frame) {
 		*animation = kModelAnimationZubenWalking;
 		_animationFrame = 0;
 		*frame = _animationFrame;
+		debugC(6, kDebugAnimation, "AIScriptRunciter::UpdateAnimation() - Current _animationState (%d) is a placeholder", _animationState);
 		break;
 	}
 	return true;

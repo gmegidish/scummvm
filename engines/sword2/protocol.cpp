@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "common/file.h"
@@ -73,7 +72,7 @@ void Sword2Engine::fetchPalette(byte *screenFile, byte *palBuffer) {
 
 byte *Sword2Engine::fetchPaletteMatchTable(byte *screenFile) {
 
-	if (isPsx()) return NULL;
+	if (isPsx()) return nullptr;
 
 	MultiScreenHeader mscreenHeader;
 
@@ -129,7 +128,7 @@ byte *Sword2Engine::fetchLayerHeader(byte *screenFile, uint16 layerNo) {
  */
 
 byte *Sword2Engine::fetchShadingMask(byte *screenFile) {
-	if (isPsx()) return NULL;
+	if (isPsx()) return nullptr;
 
 	MultiScreenHeader mscreenHeader;
 
@@ -192,8 +191,8 @@ byte *Sword2Engine::fetchBackgroundParallaxLayer(byte *screenFile, int layer) {
 
 		// Manage cache for background psx parallaxes
 		if (!_screen->getPsxScrCacheStatus(0)) { // This parallax layer is not present
-			return NULL;
-		} else if (psxParallax != NULL) { // Parallax layer present, and already in cache
+			return nullptr;
+		} else if (psxParallax != nullptr) { // Parallax layer present, and already in cache
 			return psxParallax;
 		} else { // Present, but not cached
 			uint32 locNo = _logic->getLocationNum();
@@ -247,7 +246,7 @@ byte *Sword2Engine::fetchForegroundParallaxLayer(byte *screenFile, int layer) {
 
 		// Manage cache for psx parallaxes
 		if (!_screen->getPsxScrCacheStatus(2)) { // This parallax layer is not present
-			return NULL;
+			return nullptr;
 		} else if (psxParallax) { // Parallax layer present and cached
 			return psxParallax;
 		} else { // Present, but still not cached
@@ -276,7 +275,7 @@ byte *Sword2Engine::fetchTextLine(byte *file, uint32 text_line) {
 	text_header.read(file + ResHeader::size());
 
 	if (text_line >= text_header.noOfLines) {
-		sprintf((char *)errorLine, "xxMissing line %d of %s (only 0..%d)", text_line, _resman->fetchName(file), text_header.noOfLines - 1);
+		Common::sprintf_s(errorLine, "xxMissing line %d of %s (only 0..%d)", text_line, _resman->fetchName(file), text_header.noOfLines - 1);
 
 		// first 2 chars are NULL so that actor-number comes out as '0'
 		errorLine[0] = 0;
@@ -306,7 +305,7 @@ byte *Sword2Engine::fetchPsxBackground(uint32 location) {
 
 	if (!file.open("screens.clu")) {
 		GUIErrorMessage("Broken Sword II: Cannot open screens.clu");
-		return NULL;
+		return nullptr;
 	}
 
 	file.seek(location * 4, SEEK_SET);
@@ -314,7 +313,7 @@ byte *Sword2Engine::fetchPsxBackground(uint32 location) {
 
 	if (screenOffset == 0) { // We don't have screen data for this location number.
 		file.close();
-		return NULL;
+		return nullptr;
 	}
 
 	// Get to the beginning of PSXScreensEntry
@@ -370,18 +369,18 @@ byte *Sword2Engine::fetchPsxParallax(uint32 location, uint8 level) {
 	uint32 plxSize;
 
 	if (level > 1)
-		return NULL;
+		return nullptr;
 
 	if (!file.open("screens.clu")) {
 		GUIErrorMessage("Broken Sword II: Cannot open screens.clu");
-		return NULL;
+		return nullptr;
 	}
 
 	file.seek(location * 4, SEEK_SET);
 	screenOffset = file.readUint32LE();
 
 	if (screenOffset == 0) // There is no screen here
-		return NULL;
+		return nullptr;
 
 	// Get to the beginning of PSXScreensEntry
 	file.seek(screenOffset + ResHeader::size(), SEEK_SET);
@@ -407,7 +406,7 @@ byte *Sword2Engine::fetchPsxParallax(uint32 location, uint8 level) {
 	}
 
 	if (plxXres == 0 || plxYres == 0 || plxSize == 0) // This screen has no parallax data.
-		return NULL;
+		return nullptr;
 
 	debug(2, "fetchPsxParallax() -> %s parallax, xRes: %u, yRes: %u", (level == 0) ? "Background" : "Foreground", plxXres, plxYres);
 

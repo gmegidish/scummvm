@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,11 +32,11 @@ errcxdef *lerini() {
 	// allocate an error context
 	if (!(errcx = (errcxdef *)ltk_suballoc(sizeof(errcxdef)))) {
 		// failure
-		return((errcxdef *)0);
+		return((errcxdef *)nullptr);
 	}
 
 	// initialize the error context
-	errcx->errcxfp  = (osfildef *)0;                  /* no error file handle */
+	errcx->errcxfp  = (osfildef *)nullptr;                  /* no error file handle */
 	errcx->errcxofs = 0;                      /* no offset in argument buffer */
 	errcx->errcxlog = ltk_errlog;                    /* error logging routine */
 	errcx->errcxlgc = errcx;                         /* error logging context */
@@ -62,7 +61,7 @@ void lerfre(errcxdef *errcx) {
 }
 
 void errmsg(errcxdef *ctx, char *outbuf, uint outbufl, uint err) {
-	sprintf(outbuf, "Error #%d occurred.", err);
+	Common::sprintf_s(outbuf, outbufl, "Error #%d occurred.", err);
 }
 
 } // End of namespace TADS2

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -636,8 +635,8 @@ IMPLEMENT_FUNCTION_IIS(14, Francois, chaseBeetle, ObjectIndex, EntityPosition)
 		break;
 
 	case kActionDefault:
-		strcpy((char *)&parameters->seq2, "605H");
-		strcat((char *)&parameters->seq2, (char *)&parameters->seq1);
+		Common::strcpy_s(parameters->seq2, "605H");
+		Common::strcat_s(parameters->seq2, parameters->seq1);
 
 		setCallback(1);
 		setup_exitCompartment();
@@ -655,7 +654,7 @@ IMPLEMENT_FUNCTION_IIS(14, Francois, chaseBeetle, ObjectIndex, EntityPosition)
 
 		case 2:
 			if (getInventory()->get(kItemBeetle)->location == kObjectLocation3) {
-				getEntities()->drawSequenceLeft(kEntityFrancois, (char *)&parameters->seq2);
+				getEntities()->drawSequenceLeft(kEntityFrancois, parameters->seq2);
 				getEntities()->enterCompartment(kEntityFrancois, (ObjectIndex)parameters->param1, true);
 
 				setCallback(3);

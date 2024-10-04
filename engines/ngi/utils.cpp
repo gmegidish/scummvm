@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@
 
 namespace NGI {
 
-bool CObject::loadFile(const Common::String &fname) {
+bool CObject::loadFile(const Common::Path &fname) {
 	Common::File file;
 
 	if (!file.open(fname))
@@ -115,8 +114,8 @@ MemoryObject::MemoryObject() {
 	_mfield_14 = 1;
 	_dataSize = 0;
 	_mflags = 0;
-	_libHandle = 0;
-	_data = 0;
+	_libHandle = nullptr;
+	_data = nullptr;
 }
 
 MemoryObject::~MemoryObject() {
@@ -125,11 +124,13 @@ MemoryObject::~MemoryObject() {
 
 bool MemoryObject::load(MfcArchive &file) {
 	debugC(5, kDebugLoading, "MemoryObject::load()");
-	_memfilename = file.readPascalString();
+	Common::String filename = file.readPascalString();
 
-	while (_memfilename.contains('\\')) {
-		_memfilename.deleteChar(0);
+	while (filename.contains('\\')) {
+		filename.deleteChar(0);
 	}
+
+	_memfilename = Common::Path(filename);
 
 	if (g_nmi->_currArchive) {
 		_mfield_14 = 0;
@@ -139,8 +140,8 @@ bool MemoryObject::load(MfcArchive &file) {
 	return true;
 }
 
-void MemoryObject::loadFile(const Common::String &filename) {
-	debugC(5, kDebugLoading, "MemoryObject::loadFile(<%s>)", filename.c_str());
+void MemoryObject::loadFile(const Common::Path &filename) {
+	debugC(5, kDebugLoading, "MemoryObject::loadFile(<%s>)", filename.toString().c_str());
 
 	if (filename.empty())
 		return;
@@ -158,9 +159,10 @@ void MemoryObject::loadFile(const Common::String &filename) {
 
 			_dataSize = s->size();
 
-			debugC(5, kDebugLoading, "Loading %s (%d bytes)", filename.c_str(), _dataSize);
+			debugC(5, kDebugLoading, "Loading %s (%d bytes)", filename.toString().c_str(), _dataSize);
 			_data = (byte *)calloc(_dataSize, 1);
 			s->read(_data, _dataSize);
+			delete s;
 		} else {
 			// We have no object to read. This is fine
 		}
@@ -185,12 +187,12 @@ byte *MemoryObject::loadData() {
 }
 
 void MemoryObject::freeData() {
-	debugC(8, kDebugMemory, "MemoryObject::freeData(): file: %s", _memfilename.c_str());
+	debugC(8, kDebugMemory, "MemoryObject::freeData(): file: %s", _memfilename.toString().c_str());
 
 	if (_data)
 		free(_data);
 
-	_data = 0;
+	_data = nullptr;
 }
 
 bool MemoryObject::testFlags() {
@@ -204,7 +206,7 @@ bool MemoryObject::testFlags() {
 }
 
 MemoryObject2::MemoryObject2() {
-	_rows = 0;
+	_rows = nullptr;
 }
 
 MemoryObject2::~MemoryObject2() {
@@ -218,7 +220,7 @@ bool MemoryObject2::load(MfcArchive &file) {
 
 	_mflags |= 1;
 
-	debugC(5, kDebugLoading, "MemoryObject2::load: <%s>", _memfilename.c_str());
+	debugC(5, kDebugLoading, "MemoryObject2::load: <%s>", _memfilename.toString().c_str());
 
 	if (!_memfilename.empty()) {
 		MemoryObject::loadFile(_memfilename);
@@ -276,7 +278,7 @@ const struct {
 	{ "CMovGraphNode",	kMovGraphNode },
 	{ "CReactParallel",	kReactParallel },
 	{ "CReactPolygonal", kReactPolygonal },
-	{ 0, 0 }
+	{ nullptr, 0 }
 };
 
 static const char *lookupObjectId(int id) {
@@ -291,7 +293,7 @@ static const char *lookupObjectId(int id) {
 static CObject *createObject(int objectId) {
 	switch (objectId) {
 	case kNullObject:
-		return 0;
+		return nullptr;
 	case kInteraction:
 		return new Interaction();
 	case kMessageQueue:
@@ -318,19 +320,19 @@ static CObject *createObject(int objectId) {
 		error("Unknown objectId: %d", objectId);
 	}
 
-	return 0;
+	return nullptr;
 }
 
 MfcArchive::MfcArchive(Common::SeekableReadStream *stream) {
 	_stream = stream;
-	_wstream = 0;
+	_wstream = nullptr;
 
 	init();
 }
 
 MfcArchive::MfcArchive(Common::WriteStream *stream) {
 	_wstream = stream;
-	_stream = 0;
+	_stream = nullptr;
 
 	init();
 }
@@ -360,14 +362,14 @@ CObject *MfcArchive::readBaseClass() {
 CObject *MfcArchive::parseClass(bool *isCopyReturned) {
 	Common::String name;
 	int objectId = 0;
-	CObject *res = 0;
+	CObject *res = nullptr;
 
 	uint obTag = readUint16LE();
 
 	debugC(7, kDebugLoading, "parseClass::obTag = %d (%04x)  at 0x%08x", obTag, obTag, (int)pos() - 2);
 
 	if (obTag == 0x0000) {
-		return NULL;
+		return nullptr;
 	} else if (obTag == 0xffff) {
 		int schema = readUint16LE();
 
@@ -424,7 +426,7 @@ CObject *MfcArchive::parseClass(bool *isCopyReturned) {
 }
 
 void MfcArchive::writeObject(CObject *obj) {
-	if (obj == NULL) {
+	if (obj == nullptr) {
 		writeUint16LE(0);
 	} else if (_objectHash.contains(obj)) {
 		int32 idx = _objectHash[obj];
@@ -453,7 +455,7 @@ void MfcArchive::writeObject(CObject *obj) {
 	}
 }
 
-Common::String genFileName(int superId, int sceneId, const char *ext) {
+Common::Path genFileName(int superId, int sceneId, const char *ext) {
 	Common::String s;
 
 	if (superId) {
@@ -464,7 +466,7 @@ Common::String genFileName(int superId, int sceneId, const char *ext) {
 
 	debugC(7, kDebugLoading, "genFileName: %s", s.c_str());
 
-	return s;
+	return Common::Path(s);
 }
 
 // Translates cp-1251..utf-8
@@ -556,7 +558,7 @@ void NGIEngine::loadGameObjH() {
 		}
 
 		Common::String val(&s.c_str()[8], cnt);
-		int key = strtol(ptr, NULL, 10);
+		int key = strtol(ptr, nullptr, 10);
 
 		_gameObjH[(uint16)key] = val;
 	}

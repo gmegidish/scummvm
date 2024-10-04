@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@ Resource::Resource(Common::Platform platform, bool isDemo) : _platform(platform)
 		_macResFork = new Common::MacResManager();
 		if (!_macResFork->open("Star Trek Data"))
 			error("Could not load Star Trek Data");
-		assert(_macResFork->hasDataFork() && _macResFork->hasResFork());
+		assert(_macResFork->hasResFork());
 	}
 
 	readIndexFile();
@@ -176,7 +175,17 @@ Common::MemoryReadStreamEndian *Resource::loadSequentialFile(Common::String file
 }
 
 uint32 Resource::getSequentialFileOffset(uint32 offset, int fileIndex) {
-	Common::SeekableReadStream *dataRunFile = SearchMan.createReadStreamForMember("data.run"); // FIXME: Amiga & Mac need this implemented
+	Common::SeekableReadStream *dataRunFile;
+
+	if (_platform == Common::kPlatformAmiga) {
+		// TODO: Amiga version
+		dataRunFile = nullptr;
+	} else if (_platform == Common::kPlatformMacintosh) {
+		dataRunFile = _macResFork->getResource("Runs");
+	} else {
+		dataRunFile = SearchMan.createReadStreamForMember("data.run");
+	}
+
 	if (!dataRunFile)
 		error("Could not open sequential file");
 
@@ -202,9 +211,10 @@ Common::MemoryReadStreamEndian *Resource::loadFile(Common::String filename, int 
 	bool bigEndian = _platform == Common::kPlatformAmiga;
 
 	// Load external patches
-	if (Common::File::exists(filename)) {
+	Common::Path path(filename);
+	if (Common::File::exists(path)) {
 		Common::File *patch = new Common::File();
-		patch->open(filename);
+		patch->open(path);
 		int32 size = patch->size();
 		byte *data = (byte *)malloc(size);
 		patch->read(data, size);
@@ -234,7 +244,7 @@ Common::MemoryReadStreamEndian *Resource::loadFile(Common::String filename, int 
 	if (_platform == Common::kPlatformAmiga) {
 		dataFile = SearchMan.createReadStreamForMember("data.000");
 	} else if (_platform == Common::kPlatformMacintosh) {
-		dataFile = _macResFork->getDataFork();
+		dataFile = Common::MacResManager::openFileOrDataFork("Star Trek Data");
 	} else {
 		dataFile = SearchMan.createReadStreamForMember("data.001");
 	}

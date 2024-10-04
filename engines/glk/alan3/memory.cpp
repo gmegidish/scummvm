@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@ namespace Alan3 {
 
 /* PUBLIC DATA */
 
-Aword *memory = NULL;
+Aword *memory = nullptr;
 static ACodeHeader dummyHeader; /* Dummy to use until memory allocated */
 ACodeHeader *header = &dummyHeader;
 int memTop = 0;         /* Top of load memory */
@@ -39,7 +38,7 @@ int memTop = 0;         /* Top of load memory */
 void *allocate(unsigned long lengthInBytes) {
 	void *p = (void *)calloc((size_t)lengthInBytes, 1);
 
-	if (p == NULL)
+	if (p == nullptr)
 		syserr("Out of memory.");
 
 	return p;
@@ -66,14 +65,14 @@ typedef struct {
 	void *voidp;
 } PointerMapEntry;
 
-static PointerMapEntry *pointerMap = NULL;
+static PointerMapEntry *pointerMap = nullptr;
 static int pointerMapSize = 0;
 static int nextAptr = 1;
 
 /*======================================================================*/
 void resetPointerMap(void) {
-	if (pointerMap != NULL) free(pointerMap);
-	pointerMap = NULL;
+	if (pointerMap != nullptr) free(pointerMap);
+	pointerMap = nullptr;
 	pointerMapSize = 0;
 }
 
@@ -95,12 +94,12 @@ void *fromAptr(Aptr aptr) {
 Aptr toAptr(void *ptr) {
 	int index;
 
-	if (pointerMap == NULL) {
+	if (pointerMap == nullptr) {
 		pointerMap = (PointerMapEntry *)allocate(sizeof(PointerMapEntry));
 		pointerMapSize = 1;
 	}
 
-	for (index = 0; index < pointerMapSize && pointerMap[index].voidp != NULL; index++)
+	for (index = 0; index < pointerMapSize && pointerMap[index].voidp != nullptr; index++)
 		;
 	if (index == pointerMapSize) {
 		pointerMap = (PointerMapEntry *)realloc(pointerMap, (index + 1) * sizeof(PointerMapEntry));

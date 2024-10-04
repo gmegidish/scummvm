@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -220,7 +219,7 @@ void sceneHandler38_animateAlcoholics() {
 				if (bossAnim > 0) {
 					mq = new MessageQueue(g_nmi->_currentScene->getMessageQueueById(bossAnim), 0, 0);
 
-					mq->chain(0);
+					mq->chain(nullptr);
 
 					g_vars->scene38_bossCounter = 0;
 				}
@@ -268,7 +267,7 @@ void sceneHandler38_animateAlcoholics() {
 		if (tallyAnim > 0) {
 			mq = new MessageQueue(g_nmi->_currentScene->getMessageQueueById(tallyAnim), 0, 0);
 
-			mq->chain(0);
+			mq->chain(nullptr);
 			g_vars->scene38_tallyCounter = 0;
 		}
 	}
@@ -312,7 +311,7 @@ void sceneHandler38_animateAlcoholics() {
 	if (shortyAnim > 0) {
 		mq = new MessageQueue(g_nmi->_currentScene->getMessageQueueById(shortyAnim), 0, 0);
 
-		mq->chain(0);
+		mq->chain(nullptr);
 
 		g_vars->scene38_shortyCounter = 0;
 	}

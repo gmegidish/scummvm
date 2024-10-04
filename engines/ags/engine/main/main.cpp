@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ags/shared/core/platform.h"
-#define AGS_PLATFORM_DEFINES_PSP_VARS (AGS_PLATFORM_OS_IOS || AGS_PLATFORM_OS_ANDROID)
-#include "ags/lib/std/set.h"
+#include "common/std/set.h"
 #include "ags/lib/allegro.h" // allegro_exit
 #include "ags/shared/ac/common.h"
 #include "ags/engine/ac/game_setup.h"
@@ -41,40 +39,17 @@
 #include "ags/shared/util/directory.h"
 #include "ags/shared/util/path.h"
 #include "ags/shared/util/string_compat.h"
+#include "ags/shared/util/string_utils.h"
 #include "ags/globals.h"
 
 namespace AGS3 {
 
-#if AGS_PLATFORM_OS_WINDOWS && !AGS_PLATFORM_DEBUG
-#define USE_CUSTOM_EXCEPTION_HANDLER
-#endif
-
 using namespace AGS::Shared;
 using namespace AGS::Engine;
 
-void main_pre_init() {
-	_G(our_eip) = -999;
-	_GP(AssetMgr)->SetSearchPriority(Shared::kAssetPriorityDir);
-	_GP(play).takeover_data = 0;
-}
-
-void main_create_platform_driver() {
-	_G(platform) = AGSPlatformDriver::GetDriver();
-}
-
-// this needs to be updated if the "play" struct changes
-#define SVG_VERSION_BWCOMPAT_MAJOR      3
-#define SVG_VERSION_BWCOMPAT_MINOR      2
-#define SVG_VERSION_BWCOMPAT_RELEASE    0
-#define SVG_VERSION_BWCOMPAT_REVISION   1103
-// CHECKME: we may lower this down, if we find that earlier versions may still
-// load new savedgames
-#define SVG_VERSION_FWCOMPAT_MAJOR      3
-#define SVG_VERSION_FWCOMPAT_MINOR      2
-#define SVG_VERSION_FWCOMPAT_RELEASE    1
-#define SVG_VERSION_FWCOMPAT_REVISION   1111
-
 void main_init(int argc, const char *argv[]) {
+	_G(our_eip) = -999;
+
 	// Init libraries: set text encoding
 	set_uformat(U_UTF8);
 	set_filename_encoding(U_UNICODE);
@@ -83,27 +58,21 @@ void main_init(int argc, const char *argv[]) {
 #if defined (BUILD_STR)
 	_G(EngineVersion).BuildInfo = BUILD_STR;
 #endif
-	_G(SavedgameLowestBackwardCompatVersion) = Version(SVG_VERSION_BWCOMPAT_MAJOR, SVG_VERSION_BWCOMPAT_MINOR, SVG_VERSION_BWCOMPAT_RELEASE, SVG_VERSION_BWCOMPAT_REVISION);
-	_G(SavedgameLowestForwardCompatVersion) = Version(SVG_VERSION_FWCOMPAT_MAJOR, SVG_VERSION_FWCOMPAT_MINOR, SVG_VERSION_FWCOMPAT_RELEASE, SVG_VERSION_FWCOMPAT_REVISION);
+
+	_G(platform) = AGSPlatformDriver::GetDriver();
+	_G(platform)->SetCommandArgs(argv, argc);
+	_G(platform)->MainInit();
 
 	_GP(AssetMgr).reset(new AssetManager());
-	main_pre_init();
-	main_create_platform_driver();
-	_G(platform)->MainInitAdjustments();
-
-	_G(global_argv) = argv;
-	_G(global_argc) = argc;
+	_GP(AssetMgr)->SetSearchPriority(Shared::kAssetPriorityDir);
 }
 
 String get_engine_string() {
 	return String::FromFormat("Adventure Game Studio v%s Interpreter\n"
-	                          "Copyright (c) 1999-2011 Chris Jones and " ACI_COPYRIGHT_YEARS " others\n"
-#ifdef BUILD_STR
-	                          "ACI version %s (Build: %s)\n",
-	                          _G(EngineVersion).ShortString.GetCStr(), _G(EngineVersion).LongString.GetCStr(), _G(EngineVersion).BuildInfo.GetCStr());
-#else
-	                          "ACI version %s\n", _G(EngineVersion).ShortString.GetCStr(), _G(EngineVersion).LongString.GetCStr());
-#endif
+							  "Copyright (c) 1999-2011 Chris Jones and " ACI_COPYRIGHT_YEARS " others\n"
+							  "Engine version %s\n",
+							  _G(EngineVersion).ShortString.GetCStr(),
+							  get_engine_version_and_build().GetCStr());
 }
 
 void main_print_help() {
@@ -111,6 +80,9 @@ void main_print_help() {
 	                          "Usage: ags [OPTIONS] [GAMEFILE or DIRECTORY]\n\n"
 	                          //--------------------------------------------------------------------------------|
 	                          "Options:\n"
+                              "  --background                 Keeps game running in background\n"
+                              "                               (this does not work in exclusive fullscreen)\n"
+                              "  --clear-cache-on-room-change Clears sprite cache on every room change\n"
 	                          "  --conf FILEPATH              Specify explicit config file to read on startup\n"
 #if AGS_PLATFORM_OS_WINDOWS
 	                          "  --console-attach             Write output to the parent process's console\n"
@@ -125,9 +97,11 @@ void main_print_help() {
 #endif
 	                          "  --gfxfilter FILTER [SCALING]\n"
 	                          "                               Request graphics filter. Available options:\n"
-	                          "                                 hqx, linear, none, stdscale\n"
-	                          "                                 (support differs between graphic drivers);\n"
-	                          "                                 scaling is specified by integer number\n"
+							  "                                 stdscale, linear\n"
+							  "                               (support may differ between graphic drivers);\n"
+							  "                               Scaling is specified as:\n"
+							  "                                 proportional, round, stretch,\n"
+							  "                                 or an explicit integer multiplier.\n"
 	                          "  --help                       Print this help message and stop\n"
 	                          "  --loadsavedgame FILEPATH     Load savegame on startup\n"
 	                          "  --localuserconf              Read and write user config in the game's \n"
@@ -157,11 +131,14 @@ void main_print_help() {
 #if AGS_PLATFORM_OS_WINDOWS
 	                          "  --no-message-box             Disable alerts as modal message boxes\n"
 #endif
+		                      "  --no-translation             Use default game language on start\n"
 	                          "  --noiface                    Don't draw game GUI\n"
 	                          "  --noscript                   Don't run room scripts; *WARNING:* unreliable\n"
 	                          "  --nospr                      Don't draw room objects and characters\n"
 	                          "  --noupdate                   Don't run game update\n"
 	                          "  --novideo                    Don't play game videos\n"
+                              "  --rotation <MODE>            Screen rotation preferences. MODEs are:\n"
+                              "                                 unlocked (0), portrait (1), landscape (2)\n"
 #if AGS_PLATFORM_OS_WINDOWS
 	                          "  --setup                      Run setup application\n"
 #endif
@@ -178,7 +155,8 @@ void main_print_help() {
 	                          "  --tell-graphicdriver         Print list of supported graphic drivers\n"
 	                          "\n"
 	                          "  --test                       Run game in the test mode\n"
-	                          "  --version                    Print engine's version and stop\n"
+                              "  --translation <name>         Select the given translation on start\n"
+		                      "  --version                    Print engine's version and stop\n"
 	                          "  --user-data-dir DIR          Set the save game directory\n"
 	                          "  --windowed                   Force display mode to windowed\n"
 	                          "\n"
@@ -210,22 +188,21 @@ int main_process_cmdline(ConfigTree &cfg, int argc, const char *argv[]) {
 		} else if (ags_stricmp(arg, "--noexceptionhandler") == 0) _GP(usetup).disable_exception_handling = true;
 		else if (ags_stricmp(arg, "--setup") == 0) {
 			_G(justRunSetup) = true;
-		} else if (ags_stricmp(arg, "--registergame") == 0) {
-			_G(justRegisterGame) = true;
-		} else if (ags_stricmp(arg, "--unregistergame") == 0) {
-			_G(justUnRegisterGame) = true;
 		} else if ((ags_stricmp(arg, "--loadsavedgame") == 0) && (argc > ee + 1)) {
 			_G(loadSaveGameOnStartup) = atoi(argv[ee + 1]);
 			ee++;
 		} else if ((ags_stricmp(arg, "--enabledebugger") == 0) && (argc > ee + 1)) {
-			strcpy(_G(editor_debugger_instance_token), argv[ee + 1]);
+			snprintf(_G(editor_debugger_instance_token), sizeof(_G(editor_debugger_instance_token)), "%s", argv[ee + 1]);
 			_G(editor_debugging_enabled) = 1;
-			_G(force_window) = 1;
 			ee++;
 		} else if (ags_stricmp(arg, "--conf") == 0 && (argc > ee + 1)) {
 			_GP(usetup).conf_path = argv[++ee];
 		} else if (ags_stricmp(arg, "--localuserconf") == 0) {
 			_GP(usetup).local_user_conf = true;
+		} else if (ags_stricmp(arg, "--localuserconf") == 0) {
+			_GP(usetup).user_conf_dir = ".";
+		} else if ((ags_stricmp(arg, "--user-conf-dir") == 0) && (argc > ee + 1)) {
+			_GP(usetup).user_conf_dir = argv[++ee];
 		} else if (ags_stricmp(arg, "--runfromide") == 0 && (argc > ee + 4)) {
 			_GP(usetup).install_dir = argv[ee + 1];
 			_GP(usetup).opt_data_dir = argv[ee + 2];
@@ -236,9 +213,10 @@ int main_process_cmdline(ConfigTree &cfg, int argc, const char *argv[]) {
 			if (argc < ee + 2)
 				break;
 			_GP(play).takeover_data = atoi(argv[ee + 1]);
-			strncpy(_GP(play).takeover_from, argv[ee + 2], 49);
-			_GP(play).takeover_from[49] = 0;
+			snprintf(_GP(play).takeover_from, sizeof(_GP(play).takeover_from), "%s", argv[ee + 2]);
 			ee += 2;
+		} else if (ags_stricmp(arg, "--clear-cache-on-room-change") == 0) {
+			cfg["misc"]["clear_cache_on_room_change"] = "1";
 		} else if (ags_strnicmp(arg, "--tell", 6) == 0) {
 			if (arg[6] == 0)
 				_G(tellInfoKeys).insert(String("all"));
@@ -253,20 +231,35 @@ int main_process_cmdline(ConfigTree &cfg, int argc, const char *argv[]) {
 		else if ((ags_stricmp(arg, "--shared-data-dir") == 0) && (argc > ee + 1))
 			cfg["misc"]["shared_data_dir"] = argv[++ee];
 		else if (ags_stricmp(arg, "--windowed") == 0)
-			_G(force_window) = 1;
+			cfg["graphics"]["windowed"] = "1";
 		else if (ags_stricmp(arg, "--fullscreen") == 0)
-			_G(force_window) = 2;
+			cfg["graphics"]["windowed"] = "0";
 		else if ((ags_stricmp(arg, "--gfxdriver") == 0) && (argc > ee + 1)) {
-			INIwritestring(cfg, "graphics", "driver", argv[++ee]);
+			cfg["graphics"]["driver"] = argv[++ee];
 		} else if ((ags_stricmp(arg, "--gfxfilter") == 0) && (argc > ee + 1)) {
-			// NOTE: we make an assumption here that if user provides scaling factor,
-			// this factor means to be applied to windowed mode only.
-			INIwritestring(cfg, "graphics", "filter", argv[++ee]);
-			if (argc > ee + 1 && argv[ee + 1][0] != '-')
-				INIwritestring(cfg, "graphics", "game_scale_win", argv[++ee]);
-			else
-				INIwritestring(cfg, "graphics", "game_scale_win", "max_round");
-		} else if (ags_stricmp(arg, "--fps") == 0) _G(display_fps) = kFPS_Forced;
+			cfg["graphics"]["filter"] = argv[++ee];
+			if (argc > ee + 1 && argv[ee + 1][0] != '-') {
+				// NOTE: we make an assumption here that if user provides scaling
+				// multiplier, then it's meant to be applied to windowed mode only;
+				// Otherwise the scaling style is applied to both.
+				String scale_value = argv[++ee];
+				int scale_mul = StrUtil::StringToInt(scale_value);
+				if (scale_mul > 0) {
+					cfg["graphics"]["window"] = String::FromFormat("x%d", scale_mul);
+					cfg["graphics"]["game_scale_win"] = "round";
+				} else {
+					cfg["graphics"]["game_scale_fs"] = scale_value;
+					cfg["graphics"]["game_scale_win"] = scale_value;
+				}
+			}
+		} else if ((ags_stricmp(arg, "--translation") == 0) && (argc > ee + 1)) {
+			cfg["language"]["translation"] = argv[++ee];
+		} else if (ags_stricmp(arg, "--no-translation") == 0) {
+			cfg["language"]["translation"] = "";
+		} else if (ags_stricmp(arg, "--background") == 0) {
+			cfg["override"]["multitasking"] = "1";
+		} else if (ags_stricmp(arg, "--fps") == 0)
+			cfg["misc"]["show_fps"] = "1";
 		else if (ags_stricmp(arg, "--test") == 0) _G(debug_flags) |= DBG_DEBUGMODE;
 		else if (ags_stricmp(arg, "--noiface") == 0) _G(debug_flags) |= DBG_NOIFACE;
 		else if (ags_stricmp(arg, "--nosprdisp") == 0) _G(debug_flags) |= DBG_NODRAWSPRITES;
@@ -276,25 +269,20 @@ int main_process_cmdline(ConfigTree &cfg, int argc, const char *argv[]) {
 		else if (ags_stricmp(arg, "--nomusic") == 0) _G(debug_flags) |= DBG_NOMUSIC;
 		else if (ags_stricmp(arg, "--noscript") == 0) _G(debug_flags) |= DBG_NOSCRIPT;
 		else if (ags_stricmp(arg, "--novideo") == 0) _G(debug_flags) |= DBG_NOVIDEO;
-		else if (ags_strnicmp(arg, "--log-", 6) == 0 && arg[6] != 0) {
+		else if (ags_stricmp(arg, "--rotation") == 0 && (argc > ee + 1)) {
+			cfg["graphics"]["rotation"] = argv[++ee];
+		} else if (ags_strnicmp(arg, "--log-", 6) == 0 && arg[6] != 0) {
 			String logarg = arg + 6;
 			size_t split_at = logarg.FindChar('=');
-			if (split_at != String::npos)
+			if (split_at != String::NoIndex)
 				cfg["log"][logarg.Left(split_at)] = logarg.Mid(split_at + 1);
 			else
 				cfg["log"][logarg] = "";
-		}
-		//
-		// Special case: data file location
-		//
-		else if (arg[0] != '-') datafile_argv = ee;
+		} else if (arg[0] != '-') datafile_argv = ee;
 	}
 
 	if (datafile_argv > 0) {
-		_G(cmdGameDataPath) = GetPathFromCmdArg(datafile_argv);
-	} else {
-		// assign standard path for mobile/consoles (defined in their own platform implementation)
-		_G(cmdGameDataPath) = _G(psp_game_file_name);
+		_G(cmdGameDataPath) = _G(platform)->GetCommandArg(datafile_argv);
 	}
 
 	if (_G(tellInfoKeys).size() > 0)
@@ -304,7 +292,7 @@ int main_process_cmdline(ConfigTree &cfg, int argc, const char *argv[]) {
 }
 
 void main_set_gamedir(int argc, const char *argv[]) {
-	_G(appPath) = GetPathFromCmdArg(0);
+	_G(appPath) = Path::MakeAbsolutePath(_G(platform)->GetCommandArg(0));
 	_G(appDirectory) = Path::GetDirectoryPath(_G(appPath));
 
 	// TODO: remove following when supporting unicode paths
@@ -321,16 +309,6 @@ void main_set_gamedir(int argc, const char *argv[]) {
 		else
 			Debug::Printf(kDbgMsg_Error, "Unable to determine current directory: GetPathInASCII failed.\nArg: %s", cur_dir.GetCStr());
 	}
-}
-
-String GetPathFromCmdArg(int arg_index) {
-	if (arg_index < 0 || arg_index >= _G(global_argc))
-		return "";
-	String path = Path::GetCmdLinePathInASCII(_G(global_argv)[arg_index], arg_index);
-	if (!path.IsEmpty())
-		return Path::MakeAbsolutePath(path);
-	Debug::Printf(kDbgMsg_Error, "Unable to determine path: GetCmdLinePathInASCII failed.\nCommand line argument %i: %s", arg_index, _G(global_argv)[arg_index]);
-	return _G(global_argv)[arg_index];
 }
 
 } // namespace AGS3

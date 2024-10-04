@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,16 +59,16 @@ public:
 	/**
 	 * Plays a midi track as a sound effect (one of midi slots 1-7)
 	 */
-	void playMidiTrack(int track);
-	void playMidiTrackInSlot(int slot, int track);
+	void playMidiTrack(MidiTracks track);
+	void playMidiTrackInSlot(int slot, MidiTracks track);
 	bool isMidiPlaying();
 	void loadMusicFile(const Common::String &baseSoundName);
-	void playMidiMusicTracks(int startTrack, int loopTrack);
+	void playMidiMusicTracks(MidiTracks startTrack, MidiLoopType loopType = kLoopTypeNone);
 	void playVoc(const Common::String &baseSoundName);
 	void playSpeech(const Common::String &basename);
 	void stopAllVocSounds();
 	void stopPlayingSpeech();
-	void playSoundEffectIndex(int index);
+	void playSoundEffectIndex(SoundEffects index);
 	void setMusicEnabled(bool enable);
 	void setSfxEnabled(bool enable);
 	void toggleMusic();
@@ -88,7 +87,8 @@ private:
 	MidiPlaybackSlot _midiSlots[NUM_MIDI_SLOTS]; // 0 is for music; 1-7 are for sfx
 	Common::List<MidiPlaybackSlot *> _midiSlotList; // Sorts midi slots by most recently used
 
-	byte *loadedSoundData;
+	byte *_loadedSoundData;
+	int _loadedSoundDataSize;
 	uint32 _midiDevice;
 
 	// VOC-related variables
@@ -99,7 +99,7 @@ private:
 public:
 	Common::String _loopingAudioName;
 	Common::String _loadedMidiFilename;
-	int _loopingMidiTrack;
+	MidiTracks _loopingMidiTrack;
 
 private:
 	// Driver callback

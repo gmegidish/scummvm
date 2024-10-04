@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -118,7 +117,7 @@ mcodeFunctionReturnCodes _game_session::fn_record_player_interaction(int32 &, in
 	history[cur_history].interaction = TRUE8;
 	history[cur_history].id = M->target_id;
 
-	Tdebug("history.txt", "-> [%s] %d", objects->Fetch_items_name_by_number(M->target_id), M->target_id);
+	Tdebug("history.txt", "-> [%s] %d", LinkedDataObject::Fetch_items_name_by_number(objects, M->target_id), M->target_id);
 
 	return IR_CONT;
 }
@@ -127,7 +126,7 @@ mcodeFunctionReturnCodes _game_session::fn_send_chi_to_named_object(int32 &, int
 	const char *object_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 	uint32 id;
 
-	id = objects->Fetch_item_number_by_name(object_name);
+	id = LinkedDataObject::Fetch_item_number_by_name(objects, object_name);
 	if (id == 0xffffffff)
 		Fatal_error("fn_send_chi_to_named_object - illegal object [%s]", object_name);
 
@@ -140,7 +139,7 @@ mcodeFunctionReturnCodes _game_session::fn_send_chi_to_named_object(int32 &, int
 	history[cur_history].interaction = TRUE8;
 	history[cur_history].id = id;
 
-	Tdebug("history.txt", ">> [%s] %d", object->GetName(), cur_id);
+	Tdebug("history.txt", ">> [%s] %d", CGameObject::GetName(object), cur_id);
 
 	return IR_CONT;
 }
@@ -481,7 +480,7 @@ bool8 _game_session::Process_chi() {
 					return TRUE8;
 				}
 
-				// if cant see the player but would expect to (he's moved) then forget this and catch him up
+				// if can't see the player but would expect to (he's moved) then forget this and catch him up
 				if (!g_oLineOfSight->ObjectToObject(cur_id, player.Fetch_player_id(), LIGHT, 0, _line_of_sight::USE_OBJECT_VALUE, TRUE8)) {
 					// exit this mode
 					PXreal x2 = logic_structs[player.Fetch_player_id()]->mega->actor_xyz.x;
@@ -515,7 +514,7 @@ bool8 _game_session::Process_chi() {
 
 						// play gun sound
 						if (MS->logic_structs[cur_id]->sfxVars[GUNSHOT_SFX_VAR] != 0)
-							RegisterSound(cur_id, NULL, MS->logic_structs[cur_id]->sfxVars[GUNSHOT_SFX_VAR], gunDesc,
+							RegisterSound(cur_id, nullptr, MS->logic_structs[cur_id]->sfxVars[GUNSHOT_SFX_VAR], gunDesc,
 							              (int8)127); // have to use full version so we can give hash instead of string
 						else
 							RegisterSound(cur_id, defaultGunSfx, gunDesc); // use small version as we have string not hash
@@ -537,7 +536,7 @@ bool8 _game_session::Process_chi() {
 						return TRUE8;
 					}
 				} else if (chi_has_target) {
-					// cant shoot
+					// can't shoot
 					chi_do_mode = __TURN_TO_FACE_OBJECT;
 				} else {
 					// no target
@@ -595,11 +594,11 @@ bool8 _game_session::Process_chi() {
 					if (!res) {                      // no interaction portal for chi - actually not possible now she can use the normal
 						                         // 'interact' script
 						chi_think_mode = __LOST; // oh dear, we must be lost. Not legal but lets handle it for now
-						Tdebug("chi.txt", "chi cant follow player via %d", history[next_room].id);
+						Tdebug("chi.txt", "chi can't follow player via %d", history[next_room].id);
 						return TRUE8;
 					} else {
 						// ok, back to script
-						// script interpretter shouldnt write a pc back
+						// script interpreter shouldn't write a pc back
 
 						chi_do_mode = __INTERACT_FOLLOW;
 
@@ -622,7 +621,7 @@ bool8 _game_session::Process_chi() {
 					// 4  0=no turn-on-spot   1=yes
 					// 5  end on stand
 					if (!Setup_route(result, (int32)x, (int32)z, run, __ENDB, TRUE8)) {
-						// route failed or was no route required which in theory cant happen - so we take it as
+						// route failed or was no route required which in theory can't happen - so we take it as
 						// route failed to build
 						Tdebug("chi.txt", "  route failed");
 						Setup_route(result, (int32)x, (int32)z, 1, __LASER, TRUE8);
@@ -650,7 +649,7 @@ bool8 _game_session::Process_chi() {
 					session_barriers->Clear_route_barrier_mask();
 
 					if (!route_res) {
-						// route failed or was no route required which in theory cant happen - so we take it as
+						// route failed or was no route required which in theory can't happen - so we take it as
 						// route failed to build
 						Tdebug("chi.txt", "  bumble route failed");
 
@@ -709,7 +708,7 @@ bool8 _game_session::Process_chi() {
 						session_barriers->Clear_route_barrier_mask();
 
 						if (!route_res) {
-							// route failed or was no route required which in theory cant happen - so we take it
+							// route failed or was no route required which in theory can't happen - so we take it
 							// as route failed to build
 							if (result == FALSE8)
 								Setup_route(result, (int32)x, (int32)z, run, __LASER, eos);
@@ -831,7 +830,7 @@ mcodeFunctionReturnCodes _game_session::fn_register_chi(int32 &, int32 *) {
 	if (is_there_a_chi)
 		Fatal_error("double call to fn_register_chi");
 
-	Tdebug("chi.txt", "%s registers as chi", object->GetName());
+	Tdebug("chi.txt", "%s registers as chi", CGameObject::GetName(object));
 
 	is_there_a_chi = TRUE8;
 	chi_id = cur_id;

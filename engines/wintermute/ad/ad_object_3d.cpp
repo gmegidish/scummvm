@@ -1,22 +1,21 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,9 +30,9 @@
 #include "engines/wintermute/ad/ad_scene.h"
 #include "engines/wintermute/ad/ad_scene_geometry.h"
 #include "engines/wintermute/base/gfx/base_renderer.h"
-#include "engines/wintermute/base/gfx/shadow_volume.h"
+#include "engines/wintermute/base/gfx/3dshadow_volume.h"
 #include "engines/wintermute/base/gfx/opengl/base_render_opengl3d.h"
-#include "engines/wintermute/base/gfx/x/modelx.h"
+#include "engines/wintermute/base/gfx/xmodel.h"
 #include "engines/wintermute/base/scriptables/script_stack.h"
 #include "engines/wintermute/base/scriptables/script_value.h"
 #include "engines/wintermute/dcgf.h"
@@ -44,24 +43,31 @@ namespace Wintermute {
 IMPLEMENT_PERSISTENT(AdObject3D, false)
 
 //////////////////////////////////////////////////////////////////////////
-AdObject3D::AdObject3D(BaseGame *inGame) : AdObject(inGame),
-										   _tempSkelAnim(nullptr),
-										   _lastPosVector(0.0f, 0.0f, 0.0f),
-										   _dropToFloor(true),
-										   _velocity(1.0f),
-										   _angVelocity(1.0f),
-										   _ambientLightColor(0x00000000),
-										   _hasAmbientLightColor(false),
-										   _shadowVolume(nullptr) {
+AdObject3D::AdObject3D(BaseGame *inGame) : AdObject(inGame) {
 	_is3D = true;
+
+	_velocity = 1.0f;
+	_angVelocity = 1.0f;
+	_lastPosVector = Math::Vector3d(0.0f, 0.0f, 0.0f);
+
 	_state = _nextState = STATE_READY;
+
+	_dropToFloor = true;
 	_shadowType = SHADOW_STENCIL;
+
+	_tempSkelAnim = nullptr;
+
+	_shadowVolume = nullptr;
+
+	_ambientLightColor = 0x00000000;
+	_hasAmbientLightColor = false;
 }
 
 //////////////////////////////////////////////////////////////////////////
 AdObject3D::~AdObject3D() {
 	_tempSkelAnim = nullptr; // ref only
 	delete _shadowVolume;
+	_shadowVolume = nullptr;
 
 	clearIgnoredLights();
 }
@@ -584,7 +590,7 @@ ShadowVolume *AdObject3D::getShadowVolume() {
 
 //////////////////////////////////////////////////////////////////////////
 bool AdObject3D::getBonePosition2D(const char *boneName, int32 *x, int32 *y) {
-	if (!_modelX) {
+	if (!_xmodel) {
 		return false;
 	}
 
@@ -593,7 +599,7 @@ bool AdObject3D::getBonePosition2D(const char *boneName, int32 *x, int32 *y) {
 	if (!adGame->_scene || !adGame->_scene->_sceneGeometry)
 		return false;
 
-	Math::Matrix4 *boneMat = _modelX->getBoneMatrix(boneName);
+	Math::Matrix4 *boneMat = _xmodel->getBoneMatrix(boneName);
 
 	if (!boneMat) {
 		return false;
@@ -611,11 +617,11 @@ bool AdObject3D::getBonePosition2D(const char *boneName, int32 *x, int32 *y) {
 
 //////////////////////////////////////////////////////////////////////////
 bool AdObject3D::getBonePosition3D(const char *boneName, Math::Vector3d *pos, Math::Vector3d *offset) {
-	if (!_modelX) {
+	if (!_xmodel) {
 		return false;
 	}
 
-	Math::Matrix4 *boneMat = _modelX->getBoneMatrix(boneName);
+	Math::Matrix4 *boneMat = _xmodel->getBoneMatrix(boneName);
 	if (!boneMat) {
 		return false;
 	}

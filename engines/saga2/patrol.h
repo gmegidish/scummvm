@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -103,13 +102,13 @@ enum PatrolRouteIteratorFlags {
 
 	// These flags define the type of iterator, and are only initialized
 	// when the iterator is constructed.
-	patrolRouteReverse      = (1 << 0), // Iterate in reverse
-	patrolRouteAlternate    = (1 << 1), // Iterate back and forth
-	patrolRouteRepeat       = (1 << 2), // Iterate repeatedly
-	patrolRouteRandom       = (1 << 3), // Iterate randomly
+	kPatrolRouteReverse      = (1 << 0), // Iterate in reverse
+	kPatrolRouteAlternate    = (1 << 1), // Iterate back and forth
+	kPatrolRouteRepeat       = (1 << 2), // Iterate repeatedly
+	kPatrolRouteRandom       = (1 << 3), // Iterate randomly
 
 	// These flags define the current state of the iterator.
-	patrolRouteInAlternate  = (1 << 4) // Iterator is currently going in
+	kPatrolRouteInAlternate  = (1 << 4) // Iterator is currently going in
 	// the alternate direction
 };
 
@@ -136,7 +135,7 @@ private:
 public:
 	// Determine if the iterator will repeat infinitely
 	bool isRepeating() const {
-		return _flags & (patrolRouteRepeat | patrolRouteRandom);
+		return _flags & (kPatrolRouteRepeat | kPatrolRouteRandom);
 	}
 
 	// Return the current way point number

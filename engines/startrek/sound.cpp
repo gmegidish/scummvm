@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 
 #include "common/file.h"
 #include "common/macresman.h"
+#include "common/tokenizer.h"
 
 #include "audio/audiostream.h"
 #include "audio/decoders/raw.h"
@@ -38,9 +38,9 @@ namespace StarTrek {
 Sound::Sound(StarTrekEngine *vm) : _vm(vm) {
 	_midiDevice = MT_AUTO;
 	_midiDriver = nullptr;
-	_loopingMidiTrack = false;
+	_loopingMidiTrack = MIDITRACK_0;
 
-	if (_vm->getPlatform() == Common::kPlatformDOS || _vm->getPlatform() == Common::kPlatformMacintosh) {
+	if (_vm->getPlatform() == Common::kPlatformDOS) {
 		_midiDevice = MidiDriver::detectDevice(MDT_PCSPK | MDT_ADLIB | MDT_MIDI | MDT_PREFER_MT32);
 		_midiDriver = MidiDriver::createMidi(_midiDevice);
 		_midiDriver->open();
@@ -60,10 +60,13 @@ Sound::Sound(StarTrekEngine *vm) : _vm(vm) {
 		}
 
 		_midiDriver->setTimerCallback(this, Sound::midiDriverCallback);
+	} else {
+		_vm->_musicWorking = false;
 	}
 
 	_soundHandle = new Audio::SoundHandle();
-	loadedSoundData = nullptr;
+	_loadedSoundData = nullptr;
+	_loadedSoundDataSize = 0;
 
 	for (int i = 1; i < NUM_MIDI_SLOTS; i++) {
 		_midiSlotList.push_back(&_midiSlots[i]);
@@ -84,7 +87,7 @@ Sound::~Sound() {
 		delete _midiSlots[i].midiParser;
 	delete _midiDriver;
 	delete _soundHandle;
-	delete[] loadedSoundData;
+	delete[] _loadedSoundData;
 }
 
 
@@ -94,7 +97,7 @@ void Sound::clearAllMidiSlots() {
 	}
 }
 
-void Sound::playMidiTrack(int track) {
+void Sound::playMidiTrack(MidiTracks track) {
 	if (!_vm->_musicEnabled || !_vm->_musicWorking)
 		return;
 
@@ -102,13 +105,13 @@ void Sound::playMidiTrack(int track) {
 	if (_vm->getFeatures() & GF_DEMO)
 		return;
 
-	assert(loadedSoundData != nullptr);
+	assert(_loadedSoundData != nullptr);
 
 	// Check if a midi slot for this track exists already
 	for (int i = 1; i < NUM_MIDI_SLOTS; i++) {
 		if (_midiSlots[i].track == track) {
 			debugC(6, kDebugSound, "Playing MIDI track %d (slot %d)", track, i);
-			_midiSlots[i].midiParser->loadMusic(loadedSoundData, sizeof(loadedSoundData));
+			_midiSlots[i].midiParser->loadMusic(_loadedSoundData, _loadedSoundDataSize);
 			_midiSlots[i].midiParser->setTrack(track);
 
 			// Shift this to the back (most recently used)
@@ -125,15 +128,15 @@ void Sound::playMidiTrack(int track) {
 	playMidiTrackInSlot(slot->slot, track);
 }
 
-void Sound::playMidiTrackInSlot(int slot, int track) {
-	assert(loadedSoundData != nullptr);
+void Sound::playMidiTrackInSlot(int slot, MidiTracks track) {
+	assert(_loadedSoundData != nullptr);
 	debugC(6, kDebugSound, "Playing MIDI track %d (slot %d)", track, slot);
 
 	clearMidiSlot(slot);
 
 	if (track != -1) {
 		_midiSlots[slot].track = track;
-		_midiSlots[slot].midiParser->loadMusic(loadedSoundData, sizeof(loadedSoundData));
+		_midiSlots[slot].midiParser->loadMusic(_loadedSoundData, _loadedSoundDataSize);
 		_midiSlots[slot].midiParser->setTrack(track);
 	}
 }
@@ -171,16 +174,16 @@ void Sound::loadMusicFile(const Common::String &baseSoundName) {
 	}
 }
 
-void Sound::playMidiMusicTracks(int startTrack, int loopTrack) {
+void Sound::playMidiMusicTracks(MidiTracks startTrack, MidiLoopType loopType) {
 	if (!_vm->_musicWorking || !_vm->_musicEnabled)
 		return;
 
-	if (loopTrack == -3)
+	if (loopType == kLoopTypeRepeat)
 		_loopingMidiTrack = startTrack;
-	else if (loopTrack != -2)
-		_loopingMidiTrack = loopTrack;
+	else if (loopType == kLoopTypeNone)
+		_loopingMidiTrack = MIDITRACK_NONE;
 
-	if (startTrack != -2 && _vm->_musicEnabled)
+	if (_vm->_musicEnabled)
 		playMidiTrackInSlot(0, startTrack);
 }
 
@@ -214,12 +217,12 @@ void Sound::playVoc(const Common::String &baseSoundName) {
 		if (_vm->_system->getMixer()->isSoundHandleActive(_sfxHandles[i]))
 			continue;
 
-		Common::String soundName = Common::String("voc/sfx/") + baseSoundName + ".voc";
+		Common::Path soundName = Common::Path("voc/sfx/").appendComponent(baseSoundName + ".voc");
 		Common::SeekableReadStream *readStream = SearchMan.createReadStreamForMember(soundName);
 		if (readStream == nullptr)
-			error("Couldn't open '%s'", soundName.c_str());
+			error("Couldn't open '%s'", soundName.toString().c_str());
 
-		debugC(5, kDebugSound, "Playing sound effect '%s'", soundName.c_str());
+		debugC(5, kDebugSound, "Playing sound effect '%s'", soundName.toString().c_str());
 
 		Audio::RewindableAudioStream *srcStream = Audio::makeVOCStream(readStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
 		Audio::AudioStream *audioStream;
@@ -238,22 +241,15 @@ void Sound::playSpeech(const Common::String &basename) {
 	stopPlayingSpeech();
 
 	Audio::QueuingAudioStream *audioQueue = nullptr;
-	Common::String name = basename;
+	Common::StringTokenizer tok(basename, ",");
 
 	// Play a list of comma-separated audio files in sequence (usually there's only one)
-	while (!name.empty()) {
-		uint i = 0;
-		while (i < name.size() && name[i] != ',') {
-			if (name[i] == '\\')
-				name.setChar('/', i);
-			i++;
-		}
-
-		Common::String filename = "voc/" + Common::String(name.c_str(), name.c_str() + i) + ".voc";
-		debugC(5, kDebugSound, "Playing speech '%s'", filename.c_str());
+	while (!tok.empty()) {
+		Common::Path filename = Common::Path("voc/").append(Common::Path(tok.nextToken() + ".voc", '\\'));
+		debugC(5, kDebugSound, "Playing speech '%s'", filename.toString().c_str());
 		Common::SeekableReadStream *readStream = SearchMan.createReadStreamForMember(filename);
 		if (readStream == nullptr)
-			error("Couldn't open '%s'", filename.c_str());
+			error("Couldn't open '%s'", filename.toString().c_str());
 
 		Audio::AudioStream *audioStream = Audio::makeVOCStream(readStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
 		if (audioStream != nullptr) {
@@ -261,8 +257,6 @@ void Sound::playSpeech(const Common::String &basename) {
 				audioQueue = Audio::makeQueuingAudioStream(audioStream->getRate(), audioStream->isStereo());
 			audioQueue->queueAudioStream(audioStream, DisposeAfterUse::YES);
 		}
-
-		name.erase(0, i + 1);
 	}
 
 	if (audioQueue != nullptr) {
@@ -288,54 +282,54 @@ void Sound::stopPlayingSpeech() {
 	}
 }
 
-void Sound::playSoundEffectIndex(int index) {
+void Sound::playSoundEffectIndex(SoundEffects index) {
 	if (!(_vm->getFeatures() & GF_CDROM))
-		playMidiTrack(index);
+		playMidiTrack((MidiTracks)index);
 	else {
 		switch (index) {
-		case 0x04:
+		case kSfxTricorder:
 			playVoc("tricorde");
 			break;
-		case 0x05:
+		case kSfxDoor:
 			playVoc("STDOOR1");
 			break;
-		case 0x06:
+		case kSfxPhaser:
 			playVoc("PHASSHOT");
 			break;
-		case 0x07:
-			playMidiTrack(index);
+		case kSfxButton:
+			playMidiTrack(MIDITRACK_SFX_BUTTON);
 			break;
-		case 0x08:
+		case kSfxTransporterDematerialize:
 			playVoc("TRANSDEM");
 			break;
-		case 0x09: // Beaming in?
+		case kSfxTransporterMaterialize:
 			playVoc("TRANSMAT");
 			break;
-		case 0x0a: // Beaming out?
+		case kSfxTransporterEnergize:
 			playVoc("TRANSENE");
 			break;
-		case 0x10: // Menu selection sound
-			playMidiTrack(index);
+		case kSfxSelection:
+			playMidiTrack(MIDITRACK_SFX_BUTTON);
 			break;
-		case 0x22:
+		case kSfxHailing:
 			playVoc("HAILING");
 			break;
-		case 0x24:
+		case kSfxPhaser2:
 			playVoc("PHASSHOT");
 			break;
-		case 0x25:
+		case kSfxPhotonTorpedoes:
 			playVoc("PHOTSHOT");
 			break;
-		case 0x26:
+		case kSfxShieldHit:
 			playVoc("HITSHIEL");
 			break;
-		case 0x27:
-			playMidiTrack(index);
+		case kSfxUnk:
+			playMidiTrack(MIDITRACK_SFX_UNK);
 			break;
-		case 0x28:
+		case kSfxRedAlert:
 			playVoc("REDALERT");
 			break;
-		case 0x29:
+		case kSfxWarp:
 			playVoc("WARP");
 			break;
 		default:
@@ -356,7 +350,7 @@ void Sound::setMusicEnabled(bool enable) {
 	_vm->_musicEnabled = enable;
 
 	if (enable)
-		playMidiMusicTracks(_loopingMidiTrack, _loopingMidiTrack);
+		playMidiTrackInSlot(0, _loopingMidiTrack);
 	else
 		clearMidiSlot(0);
 }
@@ -419,18 +413,22 @@ void Sound::loadPCMusicFile(const Common::String &baseSoundName) {
 	debugC(5, kDebugSound, "Loading midi \'%s\'\n", soundName.c_str());
 	Common::MemoryReadStreamEndian *soundStream = _vm->_resource->loadFile(soundName.c_str());
 
-	if (loadedSoundData != nullptr)
-		delete[] loadedSoundData;
-	loadedSoundData = new byte[soundStream->size()];
-	soundStream->read(loadedSoundData, soundStream->size());
+	if (_loadedSoundData != nullptr)
+		delete[] _loadedSoundData;
+	_loadedSoundDataSize = soundStream->size();
+	_loadedSoundData = new byte[_loadedSoundDataSize];
+	soundStream->read(_loadedSoundData, _loadedSoundDataSize);
 
 	// FIXME: should music start playing when this is called?
-	//_midiSlots[0].midiParser->loadMusic(loadedSoundData, soundStream->size());
+	//_midiSlots[0].midiParser->loadMusic(_loadedSoundData, soundStream->size());
 
 	delete soundStream;
 }
 
 void Sound::clearMidiSlot(int slot) {
+	if (!_vm->_musicWorking)
+		return;
+
 	_midiSlots[slot].midiParser->stopPlaying();
 	_midiSlots[slot].midiParser->unloadMusic();
 	_midiSlots[slot].track = -1;

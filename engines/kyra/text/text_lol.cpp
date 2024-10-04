@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,8 +35,7 @@ TextDisplayer_LoL::TextDisplayer_LoL(LoLEngine *engine, Screen_LoL *screenLoL) :
 	_vm(engine), _screen(screenLoL), _scriptTextParameter(0) {
 
 	memset(_stringParameters, 0, 15 * sizeof(char *));
-	_buffer = new char[600];
-	memset(_buffer, 0, 600);
+	_buffer = new char[600]();
 
 	_waitButtonSpace = 0;
 }
@@ -73,8 +71,9 @@ void TextDisplayer_LoL::setupField(bool mode) {
 			_screen->copyBlockToPage(3, 0, 0, 320, 40, _vm->_pageBuffer2);
 			_screen->copyRegion(0, 0, 80, y, 240, h, 3, _screen->_curPage, Screen::CR_NO_P_CHECK);
 
+			uint32 endTime = _vm->_system->getMillis();
 			for (int i = 177; i > 141; i--) {
-				uint32 endTime = _vm->_system->getMillis() + _vm->_tickLength;
+				endTime += _vm->_tickLength;
 				_screen->copyRegion(83, i - stepH + 1, 83, i - stepH, 235, stepY, 0, 0, Screen::CR_NO_P_CHECK);
 				_screen->copyRegion(83, i + 1, 83, i + 1, 235, 1, 2, 0, Screen::CR_NO_P_CHECK);
 				_vm->updateInput();
@@ -116,8 +115,9 @@ void TextDisplayer_LoL::expandField() {
 
 		_screen->copyRegion(83, y, 0, 0, 235, h, 0, 2, Screen::CR_NO_P_CHECK);
 
+		uint32 endTime = _vm->_system->getMillis();
 		for (int i = 140; i < 177; i++) {
-			uint32 endTime = _vm->_system->getMillis() + _vm->_tickLength;
+			endTime += _vm->_tickLength;
 			_screen->copyRegion(0, 0, 83, i - stepH, 235, h, 2, 0, Screen::CR_NO_P_CHECK);
 			_vm->updateInput();
 			_screen->updateScreen();
@@ -133,18 +133,18 @@ void TextDisplayer_LoL::expandField() {
 	}
 }
 
-void TextDisplayer_LoL::printDialogueText2(int dim, char *str, EMCState *script, const uint16 *paramList, int16 paramIndex) {
+void TextDisplayer_LoL::printDialogueText2(int dim, const char *str, EMCState *script, const uint16 *paramList, int16 paramIndex) {
 	int oldDim = 0;
 
 	if (dim == 3) {
 		if (_vm->_updateFlags & 2) {
 			oldDim = clearDim(4);
-			_textDimData[4].color1 = _vm->gameFlags().use16ColorMode ? 0x33 : 254;
-			_textDimData[4].color2 = _screen->_curDim->unkA;
+			_textDimData[4].color1= _vm->gameFlags().use16ColorMode ? 0x33 : 254;
+			_textDimData[4].color2 = _screen->_curDim->col2;
 		} else {
 			oldDim = clearDim(3);
-			_textDimData[3].color1 = _vm->gameFlags().use16ColorMode ? 0x33 : 192;
-			_textDimData[3].color2 = _screen->_curDim->unkA;
+			_textDimData[3].color1= _vm->gameFlags().use16ColorMode ? 0x33 : 192;
+			_textDimData[3].color2 = _screen->_curDim->col2;
 			if (!_vm->gameFlags().use16ColorMode)
 				_screen->copyColor(192, 254);
 			_vm->enableTimer(11);
@@ -155,15 +155,15 @@ void TextDisplayer_LoL::printDialogueText2(int dim, char *str, EMCState *script,
 		oldDim = _screen->curDimIndex();
 		_screen->setScreenDim(dim);
 		_lineCount = 0;
-		_textDimData[dim].color1 = _vm->gameFlags().use16ColorMode ? 0x33 : 254;
-		_textDimData[dim].color2 = _screen->_curDim->unkA;
+		_textDimData[dim].color1= _vm->gameFlags().use16ColorMode ? 0x33 : 254;
+		_textDimData[dim].color2 = _screen->_curDim->col2;
 	}
 
 	int cp = _screen->setCurPage(0);
-	Screen::FontId of = _screen->setFont(_pc98TextMode ? Screen::FID_SJIS_TEXTMODE_FNT : Screen::FID_9_FNT);
+	Screen::FontId of = _screen->setFont(_vm->gameFlags().lang == Common::Language::ZH_TWN ? Screen::FID_CHINESE_FNT : _pc98TextMode ? Screen::FID_SJIS_TEXTMODE_FNT : Screen::FID_9_FNT);
 
 	preprocessString(str, script, paramList, paramIndex);
-	_numCharsTotal = strlen(_dialogueBuffer);
+	_numCharsTotal = Common::strnlen(_dialogueBuffer, 2559);
 	displayText(_dialogueBuffer);
 
 	_screen->setScreenDim(oldDim);
@@ -181,24 +181,27 @@ void TextDisplayer_LoL::printMessage(uint16 type, const char *str, ...) {
 	const uint8 *textColors = _vm->gameFlags().use16ColorMode ? textColors16 : textColors256;
 
 	if (type & 4)
-		type ^= 4;
+		type &= ~4;
 	else
 		_vm->stopPortraitSpeechAnim();
 
-	uint16 col = textColors[type & 0x7FFF];
+	int index = type & 0x7FFF;
+	assert(index < 5);
+
+	uint16 col = textColors[index];
 
 	int od = _screen->curDimIndex();
 
 	if (_vm->_updateFlags & 2) {
 		clearDim(4);
-		_textDimData[4].color1 = col;
+		_textDimData[4].color1= col;
 	} else {
 		clearDim(3);
 		if (_vm->gameFlags().use16ColorMode) {
-			_textDimData[3].color1 = col;
+			_textDimData[3].color1= col;
 		} else {
 			_screen->copyColor(192, col);
-			_textDimData[3].color1 = 192;
+			_textDimData[3].color1= 192;
 		}
 		_vm->enableTimer(11);
 	}
@@ -216,18 +219,18 @@ void TextDisplayer_LoL::printMessage(uint16 type, const char *str, ...) {
 	_lineCount = 0;
 
 	if (!(type & 0x8000)) {
-		if (soundEffect[type])
-			_vm->sound()->playSoundEffect(soundEffect[type]);
+		if (soundEffect[index])
+			_vm->sound()->playSoundEffect(soundEffect[index]);
 	}
 
-	_vm->_textColorFlag = type & 0x7FFF;
+	_vm->_textColorFlag = index;
 	_vm->_fadeText = false;
 }
 
-void TextDisplayer_LoL::preprocessString(char *str, EMCState *script, const uint16 *paramList, int16 paramIndex) {
+void TextDisplayer_LoL::preprocessString(const char *str, EMCState *script, const uint16 *paramList, int16 paramIndex) {
 	char *dst = _dialogueBuffer;
 
-	for (char *s = str; *s;) {
+	for (const char *s = str; *s;) {
 		if (_vm->gameFlags().lang == Common::JA_JPN) {
 			uint8 c = *s;
 			if (c >= 0xE0 || (c > 0x80 && c < 0xA0)) {
@@ -300,26 +303,38 @@ void TextDisplayer_LoL::preprocessString(char *str, EMCState *script, const uint
 
 		switch (para) {
 		case 'a':
-			strcpy(dst, Common::String::format("%d", _scriptTextParameter).c_str());
-			dst += strlen(dst);
+			Common::strlcpy(dst, Common::String::format("%d", _scriptTextParameter).c_str(), 2560 - (dst - _dialogueBuffer));
+			dst += Common::strnlen(dst, 2559 - (dst - _dialogueBuffer));
 			break;
 
 		case 'n':
-			strcpy(dst, _vm->_characters[script ? script->stack[script->sp + paramIndex] : paramList[paramIndex]].name);
-			dst += strlen(dst);
+			if (script || paramList) {
+				Common::strlcpy(dst, _vm->_characters[script ? script->stack[script->sp + paramIndex] : paramList[paramIndex]].name, 2560 - (dst - _dialogueBuffer));
+				dst += Common::strnlen(dst, 2559 - (dst - _dialogueBuffer));
+			} else {
+				warning("TextDisplayer_LoL::preprocessString(): Missing replacement data for placeholder '%%%c'", para);
+			}
 			break;
 
 		case 's':
-			strcpy(dst, _vm->getLangString(script ? script->stack[script->sp + paramIndex] : paramList[paramIndex]));
-			dst += strlen(dst);
+			if (script || paramList) {
+				Common::strlcpy(dst, _vm->getLangString(script ? script->stack[script->sp + paramIndex] : paramList[paramIndex]), 2560 - (dst - _dialogueBuffer));
+				dst += Common::strnlen(dst, 2559 - (dst - _dialogueBuffer));
+			} else {
+				warning("TextDisplayer_LoL::preprocessString(): Missing replacement data for placeholder '%%%c'", para);
+			}
 			break;
 
 		case 'X':
 		case 'd':
 		case 'u':
 		case 'x':
-			strcpy(dst, Common::String::format("%d", script ? script->stack[script->sp + paramIndex] : paramList[paramIndex]).c_str());
-			dst += strlen(dst);
+			if (script || paramList) {
+				Common::strlcpy(dst, Common::String::format("%d", script ? script->stack[script->sp + paramIndex] : paramList[paramIndex]).c_str(), 2560 - (dst - _dialogueBuffer));
+				dst += Common::strnlen(dst, 2559 - (dst - _dialogueBuffer));
+			} else {
+				warning("TextDisplayer_LoL::preprocessString(): Missing replacement data for placeholder '%%%c'", para);
+			}
 			break;
 
 		case '\0':
@@ -339,7 +354,7 @@ Screen *TextDisplayer_LoL::screen() {
 }
 
 void TextDisplayer_LoL::textPageBreak() {
-	strcpy(_pageBreakString, _vm->getLangString(0x4073));
+	_pageBreakString = _vm->getLangString(0x4073);
 	TextDisplayer_rpg::textPageBreak();
 }
 

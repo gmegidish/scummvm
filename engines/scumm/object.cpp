@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -149,8 +148,8 @@ void ScummEngine::setOwnerOf(int obj, int owner) {
 		// For now we follow a more defensive route: We perform the check
 		// if ss->number is small enough.
 
-		ss = &vm.slot[_currentScript];
-		if (ss->where == WIO_INVENTORY) {
+		ss = (_currentScript != 0xFF) ? &vm.slot[_currentScript] : nullptr;
+		if (ss != nullptr && ss->where == WIO_INVENTORY) {
 			if (ss->number < _numInventory && _inventory[ss->number] == obj) {
 				error("Odd setOwnerOf case #1: Please report to Fingolfin where you encountered this");
 				putOwner(obj, 0);
@@ -173,7 +172,7 @@ void ScummEngine::clearOwnerOf(int obj) {
 	// Stop the associated object script code (else crashes might occurs)
 	stopObjectScript(obj);
 
-	// If the object is "owned" by a the current room, we scan the
+	// If the object is "owned" by the current room, we scan the
 	// object list and (only if it's a floating object) nuke it.
 	if (getOwner(obj) == OF_OWNER_ROOM) {
 		for (i = 0; i < _numLocalObjects; i++)  {
@@ -185,7 +184,6 @@ void ScummEngine::clearOwnerOf(int obj) {
 			}
 		}
 	} else {
-
 		// Alternatively, scan the inventory to see if the object is in there...
 		for (i = 0; i < _numInventory; i++) {
 			if (_inventory[i] == obj) {
@@ -195,18 +193,22 @@ void ScummEngine::clearOwnerOf(int obj) {
 				_res->nukeResource(rtInventory, i);
 				_inventory[i] = 0;
 
-				// Now fill up the gap removing the object from the inventory created.
-				for (i = 0; i < _numInventory - 1; i++) {
-					if (!_inventory[i] && _inventory[i+1]) {
-						_inventory[i] = _inventory[i+1];
-						_inventory[i+1] = 0;
-						// FIXME FIXME FIXME: This is incomplete, as we do not touch flags, status... BUG
-						_res->_types[rtInventory][i]._address = _res->_types[rtInventory][i + 1]._address;
-						_res->_types[rtInventory][i]._size = _res->_types[rtInventory][i + 1]._size;
-						_res->_types[rtInventory][i + 1]._address = NULL;
-						_res->_types[rtInventory][i + 1]._size = 0;
+				// Verified from INDY3 disasm, the gaps were not being filled up before v4...
+				if (_game.version >= 4) {
+					// Now fill up the gap removing the object from the inventory created.
+					for (i = 0; i < _numInventory - 1; i++) {
+						if (!_inventory[i] && _inventory[i + 1]) {
+							_inventory[i] = _inventory[i + 1];
+							_inventory[i + 1] = 0;
+							// FIXME FIXME FIXME: This is incomplete, as we do not touch flags, status... BUG
+							_res->_types[rtInventory][i]._address = _res->_types[rtInventory][i + 1]._address;
+							_res->_types[rtInventory][i]._size = _res->_types[rtInventory][i + 1]._size;
+							_res->_types[rtInventory][i + 1]._address = nullptr;
+							_res->_types[rtInventory][i + 1]._size = 0;
+						}
 					}
 				}
+
 				break;
 			}
 		}
@@ -308,8 +310,8 @@ int ScummEngine::getState(int obj) {
 		// it. Fortunately this does not prevent frustrated players from
 		// blowing up the mansion, should they feel the urge to.
 
-		if (_game.id == GID_MANIAC && _game.version != 0 && (obj == 182 || obj == 193))
-			_objectStateTable[obj] |= kObjectState_08;
+		if (_game.id == GID_MANIAC && _game.version != 0 && _game.platform != Common::kPlatformNES && (obj == 182 || obj == 193))
+			_objectStateTable[obj] |= kObjectStateIntrinsic;
 	}
 
 	return _objectStateTable[obj];
@@ -369,6 +371,37 @@ int ScummEngine::whereIsObject(int object) const {
 	return WIO_NOT_FOUND;
 }
 
+int ScummEngine::getObjectOrActorWidth(int object, int &width) {
+	Actor *act;
+
+	if (objIsActor(object)) {
+		act = derefActorSafe(objToActor(object), "getObjectOrActorWidth");
+		if (act && act->isInCurrentRoom()) {
+			width = act->_width;
+			return 0;
+		} else
+			return -1;
+	}
+
+	switch (whereIsObject(object)) {
+	case WIO_NOT_FOUND:
+		return -1;
+	case WIO_INVENTORY:
+		if (objIsActor(_objectOwnerTable[object])) {
+			act = derefActor(_objectOwnerTable[object], "getObjectOrActorWidth(2)");
+			if (act && act->isInCurrentRoom()) {
+				width = act->_width;
+				return 0;
+			}
+		}
+		return -1;
+	default:
+		break;
+	}
+	getObjectWidth(object, width);
+	return 0;
+}
+
 int ScummEngine::getObjectOrActorXY(int object, int &x, int &y) {
 	Actor *act;
 
@@ -406,7 +439,7 @@ int ScummEngine::getObjectOrActorXY(int object, int &x, int &y) {
  * Return the position of an object.
  * Returns X, Y and direction in angles
  */
-void ScummEngine::getObjectXYPos(int object, int &x, int &y, int &dir) {
+void ScummEngine::getObjectXYPos(int object, int &x, int &y, int &dir, int &width) {
 	int idx = getObjectIndex(object);
 	assert(idx >= 0);
 	ObjectData &od = _objs[idx];
@@ -481,8 +514,8 @@ int ScummEngine::getDist(int x, int y, int x2, int y2) {
 
 int ScummEngine::getObjActToObjActDist(int a, int b) {
 	int x, y, x2, y2;
-	Actor *acta = NULL;
-	Actor *actb = NULL;
+	Actor *acta = nullptr;
+	Actor *actb = nullptr;
 
 	if (objIsActor(a))
 		acta = derefActorSafe(objToActor(a), "getObjActToObjActDist");
@@ -517,7 +550,7 @@ int ScummEngine::getObjActToObjActDist(int a, int b) {
 int ScummEngine::findObject(int x, int y) {
 	int i, b;
 	byte a;
-	const int mask = (_game.version <= 2) ? kObjectState_08 : 0xF;
+	const int mask = (_game.version <= 2) ? kObjectStateIntrinsic : 0xF;
 
 	for (i = 1; i < _numLocalObjects; i++) {
 		if ((_objs[i].obj_nr < 1) || getClass(_objs[i].obj_nr, kObjectClassUntouchable))
@@ -536,7 +569,7 @@ int ScummEngine::findObject(int x, int y) {
 			if (b == 0) {
 #ifdef ENABLE_HE
 				if (_game.heversion >= 71) {
-					if (((ScummEngine_v71he *)this)->_wiz->polygonHit(_objs[i].obj_nr, x, y))
+					if (((ScummEngine_v71he *)this)->_wiz->testForObjectPolygon(_objs[i].obj_nr, x, y))
 						return _objs[i].obj_nr;
 				}
 #endif
@@ -560,7 +593,7 @@ int ScummEngine::findObject(int x, int y) {
 void ScummEngine::drawRoomObject(int i, int arg) {
 	ObjectData *od;
 	byte a;
-	const int mask = (_game.version <= 2) ? kObjectState_08 : 0xF;
+	const int mask = (_game.version <= 2) ? kObjectStateIntrinsic : 0xF;
 
 	od = &_objs[i];
 	if ((i < 1) || (od->obj_nr < 1) || !od->state)
@@ -579,7 +612,7 @@ void ScummEngine::drawRoomObject(int i, int arg) {
 
 void ScummEngine::drawRoomObjects(int arg) {
 	int i;
-	const int mask = (_game.version <= 2) ? kObjectState_08 : 0xF;
+	const int mask = (_game.version <= 2) ? kObjectStateIntrinsic : 0xF;
 
 	if (_game.heversion >= 60) {
 		// In HE games, normal objects are drawn, followed by FlObjects.
@@ -604,7 +637,7 @@ void ScummEngine::drawRoomObjects(int arg) {
 	}
 }
 
-void ScummEngine::drawObject(int obj, int arg) {
+void ScummEngine::drawObject(int obj, int scrollType) {
 	if (_skipDrawObject)
 		return;
 
@@ -615,7 +648,7 @@ void ScummEngine::drawObject(int obj, int arg) {
 	int tmp;
 
 	if (_bgNeedsRedraw)
-		arg = 0;
+		scrollType = 0;
 
 	if (od.obj_nr == 0)
 		return;
@@ -625,8 +658,16 @@ void ScummEngine::drawObject(int obj, int arg) {
 	const int xpos = od.x_pos / 8;
 	const int ypos = od.y_pos;
 
+	// In most cases we want to mask out the last three bits, though it is
+	// possible that this has already been done by resetRoomObject(). In
+	// later versions we need to keep those bits intact. See bug #13419 for
+	// an example of where this is important.
+
+	if (_game.version < 7)
+		od.height &= 0xFFFFFFF8;
+
 	width = od.width / 8;
-	height = od.height &= 0xFFFFFFF8;	// Mask out last 3 bits
+	height = od.height;
 
 	// Short circuit for objects which aren't visible at all.
 	if (width == 0 || xpos > _screenEndStrip || xpos + width < _screenStartStrip)
@@ -646,14 +687,46 @@ void ScummEngine::drawObject(int obj, int arg) {
 		tmp = xpos + a;
 		if (tmp < _screenStartStrip || _screenEndStrip < tmp)
 			continue;
-		if (arg > 0 && _screenStartStrip + arg <= tmp)
+		if (scrollType > 0 && _screenStartStrip + scrollType <= tmp)
 			continue;
-		if (arg < 0 && tmp <= _screenEndStrip + arg)
+		if (scrollType < 0 && tmp <= _screenEndStrip + scrollType)
 			continue;
-		setGfxUsageBit(tmp, USAGE_BIT_DIRTY);
+		setGfxUsageBit(tmp, USAGE_BIT_DIRTY); // FIXME: HE70 onwards seems to use USAGE_BIT_RESTORED instead?
 		if (tmp < x)
 			x = tmp;
 		numstrip++;
+	}
+
+	byte *patchedBmpPtr = nullptr;
+	// WORKAROUND bug #3208: in all 256-color versions of Indy3, the tapestry
+	// in one of the first rooms of Castle Brunwald has a strange vertical
+	// line at the bottom of its first 'strip' (purple in the DOS version,
+	// blue on the FM-TOWNS). We can't include the whole redrawn resource for
+	// copyright reasons, so we just patch the impacted bytes from a fixed OI
+	// (made with BMRP.EXE).
+	if (_game.id == GID_INDY3 && (_game.features & GF_OLD256) && _currentRoom == 135
+	    && od.obj_nr == 324 && numstrip == od.width / 8 && enhancementEnabled(kEnhVisualChanges)) {
+		// Extra safety: make sure that the OI has the expected length. Indy3
+		// should always be GF_SMALL_HEADER, but that's implicit, so do an
+		// explicit check, since we're doing some low-level byte tricks.
+		const uint32 origOILen = 6184, firstPartLen = 123, droppedPartLen = 3, patchLen = 8;
+		const int nextObjIdx = getObjectIndex(od.obj_nr + 1);
+		if ((_game.features & GF_SMALL_HEADER) && nextObjIdx != -1 &&
+		    _objs[nextObjIdx].OBIMoffset - od.OBIMoffset == origOILen && READ_LE_UINT32(ptr) == 6146) {
+			// Copy the original (compressed) OI and patch the faulty content
+			patchedBmpPtr = new byte[origOILen - 8 + patchLen - droppedPartLen];
+			memcpy(patchedBmpPtr, ptr, firstPartLen);
+			memcpy(patchedBmpPtr + firstPartLen, "\x08\xAF\xE0\xC7\x47\xB8\xF1\x11", patchLen);
+			memcpy(patchedBmpPtr + firstPartLen + patchLen, ptr + (firstPartLen + droppedPartLen),
+			    origOILen - 8 - (firstPartLen + droppedPartLen));
+
+			// Adjust the offsets for the new OI size
+			WRITE_LE_UINT32(patchedBmpPtr, READ_LE_UINT32(patchedBmpPtr) + (patchLen - droppedPartLen));
+			for (int i = 2; i <= od.width / 8; i++)
+				WRITE_LE_UINT32(patchedBmpPtr + i * 4, READ_LE_UINT32(patchedBmpPtr + i * 4) + (patchLen - droppedPartLen));
+
+			ptr = patchedBmpPtr;
+		}
 	}
 
 	if (numstrip != 0) {
@@ -666,12 +739,15 @@ void ScummEngine::drawObject(int obj, int arg) {
 			flags |= Gdi::dbDrawMaskOnAll;
 
 #ifdef ENABLE_HE
-		if (_game.heversion >= 70 && findResource(MKTAG('S','M','A','P'), ptr) == NULL)
+		if (_game.heversion >= 70 && !findResource(MKTAG('S','M','A','P'), ptr))
 			_gdi->drawBMAPObject(ptr, &_virtscr[kMainVirtScreen], obj, od.x_pos, od.y_pos, od.width, od.height);
 		else
 #endif
 			_gdi->drawBitmap(ptr, &_virtscr[kMainVirtScreen], x, ypos, width * 8, height, x - xpos, numstrip, flags);
 	}
+
+	if (patchedBmpPtr)
+		delete[] patchedBmpPtr;
 }
 
 void ScummEngine::clearRoomObjects() {
@@ -775,7 +851,7 @@ void ScummEngine::resetRoomObjects() {
 		od = &_objs[findLocalObjectSlot()];
 
 		ptr = obcds.findNext(MKTAG('O','B','C','D'));
-		if (ptr == NULL)
+		if (ptr == nullptr)
 			error("Room %d missing object code block(s)", _roomResource);
 
 		od->OBCDoffset = ptr - rootptr;
@@ -790,7 +866,7 @@ void ScummEngine::resetRoomObjects() {
 
 		if (_dumpScripts) {
 			char buf[32];
-			sprintf(buf, "roomobj-%d-", _roomResource);
+			Common::sprintf_s(buf, "roomobj-%d-", _roomResource);
 			ptr = findResource(MKTAG('V','E','R','B'), ptr);
 			dumpResource(buf, od->obj_nr, ptr);
 		}
@@ -801,7 +877,7 @@ void ScummEngine::resetRoomObjects() {
 	ResourceIterator obims(room, false);
 	for (i = 0; i < _numObjectsInRoom; i++) {
 		ptr = obims.findNext(MKTAG('O','B','I','M'));
-		if (ptr == NULL)
+		if (ptr == nullptr)
 			error("Room %d missing image blocks(s)", _roomResource);
 
 		obim_id = getObjectIdFromOBIM(ptr);
@@ -855,7 +931,7 @@ void ScummEngine_v3old::resetRoomObjects() {
 
 		if (_dumpScripts) {
 			char buf[32];
-			sprintf(buf, "roomobj-%d-", _roomResource);
+			Common::sprintf_s(buf, "roomobj-%d-", _roomResource);
 			dumpResource(buf, od->obj_nr, room + od->OBCDoffset);
 		}
 	}
@@ -882,14 +958,14 @@ void ScummEngine_v4::resetRoomObjects() {
 		od = &_objs[findLocalObjectSlot()];
 
 		ptr = obcds.findNext(MKTAG('O','B','C','D'));
-		if (ptr == NULL)
+		if (ptr == nullptr)
 			error("Room %d missing object code block(s)", _roomResource);
 
 		od->OBCDoffset = ptr - room;
 		od->obj_nr = READ_LE_UINT16(ptr + 6);
 		if (_dumpScripts) {
 			char buf[32];
-			sprintf(buf, "roomobj-%d-", _roomResource);
+			Common::sprintf_s(buf, "roomobj-%d-", _roomResource);
 			dumpResource(buf, od->obj_nr, ptr);
 		}
 	}
@@ -899,7 +975,7 @@ void ScummEngine_v4::resetRoomObjects() {
 		// In the PC Engine version of Loom, there aren't image blocks
 		// for all objects.
 		ptr = obims.findNext(MKTAG('O','B','I','M'));
-		if (ptr == NULL)
+		if (ptr == nullptr)
 			break;
 
 		obim_id = READ_LE_UINT16(ptr + 6);
@@ -989,12 +1065,12 @@ void ScummEngine_v4::resetRoomObject(ObjectData *od, const byte *room, const byt
 }
 
 void ScummEngine::resetRoomObject(ObjectData *od, const byte *room, const byte *searchptr) {
-	const CodeHeader *cdhd = NULL;
-	const ImageHeader *imhd = NULL;
+	const CodeHeader *cdhd = nullptr;
+	const ImageHeader *imhd = nullptr;
 
 	assert(room);
 
-	if (searchptr == NULL) {
+	if (searchptr == nullptr) {
 		if (_game.version == 8) {
 			searchptr = getResourceAddress(rtRoomScripts, _roomResource);
 			assert(searchptr);
@@ -1004,7 +1080,7 @@ void ScummEngine::resetRoomObject(ObjectData *od, const byte *room, const byte *
 	}
 
 	cdhd = (const CodeHeader *)findResourceData(MKTAG('C','D','H','D'), searchptr + od->OBCDoffset);
-	if (cdhd == NULL)
+	if (cdhd == nullptr)
 		error("Room %d missing CDHD blocks(s)", _roomResource);
 	if (od->OBIMoffset)
 		imhd = (const ImageHeader *)findResourceData(MKTAG('I','M','H','D'), room + od->OBIMoffset);
@@ -1137,7 +1213,7 @@ void ScummEngine_v6::clearDrawQueues() {
 void ScummEngine_v71he::clearDrawQueues() {
 	ScummEngine_v6::clearDrawQueues();
 
-	_wiz->polygonClear();
+	_wiz->deleteLocalPolygons();
 }
 
 void ScummEngine_v80he::clearDrawQueues() {
@@ -1187,8 +1263,8 @@ const byte *ScummEngine::getObjOrActorName(int obj) {
 	}
 
 	objptr = getOBCDFromObject(obj, true);
-	if (objptr == NULL)
-		return NULL;
+	if (objptr == nullptr)
+		return nullptr;
 
 	if (_game.features & GF_SMALL_HEADER) {
 		byte offset = 0;
@@ -1226,7 +1302,7 @@ void ScummEngine::setObjectName(int obj) {
 
 	for (i = 0; i < _numNewNames; i++) {
 		if (_newNames[i] == 0) {
-			loadPtrToResource(rtObjectName, i, NULL);
+			loadPtrToResource(rtObjectName, i, nullptr);
 			_newNames[i] = obj;
 			runInventoryScript(0);
 			return;
@@ -1261,7 +1337,7 @@ byte *ScummEngine::getOBCDFromObject(int obj, bool v0CheckInventory) {
 		_objectOwnerTable[obj] != OF_OWNER_ROOM)
 	{
 		if (_game.version == 0 && !v0CheckInventory)
-			return 0;
+			return nullptr;
 		for (i = 0; i < _numInventory; i++) {
 			if (_inventory[i] == obj)
 				return getResourceAddress(rtInventory, i);
@@ -1281,7 +1357,7 @@ byte *ScummEngine::getOBCDFromObject(int obj, bool v0CheckInventory) {
 			}
 		}
 	}
-	return 0;
+	return nullptr;
 }
 
 const byte *ScummEngine::getOBIMFromObjectData(const ObjectData &od) {
@@ -1330,15 +1406,15 @@ const byte *ScummEngine::getObjectImage(const byte *ptr, int state) {
 		// we use the offsets in the OFFS chunk,
 		ptr = findResource(MKTAG('I','M','A','G'), ptr);
 		if (!ptr)
-			return 0;
+			return nullptr;
 
 		ptr = findResource(MKTAG('W','R','A','P'), ptr);
 		if (!ptr)
-			return 0;
+			return nullptr;
 
 		ptr = findResource(MKTAG('O','F','F','S'), ptr);
 		if (!ptr)
-			return 0;
+			return nullptr;
 
 		// Get the address of the specified SMAP (corresponding to IMxx)
 		ptr += READ_LE_UINT32(ptr + 4 + 4*state);
@@ -1479,7 +1555,7 @@ void ScummEngine::findObjectInRoom(FindObjectInRoom *fo, byte findWhat, uint id,
 		ResourceIterator	obcds(searchptr, (_game.features & GF_SMALL_HEADER) != 0);
 		for (i = 0; i < numobj; i++) {
 			obcdptr = obcds.findNext(MKTAG('O','B','C','D'));
-			if (obcdptr == NULL)
+			if (obcdptr == nullptr)
 				error("findObjectInRoom: Not enough code blocks in room %d", room);
 			cdhd = (const CodeHeader *)findResourceData(MKTAG('C','D','H','D'), obcdptr);
 
@@ -1507,7 +1583,7 @@ void ScummEngine::findObjectInRoom(FindObjectInRoom *fo, byte findWhat, uint id,
 		ResourceIterator	obims(roomptr, (_game.features & GF_SMALL_HEADER) != 0);
 		for (i = 0; i < numobj; i++) {
 			obimptr = obims.findNext(MKTAG('O','B','I','M'));
-			if (obimptr == NULL)
+			if (obimptr == nullptr)
 				error("findObjectInRoom: Not enough image blocks in room %d", room);
 			obim_id = getObjectIdFromOBIM(obimptr);
 
@@ -1767,7 +1843,7 @@ void ScummEngine_v6::drawBlastObject(BlastObject *eo) {
 	bdd.scale_x = (byte)eo->scaleX;
 	bdd.scale_y = (byte)eo->scaleY;
 
-	bdd.maskPtr = NULL;
+	bdd.maskPtr = nullptr;
 	bdd.numStrips = _gdi->_numStrips;
 
 	if ((bdd.scale_x != 255) || (bdd.scale_y != 255)) {
@@ -1777,7 +1853,7 @@ void ScummEngine_v6::drawBlastObject(BlastObject *eo) {
 	}
 	bdd.shadowPalette = _shadowPalette;
 
-	bdd.actorPalette = 0;
+	bdd.actorPalette = nullptr;
 	bdd.mirror = false;
 
 	drawBomp(bdd);
@@ -1786,24 +1862,50 @@ void ScummEngine_v6::drawBlastObject(BlastObject *eo) {
 }
 
 void ScummEngine_v6::removeBlastObjects() {
-	BlastObject *eo;
-	int i;
+	// While v6-7 games restore the rect immediately, we only reset
+	// the blastObject queue in here for v8, since their graphics
+	// has to remain on screen until after runAllScripts().
+	if (_game.version == 8) {
+		if (_blastObjectQueuePos != 0) {
+			for (int i = 0; i < _blastObjectQueuePos; i++) {
+				_blastObjectsRectsToBeRestored[i] = _blastObjectQueue[i].rect;
+				_blastObjectRectsQueue = _blastObjectQueuePos;
+			}
+		}
 
-	eo = _blastObjectQueue;
-	for (i = 0; i < _blastObjectQueuePos; i++, eo++) {
-		removeBlastObject(eo);
+		_blastObjectQueuePos = 0;
+		return;
 	}
+
+	for (int i = 0; i < _blastObjectQueuePos; i++) {
+		restoreBlastObjectRect(_blastObjectQueue[i].rect);
+	}
+
 	_blastObjectQueuePos = 0;
 }
 
-void ScummEngine_v6::removeBlastObject(BlastObject *eo) {
+void ScummEngine_v6::restoreBlastObjectsRects() {
+	// While v6-7 games restore the rect immediately in
+	// ScummEngine_v6::removeBlastObjects(), we do that here
+	// for v8, which has to restore the rects after runAllScripts().
+	if (_game.version < 8)
+		return;
+
+	for (int i = 0; i < _blastObjectRectsQueue; i++) {
+		restoreBlastObjectRect(_blastObjectsRectsToBeRestored[i]);
+
+		// Invalidate the rect after restoring it...
+		_blastObjectsRectsToBeRestored[i].setHeight(0);
+	}
+
+	_blastObjectRectsQueue = 0;
+}
+
+void ScummEngine_v6::restoreBlastObjectRect(Common::Rect r) {
 	VirtScreen *vs = &_virtscr[kMainVirtScreen];
 
-	Common::Rect r;
 	int left_strip, right_strip;
 	int i;
-
-	r = eo->rect;
 
 	r.clip(Common::Rect(vs->w, vs->h));
 
@@ -1839,7 +1941,7 @@ int ScummEngine::findLocalObjectSlot() {
 int ScummEngine::findFlObjectSlot() {
 	int i;
 	for (i = 1; i < _numFlObject; i++) {
-		if (_res->_types[rtFlObject][i]._address == NULL)
+		if (_res->_types[rtFlObject][i]._address == nullptr)
 			return i;
 	}
 	error("findFlObjectSlot: Out of FLObject slots");
@@ -1882,7 +1984,7 @@ void ScummEngine::loadFlObject(uint object, uint room) {
 	if (_dumpScripts) {
 		char buf[32];
 		const byte *ptr = foir.obcd;
-		sprintf(buf, "roomobj-%u-", room);
+		Common::sprintf_s(buf, "roomobj-%u-", room);
 		ptr = findResource(MKTAG('V','E','R','B'), ptr);
 		dumpResource(buf, object, ptr);
 	}

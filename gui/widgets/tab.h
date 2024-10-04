@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,12 +34,9 @@ enum {
 };
 
 class TabWidget : public Widget {
-	typedef Common::String String;
-	typedef Common::U32String U32String;
-
 	struct Tab {
-		U32String title;
-		String dialogName;
+		Common::U32String title;
+		Common::String dialogName;
 		Widget *firstWidget;
 		int _tabWidth;
 	};
@@ -54,6 +50,8 @@ protected:
 	int _tabHeight;
 	int _minTabWidth;
 	int _titleSpacing;
+
+	ThemeEngine::TextAlignVertical _alignV;
 
 	int _bodyRP, _bodyTP, _bodyLP, _bodyBP;
 	ThemeEngine::DialogBackground _bodyBackgroundType;
@@ -69,8 +67,8 @@ protected:
 	void recalc();
 
 public:
-	TabWidget(GuiObject *boss, int x, int y, int w, int h);
-	TabWidget(GuiObject *boss, const String &name);
+	TabWidget(GuiObject *boss, int x, int y, int w, int h, ThemeEngine::TextAlignVertical alignV = ThemeEngine::kTextAlignVTop);
+	TabWidget(GuiObject *boss, const Common::String &name, ThemeEngine::TextAlignVertical alignV = ThemeEngine::kTextAlignVTop);
 	~TabWidget() override;
 
 	void init();
@@ -79,7 +77,7 @@ public:
 	 * Add a new tab with the given title. Returns a unique ID which can be used
 	 * to identify the tab (to remove it / activate it etc.).
 	 */
-	int addTab(const U32String &title, const String &dialogName);
+	int addTab(const Common::U32String &title, const Common::String &dialogName);
 
 	/**
 	 * Remove the tab with the given tab ID. Disposes all child widgets of that tab.
@@ -103,7 +101,7 @@ public:
 	 */
 	void setActiveTab(int tabID);
 
-	void setTabTitle(int tabID, const U32String &title) {
+	void setTabTitle(int tabID, const Common::U32String &title) {
 		assert(0 <= tabID && tabID < (int)_tabs.size());
 		_tabs[tabID].title = title;
 	}
@@ -112,6 +110,7 @@ public:
 	void handleMouseMoved(int x, int y, int button) override;
 	void handleMouseLeft(int button) override { _lastRead = -1; };
 	bool handleKeyDown(Common::KeyState state) override;
+	void handleMouseWheel(int x, int y, int direction) override;
 	void handleCommand(CommandSender *sender, uint32 cmd, uint32 data) override;
 	virtual int getFirstVisible() const;
 	virtual void setFirstVisible(int tabID, bool adjustIfRoom = false);

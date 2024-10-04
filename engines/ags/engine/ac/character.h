@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,6 +33,11 @@
 namespace AGS3 {
 
 // **** CHARACTER: FUNCTIONS ****
+
+bool	is_valid_character(int char_id);
+// Asserts the character ID is valid,
+// if not then prints a warning to the log; returns assertion result
+bool	AssertCharacter(const char *apiname, int char_id);
 
 void    Character_AddInventory(CharacterInfo *chaa, ScriptInvItem *invi, int addIndex);
 void    Character_AddWaypoint(CharacterInfo *chaa, int x, int y);
@@ -71,6 +75,8 @@ ScriptOverlay *Character_SayBackground(CharacterInfo *chaa, const char *texx);
 void    Character_SetAsPlayer(CharacterInfo *chaa);
 void    Character_SetIdleView(CharacterInfo *chaa, int iview, int itime);
 void    Character_SetOption(CharacterInfo *chaa, int flag, int yesorno);
+bool	Character_SetProperty(CharacterInfo *chaa, const char *property, int value);
+bool	Character_SetTextProperty(CharacterInfo *chaa, const char *property, const char *value);
 void    Character_SetSpeed(CharacterInfo *chaa, int xspeed, int yspeed);
 void    Character_StopMoving(CharacterInfo *charp);
 void    Character_Tint(CharacterInfo *chaa, int red, int green, int blue, int opacity, int luminance);
@@ -177,7 +183,10 @@ class Bitmap;
 }
 using namespace AGS; // FIXME later
 
-void animate_character(CharacterInfo *chap, int loopn, int sppd, int rept, int noidleoverride = 0, int direction = 0, int sframe = 0);
+void animate_character(CharacterInfo *chap, int loopn, int sppd, int rept,
+	int noidleoverride = 0, int direction = 0, int sframe = 0, int volume = 100);
+// Clears up animation parameters
+void stop_character_anim(CharacterInfo *chap);
 void walk_character(int chac, int tox, int toy, int ignwal, bool autoWalkAnims);
 int  find_looporder_index(int curloop);
 // returns 0 to use diagonal, 1 to not
@@ -193,13 +202,12 @@ int  doNextCharMoveStep(CharacterInfo *chi, int &char_index, CharacterExtras *ch
 bool is_char_walking_ndirect(CharacterInfo *chi);
 int  find_nearest_walkable_area_within(int *xx, int *yy, int range, int step);
 void find_nearest_walkable_area(int *xx, int *yy);
-void walk_character(int chac, int tox, int toy, int ignwal, bool autoWalkAnims);
 void FindReasonableLoopForCharacter(CharacterInfo *chap);
 void walk_or_move_character(CharacterInfo *chaa, int x, int y, int blocking, int direct, bool isWalk);
-int  is_valid_character(int newchar);
 int  wantMoveNow(CharacterInfo *chi, CharacterExtras *chex);
 void setup_player_character(int charid);
 void CheckViewFrameForCharacter(CharacterInfo *chi);
+int  GetCharacterFrameVolume(CharacterInfo *chi);
 Shared::Bitmap *GetCharacterImage(int charid, int *isFlipped);
 CharacterInfo *GetCharacterAtScreen(int xx, int yy);
 CharacterInfo *GetCharacterAtRoom(int x, int y);
@@ -211,7 +219,6 @@ int is_char_on_another(int sourceChar, int ww, int *fromxptr, int *cwidptr);
 int my_getpixel(Shared::Bitmap *blk, int x, int y);
 // X and Y co-ordinates must be in 320x200 format
 int check_click_on_character(int xx, int yy, int mood);
-int is_pos_on_character(int xx, int yy);
 void _DisplaySpeechCore(int chid, const char *displbuf);
 void _DisplayThoughtCore(int chid, const char *displbuf);
 void _displayspeech(const char *texx, int aschar, int xx, int yy, int widd, int isThought);

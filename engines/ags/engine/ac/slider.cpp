@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,21 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ags/engine/ac/slider.h"
 #include "ags/shared/ac/common.h"
 #include "ags/shared/debugging/out.h"
+#include "ags/shared/util/math.h"
 #include "ags/engine/script/script_api.h"
 #include "ags/engine/script/script_runtime.h"
 #include "ags/globals.h"
 
 namespace AGS3 {
 
-// *** SLIDER FUNCTIONS
+using namespace AGS::Shared;
 
 void Slider_SetMax(GUISlider *guisl, int valn) {
 
@@ -41,7 +41,7 @@ void Slider_SetMax(GUISlider *guisl, int valn) {
 		if (guisl->MinValue > guisl->MaxValue)
 			quit("!Slider.Max: minimum cannot be greater than maximum");
 
-		guisl->NotifyParentChanged();
+		guisl->MarkChanged();
 	}
 
 }
@@ -60,7 +60,7 @@ void Slider_SetMin(GUISlider *guisl, int valn) {
 		if (guisl->MinValue > guisl->MaxValue)
 			quit("!Slider.Min: minimum cannot be greater than maximum");
 
-		guisl->NotifyParentChanged();
+		guisl->MarkChanged();
 	}
 
 }
@@ -70,12 +70,11 @@ int Slider_GetMin(GUISlider *guisl) {
 }
 
 void Slider_SetValue(GUISlider *guisl, int valn) {
-	if (valn > guisl->MaxValue) valn = guisl->MaxValue;
-	if (valn < guisl->MinValue) valn = guisl->MinValue;
+	valn = Math::Clamp<int>(valn, guisl->MinValue, guisl->MaxValue);
 
 	if (valn != guisl->Value) {
 		guisl->Value = valn;
-		guisl->NotifyParentChanged();
+		guisl->MarkChanged();
 	}
 }
 
@@ -90,7 +89,7 @@ int Slider_GetBackgroundGraphic(GUISlider *guisl) {
 void Slider_SetBackgroundGraphic(GUISlider *guisl, int newImage) {
 	if (newImage != guisl->BgImage) {
 		guisl->BgImage = newImage;
-		guisl->NotifyParentChanged();
+		guisl->MarkChanged();
 	}
 }
 
@@ -101,7 +100,7 @@ int Slider_GetHandleGraphic(GUISlider *guisl) {
 void Slider_SetHandleGraphic(GUISlider *guisl, int newImage) {
 	if (newImage != guisl->HandleImage) {
 		guisl->HandleImage = newImage;
-		guisl->NotifyParentChanged();
+		guisl->MarkChanged();
 	}
 }
 
@@ -112,7 +111,7 @@ int Slider_GetHandleOffset(GUISlider *guisl) {
 void Slider_SetHandleOffset(GUISlider *guisl, int newOffset) {
 	if (newOffset != guisl->HandleOffset) {
 		guisl->HandleOffset = newOffset;
-		guisl->NotifyParentChanged();
+		guisl->MarkChanged();
 	}
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,7 +56,6 @@
 #include "ags/engine/ac/global_overlay.h"
 #include "ags/engine/ac/global_palette.h"
 #include "ags/engine/ac/global_parser.h"
-#include "ags/engine/ac/global_record.h"
 #include "ags/engine/ac/global_region.h"
 #include "ags/engine/ac/global_room.h"
 #include "ags/engine/ac/global_slider.h"
@@ -340,8 +338,8 @@ RuntimeScriptValue Sc_FadeIn(const RuntimeScriptValue *params, int32_t param_cou
 }
 
 // void (int spdd)
-RuntimeScriptValue Sc_my_fade_out(const RuntimeScriptValue *params, int32_t param_count) {
-	API_SCALL_VOID_PINT(my_fade_out);
+RuntimeScriptValue Sc_FadeOut(const RuntimeScriptValue *params, int32_t param_count) {
+	API_SCALL_VOID_PINT(FadeOut);
 }
 
 // void (int handle)
@@ -719,11 +717,13 @@ RuntimeScriptValue Sc_GetWalkableAreaAtScreen(const RuntimeScriptValue *params, 
 }
 
 RuntimeScriptValue Sc_GetDrawingSurfaceForWalkableArea(const RuntimeScriptValue *params, int32_t param_count) {
+	(void)params; (void)param_count;
 	ScriptDrawingSurface *ret_obj = Room_GetDrawingSurfaceForMask(kRoomAreaWalkable);
 	return RuntimeScriptValue().SetDynamicObject(ret_obj, ret_obj);
 }
 
 RuntimeScriptValue Sc_GetDrawingSurfaceForWalkbehind(const RuntimeScriptValue *params, int32_t param_count) {
+	(void)params; (void)param_count;
 	ScriptDrawingSurface *ret_obj = Room_GetDrawingSurfaceForMask(kRoomAreaWalkBehind);
 	return RuntimeScriptValue().SetDynamicObject(ret_obj, ret_obj);
 }
@@ -1024,7 +1024,7 @@ RuntimeScriptValue Sc_PlayAmbientSound(const RuntimeScriptValue *params, int32_t
 
 // void (int numb,int playflags)
 RuntimeScriptValue Sc_play_flc_file(const RuntimeScriptValue *params, int32_t param_count) {
-	API_SCALL_VOID_PINT2(play_flc_file);
+	API_SCALL_VOID_PINT2(PlayFlic);
 }
 
 // void  (char *filename)
@@ -1059,7 +1059,7 @@ RuntimeScriptValue Sc_PlaySoundEx(const RuntimeScriptValue *params, int32_t para
 
 // void (const char* name, int skip, int flags)
 RuntimeScriptValue Sc_scrPlayVideo(const RuntimeScriptValue *params, int32_t param_count) {
-	API_SCALL_VOID_POBJ_PINT2(scrPlayVideo, const char);
+	API_SCALL_VOID_POBJ_PINT2(PlayVideo, const char);
 }
 
 // void (int dialog)
@@ -1881,6 +1881,11 @@ RuntimeScriptValue Sc_WaitMouseKey(const RuntimeScriptValue *params, int32_t par
 	API_SCALL_INT_PINT(WaitMouseKey);
 }
 
+// int (int input_flags, int nloops)
+RuntimeScriptValue Sc_WaitInput(const RuntimeScriptValue *params, int32_t param_count) {
+	API_SCALL_INT_PINT2(WaitInput);
+}
+
 RuntimeScriptValue Sc_SkipWait(const RuntimeScriptValue *params, int32_t param_count) {
 	API_SCALL_VOID(SkipWait);
 }
@@ -1936,7 +1941,7 @@ void RegisterGlobalAPI() {
 	ccAddExternalStaticFunction("FaceCharacter",            Sc_FaceCharacter);
 	ccAddExternalStaticFunction("FaceLocation",             Sc_FaceLocation);
 	ccAddExternalStaticFunction("FadeIn",                   Sc_FadeIn);
-	ccAddExternalStaticFunction("FadeOut",                  Sc_my_fade_out);
+	ccAddExternalStaticFunction("FadeOut",                  Sc_FadeOut);
 	ccAddExternalStaticFunction("FileClose",                Sc_FileClose);
 	ccAddExternalStaticFunction("FileIsEOF",                Sc_FileIsEOF);
 	ccAddExternalStaticFunction("FileIsError",              Sc_FileIsError);
@@ -2257,6 +2262,7 @@ void RegisterGlobalAPI() {
 	ccAddExternalStaticFunction("WaitKey",                  Sc_WaitKey);
 	ccAddExternalStaticFunction("WaitMouse",                Sc_WaitMouse);
 	ccAddExternalStaticFunction("WaitMouseKey",             Sc_WaitMouseKey);
+	ccAddExternalStaticFunction("WaitInput",                Sc_WaitInput);
 	ccAddExternalStaticFunction("SkipWait",                 Sc_SkipWait);
 }
 

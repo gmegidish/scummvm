@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * MIT License:
  *
@@ -55,10 +54,19 @@
 #include "common/rect.h"
 #include "common/macresman.h"
 #include "common/random.h"
+#include "common/timer.h"
 
 #include "wage/debugger.h"
 
 struct ADGameDescription;
+
+namespace Common {
+struct Event;
+}
+
+namespace Graphics {
+class MacDialog;
+}
 
 namespace Wage {
 
@@ -104,6 +112,11 @@ enum {
 	// the current limitation is 32 debug levels (1 << 31 is the last one)
 };
 
+enum Resolution {
+	GF_RES800  =	1 << 0,
+	GF_RES1024 =	1 << 1
+};
+
 Common::Rect *readRect(Common::SeekableReadStream *in);
 const char *getIndefiniteArticle(const Common::String &word);
 const char *prependGenderSpecificPronoun(int gender);
@@ -120,14 +133,15 @@ public:
 
 	Common::Error run() override;
 
-	bool canLoadGameStateCurrently() override;
-	bool canSaveGameStateCurrently() override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 
 	const char *getGameFile() const;
 	void processTurn(Common::String *textInput, Designed *clickInput);
 	void regen();
 
 	const char *getTargetName() { return _targetName.c_str(); }
+	bool pollEvent(Common::Event &event);
 
 private:
 	bool loadWorld(Common::MacResManager *resMan);
@@ -146,7 +160,6 @@ private:
 	void performHealingMagic(Chr *chr, Obj *magicalObject);
 
 	void doClose();
-	void updateSoundTimerForScene(Scene *scene, bool firstTime);
 
 public:
 	void takeObj(Obj *obj);
@@ -191,16 +204,24 @@ public:
 	bool _temporarilyHidden;
 	bool _isGameOver;
 	bool _commandWasQuick;
+	bool _restartRequested = false;
 
 	bool _shouldQuit;
+	int _defaultSaveSlot = -1;
+	Common::String _defaultSaveDescritpion;
 
 	Common::String _inputText;
 
+	Common::List<int> _soundQueue;
+	Common::String _soundToPlay;
+
 	void playSound(Common::String soundName);
+	void updateSoundTimerForScene(Scene *scene, bool firstTime);
 	void setMenu(Common::String soundName);
 	void appendText(const char *str);
 	void gameOver();
 	bool saveDialog();
+	void aboutDialog();
 	Obj *getOffer();
 	Chr *getMonster();
 	void processEvents();
@@ -209,6 +230,8 @@ public:
 	void encounter(Chr *player, Chr *chr);
 	void redrawScene();
 	void saveGame();
+
+	uint32 getFeatures();
 
 	Common::Error loadGameState(int slot) override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
@@ -223,6 +246,8 @@ private:
 	Scene *getSceneByOffset(int offset) const;
 	int saveGame(const Common::String &fileName, const Common::String &descriptionString);
 	int loadGame(int slotId);
+
+	void restart();
 
 private:
 	const ADGameDescription *_gameDescription;

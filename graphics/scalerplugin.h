@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef GRAPHICS_SCALERPLUGIN_H
@@ -26,23 +25,10 @@
 #include "graphics/pixelformat.h"
 #include "graphics/surface.h"
 
-class ScalerPluginObject : public PluginObject {
+class Scaler {
 public:
-
-	virtual ~ScalerPluginObject() {}
-
-	/**
-	 * This function will be called before any scaler is used.
-	 * Precomputed data should be generated here.
-	 * @param format The pixel format to scale.
-	 */
-	virtual void initialize(const Graphics::PixelFormat &format);
-
-	/**
-	 * This is called when the plugin is not needed. It should clean
-	 * up memory from the initialize method.
-	 */
-	virtual void deinitialize() {}
+	Scaler(const Graphics::PixelFormat &format) : _format(format) {}
+	virtual ~Scaler() {}
 
 	/**
 	 * Scale a rect.
@@ -73,18 +59,6 @@ public:
 
 	virtual uint getFactor() const { return _factor; }
 
-	virtual const Common::Array<uint> &getFactors() const { return _factors; }
-
-	virtual bool hasFactor(uint factor) {
-		const Common::Array<uint> &factors = getFactors();
-		for (Common::Array<uint>::const_iterator it = factors.begin(); it != factors.end(); it++) {
-			if ((*it) == factor)
-				return true;
-		}
-
-		return false;
-	}
-
 	/**
 	 * Set the scaling factor.
 	 * Intended to be used with GUI to set a known valid factor.
@@ -97,34 +71,6 @@ public:
 		_factor = factor;
 		return oldFactor;
 	}
-
-	/**
-	 * Indicates how far outside the scaling region this scaler "looks"
-	 * @return The number of pixels in any direction
-	 */
-	virtual uint extraPixels() const = 0;
-
-	/**
-	 * Some scalers are not suitable for scaling the cursor.
-	 * Blurring scalers should return false.
-	 */
-	virtual bool canDrawCursor() const = 0;
-
-	/**
-	 * This value will be displayed on the GUI.
-	 */
-	virtual const char *getPrettyName() const = 0;
-
-	/**
-	 * Computationally intense scalers can benefit from comparing new and old
-	 * source images and updating only the pixels necessary. If the function
-	 * returns true, this scaler prefers this method and the backend can
-	 * optionally use it.
-	 *
-	 * @see enableSource
-	 * @see setSource
-	 */
-	virtual bool useOldSource() const { return false; }
 
 	/**
 	 * Set the source to be used when scaling and copying to the old buffer.
@@ -156,7 +102,6 @@ protected:
 	                         uint32 dstPitch, int width, int height, int x, int y) = 0;
 
 	uint _factor;
-	Common::Array<uint> _factors;
 	Graphics::PixelFormat _format;
 };
 
@@ -164,14 +109,12 @@ protected:
  * Convenience class that implements some bookkeeping for keeping track of
  * old source images.
  */
-class SourceScaler : public ScalerPluginObject {
+class SourceScaler : public Scaler {
 
 public:
 
-	SourceScaler();
+	SourceScaler(const Graphics::PixelFormat &format);
 	virtual ~SourceScaler();
-
-	virtual void deinitialize() override;
 
 	virtual void setSource(const byte *src, uint pitch, int width, int height, int padding) final;
 
@@ -202,6 +145,62 @@ private:
 	bool _enable;
 	byte *_oldSrc;
 	Graphics::Surface _bufferedOutput;
+};
+
+class ScalerPluginObject : public PluginObject {
+public:
+
+	virtual ~ScalerPluginObject() {}
+
+	virtual Scaler *createInstance(const Graphics::PixelFormat &format) const = 0;
+
+	const Common::Array<uint> &getFactors() const { return _factors; }
+
+	bool hasFactor(uint factor) const {
+		const Common::Array<uint> &factors = getFactors();
+		for (Common::Array<uint>::const_iterator it = factors.begin(); it != factors.end(); it++) {
+			if ((*it) == factor)
+				return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Indicates how far outside the scaling region this scaler "looks"
+	 * @return The number of pixels in any direction
+	 */
+	virtual uint extraPixels() const = 0;
+
+	/**
+	 * Some scalers are not suitable for scaling the cursor.
+	 * Blurring scalers should return false.
+	 */
+	virtual bool canDrawCursor() const = 0;
+
+	/**
+	 * This value will be displayed on the GUI.
+	 */
+	virtual const char *getPrettyName() const = 0;
+
+	/**
+	 * The default scale factor.
+	 */
+	virtual uint getDefaultFactor() const { return 2; }
+
+	/**
+	 * Computationally intense scalers can benefit from comparing new and old
+	 * source images and updating only the pixels necessary. If the function
+	 * returns true, this scaler prefers this method and the backend can
+	 * optionally use it.
+	 *
+	 * @see enableSource
+	 * @see setSource
+	 */
+	virtual bool useOldSource() const { return false; }
+
+protected:
+	Common::Array<uint> _factors;
 };
 
 /**
@@ -235,6 +234,11 @@ public:
 	 * Update scaler settings from older versions of ScummVM.
 	 */
 	void updateOldSettings();
+
+	/**
+	 * Returns whether the supplied mode is one of the old gfx-modes.
+	 */
+	bool isOldGraphicsSetting(const Common::String &gfxMode);
 };
 
 /** Convenience shortcut for accessing singleton */

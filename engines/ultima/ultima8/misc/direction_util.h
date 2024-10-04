@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 
 #include "ultima/ultima8/misc/direction.h"
 #include "ultima/ultima8/ultima8.h"
-#include "common/math.h"
+#include "math/utils.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -98,7 +97,7 @@ inline Direction Direction_Get(int deltay, int deltax, DirectionMode dirmode) {
 			return dydx >= -424 ? dir_southwest : dydx >= -2472 ? dir_west
 				   : dir_northwest;
 	} else {
-		double angle = Common::rad2deg(atan2(deltay, deltax));
+		double angle = Math::rad2deg(atan2(deltay, deltax));
 		if (angle < -168.75)      return dir_southwest;
 		else if (angle < -146.25) return dir_ssw;
 		else if (angle < -123.75) return dir_south;
@@ -139,7 +138,7 @@ inline Direction Direction_GetWorldDir(int deltay, int deltax, DirectionMode dir
 		else			// south-west
 			return dydx >= -424 ? dir_west : dydx >= -2472 ? dir_southwest : dir_south;
 	} else {
-		double angle = Common::rad2deg(atan2(deltay, deltax));
+		double angle = Math::rad2deg(atan2(deltay, deltax));
 		if (angle < -168.75)      return dir_west;
 		else if (angle < -146.25) return dir_wnw;
 		else if (angle < -123.75) return dir_northwest;

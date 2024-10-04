@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,6 +36,21 @@ namespace Asylum {
 
 SceneTitle::SceneTitle(AsylumEngine *engine): _vm(engine),
 	_start(0), _done(false), _spinnerFrameIndex(0), _spinnerProgress(0), _spinnerFrameCount(0) {
+
+	switch (_vm->getLanguage()) {
+	default:
+	case Common::EN_ANY:
+		_chapterTitlesOffset = 1811;
+		break;
+
+	case Common::DE_DEU:
+		_chapterTitlesOffset = 1734;
+		break;
+
+	case Common::FR_FRA:
+		_chapterTitlesOffset = 1715;
+		break;
+	}
 }
 
 void SceneTitle::load() {
@@ -65,7 +79,7 @@ void SceneTitle::update(int32 tick) {
 
 	getScreen()->draw(getWorld()->sceneTitleGraphicResourceId);
 	getScreen()->draw(MAKE_RESOURCE(kResourcePackSound, 17), _spinnerFrameIndex, Common::Point((int16)(((_spinnerProgress / 590.0) * 580.0) - 290), 0), kDrawFlagNone, false);
-	getText()->drawCentered(Common::Point(320, 30), 24, MAKE_RESOURCE(kResourcePackText, getWorld()->chapter + 1811));
+	getText()->drawCentered(Common::Point(320, 30), 24, MAKE_RESOURCE(kResourcePackText, getWorld()->chapter + _chapterTitlesOffset));
 	getScreen()->copyBackBufferToScreen();
 
 	// This is not from the original. It's just some arbitrary math to throttle the progress indicator.

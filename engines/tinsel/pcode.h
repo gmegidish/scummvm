@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Virtual processor definitions
  */
@@ -33,8 +32,7 @@ class Serializer;
 
 namespace Tinsel {
 
-// forward declaration
-struct INV_OBJECT;
+class InventoryObject;
 
 enum RESUME_STATE {
 	RES_NOT, RES_1, RES_2, RES_SAVEGAME
@@ -65,7 +63,7 @@ struct INT_CONTEXT {
 	TINSEL_EVENT	event;		///< causal event
 	HPOLYGON	hPoly;		///< associated polygon (if any)
 	int			idActor;	///< associated actor (if any)
-	INV_OBJECT	*pinvo;		///< associated inventory object
+	const InventoryObject	*pinvo;		///< associated inventory object
 
 	// Previously local variables in Interpret()
 	int32 stack[PCODE_STACK_SIZE];	///< interpeters run time stack
@@ -86,7 +84,6 @@ struct INT_CONTEXT {
 
 	void syncWithSerializer(Common::Serializer &s);
 };
-typedef INT_CONTEXT *PINT_CONTEXT;
 
 /*----------------------------------------------------------------------*\
 |*			Interpreter Function Prototypes			*|
@@ -101,7 +98,7 @@ INT_CONTEXT *InitInterpretContext(
 	TINSEL_EVENT	event,		// causal event
 	HPOLYGON	hpoly,		// associated polygon (if any)
 	int		actorid,	// associated actor (if any)
-	INV_OBJECT	*pinvo,
+	const InventoryObject	*pinvo,
 	int myEscape = -1);		// associated inventory object
 
 INT_CONTEXT *RestoreInterpretContext(INT_CONTEXT *ric);

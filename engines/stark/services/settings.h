@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@
 #include "common/language.h"
 #include "common/ustr.h"
 
-#include "engines/stark/gfx/texture.h"
+#include "engines/stark/gfx/bitmap.h"
 #include "engines/stark/services/services.h"
 
 struct ADGameDescription;
@@ -103,7 +102,7 @@ public:
 	/**
 	 * Should the engine apply alpha pre-multiplication when loading replacement PNGs
 	 *
-	 * When rendering, textures are expected to be in pre-multiplied alpha format.
+	 * When rendering, bitmaps are expected to be in pre-multiplied alpha format.
 	 * It's best to have the PNGs in that format on file to speed up loading by removing
 	 * the need to convert them. However this option enables the conversion when loading
 	 * the files to they can be stored with regular alpha transparency for convenience
@@ -111,8 +110,8 @@ public:
 	 */
 	bool shouldPreMultiplyReplacementPNGs() const;
 
-	/** Should linear filtering be used when sampling the background image textures? */
-	Gfx::Texture::SamplingFilter getImageSamplingFilter() const;
+	/** Should linear filtering be used when sampling the background image bitmaps? */
+	Gfx::Bitmap::SamplingFilter getImageSamplingFilter() const;
 
 	/** The codepage text is encoded in or this version of the game */
 	Common::CodePage getTextCodePage() const;

@@ -1,29 +1,28 @@
 /* ScummVM - Graphic Adventure Engine
-*
-* ScummVM is the legal property of its developers, whose names
-* are too numerous to list here. Please refer to the COPYRIGHT
-* file distributed with this source distribution.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2
-* of the License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-*
-*/
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 /*
-* Based on the Reverse Engineering work of Christophe Fontanel,
-* maintainer of the Dungeon Master Encyclopaedia (http://dmweb.free.fr/)
-*/
+ * Based on the Reverse Engineering work of Christophe Fontanel,
+ * maintainer of the Dungeon Master Encyclopaedia (http://dmweb.free.fr/)
+ */
 
 #include "common/file.h"
 #include "common/memstream.h"
@@ -1047,7 +1046,7 @@ Thing DungeonMan::getNextThing(Thing thing) {
 	return Thing(getThingData(thing)[0]);
 }
 
-void DungeonMan::decodeText(char *destString, Thing thing, TextType type) {
+void DungeonMan::decodeText(char *destString, size_t maxSize, Thing thing, TextType type) {
 	static char messageAndScrollEscReplacementStrings[32][8] = { // @ G0255_aac_Graphic559_MessageAndScrollEscapeReplacementStrings
 		{'x',   0,   0,   0, 0, 0, 0, 0}, /* Atari ST Version 1.0 1987-12-08 1987-12-11 1.1 1.2EN 1.2GE: { '?',  0,  0,  0, 0, 0, 0, 0 }, */
 		{'y',   0,   0,   0, 0, 0, 0, 0}, /* Atari ST Version 1.0 1987-12-08 1987-12-11 1.1 1.2EN 1.2GE: { '!',  0,  0,  0, 0, 0, 0, 0 }, */
@@ -1146,7 +1145,8 @@ void DungeonMan::decodeText(char *destString, Thing thing, TextType type) {
 		uint16 *codeWord = _dungeonTextData + textString.getWordOffset();
 		uint16 code = 0, codes = 0;
 		char *escReplString = nullptr;
-		for (;;) { /*infinite loop*/
+		char *endDestString = destString + maxSize;
+		for (; destString < endDestString; ) {
 			if (!codeCounter) {
 				codes = *codeWord++;
 				code = (codes >> 10) & 0x1F;
@@ -1168,8 +1168,8 @@ void DungeonMan::decodeText(char *destString, Thing thing, TextType type) {
 				} else
 					escReplString = escReplacementCharacters[code];
 
-				strcat(destString, escReplString);
-				destString += strlen(escReplString);
+				size_t ln = Common::strlcpy(destString, escReplString, endDestString - destString);
+				destString += ln;
 				escChar = 0;
 			} else if (code < 28) {
 				if (type != kDMTextTypeInscription) {
@@ -1188,6 +1188,7 @@ void DungeonMan::decodeText(char *destString, Thing thing, TextType type) {
 			else
 				break;
 		}
+		assert(destString < endDestString);
 	}
 	*destString = ((type == kDMTextTypeInscription) ? 0x81 : '\0');
 }
@@ -1478,7 +1479,7 @@ Thing DungeonMan::getDiscardThing(uint16 thingType) {
 								} else {
 									projExpl.projectileDeleteEvent(squareThing);
 									unlinkThingFromList(squareThing, Thing(0), currMapX, currMapY);
-									projExpl.projectileDelete(squareThing, 0, currMapX, currMapY);
+									projExpl.projectileDelete(squareThing, nullptr, currMapX, currMapY);
 								}
 								break;
 							case kDMThingTypeArmour:

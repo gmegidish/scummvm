@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -61,8 +60,6 @@ bool8 terminate_debugging = FALSE8;
 
 // This flag indicates whether or not the debug simulated feature is activated or not.
 bool8 debug_auto_save = FALSE8;
-
-#if CD_MODE == 0
 
 void _game_session::Show_lit_unlit_diagnostics() {
 	uint32 j;
@@ -116,7 +113,7 @@ void _game_session::Show_lit_unlit_diagnostics() {
 	// Draw the lights at their screen positions and with their base colours
 	if (SetOK()) {
 		rlp_API *lights = set.GetPRig();
-		if (lights != NULL) {
+		if (lights != nullptr) {
 			for (j = 0; j < lights->nLamps; j++) {
 				PSXLamp *pLamp = (PSXLamp *)lights->GetLamp(j);
 				uint32 state = pLamp->nStates - 1;
@@ -219,11 +216,5 @@ void _game_session::Show_lit_unlit_diagnostics() {
 		}
 	}
 }
-
-#else
-
-void _game_session::Show_lit_unlit_diagnostics() {}
-
-#endif // #if CD_MODE == 0
 
 } // End of namespace ICB

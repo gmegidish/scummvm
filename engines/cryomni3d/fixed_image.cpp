@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -70,7 +69,7 @@ void ZonFixedImage::run(const CallbackFunctor *callback) {
 }
 
 // Just pass a const char * for zone because it's for workarounds and constructing a null String at almost each load call is inefficient
-void ZonFixedImage::load(const Common::String &image, const char *zone) {
+void ZonFixedImage::load(const Common::Path &image, const char *zone) {
 	_imageSurface = nullptr;
 	delete _imageDecoder;
 	_imageDecoder = nullptr;
@@ -81,8 +80,8 @@ void ZonFixedImage::load(const Common::String &image, const char *zone) {
 	}
 	_imageSurface = _imageDecoder->getSurface();
 
-	const Common::String &zoneFName = zone == nullptr ? image : zone;
-	loadZones(zoneFName);
+	Common::Path zonePath(zone ? image.getParent().appendComponent(zone) : image);
+	loadZones(zonePath);
 
 #if 0
 	// This is not correct but to debug zones I think it's OK
@@ -108,7 +107,7 @@ void ZonFixedImage::load(const Common::String &image, const char *zone) {
 }
 
 void ZonFixedImage::display() const {
-	_engine.setupPalette(_imageDecoder->getPalette(), _imageDecoder->getPaletteStartIndex(),
+	_engine.setupPalette(_imageDecoder->getPalette(), 0,
 	                     _imageDecoder->getPaletteColorCount());
 
 	g_system->copyRectToScreen(_imageSurface->getPixels(), _imageSurface->pitch, 0, 0,
@@ -116,14 +115,20 @@ void ZonFixedImage::display() const {
 	g_system->updateScreen();
 }
 
-void ZonFixedImage::loadZones(const Common::String &image) {
+void ZonFixedImage::loadZones(const Common::Path &image) {
 	_zones.clear();
 
-	Common::String fname(_engine.prepareFileName(image, "zon"));
+	Common::String fname(image.baseName());
+	int lastDotPos = fname.findLastOf('.');
+	assert(lastDotPos > -1);
+	fname.erase(lastDotPos + 1);
+	fname += "zon";
+
+	Common::Path zonPath = image.getParent().appendComponent(fname);
 
 	Common::File zonFile;
-	if (!zonFile.open(fname)) {
-		error("Can't open ZON file '%s'", fname.c_str());
+	if (!zonFile.open(zonPath)) {
+		error("Can't open ZON file '%s'", zonPath.toString(Common::Path::kNativeSeparator).c_str());
 	}
 
 	int32 zonesNumber = zonFile.size() / 26;

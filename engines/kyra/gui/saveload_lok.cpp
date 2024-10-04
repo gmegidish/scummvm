@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,13 +48,10 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 
 	// unloading the current voice file should fix some problems with voices
 	if (_currentRoom != 0xFFFF && _flags.isTalkie) {
-		char file[32];
 		assert(_currentRoom < _roomTableSize);
 		int tableId = _roomTable[_currentRoom].nameIndex;
 		assert(tableId < _roomFilenameTableSize);
-		strcpy(file, _roomFilenameTable[tableId]);
-		strcat(file, ".VRM");
-		_res->unloadPakFile(file);
+		_res->unloadPakFile(Common::String(_roomFilenameTable[tableId]) + ".VRM");
 	}
 
 	for (int i = 0; i < 11; i++) {
@@ -126,11 +122,13 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 			_roomTable[sceneId].needInit[i] = in->readByte();
 		}
 	}
-	if (header.version >= 3) {
-		_lastMusicCommand = in->readSint16BE();
-		if (_lastMusicCommand != -1)
-			snd_playWanderScoreViaMap(_lastMusicCommand, 1);
-	}
+
+	_sound->selectAudioResourceSet(kMusicIngame);
+	closeFinalWsa();
+
+	int lastMusicCommand = _lastMusicCommand = -1;
+	if (header.version >= 3)
+		lastMusicCommand = in->readSint16BE();
 
 	// Version 4 stored settings in the savegame. As of version 5, they are
 	// handled by the config manager.
@@ -159,7 +157,7 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 	loadMainScreen(8);
 
 	if (queryGameFlag(0x2D)) {
-		_screen->loadBitmap("AMULET3.CPS", 10, 10, 0);
+		_screen->loadBitmap("AMULET3.CPS", 10, 10, nullptr);
 		if (!queryGameFlag(0xF1)) {
 			for (int i = 0x55; i <= 0x5A; ++i) {
 				if (queryGameFlag(i))
@@ -203,12 +201,21 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 	_brandonPosY = _currentCharacter->y2 = _currentCharacter->y1;
 
 	// We need to reset the "_noDrawShapesFlag" flag of Animator_LoK
-	// over here. Else in certain cases restoring an savegame might
+	// over here. Else in certain cases restoring a savegame might
 	// result in no shapes being drawn at all. See bug report
 	// #4625 "KYRA1: Invisible Brandon" for an example of this.
 	_animator->_noDrawShapesFlag = 0;
 
+	restartPlayTimerAt(header.totalPlaySecs);
+
 	enterNewScene(_currentCharacter->sceneId, _currentCharacter->facing, 0, 0, 1);
+
+	// Check if _lastMusicCommand changed during enterNewScene(). If it didn't (no song was
+	// started from script) and we do have the last song id from our savegame, then we start that...
+	// This way we avoid the "stuttering" we used to have from restarting the saved song and
+	// then the same song again directly afterwards from script...
+	if (_lastMusicCommand == -1 && lastMusicCommand != -1)
+		snd_playWanderScoreViaMap(lastMusicCommand, 1);
 
 	_animator->animRefreshNPC(0);
 	_animator->restoreAllObjectBackgrounds();

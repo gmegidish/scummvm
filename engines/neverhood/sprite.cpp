@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,8 +27,8 @@ namespace Neverhood {
 // Sprite
 
 Sprite::Sprite(NeverhoodEngine *vm, int objectPriority)
-	: Entity(vm, objectPriority), _x(0), _y(0), _spriteUpdateCb(NULL), _filterXCb(NULL), _filterYCb(NULL),
-	_dataResource(vm), _doDeltaX(false), _doDeltaY(false), _needRefresh(false), _flags(0), _surface(NULL) {
+	: Entity(vm, objectPriority), _x(0), _y(0), _spriteUpdateCb(nullptr), _filterXCb(nullptr), _filterYCb(nullptr),
+	_dataResource(vm), _doDeltaX(false), _doDeltaY(false), _needRefresh(false), _flags(0), _surface(nullptr) {
 
 	_drawOffset.x = 0;
 	_drawOffset.y = 0;
@@ -45,10 +44,6 @@ Sprite::Sprite(NeverhoodEngine *vm, int objectPriority)
 	_collisionBoundsOffset.height = 0;
 
 	SetMessageHandler(&Sprite::handleMessage);
-}
-
-Sprite::~Sprite() {
-	delete _surface;
 }
 
 void Sprite::updateBounds() {
@@ -95,7 +90,7 @@ void Sprite::loadDataResource(uint32 fileHash) {
 }
 
 void Sprite::createSurface(int surfacePriority, int16 width, int16 height) {
-	_surface = new BaseSurface(_vm, surfacePriority, width, height, "sprite");
+	_surface.reset(new BaseSurface(_vm, surfacePriority, width, height, "sprite"));
 }
 
 int16 Sprite::defFilterY(int16 y) {
@@ -188,13 +183,13 @@ void StaticSprite::updatePosition() {
 // AnimatedSprite
 
 AnimatedSprite::AnimatedSprite(NeverhoodEngine *vm, int objectPriority)
-	: Sprite(vm, objectPriority), _animResource(vm) {
+	: Sprite(vm, objectPriority), _animResource(vm), _subtitleSurface(new AnimatedSpriteSubtitles(vm)) {
 
 	init();
 }
 
 AnimatedSprite::AnimatedSprite(NeverhoodEngine *vm, uint32 fileHash, int surfacePriority, int16 x, int16 y)
-	: Sprite(vm, 1100), _animResource(vm) {
+	: Sprite(vm, 1100), _animResource(vm), _subtitleSurface(new AnimatedSpriteSubtitles(vm)) {
 
 	init();
 	SetUpdateHandler(&AnimatedSprite::update);
@@ -213,9 +208,9 @@ void AnimatedSprite::init() {
 	_plFirstFrameIndex = 0;
 	_currFrameIndex = 0;
 	_currStickFrameIndex = -1;
-	_finalizeStateCb = NULL;
-	_currStateCb = NULL;
-	_nextStateCb = NULL;
+	_finalizeStateCb = nullptr;
+	_currStateCb = nullptr;
+	_nextStateCb = nullptr;
 	_newStickFrameIndex = -1;
 	_newStickFrameHash = 0;
 	_frameChanged = false;
@@ -229,6 +224,8 @@ void AnimatedSprite::init() {
 	_plFirstFrameHash = 0;
 	_plLastFrameHash = 0;
 	_animStatus = 0;
+	if (_subtitleSurface)
+		_subtitleSurface->setFrameIndex(-1, 0);
 }
 
 void AnimatedSprite::update() {
@@ -314,6 +311,8 @@ void AnimatedSprite::updateAnim() {
 			if (_animStatus == 1) {
 				if (_animResource.load(_newAnimFileHash)) {
 					_currAnimFileHash = _newAnimFileHash;
+					if (_subtitleSurface)
+						_subtitleSurface->setHash(_newAnimFileHash);
 				} else {
 					_animResource.load(calcHash("sqDefault"));
 					_currAnimFileHash = 0;
@@ -327,6 +326,8 @@ void AnimatedSprite::updateAnim() {
 			} else {
 				if (_animResource.load(_newAnimFileHash)) {
 					_currAnimFileHash = _newAnimFileHash;
+					if (_subtitleSurface)
+						_subtitleSurface->setHash(_newAnimFileHash);
 				} else {
 					_animResource.load(calcHash("sqDefault"));
 					_currAnimFileHash = 0;
@@ -351,6 +352,8 @@ void AnimatedSprite::updateAnim() {
 
 	}
 
+	if (_subtitleSurface)
+		_subtitleSurface->setFrameIndex(_currFrameIndex, _lastFrameIndex);
 }
 
 void AnimatedSprite::updatePosition() {
@@ -369,6 +372,8 @@ void AnimatedSprite::updatePosition() {
 	} else {
 		_surface->getDrawRect().y = filterY(_y + _drawOffset.y);
 	}
+
+	_subtitleSurface->updatePosition(_surface->getDrawRect());
 
 	if (_needRefresh) {
 		_surface->drawAnimResource(_animResource, _currFrameIndex, _doDeltaX, _doDeltaY, _drawOffset.width, _drawOffset.height);
@@ -397,6 +402,44 @@ void AnimatedSprite::updateFrameIndex() {
 				_currFrameIndex = _lastFrameIndex;
 		}
 	}
+
+	if (_subtitleSurface)
+		_subtitleSurface->setFrameIndex(_currFrameIndex, _lastFrameIndex);
+}
+
+AnimatedSprite::AnimatedSpriteSubtitles::AnimatedSpriteSubtitles(NeverhoodEngine *vm) :
+	BaseSurface(vm, 0xffff, kSubtitleWidth, SubtitlePlayer::kSubtitleCharHeight, "animated sprite subtitles"), _currFrameIndex(-1), _subCenterX(320) {
+}
+
+void AnimatedSprite::AnimatedSpriteSubtitles::setHash(uint32 fileHash) {
+	_subtitles.reset(new SubtitlePlayer(_vm, fileHash, kSubtitleWidth));
+}
+
+void AnimatedSprite::AnimatedSpriteSubtitles::setFrameIndex(int currFrameIndex, int lastFrameIndex) {
+	if (currFrameIndex > 0 && currFrameIndex < lastFrameIndex)
+		_currFrameIndex = currFrameIndex;
+	else
+		_currFrameIndex = -1;
+}
+
+void AnimatedSprite::AnimatedSpriteSubtitles::updatePosition(const NDrawRect &parentDrawRect) {
+	_subCenterX = parentDrawRect.x + parentDrawRect.width / 2;
+	getDrawRect().x = MAX(_subCenterX - kSubtitleWidth / 2, 0);
+	getDrawRect().width = kSubtitleWidth;
+	getDrawRect().y = MIN(parentDrawRect.y + parentDrawRect.height + 1, 480 - (SubtitlePlayer::kSubtitleCharHeight - 1));
+	getDrawRect().height = SubtitlePlayer::kSubtitleCharHeight;
+}
+
+void AnimatedSprite::AnimatedSpriteSubtitles::draw() {
+	if (_subtitles && _subtitles->isValid() && _currFrameIndex > 0) {
+		_subtitles->renderFrame(_currFrameIndex, _subCenterX - getDrawRect().x);
+		const Graphics::Surface *bottom = _subtitles->getBottomSubs();
+		if (bottom) {
+			_vm->_screen->drawSurface2(bottom, _drawRect, _clipRect, true, ++_version, nullptr, _subtitles->getSubtitleAlpha());
+		}
+		if (_subtitles->getTopSubs())
+			warning("Top subs are unsupported");
+	}
 }
 
 void AnimatedSprite::updateFrameInfo() {
@@ -416,16 +459,16 @@ void AnimatedSprite::updateFrameInfo() {
 
 void AnimatedSprite::createSurface1(uint32 fileHash, int surfacePriority) {
 	NDimensions dimensions = _animResource.loadSpriteDimensions(fileHash);
-	_surface = new BaseSurface(_vm, surfacePriority, dimensions.width, dimensions.height, "animated sprite");
+	_surface.reset(new BaseSurface(_vm, surfacePriority, dimensions.width, dimensions.height, "animated sprite"));
 }
 
-void AnimatedSprite::createShadowSurface1(BaseSurface *shadowSurface, uint32 fileHash, int surfacePriority) {
+void AnimatedSprite::createShadowSurface1(const Common::SharedPtr<BaseSurface> &shadowSurface, uint32 fileHash, int surfacePriority) {
 	NDimensions dimensions = _animResource.loadSpriteDimensions(fileHash);
-	_surface = new ShadowSurface(_vm, surfacePriority, dimensions.width, dimensions.height, shadowSurface);
+	_surface.reset(new ShadowSurface(_vm, surfacePriority, dimensions.width, dimensions.height, shadowSurface));
 }
 
-void AnimatedSprite::createShadowSurface(BaseSurface *shadowSurface, int16 width, int16 height, int surfacePriority) {
-	_surface = new ShadowSurface(_vm, surfacePriority, width, height, shadowSurface);
+void AnimatedSprite::createShadowSurface(const Common::SharedPtr<BaseSurface> &shadowSurface, int16 width, int16 height, int surfacePriority) {
+	_surface.reset(new ShadowSurface(_vm, surfacePriority, width, height, shadowSurface));
 }
 
 void AnimatedSprite::startAnimation(uint32 fileHash, int16 plFirstFrameIndex, int16 plLastFrameIndex) {
@@ -477,10 +520,10 @@ void AnimatedSprite::setFinalizeState(AnimationCb finalizeStateCb) {
 void AnimatedSprite::gotoState(AnimationCb currStateCb) {
 	if (_finalizeStateCb) {
 		AnimationCb cb = _finalizeStateCb;
-		_finalizeStateCb = NULL;
+		_finalizeStateCb = nullptr;
 		(this->*cb)();
 	}
-	_nextStateCb = NULL;
+	_nextStateCb = nullptr;
 	_currStateCb = currStateCb;
 	if (_currStateCb)
 		(this->*_currStateCb)();
@@ -489,15 +532,15 @@ void AnimatedSprite::gotoState(AnimationCb currStateCb) {
 void AnimatedSprite::gotoNextState() {
 	if (_finalizeStateCb) {
 		AnimationCb cb = _finalizeStateCb;
-		_finalizeStateCb = NULL;
+		_finalizeStateCb = nullptr;
 		(this->*cb)();
 	}
 	if (_nextStateCb) {
 		_currStateCb = _nextStateCb;
-		_nextStateCb = NULL;
+		_nextStateCb = nullptr;
 		(this->*_currStateCb)();
 	} else {
-		_currStateCb = NULL;
+		_currStateCb = nullptr;
 	}
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@ Actor::Actor(TrecisionEngine *vm) : _vm(vm) {
 	_theta = 0.0f;
 
 	for (uint8 i = 0; i < 6; ++i)
-		_lim[i] = 0;
+		_area[i] = 0;
 
 	_curFrame = 0;
 	_curAction = 0;
@@ -97,7 +96,7 @@ void Actor::initTextures() {
 }
 
 void Actor::updateStepSound() {
-	_vm->_soundMgr->soundStep((_lim[1] + _lim[0]) / 2, (_lim[5] + _lim[4]) / 2, _curAction, _curFrame);
+	_vm->_soundMgr->soundStep((_area[1] + _area[0]) / 2, (_area[5] + _area[4]) / 2, _curAction, _curFrame);
 }
 
 static const float _vertsCorr[104][3] = {
@@ -373,7 +372,7 @@ void Actor::actorDoAction(int action) {
 
 	_vm->_pathFind->reset(0, px, pz, theta);
 
-	float t = ((270.0f - theta) * PI2) / 360.0f;
+	float t = ((270.0f - theta) * M_PI * 2) / 360.0f;
 	float ox = cos(t);
 	float oz = sin(t);
 
@@ -472,11 +471,11 @@ float Actor::frameCenter(SVertex *v) {
 }
 
 bool Actor::actorRectIsValid() const {
-	return _lim[0] < _lim[1] && _lim[2] < _lim[3];
+	return _area[0] < _area[1] && _area[2] < _area[3];
 }
 
 Common::Rect Actor::getActorRect() const {
-	return Common::Rect(_lim[0], _lim[2], _lim[1], _lim[3]);
+	return Common::Rect(_area[0], _area[2], _area[1], _area[3]);
 }
 
 } // End of namespace Trecision

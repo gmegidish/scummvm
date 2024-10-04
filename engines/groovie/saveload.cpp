@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 
 #include "common/system.h"
 #include "common/substream.h"
+#include "common/translation.h"
 
 #define SUPPORTED_SAVEFILE_VERSION 1
 // 0 - Just script variables, compatible with the original
@@ -47,6 +47,10 @@ Common::String SaveLoad::getSlotSaveName(const Common::String &target, int slot)
 
 SaveStateList SaveLoad::listValidSaves(const Common::String &target) {
 	SaveStateList list;
+
+	// some Groovie 2 games use save 0 with a garbage name for internal tracking, other games use slot 0 for Open House mode
+	const Common::U32String reservedName = _("Reserved"); // I18N: Savegame default name in Groovie engine
+	bool hasReserved = false;
 
 	// Get the list of savefiles
 	Common::String pattern = Common::String::format("%s.0##", target.c_str());
@@ -72,9 +76,20 @@ SaveStateList SaveLoad::listValidSaves(const Common::String &target) {
 		if (file) {
 			// It's a valid savefile, save the descriptor
 			delete file;
+			if (slot == 0) {
+				hasReserved = true;
+				if (descriptor.getDescription() != "OPEN HOUSE" && descriptor.getDescription() != "Open House")
+					descriptor.setDescription(reservedName);
+			}
 			list.push_back(descriptor);
 		}
 		it++;
+	}
+
+	if (!hasReserved) {
+		SaveStateDescriptor desc;
+		desc.setDescription(reservedName);
+		list.push_back(desc);
 	}
 
 	return list;

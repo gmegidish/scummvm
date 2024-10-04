@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,6 +54,7 @@ class Insane {
 	~Insane();
 
 	void setSmushParams(int speed);
+	void setSmushPlayer(SmushPlayer *player);
 	void runScene(int arraynum);
 
 	void procPreRendering();
@@ -65,6 +65,9 @@ class Insane {
 				  int16 par2, int16 par3, int16 par4);
 	void procSKIP(int32 subSize, Common::SeekableReadStream &b);
 	void escapeKeyHandler();
+
+	bool isInsaneActive() { return _insaneIsRunning; }
+	void syncCurrentSanFlags();
 
  private:
 
@@ -143,7 +146,7 @@ class Insane {
 	int _iactSceneId2;
 	int _smush_setupsan17;
 	int32 _smush_setupsan1;
-	int16 _smush_setupsan2;
+	int16 _smush_curSanFlags;
 	int32 _smush_setupsan4;
 	int16 _smush_frameStep;
 	int16 _smush_curFrame;
@@ -177,7 +180,7 @@ class Insane {
 	struct enemy {
 		int32 handler;
 		int32 initializer;
-		int16 occurences;
+		int16 occurrences;
 		int32 maxdamage;
 		int32 isEmpty;
 		int32 weapon;
@@ -330,7 +333,7 @@ class Insane {
 	void init_actStruct(int actornum, int actnum, int32 actorval, byte state,
 						  int32 room, int32 animtilt, int32 tilt, int32 frame);
 	void init_enemyStruct(int n, int32 handler, int32 initializer,
-							   int16 occurences, int32 maxdamage, int32 isEmpty,
+							   int16 occurrences, int32 maxdamage, int32 isEmpty,
 							   int32 field_14, int32 sound, const char *filename,
 							   int32 costume4, int32 costume6, int32 costume5,
 							   int16 field_2C, int32 field_30, int32 field_34);

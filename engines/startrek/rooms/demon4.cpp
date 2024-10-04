@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -207,7 +206,7 @@ void Room::demon4Tick1() {
 
 	if (!_awayMission->demon.foundAlienRoom) {
 		_awayMission->demon.foundAlienRoom = true;
-		playMidiMusicTracks(1, -1);
+		playMidiMusicTracks(MIDITRACK_1);
 	}
 }
 
@@ -746,13 +745,13 @@ void Room::demon4TalkToRedshirt() {
 
 void Room::demon4UseSTricorderOnChamber() {
 	loadActorAnim2(OBJECT_SPOCK, "sscane", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM4_012);
 }
 
 void Room::demon4UseSTricorderOnPattern() {
 	loadActorAnim2(OBJECT_SPOCK, "sscane", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM4_014);
 	showText(TX_SPEAKER_SPOCK, TX_DEM4_025);
 }
@@ -763,49 +762,49 @@ void Room::demon4UseMTricorderOnPattern() {
 
 void Room::demon4UseSTricorderOnPanel() {
 	loadActorAnim2(OBJECT_SPOCK, "sscane", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM4_027);
 }
 
 void Room::demon4UseMTricorderOnPanel() {
 	loadActorAnim2(OBJECT_MCCOY, "mscane", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_MCCOY, TX_DEM4_027); // BUG: Uses spock's voice (though speaker says "Mccoy")
 }
 
 void Room::demon4UseSTricorderOnAnything() {
 	loadActorAnim2(OBJECT_SPOCK, "sscane", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM4_023);
 }
 
 void Room::demon4UseMTricorderOnAnything() {
 	loadActorAnim2(OBJECT_MCCOY, "mscane", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_MCCOY, TX_DEM4_020);
 }
 
 void Room::demon4UseSTricorderOnNauian() {
 	loadActorAnim2(OBJECT_SPOCK, "sscane", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM4_029);
 }
 
 void Room::demon4UseMTricorderOnNauian() {
 	loadActorAnim2(OBJECT_MCCOY, "mscane", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM4_029); // BUG: Uses spock's voice (speaker says "Spock" too)
 }
 
 void Room::demon4UseSTricorderOnSecurityEquipment() {
 	loadActorAnim2(OBJECT_SPOCK, "sscane", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM4_026);
 }
 
 void Room::demon4UseMTricorderOnSecurityEquipment() {
 	loadActorAnim2(OBJECT_MCCOY, "mscane", -1, -1, 0);
-	playSoundEffectIndex(4);
+	playSoundEffectIndex(kSfxTricorder);
 	showText(TX_SPEAKER_SPOCK, TX_DEM4_026); // BUG: Uses spock's voice (speaker says "Spock" too)
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,9 @@
 #include "common/str.h"
 #include "common/system.h"
 #include "common/timer.h"
+#include "common/macresman.h"
+#include "common/compression/stuffit.h"
+#include "graphics/paletteman.h"
 #include "engines/util.h"
 #include "image/bmp.h"
 
@@ -43,13 +45,13 @@
 
 namespace Private {
 
-PrivateEngine *g_private = NULL;
+PrivateEngine *g_private = nullptr;
 extern int parse(const char *);
 
 PrivateEngine::PrivateEngine(OSystem *syst, const ADGameDescription *gd)
 	: Engine(syst), _gameDescription(gd), _image(nullptr), _videoDecoder(nullptr),
-	  _compositeSurface(nullptr), _transparentColor(0), _frameImage(nullptr), 
-	  _framePalette(nullptr), _maxNumberClicks(0), _sirenWarning(0), 
+	  _compositeSurface(nullptr), _transparentColor(0), _frameImage(nullptr),
+	  _framePalette(nullptr), _maxNumberClicks(0), _sirenWarning(0),
 	  _screenW(640), _screenH(480) {
 	_rnd = new Common::RandomSource("private");
 
@@ -62,8 +64,6 @@ PrivateEngine::PrivateEngine(OSystem *syst, const ADGameDescription *gd)
 	_pausedSetting = "";
 	_modified = false;
 	_mode = -1;
-	_paletteIndex = 0;
-	_colorToIndex.clear();
 	_toTake = false;
 
 	// Movies
@@ -128,52 +128,65 @@ PrivateEngine::~PrivateEngine() {
 }
 
 void PrivateEngine::initializePath(const Common::FSNode &gamePath) {
-	SearchMan.addDirectory(gamePath.getPath(), gamePath, 0, 10);
+	SearchMan.addDirectory(gamePath, 0, 10);
 }
 
 Common::SeekableReadStream *PrivateEngine::loadAssets() {
 
 	Common::File *test = new Common::File();
-	Common::SeekableReadStream *file = NULL;
+	Common::SeekableReadStream *file = nullptr;
 
 	if (isDemo() && test->open("SUPPORT/ASSETS/DEMOGAME.WIN"))
-		file = test;
-	else if (isDemo() && test->open("SUPPORT/DEMOGAME.MAC"))
-		file = test;
-	else if (test->open("SUPPORT/ASSETS/GAME.WIN")) {
-		file = test;
-	} else if (test->open("SUPPORT/GAME.MAC")) {
-		file = test;
-	} else {
-		delete test;
-		if (!_installerArchive.open("SUPPORT/ASSETS.Z"))
-			error("Failed to open SUPPORT/ASSETS.Z");
-		// if the full game is used
-		if (!isDemo()) {
-			if (_installerArchive.hasFile("GAME.DAT"))
-				file = _installerArchive.createReadStreamForMember("GAME.DAT");
-			else if (_installerArchive.hasFile("GAME.WIN"))
-				file = _installerArchive.createReadStreamForMember("GAME.WIN");
-			else
-				error("Unknown version");
-		} else {
-			// if the demo from archive.org is used
-			if (_installerArchive.hasFile("GAME.TXT"))
-				file = _installerArchive.createReadStreamForMember("GAME.TXT");
+		return test;
 
-			// if the demo from the full retail CDROM is used
-			else if (_installerArchive.hasFile("DEMOGAME.DAT"))
-				file = _installerArchive.createReadStreamForMember("DEMOGAME.DAT");
-			else if (_installerArchive.hasFile("DEMOGAME.WIN"))
-				file = _installerArchive.createReadStreamForMember("DEMOGAME.WIN");
-			else {
-				error("Unknown version");
-			}
-		}
+	if (isDemo() && test->open("SUPPORT/DEMOGAME.MAC"))
+		return test;
+	if (test->open("SUPPORT/ASSETS/GAME.WIN"))
+		return test;
+	if (test->open("SUPPORT/GAME.MAC"))
+		return test;
+
+	delete test;
+
+	if (_platform == Common::kPlatformMacintosh && _language == Common::JA_JPN)
+		file = Common::MacResManager::openFileOrDataFork("xn--16jc8na7ay6a0eyg9e5nud0e4525d");
+	else
+		file = Common::MacResManager::openFileOrDataFork(isDemo() ? "Private Eye Demo Installer" : "Private Eye Installer");
+	if (file) {
+		Common::Archive *s = createStuffItArchive(file, true);
+		Common::SeekableReadStream *file2 = nullptr;
+		if (s)
+			file2 = s->createReadStreamForMember(isDemo() ? "demogame.mac" : "game.mac");
+		// file2 is enough to keep valid reference
+		delete file;
+		if (file2)
+			return file2;
 	}
-	if (file == NULL)
+
+	if (!_installerArchive.open("SUPPORT/ASSETS.Z"))
+		error("Failed to open SUPPORT/ASSETS.Z");
+	// if the full game is used
+	if (!isDemo()) {
+		if (_installerArchive.hasFile("GAME.DAT"))
+			return _installerArchive.createReadStreamForMember("GAME.DAT");
+		if (_installerArchive.hasFile("GAME.WIN"))
+			return _installerArchive.createReadStreamForMember("GAME.WIN");
 		error("Unknown version");
-	return file;
+		return nullptr;
+	}
+
+	// if the demo from archive.org is used
+	if (_installerArchive.hasFile("GAME.TXT"))
+		return _installerArchive.createReadStreamForMember("GAME.TXT");
+
+	// if the demo from the full retail CDROM is used
+	if (_installerArchive.hasFile("DEMOGAME.DAT"))
+		return _installerArchive.createReadStreamForMember("DEMOGAME.DAT");
+	if (_installerArchive.hasFile("DEMOGAME.WIN"))
+		return _installerArchive.createReadStreamForMember("DEMOGAME.WIN");
+
+	error("Unknown version");
+	return nullptr;
 }
 
 Common::Error PrivateEngine::run() {
@@ -205,22 +218,12 @@ Common::Error PrivateEngine::run() {
 		error("Failed to parse game script");
 
 	// Initialize graphics
-
-#ifdef PLAYSTATION3
 	_pixelFormat = Graphics::PixelFormat::createFormatCLUT8();
 	initGraphics(_screenW, _screenH, &_pixelFormat);
 	_transparentColor = 250;
-#else
-
-	initGraphics(_screenW, _screenH, nullptr);
-	_pixelFormat = g_system->getScreenFormat();
-	if (_pixelFormat == Graphics::PixelFormat::createFormatCLUT8())
-		return Common::kUnsupportedColorMode;
-	_transparentColor = _pixelFormat.RGBToColor(0, 255, 0);
-#endif
 
 	_safeColor = _pixelFormat.RGBToColor(65, 65, 65);
-	screenRect = Common::Rect(0, 0, _screenW, _screenH);
+	_screenRect = Common::Rect(0, 0, _screenW, _screenH);
 	changeCursor("default");
 	_origin = Common::Point(0, 0);
 	_image = new Image::BitmapDecoder();
@@ -229,10 +232,19 @@ Common::Error PrivateEngine::run() {
 	_compositeSurface->setTransparentColor(_transparentColor);
 
 	// Load the game frame once
-	_frameImage = decodeImage(_framePath);
-	const byte *palette = decodePalette(_framePath);
+	byte *palette;
+	_frameImage = decodeImage(_framePath, nullptr);
+	_mframeImage = decodeImage(_framePath, &palette);
+
 	_framePalette = (byte *) malloc(3*256);
 	memcpy(_framePalette, palette, 3*256);
+
+	byte *initialPalette;
+	Graphics::Surface *surf = decodeImage("inface/general/inface1.bmp", &initialPalette);
+	_compositeSurface->setPalette(initialPalette, 0, 256);
+	surf->free();
+	delete surf;
+	_image->destroy();
 
 	// Main event loop
 	Common::Event event;
@@ -254,9 +266,6 @@ Common::Error PrivateEngine::run() {
 			switch (event.type) {
 			case Common::EVENT_KEYDOWN:
 				if (event.kbd.keycode == Common::KEYCODE_ESCAPE && _videoDecoder) {
-					_paletteIndex = 0;
-					_colorToIndex.clear();
-					_indexToColor.clear();
 					skipVideo();
 				}
 				break;
@@ -277,7 +286,7 @@ Common::Error PrivateEngine::run() {
 				else if (selectSafeDigit(mousePos))
 					break;
 
-				selectPauseMovie(mousePos);
+				selectPauseGame(mousePos);
 				selectPhoneArea(mousePos);
 				selectPoliceRadioArea(mousePos);
 				selectAMRadioArea(mousePos);
@@ -317,18 +326,13 @@ Common::Error PrivateEngine::run() {
 			continue;
 		}
 
-		if (!_nextVS.empty() && (_currentSetting == getMainDesktopSetting())) {
+		if (!_nextVS.empty() && _currentVS.empty() && (_currentSetting == getMainDesktopSetting())) {
 			loadImage(_nextVS, 160, 120);
 			drawScreen();
+			_currentVS = _nextVS;
 		}
 
 		if (_videoDecoder && !_videoDecoder->isPaused()) {
-			_colorToIndex.clear();
-			_indexToColor.clear();
-			_paletteIndex = 0;
-			_colorToIndex[0x0000FF00] = _transparentColor;
-			_indexToColor[_transparentColor] = 0x0000FF00;
-
 			if (_videoDecoder->getCurFrame() == 0)
 				stopSound(true);
 			if (_videoDecoder->endOfVideo()) {
@@ -345,16 +349,12 @@ Common::Error PrivateEngine::run() {
 
 		if (!_nextSetting.empty()) {
 			removeTimer();
-			_paletteIndex = 0;
-			_colorToIndex.clear();
-			_indexToColor.clear();
-			_colorToIndex[0x0000FF00] = _transparentColor;
-			_indexToColor[_transparentColor] = 0x0000FF00;
 			debugC(1, kPrivateDebugFunction, "Executing %s", _nextSetting.c_str());
 			clearAreas();
 			_currentSetting = _nextSetting;
 			Settings::g_setts->load(_nextSetting);
 			_nextSetting = "";
+			_currentVS = "";
 			Gen::g_vm->run();
 			changeCursor("default");
 			drawScreen();
@@ -510,7 +510,7 @@ bool PrivateEngine::cursorExit(Common::Point mousePos) {
 }
 
 bool PrivateEngine::inMask(Graphics::Surface *surf, Common::Point mousePos) {
-	if (surf == NULL)
+	if (surf == nullptr)
 		return false;
 
 	mousePos = mousePos - _origin;
@@ -551,28 +551,28 @@ bool PrivateEngine::cursorPauseMovie(Common::Point mousePos) {
 }
 
 Common::String PrivateEngine::getPauseMovieSetting() {
-	if ((_language == Common::EN_USA || _language == Common::RU_RUS) && _platform != Common::kPlatformMacintosh)
+	if ((_language == Common::EN_USA || _language == Common::RU_RUS || _language == Common::KO_KOR) && _platform != Common::kPlatformMacintosh)
 		return "kPauseMovie";
 
 	return "k3";
 }
 
 Common::String PrivateEngine::getGoIntroSetting() {
-	if ((_language == Common::EN_USA || _language == Common::RU_RUS) && _platform != Common::kPlatformMacintosh)
+	if ((_language == Common::EN_USA || _language == Common::RU_RUS || _language == Common::KO_KOR || _language == Common::JA_JPN) && _platform != Common::kPlatformMacintosh)
 		return "kGoIntro";
 
 	return "k1";
 }
 
 Common::String PrivateEngine::getAlternateGameVariable() {
-	if ((_language == Common::EN_USA || _language == Common::RU_RUS) && _platform != Common::kPlatformMacintosh)
+	if ((_language == Common::EN_USA || _language == Common::RU_RUS || _language == Common::KO_KOR) && _platform != Common::kPlatformMacintosh)
 		return "kAlternateGame";
 
 	return "k2";
 }
 
 Common::String PrivateEngine::getMainDesktopSetting() {
-	if ((_language == Common::EN_USA || _language == Common::RU_RUS) && _platform != Common::kPlatformMacintosh)
+	if ((_language == Common::EN_USA || _language == Common::RU_RUS || _language == Common::KO_KOR) && _platform != Common::kPlatformMacintosh)
 		return "kMainDesktop";
 
 	if (isDemo())
@@ -582,52 +582,53 @@ Common::String PrivateEngine::getMainDesktopSetting() {
 }
 
 Common::String PrivateEngine::getPoliceIndexVariable() {
-	if ((_language == Common::EN_USA || _language == Common::RU_RUS) && _platform != Common::kPlatformMacintosh)
+	if ((_language == Common::EN_USA || _language == Common::RU_RUS || _language == Common::KO_KOR) && _platform != Common::kPlatformMacintosh)
 		return "kPoliceIndex";
 
 	return "k0";
 }
 
 Common::String PrivateEngine::getPOGoBustMovieSetting() {
-	if ((_language == Common::EN_USA || _language == Common::RU_RUS) && _platform != Common::kPlatformMacintosh)
+	if ((_language == Common::EN_USA || _language == Common::RU_RUS || _language == Common::KO_KOR) && _platform != Common::kPlatformMacintosh)
 		return "kPOGoBustMovie";
 
 	return "k7";
 }
 
 Common::String PrivateEngine::getPoliceBustFromMOSetting() {
-	if ((_language == Common::EN_USA || _language == Common::RU_RUS) && _platform != Common::kPlatformMacintosh)
+	if ((_language == Common::EN_USA || _language == Common::RU_RUS || _language == Common::KO_KOR) && _platform != Common::kPlatformMacintosh)
 		return "kPoliceBustFromMO";
 
 	return "k6";
 }
 
 Common::String PrivateEngine::getWallSafeValueVariable() {
-	if ((_language == Common::EN_USA || _language == Common::RU_RUS) && _platform != Common::kPlatformMacintosh)
+	if ((_language == Common::EN_USA || _language == Common::RU_RUS || _language == Common::KO_KOR) && _platform != Common::kPlatformMacintosh)
 		return "kWallSafeValue";
 
 	return "k3";
 }
 
 Common::String PrivateEngine::getExitCursor() {
-	if ((_language == Common::EN_USA || _language == Common::RU_RUS) && _platform != Common::kPlatformMacintosh)
+	if ((_language == Common::EN_USA || _language == Common::RU_RUS || _language == Common::KO_KOR) && _platform != Common::kPlatformMacintosh)
 		return "kExit";
 
 	return "k5";
 }
 
 Common::String PrivateEngine::getInventoryCursor() {
-	if ((_language == Common::EN_USA || _language == Common::RU_RUS) && _platform != Common::kPlatformMacintosh)
+	if ((_language == Common::EN_USA || _language == Common::RU_RUS || _language == Common::KO_KOR) && _platform != Common::kPlatformMacintosh)
 		return "kInventory";
 
 	return "k7";
 }
 
-void PrivateEngine::selectPauseMovie(Common::Point mousePos) {
+void PrivateEngine::selectPauseGame(Common::Point mousePos) {
 	if (_mode == 1 && !_policeBustEnabled) {
 		uint32 tol = 15;
 		Common::Rect window(_origin.x - tol, _origin.y - tol, _screenW - _origin.x + tol, _screenH - _origin.y + tol);
 		if (!window.contains(mousePos)) {
+			// Pause game and return to desktop
 			if (_pausedSetting.empty()) {
 				if (!_nextSetting.empty())
 					_pausedSetting = _nextSetting;
@@ -638,10 +639,29 @@ void PrivateEngine::selectPauseMovie(Common::Point mousePos) {
 				if (_videoDecoder) {
 					_videoDecoder->pauseVideo(true);
 				}
+				_compositeSurface->fillRect(_screenRect, 0);
+				_compositeSurface->setPalette(_framePalette, 0, 256);
+				_origin = Common::Point(kOriginZero[0], kOriginZero[1]);
+				drawMask(_frameImage);
+				_origin = Common::Point(kOriginOne[0], kOriginOne[1]);
 			}
 		}
 	}
 }
+
+void PrivateEngine::resumeGame() {
+	_nextSetting = _pausedSetting;
+	_pausedSetting = "";
+	_mode = 1;
+	_origin = Common::Point(kOriginOne[0], kOriginOne[1]);
+	if (_videoDecoder) {
+		_videoDecoder->pauseVideo(false);
+		const byte *videoPalette = g_private->_videoDecoder->getPalette();
+		g_system->getPaletteManager()->setPalette(videoPalette, 0, 256);
+		drawScreenFrame(videoPalette);
+	}
+}
+
 
 void PrivateEngine::selectExit(Common::Point mousePos) {
 	mousePos = mousePos - _origin;
@@ -688,7 +708,7 @@ void PrivateEngine::selectMask(Common::Point mousePos) {
 				ns = m.nextSetting;
 			}
 
-			if (m.flag1 != NULL) { // TODO: check this
+			if (m.flag1 != nullptr) { // TODO: check this
 				setSymbol(m.flag1, 1);
 				// an item was taken
 				if (_toTake) {
@@ -697,7 +717,7 @@ void PrivateEngine::selectMask(Common::Point mousePos) {
 				}
 			}
 
-			if (m.flag2 != NULL) {
+			if (m.flag2 != nullptr) {
 				setSymbol(m.flag2, 1);
 			}
 			break;
@@ -710,7 +730,7 @@ void PrivateEngine::selectMask(Common::Point mousePos) {
 }
 
 void PrivateEngine::selectAMRadioArea(Common::Point mousePos) {
-	if (_AMRadioArea.surf == NULL)
+	if (_AMRadioArea.surf == nullptr)
 		return;
 
 	if (_AMRadio.empty())
@@ -724,7 +744,7 @@ void PrivateEngine::selectAMRadioArea(Common::Point mousePos) {
 }
 
 void PrivateEngine::selectPoliceRadioArea(Common::Point mousePos) {
-	if (_policeRadioArea.surf == NULL)
+	if (_policeRadioArea.surf == nullptr)
 		return;
 
 	if (_policeRadio.empty())
@@ -738,7 +758,7 @@ void PrivateEngine::selectPoliceRadioArea(Common::Point mousePos) {
 }
 
 void PrivateEngine::checkPhoneCall() {
-	if (_phoneArea.surf == NULL)
+	if (_phoneArea.surf == nullptr)
 		return;
 
 	if (_phone.empty())
@@ -749,7 +769,7 @@ void PrivateEngine::checkPhoneCall() {
 }
 
 void PrivateEngine::selectPhoneArea(Common::Point mousePos) {
-	if (_phoneArea.surf == NULL)
+	if (_phoneArea.surf == nullptr)
 		return;
 
 	if (_phone.empty())
@@ -780,7 +800,7 @@ void PrivateEngine::loadDossier() {
 }
 
 bool PrivateEngine::selectDossierNextSuspect(Common::Point mousePos) {
-	if (_dossierNextSuspectMask.surf == NULL)
+	if (_dossierNextSuspectMask.surf == nullptr)
 		return false;
 
 	if (inMask(_dossierNextSuspectMask.surf, mousePos)) {
@@ -798,7 +818,7 @@ bool PrivateEngine::selectDossierNextSuspect(Common::Point mousePos) {
 }
 
 bool PrivateEngine::selectDossierPrevSheet(Common::Point mousePos) {
-	if (_dossierNextSheetMask.surf == NULL)
+	if (_dossierNextSheetMask.surf == nullptr)
 		return false;
 
 	if (inMask(_dossierPrevSheetMask.surf, mousePos)) {
@@ -815,7 +835,7 @@ bool PrivateEngine::selectDossierPrevSheet(Common::Point mousePos) {
 }
 
 bool PrivateEngine::selectDossierNextSheet(Common::Point mousePos) {
-	if (_dossierNextSheetMask.surf == NULL)
+	if (_dossierNextSheetMask.surf == nullptr)
 		return false;
 
 	if (inMask(_dossierNextSheetMask.surf, mousePos)) {
@@ -833,7 +853,7 @@ bool PrivateEngine::selectDossierNextSheet(Common::Point mousePos) {
 }
 
 bool PrivateEngine::selectDossierPrevSuspect(Common::Point mousePos) {
-	if (_dossierPrevSuspectMask.surf == NULL)
+	if (_dossierPrevSuspectMask.surf == nullptr)
 		return false;
 
 	if (inMask(_dossierPrevSuspectMask.surf, mousePos)) {
@@ -851,7 +871,7 @@ bool PrivateEngine::selectDossierPrevSuspect(Common::Point mousePos) {
 }
 
 bool PrivateEngine::selectSafeDigit(Common::Point mousePos) {
-	if (_safeDigitArea[0].surf == NULL)
+	if (_safeDigitArea[0].surf == nullptr)
 		return false;
 
 	mousePos = mousePos - _origin;
@@ -878,8 +898,8 @@ void PrivateEngine::addSafeDigit(uint32 d, Common::Rect *rect) {
 	m.surf = loadMask(Common::String::format(_safeNumberPath.c_str(), _safeDigit[d]), _safeDigitRect[d].left, _safeDigitRect[d].top, true);
 	m.cursor = g_private->getExitCursor();
 	m.nextSetting = "";
-	m.flag1 = NULL;
-	m.flag2 = NULL;
+	m.flag1 = nullptr;
+	m.flag2 = nullptr;
 	_safeDigitArea[d] = m;
 	drawScreen();
 }
@@ -887,7 +907,7 @@ void PrivateEngine::addSafeDigit(uint32 d, Common::Rect *rect) {
 
 void PrivateEngine::renderSafeDigit(uint32 d) {
 
-	if (_safeDigitArea[d].surf != NULL) {
+	if (_safeDigitArea[d].surf != nullptr) {
 		_safeDigitArea[d].surf->free();
 		delete _safeDigitArea[d].surf;
 		_safeDigitArea[d].clear();
@@ -897,14 +917,14 @@ void PrivateEngine::renderSafeDigit(uint32 d) {
 	m.surf = loadMask(Common::String::format(_safeNumberPath.c_str(), _safeDigit[d]), _safeDigitRect[d].left, _safeDigitRect[d].top, true);
 	m.cursor = g_private->getExitCursor();
 	m.nextSetting = "";
-	m.flag1 = NULL;
-	m.flag2 = NULL;
+	m.flag1 = nullptr;
+	m.flag2 = nullptr;
 	_safeDigitArea[d] = m;
 	drawScreen();
 }
 
 void PrivateEngine::selectLoadGame(Common::Point mousePos) {
-	if (_loadGameMask.surf == NULL)
+	if (_loadGameMask.surf == nullptr)
 		return;
 
 	if (inMask(_loadGameMask.surf, mousePos)) {
@@ -913,7 +933,7 @@ void PrivateEngine::selectLoadGame(Common::Point mousePos) {
 }
 
 void PrivateEngine::selectSaveGame(Common::Point mousePos) {
-	if (_saveGameMask.surf == NULL)
+	if (_saveGameMask.surf == nullptr)
 		return;
 
 	if (inMask(_saveGameMask.surf, mousePos)) {
@@ -1153,7 +1173,7 @@ Common::Error PrivateEngine::saveGameStream(Common::WriteStream *stream, bool is
 	return Common::kNoError;
 }
 
-Common::String PrivateEngine::convertPath(const Common::String &name) {
+Common::Path PrivateEngine::convertPath(const Common::String &name) {
 	Common::String path(name);
 	Common::String s1("\\");
 	Common::String s2("/");
@@ -1168,17 +1188,17 @@ Common::String PrivateEngine::convertPath(const Common::String &name) {
 	Common::replace(path, s1, s2);
 
 	path.toLowercase();
-	return path;
+	return Common::Path(path);
 }
 
 void PrivateEngine::playSound(const Common::String &name, uint loops, bool stopOthers, bool background) {
 	debugC(1, kPrivateDebugFunction, "%s(%s,%d,%d,%d)", __FUNCTION__, name.c_str(), loops, stopOthers, background);
 
-	Common::File *file = new Common::File();
-	Common::String path = convertPath(name);
+	Common::Path path = convertPath(name);
+	Common::SeekableReadStream *file = Common::MacResManager::openFileOrDataFork(path);
 
-	if (!file->open(path))
-		error("unable to find sound file %s", path.c_str());
+	if (!file)
+		error("unable to find sound file %s", path.toString().c_str());
 
 	Audio::LoopingAudioStream *stream;
 	stream = new Audio::LoopingAudioStream(Audio::makeWAVStream(file, DisposeAfterUse::YES), loops);
@@ -1186,7 +1206,7 @@ void PrivateEngine::playSound(const Common::String &name, uint loops, bool stopO
 		stopSound(true);
 	}
 
-	Audio::SoundHandle *sh = NULL;
+	Audio::SoundHandle *sh = nullptr;
 	if (background) {
 		_mixer->stopHandle(_bgSoundHandle);
 		sh = &_bgSoundHandle;
@@ -1205,14 +1225,14 @@ bool PrivateEngine::isSoundActive() {
 void PrivateEngine::playVideo(const Common::String &name) {
 	debugC(1, kPrivateDebugFunction, "%s(%s)", __FUNCTION__, name.c_str());
 	//stopSound(true);
-	Common::File *file = new Common::File();
-	Common::String path = convertPath(name);
+	Common::Path path = convertPath(name);
+	Common::SeekableReadStream *file = Common::MacResManager::openFileOrDataFork(path);
 
-	if (!file->open(path))
-		error("unable to find video file %s", path.c_str());
+	if (!file)
+		error("unable to find video file %s", path.toString().c_str());
 
 	if (!_videoDecoder->loadStream(file))
-		error("unable to load video %s", path.c_str());
+		error("unable to load video %s", path.toString().c_str());
 	_videoDecoder->start();
 }
 
@@ -1234,89 +1254,89 @@ void PrivateEngine::stopSound(bool all) {
 	}
 }
 
-Graphics::Surface *PrivateEngine::decodeImage(const Common::String &name) {
+Graphics::Surface *PrivateEngine::decodeImage(const Common::String &name, byte **palette) {
 	debugC(1, kPrivateDebugFunction, "%s(%s)", __FUNCTION__, name.c_str());
-	Common::File file;
-	Common::String path = convertPath(name);
-	if (!file.open(path))
-		error("unable to load image %s", path.c_str());
+	Common::Path path = convertPath(name);
+	Common::ScopedPtr<Common::SeekableReadStream> file(Common::MacResManager::openFileOrDataFork(path));
+	if (!file)
+		error("unable to load image %s", name.c_str());
 
-	_image->loadStream(file);
-	return _image->getSurface()->convertTo(_pixelFormat, _image->getPalette());
+	_image->loadStream(*file);
+	const Graphics::Surface *oldImage = _image->getSurface();
+	Graphics::Surface *newImage;
+
+	const byte *oldPalette = _image->getPalette();
+	byte *currentPalette;
+
+	uint16 ncolors = _image->getPaletteColorCount();
+	if (ncolors < 256 || path.toString('/').hasPrefix("intro")) { // For some reason, requires color remapping
+		currentPalette = (byte *) malloc(3*256);
+		drawScreen();
+		g_system->getPaletteManager()->grabPalette(currentPalette, 0, 256);
+		newImage = oldImage->convertTo(_pixelFormat, currentPalette);
+		remapImage(ncolors, oldImage, oldPalette, newImage, currentPalette);
+	} else {
+		currentPalette = const_cast<byte *>(oldPalette);
+		newImage = oldImage->convertTo(_pixelFormat, currentPalette);
+	}
+
+	if (palette != nullptr) {
+		*palette = currentPalette;
+	}
+
+	return newImage;
 }
 
-const byte *PrivateEngine::decodePalette(const Common::String &name) {
-	debugC(1, kPrivateDebugFunction, "%s(%s)", __FUNCTION__, name.c_str());
-	Common::File file;
-	Common::String path = convertPath(name);
-	if (!file.open(path))
-		error("unable to load image %s", path.c_str());
+void PrivateEngine::remapImage(uint16 ncolors, const Graphics::Surface *oldImage, const byte *oldPalette, Graphics::Surface *newImage, const byte *currentPalette) {
+	debugC(1, kPrivateDebugFunction, "%s(..)", __FUNCTION__);
+	byte paletteMap[256];
+	// Run through every color in old palette
+	for (int i = 0; i != ncolors; ++i) {
+		byte r0 = oldPalette[3 * i + 0];
+		byte g0 = oldPalette[3 * i + 1];
+		byte b0 = oldPalette[3 * i + 2];
 
-	_image->loadStream(file);
-	return _image->getPalette();
+		// Find the closest color in current palette
+		int closest_distance = 10000;
+		int closest_j = 0;
+		for (int j = 0; j != 256; ++j) {
+			byte r1 = currentPalette[3 * j + 0];
+			byte g1 = currentPalette[3 * j + 1];
+			byte b1 = currentPalette[3 * j + 2];
+
+			int distance = (MAX(r0, r1) - MIN(r0, r1))
+						+ (MAX(g0, g1) - MIN(g0, g1))
+						+ (MAX(b0, b1) - MIN(b0, b1));
+
+			if (distance < closest_distance) {
+				closest_distance = distance;
+				closest_j = j;
+			}
+		}
+		paletteMap[i] = closest_j;
+	}
+
+	const byte *src = (const byte*) oldImage->getPixels();
+	byte *dst = (byte *) newImage->getPixels();
+
+	int pitch = oldImage->pitch;
+	for (int y = 0; y != oldImage->h; ++y) {
+		for (int x = 0; x != oldImage->w; ++x) {
+			dst[y * pitch + x] = paletteMap[src[y * pitch + x]];
+		}
+	}
 }
 
 void PrivateEngine::loadImage(const Common::String &name, int x, int y) {
 	debugC(1, kPrivateDebugFunction, "%s(%s,%d,%d)", __FUNCTION__, name.c_str(), x, y);
-	Graphics::Surface *surf = decodeImage(name);
-#ifdef PLAYSTATION3
-	const byte *palette = decodePalette(name);
-	composeImagePalette(surf, palette);
+	byte *palette;
+	Graphics::Surface *surf = decodeImage(name, &palette);
+	_compositeSurface->setPalette(palette, 0, 256);
 	_compositeSurface->setTransparentColor(_transparentColor);
-#endif
 	_compositeSurface->transBlitFrom(*surf, _origin + Common::Point(x, y), _transparentColor);
 	surf->free();
 	delete surf;
 	_image->destroy();
-}
-
-void PrivateEngine::composeImagePalette(const Graphics::Surface *surf, const byte *palette) {
-	int i,j,v;
-	uint32 c;
-	if (_colorToIndex.size() != 1)
-		error("colorToIndex had some elements");
-
-	for (i = 0; i < surf->w; i++)
-		for (j = 0; j < surf->h; j++) {
-			c = surf->getPixel(i, j);
-			v = *((const uint32*) (palette + 3*c)) & 0x00FFFFFF;
-
-			if (_colorToIndex.contains(v))
-				continue;
-
-			_colorToIndex[v] = c;
-			_indexToColor[c] = v;
-		}
-
-	_compositeSurface->setPalette(palette, 0, 256);
-}
-
-void PrivateEngine::composeImagePalette(Graphics::Surface *surf, const byte *palette) {
-	int i,j,p,v;
-	uint32 c;
-	_paletteIndex = 0;
-	for (i = 0; i < surf->w; i++)
-		for (j = 0; j < surf->h; j++) {
-			c = surf->getPixel(i, j);
-			v = *((const uint32*) (palette + 3*c)) & 0x00FFFFFF;
-
-			if (_colorToIndex.contains(v))
-				p = _colorToIndex[v];
-			else {
-				while (_indexToColor.contains(_paletteIndex)) {
-					_paletteIndex++;
-				}
-				p = _paletteIndex;
-				if(p >= 256) {
-					debug("skipping remapping %.8x", v);
-					continue;
-				}
-			}
-			surf->setPixel(i, j, p);
-			_colorToIndex[v] = p;
-			_indexToColor[p] = v;
-			_compositeSurface->setPalette(palette + 3*c, p, 1);
-		}
 }
 
 void PrivateEngine::fillRect(uint32 color, Common::Rect rect) {
@@ -1325,25 +1345,19 @@ void PrivateEngine::fillRect(uint32 color, Common::Rect rect) {
 	_compositeSurface->fillRect(rect, color);
 }
 
-void PrivateEngine::drawScreenFrame() {
-#ifdef PLAYSTATION3
-	Graphics::Surface frame; 
-	frame.create(_frameImage->w, _frameImage->h, _frameImage->format);
-	frame.copyFrom(*_frameImage);
-	composeImagePalette(&frame, _framePalette);
-	g_system->copyRectToScreen(frame.getPixels(), frame.pitch, 0, 0, _screenW, _screenH);
-	frame.free();
-#else
-	g_system->copyRectToScreen(_frameImage->getPixels(), _frameImage->pitch, 0, 0, _screenW, _screenH);
-#endif 
+void PrivateEngine::drawScreenFrame(const byte *newPalette) {
+	debugC(1, kPrivateDebugFunction, "%s(..)", __FUNCTION__);
+	remapImage(256, _frameImage, _framePalette, _mframeImage, newPalette);
+	g_system->copyRectToScreen(_mframeImage->getPixels(), _mframeImage->pitch, 0, 0, _screenW, _screenH);
 }
 
 Graphics::Surface *PrivateEngine::loadMask(const Common::String &name, int x, int y, bool drawn) {
 	debugC(1, kPrivateDebugFunction, "%s(%s,%d,%d,%d)", __FUNCTION__, name.c_str(), x, y, drawn);
 	Graphics::Surface *surf = new Graphics::Surface();
 	surf->create(_screenW, _screenH, _pixelFormat);
-	surf->fillRect(screenRect, _transparentColor);
-	Graphics::Surface *csurf = decodeImage(name);
+	surf->fillRect(_screenRect, _transparentColor);
+	byte *palette;
+	Graphics::Surface *csurf = decodeImage(name, &palette);
 
 	uint32 hdiff = 0;
 	uint32 wdiff = 0;
@@ -1355,18 +1369,16 @@ Graphics::Surface *PrivateEngine::loadMask(const Common::String &name, int x, in
 
 	Common::Rect crect(csurf->w - wdiff, csurf->h - hdiff);
 	surf->copyRectToSurface(*csurf, x, y, crect);
+
+	if (drawn) {
+		_compositeSurface->setPalette(palette, 0, 256);
+		_compositeSurface->setTransparentColor(_transparentColor);
+		drawMask(surf);
+	}
+
 	csurf->free();
 	delete csurf;
 	_image->destroy();
-
-	if (drawn) {
-#ifdef PLAYSTATION3
-		const byte *palette = decodePalette(name);
-		composeImagePalette(surf, palette);
-		_compositeSurface->setTransparentColor(_transparentColor);
-#endif
-		drawMask(surf);
-	}
 
 	return surf;
 }
@@ -1376,41 +1388,37 @@ void PrivateEngine::drawMask(Graphics::Surface *surf) {
 }
 
 void PrivateEngine::drawScreen() {
-	Graphics::ManagedSurface *surface = _compositeSurface;
 	if (_videoDecoder && !_videoDecoder->isPaused()) {
-
-#ifdef PLAYSTATION3
 		const Graphics::Surface *frame = _videoDecoder->decodeNextFrame();
 		Common::Point center((_screenW - _videoDecoder->getWidth()) / 2, (_screenH - _videoDecoder->getHeight()) / 2);
+		const byte *videoPalette = nullptr;
 
-		if (_videoDecoder->getPalette())
-			composeImagePalette(frame, _videoDecoder->getPalette());
+		if (_videoDecoder->hasDirtyPalette()) {
+			videoPalette = _videoDecoder->getPalette();
+			g_system->getPaletteManager()->setPalette(videoPalette, 0, 256);
 
-		surface->blitFrom(*frame, center);
+			if (_mode == 1) {
+				drawScreenFrame(videoPalette);
+			}
+		}
 
-#else
-		const Graphics::Surface *frame = _videoDecoder->decodeNextFrame();
-		Graphics::Surface *cframe = frame->convertTo(_pixelFormat, _videoDecoder->getPalette());
-		Common::Point center((_screenW - _videoDecoder->getWidth()) / 2, (_screenH - _videoDecoder->getHeight()) / 2);
-		surface->blitFrom(*cframe, center);
-		cframe->free();
-		delete cframe;
-#endif
-	} 
+		// No use of _compositeSurface, we write the frame directly to the screen in the expected position
+		g_system->copyRectToScreen(frame->getPixels(), frame->pitch, center.x, center.y, frame->w, frame->h);
+	} else {
+		byte newPalette[256 * 3];
+		_compositeSurface->grabPalette(newPalette, 0, 256);
+		g_system->getPaletteManager()->setPalette(newPalette, 0, 256);
 
-	if (_mode == 1) {
-		drawScreenFrame();
+		if (_mode == 1) {
+			// We can reuse newPalette
+			g_system->getPaletteManager()->grabPalette((byte *) &newPalette, 0, 256);
+			drawScreenFrame((byte *) &newPalette);
+		}
+
+		Common::Rect w(_origin.x, _origin.y, _screenW - _origin.x, _screenH - _origin.y);
+		Graphics::Surface sa = _compositeSurface->getSubArea(w);
+		g_system->copyRectToScreen(sa.getPixels(), sa.pitch, _origin.x, _origin.y, sa.w, sa.h);
 	}
-
-#ifdef PLAYSTATION3
-	for (int c = 0; c < 256; c++)
-		g_system->getPaletteManager()->setPalette(((const byte *) _compositeSurface->getPalette()) + 4*c, c, 1);
-#endif
-
-
-	Common::Rect w(_origin.x, _origin.y, _screenW - _origin.x, _screenH - _origin.y);
-	Graphics::Surface sa = surface->getSubArea(w);
-	g_system->copyRectToScreen(sa.getPixels(), sa.pitch, _origin.x, _origin.y, sa.w, sa.h);
 	g_system->updateScreen();
 }
 
@@ -1481,7 +1489,8 @@ void PrivateEngine::loadLocations(const Common::Rect &rect) {
 			Common::String s =
 				Common::String::format("%sdryloc%d.bmp", _diaryLocPrefix.c_str(), i);
 
-			loadMask(s, rect.left + 120, rect.top + offset, true);
+			Graphics::Surface *surface = loadMask(s, rect.left + 120, rect.top + offset, true);
+			delete surface;
 		}
 	}
 }
@@ -1490,7 +1499,8 @@ void PrivateEngine::loadInventory(uint32 x, const Common::Rect &r1, const Common
 	int16 offset = 0;
 	for (NameList::const_iterator it = inventory.begin(); it != inventory.end(); ++it) {
 		offset = offset + 22;
-		loadMask(*it, r1.left, r1.top + offset, true);
+		Graphics::Surface *surface = loadMask(*it, r1.left, r1.top + offset, true);
+		delete surface;
 	}
 }
 

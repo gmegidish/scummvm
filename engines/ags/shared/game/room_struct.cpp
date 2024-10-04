@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ags/shared/ac/common.h" // update_polled_stuff_if_runtime
+#include "ags/shared/ac/common.h" // quit
 #include "ags/shared/game/room_file.h"
 #include "ags/shared/game/room_struct.h"
 #include "ags/shared/gfx/bitmap.h"
@@ -34,7 +33,8 @@ RoomOptions::RoomOptions()
 	, SaveLoadDisabled(false)
 	, PlayerCharOff(false)
 	, PlayerView(0)
-	, MusicVolume(kRoomVolumeNormal) {
+	, MusicVolume(kRoomVolumeNormal)
+	, Flags(0) {
 }
 
 RoomBgFrame::RoomBgFrame()
@@ -75,7 +75,7 @@ WalkArea::WalkArea()
 	: CharacterView(0)
 	, ScalingFar(0)
 	, ScalingNear(NOT_VECTOR_SCALED)
-	, Light(0)
+	, PlayerView(0)
 	, Top(-1)
 	, Bottom(-1) {
 }
@@ -112,10 +112,7 @@ void RoomStruct::Free() {
 		Hotspots[i].Interaction.reset();
 		Hotspots[i].Properties.clear();
 	}
-	for (size_t i = 0; i < (size_t)MAX_ROOM_OBJECTS; ++i) {
-		Objects[i].Interaction.reset();
-		Objects[i].Properties.clear();
-	}
+	Objects.clear();
 	for (size_t i = 0; i < (size_t)MAX_ROOM_REGIONS; ++i) {
 		Regions[i].Interaction.reset();
 		Regions[i].Properties.clear();
@@ -139,8 +136,8 @@ void RoomStruct::FreeScripts() {
 	EventHandlers.reset();
 	for (size_t i = 0; i < HotspotCount; ++i)
 		Hotspots[i].EventHandlers.reset();
-	for (size_t i = 0; i < ObjectCount; ++i)
-		Objects[i].EventHandlers.reset();
+	for (auto &obj : Objects)
+		obj.EventHandlers.reset();
 	for (size_t i = 0; i < RegionCount; ++i)
 		Regions[i].EventHandlers.reset();
 }
@@ -159,21 +156,13 @@ void RoomStruct::InitDefaults() {
 
 	BgFrameCount = 1;
 	HotspotCount = 0;
-	ObjectCount = 0;
 	RegionCount = 0;
 	WalkAreaCount = 0;
 	WalkBehindCount = 0;
 	MessageCount = 0;
 
-	for (size_t i = 0; i < (size_t)MAX_ROOM_HOTSPOTS; ++i) {
+	for (size_t i = 0; i < (size_t)MAX_ROOM_HOTSPOTS; ++i)
 		Hotspots[i] = RoomHotspot();
-		if (i == 0)
-			Hotspots[i].Name = "No hotspot";
-		else
-			Hotspots[i].Name.Format("Hotspot %zu", i);
-	}
-	for (size_t i = 0; i < (size_t)MAX_ROOM_OBJECTS; ++i)
-		Objects[i] = RoomObjectInfo();
 	for (size_t i = 0; i < (size_t)MAX_ROOM_REGIONS; ++i)
 		Regions[i] = RoomRegion();
 	for (size_t i = 0; i <= (size_t)MAX_WALK_AREAS; ++i)
@@ -193,25 +182,24 @@ void RoomStruct::SetResolution(RoomResolutionType type) {
 
 Bitmap *RoomStruct::GetMask(RoomAreaMask mask) const {
 	switch (mask) {
-	case kRoomAreaNone: break;
 	case kRoomAreaHotspot: return HotspotMask.get();
 	case kRoomAreaWalkBehind: return WalkBehindMask.get();
 	case kRoomAreaWalkable: return WalkAreaMask.get();
 	case kRoomAreaRegion: return RegionMask.get();
+	default: return nullptr;
 	}
-	return nullptr;
 }
 
 float RoomStruct::GetMaskScale(RoomAreaMask mask) const {
 	switch (mask) {
-	case kRoomAreaNone: break;
 	case kRoomAreaWalkBehind: return 1.f; // walk-behinds always 1:1 with room size
 	case kRoomAreaHotspot:
 	case kRoomAreaWalkable:
 	case kRoomAreaRegion:
 		return 1.f / MaskResolution;
+	default:
+		return 0.f;
 	}
-	return 0.f;
 }
 
 bool RoomStruct::HasRegionLightLevel(int id) const {
@@ -242,12 +230,9 @@ void load_room(const String &filename, RoomStruct *room, bool game_is_hires, con
 	room->Free();
 	room->InitDefaults();
 
-	update_polled_stuff_if_runtime();
-
 	RoomDataSource src;
 	HRoomFileError err = OpenRoomFileFromAsset(filename, src);
 	if (err) {
-		update_polled_stuff_if_runtime();  // it can take a while to load the file sometimes
 		err = ReadRoomData(room, src.InputStream.get(), src.DataVersion);
 		if (err)
 			err = UpdateRoomData(room, src.DataVersion, game_is_hires, sprinfos);

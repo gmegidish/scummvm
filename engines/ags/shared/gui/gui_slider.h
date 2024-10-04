@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef AGS_SHARED_GUI_GUI_SLIDER_H
 #define AGS_SHARED_GUI_GUI_SLIDER_H
 
-#include "ags/lib/std/vector.h"
+#include "common/std/vector.h"
 #include "ags/shared/gui/gui_object.h"
 
 namespace AGS3 {
@@ -38,8 +37,13 @@ public:
 	bool IsHorizontal() const;
 	bool IsOverControl(int x, int y, int leeway) const override;
 
+	// Compatibility: sliders are not clipped as of 3.6.0
+	bool IsContentClipped() const override { return false; }
+	bool HasAlphaChannel() const override;
+
 	// Operations
-	void Draw(Bitmap *ds) override;
+	Rect CalcGraphicRect(bool clipped) override;
+	void Draw(Bitmap *ds, int x = 0, int y = 0) override;
 
 	// Events
 	bool OnMouseDown() override;
@@ -63,9 +67,15 @@ public:
 	bool    IsMousePressed;
 
 private:
-	// The following variables are not persisted on disk
-	// Cached coordinates of slider handle
+	// Updates dynamic metrics and positions of elements
+	void UpdateMetrics();
+
+	// Cached coordinates of slider bar; in relative coords
+	Rect    _cachedBar;
+	// Cached coordinates of slider handle; in relative coords
 	Rect    _cachedHandle;
+	// The length of the handle movement range, in pixels
+	int     _handleRange;
 };
 
 } // namespace Shared

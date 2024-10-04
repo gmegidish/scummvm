@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,7 +59,6 @@ FILETIME fileTime;
 
 int numGlobals = 0;
 
-extern Variable *launchResult;
 extern Variable *globalVars;
 extern VariableStack *noStack;
 
@@ -69,7 +67,7 @@ extern bool allowAnyFilename;
 Common::File *openAndVerify(const Common::String &filename, char extra1, char extra2,
 		const char *er, int &fileVersion) {
 	Common::File *fp = new Common::File();
-	if (!fp->open(filename)) {
+	if (!fp->open(Common::Path(filename))) {
 		fatal("Can't open file", filename);
 		return NULL;
 	}
@@ -138,7 +136,6 @@ void initSludge() {
 
 	// global variables
 	numGlobals = 0;
-	launchResult = nullptr;
 
 	allowAnyFilename = true;
 	noStack = nullptr;
@@ -179,8 +176,10 @@ bool initSludge(const Common::String &filename) {
 		numBIFNames = fp->readUint16BE();
 		debugC(2, kSludgeDebugDataLoad, "numBIFNames %i", numBIFNames);
 		allBIFNames = new Common::String[numBIFNames];
-		if (!checkNew(allBIFNames))
+		if (!checkNew(allBIFNames)) {
+			delete fp;
 			return false;
+		}
 
 		for (int fn = 0; fn < numBIFNames; fn++) {
 			allBIFNames[fn].clear();
@@ -189,8 +188,10 @@ bool initSludge(const Common::String &filename) {
 		numUserFunc = fp->readUint16BE();
 		debugC(2, kSludgeDebugDataLoad, "numUserFunc %i", numUserFunc);
 		allUserFunc = new Common::String[numUserFunc];
-		if (!checkNew(allUserFunc))
+		if (!checkNew(allUserFunc)) {
+			delete fp;
 			return false;
+		}
 
 		for (int fn = 0; fn < numUserFunc; fn++) {
 			allUserFunc[fn].clear();
@@ -247,27 +248,32 @@ bool initSludge(const Common::String &filename) {
 
 		// read game icon
 		Graphics::Surface gameIcon;
-		if (!ImgLoader::loadImage(-1, "icon", fp, &gameIcon, false))
+		if (!ImgLoader::loadImage(-1, "icon", fp, &gameIcon, false)) {
+			delete fp;
 			return false;
-
+		}
 	}
 
 	if (customIconLogo & 2) {
-		// There is an logo - read it!
-		debugC(2, kSludgeDebugDataLoad, "There is an logo - read it!");
+		// There is a logo - read it!
+		debugC(2, kSludgeDebugDataLoad, "There is a logo - read it!");
 
 		// read game logo
 		Graphics::Surface gameLogo;
-		if (!ImgLoader::loadImage(-1, "logo", fp, &gameLogo))
+		if (!ImgLoader::loadImage(-1, "logo", fp, &gameLogo)) {
+			delete fp;
 			return false;
+		}
 	}
 
 	numGlobals = fp->readUint16BE();
 	debugC(2, kSludgeDebugDataLoad, "numGlobals : %i", numGlobals);
 
 	globalVars = new Variable[numGlobals];
-	if (!checkNew(globalVars))
+	if (!checkNew(globalVars)) {
+		delete fp;
 		return false;
+	}
 
 	// Get language selected by user
 	g_sludge->_resMan->setData(fp);
@@ -287,7 +293,6 @@ void displayBase() {
 	g_sludge->_gfxMan->drawBackDrop();// Draw Backdrop
 	g_sludge->_gfxMan->drawZBuffer(g_sludge->_gfxMan->getCamX(), g_sludge->_gfxMan->getCamY(), false);
 	g_sludge->_peopleMan->drawPeople();// Then add any moving characters...
-	g_sludge->_gfxMan->displaySpriteLayers();
 }
 
 void sludgeDisplay() {

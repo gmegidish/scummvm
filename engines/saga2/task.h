@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -32,30 +31,30 @@
 
 namespace Saga2 {
 
-const   int     defaultEvalRate = 10;
+const   int     kDefaultEvalRate = 10;
 
-const   size_t  maxTaskSize = 48;
+const   size_t  kMaxTaskSize = 48;
 
 //  Integers representing task types
 enum TaskType {
-	wanderTask,
-	tetheredWanderTask,
-	gotoLocationTask,
-	gotoRegionTask,
-	gotoObjectTask,
-	gotoActorTask,
-	goAwayFromObjectTask,
-	goAwayFromActorTask,
-	huntToBeNearLocationTask,
-	huntToBeNearObjectTask,
-	huntToPossessTask,
-	huntToBeNearActorTask,
-	huntToKillTask,
-	huntToGiveTask,
-	bandTask,
-	bandAndAvoidEnemiesTask,
-	followPatrolRouteTask,
-	attendTask
+	kWanderTask,
+	kTetheredWanderTask,
+	kGotoLocationTask,
+	kGotoRegionTask,
+	kGotoObjectTask,
+	kGotoActorTask,
+	kGoAwayFromObjectTask,
+	kGoAwayFromActorTask,
+	kHuntToBeNearLocationTask,
+	kHuntToBeNearObjectTask,
+	kHuntToPossessTask,
+	kHuntToBeNearActorTask,
+	kHuntToKillTask,
+	kHuntToGiveTask,
+	kBandTask,
+	kBandAndAvoidEnemiesTask,
+	kFollowPatrolRouteTask,
+	kAttendTask
 };
 
 /* ===================================================================== *
@@ -125,18 +124,18 @@ class Task {
 
 protected:
 	//  A pointer to this task's stack
-	TaskStack   *stack;
+	TaskStack   *_stack;
 	TaskStackID _stackID;
 
 public:
 	Common::String _type;
 
 	//  Constructor -- initial construction
-	Task(TaskStack *ts) : stack(ts), _stackID(NoTaskStack) {
+	Task(TaskStack *ts) : _stack(ts), _stackID(NoTaskStack) {
 		newTask(this);
 	}
 
-	Task(TaskStack *ts, TaskID id) : stack(ts) {
+	Task(TaskStack *ts, TaskID id) : _stack(ts) {
 		newTask(this, id);
 	}
 
@@ -177,8 +176,8 @@ public:
 //  This class is basically a shell around the wander motion task
 class WanderTask : public Task {
 protected:
-	bool            paused;         //  Flag indicating "paused"ness of this task
-	int16           counter;        //  Counter for tracking pause length
+	bool            _paused;         //  Flag indicating "paused"ness of this task
+	int16           _counter;        //  Counter for tracking pause length
 
 public:
 	//  Constructor
@@ -212,7 +211,7 @@ protected:
 
 	//  Update function used while task is paused
 	TaskResult handlePaused() {
-		return taskNotDone;
+		return kTaskNotDone;
 	}
 
 	//  Set this task into the paused state
@@ -232,13 +231,13 @@ class GotoRegionTask;
 //  motion task
 class TetheredWanderTask : public WanderTask {
 	//  Tether coordinates
-	int16           minU,
-	                minV,
-	                maxU,
-	                maxV;
+	int16           _minU,
+	                _minV,
+	                _maxU,
+	                _maxV;
 
 	//  Pointer to subtask for going to the tether region
-	GotoRegionTask  *gotoTether;
+	GotoRegionTask  *_gotoTether;
 	TaskID _gotoTetherID;
 
 public:
@@ -250,11 +249,11 @@ public:
 	    int16 uMax,
 	    int16 vMax) :
 		WanderTask(ts),
-		minU(uMin),
-		minV(vMin),
-		maxU(uMax),
-		maxV(vMax),
-		gotoTether(NULL),
+		_minU(uMin),
+		_minV(vMin),
+		_maxU(uMax),
+		_maxV(vMax),
+		_gotoTether(NULL),
 		_gotoTetherID(NoTask) {
 		debugC(2, kDebugTasks, " - TetheredWanderTask");
 		_type = "TetheredWanderTask";
@@ -270,12 +269,6 @@ public:
 	int32 archiveSize() const;
 
 	void write(Common::MemoryWriteStreamDynamic *out) const;
-
-#if DEBUG
-	//  Debugging function used to mark this task and any sub tasks as
-	//  being used.  This is used to find task leaks.
-	void mark();
-#endif
 
 	//  Return an integer representing the type of this task
 	int16 getType() const;
@@ -294,17 +287,17 @@ public:
  * ===================================================================== */
 
 class GotoTask : public Task {
-	WanderTask  *wander;
+	WanderTask  *_wander;
 	TaskID _wanderID;
-	bool        prevRunState;
+	bool        _prevRunState;
 
 public:
 	//  Constructor -- initial construction
 	GotoTask(TaskStack *ts) :
 		Task(ts),
-		wander(NULL),
+		_wander(NULL),
 		_wanderID(NoTask),
-		prevRunState(false) {
+		_prevRunState(false) {
 		debugC(2, kDebugTasks, " - GotoTask");
 		_type = "GotoTask";
 	}
@@ -319,12 +312,6 @@ public:
 	int32 archiveSize() const;
 
 	void write(Common::MemoryWriteStreamDynamic *out) const;
-
-#if DEBUG
-	//  Debugging function used to mark this task and any sub tasks as
-	//  being used.  This is used to find task leaks.
-	void mark();
-#endif
 
 	void abortTask();
 	TaskResult evaluate();
@@ -342,8 +329,8 @@ private:
  * ===================================================================== */
 
 class GotoLocationTask : public GotoTask {
-	TilePoint   targetLoc;
-	uint8       runThreshold;
+	TilePoint   _targetLoc;
+	uint8       _runThreshold;
 
 public:
 	//  Constructor -- initial construction
@@ -352,8 +339,8 @@ public:
 	    const TilePoint &tp,
 	    uint8           runDist = maxuint8) :
 		GotoTask(ts),
-		targetLoc(tp),
-		runThreshold(runDist) {
+		_targetLoc(tp),
+		_runThreshold(runDist) {
 		debugC(2, kDebugTasks, " - GotoLocationTask");
 		_type = "GotoLocationTask";
 	}
@@ -373,11 +360,11 @@ public:
 	bool operator == (const Task &t) const;
 
 	const TilePoint getTarget() const {
-		return targetLoc;
+		return _targetLoc;
 	}
 
 	void changeTarget(const TilePoint &newTarget) {
-		targetLoc = newTarget;
+		_targetLoc = newTarget;
 	}
 
 private:
@@ -392,10 +379,10 @@ private:
  * ===================================================================== */
 
 class GotoRegionTask : public GotoTask {
-	int16       regionMinU,
-	            regionMinV,
-	            regionMaxU,
-	            regionMaxV;
+	int16       _regionMinU,
+	            _regionMinV,
+	            _regionMaxU,
+	            _regionMaxV;
 
 public:
 	//  Constructor -- initial construction
@@ -406,10 +393,10 @@ public:
 	    int16 maxU,
 	    int16 maxV) :
 		GotoTask(ts),
-		regionMinU(minU),
-		regionMinV(minV),
-		regionMaxU(maxU),
-		regionMaxV(maxV) {
+		_regionMinU(minU),
+		_regionMinV(minV),
+		_regionMaxU(maxU),
+		_regionMaxV(maxV) {
 		debugC(2, kDebugTasks, " - GotoRegionTask");
 		_type = "GotoRegionTask";
 	}
@@ -440,33 +427,33 @@ private:
  * ===================================================================== */
 
 class GotoObjectTargetTask : public GotoTask {
-	TilePoint           lastTestedLoc;
-	int16               sightCtr;
+	TilePoint           _lastTestedLoc;
+	int16               _sightCtr;
 
-	uint8               flags;
+	uint8               _flags;
 
 	enum {
-		track       = (1 << 0),
-		inSight     = (1 << 1)
+		kTrack       = (1 << 0),
+		kInSight     = (1 << 1)
 	};
 
 	//  static const doesn't work in Visual C++
 	enum {
-		sightRate = 16
+		kSightRate = 16
 	};
 //	static const int16  sightRate = 16;
 
 protected:
-	TilePoint           lastKnownLoc;
+	TilePoint           _lastKnownLoc;
 
 public:
 	//  Constructor -- initial construction
 	GotoObjectTargetTask(TaskStack *ts, bool trackFlag) :
 		GotoTask(ts),
-		lastTestedLoc(Nowhere),
-		sightCtr(0),
-		flags(trackFlag ? track : 0),
-		lastKnownLoc(Nowhere) {
+		_lastTestedLoc(Nowhere),
+		_sightCtr(0),
+		_flags(trackFlag ? kTrack : 0),
+		_lastKnownLoc(Nowhere) {
 		debugC(2, kDebugTasks, " - GotoObjectTargetTask");
 		_type = "GotoObjectTargetTask";
 	}
@@ -488,10 +475,10 @@ private:
 
 protected:
 	bool tracking() const {
-		return (flags & track) != 0;
+		return (_flags & kTrack) != 0;
 	}
 	bool isInSight() const {
-		return (flags & inSight) != 0;
+		return (_flags & kInSight) != 0;
 	}
 };
 
@@ -502,7 +489,7 @@ protected:
  * ===================================================================== */
 
 class GotoObjectTask : public GotoObjectTargetTask {
-	GameObject  *targetObj;
+	GameObject  *_targetObj;
 
 public:
 	//  Constructor -- initial construction
@@ -511,7 +498,7 @@ public:
 	    GameObject  *obj,
 	    bool        trackFlag = false) :
 		GotoObjectTargetTask(ts, trackFlag),
-		targetObj(obj) {
+		_targetObj(obj) {
 		debugC(2, kDebugTasks, " - GotoObjectTask");
 		_type = "GotoObjectTask";
 	}
@@ -531,7 +518,7 @@ public:
 	bool operator == (const Task &t) const;
 
 	const GameObject *getTarget() const {
-		return targetObj;
+		return _targetObj;
 	}
 
 private:
@@ -544,13 +531,13 @@ private:
  * ===================================================================== */
 
 class GotoActorTask : public GotoObjectTargetTask {
-	Actor       *targetActor;
+	Actor       *_targetActor;
 
 public:
 	//  Constructor -- initial construction
 	GotoActorTask(TaskStack *ts, Actor *a, bool trackFlag = false) :
 		GotoObjectTargetTask(ts, trackFlag),
-		targetActor(a) {
+		_targetActor(a) {
 		debugC(2, kDebugTasks, " - GotoActorTask");
 		_type = "GotoActorTask";
 	}
@@ -569,7 +556,7 @@ public:
 	bool operator == (const Task &t) const;
 
 	const Actor *getTarget() const {
-		return targetActor;
+		return _targetActor;
 	}
 
 private:
@@ -582,31 +569,31 @@ private:
  * ===================================================================== */
 
 class GoAwayFromTask : public Task {
-	GotoLocationTask        *goTask;
+	GotoLocationTask        *_goTask;
 	TaskID _goTaskID;
 
-	uint8                   flags;
+	uint8                   _flags;
 
 	enum {
-		run = (1 << 0)
+		kRun = (1 << 0)
 	};
 
 public:
 	//  Constructor -- initial construction
 	GoAwayFromTask(TaskStack *ts) :
 		Task(ts),
-		goTask(NULL),
+		_goTask(NULL),
 		_goTaskID(NoTask),
-		flags(0) {
+		_flags(0) {
 		debugC(2, kDebugTasks, " - GoAwayFromTask1");
 		_type = "GoAwayFromTask";
 	}
 
 	GoAwayFromTask(TaskStack *ts, bool runFlag) :
 		Task(ts),
-		goTask(NULL),
+		_goTask(NULL),
 		_goTaskID(NoTask),
-		flags(runFlag ? run : 0) {
+		_flags(runFlag ? kRun : 0) {
 		debugC(2, kDebugTasks, " - GoAwayFromTask2");
 		_type = "GoAwayFromTask";
 	}
@@ -622,12 +609,6 @@ public:
 
 	void write(Common::MemoryWriteStreamDynamic *out) const;
 
-#if DEBUG
-	//  Debugging function used to mark this task and any sub tasks as
-	//  being used.  This is used to find task leaks.
-	void mark();
-#endif
-
 	void abortTask();
 	TaskResult evaluate();
 	TaskResult update();
@@ -641,13 +622,13 @@ private:
  * ===================================================================== */
 
 class GoAwayFromObjectTask : public GoAwayFromTask {
-	GameObject      *obj;
+	GameObject      *_obj;
 
 public:
 	//  Constructor -- initial construction
 	GoAwayFromObjectTask(TaskStack *ts, GameObject *object) :
 		GoAwayFromTask(ts),
-		obj(object) {
+		_obj(object) {
 		debugC(2, kDebugTasks, " - GoAwayFromObjectTask");
 		_type = "GoAwayFromObjectTask";
 	}
@@ -675,18 +656,12 @@ private:
  * ===================================================================== */
 
 class GoAwayFromActorTask : public GoAwayFromTask {
-	TargetPlaceHolder   targetMem;
+	TargetPlaceHolder   _targetMem;
 
 public:
 	//  Constructor -- initial construction
-	GoAwayFromActorTask(
-	    TaskStack   *ts,
-	    Actor       *a,
-	    bool        runFlag = false);
-	GoAwayFromActorTask(
-	    TaskStack           *ts,
-	    const ActorTarget   &at,
-	    bool                runFlag = false);
+	GoAwayFromActorTask(TaskStack *ts, Actor *a, bool runFlag = false);
+	GoAwayFromActorTask(TaskStack *ts, const ActorTarget &at, bool runFlag = false);
 
 	GoAwayFromActorTask(Common::InSaveFile *in, TaskID id);
 
@@ -706,7 +681,7 @@ private:
 	TilePoint getRepulsionVector();
 
 	const ActorTarget *getTarget() const {
-		return (const ActorTarget *)targetMem;
+		return (const ActorTarget *)_targetMem;
 	}
 };
 
@@ -715,19 +690,19 @@ private:
  * ===================================================================== */
 
 class HuntTask : public Task {
-	Task            *subTask;   //  This will either be a wander task of a
+	Task            *_subTask;   //  This will either be a wander task of a
 	TaskID _subTaskID;
 	//  goto task
-	uint8           huntFlags;
+	uint8           _huntFlags;
 
 	enum HuntFlags {
-		huntWander  = (1 << 0), //  Indicates that subtask is a wander task
-		huntGoto    = (1 << 1)  //  Indicates that subtask is a goto task
+		kHuntWander  = (1 << 0), //  Indicates that subtask is a wander task
+		kHuntGoto    = (1 << 1)  //  Indicates that subtask is a goto task
 	};
 
 public:
 	//  Constructor -- initial construction
-	HuntTask(TaskStack *ts) : Task(ts), huntFlags(0), subTask(nullptr), _subTaskID(NoTask) {
+	HuntTask(TaskStack *ts) : Task(ts), _huntFlags(0), _subTask(nullptr), _subTaskID(NoTask) {
 		debugC(2, kDebugTasks, " - HuntTask");
 		_type = "HuntTask";
 	}
@@ -742,12 +717,6 @@ public:
 	int32 archiveSize() const;
 
 	void write(Common::MemoryWriteStreamDynamic *out) const;
-
-#if DEBUG
-	//  Debugging function used to mark this task and any sub tasks as
-	//  being used.  This is used to find task leaks.
-	void mark();
-#endif
 
 	void abortTask();
 	TaskResult evaluate();
@@ -775,10 +744,10 @@ protected:
  * ===================================================================== */
 
 class HuntLocationTask : public HuntTask {
-	TargetPlaceHolder   targetMem;
+	TargetPlaceHolder   _targetMem;
 
 protected:
-	TilePoint           currentTarget;
+	TilePoint           _currentTarget;
 
 public:
 	//  Constructor -- initial construction
@@ -798,7 +767,7 @@ protected:
 	TilePoint currentTargetLoc();
 
 	const Target *getTarget() const {
-		return (const Target *)targetMem;
+		return (const Target *)_targetMem;
 	}
 };
 
@@ -807,22 +776,22 @@ protected:
  * ===================================================================== */
 
 class HuntToBeNearLocationTask : public HuntLocationTask {
-	uint16              range;
+	uint16              _range;
 
-	uint8               targetEvaluateCtr;
+	uint8               _targetEvaluateCtr;
 
 	//  static const doesn't work in Visual C++
 	enum {
-		targetEvaluateRate = 64
+		kTargetEvaluateRate = 64
 	};
-//	static const uint8  targetEvaluateRate;
+//	static const uint8  kTargetEvaluateRate;
 
 public:
 	//  Constructor -- initial construction
 	HuntToBeNearLocationTask(TaskStack *ts, const Target &t, uint16 r) :
 		HuntLocationTask(ts, t),
-		range(r),
-		targetEvaluateCtr(0) {
+		_range(r),
+		_targetEvaluateCtr(0) {
 		debugC(2, kDebugTasks, " - HuntToBeNearLocationTask");
 		_type = "HuntToBeNearLocationTask";
 	}
@@ -851,21 +820,21 @@ protected:
 	TaskResult atTargetUpdate();
 
 	uint16 getRange() const {
-		return range;
+		return _range;
 	}
 };
 
-//const uint8 HuntToBeNearLocationTask::targetEvaluateRate = 64;
+//const uint8 HuntToBeNearLocationTask::kTargetEvaluateRate = 64;
 
 /* ===================================================================== *
    HuntObjectTask Class
  * ===================================================================== */
 
 class HuntObjectTask : public HuntTask {
-	TargetPlaceHolder   targetMem;
+	TargetPlaceHolder   _targetMem;
 
 protected:
-	GameObject          *currentTarget;
+	GameObject          *_currentTarget;
 
 public:
 	//  Constructor -- initial construction
@@ -885,7 +854,7 @@ protected:
 	TilePoint currentTargetLoc();
 
 	const ObjectTarget *getTarget() const {
-		return (const ObjectTarget *)targetMem;
+		return (const ObjectTarget *)_targetMem;
 	}
 };
 
@@ -894,14 +863,14 @@ protected:
  * ===================================================================== */
 
 class HuntToBeNearObjectTask : public HuntObjectTask {
-	uint16              range;
+	uint16              _range;
 
-	uint8               targetEvaluateCtr;
+	uint8               _targetEvaluateCtr;
 
 	enum {
-		targetEvaluateRate = 64
+		kTargetEvaluateRate = 64
 	};
-//	static const uint8  targetEvaluateRate;
+//	static const uint8  kTargetEvaluateRate;
 
 public:
 	//  Constructor -- initial construction
@@ -910,8 +879,8 @@ public:
 	    const ObjectTarget &ot,
 	    uint16 r) :
 		HuntObjectTask(ts, ot),
-		range(r),
-		targetEvaluateCtr(0) {
+		_range(r),
+		_targetEvaluateCtr(0) {
 		debugC(2, kDebugTasks, " - HuntToBeNearObjectTask");
 		_type = "HuntToBeNearObjectTask";
 	}
@@ -940,32 +909,32 @@ protected:
 	TaskResult atTargetUpdate();
 
 	uint16 getRange() const {
-		return range;
+		return _range;
 	}
 };
 
-//const uint8   HuntToBeNearObjectTask::targetEvaluateRate = 64;
+//const uint8   HuntToBeNearObjectTask::kTargetEvaluateRate = 64;
 
 /* ===================================================================== *
    HuntToPossessTask Class
  * ===================================================================== */
 
 class HuntToPossessTask : public HuntObjectTask {
-	uint8               targetEvaluateCtr;
+	uint8               _targetEvaluateCtr;
 
 	enum {
-		targetEvaluateRate = 64
+		kTargetEvaluateRate = 64
 	};
-//	static const uint8  targetEvaluateRate;
+//	static const uint8  kTargetEvaluateRate;
 
-	bool                grabFlag;
+	bool                _grabFlag;
 
 public:
 	//  Constructor -- initial construction
 	HuntToPossessTask(TaskStack *ts, const ObjectTarget &ot) :
 		HuntObjectTask(ts, ot),
-		targetEvaluateCtr(0),
-		grabFlag(false) {
+		_targetEvaluateCtr(0),
+		_grabFlag(false) {
 		debugC(2, kDebugTasks, " - HuntToPossessTask");
 		_type = "HuntToPossessTask";
 	}
@@ -993,22 +962,22 @@ protected:
 	TaskResult atTargetUpdate();
 };
 
-//const uint8 HuntToPossessTask::targetEvaluateRate = 16;
+//const uint8 HuntToPossessTask::kTargetEvaluateRate = 16;
 
 /* ===================================================================== *
    HuntActorTask Class
  * ===================================================================== */
 
 class HuntActorTask : public HuntTask {
-	TargetPlaceHolder   targetMem;
-	uint8               flags;
+	TargetPlaceHolder   _targetMem;
+	uint8               _flags;
 
 	enum {
-		track   = (1 << 0)
+		kTrack   = (1 << 0)
 	};
 
 protected:
-	Actor               *currentTarget;
+	Actor               *_currentTarget;
 
 public:
 	//  Constructor -- initial construction
@@ -1031,11 +1000,11 @@ protected:
 	TilePoint currentTargetLoc();
 
 	const ActorTarget *getTarget() const {
-		return (const ActorTarget *)targetMem;
+		return (const ActorTarget *)_targetMem;
 	}
 
 	bool tracking() const {
-		return (flags & track) != 0;
+		return (_flags & kTrack) != 0;
 	}
 };
 
@@ -1044,21 +1013,21 @@ protected:
  * ===================================================================== */
 
 class HuntToBeNearActorTask : public HuntActorTask {
-	GoAwayFromObjectTask    *goAway;    //  The 'go away' sub task pointer
+	GoAwayFromObjectTask    *_goAway;    //  The 'go away' sub task pointer
 	TaskID _goAwayID;
-	uint16                  range;      //  Maximum range
+	uint16                  _range;      //  Maximum range
 
-	uint8                   targetEvaluateCtr;
+	uint8                   _targetEvaluateCtr;
 
 	enum {
-		targetEvaluateRate = 16
+		kTargetEvaluateRate = 16
 	};
-//	static const uint8  targetEvaluateRate;
+//	static const uint8  kTargetEvaluateRate;
 
 public:
 
 	enum {
-		tooClose = 12
+		kTooClose = 12
 	};
 
 	//  Constructor -- initial construction
@@ -1068,10 +1037,10 @@ public:
 	    uint16              r,
 	    bool                trackFlag = false) :
 		HuntActorTask(ts, at, trackFlag),
-		goAway(NULL),
+		_goAway(NULL),
 		_goAwayID(NoTask),
-		range(MAX<uint16>(r, 16)),
-		targetEvaluateCtr(0) {
+		_range(MAX<uint16>(r, 16)),
+		_targetEvaluateCtr(0) {
 		debugC(2, kDebugTasks, " - HuntToBeNearActorTask");
 		_type = "HuntToBeNearActorTask";
 	}
@@ -1086,12 +1055,6 @@ public:
 	int32 archiveSize() const;
 
 	void write(Common::MemoryWriteStreamDynamic *out) const;
-
-#if DEBUG
-	//  Debugging function used to mark this task and any sub tasks as
-	//  being used.  This is used to find task leaks.
-	void mark();
-#endif
 
 	//  Return an integer representing the type of this task
 	int16 getType() const;
@@ -1109,34 +1072,34 @@ protected:
 	TaskResult atTargetUpdate();
 
 	uint16 getRange() const {
-		return range;
+		return _range;
 	}
 };
 
-//const uint8   HuntToBeNearActorTask::targetEvaluateRate = 64;
+//const uint8   HuntToBeNearActorTask::kTargetEvaluateRate = 64;
 
 /* ===================================================================== *
    HuntToKillTask Class
  * ===================================================================== */
 
 class HuntToKillTask : public HuntActorTask {
-	uint8               targetEvaluateCtr;
-	uint8               specialAttackCtr;
+	uint8               _targetEvaluateCtr;
+	uint8               _specialAttackCtr;
 
 	enum {
-		targetEvaluateRate = 16
+		kTargetEvaluateRate = 16
 	};
 
 	enum {
-		currentWeaponBonus = 1
+		kCurrentWeaponBonus = 1
 	};
 
-	uint8               flags;
+	uint8               _flags;
 
 	enum {
-		evalWeapon      = (1 << 0)
+		kEvalWeapon      = (1 << 0)
 	};
-//	static const uint8  targetEvaluateRate;
+//	static const uint8  kTargetEvaluateRate;
 
 public:
 	//  Constructor -- initial construction
@@ -1174,7 +1137,7 @@ private:
 	void evaluateWeapon();
 };
 
-//const uint8 HuntToKillTask::targetEvaluateRate = 16;
+//const uint8 HuntToKillTask::kTargetEvaluateRate = 16;
 
 //  Utility function used for combat target selection
 inline int16 closenessScore(int16 dist) {
@@ -1186,7 +1149,7 @@ inline int16 closenessScore(int16 dist) {
  * ===================================================================== */
 
 class HuntToGiveTask : public HuntActorTask {
-	GameObject      *objToGive;
+	GameObject      *_objToGive;
 
 public:
 	//  Constructor -- initial construction
@@ -1196,7 +1159,7 @@ public:
 	    GameObject          *obj,
 	    bool                trackFlag = false) :
 		HuntActorTask(ts, at, trackFlag),
-		objToGive(obj) {
+		_objToGive(obj) {
 		debugC(2, kDebugTasks, " - HuntToGiveTask");
 		_type = "HuntToGiveTask";
 	}
@@ -1231,14 +1194,14 @@ protected:
 class AttendTask;
 
 class BandTask : public HuntTask {
-	AttendTask          *attend;
+	AttendTask          *_attend;
 	TaskID _attendID;
 
-	TilePoint           currentTarget;
-	uint8               targetEvaluateCtr;
+	TilePoint           _currentTarget;
+	uint8               _targetEvaluateCtr;
 
 	enum {
-		targetEvaluateRate = 2
+		kTargetEvaluateRate = 2
 	};
 
 public:
@@ -1258,14 +1221,14 @@ public:
 
 	class BandingRepulsorIterator : public RepulsorIterator {
 	protected:
-		Actor           *a;
+		Actor           *_a;
 
 	private:
-		Band            *band;
-		int             bandIndex;
+		Band            *_band;
+		int             _bandIndex;
 
 	public:
-		BandingRepulsorIterator(Actor *actor) : a(actor), band(nullptr), bandIndex(0) {}
+		BandingRepulsorIterator(Actor *actor) : _a(actor), _band(nullptr), _bandIndex(0) {}
 
 		bool first(
 		    TilePoint   &repulsorVector,
@@ -1283,16 +1246,16 @@ public:
 	//  even though it is explicitly declared protected and not private.
 	//  Watcom C++, however, works correctly.
 	class BandAndAvoidEnemiesRepulsorIterator : public BandingRepulsorIterator {
-		Actor       *actorArray[6];
-		int         numActors,
-		            actorIndex;
-		bool        iteratingThruEnemies;
+		Actor       *_actorArray[6];
+		int         _numActors,
+		            _actorIndex;
+		bool        _iteratingThruEnemies;
 
 	public:
 		BandAndAvoidEnemiesRepulsorIterator(Actor *actor) :
-				BandingRepulsorIterator(actor), numActors(0), actorIndex(0), iteratingThruEnemies(false) {
+				BandingRepulsorIterator(actor), _numActors(0), _actorIndex(0), _iteratingThruEnemies(false) {
 			for (int i = 0; i < 6; i++)
-				actorArray[i] = 0;
+				_actorArray[i] = 0;
 		}
 
 	private:
@@ -1318,10 +1281,10 @@ public:
 	//  Constructor -- initial construction
 	BandTask(TaskStack *ts) :
 		HuntTask(ts),
-		attend(NULL),
+		_attend(NULL),
 		_attendID(NoTask),
-		currentTarget(Nowhere),
-		targetEvaluateCtr(0) {
+		_currentTarget(Nowhere),
+		_targetEvaluateCtr(0) {
 		debugC(2, kDebugTasks, " - BandTask");
 		_type = "BandTask";
 	}
@@ -1336,12 +1299,6 @@ public:
 	int32 archiveSize() const;
 
 	void write(Common::MemoryWriteStreamDynamic *out) const;
-
-#if DEBUG
-	//  Debugging function used to mark this task and any sub tasks as
-	//  being used.  This is used to find task leaks.
-	void mark();
-#endif
 
 	//  Return an integer representing the type of this task
 	int16 getType() const;
@@ -1375,34 +1332,32 @@ protected:
 	//  I had to move this nested class up to the BandTask class because
 	//  Visual C++ is lame.
 	/*  class BandAndAvoidEnemiesRepulsorIterator : public BandingRepulsorIterator {
-	        Actor       *actorArray[6];
-	        int         numActors,
-	                    actorIndex;
-	        bool        iteratingThruEnemies;
+	        Actor       *_actorArray[6];
+	        int         _numActors,
+	                    _actorIndex;
+	        bool        _iteratingThruEnemies;
 
 	    public:
-	        BandAndAvoidEnemiesRepulsorIterator( Actor *actor ) :
-	            BandingRepulsorIterator( actor )
-	        {
-	        }
+	        BandAndAvoidEnemiesRepulsorIterator(Actor *actor) :
+	            BandingRepulsorIterator(actor) {}
 
 	    private:
 	        bool firstEnemyRepulsor(
 	            TilePoint   &repulsorVector,
-	            int16       &repulsorStrength );
+	            int16       &repulsorStrength);
 
 	        bool nextEnemyRepulsor(
 	            TilePoint   &repulsorVector,
-	            int16       &repulsorStrength );
+	            int16       &repulsorStrength);
 
 	    public:
 	        bool first(
 	            TilePoint   &repulsorVector,
-	            int16       &repulsorStrength );
+	            int16       &repulsorStrength);
 
 	        bool next(
 	            TilePoint   &repulsorVector,
-	            int16       &repulsorStrength );
+	            int16       &repulsorStrength);
 	    };
 	*/
 public:
@@ -1427,15 +1382,15 @@ protected:
  * ===================================================================== */
 
 class FollowPatrolRouteTask : public Task {
-	GotoLocationTask        *gotoWayPoint;  //  A goto waypoint sub task
+	GotoLocationTask        *_gotoWayPoint;  //  A goto waypoint sub task
 	TaskID _gotoWayPointID;
 	//  pointer.
-	PatrolRouteIterator     patrolIter;     //  The patrol route iterator.
-	int16                   lastWayPointNum;    //  Waypoint at which to end
+	PatrolRouteIterator     _patrolIter;     //  The patrol route iterator.
+	int16                   _lastWayPointNum;    //  Waypoint at which to end
 	//  this task.
-	bool                    paused;         //  Flag indicating "paused"ness
+	bool                    _paused;         //  Flag indicating "paused"ness
 	//  of this task
-	int16                   counter;        //  Counter for tracking pause
+	int16                   _counter;        //  Counter for tracking pause
 	//  length
 
 public:
@@ -1445,10 +1400,10 @@ public:
 	    PatrolRouteIterator iter,
 	    int16               stopAt = -1) :
 		Task(ts),
-		gotoWayPoint(NULL),
+		_gotoWayPoint(NULL),
 		_gotoWayPointID(NoTask),
-		patrolIter(iter),
-		lastWayPointNum(stopAt), counter(0) {
+		_patrolIter(iter),
+		_lastWayPointNum(stopAt), _counter(0) {
 		debugC(2, kDebugTasks, " - FollowPatrolRouteTask");
 		_type = "FollowPatrolRouteTask";
 		followPatrolRoute();
@@ -1464,12 +1419,6 @@ public:
 	int32 archiveSize() const;
 
 	void write(Common::MemoryWriteStreamDynamic *out) const;
-
-#if DEBUG
-	//  Debugging function used to mark this task and any sub tasks as
-	//  being used.  This is used to find task leaks.
-	void mark();
-#endif
 
 	//  Return an integer representing the type of this task
 	int16 getType() const;
@@ -1492,7 +1441,7 @@ public:
 
 	//  Set this task into the unpaused state
 	void followPatrolRoute() {
-		paused = false;
+		_paused = false;
 	}
 };
 
@@ -1501,11 +1450,11 @@ public:
  * ===================================================================== */
 
 class AttendTask : public Task {
-	GameObject  *obj;
+	GameObject  *_obj;
 
 public:
 	//  Constructor -- initial construction
-	AttendTask(TaskStack *ts, GameObject *o) : Task(ts), obj(o) {
+	AttendTask(TaskStack *ts, GameObject *o) : Task(ts), _obj(o) {
 		debugC(2, kDebugTasks, " - AttendTask");
 		_type = "AttendTask";
 	}
@@ -1538,17 +1487,13 @@ public:
  * ===================================================================== */
 
 class DefendTask : public Task {
-	Actor       *attacker;
+	Actor       *_attacker;
 
-	Task        *subTask;
+	Task        *_subTask;
 
 public:
 	//  Constructor -- initial construction
-	DefendTask(TaskStack *ts, Actor *a) :
-		Task(ts),
-		attacker(a),
-		subTask(NULL) {
-	}
+	DefendTask(TaskStack *ts, Actor *a) : Task(ts), _attacker(a), _subTask(NULL) {}
 
 	//  Fixup the subtask pointer
 	void fixup();
@@ -1573,23 +1518,23 @@ public:
  * ===================================================================== */
 
 class ParryTask : public Task {
-	Actor               *attacker;
-	GameObject          *defenseObj;
+	Actor               *_attacker;
+	GameObject          *_defenseObj;
 
-	uint8               flags;
+	uint8               _flags;
 
 	enum {
-		motionStarted   = (1 << 0),
-		blockStarted    = (1 << 1)
+		kMotionStarted   = (1 << 0),
+		kBlockStarted    = (1 << 1)
 	};
 
 public:
 	//  Constructor -- initial construction
 	ParryTask(TaskStack *ts, Actor *a, GameObject *obj) :
 		Task(ts),
-		attacker(a),
-		defenseObj(obj),
-		flags(0) {
+		_attacker(a),
+		_defenseObj(obj),
+		_flags(0) {
 	}
 
 	//  Return the number of bytes needed to archive this object in
@@ -1617,33 +1562,33 @@ public:
 //  stack.  Also, this class manages the automatic task reevaluation.
 class TaskStack {
 
-	TaskID          stackBottomID;  //  Bottom task in stack
+	TaskID          _stackBottomID;  //  Bottom task in stack
 
-	int16           evalCount,  //  Counter for automatic task re-evaluation
-	                evalRate;   //  Rate of automatic task re-evalutation
+	int16           _evalCount,  //  Counter for automatic task re-evaluation
+	                _evalRate;   //  Rate of automatic task re-evalutation
 public:
-	Actor           *actor;     //  Pointer to actor performing tasks
+	Actor           *_actor;     //  Pointer to actor performing tasks
 
 	//  Constructor
 	TaskStack() :
-		stackBottomID(0),
-		evalCount(0),
-		evalRate(0),
-		actor(nullptr) {}
+		_stackBottomID(0),
+		_evalCount(0),
+		_evalRate(0),
+		_actor(nullptr) {}
 
 	TaskStack(Actor *a) :
-		stackBottomID(NoTask),
-		actor(a),
-		evalCount(defaultEvalRate),
-		evalRate(defaultEvalRate) {
+		_stackBottomID(NoTask),
+		_actor(a),
+		_evalCount(kDefaultEvalRate),
+		_evalRate(kDefaultEvalRate) {
 
 		newTaskStack(this);
 	}
 
 	//  Destructor
 	~TaskStack() {
-		if (actor)
-			actor->_curTask = nullptr;
+		if (_actor)
+			_actor->_curTask = nullptr;
 		deleteTaskStack(this);
 	}
 
@@ -1651,9 +1596,9 @@ public:
 	//  in a buffer
 	int32 archiveSize() {
 		return      sizeof(ObjectID)     //  actor's id
-		            +   sizeof(stackBottomID)
-		            +   sizeof(evalCount)
-		            +   sizeof(evalRate);
+		            +   sizeof(_stackBottomID)
+		            +   sizeof(_evalCount)
+		            +   sizeof(_evalRate);
 	}
 
 	void write(Common::MemoryWriteStreamDynamic *out);
@@ -1665,13 +1610,13 @@ public:
 
 	//  Return a pointer to the bottom task in this task stack
 	const Task *getTask() {
-		return  stackBottomID != NoTask
-		        ?   getTaskAddress(stackBottomID)
+		return  _stackBottomID != NoTask
+		        ?   getTaskAddress(_stackBottomID)
 		        :   NULL;
 	}
 
 	Actor *getActor() {
-		return actor;
+		return _actor;
 	}
 
 	//  Abort all tasks in stack

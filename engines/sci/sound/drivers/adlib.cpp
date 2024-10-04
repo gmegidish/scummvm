@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ public:
 	};
 
 	MidiDriver_AdLib(SciVersion version) : _version(version), _isSCI0(version < SCI_VERSION_1_EARLY), _playSwitch(true), _masterVolume(15),
-		_numVoiceMax(version == SCI_VERSION_0_EARLY ? 8 : kVoices), _rhythmKeyMap(), _opl(0), _adlibTimerParam(0), _adlibTimerProc(0), _stereo(false), _isOpen(false) { }
+		_numVoiceMax(version == SCI_VERSION_0_EARLY ? 8 : kVoices), _rhythmKeyMap(), _opl(nullptr), _adlibTimerParam(nullptr), _adlibTimerProc(nullptr), _stereo(false), _isOpen(false) { }
 	~MidiDriver_AdLib() override { }
 
 	// MidiDriver
@@ -59,8 +58,8 @@ public:
 	void send(uint32 b) override;
 	void initTrack(SciSpan<const byte> &header);
 
-	MidiChannel *allocateChannel() override { return NULL; }
-	MidiChannel *getPercussionChannel() override { return NULL; }
+	MidiChannel *allocateChannel() override { return nullptr; }
+	MidiChannel *getPercussionChannel() override { return nullptr; }
 	bool isOpen() const override { return _isOpen; }
 	uint32 getBaseTempo() override { return 1000000 / OPL::OPL::kDefaultCallbackFrequency; }
 
@@ -180,7 +179,7 @@ public:
 	MidiPlayer_AdLib(SciVersion soundVersion) : MidiPlayer(soundVersion) { _driver = new MidiDriver_AdLib(soundVersion); }
 	~MidiPlayer_AdLib() override {
 		delete _driver;
-		_driver = 0;
+		_driver = nullptr;
 	}
 
 	int open(ResourceManager *resMan) override;
@@ -278,7 +277,7 @@ void MidiDriver_AdLib::setVolume(byte volume) {
 	renewNotes(-1, true);
 }
 
-// MIDI messages can be found at http://www.midi.org/techspecs/midimessages.php
+// MIDI messages can be found at https://web.archive.org/web/20120128110425/http://www.midi.org/techspecs/midimessages.php
 void MidiDriver_AdLib::send(uint32 b) {
 	byte command = b & 0xf0;
 	byte channel = b & 0xf;
@@ -907,7 +906,7 @@ uint32 MidiDriver_AdLib::property(int prop, uint32 param) {
 
 
 int MidiPlayer_AdLib::open(ResourceManager *resMan) {
-	assert(resMan != NULL);
+	assert(resMan != nullptr);
 
 	// Load up the patch.003 file, parse out the instruments
 	Resource *res = resMan->findResource(ResourceId(kResourceTypePatch, 3), false);

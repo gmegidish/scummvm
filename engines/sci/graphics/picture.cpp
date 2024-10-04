@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -81,6 +80,7 @@ void GfxPicture::draw(bool mirroredFlag, bool addToFlag, int16 EGApaletteNo) {
 	}
 }
 
+#if 0
 void GfxPicture::reset() {
 	int16 startY = _ports->getPort()->top;
 	int16 startX = 0;
@@ -92,6 +92,7 @@ void GfxPicture::reset() {
 		}
 	}
 }
+#endif
 
 void GfxPicture::drawSci11Vga() {
 	SciSpan<const byte> inbuffer(*_resource);
@@ -143,46 +144,34 @@ extern void unpackCelData(const SciSpan<const byte> &inBuffer, SciSpan<byte> &ce
 void GfxPicture::drawCelData(const SciSpan<const byte> &inbuffer, int headerPos, int rlePos, int literalPos, int16 drawX, int16 drawY, int16 pictureX, int16 pictureY, bool isEGA) {
 	const SciSpan<const byte> headerPtr = inbuffer.subspan(headerPos);
 	const SciSpan<const byte> rlePtr = inbuffer.subspan(rlePos);
-	// displaceX, displaceY fields are ignored, and may contain garbage
-	// (e.g. pic 261 in Dr. Brain 1 Spanish - bug #6388)
-	//int16 displaceX, displaceY;
-	byte priority = _priority;
-	byte clearColor;
-	bool compression = true;
-	byte curByte;
-	int16 y, lastY, x, leftX, rightX;
-	int pixelCount;
-	uint16 width, height;
 
 	// if the picture is not an overlay and we are also not in EGA mode, use priority 0
-	if (!isEGA && !_addToFlag)
-		priority = 0;
+	const byte priority = (!isEGA && !_addToFlag) ? 0 : _priority;
 
 	// Width/height here are always LE, even in Mac versions
-	width = headerPtr.getUint16LEAt(0);
-	height = headerPtr.getUint16LEAt(2);
-	//displaceX = (signed char)headerPtr[4];
-	//displaceY = (unsigned char)headerPtr[5];
+	uint16 width = headerPtr.getUint16LEAt(0);
+	uint16 height = headerPtr.getUint16LEAt(2);
+
+	// displaceX, displaceY fields are ignored, and may contain garbage
+	// (e.g. pic 261 in Dr. Brain 1 Spanish - bug #6388)
+	//int16 displaceX = (signed char)headerPtr[4];
+	//int16 displaceY = (unsigned char)headerPtr[5];
+	//if (displaceX || displaceY)
+	//	error("unsupported embedded cel-data in picture");
+
+	byte clearColor;
 	if (_resourceType == SCI_PICTURE_TYPE_SCI11)
 		// SCI1.1 uses hardcoded clearcolor for pictures, even if cel header specifies otherwise
 		clearColor = _screen->getColorWhite();
 	else
 		clearColor = headerPtr[6];
 
-	//if (displaceX || displaceY)
-	//	error("unsupported embedded cel-data in picture");
-
 	// We will unpack cel-data into a temporary buffer and then plot it to screen
 	//  That needs to be done cause a mirrored picture may be requested
-	pixelCount = width * height;
+	int pixelCount = width * height;
 	Common::SpanOwner<SciSpan<byte> > celBitmap;
 	celBitmap->allocate(pixelCount, _resource->name());
-
-	if (compression) {
-		unpackCelData(inbuffer, *celBitmap, clearColor, rlePos, literalPos, _resMan->getViewType(), width, false);
-	} else
-		// No compression (some SCI32 pictures)
-		memcpy(celBitmap->getUnsafeDataAt(0, pixelCount), rlePtr.getUnsafeDataAt(0, pixelCount), pixelCount);
+	unpackCelData(inbuffer, *celBitmap, clearColor, rlePos, literalPos, _resMan->getViewType(), width, false);
 
 	Common::Rect displayArea = _coordAdjuster->pictureGetDisplayArea();
 
@@ -214,10 +203,10 @@ void GfxPicture::drawCelData(const SciSpan<const byte> &inbuffer, int headerPos,
 	}
 
 	if (displayWidth > 0 && displayHeight > 0) {
-		y = displayArea.top + drawY;
-		lastY = MIN<int16>(height + y, displayArea.bottom);
-		leftX = displayArea.left + drawX;
-		rightX = MIN<int16>(displayWidth + leftX, displayArea.right);
+		int16 y = displayArea.top + drawY;
+		int16 lastY = MIN<int16>(height + y, displayArea.bottom);
+		int16 leftX = displayArea.left + drawX;
+		int16 rightX = MIN<int16>(displayWidth + leftX, displayArea.right);
 
 		uint16 sourcePixelSkipPerRow = 0;
 		if (width > rightX - leftX)
@@ -226,7 +215,7 @@ void GfxPicture::drawCelData(const SciSpan<const byte> &inbuffer, int headerPos,
 		// Change clearcolor to white, if we dont add to an existing picture. That way we will paint everything on screen
 		// but white and that won't matter because the screen is supposed to be already white. It seems that most (if not all)
 		// SCI1.1 games use color 0 as transparency and SCI1 games use color 255 as transparency. Sierra SCI seems to paint
-		// the whole data to screen and wont skip over transparent pixels. So this will actually make it work like Sierra.
+		// the whole data to screen and won't skip over transparent pixels. So this will actually make it work like Sierra.
 		if (!_addToFlag)
 			clearColor = _screen->getColorWhite();
 
@@ -240,9 +229,9 @@ void GfxPicture::drawCelData(const SciSpan<const byte> &inbuffer, int headerPos,
 			// VGA + EGA, EGA only checks priority, when given priority is below 16
 			if (!_mirroredFlag) {
 				// Draw bitmap to screen
-				x = leftX;
+				int16 x = leftX;
 				while (y < lastY) {
-					curByte = *ptr++;
+					byte curByte = *ptr++;
 					if ((curByte != clearColor) && (priority >= _screen->getPriority(x, y)))
 						_screen->putPixel(x, y, drawMask, curByte, priority, 0);
 
@@ -256,9 +245,9 @@ void GfxPicture::drawCelData(const SciSpan<const byte> &inbuffer, int headerPos,
 				}
 			} else {
 				// Draw bitmap to screen (mirrored)
-				x = rightX - 1;
+				int16 x = rightX - 1;
 				while (y < lastY) {
-					curByte = *ptr++;
+					byte curByte = *ptr++;
 					if ((curByte != clearColor) && (priority >= _screen->getPriority(x, y)))
 						_screen->putPixel(x, y, drawMask, curByte, priority, 0);
 
@@ -277,9 +266,9 @@ void GfxPicture::drawCelData(const SciSpan<const byte> &inbuffer, int headerPos,
 			//  fixes picture 48 of kq5 (island overview). Bug #5182
 			if (!_mirroredFlag) {
 				// EGA+priority>15: Draw bitmap to screen
-				x = leftX;
+				int16 x = leftX;
 				while (y < lastY) {
-					curByte = *ptr++;
+					byte curByte = *ptr++;
 					if (curByte != clearColor)
 						_screen->putPixel(x, y, GFX_SCREEN_MASK_VISUAL, curByte, 0, 0);
 
@@ -293,9 +282,9 @@ void GfxPicture::drawCelData(const SciSpan<const byte> &inbuffer, int headerPos,
 				}
 			} else {
 				// EGA+priority>15: Draw bitmap to screen (mirrored)
-				x = rightX - 1;
+				int16 x = rightX - 1;
 				while (y < lastY) {
-					curByte = *ptr++;
+					byte curByte = *ptr++;
 					if (curByte != clearColor)
 						_screen->putPixel(x, y, GFX_SCREEN_MASK_VISUAL, curByte, 0, 0);
 
@@ -432,7 +421,6 @@ void GfxPicture::drawVectorData(const SciSpan<const byte> &data) {
 	Palette palette;
 	int16 pattern_Code = 0, pattern_Texture = 0;
 	bool icemanDrawFix = false;
-	bool ignoreBrokenPriority = false;
 
 	memset(&palette, 0, sizeof(palette));
 
@@ -483,8 +471,6 @@ void GfxPicture::drawVectorData(const SciSpan<const byte> &data) {
 			pic_priority = data[curPos++] & 0x0F;
 			if (isEGA)
 				pic_priority = EGApriority[pic_priority];
-			if (ignoreBrokenPriority)
-				pic_priority = 255;
 			break;
 		case PIC_OP_DISABLE_PRIORITY:
 			pic_priority = 255;
@@ -1037,7 +1023,7 @@ static const bool vectorPatternTextures[32 * 8 * 2] = {
 // Bit offsets into pattern_textures
 static const byte vectorPatternTextureOffset[128] = {
 	0x00, 0x18, 0x30, 0xc4, 0xdc, 0x65, 0xeb, 0x48,
-	0x60, 0xbd, 0x89, 0x05, 0x0a, 0xf4, 0x7d, 0x7d,
+	0x60, 0xbd, 0x89, 0x04, 0x0a, 0xf4, 0x7d, 0x6d,
 	0x85, 0xb0, 0x8e, 0x95, 0x1f, 0x22, 0x0d, 0xdf,
 	0x2a, 0x78, 0xd5, 0x73, 0x1c, 0xb4, 0x40, 0xa1,
 	0xb9, 0x3c, 0xca, 0x58, 0x92, 0x34, 0xcc, 0xce,
@@ -1050,13 +1036,14 @@ static const byte vectorPatternTextureOffset[128] = {
 	0xbe, 0x05, 0xf5, 0x6e, 0x19, 0xc5, 0x66, 0x49,
 	0xf0, 0xd1, 0x54, 0xa9, 0x70, 0x4b, 0xa4, 0xe2,
 	0xe6, 0xe5, 0xab, 0xe4, 0xd2, 0xaa, 0x4c, 0xe3,
-	0x06, 0x6f, 0xc6, 0x4a, 0xa4, 0x75, 0x97, 0xe1
+	0x06, 0x6f, 0xc6, 0x4a, 0x75, 0xa3, 0x97, 0xe1
 };
 
-void GfxPicture::vectorPatternBox(Common::Rect box, byte color, byte prio, byte control) {
+void GfxPicture::vectorPatternBox(Common::Rect box, Common::Rect clipBox, byte color, byte prio, byte control) {
 	byte flag = _screen->getDrawingMask(color, prio, control);
 	int y, x;
 
+	box.clip(clipBox);
 	for (y = box.top; y < box.bottom; y++) {
 		for (x = box.left; x < box.right; x++) {
 			_screen->vectorPutPixel(x, y, flag, color, prio, control);
@@ -1064,7 +1051,7 @@ void GfxPicture::vectorPatternBox(Common::Rect box, byte color, byte prio, byte 
 	}
 }
 
-void GfxPicture::vectorPatternTexturedBox(Common::Rect box, byte color, byte prio, byte control, byte texture) {
+void GfxPicture::vectorPatternTexturedBox(Common::Rect box, Common::Rect clipBox, byte color, byte prio, byte control, byte texture) {
 	byte flag = _screen->getDrawingMask(color, prio, control);
 	const bool *textureData = &vectorPatternTextures[vectorPatternTextureOffset[texture]];
 	int y, x;
@@ -1072,14 +1059,16 @@ void GfxPicture::vectorPatternTexturedBox(Common::Rect box, byte color, byte pri
 	for (y = box.top; y < box.bottom; y++) {
 		for (x = box.left; x < box.right; x++) {
 			if (*textureData) {
-				_screen->vectorPutPixel(x, y, flag, color, prio, control);
+				if (clipBox.contains(x, y)) {
+					_screen->vectorPutPixel(x, y, flag, color, prio, control);
+				}
 			}
 			textureData++;
 		}
 	}
 }
 
-void GfxPicture::vectorPatternCircle(Common::Rect box, byte size, byte color, byte prio, byte control) {
+void GfxPicture::vectorPatternCircle(Common::Rect box, Common::Rect clipBox, byte size, byte color, byte prio, byte control) {
 	byte flag = _screen->getDrawingMask(color, prio, control);
 	assert(size < ARRAYSIZE(vectorPatternCircles));
 	const byte *circleData = vectorPatternCircles[size];
@@ -1095,7 +1084,9 @@ void GfxPicture::vectorPatternCircle(Common::Rect box, byte size, byte color, by
 				bitNo = 0;
 			}
 			if (bitmap & 1) {
-				_screen->vectorPutPixel(x, y, flag, color, prio, control);
+				if (clipBox.contains(x, y)) {
+					_screen->vectorPutPixel(x, y, flag, color, prio, control);
+				}
 			}
 			bitNo++;
 			bitmap >>= 1;
@@ -1103,7 +1094,7 @@ void GfxPicture::vectorPatternCircle(Common::Rect box, byte size, byte color, by
 	}
 }
 
-void GfxPicture::vectorPatternTexturedCircle(Common::Rect box, byte size, byte color, byte prio, byte control, byte texture) {
+void GfxPicture::vectorPatternTexturedCircle(Common::Rect box, Common::Rect clipBox, byte size, byte color, byte prio, byte control, byte texture) {
 	byte flag = _screen->getDrawingMask(color, prio, control);
 	assert(size < ARRAYSIZE(vectorPatternCircles));
 	const byte *circleData = vectorPatternCircles[size];
@@ -1121,7 +1112,9 @@ void GfxPicture::vectorPatternTexturedCircle(Common::Rect box, byte size, byte c
 			}
 			if (bitmap & 1) {
 				if (*textureData) {
-					_screen->vectorPutPixel(x, y, flag, color, prio, control);
+					if (clipBox.contains(x, y)) {
+						_screen->vectorPutPixel(x, y, flag, color, prio, control);
+					}
 				}
 				textureData++;
 			}
@@ -1133,34 +1126,55 @@ void GfxPicture::vectorPatternTexturedCircle(Common::Rect box, byte size, byte c
 
 void GfxPicture::vectorPattern(int16 x, int16 y, byte color, byte priority, byte control, byte code, byte texture) {
 	byte size = code & SCI_PATTERN_CODE_PENSIZE;
-	Common::Rect rect;
 
-	// We need to adjust the given coordinates, because the ones given us do not define upper left but somewhat middle
-	y -= size; if (y < 0) y = 0;
-	x -= size; if (x < 0) x = 0;
+	// The pattern box is centered on x,y and one pixel wider than high
+	Common::Rect box(x - size, y - size, x + size + 2, y + size + 1);
 
-	rect.top = y; rect.left = x;
-	rect.setHeight((size*2)+1); rect.setWidth((size*2)+2);
-	_ports->offsetRect(rect);
-	rect.clip(_screen->getScriptWidth(), _screen->getScriptHeight());
+	// Move the pattern box if it goes off of the left or top of the picture
+	if (box.left < 0) {
+		box.moveTo(0, box.top);
+	}
+	if (box.top < 0) {
+		box.moveTo(box.left, 0);
+	}
 
-	_screen->vectorAdjustCoordinate(&rect.left, &rect.top);
-	_screen->vectorAdjustCoordinate(&rect.right, &rect.bottom);
+	// Adjust the pattern box to the current port
+	_ports->offsetRect(box);
+
+	// Move the pattern box if it goes off of the right or bottom of the screen.
+	// Although, if it goes off the right edge, leave the last column
+	// beyond the screen edge even though it won't get drawn.
+	// We also can't just clip the box to the screen here, because the
+	// texture and circle data can only be properly consumed by evaluating
+	// every pixel during drawing, even the pixels that are then skipped
+	// for being out of bounds. (Example: SQ3 picture 2)
+	if (box.right >= _screen->getScriptWidth()) {
+		box.moveTo(_screen->getScriptWidth() - box.width() + 1, box.top);
+	}
+	if (box.bottom >= _screen->getScriptHeight()) {
+		box.moveTo(box.left, _screen->getScriptHeight() - box.height());
+	}
+	_screen->vectorAdjustCoordinate(&box.left, &box.top);
+	_screen->vectorAdjustCoordinate(&box.right, &box.bottom);
+
+	// Create a box for the pattern drawing functions to clip to
+	Common::Rect clipBox(0, 0, _screen->getScriptWidth(), _screen->getScriptHeight());
+	_screen->vectorAdjustCoordinate(&clipBox.right, &clipBox.bottom);
 
 	if (code & SCI_PATTERN_CODE_RECTANGLE) {
 		// Rectangle
 		if (code & SCI_PATTERN_CODE_USE_TEXTURE) {
-			vectorPatternTexturedBox(rect, color, priority, control, texture);
+			vectorPatternTexturedBox(box, clipBox, color, priority, control, texture);
 		} else {
-			vectorPatternBox(rect, color, priority, control);
+			vectorPatternBox(box, clipBox, color, priority, control);
 		}
 
 	} else {
 		// Circle
 		if (code & SCI_PATTERN_CODE_USE_TEXTURE) {
-			vectorPatternTexturedCircle(rect, size, color, priority, control, texture);
+			vectorPatternTexturedCircle(box, clipBox, size, color, priority, control, texture);
 		} else {
-			vectorPatternCircle(rect, size, color, priority, control);
+			vectorPatternCircle(box, clipBox, size, color, priority, control);
 		}
 	}
 }

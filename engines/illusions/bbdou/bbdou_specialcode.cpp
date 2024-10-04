@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -115,7 +114,7 @@ ObjectInteractModeMap::ObjectInteractModeMap() {
 }
 
 void ObjectInteractModeMap::setObjectInteractMode(uint32 objectId, int value) {
-	ObjectInteractMode *objectInteractMode = 0;
+	ObjectInteractMode *objectInteractMode = nullptr;
 	for (uint i = 0; i < ARRAYSIZE(_objectVerbs); ++i) {
 		if (_objectVerbs[i]._objectId == objectId) {
 			objectInteractMode = &_objectVerbs[i];
@@ -150,7 +149,7 @@ int ObjectInteractModeMap::getObjectInteractMode(uint32 objectId) {
 // BbdouSpecialCode
 
 BbdouSpecialCode::BbdouSpecialCode(IllusionsEngine_BBDOU *vm)
-	: _vm(vm), _credits(0) {
+	: _vm(vm), _credits(nullptr) {
 	_bubble = new BbdouBubble(_vm, this);
 	_cursor = new BbdouCursor(_vm, this);
 	_inventory = new BbdouInventory(_vm, this);
@@ -162,6 +161,10 @@ BbdouSpecialCode::~BbdouSpecialCode() {
 	delete _inventory;
 	delete _cursor;
 	delete _bubble;
+
+	for (MapIterator it = _map.begin(); it != _map.end(); ++it) {
+		delete (*it)._value;
+	}
 }
 
 typedef Common::Functor1Mem<OpCall&, void, BbdouSpecialCode> SpecialCodeFunctionI;
@@ -650,7 +653,7 @@ void BbdouSpecialCode::cursorInteractControlRoutine(Control *cursorControl, uint
 
 		cursorPos = getBackgroundCursorPos(cursorPos);
 		bool foundOverlapped = false;
-		Control *overlappedControl = 0;
+		Control *overlappedControl = nullptr;
 
 		if (cursorData._flags & 1) {
 			foundOverlapped = false;
@@ -816,7 +819,7 @@ void BbdouSpecialCode::cursorCrosshairControlRoutine(Control *cursorControl, uin
 			if (control2 && control2->_actor) {
 				if (_shooterStatus[i].gridX != gridX && (!_shooterStatus[i].flag || !control2->_actor->_seqCodeIp)) {
 					_shooterStatus[i].gridX = gridX;
-					control2->_actor->_seqCodeIp = 0;
+					control2->_actor->_seqCodeIp = nullptr;
 					control2->startSequenceActor(anim.sequenceIds1[gridX], 2, 0);
 				}
 			}
@@ -826,7 +829,7 @@ void BbdouSpecialCode::cursorCrosshairControlRoutine(Control *cursorControl, uin
 
 	Common::Point cursorPos = getBackgroundCursorPos(screenCursorPos);
 	bool foundOverlapped = false;
-	Control *overlappedControl = 0;
+	Control *overlappedControl = nullptr;
 
 	if (cursorData._flags & 1)
 		foundOverlapped = false;

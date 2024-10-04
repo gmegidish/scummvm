@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -134,8 +133,7 @@ Game::Game(DraciEngine *vm) : _vm(vm), _walkingState(vm) {
 		curOffset += dialogueData.readUint16LE();
 	}
 
-	_dialogueVars = new int[curOffset];
-	memset(_dialogueVars, 0, sizeof(int) * curOffset);
+	_dialogueVars = new int[curOffset]();
 
 	// Read in game info
 	file = initArchive->getFile(3);
@@ -267,26 +265,26 @@ void Game::init() {
 
 	// Initialize animation for object / room titles
 	_titleAnim = new Animation(_vm, kTitleText, 257, true);
-	_titleAnim->addFrame(new Text("", _vm->_smallFont, kTitleColor, 0, 0, 0), NULL);
+	_titleAnim->addFrame(new Text("", _vm->_smallFont, kTitleColor, 0, 0, 0), nullptr);
 	_vm->_anims->insert(_titleAnim, false);
 
 	// Initialize animation for speech text
 	Animation *speechAnim = new Animation(_vm, kSpeechText, 257, true);
-	speechAnim->addFrame(new Text("", _vm->_bigFont, kFontColor1, 0, 0, 0), NULL);
+	speechAnim->addFrame(new Text("", _vm->_bigFont, kFontColor1, 0, 0, 0), nullptr);
 	_vm->_anims->insert(speechAnim, false);
 
 	// Initialize inventory animation.  _iconsArchive is never flushed.
 	const BAFile *f = _vm->_iconsArchive->getFile(13);
 	_inventoryAnim = new Animation(_vm, kInventorySprite, 255, false);
 	Sprite *inventorySprite = new Sprite(f->_data, f->_length, 0, 0, true);
-	_inventoryAnim->addFrame(inventorySprite, NULL);
+	_inventoryAnim->addFrame(inventorySprite, nullptr);
 	_inventoryAnim->setRelative((kScreenWidth - inventorySprite->getWidth()) / 2,
 	                           (kScreenHeight - inventorySprite->getHeight()) / 2);
 	_vm->_anims->insert(_inventoryAnim, true);
 
 	for (uint i = 0; i < kDialogueLines; ++i) {
 		_dialogueAnims[i] = new Animation(_vm, kDialogueLinesID - i, 254, true);
-		_dialogueAnims[i]->addFrame(new Text("", _vm->_smallFont, kLineInactiveColor, 0, 0, 0), NULL);
+		_dialogueAnims[i]->addFrame(new Text("", _vm->_smallFont, kLineInactiveColor, 0, 0, 0), nullptr);
 
 		_dialogueAnims[i]->setRelative(1,
 		                      kScreenHeight - (i + 1) * _vm->_smallFont->getFontHeight());
@@ -344,7 +342,7 @@ void Game::handleOrdinaryLoop(int x, int y) {
 					}
 				}
 			} else {
-				_walkingState.setCallback(NULL, 0);
+				_walkingState.setCallback(nullptr, 0);
 				walkHero(x, y, kDirectionLast);
 			}
 		}
@@ -367,7 +365,7 @@ void Game::handleOrdinaryLoop(int x, int y) {
 					}
 				}
 			} else {
-				_walkingState.setCallback(NULL, 0);
+				_walkingState.setCallback(nullptr, 0);
 				walkHero(x, y, kDirectionLast);
 			}
 		} else {
@@ -375,7 +373,7 @@ void Game::handleOrdinaryLoop(int x, int y) {
 				_walkingState.setCallback(&_currentRoom._program, _currentRoom._use);
 				_walkingState.callback();
 			} else {
-				_walkingState.setCallback(NULL, 0);
+				_walkingState.setCallback(nullptr, 0);
 				walkHero(x, y, kDirectionLast);
 			}
 		}
@@ -383,10 +381,10 @@ void Game::handleOrdinaryLoop(int x, int y) {
 }
 
 int Game::inventoryPositionFromMouse() const {
-	const int column = CLIP(scummvm_lround(
+	const int column = CLIP(lround(
 		(_vm->_mouse->getPosX() - kInventoryX + kInventoryItemWidth / 2.) /
 		kInventoryItemWidth) - 1, 0L, (long) kInventoryColumns - 1);
-	const int line = CLIP(scummvm_lround(
+	const int line = CLIP(lround(
 		(_vm->_mouse->getPosY() - kInventoryY + kInventoryItemHeight / 2.) /
 		kInventoryItemHeight) - 1, 0L, (long) kInventoryLines - 1);
 	return line * kInventoryColumns + column;
@@ -483,13 +481,13 @@ void Game::handleDialogueLoop() {
 
 void Game::fadePalette(bool fading_out) {
 	_isFadeOut = fading_out;
-	const byte *startPal = NULL;
+	const byte *startPal = nullptr;
 	const byte *endPal = _currentRoom._palette >= 0
 		? _vm->_paletteArchive->getFile(_currentRoom._palette)->_data
-		: NULL;
+		: nullptr;
 	if (fading_out) {
 		startPal = endPal;
-		endPal = NULL;
+		endPal = nullptr;
 	}
 	for (int i = 1; i <= kBlackFadingIterations; ++i) {
 		_vm->_system->delayMillis(kBlackFadingTimeUnit);
@@ -503,8 +501,8 @@ void Game::advanceAnimationsAndTestLoopExit() {
 	if (_fadePhase > 0 && (_vm->_system->getMillis() - _fadeTick) >= kFadingTimeUnit) {
 		_fadeTick = _vm->_system->getMillis();
 		--_fadePhase;
-		const byte *startPal = _currentRoom._palette >= 0 ? _vm->_paletteArchive->getFile(_currentRoom._palette)->_data : NULL;
-		const byte *endPal = getScheduledPalette() >= 0 ? _vm->_paletteArchive->getFile(getScheduledPalette())->_data : NULL;
+		const byte *startPal = _currentRoom._palette >= 0 ? _vm->_paletteArchive->getFile(_currentRoom._palette)->_data : nullptr;
+		const byte *endPal = getScheduledPalette() >= 0 ? _vm->_paletteArchive->getFile(getScheduledPalette())->_data : nullptr;
 		_vm->_screen->interpolatePalettes(startPal, endPal, 0, kNumColors, _fadePhases - _fadePhase, _fadePhases);
 		if (_fadePhase == 0) {
 			if (_loopSubstatus == kInnerWhileFade) {
@@ -818,7 +816,7 @@ const GameObject *Game::getObjectWithAnimation(const Animation *anim) const {
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void Game::removeItem(GameItem *item) {
@@ -840,12 +838,12 @@ void Game::loadItemAnimation(GameItem *item) {
 	_vm->_anims->insert(item->_anim, false);
 	// _itemImagesArchive is never flushed.
 	const BAFile *img = _vm->_itemImagesArchive->getFile(2 * item->_absNum);
-	item->_anim->addFrame(new Sprite(img->_data, img->_length, 0, 0, true), NULL);
+	item->_anim->addFrame(new Sprite(img->_data, img->_length, 0, 0, true), nullptr);
 }
 
 void Game::putItem(GameItem *item, int position) {
 	// Empty our hands
-	setCurrentItem(NULL);
+	setCurrentItem(nullptr);
 
 	if (!item)
 		return;
@@ -960,9 +958,9 @@ void Game::inventoryReload() {
 	_currentItem = tempItem;
 }
 
-void Game::inventorySwitch(int keycode) {
-	switch (keycode) {
-	case Common::KEYCODE_SLASH:
+void Game::inventorySwitch(int action) {
+	switch (action) {
+	case kActionTogglePointerItem:
 		// Switch between holding an item and the ordinary mouse cursor.
 		if (!getCurrentItem()) {
 			if (getPreviousItemPosition() >= 0) {
@@ -974,12 +972,12 @@ void Game::inventorySwitch(int keycode) {
 			putItem(getCurrentItem(), getPreviousItemPosition());
 		}
 		break;
-	case Common::KEYCODE_COMMA:
-	case Common::KEYCODE_PERIOD:
+	case kActionInvRotatePrevious:
+	case kActionInvRotateNext:
 		// Iterate between the items in the inventory.
 		if (getCurrentItem()) {
 			assert(getPreviousItemPosition() >= 0);
-			int direction = keycode == Common::KEYCODE_PERIOD ? +1 : -1;
+			int direction = action == kActionInvRotateNext ? +1 : -1;
 			// Find the next available item.
 			int pos = getPreviousItemPosition() + direction;
 			while (true) {
@@ -1013,12 +1011,11 @@ void Game::inventorySwitch(int keycode) {
 void Game::dialogueMenu(int dialogueID) {
 	int oldLines, hit;
 
-	Common::String name;
-	name = dialoguePath + Common::String::format("%d.dfw", dialogueID + 1);
+	Common::Path name(Common::String::format("%s%d.dfw", dialoguePath, dialogueID + 1));
 	_dialogueArchive = new BArchive(name);
 
 	debugC(4, kDraciLogicDebugLevel, "Starting dialogue (ID: %d, Archive: %s)",
-	    dialogueID, name.c_str());
+	    dialogueID, name.toString().c_str());
 
 	_currentDialogue = dialogueID;
 	oldLines = 255;
@@ -1192,7 +1189,7 @@ int Game::playHeroAnimation(int anim_index) {
 void Game::redrawWalkingPath(Animation *anim, byte color, const WalkingPath &path) {
 	Sprite *ov = _walkingMap.newOverlayFromPath(path, color);
 	delete anim->getFrame(0);
-	anim->replaceFrame(0, ov, NULL);
+	anim->replaceFrame(0, ov, nullptr);
 	anim->markDirtyRect(_vm->_screen->getSurface());
 }
 
@@ -1245,14 +1242,14 @@ void Game::walkHero(int x, int y, SightDirection dir) {
 
 void Game::initWalkingOverlays() {
 	_walkingMapOverlay = new Animation(_vm, kWalkingMapOverlay, 256, _vm->_showWalkingMap);
-	_walkingMapOverlay->addFrame(NULL, NULL);	// rewritten below by loadWalkingMap()
+	_walkingMapOverlay->addFrame(nullptr, nullptr);	// rewritten below by loadWalkingMap()
 	_vm->_anims->insert(_walkingMapOverlay, true);
 
 	_walkingShortestPathOverlay = new Animation(_vm, kWalkingShortestPathOverlay, 257, _vm->_showWalkingMap);
 	_walkingObliquePathOverlay = new Animation(_vm, kWalkingObliquePathOverlay, 258, _vm->_showWalkingMap);
 	WalkingPath emptyPath;
-	_walkingShortestPathOverlay->addFrame(_walkingMap.newOverlayFromPath(emptyPath, 0), NULL);
-	_walkingObliquePathOverlay->addFrame(_walkingMap.newOverlayFromPath(emptyPath, 0), NULL);
+	_walkingShortestPathOverlay->addFrame(_walkingMap.newOverlayFromPath(emptyPath, 0), nullptr);
+	_walkingObliquePathOverlay->addFrame(_walkingMap.newOverlayFromPath(emptyPath, 0), nullptr);
 	_vm->_anims->insert(_walkingShortestPathOverlay, true);
 	_vm->_anims->insert(_walkingObliquePathOverlay, true);
 }
@@ -1294,7 +1291,7 @@ void Game::loadWalkingMap(int mapID) {
 
 	Sprite *ov = _walkingMap.newOverlayFromMap(kWalkingMapOverlayColor);
 	delete _walkingMapOverlay->getFrame(0);
-	_walkingMapOverlay->replaceFrame(0, ov, NULL);
+	_walkingMapOverlay->replaceFrame(0, ov, nullptr);
 	_walkingMapOverlay->markDirtyRect(_vm->_screen->getSurface());
 }
 
@@ -1331,7 +1328,7 @@ void Game::loadOverlays() {
 		Sprite *sp = new Sprite(overlayFile->_data, overlayFile->_length, x, y, true);
 
 		Animation *anim = new Animation(_vm, kOverlayImage, z, true);
-		anim->addFrame(sp, NULL);
+		anim->addFrame(sp, nullptr);
 		// Since this is an overlay, we don't need it to be deleted
 		// when the GPL Release command is invoked
 		_vm->_anims->insert(anim, false);
@@ -1466,7 +1463,7 @@ void Game::enterNewRoom() {
 	loadOverlays();
 
 	// Draw the scene with the black palette and slowly fade into the right palette.
-	_vm->_screen->setPalette(NULL, 0, kNumColors);
+	_vm->_screen->setPalette(nullptr, 0, kNumColors);
 	_vm->_anims->drawScene(_vm->_screen->getSurface());
 	_vm->_screen->copyToScreen();
 
@@ -1497,8 +1494,8 @@ void Game::positionAnimAsHero(Animation *anim) {
 	// click but sprites are drawn from their top-left corner so we subtract
 	// the current height of the dragon's sprite
 	Common::Point p = _hero;
-	p.x -= scummvm_lround(scale * frame->getWidth() / 2);
-	p.y -= scummvm_lround(scale * frame->getHeight());
+	p.x -= lround(scale * frame->getWidth() / 2);
+	p.y -= lround(scale * frame->getHeight());
 
 	// Since _persons[] is used for placing talking text, we use the non-adjusted x value
 	// so the text remains centered over the dragon.
@@ -1535,8 +1532,8 @@ void Game::positionHeroAsAnim(Animation *anim) {
 	// used in positionAnimAsHero() and even rounding errors are exactly
 	// the same.
 	Drawable *frame = anim->getCurrentFrame();
-	_hero.x += scummvm_lround(anim->getScaleX() * frame->getWidth() / 2);
-	_hero.y += scummvm_lround(anim->getScaleY() * frame->getHeight());
+	_hero.x += lround(anim->getScaleX() * frame->getWidth() / 2);
+	_hero.y += lround(anim->getScaleY() * frame->getHeight());
 }
 
 void Game::pushNewRoom() {
@@ -1798,7 +1795,7 @@ void GameItem::load(int itemID, BArchive *archive) {
 	_program._bytecode = f->_data;
 	_program._length = f->_length;
 
-	_anim = NULL;
+	_anim = nullptr;
 }
 
 void Room::load(int roomNum, BArchive *archive) {

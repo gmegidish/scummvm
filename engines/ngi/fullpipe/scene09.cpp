@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,7 +56,7 @@ void scene09_setupGrit(Scene *sc) {
 }
 
 void scene09_initScene(Scene *sc) {
-	g_vars->scene09_flyingBall = 0;
+	g_vars->scene09_flyingBall = nullptr;
 	g_vars->scene09_numSwallenBalls = 0;
 	g_vars->scene09_gulper = sc->getStaticANIObject1ById(ANI_GLOTATEL, -1);
 	g_vars->scene09_spitter = sc->getStaticANIObject1ById(ANI_PLEVATEL, -1);
@@ -87,9 +86,7 @@ void scene09_initScene(Scene *sc) {
 
 	g_vars->scene09_hangers.push_back(hng);
 
-	int x = 75;
-
-	for (int i = 1; x < 300; i++, x += 75) {
+	for (int x = 75; x < 300; x += 75) {
 		StaticANIObject *ani = new StaticANIObject(hanger);
 
 		ani->show1(x + hanger->_ox, hanger->_oy, MV_VSN_CYCLE2, 0);
@@ -142,7 +139,7 @@ int sceneHandler09_updateScreenCallback() {
 	int res = g_nmi->drawArcadeOverlay(g_nmi->_objectIdAtCursor == ANI_VISUNCHIK || g_vars->scene09_interactingHanger >= 0);
 
 	if (!res)
-		g_nmi->_updateScreenCallback = 0;
+		g_nmi->_updateScreenCallback = nullptr;
 
 	return res;
 }
@@ -181,7 +178,7 @@ void sceneHandler09_startAuntie() {
 	MessageQueue *mq = new MessageQueue(g_nmi->_currentScene->getMessageQueueById(QU_TTA9_GOL), 0, 1);
 
 	mq->getExCommandByIndex(0)->_x = g_nmi->_sceneRect.right + 30;
-	mq->chain(0);
+	mq->chain(nullptr);
 }
 
 void sceneHandler09_spitterClick() {
@@ -219,7 +216,7 @@ void sceneHandler09_spitterClick() {
 				g_nmi->stopAllSoundInstances(SND_9_006);
 			}
 
-			g_nmi->_aniMan2 = 0;
+			g_nmi->_aniMan2 = nullptr;
 
 			if (g_nmi->_sceneRect.left < 800)
 				g_nmi->_currentScene->_x = 800 - g_nmi->_sceneRect.left;
@@ -236,7 +233,7 @@ void sceneHandler09_eatBall() {
 		g_vars->scene09_flyingBalls.pop_back();
 		//g_vars->scene09_sceneBalls.pop_back();
 
-		g_vars->scene09_flyingBall = 0;
+		g_vars->scene09_flyingBall = nullptr;
 		g_vars->scene09_numSwallenBalls++;
 
 		if (g_vars->scene09_numSwallenBalls >= 3) {
@@ -510,7 +507,7 @@ int sceneHandler09(ExCommand *cmd) {
 	case 30:
 		if (g_vars->scene09_interactingHanger >= 0)  {
 			if (ABS(g_vars->scene09_hangers[g_vars->scene09_interactingHanger]->phase) < 15) {
-				g_vars->scene09_hangers[g_vars->scene09_interactingHanger]->ani->_callback2 = 0; // Really NULL
+				g_vars->scene09_hangers[g_vars->scene09_interactingHanger]->ani->_callback2 = nullptr; // Really NULL
 				g_vars->scene09_hangers[g_vars->scene09_interactingHanger]->ani->changeStatics2(ST_VSN_NORMAL);
 			}
 		}

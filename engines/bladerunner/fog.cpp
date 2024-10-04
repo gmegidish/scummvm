@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -116,15 +115,16 @@ void Fog::setupFrame(int frame) {
 void FogSphere::read(Common::ReadStream *stream, int frameCount) {
 	_frameCount = frameCount;
 	int size = readCommon(stream);
-	_radius = stream->readFloatLE();
+	float radius = stream->readFloatLE();
+	_radius_sq = radius * radius;
 	readAnimationData(stream, size - 52);
 }
 
 void FogSphere::calculateCoeficient(Vector3 position, Vector3 viewPosition, float *coeficient) {
 	*coeficient = 0.0f;
 
-	// Ray - sphere intersection, where sphere center is always at 0, 0, 0 as everything else tranformed by the fog matrix.
-	// Quadratic formula can and was simplified becasue rayDirection is normalized and hence a = 1.
+	// Ray - sphere intersection, where sphere center is always at 0, 0, 0 as everything else transformed by the fog matrix.
+	// Quadratic formula can and was simplified because rayDirection is normalized and hence a = 1.
 	// Explained on wikipedia https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
 
 	// There is also alternative approach which will end-up with this formula where plane is created from ray origin, ray destination
@@ -136,12 +136,14 @@ void FogSphere::calculateCoeficient(Vector3 position, Vector3 viewPosition, floa
 	Vector3 rayDirection = (rayDestination - rayOrigin).normalize();
 
 	float b = Vector3::dot(rayDirection, rayOrigin);
-	float c = Vector3::dot(rayOrigin, rayOrigin) - (_radius * _radius);
+	float c = Vector3::dot(rayOrigin, rayOrigin) - _radius_sq;
 	float d = b * b - c;
 
 	if (d >= 0.0f) { // there is an interstection between ray and the sphere
-		Vector3 intersection1 = rayOrigin + (-b - sqrt(d)) * rayDirection;
-		Vector3 intersection2 = rayOrigin + (-b + sqrt(d)) * rayDirection;
+		float sqrt_d = sqrt(d);
+
+		Vector3 intersection1 = rayOrigin + (-b - sqrt_d) * rayDirection;
+		Vector3 intersection2 = rayOrigin + (-b + sqrt_d) * rayDirection;
 
 		Vector3 intersection1World = _inverted * intersection1;
 		Vector3 intersection2World = _inverted * intersection2;
@@ -166,7 +168,12 @@ void FogSphere::calculateCoeficient(Vector3 position, Vector3 viewPosition, floa
 void FogCone::read(Common::ReadStream *stream, int frameCount) {
 	_frameCount = frameCount;
 	int size = readCommon(stream);
-	_coneAngle = stream->readFloatLE();
+	float coneAngle = stream->readFloatLE();
+	float tan_coneAngle = tan(coneAngle);
+
+	_cos_coneAngle = cos(coneAngle);
+	_tan_coneAngle_sq = tan_coneAngle * tan_coneAngle;
+
 	readAnimationData(stream, size - 52);
 }
 
@@ -191,14 +198,14 @@ void FogCone::calculateCoeficient(Vector3 position, Vector3 viewPosition, float 
 
 		float cosTheta = sqrt(1.0f - Vector3::dot(planeNormal, v) * Vector3::dot(planeNormal, v));
 
-		if (cosTheta > cos(_coneAngle)) {
+		if (cosTheta > _cos_coneAngle) {
 			Vector3 u = Vector3::cross(v, planeNormal).normalize();
 			Vector3 w = Vector3::cross(u, v).normalize();
 
 			float tanTheta = sqrt(1.0f - cosTheta * cosTheta) / cosTheta;
 
 			Vector3 temp1 = tanTheta * w;
-			Vector3 temp2 = sqrt(tan(_coneAngle) * tan(_coneAngle) - tanTheta * tanTheta) * u;
+			Vector3 temp2 = sqrt(_tan_coneAngle_sq - tanTheta * tanTheta) * u;
 
 			Vector3 delta1 = v + temp1 - temp2;
 			Vector3 delta2 = v + temp1 + temp2;

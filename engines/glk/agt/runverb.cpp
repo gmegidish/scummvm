@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,7 +70,7 @@ static void v_go(int dir) {
 			return;
 		}
 		clear_stack();
-		(void)scan_metacommand(0, v0, 0, 0, 0, NULL);
+		(void)scan_metacommand(0, v0, 0, 0, 0, nullptr);
 		return;
 	}
 	if (newloc < first_room) {
@@ -103,7 +102,7 @@ static void v_go(int dir) {
 			curr_creat_rec = &tmpcreat;
 			make_parserec(i + first_creat, &tmpcreat);
 			sysmsg(14, "$The_c$$c_name$ blocks $your$ way.");
-			curr_creat_rec = NULL;
+			curr_creat_rec = nullptr;
 			return;
 		}
 
@@ -113,7 +112,7 @@ static void v_go(int dir) {
 		oldloc = tmploc; /* Can backtrack as long as not from special */
 	if (dir == 12 && special_ptr[loc].size > 0)
 		/* need to print special of NEW room */
-		runptr(loc, special_ptr, "INTERNAL ERROR: Invalid special ptr", 0, NULL, NULL);
+		runptr(loc, special_ptr, "INTERNAL ERROR: Invalid special ptr", 0, nullptr, nullptr);
 
 	if (tmploc == loc && dir == 12) /* SPECIAL that sends us nowhere */
 		do_look = 0;
@@ -160,23 +159,23 @@ static void v_noun(int vc, parse_rec *nounrec) {
 		sysmsgd(tcreat(dobj_) ? 180 : 181, "Nothing happens.", nounrec);
 		return;
 	}
-	/* otherwise, print out relevent description. */
+	/* otherwise, print out relevant description. */
 	if (vc == 0) /* Push */
 		runptr(dobj_ - first_noun, push_ptr,
 		       "$You$ $verb$ $the_n$$noun$ for a while, but nothing happens.",
-		       171, nounrec, NULL);
+		       171, nounrec, nullptr);
 	if (vc == 1) /* Pull */
 		runptr(dobj_ - first_noun, pull_ptr,
 		       "$You$ $verb$ $the_n$$noun$ a bit, but nothing happens.", 174,
-		       nounrec, NULL);
+		       nounrec, nullptr);
 	if (vc == 2) /* Turn */
 		runptr(dobj_ - first_noun, turn_ptr,
 		       "$You$ $verb$ $the_n$$noun$, but nothing happens.", 165,
-		       nounrec, NULL);
+		       nounrec, nullptr);
 	if (vc == 3) /* Play */
 		runptr(dobj_ - first_noun, play_ptr,
 		       "$You$ $verb$ $the_n$$noun$ for a bit, but nothing happens.", 177,
-		       nounrec, NULL);
+		       nounrec, nullptr);
 }
 
 /* vc==1 if ASK, 0 if TALK TO */
@@ -254,10 +253,10 @@ static void v_read(parse_rec *nounrec) {
 	}
 	if (text_ptr[dobj_ - first_noun].size > 0)
 		runptr(dobj_ - first_noun, text_ptr,
-		       "INTERNAL ERROR: Invalid read pointer", 0, NULL, NULL);
+		       "INTERNAL ERROR: Invalid read pointer", 0, nullptr, nullptr);
 	else
 		runptr(dobj_ - first_noun, noun_ptr, "$You$ learn nothing new.",
-		       193, nounrec, NULL);
+		       193, nounrec, nullptr);
 }
 
 
@@ -282,7 +281,7 @@ static void v_eat(int vc, parse_rec *nounrec) {
 
 	if (noun[dobj_ - first_noun].movable) it_destroy(dobj_);
 	if (noun[dobj_ - first_noun].poisonous) {
-		sysmsgd(129, "Unfortunatly, $n_pro$ $n_was$ poisonous.", nounrec);
+		sysmsgd(129, "Unfortunately, $n_pro$ $n_was$ poisonous.", nounrec);
 		deadflag = 1;
 	}
 }
@@ -729,10 +728,10 @@ static void v_attack(uchar missile, parse_rec *targrec, parse_rec *weprec) {
 
 	if (targ == 0) {
 		if (!missile) {
-			alt_sysmsg(206, "Attack what???", NULL, weprec);
+			alt_sysmsg(206, "Attack what???", nullptr, weprec);
 			return;
 		} else {
-			alt_sysmsg(188, "$You$ fire a shot into the air.", NULL, weprec);
+			alt_sysmsg(188, "$You$ fire a shot into the air.", nullptr, weprec);
 			return;
 		}
 	}
@@ -762,13 +761,13 @@ static void v_attack(uchar missile, parse_rec *targrec, parse_rec *weprec) {
 		if (!missile) {
 			int msgnum;
 			if (creature[targ - first_creat].hostile) {
-				alt_sysmsg(50, NULL, weprec, targrec); /* Preliminary message */
+				alt_sysmsg(50, nullptr, weprec, targrec); /* Preliminary message */
 				msgnum = 51;
 			} else msgnum = 54;
 			if (noun[wep - first_noun].drinkable) { /* i.e. a liquid */
 				alt_sysmsg(msgnum + 1, "$You$ splash $the_o$$object$ with "
 				           "$the_n$$noun$, but the liquid quickly evaporates "
-				           "without noticable effect.", weprec, targrec);
+				           "without noticeable effect.", weprec, targrec);
 				it_destroy(wep);
 			} else {
 				alt_sysmsg(msgnum,
@@ -970,7 +969,7 @@ void v_inventory(void) {
 static void v_quit(void) {
 	sysmsg(145, "Are you sure you want to quit?");
 	if (yesno("")) {
-		sysmsg(146, NULL);
+		sysmsg(146, nullptr);
 		quitflag = 1;
 	}
 }
@@ -1014,7 +1013,7 @@ static void v_yell(void) {
 
 
 /* ------------------------------------------------------------------- */
-/*  VERB EXECUTION AND GRAMMER CHECKING */
+/*  VERB EXECUTION AND GRAMMAR CHECKING */
 
 
 static int checkgram(int vb_, int dobj_, word prep_, int iobj_, rbool redir_flag) {
@@ -1026,7 +1025,7 @@ static int checkgram(int vb_, int dobj_, word prep_, int iobj_, rbool redir_flag
 	if (redir_flag < 2) redir_flag = 0;
 	if (PURE_GRAMMAR) redir_flag = 1;
 
-	/* First of all, no constraints on dummy_verb grammer */
+	/* First of all, no constraints on dummy_verb grammar */
 	if (vb_ >= BASE_VERB && vb_ < TOTAL_VERB) return 0;
 
 	if (!(verbflag[vb_]&VERB_TAKEOBJ)
@@ -1132,7 +1131,7 @@ static void exec_verb_info(void) {
 	a = objname(dobj);
 	b = objname(iobj);
 	c = objname(actor);
-	sprintf(buff, "\t\t]]%s, %s %s(%ld) %s %s(%ld)", c, dict[ syntbl[auxsyn[vb]] ],
+	Common::sprintf_s(buff, "\t\t]]%s, %s %s(%ld) %s %s(%ld)", c, dict[ syntbl[auxsyn[vb]] ],
 	        a, dobj_rec->num, prep == 0 ? "->" : dict[prep], b, iobj_rec->num);
 	writeln(buff);
 	rfree(a);
@@ -1150,13 +1149,13 @@ rbool metacommand_cycle(int save_vb, int *p_redir_flag) {
 	if (DEBUG_AGT_CMD)
 		debugout("*** Scanning: ANY metacommands ****\n");
 	/* ANY metacommands: */
-	supress_debug = !debug_any;
+	suppress_debug = !debug_any;
 	clear_stack();
 	if ((PURE_METAVERB || !was_metaverb)
-	        && 2 == scan_metacommand(0, 0, 0, 0, 0, NULL))
+	        && 2 == scan_metacommand(0, 0, 0, 0, 0, nullptr))
 		return 1;
 
-	supress_debug = 0;
+	suppress_debug = 0;
 
 	vb = save_vb;
 	actor_in_scope |= visible(actor); /* Set up for ActorWasPresent */
@@ -1165,7 +1164,7 @@ rbool metacommand_cycle(int save_vb, int *p_redir_flag) {
 	if (actor != 0 && aver < AGX00) {
 		if (DEBUG_AGT_CMD)
 			debugout("*** Scanning: ANYBODY metacommands ****\n");
-		if (2 == scan_metacommand(2, vb, dobj, prep, iobj, NULL))
+		if (2 == scan_metacommand(2, vb, dobj, prep, iobj, nullptr))
 			return 1;
 	}
 
@@ -1227,7 +1226,7 @@ void exec_verb(void) {
 		/* LOOK: Doesn't matter if turn is done. */
 		v_look();
 	else if (!turndone) {
-		/* Execute normal verbs: check grammer and then call */
+		/* Execute normal verbs: check grammar and then call */
 		if (!objswap) {
 			if (checkgram(vb, dobj, prep, iobj, redir_flag) == -1) return;
 		} else if (checkgram(vb, 0, prep, iobj, redir_flag) == -1) return;
@@ -1293,7 +1292,7 @@ void exec_verb(void) {
 
 			case 50:
 				runptr(loc, help_ptr, "Sorry, you're on your own here.",
-				       2, NULL, NULL);
+				       2, nullptr, nullptr);
 				break;   /* HELP */
 			case 32:
 				v_inventory();
@@ -1401,7 +1400,7 @@ void exec_verb(void) {
 				break;
 			case (OLD_VERB+1):
 				cmd_saveable = 0; /* RESTART */
-				if (restart_state == NULL)
+				if (restart_state == nullptr)
 					writeln("Sorry, too little memory to support RESTART.");
 				else {
 					doing_restore = 2;
@@ -1447,7 +1446,7 @@ void exec_verb(void) {
 				replay(0);
 				break;
 			case (OLD_VERB+12): /* MENU */
-				if (verbmenu == NULL) {
+				if (verbmenu == nullptr) {
 					writeln("Sorry, but menus are not supported by this game.");
 					menu_mode = 0;
 					break;
@@ -1498,12 +1497,12 @@ void exec_verb(void) {
 		if (DEBUG_AGT_CMD)
 			debugout("*** Scanning: AFTER metacommands ****\n");
 		/* AFTER metacommands: */
-		supress_debug = !debug_any;
+		suppress_debug = !debug_any;
 		clear_stack();
 		if ((PURE_METAVERB || !was_metaverb) &&
-		        2 == scan_metacommand(0, 57, 0, 0, 0, NULL))
+		        2 == scan_metacommand(0, 57, 0, 0, 0, nullptr))
 			turndone = 1;
-		supress_debug = 0;
+		suppress_debug = 0;
 	}
 
 	/* If the player really typed 'q' and we generated an "EndGame"
@@ -1538,8 +1537,8 @@ int objcheck_cycle(rbool *success, parse_rec *act, int verbid,
 	/* The xobj_rec don't really matter */
 	dobj = dorec->obj;
 	dobj_rec = copy_parserec(dorec);
-	if (iorec == NULL) {
-		iobj_rec = make_parserec(0, NULL);
+	if (iorec == nullptr) {
+		iobj_rec = make_parserec(0, nullptr);
 		iobj = 0;
 	} else {
 		iobj = iorec->obj;
@@ -1548,9 +1547,9 @@ int objcheck_cycle(rbool *success, parse_rec *act, int verbid,
 
 	clear_stack();
 	*success = 1;
-	supress_debug = !debug_disambig;
+	suppress_debug = !debug_disambig;
 	if (actor != 0 && aver < AGX00) {
-		result = scan_metacommand(2, verbid, dobj, prep_, iobj, NULL);
+		result = scan_metacommand(2, verbid, dobj, prep_, iobj, nullptr);
 		if (result == 2) {
 			free_all_parserec();
 			return disambig_score;
@@ -1561,8 +1560,8 @@ int objcheck_cycle(rbool *success, parse_rec *act, int verbid,
 		}
 	}
 	clear_stack();
-	result = scan_metacommand(actor, verbid, dobj, prep_, iobj, NULL);
-	supress_debug = 0;
+	result = scan_metacommand(actor, verbid, dobj, prep_, iobj, nullptr);
+	suppress_debug = 0;
 	switch (result) {
 	case -2:
 		free_all_parserec();
@@ -1589,7 +1588,7 @@ int check_obj(parse_rec *act, int verbid,
 	int result;
 	rbool success;
 
-	if (iorec == NULL)
+	if (iorec == nullptr)
 		do_disambig = 1; /* Disambiguating dobj */
 	else
 		do_disambig = 2; /* Disambiguating iobj */

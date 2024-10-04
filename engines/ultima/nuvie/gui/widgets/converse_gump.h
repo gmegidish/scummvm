@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,15 +64,15 @@ class ConverseGump: public MsgScroll {
 
 public:
 
-	ConverseGump(Configuration *cfg, Font *f, Screen *s);
+	ConverseGump(const Configuration *cfg, Font *f, Screen *s);
 	~ConverseGump() override;
 
 	void set_actor_portrait(Actor *a);
 	unsigned char *create_framed_portrait(Actor *a);
 	bool parse_token(MsgText *token) override;
 	Std::string get_token_string_at_pos(uint16 x, uint16 y) override;
-	void display_string(Std::string s, Font *f, bool include_on_map_window) override;
-	void set_talking(bool state, Actor *actor = NULL) override;
+	void display_string(const Std::string &s, Font *f, bool include_on_map_window) override;
+	void set_talking(bool state, Actor *actor = nullptr) override;
 	void set_font(uint8 font_type) override {}
 //bool get_solid_bg() { return solid_bg; }
 	void set_solid_bg(bool val) {
@@ -130,7 +129,7 @@ protected:
 	void set_permitted_input(const char *allowed) override;
 	void clear_permitted_input() override;
 
-	bool cursor_at_input_section() {
+	bool cursor_at_input_section() const {
 		return (keyword_list && cursor_position == keyword_list->size());
 	}
 	void cursor_reset() {
@@ -144,7 +143,7 @@ protected:
 
 	Std::string get_token_at_cursor();
 
-	bool is_permanent_keyword(Std::string keyword);
+	bool is_permanent_keyword(const Std::string &keyword);
 	void parse_fm_towns_token(MsgText *token);
 
 private:

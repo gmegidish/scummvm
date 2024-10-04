@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define GLK_HUGO_STRINGFN
 
 #include "common/algorithm.h"
+#include "common/str.h"
 
 namespace Glk {
 namespace Hugo {
@@ -42,7 +42,7 @@ private:
 	char *GetTempString();
 public:
 	StringFunctions() : _tempstringCount(0) {
-		Common::fill(&_tempString[0][0], &_tempString[NUM_TEMPSTRINGS][1025], '\0');
+		Common::fill(&_tempString[0][0], &_tempString[NUM_TEMPSTRINGS - 1][1025], '\0');
 	}
 
 	char *Left(char a[], int l);
@@ -57,9 +57,9 @@ public:
 
 	char *hugo_strcpy(char *s, const char *t);
 
-	char *strlwr(char *s);
+	char *hugo_strlwr(char *s);
 
-	char *strupr(char *s);
+	char *hugo_strupr(char *s);
 };
 
 } // End of namespace Hugo

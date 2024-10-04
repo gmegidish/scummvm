@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -95,7 +94,7 @@ bool SceneScriptKP03::ClickedOn3DObject(const char *objectName, bool combatMode)
 			Scene_Loop_Set_Default(kKP03MainLoopBombExploded);
 			Scene_Loop_Start_Special(kSceneLoopModeOnce, kKP03MainLoopBombExploding, true);
 			Actor_Change_Animation_Mode(kActorMcCoy, 39);
-			Actor_Retired_Here(kActorMcCoy, 72, 18, 1, -1);
+			Actor_Retired_Here(kActorMcCoy, 72, 18, true, -1);
 			Game_Flag_Set(kFlagKP03BombExploded);
 			Game_Flag_Reset(kFlagKP03BombActive);
 			return false;
@@ -199,38 +198,51 @@ void SceneScriptKP03::SceneFrameAdvanced(int frame) {
 		int bombTriggeredByActor = -1;
 
 		Actor_Query_XYZ(kActorMcCoy, &x, &y, &z);
-		if ((Game_Flag_Query(kFlagKP01toKP03)
-			&& -130.0f < x
-			)
-			|| (Game_Flag_Query(kFlagKP05toKP03)
-			&& -130.0f > x
-			)
+		if ((Game_Flag_Query(kFlagKP01toKP03) && -130.0f < x )
+		    || (Game_Flag_Query(kFlagKP05toKP03) && -130.0f > x)
 		) {
 			bombTriggeredByActor = kActorMcCoy;
 		}
 
 		Actor_Query_XYZ(kActorSteele, &x, &y, &z);
+#if BLADERUNNER_ORIGINAL_BUGS
 		if (Game_Flag_Query(kFlagMcCoyIsHelpingReplicants)
-		 && Actor_Query_Which_Set_In(kActorSteele) == kSetKP03
+		    && Actor_Query_Which_Set_In(kActorSteele) == kSetKP03
 		) {
-			if ((Game_Flag_Query(kFlagKP01toKP03)
-			  && -130.0f > x
-			 )
-			 || (Game_Flag_Query(kFlagKP05toKP03)
-			  && -130.0f < x
-			 )
+			if ((Game_Flag_Query(kFlagKP01toKP03) && -130.0f > x)
+			    || (Game_Flag_Query(kFlagKP05toKP03) && -130.0f < x)
 			) {
 				bombTriggeredByActor = kActorSteele;
 			}
-		} else if ((Game_Flag_Query(kFlagKP01toKP03)
-		         && -130.0f < x
-		        )
-		        || (Game_Flag_Query(kFlagKP05toKP03)
-		         && -130.0f > x
-		        )
+		} else if ((Game_Flag_Query(kFlagKP01toKP03) && -130.0f < x)
+		            || (Game_Flag_Query(kFlagKP05toKP03) && -130.0f > x)
 		) {
 			bombTriggeredByActor = kActorSteele;
 		}
+#else
+		// In both cases we're concerned about Steele's position within the current set
+		// So the check for her being in KP03 should cover both cases,
+		// even though, the first (when McCoy is helping Replicants) 
+		// is untriggered in the vanilla game and thus Steele won't be in this set then.
+		// (She would be in KP05 with exits disabled)
+		// The code that gets triggered (McCoy is NOT helping Replicants) 
+		// would not check for Steele's current set, and so while it did work, it was prone to errors
+		// since wherever Steele is, if she's moving or if she's teleported by some piece of code
+		// her x position (in the other set where she's in) could trigger the bomb.
+		if (Actor_Query_Which_Set_In(kActorSteele) == kSetKP03) {
+			if (Game_Flag_Query(kFlagMcCoyIsHelpingReplicants)) {
+				if ((Game_Flag_Query(kFlagKP01toKP03) && -130.0f > x)
+					|| (Game_Flag_Query(kFlagKP05toKP03) && -130.0f < x)
+				) {
+					bombTriggeredByActor = kActorSteele;
+				}
+			} else if ((Game_Flag_Query(kFlagKP01toKP03) && -130.0f < x)
+			           || (Game_Flag_Query(kFlagKP05toKP03) && -130.0f > x)
+			) {
+				bombTriggeredByActor = kActorSteele;
+			}
+		}
+#endif
 
 		if (bombTriggeredByActor != -1) {
 			Scene_Loop_Set_Default(kKP03MainLoopBombExploded);

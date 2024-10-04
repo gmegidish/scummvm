@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,7 +68,7 @@ FistControl::FistControl(ZVision *engine, uint32 key, Common::SeekableReadStream
 		} else if (param.matchString("cursor", true)) {
 			_cursor = _engine->getCursorManager()->getCursorId(values);
 		} else if (param.matchString("descfile", true)) {
-			readDescFile(values);
+			readDescFile(Common::Path(values));
 		} else if (param.matchString("animation_id", true)) {
 			_animationId = atoi(values.c_str());
 		} else if (param.matchString("venus_id", true)) {
@@ -161,10 +160,10 @@ bool FistControl::onMouseUp(const Common::Point &screenSpacePos, const Common::P
 	return false;
 }
 
-void FistControl::readDescFile(const Common::String &fileName) {
+void FistControl::readDescFile(const Common::Path &fileName) {
 	Common::File file;
 	if (!_engine->getSearchManager()->openFile(file, fileName)) {
-		warning("Desc file %s could could be opened", fileName.c_str());
+		warning("Desc file %s could could be opened", fileName.toString().c_str());
 		return;
 	}
 
@@ -179,7 +178,7 @@ void FistControl::readDescFile(const Common::String &fileName) {
 		if (param.matchString("animation_id", true)) {
 			// Not used
 		} else if (param.matchString("animation", true)) {
-			_animation = _engine->loadAnimation(values);
+			_animation = _engine->loadAnimation(Common::Path(values));
 		} else if (param.matchString("anim_rect", true)) {
 			int left, top, right, bottom;
 			sscanf(values.c_str(), "%d %d %d %d", &left, &top, &right, &bottom);

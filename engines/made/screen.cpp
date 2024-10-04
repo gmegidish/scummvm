@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 #include "common/system.h"
 
 #include "graphics/surface.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/cursorman.h"
 
 namespace Made {
@@ -87,7 +86,7 @@ Screen::Screen(MadeEngine *vm) : _vm(vm) {
 	_textRect.top = 0;
 	_textRect.right = 320;
 	_textRect.bottom = 200;
-	_font = NULL;
+	_font = nullptr;
 	_currentFontNum = 0;
 	_fontDrawCtx.clipRect = Common::Rect(320, 200);
 	_fontDrawCtx.destSurface = _backgroundScreen;
@@ -155,7 +154,7 @@ void Screen::setExcludeArea(uint16 x1, uint16 y1, uint16 x2, uint16 y2) {
 
 void Screen::drawSurface(Graphics::Surface *sourceSurface, int x, int y, int16 flipX, int16 flipY, int16 mask, const ClipInfo &clipInfo) {
 
-	byte *source, *dest, *maskp = 0;
+	byte *source, *dest, *maskp = nullptr;
 	int startX = 0;
 	int startY = 0;
 	int clipWidth = sourceSurface->w;
@@ -553,11 +552,11 @@ uint16 Screen::placeText(uint16 channelIndex, uint16 textObjectIndex, int16 x, i
 	setFont(fontNum);
 
 	int textWidth = _font->getTextWidth(text);
-	int textHeight = _font->getHeight();
+	//int textHeight = _font->getHeight();
 
 	if (outlineColor != -1) {
 		textWidth += 2;
-		textHeight += 2;
+		//textHeight += 2;
 		x--;
 		y--;
 	}

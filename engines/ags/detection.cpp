@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,8 +24,8 @@
 #include "common/file.h"
 #include "common/md5.h"
 #include "common/str-array.h"
-#include "common/translation.h"
 #include "common/util.h"
+#include "common/punycode.h"
 #include "ags/detection.h"
 #include "ags/detection_tables.h"
 
@@ -72,11 +71,11 @@ const DebugChannelDef AGSMetaEngineDetection::debugFlagList[] = {
 	DEBUG_CHANNEL_END
 };
 
-AGSMetaEngineDetection::AGSMetaEngineDetection() : AdvancedMetaEngineDetection(AGS::GAME_DESCRIPTIONS,
-	        sizeof(AGS::AGSGameDescription), AGS::GAME_NAMES) {
+AGSMetaEngineDetection::AGSMetaEngineDetection() : AdvancedMetaEngineDetection(AGS::GAME_DESCRIPTIONS, AGS::GAME_NAMES) {
+	_flags = kADFlagCanPlayUnknownVariants;
 }
 
-DetectedGames AGSMetaEngineDetection::detectGames(const Common::FSList &fslist) const {
+DetectedGames AGSMetaEngineDetection::detectGames(const Common::FSList &fslist, uint32 skipADFlags, bool skipIncomplete) {
 	FileMap allFiles;
 
 	if (fslist.empty())
@@ -86,7 +85,7 @@ DetectedGames AGSMetaEngineDetection::detectGames(const Common::FSList &fslist) 
 	composeFileHashMap(allFiles, fslist, (_maxScanDepth == 0 ? 1 : _maxScanDepth));
 
 	// Run the detector on this
-	ADDetectedGames matches = detectGame(fslist.begin()->getParent(), allFiles, Common::UNK_LANG, Common::kPlatformUnknown, "");
+	ADDetectedGames matches = detectGame(fslist.begin()->getParent(), allFiles, Common::UNK_LANG, Common::kPlatformUnknown, "", skipADFlags, skipIncomplete);
 
 	cleanupPirated(matches);
 
@@ -147,19 +146,19 @@ ADDetectedGame AGSMetaEngineDetection::fallbackDetect(const FileMap &allFiles, c
 		if (file->isDirectory())
 			continue;
 
-		Common::String filename = file->getName();
-		if (!filename.hasSuffixIgnoreCase(".exe") &&
-		        !filename.hasSuffixIgnoreCase(".ags") &&
+		Common::Path filename = file->getPathInArchive();
+		if (!filename.baseName().hasSuffixIgnoreCase(".exe") &&
+		        !filename.baseName().hasSuffixIgnoreCase(".ags") &&
 		        !filename.equalsIgnoreCase("ac2game.dat"))
 			// Neither, so move on
 			continue;
 
+		filename = filename.punycodeEncode();
 		Common::File f;
-		if (!f.open(allFiles[filename]))
+		if (!allFiles.contains(filename) || !f.open(allFiles[filename]))
 			continue;
 
 		if (AGS3::isAGSFile(f)) {
-			_filename = filename;
 			f.seek(0);
 			_md5 = Common::computeStreamMD5AsString(f, 5000);
 
@@ -167,7 +166,8 @@ ADDetectedGame AGSMetaEngineDetection::fallbackDetect(const FileMap &allFiles, c
 			for (const ::AGS::AGSGameDescription *gameP = ::AGS::GAME_DESCRIPTIONS;
 			        gameP->desc.gameId; ++gameP) {
 				if (_md5 == gameP->desc.filesDescriptions[0].md5 &&
-				        f.size() == gameP->desc.filesDescriptions[0].fileSize) {
+				        f.size() == gameP->desc.filesDescriptions[0].fileSize &&
+					AD_NO_SIZE != gameP->desc.filesDescriptions[0].fileSize) {
 					hasUnknownFiles = false;
 					_gameid = gameP->desc.gameId;
 					break;
@@ -176,13 +176,15 @@ ADDetectedGame AGSMetaEngineDetection::fallbackDetect(const FileMap &allFiles, c
 
 			AGS::g_fallbackDesc.desc.gameId = _gameid.c_str();
 			AGS::g_fallbackDesc.desc.extra = _extra.c_str();
-			AGS::g_fallbackDesc.desc.filesDescriptions[0].fileName = _filename.c_str();
-			AGS::g_fallbackDesc.desc.filesDescriptions[0].fileSize = f.size();
+
+			_filenameStr = filename.toString('/');
+			AGS::g_fallbackDesc.desc.filesDescriptions[0].fileName = _filenameStr.c_str();
+			AGS::g_fallbackDesc.desc.filesDescriptions[0].fileSize = (f.size() >= 0xffffffff) ? AD_NO_SIZE : f.size();
 			AGS::g_fallbackDesc.desc.filesDescriptions[0].md5 = _md5.c_str();
 
 			ADDetectedGame game(&AGS::g_fallbackDesc.desc);
-			game.matchedFiles[_filename].md5 = _md5;
-			game.matchedFiles[_filename].size = f.size();
+			game.matchedFiles[filename].md5 = _md5;
+			game.matchedFiles[filename].size = f.size();
 
 			game.hasUnknownFiles = hasUnknownFiles;
 			return game;

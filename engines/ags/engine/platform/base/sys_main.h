@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,8 @@
 //=============================================================================
 
 #include "ags/shared/core/platform.h"
-#include "ags/lib/std/vector.h"
+#include "ags/shared/util/string.h"
+#include "common/std/vector.h"
 #include "ags/engine/gfx/gfx_defines.h"
 
 namespace AGS3 {
@@ -50,19 +50,30 @@ void sys_set_background_mode(bool on);
 // Queries current desktop resolution.
 int sys_get_desktop_resolution(int &width, int &height);
 // Queries supported desktop modes.
-void sys_get_desktop_modes(std::vector<AGS::Engine::DisplayMode> &dms);
+void sys_get_desktop_modes(std::vector<AGS::Engine::DisplayMode> &dms, int color_depth = 0);
+// Sets output driver for the backend's renderer
+void sys_renderer_set_output(const AGS::Shared::String &name);
+
+// Audio utilities.
+//
+// Tries to init the audio backend; optionally requests particular driver
+bool sys_audio_init(const AGS::Shared::String &driver_name = "");
+// Shutdown audio backend
+void sys_audio_shutdown();
 
 // Window utilities.
 //
 struct SDL_Window;
 // Create a new single game window.
-SDL_Window *sys_window_create(const char *window_title, int w, int h, bool windowed, int ex_flags = 0);
+SDL_Window *sys_window_create(const char *window_title, int w, int h, AGS::Engine::WindowMode mode, int ex_flags = 0);
 // Returns current game window, if one exists, or null.
 SDL_Window *sys_get_window();
 // Sets current window style, does nothing if window was not created.
-void sys_window_set_style(bool windowed);
+void sys_window_set_style(AGS::Engine::WindowMode mode, int ex_flags = 0);
 // Set new window size; optionally center new window on screen
 bool sys_window_set_size(int w, int h, bool center);
+// Centers the window on screen
+void sys_window_center();
 // Shows or hides system cursor when it's in the game window
 void sys_window_show_cursor(bool on);
 // Locks on unlocks mouse inside the window.

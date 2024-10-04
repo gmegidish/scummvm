@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,8 @@
 #include "common/config-manager.h"
 #include "common/util.h"
 #include "common/translation.h"
+
+#include "backends/keymapper/keymapper.h"
 
 #include "gui/saveload.h"
 
@@ -286,6 +287,13 @@ void DialogsNebular::showDialog() {
 	while (_pendingDialog != DIALOG_NONE && !_vm->shouldQuit()) {
 		DialogId dialogId = _pendingDialog;
 		_pendingDialog = DIALOG_NONE;
+
+		Common::Keymapper *keymapper = _vm->getEventManager()->getKeymapper();
+		if (dialogId == MADS::DIALOG_MAIN_MENU) {
+			keymapper->getKeymap("menu-shortcuts")->setEnabled(true);
+		} else {
+			keymapper->getKeymap("menu-shortcuts")->setEnabled(false);
+		}
 
 		switch (dialogId) {
 		case DIALOG_MAIN_MENU: {
@@ -569,7 +577,7 @@ void PictureDialog::save() {
 	_vm->_screen->translate(map);
 
 	// Load the inventory picture
-	Common::String setName = Common::String::format("*OB%.3d.SS", _objectId);
+	Common::Path setName(Common::String::format("*OB%.3d.SS", _objectId));
 	SpriteAsset *asset = new SpriteAsset(_vm, setName, 0x8000);
 	palette.setFullPalette(palette._mainPalette);
 
@@ -886,9 +894,9 @@ void GameDialog::handleEvents() {
 	// Process pending events
 	events.pollEvents();
 
-	if (events.isKeyPressed()) {
-		switch (events.getKey().keycode) {
-		case Common::KEYCODE_ESCAPE:
+	if (events.isActionTriggered()) {
+		switch (events.getAction()) {
+		case kActionEscape:
 			_selectedLine = 0;
 			break;
 		default:

@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -143,7 +142,7 @@ void Mars::init() {
 
 	Hotspot *attackSpot = _vm->getAllHotspots().findHotspotByID(kAttackRobotHotSpotID);
 	attackSpot->setMaskedHotspotFlags(kDropItemSpotFlag, kDropItemSpotFlag);
-	_attackingItem = NULL;
+	_attackingItem = nullptr;
 
 	forceStridingStop(kMars08, kNorth, kAltMarsNormal);
 
@@ -164,7 +163,7 @@ GameInteraction *Mars::makeInteraction(const InteractionID interactionID) {
 	case kMarsCanyonChaseInteractionID:
 		return new CanyonChase(this);
 	default:
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -184,16 +183,14 @@ class ArthurOxygen50Action : public AIPlayMessageAction {
 public:
 	ArthurOxygen50Action();
 
-	virtual void performAIAction(AIRule *);
+	void performAIAction(AIRule *) override;
 };
 
 ArthurOxygen50Action::ArthurOxygen50Action() : AIPlayMessageAction("Images/AI/Mars/XMMAZB1", false, kWarningInterruption) {
 }
 
 void ArthurOxygen50Action::performAIAction(AIRule *rule) {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
-	if (GameState.isTakenItemID(kArthurBiochip) && g_arthurChip && vm->isChattyArthur())
+	if (GameState.isTakenItemID(kArthurBiochip) && g_arthurChip && g_vm->isChattyArthur())
 		g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA84", kArthurMarsOxygen50Warning);
 	else
 		AIPlayMessageAction::performAIAction(rule);
@@ -203,17 +200,15 @@ class ArthurOxygen25Action : public AIPlayMessageAction {
 public:
 	ArthurOxygen25Action();
 
-	virtual void performAIAction(AIRule *);
+	void performAIAction(AIRule *) override;
 };
 
 ArthurOxygen25Action::ArthurOxygen25Action() : AIPlayMessageAction("Images/AI/Mars/XMMAZB2", false, kWarningInterruption) {
 }
 
 void ArthurOxygen25Action::performAIAction(AIRule *rule) {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
-	if (GameState.isTakenItemID(kArthurBiochip) && g_arthurChip && vm->isChattyArthur()) {
-		if (vm->getRandomBit())
+	if (GameState.isTakenItemID(kArthurBiochip) && g_arthurChip && g_vm->isChattyArthur()) {
+		if (g_vm->getRandomBit())
 			g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA85", kArthurMarsOxygen25Warning);
 		else
 			g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA87", kArthurMarsOxygen25Warning);
@@ -226,17 +221,15 @@ class ArthurOxygen5Action : public AIPlayMessageAction {
 public:
 	ArthurOxygen5Action();
 
-	virtual void performAIAction(AIRule *);
+	void performAIAction(AIRule *) override;
 };
 
 ArthurOxygen5Action::ArthurOxygen5Action() : AIPlayMessageAction("Images/AI/Mars/XMMAZB3", false, kWarningInterruption) {
 }
 
 void ArthurOxygen5Action::performAIAction(AIRule *rule) {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
-	if (GameState.isTakenItemID(kArthurBiochip) && g_arthurChip && vm->isChattyArthur()) {
-		if (vm->getRandomBit())
+	if (GameState.isTakenItemID(kArthurBiochip) && g_arthurChip && g_vm->isChattyArthur()) {
+		if (g_vm->getRandomBit())
 			g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA86", kArthurMarsOxygen5Warning);
 		else
 			g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA88", kArthurMarsOxygen5Warning);
@@ -2853,7 +2846,7 @@ void Mars::receiveNotification(Notification *notification, const NotificationFla
 			break;
 		case kMars48RobotDefends:
 			_vm->addItemToInventory(_attackingItem);
-			_attackingItem = 0;
+			_attackingItem = nullptr;
 			if (_privateFlags.getFlag(kMarsPrivateRobotTiredOfWaitingFlag)) {
 				startExtraSequence(kMars48RobotKillsPlayer, kExtraCompletedFlag, kFilterNoInput);
 				loadLoopSound2("", 0x100, 0, 0);
@@ -3118,7 +3111,7 @@ void Mars::spotCompleted() {
 
 void Mars::startUpFromFinishedTunnelPod() {
 	arriveAt(kMars45, kSouth);
-	if (g_AIArea != NULL)
+	if (g_AIArea != nullptr)
 		g_AIArea->checkMiddleArea();
 }
 
@@ -3136,7 +3129,7 @@ void Mars::doCanyonChase() {
 	_spotSounds.initFromQuickTime(getSoundSpotsName());
 	_spotSounds.setVolume(_vm->getSoundFXLevel());
 
-	Video::VideoDecoder *video = 0;
+	Video::VideoDecoder *video = nullptr;
 
 #ifdef USE_THEORADEC
 	if (_vm->isDVD()) {
@@ -3144,7 +3137,7 @@ void Mars::doCanyonChase() {
 
 		if (!video->loadFile("Images/Mars/M44ESA_hq.ogg")) {
 			delete video;
-			video = 0;
+			video = nullptr;
 		}
 	}
 #endif
@@ -3881,7 +3874,7 @@ void Mars::playSpaceAmbient() {
 void Mars::transportOutFromSpaceChase(bool destroyedShip) {
 	throwAwayMarsShuttle();
 
-	Video::VideoDecoder *video = 0;
+	Video::VideoDecoder *video = nullptr;
 
 #ifdef USE_THEORADEC
 	if (_vm->isDVD()) {
@@ -3890,11 +3883,11 @@ void Mars::transportOutFromSpaceChase(bool destroyedShip) {
 		if (destroyedShip) {
 			if (!video->loadFile("Images/Mars/M98EAP_hq.ogg")) {
 				delete video;
-				video = 0;
+				video = nullptr;
 			}
 		} else if (!video->loadFile("Images/Mars/M98EAE_hq.ogg")) {
 			delete video;
-			video = 0;
+			video = nullptr;
 		}
 	}
 #endif
@@ -4266,7 +4259,7 @@ void Mars::checkAirMask() {
 }
 
 void Mars::airStageExpired() {
-	if (((PegasusEngine *)g_engine)->playerHasItemID(kAirMask))
+	if (g_vm->playerHasItemID(kAirMask))
 		die(kDeathNoAirInMaze);
 	else
 		die(kDeathNoMaskInMaze);
@@ -4440,8 +4433,8 @@ void Mars::didntFindBomb() {
 	die(kDeathDidntFindMarsBomb);
 }
 
-Common::String Mars::getBriefingMovie() {
-	Common::String movieName = Neighborhood::getBriefingMovie();
+Common::Path Mars::getBriefingMovie() {
+	Common::Path movieName = Neighborhood::getBriefingMovie();
 
 	if (!movieName.empty())
 		return movieName;
@@ -4449,8 +4442,8 @@ Common::String Mars::getBriefingMovie() {
 	return "Images/AI/Mars/XM01";
 }
 
-Common::String Mars::getEnvScanMovie() {
-	Common::String movieName = Neighborhood::getEnvScanMovie();
+Common::Path Mars::getEnvScanMovie() {
+	Common::Path movieName = Neighborhood::getEnvScanMovie();
 
 	if (movieName.empty()) {
 		RoomID room = GameState.getCurrentRoom();
@@ -4543,8 +4536,8 @@ uint Mars::getNumHints() {
 	return numHints;
 }
 
-Common::String Mars::getHintMovie(uint hintNum) {
-	Common::String movieName = Neighborhood::getHintMovie(hintNum);
+Common::Path Mars::getHintMovie(uint hintNum) {
+	Common::Path movieName = Neighborhood::getHintMovie(hintNum);
 
 	if (movieName.empty()) {
 		switch (GameState.getCurrentRoomAndView()) {
@@ -4599,7 +4592,7 @@ Common::String Mars::getHintMovie(uint hintNum) {
 			return "Images/AI/Globals/XGLOB3F";
 		case MakeRoomView(kMars56, kEast):
 			if (getCurrentActivation() == kActivateReactorReadyForNitrogen)
-				return Common::String::format("Images/AI/Mars/XM57SD%d", hintNum);
+				return Common::Path(Common::String::format("Images/AI/Mars/XM57SD%d", hintNum));
 
 			if (hintNum == 1) {
 				if (GameState.isTakenItemID(kShieldBiochip))
@@ -4642,11 +4635,11 @@ void Mars::doSolve() {
 	}
 }
 
-Common::String Mars::getSoundSpotsName() {
+Common::Path Mars::getSoundSpotsName() {
 	return "Sounds/Mars/Mars Spots";
 }
 
-Common::String Mars::getNavMovieName() {
+Common::Path Mars::getNavMovieName() {
 	return "Images/Mars/Mars.movie";
 }
 

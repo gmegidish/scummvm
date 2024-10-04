@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -174,7 +173,7 @@ public:
 	void close() override;
 
 	bool loadStream(Common::SeekableReadStream *stream) override;
-	bool loadRL2File(const Common::String &file, bool palFlag);
+	bool loadRL2File(const Common::Path &file, bool palFlag);
 	bool loadVideo(int videoId);
 	int getPaletteCount() const { return _header._colorCount; }
 
@@ -185,7 +184,7 @@ public:
 	 * @param frames		Optional frame numbers resource for when to apply image data
 	 * @param imgPos		Position to draw image data
 	 */
-	void play(VoyeurEngine *vm, int resourceOffset = 0, byte *frames = NULL, byte *imgPos = NULL);
+	void play(VoyeurEngine *vm, int resourceOffset = 0, byte *frames = nullptr, byte *imgPos = nullptr);
 	RL2VideoTrack *getRL2VideoTrack() { return _videoTrack; }
 	RL2AudioTrack *getRL2AudioTrack() { return _audioTrack; }
 };

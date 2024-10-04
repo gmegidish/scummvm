@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,10 +29,8 @@ namespace Ultima {
 namespace Nuvie {
 
 /* use default 8x8 font */
-GUI_Font::GUI_Font(uint8 fontType) {
+GUI_Font::GUI_Font(uint8 fontType) : _wData(nullptr) {
 	Graphics::ManagedSurface *temp;
-
-	_wData = NULL;
 
 	if (fontType == GUI_FONT_6X8)
 		temp = GUI_Font6x8();
@@ -43,8 +40,9 @@ GUI_Font::GUI_Font(uint8 fontType) {
 	} else
 		temp = GUI_DefaultFont();
 
+	_fontStore = new Graphics::ManagedSurface(temp->w, temp->h, temp->format);
+	_fontStore->blitFrom(*temp);
 
-	_fontStore = SDL_ConvertSurface(temp, temp->format, SDL_SWSURFACE);
 	_charH = _fontStore->h / 16;
 	_charW = _fontStore->w / 16;
 	_disposeFont = DisposeAfterUse::YES;
@@ -52,9 +50,9 @@ GUI_Font::GUI_Font(uint8 fontType) {
 }
 
 /* open named BMP file */
-GUI_Font::GUI_Font(char *name) {
+GUI_Font::GUI_Font(const char *name) {
 	_fontStore = SDL_LoadBMP(name);
-	if (_fontStore != NULL) {
+	if (_fontStore != nullptr) {
 		_charH = _fontStore->h / 16;
 		_charW = _fontStore->w / 16;
 		_disposeFont = DisposeAfterUse::YES;
@@ -63,12 +61,12 @@ GUI_Font::GUI_Font(char *name) {
 	}
 
 	setTransparency(true);
-	_wData = NULL;
+	_wData = nullptr;
 }
 
 /* use given YxY surface */
 GUI_Font::GUI_Font(Graphics::ManagedSurface *bitmap) {
-	if (bitmap == NULL)
+	if (bitmap == nullptr)
 		_fontStore = GUI_DefaultFont();
 	else
 		_fontStore = bitmap;
@@ -76,18 +74,7 @@ GUI_Font::GUI_Font(Graphics::ManagedSurface *bitmap) {
 	_charW = _fontStore->w / 16;
 	_disposeFont = DisposeAfterUse::NO;
 	setTransparency(true);
-	_wData = NULL;
-}
-
-/* copy constructor */
-GUI_Font::GUI_Font(GUI_Font &font) {
-	Graphics::ManagedSurface *temp = font._fontStore;
-	_fontStore = SDL_ConvertSurface(temp, temp->format, SDL_SWSURFACE);
-	_charH = _fontStore->h / 16;
-	_charW = _fontStore->w / 16;
-	_disposeFont = DisposeAfterUse::YES;
-	setTransparency(true);
-	_wData = NULL;
+	_wData = nullptr;
 }
 
 GUI_Font::~GUI_Font() {
@@ -107,26 +94,30 @@ void GUI_Font::setTransparency(bool on) {
 
 /* determine foreground and background color values RGB*/
 void GUI_Font::setColoring(uint8 fr, uint8 fg, uint8 fb, uint8 br, uint8 bg, uint8 bb) {
-	const SDL_Color colors[2] = { MAKE_COLOR(br, bg, bb), MAKE_COLOR(fr, fg, fb) };
-	SDL_SetColors(_fontStore, colors, 0, 2);
+	const uint8 colors[2 * 3] = {
+		br, bg, bb,
+		fr, fg, fb
+	};
+	_fontStore->setPalette(colors, 0, 2);
 }
 
 void GUI_Font::setColoring(uint8 fr, uint8 fg, uint8 fb, uint8 fr1, uint8 fg1, uint8 fb1, uint8 br, uint8 bg, uint8 bb) {
-	const SDL_Color colors[3] = {
-		MAKE_COLOR(br, bg, bb), MAKE_COLOR(fr, fg, fb), MAKE_COLOR(fr1, fg1, fb1) };
-	SDL_SetColors(_fontStore, colors, 0, 3);
+	const uint8 colors[3 * 3] = {
+		br, bg, bb,
+		fr, fg, fb,
+		fr1, fg1, fb1
+	};
+	_fontStore->setPalette(colors, 0, 3);
 }
 
 /* put the text onto the given surface using the preset mode and colors */
 void GUI_Font::textOut(Graphics::ManagedSurface *context, int x, int y, const char *text, int line_wrap) {
-	int i;
-	int j;
 	uint8 ch;
 	Common::Rect src(_charW, _charH - 1);
 	Common::Rect dst(_charW, _charH - 1);
 
-	i = 0;
-	j = 0;
+	int i = 0;
+	int j = 0;
 	while ((ch = text[i])) { // single "=" is correct!
 		if (line_wrap && j == line_wrap) {
 			j = 0;

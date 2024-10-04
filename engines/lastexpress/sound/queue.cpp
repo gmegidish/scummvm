@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@ SoundQueue::SoundQueue(LastExpressEngine *engine) : _engine(engine) {
 	 _flag = 0;
 
 	_subtitlesFlag = 0;
-	_currentSubtitle = NULL;
+	_currentSubtitle = nullptr;
 	//_soundCacheData = NULL;
 }
 
@@ -52,11 +51,11 @@ SoundQueue::~SoundQueue() {
 		SAFE_DELETE(*i);
 	_subtitles.clear();
 
-	_currentSubtitle = NULL;
+	_currentSubtitle = nullptr;
 	//SAFE_DELETE(_soundCacheData);
 
 	// Zero passed pointers
-	_engine = NULL;
+	_engine = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -93,7 +92,7 @@ void SoundQueue::updateQueue() {
 
 	for (Common::List<SoundEntry *>::iterator it = _soundList.begin(); it != _soundList.end(); ++it) {
 		SoundEntry *entry = *it;
-		if (entry == NULL)
+		if (entry == nullptr)
 			error("[SoundQueue::updateQueue] Invalid entry found in sound queue");
 
 		// Original removes the entry data from the cache and sets the archive as not loaded
@@ -145,7 +144,7 @@ void SoundQueue::destroyAllSound() {
 
 	for (Common::List<SoundEntry *>::iterator i = _soundList.begin(); i != _soundList.end(); ++i) {
 		SoundEntry *entry = (*i);
-		if (entry == NULL)
+		if (entry == nullptr)
 			error("[SoundQueue::destroyAllSound] Invalid entry found in sound queue");
 
 		// Delete entry
@@ -210,7 +209,7 @@ SoundEntry *SoundQueue::getEntry(EntityIndex index) {
 			return *i;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 SoundEntry *SoundQueue::getEntry(Common::String name) {
@@ -222,7 +221,7 @@ SoundEntry *SoundQueue::getEntry(Common::String name) {
 			return *i;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 SoundEntry *SoundQueue::getEntry(SoundTag tag) {
@@ -231,7 +230,7 @@ SoundEntry *SoundQueue::getEntry(SoundTag tag) {
 			return *i;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 uint32 SoundQueue::getEntryTime(EntityIndex index) {
@@ -243,16 +242,16 @@ uint32 SoundQueue::getEntryTime(EntityIndex index) {
 }
 
 bool SoundQueue::isBuffered(EntityIndex entity) {
-	return (getEntry(entity) != NULL);
+	return (getEntry(entity) != nullptr);
 }
 
 bool SoundQueue::isBuffered(Common::String filename, bool testForEntity) {
 	SoundEntry *entry = getEntry(filename);
 
 	if (testForEntity)
-		return entry != NULL && entry->getEntity() != kEntityPlayer;
+		return entry != nullptr && entry->getEntity() != kEntityPlayer;
 
-	return (entry != NULL);
+	return (entry != nullptr);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -260,7 +259,7 @@ bool SoundQueue::isBuffered(Common::String filename, bool testForEntity) {
 //////////////////////////////////////////////////////////////////////////
 void SoundQueue::updateSubtitles() {
 	uint32 index = 0;
-	SubtitleEntry *subtitle = NULL;
+	SubtitleEntry *subtitle = nullptr;
 
 	for (Common::List<SubtitleEntry *>::iterator i = _subtitles.begin(); i != _subtitles.end(); ++i) {
 		uint32 current_index = 0;

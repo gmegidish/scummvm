@@ -4,19 +4,18 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software{} you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation{} either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY{} without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program{} if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -207,7 +206,7 @@ void GlkAPI::glk_window_get_arrangement(winid_t win, uint *method,
 }
 
 winid_t GlkAPI::glk_window_iterate(winid_t win, uint *rock) {
-	win = win ? win->_next : _windows->getRoot();
+	win = win ? win->_next : *_windows->begin();
 
 	if (win) {
 		if (rock)
@@ -242,7 +241,7 @@ uint GlkAPI::glk_window_get_type(winid_t win) {
 winid_t GlkAPI::glk_window_get_parent(winid_t win) {
 	if (!win) {
 		warning("window_get_parent: invalid ref");
-		return 0;
+		return nullptr;
 	}
 
 	return win->_parent;
@@ -469,11 +468,11 @@ void GlkAPI::glk_stylehint_set(uint wintype, uint style, uint hint, int val) {
 
 	switch (hint) {
 	case stylehint_TextColor:
-		styles[style].fg = val;
+		styles[style].fg = _conf->parseColor(val);
 		break;
 
 	case stylehint_BackColor:
-		styles[style].bg = val;
+		styles[style].bg = _conf->parseColor(val);
 		break;
 
 	case stylehint_ReverseColor:
@@ -610,11 +609,11 @@ bool GlkAPI::glk_style_measure(winid_t win, uint style, uint hint, uint *result)
 		break;
 
 	case stylehint_TextColor:
-		*result = styles[style].fg;
+		*result = strtol(_conf->encodeColor(styles[style].fg).c_str(), nullptr, 16);
 		break;
 
 	case stylehint_BackColor:
-		*result = styles[style].bg;
+		*result = strtol(_conf->encodeColor(styles[style].bg).c_str(), nullptr, 16);
 		break;
 
 	case stylehint_ReverseColor:

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,9 @@
 
 namespace AGS3 {
 
+// Asserts the hotspot ID is valid in the current room,
+// if not then prints a warning to the log; returns assertion result
+bool    AssertHotspot(const char *apiname, int hot_id);
 void    Hotspot_SetEnabled(ScriptHotspot *hss, int newval);
 int     Hotspot_GetEnabled(ScriptHotspot *hss);
 int     Hotspot_GetID(ScriptHotspot *hss);
@@ -42,6 +44,8 @@ void    Hotspot_RunInteraction(ScriptHotspot *hss, int mood);
 int     Hotspot_GetProperty(ScriptHotspot *hss, const char *property);
 void    Hotspot_GetPropertyText(ScriptHotspot *hss, const char *property, char *bufer);
 const char *Hotspot_GetTextProperty(ScriptHotspot *hss, const char *property);
+bool    Hotspot_SetProperty(ScriptHotspot *hss, const char *property, int value);
+bool    Hotspot_SetTextProperty(ScriptHotspot *hss, const char *property, const char *value);
 
 // Gets hotspot ID at the given room coordinates;
 // if hotspot is disabled or non-existing, returns 0 (no area)

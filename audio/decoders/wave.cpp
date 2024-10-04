@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,13 +32,26 @@
 #include "audio/decoders/raw.h"
 #include "audio/decoders/g711.h"
 
+#define EXT_CHUNKS 8
+
 namespace Audio {
 
-bool loadWAVFromStream(Common::SeekableReadStream &stream, int &size, int &rate, byte &flags, uint16 *wavType, int *blockAlign_) {
+bool loadWAVFromStream(Common::SeekableReadStream &stream, int &size, int &rate, byte &flags, uint16 *wavType, int *blockAlign_, int *samplesPerBlock_) {
 	const int32 initialPos = stream.pos();
 	byte buf[4+1];
 
 	buf[4] = 0;
+
+	const char *extensionChunks[EXT_CHUNKS] = {
+		"JUNK",
+		"bext",
+		"iXML",
+		"qlty",
+		"mext",
+		"levl",
+		"link",
+		"axml"
+	};
 
 	stream.read(buf, 4);
 	if (memcmp(buf, "RIFF", 4) != 0) {
@@ -63,8 +75,22 @@ bool loadWAVFromStream(Common::SeekableReadStream &stream, int &size, int &rate,
 		stream.read(buf, 4);
 	}
 
+	while (1) { // skip junk/bext... chunks
+		int i;
+		for (i = 0; (i < EXT_CHUNKS) && (memcmp(buf, extensionChunks[i], 4) != 0); i++)
+			;
+		if (i != EXT_CHUNKS) { // found a known chunk
+			uint32 chunkSize = stream.readUint32LE();
+			// skip junk/ext chunk (add 1 byte if odd)
+			stream.skip(chunkSize + (chunkSize % 2));
+			stream.read(buf, 4);
+			debug(0, "Skipped %s chunk in wav file!", extensionChunks[i]);
+		} else // skipped all chunks, or found something unexpected
+			break;
+	}
+
 	if (memcmp(buf, "fmt ", 4) != 0) {
-		warning("getWavInfo: No 'fmt' header");
+		warning("getWavInfo: No 'fmt' header! Found %s", buf);
 		return false;
 	}
 
@@ -74,6 +100,7 @@ bool loadWAVFromStream(Common::SeekableReadStream &stream, int &size, int &rate,
 		warning("getWavInfo: 'fmt' header is too short");
 		return false;
 	}
+	uint32 fmtRemaining = fmtLength;
 
 	// Next comes the "type" field of the fmt header. Some typical
 	// values for it:
@@ -89,13 +116,32 @@ bool loadWAVFromStream(Common::SeekableReadStream &stream, int &size, int &rate,
 	uint16 blockAlign = stream.readUint16LE();	// == NumChannels * BitsPerSample/8
 	uint16 bitsPerSample = stream.readUint16LE();	// 8, 16 ...
 	// 8 bit data is unsigned, 16 bit data signed
+	fmtRemaining -= 16;
 
+	uint16 samplesPerBlock = 1;
+	if (type == kWaveFormatMSADPCM) {
+		// TODO: There is a samplesPerBlock in this header. It should be parsed and the below warning removed.
+		// (NB: The FMT header for MSADPCM has different information from the MSIMAADPCM)
+		warning("getWavInfo: 'fmt' header not parsed in entirety for MSADPCM");
+	} else if (type == kWaveFormatMSIMAADPCM) {
+		if (fmtRemaining != 4) {
+			// A valid IMA ADPCM fmt chunk is always 20 bytes long
+			warning("getWavInfo: 'fmt' header is wrong length for IMA ADPCM");
+			return false;
+		}
+		stream.readUint16LE(); // cbSize
+		samplesPerBlock = stream.readUint16LE();
+		fmtRemaining -= 4;
+	}
 
-	if (wavType != 0)
+	if (wavType != nullptr)
 		*wavType = type;
 
-	if (blockAlign_ != 0)
+	if (blockAlign_ != nullptr)
 		*blockAlign_ = blockAlign;
+
+	if (samplesPerBlock_ != nullptr)
+		*samplesPerBlock_ = samplesPerBlock;
 #if 0
 	debug("WAVE information:");
 	debug("  total size: %d", wavLength);
@@ -125,7 +171,7 @@ bool loadWAVFromStream(Common::SeekableReadStream &stream, int &size, int &rate,
 
 	if (type == kWaveFormatMP3) {
 		bitsPerSample = 8;
-	} else if (type != kWaveFormatMSADPCM) {
+	} else if (type != kWaveFormatMSADPCM && type != kWaveFormatMSIMAADPCM) {
 		if (blockAlign != numChannels * bitsPerSample / 8) {
 			debug(0, "getWavInfo: blockAlign is invalid");
 		}
@@ -163,7 +209,7 @@ bool loadWAVFromStream(Common::SeekableReadStream &stream, int &size, int &rate,
 	// 'data' chunk.
 
 	// Skip over the rest of the fmt chunk.
-	int offset = fmtLength - 16;
+	int offset = fmtRemaining;
 
 	do {
 		stream.seek(offset, SEEK_CUR);
@@ -194,7 +240,7 @@ SeekableAudioStream *makeWAVStream(Common::SeekableReadStream *stream, DisposeAf
 	if (!loadWAVFromStream(*stream, size, rate, flags, &type, &blockAlign)) {
 		if (disposeAfterUse == DisposeAfterUse::YES)
 			delete stream;
-		return 0;
+		return nullptr;
 	}
 	int channels = (flags & Audio::FLAG_STEREO) ? 2 : 1;
 	int bytesPerSample = (flags & Audio::FLAG_24BITS) ? 3 : ((flags & Audio::FLAG_16BITS) ? 2 : 1);
@@ -228,7 +274,7 @@ SeekableAudioStream *makeWAVStream(Common::SeekableReadStream *stream, DisposeAf
 
 	// If the format is unsupported, we already returned earlier, but just in case
 	delete dataStream;
-	return 0;
+	return nullptr;
 }
 
 } // End of namespace Audio

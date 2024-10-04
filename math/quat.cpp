@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,14 +31,14 @@
  * This code (and our modifications) is made available here under the GPLv2 (or later).
  *
  * Additional changes written based on the math presented in
- * http://www.swarthmore.edu/NatSci/mzucker1/e27/diebel2006attitude.pdf
+ * https://web.archive.org/web/20120710204808/http://www.swarthmore.edu/NatSci/mzucker1/e27/diebel2006attitude.pdf
  *
  */
 
 #include "common/streamdebug.h"
 
-#include "common/math.h"
 #include "math/quat.h"
+#include "math/utils.h"
 
 namespace Math {
 
@@ -179,10 +178,10 @@ void Quaternion::toMatrix(Matrix4 &dst) const {
 	float two_zz = z() * (z() + z());
 
 	float newMat[16] = {
-		1.0f - (two_yy + two_zz),	two_xy - two_wz,		two_xz + two_wy,	  0.0f,
-		two_xy + two_wz,		1.0f - (two_xx + two_zz),	two_yz - two_wx,	  0.0f,
-		two_xz - two_wy,		two_yz + two_wx,		1.0f - (two_xx + two_yy), 0.0f,
-		0.0f,				0.0f,				0.0f,			  1.0f
+		1.0f - (two_yy + two_zz), two_xy - two_wz,          two_xz + two_wy,          0.0f,
+		two_xy + two_wz,          1.0f - (two_xx + two_zz), two_yz - two_wx,          0.0f,
+		two_xz - two_wy,          two_yz + two_wx,          1.0f - (two_xx + two_yy), 0.0f,
+		0.0f,                     0.0f,                     0.0f,                     1.0f
 	};
 	dst.setData(newMat);
 }
@@ -209,7 +208,7 @@ Vector3d Quaternion::directionVector(const int col) const {
 
 Angle Quaternion::getAngleBetween(const Quaternion &to) {
 	Quaternion q = this->inverse() * to;
-	Angle diff(Common::rad2deg(2 * acos(q.w())));
+	Angle diff(Math::rad2deg(2 * acos(q.w())));
 	return diff;
 }
 

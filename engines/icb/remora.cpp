@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,11 +20,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "engines/icb/common/px_linkeddatafile.h"
 #include "engines/icb/remora.h"
 #include "engines/icb/line_of_sight.h"
 #include "engines/icb/sound.h"
@@ -53,7 +53,7 @@ _remora::_remora() {
 	m_nFlashCounter = 0;
 	m_bMainHeadingSet = FALSE8;
 	m_nCurrentPalette = 0;
-	m_pDisplayBuffer = NULL;
+	m_pDisplayBuffer = nullptr;
 
 	// Set initial zoom range and an initial zoom.
 	m_nMinZoom = REMORA_SCAN_ZOOM_HARD_LOWER;
@@ -61,7 +61,7 @@ _remora::_remora() {
 	m_nCurrentZoom = REMORA_SCAN_START_ZOOM;
 
 	// Name of the cluster which holds remora graphics.
-	strcpy(m_pcRemoraCluster, REMORA_CLUSTER_PATH);
+	Common::strcpy_s(m_pcRemoraCluster, REMORA_CLUSTER_PATH);
 	m_nScanPan = 0;
 
 	// Make the hash name of the remora graphics cluster.
@@ -80,7 +80,7 @@ void _remora::InitialiseRemora() {
 	m_bModeChanged = FALSE8;
 
 	// Clear any mega speech (there shouldn't be any though).
-	m_pcSpeechText = NULL;
+	m_pcSpeechText = nullptr;
 	m_nSpeechTimer = 0;
 
 	// Initially, the zoom is set at 1X and cannot be moved.  This might well change.
@@ -177,7 +177,7 @@ void _remora::DisplayCharacterSpeech(uint32 nHash) {
 		// Put the text in the buffer.
 		m_pcSpeechText = &pcText[1];
 	} else {
-		m_pcSpeechText = NULL;
+		m_pcSpeechText = nullptr;
 	}
 
 	// Initialise the counter for how int32 it will be displayed.
@@ -195,7 +195,7 @@ void _remora::SetCurrentZoom(uint32 nZoom) {
 }
 
 bool8 _remora::IsThisEmailWaiting(const char *pcEmailID) const {
-	if ((pcEmailID == NULL) || (strlen(m_pcEmailID) == 0))
+	if ((pcEmailID == nullptr) || (strlen(m_pcEmailID) == 0))
 		return (FALSE8);
 
 	if (strcmp(pcEmailID, m_pcEmailID))
@@ -448,7 +448,7 @@ void _remora::CycleRemoraLogic(const _input &sKeyboardState) {
 		// Remora is now inactive.
 		m_eGameState = INACTIVE;
 
-		nRemoraID = MS->objects->Fetch_item_number_by_name(REMORA_NAME);
+		nRemoraID = LinkedDataObject::Fetch_item_number_by_name(MS->objects, REMORA_NAME);
 
 		if (nRemoraID == PX_LINKED_DATA_FILE_ERROR)
 			Fatal_error("No logic object for Remora in _remora::CycleRemoraLogic()");
@@ -634,14 +634,14 @@ void _remora::SetupPicture(uint32 nXPixelOffset, const char *pcPictureName) {
 }
 
 void _remora::AddFloorRange(uint32 nLower, uint32 nUpper) {
-	_linked_data_file *pSlices;
+	LinkedDataFile *pSlices;
 
 	// Check that top value is within the available slices (bottom one must be because it is unsigned).  First,
 	// get the pointer to the slices (this will already have been loaded by the line-of-sight engine).
 	pSlices = g_oLineOfSight->GetSlicesPointer();
 
-	if (nUpper >= pSlices->Fetch_number_of_items())
-		nUpper = pSlices->Fetch_number_of_items() - 1;
+	if (nUpper >= LinkedDataObject::Fetch_number_of_items(pSlices))
+		nUpper = LinkedDataObject::Fetch_number_of_items(pSlices) - 1;
 
 	// Upper must be greater than lower, or it isn't a range.
 	if (nUpper <= nLower)
@@ -735,14 +735,14 @@ const char *_remora::LocateTextFromReference(uint32 nHashRef) {
 	const char *pcTextLine;
 
 	// Look for the reference.
-	pcTextLine = (const char *)MS->text->Try_fetch_item_by_hash(nHashRef);
+	pcTextLine = (const char *)LinkedDataObject::Try_fetch_item_by_hash(MS->text, nHashRef);
 
 	// If we found it, return it.
 	if (pcTextLine)
 		return (pcTextLine);
 
 	// Look in the global text file.
-	pcTextLine = (const char *)global_text->Try_fetch_item_by_hash(nHashRef);
+	pcTextLine = (const char *)LinkedDataObject::Try_fetch_item_by_hash(global_text, nHashRef);
 
 	// Return the pointer regardless.
 	return (pcTextLine);
@@ -872,7 +872,7 @@ void _remora::ClearAllText() {
 	m_nFirstLineToDraw = 0;
 
 	m_bScrollingRequired = FALSE8;
-	m_bScrolling = FALSE8; // these three need reseting so when we go to a new page we don't try scrolling off screen
+	m_bScrolling = FALSE8; // these three need resetting so when we go to a new page we don't try scrolling off screen
 	m_nStartYPixelOffset = 0;
 	m_eTextScroll = SCROLL_NONE;
 
@@ -880,7 +880,7 @@ void _remora::ClearAllText() {
 	m_bMainHeadingSet = FALSE8;
 
 	// These control the spoken text display.
-	m_pcSpeechText = NULL;
+	m_pcSpeechText = nullptr;
 	m_nSpeechTimer = 0;
 }
 
@@ -898,8 +898,8 @@ void _remora::DrawVoiceOverText() const {
 void _remora::SetCommonActivateInfo(RemoraMode eMode) {
 	uint32 i, j;
 	_logic *pPlayerObject;
-	_linked_data_file *pSlices;
-	_barrier_slice *pSlice;
+	LinkedDataFile *pSlices;
+	BarrierSlice *pSlice;
 	int32 nSlice;
 	uint32 nNumSlices;
 	bool8 bInFloorRange;
@@ -931,12 +931,12 @@ void _remora::SetCommonActivateInfo(RemoraMode eMode) {
 	pSlices = g_oLineOfSight->GetSlicesPointer();
 
 	// Find out which slice we're in.
-	nNumSlices = pSlices->Fetch_number_of_items();
+	nNumSlices = LinkedDataObject::Fetch_number_of_items(pSlices);
 	nSlice = 0;
 
 	for (i = 0; i < nNumSlices; ++i) {
 		// Get the slice.
-		pSlice = (_barrier_slice *)pSlices->Fetch_item_by_number(i);
+		pSlice = (BarrierSlice *)LinkedDataObject::Fetch_item_by_number(pSlices, i);
 
 		// See if the player's feet are in this slice.
 		if ((m_nPlayerY >= pSlice->bottom) && (m_nPlayerY < pSlice->top))
@@ -954,7 +954,7 @@ void _remora::SetCommonActivateInfo(RemoraMode eMode) {
 			bInFloorRange = TRUE8;
 
 			for (j = m_pFloorRanges[i].s_nLower; j <= m_pFloorRanges[i].s_nUpper; ++j) {
-				m_pSlices[m_nNumCurrentFloorRanges] = (_barrier_slice *)pSlices->Fetch_item_by_number(j);
+				m_pSlices[m_nNumCurrentFloorRanges] = (BarrierSlice *)LinkedDataObject::Fetch_item_by_number(pSlices, j);
 				m_pnSlices[m_nNumCurrentFloorRanges] = j;
 				++m_nNumCurrentFloorRanges;
 			}
@@ -966,7 +966,7 @@ void _remora::SetCommonActivateInfo(RemoraMode eMode) {
 	// If we didn't set a floor range then we must set a single floor slice.
 	if (!bInFloorRange) {
 		// Only one slice required to be displayed.
-		m_pSlices[0] = (_barrier_slice *)pSlices->Fetch_item_by_number(nSlice);
+		m_pSlices[0] = (BarrierSlice *)LinkedDataObject::Fetch_item_by_number(pSlices, nSlice);
 		m_pnSlices[0] = nSlice;
 		m_nNumCurrentFloorRanges = 1;
 	}
@@ -981,12 +981,12 @@ void _remora::SetCommonActivateInfo(RemoraMode eMode) {
 
 void _remora::AccessMenuLevelVariables(int32 *pnParams, MenuVariableAccessMode eRetrieve) {
 	uint32 i, j;
-	c_game_object *pGameObject;
+	CGame *pGameObject;
 	char pcVarName[] = REMORA_MENU_LEVEL_NAME;
 	uint32 nDigitPos;
 
 	// Get the Remora's game object.
-	pGameObject = (c_game_object *)MS->objects->Fetch_item_by_name(REMORA_NAME);
+	pGameObject = (CGame *)LinkedDataObject::Fetch_item_by_name(MS->objects, REMORA_NAME);
 
 	// Get the position where we need to add the digit to the menu variable name.
 	nDigitPos = strlen(pcVarName) - 1;
@@ -998,24 +998,24 @@ void _remora::AccessMenuLevelVariables(int32 *pnParams, MenuVariableAccessMode e
 
 		// Find the variable in the Remora's game object.
 		j = 0;
-		while ((j < pGameObject->GetNoLvars()) && strcmp(pcVarName, pGameObject->GetScriptVariableName(j)))
+		while ((j < CGameObject::GetNoLvars(pGameObject)) && strcmp(pcVarName, CGameObject::GetScriptVariableName(pGameObject, j)))
 			++j;
 
 		// If we ran out of variables, this is an error because we haven't found the one we're looking for.
-		if (j == pGameObject->GetNoLvars())
+		if (j == CGameObject::GetNoLvars(pGameObject))
 			Fatal_error("Failed to find menu variable %s in _remora::AccessMenuLevelVariables()", pcVarName);
 
 		// Found it, so get or set it.
 		if (eRetrieve == GET)
-			pnParams[i] = pGameObject->GetIntegerVariable(j);
+			pnParams[i] = CGameObject::GetIntegerVariable(pGameObject, j);
 		else
-			pGameObject->SetIntegerVariable(j, pnParams[i]);
+			CGameObject::SetIntegerVariable(pGameObject, j, pnParams[i]);
 	}
 }
 
 _remora::ScreenSymbol _remora::GetSymbolToDrawObject(_logic *pObject, uint32 nID) const {
 	__object_type eObjectType;
-	c_game_object *pGameObject;
+	CGame *pGameObject;
 	uint32 nScriptVar, nVarVal;
 
 	// If it's player, always return same symbol.
@@ -1037,9 +1037,9 @@ _remora::ScreenSymbol _remora::GetSymbolToDrawObject(_logic *pObject, uint32 nID
 
 	case (__ORGANIC_MEGA):
 		// Need to find out if the human is alive or dead.
-		pGameObject = (c_game_object *)MS->objects->Fetch_item_by_number(nID);
-		nScriptVar = pGameObject->GetVariable("state");
-		nVarVal = pGameObject->GetIntegerVariable(nScriptVar);
+		pGameObject = (CGame *)LinkedDataObject::Fetch_item_by_number(MS->objects, nID);
+		nScriptVar = CGameObject::GetVariable(pGameObject, "state");
+		nVarVal = CGameObject::GetIntegerVariable(pGameObject, nScriptVar);
 		if (nVarVal == 1)
 			return (DEAD_HUMAN);
 		else
@@ -1049,9 +1049,9 @@ _remora::ScreenSymbol _remora::GetSymbolToDrawObject(_logic *pObject, uint32 nID
 
 	case (__NON_ORGANIC_MEGA):
 		// Need to find out if the robot is alive or dead.
-		pGameObject = (c_game_object *)MS->objects->Fetch_item_by_number(nID);
-		nScriptVar = pGameObject->GetVariable("state");
-		nVarVal = pGameObject->GetIntegerVariable(nScriptVar);
+		pGameObject = (CGame *)LinkedDataObject::Fetch_item_by_number(MS->objects, nID);
+		nScriptVar = CGameObject::GetVariable(pGameObject, "state");
+		nVarVal = CGameObject::GetIntegerVariable(pGameObject, nScriptVar);
 		if (nVarVal == 1)
 			return (DEAD_ROBOT);
 		else
@@ -1061,9 +1061,9 @@ _remora::ScreenSymbol _remora::GetSymbolToDrawObject(_logic *pObject, uint32 nID
 
 	case (__REMORA_CARRIER):
 		// This is an object carrying a Remora, but only the player gets a special symbol now.
-		pGameObject = (c_game_object *)MS->objects->Fetch_item_by_number(nID);
-		nScriptVar = pGameObject->GetVariable("state");
-		nVarVal = pGameObject->GetIntegerVariable(nScriptVar);
+		pGameObject = (CGame *)LinkedDataObject::Fetch_item_by_number(MS->objects, nID);
+		nScriptVar = CGameObject::GetVariable(pGameObject, "state");
+		nVarVal = CGameObject::GetIntegerVariable(pGameObject, nScriptVar);
 		if (nVarVal == 1)
 			return (DEAD_HUMAN);
 		else
@@ -1071,9 +1071,9 @@ _remora::ScreenSymbol _remora::GetSymbolToDrawObject(_logic *pObject, uint32 nID
 		break;
 
 	case (__RECHARGE_POINT):
-		pGameObject = (c_game_object *)MS->objects->Fetch_item_by_number(nID);
-		nScriptVar = pGameObject->GetVariable("set_mine");
-		nVarVal = pGameObject->GetIntegerVariable(nScriptVar);
+		pGameObject = (CGame *)LinkedDataObject::Fetch_item_by_number(MS->objects, nID);
+		nScriptVar = CGameObject::GetVariable(pGameObject, "set_mine");
+		nVarVal = CGameObject::GetIntegerVariable(pGameObject, nScriptVar);
 		if (nVarVal == 1)
 			return (RECHARGE_ARMED);
 		else

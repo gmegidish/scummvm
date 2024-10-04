@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,8 +27,13 @@
 #include "common/serializer.h"
 #include "scumm/scumm.h"
 
-
 namespace Scumm {
+
+#define CHORE_REDIRECT_INIT        56
+#define CHORE_REDIRECT_WALK        57
+#define CHORE_REDIRECT_STAND       58
+#define CHORE_REDIRECT_START_TALK  59
+#define CHORE_REDIRECT_STOP_TALK   60
 
 enum {
 	V12_X_MULTIPLIER = 8,
@@ -48,7 +52,11 @@ enum MoveFlags {
 };
 
 struct CostumeData {
-	byte active[16];
+	CostumeData() {
+		reset();
+	}
+
+	byte animType[16];
 	uint16 animCounter;
 	byte soundCounter;
 	byte soundPos;
@@ -64,11 +72,15 @@ struct CostumeData {
 	uint32 heCondMaskTable[16];
 
 	void reset() {
+		animCounter = 0;
+		soundCounter = 0;
+		soundPos = 0;
 		stopped = 0;
-		for (int i = 0; i < 16; i++) {
-			active[i] = 0;
-			curpos[i] = start[i] = end[i] = frame[i] = 0xFFFF;
-		}
+		memset(animType, 0, sizeof(animType)); // AKAT_Empty
+		memset(curpos, 0xFF, sizeof(curpos));
+		memset(start, 0xFF, sizeof(start));
+		memset(end, 0xFF, sizeof(end));
+		memset(frame, 0xFF, sizeof(frame));
 	}
 };
 
@@ -78,8 +90,8 @@ struct AdjustBoxResult {	/* Result type of AdjustBox functions */
 };
 
 enum {
-	kOldInvalidBox = 255,	// For small header games
-	kNewInavlidBox = 0
+	kOldInvalidBox = 255,	// For GF_SMALL_HEADER games
+	kNewInvalidBox = 0
 };
 
 class Actor : public Common::Serializable {
@@ -110,6 +122,7 @@ public:
 	byte _moving;
 	bool _ignoreBoxes;
 	byte _forceClip;
+	uint16 _lastValidX, _lastValidY;
 
 	byte _initFrame;
 	byte _walkFrame;
@@ -135,7 +148,7 @@ public:
 	bool _heSkipLimbs;
 	uint32 _heCondMask;
 	uint32 _hePaletteNum;
-	uint32 _heXmapNum;
+	uint32 _heShadow;
 
 protected:
 	struct ActorWalkData {
@@ -152,6 +165,7 @@ protected:
 		int32 deltaXFactor, deltaYFactor;
 		uint16 xfrac, yfrac;
 		uint16 xAdd, yAdd;
+		int16 facing;
 
 		void reset() {
 			dest.x = dest.y = 0;
@@ -167,6 +181,7 @@ protected:
 			yfrac = 0;
 			xAdd = 0;
 			yAdd = 0;
+			facing = 0;
 		}
 	};
 
@@ -207,9 +222,9 @@ public:
 	void putActor(int x, int y, int room);
 	void setActorWalkSpeed(uint newSpeedX, uint newSpeedY);
 protected:
-	int calcMovementFactor(const Common::Point& next);
-	int actorWalkStep();
-	int remapDirection(int dir, bool is_walking);
+	virtual int calcMovementFactor(const Common::Point& next);
+	virtual int actorWalkStep();
+	virtual int remapDirection(int dir, bool is_walking);
 	virtual void setupActorScale();
 
 	void setBox(int box);
@@ -221,7 +236,7 @@ public:
 
 	virtual void setDirection(int direction);
 	void faceToObject(int obj);
-	void turnToDirection(int newdir);
+	virtual void turnToDirection(int newdir);
 	virtual void walkActor();
 	void drawActorCostume(bool hitTestMode = false);
 	virtual void prepareDrawActorCostume(BaseCostumeRenderer *bcr);
@@ -300,6 +315,11 @@ public:
 			_elevation = newElevation;
 			_needRedraw = true;
 		}
+
+		if (_vm->_game.heversion >= 70) {
+			_needRedraw = true;
+			_needBgReset = true;
+		}
 	}
 
 	void setPalette(int idx, int val) {
@@ -313,6 +333,10 @@ public:
 		if (sy != -1)
 			_scaley = sy;
 		_needRedraw = true;
+
+		if (_vm->_game.heversion >= 70) {
+			_needBgReset = true;
+		}
 	}
 
 	void classChanged(int cls, bool value);
@@ -337,14 +361,13 @@ public:
 	void saveLoadWithSerializer(Common::Serializer &ser) override;
 
 protected:
-	int calcMovementFactor(const Common::Point& next);
-	int actorWalkStep();
-
+	int calcMovementFactor(const Common::Point& next) override;
 	void setupActorScale() override;
 	void findPathTowardsOld(byte box, byte box2, byte box3, Common::Point &p2, Common::Point &p3);
-
+	uint _stepThreshold;
 private:
-	uint _stepX, _stepThreshold;
+	virtual int actorWalkStep() override;
+	uint _stepX;
 	const int _facingXYratio;
 };
 
@@ -359,6 +382,22 @@ public:
 protected:
 	bool isPlayer() override;
 	void prepareDrawActorCostume(BaseCostumeRenderer *bcr) override;
+private:
+	int actorWalkStep() override;
+	int remapDirection(int dir, bool is_walking) override;
+};
+
+class Actor_v7 final : public Actor {
+public:
+	Actor_v7(ScummEngine *scumm, int id) : Actor(scumm, id) {}
+
+	void initActor(int mode) override;
+	void walkActor() override;
+	void turnToDirection(int newdir) override;
+	void startAnimActor(int frame) override;
+
+private:
+	int updateActorDirection();
 };
 
 enum ActorV0MiscFlags {

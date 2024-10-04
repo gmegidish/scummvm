@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -460,7 +459,7 @@ public:
 		delete[] _reg;
 	}
 
-	void init(const uint8 *instrData = 0);
+	void init(const uint8 *instrData = nullptr);
 	void reset();
 	void writeReg(uint8 address, uint8 value);
 	uint8 readReg(uint8 address) const;
@@ -521,8 +520,8 @@ private:
 };
 #endif // DISABLE_PC98_RHYTHM_CHANNEL
 
-TownsPC98_FmSynthSquareWaveSource::TownsPC98_FmSynthSquareWaveSource(const uint32 tickLength, const uint32 envduration) : _tlTable(0),
-	_envDuration(envduration), _tleTable(0), _updateRequest(-1), _tickLength(tickLength), _ready(0), _reg(0), _rand(1), _outN(1),
+TownsPC98_FmSynthSquareWaveSource::TownsPC98_FmSynthSquareWaveSource(const uint32 tickLength, const uint32 envduration) : _tlTable(nullptr),
+	_envDuration(envduration), _tleTable(nullptr), _updateRequest(-1), _tickLength(tickLength), _ready(0), _reg(nullptr), _rand(1), _outN(1),
 	_nTick(0), _evpUpdateCnt(0), _evpTimer(0x1f), _pReslt(0x1f), _attack(0), _cont(false), _evpUpdate(true),
 	_timer(0), _noiseGenerator(0), _chanEnable(0), _envH(0), _envL(0), _flags(0), _evpSwap(0), _volumeT(0x60),
 	_volMaskA(0), _volMaskB(0), _volumeA(Audio::Mixer::kMaxMixerVolume), _volumeB(Audio::Mixer::kMaxMixerVolume) {
@@ -748,7 +747,7 @@ TownsPC98_FmSynthPercussionSource::TownsPC98_FmSynthPercussionSource(const uint3
 	memset(_rhChan, 0, sizeof(RhtChannel) * 6);
 	_reg = new uint8 *[40];
 
-	_reg[0] = _reg[1] = _reg[2] = _reg[3] = _reg[4] = _reg[5] = _reg[6] = _reg[7] = _reg[8] = _reg[9] = _reg[10] = _reg[11] = _reg[12] = _reg[13] = _reg[14] = _reg[15] = 0;
+	_reg[0] = _reg[1] = _reg[2] = _reg[3] = _reg[4] = _reg[5] = _reg[6] = _reg[7] = _reg[8] = _reg[9] = _reg[10] = _reg[11] = _reg[12] = _reg[13] = _reg[14] = _reg[15] = nullptr;
 	_reg[16] = &_rhChan[0].startPosL;
 	_reg[17] = &_rhChan[1].startPosL;
 	_reg[18] = &_rhChan[2].startPosL;
@@ -949,15 +948,15 @@ void TownsPC98_FmSynthPercussionSource::advanceInput(RhtChannel *ins) {
 
 TownsPC98_FmSynth::TownsPC98_FmSynth(Audio::Mixer *mixer, EmuType type) :
 	_mixer(mixer), _mutex(mixer->mutex()),
-	_chanInternal(0), _ssg(0),
+	_chanInternal(nullptr), _ssg(nullptr),
 #ifndef DISABLE_PC98_RHYTHM_CHANNEL
-	_prc(0),
+	_prc(nullptr),
 #endif
 	_numChan(type == kType26 ? 3 : 6), _numSSG(type == kTypeTowns ? 0 : 3),
 	_hasPercussion(type == kType86 ? true : false),
-	_oprRates(0), _oprRateshift(0), _oprAttackDecay(0), _oprFrq(0), _oprSinTbl(0), _oprLevelOut(0), _oprDetune(0),
+	_oprRates(nullptr), _oprRateshift(nullptr), _oprAttackDecay(nullptr), _oprFrq(nullptr), _oprSinTbl(nullptr), _oprLevelOut(nullptr), _oprDetune(nullptr),
 	_internalRate((type == kTypeTowns ? 7670454 : (type == kType86 ? 7987000 : 3993600))),
-	_renderBuffer(0), _renderBufferSize(0), _numPending(0), _offsPending(0),
+	_renderBuffer(nullptr), _renderBufferSize(0), _numPending(0), _offsPending(0),
 #ifdef ENABLE_SNDTOWNS98_WAITCYCLES
 	_waitCycleRemainder(0),
 	_samplesPerWaitCycle(type == kType26 ? 72 : 144),
@@ -968,8 +967,7 @@ TownsPC98_FmSynth::TownsPC98_FmSynth(Audio::Mixer *mixer, EmuType type) :
 	memset(&_timers[0], 0, sizeof(ChipTimer));
 	memset(&_timers[1], 0, sizeof(ChipTimer));
 
-	memset(_registers[0], 0, 255);
-	memset(_registers[1], 0, 255);
+	memset(_registers, 0, sizeof(_registers));
 
 	_timerProcIdle = new ChipTimerProc(this, &TownsPC98_FmSynth::idleTimerCallback);
 	_timerProcA = new ChipTimerProc(this, &TownsPC98_FmSynth::timerCallbackA);
@@ -1001,7 +999,7 @@ TownsPC98_FmSynth::~TownsPC98_FmSynth() {
 
 	delete[] _renderBuffer;
 
-	_timers[0].cb = _timers[1].cb = 0;
+	_timers[0].cb = _timers[1].cb = nullptr;
 	delete _timerProcA;
 	delete _timerProcB;
 	delete _timerProcIdle;
@@ -1057,8 +1055,7 @@ void TownsPC98_FmSynth::reset() {
 		_chanInternal[i].updateEnvelopeParameters = false;
 	}
 
-	memset(_registers[0], 0, 255);
-	memset(_registers[1], 0, 255);
+	memset(_registers, 0, sizeof(_registers));
 
 #ifdef ENABLE_SNDTOWNS98_WAITCYCLES
 	_waitCycleElapsedWrites.clear();
@@ -1139,8 +1136,7 @@ int TownsPC98_FmSynth::readBuffer(int16 *buffer, const int numSamples) {
 		}
 		delete[] _renderBuffer;
 		_renderBufferSize = requiredSize;
-		_renderBuffer = new int32[_renderBufferSize];
-		memset(_renderBuffer, 0, sizeof(int32) * _renderBufferSize);
+		_renderBuffer = new int32[_renderBufferSize]();
 	}
 
 	int outSamplesLeft = numSamples >> 1;
@@ -1320,8 +1316,7 @@ void TownsPC98_FmSynth::generateTables() {
 	}
 
 	delete[] _oprRateshift;
-	_oprRateshift = new uint8[130];
-	memset(_oprRateshift, 0, 130);
+	_oprRateshift = new uint8[130]();
 	dst = (uint8 *)_oprRateshift + 32;
 	for (int i = 11; i; i--) {
 		memset(dst, i, 4);
@@ -1334,8 +1329,7 @@ void TownsPC98_FmSynth::generateTables() {
 		_oprFrq[i] = (uint32)i << (11 - _rateScale);
 
 	delete[] _oprAttackDecay;
-	_oprAttackDecay = new uint8[152];
-	memset(_oprAttackDecay, 0, 152);
+	_oprAttackDecay = new uint8[152]();
 	for (int i = 0; i < 36; i++)
 		WRITE_BE_UINT32(_oprAttackDecay + (i << 2), _adtStat[i]);
 
@@ -1385,9 +1379,9 @@ void TownsPC98_FmSynth::writeRegInternal(uint8 part, uint8 regAddress, uint8 val
 	uint8 h = regAddress & 0xf0;
 	uint8 l = (regAddress & 0x0f);
 
-	ChanInternal *c = 0;
-	TownsPC98_FmSynthOperator **co = 0;
-	TownsPC98_FmSynthOperator *o = 0;
+	ChanInternal *c = nullptr;
+	TownsPC98_FmSynthOperator **co = nullptr;
+	TownsPC98_FmSynthOperator *o = nullptr;
 
 	bool checkAddress = false;
 	c = &_chanInternal[(l & 3) + 3 * part];
@@ -1606,58 +1600,58 @@ void TownsPC98_FmSynth::nextTick(int32 *buffer, uint32 bufferSize) {
 			switch (_chanInternal[i].algorithm) {
 			case 0:
 				o[0]->generateOutput(0, feed, phbuf1);
-				o[2]->generateOutput(*del, 0, phbuf2);
+				o[2]->generateOutput(*del, nullptr, phbuf2);
 				*del = 0;
-				o[1]->generateOutput(phbuf1, 0, *del);
-				o[3]->generateOutput(phbuf2, 0, output);
+				o[1]->generateOutput(phbuf1, nullptr, *del);
+				o[3]->generateOutput(phbuf2, nullptr, output);
 				break;
 			case 1:
 				o[0]->generateOutput(0, feed, phbuf1);
-				o[2]->generateOutput(*del, 0, phbuf2);
-				o[1]->generateOutput(0, 0, phbuf1);
-				o[3]->generateOutput(phbuf2, 0, output);
+				o[2]->generateOutput(*del, nullptr, phbuf2);
+				o[1]->generateOutput(0, nullptr, phbuf1);
+				o[3]->generateOutput(phbuf2, nullptr, output);
 				*del = phbuf1;
 				break;
 			case 2:
 				o[0]->generateOutput(0, feed, phbuf2);
-				o[2]->generateOutput(*del, 0, phbuf2);
-				o[1]->generateOutput(0, 0, phbuf1);
-				o[3]->generateOutput(phbuf2, 0, output);
+				o[2]->generateOutput(*del, nullptr, phbuf2);
+				o[1]->generateOutput(0, nullptr, phbuf1);
+				o[3]->generateOutput(phbuf2, nullptr, output);
 				*del = phbuf1;
 				break;
 			case 3:
 				o[0]->generateOutput(0, feed, phbuf2);
-				o[2]->generateOutput(0, 0, *del);
-				o[1]->generateOutput(phbuf2, 0, phbuf1);
-				o[3]->generateOutput(*del, 0, output);
+				o[2]->generateOutput(0, nullptr, *del);
+				o[1]->generateOutput(phbuf2, nullptr, phbuf1);
+				o[3]->generateOutput(*del, nullptr, output);
 				*del = phbuf1;
 				break;
 			case 4:
 				o[0]->generateOutput(0, feed, phbuf1);
-				o[2]->generateOutput(0, 0, phbuf2);
-				o[1]->generateOutput(phbuf1, 0, output);
-				o[3]->generateOutput(phbuf2, 0, output);
+				o[2]->generateOutput(0, nullptr, phbuf2);
+				o[1]->generateOutput(phbuf1, nullptr, output);
+				o[3]->generateOutput(phbuf2, nullptr, output);
 				*del = 0;
 				break;
 			case 5:
 				o[0]->generateOutput(0, feed, phbuf1);
-				o[2]->generateOutput(*del, 0, output);
-				o[1]->generateOutput(phbuf1, 0, output);
-				o[3]->generateOutput(phbuf1, 0, output);
+				o[2]->generateOutput(*del, nullptr, output);
+				o[1]->generateOutput(phbuf1, nullptr, output);
+				o[3]->generateOutput(phbuf1, nullptr, output);
 				*del = phbuf1;
 				break;
 			case 6:
 				o[0]->generateOutput(0, feed, phbuf1);
-				o[2]->generateOutput(0, 0, output);
-				o[1]->generateOutput(phbuf1, 0, output);
-				o[3]->generateOutput(0, 0, output);
+				o[2]->generateOutput(0, nullptr, output);
+				o[1]->generateOutput(phbuf1, nullptr, output);
+				o[3]->generateOutput(0, nullptr, output);
 				*del = 0;
 				break;
 			case 7:
 				o[0]->generateOutput(0, feed, output);
-				o[2]->generateOutput(0, 0, output);
-				o[1]->generateOutput(0, 0, output);
-				o[3]->generateOutput(0, 0, output);
+				o[2]->generateOutput(0, nullptr, output);
+				o[1]->generateOutput(0, nullptr, output);
+				o[3]->generateOutput(0, nullptr, output);
 				*del = 0;
 				break;
 			default:

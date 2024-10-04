@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,14 +42,28 @@ namespace Common {
  */
 class MemoryReadStream : virtual public SeekableReadStream {
 private:
-	const byte * const _ptrOrig;
+	struct CastFreeDeleter {
+		inline void operator()(const byte *object) {
+			free(const_cast<byte *>(object));
+		}
+	};
+
+	// Note when using SharedPtr, then deleting is handled
+	// by SharedPtr and not by CastFreeDeleter
+	Common::DisposablePtr<const byte, CastFreeDeleter> _ptrOrig;
 	const byte *_ptr;
-	const uint32 _size;
+	uint32 _size;
 	uint32 _pos;
-	DisposeAfterUse::Flag _disposeMemory;
 	bool _eos;
 
 public:
+	MemoryReadStream(MemoryReadStream &&other) : _ptrOrig(Common::move(other._ptrOrig)), _ptr(other._ptr), _size(other._size), _pos(other._pos), _eos(other._eos) {
+		// other must remaining in a valid state. Let's make it into zero-sized stream.
+		other._ptr = nullptr;
+		other._size = 0;
+		other._pos = 0;
+		other._eos = false;
+	}
 
 	/**
 	 * This constructor takes a pointer to a memory buffer and a length, and
@@ -58,17 +71,18 @@ public:
 	 * of the buffer and hence free's it when destructed.
 	 */
 	MemoryReadStream(const byte *dataPtr, uint32 dataSize, DisposeAfterUse::Flag disposeMemory = DisposeAfterUse::NO) :
-		_ptrOrig(dataPtr),
+		_ptrOrig(dataPtr, disposeMemory),
 		_ptr(dataPtr),
 		_size(dataSize),
 		_pos(0),
-		_disposeMemory(disposeMemory),
 		_eos(false) {}
 
-	~MemoryReadStream() {
-		if (_disposeMemory)
-			free(const_cast<byte *>(_ptrOrig));
-	}
+	MemoryReadStream(SharedPtr<byte> dataPtr, uint32 dataSize) :
+		_ptrOrig(dataPtr),
+		_ptr(dataPtr.get()),
+		_size(dataSize),
+		_pos(0),
+		_eos(false) {}
 
 	uint32 read(void *dataPtr, uint32 dataSize);
 
@@ -126,13 +140,13 @@ public:
 		return dataSize;
 	}
 
-	virtual int64 pos() const override { return _pos; }
-	virtual int64 size() const override { return _bufSize; }
+	int64 pos() const override { return _pos; }
+	int64 size() const override { return _bufSize; }
 
-	virtual bool err() const override { return _err; }
-	virtual void clearErr() override { _err = false; }
+	bool err() const override { return _err; }
+	void clearErr() override { _err = false; }
 
-	virtual bool seek(int64 offset, int whence = SEEK_SET) override { return false; }
+	bool seek(int64 offset, int whence = SEEK_SET) override { return false; }
 };
 
 /**
@@ -144,7 +158,7 @@ private:
 public:
 	SeekableMemoryWriteStream(byte *buf, uint32 len) : MemoryWriteStream(buf, len), _ptrOrig(buf) {}
 
-	virtual bool seek(int64 offset, int whence = SEEK_SET) override {
+	bool seek(int64 offset, int whence = SEEK_SET) override {
 		switch (whence) {
 		case SEEK_END:
 			// SEEK_END works just like SEEK_SET, only 'reversed',
@@ -232,12 +246,12 @@ public:
 		return dataSize;
 	}
 
-	virtual int64 pos() const override { return _pos; }
-	virtual int64 size() const override { return _size; }
+	int64 pos() const override { return _pos; }
+	int64 size() const override { return _size; }
 
 	byte *getData() { return _data; }
 
-	virtual bool seek(int64 offs, int whence = SEEK_SET) override {
+	bool seek(int64 offs, int whence = SEEK_SET) override {
 		// Pre-Condition
 		assert(_pos <= _size);
 		switch (whence) {
@@ -325,7 +339,7 @@ public:
 		return dataSize;
 	}
 
-	virtual uint32 read(void *dataPtr, uint32 dataSize) override {
+	uint32 read(void *dataPtr, uint32 dataSize) override {
 		if (_length < dataSize) {
 			dataSize = _length;
 			_eos = true;
@@ -343,11 +357,33 @@ public:
 		return dataSize;
 	}
 
-	virtual int64 pos() const override { return _pos - _length; }
-	virtual int64 size() const override { return _size; }
-	virtual bool seek(int64, int) override { return false; }
-	virtual bool eos() const override { return _eos; }
-	virtual void clearErr() override { _eos = false; }
+	bool seek(int64 offset, int whence) override {
+		switch (whence) {
+		case SEEK_END:
+			// SEEK_END works just like SEEK_SET, only 'reversed',
+			// i.e. from the end.
+			offset = size() + offset;
+			// Fall through
+		case SEEK_SET:
+			// Fall through
+		default:
+			_writePos = offset;
+			_readPos = offset;
+			break;
+		case SEEK_CUR:
+			// Not supported
+			return false;
+		}
+
+		// Post-Condition
+		_eos = (int64)_readPos >= size();
+		return true;
+	}
+
+	int64 pos() const override { return _pos - _length; }
+	int64 size() const override { return _size; }
+	bool eos() const override { return _eos; }
+	void clearErr() override { _eos = false; }
 
 	byte *getData() { return _data; }
 };

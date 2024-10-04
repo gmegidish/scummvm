@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,22 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "audio/fmopl.h"
 
-#include "audio/mixer.h"
+#ifdef USE_RETROWAVE
+#include "audio/rwopl3.h"
+#endif
 #include "audio/softsynth/opl/dosbox.h"
 #include "audio/softsynth/opl/mame.h"
 #include "audio/softsynth/opl/nuked.h"
 
 #include "common/config-manager.h"
-#include "common/system.h"
 #include "common/textconsole.h"
-#include "common/timer.h"
 #include "common/translation.h"
 
 namespace OPL {
@@ -49,6 +48,12 @@ namespace OPL2LPT {
 } // End of namespace OPL2LPT
 #endif // ENABLE_OPL2LPT
 
+#ifdef USE_RETROWAVE
+namespace RetroWaveOPL3 {
+	OPL *create(Config::OplType type);
+} // End of namespace RetroWaveOPL3
+#endif // ENABLE_RETROWAVE_OPL3
+
 // Config implementation
 
 enum OplEmulator {
@@ -58,13 +63,18 @@ enum OplEmulator {
 	kALSA = 3,
 	kNuked = 4,
 	kOPL2LPT = 5,
-	kOPL3LPT = 6
+	kOPL3LPT = 6,
+	kRWOPL3 = 7
 };
 
 OPL::OPL() {
 	if (_hasInstance)
 		error("There are multiple OPL output instances running");
 	_hasInstance = true;
+	_rhythmMode = false;
+	_connectionFeedbackValues[0] = 0;
+	_connectionFeedbackValues[1] = 0;
+	_connectionFeedbackValues[2] = 0;
 }
 
 const Config::EmulatorDescription Config::_drivers[] = {
@@ -81,9 +91,12 @@ const Config::EmulatorDescription Config::_drivers[] = {
 #endif
 #ifdef ENABLE_OPL2LPT
 	{ "opl2lpt", _s("OPL2LPT"), kOPL2LPT, kFlagOpl2},
-	{ "opl3lpt", _s("OPL3LPT"), kOPL3LPT, kFlagOpl2 | kFlagOpl3 },
+	{ "opl3lpt", _s("OPL3LPT"), kOPL3LPT, kFlagOpl2 | kFlagDualOpl2 | kFlagOpl3 },
 #endif
-	{ 0, 0, 0, 0 }
+#ifdef USE_RETROWAVE
+	{"rwopl3", _s("RetroWave OPL3"), kRWOPL3, kFlagOpl2 | kFlagDualOpl2 | kFlagOpl3},
+#endif
+	{ nullptr, nullptr, 0, 0 }
 };
 
 Config::DriverId Config::parse(const Common::String &name) {
@@ -101,7 +114,7 @@ const Config::EmulatorDescription *Config::findDriver(DriverId id) {
 			return &_drivers[i];
 	}
 
-	return 0;
+	return nullptr;
 }
 
 Config::DriverId Config::detect(OplType type) {
@@ -143,7 +156,7 @@ Config::DriverId Config::detect(OplType type) {
 		} else {
 			// Else we will output a warning and just
 			// return that no valid driver is found.
-			warning("Your selected OPL driver \"%s\" does not support type %d emulation, which is requested by your game", _drivers[drv].description, type);
+			warning("Your selected OPL driver \"%s\" does not support type %d emulation, which is requested by your game", driverDesc->description, type);
 			return -1;
 		}
 	}
@@ -181,7 +194,7 @@ OPL *Config::create(DriverId driver, OplType type) {
 		// be found, thus stop here.
 		if (driver == -1) {
 			warning("No OPL emulator available for type %d", type);
-			return 0;
+			return nullptr;
 		}
 	}
 
@@ -191,7 +204,7 @@ OPL *Config::create(DriverId driver, OplType type) {
 			return new MAME::OPL();
 		else
 			warning("MAME OPL emulator only supports OPL2 emulation");
-		return 0;
+		return nullptr;
 
 #ifndef DISABLE_DOSBOX_OPL
 	case kDOSBox:
@@ -217,159 +230,106 @@ OPL *Config::create(DriverId driver, OplType type) {
 		warning("OPL2LPT only supprts OPL2");
 		return 0;
 	case kOPL3LPT:
-		if (type == kOpl2 || type == kOpl3) {
-			return OPL2LPT::create(type);
-		}
+		return OPL2LPT::create(type);
+#endif
 
-		warning("OPL3LPT does not support dual OPL2");
-		return 0;
+#ifdef USE_RETROWAVE
+	case kRWOPL3:
+		return RetroWaveOPL3::create(type);
 #endif
 
 	default:
 		warning("Unsupported OPL emulator %d", driver);
 		// TODO: Maybe we should add some dummy emulator too, which just outputs
 		// silence as sound?
-		return 0;
+		return nullptr;
 	}
 }
 
-void OPL::start(TimerCallback *callback, int timerFrequency) {
-	_callback.reset(callback);
-	startCallbacks(timerFrequency);
+void OPL::initDualOpl2OnOpl3(Config::OplType oplType) {
+	if (oplType != Config::OplType::kDualOpl2)
+		return;
+
+	// Enable OPL3 mode.
+	writeReg(0x105, 1);
+
+	// Set panning for channels 0-8 and 9-17 to right and left, respectively.
+	for (int i = 0; i <= 0x100; i += 0x100) {
+		for (int j = 0xC0; j <= 0xC8; j++) {
+			writeReg(i | j, i == 0 ? 0x20 : 0x10);
+		}
+	}
 }
 
-void OPL::stop() {
-	stopCallbacks();
-	_callback.reset();
+bool OPL::emulateDualOpl2OnOpl3(int r, int v, Config::OplType oplType) {
+	if (oplType != Config::OplType::kDualOpl2)
+		return true;
+
+	// Prevent writes to the following registers of the second set:
+	// - 01 - Test register. Setting any bit here will disable output.
+	// - 04 - Connection select. This is used to enable 4 operator instruments,
+	//		  which are not used for dual OPL2.
+	// - 05 - New. Only allow writes which set bit 0 to 1, which enables OPL3
+	//		  features.
+	if (r == 0x101 || r == 0x104 || (r == 0x105 && ((v & 1) == 0)))
+		return false;
+
+	// Clear bit 2 of waveform select register writes. This will prevent
+	// selection of OPL3-specific waveforms, which are not used for dual OPL2.
+	if ((r & 0xFF) >= 0xE0 && (r & 0xFF) <= 0xF5 && ((v & 4) > 0)) {
+		writeReg(r, v & ~4);
+		return false;
+	}
+
+	// Handle rhythm mode register writes.
+	if ((r & 0xFF) == 0xBD) {
+		// Check if rhythm mode is enabled or disabled.
+		bool newRhythmMode = (v & 0x20) > 0;
+		if (newRhythmMode != _rhythmMode) {
+			_rhythmMode = newRhythmMode;
+			// Set panning for channels 6-8 (used by rhythm mode instruments)
+			// to center or right if rhythm mode is enabled or disabled,
+			// respectively.
+			writeReg(0xC6, (_rhythmMode ? 0x30 : 0x20) | _connectionFeedbackValues[0]);
+			writeReg(0xC7, (_rhythmMode ? 0x30 : 0x20) | _connectionFeedbackValues[1]);
+			writeReg(0xC8, (_rhythmMode ? 0x30 : 0x20) | _connectionFeedbackValues[2]);
+		}
+		if (r == 0x1BD) {
+			// Send writes to the rhythm mode register on the 2nd OPL2 to the
+			// single rhythm mode register on the OPL3.
+			writeReg(0xBD, v);
+			return false;
+		}
+	}
+
+	// Keep track of the connection and feedback values set for channels 6-8.
+	// This is necessary for handling rhythm mode panning (see above).
+	if (r >= 0xC6 && r <= 0xC8) {
+		_connectionFeedbackValues[r - 0xC6] = v & 0xF;
+	}
+
+	// Add panning bits to writes to the connection/feedback registers.
+	if ((r & 0xFF) >= 0xC0 && (r & 0xFF) <= 0xC8) {
+		// Add right or left panning for the first or second OPL2, respectively.
+		int newValue = (r < 0x100 ? 0x20 : 0x10) | (v & 0xF);
+		if (_rhythmMode && r >= 0xC6 && r <= 0xC8) {
+			// If rhythm mode is enabled, pan channels 6-8 center.
+			newValue = 0x30 | (v & 0xF);
+		}
+		if (v == newValue) {
+			// Panning bits are already correct.
+			return true;
+		} else {
+			// Write the new value with the correct panning bits instead.
+			writeReg(r, newValue);
+			return false;
+		}
+	}
+
+	// Any other register writes can be processed normally.
+	return true;
 }
 
 bool OPL::_hasInstance = false;
-
-RealOPL::RealOPL() : _baseFreq(0), _remainingTicks(0) {
-}
-
-RealOPL::~RealOPL() {
-	// Stop callbacks, just in case. If it's still playing at this
-	// point, there's probably a bigger issue, though. The subclass
-	// needs to call stop() or the pointer can still use be used in
-	// the mixer thread at the same time.
-	stop();
-}
-
-void RealOPL::setCallbackFrequency(int timerFrequency) {
-	stopCallbacks();
-	startCallbacks(timerFrequency);
-}
-
-void RealOPL::startCallbacks(int timerFrequency) {
-	_baseFreq = timerFrequency;
-	assert(_baseFreq > 0);
-
-	// We can't request more a timer faster than 100Hz. We'll handle this by calling
-	// the proc multiple times in onTimer() later on.
-	if (timerFrequency > kMaxFreq)
-		timerFrequency = kMaxFreq;
-
-	_remainingTicks = 0;
-	g_system->getTimerManager()->installTimerProc(timerProc, 1000000 / timerFrequency, this, "RealOPL");
-}
-
-void RealOPL::stopCallbacks() {
-	g_system->getTimerManager()->removeTimerProc(timerProc);
-	_baseFreq = 0;
-	_remainingTicks = 0;
-}
-
-void RealOPL::timerProc(void *refCon) {
-	static_cast<RealOPL *>(refCon)->onTimer();
-}
-
-void RealOPL::onTimer() {
-	uint callbacks = 1;
-
-	if (_baseFreq > kMaxFreq) {
-		// We run faster than our max, so run the callback multiple
-		// times to approximate the actual timer callback frequency.
-		uint totalTicks = _baseFreq + _remainingTicks;
-		callbacks = totalTicks / kMaxFreq;
-		_remainingTicks = totalTicks % kMaxFreq;
-	}
-
-	// Call the callback multiple times. The if is on the inside of the
-	// loop in case the callback removes itself.
-	for (uint i = 0; i < callbacks; i++)
-		if (_callback && _callback->isValid())
-			(*_callback)();
-}
-
-EmulatedOPL::EmulatedOPL() :
-	_nextTick(0),
-	_samplesPerTick(0),
-	_baseFreq(0),
-	_handle(new Audio::SoundHandle()) {
-}
-
-EmulatedOPL::~EmulatedOPL() {
-	// Stop callbacks, just in case. If it's still playing at this
-	// point, there's probably a bigger issue, though. The subclass
-	// needs to call stop() or the pointer can still use be used in
-	// the mixer thread at the same time.
-	stop();
-
-	delete _handle;
-}
-
-int EmulatedOPL::readBuffer(int16 *buffer, const int numSamples) {
-	const int stereoFactor = isStereo() ? 2 : 1;
-	int len = numSamples / stereoFactor;
-	int step;
-
-	do {
-		step = len;
-		if (step > (_nextTick >> FIXP_SHIFT))
-			step = (_nextTick >> FIXP_SHIFT);
-
-		generateSamples(buffer, step * stereoFactor);
-
-		_nextTick -= step << FIXP_SHIFT;
-		if (!(_nextTick >> FIXP_SHIFT)) {
-			if (_callback && _callback->isValid())
-				(*_callback)();
-
-			_nextTick += _samplesPerTick;
-		}
-
-		buffer += step * stereoFactor;
-		len -= step;
-	} while (len);
-
-	return numSamples;
-}
-
-int EmulatedOPL::getRate() const {
-	return g_system->getMixer()->getOutputRate();
-}
-
-void EmulatedOPL::startCallbacks(int timerFrequency) {
-	setCallbackFrequency(timerFrequency);
-	g_system->getMixer()->playStream(Audio::Mixer::kPlainSoundType, _handle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO, true);
-}
-
-void EmulatedOPL::stopCallbacks() {
-	g_system->getMixer()->stopHandle(*_handle);
-}
-
-void EmulatedOPL::setCallbackFrequency(int timerFrequency) {
-	_baseFreq = timerFrequency;
-	assert(_baseFreq != 0);
-
-	int d = getRate() / _baseFreq;
-	int r = getRate() % _baseFreq;
-
-	// This is equivalent to (getRate() << FIXP_SHIFT) / BASE_FREQ
-	// but less prone to arithmetic overflow.
-
-	_samplesPerTick = (d << FIXP_SHIFT) + (r << FIXP_SHIFT) / _baseFreq;
-}
 
 } // End of namespace OPL

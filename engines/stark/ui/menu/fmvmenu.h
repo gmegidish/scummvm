@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,8 +23,9 @@
 #define STARK_UI_MENU_FMV_MENU_H
 
 #include "engines/stark/ui/menu/locationscreen.h"
-
 #include "engines/stark/visual/text.h"
+
+#include "common/path.h"
 
 namespace Stark {
 
@@ -36,10 +36,6 @@ class FMVWidget;
  */
 class FMVMenuScreen : public StaticLocationScreen {
 public:
-	static Common::Point _formatRectPos;
-	static int _fontHeight;
-	static uint _fmvPerPage;
-
 	FMVMenuScreen(Gfx::Driver *gfx, Cursor *cursor);
 	virtual ~FMVMenuScreen();
 
@@ -61,6 +57,10 @@ private:
 	};
 
 	Common::Array<FMVWidget *> _fmvWidgets;
+
+	Common::Point _formatRectPos;
+	int _fontHeight;
+	uint _fmvPerPage;
 
 	// Count from zero
 	uint _page, _maxPage;
@@ -92,15 +92,19 @@ public:
 
 	void onClick();
 
-	void setTextColor(const Color &color) { _title.setColor(color); }
+	void setTextColor(const Gfx::Color &color) { _title.setColor(color); }
 
-	void onScreenChanged() { _title.resetTexture(); }
+	void onScreenChanged() { _title.reset(); }
 
 private:
-	static const Color _textColorHovered;
-	static const Color _textColorDefault;
+	const Gfx::Color _textColorHovered = Gfx::Color(0x1E, 0x1E, 0x96);
+	const Gfx::Color _textColorDefault = Gfx::Color(0x00, 0x00, 0x00);
 
-	const Common::String &_filename;
+	Common::Point _formatRectPos;
+	int _fontHeight;
+	uint _fmvPerPage;
+
+	const Common::Path &_filename;
 	VisualText _title;
 
 	int _width;

@@ -115,7 +115,7 @@ You don't need to enable **True Roland MT-32** in the MT-32 tab, ScummVM does th
 
     Some games work better with some MT-32 devices than others. As an example, Lure of the Temptress makes use of extra sound effects included with the CM-32L and won't sound right with an MT-32. Likewise, The Colonel's Bequest uses some bugs in the early MT-32 modules, which means that later devices will play incorrect sound effects!
 
-    `This Wikipedia article <https://en.wikipedia.org/wiki/List_of_MT-32-compatible_computer_games>`_ provides a comprehensive list of MT-32 compatible games, including which games work best with which device.
+    `This article <https://www.vogonswiki.com/index.php/List_of_MT-32-compatible_computer_games>`_ provides a comprehensive list of MT-32 compatible games, including which games work best with which device.
 
 The processor requirements for the MT-32 emulator are quite high; a fast CPU is strongly recommended.
 
@@ -175,7 +175,7 @@ AdLib devices do not use MIDI. They instead have a chip that produces sound thro
 
 The AdLib emulator setting offers MAME, DOSBox and Nuked emulation, with MAME being the least accurate and using the least CPU power, and Nuked being the most accurate and also using the most CPU power - DOSBox is somewhere in between.
 
-There is also the option to select the OPL2LPT and OPL3LPT devices, which are external hardware devices with a real OPL chip, connected through the parallel port of a computer.
+There is also the option to select the OPL2LPT, OPL3LPT and RetroWave OPL3 devices, which are external hardware devices with a real OPL chip, connected through the parallel port (OPLxLPT) or a USB port (RetroWave OPL3) of a computer. To use these devices you must specify some configuration settings in the :doc:`configuration file <../advanced_topics/configuration_file>`. The keys start with ``opl2lpt_`` and ``retrowaveopl3_``.
 
 AdLib does not require a SoundFont or ROMs, so for many games it might be the easiest to configure. However, if an MT-32 or GS emulator or device is available, ScummVM will prioritize this over AdLib.
 
@@ -212,7 +212,7 @@ ScummVM has to resample all sounds to the selected output frequency. It is recom
 Audio buffer size
 ==========================
 
-There is no option to control audio buffer size through the GUI, but the default value can be overridden in the the :doc:`configuration file <../advanced_topics/configuration_file>` with the *audio_buffer_size* configuration keyword. The default value is calculated based on output sampling frequency to keep audio latency below 45ms.
+There is no option to control audio buffer size through the GUI, but the default value can be overridden in the :doc:`configuration file <../advanced_topics/configuration_file>` with the *audio_buffer_size* configuration keyword. The default value is calculated based on output sampling frequency to keep audio latency below 45ms.
 
 Appropriate values are normally between 512 and 8192, but the value must be one of: 256, 512, 1024, 2048, 4096, 8192, 16384, or 32768.
 

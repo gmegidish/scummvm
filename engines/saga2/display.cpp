@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -49,7 +48,7 @@ bool                        paletteMayHaveChanged = false;
    Locals
  * ===================================================================== */
 
-static uint32 displayStatus = GraphicsInit;
+static uint32 displayStatus = kDisGraphicsInit;
 static bool paletteSuspendFlag = false;
 
 
@@ -57,10 +56,8 @@ static bool paletteSuspendFlag = false;
    Prototypes
  * ===================================================================== */
 
-void reDrawScreen();
 void localCursorOn();
 void localCursorOff();
-void loadingScreen();
 void resetInputDevices();
 APPFUNC(cmdWindowFunc);                      // main window event handler
 static void switchOn();
@@ -71,7 +68,7 @@ static void switchOff();
 
 void endGame() {
 	blackOut();
-	displayDisable(GameEnded);
+	displayDisable(kDisGameEnded);
 	g_vm->_gameRunning = false;
 }
 
@@ -89,7 +86,7 @@ void niceScreenStartup() {
 		cleanupGameState();
 		loadSavedGameState(ConfMan.getInt("save_slot"));
 
-		if (GameMode::newmodeFlag)
+		if (GameMode::_newmodeFlag)
 			GameMode::update();
 		updateActiveRegions();
 	}
@@ -111,8 +108,8 @@ void niceScreenStartup() {
 	reDrawScreen();
 	g_vm->_mouseInfo->replaceObject();
 	g_vm->_mouseInfo->clearGauge();
-	g_vm->_mouseInfo->setText(NULL);
-	g_vm->_mouseInfo->setIntent(GrabInfo::WalkTo);
+	g_vm->_mouseInfo->setText(nullptr);
+	g_vm->_mouseInfo->setIntent(GrabInfo::kIntWalkTo);
 	resetInputDevices();
 }
 
@@ -124,7 +121,7 @@ void initBackPanel() {
 		return;
 
 	mainWindow = new BackWindow(
-	                 Rect16(0, 0, screenWidth, screenHeight),
+	                 Rect16(0, 0, kScreenWidth, kScreenHeight),
 	                 0,
 	                 cmdWindowFunc);
 	if (mainWindow == nullptr)
@@ -168,14 +165,14 @@ bool displayOkay() {
 // Main on/off swiotch for display
 
 void mainEnable() {
-	displayEnable(GameNotInitialized);
+	displayEnable(kDisGameNotInitialized);
 }
 
 // ------------------------------------------------------------------------
 // This is a check to see if blitting is enabled
 
 void mainDisable() {
-	displayDisable(GameNotInitialized);
+	displayDisable(kDisGameNotInitialized);
 }
 
 // ------------------------------------------------------------------------
@@ -252,7 +249,7 @@ void reDrawScreen() {
  * ===================================================================== */
 
 void blackOut() {
-	g_vm->_mainPort.drawMode = drawModeReplace;
+	g_vm->_mainPort._drawMode = kDrawModeReplace;
 	g_vm->_mainPort.setColor(0);            //  fill screen with color
 	g_vm->_mainPort.fillRect(Rect16(0, 0, 640, 480));
 	g_vm->_pal->lightsOut();

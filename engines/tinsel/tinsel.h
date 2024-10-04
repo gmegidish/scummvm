@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,8 +64,32 @@ class Actor;
 class Handle;
 class Scroll;
 class Dialogs;
+class Notebook;
+class SystemReel;
 
 typedef Common::List<Common::Rect> RectList;
+
+enum TINSELAction {
+	kActionNone,
+	kActionWalkTo,
+	kActionAction,
+	kActionLook,
+	kActionEscape,
+	kActionOptionsDialog,
+	kActionInventory,
+	kActionNotebook,
+	kActionSave,
+	kActionLoad,
+	kActionQuit,
+	kActionPageUp,
+	kActionPageDown,
+	kActionHome,
+	kActionEnd,
+	kActionMoveUp,
+	kActionMoveDown,
+	kActionMoveLeft,
+	kActionMoveRight
+};
 
 enum {
 	kTinselDebugAnimations = 1 << 0,
@@ -84,7 +107,7 @@ enum TinselKeyDirection {
 	MSK_DIRECTION = MSK_LEFT | MSK_RIGHT | MSK_UP | MSK_DOWN
 };
 
-typedef bool (*KEYFPTR)(const Common::KeyState &);
+typedef bool (*KEYFPTR)(const Common::KeyState &, const Common::CustomEventType &);
 
 #define	SCREEN_WIDTH	(_vm->screen().w)	// PC screen dimensions
 #define	SCREEN_HEIGHT	(_vm->screen().h)
@@ -100,17 +123,14 @@ typedef bool (*KEYFPTR)(const Common::KeyState &);
 #define GAME_FRAME_DELAY (1000 / ONE_SECOND)
 
 #define TinselVersion (_vm->getVersion())
-#define TinselV0 (TinselVersion == TINSEL_V0)
-#define TinselV1 (TinselVersion == TINSEL_V1)
-#define TinselV2 (TinselVersion == TINSEL_V2 || TinselVersion == TINSEL_V3)
-#define TinselV3 (TinselVersion == TINSEL_V3)
-#define TinselV2Demo (TinselVersion == TINSEL_V2 && _vm->getIsADGFDemo())
-#define TinselV1PSX (TinselVersion == TINSEL_V1 && _vm->getPlatform() == Common::kPlatformPSX)
-#define TinselV1Mac (TinselVersion == TINSEL_V1 && _vm->getPlatform() == Common::kPlatformMacintosh)
-#define TinselV1Saturn (TinselVersion == TINSEL_V1 && _vm->getPlatform() == Common::kPlatformSaturn)
+#define TinselV2Demo (TinselVersion == 2 && _vm->getIsADGFDemo())
+#define TinselV1PSX (TinselVersion == 1 && _vm->getPlatform() == Common::kPlatformPSX)
+#define TinselV1Mac (TinselVersion == 1 && _vm->getPlatform() == Common::kPlatformMacintosh)
+#define TinselV1Saturn (TinselVersion == 1 && _vm->getPlatform() == Common::kPlatformSaturn)
 
 #define READ_16(v) (TinselV1Mac || TinselV1Saturn ? READ_BE_UINT16(v) : READ_LE_UINT16(v))
 #define READ_32(v) (TinselV1Mac || TinselV1Saturn ? READ_BE_UINT32(v) : READ_LE_UINT32(v))
+#define WRITE_32(p, v) (TinselV1Mac || TinselV1Saturn ? WRITE_BE_UINT32(p, v) : WRITE_LE_UINT32(p, v))
 #define FROM_16(v) (TinselV1Mac || TinselV1Saturn ? FROM_BE_16(v) : FROM_LE_16(v))
 #define FROM_32(v) (TinselV1Mac || TinselV1Saturn ? FROM_BE_32(v) : FROM_LE_32(v))
 #define TO_32(v)   (TinselV1Mac || TinselV1Saturn ? TO_BE_32(v) : TO_LE_32(v))
@@ -129,6 +149,7 @@ class TinselEngine : public Engine {
 	static const char *const _sampleIndices[][3];
 	static const char *const _sampleFiles[][3];
 	static const char *const _textFiles[][3];
+	static const char *const _sceneFiles[];
 
 protected:
 
@@ -140,7 +161,7 @@ protected:
 #if 0
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false);
 #endif
-	bool canLoadGameStateCurrently() override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
 #if 0
 	bool canSaveGameStateCurrently();
 #endif
@@ -164,6 +185,8 @@ public:
 	const char *getSampleIndex(LANGUAGE lang);
 	const char *getSampleFile(LANGUAGE lang);
 	const char *getTextFile(LANGUAGE lang);
+	// Noir
+	const char *getSceneFile(LANGUAGE lang);
 
 	MidiDriver *_driver;
 	SoundManager *_sound;
@@ -179,6 +202,8 @@ public:
 	Config *_config;
 	Scroll *_scroll;
 	Dialogs *_dialogs;
+	Notebook *_notebook = nullptr;
+	SystemReel *_systemReel = nullptr;
 
 	KEYFPTR _keyHandler;
 
@@ -213,7 +238,7 @@ public:
 		pt.x = CLIP<int16>(pt.x, 0, SCREEN_WIDTH - 1);
 		pt.y = CLIP<int16>(pt.y, 0, SCREEN_HEIGHT - 1);
 
-		int yOffset = TinselV2 ? (g_system->getHeight() - _screenSurface.h) / 2 : 0;
+		int yOffset = (TinselVersion >= 2) ? (g_system->getHeight() - _screenSurface.h) / 2 : 0;
 		g_system->warpMouse(pt.x, pt.y + yOffset);
 		_mousePos = pt;
 	}

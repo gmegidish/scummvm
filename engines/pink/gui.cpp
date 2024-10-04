@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/config-manager.h"
 #include "common/translation.h"
+
+#include "engines/metaengine.h"
 
 #include "graphics/macgui/macwindowmanager.h"
 #include "graphics/macgui/macmenu.h"
@@ -29,7 +30,7 @@
 #include "gui/message.h"
 
 #include "pink/pink.h"
-#include "pink/director.h"
+#include "pink/screen.h"
 #include "pink/objects/actors/lead_actor.h"
 
 namespace Pink {
@@ -128,19 +129,79 @@ enum {
 	kShowAbout					= 57664
 };
 
+enum {
+	kRecentSaveId		= 9,
+	kRecentSavesOffset	= 400000
+};
+
+static const int kMaxSaves = 10;
+
 static void menuCommandsCallback(int action, Common::U32String &, void *data) {
 	PinkEngine *engine = (PinkEngine *)data;
 
 	engine->executeMenuCommand(action);
 }
 
-void PinkEngine::initMenu() {
-	_director->getWndManager().setEngine(this);
+struct SaveStateDescriptorTimeComparator {
+	bool operator()(const SaveStateDescriptor &x, const SaveStateDescriptor &y) const {
+		return x.getSaveDate() == y.getSaveDate() ? x.getSaveTime() > y.getSaveTime() : x.getSaveDate() > y.getSaveDate();
+	}
+};
 
-	_menu = Graphics::MacMenu::createMenuFromPEexe(_exeResources, &_director->getWndManager());
+SaveStateList PinkEngine::listSaves() const {
+	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
+	Common::String pattern = getMetaEngine()->getSavegameFile(kSavegameFilePattern, _targetName.c_str());
+	Common::StringArray filenames = saveFileMan->listSavefiles(pattern);
+
+	SaveStateList saveList;
+	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
+		// Obtain the last 2 digits of the filename, since they correspond to the save slot
+		int slotNum = atoi(file->c_str() + file->size() - 2);
+		Common::ScopedPtr<Common::InSaveFile> in(saveFileMan->openForLoading(*file));
+		if (in) {
+			SaveStateDescriptor desc;
+			desc.setSaveSlot(slotNum);
+			if (Pink::readSaveHeader(*in.get(), desc))
+				saveList.push_back(desc);
+		}
+	}
+
+	// Sort saves based on save time.
+	Common::sort(saveList.begin(), saveList.end(), SaveStateDescriptorTimeComparator());
+	return saveList;
+}
+
+void PinkEngine::initMenu() {
+	_screen->getWndManager().setEngine(this);
+
+	_menu = Graphics::MacMenu::createMenuFromPEexe(_exeResources, &_screen->getWndManager());
 	if (getLanguage() == Common::HE_ISR) {
 		_menu->setAlignment(Graphics::kTextAlignRight);
 	}
+
+	Graphics::MacMenuSubMenu *subMenu = _menu->getSubmenu(nullptr, 0);
+	if (subMenu) {
+
+		if (isPerilDemo()) {
+			// From the first submenu ("Game"), disable the (zero indexed) item 5 ("Songs").
+			// Use setEnabled() rather than removeMenuItem() since the latter removes the item
+			// out of the list changing the index for the items that follow.
+			// The effect is that "Songs" will be greyed out for the demo, since it's not available for it.
+			// The original demo does not have the "Songs" item in the menu at all.
+			_menu->setEnabled( _menu->getSubMenuItem(_menu->getMenuItem(0), 5), false);
+		}
+
+		SaveStateList saves = listSaves();
+		if (!saves.empty()) {
+			_menu->removeMenuItem(subMenu, kRecentSaveId);
+			int maxSaves = saves.size() > kMaxSaves ? kMaxSaves : saves.size();
+			for (int i = 0; i < maxSaves; ++i) {
+				_menu->insertMenuItem(subMenu, Common::U32String::format("%i. %S", i + 1, saves[i].getDescription().u32_str()),
+										kRecentSaveId + i, saves[i].getSaveSlot() + kRecentSavesOffset);
+			}
+		}
+	}
+
 	_menu->calcDimensions();
 	_menu->setCommandsCallback(&menuCommandsCallback, this);
 }
@@ -149,10 +210,19 @@ void PinkEngine::executeMenuCommand(uint id) {
 	if (executePageChangeCommand(id))
 		return;
 
+	if (id >= kRecentSavesOffset) {
+		int slotNum = id - kRecentSavesOffset;
+		Common::Error loadError = loadGameState(slotNum);
+		if (loadError.getCode() != Common::kNoError) {
+			GUI::MessageDialog errorDialog(loadError.getDesc());
+			errorDialog.runModal();
+		}
+		return;
+	}
+
 	switch (id) {
 	case kNewGameAction: {
-		const Common::String moduleName = _modules[0]->getName();
-		initModule(moduleName, "", nullptr);
+		initModule(_modules[0]->getName(), "", nullptr);
 		break;
 	}
 	case kLoadSave:
@@ -170,6 +240,7 @@ void PinkEngine::executeMenuCommand(uint id) {
 	case kExitAction:
 		openMainMenuDialog();
 		break;
+
 	case kSongsAction:
 		initModule("Muzik", "", nullptr);
 		break;
@@ -242,10 +313,10 @@ bool PinkEngine::executePageChangeCommand(uint id) {
 }
 
 void PinkEngine::openLocalWebPage(const Common::String &pageName) const {
-	Common::FSNode gameFolder = Common::FSNode(ConfMan.get("path"));
+	Common::FSNode gameFolder = Common::FSNode(ConfMan.getPath("path"));
 	Common::FSNode filePath = gameFolder.getChild("INSTALL").getChild(pageName);
 	if (filePath.exists()) {
-		Common::String fullUrl = Common::String::format("file:///%s", filePath.getPath().c_str());
+		Common::String fullUrl = Common::String::format("file:///%s", filePath.getPath().toString('/').c_str());
 		_system->openUrl(fullUrl);
 	}
 }

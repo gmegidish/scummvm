@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -659,7 +658,7 @@ bool Scene50::updateCountdown() {
 
 void Scene50::drawCountdown(int value) {
 	char str[8];
-	sprintf(str, "%02d", value);
+	Common::sprintf_s(str, "%02d", value);
 	_vm->_gameSys->fillSurface(nullptr, 371, 505, 50, 27, 0, 0, 0);
 	_vm->_gameSys->drawTextToSurface(nullptr, 381, 504, 255, 255, 255, str);
 }
@@ -2637,7 +2636,7 @@ void Scene52::initAnims() {
 
 void Scene52::drawScore(int score) {
 	char str[4];
-	sprintf(str, "%03d", score);
+	Common::sprintf_s(str, "%03d", score);
 	_vm->_gameSys->fillSurface(nullptr, 420, 80, 48, 30, 0, 0, 0);
 	_vm->_gameSys->drawTextToSurface(nullptr, 420, 80, 255, 255, 255, str);
 }

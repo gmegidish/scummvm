@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,7 @@
 #include "sci/engine/kernel.h"
 #include "sci/engine/selector.h"
 #include "sci/engine/state.h"
+#include "sci/engine/tts.h"
 #include "sci/graphics/cache.h"
 #include "sci/graphics/celobj32.h"
 #include "sci/graphics/compare.h"
@@ -326,6 +326,8 @@ void GfxText32::drawTextBox() {
 		return;
 	}
 
+	g_sci->_tts->text(_text);
+
 	const char *text = _text.c_str();
 	const char *sourceText = text;
 	int16 textRectWidth = _textRect.width();
@@ -390,7 +392,7 @@ void GfxText32::drawText(const uint index, uint length) {
 	} else {
 		const char *textOrig = _text.c_str() + index;
 		Common::String textLogical = Common::String(textOrig, (uint32)length);
-		textString = Common::convertBiDiString(textLogical, g_sci->getLanguage());
+		textString = Common::convertBiDiString(textLogical, g_sci->getLanguage(), Common::BiDiParagraph::BIDI_PAR_RTL);
 		text = textString.c_str();
 	}
 

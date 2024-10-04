@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,7 +65,7 @@ TattooScene::TattooScene(SherlockEngine *vm) : Scene(vm), _labWidget(vm) {
 	_labTableScene = false;
 }
 
-bool TattooScene::loadScene(const Common::String &filename) {
+bool TattooScene::loadScene(const Common::Path &filename) {
 	TattooEngine &vm = *(TattooEngine *)_vm;
 	Events &events = *_vm->_events;
 	Music &music = *_vm->_music;
@@ -80,7 +79,7 @@ bool TattooScene::loadScene(const Common::String &filename) {
 		talk._talkToAbort = false;
 	}
 
-	// Check if it's a scene we need to keep trakc track of how many times we've visited
+	// Check if it's a scene we need to keep track of how many times we've visited
 	for (int idx = (int)_sceneTripCounters.size() - 1; idx >= 0; --idx) {
 		if (_sceneTripCounters[idx]._sceneNumber == _currentScene) {
 			if (--_sceneTripCounters[idx]._numTimes == 0) {
@@ -650,7 +649,7 @@ int TattooScene::startCAnim(int cAnimNum, int playRate) {
 	if (talk._talkToAbort)
 		return 1;
 
-	// Turn the player (and NPC #1 if neccessary) off before running the canimation
+	// Turn the player (and NPC #1 if necessary) off before running the canimation
 	if (teleport1.x != -1 && savedPlayerType == CHARACTER)
 		people[HOLMES]._type = REMOVE;
 
@@ -804,7 +803,21 @@ int TattooScene::findBgShape(const Common::Point &pt) {
 void TattooScene::synchronize(Serializer &s) {
 	TattooEngine &vm = *(TattooEngine *)_vm;
 	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
+	uint numSceneTripCounters = 0;
 	Scene::synchronize(s);
+
+	// Since save version 5: sync _sceneTripCounters
+	if (s.isSaving())
+		numSceneTripCounters = _sceneTripCounters.size();
+	s.syncAsUint32LE(numSceneTripCounters, 5);
+	if (s.isLoading())
+		_sceneTripCounters.resize(numSceneTripCounters);
+
+	for (auto &tripCounter : _sceneTripCounters) {
+		s.syncAsSint32LE(tripCounter._flag, 5);
+		s.syncAsSint32LE(tripCounter._sceneNumber, 5);
+		s.syncAsSint32LE(tripCounter._numTimes, 5);
+	}
 
 	if (s.isLoading()) {
 		// In case we were showing the intro prologue or the ending credits, stop them

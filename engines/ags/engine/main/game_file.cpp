@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,6 @@
 
 #include "ags/shared/ac/common.h"
 #include "ags/engine/ac/character.h"
-#include "ags/engine/ac/character_cache.h"
 #include "ags/shared/ac/dialog_topic.h"
 #include "ags/engine/ac/draw.h"
 #include "ags/engine/ac/game.h"
@@ -46,7 +44,7 @@
 #include "ags/shared/gui/gui_label.h"
 #include "ags/engine/main/main.h"
 #include "ags/engine/platform/base/ags_platform_driver.h"
-#include "ags/shared/script/cc_error.h"
+#include "ags/shared/script/cc_common.h"
 #include "ags/engine/script/script.h"
 #include "ags/shared/util/aligned_stream.h"
 #include "ags/shared/util/stream.h"
@@ -78,7 +76,7 @@ String get_caps_list(const std::set<String> &caps) {
 // Called when the game file is opened for the first time (when preloading game data);
 // it logs information on data version and reports first found errors, if any.
 HGameFileError game_file_first_open(MainGameSource &src) {
-	HGameFileError err = OpenMainGameFileFromDefaultAsset(src);
+	HGameFileError err = OpenMainGameFileFromDefaultAsset(src, _G(AssetMgr)->get());
 	if (err ||
 	        err->Code() == kMGFErr_SignatureFailed ||
 	        err->Code() == kMGFErr_FormatVersionTooOld ||
@@ -120,15 +118,15 @@ HError preload_game_data() {
 static inline HError MakeScriptLoadError(const char *name) {
 	return new Error(String::FromFormat(
 		"Failed to load a script module: %s", name),
-		_G(ccErrorString));
+		cc_get_error().ErrorString);
 }
 
 // Looks up for the game scripts available as separate assets.
 // These are optional, so no error is raised if some of these are not found.
 // For those that do exist, reads them and replaces any scripts of same kind
 // in the already loaded game data.
-HError LoadGameScripts(LoadedGameEntities &ents, GameDataVersion data_ver) {
-	// Global script 
+HError LoadGameScripts(LoadedGameEntities &ents) {
+	// Global script
 	std::unique_ptr<Stream> in(_GP(AssetMgr)->OpenAsset("GlobalScript.o"));
 	if (in) {
 		PScript script(ccScript::CreateFromStream(in.get()));
@@ -171,29 +169,43 @@ HError LoadGameScripts(LoadedGameEntities &ents, GameDataVersion data_ver) {
 
 HError load_game_file() {
 	MainGameSource src;
-	LoadedGameEntities ents(_GP(game), _G(dialog), _G(views));
-	HError err = (HError)OpenMainGameFileFromDefaultAsset(src);
-	if (err) {
-		err = (HError)ReadGameData(ents, src.InputStream.get(), src.DataVersion);
-		src.InputStream.reset();
-		if (err) {
-			// Upscale mode -- for old games that supported it.
-			// NOTE: this must be done before UpdateGameData, or resolution-dependant
-			// adjustments won't be applied correctly.
-			if ((_G(loaded_game_file_version) < kGameVersion_310) && _GP(usetup).override_upscale) {
-				if (_GP(game).GetResolutionType() == kGameResolution_320x200)
-					_GP(game).SetGameResolution(kGameResolution_640x400);
-				else if (_GP(game).GetResolutionType() == kGameResolution_320x240)
-					_GP(game).SetGameResolution(kGameResolution_640x480);
-			}
-
-			err = (HError)UpdateGameData(ents, src.DataVersion);
-		}
-	}
-
+	LoadedGameEntities ents(_GP(game));
+	HError err = (HError)OpenMainGameFileFromDefaultAsset(src, _GP(AssetMgr).get());
 	if (!err)
 		return err;
-	err = LoadGameScripts(ents, src.DataVersion);
+
+	err = (HError)ReadGameData(ents, src.InputStream.get(), src.DataVersion);
+	if (!err)
+		return err;
+	src.InputStream.reset();
+
+	//-------------------------------------------------------------------------
+	// Data overrides: for compatibility mode and custom engine support
+	// NOTE: this must be done before UpdateGameData, or certain adjustments
+	// won't be applied correctly.
+
+	// Custom engine detection (ugly hack, depends on the known game GUIDs)
+	if (strcmp(_GP(game).guid, "{d6795d1c-3cfe-49ec-90a1-85c313bfccaf}" /* Kathy Rain */ ) == 0 ||
+		strcmp(_GP(game).guid, "{5833654f-6f0d-40d9-99e2-65c101c8544a}" /* Whispers of a Machine */ ) == 0)
+	{
+		_GP(game).options[OPT_CUSTOMENGINETAG] = CUSTOMENG_CLIFFTOP;
+	}
+	// Upscale mode -- for old games that supported it.
+	if ((_G(loaded_game_file_version) < kGameVersion_310) && _GP(usetup).override_upscale) {
+		if (_GP(game).GetResolutionType() == kGameResolution_320x200 || _GP(game).GetResolutionType() == kGameResolution_Default)
+			_GP(game).SetGameResolution(kGameResolution_640x400);
+		else if (_GP(game).GetResolutionType() == kGameResolution_320x240)
+			_GP(game).SetGameResolution(kGameResolution_640x480);
+	}
+	if (_GP(game).options[OPT_CUSTOMENGINETAG] == CUSTOMENG_CLIFFTOP) {
+		if (_GP(game).GetResolutionType() == kGameResolution_640x400)
+			_GP(game).SetGameResolution(Size(640, 360));
+	}
+
+	err = (HError)UpdateGameData(ents, src.DataVersion);
+	if (!err)
+		return err;
+	err = LoadGameScripts(ents);
 	if (!err)
 		return err;
 	err = (HError)InitGameState(ents, src.DataVersion);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,14 +58,7 @@ enum ObjectStateV2 {
 	kObjectStatePickupable = 1,
 	kObjectStateUntouchable = 2,
 	kObjectStateLocked = 4,
-
-	// FIXME: Not quite sure how to name state 8. It seems to mark some kind
-	// of "activation state" for the given object. E.g. is a door open?
-	// Is a drawer extended? In addition it is used to toggle the look
-	// of objects that the user can "pick up" (i.e. it is set in
-	// o2_pickupObject together with kObjectStateUntouchable). So in a sense,
-	// it can also mean "invisible" in some situations.
-	kObjectState_08 = 8
+	kObjectStateIntrinsic = 8 // Some kind of general ON/OFF property for an object
 };
 
 struct ObjectData {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -62,24 +61,25 @@ int MoviePlayer::getImageNum() {
 	return _wizResNum;
 }
 
-int MoviePlayer::load(const Common::String &filename, int flags, int image) {
+int MoviePlayer::load(const Common::Path &filename, int flags, int image) {
 	if (_video->isVideoLoaded())
 		_video->close();
 
-	// Ensure that Bink will use our PixelFormat
-	_video->setDefaultHighColorFormat(g_system->getScreenFormat());
-
 	if (!_video->loadFile(filename)) {
-		warning("Failed to load video file %s", filename.c_str());
+		warning("Failed to load video file %s", filename.toString().c_str());
 		return -1;
 	}
 
+	// Ensure that Bink will use our PixelFormat
+	_video->setOutputPixelFormat(g_system->getScreenFormat());
+
 	_video->start();
 
-	debug(1, "Playing video %s", filename.c_str());
+	debug(1, "Playing video %s", filename.toString().c_str());
 
-	if (flags & 2)
-		_vm->_wiz->createWizEmptyImage(image, 0, 0, _video->getWidth(), _video->getHeight());
+	int bitsPerPixel = (_vm->_game.features & GF_16BIT_COLOR) ? 16 : 8;
+	if (flags & vfImageSurface)
+		_vm->_wiz->dwCreateRawWiz(image, _video->getWidth(), _video->getHeight(), kCWFDefault, bitsPerPixel, 0, 0);
 
 	_flags = flags;
 	_wizResNum = image;
@@ -156,17 +156,17 @@ void MoviePlayer::handleNextFrame() {
 
 	VirtScreen *pvs = &_vm->_virtscr[kMainVirtScreen];
 
-	if (_flags & 2) {
+	if (_flags & vfImageSurface) {
 		uint8 *dstPtr = _vm->getResourceAddress(rtImage, _wizResNum);
 		assert(dstPtr);
 		uint8 *dst = _vm->findWrappedBlock(MKTAG('W','I','Z','D'), dstPtr, 0, 0);
 		assert(dst);
 		copyFrameToBuffer(dst, kDstResource, 0, 0, _vm->_screenWidth * _vm->_bytesPerPixel);
-	} else if (_flags & 1) {
+	} else if (_flags & vfBackground) {
 		copyFrameToBuffer(pvs->getBackPixels(0, 0), kDstScreen, 0, 0, pvs->pitch);
 
 		Common::Rect imageRect(_video->getWidth(), _video->getHeight());
-		_vm->restoreBackgroundHE(imageRect);
+		_vm->backgroundToForegroundBlit(imageRect);
 	} else {
 		copyFrameToBuffer(pvs->getPixels(0, 0), kDstScreen, 0, 0, pvs->pitch);
 

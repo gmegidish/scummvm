@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,7 @@
 #include "scumm/resource.h"
 #include "scumm/he/resource_he.h"
 #include "scumm/he/sound_he.h"
+#include "scumm/util.h"
 
 #include "audio/decoders/wave.h"
 #include "graphics/cursorman.h"
@@ -35,7 +35,7 @@
 #include "common/archive.h"
 #include "common/memstream.h"
 #include "common/system.h"
-#include "common/winexe_pe.h"
+#include "common/formats/winexe_pe.h"
 
 namespace Scumm {
 
@@ -62,12 +62,12 @@ ResExtractor::CachedCursor *ResExtractor::findCachedCursor(int id) {
 		if (_cursorCache[i].valid && _cursorCache[i].id == id)
 			return &_cursorCache[i];
 
-	return NULL;
+	return nullptr;
 }
 
 ResExtractor::CachedCursor *ResExtractor::getCachedCursorSlot() {
 	uint32 minLastUsed = 0;
-	CachedCursor *r = NULL;
+	CachedCursor *r = nullptr;
 
 	for (int i = 0; i < MAX_CACHED_CURSORS; ++i) {
 		CachedCursor *cc = &_cursorCache[i];
@@ -90,7 +90,7 @@ ResExtractor::CachedCursor *ResExtractor::getCachedCursorSlot() {
 void ResExtractor::setCursor(int id) {
 	CachedCursor *cc = findCachedCursor(id);
 
-	if (cc != NULL) {
+	if (cc != nullptr) {
 		debug(7, "Found cursor %d in cache slot %lu", id, (long)(cc - _cursorCache));
 	} else {
 		cc = getCachedCursorSlot();
@@ -127,7 +127,7 @@ bool Win32ResExtractor::extractResource(int id, CachedCursor *cc) {
 		_fileName = _vm->generateFilename(-3);
 
 		if (!_exe->loadFromEXE(_fileName))
-			error("Cannot open file %s", _fileName.c_str());
+			error("Cannot open file %s", _fileName.toString(Common::Path::kNativeSeparator).c_str());
 	}
 
 	Graphics::WinCursorGroup *group = Graphics::WinCursorGroup::createCursorGroup(_exe, id);
@@ -145,9 +145,12 @@ bool Win32ResExtractor::extractResource(int id, CachedCursor *cc) {
 
 	// Convert from the paletted format to the SCUMM palette
 	const byte *srcBitmap = cursor->getSurface();
+	const byte *srcMask = cursor->getMask();
 
 	for (int i = 0; i < cursor->getWidth() * cursor->getHeight(); i++) {
-		if (srcBitmap[i] == cursor->getKeyColor()) // Transparent
+		const bool isTransparent = (srcMask ? (srcMask[i] != kCursorMaskOpaque) : (srcBitmap[i] == cursor->getKeyColor()));
+
+		if (isTransparent)
 			cc->bitmap[i] = 255;
 		else if (srcBitmap[i] == 0)                // Black
 			cc->bitmap[i] = 253;
@@ -160,15 +163,16 @@ bool Win32ResExtractor::extractResource(int id, CachedCursor *cc) {
 }
 
 MacResExtractor::MacResExtractor(ScummEngine_v70he *scumm) : ResExtractor(scumm) {
-	_resMgr = NULL;
+	_resMgr = nullptr;
 }
 
 bool MacResExtractor::extractResource(int id, CachedCursor *cc) {
 	// Create the MacResManager if not created already
-	if (_resMgr == NULL) {
+	if (_resMgr == nullptr) {
 		_resMgr = new Common::MacResManager();
-		if (!_resMgr->open(_vm->generateFilename(-3)))
-			error("Cannot open file %s", _fileName.c_str());
+		_fileName = _vm->generateFilename(-3);
+		if (!_resMgr->open(_fileName))
+			error("Cannot open file %s", _fileName.toString(Common::Path::kNativeSeparator).c_str());
 	}
 
 	Common::SeekableReadStream *dataStream = _resMgr->getResource('crsr', id + 1000);
@@ -283,7 +287,7 @@ void ScummEngine_v99he::readMAXS(int blockSize) {
 		_numTalkies = _fileHandle->readUint16LE();
 		_numNewNames = 10;
 
-		_objectRoomTable = (byte *)calloc(_numGlobalObjects, 1);
+		_objectRoomTable = (byte *)reallocateArray(_objectRoomTable, _numGlobalObjects, 1);
 		_numGlobalScripts = 2048;
 	} else
 		ScummEngine_v90he::readMAXS(blockSize);
@@ -310,9 +314,14 @@ void ScummEngine_v90he::readMAXS(int blockSize) {
 		_numSprites = _fileHandle->readUint16LE();
 		_numLocalScripts = _fileHandle->readUint16LE();
 		_HEHeapSize = _fileHandle->readUint16LE();
+
+		// In the original, this is hardcoded as well...
+		if (_game.heversion > 90)
+			_numPalettes = 16;
+
 		_numNewNames = 10;
 
-		_objectRoomTable = (byte *)calloc(_numGlobalObjects, 1);
+		_objectRoomTable = (byte *)reallocateArray(_objectRoomTable, _numGlobalObjects, 1);
 		if (_game.features & GF_HE_985)
 			_numGlobalScripts = 2048;
 		else
@@ -341,7 +350,7 @@ void ScummEngine_v72he::readMAXS(int blockSize) {
 		_numImages = _fileHandle->readUint16LE();
 		_numNewNames = 10;
 
-		_objectRoomTable = (byte *)calloc(_numGlobalObjects, 1);
+		_objectRoomTable = (byte *)reallocateArray(_objectRoomTable, _numGlobalObjects, 1);
 		_numGlobalScripts = 200;
 	} else
 		ScummEngine_v6::readMAXS(blockSize);
@@ -356,9 +365,10 @@ byte *ScummEngine_v72he::getStringAddress(ResId idx) {
 
 int ScummEngine_v72he::getSoundResourceSize(ResId id) {
 	const byte *ptr;
-	int offs, size;
+	int offs;
+	int size = 0;
 
-	if (id > _numSounds) {
+	if (id >= _numSounds) {
 		if (!((SoundHE *)_sound)->getHEMusicDetails(id, offs, size)) {
 			debug(0, "getSoundResourceSize: musicID %d not found", id);
 			return 0;
@@ -368,24 +378,31 @@ int ScummEngine_v72he::getSoundResourceSize(ResId id) {
 		if (!ptr)
 			return 0;
 
-		if (READ_BE_UINT32(ptr) == MKTAG('R','I','F','F')) {
-			byte flags;
-			int rate;
+		if (_game.heversion < 95) {
+			if (_game.version >= 80) {
+				ptr = findResourceData(MKTAG('S', 'D', 'A', 'T'), ptr);
+				if (!ptr) {
+					return 0;
+				}
 
-			size = READ_BE_UINT32(ptr + 4);
-			Common::MemoryReadStream stream(ptr, size);
-
-			if (!Audio::loadWAVFromStream(stream, size, rate, flags)) {
-				error("getSoundResourceSize: Not a valid WAV file");
+				return READ_BE_UINT32(ptr + 4) - 8;
+			} else {
+				return READ_BE_UINT32(ptr + HSND_RES_OFFSET_LEN3) - 8;
 			}
 		} else {
-			ptr += 8 + READ_BE_UINT32(ptr + 12);
-			if (READ_BE_UINT32(ptr) == MKTAG('S','B','N','G')) {
-				ptr += READ_BE_UINT32(ptr + 4);
-			}
+			if (READ_BE_UINT32(ptr) == MKTAG('W', 'S', 'O', 'U')) {
+				// Wrapped .wav file
+				const byte *data = ((SoundHE *)_sound)->findWavBlock(MKTAG('d', 'a', 't', 'a'), ptr);
+				if (data)
+					return READ_LE_UINT32(data + 4);
+			} else {
+				ptr = findResourceData(MKTAG('S', 'D', 'A', 'T'), ptr);
+				if (!ptr) {
+					return 0;
+				}
 
-			assert(READ_BE_UINT32(ptr) == MKTAG('S','D','A','T'));
-			size = READ_BE_UINT32(ptr + 4) - 8;
+				return READ_BE_UINT32(ptr + 4) - 8;
+			}
 		}
 	}
 

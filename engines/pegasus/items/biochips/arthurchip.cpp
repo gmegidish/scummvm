@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -88,7 +87,7 @@ static const char *kArthurWisdomMovies[] = {
 	"Images/AI/Globals/XGLOBA62"
 };
 
-ArthurChip *g_arthurChip = 0;
+ArthurChip *g_arthurChip = nullptr;
 
 ArthurChip::ArthurChip(const ItemID id, const NeighborhoodID neighborhood, const RoomID room, const DirectionConstant direction) :
 		BiochipItem(id, neighborhood, room, direction), _arthurWisdomHotspot(kArthurWisdomSpotID),
@@ -118,7 +117,7 @@ ArthurChip::ArthurChip(const ItemID id, const NeighborhoodID neighborhood, const
 }
 
 ArthurChip::~ArthurChip() {
-	g_arthurChip = NULL;
+	g_arthurChip = nullptr;
 
 	g_allHotspots.removeOneHotspot(kArthurWisdomSpotID);
 	g_allHotspots.removeOneHotspot(kChattyArthurSpotID);
@@ -132,18 +131,17 @@ void ArthurChip::select() {
 }
 
 void ArthurChip::setUpArthurChip() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
 	ItemState state = getItemState();
 
-	if (vm->isChattyArthur()) {
-		if (g_AIArea && vm->isChattyAI()) {
+	if (g_vm->isChattyArthur()) {
+		if (g_AIArea && g_vm->isChattyAI()) {
 			if (state != kArthur002)
 				setItemState(kArthur000);
 		} else if (state != kArthur102) {
 			setItemState(kArthur100);
 		}
 	} else {
-		if (g_AIArea && vm->isChattyAI()) {
+		if (g_AIArea && g_vm->isChattyAI()) {
 			if (state != kArthur012)
 				setItemState(kArthur010);
 		} else if (state != kArthur112) {
@@ -160,7 +158,6 @@ void ArthurChip::activateArthurHotspots() {
 }
 
 void ArthurChip::clickInArthurHotspot(HotSpotID id) {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
 	ItemState state, newState;
 
 	if (id == kArthurHeadSpotID) {
@@ -227,21 +224,21 @@ void ArthurChip::clickInArthurHotspot(HotSpotID id) {
 	setItemState(newState);
 	switch (id) {
 	case kArthurWisdomSpotID:
-		playArthurMovie(kArthurWisdomMovies[((PegasusEngine *)g_engine)->getRandomNumber((
+		playArthurMovie(kArthurWisdomMovies[g_vm->getRandomNumber((
 						sizeof(kArthurWisdomMovies) / sizeof(const char *)) - 1)]);
 		break;
 	case kChattyArthurSpotID:
-		vm->setChattyArthur(!vm->isChattyArthur());
+		g_vm->setChattyArthur(!g_vm->isChattyArthur());
 		break;
 	case kChattyAISpotID:
-		vm->setChattyAI(!vm->isChattyAI());
+		g_vm->setChattyAI(!g_vm->isChattyAI());
 		break;
 	}
 
 	setItemState(state);
 }
 
-void ArthurChip::playArthurMovie(const Common::String &movieName) {
+void ArthurChip::playArthurMovie(const Common::Path &movieName) {
 	if (g_AIArea) {
 		g_AIArea->playAIMovie(kRightAreaSignature, movieName, false, kHintInterruption);
 		if (movieName != "Images/AI/Globals/XGLOB00" &&
@@ -253,11 +250,9 @@ void ArthurChip::playArthurMovie(const Common::String &movieName) {
 	}
 }
 
-bool ArthurChip::playArthurMovieForEvent(const Common::String &movieName, ArthurEvent event) {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
-	if (vm->isDVD() && vm->playerHasItemID(kArthurBiochip) &&
-		vm->isChattyArthur() && !Arthur._arthurFlags.getFlag(event)) {
+bool ArthurChip::playArthurMovieForEvent(const Common::Path &movieName, ArthurEvent event) {
+	if (g_vm->isDVD() && g_vm->playerHasItemID(kArthurBiochip) &&
+		g_vm->isChattyArthur() && !Arthur._arthurFlags.getFlag(event)) {
 		Arthur._arthurFlags.setFlag(event, true);
 		playArthurMovie(movieName);
 		return true;

@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -73,14 +72,14 @@ TextureInfo *TextureManager::FindTexture(uint32 id, uint32 age) {
 		slot++;
 	}
 	// printf( "Texture %X not found", id );
-	return NULL;
+	return nullptr;
 }
 
 TextureInfo *TextureManager::AddTexture(uint32 * /*tim_ptr*/, uint32 id, uint32 age, uint16 imgW, uint16 imgH) {
 	// printf( "Adding Texture %X", id );
 	if (id == 0) {
 		Message_box("AddTexture 0 ID");
-		return NULL;
+		return nullptr;
 	}
 
 	// Try to find a slot for it
@@ -254,7 +253,7 @@ PaletteInfo *TextureManager::FindPalette(uint32 id, uint32 age) {
 		}
 		slot++;
 	}
-	return NULL;
+	return nullptr;
 }
 
 PaletteInfo *TextureManager::AddPalette(uint32 * /*clut_ptr*/, uint32 id, uint32 age) {
@@ -269,7 +268,7 @@ PaletteInfo *TextureManager::AddPalette(uint32 * /*clut_ptr*/, uint32 id, uint32
 		nPalettesUsed++;
 		return slot;
 	}
-	return NULL;
+	return nullptr;
 }
 
 } // End of namespace ICB

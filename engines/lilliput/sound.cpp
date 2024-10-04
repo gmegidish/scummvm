@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -92,13 +91,13 @@ uint32 LilliputSound::decode(const byte *src, byte *dst, uint32 len, uint32 star
 	return i;
 }
 
-void LilliputSound::loadMusic(Common::String filename) {
-	debugC(1, kDebugSound, "loadMusic(%s)", filename.c_str());
+void LilliputSound::loadMusic(const Common::Path &filename) {
+	debugC(1, kDebugSound, "loadMusic(%s)", filename.toString().c_str());
 
 	Common::File f;
 
 	if (!f.open(filename))
-		error("Missing music file %s", filename.c_str());
+		error("Missing music file %s", filename.toString().c_str());
 
 	_fileNumb = f.readUint16LE();
 

@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ const char *pxString::operator=(const char *str) {
 		s = new char[len];
 		memcpy((unsigned char *)s, (unsigned char *)const_cast<char *>(str), len);
 	} else
-		s = NULL; // Just the null string
+		s = nullptr; // Just the null string
 	return (s);
 }
 
@@ -63,7 +62,7 @@ void pxString::operator=(const pxString &str) {
 		s = new char[len];
 		memcpy((unsigned char *)s, (unsigned char *)str.s, len);
 	} else
-		s = NULL; // Null string
+		s = nullptr; // Null string
 }
 
 const char *pxString::operator+=(const char *adder) {
@@ -96,9 +95,9 @@ const pxString pxString::operator+(const char *adder) const {
 
 bool pxString::operator==(const char *string) const {
 	// Do a character by character comparison
-	if (s == NULL)
-		return ((bool)(string == NULL));
-	if (string == NULL)
+	if (s == nullptr)
+		return ((bool)(string == nullptr));
+	if (string == nullptr)
 		return (false);
 	return ((bool)(strcmp(s, const_cast<char *>(string)) == 0));
 }
@@ -118,7 +117,7 @@ void pxString::SetString(const char *data, uint32 len) {
 		// And null terminate it
 		s[len] = 0;
 	} else
-		s = NULL;
+		s = nullptr;
 }
 
 void pxString::Substr(pxString &rsStr, uint32 nStart, uint32 nNum) const {
@@ -215,10 +214,10 @@ void pxString::ConvertPath() {
 const pxString &pxString::Format(const char *format, ...) {
 	if (s)
 		delete[] s;
-	s = NULL;
+	s = nullptr;
 
 	// Check for a null parameter
-	if (format == NULL)
+	if (format == nullptr)
 		return (*this);
 
 	// The data could be any size. Rather than incrementally allocating memory until
@@ -228,7 +227,7 @@ const pxString &pxString::Format(const char *format, ...) {
 
 	// Allocate a start buffer
 	s = new char[startBufferSize + 2];
-	if (s == NULL)
+	if (s == nullptr)
 		return (*this);
 
 	// Process the variable arguments
@@ -246,7 +245,7 @@ const pxString &pxString::Format(const char *format, ...) {
 		// I can't see why, so I shall turn the warning off for this bit of code
 
 		// If the sllocation failed return an empty string
-		if (s == NULL)
+		if (s == nullptr)
 			return (*this);
 	}
 
@@ -289,7 +288,7 @@ pxFixedCharBuffer::pxFixedCharBuffer(uint32 len) {
 	m_data = new char[len];
 
 	// Check for an error
-	if (m_data == NULL) {
+	if (m_data == nullptr) {
 		error("pxFixedCharBuffer memory allocation error");
 	}
 }

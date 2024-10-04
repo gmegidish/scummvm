@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,48 +15,25 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 
 #include "common/endian.h"
 
+#include "scumm/bomp.h"
+
 namespace Scumm {
 
-void smush_decode_codec1(byte *dst, const byte *src, int left, int top, int width, int height, int pitch) {
-	byte val, code;
-	int32 length;
-	int h = height, size_line;
-
+void smushDecodeRLE(byte *dst, const byte *src, int left, int top, int width, int height, int pitch) {
 	dst += top * pitch;
-	for (h = 0; h < height; h++) {
-		size_line = READ_LE_UINT16(src);
-		src += 2;
+	do {
 		dst += left;
-		while (size_line > 0) {
-			code = *src++;
-			size_line--;
-			length = (code >> 1) + 1;
-			if (code & 1) {
-				val = *src++;
-				size_line--;
-				if (val)
-					memset(dst, val, length);
-				dst += length;
-			} else {
-				size_line -= length;
-				while (length--) {
-					val = *src++;
-					if (val)
-						*dst = val;
-					dst++;
-				}
-			}
-		}
-		dst += pitch - left - width;
-	}
+		bompDecodeLine(dst, src + 2, width, false);
+		src += READ_LE_UINT16(src) + 2;
+		dst += pitch - left;
+	} while (--height);
 }
 
 } // End of namespace Scumm

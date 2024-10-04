@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -136,12 +135,17 @@ bool SliceAnimations::openFrames(int fileNumber) {
 			_framesPageFile.close(_framesPageFile._fileNumber);
 		}
 		_framesPageFile._fileNumber = fileNumber;
+
+		if (_framesPageFile.open(Common::Path(Common::String::format("CD%d/CDFRAMES.DAT", fileNumber)), fileNumber)) {
+			return true;
+		}
+
 		// For Chapter1 we try both CDFRAMES.DAT and CDFRAMES1.DAT
 		if (fileNumber == 1 && _framesPageFile.open("CDFRAMES.DAT", fileNumber)) {
 			return true;
 		}
 
-		if (_framesPageFile.open(Common::String::format("CDFRAMES%d.DAT", fileNumber), fileNumber)) {
+		if (_framesPageFile.open(Common::Path(Common::String::format("CDFRAMES%d.DAT", fileNumber)), fileNumber)) {
 			return true;
 		}
 	} else {
@@ -152,12 +156,14 @@ bool SliceAnimations::openFrames(int fileNumber) {
 			_framesPageFile.close(i);
 			if (i == 1
 			    && (!_framesPageFile.open("CDFRAMES.DAT", i))
-			    && (!_framesPageFile.open(Common::String::format("CDFRAMES%d.DAT", i), i))
+			    && (!_framesPageFile.open(Common::Path(Common::String::format("CD%d/CDFRAMES.DAT", i)), i))
+			    && (!_framesPageFile.open(Common::Path(Common::String::format("CDFRAMES%d.DAT", i)), i))
 			) {
 				// For Chapter1 we try both CDFRAMES.DAT and CDFRAMES1.DAT
 				return false;
 			} else if (i != 1 &&
-			          !_framesPageFile.open(Common::String::format("CDFRAMES%d.DAT", i), i)
+				   (!_framesPageFile.open(Common::Path(Common::String::format("CD%d/CDFRAMES.DAT", i)), i)) &&
+			          !_framesPageFile.open(Common::Path(Common::String::format("CDFRAMES%d.DAT", i)), i)
 			) {
 				return false;
 			}
@@ -168,7 +174,7 @@ bool SliceAnimations::openFrames(int fileNumber) {
 	return false;
 }
 
-bool SliceAnimations::PageFile::open(const Common::String &name, int8 fileIdx) {
+bool SliceAnimations::PageFile::open(const Common::Path &name, int8 fileIdx) {
 	if (!_files[fileIdx].open(name))
 		return false;
 

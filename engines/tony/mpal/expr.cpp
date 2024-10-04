@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 /*
@@ -34,24 +33,33 @@ namespace Tony {
 
 namespace MPAL {
 
+static const size_t EXPR_LENGTH_SIZE =
+#ifndef NO_CXX11_ALIGNAS
+	alignof(max_align_t)
+#else
+	sizeof(byte)
+#endif
+	;
+
+
 /**
  * Duplicate a mathematical expression.
  *
  * @param h				Handle to the original expression
  * @retruns		Pointer to the cloned expression
  */
-static byte *duplicateExpression(MpalHandle h) {
+static void *duplicateExpression(MpalHandle h) {
 	byte *orig, *clone;
 
 	orig = (byte *)globalLock(h);
 
-	int num = *(byte *)orig;
-	LpExpression one = (LpExpression)(orig+1);
+	int num = *orig;
+	LpExpression one = (LpExpression)(orig + EXPR_LENGTH_SIZE);
 
-	clone = (byte *)globalAlloc(GMEM_FIXED, sizeof(Expression) * num + 1);
-	LpExpression two = (LpExpression)(clone + 1);
+	clone = (byte *)globalAlloc(GMEM_FIXED, sizeof(Expression) * num + EXPR_LENGTH_SIZE);
+	LpExpression two = (LpExpression)(clone + EXPR_LENGTH_SIZE);
 
-	memcpy(clone, orig, sizeof(Expression) * num + 1);
+	memcpy(clone, orig, sizeof(Expression) * num + EXPR_LENGTH_SIZE);
 
 	for (int i = 0; i < num; i++) {
 		if (one->_type == ELT_PARENTH) {
@@ -67,7 +75,7 @@ static byte *duplicateExpression(MpalHandle h) {
 	return clone;
 }
 
-static int Compute(int a, int b, byte symbol) {
+static int32 Compute(int32 a, int32 b, byte symbol) {
 	switch (symbol) {
 	case OP_MUL:
 		return a * b;
@@ -145,9 +153,9 @@ static void solve(LpExpression one, int num) {
  * @param expr				Pointer to an expression duplicated by DuplicateExpression
  * @returns		Value
  */
-static int evaluateAndFreeExpression(byte *expr) {
-	int num = *expr;
-	LpExpression one = (LpExpression)(expr + 1);
+static int32 evaluateAndFreeExpression(void *expr) {
+	int num = *(byte *)expr;
+	LpExpression one = (LpExpression)((byte *)expr + EXPR_LENGTH_SIZE);
 
 	// 1) Substitutions of variables
 	LpExpression cur = one;
@@ -169,7 +177,7 @@ static int evaluateAndFreeExpression(byte *expr) {
 
 	// 3) algebraic resolution
 	solve(one, num);
-	int val = one->_val._num;
+	int32 val = one->_val._num;
 	globalDestroy(expr);
 
 	return val;
@@ -183,23 +191,23 @@ static int evaluateAndFreeExpression(byte *expr) {
  * will point to the area of memory containing the parsed expression
  * @returns		Pointer to the buffer immediately after the expression, or NULL if error.
  */
-const byte *parseExpression(const byte *lpBuf, MpalHandle *h) {
+const byte *parseExpression(const byte *lpBuf, const Common::UnalignedPtr<MpalHandle> &h) {
 	byte *start;
 
-	uint32 num = *lpBuf;
+	byte num = *lpBuf;
 	lpBuf++;
 
 	if (num == 0)
 		return NULL;
 
-	*h = globalAllocate(GMEM_MOVEABLE | GMEM_ZEROINIT, num * sizeof(Expression) + 1);
-	if (*h == NULL)
+	h.store(globalAllocate(GMEM_MOVEABLE | GMEM_ZEROINIT, num * sizeof(Expression) + EXPR_LENGTH_SIZE));
+	if (h.load() == NULL)
 		return NULL;
 
-	start = (byte *)globalLock(*h);
-	*start = (byte)num;
+	start = (byte *)globalLock(h.load());
+	*start = num;
 
-	LpExpression cur = (LpExpression)(start + 1);
+	LpExpression cur = (LpExpression)(start + EXPR_LENGTH_SIZE);
 
 	for (uint32 i = 0;i < num; i++) {
 		cur->_type = *(lpBuf);
@@ -214,6 +222,7 @@ const byte *parseExpression(const byte *lpBuf, MpalHandle *h) {
 			break;
 
 		case ELT_VAR:
+			// As name is a byte, there is no alignment rule
 			cur->_val._name = (char *)globalAlloc(GMEM_FIXED | GMEM_ZEROINIT, (*lpBuf) + 1);
 			if (cur->_val._name == NULL)
 				return NULL;
@@ -246,14 +255,14 @@ const byte *parseExpression(const byte *lpBuf, MpalHandle *h) {
 }
 
 /**
- * Calculate the value of a mathamatical expression
+ * Calculate the value of a mathematical expression
  *
  * @param h					Handle to the expression
  * @returns		Numeric value
  */
-int evaluateExpression(MpalHandle h) {
+int32 evaluateExpression(MpalHandle h) {
 	lockVar();
-	int ret = evaluateAndFreeExpression(duplicateExpression(h));
+	int32 ret = evaluateAndFreeExpression(duplicateExpression(h));
 	unlockVar();
 
 	return ret;
@@ -271,8 +280,8 @@ bool compareExpressions(MpalHandle h1, MpalHandle h2) {
 	e1 = (byte *)globalLock(h1);
 	e2 = (byte *)globalLock(h2);
 
-	int num1 = *(byte *)e1;
-	int num2 = *(byte *)e2;
+	int num1 = *e1;
+	int num2 = *e2;
 
 	if (num1 != num2) {
 		globalUnlock(h1);
@@ -280,8 +289,8 @@ bool compareExpressions(MpalHandle h1, MpalHandle h2) {
 		return false;
 	}
 
-	LpExpression one = (LpExpression)(e1 + 1);
-	LpExpression two = (LpExpression)(e2 + 1);
+	LpExpression one = (LpExpression)(e1 + EXPR_LENGTH_SIZE);
+	LpExpression two = (LpExpression)(e2 + EXPR_LENGTH_SIZE);
 
 	for (int i = 0; i < num1; i++) {
 		if (one->_type != two->_type || (i != num1 - 1 && one->_symbol != two->_symbol)) {
@@ -337,7 +346,7 @@ bool compareExpressions(MpalHandle h1, MpalHandle h2) {
 void freeExpression(MpalHandle h) {
 	byte *data = (byte *)globalLock(h);
 	int num = *data;
-	LpExpression cur = (LpExpression)(data + 1);
+	LpExpression cur = (LpExpression)(data + EXPR_LENGTH_SIZE);
 
 	for (int i = 0; i < num; ++i, ++cur) {
 		switch (cur->_type) {

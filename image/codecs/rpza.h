@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,16 +35,16 @@ namespace Image {
 class RPZADecoder : public Codec {
 public:
 	RPZADecoder(uint16 width, uint16 height);
-	~RPZADecoder();
+	~RPZADecoder() override;
 
-	const Graphics::Surface *decodeFrame(Common::SeekableReadStream &stream);
-	Graphics::PixelFormat getPixelFormat() const { return _format; }
+	const Graphics::Surface *decodeFrame(Common::SeekableReadStream &stream) override;
+	Graphics::PixelFormat getPixelFormat() const override { return _format; }
 
-	bool containsPalette() const { return _ditherPalette != 0; }
-	const byte *getPalette() { _dirtyPalette = false; return _ditherPalette; }
-	bool hasDirtyPalette() const { return _dirtyPalette; }
-	bool canDither(DitherType type) const;
-	void setDither(DitherType type, const byte *palette);
+	bool containsPalette() const override { return _ditherPalette != 0; }
+	const byte *getPalette() override { _dirtyPalette = false; return _ditherPalette; }
+	bool hasDirtyPalette() const override { return _dirtyPalette; }
+	bool canDither(DitherType type) const override;
+	void setDither(DitherType type, const byte *palette) override;
 
 private:
 	Graphics::PixelFormat _format;

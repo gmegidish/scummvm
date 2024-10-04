@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,26 +26,39 @@
 
 namespace Nancy {
 
-void Decompressor::init(Common::ReadStream &input, Common::WriteStream &output) {
+Decompressor::Decompressor() :
+	_bufpos(0),
+	_err(false),
+	_val(0),
+	_output(nullptr),
+	_input(nullptr),
+	_pos(nullptr),
+	_end(nullptr) {}
+
+Decompressor::~Decompressor() {
+	delete[] _input;
+}
+
+void Decompressor::init(Common::SeekableReadStream &input, Common::WriteStream &output) {
 	memset(_buf, ' ', kBufSize);
 	_bufpos = kBufStart;
 	_err = false;
 	_val = 0;
-	_input = &input;
+
+	// We store the input data in a raw buffer, since we need to check if we're at the end of the
+	// stream on _every_ read byte. This way we avoid doing a vtable lookup per byte, which makes
+	// decompression roughly twice as fast
+	delete[] _input;
+	_input = new byte[input.size() + 1];
+	input.read(_input, input.size());
+	_pos = _input;
+	_end = _input + input.size();
 	_output = &output;
 }
 
 bool Decompressor::readByte(byte &b) {
-	b = _input->readByte();
-
-	if (_input->eos())
-		return false;
-
-	if (_input->err())
-		error("Read error encountered during decompression");
-
-	b -= _val++;
-	return true;
+	b = *_pos++ - _val++;
+	return _pos <= _end;
 }
 
 bool Decompressor::writeByte(byte b) {
@@ -56,9 +68,14 @@ bool Decompressor::writeByte(byte b) {
 	return true;
 }
 
-bool Decompressor::decompress(Common::ReadStream &input, Common::MemoryWriteStream &output) {
+bool Decompressor::decompress(Common::SeekableReadStream &input, Common::MemoryWriteStream &output) {
 	init(input, output);
 	uint16 bits = 0;
+
+	if (input.err()) {
+		warning("Failed to decompress resource");
+		return false;
+	}
 
 	while (1) {
 		byte b;
@@ -93,6 +110,11 @@ bool Decompressor::decompress(Common::ReadStream &input, Common::MemoryWriteStre
 	}
 
 	if (output.err() || output.pos() != output.size()) {
+		// Workaround for nancy3 file "SLN RollPanOpn.avf", which outputs 2 bytes less than it should
+		if (output.size() - output.pos() <= 2) {
+			return true;
+		}
+
 		warning("Failed to decompress resource");
 		return false;
 	}

@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,12 +23,13 @@
 #define GRIM_ENGINE_H
 
 #include "engines/engine.h"
+#include "engines/advancedDetector.h"
 
 #include "common/str-array.h"
 #include "common/hashmap.h"
 #include "common/events.h"
 
-#include "engines/advancedDetector.h"
+#include "graphics/renderer.h"
 
 #include "engines/grim/textobject.h"
 #include "engines/grim/iris.h"
@@ -59,7 +59,7 @@ class GrimEngine : public Engine {
 
 protected:
 	// Engine APIs
-	virtual Common::Error run() override;
+	Common::Error run() override;
 
 public:
 	enum EngineMode {
@@ -80,13 +80,14 @@ public:
 
 	void clearPools();
 
-	int getGameFlags() { return _gameFlags; }
+	uint32 getGameFlags() { return _gameFlags; }
 	GrimGameType getGameType() { return _gameType; }
 	Common::Language getGameLanguage() { return _gameLanguage; }
 	Common::Platform getGamePlatform() { return _gamePlatform; }
 	virtual const char *getUpdateFilename();
-	bool canLoadGameStateCurrently() override { return true; }
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return true; }
 	Common::Error loadGameState(int slot) override;
+	bool isRemastered() const { return !!(_gameFlags & ADGF_REMASTERED); }
 
 	void setMode(EngineMode mode);
 	EngineMode getMode() { return _mode; }
@@ -95,6 +96,8 @@ public:
 	void setSpeechMode(SpeechMode mode) { _speechMode = mode; }
 	SpeechMode getSpeechMode() { return _speechMode; }
 	SaveGame *savedState() { return _savedState; }
+	bool getJustSaveLoaded() { return _justSaveLoaded; }
+	void setJustSaveLoaded(bool state) { _justSaveLoaded = state; }
 
 	void handleDebugLoadResource();
 	void luaUpdate();
@@ -172,6 +175,8 @@ public:
 
 	Commentary *getCommentary() { return _commentary; }
 
+	Graphics::RendererType getRendererType();
+
 	// TODO: Refactor.
 	void setSaveMetaData(const char*, int, const char*);
 
@@ -194,7 +199,7 @@ public:
 	void debugLua(const Common::String &str);
 
 protected:
-	virtual void pauseEngineIntern(bool pause) override;
+	void pauseEngineIntern(bool pause) override;
 
 	void handleControls(Common::EventType type, const Common::KeyState &key);
 	void handleChars(Common::EventType type, const Common::KeyState &key);
@@ -224,10 +229,11 @@ protected:
 	virtual void storeSaveGameMetadata(SaveGame *state);
 	virtual void storeSaveGameImage(SaveGame *savedState);
 
-	bool _savegameLoadRequest;
-	bool _savegameSaveRequest;
+	bool _savegameLoadRequest = false;
+	bool _savegameSaveRequest = false;
 	Common::String _savegameFileName;
 	SaveGame *_savedState;
+	bool _justSaveLoaded;
 
 	Set *_currSet;
 	EngineMode _mode, _previousMode;
@@ -236,16 +242,16 @@ protected:
 	bool _flipEnable;
 	char _fps[8];
 	bool _doFlip;
-	bool _refreshShadowMask;
-	bool _shortFrame;
-	bool _setupChanged;
+	bool _refreshShadowMask = false;
+	bool _shortFrame = false;
+	bool _setupChanged = true;
 	// This holds the name of the setup in which the movie must be drawed
 	Common::String _movieSetup;
 
-	unsigned _frameStart, _frameTime, _movieTime;
-	int _prevSmushFrame;
-	unsigned int _frameCounter;
-	unsigned int _lastFrameTime;
+	unsigned _frameStart = 0, _frameTime = 0, _movieTime = 0;
+	int _prevSmushFrame = 0;
+	unsigned int _frameCounter = 0;
+	unsigned int _lastFrameTime = 0;
 	unsigned _speedLimitMs;
 	bool _showFps;
 	bool _softRenderer;
@@ -254,7 +260,7 @@ protected:
 	bool *_controlsState;
 	float *_joyAxisPosition;
 
-	bool _changeHardwareState;
+	bool _changeHardwareState = false;
 
 	Actor *_selectedActor;
 	Iris *_iris;
@@ -278,14 +284,17 @@ protected:
 	bool _conceptEnabled[kNumConcepts];
 
 	Common::String _saveMeta1;
-	int _saveMeta2;
+	int _saveMeta2 = 0;
 	Common::String _saveMeta3;
 
 	Commentary *_commentary;
 
 public:
-	int _cursorX;
-	int _cursorY;
+	int _cursorX = 0;
+	int _cursorY = 0;
+	bool _isUtf8 = false;
+	bool _transcodeChineseToSimplified = false;
+	Font *_overrideFont = nullptr;
 };
 
 extern GrimEngine *g_grim;

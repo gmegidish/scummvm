@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
+#include "ultima/ultima8/misc/debugger.h"
 
 #include "ultima/ultima8/usecode/uc_list.h"
 #include "ultima/ultima8/usecode/uc_machine.h"
@@ -96,7 +95,7 @@ void UCList::assignString(uint32 index, uint16 str) {
 }
 
 void UCList::removeString(uint16 s, bool nodel) {
-	// do we need to erase all occurences of str or just the first one?
+	// do we need to erase all occurrences of str or just the first one?
 	// (deleting all, currently)
 	const Std::string &str = UCMachine::get_instance()->getString(s);
 	for (unsigned int i = 0; i < _size; i++) {
@@ -117,7 +116,8 @@ void UCList::removeString(uint16 s, bool nodel) {
 void UCList::save(Common::WriteStream *ws) const {
 	ws->writeUint32LE(_elementSize);
 	ws->writeUint32LE(_size);
-	ws->write(&(_elements[0]), _size * _elementSize);
+	if (_size > 0)
+		ws->write(&(_elements[0]), _size * _elementSize);
 }
 
 
@@ -129,7 +129,8 @@ bool UCList::load(Common::ReadStream *rs, uint32 version) {
 		return false;
 	}
 	_elements.resize(_size * _elementSize);
-	rs->read(&(_elements[0]), _size * _elementSize);
+	if (_size > 0)
+		rs->read(&(_elements[0]), _size * _elementSize);
 
 	return true;
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -109,7 +108,7 @@ uint16 GfxCompare::kernelOnControl(byte screenMask, const Common::Rect &rect) {
 }
 
 void GfxCompare::kernelSetNowSeen(reg_t objectReference) {
-	GfxView *view = NULL;
+	GfxView *view = nullptr;
 	Common::Rect celRect(0, 0);
 	GuiResourceId viewId = (GuiResourceId)readSelectorValue(_segMan, objectReference, SELECTOR(view));
 	int16 loopNo = readSelectorValue(_segMan, objectReference, SELECTOR(loop));
@@ -123,7 +122,7 @@ void GfxCompare::kernelSetNowSeen(reg_t objectReference) {
 	view = _cache->getView(viewId);
 	view->getCelRect(loopNo, celNo, x, y, z, celRect);
 
-	if (lookupSelector(_segMan, objectReference, SELECTOR(nsTop), NULL, NULL) == kSelectorVariable) {
+	if (lookupSelector(_segMan, objectReference, SELECTOR(nsTop), nullptr, nullptr) == kSelectorVariable) {
 		setNSRect(objectReference, celRect);
 	}
 }
@@ -138,7 +137,7 @@ reg_t GfxCompare::kernelCanBeHere(reg_t curObject, reg_t listReference) {
 	checkRect.bottom = readSelectorValue(_segMan, curObject, SELECTOR(brBottom));
 	uint16 signal = readSelectorValue(_segMan, curObject, SELECTOR(signal));
 
-	if (!checkRect.isValidRect()) {	// can occur in Iceman and Mother Goose - HACK? TODO: is this really occuring in sierra sci? check this
+	if (!checkRect.isValidRect()) {	// can occur in Iceman and Mother Goose - HACK? TODO: is this really occurring in sierra sci? check this
 		warning("kCan(t)BeHere - invalid rect %d, %d -> %d, %d", checkRect.left, checkRect.top, checkRect.right, checkRect.bottom);
 		return NULL_REG; // this means "can be here"
 	}
@@ -203,7 +202,7 @@ bool GfxCompare::kernelIsItSkip(GuiResourceId viewId, int16 loopNo, int16 celNo,
 }
 
 void GfxCompare::kernelBaseSetter(reg_t object) {
-	if (lookupSelector(_segMan, object, SELECTOR(brLeft), NULL, NULL) == kSelectorVariable) {
+	if (lookupSelector(_segMan, object, SELECTOR(brLeft), nullptr, nullptr) == kSelectorVariable) {
 		int16 x = readSelectorValue(_segMan, object, SELECTOR(x));
 		int16 y = readSelectorValue(_segMan, object, SELECTOR(y));
 		int16 z = (SELECTOR(z) > -1) ? readSelectorValue(_segMan, object, SELECTOR(z)) : 0;

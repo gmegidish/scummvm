@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,8 @@
 #include "common/textconsole.h"
 #include "graphics/cursorman.h"
 
+#include "backends/keymapper/keymapper.h"
+
 namespace Hopkins {
 
 EventsManager::EventsManager(HopkinsEngine *vm) {
@@ -44,14 +45,14 @@ EventsManager::EventsManager(HopkinsEngine *vm) {
 	_mouseSpriteId = 0;
 	_curMouseButton = 0;
 	_mouseButton = 0;
-	_mouseCursor = NULL;
+	_mouseCursor = nullptr;
 	_gameCounter = 0;
 	_rateCounter = 0;
 	_escKeyFl = false;
 	_gameKey = KEY_NONE;
 	_mouseCursorId = 0;
 	_oldIconId = 0;
-	_objectBuf = NULL;
+	_objectBuf = nullptr;
 
 	Common::fill(&_keyState[0], &_keyState[256], false);
 	_priorCounterTime = _priorFrameTime = g_system->getMillis();
@@ -252,9 +253,11 @@ void EventsManager::pollEvents() {
 		case Common::EVENT_RETURN_TO_LAUNCHER:
 			return;
 
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+			handleKey(event);
+			return;
 		case Common::EVENT_KEYDOWN:
 			_keyState[(byte)toupper(event.kbd.ascii)] = true;
-			handleKey(event);
 			return;
 		case Common::EVENT_KEYUP:
 			_keyState[(byte)toupper(event.kbd.ascii)] = false;
@@ -282,15 +285,15 @@ void EventsManager::pollEvents() {
 }
 
 void EventsManager::handleKey(const Common::Event &event) {
-	_escKeyFl = (event.kbd.keycode == Common::KEYCODE_ESCAPE);
+	_escKeyFl = (event.customType == kActionEscape);
 
-	if (event.kbd.keycode == Common::KEYCODE_i || event.kbd.keycode == Common::KEYCODE_TAB)
+	if (event.customType == kActionInventory)
 		_gameKey = KEY_INVENTORY;
-	else if (event.kbd.keycode == Common::KEYCODE_F5)
+	else if (event.customType == kActionSave)
 		_gameKey = KEY_SAVE;
-	else if (event.kbd.keycode == Common::KEYCODE_F7)
+	else if (event.customType == kActionLoad)
 		_gameKey = KEY_LOAD;
-	else if (event.kbd.keycode == Common::KEYCODE_F1 || event.kbd.keycode == Common::KEYCODE_o)
+	else if (event.customType == kActionOptions)
 		_gameKey = KEY_OPTIONS;
 }
 
@@ -299,6 +302,10 @@ void EventsManager::handleKey(const Common::Event &event) {
  * @return		Keypress, or -1 if game quit was requested
  */
 int EventsManager::waitKeyPress() {
+
+	Common::Keymapper *keymapper = _vm->getEventManager()->getKeymapper();
+	keymapper->getKeymap("game-shortcuts")->setEnabled(false);
+
 	char foundChar = '\0';
 
 	while (!foundChar) {
@@ -338,6 +345,8 @@ int EventsManager::waitKeyPress() {
 		refreshScreenAndEvents();
 		g_system->delayMillis(10);
 	}
+
+	keymapper->getKeymap("game-shortcuts")->setEnabled(true);
 
 	// Return character
 	return foundChar;
@@ -523,7 +532,7 @@ void EventsManager::updateCursor() {
 	// Set the ScummVM cursor from the surface
 	CursorMan.replaceCursorPalette(cursorPalette, 0, PALETTE_SIZE - 1);
 	CursorMan.replaceCursor(cursorSurface, _vm->_objectsMan->getObjectWidth(), _vm->_objectsMan->getObjectHeight(),
-		xOffset, 0, 0, true);
+		xOffset, 0, 0, false);
 
 	// Delete the cursor surface and palette
 	delete[] cursorPalette;

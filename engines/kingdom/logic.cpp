@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -479,6 +478,9 @@ void Logic::gameHelp() {
 		//TODO: Set _quitFlag to 1
 		break;
 	case 0x241:
+	case 0x43B:
+	case 0x43C:
+	case 0x44F:
 		// Resume game
 		gameHelp_Sub43C();
 		return;
@@ -503,10 +505,12 @@ void Logic::gameHelp() {
 		// The demo isn't saving pMovie.
 		// It's obviously a bug and this behavior wasn't kept in ScummVM
 		int oldPMovie = _vm->_pMovie;
-		while(!_vm->_keyActive) {
+		_vm->_demoMovieSkipped = false;
+		while(!_vm->_keyActive && !_vm->shouldQuit() && !_vm->_demoMovieSkipped) {
 			_vm->playMovie(54);
 			_vm->fadeToBlack2();
 		}
+		_vm->_demoMovieSkipped = false;
 		_vm->_pMovie = oldPMovie;
 		_vm->_noIFScreen = false;
 		_vm->showPic(106);
@@ -541,11 +545,8 @@ void Logic::gameHelp() {
 	case 0x246:
 		_vm->saveGame();
 		break;
-	case 0x43B:
-	case 0x43C:
-	case 0x44F:
-		gameHelp_Sub43C();
-		return;
+	default:
+		break;
 	}
 
 	if (_vm->_userInput > 0x427 && _vm->_userInput < 0x43A)

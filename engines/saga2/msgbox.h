@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -33,11 +32,6 @@ namespace Saga2 {
 
 struct textPallete;
 
-void ModalModeSetup();
-void ModalModeCleanup();
-void ModalModeHandleTask();
-void ModalModeHandleKey(short, short);
-
 //Modal Mode GameMode Object
 
 extern GameMode     ModalMode;
@@ -48,8 +42,8 @@ extern GameMode     ModalMode;
 
 class SimpleWindow : public gWindow {
 
-	GameMode    *prevModeStackPtr[Max_Modes];
-	int         prevModeStackCtr;
+	GameMode    *_prevModeStackPtr[kMax_Modes];
+	int         _prevModeStackCtr;
 
 public:
 
@@ -75,7 +69,7 @@ public:
 };
 
 class SimpleButton : public gControl {
-	gWindow *window;
+	gWindow *_window;
 public:
 	SimpleButton(gWindow &, const Rect16 &, const char *, uint16, AppFunc *cmd = NULL);
 
@@ -91,12 +85,12 @@ private:
 };
 
 class ErrorWindow : public SimpleWindow {
-	static char mbChs1Text[8];
-	static char mbChs2Text[8];
-	static uint8    numBtns;
+	static char _mbChs1Text[8];
+	static char _mbChs2Text[8];
+	static uint8    _numBtns;
 public:
 
-	static requestInfo      rInfo;
+	static requestInfo      _rInfo;
 	ErrorWindow(const char *msg, const char *btnMsg1, const char *btnMsg2);
 	~ErrorWindow();
 	int16 getResult();

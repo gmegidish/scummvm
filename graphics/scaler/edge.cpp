@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -307,7 +306,7 @@ uint16 convertTo16Bit(const typename ColorMask::PixelType p) {
 
 
 template<typename ColorMask>
-int16 *EdgePlugin::chooseGreyscale(typename ColorMask::PixelType *pixels) {
+int16 *EdgeScaler::chooseGreyscale(typename ColorMask::PixelType *pixels) {
 	int i, j;
 	int32 scores[3];
 
@@ -379,7 +378,7 @@ int16 *EdgePlugin::chooseGreyscale(typename ColorMask::PixelType *pixels) {
 
 
 template<typename ColorMask>
-int32 EdgePlugin::calcPixelDiffNosqrt(typename ColorMask::PixelType pixel1, typename ColorMask::PixelType pixel2) {
+int32 EdgeScaler::calcPixelDiffNosqrt(typename ColorMask::PixelType pixel1, typename ColorMask::PixelType pixel2) {
 	pixel1 = convertTo16Bit<ColorMask>(pixel1);
 	pixel2 = convertTo16Bit<ColorMask>(pixel2);
 
@@ -452,7 +451,7 @@ int32 EdgePlugin::calcPixelDiffNosqrt(typename ColorMask::PixelType pixel1, type
 }
 
 
-int EdgePlugin::findPrincipleAxis(int16 *diffs, int16 *bplane,
+int EdgeScaler::findPrincipleAxis(int16 *diffs, int16 *bplane,
 								  int8 *sim,
 								  int32 *return_angle) {
 	struct xy_point {
@@ -677,7 +676,7 @@ int EdgePlugin::findPrincipleAxis(int16 *diffs, int16 *bplane,
 
 
 template<typename Pixel>
-int EdgePlugin::checkArrows(int best_dir, Pixel *pixels, int8 *sim, int half_flag) {
+int EdgeScaler::checkArrows(int best_dir, Pixel *pixels, int8 *sim, int half_flag) {
 	Pixel center = pixels[4];
 
 	if (center == pixels[0] && center == pixels[2] &&
@@ -784,7 +783,7 @@ int EdgePlugin::checkArrows(int best_dir, Pixel *pixels, int8 *sim, int half_fla
 
 
 template<typename Pixel>
-int EdgePlugin::refineDirection(char edge_type, Pixel *pixels, int16 *bptr,
+int EdgeScaler::refineDirection(char edge_type, Pixel *pixels, int16 *bptr,
 								int8 *sim, double angle) {
 	int32 sums_dir[9] = { 0 };
 	int32 sum;
@@ -1625,7 +1624,7 @@ int EdgePlugin::refineDirection(char edge_type, Pixel *pixels, int16 *bptr,
 
 
 template<typename Pixel>
-int EdgePlugin::fixKnights(int sub_type, Pixel *pixels, int8 *sim) {
+int EdgeScaler::fixKnights(int sub_type, Pixel *pixels, int8 *sim) {
 	Pixel center = pixels[4];
 	int dir = sub_type;
 	int n = 0;
@@ -1772,7 +1771,7 @@ int EdgePlugin::fixKnights(int sub_type, Pixel *pixels, int8 *sim) {
 #define greenMask   0x07E0
 
 template<typename ColorMask>
-void EdgePlugin::antiAliasGridClean3x(uint8 *dptr, int dstPitch,
+void EdgeScaler::antiAliasGridClean3x(uint8 *dptr, int dstPitch,
 		typename ColorMask::PixelType *pixels, int sub_type, int16 *bptr) {
 	typedef typename ColorMask::PixelType Pixel;
 
@@ -2373,7 +2372,7 @@ void EdgePlugin::antiAliasGridClean3x(uint8 *dptr, int dstPitch,
 
 
 template<typename ColorMask>
-void EdgePlugin::antiAliasGrid2x(uint8 *dptr, int dstPitch,
+void EdgeScaler::antiAliasGrid2x(uint8 *dptr, int dstPitch,
 									typename ColorMask::PixelType *pixels, int sub_type, int16 *bptr,
 									int8 *sim,
 									int interpolate_2x) {
@@ -3309,7 +3308,7 @@ void drawUnchangedGrid2x(byte *dptr, int dstPitch,
 
 
 template<typename ColorMask>
-void EdgePlugin::antiAliasPass3x(const uint8 *src, uint8 *dst,
+void EdgeScaler::antiAliasPass3x(const uint8 *src, uint8 *dst,
 								 int w, int h,
 								 int srcPitch, int dstPitch,
 								 bool haveOldSrc,
@@ -3393,7 +3392,7 @@ void EdgePlugin::antiAliasPass3x(const uint8 *src, uint8 *dst,
 
 
 template<typename ColorMask>
-void EdgePlugin::antiAliasPass2x(const uint8 *src, uint8 *dst,
+void EdgeScaler::antiAliasPass2x(const uint8 *src, uint8 *dst,
 								 int w, int h,
 								 int srcPitch, int dstPitch,
 								 int interpolate_2x,
@@ -3478,7 +3477,7 @@ void EdgePlugin::antiAliasPass2x(const uint8 *src, uint8 *dst,
 }
 
 
-void EdgePlugin::initTables(const uint8 *srcPtr, uint32 srcPitch,
+void EdgeScaler::initTables(const uint8 *srcPtr, uint32 srcPitch,
 							int width, int height) {
 	double r_float, g_float, b_float;
 	int r, g, b;
@@ -3531,19 +3530,14 @@ void EdgePlugin::initTables(const uint8 *srcPtr, uint32 srcPitch,
 	}
 }
 
-EdgePlugin::EdgePlugin() : SourceScaler() {
+EdgeScaler::EdgeScaler(const Graphics::PixelFormat &format) : SourceScaler(format) {
 	_factor = 2;
-	_factors.push_back(2);
-	_factors.push_back(3);
-}
 
-void EdgePlugin::initialize(const Graphics::PixelFormat &format) {
-	SourceScaler::initialize(format);
 	initTables(0, 0, 0, 0);
 }
 
 #if 0
-void EdgePlugin::scale(const uint8 *srcPtr, uint32 srcPitch,
+void EdgeScaler::scale(const uint8 *srcPtr, uint32 srcPitch,
 					   uint8 *dstPtr, uint32 dstPitch, int width, int height, int x, int y) {
 	if (_format.bytesPerPixel == 2) {
 		if (_factor == 2) {
@@ -3573,7 +3567,7 @@ void EdgePlugin::scale(const uint8 *srcPtr, uint32 srcPitch,
 }
 #endif
 
-void EdgePlugin::internScale(const uint8 *srcPtr, uint32 srcPitch,
+void EdgeScaler::internScale(const uint8 *srcPtr, uint32 srcPitch,
 					   uint8 *dstPtr, uint32 dstPitch, const uint8 *oldSrcPtr, uint32 oldSrcPitch, int width, int height, const uint8 *buffer, uint32 bufferPitch) {
 	bool enable = oldSrcPtr != NULL;
 	if (_format.bytesPerPixel == 2) {
@@ -3603,16 +3597,39 @@ void EdgePlugin::internScale(const uint8 *srcPtr, uint32 srcPitch,
 	}
 }
 
-uint EdgePlugin::increaseFactor() {
+uint EdgeScaler::increaseFactor() {
 	if (_factor == 2)
 		setFactor(_factor + 1);
 	return _factor;
 }
 
-uint EdgePlugin::decreaseFactor() {
+uint EdgeScaler::decreaseFactor() {
 	if (_factor == 3)
 		setFactor(_factor - 1);
 	return _factor;
+}
+
+
+class EdgePlugin final : public ScalerPluginObject {
+public:
+	EdgePlugin();
+
+	Scaler *createInstance(const Graphics::PixelFormat &format) const override;
+
+	bool canDrawCursor() const override { return false; }
+	bool useOldSource() const override { return true; }
+	uint extraPixels() const override { return 1; }
+	const char *getName() const override;
+	const char *getPrettyName() const override;
+};
+
+EdgePlugin::EdgePlugin() {
+	_factors.push_back(2);
+	_factors.push_back(3);
+}
+
+Scaler *EdgePlugin::createInstance(const Graphics::PixelFormat &format) const {
+	return new EdgeScaler(format);
 }
 
 const char *EdgePlugin::getName() const {

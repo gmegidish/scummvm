@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -350,7 +349,7 @@ void Processor::call(zword routine, int argc, zword *args, int ct) {
 		if (h_version <= V4)		// V1 to V4 games provide default
 			CODE_WORD(value);		// values for all local variables
 
-			*--_sp = (zword)((argc-- > 0) ? args[i] : value);
+		*--_sp = (zword)((argc-- > 0) ? args[i] : value);
 	}
 
 	// Start main loop for direct calls
@@ -455,7 +454,7 @@ int Processor::direct_call(zword addr) {
 	saved_zargc = zargc;
 
 	// Call routine directly
-	call(addr, 0, 0, 2);
+	call(addr, 0, nullptr, 2);
 
 	// Restore operands and operand count
 	for (i = 0; i < 8; i++)

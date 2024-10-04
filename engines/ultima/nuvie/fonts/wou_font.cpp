@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,26 +30,19 @@
 namespace Ultima {
 namespace Nuvie {
 
-WOUFont::WOUFont() {
-	font_data = NULL;
-	char_buf = NULL;
-	num_chars = 0;
-	offset = 0;
-	height = 0;
-	pixel_char = 0;
-	default_color = FONT_COLOR_U6_NORMAL;
-	default_highlight_color = FONT_COLOR_U6_HIGHLIGHT;
+WOUFont::WOUFont() : font_data(nullptr), char_buf(nullptr), height(0),
+		pixel_char(0) {
 }
 
 WOUFont::~WOUFont() {
-	if (font_data != NULL)
+	if (font_data != nullptr)
 		free(font_data);
 
-	if (char_buf != NULL)
+	if (char_buf != nullptr)
 		free(char_buf);
 }
 
-bool WOUFont::init(const char *filename) {
+bool WOUFont::init(const Common::Path &filename) {
 
 	U6Lzw lzw;
 	uint32 decomp_size;
@@ -91,14 +83,14 @@ bool WOUFont::initCharBuf() {
 		}
 	}
 	char_buf = (unsigned char *)malloc(max_width * height);
-	if (char_buf == NULL)
+	if (char_buf == nullptr)
 		return false;
 
 	return true;
 }
 
 uint16 WOUFont::getCharWidth(uint8 c) {
-	if (font_data == NULL)
+	if (font_data == nullptr)
 		return 0;
 
 	return font_data[0x4 + get_char_num(c)];
@@ -110,7 +102,7 @@ uint16 WOUFont::drawChar(Screen *screen, uint8 char_num, uint16 x, uint16 y,
 	unsigned char *pixels;
 	uint16 width;
 
-	if (font_data == NULL)
+	if (font_data == nullptr)
 		return false;
 
 	pixels = font_data + font_data[0x204 + char_num] * 256 + font_data[0x104 + char_num];
@@ -124,7 +116,7 @@ uint16 WOUFont::drawChar(Screen *screen, uint8 char_num, uint16 x, uint16 y,
 			char_buf[i] = color;
 	}
 
-	screen->blit(x, y, char_buf, 8, width, height, width, true, NULL);
+	screen->blit(x, y, char_buf, 8, width, height, width, true, nullptr);
 	return width;
 }
 
@@ -132,7 +124,7 @@ uint16 WOUFont::drawStringToShape(U6Shape *shp, const char *str, uint16 x, uint1
 	uint16 i;
 	uint16 string_len = strlen(str);
 
-	if (font_data == NULL)
+	if (font_data == nullptr)
 		return x;
 
 	for (i = 0; i < string_len; i++) {

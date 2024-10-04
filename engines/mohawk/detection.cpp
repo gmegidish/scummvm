@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,6 @@
 #include "engines/advancedDetector.h"
 #include "common/config-manager.h"
 #include "common/textconsole.h"
-#include "common/translation.h"
 
 #include "mohawk/detection.h"
 
@@ -37,13 +35,22 @@ static const PlainGameDescriptor mohawkGames[] = {
 	{"myst", "Myst"},
 	{"makingofmyst", "The Making of Myst"},
 	{"riven", "Riven: The Sequel to Myst"},
+	{"zoombini", "Logical Journey of the Zoombinis"},
+	{"alientales", "Alien Tales"},
+	{"orly", "Orly's Draw-A-Story"},
 	{"cstime", "Where in Time is Carmen Sandiego?"},
+	{"csworld", "Where in the World is Carmen Sandiego?"},
+	{"csamtrak", "Where in America is Carmen Sandiego? (The Great Amtrak Train Adventure)"},
 	{"carmentq", "Carmen Sandiego's ThinkQuick Challenge"},
 	{"carmentqc", "Carmen Sandiego's ThinkQuick Challenge Custom Question Creator"},
 	{"maggiesfa", "Maggie's Farmyard Adventure"},
+	{"jamesmath", "James Discovers/Explores Math"},
+	{"treehouse", "The Treehouse"},
 	{"greeneggs", "Green Eggs and Ham"},
-	{"seussabc", "Dr Seuss's ABC"},
-	{"seussps", "Dr Seuss's Preschool"},
+	{"seussabc", "Dr. Seuss's ABC"},
+	{"1stdegree", "In the 1st Degree"},
+	{"csusa", "Where in the USA is Carmen Sandiego?"},
+	{"seussps", "Dr. Seuss's Preschool"},
 	{"tortoise", "Aesop's Fables: The Tortoise and the Hare"},
 	{"arthur", "Arthur's Teacher Trouble"},
 	{"grandma", "Just Grandma and Me"},
@@ -64,12 +71,19 @@ static const PlainGameDescriptor mohawkGames[] = {
 	{"stellaluna", "Stellaluna"},
 	{"sheila", "Sheila Rae, the Brave"},
 	{"rugratsps", "Rugrats Print Shop" },
+	{"drseussreading", "Dr. Seuss Reading Games"},
+	{"arthurreading", "Arthur's Reading Games"},
+	{"wsg", "Williams-Sonoma Guide to Good Cooking" },
+	{"mathsworkshop", "Maths Workshop" },
+	{"mathsworkshopdx", "Maths Workshop Deluxe" },
+	{"wricamact", "Write, Camera, Action!"},
+	{"amazingwriting", "The Amazing Writing Machine"},
 	{nullptr, nullptr}
 };
 
 #include "mohawk/detection_tables.h"
 
-static const char *directoryGlobs[] = {
+static const char *const directoryGlobs[] = {
 	"all",
 	"assets1",
 	"data",
@@ -79,9 +93,9 @@ static const char *directoryGlobs[] = {
 	nullptr
 };
 
-class MohawkMetaEngineDetection : public AdvancedMetaEngineDetection {
+class MohawkMetaEngineDetection : public AdvancedMetaEngineDetection<Mohawk::MohawkGameDescription> {
 public:
-	MohawkMetaEngineDetection() : AdvancedMetaEngineDetection(Mohawk::gameDescriptions, sizeof(Mohawk::MohawkGameDescription), mohawkGames) {
+	MohawkMetaEngineDetection() : AdvancedMetaEngineDetection(Mohawk::gameDescriptions, mohawkGames) {
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
@@ -90,11 +104,11 @@ public:
 		return detectGameFilebased(allFiles, Mohawk::fileBased);
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "mohawk";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Mohawk";
 	}
 

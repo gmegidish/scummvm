@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 
 
 #include "common/scummsys.h"
+#include "sky/sky.h"
 
 namespace Sky {
 
@@ -47,10 +47,10 @@ struct PatchMessage {
 
 class Text {
 public:
-	Text(Disk *skyDisk, SkyCompact *skyCompact);
+	Text(SkyEngine *vm, Disk *skyDisk, SkyCompact *skyCompact);
 	~Text();
 	struct DisplayedText displayText(uint32 textNum, uint8 *dest, bool center, uint16 pixelWidth, uint8 color);
-	struct DisplayedText displayText(char *textPtr, uint8 *dest, bool center, uint16 pixelWidth, uint8 color);
+	struct DisplayedText displayText(char *textPtr, uint32 bufLen, uint8 *dest, bool center, uint16 pixelWidth, uint8 color);
 	struct DisplayedText lowTextManager(uint32 textNum, uint16 width, uint16 logicNum, uint8 color, bool center);
 	void fnSetFont(uint32 fontNr);
 	void fnTextModule(uint32 textInfoId, uint32 textNo);
@@ -67,11 +67,13 @@ private:
 	char getTextChar(uint8 **data, uint32 *bitPos);
 	bool getTextBit(uint8 **data, uint32 *bitPos);
 	void makeGameCharacter(uint8 textChar, uint8 *charSetPtr, uint8 *&data, uint8 color, uint16 bufPitch);
+	void makeChineseGameCharacter(uint16 textChar, uint8 *charSetPtr, uint8 *&dest, uint8 color, uint16 bufPitch);
 
 	bool patchMessage(uint32 textNum);
 
 	Disk *_skyDisk;
 	SkyCompact *_skyCompact;
+	SkyEngine *_vm;
 
 	const HuffTree *_huffTree;
 

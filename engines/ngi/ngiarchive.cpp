@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@
 
 namespace NGI {
 
-NGIArchive::NGIArchive(const Common::String &filename) : _ngiFilename(filename) {
+NGIArchive::NGIArchive(const Common::Path &filename) : _ngiFilename(filename) {
 	Common::File ngiFile;
 
 	if (!ngiFile.open(_ngiFilename)) {
@@ -92,7 +91,7 @@ NGIArchive::NGIArchive(const Common::String &filename) : _ngiFilename(filename) 
 
 	g_nmi->_currArchive = this;
 
-	debug(4, "NGIArchive::NGIArchive(%s): Located %d files", filename.c_str(), _headers.size());
+	debug(4, "NGIArchive::NGIArchive(%s): Located %d files", filename.toString().c_str(), _headers.size());
 }
 
 NGIArchive::~NGIArchive() {
@@ -101,8 +100,7 @@ NGIArchive::~NGIArchive() {
 }
 
 bool NGIArchive::hasFile(const Common::Path &path) const {
-	Common::String name = path.toString();
-	return _headers.contains(name);
+	return _headers.contains(path);
 }
 
 int NGIArchive::listMembers(Common::ArchiveMemberList &list) const {
@@ -110,7 +108,7 @@ int NGIArchive::listMembers(Common::ArchiveMemberList &list) const {
 
 	NgiHeadersMap::const_iterator it = _headers.begin();
 	for ( ; it != _headers.end(); ++it) {
-		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(it->_value->filename, this)));
+		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(Common::Path(it->_value->filename), *this)));
 		matches++;
 	}
 
@@ -118,20 +116,18 @@ int NGIArchive::listMembers(Common::ArchiveMemberList &list) const {
 }
 
 const Common::ArchiveMemberPtr NGIArchive::getMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	if (!hasFile(name))
+	if (!hasFile(path))
 		return Common::ArchiveMemberPtr();
 
-	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
+	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(path, *this));
 }
 
 Common::SeekableReadStream *NGIArchive::createReadStreamForMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	if (!_headers.contains(name)) {
-		return 0;
+	if (!_headers.contains(path)) {
+		return nullptr;
 	}
 
-	NgiHeader *hdr = _headers[name].get();
+	NgiHeader *hdr = _headers[path].get();
 
 	Common::File archiveFile;
 	archiveFile.open(_ngiFilename);
@@ -146,7 +142,7 @@ Common::SeekableReadStream *NGIArchive::createReadStreamForMember(const Common::
 	return new Common::MemoryReadStream(data, hdr->size, DisposeAfterUse::YES);
 }
 
-NGIArchive *makeNGIArchive(const Common::String &name) {
+NGIArchive *makeNGIArchive(const Common::Path &name) {
 	return new NGIArchive(name);
 }
 

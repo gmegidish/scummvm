@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,14 +23,19 @@
 #define SCUMM_DETECTION_INTERNAL_H
 
 #include "common/debug.h"
+#include "common/macresman.h"
 #include "common/md5.h"
+#include "common/punycode.h"
+#include "common/translation.h"
+
+#include "gui/error.h"
 
 #include "scumm/detection_tables.h"
 #include "scumm/scumm-md5.h"
 #include "scumm/file_nes.h"
 
 // Includes some shared functionalities, which is required by multiple TU's.
-// Mark it as static in the header, so visibility for function is limited by the TU, and we can use it whereever required.
+// Mark it as static in the header, so visibility for function is limited by the TU, and we can use it wherever required.
 // This is being done, because it's necessary in detection, creating an instance, as well as in initiliasing the ScummEngine.
 #include "scumm/detection_steam.h"
 
@@ -110,7 +114,7 @@ static bool testGame(const GameSettings *g, const DescMap &fileMD5Map, const Com
 
 // Search for a node with the given "name", inside fslist. Ignores case
 // when performing the matching. The first match is returned, so if you
-// search for "resource" and two nodes "RESOURE and "resource" are present,
+// search for "resource" and two nodes "RESOURCE" and "resource" are present,
 // the first match is used.
 static bool searchFSNode(const Common::FSList &fslist, const Common::String &name, Common::FSNode &result) {
 	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
@@ -209,13 +213,22 @@ static bool detectSpeech(const Common::FSList &fslist, const GameSettings *gs) {
 }
 
 // The following function tries to detect the language.
-static Common::Language detectLanguage(const Common::FSList &fslist, byte id, Common::Language originalLanguage = Common::UNK_LANG) {
+static Common::Language detectLanguage(const Common::FSList &fslist, byte id, const char *variant, Common::Language originalLanguage = Common::UNK_LANG) {
 	// First try to detect Chinese translation.
 	Common::FSNode fontFile;
 
-	if (searchFSNode(fslist, "chinese_gb16x12.fnt", fontFile)) {
+	if (searchFSNode(fslist, "chinese_gb16x12.fnt", fontFile) || (searchFSNode(fslist, "video", fontFile) && fontFile.getChild("chinese_gb16x12.fnt").exists())) {
 		debugC(0, kDebugGlobalDetection, "Chinese detected");
-		return Common::ZH_CNA;
+		return Common::ZH_CHN;
+	}
+
+	for (uint i = 0; ruScummPatcherTable[i].patcherName; i++) {
+		Common::FSNode patchFile;
+		if (ruScummPatcherTable[i].gameid == id && (variant == nullptr || strcmp(variant, ruScummPatcherTable[i].variant) == 0)
+		    && searchFSNode(fslist, Common::punycode_decode(ruScummPatcherTable[i].patcherName), patchFile)) {
+			debugC(0, kDebugGlobalDetection, "Russian detected");
+			return Common::RU_RUS;
+		}
 	}
 
 	if (id != GID_CMI && id != GID_DIG) {
@@ -331,6 +344,51 @@ static void computeGameSettingsFromMD5(const Common::FSList &fslist, const GameF
 			// The gameid either matches, or is empty. The latter indicates
 			// a generic entry, currently used for some generic HE settings.
 			if (g->variant == 0 || !scumm_stricmp(md5Entry->variant, g->variant)) {
+
+				// The English EGA release of Monkey Island 1 sold by Limited Run Games in the
+				// Monkey Island Anthology in late 2021 contains several corrupted files, making
+				// the game unplayable (see bug #14500). It's possible to recover working files
+				// from the raw KryoFlux resources also provided by LRG, but this requires
+				// dedicated tooling, and so we can just detect the corrupted resources and
+				// report the problem to users before they report weird crashes in the game.
+				// https://dwatteau.github.io/scummfixes/corrupted-monkey1-ega-files-limitedrungames.html
+				if (g->id == GID_MONKEY_EGA && g->platform == Common::kPlatformDOS) {
+					Common::String md5Disk03, md5Disk04, md5Lfl903;
+					Common::FSNode resFile;
+					Common::File f;
+
+					if (searchFSNode(fslist, "903.LFL", resFile))
+						f.open(resFile);
+					if (f.isOpen()) {
+						md5Lfl903 = Common::computeStreamMD5AsString(f, kMD5FileSizeLimit);
+						f.close();
+					}
+
+					if (searchFSNode(fslist, "DISK03.LEC", resFile))
+						f.open(resFile);
+					if (f.isOpen()) {
+						md5Disk03 = Common::computeStreamMD5AsString(f, kMD5FileSizeLimit);
+						f.close();
+					}
+
+					if (searchFSNode(fslist, "DISK04.LEC", resFile))
+						f.open(resFile);
+					if (f.isOpen()) {
+						md5Disk04 = Common::computeStreamMD5AsString(f, kMD5FileSizeLimit);
+						f.close();
+					}
+
+					if ((!md5Lfl903.empty() && md5Lfl903 == "54d4e17df08953b483d17416043345b9") ||
+					    (!md5Disk03.empty() && md5Disk03 == "a8ab7e8eaa322d825beb6c5dee28f17d") ||
+					    (!md5Disk04.empty() && md5Disk04 == "f338cc1d3117c1077a3a9d0c1d70b1e8")) {
+						::GUI::displayErrorDialog(_("This version of Monkey Island can't be played, because Limited Run Games "
+						    "provided corrupted DISK03.LEC, DISK04.LEC and 903.LFL files.\n\nPlease contact their technical "
+						    "support for replacement files, or look online for some guides which can help you recover valid "
+						    "files from the KryoFlux dumps that Limited Run Games also provided."));
+						continue;
+					}
+				}
+
 				// Perfect match found, use it and stop the loop.
 				dr.game = *g;
 				dr.game.gameid = md5Entry->gameid;
@@ -353,7 +411,7 @@ static void computeGameSettingsFromMD5(const Common::FSList &fslist, const GameF
 
 				// HACK: Try to detect languages for translated games.
 				if (dr.language == UNK_LANG || dr.language == Common::EN_ANY) {
-					dr.language = detectLanguage(fslist, dr.game.id, dr.language);
+					dr.language = detectLanguage(fslist, dr.game.id, g->variant, dr.language);
 				}
 
 				// HACK: Detect between 68k and PPC versions.
@@ -420,8 +478,14 @@ static void detectGames(const Common::FSList &fslist, Common::List<DetectorResul
 		// exist in the directory we are looking at, we can skip to the next
 		// one immediately.
 		Common::String file(generateFilenameForDetection(gfp->pattern, gfp->genMethod, gfp->platform));
-		if (!fileMD5Map.contains(file))
-			continue;
+		Common::Platform platform = gfp->platform;
+		if (!fileMD5Map.contains(file)) {
+			if (fileMD5Map.contains(file + ".bin") && (platform == Common::Platform::kPlatformMacintosh || platform == Common::Platform::kPlatformUnknown)) {
+				file += ".bin";
+				platform = Common::Platform::kPlatformMacintosh;
+			} else
+				continue;
+		}
 
 		// Reset the DetectorResult variable.
 		dr.fp.pattern = gfp->pattern;
@@ -463,9 +527,25 @@ static void detectGames(const Common::FSList &fslist, Common::List<DetectorResul
 			if (tmp)
 				md5str = computeStreamMD5AsString(*tmp, kMD5FileSizeLimit);
 			if (!md5str.empty()) {
+				int filesize = tmp->size();
 
 				d.md5 = md5str;
 				d.md5Entry = findInMD5Table(md5str.c_str());
+
+				if (!d.md5Entry && (platform == Common::Platform::kPlatformMacintosh || platform == Common::Platform::kPlatformUnknown)) {
+					Common::SeekableReadStream *dataStream = Common::MacResManager::openDataForkFromMacBinary(tmp);
+					if (dataStream) {
+						Common::String dataMD5 = computeStreamMD5AsString(*dataStream, kMD5FileSizeLimit);
+						const MD5Table *dataMD5Entry = findInMD5Table(dataMD5.c_str());
+						if (dataMD5Entry) {
+							d.md5 = dataMD5;
+							d.md5Entry = dataMD5Entry;
+							filesize = dataStream->size();
+							platform = Common::Platform::kPlatformMacintosh;
+						}
+						delete dataStream;
+					}
+				}
 
 				dr.md5 = d.md5;
 
@@ -474,7 +554,6 @@ static void detectGames(const Common::FSList &fslist, Common::List<DetectorResul
 					computeGameSettingsFromMD5(fslist, gfp, d.md5Entry, dr);
 
 					// Print some debug info.
-					int filesize = tmp->size();
 					debugC(1, kDebugGlobalDetection, "SCUMM detector found matching file '%s' with MD5 %s, size %d\n",
 						file.c_str(), md5str.c_str(), filesize);
 
@@ -525,8 +604,8 @@ static void detectGames(const Common::FSList &fslist, Common::List<DetectorResul
 			dr.game = *g;
 			dr.extra = g->variant; // FIXME: We (ab)use 'variant' for the 'extra' description for now.
 
-			if (gfp->platform != Common::kPlatformUnknown)
-				dr.game.platform = gfp->platform;
+			if (platform != Common::kPlatformUnknown)
+				dr.game.platform = platform;
 
 
 			// If a variant has been specified, use that!
@@ -540,7 +619,7 @@ static void detectGames(const Common::FSList &fslist, Common::List<DetectorResul
 			}
 
 			// HACK: Perhaps it is some modified translation?
-			dr.language = detectLanguage(fslist, g->id);
+			dr.language = detectLanguage(fslist, g->id, g->variant);
 
 			// Detect if there are speech files in this unknown game.
 			if (detectSpeech(fslist, g)) {
@@ -573,7 +652,7 @@ static bool testGame(const GameSettings *g, const DescMap &fileMD5Map, const Com
 
 	Common::File tmp;
 	if (!tmp.open(d.node)) {
-		warning("SCUMM testGame: failed to open '%s' for read access", d.node.getPath().c_str());
+		warning("SCUMM testGame: failed to open '%s' for read access", d.node.getPath().toString(Common::Path::kNativeSeparator).c_str());
 		return false;
 	}
 
@@ -780,6 +859,97 @@ static bool testGame(const GameSettings *g, const DescMap &fileMD5Map, const Com
 	return true;
 }
 
+static Common::String customizeGuiOptions(const DetectorResult &res) {
+	Common::String guiOptions = res.game.guioptions;
+
+	int midiflags = res.game.midi;
+	// These games often have no detection entries of their own and therefore come with all the DOS audio options.
+	// We clear them here to avoid confusion and add the appropriate default sound option below. The games from
+	// version 5 onwards seem to have correct sound options in the detection tables.
+	if (res.game.version < 5 && (res.game.platform == Common::kPlatformAmiga || (res.game.platform == Common::kPlatformMacintosh && strncmp(res.extra, "Steam", 6)) || res.game.platform == Common::kPlatformC64))
+		midiflags = MDT_NONE;
+
+	static const uint mtypes[] = {MT_PCSPK, MT_CMS, MT_PCJR, MT_ADLIB, MT_C64, MT_AMIGA, MT_APPLEIIGS, MT_TOWNS, MT_PC98, MT_SEGACD, 0, 0, 0, 0, MT_MACINTOSH};
+
+	for (int i = 0; i < ARRAYSIZE(mtypes); ++i) {
+		if (mtypes[i] && (midiflags & (1 << i)))
+			guiOptions += MidiDriver::musicType2GUIO(mtypes[i]);
+	}
+
+	if (midiflags & MDT_MIDI) {
+		guiOptions += MidiDriver::musicType2GUIO(MT_GM);
+		guiOptions += MidiDriver::musicType2GUIO(MT_MT32);
+	}
+
+	// Amiga versions often have no detection entries of their own and therefore come with all the DOS render modes.
+	// We remove them if we find any.
+	static const char *const rmodes[] = { GUIO_RENDERHERCGREEN, GUIO_RENDERHERCAMBER, GUIO_RENDERCGABW, GUIO_RENDERCGACOMP, GUIO_RENDERCGA };
+	if (res.game.platform == Common::kPlatformAmiga) {
+		for (int i = 0; i < ARRAYSIZE(rmodes); ++i) {
+			uint pos = guiOptions.findFirstOf(rmodes[i][0]);
+			if (pos != Common::String::npos)
+				guiOptions.erase(pos, 1);
+		}
+	}
+	
+	Common::String defaultRenderOption = "";
+	Common::String defaultSoundOption = "";
+
+	// Add default rendermode and sound option for target. We don't always put the default modes
+	// into the detection tables, due to the amount of targets we have. It it more convenient to
+	// add the option here.
+	switch (res.game.platform) {
+	case Common::kPlatformC64:
+		defaultRenderOption = GUIO_RENDERC64;
+		defaultSoundOption = GUIO_MIDIC64;
+		break;
+	case Common::kPlatformAmiga:
+		defaultRenderOption = GUIO_RENDERAMIGA;
+		defaultSoundOption = GUIO_MIDIAMIGA;
+		break;
+	case Common::kPlatformApple2GS:
+		defaultRenderOption = GUIO_RENDERAPPLE2GS;
+		// No default sound here, since we don't support it.
+		break;
+	case Common::kPlatformMacintosh:
+		if (!strncmp(res.extra, "Steam", 6)) {
+			defaultRenderOption = GUIO_RENDERVGA;
+		} else {
+			defaultRenderOption = GUIO_RENDERMACINTOSH;
+			defaultSoundOption = GUIO_MIDIMAC;
+		}
+		break;
+	case Common::kPlatformFMTowns:
+		defaultRenderOption = GUIO_RENDERFMTOWNS;
+		// No default sound here, it is all in the detection tables.
+		break;
+	case Common::kPlatformAtariST:
+		defaultRenderOption = GUIO_RENDERATARIST;
+		// No default sound here, since we don't support it.
+		break;
+	case Common::kPlatformDOS:
+		defaultRenderOption = (!strncmp(res.extra, "EGA", 4) || !strncmp(res.extra, "V1", 3) || !strncmp(res.extra, "V2", 3)) ? GUIO_RENDEREGA : GUIO_RENDERVGA;
+		break;
+	case Common::kPlatformUnknown:
+		// For targets that don't specify the platform (often happens with SCUMM6+ games) we stick with default VGA.
+		defaultRenderOption = GUIO_RENDERVGA;
+		break;
+	default:
+		// Leave this as nullptr for platforms that don't have a specific render option (SegaCD, NES, ...).
+		// These targets will then have the full set of render mode options in the launcher options dialog.
+		break;
+	}
+
+	// If the render option is already part of the string (specified in the
+	// detection tables) we don't add it again.
+	if (!guiOptions.contains(defaultRenderOption))
+		guiOptions += defaultRenderOption;
+	// Same for sound...
+	if (!defaultSoundOption.empty() && !guiOptions.contains(defaultSoundOption))
+		guiOptions += defaultSoundOption;
+
+	return guiOptions;
+}
 
 } // End of namespace Scumm
 

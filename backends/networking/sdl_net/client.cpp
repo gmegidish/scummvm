@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -104,6 +103,15 @@ void Client::readHeaders() {
 bool Client::readContent(Common::WriteStream *stream) {
 	if (!readMoreIfNeeded())
 		return false;
+	_reader.setMode(RM_HTTP_GENERIC);
+	_reader.setContent(_stream);
+	return _reader.readContent(stream);
+}
+
+bool Client::readFirstContent(Common::WriteStream *stream) {
+	if (!readMoreIfNeeded())
+		return false;
+	_reader.setMode(RM_POST_FORM_MULTIPART);
 	_reader.setContent(_stream);
 	return _reader.readFirstContent(stream);
 }
@@ -175,7 +183,7 @@ Common::String Client::path() const { return _reader.path(); }
 
 Common::String Client::query() const { return _reader.query(); }
 
-Common::String Client::queryParameter(Common::String name) const { return _reader.queryParameter(name); }
+Common::String Client::queryParameter(const Common::String &name) const { return _reader.queryParameter(name); }
 
 Common::String Client::anchor() const { return _reader.anchor(); }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,10 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-//include <cctype> //isalnum()
-//include <cstdio>
 #include "ags/shared/ac/common.h"
 #include "ags/shared/ac/game_setup_struct.h"
 #include "ags/engine/ac/game_state.h"
@@ -106,19 +103,19 @@ int FindMatchingMultiWordWord(char *thisword, const char **text) {
 	const char *tempptr = *text;
 	char tempword[150] = "";
 	if (thisword != nullptr)
-		strcpy(tempword, thisword);
+		Common::strcpy_s(tempword, thisword);
 
 	int bestMatchFound = -1, word;
 	const char *tempptrAtBestMatch = tempptr;
 
 	do {
 		// extract and concat the next word
-		strcat(tempword, " ");
+		Common::strcat_s(tempword, " ");
 		while (tempptr[0] == ' ') tempptr++;
 		char chbuffer[2];
 		while (is_valid_word_char(tempptr[0])) {
-			sprintf(chbuffer, "%c", tempptr[0]);
-			strcat(tempword, chbuffer);
+			snprintf(chbuffer, sizeof(chbuffer), "%c", tempptr[0]);
+			Common::strcat_s(tempword, chbuffer);
 			tempptr++;
 		}
 		// is this it?
@@ -137,7 +134,7 @@ int FindMatchingMultiWordWord(char *thisword, const char **text) {
 		// yes, a word like "pick up" was found
 		*text = tempptrAtBestMatch;
 		if (thisword != nullptr)
-			strcpy(thisword, tempword);
+			Common::strcpy_s(thisword, 150, tempword);
 	}
 
 	return word;
@@ -242,19 +239,28 @@ int parse_sentence(const char *src_text, int *numwords, short *wordarray, short 
 					int continueSearching = 1;
 					while (continueSearching) {
 
-						const char *textStart = &text[1];
+						const char *textStart = ++text; // begin with next char
 
-						while ((text[0] == ',') || (Common::isAlnum((unsigned char)text[0]) != 0))
-							text++;
+						// find where the next word ends
+						while ((text[0] == ',') || is_valid_word_char(text[0])) {
+							// shift beginning of potential multi-word each time we see a comma
+							if (text[0] == ',')
+								textStart = ++text;
+							else
+								text++;
+						}
 
 						continueSearching = 0;
 
-						if (text[0] == ' ') {
-							strcpy(thisword, textStart);
+						if (text[0] == 0 || text[0] == ' ') {
+							Common::strcpy_s(thisword, textStart);
 							thisword[text - textStart] = 0;
 							// forward past any multi-word alternatives
-							if (FindMatchingMultiWordWord(thisword, &text) >= 0)
+							if (FindMatchingMultiWordWord(thisword, &text) >= 0) {
+								if (text[0] == 0)
+									break;
 								continueSearching = 1;
+							}
 						}
 					}
 
@@ -278,7 +284,7 @@ int parse_sentence(const char *src_text, int *numwords, short *wordarray, short 
 				// if it's an unknown word, store it for use in messages like
 				// "you can't use the word 'xxx' in this game"
 				if ((word < 0) && (_GP(play).bad_parsed_word[0] == 0))
-					strcpy(_GP(play).bad_parsed_word, thisword);
+					Common::strcpy_s(_GP(play).bad_parsed_word, 100, thisword);
 			}
 
 			if (do_word_now) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -36,7 +41,7 @@ namespace Gob {
 CDROM::CDROM() {
 	_cdPlaying = false;
 
-	_LICbuffer = 0;
+	_LICbuffer = nullptr;
 	for (int i = 0; i < 16; i++)
 		_curTrack[i] = 0;
 	_numTracks = 0;
@@ -78,7 +83,7 @@ void CDROM::readLIC(Common::SeekableReadStream &stream) {
 
 void CDROM::freeLICBuffer() {
 	delete[] _LICbuffer;
-	_LICbuffer = 0;
+	_LICbuffer = nullptr;
 }
 
 void CDROM::startTrack(const char *trackName) {
@@ -113,7 +118,6 @@ void CDROM::startTrack(const char *trackName) {
 
 void CDROM::play(uint32 from, uint32 to) {
 	// play from sector [from] to sector [to]
-	//
 	// format is HSG:
 	// HSG encodes frame information into a double word:
 	// minute multiplied by 4500, plus second multiplied by 75,
@@ -162,7 +166,7 @@ void CDROM::stopPlaying() {
 }
 
 void CDROM::stop() {
-	_curTrackBuffer = 0;
+	_curTrackBuffer = nullptr;
 	g_system->getAudioCDManager()->stop();
 	_cdPlaying = false;
 }
@@ -173,7 +177,7 @@ void CDROM::testCD(int trySubst, const char *label) {
 		return;
 	}
 
-	_LICbuffer = 0;
+	_LICbuffer = nullptr;
 	_cdPlaying = false;
 
 	// Original checked CD label here
@@ -183,9 +187,9 @@ void CDROM::testCD(int trySubst, const char *label) {
 
 byte *CDROM::getTrackBuffer(const char *trackName) const {
 	if (!_LICbuffer || !trackName)
-		return 0;
+		return nullptr;
 
-	byte *matchPtr = 0;
+	byte *matchPtr = nullptr;
 	byte *curPtr = _LICbuffer;
 
 	for (int i = 0; i < _numTracks; i++) {

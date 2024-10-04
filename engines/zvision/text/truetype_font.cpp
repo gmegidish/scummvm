@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,8 @@
 #include "common/debug.h"
 #include "common/file.h"
 #include "common/system.h"
-#include "common/unzip.h"
+#include "common/compression/unzip.h"
+#include "common/unicode-bidi.h"
 #include "common/ustr.h"
 #include "graphics/font.h"
 #include "graphics/fonts/ttf.h"
@@ -117,14 +117,15 @@ bool StyledTTFont::loadFont(const Common::String &fontName, int32 point, uint st
 
 	bool sharp = (_style & TTF_STYLE_SHARP) == TTF_STYLE_SHARP;
 
-	Common::File file;
+	Common::File *file = new Common::File();
 	Graphics::Font *newFont;
-	if (!file.open(newFontName) && !_engine->getSearchManager()->openFile(file, newFontName) &&
-		!file.open(liberationFontName) && !_engine->getSearchManager()->openFile(file, liberationFontName) &&
-		!file.open(freeFontName) && !_engine->getSearchManager()->openFile(file, freeFontName)) {
-		newFont = Graphics::loadTTFFontFromArchive(liberationFontName, point, Graphics::kTTFSizeModeCell, 0, (sharp ? Graphics::kTTFRenderModeMonochrome : Graphics::kTTFRenderModeNormal));
+	if (!file->open(Common::Path(newFontName)) && !_engine->getSearchManager()->openFile(*file, Common::Path(newFontName)) &&
+		!file->open(Common::Path(liberationFontName)) && !_engine->getSearchManager()->openFile(*file, Common::Path(liberationFontName)) &&
+		!file->open(Common::Path(freeFontName)) && !_engine->getSearchManager()->openFile(*file, Common::Path(freeFontName))) {
+		newFont = Graphics::loadTTFFontFromArchive(liberationFontName, point, Graphics::kTTFSizeModeCell, 0, 0, (sharp ? Graphics::kTTFRenderModeMonochrome : Graphics::kTTFRenderModeNormal));
+		delete file;
 	} else {
-		newFont = Graphics::loadTTFFont(file, point, Graphics::kTTFSizeModeCell, 0, (sharp ? Graphics::kTTFRenderModeMonochrome : Graphics::kTTFRenderModeNormal));
+		newFont = Graphics::loadTTFFont(file, DisposeAfterUse::YES, point, Graphics::kTTFSizeModeCell, 0, 0, (sharp ? Graphics::kTTFRenderModeMonochrome : Graphics::kTTFRenderModeNormal));
 	}
 
 	if (newFont == nullptr) {
@@ -154,7 +155,7 @@ int StyledTTFont::getMaxCharWidth() {
 	return 0;
 }
 
-int StyledTTFont::getCharWidth(byte chr) {
+int StyledTTFont::getCharWidth(uint16 chr) {
 	if (_font)
 		return _font->getCharWidth(chr);
 
@@ -168,7 +169,7 @@ int StyledTTFont::getKerningOffset(byte left, byte right) {
 	return 0;
 }
 
-void StyledTTFont::drawChar(Graphics::Surface *dst, byte chr, int x, int y, uint32 color) {
+void StyledTTFont::drawChar(Graphics::Surface *dst, uint16 chr, int x, int y, uint32 color) {
 	if (_font) {
 		_font->drawChar(dst, chr, x, y, color);
 		if (_style & TTF_STYLE_UNDERLINE) {
@@ -187,7 +188,7 @@ void StyledTTFont::drawChar(Graphics::Surface *dst, byte chr, int x, int y, uint
 void StyledTTFont::drawString(Graphics::Surface *dst, const Common::String &str, int x, int y, int w, uint32 color, Graphics::TextAlign align) {
 	if (_font) {
 		Common::U32String u32str = Common::convertUtf8ToUtf32(str);
-		_font->drawString(dst, u32str, x, y, w, color, align);
+		_font->drawString(dst, Common::convertBiDiU32String(u32str).visual, x, y, w, color, align);
 		if (_style & TTF_STYLE_UNDERLINE) {
 			int16 pos = (int16)floor(_font->getFontHeight() * 0.87);
 			int16 wd = MIN(_font->getStringWidth(u32str), w);

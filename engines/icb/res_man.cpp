@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -363,9 +362,9 @@ void res_man::Advance_time_stamp() {
 }
 
 res_man::res_man() {
-	memory_base = NULL;
+	memory_base = nullptr;
 	max_mem_blocks = 0;
-	mem_list = NULL;
+	mem_list = nullptr;
 }
 
 res_man::res_man(uint32 memory_tot) {
@@ -453,7 +452,7 @@ void res_man::Res_purge(const char *url, uint32 url_hash, const char *cluster, u
 			mem_list[search].state = MEM_null; // we're gone and can be used again later
 
 			total_blocks--; // one less block
-		} else { // we cant merge into our parent because it isnt free (or we are block 0) so we become
+		} else { // we can't merge into our parent because it isn't free (or we are block 0) so we become
 			// a MEM_free floating block with no file
 			mem_list[search].state = MEM_free; // block remains but is free to be defragged
 		}
@@ -620,7 +619,7 @@ void res_man::Res_purge_all() {
 				mem_list[search].state = MEM_null; // we're gone and can be used again later
 
 				total_blocks--; // one less block
-			} else { // we cant merge into our parent because it isnt free (or we are block 0) so we become
+			} else { // we can't merge into our parent because it isn't free (or we are block 0) so we become
 				// a MEM_free floating block with no file
 				mem_list[search].state = MEM_free; // block remains but is free to be defragged
 			}
@@ -653,7 +652,7 @@ uint32 res_man::Check_file_size(const char *url, uint32 url_hash, const char *cl
 uint8 *res_man::Internal_open(RMParams *params, int32 *ret_len) {
 	// Loads if not in memory here already
 
-	// resoures cannot be locked in memory
+	// resources cannot be locked in memory
 
 	// if space cannot be found then ALL the resources loaded during a previous time-frame will be removed
 	// as graphic resources are to be loaded en-mass when scenes begin the trash process should make a sizeable single block
@@ -704,7 +703,7 @@ uint8 *res_man::Internal_open(RMParams *params, int32 *ret_len) {
 		}
 		// otherwise we're doing an async so it's alright to return 9
 		else
-			return 0x00000000;
+			return nullptr;
 	}
 
 	// Pass the 8-byte aligned length back to calling function
@@ -712,7 +711,7 @@ uint8 *res_man::Internal_open(RMParams *params, int32 *ret_len) {
 		*ret_len = params->len;
 
 	if (mem_list[params->search].protect)
-		return 0x00000000;
+		return nullptr;
 
 	return ptr;
 }
@@ -734,11 +733,11 @@ uint8 *res_man::LoadFile(int32 &cluster_search, RMParams *params) {
 	// if we are preloading the cluster
 	if (params->not_ready_yet) {
 		// printf("LoadFile cluster not ready yet");
-		return NULL;
+		return nullptr;
 	}
 
 	// align to 8 byte boundary in length so that next resource will adjoin legally
-	// so, the the file was 5 bytes int32 it would end up being 8 bytes int32
+	// so, the file was 5 bytes int32 it would end up being 8 bytes int32
 	adj_len = (params->len + 7) & ~7;
 
 	if (adj_len >= total_pool)
@@ -781,7 +780,7 @@ uint32 res_man::FindMemBlock(uint32 adj_len, RMParams *params) {
 	// PSX needs to save memory by having small number of mem_blocks
 
 	// try to find a mem_block large enough to fit the resource
-	// if we cant ditch a whole set of resources from a previous frame
+	// if we can't ditch a whole set of resources from a previous frame
 	if (search == -1) {
 
 		// failed to find space but is this resman protected?
@@ -832,7 +831,7 @@ uint32 res_man::FindMemBlock(uint32 adj_len, RMParams *params) {
 								break;
 						}
 
-						if (j == total_age) { // didnt find this items age in table
+						if (j == total_age) { // didn't find this items age in table
 							age_table[total_age++] = age;
 						}
 					} else
@@ -843,7 +842,7 @@ uint32 res_man::FindMemBlock(uint32 adj_len, RMParams *params) {
 			} while (search != -1);
 
 			if (!total_age)
-				Fatal_error("failed to build an age table - not really posible");
+				Fatal_error("failed to build an age table - not really possible");
 
 			//			now sort the ages
 			for (j = 0; j < total_age; j++)
@@ -914,7 +913,7 @@ uint32 res_man::FindMemBlock(uint32 adj_len, RMParams *params) {
 							total_blocks--; // one less block
 
 							search = mem_list[parent].child; // continue the search from our parent new child - was ours remember
-						} else { // we cant merge into our parent because it isnt free so we become a MEM_free floating block with no file
+						} else { // we can't merge into our parent because it isn't free so we become a MEM_free floating block with no file
 							mem_list[search].state = MEM_free; // block remains but is free to be defragged
 							search = mem_list[search].child; // move on to the next file
 						}

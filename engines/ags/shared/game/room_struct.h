@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@
 #ifndef AGS_SHARED_GAME_ROOM_INFO_H
 #define AGS_SHARED_GAME_ROOM_INFO_H
 
-#include "ags/lib/std/memory.h"
+#include "common/std/memory.h"
 #include "ags/lib/allegro.h" // RGB
 #include "ags/shared/ac/common_defines.h"
 #include "ags/shared/game/interactions.h"
@@ -90,6 +89,11 @@ enum RoomVolumeMod {
 	kRoomVolumeMax = kRoomVolumeExtra2,
 };
 
+// Extended room boolean options
+enum RoomFlags {
+	kRoomFlag_BkgFrameLocked = 0x01
+};
+
 // Flag tells that walkable area does not have continious zoom
 #define NOT_VECTOR_SCALED  -10000
 // Flags tells that room is not linked to particular game ID
@@ -97,8 +101,9 @@ enum RoomVolumeMod {
 
 #define MAX_ROOM_BGFRAMES  5   // max number of frames in animating bg scene
 
-#define MAX_ROOM_HOTSPOTS  50  // v2.62 increased from 20 to 30; v2.8 to 50
-#define MAX_ROOM_OBJECTS   40
+#define MAX_ROOM_HOTSPOTS  50  // v2.62: 20 -> 30; v2.8: -> 50
+#define MAX_ROOM_OBJECTS_v300 40 // for some legacy logic support
+#define MAX_ROOM_OBJECTS   256 // v3.6.0: 40 -> 256 (now limited by room format)
 #define MAX_ROOM_REGIONS   16
 // TODO: this is remains of the older code, MAX_WALK_AREAS = real number - 1, where
 // -1 is for the solid wall. When fixing this you need to be careful, because some
@@ -129,6 +134,8 @@ struct RoomOptions {
 	int  PlayerView;
 	// Room's music volume modifier
 	RoomVolumeMod MusicVolume;
+	// A collection of boolean options
+	int  Flags;
 
 	RoomOptions();
 };
@@ -217,8 +224,8 @@ struct WalkArea {
 	int32_t     ScalingFar;
 	// Scaling at the nearest point, or NOT_VECTOR_SCALED for uniform scaling
 	int32_t     ScalingNear;
-	// Light level (-100 -> +100)
-	int32_t     Light;
+	// Optional override for player character view
+	int32_t     PlayerView;
 	// Top and bottom Y of the area
 	int32_t     Top;
 	int32_t     Bottom;
@@ -309,7 +316,7 @@ public:
 	// Game's unique ID, corresponds to GameSetupStructBase::uniqueid.
 	// If this field has a valid value and does not match actual game's id,
 	// then engine will refuse to start this room.
-	// May be set to NO_GAME_ID_IN_ROOM_FILE to let it run within any _GP(game).
+	// May be set to NO_GAME_ID_IN_ROOM_FILE to let it run within any game.
 	int32_t                 GameID;
 	// Loaded room file's data version. This value may be used to know when
 	// the room must have behavior specific to certain version of AGS.
@@ -343,8 +350,7 @@ public:
 	// Room entities
 	size_t                  HotspotCount;
 	RoomHotspot             Hotspots[MAX_ROOM_HOTSPOTS];
-	size_t                  ObjectCount;
-	RoomObjectInfo          Objects[MAX_ROOM_OBJECTS];
+	std::vector<RoomObjectInfo> Objects;
 	size_t                  RegionCount;
 	RoomRegion              Regions[MAX_ROOM_REGIONS];
 	size_t                  WalkAreaCount;
@@ -366,6 +372,8 @@ public:
 	PInteractionScripts     EventHandlers;
 	// Compiled room script
 	PScript                 CompiledScript;
+	// Various extended options with string values, meta-data etc
+	StringMap               StrOptions;
 
 private:
 	// Room's legacy resolution type, defines relation room and game's resolution

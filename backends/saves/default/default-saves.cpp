@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
-// This define lets us use the system function remove() on Symbian, which
-// is disabled by default due to a macro conflict.
-// See backends/platform/symbian/src/portdefs.h .
-#define SYMBIAN_USE_SYSTEM_REMOVE
 
 #include "common/scummsys.h"
 
@@ -42,18 +36,18 @@
 #include "common/fs.h"
 #include "common/archive.h"
 #include "common/config-manager.h"
-#include "common/zlib.h"
+#include "common/compression/deflate.h"
 
 #include <errno.h>	// for removeSavefile()
 
 #if defined(USE_CLOUD) && defined(USE_LIBCURL)
-const char *DefaultSaveFileManager::TIMESTAMPS_FILENAME = "timestamps";
+const char *const DefaultSaveFileManager::TIMESTAMPS_FILENAME = "timestamps";
 #endif
 
 DefaultSaveFileManager::DefaultSaveFileManager() {
 }
 
-DefaultSaveFileManager::DefaultSaveFileManager(const Common::String &defaultSavepath) {
+DefaultSaveFileManager::DefaultSaveFileManager(const Common::Path &defaultSavepath) {
 	ConfMan.registerDefault("savepath", defaultSavepath);
 }
 
@@ -62,10 +56,10 @@ void DefaultSaveFileManager::checkPath(const Common::FSNode &dir) {
 	clearError();
 	if (!dir.exists()) {
 		if (!dir.createDirectory()) {
-			setError(Common::kPathDoesNotExist, "Failed to create directory '"+dir.getPath()+"'");
+			setError(Common::kPathDoesNotExist, Common::String::format("Failed to create directory '%s'", dir.getPath().toString(Common::Path::kNativeSeparator).c_str()));
 		}
 	} else if (!dir.isDirectory()) {
-		setError(Common::kPathNotDirectory, "The savepath '"+dir.getPath()+"' is not a directory");
+		setError(Common::kPathNotDirectory, Common::String::format("The savepath '%s' is not a directory", dir.getPath().toString(Common::Path::kNativeSeparator).c_str()));
 	}
 }
 
@@ -137,7 +131,7 @@ Common::InSaveFile *DefaultSaveFileManager::openForLoading(const Common::String 
 
 Common::OutSaveFile *DefaultSaveFileManager::openForSaving(const Common::String &filename, bool compress) {
 	// Assure the savefile name cache is up-to-date.
-	const Common::String savePathName = getSavePath();
+	const Common::Path savePathName = getSavePath();
 	assureCached(savePathName);
 	if (getError().getCode() != Common::kNoError)
 		return nullptr;
@@ -205,7 +199,7 @@ bool DefaultSaveFileManager::removeSavefile(const Common::String &filename) {
 		_saveFileCache.erase(file);
 		file = _saveFileCache.end();
 
-		Common::ErrorCode result = removeFile(fileNode.getPath());
+		Common::ErrorCode result = removeFile(fileNode);
 		if (result == Common::kNoError)
 			return true;
 		Common::Error error(result);
@@ -214,7 +208,8 @@ bool DefaultSaveFileManager::removeSavefile(const Common::String &filename) {
 	}
 }
 
-Common::ErrorCode DefaultSaveFileManager::removeFile(const Common::String &filepath) {
+Common::ErrorCode DefaultSaveFileManager::removeFile(const Common::FSNode &fileNode) {
+	Common::String filepath(fileNode.getPath().toString(Common::Path::kNativeSeparator));
 	if (remove(filepath.c_str()) == 0)
 		return Common::kNoError;
 	if (errno == EACCES)
@@ -238,25 +233,25 @@ bool DefaultSaveFileManager::exists(const Common::String &filename) {
 	return _saveFileCache.contains(filename);
 }
 
-Common::String DefaultSaveFileManager::getSavePath() const {
+Common::Path DefaultSaveFileManager::getSavePath() const {
 
-	Common::String dir;
+	Common::Path dir;
 
 	// Try to use game specific savepath from config
-	dir = ConfMan.get("savepath");
+	dir = ConfMan.getPath("savepath");
 
 	// Work around a bug (#1689) in the original 0.6.1 release of
 	// ScummVM, which would insert a bad savepath value into config files.
 	if (dir == "None") {
 		ConfMan.removeKey("savepath", ConfMan.getActiveDomainName());
 		ConfMan.flushToDisk();
-		dir = ConfMan.get("savepath");
+		dir = ConfMan.getPath("savepath");
 	}
 
 	return dir;
 }
 
-void DefaultSaveFileManager::assureCached(const Common::String &savePathName) {
+void DefaultSaveFileManager::assureCached(const Common::Path &savePathName) {
 	// Check that path exists and is usable.
 	checkPath(Common::FSNode(savePathName));
 
@@ -274,7 +269,7 @@ void DefaultSaveFileManager::assureCached(const Common::String &savePathName) {
 	_cachedDirectory.clear();
 
 	if (getError().getCode() != Common::kNoError) {
-		warning("DefaultSaveFileManager::assureCached: Can not cache path '%s': '%s'", savePathName.c_str(), getErrorDesc().c_str());
+		warning("DefaultSaveFileManager::assureCached: Can not cache path '%s': '%s'", savePathName.toString(Common::Path::kNativeSeparator).c_str(), getErrorDesc().c_str());
 		return;
 	}
 
@@ -365,9 +360,9 @@ Common::HashMap<Common::String, uint32> DefaultSaveFileManager::loadTimestamps()
 
 void DefaultSaveFileManager::saveTimestamps(Common::HashMap<Common::String, uint32> &timestamps) {
 	Common::DumpFile f;
-	Common::String filename = concatWithSavesPath(TIMESTAMPS_FILENAME);
+	Common::Path filename = concatWithSavesPath(TIMESTAMPS_FILENAME);
 	if (!f.open(filename, true)) {
-		warning("DefaultSaveFileManager: failed to open '%s' file to save timestamps", filename.c_str());
+		warning("DefaultSaveFileManager: failed to open '%s' file to save timestamps", filename.toString(Common::Path::kNativeSeparator).c_str());
 		return;
 	}
 
@@ -377,7 +372,7 @@ void DefaultSaveFileManager::saveTimestamps(Common::HashMap<Common::String, uint
 
 		Common::String data = i->_key + Common::String::format(" %u\n", v);
 		if (f.write(data.c_str(), data.size()) != data.size()) {
-			warning("DefaultSaveFileManager: failed to write timestamps data into '%s'", filename.c_str());
+			warning("DefaultSaveFileManager: failed to write timestamps data into '%s'", filename.toString(Common::Path::kNativeSeparator).c_str());
 			return;
 		}
 	}
@@ -389,20 +384,11 @@ void DefaultSaveFileManager::saveTimestamps(Common::HashMap<Common::String, uint
 
 #endif // ifdef USE_LIBCURL
 
-Common::String DefaultSaveFileManager::concatWithSavesPath(Common::String name) {
+Common::Path DefaultSaveFileManager::concatWithSavesPath(Common::String name) {
 	DefaultSaveFileManager *manager = dynamic_cast<DefaultSaveFileManager *>(g_system->getSavefileManager());
-	Common::String path = (manager ? manager->getSavePath() : ConfMan.get("savepath"));
-	if (path.size() > 0 && (path.lastChar() == '/' || path.lastChar() == '\\'))
-		return path + name;
-
-	//simple heuristic to determine which path separator to use
-	int backslashes = 0;
-	for (uint32 i = 0; i < path.size(); ++i)
-		if (path[i] == '/') --backslashes;
-		else if (path[i] == '\\') ++backslashes;
-
-	if (backslashes > 0) return path + '\\' + name;
-	return path + '/' + name;
+	Common::Path path = (manager ? manager->getSavePath() : ConfMan.getPath("savepath"));
+	path.joinInPlace(name);
+	return path;
 }
 
 #endif // !defined(DISABLE_DEFAULT_SAVEFILEMANAGER)

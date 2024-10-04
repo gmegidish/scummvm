@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * This is a utility for create the translations.dat file from all the po files.
  * The generated files is used by ScummVM to propose translation of its GUI.
@@ -72,7 +71,7 @@ void writeUint32BE(FILE *fp, uint32 value) {
 
 int stringSize(const char *string) {
 	// Each string is preceded by its size coded on 2 bytes
-	if (string == NULL)
+	if (string == nullptr)
 		return 2;
 	int len = strlen(string) + 1;
 	return 2 + len;
@@ -83,7 +82,7 @@ int stringSize(const char *string) {
 
 void writeString(FILE *fp, const char *string) {
 	// Each string is preceded by its size coded on 2 bytes
-	if (string == NULL) {
+	if (string == nullptr) {
 		writeUint16BE(fp, 0);
 		return;
 	}
@@ -109,7 +108,7 @@ int main(int argc, char *argv[]) {
 		int len = strlen(argv[i]);
 		if (scumm_stricmp(argv[i] + len - 2, "po") == 0) {
 			PoMessageEntryList *po = parsePoFile(argv[i], messageIds);
-			if (po != NULL) {
+			if (po != nullptr) {
 				translations.push_back(po);
 				++numLangs;
 			}

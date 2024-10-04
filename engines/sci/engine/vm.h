@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -92,6 +91,8 @@ struct ExecStack {
 	int argc;
 	StackPtr variables_argp; // Argument pointer
 
+	int tempCount;           // Number of temp variables allocated by link opcode
+
 	SegmentId local_segment; // local variables etc
 
 	Selector debugSelector;     // The selector which was used to call or -1 if not applicable
@@ -116,6 +117,7 @@ struct ExecStack {
 		fp = sp = sp_;
 		argc = argc_;
 		variables_argp = argp_;
+		tempCount = 0;
 		if (localsSegment_ != kUninitializedSegment)
 			local_segment = localsSegment_;
 		else
@@ -149,10 +151,11 @@ enum GlobalVar {
 	kGlobalVarPreviousRoomNo = 12,
 	kGlobalVarNewRoomNo      = 13,
 	kGlobalVarScore          = 15,
-	kGlobalVarVersion        = 27,
+	kGlobalVarVersionNew     = 27, // version string or object in later games
+	kGlobalVarVersionOld     = 28, // version string in earlier games
 	kGlobalVarGK2MusicVolume = 76, // 0 to 127
 	kGlobalVarPhant2SecondaryVolume = 76, // 0 to 127
-	kGlobalVarPhant2User           = 80,
+	kGlobalVarUser                 = 80,
 	kGlobalVarFastCast             = 84, // SCI16
 	kGlobalVarMessageType          = 90,
 	kGlobalVarTextSpeed            = 94, // SCI32; 0 is fastest, 8 is slowest
@@ -370,12 +373,6 @@ ExecStack *send_selector(EngineState *s, reg_t send_obj, reg_t work_obj,
  * @param[in] s			The state to use
  */
 void run_vm(EngineState *s);
-
-/**
- * Debugger functionality
- * @param[in] s					The state at which debugging should take place
- */
-void script_debug(EngineState *s);
 
 /**
  * Looks up a selector and returns its type and value

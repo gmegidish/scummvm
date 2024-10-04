@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -213,7 +212,7 @@ void Room::trial2Tick1() {
 		_awayMission->disableInput = 2;
 
 	if (!_awayMission->trial.globDefeated) {
-		playMidiMusicTracks(MIDITRACK_24, -1);
+		playMidiMusicTracks(MIDITRACK_24);
 		loadMapFile("trial22");
 
 		if (!_awayMission->trial.globSplitInTwo) {
@@ -372,7 +371,7 @@ void Room::trial2GlobDoneExploding() {
 	playVoc("Noooloop");
 	showText(TX_SPEAKER_SPOCK, TX_TRI2_020);
 	_awayMission->trial.globDefeated = true;
-	playMidiMusicTracks(MIDITRACK_28, -1);
+	playMidiMusicTracks(MIDITRACK_28);
 	_awayMission->trial.missionScore += 1;
 	loadMapFile("trial2");
 }
@@ -391,7 +390,7 @@ void Room::trial2GlobDoneSplitting() {
 	// Everyone gets vaporized
 	playVoc("V7ALLGET");
 	_awayMission->disableInput = true;
-	playMidiMusicTracks(MIDITRACK_26, -1);
+	playMidiMusicTracks(MIDITRACK_26);
 	loadActorAnimC(OBJECT_KIRK, "kkills", -1, -1, &Room::trial2KirkDied);
 	loadActorAnim2(OBJECT_SPOCK, "skills");
 	loadActorAnim2(OBJECT_MCCOY, "mkills");

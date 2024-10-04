@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -137,15 +136,12 @@ EoBInfProcessor::EoBInfProcessor(EoBCoreEngine *engine, Screen_EoB *screen) : _v
 	_lastScriptFunc = 0;
 	_lastScriptFlags = 0;
 
-	_subroutineStack = new int8*[10];
-	memset(_subroutineStack, 0, 10 * sizeof(int8 *));
+	_subroutineStack = new int8*[10]();
 	_subroutineStackPos = 0;
 
-	_flagTable = new uint32[18];
-	memset(_flagTable, 0, 18 * sizeof(uint32));
+	_flagTable = new uint32[18]();
 
-	_stack = new int16[30];
-	memset(_stack, 0, 30 * sizeof(int16));
+	_stack = new int16[30]();
 	_stackIndex = 0;
 
 	_activeCharacter = -1;
@@ -216,7 +212,7 @@ bool EoBInfProcessor::preventRest() const {
 	return _preventRest ? true : false;
 }
 
-void EoBInfProcessor::loadState(Common::SeekableSubReadStreamEndian &in, bool origFile) {
+void EoBInfProcessor::loadState(Common::SeekableReadStreamEndian &in, bool origFile) {
 	_preventRest = (_vm->game() == GI_EOB1 && origFile) ? 0 : in.readByte();
 	int numFlags = (_vm->game() == GI_EOB1 && origFile) ? 12 : 18;
 	for (int i = 0; i < numFlags; i++)
@@ -524,7 +520,7 @@ int EoBInfProcessor::oeob_printMessage_v1(int8 *data) {
 	char col[5];
 	int8 *pos = data;
 
-	strcpy(col, colorConfig);
+	Common::strlcpy(col, colorConfig, sizeof(col));
 	const char *str = (const char *)pos;
 	pos += (strlen(str) + 1);
 	bool lineBreak = true;
@@ -544,18 +540,11 @@ int EoBInfProcessor::oeob_printMessage_v1(int8 *data) {
 		col[3] = *pos++;
 	}
 
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga) {
-		assert((uint8)col[1] < 16);
-		assert((uint8)col[3] < 16);
-		col[1] = _amigaColorMap[(uint8)col[1]];
-		col[3] = _amigaColorMap[(uint8)col[3]];
-	}
-
 	_vm->txt()->printMessage(col);
 	_vm->txt()->printMessage(str);
 
-	col[1] = _vm->gameFlags().platform == Common::kPlatformSegaCD ? 0xFF : _vm->txt()->colorMap()[_screen->_curDim->unk8];
-	col[3] = _vm->txt()->colorMap()[_screen->_curDim->unkA];
+	col[1] = _vm->gameFlags().platform == Common::kPlatformSegaCD ? 0xFF : _screen->_curDim->col1;
+	col[3] = _screen->_curDim->col2;
 	_vm->txt()->printMessage(col);
 
 	if (lineBreak)
@@ -574,10 +563,6 @@ int EoBInfProcessor::oeob_printMessage_v2(int8 *data) {
 
 	int c = 0;
 	_vm->_dialogueFieldAmiga = true;
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga) {
-		assert(col < 16);
-		col = _amigaColorMap[col];
-	}
 
 	if (_activeCharacter == -1) {
 		c = _vm->rollDice(1, 6, -1);
@@ -1546,7 +1531,9 @@ int EoBInfProcessor::oeob_sequence(int8 *data) {
 		_vm->npcSequence(cmd);
 		break;
 	}
+
 	_vm->screen()->setScreenDim(7);
+
 	return pos - data;
 }
 
@@ -1661,10 +1648,6 @@ int EoBInfProcessor::oeob_specialEvent(int8 *data) {
 
 	return pos - data;
 }
-
-const uint8 EoBInfProcessor::_amigaColorMap[16] = {
-	0x00, 0x06, 0x1d, 0x1b, 0x1a, 0x17, 0x18, 0x0e, 0x19, 0x1c, 0x1c, 0x1e, 0x13, 0x0a, 0x11, 0x1f
-};
 
 const uint8 EoBInfProcessor::_segaCDColorMap[16] = {
 	0x00, 0xFF, 0x99, 0x55, 0xFF, 0x99, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,12 +24,14 @@
 #include "engines/advancedDetector.h"
 #include "engines/obsolete.h"
 
+#include "common/config-manager.h"
 #include "common/system.h"
 #include "common/textconsole.h"
-#include "common/installshield_cab.h"
+#include "common/compression/installshield_cab.h"
 
 #include "agos/detection.h"
 #include "agos/intern_detection.h"
+#include "agos/detection_fallback.h"
 #include "agos/obsolete.h" // Obsolete ID table.
 #include "agos/agos.h"
 
@@ -50,31 +51,31 @@ static const DebugChannelDef debugFlagList[] = {
 
 static const PlainGameDescriptor agosGames[] = {
 	{"pn", "Personal Nightmare"},
-	{"elvira1", "Elvira - Mistress of the Dark"},
-	{"elvira2", "Elvira II - The Jaws of Cerberus"},
+	{"elvira1", "Elvira: Mistress of the Dark"},
+	{"elvira2", "Elvira II: The Jaws of Cerberus"},
 	{"waxworks", "Waxworks"},
-	{"simon1", "Simon the Sorcerer 1"},
-	{"simon2", "Simon the Sorcerer 2"},
+	{"simon1", "Simon the Sorcerer"},
+	{"simon2", "Simon the Sorcerer II: The Lion, the Wizard and the Wardrobe"},
 	{"feeble", "The Feeble Files"},
-	{"dimp", "Demon in my Pocket"},
-	{"jumble", "Jumble"},
-	{"puzzle", "NoPatience"},
-	{"swampy", "Swampy Adventures"},
-	{0, 0}
+	{"dimp", "Simon the Sorcerer's Puzzle Pack: Demon in my Pocket"},
+	{"jumble", "Simon the Sorcerer's Puzzle Pack: Jumble"},
+	{"puzzle", "Simon the Sorcerer's Puzzle Pack: NoPatience"},
+	{"swampy", "Simon the Sorcerer's Puzzle Pack: Swampy Adventures"},
+	{nullptr, nullptr}
 };
 
 #include "agos/detection_tables.h"
 
 static const char *const directoryGlobs[] = {
 	"execute", // Used by Simon1 Acorn CD
-	0
+	nullptr
 };
 
 using namespace AGOS;
 
-class AgosMetaEngineDetection : public AdvancedMetaEngineDetection {
+class AgosMetaEngineDetection : public AdvancedMetaEngineDetection<AGOS::AGOSGameDescription> {
 public:
-	AgosMetaEngineDetection() : AdvancedMetaEngineDetection(AGOS::gameDescriptions, sizeof(AGOS::AGOSGameDescription), agosGames) {
+	AgosMetaEngineDetection() : AdvancedMetaEngineDetection(AGOS::gameDescriptions, agosGames) {
 		_guiOptions = GUIO1(GUIO_NOLAUNCHLOAD);
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
@@ -84,11 +85,16 @@ public:
 		return Engines::findGameID(gameId, _gameIds, obsoleteGameIDsTable);
 	}
 
-	const char *getEngineId() const override {
-		return "agos";
+	Common::Error identifyGame(DetectedGame &game, const void **descriptor) override {
+		Engines::upgradeTargetIfNecessary(obsoleteGameIDsTable);
+		return AdvancedMetaEngineDetection::identifyGame(game, descriptor);
 	}
 
 	const char *getName() const override {
+		return "agos";
+	}
+
+	const char *getEngineName() const override {
 		return "AGOS";
 	}
 
@@ -99,6 +105,16 @@ public:
 	const DebugChannelDef *getDebugChannels() const override {
 		return debugFlagList;
 	}
+
+	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist, ADDetectedGameExtraInfo **extra) const override {
+		ADDetectedGame detectedGame = detectGameFilebased(allFiles, AGOS::fileBased);
+		if (!detectedGame.desc) {
+			return ADDetectedGame();
+		}
+
+		return detectedGame;
+	}
+
 };
 
 REGISTER_PLUGIN_STATIC(AGOS_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, AgosMetaEngineDetection);

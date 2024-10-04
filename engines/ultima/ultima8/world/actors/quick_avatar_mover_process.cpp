@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,18 +34,12 @@ namespace Ultima8 {
 
 DEFINE_RUNTIME_CLASSTYPE_CODE(QuickAvatarMoverProcess)
 
-ProcId QuickAvatarMoverProcess::_amp[6] = { 0, 0, 0, 0, 0, 0 };
+ProcId QuickAvatarMoverProcess::_amp = 0;
 bool QuickAvatarMoverProcess::_clipping = false;
 bool QuickAvatarMoverProcess::_quarter = false;
 
-QuickAvatarMoverProcess::QuickAvatarMoverProcess() : Process(1), _dx(0), _dy(0), _dz(0), _dir(0) {
-}
-
-QuickAvatarMoverProcess::QuickAvatarMoverProcess(int x, int y, int z, int dir) : Process(1),
-		_dx(x), _dy(y), _dz(z), _dir(dir) {
-	QuickAvatarMoverProcess::terminateMover(dir);
-	assert(_dir < 6);
-	_amp[_dir] = getPid();
+QuickAvatarMoverProcess::QuickAvatarMoverProcess() : Process(1), _movementFlags(0) {
+	_amp = getPid();
 }
 
 QuickAvatarMoverProcess::~QuickAvatarMoverProcess() {
@@ -58,73 +51,118 @@ void QuickAvatarMoverProcess::run() {
 		return;
 	}
 
+	int32 dx = 0;
+	int32 dy = 0;
+	int32 dz = 0;
+
+	if (hasMovementFlags(MOVE_UP)) {
+		dx -= 64;
+		dy -= 64;
+	}
+
+	if (hasMovementFlags(MOVE_DOWN)) {
+		dx += 64;
+		dy += 64;
+	}
+
+	if (hasMovementFlags(MOVE_LEFT)) {
+		dx -= 64;
+		dy += 64;
+	}
+
+	if (hasMovementFlags(MOVE_RIGHT)) {
+		dx += 64;
+		dy -= 64;
+	}
+
+	if (hasMovementFlags(MOVE_ASCEND)) {
+		dz += 8;
+	}
+
+	if (hasMovementFlags(MOVE_DESCEND)) {
+		dz -= 8;
+	}
+
+	if (!dx && !dy && !dz) {
+		return;
+	}
+
 	MainActor *avatar = getMainActor();
-	int32 x, y, z;
-	avatar->getLocation(x, y, z);
+	Point3 pt = avatar->getLocation();
 	int32 ixd, iyd, izd;
 	avatar->getFootpadWorld(ixd, iyd, izd);
 
 	CurrentMap *cm = World::get_instance()->getCurrentMap();
 
-	int32 dxv = this->_dx;
-	int32 dyv = this->_dy;
-	int32 dzv = this->_dz;
+	int32 dxv = dx;
+	int32 dyv = dy;
+	int32 dzv = dz;
 
-	for (int j = 0; j < 3; j++) {
-		dxv = this->_dx;
-		dyv = this->_dy;
-		dzv = this->_dz;
+	if (_clipping) {
+		for (int j = 0; j < 3; j++) {
+			dxv = dx;
+			dyv = dy;
+			dzv = dz;
 
-		if (j == 1) dxv = 0;
-		else if (j == 2) dyv = 0;
+			if (j == 1)
+				dxv = 0;
+			else if (j == 2)
+				dyv = 0;
 
-		if (_quarter) {
-			dxv /= 4;
-			dyv /= 4;
-			dzv /= 4;
-		}
-
-		bool ok = false;
-
-		while (dxv || dyv || dzv) {
-			uint32 shapeFlags = avatar->getShapeInfo()->_flags;
-
-			if (!_clipping || cm->isValidPosition(x + dxv, y + dyv, z + dzv, ixd, iyd, izd, _flags, 1, 0, 0)) {
-				if (_clipping && !dzv) {
-					if (cm->isValidPosition(x + dxv, y + dyv, z - 8, ixd, iyd, izd, _flags, 1, 0, 0) &&
-					        !cm->isValidPosition(x, y, z - 8, ixd, iyd, izd, _flags, 1, 0, 0)) {
-						dzv = -8;
-					} else if (cm->isValidPosition(x + dxv, y + dyv, z - 16, ixd, iyd, izd, _flags, 1, 0, 0) &&
-					           !cm->isValidPosition(x, y, z - 16, ixd, iyd, izd, _flags, 1, 0, 0)) {
-						dzv = -16;
-					} else if (cm->isValidPosition(x + dxv, y + dyv, z - 24, ixd, iyd, izd, _flags, 1, 0, 0) &&
-					           !cm->isValidPosition(x, y, z - 24, ixd, iyd, izd, _flags, 1, 0, 0)) {
-						dzv = -24;
-					} else if (cm->isValidPosition(x + dxv, y + dyv, z - 32, ixd, iyd, izd, _flags, 1, 0, 0) &&
-					           !cm->isValidPosition(x, y, z - 32, ixd, iyd, izd, _flags, 1, 0, 0)) {
-						dzv = -32;
-					}
-				}
-				ok = true;
-				break;
-			} else if (cm->isValidPosition(x + dxv, y + dyv, z + dzv + 8, ixd, iyd, izd, shapeFlags, 1, 0, 0)) {
-				dzv += 8;
-				ok = true;
-				break;
+			if (_quarter) {
+				dxv /= 4;
+				dyv /= 4;
+				dzv /= 4;
 			}
-			dxv /= 2;
-			dyv /= 2;
-			dzv /= 2;
+
+			bool ok = false;
+
+			while (dxv || dyv || dzv) {
+				uint32 shapeFlags = avatar->getShapeInfo()->_flags;
+
+				Box start(pt.x, pt.y, pt.z, ixd, iyd, izd);
+				PositionInfo info = cm->getPositionInfo(Box(pt.x + dxv, pt.y + dyv, pt.z + dzv, ixd, iyd, izd), start, shapeFlags, 1);
+				if (info.valid) {
+					if (!dzv && !info.supported) {
+						// Adjust to stay on ground
+						if (cm->getPositionInfo(Box(pt.x + dxv, pt.y + dyv, pt.z - 8, ixd, iyd, izd), start, shapeFlags, 1).valid &&
+							!cm->getPositionInfo(Box(pt.x, pt.y, pt.z - 8, ixd, iyd, izd), start, shapeFlags, 1).valid) {
+							dzv = -8;
+						} else if (cm->getPositionInfo(Box(pt.x + dxv, pt.y + dyv, pt.z - 16, ixd, iyd, izd), start, shapeFlags, 1).valid &&
+								   !cm->getPositionInfo(Box(pt.x, pt.y, pt.z - 16, ixd, iyd, izd), start, shapeFlags, 1).valid) {
+							dzv = -16;
+						} else if (cm->getPositionInfo(Box(pt.x + dxv, pt.y + dyv, pt.z - 24, ixd, iyd, izd), start, shapeFlags, 1).valid &&
+								   !cm->getPositionInfo(Box(pt.x, pt.y, pt.z - 24, ixd, iyd, izd), start, shapeFlags, 1).valid) {
+							dzv = -24;
+						} else if (cm->getPositionInfo(Box(pt.x + dxv, pt.y + dyv, pt.z - 32, ixd, iyd, izd), start, shapeFlags, 1).valid &&
+								   !cm->getPositionInfo(Box(pt.x, pt.y, pt.z - 32, ixd, iyd, izd), start, shapeFlags, 1).valid) {
+							dzv = -32;
+						}
+					}
+					ok = true;
+					break;
+				} else if (cm->getPositionInfo(Box(pt.x + dxv, pt.y + dyv, pt.z + dzv + 8, ixd, iyd, izd), start, shapeFlags, 1).valid) {
+					dzv += 8;
+					ok = true;
+					break;
+				}
+				dxv /= 2;
+				dyv /= 2;
+				dzv /= 2;
+			}
+
+			if (ok)
+				break;
 		}
-		if (ok) break;
 	}
 
 	// Yes, i know, not entirely correct
-	avatar->collideMove(x + dxv, y + dyv, z + dzv, false, true);
+	avatar->collideMove(pt.x + dxv, pt.y + dyv, pt.z + dzv, false, true);
 
 	if (GAME_IS_CRUSADER) {
 		// Keep the camera on the avatar while we're quick-moving.
-		CameraProcess::SetCameraProcess(new CameraProcess(x + dxv, y + dyv, z + dzv));
+		Point3 cpt(pt.x + dxv, pt.y + dyv, pt.z + dzv);
+		CameraProcess::SetCameraProcess(new CameraProcess(cpt));
 	}
 
 	// Prevent avatar from running an idle animation while moving around
@@ -133,48 +171,35 @@ void QuickAvatarMoverProcess::run() {
 
 void QuickAvatarMoverProcess::terminate() {
 	Process::terminate();
-	_amp[_dir] = 0;
+	_amp = 0;
 }
 
-void QuickAvatarMoverProcess::terminateMover(int dir) {
-	assert(dir < 6);
-
+QuickAvatarMoverProcess *QuickAvatarMoverProcess::get_instance() {
 	Kernel *kernel = Kernel::get_instance();
-
-	QuickAvatarMoverProcess *p =
-	    dynamic_cast<QuickAvatarMoverProcess *>(kernel->getProcess(_amp[dir]));
-
-	if (p && !p->is_terminated())
-		p->terminate();
-}
-
-void QuickAvatarMoverProcess::startMover(int x, int y, int z, int dir) {
-	Ultima8Engine *g = Ultima8Engine::get_instance();
-	if (! g->isAvatarInStasis()) {
-		Process *p = new QuickAvatarMoverProcess(x, y, z, dir);
-		Kernel::get_instance()->addProcess(p);
-	} else {
-		pout << "Can't quickmove: avatarInStasis" << Std::endl;
+	QuickAvatarMoverProcess *p = nullptr;
+	if (_amp) {
+		p = dynamic_cast<QuickAvatarMoverProcess *>(kernel->getProcess(_amp));
 	}
+
+	if (!p) {
+		p = new QuickAvatarMoverProcess();
+		Kernel::get_instance()->addProcess(p);
+	}
+
+	return p;
 }
 
 void QuickAvatarMoverProcess::saveData(Common::WriteStream *ws) {
 	Process::saveData(ws);
 
-	ws->writeUint32LE(_dir);
+	ws->writeUint32LE(_movementFlags);
 	// don't save more information. We plan to terminate upon load
 }
 
 bool QuickAvatarMoverProcess::loadData(Common::ReadStream *rs, uint32 version) {
 	if (!Process::loadData(rs, version)) return false;
 
-	// small safety precaution
-	_dir = rs->readUint32LE();
-	if (_dir < 6)
-		_amp[_dir] = 0;
-	else
-		return false;
-
+	_movementFlags = rs->readUint32LE();
 	terminateDeferred(); // Don't allow this process to continue
 	return true;
 }

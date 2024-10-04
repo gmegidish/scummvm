@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -81,7 +80,7 @@ bool Debugger::cmdLoadPalette(int argc, const char **argv) {
 		}
 
 		_vm->screen()->copyRegionToBuffer(5, 0, 0, 320, 200, buffer);
-		_vm->screen()->loadBitmap(argv[1], 5, 5, 0);
+		_vm->screen()->loadBitmap(argv[1], 5, 5, nullptr);
 		palette.copy(_vm->screen()->getCPagePtr(5), 0, 256);
 		_vm->screen()->copyBlockToPage(5, 0, 0, 320, 200, buffer);
 
@@ -506,7 +505,7 @@ bool Debugger_EoB::cmdImportSaveFile(int argc, const char **argv) {
 			return true;
 		}
 
-		debugPrintf(_vm->importOriginalSaveFile(slot, argv[2]) ? "Success.\n" : "Failure.\n");
+		debugPrintf(_vm->importOriginalSaveFile(slot, Common::Path(argv[2], Common::Path::kNativeSeparator)) ? "Success.\n" : "Failure.\n");
 		_vm->loadItemDefs();
 	} else {
 		debugPrintf("Syntax:   import_savefile <dest slot> <source file>\n              (Imports source save game file to dest slot.)\n          import_savefile -1\n              (Imports all original save game files found and puts them into the first available slots.)\n\n");
@@ -526,9 +525,7 @@ bool Debugger_EoB::cmdSaveOriginal(int argc, const char **argv) {
 		return true;
 	}
 
-	Common::String dir = ConfMan.get("savepath");
-	if (dir == "None")
-		dir.clear();
+	Common::Path dir = ConfMan.getPath("savepath");
 
 	Common::FSNode nd(dir);
 	if (!nd.isDirectory())
@@ -539,7 +536,7 @@ bool Debugger_EoB::cmdSaveOriginal(int argc, const char **argv) {
 			if (_vm->saveAsOriginalSaveFile()) {
 				Common::FSNode nf = nd.getChild(Common::String::format("EOBDATA.SAV"));
 				if (nf.isReadable())
-					debugPrintf("Saved to file: %s\n\n", nf.getPath().c_str());
+					debugPrintf("Saved to file: %s\n\n", nf.getPath().toString(Common::Path::kNativeSeparator).c_str());
 				else
 					debugPrintf("Failure.\n");
 			} else {
@@ -557,7 +554,7 @@ bool Debugger_EoB::cmdSaveOriginal(int argc, const char **argv) {
 		} else if (_vm->saveAsOriginalSaveFile(slot)) {
 			Common::FSNode nf = nd.getChild(Common::String::format("EOBDATA%d.SAV", slot));
 			if (nf.isReadable())
-				debugPrintf("Saved to file: %s\n\n", nf.getPath().c_str());
+				debugPrintf("Saved to file: %s\n\n", nf.getPath().toString(Common::Path::kNativeSeparator).c_str());
 			else
 				debugPrintf("Failure.\n");
 		} else {

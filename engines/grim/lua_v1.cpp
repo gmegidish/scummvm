@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 #include "common/system.h"
 #include "common/config-manager.h"
 
-#include "graphics/pixelbuffer.h"
+#include "graphics/surface.h"
 #include "graphics/renderer.h"
 
 #include "math/matrix3.h"
@@ -40,7 +39,6 @@
 #include "engines/grim/font.h"
 #include "engines/grim/gfx_base.h"
 #include "engines/grim/localize.h"
-
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/luadebug.h"
 
@@ -55,7 +53,7 @@ byte clamp_color(int c) {
 		return c;
 }
 
-int luaA_passresults();
+int32 luaA_passresults();
 
 void Lua_V1::new_dofile() {
 	const char *fname_str = luaL_check_string(1);
@@ -75,7 +73,7 @@ void Lua_V1::PrintDebug() {
 		if (!lua_isstring(strObj))
 			return;
 		msg += Common::String(lua_getstring(strObj));
-		debugN("%s", msg.c_str());
+		debugN("%s\n", msg.c_str());
 	}
 }
 
@@ -88,7 +86,7 @@ void Lua_V1::PrintError() {
 		if (!lua_isstring(strObj))
 			return;
 		msg += Common::String(lua_getstring(strObj));
-		debugN("%s", msg.c_str());
+		debugN("%s\n", msg.c_str());
 	}
 }
 
@@ -101,7 +99,7 @@ void Lua_V1::PrintWarning() {
 		if (!lua_isstring(strObj))
 			return;
 		msg += Common::String(lua_getstring(strObj));
-		debugN("%s", msg.c_str());
+		debugN("%s\n", msg.c_str());
 	}
 }
 
@@ -113,7 +111,7 @@ void Lua_V1::FunctionName() {
 	lua_Object param1 = lua_getparam(1);
 
 	if (!lua_isfunction(param1)) {
-		sprintf(buf, "function InvalidArgsToFunctionName");
+		Common::sprintf_s(buf, "function InvalidArgsToFunctionName");
 		lua_pushstring(buf);
 		return;
 	}
@@ -121,28 +119,29 @@ void Lua_V1::FunctionName() {
 	lua_funcinfo(param1, &filename, &line);
 	switch (*lua_getobjname(param1, &name)) {
 	case 'g':
-		sprintf(buf, "function %.100s", name);
+		Common::sprintf_s(buf, "function %.100s", name);
 		break;
 	case 't':
-		sprintf(buf, "`%.100s' tag method", name);
+		Common::sprintf_s(buf, "`%.100s' tag method", name);
 		break;
 	default:
 		{
 			if (line == 0)
-				sprintf(buf, "main of %.100s", filename);
+				Common::sprintf_s(buf, "main of %.100s", filename);
 			else if (line < 0)
-				sprintf(buf, "%.100s", filename);
+				Common::sprintf_s(buf, "%.100s", filename);
 			else {
-				sprintf(buf, "function (%.100s:%d)", filename, (int)line);
+				Common::sprintf_s(buf, "function (%.100s:%d)", filename, (int)line);
 				filename = nullptr;
 			}
 		}
 	}
 	int curr_line = lua_currentline(param1);
+	size_t pos = strlen(buf);
 	if (curr_line > 0)
-		sprintf(buf + strlen(buf), " at line %d", curr_line);
+		Common::sprintf_s(buf + pos, sizeof(buf) - pos, " at line %d", curr_line);
 	if (filename)
-		sprintf(buf + strlen(buf), " [in file %.100s]", filename);
+		Common::sprintf_s(buf + pos, sizeof(buf) - pos, " [in file %.100s]", filename);
 	lua_pushstring(buf);
 }
 
@@ -291,8 +290,18 @@ void Lua_V1::SetHardwareState() {
 	bool accel = getbool(1);
 
 	Graphics::RendererType renderer = accel ? Graphics::kRendererTypeOpenGL : Graphics::kRendererTypeTinyGL;
-	renderer = Graphics::getBestMatchingAvailableRendererType(renderer);
-	ConfMan.set("renderer", Graphics::getRendererTypeCode(renderer));
+	renderer = Graphics::Renderer::getBestMatchingAvailableType(renderer,
+#if defined(USE_OPENGL_GAME)
+			Graphics::kRendererTypeOpenGL |
+#endif
+#if defined(USE_OPENGL_SHADERS)
+			Graphics::kRendererTypeOpenGLShaders |
+#endif
+#if defined(USE_TINYGL)
+			Graphics::kRendererTypeTinyGL |
+#endif
+			0);
+	ConfMan.set("renderer", Graphics::Renderer::getTypeCode(renderer));
 
 	g_grim->changeHardwareState();
 }
@@ -322,7 +331,7 @@ void Lua_V1::Enumerate3DDevices() {
 	lua_Object numObj = lua_getparam(1);
 	if (!lua_isnumber(numObj))
 		return;
-/*	int num = (int)lua_getnumber(numObj);*/
+	//int num = (int)lua_getnumber(numObj);
 	lua_pushobject(result);
 	lua_pushnumber(-1.0);
 	if (g_driver->isHardwareAccelerated()) {
@@ -389,6 +398,28 @@ void Lua_V1::RotateVector() {
 	lua_settable();
 
 	lua_pushobject(resObj);
+}
+
+void Lua_V1::WorldToScreen() {
+	lua_Object worldX = lua_getparam(1);
+	lua_Object worldY = lua_getparam(2);
+	lua_Object worldZ = lua_getparam(3);
+	if (!lua_isnumber(worldX) || !lua_isnumber(worldY) || !lua_isnumber(worldZ)) {
+		return;
+	}
+	Math::Vector4d worldVec(lua_getnumber(worldX), lua_getnumber(worldY), lua_getnumber(worldZ), 1.0f);
+	Math::Matrix4 projModelView = g_driver->getProjection() * g_driver->getModelView();
+	Math::Vector4d screenPos = projModelView * worldVec;
+	screenPos /= screenPos.w();
+	float winX = (1 + screenPos.x()) / 2.0f * g_driver->getScreenWidth();
+	float winY = g_driver->getScreenHeight() - (1 + screenPos.y()) / 2.0f * g_driver->getScreenHeight();
+	if (winX >= 0 && winX < g_driver->getScreenWidth() && winY >= 0 && winY < g_driver->getScreenHeight()) {
+		lua_pushnumber(winX);
+		lua_pushnumber(winY);
+	} else {
+		lua_pushnil();
+		lua_pushnil();
+	}
 }
 
 void Lua_V1::FileFindDispose() {
@@ -482,8 +513,8 @@ void Lua_V1::GetControlState() {
 	if (num >= KEYCODE_AXIS_JOY1_X && num <= KEYCODE_AXIS_MOUSE_Z)
 		lua_pushnumber(g_grim->getControlAxis(num));
 	else {
-		pushbool(g_grim->getControlState(num)); // key down, originaly it push number if key down
-		//pushnil or number, what is is ?
+		pushbool(g_grim->getControlState(num)); // key down, originally it push number if key down
+		// pushnil or number, what is is ?
 	}
 }
 
@@ -502,8 +533,8 @@ void Lua_V1::GetSpeechMode() {
 }
 
 void Lua_V1::GetDiskFreeSpace() {
-	//the ps2 version of emi wants more than 600 KB
-	//grim: amount of free space in MB, used for creating saves
+	// The ps2 version of emi wants more than 600 KB
+	// Grim: amount of free space in MB, used for creating saves
 	lua_pushnumber(700);
 }
 
@@ -513,7 +544,6 @@ void Lua_V1::GetCurrentScript() {
 
 void Lua_V1::GetSaveGameImage() {
 	int width = 250, height = 188;
-	Bitmap *screenshot;
 	int dataSize;
 
 	lua_Object param = lua_getparam(1);
@@ -533,8 +563,9 @@ void Lua_V1::GetSaveGameImage() {
 	for (int l = 0; l < dataSize / 2; l++) {
 		data[l] = savedState->readLEUint16();
 	}
-	Graphics::PixelBuffer buf(Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0), (byte *)data);
-	screenshot = new Bitmap(buf, width, height, "screenshot");
+	Graphics::Surface buf;
+	buf.init(width, height, width * 2, (void *)data, Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0));
+	Bitmap *screenshot = new Bitmap(buf, width, height, "screenshot");
 	delete[] data;
 	if (screenshot) {
 		lua_pushusertag(screenshot->getId(), MKTAG('V','B','U','F'));
@@ -580,7 +611,7 @@ void Lua_V1::SubmitSaveGameData() {
 	}
 	savedState->endSection();
 
-	//give ps2 saves a human-readable name
+	// Give ps2 saves a human-readable name
 	if (g_grim->getGameType() == GType_MONKEY4 &&
 		g_grim->getGamePlatform() == Common::kPlatformPS2) {
 		savedState->beginSection('PS2S');
@@ -693,7 +724,7 @@ void Lua_V1::LockFont() {
 		const char *fontName = lua_getstring(param1);
 		Font *result = g_resourceloader->loadFont(fontName);
 		if (result) {
-			lua_pushusertag(result->getId(), MKTAG('F','O','N','T'));
+			lua_pushusertag(result->getPoolId(), result->getPoolTag());
 			return;
 		}
 	}
@@ -701,52 +732,66 @@ void Lua_V1::LockFont() {
 	lua_pushnil();
 }
 
+void Lua_V1::JustLoaded() {
+	if (g_grim->getJustSaveLoaded())
+		lua_pushnumber(1.0f);
+	else
+		lua_pushnil();
+	g_grim->setJustSaveLoaded(false);
+}
+
 void Lua_V1::EnableDebugKeys() {
+	// nothing to implement
+}
+
+void Lua_V1::FlushControls() {
+	g_grim->clearEventQueue();
 }
 
 void Lua_V1::LightMgrSetChange() {
-	// that seems only used when some control panel is opened
+	// nothing to implement
+	// lights manager for game debug purpose only
 }
 
 void Lua_V1::LightMgrStartup() {
-	// we will not implement this opcode
-}
-
-void Lua_V1::JustLoaded() {
-	Debug::error("OPCODE USAGE VERIFICATION: JustLoaded");
+	// nothing to implement
+	// lights manager for game debug purpose only
 }
 
 void Lua_V1::SetEmergencyFont() {
-	Debug::error("OPCODE USAGE VERIFICATION: SetEmergencyFont");
+	// nothing to implement
+	// originally this is used only for CD changing which is not supported here
 }
 
-
-// Stub function for builtin functions not yet implemented
-static void stubWarning(const char *funcName) {
-	warning("Stub function: %s", funcName);
+void Lua_V1::NukeResources() {
+	// nothing to implement
+	// originally this is used only for CD changing which is not supported here
 }
 
-#define STUB_FUNC(name) void name() { stubWarning(#name); }
+void Lua_V1::AttachToResources() {
+	// nothing to implement
+	// originally this is used only for CD changing which is not supported here
+}
 
-STUB_FUNC(Lua_V1::SetActorInvClipNode)
-STUB_FUNC(Lua_V1::NukeResources)
-STUB_FUNC(Lua_V1::ResetTextures)
-STUB_FUNC(Lua_V1::AttachToResources)
-STUB_FUNC(Lua_V1::DetachFromResources)
-STUB_FUNC(Lua_V1::SetActorClipPlane)
-STUB_FUNC(Lua_V1::SetActorClipActive)
-STUB_FUNC(Lua_V1::FlushControls)
-STUB_FUNC(Lua_V1::GetCameraLookVector)
+void Lua_V1::DetachFromResources() {
+	// nothing to implement
+	// originally this is used only for CD changing which is not supported here
+}
+
+void Lua_V1::SpewStartup() {
+	// nothing to implement
+	// originally this opcode launch external library 'spew.dll'
+}
+
+void Lua_V1::SetCameraInterest() {
+	// nothing to implement
+	// it's referenced once in Grim dead lua code
+}
+
+#define STUB_FUNC(name) void name() {}
+
+// Stub functions not used in games
 STUB_FUNC(Lua_V1::SetCameraRoll)
-STUB_FUNC(Lua_V1::SetCameraInterest)
-STUB_FUNC(Lua_V1::GetCameraPosition)
-STUB_FUNC(Lua_V1::SpewStartup)
-STUB_FUNC(Lua_V1::WorldToScreen)
-STUB_FUNC(Lua_V1::SetActorRoll)
-STUB_FUNC(Lua_V1::SetActorFrustrumCull)
-STUB_FUNC(Lua_V1::DriveActorTo)
-STUB_FUNC(Lua_V1::GetTranslationMode)
-STUB_FUNC(Lua_V1::SetTranslationMode)
 STUB_FUNC(Lua_V1::WalkActorToAvoiding)
 STUB_FUNC(Lua_V1::GetActorChores)
 STUB_FUNC(Lua_V1::SetCameraPosition)
@@ -1045,7 +1090,6 @@ void Lua_V1::boot() {
 }
 
 void Lua_V1::postRestoreHandle() {
-
 	if (g_grim->getGameType() == GType_GRIM) {
 		lua_beginblock();
 		// Set the developerMode, since the save contains the value of

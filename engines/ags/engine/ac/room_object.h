@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,7 @@
 
 #include "ags/shared/core/types.h"
 #include "ags/shared/ac/common_defines.h"
+#include "ags/shared/util/string.h"
 
 namespace AGS3 {
 
@@ -46,6 +46,8 @@ using namespace AGS; // FIXME later
 // keep that in mind if extending this struct, and dont change existing fields
 // unless you plan on adjusting plugin API as well.
 struct RoomObject {
+	static const uint16_t NoView = UINT16_MAX;
+
 	int   x, y;
 	int   transparent;    // current transparency setting
 	short tint_r, tint_g;   // specific object tint
@@ -61,7 +63,10 @@ struct RoomObject {
 	int8  overall_speed;
 	int8  on;
 	int8  flags;
+	// Down to here is a part of the plugin API
 	short blocking_width, blocking_height;
+	int   anim_volume = -1; // current animation volume
+	Shared::String name;
 
 	RoomObject();
 
@@ -77,11 +82,9 @@ struct RoomObject {
 	}
 
 	void UpdateCyclingView(int ref_id);
-	void update_cycle_view_forwards();
-	void update_cycle_view_backwards();
 
-	void ReadFromFile(Shared::Stream *in);
-	void WriteToFile(Shared::Stream *out) const;
+	void ReadFromSavegame(Shared::Stream *in, int save_ver);
+	void WriteToSavegame(Shared::Stream *out) const;
 };
 
 } // namespace AGS3

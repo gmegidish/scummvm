@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,50 +15,56 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef ULTIMA8_FILESYS_U8SAVEFILE_H
 #define ULTIMA8_FILESYS_U8SAVEFILE_H
 
-#include "ultima/ultima8/filesys/named_archive_file.h"
+#include "common/archive.h"
+
 #include "ultima/shared/std/containers.h"
+#include "ultima/shared/std/string.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-class U8SaveFile : public NamedArchiveFile {
+class U8SaveFile : public Common::Archive {
 public:
 	//! create U8SaveFile from datasource; U8SaveFile takes ownership of ds
 	//! and deletes it when destructed
 	explicit U8SaveFile(Common::SeekableReadStream *rs);
 	~U8SaveFile() override;
 
-	bool exists(const Std::string &name) override;
-
-	uint8 *getObject(const Std::string &name, uint32 *size = 0) override;
-
-	uint32 getSize(const Std::string &name) const override;
-
-	uint32 getCount() const override {
-		return _count;
+	//! Check if constructed object is indeed a valid archive
+	bool isValid() const {
+		return _valid;
 	}
+
+	// Common::Archive API implementation
+	bool hasFile(const Common::Path &path) const override;
+	int listMembers(Common::ArchiveMemberList &list) const override;
+	const Common::ArchiveMemberPtr getMember(const Common::Path &path) const override;
+	Common::SeekableReadStream *createReadStreamForMember(const Common::Path &path) const override;
 
 	static bool isU8SaveFile(Common::SeekableReadStream *rs);
 
 protected:
 	Common::SeekableReadStream *_rs;
-	uint32 _count;
+	bool _valid;
 
-	Std::map<Common::String, uint32> _indices;
-	Std::vector<uint32> _offsets;
-	Std::vector<uint32> _sizes;
+	struct FileEntry {
+		uint32 _offset;
+		uint32 _size;
+		FileEntry() : _offset(0), _size(0) {}
+	};
+
+	typedef Common::HashMap<Common::String, FileEntry, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> U8SaveFileMap;
+	U8SaveFileMap _map;
 
 private:
 	bool readMetadata();
-	bool findIndex(const Std::string &name, uint32 &index) const;
 };
 
 } // End of namespace Ultima8

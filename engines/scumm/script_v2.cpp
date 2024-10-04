@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x04, o2_isGreaterEqual);
 	OPCODE(0x05, o2_drawObject);
 	OPCODE(0x06, o2_getActorElevation);
-	OPCODE(0x07, o2_setState08);
+	OPCODE(0x07, o2_setStateIntrinsicOn);
 	/* 08 */
 	OPCODE(0x08, o5_isNotEqual);
 	OPCODE(0x09, o5_faceActor);
@@ -57,7 +56,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x0c, o2_resourceRoutines);
 	OPCODE(0x0d, o5_walkActorToActor);
 	OPCODE(0x0e, o2_putActorAtObject);
-	OPCODE(0x0f, o2_ifNotState08);
+	OPCODE(0x0f, o2_ifStateIntrinsicOn);
 	/* 10 */
 	OPCODE(0x10, o5_getObjectOwner);
 	OPCODE(0x11, o5_animateActor);
@@ -67,7 +66,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x14, o5_print);
 	OPCODE(0x15, o2_actorFromPos);
 	OPCODE(0x16, o5_getRandomNr);
-	OPCODE(0x17, o2_clearState02);
+	OPCODE(0x17, o2_setStateTouchable);
 	/* 18 */
 	OPCODE(0x18, o5_jumpRelative);
 	OPCODE(0x19, o2_doSentence);
@@ -77,7 +76,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x1c, o5_startSound);
 	OPCODE(0x1d, o2_ifClassOfIs);
 	OPCODE(0x1e, o2_walkActorTo);
-	OPCODE(0x1f, o2_ifState02);
+	OPCODE(0x1f, o2_ifStateTouchable);
 	/* 20 */
 	OPCODE(0x20, o5_stopMusic);
 	OPCODE(0x21, o2_putActor);
@@ -87,7 +86,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x24, o2_loadRoomWithEgo);
 	OPCODE(0x25, o2_drawObject);
 	OPCODE(0x26, o5_setVarRange);
-	OPCODE(0x27, o2_setState04);
+	OPCODE(0x27, o2_setStateLocked);
 	/* 28 */
 	OPCODE(0x28, o5_equalZero);
 	OPCODE(0x29, o2_setOwnerOf);
@@ -97,7 +96,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x2c, o2_assignVarByte);
 	OPCODE(0x2d, o2_putActorInRoom);
 	OPCODE(0x2e, o2_delay);
-	OPCODE(0x2f, o2_ifNotState04);
+	OPCODE(0x2f, o2_ifStateLocked);
 	/* 30 */
 	OPCODE(0x30, o3_setBoxFlags);
 	OPCODE(0x31, o2_getBitVar);
@@ -107,7 +106,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x34, o5_getDist);
 	OPCODE(0x35, o2_findObject);
 	OPCODE(0x36, o2_walkActorToObject);
-	OPCODE(0x37, o2_setState01);
+	OPCODE(0x37, o2_setStatePickupable);
 	/* 38 */
 	OPCODE(0x38, o2_isLessEqual);
 	OPCODE(0x39, o2_doSentence);
@@ -117,7 +116,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x3c, o5_stopSound);
 	OPCODE(0x3d, o2_setActorElevation);
 	OPCODE(0x3e, o2_walkActorTo);
-	OPCODE(0x3f, o2_ifNotState01);
+	OPCODE(0x3f, o2_ifStatePickupable);
 	/* 40 */
 	OPCODE(0x40, o2_cutscene);
 	OPCODE(0x41, o2_putActor);
@@ -127,7 +126,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x44, o2_isLess);
 	OPCODE(0x45, o2_drawObject);
 	OPCODE(0x46, o5_increment);
-	OPCODE(0x47, o2_clearState08);
+	OPCODE(0x47, o2_setStateIntrinsicOff);
 	/* 48 */
 	OPCODE(0x48, o5_isEqual);
 	OPCODE(0x49, o5_faceActor);
@@ -137,7 +136,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x4c, o2_waitForSentence);
 	OPCODE(0x4d, o5_walkActorToActor);
 	OPCODE(0x4e, o2_putActorAtObject);
-	OPCODE(0x4f, o2_ifState08);
+	OPCODE(0x4f, o2_ifStateIntrinsicOff);
 	/* 50 */
 	OPCODE(0x50, o2_pickupObject);
 	OPCODE(0x51, o5_animateActor);
@@ -147,7 +146,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x54, o5_setObjectName);
 	OPCODE(0x55, o2_actorFromPos);
 	OPCODE(0x56, o5_getActorMoving);
-	OPCODE(0x57, o2_setState02);
+	OPCODE(0x57, o2_setStateUntouchable);
 	/* 58 */
 	OPCODE(0x58, o2_beginOverride);
 	OPCODE(0x59, o2_doSentence);
@@ -157,7 +156,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x5c, o2_dummy);
 	OPCODE(0x5d, o2_ifClassOfIs);
 	OPCODE(0x5e, o2_walkActorTo);
-	OPCODE(0x5f, o2_ifNotState02);
+	OPCODE(0x5f, o2_ifStateUntouchable);
 	/* 60 */
 	OPCODE(0x60, o2_cursorCommand);
 	OPCODE(0x61, o2_putActor);
@@ -167,7 +166,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x64, o2_loadRoomWithEgo);
 	OPCODE(0x65, o2_drawObject);
 	OPCODE(0x66, o5_getClosestObjActor);
-	OPCODE(0x67, o2_clearState04);
+	OPCODE(0x67, o2_setStateUnlocked);
 	/* 68 */
 	OPCODE(0x68, o5_isScriptRunning);
 	OPCODE(0x69, o2_setOwnerOf);
@@ -177,7 +176,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x6c, o2_getObjPreposition);
 	OPCODE(0x6d, o2_putActorInRoom);
 	OPCODE(0x6e, o2_dummy);
-	OPCODE(0x6f, o2_ifState04);
+	OPCODE(0x6f, o2_ifStateUnlocked);
 	/* 70 */
 	OPCODE(0x70, o2_lights);
 	OPCODE(0x71, o5_getActorCostume);
@@ -187,7 +186,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x74, o5_getDist);
 	OPCODE(0x75, o2_findObject);
 	OPCODE(0x76, o2_walkActorToObject);
-	OPCODE(0x77, o2_clearState01);
+	OPCODE(0x77, o2_setStateUnpickupable);
 	/* 78 */
 	OPCODE(0x78, o2_isGreater);
 	OPCODE(0x79, o2_doSentence);
@@ -197,7 +196,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x7c, o5_isSoundRunning);
 	OPCODE(0x7d, o2_setActorElevation);
 	OPCODE(0x7e, o2_walkActorTo);
-	OPCODE(0x7f, o2_ifState01);
+	OPCODE(0x7f, o2_ifStateUnpickupable);
 	/* 80 */
 	OPCODE(0x80, o5_breakHere);
 	OPCODE(0x81, o2_putActor);
@@ -207,7 +206,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x84, o2_isGreaterEqual);
 	OPCODE(0x85, o2_drawObject);
 	OPCODE(0x86, o2_getActorElevation);
-	OPCODE(0x87, o2_setState08);
+	OPCODE(0x87, o2_setStateIntrinsicOn);
 	/* 88 */
 	OPCODE(0x88, o5_isNotEqual);
 	OPCODE(0x89, o5_faceActor);
@@ -217,7 +216,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x8c, o2_resourceRoutines);
 	OPCODE(0x8d, o5_walkActorToActor);
 	OPCODE(0x8e, o2_putActorAtObject);
-	OPCODE(0x8f, o2_ifNotState08);
+	OPCODE(0x8f, o2_ifStateIntrinsicOn);
 	/* 90 */
 	OPCODE(0x90, o5_getObjectOwner);
 	OPCODE(0x91, o5_animateActor);
@@ -227,7 +226,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x94, o5_print);
 	OPCODE(0x95, o2_actorFromPos);
 	OPCODE(0x96, o5_getRandomNr);
-	OPCODE(0x97, o2_clearState02);
+	OPCODE(0x97, o2_setStateTouchable);
 	/* 98 */
 	OPCODE(0x98, o2_restart);
 	OPCODE(0x99, o2_doSentence);
@@ -237,7 +236,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0x9c, o5_startSound);
 	OPCODE(0x9d, o2_ifClassOfIs);
 	OPCODE(0x9e, o2_walkActorTo);
-	OPCODE(0x9f, o2_ifState02);
+	OPCODE(0x9f, o2_ifStateTouchable);
 	/* A0 */
 	OPCODE(0xa0, o5_stopObjectCode);
 	OPCODE(0xa1, o2_putActor);
@@ -247,7 +246,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0xa4, o2_loadRoomWithEgo);
 	OPCODE(0xa5, o2_drawObject);
 	OPCODE(0xa6, o5_setVarRange);
-	OPCODE(0xa7, o2_setState04);
+	OPCODE(0xa7, o2_setStateLocked);
 	/* A8 */
 	OPCODE(0xa8, o5_notEqualZero);
 	OPCODE(0xa9, o2_setOwnerOf);
@@ -257,7 +256,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0xac, o2_drawSentence);
 	OPCODE(0xad, o2_putActorInRoom);
 	OPCODE(0xae, o2_waitForMessage);
-	OPCODE(0xaf, o2_ifNotState04);
+	OPCODE(0xaf, o2_ifStateLocked);
 	/* B0 */
 	OPCODE(0xb0, o3_setBoxFlags);
 	OPCODE(0xb1, o2_getBitVar);
@@ -267,7 +266,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0xb4, o5_getDist);
 	OPCODE(0xb5, o2_findObject);
 	OPCODE(0xb6, o2_walkActorToObject);
-	OPCODE(0xb7, o2_setState01);
+	OPCODE(0xb7, o2_setStatePickupable);
 	/* B8 */
 	OPCODE(0xb8, o2_isLessEqual);
 	OPCODE(0xb9, o2_doSentence);
@@ -277,7 +276,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0xbc, o5_stopSound);
 	OPCODE(0xbd, o2_setActorElevation);
 	OPCODE(0xbe, o2_walkActorTo);
-	OPCODE(0xbf, o2_ifNotState01);
+	OPCODE(0xbf, o2_ifStatePickupable);
 	/* C0 */
 	OPCODE(0xc0, o2_endCutscene);
 	OPCODE(0xc1, o2_putActor);
@@ -287,7 +286,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0xc4, o2_isLess);
 	OPCODE(0xc5, o2_drawObject);
 	OPCODE(0xc6, o5_decrement);
-	OPCODE(0xc7, o2_clearState08);
+	OPCODE(0xc7, o2_setStateIntrinsicOff);
 	/* C8 */
 	OPCODE(0xc8, o5_isEqual);
 	OPCODE(0xc9, o5_faceActor);
@@ -297,7 +296,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0xcc, o5_pseudoRoom);
 	OPCODE(0xcd, o5_walkActorToActor);
 	OPCODE(0xce, o2_putActorAtObject);
-	OPCODE(0xcf, o2_ifState08);
+	OPCODE(0xcf, o2_ifStateIntrinsicOff);
 	/* D0 */
 	OPCODE(0xd0, o2_pickupObject);
 	OPCODE(0xd1, o5_animateActor);
@@ -307,7 +306,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0xd4, o5_setObjectName);
 	OPCODE(0xd5, o2_actorFromPos);
 	OPCODE(0xd6, o5_getActorMoving);
-	OPCODE(0xd7, o2_setState02);
+	OPCODE(0xd7, o2_setStateUntouchable);
 	/* D8 */
 	OPCODE(0xd8, o5_printEgo);
 	OPCODE(0xd9, o2_doSentence);
@@ -317,7 +316,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0xdc, o2_dummy);
 	OPCODE(0xdd, o2_ifClassOfIs);
 	OPCODE(0xde, o2_walkActorTo);
-	OPCODE(0xdf, o2_ifNotState02);
+	OPCODE(0xdf, o2_ifStateUntouchable);
 	/* E0 */
 	OPCODE(0xe0, o2_cursorCommand);
 	OPCODE(0xe1, o2_putActor);
@@ -327,7 +326,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0xe4, o2_loadRoomWithEgo);
 	OPCODE(0xe5, o2_drawObject);
 	OPCODE(0xe6, o5_getClosestObjActor);
-	OPCODE(0xe7, o2_clearState04);
+	OPCODE(0xe7, o2_setStateUnlocked);
 	/* E8 */
 	OPCODE(0xe8, o5_isScriptRunning);
 	OPCODE(0xe9, o2_setOwnerOf);
@@ -337,7 +336,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0xec, o2_getObjPreposition);
 	OPCODE(0xed, o2_putActorInRoom);
 	OPCODE(0xee, o2_dummy);
-	OPCODE(0xef, o2_ifState04);
+	OPCODE(0xef, o2_ifStateUnlocked);
 	/* F0 */
 	OPCODE(0xf0, o2_lights);
 	OPCODE(0xf1, o5_getActorCostume);
@@ -347,7 +346,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0xf4, o5_getDist);
 	OPCODE(0xf5, o2_findObject);
 	OPCODE(0xf6, o2_walkActorToObject);
-	OPCODE(0xf7, o2_clearState01);
+	OPCODE(0xf7, o2_setStateUnpickupable);
 	/* F8 */
 	OPCODE(0xf8, o2_isGreater);
 	OPCODE(0xf9, o2_doSentence);
@@ -357,7 +356,7 @@ void ScummEngine_v2::setupOpcodes() {
 	OPCODE(0xfc, o5_isSoundRunning);
 	OPCODE(0xfd, o2_setActorElevation);
 	OPCODE(0xfe, o2_walkActorTo);
-	OPCODE(0xff, o2_ifState01);
+	OPCODE(0xff, o2_ifStateUnpickupable);
 }
 
 #define SENTENCE_SCRIPT 2
@@ -378,7 +377,7 @@ void ScummEngine_v2::decodeParseString() {
 		c &= 0x7f;
 
 		if (c < 8) {
-			// Special codes as seen in CHARSET_1 etc. My guess is that they
+			// Special codes as seen in displayDialog etc. My guess is that they
 			// have a similar function as the corresponding embedded stuff in modern
 			// games. Hence for now we convert them to the modern format.
 			// This might allow us to reuse the existing code.
@@ -397,10 +396,43 @@ void ScummEngine_v2::decodeParseString() {
 	}
 	*ptr = 0;
 
+	// WORKAROUND bug #13473: in the French version of Maniac Mansion, the cutscene
+	// where Purple Tentacle is bullying Sandy hangs once Dr Fred is done talking,
+	// because his reaction line in shorter in this translation (which is unusual for
+	// French which tends to be more verbose) and the `unless (VAR_CHARCOUNT > 90)`
+	// loop in script #155 hasn't been ajusted for this shorter length.
+	//
+	// So we add some extra spaces at the end of the string if it's too short; this
+	// unblocks the cutscene and also lets Sandy react as intended.
+	//
+	// (Using `kEnhGameBreakingBugFixes`, because some users could be really confused
+	// by the game hanging and they may not know about the Esc key.)
+	if (_game.id == GID_MANIAC && _game.platform != Common::kPlatformNES && _language == Common::FR_FRA && _currentScript != 0xFF && vm.slot [_currentScript].number == 155 && _roomResource == 31 && _actorToPrintStrFor == 9 && enhancementEnabled(kEnhGameBreakingBugFixes)) {
+		while (ptr - buffer < 100) {
+			*ptr++ = ' ';
+		}
+		*ptr = 0;
+	}
+
+	// WORKAROUND: There is a typo in Syd's biography ("tring" instead of
+	// "trying") in the English DOS version of Maniac Mansion (v1). As far
+	// as I know, this is the only version with the typo.
+	else if (_game.id == GID_MANIAC && _game.version == 1
+		&& _game.platform == Common::kPlatformDOS
+		&& !(_game.features & GF_DEMO) && _language == Common::EN_ANY && _currentScript != 0xFF
+		&& vm.slot[_currentScript].number == 260 && enhancementEnabled(kEnhTextLocFixes)
+		&& strncmp((char *)buffer + 26, " tring ", 7) == 0) {
+		for (byte *p = ptr; p >= buffer + 29; p--)
+			*(p + 1) = *p;
+
+		buffer[29] = 'y';
+	}
+
+	int pixelXOffset = (_game.platform == Common::kPlatformC64) ? 1 : 0;
 	int textSlot = 0;
-	_string[textSlot].xpos = 0;
+	_string[textSlot].xpos = 0 + pixelXOffset;
 	_string[textSlot].ypos = 0;
-	_string[textSlot].right = _screenWidth - 1;
+	_string[textSlot].right = _screenWidth - 1 + pixelXOffset;
 	_string[textSlot].center = false;
 	_string[textSlot].overhead = false;
 
@@ -434,6 +466,25 @@ void ScummEngine_v2::writeVar(uint var, int value) {
 			value = 27;
 	}
 
+	// WORKAROUND: According to the Maniac Mansion manual, you should be
+	// able to execute your command by clicking on the sentence line. But
+	// this does not work until later games. The main difference between
+	// the verb scripts (script 4) in Maniac Mansion and Zak McKracken is
+	// that Zak will set variable 34 when you click on the sentence line
+	// (as indicated by VAR_CLICK_AREA), and Maniac Mansion will not.
+	//
+	// When VAR_CLICK_AREA is 5, there is only one place where variable 34
+	// is initialized to 0, so that seems like a good place to inject our
+	// own check.
+
+	if (_game.id == GID_MANIAC && (_game.version == 1 || _game.version == 2)
+			&& _game.platform != Common::kPlatformNES
+			&& vm.slot[_currentScript].number == 4
+			&& VAR(VAR_CLICK_AREA) == kSentenceClickArea
+			&& var == 34 && value == 0 && enhancementEnabled(kEnhRestoredContent)) {
+		value = 1;
+	}
+
 	_scummVars[var] = value;
 }
 
@@ -459,53 +510,53 @@ void ScummEngine_v2::clearStateCommon(byte type) {
 	putState(obj, getState(obj) & ~type);
 }
 
-void ScummEngine_v2::ifStateCommon(byte type) {
+void ScummEngine_v2::ifStateZeroCommon(byte type) {
 	int obj = getActiveObject();
 
 	jumpRelative((getState(obj) & type) != 0);
 }
 
-void ScummEngine_v2::ifNotStateCommon(byte type) {
+void ScummEngine_v2::ifStateNotZeroCommon(byte type) {
 	int obj = getActiveObject();
 
 	jumpRelative((getState(obj) & type) == 0);
 }
 
-void ScummEngine_v2::o2_setState08() {
+void ScummEngine_v2::o2_setStateIntrinsicOn() {
 	int obj = getActiveObject();
-	putState(obj, getState(obj) | kObjectState_08);
+	putState(obj, getState(obj) | kObjectStateIntrinsic);
 	markObjectRectAsDirty(obj);
 	clearDrawObjectQueue();
 }
 
-void ScummEngine_v2::o2_clearState08() {
+void ScummEngine_v2::o2_setStateIntrinsicOff() {
 	int obj = getActiveObject();
-	putState(obj, getState(obj) & ~kObjectState_08);
+	putState(obj, getState(obj) & ~kObjectStateIntrinsic);
 	markObjectRectAsDirty(obj);
 	clearDrawObjectQueue();
 }
 
-void ScummEngine_v2::o2_setState04() {
+void ScummEngine_v2::o2_setStateLocked() {
 	setStateCommon(kObjectStateLocked);
 }
 
-void ScummEngine_v2::o2_clearState04() {
+void ScummEngine_v2::o2_setStateUnlocked() {
 	clearStateCommon(kObjectStateLocked);
 }
 
-void ScummEngine_v2::o2_setState02() {
+void ScummEngine_v2::o2_setStateUntouchable() {
 	setStateCommon(kObjectStateUntouchable);
 }
 
-void ScummEngine_v2::o2_clearState02() {
+void ScummEngine_v2::o2_setStateTouchable() {
 	clearStateCommon(kObjectStateUntouchable);
 }
 
-void ScummEngine_v2::o2_setState01() {
+void ScummEngine_v2::o2_setStatePickupable() {
 	setStateCommon(kObjectStatePickupable);
 }
 
-void ScummEngine_v2::o2_clearState01() {
+void ScummEngine_v2::o2_setStateUnpickupable() {
 	clearStateCommon(kObjectStatePickupable);
 }
 
@@ -573,36 +624,36 @@ void ScummEngine_v2::o2_getBitVar() {
 	setResult((_scummVars[bit_var] & (1 << bit_offset)) ? 1 : 0);
 }
 
-void ScummEngine_v2::o2_ifState08() {
-	ifStateCommon(kObjectState_08);
+void ScummEngine_v2::o2_ifStateIntrinsicOff() {
+	ifStateZeroCommon(kObjectStateIntrinsic);
 }
 
-void ScummEngine_v2::o2_ifNotState08() {
-	ifNotStateCommon(kObjectState_08);
+void ScummEngine_v2::o2_ifStateIntrinsicOn() {
+	ifStateNotZeroCommon(kObjectStateIntrinsic);
 }
 
-void ScummEngine_v2::o2_ifState04() {
-	ifStateCommon(kObjectStateLocked);
+void ScummEngine_v2::o2_ifStateUnlocked() {
+	ifStateZeroCommon(kObjectStateLocked);
 }
 
-void ScummEngine_v2::o2_ifNotState04() {
-	ifNotStateCommon(kObjectStateLocked);
+void ScummEngine_v2::o2_ifStateLocked() {
+	ifStateNotZeroCommon(kObjectStateLocked);
 }
 
-void ScummEngine_v2::o2_ifState02() {
-	ifStateCommon(kObjectStateUntouchable);
+void ScummEngine_v2::o2_ifStateTouchable() {
+	ifStateZeroCommon(kObjectStateUntouchable);
 }
 
-void ScummEngine_v2::o2_ifNotState02() {
-	ifNotStateCommon(kObjectStateUntouchable);
+void ScummEngine_v2::o2_ifStateUntouchable() {
+	ifStateNotZeroCommon(kObjectStateUntouchable);
 }
 
-void ScummEngine_v2::o2_ifState01() {
-	ifStateCommon(kObjectStatePickupable);
+void ScummEngine_v2::o2_ifStateUnpickupable() {
+	ifStateZeroCommon(kObjectStatePickupable);
 }
 
-void ScummEngine_v2::o2_ifNotState01() {
-	ifNotStateCommon(kObjectStatePickupable);
+void ScummEngine_v2::o2_ifStatePickupable() {
+	ifStateNotZeroCommon(kObjectStatePickupable);
 }
 
 void ScummEngine_v2::o2_addIndirect() {
@@ -684,7 +735,7 @@ void ScummEngine_v2::o2_actorOps() {
 		a->setPalette(i, arg);
 		break;
 	case 3:		// SO_ACTOR_NAME
-		loadPtrToResource(rtActorName, a->_number, NULL);
+		loadPtrToResource(rtActorName, a->_number, nullptr);
 		break;
 	case 4:		// SO_COSTUME
 		a->setActorCostume(arg);
@@ -735,10 +786,10 @@ void ScummEngine_v2::o2_drawObject() {
 	i = _numLocalObjects;
 	while (i--) {
 		if (_objs[i].obj_nr && _objs[i].x_pos == x && _objs[i].y_pos == y && _objs[i].width == w && _objs[i].height == h)
-			putState(_objs[i].obj_nr, getState(_objs[i].obj_nr) & ~kObjectState_08);
+			putState(_objs[i].obj_nr, getState(_objs[i].obj_nr) & ~kObjectStateIntrinsic);
 	}
 
-	putState(obj, getState(od->obj_nr) | kObjectState_08);
+	putState(obj, getState(od->obj_nr) | kObjectStateIntrinsic);
 }
 
 void ScummEngine_v2::o2_resourceRoutines() {
@@ -762,7 +813,7 @@ void ScummEngine_v2::o2_resourceRoutines() {
 		return;
 
 	// HACK V2 Maniac Mansion tries to load an invalid sound resource in demo script.
-	if (_game.id == GID_MANIAC && _game.version == 2 && vm.slot[_currentScript].number == 9 && type == rtSound && resid == 1)
+	if (_game.id == GID_MANIAC && _game.version == 2 && _currentScript != 0xFF && vm.slot [_currentScript].number == 9 && type == rtSound && resid == 1)
 		return;
 
 	if ((opcode & 0x0f) == 1) {
@@ -813,13 +864,13 @@ void ScummEngine_v2::o2_verbOps() {
 			vs->color = 1;
 			vs->hicolor = 1;
 			vs->dimcolor = 1;
-		} else if (_game.version == 1) {
-			vs->color = (_game.id == GID_MANIAC && (_game.features & GF_DEMO)) ? 16 : 5;
+		} else if (_game.platform == Common::kPlatformC64) {
+			vs->color = 5;
 			vs->hicolor = 7;
 			vs->dimcolor = 11;
 		} else {
 			vs->color = (_game.id == GID_MANIAC && (_game.features & GF_DEMO)) ? 13 : 2;
-			vs->hicolor = 14;
+			vs->hicolor = _hiLiteColorVerbArrow;
 			vs->dimcolor = 8;
 		}
 		vs->type = kTextVerbType;
@@ -832,7 +883,16 @@ void ScummEngine_v2::o2_verbOps() {
 		vs->prep = prep;
 
 		vs->curRect.left = vs->origLeft = x;
-		vs->curRect.top = y;
+
+		// WORKAROUND for original bug (#14198): The italian version of Maniac Mansion
+		// erroneously set one of the verbs' ("Unlock") y coordinate to 1600 instead of
+		// 168 via scripts. We apply the fix and mark it as an enhancement.
+		if (_game.id == GID_MANIAC && _game.version == 2 && _language == Common::IT_ITA &&
+			slot == 15 && y == 1600 && enhancementEnabled(kEnhTextLocFixes)) {
+			vs->curRect.top = 168;
+		} else {
+			vs->curRect.top = y;
+		}
 
 		// FIXME: these keyboard map depends on the language of the game.
 		// E.g. a german keyboard has 'z' and 'y' swapped, while a french
@@ -856,7 +916,7 @@ void ScummEngine_v2::o2_verbOps() {
 		}
 
 		// It follows the verb name
-		loadPtrToResource(rtVerb, slot, NULL);
+		loadPtrToResource(rtVerb, slot, nullptr);
 		}
 		break;
 	}
@@ -939,7 +999,7 @@ void ScummEngine_v2::o2_doSentence() {
 				}
 			}
 
-			runObjectScript(st->objectA, st->verb, isBackgroundScript, isSpecialVerb, NULL, slot);
+			runObjectScript(st->objectA, st->verb, isBackgroundScript, isSpecialVerb, nullptr, slot);
 		}
 		break;
 	case 2:
@@ -968,6 +1028,7 @@ void ScummEngine_v2::drawPreposition(int index) {
 			{ " ", " in", " con", " su", " a" },     // Italian
 			{ " ", " en", " con", " en", " a" },     // Spanish
 			{ " ", " \x7f", " \x7f", " na", " \x7f" },// Russian
+			{ " ", " B", " SN", " SM", " M" },       // Hebrew
 			};
 		int lang;
 		switch (_language) {
@@ -986,6 +1047,9 @@ void ScummEngine_v2::drawPreposition(int index) {
 		case Common::RU_RUS:
 			lang = 5;
 			break;
+		case Common::HE_ISR:
+			lang = 6;
+			break;
 		default:
 			lang = 0;	// Default to english
 		}
@@ -997,98 +1061,7 @@ void ScummEngine_v2::drawPreposition(int index) {
 }
 
 void ScummEngine_v2::o2_drawSentence() {
-	Common::Rect sentenceline;
-	const byte *temp;
-	int slot = getVerbSlot(VAR(VAR_SENTENCE_VERB), 0);
-
-	if (!((_userState & USERSTATE_IFACE_SENTENCE) ||
-	      (_game.platform == Common::kPlatformNES && (_userState & USERSTATE_IFACE_ALL))))
-		return;
-
-	if (getResourceAddress(rtVerb, slot))
-		_sentenceBuf = (char *)getResourceAddress(rtVerb, slot);
-	else
-		return;
-
-	if (VAR(VAR_SENTENCE_OBJECT1) > 0) {
-		temp = getObjOrActorName(VAR(VAR_SENTENCE_OBJECT1));
-		if (temp) {
-			_sentenceBuf += " ";
-			_sentenceBuf += (const char *)temp;
-		}
-
-		// For V1 games, the engine must compute the preposition.
-		// In all other Scumm versions, this is done by the sentence script.
-		if ((_game.id == GID_MANIAC && _game.version == 1 && !(_game.platform == Common::kPlatformNES)) && (VAR(VAR_SENTENCE_PREPOSITION) == 0)) {
-			if (_verbs[slot].prep == 0xFF) {
-				byte *ptr = getOBCDFromObject(VAR(VAR_SENTENCE_OBJECT1));
-				assert(ptr);
-				VAR(VAR_SENTENCE_PREPOSITION) = (*(ptr + 12) >> 5);
-			} else
-				VAR(VAR_SENTENCE_PREPOSITION) = _verbs[slot].prep;
-		}
-	}
-
-	if (0 < VAR(VAR_SENTENCE_PREPOSITION) && VAR(VAR_SENTENCE_PREPOSITION) <= 4) {
-		drawPreposition(VAR(VAR_SENTENCE_PREPOSITION));
-	}
-
-	if (VAR(VAR_SENTENCE_OBJECT2) > 0) {
-		temp = getObjOrActorName(VAR(VAR_SENTENCE_OBJECT2));
-		if (temp) {
-			_sentenceBuf += " ";
-			_sentenceBuf += (const char *)temp;
-		}
-	}
-
-	_string[2].charset = 1;
-	_string[2].ypos = _virtscr[kVerbVirtScreen].topline;
-	_string[2].xpos = 0;
-	_string[2].right = _virtscr[kVerbVirtScreen].w - 1;
-	if (_game.platform == Common::kPlatformNES) {
-		_string[2].xpos = 16;
-		_string[2].color = 0;
-	} else if (_game.version == 1)
-		_string[2].color = 16;
-	else
-		_string[2].color = 13;
-
-	byte string[80];
-	const char *ptr = _sentenceBuf.c_str();
-	int i = 0, len = 0;
-
-	// Maximum length of printable characters
-	int maxChars = (_game.platform == Common::kPlatformNES) ? 60 : 40;
-	while (*ptr) {
-		if (*ptr != '@')
-			len++;
-		if (len > maxChars) {
-			break;
-		}
-
-		string[i++] = *ptr++;
-
-		if (_game.platform == Common::kPlatformNES && len == 30) {
-			string[i++] = 0xFF;
-			string[i++] = 8;
-		}
-	}
-	string[i] = 0;
-
-	if (_game.platform == Common::kPlatformNES) {
-		sentenceline.top = _virtscr[kVerbVirtScreen].topline;
-		sentenceline.bottom = _virtscr[kVerbVirtScreen].topline + 16;
-		sentenceline.left = 16;
-		sentenceline.right = _virtscr[kVerbVirtScreen].w - 1;
-	} else {
-		sentenceline.top = _virtscr[kVerbVirtScreen].topline;
-		sentenceline.bottom = _virtscr[kVerbVirtScreen].topline + 8;
-		sentenceline.left = 0;
-		sentenceline.right = _virtscr[kVerbVirtScreen].w - 1;
-	}
-	restoreBackground(sentenceline);
-
-	drawString(2, (byte *)string);
+	drawSentence();
 }
 
 void ScummEngine_v2::o2_ifClassOfIs() {
@@ -1098,7 +1071,7 @@ void ScummEngine_v2::o2_ifClassOfIs() {
 
 	byte *obcd = getOBCDFromObject(obj);
 
-	if (obcd == 0) {
+	if (obcd == nullptr) {
 		o5_jumpRelative();
 		return;
 	}
@@ -1113,7 +1086,10 @@ void ScummEngine_v2::o2_walkActorTo() {
 
 	int act = getVarOrDirectByte(PARAM_1);
 
-	// WORKAROUND bug #2110
+	// WORKAROUND bug #2110: crash when trying to fly back to San Francisco.
+	// walkActorTo() is called with an invalid actor number by script 115,
+	// after the room is loaded. The original DOS interpreter probably let
+	// this slip by (TODO: confirm this? and chose an Enhancement class).
 	if (_game.id == GID_ZAK && _game.version == 1 && vm.slot[_currentScript].number == 115 && act == 249) {
 		act = VAR(VAR_EGO);
 	}
@@ -1196,22 +1172,17 @@ void ScummEngine_v2::o2_startScript() {
 	// a permanent resident.
 	// Our fix is simply to prevent the Cutscene playing, if the lab has already been stormed
 	if (_game.id == GID_MANIAC) {
-		if (_game.version >= 1 && script == 155) {
-			if (VAR(120) == 1)
-				return;
-		}
-		// Script numbers are different in V0
-		if (_game.version == 0 && script == 150) {
-			if (VAR(104) == 1)
+		if (script == MM_SCRIPT(150)) {
+			if (VAR(MM_VALUE(104, 120)) == 1)
 				return;
 		}
 	}
 
-	runScript(script, 0, 0, 0);
+	runScript(script, 0, 0, nullptr);
 }
 
 void ScummEngine_v2::stopScriptCommon(int script) {
-	// WORKAROUND bug #4112: If you enter the lab while Dr. Fred has the powered turned off
+	// WORKAROUND bug #4112: If you enter the lab while Dr. Fred has the power turned off
 	// to repair the Zom-B-Matic, the script will be stopped and the power will never turn
 	// back on. This fix forces the power on, when the player enters the lab,
 	// if the script which turned it off is running
@@ -1222,7 +1193,7 @@ void ScummEngine_v2::stopScriptCommon(int script) {
 			if (script == MM_SCRIPT(138)) {
 
 				int obj = MM_VALUE(124, 157);
-				putState(obj, getState(obj) & ~kObjectState_08);
+				putState(obj, getState(obj) & ~kObjectStateIntrinsic);
 			}
 		}
 	}
@@ -1311,7 +1282,7 @@ void ScummEngine_v2::o2_putActorInRoom() {
 	// After first using the blue crystal, a cutscene of the two Caponians plays (script-96),
 	// locking object 344 (which prevents the cutscene playing again) and setting Var[245] to 0x18.
 	// script-5 uses this variable to set the Caponian costume
-	// On first apperance after using the blue crystal, the Caponians now will have the disguise on
+	// On first appearance after using the blue crystal, the Caponians now will have the disguise on
 	//
 	// If you visit the spacecraft and ring the doorbell, Var[245] will be set to 0x1C (Disguise off)
 	// Using the blue crystal again, will result in the Caponian appearing without his disguise
@@ -1320,7 +1291,9 @@ void ScummEngine_v2::o2_putActorInRoom() {
 	//
 	// We don't touch the variable in the following situations
 	//  If the Caponian is being put into the space ship room, or the current room is the
-	//  space ship and the Caponian is being put into the backroom of the telephone company (you didnt show your fan club card)
+	//  space ship and the Caponian is being put into the backroom of the telephone company (you didn't show your fan club card)
+	//
+	// TODO: choose an Enhancement class for this
 	if (_game.id == GID_ZAK && _game.version <= 2 && act == 7) {
 		// Is script-96 cutscene done
 		if ((getState(344) & kObjectStateLocked)) {
@@ -1366,8 +1339,11 @@ void ScummEngine_v2::o2_findObject() {
 	int y = getVarOrDirectByte(PARAM_2) * V12_Y_MULTIPLIER;
 	obj = findObject(x, y);
 	if (obj == 0 && (_game.platform == Common::kPlatformNES) && (_userState & USERSTATE_IFACE_INVENTORY)) {
-		if (_mouseOverBoxV2 >= 0 && _mouseOverBoxV2 < 4)
-			obj = findInventory(VAR(VAR_EGO), _mouseOverBoxV2 + _inventoryOffset + 1);
+		if (_mouseOverBoxV2 >= 0 && _mouseOverBoxV2 < 4) {
+			// Simulate inverse order
+			int invCount = getInventoryCount(VAR(VAR_EGO));
+			obj = findInventory(VAR(VAR_EGO), invCount - _inventoryOffset - _mouseOverBoxV2);
+		}
 	}
 	setResult(obj);
 }
@@ -1484,7 +1460,7 @@ void ScummEngine_v2::o2_loadRoomWithEgo() {
 	if (x >= 0 && y >= 0) {
 		a->startWalkActor(x, y, -1);
 	}
-	runScript(5, 0, 0, 0);
+	runScript(5, 0, 0, nullptr);
 }
 
 void ScummEngine_v2::o2_setOwnerOf() {
@@ -1502,6 +1478,7 @@ void ScummEngine_v2::o2_delay() {
 	delay |= fetchScriptByte() << 16;
 	delay = 0xFFFFFF - delay;
 
+	assert(_currentScript != 0xFF);
 	vm.slot[_currentScript].delay = delay;
 	vm.slot[_currentScript].status = ssPaused;
 	o5_breakHere();
@@ -1579,12 +1556,12 @@ void ScummEngine_v2::o2_endCutscene() {
 	// Reset user state to values before cutscene
 	setUserState(vm.cutSceneData[0] | USERSTATE_SET_IFACE | USERSTATE_SET_CURSOR | USERSTATE_SET_FREEZE);
 
-	if ((_game.id == GID_MANIAC) && !(_game.platform == Common::kPlatformNES)) {
+	if (_game.id == GID_MANIAC && _game.version < 2 && _game.platform != Common::kPlatformNES) {
 		camera._mode = (byte) vm.cutSceneData[3];
 		if (camera._mode == kFollowActorCameraMode) {
 			actorFollowCamera(VAR(VAR_EGO));
 		} else if (vm.cutSceneData[2] != _currentRoom) {
-			startScene(vm.cutSceneData[2], 0, 0);
+			startScene(vm.cutSceneData[2], nullptr, 0);
 		}
 	} else {
 		actorFollowCamera(VAR(VAR_EGO));
@@ -1604,7 +1581,7 @@ void ScummEngine_v2::o2_chainScript() {
 	int script = getVarOrDirectByte(PARAM_1);
 	stopScript(vm.slot[_currentScript].number);
 	_currentScript = 0xFF;
-	runScript(script, 0, 0, 0);
+	runScript(script, 0, 0, nullptr);
 }
 
 void ScummEngine_v2::o2_pickupObject() {
@@ -1617,18 +1594,19 @@ void ScummEngine_v2::o2_pickupObject() {
 	if (getObjectIndex(obj) == -1)
 		return;
 
-	if (whereIsObject(obj) == WIO_INVENTORY)	/* Don't take an */
-		return;											/* object twice */
+	// Don't take an object twice
+	if (whereIsObject(obj) == WIO_INVENTORY)
+		return;
 
 	addObjectToInventory(obj, _roomResource);
 	markObjectRectAsDirty(obj);
 	putOwner(obj, VAR(VAR_EGO));
-	putState(obj, getState(obj) | kObjectState_08 | kObjectStateUntouchable);
+	putState(obj, getState(obj) | kObjectStateIntrinsic | kObjectStateUntouchable);
 	clearDrawObjectQueue();
 
 	runInventoryScript(1);
 	if (_game.platform == Common::kPlatformNES)
-		_sound->addSoundToQueue(51);	// play 'pickup' sound
+		_sound->triggerSound(51); // play 'pickup' sound (not using the queue; see Trac#2536)
 }
 
 void ScummEngine_v2::o2_cursorCommand() {	// TODO: Define the magic numbers
@@ -1683,7 +1661,7 @@ void ScummEngine_v2::setUserState(byte state) {
 
 	// Draw all verbs and inventory
 	redrawVerbs();
-	runInventoryScript(1);
+	runInventoryScriptEx(1);
 }
 
 void ScummEngine_v2::o2_getActorWalkBox() {
@@ -1717,8 +1695,14 @@ void ScummEngine_v2::resetSentence() {
 	VAR(VAR_SENTENCE_PREPOSITION) = 0;
 }
 
-void ScummEngine_v2::runInventoryScript(int i) {
+void ScummEngine_v2::runInventoryScript(int) {
 	redrawV2Inventory();
+}
+
+void ScummEngine_v2::runInventoryScriptEx(int) {
+	redrawV2Inventory();
+	if (_game.version > 0)
+		drawSentence();
 }
 
 } // End of namespace Scumm

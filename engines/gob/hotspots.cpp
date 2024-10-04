@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -49,7 +54,7 @@ Hotspots::Hotspot::Hotspot(uint16 i,
 	funcEnter = enter;
 	funcLeave = leave;
 	funcPos   = pos;
-	script    = 0;
+	script    = nullptr;
 }
 
 void Hotspots::Hotspot::clear() {
@@ -63,7 +68,7 @@ void Hotspots::Hotspot::clear() {
 	funcEnter = 0;
 	funcLeave = 0;
 	funcPos   = 0;
-	script    = 0;
+	script    = nullptr;
 }
 
 Hotspots::Type Hotspots::Hotspot::getType() const {
@@ -327,6 +332,16 @@ void Hotspots::recalculate(bool force) {
 		if ((_vm->_draw->_renderFlags & RENDERFLAG_CAPTUREPOP) && (left != -1)) {
 			left += _vm->_draw->_backDeltaX;
 			top  += _vm->_draw->_backDeltaY;
+		}
+
+		if (_vm->_draw->_needAdjust != 2 && _vm->_draw->_needAdjust != 10) {
+			_vm->_draw->adjustCoords(0, &left, &top);
+			if ((spot.flags & 15) < 3)
+				_vm->_draw->adjustCoords(2, &width, &height);
+			else {
+				height &= 0xFFFFFFFE;
+				_vm->_draw->adjustCoords(2, nullptr, &height);
+			}
 		}
 
 		// Clamping
@@ -812,12 +827,13 @@ uint16 Hotspots::check(uint8 handleMouse, int16 delay, uint16 &id, uint16 &index
 							  ((delay <= 0) || (_vm->_game->_mouseButtons == kMouseButtonsNone)))
 							_vm->_draw->blitCursor();
 
-
-						if ((key != _currentKey) && (_vm->getGameType() != kGameTypeFascination) &&
-						                            (_vm->getGameType() != kGameTypeGeisha))
-						// If the hotspot changed, leave the old one
-						// Code not present in Fascination executables
-								leave(_currentIndex);
+						if ((_currentKey != 0) &&
+							(key != _currentKey) &&
+							(_vm->getGameType() != kGameTypeFascination) &&
+							(_vm->getGameType() != kGameTypeGeisha))
+							// If the hotspot changed, leave the old one
+							// Code not present in Fascination executables
+							leave(_currentIndex);
 
 						_currentKey = 0;
 						break;
@@ -918,7 +934,7 @@ uint16 Hotspots::updateInput(uint16 xPos, uint16 yPos, uint16 width, uint16 heig
 	while (1) {
 		// If we the edit field has enough space, add a space for the new character
 		Common::strlcpy(tempStr, str, 255);
-		strcat(tempStr, " ");
+		Common::strcat_s(tempStr, " ");
 		if ((editSize != 0) && strlen(tempStr) > editSize)
 			Common::strlcpy(tempStr, str, 256);
 
@@ -1271,6 +1287,17 @@ void Hotspots::evaluateNew(uint16 i, uint16 *ids, InputDesc *inputs,
 	}
 	type &= 0x7F;
 
+	if (_vm->getGameType() == kGameTypeAdibou1 &&
+		left == 0xFFFF - 5 &&
+		(_vm->isCurrentTot("L61EXO-7.tot") || _vm->isCurrentTot("L61EXO-9.tot"))) {
+		// WORKAROUND: In those "find matching cards" games, hotspots of cards already found
+		// are normally removed by setting their x coordinate to 0xFFFF. However, sometimes
+		// the hotspot pos() function subtracts an additional 5 from x, which results in the
+		// hotspot not being properly removed (and clicking on it leads to a crash).
+		// TODO: the original executable somehow avoids this problem.
+		left = 0xFFFF;
+	}
+
 	// Draw a border around the hotspot
 	if (_vm->_draw->_renderFlags & RENDERFLAG_BORDERHOTSPOTS) {
 		Surface &surface = *_vm->_draw->_spritesArray[_vm->_draw->_destSurface];
@@ -1299,6 +1326,18 @@ void Hotspots::evaluateNew(uint16 i, uint16 *ids, InputDesc *inputs,
 	if ((_vm->_draw->_renderFlags & RENDERFLAG_CAPTUREPOP) && (left != 0xFFFF)) {
 		left += _vm->_draw->_backDeltaX;
 		top  += _vm->_draw->_backDeltaY;
+	}
+
+	if (left != 0xFFFF) {
+		_vm->_draw->adjustCoords(0, &left, &top);
+		if ((type & 0x3F) >= 20 || (type & 0x3F) < 3)
+			_vm->_draw->adjustCoords(0, &width, &height);
+		else {
+			if (_vm->_draw->_needAdjust != 2 && _vm->_draw->_needAdjust != 10)
+				height &= 0xFFFE;
+
+			_vm->_draw->adjustCoords(0, &height, 0);
+		}
 	}
 
 	right  = left + width  - 1;
@@ -1331,7 +1370,7 @@ void Hotspots::evaluateNew(uint16 i, uint16 *ids, InputDesc *inputs,
 
 	int16 key   = 0;
 	int16 flags = 0;
-	Font *font = 0;
+	Font *font = nullptr;
 	uint32 funcEnter = 0, funcLeave = 0;
 
 	if ((windowNum != 0) && (type != 0) && (type != 2))
@@ -1387,7 +1426,7 @@ void Hotspots::evaluateNew(uint16 i, uint16 *ids, InputDesc *inputs,
 		inputs[inputCount].backColor  = _vm->_game->_script->readByte();
 		inputs[inputCount].frontColor = _vm->_game->_script->readByte();
 		inputs[inputCount].length     = 0;
-		inputs[inputCount].str        = 0;
+		inputs[inputCount].str        = nullptr;
 
 		if ((type >= kTypeInput2NoLeave) && (type <= kTypeInput3Leave)) {
 			inputs[inputCount].length = _vm->_game->_script->readUint16();
@@ -1579,7 +1618,7 @@ void Hotspots::evaluate() {
 
 	_vm->_game->_script->skip(6);
 
-	setCurrentHotspot(0, 0);
+	setCurrentHotspot(nullptr, 0);
 
 	bool finishedDuration = false;
 
@@ -1642,7 +1681,7 @@ void Hotspots::evaluate() {
 		if (_hotspots[index].funcEnter != 0)
 			call(_hotspots[index].funcEnter);
 
-		setCurrentHotspot(0, 0);
+		setCurrentHotspot(nullptr, 0);
 		id = 0;
 	}
 
@@ -1765,7 +1804,7 @@ void Hotspots::oPlaytoons_F_1B() {
 	shortId = _vm->_game->_script->readValExpr();
 	var2 = _vm->_game->_script->readValExpr();
 
-	_vm->_game->_script->evalExpr(0);
+	_vm->_game->_script->evalExpr(nullptr);
 
 	fontIndex = _vm->_game->_script->readValExpr();
 	var4 = _vm->_game->_script->readValExpr();
@@ -2023,7 +2062,7 @@ void Hotspots::setCurrentHotspot(const uint16 *ids, uint16 id) const {
 	}
 
 	if (Hotspot::getState(id) == kStateFilled)
-		WRITE_VAR(16, ids[id & 0xFFF]);
+		WRITE_VAR(16, (int16)ids[id & 0xFFF]);
 	else
 		WRITE_VAR(16, id & 0xFFF);
 }

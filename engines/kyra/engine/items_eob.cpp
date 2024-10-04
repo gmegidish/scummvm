@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -99,8 +98,7 @@ void EoBCoreEngine::loadItemDefs() {
 	uint16 numTypes = s->readUint16();
 
 	delete[] _itemTypes;
-	_itemTypes = new EoBItemType[65];
-	memset(_itemTypes, 0, sizeof(EoBItemType) * 65);
+	_itemTypes = new EoBItemType[65]();
 
 	for (int i = 0; i < numTypes; i++) {
 		_itemTypes[i].invFlags = s->readUint16();
@@ -209,6 +207,8 @@ int EoBCoreEngine::deleteInventoryItem(int charIndex, int slot) {
 
 		if (_currentControlMode == 0)
 			gui_drawCharPortraitWithStats(charIndex);
+
+		_screen->updateScreen();
 	}
 
 	return _items[itm].value;
@@ -245,7 +245,7 @@ int EoBCoreEngine::validateInventorySlotForItem(Item item, int charIndex, int sl
 		return 1;
 
 	if (slot == 17 && item && !itemUsableByCharacter(charIndex, item)) {
-		_txt->printMessage(_validateArmorString[0], -1, _characters[charIndex].name);
+		_txt->printMessage(_validateArmorString[0], -1, _characters[charIndex].name, _itemNames[_items[item].nameUnid]);
 		return 0;
 	}
 
@@ -254,7 +254,7 @@ int EoBCoreEngine::validateInventorySlotForItem(Item item, int charIndex, int sl
 
 	if (_items[itm].flags & 0x20 && (_flags.gameID == GI_EOB1 || slot < 2)) {
 		if (_flags.gameID == GI_EOB2 && ex > 0 && ex < 4)
-			_txt->printMessage(_validateCursedString[0], -1, _characters[charIndex].name);
+			_txt->printMessage(_validateCursedString[0], -1, _characters[charIndex].name, _itemNames[_items[item].nameUnid]);
 		return 0;
 	}
 
@@ -331,6 +331,8 @@ bool EoBCoreEngine::deletePartyItems(int16 itemType, int16 itemValue) {
 			res = true;
 		}
 	}
+
+	_screen->updateScreen();
 
 	return res;
 }
@@ -475,10 +477,14 @@ void EoBCoreEngine::printFullItemName(Item item) {
 			break;
 		}
 
-
 		if (tstr3) {
 			if (!tstr2) {
 				tmpString = tstr3;
+			} else if (_flags.lang == Common::ZH_TWN) {
+				if (!correctSuffixCase)
+					SWAP(tstr2, tstr3);
+				Common::String t2(tstr2);
+				tmpString = Common::String::format(_patternSuffix[t2.contains(_patternGrFix1[0]) || t2.contains(_patternGrFix2[0]) ? 0 : 1], tstr2, tstr3);
 			} else {
 				if (_flags.lang == Common::JA_JPN)
 					SWAP(tstr2, tstr3);
@@ -498,7 +504,7 @@ void EoBCoreEngine::printFullItemName(Item item) {
 
 	int cs = (_flags.platform == Common::kPlatformSegaCD && _flags.lang == Common::JA_JPN && _screen->getNumberOfCharacters((tmpString).c_str()) >= 17) ? _screen->setFontStyles(_screen->_currentFont, Font::kStyleNarrow2) : -1;
 
-	_txt->printMessage(convertAsciiToSjis(tmpString).c_str());
+	_txt->printMessage(makeTwoByteString(tmpString).c_str());
 
 	if (cs != -1)
 		_screen->setFontStyles(_screen->_currentFont, cs);

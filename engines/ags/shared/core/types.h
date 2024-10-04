@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #define AGS_SHARED_CORE_TYPES_H
 
 #include "common/scummsys.h"
+#include "ags/lib/std.h"
 
 namespace AGS3 {
 
@@ -58,6 +58,7 @@ namespace AGS3 {
 typedef uint8 uint8_t;
 typedef uint16 uint16_t;
 typedef uint32 uint32_t;
+typedef uint64 uint64_t;
 typedef int8 int8_t;
 typedef int16 int16_t;
 typedef int32 int32_t;
@@ -77,6 +78,7 @@ typedef int64 intptr_t;
 #undef INT32_MAX
 #undef INT_MIN
 #undef INT_MAX
+#undef UINT32_MAX
 #undef UINT_MAX
 #undef SIZE_MAX
 #define INT16_MIN     -32768
@@ -88,6 +90,7 @@ typedef int64 intptr_t;
 #define INT_MAX       2147483647
 #define UINT_MAX      0xffffffff
 #define SIZE_MAX      0xffffffff
+#define UINT32_MAX    0xffffffff
 
 #undef TRUE
 #undef FALSE

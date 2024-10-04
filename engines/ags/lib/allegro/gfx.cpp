@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -195,16 +194,25 @@ bool is_linear_bitmap(BITMAP *bmp) {
 	return true;
 }
 
+bool is_same_bitmap(BITMAP *bmp1, BITMAP *bmp2) {
+	if ((bmp1 == nullptr) || (bmp2 == nullptr))
+		return false;
+	if (bmp1 == bmp2)
+		return true;
+
+	// TODO: allegro also returns true if one bmp is a sub of the other,
+	// i.e. they share the same id
+	// This (if needed?) would require a different implementation
+
+	return false;
+}
+
 void bmp_select(BITMAP *bmp) {
 	// No implementation needed
 }
 
 byte *bmp_write_line(BITMAP *bmp, int line) {
 	return bmp->line[line];
-}
-
-void bmp_unwrite_line(BITMAP *bmp) {
-	// No implementation needed
 }
 
 void bmp_write8(byte *addr, int color) {
@@ -235,6 +243,8 @@ void memory_putpixel(BITMAP *bmp, int x, int y, int color) {
 
 void putpixel(BITMAP *bmp, int x, int y, int color) {
 	Graphics::ManagedSurface &surf = **bmp;
+	if (x < 0 || x >= surf.w || y < 0 || y >= surf.h)
+		return;
 	void *p = surf.getBasePtr(x, y);
 
 	switch (surf.format.bytesPerPixel) {
@@ -254,6 +264,8 @@ void putpixel(BITMAP *bmp, int x, int y, int color) {
 
 void _putpixel(BITMAP *bmp, int x, int y, int color) {
 	Graphics::ManagedSurface &surf = **bmp;
+	if (x < 0 || x >= surf.w || y < 0 || y >= surf.h)
+		return;
 	void *p = surf.getBasePtr(x, y);
 	*((uint8 *)p) = color;
 }
@@ -264,6 +276,8 @@ void _putpixel15(BITMAP *bmp, int x, int y, int color) {
 
 void _putpixel16(BITMAP *bmp, int x, int y, int color) {
 	Graphics::ManagedSurface &surf = **bmp;
+	if (x < 0 || x >= surf.w || y < 0 || y >= surf.h)
+		return;
 	void *p = surf.getBasePtr(x, y);
 	*((uint16 *)p) = color;
 }
@@ -274,6 +288,8 @@ void _putpixel24(BITMAP *bmp, int x, int y, int color) {
 
 void _putpixel32(BITMAP *bmp, int x, int y, int color) {
 	Graphics::ManagedSurface &surf = **bmp;
+	if (x < 0 || x >= surf.w || y < 0 || y >= surf.h)
+		return;
 	void *p = surf.getBasePtr(x, y);
 	*((uint32 *)p) = color;
 }

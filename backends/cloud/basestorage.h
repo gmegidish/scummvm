@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,19 +36,19 @@ protected:
 	 * Gets token from cloud.scummvm.org using given code.
 	 * Base implementation for storages with common auth procedure.
 	 */
-	virtual void getAccessToken(Common::String code, Networking::ErrorCallback callback);
+	virtual void getAccessToken(const Common::String &code, Networking::ErrorCallback callback);
 
 	/**
 	 * Handles JSON response which should contain access token requested
 	 * with getAccessToken().
 	 */
-	virtual void codeFlowComplete(Networking::ErrorCallback callback, Networking::JsonResponse response);
+	virtual void codeFlowComplete(Networking::ErrorCallback callback, const Networking::JsonResponse &response);
 
 	/**
 	 * Handles network errors occurred while getting access token requested
 	 * with getAccessToken().
 	 */
-	virtual void codeFlowFailed(Networking::ErrorCallback callback, Networking::ErrorResponse error);
+	virtual void codeFlowFailed(Networking::ErrorCallback callback, const Networking::ErrorResponse &error);
 
 	/**
 	 * Return cloud provider name, used in cloud.scummvm.org endpoints.
@@ -75,7 +74,7 @@ protected:
 	virtual bool canReuseRefreshToken() = 0;
 
 private:
-	void tokenRefreshed(BoolCallback callback, Networking::JsonResponse response);
+	void tokenRefreshed(BoolCallback callback, const Networking::JsonResponse &response);
 
 protected:
 	/** Helper function to save Storage::_isEnabled into config. */
@@ -89,8 +88,8 @@ protected:
 
 public:
 	BaseStorage();
-	BaseStorage(Common::String token, Common::String refreshToken, bool enabled = false);
-	virtual ~BaseStorage();
+	BaseStorage(const Common::String &token, const Common::String &refreshToken, bool enabled = false);
+	~BaseStorage() override;
 
 	/**
 	 * Gets new access_token. Pass a callback, so you could

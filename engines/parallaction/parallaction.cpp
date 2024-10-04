@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@
 #include "parallaction/walk.h"
 
 namespace Parallaction {
-Parallaction *g_vm = NULL;
+Parallaction *g_vm = nullptr;
 // public stuff
 
 char		g_saveData1[30] = { '\0' };
@@ -44,7 +43,7 @@ uint32		g_globalFlags = 0;
 
 Parallaction::Parallaction(OSystem *syst, const PARALLACTIONGameDescription *gameDesc) :
 	Engine(syst), _gameDescription(gameDesc), _location(getGameType()),
-	_dialogueMan(0), _rnd("parallaction") {
+	_dialogueMan(nullptr), _rnd("parallaction") {
 	// Setup mixer
 	syncSoundSettings();
 
@@ -54,26 +53,26 @@ Parallaction::Parallaction(OSystem *syst, const PARALLACTIONGameDescription *gam
 	_screenHeight = 0;
 	_screenSize = 0;
 	_gameType = 0;
-	_gfx = 0;
-	_disk = 0;
-	_input = 0;
-	_saveLoad = 0;
-	_menuHelper = 0;
-	_soundMan = 0;
-	_labelFont = 0;
-	_menuFont = 0;
-	_introFont = 0;
-	_dialogueFont = 0;
-	_globalFlagsNames = 0;
-	_objectsNames = 0;
-	_objects = 0;
-	_callableNames = 0;
-	_localFlagNames = 0;
-	_cmdExec = 0;
-	_programExec = 0;
-	_balloonMan = 0;
-	_inventoryRenderer = 0;
-	_inventory = 0;
+	_gfx = nullptr;
+	_disk = nullptr;
+	_input = nullptr;
+	_saveLoad = nullptr;
+	_menuHelper = nullptr;
+	_soundMan = nullptr;
+	_labelFont = nullptr;
+	_menuFont = nullptr;
+	_introFont = nullptr;
+	_dialogueFont = nullptr;
+	_globalFlagsNames = nullptr;
+	_objectsNames = nullptr;
+	_objects = nullptr;
+	_callableNames = nullptr;
+	_localFlagNames = nullptr;
+	_cmdExec = nullptr;
+	_programExec = nullptr;
+	_balloonMan = nullptr;
+	_inventoryRenderer = nullptr;
+	_inventory = nullptr;
 	_currentLocationIndex = 0;
 	_numLocations = 0;
 	_language = 0;
@@ -92,7 +91,7 @@ Parallaction::~Parallaction() {
 	_gfx->freeCharacterObjects();
 	_gfx->freeLocationObjects();
 	delete _balloonMan;
-	_balloonMan = 0;
+	_balloonMan = nullptr;
 
 	delete _localFlagNames;
 	_char._ani.reset();
@@ -105,8 +104,8 @@ Parallaction::~Parallaction() {
 Common::Error Parallaction::init() {
 	_gameType = getGameType();
 	g_engineFlags = 0;
-	_objectsNames = NULL;
-	_globalFlagsNames = NULL;
+	_objectsNames = nullptr;
+	_globalFlagsNames = nullptr;
 	_location._hasSound = false;
 	_numLocations = 0;
 	_location._startPosition.x = -1000;
@@ -115,11 +114,11 @@ Common::Error Parallaction::init() {
 	_location._followerStartPosition.x = -1000;
 	_location._followerStartPosition.y = -1000;
 	_location._followerStartFrame = 0;
-	_objects = 0;
+	_objects = nullptr;
 
 	_screenSize = _screenWidth * _screenHeight;
 
-	strcpy(_characterName1, "null");
+	Common::strcpy_s(_characterName1, "null");
 
 	memset(_localFlags, 0, sizeof(_localFlags));
 	memset(_locationNames, 0, NUM_LOCATIONS * 32);
@@ -131,7 +130,7 @@ Common::Error Parallaction::init() {
 
 	setDebugger(new Debugger(this));
 
-	_menuHelper = 0;
+	_menuHelper = nullptr;
 
 	return Common::kNoError;
 }
@@ -431,7 +430,7 @@ void Parallaction::drawZone(ZonePtr zone) {
 		return;
 	}
 
-	GfxObj *obj = 0;
+	GfxObj *obj = nullptr;
 	if (ACTIONTYPE(zone) == kZoneGet) {
 		obj = zone->u._gfxobj;
 	} else
@@ -508,7 +507,7 @@ void Parallaction::enterCommentMode(ZonePtr z) {
 	// TODO: move this balloons stuff into DialogueManager and BalloonManager
 	if (_gameType == GType_Nippon) {
 		if (!data->_filename.empty()) {
-			if (data->_gfxobj == 0) {
+			if (data->_gfxobj == nullptr) {
 				data->_gfxobj = _disk->loadStatic(data->_filename.c_str());
 			}
 
@@ -851,8 +850,8 @@ void Location::freeZones(bool removeAll) {
 }
 
 Character::Character() : _ani(new Animation) {
-	_talk = NULL;
-	_head = NULL;
+	_talk = nullptr;
+	_head = nullptr;
 
 	_ani->setX(150);
 	_ani->setY(100);
@@ -908,8 +907,8 @@ void CharacterName::dummify() {
 CharacterName::CharacterName() {
 	dummify();
 
-	_suffix = 0;
-	_prefix = 0;
+	_suffix = nullptr;
+	_prefix = nullptr;
 }
 
 CharacterName::CharacterName(const char *name) {
@@ -948,8 +947,8 @@ void CharacterName::bind(const char *name) {
 
 	memset(_baseName, 0, 30);
 	strncpy(_baseName, begin, end - begin);
-	sprintf(_name, "%s%s", _prefix, _baseName);
-	sprintf(_fullName, "%s%s%s", _prefix, _baseName, _suffix);
+	Common::sprintf_s(_name, "%s%s", _prefix, _baseName);
+	Common::sprintf_s(_fullName, "%s%s%s", _prefix, _baseName, _suffix);
 }
 
 const char *CharacterName::getName() const {

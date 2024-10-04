@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -51,6 +50,11 @@ struct NPoint;
 struct GameState {
 	int sceneNum;
 	int which;
+};
+
+struct SubtitleGlyph {
+	byte bitmap[16];
+	byte outline[16];
 };
 
 class NeverhoodEngine : public ::Engine {
@@ -113,8 +117,8 @@ public:
 
 	bool _isSaveAllowed;
 
-	bool canLoadGameStateCurrently() override { return _isSaveAllowed; }
-	bool canSaveGameStateCurrently() override { return _isSaveAllowed; }
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return _isSaveAllowed; }
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override { return _isSaveAllowed; }
 
 	Common::Error loadGameState(int slot) override;
 	Common::Error saveGameState(int slot, const Common::String &description, bool isAutosave = false) override;
@@ -134,11 +138,19 @@ public:
 	void toggleSoundUpdate(bool state) { _updateSound = state; }
 	void toggleMusic(bool state) { _enableMusic = state; }
 	bool musicIsEnabled() { return _enableMusic; }
+	bool shouldOffsetFontNhc() const { return _nhcOffsetFont; }
+
+	const SubtitleGlyph *getSubfont() const {
+		return _haveSubtitles ? _subFont : nullptr;
+	}
 
 private:
 	bool _updateSound;
 	bool _enableMusic;
+	bool _nhcOffsetFont;
 
+	SubtitleGlyph _subFont[256];
+	bool _haveSubtitles;
 };
 
 } // End of namespace Neverhood

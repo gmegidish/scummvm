@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
 
 #include "engines/grim/grim.h"
 #include "engines/grim/savegame.h"
@@ -32,18 +30,44 @@
 
 namespace Grim {
 
-class GrimMetaEngine : public AdvancedMetaEngine {
+static const ADExtraGuiOptionsMap gameGuiOptions[] = {
+	{
+		GAMEOPTION_LOAD_DATAUSR,
+		{
+			_s("Load user patch (unsupported)"),
+			_s("Load an user patch. Please note that the ScummVM team doesn't provide support for using such patches."),
+			"datausr_load",
+			false,
+			0,
+			0
+		}
+	},
+	{
+		GAMEOPTION_SHOW_FPS,
+		{
+			_s("Show FPS"),
+			_s("Show the current FPS-rate, while you play."),
+			"show_fps",
+			false,
+			0,
+			0
+		}
+	},
+
+	AD_EXTRA_GUI_OPTIONS_TERMINATOR
+};
+
+class GrimMetaEngine : public AdvancedMetaEngine<Grim::GrimGameDescription> {
 public:
 	const char *getName() const override {
 		return "grim";
 	}
 
-	Common::Error createInstance(OSystem *syst, Engine **engine) const override {
-		Engines::upgradeTargetIfNecessary(obsoleteGameIDsTable);
-		return AdvancedMetaEngine::createInstance(syst, engine);
+	const ADExtraGuiOptionsMap *getAdvancedExtraGuiOptions() const override {
+		return gameGuiOptions;
 	}
 
-	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const Grim::GrimGameDescription *desc) const override;
 
 	bool hasFeature(MetaEngineFeature f) const override;
 
@@ -53,7 +77,7 @@ public:
 
 };
 
-Common::Error GrimMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
+Common::Error GrimMetaEngine::createInstance(OSystem *syst, Engine **engine, const Grim::GrimGameDescription *desc) const {
 	const GrimGameDescription *gd = (const GrimGameDescription *)desc;
 
 	if (gd->gameType == GType_MONKEY4) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@ namespace Asylum {
 const uint32 CURSOR_UPDATE_TICKS = 100;
 
 Cursor::Cursor(AsylumEngine *engine) : _vm(engine),
-	_state(0), _cursorRes(NULL), _nextTick(0), _frameStep(0),
+	_cursorRes(nullptr), _nextTick(0), _frameStep(0),
 	_graphicResourceId(kResourceNone), _currentFrame(0), _lastFrameIndex(0), _counter(0), _animation(kCursorAnimationNone),
 	_forceHide(false) {
 }
@@ -96,43 +95,7 @@ void Cursor::update() {
 	Common::Point hotspot = getHotspot(_currentFrame);
 
 	GraphicFrame *frame = _cursorRes->getFrame(_currentFrame);
-	CursorMan.replaceCursor((byte *)frame->surface.getPixels(),
-	                        frame->surface.w,
-	                        frame->surface.h,
-	                        hotspot.x,
-	                        hotspot.y,
-	                        0);
-}
-
-void Cursor::setState(const Common::Event &evt) {
-	switch (evt.type) {
-	default:
-		break;
-
-	case Common::EVENT_LBUTTONDOWN:
-		_state |= kCursorStateLeft;
-		break;
-
-	case Common::EVENT_RBUTTONDOWN:
-		_state |= kCursorStateRight;
-		break;
-
-	case Common::EVENT_MBUTTONDOWN:
-		_state |= kCursorMiddle;
-		break;
-
-	case Common::EVENT_LBUTTONUP:
-		_state &= ~kCursorStateLeft;
-		break;
-
-	case Common::EVENT_RBUTTONUP:
-		_state &= ~kCursorStateRight;
-		break;
-
-	case Common::EVENT_MBUTTONUP:
-		_state &= ~kCursorMiddle;
-		break;
-	}
+	CursorMan.replaceCursor(frame->surface, hotspot.x, hotspot.y, 0);
 }
 
 void Cursor::animate() {

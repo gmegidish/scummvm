@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -106,12 +105,12 @@ public:
 	 * Prints the text passed onto the back buffer at the given position and color.
 	 * The string is then blitted to the screen
 	 */
-	void print(const Common::Point &pt, uint color, const char *formatStr, ...) GCC_PRINTF(4, 5);
+	void print(const Common::Point &pt, uint color, MSVC_PRINTF const char *formatStr, ...) GCC_PRINTF(4, 5);
 
 	/**
 	 * Print a strings onto the back buffer without blitting it to the screen
 	 */
-	void gPrint(const Common::Point &pt, uint color, const char *formatStr, ...) GCC_PRINTF(4, 5);
+	void gPrint(const Common::Point &pt, uint color, MSVC_PRINTF const char *formatStr, ...) GCC_PRINTF(4, 5);
 
 	/**
 	 * Copies a section of the second back buffer into the main back buffer
@@ -185,7 +184,7 @@ public:
 	/**
 	 * Draws the given string into the back buffer using the images stored in _font
 	 */
-	virtual void writeString(const Common::String &str, const Common::Point &pt, uint overrideColor);
+	void writeString(const Common::String &str, const Common::Point &pt, uint overrideColor);
 
 
 	// Rose Tattoo specific methods

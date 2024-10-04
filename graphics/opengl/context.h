@@ -1,22 +1,21 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,19 +26,19 @@
 
 namespace OpenGL {
 
-enum ContextOGLType {
-	kOGLContextGL,
-	kOGLContextGLES2
+enum ContextType {
+	kContextNone,
+	kContextGL,
+	kContextGLES,
+	kContextGLES2
 };
 
 /**
  * Description structure of the OpenGL (ES) context.
- *
- * This class is based on LordHoto's OpenGL backend for ScummVM
  */
-class ContextGL : public Common::Singleton<ContextGL> {
+class Context : public Common::Singleton<Context> {
 public:
-	ContextGL();
+	Context();
 
 	/**
 	 * Initialize the context description from currently active context.
@@ -47,7 +46,7 @@ public:
 	 * The extensions and features are marked as available according
 	 * to the current context capabilities.
 	 */
-	void initialize(ContextOGLType contextType);
+	void initialize(ContextType contextType);
 
 	/**
 	 * Reset context.
@@ -57,7 +56,18 @@ public:
 	void reset();
 
 	/** The type of the active context. */
-	ContextOGLType type;
+	ContextType type;
+
+	/** Helper function for checking the GL version supported by the context. */
+	inline bool isGLVersionOrHigher(int major, int minor) const {
+		return ((majorVersion > major) || ((majorVersion == major) && (minorVersion >= minor)));
+	}
+
+	/** The GL version supported by the context. */
+	int majorVersion, minorVersion;
+
+	/** The GLSL version supported by the context */
+	int glslVersion;
 
 	/** The maximum texture size supported by the context. */
 	int maxTextureSize;
@@ -67,6 +77,12 @@ public:
 
 	/** Whether shader support is available or not. */
 	bool shadersSupported;
+
+	/** Whether shader support is good enough for engines or not. */
+	bool enginesShadersSupported;
+
+	/** Whether multi texture support is available or not. */
+	bool multitextureSupported;
 
 	/** Whether FBO support is available or not. */
 	bool framebufferObjectSupported;
@@ -80,6 +96,9 @@ public:
 	 */
 	int multisampleMaxSamples;
 
+	/** Whether packed pixels support is available or not. */
+	bool packedPixelsSupported;
+
 	/** Whether packing the depth and stencil buffers is possible or not. */
 	bool packedDepthStencilSupported;
 
@@ -89,12 +108,29 @@ public:
 	/** Whether depth component 24 is supported or not */
 	bool OESDepth24;
 
+	/** Whether texture coordinate edge clamping is available or not. */
+	bool textureEdgeClampSupported;
+
+	/** Whether texture coordinate border clamping is available or not. */
+	bool textureBorderClampSupported;
+
+	/** Whether texture coordinate mirrored repeat is available or not. */
+	bool textureMirrorRepeatSupported;
+
+	/** Whether texture max level is available or not. */
+	bool textureMaxLevelSupported;
+
+private:
+	/**
+	 * Returns the native GLSL version supported by the driver.
+	 * This does NOT take shaders ARB extensions into account.
+	 */
 	int getGLSLVersion() const;
 };
 
 } // End of namespace OpenGL
 
 /** Shortcut for accessing the active OpenGL context. */
-#define OpenGLContext OpenGL::ContextGL::instance()
+#define OpenGLContext OpenGL::Context::instance()
 
 #endif

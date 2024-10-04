@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,8 @@
 #include "common/events.h"
 #include "common/system.h"
 #include "common/savefile.h"
+
+#include "backends/keymapper/keymapper.h"
 
 #include "touche/graphics.h"
 #include "touche/midi.h"
@@ -304,6 +305,10 @@ void ToucheEngine::handleOptions(int forceDisplay) {
 				updateScreenArea(90, 102, 460, 196);
 				doRedraw = false;
 			}
+
+			Common::Keymapper *keymapper = _eventMan->getKeymapper();
+			keymapper->getKeymap("game-shortcuts")->setEnabled(false);
+
 			Common::Event event;
 			while (_eventMan->pollEvent(event)) {
 				const Button *button = 0;
@@ -342,6 +347,9 @@ void ToucheEngine::handleOptions(int forceDisplay) {
 					break;
 				}
 			}
+
+			keymapper->getKeymap("game-shortcuts")->setEnabled(true);
+
 			_system->updateScreen();
 			_system->delayMillis(10);
 		}
@@ -477,38 +485,15 @@ int ToucheEngine::displayQuitDialog() {
 				quitLoop = true;
 				ret = 1;
 				break;
-			case Common::EVENT_KEYDOWN:
+			case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
 				quitLoop = true;
-				switch (_language) {
-				case Common::FR_FRA:
-					if (event.kbd.keycode == Common::KEYCODE_o) {
-						ret = 1;
-					}
-					break;
-				case Common::DE_DEU:
-					if (event.kbd.keycode == Common::KEYCODE_j) {
-						ret = 1;
-					}
-					break;
-				case Common::ES_ESP:
-					if (event.kbd.keycode == Common::KEYCODE_s) {
-						ret = 1;
-					}
-					break;
-				case Common::PL_POL:
-					if (event.kbd.keycode == Common::KEYCODE_s || event.kbd.keycode == Common::KEYCODE_t) {
-						ret = 1;
-					}
-					break;
-				default:
-					// According to cyx, the Italian version uses the same
-					// keys as the English one.
-					if (event.kbd.keycode == Common::KEYCODE_y) {
-						ret = 1;
-					}
-					break;
+				if (event.customType == kToucheActionYes) {
+					ret = 1;
 				}
 				break;
+			case Common::EVENT_JOYBUTTON_DOWN:
+			case Common::EVENT_KEYDOWN:
+				quitLoop = true;
 			default:
 				break;
 			}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -129,11 +128,11 @@ const byte FONT[] = {
 };
 
 
-#define X_COUNT 32
-#define CHAR_COUNT (int)(sizeof(FONT) / 8)
-#define Y_COUNT 3
-#define CHAR_WIDTH 6
-#define CHAR_HEIGHT 8
+#define GLK_X_COUNT 32
+#define GLK_CHAR_COUNT (int)(sizeof(FONT) / 8)
+#define GLK_Y_COUNT 3
+#define GLK_CHAR_WIDTH 6
+#define GLK_CHAR_HEIGHT 8
 
 
 /**
@@ -223,7 +222,7 @@ public:
 int main(int argc, char *argv[]) {
 	MemoryReadStream src(FONT);
 
-	Surface norm(X_COUNT * CHAR_WIDTH, Y_COUNT * CHAR_HEIGHT), surf(X_COUNT * CHAR_WIDTH, Y_COUNT * CHAR_HEIGHT);
+	Surface norm(GLK_X_COUNT * GLK_CHAR_WIDTH, GLK_Y_COUNT * GLK_CHAR_HEIGHT), surf(GLK_X_COUNT * GLK_CHAR_WIDTH, GLK_Y_COUNT * GLK_CHAR_HEIGHT);
 
 	// Decode the normal font and write it out
 	norm.decodeFont(src);
@@ -233,18 +232,18 @@ int main(int argc, char *argv[]) {
 }
 
 void Surface::decodeFont(MemoryReadStream &src) {
-	for (int charNum = 0; charNum < CHAR_COUNT; ++charNum) {
-		int xs = (charNum % X_COUNT) * CHAR_WIDTH;
-		int ys = (charNum / X_COUNT) * CHAR_HEIGHT;
+	for (int charNum = 0; charNum < GLK_CHAR_COUNT; ++charNum) {
+		int xs = (charNum % GLK_X_COUNT) * GLK_CHAR_WIDTH;
+		int ys = (charNum / GLK_X_COUNT) * GLK_CHAR_HEIGHT;
 
-		for (int y = 0; y < CHAR_HEIGHT; ++y) {
+		for (int y = 0; y < GLK_CHAR_HEIGHT; ++y) {
 			byte *pDest = getBasePtr(xs, ys + y);
 			byte bits = src.readByte();
 
-			for (int x = 0; x < CHAR_WIDTH; ++x, ++pDest, bits <<= 1) {
+			for (int x = 0; x < GLK_CHAR_WIDTH; ++x, ++pDest, bits <<= 1) {
 				if (bits & 0x80) {
 					*pDest = 0;
-					assert(x < CHAR_WIDTH);
+					assert(x < GLK_CHAR_WIDTH);
 				}
 			}
 		}

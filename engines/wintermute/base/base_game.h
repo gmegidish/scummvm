@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -77,6 +76,12 @@ class BaseGame: public BaseObject {
 public:
 	DECLARE_PERSISTENT(BaseGame, BaseObject)
 
+	virtual bool getLayerSize(int *LayerWidth, int *LayerHeight, Rect32 *viewport, bool *customViewport);
+#ifdef ENABLE_WME3D
+	virtual uint32 getAmbientLightColor();
+	virtual bool getFogParams(bool *fogEnabled, uint32 *fogColor, float *start, float *end);
+#endif
+
 	virtual bool onScriptShutdown(ScScript *script);
 
 	virtual bool onActivate(bool activate, bool refreshMouse);
@@ -111,6 +116,7 @@ public:
 	void setShowFPS(bool enabled) { _debugShowFPS = enabled; }
 	bool getBilinearFiltering() { return _bilinearFiltering; }
 	bool getSuspendedRendering() const { return _suspendedRendering; }
+	virtual bool renderShadowGeometry();
 
 	TTextEncoding _textEncoding;
 	bool _textRTL;
@@ -119,6 +125,17 @@ public:
 
 	void DEBUG_DumpClassRegistry();
 	bool setWaitCursor(const char *filename);
+
+#ifdef ENABLE_WME3D
+	bool _supportsRealTimeShadows;
+	TShadowType _maxShadowType;
+
+	bool setMaxShadowType(TShadowType maxShadowType);
+	virtual TShadowType getMaxShadowType(BaseObject *object = nullptr);
+
+	int32 _editorResolutionWidth;
+	int32 _editorResolutionHeight;
+#endif
 
 	uint32 getSaveThumbWidth() const { return _thumbnailWidth; }
 	uint32 getSaveThumbHeight() const { return _thumbnailHeight; }
@@ -162,17 +179,8 @@ public:
 #ifdef ENABLE_WME3D
 	BaseRenderer3D *_renderer3D;
 	bool _playing3DGame;
-
-	bool _supportsRealTimeShadows;
-	TShadowType _maxShadowType;
-
-	bool setMaxShadowType(TShadowType maxShadowType);
-	virtual TShadowType getMaxShadowType(BaseObject *object);
-
-	virtual uint32 getAmbientLightColor();
-
-	virtual bool getFogParams(FogParameters &fogParameters);
 #endif
+
 	BaseSoundMgr *_soundMgr;
 #if EXTENDED_DEBUGGER_ENABLED
 	DebuggableScEngine *_scEngine;
@@ -307,6 +315,9 @@ protected:
 private:
 	bool _debugShowFPS;
 	bool _bilinearFiltering;
+#ifdef ENABLE_WME3D
+	bool _force2dRenderer;
+#endif
 	void *_debugLogFile;
 	void DEBUG_DebugDisable();
 	void DEBUG_DebugEnable(const char *filename = nullptr);

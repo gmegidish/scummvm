@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -82,23 +81,23 @@ const Versailles_Documentation::TimelineEntry Versailles_Documentation::kTimelin
 };
 
 void Versailles_Documentation::init(const Sprites *sprites, FontManager *fontManager,
-									const Common::StringArray *messages, CryOmni3DEngine *engine,
-									const Common::String &allDocsFileName, const Common::String &linksDocsFileName) {
+									const Common::StringArray *messages, CryOmni3DEngine_Versailles *engine,
+									const Common::Path &allDocsFilePath, const Common::Path &linksDocsFilePath) {
 	_sprites = sprites;
 	_fontManager = fontManager;
 	_messages = messages;
 	_engine = engine;
-	_allDocsFileName = allDocsFileName;
-	_linksDocsFileName = linksDocsFileName;
+	_allDocsFilePath = allDocsFilePath;
+	_linksDocsFilePath = linksDocsFilePath;
 
-	// Japanese version of Versailles handles records attributeswith multilines
+	// Japanese version of Versailles handles records attributes with multilines
 	_multilineAttributes = (_engine->getLanguage() == Common::JA_JPN);
 
 	// Build list of records
 	Common::File allDocsFile;
 
-	if (!allDocsFile.open(_allDocsFileName)) {
-		error("Can't open %s", _allDocsFileName.c_str());
+	if (!allDocsFile.open(_allDocsFilePath)) {
+		error("Can't open %s", _allDocsFilePath.toString(Common::Path::kNativeSeparator).c_str());
 	}
 
 	uint allDocsSize = allDocsFile.size();
@@ -284,7 +283,7 @@ Common::String Versailles_Documentation::docAreaHandleSummary() {
 	Image::BitmapDecoder bmpDecoder;
 	Common::File file;
 
-	Image::ImageDecoder *imageDecoder = _engine->loadHLZ("SOM1.HLZ");
+	Image::ImageDecoder *imageDecoder = _engine->loadHLZ(_engine->getFilePath(kFileTypeDocBg, "SOM1.HLZ"));
 	if (!imageDecoder) {
 		return "";
 	}
@@ -295,7 +294,7 @@ Common::String Versailles_Documentation::docAreaHandleSummary() {
 			// No BMP to load
 			continue;
 		}
-		if (!file.open(categories[i].bmp)) {
+		if (!file.open(_engine->getFilePath(kFileTypeSpriteBmp, categories[i].bmp))) {
 			error("Failed to open BMP file: %s", categories[i].bmp);
 		}
 		if (!bmpDecoder.loadStream(file)) {
@@ -327,7 +326,7 @@ Common::String Versailles_Documentation::docAreaHandleSummary() {
 	// No box for 6
 	boxes.setupBox(7, 0, 480 - _sprites->getCursor(225).getHeight(), 640, 480);
 
-	_engine->setupPalette(imageDecoder->getPalette(), imageDecoder->getPaletteStartIndex(),
+	_engine->setupPalette(imageDecoder->getPalette(), 0,
 	                      imageDecoder->getPaletteColorCount());
 
 	_engine->setCursor(181);
@@ -429,7 +428,7 @@ Common::String Versailles_Documentation::docAreaHandleSummary() {
 }
 
 Common::String Versailles_Documentation::docAreaHandleTimeline() {
-	Image::ImageDecoder *imageDecoder = _engine->loadHLZ("chrono1.HLZ");
+	Image::ImageDecoder *imageDecoder = _engine->loadHLZ(_engine->getFilePath(kFileTypeDocBg, "chrono1.HLZ"));
 	if (!imageDecoder) {
 		return "";
 	}
@@ -446,7 +445,7 @@ Common::String Versailles_Documentation::docAreaHandleTimeline() {
 	_fontManager->setCharSpacing(1);
 	_fontManager->setSurface(&docSurface);
 
-	_engine->setupPalette(imageDecoder->getPalette(), imageDecoder->getPaletteStartIndex(),
+	_engine->setupPalette(imageDecoder->getPalette(), 0,
 	                      imageDecoder->getPaletteColorCount());
 
 	_fontManager->displayStr(78, 10, (*_messages)[73]);
@@ -622,7 +621,6 @@ uint Versailles_Documentation::docAreaHandleRecords(const Common::String &record
 			error("Invalid case %d when displaying doc record", action);
 		}
 	}
-	error("shouldn't be there");
 }
 
 void Versailles_Documentation::docAreaPrepareNavigation() {
@@ -914,7 +912,7 @@ Common::String Versailles_Documentation::docAreaHandleGeneralMap() {
 	Image::BitmapDecoder bmpDecoder;
 	Common::File file;
 
-	Image::ImageDecoder *imageDecoder = _engine->loadHLZ("PLANGR.HLZ");
+	Image::ImageDecoder *imageDecoder = _engine->loadHLZ(_engine->getFilePath(kFileTypeDocBg, "PLANGR.HLZ"));
 	if (!imageDecoder) {
 		return "";
 	}
@@ -922,7 +920,7 @@ Common::String Versailles_Documentation::docAreaHandleGeneralMap() {
 
 	for (uint i = 0; i < ARRAYSIZE(areas); i++) {
 		if (areas[i].bmp) {
-			if (!file.open(areas[i].bmp)) {
+			if (!file.open(_engine->getFilePath(kFileTypeSpriteBmp, areas[i].bmp))) {
 				error("Failed to open BMP file: %s", areas[i].bmp);
 			}
 			if (!bmpDecoder.loadStream(file)) {
@@ -958,7 +956,7 @@ Common::String Versailles_Documentation::docAreaHandleGeneralMap() {
 
 	_fontManager->setSurface(&mapSurface);
 
-	_engine->setupPalette(imageDecoder->getPalette(), imageDecoder->getPaletteStartIndex(),
+	_engine->setupPalette(imageDecoder->getPalette(), 0,
 	                      imageDecoder->getPaletteColorCount());
 
 	_engine->setCursor(181);
@@ -1168,7 +1166,7 @@ Common::String Versailles_Documentation::docAreaHandleCastleMap() {
 	boxes.setupBox(ARRAYSIZE(areas), 639 - _sprites->getCursor(105).getWidth(),
 	               479 - _sprites->getCursor(105).getHeight(), 640, 480);
 
-	Image::ImageDecoder *imageDecoder = _engine->loadHLZ("PLAN.HLZ");
+	Image::ImageDecoder *imageDecoder = _engine->loadHLZ(_engine->getFilePath(kFileTypeDocBg, "PLAN.HLZ"));
 	if (!imageDecoder) {
 		return "";
 	}
@@ -1180,7 +1178,7 @@ Common::String Versailles_Documentation::docAreaHandleCastleMap() {
 
 	_fontManager->setSurface(&mapSurface);
 
-	_engine->setupPalette(imageDecoder->getPalette(), imageDecoder->getPaletteStartIndex(),
+	_engine->setupPalette(imageDecoder->getPalette(), 0,
 	                      imageDecoder->getPaletteColorCount());
 
 	_engine->setCursor(181);
@@ -1465,18 +1463,16 @@ void Versailles_Documentation::drawRecordData(Graphics::ManagedSurface &surface,
 	} else {
 		background = _currentRecord;
 	}
-	background = _engine->prepareFileName(background, "hlz");
-	Common::File backgroundFl;
-	if (!backgroundFl.open(background)) {
+	Common::Path backgroundPath = _engine->getFilePath(kFileTypeDocBg, background);
+	if (!Common::File::exists(backgroundPath)) {
 		background = _currentMapLayout ? "pas_fonP.hlz" : "pas_fond.hlz";
-	} else {
-		backgroundFl.close();
+		backgroundPath = _engine->getFilePath(kFileTypeDocBg, background);
 	}
 
-	Image::ImageDecoder *imageDecoder = _engine->loadHLZ(background);
+	Image::ImageDecoder *imageDecoder = _engine->loadHLZ(backgroundPath);
 	const Graphics::Surface *bgFrame = imageDecoder->getSurface();
 
-	_engine->setupPalette(imageDecoder->getPalette(), imageDecoder->getPaletteStartIndex(),
+	_engine->setupPalette(imageDecoder->getPalette(), 0,
 	                      imageDecoder->getPaletteColorCount());
 
 	surface.create(bgFrame->w, bgFrame->h, bgFrame->format);
@@ -1974,8 +1970,8 @@ Common::String Versailles_Documentation::getRecordTitle(const Common::String &re
 	const RecordInfo &recordInfo = it->_value;
 	Common::File allDocsFile;
 
-	if (!allDocsFile.open(_allDocsFileName)) {
-		error("Can't open %s", _allDocsFileName.c_str());
+	if (!allDocsFile.open(_allDocsFilePath)) {
+		error("Can't open %s", _allDocsFilePath.toString(Common::Path::kNativeSeparator).c_str());
 	}
 	allDocsFile.seek(recordInfo.position);
 
@@ -2003,8 +1999,8 @@ Common::String Versailles_Documentation::getRecordData(const Common::String &rec
 	const RecordInfo &recordInfo = it->_value;
 	Common::File allDocsFile;
 
-	if (!allDocsFile.open(_allDocsFileName)) {
-		error("Can't open %s", _allDocsFileName.c_str());
+	if (!allDocsFile.open(_allDocsFilePath)) {
+		error("Can't open %s", _allDocsFilePath.toString(Common::Path::kNativeSeparator).c_str());
 	}
 	allDocsFile.seek(recordInfo.position);
 
@@ -2057,8 +2053,8 @@ void Versailles_Documentation::loadLinksFile() {
 	}
 
 	Common::File linksFile;
-	if (!linksFile.open(_linksDocsFileName)) {
-		error("Can't open links file: %s", _linksDocsFileName.c_str());
+	if (!linksFile.open(_linksDocsFilePath)) {
+		error("Can't open links file: %s", _linksDocsFilePath.toString(Common::Path::kNativeSeparator).c_str());
 	}
 
 	_linksSize = linksFile.size();

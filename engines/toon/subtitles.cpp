@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, MojoTouch has
+ * exclusively licensed this code on March 23th, 2024, to be used in
+ * closed-source products.
+ * Therefore, any contributions (commits) to it will also be dual-licensed.
  *
  */
 
@@ -34,17 +40,21 @@ SubtitleRenderer::SubtitleRenderer(ToonEngine *vm) : _vm(vm) {
 }
 
 SubtitleRenderer::~SubtitleRenderer() {
+	if (_subSurface) {
+		_subSurface->free();
+		delete _subSurface;
+	}
 }
 
 
 void SubtitleRenderer::render(const Graphics::Surface &frame, uint32 frameNumber, byte color) {
-	if (!_hasSubtitles || _tw.empty()) {
+	if (!_hasSubtitles || _tw.empty() || !_vm->showConversationText()) {
 		return;
 	}
 
 	_subSurface->copyFrom(frame);
 	// char strf[384] = {0};
-	// sprintf(strf, "Time passed: %d", frameNumber);
+	// Common::sprintf_s(strf, "Time passed: %d", frameNumber);
 	// _vm->drawCostumeLine(0, 0, strf, _subSurface);
 	// _vm->_system->copyRectToScreen(_subSurface->getBasePtr(0, 0), _subSurface->pitch, 0, 0, _subSurface->w,  _subSurface->h);
 
@@ -63,17 +73,17 @@ void SubtitleRenderer::render(const Graphics::Surface &frame, uint32 frameNumber
 	_vm->_system->copyRectToScreen(_subSurface->getBasePtr(0, 0), _subSurface->pitch, 0, 0, _subSurface->w,  _subSurface->h);
 }
 
-bool SubtitleRenderer::load(const Common::String &video) {
+bool SubtitleRenderer::load(const Common::Path &video) {
 	// warning(video.c_str());
 
 	_hasSubtitles = false;
 
-	Common::String subfile(video);
+	Common::String subfile(video.baseName());
 	Common::String ext("tss");
 	subfile.replace(subfile.size() - ext.size(), ext.size(), ext);
 
-	Common::SeekableReadStream *file = _vm->resources()->openFile(subfile);
-	if (!file) {
+	Common::ScopedPtr<Common::SeekableReadStream> subsStream(_vm->resources()->openFile(video.getParent().appendComponent(subfile)));
+	if (subsStream == nullptr) {
 		return false;
 	}
 
@@ -81,8 +91,8 @@ bool SubtitleRenderer::load(const Common::String &video) {
 	int lineNo = 0;
 
 	_tw.clear();
-	while (!file->eos() && !file->err()) {
-		line = file->readLine();
+	while (!subsStream->eos() && !subsStream->err()) {
+		line = subsStream->readLine();
 
 		lineNo++;
 		if (line.empty() || line[0] == '#') {

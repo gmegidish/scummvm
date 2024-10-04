@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -194,7 +193,7 @@ extern const RoomText feather6Texts[] = {
 
 void Room::feather6Tick1() {
 	playVoc("FEA6LOOP");
-	playMidiMusicTracks(27);
+	playMidiMusicTracks(MIDITRACK_27);
 	loadActorAnim(OBJECT_CRYSTALS, "s5r6cx", 0x8a, 0x91);
 	loadActorAnim(OBJECT_STALACTITES, "s5r6ts", 0x90, 0x25);
 }
@@ -228,7 +227,7 @@ void Room::feather6ReachedPositionToThrowRock() {
 void Room::feather6DoneThrowingRock() {
 	loadActorAnim2(OBJECT_STALACTITES, "s5r6tf");
 	loadActorAnimC(OBJECT_KIRK, "s5r6kd", -1, -1, &Room::feather6KirkDiedFromStalactites);
-	playMidiMusicTracks(1);
+	playMidiMusicTracks(MIDITRACK_1);
 }
 
 void Room::feather6KirkDiedFromStalactites() {
@@ -267,7 +266,7 @@ void Room::feather6HitCrystalsWithRockFirstTime() {
 void Room::feather6HitCrystalsWithRockSecondTime() {
 	loadActorAnimC(OBJECT_KIRK, "s5r6kd", -1, -1, &Room::feather6KirkDiedFromStalactites);
 	loadActorAnim2(OBJECT_STALACTITES, "s5r6tf");
-	playMidiMusicTracks(0);
+	playMidiMusicTracks(MIDITRACK_0);
 }
 
 void Room::feather6UseRockOnStalagmites() {

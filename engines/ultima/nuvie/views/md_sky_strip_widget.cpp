@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,10 +30,8 @@
 namespace Ultima {
 namespace Nuvie {
 
-MDSkyStripWidget::MDSkyStripWidget(Configuration *cfg, GameClock *c, Player *p): GUI_Widget(NULL, 0, 0, 0, 0) {
-	config = cfg;
-	clock = c;
-	player = p;
+MDSkyStripWidget::MDSkyStripWidget(const Configuration *cfg, GameClock *c, Player *p)
+	: GUI_Widget(nullptr, 0, 0, 0, 0), config(cfg), player(p), _clock(c) {
 }
 
 MDSkyStripWidget::~MDSkyStripWidget() {
@@ -43,9 +40,9 @@ MDSkyStripWidget::~MDSkyStripWidget() {
 
 
 void MDSkyStripWidget::init(sint16 x, sint16 y) {
-	Std::string filename;
+	Common::Path filename;
 
-	GUI_Widget::Init(NULL, x, y, 112, 11);
+	GUI_Widget::Init(nullptr, x, y, 112, 11);
 	config_get_path(config, "mdscreen.lzc", filename);
 
 	strip1.load_from_lzc(filename, 2, 2);
@@ -73,8 +70,8 @@ void MDSkyStripWidget::Display(bool full_redraw) {
 void MDSkyStripWidget::display_surface() {
 	uint16 w, h;
 	strip1.get_size(&w, &h);
-	uint8 hour = clock->get_hour();
-	uint8 minute = clock->get_minute();
+	uint8 hour = _clock->get_hour();
+	uint8 minute = _clock->get_minute();
 	unsigned char *shp_data = hour < 12 ? strip1.get_data() : strip2.get_data();
 
 	if (hour >= 12) {

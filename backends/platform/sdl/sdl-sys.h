@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,7 @@
 #define BACKEND_SDL_SYS_H
 
 // The purpose of this header is to include the SDL headers in a uniform
-// fashion, even on the Symbian port.
+// fashion.
 // Moreover, it contains a workaround for the fact that SDL_rwops.h uses
 // a FILE pointer in one place, which conflicts with common/forbidden.h.
 // The SDL 1.3 headers also include strings.h
@@ -58,6 +57,31 @@
 #if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && !defined(FORBIDDEN_SYMBOL_EXCEPTION_system)
 #undef system
 #define system FAKE_system
+#endif
+
+#if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && !defined(FORBIDDEN_SYMBOL_EXCEPTION_mkdir)
+#undef mkdir
+#define mkdir FAKE_mkdir
+#endif
+
+#if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && !defined(FORBIDDEN_SYMBOL_EXCEPTION_strcpy)
+#undef strcpy
+#define strcpy FAKE_strcpy
+#endif
+
+#if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && !defined(FORBIDDEN_SYMBOL_EXCEPTION_strcat)
+#undef strcat
+#define strcat FAKE_strcat
+#endif
+
+#if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && !defined(FORBIDDEN_SYMBOL_EXCEPTION_vsprintf)
+#undef vsprintf
+#define vsprintf FAKE_vsprintf
+#endif
+
+#if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && !defined(FORBIDDEN_SYMBOL_EXCEPTION_sprintf)
+#undef sprintf
+#define sprintf FAKE_sprintf
 #endif
 
 // Fix compilation with MacPorts SDL 2
@@ -149,9 +173,8 @@
 // In SDL 2.0, intrin.h is now included in SDL_cpuinfo.h, which includes
 // setjmp.h. SDL_cpuinfo.h is included from SDL.h and SDL_syswm.h.
 // Thus, we remove the exceptions for setjmp and longjmp before these two
-// includes. Unfortunately, we can't use SDL_VERSION_ATLEAST here, as SDL.h
-// hasn't been included yet at this point.
-#if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && defined(_MSC_VER)
+// includes.
+#if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && defined(_MSC_VER) && defined(USE_SDL2)
 // We unset any fake definitions of setjmp/longjmp here
 
 #ifndef FORBIDDEN_SYMBOL_EXCEPTION_setjmp
@@ -164,11 +187,7 @@
 
 #endif
 
-#if defined(__SYMBIAN32__)
-#include <esdl\SDL.h>
-#else
 #include <SDL.h>
-#endif
 
 // Ignore warnings from system headers pulled by SDL
 #pragma warning(push)
@@ -219,6 +238,10 @@
 #undef False
 #endif
 
+#ifdef Complex
+#undef Complex
+#endif
+
 // Finally forbid FILE again (if it was forbidden to start with)
 #if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && !defined(FORBIDDEN_SYMBOL_EXCEPTION_FILE)
 #undef FILE
@@ -248,6 +271,31 @@
 #if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && !defined(FORBIDDEN_SYMBOL_EXCEPTION_system)
 #undef system
 #define system(a) FORBIDDEN_look_at_common_forbidden_h_for_more_info SYMBOL !%*
+#endif
+
+#if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && !defined(FORBIDDEN_SYMBOL_EXCEPTION_mkdir)
+#undef mkdir
+#define mkdir(a,b) FORBIDDEN_look_at_common_forbidden_h_for_more_info SYMBOL !%*
+#endif
+
+#if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && !defined(FORBIDDEN_SYMBOL_EXCEPTION_strcpy)
+#undef strcpy
+#define strcpy(a,b)    FORBIDDEN_look_at_common_forbidden_h_for_more_info SYMBOL !%*
+#endif
+
+#if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && !defined(FORBIDDEN_SYMBOL_EXCEPTION_strcat)
+#undef strcat
+#define strcat(a,b)    FORBIDDEN_look_at_common_forbidden_h_for_more_info SYMBOL !%*
+#endif
+
+#if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && !defined(FORBIDDEN_SYMBOL_EXCEPTION_vsprintf)
+#undef vsprintf
+#define vsprintf(a,b,c)    FORBIDDEN_look_at_common_forbidden_h_for_more_info SYMBOL !%*
+#endif
+
+#if !defined(FORBIDDEN_SYMBOL_ALLOW_ALL) && !defined(FORBIDDEN_SYMBOL_EXCEPTION_sprintf)
+#undef sprintf
+#define sprintf(a,b,...)    FORBIDDEN_look_at_common_forbidden_h_for_more_info SYMBOL !%*
 #endif
 
 // re-forbid all those time.h symbols again (if they were forbidden)

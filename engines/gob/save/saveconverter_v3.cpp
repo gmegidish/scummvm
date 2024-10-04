@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -57,7 +62,7 @@ int SaveConverter_v3::isOldSave(Common::InSaveFile **save) const {
 	// Not an old save, clean up
 	if (save) {
 		delete *save;
-		*save = 0;
+		*save = nullptr;
 	}
 
 	return 0;
@@ -66,14 +71,14 @@ int SaveConverter_v3::isOldSave(Common::InSaveFile **save) const {
 char *SaveConverter_v3::getDescription(Common::SeekableReadStream &save) const {
 	// The description starts at 1000
 	if (!save.seek(1000))
-		return 0;
+		return nullptr;
 
 	char *desc = new char[kSlotNameLength];
 
 	// Read the description
 	if (save.read(desc, kSlotNameLength) != kSlotNameLength) {
 		delete[] desc;
-		return 0;
+		return nullptr;
 	}
 
 	return desc;
@@ -144,17 +149,17 @@ bool SaveConverter_v3::load() {
 
 	SavePartInfo *info = readInfo(*save, kSlotNameLength, false);
 	if (!info)
-		return loadFail(0, 0, 0, save);
+		return loadFail(nullptr, nullptr, nullptr, save);
 
 	SavePartVars *vars = readVars(*save, varSize, true);
 	if (!vars)
-		return loadFail(info, 0, 0, save);
+		return loadFail(info, nullptr, nullptr, save);
 
 	if (screenShot) {
 		SavePartSprite *sprite = readSprite(*save, screenShotWidth, screenShotHeight, true);
 
 		if (!sprite)
-			return loadFail(info, vars, 0, save);
+			return loadFail(info, vars, nullptr, save);
 
 		if (!writer.writePart(2, sprite))
 			return loadFail(info, vars, sprite, save);
@@ -167,9 +172,9 @@ bool SaveConverter_v3::load() {
 
 	// Write all parts
 	if (!writer.writePart(0, info))
-		return loadFail(info, vars, 0, 0);
+		return loadFail(info, vars, nullptr, nullptr);
 	if (!writer.writePart(1, vars))
-		return loadFail(info, vars, 0, 0);
+		return loadFail(info, vars, nullptr, nullptr);
 
 	// We don't need those anymore
 	delete info;
@@ -177,7 +182,7 @@ bool SaveConverter_v3::load() {
 
 	// Create the final read stream
 	if (!createStream(writer))
-		return loadFail(0, 0, 0, 0);
+		return loadFail(nullptr, nullptr, nullptr, nullptr);
 
 	return true;
 }

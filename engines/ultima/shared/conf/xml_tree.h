@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef SHARED_CONF_XML_TREE_H
 #define SHARED_CONF_XML_TREE_H
 
+#include "common/array.h"
+#include "common/path.h"
 #include "common/str.h"
 #include "common/stream.h"
-#include "ultima/shared/std/containers.h"
+#include "common/util.h"
 
 namespace Ultima {
 namespace Shared {
@@ -36,16 +37,16 @@ class XMLTree {
 	friend class XMLNode;
 private:
 	XMLNode *_tree;
-	Common::String _filename;
+	Common::Path _filename;
 	bool _isFile;
 	bool _readOnly;
 public:
 	XMLTree();
-	XMLTree(const Common::String &fname);
+	XMLTree(const Common::Path &fname);
 	XMLTree(Common::SeekableReadStream *stream);
 	~XMLTree();
 
-	bool readConfigFile(const Common::String &fname);
+	bool readConfigFile(const Common::Path &fname);
 	bool readConfigStream(Common::SeekableReadStream *stream);
 	bool readConfigString(const Common::String &s);
 
@@ -82,7 +83,7 @@ public:
 
 	Common::Array<Common::String> listKeys(const Common::String &key, bool longformat = false);
 
-	typedef Std::pair<Common::String, Common::String> KeyType;
+	typedef Common::Pair<Common::String, Common::String> KeyType;
 	typedef Common::Array<KeyType> KeyTypeList;
 
 	void getSubkeys(KeyTypeList &ktl, const Common::String &basekey);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -149,6 +148,70 @@ bool GuestAdditions::shouldSyncAudioToScummVM() const {
 	}
 
 	return false;
+}
+
+static Common::String getUserObject(SciGameId gameId) {
+	switch (gameId) {
+	case GID_TORIN:
+	case GID_LSL7:
+		return "oUser";
+	case GID_PHANTASMAGORIA2:
+		return "p2User";
+	case GID_LSL3:
+	case GID_SQ3:
+		// German Amiga versions
+		if (getSciVersion() == SCI_VERSION_1_MIDDLE)
+			return "PUser";
+		// fallthrough
+	default:
+		return "User";
+	}
+}
+
+bool GuestAdditions::userHasControl() {
+	const SciGameId gameId = g_sci->getGameId();
+	reg_t user = _segMan->findObjectByName(getUserObject(gameId));
+	if (user.isNull()) {
+		// If the user object can't be found by name then try the object in
+		// global 80, as that's the usual location.
+		// Several Mac games like QFG1VGA don't contain object names, and some
+		// third party localizations like SQ1VGA Russian altered object names.
+		user = _state->variables[VAR_GLOBAL][kGlobalVarUser];
+	}
+	const Object *userObject = _segMan->getObject(user);
+	if (userObject == nullptr) {
+		warning("User object not found");
+		return false;
+	}
+
+	// Selectors input/canInput and controls should be available at all times, except
+	// in games that don't have selector vocab 997 (e.g. some game demos and LB2 floppy)
+	const bool hasInputSelector    = userObject->locateVarSelector(_segMan, SELECTOR(input)) >= 0;
+	const bool hasCanInputSelector = userObject->locateVarSelector(_segMan, SELECTOR(canInput)) >= 0;
+	const bool hasControlsSelector = userObject->locateVarSelector(_segMan, SELECTOR(controls)) >= 0;
+
+	if (hasInputSelector || hasCanInputSelector) {
+		const Selector inputSelector = hasInputSelector ? SELECTOR(input) : SELECTOR(canInput);
+		const int16 input = readSelectorValue(_segMan, user, inputSelector);
+
+		if (hasControlsSelector) {
+			const int16 controls = readSelectorValue(_segMan, user, SELECTOR(controls));
+			if (gameId != GID_GK2) {
+				return input && controls;
+			} else {
+				// The GK2 scripts only check the input selector in their HandsOff code in script 0
+				return input;
+			}
+		} else if (gameId == GID_PHANTASMAGORIA2) {
+			// Phantasmagoria 2's canInput function is totally different and checks bit 1 of the state
+			// variable instead
+			return readSelectorValue(_segMan, user, SELECTOR(state)) & 1;
+		} else {
+			return false;
+		}
+	} else {
+		return false;
+	}
 }
 
 #pragma mark -
@@ -314,27 +377,45 @@ void GuestAdditions::patchGameSaveRestore() const {
 static const byte kSaveRestorePatch[] = {
 	0x39, 0x03,        // pushi 03
 	0x76,              // push0
-	0x38, 0xff, 0xff,  // pushi -1
+	0x39, 0xff,        // pushi -1
 	0x76,              // push0
 	0x43, 0xff, 0x06,  // callk kRestoreGame/kSaveGame (will get changed afterwards)
 	0x48               // ret
 };
 
-static void patchKSaveRestore(SegManager *segMan, reg_t methodAddress, byte id) {
-	Script *script = segMan->getScript(methodAddress.getSegment());
-	byte *patchPtr = const_cast<byte *>(script->getBuf(methodAddress.getOffset()));
-	memcpy(patchPtr, kSaveRestorePatch, sizeof(kSaveRestorePatch));
-	patchPtr[8] = id;
+static void patchKSaveRestore(SegManager *segMan, Kernel *kernel, const Object *object, const char *selectorName, byte kernelFunctionId) {
+	uint16 methodCount = object->getMethodCount();
+	for (uint16 methodNr = 0; methodNr < methodCount; methodNr++) {
+		uint16 selectorId = object->getFuncSelector(methodNr);
+		const Common::String methodName = kernel->getSelectorName(selectorId);
+		if (methodName == selectorName) {
+			reg_t methodAddress = object->getFunction(methodNr);
+			Script *script = segMan->getScript(methodAddress.getSegment());
+			byte *patchPtr = const_cast<byte *>(script->getBuf(methodAddress.getOffset()));
+			memcpy(patchPtr, kSaveRestorePatch, sizeof(kSaveRestorePatch));
+			patchPtr[7] = kernelFunctionId;
+		}
+	}
 }
 
 void GuestAdditions::patchGameSaveRestoreSCI16() const {
+	// Determine which game objects and which methods to patch, if any, based on the game/version.
+	// The game object in script 0 is a subclass of the Game class that's usually in script 994.
+	// Normally, the Game class contains the save and restore methods that launch the UI scripts
+	// and then call kSaveGame or kRestoreGame. We patch these large methods to only call
+	// kSaveGame or kRestoreGame with a special parameter sequence that causes our implementations
+	// to launch the ScummVM save/load UI and apply the results.
+	// Some game objects override the save/restore methods to add a game-specific code before
+	// or after calling the superclass method. We want to keep this behavior, so we still only
+	// patch the superclass. Other games only use their game object's methods and never call the
+	// superclass, so for those we must patch the game object in script 0.
 	const Object *gameObject = _segMan->getObject(g_sci->getGameObject());
 	const Object *gameSuperObject = _segMan->getObject(gameObject->getSuperClassSelector());
 	if (!gameSuperObject)
 		gameSuperObject = gameObject;	// happens in KQ5CD, when loading saved games before r54510
-	byte kernelIdRestore = 0;
-	byte kernelIdSave = 0;
-
+	
+	const Object *patchObjectSave = gameSuperObject;    // default behavior: patch Game class
+	const Object *patchObjectRestore = gameSuperObject; // default behavior: patch Game class
 	switch (g_sci->getGameId()) {
 	case GID_HOYLE1: // gets confused, although the game doesn't support saving/restoring at all
 	case GID_HOYLE2: // gets confused, see hoyle1
@@ -342,52 +423,38 @@ void GuestAdditions::patchGameSaveRestoreSCI16() const {
 	case GID_MOTHERGOOSE: // mother goose EGA saves/restores directly and has no save/restore dialogs
 	case GID_MOTHERGOOSE256: // mother goose saves/restores directly and has no save/restore dialogs
 		return;
+	case GID_FAIRYTALES:
+		patchObjectSave = nullptr; // Fairy Tales saves automatically without a dialog
+		break;
+	case GID_KQ5:
+		if (g_sci->getPlatform() == Common::kPlatformFMTowns) {
+			// KQ5 FM-Towns only uses the game object's save and restore methods.
+			patchObjectSave = gameObject;
+			patchObjectRestore = gameObject;
+		}
+		break;
 	default:
 		break;
 	}
 
-	uint16 kernelNamesSize = _kernel->getKernelNamesSize();
+	// Get the kernel function IDs of kSaveGame and kRestoreGame
+	byte kernelIdRestore = 0;
+	byte kernelIdSave = 0;
+	const uint16 kernelNamesSize = _kernel->getKernelNamesSize();
 	for (uint16 kernelNr = 0; kernelNr < kernelNamesSize; kernelNr++) {
 		Common::String kernelName = _kernel->getKernelName(kernelNr);
 		if (kernelName == "RestoreGame")
 			kernelIdRestore = kernelNr;
-		if (kernelName == "SaveGame")
+		else if (kernelName == "SaveGame")
 			kernelIdSave = kernelNr;
-		if (kernelName == "Save")
-			kernelIdSave = kernelIdRestore = kernelNr;
 	}
 
-	// Search for gameobject superclass ::restore
-	uint16 gameSuperObjectMethodCount = gameSuperObject->getMethodCount();
-	for (uint16 methodNr = 0; methodNr < gameSuperObjectMethodCount; methodNr++) {
-		uint16 selectorId = gameSuperObject->getFuncSelector(methodNr);
-		Common::String methodName = _kernel->getSelectorName(selectorId);
-		if (methodName == "restore") {
-				patchKSaveRestore(_segMan, gameSuperObject->getFunction(methodNr), kernelIdRestore);
-		} else if (methodName == "save") {
-			if (g_sci->getGameId() != GID_FAIRYTALES) {	// Fairy Tales saves automatically without a dialog
-					patchKSaveRestore(_segMan, gameSuperObject->getFunction(methodNr), kernelIdSave);
-			}
-		}
+	// Patch the appropriate object methods to call kSaveGame or kRestoreGame
+	if (patchObjectSave != nullptr) {
+		patchKSaveRestore(_segMan, _kernel, patchObjectSave, "save", kernelIdSave);
 	}
-
-	// Patch gameobject ::save for now for SCI0 - SCI1.1
-	// TODO: It seems this was never adjusted to superclass, but adjusting it now may cause
-	// issues with some game. Needs to get checked and then possibly changed.
-	const Object *patchObjectSave = gameObject;
-
-	// Search for gameobject ::save, if there is one patch that one too
-	uint16 patchObjectMethodCount = patchObjectSave->getMethodCount();
-	for (uint16 methodNr = 0; methodNr < patchObjectMethodCount; methodNr++) {
-		uint16 selectorId = patchObjectSave->getFuncSelector(methodNr);
-		Common::String methodName = _kernel->getSelectorName(selectorId);
-		if (methodName == "save") {
-			if (g_sci->getGameId() != GID_FAIRYTALES &&  // Fairy Tales saves automatically without a dialog
-				g_sci->getGameId() != GID_QFG3) { // QFG3 does automatic saving in Glory:save
-					patchKSaveRestore(_segMan, patchObjectSave->getFunction(methodNr), kernelIdSave);
-			}
-			break;
-		}
+	if (patchObjectRestore != nullptr) {
+		patchKSaveRestore(_segMan, _kernel, patchObjectRestore, "restore", kernelIdRestore);
 	}
 }
 
@@ -625,7 +692,7 @@ reg_t GuestAdditions::promptSaveRestoreRama(EngineState *s, int argc, reg_t *arg
 					// actually save into the new save
 					resetCatalogFile = true;
 				}
-			} else if (strncmp(saveGameName.c_str(), saves[saveIndex].name, kMaxSaveNameLength) != 0) {
+			} else if (strcmp(saveGameName.c_str(), saves[saveIndex].name) != 0) {
 				// The game doesn't let the save game name change for the same
 				// slot, but ScummVM's GUI does, so force the new name into the
 				// save file metadata if it has changed so it actually makes it
@@ -767,14 +834,14 @@ bool GuestAdditions::restoreFromLauncher() const {
 			// a handsOff sequence breaks the prompt and crashes the next room.
 			// We enable input by calling p2User:canInput(1).
 			reg_t canInputParams[] = { TRUE_REG };
-			invokeSelector(_state->variables[VAR_GLOBAL][kGlobalVarPhant2User], SELECTOR(canInput), 1, canInputParams);
+			invokeSelector(_state->variables[VAR_GLOBAL][kGlobalVarUser], SELECTOR(canInput), 1, canInputParams);
 
-			writeSelectorValue(_segMan, g_sci->getGameObject(), SELECTOR(num), _state->_delayedRestoreGameId - kSaveIdShift);
+			writeSelectorValue(_segMan, g_sci->getGameObject(), SELECTOR(num), shiftScummVMToSciSaveId(_state->_delayedRestoreGameId));
 			invokeSelector(g_sci->getGameObject(), SELECTOR(reallyRestore));
 		} else if (g_sci->getGameId() == GID_SHIVERS) {
 			// Shivers accepts the save game number as a parameter to
 			// `SHIVERS::restore`
-			reg_t args[] = { make_reg(0, _state->_delayedRestoreGameId - kSaveIdShift) };
+			reg_t args[] = { make_reg(0, shiftScummVMToSciSaveId(_state->_delayedRestoreGameId)) };
 			invokeSelector(g_sci->getGameObject(), SELECTOR(restore), 1, args);
 		} else {
 			int saveId = _state->_delayedRestoreGameId;

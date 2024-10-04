@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,32 +38,27 @@ namespace State {
 class Credits : public State, public Common::Singleton<Credits> {
 public:
 	enum State { kInit, kRun };
-	Credits() : _state(kInit), _background(), _text(_background), _pixelsToScroll(0) {}
+	Credits() : _state(kInit), _background(), _textSurface(1), _currentTextImage(0), _creditsData(nullptr) {}
 
 	// State API
-	virtual void process() override;
-	virtual void onStateExit() override { destroy(); };
+	void process() override;
+	void onStateEnter(const NancyState::NancyState prevState) override;
+	bool onStateExit(const NancyState::NancyState nextState) override;
 
 protected:
 	void init();
 	void run();
 
-	class CreditsText : public RenderObject {
-		friend class Credits;
-	public:
-		CreditsText(RenderObject &redrawFrom) : RenderObject(redrawFrom, 1) {}
-		virtual ~CreditsText() = default;
-	};
+	void drawTextSurface(uint id);
+
+	const CRED *_creditsData;
 
 	State _state;
 	UI::FullScreenImage _background;
-	CreditsText _text;
+	RenderObject _textSurface;
 	Time _nextUpdateTime;
 	Graphics::ManagedSurface _fullTextSurface;
-
-	Time _updateTime; // 0x54
-	uint16 _pixelsToScroll; // 0x56
-	SoundDescription _sound; // 0x58, kMenu?
+	uint _currentTextImage;
 };
 
 #define NancyCreditsState Nancy::State::Credits::instance()

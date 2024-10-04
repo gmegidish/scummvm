@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,7 +44,7 @@
 #include "common/rect.h"
 #include "common/ptr.h"
 #include "common/str.h"
-#include "graphics/surface.h"
+#include "graphics/managed_surface.h"
 #include "sword25/kernel/common.h"
 #include "sword25/kernel/resservice.h"
 #include "sword25/kernel/persistable.h"
@@ -122,7 +121,7 @@ public:
 
 	/**
 	 * Creates a thumbnail with the dimensions of 200x125. This will not include the top and bottom of the screen..
-	 * the interface boards the the image as a 16th of it's original size.
+	 * the interface boards the image as a 16th of it's original size.
 	 * Notes: This method should only be called after a call to EndFrame(), and before the next call to StartFrame().
 	 * The frame buffer must have a resolution of 800x600.
 	 * @param Filename  The filename for the screenshot
@@ -215,8 +214,8 @@ public:
 	 */
 	bool fill(const Common::Rect *fillRectPtr = 0, uint color = BS_RGB(0, 0, 0));
 
-	Graphics::Surface _backSurface;
-	Graphics::Surface *getSurface() { return &_backSurface; }
+	Graphics::ManagedSurface _backSurface;
+	Graphics::ManagedSurface *getSurface() { return &_backSurface; }
 
 	Common::SeekableReadStream *_thumbnail;
 	Common::SeekableReadStream *getThumbnail() { return _thumbnail; }
@@ -232,7 +231,7 @@ public:
 	// -------------------
 	bool persist(OutputPersistenceBlock &writer) override;
 	bool unpersist(InputPersistenceBlock &reader) override;
-
+	bool isRTL();
 	static void ARGBColorToLuaColor(lua_State *L, uint color);
 	static uint luaColorToARGBColor(lua_State *L, int stackIndex);
 
@@ -267,6 +266,8 @@ private:
 
 	Common::ScopedPtr<RenderObjectManager> _renderObjectManagerPtr;
 
+    bool _isRTL;
+
 	struct DebugLine {
 		DebugLine(const Vertex &start, const Vertex &end, uint color) :
 			_start(start),
@@ -278,6 +279,7 @@ private:
 		Vertex _end;
 		uint _color;
 	};
+
 };
 
 } // End of namespace Sword25

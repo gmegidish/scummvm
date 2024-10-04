@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@
 #include "graphics/fonts/ttf.h"
 #include "graphics/fontman.h"
 #include "common/unicode-bidi.h"
-#include "common/unzip.h"
+#include "common/compression/unzip.h"
 
 namespace Wintermute {
 
@@ -65,7 +64,7 @@ BaseFontTT::BaseFontTT(BaseGame *inGame) : BaseFont(inGame) {
 }
 
 //////////////////////////////////////////////////////////////////////////
-BaseFontTT::~BaseFontTT(void) {
+BaseFontTT::~BaseFontTT() {
 	clearCache();
 
 	for (uint32 i = 0; i < _layers.size(); i++) {
@@ -575,7 +574,7 @@ bool BaseFontTT::initFont() {
 		return STATUS_FAILED;
 	}
 #ifdef USE_FREETYPE2
-	Common::String fallbackFilename;
+	const char *fallbackFilename;
 	// Handle Bold atleast for the fallback-case.
 	// TODO: Handle italic. (Needs a test-case)
 	if (_isBold) {
@@ -584,7 +583,7 @@ bool BaseFontTT::initFont() {
 		fallbackFilename = "FreeSans.ttf";
 	}
 
-	Common::SeekableReadStream *file = BaseFileManager::getEngineInstance()->openFile(_fontFile);
+	Common::SeekableReadStream *file = BaseFileManager::getEngineInstance()->openFile(_fontFile, true, false);
 	if (!file) {
 		if (Common::String(_fontFile) != "arial.ttf") {
 			warning("%s has no replacement font yet, using FreeSans for now (if available)", _fontFile);
@@ -594,10 +593,8 @@ bool BaseFontTT::initFont() {
 	}
 
 	if (file) {
-		_deletableFont = Graphics::loadTTFFont(*file, _fontHeight, Graphics::kTTFSizeModeCharacter, 96); // Use the same dpi as WME (96 vs 72).
+		_deletableFont = Graphics::loadTTFFont(file, DisposeAfterUse::YES, _fontHeight, Graphics::kTTFSizeModeCharacter, 96); // Use the same dpi as WME (96 vs 72).
 		_font = _deletableFont;
-		BaseFileManager::getEngineInstance()->closeFile(file);
-		file = nullptr;
 	}
 
 	// Fallback2: Try load the font from the common fonts archive:
@@ -608,8 +605,8 @@ bool BaseFontTT::initFont() {
 
 	// Fallback3: Try to ask FontMan for the FreeSans.ttf ScummModern.zip uses:
 	if (!_font) {
-		// Really not desireable, as we will get a font with dpi-72 then
-		Common::String fontName = Common::String::format("%s-%s@%d", fallbackFilename.c_str(), "ASCII", _fontHeight);
+		// Really not desirable, as we will get a font with dpi-72 then
+		Common::String fontName = Common::String::format("%s-%s@%d", fallbackFilename, "ASCII", _fontHeight);
 		warning("Looking for %s", fontName.c_str());
 		_font = FontMan.getFontByName(fontName);
 	}
@@ -617,7 +614,7 @@ bool BaseFontTT::initFont() {
 	warning("BaseFontTT::InitFont - FreeType2-support not compiled in, TTF-fonts will not be loaded");
 #endif // USE_FREETYPE2
 
-	// Fallback4: Just use the Big GUI-font. (REALLY undesireable)
+	// Fallback4: Just use the Big GUI-font. (REALLY undesirable)
 	if (!_font) {
 		_font = _fallbackFont = FontMan.getFontByUsage(Graphics::FontManager::kBigGUIFont);
 		warning("BaseFontTT::InitFont - Couldn't load font: %s", _fontFile);

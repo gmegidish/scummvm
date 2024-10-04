@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,7 +58,7 @@ int32 opcodeType0() {
 		index = saveOpcodeVar;
 		// fall through
 	case 1: {
-		uint8 *address = 0;
+		uint8 *address = nullptr;
 		int type = getByteFromScript();
 		int ovl = getByteFromScript();
 		short int offset = getShortFromScript();
@@ -150,7 +149,7 @@ int32 opcodeType1()	{
 
 		int var_C = short1;
 
-		uint8 *ptr = 0;
+		uint8 *ptr = nullptr;
 		int type2;
 
 		if (!var_6)
@@ -229,7 +228,7 @@ int32 opcodeType2() {
 		index = saveOpcodeVar;
 		// fall through
 	case 1: {
-		uint8* adresse = NULL;
+		uint8* adresse = nullptr;
 		int type = getByteFromScript();
 		int overlay = getByteFromScript();
 
@@ -464,7 +463,7 @@ int32 opcodeType9() {		// stop script
 
 void setupFuncArray() {
 	for (int i = 0; i < 64; i++)
-		opcodeTypeTable[i] = NULL;
+		opcodeTypeTable[i] = nullptr;
 
 	opcodeTypeTable[1] = opcodeType0;
 	opcodeTypeTable[2] = opcodeType1;
@@ -509,13 +508,13 @@ uint8 *attacheNewScriptToTail(scriptInstanceStruct *scriptHandlePtr, int16 overl
 	else if (scriptType == 30)
 		data3Ptr = scriptFunc1Sub2(overlayNumber, param);
 	else
-		return (NULL);
+		return (nullptr);
 
 	if (!data3Ptr)
-		return (NULL);
+		return (nullptr);
 
 	if (!data3Ptr->dataPtr)
-		return (NULL);
+		return (nullptr);
 
 	var_C = data3Ptr->sysKey;
 	oldTail = scriptHandlePtr;
@@ -526,15 +525,15 @@ uint8 *attacheNewScriptToTail(scriptInstanceStruct *scriptHandlePtr, int16 overl
 	scriptInstanceStruct *tempPtr = (scriptInstanceStruct *)mallocAndZero(sizeof(scriptInstanceStruct));
 
 	if (!tempPtr)
-		return (NULL);
+		return (nullptr);
 
-	tempPtr->data = NULL;
+	tempPtr->data = nullptr;
 
 	if (var_C)
 		tempPtr->data = (uint8 *) mallocAndZero(var_C);
 
 	tempPtr->dataSize = var_C;
-	tempPtr->nextScriptPtr = NULL;
+	tempPtr->nextScriptPtr = nullptr;
 	tempPtr->scriptOffset = 0;
 	tempPtr->scriptNumber = param;
 	tempPtr->overlayNumber = overlayNumber;
@@ -621,7 +620,7 @@ int executeScripts(scriptInstanceStruct *ptr) {
 		}
 	} while (!opcodeTypeTable[(opcodeType & 0xFB) >> 3]());
 
-	currentScriptPtr = NULL;
+	currentScriptPtr = nullptr;
 
 	return (0);
 }

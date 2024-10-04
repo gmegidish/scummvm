@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,11 +20,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "engines/icb/icb.h"
 #include "engines/icb/p4.h"
 #include "engines/icb/common/px_common.h"
 #include "engines/icb/common/px_floor_map.h"
@@ -37,7 +37,7 @@
 #include "engines/icb/global_objects.h"
 
 #include "common/system.h"
-#include "common/math.h"
+#include "math/utils.h"
 
 namespace ICB {
 
@@ -48,21 +48,21 @@ void _prim_route_builder::Reset_barrier_list() {
 	total_points = 0;
 }
 
-void _prim_route_builder::Add_barrier(_route_barrier *new_barrier) {
-	barrier_list[total_points].x = new_barrier->x1();
-	barrier_list[total_points++].z = new_barrier->z1();
-	barrier_list[total_points].x = new_barrier->x2();
-	barrier_list[total_points++].z = new_barrier->z2();
+void _prim_route_builder::Add_barrier(RouteBarrier *new_barrier) {
+	barrier_list[total_points].x = new_barrier->m_x1;
+	barrier_list[total_points++].z = new_barrier->m_z1;
+	barrier_list[total_points].x = new_barrier->m_x2;
+	barrier_list[total_points++].z = new_barrier->m_z2;
 
 	if (!ExtrapolateLine(&barrier_list[total_points - 2], &barrier_list[total_points - 1], &barrier_list[total_points - 2], &barrier_list[total_points - 1], extrap_size))
-		Fatal_error("extrapolate line failed on line %3.2f %3.2f  %3.2f %3.2f", new_barrier->x1(), new_barrier->z1(), new_barrier->x2(), new_barrier->z2());
+		Fatal_error("extrapolate line failed on line %3.2f %3.2f  %3.2f %3.2f", new_barrier->m_x1, new_barrier->m_z1, new_barrier->m_x2, new_barrier->m_z2);
 
 	assert(total_points < MAX_barriers);
 }
 
 void _prim_route_builder::Give_barrier_list(_route_description *route) {
 	// this may seem daft, but now we're giving the barriers back - for NETHACK diagnostics, not the logic
-	// this wont be called in final .exe
+	// this won't be called in final .exe
 
 	if (!total_points) {
 		route->number_of_diag_bars = 0;
@@ -94,7 +94,7 @@ void _prim_route_builder::Give_route(_route_description *route) {
 	if (!final_points)
 		Fatal_error("_prim_route_builder::Give_route no route to give!");
 
-	// do a check for length exceeding MAX_final_route as this isnt really done anyway - it will have already scribbled of course but hey we're hanging on in there
+	// do a check for length exceeding MAX_final_route as this isn't really done anyway - it will have already scribbled of course but hey we're hanging on in there
 
 	if (final_points + 1 >= MAX_final_route)
 		Fatal_error("route too big");
@@ -138,7 +138,7 @@ _route_stat _prim_route_builder::Calc_route(PXreal startx, PXreal startz, PXreal
 
 	// reset the hit tables
 	for (go = 0; go < total_points; go++) { // goes for total number of points excluding target
-#if PRIM_BYTE_ARRAYS
+#if defined(PRIM_BYTE_ARRAYS) && PRIM_BYTE_ARRAYS
 		for (l = 0; l < total_points; l++) {
 			hits[go][l] = 0;
 			gohits[go][l] = 0;
@@ -167,7 +167,7 @@ _route_stat _prim_route_builder::Calc_route(PXreal startx, PXreal startz, PXreal
 
 		//		test against all our lines
 		for (l = 0; l < total_points - 2; l += 2) {
-			//			dont test point J against the line it is derived from
+			//			don't test point J against the line it is derived from
 			if (l != (j & 0xfffffffe)) {
 				if (Get_intersect(/*firing line from*/ barrier_list[j].x, barrier_list[j].z, /*firing line to*/ barrier_list[to].x, barrier_list[to].z,
 				                  /*barrier*/ barrier_list[l].x, barrier_list[l].z, barrier_list[l + 1].x, barrier_list[l + 1].z)) {
@@ -191,7 +191,7 @@ _route_stat _prim_route_builder::Calc_route(PXreal startx, PXreal startz, PXreal
 
 				return (__PRIM_ROUTE_OK);
 			}
-#if PRIM_BYTE_ARRAYS
+#if defined(PRIM_BYTE_ARRAYS) && PRIM_BYTE_ARRAYS
 			hits[to][j] = 1;
 			gohits[0][j] = 1; // what hit in go 0
 #endif
@@ -214,7 +214,7 @@ _route_stat _prim_route_builder::Calc_route(PXreal startx, PXreal startz, PXreal
 			jremainder = lastp & 0x7;
 			flag = gohitsBits[go - 1][jplace] & (1 << jremainder);
 
-#if PRIM_BYTE_ARRAYS
+#if defined(PRIM_BYTE_ARRAYS) && PRIM_BYTE_ARRAYS
 			if ((flag != 0) != (gohits[go - 1][lastp] != 0)) {
 				Fatal_error("bits i:%d j:%d p:%d r:%d flag:%d gohits:%d", go - 1, lastp, jplace, jremainder, flag, gohits[go - 1][lastp]);
 			}
@@ -226,7 +226,7 @@ _route_stat _prim_route_builder::Calc_route(PXreal startx, PXreal startz, PXreal
 						// test point thisp to point lastp
 						// test against all our lines
 						for (l = 0; l < total_points - 2; l += 2) {
-							// dont test point J against the line it is derived from
+							// don't test point J against the line it is derived from
 							if ((l != (thisp & 0xfffffffe)) && (l != (lastp & 0xfffffffe))) {
 								if (Get_intersect(/*firing line*/ barrier_list[thisp].x, barrier_list[thisp].z, barrier_list[lastp].x,
 								                  barrier_list[lastp].z,
@@ -239,7 +239,7 @@ _route_stat _prim_route_builder::Calc_route(PXreal startx, PXreal startz, PXreal
 						// if it gets there then mark in
 						if (l == total_points - 2) {
 
-#if PRIM_BYTE_ARRAYS
+#if defined(PRIM_BYTE_ARRAYS) && PRIM_BYTE_ARRAYS
 							hits[lastp][thisp] = 1; // hits[point-hit-last-go] [point-that's-just-connected-this-go]
 							gohits[go][thisp] = 1; // this point hit this go
 #endif
@@ -317,7 +317,7 @@ void _prim_route_builder::Find_connects(uint32 point, PXreal cur_len, uint32 lev
 		jplace = point >> 3;
 		jremainder = point & 0x7;
 		flag = hitsBits[j][jplace] & (1 << jremainder);
-#if PRIM_BYTE_ARRAYS
+#if defined(PRIM_BYTE_ARRAYS) && PRIM_BYTE_ARRAYS
 		if ((flag != 0) != (hits[j][point] != 0)) {
 			Fatal_error("bits i:%d j:%d p:%d r:%d flag:%d hits:%d", j, point, jplace, jremainder, flag, hits[j][point]);
 		}
@@ -493,7 +493,11 @@ int32 _prim_route_builder::Get_intersect(PXreal x0, PXreal y0, PXreal x1, PXreal
 }
 
 bool8 _prim_route_builder::LineIntersectsRect(DXrect oRect, int32 nX1, int32 nY1, int32 nX2, int32 nY2) const {
-	return (g_oRemora->CohenSutherland(oRect, nX1, nY1, nX2, nY2, FALSE8));
+	if (g_icb->getGameType() == GType_ICB) {
+		return (g_oRemora->CohenSutherland(oRect, nX1, nY1, nX2, nY2, FALSE8));
+	} else {
+		return (/*g_oMap*/g_oRemora->CohenSutherland(oRect, nX1, nY1, nX2, nY2, FALSE8));
+	}
 }
 
 } // End of namespace ICB

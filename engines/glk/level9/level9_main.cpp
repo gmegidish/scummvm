@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -328,7 +327,7 @@ void printstring(const char *buf) {
 
 void printdecimald0(int d0) {
 	char temp[12];
-	sprintf(temp, "%d", d0);
+	Common::sprintf_s(temp, "%d", d0);
 	printstring(temp);
 }
 
@@ -641,7 +640,7 @@ void FreeMemory() {
 	}
 	if (bitmap) {
 		free(bitmap);
-		bitmap = NULL;
+		bitmap = nullptr;
 	}
 	if (scriptfile) {
 		delete scriptfile;
@@ -1196,7 +1195,8 @@ void ramsave(int i) {
 	printf("driver - ramsave %d", i);
 #endif
 
-	memmove(ramsavearea + i, workspace.vartable, sizeof(SaveStruct));
+	memmove(ramsavearea[i].vartable, workspace.vartable, sizeof(workspace.vartable));
+	memmove(ramsavearea[i].listarea, workspace.listarea, sizeof(workspace.listarea));
 }
 
 void ramload(int i) {
@@ -1204,7 +1204,8 @@ void ramload(int i) {
 	printf("driver - ramload %d", i);
 #endif
 
-	memmove(workspace.vartable, ramsavearea + i, sizeof(SaveStruct));
+	memmove(workspace.vartable, ramsavearea[i].vartable, sizeof(workspace.vartable));
+	memmove(workspace.listarea, ramsavearea[i].listarea, sizeof(workspace.listarea));
 }
 
 void calldriver() {
@@ -1226,7 +1227,7 @@ void calldriver() {
 		*list9startptr = *a6;
 	} else if (d0 == 0x0b) {
 		char NewName[MAX_PATH];
-		strcpy(NewName, LastGame);
+		Common::strcpy_s(NewName, LastGame);
 		if (*a6 == 0) {
 			printstring("\rSearching for next sub-game file.\r");
 			if (!os_get_game_file(NewName, MAX_PATH)) {
@@ -1552,7 +1553,7 @@ L9BOOL GetWordV3(char *buff, int Word) {
 			Word++; /* force unpack again */
 		}
 	}
-	strcpy(buff, threechars);
+	Common::strcpy_s(buff, IBUFFSIZE, threechars);
 	for (i = 0; i < (int)strlen(buff); i++) buff[i] &= 0x7f;
 	return TRUE;
 }
@@ -2078,20 +2079,20 @@ int scaley(int y) {
 void detect_gfx_mode() {
 	if (g_vm->_detection._gameType == L9_V3) {
 		/* These V3 games use graphics logic similar to the V2 games */
-		if (strstr(FirstLine, "price of magik") != 0)
+		if (strstr(FirstLine, "price of magik") != nullptr)
 			gfx_mode = GFX_V3A;
-		else if (strstr(FirstLine, "the archers") != 0)
+		else if (strstr(FirstLine, "the archers") != nullptr)
 			gfx_mode = GFX_V3A;
-		else if (strstr(FirstLine, "secret diary of adrian mole") != 0)
+		else if (strstr(FirstLine, "secret diary of adrian mole") != nullptr)
 			gfx_mode = GFX_V3A;
-		else if ((strstr(FirstLine, "worm in paradise") != 0)
-		         && (strstr(FirstLine, "silicon dreams") == 0))
+		else if ((strstr(FirstLine, "worm in paradise") != nullptr)
+		         && (strstr(FirstLine, "silicon dreams") == nullptr))
 			gfx_mode = GFX_V3A;
-		else if (strstr(FirstLine, "growing pains of adrian mole") != 0)
+		else if (strstr(FirstLine, "growing pains of adrian mole") != nullptr)
 			gfx_mode = GFX_V3B;
-		else if (strstr(FirstLine, "jewels of darkness") != 0 && picturesize < 11000)
+		else if (strstr(FirstLine, "jewels of darkness") != nullptr && picturesize < 11000)
 			gfx_mode = GFX_V3B;
-		else if (strstr(FirstLine, "silicon dreams") != 0) {
+		else if (strstr(FirstLine, "silicon dreams") != nullptr) {
 			if (picturesize > 11000
 			        || (startdata[0] == 0x14 && startdata[1] == 0x7d)  /* Return to Eden /SD (PC) */
 			        || (startdata[0] == 0xd7 && startdata[1] == 0x7c)) /* Worm in Paradise /SD (PC) */
@@ -2990,7 +2991,7 @@ L9BOOL LoadGame2(const char *filename, char *picname) {
 		randomseed = constseed;
 	else
 		randomseed = (L9UINT16)g_system->getMillis();
-	strcpy(LastGame, filename);
+	Common::strcpy_s(LastGame, filename);
 	return Running = TRUE;
 }
 

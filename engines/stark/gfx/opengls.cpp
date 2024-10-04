@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,15 +25,15 @@
 
 #include "math/matrix4.h"
 
-#if defined(USE_GLES2) || defined(USE_OPENGL_SHADERS)
+#if defined(USE_OPENGL_SHADERS)
 
 #include "engines/stark/gfx/openglsactor.h"
+#include "engines/stark/gfx/openglbitmap.h"
 #include "engines/stark/gfx/openglsprop.h"
 #include "engines/stark/gfx/openglssurface.h"
 #include "engines/stark/gfx/openglsfade.h"
 #include "engines/stark/gfx/opengltexture.h"
 
-#include "graphics/pixelbuffer.h"
 #include "graphics/surface.h"
 #include "graphics/opengl/shader.h"
 
@@ -59,6 +58,7 @@ static const GLfloat fadeVertices[] = {
 
 OpenGLSDriver::OpenGLSDriver() :
 	_surfaceShader(nullptr),
+	_surfaceFillShader(nullptr),
 	_actorShader(nullptr),
 	_fadeShader(nullptr),
 	_shadowShader(nullptr),
@@ -67,8 +67,9 @@ OpenGLSDriver::OpenGLSDriver() :
 }
 
 OpenGLSDriver::~OpenGLSDriver() {
-	OpenGL::ShaderGL::freeBuffer(_surfaceVBO);
-	OpenGL::ShaderGL::freeBuffer(_fadeVBO);
+	OpenGL::Shader::freeBuffer(_surfaceVBO);
+	OpenGL::Shader::freeBuffer(_fadeVBO);
+	delete _surfaceFillShader;
 	delete _surfaceShader;
 	delete _actorShader;
 	delete _fadeShader;
@@ -79,20 +80,24 @@ void OpenGLSDriver::init() {
 	computeScreenViewport();
 
 	static const char* attributes[] = { "position", "texcoord", nullptr };
-	_surfaceShader = OpenGL::ShaderGL::fromFiles("stark_surface", attributes);
-	_surfaceVBO = OpenGL::ShaderGL::createBuffer(GL_ARRAY_BUFFER, sizeof(surfaceVertices), surfaceVertices);
+	_surfaceShader = OpenGL::Shader::fromFiles("stark_surface", attributes);
+	_surfaceVBO = OpenGL::Shader::createBuffer(GL_ARRAY_BUFFER, sizeof(surfaceVertices), surfaceVertices);
 	_surfaceShader->enableVertexAttribute("position", _surfaceVBO, 2, GL_FLOAT, GL_TRUE, 2 * sizeof(float), 0);
 	_surfaceShader->enableVertexAttribute("texcoord", _surfaceVBO, 2, GL_FLOAT, GL_TRUE, 2 * sizeof(float), 0);
 
+	static const char* fillAttributes[] = { "position", nullptr };
+	_surfaceFillShader = OpenGL::Shader::fromFiles("stark_surface_fill", fillAttributes);
+	_surfaceFillShader->enableVertexAttribute("position", _surfaceVBO, 2, GL_FLOAT, GL_TRUE, 2 * sizeof(float), 0);
+
 	static const char* actorAttributes[] = { "position1", "position2", "bone1", "bone2", "boneWeight", "normal", "texcoord", nullptr };
-	_actorShader = OpenGL::ShaderGL::fromFiles("stark_actor", actorAttributes);
+	_actorShader = OpenGL::Shader::fromFiles("stark_actor", actorAttributes);
 
 	static const char* shadowAttributes[] = { "position1", "position2", "bone1", "bone2", "boneWeight", nullptr };
-	_shadowShader = OpenGL::ShaderGL::fromFiles("stark_shadow", shadowAttributes);
+	_shadowShader = OpenGL::Shader::fromFiles("stark_shadow", shadowAttributes);
 
 	static const char* fadeAttributes[] = { "position", nullptr };
-	_fadeShader = OpenGL::ShaderGL::fromFiles("stark_fade", fadeAttributes);
-	_fadeVBO = OpenGL::ShaderGL::createBuffer(GL_ARRAY_BUFFER, sizeof(fadeVertices), fadeVertices);
+	_fadeShader = OpenGL::Shader::fromFiles("stark_fade", fadeAttributes);
+	_fadeVBO = OpenGL::Shader::createBuffer(GL_ARRAY_BUFFER, sizeof(fadeVertices), fadeVertices);
 	_fadeShader->enableVertexAttribute("position", _fadeVBO, 2, GL_FLOAT, GL_TRUE, 2 * sizeof(float), 0);
 }
 
@@ -132,18 +137,18 @@ void OpenGLSDriver::flipBuffer() {
 	g_system->updateScreen();
 }
 
-Texture *OpenGLSDriver::createTexture(const Graphics::Surface *surface, const byte *palette) {
-	OpenGlTexture *texture = new OpenGlTexture();
-
-	if (surface) {
-		texture->update(surface, palette);
-	}
-
-	return texture;
+Texture *OpenGLSDriver::createTexture() {
+	return new OpenGlTexture();
 }
 
-Texture *OpenGLSDriver::createBitmap(const Graphics::Surface *surface, const byte *palette) {
-	return createTexture(surface, palette);
+Bitmap *OpenGLSDriver::createBitmap(const Graphics::Surface *surface, const byte *palette) {
+	OpenGlBitmap *bitmap = new OpenGlBitmap();
+
+	if (surface) {
+		bitmap->update(surface, palette);
+	}
+
+	return bitmap;
 }
 
 VisualActor *OpenGLSDriver::createActorRenderer() {
@@ -207,19 +212,23 @@ Common::Rect OpenGLSDriver::getUnscaledViewport() const {
 	return _unscaledViewport;
 }
 
-OpenGL::ShaderGL *OpenGLSDriver::createActorShaderInstance() {
+OpenGL::Shader *OpenGLSDriver::createActorShaderInstance() {
 	return _actorShader->clone();
 }
 
-OpenGL::ShaderGL *OpenGLSDriver::createSurfaceShaderInstance() {
+OpenGL::Shader *OpenGLSDriver::createSurfaceShaderInstance() {
 	return _surfaceShader->clone();
 }
 
-OpenGL::ShaderGL *OpenGLSDriver::createFadeShaderInstance() {
+OpenGL::Shader *OpenGLSDriver::createSurfaceFillShaderInstance() {
+	return _surfaceFillShader->clone();
+}
+
+OpenGL::Shader *OpenGLSDriver::createFadeShaderInstance() {
 	return _fadeShader->clone();
 }
 
-OpenGL::ShaderGL *OpenGLSDriver::createShadowShaderInstance() {
+OpenGL::Shader *OpenGLSDriver::createShadowShaderInstance() {
 	return _shadowShader->clone();
 }
 
@@ -238,4 +247,4 @@ Graphics::Surface *OpenGLSDriver::getViewportScreenshot() const {
 } // End of namespace Gfx
 } // End of namespace Stark
 
-#endif // defined(USE_GLES2) || defined(USE_OPENGL_SHADERS)
+#endif // defined(USE_OPENGL_SHADERS)

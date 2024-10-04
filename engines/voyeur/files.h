@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -103,7 +102,7 @@ private:
 public:
 	Common::File _file;
 
-	BoltFile(const Common::String &filename, BoltFilesState &state);
+	BoltFile(const char *filename, BoltFilesState &state);
 	virtual ~BoltFile();
 
 	BoltGroup *getBoltGroup(uint16 id);
@@ -210,8 +209,8 @@ public:
 	FilesManager(VoyeurEngine *vm);
 	~FilesManager();
 
-	bool openBoltLib(const Common::String &filename, BoltFile *&boltFile);
-	byte *fload(const Common::String &filename, int *size);
+	bool openBoltLib(const char *filename, BoltFile *&boltFile);
+	byte *fload(const char *filename, int *size);
 };
 
 class RectEntry: public Common::Rect {
@@ -248,7 +247,7 @@ enum DisplayFlag {
 	DISPFLAG_NONE = 0};
 
 class DisplayResource {
-private:
+protected:
 	VoyeurEngine *_vm;
 public:
 	uint32 _flags;
@@ -350,7 +349,7 @@ public:
 	virtual ~ViewPortResource();
 
 	void setupViewPort();
-	void setupViewPort(PictureResource *pic, Common::Rect *clippingRect = NULL);
+	void setupViewPort(PictureResource *pic, Common::Rect *clippingRect = nullptr);
 	void addSaveRect(int pageIndex, const Common::Rect &r);
 	void fillPic(byte onOff);
 	void drawIfaceTime();

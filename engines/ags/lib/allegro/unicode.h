@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,7 +57,7 @@ extern int (*ugetc)(const char *s);
 /* ugetxc: */
 extern int (*ugetx)(char **s);
 /* ugetxc: */
-extern int (*ugetxc)(const char **s);
+extern int (*ugetxc)(const char * const *s);
 /* usetc: */
 extern int (*usetc)(char *s, int c);
 /* uwidth: */
@@ -72,6 +71,9 @@ extern int (*uisok)(int c);
  *  Selects a new text encoding format.
  */
 extern void set_uformat(int type);
+
+enum { LC_CTYPE };
+extern const char *setlocale(int type, const char *language);
 
 /* get_uformat:
  *  Returns the current text encoding format.
@@ -111,6 +113,12 @@ extern int ustrnicmp(const char *s1, const char *s2, int n);
  *  last character).
  */
 extern int uoffset(const char *s, int index);
+
+/* ugetat:
+ *  Returns the character from the specified index within the string.
+ */
+extern int ugetat(const char *s, int idx);
+
 /* ustrlwr:
  *  Unicode-aware version of the ANSI strlwr() function.
  */
@@ -134,6 +142,9 @@ int usetat(char *s, int index, int c);
  *  trailing zero.
  */
 extern int ustrsizez(const char *s);
+
+extern int need_uconvert(const char *s, int type, int newtype);
+extern int uvszprintf(char *buf, int size, const char *format, va_list args);
 
 } // namespace AGS3
 

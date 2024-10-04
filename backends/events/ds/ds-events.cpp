@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,25 +68,27 @@ void DSEventSource::addEventsToQueue() {
 	uint32 held = keysHeld(), keysPressed = keysDown(), keysReleased = keysUp();
 
 	// Touch screen events
-	if (held & KEY_TOUCH) {
-		touchPosition touchPos;
-		touchRead(&touchPos);
-		event.mouse = dynamic_cast<OSystem_DS *>(g_system)->transformPoint(touchPos.px, touchPos.py);
+	if (_handleTouch) {
+		if (held & KEY_TOUCH) {
+			touchPosition touchPos;
+			touchRead(&touchPos);
+			event.mouse = dynamic_cast<OSystem_DS *>(g_system)->transformPoint(touchPos.px, touchPos.py);
 
-		if (event.mouse.x != _lastTouch.x || event.mouse.y != _lastTouch.y) {
-			event.type = Common::EVENT_MOUSEMOVE;
+			if (event.mouse.x != _lastTouch.x || event.mouse.y != _lastTouch.y) {
+				event.type = Common::EVENT_MOUSEMOVE;
+				_eventQueue.push(event);
+			}
+			if (keysPressed & KEY_TOUCH) {
+				event.type = Common::EVENT_LBUTTONDOWN;
+				_eventQueue.push(event);
+			}
+
+			_lastTouch = event.mouse;
+		} else if (keysReleased & KEY_TOUCH) {
+			event.mouse = _lastTouch;
+			event.type = Common::EVENT_LBUTTONUP;
 			_eventQueue.push(event);
 		}
-		if (keysPressed & KEY_TOUCH) {
-			event.type = Common::EVENT_LBUTTONDOWN;
-			_eventQueue.push(event);
-		}
-
-		_lastTouch = event.mouse;
-	} else if (keysReleased & KEY_TOUCH) {
-		event.mouse = _lastTouch;
-		event.type = Common::EVENT_LBUTTONUP;
-		_eventQueue.push(event);
 	}
 
 	// Button events

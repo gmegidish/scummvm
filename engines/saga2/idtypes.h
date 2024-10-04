@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -47,7 +46,7 @@ const ObjectID      Nothing = 0,            // a reference to no object
                     ActorLimbo = 2,         // where dead actors go
                     ImportantLimbo = 3,     // where dead important objects go
                     ActorBaseID = 0x8000,   // high bit set for actors
-                    WorldBaseID = 0xF000;   // 4K posible worlds
+                    WorldBaseID = 0xF000;   // 4K possible worlds
 
 /* ===================================================================== *
    TileID
@@ -111,11 +110,11 @@ extern const StaticMetaTileID NoMetaTile;
    ActiveItemID struct
  * ===================================================================== */
 
-const int   activeItemIndexMask = 0x1FFF;
-const int   activeItemMapMask = 0xE000;
-const int   activeItemMapShift = 13;
+const int   kActiveItemIndexMask = 0x1FFF;
+const int   kActiveItemMapMask = 0xE000;
+const int   kActiveItemMapShift = 13;
 
-const int16 activeItemIndexNullID = 0x1FFF;
+const int16 kActiveItemIndexNullID = 0x1FFF;
 
 struct StaticActiveItemID {
 	int16 val;
@@ -139,7 +138,7 @@ struct ActiveItemID {
 
 	//  Constructor
 	ActiveItemID(int16 m, int16 i) :
-		val((m << activeItemMapShift) | (i & activeItemIndexMask)) {
+		val((m << kActiveItemMapShift) | (i & kActiveItemIndexMask)) {
 	}
 
 	ActiveItemID(StaticActiveItemID a) {
@@ -169,21 +168,21 @@ struct ActiveItemID {
 	}
 
 	void setMapNum(int16 m) {
-		val &= ~activeItemMapMask;
-		val |= (m << activeItemMapShift);
+		val &= ~kActiveItemMapMask;
+		val |= (m << kActiveItemMapShift);
 	}
 
 	int16 getMapNum() {
-		return (uint16)val >> activeItemMapShift;
+		return (uint16)val >> kActiveItemMapShift;
 	}
 
 	void setIndexNum(int16 i) {
-		val &= ~activeItemIndexMask;
-		val |= i & activeItemIndexMask;
+		val &= ~kActiveItemIndexMask;
+		val |= i & kActiveItemIndexMask;
 	}
 
 	int16 getIndexNum() {
-		return val & activeItemIndexMask;
+		return val & kActiveItemIndexMask;
 	}
 } PACKED_STRUCT;
 #include "common/pack-end.h"
@@ -197,9 +196,9 @@ extern const StaticActiveItemID NoActiveItem;
 
 //  Task evaluation return types
 enum TaskResult {
-	taskFailed      = -1,   //  Task has ended in failure
-	taskNotDone     =  0,   //  Task has not ended yet
-	taskSucceeded   =  1    //  Task has ended in success
+	kTaskFailed      = -1,   //  Task has ended in failure
+	kTaskNotDone     =  0,   //  Task has not ended yet
+	kTaskSucceeded   =  1    //  Task has ended in success
 };
 
 typedef int16   TaskID;

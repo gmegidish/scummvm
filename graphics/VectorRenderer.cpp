@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,6 +52,7 @@ void VectorRenderer::drawStep(const Common::Rect &area, const Common::Rect &clip
 	setStrokeWidth(step.stroke);
 	setFillMode((FillMode)step.fillMode);
 	setClippingRect(applyStepClippingRect(area, clip, step));
+	setShadowIntensity(step.shadowIntensity);
 
 	_dynamicData = extra;
 
@@ -110,7 +110,7 @@ int VectorRenderer::stepGetRadius(const DrawStep &step, const Common::Rect &area
 
 void VectorRenderer::stepGetPositions(const DrawStep &step, const Common::Rect &area, uint16 &in_x, uint16 &in_y, uint16 &in_w, uint16 &in_h) {
 	if (!step.autoWidth) {
-		in_w = step.w == -1 ? area.height() : step.w;
+		in_w = step.w == -1 ? area.width() : step.w;
 
 		switch (step.xAlign) {
 		case Graphics::DrawStep::kVectorAlignManual:
@@ -141,7 +141,7 @@ void VectorRenderer::stepGetPositions(const DrawStep &step, const Common::Rect &
 	}
 
 	if (!step.autoHeight) {
-		in_h = step.h == -1 ? area.width() : step.h;
+		in_h = step.h == -1 ? area.height() : step.h;
 
 		switch (step.yAlign) {
 		case Graphics::DrawStep::kVectorAlignManual:

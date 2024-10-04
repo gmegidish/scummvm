@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,122 +15,86 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "gui/debugger.h"
-
-#include "chewy/chewy.h"
+#include "common/file.h"
 #include "chewy/console.h"
-#include "chewy/graphics.h"
-#include "chewy/resource.h"
-#include "chewy/scene.h"
+#include "chewy/globals.h"
+#include "chewy/chewy.h"
 #include "chewy/sound.h"
-#include "chewy/text.h"
+#include "chewy/video/video_player.h"
 
 namespace Chewy {
 
-Console::Console(ChewyEngine *vm) : GUI::Debugger(), _vm(vm) {
-	registerCmd("dump",          WRAP_METHOD(Console, Cmd_Dump));
-	registerCmd("dump_bg",       WRAP_METHOD(Console, Cmd_DumpBg));
-	registerCmd("draw_image",    WRAP_METHOD(Console, Cmd_DrawImage));
-	registerCmd("draw_sprite",   WRAP_METHOD(Console, Cmd_DrawSprite));
-	registerCmd("play_sound",    WRAP_METHOD(Console, Cmd_PlaySound));
-	registerCmd("play_speech",   WRAP_METHOD(Console, Cmd_PlaySpeech));
-	registerCmd("play_music",    WRAP_METHOD(Console, Cmd_PlayMusic));
-	registerCmd("play_video",    WRAP_METHOD(Console, Cmd_PlayVideo));
-	registerCmd("video_info",    WRAP_METHOD(Console, Cmd_VideoInfo));
-	registerCmd("error_message", WRAP_METHOD(Console, Cmd_ErrorMessage));
-	registerCmd("dialog",        WRAP_METHOD(Console, Cmd_Dialog));
-	registerCmd("text",          WRAP_METHOD(Console, Cmd_Text));
-	registerCmd("scene",         WRAP_METHOD(Console, Cmd_Scene));
+static int strToInt(const char *s) {
+	if (!*s)
+		// No string at all
+		return 0;
+	else if (toupper(s[strlen(s) - 1]) != 'H')
+		// Standard decimal string
+		return atoi(s);
+
+	// Hexadecimal string
+	uint tmp = 0;
+	int read = sscanf(s, "%xh", &tmp);
+	if (read < 1)
+		error("strToInt failed on string \"%s\"", s);
+	return (int)tmp;
+}
+
+Console::Console() : GUI::Debugger() {
+	registerCmd("room", WRAP_METHOD(Console, Cmd_Room));
+	registerCmd("item", WRAP_METHOD(Console, Cmd_Item));
+	registerCmd("cursor", WRAP_METHOD(Console, Cmd_Cursor));
+	registerCmd("play_sound", WRAP_METHOD(Console, Cmd_PlaySound));
+	registerCmd("play_speech", WRAP_METHOD(Console, Cmd_PlaySpeech));
+	registerCmd("play_music", WRAP_METHOD(Console, Cmd_PlayMusic));
+	registerCmd("play_video", WRAP_METHOD(Console, Cmd_PlayVideo));
+	registerCmd("walk", WRAP_METHOD(Console, Cmd_WalkAreas));
+	registerCmd("text", WRAP_METHOD(Console, Cmd_Text));
 }
 
 Console::~Console() {
 }
 
-bool Console::Cmd_Dump(int argc, const char **argv) {
-	if (argc < 4) {
-		debugPrintf("Usage: dump <file> <resource number> <dump file name>\n");
+bool Console::Cmd_Room(int argc, const char **argv) {
+	if (argc == 1) {
+		debugPrintf("%s <roomNum>\n", argv[0]);
+		debugPrintf("Current room is %d\n", _G(gameState)._personRoomNr[P_CHEWY]);
 		return true;
+	} else {
+		int roomNum = strToInt(argv[1]);
+		exit_room(-1);
+		_G(gameState)._personRoomNr[P_CHEWY] = roomNum;
+		_G(room)->loadRoom(&_G(room_blk), roomNum, &_G(gameState));
+		_G(fx_blend) = BLEND1;
+		enter_room(-1);
+
+		return false;
 	}
+}
 
-	Common::String filename = argv[1];
-	int resNum = atoi(argv[2]);
-	Common::String dumpFilename = argv[3];
-
-	Resource *res = new Resource(filename);
-	Chunk *chunk = res->getChunk(resNum);
-	byte *data = res->getChunkData(resNum);
-	uint32 size = chunk->size;
-
-	Common::DumpFile outFile;
-	outFile.open(dumpFilename);
-	outFile.write(data, size);
-	outFile.flush();
-	outFile.close();
-
-	delete[] data;
-	delete res;
+bool Console::Cmd_Item(int argc, const char **argv) {
+	if (argc == 1) {
+		debugPrintf("%s <itemNum>\n", argv[0]);
+	} else {
+		int itemNum = strToInt(argv[1]);
+		invent_2_slot(itemNum);
+		debugPrintf("Done.\n");
+	}
 
 	return true;
 }
 
-bool Console::Cmd_DumpBg(int argc, const char **argv) {
-	if (argc < 4) {
-		debugPrintf("Usage: dump_bg <file> <resource number> <dump file name>\n");
-		return true;
+bool Console::Cmd_Cursor(int argc, const char **argv) {
+	if (argc == 1) {
+		debugPrintf("%s <cursorNum>\n", argv[0]);
+	} else {
+		int cursorNum = strToInt(argv[1]);
+		cursorChoice(cursorNum);
 	}
-
-	Common::String filename = argv[1];
-	int resNum = atoi(argv[2]);
-	Common::String dumpFilename = argv[3];
-
-	BackgroundResource *res = new BackgroundResource(filename);
-	TBFChunk *image = res->getImage(resNum);
-
-	Common::DumpFile outFile;
-	outFile.open(dumpFilename);
-	outFile.write(image->data, image->size);
-	outFile.flush();
-	outFile.close();
-
-	delete[] image->data;
-	delete image;
-	delete res;
-
-	return true;
-}
-
-
-bool Console::Cmd_DrawImage(int argc, const char **argv) {
-	if (argc < 3) {
-		debugPrintf("Usage: draw_image <file> <resource number>\n");
-		return true;
-	}
-
-	Common::String filename = argv[1];
-	int resNum = atoi(argv[2]);
-
-	_vm->_graphics->drawImage(filename, resNum);
-
-	return false;
-}
-
-bool Console::Cmd_DrawSprite(int argc, const char **argv) {
-	if (argc < 3) {
-		debugPrintf("Usage: draw_sprite <file> <resource number> [x] [y]\n");
-		return true;
-	}
-
-	Common::String filename = argv[1];
-	int spriteNum = atoi(argv[2]);
-	int x = (argc < 4) ? 0 : atoi(argv[3]);
-	int y = (argc < 5) ? 0 : atoi(argv[4]);
-
-	_vm->_graphics->drawSprite(filename, spriteNum, x, y);
 
 	return false;
 }
@@ -142,7 +106,7 @@ bool Console::Cmd_PlaySound(int argc, const char **argv) {
 	}
 
 	int resNum = atoi(argv[1]);
-	_vm->_sound->playSound(resNum);
+	g_engine->_sound->playSound(resNum);
 
 	return true;
 }
@@ -154,7 +118,7 @@ bool Console::Cmd_PlaySpeech(int argc, const char **argv) {
 	}
 
 	int resNum = atoi(argv[1]);
-	_vm->_sound->playSpeech(resNum);
+	g_engine->_sound->playSpeech(resNum, false);
 
 	return true;
 }
@@ -166,7 +130,8 @@ bool Console::Cmd_PlayMusic(int argc, const char **argv) {
 	}
 
 	int resNum = atoi(argv[1]);
-	_vm->_sound->playMusic(resNum);
+	g_engine->_sound->stopMusic();
+	g_engine->_sound->playMusic(resNum);
 
 	return true;
 }
@@ -178,93 +143,30 @@ bool Console::Cmd_PlayVideo(int argc, const char **argv) {
 	}
 
 	int resNum = atoi(argv[1]);
-	_vm->setPlayVideo(resNum);
+	g_engine->_video->playVideo(resNum);
 
 	return false;
 }
 
-bool Console::Cmd_VideoInfo(int argc, const char **argv) {
-	if (argc < 2) {
-		debugPrintf("Usage: video_info <number>\n");
-		return true;
-	}
-
-	int resNum = atoi(argv[1]);
-	VideoResource *res = new VideoResource("cut.tap");
-	VideoChunk *header = res->getVideoHeader(resNum);
-	debugPrintf("Size: %d, %d x %d, %d frames, %d ms frame delay, first frame at %d\n", header->size, header->width, header->height, header->frameCount, header->frameDelay, header->firstFrameOffset);
-	delete header;
-	delete res;
-
-	return true;
-}
-
-bool Console::Cmd_ErrorMessage(int argc, const char **argv) {
-	if (argc < 3) {
-		debugPrintf("Usage: error_message <file> <message number>\n");
-		return true;
-	}
-
-	Common::String filename = argv[1];
-	int resNum = atoi(argv[2]);
-
-	ErrorMessage *res = new ErrorMessage(filename);
-	Common::String str = res->getErrorMessage(resNum);
-	this->debugPrintf("Error message: %s\n", str.c_str());
-	delete res;
-
-	return true;
-}
-
-bool Console::Cmd_Dialog(int argc, const char **argv) {
-	if (argc < 3) {
-		debugPrintf("Usage: dialog <dialog> <entry>\n");
-		return true;
-	}
-
-	int dialogNum = atoi(argv[1]);
-	int entryNum  = atoi(argv[2]);
-	uint cur = 0;
-	TextEntryList *d = _vm->_text->getDialog(dialogNum, entryNum);
-
-	for (TextEntryList::iterator it = d->begin(); it != d->end(); ++it) {
-		this->debugPrintf("Entry %d: speech %d, text '%s'\n", cur, (*it).speechId, (*it).text.c_str());
-	}
-
-	d->clear();
-	delete d;
-
-	return true;
+bool Console::Cmd_WalkAreas(int argc, const char **argv) {
+	g_engine->_showWalkAreas = (argc == 2) && !strcmp(argv[1], "on");
+	return false;
 }
 
 bool Console::Cmd_Text(int argc, const char **argv) {
-	if (argc < 3) {
-		debugPrintf("Usage: text <dialog> <entry>\n");
+	if (argc < 4) {
+		debugPrintf("Usage: text <chunk> <entry> <type>\n");
 		return true;
 	}
 
-	int dialogNum = atoi(argv[1]);
-	int entryNum = atoi(argv[2]);
-	TextEntry *d = _vm->_text->getText(dialogNum, entryNum);
-
-	debugPrintf("Speech %d, text '%s'\n", d->speechId, d->text.c_str());
-
-	delete d;
-
+	int chunk = atoi(argv[1]);
+	int entry = atoi(argv[2]);
+	int type = atoi(argv[3]);
+	Common::StringArray text = _G(atds)->getTextArray(chunk, entry, type);
+	for (uint i = 0; i < text.size(); i++) {
+		debugPrintf("%d: %s\n", i, text[i].c_str());
+	}
 	return true;
 }
 
-bool Console::Cmd_Scene(int argc, const char **argv) {
-	if (argc < 2) {
-		debugPrintf("Current scene is: %d\n", _vm->_scene->getCurScene());
-		debugPrintf("Use scene <scene num> to change the scene\n");
-		return true;
-	}
-
-	int sceneNum = atoi(argv[1]);
-	_vm->_scene->change(sceneNum);
-
-	return false;
-}
-
-} // End of namespace Chewy
+} // namespace Chewy

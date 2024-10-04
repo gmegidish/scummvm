@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -102,7 +101,7 @@ private:
 	/**
 	 * Transition to show an image
 	 */
-	void showLBV(const Common::String &filename);
+	void showLBV(const Common::Path &filename);
 protected:
 	/**
 	 * Game initialization
@@ -150,7 +149,7 @@ public:
 	/**
 	 * Play back a 3do movie
 	 */
-	bool play3doMovie(const Common::String &filename, const Common::Point &pos, bool isPortrait = false);
+	bool play3doMovie(const Common::Path &filename, const Common::Point &pos, bool isPortrait = false);
 };
 
 } // End of namespace Scalpel

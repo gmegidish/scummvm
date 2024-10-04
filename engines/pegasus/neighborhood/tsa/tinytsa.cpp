@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -123,8 +122,8 @@ void TinyTSA::start() {
 	Neighborhood::start();
 }
 
-Common::String TinyTSA::getBriefingMovie() {
-	Common::String movieName = Neighborhood::getBriefingMovie();
+Common::Path TinyTSA::getBriefingMovie() {
+	Common::Path movieName = Neighborhood::getBriefingMovie();
 
 	if (movieName.empty()) {
 		switch (getCurrentActivation()) {
@@ -158,8 +157,8 @@ Common::String TinyTSA::getBriefingMovie() {
 	return movieName;
 }
 
-Common::String TinyTSA::getEnvScanMovie() {
-	Common::String movieName = Neighborhood::getEnvScanMovie();
+Common::Path TinyTSA::getEnvScanMovie() {
+	Common::Path movieName = Neighborhood::getEnvScanMovie();
 
 	if (movieName.empty()) {
 		g_AIChip->showEnvScanClicked();
@@ -213,7 +212,7 @@ void TinyTSA::clickInHotspot(const Input &input, const Hotspot *clickedSpot) {
 	if (clickedSpot) {
 		switch (clickedSpot->getObjectID()) {
 		case kTinyTSA37NorthJumpMenuSpotID:
-			// This hotspot isn't accessable from Tiny TSA
+			// This hotspot isn't accessible from Tiny TSA
 			warning("jump menu spot");
 			return;
 		case kTinyTSA37NorthJumpToNoradSpotID:
@@ -479,7 +478,7 @@ void TinyTSA::arriveFromWSC() {
 	}
 }
 
-Common::String TinyTSA::getNavMovieName() {
+Common::Path TinyTSA::getNavMovieName() {
 	return "Images/TSA/Tiny TSA.movie";
 }
 

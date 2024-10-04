@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,28 +58,21 @@ void SetInvItemName(int invi, const char *newName) {
 	if ((invi < 1) || (invi > _GP(game).numinvitems))
 		quit("!SetInvName: invalid inventory item specified");
 
-	// set the new name, making sure it doesn't overflow the buffer
-	strncpy(_GP(game).invinfo[invi].name, newName, 25);
-	_GP(game).invinfo[invi].name[24] = 0;
-
+	snprintf(_GP(game).invinfo[invi].name, MAX_INVENTORY_NAME_LENGTH, "%s", newName);
 	// might need to redraw the GUI if it has the inv item name on it
 	GUI::MarkSpecialLabelsForUpdate(kLabelMacro_Overhotspot);
 }
 
-int GetInvAt(int xxx, int yyy) {
-	int ongui = GetGUIAt(xxx, yyy);
+int GetInvAt(int atx, int aty) {
+	int ongui = GetGUIAt(atx, aty);
 	if (ongui >= 0) {
-		int mxwas = _G(mousex), mywas = _G(mousey);
-		_G(mousex) = data_to_game_coord(xxx) - _GP(guis)[ongui].X;
-		_G(mousey) = data_to_game_coord(yyy) - _GP(guis)[ongui].Y;
-		int onobj = _GP(guis)[ongui].FindControlUnderMouse();
+		data_to_game_coords(&atx, &aty);
+		int32_t onobj = _GP(guis)[ongui].FindControlAt(atx, aty);
 		GUIObject *guio = _GP(guis)[ongui].GetControl(onobj);
 		if (guio) {
-			_G(mouse_ifacebut_xoffs) = _G(mousex) - (guio->X);
-			_G(mouse_ifacebut_yoffs) = _G(mousey) - (guio->Y);
+			_G(mouse_ifacebut_xoffs) = atx - _GP(guis)[ongui].X - guio->X;
+			_G(mouse_ifacebut_yoffs) = aty - _GP(guis)[ongui].Y - guio->Y;
 		}
-		_G(mousex) = mxwas;
-		_G(mousey) = mywas;
 		if (guio && (_GP(guis)[ongui].GetControlType(onobj) == kGUIInvWindow))
 			return offset_over_inv((GUIInvWindow *)guio);
 	}
@@ -90,7 +82,7 @@ int GetInvAt(int xxx, int yyy) {
 void GetInvName(int indx, char *buff) {
 	VALIDATE_STRING(buff);
 	if ((indx < 0) | (indx >= _GP(game).numinvitems)) quit("!GetInvName: invalid inventory item specified");
-	strcpy(buff, get_translation(_GP(game).invinfo[indx].name));
+	snprintf(buff, MAX_MAXSTRLEN, "%s", get_translation(_GP(game).invinfo[indx].name));
 }
 
 int GetInvGraphic(int indx) {
@@ -113,7 +105,7 @@ void RunInventoryInteraction(int iit, int modd) {
 		run_event_block_inv(iit, 3);
 	} else if (modd == MODE_TALK)
 		run_event_block_inv(iit, 2);
-	else // other click on invnetory
+	else // other click on inventory
 		run_event_block_inv(iit, 4);
 }
 

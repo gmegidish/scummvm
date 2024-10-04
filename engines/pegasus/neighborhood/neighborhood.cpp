@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,7 +53,7 @@ void StriderCallBack::callBack() {
 
 static const TimeValue kStridingSlop = 39;
 
-Neighborhood *g_neighborhood = 0;
+Neighborhood *g_neighborhood = nullptr;
 
 Neighborhood::Neighborhood(InputHandler *nextHandler, PegasusEngine *vm, const Common::String &resName, NeighborhoodID id)
 		: InputHandler(nextHandler), IDObject(id), _vm(vm), _resName(resName), _navMovie(kNavMovieID), _stridingCallBack(this),
@@ -67,7 +66,7 @@ Neighborhood::Neighborhood(InputHandler *nextHandler, PegasusEngine *vm, const C
 	allowInput(true);
 	resetLastExtra();
 	g_neighborhood = this;
-	_currentInteraction = 0;
+	_currentInteraction = nullptr;
 	_doneWithInteraction = false;
 	_croppedMovie.setDisplayOrder(kCroppedMovieLayer);
 }
@@ -77,7 +76,7 @@ Neighborhood::~Neighborhood() {
 		_vm->getAllHotspots().remove(*it);
 
 	_neighborhoodHotspots.deleteHotspots();
-	g_neighborhood = 0;
+	g_neighborhood = nullptr;
 
 	loadLoopSound1("");
 	loadLoopSound2("");
@@ -149,7 +148,7 @@ void Neighborhood::init() {
 	_navMovie.initFromMovieFile(getNavMovieName());
 	_navMovie.setVolume(_vm->getSoundFXLevel());
 
-	Common::String soundSpotsName = getSoundSpotsName();
+	Common::Path soundSpotsName = getSoundSpotsName();
 	if (soundSpotsName.empty()) {
 		_spotSounds.disposeSound();
 	} else {
@@ -506,18 +505,18 @@ bool operator!=(const QueueRequest &arg1, const QueueRequest &arg2) {
 	return !operator==(arg1, arg2);
 }
 
-Common::String Neighborhood::getBriefingMovie() {
+Common::Path Neighborhood::getBriefingMovie() {
 	if (_currentInteraction)
 		return _currentInteraction->getBriefingMovie();
 
-	return Common::String();
+	return Common::Path();
 }
 
-Common::String Neighborhood::getEnvScanMovie() {
+Common::Path Neighborhood::getEnvScanMovie() {
 	if (_currentInteraction)
 		return _currentInteraction->getEnvScanMovie();
 
-	return Common::String();
+	return Common::Path();
 }
 
 uint Neighborhood::getNumHints() {
@@ -527,11 +526,11 @@ uint Neighborhood::getNumHints() {
 	return 0;
 }
 
-Common::String Neighborhood::getHintMovie(uint hintNum) {
+Common::Path Neighborhood::getHintMovie(uint hintNum) {
 	if (_currentInteraction)
 		return _currentInteraction->getHintMovie(hintNum);
 
-	return Common::String();
+	return Common::Path();
 }
 
 bool Neighborhood::canSolve() {
@@ -991,7 +990,7 @@ HotspotInfoTable::Entry *Neighborhood::findHotspotEntry(const HotSpotID id) {
 		if (it->hotspot == id)
 			return &(*it);
 
-	return 0;
+	return nullptr;
 }
 
 void Neighborhood::hideNav() {
@@ -1256,7 +1255,7 @@ void Neighborhood::throwAwayInterface() {
 	_navMovie.releaseMovie();
 	_pushIn.deallocateSurface();
 	_turnPush.stopDisplaying();
-	_turnPush.setInAndOutElements(0, 0);
+	_turnPush.setInAndOutElements(nullptr, nullptr);
 	_turnPush.disposeAllCallBacks();
 
 	for (HotspotList::iterator it = _neighborhoodHotspots.begin(); it != _neighborhoodHotspots.end(); it++)
@@ -1416,7 +1415,7 @@ void Neighborhood::setUpAIRules() {
 
 GameInteraction *Neighborhood::makeInteraction(const InteractionID interactionID) {
 	if (interactionID == kNoInteractionID)
-		return 0;
+		return nullptr;
 
 	return new GameInteraction(interactionID, this);
 }
@@ -1444,7 +1443,7 @@ void Neighborhood::bumpIntoWall() {
 }
 
 void Neighborhood::zoomUpOrBump() {
-	Hotspot *zoomSpot = 0;
+	Hotspot *zoomSpot = nullptr;
 
 	for (HotspotList::iterator it = _vm->getAllHotspots().begin(); it != _vm->getAllHotspots().end(); it++) {
 		Hotspot *hotspot = *it;
@@ -1454,7 +1453,7 @@ void Neighborhood::zoomUpOrBump() {
 
 			if (entry && entry->hotspotRoom == GameState.getCurrentRoom() && entry->hotspotDirection == GameState.getCurrentDirection()) {
 				if (zoomSpot) {
-					zoomSpot = 0;
+					zoomSpot = nullptr;
 					break;
 				} else {
 					zoomSpot = hotspot;
@@ -1469,7 +1468,7 @@ void Neighborhood::zoomUpOrBump() {
 		bumpIntoWall();
 }
 
-void Neighborhood::loadLoopSound1(const Common::String &soundName, uint16 volume, TimeValue fadeOut, TimeValue fadeIn, TimeScale fadeScale) {
+void Neighborhood::loadLoopSound1(const Common::Path &soundName, uint16 volume, TimeValue fadeOut, TimeValue fadeIn, TimeScale fadeScale) {
 	FaderMoveSpec faderMove;
 
 	if (!loop1Loaded(soundName)) {
@@ -1496,7 +1495,7 @@ void Neighborhood::loadLoopSound1(const Common::String &soundName, uint16 volume
 	}
 }
 
-void Neighborhood::loadLoopSound2(const Common::String &soundName, uint16 volume, TimeValue fadeOut, TimeValue fadeIn, TimeScale fadeScale) {
+void Neighborhood::loadLoopSound2(const Common::Path &soundName, uint16 volume, TimeValue fadeOut, TimeValue fadeIn, TimeScale fadeScale) {
 	FaderMoveSpec faderMove;
 
 	if (!loop2Loaded(soundName)) {
@@ -1580,7 +1579,7 @@ void Neighborhood::startExtraLongSequence(const uint32 firstExtra, const uint32 
 	}
 }
 
-void Neighborhood::openCroppedMovie(const Common::String &movieName, CoordType left, CoordType top) {
+void Neighborhood::openCroppedMovie(const Common::Path &movieName, CoordType left, CoordType top) {
 	if (_croppedMovie.isMovieValid())
 		closeCroppedMovie();
 
@@ -1590,7 +1589,7 @@ void Neighborhood::openCroppedMovie(const Common::String &movieName, CoordType l
 	_croppedMovie.show();
 }
 
-void Neighborhood::loopCroppedMovie(const Common::String &movieName, CoordType left, CoordType top) {
+void Neighborhood::loopCroppedMovie(const Common::Path &movieName, CoordType left, CoordType top) {
 	openCroppedMovie(movieName, left, top);
 	_croppedMovie.setVolume(_vm->getSoundFXLevel());
 	_croppedMovie.redrawMovieWorld();
@@ -1602,7 +1601,7 @@ void Neighborhood::closeCroppedMovie() {
 	_croppedMovie.releaseMovie();
 }
 
-void Neighborhood::playCroppedMovieOnce(const Common::String &movieName, CoordType left, CoordType top, const InputBits interruptionFilter) {
+void Neighborhood::playCroppedMovieOnce(const Common::Path &movieName, CoordType left, CoordType top, const InputBits interruptionFilter) {
 	openCroppedMovie(movieName, left, top);
 	_croppedMovie.setVolume(_vm->getSoundFXLevel());
 	_croppedMovie.redrawMovieWorld();
@@ -1725,7 +1724,7 @@ void Neighborhood::downButton(const Input &) {
 	}
 }
 
-void Neighborhood::initOnePicture(Picture *picture, const Common::String &pictureName, DisplayOrder order, CoordType left, CoordType top, bool show) {
+void Neighborhood::initOnePicture(Picture *picture, const Common::Path &pictureName, DisplayOrder order, CoordType left, CoordType top, bool show) {
 	picture->initFromPICTFile(pictureName);
 	picture->setDisplayOrder(order);
 	picture->moveElementTo(left, top);
@@ -1734,7 +1733,7 @@ void Neighborhood::initOnePicture(Picture *picture, const Common::String &pictur
 		picture->show();
 }
 
-void Neighborhood::initOneMovie(Movie *movie, const Common::String &movieName, DisplayOrder order, CoordType left, CoordType top, bool show) {
+void Neighborhood::initOneMovie(Movie *movie, const Common::Path &movieName, DisplayOrder order, CoordType left, CoordType top, bool show) {
 	movie->initFromMovieFile(movieName);
 	movie->setDisplayOrder(order);
 	movie->moveElementTo(left, top);

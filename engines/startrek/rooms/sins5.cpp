@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -236,11 +235,11 @@ void Room::sins5Tick1() {
 	if (!_awayMission->sins.playedMusicUponEnteringRoom5FirstTime) {
 		// NOTE: The music gets drowned out due to a different track being played
 		// immediately after.
-		playMidiMusicTracks(MIDITRACK_0, -1);
+		playMidiMusicTracks(MIDITRACK_0);
 		_awayMission->sins.playedMusicUponEnteringRoom5FirstTime = true;
 	}
 
-	playMidiMusicTracks(MIDITRACK_27, -3);
+	playMidiMusicTracks(MIDITRACK_27, kLoopTypeRepeat);
 }
 
 void Room::sins5UseSTricorderAnywhere() {
@@ -405,7 +404,7 @@ void Room::sins5WireConnected() {
 		loadActorAnim2(OBJECT_CABLE, "s5cabl", 0, 0);
 		showDescription(TX_SIN5N004);
 		loseItem(OBJECT_ICONECT);
-		playMidiMusicTracks(MIDITRACK_30, -1);
+		playMidiMusicTracks(MIDITRACK_30);
 	}
 	_awayMission->disableInput = false;
 }
@@ -484,7 +483,7 @@ void Room::sins5Timer2Expired() {
 }
 
 void Room::sins5ComputerLaunchesMissiles() {
-	playMidiMusicTracks(MIDITRACK_2, -1);
+	playMidiMusicTracks(MIDITRACK_2);
 	showDescription(TX_SIN5N012);
 	showDescription(TX_SIN5N013);
 	showGameOverMenu();

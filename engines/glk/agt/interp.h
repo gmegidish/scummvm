@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -269,7 +268,7 @@ global short ap, vp, np, pp, op; /* Points to first word in actor, verb, noun,
 
 
 
-/* The following needs to be kept consistant with ext_voc[] in
+/* The following needs to be kept consistent with ext_voc[] in
    agil.c */
 typedef enum {wthe, wmy, wa, wan, wthen, wp, wsc, wand, wc, wits, wall, wundo, wlook, wg,
 			  wpick, wgo, wexits, wtalk, wtake, wdoor, wagain, wbut, wexcept,
@@ -277,7 +276,7 @@ typedef enum {wthe, wmy, wa, wan, wthen, wp, wsc, wand, wc, wits, wall, wundo, w
 			  wdverb, wdnoun, wdadjective, wdprep, wdobject, wdname,
 			  wstep, w_any, weither, wboth, weveryone, weverybody,
 			  whe, wshe, wit, wthey, whim, wher, wthem, wis, ware, woops,
-			  wwas, wwere,
+			  wwas, wwere, wscream,
 			  win, wout, winto, wat, wto, wacross, winside, wwith, wnear, wfor,
 			  wof, wbehind, wbeside, won, woff, wunder, wfrom, wthrough,
 			  wtoward, wtowards, wbetween, waround, wupon, wthru,
@@ -300,7 +299,7 @@ global short last_he, last_she, last_it, last_they;
 #define ALL_MARK (-ext_code[wall])
 
 #define D_END  50    /* Marks end of disambiguation list */
-#define D_AND  51    /* Used to seperate multiple objects during disambig */
+#define D_AND  51    /* Used to separate multiple objects during disambig */
 #define D_NOUN 0   /* Noun match */
 #define D_SYN 1    /* Adjective/synonym only match */
 #define D_ADJ 2    /* Adj only match */
@@ -371,6 +370,8 @@ extern long read_number(void);
 /* -------------------------------------------------------------------- */
 extern void init_stack(void);  /* Set up expression stack */
 extern void clear_stack(void);  /* Set stack back to empty state */
+extern void reset_random(void);  /* Reset random number generator state */
+extern int get_random(int a, int b);  /* Return random number from a to b, inclusive */
 
 /* -------------------------------------------------------------------- */
 /* In OBJECT.C                              */
@@ -455,7 +456,6 @@ global volatile int curr_x;
 
 extern void init_interface();
 extern void start_interface(fc_type fc);
-extern void close_interface(void);
 extern char *agt_input(int in_type); /* read line, return malloc'd string */
 extern char agt_getkey(rbool echo_char);
 extern void agt_clrscr(void);
@@ -472,7 +472,7 @@ extern void agt_endbox(void);
 extern genfile agt_globalfile(int fid); /* When fid=0, return global config file */
 extern rbool agt_option(int optnum, char *optstr[], rbool setflag);
 
-/* These have stubs defined in interface.c that would ened to be
+/* These have stubs defined in interface.c that would need to be
 	commented out if you actually wanted to support these */
 extern void fontcmd(int cmd, int font); /* fontlist[font] */
 extern void pictcmd(int cmd, int pict); /* pictlist[pict] or pixlist[pict] */

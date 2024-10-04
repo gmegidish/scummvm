@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,10 +23,11 @@
 
 #include "sci/resource/resource.h"
 #include "sci/engine/features.h"
-#include "sci/engine/state.h"
-#include "sci/engine/message.h"
-#include "sci/engine/selector.h"
 #include "sci/engine/kernel.h"
+#include "sci/engine/message.h"
+#include "sci/engine/state.h"
+#include "sci/engine/selector.h"
+#include "sci/engine/tts.h"
 
 namespace Sci {
 
@@ -48,12 +48,12 @@ reg_t kStrCat(EngineState *s, int argc, reg_t *argv) {
 	//  However Space Quest 4 PC-9801 doesn't
 	if ((g_sci->getLanguage() == Common::JA_JPN)
 		&& (getSciVersion() <= SCI_VERSION_01)) {
-		s1 = g_sci->strSplit(s1.c_str(), NULL);
-		s2 = g_sci->strSplit(s2.c_str(), NULL);
+		s1 = g_sci->strSplit(s1.c_str(), nullptr);
+		s2 = g_sci->strSplit(s2.c_str(), nullptr);
 	}
 
 	s1 += s2;
-	s->_segMan->strcpy(argv[0], s1.c_str());
+	s->_segMan->strcpy_(argv[0], s1.c_str());
 	return argv[0];
 }
 
@@ -77,7 +77,7 @@ reg_t kStrCpy(EngineState *s, int argc, reg_t *argv) {
 		else
 			s->_segMan->memcpy(argv[0], argv[1], -length);
 	} else {
-		s->_segMan->strcpy(argv[0], argv[1]);
+		s->_segMan->strcpy_(argv[0], argv[1]);
 	}
 
 	return argv[0];
@@ -101,6 +101,8 @@ reg_t kStrAt(EngineState *s, int argc, reg_t *argv) {
 	uint16 offset = argv[1].toUint16();
 	if (argc > 2)
 		newvalue = argv[2].toSint16();
+
+	g_sci->_tts->setMessage(s->_segMan->getString(argv[0]));
 
 	// in kq5 this here gets called with offset 0xFFFF
 	//  (in the desert wheng getting the staff)
@@ -272,7 +274,7 @@ reg_t kFormat(EngineState *s, int argc, reg_t *argv) {
 
 			/* int writelength; -- unused atm */
 
-			if (xfer && (Common::isDigit(xfer) || xfer == '-' || xfer == '=')) {
+			if (Common::isDigit(xfer) || xfer == '-' || xfer == '=') {
 				char *destp;
 
 				if (xfer == '0')
@@ -336,7 +338,7 @@ reg_t kFormat(EngineState *s, int argc, reg_t *argv) {
 
 				}
 
-				strcpy(target, tempsource.c_str());
+				Common::strcpy_s(target, sizeof(targetbuf) - (target - targetbuf), tempsource.c_str());
 				target += slen;
 
 				switch (align) {
@@ -386,7 +388,7 @@ reg_t kFormat(EngineState *s, int argc, reg_t *argv) {
 				if (!unsignedVar)
 					val = (int16)arguments[paramindex];
 
-				target += sprintf(target, format_string, val);
+				target += Common::sprintf_s(target, sizeof(targetbuf) - (target - targetbuf), format_string, val);
 				paramindex++;
 				assert((target - targetbuf) <= maxsize);
 
@@ -428,7 +430,7 @@ reg_t kFormat(EngineState *s, int argc, reg_t *argv) {
 
 	*target = 0; /* Terminate string */
 
-	s->_segMan->strcpy(dest, targetbuf);
+	s->_segMan->strcpy_(dest, targetbuf);
 
 	return dest; /* Return target addr */
 }
@@ -441,13 +443,15 @@ reg_t kStrLen(EngineState *s, int argc, reg_t *argv) {
 reg_t kGetFarText(EngineState *s, int argc, reg_t *argv) {
 	const Common::String text = g_sci->getKernel()->lookupText(make_reg(0, argv[0].toUint16()), argv[1].toUint16());
 
+	g_sci->_tts->setMessage(text);
+
 	// If the third argument is NULL, allocate memory for the destination. This
 	// occurs in SCI1 Mac games. The memory will later be freed by the game's
 	// scripts.
 	if (argv[2] == NULL_REG)
 		s->_segMan->allocDynmem(text.size() + 1, "Mac FarText", &argv[2]);
 
-	s->_segMan->strcpy(argv[2], text.c_str()); // Copy the string and get return value
+	s->_segMan->strcpy_(argv[2], text.c_str()); // Copy the string and get return value
 	return argv[2];
 }
 
@@ -488,7 +492,7 @@ reg_t kMessage(EngineState *s, int argc, reg_t *argv) {
 #endif
 
 //	TODO: Perhaps fix this check, currently doesn't work with PUSH and POP subfunctions
-//	Pepper uses them to to handle the glossary
+//	Pepper uses them to handle the glossary
 //	if ((func != K_MESSAGE_NEXT) && (argc < 2)) {
 //		warning("Message: not enough arguments passed to subfunction %d", func);
 //		return NULL_REG;
@@ -585,7 +589,7 @@ reg_t kSetQuitStr(EngineState *s, int argc, reg_t *argv) {
 reg_t kStrSplit(EngineState *s, int argc, reg_t *argv) {
 	Common::String format = s->_segMan->getString(argv[1]);
 	Common::String sep_str;
-	const char *sep = NULL;
+	const char *sep = nullptr;
 	if (!argv[2].isNull()) {
 		sep_str = s->_segMan->getString(argv[2]);
 		sep = sep_str.c_str();
@@ -599,7 +603,7 @@ reg_t kStrSplit(EngineState *s, int argc, reg_t *argv) {
 						PRINT_REG(argv[0]), str.size() + 1, str.c_str());
 		return NULL_REG;
 	}
-	s->_segMan->strcpy(argv[0], str.c_str());
+	s->_segMan->strcpy_(argv[0], str.c_str());
 	return argv[0];
 }
 
@@ -815,14 +819,14 @@ reg_t kStringTrim(EngineState *s, int argc, reg_t *argv) {
 reg_t kStringToUpperCase(EngineState *s, int argc, reg_t *argv) {
 	Common::String string = s->_segMan->getString(argv[0]);
 	string.toUppercase();
-	s->_segMan->strcpy(argv[0], string.c_str());
+	s->_segMan->strcpy_(argv[0], string.c_str());
 	return argv[0];
 }
 
 reg_t kStringToLowerCase(EngineState *s, int argc, reg_t *argv) {
 	Common::String string = s->_segMan->getString(argv[0]);
 	string.toLowercase();
-	s->_segMan->strcpy(argv[0], string.c_str());
+	s->_segMan->strcpy_(argv[0], string.c_str());
 	return argv[0];
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,16 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/translation.h"
+#include "common/system.h"
 
 #include "backends/keymapper/action.h"
 #include "backends/keymapper/keymap.h"
+#include "backends/keymapper/keymapper.h"
 #include "backends/keymapper/standard-actions.h"
 
 #include "engines/nancy/nancy.h"
@@ -31,23 +32,21 @@
 
 namespace Nancy {
 
+const char *InputManager::_mazeKeymapID = "nancy-maze";
+
 void InputManager::processEvents() {
 	using namespace Common;
 	Common::Event event;
 
-	_inputs &= ~(NancyInput::kLeftMouseButtonDown | NancyInput::kLeftMouseButtonUp | NancyInput::kRightMouseButtonDown | NancyInput::kRightMouseButtonUp);
+	_inputs &= ~(NancyInput::kLeftMouseButtonDown | NancyInput::kLeftMouseButtonUp | NancyInput::kRightMouseButtonDown | NancyInput::kRightMouseButtonUp | NancyInput::kRaycastMap);
 	_otherKbdInput.clear();
 
 	while (g_nancy->getEventManager()->pollEvent(event)) {
 		switch (event.type) {
 		case EVENT_KEYDOWN:
-			if (event.kbd.keycode == KEYCODE_q && event.kbd.flags & Common::KBD_CTRL) {
-				// Quit
-				g_nancy->quitGame();
-			} else {
-				// Push all other keyboard events into an array and let getInput() callers handle them
-				_otherKbdInput.push_back(event.kbd);
-			}
+			// Push all keyboard events into an array and let getInput() callers handle them
+			_otherKbdInput.push_back(event.kbd);
+			_inputBeginState = g_nancy->getState();
 			break;
 		case EVENT_CUSTOM_ENGINE_ACTION_START:
 			_inputBeginState = g_nancy->getState();
@@ -76,11 +75,11 @@ void InputManager::processEvents() {
 			case kNancyActionMoveFast:
 				_inputs |= NancyInput::kMoveFastModifier;
 				break;
-			case kNancyActionRequestCheatMenu:
-				g_nancy->callCheatMenu(false);
+			case kNancyActionOpenMainMenu:
+				_inputs |= NancyInput::kOpenMainMenu;
 				break;
-			case kNancyActionRequestEventMenu:
-				g_nancy->callCheatMenu(true);
+			case kNancyActionShowRaycastMap:
+				_inputs |= NancyInput::kRaycastMap;
 				break;
 			default:
 				break;
@@ -112,6 +111,12 @@ void InputManager::processEvents() {
 			case kNancyActionMoveFast:
 				_inputs &= ~NancyInput::kMoveFastModifier;
 				break;
+			case kNancyActionOpenMainMenu:
+				_inputs &= ~NancyInput::kOpenMainMenu;
+				break;
+			case kNancyActionShowRaycastMap:
+				_inputs &= ~NancyInput::kRaycastMap;
+				break;
 			default:
 				break;
 			}
@@ -140,11 +145,12 @@ NancyInput InputManager::getInput() const {
 		ret.input = 0;
 	}
 
-	if (_mouseEnabled) {
+	if (_mouseEnabled || g_nancy->getState() == NancyState::kCredits) {
 		ret.mousePos = g_nancy->getEventManager()->getMousePos();
 	} else {
 		ret.eatMouseInput();
 	}
+
 	return ret;
 }
 
@@ -153,12 +159,23 @@ void InputManager::forceCleanInput() {
 	_otherKbdInput.clear();
 }
 
-void InputManager::initKeymaps(Common::KeymapArray &keymaps) {
+void InputManager::setKeymapEnabled(Common::String keymapName, bool enabled) {
+	Common::Keymapper *keymapper = g_nancy->getEventManager()->getKeymapper();
+	Common::Keymap *keymap = keymapper->getKeymap(keymapName);
+	if (keymap)
+		keymap->setEnabled(enabled);
+}
+
+void InputManager::setVKEnabled(bool enabled) {
+	g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, enabled);
+}
+
+void InputManager::initKeymaps(Common::KeymapArray &keymaps, const char *target) {
 	using namespace Common;
 	using namespace Nancy;
 
-	Keymap *mainKeymap = new Keymap(Keymap::kKeymapTypeGame, "nancy-main", "Nancy Drew");
-	Keymap *debugKeymap = new Keymap(Keymap::kKeymapTypeGame, "nancy-debug", "Nancy Drew - Debug/Cheat Shortcuts");
+	Common::String gameId = ConfMan.get("gameid", target);
+	Keymap *mainKeymap = new Keymap(Keymap::kKeymapTypeGame, "nancy-main", _("Nancy Drew"));
 	Action *act;
 
 	act = new Action(kStandardActionLeftClick, _("Left Click Interact"));
@@ -205,61 +222,26 @@ void InputManager::initKeymaps(Common::KeymapArray &keymaps) {
 	act->addDefaultInputMapping("JOY_LEFT_SHOULDER");
 	mainKeymap->addAction(act);
 
-	// Debug shortcuts
-
-	act = new Action("FASTC", _("Toggle fast conversation mode"));
-	act->setCustomEngineActionEvent(kNancyActionFastConvoToggle);
-	act->addDefaultInputMapping("C+S+TAB+f");
-	debugKeymap->addAction(act);
-
-	act = new Action("ENDC", _("Toggle end conversation mode"));
-	act->setCustomEngineActionEvent(kNancyActionEndConvoToggle);
-	act->addDefaultInputMapping("C+S+TAB+e");
-	debugKeymap->addAction(act);
-
-	act = new Action("MMENU", _("Go to main menu"));
-	act->setCustomEngineActionEvent(kNancyActionRequestMainMenu);
-	act->addDefaultInputMapping("C+S+TAB+F2");
-	debugKeymap->addAction(act);
-
-	act = new Action("LDSV", _("Go to save/load menu"));
-	act->setCustomEngineActionEvent(kNancyActionRequestSaveLoad);
-	act->addDefaultInputMapping("C+S+TAB+F3");
-	debugKeymap->addAction(act);
-
-	act = new Action("RLDSV", _("Reload last save"));
-	act->setCustomEngineActionEvent(kNancyActionReloadSave);
-	act->addDefaultInputMapping("C+S+TAB+F4");
-	debugKeymap->addAction(act);
-
-	act = new Action("SETUP", _("Go to setup menu"));
-	act->setCustomEngineActionEvent(kNancyActionRequestSetupMenu);
-	act->addDefaultInputMapping("C+S+TAB+F6");
-	debugKeymap->addAction(act);
-
-	act = new Action("CRED", _("Show credits"));
-	act->setCustomEngineActionEvent(kNancyActionRequestCredits);
-	act->addDefaultInputMapping("C+S+TAB+F7");
-	debugKeymap->addAction(act);
-
-	act = new Action("MAP", _("Go to map screen"));
-	act->setCustomEngineActionEvent(kNancyActionRequestMap);
-	act->addDefaultInputMapping("C+S+TAB+F8");
-	act->addDefaultInputMapping("C+S+TAB+m");
-	debugKeymap->addAction(act);
-
-	act = new Action("CHEAT", _("Open general cheat menu"));
-	act->setCustomEngineActionEvent(kNancyActionRequestCheatMenu);
-	act->addDefaultInputMapping("C+S+TAB+c");
-	debugKeymap->addAction(act);
-
-	act = new Action("EVENT", _("Open event flags cheat menu"));
-	act->setCustomEngineActionEvent(kNancyActionRequestEventMenu);
-	act->addDefaultInputMapping("C+S+TAB+v");
-	debugKeymap->addAction(act);
+	act = new Action("MMENU", _("Open main menu"));
+	act->setCustomEngineActionEvent(kNancyActionOpenMainMenu);
+	act->addDefaultInputMapping("ESCAPE");
+	act->addDefaultInputMapping("JOY_START");
+	mainKeymap->addAction(act);
 
 	keymaps.push_back(mainKeymap);
-	keymaps.push_back(debugKeymap);
+
+	if (gameId == "nancy3" || gameId == "nancy6") {
+		Keymap *mazeKeymap = new Keymap(Keymap::kKeymapTypeGame, _mazeKeymapID, _("Nancy Drew - Maze"));
+
+		act = new Action("RAYCM", _("Show/hide maze map"));
+		act->setCustomEngineActionEvent(kNancyActionShowRaycastMap);
+		act->addDefaultInputMapping("m");
+		act->addDefaultInputMapping("JOY_RIGHT_SHOULDER");
+		mazeKeymap->addAction(act);
+		mazeKeymap->setEnabled(false);
+
+		keymaps.push_back(mazeKeymap);
+	}
 }
 
 } // End of namespace Nancy

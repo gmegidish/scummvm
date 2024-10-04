@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,7 +39,7 @@ ConfigurationManager::ConfigurationManager() {
 	// Register engine-specific options
 	ConfMan.registerDefault("show_encounter_subtitles", true);
 	ConfMan.registerDefault("gamma_level", 0);
-	ConfMan.registerDefault("ambient_volume", -2000);
+	ConfMan.registerDefault("ambient_volume",  -750);
 	ConfMan.registerDefault("movie_volume",    -500);
 	ConfMan.registerDefault("music_volume",   -1500);
 	ConfMan.registerDefault("sfx_volume",     -1000);
@@ -49,6 +48,7 @@ ConfigurationManager::ConfigurationManager() {
 	ConfMan.registerDefault("music_status", true);
 	ConfMan.registerDefault("reverse_stereo", false);
 	ConfMan.registerDefault("performance", 4);
+	ConfMan.registerDefault("animations_speed", 1);
 	ConfMan.registerDefault("key_showVersion", 'v');
 	ConfMan.registerDefault("key_quickLoad", 'L');
 	ConfMan.registerDefault("key_quickSave", 'S');
@@ -77,6 +77,7 @@ ConfigurationManager::ConfigurationManager() {
 
 	gammaLevel = 0;
 	performance = 0;
+	animationsSpeed = 1;
 
 	keyShowVersion = 'v';
 	keyQuickLoad = 'L';
@@ -109,6 +110,7 @@ void ConfigurationManager::read() {
 	musicStatus   = ConfMan.getBool("music_status");
 	reverseStereo = ConfMan.getBool("reverse_stereo");
 	performance   = ConfMan.getInt("performance");
+	animationsSpeed  = ConfMan.getInt("animations_speed");
 
 	// Misc options
 	showSceneLoading = ConfMan.getBool("show_scene_loading");
@@ -147,6 +149,7 @@ void ConfigurationManager::write() {
 	ConfMan.setBool("music_status", musicStatus);
 	ConfMan.setBool("reverse_stereo", reverseStereo);
 	ConfMan.setInt("performance", performance);
+	ConfMan.setInt("animations_speed", animationsSpeed);
 
 	// Misc Options
 	ConfMan.setBool("show_scene_loading", showSceneLoading);

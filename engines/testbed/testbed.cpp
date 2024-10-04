@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,10 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "common/achievements.h"
 #include "common/debug-channels.h"
 #include "common/scummsys.h"
 #include "common/archive.h"
@@ -30,6 +28,7 @@
 #include "common/rect.h"
 #include "common/str.h"
 
+#include "engines/achievements.h"
 #include "engines/util.h"
 
 #include "testbed/events.h"
@@ -41,6 +40,7 @@
 #include "testbed/savegame.h"
 #include "testbed/sound.h"
 #include "testbed/testbed.h"
+#include "testbed/video.h"
 #ifdef USE_CLOUD
 #include "testbed/cloud.h"
 #endif
@@ -49,6 +49,9 @@
 #endif
 #ifdef USE_TTS
 #include "testbed/speech.h"
+#endif
+#ifdef USE_IMGUI
+#include "testbed/imgui.h"
 #endif
 
 namespace Testbed {
@@ -60,26 +63,27 @@ void TestbedExitDialog::init() {
 	Common::String text = "Thank you for using ScummVM testbed! Here are yor summarized results:";
 	addText(450, 20, text, Graphics::kTextAlignCenter, _xOffset, 15);
 	Common::Array<Common::U32String> strArray;
-	GUI::ListWidget::ColorList colors;
+	Common::U32String color;
 
 	for (Common::Array<Testsuite *>::const_iterator i = _testsuiteList.begin(); i != _testsuiteList.end(); ++i) {
-		strArray.push_back(Common::String::format("%s :", (*i)->getDescription()));
-		colors.push_back(GUI::ThemeEngine::kFontColorNormal);
+		color = GUI::ListWidget::getThemeColor(GUI::ThemeEngine::kFontColorNormal);
+		strArray.push_back(color + Common::U32String::format("%s :", (*i)->getDescription()));
+
+		color = GUI::ListWidget::getThemeColor(GUI::ThemeEngine::kFontColorAlternate);
 		if ((*i)->isEnabled()) {
-			strArray.push_back(Common::String::format("Passed: %d  Failed: %d Skipped: %d", (*i)->getNumTestsPassed(), (*i)->getNumTestsFailed(), (*i)->getNumTestsSkipped()));
+			strArray.push_back(color + Common::U32String::format("Passed: %d  Failed: %d Skipped: %d", (*i)->getNumTestsPassed(), (*i)->getNumTestsFailed(), (*i)->getNumTestsSkipped()));
 		} else {
-			strArray.push_back(Common::U32String("Skipped"));
+			strArray.push_back(color + Common::U32String("Skipped"));
 		}
-		colors.push_back(GUI::ThemeEngine::kFontColorAlternate);
 	}
 
-	addList(0, _yOffset, 500, 200, strArray, &colors);
+	addList(0, _yOffset, 500, 200, strArray);
 	text = "More Details can be viewed in the Log file : " + ConfParams.getLogFilename();
 	addText(450, 20, text, Graphics::kTextAlignLeft, 0, 0);
-	if (ConfParams.getLogDirectory().size()) {
-		text = "Directory : " + ConfParams.getLogDirectory();
-	} else {
+	if (ConfParams.getLogDirectory().empty()) {
 		text = "Directory : .";
+	} else {
+		text = "Directory : " + ConfParams.getLogDirectory().toString(Common::Path::kNativeSeparator);
 	}
 	addText(500, 20, text, Graphics::kTextAlignLeft, 0, 0);
 	_yOffset += 5;
@@ -115,7 +119,7 @@ TestbedEngine::TestbedEngine(OSystem *syst)
 
 	// However this is the place to specify all default directories
 	// Put game-data dir in search path
-	Common::FSNode gameRoot(ConfMan.get("path"));
+	Common::FSNode gameRoot(ConfMan.getPath("path"));
 	if (gameRoot.exists()) {
 		SearchMan.addDirectory(gameRoot.getDisplayName(), gameRoot);
 	}
@@ -166,6 +170,14 @@ void TestbedEngine::pushTestsuites(Common::Array<Testsuite *> &testsuiteList) {
 	ts = new WebserverTestSuite();
 	testsuiteList.push_back(ts);
 #endif
+#ifdef USE_IMGUI
+	// ImGui
+	ts = new ImGuiTestSuite();
+	testsuiteList.push_back(ts);
+#endif
+	// Video decoder
+	ts = new VideoDecoderTestSuite();
+	testsuiteList.push_back(ts);
 }
 
 TestbedEngine::~TestbedEngine() {
@@ -213,8 +225,7 @@ void TestbedEngine::checkForAllAchievements() {
 
 Common::Error TestbedEngine::run() {
 	if (ConfMan.hasKey("start_movie")) {
-		videoTest();
-		return Common::kNoError;
+		return Videotests::videoTest(ConfMan.getPath("start_movie"));
 	}
 
 	// Initialize graphics using following:

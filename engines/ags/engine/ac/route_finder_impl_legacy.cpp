@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,6 @@
 //=============================================================================
 
 #include "ags/engine/ac/route_finder_impl_legacy.h"
-#include "ags/lib/std/math.h"
 
 #include "ags/shared/ac/common.h"   // quit()
 #include "ags/shared/ac/common_defines.h"
@@ -39,8 +37,6 @@
 #include "ags/globals.h"
 
 namespace AGS3 {
-
-extern void update_polled_stuff_if_runtime();
 
 using AGS::Shared::Bitmap;
 namespace BitmapHelper = AGS::Shared::BitmapHelper;
@@ -65,6 +61,18 @@ static int suggestx;
 static int suggesty;
 static int line_failed = 0;
 
+// Configuration for the pathfinder
+struct PathfinderConfig {
+	const int MaxGranularity = 3;
+
+	// Short sweep is performed in certain radius around requested destination,
+	// when searching for a nearest walkable area in the vicinity
+	const int ShortSweepRadius = 50;
+	int ShortSweepGranularity = 3; // variable, depending on loaded game version
+	// Full sweep is performed over a whole walkable area
+	const int FullSweepGranularity = 5;
+};
+
 void init_pathfinder() {
 	pathbackx = (int *)malloc(sizeof(int) * MAXPATHBACK);
 	pathbacky = (int *)malloc(sizeof(int) * MAXPATHBACK);
@@ -75,7 +83,7 @@ void set_wallscreen(Bitmap *wallscreen_) {
 }
 
 // TODO: find a way to reimpl this with Bitmap
-static void line_callback(BITMAP *bmpp, int x, int y, int d) {
+static void line_callback(BITMAP *bmpp, int x, int y, int /*d*/) {
 	/*  if ((x>=320) | (y>=200) | (x<0) | (y<0)) line_failed=1;
 	  else */ if (getpixel(bmpp, x, y) < 1)
 		line_failed = 1;
@@ -113,19 +121,18 @@ void get_lastcpos(int &lastcx_, int &lastcy_) {
 
 int find_nearest_walkable_area(Bitmap *tempw, int fromX, int fromY, int toX, int toY, int destX, int destY, int granularity) {
 	assert(tempw != nullptr);
-
-	int ex, ey, nearest = 99999, thisis, nearx = 0, neary = 0;
 	if (fromX < 0) fromX = 0;
 	if (fromY < 0) fromY = 0;
 	if (toX >= tempw->GetWidth()) toX = tempw->GetWidth() - 1;
 	if (toY >= tempw->GetHeight()) toY = tempw->GetHeight() - 1;
 
-	for (ex = fromX; ex < toX; ex += granularity) {
-		for (ey = fromY; ey < toY; ey += granularity) {
+	int nearest = 99999, nearx = -1, neary = -1;
+	for (int ex = fromX; ex < toX; ex += granularity) {
+		for (int ey = fromY; ey < toY; ey += granularity) {
 			if (tempw->GetScanLine(ey)[ex] != 232)
 				continue;
 
-			thisis = (int)::sqrt((double)((ex - destX) * (ex - destX) + (ey - destY) * (ey - destY)));
+			int thisis = (int)::sqrt((double)((ex - destX) * (ex - destX) + (ey - destY) * (ey - destY)));
 			if (thisis < nearest) {
 				nearest = thisis;
 				nearx = ex;
@@ -143,9 +150,8 @@ int find_nearest_walkable_area(Bitmap *tempw, int fromX, int fromY, int toX, int
 	return 0;
 }
 
-#define MAX_GRANULARITY 3
 static int walk_area_granularity[MAX_WALK_AREAS + 1];
-static int is_route_possible(int fromx, int fromy, int tox, int toy, Bitmap *wss) {
+static int is_route_possible(int fromx, int fromy, int tox, int toy, Bitmap *wss, const PathfinderConfig &pfc) {
 	_G(wallscreen) = wss;
 	suggestx = -1;
 
@@ -208,34 +214,37 @@ static int is_route_possible(int fromx, int fromy, int tox, int toy, Bitmap *wss
 	// find the average "width" of a path in this walkable area
 	for (dd = 1; dd <= MAX_WALK_AREAS; dd++) {
 		if (walk_area_times[dd] == 0) {
-			walk_area_granularity[dd] = MAX_GRANULARITY;
+			walk_area_granularity[dd] = pfc.MaxGranularity;
 			continue;
 		}
 
 		walk_area_granularity[dd] /= walk_area_times[dd];
 		if (walk_area_granularity[dd] <= 4)
 			walk_area_granularity[dd] = 2;
+		// NB: Since pfc.MaxGranularity is 3, the following code is redundant causing compiler warnings
+#if 0
 		else if (walk_area_granularity[dd] <= 15)
 			walk_area_granularity[dd] = 3;
+#endif
 		else
-			walk_area_granularity[dd] = MAX_GRANULARITY;
+			walk_area_granularity[dd] = pfc.MaxGranularity;
 
 #ifdef DEBUG_PATHFINDER
 		AGS::Shared::Debug::Printf("area %d: Gran %d", dd, walk_area_granularity[dd]);
 #endif
 	}
-	walk_area_granularity[0] = MAX_GRANULARITY;
+	walk_area_granularity[0] = pfc.MaxGranularity;
 
 	tempw->FloodFill(fromx, fromy, 232);
 	if (tempw->GetPixel(tox, toy) != 232) {
 		// Destination pixel is not walkable
-		// Try the 100x100 square around the target first at 3-pixel granularity
-		int tryFirstX = tox - 50, tryToX = tox + 50;
-		int tryFirstY = toy - 50, tryToY = toy + 50;
+		// Try the N x N square around the target first at 3-pixel granularity
+		int tryFirstX = tox - pfc.ShortSweepRadius, tryToX = tox + pfc.ShortSweepRadius;
+		int tryFirstY = toy - pfc.ShortSweepRadius, tryToY = toy + pfc.ShortSweepRadius;
 
-		if (!find_nearest_walkable_area(tempw, tryFirstX, tryFirstY, tryToX, tryToY, tox, toy, 3)) {
+		if (!find_nearest_walkable_area(tempw, tryFirstX, tryFirstY, tryToX, tryToY, tox, toy, pfc.ShortSweepGranularity)) {
 			// Nothing found, sweep the whole room at 5 pixel granularity
-			find_nearest_walkable_area(tempw, 0, 0, tempw->GetWidth(), tempw->GetHeight(), tox, toy, 5);
+			find_nearest_walkable_area(tempw, 0, 0, tempw->GetWidth(), tempw->GetHeight(), tox, toy, pfc.FullSweepGranularity);
 		}
 
 		delete tempw;
@@ -319,7 +328,7 @@ try_again:
 		return 0;
 	}
 
-	if (((nextx < 0) | (nextx >= _G(wallscreen)->GetWidth()) | (nexty < 0) | (nexty >= _G(wallscreen)->GetHeight())) ||
+	if (((nextx < 0) || (nextx >= _G(wallscreen)->GetWidth()) || (nexty < 0) || (nexty >= _G(wallscreen)->GetHeight())) ||
 	        (_G(wallscreen)->GetPixel(nextx, nexty) == 0) || ((beenhere[srcy][srcx] & (1 << trydir)) != 0)) {
 
 		if (leftorright == 0) {
@@ -399,7 +408,7 @@ static void round_down_coords(int &tmpx, int &tmpy) {
 	}
 }
 
-static int find_route_dijkstra(int fromx, int fromy, int destx, int desty) {
+static int find_route_dijkstra(int fromx, int fromy, int destx, int desty, const PathfinderConfig &pfc) {
 	int i, j;
 
 	assert(_G(wallscreen) != nullptr);
@@ -435,15 +444,13 @@ static int find_route_dijkstra(int fromx, int fromy, int destx, int desty) {
 
 	int granularity = 3, newx = -1, newy, foundAnswer = -1, numreplace;
 	int changeiter, numfound, adjcount;
-	int destxlow = destx - MAX_GRANULARITY;
-	int destylow = desty - MAX_GRANULARITY;
-	int destxhi = destxlow + MAX_GRANULARITY * 2;
-	int destyhi = destylow + MAX_GRANULARITY * 2;
+	int destxlow = destx - pfc.MaxGranularity;
+	int destylow = desty - pfc.MaxGranularity;
+	int destxhi = destxlow + pfc.MaxGranularity * 2;
+	int destyhi = destylow + pfc.MaxGranularity * 2;
 	int modifier = 0;
 	int totalfound = 0;
 	int DIRECTION_BONUS = 0;
-
-	update_polled_stuff_if_runtime();
 
 	while (foundAnswer < 0) {
 		min = 29999;
@@ -507,10 +514,10 @@ static int find_route_dijkstra(int fromx, int fromy, int destx, int desty) {
 
 			// edges of screen pose a problem, so if current and dest are within
 			// certain distance of the edge, say we've got it
-			if ((newx >= _G(wallscreen)->GetWidth() - MAX_GRANULARITY) && (destx >= _G(wallscreen)->GetWidth() - MAX_GRANULARITY))
+			if ((newx >= _G(wallscreen)->GetWidth() - pfc.MaxGranularity) && (destx >= _G(wallscreen)->GetWidth() - pfc.MaxGranularity))
 				newx = destx;
 
-			if ((newy >= _G(wallscreen)->GetHeight() - MAX_GRANULARITY) && (desty >= _G(wallscreen)->GetHeight() - MAX_GRANULARITY))
+			if ((newy >= _G(wallscreen)->GetHeight() - pfc.MaxGranularity) && (desty >= _G(wallscreen)->GetHeight() - pfc.MaxGranularity))
 				newy = desty;
 
 			// Found the desination, abort loop
@@ -549,7 +556,6 @@ static int find_route_dijkstra(int fromx, int fromy, int destx, int desty) {
 			}
 		}
 		if (totalfound >= 1000) {
-			update_polled_stuff_if_runtime();
 			totalfound = 0;
 		}
 	}
@@ -583,7 +589,7 @@ static int find_route_dijkstra(int fromx, int fromy, int destx, int desty) {
 	return 1;
 }
 
-static int __find_route(int srcx, int srcy, short *tox, short *toy, int noredx) {
+static int __find_route(int srcx, int srcy, short *tox, short *toy, int noredx, const PathfinderConfig &pfc) {
 	assert(_G(wallscreen) != nullptr);
 	assert(beenhere != nullptr);
 	assert(tox != nullptr);
@@ -603,7 +609,7 @@ findroutebk:
 			return 1;
 		}
 
-		if ((waspossible = is_route_possible(srcx, srcy, tox[0], toy[0], _G(wallscreen))) == 0) {
+		if ((waspossible = is_route_possible(srcx, srcy, tox[0], toy[0], _G(wallscreen), pfc)) == 0) {
 			if (suggestx >= 0) {
 				tox[0] = suggestx;
 				toy[0] = suggesty;
@@ -619,7 +625,7 @@ findroutebk:
 	}
 
 	// Try the new pathfinding algorithm
-	if (find_route_dijkstra(srcx, srcy, tox[0], toy[0])) {
+	if (find_route_dijkstra(srcx, srcy, tox[0], toy[0], pfc)) {
 		return 1;
 	}
 
@@ -632,24 +638,17 @@ findroutebk:
 	return 1;
 }
 
-void set_route_move_speed(int speed_x, int speed_y) {
+inline fixed input_speed_to_fixed(int speed_val) {
 	// negative move speeds like -2 get converted to 1/2
-	if (speed_x < 0) {
-		_G(move_speed_x) = itofix(1) / (-speed_x);
+	if (speed_val < 0) {
+		return itofix(1) / (-speed_val);
 	} else {
-		_G(move_speed_x) = itofix(speed_x);
-	}
-
-	if (speed_y < 0) {
-		_G(move_speed_y) = itofix(1) / (-speed_y);
-	} else {
-		_G(move_speed_y) = itofix(speed_y);
+		return itofix(speed_val);
 	}
 }
 
-// Calculates the X and Y per game loop, for this stage of the
-// movelist
-void calculate_move_stage(MoveList *mlsp, int aaa) {
+// Calculates the X and Y per game loop, for this stage of the movelist
+void calculate_move_stage(MoveList *mlsp, int aaa, fixed move_speed_x, fixed move_speed_y) {
 	assert(mlsp != nullptr);
 
 	// work out the x & y per move. First, opp/adj=tan, so work out the angle
@@ -667,7 +666,7 @@ void calculate_move_stage(MoveList *mlsp, int aaa) {
 	// Special case for vertical and horizontal movements
 	if (ourx == destx) {
 		mlsp->xpermove[aaa] = 0;
-		mlsp->ypermove[aaa] = _G(move_speed_y);
+		mlsp->ypermove[aaa] = move_speed_y;
 		if (desty < oury)
 			mlsp->ypermove[aaa] = -mlsp->ypermove[aaa];
 
@@ -675,7 +674,7 @@ void calculate_move_stage(MoveList *mlsp, int aaa) {
 	}
 
 	if (oury == desty) {
-		mlsp->xpermove[aaa] = _G(move_speed_x);
+		mlsp->xpermove[aaa] = move_speed_x;
 		mlsp->ypermove[aaa] = 0;
 		if (destx < ourx)
 			mlsp->xpermove[aaa] = -mlsp->xpermove[aaa];
@@ -688,19 +687,19 @@ void calculate_move_stage(MoveList *mlsp, int aaa) {
 
 	fixed useMoveSpeed;
 
-	if (_G(move_speed_x) == _G(move_speed_y)) {
-		useMoveSpeed = _G(move_speed_x);
+	if (move_speed_x == move_speed_y) {
+		useMoveSpeed = move_speed_x;
 	} else {
 		// different X and Y move speeds
 		// the X proportion of the movement is (x / (x + y))
 		fixed xproportion = fixdiv(xdist, (xdist + ydist));
 
-		if (_G(move_speed_x) > _G(move_speed_y)) {
+		if (move_speed_x > move_speed_y) {
 			// speed = y + ((1 - xproportion) * (x - y))
-			useMoveSpeed = _G(move_speed_y) + fixmul(xproportion, _G(move_speed_x) - _G(move_speed_y));
+			useMoveSpeed = move_speed_y + fixmul(xproportion, move_speed_x - move_speed_y);
 		} else {
 			// speed = x + (xproportion * (y - x))
-			useMoveSpeed = _G(move_speed_x) + fixmul(itofix(1) - xproportion, _G(move_speed_y) - _G(move_speed_x));
+			useMoveSpeed = move_speed_x + fixmul(itofix(1) - xproportion, move_speed_y - move_speed_x);
 		}
 	}
 
@@ -729,14 +728,18 @@ void calculate_move_stage(MoveList *mlsp, int aaa) {
 #endif
 }
 
-
 #define MAKE_INTCOORD(x,y) (((unsigned short)x << 16) | ((unsigned short)y))
 
-int find_route(short srcx, short srcy, short xx, short yy, Bitmap *onscreen, int movlst, int nocross, int ignore_walls) {
+int find_route(short srcx, short srcy, short xx, short yy, int move_speed_x, int move_speed_y, Bitmap *onscreen, int movlst, int nocross, int ignore_walls) {
 	assert(onscreen != nullptr);
-	assert(_G(mls) != nullptr);
+	assert((int)_GP(mls).size() > movlst);
 	assert(pathbackx != nullptr);
 	assert(pathbacky != nullptr);
+
+	// Setup pathfinder configuration, depending on the loaded game version;
+	// sweep granularity has changed between 3.0.0 and 3.0.1; see issue #663
+	PathfinderConfig pfc;
+	pfc.ShortSweepGranularity = (_G(loaded_game_file_version) > kGameVersion_300) ? 3 : 1;
 
 #ifdef DEBUG_PATHFINDER
 	// __wnormscreen();
@@ -770,9 +773,9 @@ int find_route(short srcx, short srcy, short xx, short yy, Bitmap *onscreen, int
 		for (aaa = 1; aaa < _G(wallscreen)->GetHeight(); aaa++)
 			beenhere[aaa] = beenhere[0] + aaa * (_G(wallscreen)->GetWidth());
 
-		if (__find_route(srcx, srcy, &xx, &yy, nocross) == 0) {
+		if (__find_route(srcx, srcy, &xx, &yy, nocross, pfc) == 0) {
 			leftorright = 1;
-			if (__find_route(srcx, srcy, &xx, &yy, nocross) == 0)
+			if (__find_route(srcx, srcy, &xx, &yy, nocross, pfc) == 0)
 				pathbackstage = -1;
 		}
 		free(beenhere[0]);
@@ -788,8 +791,6 @@ int find_route(short srcx, short srcy, short xx, short yy, Bitmap *onscreen, int
 		reallyneed[numstages] = MAKE_INTCOORD(srcx, srcy);
 		numstages++;
 		nearestindx = -1;
-
-		int lastpbs = pathbackstage;
 
 stage_again:
 		nearestpos = 0;
@@ -823,7 +824,7 @@ stage_again:
 #ifdef DEBUG_PATHFINDER
 			AGS::Shared::Debug::Printf("Added: %d, %d pbs:%d", srcx, srcy, pathbackstage);
 #endif
-			lastpbs = pathbackstage;
+
 			pathbackstage = nearestindx;
 			goto stage_again;
 		}
@@ -846,27 +847,28 @@ stage_again:
 		AGS::Shared::Debug::Printf("Route from %d,%d to %d,%d - %d stage, %d stages", orisrcx, orisrcy, xx, yy, pathbackstage, numstages);
 #endif
 		int mlist = movlst;
-		_G(mls)[mlist].numstage = numstages;
-		memcpy(&_G(mls)[mlist].pos[0], &reallyneed[0], sizeof(int) * numstages);
+		_GP(mls)[mlist].numstage = numstages;
+		memcpy(&_GP(mls)[mlist].pos[0], &reallyneed[0], sizeof(int) * numstages);
 #ifdef DEBUG_PATHFINDER
 		AGS::Shared::Debug::Printf("stages: %d\n", numstages);
 #endif
 
+		const fixed fix_speed_x = input_speed_to_fixed(move_speed_x);
+		const fixed fix_speed_y = input_speed_to_fixed(move_speed_y);
 		for (aaa = 0; aaa < numstages - 1; aaa++) {
-			calculate_move_stage(&_G(mls)[mlist], aaa);
+			calculate_move_stage(&_GP(mls)[mlist], aaa, fix_speed_x, fix_speed_y);
 		}
 
-		_G(mls)[mlist].fromx = orisrcx;
-		_G(mls)[mlist].fromy = orisrcy;
-		_G(mls)[mlist].onstage = 0;
-		_G(mls)[mlist].onpart = 0;
-		_G(mls)[mlist].doneflag = 0;
-		_G(mls)[mlist].lastx = -1;
-		_G(mls)[mlist].lasty = -1;
+		_GP(mls)[mlist].fromx = orisrcx;
+		_GP(mls)[mlist].fromy = orisrcy;
+		_GP(mls)[mlist].onstage = 0;
+		_GP(mls)[mlist].onpart = 0;
+		_GP(mls)[mlist].doneflag = 0;
+		_GP(mls)[mlist].lastx = -1;
+		_GP(mls)[mlist].lasty = -1;
 #ifdef DEBUG_PATHFINDER
 		// getch();
 #endif
-		(void)lastpbs;
 
 		return mlist;
 	} else {
@@ -876,6 +878,20 @@ stage_again:
 #ifdef DEBUG_PATHFINDER
 	// __unnormscreen();
 #endif
+}
+
+bool add_waypoint_direct(MoveList *mlsp, short x, short y, int move_speed_x, int move_speed_y) {
+	if (mlsp->numstage >= MAXNEEDSTAGES)
+		return false;
+
+	const fixed fix_speed_x = input_speed_to_fixed(move_speed_x);
+	const fixed fix_speed_y = input_speed_to_fixed(move_speed_y);
+	mlsp->pos[mlsp->numstage] = MAKE_INTCOORD(x, y);
+	calculate_move_stage(mlsp, mlsp->numstage - 1, fix_speed_x, fix_speed_y);
+	mlsp->numstage++;
+	mlsp->lastx = x;
+	mlsp->lasty = y;
+	return true;
 }
 
 void shutdown_pathfinder() {

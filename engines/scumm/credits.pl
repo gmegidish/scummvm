@@ -1,5 +1,6 @@
 begin_section("SCUMM");
 	add_person("Torbj&ouml;rn Andersson", "eriktorbjorn", "");
+	add_person("Andrea Boscarino", "AndywinXp", "Digital iMUSE, SMUSH audio, GUI");
 	add_person("James Brown", "ender", "(retired)");
 	add_person("Jonathan Gray", "khalek", "(retired)");
 	add_person("Vincent Hamm", "yaz0r", "(retired)");
@@ -12,6 +13,7 @@ begin_section("SCUMM");
 end_section();
 
 begin_section("SCUMM HE");
+	add_person("Andrea Boscarino", "AndywinXp", "Digital audio, WIZ graphics system");
 	add_person("Jonathan Gray", "khalek", "(retired)");
 	add_person("Travis Howell", "Kirben", "");
 	add_person("Gregory Montoir", "cyx", "(retired)");

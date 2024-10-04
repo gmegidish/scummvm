@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,12 +38,25 @@ enum {
 	STRETCH_FIT_FORCE_ASPECT = 5
 };
 
+enum {
+	SCREEN_ALIGN_CENTER = 0,
+	SCREEN_ALIGN_LEFT = 1,
+	SCREEN_ALIGN_RIGHT = 2,
+	SCREEN_ALIGN_XMASK = 3,
+	SCREEN_ALIGN_MIDDLE = 0,
+	SCREEN_ALIGN_TOP = 4,
+	SCREEN_ALIGN_BOTTOM = 8,
+	SCREEN_ALIGN_YMASK = 12
+};
+
 class WindowedGraphicsManager : virtual public GraphicsManager {
 public:
 	WindowedGraphicsManager() :
 		_windowWidth(0),
 		_windowHeight(0),
+		_screenAlign(SCREEN_ALIGN_CENTER | SCREEN_ALIGN_MIDDLE),
 		_overlayVisible(false),
+		_overlayInGUI(false),
 		_gameScreenShakeXOffset(0),
 		_gameScreenShakeYOffset(0),
 		_forceRedraw(false),
@@ -54,31 +66,44 @@ public:
 		_cursorNeedsRedraw(false),
 		_cursorLastInActiveArea(true) {}
 
-	virtual void showOverlay() override {
+	void showOverlay(bool inGUI) override {
+		_overlayInGUI = inGUI;
+
+		if (inGUI) {
+			_activeArea.drawRect = _overlayDrawRect;
+			_activeArea.width = getOverlayWidth();
+			_activeArea.height = getOverlayHeight();
+		} else {
+			_activeArea.drawRect = _gameDrawRect;
+			_activeArea.width = getWidth();
+			_activeArea.height = getHeight();
+		}
+
 		if (_overlayVisible)
 			return;
 
-		_activeArea.drawRect = _overlayDrawRect;
-		_activeArea.width = getOverlayWidth();
-		_activeArea.height = getOverlayHeight();
 		_overlayVisible = true;
 		_forceRedraw = true;
+		notifyActiveAreaChanged();
 	}
 
-	virtual void hideOverlay() override {
+	void hideOverlay() override {
 		if (!_overlayVisible)
 			return;
+
+		_overlayInGUI = false;
 
 		_activeArea.drawRect = _gameDrawRect;
 		_activeArea.width = getWidth();
 		_activeArea.height = getHeight();
 		_overlayVisible = false;
 		_forceRedraw = true;
+		notifyActiveAreaChanged();
 	}
 
-	virtual bool isOverlayVisible() const override { return _overlayVisible; }
+	bool isOverlayVisible() const override { return _overlayVisible; }
 
-	virtual void setShakePos(int shakeXOffset, int shakeYOffset) override {
+	void setShakePos(int shakeXOffset, int shakeYOffset) override {
 		if (_gameScreenShakeXOffset != shakeXOffset || _gameScreenShakeYOffset != shakeYOffset) {
 			_gameScreenShakeXOffset = shakeXOffset;
 			_gameScreenShakeYOffset = shakeYOffset;
@@ -202,7 +227,7 @@ protected:
 			populateDisplayAreaDrawRect(overlayAspect, getOverlayWidth(), getOverlayHeight(), _overlayDrawRect);
 		}
 
-		if (_overlayVisible) {
+		if (_overlayInGUI) {
 			_activeArea.drawRect = _overlayDrawRect;
 			_activeArea.width = getOverlayWidth();
 			_activeArea.height = getOverlayHeight();
@@ -211,6 +236,7 @@ protected:
 			_activeArea.width = getWidth();
 			_activeArea.height = getHeight();
 		}
+		notifyActiveAreaChanged();
 	}
 
 	/**
@@ -222,7 +248,12 @@ protected:
 	 */
 	virtual void setSystemMousePosition(const int x, const int y) = 0;
 
-	virtual bool showMouse(bool visible) override {
+	/**
+	 * Called whenever the active area has changed.
+	 */
+	virtual void notifyActiveAreaChanged() {}
+
+	bool showMouse(bool visible) override {
 		if (_cursorVisible == visible) {
 			return visible;
 		}
@@ -284,10 +315,21 @@ protected:
 	int _windowHeight;
 
 	/**
+	 * How the overlay and game screens are aligned in the window.
+	 * Centered vertically and horizontally by default.
+	 */
+	int _screenAlign;
+
+	/**
 	 * Whether the overlay (i.e. launcher, including the out-of-game launcher)
 	 * is visible or not.
 	 */
 	bool _overlayVisible;
+
+	/**
+	 * Whether when overlay is shown, mouse coordinates depend on window or game screen size
+	 */
+	bool _overlayInGUI;
 
 	/**
 	 * The offset by which the screen is moved horizontally.
@@ -366,6 +408,17 @@ protected:
 private:
 	void populateDisplayAreaDrawRect(const frac_t displayAspect, int originalWidth, int originalHeight, Common::Rect &drawRect) const {
 		int mode = getStretchMode();
+		Common::RotationMode rotation = getRotationMode();
+		int rotatedWindowWidth;
+		int rotatedWindowHeight;
+
+		if (rotation == Common::kRotation90 || rotation == Common::kRotation270) {
+			rotatedWindowWidth = _windowHeight;
+			rotatedWindowHeight = _windowWidth;
+		} else {
+			rotatedWindowWidth = _windowWidth;
+			rotatedWindowHeight = _windowHeight;
+		}
 		// Mode Center   = use original size, or divide by an integral amount if window is smaller than game surface
 		// Mode Integral = scale by an integral amount.
 		// Mode Fit      = scale to fit the window while respecting the aspect ratio
@@ -376,30 +429,30 @@ private:
 		if (mode == STRETCH_CENTER || mode == STRETCH_INTEGRAL || mode == STRETCH_INTEGRAL_AR) {
 			width = originalWidth;
 			height = intToFrac(width) / displayAspect;
-			if (width > _windowWidth || height > _windowHeight) {
-				int fac = 1 + MAX((width - 1) / _windowWidth, (height - 1) / _windowHeight);
+			if (width > rotatedWindowWidth || height > rotatedWindowHeight) {
+				int fac = 1 + MAX((width - 1) / rotatedWindowWidth, (height - 1) / rotatedWindowHeight);
 				width /= fac;
 				height /= fac;
 			} else if (mode == STRETCH_INTEGRAL) {
-				int fac = MIN(_windowWidth / width, _windowHeight / height);
+				int fac = MIN(rotatedWindowWidth / width, rotatedWindowHeight / height);
 				width *= fac;
 				height *= fac;
 			}  else if (mode == STRETCH_INTEGRAL_AR) {
 				int targetHeight = height;
-				int horizontalFac = _windowWidth / width;
+				int horizontalFac = rotatedWindowWidth / width;
 				do {
 					width = originalWidth * horizontalFac;
 					int verticalFac = (targetHeight * horizontalFac + originalHeight / 2) / originalHeight;
 					height = originalHeight * verticalFac;
 					--horizontalFac;
-				} while (horizontalFac > 0 && height > _windowHeight);
-				if (height > _windowHeight)
+				} while (horizontalFac > 0 && height > rotatedWindowHeight);
+				if (height > rotatedWindowHeight)
 					height = targetHeight;
 			}
 		} else {
-			frac_t windowAspect = intToFrac(_windowWidth) / _windowHeight;
-			width = _windowWidth;
-			height = _windowHeight;
+			frac_t windowAspect = intToFrac(rotatedWindowWidth) / rotatedWindowHeight;
+			width = rotatedWindowWidth;
+			height = rotatedWindowHeight;
 			if (mode == STRETCH_FIT_FORCE_ASPECT) {
 				frac_t ratio = intToFrac(4) / 3;
 				if (windowAspect < ratio)
@@ -414,8 +467,35 @@ private:
 			}
 		}
 
-		drawRect.left = ((_windowWidth - width) / 2) + _gameScreenShakeXOffset * width / getWidth();
-		drawRect.top = ((_windowHeight - height) / 2) + _gameScreenShakeYOffset * height / getHeight();
+		int alignX, alignY;
+		switch (_screenAlign & SCREEN_ALIGN_XMASK) {
+			default:
+			case SCREEN_ALIGN_CENTER:
+				alignX = ((rotatedWindowWidth - width) / 2);
+				break;
+			case SCREEN_ALIGN_LEFT:
+				alignX = 0;
+				break;
+			case SCREEN_ALIGN_RIGHT:
+				alignX = (rotatedWindowWidth - width);
+				break;
+		}
+
+		switch (_screenAlign & SCREEN_ALIGN_YMASK) {
+			default:
+			case SCREEN_ALIGN_MIDDLE:
+				alignY = ((rotatedWindowHeight - height) / 2);
+				break;
+			case SCREEN_ALIGN_TOP:
+				alignY = 0;
+				break;
+			case SCREEN_ALIGN_BOTTOM:
+				alignY = (rotatedWindowHeight - height);
+				break;
+		}
+
+		drawRect.left = alignX + _gameScreenShakeXOffset * width / getWidth();
+		drawRect.top = alignY + _gameScreenShakeYOffset * height / getHeight();
 		drawRect.setWidth(width);
 		drawRect.setHeight(height);
 	}

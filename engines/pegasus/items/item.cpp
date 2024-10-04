@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,9 +45,7 @@ Item::Item(const ItemID id, const NeighborhoodID neighborhood, const RoomID room
 	_itemOwnerID = kNoActorID;
 	_itemState = 0;
 
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
-	Common::SeekableReadStream *info = vm->_resFork->getResource(kItemInfoResType, kItemBaseResID + id);
+	Common::SeekableReadStream *info = g_vm->_resFork->getResource(kItemInfoResType, kItemBaseResID + id);
 	if (info) {
 		_itemInfo.infoLeftTime = info->readUint32BE();
 		_itemInfo.infoRightStart = info->readUint32BE();
@@ -56,7 +53,7 @@ Item::Item(const ItemID id, const NeighborhoodID neighborhood, const RoomID room
 		_itemInfo.dragSpriteNormalID = info->readUint16BE();
 		_itemInfo.dragSpriteUsedID = info->readUint16BE();
 
-		if (vm->isDemo()) {
+		if (g_vm->isDemo()) {
 			// Adjust info right times to account for the stuff that was chopped out of the
 			// info right movies.
 			// Assumes time scale of 600.
@@ -101,7 +98,7 @@ Item::Item(const ItemID id, const NeighborhoodID neighborhood, const RoomID room
 		memset(&_itemInfo, 0, sizeof(_itemInfo));
 	}
 
-	Common::SeekableReadStream *middleAreaInfo = vm->_resFork->getResource(kMiddleAreaInfoResType, kItemBaseResID + id);
+	Common::SeekableReadStream *middleAreaInfo = g_vm->_resFork->getResource(kMiddleAreaInfoResType, kItemBaseResID + id);
 	if (middleAreaInfo) {
 		_sharedAreaInfo = readItemState(middleAreaInfo);
 		delete middleAreaInfo;
@@ -110,7 +107,7 @@ Item::Item(const ItemID id, const NeighborhoodID neighborhood, const RoomID room
 		memset(&_sharedAreaInfo, 0, sizeof(_sharedAreaInfo));
 	}
 
-	Common::SeekableReadStream *extraInfo = vm->_resFork->getResource(kItemExtraInfoResType, kItemBaseResID + id);
+	Common::SeekableReadStream *extraInfo = g_vm->_resFork->getResource(kItemExtraInfoResType, kItemBaseResID + id);
 	if (!extraInfo)
 		error("Extra info not found for item %d", id);
 
@@ -185,9 +182,9 @@ void Item::setItemState(const ItemState state) {
 	if (state != _itemState) {
 		_itemState = state;
 
-		if (getItemType() == kInventoryItemType && ((PegasusEngine *)g_engine)->getCurrentInventoryItem() == (InventoryItem *)this)
+		if (getItemType() == kInventoryItemType && g_vm->getCurrentInventoryItem() == (InventoryItem *)this)
 			select();
-		else if (getItemType() == kBiochipItemType && ((PegasusEngine *)g_engine)->getCurrentBiochip() == (BiochipItem *)this)
+		else if (getItemType() == kBiochipItemType && g_vm->getCurrentBiochip() == (BiochipItem *)this)
 			select();
 	}
 }
@@ -286,16 +283,15 @@ ItemStateInfo Item::readItemState(Common::SeekableReadStream *stream) {
 }
 
 Sprite *Item::getDragSprite(const DisplayElementID id) const {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
 	Sprite *result = new Sprite(id);
 	SpriteFrame *frame = new SpriteFrame();
 
-	frame->initFromPICTResource(vm->_resFork, _itemInfo.dragSpriteNormalID, true);
+	frame->initFromPICTResource(g_vm->_resFork, _itemInfo.dragSpriteNormalID, true);
 	result->addFrame(frame, 0, 0);
 
 	if (_itemInfo.dragSpriteNormalID != _itemInfo.dragSpriteUsedID) {
 		frame = new SpriteFrame();
-		frame->initFromPICTResource(vm->_resFork, _itemInfo.dragSpriteUsedID, true);
+		frame->initFromPICTResource(g_vm->_resFork, _itemInfo.dragSpriteUsedID, true);
 	}
 
 	result->addFrame(frame, 0, 0);

@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,10 +37,10 @@ Movie::Movie(Myst3Engine *vm, uint16 id) :
 		_posV(0),
 		_startFrame(0),
 		_endFrame(0),
-		_texture(0),
+		_texture(nullptr),
 		_force2d(false),
 		_forceOpaque(false),
-		_subtitles(0),
+		_subtitles(nullptr),
 		_volume(0),
 		_additiveBlending(false),
 		_transparency(100) {
@@ -74,12 +73,11 @@ Movie::Movie(Myst3Engine *vm, uint16 id) :
 	loadPosition(binkDesc.getVideoData());
 
 	Common::SeekableReadStream *binkStream = binkDesc.getData();
-	_bink.setDefaultHighColorFormat(Texture::getRGBAPixelFormat());
 	_bink.setSoundType(Audio::Mixer::kSFXSoundType);
 	_bink.loadStream(binkStream);
+	_bink.setOutputPixelFormat(Texture::getRGBAPixelFormat());
 
-	if (binkDesc.getType() == Archive::kMultitrackMovie
-			|| binkDesc.getType() == Archive::kDialogMovie) {
+	if (binkDesc.getType() == Archive::kMultitrackMovie || binkDesc.getType() == Archive::kDialogMovie) {
 		uint language = ConfMan.getInt("audio_language");
 		_bink.setAudioTrack(language);
 	}
@@ -96,6 +94,7 @@ void Movie::loadPosition(const ResourceDescription::VideoData &videoData) {
 	static const float scale = 50.0f;
 
 	_is3D = _vm->_state->getViewType() == kCube;
+	assert(!_texture);
 
 	Math::Vector3d planeDirection = videoData.v1;
 	planeDirection.normalize();
@@ -171,8 +170,10 @@ void Movie::drawNextFrameToTexture() {
 	if (frame) {
 		if (_texture)
 			_texture->update(frame);
+		else if (_is3D)
+			_texture = _vm->_gfx->createTexture3D(frame);
 		else
-			_texture = _vm->_gfx->createTexture(frame);
+			_texture = _vm->_gfx->createTexture2D(frame);
 	}
 }
 
@@ -205,7 +206,7 @@ void Movie::pause(bool p) {
 
 Movie::~Movie() {
 	if (_texture)
-		_vm->_gfx->freeTexture(_texture);
+		delete _texture;
 
 	delete _subtitles;
 }
@@ -213,6 +214,8 @@ Movie::~Movie() {
 void Movie::setForce2d(bool b) {
 	_force2d = b;
 	if (_force2d) {
+		if (_is3D)
+			delete _texture;
 		_is3D = false;
 	}
 }
@@ -363,7 +366,6 @@ void ScriptedMovie::update() {
 					_vm->_state->setVar(_condition & 0x7FF, 0);
 				}
 			}
-
 		}
 	}
 }
@@ -473,7 +475,7 @@ SimpleMovie::~SimpleMovie() {
 ProjectorMovie::ProjectorMovie(Myst3Engine *vm, uint16 id, Graphics::Surface *background) :
 		ScriptedMovie(vm, id),
 		_background(background),
-	_frame(0) {
+	_frame(nullptr) {
 	_enabled = true;
 
 	for (uint i = 0; i < kBlurIterations; i++) {
@@ -560,8 +562,10 @@ void ProjectorMovie::update() {
 
 	if (_texture)
 		_texture->update(_frame);
+	else if (_is3D)
+		_texture = _vm->_gfx->createTexture3D(_frame);
 	else
-		_texture = _vm->_gfx->createTexture(_frame);
+		_texture = _vm->_gfx->createTexture2D(_frame);
 }
 
 } // End of namespace Myst3

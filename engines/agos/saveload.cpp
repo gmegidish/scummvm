@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -213,7 +212,7 @@ void AGOSEngine::quickLoadOrSave() {
 
 bool AGOSEngine_Waxworks::confirmOverWrite(WindowBlock *window) {
 	Subroutine *sub = getSubroutineByID(80);
-	if (sub != NULL)
+	if (sub != nullptr)
 		startSubroutineEx(sub);
 
 	if (_variableArray[253] == 0)
@@ -223,7 +222,7 @@ bool AGOSEngine_Waxworks::confirmOverWrite(WindowBlock *window) {
 }
 
 bool AGOSEngine_Elvira2::confirmOverWrite(WindowBlock *window) {
-	// Original verison never confirmed
+	// Original version never confirmed
 	return true;
 }
 
@@ -577,8 +576,8 @@ int AGOSEngine_Elvira2::userGameGetKey(bool *b, uint maxChar) {
 	_keyPressed.reset();
 
 	while (!shouldQuit()) {
-		_lastHitArea = NULL;
-		_lastHitArea3 = NULL;
+		_lastHitArea = nullptr;
+		_lastHitArea3 = nullptr;
 
 		do {
 			if (_saveLoadEdit && _keyPressed.ascii && _keyPressed.ascii < maxChar) {
@@ -586,10 +585,10 @@ int AGOSEngine_Elvira2::userGameGetKey(bool *b, uint maxChar) {
 				return _keyPressed.ascii;
 			}
 			delay(10);
-		} while (_lastHitArea3 == 0 && !shouldQuit());
+		} while (_lastHitArea3 == nullptr && !shouldQuit());
 
 		ha = _lastHitArea;
-		if (ha == NULL || ha->id < 200) {
+		if (ha == nullptr || ha->id < 200) {
 		} else if (ha->id == 225) {
 			return ha->id;
 		} else if (ha->id == 224) {
@@ -717,6 +716,9 @@ void AGOSEngine_Simon1::userGame(bool load) {
 restart:;
 	i = userGameGetKey(&b, maxChar);
 
+	Common::Keymapper *keymapper = AGOSEngine::getEventManager()->getKeymapper();
+	keymapper->getKeymap("game-shortcuts")->setEnabled(false);
+
 	if (i == 205)
 		goto get_out;
 	if (!load) {
@@ -836,6 +838,8 @@ get_out:;
 	disableFileBoxes();
 
 	_gameStoppedClock = getTime() - saveTime + _gameStoppedClock;
+
+	keymapper->getKeymap("game-shortcuts")->setEnabled(true);
 }
 
 int AGOSEngine_Simon1::userGameGetKey(bool *b, uint maxChar) {
@@ -849,8 +853,8 @@ int AGOSEngine_Simon1::userGameGetKey(bool *b, uint maxChar) {
 	_keyPressed.reset();
 
 	while (!shouldQuit()) {
-		_lastHitArea = NULL;
-		_lastHitArea3 = NULL;
+		_lastHitArea = nullptr;
+		_lastHitArea3 = nullptr;
 
 		do {
 			if (_saveLoadEdit && _keyPressed.ascii && _keyPressed.ascii < maxChar) {
@@ -858,10 +862,10 @@ int AGOSEngine_Simon1::userGameGetKey(bool *b, uint maxChar) {
 				return _keyPressed.ascii;
 			}
 			delay(10);
-		} while (_lastHitArea3 == 0 && !shouldQuit());
+		} while (_lastHitArea3 == nullptr && !shouldQuit());
 
 		ha = _lastHitArea;
-		if (ha == NULL || ha->id < 205) {
+		if (ha == nullptr || ha->id < 205) {
 		} else if (ha->id == 205) {
 			return ha->id;
 		} else if (ha->id == 206) {
@@ -1043,7 +1047,7 @@ void writeItemID(Common::WriteStream *f, uint16 val) {
 
 bool AGOSEngine::loadGame(const Common::String &filename, bool restartMode) {
 	char ident[100];
-	Common::SeekableReadStream *f = NULL;
+	Common::SeekableReadStream *f = nullptr;
 	uint num, item_index, i;
 
 	_videoLockOut |= 0x100;
@@ -1054,7 +1058,7 @@ bool AGOSEngine::loadGame(const Common::String &filename, bool restartMode) {
 			f = createPak98FileStream("START.PAK");
 		} else {
 			Common::File *file = new Common::File();
-			if (!file->open(filename)) {
+			if (!file->open(Common::Path(filename))) {
 				delete file;
 				file = nullptr;
 			}
@@ -1064,7 +1068,7 @@ bool AGOSEngine::loadGame(const Common::String &filename, bool restartMode) {
 		f = _saveFileMan->openForLoading(filename);
 	}
 
-	if (f == NULL) {
+	if (f == nullptr) {
 		_videoLockOut &= ~0x100;
 		return false;
 	}
@@ -1088,7 +1092,8 @@ bool AGOSEngine::loadGame(const Common::String &filename, bool restartMode) {
 	// add all timers
 	killAllTimers();
 	for (num = f->readUint32BE(); num; num--) {
-		uint32 timeout = f->readUint32BE();
+		// See comment below inAGOSEngine_Elvira2::loadGame(): The timers are just as broken for Elvira as for the other games.
+		int32 timeout = (int16)f->readSint32BE();
 		uint16 subroutine_id = f->readUint16BE();
 		addTimeEvent(timeout, subroutine_id);
 	}
@@ -1155,7 +1160,7 @@ bool AGOSEngine::saveGame(uint slot, const char *caption) {
 	_videoLockOut |= 0x100;
 
 	f = _saveFileMan->openForSaving(genSaveName(slot));
-	if (f == NULL) {
+	if (f == nullptr) {
 		_videoLockOut &= ~0x100;
 		return false;
 	}
@@ -1226,7 +1231,7 @@ bool AGOSEngine::saveGame(uint slot, const char *caption) {
 
 bool AGOSEngine_Elvira2::loadGame(const Common::String &filename, bool restartMode) {
 	char ident[100];
-	Common::SeekableReadStream *f = NULL;
+	Common::SeekableReadStream *f = nullptr;
 	uint num, item_index, i, j;
 
 	_videoLockOut |= 0x100;
@@ -1234,7 +1239,7 @@ bool AGOSEngine_Elvira2::loadGame(const Common::String &filename, bool restartMo
 	if (restartMode) {
 		// Load restart state
 		Common::File *file = new Common::File();
-		if (!file->open(filename)) {
+		if (!file->open(Common::Path(filename))) {
 			delete file;
 			file = nullptr;
 		}
@@ -1243,7 +1248,7 @@ bool AGOSEngine_Elvira2::loadGame(const Common::String &filename, bool restartMo
 		f = _saveFileMan->openForLoading(filename);
 	}
 
-	if (f == NULL) {
+	if (f == nullptr) {
 		_videoLockOut &= ~0x100;
 		return false;
 	}
@@ -1273,7 +1278,15 @@ bool AGOSEngine_Elvira2::loadGame(const Common::String &filename, bool restartMo
 	// add all timers
 	killAllTimers();
 	for (num = f->readUint32BE(); num; num--) {
-		uint32 timeout = f->readUint32BE();
+		// WORKAROUND for older (corrupt) savegames. Games with short timer intervals may write negative timeouts into the save files. The
+		// original interpreter does that, too. I have checked it in the DOSBox debugger. We didn't handle this well, treating the negative
+		// values as very large positive values. This effectively disabled the timers. In most cases this seems to have gone unnoticed, but
+		// it also caused bug #14886 ("Waxworks crashing at Egypt Level 3, corrupting save file"). Waxworks runs a timer every 10 seconds
+		// that cleans up the items chain and failure to do so causes that bug. The design of the timers in the original interpreter is poor,
+		// but at least it somehow survives. Now, unfortunately, we don't have savegame versioning in this engine, so I can't simply limit
+		// a fix to old savegames. However, it is so highly unlikely that a valid timer would exceed 32767 seconds (= 9 hours) that I
+		// consider this safe.
+		int32 timeout = (int16)f->readSint32BE();
 		uint16 subroutine_id = f->readUint16BE();
 		addTimeEvent(timeout, subroutine_id);
 	}
@@ -1319,14 +1332,14 @@ bool AGOSEngine_Elvira2::loadGame(const Common::String &filename, bool restartMo
 
 					 for (uint16 z = minNum; z <= maxNum; z++) {
 						uint16 itemNum = z + 2;
-						_itemArrayPtr[itemNum] = 0;
+						_itemArrayPtr[itemNum] = nullptr;
 					}
 				}
 			}
 		}
 
 		if (room != _currentRoom) {
-			_roomsListPtr = 0;
+			_roomsListPtr = nullptr;
 			loadRoomItems(_currentRoom);
 		}
 	}
@@ -1343,13 +1356,13 @@ bool AGOSEngine_Elvira2::loadGame(const Common::String &filename, bool restartMo
 			uint parent = f->readUint16BE();
 			uint next = f->readUint16BE();
 
-			if (getGameType() == GType_WW && getPlatform() == Common::kPlatformDOS && derefItem(item->parent) == NULL)
+			if (getGameType() == GType_WW && getPlatform() == Common::kPlatformDOS && derefItem(item->parent) == nullptr)
 				item->parent = 0;
 
 			parent_item = derefItem(parent);
 			setItemParent(item, parent_item);
 
-			if (parent_item == NULL) {
+			if (parent_item == nullptr) {
 				item->parent = parent;
 				item->next = next;
 			}
@@ -1458,7 +1471,7 @@ bool AGOSEngine_Elvira2::saveGame(uint slot, const char *caption) {
 	_videoLockOut |= 0x100;
 
 	f = _saveFileMan->openForSaving(genSaveName(slot));
-	if (f == NULL) {
+	if (f == nullptr) {
 		_videoLockOut &= ~0x100;
 		return false;
 	}
@@ -1621,7 +1634,7 @@ bool AGOSEngine_PN::badload(int8 errorNum) {
 	// Load error recovery routine
 
 	// Clear any stack
-	while (_stackbase != NULL) {
+	while (_stackbase != nullptr) {
 		dumpstack();
 	}
 
@@ -1653,7 +1666,7 @@ int AGOSEngine_PN::loadFile(const Common::String &name) {
 	haltAnimation();
 
 	f = _saveFileMan->openForLoading(name);
-	if (f == NULL) {
+	if (f == nullptr) {
 		restartAnimation();
 		return -2;
 	}
@@ -1687,7 +1700,7 @@ int AGOSEngine_PN::saveFile(const Common::String &name) {
 	haltAnimation();
 
 	f = _saveFileMan->openForSaving(name);
-	if (f == NULL) {
+	if (f == nullptr) {
 		restartAnimation();
 
 		const char *msg = "Couldn't save. ";

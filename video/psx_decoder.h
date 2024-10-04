@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -81,9 +80,10 @@ private:
 		PSXVideoTrack(Common::SeekableReadStream *firstSector, CDSpeed speed, int frameCount);
 		~PSXVideoTrack();
 
-		uint16 getWidth() const { return _surface->w; }
-		uint16 getHeight() const { return _surface->h; }
-		Graphics::PixelFormat getPixelFormat() const { return _surface->format; }
+		uint16 getWidth() const { return _width; }
+		uint16 getHeight() const { return _height; }
+		Graphics::PixelFormat getPixelFormat() const { return _pixelFormat; }
+		bool setOutputPixelFormat(const Graphics::PixelFormat &format) { _pixelFormat = format; return true; }
 		bool endOfTrack() const { return _endOfTrack; }
 		int getCurFrame() const { return _curFrame; }
 		int getFrameCount() const { return _frameCount; }
@@ -95,6 +95,9 @@ private:
 
 	private:
 		Graphics::Surface *_surface;
+		Graphics::PixelFormat _pixelFormat;
+		uint16 _width;
+		uint16 _height;
 		uint32 _frameCount;
 		Audio::Timestamp _nextFrameStartTime;
 		bool _endOfTrack;

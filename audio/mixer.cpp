@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,7 +59,7 @@ public:
 	/**
 	 * Queries whether the channel is still playing or not.
 	 */
-	bool isFinished() const { return _stream->endOfStream(); }
+	bool isFinished() const { return _stream->endOfStream() && !_converter->needsDraining(); }
 
 	/**
 	 * Queries whether the channel is a permanent channel.
@@ -114,6 +113,26 @@ public:
 	 * @return balance
 	 */
 	int8 getBalance();
+
+	/**
+	 * Set the channel's sample rate.
+	 * 
+	 * @param rate	The new sample rate. Must be less than 131072
+	*/
+	void setRate(uint32 rate);
+
+	/**
+	 * Get the channel's sample rate.
+	 * 
+	 * @return The current sample rate of the channel.
+	*/
+	uint32 getRate();
+
+	/**
+	 * Reset the sample rate of the channel back to its
+	 * AudioStream's native rate.
+	*/
+	void resetRate();
 
 	/**
 	 * Notifies the channel that the global sound type
@@ -177,13 +196,13 @@ private:
 #pragma mark --- Mixer ---
 #pragma mark -
 
-MixerImpl::MixerImpl(uint sampleRate)
-	: _mutex(), _sampleRate(sampleRate), _mixerReady(false), _handleSeed(0), _soundTypeSettings() {
+MixerImpl::MixerImpl(uint sampleRate, bool stereo, uint outBufSize)
+	: _mutex(), _sampleRate(sampleRate), _stereo(stereo), _outBufSize(outBufSize), _mixerReady(false), _handleSeed(0), _soundTypeSettings() {
 
 	assert(sampleRate > 0);
 
 	for (int i = 0; i != NUM_CHANNELS; i++)
-		_channels[i] = 0;
+		_channels[i] = nullptr;
 }
 
 MixerImpl::~MixerImpl() {
@@ -201,10 +220,18 @@ uint MixerImpl::getOutputRate() const {
 	return _sampleRate;
 }
 
+bool MixerImpl::getOutputStereo() const {
+	return _stereo;
+}
+
+uint MixerImpl::getOutputBufSize() const {
+	return _outBufSize;
+}
+
 void MixerImpl::insertChannel(SoundHandle *handle, Channel *chan) {
 	int index = -1;
 	for (int i = 0; i != NUM_CHANNELS; i++) {
-		if (_channels[i] == 0) {
+		if (_channels[i] == nullptr) {
 			index = i;
 			break;
 		}
@@ -236,7 +263,7 @@ void MixerImpl::playStream(
 			bool reverseStereo) {
 	Common::StackLock lock(_mutex);
 
-	if (stream == 0) {
+	if (stream == nullptr) {
 		warning("stream is 0");
 		return;
 	}
@@ -247,7 +274,7 @@ void MixerImpl::playStream(
 	// Prevent duplicate sounds
 	if (id != -1) {
 		for (int i = 0; i != NUM_CHANNELS; i++)
-			if (_channels[i] != 0 && _channels[i]->getId() == id) {
+			if (_channels[i] != nullptr && _channels[i]->getId() == id) {
 				// Delete the stream if were asked to auto-dispose it.
 				// Note: This could cause trouble if the client code does not
 				// yet expect the stream to be gone. The primary example to
@@ -277,15 +304,21 @@ int MixerImpl::mixCallback(byte *samples, uint len) {
 	Common::StackLock lock(_mutex);
 
 	int16 *buf = (int16 *)samples;
-	// we store stereo, 16-bit samples
-	assert(len % 4 == 0);
-	len >>= 2;
 
 	// Since the mixer callback has been called, the mixer must be ready...
 	_mixerReady = true;
 
 	//  zero the buf
-	memset(buf, 0, 2 * len * sizeof(int16));
+	memset(buf, 0, len);
+
+	// we store 16-bit samples
+	if (_stereo) {
+		assert(len % 4 == 0);
+		len >>= 2;
+	} else {
+		assert(len % 2 == 0);
+		len >>= 1;
+	}
 
 	// mix all channels
 	int res = 0, tmp;
@@ -293,7 +326,7 @@ int MixerImpl::mixCallback(byte *samples, uint len) {
 		if (_channels[i]) {
 			if (_channels[i]->isFinished()) {
 				delete _channels[i];
-				_channels[i] = 0;
+				_channels[i] = nullptr;
 			} else if (!_channels[i]->isPaused()) {
 				tmp = _channels[i]->mix(buf, len);
 
@@ -308,9 +341,9 @@ int MixerImpl::mixCallback(byte *samples, uint len) {
 void MixerImpl::stopAll() {
 	Common::StackLock lock(_mutex);
 	for (int i = 0; i != NUM_CHANNELS; i++) {
-		if (_channels[i] != 0 && !_channels[i]->isPermanent()) {
+		if (_channels[i] != nullptr && !_channels[i]->isPermanent()) {
 			delete _channels[i];
-			_channels[i] = 0;
+			_channels[i] = nullptr;
 		}
 	}
 }
@@ -318,9 +351,9 @@ void MixerImpl::stopAll() {
 void MixerImpl::stopID(int id) {
 	Common::StackLock lock(_mutex);
 	for (int i = 0; i != NUM_CHANNELS; i++) {
-		if (_channels[i] != 0 && _channels[i]->getId() == id) {
+		if (_channels[i] != nullptr && _channels[i]->getId() == id) {
 			delete _channels[i];
-			_channels[i] = 0;
+			_channels[i] = nullptr;
 		}
 	}
 }
@@ -334,7 +367,7 @@ void MixerImpl::stopHandle(SoundHandle handle) {
 		return;
 
 	delete _channels[index];
-	_channels[index] = 0;
+	_channels[index] = nullptr;
 }
 
 void MixerImpl::muteSoundType(SoundType type, bool mute) {
@@ -388,6 +421,34 @@ int8 MixerImpl::getChannelBalance(SoundHandle handle) {
 	return _channels[index]->getBalance();
 }
 
+void MixerImpl::setChannelRate(SoundHandle handle, uint32 rate) {
+	Common::StackLock lock(_mutex);
+
+	const int index = handle._val % NUM_CHANNELS;
+	if (!_channels[index] || _channels[index]->getHandle()._val != handle._val)
+		return;
+
+	_channels[index]->setRate(rate);
+}
+
+uint32 MixerImpl::getChannelRate(SoundHandle handle) {
+	const int index = handle._val % NUM_CHANNELS;
+	if (!_channels[index] || _channels[index]->getHandle()._val != handle._val)
+		return 0;
+	
+	return _channels[index]->getRate();
+}
+
+void MixerImpl::resetChannelRate(SoundHandle handle) {
+	Common::StackLock lock(_mutex);
+
+	const int index = handle._val % NUM_CHANNELS;
+	if (!_channels[index] || _channels[index]->getHandle()._val != handle._val)
+		return;
+	
+	_channels[index]->resetRate();
+}
+
 uint32 MixerImpl::getSoundElapsedTime(SoundHandle handle) {
 	return getElapsedTime(handle).msecs();
 }
@@ -415,7 +476,7 @@ void MixerImpl::loopChannel(SoundHandle handle) {
 void MixerImpl::pauseAll(bool paused) {
 	Common::StackLock lock(_mutex);
 	for (int i = 0; i != NUM_CHANNELS; i++) {
-		if (_channels[i] != 0) {
+		if (_channels[i] != nullptr) {
 			_channels[i]->pause(paused);
 		}
 	}
@@ -424,7 +485,7 @@ void MixerImpl::pauseAll(bool paused) {
 void MixerImpl::pauseID(int id, bool paused) {
 	Common::StackLock lock(_mutex);
 	for (int i = 0; i != NUM_CHANNELS; i++) {
-		if (_channels[i] != 0 && _channels[i]->getId() == id) {
+		if (_channels[i] != nullptr && _channels[i]->getId() == id) {
 			_channels[i]->pause(paused);
 			return;
 		}
@@ -515,13 +576,13 @@ Channel::Channel(Mixer *mixer, Mixer::SoundType type, AudioStream *stream,
 				 DisposeAfterUse::Flag autofreeStream, bool reverseStereo, int id, bool permanent)
 	: _type(type), _mixer(mixer), _id(id), _permanent(permanent), _volume(Mixer::kMaxChannelVolume),
 	  _balance(0), _pauseLevel(0), _samplesConsumed(0), _samplesDecoded(0), _mixerTimeStamp(0),
-	  _pauseStartTime(0), _pauseTime(0), _converter(0), _volL(0), _volR(0),
+	  _pauseStartTime(0), _pauseTime(0), _converter(nullptr), _volL(0), _volR(0),
 	  _stream(stream, autofreeStream) {
 	assert(mixer);
 	assert(stream);
 
 	// Get a rate converter instance
-	_converter = makeRateConverter(_stream->getRate(), mixer->getOutputRate(), _stream->isStereo(), reverseStereo);
+	_converter = makeRateConverter(_stream->getRate(), mixer->getOutputRate(), _stream->isStereo(), mixer->getOutputStereo(), reverseStereo);
 }
 
 Channel::~Channel() {
@@ -544,6 +605,24 @@ void Channel::setBalance(const int8 balance) {
 
 int8 Channel::getBalance() {
 	return _balance;
+}
+
+void Channel::setRate(uint32 rate) {
+	if (_converter)
+		_converter->setInputRate(rate);
+}
+
+uint32 Channel::getRate() {
+	if (_converter)
+		return _converter->getInputRate();
+	
+	return 0;
+}
+
+void Channel::resetRate() {
+	if (_converter && _stream) {
+		_converter->setInputRate(_stream->getRate());
+	}
 }
 
 void Channel::updateChannelVolumes() {
@@ -622,27 +701,22 @@ Timestamp Channel::getElapsedTime() {
 void Channel::loop() {
 	assert(_stream);
 
-	Audio::RewindableAudioStream *rewindableStream = dynamic_cast<RewindableAudioStream *>(_stream.get());
-	if (rewindableStream) {
-		DisposeAfterUse::Flag dispose = _stream.getDispose();
-		_stream.disownPtr();
-		Audio::LoopingAudioStream *loopingStream = new Audio::LoopingAudioStream(rewindableStream, 0, dispose, false);
+	if (_stream.isDynamicallyCastable<RewindableAudioStream>()) {
+		Audio::LoopingAudioStream *loopingStream = new Audio::LoopingAudioStream(Common::move(_stream.moveAndDynamicCast<RewindableAudioStream>()), 0, false);
 		_stream.reset(loopingStream, DisposeAfterUse::YES);
 	}
 }
 
 int Channel::mix(int16 *data, uint len) {
 	assert(_stream);
+	assert(_converter);
 
 	int res = 0;
-	if (_stream->endOfData()) {
-		// TODO: call drain method
-	} else {
-		assert(_converter);
+	if (!_stream->endOfData() || _converter->needsDraining()) {
 		_samplesConsumed = _samplesDecoded;
 		_mixerTimeStamp = g_system->getMillis(true);
 		_pauseTime = 0;
-		res = _converter->flow(*_stream, data, len, _volL, _volR);
+		res = _converter->convert(*_stream, data, len, _volL, _volR);
 		_samplesDecoded += res;
 	}
 

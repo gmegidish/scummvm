@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,7 +55,7 @@ uint16 AGOSEngine::getDoorState(Item *item, uint16 d) {
 	uint16 n;
 
 	SubRoom *subRoom = (SubRoom *)findChildOfType(item, kRoomType);
-	if (subRoom == NULL)
+	if (subRoom == nullptr)
 		return 0;
 
 	d <<= 1;
@@ -73,7 +72,7 @@ uint16 AGOSEngine::getExitOf(Item *item, uint16 d) {
 	uint16 y = 0;
 
 	subRoom = (SubRoom *)findChildOfType(item, kRoomType);
-	if (subRoom == NULL)
+	if (subRoom == nullptr)
 		return 0;
 	x = d;
 	while (x > y) {
@@ -100,7 +99,7 @@ void AGOSEngine::setDoorState(Item *i, uint16 d, uint16 n) {
 	uint16 y = 0;
 
 	r = (SubRoom *)findChildOfType(i, kRoomType);
-	if (r == NULL)
+	if (r == nullptr)
 		return;
 	d1 = d;
 	while (d > y) {
@@ -111,10 +110,10 @@ void AGOSEngine::setDoorState(Item *i, uint16 d, uint16 n) {
 	changeDoorState(r, d, n);
 
 	j = derefItem(r->roomExit[d1]);
-	if (j == NULL)
+	if (j == nullptr)
 		return;
 	r1 = (SubRoom *)findChildOfType(j, kRoomType);
-	if (r1 == NULL)
+	if (r1 == nullptr)
 		return;
 	d = getBackExit(d);
 	d1 = d;
@@ -137,14 +136,14 @@ Item *AGOSEngine::getDoorOf(Item *i, uint16 d) {
 	Item *x;
 
 	g = (SubGenExit *)findChildOfType(i, kGenExitType);
-	if (g == NULL)
-		return 0;
+	if (g == nullptr)
+		return nullptr;
 
 	x = derefItem(g->dest[d]);
-	if (x == NULL)
-		return 0;
+	if (x == nullptr)
+		return nullptr;
 	if (isRoom(x))
-		return 0;
+		return nullptr;
 	return x;
 }
 
@@ -153,16 +152,16 @@ Item *AGOSEngine::getExitOf_e1(Item *item, uint16 d) {
 	Item *x;
 
 	g = (SubGenExit *)findChildOfType(item, kGenExitType);
-	if (g == NULL)
-		return 0;
+	if (g == nullptr)
+		return nullptr;
 
 	x = derefItem(g->dest[d]);
-	if (x == NULL)
-		return 0;
+	if (x == nullptr)
+		return nullptr;
 	if (isRoom(x))
 		return x;
 	if (x->state != 0)
-		return 0;
+		return nullptr;
 	return derefItem(x->parent);
 }
 
@@ -174,7 +173,7 @@ void AGOSEngine_Waxworks::moveDirn(Item *i, uint x) {
 		return;
 
 	n = getExitOf(derefItem(i->parent), x);
-	if (derefItem(n) == NULL) {
+	if (derefItem(n) == nullptr) {
 		loadRoomItems(n);
 		n = getExitOf(derefItem(i->parent), x);
 	}
@@ -232,7 +231,7 @@ void AGOSEngine::moveDirn(Item *i, uint x) {
 	Item *d, *p;
 
 	p = derefItem(i->parent);
-	if (p == 0)
+	if (p == nullptr)
 		return;
 
 
@@ -329,7 +328,7 @@ uint16 AGOSEngine_Elvira2::getExitState(Item *i, uint16 x, uint16 d) {
 	uint16 n;
 
 	sr = (SubSuperRoom *)findChildOfType(i, kSuperRoomType);
-	if (sr == NULL)
+	if (sr == nullptr)
 		return 0;
 
 	d <<= 1;
@@ -367,7 +366,7 @@ bool AGOSEngine::loadRoomItems(uint16 room) {
 	Common::File in;
 	Item *item, *itemTmp;
 
-	if (_roomsList == NULL)
+	if (_roomsList == nullptr)
 		return 0;
 
 	_currentRoom = room;
@@ -385,7 +384,7 @@ bool AGOSEngine::loadRoomItems(uint16 room) {
 			 for (uint16 z = minNum; z <= maxNum; z++) {
 				uint16 itemNum = z + 2;
 				item = derefItem(itemNum);
-				_itemArrayPtr[itemNum] = 0;
+				_itemArrayPtr[itemNum] = nullptr;
 
 				uint16 num = (itemNum - _itemArrayInited);
 				_roomStates[num].state = item->state;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,14 +29,13 @@ static const ADGameDescription gameDescriptions[] = {
 	// Red Comrades Demo
 	{
 		"petka1",
-		0,
+		"Demo",
 		AD_ENTRY2s("DEMO.EXE",   "5ef1ceaba05413d04fd733a81e6adbae", 888832,
 				   "SCRIPT.DAT", "8712157c39daf8dd1f441a11d19b9e48", 1851),
 		Common::RU_RUS,
 		Common::kPlatformWindows,
 		ADGF_DROPPLATFORM | ADGF_DROPLANGUAGE | ADGF_DEMO,
 		GUIO1(GUIO_NOMIDI)
-
 	},
 
 	// Red Comrades 1: Save the Galaxy
@@ -49,7 +47,18 @@ static const ADGameDescription gameDescriptions[] = {
 		Common::kPlatformWindows,
 		ADGF_DROPPLATFORM | ADGF_DROPLANGUAGE,
 		GUIO1(GUIO_NOMIDI)
+	},
 
+	// Red Comrades 1: Save the Galaxy (3 CD)
+	{
+		"petka1",
+		"Compressed",
+		AD_ENTRY2s("BGS1.STR",  "99832accda859e2e1daeaae0a8561aeb", 20280804,
+				   "data1.cab", "7e73a644d8b15d2fd3781de5edce0c18", 228838940),
+		Common::RU_RUS,
+		Common::kPlatformWindows,
+		ADGF_DROPPLATFORM | ADGF_DROPLANGUAGE | GF_COMPRESSED,
+		GUIO1(GUIO_NOMIDI)
 	},
 
 	// Red Comrades 2: For the Great Justice
@@ -60,6 +69,18 @@ static const ADGameDescription gameDescriptions[] = {
 		Common::RU_RUS,
 		Common::kPlatformWindows,
 		ADGF_DROPPLATFORM | ADGF_DROPLANGUAGE,
+		GUIO1(GUIO_NOMIDI)
+	},
+
+	// Red Comrades 2: For the Great Justice (CD)
+	{
+		"petka2",
+		"Compressed",
+		AD_ENTRY2s("main.str",  "4e515669c343609518277cab6e7d8c8f", 18992879,
+				   "data1.cab", "ac9ee2e481ee5a6389a6cd58faf5a358", 23287376),
+		Common::RU_RUS,
+		Common::kPlatformWindows,
+		ADGF_DROPPLATFORM | ADGF_DROPLANGUAGE | GF_COMPRESSED,
 		GUIO1(GUIO_NOMIDI)
 	},
 

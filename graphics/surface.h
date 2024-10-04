@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,7 @@ struct Point;
 }
 
 #include "graphics/pixelformat.h"
+#include "graphics/transform_struct.h"
 
 namespace Graphics {
 
@@ -46,6 +46,19 @@ namespace Graphics {
  */
 
 struct TransformStruct;
+
+enum DitherMethod {
+	kDitherNaive,
+	kDitherFloyd,
+	kDitherAtkinson,
+	kDitherBurkes,
+	kDitherFalseFloyd,
+	kDitherSierra,
+	kDitherSierraTwoRow,
+	kDitherSierraLite,
+	kDitherStucki,
+	kDitherJarvis,
+};
 
 /**
  * An arbitrary graphics surface that can be the target (or source) of blit
@@ -67,7 +80,7 @@ struct Surface {
 	 *
 	 * @note This might not equal w * bytesPerPixel.
 	 */
-	int16 pitch;
+	int32 pitch;
 
 protected:
 	/**
@@ -169,6 +182,7 @@ public:
 	 */
 	inline void setPixel(int x, int y, int pixel) {
 		assert(format.bytesPerPixel > 0 && format.bytesPerPixel <= 4);
+		assert(x >= 0 && x < w && y >= 0 && y < h);
 		if (format.bytesPerPixel == 1)
 			*((uint8 *)getBasePtr(x, y)) = pixel;
 		else if (format.bytesPerPixel == 2)
@@ -226,6 +240,18 @@ public:
 	void copyFrom(const Surface &surf);
 
 	/**
+	 * Convert the data from another surface to the specified format.
+	 *
+	 * This calls @ref free on the current surface to assure that it is
+	 * clean. Make sure that the current data was created using @ref create.
+	 * Otherwise, the results are undefined.
+	 *
+	 * @param surf    The surface to convert from.
+	 * @param format  The pixel format to convert to.
+	 */
+	void convertFrom(const Surface &surf, const PixelFormat &format);
+
+	/**
 	 * Create a surface that represents a sub-area of this Surface object.
 	 *
 	 * The pixel (0, 0) of the returned Surface will be the same as pixel
@@ -261,6 +287,11 @@ public:
 	const Surface getSubArea(const Common::Rect &area) const;
 
 	/**
+	 * Clip the given source bounds so the passed destBounds will be entirely on-screen.
+	 */
+	bool clip(Common::Rect &srcBounds, Common::Rect &destBounds) const;
+
+	/**
 	 * Copy a bitmap to the internal buffer of the surface.
 	 *
 	 * The pixel format of the buffer must match the pixel format of the surface.
@@ -286,6 +317,34 @@ public:
 	void copyRectToSurface(const Graphics::Surface &srcSurface, int destX, int destY, const Common::Rect subRect);
 
 	/**
+	 * Copy a bitmap to the internal buffer of the surface.
+	 *
+	 * The pixel format of the buffer must match the pixel format of the surface.
+	 *
+	 * @param buffer    Buffer containing the graphics data source.
+	 * @param srcPitch  Pitch of the buffer (number of bytes in a scanline).
+	 * @param destX     The x coordinate of the destination rectangle.
+	 * @param destY     The y coordinate of the destination rectangle.
+	 * @param width     Width of the destination rectangle.
+	 * @param height    Height of the destination rectangle.
+	 * @param key
+	 */
+	void copyRectToSurfaceWithKey(const void *buffer, int srcPitch, int destX, int destY, int width, int height, uint32 key);
+
+	/**
+	 * Copy a bitmap to the internal buffer of the surface.
+	 *
+	 * The pixel format of the buffer must match the pixel format of the surface.
+	 *
+	 * @param srcSurface  Source of the bitmap data.
+	 * @param destX       The x coordinate of the destination rectangle.
+	 * @param destY       The y coordinate of the destination rectangle.
+	 * @param subRect     The subRect of the surface to be blitted.
+	 * @param key
+	 */
+	void copyRectToSurfaceWithKey(const Graphics::Surface &srcSurface, int destX, int destY, const Common::Rect subRect, uint32 key);
+
+	/**
 	 * Convert the data to another pixel format.
 	 *
 	 * This works in-place. This means it does not create an additional buffer
@@ -296,9 +355,26 @@ public:
 	 * @ref create. Otherwise, this function has undefined behavior.
 	 *
 	 * @param dstFormat  The desired format.
-	 * @param palette    The palette (in RGB888), if the source format has a bpp of 1.
 	 */
-	void convertToInPlace(const PixelFormat &dstFormat, const byte *palette = 0);
+	inline void convertToInPlace(const PixelFormat &dstFormat) {
+		convertToInPlace(dstFormat, nullptr, 0);
+	}
+
+	/**
+	 * Convert the data to another pixel format.
+	 *
+	 * This works in-place. This means it does not create an additional buffer
+	 * for the conversion process. The value of 'pixels' might change though
+	 * (that means it might realloc the pixel data).
+	 *
+	 * @b Important: Only use this if you created the surface data using
+	 * @ref create. Otherwise, this function has undefined behavior.
+	 *
+	 * @param dstFormat  The desired format.
+	 * @param palette    The palette (in RGB888), if the source format has one.
+	 * @param paletteCount	The number of colors in the palette.
+	 */
+	void convertToInPlace(const PixelFormat &dstFormat, const byte *palette, uint16 paletteCount);
 
 	/**
 	 * Convert the data to another pixel format.
@@ -306,10 +382,19 @@ public:
 	 * The client code must call @ref free on the returned surface and then delete
 	 * it.
 	 *
-	 * @param dstFormat  The desired format.
-	 * @param palette    The palette (in RGB888), if the source format has a bpp of 1.
+	 * @param dstFormat   The desired format.
+	 * @param srcPalette  The palette (in RGB888), if the source format has a bpp of 1.
+	 * @param srcPaletteCount The color count in the for the srcPalette.
+	 * @param dstPalette  The palette (in RGB888), If the destination format has a bpp of 1.
+	 * @param dstaletteCount The color count in the for the dstPalette.
+	 * @param method      The dithering method if destination format has a bpp of 1. Default is Floyd-Steinberg.
 	 */
-	Graphics::Surface *convertTo(const PixelFormat &dstFormat, const byte *palette = 0) const;
+	Graphics::Surface *convertTo(const PixelFormat &dstFormat, const byte *srcPalette = 0, int srcPaletteCount = 256, const byte *dstPalette = 0, int dstPaletteCount = 0, DitherMethod method = kDitherFloyd) const;
+
+protected:
+	void ditherFloyd(const byte *srcPalette, int srcPaletteCount, Surface *dstSurf, const byte *dstPalette, int dstPaletteCount, DitherMethod method, const PixelFormat &dstFormat) const;
+
+public:
 
 	/**
 	 * Draw a line.
@@ -391,6 +476,47 @@ public:
 	 * @param r  The rectangle to flip.
 	 */
 	void flipVertical(const Common::Rect &r);
+
+	/**
+	 * Flip the specified rect horizontally.
+	 *
+	 * @param r  The rectangle to flip.
+	 */
+	void flipHorizontal(const Common::Rect &r);
+
+	/**
+	 * Writes a color key to the alpha channel of the surface
+	 * @param rKey  the red component of the color key
+	 * @param gKey  the green component of the color key
+	 * @param bKey  the blue component of the color key
+	 * @param overwriteAlpha if true, all other alpha will be set fully opaque
+	 */
+	bool applyColorKey(uint8 rKey, uint8 gKey, uint8 bKey, bool overwriteAlpha = false);
+
+	/**
+	 * Writes a color key to the alpha channel of the surface
+	 * @param rKey  the red component of the color key
+	 * @param gKey  the green component of the color key
+	 * @param bKey  the blue component of the color key
+	 * @param overwriteAlpha if true, all other alpha will be set fully opaque
+	 * @param rNew  the red component to replace the color key with
+	 * @param gNew  the green component to replace the color key with
+	 * @param bNew  the blue component to replace the color key with
+	 */
+	bool applyColorKey(uint8 rKey, uint8 gKey, uint8 bKey, bool overwriteAlpha,
+	                   uint8 rNew, uint8 gNew, uint8 bNew);
+
+	/**
+	 * Sets alpha channel for all pixels to specified value
+	 * @param alpha  value of the alpha channel to set
+	 * @param skipTransparent  if set to true, then do not touch pixels with alpha=0
+	 */
+	bool setAlpha(uint8 alpha, bool skipTransparent = false);
+
+	/**
+	 * Checks if the given surface contains alpha transparency
+	 */
+	AlphaType detectAlpha() const;
 
 	/**
 	 * Scale the data to the given size.

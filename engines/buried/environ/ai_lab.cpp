@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,9 +51,9 @@ enum {
 class BaseOxygenTimer : public SceneBase {
 public:
 	BaseOxygenTimer(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	virtual int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	virtual int preExitRoom(Window *viewWindow, const Location &priorLocation);
-	virtual int timerCallback(Window *viewWindow);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int preExitRoom(Window *viewWindow, const Location &priorLocation) override;
+	int timerCallback(Window *viewWindow) override;
 
 protected:
 	uint32 _entryStartTime;
@@ -181,11 +180,10 @@ class SpaceDoorTimer : public BaseOxygenTimer {
 public:
 	SpaceDoorTimer(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
 			int left = -1, int top = -1, int right = -1, int bottom = -1, int openFrame = -1, int closedFrame = -1, int depth = -1,
-			int transitionType = -1, int transitionData = -1, int transitionStartFrame = -1, int transitionLength = -1,
-			int doorFlag = -1, int doorFlagValue = 0);
-	int mouseDown(Window *viewWindow, const Common::Point &pointLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+			int transitionType = -1, int transitionData = -1, int transitionStartFrame = -1, int transitionLength = -1);
+	int mouseDown(Window *viewWindow, const Common::Point &pointLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	bool _clicked;
@@ -193,20 +191,15 @@ private:
 	DestinationScene _destData;
 	int _openFrame;
 	int _closedFrame;
-	int _doorFlag;
-	int _doorFlagValue;
 };
 
 SpaceDoorTimer::SpaceDoorTimer(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
 		int left, int top, int right, int bottom, int openFrame, int closedFrame, int depth,
-		int transitionType, int transitionData, int transitionStartFrame, int transitionLength,
-		int doorFlag, int doorFlagValue) :
+		int transitionType, int transitionData, int transitionStartFrame, int transitionLength) :
 		BaseOxygenTimer(vm, viewWindow, sceneStaticData, priorLocation) {
 	_clicked = false;
 	_openFrame = openFrame;
 	_closedFrame = closedFrame;
-	_doorFlag = doorFlag;
-	_doorFlagValue = doorFlagValue;
 	_clickable = Common::Rect(left, top, right, bottom);
 	_destData.destinationScene = _staticData.location;
 	_destData.destinationScene.depth = depth;
@@ -249,29 +242,14 @@ int SpaceDoorTimer::mouseUp(Window *viewWindow, const Common::Point &pointLocati
 			return SC_TRUE;
 		}
 
-		if (_doorFlag < 0 || ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_doorFlag) == _doorFlagValue) {
-			// Change the still frame to the new one
-			if (_openFrame >= 0) {
-				_staticData.navFrameIndex = _openFrame;
-				viewWindow->invalidateWindow(false);
-				_vm->_sound->playSynchronousSoundEffect("BITDATA/AILAB/AI_LOCK.BTA"); // Broken in 1.01
-			}
-
-			((SceneViewWindow *)viewWindow)->moveToDestination(_destData);
-		} else {
-			// Display the closed frame
-			if (_closedFrame >= 0) {
-				int oldFrame = _staticData.navFrameIndex;
-				_staticData.navFrameIndex = _closedFrame;
-				viewWindow->invalidateWindow(false);
-
-				_vm->_sound->playSynchronousSoundEffect(_vm->getFilePath(_staticData.location.timeZone, _staticData.location.environment, 12));
-				_vm->_sound->playSynchronousSoundEffect(_vm->getFilePath(_staticData.location.timeZone, _staticData.location.environment, 13));
-
-				_staticData.navFrameIndex = oldFrame;
-				viewWindow->invalidateWindow(false);
-			}
+		// Change the still frame to the new one
+		if (_openFrame >= 0) {
+			_staticData.navFrameIndex = _openFrame;
+			viewWindow->invalidateWindow(false);
+			_vm->_sound->playSynchronousSoundEffect("BITDATA/AILAB/AI_LOCK.BTA"); // Broken in 1.01
 		}
+
+		((SceneViewWindow *)viewWindow)->moveToDestination(_destData);
 
 		_clicked = false;
 		return SC_TRUE;
@@ -365,14 +343,12 @@ int UseCheeseGirlPropellant::droppedItem(Window *viewWindow, int itemID, const C
 class PlayArthurOffsetTimed : public BaseOxygenTimer {
 public:
 	PlayArthurOffsetTimed(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
-			int stingerVolume = 127, int lastStingerFlagOffset = -1, int effectIDFlagOffset = -1, int firstStingerFileID = -1,
+			int stingerVolume = 127, int firstStingerFileID = -1,
 			int lastStingerFileID = -1, int stingerDelay = 1);
 	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
 
 private:
 	int _stingerVolume;
-	int _lastStingerFlagOffset;
-	int _effectIDFlagOffset;
 	int _firstStingerFileID;
 	int _lastStingerFileID;
 	int _stingerDelay;
@@ -380,23 +356,24 @@ private:
 };
 
 PlayArthurOffsetTimed::PlayArthurOffsetTimed(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
-		int stingerVolume, int lastStingerFlagOffset, int effectIDFlagOffset, int firstStingerFileID,
+		int stingerVolume, int firstStingerFileID,
 		int lastStingerFileID, int stingerDelay) :
 		BaseOxygenTimer(vm, viewWindow, sceneStaticData, priorLocation) {
 	_stingerVolume = stingerVolume;
-	_lastStingerFlagOffset = lastStingerFlagOffset;
-	_effectIDFlagOffset = effectIDFlagOffset;
 	_firstStingerFileID = firstStingerFileID;
 	_lastStingerFileID = lastStingerFileID;
 	_stingerDelay = stingerDelay;
 }
 
 int PlayArthurOffsetTimed::postEnterRoom(Window *viewWindow, const Location &priorLocation) {
-	if (_effectIDFlagOffset >= 0 && (priorLocation.node != _staticData.location.node || priorLocation.environment != _staticData.location.environment)) {
-		byte effectID = ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_effectIDFlagOffset);
+	SceneViewWindow *sceneView = ((SceneViewWindow *)viewWindow);
+	GlobalFlags &globalFlags = sceneView->getGlobalFlags();
+
+	if ((priorLocation.node != _staticData.location.node || priorLocation.environment != _staticData.location.environment)) {
+		byte effectID = globalFlags.aiHWStingerChannelID;
 
 		if (!_vm->_sound->isSoundEffectPlaying(effectID - 1)) {
-			int lastStinger = ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_lastStingerFlagOffset) + 1;
+			int lastStinger = globalFlags.aiHWStingerID + 1;
 
 			if ((lastStinger % _stingerDelay) == 0) {
 				if (lastStinger <= (_lastStingerFileID - _firstStingerFileID) * _stingerDelay) {
@@ -415,12 +392,12 @@ int PlayArthurOffsetTimed::postEnterRoom(Window *viewWindow, const Location &pri
 						newStingerID = _vm->_sound->playSoundEffect(_vm->getFilePath(fileNameIndex), _stingerVolume, false, true) + 1;
 					}
 
-					((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_effectIDFlagOffset, newStingerID);
-					((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_lastStingerFlagOffset, lastStinger);
+					globalFlags.aiHWStingerChannelID = newStingerID;
+					globalFlags.aiHWStingerID = lastStinger;
 				}
 			} else {
-				((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_effectIDFlagOffset, 0xFF);
-				((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_lastStingerFlagOffset, lastStinger);
+				globalFlags.aiHWStingerChannelID = 0xFF;
+				globalFlags.aiHWStingerID = lastStinger;
 			}
 		}
 	}
@@ -431,8 +408,8 @@ int PlayArthurOffsetTimed::postEnterRoom(Window *viewWindow, const Location &pri
 class HabitatWingIceteroidDoor : public BaseOxygenTimer {
 public:
 	HabitatWingIceteroidDoor(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _doorHandle;
@@ -496,8 +473,8 @@ public:
 	IceteroidPodTimed(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
 			int left = -1, int top = -1, int right = -1, int bottom = -1, int animID = -1, int timeZone = -1,
 			int environment = -1, int node = -1, int facing = -1, int orientation = -1, int depth = -1);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _engageButton;
@@ -535,8 +512,8 @@ public:
 	IceteroidElevatorExtremeControls(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
 			int upTimeZone = -1, int upEnvironment = -1, int upNode = -1, int upFacing = -1, int upOrientation = -1, int upDepth = -1, int upAnimID = -1,
 			int downTimeZone = -1, int downEnvironment = -1, int downNode = -1, int downFacing = -1, int downOrientation = -1, int downDepth = -1, int downAnimID = -1);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _up, _down;
@@ -591,8 +568,8 @@ int IceteroidElevatorExtremeControls::specifyCursor(Window *viewWindow, const Co
 class IceteroidZoomInMineControls : public BaseOxygenTimer {
 public:
 	IceteroidZoomInMineControls(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _controls;
@@ -629,8 +606,8 @@ int IceteroidZoomInMineControls::specifyCursor(Window *viewWindow, const Common:
 class IceteroidMineControls : public BaseOxygenTimer {
 public:
 	IceteroidMineControls(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _mineButton, _makeOxygenButton;
@@ -708,8 +685,8 @@ int IceteroidMineControls::specifyCursor(Window *viewWindow, const Common::Point
 class IceteroidZoomInDispenser : public BaseOxygenTimer {
 public:
 	IceteroidZoomInDispenser(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _controls;
@@ -899,7 +876,7 @@ int IceteroidDispenserControls::droppedItem(Window *viewWindow, int itemID, cons
 class PlaySoundExitingForward : public BaseOxygenTimer {
 public:
 	PlaySoundExitingForward(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation, int soundFileNameID);
-	int postExitRoom(Window *viewWindow, const Location &newLocation);
+	int postExitRoom(Window *viewWindow, const Location &newLocation) override;
 
 private:
 	int _soundFileNameID;
@@ -920,8 +897,8 @@ int PlaySoundExitingForward::postExitRoom(Window *viewWindow, const Location &ne
 class TakeWaterCanister : public BaseOxygenTimer {
 public:
 	TakeWaterCanister(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseDown(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseDown(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _canister;
@@ -968,8 +945,8 @@ int TakeWaterCanister::specifyCursor(Window *viewWindow, const Common::Point &po
 class ScienceWingZoomIntoPanel : public BaseOxygenTimer {
 public:
 	ScienceWingZoomIntoPanel(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	int _cursorID;
@@ -1007,10 +984,10 @@ class ScienceWingPanelInterface : public BaseOxygenTimer {
 public:
 	ScienceWingPanelInterface(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
 	~ScienceWingPanelInterface();
-	void preDestructor();
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
-	int gdiPaint(Window *viewWindow);
+	void preDestructor() override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
+	int gdiPaint(Window *viewWindow) override;
 
 private:
 	Common::Rect _stationRegions[15];
@@ -1238,8 +1215,8 @@ int ScienceWingPanelInterface::gdiPaint(Window *viewWindow) {
 class ScienceWingMachineRoomDoor : public BaseOxygenTimer {
 public:
 	ScienceWingMachineRoomDoor(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	int _cursorID;
@@ -1357,10 +1334,10 @@ int NexusDoor::specifyCursor(Window *viewWindow, const Common::Point &pointLocat
 class NexusPuzzle : public SceneBase {
 public:
 	NexusPuzzle(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int gdiPaint(Window *viewWindow);
-	int mouseDown(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int gdiPaint(Window *viewWindow) override;
+	int mouseDown(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _lights[7];
@@ -1577,7 +1554,7 @@ int NexusPuzzle::specifyCursor(Window *viewWindow, const Common::Point &pointLoc
 class NexusEnd : public SceneBase {
 public:
 	NexusEnd(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
 };
 
 NexusEnd::NexusEnd(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation) :
@@ -1619,8 +1596,8 @@ class HabitatWingLockedDoor : public BaseOxygenTimer {
 public:
 	HabitatWingLockedDoor(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
 			int newFrameID = -1, int beepSoundID = -1, int voSoundID = -1, int left = 0, int top = 0, int right = 0, int bottom = 0);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	int _newFrameID;
@@ -1679,9 +1656,9 @@ BaseOxygenTimerInSpace::BaseOxygenTimerInSpace(BuriedEngine *vm, Window *viewWin
 class BaseOxygenTimerCapacitance : public SceneBase {
 public:
 	BaseOxygenTimerCapacitance(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	virtual int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	virtual int preExitRoom(Window *viewWindow, const Location &priorLocation);
-	virtual int timerCallback(Window *viewWindow);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int preExitRoom(Window *viewWindow, const Location &priorLocation) override;
+	int timerCallback(Window *viewWindow) override;
 
 protected:
 	uint32 _entryStartTime;
@@ -1804,11 +1781,11 @@ int BaseOxygenTimerCapacitance::timerCallback(Window *viewWindow) {
 class CapacitanceToHabitatDoorClosed : public BaseOxygenTimerCapacitance {
 public:
 	CapacitanceToHabitatDoorClosed(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseDown(Window *viewWindow, const Common::Point &pointLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
-	int draggingItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags);
-	int droppedItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags);
+	int mouseDown(Window *viewWindow, const Common::Point &pointLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
+	int draggingItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) override;
+	int droppedItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) override;
 
 private:
 	Common::Rect _metalBar;
@@ -1851,7 +1828,7 @@ int CapacitanceToHabitatDoorClosed::mouseUp(Window *viewWindow, const Common::Po
 			uint32 startTime = g_system->getMillis();
 
 			while (!_vm->shouldQuit() && g_system->getMillis() < startTime + 1000) {
-				_vm->yield();
+				_vm->yield(nullptr, -1);
 				_vm->_sound->timerCallback();
 			}
 
@@ -1875,7 +1852,7 @@ int CapacitanceToHabitatDoorClosed::mouseUp(Window *viewWindow, const Common::Po
 				uint32 startTime = g_system->getMillis();
 
 				while (!_vm->shouldQuit() && g_system->getMillis() < startTime + 1000) {
-					_vm->yield();
+					_vm->yield(nullptr, -1);
 					_vm->_sound->timerCallback();
 				}
 
@@ -1935,11 +1912,11 @@ int CapacitanceToHabitatDoorClosed::droppedItem(Window *viewWindow, int itemID, 
 class CapacitanceToHabitatDoorOpen : public BaseOxygenTimerCapacitance {
 public:
 	CapacitanceToHabitatDoorOpen(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postExitRoom(Window *viewWindow, const Location &newLocation);
-	int mouseDown(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
-	int draggingItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags);
-	int droppedItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags);
+	int postExitRoom(Window *viewWindow, const Location &newLocation) override;
+	int mouseDown(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
+	int draggingItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) override;
+	int droppedItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) override;
 
 private:
 	Common::Rect _metalBar;
@@ -2021,10 +1998,10 @@ class CapacitancePanelInterface : public BaseOxygenTimerCapacitance {
 public:
 	CapacitancePanelInterface(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
 	~CapacitancePanelInterface();
-	void preDestructor();
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
-	int gdiPaint(Window *viewWindow);
+	void preDestructor() override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
+	int gdiPaint(Window *viewWindow) override;
 
 private:
 	Common::Rect _stationRegions[15];
@@ -2303,31 +2280,30 @@ int CapacitancePanelInterface::gdiPaint(Window *viewWindow) {
 class PlayArthurOffsetCapacitance : public BaseOxygenTimerCapacitance {
 public:
 	PlayArthurOffsetCapacitance(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
-			int stingerVolume = 127, int lastStingerFlagOffset = -1, int effectIDFlagOffset = -1, int firstStingerFileID = -1,
-			int lastStingerFileID = -1, int stingerDelay = 1, int flagOffset = -1, int newStill = -1, int newNavStart = -1, int newNavLength = -1);
+			int stingerVolume = 127, int firstStingerFileID = -1, int lastStingerFileID = -1,
+			int stingerDelay = 1, int newStill = -1, int newNavStart = -1, int newNavLength = -1);
 	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
 
 private:
 	int _stingerVolume;
-	int _lastStingerFlagOffset;
-	int _effectIDFlagOffset;
 	int _firstStingerFileID;
 	int _lastStingerFileID;
 	int _stingerDelay;
 };
 
 PlayArthurOffsetCapacitance::PlayArthurOffsetCapacitance(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
-		int stingerVolume, int lastStingerFlagOffset, int effectIDFlagOffset, int firstStingerFileID,
-		int lastStingerFileID, int stingerDelay, int flagOffset, int newStill, int newNavStart, int newNavLength) :
+		int stingerVolume, int firstStingerFileID, int lastStingerFileID, int stingerDelay,
+		int newStill, int newNavStart, int newNavLength) :
 		BaseOxygenTimerCapacitance(vm, viewWindow, sceneStaticData, priorLocation) {
+	SceneViewWindow *sceneView = ((SceneViewWindow *)viewWindow);
+	GlobalFlags &globalFlags = sceneView->getGlobalFlags();
+
 	_stingerVolume = stingerVolume;
-	_lastStingerFlagOffset = lastStingerFlagOffset;
-	_effectIDFlagOffset = effectIDFlagOffset;
 	_firstStingerFileID = firstStingerFileID;
 	_lastStingerFileID = lastStingerFileID;
 	_stingerDelay = stingerDelay;
 
-	if (flagOffset >= 0 && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(flagOffset) == 0) {
+	if (globalFlags.aiCRGrabbedMetalBar == 0) {
 		// This is completely wrong.
 		//if (newStill >= 0)
 		//	_staticData.navFrameIndex;
@@ -2339,48 +2315,49 @@ PlayArthurOffsetCapacitance::PlayArthurOffsetCapacitance(BuriedEngine *vm, Windo
 }
 
 int PlayArthurOffsetCapacitance::postEnterRoom(Window *viewWindow, const Location &priorLocation) {
+	SceneViewWindow *sceneView = ((SceneViewWindow *)viewWindow);
+	GlobalFlags &globalFlags = sceneView->getGlobalFlags();
+
 	BaseOxygenTimerCapacitance::postEnterRoom(viewWindow, priorLocation);
 
-	if (_effectIDFlagOffset >= 0) {
-		byte effectID = ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_effectIDFlagOffset);
+	byte effectID = globalFlags.aiCRStingerChannelID;
 
-		if (!_vm->_sound->isSoundEffectPlaying(effectID - 1)) {
-			byte lastStinger = ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_lastStingerFlagOffset) + 1;
+	if (!_vm->_sound->isSoundEffectPlaying(effectID - 1)) {
+		byte lastStinger = globalFlags.aiCRStingerID + 1;
 
-			if ((lastStinger % _stingerDelay) == 0) {
-				if (lastStinger < (_lastStingerFileID - _firstStingerFileID) * _stingerDelay) {
-					int fileNameIndex = _vm->computeFileNameResourceID(_staticData.location.timeZone, _staticData.location.environment, _firstStingerFileID + (lastStinger / _stingerDelay) - 1);
+		if ((lastStinger % _stingerDelay) == 0) {
+			if (lastStinger < (_lastStingerFileID - _firstStingerFileID) * _stingerDelay) {
+				int fileNameIndex = _vm->computeFileNameResourceID(_staticData.location.timeZone, _staticData.location.environment, _firstStingerFileID + (lastStinger / _stingerDelay) - 1);
 
-					if (((GameUIWindow *)viewWindow->getParent())->_inventoryWindow->isItemInInventory(kItemBioChipAI) && (lastStinger / _stingerDelay) < 3) {
-						_vm->_sound->playSynchronousSoundEffect(_vm->getFilePath(fileNameIndex));
+				if (((GameUIWindow *)viewWindow->getParent())->_inventoryWindow->isItemInInventory(kItemBioChipAI) && (lastStinger / _stingerDelay) < 3) {
+					_vm->_sound->playSynchronousSoundEffect(_vm->getFilePath(fileNameIndex));
 
-						// Play an Arthur comment if we have the chip
-						switch (lastStinger / _stingerDelay) {
-						case 0:
-							_vm->_sound->playSynchronousSoundEffect("BITDATA/AILAB/AICR_C01.BTA", 127);
-							break;
-						case 1:
-							_vm->_sound->playSynchronousSoundEffect("BITDATA/AILAB/AICR_C02.BTA", 127);
-							break;
-						case 2:
-							_vm->_sound->playSynchronousSoundEffect("BITDATA/AILAB/AICR_C03.BTA", 127);
-							break;
-						}
-
-						// Update the global flags
-						((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_lastStingerFlagOffset, lastStinger);
-					} else {
-						byte newStingerID = _vm->_sound->playSoundEffect(_vm->getFilePath(fileNameIndex), _stingerVolume, false, true) + 1;
-
-						// Update the global flags
-						((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_effectIDFlagOffset, newStingerID);
-						((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_lastStingerFlagOffset, lastStinger);
+					// Play an Arthur comment if we have the chip
+					switch (lastStinger / _stingerDelay) {
+					case 0:
+						_vm->_sound->playSynchronousSoundEffect("BITDATA/AILAB/AICR_C01.BTA", 127);
+						break;
+					case 1:
+						_vm->_sound->playSynchronousSoundEffect("BITDATA/AILAB/AICR_C02.BTA", 127);
+						break;
+					case 2:
+						_vm->_sound->playSynchronousSoundEffect("BITDATA/AILAB/AICR_C03.BTA", 127);
+						break;
 					}
+
+					// Update the global flags
+					globalFlags.aiCRStingerID = lastStinger;
+				} else {
+					byte newStingerID = _vm->_sound->playSoundEffect(_vm->getFilePath(fileNameIndex), _stingerVolume, false, true) + 1;
+
+					// Update the global flags
+					globalFlags.aiCRStingerChannelID = newStingerID;
+					globalFlags.aiCRStingerID = lastStinger;
 				}
-			} else {
-				((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_effectIDFlagOffset, 0xFF);
-				((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_lastStingerFlagOffset, lastStinger);
 			}
+		} else {
+			globalFlags.aiCRStingerChannelID = 0xFF;
+			globalFlags.aiCRStingerID = lastStinger;
 		}
 	}
 
@@ -2393,8 +2370,8 @@ public:
 			int left = -1, int top = -1, int right = -1, int bottom = -1, int cursorID = 0,
 			int timeZone = -1, int environment = -1, int node = -1, int facing = -1, int orientation = -1, int depth = -1,
 			int transitionType = -1, int transitionData = -1, int transitionStartFrame = -1, int transitionLength = -1);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	int _cursorID;
@@ -2433,8 +2410,8 @@ int ClickChangeSceneCapacitance::specifyCursor(Window *viewWindow, const Common:
 class CapacitanceDockingBayDoor : public BaseOxygenTimerCapacitance {
 public:
 	CapacitanceDockingBayDoor(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _door;
@@ -2456,7 +2433,7 @@ int CapacitanceDockingBayDoor::mouseUp(Window *viewWindow, const Common::Point &
 			// Wait a second?
 			uint32 startTime = g_system->getMillis();
 			while (!_vm->shouldQuit() && g_system->getMillis() < startTime + 1000) {
-				_vm->yield();
+				_vm->yield(nullptr, -1);
 				_vm->_sound->timerCallback();
 			}
 
@@ -2498,9 +2475,9 @@ int CapacitanceDockingBayDoor::specifyCursor(Window *viewWindow, const Common::P
 class ScanningRoomEntryScan : public SceneBase {
 public:
 	ScanningRoomEntryScan(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int postExitRoom(Window *viewWindow, const Location &newLocation);
-	int timerCallback(Window *viewWindow);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int postExitRoom(Window *viewWindow, const Location &newLocation) override;
+	int timerCallback(Window *viewWindow) override;
 
 private:
 	DestinationScene _savedForwardData;
@@ -2562,8 +2539,8 @@ int ScanningRoomEntryScan::timerCallback(Window *viewWindow) {
 class ScanningRoomWalkWarning : public SceneBase {
 public:
 	ScanningRoomWalkWarning(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postExitRoom(Window *viewWindow, const Location &newLocation);
-	int timerCallback(Window *viewWindow);
+	int postExitRoom(Window *viewWindow, const Location &newLocation) override;
+	int timerCallback(Window *viewWindow) override;
 
 private:
 	DestinationScene _savedForwardData;
@@ -2605,9 +2582,9 @@ int ScanningRoomWalkWarning::timerCallback(Window *viewWindow) {
 class ScanningRoomDockingBayDoor : public SceneBase {
 public:
 	ScanningRoomDockingBayDoor(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int timerCallback(Window *viewWindow);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int timerCallback(Window *viewWindow) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	bool _audioEnded;
@@ -2673,8 +2650,8 @@ int ScanningRoomDockingBayDoor::specifyCursor(Window *viewWindow, const Common::
 class ScanningRoomScienceWingDoor : public SceneBase {
 public:
 	ScanningRoomScienceWingDoor(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _doorRegion;
@@ -2714,9 +2691,9 @@ int ScanningRoomScienceWingDoor::specifyCursor(Window *viewWindow, const Common:
 class ArthurScanningRoomConversation : public SceneBase {
 public:
 	ArthurScanningRoomConversation(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _yes;
@@ -2820,9 +2797,9 @@ int ArthurScanningRoomConversation::specifyCursor(Window *viewWindow, const Comm
 class ScanningRoomNexusDoorNormalFacing : public SceneBase {
 public:
 	ScanningRoomNexusDoorNormalFacing(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _clickable;
@@ -2872,8 +2849,8 @@ int ScanningRoomNexusDoorNormalFacing::specifyCursor(Window *viewWindow, const C
 class ScanningRoomNexusDoorZoomInCodePad : public SceneBase {
 public:
 	ScanningRoomNexusDoorZoomInCodePad(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _controls;
@@ -2911,12 +2888,12 @@ class ScanningRoomNexusDoorCodePad : public SceneBase {
 public:
 	ScanningRoomNexusDoorCodePad(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
 	~ScanningRoomNexusDoorCodePad();
-	void preDestructor();
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int onCharacter(Window *viewWindow, const Common::KeyState &character);
-	int gdiPaint(Window *viewWindow);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	void preDestructor() override;
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int onCharacter(Window *viewWindow, const Common::KeyState &character) override;
+	int gdiPaint(Window *viewWindow) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _numbers[10];
@@ -3066,9 +3043,9 @@ int ScanningRoomNexusDoorCodePad::specifyCursor(Window *viewWindow, const Common
 class ScanningRoomNexusDoorPullHandle : public SceneBase {
 public:
 	ScanningRoomNexusDoorPullHandle(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _handle;
@@ -3114,8 +3091,8 @@ int ScanningRoomNexusDoorPullHandle::specifyCursor(Window *viewWindow, const Com
 class MachineRoomExitDoor : public SceneBase {
 public:
 	MachineRoomExitDoor(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _clickable;
@@ -3151,10 +3128,10 @@ int MachineRoomExitDoor::specifyCursor(Window *viewWindow, const Common::Point &
 class MachineRoomTamperedSculpture : public SceneBase {
 public:
 	MachineRoomTamperedSculpture(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int locateAttempted(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int locateAttempted(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _clickable;
@@ -3172,7 +3149,7 @@ int MachineRoomTamperedSculpture::mouseUp(Window *viewWindow, const Common::Poin
 			((SceneViewWindow *)viewWindow)->playSynchronousAnimation(1);
 
 			// Attempt to add it to the biochip
-			if (((SceneViewWindow *)viewWindow)->addNumberToGlobalFlagTable(offsetof(GlobalFlags, evcapBaseID), offsetof(GlobalFlags, evcapNumCaptured), 12, AI_EVIDENCE_SCULPTURE))
+			if (((SceneViewWindow *)viewWindow)->addNumberToGlobalFlagTable(AI_EVIDENCE_SCULPTURE))
 				((SceneViewWindow *)viewWindow)->displayLiveText(_vm->getString(IDS_MBT_EVIDENCE_RIPPLE_DOCUMENTED));
 			else
 				((SceneViewWindow *)viewWindow)->displayLiveText(_vm->getString(IDS_MBT_EVIDENCE_ALREADY_ACQUIRED));
@@ -3201,7 +3178,7 @@ int MachineRoomTamperedSculpture::mouseUp(Window *viewWindow, const Common::Poin
 
 int MachineRoomTamperedSculpture::postEnterRoom(Window *viewWindow, const Location &priorLocation) {
 	// If we have not yet captured it, set the anachronism message
-	if (!((SceneViewWindow *)viewWindow)->isNumberInGlobalFlagTable(offsetof(GlobalFlags, evcapBaseID), offsetof(GlobalFlags, evcapNumCaptured), AI_EVIDENCE_SCULPTURE))
+	if (!((SceneViewWindow *)viewWindow)->isNumberInGlobalFlagTable(AI_EVIDENCE_SCULPTURE))
 		((SceneViewWindow *)viewWindow)->displayLiveText(_vm->getString(IDS_MBT_EVIDENCE_PRESENT));
 
 	return SC_TRUE;
@@ -3209,7 +3186,7 @@ int MachineRoomTamperedSculpture::postEnterRoom(Window *viewWindow, const Locati
 
 int MachineRoomTamperedSculpture::locateAttempted(Window *viewWindow, const Common::Point &pointLocation) {
 	if (((SceneViewWindow *)viewWindow)->getGlobalFlags().bcLocateEnabled == 1 && _clickable.contains(pointLocation) &&
-			!((SceneViewWindow *)viewWindow)->isNumberInGlobalFlagTable(offsetof(GlobalFlags, evcapBaseID), offsetof(GlobalFlags, evcapNumCaptured), AI_EVIDENCE_SCULPTURE)) {
+			!((SceneViewWindow *)viewWindow)->isNumberInGlobalFlagTable(AI_EVIDENCE_SCULPTURE)) {
 		((SceneViewWindow *)viewWindow)->displayLiveText(_vm->getString(IDS_MBT_EVIDENCE_MUST_BE_REVEALED)); // All will be reveaaaaaled
 		return SC_TRUE;
 	}
@@ -3233,8 +3210,8 @@ int MachineRoomTamperedSculpture::specifyCursor(Window *viewWindow, const Common
 class MachineRoomHarmonicsInterface : public SceneBase {
 public:
 	MachineRoomHarmonicsInterface(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _testButton;
@@ -3455,8 +3432,8 @@ int MachineRoomHarmonicsInterface::specifyCursor(Window *viewWindow, const Commo
 class MachineRoomHarmonicsZoomIn : public SceneBase {
 public:
 	MachineRoomHarmonicsZoomIn(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _clickRegion;
@@ -3492,11 +3469,10 @@ class SpaceDoor : public SceneBase {
 public:
 	SpaceDoor(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
 			int left = -1, int top = -1, int right = -1, int bottom = -1, int openFrame = -1, int closedFrame = -1, int depth = -1,
-			int transitionType = -1, int transitionData = -1, int transitionStartFrame = -1, int transitionLength = -1,
-			int doorFlag = -1, int doorFlagValue = 0);
-	int mouseDown(Window *viewWindow, const Common::Point &pointLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+			int transitionType = -1, int transitionData = -1, int transitionStartFrame = -1, int transitionLength = -1);
+	int mouseDown(Window *viewWindow, const Common::Point &pointLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	bool _clicked;
@@ -3504,20 +3480,15 @@ private:
 	DestinationScene _destData;
 	int _openFrame;
 	int _closedFrame;
-	int _doorFlag;
-	int _doorFlagValue;
 };
 
 SpaceDoor::SpaceDoor(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
 		int left, int top, int right, int bottom, int openFrame, int closedFrame, int depth,
-		int transitionType, int transitionData, int transitionStartFrame, int transitionLength,
-		int doorFlag, int doorFlagValue) :
+		int transitionType, int transitionData, int transitionStartFrame, int transitionLength) :
 		SceneBase(vm, viewWindow, sceneStaticData, priorLocation) {
 	_clicked = false;
 	_openFrame = openFrame;
 	_closedFrame = closedFrame;
-	_doorFlag = doorFlag;
-	_doorFlagValue = doorFlagValue;
 	_clickable = Common::Rect(left, top, right, bottom);
 	_destData.destinationScene = _staticData.location;
 	_destData.destinationScene.depth = depth;
@@ -3548,22 +3519,14 @@ int SpaceDoor::mouseUp(Window *viewWindow, const Common::Point &pointLocation) {
 			return SC_TRUE;
 		}
 
-		if (_doorFlag < 0 || ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_doorFlag) == _doorFlagValue) {
-			// Change the still frame to the new one
-			if (_openFrame >= 0) {
-				_staticData.navFrameIndex = _openFrame;
-				viewWindow->invalidateWindow(false);
-				_vm->_sound->playSynchronousSoundEffect("BITDATA/AILAB/AI_LOCK.BTA");
-			}
-
-			((SceneViewWindow *)viewWindow)->moveToDestination(_destData);
-		} else {
-			// Display the closed frame
-			if (_closedFrame >= 0) {
-				_staticData.navFrameIndex = _closedFrame;
-				viewWindow->invalidateWindow(false);
-			}
+		// Change the still frame to the new one
+		if (_openFrame >= 0) {
+			_staticData.navFrameIndex = _openFrame;
+			viewWindow->invalidateWindow(false);
+			_vm->_sound->playSynchronousSoundEffect("BITDATA/AILAB/AI_LOCK.BTA");
 		}
+
+		((SceneViewWindow *)viewWindow)->moveToDestination(_destData);
 
 		_clicked = false;
 		return SC_TRUE;
@@ -3593,8 +3556,8 @@ ScanningRoomNexusDoorToGlobe::ScanningRoomNexusDoorToGlobe(BuriedEngine *vm, Win
 class MachineRoomEntry : public SceneBase {
 public:
 	MachineRoomEntry(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation, int soundID = -1);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int timerCallback(Window *viewWindow);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int timerCallback(Window *viewWindow) override;
 
 private:
 	int _soundID;
@@ -3637,28 +3600,29 @@ int MachineRoomEntry::timerCallback(Window *viewWindow) {
 class DockingBayPlaySoundEntering : public SceneBase {
 public:
 	DockingBayPlaySoundEntering(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
-			int soundFileNameID = -1, int flagOffset = -1);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
+			int soundFileNameID = -1);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
 
 private:
 	int _soundFileNameID;
-	int _flagOffset;
 };
 
 DockingBayPlaySoundEntering::DockingBayPlaySoundEntering(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
-		int soundFileNameID, int flagOffset) :
+		int soundFileNameID) :
 		SceneBase(vm, viewWindow, sceneStaticData, priorLocation) {
 	_soundFileNameID = soundFileNameID;
-	_flagOffset = flagOffset;
 
 	if (((SceneViewWindow *)viewWindow)->getGlobalFlags().generalWalkthroughMode == 1)
 		_staticData.destForward.destinationScene = Location(-1, -1, -1, -1, -1, -1);
 }
 
 int DockingBayPlaySoundEntering::postEnterRoom(Window *viewWindow, const Location &priorLocation) {
-	if (_flagOffset >= 0 && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_flagOffset) == 0) {
+	SceneViewWindow *sceneView = ((SceneViewWindow *)viewWindow);
+	GlobalFlags &globalFlags = sceneView->getGlobalFlags();
+
+	if (globalFlags.aiDBPlayedMomComment == 0) {
 		_vm->_sound->playSynchronousSoundEffect(_vm->getFilePath(_staticData.location.timeZone, _staticData.location.environment, _soundFileNameID));
-		((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_flagOffset, 1);
+		globalFlags.aiDBPlayedMomComment = 1;
 	}
 
 	return SC_TRUE;
@@ -3668,8 +3632,8 @@ class MachineRoomPlayAnim : public SceneBase {
 public:
 	MachineRoomPlayAnim(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
 			int left = -1, int top = -1, int right = -1, int bottom = -1, int animID = -1);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _clickable;
@@ -3771,6 +3735,9 @@ bool SceneViewWindow::checkCustomSpaceStationAICommentDependencies(const Locatio
 }
 
 SceneBase *SceneViewWindow::constructAILabSceneObject(Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation) {
+	SceneViewWindow *sceneView = ((SceneViewWindow *)viewWindow);
+	GlobalFlags &globalFlags = sceneView->getGlobalFlags();
+
 	// Special scene for the trial version
 	if (_vm->isTrial())
 		return new TrialRecallScene(_vm, viewWindow, sceneStaticData, priorLocation);
@@ -3782,11 +3749,11 @@ SceneBase *SceneViewWindow::constructAILabSceneObject(Window *viewWindow, const 
 	case 1:
 		return new UseCheeseGirlPropellant(_vm, viewWindow, sceneStaticData, priorLocation);
 	case 3:
-		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 172, 46, 262, 136, 87, -1, 1, TRANSITION_VIDEO, 2, -1, -1, -1, -1);
+		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 172, 46, 262, 136, 87, -1, 1, TRANSITION_VIDEO, 2, -1, -1);
 	case 4:
-		return new PlayArthurOffsetTimed(_vm, viewWindow, sceneStaticData, priorLocation, 127, offsetof(GlobalFlags, aiHWStingerID), offsetof(GlobalFlags, aiHWStingerChannelID), 4, 10, 1); // 1.01 uses a delay of 2, clone2727 likes that better
+		return new PlayArthurOffsetTimed(_vm, viewWindow, sceneStaticData, priorLocation, 127, 4, 10, 1); // 1.01 uses a delay of 2, clone2727 likes that better
 	case 5:
-		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 144, 30, 268, 152, 88, -1, 1, TRANSITION_VIDEO, 4, -1, -1, -1, -1);
+		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 144, 30, 268, 152, 88, -1, 1, TRANSITION_VIDEO, 4, -1, -1);
 	case 6:
 		return new PlaySoundExitingFromScene(_vm, viewWindow, sceneStaticData, priorLocation, 14);
 	case 7:
@@ -3800,7 +3767,7 @@ SceneBase *SceneViewWindow::constructAILabSceneObject(Window *viewWindow, const 
 	case 12:
 		return new BaseOxygenTimerInSpace(_vm, viewWindow, sceneStaticData, priorLocation);
 	case 20:
-		return new PlayArthurOffsetCapacitance(_vm, viewWindow, sceneStaticData, priorLocation, 127, offsetof(GlobalFlags, aiCRStingerID), offsetof(GlobalFlags, aiCRStingerChannelID), 4, 11, 1);
+		return new PlayArthurOffsetCapacitance(_vm, viewWindow, sceneStaticData, priorLocation, 127, 4, 11, 1);
 	case 21:
 		return new CapacitanceToHabitatDoorClosed(_vm, viewWindow, sceneStaticData, priorLocation);
 	case 22:
@@ -3814,27 +3781,27 @@ SceneBase *SceneViewWindow::constructAILabSceneObject(Window *viewWindow, const 
 	case 26:
 		return new PlaySoundExitingFromScene(_vm, viewWindow, sceneStaticData, priorLocation, 14);
 	case 27:
-		return new PlayArthurOffsetCapacitance(_vm, viewWindow, sceneStaticData, priorLocation, 127, offsetof(GlobalFlags, aiCRStingerID), offsetof(GlobalFlags, aiCRStingerChannelID), 4, 11, 1, offsetof(GlobalFlags, aiCRGrabbedMetalBar), 73, 320, 40);
+		return new PlayArthurOffsetCapacitance(_vm, viewWindow, sceneStaticData, priorLocation, 127, 4, 11, 1, 73, 320, 40);
 	case 28:
-		return new PlayArthurOffsetCapacitance(_vm, viewWindow, sceneStaticData, priorLocation, 127, offsetof(GlobalFlags, aiCRStingerID), offsetof(GlobalFlags, aiCRStingerChannelID), 4, 11, 1, offsetof(GlobalFlags, aiCRGrabbedMetalBar), 66, 241, 25);
+		return new PlayArthurOffsetCapacitance(_vm, viewWindow, sceneStaticData, priorLocation, 127, 4, 11, 1, 66, 241, 25);
 	case 30:
-		return new PlaySoundEnteringScene(_vm, viewWindow, sceneStaticData, priorLocation, 5, offsetof(GlobalFlags, aiDBPlayedFirstArthur));
+		return new PlaySoundEnteringScene(_vm, viewWindow, sceneStaticData, priorLocation, 5, globalFlags.aiDBPlayedFirstArthur);
 	case 31:
-		return new SpaceDoor(_vm, viewWindow, sceneStaticData, priorLocation, 174, 70, 256, 152, 166, -1, 1, TRANSITION_VIDEO, 0, -1, -1, -1, 0);
+		return new SpaceDoor(_vm, viewWindow, sceneStaticData, priorLocation, 174, 70, 256, 152, 166, -1, 1, TRANSITION_VIDEO, 0, -1, -1);
 	case 32:
 		return new PlaySoundExitingFromScene(_vm, viewWindow, sceneStaticData, priorLocation, 14);
 	case 33:
-		return new SpaceDoor(_vm, viewWindow, sceneStaticData, priorLocation, 185, 42, 253, 110, 167, -1, 1, TRANSITION_VIDEO, 1, -1, -1, -1, 0);
+		return new SpaceDoor(_vm, viewWindow, sceneStaticData, priorLocation, 185, 42, 253, 110, 167, -1, 1, TRANSITION_VIDEO, 1, -1, -1);
 	case 35:
-		return new DockingBayPlaySoundEntering(_vm, viewWindow, sceneStaticData, priorLocation, 4, offsetof(GlobalFlags, aiDBPlayedMomComment));
+		return new DockingBayPlaySoundEntering(_vm, viewWindow, sceneStaticData, priorLocation, 4);
 	case 36:
-		return new PlaySoundEnteringScene(_vm, viewWindow, sceneStaticData, priorLocation, 6, offsetof(GlobalFlags, aiDBPlayedSecondArthur));
+		return new PlaySoundEnteringScene(_vm, viewWindow, sceneStaticData, priorLocation, 6, globalFlags.aiDBPlayedSecondArthur);
 	case 37:
-		return new PlaySoundEnteringScene(_vm, viewWindow, sceneStaticData, priorLocation, 7, offsetof(GlobalFlags, aiDBPlayedThirdArthur));
+		return new PlaySoundEnteringScene(_vm, viewWindow, sceneStaticData, priorLocation, 7, globalFlags.aiDBPlayedThirdArthur);
 	case 38:
-		return new PlaySoundEnteringScene(_vm, viewWindow, sceneStaticData, priorLocation, 8, offsetof(GlobalFlags, aiDBPlayedFourthArthur));
+		return new PlaySoundEnteringScene(_vm, viewWindow, sceneStaticData, priorLocation, 8, globalFlags.aiDBPlayedFourthArthur);
 	case 39:
-		return new DisableForwardMovement(_vm, viewWindow, sceneStaticData, priorLocation, offsetof(GlobalFlags, generalWalkthroughMode), 1);
+		return new DisableForwardMovement(_vm, viewWindow, sceneStaticData, priorLocation, 1);
 	case 40:
 		return new ScanningRoomEntryScan(_vm, viewWindow, sceneStaticData, priorLocation);
 	case 41:
@@ -3860,9 +3827,9 @@ SceneBase *SceneViewWindow::constructAILabSceneObject(Window *viewWindow, const 
 	case 51:
 		return new IceteroidPodTimed(_vm, viewWindow, sceneStaticData, priorLocation, 174, 96, 246, 118, 3, 6, 6, 0, 0, 1, 0);
 	case 52:
-		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 164, 40, 276, 140, -1, -1, 1, TRANSITION_VIDEO, 0, -1, -1, -1, -1);
+		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 164, 40, 276, 140, -1, -1, 1, TRANSITION_VIDEO, 0, -1, -1);
 	case 53:
-		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 164, 40, 276, 140, -1, -1, 1, TRANSITION_VIDEO, 2, -1, -1, -1, -1);
+		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 164, 40, 276, 140, -1, -1, 1, TRANSITION_VIDEO, 2, -1, -1);
 	case 54:
 		return new PlaySoundExitingFromSceneDeux(_vm, viewWindow, sceneStaticData, priorLocation, 14);
 	case 55:
@@ -3886,9 +3853,9 @@ SceneBase *SceneViewWindow::constructAILabSceneObject(Window *viewWindow, const 
 	case 64:
 		return new IceteroidPodTimed(_vm, viewWindow, sceneStaticData, priorLocation, 174, 96, 246, 118, 15, 6, 6, 4, 0, 1, 0);
 	case 65:
-		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 164, 26, 268, 124, -1, -1, 1, TRANSITION_VIDEO, 13, -1, -1, -1, -1);
+		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 164, 26, 268, 124, -1, -1, 1, TRANSITION_VIDEO, 13, -1, -1);
 	case 66:
-		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 164, 26, 268, 124, -1, -1, 1, TRANSITION_VIDEO, 16, -1, -1, -1, -1);
+		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 164, 26, 268, 124, -1, -1, 1, TRANSITION_VIDEO, 16, -1, -1);
 	case 67:
 		return new TakeWaterCanister(_vm, viewWindow, sceneStaticData, priorLocation);
 	case 68:
@@ -3896,7 +3863,7 @@ SceneBase *SceneViewWindow::constructAILabSceneObject(Window *viewWindow, const 
 	case 69:
 		return new PlaySoundExitingForward(_vm, viewWindow, sceneStaticData, priorLocation, 14);
 	case 70:
-		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 92, 92, 212, 189, 48, -1, 1, TRANSITION_VIDEO, 0, -1, -1, -1, -1);
+		return new SpaceDoorTimer(_vm, viewWindow, sceneStaticData, priorLocation, 92, 92, 212, 189, 48, -1, 1, TRANSITION_VIDEO, 0, -1, -1);
 	case 71:
 		return new ScienceWingZoomIntoPanel(_vm, viewWindow, sceneStaticData, priorLocation);
 	case 72:

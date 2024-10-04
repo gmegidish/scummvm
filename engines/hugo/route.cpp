@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,43 +68,27 @@ int16 Route::getRouteIndex() const {
 /**
  * Face hero in new direction, based on cursor key input by user.
  */
-void Route::setDirection(const uint16 keyCode) {
-	debugC(1, kDebugRoute, "setDirection(%d)", keyCode);
+void Route::setDirection(const uint16 direction) {
+	debugC(1, kDebugRoute, "setDirection(%d)", direction);
 
 	Object *obj = _vm->_hero;                     // Pointer to hero object
 
 	// Set first image in sequence
-	switch (keyCode) {
-	case Common::KEYCODE_UP:
-	case Common::KEYCODE_KP8:
+	switch (direction) {
+	case kActionMoveTop:
 		obj->_currImagePtr = obj->_seqList[SEQ_UP]._seqPtr;
 		break;
-	case Common::KEYCODE_DOWN:
-	case Common::KEYCODE_KP2:
+	case kActionMoveBottom:
 		obj->_currImagePtr = obj->_seqList[SEQ_DOWN]._seqPtr;
 		break;
-	case Common::KEYCODE_LEFT:
-	case Common::KEYCODE_KP4:
+	case kActionMoveLeft:
+	case kActionMoveTopLeft:
+	case kActionMoveBottomLeft:
 		obj->_currImagePtr = obj->_seqList[SEQ_LEFT]._seqPtr;
 		break;
-	case Common::KEYCODE_RIGHT:
-	case Common::KEYCODE_KP6:
-		obj->_currImagePtr = obj->_seqList[SEQ_RIGHT]._seqPtr;
-		break;
-	case Common::KEYCODE_HOME:
-	case Common::KEYCODE_KP7:
-		obj->_currImagePtr = obj->_seqList[SEQ_LEFT]._seqPtr;
-		break;
-	case Common::KEYCODE_END:
-	case Common::KEYCODE_KP1:
-		obj->_currImagePtr = obj->_seqList[SEQ_LEFT]._seqPtr;
-		break;
-	case Common::KEYCODE_PAGEUP:
-	case Common::KEYCODE_KP9:
-		obj->_currImagePtr = obj->_seqList[SEQ_RIGHT]._seqPtr;
-		break;
-	case Common::KEYCODE_PAGEDOWN:
-	case Common::KEYCODE_KP3:
+	case kActionMoveRight:
+	case kActionMoveTopRight:
+	case kActionMoveBottomRight:
 		obj->_currImagePtr = obj->_seqList[SEQ_RIGHT]._seqPtr;
 		break;
 	default:
@@ -126,52 +109,45 @@ void Route::setWalk(const uint16 direction) {
 		return;
 
 	if (!obj->_vx && !obj->_vy)
-		_oldWalkDirection = 0;                      // Fix for consistant restarts
+		_oldWalkDirection = 0;                      // Fix for consistent restarts
 
 	if (direction != _oldWalkDirection) {
 		// Direction has changed
 		setDirection(direction);                    // Face new direction
 		obj->_vx = obj->_vy = 0;
-		switch (direction) {                        // And set correct velocity
-		case Common::KEYCODE_UP:
-		case Common::KEYCODE_KP8:
+
+		switch (direction) {
+		case kActionMoveTop:
 			obj->_vy = -kStepDy;
 			break;
-		case Common::KEYCODE_DOWN:
-		case Common::KEYCODE_KP2:
-			obj->_vy =  kStepDy;
+		case kActionMoveBottom:
+			obj->_vy = kStepDy;
 			break;
-		case Common::KEYCODE_LEFT:
-		case Common::KEYCODE_KP4:
+		case kActionMoveLeft:
 			obj->_vx = -kStepDx;
 			break;
-		case Common::KEYCODE_RIGHT:
-		case Common::KEYCODE_KP6:
-			obj->_vx =  kStepDx;
+		case kActionMoveRight:
+			obj->_vx = kStepDx;
 			break;
-		case Common::KEYCODE_HOME:
-		case Common::KEYCODE_KP7:
+		case kActionMoveTopLeft:
 			obj->_vx = -kStepDx;
 			// Note: in v1 Dos and v2 Dos, obj->vy is set to DY
 			obj->_vy = -kStepDy / 2;
 			break;
-		case Common::KEYCODE_END:
-		case Common::KEYCODE_KP1:
-			obj->_vx = -kStepDx;
-			// Note: in v1 Dos and v2 Dos, obj->vy is set to -DY
-			obj->_vy =  kStepDy / 2;
-			break;
-		case Common::KEYCODE_PAGEUP:
-		case Common::KEYCODE_KP9:
-			obj->_vx =  kStepDx;
+		case kActionMoveTopRight:
+			obj->_vx = kStepDx;
 			// Note: in v1 Dos and v2 Dos, obj->vy is set to -DY
 			obj->_vy = -kStepDy / 2;
 			break;
-		case Common::KEYCODE_PAGEDOWN:
-		case Common::KEYCODE_KP3:
-			obj->_vx =  kStepDx;
+		case kActionMoveBottomLeft:
+			obj->_vx = -kStepDx;
+			// Note: in v1 Dos and v2 Dos, obj->vy is set to -DY
+			obj->_vy = kStepDy / 2;
+			break;
+		case kActionMoveBottomRight:
+			obj->_vx = kStepDx;
 			// Note: in v1 Dos and v2 Dos, obj->vy is set to DY
-			obj->_vy =  kStepDy / 2;
+			obj->_vy = kStepDy / 2;
 			break;
 		default:
 			break;
@@ -391,7 +367,7 @@ bool Route::findRoute(const int16 cx, const int16 cy) {
 	// Look in segments[] for straight lines from destination to hero
 	for (i = 0, _routeListIndex = 0; i < _segmentNumb - 1; i++) {
 		Common::Point *routeNode;                   // Ptr to route node
-		if ((routeNode = newNode()) == 0)           // New node for new segment
+		if ((routeNode = newNode()) == nullptr)           // New node for new segment
 			return false;                           // Too many nodes
 		routeNode->y = _segment[i]._y;
 
@@ -403,7 +379,7 @@ bool Route::findRoute(const int16 cx, const int16 cy) {
 				routeNode->y = segPtr->_y;          // Yes, keep updating node
 			} else {
 				// No, create another node on previous segment to reach it
-				if ((routeNode = newNode()) == 0)   // Add new route node
+				if ((routeNode = newNode()) == nullptr)   // Add new route node
 					return false;                   // Too many nodes
 
 				// Find overlap between old and new segments

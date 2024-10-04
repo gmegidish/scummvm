@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -107,8 +106,8 @@ Seq *FileManager::readPCX(Common::SeekableReadStream &f, Seq *seqPtr, byte *imag
 	debugC(1, kDebugFile, "readPCX(..., %s)", name);
 
 	// Allocate memory for Seq if 0
-	if (seqPtr == 0) {
-		if ((seqPtr = (Seq *)malloc(sizeof(Seq))) == 0)
+	if (seqPtr == nullptr) {
+		if ((seqPtr = (Seq *)malloc(sizeof(Seq))) == nullptr)
 			error("Insufficient memory to run game.");
 	}
 
@@ -128,7 +127,7 @@ Seq *FileManager::readPCX(Common::SeekableReadStream &f, Seq *seqPtr, byte *imag
 	uint16 size = pcxSurface->w * pcxSurface->h;
 
 	// Allocate memory for image data if NULL
-	if (imagePtr == 0)
+	if (imagePtr == nullptr)
 		imagePtr = (byte *)malloc((size_t) size);
 
 	assert(imagePtr);
@@ -166,29 +165,29 @@ void FileManager::readImage(const int objNum, Object *objPtr) {
 
 		_objectsArchive.seek(objBlock.objOffset, SEEK_SET);
 	} else {
-		Common::String buf;
-		buf = _vm->_picDir + Common::String(_vm->_text->getNoun(objPtr->_nounIndex, 0)) + ".PIX";
+		Common::Path buf;
+		buf = _vm->_picDir.appendComponent(Common::String(_vm->_text->getNoun(objPtr->_nounIndex, 0)) + ".PIX");
 		if (!_objectsArchive.open(buf)) {
 			buf = Common::String(_vm->_text->getNoun(objPtr->_nounIndex, 0)) + ".PIX";
 			if (!_objectsArchive.open(buf))
-				error("File not found: %s", buf.c_str());
+				error("File not found: %s", buf.toString().c_str());
 		}
 	}
 
 	bool  firstImgFl = true;                        // Initializes pcx read function
-	Seq *seqPtr = 0;                              // Ptr to sequence structure
+	Seq *seqPtr = nullptr;                              // Ptr to sequence structure
 
 	// Now read the images into an images list
 	for (int j = 0; j < objPtr->_seqNumb; j++) {     // for each sequence
 		for (int k = 0; k < objPtr->_seqList[j]._imageNbr; k++) { // each image
 			if (k == 0) {                           // First image
 				// Read this image - allocate both seq and image memory
-				seqPtr = readPCX(_objectsArchive, 0, 0, firstImgFl, _vm->_text->getNoun(objPtr->_nounIndex, 0));
+				seqPtr = readPCX(_objectsArchive, nullptr, nullptr, firstImgFl, _vm->_text->getNoun(objPtr->_nounIndex, 0));
 				objPtr->_seqList[j]._seqPtr = seqPtr;
 				firstImgFl = false;
 			} else {                                // Subsequent image
 				// Read this image - allocate both seq and image memory
-				seqPtr->_nextSeqPtr = readPCX(_objectsArchive, 0, 0, firstImgFl, _vm->_text->getNoun(objPtr->_nounIndex, 0));
+				seqPtr->_nextSeqPtr = readPCX(_objectsArchive, nullptr, nullptr, firstImgFl, _vm->_text->getNoun(objPtr->_nounIndex, 0));
 				seqPtr = seqPtr->_nextSeqPtr;
 			}
 
@@ -585,7 +584,7 @@ void FileManager::readUIFItem(const int16 id, byte *buf) {
 	Seq *dummySeq;                                // Dummy Seq for image data
 	switch (id) {
 	case UIF_IMAGES:                                // Read uif images file
-		dummySeq = readPCX(ip, 0, buf, true, getUifFilename());
+		dummySeq = readPCX(ip, nullptr, buf, true, getUifFilename());
 		free(dummySeq);
 		break;
 	default:                                        // Read file data into supplied array

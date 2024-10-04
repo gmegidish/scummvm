@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@ ScalpelScreen::ScalpelScreen(SherlockEngine *vm) : Screen(vm) {
 	activateBackBuffer1();
 }
 
-void ScalpelScreen::makeButton(const Common::Rect &bounds, int textX,
+void ScalpelScreen::makeButton(const Common::Rect &bounds, const Common::Point &textPoint,
 		const Common::String &buttonText, bool textContainsHotkey) {
 
 	Surface &bb = _backBuffer;
@@ -43,7 +42,12 @@ void ScalpelScreen::makeButton(const Common::Rect &bounds, int textX,
 	bb.fillRect(Common::Rect(bounds.left + 1, bounds.bottom - 1, bounds.right, bounds.bottom), BUTTON_BOTTOM);
 	bb.fillRect(Common::Rect(bounds.left + 1, bounds.top + 1, bounds.right - 1, bounds.bottom - 1), BUTTON_MIDDLE);
 
-	buttonPrint(Common::Point(textX, bounds.top), COMMAND_FOREGROUND, false, buttonText, textContainsHotkey);
+	buttonPrint(textPoint, COMMAND_FOREGROUND, false, buttonText, textContainsHotkey);
+}
+
+void ScalpelScreen::makeButton(const Common::Rect &bounds, int textX,
+		const Common::String &buttonText, bool textContainsHotkey) {
+	makeButton(bounds, Common::Point(textX, bounds.top), buttonText, textContainsHotkey);
 }
 
 // ButtonText is supposed to have its hotkey as a prefix. The hotkey will get highlighted.
@@ -92,11 +96,13 @@ void ScalpelScreen::buttonPrint(const Common::Point &pt, uint color, bool slamIt
 		if (slamIt) {
 			print(Common::Point(xStart, pt.y + 1),
 				COMMAND_FOREGROUND, "%s", buttonText.c_str() + skipTextOffset);
-			print(Common::Point(xStart + prefixOffsetX, pt.y + 1), COMMAND_HIGHLIGHTED, "%c", hotkey);
+			if (textContainsHotkey)
+				print(Common::Point(xStart + prefixOffsetX, pt.y + 1), COMMAND_HIGHLIGHTED, "%c", hotkey);
 		} else {
 			gPrint(Common::Point(xStart, pt.y),
 				COMMAND_FOREGROUND, "%s", buttonText.c_str() + skipTextOffset);
-			gPrint(Common::Point(xStart + prefixOffsetX, pt.y), COMMAND_HIGHLIGHTED, "%c", hotkey);
+			if (textContainsHotkey)
+				gPrint(Common::Point(xStart + prefixOffsetX, pt.y), COMMAND_HIGHLIGHTED, "%c", hotkey);
 		}
 	} else if (slamIt) {
 		print(Common::Point(xStart, pt.y + 1), color, "%s", buttonText.c_str() + skipTextOffset);

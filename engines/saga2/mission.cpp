@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -37,21 +36,21 @@ ActiveMission       activeMissions[32];
 
 ActiveMission *ActiveMission::newMission(ObjectID genID, uint16 script) {
 	int             i;
-	ActiveMission   *ms = NULL;
+	ActiveMission   *ms = nullptr;
 
 	for (i = 0; i < ARRAYSIZE(activeMissions); i++) {
-		if (!(activeMissions[i]._data.missionFlags & inUse)) {
+		if (!(activeMissions[i]._data.missionFlags & kInUse)) {
 			ms = &activeMissions[i];
 			break;
 		}
 	}
 
-	if (!ms) return NULL;
+	if (!ms) return nullptr;
 
 	ms->_data.missionID   = i;
 	ms->_data.generatorID = genID;
 	ms->_data.missionScript = script;
-	ms->_data.missionFlags |= inUse;
+	ms->_data.missionFlags |= kInUse;
 
 	ms->_data.numKnowledgeIDs = ms->_data.numObjectIDs = 0;
 
@@ -69,7 +68,7 @@ int ActiveMission::findMission(ObjectID genID) {
 	int             i;
 
 	for (i = 0; i < ARRAYSIZE(activeMissions); i++) {
-		if (activeMissions[i]._data.missionFlags & inUse
+		if (activeMissions[i]._data.missionFlags & kInUse
 		        &&  activeMissions[i]._data.generatorID == genID) {
 			return i;
 		}
@@ -256,7 +255,7 @@ void ActiveMission::cleanup() {
 	}
 
 	_data.numKnowledgeIDs = _data.numObjectIDs = 0;
-	_data.missionFlags &= ~inUse;
+	_data.missionFlags &= ~kInUse;
 }
 
 //-----------------------------------------------------------------------
@@ -266,7 +265,7 @@ void initMissions() {
 	int     i;
 
 	for (i = 0; i < ARRAYSIZE(activeMissions); i++)
-		activeMissions[i]._data.missionFlags &= ~inUse;
+		activeMissions[i]._data.missionFlags &= ~kInUse;
 }
 
 void saveMissions(Common::OutSaveFile *outS) {

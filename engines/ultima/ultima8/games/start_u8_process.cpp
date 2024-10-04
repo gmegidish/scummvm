@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@
 #include "ultima/ultima8/kernel/kernel.h"
 #include "ultima/ultima8/gumps/menu_gump.h"
 #include "ultima/ultima8/world/get_object.h"
-#include "ultima/ultima8/graphics/palette_fader_process.h"
+#include "ultima/ultima8/gfx/palette_fader_process.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -42,6 +41,7 @@ DEFINE_RUNTIME_CLASSTYPE_CODE(StartU8Process)
 
 StartU8Process::StartU8Process(int saveSlot) : Process(),
 		_init(false), _saveSlot(saveSlot), _skipStart(saveSlot >= 0) {
+	_flags |= PROC_PREVENT_SAVE;
 }
 
 
@@ -56,9 +56,17 @@ void StartU8Process::run() {
 		}
 	}
 
-	// Try to load the save game, if succeeded this pointer will no longer be valid
-	if (_saveSlot >= 0 &&Ultima8Engine::get_instance()->loadGameState(_saveSlot).getCode() == Common::kNoError) {
+	// Try to load the save game, if succeeded this process will terminate
+	if (_saveSlot >= 0) {
+		Common::Error loadError = Ultima8Engine::get_instance()->loadGameState(_saveSlot);
+		if (loadError.getCode() != Common::kNoError) {
+			Ultima8Engine::get_instance()->setError(loadError);
+			fail();
+			return;
+		}
+
 		PaletteFaderProcess::I_fadeFromBlack(0, 0);
+		terminate();
 		return;
 	}
 
@@ -70,16 +78,15 @@ void StartU8Process::run() {
 		currentmap->areaSearch(&uclist, script, sizeof(script),
 		                       0, 256, false, 16188, 7500);
 		if (uclist.getSize() < 1) {
-			perr << "Unable to find FIRST egg!" << Std::endl;
+			warning("Unable to find FIRST egg");
 			return;
 		}
 
 		uint16 objid = uclist.getuint16(0);
 		Egg *egg = dynamic_cast<Egg *>(getObject(objid));
-		int32 ix, iy, iz;
-		egg->getLocation(ix, iy, iz);
+		Point3 pt = egg->getLocation();
 		// Center on egg
-		CameraProcess::SetCameraProcess(new CameraProcess(ix, iy, iz));
+		CameraProcess::SetCameraProcess(new CameraProcess(pt));
 		egg->hatch();
 	}
 
@@ -91,7 +98,7 @@ void StartU8Process::run() {
 	                       0, 256, false, 11551, 2079);
 
 	if (uclist.getSize() < 1) {
-		perr << "Unable to find MUSIC egg!" << Std::endl;
+		warning("Unable to find MUSIC egg");
 	} else {
 		ObjId objid = uclist.getuint16(0);
 		Item *musicEgg = getItem(objid);
@@ -108,7 +115,7 @@ void StartU8Process::run() {
 }
 
 void StartU8Process::saveData(Common::WriteStream *ws) {
-	CANT_HAPPEN();
+	warning("Attempted save of process with prevent save flag");
 
 	Process::saveData(ws);
 }

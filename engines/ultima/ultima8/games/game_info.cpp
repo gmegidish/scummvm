@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
+#include "ultima/ultima8/misc/debugger.h"
 
 #include "ultima/ultima8/games/game_info.h"
 #include "ultima/ultima8/misc/util.h"
@@ -114,7 +113,7 @@ Std::string GameInfo::getGameTitle() const {
 
 Std::string GameInfo::getPrintableVersion() const {
 	char buf[32];
-	sprintf(buf, "%d.%02d", version / 100, version % 100);
+	Common::sprintf_s(buf, "%d.%02d", version / 100, version % 100);
 	return buf;
 }
 
@@ -130,16 +129,11 @@ Std::string GameInfo::getPrintDetails() const {
 	if (lang == "") lang = "Unknown";
 	ret += lang;
 
-	if (_type != GAME_PENTAGRAM_MENU) {
-		// version, md5 don't make sense for the pentagram menu
+	ret += ", version ";
+	ret += getPrintableVersion();
 
-		ret += ", version ";
-		ret += getPrintableVersion();
-
-		ret += ", md5 ";
-		ret += getPrintableMD5();
-	}
-
+	ret += ", md5 ";
+	ret += getPrintableMD5();
 	return ret;
 }
 
@@ -149,7 +143,7 @@ Std::string GameInfo::getPrintableMD5() const {
 
 	char buf[33];
 	for (int i = 0; i < 16; ++i) {
-		sprintf(buf + 2 * i, "%02x", _md5[i]);
+		Common::sprintf_s(buf + 2 * i, 3, "%02x", _md5[i]);
 	}
 
 	ret = buf;
@@ -160,10 +154,10 @@ Std::string GameInfo::getPrintableMD5() const {
 bool GameInfo::match(GameInfo &other, bool ignoreMD5) const {
 	if (_type != other._type) return false;
 	if (_language != other._language) return false;
-	if (version != other.version) return false;
-
 	if (ignoreMD5) return true;
 
+	// NOTE: Version and MD5 hash are not currently set
+	if (version != other.version) return false;
 	return (memcmp(_md5, other._md5, 16) == 0);
 }
 
@@ -177,7 +171,7 @@ void GameInfo::save(Common::WriteStream *ws) {
 	Std::string lang = gamelangs[l].name;
 
 	char buf[16];
-	sprintf(buf, "%d", version);
+	Common::sprintf_s(buf, "%d", version);
 	Std::string ver = buf;
 	Std::string md5Str = getPrintableMD5();
 

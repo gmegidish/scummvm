@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -373,7 +372,7 @@ const SongData Sound::_song[] = {
 	/* 84 - Close Drawer/Push Ladder */
 	{ { 87, 0 }, 128, 0, 0, 0, 1 },
 
-	/* 85 - Agression Enhancer */
+	/* 85 - Aggression Enhancer */
 	{ { 88, 0 }, 128, 0, 0, 0, 1 },
 
 	/* 86 - Stone Door Grind 1 */
@@ -1118,7 +1117,7 @@ const TuneData Sound::_tune[] = {
 	/* 87 - Close Drawer/Push Ladder */
 	{ { 0, 0 }, { 33, 0 }, 2, 0 },
 
-	/* 88 - Agression Enhancer */
+	/* 88 - Aggression Enhancer */
 	{ { 0, 0 }, { 32, 0 }, 2, 0 },
 
 	/* 89 - Stone Door Grind 1 */
@@ -1589,7 +1588,7 @@ const char *const Sound::_sfxName[] = {
 	/* 31 - Fish Splash */
 	"18ssssss",
 
-	/* 32 - Agression Enhancer */
+	/* 32 - Aggression Enhancer */
 	"138Bssss",
 
 	/* 33 - Close Drawer/Push Ladder */

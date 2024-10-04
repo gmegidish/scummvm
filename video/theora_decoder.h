@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,22 +70,27 @@ public:
 	bool loadStream(Common::SeekableReadStream *stream);
 	void close();
 
+	/** Frames per second of the loaded video. */
+	Common::Rational getFrameRate() const;
+
 protected:
 	void readNextPacket();
 
 private:
 	class TheoraVideoTrack : public VideoTrack {
 	public:
-		TheoraVideoTrack(const Graphics::PixelFormat &format, th_info &theoraInfo, th_setup_info *theoraSetup);
+		TheoraVideoTrack(th_info &theoraInfo, th_setup_info *theoraSetup);
 		~TheoraVideoTrack();
 
 		bool endOfTrack() const { return _endOfVideo; }
-		uint16 getWidth() const { return _displaySurface.w; }
-		uint16 getHeight() const { return _displaySurface.h; }
-		Graphics::PixelFormat getPixelFormat() const { return _displaySurface.format; }
+		uint16 getWidth() const { return _width; }
+		uint16 getHeight() const { return _height; }
+		Graphics::PixelFormat getPixelFormat() const { return _pixelFormat; }
+		bool setOutputPixelFormat(const Graphics::PixelFormat &format) { _pixelFormat = format; return true; }
 		int getCurFrame() const { return _curFrame; }
+		const Common::Rational &getFrameRate() const { return _frameRate; }
 		uint32 getNextFrameStartTime() const { return (uint32)(_nextFrameStartTime * 1000); }
-		const Graphics::Surface *decodeNextFrame() { return &_displaySurface; }
+		const Graphics::Surface *decodeNextFrame() { return _displaySurface; }
 
 		bool decodePacket(ogg_packet &oggPacket);
 		void setEndOfVideo() { _endOfVideo = true; }
@@ -97,10 +101,18 @@ private:
 		Common::Rational _frameRate;
 		double _nextFrameStartTime;
 
-		Graphics::Surface _surface;
-		Graphics::Surface _displaySurface;
+		Graphics::Surface *_surface;
+		Graphics::Surface *_displaySurface;
+		Graphics::PixelFormat _pixelFormat;
+		int _x;
+		int _y;
+		uint16 _width;
+		uint16 _height;
+		uint16 _surfaceWidth;
+		uint16 _surfaceHeight;
 
 		th_dec_ctx *_theoraDecode;
+		th_pixel_fmt _theoraPixelFormat;
 
 		void translateYUVtoRGBA(th_ycbcr_buffer &YUVBuffer);
 	};

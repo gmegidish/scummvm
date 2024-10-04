@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,12 +30,12 @@
 namespace Pegasus {
 
 SpriteDragger::SpriteDragger() {
-	_draggingSprite = 0;
+	_draggingSprite = nullptr;
 	_limitRect = Common::Rect(-30000, -30000, 30000, 30000);
 	_slopRect = Common::Rect(-30000, -30000, 30000, 30000);
 	_dragOffset.x = 0;
 	_dragOffset.y = 0;
-	_lastHotspot = 0;
+	_lastHotspot = nullptr;
 }
 
 void SpriteDragger::setDragSprite(Sprite *newSprite) {
@@ -133,12 +132,12 @@ ItemDragger::ItemDragger(PegasusEngine *owner) : _inventoryDropSpot(kInventoryDr
 	Common::Rect r(kInventoryDropLeft, kInventoryDropTop, kInventoryDropRight, kInventoryDropBottom);
 	_inventoryDropSpot.setArea(r);
 	_inventoryDropSpot.setHotspotFlags(kDropItemSpotFlag);
-	g_allHotspots.push_back(&_inventoryDropSpot);
+	owner->getAllHotspots().push_back(&_inventoryDropSpot);
 
 	r = Common::Rect(kBiochipDropLeft, kBiochipDropTop, kBiochipDropRight, kBiochipDropBottom);
 	_biochipDropSpot.setArea(r);
 	_biochipDropSpot.setHotspotFlags(kDropBiochipSpotFlag);
-	g_allHotspots.push_back(&_biochipDropSpot);
+	owner->getAllHotspots().push_back(&_biochipDropSpot);
 }
 
 void ItemDragger::startTracking(const Input &input) {

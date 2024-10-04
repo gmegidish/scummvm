@@ -1,3 +1,4 @@
-sphinx-tabs
-sphinx-panels
-m2r2
+sphinx~=7.2
+sphinx-design~=0.5
+sphinx_rtd_theme~=2.0
+sphinx-mdinclude~=0.5

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -217,8 +216,8 @@ uint16 frequencyLookUpTable[SHERLOCK_ADLIB_NOTES_COUNT] = {
 class MidiDriver_SH_AdLib : public MidiDriver {
 public:
 	MidiDriver_SH_AdLib(Audio::Mixer *mixer)
-		: _masterVolume(15), _opl(0),
-		  _adlibTimerProc(0), _adlibTimerParam(0), _isOpen(false) {
+		: _masterVolume(15), _opl(nullptr),
+		  _adlibTimerProc(nullptr), _adlibTimerParam(nullptr), _isOpen(false) {
 		memset(_voiceChannelMapping, 0, sizeof(_voiceChannelMapping));
 	}
 	~MidiDriver_SH_AdLib() override { }
@@ -227,8 +226,8 @@ public:
 	int open() override;
 	void close() override;
 	void send(uint32 b) override;
-	MidiChannel *allocateChannel() override { return NULL; }
-	MidiChannel *getPercussionChannel() override { return NULL; }
+	MidiChannel *allocateChannel() override { return nullptr; }
+	MidiChannel *getPercussionChannel() override { return nullptr; }
 	bool isOpen() const override { return _isOpen; }
 	uint32 getBaseTempo() override { return 1000000 / OPL::OPL::kDefaultCallbackFrequency; }
 
@@ -251,7 +250,7 @@ private:
 		byte   currentA0hReg;
 		byte   currentB0hReg;
 
-		adlib_ChannelEntry() : inUse(false), inUseTimer(0), currentInstrumentPtr(NULL), currentNote(0),
+		adlib_ChannelEntry() : inUse(false), inUseTimer(0), currentInstrumentPtr(nullptr), currentNote(0),
 								currentA0hReg(0), currentB0hReg(0) { }
 	};
 
@@ -386,7 +385,7 @@ void MidiDriver_SH_AdLib::resetAdLibFMVoiceChannelRegisters(byte baseRegister, b
 	}
 }
 
-// MIDI messages can be found at http://www.midi.org/techspecs/midimessages.php
+// MIDI messages can be found at https://web.archive.org/web/20120128110425/http://www.midi.org/techspecs/midimessages.php
 void MidiDriver_SH_AdLib::send(uint32 b) {
 	byte command = b & 0xf0;
 	byte channel = b & 0xf;

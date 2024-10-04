@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,16 +30,16 @@
 #include "common/func.h"
 #include "common/system.h"
 
+#include "base/version.h"
+
 namespace Kyra {
 
 KyraRpgEngine::KyraRpgEngine(OSystem *system, const GameFlags &flags) : KyraEngine_v1(system, flags), _numFlyingObjects(_flags.gameID == GI_LOL ? 8 : 10) {
 	_txt = 0;
 	_mouseClick = 0;
 	_preserveEvents = _buttonListChanged = false;
-
 	_sceneXoffset = 0;
 	_sceneShpDim = 5;
-
 	_activeButtons = 0;
 
 	_currentLevel = 0;
@@ -109,7 +108,13 @@ KyraRpgEngine::KyraRpgEngine(OSystem *system, const GameFlags &flags) : KyraEngi
 	_dscDoorFrameIndex2 = 0;
 
 	_shpDmX1 = _shpDmX2 = 0;
+	_itemIconShapes = nullptr;
+	_itemInHand = _sceneDrawPage1 = _sceneDrawPage2 = _dscDoorShpIndexSize = 0;
+	_levelDecorationDataSize = _dialogueButtonWidth = 0;
+	 _dialogueButtonLabelColor1 = _dialogueButtonLabelColor2 = 0;
+	_moreStrings = nullptr;
 
+	memset(_visibleBlocks, 0, sizeof(_visibleBlocks));
 	memset(_openDoorState, 0, sizeof(_openDoorState));
 	memset(_dialogueButtonString, 0, 3 * sizeof(const char *));
 	_dialogueButtonPosX = 0;
@@ -130,11 +135,20 @@ KyraRpgEngine::KyraRpgEngine(OSystem *system, const GameFlags &flags) : KyraEngi
 	_environmentSfx = _environmentSfxVol = _envSfxDistThreshold = 0;
 	_monsterStepCounter = _monsterStepMode = 0;
 
+	uint slen = Common::String(gScummVMVersion).size();
+	for (uint i = 0; i < slen; ++i) {
+		if (!(gScummVMVersion[i] >= '0' && gScummVMVersion[i] <= '9') && gScummVMVersion[i] != '.')
+			break;
+		_versionString += gScummVMVersion[i];
+	}
+
 	_buttonFont = Screen::FID_6_FNT;
-	if (_flags.use16ColorMode)
+	if (_flags.platform == Common::kPlatformPC98)
 		_buttonFont = _flags.gameID == GI_LOL ? Screen::FID_SJIS_TEXTMODE_FNT : Screen::FID_SJIS_FNT;
 	else if (_flags.gameID == GI_EOB2 && _flags.platform == Common::kPlatformFMTowns)
 		_buttonFont = Screen::FID_8_FNT;
+	else if (_flags.lang == Common::Language::ZH_TWN && _flags.gameID == GI_LOL)
+		_buttonFont = Screen::FID_CHINESE_FNT;
 }
 
 KyraRpgEngine::~KyraRpgEngine() {
@@ -168,34 +182,23 @@ KyraRpgEngine::~KyraRpgEngine() {
 Common::Error KyraRpgEngine::init() {
 	gui_resetButtonList();
 
-	_levelDecorationProperties = new LevelDecorationProperty[100];
-	memset(_levelDecorationProperties, 0, 100 * sizeof(LevelDecorationProperty));
+	_levelDecorationProperties = new LevelDecorationProperty[100]();
 	_levelDecorationShapes = new const uint8*[400];
 	memset(_levelDecorationShapes, 0, 400 * sizeof(uint8 *));
-	_levelBlockProperties = new LevelBlockProperty[1025];
-	memset(_levelBlockProperties, 0, 1025 * sizeof(LevelBlockProperty));
+	_levelBlockProperties = new LevelBlockProperty[1025]();
 
-	_wllVmpMap = new uint8[256];
-	memset(_wllVmpMap, 0, 256);
-	_wllShapeMap = new int8[256];
-	memset(_wllShapeMap, 0, 256);
-	_specialWallTypes = new uint8[256];
-	memset(_specialWallTypes, 0, 256);
-	_wllWallFlags = new uint8[256];
-	memset(_wllWallFlags, 0, 256);
+	_wllVmpMap = new uint8[256]();
+	_wllShapeMap = new int8[256]();
+	_specialWallTypes = new uint8[256]();
+	_wllWallFlags = new uint8[256]();
 
-	_blockDrawingBuffer = new uint16[1320];
-	memset(_blockDrawingBuffer, 0, 1320 * sizeof(uint16));
+	_blockDrawingBuffer = new uint16[1320]();
 	int windowBufferSize = _flags.useHiColorMode ? 42240 : 21120;
-	_sceneWindowBuffer = new uint8[windowBufferSize];
-	memset(_sceneWindowBuffer, 0, windowBufferSize);
+	_sceneWindowBuffer = new uint8[windowBufferSize]();
 
-	_lvlShapeTop = new int16[18];
-	memset(_lvlShapeTop, 0, 18 * sizeof(int16));
-	_lvlShapeBottom = new int16[18];
-	memset(_lvlShapeBottom, 0, 18 * sizeof(int16));
-	_lvlShapeLeftRight = new int16[36];
-	memset(_lvlShapeLeftRight, 0, 36 * sizeof(int16));
+	_lvlShapeTop = new int16[18]();
+	_lvlShapeBottom = new int16[18]();
+	_lvlShapeLeftRight = new int16[36]();
 
 	_vcnColTable = new uint8[128];
 	for (int i = 0; i < 128; i++)
@@ -211,12 +214,11 @@ Common::Error KyraRpgEngine::init() {
 		_vcnDrawLine = new VcnLineDrawingMethods(new VcnDrawProc(this, &KyraRpgEngine::vcnDraw_fw_4bit), new VcnDrawProc(this, &KyraRpgEngine::vcnDraw_bw_4bit),
 			new VcnDrawProc(this, &KyraRpgEngine::vcnDraw_fw_trans_4bit), new VcnDrawProc(this, &KyraRpgEngine::vcnDraw_bw_trans_4bit));
 
-	_doorShapes = new uint8*[6];
-	memset(_doorShapes, 0, 6 * sizeof(uint8 *));
+	_doorShapes = new uint8*[6]();
 
 	initStaticResource();
 
-	_envSfxDistThreshold = ((_flags.gameID == GI_EOB2 && _sound->getSfxType() == Sound::kTowns) || _sound->getSfxType() == Sound::kAdLib || _sound->getSfxType() == Sound::kPCSpkr) ? 15 : (_sound->getSfxType() == Sound::kAmiga ? 4 : 3);
+	_envSfxDistThreshold = ((_flags.gameID == GI_EOB2 && (_sound->getSfxType() == Sound::kTowns || _sound->getSfxType() == Sound::kPC98)) || _sound->getSfxType() == Sound::kAdLib || _sound->getSfxType() == Sound::kPCSpkr) ? 15 : (_sound->getSfxType() == Sound::kAmiga ? 4 : 3);
 
 	_dialogueButtonLabelColor1 = guiSettings()->buttons.labelColor1;
 	_dialogueButtonLabelColor2 = guiSettings()->buttons.labelColor2;
@@ -250,6 +252,7 @@ bool KyraRpgEngine::posWithinRect(int posX, int posY, int x1, int y1, int x2, in
 void KyraRpgEngine::drawDialogueButtons() {
 	int cp = screen()->setCurPage(0);
 	Screen::FontId of = screen()->setFont(_buttonFont);
+	int cs = (_flags.platform == Common::kPlatformPC98 && !_flags.use16ColorMode) ? screen()->setFontStyles(_buttonFont, Font::kStyleFat) : -1;
 
 	for (int i = 0; i < _dialogueNumButtons; i++) {
 		int x = _dialogueButtonPosX[i];
@@ -264,10 +267,21 @@ void KyraRpgEngine::drawDialogueButtons() {
 			screen()->set16bitShadingLevel(4);
 			gui_drawBox(x, (_dialogueButtonYoffs + _dialogueButtonPosY[i]), _dialogueButtonWidth, guiSettings()->buttons.height, guiSettings()->colors.frame1, guiSettings()->colors.frame2, guiSettings()->colors.fill);
 			screen()->set16bitShadingLevel(0);
-			screen()->printText(_dialogueButtonString[i], x + (_dialogueButtonWidth >> 1) - (screen()->getTextWidth(_dialogueButtonString[i])) / 2,
-			                    (_dialogueButtonYoffs + _dialogueButtonPosY[i]) + yOffset, _dialogueHighlightedButton == i ? _dialogueButtonLabelColor1 : _dialogueButtonLabelColor2, 0);
+#if defined(ENABLE_EOB)
+			if (guiSettings()->buttons.labelShadow && _flags.gameID != GI_LOL) {
+				((Screen_EoB*)screen())->printShadedText(_dialogueButtonString[i], x + (_dialogueButtonWidth >> 1) - (screen()->getTextWidth(_dialogueButtonString[i])) / 2,
+					(_dialogueButtonYoffs + _dialogueButtonPosY[i]) + yOffset, _dialogueHighlightedButton == i ? _dialogueButtonLabelColor1 : _dialogueButtonLabelColor2, 0, guiSettings()->colors.guiColorBlack);
+			} else {
+#endif
+				screen()->printText(_dialogueButtonString[i], x + (_dialogueButtonWidth >> 1) - (screen()->getTextWidth(_dialogueButtonString[i])) / 2,
+					(_dialogueButtonYoffs + _dialogueButtonPosY[i]) + yOffset, _dialogueHighlightedButton == i ? _dialogueButtonLabelColor1 : _dialogueButtonLabelColor2, 0);
+#if defined(ENABLE_EOB)
+			}
+#endif
 		}
 	}
+	if (cs != -1)
+		screen()->setFontStyles(_buttonFont, cs);
 	screen()->setFont(of);
 	screen()->setCurPage(cp);
 }
@@ -348,13 +362,13 @@ uint16 KyraRpgEngine::processDialogue() {
 		if (!textEnabled() && _currentControlMode) {
 			screen()->setScreenDim(5);
 			const ScreenDim *d = screen()->getScreenDim(5);
-			screen()->fillRect(d->sx, d->sy + d->h - 9, d->sx + d->w - 1, d->sy + d->h - 1, d->unkA);
+			screen()->fillRect(d->sx, d->sy + d->h - 9, d->sx + d->w - 1, d->sy + d->h - 1, d->col2);
 		} else {
 			const ScreenDim *d = screen()->_curDim;
 			if (gameFlags().use16ColorMode)
-				screen()->fillRect(d->sx, d->sy, d->sx + d->w - 3, d->sy + d->h - 2, d->unkA);
+				screen()->fillRect(d->sx, d->sy, d->sx + d->w - 3, d->sy + d->h - 2, d->col2);
 			else
-				screen()->fillRect(d->sx, d->sy, d->sx + d->w - 2, d->sy + d->h - 1, d->unkA);
+				screen()->fillRect(d->sx, d->sy, d->sx + d->w - 2, d->sy + d->h - 1, d->col2);
 			txt()->clearDim(4);
 			txt()->resetDimTextPositions(4);
 		}
@@ -400,6 +414,8 @@ bool KyraRpgEngine::snd_processEnvironmentalSoundEffect(int soundId, int block) 
 
 	if (_flags.gameID == GI_EOB2 && _flags.platform == Common::kPlatformFMTowns)
 		_environmentSfxVol = dist ? (16 - dist) * 8 - 1 : 127;
+	else if (_flags.gameID == GI_EOB2 && _flags.platform == Common::kPlatformPC98)
+		_environmentSfxVol = (15 - dist) * 6 + 37;
 	else if (_flags.platform == Common::kPlatformAmiga)
 		_environmentSfxVol = dist ? (soundId != 13 ? dist : (dist >= 4) ? 4 : dist) : 1;
 	else if (_flags.platform == Common::kPlatformSegaCD)

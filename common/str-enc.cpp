@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -93,9 +92,17 @@ void U32String::decodeUTF8(const char *src, uint32 len) {
 const uint16 invalidCode = 0xFFFD;
 
 static bool cjk_tables_loaded = false;
-static const uint16 *windows932ConversionTable;
-static const uint16 *windows949ConversionTable;
-static const uint16 *windows950ConversionTable;
+static const uint16 *windows932ConversionTable = 0;
+static const uint16 *windows932ReverseConversionTable = 0;
+static const uint16 *windows936ConversionTable = 0;
+static const uint16 *windows936ReverseConversionTable = 0;
+static const uint16 *windows949ConversionTable = 0;
+static const uint16 *windows949ReverseConversionTable = 0;
+static const uint16 *windows950ConversionTable = 0;
+static uint16 *windows950ReverseConversionTable = 0;
+static const uint16 *johabConversionTable = 0;
+static const uint16 *johabReverseConversionTable = 0;
+static const uint16 *traditional2SimplifiedChineseConversionTable = 0;
 
 static const uint16 *loadCJKTable(File &f, int idx, size_t sz) {
 	f.seek(16 + idx * 4);
@@ -108,6 +115,23 @@ static const uint16 *loadCJKTable(File &f, int idx, size_t sz) {
 		res[i] = FROM_LE_16(res[i]);
 #endif
 	return res;
+}
+
+static void loadChineseT2S(File &f) {
+	f.seek(16 + 5 * 4);
+	uint32 off = f.readUint32LE();
+	f.seek(off);
+	uint16 *res = new uint16[0x10000];
+	for (uint i = 0; i < 0x10000; i++) {
+		res[i] = i;
+	}
+	uint32 num_entries = f.readUint32LE();
+	for (uint i = 0; i < num_entries; i++) {
+		uint16 t = f.readUint16LE();
+		uint16 s = f.readUint16LE();
+		res[t] = s;
+	}
+	traditional2SimplifiedChineseConversionTable = res;
 }
 
 static void loadCJKTables() {
@@ -131,8 +155,11 @@ static void loadCJKTables() {
 		return;
 	}
 
+	int ver = f.readUint32LE();
+	int num_tables = f.readUint32LE();
+
 	// Version and number of tables.
-	if (f.readUint32LE() != 0 || f.readUint32LE() < 3) {
+	if (ver != 0 || num_tables < 3) {
 		warning("encoding.dat is of incompatible version. Support for CJK is disabled");
 		return;
 	}
@@ -140,6 +167,38 @@ static void loadCJKTables() {
 	windows932ConversionTable = loadCJKTable(f, 0, 47 * 192);
 	windows949ConversionTable = loadCJKTable(f, 1, 0x7e * 0xb2);
 	windows950ConversionTable = loadCJKTable(f, 2, 89 * 157);
+	if (num_tables >= 4)
+		johabConversionTable = loadCJKTable(f, 3, 80 * 188);
+	if (num_tables >= 5)
+		windows936ConversionTable = loadCJKTable(f, 4, 126 * 190);
+	if (num_tables >= 6)
+		loadChineseT2S(f);
+}
+
+void releaseCJKTables() {
+	cjk_tables_loaded = false;
+	delete[] windows932ConversionTable;
+	windows932ConversionTable = 0;
+	delete[] windows932ReverseConversionTable;
+	windows932ReverseConversionTable = 0;
+	delete[] windows936ConversionTable;
+	windows936ConversionTable = 0;
+	delete[] windows936ReverseConversionTable;
+	windows936ReverseConversionTable = 0;
+	delete[] windows949ConversionTable;
+	windows949ConversionTable = 0;
+	delete[] windows949ReverseConversionTable;
+	windows949ReverseConversionTable = 0;
+	delete[] windows950ConversionTable;
+	windows950ConversionTable = 0;
+	delete[] windows950ReverseConversionTable;
+	windows950ReverseConversionTable = 0;
+	delete[] johabConversionTable;
+	johabConversionTable = 0;
+	delete[] johabReverseConversionTable;
+	johabReverseConversionTable = 0;
+	delete[] traditional2SimplifiedChineseConversionTable;
+	traditional2SimplifiedChineseConversionTable = 0;
 }
 
 void U32String::decodeWindows932(const char *src, uint32 len) {
@@ -195,6 +254,49 @@ void U32String::decodeWindows932(const char *src, uint32 len) {
 
 		// Main range
 		uint16 val = windows932ConversionTable[highidx * 192 + lowidx];
+		operator+=(val ? val : invalidCode);
+	}
+}
+
+void U32String::decodeWindows936(const char *src, uint32 len) {
+	ensureCapacity(len, false);
+
+	if (!cjk_tables_loaded)
+		loadCJKTables();
+
+	for (uint i = 0; i < len;) {
+		uint8 high = src[i++];
+
+		if ((high & 0x80) == 0x00) {
+			operator+=(high);
+			continue;
+		}
+
+		// Euro symbol
+		if (high == 0x80) {
+			operator+=(0x20ac);
+			continue;
+		}
+
+		if (high == 0xff) {
+			operator+=(invalidCode);
+			continue;
+		}
+
+		uint8 low = src[i++];
+		if (low < 0x40 || low == 0x7f || low == 0xff) {
+			operator+=(invalidCode);
+			continue;
+		}
+		uint8 lowidx = low > 0x7f ? low - 0x41 : low - 0x40;
+		uint8 highidx = high - 0x81;
+
+		if (!windows936ConversionTable) {
+			operator+=(invalidCode);
+			continue;
+		}
+
+		uint16 val = windows936ConversionTable[highidx * 190 + lowidx];
 		operator+=(val ? val : invalidCode);
 	}
 }
@@ -311,17 +413,68 @@ void U32String::decodeWindows950(const char *src, uint32 len) {
 	}
 }
 
-void String::encodeWindows932(const U32String &src) {
-	static uint16 *reverseTable;
+static uint16 convertJohabToUCSReal(uint8 high, uint8 low) {
+	if (high >= 0x84 && high < 0xD4)
+		high -= 0x84;
+	else
+		return 0;
+
+	if (low >= 0x41 && low < 0x7F)
+		low -= 0x41;
+	else if (low >= 0x81 && low < 0xFF)
+		low -= (0x81 - (0x7F - 0x41));
+	else
+		return 0;
+
+	if (!johabConversionTable)
+		return 0;
+
+	uint16 idx = high * 188 + low;
+	return johabConversionTable[idx];
+}
+
+void U32String::decodeJohab(const char *src, uint32 len) {
+	ensureCapacity(len, false);
+
+	if (!cjk_tables_loaded)
+		loadCJKTables();
+
+	for (uint i = 0; i < len;) {
+		uint8 high = src[i++];
+
+		if ((high & 0x80) == 0x00) {
+			operator+=(high);
+			continue;
+		}
+
+		if (high == 0x80 || high == 0xff) {
+			operator+=(invalidCode);
+			continue;
+		}
+
+		if (i >= len) {
+			operator+=(invalidCode);
+			continue;
+		}
+
+		uint8 low = src[i++];
+		uint16 val = convertJohabToUCSReal(high, low);
+
+		operator+=(val ? val : invalidCode);
+	}
+}
+
+
+StringEncodingResult String::encodeWindows932(const U32String &src, char errorChar) {
+	StringEncodingResult encodingResult = kStringEncodingResultSucceeded;
 
 	ensureCapacity(src.size() * 2, false);
 
 	if (!cjk_tables_loaded)
 		loadCJKTables();
 
-	if (!reverseTable && windows932ConversionTable) {
-		uint16 *rt = new uint16[0x10000];
-		memset(rt, 0, sizeof(rt[0]) * 0x10000);
+	if (!windows932ReverseConversionTable && windows932ConversionTable) {
+		uint16 *rt = new uint16[0x10000]();
 		for (uint highidx = 0; highidx < 47; highidx++) {
 			uint8 high = 0;
 			if (highidx < 4)
@@ -340,7 +493,7 @@ void String::encodeWindows932(const U32String &src) {
 				rt[unicode] = (high << 8) | low;
 			}
 		}
-		reverseTable = rt;
+		windows932ReverseConversionTable = rt;
 	}
 
 	for (uint i = 0; i < src.size();) {
@@ -358,16 +511,18 @@ void String::encodeWindows932(const U32String &src) {
 		}
 
 		if (point > 0x10000) {
-			operator+=('?');
+			operator+=(errorChar);
+			encodingResult = kStringEncodingResultHasErrors;
 			continue;
 		}
 
-		if (!reverseTable) {
-			operator+=('?');
+		if (!windows932ReverseConversionTable) {
+			operator+=(errorChar);
+			encodingResult = kStringEncodingResultHasErrors;
 			continue;
 		}
 
-		uint16 rev = reverseTable[point];
+		uint16 rev = windows932ReverseConversionTable[point];
 		if (rev != 0) {
 			operator+=(rev >> 8);
 			operator+=(rev & 0xff);
@@ -376,22 +531,85 @@ void String::encodeWindows932(const U32String &src) {
 
 		// This codepage contains cyrillic, so no need to transliterate
 
-		operator+=('?');
+		operator+=(errorChar);
+		encodingResult = kStringEncodingResultHasErrors;
 		continue;
 	}
+
+	return encodingResult;
 }
 
-void String::encodeWindows949(const U32String &src) {
-	static const uint16 *reverseTable;
+StringEncodingResult String::encodeWindows936(const U32String &src, char errorChar) {
+	StringEncodingResult encodingResult = kStringEncodingResultSucceeded;
 
 	ensureCapacity(src.size() * 2, false);
 
 	if (!cjk_tables_loaded)
 		loadCJKTables();
 
-	if (!reverseTable && windows949ConversionTable) {
-		uint16 *rt = new uint16[0x10000];
-		memset(rt, 0, sizeof(rt[0]) * 0x10000);
+	if (!windows936ReverseConversionTable && windows936ConversionTable) {
+		uint16 *rt = new uint16[0x10000]();
+		for (uint highidx = 0; highidx < 190; highidx++) {
+			uint8 high = highidx + 0x81;
+			for (uint lowidx = 0; lowidx < 192; lowidx++) {
+				uint8 low = lowidx + 0x40;
+				if (low >= 0x7f)
+					low++;
+				uint16 unicode = windows936ConversionTable[highidx * 190 + lowidx];
+
+				rt[unicode] = (high << 8) | low;
+			}
+		}
+		windows936ReverseConversionTable = rt;
+	}
+
+	for (uint i = 0; i < src.size();) {
+		uint32 point = src[i++];
+
+		if (point < 0x80) {
+			operator+=(point);
+			continue;
+		}
+
+		if (point > 0x10000) {
+			operator+=(errorChar);
+			encodingResult = kStringEncodingResultHasErrors;
+			continue;
+		}
+
+		if (!windows936ReverseConversionTable) {
+			operator+=(errorChar);
+			encodingResult = kStringEncodingResultHasErrors;
+			continue;
+		}
+
+		uint16 rev = windows936ReverseConversionTable[point];
+		if (rev != 0) {
+			operator+=(rev >> 8);
+			operator+=(rev & 0xff);
+			continue;
+		}
+
+		// This codepage contains cyrillic, so no need to transliterate
+
+		operator+=(errorChar);
+		encodingResult = kStringEncodingResultHasErrors;
+		continue;
+	}
+
+	return encodingResult;
+}
+
+StringEncodingResult String::encodeWindows949(const U32String &src, char errorChar) {
+	StringEncodingResult encodingResult = kStringEncodingResultSucceeded;
+
+	ensureCapacity(src.size() * 2, false);
+
+	if (!cjk_tables_loaded)
+		loadCJKTables();
+
+	if (!windows949ReverseConversionTable && windows949ConversionTable) {
+		uint16 *rt = new uint16[0x10000]();
 
 		for (uint lowidx = 0; lowidx < 0xb2; lowidx++) {
 			uint8 low = 0;
@@ -410,7 +628,7 @@ void String::encodeWindows949(const U32String &src) {
 			}
 		}
 
-		reverseTable = rt;
+		windows949ReverseConversionTable = rt;
 	}
 
 	for (uint i = 0; i < src.size();) {
@@ -421,21 +639,25 @@ void String::encodeWindows949(const U32String &src) {
 			continue;
 		}
 
-		if (point > 0x10000 || !reverseTable) {
-			operator+=('?');
+		if (point > 0x10000 || !windows949ReverseConversionTable) {
+			operator+=(errorChar);
+			encodingResult = kStringEncodingResultHasErrors;
 			continue;
 		}
 
-		uint16 rev = reverseTable[point];
+		uint16 rev = windows949ReverseConversionTable[point];
 		if (rev == 0) {
 			// This codepage contains cyrillic, so no need to transliterate
-			operator+=('?');
+			operator+=(errorChar);
+			encodingResult = kStringEncodingResultHasErrors;
 			continue;
 		}
 
 		operator+=(rev >> 8);
 		operator+=(rev & 0xff);
 	}
+
+	return encodingResult;
 }
 
 static const char g_cyrillicTransliterationTable[] = {
@@ -447,41 +669,41 @@ static const char g_cyrillicTransliterationTable[] = {
 	'e', 'e', 'd', 'g', 'e', 'z', 'i', 'i', 'j', 'l', 'n', 'c', 'k', 'i', 'u', 'd',
 };
 
-void String::translitChar(U32String::value_type point) {
+StringEncodingResult String::translitChar(U32String::value_type point, char errorChar) {
 	if (point == 0xa0) {
 		operator+=(' ');
-		return;
+		return kStringEncodingResultSucceeded;
 	}
 
 	if (point == 0xad) {
 		operator+=('-');
-		return;
+		return kStringEncodingResultSucceeded;
 	}
 
 	if (point == 0x2116) {
 		operator+=('N');
-		return;
+		return kStringEncodingResultSucceeded;
 	}
 
 	if (point >= 0x401 && point <= 0x45f) {
 		operator+=(g_cyrillicTransliterationTable[point - 0x400]);
-		return;
+		return kStringEncodingResultSucceeded;
 	}
 
-	operator+=('?');
+	operator+=(errorChar);
+	return kStringEncodingResultHasErrors;
 }
 
-void String::encodeWindows950(const U32String &src, bool transliterate) {
-	static uint16 *reverseTable;
+StringEncodingResult String::encodeWindows950(const U32String &src, bool transliterate, char errorChar) {
+	StringEncodingResult encodingResult = kStringEncodingResultSucceeded;
 
 	ensureCapacity(src.size() * 2, false);
 
 	if (!cjk_tables_loaded)
 		loadCJKTables();
 
-	if (!reverseTable && windows950ConversionTable) {
-		uint16 *rt = new uint16[0x10000];
-		memset(rt, 0, sizeof(rt[0]) * 0x10000);
+	if (!windows950ReverseConversionTable && windows950ConversionTable) {
+		uint16 *rt = new uint16[0x10000]();
 
 		for (uint lowidx = 0; lowidx < 157; lowidx++) {
 			uint8 low = 0;
@@ -498,7 +720,7 @@ void String::encodeWindows950(const U32String &src, bool transliterate) {
 			}
 		}
 
-		reverseTable = rt;
+		windows950ReverseConversionTable = rt;
 	}
 
 	for (uint i = 0; i < src.size();) {
@@ -510,7 +732,8 @@ void String::encodeWindows950(const U32String &src, bool transliterate) {
 		}
 
 		if (point > 0x10000) {
-			operator+=('?');
+			operator+=(errorChar);
+			encodingResult = kStringEncodingResultHasErrors;
 			continue;
 		}
 
@@ -520,12 +743,13 @@ void String::encodeWindows950(const U32String &src, bool transliterate) {
 			continue;
 		}
 
-		if (!reverseTable) {
-			operator+=('?');
+		if (!windows950ReverseConversionTable) {
+			operator+=(errorChar);
+			encodingResult = kStringEncodingResultHasErrors;
 			continue;
 		}
 
-		uint16 rev = reverseTable[point];
+		uint16 rev = windows950ReverseConversionTable[point];
 		if (rev != 0) {
 			operator+=(rev >> 8);
 			operator+=(rev & 0xff);
@@ -556,18 +780,77 @@ void String::encodeWindows950(const U32String &src, bool transliterate) {
 
 			operator+=(high);
 			operator+=(low);
-			reverseTable[point] = (high << 8) | low;
+			windows950ReverseConversionTable[point] = (high << 8) | low;
 			continue;
 		}
 
 		if (transliterate) {
-			translitChar(point);
+			StringEncodingResult translitResult = translitChar(point, errorChar);
+			if (translitResult != kStringEncodingResultSucceeded)
+				encodingResult = translitResult;
 			continue;
 		}
 
-		operator+=('?');
+		operator+=(errorChar);
+		encodingResult = kStringEncodingResultHasErrors;
 		continue;
 	}
+
+	return encodingResult;
+}
+
+StringEncodingResult String::encodeJohab(const U32String &src, char errorChar) {
+	StringEncodingResult encodingResult = kStringEncodingResultSucceeded;
+
+	ensureCapacity(src.size() * 2, false);
+
+	if (!cjk_tables_loaded)
+		loadCJKTables();
+
+	if (!johabReverseConversionTable && johabConversionTable) {
+		uint16 *rt = new uint16[0x10000]();
+		for (uint lowidx = 0; lowidx < 188; lowidx++) {
+			uint8 low = 0;
+			if (lowidx < (0x7F - 0x41))
+				low = 0x41 + lowidx;
+			else
+				low = 0x81 + lowidx - (0x7F - 0x41);
+
+			for (uint highidx = 0; highidx < 80; highidx++) {
+				uint8 high = highidx + 0x84;
+				uint16 unicode = johabConversionTable[highidx * 188 + lowidx];
+				rt[unicode] = (high << 8) | low;
+			}
+		}
+		johabReverseConversionTable = rt;
+	}
+
+	for (uint i = 0; i < src.size();) {
+		uint32 point = src[i++];
+
+		if (point < 0x80) {
+			operator+=(point);
+			continue;
+		}
+
+		if (point > 0x10000 || !johabReverseConversionTable) {
+			operator+=(errorChar);
+			encodingResult = kStringEncodingResultHasErrors;
+			continue;
+		}
+
+		uint16 rev = johabReverseConversionTable[point];
+		if (rev == 0) {
+			operator+=(errorChar);
+			encodingResult = kStringEncodingResultHasErrors;
+			continue;
+		}
+
+		operator+=(rev >> 8);
+		operator+=(rev & 0xff);
+	}
+
+	return encodingResult;
 }
 
 // //TODO: This is a quick and dirty converter. Refactoring needed:
@@ -577,7 +860,7 @@ void String::encodeWindows950(const U32String &src, bool transliterate) {
 //    character does not fit in 4 bytes & does not inform caller on any errors
 //
 // More comprehensive one lives in wintermute/utils/convert_utf.cpp
-void String::encodeUTF8(const U32String &src) {
+StringEncodingResult String::encodeUTF8(const U32String &src, char errorChar) {
 	ensureCapacity(src.size(), false);
 	static const uint8 firstByteMark[5] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0 };
 	char writingBytes[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
@@ -626,6 +909,8 @@ void String::encodeUTF8(const U32String &src) {
 
 		operator+=(pBytes);
 	}
+
+	return kStringEncodingResultSucceeded;
 }
 
 #define decodeUTF16Template(suffix, read)				\
@@ -693,7 +978,6 @@ encodeUTF16Template(Native, WRITE_UINT16)
 // Upper bound on unicode codepoint in any single-byte encoding. Must be divisible by 0x100 and be strictly above large codepoint
 static const int kMaxCharSingleByte = 0x3000;
 
-
 static const uint16 *
 getConversionTable(CodePage page) {
 	switch (page) {
@@ -736,8 +1020,10 @@ getConversionTable(CodePage page) {
 	// Multibyte encodings. Can't be represented in simple table way
 	case kUtf8:
 	case kWindows932:
+	case kWindows936:
 	case kWindows949:
 	case kWindows950:
+	case kJohab:
 		return nullptr;
 	}
 	return nullptr;
@@ -800,7 +1086,9 @@ void U32String::decodeOneByte(const char *src, uint32 len, CodePage page) {
 	}
 }
 
-void String::encodeOneByte(const U32String &src, CodePage page, bool transliterate) {
+StringEncodingResult String::encodeOneByte(const U32String &src, CodePage page, bool transliterate, char errorChar) {
+	StringEncodingResult encodingResult = kStringEncodingResultSucceeded;
+
 	const ReverseTablePrefixTreeLevel1 *conversionTable =
 		getReverseConversionTable(page);
 
@@ -815,11 +1103,15 @@ void String::encodeOneByte(const U32String &src, CodePage page, bool translitera
 			}
 
 			if (transliterate) {
-				translitChar(c);
-			} else
-				operator+=('?');
+				StringEncodingResult translitResult = translitChar(c, errorChar);
+				if (translitResult != kStringEncodingResultSucceeded)
+					encodingResult = translitResult;
+			} else {
+				operator+=(errorChar);
+				encodingResult = kStringEncodingResultHasErrors;
+			}
 		}
-		return;
+		return encodingResult;
 	}
 
 	for (uint i = 0; i < src.size(); ++i) {
@@ -839,29 +1131,34 @@ void String::encodeOneByte(const U32String &src, CodePage page, bool translitera
 		}
 
 		if (transliterate) {
-			translitChar(c);
-		} else
-			operator+=('?');
+			StringEncodingResult translitResult = translitChar(c, errorChar);
+			if (translitResult != kStringEncodingResultSucceeded)
+				encodingResult = translitResult;
+		} else {
+			operator+=(errorChar);
+			encodingResult = kStringEncodingResultHasErrors;
+		}
 	}
+
+	return encodingResult;
 }
 
-void String::encodeInternal(const U32String &src, CodePage page) {
+StringEncodingResult String::encodeInternal(const U32String &src, CodePage page, char errorChar) {
 	switch(page) {
 	case kUtf8:
-		encodeUTF8(src);
-		break;
+		return encodeUTF8(src, errorChar);
 	case kWindows932:
-		encodeWindows932(src);
-		break;
+		return encodeWindows932(src, errorChar);
+	case kWindows936:
+		return encodeWindows936(src, errorChar);
 	case kWindows949:
-		encodeWindows949(src);
-		break;
+		return encodeWindows949(src, errorChar);
 	case kWindows950:
-		encodeWindows950(src);
-		break;
+		return encodeWindows950(src, true, errorChar);
+	case kJohab:
+		return encodeJohab(src, errorChar);
 	default:
-		encodeOneByte(src, page);
-		break;
+		return encodeOneByte(src, page, true, errorChar);
 	}
 }
 
@@ -894,11 +1191,17 @@ void U32String::decodeInternal(const char *str, uint32 len, CodePage page) {
 	case kWindows932:
 		decodeWindows932(str, len);
 		break;
+	case kWindows936:
+		decodeWindows936(str, len);
+		break;
 	case kWindows949:
 		decodeWindows949(str, len);
 		break;
 	case kWindows950:
 		decodeWindows950(str, len);
+		break;
+	case kJohab:
+		decodeJohab(str, len);
 		break;
 	default:
 		decodeOneByte(str, len, page);
@@ -918,14 +1221,36 @@ U32String String::decode(CodePage page) const {
 }
 
 String U32String::encode(CodePage page) const {
+	String string;
+	(void)encode(string, page, '?');
+	return string;
+}
+
+StringEncodingResult U32String::encode(String &outString, CodePage page, char errorChar) const {
 	if (page == kCodePageInvalid ||
 			page > kLastEncoding) {
 		error("Invalid codepage");
 	}
 
-	String string;
-	string.encodeInternal(*this, page);
-	return string;
+	return outString.encodeInternal(*this, page, errorChar);
+}
+
+U32String U32String::transcodeChineseT2S() const {
+	if (!cjk_tables_loaded)
+		loadCJKTables();
+
+	if (!traditional2SimplifiedChineseConversionTable)
+		return *this;
+
+	U32String simplified;
+	for (uint32 i = 0; i < size(); i++) {
+		uint32 ch = _str[i];
+		if (ch >= 0x10000)
+			simplified += ch;
+		else
+			simplified += traditional2SimplifiedChineseConversionTable[ch];
+	}
+	return simplified;
 }
 
 } // End of namespace Common

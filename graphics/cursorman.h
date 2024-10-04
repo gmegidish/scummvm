@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@
 #include "common/stack.h"
 #include "common/singleton.h"
 #include "graphics/cursor.h"
-#include "graphics/pixelformat.h"
+#include "graphics/surface.h"
 
 namespace Graphics {
 
@@ -75,16 +74,40 @@ public:
 	 * @param hotspotY	Hotspot Y coordinate.
 	 * @param keycolor	Color value for the transparent color. This cannot exceed
 	 *                  the maximum color value as defined by format.
+	 *                  Does nothing if mask is set.
 	 * @param dontScale	Whether the cursor should never be scaled. An exception are high PPI displays, where the cursor
 	 *                  would be too small to notice otherwise. These are allowed to scale the cursor anyway.
 	 * @param format	Pointer to the pixel format that the cursor graphic uses.
 	 *					CLUT8 will be used if this is null or not specified.
+	 * @param mask      Optional pointer to cursor mask containing values from the CursorMaskValue enum.
 	 *
 	 * @note It is acceptable for the buffer to be a null pointer. It is sometimes
 	 *       useful to push a "dummy" cursor and modify it later. The
 	 *       cursor will be added to the stack, but not to the backend.
 	 */
-	void pushCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const Graphics::PixelFormat *format = NULL);
+	void pushCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const Graphics::PixelFormat *format = NULL, const byte *mask = nullptr);
+
+	/**
+	 * Push a new cursor onto the stack, and set it in the backend.
+	 *
+	 * A local copy of the cursor data will be made, so the original surface
+	 * can be safely freed afterwards.
+	 *
+	 * @param surf		New cursor surface.
+	 * @param hotspotX	Hotspot X coordinate.
+	 * @param hotspotY	Hotspot Y coordinate.
+	 * @param keycolor	Color value for the transparent color. This cannot exceed
+	 *                  the maximum color value as defined by format.
+	 *                  Does nothing if mask is set.
+	 * @param dontScale	Whether the cursor should never be scaled. An exception are high PPI displays, where the cursor
+	 *                  would be too small to notice otherwise. These are allowed to scale the cursor anyway.
+	 * @param mask      Optional pointer to cursor mask containing values from the CursorMaskValue enum.
+	 *
+	 * @note It is acceptable for the surface to be empty. It is sometimes
+	 *       useful to push a "dummy" cursor and modify it later. The
+	 *       cursor will be added to the stack, but not to the backend.
+	 */
+	void pushCursor(const Surface &surf, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const byte *mask = nullptr);
 
 	/**
 	 * Pop a cursor from the stack, and restore the previous one to the
@@ -101,18 +124,40 @@ public:
 	 * more optimized way of popping the old cursor before pushing the new one.
 	 *
 	 * @param buf		New cursor data.
+	 * @param mask		New cursor mask data.
 	 * @param w			Width.
 	 * @param h			Height.
 	 * @param hotspotX	Hotspot X coordinate.
 	 * @param hotspotY	Hotspot Y coordinate.
 	 * @param keycolor	Color value for the transparent color. This cannot exceed
 	 *                  the maximum color value as defined by format.
+	 *                  Does nothing if mask is set.
 	 * @param dontScale	Whether the cursor should never be scaled. An exception are high PPI displays, where the cursor
 	 *                  would be too small to notice otherwise. These are allowed to scale the cursor anyway.
 	 * @param format	Pointer to the pixel format that the cursor graphic uses,
 	 *					CLUT8 will be used if this is null or not specified.
+	 * @param mask      Optional pointer to cursor mask containing values from the CursorMaskValue enum.
 	 */
-	void replaceCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const Graphics::PixelFormat *format = NULL);
+	void replaceCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const Graphics::PixelFormat *format = nullptr, const byte *mask = nullptr);
+
+	/**
+	 * Replace the current cursor on the stack.
+	 *
+	 * If the stack is empty, the cursor is pushed instead. This is a slightly
+	 * more optimized way of popping the old cursor before pushing the new one.
+	 *
+	 * @param surf		New cursor surface.
+	 * @param mask		New cursor mask data.
+	 * @param hotspotX	Hotspot X coordinate.
+	 * @param hotspotY	Hotspot Y coordinate.
+	 * @param keycolor	Color value for the transparent color. This cannot exceed
+	 *                  the maximum color value as defined by format.
+	 *                  Does nothing if mask is set.
+	 * @param dontScale	Whether the cursor should never be scaled. An exception are high PPI displays, where the cursor
+	 *                  would be too small to notice otherwise. These are allowed to scale the cursor anyway.
+	 * @param mask      Optional pointer to cursor mask containing values from the CursorMaskValue enum.
+	 */
+	void replaceCursor(const Surface &surf, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const byte *mask = nullptr);
 
 	/**
 	 * Replace the current cursor on the stack.
@@ -136,7 +181,7 @@ public:
 	/**
 	 * Test whether cursor palettes are supported.
 	 *
-	 * This is just an convenience wrapper for checking whether
+	 * This is just a convenience wrapper for checking whether
 	 * OSystem::kFeatureCursorPalette is supported by OSystem.
 	 *
 	 * @see OSystem::kFeatureCursorPalette
@@ -197,6 +242,17 @@ public:
 	 * and returns false.
 	 */
 	void lock(bool locked);
+
+	/**
+	 * Sets default arrow cursor
+	 *
+	 * This is supposed to be used as a sane fallback for system cursor for
+	 * games that rely on the system cursor
+	 *
+	 * @param push		Specified if cursor should be pushed on replaced (defailt)
+	 */
+	void setDefaultArrowCursor(bool push = false);
+
 private:
 	/**
 	* Generic class for implementing the singleton design pattern.
@@ -211,22 +267,20 @@ private:
 	~CursorManager();
 
 	struct Cursor {
-		byte *_data;
+		Surface _surf;
+		byte *_mask;
 		bool _visible;
-		uint _width;
-		uint _height;
 		int _hotspotX;
 		int _hotspotY;
 		uint32 _keycolor;
-		Graphics::PixelFormat _format;
 		bool _dontScale;
 
 		uint _size;
 
-		// _format set to default by Graphics::PixelFormat default constructor
-		Cursor() : _data(0), _visible(false), _width(0), _height(0), _hotspotX(0), _hotspotY(0), _keycolor(0), _dontScale(false), _size(0) {}
+		// _surf set to default by Graphics::Surface default constructor
+		Cursor() : _mask(0), _visible(false), _hotspotX(0), _hotspotY(0), _keycolor(0), _dontScale(false), _size(0) {}
 
-		Cursor(const void *data, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const Graphics::PixelFormat *format = NULL);
+		Cursor(const Surface &surf, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale, const byte *mask);
 		~Cursor();
 	};
 

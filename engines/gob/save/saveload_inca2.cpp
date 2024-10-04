@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -28,11 +33,11 @@
 namespace Gob {
 
 SaveLoad_Inca2::SaveFile SaveLoad_Inca2::_saveFiles[] = {
-	{"speak.inf", kSaveModeExists, 0, 0}, // Exists = speech enabled
-	{"voice.inf", kSaveModeSave  , 0, 0}, // Contains the language of the voices
-	{"intro.$$$", kSaveModeSave  , 0, "temporary sprite"},
-	{  "cat.inf", kSaveModeSave  , 0, "savegame"},
-	{  "ima.inf", kSaveModeSave  , 0, "screenshot"},
+	{"speak.inf", kSaveModeExists, nullptr, nullptr}, // Exists = speech enabled
+	{"voice.inf", kSaveModeSave  , nullptr, nullptr}, // Contains the language of the voices
+	{"intro.$$$", kSaveModeSave  , nullptr, "temporary sprite"},
+	{  "cat.inf", kSaveModeSave  , nullptr, "savegame"},
+	{  "ima.inf", kSaveModeSave  , nullptr, "screenshot"},
 };
 
 
@@ -74,8 +79,8 @@ SaveLoad_Inca2::GameHandler::GameHandler(GobEngine *vm, const char *target) :
 
 	buildIndex();
 
-	_writer = 0;
-	_reader = 0;
+	_writer = nullptr;
+	_reader = nullptr;
 }
 
 SaveLoad_Inca2::GameHandler::~GameHandler() {
@@ -201,7 +206,7 @@ void SaveLoad_Inca2::GameHandler::buildIndex() {
 bool SaveLoad_Inca2::GameHandler::createReader(int slot) {
 	// If slot < 0, just check if a reader exists
 	if (slot < 0)
-		return (_reader != 0);
+		return (_reader != nullptr);
 
 	if (!_reader || (_reader->getSlot() != ((uint32) slot))) {
 		Common::String slotFile = _slotFile->build(slot);
@@ -215,7 +220,7 @@ bool SaveLoad_Inca2::GameHandler::createReader(int slot) {
 
 		if (!_reader->load()) {
 			delete _reader;
-			_reader = 0;
+			_reader = nullptr;
 			return false;
 		}
 	}
@@ -226,7 +231,7 @@ bool SaveLoad_Inca2::GameHandler::createReader(int slot) {
 bool SaveLoad_Inca2::GameHandler::createWriter(int slot) {
 	// If slot < 0, just check if a writer exists
 	if (slot < 0)
-		return (_writer != 0);
+		return (_writer != nullptr);
 
 	if (!_writer || (_writer->getSlot() != ((uint32) slot))) {
 		Common::String slotFile = _slotFile->build(slot);
@@ -406,7 +411,7 @@ const SaveLoad_Inca2::SaveFile *SaveLoad_Inca2::getSaveFile(const char *fileName
 		if (!scumm_stricmp(fileName, _saveFiles[i].sourceName))
 			return &_saveFiles[i];
 
-	return 0;
+	return nullptr;
 }
 
 SaveLoad_Inca2::SaveFile *SaveLoad_Inca2::getSaveFile(const char *fileName) {
@@ -416,7 +421,7 @@ SaveLoad_Inca2::SaveFile *SaveLoad_Inca2::getSaveFile(const char *fileName) {
 		if (!scumm_stricmp(fileName, _saveFiles[i].sourceName))
 			return &_saveFiles[i];
 
-	return 0;
+	return nullptr;
 }
 
 SaveHandler *SaveLoad_Inca2::getHandler(const char *fileName) const {
@@ -425,7 +430,7 @@ SaveHandler *SaveLoad_Inca2::getHandler(const char *fileName) const {
 	if (saveFile)
 		return saveFile->handler;
 
-	return 0;
+	return nullptr;
 }
 
 const char *SaveLoad_Inca2::getDescription(const char *fileName) const {
@@ -434,7 +439,7 @@ const char *SaveLoad_Inca2::getDescription(const char *fileName) const {
 	if (saveFile)
 		return saveFile->description;
 
-	return 0;
+	return nullptr;
 }
 
 SaveLoad::SaveMode SaveLoad_Inca2::getSaveMode(const char *fileName) const {

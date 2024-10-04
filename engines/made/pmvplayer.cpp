@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -105,7 +104,7 @@ bool PmvPlayer::play(const char *filename) {
 	uint32 soundSize = 0;
 	uint32 soundChunkOfs = 0, palChunkOfs = 0;
 	uint32 palSize = 0;
-	byte *frameData = 0, *audioData, *soundData, *palData, *imageData;
+	byte *frameData = nullptr, *audioData, *soundData, *palData, *imageData;
 	bool firstTime = true;
 
 	uint32 skipFrames = 0;
@@ -155,7 +154,7 @@ bool PmvPlayer::play(const char *filename) {
 
 			soundSize = chunkCount * chunkSize;
 			soundData = (byte *)malloc(soundSize);
-			decompressSound(audioData + 8, soundData, chunkSize, chunkCount, NULL, soundDecoderData);
+			decompressSound(audioData + 8, soundData, chunkSize, chunkCount, nullptr, soundDecoderData);
 			_audioStream->queueBuffer(soundData, soundSize, DisposeAfterUse::YES, Audio::FLAG_UNSIGNED);
 		}
 

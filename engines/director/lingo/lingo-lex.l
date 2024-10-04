@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,15 @@
 %{
 
 #define YY_NO_UNISTD_H
-#define FORBIDDEN_SYMBOL_ALLOW_ALL
+#define FORBIDDEN_SYMBOL_EXCEPTION_FILE
+#define FORBIDDEN_SYMBOL_EXCEPTION_fprintf
+#define FORBIDDEN_SYMBOL_EXCEPTION_fwrite
+#define FORBIDDEN_SYMBOL_EXCEPTION_fread
+#define FORBIDDEN_SYMBOL_EXCEPTION_stdin
+#define FORBIDDEN_SYMBOL_EXCEPTION_stdout
+#define FORBIDDEN_SYMBOL_EXCEPTION_stderr
+#define FORBIDDEN_SYMBOL_EXCEPTION_exit
+#define FORBIDDEN_SYMBOL_EXCEPTION_getc
 
 #include "common/str.h"
 
@@ -44,7 +51,6 @@
 
 using namespace Director;
 
-int yyparse();
 static const char *inputbuffer;
 static uint inputlen;
 
@@ -147,7 +153,7 @@ static Common::String *readUntilNull(const char **ptr) {
 
 %}
 
-identifier [_[:alpha:]][_[:alnum:]]*
+identifier [_[:alpha:]][_\.[:alnum:]]*
 constfloat [[:digit:]]+\.[[:digit:]]*
 constinteger [[:digit:]]+
 conststring \"[^\"\r\n]*\"
@@ -170,6 +176,7 @@ after		{ count(); return tAFTER; }		// D3
 and			{ count(); return tAND; }
 before		{ count(); return tBEFORE; }	// D3
 cast		{ count(); return tCAST; }
+castlibs	{ count(); return tCASTLIBS; }	// D5
 char		{ count(); return tCHAR; }		// D3
 chars		{ count(); return tCHARS; }
 contains	{ count(); return tCONTAINS; }
@@ -199,7 +206,7 @@ exit		{ count(); return tEXIT; }
 field		{ count(); return tFIELD; }
 frame		{ count(); return tFRAME; }
 global		{ count(); return tGLOBAL; }
-go{spc}+(to)?	{ count(); return tGO; }
+go({spc}+to)?	{ count(); return tGO; }
 hilite		{ count(); return tHILITE; }
 if			{ count(); return tIF; }
 instance	{ count(); return tINSTANCE; }
@@ -214,6 +221,7 @@ lines		{ count(); return tLINES; }
 long		{ count(); return tLONG; }
 macro		{ count(); return tMACRO; }
 menu		{ count(); return tMENU; }
+menus		{ count(); return tMENUS; }
 menuItem	{ count(); return tMENUITEM;}
 menuItems	{ count(); return tMENUITEMS; }
 method		{ count(); return tMETHOD; }
@@ -231,6 +239,7 @@ previous	{ count(); return tPREVIOUS; }
 property	{ count(); return tPROPERTY; }	// D4
 put			{ count(); return tPUT; }
 repeat		{ count(); return tREPEAT; }
+return		{ count(); return tRETURN; }
 script		{ count(); return tSCRIPT; }
 scummvmAssertError	{ count(); return tASSERTERROR; }
 set			{ count(); return tSET; }
@@ -267,6 +276,7 @@ with		{ count(); return tWITH; }
 within		{ count(); return tWITHIN; }
 word		{ count(); return tWORD; }
 words		{ count(); return tWORDS; }
+xtras		{ count(); return tXTRAS; } // D5
 
 [<][>]			{ count(); return tNEQ; }
 [>][=]			{ count(); return tGE; }

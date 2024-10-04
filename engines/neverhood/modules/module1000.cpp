@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "neverhood/modules/module1000.h"
 #include "neverhood/modules/module1000_sprites.h"
+
+#include "common/config-manager.h"
 
 namespace Neverhood {
 
@@ -124,7 +125,7 @@ void Module1000::updateScene() {
 }
 
 Scene1001::Scene1001(NeverhoodEngine *vm, Module *parentModule, int which)
-	: Scene(vm, parentModule), _asDoor(NULL), _asWindow(NULL) {
+	: Scene(vm, parentModule), _asDoor(nullptr), _asWindow(nullptr) {
 
 	Sprite *tempSprite;
 
@@ -402,7 +403,7 @@ uint32 Scene1002::handleMessage(int messageNum, const MessageParam &param, Entit
 		}
 		break;
 	case NM_POSITION_CHANGE:
-		_messageList = NULL;
+		_messageList = nullptr;
 		break;
 	case NM_KLAYMEN_CLIMB_LADDER:
 		_isClimbingLadder = true;
@@ -602,19 +603,85 @@ uint32 Scene1005::handleMessage(int messageNum, const MessageParam &param, Entit
 }
 
 void Scene1005::drawTextToBackground() {
-	TextResource textResource(_vm);
-	const char *textStart, *textEnd;
-	int16 y = 36;
 	uint32 textIndex = getTextIndex();
-	FontSurface *fontSurface = FontSurface::createFontSurface(_vm, getGlobalVar(V_ENTRANCE_OPEN) ? 0x283CE401 : 0xC6604282);
-	textResource.load(0x80283101);
-	textStart = textResource.getString(textIndex, textEnd);
-	while (textStart < textEnd) {
-		fontSurface->drawString(_background->getSurface(), 188, y, (const byte*)textStart);
-		y += 36;
-		textStart += strlen(textStart) + 1;
+	if (_vm->getLanguage() == Common::Language::JA_JPN) {
+		static const struct {
+			uint32 image_id;
+			int x, y;
+		} jp_images[] = {
+			/* 1 */ { 0xB1048044, 205, 39 },
+			/* 2 */ { 0x31048045, 201, 54 },
+			/* 3 */ { 0x31048046, 193, 37 },
+			/* 4 */ { 0x31048040, 192, 57 },
+			/* 5 */ { 0x3104804C, 195, 43 },
+			/* 6 */ { 0x31048054, 188, 32 },
+			/* 7 */ { 0x31048064, 201, 52 },
+			/* 8 */ { 0x31048004, 191, 51 },
+			/* 9 */ { 0x310480C4, 197, 58 },
+			/* 10 */ { 0xB2048044, 196, 65 },
+			/* 11 */ { 0x32048045, 188, 53 },
+			/* 12 */ { 0x32048046, 190, 71 },
+			/* 13 */ { 0x32048040, 210, 45 },
+			/* 14 */ { 0x3204804C, 199, 67 },
+			/* 15 */ { 0x32048054, 214, 58 },
+			/* 16 */ { 0x32048064, 201, 52 },
+			/* 17 */ { 0x32048004, 205, 57 },
+			/* 18 */ { 0x320480C4, 215, 65 },
+			/* 19 */ { 0x32048144, 223, 85 },
+			/* 20 */ { 0x34048045, 208, 82 },
+			/* 21 */ { 0x34048046, 200, 66 },
+			/* 22 */ { 0x34048040, 209, 76 },
+			/* 23 */ { 0x3404804C, 211, 80 },
+			/* 24 */ { 0x34048054, 211, 50 },
+			/* 25 */ { 0x34048064, 224, 76 },
+			/* 26 */ { 0x34048004, 209, 85 },
+			/* 27 */ { 0x340480C4, 202, 61 },
+			/* 28 */ { 0x34048144, 206, 79 },
+			/* 29 */ { 0x34048244, 219, 71 },
+			/* 30 */ { 0x38048046, 200, 87 },
+			/* 31 */ { 0x38048040, 215, 85 },
+			/* 32 */ { 0x3804804C, 209, 87 },
+			/* 33 */ { 0x38048054, 201, 62 },
+			/* 34 */ { 0x38048064, 213, 95 },
+			/* 35 */ { 0x38048004, 204, 90 },
+			/* 36 */ { 0x380480C4, 214, 77 },
+			/* 37 */ { 0x38048144, 211, 96 },
+			/* 38 */ { 0x38048244, 207, 91 },
+			/* 39 */ { 0x38048444, 207, 71 },
+			/* 40 */ { 0x20048040, 206, 68 },
+			/* 41 */ { 0x2004804C, 201, 140 },
+			/* 42 */ { 0x20048054, 218, 122 },
+			/* 43 */ { 0x20048064, 219, 107 },
+			/* 44 */ { 0x20048004, 214, 115 },
+			/* 45 */ { 0x200480C4, 193, 142 },
+			/* 46 */ { 0x20048144, 210, 130 },
+			/* 47 */ { 0x20048244, 208, 110 },
+			/* 48 */ { 0x20048444, 213, 112 },
+			/* 49 */ { 0x20048844, 221, 112 },
+			/* 50 */ { 0x1004804C, 207, 133 },
+			/* 51 */ { 0x10048054, 209, 111 },
+		};
+		if (textIndex >= ARRAYSIZE(jp_images))
+			textIndex = 0;
+		addSprite(new StaticSprite(_vm, jp_images[textIndex].image_id, kSLFSetPosition, jp_images[textIndex].x, jp_images[textIndex].y));
+	} else {
+		TextResource textResource(_vm);
+		const char *textStart, *textEnd;
+		int16 x = 188, y = 36;
+		FontSurface *fontSurface = FontSurface::createFontSurface(_vm, getGlobalVar(V_ENTRANCE_OPEN) ? 0x283CE401 : 0xC6604282);
+		textResource.load(0x80283101);
+		textStart = textResource.getString(textIndex, textEnd);
+		if (_vm->shouldOffsetFontNhc()) {
+			x += 15;
+			y += 18;
+		}
+		while (textStart < textEnd) {
+			fontSurface->drawString(_background->getSurface(), x, y, (const byte*)textStart);
+			y += 36;
+			textStart += strlen(textStart) + 1;
+		}
+		delete fontSurface;
 	}
-	delete fontSurface;
 }
 
 uint32 Scene1005::getTextIndex() {
@@ -624,7 +691,7 @@ uint32 Scene1005::getTextIndex() {
 		textIndex = getKloggsTextIndex();
 	}
 	if (getGlobalVar(V_TEXT_FLAG1) && getGlobalVar(V_TEXT_INDEX) == textIndex) {
-		textIndex = getTextIndex3();
+		textIndex = getTextIndex3(textIndex);
 	} else {
 		setGlobalVar(V_TEXT_FLAG1, 1);
 		setGlobalVar(V_TEXT_INDEX, textIndex);
@@ -711,8 +778,12 @@ uint32 Scene1005::getKloggsTextIndex() {
 	return textIndex + 40;
 }
 
-uint32 Scene1005::getTextIndex3() {
+uint32 Scene1005::getTextIndex3(uint32 usefulHint) {
 	uint32 textIndex = getGlobalVar(V_TEXT_COUNTING_INDEX2);
+	if (textIndex + 1 > 10 && ConfMan.getBool("repeatwilliehint")) {
+		setGlobalVar(V_TEXT_COUNTING_INDEX2, 0);
+		return usefulHint;
+	}
 	if (textIndex + 1 > 10) {
 		textIndex = 0;
 	}

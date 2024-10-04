@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,18 +15,17 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "backends/keymapper/keymapper.h"
 
-#include "common/achievements.h"
 #include "common/debug-channels.h"
 #include "common/rect.h"
 #include "common/translation.h"
 
+#include "engines/achievements.h"
 #include "engines/util.h"
 
 #include "gui/message.h"
@@ -51,14 +50,18 @@
 #include "asylum/views/menu.h"
 #include "asylum/views/video.h"
 
+#include "asylum/console.h"
 #include "asylum/respack.h"
 
 namespace Asylum {
 
+const char *const engineKeyMapId = "asylum";
+const char *const resviewerKeyMapId = "asylum-resviewer";
+
 AsylumEngine::AsylumEngine(OSystem *system, const ADGameDescription *gd) : Engine(system), _gameDescription(gd),
-	_console(NULL), _cursor(NULL), _encounter(NULL), _menu(NULL), _resource(NULL), _savegame(NULL),
-	_scene(NULL), _screen(NULL), _script(NULL), _special(NULL), _speech(NULL), _sound(NULL), _text(NULL),
-	_video(NULL), _handler(NULL), _puzzles(NULL) {
+	_cursor(nullptr), _encounter(nullptr), _menu(nullptr), _resource(nullptr), _savegame(nullptr),
+	_scene(nullptr), _screen(nullptr), _script(nullptr), _special(nullptr), _speech(nullptr), _sound(nullptr), _text(nullptr),
+	_video(nullptr), _handler(nullptr), _puzzles(nullptr) {
 
 	// Init data
 	resetFlags();
@@ -71,27 +74,19 @@ AsylumEngine::AsylumEngine(OSystem *system, const ADGameDescription *gd) : Engin
 	// Debug
 	_delayedSceneIndex = kResourcePackInvalid;
 	_delayedVideoIndex = -1;
-	_previousScene = NULL;
-
-	// Game data
-	Common::String dataDir("data/");
-	if (checkGameVersion("Steam")) {
-		dataDir += getLanguageCode(getLanguage());
-		dataDir += '/';
-	}
+	_previousScene = nullptr;
 
 	// Add default search directories
-	const Common::FSNode gamePath(ConfMan.get("path"));
-	SearchMan.addSubDirectoryMatching(gamePath, dataDir);
-	SearchMan.addSubDirectoryMatching(gamePath, dataDir + "vids");
-	SearchMan.addSubDirectoryMatching(gamePath, dataDir + "music");
+	const Common::FSNode gamePath(ConfMan.getPath("path"));
+	SearchMan.addSubDirectoryMatching(gamePath, "vids");
+	SearchMan.addSubDirectoryMatching(gamePath, "music");
 
 	// Initialize random number source
 	_rnd = new Common::RandomSource("asylum");
 }
 
 AsylumEngine::~AsylumEngine() {
-	_handler = NULL;
+	_handler = nullptr;
 
 	delete _cursor;
 	delete _scene;
@@ -108,12 +103,12 @@ AsylumEngine::~AsylumEngine() {
 	delete _menu;
 	delete _resource;
 
-	_previousScene = NULL;
+	_previousScene = nullptr;
 
 	delete _rnd;
 
 	// Zero passed pointers
-	_gameDescription = NULL;
+	_gameDescription = nullptr;
 }
 
 Common::Error AsylumEngine::run() {
@@ -121,8 +116,7 @@ Common::Error AsylumEngine::run() {
 	initGraphics(640, 480);
 
 	// Create debugger. It requires GFX to be initialized
-	_console   = new Console(this);
-	setDebugger(_console);
+	setDebugger(new Console(this));
 
 	// Create resource manager
 	_resource  = new ResourceManager(this);
@@ -145,7 +139,7 @@ Common::Error AsylumEngine::run() {
 	_menu  = new Menu(this);
 	if (checkGameVersion("Demo")) {
 		if (!isAltDemo())
-			_video->play(0, NULL);
+			_video->play(0, nullptr);
 		restart();
 	} else {
 		int saveSlot = ConfMan.hasKey("save_slot") ? ConfMan.getInt("save_slot") : -1;
@@ -185,6 +179,8 @@ Common::Error AsylumEngine::run() {
 
 		_system->delayMillis(10);
 
+		screen()->processPaletteFadeQueue();
+
 		_system->updateScreen();
 
 		if (_scene)
@@ -198,23 +194,24 @@ Common::Error AsylumEngine::run() {
 	return Common::kNoError;
 }
 
-void AsylumEngine::startGame(ResourcePackId sceneId, StartGameType type) {
+bool AsylumEngine::startGame(ResourcePackId sceneId, StartGameType type) {
 	if (!_cursor || !_screen || !_savegame)
 		error("[AsylumEngine::startGame] Subsystems not initialized properly!");
 
 	if (type == kStartGameLoad && !_savegame->isCompatible()) {
-		Common::U32String message = _("Attempt to load saved game from a previous version: Version %s / Build %d");
+		// I18N: Warn user about loading potentially incompatible saved game
+		Common::U32String message = _("WARNING: Attempt to load saved game from a previous version: Version %s / Build %d");
 		GUI::MessageDialog dialog(Common::U32String::format(message, _savegame->getVersion(), _savegame->getBuild()), _("Load anyway"), _("Cancel"));
 
 		if (dialog.runModal() != GUI::kMessageOK) {
 			_menu->setDword455C80(false);
-			return;
+			return false;
 		}
 	}
 
 	// Load the default mouse cursor
-	if (!checkGameVersion("Demo"))
-		_cursor->set(MAKE_RESOURCE(kResourcePackSound, 14), 0, kCursorAnimationNone);
+	// Original sets the cursor to a rotating disc
+	_cursor->set(MAKE_RESOURCE(sceneId, 10));
 	_cursor->hide();
 
 	// Clear the graphic list
@@ -285,6 +282,7 @@ void AsylumEngine::startGame(ResourcePackId sceneId, StartGameType type) {
 	}
 
 	_cursor->show();
+	return true;
 }
 
 void AsylumEngine::restart() {
@@ -296,7 +294,7 @@ void AsylumEngine::restart() {
 	// Cleanup
 	resetFlags();
 	delete _scene;
-	_scene = NULL;
+	_scene = nullptr;
 	delete _encounter;
 	_encounter = new Encounter(this);
 	_script->resetQueue();
@@ -310,7 +308,7 @@ void AsylumEngine::restart() {
 	_screen->clear();
 	_sound->playMusic(kResourceNone, 0);
 
-	startGame(kResourcePackTowerCells, kStartGamePlayIntro);
+	(void)startGame(kResourcePackTowerCells, kStartGamePlayIntro);
 }
 
 void AsylumEngine::reset() {
@@ -345,7 +343,7 @@ void AsylumEngine::playIntro() {
 		} else {
 			_sound->playMusic(kResourceNone, 0);
 
-			_video->play(1, checkGameVersion("Demo") ? NULL : _menu);
+			_video->play(1, checkGameVersion("Demo") ? nullptr : _menu);
 
 			if (_scene->worldstats()->musicCurrentResourceIndex != kMusicStopped)
 				_sound->playMusic(MAKE_RESOURCE(kResourcePackMusic, _scene->worldstats()->musicCurrentResourceIndex));
@@ -368,6 +366,8 @@ void AsylumEngine::playIntro() {
 					switch (ev.type) {
 					case Common::EVENT_LBUTTONDOWN:
 					case Common::EVENT_KEYDOWN:
+					case Common::EVENT_JOYBUTTON_DOWN:
+					case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
 						skip = true;
 						break;
 					default:
@@ -397,54 +397,30 @@ void AsylumEngine::playIntro() {
 }
 
 void AsylumEngine::handleEvents() {
-	if (!_console || !_video || !_screen || !_sound || !_menu || !_cursor)
+	if (!_video || !_screen || !_sound || !_menu || !_cursor)
 		error("[AsylumEngine::handleEvents] Subsystems not initialized properly!");
-
-	// Show the debugger if required
-	_console->onFrame();
 
 	AsylumEvent ev;
 	Common::Keymapper *const keymapper = _eventMan->getKeymapper();
 
 	while (_eventMan->pollEvent(ev)) {
-		keymapper->setEnabled(_handler == _scene || (_handler == _menu && !_menu->isEditingSavegameName()));
+		keymapper->setEnabled(_handler != _menu || (!_menu->isEditingSavegameName() && !_menu->isConfiguringKeyboard()));
 		switch (ev.type) {
 		default:
 			break;
 
 		case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
-			// Handle custom actions
-			if (_handler)
-				_handler->handleEvent(ev);
-			break;
-
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_END:
+		case Common::EVENT_JOYBUTTON_DOWN:
+		case Common::EVENT_JOYBUTTON_UP:
 		case Common::EVENT_KEYDOWN:
-			if ((ev.kbd.flags & Common::KBD_CTRL) && ev.kbd.keycode == Common::KEYCODE_d) {
-				_console->attach();
-				break;
-			}
-
-			// Handle key events
-			if (_handler)
-				_handler->handleEvent(ev);
-			break;
-
 		case Common::EVENT_KEYUP:
-			// Handle key events
-			if (_handler)
-				_handler->handleEvent(ev);
-			break;
-
 		case Common::EVENT_MOUSEMOVE:
 		case Common::EVENT_LBUTTONDOWN:
 		case Common::EVENT_LBUTTONUP:
 		case Common::EVENT_RBUTTONDOWN:
 		case Common::EVENT_RBUTTONUP:
-		case Common::EVENT_MBUTTONUP:
-		case Common::EVENT_MBUTTONDOWN:
-			// Handle mouse events
-			_cursor->setState(ev);
-
+			// Handle events
 			if (_handler)
 				_handler->handleEvent(ev);
 			break;
@@ -492,6 +468,8 @@ void AsylumEngine::processDelayedEvents() {
 		_sound->stopMusic();
 		_sound->stopAll();
 
+		resetFlags();
+
 		// Switch the scene
 		switchScene(sceneIndex);
 	}
@@ -509,11 +487,11 @@ void AsylumEngine::processDelayedEvents() {
 // Message handlers
 //////////////////////////////////////////////////////////////////////////
 void AsylumEngine::switchEventHandler(EventHandler *handler) {
-	if (handler == NULL && !checkGameVersion("Demo"))
+	if (handler == nullptr && !checkGameVersion("Demo"))
 		warning("[AsylumEngine::switchMessageHandler] NULL handler parameter (shouldn't happen outside of debug commands)!");
 
 	// De-init previous handler
-	if (_handler != NULL) {
+	if (_handler != nullptr) {
 		AsylumEvent deinit(EVENT_ASYLUM_DEINIT);
 		_handler->handleEvent(deinit);
 	}
@@ -525,7 +503,7 @@ void AsylumEngine::switchEventHandler(EventHandler *handler) {
 			delete _scene;
 			_scene = _previousScene;
 			handler = _scene;
-			_previousScene = NULL;
+			_previousScene = nullptr;
 		}
 	}
 	//////////////////////////////////////////////////////////////////////////
@@ -540,7 +518,7 @@ void AsylumEngine::switchEventHandler(EventHandler *handler) {
 }
 
 void AsylumEngine::notify(AsylumEventType type, int32 param1, int32 param2) {
-	if (_handler == NULL)
+	if (_handler == nullptr)
 		error("[AsylumEngine::notify] Invalid handler parameter (cannot be NULL)!");
 
 	AsylumEvent evt(type, param1, param2);
@@ -671,16 +649,26 @@ void AsylumEngine::checkAchievements() {
 //////////////////////////////////////////////////////////////////////////
 // Save/Load
 //////////////////////////////////////////////////////////////////////////
-bool AsylumEngine::canLoadGameStateCurrently() {
-	return (!checkGameVersion("Demo")
-		&& (_handler == _scene || _handler == _menu)
-		&& !speech()->getSoundResourceId());
+bool AsylumEngine::canLoadGameStateCurrently(Common::U32String *msg) {
+	if (checkGameVersion("Demo")) {
+		if (msg)
+			*msg = _("This game does not support loading");
+
+		return false;
+	}
+
+	return ((_handler == _scene || _handler == _menu) && !speech()->getSoundResourceId());
 }
 
-bool AsylumEngine::canSaveGameStateCurrently() {
-	return (!checkGameVersion("Demo")
-		&& (_handler == _scene)
-		&& !speech()->getSoundResourceId());
+bool AsylumEngine::canSaveGameStateCurrently(Common::U32String *msg) {
+	if (checkGameVersion("Demo")) {
+		if (msg)
+			*msg = _("This game does not support saving");
+
+		return false;
+	}
+
+	return ((_handler == _scene) && !speech()->getSoundResourceId());
 }
 
 bool AsylumEngine::canSaveAutosaveCurrently() {
@@ -692,11 +680,9 @@ Common::Error AsylumEngine::loadGameState(int slot) {
 	savegame()->loadList();
 	savegame()->setIndex(slot);
 	if (savegame()->hasSavegame(slot))
-		startGame(savegame()->getScenePack(), AsylumEngine::kStartGameLoad);
+		return startGame(savegame()->getScenePack(), AsylumEngine::kStartGameLoad) ? Common::kNoError : Common::kReadingFailed;
 	else
 		return Common::kReadingFailed;
-
-	return Common::kNoError;
 }
 
 Common::Error AsylumEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {

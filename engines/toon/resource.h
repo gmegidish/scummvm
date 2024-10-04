@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, MojoTouch has
+ * exclusively licensed this code on March 23th, 2024, to be used in
+ * closed-source products.
+ * Therefore, any contributions (commits) to it will also be dual-licensed.
  *
  */
 
@@ -37,10 +43,10 @@ public:
 	PakFile();
 	~PakFile();
 
-	void open(Common::SeekableReadStream *rs, const Common::String &packName);
-	uint8 *getFileData(const Common::String &fileName, uint32 *fileSize);
-	Common::String getPackName() { return _packName; }
-	Common::SeekableReadStream *createReadStream(const Common::String &fileName);
+	void open(Common::SeekableReadStream *rs, const Common::Path &packName);
+	uint8 *getFileData(const Common::Path &fileName, uint32 *fileSize);
+	Common::Path getPackName() { return _packName; }
+	Common::SeekableReadStream *createReadStream(const Common::Path &fileName);
 	void close();
 
 protected:
@@ -49,7 +55,7 @@ protected:
 		int32 _offset;
 		int32 _size;
 	};
-	Common::String _packName;
+	Common::Path _packName;
 
 	uint32 _numFiles;
 	Common::Array<File> _files;
@@ -64,8 +70,8 @@ public:
 		free(_data);
 	}
 
-	Common::String _packName;
-	Common::String _fileName;
+	Common::Path _packName;
+	Common::Path _fileName;
 	uint32 _age;
 	uint32 _size;
 	uint8 *_data;
@@ -75,10 +81,10 @@ class Resources {
 public:
 	Resources(ToonEngine *vm);
 	~Resources();
-	bool openPackage(const Common::String &file);
-	void closePackage(const Common::String &fileName);
-	Common::SeekableReadStream *openFile(const Common::String &file);
-	uint8 *getFileData(const Common::String &fileName, uint32 *fileSize); // this memory must be copied to your own structures!
+	bool openPackage(const Common::Path &file);
+	void closePackage(const Common::Path &fileName);
+	Common::SeekableReadStream *openFile(const Common::Path &file);
+	uint8 *getFileData(const Common::Path &fileName, uint32 *fileSize); // this memory must be copied to your own structures!
 	void purgeFileData();
 
 protected:
@@ -88,9 +94,9 @@ protected:
 	uint32 _cacheSize;
 	Common::Array<CacheEntry *> _resourceCache;
 
-	void removePackageFromCache(const Common::String &packName);
-	bool getFromCache(const Common::String &fileName, uint32 *fileSize, uint8 **fileData);
-	void addToCache(const Common::String &packName, const Common::String &fileName, uint32 fileSize, uint8 *fileData);
+	void removePackageFromCache(const Common::Path &packName);
+	bool getFromCache(const Common::Path &fileName, uint32 *fileSize, uint8 **fileData);
+	void addToCache(const Common::Path &packName, const Common::Path &fileName, uint32 fileSize, uint8 *fileData);
 };
 
 } // End of namespace Toon

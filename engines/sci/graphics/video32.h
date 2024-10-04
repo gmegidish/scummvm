@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,14 +25,15 @@
 #ifdef USE_RGB_COLOR
 #include "common/config-manager.h" // for ConfMan
 #endif
+#include "common/path.h"          // for Path
 #include "common/ptr.h"
 #include "common/rect.h"          // for Rect
 #include "common/scummsys.h"      // for int16, uint8, uint16, int32
-#include "common/str.h"           // for String
 #include "sci/engine/vm_types.h"  // for reg_t
 #include "sci/video/robot_decoder.h" // for RobotDecoder
 #include "sci/sound/audio32.h"    // for Audio32::kMaxVolume
 #include "video/avi_decoder.h"    // for AVIDecoder::setVolume
+#include "video/subtitles.h"      // for Video::Subtitles
 
 namespace Video {
 class AdvancedVMDDecoder;
@@ -93,7 +93,7 @@ protected:
 	 * ensure that the current system is actually capable of playing back the
 	 * video.
 	 */
-	bool open(const Common::String &fileName);
+	bool open(const Common::Path &fileName);
 
 	/**
 	 * Reinitializes the system hardware surface for playback of high-quality
@@ -169,6 +169,12 @@ protected:
 	void setDrawRect(const int16 x, const int16 y, const int16 width, const int16 height);
 
 	/**
+	 * Sets the subtitle position according to the draw rect and overlay size.
+	 * 
+	 */
+	void setSubtitlePosition() const;
+
+	/**
 	 * The rectangle where the video will be drawn, in screen coordinates.
 	 */
 	Common::Rect _drawRect;
@@ -184,6 +190,11 @@ protected:
 	 * Current frame rendered by playUntilEvent()
 	 */
 	const Graphics::Surface* _currentFrame;
+
+	/**
+	 * Video SRT subtitles used by fan translation projects for phantasmagoria 1 & 2.
+	 */
+	mutable Video::Subtitles _subtitles;
 
 #ifdef USE_RGB_COLOR
 	/**
@@ -208,7 +219,7 @@ public:
 	 * Plays a SEQ animation with the given file name, with each frame being
 	 * displayed for `numTicks` ticks.
 	 */
-	void play(const Common::String &fileName, const int16 numTicks, const int16 x, const int16 y);
+	void play(const Common::Path &fileName, const int16 numTicks, const int16 x, const int16 y);
 };
 
 #pragma mark -
@@ -238,7 +249,7 @@ public:
 	/**
 	 * Opens a stream to an AVI resource.
 	 */
-	IOStatus open(const Common::String &fileName);
+	IOStatus open(const Common::Path &fileName);
 
 	/**
 	 * Initializes the AVI rendering parameters for the current AVI. This must
@@ -289,7 +300,7 @@ public:
 	/**
 	 * Plays a QuickTime animation with the given file name
 	 */
-	void play(const Common::String& fileName);
+	void play(const Common::Path &fileName);
 };
 
 #pragma mark -
@@ -344,7 +355,7 @@ public:
 	/**
 	 * Opens a stream to a VMD resource.
 	 */
-	IOStatus open(const Common::String &fileName, const OpenFlags flags);
+	IOStatus open(const Common::Path &fileName, const OpenFlags flags);
 
 	/**
 	 * Initializes the VMD rendering parameters for the current VMD. This must
@@ -806,6 +817,7 @@ private:
 	RobotDecoder _robotPlayer;
 	DuckPlayer _duckPlayer;
 };
+
 } // End of namespace Sci
 
-#endif
+#endif // SCI_GRAPHICS_VIDEO32_H

@@ -26,21 +26,23 @@ convbdf
     Hint from SumthinWicked: If you use ttf2bdf, it'll convert all glyphs
     to bitmaps, but ScummVM only needs some of them. So you may want to
     do your conversion like this:
+
       ttf2bdf -p SIZE -l "32_160" -o FONT.bdf FONT.ttf
+
     where SIZE is replaced by the desired font height.
 
 
-create_classicmacfonts.sh, create_japanesemacfonts.sh
-_____________________________________________________
-    Scripts for extracting fonts from Classic MacOS images freely
-    available from apple.com. Used in Director, MacVenture, SCUMM
-    and WAGE engines.
+create_japanesemacfonts.sh
+--------------------------
+    Script for extracting fonts from Classic Japanese MacOS images
+    freely available from apple.com (used in Director, MacVenture,
+    SCUMM and WAGE engines).
 
 
 create_cryo
 -----------
     Creates cryo.dat file which contains a lot of hardcoded tables used
-    by the Cryo engine..
+    by the Cryo engine.
 
 
 create_drascula (sev)
@@ -55,8 +57,8 @@ create_drascula (sev)
 
 create_encodings (phcoder)
 --------------
-   Transforms CJK tables from unicode consortium format to the format
-   used by ScummVM
+   Transforms CJK tables from Unicode consortium format to the format
+   used by ScummVM.
 
 
 create_hugo (Strangerke)
@@ -87,6 +89,11 @@ create_mort (Strangerke)
     Gathers several information found in the original DOS executable:
     - Font data
     - French, German and fan-made English translation
+
+create_nancy (fracturehill)
+-----------
+    Creates nancy.dat file containing various constants, game logic
+    and strings originally embedded in the games' executables.
 
 
 create_project (LordHoto, Littleboy)
@@ -141,7 +148,7 @@ dist-scummvm.sh
     Note #2: This assumes that our naming conventions for release tags
     are being followed. I.e. the tag must be named "release-0-7-1" in
     the above example. You can, however, specify an alternate tag as the
-    fourth param.
+    fourth parameter.
 
     Note #3: Since SF.net anon CVS tends to lag behind developer CVS, if
     you just tagged CVS, anon CVS may not yet have this. So if you are
@@ -162,16 +169,50 @@ docker.sh
 
 
 dumper_companion.py
-___________________
+-------------------
     Tool for dumping HFS/HFS+ volumes and game files with non-ASCII
-    characters in names. Full documentation could be found at
-    https://wiki.scummvm.org/index.php?title=HOWTO-Dump_Macintosh_Media
+    characters in names, as well as extracting fonts from Classic
+    MacOS images freely available from apple.com (used in Director,
+    MacVenture, SCUMM and WAGE engines). Full documentation can be found at:
+    https://docs.scummvm.org/en/latest/use_scummvm/mac_game_files.html
+
+
+generate-android-i18n-strings.py
+--------------------------------
+    This script generates translated strings.xml files
+    in dists/android/res/values-<qualifier> directory as per the specs:
+    https://developer.android.com/guide/topics/resources/providing-resources#AlternativeResources
+    It considers the dists/android/res/values/strings.xml file as a base template to generate
+    those translated files.
+    Additionally, this script generates a fake cpp file (dists/android.strings.xml.cpp) with strings
+    from dists/android/res/values/strings.xml wrapped inside _() to be picked up by
+    gettext for weblate translations. You can run it like this:
+
+    cd devtools && python3 generate-android-i18n-strings.py
 
 
 gog_gameid.py, steam_gameid.py
-______________________________
+------------------------------
     Tools for obtaining gameids from GOG and Steam used when preparing the
     Achievements lists.
+
+
+make_class.py
+-------------------
+    Tool that adds all the boilerplate for a new C++ class inside an engine.
+    Examples:
+
+      make_class.py scumm . LeChuck
+
+    This will make a new class `LeChuck` under scumm engine root (engines/scumm/).
+    Creates boilerplate class Scumm::LeChuck, in le_chuck.cpp and le_chuck.h
+    (files are lower-cased, upper-case letters from class name get '_' added).
+    Adds corresponding .o file to module.mk list.
+
+      make_class.py -n BladeRunner bladerunner ui Scores
+
+    This will make a new class BladeRunner::Scores in the engines/bladerunner/ui/
+    directory.
 
 
 make-scumm-fontdata (eriktorbjorn)

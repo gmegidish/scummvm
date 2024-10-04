@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@ namespace Myst3 {
 
 Dialog::Dialog(Myst3Engine *vm, uint id):
 	_vm(vm),
-	_texture(0) {
+	_texture(nullptr) {
 	// Draw on the whole screen
 	_isConstrainedToWindow = false;
 	_scaled = !_vm->isWideScreenModEnabled();
@@ -58,18 +57,18 @@ Dialog::Dialog(Myst3Engine *vm, uint id):
 
 	// Load the movie
 	Common::SeekableReadStream *movieStream = movieDesc.getData();
-	_bink.setDefaultHighColorFormat(Texture::getRGBAPixelFormat());
 	_bink.loadStream(movieStream);
+	_bink.setOutputPixelFormat(Texture::getRGBAPixelFormat());
 	_bink.start();
 
 	const Graphics::Surface *frame = _bink.decodeNextFrame();
-	_texture = _vm->_gfx->createTexture(frame);
+	_texture = _vm->_gfx->createTexture2D(frame);
 
 	_vm->_sound->playEffect(699, 10);
 }
 
 Dialog::~Dialog() {
-	_vm->_gfx->freeTexture(_texture);
+	delete _texture;
 }
 
 void Dialog::draw() {
@@ -218,7 +217,7 @@ int16 GamepadDialog::update() {
 
 Menu::Menu(Myst3Engine *vm) :
 		_vm(vm),
-		_saveLoadSpotItem(0) {
+		_saveLoadSpotItem(nullptr) {
 }
 
 Menu::~Menu() {
@@ -355,12 +354,12 @@ uint Menu::dialogIdFromType(DialogType type) {
 		uint id;
 		uint idXbox;
 	} mapping[] = {
-			{ kConfirmNewGame,        1080, 1010 },
-			{ kConfirmLoadGame,       1060, 1003 },
-			{ kConfirmOverwrite,      1040, 1004 },
-			{ kConfirmEraseSavedGame, 1020, 0 },
-			{ kErrorEraseSavedGame,   1050, 0 },
-			{ kConfirmQuit,           1070, 0 }
+		{ kConfirmNewGame,        1080, 1010 },
+		{ kConfirmLoadGame,       1060, 1003 },
+		{ kConfirmOverwrite,      1040, 1004 },
+		{ kConfirmEraseSavedGame, 1020, 0 },
+		{ kErrorEraseSavedGame,   1050, 0 },
+		{ kConfirmQuit,           1070, 0 }
 	};
 
 	uint id = 0;
@@ -885,7 +884,7 @@ void AlbumMenu::loadSaves() {
 		}
 
 		// Read state data
-		Common::Serializer s = Common::Serializer(saveFile, 0);
+		Common::Serializer s = Common::Serializer(saveFile, nullptr);
 		GameState::StateData data;
 		data.syncWithSaveGame(s);
 

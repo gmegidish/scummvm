@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,7 +43,7 @@ void Init_play_movie(const char *param0, bool8 param1);
 mcodeFunctionReturnCodes fn_play_movie(int32 &result, int32 *params) { return (MS->fn_play_movie(result, params)); }
 
 mcodeFunctionReturnCodes _game_session::fn_play_movie(int32 &, int32 *params) {
-	const char *movie_name = NULL;
+	const char *movie_name = nullptr;
 	if (params && params[0]) {
 		movie_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 	}
@@ -70,7 +69,7 @@ mcodeFunctionReturnCodes _game_session::fn_play_movie(int32 &, int32 *params) {
 }
 
 void Init_play_movie(const char *param0, bool8 param1) {
-	// Stop all sounds occuring
+	// Stop all sounds occurring
 	PauseSounds();
 
 	const char *moviename = (const char *)param0;

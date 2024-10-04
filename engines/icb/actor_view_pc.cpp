@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -129,7 +128,7 @@ void InitActorView(const char *name, const char *outfit, const char *weapon, con
 	char h_outfit[8];
 	HashFile(outfit, h_outfit);
 	// Make the cluster name
-	sprintf(cluster_name, "\\C\\%s\\%s.OFT", h_character, h_outfit);
+	Common::sprintf_s(cluster_name, "\\C\\%s\\%s.OFT", h_character, h_outfit);
 	// Hash value for this cluster name
 	cluster_name_hash = NULL_HASH;
 
@@ -138,7 +137,7 @@ void InitActorView(const char *name, const char *outfit, const char *weapon, con
 
 	raj_name_hash = NULL_HASH;
 
-	sprintf(raj_name, "%s\\%s.raj", weapon, anim);
+	Common::sprintf_s(raj_name, "%s\\%s.raj", weapon, anim);
 
 	anim_name = const_cast<char *>(anim);
 	weapon_name = const_cast<char *>(weapon);
@@ -160,7 +159,7 @@ void InitActorView(const char *name, const char *outfit, const char *weapon, con
 	char texture_name[128];
 	uint32 texture_name_hash = NULL_HASH;
 
-	sprintf(texture_name, "material.revtex");
+	Common::sprintf_s(texture_name, "material.revtex");
 
 	TextureHandle *texHan = GetRegisteredTexture(texture_name, texture_name_hash, texture_name, texture_name_hash, cluster_name, cluster_name_hash);
 
@@ -178,13 +177,13 @@ void ChangeAnimPlaying(const char *pose, const char *anim, bool8 forwards, int32
 	}
 
 	// Require anim parameter
-	if (anim == NULL)
+	if (anim == nullptr)
 		Fatal_error("ChangeAnimPlaying() cannot set active animation to NULL!");
 
 	// Remake raj filename
 	raj_name_hash = NULL_HASH;
 
-	sprintf(raj_name, "%s\\%s.raj", weapon_name, anim);
+	Common::sprintf_s(raj_name, "%s\\%s.raj", weapon_name, anim);
 
 	// Change animation to use
 	anim_name = const_cast<char *>(anim);
@@ -377,7 +376,7 @@ void DrawFrame(const int32 frame) {
 	ambient.b = 128;
 
 	pxanim = (PXanim *)rs_anims->Res_open(raj_name, raj_name_hash, cluster_name, cluster_name_hash);
-	PXFrameEnOfAnim(framenum, pxanim)->markers[ORG_POS];
+	PXFrameEnOfAnim(framenum, pxanim);
 
 	// Make the actors orientation matrix
 	g_av_actor->rot = rot;
@@ -390,7 +389,7 @@ void DrawFrame(const int32 frame) {
 	PXframe *frm = PXFrameEnOfAnim(framenum, pxanim);
 	PXmarker &marker = frm->markers[ORG_POS];
 	float mposx, mposy, mposz;
-	marker.GetXYZ(&mposx, &mposy, &mposz);
+	PXmarker_PSX_Object::GetXYZ(&marker, &mposx, &mposy, &mposz);
 	int32 dy = (int32)mposy;
 
 	g_av_actor->lw.t[0] = 0;
@@ -403,49 +402,49 @@ void DrawFrame(const int32 frame) {
 	g_av_actor->truePos.z = 0;
 	g_av_actor->trueRot = g_av_actor->rot;
 
-	sprintf(pose_name, "%s\\pose.rap", weapon_name);
-	sprintf(bone_name, "%s\\%s.rab", weapon_name, anim_name);
-	sprintf(mesh_name, "mesh.rap");
-	sprintf(smesh_name, "mesh_shadow.rap");
+	Common::sprintf_s(pose_name, "%s\\pose.rap", weapon_name);
+	Common::sprintf_s(bone_name, "%s\\%s.rab", weapon_name, anim_name);
+	Common::sprintf_s(mesh_name, "mesh.rap");
+	Common::sprintf_s(smesh_name, "mesh_shadow.rap");
 
 	uint32 mesh_hash = HashString(mesh_name);
-	rap_API *mesh = (rap_API *)rs_anims->Res_open(mesh_name, mesh_hash, cluster_name, cluster_name_hash);
+	RapAPI *mesh = (RapAPI *)rs_anims->Res_open(mesh_name, mesh_hash, cluster_name, cluster_name_hash);
 	uint32 smesh_hash = HashString(smesh_name);
-	rap_API *smesh = (rap_API *)rs_anims->Res_open(smesh_name, smesh_hash, cluster_name, cluster_name_hash);
+	RapAPI *smesh = (RapAPI *)rs_anims->Res_open(smesh_name, smesh_hash, cluster_name, cluster_name_hash);
 	uint32 pose_hash = HashString(pose_name);
-	rap_API *pose = (rap_API *)rs_anims->Res_open(pose_name, pose_hash, cluster_name, cluster_name_hash);
+	RapAPI *pose = (RapAPI *)rs_anims->Res_open(pose_name, pose_hash, cluster_name, cluster_name_hash);
 	uint32 bone_hash = HashString(bone_name);
-	rab_API *rab = (rab_API *)rs_anims->Res_open(bone_name, bone_hash, cluster_name, cluster_name_hash);
+	RabAPI *rab = (RabAPI *)rs_anims->Res_open(bone_name, bone_hash, cluster_name, cluster_name_hash);
 
 	ConvertRAP(pose);
 	ConvertRAP(smesh);
 	ConvertRAP(mesh);
 
 	// Some error checking
-	if (*(int32 *)mesh->id != *(int32 *)const_cast<char *>(RAP_API_ID)) {
+	if (READ_LE_INT32((int32 *)mesh->id) != *(int32 *)const_cast<char *>(RAP_API_ID)) {
 		Fatal_error("Wrong rap id value file %d api %d file:%s", mesh->id, RAP_API_ID, mesh_name);
 	}
-	if (mesh->schema != RAP_API_SCHEMA) {
+	if (FROM_LE_32(mesh->schema) != RAP_API_SCHEMA) {
 		Fatal_error("Wrong rap schema value file %d rap_api %d file:%s", mesh->schema, RAP_API_SCHEMA, mesh_name);
 	}
-	if (*(int32 *)pose->id != *(int32 *)const_cast<char *>(RAP_API_ID)) {
+	if (READ_LE_INT32((int32 *)pose->id) != *(int32 *)const_cast<char *>(RAP_API_ID)) {
 		Fatal_error("Wrong rap id value file %d api %d file:%s", pose->id, RAP_API_ID, pose_name);
 	}
-	if (pose->schema != RAP_API_SCHEMA) {
+	if (FROM_LE_32(pose->schema) != RAP_API_SCHEMA) {
 		Fatal_error("Wrong rap schema value file %d rap_api %d file:%s", pose->schema, RAP_API_SCHEMA, pose_name);
 	}
-	if (*(int32 *)rab->id != *(int32 *)const_cast<char *>(RAB_API_ID)) {
+	if (READ_LE_INT32((int32 *)rab->id) != *(int32 *)const_cast<char *>(RAB_API_ID)) {
 		Fatal_error("Wrong rab id value file %d rab_api %d file:%s", rab->id, RAB_API_ID, bone_name);
 	}
-	if (rab->schema != RAB_API_SCHEMA) {
+	if (FROM_LE_32(rab->schema) != RAB_API_SCHEMA) {
 		Fatal_error("Wrong rab schema value file %d rab_api %d file:%s", rab->schema, RAB_API_SCHEMA, bone_name);
 	}
-	if (mesh->nBones != rab->nBones) {
+	if (FROM_LE_16(mesh->nBones) != rab->nBones) {
 		Fatal_error("mesh nBones != animation nBones %d != %d", mesh->nBones, rab->nBones);
 	}
 
 	// Pass in the linkage file and the bones file
-	Bone_Frame *bone_frame = rab->GetFrame(frame);
+	Bone_Frame *bone_frame = RabAPIObject::GetFrame(rab, frame);
 	int32 brightness;
 
 	int32 debug = 1;
@@ -453,7 +452,7 @@ void DrawFrame(const int32 frame) {
 	BoneDeformation *myBones[MAX_DEFORMABLE_BONES];
 
 	for (int32 i = 0; i < MAX_DEFORMABLE_BONES; i++) {
-		myBones[i] = NULL;
+		myBones[i] = nullptr;
 	}
 
 	// Shadow stuff to play with

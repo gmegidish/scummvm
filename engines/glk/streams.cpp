@@ -4,19 +4,18 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software{} you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation{} either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY{} without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program{} if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -1327,7 +1326,7 @@ FileStream::FileStream(Streams *streams, frefid_t fref, uint fmode, uint rock, b
 		setStream(_outSave);
 
 	} else if (fmode == filemode_Read) {
-		if (_file.open(fname)) {
+		if (_file.open(Common::Path(fname))) {
 			setStream(&_file);
 		} else {
 			_inSave = g_system->getSavefileManager()->openForLoading(fname);
@@ -1430,18 +1429,18 @@ frefid_t Streams::createByPrompt(uint usage, FileMode fmode, uint rock) {
 	case fileusage_SavedGame: {
 		if (fmode == filemode_Write) {
 			// Select a savegame slot
-			GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Save game:"), _("Save"), true);
+			GUI::SaveLoadChooser dialog(_("Save game:"), _("Save"), true);
 
-			int slot = dialog->runModalWithCurrentTarget();
+			int slot = dialog.runModalWithCurrentTarget();
 			if (slot >= 0) {
-				Common::String desc = dialog->getResultString();
+				Common::String desc = dialog.getResultString();
 				return createRef(slot, desc, usage, rock);
 			}
 		} else if (fmode == filemode_Read) {
 			// Load a savegame slot
-			GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Restore game:"), _("Restore"), false);
+			GUI::SaveLoadChooser dialog(_("Restore game:"), _("Restore"), false);
 
-			int slot = dialog->runModalWithCurrentTarget();
+			int slot = dialog.runModalWithCurrentTarget();
 			if (slot >= 0) {
 				return createRef(slot, "", usage, rock);
 			}
@@ -1551,7 +1550,7 @@ bool FileReference::exists() const {
 	Common::String filename;
 
 	if (_slotNumber == -1) {
-		if (Common::File::exists(_filename))
+		if (Common::File::exists(Common::Path(_filename)))
 			return true;
 		filename = _filename;
 	} else {

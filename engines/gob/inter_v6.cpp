@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -264,7 +269,7 @@ void Inter_v6::o6_assign(OpFuncParams &params) {
 
 		_vm->_game->_script->push();
 
-		src = _vm->_game->_script->readVarIndex(&size, 0);
+		src = _vm->_game->_script->readVarIndex(&size, nullptr);
 
 		memcpy(_vm->_inter->_variables->getAddressOff8(dest),
 				_vm->_inter->_variables->getAddressOff8((uint16) src), size * 4);
@@ -297,6 +302,34 @@ void Inter_v6::o6_assign(OpFuncParams &params) {
 		loopCount = _vm->_game->_script->readByte();
 	} else
 		loopCount = 1;
+
+	// WORKAROUND for a bug in Adibou 2 scripts for cooking activity: bananas count is not updated correctly.
+	// The banana balance equation should be: "remaining bananas = previous remaining bananas - bananas used for cake"
+	// but scripts do instead "remaining bananas = previous remaining *cherries* - bananas used for cake" :p
+	if (_vm->getGameType() == kGameTypeAdibou2 &&
+		loopCount == 1 &&
+		_vm->_enableAdibou2FreeBananasWorkaround &&
+		_vm->_game->_script->pos() == 18631 && // same offset in all versions
+		(dest == 40956 || dest == 40916) && // bananas in v2.10, v2.11 / v2.12, v2.13
+		_vm->isCurrentTot("cuisine.tot")) {
+		uint16 bananasInCakesVar = (dest == 40956) ? 22820 : 22828;
+		WRITE_VAR_OFFSET(dest, VAR_OFFSET(dest) - VAR_OFFSET(bananasInCakesVar) /* bananas used for cake */);
+		_vm->_game->_script->skipExpr(99);
+		return;
+	}
+
+	// WORKAROUND: Make the "bird table" animation in the hollow tree skippable with right click
+	if (_vm->getGameType() == kGameTypeAdibou2 &&
+		loopCount == 1 &&
+		(dest == 19104 || dest == 19400 || dest == 19404) && // animation "frame" in different versions
+		_vm->_game->_script->pos() > 9036 &&
+		_vm->_game->_script->pos() < 9478 &&
+		_vm->isCurrentTot("atelier.tot") &&
+		VAR(4) == kMouseButtonsRight) {
+		WRITE_VAR_OFFSET(dest, 200);
+		_vm->_game->_script->skipExpr(99);
+		return;
+	}
 
 	for (int i = 0; i < loopCount; i++) {
 		int16 result;
@@ -333,6 +366,16 @@ void Inter_v6::o6_assign(OpFuncParams &params) {
 		default:
 			break;
 		}
+	}
+
+	// WORKAROUND for a bug in Adibou2 script of "pleasant/unpleasant" game
+	if (_vm->getGameType() == kGameTypeAdibou2 &&
+		loopCount == 1 &&
+		_vm->_game->_script->pos() == 6739 &&
+		dest == 508 &&
+		VAR_OFFSET(dest) == 0 &&
+		_vm->isCurrentTot("l6ex11.tot")) {
+		WRITE_VAR_OFFSET(dest, 1); // used as a loop index for an array initialized only from index 1, skip value 0
 	}
 }
 
@@ -382,9 +425,6 @@ void Inter_v6::o6_fillRect(OpFuncParams &params) {
 	_vm->_draw->_backColor = patternColor & 0xFFFF;
 	_vm->_draw->_pattern   = patternColor >> 16;
 
-	if (_vm->_draw->_pattern != 0)
-		warning("Urban Stub: o6_fillRect(), _pattern = %d", _vm->_draw->_pattern);
-
 	if (_vm->_draw->_spriteRight < 0) {
 		_vm->_draw->_destSpriteX += _vm->_draw->_spriteRight - 1;
 		_vm->_draw->_spriteRight = -_vm->_draw->_spriteRight + 2;
@@ -395,6 +435,7 @@ void Inter_v6::o6_fillRect(OpFuncParams &params) {
 	}
 
 	if (destSurf & 0x80) {
+		// Implemented in Inter_v7::o7_fillRect, consider merging if needed
 		warning("Urban Stub: o6_fillRect(), destSurf & 0x80");
 		return;
 	}

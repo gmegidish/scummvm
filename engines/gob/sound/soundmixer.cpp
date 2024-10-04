@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -34,7 +39,7 @@ SoundMixer::SoundMixer(Audio::Mixer &mixer, Audio::Mixer::SoundType type) : _mix
 
 	_rate = _mixer->getOutputRate();
 	_end = true;
-	_data = 0;
+	_data = nullptr;
 	_length = 0;
 	_freq = 0;
 	_repCount = 0;
@@ -78,7 +83,7 @@ void SoundMixer::stop(int16 fadeLength) {
 	Common::StackLock slock(_mutex);
 
 	if (fadeLength <= 0) {
-		_data = 0;
+		_data = nullptr;
 		_end = true;
 		_playingSound = 0;
 		return;
@@ -149,7 +154,9 @@ void SoundMixer::play(SoundDesc &sndDesc, int16 repCount, int16 frequency,
 }
 
 void SoundMixer::checkEndSample() {
-	if ((_repCount == -1) || (--_repCount > 0)) {
+	if ((_repCount == -1) || (_repCount - 1 > 0)) {
+        if (_repCount != -1)
+            --_repCount;
 		_offset = 0;
 		_offsetFrac = 0;
 		_end = false;
@@ -204,7 +211,7 @@ int SoundMixer::readBuffer(int16 *buffer, const int numSamples) {
 
 void SoundMixer::endFade() {
 	if (_fadeVolStep > 0) {
-		_data = 0;
+		_data = nullptr;
 		_end = true;
 		_playingSound = 0;
 	} else {

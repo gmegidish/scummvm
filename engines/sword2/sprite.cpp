@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "common/endian.h"
@@ -271,7 +270,7 @@ uint32 Screen::decompressHIF(byte *src, byte *dst, uint32 *skipData) {
 				src += 2;
 				readByte += 2;
 				if (info_word == 0xFFFF) { // Got 0xFFFF code, finished.
-					if (skipData != NULL) *(skipData) = readByte;
+					if (skipData != nullptr) *(skipData) = readByte;
 					return decompSize;
 				}
 
@@ -615,7 +614,7 @@ int32 Screen::drawSprite(SpriteInfo *s) {
 
 	if (s->type & RDSPR_FLIP) {
 		newSprite = (byte *)malloc(s->w * s->h);
-		if (newSprite == NULL) {
+		if (newSprite == nullptr) {
 			if (freeSprite)
 				free(sprite);
 			return RDERR_OUTOFMEMORY;
@@ -708,7 +707,7 @@ int32 Screen::drawSprite(SpriteInfo *s) {
 		}
 
 		newSprite = (byte *)malloc(s->scaledWidth * s->scaledHeight);
-		if (newSprite == NULL) {
+		if (newSprite == nullptr) {
 			if (freeSprite)
 				free(sprite);
 			return RDERR_OUTOFMEMORY;
@@ -861,7 +860,7 @@ int32 Screen::openLightMask(SpriteInfo *s) {
 	if (!_lightMask)
 		return RDERR_OUTOFMEMORY;
 
-	if (s->data == NULL) // Check, as there's no mask in psx version
+	if (s->data == nullptr) // Check, as there's no mask in psx version
 		return RDERR_NOTOPEN;
 
 	if (decompressRLE256(_lightMask, s->data, s->w * s->h))
@@ -879,7 +878,7 @@ int32 Screen::closeLightMask() {
 		return RDERR_NOTOPEN;
 
 	free(_lightMask);
-	_lightMask = NULL;
+	_lightMask = nullptr;
 	return RD_OK;
 }
 

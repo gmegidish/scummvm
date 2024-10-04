@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -87,7 +86,7 @@ bool Debugger::cmd_enterRoom(int argc, const char **argv) {
 		int roomNumber = strToInt(argv[1]);
 
 		// Validate that it's an existing room
-		if (res.getRoom(roomNumber) == NULL) {
+		if (res.getRoom(roomNumber) == nullptr) {
 			debugPrintf("specified number was not a valid room\n");
 			return true;
 		}
@@ -123,7 +122,7 @@ bool Debugger::cmd_listRooms(int argc, const char **argv) {
 		// Explictly note the second drawbridge room as "Alt"
 		if (room.roomNumber == 49) {
 			strings.getString(47, buffer);
-			strcat(buffer, " (alt)");
+			Common::strcat_s(buffer, " (alt)");
 		} else {
 			strings.getString(room.roomNumber, buffer);
 		}
@@ -214,12 +213,12 @@ bool Debugger::cmd_giveItem(int argc, const char **argv) {
 		itemHotspot = res.getHotspot(itemNum);
 		charHotspot = res.getHotspot(charNum);
 
-		if (itemHotspot == NULL) {
+		if (itemHotspot == nullptr) {
 			debugPrintf("The specified item does not exist\n");
 		} else if (itemNum < 0x408) {
 			debugPrintf("The specified item number is not an object\n");
 		} else if ((charNum < PLAYER_ID) || (charNum >= 0x408) ||
-				   (charHotspot == NULL)) {
+				   (charHotspot == nullptr)) {
 			debugPrintf("The specified character does not exist");
 		} else {
 			// Set the item's room number to be the destination character
@@ -245,7 +244,7 @@ bool Debugger::cmd_hotspots(int argc, const char **argv) {
 			for (i = res.activeHotspots().begin(); i != res.activeHotspots().end(); ++i) {
 				Hotspot const &hotspot = **i;
 
-				if (hotspot.nameId() == 0) strcpy(buffer, "none");
+				if (hotspot.nameId() == 0) Common::strcpy_s(buffer, "none");
 				else strings.getString(hotspot.nameId(), buffer);
 
 				debugPrintf("%4xh - %s pos=(%d,%d,%d)\n", hotspot.hotspotId(), buffer,
@@ -260,7 +259,7 @@ bool Debugger::cmd_hotspots(int argc, const char **argv) {
 				HotspotData const &hotspot = **i;
 
 				if (hotspot.roomNumber == roomNumber) {
-					if (hotspot.nameId == 0) strcpy(buffer, "none");
+					if (hotspot.nameId == 0) Common::strcpy_s(buffer, "none");
 					else strings.getString(hotspot.nameId, buffer);
 
 					debugPrintf("%4xh - %s pos=(%d,%d,%d)\n", hotspot.hotspotId, buffer,
@@ -317,9 +316,9 @@ bool Debugger::cmd_hotspot(int argc, const char **argv) {
 		debugPrintf("Character mode = %d, delay ctr = %d, pause ctr = %d\n",
 			hs->characterMode, hs->delayCtr, hs->pauseCtr);
 
-		if (h != NULL) {
+		if (h != nullptr) {
 			debugPrintf("Frame Number = %d of %d\n", h->frameNumber(), h->numFrames());
-			debugPrintf("Persistent = %s\n", h->persistant() ? "true" : "false");
+			debugPrintf("Persistent = %s\n", h->persistent() ? "true" : "false");
 		}
 
 	} else if (strcmp(argv[2], "actions") == 0) {
@@ -453,7 +452,7 @@ bool Debugger::cmd_showAnim(int argc, const char **argv) {
 	// Get the animation Id
 	int animId = strToInt(argv[1]);
 	HotspotAnimData *data = res.getAnimation(animId);
-	if (data == NULL) {
+	if (data == nullptr) {
 		debugPrintf("No such animation Id exists\n");
 		return true;
 	}

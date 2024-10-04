@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -96,7 +95,7 @@ startover:
 		 *   a game directly from the command line AND there's an
 		 *   initRestore function defined.
 		 */
-		if (restore_fname == 0 || voc->voccxinitrestore == MCMONINV)
+		if (restore_fname == nullptr || voc->voccxinitrestore == MCMONINV)
 		{
 			ERRBEGIN(ec)
 			{
@@ -134,7 +133,7 @@ startover:
 		restore_fname = filbuf;
 
 	/* check for a file to restore */
-	if (restore_fname != 0)
+	if (restore_fname != nullptr)
 	{
 		/*
 		 *   Check to see if the game file supports the initRestore
@@ -190,14 +189,14 @@ startover:
 			{
 				char buf[60 + OSFNMAX];
 
-				sprintf(buf, "\n\nError: unable to restore file \"%s\"\n\n",
+				Common::sprintf_s(buf, "\n\nError: unable to restore file \"%s\"\n\n",
 						restore_fname);
 				os_printz(buf);
 			}
 		}
 
 		/* forget the saved game name, in case we restore */
-		restore_fname = 0;
+		restore_fname = nullptr;
 	}
 
 	/* clear out the redo command buffer */
@@ -274,7 +273,7 @@ startover:
 		if (voc->voccxredo && voc->voccxredobuf[0] != '\0')
 		{
 			/* copy the redo buffer into our internal buffer */
-			strcpy(buf, voc->voccxredobuf);
+			Common::strcpy_s(buf, voc->voccxredobuf);
 
 			/* we've consumed it now, so clear it out */
 			voc->voccxredobuf[0] = '\0';

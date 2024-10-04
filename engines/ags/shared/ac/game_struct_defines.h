@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,6 +34,8 @@ namespace AGS3 {
 #define GLOBALMESLENGTH     500
 #define MAXLANGUAGE         5
 #define LEGACY_MAX_FONTS    30
+
+// General game options
 #define OPT_DEBUGMODE       0
 #define OPT_SCORESOUND      1
 #define OPT_WALKONLOOK      2
@@ -69,30 +70,40 @@ namespace AGS3 {
 #define OPT_PORTRAITSIDE    31
 #define OPT_STRICTSCRIPTING 32  // don't allow MoveCharacter-style commands
 #define OPT_LEFTTORIGHTEVAL 33  // left-to-right operator evaluation
-#define OPT_COMPRESSSPRITES 34
-#define OPT_STRICTSTRINGS   35  // don't allow old-style strings
+#define OPT_COMPRESSSPRITES 34  // [DEPRECATED]
+#define OPT_STRICTSTRINGS   35  // don't allow old-style strings, for reference only
 #define OPT_NEWGUIALPHA     36
 #define OPT_RUNGAMEDLGOPTS  37
 #define OPT_NATIVECOORDINATES 38 // defines coordinate relation between game logic and game screen
 #define OPT_GLOBALTALKANIMSPD 39
 #define OPT_HIGHESTOPTION_321 39
 #define OPT_SPRITEALPHA     40
-#define OPT_HIGHESTOPTION_330 OPT_SPRITEALPHA
 #define OPT_SAFEFILEPATHS   41
-#define OPT_HIGHESTOPTION_335 OPT_SAFEFILEPATHS
 #define OPT_DIALOGOPTIONSAPI 42 // version of dialog options API (-1 for pre-3.4.0 API)
 #define OPT_BASESCRIPTAPI   43 // version of the Script API (ScriptAPIVersion) used to compile game script
 #define OPT_SCRIPTCOMPATLEV 44 // level of API compatibility (ScriptAPIVersion) used to compile game script
 #define OPT_RENDERATSCREENRES 45 // scale sprites at the (final) screen resolution
 #define OPT_RELATIVEASSETRES 46 // relative asset resolution mode (where sprites are resized to match game type)
 #define OPT_WALKSPEEDABSOLUTE 47 // if movement speeds are independent of walkable mask resolution
-#define OPT_HIGHESTOPTION   OPT_WALKSPEEDABSOLUTE
-#define OPT_NOMODMUSIC      98
+#define OPT_CLIPGUICONTROLS 48 // clip drawn gui control contents to the control's rectangle
+#define OPT_GAMETEXTENCODING 49 // how the text in the game data should be interpreted
+#define OPT_KEYHANDLEAPI    50 // key handling mode (old/new)
+#define OPT_CUSTOMENGINETAG 51 // custom engine tag (for overriding behavior)
+#define OPT_HIGHESTOPTION   OPT_CUSTOMENGINETAG
+#define OPT_NOMODMUSIC      98 // [DEPRECATED]
 #define OPT_LIPSYNCTEXT     99
+
+#define CUSTOMENG_NONE      0
+#define CUSTOMENG_DRACONIAN 1 // Draconian Edition
+#define CUSTOMENG_CLIFFTOP  2 // Clifftop Games
+
+// Sierra-style portrait position style
 #define PORTRAIT_LEFT       0
 #define PORTRAIT_RIGHT      1
 #define PORTRAIT_ALTERNATE  2
 #define PORTRAIT_XPOSITION  3
+
+// Room transition style
 #define FADE_NORMAL         0
 #define FADE_INSTANT        1
 #define FADE_DISSOLVE       2
@@ -105,7 +116,19 @@ namespace AGS3 {
 #define FFLG_LEGACY_SIZEMASK 0x3f
 #define MAX_LEGACY_FONT_SIZE 63
 // Contemporary font flags
-#define FFLG_SIZEMULTIPLIER  0x01  // size data means multiplier
+#define FFLG_SIZEMULTIPLIER        0x01  // size data means multiplier
+#define FFLG_DEFLINESPACING        0x02  // linespacing derived from the font height
+// Font load flags, primarily for backward compatibility:
+// REPORTNOMINALHEIGHT: get_font_height should return nominal font's height,
+// eq to "font size" parameter, otherwise returns real pixel height.
+#define FFLG_REPORTNOMINALHEIGHT   0x04
+// ASCENDFIXUP: do the TTF ascender fixup, where font's ascender is resized
+// to the nominal font's height.
+#define FFLG_ASCENDERFIXUP         0x08
+// Collection of flags defining fully backward compatible TTF fixup
+#define FFLG_TTF_BACKCOMPATMASK   (FFLG_REPORTNOMINALHEIGHT | FFLG_ASCENDERFIXUP)
+// Collection of flags defining font's load mode
+#define FFLG_LOADMODEMASK         (FFLG_REPORTNOMINALHEIGHT | FFLG_ASCENDERFIXUP)
 // Font outline types
 #define FONT_OUTLINE_NONE -1
 #define FONT_OUTLINE_AUTO -10
@@ -167,7 +190,8 @@ enum ScriptAPIVersion {
 	kScriptAPI_v3507 = 7,
 	kScriptAPI_v351 = 8,
 	kScriptAPI_v360 = 3060000,
-	kScriptAPI_Current = kScriptAPI_v360
+	kScriptAPI_v36026 = 3060026,
+	kScriptAPI_Current = kScriptAPI_v36026
 };
 
 extern const char *GetScriptAPIName(ScriptAPIVersion v);
@@ -239,15 +263,15 @@ struct FontInfo {
 
 	// General font's loading and rendering flags
 	uint32_t      Flags;
-	// Font size, in points (basically means pixels in AGS)
-	int           SizePt;
+	// Nominal font import size (in pixels)
+	int           Size;
 	// Factor to multiply base font size by
 	int           SizeMultiplier;
 	// Outlining font index, or auto-outline flag
 	int8          Outline;
 	// Custom vertical render offset, used mainly for fixing broken fonts
 	int           YOffset;
-	// custom line spacing between two lines of text (0 = use font height)
+	// Custom line spacing between two lines of text (0 = use font height)
 	int           LineSpacing;
 	// When automatic outlining, thickness of the outline (0 = no auto outline)
 	int           AutoOutlineThickness;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@ namespace AGT {
 
 /* Make artificial parse record for an object */
 parse_rec *make_parserec(int obj, parse_rec *rec) {
-	if (rec == NULL) rec = (parse_rec *)rmalloc(sizeof(parse_rec));
+	if (rec == nullptr) rec = (parse_rec *)rmalloc(sizeof(parse_rec));
 	rec->obj = obj;
 	rec->info = D_NOUN;
 	rec->noun = it_name(obj);
@@ -57,7 +56,7 @@ void tmpobj(parse_rec *objrec) {
 
 parse_rec *copy_parserec(parse_rec *rec) {
 	parse_rec *newrec;
-	if (rec == NULL) return NULL;
+	if (rec == nullptr) return nullptr;
 	newrec = (parse_rec *)rmalloc(sizeof(parse_rec));
 	memcpy(newrec, rec, sizeof(parse_rec));
 	return newrec;
@@ -91,7 +90,7 @@ static const char *it_sdesc(int item) {
 	if (tnoun(item)) return noun[item - first_noun].shortdesc;
 	if (tcreat(item)) return creature[item - first_creat].shortdesc;
 	if (item < 0) return dict[-item];
-	return NULL;
+	return nullptr;
 }
 
 rbool it_possess(int item) {
@@ -254,7 +253,7 @@ void it_reposition(int item, int newloc, rbool save_pos) {
 			noun[item - first_noun].pos_prep = 0;
 			noun[item - first_noun].pos_name = 0;
 			noun[item - first_noun].nearby_noun = 0;
-			noun[item - first_noun].position = NULL;
+			noun[item - first_noun].position = nullptr;
 #if 0  /* I think this was wrong, so I'm commenting it out. */
 			noun[item - first_noun].initdesc = 0;
 #endif
@@ -283,7 +282,7 @@ void it_reposition(int item, int newloc, rbool save_pos) {
 		noun[i].nearby_noun = 0;
 		noun[i].pos_prep = 0;
 		noun[i].pos_name = 0;
-		noun[i].position = NULL;
+		noun[i].position = nullptr;
 	}
 }
 
@@ -361,7 +360,7 @@ defined in exec.h */
 	/* Weight */
 	if (obj2 == 1 || (aver > AGTME15 && aver < AGX00)) {
 		/* Pre-1.56 interpreters forgot to check this;
-		   Magx deliberatly *doesn't* check this */
+		   Magx deliberately *doesn't* check this */
 
 		net = noun[obj1 - first_noun].weight;
 		if (aver >= AGX00) net += contweight(obj1);
@@ -776,7 +775,7 @@ static void rundesc(int i, descr_ptr dp_[], const char *shortdesc, int msgid) {
 	if (dp_[i].size > 0)
 		print_descr(dp_[i], 1);
 	else if (!invischeck(shortdesc))
-		raw_lineout(shortdesc, 1, MSG_DESC, NULL);
+		raw_lineout(shortdesc, 1, MSG_DESC, nullptr);
 	else sysmsg(msgid, "$You$ see nothing unexpected.");
 }
 
@@ -812,9 +811,9 @@ static char *build_position(word prep_, word name)
 	leng = strlen(dict[prep_]) + strlen(dict[name]) + 6; /* includes final '\0' */
 	s = (char *)rmalloc(leng * sizeof(char));
 
-	strcpy(s, dict[prep_]);
-	strcat(s, " the ");
-	strcat(s, dict[name]);
+	Common::strcpy_s(s, leng, dict[prep_]);
+	Common::strcat_s(s, leng, " the ");
+	Common::strcat_s(s, leng, dict[name]);
 	assert((int)strlen(s) + 1 == leng);
 	return s;
 }
@@ -840,7 +839,7 @@ static int print_obj(int obj, int ind_lev)
 	if (tcreat(obj) && creature[obj - first_creat].initdesc != 0)
 		return 0; /* Don't print normal description if printing initdesc */
 
-	s0 = NULL;
+	s0 = nullptr;
 	sdesc_flag = !player_has(obj); /* This should be tested. */
 	sdesc_flag = sdesc_flag || (ind_lev > 1);  /* It seems that AGT uses the
 						sdesc for describing items
@@ -868,7 +867,7 @@ static int print_obj(int obj, int ind_lev)
 	} else if (!invischeck(s)) {
 		retval = 1; /* We're actually going to print something */
 		for (i = 0; i < ind_lev; i++) writestr("   ");
-		raw_lineout(s, sdesc_flag, MSG_DESC, NULL);
+		raw_lineout(s, sdesc_flag, MSG_DESC, nullptr);
 		/* Do $word$ formatting if sdesc */
 		/* Need to output container */
 		parent = it_loc(obj);
@@ -950,10 +949,10 @@ static void *compute_addr(int obj, int prop, const prop_struct *ptable) {
 	} else if (tcreat(obj)) {
 		base = (void *)(&creature[obj - first_creat]);
 		ofs = ptable[prop].creature;
-	} else return NULL;
+	} else return nullptr;
 
 	if (ofs == -1) /* Field doesn't exist in this type of object */
-		return NULL;
+		return nullptr;
 
 	return (void *)(((char *)base) + ofs);
 }
@@ -964,7 +963,7 @@ long getprop(int obj, int prop) {
 
 	if (prop >= NUM_PROP) return 0;
 	paddr = (integer *)compute_addr(obj, prop, proplist);
-	if (paddr == NULL) return 0;
+	if (paddr == nullptr) return 0;
 	return *paddr;
 }
 
@@ -972,12 +971,12 @@ void setprop(int obj, int prop, long val) {
 	integer *paddr;
 
 	if (prop >= NUM_WPROP) {
-		writeln("GAME ERROR: Read-only or non-existant property.");
+		writeln("GAME ERROR: Read-only or non-existent property.");
 		return;
 	}
 
 	paddr = (integer *)compute_addr(obj, prop, proplist);
-	if (paddr == NULL) {
+	if (paddr == nullptr) {
 		writeln("GAME ERROR: Property-object mismatch.");
 		return;
 	}
@@ -989,7 +988,7 @@ rbool getattr(int obj, int prop) {
 
 	if (prop >= NUM_ATTR) return 0;
 	paddr = (rbool *)compute_addr(obj, prop, attrlist);
-	if (paddr == NULL) return 0;
+	if (paddr == nullptr) return 0;
 	return *paddr;
 }
 
@@ -997,12 +996,12 @@ void setattr(int obj, int prop, rbool val) {
 	rbool *paddr;
 
 	if (prop >= NUM_WATTR && prop != 24) {
-		writeln("GAME ERROR: Read-only or non-existant attribute.");
+		writeln("GAME ERROR: Read-only or non-existent attribute.");
 		return;
 	}
 
 	paddr = (rbool *)compute_addr(obj, prop, attrlist);
-	if (paddr == NULL) {
+	if (paddr == nullptr) {
 		writeln("GAME ERROR: Property-object mismatch.");
 		return;
 	}

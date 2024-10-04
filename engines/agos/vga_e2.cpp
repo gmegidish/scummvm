@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@
 #include "common/system.h"
 
 #include "graphics/surface.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 
 namespace AGOS {
 
@@ -192,12 +191,12 @@ void AGOSEngine::vc52_playSound() {
 			_sound->playEffects(sound);
 	} else if (getFeatures() & GF_TALKIE) {
 		_sound->playEffects(sound);
-	} else if (getGameId() == GID_SIMON1DOS) {
-		playSting(sound);
-	} else if (getGameType() == GType_WW) {
-		// TODO: Sound effects in PC version only
 	} else {
-		loadSound(sound, 0, 0);
+		// Waxworks uses 2 opcodes to play SFX: vc28 for digital SFX and vc52
+		// for MIDI SFX. If a sound effect has both a MIDI and a digital
+		// version, both opcodes are triggered. Only one of them should play
+		// a sound effect.
+		playSfx(sound, 0, 0, false, getGameType() == GType_WW);
 	}
 }
 

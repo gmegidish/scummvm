@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,15 +20,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/icb/debug.h"
+#include "engines/icb/icb.h"
 #include "engines/icb/global_objects.h"
 #include "engines/icb/mission.h"
 #include "engines/icb/session.h"
+#include "engines/icb/common/ptr_util.h"
 #include "engines/icb/sound/direct_sound.h"
 #include "engines/icb/sound/music_manager.h"
 #include "engines/icb/sound.h"
@@ -57,7 +58,7 @@ int32 inSpeechMusicAllocated = 0;
 // Useful prototype
 bool8 DoesClusterContainFile(const char *clustername, uint32 hash_to_find, uint32 &fileoffset, uint32 &filesize);
 
-void LoadSting(uint32 looking_for_hash) {
+void LoadSting(uint32 looking_for_hash, bool8 looping = FALSE8) {
 #ifdef PC_DEMO
 	return;
 #endif
@@ -90,11 +91,11 @@ void LoadSting(uint32 looking_for_hash) {
 
 	// Pass parameters to the music manager through this low-level interface
 	if (g_theMusicManager) {
-		g_theMusicManager->LoadMusic(clustername, file_offset, GetMusicVolume());
+		g_theMusicManager->LoadMusic(clustername, file_offset, /*looping,*/ GetMusicVolume());
 	}
 }
 
-void PlaySting(uint32 looking_for_hash) {
+void PlaySting(uint32 looking_for_hash, bool8 looping = FALSE8) {
 #ifdef PC_DEMO
 	return;
 #endif
@@ -117,34 +118,68 @@ void PlaySting(uint32 looking_for_hash) {
 
 	if (g_theMusicManager) {
 		// This loads only if not already loaded then starts playback
-		g_theMusicManager->StartMusic(clustername, file_offset, GetMusicVolume());
+		g_theMusicManager->StartMusic(clustername, file_offset, /*looping,*/ GetMusicVolume());
 	}
 }
 
 mcodeFunctionReturnCodes _game_session::fn_play_sting(int32 &, int32 *params) {
-	if (inSpeechMusicAllocated != 0)
-		return IR_REPEAT;
+	if (g_icb->getGameType() == GType_ICB) {
+		if (inSpeechMusicAllocated != 0)
+			return IR_REPEAT;
 
-	if (g_theMusicManager) {
-		// Stop playback
-		g_theMusicManager->StopMusic();
+		if (g_theMusicManager) {
+			// Stop playback
+			g_theMusicManager->StopMusic();
+		}
+
+		PlaySting((uint32)params[0]);
+	} else if (g_icb->getGameType() == GType_ELDORADO) {
+		const char *sting_name = (const char *)MemoryUtil::resolvePtr(params[0]);
+
+		bool8 looping = FALSE8;
+
+		// Check for looping tag on sting name
+		uint32 len = strlen(sting_name);
+
+		if (len < 3)
+			Fatal_error("fn_play_sting(%s): Invalid sting name!", sting_name);
+
+		if (sting_name[len - 2] == '_' && sting_name[len - 1] == 't')
+			looping = TRUE8;
+
+		PlaySting(HashString(sting_name), looping);
 	}
-
-	PlaySting((uint32)params[0]);
 
 	return IR_CONT;
 }
 
 mcodeFunctionReturnCodes _game_session::fn_preload_sting(int32 &, int32 *params) {
-	if (inSpeechMusicAllocated != 0)
-		return IR_REPEAT;
+	if (g_icb->getGameType() == GType_ICB) {
+		if (inSpeechMusicAllocated != 0)
+			return IR_REPEAT;
 
-	if (g_theMusicManager) {
-		// Stop playback
-		g_theMusicManager->StopMusic();
+		if (g_theMusicManager) {
+			// Stop playback
+			g_theMusicManager->StopMusic();
+		}
+
+		LoadSting((uint32)params[0]);
+	} else if (g_icb->getGameType() == GType_ELDORADO) {
+		const char *sting_name = (const char *)MemoryUtil::resolvePtr(params[0]);
+
+		bool8 looping = FALSE8;
+
+		// Check for looping tag on sting name
+		uint32 len = strlen(sting_name);
+
+		if (len < 3)
+			Fatal_error("fn_play_sting(%s): Invalid sting name!", sting_name);
+
+		if (sting_name[len - 2] == '_' && sting_name[len - 1] == 't')
+			looping = TRUE8;
+
+		LoadSting(HashString(sting_name), looping);
 	}
-
-	LoadSting((uint32)params[0]);
 
 	return IR_CONT;
 }

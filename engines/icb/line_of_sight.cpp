@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +41,7 @@ int32 john_total_traces = 0;
 void _line_of_sight::Initialise() {
 	uint32 i;
 	_floor_world *pFloorWorld;
-	_linked_data_file *pyBarriers;
+	LinkedDataFile *pyBarriers;
 	uint32 oFileName_hash = NULL_HASH;
 
 	// Set the number of subscribers processed per cycle back to its starting value.
@@ -62,17 +61,17 @@ void _line_of_sight::Initialise() {
 	char oFileName[ENGINE_STRING_LEN];
 
 	// When clustered the session files have the base stripped
-	strcpy(oFileName, PX_FILENAME_LINEOFSIGHT);
+	Common::strcpy_s(oFileName, PX_FILENAME_LINEOFSIGHT);
 #endif
 
 	uint32 cluster_hash = MS->Fetch_session_cluster_hash();
-	m_pyLOSData = (_linked_data_file *)private_session_resman->Res_open(oFileName, oFileName_hash, MS->Fetch_session_cluster(), cluster_hash);
+	m_pyLOSData = (LinkedDataFile *)private_session_resman->Res_open(oFileName, oFileName_hash, MS->Fetch_session_cluster(), cluster_hash);
 
 	Zdebug("private_session_resman opened %s", (const char *)oFileName);
 
 	// Check file version is correct.
-	if (m_pyLOSData->GetHeaderVersion() != VERSION_PXWGLINEOFSIGHT)
-		Fatal_error(".pxwglineofsight version check failed (file has %d, engine has %d)", m_pyLOSData->GetHeaderVersion(), VERSION_PXWGLINEOFSIGHT);
+	if (LinkedDataObject::GetHeaderVersion(m_pyLOSData) != VERSION_PXWGLINEOFSIGHT)
+		Fatal_error(".pxwglineofsight version check failed (file has %d, engine has %d)", LinkedDataObject::GetHeaderVersion(m_pyLOSData), VERSION_PXWGLINEOFSIGHT);
 
 	// The tracer object can be initialised now we have the barrier map.
 	g_oTracer->SetUpParameters(m_pyLOSData);
@@ -158,7 +157,7 @@ void _line_of_sight::UnSubscribe(uint32 nObserverID, uint32 nTargetID) {
 	}
 }
 
-bool8 _line_of_sight::ObjectToObject(uint32 nObserverID, uint32 nTargetID, _barrier_ray_type eRayType, bool8 bCanSeeUs, ActorEyeMode eEyeMode, bool8 bOverrideHeightLimit) {
+bool8 _line_of_sight::ObjectToObject(uint32 nObserverID, uint32 nTargetID, eBarrierRayType eRayType, bool8 bCanSeeUs, ActorEyeMode eEyeMode, bool8 bOverrideHeightLimit) {
 	_logic *pObserver;
 	_logic *pTarget;
 	bool8 bObserverIsActor, bTargetIsActor;

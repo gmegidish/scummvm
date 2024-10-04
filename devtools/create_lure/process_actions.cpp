@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -265,7 +264,7 @@ uint16 process_action_sequence_entry(int supportIndex, byte *data, uint16 remain
 
 		case NPC_HEY_SIR:
 			// The 'Hey Sir' opcode causes the NPC to request your attention, and sets the active talk
-			// record to a designated offset. So any offset occurances need to be saved so that it can
+			// record to a designated offset. So any offset occurrences need to be saved so that it can
 			// be included in the resource for talk records
 			add_talk_offset(params[0]);
 			break;
@@ -380,7 +379,7 @@ void read_action_sequence(byte *&data, uint16 &totalSize) {
 	for (roomIndex = 0; roomIndex < RANDOM_ROOM_NUM_ENTRIES; ++roomIndex) {
 		randomActions[roomIndex].offset = lureExe.readWord();
 		randomActions[roomIndex].numEntries = 0;
-		randomActions[roomIndex].entries = NULL;
+		randomActions[roomIndex].entries = nullptr;
 	}
 
 	// Next get the set of offsetes for the start of each sequence
@@ -409,7 +408,7 @@ void read_action_sequence(byte *&data, uint16 &totalSize) {
 			offset += sizeof(uint16);
 		}
 
-		// Adjust the total size to accomodate random action data in the output
+		// Adjust the total size to accommodate random action data in the output
 		totalSize += sizeof(uint16)  * randomActions[roomIndex].numEntries +
 			(sizeof(uint16) * 2);
 	}
@@ -540,7 +539,7 @@ void read_action_sequence(byte *&data, uint16 &totalSize) {
 
 	// Free up the random room action array
 	for (roomIndex = 0; roomIndex < 1; ++roomIndex) {
-		if (randomActions[roomIndex].entries != NULL)
+		if (randomActions[roomIndex].entries != nullptr)
 			delete[] randomActions[roomIndex].entries;
 	}
 	delete[] randomActions;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,9 @@
 
 #include "asylum/asylum.h"
 #include "asylum/respack.h"
+
+#include "backends/keymapper/keymap.h"
+#include "backends/keymapper/keymapper.h"
 
 namespace Asylum {
 
@@ -61,7 +63,7 @@ static const int resPackSizes[] = {
 };
 
 ResourceViewer::ResourceViewer(AsylumEngine *engine) : _vm(engine), _resource(_vm) {
-	_handler = NULL;
+	_handler = nullptr;
 	_resourceId = kResourceNone;
 	_frameIndex = _frameCount = 0;
 	_frameIncrement = 1;
@@ -71,13 +73,15 @@ ResourceViewer::ResourceViewer(AsylumEngine *engine) : _vm(engine), _resource(_v
 	_resPack = -1;
 	_paletteIndex = 0;
 	_animate = true;
+
+	Common::Keymapper *keymapper = g_system->getEventManager()->getKeymapper();
+	_keymap = keymapper->getKeymap(resviewerKeyMapId);
 }
 
 bool ResourceViewer::setResourceId(ResourceId resourceId) {
 	if (resourceId == kResourceNone ||
 		!getResource()->get(resourceId) ||
-		strncmp((const char *)getResource()->get(resourceId)->data, "D3GR", 4) ||
-		getResource()->get(resourceId)->size == 800)
+		strncmp((const char *)getResource()->get(resourceId)->data, "D3GR", 4))
 
 		return false;
 
@@ -89,8 +93,15 @@ bool ResourceViewer::setResourceId(ResourceId resourceId) {
 
 	_frameIncrement = 1;
 	_x = _y = 0;
-	_width  = _resource.getFrame(0)->getWidth();
-	_height = _resource.getFrame(0)->getHeight();
+
+	if (isPalette(_resourceId)) {
+		_width  = 0;
+		_height = 0;
+	} else {
+		_width  = _resource.getFrame(0)->getWidth();
+		_height = _resource.getFrame(0)->getHeight();
+	}
+
 	_scroll = _width > 640 || _height > 480;
 	_resPack = RESOURCE_PACK(_resourceId);
 	_paletteIndex = 0;
@@ -105,7 +116,7 @@ bool ResourceViewer::setResourceId(ResourceId resourceId) {
 	return true;
 }
 
-void ResourceViewer::update() {
+void ResourceViewer::drawResource() {
 	int16 x, y;
 	GraphicFrame *frame = _resource.getFrame(_frameIndex);
 
@@ -118,12 +129,7 @@ void ResourceViewer::update() {
 	}
 
 	getScreen()->setPalette(MAKE_RESOURCE(_resPack, paletteIds[_resPack][_paletteIndex]));
-
-	getCursor()->hide();
-	getScreen()->clear();
 	getScreen()->draw(_resourceId, _frameIndex, Common::Point(x, y));
-	getText()->draw(Common::Point(615, 440), Common::String::format("%X", _resourceId).c_str());
-	getScreen()->copyBackBufferToScreen();
 
 	if (_frameCount > 1 && _animate) {
 		if (_frameIndex + 1 >= (int)_frameCount)
@@ -135,16 +141,43 @@ void ResourceViewer::update() {
 	}
 }
 
-void ResourceViewer::key(const AsylumEvent &evt) {
-	switch (evt.kbd.keycode) {
+bool ResourceViewer::isPalette(ResourceId resourceId) {
+	return getResource()->get(resourceId)->size == 800;
+}
+
+void ResourceViewer::drawPalette() {
+	const int size = 20;
+	const int x0 = (640 - size * 16) / 2, y0 = (480 - size * 16) / 2;
+
+	getScreen()->setPalette(_resourceId);
+	for (int i = 0, color = 0; i < 16; i++)
+		for (int j = 0; j < 16; j++, color++)
+			getScreen()->fillRect(x0 + j * size, y0 + i * size, size, size, color);
+}
+
+void ResourceViewer::update() {
+	getCursor()->hide();
+	getScreen()->clear();
+
+	if (isPalette(_resourceId))
+		drawPalette();
+	else
+		drawResource();
+
+	getText()->draw(Common::Point(615, 440), Common::String::format("%X", _resourceId).c_str());
+	getScreen()->copyBackBufferToScreen();
+}
+
+void ResourceViewer::action(const AsylumEvent &evt) {
+	switch ((AsylumAction)evt.customType) {
 	default:
 		break;
 
-	case Common::KEYCODE_ESCAPE:
+	case kAsylumActionShowMenu:
 		_vm->switchEventHandler(_handler);
 		break;
 
-	case Common::KEYCODE_SPACE:
+	case kAsylumActionNextResource:
 		if (RESOURCE_INDEX(_resourceId) < resPackSizes[_resPack] - 1) {
 			int i = 1;
 			do {
@@ -155,7 +188,7 @@ void ResourceViewer::key(const AsylumEvent &evt) {
 		}
 		break;
 
-	case Common::KEYCODE_BACKSPACE:
+	case kAsylumActionPreviousResource:
 		if (RESOURCE_INDEX(_resourceId)) {
 			int i = 0;
 			do {
@@ -166,17 +199,17 @@ void ResourceViewer::key(const AsylumEvent &evt) {
 		}
 		break;
 
-	case Common::KEYCODE_RETURN:
+	case kAsylumActionAnimate:
 		_animate = !_animate;
 		break;
 
-	case Common::KEYCODE_UP:
-	case Common::KEYCODE_DOWN:
-	case Common::KEYCODE_RIGHT:
-	case Common::KEYCODE_LEFT:
+	case kAsylumActionMoveUp:
+	case kAsylumActionMoveDown:
+	case kAsylumActionMoveRight:
+	case kAsylumActionMoveLeft:
 		if (_scroll) {
 			int16 x = _x, y = _y;
-			int dir = (int)(evt.kbd.keycode - Common::KEYCODE_UP);
+			int dir = (int)(evt.customType - kAsylumActionMoveUp);
 
 			if (dir < 2)
 				y -= SCROLL_STEP * (2 * dir - 1);
@@ -190,12 +223,12 @@ void ResourceViewer::key(const AsylumEvent &evt) {
 		}
 		break;
 
-	case Common::KEYCODE_PAGEUP:
+	case kAsylumActionPreviousPalette:
 		if (_paletteIndex)
 			_paletteIndex = _paletteIndex - 1;
 		break;
 
-	case Common::KEYCODE_PAGEDOWN:
+	case kAsylumActionNextPalette:
 		if (_paletteIndex < 8 && paletteIds[_resPack][_paletteIndex + 1])
 			_paletteIndex = _paletteIndex + 1;
 		break;
@@ -207,12 +240,20 @@ bool ResourceViewer::handleEvent(const AsylumEvent &evt) {
 	default:
 		break;
 
+	case EVENT_ASYLUM_INIT:
+		_keymap->setEnabled(true);
+		return true;
+
+	case EVENT_ASYLUM_DEINIT:
+		_keymap->setEnabled(false);
+		return true;
+
 	case EVENT_ASYLUM_UPDATE:
 		update();
 		return true;
 
-	case Common::EVENT_KEYDOWN:
-		key(evt);
+	case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+		action(evt);
 		return true;
 	}
 

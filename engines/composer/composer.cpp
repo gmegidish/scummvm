@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/scummsys.h"
@@ -42,7 +41,7 @@ namespace Composer {
 
 ComposerEngine::ComposerEngine(OSystem *syst, const ComposerGameDescription *gameDesc) : Engine(syst), _gameDescription(gameDesc) {
 	_rnd = new Common::RandomSource("composer");
-	_audioStream = NULL;
+	_audioStream = nullptr;
 	_currSoundPriority = 0;
 	_currentTime = 0;
 	_lastTime = 0;
@@ -51,7 +50,7 @@ ComposerEngine::ComposerEngine(OSystem *syst, const ComposerGameDescription *gam
 	_mouseVisible = true;
 	_mouseEnabled = false;
 	_mouseSpriteId = 0;
-	_lastButton = NULL;
+	_lastButton = nullptr;
 }
 
 ComposerEngine::~ComposerEngine() {
@@ -92,6 +91,17 @@ Common::Error ComposerEngine::run() {
 	Common::String gameId(getGameId());
 	if (getPlatform() == Common::kPlatformMacintosh && (gameId == "darby" || gameId == "gregory")) {
 		_directoriesToStrip = 0;
+	}
+
+	if (getPlatform() == Common::kPlatformMacintosh) {
+		const Common::FSNode gameDataDir(ConfMan.getPath("path"));
+		if (gameId == "sleepingcub")
+			SearchMan.addSubDirectoryMatching(gameDataDir, "sleepcub");
+		if (gameId == "princess")
+			SearchMan.addSubDirectoryMatching(gameDataDir, "princess");
+		if (gameId == "liam")
+			SearchMan.addSubDirectoryMatching(gameDataDir, "liam");
+
 	}
 
 	uint width = 640;
@@ -199,16 +209,6 @@ Common::Error ComposerEngine::run() {
 				break;
 
 			case Common::EVENT_KEYDOWN:
-				switch (event.kbd.keycode) {
-				case Common::KEYCODE_q:
-					if (event.kbd.hasFlags(Common::KBD_CTRL))
-						quitGame();
-					break;
-
-				default:
-					break;
-				}
-
 				onKeyDown(event.kbd.keycode);
 				break;
 
@@ -338,14 +338,14 @@ Common::String ComposerEngine::getStringFromConfig(const Common::String &section
 	return value;
 }
 
-Common::String ComposerEngine::getFilename(const Common::String &section, uint id) {
+Common::Path ComposerEngine::getFilename(const Common::String &section, uint id) {
 	Common::String key = Common::String::format("%d", id);
 	Common::String filename = getStringFromConfig(section, key);
 
 	return mangleFilename(filename);
 }
 
-Common::String ComposerEngine::mangleFilename(Common::String filename) {
+Common::Path ComposerEngine::mangleFilename(Common::String filename) {
 	while (filename.size() && (filename[0] == '~' || filename[0] == ':' || filename[0] == '\\'))
 		filename = filename.c_str() + 1;
 
@@ -370,7 +370,7 @@ Common::String ComposerEngine::mangleFilename(Common::String filename) {
 		else
 			outFilename += filename[i];
 	}
-	return outFilename;
+	return Common::Path(outFilename, '/');
 }
 
 void ComposerEngine::loadLibrary(uint id) {
@@ -385,9 +385,10 @@ void ComposerEngine::loadLibrary(uint id) {
 		unloadLibrary(library->_id);
 	}
 
-	Common::String filename;
+	Common::Path path;
 	Common::String oldGroup = _bookGroup;
 	if (getGameType() == GType_ComposerV1) {
+		Common::String filename;
 		if (getPlatform() == Common::kPlatformMacintosh) {
 			if (!id || _bookGroup.empty())
 				filename = getStringFromConfig("splash.rsc", "100");
@@ -400,7 +401,7 @@ void ComposerEngine::loadLibrary(uint id) {
 			else
 				filename = getStringFromConfig(_bookGroup, Common::String::format("%d", id));
 		}
-		filename = mangleFilename(filename);
+		path = mangleFilename(filename);
 
 		// bookGroup is the basename of the path.
 		// TODO: tidy this up.
@@ -422,7 +423,7 @@ void ComposerEngine::loadLibrary(uint id) {
 	} else {
 		if (!id)
 			id = atoi(getStringFromConfig("Common", "StartUp").c_str());
-		filename = getFilename("Libs", id);
+		path = getFilename("Libs", id);
 	}
 
 	Library library;
@@ -430,8 +431,8 @@ void ComposerEngine::loadLibrary(uint id) {
 	library._id = id;
 	library._group = oldGroup;
 	library._archive = new ComposerArchive();
-	if (!library._archive->openFile(filename))
-		error("failed to open '%s'", filename.c_str());
+	if (!library._archive->openFile(path))
+		error("failed to open '%s'", path.toString(Common::Path::kNativeSeparator).c_str());
 	_libraries.push_front(library);
 
 	Library &newLib = _libraries.front();
@@ -520,10 +521,10 @@ void ComposerEngine::unloadLibrary(uint id) {
 		_sprites.clear();
 		i->_buttons.clear();
 
-		_lastButton = NULL;
+		_lastButton = nullptr;
 
 		_mixer->stopAll();
-		_audioStream = NULL;
+		_audioStream = nullptr;
 
 		for (uint j = 0; j < _queuedScripts.size(); j++) {
 			_queuedScripts[j]._count = 0;
@@ -679,7 +680,7 @@ const Button *ComposerEngine::getButtonFor(const Sprite *sprite, const Common::P
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void ComposerEngine::setButtonActive(uint16 id, bool active) {

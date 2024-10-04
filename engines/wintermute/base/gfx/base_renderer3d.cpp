@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/wintermute/base/gfx/base_renderer3d.h"
+
 #include "math/glmath.h"
 
 namespace Wintermute {
@@ -76,8 +76,8 @@ void BaseRenderer3D::initLoop() {
 
 Math::Ray BaseRenderer3D::rayIntoScene(int x, int y) {
 	Math::Vector3d direction((((2.0f * x) / _viewport3dRect.width()) - 1) / _projectionMatrix3d(0, 0),
-							 -(((2.0f * y) / _viewport3dRect.height()) - 1) / _projectionMatrix3d(1, 1),
-							 -1.0f);
+	                        -(((2.0f * y) / _viewport3dRect.height()) - 1) / _projectionMatrix3d(1, 1),
+	                        -1.0f);
 
 	Math::Matrix4 m = _lastViewMatrix;
 	m.inverse();
@@ -89,9 +89,9 @@ Math::Ray BaseRenderer3D::rayIntoScene(int x, int y) {
 }
 
 bool BaseRenderer3D::drawSprite(BaseSurfaceOpenGL3D &tex, const Wintermute::Rect32 &rect,
-								float zoomX, float zoomY, const Wintermute::Vector2 &pos,
-								uint32 color, bool alphaDisable, Graphics::TSpriteBlendMode blendMode,
-								bool mirrorX, bool mirrorY) {
+	                        float zoomX, float zoomY, const Wintermute::Vector2 &pos,
+	                        uint32 color, bool alphaDisable, Graphics::TSpriteBlendMode blendMode,
+	                        bool mirrorX, bool mirrorY) {
 	Vector2 scale(zoomX / 100.0f, zoomY / 100.0f);
 	return drawSpriteEx(tex, rect, pos, Vector2(0.0f, 0.0f), scale, 0.0f, color, alphaDisable, blendMode, mirrorX, mirrorY);
 }
@@ -118,6 +118,17 @@ Math::Matrix3 BaseRenderer3D::build2dTransformation(const Vector2 &center, float
 	translateCenterBack(1, 2) = center.y;
 
 	return translateCenterBack * rotation * translateCenter;
+}
+
+void BaseRenderer3D::flipVertical(Graphics::Surface *s) {
+	for (int y = 0; y < s->h / 2; ++y) {
+		// Flip the lines
+		byte *line1P = (byte *)s->getBasePtr(0, y);
+		byte *line2P = (byte *)s->getBasePtr(0, s->h - y - 1);
+
+		for (int x = 0; x < s->pitch; ++x)
+			SWAP(line1P[x], line2P[x]);
+	}
 }
 
 } // namespace Wintermute

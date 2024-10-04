@@ -6,8 +6,10 @@
 #define FORBIDDEN_SYMBOL_EXCEPTION_setjmp
 #define FORBIDDEN_SYMBOL_EXCEPTION_longjmp
 #define FORBIDDEN_SYMBOL_EXCEPTION_fprintf
+#define FORBIDDEN_SYMBOL_EXCEPTION_sprintf
 #define FORBIDDEN_SYMBOL_EXCEPTION_stderr
 #define FORBIDDEN_SYMBOL_EXCEPTION_exit
+#define FORBIDDEN_SYMBOL_EXCEPTION_strcpy
 
 #ifdef _MSC_VER
 #pragma warning(disable:4611)
@@ -39,7 +41,7 @@ namespace Grim {
 #endif
 
 // Extra stack size to run a function: LUA_T_LINE(1), TM calls(2), ...
-#define	EXTRA_STACK	5
+#define EXTRA_STACK     5
 
 /*
 ** Error messages
@@ -49,10 +51,10 @@ void stderrorim() {
 	fprintf(stderr, "lua error: %s\n", lua_getstring(lua_getparam(1)));
 }
 
-#define STACK_UNIT	256
+#define STACK_UNIT      256
 
 // Initial size for CallInfo array
-#define BASIC_CI_SIZE	8
+#define BASIC_CI_SIZE  8
 
 void luaD_init() {
 	ttype(&errorim) = LUA_T_CPROTO;
@@ -80,7 +82,7 @@ void luaD_checkstack(int32 n) {
 ** Adjust stack. Set top to the given value, pushing NILs if needed.
 */
 void luaD_adjusttop(StkId newtop) {
-	int32 diff = newtop-(lua_state->stack.top-lua_state->stack.stack);
+	int32 diff = newtop - (lua_state->stack.top - lua_state->stack.stack);
 	if (diff <= 0)
 		lua_state->stack.top += diff;
 	else {
@@ -108,9 +110,6 @@ void luaD_lineHook(int32 line) {
 }
 
 void luaD_callHook(StkId base, TProtoFunc *tf, int32 isreturn) {
-	struct C_Lua_Stack oldCLS = lua_state->Cstack;
-	StkId old_top = lua_state->Cstack.lua2C = lua_state->Cstack.base = lua_state->stack.top - lua_state->stack.stack;
-	lua_state->Cstack.num = 0;
 	if (isreturn)
 		(*lua_callhook)(LUA_NOOBJECT, "(return)", 0);
 	else {
@@ -120,8 +119,6 @@ void luaD_callHook(StkId base, TProtoFunc *tf, int32 isreturn) {
 		else
 			(*lua_callhook)(Ref(f), "(C)", -1);
 	}
-	lua_state->stack.top = lua_state->stack.stack + old_top;
-	lua_state->Cstack = oldCLS;
 }
 
 /*
@@ -137,15 +134,13 @@ static StkId callC(lua_CFunction f, StkId base) {
 	CS->num = numarg;
 	CS->lua2C = base;
 	CS->base = base + numarg;  // == top - stack
-	if (lua_callhook) {
-		TObject *r = lua_state->stack.stack + base - 1;
-		(*lua_callhook)(Ref(r), "(C)", -1);
-	}
-	lua_state->state_counter2++;
+	if (lua_callhook)
+		luaD_callHook(base, nullptr, 0);
+	lua_state->callLevelCounter++;
 	(*f)();  // do the actual call
-	lua_state->state_counter2--;
-//	if (lua_callhook)  // func may have changed lua_callhook
-//		(*lua_callhook)(LUA_NOOBJECT, "(return)", 0);
+	lua_state->callLevelCounter--;
+	if (lua_callhook)  // func may have changed lua_callhook
+		luaD_callHook(base, nullptr, 1);
 	firstResult = CS->base;
 	*CS = oldCLS;
 	return firstResult;
@@ -167,21 +162,21 @@ static StkId callCclosure(struct Closure *cl, lua_CFunction f, StkId base) {
 void luaD_callTM(TObject *f, int32 nParams, int32 nResults) {
 	luaD_openstack(nParams);
 	*(lua_state->stack.top - nParams - 1) = *f;
-	lua_state->state_counter1++;
-	lua_state->state_counter2++;
+	lua_state->preventBreakCounter++;
+	lua_state->callLevelCounter++;
 	luaD_call((lua_state->stack.top - lua_state->stack.stack) - nParams, nResults);
-	lua_state->state_counter2--;
-	lua_state->state_counter1--;
+	lua_state->callLevelCounter--;
+	lua_state->preventBreakCounter--;
 }
 
 int32 luaD_call(StkId base, int32 nResults) {
 	lua_Task *tmpTask = lua_state->task;
-	if (!lua_state->task || lua_state->state_counter2) {
+	if (!lua_state->task || lua_state->callLevelCounter) {
 		lua_Task *t = luaM_new(lua_Task);
 		lua_taskinit(t, lua_state->task, base, nResults);
 		lua_state->task = t;
 	} else {
-		tmpTask = lua_state->some_task;
+		tmpTask = lua_state->prevTask;
 	}
 
 	while (1) {
@@ -200,7 +195,7 @@ int32 luaD_call(StkId base, int32 nResults) {
 				firstResult = luaV_execute(lua_state->task);
 			}
 		} else if (ttype(funcObj) == LUA_T_PMARK) {
-			if (!lua_state->task->some_flag) {
+			if (!lua_state->task->executed) {
 				TObject *im = luaT_getimbyObj(funcObj, IM_FUNCTION);
 				if (ttype(im) == LUA_T_NIL)
 					lua_error("call expression not a function");
@@ -209,7 +204,7 @@ int32 luaD_call(StkId base, int32 nResults) {
 			}
 			firstResult = luaV_execute(lua_state->task);
 		} else if (ttype(funcObj) == LUA_T_CMARK) {
-			if (!lua_state->task->some_flag) {
+			if (!lua_state->task->executed) {
 				TObject *im = luaT_getimbyObj(funcObj, IM_FUNCTION);
 				if (ttype(im) == LUA_T_NIL)
 					lua_error("call expression not a function");
@@ -219,7 +214,7 @@ int32 luaD_call(StkId base, int32 nResults) {
 		} else if (ttype(funcObj) == LUA_T_CLMARK) {
 			Closure *c = clvalue(funcObj);
 			TObject *proto = &(c->consts[0]);
-			if (!lua_state->task->some_flag) {
+			if (!lua_state->task->executed) {
 				TObject *im = luaT_getimbyObj(funcObj, IM_FUNCTION);
 				if (ttype(im) == LUA_T_NIL)
 					lua_error("call expression not a function");
@@ -238,20 +233,8 @@ int32 luaD_call(StkId base, int32 nResults) {
 			firstResult = callC(fvalue(funcObj), base);
 		} else {
 			TObject *im = luaT_getimbyObj(funcObj, IM_FUNCTION);
-			if (ttype(im) == LUA_T_NIL) {
-				// NOTE: Originally this throwed the lua_error. Anyway it is commented here because
-				// when in year 4 bi.exit() calls bi.book.act:free(). But bi.book.act is nil,
-				// hence it enters this branch and the error blocks the game.
-				// Now we try instead to survive and go on with the function.
-				lua_Task *t = lua_state->task;
-				lua_state->task = t->next;
-				lua_state->some_task = tmpTask;
-				luaM_free(t);
-
-				warning("Lua: call expression not a function");
-				return 1;
-// 				lua_error("call expression not a function");
-			}
+			if (ttype(im) == LUA_T_NIL)
+				lua_error("call expression not a function");
 			luaD_callTM(im, (lua_state->stack.top - lua_state->stack.stack) - (base - 1), nResults);
 			continue;
 		}
@@ -263,9 +246,9 @@ int32 luaD_call(StkId base, int32 nResults) {
 			lua_taskinit(t, lua_state->task, base, nResults);
 			lua_state->task = t;
 		} else {
-			nResults = lua_state->task->some_results;
-			base = lua_state->task->some_base;
-			if (nResults != 255)
+			nResults = lua_state->task->initResults;
+			base = lua_state->task->initBase;
+			if (nResults != MULT_RET)
 				luaD_adjusttop(firstResult + nResults);
 			base--;
 			nResults = lua_state->stack.top - (lua_state->stack.stack + firstResult);
@@ -277,13 +260,13 @@ int32 luaD_call(StkId base, int32 nResults) {
 			lua_state->task = lua_state->task->next;
 			luaM_free(tmp);
 			if (lua_state->task) {
-				nResults = lua_state->task->some_results;
-				base = lua_state->task->some_base;
+				nResults = lua_state->task->initResults;
+				base = lua_state->task->initBase;
 			}
 
 			if (function == break_here || function == sleep_for) {
-				if (!lua_state->state_counter1)  {
-					lua_state->some_task = tmpTask;
+				if (!lua_state->preventBreakCounter)  {
+					lua_state->prevTask = tmpTask;
 					return 1;
 				}
 			}
@@ -297,8 +280,7 @@ int32 luaD_call(StkId base, int32 nResults) {
 }
 
 static void travstack(struct Stack *S, int32 (*fn)(TObject *)) {
-	StkId i;
-	for (i = (S->top - 1) - S->stack; i >= 0; i--)
+	for (StkId i = (S->top - 1) - S->stack; i >= 0; i--)
 		fn(S->stack + i);
 }
 
@@ -306,8 +288,7 @@ static void travstack(struct Stack *S, int32 (*fn)(TObject *)) {
 ** Traverse all objects on lua_state->stack.stack, and all other active stacks
 */
 void luaD_travstack(int32(*fn)(TObject *)) {
-	LState *t;
-	for (t = lua_rootState; t != nullptr; t = t->next) {
+	for (LState *t = lua_rootState; t != nullptr; t = t->next) {
 		travstack(&t->stack, fn);
 	}
 }
@@ -356,7 +337,7 @@ int32 luaD_protectedrun(int32 nResults) {
 	struct C_Lua_Stack oldCLS = lua_state->Cstack;
 	jmp_buf *oldErr = lua_state->errorJmp;
 	lua_state->errorJmp = &myErrorJmp;
-	lua_state->state_counter1++;
+	lua_state->preventBreakCounter++;
 	lua_Task *tmpTask = lua_state->task;
 	if (setjmp(myErrorJmp) == 0) {
 		do_callinc(nResults);
@@ -371,7 +352,7 @@ int32 luaD_protectedrun(int32 nResults) {
 		}
 		status = 1;
 	}
-	lua_state->state_counter1--;
+	lua_state->preventBreakCounter--;
 	lua_state->errorJmp = oldErr;
 	return status;
 }
@@ -435,12 +416,12 @@ void luaD_gcIM(TObject *o) {
 #define SIZE_PREF 20  // size of string prefix to appear in error messages
 #define SSIZE_PREF "20"
 
-static void build_name (const char *str, char *name) {
+static void build_name (const char *str, char *name, int size) {
 	if (str == nullptr || *str == ID_CHUNK)
 		strcpy(name, "(buffer)");
 	else {
 		char *temp;
-		sprintf(name, "(dostring) >> \"%." SSIZE_PREF "s\"", str);
+		snprintf(name, size, "(dostring) >> \"%." SSIZE_PREF "s\"", str);
 		temp = strchr(name, '\n');
 		if (temp) {  // end string after first line
 			*temp = '"';
@@ -456,14 +437,13 @@ int32 lua_dostring(const char *str) {
 int32 lua_dobuffer(const char *buff, int32 size, const char *name) {
 	char newname[SIZE_PREF + 25];
 	ZIO z;
-	int32 status;
 
 	if (!name) {
-		build_name(buff, newname);
+		build_name(buff, newname, SIZE_PREF + 25);
 		name = newname;
 	}
 	luaZ_mopen(&z, buff, size, name);
-	status = do_main(&z, buff[0] == ID_CHUNK);
+	int32 status = do_main(&z, buff[0] == ID_CHUNK);
 	return status;
 }
 

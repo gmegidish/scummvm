@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,42 +48,46 @@ void MenuOptions::newGame() {
 	_engine->_music->stopMusic();
 	_engine->_sound->stopSamples();
 
-	int32 tmpFlagDisplayText = _engine->_cfgfile.FlagDisplayText;
-	_engine->_cfgfile.FlagDisplayText = true;
+	if (_engine->isLBA1()) {
+		int32 tmpFlagDisplayText = _engine->_cfgfile.FlagDisplayText;
+		_engine->_cfgfile.FlagDisplayText = true;
 
-	// intro screen 1 - twinsun
-	_engine->_screens->loadImage(TwineImage(Resources::HQR_RESS_FILE, 15, 16));
+		// intro screen 1 - twinsun
+		_engine->_screens->loadImage(TwineImage(Resources::HQR_RESS_FILE, 15, 16));
 
-	_engine->_text->_drawTextBoxBackground = false;
-	_engine->_text->_renderTextTriangle = true;
+		_engine->_text->_drawTextBoxBackground = false;
+		_engine->_text->_renderTextTriangle = true;
 
-	_engine->_text->initTextBank(TextBankId::Inventory_Intro_and_Holomap);
-	_engine->_text->textClipFull();
-	_engine->_text->setFontCrossColor(COLOR_WHITE);
+		_engine->_text->initDial(TextBankId::Inventory_Intro_and_Holomap);
+		_engine->_text->bigWinDial();
+		_engine->_text->setFontCrossColor(COLOR_WHITE);
 
-	bool aborted = _engine->_text->drawTextProgressive(TextId::kIntroText1);
+		bool aborted = _engine->_text->drawTextProgressive(TextId::kIntroText1);
 
-	// intro screen 2
-	if (!aborted) {
-		_engine->_screens->loadImage(TwineImage(Resources::HQR_RESS_FILE, 17, 18));
-		aborted |= _engine->_text->drawTextProgressive(TextId::kIntroText2);
+		// intro screen 2
+		if (!aborted) {
+			_engine->_screens->loadImage(TwineImage(Resources::HQR_RESS_FILE, 17, 18));
+			aborted |= _engine->_text->drawTextProgressive(TextId::kIntroText2);
+
+			if (!aborted) {
+				_engine->_screens->loadImage(TwineImage(Resources::HQR_RESS_FILE, 19, 20));
+				aborted |= _engine->_text->drawTextProgressive(TextId::kIntroText3);
+			}
+		}
+		_engine->_cfgfile.FlagDisplayText = tmpFlagDisplayText;
+
+		_engine->_screens->fadeToBlack(_engine->_screens->_paletteRGBACustom);
+		_engine->_screens->clearScreen();
 
 		if (!aborted) {
-			_engine->_screens->loadImage(TwineImage(Resources::HQR_RESS_FILE, 19, 20));
-			aborted |= _engine->_text->drawTextProgressive(TextId::kIntroText3);
+			_engine->_music->playMidiFile(1);
+			_engine->_movie->playMovie(FLA_INTROD);
 		}
+
+		_engine->_text->normalWinDial();
+	} else {
+		_engine->_movie->playMovie(ACF_INTRO);
 	}
-	_engine->_cfgfile.FlagDisplayText = tmpFlagDisplayText;
-
-	_engine->_screens->fadeToBlack(_engine->_screens->_paletteRGBACustom);
-	_engine->_screens->clearScreen();
-
-	if (!aborted) {
-		_engine->_music->playMidiMusic(1);
-		_engine->_flaMovies->playFlaMovie(FLA_INTROD);
-	}
-
-	_engine->_text->textClipSmall();
 	_engine->_screens->clearScreen();
 
 	_engine->_text->_drawTextBoxBackground = true;
@@ -94,6 +97,7 @@ void MenuOptions::newGame() {
 	_engine->setPalette(_engine->_screens->_paletteRGBA);
 }
 
+// TODO: dotemu has credits_<lang>.txt files
 void MenuOptions::showCredits() {
 	const int32 tmpShadowMode = _engine->_cfgfile.ShadowMode;
 	_engine->_cfgfile.ShadowMode = 0;
@@ -101,10 +105,10 @@ void MenuOptions::showCredits() {
 	_engine->_scene->_currentSceneIdx = LBA1SceneId::Credits_List_Sequence;
 	_engine->_scene->_needChangeScene = LBA1SceneId::Credits_List_Sequence;
 
-	canShowCredits = true;
+	flagCredits = true;
 	_engine->gameEngineLoop();
 	_engine->_scene->stopRunningGame();
-	canShowCredits = false;
+	flagCredits = false;
 
 	_engine->_cfgfile.ShadowMode = tmpShadowMode;
 
@@ -114,7 +118,7 @@ void MenuOptions::showCredits() {
 }
 
 void MenuOptions::showEndSequence() {
-	_engine->_flaMovies->playFlaMovie(FLA_THEEND);
+	_engine->_movie->playMovie(FLA_THEEND);
 
 	_engine->_screens->clearScreen();
 	_engine->setPalette(_engine->_screens->_paletteRGBA);
@@ -234,7 +238,7 @@ public:
 };
 
 bool MenuOptions::enterText(TextId textIdx, char *textTargetBuf, size_t bufSize) {
-	_engine->_text->initTextBank(TextBankId::Options_and_menus);
+	_engine->_text->initDial(TextBankId::Options_and_menus);
 	char buffer[256];
 	_engine->_text->getMenuText(textIdx, buffer, sizeof(buffer));
 	_engine->_text->setFontColor(COLOR_WHITE);
@@ -351,7 +355,7 @@ int MenuOptions::chooseSave(TextId textIdx, bool showEmptySlots) {
 		return -1;
 	}
 
-	_engine->_text->initTextBank(TextBankId::Options_and_menus);
+	_engine->_text->initDial(TextBankId::Options_and_menus);
 
 	MenuSettings saveFiles;
 	saveFiles.addButton(TextId::kReturnMenu);
@@ -375,17 +379,15 @@ int MenuOptions::chooseSave(TextId textIdx, bool showEmptySlots) {
 		}
 	}
 
-	for (;;) {
-		const int32 id = _engine->_menu->processMenu(&saveFiles);
-		switch (id) {
-		case kQuitEngine:
-		case (int32)TextId::kReturnMenu:
-			return -1;
-		default:
-			const int16 slot = saveFiles.getButtonState(id) - 1;
-			debug("Selected savegame slot %d", slot);
-			return slot;
-		}
+	const int32 id = _engine->_menu->doGameMenu(&saveFiles);
+	switch (id) {
+	case kQuitEngine:
+	case (int32)TextId::kReturnMenu:
+		return -1;
+	default:
+		const int slot = saveFiles.getButtonState(id) - 1;
+		debug("Selected savegame slot %d", slot);
+		return slot;
 	}
 
 	return -1;
@@ -431,7 +433,7 @@ bool MenuOptions::saveGameMenu() {
 		enterText(TextId::kEnterYourNewName, buf, sizeof(buf));
 		// may not be empty
 		if (buf[0] == '\0') {
-			strncpy(buf, _engine->_gameState->_sceneName, sizeof(buf));
+			Common::strlcpy(buf, _engine->_gameState->_sceneName, sizeof(buf));
 		}
 		Common::Error state = _engine->saveGameState(slot, buf, false);
 		if (state.getCode() != Common::kNoError) {

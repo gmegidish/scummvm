@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,7 +34,7 @@ using namespace AGS::Shared;
 const char *SENT_MESSAGE_FILE_NAME = "dbgrecv.tmp";
 
 bool FileBasedAGSDebugger::Initialize() {
-	if (Path::IsFile(SENT_MESSAGE_FILE_NAME)) {
+	if (File::IsFile(SENT_MESSAGE_FILE_NAME)) {
 		File::DeleteFile(SENT_MESSAGE_FILE_NAME);
 	}
 	return true;
@@ -45,7 +44,7 @@ void FileBasedAGSDebugger::Shutdown() {
 }
 
 bool FileBasedAGSDebugger::SendMessageToEditor(const char *message) {
-	while (Path::IsFile(SENT_MESSAGE_FILE_NAME)) {
+	while (File::IsFile(SENT_MESSAGE_FILE_NAME)) {
 		_G(platform)->YieldCPU();
 	}
 
@@ -59,7 +58,7 @@ bool FileBasedAGSDebugger::SendMessageToEditor(const char *message) {
 }
 
 bool FileBasedAGSDebugger::IsMessageAvailable() {
-	return (Path::IsFile("dbgsend.tmp") != 0);
+	return (File::IsFile("dbgsend.tmp") != 0);
 }
 
 char *FileBasedAGSDebugger::GetNextMessage() {

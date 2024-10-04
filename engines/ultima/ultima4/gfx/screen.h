@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -108,7 +107,7 @@ private:
 
 	Std::vector<TileAnimSet *> _tileAnimSets;
 	Layout *_gemLayout;
-	Std::map<Common::String, int> _dungeonTileChars;
+	Common::HashMap<Common::String, int> _dungeonTileChars;
 	ImageInfo *_charSetInfo;
 	ImageInfo *_gemTilesInfo;
 
@@ -167,7 +166,7 @@ private:
 	 *   "Improvements to a Fast Algorithm for Calculating Shading
 	 *   and Visibility in a Two-Dimensional Field"
 	 *   -----
-	 *   http://www.fadden.com/techmisc/fast-los.html
+	 *   https://fadden.com/tech/fast-los.html
 	 *
 	 * This function uses a lookup table to get the correct shadowmap,
 	 * therefore, the table will need to be updated if the viewport
@@ -285,7 +284,7 @@ public:
 	 * Scale an image up.  The resulting image will be scale * the
 	 * original dimensions.  The original image is no longer deleted.
 	 * n is the number of tiles in the image; each tile is filtered
-	 * seperately. filter determines whether or not to filter the
+	 * separately. filter determines whether or not to filter the
 	 * resulting image.
 	 */
 	Image *screenScale(Image *src, int scale, int n, int filter);

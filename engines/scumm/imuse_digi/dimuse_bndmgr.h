@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 
 #include "common/scummsys.h"
 #include "common/file.h"
+#include "scumm/imuse_digi/dimuse_defs.h"
 
 namespace Scumm {
 
@@ -51,10 +51,11 @@ private:
 		int32 numFiles;
 		bool isCompressed;
 		IndexNode *indexTable;
-	} _budleDirCache[4];
+	} _bundleDirCache[4];
 
+	const ScummEngine *_vm;
 public:
-	BundleDirCache();
+	BundleDirCache(const ScummEngine *vm);
 	~BundleDirCache();
 
 	int matchFile(const char *filename);
@@ -67,7 +68,6 @@ public:
 class BundleMgr {
 
 private:
-
 	struct CompTable {
 		int32 offset;
 		int32 size;
@@ -81,7 +81,9 @@ private:
 
 	int _numFiles;
 	int _numCompItems;
+	int _lastBlockDecompressedSize;
 	int _curSampleId;
+	int _curDecompressedFilePos;
 	BaseScummFile *_file;
 	bool _compTableLoaded;
 	bool _isUncompressed;
@@ -90,20 +92,19 @@ private:
 	byte *_compInputBuff;
 	int _outputSize;
 	int _lastBlock;
-
 	bool loadCompTable(int32 index);
 
 public:
 
-	BundleMgr(BundleDirCache *_cache);
+	BundleMgr(const ScummEngine *vm, BundleDirCache *_cache);
 	~BundleMgr();
 
-	bool open(const char *filename, bool &compressed, bool errorFlag = false);
+	bool open(const char *filename, bool &isCompressed, bool errorFlag = false);
 	void close();
 	Common::SeekableReadStream *getFile(const char *filename, int32 &offset, int32 &size);
-	int32 decompressSampleByName(const char *name, int32 offset, int32 size, byte **compFinal, bool headerOutside, bool &uncompressedBundle);
-	int32 decompressSampleByIndex(int32 index, int32 offset, int32 size, byte **compFinal, int header_size, bool headerOutside, bool &uncompressedBundle);
-	int32 decompressSampleByCurIndex(int32 offset, int32 size, byte **compFinal, int headerSize, bool headerOutside);
+	int32 seekFile(int32 offset, int size);
+	int32 readFile(const char *name, int32 size, byte **compFinal, bool headerOutside);
+	bool isExtCompBun(byte gameId);
 };
 
 } // End of namespace Scumm

@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -214,7 +213,7 @@ void UserInterface::selectInventoryItem(int16 itemIndex) {
 	_gameScreen->getInventoryWindow()->setSelectedInventoryItem(itemIndex);
 }
 
-void UserInterface::requestFMVPlayback(const Common::String &name) {
+void UserInterface::requestFMVPlayback(const Common::Path &name) {
 	_shouldPlayFmv = name;
 }
 
@@ -456,71 +455,65 @@ void UserInterface::doQueuedScreenChange() {
 	}
 }
 
-void UserInterface::handleKeyPress(const Common::KeyState &keyState) {
+void UserInterface::handleActions(Common::CustomEventType customType) {
 	if (_modalDialog->isVisible()) {
-		_modalDialog->onKeyPress(keyState);
+		_modalDialog->onKeyPress(customType);
 		return;
 	}
 
-	// TODO: Delegate keypress handling to the screens
-
-	if (keyState.keycode == Common::KEYCODE_ESCAPE) {
+	if (customType == kActionSkip) {
 		handleEscape();
-	} else if ((keyState.keycode == Common::KEYCODE_RETURN
-				|| keyState.keycode == Common::KEYCODE_KP_ENTER)) {
+	} else if (customType == kActionSelectDialogue) {
 		if (isInGameScreen()) {
 			_gameScreen->getDialogPanel()->selectFocusedOption();
 		}
-	} else if (keyState.keycode == Common::KEYCODE_F1) {
+	} else if (customType == kActionDiaryMenu) {
 		toggleScreen(Screen::kScreenDiaryIndex);
-	} else if (keyState.keycode == Common::KEYCODE_F2) {
+	} else if (customType == kActionSaveGame) {
 		if (isInSaveLoadMenuScreen() || g_engine->canSaveGameStateCurrently()) {
 			toggleScreen(Screen::kScreenSaveMenu);
 		}
-	} else if (keyState.keycode == Common::KEYCODE_F3) {
+	} else if (customType == kActionLoadGame) {
 		toggleScreen(Screen::kScreenLoadMenu);
-	} else if (keyState.keycode == Common::KEYCODE_F4) {
+	} else if (customType == kActionConversationLog) {
 		toggleScreen(Screen::kScreenDialog);
-	} else if (keyState.keycode == Common::KEYCODE_F5) {
+	} else if (customType == kActionAprilsDiary) {
 		if (StarkDiary->isEnabled()) {
 			toggleScreen(Screen::kScreenDiaryPages);
 		}
-	} else if (keyState.keycode == Common::KEYCODE_F6) {
+	} else if (customType == kActionVideoReplay) {
 		toggleScreen(Screen::kScreenFMVMenu);
-	} else if (keyState.keycode == Common::KEYCODE_F7) {
+	} else if (customType == kActionGameSettings) {
 		toggleScreen(Screen::kScreenSettingsMenu);
-	} else if (keyState.keycode == Common::KEYCODE_F8) {
+	} else if (customType == kActionSaveScreenshot) {
 		g_system->saveScreenshot();
-	} else if (keyState.keycode == Common::KEYCODE_F9) {
+	} else if (customType == kActionToggleSubtitles) {
 		if (isInGameScreen()) {
 			_shouldToggleSubtitle = !_shouldToggleSubtitle;
 		}
-	} else if (keyState.keycode == Common::KEYCODE_F10) {
+	} else if (customType == kActionQuitToMenu) {
 		if (isInGameScreen() || isInDiaryIndexScreen()) {
 			confirm(GameMessage::kQuitGamePrompt, this, &UserInterface::requestQuitToMainMenu);
 		}
-	} else if (keyState.keycode == Common::KEYCODE_a) {
+	} else if (customType == kActionCycleForwardInventory) {
 		if (isInGameScreen() && isInteractive()) {
 			cycleInventory(false);
 		}
-	} else if (keyState.keycode == Common::KEYCODE_s) {
+	} else if (customType == kActionCycleBackInventory) {
 		if (isInGameScreen() && isInteractive()) {
 			cycleInventory(true);
 		}
-	} else if (keyState.keycode == Common::KEYCODE_i) {
+	} else if (customType == kActionInventory) {
 		if (isInGameScreen() && isInteractive()) {
 			inventoryOpen(!isInventoryOpen());
 		}
-	} else if (keyState.keycode == Common::KEYCODE_x
-				&& !keyState.hasFlags(Common::KBD_ALT)) {
+	} else if (customType == kActionDisplayExits) {
 		if (isInGameScreen() && isInteractive()) {
 			_gameScreen->getGameWindow()->toggleExitDisplay();
 		}
-	} else if ((keyState.keycode == Common::KEYCODE_x
-				|| keyState.keycode == Common::KEYCODE_q)
-				&& keyState.hasFlags(Common::KBD_ALT)) {
+	} else if (customType == kActionExitGame) {
 		confirm(GameMessage::kQuitPrompt, this, &UserInterface::notifyShouldExit);
-	} else if (keyState.keycode == Common::KEYCODE_p) {
+	} else if (customType == kActionPause) {
 		if (isInGameScreen()) {
 			if (g_engine->isPaused()) {
 				_gamePauseToken.clear();
@@ -529,39 +522,33 @@ void UserInterface::handleKeyPress(const Common::KeyState &keyState) {
 				debug("The game is paused");
 			}
 		}
-	} else if (keyState.keycode == Common::KEYCODE_PAGEUP) {
-		if (isInGameScreen()) {
-			if (isInventoryOpen()) {
+	}
+
+	if (isInGameScreen()) {
+		if (isInventoryOpen()) {
+			if (customType == kActionInventoryScrollUp) {
 				_gameScreen->getInventoryWindow()->scrollUp();
-			} else {
-				_gameScreen->getDialogPanel()->scrollUp();
+			} else if (customType == kActionInventoryScrollDown) {
+				_gameScreen->getInventoryWindow()->scrollDown();
 			}
-		}
-	} else if (keyState.keycode == Common::KEYCODE_UP) {
-		if (isInGameScreen()) {
-			if (isInventoryOpen()) {
-				_gameScreen->getInventoryWindow()->scrollUp();
-			} else {
+		} else {
+			if (customType == kActionDialogueScrollUp) {
+				_gameScreen->getDialogPanel()->scrollUp();
+			} else if (customType == kActionDialogueScrollDown) {
+				_gameScreen->getDialogPanel()->scrollDown();
+			} else if (customType == kActionNextDialogue) {
+				_gameScreen->getDialogPanel()->focusNextOption();
+			} else if (customType == kActionPrevDialogue) {
 				_gameScreen->getDialogPanel()->focusPrevOption();
 			}
 		}
-	} else if (keyState.keycode == Common::KEYCODE_PAGEDOWN) {
-		if (isInGameScreen()) {
-			if (isInventoryOpen()) {
-				_gameScreen->getInventoryWindow()->scrollDown();
-			} else {
-				_gameScreen->getDialogPanel()->scrollDown();
-			}
-		}
-	} else if (keyState.keycode == Common::KEYCODE_DOWN) {
-		if (isInGameScreen()) {
-			if (isInventoryOpen()) {
-				_gameScreen->getInventoryWindow()->scrollDown();
-			} else {
-				_gameScreen->getDialogPanel()->focusNextOption();
-			}
-		}
-	} else if (keyState.keycode >= Common::KEYCODE_1 && keyState.keycode <= Common::KEYCODE_9) {
+	}
+}
+
+void UserInterface::handleKeyPress(const Common::KeyState &keyState) {
+
+	// TODO: Delegate keypress handling to the screens
+	if (keyState.keycode >= Common::KEYCODE_1 && keyState.keycode <= Common::KEYCODE_9) {
 		if (isInGameScreen()) {
 			uint index = keyState.keycode - Common::KEYCODE_1;
 			_gameScreen->getDialogPanel()->selectOption(index);

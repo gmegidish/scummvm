@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -100,7 +105,7 @@ Common::SeekableReadStream *TextItem::stream() const {
 Resources::TOTResourceTable::TOTResourceTable() {
 	itemsCount = 0;
 	unknown    = (byte)0;
-	items      = NULL;
+	items      = nullptr;
 	dataOffset = 0u;
 }
 
@@ -112,7 +117,7 @@ Resources::TOTResourceTable::~TOTResourceTable() {
 Resources::EXTResourceTable::EXTResourceTable() {
 	itemsCount = 0;
 	unknown    = 0;
-	items      = 0;
+	items      = nullptr;
 }
 
 Resources::EXTResourceTable::~EXTResourceTable() {
@@ -123,9 +128,9 @@ Resources::EXTResourceTable::~EXTResourceTable() {
 Resources::TOTTextTable::TOTTextTable() {
 	needFree   = false;
 	itemsCount = 0;
-	data       = NULL;
+	data       = nullptr;
 	size       = 0;
-	items      = NULL;
+	items      = nullptr;
 }
 
 Resources::TOTTextTable::~TOTTextTable() {
@@ -163,12 +168,12 @@ bool Resources::load(const Common::String &fileName) {
 
 	if (!hasTOTRes) {
 		delete _totResourceTable;
-		_totResourceTable = 0;
+		_totResourceTable = nullptr;
 	}
 
 	if (!hasEXTRes) {
 		delete _extResourceTable;
-		_extResourceTable = 0;
+		_extResourceTable = nullptr;
 	}
 
 	if (!hasTOTRes && !hasEXTRes)
@@ -211,18 +216,18 @@ void Resources::unload(bool del) {
 		_exFile.clear();
 	}
 
-	_totResourceTable = 0;
-	_extResourceTable = 0;
-	_totTextTable = 0;
+	_totResourceTable = nullptr;
+	_extResourceTable = nullptr;
+	_totTextTable = nullptr;
 	_totResStart = 0;
-	_totData = 0;
+	_totData = nullptr;
 	_totSize = 0;
-	_imData = 0;
+	_imData = nullptr;
 	_imSize = 0;
 }
 
 bool Resources::isLoaded() const {
-	return (_totResourceTable != 0);
+	return (_totResourceTable != nullptr);
 }
 
 bool Resources::loadTOTResourceTable() {
@@ -241,42 +246,43 @@ bool Resources::loadTOTResourceTable() {
 
 	_totResStart = totProps.scriptEnd;
 
-	if ((totProps.resourcesOffset == 0xFFFFFFFF) ||
-	    (totProps.resourcesOffset == 0))
-		// No resources here
-		return false;
+	if (totProps.resourcesOffset != 0xFFFFFFFF && totProps.resourcesOffset != 0) {
+		_totResourceTable = new TOTResourceTable;
 
-	_totResourceTable = new TOTResourceTable;
+		stream->seek(totProps.resourcesOffset);
+		_totResourceTable->itemsCount = stream->readSint16LE();
 
-	stream->seek(totProps.resourcesOffset);
-	_totResourceTable->itemsCount = stream->readSint16LE();
+		uint32 resSize = _totResourceTable->itemsCount * kTOTResItemSize +
+						 kTOTResTableSize;
 
-	uint32 resSize = _totResourceTable->itemsCount * kTOTResItemSize +
-	                 kTOTResTableSize;
-
-	_totResourceTable->dataOffset = totProps.resourcesOffset + resSize;
+		_totResourceTable->dataOffset = totProps.resourcesOffset + resSize;
 
 
-	// Would the table actually fit into the TOT?
-	if ((totProps.resourcesOffset + resSize) > ((uint32) stream->size()))
-		return false;
+		// Would the table actually fit into the TOT?
+		if ((totProps.resourcesOffset + resSize) > ((uint32) stream->size()))
+			return false;
 
-	_totResourceTable->unknown = stream->readByte();
-	_totResourceTable->items = new TOTResourceItem[_totResourceTable->itemsCount];
+		_totResourceTable->unknown = stream->readByte();
+		_totResourceTable->items = new TOTResourceItem[_totResourceTable->itemsCount];
 
-	for (int i = 0; i < _totResourceTable->itemsCount; ++i) {
-		TOTResourceItem &item = _totResourceTable->items[i];
+		for (int i = 0; i < _totResourceTable->itemsCount; ++i) {
+			TOTResourceItem &item = _totResourceTable->items[i];
 
-		item.offset = stream->readSint32LE();
-		item.size   = stream->readUint16LE();
-		item.width  = stream->readSint16LE();
-		item.height = stream->readSint16LE();
+			item.offset = stream->readSint32LE();
+			item.size   = stream->readUint16LE();
+			item.width  = stream->readSint16LE();
+			item.height = stream->readSint16LE();
 
-		if (item.offset < 0) {
-			item.type = kResourceIM;
-			item.index = -item.offset - 1;
-		} else
-			item.type = kResourceTOT;
+			if (item.offset < 0) {
+				item.type = kResourceIM;
+				item.index = -item.offset - 1;
+			} else
+				item.type = kResourceTOT;
+		}
+	} else {
+		_totResourceTable = nullptr;
+		// Do not return yet: although there is no *sprite* resource table,
+		// a text table may still be present.
 	}
 
 	_totSize = stream->size() - _totResStart;
@@ -414,7 +420,7 @@ bool Resources::loadIMFile() {
 	_imData = new byte[_imSize];
 	if (stream->read(_imData, _imSize) != _imSize) {
 		delete[] _imData;
-		_imData = 0;
+		_imData = nullptr;
 		_imSize = 0;
 	}
 
@@ -527,7 +533,7 @@ byte *Resources::loadTOTLocTexts(const Common::String &fileBase, int32 &size) {
 			_vm->_global->_language, _totFile.c_str());
 
 	if (locTextFile.empty())
-		return 0;
+		return nullptr;
 
 	return _vm->_dataIO->getFile(locTextFile, size);
 }
@@ -535,17 +541,17 @@ byte *Resources::loadTOTLocTexts(const Common::String &fileBase, int32 &size) {
 Resource *Resources::getResource(uint16 id, int16 *width, int16 *height) const {
 	if (_hasLOM) {
 		warning("Stub: Resources::getResource(): Has LOM");
-		return 0;
+		return nullptr;
 	}
 
-	Resource *resource = 0;
+	Resource *resource = nullptr;
 	if (id >= 30000)
 		resource = getEXTResource(id - 30000);
 	else
 		resource = getTOTResource(id);
 
 	if (!resource)
-		return 0;
+		return nullptr;
 
 	if (width)
 		*width  = resource->getWidth();
@@ -557,22 +563,22 @@ Resource *Resources::getResource(uint16 id, int16 *width, int16 *height) const {
 
 TextItem *Resources::getTextItem(uint16 id) const {
 	if (!_totTextTable || !_totTextTable->data)
-		return 0;
+		return nullptr;
 
 	if (id >= _totTextTable->itemsCount)
-		return 0;
+		return nullptr;
 
 	assert(_totTextTable->items);
 
 	TOTTextItem &totItem = _totTextTable->items[id];
 
 	if ((totItem.offset == 0xFFFF) || (totItem.size == 0))
-		return 0;
+		return nullptr;
 
 	if ((totItem.offset + totItem.size) > (_totTextTable->size)) {
 		warning("TOT text %d offset %d out of range (%s, %d, %d)",
 			id, totItem.offset, _totFile.c_str(), _totSize, totItem.size);
-		return 0;
+		return nullptr;
 	}
 
 	return new TextItem(_totTextTable->data + totItem.offset, totItem.size);
@@ -580,13 +586,13 @@ TextItem *Resources::getTextItem(uint16 id) const {
 
 byte *Resources::getTexts() const {
 	if (!_totTextTable)
-		return 0;
+		return nullptr;
 
 	return _totTextTable->data;
 }
 
 bool Resources::dumpResource(const Resource &resource,
-		const Common::String &fileName) const {
+		const Common::Path &fileName) const {
 
 	Common::DumpFile dump;
 
@@ -614,7 +620,7 @@ bool Resources::dumpResource(const Resource &resource, uint16 id,
 	fileName += ".";
 	fileName += ext;
 
-	return dumpResource(resource, fileName);
+	return dumpResource(resource, Common::Path(fileName));
 }
 
 Resource *Resources::getTOTResource(uint16 id) const {
@@ -622,14 +628,14 @@ Resource *Resources::getTOTResource(uint16 id) const {
 		warning("Trying to load non-existent TOT resource (%s, %d/%d)",
 				_totFile.c_str(), id,
 				_totResourceTable ? (_totResourceTable->itemsCount - 1) : -1);
-		return 0;
+		return nullptr;
 	}
 
 	assert(_totResourceTable->items);
 
 	TOTResourceItem &totItem = _totResourceTable->items[id];
 
-	byte *data = 0;
+	byte *data = nullptr;
 	if (totItem.type == kResourceIM)
 		data = getIMData(totItem);
 	if (totItem.type == kResourceTOT)
@@ -638,7 +644,7 @@ Resource *Resources::getTOTResource(uint16 id) const {
 	if (!data) {
 		warning("Failed to load TOT resource (%s, %d/%d, %d)",
 				_totFile.c_str(), id, _totResourceTable->itemsCount - 1, totItem.type);
-		return 0;
+		return nullptr;
 	}
 
 	return new Resource(data, totItem.size, false, totItem.width, totItem.height);
@@ -649,7 +655,7 @@ Resource *Resources::getEXTResource(uint16 id) const {
 		warning("Trying to load non-existent EXT resource (%s, %d/%d)",
 				_totFile.c_str(), id,
 				_extResourceTable ? (_extResourceTable->itemsCount - 1) : -1);
-		return 0;
+		return nullptr;
 	}
 
 	assert(_extResourceTable->items);
@@ -667,7 +673,7 @@ Resource *Resources::getEXTResource(uint16 id) const {
 	if (extItem.height == 0)
 		size += extItem.width << 16;
 
-	byte *data = 0;
+	byte *data = nullptr;
 	if (extItem.type == kResourceEXT)
 		data = getEXTData(extItem, size);
 	if (extItem.type == kResourceEX)
@@ -676,7 +682,7 @@ Resource *Resources::getEXTResource(uint16 id) const {
 	if (!data) {
 		warning("Failed to load EXT resource (%s, %d/%d, %d)",
 				_totFile.c_str(), id, _extResourceTable->itemsCount - 1, extItem.type);
-		return 0;
+		return nullptr;
 	}
 
 	if (extItem.packed) {
@@ -695,14 +701,14 @@ Resource *Resources::getEXTResource(uint16 id) const {
 
 byte *Resources::getTOTData(TOTResourceItem &totItem) const {
 	if (totItem.size == 0)
-		return 0;
+		return nullptr;
 
 	int32 offset = _totResourceTable->dataOffset + totItem.offset - _totResStart;
 
 	if ((offset < 0) || (((uint32) (offset + totItem.size)) > _totSize)) {
 		warning("TOT data %d offset %d out of range (%s, %d, %d)",
 				totItem.index, totItem.offset, _totFile.c_str(), _totSize, totItem.size);
-		return 0;
+		return nullptr;
 	}
 
 	return _totData + offset;
@@ -710,15 +716,15 @@ byte *Resources::getTOTData(TOTResourceItem &totItem) const {
 
 byte *Resources::getIMData(TOTResourceItem &totItem) const {
 	if (totItem.size == 0)
-		return 0;
+		return nullptr;
 
 	int32 indexOffset = totItem.index * 4;
 	if ((indexOffset < 0) || (((uint32) indexOffset) >= _imSize))
-		return 0;
+		return nullptr;
 
 	uint32 offset = READ_LE_UINT32(_imData + indexOffset);
 	if ((offset + totItem.size) > _imSize)
-		return 0;
+		return nullptr;
 
 	return _imData + offset;
 }
@@ -726,11 +732,11 @@ byte *Resources::getIMData(TOTResourceItem &totItem) const {
 byte *Resources::getEXTData(EXTResourceItem &extItem, uint32 &size) const {
 	Common::SeekableReadStream *stream = _vm->_dataIO->getFile(_extFile);
 	if (!stream)
-		return 0;
+		return nullptr;
 
 	if (!stream->seek(extItem.offset)) {
 		delete stream;
-		return 0;
+		return nullptr;
 	}
 
 	// If that workaround is active, limit the resource size instead of throwing an error
@@ -741,7 +747,7 @@ byte *Resources::getEXTData(EXTResourceItem &extItem, uint32 &size) const {
 	if (stream->read(data, size) != size) {
 		delete[] data;
 		delete stream;
-		return 0;
+		return nullptr;
 	}
 
 	delete stream;
@@ -751,11 +757,11 @@ byte *Resources::getEXTData(EXTResourceItem &extItem, uint32 &size) const {
 byte *Resources::getEXData(EXTResourceItem &extItem, uint32 &size) const {
 	Common::SeekableReadStream *stream = _vm->_dataIO->getFile(_exFile);
 	if (!stream)
-		return 0;
+		return nullptr;
 
 	if (!stream->seek(extItem.offset)) {
 		delete stream;
-		return 0;
+		return nullptr;
 	}
 
 	// If that workaround is active, limit the resource size instead of throwing an error
@@ -766,7 +772,7 @@ byte *Resources::getEXData(EXTResourceItem &extItem, uint32 &size) const {
 	if (stream->read(data, size) != size) {
 		delete[] data;
 		delete stream;
-		return 0;
+		return nullptr;
 	}
 
 	delete stream;

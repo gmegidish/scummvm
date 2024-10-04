@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ags/lib/std/memory.h"
+#include "common/std/memory.h"
+#include "ags/shared/util/stream.h"
 #include "ags/engine/ac/dynobj/script_user_object.h"
 
 namespace AGS3 {
+
+using namespace AGS::Shared;
 
 // return the type name of the object
 const char *ScriptUserObject::GetType() {
@@ -41,12 +43,12 @@ ScriptUserObject::~ScriptUserObject() {
 
 /* static */ ScriptUserObject *ScriptUserObject::CreateManaged(size_t size) {
 	ScriptUserObject *suo = new ScriptUserObject();
-	suo->Create(nullptr, size);
+	suo->Create(nullptr, nullptr, size);
 	ccRegisterManagedObject(suo, suo);
 	return suo;
 }
 
-void ScriptUserObject::Create(const char *data, size_t size) {
+void ScriptUserObject::Create(const char *data, Stream *in, size_t size) {
 	delete[] _data;
 	_data = nullptr;
 
@@ -55,6 +57,8 @@ void ScriptUserObject::Create(const char *data, size_t size) {
 		_data = new char[size];
 		if (data)
 			memcpy(_data, data, _size);
+		else if (in)
+			in->Read(_data, _size);
 		else
 			memset(_data, 0, _size);
 	}
@@ -74,8 +78,8 @@ int ScriptUserObject::Serialize(const char *address, char *buffer, int bufsize) 
 	return _size;
 }
 
-void ScriptUserObject::Unserialize(int index, const char *serializedData, int dataSize) {
-	Create(serializedData, dataSize);
+void ScriptUserObject::Unserialize(int index, Stream *in, size_t data_sz) {
+	Create(nullptr, in, data_sz);
 	ccRegisterUnserializedObject(index, this, this);
 }
 

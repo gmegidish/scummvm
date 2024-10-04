@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, MojoTouch has exclusively licensed
+ * this code on November 10th, 2021, to be use in closed-source products.
+ * Therefore, any contributions (commits) to it will also be dual-licensed.
  *
  */
 
@@ -36,14 +41,26 @@ extern const int8 wineRackLogicTable[1200];
 
 WineRackGame::WineRackGame() : _random("WineRackGame"), _totalBottles(0) {
 	memset(_wineRackGrid, 0, 100);
+
+#if 0
+	runTests();
+#endif
 }
 
 void WineRackGame::run(byte *scriptVariables) {
 	char op = scriptVariables[3];
 	byte pos = 0;
 
+	/* positions on the board
+	*	north = 9 (0, 9)
+		south = 90 (9, 0)
+		east = 99 (9, 9)
+		west = 0 (0, 0)
+	*/
+
 	switch (op) {
 	case 3:
+		debugC(kDebugLogic, "WineRackGame initGrid, seed: %u", _random.getSeed());
 		initGrid(scriptVariables[4]);
 		break;
 	case 4:	// Player's move
@@ -51,7 +68,7 @@ void WineRackGame::run(byte *scriptVariables) {
 		placeBottle(pos, kWineBottlePlayer);
 		scriptVariables[0] = pos / 10;
 		scriptVariables[1] = pos % 10;
-		scriptVariables[3] = sub09();
+		scriptVariables[3] = didPlayerWin();
 		break;
 	case 5:	// Opponent's move
 		scriptVariables[3] = 0;
@@ -59,20 +76,20 @@ void WineRackGame::run(byte *scriptVariables) {
 		placeBottle(pos, kWineBottleOpponent);
 		scriptVariables[0] = pos / 10;
 		scriptVariables[1] = pos % 10;
-		scriptVariables[3] = sub12() != 0 ? 1 : 0;
+		scriptVariables[3] = didAiWin() != 0 ? 1 : 0;
 		break;
 	default:
 		scriptVariables[3] = 0;
 		placeBottle(scriptVariables[0] * 10 + scriptVariables[1], 2);
 
-		if (sub09()) {
+		if (didPlayerWin()) {
 			scriptVariables[3] = 2;
 		} else {
 			pos = calculateNextMove(kWineBottleOpponent);
 			placeBottle(pos, kWineBottleOpponent);
 			scriptVariables[0] = pos / 10;
 			scriptVariables[1] = pos % 10;
-			scriptVariables[3] = sub12() != 0 ? 1 : 0;
+			scriptVariables[3] = didAiWin() != 0 ? 1 : 0;
 		}
 		break;
 	}
@@ -135,7 +152,9 @@ void WineRackGame::initGrid(byte difficulty) {
 }
 
 void WineRackGame::placeBottle(byte pos, byte val) {
+	debugC(kDebugLogic, "placeBottle(%d, %d)", (int)pos, (int)val);
 	_totalBottles++;
+	assert(_wineRackGrid[pos] == 0);
 	_wineRackGrid[pos] = val;
 }
 
@@ -157,6 +176,8 @@ int8 WineRackGame::calculateNextMove(byte player) {
 	if (result == -1)
 		return findEmptySpot();
 
+	assert(_wineRackGrid[result] == 0);
+
 	return result;
 }
 
@@ -174,6 +195,34 @@ int8 WineRackGame::findEmptySpot() {
 }
 
 void WineRackGame::sub05(int8 player, int8 *moves) {
+	int8 moves1[23];
+	int8 moves2[23];
+	int8 to, delta, playerIndex;
+
+	if (player == 1) {
+		to = 90;
+		delta = 10;
+		playerIndex = 2;
+	} else {
+		to = 9;
+		delta = 1;
+		playerIndex = 3;
+	}
+
+	memset(moves, 0, 23);
+
+	for (int i = 0; i < to; i += delta) {
+		if (!_wineRackGrid[i] || _wineRackGrid[i] == player) {
+			memset(moves1, 0, sizeof(moves1));
+			memset(moves2, 0, sizeof(moves2));
+
+			sub13(i, playerIndex, moves1, moves2);
+
+			if (moves[0] < moves1[0]) {
+				memcpy(moves, moves1, 23);
+			}
+		}
+	}
 }
 
 int8 WineRackGame::sub06(int8 *moves1, int8 *moves2) {
@@ -189,19 +238,19 @@ int8 WineRackGame::sub06(int8 *moves1, int8 *moves2) {
 	}
 
 	for (int i = 0; i < moves1[2]; i++) {
-		if (_wineRackGrid[moves1[i + 3]])
+		if (!_wineRackGrid[moves1[i + 3]])
 			return moves1[i + 3];
 	}
 
 	return -1;
 }
 
-uint32 WineRackGame::sub09() {
+uint32 WineRackGame::didPlayerWin() {
 	memset(_wineRackGrid2, 0, 100);
 
 	for (int i = 0; i < 10; i++) {
 		if (_wineRackGrid[i] == kWineBottlePlayer) {
-			int var;
+			int var = 0;
 			sub10(100, i, 2, 3, &var);
 			if (var == 1)
 				return 1;
@@ -248,12 +297,12 @@ void WineRackGame::sub11(int8 pos, int8 *candidates) {
 	candidates[cnt] = 100;
 }
 
-uint32 WineRackGame::sub12() {
-	memset(_wineRackGrid2, 0, 25);
+uint32 WineRackGame::didAiWin() {
+	memset(_wineRackGrid2, 0, 100);
 
 	for (int i = 0; i < 100; i += 10) {
 		if (_wineRackGrid[i] == kWineBottleOpponent) {
-			int var;
+			int var = 0;
 			sub10(100, i, 1, 2, &var);
 			if (var == 1)
 				return 1;
@@ -261,6 +310,143 @@ uint32 WineRackGame::sub12() {
 	}
 
 	return 0;
+}
+
+void WineRackGame::sub13(int8 cell, int8 player, int8 *moves1, int8 *moves2) {
+	int8 candidates[4];
+
+	if (cell == -1)
+		return;
+
+	moves2[moves2[2] + 3] = cell;
+
+	if (wineRackLogicTable[12 * cell + player] < 0) {
+		++moves2[2];
+
+		moves2[0] = countEmtpy(moves2);
+
+		if (moves2[0] > moves1[0])
+			memcpy(moves1, moves2, 23);
+
+		--moves2[2];
+	} else {
+		++moves2[2];
+
+		if (player == 2)
+			sub15(cell, candidates);
+		else
+			sub16(cell, candidates);
+
+		for (int i = 0; candidates[i] != -1; i++)
+			sub13(candidates[i], player, moves1, moves2);
+
+		--moves2[2];
+	}
+}
+
+void WineRackGame::sub15(int8 cell, int8 *candidates) {
+	int8 depth = 0;
+	int8 pos2 = wineRackLogicTable[12 * cell + 2];
+	int8 pos1 = wineRackLogicTable[12 * cell + 1];
+
+	if (_wineRackGrid[pos2] == 2) {
+		if (pos1 < 0 || _wineRackGrid[pos1] == 2) {
+			if (cell >= 20) {
+				int8 val1 = _wineRackGrid[cell - 10];
+
+				if (val1 != 2) {
+					int8 val2 = _wineRackGrid[cell - 10];
+
+					if (val2 != 2 && (val1 == 1 || val2 == 1)) {
+						depth = 1;
+						candidates[0] = cell - 10;
+					}
+				}
+			}
+			if (cell < 80) {
+				int8 val1 = _wineRackGrid[cell + 10];
+
+				if (val1 != 2) {
+					int8 val2 = _wineRackGrid[cell + 11];
+
+					if (val2 != 2 && (val1 == 1 || val2 == 1)) {
+						candidates[depth] = cell + 10;
+						depth++;
+					}
+				}
+			}
+		} else if (_wineRackGrid[cell] == 1 || _wineRackGrid[pos1] == 1) {
+			depth = 1;
+			candidates[0] = pos1;
+		}
+	} else if (pos1 < 0 || _wineRackGrid[pos1] == 2) {
+		if (_wineRackGrid[cell] == 1 || _wineRackGrid[pos2] == 1) {
+			depth = 1;
+			candidates[0] = pos2;
+		}
+	} else {
+		depth = 2;
+		candidates[0] = pos2;
+		candidates[1] = pos1;
+	}
+
+	candidates[depth] = -1;
+}
+
+void WineRackGame::sub16(int8 cell, int8 *candidates) {
+	int8 depth = 0;
+	int8 pos3 = wineRackLogicTable[12 * cell + 3];
+	int8 pos4 = wineRackLogicTable[12 * cell + 4];
+
+	if (_wineRackGrid[pos3] == 1) {
+		if (pos4 < 0 || _wineRackGrid[pos4] == 1) {
+			if (cell % 10 >= 2) {
+				int8 val1 = _wineRackGrid[cell - 1];
+
+				if (val1 != 1) {
+					int8 val2 = _wineRackGrid[cell + 8];
+
+					if (val2 != 1 && (val1 == 2 || val2 == 2)) {
+						depth = 1;
+						candidates[0] = cell - 1;
+					}
+				}
+			}
+			if (cell < 80 && _wineRackGrid[cell + 1] != 1) {
+				int8 val1 = _wineRackGrid[cell + 11];
+
+				if (val1 != 1 && (_wineRackGrid[cell + 1] == 2 || val1 == 2)) {
+					candidates[depth] = cell + 1;
+					depth++;
+				}
+			}
+		} else if (_wineRackGrid[cell] == 2 || _wineRackGrid[pos4] == 2) {
+			depth = 1;
+			candidates[0] = pos4;
+		}
+	} else if (pos4 < 0 || _wineRackGrid[pos4] == 1) {
+		if (_wineRackGrid[cell] == 2 || _wineRackGrid[pos3] == 2) {
+			depth = 1;
+			candidates[0] = pos3;
+		}
+	} else {
+		depth = 2;
+		candidates[0] = pos3;
+		candidates[1] = pos4;
+	}
+
+	candidates[depth] = -1;
+}
+
+int8 WineRackGame::countEmtpy(int8 *moves) {
+	int8 cnt = 0;
+
+	for (int i = 0; i < moves[2]; i++) {
+		if (!_wineRackGrid[moves[i + 3]])
+			++cnt;
+	}
+
+	return 20 - cnt;
 }
 
 int8 WineRackGame::randomMoveStart() {
@@ -271,8 +457,79 @@ int8 WineRackGame::randomMoveStart() {
 
 int8 WineRackGame::randomMoveStart2() {
 	const int8 moves[] = { 25, 26, 63, 64 };
+	// the original game doesn't ensure the spot isn't taken
+	int8 res = 0;
+	do {
+		res = moves[_random.getRandomNumber(3)];
+	} while (_wineRackGrid[res] != 0);
+	return res;
+}
 
-	return moves[_random.getRandomNumber(3)];
+void WineRackGame::testWinCondition(byte player, int baseX, int baseY) {
+	initGrid(2);
+
+	int basePos = baseX * 10 + baseY;
+
+	for (int i = 0; i < 10; i++) {
+		if (player == kWineBottlePlayer)
+			placeBottle(i * 10 + basePos, player);
+		else
+			placeBottle(i + basePos, player);
+	}
+
+	if (player == kWineBottlePlayer && !didPlayerWin()) {
+		error("WineRackGame::testWinCondition(%d, %d, %d) failed", (int)player, baseX, baseY);
+	} else if (player == kWineBottleOpponent && !didAiWin()) {
+		error("WineRackGame::testWinCondition(%d, %d, %d) failed", (int)player, baseX, baseY);
+	}
+}
+
+void WineRackGame::testGame(uint32 seed, Common::Array<int> moves, bool playerWin) {
+	byte vars[1024] = {};
+	byte &x = vars[0];
+	byte &y = vars[1];
+	byte &op = vars[3];
+	byte &winner = vars[3];
+	byte &difficulty = vars[4];
+	_random.setSeed(seed);
+
+	difficulty = 2;
+	op = 3;
+	run(vars);
+	winner = 0;
+
+	for (uint i = 0; i < moves.size(); i += 2) {
+		if (winner)
+			error("early winner");
+		x = moves[i];
+		y = moves[i + 1];
+		op = 1;
+		run(vars);
+	}
+
+	if (playerWin && winner != 2)
+		error("WineRackGame::testGame(%u, %u, %d) player didn't win", seed, moves.size(), (int)playerWin);
+	else if (playerWin == false && winner != 1)
+		error("WineRackGame::testGame(%u, %u, %d) ai didn't win", seed, moves.size(), (int)playerWin);
+}
+
+void WineRackGame::runTests() {
+	warning("WineRackGame::runTests() starting");
+	uint32 oldSeed = _random.getSeed();
+
+	for (int i = 0; i < 10; i++) {
+		testWinCondition(kWineBottlePlayer, 0, i);
+		testWinCondition(kWineBottleOpponent, i, 0);
+	}
+
+	// pairs of x,y for the player's moves
+	testGame(1, {9,0, 9,1, 9,2, 9,3, 9,4, 9,5, 9,6, 9,7, 9,8, 9,9}, false);
+	testGame(2, {5,5, 3,5, 7,4, 1,6, 9,3, 0,7, 2,6, 4,5, 6,5, 8,4}, true);
+	// in the original game, the AI had a 25% chance to move to 2,6 as its first move, even if your first move was to 2,6 already
+	testGame(147160395, {2,6, 3,6, 4,6, 5,6, 7,6, 8,6, 9,6, 2,7, 3,7, 4,7}, false);
+
+	_random.setSeed(oldSeed);
+	warning("WineRackGame::runTests() finished");
 }
 
 namespace {

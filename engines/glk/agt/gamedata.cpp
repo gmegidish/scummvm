@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -324,8 +323,8 @@ const opdef illegal_def = a(ILLEGAL);
    The last table entry is now marked by a new value of -1.*/
 
 /* Versions of the command set:
-	v1.21 apparantly has a compatible command set w/ 1.7 (!)
-	  [except that their maxcmd is apparantly 22, not 30]
+	v1.21 apparently has a compatible command set w/ 1.7 (!)
+	  [except that their maxcmd is apparently 22, not 30]
 	1.0 doesn't; it seems to have an EOC code of 154, as opposed to
 	165 or so.
 	1.18 seems to be slightly different from 1.7, but seemingly only
@@ -488,7 +487,7 @@ const char *averstr[] = {"????", "1.0", "1.18",
 						};
 
 const char *portstr = PORTSTR;
-const char *version_str = "version 1.1.1";
+const char *version_str = "version 1.1.2";
 
 const char nonestr[5] = {4, 'n', 'o', 'n', 'e'};
 static const char NONEstr[5] = {4, 'N', 'O', 'N', 'E'};
@@ -553,7 +552,7 @@ static const char verbdef[] =
 */
 
 /* These are alternative (that is, non-canonical) forms of verbs that
-   were present in the oringal AGT interpreters.  They have the property
+   were present in the original AGT interpreters.  They have the property
    that they have no effect if used in a dummy_verb declaration. */
 /* Their dictionary indices are stored in old_agt_verb, which is
    initialized by reinit_dict. */
@@ -643,7 +642,7 @@ static word add0_dict(const char *s) {
 			dict[i] = (dict[i] - dictstr) + newstr;
 		dictstr = newstr;
 	}
-	strcpy(dictstr + dictstrptr, s); /* Copy word into memory */
+	Common::strcpy_s(dictstr + dictstrptr, dictstrsize - dictstrptr, s); /* Copy word into memory */
 	dict[dp] = dictstr + dictstrptr;
 	dictstrptr = newptr;
 
@@ -692,13 +691,13 @@ static void init0_dict(void)
 
 	dict = (char **)rmalloc(sizeof(char *));
 	dictstr = (char *)rmalloc(DICT_GRAN);
-	strcpy(dictstr, "any");
+	Common::strcpy_s(dictstr, DICT_GRAN, "any");
 	dict[0] = dictstr;
 
 	dictstrptr = 4; /* Point just after 'any' */
 	dictstrsize = DICT_GRAN;
 	dp = 1;
-	syntbl = NULL;
+	syntbl = nullptr;
 	synptr = 0;
 	syntbl_size = 0; /* Clear synonym table */
 }
@@ -745,7 +744,7 @@ slist add_multi_word(word w) {
 }
 
 
-/* Check verb vp for multiwords and enter any found in the auxilary
+/* Check verb vp for multiwords and enter any found in the auxiliary
    combination list */
 static void verb_multiword(int vp) {
 	int i;
@@ -806,15 +805,15 @@ static void enter_verbs(int vp, const char *s)
 
 
 void init_dict(void) {
-	dict = NULL;
-	verblist = NULL;
-	syntbl = NULL;
+	dict = nullptr;
+	verblist = nullptr;
+	syntbl = nullptr;
 	no_syn = 0;
-	auxsyn = NULL;
-	preplist = NULL;
-	verbflag = NULL;
-	auxcomb = NULL;
-	old_agt_verb = NULL;
+	auxsyn = nullptr;
+	preplist = nullptr;
+	verbflag = nullptr;
+	auxcomb = nullptr;
+	old_agt_verb = nullptr;
 	num_auxcomb = 0;
 }
 
@@ -824,7 +823,7 @@ void build_verblist(void) {
 
 	verblist = (words *)rmalloc(sizeof(words) * TOTAL_VERB);
 	for (i = 0; i < TOTAL_VERB; i++)
-		strncpy(verblist[i], dict[syntbl[auxsyn[i]]], sizeof(words));
+		Common::strlcpy(verblist[i], dict[syntbl[auxsyn[i]]], sizeof(words));
 #ifdef DUMP_VLIST
 	{
 		int j;
@@ -865,7 +864,7 @@ void reinit_dict(void)
 	no_syn = no_auxsyn;
 
 	auxsyn = (slist *)rmalloc(sizeof(slist) * TOTAL_VERB);
-	auxcomb = NULL;
+	auxcomb = nullptr;
 	num_auxcomb = 0;
 	preplist = (slist *)rmalloc(sizeof(slist) * TOTAL_VERB);
 	verbflag = (uchar *)rmalloc(sizeof(uchar) * TOTAL_VERB);
@@ -887,25 +886,25 @@ void reinit_dict(void)
 	set_verbflag(); /* Do additional verbflag initialization */
 
 	for (i = 0; i < DVERB; i++) {
-		sprintf(buff, "dummy_verb%d", i + 1);
+		Common::sprintf_s(buff, "dummy_verb%d", i + 1);
 		auxsyn[i + BASE_VERB] = synptr;
 		addsyn(add0_dict(buff));
 		addsyn(-1);
 	}
 	for (i = 0; i < MAX_SUB; i++) {
-		sprintf(buff, "subroutine%d", i + 1);
+		Common::sprintf_s(buff, "subroutine%d", i + 1);
 		auxsyn[i + BASE_VERB + DVERB] = synptr;
 		addsyn(sub_name[i] = add0_dict(buff));
 		addsyn(-1);
 	}
 	no_syn = 0; /* Return to usual state */
-	verblist = NULL;
+	verblist = nullptr;
 
 	/* Now initialize old_agt_verb array */
-	for (i = 0; old_agt_verb_str[i] != NULL; i++);
+	for (i = 0; old_agt_verb_str[i] != nullptr; i++);
 	rfree(old_agt_verb);
 	old_agt_verb = (word *)rmalloc(sizeof(word) * (i + 1));
-	for (i = 0; old_agt_verb_str[i] != NULL; i++) {
+	for (i = 0; old_agt_verb_str[i] != nullptr; i++) {
 		old_agt_verb[i] = search_dict(old_agt_verb_str[i]);
 		assert(old_agt_verb[i] != -1);
 	}
@@ -945,7 +944,7 @@ word add_dict(const char *str) {
 }
 
 /* Adds w to dynamically grown synonym list */
-/* If no_syn is set, then *don't* add a synonym: return immediatly */
+/* If no_syn is set, then *don't* add a synonym: return immediately */
 /*  (This is done by agt2agx to avoid creating the auxsyn lists,  */
 /*   since those should be created when the interpreter loads the */
 /*   game file and not before) */
@@ -995,9 +994,39 @@ int verb_authorsyn(word w) {
 
 	/* Check game-specific synonyms first */
 	/* Scan in reverse so later synonyms will override earlier ones */
-	for (i = TOTAL_VERB - 1; i > 0; i--)
-		for (j = synlist[i]; syntbl[j] != 0; j++)
-			if (w == syntbl[j]) return i;
+	if (aver < AGX00) {
+		for (i = MAX_SUB-1; i >= 0; i--)
+			for (j = synlist[BASE_VERB+DVERB+i]; syntbl[j] != 0; j++)
+				if (w == syntbl[j]) return BASE_VERB+DVERB+i;
+
+		/*  In AGT the dummy verbs are laid out in memory in a non-obvious
+			order:
+			DUMMY_VERB1
+			DUMMY_VERB26
+			DUMMY_VERB2
+			DUMMY_VERB27
+			...
+			For a few games this is relevant (e.g. SIGNAL in Shades of Gray),
+			as the same synonym occurs in multiple dummy verbs, so we scan
+			the dummy verb synonyms here in the same order as original AGT. */
+		for (i = DVERB-1; i >= 0; i--) {
+			int ii = ((i % 2) == 0) ? i / 2 : (i+DVERB-1) / 2;
+			for (j = synlist[BASE_VERB+ii]; syntbl[j] != 0; j++)
+				if (w == syntbl[j])
+					return BASE_VERB + ii;
+		}
+		for (i = BASE_VERB-1; i > 0; i--)
+			for (j = synlist[i]; syntbl[j] != 0; j++)
+				if (w == syntbl[j])
+					return i;
+
+	} else {
+		for (i = TOTAL_VERB-1; i > 0; i--)
+			for (j = synlist[i]; syntbl[j] != 0; j++)
+				if (w == syntbl[j])
+					return i;
+	}
+
 	return 0;
 }
 
@@ -1066,9 +1095,10 @@ char *objname(int i) { /* returns malloc'd name string of object i */
 		return concdup(dict[adjw], dict[nounw]);
 	}
 	/* At this point we can't get a name: return ILLn. */
-	s = (char *)rmalloc(3 + 1 + (5 * sizeof(int)) / 2 + 1);
+	const size_t ln = 3 + 1 + (5 * sizeof(int)) / 2 + 1;
+	s = (char *)rmalloc(ln);
 	/* Make sure we have enough space in case i is big */
-	sprintf(s, "ILL%d", i);
+	Common::sprintf_s(s, ln, "ILL%d", i);
 	return s;
 }
 
@@ -1212,7 +1242,7 @@ void sort_cmd(void) {
 	}
 
 #ifdef SORT_META
-	if (!agx_file && aver >= AGX00) rsort();
+	rsort();
 #endif
 
 
@@ -1244,9 +1274,9 @@ void sort_cmd(void) {
 	}
 
 	for (i = 0; i < TOTAL_VERB; i++)
-		if (verbptr[i] == last_cmd) /* No occurences of this verb */
+		if (verbptr[i] == last_cmd) /* No occurrences of this verb */
 			verbend[i] = last_cmd;
-		else verbend[i]++; /* Point *after* last occurance */
+		else verbend[i]++; /* Point *after* last occurrence */
 
 	for (i = 0; i < TOTAL_VERB; i++) {
 		int j;
@@ -1262,8 +1292,42 @@ void sort_cmd(void) {
 	}
 }
 
+static word check_comb(int combptr, int verbcmd, int nouncmd) {
+	word w;
 
+	if (combptr == 0) return 0;
 
+	w = syntbl[combptr];
+	if (syntbl[combptr+1] != verbcmd) return 0;
+	if (syntbl[combptr+2] != nouncmd) return 0;
+	if (syntbl[combptr+3] == 0) return w;
+
+	return 0;
+}
+
+/* For metacommands that apply to built-in two-word synonyms (e.g. GET OUT),
+   change the command to apply to the canonical form. */
+void cmds_syns_canon(void) {
+	int i, j, vb;
+	word w;
+
+	for (i = 0; i < last_cmd; i++) {
+		/* VERB NOUN only */
+		if (command[i].verbcmd > 0 && command[i].nouncmd > 0 && command[i].prep == 0 &&
+				command[i].objcmd == 0) {
+			for (j = 0; j < num_auxcomb; j++) {
+				w = check_comb(auxcomb[j], command[i].verbcmd, command[i].nouncmd);
+				if (w > 0) {
+					vb = verb_builtin(w);
+					if (vb > 0) {
+						command[i].verbcmd = syntbl[auxsyn[vb]];
+						command[i].nouncmd = 0;
+					}
+				}
+			}
+		}
+	}
+}
 
 /* ------------------------------------------------------------------- */
 /*  Functions for getting opcode information                           */
@@ -1292,7 +1356,7 @@ const opdef *get_opdef(integer op) {
 
 long new_str(char *buff, int max_leng, rbool pasc)
 /* Stores the (up to leng) characters of a string
-  into our master string space (enlarging it if neccessary)
+  into our master string space (enlarging it if necessary)
   and returns the offset into the array.
   pasc=1 ==> pascal-style string
   pasc=0 ==> C-style string; ignore max_leng and NONE strings
@@ -1323,7 +1387,7 @@ long new_str(char *buff, int max_leng, rbool pasc)
 			}
 		}
 
-	p = ss_end; /* Remember begining of string */
+	p = ss_end; /* Remember beginning of string */
 	for (i = 0; i < leng;)
 		static_str[ss_end++] = fixchar[(uchar)buff[pasc + (i++)]];
 	static_str[ss_end++] = 0;
@@ -1346,8 +1410,8 @@ descr_line *read_descr(long start, long size) {
 }
 
 void free_descr(descr_line *txt) {
-	if (txt == NULL) return;
-	if (mem_descr == NULL)
+	if (txt == nullptr) return;
+	if (mem_descr == nullptr)
 		rfree(txt[0]);  /* First free the string block containing the text...*/
 	rfree(txt);    /* ... then the array of pointers to it */
 }
@@ -1571,9 +1635,9 @@ void init_flags(void) {
 	bold_mode = 0;
 	dbg_nomsg = 0; /* Print out MSG arguments to metacommands */
 	debug_mode = 0;
-	dbgflagptr = NULL;
-	dbgvarptr = NULL;
-	dbgcntptr = NULL;
+	dbgflagptr = nullptr;
+	dbgvarptr = nullptr;
+	dbgcntptr = nullptr;
 	no_auxsyn = 0;
 	text_file = 0;
 #ifdef PATH_SEP

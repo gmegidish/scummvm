@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,6 @@
 //=============================================================================
 
 #include "ags/engine/ac/route_finder_impl.h"
-#include "ags/lib/std/math.h"
 #include "ags/shared/ac/common.h"   // quit()
 #include "ags/engine/ac/move_list.h"     // MoveList
 #include "ags/shared/ac/common_defines.h"
@@ -97,7 +95,7 @@ static int find_route_jps(int fromx, int fromy, int destx, int desty) {
 	_G(num_navpoints) = 0;
 
 	// new behavior: cut path if too complex rather than abort with error message
-	int count = std::min<int>((int)cpath.size(), MAXNAVPOINTS);
+	int count = MIN<int>((int)cpath.size(), MAXNAVPOINTS);
 
 	for (int i = 0; i < count; i++) {
 		int x, y;
@@ -109,24 +107,17 @@ static int find_route_jps(int fromx, int fromy, int destx, int desty) {
 	return 1;
 }
 
-void set_route_move_speed(int speed_x, int speed_y) {
+inline fixed input_speed_to_fixed(int speed_val) {
 	// negative move speeds like -2 get converted to 1/2
-	if (speed_x < 0) {
-		_G(move_speed_x) = itofix(1) / (-speed_x);
+	if (speed_val < 0) {
+		return itofix(1) / (-speed_val);
 	} else {
-		_G(move_speed_x) = itofix(speed_x);
-	}
-
-	if (speed_y < 0) {
-		_G(move_speed_y) = itofix(1) / (-speed_y);
-	} else {
-		_G(move_speed_y) = itofix(speed_y);
+		return itofix(speed_val);
 	}
 }
 
-// Calculates the X and Y per game loop, for this stage of the
-// movelist
-void calculate_move_stage(MoveList *mlsp, int aaa) {
+// Calculates the X and Y per game loop, for this stage of the movelist
+void calculate_move_stage(MoveList *mlsp, int aaa, fixed move_speed_x, fixed move_speed_y) {
 	// work out the x & y per move. First, opp/adj=tan, so work out the angle
 	if (mlsp->pos[aaa] == mlsp->pos[aaa + 1]) {
 		mlsp->xpermove[aaa] = 0;
@@ -142,7 +133,7 @@ void calculate_move_stage(MoveList *mlsp, int aaa) {
 	// Special case for vertical and horizontal movements
 	if (ourx == destx) {
 		mlsp->xpermove[aaa] = 0;
-		mlsp->ypermove[aaa] = _G(move_speed_y);
+		mlsp->ypermove[aaa] = move_speed_y;
 		if (desty < oury)
 			mlsp->ypermove[aaa] = -mlsp->ypermove[aaa];
 
@@ -150,7 +141,7 @@ void calculate_move_stage(MoveList *mlsp, int aaa) {
 	}
 
 	if (oury == desty) {
-		mlsp->xpermove[aaa] = _G(move_speed_x);
+		mlsp->xpermove[aaa] = move_speed_x;
 		mlsp->ypermove[aaa] = 0;
 		if (destx < ourx)
 			mlsp->xpermove[aaa] = -mlsp->xpermove[aaa];
@@ -163,19 +154,19 @@ void calculate_move_stage(MoveList *mlsp, int aaa) {
 
 	fixed useMoveSpeed;
 
-	if (_G(move_speed_x) == _G(move_speed_y)) {
-		useMoveSpeed = _G(move_speed_x);
+	if (move_speed_x == move_speed_y) {
+		useMoveSpeed = move_speed_x;
 	} else {
 		// different X and Y move speeds
 		// the X proportion of the movement is (x / (x + y))
 		fixed xproportion = fixdiv(xdist, (xdist + ydist));
 
-		if (_G(move_speed_x) > _G(move_speed_y)) {
+		if (move_speed_x > move_speed_y) {
 			// speed = y + ((1 - xproportion) * (x - y))
-			useMoveSpeed = _G(move_speed_y) + fixmul(xproportion, _G(move_speed_x) - _G(move_speed_y));
+			useMoveSpeed = move_speed_y + fixmul(xproportion, move_speed_x - move_speed_y);
 		} else {
 			// speed = x + (xproportion * (y - x))
-			useMoveSpeed = _G(move_speed_x) + fixmul(itofix(1) - xproportion, _G(move_speed_y) - _G(move_speed_x));
+			useMoveSpeed = move_speed_x + fixmul(itofix(1) - xproportion, move_speed_y - move_speed_x);
 		}
 	}
 
@@ -198,9 +189,7 @@ void calculate_move_stage(MoveList *mlsp, int aaa) {
 	mlsp->ypermove[aaa] = newymove;
 }
 
-
-int find_route(short srcx, short srcy, short xx, short yy, Bitmap *onscreen, int movlst, int nocross, int ignore_walls) {
-	int i;
+int find_route(short srcx, short srcy, short xx, short yy, int move_speed_x, int move_speed_y, Bitmap *onscreen, int movlst, int nocross, int ignore_walls) {
 
 	_G(wallscreen) = onscreen;
 
@@ -231,25 +220,41 @@ int find_route(short srcx, short srcy, short xx, short yy, Bitmap *onscreen, int
 #endif
 
 	int mlist = movlst;
-	_G(mls)[mlist].numstage = _G(num_navpoints);
-	memcpy(&_G(mls)[mlist].pos[0], &_G(navpoints)[0], sizeof(int) * _G(num_navpoints));
+	_GP(mls)[mlist].numstage = _G(num_navpoints);
+	memcpy(&_GP(mls)[mlist].pos[0], &_G(navpoints)[0], sizeof(int) * _G(num_navpoints));
 #ifdef DEBUG_PATHFINDER
 	AGS::Shared::Debug::Printf("stages: %d\n", _G(num_navpoints));
 #endif
 
-	for (i = 0; i < _G(num_navpoints) - 1; i++)
-		calculate_move_stage(&_G(mls)[mlist], i);
+	const fixed fix_speed_x = input_speed_to_fixed(move_speed_x);
+	const fixed fix_speed_y = input_speed_to_fixed(move_speed_y);
+	for (int i = 0; i < _G(num_navpoints) - 1; i++) {
+		calculate_move_stage(&_GP(mls)[mlist], i, fix_speed_x, fix_speed_y);
+	}
 
-	_G(mls)[mlist].fromx = srcx;
-	_G(mls)[mlist].fromy = srcy;
-	_G(mls)[mlist].onstage = 0;
-	_G(mls)[mlist].onpart = 0;
-	_G(mls)[mlist].doneflag = 0;
-	_G(mls)[mlist].lastx = -1;
-	_G(mls)[mlist].lasty = -1;
+	_GP(mls)[mlist].fromx = srcx;
+	_GP(mls)[mlist].fromy = srcy;
+	_GP(mls)[mlist].onstage = 0;
+	_GP(mls)[mlist].onpart = 0;
+	_GP(mls)[mlist].doneflag = 0;
+	_GP(mls)[mlist].lastx = -1;
+	_GP(mls)[mlist].lasty = -1;
 	return mlist;
 }
 
+bool add_waypoint_direct(MoveList *mlsp, short x, short y, int move_speed_x, int move_speed_y) {
+	if (mlsp->numstage >= MAXNEEDSTAGES)
+		return false;
+
+	const fixed fix_speed_x = input_speed_to_fixed(move_speed_x);
+	const fixed fix_speed_y = input_speed_to_fixed(move_speed_y);
+	mlsp->pos[mlsp->numstage] = MAKE_INTCOORD(x, y);
+	calculate_move_stage(mlsp, mlsp->numstage - 1, fix_speed_x, fix_speed_y);
+	mlsp->numstage++;
+	mlsp->lastx = x;
+	mlsp->lasty = y;
+	return true;
+}
 
 } // namespace RouteFinder
 } // namespace Engine

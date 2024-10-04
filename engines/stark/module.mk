@@ -10,19 +10,13 @@ MODULE_OBJS := \
 	gfx/openglssurface.o \
 	gfx/opengl.o \
 	gfx/openglactor.o \
+	gfx/openglbitmap.o \
 	gfx/openglfade.o \
 	gfx/openglprop.o \
 	gfx/openglsurface.o \
 	gfx/opengltexture.o \
 	gfx/renderentry.o \
 	gfx/surfacerenderer.o \
-	gfx/tinygl.o \
-	gfx/tinyglactor.o \
-	gfx/tinyglbitmap.o \
-	gfx/tinyglfade.o \
-	gfx/tinyglprop.o \
-	gfx/tinyglsurface.o \
-	gfx/tinygltexture.o \
 	gfx/texture.o \
 	formats/biff.o \
 	formats/biffmesh.o \
@@ -130,6 +124,17 @@ MODULE_OBJS := \
 	visual/prop.o \
 	visual/smacker.o \
 	visual/text.o
+
+ifdef USE_TINYGL
+MODULE_OBJS += \
+	gfx/tinygl.o \
+	gfx/tinyglactor.o \
+	gfx/tinyglbitmap.o \
+	gfx/tinyglfade.o \
+	gfx/tinyglprop.o \
+	gfx/tinyglsurface.o \
+	gfx/tinygltexture.o
+endif
 
 # This module can be built as a plugin
 ifeq ($(ENABLE_STARK), DYNAMIC_PLUGIN)

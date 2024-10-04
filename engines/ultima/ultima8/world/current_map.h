@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,11 +24,14 @@
 
 #include "ultima/shared/std/containers.h"
 #include "ultima/ultima8/usecode/intrinsics.h"
+#include "ultima/ultima8/world/position_info.h"
 #include "ultima/ultima8/misc/direction.h"
+#include "ultima/ultima8/misc/point3.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
+struct Box;
 class Map;
 class Item;
 class UCList;
@@ -79,7 +81,7 @@ public:
 	Item *findBestTargetItem(int32 x, int32 y, int32 z, Direction dir, DirectionMode dirmode);
 
 	//! Update the fast area for the cameras position
-	void updateFastArea(int32 from_x, int32 from_y, int32 from_z, int32 to_x, int32 to_y, int32 to_z);
+	void updateFastArea(const Point3 &from, const Point3 &to);
 
 	//! search an area for items matching a loopscript
 	//! \param itemlist the list to return objids in
@@ -100,41 +102,13 @@ public:
 	                   uint32 scriptsize, const Item *item, bool above,
 					   bool below, bool recurse = false) const;
 
-	// Surface search: Search above and below an item.
-	void surfaceSearch(UCList *itemlist, const uint8 *loopscript,
-	                   uint32 scriptsize, ObjId id,
-	                   int32 origin[3], int32 dims[2],
-	                   bool above, bool below, bool recurse = false) const;
+	// Collision detection. Returns position information with valid being true
+	// when the target box does not collide with any solid items.
+	// Ignores collisions when overlapping with the start box.
+	PositionInfo getPositionInfo(const Box &target, const Box &start, uint32 shapeflags, ObjId id) const;
 
-	// Collision detection. Returns true if the box [x,y,z]-[x-xd,y-yd,z+zd]
-	// does not collide with any solid items.
-	// Additionally:
-	// * If support is not NULL, *support is set to the item supporting
-	//   the given box, or 0 if it isn't supported.
-	// * If roof is not NULL, *roof is set to the roof item with the lowest
-	//   z coordinate that's over the box, or 0 if there is no roof above box.
-	// * If blocker is not NULL, *blocker will be set to an item blocking
-	//   the whole box if there is one, or 0 if there is no such item.
-	// Ignores collisions which were already occurring at the start position.
-	// NB: isValidPosition doesn't consider item 'item'.
-	bool isValidPosition(int32 x, int32 y, int32 z,
-	                     int32 startx, int32 starty, int32 startz,
-	                     int xd, int yd, int zd, uint32 shapeflags,
-	                     ObjId item, const Item **support = 0,
-	                     ObjId *roof = 0, const Item **blocker = 0) const;
-
-	// Note that this version of isValidPosition does not look for start
-	// position collisions.
-	bool isValidPosition(int32 x, int32 y, int32 z,
-	                     int xd, int yd, int zd, uint32 shapeflags,
-	                     ObjId item, const Item **support = 0,
-						 ObjId *roof = 0, const Item **blocker = 0) const;
-
-	// Note that this version of isValidPosition can not take 'flipped'
-	// into account!
-	bool isValidPosition(int32 x, int32 y, int32 z, uint32 shape,
-	                     ObjId item, const Item **support = 0,
-						 ObjId *roof = 0, const Item **blocker = 0) const;
+	// Note that this version of getPositionInfo can not take 'flipped' into account!
+	PositionInfo getPositionInfo(int32 x, int32 y, int32 z, uint32 shape, ObjId id) const;
 
 	//! Scan for a valid position for item in directions orthogonal to movedir
 	bool scanForValidPosition(int32 x, int32 y, int32 z, const Item *item,
@@ -170,9 +144,12 @@ public:
 		// Bitmask. Bit 0 is x, 1 is y, 2 is z.
 
 		// Use this func to get the interpolated location of the hit
-		void GetInterpolatedCoords(int32 out[3], const int32 start[3], const int32 end[3]) const {
-			for (int i = 0; i < 3; i++)
-				out[i] = start[i] + ((end[i] - start[i]) * (_hitTime >= 0 ? _hitTime : 0) + (end[i] > start[i] ? 0x2000 : -0x2000)) / 0x4000;
+		Point3 GetInterpolatedCoords(const Point3 &start, const Point3 &end) const {
+			Point3 pt;
+			pt.x = start.x + ((end.x - start.x) * (_hitTime >= 0 ? _hitTime : 0) + (end.x > start.x ? 0x2000 : -0x2000)) / 0x4000;
+			pt.y = start.y + ((end.y - start.y) * (_hitTime >= 0 ? _hitTime : 0) + (end.y > start.y ? 0x2000 : -0x2000)) / 0x4000;
+			pt.z = start.z + ((end.z - start.z) * (_hitTime >= 0 ? _hitTime : 0) + (end.z > start.z ? 0x2000 : -0x2000)) / 0x4000;
+			return pt;
 		}
 	};
 
@@ -188,7 +165,7 @@ public:
 	//!            by SweepItem::hit_time
 	//! \return false if no items were hit.
 	//!         true if any items were hit.
-	bool sweepTest(const int32 start[3], const int32 end[3],
+	bool sweepTest(const Point3 &start, const Point3 &end,
 	               const int32 dims[3], uint32 shapeflags,
 	               ObjId item, bool solid_only, Std::list<SweepItem> *hit) const;
 
@@ -204,8 +181,7 @@ public:
 		return (_fast[cy][cx / 32] & (1 << (cx & 31))) != 0;
 	}
 
-	// A simple trace to find the top item at a specific xy point
-	const Item *traceTopItem(int32 x, int32 y, int32 ztop, int32 zbot, ObjId ignore, uint32 shflags);
+	void setFastAtPoint(const Point3 &pt);
 
 	// Set the entire map as being 'fast'
 	void setWholeMapFast();

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -78,11 +77,11 @@ void MacButton::invertOuter() {
 	switch (_buttonType) {
 	case kCheckBox: {
 		Common::Rect c = Common::Rect(r.left + 1, r.top + 3, r.left + 9, r.top + 11);
-		Graphics::drawRect(c, 0, _wm->getDrawPixel(), &_pd);
+		Graphics::drawRect1(c, 0, _wm->getDrawPixel(), &_pd);
 	}
 		break;
 	case kRound:
-		Graphics::drawRoundRect(r, 4, 0, true, _wm->getDrawPixel(), &_pd);
+		Graphics::drawRoundRect1(r, 4, 0, true, _wm->getDrawPixel(), &_pd);
 		break;
 	case kRadio:
 		Graphics::drawEllipse(r.left + 1, r.top + 3, r.left + 10, r.top + 12, 0, false, _wm->getDrawPixel(), &_pd);
@@ -111,11 +110,11 @@ void MacButton::invertInner() {
 			break;
 		case kCBInsetBlack:
 			checkbox = Common::Rect(r.left + 2, r.top + 4, r.left + 2 + 6, r.top + 4 + 6);
-			Graphics::drawFilledRect(checkbox, 0, _wm->getDrawPixel(), &_pd);
+			Graphics::drawFilledRect1(checkbox, 0, _wm->getDrawPixel(), &_pd);
 			break;
 		case kCBFilledBlack:
 			checkbox = Common::Rect(r.left + 1, r.top + 3, r.left + 1 + 8, r.top + 3 + 8);
-			Graphics::drawFilledRect(checkbox, 0, _wm->getDrawPixel(), &_pd);
+			Graphics::drawFilledRect1(checkbox, 0, _wm->getDrawPixel(), &_pd);
 			break;
 		}
 		break;
@@ -146,14 +145,14 @@ bool MacButton::draw(bool forceRedraw) {
 	switch (_buttonType) {
 	case kCheckBox: {
 		Common::Rect c = Common::Rect(r.left, r.top + 2, r.left + 10, r.top + 2 + 10);
-		Graphics::drawRect(c, 0, _wm->getDrawPixel(), &pd);
+		Graphics::drawRect1(c, 0xff, _wm->getDrawPixel(), &pd);
 		break;
 	}
 	case kRound:
-		Graphics::drawRoundRect(r, 4, 0, false, _wm->getDrawPixel(), &pd);
+		Graphics::drawRoundRect1(r, 4, 0xff, false, _wm->getDrawPixel(), &pd);
 		break;
 	case kRadio:
-		Graphics::drawEllipse(r.left, r.top + 2, r.left + 11, r.top + 13, 0, false, _wm->getDrawPixel(), &pd);
+		Graphics::drawEllipse(r.left, r.top + 2, r.left + 11, r.top + 13, 0xff, false, _wm->getDrawPixel(), &pd);
 		break;
 	}
 

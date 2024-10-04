@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,7 +39,7 @@ Panorama::~Panorama() {
 void Panorama::blankFields() {
 	_viewBounds = Common::Rect();
 	_drawBounds = Common::Rect();
-	_mask = 0;
+	_mask = nullptr;
 	_panoramaWidth = 0;
 	_panoramaHeight = 0;
 	_stripWidth = 0;
@@ -59,15 +58,15 @@ void Panorama::releasePanorama() {
 static const uint32 kPanoramaResType = MKTAG('P', 'a', 'n', 'I'); // Panorama Information.
 static const uint16 kPanoramaResID = 128;
 
-void Panorama::initFromMovieFile(const Common::String &fileName) {
+void Panorama::initFromMovieFile(const Common::Path &fileName) {
 	// First, we need the resource fork for other reasons -- PanI resource
 	Common::MacResManager *resFork = new Common::MacResManager();
 	if (!resFork->open(fileName) || !resFork->hasResFork())
-		error("Could not open the resource fork of '%s'", fileName.c_str());
+		error("Could not open the resource fork of '%s'", fileName.toString().c_str());
 
 	Common::SeekableReadStream *resource = resFork->getResource(kPanoramaResType, kPanoramaResID);
 	if (!resource)
-		error("No panorama information in the resource fork of '%s'", fileName.c_str());
+		error("No panorama information in the resource fork of '%s'", fileName.toString().c_str());
 
 	_panoramaWidth = resource->readUint16BE();
 	_panoramaHeight = resource->readUint16BE();

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,30 +33,29 @@ namespace GUI {
 class EEHandler;
 
 class AboutDialog : public Dialog {
-	typedef Common::String String;
-	typedef Common::U32String U32String;
-	typedef Common::Array<Common::U32String> U32StringArray;
 protected:
 	int	       _scrollPos;
 	uint32         _scrollTime;
-	U32StringArray _lines;
+	Common::U32StringArray _lines;
 	uint32         _lineHeight;
 	bool           _willClose;
+	bool _autoScroll;
 
 	int _xOff, _yOff;
 
-	void addLine(const U32String &str);
+	void addLine(const Common::U32String &str);
 
 	EEHandler	*_eeHandler;
 
 public:
-	AboutDialog();
+	AboutDialog(bool inGame = false);
 
 	void open() override;
 	void close() override;
 	void drawDialog(DrawLayer layerToDraw) override;
 	void handleTickle() override;
 	void handleMouseUp(int x, int y, int button, int clickCount) override;
+	void handleMouseWheel(int x, int y, int direction) override;
 	void handleKeyDown(Common::KeyState state) override;
 	void handleKeyUp(Common::KeyState state) override;
 

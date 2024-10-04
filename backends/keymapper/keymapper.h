@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ public:
 	~Keymapper();
 
 	// EventMapper interface
-	virtual List<Event> mapEvent(const Event &ev);
+	virtual bool mapEvent(const Event &ev, List<Event> &mappedEvents);
 
 	/**
 	 * Registers a HardwareInputSet and platform-specific default mappings with the Keymapper
@@ -84,6 +83,18 @@ public:
 	void cleanupGameKeymaps();
 
 	/**
+	 * This allows to specify which Game Keymaps are enabled or disabled.
+	 * @param id		ID of the game keymap to enable/disable.
+	 * @param enable	Whether the keymap is enabled(True means enabled)
+	 */
+	void setGameKeymapState(const String &id, bool enable);
+
+	/**
+	 * Disables all game keymaps that are loaded.
+	 */
+	void disableAllGameKeymaps();
+
+	/**
 	 * Obtain a keymap of the given name from the keymapper.
 	 * Game keymaps have priority over global keymaps
 	 * @param id		name of the keymap to return
@@ -112,6 +123,11 @@ public:
 	 * Enable/disable the keymapper
 	 */
 	void setEnabled(bool enabled) { _enabled = enabled; }
+
+	/**
+	 * Return the keymapper's enabled state
+	 */
+	bool isEnabled() const { return _enabled; }
 
 	/**
 	 * Clear all the keymaps and hardware input sets
@@ -149,7 +165,7 @@ private:
 
 	KeymapArray _keymaps;
 
-	bool _joystickAxisPreviouslyPressed[6];
+	bool _joystickAxisPreviouslyPressed[8]; // size should match the number of valid axis entries of defaultJoystickAxes (in hardware-input.cpp)
 
 	Keymap::KeymapMatch getMappedActions(const Event &event, Keymap::ActionArray &actions, Keymap::KeymapType keymapType) const;
 	Event executeAction(const Action *act, const Event &incomingEvent);

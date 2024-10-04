@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -81,7 +80,7 @@ const char* WindowsFilesystemNode::tcharToChar(const TCHAR *str) {
 	return str;
 #else
 	static char multiByteString[MAX_PATH];
-	WideCharToMultiByte(CP_UTF8, 0, str, _tcslen(str) + 1, multiByteString, MAX_PATH, NULL, NULL);
+	WideCharToMultiByte(CP_UTF8, 0, str, _tcslen(str) + 1, multiByteString, MAX_PATH, nullptr, nullptr);
 	return multiByteString;
 #endif
 }
@@ -180,7 +179,7 @@ bool WindowsFilesystemNode::getChildren(AbstractFSList &myList, ListMode mode, b
 		HANDLE handle;
 		char searchPath[MAX_PATH + 10];
 
-		sprintf(searchPath, "%s*", _path.c_str());
+		Common::sprintf_s(searchPath, "%s*", _path.c_str());
 
 		handle = FindFirstFile(charToTchar(searchPath), &desc);
 
@@ -202,9 +201,9 @@ AbstractFSNode *WindowsFilesystemNode::getParent() const {
 	assert(_isValid || _isPseudoRoot);
 
 	if (_isPseudoRoot)
-		return 0;
+		return nullptr;
 
-	WindowsFilesystemNode *p = new WindowsFilesystemNode();
+	WindowsFilesystemNode *p;
 	if (_path.size() > 3) {
 		const char *start = _path.c_str();
 		const char *end = lastPathComponent(_path, '\\');
@@ -215,6 +214,9 @@ AbstractFSNode *WindowsFilesystemNode::getParent() const {
 		p->_isDirectory = true;
 		p->_displayName = lastPathComponent(p->_path, '\\');
 		p->_isPseudoRoot = false;
+	} else {
+		// pseudo root
+		p = new WindowsFilesystemNode();
 	}
 
 	return p;
@@ -229,7 +231,7 @@ Common::SeekableWriteStream *WindowsFilesystemNode::createWriteStream() {
 }
 
 bool WindowsFilesystemNode::createDirectory() {
-	if (CreateDirectory(charToTchar(_path.c_str()), NULL) != 0)
+	if (CreateDirectory(charToTchar(_path.c_str()), nullptr) != 0)
 		setFlags();
 
 	return _isValid && _isDirectory;

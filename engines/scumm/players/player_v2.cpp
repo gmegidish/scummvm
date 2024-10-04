@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "scumm/players/player_v2.h"
 #include "scumm/scumm.h"
+
+#define FREQ_HZ 236 // Don't change!
 
 namespace Scumm {
 
@@ -34,9 +35,14 @@ namespace Scumm {
 
 
 Player_V2::Player_V2(ScummEngine *scumm, Audio::Mixer *mixer, bool pcjr)
-	: Player_V2Base(scumm, mixer, pcjr) {
+	: Player_V2Base(scumm, pcjr),
+	  _mixer(mixer),
+	  _sampleRate(_mixer->getOutputRate()) {
 
 	int i;
+
+	_next_tick = 0;
+	_tick_len = (_sampleRate << FIXP_SHIFT) / FREQ_HZ;
 
 	// Initialize square generator
 	_level = 0;
@@ -99,7 +105,7 @@ void Player_V2::stopAllSounds() {
 		clear_channel(i);
 	}
 	_next_nr = _current_nr = 0;
-	_next_data = _current_data = 0;
+	_next_data = _current_data = nullptr;
 }
 
 void Player_V2::stopSound(int nr) {
@@ -107,14 +113,14 @@ void Player_V2::stopSound(int nr) {
 
 	if (_next_nr == nr) {
 		_next_nr = 0;
-		_next_data = 0;
+		_next_data = nullptr;
 	}
 	if (_current_nr == nr) {
 		for (int i = 0; i < 4; i++) {
 			clear_channel(i);
 		}
 		_current_nr = 0;
-		_current_data = 0;
+		_current_data = nullptr;
 		chainNextSound();
 	}
 }
@@ -146,7 +152,7 @@ void Player_V2::startSound(int nr) {
 	if (!_current_nr) {
 		nr = 0;
 		_next_nr = 0;
-		_next_data = 0;
+		_next_data = nullptr;
 	}
 
 	if (nr != _current_nr

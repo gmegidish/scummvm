@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
 #include "common/events.h"
-#include "common/gui_options.h"
 #include "common/keyboard.h"
 #include "common/translation.h"
 #include "common/system.h"
@@ -93,7 +91,7 @@ MohawkEngine_Riven::MohawkEngine_Riven(OSystem *syst, const MohawkGameDescriptio
 	// file. The following directories allow Riven to be played directly
 	// from the DVD.
 
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "all");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "data");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "exe");
@@ -202,9 +200,6 @@ Common::Error MohawkEngine_Riven::run() {
 	while (!hasGameEnded())
 		doFrame();
 
-	// Attempt to autosave before exiting from the GMM / when closing the window
-	saveAutosaveIfEnabled();
-
 	return Common::kNoError;
 }
 
@@ -284,6 +279,11 @@ void MohawkEngine_Riven::processInput() {
 				} else if (!isGameVariant(GF_25TH)) {
 					openMainMenuDialog();
 				}
+
+				if (!isGameVariant(GF_DEMO) && hasGameEnded()) {
+					// Attempt to autosave before exiting
+					saveAutosaveIfEnabled();
+				}
 				break;
 			case kRivenActionPlayIntroVideos:
 				// Play the intro videos in the demo
@@ -307,6 +307,11 @@ void MohawkEngine_Riven::processInput() {
 				_stack->onAction((RivenAction)event.customType);
 				break;
 			}
+			break;
+		case Common::EVENT_QUIT:
+		case Common::EVENT_RETURN_TO_LAUNCHER:
+			// Attempt to autosave before exiting
+			saveAutosaveIfEnabled();
 			break;
 		default:
 			break;
@@ -531,7 +536,7 @@ void MohawkEngine_Riven::loadLanguageDatafile(char prefix, uint16 stackId) {
 		return;
 	}
 
-	Common::String languageDatafile = Common::String::format("%c_data_%s.mhk", prefix, languageDesc->archiveSuffix);
+	Common::Path languageDatafile(Common::String::format("%c_data_%s.mhk", prefix, languageDesc->archiveSuffix));
 
 	MohawkArchive *mhk = new MohawkArchive();
 	if (mhk->openFile(languageDatafile)) {
@@ -539,7 +544,7 @@ void MohawkEngine_Riven::loadLanguageDatafile(char prefix, uint16 stackId) {
 		if (stackId == kStackOspit && getLanguage() != Common::EN_ANY && getLanguage() != Common::RU_RUS) {
 			// WORKAROUND: The international CD versions were repacked for the 25th anniversary release
 			// so they share the same resources as the English DVD version. The resource IDs for the DVD
-			// version resources have a delta of 1 in their numbering when compared the the CD version
+			// version resources have a delta of 1 in their numbering when compared to the CD version
 			// resources for Gehn's office. Unfortunately this delta was not compensated when repacking
 			// the archives. We need to do it here at run time...
 			mhk->offsetResourceIDs(ID_TBMP, 196, 1);
@@ -748,8 +753,11 @@ bool MohawkEngine_Riven::isZipVisitedCard(const Common::String &hotspotName) con
 	return foundMatch;
 }
 
-bool MohawkEngine_Riven::canLoadGameStateCurrently() {
+bool MohawkEngine_Riven::canLoadGameStateCurrently(Common::U32String *msg) {
 	if (isGameVariant(GF_DEMO)) {
+		if (msg)
+			*msg = _("This game does not support loading");
+
 		return false;
 	}
 
@@ -760,8 +768,15 @@ bool MohawkEngine_Riven::canLoadGameStateCurrently() {
 	return true;
 }
 
-bool MohawkEngine_Riven::canSaveGameStateCurrently() {
-	return canLoadGameStateCurrently() && isGameStarted();
+bool MohawkEngine_Riven::canSaveGameStateCurrently(Common::U32String *msg) {
+	if (isGameVariant(GF_DEMO)) {
+		if (msg)
+			*msg = _("This game does not support saving");
+
+		return false;
+	}
+
+	return canLoadGameStateCurrently(msg) && isGameStarted();
 }
 
 bool MohawkEngine_Riven::hasGameEnded() const {

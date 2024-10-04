@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,11 +54,13 @@ void Logic::GPL1_11() {
 		_vm->_keyActive = false;
 		_vm->_noIFScreen = true;
 		_vm->playSound(0);
-		while(!_vm->_keyActive) {
+		_vm->_demoMovieSkipped = false;
+		while(!_vm->_keyActive && !_vm->shouldQuit() && !_vm->_demoMovieSkipped) {
 			_vm->fadeToBlack2();
 			_vm->playMovie(54);
 		}
-		GPLogic1_SubSP10();
+		_vm->_demoMovieSkipped = false;
+		GPLogic1_SubSP10(); // return to main menu
 		break;
 	case 0x194:
 		// CHECKME	_QuitFlag = 2;
@@ -76,7 +77,9 @@ void Logic::GPL1_11() {
 		_vm->_cursorDrawn = false;
 		_vm->fadeToBlack2();
 		_vm->playSound(0);
+		_vm->_demoMovieSkipped = false;
 		_vm->playMovie(54);
+		_vm->_demoMovieSkipped = false;
 		GPLogic1_SubSP10();
 		break;
 	default:
@@ -700,7 +703,7 @@ void Logic::GPL1_121() {
 			GPLogic1_SubSP121();
 		break;
 	case 0x43E:
-		if (_vm->_pMovie == 023)
+		if (_vm->_pMovie == 23)
 			GPLogic1_SubSP121();
 		else {
 			_vm->_sound = _vm->_lastSound;

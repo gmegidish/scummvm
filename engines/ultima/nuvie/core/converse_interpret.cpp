@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,18 +38,11 @@ namespace Nuvie {
 
 //#define CONVERSE_DEBUG
 
-ConverseInterpret::ConverseInterpret(Converse *owner) {
-	converse = owner;
-	b_frame = NULL;
-	decl_v = decl_t = 0x00;
-	in_start = 0;
-
+ConverseInterpret::ConverseInterpret(Converse *owner)
+		: converse(owner), b_frame(nullptr), decl_v(0), decl_t(0), in_start(0),
+		  answer_mode(ANSWER_NO), stopped(false), db_lvar(false), db_loc(0),
+		  db_offset(0) {
 	unwait();
-	answer_mode = ANSWER_NO;
-	stopped = false;
-	db_lvar = false;
-	db_loc = 0;
-	db_offset = 0;
 }
 
 
@@ -77,7 +69,7 @@ struct ConverseInterpret::in_val_s ConverseInterpret::read_value() {
 	struct in_val_s ival;
 	ival.v = nval;
 	ival.d = dtype;
-	return (ival);
+	return ival;
 }
 
 
@@ -183,11 +175,11 @@ void ConverseInterpret::leave() {
 		DEBUG(1, LEVEL_DEBUGGING, "Converse: ...leave %02x...\n", fp->start_c);
 #endif
 		delete fp;
-		fp = NULL;
+		fp = nullptr;
 		b_frame->pop();
 		if (b_frame->empty()) {
 			delete b_frame;
-			b_frame = NULL;
+			b_frame = nullptr;
 		}
 	}
 }
@@ -202,7 +194,7 @@ void ConverseInterpret::enter(converse_value c) {
 	ef->break_c = 0x00;
 	ef->start_c = c;
 	if (!b_frame)
-		b_frame = new stack<struct convi_frame_s *>;
+		b_frame = new Common::Stack<struct convi_frame_s *>;
 	b_frame->push(ef);
 #ifdef CONVERSE_DEBUG
 	DEBUG(1, LEVEL_DEBUGGING, "Converse: ...enter %02x...\n", ef->start_c);
@@ -284,17 +276,17 @@ string ConverseInterpret::get_formatted_text(const char *c_str) {
 			else if (!strcmp(symbol, "$P")) // player name
 				output.append(converse->player->get_name());
 			else if (!strcmp(symbol, "$T")) // time of day
-				output.append(converse->clock->get_time_of_day_string());
+				output.append(converse->_clock->get_time_of_day_string());
 			else if (!strcmp(symbol, "$Y")) // Y-string
 				output.append(get_ystr());
 			else if (!strcmp(symbol, "$Z")) // previous input
 				output.append(converse->get_svar(U6TALK_VAR_INPUT));
 			else if (symbol[0] == '$' // value of a string variable
 			         && Common::isDigit(symbol[1]))
-				output.append(converse->get_svar(strtol(&symbol[1], NULL, 10)));
+				output.append(converse->get_svar(strtol(&symbol[1], nullptr, 10)));
 			else if (symbol[0] == '#' // value of a variable
 			         && Common::isDigit(symbol[1])) {
-				last_value = converse->get_var(strtol(&symbol[1], NULL, 10));
+				last_value = converse->get_var(strtol(&symbol[1], nullptr, 10));
 				snprintf(intval, 16, "%u", last_value);
 
 				output.append((char *)intval);
@@ -313,7 +305,7 @@ string ConverseInterpret::get_formatted_text(const char *c_str) {
 			if (i + 3 <= len) {
 				i++;
 				if (c_str[i] == 'P')
-					converse->get_speech()->play_speech(converse->script_num, (int)strtol(&c_str[i + 1], NULL, 10));
+					converse->get_speech()->play_speech(converse->script_num, (int)strtol(&c_str[i + 1], nullptr, 10));
 
 				for (i++; Common::isDigit(c_str[i]) && i < len;)
 					i++;
@@ -364,7 +356,7 @@ string ConverseInterpret::get_formatted_text(const char *c_str) {
  * which must have been evaluated already.)
  */
 void ConverseInterpret::do_ctrl() {
-	stack<converse_typed_value> st;
+	Common::Stack<converse_typed_value> st;
 #ifdef CONVERSE_DEBUG
 	DEBUG(1, LEVEL_DEBUGGING, "Converse: %04x INSTR:", in_start);
 	for (uint32 v = 0; v < val_count(); v++)
@@ -389,7 +381,7 @@ converse_value ConverseInterpret::pop_val() {
 		ret = get_val(val_count() - 1);
 		in.resize(val_count() - 1);
 	}
-	return (ret);
+	return ret;
 }
 
 
@@ -402,7 +394,7 @@ uint8 ConverseInterpret::pop_val_size() {
 		ret = get_val_size(val_count() - 1);
 		in.resize(val_count() - 1);
 	}
-	return (ret);
+	return ret;
 }
 
 
@@ -410,8 +402,8 @@ uint8 ConverseInterpret::pop_val_size() {
  */
 converse_value ConverseInterpret::get_val(uint32 vi) {
 	if (vi < in.size())
-		return (in[vi].v);
-	return (0);
+		return in[vi].v;
+	return 0;
 }
 
 
@@ -420,8 +412,8 @@ converse_value ConverseInterpret::get_val(uint32 vi) {
  */
 uint8 ConverseInterpret::get_val_size(uint32 vi) {
 	if (vi < in.size())
-		return (in[vi].d);
-	return (0);
+		return in[vi].d;
+	return 0;
 }
 
 void ConverseInterpret::set_ystr(const char *s) {
@@ -443,33 +435,33 @@ void ConverseInterpret::set_rstr(uint32 sn, const char *s) {
  */
 converse_value ConverseInterpret::add_rstr(const char *s) {
 	rstrings.push_back(s ? s : "");
-	return (rstrings.size() - 1);
+	return rstrings.size() - 1;
 }
 
 
 /* Returns and removes top item from a value stack.
  */
-converse_value ConverseInterpret::pop_arg(stack<converse_typed_value> &vs) {
+converse_value ConverseInterpret::pop_arg(Common::Stack<converse_typed_value> &vs) {
 	converse_value ret = 0;
 	if (!vs.empty()) {
 		converse_typed_value val = vs.top();
 		ret = val.val;
 		vs.pop();
 	}
-	return (ret);
+	return ret;
 }
 
-converse_typed_value ConverseInterpret::pop_typed_arg(stack<converse_typed_value> &vs) {
+converse_typed_value ConverseInterpret::pop_typed_arg(Common::Stack<converse_typed_value> &vs) {
 	converse_typed_value ret = {0, 0};
 	if (!vs.empty()) {
 		ret = vs.top();
 		vs.pop();
 	}
-	return (ret);
+	return ret;
 }
 
 #if 0
-bool MDTalkInterpret::op(stack<converse_value> &i) {
+bool MDTalkInterpret::op(Common::Stack<converse_value> &i) {
 	bool success = true;
 	converse_value v[4], in; // args
 
@@ -478,13 +470,13 @@ bool MDTalkInterpret::op(stack<converse_value> &i) {
 		i.push(in);
 		success = ConverseInterpret::op(i);
 	}
-	return (success);
+	return success;
 }
 #endif
 
-bool ConverseInterpret::op_create_new(stack<converse_typed_value> &i) {
+bool ConverseInterpret::op_create_new(Common::Stack<converse_typed_value> &i) {
 	converse_value v[4];
-	Actor *cnpc = NULL;
+	Actor *cnpc = nullptr;
 
 	v[0] = pop_arg(i); // npc
 	v[1] = pop_arg(i); // obj
@@ -503,9 +495,9 @@ bool ConverseInterpret::op_create_new(stack<converse_typed_value> &i) {
 	return true;
 }
 
-bool WOUConverseInterpret::op_create_new(stack<converse_typed_value> &i) {
+bool WOUConverseInterpret::op_create_new(Common::Stack<converse_typed_value> &i) {
 	converse_value v[4];
-	Actor *cnpc = NULL;
+	Actor *cnpc = nullptr;
 
 	v[0] = pop_arg(i); // npc
 	v[1] = pop_arg(i); // obj
@@ -527,13 +519,13 @@ bool WOUConverseInterpret::op_create_new(stack<converse_typed_value> &i) {
 /* Run control code with arguments/operands (arranged on a stack from
  * top to bottom.)
  */
-bool ConverseInterpret::op(stack<converse_typed_value> &i) {
+bool ConverseInterpret::op(Common::Stack<converse_typed_value> &i) {
 	bool success = true;
 	converse_value v[4] = { 0, 0, 0, 0 }; // args
 	converse_value inVal;
 	ConvScript *cs = converse->script;
-	Actor *cnpc = NULL;
-	Obj *cnpc_obj = NULL;
+	Actor *cnpc = nullptr;
+	Obj *cnpc_obj = nullptr;
 	Player *player = converse->player;
 //    converse_db_s *cdb;
 
@@ -554,7 +546,7 @@ bool ConverseInterpret::op(stack<converse_typed_value> &i) {
 		// FIXME: probably need to do more real actor/object set-up here
 		cnpc = converse->actors->get_actor(npc_num(pop_arg(i)));
 		cnpc_obj = cnpc->make_obj();
-		cnpc_obj->frame_n = 0; // FIX for actors orginal direction.
+		cnpc_obj->frame_n = 0; // FIX for actors original direction.
 		cnpc_obj->obj_n = OBJ_U6_HORSE_WITH_RIDER; // mount up.
 		cnpc->init_from_obj(cnpc_obj);
 		delete_obj(cnpc_obj);
@@ -709,7 +701,7 @@ bool ConverseInterpret::op(stack<converse_typed_value> &i) {
 				cnpc = converse->player->get_party()->who_has_obj(OBJ_U6_MOUSE, 0, false);
 			cnpc_obj = cnpc->inventory_get_object(OBJ_U6_MOUSE, 0, false);
 		}
-		if (cnpc_obj != NULL) {
+		if (cnpc_obj != nullptr) {
 			if (converse->actors->resurrect_actor(cnpc_obj, converse->player->get_actor()->get_location())) {
 				converse->objects->unlink_from_engine(cnpc_obj);
 				delete_obj(cnpc_obj);
@@ -807,20 +799,20 @@ bool ConverseInterpret::op(stack<converse_typed_value> &i) {
 		DEBUG(0, LEVEL_ERROR, "Converse: UNK OP=%02x\n", inVal);
 		success = false;
 	}
-	return (success);
+	return success;
 }
 
 
 /* The other set of codes, these operate on the input values, so call them
  * valops. Output goes back to the stack.
  */
-bool ConverseInterpret::evop(stack<converse_typed_value> &i) {
+bool ConverseInterpret::evop(Common::Stack<converse_typed_value> &i) {
 	bool success = true;
 	converse_value v[4]; // input
 	converse_typed_value inVal;
 	converse_typed_value out;
-	Actor *cnpc = NULL;
-	Obj *cnpc_obj = NULL;
+	Actor *cnpc = nullptr;
+	Obj *cnpc_obj = nullptr;
 //    converse_db_s *cdb;
 	Player *player = converse->player;
 
@@ -1112,14 +1104,14 @@ bool ConverseInterpret::evop(stack<converse_typed_value> &i) {
 		}
 		break;
 	default:
-		DEBUG(0, LEVEL_ERROR, "Converse: UNK EVOP=%02x\n", inVal);
+		DEBUG(0, LEVEL_ERROR, "Converse: UNK EVOP=%02x\n", inVal.val);
 		success = false;
 	}
 	i.push(out);
-	return (success);
+	return success;
 }
 
-converse_value ConverseInterpret::evop_eq(stack<converse_typed_value> &vs) {
+converse_value ConverseInterpret::evop_eq(Common::Stack<converse_typed_value> &vs) {
 	converse_typed_value operand1 = pop_typed_arg(vs);
 	converse_typed_value operand2 = pop_typed_arg(vs);
 	converse_value out = 0;
@@ -1140,7 +1132,7 @@ converse_value ConverseInterpret::evop_eq(stack<converse_typed_value> &vs) {
  * back to the input list, and replaces everything after and including `vi'.
  */
 void ConverseInterpret::eval(uint32 vi) {
-	stack<converse_typed_value> op_stk, r_stk;
+	Common::Stack<converse_typed_value> op_stk, r_stk;
 	uint32 v = vi;
 #ifdef CONVERSE_DEBUG
 	DEBUG(1, LEVEL_DEBUGGING, "Converse: EVAL");
@@ -1190,10 +1182,10 @@ uint8 ConverseInterpret::npc_num(uint32 n) {
  * asterisk (matching any input).
  */
 bool ConverseInterpret::check_keywords(string keystr, string instr) {
-	const char *strt_s = NULL;
-	char *tok_s = NULL, *cmp_s = NULL;
+	const char *strt_s = nullptr;
+	char *tok_s = nullptr, *cmp_s = nullptr;
 	if (keystr == "*")
-		return (true);
+		return true;
 	// check each comma-separated keyword
 	strt_s = keystr.c_str();
 	for (uint32 c = 0; c < strlen(strt_s); c++) {
@@ -1212,13 +1204,13 @@ bool ConverseInterpret::check_keywords(string keystr, string instr) {
 			if (!scumm_stricmp(tok_s, cmp_s)) {
 				free(cmp_s);
 				free(tok_s);
-				return (true);
+				return true;
 			}
 			free(cmp_s);
 			free(tok_s);
 		}
 	}
-	return (false);
+	return false;
 }
 
 
@@ -1228,7 +1220,7 @@ void ConverseInterpret::assign_input() {
 	// FIXME: Nuvie treats 0xF9-INPUTSTR & 0xFB-INPUT as identical, but in U6
 	//        0xFB-INPUT could not input strings.
 	if (decl_t == 0xb2)
-		converse->set_var(decl_v, strtol(converse->get_input().c_str(), NULL, 10));
+		converse->set_var(decl_v, strtol(converse->get_input().c_str(), nullptr, 10));
 	if (decl_t == 0xb3)
 		converse->set_svar(decl_v, converse->get_input().c_str());
 }
@@ -1242,15 +1234,15 @@ void ConverseInterpret::assign_input() {
 struct ConverseInterpret::converse_db_s *
 ConverseInterpret::get_db(uint32 loc, uint32 i) {
 	convscript_buffer db = converse->script->get_buffer(loc);
-	struct converse_db_s *item = NULL;
+	struct converse_db_s *item = nullptr;
 	uint32 d = 0, dbuf_len = 0, p = 0, e = 0;
 	if (!db)
-		return (NULL);
+		return nullptr;
 
 //    item = (struct converse_db_s *)malloc(sizeof(struct converse_db_s));
 	item = new struct converse_db_s;
 	item->type = 0;
-	item->s = NULL;
+	item->s = nullptr;
 	item->i = 0;
 	while (e++ <= i) {
 		if (is_print(db[p]) && is_print(db[p + 1])) {
@@ -1272,25 +1264,25 @@ ConverseInterpret::get_db(uint32 loc, uint32 i) {
 		}
 		++p; // skip 0
 	}
-	return (item);
+	return item;
 }
 
 
 /* Collect data from section at `loc', index `i', as a string.
- * Returns pointer to NEW data, or NULL if only integer data is found.
+ * Returns pointer to NEW data, or nullptr if only integer data is found.
  */
 char *ConverseInterpret::get_db_string(uint32 loc, uint32 i) {
 	convscript_buffer db = converse->script->get_buffer(loc);
-	char *item = NULL;
+	char *item = nullptr;
 	uint32 d = 0, dbuf_len = 0, /* string pointer & length */
 	       p = 0; /* pointer into db */
 	if (!db)
-		return (NULL);
+		return nullptr;
 	/* skip to index */
 	uint32 e = 0;
 	while (e++ < i) {
 		if (db[p] == U6OP_ENDDATA)
-			return (NULL);
+			return nullptr;
 		while (is_print(db[p++]));
 	}
 
@@ -1303,7 +1295,7 @@ char *ConverseInterpret::get_db_string(uint32 loc, uint32 i) {
 		item[d++] = (char)(db[p]); // copy
 		item[d] = '\0';
 	} while (is_print(db[++p]));
-	return (item);
+	return item;
 }
 
 
@@ -1326,7 +1318,7 @@ converse_value ConverseInterpret::get_db_integer(uint32 loc, uint32 i) {
 		item = converse->script->read2();
 	converse->script->seek(old_pos);
 
-	return ((converse_value)item);
+	return (converse_value)item;
 }
 
 void ConverseInterpret::set_db_integer(uint32 loc, uint32 i, converse_value val) {
@@ -1355,7 +1347,7 @@ void ConverseInterpret::set_db_integer(uint32 loc, uint32 i, converse_value val)
  */
 converse_value ConverseInterpret::find_db_string(uint32 loc, const char *dstring) {
 	convscript_buffer db = converse->script->get_buffer(loc);
-	char *item = NULL; /* item being checked */
+	char *item = nullptr; /* item being checked */
 	uint32 d = 0, dbuf_len = 0, /* string pointer & length */
 	       p = 0, /* pointer into db */
 	       i = 0; /* item index */
@@ -1364,7 +1356,7 @@ converse_value ConverseInterpret::find_db_string(uint32 loc, const char *dstring
 #endif
 	while ((converse_value)(db[p]) != U6OP_ENDDATA) {
 		if (is_print(db[p])) {
-			item = NULL;
+			item = nullptr;
 			d = 0;
 			dbuf_len = 0;
 			do {
@@ -1383,7 +1375,7 @@ converse_value ConverseInterpret::find_db_string(uint32 loc, const char *dstring
 				if (item_str.size() > 4)
 					item_str.resize(4);
 				if (check_keywords(item_str, find_str))
-					return (i);
+					return i;
 			}
 		} else ++p;
 		++i;
@@ -1391,7 +1383,7 @@ converse_value ConverseInterpret::find_db_string(uint32 loc, const char *dstring
 #ifdef CONVERSE_DEBUG
 	DEBUG(0, LEVEL_DEBUGGING, "\nConverse: find_db_string: not found; returning %d\n", i);
 #endif
-	return (i);
+	return i;
 }
 
 const char *ConverseInterpret::evop_str(converse_value op) {

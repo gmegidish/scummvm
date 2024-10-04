@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ags/shared/ac/common.h"
 #include "ags/engine/ac/gui_control.h"
 #include "ags/engine/ac/global_gui.h"
+#include "ags/engine/ac/mouse.h"
 #include "ags/engine/debugging/debug_log.h"
 #include "ags/shared/gui/gui_button.h"
 #include "ags/shared/gui/gui_inv.h"
@@ -49,13 +49,8 @@ GUIObject *GetGUIControlAtLocation(int xx, int yy) {
 		return nullptr;
 
 	data_to_game_coords(&xx, &yy);
+	int32_t toret = _GP(guis)[guinum].FindControlAt(xx, yy, 0, false);
 
-	int oldmousex = _G(mousex), oldmousey = _G(mousey);
-	_G(mousex) = xx - _GP(guis)[guinum].X;
-	_G(mousey) = yy - _GP(guis)[guinum].Y;
-	int toret = _GP(guis)[guinum].FindControlUnderMouse(0, false);
-	_G(mousex) = oldmousex;
-	_G(mousey) = oldmousey;
 	if (toret < 0)
 		return nullptr;
 
@@ -70,7 +65,9 @@ void GUIControl_SetVisible(GUIObject *guio, int visible) {
 	const bool on = visible != 0;
 	if (on != guio->IsVisible()) {
 		guio->SetVisible(on);
-		_GP(guis)[guio->ParentId].OnControlPositionChanged();
+		// Make sure that the overpic is turned off when the GUI goes off
+		if (!on && (_GP(guis)[guio->ParentId].MouseOverCtrl == guio->Id))
+			_GP(guis)[guio->ParentId].ResetOverControl();
 	}
 }
 
@@ -86,7 +83,8 @@ void GUIControl_SetClickable(GUIObject *guio, int enabled) {
 	else
 		guio->SetClickable(false);
 
-	_GP(guis)[guio->ParentId].OnControlPositionChanged();
+	// clickable property may change control behavior under mouse
+	_GP(guis)[guio->ParentId].MarkControlsChanged();
 }
 
 int GUIControl_GetEnabled(GUIObject *guio) {
@@ -97,7 +95,6 @@ void GUIControl_SetEnabled(GUIObject *guio, int enabled) {
 	const bool on = enabled != 0;
 	if (on != guio->IsEnabled()) {
 		guio->SetEnabled(on);
-		_GP(guis)[guio->ParentId].OnControlPositionChanged();
 	}
 }
 
@@ -158,7 +155,7 @@ int GUIControl_GetX(GUIObject *guio) {
 
 void GUIControl_SetX(GUIObject *guio, int xx) {
 	guio->X = data_to_game_coord(xx);
-	_GP(guis)[guio->ParentId].OnControlPositionChanged();
+	_GP(guis)[guio->ParentId].MarkControlsChanged(); // update control under cursor
 }
 
 int GUIControl_GetY(GUIObject *guio) {
@@ -167,7 +164,7 @@ int GUIControl_GetY(GUIObject *guio) {
 
 void GUIControl_SetY(GUIObject *guio, int yy) {
 	guio->Y = data_to_game_coord(yy);
-	_GP(guis)[guio->ParentId].OnControlPositionChanged();
+	_GP(guis)[guio->ParentId].MarkControlsChanged(); // update control under cursor
 }
 
 int GUIControl_GetZOrder(GUIObject *guio) {
@@ -191,7 +188,6 @@ int GUIControl_GetWidth(GUIObject *guio) {
 void GUIControl_SetWidth(GUIObject *guio, int newwid) {
 	guio->Width = data_to_game_coord(newwid);
 	guio->OnResized();
-	_GP(guis)[guio->ParentId].OnControlPositionChanged();
 }
 
 int GUIControl_GetHeight(GUIObject *guio) {
@@ -201,7 +197,6 @@ int GUIControl_GetHeight(GUIObject *guio) {
 void GUIControl_SetHeight(GUIObject *guio, int newhit) {
 	guio->Height = data_to_game_coord(newhit);
 	guio->OnResized();
-	_GP(guis)[guio->ParentId].OnControlPositionChanged();
 }
 
 void GUIControl_SetSize(GUIObject *guio, int newwid, int newhit) {
@@ -219,6 +214,16 @@ void GUIControl_SendToBack(GUIObject *guio) {
 
 void GUIControl_BringToFront(GUIObject *guio) {
 	_GP(guis)[guio->ParentId].BringControlToFront(guio->Id);
+}
+
+int GUIControl_GetTransparency(GUIObject *guio) {
+	return GfxDef::LegacyTrans255ToTrans100(guio->GetTransparency());
+}
+
+void GUIControl_SetTransparency(GUIObject *guio, int trans) {
+	if ((trans < 0) | (trans > 100))
+		quit("!SetGUITransparency: transparency value must be between 0 and 100");
+	guio->SetTransparency(GfxDef::Trans100ToLegacyTrans255(trans));
 }
 
 //=============================================================================
@@ -370,6 +375,13 @@ RuntimeScriptValue Sc_GUIControl_SetZOrder(void *self, const RuntimeScriptValue 
 	API_OBJCALL_VOID_PINT(GUIObject, GUIControl_SetZOrder);
 }
 
+RuntimeScriptValue Sc_GUIControl_GetTransparency(void *self, const RuntimeScriptValue *params, int32_t param_count) {
+	API_OBJCALL_INT(GUIObject, GUIControl_GetTransparency);
+}
+
+RuntimeScriptValue Sc_GUIControl_SetTransparency(void *self, const RuntimeScriptValue *params, int32_t param_count) {
+	API_OBJCALL_VOID_PINT(GUIObject, GUIControl_SetTransparency);
+}
 
 
 void RegisterGUIControlAPI() {
@@ -402,6 +414,8 @@ void RegisterGUIControlAPI() {
 	ccAddExternalObjectFunction("GUIControl::set_Y", Sc_GUIControl_SetY);
 	ccAddExternalObjectFunction("GUIControl::get_ZOrder", Sc_GUIControl_GetZOrder);
 	ccAddExternalObjectFunction("GUIControl::set_ZOrder", Sc_GUIControl_SetZOrder);
+	ccAddExternalObjectFunction("GUIControl::get_Transparency", Sc_GUIControl_GetTransparency);
+	ccAddExternalObjectFunction("GUIControl::set_Transparency", Sc_GUIControl_SetTransparency);
 }
 
 } // namespace AGS3

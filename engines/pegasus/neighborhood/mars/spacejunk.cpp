@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,7 +36,7 @@ static const float kJunkXTarget = 0;
 static const float kJunkYTarget = 0;
 static const float kJunkZTarget = kJunkMinDistance;
 
-SpaceJunk *g_spaceJunk = 0;
+SpaceJunk *g_spaceJunk = nullptr;
 
 SpaceJunk::SpaceJunk(const DisplayElementID id) : ScalingMovie(id) {
 	_timer.setScale(kJunkTimeScale);
@@ -46,7 +45,7 @@ SpaceJunk::SpaceJunk(const DisplayElementID id) : ScalingMovie(id) {
 }
 
 SpaceJunk::~SpaceJunk() {
-	g_spaceJunk = 0;
+	g_spaceJunk = nullptr;
 }
 
 void SpaceJunk::launchJunk(int16 whichJunk, CoordType xOrigin, CoordType yOrigin) {
@@ -148,24 +147,22 @@ void SpaceJunk::rebound(const TimeValue reboundTime) {
 	_bounceStart.x = (bounds.left + bounds.right) >> 1;
 	_bounceStart.y = (bounds.top + bounds.bottom) >> 1;
 
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
-	switch (vm->getRandomNumber(3)) {
+	switch (g_vm->getRandomNumber(3)) {
 	case 0:
-		_bounceStop.x = kMaxBounceSize / 2 + 1 + vm->getRandomNumber(kBounceTargetHRange - 1);
+		_bounceStop.x = kMaxBounceSize / 2 + 1 + g_vm->getRandomNumber(kBounceTargetHRange - 1);
 		_bounceStop.y = kMaxBounceSize / 2 + 1;
 		break;
 	case 1:
-		_bounceStop.x = kMaxBounceSize / 2 + 1 + vm->getRandomNumber(kBounceTargetHRange - 1);
+		_bounceStop.x = kMaxBounceSize / 2 + 1 + g_vm->getRandomNumber(kBounceTargetHRange - 1);
 		_bounceStop.y = 480 - kMaxBounceSize / 2 + 1;
 		break;
 	case 2:
 		_bounceStop.x = kMaxBounceSize / 2 + 1;
-		_bounceStop.y = kMaxBounceSize / 2 + 1 + vm->getRandomNumber(kBounceTargetVRange - 1);
+		_bounceStop.y = kMaxBounceSize / 2 + 1 + g_vm->getRandomNumber(kBounceTargetVRange - 1);
 		break;
 	case 3:
 		_bounceStop.x = 640 - kMaxBounceSize / 2 + 1;
-		_bounceStop.y = kMaxBounceSize / 2 + 1 + vm->getRandomNumber(kBounceTargetVRange - 1);
+		_bounceStop.y = kMaxBounceSize / 2 + 1 + g_vm->getRandomNumber(kBounceTargetVRange - 1);
 		break;
 	default:
 		break;
@@ -186,7 +183,7 @@ void SpaceJunk::rebound(const TimeValue reboundTime) {
 void SpaceJunk::hitByEnergyBeam(Common::Point) {
 	rebound(kWeaponReboundTime);
 	setGlowing(true);
-	((PegasusEngine *)g_engine)->delayShell(1, 3);
+	g_vm->delayShell(1, 3);
 	setGlowing(false);
 }
 

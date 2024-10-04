@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -218,8 +217,7 @@ bool ModuleModXmS3m::loadMod(Common::SeekableReadStream &st) {
 
 	// load instruments
 	numInstruments = 31;
-	instruments = new Instrument[numInstruments + 1];
-	memset(instruments, 0, sizeof(Instrument) * (numInstruments + 1));
+	instruments = new Instrument[numInstruments + 1]();
 	instruments[0].numSamples = 1;
 	instruments[0].samples = new Sample[1];
 	memset(&instruments[0].samples[0], 0, sizeof(Sample));
@@ -332,8 +330,7 @@ bool ModuleModXmS3m::loadMod(Common::SeekableReadStream &st) {
 		 */
 
 		int numNotes = patterns[i].numChannels * patterns[i].numRows;
-		patterns[i].notes = new Note[numNotes];
-		memset(patterns[i].notes, 0, numNotes * sizeof(Note));
+		patterns[i].notes = new Note[numNotes]();
 		for (int idx = 0; idx < numNotes; ++idx) {
 			byte first = st.readByte();
 			byte second = st.readByte();
@@ -381,7 +378,7 @@ bool ModuleModXmS3m::loadMod(Common::SeekableReadStream &st) {
 	for (int i = 1; i <= numInstruments; ++i) {
 		Sample &sample = instruments[i].samples[0];
 		if (!sample.length) {
-			sample.data = 0;
+			sample.data = nullptr;
 		} else {
 			sample.data = new int16[sample.length + 1];
 			readSampleSint8(st, sample.length, sample.data);
@@ -451,8 +448,7 @@ bool ModuleModXmS3m::loadXm(Common::SeekableReadStream &st) {
 		// load notes
 		patterns[i].numChannels = numChannels;
 		int numNotes = patterns[i].numRows * numChannels;
-		patterns[i].notes = new Note[numNotes];
-		memset(patterns[i].notes, 0, numNotes * sizeof(Note));
+		patterns[i].notes = new Note[numNotes]();
 
 		if (patDataLength > 0) {
 			for (int j = 0; j < numNotes; ++j) {
@@ -484,10 +480,8 @@ bool ModuleModXmS3m::loadXm(Common::SeekableReadStream &st) {
 	}
 
 	// load instruments
-	instruments = new Instrument[numInstruments + 1];
-	memset(instruments, 0, (numInstruments + 1) * sizeof(Instrument));
-	instruments[0].samples = new Sample[1];
-	memset(instruments[0].samples, 0, sizeof(Sample));
+	instruments = new Instrument[numInstruments + 1]();
+	instruments[0].samples = new Sample[1]();
 	for (int i = 1; i <= numInstruments; ++i) {
 		st.seek(offset, SEEK_SET);
 		offset += st.readUint32LE();
@@ -501,8 +495,7 @@ bool ModuleModXmS3m::loadXm(Common::SeekableReadStream &st) {
 		// load sample number
 		int nSamples = st.readUint16LE();
 		ins.numSamples = nSamples > 0 ? nSamples : 1;
-		ins.samples = new Sample[ins.numSamples];
-		memset(ins.samples, 0, ins.numSamples * sizeof(Sample));
+		ins.samples = new Sample[ins.numSamples]();
 		st.readUint32LE(); // skip 4 byte
 
 		// load instrument informations
@@ -656,16 +649,13 @@ bool ModuleModXmS3m::loadS3m(Common::SeekableReadStream &st) {
 	int moduleDataIndex = st.pos();
 
 	// load instruments
-	instruments = new Instrument[numInstruments + 1];
-	memset(instruments, 0, sizeof(Instrument) * (numInstruments + 1));
+	instruments = new Instrument[numInstruments + 1]();
 	instruments[0].numSamples = 1;
-	instruments[0].samples = new Sample[1];
-	memset(instruments[0].samples, 0, sizeof(Sample));
+	instruments[0].samples = new Sample[1]();
 	for (int i = 1; i <= numInstruments; ++i) {
 		Instrument &instrum = instruments[i];
 		instrum.numSamples = 1;
-		instrum.samples = new Sample[1];
-		memset(instrum.samples, 0, sizeof(Sample));
+		instrum.samples = new Sample[1]();
 		Sample &sample = instrum.samples[0];
 
 		// get instrument offset
@@ -725,8 +715,7 @@ bool ModuleModXmS3m::loadS3m(Common::SeekableReadStream &st) {
 	}
 
 	// load patterns
-	patterns = new Pattern[numPatterns];
-	memset(patterns, 0, numPatterns * sizeof(Pattern));
+	patterns = new Pattern[numPatterns]();
 	for (int i = 0; i < numPatterns; ++i) {
 		patterns[i].numChannels = numChannels;
 		patterns[i].numRows = 64;
@@ -737,8 +726,7 @@ bool ModuleModXmS3m::loadS3m(Common::SeekableReadStream &st) {
 		st.seek(patOffset, SEEK_SET);
 
 		// load notes
-		patterns[i].notes = new Note[numChannels * 64];
-		memset(patterns[i].notes, 0, numChannels * 64 * sizeof(Note));
+		patterns[i].notes = new Note[numChannels * 64]();
 		int row = 0;
 		while (row < 64) {
 			byte token = st.readByte();
@@ -794,8 +782,7 @@ bool ModuleModXmS3m::loadS3m(Common::SeekableReadStream &st) {
 	}
 
 	// load default panning
-	defaultPanning = new byte[numChannels];
-	memset(defaultPanning, 0, numChannels);
+	defaultPanning = new byte[numChannels]();
 	for (int chan = 0; chan < 32; ++chan) {
 		if (channelMap[chan] >= 0) {
 			byte panning = 7;
@@ -837,8 +824,7 @@ bool ModuleModXmS3m::loadAmf(Common::SeekableReadStream &st) {
 	st.read(sequence, 256); // Always 256 bytes in the file.
 
 	// Read sample headers..
-	instruments = new Instrument[numInstruments + 1];
-	memset(instruments, 0, sizeof(Instrument) * (numInstruments + 1));
+	instruments = new Instrument[numInstruments + 1]();
 	instruments[0].numSamples = 1;
 	instruments[0].samples = new Sample[1];
 	memset(&instruments[0].samples[0], 0, sizeof(Sample));
@@ -874,16 +860,14 @@ bool ModuleModXmS3m::loadAmf(Common::SeekableReadStream &st) {
 	st.skip((64 - numInstruments) * 37); // 37 == sample header len
 
 	// load patterns
-	patterns = new Pattern[numPatterns];
-	memset(patterns, 0, numPatterns * sizeof(Pattern));
+	patterns = new Pattern[numPatterns]();
 	for (int i = 0; i < numPatterns; ++i) {
 		// Always 8 channels, 64 rows.
 		patterns[i].numChannels = 8;
 		patterns[i].numRows = 64;
 
 		// load notes
-		patterns[i].notes = new Note[8 * 64];
-		memset(patterns[i].notes, 0, 8 * 64 * sizeof(Note));
+		patterns[i].notes = new Note[8 * 64]();
 		for (int row = 0; row < 64; row++) {
 			for (int channel = 0; channel < 8; channel++) {
 				Note &n = patterns[i].notes[row * 8 + channel];

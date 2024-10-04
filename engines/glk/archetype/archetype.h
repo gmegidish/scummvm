@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,11 +34,12 @@
 namespace Glk {
 namespace Archetype {
 
+// Values must be different than Glk::GlkDebugChannels
 enum DebugFlag {
-	DEBUG_BYTES = 0x01,
-	DEBUG_MSGS = 0x02,
-	DEBUG_EXPR = 0x04,
-	DEBUG_STMT = 0x08
+	DEBUG_BYTES = 1 << 10,
+	DEBUG_MSGS =  1 << 11,
+	DEBUG_EXPR =  1 << 12,
+	DEBUG_STMT =  1 << 13
 };
 
 /**
@@ -178,12 +178,14 @@ public:
 	/**
 	 * Write some text to the screen
 	 */
-	void write(const String fmt, ...);
+	template<class... TParam>
+	void write(const String &fmt, TParam... args);
 
 	/**
 	 * Write a line to the screen
 	 */
-	void writeln(const String fmt, ...);
+	template<class... TParam>
+	void writeln(const String &fmt, TParam... args);
 	void writeln() { writeln(""); }
 
 	/**
@@ -195,7 +197,21 @@ public:
 	 * Read in a single key
 	 */
 	char readKey();
+
+private:
+	void write_internal(const String *fmt, ...);
+	void writeln_internal(const String *fmt, ...);
 };
+
+template<class... TParam>
+inline void Archetype::write(const String &format, TParam... param) {
+	return write_internal(&format, Common::forward<TParam>(param)...);
+}
+
+template<class... TParam>
+inline void Archetype::writeln(const String &format, TParam... param) {
+	return writeln_internal(&format, Common::forward<TParam>(param)...);
+}
 
 extern Archetype *g_vm;
 

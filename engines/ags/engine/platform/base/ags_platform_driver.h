@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,9 +28,11 @@
 #ifndef AGS_ENGINE_PLATFORM_BASE_AGS_PLATFORM_DRIVER_H
 #define AGS_ENGINE_PLATFORM_BASE_AGS_PLATFORM_DRIVER_H
 
-#include "ags/lib/std/vector.h"
+#include "common/std/vector.h"
 #include "ags/engine/ac/date_time.h"
+#include "ags/engine/ac/path_helper.h"
 #include "ags/shared/debugging/output_handler.h"
+#include "ags/shared/util/geometry.h"
 #include "ags/shared/util/ini_util.h"
 #include "ags/lib/allegro/error.h"
 
@@ -71,30 +72,42 @@ struct AGSPlatformDriver
 	: public AGS::Shared::IOutputHandler {
 	virtual ~AGSPlatformDriver() { instance = nullptr; }
 
-	virtual void AboutToQuitGame();
+    // Called at the creation of the platform driver
+    virtual void MainInit() { };
+    // Called right before the formal backend init
+    virtual void PreBackendInit() { };
+    // Called right after the formal backend init
+    virtual void PostBackendInit() { };
+    // Called right before the backend is deinitialized
+    virtual void PreBackendExit() { };
+    // Called right after the backend is deinitialized
+    virtual void PostBackendExit() { };
+
 	virtual void Delay(int millis);
 	virtual void DisplayAlert(const char *, ...) = 0;
 	virtual void AttachToParentConsole();
 	virtual int  GetLastSystemError();
+	// Optionally fill in config tree from the platform-specific config source
+	virtual void ReadConfiguration(Shared::ConfigTree & /*cfg*/) {}
 	// Get root directory for storing per-game shared data
-	virtual const char *GetAllUsersDataDirectory() {
-		return ".";
+	virtual FSLocation GetAllUsersDataDirectory() {
+		return FSLocation(".");
 	}
 	// Get root directory for storing per-game saved games
-	virtual const char *GetUserSavedgamesDirectory() {
-		return ".";
+	virtual FSLocation GetUserSavedgamesDirectory() {
+		return FSLocation(".");
 	}
 	// Get root directory for storing per-game user configuration files
-	virtual const char *GetUserConfigDirectory() {
-		return ".";
+	virtual FSLocation GetUserConfigDirectory() {
+		return FSLocation(".");
 	}
 	// Get directory for storing all-games user configuration files
-	virtual const char *GetUserGlobalConfigDirectory() {
-		return ".";
+	virtual FSLocation GetUserGlobalConfigDirectory() {
+		return FSLocation(".");
 	}
 	// Get default directory for program output (logs)
-	virtual const char *GetAppOutputDirectory() {
-		return ".";
+	virtual FSLocation GetAppOutputDirectory() {
+		return FSLocation(".");
 	}
 	// Returns array of characters illegal to use in file names
 	virtual const char *GetIllegalFileChars() {
@@ -122,8 +135,6 @@ struct AGSPlatformDriver
 	virtual void InitialiseAbufAtStartup();
 	virtual void PostAllegroInit(bool windowed);
 	virtual void PostAllegroExit() = 0;
-	virtual void PostBackendInit() {}
-	virtual void PostBackendExit() {}
 	virtual const char *GetBackendFailUserHint() {
 		return nullptr;
 	}
@@ -156,24 +167,24 @@ struct AGSPlatformDriver
 	virtual void AdjustWindowStyleForFullscreen();
 	// Adjust application window's parameters to suit windowed mode
 	virtual void AdjustWindowStyleForWindowed();
-	virtual void RegisterGameWithGameExplorer();
-	virtual void UnRegisterGameWithGameExplorer();
 	virtual int  ConvertKeycodeToScanCode(int keyCode);
-	// Adjust window size to ensure it is in the supported limits
-	virtual void ValidateWindowSize(int &x, int &y, bool borderless) const {
-	}
+	// Adjust window's * client size * to ensure it is in the supported limits
+	virtual Size ValidateWindowSize(const Size &sz, bool borderless) const;
 
 	virtual int  InitializeCDPlayer() = 0;  // return 0 on success
 	virtual int  CDPlayerCommand(int cmdd, int datt) = 0;
 	virtual void ShutdownCDPlayer() = 0;
 
-	// Allows adjusting parameters and other fixes before engine is initialized
-	virtual void MainInitAdjustments() {}
+	// Returns command line argument in a UTF-8 format
+	virtual Common::String GetCommandArg(size_t arg_index);
 
 	virtual bool LockMouseToWindow();
 	virtual void UnlockMouse();
 
 	static AGSPlatformDriver *GetDriver();
+
+	// Store command line arguments for the future use
+	void SetCommandArgs(const char *const argv[], size_t argc);
 
 	// Set whether PrintMessage should output to stdout or stderr
 	void SetOutputToErr(bool on) {
@@ -201,6 +212,9 @@ protected:
 	// Defines whether engine is allowed to display important warnings
 	// and errors by showing a message box kind of GUI.
 	bool _guiMode = false;
+
+	const char *const *_cmdArgs = nullptr;
+	size_t _cmdArgCount = 0u;
 
 private:
 	static AGSPlatformDriver *instance;

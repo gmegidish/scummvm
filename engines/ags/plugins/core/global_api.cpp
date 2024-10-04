@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,7 +47,6 @@
 #include "ags/engine/ac/global_overlay.h"
 #include "ags/engine/ac/global_palette.h"
 #include "ags/engine/ac/global_parser.h"
-#include "ags/engine/ac/global_record.h"
 #include "ags/engine/ac/global_region.h"
 #include "ags/engine/ac/global_room.h"
 #include "ags/engine/ac/global_screen.h"
@@ -128,7 +126,7 @@ void GlobalAPI::AGS_EngineStartup(IAGSEngine *engine) {
 	SCRIPT_METHOD(FaceCharacter, GlobalAPI::FaceCharacter);
 	SCRIPT_METHOD(FaceLocation, GlobalAPI::FaceLocation);
 	SCRIPT_METHOD(FadeIn, GlobalAPI::FadeIn);
-	SCRIPT_METHOD(FadeOut, GlobalAPI::my_fade_out);
+	SCRIPT_METHOD(FadeOut, GlobalAPI::FadeOut);
 	SCRIPT_METHOD(FileClose, GlobalAPI::FileClose);
 	SCRIPT_METHOD(FileIsEOF, GlobalAPI::FileIsEOF);
 	SCRIPT_METHOD(FileIsError, GlobalAPI::FileIsError);
@@ -266,14 +264,14 @@ void GlobalAPI::AGS_EngineStartup(IAGSEngine *engine) {
 	SCRIPT_METHOD(ParseText, GlobalAPI::ParseText);
 	SCRIPT_METHOD(PauseGame, GlobalAPI::PauseGame);
 	SCRIPT_METHOD(PlayAmbientSound, GlobalAPI::PlayAmbientSound);
-	SCRIPT_METHOD(PlayFlic, GlobalAPI::play_flc_file);
+	SCRIPT_METHOD(PlayFlic, GlobalAPI::PlayFlic);
 	SCRIPT_METHOD(PlayMP3File, GlobalAPI::PlayMP3File);
 	SCRIPT_METHOD(PlayMusic, GlobalAPI::PlayMusicResetQueue);
 	SCRIPT_METHOD(PlayMusicQueued, GlobalAPI::PlayMusicQueued);
 	SCRIPT_METHOD(PlaySilentMIDI, GlobalAPI::PlaySilentMIDI);
 	SCRIPT_METHOD(PlaySound, GlobalAPI::play_sound);
 	SCRIPT_METHOD(PlaySoundEx, GlobalAPI::PlaySoundEx);
-	SCRIPT_METHOD(PlayVideo, GlobalAPI::scrPlayVideo);
+	SCRIPT_METHOD(PlayVideo, GlobalAPI::PlayVideo);
 	SCRIPT_METHOD(ProcessClick, GlobalAPI::RoomProcessClick);
 	SCRIPT_METHOD(QuitGame, GlobalAPI::QuitGame);
 	SCRIPT_METHOD(Random, GlobalAPI::__Rand);
@@ -441,6 +439,7 @@ void GlobalAPI::AGS_EngineStartup(IAGSEngine *engine) {
 	SCRIPT_METHOD(Wait, GlobalAPI::scrWait);
 	SCRIPT_METHOD(WaitKey, GlobalAPI::WaitKey);
 	SCRIPT_METHOD(WaitMouseKey, GlobalAPI::WaitMouseKey);
+	SCRIPT_METHOD(WaitInput, GlobalAPI::WaitInput);
 }
 
 void GlobalAPI::ScPl_sc_AbortGame(ScriptMethodParams &params) {
@@ -695,9 +694,9 @@ void GlobalAPI::FadeIn(ScriptMethodParams &params) {
 	AGS3::FadeIn(sppd);
 }
 
-void GlobalAPI::my_fade_out(ScriptMethodParams &params) {
+void GlobalAPI::FadeOut(ScriptMethodParams &params) {
 	PARAMS1(int, spdd);
-	AGS3::my_fade_out(spdd);
+	AGS3::FadeOut(spdd);
 }
 
 void GlobalAPI::FileClose(ScriptMethodParams &params) {
@@ -1355,9 +1354,9 @@ void GlobalAPI::PlayAmbientSound(ScriptMethodParams &params) {
 	AGS3::PlayAmbientSound(channel, sndnum, vol, x, y);
 }
 
-void GlobalAPI::play_flc_file(ScriptMethodParams &params) {
+void GlobalAPI::PlayFlic(ScriptMethodParams &params) {
 	PARAMS2(int, numb, int, playflags);
-	params._result = AGS3::play_flc_file(numb, playflags);
+	AGS3::PlayFlic(numb, playflags);
 }
 
 void GlobalAPI::PlayMP3File(ScriptMethodParams &params) {
@@ -1390,9 +1389,9 @@ void GlobalAPI::PlaySoundEx(ScriptMethodParams &params) {
 	params._result = AGS3::PlaySoundEx(sndnum, channel);
 }
 
-void GlobalAPI::scrPlayVideo(ScriptMethodParams &params) {
+void GlobalAPI::PlayVideo(ScriptMethodParams &params) {
 	PARAMS3(const char *, name, int, skip, int, flags);
-	AGS3::scrPlayVideo(name, skip, flags);
+	AGS3::PlayVideo(name, skip, flags);
 }
 
 void GlobalAPI::RoomProcessClick(ScriptMethodParams &params) {
@@ -2216,6 +2215,11 @@ void GlobalAPI::WaitKey(ScriptMethodParams &params) {
 void GlobalAPI::WaitMouseKey(ScriptMethodParams &params) {
 	PARAMS1(int, nloops);
 	params._result = AGS3::WaitMouseKey(nloops);
+}
+
+void GlobalAPI::WaitInput(ScriptMethodParams &params) {
+	PARAMS2(int, input_flags, int, nloops);
+	params._result = AGS3::WaitInput(input_flags, nloops);
 }
 
 } // namespace Core

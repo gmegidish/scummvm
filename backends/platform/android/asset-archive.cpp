@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#if defined(__ANDROID__)
-
 #include <sys/types.h>
 #include <unistd.h>
+
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
+
+#include "backends/platform/android/jni-android.h"
+#include "backends/platform/android/asset-archive.h"
 
 #include "common/str.h"
 #include "common/stream.h"
@@ -32,15 +35,9 @@
 #include "common/debug.h"
 #include "common/textconsole.h"
 
-#include "backends/platform/android/jni-android.h"
-#include "backends/platform/android/asset-archive.h"
-
-#include <android/asset_manager.h>
-#include <android/asset_manager_jni.h>
-
 class AssetInputStream : public Common::SeekableReadStream {
 public:
-	AssetInputStream(AAssetManager *as, const Common::String &path);
+	AssetInputStream(AAssetManager *as, const Common::Path &path);
 	virtual ~AssetInputStream();
 
 	virtual bool eos() const { return _eos; }
@@ -64,9 +61,9 @@ private:
 	bool _eos;
 };
 
-AssetInputStream::AssetInputStream(AAssetManager *as, const Common::String &path) :
+AssetInputStream::AssetInputStream(AAssetManager *as, const Common::Path &path) :
 	_eos(false), _pos(0) {
-	_asset = AAssetManager_open(as, path.c_str(), AASSET_MODE_RANDOM);
+	_asset = AAssetManager_open(as, path.toString(Common::Path::kNativeSeparator).c_str(), AASSET_MODE_RANDOM);
 	_len = AAsset_getLength64(_asset);
 }
 
@@ -116,7 +113,7 @@ AndroidAssetArchive::~AndroidAssetArchive() {
 }
 
 bool AndroidAssetArchive::hasFile(const Common::Path &path) const {
-	Common::String name = path.toString();
+	Common::String name = path.toString(Common::Path::kNativeSeparator);
 	AAsset *asset = AAssetManager_open(_am, name.c_str(), AASSET_MODE_RANDOM);
 	bool exists = false;
 	if (asset != NULL) {
@@ -133,18 +130,14 @@ int AndroidAssetArchive::listMembers(Common::ArchiveMemberList &member_list) con
 	}
 
 	int count = 0;
-	Common::List<Common::String> dirs;
+	Common::List<Common::Path> dirs;
 	dirs.push_back("");
-#ifdef BACKEND_ANDROID3D
-	// ResidualVM specific: multiple directories
-	dirs.push_back("shaders");
-#endif
 	for (const auto& currentDir : dirs) {
 		AAssetDir *dir = AAssetManager_openDir(_am, "");
 		const char *file = AAssetDir_getNextFileName(dir);
 
 		while (file) {
-			member_list.push_back(getMember(currentDir + Common::String(file)));
+			member_list.push_back(getMember(currentDir.appendComponent(file)));
 			++count;
 			file = AAssetDir_getNextFileName(dir);
 		}
@@ -158,15 +151,12 @@ int AndroidAssetArchive::listMembers(Common::ArchiveMemberList &member_list) con
 }
 
 const Common::ArchiveMemberPtr AndroidAssetArchive::getMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
+	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(path, *this));
 }
 
 Common::SeekableReadStream *AndroidAssetArchive::createReadStreamForMember(const Common::Path &path) const {
 	if (!hasFile(path)) {
 		return nullptr;
 	}
-	return new AssetInputStream(_am, path.toString());
+	return new AssetInputStream(_am, path);
 }
-
-#endif

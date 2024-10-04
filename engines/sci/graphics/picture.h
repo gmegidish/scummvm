@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,7 +57,9 @@ public:
 
 private:
 	void initData(GuiResourceId resourceId);
+#if 0
 	void reset();
+#endif
 	void drawSci11Vga();
 	void drawCelData(const SciSpan<const byte> &inbuffer, int headerPos, int rlePos, int literalPos, int16 drawX, int16 drawY, int16 pictureX, int16 pictureY, bool isEGA);
 	void drawVectorData(const SciSpan<const byte> &data);
@@ -70,10 +71,10 @@ private:
 	void vectorGetPatternTexture(const SciSpan<const byte> &data, uint &curPos, int16 pattern_Code, int16 &pattern_Texture);
 	void vectorFloodFill(int16 x, int16 y, byte color, byte prio, byte control);
 	void vectorPattern(int16 x, int16 y, byte pic_color, byte pic_priority, byte pic_control, byte code, byte texture);
-	void vectorPatternBox(Common::Rect box, byte color, byte prio, byte control);
-	void vectorPatternTexturedBox(Common::Rect box, byte color, byte prio, byte control, byte texture);
-	void vectorPatternCircle(Common::Rect box, byte size, byte color, byte prio, byte control);
-	void vectorPatternTexturedCircle(Common::Rect box, byte size, byte color, byte prio, byte control, byte texture);
+	void vectorPatternBox(Common::Rect box, Common::Rect clipBox, byte color, byte prio, byte control);
+	void vectorPatternTexturedBox(Common::Rect box, Common::Rect clipBox, byte color, byte prio, byte control, byte texture);
+	void vectorPatternCircle(Common::Rect box, Common::Rect clipBox, byte size, byte color, byte prio, byte control);
+	void vectorPatternTexturedCircle(Common::Rect box, Common::Rect clipBox, byte size, byte color, byte prio, byte control, byte texture);
 
 	ResourceManager *_resMan;
 	GfxCoordAdjuster16 *_coordAdjuster;
@@ -96,4 +97,4 @@ private:
 
 } // End of namespace Sci
 
-#endif
+#endif // SCI_GRAPHICS_PICTURE_H

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,17 +32,15 @@ Waypoints::Waypoints(BladeRunnerEngine *vm, int count) {
 }
 
 void Waypoints::getXYZ(int waypointId, float *x, float *y, float *z) const {
-	*x = 0;
-	*y = 0;
-	*z = 0;
-
 	if (waypointId < 0 || waypointId >= _count || !_waypoints[waypointId].present) {
-		return;
+		*x = 0;
+		*y = 0;
+		*z = 0;
+	} else {
+		*x = _waypoints[waypointId].position.x;
+		*y = _waypoints[waypointId].position.y;
+		*z = _waypoints[waypointId].position.z;
 	}
-
-	*x = _waypoints[waypointId].position.x;
-	*y = _waypoints[waypointId].position.y;
-	*z = _waypoints[waypointId].position.z;
 }
 
 int Waypoints::getSetId(int waypointId) const {

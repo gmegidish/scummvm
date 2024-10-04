@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -114,7 +113,8 @@ enum {
 	/**
 	 * The maximal 'nesting' level for scripts.
 	 */
-	kMaxScriptNesting = 15
+	kMaxScriptNesting = 15,
+	kMaxScriptNestingHE = 40
 };
 
 struct VirtualMachineState {
@@ -127,7 +127,7 @@ struct VirtualMachineState {
 	// Why does localvar have space for one extra local variable?
 	int32 localvar[NUM_SCRIPT_SLOT][NUM_SCRIPT_LOCAL + 1];
 
-	NestedScript nest[kMaxScriptNesting];
+	NestedScript nest[kMaxScriptNestingHE]; // Changed from 15 to 40 because of later HE games
 	byte numNestedScripts;
 };
 

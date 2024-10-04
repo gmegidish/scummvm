@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -144,7 +143,7 @@ DECLARE_INSTRUCTION_OPCODE(invalid) {
 }
 
 DECLARE_INSTRUCTION_OPCODE(call) {
-	_vm->callFunction(ctxt._inst->_immediate, 0);
+	_vm->callFunction(ctxt._inst->_immediate, nullptr);
 }
 
 
@@ -292,7 +291,7 @@ DECLARE_COMMAND_OPCODE(stop) {
 }
 
 CommandExec_ns::CommandExec_ns(Parallaction_ns* vm) : CommandExec(vm), _vm(vm) {
-	CommandOpcodeSet *table = 0;
+	CommandOpcodeSet *table = nullptr;
 
 	SetOpcodeTable(_opcodes);
 	COMMAND_OPCODE(invalid);
@@ -317,7 +316,7 @@ CommandExec_ns::CommandExec_ns(Parallaction_ns* vm) : CommandExec(vm), _vm(vm) {
 ProgramExec_ns::ProgramExec_ns(Parallaction_ns *vm) : _vm(vm) {
 	_instructionNames = _instructionNamesRes_ns;
 
-	ProgramOpcodeSet *table = 0;
+	ProgramOpcodeSet *table = nullptr;
 
 	SetOpcodeTable(_opcodes);
 	INSTRUCTION_OPCODE(invalid);

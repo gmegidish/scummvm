@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,12 +41,12 @@ void FilePack::close() {
 	file.close();
 }
 
-bool FilePack::open(const Common::String &filename) {
+bool FilePack::open(const Common::Path &filename) {
 	if (!file.exists(filename) || !file.open(filename))
 		return false;
 
 	_fileCount = file.readUint32LE();
-	debugC(0, kDebugPack, "opened %s, found %u entries", filename.c_str(), _fileCount);
+	debugC(0, kDebugPack, "opened %s, found %u entries", filename.toString().c_str(), _fileCount);
 	offsets = new uint32[_fileCount + 1];
 	for (uint32 i = 0; i <= _fileCount; ++i) {
 		offsets[i] = file.readUint32LE();
@@ -91,7 +90,7 @@ void TransientFilePack::close() {
 	_filename.clear();
 }
 
-bool TransientFilePack::open(const Common::String &filename) {
+bool TransientFilePack::open(const Common::Path &filename) {
 	_filename = filename;
 
 	Common::File file;
@@ -99,7 +98,7 @@ bool TransientFilePack::open(const Common::String &filename) {
 		return false;
 
 	_fileCount = file.readUint32LE();
-	debugC(0, kDebugPack, "opened %s, found %u entries", filename.c_str(), _fileCount);
+	debugC(0, kDebugPack, "opened %s, found %u entries", filename.toString().c_str(), _fileCount);
 	offsets = new uint32[_fileCount + 1];
 	for (uint32 i = 0; i <= _fileCount; ++i) {
 		offsets[i] = file.readUint32LE();
@@ -152,13 +151,13 @@ void MemoryPack::close() {
 	chunks.clear();
 }
 
-bool MemoryPack::open(const Common::String &filename) {
+bool MemoryPack::open(const Common::Path &filename) {
 	Common::File file;
 	if (!file.exists(filename) || !file.open(filename))
 		return false;
 
 	uint32 count = file.readUint32LE();
-	debugC(0, kDebugPack, "opened %s, found %u entries [memory]", filename.c_str(), count);
+	debugC(0, kDebugPack, "opened %s, found %u entries [memory]", filename.toString().c_str(), count);
 	for (uint32 i = 0; i < count; ++i) {
 		uint32 offset = file.readUint32LE();
 		int32 pos = file.pos();

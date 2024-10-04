@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,7 @@
 #include "illusions/bbdou/menusystem_bbdou.h"
 #include "illusions/actor.h"
 #include "illusions/camera.h"
+#include "illusions/console.h"
 #include "illusions/cursor.h"
 #include "illusions/dictionary.h"
 #include "illusions/fileresourcereader.h"
@@ -65,7 +65,6 @@
 #include "graphics/cursorman.h"
 #include "graphics/font.h"
 #include "graphics/fontman.h"
-#include "graphics/palette.h"
 #include "graphics/surface.h"
 
 namespace Illusions {
@@ -133,7 +132,7 @@ IllusionsEngine_BBDOU::IllusionsEngine_BBDOU(OSystem *syst, const IllusionsGameD
 Common::Error IllusionsEngine_BBDOU::run() {
 
 	// Init search paths
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "music");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "resource");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "resrem");
@@ -155,6 +154,8 @@ Common::Error IllusionsEngine_BBDOU::run() {
 	_resSys->addResourceLoader(0x00110000, new BackgroundResourceLoader(this));
 	_resSys->addResourceLoader(0x00120000, new FontResourceLoader(this));
 	_resSys->addResourceLoader(0x00170000, new SpecialCodeLoader(this));
+
+	setDebugger(new Console(this));
 
 	_screen = new Screen16Bit(this, 640, 480);
 	_screenPalette = new NullScreenPalette();
@@ -181,7 +182,7 @@ Common::Error IllusionsEngine_BBDOU::run() {
 
 	initUpdateFunctions();
 
-	_fader = 0;
+	_fader = nullptr;
 
 	_scriptOpcodes = new ScriptOpcodes_BBDOU(this);
 	_stack = new ScriptStack();
@@ -228,6 +229,10 @@ Common::Error IllusionsEngine_BBDOU::run() {
 		updateEvents();
 	}
 
+	unloadSpecialCode(0);
+
+	_resSys->unloadAllResources();
+
 	delete _stack;
 	delete _scriptOpcodes;
 
@@ -247,6 +252,7 @@ Common::Error IllusionsEngine_BBDOU::run() {
 	delete _actorInstances;
 	delete _input;
 	delete _screenText;
+	delete _screenPalette;
 	delete _screen;
 	delete _resSys;
 	delete _resReader;
@@ -266,24 +272,23 @@ bool IllusionsEngine_BBDOU::hasFeature(EngineFeature f) const {
 
 void IllusionsEngine_BBDOU::initInput() {
 	_input->setInputEvent(kEventLeftClick, 0x01)
-		.addMouseButton(MOUSE_LEFT_BUTTON)
-		.addKey(Common::KEYCODE_RETURN);
+		.addMouseButton(MOUSE_LEFT_BUTTON);
 	_input->setInputEvent(kEventRightClick, 0x02)
 		.addMouseButton(MOUSE_RIGHT_BUTTON);
 	_input->setInputEvent(kEventInventory, 0x04)
 		.addMouseButton(MOUSE_RIGHT_BUTTON)
-		.addKey(Common::KEYCODE_TAB);
+		.addKey(kActionInventory);
 	_input->setInputEvent(kEventAbort, 0x08)
-		.addKey(Common::KEYCODE_ESCAPE);
+		.addKey(kActionAbort);
 	_input->setInputEvent(kEventSkip, 0x10)
-		.addKey(Common::KEYCODE_SPACE);
+		.addKey(kActionSkip);
 	_input->setInputEvent(kEventF1, 0x20)
-		.addKey(Common::KEYCODE_F1);
+		.addKey(kActionCheatMode);
 	_input->setInputEvent(kEventUp, 0x40)
-		.addKey(Common::KEYCODE_UP);
+		.addKey(kActionCursorUp);
 	_input->setInputEvent(kEventDown, 0x80)
 		.addMouseButton(MOUSE_RIGHT_BUTTON)
-		.addKey(Common::KEYCODE_DOWN);
+		.addKey(kActionCursorDown);
 }
 
 #define UPDATEFUNCTION(priority, sceneId, callback) \
@@ -367,7 +372,7 @@ void IllusionsEngine_BBDOU::loadSpecialCode(uint32 resId) {
 
 void IllusionsEngine_BBDOU::unloadSpecialCode(uint32 resId) {
 	delete _specialCode;
-	_specialCode = 0;
+	_specialCode = nullptr;
 }
 
 void IllusionsEngine_BBDOU::notifyThreadId(uint32 &threadId) {
@@ -574,7 +579,7 @@ bool IllusionsEngine_BBDOU::enterScene(uint32 sceneId, uint32 threadId) {
 		// After that the game is ready and a savegame can finally be loaded.
 		_canResumeFromSavegame = true;
 	}
-	return sceneInfo != 0;
+	return sceneInfo != nullptr;
 }
 
 void IllusionsEngine_BBDOU::exitScene(uint32 threadId) {
@@ -611,7 +616,7 @@ void IllusionsEngine_BBDOU::dumpActiveScenes(uint32 sceneId, uint32 threadId) {
 	uint activeScenesCount = _activeScenes.getActiveScenesCount();
 	while (activeScenesCount > 0) {
 		uint32 activeSceneId;
-		_activeScenes.getActiveSceneInfo(activeScenesCount, &activeSceneId, 0);
+		_activeScenes.getActiveSceneInfo(activeScenesCount, &activeSceneId, nullptr);
 		if (activeSceneId == sceneId)
 			break;
 		exitScene(threadId);

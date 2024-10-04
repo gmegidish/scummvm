@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -519,8 +518,11 @@ private:
 		int blkSize);
 protected:
 	IVI45DecContext _ctx;
+	uint16 _width;
+	uint16 _height;
+	uint _bitsPerPixel;
 	Graphics::PixelFormat _pixelFormat;
-	Graphics::Surface _surface;
+	Graphics::Surface *_surface;
 
 	/**
 	 *  Scan patterns shared between indeo4 and indeo5
@@ -532,7 +534,13 @@ protected:
 	/**
 	 * Returns the pixel format for the decoder's surface
 	 */
-	virtual Graphics::PixelFormat getPixelFormat() const { return _pixelFormat; }
+	Graphics::PixelFormat getPixelFormat() const override { return _pixelFormat; }
+
+	/**
+	 * Select the preferred format to use, for codecs where this is faster than converting
+	 * the image afterwards. Returns true if supported, and false otherwise.
+	 */
+	bool setOutputPixelFormat(const Graphics::PixelFormat &format) override { _pixelFormat = format; return true; }
 
 	/**
 	 * Decode the Indeo picture header.
@@ -582,7 +590,7 @@ protected:
 	int scaleMV(int mv, int mvScale);
 public:
 	IndeoDecoderBase(uint16 width, uint16 height, uint bitsPerPixel);
-	virtual ~IndeoDecoderBase();
+	~IndeoDecoderBase() override;
 };
 
 } // End of namespace Indeo

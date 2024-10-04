@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@ static const PlainGameDescriptor ngiGames[] = {
 	{"ngi", 		"Nikita Game Interface game"},
 	{"fullpipe",	"Full Pipe"},
 	{"mdream",		"Magic Dream"},
-	{0, 0}
+	{nullptr, nullptr}
 };
 
 namespace NGI {
@@ -58,7 +57,7 @@ static const NGIGameDescription gameDescriptions[] = {
 	{
 		{
 			"mdream",
-			0,
+			nullptr,
 			AD_ENTRY1s("0001.nl", "079d02921a938ec9740598316450d526", 11848423),
 			Common::RU_RUS,
 			Common::kPlatformWindows,
@@ -72,7 +71,7 @@ static const NGIGameDescription gameDescriptions[] = {
 	{
 		{
 			"fullpipe",
-			0,
+			nullptr,
 			AD_ENTRY1s("4620.sc2", "a1a8f3ed731b0dfea43beaa3016fdc71", 554),
 			Common::RU_RUS,
 			Common::kPlatformWindows,
@@ -86,7 +85,7 @@ static const NGIGameDescription gameDescriptions[] = {
 	{
 		{
 			"fullpipe",
-			0,
+			nullptr,
 			AD_ENTRY1s("4620.sc2", "e4f24ffe4dc84cafc648b951e66c1fb3", 554),
 			Common::DE_DEU,
 			Common::kPlatformWindows,
@@ -100,9 +99,23 @@ static const NGIGameDescription gameDescriptions[] = {
 	{
 		{
 			"fullpipe",
-			0,
+			nullptr,
 			AD_ENTRY1s("4620.sc2", "571f6b4b68b02003e35bc12c1a1d3fe3", 466),
 			Common::ET_EST,
+			Common::kPlatformWindows,
+			ADGF_DROPPLATFORM,
+			GUIO1(GUIO_NOMIDI)
+		},
+		GID_FULLPIPE
+	},
+
+	// Full Pipe Lithuanian version
+	{
+		{
+			"fullpipe",
+			nullptr,
+			AD_ENTRY1s("4620.sc2", "599bb585a1863733d0010cb37d838d51", 510),
+			Common::LT_LTU,
 			Common::kPlatformWindows,
 			ADGF_DROPPLATFORM,
 			GUIO1(GUIO_NOMIDI)
@@ -114,7 +127,7 @@ static const NGIGameDescription gameDescriptions[] = {
 	{
 		{
 			"fullpipe",
-			0,
+			nullptr,
 			AD_ENTRY1s("4620.sc2", "bffea807345fece14089768fc141af83", 510),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
@@ -162,7 +175,7 @@ static const NGIGameDescription gameDescriptions[] = {
 			Common::RU_RUS,
 			Common::kPlatformWindows,
 			ADGF_DROPPLATFORM | ADGF_DEMO,
-			0
+			nullptr
 		},
 		GID_FULLPIPE
 	},
@@ -186,16 +199,16 @@ static const NGIGameDescription gameDescriptions[] = {
 
 } // End of namespace NGI
 
-class NGIMetaEngineDetection : public AdvancedMetaEngineDetection {
+class NGIMetaEngineDetection : public AdvancedMetaEngineDetection<NGI::NGIGameDescription> {
 public:
-	NGIMetaEngineDetection() : AdvancedMetaEngineDetection(NGI::gameDescriptions, sizeof(NGI::NGIGameDescription), ngiGames) {
-	}
-
-	const char *getEngineId() const override {
-		return "ngi";
+	NGIMetaEngineDetection() : AdvancedMetaEngineDetection(NGI::gameDescriptions, ngiGames) {
 	}
 
 	const char *getName() const override {
+		return "ngi";
+	}
+
+	const char *getEngineName() const override {
 		return "Nikita Game Interface";
 	}
 

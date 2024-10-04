@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 // SAGA Image resource management routines
 
 #include "saga/saga.h"
+#include "common/compression/powerpacker.h"
 
 namespace Saga {
 
@@ -44,11 +44,62 @@ static int granulate(int value, int granularity) {
 	}
 }
 
+static bool unbankAmiga(ByteArray& outputBuffer, const byte *banked, uint len, uint16 height, uint16 width, uint bitnum) {
+	uint planePitch = (width + 15) & ~15;
+	uint linePitch = bitnum == 8 ? planePitch : (planePitch * 5 / 8);
+	if (len != linePitch * height)
+		return false;
+	outputBuffer.resize(height * width);
+	memset(outputBuffer.getBuffer(), 0, width * height);
+	for (uint y = 0; y < height; y++)
+		for (uint x = 0; x < width; x++)
+			for (unsigned bit = 0; bit < bitnum; bit++) {
+				int inXbit = x + bit * planePitch;
+				outputBuffer[y * width + x] |= ((banked[y * linePitch + inXbit / 8] >> (7 - inXbit % 8)) & 1) << bit;
+			}
+	return true;
+}
+
+
+bool SagaEngine::decodeBGImageMask(const ByteArray &imageData, ByteArray &outputBuffer, int *w, int *h, bool flip) {
+	if (isAGA() || isECS()) {
+		if (imageData.size() < 160 * 137 + 64)
+			return false;
+		*w = 320;
+		*h = 137;
+		outputBuffer.resize(320*137);
+
+		// First read types
+		for (int i = 0; i < 160*137; i++) {
+			outputBuffer[2 * i] = (imageData[i] << 4) | 0xf;
+			outputBuffer[2 * i + 1] = (imageData[i] << 4) | 0xf;
+		}
+
+		// Now instead of storing depth amiga variant stores precomputed mask for every
+		// depth. Obviously not every set of precomputed masks is valid but we assume
+		// that it is. So far it has always been the case. If ever it isn't then we'll
+		// get a minor graphical glitch
+		for (int depth = 15; depth > 0; depth--) {
+			uint32 off = READ_BE_UINT32(&imageData[160 * 137 + 4 * (15 - depth)]);
+			if (off == 0)
+				continue;
+			off += 160 * 137;
+			if (imageData.size() < off + 137 * 40)
+				return false;
+			for (int y = 0; y < 137; y++)
+				for (int x = 0; x < 320; x++)
+					if ((imageData[y * 40 + (x / 8) + off] << (x % 8)) & 0x80)
+						outputBuffer[y * 320 + x] = (outputBuffer[y * 320 + x] & 0xf0) | (depth - 1);
+		}
+
+		return true;
+	}
+
+	return decodeBGImage(imageData, outputBuffer, w, h, flip);
+}
+
 bool SagaEngine::decodeBGImage(const ByteArray &imageData, ByteArray &outputBuffer, int *w, int *h, bool flip) {
 	ImageHeader hdr;
-	int modex_height;
-	const byte *RLE_data_ptr;
-	size_t RLE_data_len;
 	ByteArray decodeBuffer;
 
 	if (imageData.size() <= SAGA_IMAGE_DATA_OFFSET) {
@@ -63,20 +114,65 @@ bool SagaEngine::decodeBGImage(const ByteArray &imageData, ByteArray &outputBuff
 	readS.readUint16();
 	readS.readUint16();
 
-	RLE_data_ptr = &imageData.front() + SAGA_IMAGE_DATA_OFFSET;
-	RLE_data_len = imageData.size() - SAGA_IMAGE_DATA_OFFSET;
+	if (isAGA() || isECS()) {
+		unsigned bitnum = isAGA() ? 8 : 5;
+		int headerSize = 8 + (3 << bitnum);
+		const byte *RLE_data_ptr = &imageData.front() + headerSize;
+		size_t RLE_data_len = imageData.size() - headerSize;
 
-	modex_height = granulate(hdr.height, 4);
-
-	decodeBuffer.resize(hdr.width * modex_height);
-
-	outputBuffer.resize(hdr.width * hdr.height);
-
-	if (!decodeBGImageRLE(RLE_data_ptr, RLE_data_len, decodeBuffer)) {
-		return false;
+		if (getFeatures() & GF_POWERPACK_GFX) {
+			int aligned_width = (hdr.width + 15) & ~15;
+			int pitch = isAGA() ? aligned_width : (aligned_width * 5 / 8);
+			if (RLE_data_len < 12) {
+				warning("Compressed size too short");
+				return false;
+			}
+			if (READ_BE_UINT32 (RLE_data_ptr) != RLE_data_len - 4) {
+				warning("Compressed size mismatch: %d vs %d", READ_BE_UINT32 (RLE_data_ptr), (int)RLE_data_len - 4);
+				return false;
+			}
+			if (READ_BE_UINT32 (RLE_data_ptr + 4) != MKTAG('P', 'A', 'C', 'K')) {
+				warning("Compressed magic mismatch: 0x%08x vs %08x", READ_BE_UINT32 (RLE_data_ptr + 4), MKTAG('P', 'A', 'C', 'K'));
+				return false;
+			}
+			uint32 uncompressed_len = 0;
+			byte *uncompressed = Common::PowerPackerStream::unpackBuffer(RLE_data_ptr + 4, RLE_data_len - 4, uncompressed_len);
+			if (uncompressed == nullptr || (int) uncompressed_len != pitch * hdr.height) {
+				warning("Uncompressed size mismatch: %d vs %d", uncompressed_len, pitch * hdr.height);
+				delete[] uncompressed;
+				return false;
+			}
+			if (isAGA() && pitch == hdr.width) {
+				// TODO: Use some kind of move semantics
+				outputBuffer = ByteArray(uncompressed, uncompressed_len);
+			} else if (isAGA()) {
+				outputBuffer.resize(hdr.height * hdr.width);
+				for (int y = 0; y < hdr.height; y++)
+					memcpy(outputBuffer.getBuffer() + y * hdr.width, uncompressed + y * pitch, hdr.width);
+			} else {
+				if (!unbankAmiga(outputBuffer, uncompressed, uncompressed_len, hdr.height, hdr.width, bitnum)) {
+					delete[] uncompressed;
+					return false;
+				}
+			}
+			delete[] uncompressed;
+		} else {
+			if (!unbankAmiga(outputBuffer, RLE_data_ptr, RLE_data_len, hdr.height, hdr.width, bitnum))
+				return false;
+		}
+	} else {
+		int modex_height = granulate(hdr.height, 4);
+		const byte *RLE_data_ptr;
+		size_t RLE_data_len;
+		decodeBuffer.resize(hdr.width * modex_height);
+		RLE_data_ptr = &imageData.front() + SAGA_IMAGE_DATA_OFFSET;
+		RLE_data_len = imageData.size() - SAGA_IMAGE_DATA_OFFSET;
+		if (!decodeBGImageRLE(RLE_data_ptr, RLE_data_len, decodeBuffer)) {
+			return false;
+		}
+		outputBuffer.resize(hdr.width * hdr.height);
+		unbankBGImage(outputBuffer.getBuffer(), decodeBuffer.getBuffer(), hdr.width, hdr.height);
 	}
-
-	unbankBGImage(outputBuffer.getBuffer(), decodeBuffer.getBuffer(), hdr.width, hdr.height);
 
 	// For some reason bg images in IHNM are upside down
 	if (getGameId() == GID_IHNM && !flip) {
@@ -295,7 +391,7 @@ void SagaEngine::flipImage(byte *imageBuffer, int columns, int scanlines) {
 
 	tmp_scan.resize(columns);
 	flip_tmp = tmp_scan.getBuffer();
-	if (flip_tmp == NULL) {
+	if (flip_tmp == nullptr) {
 		return;
 	}
 

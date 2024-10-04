@@ -1,6 +1,5 @@
 # This file is used by Makefile and declares common build rules,
 # a list of common object files etc.
-#
 
 ######################################################################
 # The default build target: just build the scummvm executable
@@ -36,8 +35,14 @@ MODULES += \
 	audio \
 	math \
 	common \
+	common/compression \
+	common/formats \
 	po \
 	doc
+
+ifdef USE_LUA
+MODULES += common/lua
+endif
 
 ifdef USE_MT32EMU
 MODULES += audio/softsynth/mt32
@@ -125,10 +130,11 @@ endif
 # The build rule for the ScummVM executable
 $(EXECUTABLE): $(DETECT_OBJS) $(OBJS)
 	+$(QUIET_LINK)$(LD) $(LDFLAGS) $(PRE_OBJS_FLAGS) $+ $(POST_OBJS_FLAGS) $(LIBS) -o $@
+	+$(QUIET)$(LS) $@
 
 ifdef SPLIT_DWARF
-$(EXECUTABLE).dwp: $(EXECUTABLE)
-	$(QUIET_DWP)$(DWP) -e $(EXECUTABLE)
+%.dwp: %
+	$(QUIET_DWP)$(DWP) -e $< -o $@
 endif
 
 # Grab the ScummVM Manual from Read the Docs
@@ -140,13 +146,13 @@ else
 manual:
 endif
 
-distclean: clean clean-devtools
+distclean: clean clean-devtools clean-test
 	$(RM) config.h config.mk config.log configure.stamp engines/engines.mk engines/detection_table.h engines/plugins_table.h "ScummVM Manual"*.pdf
 
 clean: clean-toplevel
 clean-toplevel:
 	$(RM_REC) $(DEPDIRS)
-	$(RM) $(OBJS) $(DETECT_OBJS) $(EXECUTABLE)
+	$(RM) $(OBJS) $(DETECT_OBJS) $(EXECUTABLE) $(PLUGIN_OBJ_FILES)
 ifdef SPLIT_DWARF
 	$(RM) $(OBJS:.o=.dwo) $(DETECT_OBJS:.o=.dwo)
 	$(RM) $(EXECUTABLE).dwp
@@ -171,7 +177,7 @@ ifdef CXX_UPDATE_DEP_FLAG
 	$(QUIET_CXX)$(CXX) $(CXX_UPDATE_DEP_FLAG) $(CXXFLAGS) $(CPPFLAGS) -c $(<) -o $@
 
 
-# Build rules for Objective-C and Objective-C++ files. Strictly speaking, this is for OS X only.
+# Build rules for Objective-C and Objective-C++ files. Strictly speaking, this is for macOS only.
 %.o: %.mm
 	$(QUIET)$(MKDIR) $(*D)/$(DEPDIR)
 	$(QUIET_CXX)$(CXX) $(CXX_UPDATE_DEP_FLAG) $(CXXFLAGS) $(CPPFLAGS) -c $(<) -o $@
@@ -192,7 +198,7 @@ base/version.o: base/version.cpp
 else
 
 # Dumb compile rule, for C++ compilers that don't allow dependency tracking or
-# where it is broken (such as GCC 2.95).
+# where it is broken
 %.o: %.cpp
 	$(QUIET)$(MKDIR) $(*D)
 	$(QUIET_CXX)$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $(<) -o $@
@@ -213,17 +219,27 @@ endif
 	$(QUIET_AS)$(AS) $(ASFLAGS) $(<) -o $@
 
 # Build rule for Windows resource files
-# The regular expression is a portable form of ^(.*\s(FILE|ICON|RT_MANIFEST|DATA)|#include)\s+"([^"]*)".*$
-# This finds lines in the form '... FILE "path/file.ext" ...' (and also ICON and #include)
-# and replaces them with the $(srcdir)/path/file.ext \
-# The second sed removes winresrc.h (system include) and config.h (not in srcdir, printed
-# by the echo before sed), and strips the trailing backslash on the last line.
+# This has multiple passes to generate the deps file:
+# First is to include config.h and config.mk
+# Second is to process all #include "*.h" form includes into source-tree deps
+# Third is to process all #include "*.rh" form includes into build-tree deps
+# Fourth is to process all FILE, ICON, RT_MANIFEST, and DATA lines into source-tree deps
+# The regexes are portable forms of:
+#     ^#include\s+"([^"]*).h".*$
+#     ^#include\s+"([^"]*).rh".*$
+#     ^(.*\s(FILE|ICON|RT_MANIFEST|DATA))\s+"([^"]*)".*$
+# The first sed removes winresrc.h (system include) and config.h (not in srcdir, printed
+# by the echo before sed), the last strips the trailing backslash on the last line.
 %.o: %.rc
 	$(QUIET)$(MKDIR) $(*D)
 	$(QUIET)$(MKDIR) $(*D)/$(DEPDIR)
 	$(QUIET)echo "$@: $< config.h config.mk \\" > $(*D)/$(DEPDIR)/scummvm.d
-	$(QUIET)sed -n 's:^\(.*[[:space:]]\(FILE\|ICON\|RT_MANIFEST\|DATA\)\|#include\)[[:space:]][[:space:]]*"\([^"]*\)".*$$:    $(srcdir)/\3 \\:p; ' $(<) | \
-		sed '/winresrc\.h\|config\.h/d; $$ s/ \\//' >> $(*D)/$(DEPDIR)/scummvm.d
+	$(QUIET)sed -n 's:^\#include[[:space:]][[:space:]]*"\([^"]*\.h\)".*$$:    $(srcdir)/\1 \\:p; ' $(<) | \
+		sed '/winresrc\.h\|config\.h/d' >> $(*D)/$(DEPDIR)/scummvm.d
+	$(QUIET)sed -n 's:^\#include[[:space:]][[:space:]]*"\([^"]*\.rh\)".*$$:    \1 \\:p; ' $(<) \
+		>> $(*D)/$(DEPDIR)/scummvm.d
+	$(QUIET)sed -n 's:^\(.*[[:space:]]\(FILE\|ICON\|RT_MANIFEST\|DATA\)\)[[:space:]][[:space:]]*"\([^"]*\)".*$$:    $(srcdir)/\3 \\:p; ' $(<) | \
+		sed '$$ s/ \\//' >> $(*D)/$(DEPDIR)/scummvm.d
 	$(QUIET_WINDRES)$(WINDRES) $(WINDRESFLAGS) $(CPPFLAGS) $(<) -o $@
 
 ifdef USE_NASM
@@ -279,7 +295,7 @@ else
 GIT_DIRTY_FLAG = --dirty
 endif
 # Get the working copy base revision
-VER_REV := $(shell cd $(srcdir); git describe $(GIT_DIRTY_FLAG) --long --match desc/\* | cut -d '-' -f 2-)$(VER_DIRTY)
+VER_REV := $(shell cd $(srcdir); git describe $(GIT_DIRTY_FLAG) --always --long --match desc/\* | cut -d '-' -f 2-)$(VER_DIRTY)
 endif
 else
 GITROOT := git://github.com/scummvm/scummvm.git
@@ -353,7 +369,12 @@ dist-src: \
 	@#DEB-src?
 
 # Common files
-DIST_FILES_DOCS:=$(addprefix $(srcdir)/,AUTHORS COPYING COPYING.BSD COPYING.LGPL COPYING.FREEFONT COPYING.OFL COPYING.ISC COPYING.LUA COPYING.MIT COPYING.TINYGL COPYRIGHT NEWS.md README.md CONTRIBUTING.md)
+DIST_FILES_DOCS:=AUTHORS COPYING COPYRIGHT NEWS.md README.md CONTRIBUTING.md
+DIST_FILES_DOCS+=LICENSES/COPYING.Apache LICENSES/COPYING.BSD LICENSES/COPYING.BSL LICENSES/COPYING.FREEFONT
+DIST_FILES_DOCS+=LICENSES/COPYING.GLAD LICENSES/COPYING.ISC LICENSES/COPYING.LGPL LICENSES/COPYING.LUA
+DIST_FILES_DOCS+=LICENSES/COPYING.MIT LICENSES/COPYING.MKV LICENSES/COPYING.MPL LICENSES/COPYING.OFL LICENSES/COPYING.TINYGL
+DIST_FILES_DOCS+=LICENSES/CatharonLicense.txt
+DIST_FILES_DOCS:=$(addprefix $(srcdir)/,$(DIST_FILES_DOCS))
 ifdef USE_PANDOC
 DIST_FILES_DOCS+=README$(PANDOCEXT) NEWS$(PANDOCEXT) CONTRIBUTING$(PANDOCEXT)
 endif
@@ -377,7 +398,7 @@ DIST_FILES_DOCS_no-nb:=$(addprefix $(srcdir)/doc/no-nb/,HurtigStart)
 DIST_FILES_DOCS_se:=$(addprefix $(srcdir)/doc/se/,LasMig Snabbstart)
 
 # Themes files
-DIST_FILES_THEMES=scummmodern.zip scummclassic.zip scummremastered.zip residualvm.zip
+DIST_FILES_THEMES=scummmodern.zip scummclassic.zip scummremastered.zip residualvm.zip gui-icons.dat shaders.dat
 ifdef USE_TRANSLATION
 DIST_FILES_THEMES+=translations.dat
 endif
@@ -396,95 +417,27 @@ DIST_FILES_VKEYBD:=$(addprefix $(srcdir)/backends/vkeybd/packs/,vkeybd_default.z
 endif
 
 # Engine data files
-DIST_FILES_ENGINEDATA=
-ifdef ENABLE_ACCESS
-DIST_FILES_ENGINEDATA+=access.dat
-endif
-ifdef ENABLE_CRYO
-DIST_FILES_ENGINEDATA+=cryo.dat
-endif
-ifdef ENABLE_CRYOMNI3D
-DIST_FILES_ENGINEDATA+=cryomni3d.dat
-endif
-ifdef ENABLE_DRASCULA
-DIST_FILES_ENGINEDATA+=drascula.dat
-endif
-ifdef ENABLE_HADESCH
-DIST_FILES_ENGINEDATA+=hadesch_translations.dat
-endif
-ifdef ENABLE_HUGO
-DIST_FILES_ENGINEDATA+=hugo.dat
-endif
-ifdef ENABLE_KYRA
-DIST_FILES_ENGINEDATA+=kyra.dat
-endif
-ifdef ENABLE_LURE
-DIST_FILES_ENGINEDATA+=lure.dat
-endif
-ifdef ENABLE_MACVENTURE
-DIST_FILES_ENGINEDATA+=macventure.dat
-endif
-ifdef ENABLE_MORTEVIELLE
-DIST_FILES_ENGINEDATA+=mort.dat
-endif
-ifdef ENABLE_NEVERHOOD
-DIST_FILES_ENGINEDATA+=neverhood.dat
-endif
-ifdef ENABLE_QUEEN
-DIST_FILES_ENGINEDATA+=queen.tbl
-endif
-ifdef ENABLE_SKY
-DIST_FILES_ENGINEDATA+=sky.cpt
-endif
-ifdef ENABLE_SUPERNOVA
-DIST_FILES_ENGINEDATA+=supernova.dat
-endif
-ifdef ENABLE_TEENAGENT
-DIST_FILES_ENGINEDATA+=teenagent.dat
-endif
-ifdef ENABLE_TITANIC
-DIST_FILES_ENGINEDATA+=titanic.dat
-endif
-ifdef ENABLE_TONY
-DIST_FILES_ENGINEDATA+=tony.dat
-endif
-ifdef ENABLE_TOON
-DIST_FILES_ENGINEDATA+=toon.dat
-endif
-ifdef ENABLE_ULTIMA
-DIST_FILES_ENGINEDATA+=ultima.dat
-endif
-ifdef ENABLE_WINTERMUTE
-DIST_FILES_ENGINEDATA+=wintermute.zip
-endif
-ifdef ENABLE_XEEN
-DIST_FILES_ENGINEDATA+=xeen.ccs
-endif
-ifdef USE_FREETYPE2
-DIST_FILES_ENGINEDATA+=fonts.dat
-endif
-DIST_FILES_ENGINEDATA+=macgui.dat
-ifdef ENABLE_GRIM
-DIST_FILES_ENGINEDATA+=grim-patch.lab
-endif
-ifdef ENABLE_MONKEY4
-DIST_FILES_ENGINEDATA+=monkey4-patch.m4b
-endif
-ifdef ENABLE_MYST3
-DIST_FILES_ENGINEDATA+=myst3.dat
-endif
-DIST_FILES_ENGINEDATA+=achievements.dat
-DIST_FILES_ENGINEDATA+=encoding.dat
-DIST_FILES_ENGINEDATA:=$(addprefix $(srcdir)/dists/engine-data/,$(DIST_FILES_ENGINEDATA))
+DIST_FILES_ENGINEDATA_BASE_CORE_SOURCE:=$(srcdir)/dists/engine-data/engine_data_core.mk
+DIST_FILES_LIST=
+-include $(DIST_FILES_ENGINEDATA_BASE_CORE_SOURCE)
+DIST_FILES_ENGINEDATA_BASE_CORE:=$(DIST_FILES_LIST)
 
-# pred.dic is currently only used for the AGI engine
-ifdef ENABLE_AGI
-DIST_FILES_ENGINEDATA+=$(srcdir)/dists/pred.dic
-endif
+DIST_FILES_ENGINEDATA_BASE_SOURCE:=$(srcdir)/dists/engine-data/engine_data.mk
+DIST_FILES_LIST=
+-include $(DIST_FILES_ENGINEDATA_BASE_SOURCE)
+DIST_FILES_ENGINEDATA_BASE:=$(DIST_FILES_LIST)
 
-# Shaders: install if USE_OPENGL_SHADERS or USE_GLES2 defined
+DIST_FILES_ENGINEDATA_BASE_BIG_SOURCE:=$(srcdir)/dists/engine-data/engine_data_big.mk
+DIST_FILES_LIST=
+-include $(DIST_FILES_ENGINEDATA_BASE_BIG_SOURCE)
+DIST_FILES_ENGINEDATA_BASE_BIG:=$(DIST_FILES_LIST)
+
+DIST_FILES_ENGINEDATA:=$(addprefix $(srcdir)/,$(DIST_FILES_ENGINEDATA_BASE_CORE) $(DIST_FILES_ENGINEDATA_BASE))
+DIST_FILES_ENGINEDATA_BIG:=$(addprefix $(srcdir)/,$(DIST_FILES_ENGINEDATA_BASE_BIG))
+
+# Shaders: install if USE_OPENGL_SHADERS is defined
 DIST_FILES_SHADERS=
-ifneq ($(USE_OPENGL_SHADERS)$(USE_GLES2),)
+ifneq ($(USE_OPENGL_SHADERS),)
 ifdef ENABLE_GRIM
 DIST_FILES_SHADERS+=$(wildcard $(srcdir)/engines/grim/shaders/*)
 endif
@@ -500,6 +453,19 @@ endif
 ifdef ENABLE_PLAYGROUND3D
 DIST_FILES_SHADERS+=$(wildcard $(srcdir)/engines/playground3d/shaders/*)
 endif
+ifdef ENABLE_HPL1
+DIST_FILES_SHADERS+=$(wildcard $(srcdir)/engines/hpl1/engine/impl/shaders/*)
+endif
+ifdef ENABLE_FREESCAPE
+DIST_FILES_SHADERS+=$(wildcard $(srcdir)/engines/freescape/shaders/*)
+endif
+endif
+
+# Soundfonts
+DIST_FILES_SOUNDFONTS=
+ifdef USE_FLUIDSYNTH
+DIST_FILES_SOUNDFONTS:=$(addprefix $(srcdir)/dists/soundfonts/,Roland_SC-55.sf2)
+DIST_FILES_DOCS+=$(addprefix $(srcdir)/dists/soundfonts/,COPYRIGHT.Roland_SC-55)
 endif
 
 .PHONY: all clean distclean plugins dist-src clean-toplevel manual

@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/unicode-bidi.h"
+
+#include "common/dbcs-str.h"
+
 #include "engines/grim/debug.h"
 #include "engines/grim/grim.h"
 #include "engines/grim/textobject.h"
@@ -87,11 +89,7 @@ void TextObject::saveState(SaveGame *state) const {
 	state->writeBool(_isSpeech);
 	state->writeLESint32(_elapsedTime);
 
-	if (_font) {
-		state->writeLESint32(_font->getId());
-	} else {
-		state->writeLESint32(-1);
-	}
+	Font::save(_font, state);
 
 	state->writeString(_textID);
 
@@ -116,12 +114,7 @@ bool TextObject::restoreState(SaveGame *state) {
 	_isSpeech     = state->readBool();
 	_elapsedTime  = state->readLESint32();
 
-	int32 fontId = state->readLESint32();
-	if (fontId == -1) {
-		_font = nullptr;
-	} else {
-		_font = Font::getPool().getObject(fontId);
-	}
+	_font = Font::load(state);
 
 	_textID = state->readString();
 
@@ -170,9 +163,9 @@ void TextObject::destroy() {
 	}
 }
 
-void TextObject::setupText() {
-	Common::String msg = LuaBase::instance()->parseMsgText(_textID.c_str(), nullptr);
-	Common::String message;
+template <typename S>
+void TextObject::setupTextReal(S msg, Common::String (*convert)(const S &s)) {
+	S message;
 
 	// remove spaces (NULL_TEXT) from the end of the string,
 	// while this helps make the string unique it screws up
@@ -186,6 +179,7 @@ void TextObject::setupText() {
 	delete[] _lines;
 	if (msg.size() == 0) {
 		_lines = nullptr;
+		_numberLines = 0;
 		return;
 	}
 
@@ -217,31 +211,53 @@ void TextObject::setupText() {
 	}
 
 	// We break the message to lines not longer than maxWidth
-	Common::String currLine;
+	S currLine;
 	_numberLines = 1;
 	int lineWidth = 0;
+	bool isMultiByte = false;
 	for (uint i = 0; i < msg.size(); i++) {
 		message += msg[i];
 		currLine += msg[i];
-		lineWidth += _font->getCharKernedWidth(msg[i]);
+		if (i < msg.size() - 1 && g_grim->getGameType() == GType_GRIM && g_grim->getGameLanguage() == Common::KO_KOR && _font->isKoreanChar(msg[i], msg[i + 1])) {
+			isMultiByte = true;
+			message += msg[i + 1];
+			currLine += msg[i + 1];
+			lineWidth += _font->getWCharKernedWidth(msg[i], msg[i + 1]);
+			i++;
+		} else {
+			isMultiByte = false;
+			lineWidth += _font->getCharKernedWidth(msg[i]);
+		}
 
 		if (currLine.size() > 1 && lineWidth > maxWidth) {
-			if (currLine.contains(' ')) {
-				while (currLine.lastChar() != ' ' && currLine.size() > 1) {
-					lineWidth -= _font->getCharKernedWidth(currLine.lastChar());
-					message.deleteLastChar();
-					currLine.deleteLastChar();
-					--i;
+			if (isMultiByte) {
+				// Remove 2byte code
+				lineWidth -= _font->getWCharKernedWidth(msg[i - 1], msg[i]);
+				message.deleteLastChar();
+				message.deleteLastChar();
+				currLine.deleteLastChar();
+				currLine.deleteLastChar();
+				i -= 2;
+			} else {
+				if (currLine.contains(' ')) {
+					while (currLine.lastChar() != ' ' && currLine.size() > 1) {
+						lineWidth -= _font->getCharKernedWidth(currLine.lastChar());
+						message.deleteLastChar();
+						currLine.deleteLastChar();
+						--i;
+					}
+				} else { // if it is a unique word
+					bool useDash = !(g_grim->getGameLanguage() == Common::Language::ZH_CHN || g_grim->getGameLanguage() == Common::Language::ZH_TWN);
+					int dashWidth = useDash ? _font->getCharKernedWidth('-') : 0;
+					while (lineWidth + dashWidth > maxWidth && currLine.size() > 1) {
+						lineWidth -= _font->getCharKernedWidth(currLine.lastChar());
+						message.deleteLastChar();
+						currLine.deleteLastChar();
+						--i;
+					}
+					if (useDash)
+						message += '-';
 				}
-			} else { // if it is a unique word
-				int dashWidth = _font->getCharKernedWidth('-');
-				while (lineWidth + dashWidth > maxWidth && currLine.size() > 1) {
-					lineWidth -= _font->getCharKernedWidth(currLine.lastChar());
-					message.deleteLastChar();
-					currLine.deleteLastChar();
-					--i;
-				}
-				message += '-';
 			}
 			message += '\n';
 			currLine.clear();
@@ -271,32 +287,61 @@ void TextObject::setupText() {
 
 	for (int j = 0; j < _numberLines; j++) {
 		int nextLinePos, cutLen;
-		const char *breakPos = strchr(message.c_str(), '\n');
-		if (breakPos) {
+		const typename S::value_type *breakPos = message.c_str();
+		while (*breakPos && *breakPos != '\n')
+			breakPos++;
+		if (*breakPos == '\n') {
 			nextLinePos = breakPos - message.c_str();
 			cutLen = nextLinePos + 1;
 		} else {
 			nextLinePos = message.size();
 			cutLen = nextLinePos;
 		}
-		Common::String currentLine(message.c_str(), message.c_str() + nextLinePos);
+		S currentLine(message.c_str(), message.c_str() + nextLinePos);
+		Common::String currentLineConvert = convert(currentLine);
 
 		// Reverse the line for the Hebrew translation
 		if (g_grim->getGameLanguage() == Common::HE_ISR)
-			currentLine = Common::convertBiDiString(currentLine, Common::kWindows1255);
+			currentLineConvert = Common::convertBiDiString(currentLineConvert, Common::kWindows1255);
 
-		_lines[j] = currentLine;
-		int width = _font->getKernedStringLength(currentLine);
+		_lines[j] = currentLineConvert;
+		int width = _font->getKernedStringLength(currentLineConvert);
 		if (width > _maxLineWidth)
 			_maxLineWidth = width;
 		for (int count = 0; count < cutLen; count++)
 			message.deleteChar(0);
 	}
+}
+
+static Common::String sConvert(const Common::String &s) {
+	return s;
+}
+
+static Common::String usConvert(const Common::U32String &us) {
+	return us.encode(Common::CodePage::kUtf8);
+}
+
+static Common::String dbcsConvert(const Common::DBCSString &ds) {
+	return ds.convertToString();
+}
+
+void TextObject::setupText() {
+	Common::String msg = LuaBase::instance()->parseMsgText(_textID.c_str(), nullptr);
+
+	if (g_grim->_isUtf8)
+		setupTextReal<Common::U32String>(msg.decode(Common::CodePage::kUtf8), usConvert);
+	else if (g_grim->getGameLanguage() == Common::Language::ZH_CHN || g_grim->getGameLanguage() == Common::Language::ZH_TWN)
+		setupTextReal<Common::DBCSString>(Common::DBCSString(msg), dbcsConvert);
+	else
+		setupTextReal<Common::String>(msg, sConvert);
+
 	_elapsedTime = 0;
 }
 
 int TextObject::getLineX(int line) const {
 	int x = _x;
+	if (line >= _numberLines)
+		return 0;
 	if (_justify == CENTER)
 		x = _x - (_font->getKernedStringLength(_lines[line]) / 2);
 	else if (_justify == RJUSTIFY)
@@ -347,7 +392,6 @@ void TextObject::draw() {
 		warning("TextObject::draw: Unknown justification code (%d)", _justify);
 
 	g_driver->drawTextObject(this);
-
 }
 
 void TextObject::update() {

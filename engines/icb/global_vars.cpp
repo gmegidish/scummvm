@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -68,8 +67,8 @@ void Init_globals() {
 	uint32 i;
 	uint32 nVars = 0;
 
-	sprintf(buf, GLOBAL_VAR_PATH);
-	sprintf(cluster, GLOBAL_CLUSTER_PATH);
+	Common::sprintf_s(buf, GLOBAL_VAR_PATH);
+	Common::sprintf_s(cluster, GLOBAL_CLUSTER_PATH);
 	uint32 fn_hash = HashString(buf);
 	uint32 cluster_hash = HashString(cluster);
 
@@ -139,55 +138,57 @@ void Init_globals() {
 }
 
 void CreateGlobalObjects() {
-	g_px = new c_global_switches;
-	g_oTracer = new _tracer;
-	g_ptrArray = new Common::Array<PointerReference>;
-	g_globalScriptVariables = new CpxGlobalScriptVariables;
-	g_theSequenceManager = new MovieManager;
-	g_while_u_wait_SequenceManager = new MovieManager;
-	g_personalSequenceManager = new MovieManager;
-	g_theClusterManager = new ClusterManager;
-	g_theOptionsManager = new OptionsManager;
-	g_icb_mission = new _mission;
-	g_icb_session = new _game_session;
-	g_icb_session_floors = new _floor_world;
-	g_text_bloc1 = new text_sprite;
-	g_text_bloc2 = new text_sprite;
-	g_av_actor = new psxActor;
-	g_camera = new psxCamera;
-	g_av_Light = new PSXLamp;
+	g_px = new c_global_switches();
+	g_oTracer = new _tracer();
+	g_ptrArray = new Common::Array<PointerReference>();
+	g_globalScriptVariables = new CpxGlobalScriptVariables();
+	g_theSequenceManager = new MovieManager();
+	g_while_u_wait_SequenceManager = new MovieManager();
+	g_personalSequenceManager = new MovieManager();
+	g_theClusterManager = new ClusterManager();
+	g_theOptionsManager = new OptionsManager();
+	g_icb_mission = new _mission();
+	g_icb_session = new _game_session();
+	g_icb_session_floors = new _floor_world();
+	g_text_bloc1 = new text_sprite();
+	g_text_bloc2 = new text_sprite();
+	g_av_actor = new psxActor();
+	g_camera = new psxCamera();
+	g_av_Light = new PSXLamp();
 	for (int i = 0; i < MAX_voxel_list; i++) {
-		g_megas[i] = new _mega;
-		g_vox_images[i] = new _vox_image;
+		g_megas[i] = new _mega();
+		g_vox_images[i] = new _vox_image();
 	}
 	for (int i = 0; i < MAX_session_objects; i++)
-		g_logics[i] = new _logic;
-	g_stub = new _stub;
-	gterot_pc = new MATRIXPC;
-	gtetrans_pc = new MATRIXPC;
-	gtecolour_pc = new MATRIXPC;
-	gtelight_pc = new MATRIXPC;
-	gterot = new MATRIX;
-	gtetrans = new MATRIX;
-	gtecolour = new MATRIX;
-	gtelight = new MATRIX;
+		g_logics[i] = new _logic();
+	g_stub = new _stub();
+	gterot_pc = new MATRIXPC();
+	gtetrans_pc = new MATRIXPC();
+	gtecolour_pc = new MATRIXPC();
+	gtelight_pc = new MATRIXPC();
+	gterot = new MATRIX();
+	gtetrans = new MATRIX();
+	gtecolour = new MATRIX();
+	gtelight = new MATRIX();
 	for (int i = 0; i < MAX_REGISTERED_SOUNDS; i++)
-		g_registeredSounds[i] = new CRegisteredSound;
+		g_registeredSounds[i] = new CRegisteredSound();
 
 	// The order of creation matters:
-	g_oEventManager = new _event_manager;
-	g_oLineOfSight = new _line_of_sight;
-	g_oIconMenu = new _icon_menu;
-	g_oIconListManager = new _icon_list_manager;
-	g_oRemora = new _remora;
-	g_oSoundLogicEngine = new _sound_logic;
+	g_oEventManager = new _event_manager();
+	g_oLineOfSight = new _line_of_sight();
+	g_oIconMenu = new _icon_menu();
+	g_oIconListManager = new _icon_list_manager();
+	g_oRemora = new _remora();
+	g_oSoundLogicEngine = new _sound_logic();
 }
 
 void DestroyGlobalObjects() {
 	delete g_px;
+	g_px = nullptr;
 	delete g_oTracer;
 	delete g_ptrArray;
 	delete g_globalScriptVariables;
+	g_globalScriptVariables = nullptr;
 	delete g_theSequenceManager;
 	delete g_while_u_wait_SequenceManager;
 	delete g_personalSequenceManager;
@@ -216,8 +217,10 @@ void DestroyGlobalObjects() {
 	delete gtetrans;
 	delete gtecolour;
 	delete gtelight;
-	for (int i = 0; i < MAX_REGISTERED_SOUNDS; i++)
+	for (int i = 0; i < MAX_REGISTERED_SOUNDS; i++) {
 		delete g_registeredSounds[i];
+		g_registeredSounds[i] = nullptr;
+	}
 
 	delete g_oEventManager;
 	delete g_oLineOfSight;

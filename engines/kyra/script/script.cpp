@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@
 #include "common/endian.h"
 
 namespace Kyra {
-EMCInterpreter::EMCInterpreter(KyraEngine_v1 *vm) : _vm(vm), _scriptData(0), _filename(0) {
+EMCInterpreter::EMCInterpreter(KyraEngine_v1 *vm) : _vm(vm), _scriptData(nullptr), _filename(nullptr), _parameter(0) {
 #define OPCODE(x) { &EMCInterpreter::x, #x }
 	static const OpcodeEntry opcodes[] = {
 		// 0x00
@@ -128,8 +127,8 @@ bool EMCInterpreter::load(const char *filename, EMCData *scriptData, const Commo
 
 	Common::strlcpy(_scriptData->filename, filename, 13);
 
-	_scriptData = 0;
-	_filename = 0;
+	_scriptData = nullptr;
+	_filename = nullptr;
 
 	return true;
 }
@@ -142,13 +141,13 @@ void EMCInterpreter::unload(EMCData *data) {
 	delete[] data->ordr;
 	delete[] data->data;
 
-	data->text = 0;
-	data->ordr = data->data = 0;
+	data->text = nullptr;
+	data->ordr = data->data = nullptr;
 }
 
 void EMCInterpreter::init(EMCState *scriptStat, const EMCData *data) {
 	scriptStat->dataPtr = data;
-	scriptStat->ip = 0;
+	scriptStat->ip = nullptr;
 	scriptStat->stack[EMCState::kStackLastEntry] = 0;
 	scriptStat->bp = EMCState::kStackSize+1;
 	scriptStat->sp = EMCState::kStackLastEntry;
@@ -166,7 +165,7 @@ bool EMCInterpreter::start(EMCState *script, int function) {
 		return false;
 
 	if (_vm->game() == GI_KYRA1) {
-		if (_vm->gameFlags().platform == Common::kPlatformFMTowns || _vm->gameFlags().platform == Common::kPlatformPC98)
+		if (_vm->gameFlags().platform == Common::kPlatformFMTowns || _vm->gameFlags().platform == Common::kPlatformPC98 || _vm->gameFlags().lang == Common::KO_KOR)
 			script->ip = &script->dataPtr->data[functionOffset+1];
 		else
 			script->ip = &script->dataPtr->data[functionOffset];
@@ -219,7 +218,7 @@ bool EMCInterpreter::run(EMCState *script) {
 		(this->*(_opcodes[opcode].proc))(script);
 	}
 
-	return (script->ip != 0);
+	return (script->ip != nullptr);
 }
 
 #pragma mark -
@@ -247,7 +246,7 @@ void EMCInterpreter::op_pushRetOrPos(EMCState *script) {
 		break;
 
 	default:
-		script->ip = 0;
+		script->ip = nullptr;
 	}
 }
 
@@ -275,7 +274,7 @@ void EMCInterpreter::op_popRetOrPos(EMCState *script) {
 
 	case 1:
 		if (script->sp >= EMCState::kStackLastEntry) {
-			script->ip = 0;
+			script->ip = nullptr;
 		} else {
 			script->bp = script->stack[script->sp++];
 			script->ip = script->dataPtr->data + script->stack[script->sp++];
@@ -283,7 +282,7 @@ void EMCInterpreter::op_popRetOrPos(EMCState *script) {
 		break;
 
 	default:
-		script->ip = 0;
+		script->ip = nullptr;
 	}
 }
 
@@ -348,7 +347,7 @@ void EMCInterpreter::op_negate(EMCState *script) {
 
 	default:
 		warning("Unknown negation func: %d", _parameter);
-		script->ip = 0;
+		script->ip = nullptr;
 	}
 }
 
@@ -438,14 +437,14 @@ void EMCInterpreter::op_eval(EMCState *script) {
 	}
 
 	if (error)
-		script->ip = 0;
+		script->ip = nullptr;
 	else
 		script->stack[--script->sp] = ret;
 }
 
 void EMCInterpreter::op_setRetAndJmp(EMCState *script) {
 	if (script->sp >= EMCState::kStackLastEntry) {
-		script->ip = 0;
+		script->ip = nullptr;
 	} else {
 		script->retValue = script->stack[script->sp++];
 		uint16 temp = script->stack[script->sp++];

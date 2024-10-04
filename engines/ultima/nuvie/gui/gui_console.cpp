@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@ namespace Ultima {
 namespace Nuvie {
 
 GUI_Console::GUI_Console(uint16 x, uint16 y, uint16 w, uint16 h)
-	: GUI_Widget(NULL, x, y, w, h) {
+	: GUI_Widget(nullptr, x, y, w, h) {
 	bg_color = new GUI_Color(0, 0, 0);
 	font = new GUI_Font(1);
 	font->setColoring(0xff, 0xff, 0xff, 0, 0, 0);
@@ -47,20 +46,16 @@ GUI_Console::~GUI_Console() {
 /* Map the color to the display */
 void GUI_Console::SetDisplay(Screen *s) {
 	GUI_Widget::SetDisplay(s);
-	bg_color->map_color(surface);
+	bg_color->map_color(surface->format);
 }
 
 /* Show the widget  */
 void GUI_Console:: Display(bool full_redraw) {
-	Common::Rect framerect;
-
-	framerect = area;
-
-	SDL_FillRect(surface, &framerect, bg_color->sdl_color);
+	SDL_FillRect(surface, &area, bg_color->sdl_color);
 
 	uint16 i = 0;
-	for (Std::list<Std::string>::iterator it = data.begin(); it != data.end(); it++) {
-		font->textOut(surface, area.left, area.top + i * font->charHeight(), (*it).c_str(), false);
+	for (const Std::string &s : data) {
+		font->textOut(surface, area.left, area.top + i * font->charHeight(), s.c_str(), false);
 		i++;
 	}
 	screen->update(area.left, area.top, area.width(), area.height());
@@ -68,7 +63,7 @@ void GUI_Console:: Display(bool full_redraw) {
 	return;
 }
 
-void GUI_Console::AddLine(Std::string line) {
+void GUI_Console::AddLine(const Std::string &line) {
 	uint16 len = line.length();
 	uint16 i;
 
@@ -107,7 +102,7 @@ GUI_status GUI_Console::MouseMotion(int x, int y, uint8 state) {
 //GUI::get_gui()->moveWidget(this,dx,dy);
 // Redraw();
 
-	return (GUI_YUM);
+	return GUI_YUM;
 }
 
 } // End of namespace Nuvie

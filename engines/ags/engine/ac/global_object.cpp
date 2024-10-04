@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "common/std/algorithm.h"
 #include "ags/engine/ac/global_object.h"
 #include "ags/shared/ac/common.h"
 #include "ags/engine/ac/object.h"
@@ -32,7 +32,6 @@
 #include "ags/engine/ac/global_character.h"
 #include "ags/engine/ac/global_translation.h"
 #include "ags/engine/ac/object.h"
-#include "ags/engine/ac/object_cache.h"
 #include "ags/engine/ac/properties.h"
 #include "ags/engine/ac/room_object.h"
 #include "ags/engine/ac/room_status.h"
@@ -62,9 +61,9 @@ int GetObjectIDAtScreen(int scrx, int scry) {
 }
 
 int GetObjectIDAtRoom(int roomx, int roomy) {
-	int aa, bestshotyp = -1, bestshotwas = -1;
+	int bestshotyp = -1, bestshotwas = -1;
 	// Iterate through all objects in the room
-	for (aa = 0; aa < _G(croom)->numobj; aa++) {
+	for (uint32_t aa = 0; aa < _G(croom)->numobj; aa++) {
 		if (_G(objs)[aa].on != 1) continue;
 		if (_G(objs)[aa].flags & OBJF_NOINTERACT)
 			continue;
@@ -72,8 +71,8 @@ int GetObjectIDAtRoom(int roomx, int roomy) {
 		int isflipped = 0;
 		int spWidth = game_to_data_coord(_G(objs)[aa].get_width());
 		int spHeight = game_to_data_coord(_G(objs)[aa].get_height());
-		if (_G(objs)[aa].view != (uint16_t)-1)
-			isflipped = _G(views)[_G(objs)[aa].view].loops[_G(objs)[aa].loop].frames[_G(objs)[aa].frame].flags & VFLG_FLIPSPRITE;
+		if (_G(objs)[aa].view != RoomObject::NoView)
+			isflipped = _GP(views)[_G(objs)[aa].view].loops[_G(objs)[aa].loop].frames[_G(objs)[aa].frame].flags & VFLG_FLIPSPRITE;
 
 		Bitmap *theImage = GetObjectImage(aa, &isflipped);
 
@@ -141,10 +140,10 @@ void SetObjectView(int obn, int vii) {
 
 	_G(objs)[obn].view = (uint16_t)vii;
 	_G(objs)[obn].frame = 0;
-	if (_G(objs)[obn].loop >= _G(views)[vii].numLoops)
+	if (_G(objs)[obn].loop >= _GP(views)[vii].numLoops)
 		_G(objs)[obn].loop = 0;
 	_G(objs)[obn].cycling = 0;
-	int pic = _G(views)[vii].loops[0].frames[0].pic;
+	int pic = _GP(views)[vii].loops[0].frames[0].pic;
 	_G(objs)[obn].num = Math::InRangeOrDef<uint16_t>(pic, 0);
 	if (pic > UINT16_MAX)
 		debug_script_warn("Warning: object's (id %d) sprite %d is outside of internal range (%d), reset to 0", obn, pic, UINT16_MAX);
@@ -154,15 +153,31 @@ void SetObjectFrame(int obn, int viw, int lop, int fra) {
 	if (!is_valid_object(obn)) quit("!SetObjectFrame: invalid object number specified");
 	viw--;
 	if (viw < 0 || viw >= _GP(game).numviews) quitprintf("!SetObjectFrame: invalid view number used (%d, range is 0 - %d)", viw, _GP(game).numviews - 1);
-	if (lop < 0 || lop >= _G(views)[viw].numLoops) quitprintf("!SetObjectFrame: invalid loop number used (%d, range is 0 - %d)", lop, _G(views)[viw].numLoops - 1);
-	// historically AGS let user to pass literally any positive invalid frame value by silently reassigning it to zero...
-	if (fra < 0 || fra >= _G(views)[viw].loops[lop].numFrames) {
-		if (_G(views)[viw].loops[lop].numFrames == 0) // NOTE: we have a dummy frame allocated for this case
-			debug_script_warn("SetObjectFrame: specified loop %d has no frames, will fallback to dummy frame", lop);
-		else
-			debug_script_warn("SetObjectFrame: frame index out of range (%d, must be 0 - %d), set to 0", fra, _G(views)[viw].loops[lop].numFrames - 1);
-		fra = 0;
+	if (_GP(views)[viw].numLoops == 0) quitprintf("!SetObjectFrame: view %d has no loops", viw);
+
+	auto &obj = _G(objs)[obn];
+
+	// Previous version of Object.SetView had negative loop and frame mean "use latest values",
+	// which also caused SetObjectFrame to act similarly, starting with 2.70.
+	if ((_GP(game).options[OPT_BASESCRIPTAPI] < kScriptAPI_v360) && (_G(loaded_game_file_version) >= kGameVersion_270)) {
+		if (lop < 0)
+			lop = obj.loop;
+		if (fra < 0)
+			fra = obj.frame;
 	}
+
+	// Fixup invalid loop & frame numbers by using default 0 value
+	if (lop < 0 || lop >= _GP(views)[viw].numLoops) {
+		debug_script_warn("SetObjectFrame: invalid loop number used for view %d (%d, range is 0 - %d)", viw, lop, _GP(views)[viw].numLoops - 1);
+		lop = 0;
+	}
+
+	if (fra < 0 || fra >= _GP(views)[viw].loops[lop].numFrames) {
+		debug_script_warn("SetObjectFrame: frame index out of range (%d, must be 0 - %d)", fra, _GP(views)[viw].loops[lop].numFrames - 1);
+		fra = 0; // NOTE: we have 1 dummy frame allocated for empty loops
+	}
+
+	// Current engine's object data limitation by uint16_t
 	if (viw > UINT16_MAX || lop > UINT16_MAX || fra > UINT16_MAX) {
 		debug_script_warn("Warning: object's (id %d) view/loop/frame (%d/%d/%d) is outside of internal range (%d/%d/%d), reset to no view",
 			obn, viw + 1, lop, fra, UINT16_MAX + 1, UINT16_MAX, UINT16_MAX);
@@ -170,21 +185,15 @@ void SetObjectFrame(int obn, int viw, int lop, int fra) {
 		return;
 	}
 
-	_G(objs)[obn].view = (uint16_t)viw;
-	if (lop >= 0)
-		_G(objs)[obn].loop = (uint16_t)lop;
-	if (fra >= 0)
-		_G(objs)[obn].frame = (uint16_t)fra;
-
-	_G(objs)[obn].view = viw;
-	_G(objs)[obn].loop = lop;
-	_G(objs)[obn].frame = fra;
-	_G(objs)[obn].cycling = 0;
-	int pic = _G(views)[viw].loops[lop].frames[fra].pic;
-	_G(objs)[obn].num = Math::InRangeOrDef<uint16_t>(pic, 0);
+	obj.view = viw;
+	obj.loop = lop;
+	obj.frame = fra;
+	obj.cycling = 0; // reset anim
+	int pic = _GP(views)[viw].loops[lop].frames[fra].pic;
+	obj.num = Math::InRangeOrDef<uint16_t>(pic, 0);
 	if (pic > UINT16_MAX)
 		debug_script_warn("Warning: object's (id %d) sprite %d is outside of internal range (%d), reset to 0", obn, pic, UINT16_MAX);
-	CheckViewFrame(viw, _G(objs)[obn].loop, _G(objs)[obn].frame);
+	CheckViewFrame(viw, obj.loop, obj.frame);
 }
 
 // pass trans=0 for fully solid, trans=100 for fully transparent
@@ -201,8 +210,8 @@ void SetObjectBaseline(int obn, int basel) {
 	if (!is_valid_object(obn)) quit("!SetObjectBaseline: invalid object number specified");
 	// baseline has changed, invalidate the cache
 	if (_G(objs)[obn].baseline != basel) {
-		_G(objcache)[obn].ywas = -9999;
 		_G(objs)[obn].baseline = basel;
+		mark_object_changed(obn);
 	}
 }
 
@@ -215,31 +224,28 @@ int GetObjectBaseline(int obn) {
 	return _G(objs)[obn].baseline;
 }
 
-void AnimateObjectImpl(int obn, int loopn, int spdd, int rept, int direction, int blocking, int sframe) {
-	if (obn >= MANOBJNUM) {
-		scAnimateCharacter(obn - 100, loopn, spdd, rept);
-		return;
-	}
+void AnimateObjectImpl(int obn, int loopn, int spdd, int rept, int direction, int blocking, int sframe, int volume) {
 	if (!is_valid_object(obn))
 		quit("!AnimateObject: invalid object number specified");
-	if (_G(objs)[obn].view == (uint16_t)-1)
+	if (_G(objs)[obn].view == RoomObject::NoView)
 		quit("!AnimateObject: object has not been assigned a view");
-	if (loopn < 0 || loopn >= _G(views)[_G(objs)[obn].view].numLoops)
+	if (loopn < 0 || loopn >= _GP(views)[_G(objs)[obn].view].numLoops)
 		quit("!AnimateObject: invalid loop number specified");
-	if (sframe < 0 || sframe >= _G(views)[_G(objs)[obn].view].loops[loopn].numFrames)
+	if (_GP(views)[_G(objs)[obn].view].loops[loopn].numFrames < 1)
+		quit("!AnimateObject: no frames in the specified view loop");
+	if (sframe < 0 || sframe >= _GP(views)[_G(objs)[obn].view].loops[loopn].numFrames)
 		quit("!AnimateObject: invalid starting frame number specified");
+
 	if ((direction < 0) || (direction > 1))
 		quit("!AnimateObjectEx: invalid direction");
-	if ((rept < 0) || (rept > 2))
+	if (((rept + 1) < ANIM_ONCE) || ((rept + 1) > ANIM_ONCERESET)) // will convert to 1-based repeat below
 		quit("!AnimateObjectEx: invalid repeat value");
-	if (_G(views)[_G(objs)[obn].view].loops[loopn].numFrames < 1)
-		quit("!AnimateObject: no frames in the specified view loop");
 
 	// reverse animation starts at the *previous frame*
 	if (direction) {
 		sframe--;
 		if (sframe < 0)
-			sframe = _G(views)[_G(objs)[obn].view].loops[loopn].numFrames - (-sframe);
+			sframe = _GP(views)[_G(objs)[obn].view].loops[loopn].numFrames - (-sframe);
 	}
 
 	if (loopn > UINT16_MAX || sframe > UINT16_MAX) {
@@ -254,23 +260,35 @@ void AnimateObjectImpl(int obn, int loopn, int spdd, int rept, int direction, in
 	_G(objs)[obn].loop = (uint16_t)loopn;
 	_G(objs)[obn].frame = (uint16_t)sframe;
 	_G(objs)[obn].overall_speed = spdd;
-	_G(objs)[obn].wait = spdd + _G(views)[_G(objs)[obn].view].loops[loopn].frames[_G(objs)[obn].frame].speed;
-	int pic = _G(views)[_G(objs)[obn].view].loops[loopn].frames[_G(objs)[obn].frame].pic;
+	_G(objs)[obn].wait = spdd + _GP(views)[_G(objs)[obn].view].loops[loopn].frames[_G(objs)[obn].frame].speed;
+	int pic = _GP(views)[_G(objs)[obn].view].loops[loopn].frames[_G(objs)[obn].frame].pic;
 	_G(objs)[obn].num = Math::InRangeOrDef<uint16_t>(pic, 0);
 	if (pic > UINT16_MAX)
 		debug_script_warn("Warning: object's (id %d) sprite %d is outside of internal range (%d), reset to 0", obn, pic, UINT16_MAX);
-	CheckViewFrame(_G(objs)[obn].view, loopn, _G(objs)[obn].frame);
+	_G(objs)[obn].anim_volume = Math::Clamp(volume, 0, 100);
+	CheckViewFrame(_G(objs)[obn].view, loopn, _G(objs)[obn].frame, _G(objs)[obn].anim_volume);
 
 	if (blocking)
 		GameLoopUntilValueIsZero(&_G(objs)[obn].cycling);
 }
 
+// A legacy variant of AnimateObject implementation: for pre-2.72 scripts;
+// it has a quirk: for IDs >= 100 this actually calls AnimateCharacter(ID - 100)
+static void LegacyAnimateObjectImpl(int obn, int loopn, int spdd, int rept,
+									int direction = 0, int blocking = 0) {
+	if (obn >= LEGACY_ANIMATE_CHARIDBASE) {
+		scAnimateCharacter(obn - LEGACY_ANIMATE_CHARIDBASE, loopn, spdd, rept);
+	} else {
+		AnimateObjectImpl(obn, loopn, spdd, rept, direction, blocking, 0, 100 /* full volume */);
+	}
+}
+
 void AnimateObjectEx(int obn, int loopn, int spdd, int rept, int direction, int blocking) {
-	AnimateObjectImpl(obn, loopn, spdd, rept, direction, blocking, 0);
+	LegacyAnimateObjectImpl(obn, loopn, spdd, rept, direction, blocking);
 }
 
 void AnimateObject(int obn, int loopn, int spdd, int rept) {
-	AnimateObjectImpl(obn, loopn, spdd, rept, 0, 0, 0);
+	LegacyAnimateObjectImpl(obn, loopn, spdd, rept, 0, 0);
 }
 
 void MergeObject(int obn) {
@@ -278,17 +296,16 @@ void MergeObject(int obn) {
 	int theHeight;
 
 	construct_object_gfx(obn, nullptr, &theHeight, true);
+	Bitmap *actsp = get_cached_object_image(obn);
 
-	//Bitmap *oldabuf = graphics->bmp;
-	//abuf = _GP(thisroom).BgFrames.Graphic[_GP(play).bg_frame];
 	PBitmap bg_frame = _GP(thisroom).BgFrames[_GP(play).bg_frame].Graphic;
-	if (bg_frame->GetColorDepth() != _G(actsps)[obn]->GetColorDepth())
+	if (bg_frame->GetColorDepth() != actsp->GetColorDepth())
 		quit("!MergeObject: unable to merge object due to color depth differences");
 
 	int xpos = data_to_game_coord(_G(objs)[obn].x);
 	int ypos = (data_to_game_coord(_G(objs)[obn].y) - theHeight);
 
-	draw_sprite_support_alpha(bg_frame.get(), false, xpos, ypos, _G(actsps)[obn], (_GP(game).SpriteInfos[_G(objs)[obn].num].Flags & SPF_ALPHACHANNEL) != 0);
+	draw_sprite_support_alpha(bg_frame.get(), false, xpos, ypos, actsp, (_GP(game).SpriteInfos[_G(objs)[obn].num].Flags & SPF_ALPHACHANNEL) != 0);
 	invalidate_screen();
 	mark_current_background_dirty();
 
@@ -346,7 +363,7 @@ void SetObjectGraphic(int obn, int slott) {
 	_G(objs)[obn].cycling = 0;
 	_G(objs)[obn].frame = 0;
 	_G(objs)[obn].loop = 0;
-	_G(objs)[obn].view = (uint16_t)-1;
+	_G(objs)[obn].view = RoomObject::NoView;
 }
 
 int GetObjectGraphic(int obn) {
@@ -387,7 +404,7 @@ void GetObjectName(int obj, char *buffer) {
 	if (!is_valid_object(obj))
 		quit("!GetObjectName: invalid object number");
 
-	strcpy(buffer, get_translation(_GP(thisroom).Objects[obj].Name.GetCStr()));
+	snprintf(buffer, MAX_MAXSTRLEN, "%s", get_translation(_G(croom)->obj[obj].name.GetCStr()));
 }
 
 void MoveObject(int objj, int xx, int yy, int spp) {
@@ -413,8 +430,7 @@ void SetObjectIgnoreWalkbehinds(int cha, int clik) {
 	_G(objs)[cha].flags &= ~OBJF_NOWALKBEHINDS;
 	if (clik)
 		_G(objs)[cha].flags |= OBJF_NOWALKBEHINDS;
-	// clear the cache
-	_G(objcache)[cha].ywas = -9999;
+	mark_object_changed(cha);
 }
 
 void RunObjectInteraction(int aa, int mood) {
@@ -437,7 +453,7 @@ void RunObjectInteraction(int aa, int mood) {
 
 	if (_GP(thisroom).Objects[aa].EventHandlers != nullptr) {
 		if (passon >= 0) {
-			if (run_interaction_script(_GP(thisroom).Objects[aa].EventHandlers.get(), passon, 4, (passon == 3)))
+			if (run_interaction_script(_GP(thisroom).Objects[aa].EventHandlers.get(), passon, 4))
 				return;
 		}
 		run_interaction_script(_GP(thisroom).Objects[aa].EventHandlers.get(), 4);  // any click on obj
@@ -451,7 +467,7 @@ void RunObjectInteraction(int aa, int mood) {
 }
 
 int AreObjectsColliding(int obj1, int obj2) {
-	if ((!is_valid_object(obj1)) | (!is_valid_object(obj2)))
+	if ((!is_valid_object(obj1)) || (!is_valid_object(obj2)))
 		quit("!AreObjectsColliding: invalid object specified");
 
 	return (AreThingsOverlapping(obj1 + OVERLAPPING_OBJECT, obj2 + OVERLAPPING_OBJECT)) ? 1 : 0;
@@ -518,20 +534,21 @@ int GetObjectProperty(int hss, const char *property) {
 }
 
 void GetObjectPropertyText(int item, const char *property, char *bufer) {
+	if (!AssertObject("GetObjectPropertyText", item))
+		return;
 	get_text_property(_GP(thisroom).Objects[item].Properties, _G(croom)->objProps[item], property, bufer);
 }
 
 Bitmap *GetObjectImage(int obj, int *isFlipped) {
 	if (!_G(gfxDriver)->HasAcceleratedTransform()) {
-		if (_G(actsps)[obj] != nullptr) {
-			// the _G(actsps) image is pre-flipped, so no longer register the image as such
+		Bitmap *actsp = get_cached_object_image(obj);
+		if (actsp) {
+			// the cached image is pre-flipped, so no longer register the image as such
 			if (isFlipped)
 				*isFlipped = 0;
-
-			return _G(actsps)[obj];
+			return actsp;
 		}
 	}
-
 	return _GP(spriteset)[_G(objs)[obj].num];
 }
 

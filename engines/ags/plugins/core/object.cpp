@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,6 +35,8 @@ void Object::AGS_EngineStartup(IAGSEngine *engine) {
 	SCRIPT_METHOD(Object::GetProperty^1, Object::GetProperty);
 	SCRIPT_METHOD(Object::GetPropertyText^2, Object::GetPropertyText);
 	SCRIPT_METHOD(Object::GetTextProperty^1, Object::GetTextProperty);
+	SCRIPT_METHOD(Object::SetProperty^2, Object::SetProperty);
+	SCRIPT_METHOD(Object::SetTextProperty^2, Object::SetTextProperty);
 	SCRIPT_METHOD(Object::MergeIntoBackground^0, Object::MergeIntoBackground);
 	SCRIPT_METHOD(Object::Move^5, Object::Move);
 	SCRIPT_METHOD(Object::RemoveTint^0, Object::RemoveTint);
@@ -108,6 +109,16 @@ void Object::GetPropertyText(ScriptMethodParams &params) {
 void Object::GetTextProperty(ScriptMethodParams &params) {
 	PARAMS2(ScriptObject *, objj, const char *, property);
 	params._result = AGS3::Object_GetTextProperty(objj, property);
+}
+
+void Object::SetProperty(ScriptMethodParams &params) {
+	PARAMS3(ScriptObject *, objj, const char *, property, int, value);
+	params._result = AGS3::Object_SetProperty(objj, property, value);
+}
+
+void Object::SetTextProperty(ScriptMethodParams &params) {
+	PARAMS3(ScriptObject *, objj, const char *, property, const char *, value);
+	params._result = AGS3::Object_SetTextProperty(objj, property, value);
 }
 
 void Object::MergeIntoBackground(ScriptMethodParams &params) {

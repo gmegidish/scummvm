@@ -168,10 +168,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -179,12 +179,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
-#if defined(__ANDROID__)
 
 // Allow use of stuff in <time.h>
 #define FORBIDDEN_SYMBOL_EXCEPTION_time_h
@@ -196,7 +193,7 @@
 // which gets messed up by our override mechanism; this could
 // be avoided by either changing the Android SDK to use the equally
 // legal and valid
-//   __attribute__ ((format(printf, 3, 4)))
+//   __attribute__ ((format(__printf__, 3, 4)))
 // or by refining our printf override to use a varadic macro
 // (which then wouldn't be portable, though).
 // Anyway, for now we just disable the printf override globally
@@ -1319,5 +1316,4 @@ static LDOUBLE mypow10(int exponent) {
 	}
 	return result;
 }
-#endif // defined(__ANDROID__)
 /* vim: set joinspaces noexpandtab textwidth=80 cinoptions=(4,u0: */

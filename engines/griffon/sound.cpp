@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  *              Originally written by Syn9 in FreeBASIC with SDL
@@ -123,7 +122,7 @@ void GriffonEngine::setupAudio() {
 	const char *stri = "Loading...";
 	drawString(_videoBuffer, stri, 160 - 4 * strlen(stri), 116, 0);
 
-	Graphics::TransparentSurface *loadimg = loadImage("art/load.bmp", true);
+	Graphics::ManagedSurface *loadimg = loadImage("art/load.bmp", true);
 
 	rcSrc.left = 0;
 	rcSrc.top = 0;
@@ -133,7 +132,7 @@ void GriffonEngine::setupAudio() {
 	rcDest.left = 160 - 44;
 	rcDest.top = 116 + 12;
 
-	loadimg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, TS_ARGB(160, 255, 255, 255));
+	loadimg->blendBlitTo(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, MS_ARGB(160, 255, 255, 255));
 
 	g_system->copyRectToScreen(_videoBuffer->getPixels(), _videoBuffer->pitch, 0, 0, _videoBuffer->w, _videoBuffer->h);
 	g_system->updateScreen();
@@ -191,7 +190,7 @@ void GriffonEngine::setupAudio() {
 void GriffonEngine::updateMusic() {
 	static int loopseta = 0;
 
-	DataChunk *iplaysound = NULL;
+	DataChunk *iplaysound = nullptr;
 
 	if (config.music) {
 		// if(_curmap > 5 && _curmap < 42) iplaysound = macademy;
@@ -201,11 +200,11 @@ void GriffonEngine::updateMusic() {
 			iplaysound = _musicBoss;
 
 		if (iplaysound == _musicBoss && _playingBoss)
-			iplaysound = NULL;
+			iplaysound = nullptr;
 		if (iplaysound == _musicGardens1 && _playingGardens)
-			iplaysound = NULL;
+			iplaysound = nullptr;
 
-		if (iplaysound != NULL) {
+		if (iplaysound != nullptr) {
 			haltSoundChannel(_musicChannel);
 
 			_playingBoss = (iplaysound == _musicBoss);

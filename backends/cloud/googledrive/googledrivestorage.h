@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,35 +30,39 @@ namespace GoogleDrive {
 
 class GoogleDriveStorage: public Id::IdStorage {
 	/** This private constructor is called from loadFromConfig(). */
-	GoogleDriveStorage(Common::String token, Common::String refreshToken, bool enabled);
+	GoogleDriveStorage(const Common::String &token, const Common::String &refreshToken, bool enabled);
 
 	/** Constructs StorageInfo based on JSON response from cloud. */
-	void infoInnerCallback(StorageInfoCallback outerCallback, Networking::JsonResponse json);
+	void infoInnerCallback(StorageInfoCallback outerCallback, const Networking::JsonResponse &json);
 
 	/** Returns bool based on JSON response from cloud. */
-	void createDirectoryInnerCallback(BoolCallback outerCallback, Networking::JsonResponse json);
+	void createDirectoryInnerCallback(BoolCallback outerCallback, const Networking::JsonResponse &json);
 
-	void printInfo(StorageInfoResponse response);
+	void printInfo(const StorageInfoResponse &response);
 
 protected:
 	/**
 	 * @return "gdrive"
 	 */
-	virtual Common::String cloudProvider();
+	Common::String cloudProvider() override;
 
 	/**
 	 * @return kStorageGoogleDriveId
 	 */
-	virtual uint32 storageIndex();
+	uint32 storageIndex() override;
 
-	virtual bool needsRefreshToken();
+	bool needsRefreshToken() override;
 
-	virtual bool canReuseRefreshToken();
+	bool canReuseRefreshToken() override;
 
 public:
 	/** This constructor uses OAuth code flow to get tokens. */
-	GoogleDriveStorage(Common::String code, Networking::ErrorCallback cb);
-	virtual ~GoogleDriveStorage();
+	GoogleDriveStorage(const Common::String &code, Networking::ErrorCallback cb);
+
+	/** This constructor extracts tokens from JSON acquired via OAuth code flow. */
+	GoogleDriveStorage(const Networking::JsonResponse &codeFlowJson, Networking::ErrorCallback cb);
+
+	~GoogleDriveStorage() override;
 
 	/**
 	 * Storage methods, which are used by CloudManager to save
@@ -72,46 +75,46 @@ public:
 	 * @note every Storage must write keyPrefix + "type" key
 	 *       with common value (e.g. "Dropbox").
 	 */
-	virtual void saveConfig(Common::String keyPrefix);
+	void saveConfig(const Common::String &keyPrefix) override;
 
 	/**
 	* Return unique storage name.
 	* @returns  some unique storage name (for example, "Dropbox (user@example.com)")
 	*/
-	virtual Common::String name() const;
+	Common::String name() const override;
 
 	/** Public Cloud API comes down there. */
 
 	/** Returns Array<StorageFile> - the list of files. */
-	virtual Networking::Request *listDirectoryById(Common::String id, ListDirectoryCallback callback, Networking::ErrorCallback errorCallback);
+	Networking::Request *listDirectoryById(const Common::String &id, ListDirectoryCallback callback, Networking::ErrorCallback errorCallback) override;
 
 	/** Returns UploadStatus struct with info about uploaded file. */
-	virtual Networking::Request *upload(Common::String path, Common::SeekableReadStream *contents, UploadCallback callback, Networking::ErrorCallback errorCallback);
+	Networking::Request *upload(const Common::String &path, Common::SeekableReadStream *contents, UploadCallback callback, Networking::ErrorCallback errorCallback) override;
 
 	/** Returns pointer to Networking::NetworkReadStream. */
-	virtual Networking::Request *streamFileById(Common::String id, Networking::NetworkReadStreamCallback callback, Networking::ErrorCallback errorCallback);
+	Networking::Request *streamFileById(const Common::String &id, Networking::NetworkReadStreamCallback callback, Networking::ErrorCallback errorCallback) override;
 
 	/** Calls the callback when finished. */
-	virtual Networking::Request *createDirectoryWithParentId(Common::String parentId, Common::String directoryName, BoolCallback callback, Networking::ErrorCallback errorCallback);
+	Networking::Request *createDirectoryWithParentId(const Common::String &parentId, const Common::String &directoryName, BoolCallback callback, Networking::ErrorCallback errorCallback) override;
 
 	/** Returns the StorageInfo struct. */
-	virtual Networking::Request *info(StorageInfoCallback callback, Networking::ErrorCallback errorCallback);
+	Networking::Request *info(StorageInfoCallback callback, Networking::ErrorCallback errorCallback) override;
 
 	/** Returns storage's saves directory path with the trailing slash. */
-	virtual Common::String savesDirectoryPath();
+	Common::String savesDirectoryPath() override;
 
 	/**
 	 * Load token and user id from configs and return GoogleDriveStorage for those.
-	 * @return pointer to the newly created GoogleDriveStorage or 0 if some problem occured.
+	 * @return pointer to the newly created GoogleDriveStorage or 0 if some problem occurred.
 	 */
-	static GoogleDriveStorage *loadFromConfig(Common::String keyPrefix);
+	static GoogleDriveStorage *loadFromConfig(const Common::String &keyPrefix);
 
 	/**
 	 * Remove all GoogleDriveStorage-related data from config.
 	 */
-	static void removeFromConfig(Common::String keyPrefix);
+	static void removeFromConfig(const Common::String &keyPrefix);
 
-	virtual Common::String getRootDirectoryId();
+	Common::String getRootDirectoryId() override;
 
 	Common::String accessToken() const { return _token; }
 };

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,16 +31,9 @@ namespace Ultima {
 namespace Nuvie {
 
 GUI_Scroller::GUI_Scroller(int x, int y, int w, int h, uint8 r, uint8 g, uint8 b, uint16 r_height)
-	: GUI_Widget(NULL, x, y, w, h) {
-
-	R = r;
-	G = g;
-	B = b;
-	bg_color = 0;
-	row_height = r_height;
+	: GUI_Widget(nullptr, x, y, w, h), R(r), G(g), B(b), bg_color(0),
+	  row_height(r_height), num_rows(0), disp_offset(0) {
 	rows_per_page = h / row_height;
-	num_rows = 0;
-	disp_offset = 0;
 	scroll_bar = new GUI_ScrollBar(area.width() - SCROLLBAR_WIDTH, 0, area.height(), this);
 
 	GUI_Widget::AddWidget(scroll_bar); // we call the GUI_Widget::AddWidget method our method is for scroller container items.
@@ -50,7 +42,7 @@ GUI_Scroller::GUI_Scroller(int x, int y, int w, int h, uint8 r, uint8 g, uint8 b
 /* Map the color to the display */
 void GUI_Scroller::SetDisplay(Screen *s) {
 	GUI_Widget::SetDisplay(s);
-	bg_color = SDL_MapRGB(surface->format, R, G, B);
+	bg_color = surface->format.RGBToColor(R, G, B);
 }
 
 int GUI_Scroller::AddWidget(GUI_Widget *widget) {
@@ -84,8 +76,7 @@ void GUI_Scroller::update_viewport(bool update_slider) {
 		scroll_bar->set_slider_position(s_pos);
 	}
 
-	Std::list<GUI_Widget *>::iterator child;
-	child = children.begin();
+	Std::list<GUI_Widget *>::iterator child = children.begin();
 	child++; // skip the scroll_bar widget. This is a bit evil.
 
 	for (i = 0; child != children.end(); child++, i++) {
@@ -135,7 +126,7 @@ GUI_status GUI_Scroller::MouseMotion(int x, int y, uint8 state) {
 //GUI::get_gui()->moveWidget(this,dx,dy);
 // Redraw();
 
-	return (GUI_YUM);
+	return GUI_YUM;
 }
 
 GUI_status GUI_Scroller::MouseWheel(sint32 x, sint32 y) {
@@ -144,7 +135,7 @@ GUI_status GUI_Scroller::MouseWheel(sint32 x, sint32 y) {
 	else if (y < 0)
 		move_down();
 
-	return (GUI_YUM);
+	return GUI_YUM;
 }
 
 void GUI_Scroller::move_up() {

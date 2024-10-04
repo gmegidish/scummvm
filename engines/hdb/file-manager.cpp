@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/debug.h"
 #include "common/file.h"
 #include "common/memstream.h"
-#include "common/zlib.h"
+#include "common/compression/deflate.h"
 
 #include "hdb/hdb.h"
 #include "hdb/file-manager.h"
@@ -41,9 +40,9 @@ FileMan::~FileMan() {
 		delete _dir[i];
 }
 
-void FileMan::openMPC(const Common::String &filename) {
+void FileMan::openMPC(const Common::Path &filename) {
 	if (!_mpcFile->open(filename))
-		error("FileMan::openMPC(): Error reading the MSD/MPC file %s", filename.c_str());
+		error("FileMan::openMPC(): Error reading the MSD/MPC file %s", filename.toString().c_str());
 
 	_dataHeader.id = _mpcFile->readUint32BE();
 
@@ -135,7 +134,7 @@ Common::SeekableReadStream *FileMan::findFirstData(const char *string, DataType 
 
 	// Return buffer wrapped in a MemoryReadStream, automatically
 	// uncompressed if it is zlib-compressed
-	return Common::wrapCompressedReadStream(new Common::MemoryReadStream(buffer, file->length, DisposeAfterUse::YES), file->length);
+	return Common::wrapCompressedReadStream(new Common::MemoryReadStream(buffer, file->length, DisposeAfterUse::YES), DisposeAfterUse::YES, file->length);
 }
 
 int32 FileMan::getLength(const char *string, DataType type) {

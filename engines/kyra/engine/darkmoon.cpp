@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,11 +66,20 @@ Common::Error DarkMoonEngine::init() {
 	_screen->loadPalette(_flags.platform == Common::kPlatformFMTowns ? "MENU.PAL" : "PALETTE.COL", _screen->getPalette(0));
 	_screen->setScreenPalette(_screen->getPalette(0));
 
+	// adjust menu settings for EOB II FM-Towns/PC-98/Chinese versions
 	if (_flags.platform == Common::kPlatformFMTowns) {
-		// adjust menu settings for EOB II FM-Towns
 		_screen->modifyScreenDim(6, 10, 100, 21, 40);
 		_screen->modifyScreenDim(27, 0, 0, 21, 2);
 		_vcnFilePattern = "%s.VCC";
+	} else if (_flags.platform == Common::kPlatformPC98) {
+		_screen->modifyScreenDim(6, 10, 100, 21, 40);
+		_screen->modifyScreenDim(27, 0, 0, 21, 5);
+	} else if (_flags.lang == Common::Language::ZH_TWN) {
+		_screen->modifyScreenDim(6, 10, 72, 21, 40);
+		_txt->setShadowColor(-1, guiSettings()->colors.guiColorBlack);
+		_txt->setLineSpacing(7, -1);
+		_txt->setColorMapping(7, 12, 0);
+		_txt->setShadowColor(7, guiSettings()->colors.fill);
 	}
 
 	return Common::kNoError;
@@ -111,8 +119,7 @@ void DarkMoonEngine::loadItemsAndDecorationsShapes() {
 	_teleporterShapes = new const uint8 *[6];
 	_sparkShapes = new const uint8 *[3];
 	_compassShapes = new const uint8 *[12];
-	if (_flags.gameID == GI_EOB2)
-		_wallOfForceShapes = new const uint8 *[6];
+	_wallOfForceShapes = new const uint8 *[6];
 
 	_lightningColumnShape = _staticres->loadRawData(kEoB2LightningColumnShapeData, size);
 	for (int i = 0; i < 6; i++)
@@ -220,10 +227,10 @@ void DarkMoonEngine::loadMonsterShapes(const char *filename, int monsterIndex, b
 		return;
 	}
 
-	Common::String tmp = Common::String::format("%s.MNT", filename);
+	Common::Path tmp(Common::String::format("%s.MNT", filename));
 	Common::SeekableReadStream *s = _res->createReadStream(tmp);
 	if (!s)
-		error("Screen_EoB::loadMonsterShapes(): Failed to load file '%s'", tmp.c_str());
+		error("Screen_EoB::loadMonsterShapes(): Failed to load file '%s'", tmp.toString().c_str());
 
 	for (int i = 0; i < 6; i++)
 		_monsterShapes[monsterIndex + i] = loadFMTownsShape(s);
@@ -434,7 +441,7 @@ void DarkMoonEngine::replaceMonster(int unit, uint16 block, int pos, int dir, in
 		// The boss level and the mindflayer level share the same monster data. If you hang around
 		// long enough in the mindflayer level all 30 monster slots will be used up. When this
 		// happens it will trigger the dragon transformation sequence when Dran is moved around by script.
-		// We avoid removing Dran here by prefering monster slots occupied by monsters from another
+		// We avoid removing Dran here by preferring monster slots occupied by monsters from another
 		// sub level.
 		if (_monsters[i].sub != _currentSub) {
 			index = i;
@@ -482,11 +489,11 @@ bool DarkMoonEngine::killMonsterExtra(EoBMonsterInPlay *m) {
 
 void DarkMoonEngine::loadVcnData(const char *file, const uint8 *cgaMapping) {
 	if (file)
-		strcpy(_lastBlockDataFile, file);
+		_lastBlockDataFile = file;
 	delete[] _vcnBlocks;
 
 	if (_flags.platform == Common::kPlatformFMTowns) {
-		Common::String fn = Common::String::format(_vcnFilePattern.c_str(), _lastBlockDataFile);
+		Common::String fn = Common::String::format(_vcnFilePattern.c_str(), _lastBlockDataFile.c_str());
 		_vcnBlocks = _res->fileData(fn.c_str(), 0);
 	} else {
 		EoBCoreEngine::loadVcnData(file, cgaMapping);
@@ -590,8 +597,8 @@ void DarkMoonEngine::restParty_npc() {
 	gui_drawBox(_screen->_curDim->sx << 3, _screen->_curDim->sy, _screen->_curDim->w << 3, _screen->_curDim->h, guiSettings()->colors.frame1, guiSettings()->colors.frame2, -1);
 	gui_drawBox((_screen->_curDim->sx << 3) + 1, _screen->_curDim->sy + 1, (_screen->_curDim->w << 3) - 2, _screen->_curDim->h - 2, guiSettings()->colors.frame1, guiSettings()->colors.frame2, guiSettings()->colors.fill);
 	_screen->set16bitShadingLevel(0);
-	_gui->messageDialogue2(11, 63, guiSettings()->colors.guiColorLightRed);
-	_gui->messageDialogue2(11, 64, guiSettings()->colors.guiColorLightRed);
+	_gui->messageDialog2(11, 63, guiSettings()->colors.guiColorLightRed);
+	_gui->messageDialog2(11, 64, guiSettings()->colors.guiColorLightRed);
 }
 
 bool DarkMoonEngine::restParty_extraAbortCondition() {
@@ -601,6 +608,11 @@ bool DarkMoonEngine::restParty_extraAbortCondition() {
 	seq_nightmare();
 
 	return true;
+}
+
+void DarkMoonEngine::snd_playLevelScore() {
+	if (_flags.platform == Common::kPlatformPC98)
+		snd_playSong(0);
 }
 
 void DarkMoonEngine::snd_loadAmigaSounds(int level, int sub) {
@@ -673,7 +685,7 @@ void DarkMoonEngine::snd_loadAmigaSounds(int level, int sub) {
 		if (valNew >= 0 && valNew != valCur) {
 			if (i < 2 && valCur >= 0 && _amigaCurSoundIndex)
 				_sound->unloadSoundFile(Common::String::format("%s.SAM", _amigaLevelSoundList1[_amigaSoundIndex1[_amigaCurSoundIndex]]));
-			_sound->loadSoundFile(Common::String::format("%s.CPS", _amigaLevelSoundList1[valNew]));
+			_sound->loadSoundFile(Common::Path(Common::String::format("%s.CPS", _amigaLevelSoundList1[valNew])));
 			assert(_amigaLevelSoundList2[valNew]);
 			_amigaSoundMap[36 + i] = _amigaLevelSoundList2[valNew][0] ? _amigaLevelSoundList2[valNew] : 0;
 		} else if (valNew == -2) {
@@ -683,9 +695,14 @@ void DarkMoonEngine::snd_loadAmigaSounds(int level, int sub) {
 		}
 	}
 
-	_sound->loadSoundFile(Common::String::format(sub ? "LEVEL%da.SAM" : "LEVEL%d.SAM", level));
+	_sound->loadSoundFile(Common::Path(Common::String::format(sub ? "LEVEL%da.SAM" : "LEVEL%d.SAM", level)));
 
 	_amigaCurSoundIndex = sndIndex;
+}
+
+void DarkMoonEngine::snd_updateLevelScore() {
+	if (_flags.platform == Common::kPlatformPC98 && !_sound->isPlaying())
+		snd_playLevelScore();
 }
 
 void DarkMoonEngine::useHorn(int charIndex, int weaponSlot) {
@@ -775,6 +792,10 @@ const KyraRpgGUISettings *DarkMoonEngine::guiSettings() const {
 		return &_guiSettingsAmiga;
 	else if (_flags.platform == Common::kPlatformFMTowns)
 		return &_guiSettingsFMTowns;
+	else if (_flags.platform == Common::kPlatformPC98)
+		return &_guiSettingsPC98;
+	else if (_flags.lang == Common::ZH_TWN)
+		return &_guiSettingsDOS_ZH;
 	else
 		return &_guiSettingsDOS;
 }

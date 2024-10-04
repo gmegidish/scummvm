@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,12 +29,12 @@
 #include "common/system.h"
 #include "common/str.h"
 #include "common/config-manager.h"
-#include "common/math.h"
 #include "common/memstream.h"
 
 #include "graphics/surface.h"
-#include "graphics/palette.h"
 #include "graphics/thumbnail.h"
+
+#include "math/utils.h"
 
 #include "engines/util.h"
 
@@ -248,7 +247,7 @@ public:
 
 	PixelWriterColorNTSC() {
 		for (uint phase = 0; phase < kColorPhases; ++phase) {
-			double phi = Common::deg2rad(phase * 90.0 + 45.0);
+			double phi = Math::deg2rad(phase * 90.0 + 45.0);
 			for (uint s = 0; s < kColors; ++s) {
 				uint t = s;
 				double y;
@@ -268,7 +267,7 @@ public:
 						i = i + (c * cos(phi) - i) / 8.0;
 						q = q + (c * sin(phi) - q) / 8.0;
 
-						phi += Common::deg2rad(45.0);
+						phi += Math::deg2rad(45.0);
 					}
 				}
 
@@ -493,6 +492,7 @@ Display_A2::Display_A2() :
 		_enableColor(false),
 		_enableScanlines(false),
 		_enableMonoText(false),
+		_enableApple2eCursor(false),
 		_blink(false) { }
 
 Display_A2::~Display_A2() {
@@ -507,6 +507,7 @@ void Display_A2::init() {
 	_enableColor = ConfMan.getBool("color");
 	_enableScanlines = ConfMan.getBool("scanlines");
 	_enableMonoText = ConfMan.getBool("monotext");
+	_enableApple2eCursor = ConfMan.getBool("apple2e_cursor");
 }
 
 void Display_A2::loadFrameBuffer(Common::ReadStream &stream, byte *dst) const {

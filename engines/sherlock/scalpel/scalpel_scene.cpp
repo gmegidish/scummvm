@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,7 +44,7 @@ ScalpelScene::~ScalpelScene() {
 		delete _canimShapes[idx];
 }
 
-bool ScalpelScene::loadScene(const Common::String &filename) {
+bool ScalpelScene::loadScene(const Common::Path &filename) {
 	ScalpelMap &map = *(ScalpelMap *)_vm->_map;
 	bool result = Scene::loadScene(filename);
 
@@ -573,7 +572,7 @@ int ScalpelScene::startCAnim(int cAnimNum, int playRate) {
 		if (tpPos.x != -1)
 			people[HOLMES]._type = REMOVE;
 
-		Common::String fname = cAnim._name + ".vgs";
+		Common::Path fname(cAnim._name + ".vgs");
 		if (!res.isInCache(fname)) {
 			// Set up RRM scene data
 			Common::SeekableReadStream *roomStream = res.load(_roomFilename);

@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -144,7 +143,7 @@ typedef struct Bone_Frame {
 	LinkedMatrix bones[1]; // actually LinkedMatrix rot[nBones]
 } Bone_Frame;
 
-typedef struct rab_API {
+typedef struct {
 	char id[4];
 	uint32 schema;
 	uint16 nFrames;
@@ -156,14 +155,16 @@ typedef struct rab_API {
 
 	// byte offsets from start of the file
 	uint32 frameOffsets[1]; // nFrames of them
+} RabAPI;
 
-	Bone_Frame *GetFrame(const int32 f);
+typedef struct _RabAPIObject {
+	static Bone_Frame *GetFrame(RabAPI *rab, const int32 f);
 
-	Bone_Frame *GetCurrentFrame(void) { return (Bone_Frame *)((uint8 *)(id + currentFrameOffset)); }
+	static Bone_Frame *GetCurrentFrame(RabAPI *rab) { return (Bone_Frame *)((uint8 *)(rab->id + FROM_LE_32(rab->currentFrameOffset))); }
 
-	FrameData *GetFrameData(const int32 f) { return (FrameData *)((uint8 *)(id + frameOffsets[f])); }
+	static FrameData *GetFrameData(RabAPI *rab, const int32 f) { return (FrameData *)((uint8 *)(rab->id + FROM_LE_32(rab->frameOffsets[f]))); }
 
-} rab_API;
+} RabAPIObject;
 
 // Compress an SVECTOR ( uint16 vx,vy,vz, pad; ) -> uint32
 // by dividing the angles (12-bits 0-4095) by four to make them 10-bits

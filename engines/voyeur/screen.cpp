@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,7 @@
 #include "voyeur/voyeur.h"
 #include "voyeur/staticres.h"
 #include "engines/util.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/surface.h"
 
 namespace Voyeur {
@@ -43,13 +42,13 @@ Screen::Screen(VoyeurEngine *vm) : Graphics::Screen(), _vm(vm), _drawPtr(&_defau
 	_SVGAMode = 0;
 	_planeSelect = 0;
 	_saveBack = true;
-	_clipPtr = NULL;
-	_viewPortListPtr = NULL;
-	_backgroundPage = NULL;
-	_vPort = NULL;
-	_fontPtr = NULL;
+	_clipPtr = nullptr;
+	_viewPortListPtr = nullptr;
+	_backgroundPage = nullptr;
+	_vPort = nullptr;
+	_fontPtr = nullptr;
 	Common::fill(&_VGAColors[0], &_VGAColors[PALETTE_SIZE], 0);
-	_fontChar = new PictureResource(DISPFLAG_NONE, 0xff, 0xff, 0, Common::Rect(), 0, NULL, 0);
+	_fontChar = new PictureResource(DISPFLAG_NONE, 0xff, 0xff, 0, Common::Rect(), 0, nullptr, 0);
 	_backColors = nullptr;
 }
 
@@ -118,7 +117,7 @@ void Screen::sDrawPic(DisplayResource *srcDisplay, DisplayResource *destDisplay,
 	int srcOffset;
 	int screenOffset;
 	int srcFlags, destFlags;
-	ViewPortResource *destViewPort = NULL;
+	ViewPortResource *destViewPort = nullptr;
 	Common::Rect newBounds;
 	Common::Rect backBounds;
 	int tmpWidth = 0;
@@ -158,7 +157,7 @@ void Screen::sDrawPic(DisplayResource *srcDisplay, DisplayResource *destDisplay,
 	srcOffset = 0;
 	srcFlags = srcPic->_flags;
 	destFlags = destPic->_flags;
-	byte *cursorData = NULL;
+	byte *cursorData = nullptr;
 
 	if (srcFlags & DISPFLAG_1) {
 		if (_clipPtr) {
@@ -1008,8 +1007,8 @@ void Screen::setColors(int start, int count, const byte *pal) {
 void Screen::screenReset() {
 	resetPalette();
 
-	_backgroundPage = NULL;
-	_vPort->setupViewPort(NULL);
+	_backgroundPage = nullptr;
+	_vPort->setupViewPort(nullptr);
 	fillPic(_vPort, 0);
 
 	_vm->flipPageAndWait();

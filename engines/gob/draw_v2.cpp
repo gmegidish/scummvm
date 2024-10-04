@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -145,9 +150,6 @@ void Draw_v2::animateCursor(int16 cursor) {
 		} else if (_cursorHotspotX != -1) {
 			hotspotX = _cursorHotspotX;
 			hotspotY = _cursorHotspotY;
-		} else if (_cursorHotspotsX != 0) {
-			hotspotX = _cursorHotspotsX[_cursorIndex];
-			hotspotY = _cursorHotspotsY[_cursorIndex];
 		}
 
 		newX = _vm->_global->_inter_mouseX - hotspotX;
@@ -159,19 +161,9 @@ void Draw_v2::animateCursor(int16 cursor) {
 				(cursorIndex + 1) * _cursorWidth - 1,
 				_cursorHeight - 1, 0, 0);
 
-		uint32 keyColor = 0;
-		if (_doCursorPalettes && _cursorKeyColors && _doCursorPalettes[cursorIndex])
-			keyColor = _cursorKeyColors[cursorIndex];
-
 		CursorMan.replaceCursor(_scummvmCursor->getData(),
-				_cursorWidth, _cursorHeight, hotspotX, hotspotY, keyColor, false, &_vm->getPixelFormat());
-
-		if (_doCursorPalettes && _doCursorPalettes[cursorIndex]) {
-			CursorMan.replaceCursorPalette(_cursorPalettes + (cursorIndex * 256 * 3),
-					_cursorPaletteStarts[cursorIndex], _cursorPaletteCounts[cursorIndex]);
-			CursorMan.disableCursorPalette(false);
-		} else
-			CursorMan.disableCursorPalette(true);
+				_cursorWidth, _cursorHeight, hotspotX, hotspotY, 0, false, &_vm->getPixelFormat());
+		CursorMan.disableCursorPalette(true);
 
 		if (_frontSurface != _backSurface) {
 			if (!_noInvalidated) {
@@ -302,6 +294,11 @@ void Draw_v2::printTotText(int16 id) {
 	_backColor = *ptr++;
 	_transparency = 1;
 
+	if ((_vm->getGameType() == kGameTypeAdibou2 ||
+		 _vm->getGameType() == kGameTypeAdi4) &&
+		_backColor == 16)
+		_backColor = -1;
+
 	spriteOperation(DRAW_CLEARRECT);
 
 	_backColor = 0;
@@ -403,14 +400,14 @@ void Draw_v2::printTotText(int16 id) {
 			str[MAX(strPos, strPos2)] = 0;
 			strPosBak = strPos;
 			width = strlen(str) * _fonts[fontIndex]->getCharWidth();
-			adjustCoords(1, &width, 0);
+			adjustCoords(1, &width, nullptr);
 
 			if (colCmd & 0x0F) {
 				rectLeft = offX - 2;
 				rectTop = offY - 2;
 				rectRight = offX + width + 1;
 				rectBottom = _fonts[fontIndex]->getCharHeight();
-				adjustCoords(1, &rectBottom, 0);
+				adjustCoords(1, &rectBottom, nullptr);
 				rectBottom += offY + 1;
 				adjustCoords(0, &rectLeft, &rectTop);
 				adjustCoords(2, &rectRight, &rectBottom);
@@ -470,7 +467,7 @@ void Draw_v2::printTotText(int16 id) {
 			for (int i = 0; i < strPosBak; i++)
 				rectLeft += _fonts[_fontIndex]->getCharWidth(str[i]);
 
-			adjustCoords(1, &rectLeft, 0);
+			adjustCoords(1, &rectLeft, nullptr);
 			offX += rectLeft;
 			strPos = 0;
 			strPos2 = -1;
@@ -574,13 +571,13 @@ void Draw_v2::printTotText(int16 id) {
 			cmd = ptrEnd[17] & 0x7F;
 			if (cmd == 0) {
 				val = READ_LE_UINT16(ptrEnd + 18) * 4;
-				sprintf(buf, "%d", (int32)VAR_OFFSET(val));
+				Common::sprintf_s(buf, "%d", (int32)VAR_OFFSET(val));
 			} else if (cmd == 1) {
 				val = READ_LE_UINT16(ptrEnd + 18) * 4;
 				Common::strlcpy(buf, GET_VARO_STR(val), 20);
 			} else {
 				val = READ_LE_UINT16(ptrEnd + 18) * 4;
-				sprintf(buf, "%d", (int32)VAR_OFFSET(val));
+				Common::sprintf_s(buf, "%d", (int32)VAR_OFFSET(val));
 				if (buf[0] == '-') {
 					while (strlen(buf) - 1 < (uint32)ptrEnd[17]) {
 						_vm->_util->insertStr("0", buf, 1);
@@ -746,10 +743,10 @@ void Draw_v2::spriteOperation(int16 operation) {
 			break;
 
 		_spritesArray[_destSurface]->blit(*_spritesArray[_sourceSurface],
-				_spriteLeft, spriteTop,
+				_spriteLeft, _spriteTop,
 				_spriteLeft + _spriteRight - 1,
 				_spriteTop + _spriteBottom - 1,
-				_destSpriteX, _destSpriteY, (_transparency == 0) ? -1 : 0);
+				_destSpriteX, _destSpriteY, (_transparency == 0) ? -1 : 0, _transparency & 0x80);
 
 		dirtiedRect(_destSurface, _destSpriteX, _destSpriteY,
 				_destSpriteX + _spriteRight - 1, _destSpriteY + _spriteBottom - 1);
@@ -763,13 +760,13 @@ void Draw_v2::spriteOperation(int16 operation) {
 
 	case DRAW_FILLRECT:
 		if (!(_backColor & 0xFF00) || !(_backColor & 0x0100)) {
-			_spritesArray[_destSurface]->fillRect(destSpriteX,
+			_spritesArray[_destSurface]->fillRect(_destSpriteX,
 					_destSpriteY, _destSpriteX + _spriteRight - 1,
 					_destSpriteY + _spriteBottom - 1, getColor(_backColor));
 		} else {
 			uint8 strength = 16 - (((uint16) _backColor) >> 12);
 
-			_spritesArray[_destSurface]->shadeRect(destSpriteX,
+			_spritesArray[_destSurface]->shadeRect(_destSpriteX,
 					_destSpriteY, _destSpriteX + _spriteRight - 1,
 					_destSpriteY + _spriteBottom - 1, getColor(_backColor), strength);
 		}
@@ -799,6 +796,9 @@ void Draw_v2::spriteOperation(int16 operation) {
 
 		if (!resource)
 			break;
+
+		if (_vm->_draw->_needAdjust == 3 || _vm->_draw->_needAdjust == 4)
+			adjustCoords(0, &_spriteRight, &_spriteBottom);
 
 		_vm->_video->drawPackedSprite(resource->getData(),
 				_spriteRight, _spriteBottom, _destSpriteX, _destSpriteY,
@@ -920,6 +920,7 @@ void Draw_v2::spriteOperation(int16 operation) {
 		break;
 
 	default:
+		warning("unknown operation %d in Draw_v2::spriteOperation", operation);
 		break;
 	}
 

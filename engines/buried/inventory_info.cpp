@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,7 +52,7 @@ InventoryInfoWindow::InventoryInfoWindow(BuriedEngine *vm, Window *parent, int c
 	if (!_videoWindow->openVideo(_vm->getFilePath(_vm->isDemo() ? IDS_INVENTORY_SPIN_FILENAME_DEMO : IDS_INVENTORY_SPIN_FILENAME)))
 		error("Failed to load inventory info file");
 
-	_videoWindow->setWindowPos(0, 268, 17, 0, 0, kWindowPosNoSize | kWindowPosNoZOrder | kWindowPosShowWindow);
+	_videoWindow->setWindowPos(nullptr, 268, 17, 0, 0, kWindowPosNoSize | kWindowPosNoZOrder | kWindowPosShowWindow);
 	_videoWindow->enableWindow(false);
 
 	_timer = setTimer(100);
@@ -180,7 +179,7 @@ void BurnedLetterViewWindow::onPaint() {
 	}
 
 	Common::Rect absoluteRect = getAbsoluteRect();
-	_vm->_gfx->opaqueTransparentBlit(_vm->_gfx->getScreen(), absoluteRect.left, absoluteRect.top, absoluteRect.width(), absoluteRect.height(), _preBuffer, 0, 0, 0, 0, 0, 0);
+	_vm->_gfx->keyBlit(_vm->_gfx->getScreen(), absoluteRect.left, absoluteRect.top, absoluteRect.width(), absoluteRect.height(), _preBuffer, 0, 0, 0, 0, 0);
 
 	if (_curLineIndex >= 0 && ((SceneViewWindow *)_parent)->getGlobalFlags().bcTranslateEnabled == 1) {
 		int numLines = _viewLineCount[_curView];
@@ -211,7 +210,7 @@ void BurnedLetterViewWindow::onLButtonUp(const Common::Point &point, uint flags)
 					memcpy(_preBuffer->getBasePtr(0, j), newFrame->getBasePtr(0, _preBuffer->h - (i + offset) + j), newFrame->w * newFrame->format.bytesPerPixel);
 
 				invalidateWindow(false);
-				_vm->yield();
+				_vm->yield(nullptr, -1);
 			}
 
 			newFrame->free();
@@ -241,7 +240,7 @@ void BurnedLetterViewWindow::onLButtonUp(const Common::Point &point, uint flags)
 					memcpy(_preBuffer->getBasePtr(0, newFrame->h - offset + j), newFrame->getBasePtr(0, i + j), newFrame->w * newFrame->format.bytesPerPixel);
 
 				invalidateWindow(false);
-				_vm->yield();
+				_vm->yield(nullptr, -1);
 			}
 
 			newFrame->free();

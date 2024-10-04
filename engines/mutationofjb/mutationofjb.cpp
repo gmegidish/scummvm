@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,7 +51,7 @@ MutationOfJBEngine::MutationOfJBEngine(OSystem *syst, const ADGameDescription *g
 	  _cursorState(CURSOR_IDLE),
 	  _currentScreen(nullptr) {
 
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "data");
 }
 
@@ -120,7 +119,7 @@ bool MutationOfJBEngine::hasFeature(Engine::EngineFeature f) const {
 	return false;
 }
 
-bool MutationOfJBEngine::canLoadGameStateCurrently() {
+bool MutationOfJBEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return _game->loadSaveAllowed();
 }
 
@@ -143,7 +142,7 @@ Common::Error MutationOfJBEngine::loadGameState(int slot) {
 	return Common::kNoError;
 }
 
-bool MutationOfJBEngine::canSaveGameStateCurrently() {
+bool MutationOfJBEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return _game->loadSaveAllowed();
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,7 +51,7 @@ private:
 	 * @param y Y coordinate in screen
 	 * @param character ascii character to display
 	 */
-	void drawCharacter(int32 x, int32 y, uint8 character);
+	void drawCharacter(int32 x, int32 y, uint16 character);
 	/**
 	 * Draw character with shadow
 	 * @param x X coordinate in screen
@@ -60,20 +59,26 @@ private:
 	 * @param character ascii character to display
 	 * @param color character color
 	 */
-	void drawCharacterShadow(int32 x, int32 y, uint8 character, int32 color, Common::Rect& dirtyRect);
+	void drawCharacterShadow(int32 x, int32 y, uint16 character, int32 color, Common::Rect& dirtyRect);
 	void initProgressiveTextBuffer();
 	struct WordSize {
 		int32 inChar = 0;
 		int32 inPixel = 0;
 	};
+	struct LineCharacter {
+		int16 chr = 0;
+		int16 x = 0;
+	};
 	WordSize getWordSize(const char *completeText, char *wordBuf, int32 wordBufSize);
+	uint16 getNextChar(const char *&dialogue);
 	void processTextLine();
+	void appendProgressiveTextBuffer(const char *s, int &x, uint &i);
 	// draw next page arrow polygon
 	void renderContinueReadingTriangle();
 	/**
 	 * @see fadeInCharacters
 	 */
-	void fillFadeInBuffer(int16 x, int16 y, int16 chr);
+	void fillFadeInBuffer(int16 baseX, int16 y, const LineCharacter &chr);
 	/**
 	 * Blend in characters for a text scrolling in
 	 *
@@ -84,14 +89,14 @@ private:
 
 	TextBankId _currentBankIdx = TextBankId::None;
 
-	char _progressiveTextBuffer[256] {'\0'};
+	LineCharacter _progressiveTextBuffer[256];
 	const char *_currentTextPosition = nullptr;
 
-	int32 _dialTextXPos = 0;
+	int32 _dialTextBaseXPos = 0;
 	int32 _dialTextYPos = 0;
 
 	/** Current position of in the buffer of characters that are currently faded in */
-	char *_progressiveTextBufferPtr = nullptr;
+	const LineCharacter *_progressiveTextBufferPtr = nullptr;
 
 	int32 _dialTextBoxCurrentLine = 0;
 	struct BlendInCharacter {
@@ -136,6 +141,9 @@ private:
 	int32 _dialTextBoxLines = 0; // dialogueBoxParam1
 	int32 _dialTextBoxMaxX = 0; // dialogueBoxParam2
 
+	bool _isShiftJIS = false;
+	bool _isVisualRTL = false;
+
 	bool displayText(TextId index, bool showText, bool playVox, bool loop);
 public:
 	Text(TwinEEngine *engine);
@@ -154,6 +162,8 @@ public:
 
 	const TextEntry *_currDialTextEntry = nullptr; // ordered entry
 	Common::String _currentVoxBankFile;
+	// used for the android version (dotemu)
+	Common::String _currentOggBaseFile;
 
 	bool _showDialogueBubble = true;
 
@@ -161,7 +171,7 @@ public:
 	 * Initialize dialogue
 	 * @param bankIdx Text bank index
 	 */
-	void initTextBank(TextBankId bankIdx);
+	void initDial(TextBankId bankIdx);
 	void initSceneTextBank();
 	inline TextBankId textBank() const {
 		return _currentBankIdx;
@@ -173,7 +183,7 @@ public:
 	 * @param y Y coordinate in screen
 	 * @param dialogue ascii text to display
 	 */
-	void drawText(int32 x, int32 y, const char *dialogue);
+	void drawText(int32 x, int32 y, const char *dialogue, bool shadow = false);
 
 	bool drawTextProgressive(TextId index, bool playVox = true, bool loop = true);
 
@@ -182,13 +192,14 @@ public:
 	 * @param dialogue ascii text to display
 	 */
 	int32 getTextSize(const char *dialogue);
-	int32 getCharWidth(uint8 chr) const;
-	int32 getCharHeight(uint8 chr) const;
+	int32 getCharWidth(uint16 chr) const;
+	int32 getCharHeight(uint16 chr) const;
 
 	void initDialogueBox();
 	void initInventoryDialogueBox();
 
 	void initText(TextId index);
+	void initLine();
 	void initInventoryText(InventoryItems index);
 	void initItemFoundText(InventoryItems index);
 	void fadeInRemainingChars();
@@ -223,7 +234,7 @@ public:
 
 	/**
 	 * Get dialogue text into text buffer from the currently loaded text bank
-	 * @sa initTextBank()
+	 * @sa initDial()
 	 * @param index dialogue index
 	 */
 	bool getText(TextId index);
@@ -236,8 +247,8 @@ public:
 	 */
 	bool getMenuText(TextId index, char *text, uint32 textSize);
 
-	void textClipFull();
-	void textClipSmall();
+	void bigWinDial();
+	void normalWinDial();
 
 	void drawAskQuestion(TextId index);
 	void drawHolomapLocation(TextId index);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,7 +55,7 @@ public:
 		_channels(channels) {
 	}
 
-	virtual int readBuffer(int16 *buffer, const int numSamples) override {
+	int readBuffer(int16 *buffer, const int numSamples) override {
 		int samples;
 
 		for (samples = 0; samples < numSamples; samples++) {
@@ -69,20 +68,20 @@ public:
 		return samples;
 	}
 
-	virtual bool isStereo() const override { return (_channels == 2); }
-	virtual int getRate() const override { return _rate; }
-	virtual bool endOfData() const override { return _stream->eos(); }
-	virtual bool seek(const Timestamp &where) override {
+	bool isStereo() const override { return (_channels == 2); }
+	int getRate() const override { return _rate; }
+	bool endOfData() const override { return _stream->eos(); }
+	bool seek(const Timestamp &where) override {
 		const uint32 seekSample = convertTimeToStreamPos(where, getRate(), isStereo()).totalNumberOfFrames();
 		return _stream->seek(seekSample, SEEK_SET);
 	}
-	virtual Timestamp getLength() const override {
+	Timestamp getLength() const override {
 		return Timestamp(0, _stream->size() / _channels, _rate);
 	}
 };
 
 class G711ALawStream : public G711AudioStream {
-	virtual int16 decodeSample(uint8 val) override {
+	int16 decodeSample(uint8 val) override {
 		val ^= 0x55;
 
 		int t = val & QUANT_MASK;
@@ -106,7 +105,7 @@ SeekableAudioStream *makeALawStream(Common::SeekableReadStream *stream, DisposeA
 }
 
 class G711MuLawStream : public G711AudioStream {
-	virtual int16 decodeSample(uint8 val) override {
+	int16 decodeSample(uint8 val) override {
 		val = ~val;
 
 		int t = ((val & QUANT_MASK) << 3) + BIAS;

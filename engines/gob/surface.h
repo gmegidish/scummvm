@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -26,6 +31,7 @@
 #include "common/scummsys.h"
 #include "common/ptr.h"
 #include "common/rational.h"
+#include "common/rect.h"
 
 namespace Common {
 class SeekableReadStream;
@@ -112,7 +118,7 @@ public:
 	ConstPixel get(uint16 x = 0, uint16 y = 0) const;
 
 	void blit(const Surface &from, int16 left, int16 top, int16 right, int16 bottom,
-	          int16 x, int16 y, int32 transp = -1);
+	          int16 x, int16 y, int32 transp = -1, bool yAxisReflexion = false);
 	void blit(const Surface &from, int16 x, int16 y, int32 transp = -1);
 	void blit(const Surface &from, int32 transp = -1);
 
@@ -122,6 +128,8 @@ public:
 	void blitScaled(const Surface &from, Common::Rational scale, int32 transp = -1);
 
 	void fillRect(int16 left, int16 top, int16 right, int16 bottom, uint32 color);
+	void fillArea(int16 left, int16 top, int16 right, int16 bottom, uint32 fillColor, uint32 backgroundColor);
+	Common::Rect fillAreaAtPoint(int16 left, int16 top, uint32 fillColor);
 	void fill(uint32 color);
 	void clear();
 

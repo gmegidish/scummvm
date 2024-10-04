@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -27,13 +26,13 @@
 #include "saga2/saga2.h"
 #include "saga2/actor.h"
 #include "saga2/assign.h"
-#include "saga2/calender.h"
+#include "saga2/calendar.h"
 #include "saga2/task.h"
 #include "saga2/tile.h"
 
 namespace Saga2 {
 
-const uint16 kIndefiniteTime = CalenderTime::kFramesPerDay;
+const uint16 kIndefiniteTime = CalendarTime::kFramesPerDay;
 
 /* ===================================================================== *
    ActorAssignment member functions
@@ -41,13 +40,13 @@ const uint16 kIndefiniteTime = CalenderTime::kFramesPerDay;
 
 //  Constructor
 ActorAssignment::ActorAssignment(Actor *a, uint16 until) :
-	_startFrame(g_vm->_calender->frameInDay()),
+	_startFrame(g_vm->_calendar->frameInDay()),
 	_endFrame(until) {
 	_actor = a;
 	debugC(2, kDebugActors, "New assignment for %p (%s) from %d until %d: %p",
 	      (void *)a, a->objName(), _startFrame, _endFrame, (void *)this);
 	a->_assignment = this;
-	a->_flags |= hasAssignment;
+	a->_flags |= kAFHasAssignment;
 }
 
 ActorAssignment::ActorAssignment(Actor *ac, Common::SeekableReadStream *stream) {
@@ -56,7 +55,7 @@ ActorAssignment::ActorAssignment(Actor *ac, Common::SeekableReadStream *stream) 
 
 	_actor = ac;
 	ac->_assignment = this;
-	ac->_flags |= hasAssignment;
+	ac->_flags |= kAFHasAssignment;
 }
 
 //----------------------------------------------------------------------
@@ -68,15 +67,15 @@ ActorAssignment::~ActorAssignment() {
 	      (void *)a, a->objName(), (void *)this);
 
 	//  Determine if the actor has a task initiated by this assignment
-	if (a->_currentGoal == actorGoalFollowAssignment
-	        &&  a->_curTask != NULL) {
+	if (a->_currentGoal == kActorGoalFollowAssignment
+	        &&  a->_curTask != nullptr) {
 		//  If so, abort it
 		a->_curTask->abortTask();
 		delete a->_curTask;
-		a->_curTask = NULL;
+		a->_curTask = nullptr;
 	}
 
-	a->_flags &= ~hasAssignment;
+	a->_flags &= ~kAFHasAssignment;
 }
 
 //----------------------------------------------------------------------
@@ -96,7 +95,7 @@ void ActorAssignment::write(Common::MemoryWriteStreamDynamic *out) const {
 //	Determine if the time limit for this assignment has been exceeded
 
 bool ActorAssignment::isValid() {
-	uint16  frame = g_vm->_calender->frameInDay();
+	uint16  frame = g_vm->_calendar->frameInDay();
 
 	return      frame < _endFrame
 	            || (_startFrame >= _endFrame && frame >= _startFrame);
@@ -106,19 +105,19 @@ bool ActorAssignment::isValid() {
 //	Create a TaskStack for this actor and plug in the assignment's Task.
 
 TaskStack *ActorAssignment::createTask() {
-	if (!taskNeeded()) return NULL;
+	if (!taskNeeded()) return nullptr;
 
 	Actor       *a = getActor();
-	TaskStack   *ts = NULL;
+	TaskStack   *ts = nullptr;
 
-	if ((ts = newTaskStack(a)) != NULL) {
+	if ((ts = newTaskStack(a)) != nullptr) {
 		Task    *task = getTask(ts);
 
-		if (task != NULL)
+		if (task != nullptr)
 			ts->setTask(task);
 		else {
 			delete ts;
-			ts = NULL;
+			ts = nullptr;
 		}
 	}
 
@@ -145,7 +144,7 @@ void ActorAssignment::handleTaskCompletion(TaskResult) {
 void ActorAssignment::startTask() {
 	Actor   *a = getActor();
 
-	if (a->_currentGoal == actorGoalFollowAssignment)
+	if (a->_currentGoal == kActorGoalFollowAssignment)
 		a->_curTask = createTask();
 }
 
@@ -230,7 +229,7 @@ void PatrolRouteAssignment::write(Common::MemoryWriteStreamDynamic *out) const {
 //	reasons.
 
 int16 PatrolRouteAssignment::type() const {
-	return patrolRouteAssignment;
+	return kPatrolRouteAssignment;
 }
 
 //----------------------------------------------------------------------
@@ -238,7 +237,8 @@ int16 PatrolRouteAssignment::type() const {
 //	of a task which the assignment had created.
 
 void PatrolRouteAssignment::handleTaskCompletion(TaskResult result) {
-	if (result == taskSucceeded) _flags |= routeCompleted;
+	if (result == kTaskSucceeded)
+		_flags |= kRouteCompleted;
 }
 
 //----------------------------------------------------------------------
@@ -247,7 +247,8 @@ void PatrolRouteAssignment::handleTaskCompletion(TaskResult result) {
 bool PatrolRouteAssignment::isValid() {
 	//  If the route has already been completed, then the assignment is
 	//  no longer valid
-	if (_flags & routeCompleted) return false;
+	if (_flags & kRouteCompleted)
+		return false;
 
 	return ActorAssignment::isValid();
 }
@@ -257,7 +258,7 @@ bool PatrolRouteAssignment::isValid() {
 
 bool PatrolRouteAssignment::taskNeeded() {
 	//  If the route has already been completed, then no task is needed
-	return !(_flags & routeCompleted);
+	return !(_flags & kRouteCompleted);
 }
 
 //----------------------------------------------------------------------
@@ -280,7 +281,7 @@ Task *PatrolRouteAssignment::getTask(TaskStack *ts) {
 
 			if (dist < bestDist) {
 				bestDist = dist;
-				startPoint = (_routeFlags & patrolRouteReverse) ? i : (i + 1) % route.vertices();
+				startPoint = (_routeFlags & kPatrolRouteReverse) ? i : (i + 1) % route.vertices();
 			}
 		}
 	}
@@ -367,7 +368,7 @@ void HuntToBeNearLocationAssignment::write(Common::MemoryWriteStreamDynamic *out
 //	reasons.
 
 int16 HuntToBeNearLocationAssignment::type() const {
-	return huntToBeNearLocationAssignment;
+	return kHuntToBeNearLocationAssignment;
 }
 
 //----------------------------------------------------------------------
@@ -425,7 +426,7 @@ void HuntToBeNearActorAssignment::initialize(
 	at.clone(_targetMem);
 
 	_range = r;
-	_flags = trackFlag ? track : 0;
+	_flags = trackFlag ? kTrack : 0;
 }
 
 HuntToBeNearActorAssignment::HuntToBeNearActorAssignment(Actor *a, Common::SeekableReadStream *stream) :
@@ -473,7 +474,7 @@ void HuntToBeNearActorAssignment::write(Common::MemoryWriteStreamDynamic *out) c
 //	reasons.
 
 int16 HuntToBeNearActorAssignment::type() const {
-	return huntToBeNearActorAssignment;
+	return kHuntToBeNearActorAssignment;
 }
 
 //----------------------------------------------------------------------
@@ -485,7 +486,7 @@ bool HuntToBeNearActorAssignment::taskNeeded() {
 	            targetLoc = getTarget()->where(a->world(), actorLoc);
 
 	return      !a->inRange(targetLoc, _range)
-	            ||  a->inRange(targetLoc, HuntToBeNearActorTask::tooClose);
+	            ||  a->inRange(targetLoc, HuntToBeNearActorTask::kTooClose);
 }
 
 //----------------------------------------------------------------------
@@ -496,7 +497,7 @@ Task *HuntToBeNearActorAssignment::getTask(TaskStack *ts) {
 	           ts,
 	           *getTarget(),
 	           _range,
-	           (_flags & track) != false);
+	           (_flags & kTrack) != false);
 }
 
 /* ===================================================================== *
@@ -533,8 +534,8 @@ void HuntToKillAssignment::initialize(
 	//  Copy the target
 	at.clone(_targetMem);
 
-	_flags = (trackFlag ? track : 0)
-	        | (specificActorFlag ? specificActor : 0);
+	_flags = (trackFlag ? kTrack : 0)
+	        | (specificActorFlag ? kSpecificActor : 0);
 }
 
 //----------------------------------------------------------------------
@@ -566,7 +567,7 @@ void HuntToKillAssignment::write(Common::MemoryWriteStreamDynamic *out) const {
 bool HuntToKillAssignment::isValid() {
 	//  If the target actor is already dead, then this is not a valid
 	//  assignment
-	if (_flags & specificActor) {
+	if (_flags & kSpecificActor) {
 		const SpecificActorTarget *sat = (const SpecificActorTarget *)getTarget();
 
 		if (sat->getTargetActor()->isDead()) return false;
@@ -582,7 +583,7 @@ bool HuntToKillAssignment::isValid() {
 //	reasons.
 
 int16 HuntToKillAssignment::type() const {
-	return huntToKillAssignment;
+	return kHuntToKillAssignment;
 }
 
 //----------------------------------------------------------------------
@@ -591,7 +592,7 @@ int16 HuntToKillAssignment::type() const {
 bool HuntToKillAssignment::taskNeeded() {
 	//  If we're hunting a specific actor, we only need a task if that
 	//  actor is still alive.
-	if (_flags & specificActor) {
+	if (_flags & kSpecificActor) {
 		const SpecificActorTarget *sat = (const SpecificActorTarget *)getTarget();
 
 		return !sat->getTargetActor()->isDead();
@@ -608,7 +609,7 @@ Task *HuntToKillAssignment::getTask(TaskStack *ts) {
 	return new HuntToKillTask(
 	           ts,
 	           *getTarget(),
-	           (_flags & track) != false);
+	           (_flags & kTrack) != false);
 }
 
 /* ===================================================================== *
@@ -669,7 +670,7 @@ TetheredWanderAssignment::TetheredWanderAssignment(
 //	reasons.
 
 int16 TetheredWanderAssignment::type() const {
-	return tetheredWanderAssignment;
+	return kTetheredWanderAssignment;
 }
 
 //----------------------------------------------------------------------
@@ -700,7 +701,7 @@ AttendAssignment::AttendAssignment(Actor *a, Common::SeekableReadStream *stream)
 	objID = stream->readUint16LE();
 
 	//  Convert the object ID to an object pointer
-	_obj = objID != Nothing ? GameObject::objectAddress(objID) : NULL;
+	_obj = objID != Nothing ? GameObject::objectAddress(objID) : nullptr;
 }
 
 //----------------------------------------------------------------------
@@ -721,7 +722,7 @@ void AttendAssignment::write(Common::MemoryWriteStreamDynamic *out) const {
 	ObjectID    objID;
 
 	//  Convert the object pointer to an object ID
-	objID = _obj != NULL ? _obj->thisID() : Nothing;
+	objID = _obj != nullptr ? _obj->thisID() : Nothing;
 
 	//  Store the object ID
 	out->writeUint16LE(objID);
@@ -732,7 +733,7 @@ void AttendAssignment::write(Common::MemoryWriteStreamDynamic *out) const {
 //	reasons.
 
 int16 AttendAssignment::type() const {
-	return attendAssignment;
+	return kAttendAssignment;
 }
 
 //----------------------------------------------------------------------
@@ -752,23 +753,23 @@ void readAssignment(Actor *a, Common::InSaveFile *in) {
 
 	//  Based upon the type, call the correct constructor
 	switch (type) {
-	case patrolRouteAssignment:
+	case kPatrolRouteAssignment:
 		new PatrolRouteAssignment(a, in);
 		break;
 
-	case huntToBeNearActorAssignment:
+	case kHuntToBeNearActorAssignment:
 		new HuntToBeNearActorAssignment(a, in);
 		break;
 
-	case huntToBeNearLocationAssignment:
+	case kHuntToBeNearLocationAssignment:
 		new HuntToBeNearLocationAssignment(a, in);
 		break;
 
-	case tetheredWanderAssignment:
+	case kTetheredWanderAssignment:
 		new TetheredWanderAssignment(a, in);
 		break;
 
-	case attendAssignment:
+	case kAttendAssignment:
 		new AttendAssignment(a, in);
 		break;
 	}
@@ -781,13 +782,13 @@ void readAssignment(Actor *a, Common::InSaveFile *in) {
 int32 assignmentArchiveSize(Actor *a) {
 	ActorAssignment     *assign = a->getAssignment();
 
-	return assign != NULL ? sizeof(int16) + assign->archiveSize() : 0;
+	return assign != nullptr ? sizeof(int16) + assign->archiveSize() : 0;
 }
 
 void writeAssignment(Actor *a, Common::MemoryWriteStreamDynamic *out) {
 	ActorAssignment *assign = a->getAssignment();
 
-	if (assign != NULL) {
+	if (assign != nullptr) {
 		out->writeSint16LE(assign->type());
 
 		assign->write(out);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,12 +38,21 @@ enum SIMONGameType {
 };
 
 struct AGOSGameDescription {
+	AD_GAME_DESCRIPTION_HELPERS(desc);
+
 	ADGameDescription desc;
 
 	int gameType;
 	int gameId;
 	uint32 features;
 };
+
+#define GAMEOPTION_OPL3_MODE            GUIO_GAMEOPTIONS1
+#define GAMEOPTION_DOS_TEMPOS           GUIO_GAMEOPTIONS2
+#define GAMEOPTION_WINDOWS_TEMPOS       GUIO_GAMEOPTIONS3
+#define GAMEOPTION_PREFER_DIGITAL_SFX   GUIO_GAMEOPTIONS4
+#define GAMEOPTION_DISABLE_FADE_EFFECTS GUIO_GAMEOPTIONS5
+#define GAMEOPTION_COPY_PROTECTION      GUIO_GAMEOPTIONS6
 
 } // End of namespace AGOS
 

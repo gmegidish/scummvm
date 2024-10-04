@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@
 
 namespace Saga2 {
 
-Music::Music(hResContext *musicRes) : _musicContext(musicRes), _parser(0) {
+Music::Music(hResContext *musicRes) : _musicContext(musicRes), _parser(nullptr) {
 	static const char *opl2InstDefFilename = "SAMPLE.AD";
 	static const char *opl3InstDefFilename = "SAMPLE.OPL";
 
@@ -91,7 +90,7 @@ Music::~Music() {
 		delete _parser;
 	}
 	if (_driver) {
-		_driver->setTimerCallback(0, 0);
+		_driver->setTimerCallback(nullptr, nullptr);
 		_driver->close();
 		delete _driver;
 	}
@@ -118,7 +117,7 @@ void Music::play(uint32 resourceId, MusicFlags flags) {
 	if (_parser) {
 		_parser->unloadMusic();
 	} else {
-		_parser = MidiParser::createParser_XMIDI(0, 0, 0);
+		_parser = MidiParser::createParser_XMIDI(nullptr, nullptr, 0);
 
 		_parser->setMidiDriver(_driver);
 		_parser->setTimerRate(_driver->getBaseTempo());

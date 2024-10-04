@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,27 +39,33 @@ enum NumberingMode {
 
 /// Some special commands
 enum {
-	kListItemDoubleClickedCmd	= 'LIdb',	///< double click on item - 'data' will be item index
+	kListItemSingleClickedCmd	= 'LIsc',	///< single click on item (sent on mouse down) - 'data' will be item index
+	kListItemDoubleClickedCmd	= 'LIdc',	///< double click on item (sent on mouse up) - 'data' will be item index
 	kListItemActivatedCmd		= 'LIac',	///< item activated by return/enter - 'data' will be item index
 	kListItemRemovalRequestCmd	= 'LIrm',	///< request to remove the item with the delete/backspace keys - 'data' will be item index
+	kListItemEditModeStartedCmd = 'LIes',	///< edit mode started - 'data' will be item index
 	kListSelectionChangedCmd	= 'Lsch'	///< selection changed - 'data' will be item index
 };
 
 /* ListWidget */
 class ListWidget : public EditableWidget {
 public:
-	typedef Common::String String;
-	typedef Common::Array<Common::String> StringArray;
+	typedef bool (*FilterMatcher)(void *arg, int idx, const Common::U32String &item, const Common::U32String &token);
 
-	typedef Common::U32String U32String;
-	typedef Common::Array<Common::U32String> U32StringArray;
+	struct ListData {
+		Common::U32String orig;
+		Common::U32String clean;
 
-	typedef Common::Array<ThemeEngine::FontColor> ColorList;
+		ListData(const Common::U32String &o, const Common::U32String &c) { orig = o; clean = c; }
+	};
+
+	typedef Common::Array<ListData> ListDataArray;
+
 protected:
-	U32StringArray	_list;
-	U32StringArray		_dataList;
-	ColorList		_listColors;
-	Common::Array<int>		_listIndex;
+	Common::U32StringArray	_list;
+	Common::U32StringArray	_cleanedList;
+	ListDataArray	_dataList;
+	Common::Array<int>	_listIndex;
 	bool			_editable;
 	bool			_editMode;
 	NumberingMode	_numberingMode;
@@ -70,7 +75,7 @@ protected:
 	ScrollBarWidget	*_scrollBar;
 	int				_currentKeyDown;
 
-	String			_quickSelectStr;
+	Common::String	_quickSelectStr;
 	uint32			_quickSelectTime;
 
 	int				_hlLeftPadding;
@@ -81,7 +86,7 @@ protected:
 	int				_bottomPadding;
 	int				_scrollBarWidth;
 
-	U32String		_filter;
+	Common::U32String	_filter;
 	bool			_quickSelect;
 	bool			_dictionarySelect;
 
@@ -91,23 +96,25 @@ protected:
 
 	int				_lastRead;
 
+	FilterMatcher	_filterMatcher;
+	void			*_filterMatcherArg;
 public:
-	ListWidget(Dialog *boss, const String &name, const Common::U32String &tooltip = Common::U32String(), uint32 cmd = 0);
+	ListWidget(Dialog *boss, const Common::String &name, const Common::U32String &tooltip = Common::U32String(), uint32 cmd = 0);
+	ListWidget(Dialog *boss, int x, int y, int w, int h, bool scale, const Common::U32String &tooltip = Common::U32String(), uint32 cmd = 0);
 	ListWidget(Dialog *boss, int x, int y, int w, int h, const Common::U32String &tooltip = Common::U32String(), uint32 cmd = 0);
 
 	bool containsWidget(Widget *) const override;
 	Widget *findWidget(int x, int y) override;
 
-	void setList(const U32StringArray &list, const ColorList *colors = nullptr);
-	const U32StringArray &getList()	const			{ return _dataList; }
+	void setList(const Common::U32StringArray &list);
+	const Common::U32StringArray &getList()	const			{ return _cleanedList; }
 
-	void append(const String &s, ThemeEngine::FontColor color = ThemeEngine::kFontColorNormal);
+	void append(const Common::String &s);
 
 	void setSelected(int item);
 	int getSelected() const						{ return (_filter.empty() || _selectedItem == -1) ? _selectedItem : _listIndex[_selectedItem]; }
 
-	const U32String &getSelectedString() const		{ return _list[_selectedItem]; }
-	ThemeEngine::FontColor getSelectionColor() const;
+	const Common::U32String getSelectedString() const	{ return stripGUIformatting(_list[_selectedItem]); }
 
 	void setNumberingMode(NumberingMode numberingMode)	{ _numberingMode = numberingMode; }
 
@@ -116,19 +123,20 @@ public:
 	int getCurrentScrollPos() const { return _currentPos; }
 
 	void enableQuickSelect(bool enable) 		{ _quickSelect = enable; }
-	String getQuickSelectString() const 		{ return _quickSelectStr; }
+	Common::String getQuickSelectString() const { return _quickSelectStr; }
 
 	void enableDictionarySelect(bool enable)	{ _dictionarySelect = enable; }
 
 	bool isEditable() const						{ return _editable; }
 	void setEditable(bool editable)				{ _editable = editable; }
 	void setEditColor(ThemeEngine::FontColor color) { _editColor = color; }
+	void setFilterMatcher(FilterMatcher matcher, void *arg) { _filterMatcher = matcher; _filterMatcherArg = arg; }
 
 	// Made startEditMode/endEditMode for SaveLoadChooser
 	void startEditMode() override;
 	void endEditMode() override;
 
-	void setFilter(const U32String &filter, bool redraw = true);
+	void setFilter(const Common::U32String &filter, bool redraw = true);
 
 	void handleTickle() override;
 	void handleMouseDown(int x, int y, int button, int clickCount) override;
@@ -144,6 +152,12 @@ public:
 
 	bool wantsFocus() override { return true; }
 
+	static Common::U32String getThemeColor(byte r, byte g, byte b);
+	static Common::U32String getThemeColor(ThemeEngine::FontColor color);
+	static ThemeEngine::FontColor getThemeColor(const Common::U32String &color);
+	static Common::U32String stripGUIformatting(const Common::U32String &str);
+	static Common::U32String escapeString(const Common::U32String &str);
+
 protected:
 	void drawWidget() override;
 
@@ -154,11 +168,21 @@ protected:
 	void abortEditMode() override;
 
 	Common::Rect getEditRect() const override;
+	int getCaretOffset() const override;
+
+	void copyListData(const Common::U32StringArray &list);
 
 	void receivedFocusWidget() override;
 	void lostFocusWidget() override;
 	void checkBounds();
 	void scrollToCurrent();
+
+	virtual ThemeEngine::WidgetStateInfo getItemState(int item) const { return _state; }
+
+	void drawFormattedText(const Common::Rect &r, const Common::U32String &str, ThemeEngine::WidgetStateInfo state = ThemeEngine::kStateEnabled,
+					Graphics::TextAlign align = Graphics::kTextAlignCenter,
+					ThemeEngine::TextInversionState inverted = ThemeEngine::kTextInversionNone, int deltax = 0, bool useEllipsis = true,
+					ThemeEngine::FontColor color = ThemeEngine::kFontColorFormatting);
 };
 
 } // End of namespace GUI

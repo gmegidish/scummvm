@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,13 +39,13 @@ void Infogrames::Instruments::init() {
 	int i;
 
 	for (i = 0; i < 32; i++) {
-		_samples[i].data = 0;
-		_samples[i].dataRepeat = 0;
+		_samples[i].data = nullptr;
+		_samples[i].dataRepeat = nullptr;
 		_samples[i].length = 0;
 		_samples[i].lengthRepeat = 0;
 	}
 	_count = 0;
-	_sampleData = 0;
+	_sampleData = nullptr;
 }
 
 bool Infogrames::Instruments::load(const char *ins) {
@@ -132,7 +131,7 @@ const uint16 Infogrames::periods[] =
 Infogrames::Infogrames(Instruments &ins, bool stereo, int rate,
 		int interruptFreq) : Paula(stereo, rate, interruptFreq) {
 	_instruments = &ins;
-	_data = 0;
+	_data = nullptr;
 	_repCount = -1;
 
 	reset();
@@ -151,11 +150,11 @@ void Infogrames::init() {
 	_speedCounter = _speed;
 
 	for (i = 0; i < 4; i++) {
-		_chn[i].cmds = 0;
-		_chn[i].cmdBlocks = 0;
+		_chn[i].cmds = nullptr;
+		_chn[i].cmdBlocks = nullptr;
 		_chn[i].volSlide.finetuneNeg = 0;
 		_chn[i].volSlide.finetunePos = 0;
-		_chn[i].volSlide.data = 0;
+		_chn[i].volSlide.data = nullptr;
 		_chn[i].volSlide.amount = 0;
 		_chn[i].volSlide.dataOffset = 0;
 		_chn[i].volSlide.flags = 0;
@@ -163,7 +162,7 @@ void Infogrames::init() {
 		_chn[i].volSlide.curDelay2 = 0;
 		_chn[i].periodSlide.finetuneNeg = 0;
 		_chn[i].periodSlide.finetunePos = 0;
-		_chn[i].periodSlide.data = 0;
+		_chn[i].periodSlide.data = nullptr;
 		_chn[i].periodSlide.amount = 0;
 		_chn[i].periodSlide.dataOffset = 0;
 		_chn[i].periodSlide.flags = 0;
@@ -176,7 +175,7 @@ void Infogrames::init() {
 		_chn[i].periodMod = 0;
 	}
 
-	_end = (_data == 0);
+	_end = (_data == nullptr);
 }
 
 void Infogrames::reset() {
@@ -185,15 +184,15 @@ void Infogrames::reset() {
 	stopPlay();
 	init();
 
-	_volSlideBlocks = 0;
-	_periodSlideBlocks = 0;
-	_subSong = 0;
-	_cmdBlocks = 0;
+	_volSlideBlocks = nullptr;
+	_periodSlideBlocks = nullptr;
+	_subSong = nullptr;
+	_cmdBlocks = nullptr;
 	_speedCounter = 0;
 	_speed = 0;
 
 	for (i = 0; i < 4; i++)
-		_chn[i].cmdBlockIndices = 0;
+		_chn[i].cmdBlockIndices = nullptr;
 }
 
 bool Infogrames::load(const char *dum) {
@@ -252,7 +251,7 @@ void Infogrames::unload() {
 	stopPlay();
 
 	delete[] _data;
-	_data = 0;
+	_data = nullptr;
 
 	clearVoices();
 	reset();

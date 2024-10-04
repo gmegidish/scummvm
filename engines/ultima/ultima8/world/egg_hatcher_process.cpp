@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -63,19 +62,17 @@ void EggHatcherProcess::run() {
 		Egg *egg = dynamic_cast<Egg *>(getObject(eggid));
 		if (!egg) continue; // egg gone
 
-		int32 x, y, z;
-		egg->getLocation(x, y, z);
+		Point3 pte = egg->getLocation();
 
 		//! constants
-		int32 x1 = x - range_mul * egg->getXRange();
-		int32 x2 = x + range_mul * egg->getXRange();
-		int32 y1 = y - range_mul * egg->getYRange();
-		int32 y2 = y + range_mul * egg->getYRange();
+		int32 x1 = pte.x - range_mul * egg->getXRange();
+		int32 x2 = pte.x + range_mul * egg->getXRange();
+		int32 y1 = pte.y - range_mul * egg->getYRange();
+		int32 y2 = pte.y + range_mul * egg->getYRange();
 
 		// get avatar location
-		int32 ax, ay, az;
 		int32 axs, ays, azs;
-		av->getLocation(ax, ay, az);
+		Point3 pta = av->getLocation();
 		av->getFootpadWorld(axs, ays, azs);
 
 		// 'justTeleported':
@@ -84,8 +81,8 @@ void EggHatcherProcess::run() {
 		// unset it when you're out of range of any teleport eggs
 		TeleportEgg *tegg = dynamic_cast<TeleportEgg *>(egg);
 
-		if (x1 <= ax && ax - axs < x2 && y1 <= ay && ay - ays < y2 &&
-		        z - z_range < az && az <= z + z_range) {
+		if (x1 <= pta.x && pta.x - axs < x2 && y1 <= pta.y && pta.y - ays < y2 &&
+		        pte.z - z_range < pta.z && pta.z <= pte.z + z_range) {
 			if (tegg && tegg->isTeleporter())
 				nearteleporter = true;
 

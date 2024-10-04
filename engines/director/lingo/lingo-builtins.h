@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,6 +54,7 @@ void b_addProp(int nargs);
 void b_append(int nargs);
 void b_count(int nargs);
 void b_deleteAt(int nargs);
+void b_deleteOne(int nargs);
 void b_deleteProp(int nargs);
 void b_findPos(int nargs);
 void b_findPosNear(int nargs);
@@ -157,6 +157,7 @@ void b_saveMovie(int nargs);
 void b_showResFile(int nargs);
 void b_showXlib(int nargs);
 void b_xFactoryList(int nargs);
+void b_xtra(int nargs);
 
 void b_point(int nargs);
 void b_inside(int nargs);
@@ -166,6 +167,7 @@ void b_offsetRect(int nargs);
 void b_rect(int nargs);
 void b_union(int nargs);
 
+void b_member(int nargs);
 void b_window(int nargs);
 
 void b_beep(int nargs);
@@ -194,6 +196,7 @@ void b_numberofwords(int nargs);
 
 void b_scummvmassert(int nargs);
 void b_scummvmassertequal(int nargs);
+void b_scummvmNoFatalError(int nargs);
 
 // XCMD/XFCN (HyperCard), normally exposed
 void b_getVolumes(int nargs);

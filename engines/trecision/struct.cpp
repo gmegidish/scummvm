@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,10 +54,10 @@ void SObject::readRect(Common::SeekableReadStream *stream) {
 }
 
 void SObject::syncGameStream(Common::Serializer &ser) {
-	ser.syncAsUint16LE(_lim.left);
-	ser.syncAsUint16LE(_lim.top);
-	ser.syncAsUint16LE(_lim.right);
-	ser.syncAsUint16LE(_lim.bottom);
+	ser.syncAsUint16LE(_area.left);
+	ser.syncAsUint16LE(_area.top);
+	ser.syncAsUint16LE(_area.right);
+	ser.syncAsUint16LE(_area.bottom);
 	ser.syncAsUint16LE(_name);
 	ser.syncAsUint16LE(_examine);
 	ser.syncAsUint16LE(_action);
@@ -79,10 +78,10 @@ void SObject::loadObj(Common::SeekableReadStreamEndian *stream) {
 	_rect.setWidth(w);
 	_rect.setHeight(h);
 
-	_lim.left = stream->readUint16();
-	_lim.top = stream->readUint16();
-	_lim.right = stream->readUint16();
-	_lim.bottom = stream->readUint16();
+	_area.left = stream->readUint16();
+	_area.top = stream->readUint16();
+	_area.right = stream->readUint16();
+	_area.bottom = stream->readUint16();
 
 	_position = stream->readSByte();
 	stream->readByte(); // Padding

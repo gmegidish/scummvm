@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -169,6 +168,37 @@ static const char *const fixedJournalTextES[] = {
 	"Despu\202s %s dijo, "
 };
 
+static const char *const fixedJournalTextZHBig5[] = {
+	// Holmes asked/said...
+	"\xba\xd6\xba\xb8\xbc\xaf\xb4\xb5\xb0\xdd\xa7\xda\x3a\x22", /* "福爾摩斯問我:"; "Holmes asked me, " */
+	"\xba\xd6\xba\xb8\xbc\xaf\xb4\xb5\xb0\xdd\xb1\xb4\xaa\xf8\x3a\x22", /* "福爾摩斯問探長:"; "Holmes asked the Inspector, " */
+	"\xba\xd6\xba\xb8\xbc\xaf\xb4\xb5\xb0\xdd%s\x3a\x22", /* "福爾摩斯問%s:"; "Holmes asked %s, " */
+	"\xba\xd6\xba\xb8\xbc\xaf\xb4\xb5\xbb\xa1\xa7\xda\x3a\x22", /* "福爾摩斯說我:"; "Holmes said to me, " */
+	"\xba\xd6\xba\xb8\xbc\xaf\xb4\xb5\xbb\xa1\xb1\xb4\xaa\xf8\x3a\x22", /* "福爾摩斯說探長:"; "Holmes said to the Inspector, " */
+	"\xba\xd6\xba\xb8\xbc\xaf\xb4\xb5\xbb\xa1%s\x3a\x22", /* "福爾摩斯說%s:"; "Holmes said to %s, " */
+	// I asked/said...
+	"\xa7\xda\xa6\x5e\xb5\xaa\x3a\x22", /* "我回答:""; "I replied, " */
+	"\xa6\x5e\xb5\xaa\xbb\xa1\x3a\x22", /* "回答說:""; "The reply was, " */
+	// Holmes/I/The Inspector/Person asked/said (without "Then" prefix)
+	"Holmes asked, ", // TODO
+	"\xba\xd6\xba\xb8\xbc\xaf\xb4\xb5\xbb\xa1\x3a", /* "福爾摩斯說:"; "Holmes said, " */
+	"I asked, ", // TODO
+	"I said, ", // TODO
+	"The Inspector asked, ", // TODO
+	"The Inspector said, ", // TODO
+	"%s asked, ", // TODO
+	"\x25\x73\xbb\xa1\x3a", /* "%s說:"; "%s said, " */
+	// Then Holmes/I/The Inspector/Person asked/said
+	"Then Holmes asked, ", // TODO
+	"Then Holmes said, ", // TODO
+	"Then I asked, ", // TODO
+	"Then I said, ", // TODO
+	"Then the Inspector asked, ", // TODO
+	"Then the Inspector said, ", // TODO
+	"Then %s asked, ", // TODO
+	"Then %s said, " // TODO
+};
+
 FixedText::FixedText(SherlockEngine *vm)  {
 	_vm = vm;
 
@@ -195,6 +225,11 @@ FixedText::FixedText(SherlockEngine *vm)  {
 		// Used by Sherlock Holmes 1+2
 		_fixedJournalTextArray = fixedJournalTextES;
 		_fixedObjectPickedUpText = "Cogido/a %s";
+		break;
+	case Common::ZH_TWN:
+		// Used by Sherlock Holmes 1+2
+		_fixedJournalTextArray = fixedJournalTextZHBig5;
+		_fixedObjectPickedUpText = "Picked up %s"; // TODO
 		break;
 	default:
 		// Default to English

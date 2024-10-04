@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,7 +43,7 @@ enum EulerOrder {
 	EO_YXZ,
 	EO_YZX,
 	EO_YZY,
-	EO_ZXY,		// Original ScummVM implmentation
+	EO_ZXY, // Original ScummVM implmentation
 	EO_ZXZ,
 	EO_ZYX,
 	EO_ZYZ
@@ -53,56 +52,56 @@ enum EulerOrder {
 template<class T>
 class Rotation3D : public Transform<T> {
 public:
-	Rotation3D();
+	constexpr Rotation3D();
 
 	/**
 	 * Constructor and assignment from buildFromEuler
-	 * @param first		Rotation on the first Axis, angle in degrees
-	 * @param second	Rotation on the second Axis, angle in degrees
-	 * @param third		Rotation on the third Axis, angle in degrees
-	 * @param order		The Euler Order (specifies axis order)
+	 * @param first         Rotation on the first Axis, angle in degrees
+	 * @param second        Rotation on the second Axis, angle in degrees
+	 * @param third         Rotation on the third Axis, angle in degrees
+	 * @param order         The Euler Order (specifies axis order)
 	 */
 	Rotation3D(const Angle &first, const Angle &second, const Angle &third, EulerOrder order);
 
 	/**
 	 * Build a rotation matrix from Euler Angles
-	 * @param first		Rotation on the first Axis, angle in degrees
-	 * @param second	Rotation on the second Axis, angle in degrees
-	 * @param third		Rotation on the third Axis, angle in degrees
-	 * @param order		The Euler Order (specifies axis order)
+	 * @param first         Rotation on the first Axis, angle in degrees
+	 * @param second        Rotation on the second Axis, angle in degrees
+	 * @param third         Rotation on the third Axis, angle in degrees
+	 * @param order         The Euler Order (specifies axis order)
 	 */
 	void buildFromEuler(const Angle &first, const Angle &second, const Angle &third, EulerOrder order);
 
 	/**
 	 * Build a rotation matrix on the X Axis from an angle
-	 * @param rotX		Rotation on the X Axis angle in degrees
+	 * @param rotX          Rotation on the X Axis angle in degrees
 	 */
 	void buildAroundX(const Angle &rotX);
 
 	/**
 	 * Build a rotation matrix on the Y Axis from an angle
-	 * @param rotY		Rotation on the Y Axis angle in degrees
+	 * @param rotY          Rotation on the Y Axis angle in degrees
 	 */
 	void buildAroundY(const Angle &rotY);
 
 	/**
 	 * Build a rotation matrix on the Z Axis from an angle
-	 * @param rotZ		Rotation on the Z Axis angle in degrees
+	 * @param rotZ          Rotation on the Z Axis angle in degrees
 	 */
 	void buildAroundZ(const Angle &rotZ);
 
 	/**
 	 * Get Euler Angles from a rotation matrix
-	 * @param first		Pointer to the storage for the first axis angle
-	 * @param second	Pointer to the storage for the second axis angle
-	 * @param third		Pointer to the storage for the third axis angle
-	 * @param order		The Euler order (specifies axis order)
+	 * @param first         Pointer to the storage for the first axis angle
+	 * @param second        Pointer to the storage for the second axis angle
+	 * @param third         Pointer to the storage for the third axis angle
+	 * @param order         The Euler order (specifies axis order)
 	 */
 	void getEuler(Angle *first, Angle *second, Angle *third, EulerOrder order) const;
 };
 
 template<class T>
-Rotation3D<T>::Rotation3D() : Transform<T>() {}
+constexpr Rotation3D<T>::Rotation3D() : Transform<T>() {}
 
 template<class T>
 void Rotation3D<T>::buildFromEuler(const Angle &first, const Angle &second, const Angle &third, EulerOrder order) {

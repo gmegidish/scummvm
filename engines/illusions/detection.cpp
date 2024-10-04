@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,9 +26,9 @@
 #include "illusions/detection.h"
 
 static const PlainGameDescriptor illusionsGames[] = {
-	{ "bbdou", "Beavis and Butt-head Do U" },
-	{ "duckman", "Duckman" },
-	{ 0, 0 }
+	{ "bbdou", "Beavis and Butt-Head: Do U." },
+	{ "duckman", "Duckman: The Graphic Adventures of a Private Dick" },
+	{ nullptr, nullptr }
 };
 
 namespace Illusions {
@@ -38,7 +37,7 @@ static const IllusionsGameDescription gameDescriptions[] = {
 	{
 		{
 			"bbdou",
-			0,
+			nullptr,
 			AD_ENTRY1s("000D0001.scr", "d0c846d5dccc5607a482c7dcbdf06973", 601980),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
@@ -51,7 +50,7 @@ static const IllusionsGameDescription gameDescriptions[] = {
 	{
 		{
 			"duckman",
-			0,
+			nullptr,
 			AD_ENTRY1s("duckman.gam", "172c0514f3793041718159cf9cf9935f", 29560832),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
@@ -77,7 +76,7 @@ static const IllusionsGameDescription gameDescriptions[] = {
 	{
 		{
 			"duckman",
-			0,
+			nullptr,
 			AD_ENTRY1s("duckman.gam", "64d16922ffb46b746fc2c12a14d75bcc", 29779968),
 			Common::DE_DEU,
 			Common::kPlatformWindows,
@@ -90,7 +89,7 @@ static const IllusionsGameDescription gameDescriptions[] = {
 	{
 		{
 			"duckman",
-			0,
+			nullptr,
 			AD_ENTRY1s("duckman.gam", "a65f9b58427b3543882bddf36abe5878", 29564928),
 			Common::RU_RUS,
 			Common::kPlatformWindows,
@@ -107,21 +106,21 @@ static const IllusionsGameDescription gameDescriptions[] = {
 
 static const char * const directoryGlobs[] = {
 	"resource",
-	0
+	nullptr
 };
 
-class IllusionsMetaEngineDetection : public AdvancedMetaEngineDetection {
+class IllusionsMetaEngineDetection : public AdvancedMetaEngineDetection<Illusions::IllusionsGameDescription> {
 public:
-	IllusionsMetaEngineDetection() : AdvancedMetaEngineDetection(Illusions::gameDescriptions, sizeof(Illusions::IllusionsGameDescription), illusionsGames) {
+	IllusionsMetaEngineDetection() : AdvancedMetaEngineDetection(Illusions::gameDescriptions, illusionsGames) {
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "illusions";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Illusions";
 	}
 

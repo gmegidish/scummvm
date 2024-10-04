@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,7 @@ Camera::Camera(IllusionsEngine *vm)
 	_activeState._panYShl = _screenMidY << 16;
 	_activeState._panTargetPoint.x = _screenMidX;
 	_activeState._panTargetPoint.y = 240;
-	_activeState._panToPositionPtr = 0;
+	_activeState._panToPositionPtr = nullptr;
 	_activeState._panNotifyId = 0;
 	_activeState._trackingLimits.x = 0;
 	_activeState._trackingLimits.y = 0;
@@ -74,7 +73,7 @@ void Camera::set(Common::Point &panPoint, WidthHeight &dimensions) {
 	_activeState._panXShl = _activeState._currPan.x << 16;
 	_activeState._panYShl = _activeState._currPan.y << 16;
 	_vm->_backgroundInstances->refreshPan();
-	_activeState._panToPositionPtr = 0;
+	_activeState._panToPositionPtr = nullptr;
 	_activeState._panObjectId = 0;
 	_activeState._panNotifyId = 0;
 	_activeState._trackingLimits.x = 0;
@@ -139,7 +138,7 @@ void Camera::panToPoint(Common::Point pt, int16 panSpeed, uint32 panNotifyId) {
 		_activeState._trackingLimits.x = 0;
 		_activeState._trackingLimits.y = 0;
 		_activeState._pointFlags = 0;
-		_activeState._panToPositionPtr = 0;
+		_activeState._panToPositionPtr = nullptr;
 		_activeState._panNotifyId = panNotifyId;
 		_activeState._panStartTime = getCurrentTime();
 		recalcPan(_activeState._panStartTime);
@@ -172,7 +171,7 @@ void Camera::stopPan() {
 	_activeState._panSpeed = 1;
 	_activeState._panXShl = _activeState._currPan.x << 16;
 	_activeState._panYShl = _activeState._currPan.y << 16;
-	_activeState._panToPositionPtr = 0;
+	_activeState._panToPositionPtr = nullptr;
 	_activeState._panObjectId = 0;
 	_activeState._panNotifyId = 0;
 	_activeState._pointFlags = 0;

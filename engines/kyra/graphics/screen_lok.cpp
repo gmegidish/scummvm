@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,26 +24,28 @@
 
 #include "common/system.h"
 
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 
 namespace Kyra {
 
 Screen_LoK::Screen_LoK(KyraEngine_LoK *vm, OSystem *system)
 	: Screen(vm, system, _screenDimTable, _screenDimTableCount) {
 	_vm = vm;
-	_unkPtr1 = _unkPtr2 = 0;
+	_unkPtr1 = _unkPtr2 = nullptr;
 	_bitBlitNum = 0;
+	memset(_saveLoadPage, 0, sizeof(_saveLoadPage));
+	memset(_saveLoadPageOvl, 0, sizeof(_saveLoadPageOvl));
 }
 
 Screen_LoK::~Screen_LoK() {
 	for (int i = 0; i < ARRAYSIZE(_saveLoadPage); ++i) {
 		delete[] _saveLoadPage[i];
-		_saveLoadPage[i] = 0;
+		_saveLoadPage[i] = nullptr;
 	}
 
 	for (int i = 0; i < ARRAYSIZE(_saveLoadPageOvl); ++i) {
 		delete[] _saveLoadPageOvl[i];
-		_saveLoadPageOvl[i] = 0;
+		_saveLoadPageOvl[i] = nullptr;
 	}
 
 	delete[] _unkPtr1;
@@ -65,12 +66,10 @@ bool Screen_LoK::init() {
 	memset(_saveLoadPage, 0, sizeof(_saveLoadPage));
 	memset(_saveLoadPageOvl, 0, sizeof(_saveLoadPageOvl));
 
-	_unkPtr1 = new uint8[getRectSize(1, 144)];
+	_unkPtr1 = new uint8[getRectSize(1, 144)]();
 	assert(_unkPtr1);
-	memset(_unkPtr1, 0, getRectSize(1, 144));
-	_unkPtr2 = new uint8[getRectSize(1, 144)];
+	_unkPtr2 = new uint8[getRectSize(1, 144)]();
 	assert(_unkPtr2);
-	memset(_unkPtr2, 0, getRectSize(1, 144));
 
 	return true;
 }
@@ -102,7 +101,7 @@ void Screen_LoK::fadeSpecialPalette(int palIndex, int startIndex, int size, int 
 
 	getPalette(0).copy(tempPal, startIndex, size);
 	setScreenPalette(getPalette(0));
-	_system->updateScreen();
+	updateBackendScreen(true);
 }
 
 void Screen_LoK::addBitBlitRect(int x, int y, int w, int h) {
@@ -156,7 +155,7 @@ void Screen_LoK::loadPageFromDisk(const char *file, int page) {
 
 	copyBlockToPage(page, 0, 0, SCREEN_W, SCREEN_H, _saveLoadPage[page / 2]);
 	delete[] _saveLoadPage[page / 2];
-	_saveLoadPage[page / 2] = 0;
+	_saveLoadPage[page / 2] = nullptr;
 
 	if (_saveLoadPageOvl[page / 2]) {
 		uint8 *dstPage = getOverlayPtr(page);
@@ -167,7 +166,7 @@ void Screen_LoK::loadPageFromDisk(const char *file, int page) {
 
 		memcpy(dstPage, _saveLoadPageOvl[page / 2], SCREEN_OVL_SJIS_SIZE);
 		delete[] _saveLoadPageOvl[page / 2];
-		_saveLoadPageOvl[page / 2] = 0;
+		_saveLoadPageOvl[page / 2] = nullptr;
 	}
 }
 
@@ -182,11 +181,11 @@ void Screen_LoK::queryPageFromDisk(const char *file, int page, uint8 *buffer) {
 
 void Screen_LoK::deletePageFromDisk(int page) {
 	delete[] _saveLoadPage[page / 2];
-	_saveLoadPage[page / 2] = 0;
+	_saveLoadPage[page / 2] = nullptr;
 
 	if (_saveLoadPageOvl[page / 2]) {
 		delete[] _saveLoadPageOvl[page / 2];
-		_saveLoadPageOvl[page / 2] = 0;
+		_saveLoadPageOvl[page / 2] = nullptr;
 	}
 }
 
@@ -357,7 +356,7 @@ void Screen_LoK_16::fadePalette(const Palette &pal, int delay, const UpdateFunct
 			if (upFunc && upFunc->isValid())
 				(*upFunc)();
 			else
-				_system->updateScreen();
+				updateBackendScreen(true);
 
 			_vm->delay((delay >> 5) * _vm->tickLength());
 		}
@@ -484,6 +483,197 @@ void Screen_LoK_16::set16ColorPalette(const uint8 *pal) {
 	}
 
 	_system->getPaletteManager()->setPalette(palette, 0, 16);
+}
+
+ChineseOneByteFontLoK::ChineseOneByteFontLoK(int pitch) : ChineseFont(pitch, 8, 14, 9, 17, 0, 0) {
+	_border = _pixelColorShading = false;
+}
+
+void ChineseOneByteFontLoK::processColorMap() {
+	_textColor[0] = _colorMap[1];
+	_textColor[1] = _colorMap[0];
+}
+
+ChineseTwoByteFontLoK::ChineseTwoByteFontLoK(int pitch, const uint16 *lookupTable, uint32 lookupTableSize) : ChineseFont(pitch, 15, 14, 18, 17, 0, 3),
+_lookupTable(lookupTable), _lookupTableSize(lookupTableSize) {
+	assert(lookupTable);
+}
+
+bool ChineseTwoByteFontLoK::hasGlyphForCharacter(uint16 c) const {
+	for (uint32 i = 0; i < _lookupTableSize; ++i) {
+		if (_lookupTable[i] == c)
+			return true;
+	}
+	return false;
+}
+
+uint32 ChineseTwoByteFontLoK::getFontOffset(uint16 c) const {
+	for (uint32 i = 0; i < _lookupTableSize; ++i) {
+		if (_lookupTable[i] == c)
+			return i * 28;
+	}
+	return 0;
+}
+
+void ChineseTwoByteFontLoK::processColorMap() {
+	_border = (_colorMap[0] == 12);
+	uint8 cs = _colorMap[1];
+
+	if (_colorMap[1] == 9)
+		cs = 83;
+	else if (_colorMap[1] == 5)
+		cs = 207;
+	else if (_colorMap[1] == 2)
+		cs = 74;
+	else if (_colorMap[1] == 15)
+		cs = 161;
+	else if (_colorMap[1] > 15 && _colorMap[1] < 248)
+		cs += 1;
+
+	_textColor[0] = _colorMap[1] | (cs << 8);
+	_textColor[0] = TO_LE_16(_textColor[0]);
+	_textColor[1] = _colorMap[0] | (_colorMap[0] << 8);
+}
+
+JohabFontLoK::JohabFontLoK(Font *&font8fat, const uint16 *lookupTable, uint32 lookupTableSize) : _font8fat(font8fat), _height(15), _width(15), _fileData(0), _colorMap(0), _glyphTemp(0) {
+	assert(lookupTable);
+	assert(lookupTableSize == 224);
+	for (int i = 0; i < 7; ++i)
+		_2byteTables[i] = &lookupTable[i << 5];
+	memset(_glyphData, 0, sizeof(_glyphData));
+	_glyphTemp = new uint8[30];
+}
+
+JohabFontLoK::~JohabFontLoK() {
+	delete[] _fileData;
+	delete[] _glyphTemp;
+}
+
+bool JohabFontLoK::load(Common::SeekableReadStream &data) {
+	if (_fileData)
+		return false;
+
+	if (!data.size())
+		return false;
+
+	uint32 fileSize = data.size();
+
+	if (fileSize != (kNumJongseong + kNumJungseong + kNumChoseong) * 30) {
+		warning("HangulFontLoK::load(): Invalid font file size '%d' (expected: '%d').", fileSize, (kNumJongseong + kNumJungseong + kNumChoseong) * 30);
+		return false;
+	}
+
+	uint8 *dst = new uint8[fileSize];
+	if (!dst)
+		return false;
+
+	data.read(dst, fileSize);
+	_fileData = dst;
+
+	_glyphData[0] = _fileData;
+	_glyphData[1] = _glyphData[0] + (kNumJongseong * 30);
+	_glyphData[2] = _glyphData[1] + (kNumJungseong * 30);
+
+	return true;
+}
+
+int JohabFontLoK::getCharWidth(uint16 c) const {
+	assert(_font8fat);
+	return (c >= 0x80) ? _width + 1 : _font8fat->getCharWidth(c);
+}
+
+int JohabFontLoK::getCharHeight(uint16 c) const {
+	return _colorMap[3] ? _height + 2 : _height;
+}
+
+void JohabFontLoK::setColorMap(const uint8 *src) {
+	_colorMap = src;
+	assert(_font8fat);
+	_font8fat->setColorMap(src);
+}
+
+void JohabFontLoK::drawChar(uint16 c, byte *dst, int pitch, int) const {
+	if (c < 0x80) {
+		assert(_font8fat);
+		_font8fat->drawChar(c, dst + (c == '\"' ? 0 : 5) * pitch, pitch, 0);
+		return;
+	}
+
+	const uint8 *glyph = createGlyph(c);
+	dst += (pitch + 1);
+
+	if (_colorMap[3]) {
+		renderGlyph(dst - 1, glyph, _colorMap[3], pitch);
+		renderGlyph(dst + 1, glyph, _colorMap[3], pitch);
+		renderGlyph(dst - pitch, glyph, _colorMap[3], pitch);
+		renderGlyph(dst + pitch, glyph, _colorMap[3], pitch);
+	}
+
+	renderGlyph(dst, glyph, _colorMap[1], pitch);
+}
+
+const uint8 *JohabFontLoK::createGlyph(uint16 chr) const {
+	memset(_glyphTemp, 0, 30);
+
+	uint16 t[3];
+	memset(t, 0, sizeof(t));
+
+	chr = (chr << 8) | (chr >> 8);
+	uint8 i1 = chr & 0x1f;
+	uint8 i2 = (chr >> 5) & 0x1f;
+	uint8 i3 = (chr >> 10) & 0x1f;
+
+	// determine jungseong glyph part
+	uint16 r1 = _2byteTables[1][i2];
+	if ((int16)r1 > 0)
+		r1 += (_2byteTables[3][i3] + _2byteTables[6][i1] - 3);
+
+	// determine jongseong glyph part
+	uint16 r2 = _2byteTables[0][i3];
+	if ((int16)r2 > 0)
+		r2 += (_2byteTables[4][i2] + _2byteTables[6][i1]);
+
+	// determine choseong glyph part
+	uint16 r3 = _2byteTables[2][i1];
+	if ((int16)r3 > 0)
+		r3 += (_2byteTables[5][i2] - 3);
+
+	t[0] = r2 >> 5;
+	t[1] = (r1 >> 5) - 2;
+	t[2] = (r3 >> 5) - 2;
+
+	const uint8 lim[3] = { kNumJongseong, kNumJungseong, kNumChoseong };
+
+	for (int l = 0; l < 3; ++l) {
+		if (t[l] <= lim[l]) {
+			const uint8 *src = &_glyphData[l][t[l] * 30];
+			for (int i = 0; i < 30; ++i)
+				_glyphTemp[i] |= *src++;
+		}
+	}
+
+	return _glyphTemp;
+}
+
+void JohabFontLoK::renderGlyph(byte *dst, const uint8 *glyph, uint8 col, int pitch) const {
+	const uint8 *src = glyph;
+	pitch -= 15;
+
+	for (int y = 0; y < _height; ++y) {
+		uint8 m = 0;
+		uint8 in = 0;
+		for (int x = 0; x < _width; ++x) {
+			if (m == 0) {
+				in = *src++;
+				m = 0x80;
+			}
+			if (in & m)
+				*dst = col;
+			dst++;
+			m >>= 1;
+		}
+		dst += pitch;
+	}
 }
 
 } // End of namespace Kyra

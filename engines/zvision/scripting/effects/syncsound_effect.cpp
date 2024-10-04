@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,14 +34,14 @@
 
 namespace ZVision {
 
-SyncSoundNode::SyncSoundNode(ZVision *engine, uint32 key, Common::String &filename, int32 syncto)
+SyncSoundNode::SyncSoundNode(ZVision *engine, uint32 key, Common::Path &filename, int32 syncto)
 	: ScriptingEffect(engine, key, SCRIPTING_EFFECT_AUDIO) {
 	_syncto = syncto;
 	_sub = NULL;
 
 	Audio::RewindableAudioStream *audioStream = NULL;
 
-	if (filename.contains(".wav")) {
+	if (filename.baseName().contains(".wav")) {
 		Common::File *file = new Common::File();
 		if (_engine->getSearchManager()->openFile(*file, filename)) {
 			audioStream = Audio::makeWAVStream(file, DisposeAfterUse::YES);
@@ -53,13 +52,14 @@ SyncSoundNode::SyncSoundNode(ZVision *engine, uint32 key, Common::String &filena
 
 	_engine->_mixer->playStream(Audio::Mixer::kPlainSoundType, &_handle, audioStream);
 
-	Common::String subname = filename;
+	Common::String subname = filename.baseName();
 	subname.setChar('s', subname.size() - 3);
 	subname.setChar('u', subname.size() - 2);
 	subname.setChar('b', subname.size() - 1);
 
-	if (_engine->getSearchManager()->hasFile(subname))
-		_sub = new Subtitle(_engine, subname);
+	Common::Path subpath(filename.getParent().appendComponent(subname));
+	if (_engine->getSearchManager()->hasFile(subpath))
+		_sub = new Subtitle(_engine, subpath);
 }
 
 SyncSoundNode::~SyncSoundNode() {

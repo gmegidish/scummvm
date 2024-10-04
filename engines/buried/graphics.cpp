@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,10 +26,10 @@
 #include "common/fs.h"
 #include "common/str-array.h"
 #include "common/system.h"
-#include "common/unzip.h"
+#include "common/compression/unzip.h"
 #include "graphics/cursorman.h"
 #include "graphics/font.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/surface.h"
 #include "graphics/wincursor.h"
 #include "graphics/fonts/ttf.h"
@@ -82,7 +81,7 @@ Graphics::Font *GraphicsManager::createFont(int size, bool bold) const {
 }
 
 Graphics::Font *GraphicsManager::createArialFont(int size, bool bold) const {
-	Common::String defaultBaseName = bold ? "arialbd.ttf" : "arial.ttf";
+	const char *defaultBaseName = bold ? "arialbd.ttf" : "arial.ttf";
 
 	Common::SeekableReadStream *stream = SearchMan.createReadStreamForMember(defaultBaseName);
 
@@ -114,9 +113,7 @@ Graphics::Font *GraphicsManager::createArialFont(int size, bool bold) const {
 	Graphics::Font *font;
 
 	if (stream) {
-		font = Graphics::loadTTFFont(*stream, size, Graphics::kTTFSizeModeCharacter, 96, _vm->isTrueColor() ? Graphics::kTTFRenderModeLight : Graphics::kTTFRenderModeMonochrome);
-
-		delete stream;
+		font = Graphics::loadTTFFont(stream, DisposeAfterUse::YES, size, Graphics::kTTFSizeModeCharacter, 96, 96, _vm->isTrueColor() ? Graphics::kTTFRenderModeLight : Graphics::kTTFRenderModeMonochrome);
 	} else {
 		const char *fname;
 		if (bold)
@@ -124,13 +121,17 @@ Graphics::Font *GraphicsManager::createArialFont(int size, bool bold) const {
 		else
 			fname = "LiberationSans-Regular.ttf";
 
-		font = Graphics::loadTTFFontFromArchive(fname, size, Graphics::kTTFSizeModeCharacter, 96, _vm->isTrueColor() ? Graphics::kTTFRenderModeLight : Graphics::kTTFRenderModeMonochrome);
+		font = Graphics::loadTTFFontFromArchive(fname, size, Graphics::kTTFSizeModeCharacter, 96, 96, _vm->isTrueColor() ? Graphics::kTTFRenderModeLight : Graphics::kTTFRenderModeMonochrome);
 	}
 
 	if (!font)
 		error("Failed to load Arial%s font", bold ? " Bold" : "");
 
 	return font;
+}
+
+void GraphicsManager::toggleCursor(bool show) {
+	CursorMan.showMouse(show);
 }
 
 Cursor GraphicsManager::setCursor(Cursor newCursor) {
@@ -158,9 +159,7 @@ Cursor GraphicsManager::setCursor(Cursor newCursor) {
 	if (!cursor)
 		error("Failed to find cursor %d", newCursor);
 
-	CursorMan.replaceCursor(cursor->getSurface(), cursor->getWidth(), cursor->getHeight(),
-			cursor->getHotspotX(), cursor->getHotspotY(), cursor->getKeyColor());
-	CursorMan.replaceCursorPalette(cursor->getPalette(), cursor->getPaletteStartIndex(), cursor->getPaletteCount());
+	CursorMan.replaceCursor(cursor);
 
 	if (cursorGroup)
 		delete cursorGroup;
@@ -184,15 +183,21 @@ Graphics::Surface *GraphicsManager::getBitmap(uint32 bitmapID) {
 	return surface;
 }
 
-Graphics::Surface *GraphicsManager::getBitmap(const Common::String &fileName) {
+Graphics::Surface *GraphicsManager::getBitmap(const Common::Path &fileName, bool required) {
 	Common::SeekableReadStream *stream = SearchMan.createReadStreamForMember(fileName);
 
-	if (!stream)
-		error("Could not find bitmap '%s'", fileName.c_str());
+	if (!stream) {
+		if (required)
+			error("Could not find bitmap '%s'", fileName.toString(Common::Path::kNativeSeparator).c_str());
+		return nullptr;
+	}
 
 	Graphics::Surface *surface = getBitmap(stream);
-	if (!surface)
-		error("Failed to decode bitmap '%s'", fileName.c_str());
+	if (!surface) {
+		if (required)
+			error("Failed to decode bitmap '%s'", fileName.toString(Common::Path::kNativeSeparator).c_str());
+		return nullptr;
+	}
 
 	return surface;
 }
@@ -201,7 +206,7 @@ Graphics::Surface *GraphicsManager::getBitmap(Common::SeekableReadStream *stream
 	Image::BitmapDecoder decoder;
 	if (!decoder.loadStream(*stream)) {
 		delete stream;
-		return 0;
+		return nullptr;
 	}
 
 	delete stream;
@@ -308,7 +313,39 @@ void GraphicsManager::fillRect(const Common::Rect &rect, uint32 color) {
 	_screen->fillRect(rect, color);
 }
 
-void GraphicsManager::opaqueTransparentBlit(Graphics::Surface *dst, int xDst, int yDst, int w, int h, const Graphics::Surface *src, int xSrc, int ySrc, int opacityValue, byte rTrans, byte gTrans, byte bTrans) {
+void GraphicsManager::keyBlit(Graphics::Surface *dst, int xDst, int yDst, int w, int h, const Graphics::Surface *src, uint xSrc, uint ySrc, uint32 transColor) {
+	assert(dst->format.bytesPerPixel == src->format.bytesPerPixel);
+
+	w = MIN<int>(src->w, w);
+	h = MIN<int>(src->h, h);
+
+	Common::Rect srcRect(xSrc, ySrc, xSrc + w, ySrc + h);
+	Common::Rect dstRect(xDst, yDst, xDst + w, yDst + h);
+
+	if (dst->clip(srcRect, dstRect))
+		dst->copyRectToSurfaceWithKey(*src, dstRect.left, dstRect.top, srcRect, transColor);
+}
+
+void GraphicsManager::keyBlit(Graphics::Surface *dst, int xDst, int yDst, int w, int h, const Graphics::Surface *src, uint xSrc, uint ySrc, byte rTrans, byte gTrans, byte bTrans) {
+	if (_vm->isTrueColor()) {
+		keyBlit(dst, xDst, yDst, w, h, src, xSrc, ySrc, getColor(rTrans, gTrans, bTrans));
+	} else {
+		// Find the palette index of the color
+		int paletteIndex = -1;
+		for (int i = 0; i < 256; i++) {
+			if (_palette[i * 3] == rTrans && _palette[i * 3 + 1] == gTrans && _palette[i * 3 + 2] == bTrans) {
+				paletteIndex = i;
+				break;
+			}
+		}
+
+		assert(paletteIndex >= 0);
+
+		keyBlit(dst, xDst, yDst, w, h, src, xSrc, ySrc, paletteIndex);
+	}
+}
+
+void GraphicsManager::opaqueTransparentBlit(Graphics::Surface *dst, int xDst, int yDst, int w, int h, const Graphics::Surface *src, uint xSrc, uint ySrc, int opacityValue, byte rTrans, byte gTrans, byte bTrans) {
 	if (_vm->isTrueColor()) {
 		uint32 transColor = getColor(rTrans, gTrans, bTrans);
 
@@ -368,31 +405,7 @@ void GraphicsManager::opaqueTransparentBlit(Graphics::Surface *dst, int xDst, in
 			}
 		}
 	} else {
-		// Find the palette index of the color
-		int paletteIndex = -1;
-		for (int i = 0; i < 256; i++) {
-			if (_palette[i * 3] == rTrans && _palette[i * 3 + 1] == gTrans && _palette[i * 3 + 2] == bTrans) {
-				paletteIndex = i;
-				break;
-			}
-		}
-
-		assert(paletteIndex >= 0);
-
-		for (int y = 0; y < h; y++) {
-			if (y + yDst < dst->h && y + yDst >= 0) {
-				for (int x = 0; x < w; x++) {
-					if (x + xDst < dst->w && x + xDst >= 0) {
-						byte color = *((const byte *)src->getBasePtr(x + xSrc, y + ySrc));
-
-						if (color == paletteIndex)
-							continue;
-
-						*((byte *)dst->getBasePtr(x + xDst, y + yDst)) = color;
-					}
-				}
-			}
-		}
+		keyBlit(dst, xDst, yDst, w, h, src, xSrc, ySrc, rTrans, gTrans, bTrans);
 	}
 }
 
@@ -545,7 +558,7 @@ int GraphicsManager::computeVPushOffset(int speed) {
 	return 189;
 }
 
-void GraphicsManager::crossBlit(Graphics::Surface *dst, int xDst, int yDst, uint w, uint h, const Graphics::Surface *src, int xSrc, int ySrc) {
+void GraphicsManager::crossBlit(Graphics::Surface *dst, int xDst, int yDst, uint w, uint h, const Graphics::Surface *src, uint xSrc, uint ySrc) {
 	assert(dst->format.bytesPerPixel == src->format.bytesPerPixel);
 
 	for (uint y = 0; y < h; y++)
@@ -576,15 +589,14 @@ Graphics::Font *GraphicsManager::createMSGothicFont(int size, bool bold) const {
 	// TODO: Fake a bold version
 	if (stream) {
 		// Force monochrome, since the original uses the bitmap glyphs in the font
-		font = Graphics::loadTTFFont(*stream, size, Graphics::kTTFSizeModeCharacter, 96, Graphics::kTTFRenderModeMonochrome);
+		font = Graphics::loadTTFFont(stream, DisposeAfterUse::YES, size, Graphics::kTTFSizeModeCharacter, 96, 96, Graphics::kTTFRenderModeMonochrome);
 	} else {
-		font = Graphics::loadTTFFontFromArchive("VL-Gothic-Regular.ttf", size, Graphics::kTTFSizeModeCharacter, 96, Graphics::kTTFRenderModeMonochrome);
+		font = Graphics::loadTTFFontFromArchive("VL-Gothic-Regular.ttf", size, Graphics::kTTFSizeModeCharacter, 96, 96, Graphics::kTTFRenderModeMonochrome);
 	}
 
 	if (!font)
 		error("Failed to load MS Gothic font");
 
-	delete stream;
 	return font;
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,18 +54,18 @@ protected:
 
 public:
 	CallBack()  {
-		callback_user_data = NULL;
-		callback_target = NULL;
+		callback_user_data = nullptr;
+		callback_target = nullptr;
 	}
 	virtual ~CallBack() { }
 
 	// receive message
-	virtual uint16 callback(uint16 msg, CallBack *caller, void *data = NULL) {
+	virtual uint16 callback(uint16 msg, CallBack *caller, void *data = nullptr) {
 		DEBUG(0, LEVEL_WARNING, "Unhandled callback. msg (%x)\n", msg);
 		return 0;
 	}
 	// send message
-	uint16 message(uint16 msg, void *msg_data = NULL, void *my_data = NULL) {
+	uint16 message(uint16 msg, void *msg_data = nullptr, void *my_data = nullptr) {
 		if (my_data)
 			set_user_data(my_data);
 		callback_target->set_user_data(callback_user_data);

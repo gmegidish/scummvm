@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -83,6 +82,7 @@ TextToSpeechManager::TextToSpeechManager() {
 	_ttsState->_rate = 0;
 	_ttsState->_activeVoice = 0;
 	_ttsState->_language = "en";
+	_ttsState->_enabled = false;
 	_ttsState->_next = nullptr;
 }
 
@@ -94,6 +94,7 @@ void TextToSpeechManager::pushState() {
 	newState->_rate = _ttsState->_rate;
 	newState->_activeVoice = _ttsState->_activeVoice;
 	newState->_language = _ttsState->_language;
+	newState->_enabled = _ttsState->_enabled;
 	newState->_next = _ttsState;
 	_ttsState = newState;
 	updateVoices();
@@ -116,7 +117,15 @@ bool TextToSpeechManager::popState() {
 	setVolume(_ttsState->_volume);
 	setRate(_ttsState->_rate);
 	setVoice(voice);
+
 	return false;
+}
+
+void TextToSpeechManager::enable(bool on) {
+	if (_ttsState->_enabled == on)
+		return;
+	_ttsState->_enabled = on;
+	updateVoices();
 }
 
 void TextToSpeechManager::clearState() {

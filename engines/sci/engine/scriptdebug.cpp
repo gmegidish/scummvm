@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -83,7 +82,7 @@ void DebugState::updateActiveBreakpointTypes() {
 // Disassembles one command from the heap, returns address of next command or 0 if a ret was encountered.
 reg_t disassemble(EngineState *s, reg_t pos, const Object *obj, bool printBWTag, bool printBytecode, bool printCSyntax) {
 	SegmentObj *mobj = s->_segMan->getSegment(pos.getSegment(), SEG_TYPE_SCRIPT);
-	Script *script_entity = NULL;
+	Script *script_entity = nullptr;
 	reg_t retval = make_reg32(pos.getSegment(), pos.getOffset() + 1);
 	uint16 param_value = 0xffff; // Suppress GCC warning by setting default value, chose value as invalid to getKernelName etc.
 	uint i = 0;
@@ -154,6 +153,11 @@ reg_t disassemble(EngineState *s, reg_t pos, const Object *obj, bool printBWTag,
 #endif
 
 	static const char *defaultSeparator = "\t\t; ";
+	
+	// Provide additional selector name context for push0, push1, push2 opcodes.
+	if (opcode >= op_push0 && opcode <= op_push2) {
+		debugN("\t%s%s", defaultSeparator, kernel->getSelectorName(opcode - op_push0).c_str());
+	}
 
 	i = 0;
 	while (g_sci->_opcode_formats[opcode][i]) {
@@ -257,6 +261,7 @@ reg_t disassemble(EngineState *s, reg_t pos, const Object *obj, bool printBWTag,
 					separator = ", ";
 				}
 
+				// Provide additional selector name context for pushi opcodes.
 				if (opcode == op_pushi && param_value < kernel->getSelectorNamesSize()) {
 					debugN("%s%s", separator, kernel->getSelectorName(param_value).c_str());
 				}
@@ -317,8 +322,12 @@ reg_t disassemble(EngineState *s, reg_t pos, const Object *obj, bool printBWTag,
 			} else {
 				if (getSciVersion() == SCI_VERSION_3)
 					debugN("\t(%s)", g_sci->getKernel()->getSelectorName(param_value).c_str());
-				else
-					debugN("\t(%s)", g_sci->getKernel()->getSelectorName(obj->propertyOffsetToId(s->_segMan, param_value)).c_str());
+				else {
+					int propertySelector = obj->propertyOffsetToId(s->_segMan, param_value);
+					if (propertySelector != -1) {
+						debugN("\t(%s)", g_sci->getKernel()->getSelectorName(propertySelector).c_str());
+					}
+				}
 			}
 		}
 	}
@@ -346,12 +355,11 @@ reg_t disassemble(EngineState *s, reg_t pos, const Object *obj, bool printBWTag,
 			int restmod = s->r_rest;
 			int stackframe = (scr[pos.getOffset() + 1] >> 1) + restmod;
 			reg_t *sb = s->xs->sp;
-			uint16 selector;
 			reg_t fun_ref;
 
 			while (stackframe > 0) {
 				int argc = sb[- stackframe + 1].getOffset();
-				const char *name = NULL;
+				const char *name = nullptr;
 				reg_t called_obj_addr = s->xs->objp;
 
 				if (opcode == op_send)
@@ -359,7 +367,7 @@ reg_t disassemble(EngineState *s, reg_t pos, const Object *obj, bool printBWTag,
 				else if (opcode == op_self)
 					called_obj_addr = s->xs->objp;
 
-				selector = sb[- stackframe].getOffset();
+				uint16 selector = sb[- stackframe].getOffset();
 
 				name = s->_segMan->getObjectName(called_obj_addr);
 
@@ -371,7 +379,7 @@ reg_t disassemble(EngineState *s, reg_t pos, const Object *obj, bool printBWTag,
 				if (!s->_segMan->getObject(called_obj_addr)) {
 					debugN("INVALID_OBJ");
 				} else {
-					switch (lookupSelector(s->_segMan, called_obj_addr, selector, 0, &fun_ref)) {
+					switch (lookupSelector(s->_segMan, called_obj_addr, selector, nullptr, &fun_ref)) {
 					case kSelectorMethod:
 						debugN("FUNCT");
 						argc += restmod;
@@ -618,7 +626,7 @@ void Kernel::dissectScript(int scriptNumber, Vocabulary *vocab) {
 	Resource *script = _resMan->findResource(ResourceId(kResourceTypeScript, scriptNumber), false);
 
 	if (!script) {
-		warning("dissectScript(): Script not found!\n");
+		warning("dissectScript(): Script not found");
 		return;
 	}
 
@@ -1120,7 +1128,7 @@ void logBacktrace() {
 		int paramc, totalparamc;
 
 		switch (call.type) {
-		case EXEC_STACK_TYPE_CALL: // Normal function
+		case EXEC_STACK_TYPE_CALL: // Script function
 			con->debugPrintf(" %x: script %d - ", i, s->_segMan->getScript(call.addr.pc.getSegment())->getScriptNumber());
 
 			if (call.debugSelector != -1) {

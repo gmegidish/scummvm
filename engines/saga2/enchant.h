@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Based on the original sources
@@ -33,69 +32,69 @@ namespace Saga2 {
 enum actorEnchantments {
 
 	//  Object-enchantments
-	enchNone = 0,
-	enchInvisible,
+	kEnchNone = 0,
+	kEnchInvisible,
 
-	enchWarded,
+	kEnchWarded,
 
 	//  Actor skill boosters
-	enchAttackFast,
-	enchEnhanceBrawn,
-	enchEnhanceAgility,
-	enchEnhanceStealth,
-	enchEnhanceArmor,
-	enchEnhanceHitChance,
+	kEnchAttackFast,
+	kEnchEnhanceBrawn,
+	kEnchEnhanceAgility,
+	kEnchEnhanceStealth,
+	kEnchEnhanceArmor,
+	kEnchEnhanceHitChance,
 
 	//  Actor Immunities
-	enchImmunePhysical,
-	enchImmuneProjectile,
-	enchImmuneHandToHand,
-	enchImmuneMagicMissile,
-	enchImmuneFire,
-	enchImmuneFireMagic,
-	enchImmuneLava,
-	enchImmuneCold,
-	enchImmuneMental,
-	enchImmuneDirectMagic,
-	enchImmuneLifeDrain,
+	kEnchImmunePhysical,
+	kEnchImmuneProjectile,
+	kEnchImmuneHandToHand,
+	kEnchImmuneMagicMissile,
+	kEnchImmuneFire,
+	kEnchImmuneFireMagic,
+	kEnchImmuneLava,
+	kEnchImmuneCold,
+	kEnchImmuneMental,
+	kEnchImmuneDirectMagic,
+	kEnchImmuneLifeDrain,
 
 	//  Actor Movement enchantents
-	enchLandWalking,
-	enchDesolidified,
-	enchFloating,
-	enchFallSlowly,
-	enchLevitating,
-	enchWaterWalking,
-	enchFlying,
+	kEnchLandWalking,
+	kEnchDesolidified,
+	kEnchFloating,
+	kEnchFallSlowly,
+	kEnchLevitating,
+	kEnchWaterWalking,
+	kEnchFlying,
 
 	//  Curses
-	enchBlind,
-	enchPanic,
-	enchParalyzed,
-	enchMoveFast,
-	enchMoveSlow,
-	enchAttackSlow,
-	enchAsleep,
-	enchReduceHitCchance,
+	kEnchBlind,
+	kEnchPanic,
+	kEnchParalyzed,
+	kEnchMoveFast,
+	kEnchMoveSlow,
+	kEnchAttackSlow,
+	kEnchAsleep,
+	kEnchReduceHitCchance,
 
 	//  Changes display algorithms
-	enchSoulSight,
-	enchClairvoyant,
-	enchDetectPoison,
+	kEnchSoulSight,
+	kEnchClairvoyant,
+	kEnchDetectPoison,
 
 	//  Changes NPC behavior
-	enchHasNoSmell
+	kEnchHasNoSmell
 };
 
 //-----------------------------------------------------------------------
 //	Iterates through all active enchantments on an object or actor
 
 class EnchantmentIterator {
-	ObjectID        nextID;             //  Pointer to ID of next object.
+	ObjectID        _nextID;             //  Pointer to ID of next object.
 
 public:
-	GameObject      *baseObject,        //  Base obj we're searching for enchantments
-	                *wornObject;        //  An object 'worn' by the base object.
+	GameObject      *_baseObject,        //  Base obj we're searching for enchantments
+	                *_wornObject;        //  An object 'worn' by the base object.
 
 	//  Constructor
 	EnchantmentIterator(GameObject *container);
@@ -109,10 +108,8 @@ public:
 // Global Enchantments
 
 enum worldEnchantments {
-
-	weTimeStop = 0,
-
-	weCount
+	kWETimeStop = 0,
+	kWECount
 };
 
 } // end of namespace Saga2

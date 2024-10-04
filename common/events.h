@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define COMMON_EVENTS_H
 
 #include "common/keyboard.h"
+#include "common/path.h"
 #include "common/queue.h"
 #include "common/rect.h"
 #include "common/noncopyable.h"
@@ -89,9 +89,7 @@ enum EventType {
 	EVENT_CUSTOM_ENGINE_ACTION_START  = 20,
 	EVENT_CUSTOM_ENGINE_ACTION_END    = 21,
 
-#ifdef ENABLE_VKEYBD
 	EVENT_VIRTUAL_KEYBOARD = 22,
-#endif
 
 	EVENT_DROP_FILE = 23,
 
@@ -146,6 +144,7 @@ struct JoystickState {
  *  The list of named buttons available from a joystick.
  */
 enum JoystickButton {
+	JOYSTICK_BUTTON_INVALID,
 	JOYSTICK_BUTTON_A,
 	JOYSTICK_BUTTON_B,
 	JOYSTICK_BUTTON_X,
@@ -160,7 +159,8 @@ enum JoystickButton {
 	JOYSTICK_BUTTON_DPAD_UP,
 	JOYSTICK_BUTTON_DPAD_DOWN,
 	JOYSTICK_BUTTON_DPAD_LEFT,
-	JOYSTICK_BUTTON_DPAD_RIGHT
+	JOYSTICK_BUTTON_DPAD_RIGHT,
+	JOYSTICK_BUTTON_DPAD_CENTER
 };
 
 /**
@@ -172,7 +172,9 @@ enum JoystickAxis {
 	JOYSTICK_AXIS_RIGHT_STICK_X,
 	JOYSTICK_AXIS_RIGHT_STICK_Y,
 	JOYSTICK_AXIS_LEFT_TRIGGER,
-	JOYSTICK_AXIS_RIGHT_TRIGGER
+	JOYSTICK_AXIS_RIGHT_TRIGGER,
+	JOYSTICK_AXIS_HAT_X,
+	JOYSTICK_AXIS_HAT_Y
 };
 
 /**
@@ -224,7 +226,7 @@ struct Event {
 	CustomEventType customType;
 
 	/** The path of the file or directory dragged to the ScummVM window. */
-	Common::String path;
+	Common::Path path;
 
 	/**
 	 * Mouse movement since the last mouse movement event.
@@ -350,7 +352,7 @@ public:
 	/**
 	 * Map an incoming event to one or more action events.
 	 */
-	virtual List<Event> mapEvent(const Event &ev) = 0;
+	virtual bool mapEvent(const Event &ev, List<Event> &mappedEvents) = 0;
 };
 
 /**
@@ -386,9 +388,16 @@ public:
 	void clearEvents();
 
 	/**
-	 * Register an event mapper with the dispatcher.
+	 * Register a new EventMapper with the dispatcher.
 	 */
-	void registerMapper(EventMapper *mapper);
+	void registerMapper(EventMapper *mapper, bool autoFree);
+
+	/**
+	 * Unregister an EventMapper.
+	 *
+	 * This takes the "autoFree" flag passed to registerSource into account.
+	 */
+	void unregisterMapper(EventMapper *mapper);
 
 	/**
 	 * Register a new EventSource with the Dispatcher.
@@ -423,12 +432,16 @@ public:
 	 */
 	void unregisterObserver(EventObserver *obs);
 private:
-	EventMapper *_mapper;
-
 	struct Entry {
 		bool autoFree;
 		bool ignore;
 	};
+
+	struct MapperEntry : public Entry {
+		EventMapper *mapper;
+	};
+
+	List<MapperEntry> _mappers;
 
 	struct SourceEntry : public Entry {
 		EventSource *source;

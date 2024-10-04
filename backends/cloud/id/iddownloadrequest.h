@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,24 +32,25 @@ namespace Id {
 class IdStorage;
 
 class IdDownloadRequest: public Networking::Request {
-	Common::String _requestedFile, _requestedLocalFile;
+	Common::String _requestedFile;
+	Common::Path _requestedLocalFile;
 	IdStorage *_storage;
 	Storage::BoolCallback _boolCallback;
 	Request *_workingRequest;
 	bool _ignoreCallback;
 
 	void start();
-	void idResolvedCallback(Storage::UploadResponse response);
-	void idResolveFailedCallback(Networking::ErrorResponse error);
-	void downloadCallback(Storage::BoolResponse response);
-	void downloadErrorCallback(Networking::ErrorResponse error);
+	void idResolvedCallback(const Storage::UploadResponse &response);
+	void idResolveFailedCallback(const Networking::ErrorResponse &error);
+	void downloadCallback(const Storage::BoolResponse &response);
+	void downloadErrorCallback(const Networking::ErrorResponse &error);
 	void finishDownload(bool success);
 public:
-	IdDownloadRequest(IdStorage *storage, Common::String remotePath, Common::String localPath, Storage::BoolCallback cb, Networking::ErrorCallback ecb);
-	virtual ~IdDownloadRequest();
+	IdDownloadRequest(IdStorage *storage, const Common::String &remotePath, const Common::Path &localPath, Storage::BoolCallback cb, Networking::ErrorCallback ecb);
+	~IdDownloadRequest() override;
 
-	virtual void handle();
-	virtual void restart();
+	void handle() override;
+	void restart() override;
 
 	/** Returns a number in range [0, 1], where 1 is "complete". */
 	double getProgress() const;

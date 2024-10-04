@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,7 +68,7 @@ InventoryWindow::InventoryWindow(BuriedEngine *vm, Window *parent) : Window(vm, 
 		_itemArray.push_back(kItemBioChipJump);
 	}
 
-	_curItem = 0;
+	setCurItem(0);
 
 	_infoWindow = nullptr;
 	_letterViewWindow = nullptr;
@@ -86,7 +85,7 @@ InventoryWindow::InventoryWindow(BuriedEngine *vm, Window *parent) : Window(vm, 
 
 	if (_vm->isDemo()) {
 		// The demo uses a video for drag frames
-		Common::String dragFramesFileName;
+		const char *dragFramesFileName;
 		if (_vm->isTrueColor())
 			dragFramesFileName = "COMMON/INVDRAG.BTV";
 		else
@@ -95,7 +94,7 @@ InventoryWindow::InventoryWindow(BuriedEngine *vm, Window *parent) : Window(vm, 
 		_dragFrames = new AVIFrames(dragFramesFileName);
 	} else {
 		// The full version uses bitmaps
-		_dragFrames = NULL;
+		_dragFrames = nullptr;
 	}
 }
 
@@ -143,7 +142,8 @@ bool InventoryWindow::rebuildPreBuffer() {
 
 	if (!_itemArray.empty()) {
 		// Draw the icon for the current item
-		Graphics::Surface *icon = _vm->_gfx->getBitmap(IDB_PICON_BITMAP_BASE + _itemArray[_curItem]);
+		const uint16 curItem = getCurItem();
+		Graphics::Surface *icon = _vm->_gfx->getBitmap(IDB_PICON_BITMAP_BASE + _itemArray[curItem]);
 		_vm->_gfx->crossBlit(_background, 17, 8, icon->w, icon->h, icon, 0, 0);
 		icon->free();
 		delete icon;
@@ -161,7 +161,7 @@ bool InventoryWindow::addItem(int itemID) {
 	// Find the new position, and set the current selection to that
 	for (int i = 0; i < (int)_itemArray.size(); i++) {
 		if (_itemArray[i] == itemID) {
-			_curItem = i;
+			setCurItem(i);
 			break;
 		}
 	}
@@ -221,8 +221,10 @@ bool InventoryWindow::removeItem(int itemID) {
 	if (!found)
 		return false;
 
-	if (_curItem >= (int)_itemArray.size())
-		_curItem--;
+	const uint16 curItem = getCurItem();
+	if (curItem >= (int)_itemArray.size()) {
+		setCurItem(curItem - 1);
+	}
 
 	rebuildPreBuffer();
 	invalidateWindow(false);
@@ -249,14 +251,9 @@ bool InventoryWindow::startDraggingNewItem(int itemID, const Common::Point &poin
 	_draggingItemSpriteData.height = _draggingItemSpriteData.image->h;
 
 	if (_vm->isTrueColor()) {
-		_draggingItemSpriteData.redTrans = 255;
-		_draggingItemSpriteData.greenTrans = 255;
-		_draggingItemSpriteData.blueTrans = 255;
+		_draggingItemSpriteData.transColor = _vm->_gfx->getColor(255, 255, 255);
 	} else {
-		byte firstPixel = *((byte *)_draggingItemSpriteData.image->getBasePtr(0, 0));
-		_draggingItemSpriteData.redTrans = _vm->_gfx->getDefaultPalette()[firstPixel * 3];
-		_draggingItemSpriteData.greenTrans = _vm->_gfx->getDefaultPalette()[firstPixel * 3 + 1];
-		_draggingItemSpriteData.blueTrans = _vm->_gfx->getDefaultPalette()[firstPixel * 3 + 2];
+		_draggingItemSpriteData.transColor = _draggingItemSpriteData.image->getPixel(0, 0);
 	}
 
 	setCapture();
@@ -301,8 +298,9 @@ void InventoryWindow::onPaint() {
 
 	// Draw inventory item names
 	uint32 textColor = _vm->_gfx->getColor(212, 109, 0);
+	const uint16 curItem = getCurItem();
 	for (int i = -2; i < 3; i++) {
-		if ((i + _curItem) >= 0 && (i + _curItem) < (int)_itemArray.size()) {
+		if ((i + curItem) >= 0 && (i + curItem) < (int)_itemArray.size()) {
 			Common::Rect textRect = Common::Rect(120, (i + 2) * 13 + 8, 254, (i + 3) * 13 + 8);
 
 			if (_vm->getLanguage() == Common::JA_JPN) {
@@ -312,7 +310,7 @@ void InventoryWindow::onPaint() {
 			}
 
 			textRect.translate(absoluteRect.left, absoluteRect.top);
-			Common::String text = _vm->getString(IDES_ITEM_TITLE_BASE + _itemArray[_curItem + i]);
+			Common::String text = _vm->getString(IDES_ITEM_TITLE_BASE + _itemArray[curItem + i]);
 			_vm->_gfx->renderText(_vm->_gfx->getScreen(), _textFont, text, textRect.left, textRect.top, textRect.width(), textRect.height(), textColor, _fontHeight);
 		}
 	}
@@ -333,7 +331,7 @@ void InventoryWindow::onLButtonDown(const Common::Point &point, uint flags) {
 
 	bool redraw = false;
 	if (up.contains(point)) {
-		if (_curItem > 0) {
+		if (getCurItem() > 0) {
 			_upSelected = true;
 			redraw = true;
 			_scrollTimer = setTimer(250);
@@ -341,7 +339,7 @@ void InventoryWindow::onLButtonDown(const Common::Point &point, uint flags) {
 	}
 
 	if (down.contains(point)) {
-		if (_curItem < ((int)_itemArray.size() - 1)) {
+		if (getCurItem() < ((int)_itemArray.size() - 1)) {
 			_downSelected = true;
 			redraw = true;
 			_scrollTimer = setTimer(250);
@@ -361,7 +359,8 @@ void InventoryWindow::onLButtonDown(const Common::Point &point, uint flags) {
 	}
 
 	if (picon.contains(point) && !_itemArray.empty() && !_infoWindow) {
-		int itemID = _itemArray[_curItem];
+		const uint16 curItem = getCurItem();
+		int itemID = _itemArray[curItem];
 
 		switch (itemID) {
 		case kItemBioChipAI:
@@ -408,7 +407,7 @@ void InventoryWindow::onLButtonDown(const Common::Point &point, uint flags) {
 				return;
 			}
 
-			InventoryElement staticItemData = getItemStaticData(_itemArray[_curItem]);
+			InventoryElement staticItemData = getItemStaticData(_itemArray[curItem]);
 
 			if (staticItemData.firstDragID < 0)
 				return;
@@ -429,14 +428,9 @@ void InventoryWindow::onLButtonDown(const Common::Point &point, uint flags) {
 			_draggingItemSpriteData.height = _draggingItemSpriteData.image->h;
 
 			if (_vm->isTrueColor()) {
-				_draggingItemSpriteData.redTrans = 255;
-				_draggingItemSpriteData.greenTrans = 255;
-				_draggingItemSpriteData.blueTrans = 255;
+				_draggingItemSpriteData.transColor = _vm->_gfx->getColor(255, 255, 255);
 			} else {
-				byte firstPixel = *((byte *)_draggingItemSpriteData.image->getBasePtr(0, 0));
-				_draggingItemSpriteData.redTrans = _vm->_gfx->getDefaultPalette()[firstPixel * 3];
-				_draggingItemSpriteData.greenTrans = _vm->_gfx->getDefaultPalette()[firstPixel * 3 + 1];
-				_draggingItemSpriteData.blueTrans = _vm->_gfx->getDefaultPalette()[firstPixel * 3 + 2];
+				_draggingItemSpriteData.transColor = _draggingItemSpriteData.image->getPixel(0, 0);
 			}
 
 			setCapture();
@@ -467,13 +461,16 @@ void InventoryWindow::onLButtonUp(const Common::Point &point, uint flags) {
 		inventoryText[i] = Common::Rect(120, i * 13 + 8, 254, (i + 1) * 13 + 8);
 
 	bool redraw = _upSelected || _downSelected || _magSelected;
+	uint16 curItem = getCurItem();
 
 	if (up.contains(point) && _upSelected) {
-		if (_curItem > 0)
-			_curItem--;
+		if (curItem > 0) {
+			curItem--;
+			setCurItem(curItem);
+		}
 
 		if (_infoWindow)
-			_infoWindow->changeCurrentItem(_itemArray[_curItem]);
+			_infoWindow->changeCurrentItem(_itemArray[curItem]);
 
 		if (_scrollTimer != 0) {
 			killTimer(_scrollTimer);
@@ -482,11 +479,13 @@ void InventoryWindow::onLButtonUp(const Common::Point &point, uint flags) {
 	}
 
 	if (down.contains(point) && _downSelected) {
-		if (_curItem < ((int)_itemArray.size() - 1))
-			_curItem++;
+		if (curItem < ((int)_itemArray.size() - 1)) {
+			curItem++;
+			setCurItem(curItem);
+		}
 
 		if (_infoWindow)
-			_infoWindow->changeCurrentItem(_itemArray[_curItem]);
+			_infoWindow->changeCurrentItem(_itemArray[curItem]);
 
 		if (_scrollTimer != 0) {
 			killTimer(_scrollTimer);
@@ -500,7 +499,7 @@ void InventoryWindow::onLButtonUp(const Common::Point &point, uint flags) {
 		if (_infoWindow) {
 			destroyInfoWindow();
 		} else {
-			_infoWindow = new InventoryInfoWindow(_vm, ((GameUIWindow *)_parent)->_sceneViewWindow, _itemArray[_curItem]);
+			_infoWindow = new InventoryInfoWindow(_vm, ((GameUIWindow *)_parent)->_sceneViewWindow, _itemArray[curItem]);
 			((GameUIWindow *)_parent)->_sceneViewWindow->infoWindowDisplayed(true);
 			_infoWindow->setWindowPos(kWindowPosTop, 0, 0, 0, 0, kWindowPosShowWindow | kWindowPosNoMove | kWindowPosNoSize);
 			_magSelected = true;
@@ -509,13 +508,15 @@ void InventoryWindow::onLButtonUp(const Common::Point &point, uint flags) {
 	}
 
 	if (_textSelected >= 0) {
+		curItem = getCurItem();
+
 		for (int i = 0; i < 5; i++) {
-			if (inventoryText[i].contains(point) && (_curItem + i - 2) >= 0 && (_curItem + i - 2) < (int)_itemArray.size() && i == _textSelected) {
-				_curItem += i - 2;
+			if (inventoryText[i].contains(point) && (curItem + i - 2) >= 0 && (curItem + i - 2) < (int)_itemArray.size() && i == _textSelected) {
+				setCurItem(curItem + i - 2);
 				redraw = true;
 
 				if (_infoWindow)
-					_infoWindow->changeCurrentItem(_itemArray[_curItem]);
+					_infoWindow->changeCurrentItem(_itemArray[curItem]);
 			}
 		}
 	}
@@ -662,14 +663,9 @@ void InventoryWindow::onMouseMove(const Common::Point &point, uint flags) {
 				_draggingIconIndex = newIcon;
 
 				if (_vm->isTrueColor()) {
-					_draggingItemSpriteData.redTrans = 255;
-					_draggingItemSpriteData.greenTrans = 255;
-					_draggingItemSpriteData.blueTrans = 255;
+					_draggingItemSpriteData.transColor = _vm->_gfx->getColor(255, 255, 255);
 				} else {
-					byte firstPixel = *((byte *)_draggingItemSpriteData.image->getBasePtr(0, 0));
-					_draggingItemSpriteData.redTrans = _vm->_gfx->getDefaultPalette()[firstPixel * 3];
-					_draggingItemSpriteData.greenTrans = _vm->_gfx->getDefaultPalette()[firstPixel * 3 + 1];
-					_draggingItemSpriteData.blueTrans = _vm->_gfx->getDefaultPalette()[firstPixel * 3 + 2];
+					_draggingItemSpriteData.transColor = _draggingItemSpriteData.image->getPixel(0, 0);
 				}
 			}
 		}
@@ -718,15 +714,16 @@ bool InventoryWindow::onSetCursor(uint message) {
 }
 
 void InventoryWindow::onTimer(uint timer) {
+	const uint16 curItem = getCurItem();
 	if (_upSelected) {
-		if (_curItem > 0) {
-			_curItem--;
+		if (curItem > 0) {
+			setCurItem(curItem - 1);
 			rebuildPreBuffer();
 			invalidateWindow(false);
 		}
 	} else if (_downSelected) {
-		if (_curItem < (int)_itemArray.size() - 1) {
-			_curItem++;
+		if (curItem < (int)_itemArray.size() - 1) {
+			setCurItem(curItem + 1);
 			rebuildPreBuffer();
 			invalidateWindow(false);
 		}
@@ -774,6 +771,22 @@ bool InventoryWindow::destroyInfoWindow() {
 void InventoryWindow::setItemArray(const Common::Array<int> &array) {
 	_itemArray = array;
 	Common::sort(_itemArray.begin(), _itemArray.end());
+
+	// Sanity check
+	uint16 curItem = getCurItem();
+	if (curItem >= _itemArray.size()) {
+		warning("Invalid current item, resetting it to the first one");
+		setCurItem(0);
+	}
 }
 
+void InventoryWindow::setCurItem(uint16 itemId) {
+	GlobalFlags &globalFlags = ((GameUIWindow *)_parent)->_sceneViewWindow->getGlobalFlags();
+	globalFlags.curItem = itemId;
+}
+
+uint16 InventoryWindow::getCurItem() const {
+	GlobalFlags &globalFlags = ((GameUIWindow *)_parent)->_sceneViewWindow->getGlobalFlags();
+	return globalFlags.curItem;
+}
 } // End of namespace Buried

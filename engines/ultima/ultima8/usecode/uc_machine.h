@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define ULTIMA8_USECODE_UCMACHINE_H
 
 #include "ultima/ultima8/misc/common_types.h"
+#include "ultima/shared/std/string.h"
 #include "ultima/shared/std/containers.h"
 #include "ultima/ultima8/usecode/intrinsics.h"
 
@@ -100,8 +100,8 @@ private:
 
 	GlobalStorage *_globals;
 
-	Std::map<uint16, UCList *> _listHeap;
-	Std::map<uint16, Std::string> _stringHeap;
+	Common::HashMap<uint16, UCList *> _listHeap;
+	Common::HashMap<uint16, Std::string> _stringHeap;
 
 	// Add a string to the list (copies the string)
 	uint16 assignString(const char *str);
@@ -112,11 +112,9 @@ private:
 
 	static UCMachine *_ucMachine;
 
-#ifdef DEBUG
 	// tracing
 	bool _tracingEnabled;
 	bool _traceAll;
-	bool _traceEvents;
 	Std::set<ObjId> _traceObjIDs;
 	Std::set<ProcId> _tracePIDs;
 	Std::set<uint16> _traceClasses;
@@ -130,11 +128,6 @@ private:
 		return false;
 	}
 
-public:
-	bool trace_event() const {
-		return (_tracingEnabled && (_traceAll || _traceEvents));
-	}
-#endif
 };
 
 } // End of namespace Ultima8

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,21 +15,22 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ags/shared/ac/character_info.h"
 #include "ags/shared/ac/game_setup_struct_base.h"
+#include "ags/shared/ac/game_setup_struct.h"
 #include "ags/shared/ac/game_version.h"
 #include "ags/shared/ac/words_dictionary.h"
 #include "ags/shared/script/cc_script.h"
 #include "ags/shared/util/stream.h"
+#include "ags/shared/util/string_utils.h"
 
 namespace AGS3 {
 
-using AGS::Shared::Stream;
+using namespace AGS::Shared;
 
 GameSetupStructBase::GameSetupStructBase()
 	: numviews(0)
@@ -65,7 +66,6 @@ GameSetupStructBase::GameSetupStructBase()
 	memset(paluses, 0, sizeof(paluses));
 	memset(defpal, 0, sizeof(defpal));
 	memset(reserved, 0, sizeof(reserved));
-	memset(messages, 0, sizeof(messages));
 }
 
 GameSetupStructBase::~GameSetupStructBase() {
@@ -74,8 +74,7 @@ GameSetupStructBase::~GameSetupStructBase() {
 
 void GameSetupStructBase::Free() {
 	for (int i = 0; i < MAXGLOBALMES; ++i) {
-		delete[] messages[i];
-		messages[i] = nullptr;
+		messages[i].Free();
 	}
 	delete[] load_messages;
 	load_messages = nullptr;
@@ -144,17 +143,17 @@ void GameSetupStructBase::OnResolutionSet() {
 	_relativeUIMult = IsLegacyHiRes() ? HIRES_COORD_MULTIPLIER : 1;
 }
 
-void GameSetupStructBase::ReadFromFile(Stream *in) {
-	in->Read(&gamename[0], GAME_NAME_LENGTH);
+void GameSetupStructBase::ReadFromFile(Stream *in, GameDataVersion game_ver) {
+	StrUtil::ReadCStrCount(gamename, in, GAME_NAME_LENGTH);
 	in->ReadArrayOfInt32(options, MAX_OPTIONS);
-	if (_G(loaded_game_file_version) < kGameVersion_340_4) { // TODO: this should probably be possible to deduce script API level
+	if (game_ver < kGameVersion_340_4) { // TODO: this should probably be possible to deduce script API level
 		// using game data version and other options like OPT_STRICTSCRIPTING
 		options[OPT_BASESCRIPTAPI] = kScriptAPI_Undefined;
 		options[OPT_SCRIPTCOMPATLEV] = kScriptAPI_Undefined;
 	}
-	in->Read(&paluses[0], 256);
+	in->Read(&paluses[0], sizeof(paluses));
 	// colors are an array of chars
-	in->Read(&defpal[0], sizeof(RGB) * 256);
+	in->Read(&defpal[0], sizeof(defpal));
 	numviews = in->ReadInt32();
 	numcharacters = in->ReadInt32();
 	playercharacter = in->ReadInt32();
@@ -173,7 +172,7 @@ void GameSetupStructBase::ReadFromFile(Stream *in) {
 	numcursors = in->ReadInt32();
 	GameResolutionType resolution_type = (GameResolutionType)in->ReadInt32();
 	Size game_size;
-	if (resolution_type == kGameResolution_Custom && _G(loaded_game_file_version) >= kGameVersion_330) {
+	if (resolution_type == kGameResolution_Custom && game_ver >= kGameVersion_330) {
 		game_size.Width = in->ReadInt32();
 		game_size.Height = in->ReadInt32();
 	}
@@ -193,12 +192,12 @@ void GameSetupStructBase::ReadFromFile(Stream *in) {
 	load_compiled_script = in->ReadInt32() != 0;
 }
 
-void GameSetupStructBase::WriteToFile(Stream *out) {
-	out->Write(&gamename[0], 50);
-	out->WriteArrayOfInt32(options, 100);
-	out->Write(&paluses[0], 256);
+void GameSetupStructBase::WriteToFile(Stream *out) const {
+	out->Write(gamename, GAME_NAME_LENGTH);
+	out->WriteArrayOfInt32(options, MAX_OPTIONS);
+	out->Write(&paluses[0], sizeof(paluses));
 	// colors are an array of chars
-	out->Write(&defpal[0], sizeof(RGB) * 256);
+	out->Write(&defpal[0], sizeof(defpal));
 	out->WriteInt32(numviews);
 	out->WriteInt32(numcharacters);
 	out->WriteInt32(playercharacter);
@@ -224,7 +223,7 @@ void GameSetupStructBase::WriteToFile(Stream *out) {
 	out->WriteInt32(invhotdotsprite);
 	out->WriteArrayOfInt32(reserved, 17);
 	for (int i = 0; i < MAXGLOBALMES; ++i) {
-		out->WriteInt32(messages[i] ? 1 : 0);
+		out->WriteInt32(!messages[i].IsEmpty() ? 1 : 0);
 	}
 	out->WriteInt32(dict ? 1 : 0);
 	out->WriteInt32(0); // globalscript
@@ -250,9 +249,8 @@ Size ResolutionTypeToSize(GameResolutionType resolution, bool letterbox) {
 	case kGameResolution_1280x720:
 		return Size(1280, 720);
 	default:
-		break;
+		return Size();
 	}
-	return Size();
 }
 
 const char *GetScriptAPIName(ScriptAPIVersion v) {
@@ -266,10 +264,10 @@ const char *GetScriptAPIName(ScriptAPIVersion v) {
 	case kScriptAPI_v350: return "v3.5.0-alpha";
 	case kScriptAPI_v3507: return "v3.5.0-final";
 	case kScriptAPI_v351: return "v3.5.1";
-	case kScriptAPI_v360: return "v3.6.0";
-	case kScriptAPI_Undefined: return "undefined";
+	case kScriptAPI_v360: return "v3.6.0-alpha";
+	case kScriptAPI_v36026: return "v3.6.0-final";
+	default: return "unknown";
 	}
-	return "unknown";
 }
 
 } // namespace AGS3

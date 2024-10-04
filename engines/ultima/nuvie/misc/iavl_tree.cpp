@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,16 +45,16 @@ static void iAVLFillVacancy(iAVLTree *avltree,
  * that tree.  The getkey function should take an item and return an
  * AVLKey that is to be used for indexing this object in the AVL tree.
  * On success, a pointer to the malloced AVLTree is returned.  If there
- * was a malloc failure, then NULL is returned.
+ * was a malloc failure, then nullptr is returned.
  */
 iAVLTree *iAVLAllocTree(iAVLKey(*getkey)(void const *item)) {
 	iAVLTree *rc;
 
 	rc = (iAVLTree *)malloc(sizeof(iAVLTree));
-	if (rc == NULL)
-		return NULL;
+	if (rc == nullptr)
+		return nullptr;
 
-	rc->top = NULL;
+	rc->top = nullptr;
 	rc->count = 0;
 	rc->getkey = getkey;
 	return rc;
@@ -64,7 +63,7 @@ iAVLTree *iAVLAllocTree(iAVLKey(*getkey)(void const *item)) {
 
 /*
  * AVLFreeTree:
- * Free all memory used by this AVL tree.  If freeitem is not NULL, then
+ * Free all memory used by this AVL tree.  If freeitem is not nullptr, then
  * it is assumed to be a destructor for the items reference in the AVL
  * tree, and they are deleted as well.
  */
@@ -77,7 +76,7 @@ void iAVLCleanTree(iAVLTree *avltree, void (freeitem)(void *item)) {
 	if (avltree->top)
 		iAVLFreeBranch(avltree->top, freeitem);
 
-	avltree->top = NULL;
+	avltree->top = nullptr;
 	avltree->count = 0;
 }
 
@@ -96,17 +95,17 @@ int iAVLInsert(iAVLTree *avltree, void *item) {
 	iAVLNode *nextbalnode;
 
 	newnode = (iAVLNode *)malloc(sizeof(iAVLNode));
-	if (newnode == NULL)
+	if (newnode == nullptr)
 		return -1;
 
 	newnode->key = avltree->getkey(item);
 	newnode->item = item;
 	newnode->depth = 1;
-	newnode->left = NULL;
-	newnode->right = NULL;
-	newnode->parent = NULL;
+	newnode->left = nullptr;
+	newnode->right = nullptr;
+	newnode->parent = nullptr;
 
-	if (avltree->top != NULL) {
+	if (avltree->top != nullptr) {
 		node = iAVLCloseSearchNode(avltree, newnode->key);
 
 		if (!iAVLKey_cmp(avltree, node->key, newnode->key)) {
@@ -144,7 +143,7 @@ int iAVLInsert(iAVLTree *avltree, void *item) {
 /*
  * iAVLSearch:
  * Return a pointer to the item with the given key in the AVL tree.  If
- * no such item is in the tree, then NULL is returned.
+ * no such item is in the tree, then nullptr is returned.
  */
 void *iAVLSearch(iAVLTree const *avltree, iAVLKey key) {
 	iAVLNode *node;
@@ -154,7 +153,7 @@ void *iAVLSearch(iAVLTree const *avltree, iAVLKey key) {
 	if (node && !iAVLKey_cmp(avltree, node->key, key))
 		return node->item;
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -170,7 +169,7 @@ int iAVLDelete(iAVLTree *avltree, iAVLKey key) {
 	iAVLNode **superparent;
 
 	avlnode = iAVLCloseSearchNode(avltree, key);
-	if (avlnode == NULL || iAVLKey_cmp(avltree, avlnode->key, key))
+	if (avlnode == nullptr || iAVLKey_cmp(avltree, avlnode->key, key))
 		return -1;
 
 	origparent = avlnode->parent;
@@ -201,13 +200,13 @@ void *iAVLFirst(iAVLCursor *avlcursor, iAVLTree const *avltree) {
 
 	avlcursor->avltree = avltree;
 
-	if (avltree->top == NULL) {
-		avlcursor->curnode = NULL;
-		return NULL;
+	if (avltree->top == nullptr) {
+		avlcursor->curnode = nullptr;
+		return nullptr;
 	}
 
 	for (avlnode = avltree->top;
-	        avlnode->left != NULL;
+	        avlnode->left != nullptr;
 	        avlnode = avlnode->left);
 	avlcursor->curnode = avlnode;
 	return avlnode->item;
@@ -225,9 +224,9 @@ void *iAVLNext(iAVLCursor *avlcursor) {
 
 	avlnode = avlcursor->curnode;
 
-	if (avlnode->right != NULL) {
+	if (avlnode->right != nullptr) {
 		for (avlnode = avlnode->right;
-		        avlnode->left != NULL;
+		        avlnode->left != nullptr;
 		        avlnode = avlnode->left);
 		avlcursor->curnode = avlnode;
 		return avlnode->item;
@@ -237,9 +236,9 @@ void *iAVLNext(iAVLCursor *avlcursor) {
 		avlnode = avlnode->parent;
 	}
 
-	if (avlnode->parent == NULL) {
-		avlcursor->curnode = NULL;
-		return NULL;
+	if (avlnode->parent == nullptr) {
+		avlcursor->curnode = nullptr;
+		return nullptr;
 	}
 
 	avlcursor->curnode = avlnode->parent;
@@ -250,7 +249,7 @@ void *iAVLNext(iAVLCursor *avlcursor) {
 /*
  * iAVLCloseSearchNode:
  * Return a pointer to the node closest to the given key.
- * Returns NULL if the AVL tree is empty.
+ * Returns nullptr if the AVL tree is empty.
  */
 iAVLNode *iAVLCloseSearchNode(iAVLTree const *avltree, iAVLKey key) {
 	iAVLNode *node;
@@ -258,7 +257,7 @@ iAVLNode *iAVLCloseSearchNode(iAVLTree const *avltree, iAVLKey key) {
 	node = avltree->top;
 
 	if (!node)
-		return NULL;
+		return nullptr;
 
 	for (;;) {
 		if (!iAVLKey_cmp(avltree, node->key, key))
@@ -284,7 +283,7 @@ iAVLNode *iAVLCloseSearchNode(iAVLTree const *avltree, iAVLKey key) {
 /*
  * iAVLRebalanceNode:
  * Rebalances the AVL tree if one side becomes too heavy.  This function
- * assumes that both subtrees are AVL trees with consistant data.  This
+ * assumes that both subtrees are AVL trees with consistent data.  This
  * function has the additional side effect of recalculating the depth of
  * the tree at this node.  It should be noted that at the return of this
  * function, if a rebalance takes place, the top of this subtree is no
@@ -314,11 +313,11 @@ void iAVLRebalanceNode(iAVLTree *avltree, iAVLNode *avlnode) {
 
 		if (L_DEPTH(child) >= R_DEPTH(child)) {
 			avlnode->left = child->right;
-			if (avlnode->left != NULL)
+			if (avlnode->left != nullptr)
 				avlnode->left->parent = avlnode;
 			avlnode->depth = CALC_DEPTH(avlnode);
 			child->right = avlnode;
-			if (child->right != NULL)
+			if (child->right != nullptr)
 				child->right->parent = child;
 			child->depth = CALC_DEPTH(child);
 			*superparent = child;
@@ -328,18 +327,18 @@ void iAVLRebalanceNode(iAVLTree *avltree, iAVLNode *avlnode) {
 		else {
 			gchild = child->right;
 			avlnode->left = gchild->right;
-			if (avlnode->left != NULL)
+			if (avlnode->left != nullptr)
 				avlnode->left->parent = avlnode;
 			avlnode->depth = CALC_DEPTH(avlnode);
 			child->right = gchild->left;
-			if (child->right != NULL)
+			if (child->right != nullptr)
 				child->right->parent = child;
 			child->depth = CALC_DEPTH(child);
 			gchild->right = avlnode;
-			if (gchild->right != NULL)
+			if (gchild->right != nullptr)
 				gchild->right->parent = gchild;
 			gchild->left = child;
-			if (gchild->left != NULL)
+			if (gchild->left != nullptr)
 				gchild->left->parent = gchild;
 			gchild->depth = CALC_DEPTH(gchild);
 			*superparent = gchild;
@@ -352,11 +351,11 @@ void iAVLRebalanceNode(iAVLTree *avltree, iAVLNode *avlnode) {
 
 		if (R_DEPTH(child) >= L_DEPTH(child)) {
 			avlnode->right = child->left;
-			if (avlnode->right != NULL)
+			if (avlnode->right != nullptr)
 				avlnode->right->parent = avlnode;
 			avlnode->depth = CALC_DEPTH(avlnode);
 			child->left = avlnode;
-			if (child->left != NULL)
+			if (child->left != nullptr)
 				child->left->parent = child;
 			child->depth = CALC_DEPTH(child);
 			*superparent = child;
@@ -366,18 +365,18 @@ void iAVLRebalanceNode(iAVLTree *avltree, iAVLNode *avlnode) {
 		else {
 			gchild = child->left;
 			avlnode->right = gchild->left;
-			if (avlnode->right != NULL)
+			if (avlnode->right != nullptr)
 				avlnode->right->parent = avlnode;
 			avlnode->depth = CALC_DEPTH(avlnode);
 			child->left = gchild->right;
-			if (child->left != NULL)
+			if (child->left != nullptr)
 				child->left->parent = child;
 			child->depth = CALC_DEPTH(child);
 			gchild->left = avlnode;
-			if (gchild->left != NULL)
+			if (gchild->left != nullptr)
 				gchild->left->parent = gchild;
 			gchild->right = child;
-			if (gchild->right != NULL)
+			if (gchild->right != nullptr)
 				gchild->right->parent = gchild;
 			gchild->depth = CALC_DEPTH(gchild);
 			*superparent = gchild;
@@ -394,7 +393,7 @@ void iAVLRebalanceNode(iAVLTree *avltree, iAVLNode *avlnode) {
 /*
  * iAVLFreeBranch:
  * Free memory used by this node and its item.  If the freeitem argument
- * is not NULL, then that function is called on the items to free their
+ * is not nullptr, then that function is called on the items to free their
  * memory as well.  In other words, the freeitem function is a
  * destructor for the items in the tree.
  */
@@ -403,7 +402,7 @@ void iAVLFreeBranch(iAVLNode *avlnode, void (freeitem)(void *item)) {
 		iAVLFreeBranch(avlnode->left, freeitem);
 	if (avlnode->right)
 		iAVLFreeBranch(avlnode->right, freeitem);
-	if (freeitem != NULL)
+	if (freeitem != nullptr)
 		freeitem(avlnode->item);
 	free(avlnode);
 }
@@ -421,7 +420,7 @@ void iAVLFillVacancy(iAVLTree *avltree,
 	iAVLNode *balnode;
 	iAVLNode *nextbalnode;
 
-	if (left == NULL) {
+	if (left == nullptr) {
 		if (right)
 			right->parent = origparent;
 
@@ -430,21 +429,21 @@ void iAVLFillVacancy(iAVLTree *avltree,
 	}
 
 	else {
-		for (avlnode = left; avlnode->right != NULL; avlnode = avlnode->right);
+		for (avlnode = left; avlnode->right != nullptr; avlnode = avlnode->right);
 
 		if (avlnode == left) {
 			balnode = avlnode;
 		} else {
 			balnode = avlnode->parent;
 			balnode->right = avlnode->left;
-			if (balnode->right != NULL)
+			if (balnode->right != nullptr)
 				balnode->right->parent = balnode;
 			avlnode->left = left;
 			left->parent = avlnode;
 		}
 
 		avlnode->right = right;
-		if (right != NULL)
+		if (right != nullptr)
 			right->parent = avlnode;
 		*superparent = avlnode;
 		avlnode->parent = origparent;

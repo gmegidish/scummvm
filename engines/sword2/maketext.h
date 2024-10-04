@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef SWORD2_MAKETEXT_H
@@ -51,7 +50,8 @@ enum {
 	POSITION_AT_LEFT_OF_BASE = 5,
 	POSITION_AT_RIGHT_OF_BASE = 6,
 	POSITION_AT_LEFT_OF_CENTER = 7,
-	POSITION_AT_RIGHT_OF_CENTER = 8
+	POSITION_AT_RIGHT_OF_CENTER = 8,
+	POSITION_AT_CENTER_OF_CENTER = 9
 };
 
 enum {
@@ -74,6 +74,7 @@ enum {
 struct LineInfo {
 	uint16 width;	// Width in pixels
 	uint16 length;	// Length in characters
+	bool skipSpace; // Whether there is a trailing space
 };
 
 class FontRenderer {
@@ -91,17 +92,30 @@ private:
 				// each line - negative for overlap
 	uint8 _borderPen;	// output pen color of character borders
 
-	uint16 analyzeSentence(const byte *sentence, uint16 maxWidth, uint32 fontRes, LineInfo *line);
-	byte *buildTextSprite(const byte *sentence, uint32 fontRes, uint8 pen, LineInfo *line, uint16 noOfLines);
+	Common::HashMap<Common::String, Common::String> _subTranslations;
+	static const int kChineseWidth = 20;
+	static const int kChineseHeight = 26;
+	struct ChineseGlyph {
+		byte bitmap[kChineseWidth * kChineseHeight];
+	};
+	Common::Array<ChineseGlyph> _chineseFont;
+
+	uint16 analyzeSentence(const byte *sentence, uint16 maxWidth, uint32 fontRes, LineInfo *line, bool isChinese);
+	byte *buildTextSprite(const byte *sentence, uint32 fontRes, uint8 pen, LineInfo *line, uint16 noOfLines, bool isChinese);
 	uint16 charWidth(byte ch, uint32 fontRes);
+	uint16 wcharWidth(byte hi, byte lo, uint32 fontRes);
 	uint16 charHeight(uint32 fontRes);
 	byte *findChar(byte ch, byte *charSet);
-	void copyChar(byte *charPtr, byte *spritePtr, uint16 spriteWidth, uint8 pen);
+	byte *findWChar(byte hi, byte lo, byte *charSet);
+	void copyChar(const byte *charPtr, byte *spritePtr, uint16 spriteWidth, uint8 pen);
+	void copyWChar(const byte *charPtr, byte *spritePtr, uint16 spriteWidth, uint8 pen);
+	void copyCharRaw(const byte *source, uint16 charWidth, uint16 charHeight, byte *spritePtr, uint16 spriteWidth, uint8 pen);
+	bool isKoreanChar(const byte hi, const byte lo, const uint32 fontRes);
 
 public:
 	FontRenderer(Sword2Engine *vm) : _vm(vm) {
 		for (int i = 0; i < MAX_text_blocs; i++)
-			_blocList[i].text_mem = NULL;
+			_blocList[i].text_mem = nullptr;
 	}
 
 	~FontRenderer() {
@@ -115,6 +129,8 @@ public:
 	void printTextBlocs();
 
 	uint32 buildNewBloc(byte *ascii, int16 x, int16 y, uint16 width, uint8 pen, uint32 type, uint32 fontRes, uint8 justification);
+
+	void loadTranslations();
 };
 
 } // End of namespace Sword2

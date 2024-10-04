@@ -12,7 +12,7 @@ What you'll need
 
 .. note::
 
-    ScummVM has been tested to work up to Android 10. Currently there are some file browsing limitations with Android 11. The ScummVM team are working to resolve these.
+    ScummVM has been tested to work up to Android 12.
 
 Installing ScummVM
 ====================================
@@ -46,8 +46,6 @@ Click on the correct package to start the download. After it has downloaded, go 
 Transferring game files
 ========================================
 
-Transfer all the required game data files to your device, into a folder accessible by the ScummVM app.
-
 ScummVM has built-in Cloud functionality, which lets you connect your Google Drive, OneDrive, Box or Dropbox account. For more information, see the :doc:`../use_scummvm/connect_cloud` page. ScummVM also has the ability to run a local web server. For more information, see the :doc:`../use_scummvm/LAN` page.
 
 There are a few other options to transfer the game files:
@@ -58,6 +56,60 @@ There are a few other options to transfer the game files:
 
 See :doc:`../use_scummvm/game_files` for more information about game file requirements.
 
+
+Adding games
+================
+
+1. Select **Add Game...** from the launcher.
+
+2. Inside the ScummVM file browser, select **Go Up** until you reach the root folder which has the **<Add a new folder>** option.
+
+.. figure:: ../images/android/browser-root.png
+
+    Root folder with <Add a new folder> option
+
+3. Double-tap **<Add a new folder>**. In your device's file browser, navigate to the folder containing all your game folders. For example, **SD Card > ScummVMgames**
+
+.. figure:: ../images/android/fs-root.png
+
+    Android file browser root
+
+.. figure:: ../images/android/fs-folder.png
+
+    Android file browser selectable folder with **Use this folder** button
+
+4. Select **Use this folder**.
+5. Select **ALLOW** to give ScummVM permission to access the folder.
+
+.. figure:: ../images/android/fs-permission.png
+
+    Android file browser request to grant ScummVM directory access permission
+
+6. In the ScummVM file browser, double-tap to browse through your added folder. Add a game by selecting the sub-folder containing the game files, then tap **Choose**.
+
+To add more games, repeat Steps 1 and 6.
+
+.. _addSAFpath:
+
+    .. note::
+        Starting with version 2.7.0 of ScummVM for Android, significant changes were made to the file access system to allow support for modern versions of the Android Operating System.
+
+        If existing added games or custom paths no longer work, go to **Game Options > Paths**, select the path to update, then follow steps 2 through 6 above.
+
+Removing permissions
+************************
+
+To remove any folder permissions granted to ScummVM, go to the **Global Options > Backend** tab.
+
+.. figure:: ../images/android/gui-remove-permissions.png
+
+    Backend tab with "Remove folder authorizations..." button
+
+.. figure:: ../images/android/gui-remove-list.png
+
+    Dialog with list of permissions to remove
+
+If any permissions are removed in error, see :ref:`this note <addSAFpath>` for instructions to reinstate them.
 
 
 Controls
@@ -80,13 +132,13 @@ Controls can also be manually configured in the :doc:`Keymaps tab <../settings/k
         Double tap + movement, "Left mouse button hold and drag, such as for selection from action wheel in Curse of Monkey Island"
         Two finger tap, Right mouse button click
         Two finger tap + movement of second finger, "Right mouse button hold and drag, such as for selection from action wheel in Tony Tough"
+        Two finger slide up/down, Scroll (reverse mouse wheel)
         Three finger tap, Middle mouse button click
         Three finger tap + movement of third finger, Middle mouse button hold and drag
         Long press system Back button, Opens Global Main Menu
         Short press system Back button, "Skip, or Cancel/Quit in the Launcher"
         Long press system Menu button, Opens/closes Virtual keyboard
         Short press system Menu button, Opens Global Main Menu
-        Small keyboard icon (top right), Opens/closes Virtual keyboard
         D-pad up/down/left/right, Mouse movement
         D-pad center, Left mouse button click
         Trackball movement, Mouse movement
@@ -94,21 +146,32 @@ Controls can also be manually configured in the :doc:`Keymaps tab <../settings/k
 
 Touch controls
 ****************
-The touch control scheme can be switched in the global settings. From the Launcher, go to **Options > Backend > Touchpad mouse mode**.
+The touch control scheme can be configured in the global settings. From the Launcher, go to **Options > Backend > Choose the preferred touch mode**.
+It's possible to configure the touch mode for three situations (ScummVM menus, 2D games and 3D games) and choose one of the three possible modes:
 
-    - When touchpad mouse mode is off (default), the touch controls are direct. The pointer jumps to where the finger touches the screen.
-    - When touchpad mouse mode is on, the touch controls are indirect. The finger can be far away from the pointer and still move it, like on a laptop touchpad.
+    - Direct mouse, the touch controls are direct. The pointer jumps to where the finger touches the screen (default for menus).
+    - Touchpad emulation, the touch controls are indirect. The finger can be far away from the pointer and still move it, like on a laptop touchpad.
+    - Gamepad emulation, the touch controls don't move any mouse. The fingers must be placed on lower left and right of the screen and respectively emulate a directional pad and action buttons.
     - The pointer speed setting in the :doc:`Controls tab <../settings/control>` affects how far the pointer moves in response to a finger movement.
+
+The touch mode can be switched at anytime by tapping on the controller icon, next to the menu icon at the top right of the screen.
+
+To display or hide the small controller icon, from the Launcher select **Options** and then the **Backend** tab. Tick the **Show on-screen control** box to enable the controller icon.
 
 Two finger tap
 ^^^^^^^^^^^^^^^^^
 
-To do a two finger tap, hold one finger down and then tap with a second finger.
+To perform a two finger tap, hold one finger down and then tap with a second finger.
 
 Three finger tap
 ^^^^^^^^^^^^^^^^^^
 
-To do a three finger tap, start with holding down one finger and progressively touch down the other two fingers, one at a time, while still holding down the previous fingers. Imagine you are impatiently tapping your fingers on a surface, but then slow down that movement so it is rhythmic, but not too slow.
+To perform a three finger tap, start with holding down one finger and progressively touch down the other two fingers, one at a time, while still holding down the previous fingers. Imagine you are impatiently tapping your fingers on a surface, but then slow down that movement so it is rhythmic, but not too slow.
+
+Two finger slide
+^^^^^^^^^^^^^^^^^
+
+To perform a two finger slide, place two fingers on the touch screen (typically the index and middle finger) and slide them upwards or downwards.
 
 Immersive Sticky fullscreen mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -125,10 +188,7 @@ To display or hide the small menu icon, from the Launcher select **Options** and
 Virtual keyboard
 ^^^^^^^^^^^^^^^^^^^^^
 
-To open the virtual keyboard, tap on the small keyboard icon at the top right of the screen, or tap on any editable text field. To hide the virtual keyboard, tap the small keyboard icon again, or tap outside the text field.
-
-To display or hide the small keyboard icon, from the Launcher select **Options** and then the **Backend** tab. Tick the **Show on-screen control** box to enable the keyboard icon.
-
+To open the virtual keyboard, long press on the small controller icon at the top right of the screen, or tap on any editable text field. To hide the virtual keyboard, tap the small controller icon (which became a keyboard one) again, or tap outside the text field.
 
 Paths
 =======
@@ -145,14 +205,14 @@ Configuration file
 The configuration file is in the internal app folder, and this path cannot be changed.
 
 Accessing the internal app folder
-************************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To access the internal app folder, use ScummVM's built-in LAN functionality:
 
 1. From the Launcher, select **Options** and then the **LAN** tab.
 2. Select **/root/Path**.
-3. Use the file browser to **Go up** to the root of the ScummVM internal app folder.
-4. Select the **ScummVM data (int)** shortcut, and tap **Choose**.
+3. Use the file browser to **Go up** to the root of the ScummVM file browser.
+4. Select the **ScummVM data (Internal)** folder, and tap **Choose**.
 5. Run the server to access the ``scummvm.ini`` configuration file.
 
 For more information, see the :doc:`../use_scummvm/LAN` page.
@@ -161,10 +221,4 @@ For more information, see the :doc:`../use_scummvm/LAN` page.
 Known issues
 ===============
 
-- On some newer devices, there is an issue if the saved path is outside the app's internal (or external) storage. The ScummVM team is currently working on a fix.
-
 - If ScummVM is uninstalled or downgraded, its internal and external app spaces are fully deleted. If you want to keep saved games use ScummVM's :doc:`cloud <../use_scummvm/connect_cloud>` or LAN functionality to keep those files. Alternatively, change the saved game path to a shared location such as an SD card.
-
-
-
-

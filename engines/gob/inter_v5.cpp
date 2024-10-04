@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -215,7 +220,7 @@ void Inter_v5::o5_initScreen() {
 }
 
 void Inter_v5::o5_istrlen(OpFuncParams &params) {
-	int16 strVar1, strVar2;
+	uint16 strVar1, strVar2;
 	int16 len;
 	uint16 type;
 
@@ -223,14 +228,14 @@ void Inter_v5::o5_istrlen(OpFuncParams &params) {
 		_vm->_game->_script->skip(1);
 
 		strVar1 = _vm->_game->_script->readVarIndex();
-		strVar2 = _vm->_game->_script->readVarIndex(0, &type);
+		strVar2 = _vm->_game->_script->readVarIndex(nullptr, &type);
 
 		len = _vm->_draw->stringLength(GET_VARO_STR(strVar1), READ_VARO_UINT16(strVar2));
 
 	} else {
 
 		strVar1 = _vm->_game->_script->readVarIndex();
-		strVar2 = _vm->_game->_script->readVarIndex(0, &type);
+		strVar2 = _vm->_game->_script->readVarIndex(nullptr, &type);
 
 		if (_vm->_global->_language == 10) {
 			// Extra handling for Japanese strings
@@ -263,7 +268,7 @@ void Inter_v5::o5_spaceShooter(OpGobParams &params) {
 	_vm->_game->_script->readInt16();
 
 	if (params.extraData != 0) {
-		// we need to return 1 for the shooter mission 34. There is only one planet to choose from in the map.
+		// We need to return 1 for the shooter mission 34. There is only one planet to choose from in the map.
 		WRITE_VARO_UINT32(var1,(params.extraData == 34) ? 1 : 2);
 		WRITE_VARO_UINT32(var2,0);
 	} else {

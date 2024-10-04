@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ struct SavePoint;
 	void name(const SavePoint &savepoint);
 
 #define DECLARE_VFUNCTION(name) \
-	virtual void setup_##name() override; \
+	void setup_##name() override; \
 	void name(const SavePoint &savepoint);
 
 #define DECLARE_FUNCTION_1(name, param1) \
@@ -57,7 +56,7 @@ struct SavePoint;
 	void name(const SavePoint &savepoint);
 
 #define DECLARE_VFUNCTION_1(name, param1) \
-	virtual void setup_##name(param1) override; \
+	void setup_##name(param1) override; \
 	void name(const SavePoint &savepoint);
 
 #define DECLARE_FUNCTION_2(name, param1, param2) \
@@ -65,7 +64,7 @@ struct SavePoint;
 	void name(const SavePoint &savepoint);
 
 #define DECLARE_VFUNCTION_2(name, param1, param2) \
-	virtual void setup_##name(param1, param2) override; \
+	void setup_##name(param1, param2) override; \
 	void name(const SavePoint &savepoint);
 
 #define DECLARE_FUNCTION_3(name, param1, param2, param3) \

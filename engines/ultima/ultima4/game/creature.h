@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,7 @@ class ConfigElement;
 class Tile;
 
 typedef unsigned short CreatureId;
-typedef Std::map<CreatureId, class Creature *> CreatureMap;
+typedef Common::HashMap<CreatureId, class Creature *> CreatureMap;
 typedef Std::vector<class Creature *> CreatureVector;
 
 #define MAX_CREATURES 128
@@ -310,7 +309,7 @@ public:
 	/**
 	 * Performs a special action for the creature
 	 * Returns true if the action takes up the creatures
-	 * whole turn (i.e. it cant move afterwords)
+	 * whole turn (i.e. it can't move afterwards)
 	 */
 	bool specialAction();
 
@@ -431,7 +430,7 @@ public:
 private:
 	CreatureMgr() {}
 
-	// disallow assignments, copy contruction
+	// disallow assignments, copy construction
 	CreatureMgr(const CreatureMgr &);
 	const CreatureMgr &operator=(const CreatureMgr &);
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,16 +24,49 @@
 #include "base/plugins.h"
 #include "common/savefile.h"
 #include "common/str-array.h"
+#include "common/translation.h"
 #include "common/memstream.h"
 #include "engines/advancedDetector.h"
 #include "common/system.h"
 #include "graphics/surface.h"
+
+#include "backends/keymapper/action.h"
+#include "backends/keymapper/keymapper.h"
+#include "backends/keymapper/standard-actions.h"
 
 #include "hopkins/detection.h"
 
 #define MAX_SAVES 99
 
 namespace Hopkins {
+
+static const ADExtraGuiOptionsMap optionsList[] = {
+	{
+		GAMEOPTION_GORE_DEFAULT_OFF,
+		{
+			_s("Gore Mode"),
+			_s("Enable Gore Mode when available"),
+			"enable_gore",
+			false,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_GORE_DEFAULT_ON,
+		{
+			_s("Gore Mode"),
+			_s("Enable Gore Mode when available"),
+			"enable_gore",
+			true,
+			0,
+			0
+		}
+	},
+
+	AD_EXTRA_GUI_OPTIONS_TERMINATOR
+};
 
 uint32 HopkinsEngine::getFeatures() const {
 	return _gameDescription->desc.flags;
@@ -58,19 +90,25 @@ const Common::String &HopkinsEngine::getTargetName() const {
 
 } // End of namespace Hopkins
 
-class HopkinsMetaEngine : public AdvancedMetaEngine {
+class HopkinsMetaEngine : public AdvancedMetaEngine<Hopkins::HopkinsGameDescription> {
 public:
 	const char *getName() const override {
 		return "hopkins";
 	}
 
+	const ADExtraGuiOptionsMap *getAdvancedExtraGuiOptions() const override {
+		return Hopkins::optionsList;
+	}
+
 	bool hasFeature(MetaEngineFeature f) const override;
-	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const Hopkins::HopkinsGameDescription *desc) const override;
 
 	SaveStateList listSaves(const char *target) const override;
 	int getMaximumSaveSlot() const override;
 	void removeSaveState(const char *target, int slot) const override;
 	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
+
+	Common::KeymapArray initKeymaps(const char *target) const override;
 };
 
 bool HopkinsMetaEngine::hasFeature(MetaEngineFeature f) const {
@@ -90,8 +128,8 @@ bool Hopkins::HopkinsEngine::hasFeature(EngineFeature f) const {
 		(f == kSupportsSavingDuringRuntime);
 }
 
-Common::Error HopkinsMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	*engine = new Hopkins::HopkinsEngine(syst, (const Hopkins::HopkinsGameDescription *)desc);
+Common::Error HopkinsMetaEngine::createInstance(OSystem *syst, Engine **engine, const Hopkins::HopkinsGameDescription *desc) const {
+	*engine = new Hopkins::HopkinsEngine(syst,desc);
 	return Common::kNoError;
 }
 
@@ -161,6 +199,68 @@ SaveStateDescriptor HopkinsMetaEngine::querySaveMetaInfos(const char *target, in
 	}
 
 	return SaveStateDescriptor();
+}
+
+Common::KeymapArray HopkinsMetaEngine::initKeymaps(const char *target) const {
+	using namespace Common;
+	using namespace Hopkins;
+
+	Keymap *engineKeyMap = new Keymap(Keymap::kKeymapTypeGame, "hopkins-default", _("Default keymappings"));
+	Keymap *gameKeyMap = new Keymap(Keymap::kKeymapTypeGame, "game-shortcuts", _("Game keymappings"));
+
+	Action *act;
+
+	act = new Action(kStandardActionLeftClick, _("Left click"));
+	act->setLeftClickEvent();
+	act->addDefaultInputMapping("MOUSE_LEFT");
+	act->addDefaultInputMapping("JOY_A");
+	engineKeyMap->addAction(act);
+
+	act = new Action(kStandardActionRightClick, _("Right click"));
+	act->setRightClickEvent();
+	act->addDefaultInputMapping("MOUSE_RIGHT");
+	act->addDefaultInputMapping("JOY_B");
+	engineKeyMap->addAction(act);
+
+	act = new Action("ESCAPE", _("Exit/Skip"));
+	act->setCustomEngineActionEvent(kActionEscape);
+	act->addDefaultInputMapping("ESCAPE");
+	act->addDefaultInputMapping("JOY_BACK");
+	gameKeyMap->addAction(act);
+
+	act = new Action("INVENTORY", _("Open inventory"));
+	act->setCustomEngineActionEvent(kActionInventory);
+	act->addDefaultInputMapping("i");
+	act->addDefaultInputMapping("TAB");
+	act->addDefaultInputMapping("JOY_X");
+	gameKeyMap->addAction(act);
+
+	act = new Action("SAVE", _("Save game"));
+	act->setCustomEngineActionEvent(kActionSave);
+	act->addDefaultInputMapping("F5");
+	act->addDefaultInputMapping("JOY_LEFT_SHOULDER");
+	gameKeyMap->addAction(act);
+
+	act = new Action("LOAD", _("Load game"));
+	act->setCustomEngineActionEvent(kActionLoad);
+	act->addDefaultInputMapping("F7");
+	act->addDefaultInputMapping("JOY_RIGHT_SHOULDER");
+	gameKeyMap->addAction(act);
+
+	act = new Action("OPTIONS", _("Option dialog"));
+	act->setCustomEngineActionEvent(kActionOptions);
+	act->addDefaultInputMapping("o");
+	act->addDefaultInputMapping("F1");
+	act->addDefaultInputMapping("JOY_Y");
+	gameKeyMap->addAction(act);
+
+
+	
+	KeymapArray keymaps(2);
+	keymaps[0] = engineKeyMap;
+	keymaps[1] = gameKeyMap;
+
+	return keymaps;
 }
 
 #if PLUGIN_ENABLED_DYNAMIC(HOPKINS)

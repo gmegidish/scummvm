@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2021 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2022 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -588,7 +588,7 @@ public:
 				}
 			} else {
 				DelayWithLowPassFilter<Sample> * const entranceDelay = static_cast<DelayWithLowPassFilter<Sample> *>(combs[0]);
-				// If the output position is equal to the comb size, get it now in order not to loose it
+				// If the output position is equal to the comb size, get it now in order not to lose it
 				Sample link = entranceDelay->getOutputAt(currentSettings.combSizes[0] - 1);
 
 				// Entrance LPF. Note, comb.process() differs a bit here.
@@ -598,7 +598,7 @@ public:
 				link = allpasses[1]->process(link);
 				link = allpasses[2]->process(link);
 
-				// If the output position is equal to the comb size, get it now in order not to loose it
+				// If the output position is equal to the comb size, get it now in order not to lose it
 				Sample outL1 = combs[1]->getOutputAt(currentSettings.outLPositions[0] - 1);
 
 				combs[1]->process(link);

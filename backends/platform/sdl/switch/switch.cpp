@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -83,6 +82,7 @@ void OSystem_Switch::initBackend() {
 	ConfMan.registerDefault("filtering", true);
 	ConfMan.registerDefault("output_rate", 48000);
 	ConfMan.registerDefault("touchpad_mouse_mode", false);
+	ConfMan.registerDefault("gm_device", "null");
 
 	ConfMan.setBool("fullscreen", true);
 	ConfMan.setInt("joystick_num", 0);
@@ -124,33 +124,11 @@ bool OSystem_Switch::hasFeature(Feature f) {
 		OSystem_SDL::hasFeature(f));
 }
 
-void OSystem_Switch::setFeatureState(Feature f, bool enable) {
-	switch (f) {
-	case kFeatureTouchpadMode:
-		ConfMan.setBool("touchpad_mouse_mode", enable);
-		break;
-	default:
-		OSystem_SDL::setFeatureState(f, enable);
-		break;
-	}
-}
-
-bool OSystem_Switch::getFeatureState(Feature f) {
-	switch (f) {
-	case kFeatureTouchpadMode:
-		return ConfMan.getBool("touchpad_mouse_mode");
-		break;
-	default:
-		return OSystem_SDL::getFeatureState(f);
-		break;
-	}
-}
-
 void OSystem_Switch::logMessage(LogMessageType::Type type, const char *message) {
 	printf("%s\n", message);
 }
 
-Common::String OSystem_Switch::getDefaultLogFileName() {
+Common::Path OSystem_Switch::getDefaultLogFileName() {
 	return "scummvm.log";
 }
 

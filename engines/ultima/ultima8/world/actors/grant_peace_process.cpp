@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,7 @@
 #include "ultima/ultima8/world/world.h"
 #include "ultima/ultima8/world/current_map.h"
 #include "ultima/ultima8/gumps/target_gump.h"
-#include "ultima/ultima8/graphics/palette_fader_process.h"
+#include "ultima/ultima8/gfx/palette_fader_process.h"
 #include "ultima/ultima8/usecode/uc_list.h"
 #include "ultima/ultima8/world/loop_script.h"
 #include "ultima/ultima8/kernel/kernel.h"
@@ -33,6 +32,7 @@
 #include "ultima/ultima8/world/sprite_process.h"
 #include "ultima/ultima8/audio/audio_process.h"
 #include "ultima/ultima8/world/get_object.h"
+#include "ultima/ultima8/ultima8.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -73,12 +73,13 @@ void GrantPeaceProcess::run() {
 	ObjId targetid = static_cast<ObjId>(_result);
 	Actor *target = getActor(targetid);
 
-	if (targetid == 1 || !target) {
+	if (targetid == kMainActorId || !target) {
 		// targeting the avatar, no target or not an Actor
 		terminate();
 		return;
 	}
 
+	Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
 	bool hit = false;
 
 	if (target->getDefenseType() & WeaponInfo::DMG_UNDEAD) {
@@ -114,11 +115,10 @@ void GrantPeaceProcess::run() {
 				hit = true;
 
 				if (t->getShape() == 411 && khumash) { // CONSTANT!
-					int32 tx, ty, tz;
-					t->getLocation(tx, ty, tz);
+					Point3 pt = t->getLocation();
 
 					// CONSTANT! (shape 480, frame 0-9, repeat 1, delay 1)
-					Process *sp = new SpriteProcess(480, 0, 9, 1, 1, tx, ty, tz);
+					Process *sp = new SpriteProcess(480, 0, 9, 1, 1, pt.x, pt.y, pt.z);
 					Kernel::get_instance()->addProcess(sp);
 
 					Item *throne = getItem(KGlist.getuint16(0));
@@ -132,9 +132,9 @@ void GrantPeaceProcess::run() {
 
 				int dir = caster->getDirToItemCentre(*t);
 
-				t->hurl(((getRandom() % 5) + 5) * x_fact[dir],
-				        ((getRandom() % 5) + 5) * y_fact[dir],
-				        ((getRandom() % 5) + 5),
+				t->hurl(engine->getRandomNumber(5, 9) * x_fact[dir],
+				        engine->getRandomNumber(5, 9) * y_fact[dir],
+				        engine->getRandomNumber(5, 9),
 				        4);
 #endif
 			}
@@ -147,7 +147,7 @@ void GrantPeaceProcess::run() {
 		if (!target->hasActorFlags(Actor::ACT_DEAD |
 								   Actor::ACT_IMMORTAL |
 								   Actor::ACT_INVINCIBLE)) {
-			if (getRandom() % 10 == 0) {
+			if (rs.getRandomNumber(9) == 0) {
 				target->receiveHit(_itemNum, dir_current, target->getHP(),
 				                   (WeaponInfo::DMG_MAGIC |
 				                    WeaponInfo::DMG_PIERCE |
@@ -165,7 +165,7 @@ void GrantPeaceProcess::run() {
 		// calling intrinsic...
 		PaletteFaderProcess::I_lightningBolt(0, 0);
 		int sfx;
-		switch (getRandom() % 3) {
+		switch (rs.getRandomNumber(2)) {
 		case 0:
 			sfx = 91;
 			break;

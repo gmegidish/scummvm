@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 
 #include "graphics/managed_surface.h"
 #include "ags/lib/allegro/base.h"
+#include "ags/lib/allegro/color.h"
 #include "common/array.h"
 
 namespace AGS3 {
@@ -33,7 +33,8 @@ class BITMAP {
 private:
 	Graphics::ManagedSurface *_owner;
 	public:
-	int16 &w, &h, &pitch;
+	int16 &w, &h;
+	int32 &pitch;
 	Graphics::PixelFormat &format;
 	bool clip;
 	int ct, cb, cl, cr;
@@ -130,8 +131,7 @@ public:
 	// unsigned int blender_func(unsigned long x, unsigned long y, unsigned long n)
 	// when x is the sprite color, y the destination color, and n an alpha value
 
-	void blendPixel(uint8 aSrc, uint8 rSrc, uint8 gSrc, uint8 bSrc, uint8 &aDest, uint8 &rDest, uint8 &gDest, uint8 &bDest, uint32 alpha) const;
-
+	void blendPixel(uint8 aSrc, uint8 rSrc, uint8 gSrc, uint8 bSrc, uint8 &aDest, uint8 &rDest, uint8 &gDest, uint8 &bDest, uint32 alpha, bool useTint, byte *destVal) const;
 
 	inline void rgbBlend(uint8 rSrc, uint8 gSrc, uint8 bSrc, uint8 &rDest, uint8 &gDest, uint8 &bDest, uint32 alpha) const {
 		// Note: the original's handling varies slightly for R & B vs G.
@@ -265,7 +265,50 @@ public:
 	// kTintBlenderMode and kTintLightBlenderMode
 	void blendTintSprite(uint8 aSrc, uint8 rSrc, uint8 gSrc, uint8 bSrc, uint8 &aDest, uint8 &rDest, uint8 &gDest, uint8 &bDest, uint32 alpha, bool light) const;
 
+	friend class DrawInnerImpl_AVX2;
+	friend class DrawInnerImpl_SSE2;
+	friend class DrawInnerImpl_NEON;
 
+	constexpr static int SCALE_THRESHOLD_BITS = 8;
+	constexpr static int SCALE_THRESHOLD = 1 << SCALE_THRESHOLD_BITS;
+	struct DrawInnerArgs {
+		const bool useTint, horizFlip, vertFlip, skipTrans;
+		bool sameFormat, shouldDraw;
+		int xStart, yStart, srcAlpha, tintRed, tintGreen, tintBlue, scaleX, scaleY;
+		uint32 transColor, alphaMask;
+		PALETTE palette;
+
+		BlenderMode blenderMode;
+		Common::Rect dstRect, srcArea;
+
+		BITMAP &dstBitmap;
+		const ::Graphics::ManagedSurface &src;
+		::Graphics::Surface destArea;
+
+		DrawInnerArgs(BITMAP *dstBitmap, const BITMAP *srcBitmap,
+					  const Common::Rect &srcRect, const Common::Rect &dstRect,
+					  bool skipTrans, int srcAlpha, bool horizFlip,
+					  bool vertFlip, int tintRed, int tintGreen, int tintBlue,
+					  bool doScale);
+	};
+
+	template<bool Scale>
+	void drawGeneric(DrawInnerArgs &args);
+#ifdef SCUMMVM_NEON
+	template<bool Scale>
+	void drawNEON(DrawInnerArgs &args);
+#endif
+#ifdef SCUMMVM_SSE2
+	template<bool Scale>
+	void drawSSE2(DrawInnerArgs &args);
+#endif
+#ifdef SCUMMVM_AVX2
+	template<bool Scale>
+	void drawAVX2(DrawInnerArgs &args);
+#endif
+	template<int DestBytesPerPixel, int SrcBytesPerPixel, bool Scale>
+	void drawInnerGeneric(DrawInnerArgs &args);
+	
 	inline uint32 getColor(const byte *data, byte bpp) const {
 		switch (bpp) {
 		case 1:

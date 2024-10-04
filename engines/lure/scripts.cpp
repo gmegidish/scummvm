@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,7 +70,7 @@ void Script::setHotspotScript(uint16 hotspotId, uint16 scriptIndex, uint16 v3) {
 	uint16 offset = res.getHotspotScript(scriptIndex);
 	Hotspot *hotspot = res.getActiveHotspot(hotspotId);
 
-	if (hotspot != NULL) {
+	if (hotspot != nullptr) {
 		hotspot->setHotspotScript(offset);
 	} else {
 		HotspotData *hs = res.getHotspot(hotspotId);
@@ -561,7 +560,7 @@ void Script::checkWakeBrenda(uint16 v1, uint16 v2, uint16 v3) {
 
 void Script::displayMessage(uint16 messageId, uint16 characterId, uint16 destCharacterId) {
 	Hotspot *hotspot = Resources::getReference().getActiveHotspot(characterId);
-	if (hotspot != NULL)
+	if (hotspot != nullptr)
 		hotspot->showMessage(messageId, destCharacterId);
 }
 
@@ -589,7 +588,7 @@ void Script::setSupportData(uint16 hotspotId, uint16 index, uint16 v3) {
 
 	uint16 dataId = res.getCharOffset(index);
 	CharacterScheduleEntry *entry = res.charSchedules().getEntry(dataId);
-	assert(entry != NULL);
+	assert(entry != nullptr);
 
 	Hotspot *h = res.getActiveHotspot(hotspotId);
 	assert(h);
@@ -775,7 +774,7 @@ void Script::checkSound(uint16 soundNumber, uint16 v2, uint16 v3) {
 	Sound.tidySounds();
 
 	SoundDescResource *rec = Sound.findSound(soundNumber);
-	Resources::getReference().fieldList().setField(GENERAL, (rec != NULL) ? 1 : 0);
+	Resources::getReference().fieldList().setField(GENERAL, (rec != nullptr) ? 1 : 0);
 }
 
 typedef void(*SequenceMethodPtr)(uint16, uint16, uint16);
@@ -853,7 +852,7 @@ static const SequenceMethodRecord scriptMethods[] = {
 	{64, Script::randomToGeneral},
 	{65, Script::checkCellDoor},
 	{66, Script::checkSound},
-	{0xff, NULL}};
+	{0xff, nullptr}};
 
 static const char *scriptOpcodes[] = {
 	"ABORT", "ADD", "SUBTRACT", "MULTIPLY", "DIVIDE", "EQUALS", "NOT_EQUALS",
@@ -931,14 +930,14 @@ uint16 Script::execute(uint16 startOffset) {
 	fields.setField(SEQUENCE_RESULT, 0);
 
 	debugC(ERROR_BASIC, kLureDebugScripts, "Executing script %xh", startOffset);
-	strcpy(debugInfo, "");
+	debugInfo[0] = '\0';
 
 	while (!breakFlag) {
 		if (offset >= scriptData->size())
 			error("Script failure in script %d - invalid offset %d", startOffset, offset);
 
 		if (gDebugLevel >= ERROR_DETAILED)
-			sprintf(debugInfo, "%xh - ", offset);
+			Common::sprintf_s(debugInfo, "%xh - ", offset);
 
 		// Get opcode byte and separate into opcode and has parameter bit flag
 		opcode = scripts[offset++];
@@ -957,10 +956,12 @@ uint16 Script::execute(uint16 startOffset) {
 			param = READ_LE_UINT16(scripts + offset);
 			offset += 2;
 
-			if (gDebugLevel >= ERROR_DETAILED)
-				sprintf(debugInfo + strlen(debugInfo), " [%d]",
+			if (gDebugLevel >= ERROR_DETAILED) {
+				size_t pos = strlen(debugInfo);
+				Common::sprintf_s(debugInfo + pos, sizeof(debugInfo) - pos, " [%d]",
 					((opcode == S_OPCODE_GET_FIELD) || (opcode == S_OPCODE_SET_FIELD)) ?
 					param >> 1 : param);
+			}
 		}
 
 		if (gDebugLevel >= ERROR_DETAILED) {
@@ -978,15 +979,17 @@ uint16 Script::execute(uint16 startOffset) {
 			case S_OPCODE_AND:
 			case S_OPCODE_OR:
 			case S_OPCODE_LOGICAL_AND:
-			case S_OPCODE_LOGICAL_OR:
-				sprintf(debugInfo + strlen(debugInfo),
+			case S_OPCODE_LOGICAL_OR: {
+				size_t pos = strlen(debugInfo);
+				Common::sprintf_s(debugInfo + pos, sizeof(debugInfo) - pos,
 					" %d, %d", stack[stack.size() - 1], stack[stack.size() - 2]);
 				break;
-
-			case S_OPCODE_SET_FIELD:
-				sprintf(debugInfo + strlen(debugInfo), " <= ST (%d)", stack[stack.size() - 1]);
+			}
+			case S_OPCODE_SET_FIELD: {
+				size_t pos = strlen(debugInfo);
+				Common::sprintf_s(debugInfo + pos, sizeof(debugInfo) - pos, " <= ST (%d)", stack[stack.size() - 1]);
 				break;
-
+			}
 			default:
 				break;
 			}
@@ -1103,23 +1106,24 @@ uint16 Script::execute(uint16 startOffset) {
 
 			if (gDebugLevel >= ERROR_DETAILED) {
 				// Set up the debug string for the method call
-				if (rec->methodIndex == 0xff) strcat(debugInfo, " INVALID INDEX");
-				else if (scriptMethodNames[param] == NULL) strcat(debugInfo, " UNKNOWN METHOD");
+				if (rec->methodIndex == 0xff) Common::strcat_s(debugInfo, " INVALID INDEX");
+				else if (scriptMethodNames[param] == nullptr) Common::strcat_s(debugInfo, " UNKNOWN METHOD");
 				else {
-					strcat(debugInfo, " ");
+					Common::strcat_s(debugInfo, " ");
 					Common::strlcat(debugInfo, scriptMethodNames[param], MAX_DESC_SIZE);
 				}
 
 				// Any params
+				size_t pos = strlen(debugInfo);
 				if (stack.size() >= 3)
-					sprintf(debugInfo + strlen(debugInfo), " (%d,%d,%d)",
+					Common::sprintf_s(debugInfo + pos, sizeof(debugInfo) - pos, " (%d,%d,%d)",
 						stack[stack.size()-1], stack[stack.size()-2], stack[stack.size()-3]);
-				if (stack.size() == 2)
-					sprintf(debugInfo + strlen(debugInfo), " (%d,%d)",
+				else if (stack.size() == 2)
+					Common::sprintf_s(debugInfo + pos, sizeof(debugInfo) - pos, " (%d,%d)",
 						stack[stack.size()-1], stack[stack.size()-2]);
 				else if (stack.size() == 1)
-					sprintf(debugInfo + strlen(debugInfo), " (%d)", stack[stack.size()-1]);
-				strcat(debugInfo, ")");
+					Common::sprintf_s(debugInfo + pos, sizeof(debugInfo) - pos, " (%d)", stack[stack.size()-1]);
+				Common::strcat_s(debugInfo, ")");
 
 				debugC(ERROR_DETAILED, kLureDebugScripts, "%s", debugInfo);
 			}
@@ -1179,12 +1183,13 @@ uint16 Script::execute(uint16 startOffset) {
 			case S_OPCODE_OR:
 			case S_OPCODE_LOGICAL_AND:
 			case S_OPCODE_LOGICAL_OR:
-			case S_OPCODE_GET_FIELD:
-				sprintf(debugInfo + strlen(debugInfo), " => ST (%d)", stack[stack.size()-1]);
+			case S_OPCODE_GET_FIELD: {
+				size_t pos = strlen(debugInfo);
+				Common::sprintf_s(debugInfo + pos, sizeof(debugInfo) - pos, " => ST (%d)", stack[stack.size()-1]);
 				break;
-
+			}
 			case S_OPCODE_PUSH:
-				strcat(debugInfo, " => ST");
+				Common::strcat_s(debugInfo, " => ST");
 				break;
 
 			default:

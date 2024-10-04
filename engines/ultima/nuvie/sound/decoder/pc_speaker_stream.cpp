@@ -1,10 +1,10 @@
 /* Created by Eric Fry
  * Copyright (C) 2011 The Nuvie Team
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,7 +12,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *
  */
@@ -154,9 +154,11 @@ int PCSpeakerSweepFreqStream::readBuffer(sint16 *buffer, const int numSamples) {
 
 //**************** PCSpeakerRandomStream
 
-PCSpeakerRandomStream::PCSpeakerRandomStream(uint freq, uint16 d, uint16 s) {
-	rand_value = 0x7664;
-	base_val = freq;
+PCSpeakerRandomStream::PCSpeakerRandomStream(uint freq, uint16 d, uint16 s)
+		: rand_value(0x7664), base_val(freq), duration(0), stepping(0),
+		  cur_step(0), sample_pos(0), num_steps(d / s),
+          samples_per_step(s * (SPKR_OUTPUT_RATE / 20 / 800)),
+          total_samples_played(0) {
 	/*
 	frequency = freq;
 
@@ -171,11 +173,6 @@ PCSpeakerRandomStream::PCSpeakerRandomStream(uint freq, uint16 d, uint16 s) {
 	pcspkr->SetOn();
 	pcspkr->SetFrequency(getNextFreqValue());
 
-	cur_step = 0;
-	sample_pos = 0;
-	num_steps = d / s;
-	samples_per_step = s * (SPKR_OUTPUT_RATE / 20 / 800); //1255);
-	total_samples_played = 0;
 	DEBUG(0, LEVEL_DEBUGGING, "num_steps = %d samples_per_step = %d\n", num_steps, samples_per_step);
 
 }

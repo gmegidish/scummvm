@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "backends/base-backend.h"
 #include <graphics/surface.h>
-#include <graphics/palette.h>
+#include <graphics/paletteman.h>
 #include <ronin/soundcommon.h>
 #include "backends/timer/default/default-timer.h"
 #include "backends/audiocd/default/default-audiocd.h"
@@ -127,7 +126,7 @@ public:
   void warpMouse(int x, int y);
 
   // Set the bitmap that's used when drawing the cursor.
-  void setMouseCursor(const void *buf, uint w, uint h, int hotspot_x, int hotspot_y, uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format);
+  void setMouseCursor(const void *buf, uint w, uint h, int hotspot_x, int hotspot_y, uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format, const byte *mask);
 
   // Replace the specified range of cursor the palette with new colors.
   void setCursorPalette(const byte *colors, uint start, uint num);
@@ -155,7 +154,7 @@ public:
   int16 getOverlayHeight();
   int16 getOverlayWidth();
   bool isOverlayVisible() const { return _overlay_visible; }
-  void showOverlay();
+  void showOverlay(bool inGUI);
   void hideOverlay();
   void clearOverlay();
   void grabOverlay(Graphics::Surface &surface);
@@ -163,10 +162,7 @@ public:
   virtual Graphics::PixelFormat getOverlayFormat() const { return Graphics::PixelFormat(2, 4, 4, 4, 4, 8, 4, 0, 12); }
 
   // Mutex handling
-  MutexRef createMutex();
-  void lockMutex(MutexRef mutex);
-  void unlockMutex(MutexRef mutex);
-  void deleteMutex(MutexRef mutex);
+  Common::MutexInternal *createMutex();
 
   // Set a window caption or any other comparable status display to the
   // given value.
@@ -197,6 +193,7 @@ public:
   bool _overlay_visible, _overlay_dirty, _screen_dirty;
   int _screen_buffer, _overlay_buffer, _mouse_buffer;
   bool _aspect_stretch, _softkbd_on, _enable_cursor_palette;
+  bool _overlay_in_gui;
   float _overlay_fade, _xscale, _yscale, _top_offset;
   int _softkbd_motion;
 

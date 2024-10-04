@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -151,7 +150,7 @@ class TileManager {
 	Look *look;
 
 	char *desc_buf; // for look
-	Configuration *config;
+	const Configuration *config;
 
 	int game_type;
 
@@ -160,7 +159,7 @@ class TileManager {
 
 public:
 
-	TileManager(Configuration *cfg);
+	TileManager(const Configuration *cfg);
 	~TileManager();
 
 	bool loadTiles();
@@ -168,8 +167,8 @@ public:
 	Tile *get_anim_base_tile(uint16 tile_num);
 	Tile *get_original_tile(uint16 tile_num);
 	void set_tile_index(uint16 tile_index, uint16 tile_num);
-	uint16 get_tile_index(uint16 tile_index) {
-		return (tileindex[tile_index]);
+	uint16 get_tile_index(uint16 tile_index) const {
+		return tileindex[tile_index];
 	}
 	void set_anim_loop(uint16 tile_num, sint8 loopc, uint8 loop = 0);
 
@@ -178,13 +177,16 @@ public:
 	void update();
 	void update_timed_tiles(uint8 hour);
 
-	uint8 get_number_of_animations() {
+	uint8 get_number_of_animations() const {
 		return animdata.number_of_tiles_to_animate;
 	}
-	uint16 get_anim_tile(uint8 anim_index) {
+	uint16 get_numtiles() const {
+		return numTiles;
+	}
+	uint16 get_anim_tile(uint8 anim_index) const {
 		return anim_index < animdata.number_of_tiles_to_animate ? animdata.tile_to_animate[anim_index] : 0;
 	}
-	uint16 get_anim_first_frame(uint8 anim_index) {
+	uint16 get_anim_first_frame(uint8 anim_index) const {
 		return anim_index < animdata.number_of_tiles_to_animate ? animdata.first_anim_frame[anim_index] : 0;
 	}
 	void set_anim_first_frame(uint16 anim_index, uint16 new_start_tile_num);
@@ -192,21 +194,21 @@ public:
 	void anim_stop_playing(uint8 anim_index);
 
 
-	Tile *get_rotated_tile(Tile *tile, float rotate, uint8 src_y_offset = 0);
-	void get_rotated_tile(Tile *tile, Tile *dest_tile, float rotate, uint8 src_y_offset = 0);
+	Tile *get_rotated_tile(const Tile *tile, float rotate, uint8 src_y_offset = 0);
+	void get_rotated_tile(const Tile *tile, Tile *dest_tile, float rotate, uint8 src_y_offset = 0);
 
 	Tile *get_cursor_tile();
 	Tile *get_use_tile();
 	const Tile *get_gump_cursor_tile();
 
-	Tile *loadCustomTiles(const Std::string filename, bool overwrite_tiles, bool copy_tileflags, uint16 tile_num_start_offset);
+	Tile *loadCustomTiles(const Common::Path &filename, bool overwrite_tiles, bool copy_tileflags, uint16 tile_num_start_offset);
 	void freeCustomTiles();
-	void exportTilesetToBmpFile(Std::string filename, bool fixupU6Shoreline = true);
+	void exportTilesetToBmpFile(const Common::Path &filename, bool fixupU6Shoreline = true);
 protected:
 
 	bool loadAnimData();
 	bool loadTileFlag();
-	void decodePixelBlockTile(unsigned char *tile_data, uint16 tile_num);
+	void decodePixelBlockTile(const unsigned char *tile_data, uint16 tile_num);
 
 	bool loadAnimMask();
 
@@ -216,7 +218,7 @@ private:
 	void copyTileMetaData(Tile *dest, Tile *src);
 	Tile *addNewTiles(uint16 num_tiles);
 
-	void writeBmpTileData(unsigned char *data, Tile *t, bool transparent);
+	void writeBmpTileData(unsigned char *data, const Tile *t, bool transparent);
 };
 
 } // End of namespace Nuvie

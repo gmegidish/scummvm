@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -87,7 +86,7 @@ enum ViewFlags {
 	fIgnoreObjects  = (1 << 9),     // 0x0200
 	fUpdatePos      = (1 << 10),    // 0x0400
 	fOnLand         = (1 << 11),    // 0x0800
-	fDontupdate     = (1 << 12),    // 0x1000
+	fDontUpdate     = (1 << 12),    // 0x1000
 	fFixLoop        = (1 << 13),    // 0x2000
 	fDidntMove      = (1 << 14),    // 0x4000
 	fAdjEgoXY       = (1 << 15)     // 0x8000
@@ -142,9 +141,15 @@ struct ScreenObjEntry {
 	uint8 wander_count;
 	// end of motion related variables
 	uint8 loop_flag;
+	bool ignoreLoopFlag;
 
 	void reset() { memset(this, 0, sizeof(ScreenObjEntry)); }
 	ScreenObjEntry() { reset(); }
+
+	void setLoopFlag(uint8 flag) {
+		loop_flag = flag;
+		ignoreLoopFlag = false;
+	}
 }; // struct vt_entry
 
 } // End of namespace Agi

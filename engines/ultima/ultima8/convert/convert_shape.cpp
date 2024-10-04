@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,24 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/memstream.h"
+#include "ultima/ultima.h"
 #include "ultima/ultima8/convert/convert_shape.h"
 #include "ultima/ultima8/misc/stream_util.h"
-#include "ultima/ultima8/misc/pent_include.h"
+#include "ultima/ultima8/misc/debugger.h"
 
 namespace Ultima {
 namespace Ultima8 {
-
-//#define COMP_SHAPENUM 39
-
-#ifdef COMP_SHAPENUM
-extern int shapenum;
-#endif
 
 void ConvertShapeFrame::Free() {
 	delete [] _line_offsets;
@@ -65,7 +59,7 @@ void ConvertShape::Read(Common::SeekableReadStream &source, const ConvertShapeFo
 		source.read(ident, csf->_bytes_ident);
 
 		if (memcmp(ident, csf->_ident, csf->_bytes_ident)) {
-			perr << "Warning: Corrupt shape!" << Std::endl;
+			warning("Corrupt shape");
 			return;
 		}
 	}
@@ -80,55 +74,32 @@ void ConvertShape::Read(Common::SeekableReadStream &source, const ConvertShapeFo
 	// Read the header unknown
 	if (csf->_bytes_header_unk) source.read(_header_unknown, csf->_bytes_header_unk);
 
-#ifdef COMP_SHAPENUM
-	if (shapenum == COMP_SHAPENUM) pout << Std::hex;
-#endif
-
 	// Now read _num_frames
 	_num_frames = 1;
 	if (csf->_bytes_num_frames) _num_frames = readX(source, csf->_bytes_num_frames);
 	if (_num_frames == 0) _num_frames = CalcNumFrames(source,csf,real_len,start_pos);
 
-#ifdef COMP_SHAPENUM
-	if (shapenum == COMP_SHAPENUM) pout << "_num_frames " << _num_frames << Std::endl;
-#endif
-
 //	if (_num_frames == 0xFFFF || _num_frames == 0xFFFFFF || _num_frames == -1)
 //	{
-//		perr << "Corrupt shape? " << Std::endl;
+//		warning("Corrupt shape?);
 //		_num_frames = 0;
 //		_frames = 0;
 //		return;
 //	}
 
 	// Create _frames array
-	_frames = new ConvertShapeFrame[_num_frames];
-	memset(_frames, 0, _num_frames * sizeof(ConvertShapeFrame));
+	_frames = new ConvertShapeFrame[_num_frames]();
 
 	// Now read the _frames
 	for(uint32 f = 0; f < _num_frames; ++f) {
-#ifdef COMP_SHAPENUM
-		if (shapenum == COMP_SHAPENUM) pout << "Frame " << f << Std::endl;
-#endif
 		ConvertShapeFrame *frame = _frames + f;
 
-#ifdef COMP_SHAPENUM
-		if (shapenum == COMP_SHAPENUM) pout << "Seeking to " << (csf->_len_header + (csf->_len_frameheader * f)) << Std::endl;
-		if (shapenum == COMP_SHAPENUM) pout << "Real " << (start_pos + csf->_len_header + (csf->_len_frameheader * f)) << Std::endl;
-#endif
 		// Seek to initial pos
 		source.seek(start_pos + csf->_len_header + (csf->_len_frameheader * f));
-
-#ifdef COMP_SHAPENUM
-		if (shapenum == COMP_SHAPENUM) pout << "seeked to " << source.pos() << Std::endl;
-#endif
 
 		// Read the offset
 		uint32 frame_offset = csf->_len_header + (csf->_len_frameheader * f);
 		if (csf->_bytes_frame_offset) frame_offset = readX(source, csf->_bytes_frame_offset);
-#ifdef COMP_SHAPENUM
-		if (shapenum == COMP_SHAPENUM) pout << "frame_offset " << frame_offset << Std::endl;
-#endif
 
 		// Read the unknown
 		if (csf->_bytes_frameheader_unk) source.read(frame->_header_unknown, csf->_bytes_frameheader_unk);
@@ -136,9 +107,6 @@ void ConvertShape::Read(Common::SeekableReadStream &source, const ConvertShapeFo
 		// Read frame_length
 		uint32 frame_length = real_len-frame_offset;
 		if (csf->_bytes_frame_length) frame_length = readX(source, csf->_bytes_frame_length) + csf->_bytes_frame_length_kludge;
-#ifdef COMP_SHAPENUM
-		if (shapenum == COMP_SHAPENUM) pout << "frame_length " << frame_length << Std::endl;
-#endif
 
 		// Seek to start of frame
 		source.seek(start_pos + frame_offset + csf->_bytes_special);
@@ -148,10 +116,6 @@ void ConvertShape::Read(Common::SeekableReadStream &source, const ConvertShapeFo
 		else
 			frame->Read(source, csf, frame_length);
 	}
-
-#ifdef COMP_SHAPENUM
-	if (shapenum == COMP_SHAPENUM) pout << Std::dec;
-#endif
 }
 
 void ConvertShapeFrame::Read(Common::SeekableReadStream &source, const ConvertShapeFormat *csf, uint32 frame_length) {
@@ -165,25 +129,13 @@ void ConvertShapeFrame::Read(Common::SeekableReadStream &source, const ConvertSh
 	_xoff = readXS(source, csf->_bytes_frame_xoff);
 	_yoff = readXS(source, csf->_bytes_frame_yoff);
 
-#ifdef COMP_SHAPENUM
-	if (_width <= 0 || _height <= 0  ||shapenum == COMP_SHAPENUM )
-	{
-		pout << "_compression " << _compression << Std::endl;
-		pout << "_width " << _width << Std::endl;
-		pout << "_height " << _height << Std::endl;
-		pout << "_xoff " << _xoff << Std::endl;
-		pout << "_yoff " << _yoff << Std::endl;
-	}
-#endif
-
 	if (_compression != 0 && _compression != 1) {
 		_compression = 0;
 		_width = 0;
 		_height = 0;
 		_xoff = 0;
 		_yoff = 0;
-		//perr << "Corrupt frame? (frame " << f << ")" << Std::endl;
-		perr << "Corrupt frame?" << Std::endl;
+		warning("Corrupt frame?");
 	}
 
 	if (_height) {
@@ -202,13 +154,10 @@ void ConvertShapeFrame::Read(Common::SeekableReadStream &source, const ConvertSh
 		// Calculate the number of bytes of RLE data
 		_bytes_rle = frame_length - (csf->_len_frameheader2 + (_height * csf->_bytes_line_offset));
 
-#ifdef COMP_SHAPENUM
 		if (_bytes_rle < 0) {
 			_bytes_rle = 0;
-			perr << "Corrupt frame?" << Std::endl;
+			warning("Corrupt frame?");
 		}
-
-#endif
 	} else
 		_line_offsets = nullptr;
 
@@ -300,7 +249,7 @@ void ConvertShapeFrame::ReadCmpFrame(Common::SeekableReadStream &source, const C
 				}
 
 				if (((dlen+extra) << _compression) > 255) {
-					perr << "Error! Corrupt Frame. RLE dlen too large" << Std::endl;
+					warning("Corrupt Frame. RLE dlen too large");
 				}
 
 				rlebuf.writeByte((dlen+extra) << _compression);
@@ -404,7 +353,7 @@ int ConvertShape::CalcNumFrames(Common::SeekableReadStream &source, const Conver
 		uint32 frame_length = real_len-frame_offset;
 		if (csf->_bytes_frame_length)
 			frame_length = readX(source, csf->_bytes_frame_length) + csf->_bytes_frame_length_kludge;
-		debug(MM_INFO, "Frame %d length = %xh", f, frame_length);
+		debugC(kDebugGraphics, "Frame %d length = %xh", f, frame_length);
 	}
 
 	source.seek(save_pos);
@@ -413,9 +362,7 @@ int ConvertShape::CalcNumFrames(Common::SeekableReadStream &source, const Conver
 }
 
 bool ConvertShape::Check(Common::SeekableReadStream &source, const ConvertShapeFormat *csf, uint32 real_len) {
-#if 0
-	pout << "Testing " << csf->_name << "..." << Std::endl;
-#endif
+	debugC(kDebugGraphics, "Testing shape format %s...", csf->_name);
 	bool result = true;
 
 	// Just to be safe
@@ -588,13 +535,13 @@ bool ConvertShape::Check(Common::SeekableReadStream &source, const ConvertShapeF
 	// Return to start position
 	source.seek(start_pos);
 
+	if (result)
+		debugC(kDebugGraphics, "Detected Shape Format: %s", csf->_name);
 	return result;
 }
 
 bool ConvertShape::CheckUnsafe(Common::SeekableReadStream &source, const ConvertShapeFormat *csf, uint32 real_len) {
-#if 0
-	pout << "Testing " << csf->_name << "..." << Std::endl;
-#endif
+	debugC(kDebugGraphics, "Testing shape format %s...", csf->_name);
 	bool result = true;
 
 	// Just to be safe
@@ -693,6 +640,8 @@ bool ConvertShape::CheckUnsafe(Common::SeekableReadStream &source, const Convert
 	// Return to start position
 	source.seek(start_pos);
 
+	if (result)
+		debugC(kDebugGraphics, "Detected Shape Format: %s", csf->_name);
 	return result;
 }
 
@@ -709,7 +658,7 @@ void ConvertShape::Write(Common::SeekableWriteStream &dest, const ConvertShapeFo
 	// Now write _num_frames
 	if (csf->_bytes_num_frames) writeX(dest, _num_frames, csf->_bytes_num_frames);
 	else if (!csf->_bytes_num_frames && _num_frames > 1) {
-		perr << "Error: Unable to convert multiple frame shapes to " << csf->_name << Std::endl;
+		warning("Error: Unable to convert multiple frame shapes to %s", csf->_name);
 		return;
 	}
 

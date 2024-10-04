@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,7 @@
 #include "backends/keymapper/keymap.h"
 #include "backends/keymapper/standard-actions.h"
 
+#include "common/gui_options.h"
 #include "common/system.h"
 #include "common/savefile.h"
 #include "common/translation.h"
@@ -44,7 +44,10 @@ class SkyMetaEngine : public MetaEngine {
 
 	bool hasFeature(MetaEngineFeature f) const override;
 
-	Common::Error createInstance(OSystem *syst, Engine **engine) const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine,
+	                             const DetectedGame &gameDescriptor, const void *metaEngineDescriptor) override;
+
+	const ExtraGuiOptions getExtraGuiOptions(const Common::String &target) const override;
 
 	SaveStateList listSaves(const char *target) const override;
 	int getMaximumSaveSlot() const override;
@@ -52,6 +55,12 @@ class SkyMetaEngine : public MetaEngine {
 	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
 
 	Common::KeymapArray initKeymaps(const char *target) const override;
+	Common::String getSavegameFile(int saveGameIdx, const char *target) const override {
+		if (saveGameIdx == kSavegameFilePattern)
+			return Common::String::format("SKY-VM.###");
+		else
+			return Common::String::format("SKY-VM.%03d", saveGameIdx);
+	}
 };
 
 bool SkyMetaEngine::hasFeature(MetaEngineFeature f) const {
@@ -136,10 +145,39 @@ Common::KeymapArray SkyMetaEngine::initKeymaps(const char *target) const {
 	return keymaps;
 }
 
-Common::Error SkyMetaEngine::createInstance(OSystem *syst, Engine **engine) const {
+Common::Error SkyMetaEngine::createInstance(OSystem *syst, Engine **engine,
+	const DetectedGame &gameDescriptor, const void *metaEngineDescriptor) {
 	assert(engine);
 	*engine = new Sky::SkyEngine(syst);
 	return Common::kNoError;
+}
+
+static const ExtraGuiOption skyExtraGuiOption = {
+	_s("Floppy intro"),
+	_s("Use the floppy version's intro (CD version only)"),
+	"alt_intro",
+	false,
+	0,
+	0
+};
+
+const ExtraGuiOptions SkyMetaEngine::getExtraGuiOptions(const Common::String &target) const {
+	Common::String guiOptions;
+	ExtraGuiOptions options;
+
+	if (target.empty()) {
+		options.push_back(skyExtraGuiOption);
+		return options;
+	}
+
+	if (ConfMan.hasKey("guioptions", target)) {
+		guiOptions = ConfMan.get("guioptions", target);
+		guiOptions = parseGameGUIOptions(guiOptions);
+	}
+
+	if (!guiOptions.contains(GUIO_NOSPEECH))
+		options.push_back(skyExtraGuiOption);
+	return options;
 }
 
 SaveStateList SkyMetaEngine::listSaves(const char *target) const {
@@ -202,7 +240,7 @@ void SkyMetaEngine::removeSaveState(const char *target, int slot) const {
 
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	char fName[20];
-	sprintf(fName,"SKY-VM.%03d", slot);
+	Common::sprintf_s(fName,"SKY-VM.%03d", slot);
 	saveFileMan->removeSavefile(fName);
 
 	// Load current save game descriptions
@@ -270,7 +308,7 @@ SaveStateDescriptor SkyMetaEngine::querySaveMetaInfos(const char *target, int sl
 		// Make sure the file exists
 		// Note: there can be valid saved file names with empty savename
 		char fName[20];
-		sprintf(fName,"SKY-VM.%03d", slot);
+		Common::sprintf_s(fName,"SKY-VM.%03d", slot);
 		Common::InSaveFile *in = saveFileMan->openForLoading(fName);
 		if (in) {
 			delete in;
@@ -350,12 +388,16 @@ Common::Error SkyEngine::saveGameState(int slot, const Common::String &desc, boo
 	return Common::kNoError;
 }
 
-bool SkyEngine::canLoadGameStateCurrently() {
-	return _systemVars->pastIntro && _skyControl->loadSaveAllowed();
+bool SkyEngine::canLoadGameStateCurrently(Common::U32String *msg) {
+	return _systemVars->pastIntro
+	    && _skyControl->loadSaveAllowed()
+	    && !_skyControl->isControlPanelOpen();
 }
 
-bool SkyEngine::canSaveGameStateCurrently() {
-	return _systemVars->pastIntro && _skyControl->loadSaveAllowed();
+bool SkyEngine::canSaveGameStateCurrently(Common::U32String *msg) {
+	return _systemVars->pastIntro
+	    && _skyControl->loadSaveAllowed()
+	    && !_skyControl->isControlPanelOpen();
 }
 
 } // End of namespace Sky

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define ULTIMA8_KERNEL_KERNEL_H
 
 #include "ultima/shared/std/containers.h"
+#include "ultima/shared/std/string.h"
 #include "ultima/ultima8/usecode/intrinsics.h"
 
 namespace Ultima {
@@ -50,11 +50,12 @@ public:
 
 	void reset();
 
-	ProcId addProcess(Process *proc); // returns pid of new process
+	// returns pid of new process
+	ProcId addProcess(Process *proc, bool dispose = true);
 
 	//! add a process and run it immediately
 	//! \return pid of process
-	ProcId addProcessExec(Process *proc);
+	ProcId addProcessExec(Process *proc, bool dispose = true);
 
 	void runProcesses();
 	Process *getProcess(ProcId pid);
@@ -84,6 +85,12 @@ public:
 	//! \param fail if true, fail the processes instead of terminating them
 	void killProcessesNotOfType(ObjId objid, uint16 processtype, bool fail);
 
+	//! kill (fail) processes not of a certain type, regardless of object ID
+	//! except for the current running process (for switching levels in Crusader)
+	//! \param type the type not to kill
+	//! \param fail if true, fail the processes instead of terminating them
+	void killAllProcessesNotOfTypeExcludeCurrent(uint16 processtype, bool fail);
+
 	//! get an iterator of the process list.
 	ProcessIter getProcessBeginIterator() {
 		return _processes.begin();
@@ -95,6 +102,7 @@ public:
 	void kernelStats();
 	void processTypes();
 
+	bool canSave();
 	void save(Common::WriteStream *ws);
 	bool load(Common::ReadStream *rs, uint32 version);
 
@@ -144,7 +152,7 @@ private:
 
 	Std::list<Process *>::iterator _currentProcess;
 
-	Std::map<Common::String, ProcessLoadFunc> _processLoaders;
+	Common::HashMap<Common::String, ProcessLoadFunc> _processLoaders;
 
 	bool _loading;
 
@@ -156,11 +164,6 @@ private:
 
 	static Kernel *_kernel;
 };
-
-
-extern const uint U8_RAND_MAX;
-extern uint getRandom();
-
 
 } // End of namespace Ultima8
 } // End of namespace Ultima

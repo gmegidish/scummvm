@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,6 +63,7 @@ public:
 	void destroy();
 	const Graphics::Surface *getSurface() const { return _outputSurface; }
 	const byte *getPalette() const { return _palette; }
+	int getPaletteSize() const { return 256; }
 	uint16 getPaletteColorCount() const { return _paletteColorCount; }
 
 	struct PixMap {
@@ -84,7 +84,8 @@ public:
 		uint32 pmReserved;
 	};
 
-	static PixMap readPixMap(Common::SeekableReadStream &stream, bool hasBaseAddr = true);
+	static PixMap readRowBytes(Common::SeekableReadStream &stream, bool hasBaseAddr = true);
+	static PixMap readPixMap(Common::SeekableReadStream &stream, bool hasBaseAddr = true, bool hasRowBytes = true);
 
 private:
 	Common::Rect _imageRect;
@@ -92,9 +93,12 @@ private:
 	uint16 _paletteColorCount;
 	Graphics::Surface *_outputSurface;
 	bool _continueParsing;
+	int _version;
 
 	// Utility Functions
-	void unpackBitsRect(Common::SeekableReadStream &stream, bool withPalette);
+	void unpackBitsRectOrRgn(Common::SeekableReadStream &stream, bool hasPackBits);
+	void unpackBitsRgn(Common::SeekableReadStream &stream, bool compressed);
+	void unpackBitsRect(Common::SeekableReadStream &stream, bool withPalette, PixMap pixMap);
 	void unpackBitsLine(byte *out, uint32 length, Common::SeekableReadStream *stream, byte bitsPerPixel, byte bytesPerPixel);
 	void skipBitsRect(Common::SeekableReadStream &stream, bool withPalette);
 	void decodeCompressedQuickTime(Common::SeekableReadStream &stream);
@@ -122,9 +126,13 @@ private:
 	DECLARE_OPCODE(o_txRatio);
 	DECLARE_OPCODE(o_versionOp);
 	DECLARE_OPCODE(o_longText);
+	DECLARE_OPCODE(o_bitsRgn);
+	DECLARE_OPCODE(o_packBitsRgn);
+	DECLARE_OPCODE(o_shortComment);
 	DECLARE_OPCODE(o_longComment);
 	DECLARE_OPCODE(o_opEndPic);
 	DECLARE_OPCODE(o_headerOp);
+	DECLARE_OPCODE(o_versionOp1);
 
 	// Regular-mode Opcodes
 	void setupOpcodesNormal();

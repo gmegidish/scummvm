@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -183,7 +182,7 @@ void Journal::drawSaveDescriptions() {
 	for (int i = 0; i < NUM_SAVES_PER_PAGE; ++i) {
 		int n = _currentSavePage * 10 + i;
 		char nb[4];
-		sprintf(nb, "%d", n + 1);
+		Common::sprintf_s(nb, "%d", n + 1);
 		int y = _textField.y + i * _textField.h;
 		_vm->display()->setText(_textField.x, y, _saveDescriptions[n], false);
 		_vm->display()->setText(_textField.x - 27, y + 1, nb, false);
@@ -538,7 +537,7 @@ void Journal::drawInfoPanel() {
 		break;
 	}
 	char versionId[13];
-	sprintf(versionId, "Version %c.%c%c", ver[2], ver[3], ver[4]);
+	Common::sprintf_s(versionId, "Version %c.%c%c", ver[2], ver[3], ver[4]);
 	_vm->display()->setTextCentered(156, versionId, false);
 }
 
@@ -548,7 +547,7 @@ void Journal::initTextField(const char *desc) {
 	_textField.posCursor = _vm->display()->textWidth(desc);
 	_textField.textCharsCount = strlen(desc);
 	memset(_textField.text, 0, sizeof(_textField.text));
-	strcpy(_textField.text, desc);
+	Common::strcpy_s(_textField.text, desc);
 }
 
 void Journal::updateTextField(uint16 ascii, int keycode) {

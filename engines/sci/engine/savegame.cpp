@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -569,7 +568,7 @@ void Script::saveLoadWithSerializer(Common::Serializer &s) {
 
 	s.skip(4, VER(14), VER(19));		// OBSOLETE: Used to be _numExports
 	s.skip(4, VER(14), VER(19));		// OBSOLETE: Used to be _numSynonyms
-	s.syncAsSint32LE(_lockers);
+	s.syncAsUint32LE(_lockers);
 
 	// Sync _objects. This is a hashmap, and we use the following on disk format:
 	// First we store the number of items in the hashmap, then we store each
@@ -689,6 +688,8 @@ void MusicEntry::saveLoadWithSerializer(Common::Serializer &s) {
 	s.syncAsSint16LE(fadeStep);
 	s.syncAsSint32LE(fadeTicker);
 	s.syncAsSint32LE(fadeTickerStep);
+	s.syncAsByte(fadeSetVolume, VER(46));
+	s.syncAsByte(fadeCompleted, VER(46));
 	s.syncAsByte(stopAfterFading, VER(45));
 	s.syncAsByte(status);
 	if (s.getVersion() >= 32)
@@ -703,9 +704,9 @@ void MusicEntry::saveLoadWithSerializer(Common::Serializer &s) {
 	// pMidiParser and pStreamAud will be initialized when the
 	// sound list is reconstructed in gamestate_restore()
 	if (s.isLoading()) {
-		soundRes = 0;
-		pMidiParser = 0;
-		pStreamAud = 0;
+		soundRes = nullptr;
+		pMidiParser = nullptr;
+		pStreamAud = nullptr;
 		reverb = -1;	// invalid reverb, will be initialized in processInitSound()
 	}
 }
@@ -846,6 +847,13 @@ void GfxPalette::palVarySaveLoadPalette(Common::Serializer &s, Palette *palette)
 }
 
 void GfxPalette::saveLoadWithSerializer(Common::Serializer &s) {
+	if (s.isLoading()) {
+		// Palette cycling schedules must be reset on load because we persist the engine tick count.
+		// Otherwise, loading during cycling leaves the animation stuck until the new lower tick count
+		// reaches the stale scheduled values. (Example: SQ5 Kiz Urazgubi waterfalls)
+		// SSCI didn't persist or reset engine tick count so it didn't need to reset the schedules.
+		_schedules.clear();
+	}
 	if (s.getVersion() >= 25) {
 		// We need to save intensity of the _sysPalette at least for kq6 when entering the dark cave (room 390)
 		//  from room 340. scripts will set intensity to 60 for this room and restore them when leaving.
@@ -1237,7 +1245,19 @@ bool gamestate_save(EngineState *s, int saveId, const Common::String &savename, 
 
 bool gamestate_save(EngineState *s, Common::WriteStream *fh, const Common::String &savename, const Common::String &version) {
 	Common::Serializer ser(nullptr, fh);
-	set_savegame_metadata(ser, fh, savename, version);
+	Common::String ver = version;
+
+	// If the game version is empty, we are probably saving from the GMM, so read it
+	// from the version global and then the VERSION file
+	if (ver.empty()) {
+		ver = s->getGameVersionFromGlobal();
+		if (ver.empty()) {
+			Common::ScopedPtr<Common::SeekableReadStream> versionFile(SearchMan.createReadStreamForMember("VERSION"));
+			ver = versionFile ? versionFile->readLine() : "";
+		}
+	}
+
+	set_savegame_metadata(ser, fh, savename, ver);
 	s->saveLoadWithSerializer(ser);		// FIXME: Error handling?
 	if (g_sci->_gfxPorts)
 		g_sci->_gfxPorts->saveLoadWithSerializer(ser);
@@ -1420,7 +1440,7 @@ bool gamestate_restore(EngineState *s, int saveId) {
 void gamestate_restore(EngineState *s, Common::SeekableReadStream *fh) {
 	SavegameMetadata meta;
 
-	Common::Serializer ser(fh, 0);
+	Common::Serializer ser(fh, nullptr);
 	sync_SavegameMetadata(ser, meta);
 
 	if (fh->eos()) {
@@ -1444,6 +1464,7 @@ void gamestate_restore(EngineState *s, Common::SeekableReadStream *fh) {
 
 		if (meta.gameObjectOffset > 0 && meta.script0Size > 0) {
 			Resource *script0 = g_sci->getResMan()->findResource(ResourceId(kResourceTypeScript, 0), false);
+			assert(script0);
 			if (script0->size() != meta.script0Size || g_sci->getGameObject().getOffset() != meta.gameObjectOffset) {
 				showScummVMDialog(_("This saved game was created with a different version of the game, unable to load it"));
 
@@ -1504,8 +1525,7 @@ void gamestate_restore(EngineState *s, Common::SeekableReadStream *fh) {
 	g_sci->_soundCmd->reconstructPlayList();
 
 	// Message state:
-	delete s->_msgState;
-	s->_msgState = new MessageState(s->_segMan);
+	s->initMessageState();
 
 	// System strings:
 	s->_segMan->initSysStrings();

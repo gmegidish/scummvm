@@ -4,6 +4,40 @@
 #include "common/noncopyable.h"
 #include "common/str.h"
 
+
+struct ArrayTestMovable {
+	ArrayTestMovable() : _value(0), _wasMoveConstructed(false), _wasMovedFrom(false) {}
+
+	explicit ArrayTestMovable(int value) : _value(value), _wasMoveConstructed(false), _wasMovedFrom(false) {}
+
+	ArrayTestMovable(const ArrayTestMovable &other)
+		: _value(other._value), _wasMoveConstructed(false), _wasMovedFrom(false) {
+	}
+
+	ArrayTestMovable(ArrayTestMovable &&other) noexcept
+		: _value(other._value), _wasMoveConstructed(true), _wasMovedFrom(false) {
+		other._wasMovedFrom = true;
+	}
+
+	int _value;
+	bool _wasMoveConstructed;
+	bool _wasMovedFrom;
+};
+
+// Hopefully temporary until Common::Pair can be updated to have move constructor/assign operator
+struct ArrayTestMovablePair {
+	ArrayTestMovablePair(ArrayTestMovable &&pFirst, ArrayTestMovable &&pSecond)
+	: first(Common::move(pFirst)), second(Common::move(pSecond)) {
+	}
+
+	ArrayTestMovablePair(const ArrayTestMovable &&pFirst, const ArrayTestMovable &&pSecond)
+		: first(pFirst), second(pSecond) {
+	}
+
+	ArrayTestMovable first;
+	ArrayTestMovable second;
+};
+
 class ArrayTestSuite : public CxxTest::TestSuite
 {
 	public:
@@ -60,6 +94,31 @@ class ArrayTestSuite : public CxxTest::TestSuite
 		iter = array.erase(iter);
 		TS_ASSERT_DIFFERS(iter, array.end());
 		TS_ASSERT_EQUALS(*iter, -11);
+		TS_ASSERT_EQUALS(array.size(), (unsigned int)2);
+		TS_ASSERT_EQUALS(array[0], 17);
+		TS_ASSERT_EQUALS(array[1], -11);
+	}
+
+	void test_erase_iterator_range() {
+		Common::Array<int> array;
+		Common::Array<int>::iterator first, last;
+
+		// Fill the array with some random data
+		array.push_back(17);
+		array.push_back(33);
+		array.push_back(66);
+		array.push_back(99);
+		array.push_back(-11);
+
+		first = array.begin();
+		++first;
+
+		last = array.end();
+		--last;
+
+		first = array.erase(first, last);
+		TS_ASSERT_DIFFERS(first, array.end());
+		TS_ASSERT_EQUALS(*first, -11);
 		TS_ASSERT_EQUALS(array.size(), (unsigned int)2);
 		TS_ASSERT_EQUALS(array[0], 17);
 		TS_ASSERT_EQUALS(array[1], -11);
@@ -323,13 +382,11 @@ class ArrayTestSuite : public CxxTest::TestSuite
 	}
 
 	void test_array_constructor_list() {
-#ifdef USE_CXX11
 		Common::Array<int> array = {1, 42, 255};
 		TS_ASSERT_EQUALS(array.size(), 3U);
 		TS_ASSERT_EQUALS(array[0], 1);
 		TS_ASSERT_EQUALS(array[1], 42);
 		TS_ASSERT_EQUALS(array[2], 255);
-#endif
 	}
 
 	void test_array_constructor_count_copy_value() {
@@ -418,6 +475,46 @@ class ArrayTestSuite : public CxxTest::TestSuite
 		TS_ASSERT_EQUALS(array.size(), (unsigned int)2);
 		TS_ASSERT_EQUALS(array[0], -3);
 		TS_ASSERT_EQUALS(array[1], 163);
+
+		array.resize(4, 42);
+		TS_ASSERT_EQUALS(array.size(), (unsigned int)4);
+		TS_ASSERT_EQUALS(array[0], -3);
+		TS_ASSERT_EQUALS(array[1], 163);
+		TS_ASSERT_EQUALS(array[2], 42);
+		TS_ASSERT_EQUALS(array[3], 42);
+
+		array.resize(2, 42);
+		TS_ASSERT_EQUALS(array.size(), (unsigned int)2);
+		TS_ASSERT_EQUALS(array[0], -3);
+		TS_ASSERT_EQUALS(array[1], 163);
+	}
+
+	void test_swap() {
+		Common::Array<int> array1, array2;
+
+		array1.push_back(-3);
+		array1.push_back(163);
+		array1.push_back(17);
+		array2.push_back(5);
+		array2.push_back(9);
+
+		TS_ASSERT_EQUALS(array1.size(), 3u);
+		TS_ASSERT_EQUALS(array1[0], -3);
+		TS_ASSERT_EQUALS(array1[1], 163);
+		TS_ASSERT_EQUALS(array1[2], 17);
+		TS_ASSERT_EQUALS(array2.size(), 2u);
+		TS_ASSERT_EQUALS(array2[0], 5);
+		TS_ASSERT_EQUALS(array2[1], 9);
+
+		array1.swap(array2);
+
+		TS_ASSERT_EQUALS(array1.size(), 2u);
+		TS_ASSERT_EQUALS(array1[0], 5);
+		TS_ASSERT_EQUALS(array1[1], 9);
+		TS_ASSERT_EQUALS(array2.size(), 3u);
+		TS_ASSERT_EQUALS(array2[0], -3);
+		TS_ASSERT_EQUALS(array2[1], 163);
+		TS_ASSERT_EQUALS(array2[2], 17);
 	}
 
 };
@@ -496,5 +593,25 @@ public:
 			delete *iter;
 		}
 	}
+	
+	void test_emplace() {
+		Common::Array<ArrayTestMovablePair> movablePairArray;
+		movablePairArray.emplace_back(ArrayTestMovable(1), ArrayTestMovable(2));
 
+		TS_ASSERT(movablePairArray[0].first._wasMoveConstructed);
+		TS_ASSERT_EQUALS(movablePairArray[0].first._value, 1);
+		TS_ASSERT(movablePairArray[0].second._wasMoveConstructed);
+		TS_ASSERT_EQUALS(movablePairArray[0].second._value, 2);
+	}
+	
+	void test_push_back_move() {
+		ArrayTestMovable movable(3);
+
+		Common::Array<ArrayTestMovable> movableArray;
+		movableArray.push_back(Common::move(movable));
+
+		TS_ASSERT(movable._wasMovedFrom);
+		TS_ASSERT_EQUALS(movableArray[0]._value, 3);
+		TS_ASSERT(movableArray[0]._wasMoveConstructed);
+	}
 };

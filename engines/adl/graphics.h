@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,7 +49,7 @@ protected:
 template <class T>
 class GraphicsMan_v1 : public GraphicsMan {
 public:
-	GraphicsMan_v1<T>(T &display) : _display(display) { this->setBounds(Common::Rect(280, 160)); }
+	GraphicsMan_v1(T &display) : _display(display) { this->setBounds(Common::Rect(280, 160)); }
 
 	void drawLine(const Common::Point &p1, const Common::Point &p2, byte color) const override;
 	void drawShape(Common::ReadStream &shape, Common::Point &pos, byte rotation = 0, byte scaling = 1, byte color = 0x7f) const override;
@@ -70,7 +69,7 @@ private:
 template <class T>
 class GraphicsMan_v2 : public GraphicsMan_v1<T> {
 public:
-	GraphicsMan_v2<T>(T &display) : GraphicsMan_v1<T>(display), _color(0) { }
+	GraphicsMan_v2(T &display) : GraphicsMan_v1<T>(display), _color(0) { }
 	void drawPic(Common::SeekableReadStream &pic, const Common::Point &pos) override;
 
 protected:
@@ -97,7 +96,7 @@ private:
 template <class T>
 class GraphicsMan_v3 : public GraphicsMan_v2<T> {
 public:
-	GraphicsMan_v3<T>(T &display) : GraphicsMan_v2<T>(display) { }
+	GraphicsMan_v3(T &display) : GraphicsMan_v2<T>(display) { }
 
 private:
 	void fillRowLeft(Common::Point p, const byte pattern, const bool stopBit) override;

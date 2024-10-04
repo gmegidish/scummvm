@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,20 +44,18 @@ public:
 	RetrieveFromPods(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
 			int doorLeft = -1, int doorTop = -1, int doorRight = -1, int doorBottom = -1, int openAnim = -1, int openNormFrame = -1,
 			int popAnim = -1, int openPoppedAnim = -1, int openPoppedFrame = -1, int grabLeft = -1, int grabTop = -1, int grabRight = -1,
-			int grabBottom = -1, int openEmptyAnim = -1, int openEmptyFrame = -1, int itemID = -1, int takenFlagOffset = -1,
-			int podStatusFlagOffset = -1, int returnDepth = -1, int popSwordAnim = -1);
-	virtual int mouseDown(Window *viewWindow, const Common::Point &pointLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int draggingItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags);
-	int droppedItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags);
-	virtual int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+			int grabBottom = -1, int openEmptyAnim = -1, int openEmptyFrame = -1, byte pod = 0, int itemID = -1, int returnDepth = -1,
+			int popSwordAnim = -1);
+	int mouseDown(Window *viewWindow, const Common::Point &pointLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int draggingItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) override;
+	int droppedItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 protected:
 	Common::Rect _openDoor;
 	Common::Rect _grabObject;
 	int _itemID;
-	int _itemFlagOffset;
-	int _podStatusFlagOffset;
 	int _openNormFrame;
 	int _openPoppedFrame;
 	int _openEmptyFrame;
@@ -69,19 +66,27 @@ protected:
 	int _popSwordAnim;
 	int _returnDepth;
 	bool _doorOpen;
+	byte _pod;
+	GlobalFlags &_globalFlags;
+
+	byte *podStatusFlag(byte pod);
+	byte *podItemFlag();
+	byte getPodStatus();
+	void setPodStatus(byte status);
+	void setPodStatus(byte pod, byte status);
+	byte getPodItemFlag();
+	void setPodItemFlag(byte value);
 };
 
 RetrieveFromPods::RetrieveFromPods(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
 		int doorLeft, int doorTop, int doorRight, int doorBottom, int openAnim, int openNormFrame,
 		int popAnim, int openPoppedAnim, int openPoppedFrame, int grabLeft, int grabTop, int grabRight,
-		int grabBottom, int openEmptyAnim, int openEmptyFrame, int itemID, int takenFlagOffset,
-		int podStatusFlagOffset, int returnDepth, int popSwordAnim) :
-		SceneBase(vm, viewWindow, sceneStaticData, priorLocation) {
+		int grabBottom, int openEmptyAnim, int openEmptyFrame, byte pod, int itemID, int returnDepth, int popSwordAnim) :
+		SceneBase(vm, viewWindow, sceneStaticData, priorLocation),
+		_globalFlags(((SceneViewWindow *)viewWindow)->getGlobalFlags()) {
 	_openDoor = Common::Rect(doorLeft, doorTop, doorRight, doorBottom);
 	_grabObject = Common::Rect(grabLeft, grabTop, grabRight, grabBottom);
 	_itemID = itemID;
-	_itemFlagOffset = takenFlagOffset;
-	_podStatusFlagOffset = podStatusFlagOffset;
 	_openNormFrame = openNormFrame;
 	_openPoppedFrame = openPoppedFrame;
 	_openEmptyFrame = openEmptyFrame;
@@ -92,13 +97,79 @@ RetrieveFromPods::RetrieveFromPods(BuriedEngine *vm, Window *viewWindow, const L
 	_returnDepth = returnDepth;
 	_doorOpen = false;
 	_popSwordAnim = popSwordAnim;
+	_pod = pod;
+}
+
+byte *RetrieveFromPods::podStatusFlag(byte pod) {
+	switch (pod) {
+	case 1:
+		return &_globalFlags.asRBPodAStatus;
+	case 2:
+		return &_globalFlags.asRBPodBStatus;
+	case 3:
+		return &_globalFlags.asRBPodCStatus;
+	case 4:
+		return &_globalFlags.asRBPodDStatus;
+	case 5:
+		return &_globalFlags.asRBPodEStatus;
+	case 6:
+		return &_globalFlags.asRBPodFStatus;
+	default:
+		return nullptr;
+	}
+}
+
+byte RetrieveFromPods::getPodStatus() {
+	byte *flag = podStatusFlag(_pod);
+	return flag ? *flag : 0;
+}
+
+void RetrieveFromPods::setPodStatus(byte status) {
+	byte *flag = podStatusFlag(_pod);
+	if (flag)
+		*flag = status;
+}
+
+void RetrieveFromPods::setPodStatus(byte pod, byte status) {
+	byte *flag = podStatusFlag(pod);
+	if (flag)
+		*flag = status;
+}
+
+byte *RetrieveFromPods::podItemFlag() {
+	switch (_pod) {
+	case 1:
+		return &_globalFlags.asRBPodATakenEnvironCart;
+	case 2:
+		return &_globalFlags.asRBPodBTakenPuzzleBox;
+	case 3:
+		return &_globalFlags.asRBPodCTakenCodex;
+	case 4:
+		return &_globalFlags.asRBPodDTakenSculpture;
+	case 5:
+		return &_globalFlags.asRBPodETakenSword;
+	default:
+		// Cheese girl in pod 6 cannot be picked up
+		return nullptr;
+	}
+}
+
+byte RetrieveFromPods::getPodItemFlag() {
+	byte *flag = podItemFlag();
+	return flag ? *flag : 0;
+}
+
+void RetrieveFromPods::setPodItemFlag(byte value) {
+	byte *flag = podStatusFlag(_pod);
+	if (flag)
+		*flag = value;
 }
 
 int RetrieveFromPods::mouseDown(Window *viewWindow, const Common::Point &pointLocation) {
-	if (_doorOpen && _grabObject.contains(pointLocation) && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_podStatusFlagOffset) == 1 && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_itemFlagOffset) == 0) {
+	if (_doorOpen && _grabObject.contains(pointLocation) && getPodStatus() == 1 && getPodItemFlag() == 0) {
 		_staticData.navFrameIndex = _openEmptyFrame;
-		((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_itemFlagOffset, 1);
-		((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_podStatusFlagOffset, 2);
+		setPodItemFlag(1);
+		setPodStatus(2);
 
 		// Begin dragging
 		Common::Point ptInventoryWindow = viewWindow->convertPointToGlobal(pointLocation);
@@ -117,7 +188,7 @@ int RetrieveFromPods::mouseUp(Window *viewWindow, const Common::Point &pointLoca
 	if (!_doorOpen && _openDoor.contains(pointLocation)) {
 		_doorOpen = true;
 
-		switch (((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_podStatusFlagOffset)) {
+		switch (getPodStatus()) {
 		case 0:
 			((SceneViewWindow *)viewWindow)->playSynchronousAnimation(_openAnim);
 			_staticData.navFrameIndex = _openNormFrame;
@@ -152,20 +223,20 @@ int RetrieveFromPods::mouseUp(Window *viewWindow, const Common::Point &pointLoca
 
 int RetrieveFromPods::draggingItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) {
 	if (itemID == kItemExplosiveCharge || itemID == kItemRichardsSword) {
-		if (_doorOpen && _openDoor.contains(pointLocation) && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_podStatusFlagOffset) == 0)
+		if (_doorOpen && _openDoor.contains(pointLocation) && getPodStatus() == 0)
 			return 1;
 
 		return 0;
 	}
 
-	if (itemID == _itemID && _doorOpen && _grabObject.contains(pointLocation) && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_itemFlagOffset) == 1 && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_podStatusFlagOffset) == 2)
+	if (itemID == _itemID && _doorOpen && _grabObject.contains(pointLocation) && getPodItemFlag() == 1 && getPodStatus() == 2)
 		return 1;
 
 	return 0;
 }
 
 int RetrieveFromPods::droppedItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) {
-	if ((itemID == kItemExplosiveCharge || itemID == kItemRichardsSword) && _doorOpen && _openDoor.contains(pointLocation) && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_podStatusFlagOffset) == 0) {
+	if ((itemID == kItemExplosiveCharge || itemID == kItemRichardsSword) && _doorOpen && _openDoor.contains(pointLocation) && getPodStatus() == 0) {
 		// Play the popping movie and change the still frame
 		if (itemID == kItemRichardsSword && _popSwordAnim >= 0)
 			((SceneViewWindow *)viewWindow)->playSynchronousAnimation(_popSwordAnim);
@@ -174,16 +245,12 @@ int RetrieveFromPods::droppedItem(Window *viewWindow, int itemID, const Common::
 
 		_staticData.navFrameIndex = _openPoppedFrame;
 
-		((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_podStatusFlagOffset, 1);
+		setPodStatus(1);
 
 		// If in walkthrough mode, open all the pods
-		if (((SceneViewWindow *)viewWindow)->getGlobalFlags().generalWalkthroughMode == 1) {
-			((SceneViewWindow *)viewWindow)->getGlobalFlags().asRBPodAStatus = 1;
-			((SceneViewWindow *)viewWindow)->getGlobalFlags().asRBPodBStatus = 1;
-			((SceneViewWindow *)viewWindow)->getGlobalFlags().asRBPodCStatus = 1;
-			((SceneViewWindow *)viewWindow)->getGlobalFlags().asRBPodDStatus = 1;
-			((SceneViewWindow *)viewWindow)->getGlobalFlags().asRBPodEStatus = 1;
-			((SceneViewWindow *)viewWindow)->getGlobalFlags().asRBPodFStatus = 1;
+		if (_globalFlags.generalWalkthroughMode == 1) {
+			for (int i = 1; i <= 6; i++)
+				setPodStatus(i, 1);
 		}
 
 		// Explosive charge doesn't get returned
@@ -196,19 +263,19 @@ int RetrieveFromPods::droppedItem(Window *viewWindow, int itemID, const Common::
 
 	if (itemID == _itemID && _doorOpen) {
 		if (pointLocation.x == -1 && pointLocation.y == -1) {
-			((SceneViewWindow *)viewWindow)->getGlobalFlags().asTakenEvidenceThisTrip = 1;
+			_globalFlags.asTakenEvidenceThisTrip = 1;
 
 			InventoryWindow *invWindow = ((GameUIWindow *)viewWindow->getParent())->_inventoryWindow;
 			if (invWindow->isItemInInventory(kItemEnvironCart) && invWindow->isItemInInventory(kItemMayanPuzzleBox) && invWindow->isItemInInventory(kItemCodexAtlanticus) && invWindow->isItemInInventory(kItemInteractiveSculpture) && invWindow->isItemInInventory(kItemRichardsSword))
-				((SceneViewWindow *)viewWindow)->getGlobalFlags().scoreGotKrynnArtifacts = 1;
-		} else if (_grabObject.contains(pointLocation) && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_itemFlagOffset) == 1 && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_podStatusFlagOffset) == 2) {
+				_globalFlags.scoreGotKrynnArtifacts = 1;
+		} else if (_grabObject.contains(pointLocation) && getPodItemFlag() == 1 && getPodStatus() == 2) {
 			// Change the still frame to reflect the return of the inventory item
 			_staticData.navFrameIndex = _openPoppedFrame;
 			viewWindow->invalidateWindow(false);
 
 			// Reset flags
-			((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_itemFlagOffset, 0);
-			((SceneViewWindow *)viewWindow)->setGlobalFlagByte(_podStatusFlagOffset, 1);
+			setPodItemFlag(0);
+			setPodStatus(1);
 			return SIC_ACCEPT;
 		}
 	}
@@ -220,8 +287,8 @@ class DoubleZoomIn : public SceneBase {
 public:
 	DoubleZoomIn(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
 			int leftA, int topA, int rightA, int bottomA, int depthA, int leftB, int topB, int rightB, int bottomB, int depthB);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _zoomRegion[2];
@@ -266,7 +333,7 @@ int RetrieveFromPods::specifyCursor(Window *viewWindow, const Common::Point &poi
 	if (_openDoor.contains(pointLocation) && !_doorOpen)
 		return kCursorFinger;
 
-	if (_grabObject.contains(pointLocation) && _itemFlagOffset >= 0 && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_podStatusFlagOffset) == 1 && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_itemFlagOffset) == 0)
+	if (_grabObject.contains(pointLocation) && getPodStatus() == 1 && getPodItemFlag() == 0)
 		return kCursorOpenHand;
 
 	if (_returnDepth >= 0)
@@ -279,8 +346,8 @@ class NerveNavigation : public SceneBase {
 public:
 	NerveNavigation(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
 			int left = -1, int top = -1, int right = -1, int bottom = -1);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _nerve;
@@ -315,8 +382,8 @@ int NerveNavigation::specifyCursor(Window *viewWindow, const Common::Point &poin
 class ArmControls : public SceneBase {
 public:
 	ArmControls(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _controls[3];
@@ -355,7 +422,7 @@ int ArmControls::specifyCursor(Window *viewWindow, const Common::Point &pointLoc
 class OpenAlienDoorA : public SceneBase {
 public:
 	OpenAlienDoorA(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
 };
 
 OpenAlienDoorA::OpenAlienDoorA(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation) :
@@ -384,11 +451,11 @@ int OpenAlienDoorA::postEnterRoom(Window *viewWindow, const Location &priorLocat
 class AlienDoorAEncounter : public SceneBase {
 public:
 	AlienDoorAEncounter(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int postExitRoom(Window *viewWindow, const Location &newLocation);
-	int draggingItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags);
-	int droppedItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags);
-	int timerCallback(Window *viewWindow);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int postExitRoom(Window *viewWindow, const Location &newLocation) override;
+	int draggingItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) override;
+	int droppedItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) override;
+	int timerCallback(Window *viewWindow) override;
 
 private:
 	uint32 _timerStart;
@@ -478,7 +545,7 @@ int AlienDoorAEncounter::timerCallback(Window *viewWindow) {
 class AlienDoorAMoveDeath : public SceneBase {
 public:
 	AlienDoorAMoveDeath(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int timerCallback(Window *viewWindow);
+	int timerCallback(Window *viewWindow) override;
 };
 
 AlienDoorAMoveDeath::AlienDoorAMoveDeath(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation) :
@@ -493,7 +560,7 @@ int AlienDoorAMoveDeath::timerCallback(Window *viewWindow) {
 class AlienDoorBOpen : public SceneBase {
 public:
 	AlienDoorBOpen(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
 };
 
 AlienDoorBOpen::AlienDoorBOpen(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation) :
@@ -520,11 +587,11 @@ int AlienDoorBOpen::postEnterRoom(Window *viewWindow, const Location &priorLocat
 class AlienDoorBEncounter : public SceneBase {
 public:
 	AlienDoorBEncounter(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int postExitRoom(Window *viewWindow, const Location &newLocation);
-	int timerCallback(Window *viewWindow);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int postExitRoom(Window *viewWindow, const Location &newLocation) override;
+	int timerCallback(Window *viewWindow) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	uint32 _timerStart;
@@ -606,9 +673,9 @@ int AlienDoorBEncounter::specifyCursor(Window *viewWindow, const Common::Point &
 class EncounterAmbassadorFirstZoom : public SceneBase {
 public:
 	EncounterAmbassadorFirstZoom(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _panel;
@@ -666,10 +733,10 @@ int EncounterAmbassadorFirstZoom::specifyCursor(Window *viewWindow, const Common
 class AmbassadorEncounterPodField : public SceneBase {
 public:
 	AmbassadorEncounterPodField(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int draggingItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags);
-	int droppedItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags);
-	int timerCallback(Window *viewWindow);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int draggingItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) override;
+	int droppedItem(Window *viewWindow, int itemID, const Common::Point &pointLocation, int itemFlags) override;
+	int timerCallback(Window *viewWindow) override;
 
 private:
 	uint32 _timerStart;
@@ -722,8 +789,8 @@ int AmbassadorEncounterPodField::timerCallback(Window *viewWindow) {
 class AmbassadorEncounterPodWalkForward : public SceneBase {
 public:
 	AmbassadorEncounterPodWalkForward(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int timerCallback(Window *viewWindow);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int timerCallback(Window *viewWindow) override;
 
 private:
 	uint32 _timerStart;
@@ -753,10 +820,10 @@ int AmbassadorEncounterPodWalkForward::timerCallback(Window *viewWindow) {
 class AmbassadorEncounterTransportArmsOff : public SceneBase {
 public:
 	AmbassadorEncounterTransportArmsOff(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int timerCallback(Window *viewWindow);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int timerCallback(Window *viewWindow) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	uint32 _timerStart;
@@ -816,8 +883,8 @@ int AmbassadorEncounterTransportArmsOff::specifyCursor(Window *viewWindow, const
 class NormalTransporter : public SceneBase {
 public:
 	NormalTransporter(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _clickRegion;
@@ -860,9 +927,9 @@ int NormalTransporter::specifyCursor(Window *viewWindow, const Common::Point &po
 class EntryWithoutLensFilter : public SceneBase {
 public:
 	EntryWithoutLensFilter(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
-	int paint(Window *viewWindow, Graphics::Surface *preBuffer);
-	int timerCallback(Window *viewWindow);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
+	int paint(Window *viewWindow, Graphics::Surface *preBuffer) override;
+	int timerCallback(Window *viewWindow) override;
 
 private:
 	bool _transPlayed;
@@ -910,7 +977,7 @@ int EntryWithoutLensFilter::timerCallback(Window *viewWindow) {
 class PlayPodAudio : public SceneBase {
 public:
 	PlayPodAudio(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation, int untransAudio, int transSoundID);
-	int postEnterRoom(Window *viewWindow, const Location &priorLocation);
+	int postEnterRoom(Window *viewWindow, const Location &priorLocation) override;
 
 private:
 	int _untransSoundID;
@@ -939,8 +1006,8 @@ class InorganicPodTransDeath : public SceneBase {
 public:
 	InorganicPodTransDeath(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation,
 			int left = -1, int top = -1, int right = -1, int bottom = -1, int animID = -1, int deathScene = -1);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	Common::Rect _clickRegion;
@@ -982,11 +1049,11 @@ public:
 };
 
 CheeseGirlPod::CheeseGirlPod(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation) :
-		RetrieveFromPods(vm, viewWindow, sceneStaticData, priorLocation, 128, 0, 352, 189, 20, 76, 21, 22, 77, 170, 54, 252, 156, 23, 78, -1, -1, offsetof(GlobalFlags, asRBPodFStatus), 0, 28) {
+		RetrieveFromPods(vm, viewWindow, sceneStaticData, priorLocation, 128, 0, 352, 189, 20, 76, 21, 22, 77, 170, 54, 252, 156, 23, 78, 6, -1, 0, 28) {
 }
 
 int CheeseGirlPod::mouseDown(Window *viewWindow, const Common::Point &pointLocation) {
-	if (_doorOpen && _grabObject.contains(pointLocation) && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_podStatusFlagOffset) == 1) {
+	if (_doorOpen && _grabObject.contains(pointLocation) && getPodStatus() == 1) {
 		((SceneViewWindow *)viewWindow)->playSynchronousAnimation(23);
 		return SC_TRUE;
 	}
@@ -999,7 +1066,7 @@ int CheeseGirlPod::specifyCursor(Window *viewWindow, const Common::Point &pointL
 		return kCursorFinger;
 
 	// If we're over the grab region, use the finger cursor so we can click on Frank
-	if (_grabObject.contains(pointLocation) && ((SceneViewWindow *)viewWindow)->getGlobalFlagByte(_podStatusFlagOffset) == 1)
+	if (_grabObject.contains(pointLocation) && getPodStatus() == 1)
 		return kCursorFinger;
 
 	if (_returnDepth >= 0)
@@ -1011,10 +1078,10 @@ int CheeseGirlPod::specifyCursor(Window *viewWindow, const Common::Point &pointL
 class TransporterStatusRead : public SceneBase {
 public:
 	TransporterStatusRead(BuriedEngine *vm, Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation);
-	int gdiPaint(Window *viewWindow);
-	int mouseMove(Window *viewWindow, const Common::Point &pointLocation);
-	int mouseUp(Window *viewWindow, const Common::Point &pointLocation);
-	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation);
+	int gdiPaint(Window *viewWindow) override;
+	int mouseMove(Window *viewWindow, const Common::Point &pointLocation) override;
+	int mouseUp(Window *viewWindow, const Common::Point &pointLocation) override;
+	int specifyCursor(Window *viewWindow, const Common::Point &pointLocation) override;
 
 private:
 	int _currentRegion;
@@ -1086,17 +1153,15 @@ int TransporterStatusRead::specifyCursor(Window *viewWindow, const Common::Point
 
 bool SceneViewWindow::initializeAlienTimeZoneAndEnvironment(Window *viewWindow, int environment) {
 	if (environment == -1) {
-		GlobalFlags &flags = ((SceneViewWindow *)viewWindow)->getGlobalFlags();
-
-		flags.asInitialGuardsPass = 0;
-		flags.asRBPodAStatus = 0;
-		flags.asRBPodBStatus = 0;
-		flags.asRBPodCStatus = 0;
-		flags.asRBPodDStatus = 0;
-		flags.asRBPodEStatus = 0;
-		flags.asRBPodFStatus = 0;
+		_globalFlags.asInitialGuardsPass = 0;
+		_globalFlags.asRBPodAStatus = 0;
+		_globalFlags.asRBPodBStatus = 0;
+		_globalFlags.asRBPodCStatus = 0;
+		_globalFlags.asRBPodDStatus = 0;
+		_globalFlags.asRBPodEStatus = 0;
+		_globalFlags.asRBPodFStatus = 0;
 	} else if (environment == 1) {
-		((SceneViewWindow *)viewWindow)->getGlobalFlags().scoreTransportToKrynn = 1;
+		_globalFlags.scoreTransportToKrynn = 1;
 	}
 
 	return true;
@@ -1108,6 +1173,9 @@ bool SceneViewWindow::startAlienAmbient(int oldTimeZone, int oldEnvironment, int
 }
 
 SceneBase *SceneViewWindow::constructAlienSceneObject(Window *viewWindow, const LocationStaticData &sceneStaticData, const Location &priorLocation) {
+	SceneViewWindow *sceneView = ((SceneViewWindow *)viewWindow);
+	GlobalFlags &globalFlags = sceneView->getGlobalFlags();
+
 	switch (sceneStaticData.classID) {
 	case 0:
 		// Default scene
@@ -1139,19 +1207,19 @@ SceneBase *SceneViewWindow::constructAlienSceneObject(Window *viewWindow, const 
 	case 13:
 		return new EntryWithoutLensFilter(_vm, viewWindow, sceneStaticData, priorLocation);
 	case 20:
-		return new RetrieveFromPods(_vm, viewWindow, sceneStaticData, priorLocation, 172, 46, 272, 166, 0, 61, 1, 2, 62, 198, 78, 248, 116, 3, 63, kItemEnvironCart, offsetof(GlobalFlags, asRBPodATakenEnvironCart), offsetof(GlobalFlags, asRBPodAStatus), -1, 29);
+		return new RetrieveFromPods(_vm, viewWindow, sceneStaticData, priorLocation, 172, 46, 272, 166, 0, 61, 1, 2, 62, 198, 78, 248, 116, 3, 63, 1, kItemEnvironCart, -1, 29);
 	case 21:
 		return new DoubleZoomIn(_vm, viewWindow, sceneStaticData, priorLocation, 240, 88, 300, 178, 1, 100, 0, 160, 98, 2);
 	case 22:
-		return new RetrieveFromPods(_vm, viewWindow, sceneStaticData, priorLocation, 150, 0, 394, 189, 4, 64, 5, 6, 65, 190, 74, 312, 142, 7, 66, kItemMayanPuzzleBox, offsetof(GlobalFlags, asRBPodBTakenPuzzleBox), offsetof(GlobalFlags, asRBPodBStatus), 0, 25);
+		return new RetrieveFromPods(_vm, viewWindow, sceneStaticData, priorLocation, 150, 0, 394, 189, 4, 64, 5, 6, 65, 190, 74, 312, 142, 7, 66, 2, kItemMayanPuzzleBox, 0, 25);
 	case 23:
-		return new RetrieveFromPods(_vm, viewWindow, sceneStaticData, priorLocation, 140, 8, 274, 189, 8, 67, 9, 10, 68, 176, 42, 232, 124, 11, 69, kItemCodexAtlanticus, offsetof(GlobalFlags, asRBPodCTakenCodex), offsetof(GlobalFlags, asRBPodCStatus), 0, 26);
+		return new RetrieveFromPods(_vm, viewWindow, sceneStaticData, priorLocation, 140, 8, 274, 189, 8, 67, 9, 10, 68, 176, 42, 232, 124, 11, 69, 3, kItemCodexAtlanticus, 0, 26);
 	case 24:
-		return new RetrieveFromPods(_vm, viewWindow, sceneStaticData, priorLocation, 100, 0, 280, 189, 12, 70, 13, 14, 71, 146, 60, 252, 156, 15, 72, kItemInteractiveSculpture, offsetof(GlobalFlags, asRBPodDTakenSculpture), offsetof(GlobalFlags, asRBPodDStatus), -1, 27);
+		return new RetrieveFromPods(_vm, viewWindow, sceneStaticData, priorLocation, 100, 0, 280, 189, 12, 70, 13, 14, 71, 146, 60, 252, 156, 15, 72, 4, kItemInteractiveSculpture, -1, 27);
 	case 25:
 		return new DoubleZoomIn(_vm, viewWindow, sceneStaticData, priorLocation, 256, 0, 322, 100, 1, 106, 84, 172, 189, 2);
 	case 26:
-		return new RetrieveFromPods(_vm, viewWindow, sceneStaticData, priorLocation, 134, 0, 276, 189, 16, 73, 17, 18, 74, 190, 4, 224, 166, 19, 75, kItemRichardsSword, offsetof(GlobalFlags, asRBPodETakenSword), offsetof(GlobalFlags, asRBPodEStatus), 0);
+		return new RetrieveFromPods(_vm, viewWindow, sceneStaticData, priorLocation, 134, 0, 276, 189, 16, 73, 17, 18, 74, 190, 4, 224, 166, 19, 75, 5, kItemRichardsSword, 0);
 	case 27:
 		return new CheeseGirlPod(_vm, viewWindow, sceneStaticData, priorLocation);
 	case 30:
@@ -1169,7 +1237,7 @@ SceneBase *SceneViewWindow::constructAlienSceneObject(Window *viewWindow, const 
 	case 42:
 		return new NerveNavigation(_vm, viewWindow, sceneStaticData, priorLocation, 180, 160, 270, 189);
 	case 50:
-		return new PlayStingers(_vm, viewWindow, sceneStaticData, priorLocation, 127, offsetof(GlobalFlags, asRBLastStingerID), offsetof(GlobalFlags, asRBStingerID), 10, 14);
+		return new PlayStingers(_vm, viewWindow, sceneStaticData, priorLocation, 127, globalFlags.asRBLastStingerID, globalFlags.asRBStingerID, 10, 14);
 	default:
 		warning("Unknown Alien scene object %d", sceneStaticData.classID);
 		break;

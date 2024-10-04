@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@
 #include <common/savefile.h>
 #include <gui/gui-manager.h>
 #include <gui/message.h>
-#include <common/zlib.h>
+#include <common/compression/deflate.h>
 
 
 // Savegame can not be bigger than this
@@ -52,19 +51,19 @@ static void displaySaveResult(vmsaveResult res)
 
   switch(res) {
   case VMSAVE_OK:
-	sprintf(buf, "Game saved on unit %c%d", 'A'+(lastvm/6), lastvm%6);
+	Common::sprintf_s(buf, "Game saved on unit %c%d", 'A'+(lastvm/6), lastvm%6);
 	break;
   case VMSAVE_NOVM:
-	strcpy(buf, "No memory card present!");
+	Common::strcpy_s(buf, "No memory card present!");
 	break;
   case VMSAVE_NOSPACE:
-	strcpy(buf, "Not enough space available!");
+	Common::strcpy_s(buf, "Not enough space available!");
 	break;
   case VMSAVE_WRITEERROR:
-	strcpy(buf, "Write error!!!");
+	Common::strcpy_s(buf, "Write error!!!");
 	break;
   default:
-	strcpy(buf, "Unknown error!!!");
+	Common::strcpy_s(buf, "Unknown error!!!");
 	break;
   }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,6 +52,17 @@ class RewindableAudioStream;
  * - Bud Tucker in Double Trouble
  */
 namespace Tucker {
+
+enum TUCKERAction {
+	kActionNone,
+	kActionSkipSpeech,
+	kActionFastMode,
+	kActionPause,
+	kActionTogglePanelStyle,
+	kActionToggleTextSpeech,
+	kActionHelp,
+	kActionEscape
+};
 
 enum CursorStyle {
 	kCursorNormal     = 0,
@@ -447,7 +457,7 @@ public:
 
 	WARN_UNUSED_RESULT static SavegameError readSavegameHeader(Common::InSaveFile *file, SavegameHeader &header, bool skipThumbnail = true);
 	WARN_UNUSED_RESULT static SavegameError readSavegameHeader(const char *target, int slot, SavegameHeader &header);
-	virtual bool canSaveAutosaveCurrently() override;
+	bool canSaveAutosaveCurrently() override;
 
 	static bool isAutosaveAllowed(const char *target);
 protected:
@@ -740,14 +750,14 @@ protected:
 	Common::Error loadGameState(int slot) override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
 	SavegameError writeSavegameHeader(Common::OutSaveFile *file, SavegameHeader &header);
-	virtual int getAutosaveSlot() const override { return kAutoSaveSlot; }
-	virtual Common::String getSaveStateName(int slot) const override {
+	int getAutosaveSlot() const override { return kAutoSaveSlot; }
+	Common::String getSaveStateName(int slot) const override {
 		return Common::String::format("%s.%d", _targetName.c_str(), slot);
 	}
 
 	bool canLoadOrSave() const;
-	bool canLoadGameStateCurrently() override;
-	bool canSaveGameStateCurrently() override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 	virtual bool existsSavegame();
 
 	void handleIntroSequence();

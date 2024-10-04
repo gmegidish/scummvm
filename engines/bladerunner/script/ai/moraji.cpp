@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -187,7 +186,7 @@ bool AIScriptMoraji::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 		return true;
 
 	case kGoalMorajiLayDown:
-		Actor_Retired_Here(kActorMoraji, 60, 16, 0, -1);
+		Actor_Retired_Here(kActorMoraji, 60, 16, false, -1);
 		Actor_Set_Targetable(kActorMoraji, true);
 		return true;
 
@@ -205,7 +204,7 @@ bool AIScriptMoraji::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 	case kGoalMorajiDead:
 		Actor_Set_Targetable(kActorMoraji, false);
 		_animationState = 14;
-		Actor_Retired_Here(kActorMoraji, 60, 16, 1, -1);
+		Actor_Retired_Here(kActorMoraji, 60, 16, true, -1);
 		return true;
 		break;
 
@@ -384,6 +383,7 @@ bool AIScriptMoraji::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	default:
+		debugC(6, kDebugAnimation, "AIScriptMoraji::UpdateAnimation() - Current _animationState (%d) is not supported", _animationState);
 		break;
 	}
 	*frame = _animationFrame;
@@ -456,6 +456,10 @@ bool AIScriptMoraji::ChangeAnimationMode(int mode) {
 	case kAnimationModeDie:
 		_animationState = 13;
 		_animationFrame = -1;
+		break;
+
+	default:
+		debugC(6, kDebugAnimation, "AIScriptMoraji::ChangeAnimationMode(%d) - Target mode is not supported", mode);
 		break;
 	}
 

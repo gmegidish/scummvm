@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -96,8 +95,8 @@ public:
 	Common::Language getLanguage() const;
 
 	bool hasFeature(EngineFeature f) const override;
-	bool canLoadGameStateCurrently() override { return _canLoadSave; }
-	bool canSaveGameStateCurrently() override { return _canLoadSave; }
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return _canLoadSave; }
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override { return _canLoadSave; }
 
 	void setCanLoadSave(bool canLoadSave) { _canLoadSave = canLoadSave; }
 	static const uint kSaveDescriptionLen = 20;
@@ -105,7 +104,7 @@ private:
 	void pauseEngineIntern(bool) override;
 
 public:
-	Image::ImageDecoder *loadHLZ(const Common::String &filename);
+	Image::ImageDecoder *loadHLZ(const Common::Path &filepath);
 
 	void fillSurface(byte color);
 	/* We use CursorMan because it avoids problems with cursors in GMM */
@@ -113,10 +112,10 @@ public:
 	void setCursor(uint cursorId) const;
 	bool showMouse(bool visible) { return CursorMan.showMouse(visible); }
 	typedef void (CryOmni3DEngine::*HNMCallback)(uint frameNum);
-	void playHNM(const Common::String &filename,
+	void playHNM(const Common::Path &filepath,
 	             Audio::Mixer::SoundType soundType = Audio::Mixer::kPlainSoundType,
 	             HNMCallback beforeDraw = nullptr, HNMCallback afterDraw = nullptr);
-	bool displayHLZ(const Common::String &filename, uint32 timeout = uint(-1));
+	bool displayHLZ(const Common::Path &filepath, uint32 timeout = uint(-1));
 
 	bool pollEvents();
 	Common::Point getMousePos();
@@ -129,13 +128,6 @@ public:
 	void waitMouseRelease();
 	void setAutoRepeatClick(uint millis);
 	DragStatus getDragStatus() { return _dragStatus; }
-
-	Common::String prepareFileName(const Common::String &baseName, const char *extension) const {
-		const char *const extensions[] = { extension, nullptr };
-		return prepareFileName(baseName, extensions);
-	}
-	virtual Common::String prepareFileName(const Common::String &baseName,
-	                                       const char *const *extensions) const;
 
 	virtual bool displayToolbar(const Graphics::Surface *original) = 0;
 	virtual bool hasPlaceDocumentation() = 0;
@@ -191,12 +183,12 @@ public:
 	CryOmni3DEngine_HNMPlayer(OSystem *syst, const CryOmni3DGameDescription *gamedesc) : CryOmni3DEngine(syst, gamedesc) {}
 	~CryOmni3DEngine_HNMPlayer() override {}
 
-	virtual bool displayToolbar(const Graphics::Surface *original) override { return false; }
-	virtual bool hasPlaceDocumentation() override { return false; }
-	virtual bool displayPlaceDocumentation() override { return false; }
-	virtual uint displayOptions() override { return 0; }
-	virtual void makeTranslucent(Graphics::Surface &dst, const Graphics::Surface &src) const override {}
-	virtual void setupPalette(const byte *colors, uint start, uint num) override {}
+	bool displayToolbar(const Graphics::Surface *original) override { return false; }
+	bool hasPlaceDocumentation() override { return false; }
+	bool displayPlaceDocumentation() override { return false; }
+	uint displayOptions() override { return 0; }
+	void makeTranslucent(Graphics::Surface &dst, const Graphics::Surface &src) const override {}
+	void setupPalette(const byte *colors, uint start, uint num) override {}
 };
 
 } // End of namespace CryOmni3D

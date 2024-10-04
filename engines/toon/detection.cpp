@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, MojoTouch has
+ * exclusively licensed this code on March 23th, 2024, to be used in
+ * closed-source products.
+ * Therefore, any contributions (commits) to it will also be dual-licensed.
  *
  */
 
@@ -99,11 +105,23 @@ static const ADGameDescription gameDescriptions[] = {
 		Common::RU_RUS, Common::kPlatformDOS, ADGF_NO_FLAGS, GUIO1(GUIO_NOMIDI)
 	},
 	{
+		"toon", "",
+		{
+			{"toonfont.caf", 0, "28f3210c901c86cd585d69eda3a2fd37", 30364},
+			{"local.pak", 0, "3290209ef9bc92692108dd2f45df0736", 3237611},
+			{"arcaddbl.svl", 0, "c418478cd2833c7c983799f948af41ac", 7844688},
+			{"study.svl", 0, "281efa3f33f6712c0f641a605f4d40fd", 2511090},
+			AD_LISTEND
+		},
+		Common::HE_ISR, Common::kPlatformDOS, ADGF_NO_FLAGS, GUIO1(GUIO_NOMIDI)
+	},
+	{
 		"toon", "Demo",
 		{
 			{"local.pak", 0, "bf5da4c03f78ffbd643f12122319366e", 3250841},
 			{"wacexdbl.emc", 0, "cfbc2156a31b294b038204888407ebc8", 6974},
 			{"generic.svl", 0, "5eb99850ada22f0b8cf6392262d4dd07", 9404599},
+			{"onetime.pak", 0, "b344aee5fd43b7438c322fb29f860205", 468667 },
 			AD_LISTEND
 		},
 		Common::DE_DEU, Common::kPlatformDOS, ADGF_DEMO, GUIO1(GUIO_NOMIDI)
@@ -147,9 +165,9 @@ static const char * const directoryGlobs[] = {
 	0
 };
 
-class ToonMetaEngineDetection : public AdvancedMetaEngineDetection {
+class ToonMetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	ToonMetaEngineDetection() : AdvancedMetaEngineDetection(Toon::gameDescriptions, sizeof(ADGameDescription), toonGames) {
+	ToonMetaEngineDetection() : AdvancedMetaEngineDetection(Toon::gameDescriptions, toonGames) {
 		_maxScanDepth = 3;
 		_directoryGlobs = directoryGlobs;
 	}
@@ -158,11 +176,11 @@ public:
 		return detectGameFilebased(allFiles, Toon::fileBasedFallback);
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "toon";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Toonstruck";
 	}
 

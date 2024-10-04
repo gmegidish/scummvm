@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,24 +39,24 @@ objDataStruct *getObjectDataFromOverlay(int ovlIdx, int objIdx) {
 	objDataStruct *var_6;
 
 	if (ovlIdx < 1 || objIdx < 0)
-		return NULL;
+		return nullptr;
 
 	if (!overlayTable[ovlIdx].ovlData)
-		return NULL;
+		return nullptr;
 
 	if (overlayTable[ovlIdx].ovlData->numObj <= objIdx)
-		return NULL;
+		return nullptr;
 
 	var_6 = overlayTable[ovlIdx].ovlData->arrayObject;
 
 	if (!var_6)
-		return NULL;
+		return nullptr;
 
 	return (&var_6[objIdx]);
 }
 
 int16 getMultipleObjectParam(int16 overlayIdx, int16 objectIdx, objectParamsQuery *returnParam) {
-	objectParams *ptr2 = 0;
+	objectParams *ptr2 = nullptr;
 	objDataStruct *ptr;
 	ovlDataStruct *ovlData;
 //  int16 type;
@@ -228,7 +227,7 @@ int16 getSingleObjectParam(int16 overlayIdx, int16 param2, int16 param3, int16 *
 	//char* ptr3 = NULL;
 	objDataStruct *ptr;
 	ovlDataStruct *ovlData;
-	objectParams *ptr2 = 0;
+	objectParams *ptr2 = nullptr;
 
 	ptr = getObjectDataFromOverlay(overlayIdx, param2);
 
@@ -312,7 +311,7 @@ const char *getObjectName(int index, const char *string) {
 	const char *ptr = string;
 
 	if (!string)
-		return NULL;
+		return nullptr;
 
 	int i = 0;
 //	int j = 0;

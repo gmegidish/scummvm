@@ -1,19 +1,17 @@
 package org.scummvm.scummvm;
 
+import android.content.Context;
 import android.os.Build;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
-import android.content.Context;
-//import android.util.Log;
-import android.util.Log;
-import android.view.KeyEvent;
+import android.view.GestureDetector;
+import android.view.HapticFeedbackConstants;
 import android.view.KeyCharacterMap;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
-import android.view.GestureDetector;
-import android.view.InputDevice;
-//import android.view.inputmethod.InputMethodManager;
 
 import androidx.annotation.NonNull;
 
@@ -47,8 +45,24 @@ public class ScummVMEventsBase implements
 	public static final int JE_BMB_UP = 19;
 	public static final int JE_FMB_DOWN = 20;
 	public static final int JE_FMB_UP = 21;
+	public static final int JE_MOUSE_WHEEL_UP = 22;
+	public static final int JE_MOUSE_WHEEL_DOWN = 23;
+	public static final int JE_TV_REMOTE = 24;
 	public static final int JE_QUIT = 0x1000;
 	public static final int JE_MENU = 0x1001;
+
+	public static final int JACTION_DOWN = 0;
+	public static final int JACTION_MOVE = 1;
+	public static final int JACTION_UP = 2;
+	public static final int JACTION_CANCEL = 3;
+
+	public static final int TOUCH_MODE_TOUCHPAD = 0;
+	public static final int TOUCH_MODE_MOUSE = 1;
+	public static final int TOUCH_MODE_GAMEPAD = 2;
+	public static final int TOUCH_MODE_MAX = 3;
+
+	public static final int JOYSTICK_AXIS_MAX = 32767; // matches the definition in common/events of "const int16 JOYAXIS_MAX = 32767;"
+	public static final float JOYSTICK_AXIS_HAT_SCALE = 0.66f; // ie. 2/3 to be applied to JOYSTICK_AXIS_MAX
 
 	final protected Context _context;
 	final protected ScummVM _scummvm;
@@ -57,6 +71,11 @@ public class ScummVMEventsBase implements
 	final protected MouseHelper _mouseHelper;
 	final protected MultitouchHelper _multitouchHelper;
 
+	protected View _currentView;
+	protected int _touchMode;
+
+	protected boolean _doubleTapMode;
+
 	// Custom handler code (to avoid mem leaks, see warning "This Handler Class Should Be Static Or Leaks Might Occur”) based on:
 	// https://stackoverflow.com/a/27826094
 	public static class ScummVMEventHandler extends Handler {
@@ -64,6 +83,7 @@ public class ScummVMEventsBase implements
 		private final WeakReference<ScummVMEventsBase> mListenerReference;
 
 		public ScummVMEventHandler(ScummVMEventsBase listener) {
+			super(Looper.getMainLooper());
 			mListenerReference = new WeakReference<>(listener);
 		}
 
@@ -80,7 +100,7 @@ public class ScummVMEventsBase implements
 		}
 	}
 
-	final private ScummVMEventHandler _skeyHandler = new ScummVMEventHandler(this);
+	final private ScummVMEventHandler _handler = new ScummVMEventHandler(this);
 
 //	/**
 //	 * An example getter to provide it to some external class
@@ -104,8 +124,13 @@ public class ScummVMEventsBase implements
 		_gd.setOnDoubleTapListener(this);
 		_gd.setIsLongpressEnabled(false);
 
+		_doubleTapMode = false;
 		_longPressTimeout = ViewConfiguration.getLongPressTimeout();
 	}
+
+	final static int MSG_SMENU_LONG_PRESS = 1;
+	final static int MSG_SBACK_LONG_PRESS = 2;
+	final static int MSG_LONG_TOUCH_EVENT = 3;
 
 	private void handleEVHMessage(final Message msg) {
 		if (msg.what == MSG_SMENU_LONG_PRESS) {
@@ -132,11 +157,47 @@ public class ScummVMEventsBase implements
 			                   0,
 			                   0,
 			                   0);
+		} else if (msg.what == MSG_LONG_TOUCH_EVENT) {
+			if (!_multitouchHelper.isMultitouchMode() && getTouchMode() != TOUCH_MODE_GAMEPAD && !_doubleTapMode) {
+				_currentView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+			}
 		}
 	}
 
+	final public int getTouchMode() {
+		return _touchMode;
+	}
+
+	final public void setTouchMode(int touchMode) {
+		assert (touchMode >= 0) && (touchMode < TOUCH_MODE_MAX);
+
+		if (_touchMode == touchMode) {
+			return;
+		}
+
+		if (_touchMode == TOUCH_MODE_GAMEPAD) {
+			// We were in gamepad mode and we leave it
+			_scummvm.updateTouch(JACTION_CANCEL, 0, 0, 0);
+		}
+		int oldTouchMode = _touchMode;
+		_touchMode = touchMode;
+		_scummvm.setupTouchMode(oldTouchMode, _touchMode);
+	}
+
+	final public int nextTouchMode() {
+		if (_touchMode == TOUCH_MODE_GAMEPAD) {
+			// We leave gamepad mode
+			_scummvm.updateTouch(JACTION_CANCEL, 0, 0, 0);
+		}
+		int oldTouchMode = _touchMode;
+		_touchMode = (_touchMode + 1) % TOUCH_MODE_MAX;
+		_scummvm.setupTouchMode(oldTouchMode, _touchMode);
+
+		return _touchMode;
+	}
+
 	public void clearEventHandler() {
-		_skeyHandler.clear();
+		_handler.clear();
 		_multitouchHelper.clearEventHandler();
 	}
 
@@ -145,7 +206,7 @@ public class ScummVMEventsBase implements
 	}
 
 	public boolean onTrackballEvent(MotionEvent e) {
-		//Log.d(ScummVM.LOG_TAG, "SCUMMV-EVENTS-BASE - onTrackballEvent");
+//		Log.d(ScummVM.LOG_TAG, "SCUMMV-EVENTS-BASE - onTrackballEvent");
 		_scummvm.pushEvent(JE_BALL, e.getAction(),
 			(int)(e.getX() * e.getXPrecision() * 100),
 			(int)(e.getY() * e.getYPrecision() * 100),
@@ -157,9 +218,6 @@ public class ScummVMEventsBase implements
 		// we don't manage the GenericMotionEvent
 		return false;
 	}
-
-	final static int MSG_SMENU_LONG_PRESS = 1;
-	final static int MSG_SBACK_LONG_PRESS = 2;
 
 	// OnKeyListener
 	@Override
@@ -173,14 +231,16 @@ public class ScummVMEventsBase implements
 //			case KeyEvent.ACTION_DOWN:
 //				actionStr = "KeyEvent.ACTION_DOWN";
 //				break;
-//			case KeyEvent.ACTION_MULTIPLE:
-//				actionStr = "KeyEvent.ACTION_MULTIPLE";
-//				break;
 //			default:
-//				actionStr = e.toString();
+//				if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && e.getAction() == KeyEvent.ACTION_MULTIPLE) {
+//					actionStr = "KeyEvent.ACTION_MULTIPLE";
+//				} else {
+//					actionStr = e.toString();
+//				}
 //		}
 //		Log.d(ScummVM.LOG_TAG, "SCUMMV-EVENTS-BASE - onKEY:::" + keyCode + " Action::" + actionStr); // Called
 
+		_currentView = v;
 		final int action = e.getAction();
 
 		int eventUnicodeChar = e.getUnicodeChar();
@@ -253,12 +313,12 @@ public class ScummVMEventsBase implements
 					typeOfLongPressMessage = MSG_SBACK_LONG_PRESS;
 				}
 
-				final boolean fired = !_skeyHandler.hasMessages(typeOfLongPressMessage);
+				final boolean fired = !_handler.hasMessages(typeOfLongPressMessage);
 
-				_skeyHandler.removeMessages(typeOfLongPressMessage);
+				_handler.removeMessages(typeOfLongPressMessage);
 
 				if (action == KeyEvent.ACTION_DOWN) {
-					_skeyHandler.sendMessageDelayed(_skeyHandler.obtainMessage(typeOfLongPressMessage), _longPressTimeout);
+					_handler.sendMessageDelayed(_handler.obtainMessage(typeOfLongPressMessage), _longPressTimeout);
 					return true;
 				} else if (action != KeyEvent.ACTION_UP) {
 					return true;
@@ -280,36 +340,8 @@ public class ScummVMEventsBase implements
 			}
 		}
 
-		// The KeyEvent.ACTION_MULTIPLE constant was deprecated in API level 29 (Q).
-		// No longer used by the input system.
-		// getAction() value: multiple duplicate key events have occurred in a row, or a complex string is being delivered.
-		//    If the key code is not KEYCODE_UNKNOWN then the getRepeatCount() method returns the number of times the given key code should be executed.
-		//    Otherwise, if the key code is KEYCODE_UNKNOWN, then this is a sequence of characters as returned by getCharacters().
-		//    sequence of characters
-		// getCharacters() is also deprecated in API level 29
-		//    For the special case of a ACTION_MULTIPLE event with key code of KEYCODE_UNKNOWN,
-		//    this is a raw string of characters associated with the event. In all other cases it is null.
-		// TODO What is the use case for this?
-		//  Does it make sense to keep it with a Build.VERSION.SDK_INT < Build.VERSION_CODES.Q check?
 		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-			if (action == KeyEvent.ACTION_MULTIPLE
-				&& keyCode == KeyEvent.KEYCODE_UNKNOWN) {
-				final KeyCharacterMap m = KeyCharacterMap.load(e.getDeviceId());
-				final KeyEvent[] es = m.getEvents(e.getCharacters().toCharArray());
-
-				if (es == null) {
-					return true;
-				}
-
-				for (KeyEvent s : es) {
-					_scummvm.pushEvent(JE_KEY,
-						s.getAction(),
-						s.getKeyCode(),
-						eventUnicodeChar & KeyCharacterMap.COMBINING_ACCENT_MASK,
-						s.getMetaState(),
-						s.getRepeatCount(),
-						0);
-				}
+			if (onKeyMultiple(action, keyCode, e)) {
 				return true;
 			}
 		}
@@ -320,17 +352,40 @@ public class ScummVMEventsBase implements
 		case KeyEvent.KEYCODE_VOLUME_UP:
 			// We ignore these so that they can be handled by Android.
 			return false;
+
+//		case KeyEvent.KEYCODE_CHANNEL_UP:
+//		case KeyEvent.KEYCODE_CHANNEL_DOWN:
+		case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD:
+		case KeyEvent.KEYCODE_MEDIA_REWIND:
+		case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+			type = JE_TV_REMOTE;
+			break;
+
 		case KeyEvent.KEYCODE_DPAD_UP:
 		case KeyEvent.KEYCODE_DPAD_DOWN:
 		case KeyEvent.KEYCODE_DPAD_LEFT:
 		case KeyEvent.KEYCODE_DPAD_RIGHT:
 		case KeyEvent.KEYCODE_DPAD_CENTER:
-			if (e.getSource() == InputDevice.SOURCE_DPAD) {
-				type = JE_DPAD;
-			} else {
+			// NOTE 1 For now, we're handling DPAD keys as JE_GAMEPAD events, regardless the source InputDevice
+			//        EXCEPT for the case where the event comes from our virtual keyboard (currently applicable for UP/DOWN/LEFT/RIGHT arrows, not CENTER)
+			//
+			//        We delegate these keypresses to ScummVM's keymapper as JOYSTICK_BUTTON_DPAD presses.
+			//        (JOYSTICK_BUTTON_DPAD_UP, JOYSTICK_BUTTON_DPAD_DOWN, JOYSTICK_BUTTON_DPAD_LEFT, JOYSTICK_BUTTON_DPAD_RIGHT and JOYSTICK_BUTTON_DPAD_CENTER)
+			//        By default mapped to virtual mouse (VMOUSE).
+			//        As virtual mouse, cursor may be too fast/hard to control, so it's recommended to set and use a VMOUSESLOW binding too,
+			//         (Simultaneous button pressing may work on physical TV remote controls, but may not work on apps for remote controls)
+			//        or adjust the Pointer Speed setting from the "Control" tab.
+			// NOTE 2 Modern gamepads/ game controllers treat the "DPAD" cross buttons as HATs that produce movement events
+			// and *not* DPAD_UP/DOWN/LEFT/RIGHT button press events. Hence, for those controllers these DPAD key events won't be triggered.
+			// Those are handled in ScummVMEventsModern class within its onGenericMotionEvent() implementation.
+			//
+			if ((e.getFlags() & KeyEvent.FLAG_SOFT_KEYBOARD) == KeyEvent.FLAG_SOFT_KEYBOARD) {
 				type = JE_KEY;
+			} else {
+				type = JE_GAMEPAD;
 			}
 			break;
+
 		case KeyEvent.KEYCODE_BUTTON_A:
 		case KeyEvent.KEYCODE_BUTTON_B:
 		case KeyEvent.KEYCODE_BUTTON_C:
@@ -348,13 +403,16 @@ public class ScummVMEventsBase implements
 		case KeyEvent.KEYCODE_BUTTON_MODE:
 			type = JE_GAMEPAD;
 			break;
+
 		case KeyEvent.KEYCODE_BUTTON_1:
 		case KeyEvent.KEYCODE_BUTTON_2:
 		case KeyEvent.KEYCODE_BUTTON_3:
 		case KeyEvent.KEYCODE_BUTTON_4:
 			// These are oddly detected with SOURCE_KEYBOARD for joystick so don't bother checking the e.getSource()
+			// Tested on a Saitek ST200 USB Control Stick & Throttle
 			type = JE_JOYSTICK;
 			break;
+
 		default:
 			if (e.isSystem()) {
 				type = JE_SYS_KEY;
@@ -365,7 +423,9 @@ public class ScummVMEventsBase implements
 		}
 
 		//_scummvm.displayMessageOnOSD("GetKey: " + keyCode + " unic=" + eventUnicodeChar+ " arg3= " + (eventUnicodeChar& KeyCharacterMap.COMBINING_ACCENT_MASK) + " meta: " + e.getMetaState());
+		//_scummvm.displayMessageOnOSD("GetKey: " + keyCode + " type=" + type + " source=" + e.getSource() + " action= " + action + " arg5= " + e.getRepeatCount());
 		//Log.d(ScummVM.LOG_TAG,"GetKey: " + keyCode + " unic=" + eventUnicodeChar+ " arg3= " + (eventUnicodeChar& KeyCharacterMap.COMBINING_ACCENT_MASK) + " meta: " + e.getMetaState());
+		//Log.d(ScummVM.LOG_TAG,"GetKey: " + keyCode + " type=" + type + " source=" + e.getSource() + " flags=" + e.getFlags() + " action= " + action + " arg5= " + e.getRepeatCount());
 
 		// look in events.cpp for how this is handled
 		_scummvm.pushEvent(type,
@@ -379,6 +439,45 @@ public class ScummVMEventsBase implements
 		return true;
 	}
 
+	/**
+	 * This gets called only on Android < Q
+	 */
+	@SuppressWarnings("deprecation")
+	private boolean onKeyMultiple(int action, int keyCode, KeyEvent e) {
+		// The KeyEvent.ACTION_MULTIPLE constant was deprecated in API level 29 (Q).
+		// No longer used by the input system.
+		// getAction() value: multiple duplicate key events have occurred in a row, or a complex string is being delivered.
+		//    If the key code is not KEYCODE_UNKNOWN then the getRepeatCount() method returns the number of times the given key code should be executed.
+		//    Otherwise, if the key code is KEYCODE_UNKNOWN, then this is a sequence of characters as returned by getCharacters().
+		//    sequence of characters
+		// getCharacters() is also deprecated in API level 29
+		//    For the special case of a ACTION_MULTIPLE event with key code of KEYCODE_UNKNOWN,
+		//    this is a raw string of characters associated with the event. In all other cases it is null.
+		// TODO What is the use case for this?
+		//  Does it make sense to keep it with a Build.VERSION.SDK_INT < Build.VERSION_CODES.Q check?
+		if (action == KeyEvent.ACTION_MULTIPLE
+			&& keyCode == KeyEvent.KEYCODE_UNKNOWN) {
+			final KeyCharacterMap m = KeyCharacterMap.load(e.getDeviceId());
+			final KeyEvent[] es = m.getEvents(e.getCharacters().toCharArray());
+
+			if (es == null) {
+				return true;
+			}
+
+			for (KeyEvent s : es) {
+				_scummvm.pushEvent(JE_KEY,
+					s.getAction(),
+					s.getKeyCode(),
+					s.getUnicodeChar() & KeyCharacterMap.COMBINING_ACCENT_MASK,
+					s.getMetaState(),
+					s.getRepeatCount(),
+					0);
+			}
+			return true;
+		}
+
+		return false;
+	}
 
 	/** Aux method to provide a description for a MotionEvent action
 	 *  Given an action int, returns a string description
@@ -424,6 +523,7 @@ public class ScummVMEventsBase implements
 		//         as noted here:
 		//         https://stackoverflow.com/a/11709964
 
+		_currentView = v;
 		final int action = event.getAction();
 
 		// Get the index of the pointer associated with the action.
@@ -459,30 +559,62 @@ public class ScummVMEventsBase implements
 			}
 		}
 
-		// Deal with LINT warning "ScummVMEvents#onTouch should call View#performClick when a click is detected"
-		switch (action) {
-			case MotionEvent.ACTION_UP:
-				v.performClick();
-				break;
-			case MotionEvent.ACTION_DOWN:
-				// fall through
-			default:
-				break;
-		}
+		if (_touchMode == TOUCH_MODE_GAMEPAD) {
+			switch (event.getActionMasked()) {
+				case MotionEvent.ACTION_DOWN:
+				case MotionEvent.ACTION_POINTER_DOWN: {
+					int idx = event.getActionIndex();
+					_scummvm.updateTouch(JACTION_DOWN, event.getPointerId(idx), (int)event.getX(idx), (int)event.getY(idx));
+					// fall through
+				}
+				case MotionEvent.ACTION_MOVE:
+					for(int idx = 0; idx < event.getPointerCount(); idx++) {
+						_scummvm.updateTouch(JACTION_MOVE, event.getPointerId(idx), (int)event.getX(idx), (int)event.getY(idx));
+					}
+					break;
+				case MotionEvent.ACTION_UP:
+				case MotionEvent.ACTION_POINTER_UP: {
+					int idx = event.getActionIndex();
+					_scummvm.updateTouch(JACTION_UP, event.getPointerId(idx), (int)event.getX(idx), (int)event.getY(idx));
+					break;
+				}
+				case MotionEvent.ACTION_CANCEL:
+					_scummvm.updateTouch(JACTION_CANCEL, 0, 0, 0);
+					break;
+			}
 
-		// check if the event can be handled as a multitouch event
-		if (_multitouchHelper.handleMotionEvent(event)) {
+			//return _gd.onTouchEvent(event);
 			return true;
-		}
+		} else {
+			// Deal with LINT warning "ScummVMEvents#onTouch should call View#performClick when a click is detected"
+			switch (action) {
+				case MotionEvent.ACTION_UP:
+					_handler.removeMessages(MSG_LONG_TOUCH_EVENT);
+					v.performClick();
+					break;
+				case MotionEvent.ACTION_DOWN:
+					// fall through
+				default:
+					break;
+			}
 
-		return _gd.onTouchEvent(event);
+			// check if the event can be handled as a multitouch event
+			if (_multitouchHelper.handleMotionEvent(event)) {
+				_handler.removeMessages(MSG_LONG_TOUCH_EVENT);
+				return true;
+			}
+
+			return _gd.onTouchEvent(event);
+		}
 	}
 
 	// OnGestureListener
 	@Override
 	final public boolean onDown(MotionEvent e) {
 //		Log.d(ScummVM.LOG_TAG, "SCUMMV-EVENTS-BASE - onDOWN MotionEvent");
-		_scummvm.pushEvent(JE_DOWN, (int)e.getX(), (int)e.getY(), 0, 0, 0, 0);
+		if (_touchMode != TOUCH_MODE_GAMEPAD) {
+			_scummvm.pushEvent(JE_DOWN, (int)e.getX(), (int)e.getY(), 0, 0, 0, 0);
+		}
 		return true;
 	}
 
@@ -493,6 +625,8 @@ public class ScummVMEventsBase implements
 		//										e1.toString(), e2.toString(),
 		//										velocityX, velocityY));
 
+//		Log.d(ScummVM.LOG_TAG, "onFling");
+		_handler.removeMessages(MSG_LONG_TOUCH_EVENT);
 		return true;
 	}
 
@@ -504,23 +638,38 @@ public class ScummVMEventsBase implements
 	@Override
 	final public boolean onScroll(MotionEvent e1, MotionEvent e2,
 									float distanceX, float distanceY) {
+		_handler.removeMessages(MSG_LONG_TOUCH_EVENT);
 //		Log.d(ScummVM.LOG_TAG, "onScroll");
-		_scummvm.pushEvent(JE_SCROLL, (int)e1.getX(), (int)e1.getY(),
-							(int)e2.getX(), (int)e2.getY(), 0, 0);
-
+		if (_touchMode != TOUCH_MODE_GAMEPAD && e1 != null) {
+			// typical use:
+			// - move mouse cursor around (most traditional point and click games)
+			// - mouse look (eg. Myst 3)
+			_scummvm.pushEvent(JE_SCROLL, (int)e1.getX(), (int)e1.getY(),
+							(int)e2.getX(), (int)e2.getY(), (int)distanceX, (int)distanceY);
+		}
 		return true;
 	}
 
 	@Override
 	final public void onShowPress(MotionEvent e) {
+//		Log.d(ScummVM.LOG_TAG, "onShowPress");
+		_handler.removeMessages(MSG_LONG_TOUCH_EVENT);
+		if (_touchMode != TOUCH_MODE_GAMEPAD && !_doubleTapMode) {
+			// Schedule a Right click notification
+			_handler.sendMessageAtTime(_handler.obtainMessage(MSG_LONG_TOUCH_EVENT, 0, 0), e.getDownTime() + 500);
+			// Middle click
+			_handler.sendMessageAtTime(_handler.obtainMessage(MSG_LONG_TOUCH_EVENT, 1, 0), e.getDownTime() + 1500);
+		}
 	}
 
 	@Override
 	final public boolean onSingleTapUp(MotionEvent e) {
 //		Log.d(ScummVM.LOG_TAG, "onSingleTapUp");
-		_scummvm.pushEvent(JE_TAP, (int)e.getX(), (int)e.getY(),
+		_handler.removeMessages(MSG_LONG_TOUCH_EVENT);
+		if (_touchMode != TOUCH_MODE_GAMEPAD) {
+			_scummvm.pushEvent(JE_TAP, (int)e.getX(), (int)e.getY(),
 							(int)(e.getEventTime() - e.getDownTime()), 0, 0, 0);
-
+		}
 		return true;
 	}
 
@@ -528,30 +677,43 @@ public class ScummVMEventsBase implements
 	@Override
 	final public boolean onDoubleTap(MotionEvent e) {
 //		Log.d(ScummVM.LOG_TAG, "onDoubleTap");
+		_doubleTapMode = true;
+		_handler.removeMessages(MSG_LONG_TOUCH_EVENT);
 		return true;
 	}
 
 	@Override
 	final public boolean onDoubleTapEvent(MotionEvent e) {
+		switch (e.getAction()) {
+			case MotionEvent.ACTION_MOVE:
+				//if the second tap hadn't been released and it's being moved
+//				Log.d(ScummVM.LOG_TAG, "onDoubleTapEvent Moving X: " + Float.toString(e.getRawX()) + " Y: " + Float.toString(e.getRawY()));
+				break;
 
-		//if the second tap hadn't been released and it's being moved
-//		if (e.getAction() == MotionEvent.ACTION_MOVE)  {
-//			Log.d(ScummVM.LOG_TAG, "onDoubleTapEvent Moving X: " + Float.toString(e.getRawX()) + " Y: " + Float.toString(e.getRawY()));
-//		} else if(e.getAction() == MotionEvent.ACTION_UP) {
-//			//user released the screen
-//			Log.d(ScummVM.LOG_TAG, "onDoubleTapEvent Release");
-//		} else if(e.getAction() == MotionEvent.ACTION_DOWN) {
-//			Log.d(ScummVM.LOG_TAG, "onDoubleTapEvent DOWN");
-//		} else {
-//			Log.d(ScummVM.LOG_TAG, "onDoubleTapEvent UNKNOWN!!!!");
-//		}
-		_scummvm.pushEvent(JE_DOUBLE_TAP, (int)e.getX(), (int)e.getY(), e.getAction(), 0, 0, 0);
+			case MotionEvent.ACTION_UP:
+//				Log.d(ScummVM.LOG_TAG, "onDoubleTapEvent Release!");
+				//user released the screen
+				_doubleTapMode = false;
+				break;
+
+			case MotionEvent.ACTION_DOWN:
+//				Log.d(ScummVM.LOG_TAG, "onDoubleTapEvent DOWN!");
+				break;
+
+			default:
+//				Log.d(ScummVM.LOG_TAG, "onDoubleTapEvent UNKNOWN!");
+				break;
+		}
+
+		if (_touchMode != TOUCH_MODE_GAMEPAD) {
+			_scummvm.pushEvent(JE_DOUBLE_TAP, (int)e.getX(), (int)e.getY(), e.getAction(), 0, 0, 0);
+		}
 		return true;
 	}
 
 	@Override
 	final public boolean onSingleTapConfirmed(MotionEvent e) {
-		// Note, timing thresholds for double tap detection seem to be hardcoded in the frameworl
+		// Note, timing thresholds for double tap detection seem to be hardcoded in the framework
 		// as ViewConfiguration.getDoubleTapTimeout()
 //		Log.d(ScummVM.LOG_TAG, "onSingleTapConfirmed - double tap failed");
 		return true;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@ enum {
 	kChooseCmd = 'Chos'
 };
 
-ChooserDialog::ChooserDialog(const U32String &title, String dialogId)
+ChooserDialog::ChooserDialog(const Common::U32String &title, Common::String dialogId)
 	: Dialog(dialogId) {
 
 	// Headline
@@ -48,7 +47,7 @@ ChooserDialog::ChooserDialog(const U32String &title, String dialogId)
 	_chooseButton->setEnabled(false);
 }
 
-void ChooserDialog::setList(const U32StringArray &list) {
+void ChooserDialog::setList(const Common::U32StringArray &list) {
 	_list->setList(list);
 }
 
@@ -64,7 +63,6 @@ void ChooserDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data
 		break;
 	case kListSelectionChangedCmd:
 		_chooseButton->setEnabled(item >= 0);
-		_chooseButton->markAsDirty();
 		break;
 	case kCloseCmd:
 		setResult(-1);

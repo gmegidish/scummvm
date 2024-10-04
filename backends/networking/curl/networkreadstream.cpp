@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #define FORBIDDEN_SYMBOL_ALLOW_ALL
+#define CURL_DISABLE_DEPRECATION
 
 #include <curl/curl.h>
 #include "backends/networking/curl/networkreadstream.h"
@@ -92,13 +92,13 @@ void NetworkReadStream::initCurl(const char *url, curl_slist *headersList) {
 	curl_easy_setopt(_easy, CURLOPT_NOPROGRESS, 0L);
 	curl_easy_setopt(_easy, CURLOPT_PROGRESSFUNCTION, curlProgressCallbackOlder);
 	curl_easy_setopt(_easy, CURLOPT_PROGRESSDATA, this);
-#if defined NINTENDO_SWITCH || defined ANDROID_PLAIN_PORT || defined PSP2
+#if defined NINTENDO_SWITCH || defined PSP2
 	curl_easy_setopt(_easy, CURLOPT_SSL_VERIFYPEER, 0);
 #endif
 
-	const char *caCertPath = ConnMan.getCaCertPath();
-	if (caCertPath) {
-		curl_easy_setopt(_easy, CURLOPT_CAINFO, caCertPath);
+	Common::String caCertPath = ConnMan.getCaCertPath();
+	if (!caCertPath.empty()) {
+		curl_easy_setopt(_easy, CURLOPT_CAINFO, caCertPath.c_str());
 	}
 
 #if LIBCURL_VERSION_NUM >= 0x072000
@@ -158,7 +158,7 @@ void NetworkReadStream::setupBufferContents(const byte *buffer, uint32 bufferSiz
 	ConnMan.registerEasyHandle(_easy);
 }
 
-void NetworkReadStream::setupFormMultipart(Common::HashMap<Common::String, Common::String> formFields, Common::HashMap<Common::String, Common::String> formFiles) {
+void NetworkReadStream::setupFormMultipart(const Common::HashMap<Common::String, Common::String> &formFields, const Common::HashMap<Common::String, Common::Path> &formFiles) {
 	// set POST multipart upload form fields/files
 	struct curl_httppost *formpost = nullptr;
 	struct curl_httppost *lastptr = nullptr;
@@ -176,12 +176,12 @@ void NetworkReadStream::setupFormMultipart(Common::HashMap<Common::String, Commo
 			warning("NetworkReadStream: field curl_formadd('%s') failed", i->_key.c_str());
 	}
 
-	for (Common::HashMap<Common::String, Common::String>::iterator i = formFiles.begin(); i != formFiles.end(); ++i) {
+	for (Common::HashMap<Common::String, Common::Path>::iterator i = formFiles.begin(); i != formFiles.end(); ++i) {
 		CURLFORMcode code = curl_formadd(
 			&formpost,
 			&lastptr,
 			CURLFORM_COPYNAME, i->_key.c_str(),
-			CURLFORM_FILE, i->_value.c_str(),
+			CURLFORM_FILE, i->_value.toString(Common::Path::kNativeSeparator).c_str(),
 			CURLFORM_END
 		);
 
@@ -193,25 +193,25 @@ void NetworkReadStream::setupFormMultipart(Common::HashMap<Common::String, Commo
 	ConnMan.registerEasyHandle(_easy);
 }
 
-NetworkReadStream::NetworkReadStream(const char *url, curl_slist *headersList, Common::String postFields, bool uploading, bool usingPatch, bool keepAlive, long keepAliveIdle, long keepAliveInterval):
-		_backingStream(DisposeAfterUse::YES), _keepAlive(keepAlive), _keepAliveIdle(keepAliveIdle), _keepAliveInterval(keepAliveInterval), _errorBuffer(nullptr) {
+NetworkReadStream::NetworkReadStream(const char *url, curl_slist *headersList, const Common::String &postFields, bool uploading, bool usingPatch, bool keepAlive, long keepAliveIdle, long keepAliveInterval):
+		_backingStream(DisposeAfterUse::YES), _keepAlive(keepAlive), _keepAliveIdle(keepAliveIdle), _keepAliveInterval(keepAliveInterval), _errorBuffer(nullptr), _errorCode(CURLE_OK) {
 	initCurl(url, headersList);
 	setupBufferContents((const byte *)postFields.c_str(), postFields.size(), uploading, usingPatch, false);
 }
 
-NetworkReadStream::NetworkReadStream(const char *url, curl_slist *headersList, Common::HashMap<Common::String, Common::String> formFields, Common::HashMap<Common::String, Common::String> formFiles, bool keepAlive, long keepAliveIdle, long keepAliveInterval):
-		_backingStream(DisposeAfterUse::YES), _keepAlive(keepAlive), _keepAliveIdle(keepAliveIdle), _keepAliveInterval(keepAliveInterval), _errorBuffer(nullptr) {
+NetworkReadStream::NetworkReadStream(const char *url, curl_slist *headersList, const Common::HashMap<Common::String, Common::String> &formFields, const Common::HashMap<Common::String, Common::Path> &formFiles, bool keepAlive, long keepAliveIdle, long keepAliveInterval):
+		_backingStream(DisposeAfterUse::YES), _keepAlive(keepAlive), _keepAliveIdle(keepAliveIdle), _keepAliveInterval(keepAliveInterval), _errorBuffer(nullptr), _errorCode(CURLE_OK) {
 	initCurl(url, headersList);
 	setupFormMultipart(formFields, formFiles);
 }
 
 NetworkReadStream::NetworkReadStream(const char *url, curl_slist *headersList, const byte *buffer, uint32 bufferSize, bool uploading, bool usingPatch, bool post, bool keepAlive, long keepAliveIdle, long keepAliveInterval):
-		_backingStream(DisposeAfterUse::YES), _keepAlive(keepAlive), _keepAliveIdle(keepAliveIdle), _keepAliveInterval(keepAliveInterval), _errorBuffer(nullptr) {
+		_backingStream(DisposeAfterUse::YES), _keepAlive(keepAlive), _keepAliveIdle(keepAliveIdle), _keepAliveInterval(keepAliveInterval), _errorBuffer(nullptr), _errorCode(CURLE_OK) {
 	initCurl(url, headersList);
 	setupBufferContents(buffer, bufferSize, uploading, usingPatch, post);
 }
 
-bool NetworkReadStream::reuse(const char *url, curl_slist *headersList, Common::String postFields, bool uploading, bool usingPatch) {
+bool NetworkReadStream::reuse(const char *url, curl_slist *headersList, const Common::String &postFields, bool uploading, bool usingPatch) {
 	if (!reuseCurl(url, headersList))
 		return false;
 
@@ -220,7 +220,7 @@ bool NetworkReadStream::reuse(const char *url, curl_slist *headersList, Common::
 	return true;
 }
 
-bool NetworkReadStream::reuse(const char *url, curl_slist *headersList, Common::HashMap<Common::String, Common::String> formFields, Common::HashMap<Common::String, Common::String> formFiles) {
+bool NetworkReadStream::reuse(const char *url, curl_slist *headersList, const Common::HashMap<Common::String, Common::String> &formFields, const Common::HashMap<Common::String, Common::Path> &formFiles) {
 	if (!reuseCurl(url, headersList))
 		return false;
 
@@ -267,12 +267,21 @@ void NetworkReadStream::finished(uint32 errorCode) {
 	char *url = nullptr;
 	curl_easy_getinfo(_easy, CURLINFO_EFFECTIVE_URL, &url);
 
-	if (errorCode == CURLE_OK) {
+	_errorCode = errorCode;
+
+	if (_errorCode == CURLE_OK) {
 		debug(9, "NetworkReadStream: %s - Request succeeded", url);
 	} else {
-		warning("NetworkReadStream: %s - Request failed (%d - %s)", url, errorCode,
-		        strlen(_errorBuffer) ? _errorBuffer : curl_easy_strerror((CURLcode)errorCode));
+		warning("NetworkReadStream: %s - Request failed (%d - %s)", url, _errorCode, getError());
 	}
+}
+
+bool NetworkReadStream::hasError() const {
+	return _errorCode != CURLE_OK;
+}
+
+const char *NetworkReadStream::getError() const {
+	return strlen(_errorBuffer) ? _errorBuffer : curl_easy_strerror((CURLcode)_errorCode);
 }
 
 long NetworkReadStream::httpResponseCode() const {
@@ -297,7 +306,7 @@ Common::String NetworkReadStream::responseHeaders() const {
 }
 
 Common::HashMap<Common::String, Common::String> NetworkReadStream::responseHeadersMap() const {
-	// HTTP headers are described at RFC 2616: https://tools.ietf.org/html/rfc2616#section-4.2
+	// HTTP headers are described at RFC 2616: https://datatracker.ietf.org/doc/html/rfc2616#section-4.2
 	// this implementation tries to follow it, but for simplicity it does not support multi-line header values
 
 	Common::HashMap<Common::String, Common::String> headers;

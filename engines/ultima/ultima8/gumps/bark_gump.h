@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef ULTIMA8_GUMPS_BARKGUMP_H
 #define ULTIMA8_GUMPS_BARKGUMP_H
 
+#include "ultima/shared/std/string.h"
 #include "ultima/ultima8/gumps/item_relative_gump.h"
 #include "ultima/ultima8/misc/classtype.h"
 
@@ -39,7 +39,9 @@ protected:
 	ObjId _textWidget;
 	uint32 _speechShapeNum;
 	uint32 _speechLength;
-	uint32 _totalTextHeight;
+	bool _subtitles;
+	bool _speechMute;
+	int _talkSpeed;
 
 public:
 	ENABLE_RUNTIME_CLASSTYPE()
@@ -57,21 +59,20 @@ public:
 	// Init the gump, call after construction
 	void        InitGump(Gump *newparent, bool take_focus = true) override;
 
+	// Close the gump
+	void Close(bool no_del = false) override;
+
 	/// Get the font that should be used from dialog from this actor
 	static int dialogFontForActor(uint16 actor);
+
+	bool loadData(Common::ReadStream *rs, uint32 version);
+	void saveData(Common::WriteStream *ws) override;
 
 protected:
 	//! show next text.
 	//! returns false if no more text available
 	bool NextText();
-
-	bool _subtitles;
-	bool _speechMute;
-	int _talkSpeed;
-
-public:
-	bool loadData(Common::ReadStream *rs, uint32 version);
-	void saveData(Common::WriteStream *ws) override;
+	int calculateTicks();
 };
 
 } // End of namespace Ultima8

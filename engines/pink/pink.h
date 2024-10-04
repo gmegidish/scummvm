@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,12 +65,13 @@ namespace Common {
 namespace Graphics {
 class MacMenu;
 struct WinCursorGroup;
+class PaletteLookup;
 }
 
 namespace Pink {
 
 class Console;
-class Director;
+class Screen;
 class Archive;
 class NamedObject;
 class Module;
@@ -86,6 +86,12 @@ enum {
 	kPinkDebugActions = 1 << 4
 };
 
+enum {
+	GF_COMPRESSED = 1 << 0,
+};
+
+extern Graphics::PaletteLookup *g_paletteLookup;
+
 class PinkEngine : public Engine {
 public:
 	PinkEngine(OSystem *system, const ADGameDescription *desc);
@@ -96,13 +102,14 @@ public:
 	bool hasFeature(EngineFeature f) const override;
 
 	Common::Error loadGameState(int slot) override;
-	bool canLoadGameStateCurrently() override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
 
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
-	bool canSaveGameStateCurrently() override;
-	virtual Common::String getSaveStateName(int slot) const override {
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
+	Common::String getSaveStateName(int slot) const override {
 		return Common::String::format("%s.s%02d", _targetName.c_str(), slot);
 	}
+	SaveStateList listSaves() const;
 
 	friend class Console;
 
@@ -115,6 +122,7 @@ public:
 	void changeScene();
 
 	bool isPeril() const;
+	bool isPerilDemo() const;
 
 	void setVariable(Common::String &variable, Common::String &value);
 	bool checkValueOfVariable(const Common::String &variable, const Common::String &value) const;
@@ -126,7 +134,7 @@ public:
 	OrbFile *getOrb()  { return &_orb; }
 	BroFile *getBro()  { return _bro; }
 	Common::RandomSource &getRnd() { return _rnd; };
-	Director *getDirector() { return _director; }
+	Screen *getScreen() { return _screen; }
 	PDAMgr &getPdaMgr() { return _pdaMgr; }
 
 	void setNextExecutors(const Common::String &nextModule, const Common::String &nextPage) { _nextModule = nextModule; _nextPage = nextPage; }
@@ -140,7 +148,7 @@ private:
 
 	bool loadCursors();
 
-	void initModule(const Common::String &moduleName, const Common::String &pageName, Archive *saveFile);
+	void initModule(const Common::String moduleName, const Common::String pageName, Archive *saveFile);
 	void addModule(const Common::String &moduleName);
 	void removeModule();
 
@@ -159,7 +167,7 @@ private:
 	BroFile *_bro;
 
 	Graphics::MacMenu *_menu;
-	Director *_director;
+	Screen *_screen;
 	LeadActor *_actor;
 
 	Module *_module;
@@ -169,6 +177,8 @@ private:
 	PDAMgr _pdaMgr;
 
 	const ADGameDescription *_desc;
+	bool _isPeril;
+	bool _isPerilDemo;
 };
 
 WARN_UNUSED_RESULT bool readSaveHeader(Common::InSaveFile &in, SaveStateDescriptor &desc, bool skipThumbnail = true);

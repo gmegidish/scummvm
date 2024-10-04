@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,7 @@ namespace Neverhood {
 // SpriteResource
 
 SpriteResource::SpriteResource(NeverhoodEngine *vm)
-	 : _vm(vm), _pixels(NULL) {
+	 : _vm(vm), _pixels(nullptr) {
 }
 
 SpriteResource::~SpriteResource() {
@@ -55,22 +54,22 @@ bool SpriteResource::load(uint32 fileHash, bool doLoadPosition) {
 	if (_resourceHandle.isValid() && _resourceHandle.type() == kResTypeBitmap) {
 		_vm->_res->loadResource(_resourceHandle, _vm->applyResourceFixes());
 		const byte *spriteData = _resourceHandle.data();
-		NPoint *position = doLoadPosition ? &_position : NULL;
-		parseBitmapResource(spriteData, &_rle, &_dimensions, position, NULL, &_pixels);
+		NPoint *position = doLoadPosition ? &_position : nullptr;
+		parseBitmapResource(spriteData, &_rle, &_dimensions, position, nullptr, &_pixels);
 	}
-	return _pixels != NULL;
+	return _pixels != nullptr;
 }
 
 void SpriteResource::unload() {
 	_vm->_res->unloadResource(_resourceHandle);
-	_pixels = NULL;
+	_pixels = nullptr;
 	_rle = false;
 }
 
 // PaletteResource
 
 PaletteResource::PaletteResource(NeverhoodEngine *vm)
-	: _vm(vm), _palette(NULL) {
+	: _vm(vm), _palette(nullptr) {
 }
 
 PaletteResource::~PaletteResource() {
@@ -87,15 +86,15 @@ bool PaletteResource::load(uint32 fileHash) {
 		_palette = _resourceHandle.data();
 		// Check if the palette is stored in a bitmap
 		if (_resourceHandle.type() == kResTypeBitmap)
-			parseBitmapResource(_palette, NULL, NULL, NULL, &_palette, NULL);
+			parseBitmapResource(_palette, nullptr, nullptr, nullptr, &_palette, nullptr);
 
 	}
-	return _palette != NULL;
+	return _palette != nullptr;
 }
 
 void PaletteResource::unload() {
 	_vm->_res->unloadResource(_resourceHandle);
-	_palette = NULL;
+	_palette = nullptr;
 }
 
 void PaletteResource::copyPalette(byte *destPalette) {
@@ -106,8 +105,8 @@ void PaletteResource::copyPalette(byte *destPalette) {
 // AnimResource
 
 AnimResource::AnimResource(NeverhoodEngine *vm)
-	: _vm(vm), _width(0), _height(0), _currSpriteData(NULL), _fileHash(0), _paletteData(NULL),
-	_spriteData(NULL), _replEnabled(false), _replOldColor(0), _replNewColor(0) {
+	: _vm(vm), _width(0), _height(0), _currSpriteData(nullptr), _fileHash(0), _paletteData(nullptr),
+	_spriteData(nullptr), _replEnabled(false), _replOldColor(0), _replNewColor(0) {
 }
 
 AnimResource::~AnimResource() {
@@ -212,10 +211,10 @@ bool AnimResource::load(uint32 fileHash) {
 
 void AnimResource::unload() {
 	_vm->_res->unloadResource(_resourceHandle);
-	_currSpriteData = NULL;
+	_currSpriteData = nullptr;
 	_fileHash = 0;
-	_paletteData = NULL;
-	_spriteData = NULL;
+	_paletteData = nullptr;
+	_spriteData = nullptr;
 	_replEnabled = true;
 	_replOldColor = 0;
 	_replNewColor = 0;
@@ -310,7 +309,7 @@ void MouseCursorResource::draw(int frameNum, Graphics::Surface *destSurface) {
 // TextResource
 
 TextResource::TextResource(NeverhoodEngine *vm)
-	: _vm(vm), _textData(NULL), _count(0) {
+	: _vm(vm), _textData(nullptr), _count(0) {
 
 }
 
@@ -331,7 +330,7 @@ void TextResource::load(uint32 fileHash) {
 
 void TextResource::unload() {
 	_vm->_res->unloadResource(_resourceHandle);
-	_textData = NULL;
+	_textData = nullptr;
 	_count = 0;
 }
 
@@ -354,7 +353,7 @@ DataResource::~DataResource() {
 void DataResource::load(uint32 fileHash) {
 	if (_resourceHandle.fileHash() == fileHash)
 		return;
-	const byte *data = NULL;
+	const byte *data = nullptr;
 	uint32 dataSize = 0;
 	unload();
 	_vm->_res->queryResource(fileHash, _resourceHandle);
@@ -554,14 +553,14 @@ MessageList *DataResource::getMessageListAtPos(int16 klaymenX, int16 klaymenY, i
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 DataResource::DRDirectoryItem *DataResource::findDRDirectoryItem(uint32 nameHash, uint16 type) {
 	for (Common::Array<DRDirectoryItem>::iterator it = _directory.begin(); it != _directory.end(); it++)
 		if ((*it).nameHash == nameHash && (*it).type == type)
 			return &(*it);
-	return NULL;
+	return nullptr;
 }
 
 uint32 calcHash(const char *value) {

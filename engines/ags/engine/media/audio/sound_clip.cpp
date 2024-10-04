@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,38 +15,123 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ags/engine/media/audio/sound_clip.h"
+#include "ags/engine/media/audio/audio_defines.h"
 #include "ags/ags.h"
 
 namespace AGS3 {
 
 SOUNDCLIP::SOUNDCLIP() : _panning(12. / 8), _panningAsPercentage(0),
-	_sourceClip(nullptr), _sourceClipType(0), _speed(1000), _priority(50),
+	_sourceClipID(-1), _sourceClipType(0), _speed(1000), _priority(50),
 	_xSource(-1), _ySource(-1), _maximumPossibleDistanceAway(0), _muted(false),
-	_volAsPercentage(0), _vol(0), _volModifier(0), _repeat(false), _directionalVolModifier(0) {
+	_vol100(0), _vol255(0), _volModifier(0), _repeat(false), _directionalVolModifier(0) {
+}
+
+void SOUNDCLIP::set_volume100(int volume) {
+	_vol100 = volume;
+	_vol255 = (volume * 255) / 100;
+	adjust_volume();
+}
+
+// Sets the current volume property in units of 255
+void SOUNDCLIP::set_volume255(int volume) {
+	_vol255 = volume;
+	_vol100 = (_vol255 * 100) / 255;
+	adjust_volume();
+}
+
+void SOUNDCLIP::set_volume_direct(int vol_percent, int vol_absolute) {
+	_vol255 = vol_absolute;
+	_vol100 = vol_percent;
+	adjust_volume();
+}
+
+void SOUNDCLIP::set_mute(bool mute) {
+	_muted = mute;
+	adjust_volume();
+}
+
+void SOUNDCLIP::apply_volume_modifier(int mod) {
+	_volModifier = mod;
+	adjust_volume();
+}
+
+void SOUNDCLIP::apply_directional_modifier(int mod) {
+	_directionalVolModifier = mod;
+	adjust_volume();
+}
+
+bool SOUNDCLIP::update() {
+	if (!is_ready())
+		return false;
+
+	if (_paramsChanged) {
+		auto vol_f = static_cast<float>(get_final_volume()) / 255.0f;
+		if (vol_f < 0.0f) {
+			vol_f = 0.0f;
+		}
+		if (vol_f > 1.0f) {
+			vol_f = 1.0f;
+		}
+
+		auto speed_f = static_cast<float>(_speed) / 1000.0f;
+		if (speed_f <= 0.0) {
+			speed_f = 1.0f;
+		}
+
+		// Sets the pan position, ranging from -100 (left) to +100 (right)
+		auto panning_f = (static_cast<float>(_panning) / 100.0f);
+		if (panning_f < -1.0f) {
+			panning_f = -1.0f;
+		}
+		if (panning_f > 1.0f) {
+			panning_f = 1.0f;
+		}
+
+		//audio_core_slot_configure(slot_, vol_f, speed_f, panning_f);
+		_paramsChanged = false;
+	}
+/*
+	float pos_f, posms_f;
+	PlaybackState core_state = audio_core_slot_get_play_state(slot_, pos_f, posms_f);
+	pos = static_cast<int>(pos_f);
+	posMs = static_cast<int>(posms_f);
+	if (state == core_state || core_state == PlayStateError || core_state == PlayStateFinished) {
+		state = core_state;
+		return is_ready();
+	}
+
+	switch (state) {
+	case PlaybackState::PlayStatePlaying:
+		state = audio_core_slot_play(slot_);
+		break;
+	default:
+		break;
+	}
+*/
+	return is_ready();
 }
 
 /*------------------------------------------------------------------*/
 
-SoundClipWaveBase::SoundClipWaveBase(Audio::AudioStream *stream, int volume, bool repeat) :
+SoundClipWaveBase::SoundClipWaveBase(Audio::AudioStream *stream, bool repeat) :
 	SOUNDCLIP(), _state(SoundClipInitial), _stream(stream) {
 	_mixer = ::AGS::g_vm->_mixer;
 	_repeat = repeat;
-	_vol = volume;
+	_vol255 = 255;
 
 	if (repeat) {
-		Audio::SeekableAudioStream *str = dynamic_cast<Audio::SeekableAudioStream *>(stream);
+		Audio::RewindableAudioStream *str = dynamic_cast<Audio::RewindableAudioStream *>(stream);
 		if (str)
 			_stream = new Audio::LoopingAudioStream(str, 0);
 	}
 }
 
-void SoundClipWaveBase::destroy() {
+SoundClipWaveBase::~SoundClipWaveBase() {
 	_mixer->stopHandle(_soundHandle);
 	delete _stream;
 	_stream = nullptr;
@@ -62,8 +147,15 @@ void SoundClipWaveBase::poll() {
 
 int SoundClipWaveBase::play() {
 	if (_soundType != Audio::Mixer::kPlainSoundType) {
-		_mixer->playStream(_soundType, &_soundHandle, _stream,
-			-1, _vol, 0, DisposeAfterUse::NO);
+		if (!_stream) {
+			warning("Sound stream is null");
+			return 0;
+		}
+		if (_stream->getRate() < 131072)  // maximum accepted value in audio/rate.cpp
+			_mixer->playStream(_soundType, &_soundHandle, _stream,
+							   -1, _vol255, 0, DisposeAfterUse::NO);
+		else
+			warning("Invalid sound clip sample rate: %d! Skipping", _stream->getRate());
 	} else {
 		_waitingToPlay = true;
 	}
@@ -101,16 +193,42 @@ void SoundClipWaveBase::resume() {
 	poll();
 }
 
-bool SoundClipWaveBase::is_playing() const {
-	return _mixer->isSoundHandleActive(_soundHandle);
+bool SoundClipWaveBase::is_playing() {
+	return _mixer->isSoundHandleActive(_soundHandle) || is_paused();
 }
 
-void SoundClipWaveBase::seek(int offset) {
+bool SoundClipWaveBase::is_paused() {
+	return _state == SoundClipPaused;
+}
+
+int SoundClipWaveBase::pos_to_posms(int pos) const {
+	// The pos meaning depends on the sound type:
+	// - WAV / VOC - the sample number
+	// - OGG / MP3 - milliseconds
+	// - MOD - the pattern number
+	switch (get_sound_type()) {
+	case MUS_WAVE: // Pos is in samples
+		if (!_stream)
+			return 0;
+		return static_cast<int>((static_cast<int64_t>(pos) * 1000) / _stream->getRate());
+	case MUS_MOD:  /* TODO: reimplement */
+		// better say that it does not work than return wrong value
+		return 0;
+	default:
+		return pos;
+	}
+}
+
+void SoundClipWaveBase::seek(int pos) {
+	seek_ms(pos_to_posms(pos));
+}
+
+void SoundClipWaveBase::seek_ms(int pos_ms) {
 	Audio::SeekableAudioStream *stream =
 		dynamic_cast<Audio::SeekableAudioStream *>(_stream);
 
 	if (stream) {
-		stream->seek(Audio::Timestamp(offset));
+		stream->seek(Audio::Timestamp(pos_ms));
 	} else {
 		warning("Audio stream did not support seeking");
 	}
@@ -136,22 +254,18 @@ int SoundClipWaveBase::get_length_ms() {
 	}
 }
 
-void SoundClipWaveBase::set_volume(int volume) {
-	_vol = volume;
-	_mixer->setChannelVolume(_soundHandle, volume);
-}
-
 void SoundClipWaveBase::set_panning(int newPanning) {
 	_mixer->setChannelBalance(_soundHandle, newPanning);
 }
 
 void SoundClipWaveBase::set_speed(int new_speed) {
-	warning("TODO: SoundClipWaveBase::set_speed");
+	if (new_speed != 1000)  // default
+		warning("TODO: SoundClipWaveBase::set_speed=%d", new_speed);
 	_speed = new_speed;
 }
 
 void SoundClipWaveBase::adjust_volume() {
-	// TODO: See if this method is needed
+	_mixer->setChannelVolume(_soundHandle, _vol255);
 }
 
 } // namespace AGS3

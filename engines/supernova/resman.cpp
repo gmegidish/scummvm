@@ -1,24 +1,23 @@
 /* ScummVM - Graphic Adventure Engine
-*
-* ScummVM is the legal property of its developers, whose names
-* are too numerous to list here. Please refer to the COPYRIGHT
-* file distributed with this source distribution.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2
-* of the License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-*
-*/
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #include "audio/audiostream.h"
 #include "audio/decoders/raw.h"
@@ -27,7 +26,6 @@
 #include "common/memstream.h"
 #include "common/system.h"
 #include "graphics/cursorman.h"
-#include "graphics/palette.h"
 
 #include "supernova/graphics.h"
 #include "supernova/resman.h"
@@ -189,7 +187,7 @@ void ResourceManager::initImages2() {
 // Skip those in the buffer
 void ResourceManager::loadSound1(AudioId id) {
 	Common::File file;
-	if (!file.open(Common::String::format("msn_data.%03d", audioInfo1[id]._filenumber))) {
+	if (!file.open(Common::Path(Common::String::format("msn_data.%03d", audioInfo1[id]._filenumber)))) {
 		error("File %s could not be read!", file.getName());
 	}
 
@@ -214,7 +212,7 @@ void ResourceManager::loadSound1(AudioId id) {
 
 void ResourceManager::loadSound2(AudioId id) {
 	Common::File file;
-	if (!file.open(Common::String::format("ms2_data.%03d", audioInfo2[id]._filenumber))) {
+	if (!file.open(Common::Path(Common::String::format("ms2_data.%03d", audioInfo2[id]._filenumber)))) {
 		error("File %s could not be read!", file.getName());
 	}
 
@@ -323,7 +321,7 @@ MSNImage *ResourceManager::getImage(int filenumber) {
 // Generate a tone which minimal length is the length and ends at the end
 // of sine period
 // NOTE: Size of the SineTable has to be the same as audioRate and a multiple of 4
-byte *ResourceManager::generateTone(byte *buffer, int frequency, int length, int audioRate, Common::SineTable &table) {
+byte *ResourceManager::generateTone(byte *buffer, int frequency, int length, int audioRate, Math::SineTable &table) {
 	int i = 0;
 
 	// Make sure length is a multiple of audioRate / frequency to end on a full sine wave and not in the middle.
@@ -346,7 +344,7 @@ void ResourceManager::initSiren() {
 	// * 60 for the minimal length, another 20 * length as a spare, for longer tones
 	byte *buffer = new byte[length * 80];
 	byte *pBuffer = buffer;
-	Common::SineTable table(audioRate);
+	Math::SineTable table(audioRate);
 
 	for (int i = 0; i < 30; i++)
 		pBuffer = generateTone(pBuffer, 1800 - i * 10, length, audioRate, table);
@@ -487,7 +485,7 @@ static Common::MemoryReadStream *convertToMod(const char *filename, int version)
 		// iname is not stored in the mod file. Just set it to 'instrument#'
 		// finetune is not stored either. Assume 0.
 		memset(instr[i].iname, 0, 22);
-		sprintf(instr[i].iname, "instrument%d", i+1);
+		Common::sprintf_s(instr[i].iname, "instrument%d", i+1);
 		instr[i].length = 0;
 		instr[i].finetune = 0;
 		instr[i].volume = 0;

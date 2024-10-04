@@ -4,19 +4,18 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software{} you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation{} either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY{} without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program{} if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -97,11 +96,11 @@ uint SoundChannel::play(uint soundNum, uint repeats, uint notify) {
 	// Find a sound of the given name
 	Audio::AudioStream *stream;
 	Common::File f;
-	Common::String nameSnd = Common::String::format("sound%u.snd", soundNum);
-	Common::String nameWav = Common::String::format("sound%u.wav", soundNum);
-	Common::String nameAiff = Common::String::format("sound%u.aiff", soundNum);
+	Common::Path nameSnd(Common::String::format("sound%u.snd", soundNum));
+	Common::Path nameWav(Common::String::format("sound%u.wav", soundNum));
+	Common::Path nameAiff(Common::String::format("sound%u.aiff", soundNum));
 #ifdef USE_MAD
-	Common::String nameMp3 = Common::String::format("sound%u.mp3", soundNum);
+	Common::Path nameMp3(Common::String::format("sound%u.mp3", soundNum));
 #endif
 
 	if (f.exists(nameSnd) && f.open(nameSnd)) {

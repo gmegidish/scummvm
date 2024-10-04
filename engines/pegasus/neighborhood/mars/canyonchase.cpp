@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-2013 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -85,10 +84,10 @@ void MusicTimerEvent::fire() {
 }
 
 CanyonChase::CanyonChase(Neighborhood *handler) : ChaseInteraction(kMarsCanyonChaseInteractionID, handler,
-							kMarsCanyonChaseNotificationID, (PegasusEngine *)g_engine), _canyonMovie1(kNoDisplayElement),
+							kMarsCanyonChaseNotificationID, g_vm), _canyonMovie1(kNoDisplayElement),
 							_canyonMovie2(kNoDisplayElement), _deathMovie(kNoDisplayElement), _genoMovie(kNoDisplayElement) {
-	_currentMovie = NULL;
-	_currentCallBack = NULL;
+	_currentMovie = nullptr;
+	_currentCallBack = nullptr;
 }
 
 void CanyonChase::setSoundFXLevel(const uint16 fxLevel) {
@@ -119,7 +118,7 @@ void CanyonChase::stopCanyonMusicLoop(const long ticks) {
 
 void CanyonChase::openInteraction() {
 	_canyonMovie1.initFromMovieFile("Images/Mars/Canyon_hq1.mov");
-	_canyonMovie1.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+	_canyonMovie1.setVolume(g_vm->getSoundFXLevel());
 	_canyonMovie1.moveElementTo(kShuttleWindowLeft, kShuttleWindowTop);
 	_canyonMovie1.setDisplayOrder(kShuttleMonitorOrder);
 
@@ -129,7 +128,7 @@ void CanyonChase::openInteraction() {
 	_canyon1CallBack.scheduleCallBack(kTriggerAtStop, 0, 0);
 
 	_canyonMovie2.initFromMovieFile("Images/Mars/Canyon_hq2.mov");
-	_canyonMovie2.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+	_canyonMovie2.setVolume(g_vm->getSoundFXLevel());
 	_canyonMovie2.moveElementTo(kShuttleWindowLeft, kShuttleWindowTop);
 	_canyonMovie2.setDisplayOrder(kShuttleMonitorOrder);
 
@@ -139,7 +138,7 @@ void CanyonChase::openInteraction() {
 	_canyon2CallBack.scheduleCallBack(kTriggerAtStop, 0, 0);
 
 	_deathMovie.initFromMovieFile("Images/Mars/Canyon_hqD.mov");
-	_deathMovie.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
+	_deathMovie.setVolume(g_vm->getSoundFXLevel());
 	_deathMovie.moveElementTo(kShuttleWindowLeft, kShuttleWindowTop);
 	_deathMovie.setDisplayOrder(kShuttleMonitorOrder);
 
@@ -150,7 +149,7 @@ void CanyonChase::openInteraction() {
 
 	_musicLoop.attachFader(&_musicFader);
 	_musicLoop.initFromAIFFFile("Sounds/Mars/Canyon Loop.44K.16.AIFF");
-	_musicFader.setMasterVolume(((PegasusEngine *)g_engine)->getAmbienceLevel());
+	_musicFader.setMasterVolume(g_vm->getAmbienceLevel());
 
 	ChaseInteraction::openInteraction();
 
@@ -468,7 +467,7 @@ void CanyonChase::hideControlsHint() {
 
 void CanyonChase::switchTo(Movie &movie, NotificationCallBack &callBack) {
 	if (_currentMovie != &movie) {
-		if (_currentMovie != NULL) {
+		if (_currentMovie != nullptr) {
 			_currentMovie->stop();
 			_currentMovie->hide();
 			_currentMovie->stopDisplaying();
@@ -519,7 +518,7 @@ void CanyonChase::musicTimerExpired(MusicTimerEvent &event) {
 
 void CanyonChase::doGenoChase() {
 	_genoMovie.initFromMovieFile("Images/Mars/Canyon_hqG.mov");
-	_genoMovie.setVolume(((PegasusEngine *)g_engine)->getAmbienceLevel());
+	_genoMovie.setVolume(g_vm->getAmbienceLevel());
 	_genoMovie.moveElementTo(kShuttleWindowLeft, kShuttleWindowTop);
 	_genoMovie.setDisplayOrder(kShuttleMonitorOrder);
 	_genoMovie.startDisplaying();

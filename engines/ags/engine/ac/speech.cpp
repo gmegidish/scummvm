@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,26 +15,35 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "ags/engine/ac/speech.h"
+#include "ags/engine/ac/asset_helper.h"
 #include "ags/shared/ac/common.h"
 #include "ags/engine/ac/runtime_defines.h"
-#include "ags/engine/ac/speech.h"
 #include "ags/engine/debugging/debug_log.h"
 #include "ags/shared/ac/game_setup_struct.h"
 #include "ags/engine/ac/game_state.h"
 #include "ags/engine/ac/global_audio.h"
 #include "ags/engine/ac/global_display.h"
+#include "ags/engine/ac/dynobj/cc_dynamic_object.h"
 #include "ags/shared/debugging/out.h"
 #include "ags/engine/script/script_api.h"
 #include "ags/engine/script/script_runtime.h"
 #include "ags/engine/ac/dynobj/script_overlay.h"
+#include "ags/engine/ac/game_setup.h"
+#include "ags/engine/ac/game_state.h"
+#include "ags/shared/core/asset_manager.h"
+#include "ags/engine/main/engine.h"
+#include "ags/shared/util/directory.h"
+#include "ags/shared/util/path.h"
 #include "ags/globals.h"
 
 namespace AGS3 {
+
+using namespace AGS::Shared;
 
 int user_to_internal_skip_speech(SkipSpeechStyle userval) {
 	switch (userval) {
@@ -83,6 +92,61 @@ SkipSpeechStyle internal_skip_speech_to_user(int internal_val) {
 	return kSkipSpeechNone;
 }
 
+bool init_voicepak(const String &name) {
+	if (_GP(usetup).no_speech_pack) return false; // voice-over disabled
+
+	String speech_file = name.IsEmpty() ? "speech.vox" : String::FromFormat("sp_%s.vox", name.GetCStr());
+	if (_GP(ResPaths).SpeechPak.Name.CompareNoCase(speech_file) == 0)
+		return true; // same pak already assigned
+
+	// First remove existing voice packs
+	_GP(play).voice_avail = false;
+	// FIXME: don't remove the default speech.vox when changing pak, as this causes a crash in Beyond the Edge of Owlsgard
+	// Duplicate checks are already present so this shouldn't cause problems but still, it should be looked into
+	if (_GP(ResPaths).SpeechPak.Name.CompareNoCase("speech.vox") != 0)
+		_GP(AssetMgr)->RemoveLibrary(_GP(ResPaths).SpeechPak.Path);
+	_GP(AssetMgr)->RemoveLibrary(_GP(ResPaths).VoiceDirSub);
+
+	// Now check for the new packs and add if they exist
+	String speech_filepath = find_assetlib(speech_file);
+	if (!speech_filepath.IsEmpty()) {
+		Debug::Printf(kDbgMsg_Info, "Voice pack found: %s", speech_file.GetCStr());
+		_GP(play).voice_avail = true;
+	} else {
+		Debug::Printf(kDbgMsg_Info, "Was not able to init voice pack '%s': file not found or of unknown format.",
+			speech_file.GetCStr());
+	}
+
+	String speech_subdir = "";
+	if (!_GP(ResPaths).VoiceDir2.IsEmpty() &&
+			!_GP(ResPaths).VoiceDir2.IsEmpty() && Path::ComparePaths(_GP(ResPaths).DataDir, _GP(ResPaths).VoiceDir2) != 0) {
+		// If we have custom voice directory set, we will enable voice-over even if speech.vox does not exist
+		speech_subdir = name.IsEmpty() ? _GP(ResPaths).VoiceDir2 : Path::ConcatPaths(_GP(ResPaths).VoiceDir2, name);
+		if (File::IsDirectory(speech_subdir) && !FindFile::OpenFiles(speech_subdir).AtEnd()) {
+			Debug::Printf(kDbgMsg_Info, "Optional voice directory is defined: %s", speech_subdir.GetCStr());
+			_GP(play).voice_avail = true;
+		}
+	}
+
+	// Save new resource locations and register asset libraries
+	_G(VoicePakName) = name;
+	_G(VoiceAssetPath) = name.IsEmpty() ? "" : String::FromFormat("%s/", name.GetCStr());
+	_GP(ResPaths).SpeechPak.Name = speech_file;
+	_GP(ResPaths).SpeechPak.Path = speech_filepath;
+	_GP(ResPaths).VoiceDirSub = speech_subdir;
+	_GP(AssetMgr)->AddLibrary(_GP(ResPaths).VoiceDirSub, "voice");
+	_GP(AssetMgr)->AddLibrary(_GP(ResPaths).SpeechPak.Path, "voice");
+	return _GP(play).voice_avail;
+}
+
+String get_voicepak_name() {
+	return _G(VoicePakName);
+}
+
+String get_voice_assetpath() {
+	return _G(VoiceAssetPath);
+}
+
 //=============================================================================
 //
 // Script API Functions
@@ -90,11 +154,11 @@ SkipSpeechStyle internal_skip_speech_to_user(int internal_val) {
 //=============================================================================
 
 ScriptOverlay *Speech_GetTextOverlay() {
-	return _GP(play).speech_text_scover;
+	return const_cast<ScriptOverlay*>((const ScriptOverlay*)ccGetObjectAddressFromHandle(_GP(play).speech_text_schandle));
 }
 
 ScriptOverlay *Speech_GetPortraitOverlay() {
-	return _GP(play).speech_face_scover;
+	return const_cast<ScriptOverlay*>((const ScriptOverlay*)ccGetObjectAddressFromHandle(_GP(play).speech_face_schandle));
 }
 
 RuntimeScriptValue Sc_Speech_GetAnimationStopTimeMargin(const RuntimeScriptValue *params, int32_t param_count) {
@@ -207,7 +271,7 @@ RuntimeScriptValue Sc_Speech_GetPortraitOverlay(const RuntimeScriptValue *params
 
 extern RuntimeScriptValue Sc_SetVoiceMode(const RuntimeScriptValue *params, int32_t param_count);
 
-void RegisterSpeechAPI(ScriptAPIVersion base_api, ScriptAPIVersion compat_api) {
+void RegisterSpeechAPI(ScriptAPIVersion base_api, ScriptAPIVersion /*compat_api*/) {
 	ccAddExternalStaticFunction("Speech::get_AnimationStopTimeMargin", Sc_Speech_GetAnimationStopTimeMargin);
 	ccAddExternalStaticFunction("Speech::set_AnimationStopTimeMargin", Sc_Speech_SetAnimationStopTimeMargin);
 	ccAddExternalStaticFunction("Speech::get_CustomPortraitPlacement", Sc_Speech_GetCustomPortraitPlacement);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,9 +23,9 @@
 #include "agi/opcodes.h"
 #include "agi/graphics.h"
 
-#include "agi/preagi.h"
-#include "agi/preagi_mickey.h"
-#include "agi/preagi_winnie.h"
+#include "agi/preagi/preagi.h"
+#include "agi/preagi/mickey.h"
+#include "agi/preagi/winnie.h"
 
 namespace Agi {
 
@@ -59,7 +58,7 @@ Console::Console(AgiEngine *vm) : GUI::Debugger() {
 
 bool Console::Cmd_SetVar(int argc, const char **argv) {
 	if (argc != 3) {
-		debugPrintf("Usage: setvar <varnum> <value>\n");
+		debugPrintf("Usage: %s <varnum> <value>\n", argv[0]);
 		return true;
 	}
 	int p1 = (int)atoi(argv[1]);
@@ -71,19 +70,19 @@ bool Console::Cmd_SetVar(int argc, const char **argv) {
 
 bool Console::Cmd_SetFlag(int argc, const char **argv) {
 	if (argc != 3) {
-		debugPrintf("Usage: setvar <varnum> <value>\n");
+		debugPrintf("Usage: %s <flagnum> <value>\n", argv[0]);
 		return true;
 	}
 	int p1 = (int)atoi(argv[1]);
 	int p2 = (int)atoi(argv[2]);
-	_vm->setFlag(p1, !!p2);
+	_vm->setFlag(p1, (p2 != 0));
 
 	return true;
 }
 
 bool Console::Cmd_SetObj(int argc, const char **argv) {
 	if (argc != 3) {
-		debugPrintf("Usage: setvar <varnum> <value>\n");
+		debugPrintf("Usage: %s <objnum> <location>\n", argv[0]);
 		return true;
 	}
 	int p1 = (int)atoi(argv[1]);
@@ -97,7 +96,7 @@ bool Console::Cmd_RunOpcode(int argc, const char **argv) {
 	const AgiOpCodeEntry *opCodes = _vm->getOpCodesTable();
 
 	if (argc < 2) {
-		debugPrintf("Usage: runopcode <name> <parameter0> ....\n");
+		debugPrintf("Usage: %s <name> <parameter0> ...\n", argv[0]);
 		return true;
 	}
 
@@ -105,16 +104,16 @@ bool Console::Cmd_RunOpcode(int argc, const char **argv) {
 		if (!strcmp(argv[1], opCodes[i].name)) {
 			uint8 p[16];
 			if ((argc - 2) != opCodes[i].parameterSize) {
-				debugPrintf("AGI command wants %d arguments\n", opCodes[i].parameterSize);
+				debugPrintf("AGI opcode wants %d parameters\n", opCodes[i].parameterSize);
 				return 0;
 			}
-			p[0] = argv[2] ? (char)strtoul(argv[2], NULL, 0) : 0;
-			p[1] = argv[3] ? (char)strtoul(argv[3], NULL, 0) : 0;
-			p[2] = argv[4] ? (char)strtoul(argv[4], NULL, 0) : 0;
-			p[3] = argv[5] ? (char)strtoul(argv[5], NULL, 0) : 0;
-			p[4] = argv[6] ? (char)strtoul(argv[6], NULL, 0) : 0;
+			p[0] = argv[2] ? (char)strtoul(argv[2], nullptr, 0) : 0;
+			p[1] = argv[3] ? (char)strtoul(argv[3], nullptr, 0) : 0;
+			p[2] = argv[4] ? (char)strtoul(argv[4], nullptr, 0) : 0;
+			p[3] = argv[5] ? (char)strtoul(argv[5], nullptr, 0) : 0;
+			p[4] = argv[6] ? (char)strtoul(argv[6], nullptr, 0) : 0;
 
-			debugC(5, kDebugLevelMain, "Opcode: %s %s %s %s", opCodes[i].name, argv[1], argv[2], argv[3]);
+			debugC(5, kDebugLevelMain, "Opcode: %s %d %d %d %d %d", opCodes[i].name, p[0], p[1], p[2], p[3], p[4]);
 
 			_vm->executeAgiCommand(i, p);
 
@@ -128,11 +127,9 @@ bool Console::Cmd_RunOpcode(int argc, const char **argv) {
 }
 
 bool Console::Cmd_Agiver(int argc, const char **argv) {
-	int ver, maj, min;
-
-	ver = _vm->getVersion();
-	maj = (ver >> 12) & 0xf;
-	min = ver & 0xfff;
+	int ver = _vm->getVersion();
+	int maj = (ver >> 12) & 0xf;
+	int min = ver & 0xfff;
 
 	debugPrintf("AGI version: ");
 	debugPrintf(maj <= 2 ? "%x.%03x\n" : "%x.002.%03x\n", maj, min);
@@ -144,20 +141,6 @@ bool Console::Cmd_Agiver(int argc, const char **argv) {
 
 bool Console::Cmd_Version(int argc, const char **argv) {
 	AgiGame *game = &_vm->_game;
-	int scriptNr = 0;
-	int scriptTextCount = 0;
-	int scriptTextNr = 0;
-	const char *scriptTextPtr = NULL;
-	const char *wordScanPtr = NULL;
-	const char *wordStartPtr = NULL;
-	const char *versionStartPtr = NULL;
-	int wordLen = 0;
-	char curChar = 0;
-	int versionLen = 0;
-	bool wordFound = false;
-	bool versionFound = false;
-	char versionString[CONSOLE_VERSION_MAXLEN];
-	bool scriptLoadedByUs = false;
 
 	// Show AGI version
 	Cmd_Agiver(argc, argv);
@@ -165,114 +148,118 @@ bool Console::Cmd_Version(int argc, const char **argv) {
 	// And now try to figure out the version of the game
 	// We do this by scanning through all script texts
 	// This is the best we can do about it. There is no special location for the game version number.
-	// There are multiple variations, like "ver. X.XX", "ver X.XX" and even "verion X.XX".
-	for (scriptNr = 0; scriptNr < MAX_DIRECTORY_ENTRIES; scriptNr++) {
-		if (game->dirLogic[scriptNr].offset != _EMPTY) {
-			// Script is supposed to exist?
-			scriptLoadedByUs = false;
-			if (!(game->dirLogic[scriptNr].flags & RES_LOADED)) {
-				// But not currently loaded? -> load it now
-				if (_vm->agiLoadResource(RESOURCETYPE_LOGIC, scriptNr) != errOK) {
-					// In case we can't load the source, skip it
-					continue;
-				}
-				scriptLoadedByUs = true;
+	// There are multiple variations, like "ver. X.XX", "ver X.XX" and even "version X.XX".
+	bool versionFound = false;
+	for (int scriptNr = 0; scriptNr < MAX_DIRECTORY_ENTRIES; scriptNr++) {
+		if (game->dirLogic[scriptNr].offset == _EMPTY) {
+			continue;
+		}
+			
+		// Script is supposed to exist?
+		bool scriptLoadedByUs = false;
+		if (!(game->dirLogic[scriptNr].flags & RES_LOADED)) {
+			// But not currently loaded? -> load it now
+			if (_vm->loadResource(RESOURCETYPE_LOGIC, scriptNr) != errOK) {
+				// In case we can't load the source, skip it
+				continue;
 			}
-			// Script currently loaded
-			// Now scan all texts
-			scriptTextCount = game->logics[scriptNr].numTexts;
-			for (scriptTextNr = 0; scriptTextNr < scriptTextCount; scriptTextNr++) {
-				scriptTextPtr = game->logics[scriptNr].texts[scriptTextNr];
+			scriptLoadedByUs = true;
+		}
+		// Script currently loaded
+		// Now scan all texts
+		int scriptTextCount = game->logics[scriptNr].numTexts;
+		for (int scriptTextNr = 0; scriptTextNr < scriptTextCount; scriptTextNr++) {
+			const char *scriptTextPtr = game->logics[scriptNr].texts[scriptTextNr];
 
-				// Now scan this text for version information
-				wordScanPtr = scriptTextPtr;
+			// Now scan this text for version information
+			const char *wordScanPtr = scriptTextPtr;
 
-				do {
-					curChar = *wordScanPtr;
+			char curChar;
+			do {
+				curChar = *wordScanPtr;
 
-					if ((curChar == 'V') || (curChar == 'v')) {
-						// "V" gefunden, ggf. beginning of version?
-						wordStartPtr = wordScanPtr;
-						wordFound = false;
+				if ((curChar == 'V') || (curChar == 'v')) {
+					// "V" gefunden, ggf. beginning of version?
+					const char *wordStartPtr = wordScanPtr;
+					
+					do {
+						curChar = *wordScanPtr;
+						if (curChar == ' ') {
+							break;
+						}
+						wordScanPtr++;
+					} while (curChar);
 
-						do {
+					if (curChar) {
+						// end of "version" found
+						bool wordFound = false;
+						int wordLen = wordScanPtr - wordStartPtr;
+						if (wordLen >= 3) {
+							if (strncmp(wordStartPtr, "ver", wordLen) == 0)
+								wordFound = true;
+							if (strncmp(wordStartPtr, "Ver", wordLen) == 0)
+								wordFound = true;
+						}
+						if ((!wordFound) && (wordLen >= 4)) {
+							if (strncmp(wordStartPtr, "ver.", wordLen) == 0)
+								wordFound = true;
+							if (strncmp(wordStartPtr, "Ver.", wordLen) == 0)
+								wordFound = true;
+						}
+						if ((!versionFound) && (wordLen >= 7)) {
+							if (strncmp(wordStartPtr, "version", wordLen) == 0)
+								wordFound = true;
+							if (strncmp(wordStartPtr, "Version", wordLen) == 0)
+								wordFound = true;
+							if (strncmp(wordStartPtr, "VERSION", wordLen) == 0)
+								wordFound = true;
+						}
+
+						if (wordFound) {
+							// We found something interesting
+							//debugPrintf("%d: %s\n", scriptNr, scriptTextPtr);
+
+							wordScanPtr++; // skip space
+							const char*versionStartPtr = wordScanPtr;
 							curChar = *wordScanPtr;
-							if (curChar == ' ') {
-								break;
-							}
-							wordScanPtr++;
-						} while (curChar);
-
-						if (curChar) {
-							// end of "version" found
-							wordLen = wordScanPtr - wordStartPtr;
-
-							if (wordLen >= 3) {
-								if (strncmp(wordStartPtr, "ver", wordLen) == 0)
-									wordFound = true;
-								if (strncmp(wordStartPtr, "Ver", wordLen) == 0)
-									wordFound = true;
-							}
-							if ((!wordFound) && (wordLen >= 4)) {
-								if (strncmp(wordStartPtr, "ver.", wordLen) == 0)
-									wordFound = true;
-								if (strncmp(wordStartPtr, "Ver.", wordLen) == 0)
-									wordFound = true;
-							}
-							if ((!versionFound) && (wordLen >= 7)) {
-								if (strncmp(wordStartPtr, "version", wordLen) == 0)
-									wordFound = true;
-								if (strncmp(wordStartPtr, "Version", wordLen) == 0)
-									wordFound = true;
-								if (strncmp(wordStartPtr, "VERSION", wordLen) == 0)
-									wordFound = true;
-							}
-
-							if (wordFound) {
-								// We found something interesting
-								//debugPrintf("%d: %s\n", scriptNr, scriptTextPtr);
-
-								wordScanPtr++; // skip space
-								versionStartPtr = wordScanPtr;
+							if ((curChar >= '0') && (curChar <= '9')) {
+								// Next word starts with a number
+								wordScanPtr++;
 								curChar = *wordScanPtr;
-								if ((curChar >= '0') && (curChar <= '9')) {
-									// Next word starts with a number
+								if (curChar == '.') {
+									// Followed by a point? then we assume that we found a version number
+									// Now we try to find the end of it
 									wordScanPtr++;
-									curChar = *wordScanPtr;
-									if (curChar == '.') {
-										// Followed by a point? then we assume that we found a version number
-										// Now we try to find the end of it
+									do {
+										curChar = *wordScanPtr;
+										if ((curChar == ' ') || (curChar == '\\') || (!curChar))
+											break; // space or potential new line or NUL? -> found the end
 										wordScanPtr++;
-										do {
-											curChar = *wordScanPtr;
-											if ((curChar == ' ') || (curChar == '\\') || (!curChar))
-												break; // space or potential new line or NUL? -> found the end
-											wordScanPtr++;
-										} while (1);
+									} while (1);
 
-										versionLen = wordScanPtr - versionStartPtr;
-										if (versionLen < CONSOLE_VERSION_MAXLEN) {
-											// Looks fine, now extract and show it
-											memcpy(versionString, versionStartPtr, versionLen);
-											versionString[versionLen] = 0;
-											debugPrintf("Scanned game version: %s\n", versionString);
-											versionFound = true;
-										}
+									int versionLen = wordScanPtr - versionStartPtr;
+									if (versionLen < CONSOLE_VERSION_MAXLEN) {
+										// Looks fine, now extract and show it
+										char versionString[CONSOLE_VERSION_MAXLEN];
+										memcpy(versionString, versionStartPtr, versionLen);
+										versionString[versionLen] = 0;
+										debugPrintf("Scanned game version: %s\n", versionString);
+										versionFound = true;
 									}
 								}
 							}
 						}
-
-						// Seek back
-						wordScanPtr = wordStartPtr;
 					}
-					wordScanPtr++;
-				} while (curChar);
-			}
 
-			if (scriptLoadedByUs) {
-				_vm->agiUnloadResource(RESOURCETYPE_LOGIC, scriptNr);
-			}
+					// Seek back
+					wordScanPtr = wordStartPtr;
+				}
+				wordScanPtr++;
+			} while (curChar);
+		}
+
+		if (scriptLoadedByUs) {
+			_vm->unloadResource(RESOURCETYPE_LOGIC, scriptNr);
 		}
 	}
 
@@ -283,16 +270,14 @@ bool Console::Cmd_Version(int argc, const char **argv) {
 }
 
 bool Console::Cmd_Flags(int argc, const char **argv) {
-	int i, j;
-
 	debugPrintf("    ");
-	for (j = 0; j < 10; j++)
-		debugPrintf("%d ", j);
+	for (int i = 0; i < 10; i++)
+		debugPrintf("%d ", i);
 	debugPrintf("\n");
 
-	for (i = 0; i < 255;) {
+	for (int i = 0; i < 255;) {
 		debugPrintf("%3d ", i);
-		for (j = 0; j < 10; j++, i++) {
+		for (int j = 0; j < 10; j++, i++) {
 			debugPrintf("%c ", _vm->getFlag(i) ? 'T' : 'F');
 		}
 		debugPrintf("\n");
@@ -302,10 +287,8 @@ bool Console::Cmd_Flags(int argc, const char **argv) {
 }
 
 bool Console::Cmd_Vars(int argc, const char **argv) {
-	int i, j;
-
-	for (i = 0; i < 255;) {
-		for (j = 0; j < 5; j++, i++) {
+	for (int i = 0; i < 255;) {
+		for (int j = 0; j < 5; j++, i++) {
 			debugPrintf("%03d:%3d ", i, _vm->getVar(i));
 		}
 		debugPrintf("\n");
@@ -315,9 +298,7 @@ bool Console::Cmd_Vars(int argc, const char **argv) {
 }
 
 bool Console::Cmd_Objs(int argc, const char **argv) {
-	unsigned int i;
-
-	for (i = 0; i < _vm->_game.numObjects; i++) {
+	for (unsigned int i = 0; i < _vm->_game.numObjects; i++) {
 		debugPrintf("%3d]%-24s(%3d)\n", i, _vm->objectName(i), _vm->objectGetLocation(i));
 	}
 
@@ -326,7 +307,7 @@ bool Console::Cmd_Objs(int argc, const char **argv) {
 
 bool Console::Cmd_Opcode(int argc, const char **argv) {
 	if (argc != 2 || (strcmp(argv[1], "on") && strcmp(argv[1], "off"))) {
-		debugPrintf("Usage: opcode on|off\n");
+		debugPrintf("Usage: %s on|off\n", argv[0]);
 		return true;
 	}
 
@@ -337,7 +318,7 @@ bool Console::Cmd_Opcode(int argc, const char **argv) {
 
 bool Console::Cmd_Logic0(int argc, const char **argv) {
 	if (argc != 2 || (strcmp(argv[1], "on") && strcmp(argv[1], "off"))) {
-		debugPrintf("Usage: logic0 on|off\n");
+		debugPrintf("Usage: %s on|off\n", argv[0]);
 		return true;
 	}
 
@@ -348,7 +329,7 @@ bool Console::Cmd_Logic0(int argc, const char **argv) {
 
 bool Console::Cmd_Trigger(int argc, const char **argv) {
 	if (argc != 2 || (strcmp(argv[1], "on") && strcmp(argv[1], "off"))) {
-		debugPrintf("Usage: trigger on|off\n");
+		debugPrintf("Usage: %s on|off\n", argv[0]);
 		return true;
 	}
 	_vm->_debug.ignoretriggers = strcmp(argv[1], "on");
@@ -364,7 +345,7 @@ bool Console::Cmd_Step(int argc, const char **argv) {
 		return true;
 	}
 
-	_vm->_debug.steps = strtoul(argv[1], NULL, 0);
+	_vm->_debug.steps = strtoul(argv[1], nullptr, 0);
 
 	return true;
 }
@@ -385,7 +366,7 @@ bool Console::Cmd_Cont(int argc, const char **argv) {
 
 bool Console::Cmd_Room(int argc, const char **argv) {
 	if (argc == 2) {
-		_vm->newRoom(strtoul(argv[1], NULL, 0));
+		_vm->newRoom(strtoul(argv[1], nullptr, 0));
 	}
 
 	debugPrintf("Current room: %d\n", _vm->getVar(0));
@@ -398,16 +379,13 @@ bool Console::Cmd_BT(int argc, const char **argv) {
 
 	debugPrintf("Current script: %d\nStack depth: %d\n", _vm->_game.curLogicNr, _vm->_game.execStack.size());
 
-	uint8 *code = NULL;
-	uint8 op = 0;
 	uint8 p[CMD_BSIZE] = { 0 };
-	int parameterSize;
 	Common::Array<ScriptPos>::iterator it;
 
 	for (it = _vm->_game.execStack.begin(); it != _vm->_game.execStack.end(); ++it) {
-		code = _vm->_game.logics[it->script].data;
-		op = code[it->curIP];
-		parameterSize = opCodes[op].parameterSize;
+		uint8 *code = _vm->_game.logics[it->script].data;
+		uint8 op = code[it->curIP];
+		int parameterSize = opCodes[op].parameterSize;
 		memmove(p, &code[it->curIP], parameterSize);
 		memset(p + parameterSize, 0, CMD_BSIZE - parameterSize);
 
@@ -444,7 +422,7 @@ bool Console::Cmd_ShowMap(int argc, const char **argv) {
 		debugPrintf("Map %d is not available.\n", map);
 		return true;
 	}
-	return cmdExit(0, 0);
+	return cmdExit(0, nullptr);
 }
 
 bool Console::Cmd_ScreenObj(int argc, const char **argv) {
@@ -460,7 +438,7 @@ bool Console::Cmd_ScreenObj(int argc, const char **argv) {
 		ScreenObjEntry *screenObj = &_vm->_game.screenObjTable[screenObjNr];
 
 		debugPrintf("Screen Object ID %d\n", screenObj->objectNr);
-		debugPrintf("current view: %d, loop: %d, cel: %d\n", screenObj->currentViewNr, screenObj->currentLoopNr, screenObj->currentCelNr);
+		debugPrintf("view: %d, loop: %d, cel: %d\n", screenObj->currentViewNr, screenObj->currentLoopNr, screenObj->currentCelNr);
 
 		// Figure out flags
 		Common::String flagsString;
@@ -489,7 +467,7 @@ bool Console::Cmd_ScreenObj(int argc, const char **argv) {
 			flagsString += "UpdatePos ";
 		if (screenObj->flags & fOnLand)
 			flagsString += "OnLand ";
-		if (screenObj->flags & fDontupdate)
+		if (screenObj->flags & fDontUpdate)
 			flagsString += "DontUpdate ";
 		if (screenObj->flags & fFixLoop)
 			flagsString += "FixLoop ";
@@ -508,32 +486,32 @@ bool Console::Cmd_ScreenObj(int argc, const char **argv) {
 		debugPrintf("xPos: %d, yPos: %d, xSize: %d, ySize: %d\n", screenObj->xPos, screenObj->yPos, screenObj->xSize, screenObj->ySize);
 		debugPrintf("previous: xPos: %d, yPos: %d, xSize: %d, ySize: %d\n", screenObj->xPos_prev, screenObj->yPos_prev, screenObj->xSize_prev, screenObj->ySize_prev);
 		debugPrintf("direction: %d, priority: %d\n", screenObj->direction, screenObj->priority);
-		debugPrintf("stepTime: %d, timeCount: %d, size: %d\n", screenObj->stepTime, screenObj->stepTimeCount, screenObj->stepSize);
-		debugPrintf("cycleTime: %d, timeCount: %d\n", screenObj->cycleTime, screenObj->cycleTimeCount);
+		debugPrintf("stepTime: %d, stepTimeCount: %d, stepSize: %d\n", screenObj->stepTime, screenObj->stepTimeCount, screenObj->stepSize);
+		debugPrintf("cycleTime: %d, cycleTimeCount: %d\n", screenObj->cycleTime, screenObj->cycleTimeCount);
 
 		switch (screenObj->motionType) {
 		case kMotionNormal:
-			debugPrintf("motion: normal\n");
+			debugPrintf("\nmotion: normal\n");
 			break;
 		case kMotionWander:
-			debugPrintf("motion: wander\n");
+			debugPrintf("\nmotion: wander\n");
 			debugPrintf("wanderCount: %d\n", screenObj->wander_count);
 			break;
 		case kMotionFollowEgo:
-			debugPrintf("motion: follow ego\n");
-			debugPrintf("stepSize: %d, flag: %x, count: %d", screenObj->follow_stepSize, screenObj->follow_flag, screenObj->follow_count);
+			debugPrintf("\nmotion: follow ego\n");
+			debugPrintf("stepSize: %d, flag: %d, count: %d", screenObj->follow_stepSize, screenObj->follow_flag, screenObj->follow_count);
 			break;
 		case kMotionMoveObj:
 		case kMotionEgo:
 			if (screenObj->motionType == kMotionMoveObj) {
-				debugPrintf("motion: move obj\n");
+				debugPrintf("\nmotion: move obj\n");
 			} else {
-				debugPrintf("motion: ego\n");
+				debugPrintf("\nmotion: ego\n");
 			}
 			debugPrintf("x: %d, y: %d, stepSize: %d, flag: %x\n", screenObj->move_x, screenObj->move_y, screenObj->move_stepSize, screenObj->move_flag);
 			break;
 		default:
-			debugPrintf("motion: UNKNOWN (%d)\n", screenObj->motionType);
+			debugPrintf("\nmotion: UNKNOWN (%d)\n", screenObj->motionType);
 			break;
 		}
 	}
@@ -548,8 +526,6 @@ bool Console::Cmd_VmVars(int argc, const char **argv) {
 	}
 
 	int varNr = 0;
-	int newValue = 0;
-
 	if (!parseInteger(argv[1], varNr))
 		return true;
 
@@ -562,6 +538,7 @@ bool Console::Cmd_VmVars(int argc, const char **argv) {
 		// show contents
 		debugPrintf("variable %d == %d\n", varNr, _vm->getVar(varNr));
 	} else {
+		int newValue = 0;
 		if (!parseInteger(argv[2], newValue))
 			return true;
 
@@ -580,7 +557,6 @@ bool Console::Cmd_VmFlags(int argc, const char **argv) {
 	}
 
 	int flagNr = 0;
-	int newFlagState = 0;
 
 	if (!parseInteger(argv[1], flagNr))
 		return true;
@@ -598,11 +574,12 @@ bool Console::Cmd_VmFlags(int argc, const char **argv) {
 			debugPrintf("flag %d == not set\n", flagNr);
 		}
 	} else {
+		int newFlagState = 0;
 		if (!parseInteger(argv[2], newFlagState))
 			return true;
 
 		if ((newFlagState != 0) && (newFlagState != 1)) {
-			debugPrintf("new state must bei either 0 or 1\n");
+			debugPrintf("new state must be either 0 or 1\n");
 			return true;
 		}
 
@@ -630,7 +607,7 @@ bool Console::Cmd_DisableAutomaticSave(int argc, const char **argv) {
 }
 
 bool Console::parseInteger(const char *argument, int &result) {
-	char *endPtr = 0;
+	char *endPtr = nullptr;
 	int idxLen = strlen(argument);
 	const char *lastChar = argument + idxLen - (idxLen == 0 ? 0 : 1);
 

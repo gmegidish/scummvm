@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -127,7 +126,7 @@ SoundManager::~SoundManager() {
 	SAFE_DELETE(_queue);
 
 	// Zero passed pointers
-	_engine = NULL;
+	_engine = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -377,7 +376,7 @@ void SoundManager::playLocomotiveSound() {
 
 const char *SoundManager::getDialogName(EntityIndex entity) const {
 	if (_queue->isBuffered(kEntityTables4))
-		return NULL;
+		return nullptr;
 	switch (entity) {
 	case kEntityAnna:
 		if (getEvent(kEventAnnaDialogGoToJerusalem))
@@ -674,7 +673,7 @@ const char *SoundManager::getDialogName(EntityIndex entity) const {
 		break;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1315,7 +1314,7 @@ void SoundManager::playAmbientSound(int param) {
 
 	if (_queue->getAmbientState() & kAmbientSoundEnabled && param >= 0x45 && param <= 0x46) {
 		if (_queue->getAmbientState() & kAmbientSoundSteam) {
-			strcpy(tmp, "STEAM.SND");
+			Common::strcpy_s(tmp, "STEAM.SND");
 
 			_ambientSoundDuration = 32767;
 		} else {
@@ -1365,7 +1364,7 @@ void SoundManager::playAmbientSound(int param) {
 			}
 
 			if (partNumber != 99)
-				sprintf(tmp, "LOOP%d%c.SND", partNumber, (char)(_engine->getRandom().getRandomNumber(numLoops[partNumber] - 1) + 'A'));
+				Common::sprintf_s(tmp, "LOOP%d%c.SND", partNumber, (char)(_engine->getRandom().getRandomNumber(numLoops[partNumber] - 1) + 'A'));
 		}
 
 		if (getFlags()->flag_3)

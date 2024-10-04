@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,6 +35,8 @@ void InventoryItem::AGS_EngineStartup(IAGSEngine *engine) {
 	SCRIPT_METHOD(InventoryItem::GetProperty ^ 1, InventoryItem::GetProperty);
 	SCRIPT_METHOD(InventoryItem::GetPropertyText ^ 2, InventoryItem::GetPropertyText);
 	SCRIPT_METHOD(InventoryItem::GetTextProperty ^ 1, InventoryItem::GetTextProperty);
+	SCRIPT_METHOD(InventoryItem::SetProperty ^ 2, InventoryItem::SetProperty);
+	SCRIPT_METHOD(InventoryItem::SetTextProperty ^ 2, InventoryItem::SetTextProperty);
 	SCRIPT_METHOD(InventoryItem::RunInteraction ^ 1, InventoryItem::RunInteraction);
 	SCRIPT_METHOD(InventoryItem::SetName ^ 1, InventoryItem::SetName);
 	SCRIPT_METHOD(InventoryItem::get_CursorGraphic, InventoryItem::GetCursorGraphic);
@@ -75,6 +76,16 @@ void InventoryItem::GetPropertyText(ScriptMethodParams &params) {
 void InventoryItem::GetTextProperty(ScriptMethodParams &params) {
 	PARAMS2(ScriptInvItem *, scii, const char *, property);
 	params._result = AGS3::InventoryItem_GetTextProperty(scii, property);
+}
+
+void InventoryItem::SetProperty(ScriptMethodParams &params) {
+	PARAMS3(ScriptInvItem *, scii, const char *, property, int, value);
+	params._result = AGS3::InventoryItem_SetProperty(scii, property, value);
+}
+
+void InventoryItem::SetTextProperty(ScriptMethodParams &params) {
+	PARAMS3(ScriptInvItem *, scii, const char *, property, const char *, value);
+	params._result = AGS3::InventoryItem_SetTextProperty(scii, property, value);
 }
 
 void InventoryItem::RunInteraction(ScriptMethodParams &params) {

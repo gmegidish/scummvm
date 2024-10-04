@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -30,42 +35,54 @@
 {
 	{
 		"inca2",
-		"",
+		"v1.000",
 		AD_ENTRY1s("intro.stk", "1fa92b00fe80a20f34ec34a8e2fa869e", 923072),
 		EN_USA,
 		kPlatformDOS,
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesAdLib,
 	0, 0, 0
 },
 {
 	{
 		"inca2",
-		"",
+		"v1.000",
 		AD_ENTRY1s("intro.stk", "1fa92b00fe80a20f34ec34a8e2fa869e", 923072),
 		FR_FRA,
 		kPlatformDOS,
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesAdLib,
 	0, 0, 0
 },
 {
 	{
 		"inca2",
-		"",
+		"v1.000",
 		AD_ENTRY1s("intro.stk", "1fa92b00fe80a20f34ec34a8e2fa869e", 923072),
 		DE_DEU,
 		kPlatformDOS,
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
+	kFeaturesAdLib,
+	0, 0, 0
+},
+
+// US floppy box dated 18.03.1994
+{
+	{
+		"inca2",
+		"v1.0",
+		AD_ENTRY1s("intro.stk", "48cc6e6b0b0b343f876290d2700d8eba", 804780),
+		EN_USA,
+		kPlatformDOS,
+		ADGF_NO_FLAGS,
+		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
+	},
 	kFeaturesAdLib,
 	0, 0, 0
 },
@@ -82,12 +99,11 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesCD,
 	0, 0, 0
 },
 {
-	{
+	{	// Bugreport #12757
 		"inca2",
 		"v1.07",
 		AD_ENTRY1s("intro.stk", "b56e4147acc5852c6fc2de5985ab94b0", 804796),
@@ -96,7 +112,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesCD,
 	0, 0, 0
 },
@@ -110,7 +125,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesCD,
 	0, 0, 0
 },
@@ -124,7 +138,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesCD,
 	0, 0, 0
 },
@@ -138,7 +151,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesCD,
 	0, 0, 0
 },
@@ -152,7 +164,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesCD,
 	0, 0, 0
 },
@@ -169,7 +180,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesAdLib,
 	0, 0, 0
 },
@@ -183,7 +193,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesAdLib,
 	0, 0, 0
 },
@@ -197,7 +206,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesAdLib,
 	0, 0, 0
 },
@@ -211,7 +219,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesAdLib,
 	0, 0, 0
 },
@@ -225,7 +232,6 @@
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesAdLib,
 	0, 0, 0
 },
@@ -235,7 +241,7 @@
 {
 	{
 		"inca2",
-		"Non-Interactive Demo",
+		"Non-Interactive Demo (v2.0)", // dated 8/1/93
 		{
 			{"cons.imd", 0, "f896ba0c4a1ac7f7260d342655980b49", 17804},
 			{"conseil.imd", 0, "aaedd5482d5b271e233e86c5a03cf62e", 33999},
@@ -255,7 +261,6 @@
 		ADGF_DEMO,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
-	kGameTypeInca2,
 	kFeaturesAdLib | kFeaturesBATDemo,
 	0, 0, 7
 },

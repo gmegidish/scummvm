@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,6 +35,8 @@ void Hotspot::AGS_EngineStartup(IAGSEngine *engine) {
 	SCRIPT_METHOD(Hotspot::GetProperty^1, Hotspot::GetProperty);
 	SCRIPT_METHOD(Hotspot::GetPropertyText^2, Hotspot::GetPropertyText);
 	SCRIPT_METHOD(Hotspot::GetTextProperty^1, Hotspot::GetTextProperty);
+	SCRIPT_METHOD(Hotspot::SetProperty^2, Hotspot::SetProperty);
+	SCRIPT_METHOD(Hotspot::SetTextProperty^2, Hotspot::SetTextProperty);
 	SCRIPT_METHOD(Hotspot::RunInteraction^1, Hotspot::RunInteraction);
 	SCRIPT_METHOD(Hotspot::get_Enabled, Hotspot::GetEnabled);
 	SCRIPT_METHOD(Hotspot::set_Enabled, Hotspot::SetEnabled);
@@ -73,6 +74,16 @@ void Hotspot::GetPropertyText(ScriptMethodParams &params) {
 void Hotspot::GetTextProperty(ScriptMethodParams &params) {
 	PARAMS2(ScriptHotspot *, hss, const char *, property);
 	params._result = AGS3::Hotspot_GetTextProperty(hss, property);
+}
+
+void Hotspot::SetProperty(ScriptMethodParams &params) {
+	PARAMS3(ScriptHotspot *, hss, const char *, property, int, value);
+	params._result = AGS3::Hotspot_SetProperty(hss, property, value);
+}
+
+void Hotspot::SetTextProperty(ScriptMethodParams &params) {
+	PARAMS3(ScriptHotspot *, hss, const char *, property, const char *, value);
+	params._result = AGS3::Hotspot_SetTextProperty(hss, property, value);
 }
 
 void Hotspot::RunInteraction(ScriptMethodParams &params) {

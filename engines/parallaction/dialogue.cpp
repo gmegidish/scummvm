@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -138,12 +137,12 @@ DialogueManager::DialogueManager(Parallaction *vm, ZonePtr z) : _vm(vm), _z(z) {
 	_questioner = isNpc ? _vm->_disk->loadTalk(_z->u._filename.c_str()) : _vm->_char._talk;
 	_answerer = _vm->_char._talk;
 
-	_cmdList = 0;
+	_cmdList = nullptr;
 	_answerId = 0;
 
 	_faceId = 0;
 
-	_q = NULL;
+	_q = nullptr;
 	memset(_visAnswers, 0, sizeof(_visAnswers));
 	_numVisAnswers = 0;
 
@@ -158,6 +157,7 @@ DialogueManager::DialogueManager(Parallaction *vm, ZonePtr z) : _vm(vm), _z(z) {
 }
 
 void DialogueManager::start() {
+	_vm->_gfx->hideFloatingLabel();
 	assert(_dialogue);
 	_q = _dialogue->_questions[0];
 	_state = DIALOGUE_START;
@@ -295,7 +295,7 @@ void DialogueManager::runQuestion() {
 
 
 void DialogueManager::nextAnswer() {
-	if (_q->_answers[0] == NULL) {
+	if (_q->_answers[0] == nullptr) {
 		transitionToState(DIALOGUE_OVER);
 		return;
 	}
@@ -333,7 +333,7 @@ void DialogueManager::runAnswer() {
 
 void DialogueManager::nextQuestion() {
 	_q = _dialogue->findQuestion(_q->_answers[_answerId]->_followingName);
-	if (_q == 0) {
+	if (_q == nullptr) {
 		transitionToState(DIALOGUE_OVER);
 	} else {
 		transitionToState(displayQuestion() ? RUN_QUESTION : NEXT_ANSWER);
@@ -555,7 +555,7 @@ void Parallaction::exitDialogueMode() {
 void Parallaction::destroyDialogueManager() {
 	// destroy the _dialogueMan here
 	delete _dialogueMan;
-	_dialogueMan = 0;
+	_dialogueMan = nullptr;
 }
 
 void Parallaction::runDialogueFrame() {

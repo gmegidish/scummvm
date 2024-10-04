@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -150,7 +149,7 @@ Inventory *Parallaction_br::findInventory(const char *name) {
 	if (!scumm_stricmp(name, "doug")) {
 		return _dougInventory;
 	}
-	return 0;
+	return nullptr;
 }
 
 InventoryRenderer::InventoryRenderer(Parallaction *vm, InventoryProperties *props) : _vm(vm), _props(props) {
@@ -375,21 +374,21 @@ void Parallaction_br::initInventory() {
 void Parallaction_ns::destroyInventory() {
 	delete _inventoryRenderer;
 	delete _inventory;
-	_inventory = 0;
-	_inventoryRenderer = 0;
+	_inventory = nullptr;
+	_inventoryRenderer = nullptr;
 }
 
 void Parallaction_br::destroyInventory() {
 	delete _inventoryRenderer;
-	_inventory = 0;
-	_inventoryRenderer = 0;
+	_inventory = nullptr;
+	_inventoryRenderer = nullptr;
 
 	delete _dinoInventory;
 	delete _donnaInventory;
 	delete _dougInventory;
-	_dinoInventory = 0;
-	_donnaInventory = 0;
-	_dougInventory = 0;
+	_dinoInventory = nullptr;
+	_donnaInventory = nullptr;
+	_dougInventory = nullptr;
 }
 
 

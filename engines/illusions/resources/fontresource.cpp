@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,6 +51,13 @@ void CharInfo::load(byte *dataStart, Common::SeekableReadStream &stream) {
 
 // CharRange
 
+CharRange::CharRange() : _charInfos(nullptr) {
+}
+
+CharRange::~CharRange() {
+	delete[] _charInfos;
+}
+
 void CharRange::load(byte *dataStart, Common::SeekableReadStream &stream) {
 	_firstChar = stream.readUint16LE();
 	_lastChar = stream.readUint16LE();
@@ -76,10 +82,11 @@ bool CharRange::containsChar(uint16 c) {
 
 // FontResource
 
-FontResource::FontResource() {
+FontResource::FontResource() : _charRanges(nullptr) {
 }
 
 FontResource::~FontResource() {
+	delete[] _charRanges;
 }
 
 void FontResource::load(Resource *resource) {
@@ -108,7 +115,7 @@ CharInfo *FontResource::getCharInfo(uint16 c) {
 		if (_charRanges[i].containsChar(c))
 			return _charRanges[i].getCharInfo(c);
 	}
-	return 0;
+	return nullptr;
 }
 
 const Common::Rect FontResource::calculateRectForText(uint16 *text, uint textLength) {

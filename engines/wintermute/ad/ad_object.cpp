@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,6 +48,7 @@
 #include "engines/wintermute/base/scriptables/script_stack.h"
 #include "engines/wintermute/base/scriptables/script_value.h"
 #include "engines/wintermute/base/sound/base_sound.h"
+
 #include "common/str.h"
 #include "common/util.h"
 
@@ -254,8 +254,9 @@ bool AdObject::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisStack
 		stack->correctParams(1);
 		const char *animName = stack->pop()->getString();
 		delete[] _forcedTalkAnimName;
-		_forcedTalkAnimName = new char[strlen(animName) + 1];
-		strcpy(_forcedTalkAnimName, animName);
+		size_t animNameSize = strlen(animName) + 1;
+		_forcedTalkAnimName = new char[animNameSize];
+		Common::strcpy_s(_forcedTalkAnimName, animNameSize, animName);
 		_forcedTalkAnimUsed = false;
 		stack->pushBool(true);
 		return STATUS_OK;

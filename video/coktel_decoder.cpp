@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -51,9 +56,9 @@ CoktelDecoder::State::State() : flags(0), speechId(0) {
 CoktelDecoder::CoktelDecoder(Audio::Mixer *mixer, Audio::Mixer::SoundType soundType) :
 	_mixer(mixer), _soundType(soundType), _width(0), _height(0), _x(0), _y(0),
 	_defaultX(0), _defaultY(0), _features(0), _frameCount(0), _paletteDirty(false),
-	_ownSurface(true), _frameRate(12), _hasSound(false), _soundEnabled(false),
-	_soundStage(kSoundNone), _audioStream(0), _startTime(0), _pauseStartTime(0),
-	_isPaused(false) {
+	_isDouble(false), _ownSurface(true), _frameRate(12), _hasSound(false),
+	_soundEnabled(false), _soundStage(kSoundNone), _audioStream(0), _startTime(0),
+	_pauseStartTime(0), _isPaused(false) {
 
 	assert(_mixer);
 
@@ -153,6 +158,10 @@ void CoktelDecoder::setXY(uint16 x, uint16 y) {
 
 void CoktelDecoder::setXY() {
 	setXY(_defaultX, _defaultY);
+}
+
+void CoktelDecoder::setDouble(bool isDouble) {
+	_isDouble = isDouble;
 }
 
 void CoktelDecoder::setFrameRate(Common::Rational frameRate) {
@@ -477,6 +486,29 @@ void CoktelDecoder::renderBlockWhole(Graphics::Surface &dstSurf, const byte *src
 	}
 }
 
+void CoktelDecoder::renderBlockWholeDouble(Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect) {
+	Common::Rect srcRect = rect;
+
+	rect.clip(dstSurf.w / 2, dstSurf.h / 2);
+
+	byte *dst = (byte *)dstSurf.getBasePtr(2 * rect.left, 2 * rect.top);
+	byte bpp = dstSurf.format.bytesPerPixel;
+	for (int i = 0; i < rect.height(); i++) {
+		// Each pixel on the source row is written twice to the destination row
+		for (int j = 0; j < rect.width(); j++) {
+			memcpy(dst + 2 * j * bpp, src + j * bpp, bpp);
+			memcpy(dst + (2 * j + 1) * bpp, src + j * bpp, bpp);
+		}
+		dst += dstSurf.pitch;
+
+		// Then, the whole row is written again to the destination
+		memcpy(dst, dst - dstSurf.pitch, 2 * rect.width() * bpp);
+		dst += dstSurf.pitch;
+
+		src += srcRect.width() * bpp;
+	}
+}
+
 // A quarter-wide whole, completely filled block
 void CoktelDecoder::renderBlockWhole4X(Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect) {
 	Common::Rect srcRect = rect;
@@ -558,6 +590,48 @@ void CoktelDecoder::renderBlockSparse(Graphics::Surface &dstSurf, const byte *sr
 		dst += dstSurf.pitch;
 	}
 }
+
+void CoktelDecoder::renderBlockSparseDouble(Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect) {
+	Common::Rect srcRect = rect;
+
+	rect.clip(dstSurf.w / 2, dstSurf.h / 2);
+
+	byte *dst = (byte *)dstSurf.getBasePtr(2 * rect.left, 2 * rect.top);
+	for (int i = 0; i < rect.height(); i++) {
+		byte *dstRow = dst;
+		int16 pixWritten = 0;
+
+		// Each pixel on the source row is written twice to the destination row
+		while (pixWritten < srcRect.width()) {
+			int16 pixCount = *src++;
+
+			if (pixCount & 0x80) { // Data
+				int16 copyCount;
+
+				pixCount = MIN<int16>((pixCount & 0x7F) + 1, srcRect.width() - pixWritten);
+				copyCount = CLIP<int16>(rect.width() - pixWritten, 0, pixCount);
+
+				for (int j = 0; j < copyCount; j++) {
+					dstRow[2 * j] = src[j];
+					dstRow[2 * j + 1] = src[j];
+				}
+
+				pixWritten += pixCount;
+				dstRow += 2 * pixCount;
+				src += pixCount;
+			} else { // "Hole"
+				pixWritten += pixCount + 1;
+				dstRow += 2 * (pixCount + 1); // The hole size is doubled in the destination
+			}
+		}
+
+		dst += dstSurf.pitch;
+		// Then, the whole row is written again to the destination
+		memcpy(dst, dst - dstSurf.pitch, 2 * rect.width());
+		dst += dstSurf.pitch;
+	}
+}
+
 
 // A half-high sparse block
 void CoktelDecoder::renderBlockSparse2Y(Graphics::Surface &dstSurf, const byte *src, Common::Rect &rect) {
@@ -652,6 +726,17 @@ uint32 CoktelDecoder::getTimeToNextFrame() const {
 	return nextFrameStartTime - elapsedTime;
 }
 
+int32 CoktelDecoder::getExpectedFrameFromCurrentTime() const {
+	if (endOfVideo() || _curFrame < 0)
+		return -1;
+
+	int32 elapsedTime = g_system->getMillis() - _startTime;
+	if (elapsedTime < 0)
+		return -1;
+
+	return (Common::Rational(elapsedTime * getFrameRate()) / 1000).toInt();
+}
+
 uint32 CoktelDecoder::getStaticTimeToNextFrame() const {
 	return (1000 / _frameRate).toInt();
 }
@@ -742,9 +827,7 @@ bool PreIMDDecoder::loadStream(Common::SeekableReadStream *stream) {
 	_frameCount = _stream->readUint16LE();
 
 	_videoBufferSize = _width * _height;
-	_videoBuffer     = new byte[_videoBufferSize];
-
-	memset(_videoBuffer, 0, _videoBufferSize);
+	_videoBuffer     = new byte[_videoBufferSize]();
 
 	return true;
 }
@@ -876,6 +959,10 @@ void PreIMDDecoder::renderFrame() {
 	}
 
 	_dirtyRects.push_back(Common::Rect(_x, _y, _x + _width, _y + _height));
+}
+
+uint32 PreIMDDecoder::getFlags() const {
+	return 0;
 }
 
 Graphics::PixelFormat PreIMDDecoder::getPixelFormat() const {
@@ -1141,8 +1228,7 @@ bool IMDDecoder::assessVideoProperties() {
 	}
 
 	for (int i = 0; i < 2; i++) {
-		_videoBuffer[i] = new byte[_videoBufferSize];
-		memset(_videoBuffer[i], 0, _videoBufferSize);
+		_videoBuffer[i] = new byte[_videoBufferSize]();
 	}
 
 	return true;
@@ -1465,11 +1551,17 @@ bool IMDDecoder::renderFrame(Common::Rect &rect) {
 	}
 
 	// Evaluate the block type
-	if      (type == 0x01)
-		renderBlockSparse  (_surface, dataPtr, rect);
-	else if (type == 0x02)
-		renderBlockWhole   (_surface, dataPtr, rect);
-	else if (type == 0x42)
+	if (type == 0x01) {
+		if (_isDouble)
+			renderBlockSparseDouble(_surface, dataPtr, rect);
+		else
+			renderBlockSparse(_surface, dataPtr, rect);
+	} else if (type == 0x02) {
+		if (_isDouble)
+			renderBlockWholeDouble(_surface, dataPtr, rect);
+		else
+			renderBlockWhole(_surface, dataPtr, rect);
+	} else if (type == 0x42)
 		renderBlockWhole4X (_surface, dataPtr, rect);
 	else if ((type & 0x0F) == 0x02)
 		renderBlockWhole2Y (_surface, dataPtr, rect);
@@ -1537,6 +1629,10 @@ void IMDDecoder::emptySoundSlice(bool hasNextCmd) {
 	memset(soundBuf, 0, _soundSliceSize);
 
 	_audioStream->queueBuffer(soundBuf, _soundSliceSize, DisposeAfterUse::YES, 0);
+}
+
+uint32 IMDDecoder::getFlags() const {
+	return _flags;
 }
 
 Graphics::PixelFormat IMDDecoder::getPixelFormat() const {
@@ -1958,8 +2054,7 @@ bool VMDDecoder::assessVideoProperties() {
 		}
 
 		for (int i = 0; i < 3; i++) {
-			_videoBuffer[i] = new byte[_videoBufferSize];
-			memset(_videoBuffer[i], 0, _videoBufferSize);
+			_videoBuffer[i] = new byte[_videoBufferSize]();
 
 			_8bppSurface[i].init(_width * _bytesPerPixel, _height, _width * _bytesPerPixel,
 			                     _videoBuffer[i], Graphics::PixelFormat::createFormatCLUT8());
@@ -2377,7 +2472,7 @@ bool VMDDecoder::renderFrame(Common::Rect &rect) {
 		if ((type == 2) && (rect.width() == _surface.w) && (_x == 0) && (_blitMode == 0)) {
 			// Directly uncompress onto the video surface
 			const int offsetX = rect.left * _surface.format.bytesPerPixel;
-			const int offsetY = (_y + rect.top) * _surface.pitch;
+			const int offsetY = rect.top * _surface.pitch;
 			const int offset  = offsetX + offsetY;
 
 			if (deLZ77((byte *)_surface.getPixels() + offset, dataPtr, dataSize,
@@ -2403,11 +2498,17 @@ bool VMDDecoder::renderFrame(Common::Rect &rect) {
 	}
 
 	// Evaluate the block type
-	if      (type == 0x01)
-		renderBlockSparse  (*surface, dataPtr, *blockRect);
-	else if (type == 0x02)
-		renderBlockWhole   (*surface, dataPtr, *blockRect);
-	else if (type == 0x03)
+	if      (type == 0x01) {
+		if (_isDouble)
+			renderBlockSparseDouble(*surface, dataPtr, *blockRect);
+		else
+			renderBlockSparse(*surface, dataPtr, *blockRect);
+	} else if (type == 0x02) {
+		if (_isDouble)
+			renderBlockWholeDouble(*surface, dataPtr, *blockRect);
+		else
+			renderBlockWhole(*surface, dataPtr, *blockRect);
+	} else if (type == 0x03)
 		renderBlockRLE     (*surface, dataPtr, *blockRect);
 	else if (type == 0x42)
 		renderBlockWhole4X (*surface, dataPtr, *blockRect);
@@ -2715,6 +2816,10 @@ private:
 
 Audio::AudioStream *VMDDecoder::create16bitADPCM(Common::SeekableReadStream *stream) {
 	return new VMD_ADPCMStream(stream, DisposeAfterUse::YES, _soundFreq, (_soundStereo == 0) ? 1 : 2);
+}
+
+uint32 VMDDecoder::getFlags() const {
+	return _flags;
 }
 
 Graphics::PixelFormat VMDDecoder::getPixelFormat() const {

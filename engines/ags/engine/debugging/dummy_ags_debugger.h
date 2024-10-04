@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,18 +29,18 @@ namespace AGS3 {
 struct DummyAGSDebugger : IAGSEditorDebugger {
 public:
 
-	virtual bool Initialize() override {
+	bool Initialize() override {
 		return false;
 	}
-	virtual void Shutdown() override {
+	void Shutdown() override {
 	}
-	virtual bool SendMessageToEditor(const char *message) override {
+	bool SendMessageToEditor(const char *message) override {
 		return false;
 	}
-	virtual bool IsMessageAvailable() override {
+	bool IsMessageAvailable() override {
 		return false;
 	}
-	virtual char *GetNextMessage() override {
+	char *GetNextMessage() override {
 		return NULL;
 	}
 };

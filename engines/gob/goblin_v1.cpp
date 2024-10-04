@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -47,7 +52,7 @@ void Goblin_v1::freeObjects() {
 		_vm->_sound->sampleFree(&_soundData[i]);
 
 	for (int i = 0; i < 4; i++) {
-		if (_goblins[i] == 0)
+		if (_goblins[i] == nullptr)
 			continue;
 
 		_goblins[i]->stateMach = _goblins[i]->realStateMach;
@@ -55,24 +60,24 @@ void Goblin_v1::freeObjects() {
 		for (state = 0; state < 40; state++) {
 			for (col = 0; col < 6; col++) {
 				delete _goblins[i]->stateMach[state][col];
-				_goblins[i]->stateMach[state][col] = 0;
+				_goblins[i]->stateMach[state][col] = nullptr;
 			}
 		}
 
 		if (i == 3) {
 			for (state = 40; state < 70; state++) {
 				delete _goblins[3]->stateMach[state][0];
-				_goblins[3]->stateMach[state][0] = 0;
+				_goblins[3]->stateMach[state][0] = nullptr;
 			}
 		}
 
 		delete[] _goblins[i]->stateMach;
 		delete _goblins[i];
-		_goblins[i] = 0;
+		_goblins[i] = nullptr;
 	}
 
 	for (int i = 0; i < 20; i++) {
-		if (_objects[i] == 0)
+		if (_objects[i] == nullptr)
 			continue;
 
 		_objects[i]->stateMach = _objects[i]->realStateMach;
@@ -80,13 +85,13 @@ void Goblin_v1::freeObjects() {
 		for (state = 0; state < 40; state++) {
 			for (col = 0; col < 6; col++) {
 				delete _objects[i]->stateMach[state][col];
-				_objects[i]->stateMach[state][col] = 0;
+				_objects[i]->stateMach[state][col] = nullptr;
 			}
 		}
 
 		delete[] _objects[i]->stateMach;
 		delete _objects[i];
-		_objects[i] = 0;
+		_objects[i] = nullptr;
 	}
 }
 
@@ -94,7 +99,7 @@ void Goblin_v1::placeObject(Gob_Object *objDesc, char animated,
 		int16 index, int16 x, int16 y, int16 state) {
 	int16 layer;
 
-	if (objDesc->stateMach[objDesc->state][0] != 0) {
+	if (objDesc->stateMach[objDesc->state][0] != nullptr) {
 		objDesc->animation = objDesc->stateMach[objDesc->state][0]->animation;
 
 		objDesc->noTick = 0;
@@ -137,11 +142,11 @@ void Goblin_v1::placeObject(Gob_Object *objDesc, char animated,
 }
 
 void Goblin_v1::initiateMove(Mult::Mult_Object *obj) {
-	_vm->_map->findNearestToDest(0);
-	_vm->_map->findNearestToGob(0);
-	_vm->_map->optimizePoints(0, 0, 0);
+	_vm->_map->findNearestToDest(nullptr);
+	_vm->_map->findNearestToGob(nullptr);
+	_vm->_map->optimizePoints(nullptr, 0, 0);
 
-	_pathExistence = _vm->_map->checkDirectPath(0,
+	_pathExistence = _vm->_map->checkDirectPath(nullptr,
 			_vm->_map->_curGoblinX, _vm->_map->_curGoblinY,
 	    _pressedMapX, _pressedMapY);
 
@@ -188,7 +193,7 @@ void Goblin_v1::movePathFind(Mult::Mult_Object *obj,
 			_vm->_map->_destY = _pressedMapY;
 		} else {
 
-			if (_vm->_map->checkDirectPath(0, _vm->_map->_curGoblinX,
+			if (_vm->_map->checkDirectPath(nullptr, _vm->_map->_curGoblinX,
 						_vm->_map->_curGoblinY, _gobDestX, _gobDestY) == 1) {
 				_vm->_map->_destX = _gobDestX;
 				_vm->_map->_destY = _gobDestY;
@@ -196,7 +201,7 @@ void Goblin_v1::movePathFind(Mult::Mult_Object *obj,
 					(_vm->_map->_curGoblinY == _vm->_map->_destY)) {
 
 				if (_vm->_map->_nearestWayPoint > _vm->_map->_nearestDest) {
-					_vm->_map->optimizePoints(0, 0, 0);
+					_vm->_map->optimizePoints(nullptr, 0, 0);
 
 					const WayPoint &wayPoint = _vm->_map->getWayPoint(_vm->_map->_nearestWayPoint);
 
@@ -206,7 +211,7 @@ void Goblin_v1::movePathFind(Mult::Mult_Object *obj,
 					if (_vm->_map->_nearestWayPoint > _vm->_map->_nearestDest)
 						_vm->_map->_nearestWayPoint--;
 				} else if (_vm->_map->_nearestWayPoint < _vm->_map->_nearestDest) {
-					_vm->_map->optimizePoints(0, 0, 0);
+					_vm->_map->optimizePoints(nullptr, 0, 0);
 
 					const WayPoint &wayPoint = _vm->_map->getWayPoint(_vm->_map->_nearestWayPoint);
 
@@ -216,7 +221,7 @@ void Goblin_v1::movePathFind(Mult::Mult_Object *obj,
 					if (_vm->_map->_nearestWayPoint < _vm->_map->_nearestDest)
 						_vm->_map->_nearestWayPoint++;
 				} else {
-					if ((_vm->_map->checkDirectPath(0, _vm->_map->_curGoblinX,
+					if ((_vm->_map->checkDirectPath(nullptr, _vm->_map->_curGoblinX,
 						_vm->_map->_curGoblinY, _gobDestX, _gobDestY) == 3) &&
 							(_vm->_map->getPass(_pressedMapX, _pressedMapY) != 0)) {
 
@@ -436,7 +441,7 @@ void Goblin_v1::moveAdvance(Mult::Mult_Object *obj, Gob_Object *gobDesc,
 	int16 newY;
 	int16 flag;
 
-	movePathFind(0, gobDesc, nextAct);
+	movePathFind(nullptr, gobDesc, nextAct);
 
 	gobDesc->curFrame++;
 	if (gobDesc->curFrame == 1)

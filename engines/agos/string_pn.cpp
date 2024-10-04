@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -68,6 +67,8 @@ void AGOSEngine_PN::uncomstr(char *c, uint32 x) {
 	*c = 0;
 }
 
+#define OBJECT_NAME_SIZE 15
+
 static const char *const objectNames[30] = {
 	"\0",
 	"Take \0",
@@ -109,16 +110,16 @@ void AGOSEngine_PN::getObjectName(char *v, uint16 x) {
 		uncomstr(v, ftext(getlong(27), x * _dataBase[47]));
 	} else {
 		assert(x < 30);
-		strcpy(v, objectNames[x]);
+		Common::strcpy_s(v, OBJECT_NAME_SIZE, objectNames[x]);
 	}
 }
 
 void AGOSEngine_PN::pcl(const char *s) {
 	Common::strlcat(_sb, s, 80);
-	if (strchr(s, '\n') == 0) {
+	if (strchr(s, '\n') == nullptr) {
 		for (char *str = _sb; *str; str++)
 			windowPutChar(_windowArray[_curWindow], *str);
-		strcpy(_sb, "");
+		_sb[0] = '\0'; // Reset to empty string
 	}
 }
 

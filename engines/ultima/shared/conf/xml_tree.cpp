@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@ XMLTree::XMLTree() : _tree(nullptr), _isFile(false),
 		_readOnly(false) {
 }
 
-XMLTree::XMLTree(const Common::String &fname) : _tree(nullptr), _isFile(true),
+XMLTree::XMLTree(const Common::Path &fname) : _tree(nullptr), _isFile(true),
 	  _readOnly(false) {
 	readConfigFile(fname);
 }
@@ -53,7 +52,7 @@ void XMLTree::clear() {
 	_readOnly = false;
 }
 
-bool XMLTree::readConfigFile(const Common::String &fname) {
+bool XMLTree::readConfigFile(const Common::Path &fname) {
 	Common::File f;
 	_filename = fname;
 
@@ -131,8 +130,12 @@ bool XMLTree::checkRoot(const Common::String &key) const {
 void XMLTree::value(const Common::String &key, Common::String &ret,
 					const char *defaultvalue) const {
 	const XMLNode *sub = _tree->subtree(key);
-	if (sub)
+	if (sub) { 
 		ret = sub->text();
+		if (ret.empty())
+			if (sub->firstChild())
+				ret = sub->firstChild()->text();
+	}	
 	else
 		ret = defaultvalue;
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -100,7 +99,7 @@ bool PrinceEngine::loadLocation(uint16 locationNr) {
 	freeAllSamples();
 
 	debugEngine("PrinceEngine::loadLocation %d", locationNr);
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.remove(Common::String::format("%02d", _locationNr));
 
 	_locationNr = locationNr;
@@ -116,7 +115,7 @@ bool PrinceEngine::loadLocation(uint16 locationNr) {
 
 	if (!(getFeatures() & GF_EXTRACTED)) {
 		PtcArchive *locationArchive = new PtcArchive();
-		if (!locationArchive->open(locationNrStr + "/databank.ptc"))
+		if (!locationArchive->open(Common::Path(locationNrStr).appendComponent("databank.ptc")))
 			error("Can't open location %s", locationNrStr.c_str());
 
 		SearchMan.add(locationNrStr, locationArchive);
@@ -204,21 +203,21 @@ bool PrinceEngine::loadLocation(uint16 locationNr) {
 }
 
 bool PrinceEngine::loadAnim(uint16 animNr, bool loop) {
-	Common::String streamName = Common::String::format("AN%02d", animNr);
+	Common::Path streamName(Common::String::format("AN%02d", animNr));
 	Common::SeekableReadStream *flicStream = SearchMan.createReadStreamForMember(streamName);
 
 	if (!flicStream) {
-		error("Can't open %s", streamName.c_str());
+		error("Can't open %s", streamName.toString().c_str());
 		return false;
 	}
 
 	flicStream = Resource::getDecompressedStream(flicStream);
 
 	if (!_flicPlayer.loadStream(flicStream)) {
-		error("Can't load flic stream %s", streamName.c_str());
+		error("Can't load flic stream %s", streamName.toString().c_str());
 	}
 
-	debugEngine("%s loaded", streamName.c_str());
+	debugEngine("%s loaded", streamName.toString().c_str());
 	_flicLooped = loop;
 	_flicPlayer.start();
 	playNextFLCFrame();
@@ -228,7 +227,6 @@ bool PrinceEngine::loadAnim(uint16 animNr, bool loop) {
 bool PrinceEngine::loadZoom(byte *zoomBitmap, uint32 dataSize, const char *resourceName) {
 	Common::SeekableReadStream *stream = SearchMan.createReadStreamForMember(resourceName);
 	if (!stream) {
-		delete stream;
 		return false;
 	}
 	stream = Resource::getDecompressedStream(stream);
@@ -245,7 +243,6 @@ bool PrinceEngine::loadZoom(byte *zoomBitmap, uint32 dataSize, const char *resou
 bool PrinceEngine::loadShadow(byte *shadowBitmap, uint32 dataSize, const char *resourceName1, const char *resourceName2) {
 	Common::SeekableReadStream *stream = SearchMan.createReadStreamForMember(resourceName1);
 	if (!stream) {
-		delete stream;
 		return false;
 	}
 
@@ -260,7 +257,6 @@ bool PrinceEngine::loadShadow(byte *shadowBitmap, uint32 dataSize, const char *r
 	Common::SeekableReadStream *stream2 = SearchMan.createReadStreamForMember(resourceName2);
 	if (!stream2) {
 		delete stream;
-		delete stream2;
 		return false;
 	}
 
@@ -282,7 +278,6 @@ bool PrinceEngine::loadShadow(byte *shadowBitmap, uint32 dataSize, const char *r
 bool PrinceEngine::loadTrans(byte *transTable, const char *resourceName) {
 	Common::SeekableReadStream *stream = SearchMan.createReadStreamForMember(resourceName);
 	if (!stream) {
-		delete stream;
 		for (int i = 0; i < 256; i++) {
 			for (int j = 0; j < 256; j++) {
 				transTable[i * 256 + j] = j;
@@ -304,7 +299,6 @@ bool PrinceEngine::loadTrans(byte *transTable, const char *resourceName) {
 bool PrinceEngine::loadPath(const char *resourceName) {
 	Common::SeekableReadStream *stream = SearchMan.createReadStreamForMember(resourceName);
 	if (!stream) {
-		delete stream;
 		return false;
 	}
 
@@ -322,10 +316,9 @@ bool PrinceEngine::loadAllInv() {
 	for (int i = 0; i < kMaxInv; i++) {
 		InvItem tempInvItem;
 
-		const Common::String invStreamName = Common::String::format("INV%02d", i);
+		const Common::Path invStreamName(Common::String::format("INV%02d", i));
 		Common::SeekableReadStream *invStream = SearchMan.createReadStreamForMember(invStreamName);
 		if (!invStream) {
-			delete invStream;
 			return true;
 		}
 
@@ -352,7 +345,6 @@ bool PrinceEngine::loadAllInv() {
 bool PrinceEngine::loadMobPriority(const char *resourceName) {
 	Common::SeekableReadStream *stream = SearchMan.createReadStreamForMember(resourceName);
 	if (!stream) {
-		delete stream;
 		return false;
 	}
 

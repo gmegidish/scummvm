@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,10 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+// For _tcscpy
+#define FORBIDDEN_SYMBOL_EXCEPTION_strcpy
 
 // We cannot use common/scummsys.h directly as it will include
 // windows.h and we need to do it by hand to allow excluded functions
@@ -49,7 +51,7 @@
 	// We use functionality introduced with Win7 in this file.
 	// To assure that including the respective system headers gives us all
 	// required definitions we set Win7 as minimum version we target.
-	// See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa383745%28v=vs.85%29.aspx#macros_for_conditional_declarations
+	// See: https://docs.microsoft.com/en-us/windows/win32/winprog/using-the-windows-headers#macros-for-conditional-declarations
 	#include <sdkddkver.h>
 	#undef _WIN32_WINNT
 	#define _WIN32_WINNT _WIN32_WINNT_WIN7
@@ -68,19 +70,19 @@
 
 #include "common/textconsole.h"
 
-// System.Title property key, values taken from http://msdn.microsoft.com/en-us/library/bb787584.aspx
+// System.Title property key, values taken from https://docs.microsoft.com/en-us/windows/win32/properties/props-system-title
 const PROPERTYKEY PKEY_Title = { /* fmtid = */ { 0xF29F85E0, 0x4FF9, 0x1068, { 0xAB, 0x91, 0x08, 0x00, 0x2B, 0x27, 0xB3, 0xD9 } }, /* propID = */ 2 };
 
-Win32TaskbarManager::Win32TaskbarManager(SdlWindow_Win32 *window) : _window(window), _taskbar(NULL), _count(0), _icon(NULL) {
+Win32TaskbarManager::Win32TaskbarManager(SdlWindow_Win32 *window) : _window(window), _taskbar(nullptr), _count(0), _icon(nullptr) {
+	CoInitialize(nullptr);
+
 	// Do nothing if not running on Windows 7 or later
 	if (!Win32::confirmWindowsVersion(6, 1))
 		return;
 
-	CoInitialize(NULL);
-
 	// Try creating instance (on fail, _taskbar will contain NULL)
 	HRESULT hr = CoCreateInstance(CLSID_TaskbarList,
-	                              0,
+	                              nullptr,
 	                              CLSCTX_INPROC_SERVER,
 	                              IID_ITaskbarList3,
 	                              reinterpret_cast<void **> (&(_taskbar)));
@@ -89,7 +91,7 @@ Win32TaskbarManager::Win32TaskbarManager(SdlWindow_Win32 *window) : _window(wind
 		// Initialize taskbar object
 		if (FAILED(_taskbar->HrInit())) {
 			_taskbar->Release();
-			_taskbar = NULL;
+			_taskbar = nullptr;
 		}
 	} else {
 		warning("[Win32TaskbarManager::init] Cannot create taskbar instance");
@@ -99,7 +101,7 @@ Win32TaskbarManager::Win32TaskbarManager(SdlWindow_Win32 *window) : _window(wind
 Win32TaskbarManager::~Win32TaskbarManager() {
 	if (_taskbar)
 		_taskbar->Release();
-	_taskbar = NULL;
+	_taskbar = nullptr;
 
 	if (_icon)
 		DestroyIcon(_icon);
@@ -110,21 +112,21 @@ Win32TaskbarManager::~Win32TaskbarManager() {
 void Win32TaskbarManager::setOverlayIcon(const Common::String &name, const Common::String &description) {
 	//warning("[Win32TaskbarManager::setOverlayIcon] Setting overlay icon to: %s (%s)", name.c_str(), description.c_str());
 
-	if (_taskbar == NULL)
+	if (_taskbar == nullptr)
 		return;
 
 	if (name.empty()) {
-		_taskbar->SetOverlayIcon(_window->getHwnd(), NULL, L"");
+		_taskbar->SetOverlayIcon(_window->getHwnd(), nullptr, L"");
 		return;
 	}
 
 	// Compute full icon path
-	Common::String iconPath = getIconPath(name, ".ico");
+	Common::Path iconPath = getIconPath(name, ".ico");
 	if (iconPath.empty())
 		return;
 
-	TCHAR *tIconPath = Win32::stringToTchar(iconPath);
-	HICON pIcon = (HICON)::LoadImage(NULL, tIconPath, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+	TCHAR *tIconPath = Win32::stringToTchar(iconPath.toString(Common::Path::kNativeSeparator));
+	HICON pIcon = (HICON)::LoadImage(nullptr, tIconPath, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
 	free(tIconPath);
 	if (!pIcon) {
 		warning("[Win32TaskbarManager::setOverlayIcon] Cannot load icon!");
@@ -141,37 +143,37 @@ void Win32TaskbarManager::setOverlayIcon(const Common::String &name, const Commo
 }
 
 void Win32TaskbarManager::setProgressValue(int completed, int total) {
-	if (_taskbar == NULL)
+	if (_taskbar == nullptr)
 		return;
 
 	_taskbar->SetProgressValue(_window->getHwnd(), completed, total);
 }
 
 void Win32TaskbarManager::setProgressState(TaskbarProgressState state) {
-	if (_taskbar == NULL)
+	if (_taskbar == nullptr)
 		return;
 
 	_taskbar->SetProgressState(_window->getHwnd(), (TBPFLAG)state);
 }
 
 void Win32TaskbarManager::setCount(int count) {
-	if (_taskbar == NULL)
+	if (_taskbar == nullptr)
 		return;
 
 	if (count == 0) {
-		_taskbar->SetOverlayIcon(_window->getHwnd(), NULL, L"");
+		_taskbar->SetOverlayIcon(_window->getHwnd(), nullptr, L"");
 		return;
 	}
 
 	// FIXME: This isn't really nice and could use a cleanup.
 	//        The only good thing is that it doesn't use GDI+
-	//        and thus does not have a dependancy on it,
+	//        and thus does not have a dependency on it,
 	//        with the downside of being a lot more ugly.
 	//        Maybe replace it by a Graphic::Surface, use
 	//        ScummVM font drawing and extract the contents at
 	//        the end?
 
-	if (_count != count || _icon == NULL) {
+	if (_count != count || _icon == nullptr) {
 		// Cleanup previous icon
 		_count = count;
 		if (_icon)
@@ -196,21 +198,21 @@ void Win32TaskbarManager::setCount(int count) {
 
 		// Get DC
 		HDC hdc;
-		hdc = GetDC(NULL);
+		hdc = GetDC(nullptr);
 		HDC hMemDC = CreateCompatibleDC(hdc);
-		ReleaseDC(NULL, hdc);
+		ReleaseDC(nullptr, hdc);
 
 		// Create a bitmap mask
-		HBITMAP hBitmapMask = CreateBitmap(16, 16, 1, 1, NULL);
+		HBITMAP hBitmapMask = CreateBitmap(16, 16, 1, 1, nullptr);
 
 		// Create the DIB section with an alpha channel
 		void *lpBits;
-		HBITMAP hBitmap = CreateDIBSection(hdc, (BITMAPINFO *)&bi, DIB_RGB_COLORS, (void **)&lpBits, NULL, 0);
+		HBITMAP hBitmap = CreateDIBSection(hdc, (BITMAPINFO *)&bi, DIB_RGB_COLORS, (void **)&lpBits, nullptr, 0);
 		HBITMAP hOldBitmap = (HBITMAP)SelectObject(hMemDC, hBitmap);
 
 		// Load the icon background
-		HICON hIconBackground = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(1002 /* IDI_COUNT */));
-		DrawIconEx(hMemDC, 0, 0, hIconBackground, 16, 16, 0, 0, DI_NORMAL);
+		HICON hIconBackground = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(1002 /* IDI_COUNT */));
+		DrawIconEx(hMemDC, 0, 0, hIconBackground, 16, 16, 0, nullptr, DI_NORMAL);
 		DeleteObject(hIconBackground);
 
 		// Draw the count
@@ -276,7 +278,7 @@ void Win32TaskbarManager::setCount(int count) {
 void Win32TaskbarManager::addRecent(const Common::String &name, const Common::String &description) {
 	//warning("[Win32TaskbarManager::addRecent] Adding recent list entry: %s (%s)", name.c_str(), description.c_str());
 
-	if (_taskbar == NULL)
+	if (_taskbar == nullptr)
 		return;
 
 	// ANSI version doesn't seem to work correctly with Win7 jump lists, so explicitly use Unicode interface.
@@ -284,10 +286,10 @@ void Win32TaskbarManager::addRecent(const Common::String &name, const Common::St
 
 	// Get the ScummVM executable path.
 	WCHAR path[MAX_PATH];
-	GetModuleFileNameW(NULL, path, MAX_PATH);
+	GetModuleFileNameW(nullptr, path, MAX_PATH);
 
 	// Create a shell link.
-	if (SUCCEEDED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC, IID_IShellLinkW, reinterpret_cast<void **> (&link)))) {
+	if (SUCCEEDED(CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC, IID_IShellLinkW, reinterpret_cast<void **> (&link)))) {
 		// Convert game name and description to Unicode.
 		LPWSTR game = Win32::ansiToUnicode(name.c_str());
 		LPWSTR desc = Win32::ansiToUnicode(description.c_str());
@@ -296,11 +298,11 @@ void Win32TaskbarManager::addRecent(const Common::String &name, const Common::St
 		link->SetPath(path);
 		link->SetArguments(game);
 
-		Common::String iconPath = getIconPath(name, ".ico");
+		Common::Path iconPath = getIconPath(name, ".ico");
 		if (iconPath.empty()) {
 			link->SetIconLocation(path, 0); // No game-specific icon available
 		} else {
-			LPWSTR icon = Win32::ansiToUnicode(iconPath.c_str());
+			LPWSTR icon = Win32::ansiToUnicode(iconPath.toString(Common::Path::kNativeSeparator).c_str());
 
 			link->SetIconLocation(icon, 0);
 

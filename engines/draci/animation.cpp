@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,8 +64,8 @@ void Animation::setRelative(int relx, int rely) {
 
 Displacement Animation::getCurrentFrameDisplacement() const {
 	Displacement dis = _displacement;
-	dis.relX += scummvm_lround(dis.extraScaleX * _shift.x);
-	dis.relY += scummvm_lround(dis.extraScaleY * _shift.y);
+	dis.relX += lround(dis.extraScaleX * _shift.x);
+	dis.relY += lround(dis.extraScaleY * _shift.y);
 	return dis;
 }
 
@@ -339,7 +338,7 @@ Animation *AnimationManager::getAnimation(int id) {
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void AnimationManager::insert(Animation *anim, bool allocateIndex) {
@@ -494,7 +493,7 @@ void AnimationManager::deleteAfterIndex(int index) {
 const Animation *AnimationManager::getTopAnimation(int x, int y) const {
 	Common::List<Animation *>::const_iterator it;
 
-	Animation *retval = NULL;
+	Animation *retval = nullptr;
 
 	// Get transparent color for the current screen
 	const int transparent = _vm->_screen->getSurface()->getTransparentColor();
@@ -510,7 +509,7 @@ const Animation *AnimationManager::getTopAnimation(int x, int y) const {
 
 		const Drawable *frame = anim->getConstCurrentFrame();
 
-		if (frame == NULL) {
+		if (frame == nullptr) {
 			continue;
 		}
 
@@ -534,7 +533,7 @@ const Animation *AnimationManager::getTopAnimation(int x, int y) const {
 		if (matches) {
 			if (anim->getID() > kOverlayImage || anim->getID() < kSpeechText) {
 				return anim;
-			} else if (retval == NULL) {
+			} else if (retval == nullptr) {
 				retval = anim;
 			}
 		}

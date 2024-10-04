@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,8 +71,11 @@ void ScummHelp::updateStrings(byte gameId, byte version, Common::Platform platfo
 	case 1:
 		title = _("Common keyboard commands:");
 		ADD_BIND("F5", _("Save / Load dialog"));
-		if (version >= 5)
-			ADD_BIND(".", _("Skip line of text"));
+		// I18N: "Selection screen" is what the English game manual
+		// calls it. It contains various options, a sound test, etc.
+		if (gameId == GID_LOOM && platform == Common::kPlatformPCEngine)
+			ADD_BIND("F6", _("Selection screen"));
+		ADD_BIND(".", _("Skip line of text"));
 		ADD_BIND(_("Esc"), _("Skip cutscene"));
 		ADD_BIND(_("Space"), _("Pause game"));
 		ADD_BIND(_("Ctrl") + U32String(" 0-9"), _("Load saved game 1-10"));
@@ -184,6 +186,8 @@ void ScummHelp::updateStrings(byte gameId, byte version, Common::Platform platfo
 			ADD_BIND("y, a", _("play A on distaff"));
 			ADD_BIND("u, b", _("play B on distaff"));
 			ADD_BIND("i, C", _("play C major on distaff"));
+			// I18N: Drafts is set of notes in Loom to invoke spells
+			ADD_BIND(_("Ctrl") + U32String(" d"), _("Shows the drafts inventory"));
 			break;
 		case GID_MONKEY_EGA:
 		case GID_MONKEY_VGA:

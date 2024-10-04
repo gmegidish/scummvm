@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -360,7 +359,7 @@ uint32 EventRecorder::getRandomSeed(const Common::String &name) {
 	if (_recordMode == kRecorderPlayback) {
 		return _playbackFile->getHeader().randomSourceRecords[name];
 	}
-	uint32 result = g_system->getMillis();
+	uint32 result = Common::RandomSource::generateNewSeed();
 	if (_recordMode == kRecorderRecord) {
 		_recordFile->getHeader().randomSourceRecords[name] = result;
 	}
@@ -513,6 +512,8 @@ void EventRecorder::getConfigFromDomain(const Common::ConfigManager::Domain *dom
 }
 
 void EventRecorder::getConfig() {
+	_recordFile->getHeader().settingsRecords["double_click_time"] = Common::String::format("%u", static_cast<unsigned int>(g_system->getDoubleClickTime()));
+
 	getConfigFromDomain(ConfMan.getDomain(ConfMan.kApplicationDomain));
 	getConfigFromDomain(ConfMan.getActiveDomain());
 	_recordFile->getHeader().settingsRecords["save_slot"] = ConfMan.get("save_slot");
@@ -761,7 +762,7 @@ SDL_Surface *EventRecorder::getSurface(int width, int height) {
 }
 
 bool EventRecorder::switchMode() {
-	const Plugin *plugin = EngineMan.findPlugin(ConfMan.get("engineid"));
+	const Plugin *plugin = PluginMan.findEnginePlugin(ConfMan.get("engineid"));
 	bool metaInfoSupport = plugin->get<MetaEngine>().hasFeature(MetaEngine::kSavesSupportMetaInfo);
 	bool featuresSupport = metaInfoSupport &&
 						  g_engine->canSaveGameStateCurrently() &&
@@ -809,7 +810,7 @@ bool EventRecorder::checkForContinueGame() {
 
 void EventRecorder::deleteTemporarySave() {
 	if (_temporarySlot == -1) return;
-	const Plugin *plugin = EngineMan.findPlugin(ConfMan.get("engineid"));
+	const Plugin *plugin = PluginMan.findEnginePlugin(ConfMan.get("engineid"));
 	const Common::String target = ConfMan.getActiveDomainName();
 	 plugin->get<MetaEngine>().removeSaveState(target.c_str(), _temporarySlot);
 	_temporarySlot = -1;

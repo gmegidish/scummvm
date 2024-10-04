@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -88,7 +87,7 @@ void _game_session::Reset_route_manager() {
 
 	// remove used routes - just keeps the memory limit down
 
-	Zdebug("--new sesssion: reseting route manager service--");
+	Zdebug("--new sesssion: resetting route manager service--");
 }
 
 bool8 _game_session::Is_route_required(PXreal startx, PXreal startz, PXreal destx, PXreal destz) {
@@ -213,12 +212,14 @@ bool8 _game_session::Process_route() {
 		else
 			res = Play_anim_with_no_movement();
 
+		// if more to do then return
+		//if (!res)
 		return (res);
 
 		// remove the phase so headup diagnostics disappear now the route is effectively done
-		M->m_phase = RM_NONE;
+		//M->m_phase = RM_NONE;
 
-		return (1); // no slow-out so we're done
+		//return (1); // no slow-out so we're done
 	}
 
 	// ok, process that point-to-point route!
@@ -269,7 +270,7 @@ _route_description *_game_session::Fetch_route_desc(uint32 id) {
 
 	// no route at all
 	if (!logic_structs[id]->mega->m_phase)
-		return (0);
+		return (nullptr);
 
 	return (&logic_structs[id]->mega->m_main_route);
 }
@@ -278,7 +279,7 @@ void _route_description::___init() {
 	// nethack diagnostics
 	if (diag_bars)
 		delete[] diag_bars;
-	diag_bars = 0;
+	diag_bars = nullptr;
 
 	number_of_diag_bars = 0;
 
@@ -304,7 +305,7 @@ mcodeFunctionReturnCodes _game_session::fn_tiny_route(int32 &result, int32 *para
 
 	if (L->looping < 2) {
 
-		Tdebug("route_async.txt", "%s tiny", object->GetName());
+		Tdebug("route_async.txt", "%s tiny", CGameObject::GetName(object));
 
 		// check for free router
 		if (Is_router_busy())
@@ -350,7 +351,7 @@ mcodeFunctionReturnCodes _game_session::fn_tiny_route(int32 &result, int32 *para
 mcodeFunctionReturnCodes _game_session::fn_room_route(int32 &result, int32 *params) {
 	// auto-route a mega character characters x,z to specified x1,z1 in an adjacent room
 	// player or mega
-	// doesnt end on stand
+	// doesn't end on stand
 
 	// params    0   x
 	//			1  z
@@ -387,7 +388,7 @@ mcodeFunctionReturnCodes _game_session::fn_room_route(int32 &result, int32 *para
 mcodeFunctionReturnCodes _game_session::fn_sharp_route(int32 &result, int32 *params) {
 	// auto-route a mega character characters x,z to specified x1,z1 from the same or adjoining floor rects
 	// player or mega
-	// doesnt end on stand
+	// doesn't end on stand
 
 	// params    0   x   INT32's to be cast to floats :| hmmm...
 	//			1  z
@@ -446,7 +447,7 @@ mcodeFunctionReturnCodes _game_session::fn_sharp_route(int32 &result, int32 *par
 mcodeFunctionReturnCodes _game_session::fn_laser_route(int32 &result, int32 *params) {
 	// auto-route a mega character characters x,z to specified x1,z1 from the same or adjoining floor rects
 	// player or mega
-	// doesnt end on stand
+	// doesn't end on stand
 
 	// params    0   x   INT32's to be cast to floats :| hmmm...
 	//			1  z
@@ -494,7 +495,7 @@ mcodeFunctionReturnCodes _game_session::fn_route_to_nico(int32 &result, int32 *p
 
 	_feature_info *monica;
 
-	const char *nico_name = NULL;
+	const char *nico_name = nullptr;
 	if (params && params[0]) {
 		nico_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 	}
@@ -505,10 +506,10 @@ mcodeFunctionReturnCodes _game_session::fn_route_to_nico(int32 &result, int32 *p
 			return IR_REPEAT;
 		}
 
-		monica = (_feature_info *)features->Try_fetch_item_by_name(nico_name);
+		monica = (_feature_info *)LinkedDataObject::Try_fetch_item_by_name(features, nico_name);
 
 		if (!monica)
-			Fatal_error("fn_route_to_nico - object [%s] cant find nico [%s]", object->GetName(), nico_name);
+			Fatal_error("fn_route_to_nico - object [%s] can't find nico [%s]", CGameObject::GetName(object), nico_name);
 
 		// build route
 		if (!Setup_route(result, (int32)monica->x, (int32)monica->z, params[1], __FULL, TRUE8)) {
@@ -560,7 +561,7 @@ mcodeFunctionReturnCodes _game_session::fn_interact_near_mega(int32 &result, int
 			return IR_REPEAT;
 		}
 
-		// dont even build route if too close already
+		// don't even build route if too close already
 		if (len < (PXreal)(params[2] * params[2])) {
 			L->looping = 0;
 			result = TRUE8;
@@ -614,7 +615,7 @@ mcodeFunctionReturnCodes _game_session::fn_spectre_route_to_mega(int32 &result, 
 	const char *mega_name = (const char *)MemoryUtil::resolvePtr(params[0]);
 
 	// get object to check
-	id = objects->Fetch_item_number_by_name(mega_name);
+	id = LinkedDataObject::Fetch_item_number_by_name(objects, mega_name);
 	if (id == 0xffffffff)
 		Fatal_error("fn_spectre_route_to_mega - illegal object [%s]", mega_name);
 
@@ -787,15 +788,15 @@ mcodeFunctionReturnCodes _game_session::Route_to_near_mega_core(const char *name
 
 	// get object to check
 
-	monica = (_feature_info *)features->Try_fetch_item_by_name(name);
+	monica = (_feature_info *)LinkedDataObject::Try_fetch_item_by_name(features, name);
 	if (monica) {
 		x = monica->x;
 		z = monica->z;
 
 	} else {
-		id = objects->Fetch_item_number_by_name(name);
+		id = LinkedDataObject::Fetch_item_number_by_name(objects, name);
 		if (id == 0xffffffff)
-			Fatal_error("[%s] calling Route_to_near_mega_core - finds neither object or nico named [%s]", object->GetName(), name);
+			Fatal_error("[%s] calling Route_to_near_mega_core - finds neither object or nico named [%s]", CGameObject::GetName(object), name);
 		//			found mega with name!
 		//			check we are within the distance and stop us if so
 
@@ -814,7 +815,7 @@ mcodeFunctionReturnCodes _game_session::Route_to_near_mega_core(const char *name
 		if (Is_router_busy())
 			return IR_REPEAT;
 
-		// dont even build route if too close already
+		// don't even build route if too close already
 		if (len < (int32)(dist * dist)) {
 			result = TRUE8;
 			L->looping = 0;
@@ -896,10 +897,10 @@ mcodeFunctionReturnCodes _game_session::fn_route_to_marker(int32 &result, int32 
 		marker = (_map_marker *)markers.Fetch_marker_by_object_name(marker_name);
 
 		if (!marker)
-			Fatal_error("fn_route_to_marker - object [%s] cant find marker [%s]", object->GetName(), marker_name);
+			Fatal_error("fn_route_to_marker - object [%s] can't find marker [%s]", CGameObject::GetName(object), marker_name);
 
 		// build route
-		if (!Setup_route(result, (int32)marker->x, (int32)marker->z, params[1], __FULL, TRUE8)) {
+		if (!Setup_route(result, (int32)FROM_LE_FLOAT32(marker->x), (int32)FROM_LE_FLOAT32(marker->z), params[1], __FULL, TRUE8)) {
 			L->looping = 0;
 			return (IR_CONT);
 		}
@@ -953,7 +954,7 @@ bool8 _game_session::Setup_route(int32 &result, int32 corex, int32 corez, int32 
 
 	// quick CAPS check on the anim
 	if ((!L->voxel_info->IsAnimTable(L->cur_anim_type)))
-		Fatal_error("mega [%s] has anim [%s] missing", object->GetName(), master_anim_name_table[L->cur_anim_type].name);
+		Fatal_error("mega [%s] has anim [%s] missing", CGameObject::GetName(object), master_anim_name_table[L->cur_anim_type].name);
 
 	// new route do prepare a route request form!
 	// initial x,z
@@ -1058,8 +1059,8 @@ uint32 _game_session::Animate_points(_route_description *route) {
 	// get motion displacement from currently displayed frame to next one
 	// note that we always read frame+1 for motion of next frame even though the voxel frame itself will be looped back to 0
 	PXreal x1, z1, x2, z2, unused;
-	PXFrameEnOfAnim(L->anim_pc + 1, pAnim)->markers[ORG_POS].GetXYZ(&x1, &unused, &z1);
-	PXFrameEnOfAnim(L->anim_pc, pAnim)->markers[ORG_POS].GetXYZ(&x2, &unused, &z2);
+	PXmarker_PSX_Object::GetXYZ(&PXFrameEnOfAnim(L->anim_pc + 1, pAnim)->markers[ORG_POS], &x1, &unused, &z1);
+	PXmarker_PSX_Object::GetXYZ(&PXFrameEnOfAnim(L->anim_pc, pAnim)->markers[ORG_POS], &x2, &unused, &z2);
 
 	xnext = x1 - x2;
 	znext = z1 - z2;

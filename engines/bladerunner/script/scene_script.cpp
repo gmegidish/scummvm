@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -163,14 +162,18 @@ bool SceneScript::open(const Common::String &name) {
 
 void SceneScript::initializeScene() {
 	++_inScriptCounter;
-	_currentScript->InitializeScene();
+	if (_currentScript != nullptr) {
+		_currentScript->InitializeScene();
+	}
 	--_inScriptCounter;
 }
 
 void SceneScript::sceneLoaded() {
 	_vm->_sceneIsLoading = true;
 	++_inScriptCounter;
-	_currentScript->SceneLoaded();
+	if (_currentScript != nullptr) {
+		_currentScript->SceneLoaded();
+	}
 	_vm->_sceneIsLoading = false;
 	--_inScriptCounter;
 }
@@ -199,7 +202,10 @@ bool SceneScript::clickedOn3DObject(const char *objectName, bool combatMode) {
 	}
 
 	++_inScriptCounter;
-	bool result = _currentScript->ClickedOn3DObject(objectName, combatMode);
+	bool result = false;
+	if (_currentScript != nullptr) {
+		result = _currentScript->ClickedOn3DObject(objectName, combatMode);
+	}
 	_vm->_runningActorId = -1;
 	--_inScriptCounter;
 	return result;
@@ -211,7 +217,10 @@ bool SceneScript::clickedOnActor(int actorId) {
 	}
 
 	++_inScriptCounter;
-	bool result = _currentScript->ClickedOnActor(actorId);
+	bool result = false;
+	if (_currentScript != nullptr) {
+		_currentScript->ClickedOnActor(actorId);
+	}
 	_vm->_runningActorId = -1;
 	--_inScriptCounter;
 	return result;
@@ -230,7 +239,10 @@ bool SceneScript::clickedOnItem(int itemId, bool combatMode) {
 #endif // BLADERUNNER_ORIGINAL_BUGS
 
 	++_inScriptCounter;
-	bool result = _currentScript->ClickedOnItem(itemId, combatMode);
+	bool result = false;
+	if (_currentScript != nullptr) {
+		_currentScript->ClickedOnItem(itemId, combatMode);
+	}
 	_vm->_runningActorId = -1;
 	--_inScriptCounter;
 	return result;
@@ -242,7 +254,10 @@ bool SceneScript::clickedOnExit(int exitId) {
 	}
 
 	++_inScriptCounter;
-	bool result = _currentScript->ClickedOnExit(exitId);
+	bool result = false;
+	if (_currentScript != nullptr) {
+		_currentScript->ClickedOnExit(exitId);
+	}
 	_vm->_runningActorId = -1;
 	--_inScriptCounter;
 	return result;
@@ -254,7 +269,10 @@ bool SceneScript::clickedOn2DRegion(int region) {
 	}
 
 	++_inScriptCounter;
-	bool result = _currentScript->ClickedOn2DRegion(region);
+	bool result = false;
+	if (_currentScript != nullptr) {
+		 _currentScript->ClickedOn2DRegion(region);
+	 }
 	_vm->_runningActorId = -1;
 	--_inScriptCounter;
 	return result;
@@ -262,32 +280,41 @@ bool SceneScript::clickedOn2DRegion(int region) {
 
 void SceneScript::sceneFrameAdvanced(int frame) {
 	++_inScriptCounter;
-	_currentScript->SceneFrameAdvanced(frame);
+	if (_currentScript != nullptr) {
+		_currentScript->SceneFrameAdvanced(frame);
+	}
 	--_inScriptCounter;
 }
 
 void SceneScript::actorChangedGoal(int actorId, int newGoal, int oldGoal, bool currentSet) {
 	++_inScriptCounter;
-	if (_currentScript)
+	if (_currentScript != nullptr) {
 		_currentScript->ActorChangedGoal(actorId, newGoal, oldGoal, currentSet);
+	}
 	--_inScriptCounter;
 }
 
 void SceneScript::playerWalkedIn() {
 	++_inScriptCounter;
-	_currentScript->PlayerWalkedIn();
+	if (_currentScript != nullptr) {
+		_currentScript->PlayerWalkedIn();
+	}
 	--_inScriptCounter;
 }
 
 void SceneScript::playerWalkedOut() {
 	++_inScriptCounter;
-	_currentScript->PlayerWalkedOut();
+	if (_currentScript != nullptr) {
+		_currentScript->PlayerWalkedOut();
+	}
 	--_inScriptCounter;
 }
 
 void SceneScript::dialogueQueueFlushed(int a1) {
 	++_inScriptCounter;
-	_currentScript->DialogueQueueFlushed(a1);
+	if (_currentScript != nullptr) {
+		_currentScript->DialogueQueueFlushed(a1);
+	}
 	--_inScriptCounter;
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -1413,7 +1412,7 @@ void EdenGame::destroyCitadelRoom(int16 roomNum) {
 	room->_video = 0;
 	room->_level = 0;
 	_globals->_curAreaPtr->_citadelLevel = 0;
-	_globals->_curAreaPtr->_citadelRoomPtr = 0;
+	_globals->_curAreaPtr->_citadelRoomPtr = nullptr;
 	roomNum = (roomNum & ~0xFF) | room->_location;
 	for (; perso->_roomNum != 0xFFFF; perso++) {
 		if (perso->_roomNum == roomNum) {
@@ -2236,7 +2235,7 @@ void EdenGame::getDataSync() {
 		_numAnimFrames = 0;
 	if (_globals->_textNum == 144)
 		_numAnimFrames = 48;
-	_animationTable = 0;
+	_animationTable = nullptr;
 }
 
 // Original name: ReadNombreFrames
@@ -3729,9 +3728,9 @@ void EdenGame::initGlobals() {
 	_globals->_areaPtr = nullptr;
 	_globals->_lastAreaPtr = nullptr;
 	_globals->_curAreaPtr = nullptr;
-	_globals->_citaAreaFirstRoom = 0;
+	_globals->_citaAreaFirstRoom = nullptr;
 	_globals->_characterPtr = nullptr;
-	_globals->_roomCharacterPtr = 0;
+	_globals->_roomCharacterPtr = nullptr;
 	_globals->_lastInfoIdx = 0;
 	_globals->_nextInfoIdx = 0;
 	_globals->_iconsIndex = 16;
@@ -5295,7 +5294,7 @@ void EdenGame::load() {
 //	if(OpenDialog(0, 0)) //TODO: write me
 	{
 		// TODO
-		strcpy(name, "edsave1.000");
+		Common::strcpy_s(name, "edsave1.000");
 		loadgame(name);
 	}
 	_vm->hideMouse();
@@ -5364,7 +5363,7 @@ void EdenGame::save() {
 	FlushEvents(-1, 0);
 	//SaveDialog(byte_37150, byte_37196->ff_A);
 	//TODO
-	strcpy(name, "edsave1.000");
+	Common::strcpy_s(name, "edsave1.000");
 	saveGame(name);
 	_vm->hideMouse();
 	CLBlitter_FillScreenView(0xFFFFFFFF);
@@ -6592,8 +6591,8 @@ void EdenGame::loadgame(char *name) {
 #define OFSIN(val, base, typ) do { if ((void*)(val) != NULLPTR)   (val) = (typ*)((char*)(val) + (size_t)(base)); else (val) = 0; } while (false)
 
 void EdenGame::syncGlobalPointers(Common::Serializer s) {
-	uint32 dialogIdx, nextDialogIdx, narratorDialogIdx, lastDialogIdx, tapeIdx, nextRoomIconIdx, roomIdx;
-	uint32 citaAreaFirstRoomIdx, areaIdx, lastAreaIdx, curAreaIdx, characterIdx, roomCharacterIdx;
+	uint32 dialogIdx = 0, nextDialogIdx = 0, narratorDialogIdx = 0, lastDialogIdx = 0, tapeIdx = 0, nextRoomIconIdx = 0, roomIdx = 0;
+	uint32 citaAreaFirstRoomIdx = 0, areaIdx = 0, lastAreaIdx = 0, curAreaIdx = 0, characterIdx = 0, roomCharacterIdx = 0;
 
 	if (s.isSaving()) {
 		IDXOUT(_globals->_dialogPtr, _gameDialogs, Dialog, dialogIdx);
@@ -6688,7 +6687,7 @@ void EdenGame::syncGlobalValues(Common::Serializer s) {
 	s.syncAsByte(_globals->_endGameFlag);
 	s.syncAsByte(_globals->_lastInfo);
 
-	byte autoDialog;
+	byte autoDialog = 0;
 	if (s.isSaving())
 		autoDialog = _globals->_autoDialog ? 1 : 0;
 	s.syncAsByte(autoDialog);
@@ -6807,7 +6806,7 @@ void EdenGame::syncGlobalValues(Common::Serializer s) {
 }
 
 void EdenGame::syncCitadelRoomPointers(Common::Serializer s) {
-	uint32 citadelRoomIdx;
+	uint32 citadelRoomIdx = 0;
 	for (int i = 0; i < 12; i++) {
 		if (s.isSaving()) {
 			IDXOUT(_areasTable[i]._citadelRoomPtr, _gameRooms, Room, citadelRoomIdx);
@@ -6819,10 +6818,10 @@ void EdenGame::syncCitadelRoomPointers(Common::Serializer s) {
 }
 
 void EdenGame::syncTapePointers(Common::Serializer s) {
-	int persoIdx;
+	int persoIdx = 0;
 
 	for (int i = 0; i < 16; i++) {
-		int index, subIndex;
+		int index = 0, subIndex = 0;
 		if (s.isSaving()) {
 			index = NULLPTR;
 			char *closerPtr = nullptr;
@@ -7274,7 +7273,7 @@ void EdenGame::DELETEcharge_objet_mob(Cube *cubep) {
 int EdenGame::nextVal(char **ptr, char *error) {
 	char c = 0;
 	char *p = *ptr;
-	int val = strtol(p, 0, 10);
+	int val = strtol(p, nullptr, 10);
 	while ((*p >= '0' && *p <= '9' && *p != 0) || *p == '-')
 		p++;
 	while ((*p == 13 || *p == 10 || *p == ',' || *p == ' ') && *p)

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "audio/audiostream.h"
@@ -25,7 +24,6 @@
 #include "common/file.h"
 #include "common/system.h"
 #include "graphics/managed_surface.h"
-#include "graphics/palette.h"
 #include "image/bmp.h"
 #include "image/image_decoder.h"
 
@@ -128,7 +126,7 @@ uint CryOmni3DEngine_Versailles::displayOptions() {
 	byte volumeForeColor = 243;
 
 	Graphics::ManagedSurface optionsSurface;
-	Image::ImageDecoder *imageDecoder = loadHLZ("option.hlz");
+	Image::ImageDecoder *imageDecoder = loadHLZ(getFilePath(kFileTypeMenu, "option.hlz"));
 	const Graphics::Surface *bgFrame = imageDecoder->getSurface();
 
 	optionsSurface.create(bgFrame->w, bgFrame->h, bgFrame->format);
@@ -145,7 +143,7 @@ uint CryOmni3DEngine_Versailles::displayOptions() {
 
 	while (!shouldAbort() && !end) {
 		if (resetScreen) {
-			setPalette(imageDecoder->getPalette(), imageDecoder->getPaletteStartIndex(),
+			setPalette(imageDecoder->getPalette(), 0,
 			           imageDecoder->getPaletteColorCount());
 			// _cursorPalette has only 248 colors as 8 last colors are for translucency
 			setPalette(_cursorPalette + 240 * 3, 240, 8);
@@ -301,9 +299,10 @@ uint CryOmni3DEngine_Versailles::displayOptions() {
 						// Finished dragging
 						_mixer->stopID(SoundIds::kOrgue);
 						do {
+							Common::Path orguePath(getFilePath(kFileTypeSound, "ORGUE.WAV"));
 							Common::File *audioFile = new Common::File();
-							if (!audioFile->open("ORGUE.WAV")) {
-								warning("Failed to open sound file %s", "ORGUE.WAV");
+							if (!audioFile->open(orguePath)) {
+								warning("Failed to open sound file %s", orguePath.toString(Common::Path::kNativeSeparator).c_str());
 								delete audioFile;
 								break;
 							}
@@ -1002,7 +1001,7 @@ void CryOmni3DEngine_Versailles::displayCredits() {
 	waitMouseRelease();
 
 	Graphics::ManagedSurface creditsSurface;
-	Image::ImageDecoder *imageDecoder = loadHLZ("credits.hlz");
+	Image::ImageDecoder *imageDecoder = loadHLZ(getFilePath(kFileTypeMenu, "credits.hlz"));
 	if (!imageDecoder) {
 		return;
 	}
@@ -1012,7 +1011,7 @@ void CryOmni3DEngine_Versailles::displayCredits() {
 	byte palette[256 * 3];
 	memset(palette, 0, 256 * 3);
 	// getPalette returns the first color not index 0
-	memcpy(palette + 3 * imageDecoder->getPaletteStartIndex(), imageDecoder->getPalette(),
+	memcpy(palette, imageDecoder->getPalette(),
 	       3 * imageDecoder->getPaletteColorCount());
 	copySubPalette(palette, _cursorPalette, 240, 8);
 
@@ -1026,8 +1025,9 @@ void CryOmni3DEngine_Versailles::displayCredits() {
 	_fontManager.setCharSpacing(1);
 	_fontManager.setSurface(&creditsSurface);
 
+	Common::Path creditsPath(getFilePath(kFileTypeText, _localizedFilenames[LocalizedFilenames::kCredits]));
 	Common::File creditsFile;
-	if (!creditsFile.open(_localizedFilenames[LocalizedFilenames::kCredits])) {
+	if (!creditsFile.open(creditsPath)) {
 		warning("Failed to open credits file: %s",
 		        _localizedFilenames[LocalizedFilenames::kCredits].c_str());
 		delete imageDecoder;

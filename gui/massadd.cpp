@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,8 @@
 #include "common/system.h"
 #include "common/taskbar.h"
 #include "common/translation.h"
+
+#include "engines/advancedDetector.h"
 
 #include "gui/massadd.h"
 
@@ -64,7 +65,7 @@ MassAddDialog::MassAddDialog(const Common::FSNode &startDir)
 	_dirProgressText(nullptr),
 	_gameProgressText(nullptr) {
 
-	U32StringArray l;
+	Common::U32StringArray l;
 
 	// The dir we start our scan at
 	_scanStack.push(startDir);
@@ -81,7 +82,7 @@ MassAddDialog::MassAddDialog(const Common::FSNode &startDir)
 	_dirProgressText->setAlign(Graphics::kTextAlignCenter);
 	_gameProgressText->setAlign(Graphics::kTextAlignCenter);
 
-	_list = new ListWidget(this, "MassAdd.GameList");
+	_list = new MassAddListWidget(this, "MassAdd.GameList");
 	_list->setEditable(false);
 	_list->setNumberingMode(kListNumberingOff);
 	_list->setList(l);
@@ -95,15 +96,16 @@ MassAddDialog::MassAddDialog(const Common::FSNode &startDir)
 	const Common::ConfigManager::DomainMap &domains = ConfMan.getGameDomains();
 	Common::ConfigManager::DomainMap::const_iterator iter;
 	for (iter = domains.begin(); iter != domains.end(); ++iter) {
-		Common::String path(iter->_value.getVal("path"));
+		Common::Path path(Common::Path::fromConfig(iter->_value.getVal("path")));
+
 		// Remove trailing slash, so that "/foo" and "/foo/" match.
 		// This works around a bug in the POSIX FS code (and others?)
-		// where paths are not normalized (so FSNodes refering to identical
+		// where paths are not normalized (so FSNodes referring to identical
 		// FS objects may return different values in path()).
-		while (path != "/" && path.lastChar() == '/')
-			path.deleteLastChar();
-		if (!path.empty())
+		path.removeTrailingSeparators();
+		if (!path.empty()) {
 			_pathToTargets[path].push_back(iter->_key);
+		}
 	}
 }
 
@@ -134,10 +136,13 @@ void MassAddDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data
 		Common::sort(_games.begin(), _games.end(), GameTargetLess());
 		// Add all the detected games to the config
 		for (DetectedGames::iterator iter = _games.begin(); iter != _games.end(); ++iter) {
-			debug(1, "  Added gameid '%s', desc '%s'\n",
-				iter->gameId.c_str(),
-				iter->description.c_str());
-			iter->gameId = EngineMan.createTargetForGame(*iter);
+			// Make sure the game is selected
+			if (iter->isSelected) {
+				debug(1, "  Added gameid '%s', desc '%s'",
+					iter->gameId.c_str(),
+					iter->description.c_str());
+				iter->gameId = EngineMan.createTargetForGame(*iter);
+			}
 		}
 
 		// Write everything to disk
@@ -154,8 +159,27 @@ void MassAddDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data
 		// User cancelled, so we don't do anything and just leave.
 		_games.clear();
 		close();
+	} else if (cmd == kListSelectionChangedCmd) {
+		// Select / unselect game from list
+		int curretScrollPos = _list->getCurrentScrollPos();
+		_games[_list->getSelected()].isSelected = !_games[_list->getSelected()].isSelected;
+		updateGameList();
+		_list->scrollTo(curretScrollPos);
 	} else {
 		Dialog::handleCommand(sender, cmd, data);
+	}
+}
+
+void MassAddDialog::updateGameList() {
+	// Update list to correctly display selected / unselected games
+	Common::U32StringArray l;
+	_list->setList(l);
+	_list->clearSelectedList();
+
+	for (const auto &game : _games) {
+		Common::U32String displayString = game.isSelected ? Common::String("[x] ") + game.description : Common::String("[\u2000] ") + game.description;
+		_list->append(displayString);
+		_list->appendToSelectedList(game.isSelected);
 	}
 }
 
@@ -175,7 +199,7 @@ void MassAddDialog::handleTickle() {
 		}
 
 		// Run the detector on the dir
-		DetectionResults detectionResults = EngineMan.detectGames(files);
+		DetectionResults detectionResults = EngineMan.detectGames(files, (ADGF_WARNING | ADGF_UNSUPPORTED), true);
 
 		if (detectionResults.foundUnknownGames()) {
 			Common::U32String report = detectionResults.generateUnknownGameReport(false, 80);
@@ -192,11 +216,8 @@ void MassAddDialog::handleTickle() {
 		for (DetectedGames::const_iterator cand = candidates.begin(); cand != candidates.end(); ++cand) {
 			const DetectedGame &result = *cand;
 
-			Common::String path = dir.getPath();
-
-			// Remove trailing slashes
-			while (path != "/" && path.lastChar() == '/')
-				path.deleteLastChar();
+			Common::Path path = dir.getPath();
+			path.removeTrailingSeparators();
 
 			// Check for existing config entries for this path/engineid/gameid/lang/platform combination
 			if (_pathToTargets.contains(path)) {
@@ -204,16 +225,16 @@ void MassAddDialog::handleTickle() {
 				Common::String resultLanguageCode = Common::getLanguageCode(result.language);
 
 				bool duplicate = false;
-				const StringArray &targets = _pathToTargets[path];
-				for (StringArray::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+				const Common::StringArray &targets = _pathToTargets[path];
+				for (Common::StringArray::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
 					// If the engineid, gameid, platform and language match -> skip it
 					Common::ConfigManager::Domain *dom = ConfMan.getDomain(*iter);
 					assert(dom);
 
-					if ((*dom)["engineid"] == result.engineId &&
+					if ((!dom->contains("engineid") || (*dom)["engineid"] == result.engineId) &&
 						(*dom)["gameid"] == result.gameId &&
 					    dom->getValOrDefault("platform") == resultPlatformCode &&
-					    dom->getValOrDefault("language") == resultLanguageCode) {
+						parseLanguage(dom->getValOrDefault("language")) == parseLanguage(resultLanguageCode)) {
 						duplicate = true;
 						break;
 					}
@@ -228,6 +249,11 @@ void MassAddDialog::handleTickle() {
 			_list->append(result.description);
 		}
 
+		for (DetectedGame &game : _games) {
+			game.isSelected = true;
+		}
+
+		updateGameList();
 
 		// Recurse into all subdirs
 		for (Common::FSList::const_iterator file = files.begin(); file != files.end(); ++file) {

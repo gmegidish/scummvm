@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,7 +63,8 @@ void OSystem_PSP::initBackend() {
 	ConfMan.registerDefault("gfx_mode", "Fit to Screen");
 	ConfMan.registerDefault("kbdmouse_speed", 3);
 	ConfMan.registerDefault("joystick_deadzone", 3);
-
+	ConfMan.registerDefault("gm_device", "null");
+	
 	// Instantiate real time clock
 	PspRtc::instance();
 
@@ -108,7 +108,7 @@ void OSystem_PSP::engineDone() {
 }
 
 bool OSystem_PSP::hasFeature(Feature f) {
-	return (f == kFeatureOverlaySupportsAlpha || f == kFeatureCursorPalette ||
+	return (f == kFeatureOverlaySupportsAlpha || f == kFeatureCursorPalette || f == kFeatureCursorAlpha ||
 			f == kFeatureKbdMouseSpeed || f == kFeatureJoystickDeadzone);
 }
 
@@ -230,12 +230,14 @@ void OSystem_PSP::setShakePos(int shakeXOffset, int shakeYOffset) {
 	_screen.setShakePos(shakeXOffset, shakeYOffset);
 }
 
-void OSystem_PSP::showOverlay() {
+void OSystem_PSP::showOverlay(bool inGUI) {
 	DEBUG_ENTER_FUNC();
 	_pendingUpdate = false;
 	_overlay.setVisible(true);
-	_cursor.setLimits(_overlay.getWidth(), _overlay.getHeight());
-	_cursor.useGlobalScaler(false);	// mouse with overlay is 1:1
+	if (inGUI) {
+		_cursor.setLimits(_overlay.getWidth(), _overlay.getHeight());
+		_cursor.useGlobalScaler(false);	// mouse with overlay is 1:1
+	}
 }
 
 void OSystem_PSP::hideOverlay() {
@@ -304,8 +306,12 @@ void OSystem_PSP::warpMouse(int x, int y) {
 	_cursor.setXY(x, y);
 }
 
-void OSystem_PSP::setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format) {
+void OSystem_PSP::setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format, const byte *mask) {
 	DEBUG_ENTER_FUNC();
+
+	if (mask)
+		PSP_DEBUG_PRINT("OSystem_PSP::setMouseCursor: Masks are not supported");
+
 	_displayManager.waitUntilRenderFinished();
 	_pendingUpdate = false;
 
@@ -358,20 +364,8 @@ void OSystem_PSP::delayMillis(uint msecs) {
 	PspThread::delayMillis(msecs);
 }
 
-OSystem::MutexRef OSystem_PSP::createMutex(void) {
-	return (MutexRef) new PspMutex(true);	// start with a full mutex
-}
-
-void OSystem_PSP::lockMutex(MutexRef mutex) {
-	((PspMutex *)mutex)->lock();
-}
-
-void OSystem_PSP::unlockMutex(MutexRef mutex) {
-	((PspMutex *)mutex)->unlock();
-}
-
-void OSystem_PSP::deleteMutex(MutexRef mutex) {
-	delete (PspMutex *)mutex;
+Common::MutexInternal *OSystem_PSP::createMutex(void) {
+	return new PspMutex(true);	// start with a full mutex
 }
 
 void OSystem_PSP::mixCallback(void *sys, byte *samples, int len) {
@@ -444,6 +438,6 @@ void OSystem_PSP::getTimeAndDate(TimeDate &td, bool skipRecord) const {
 	td.tm_wday = t.tm_wday;
 }
 
-Common::String OSystem_PSP::getDefaultConfigFileName() {
+Common::Path OSystem_PSP::getDefaultConfigFileName() {
 	return "ms0:/scummvm.ini";
 }

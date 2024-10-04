@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -62,6 +61,16 @@ class Screen;
 class SoundMan;
 
 #define BBVS_SAVEGAME_VERSION 0
+
+enum BBVSAction {
+	kActionNone,
+	kActionInventory,
+	kActionLook,
+	kActionTalk,
+	kActionUse,
+	kActionWalk,
+	kActionEscape
+};
 
 enum {
 	kVerbLook      = 0,
@@ -249,8 +258,16 @@ public:
 	const Common::String getTargetName() { return _targetName; }
 	const ADGameDescription *_gameDescription;
 
+	bool isDemo() const;
 	bool isLoogieDemo() const;
+	bool isLoogieAltDemo() const;
 
+	/**
+	 * Disable support for ScummVM autosaves.
+	 * This engine automatically saves to slot zero on every room change.
+	 * The Continue button on the main menu loads this save.
+	 */
+	int getAutosaveSlot() const override { return -1; }
 private:
 	Graphics::PixelFormat _pixelFormat;
 
@@ -272,6 +289,7 @@ public:
 	int _mouseX, _mouseY;
 	uint _mouseButtons;
 	Common::KeyCode _keyCode;
+	Common::CustomEventType _customAction;
 
 	int _mouseCursorSpriteIndex;
 
@@ -357,7 +375,7 @@ public:
 	void loadScene(int sceneNum);
 	void initScene(bool sounds);
 	bool changeScene();
-	bool update(int mouseX, int mouseY, uint mouseButtons, Common::KeyCode keyCode);
+	bool update(int mouseX, int mouseY, uint mouseButtons, Common::CustomEventType customAction);
 
 	void buildDrawList(DrawList &drawList);
 
@@ -428,8 +446,8 @@ public:
 
 	bool _isSaveAllowed;
 
-	bool canLoadGameStateCurrently() override { return _isSaveAllowed; }
-	bool canSaveGameStateCurrently() override { return _isSaveAllowed; }
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return _isSaveAllowed; }
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override { return _isSaveAllowed; }
 	Common::Error loadGameState(int slot) override;
 	Common::Error saveGameState(int slot, const Common::String &description, bool isAutosave = false) override;
 	void savegame(const char *filename, const char *description);

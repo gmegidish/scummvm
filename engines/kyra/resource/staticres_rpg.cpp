@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,24 +25,8 @@
 namespace Kyra {
 
 #if defined(ENABLE_EOB) || defined(ENABLE_LOL)
-const uint16 *StaticResource::loadRawDataBe16(int id, int &entries) {
-	return (const uint16 *)getData(id, kRawDataBe16, entries);
-}
-
 const uint32 *StaticResource::loadRawDataBe32(int id, int &entries) {
 	return (const uint32 *)getData(id, kRawDataBe32, entries);
-}
-
-bool StaticResource::loadRawDataBe16(Common::SeekableReadStream &stream, void *&ptr, int &size) {
-	size = stream.size() >> 1;
-
-	uint16 *r = new uint16[size];
-
-	for (int i = 0; i < size; i++)
-		r[i] = stream.readUint16BE();
-
-	ptr = r;
-	return true;
 }
 
 bool StaticResource::loadRawDataBe32(Common::SeekableReadStream &stream, void *&ptr, int &size) {
@@ -56,13 +39,6 @@ bool StaticResource::loadRawDataBe32(Common::SeekableReadStream &stream, void *&
 
 	ptr = r;
 	return true;
-}
-
-void StaticResource::freeRawDataBe16(void *&ptr, int &size) {
-	uint16 *data = (uint16 *)ptr;
-	delete[] data;
-	ptr = 0;
-	size = 0;
 }
 
 void StaticResource::freeRawDataBe32(void *&ptr, int &size) {

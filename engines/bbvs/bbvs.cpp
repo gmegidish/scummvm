@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,8 +45,9 @@
 #include "graphics/cursorman.h"
 #include "graphics/font.h"
 #include "graphics/fontman.h"
-#include "graphics/palette.h"
 #include "graphics/surface.h"
+
+#include "backends/keymapper/keymapper.h"
 
 namespace Bbvs {
 
@@ -177,7 +177,7 @@ Common::Error BbvsEngine::run() {
 	_spriteModule = new SpriteModule();
 	_sound = new SoundMan();
 
-	if (isLoogieDemo()) {
+	if (isLoogieDemo() || isLoogieAltDemo()) {
 		Minigame *minigame = new MinigameBbLoogie(this);
 
 		minigame->run(true);
@@ -240,8 +240,22 @@ bool BbvsEngine::hasFeature(EngineFeature f) const {
 void BbvsEngine::updateEvents() {
 	Common::Event event;
 
+	if (_currSceneNum == kCredits) {
+		Common::Keymapper *keymapper = _eventMan->getKeymapper();
+		keymapper->getKeymap("game-shortcuts")->setEnabled(false);
+	} else {
+		Common::Keymapper *keymapper = _eventMan->getKeymapper();
+		keymapper->getKeymap("game-shortcuts")->setEnabled(true);
+	}
+
 	while (_eventMan->pollEvent(event)) {
 		switch (event.type) {
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+			_customAction = event.customType;
+			break;
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_END:
+			_customAction = kActionNone;
+			break;
 		case Common::EVENT_KEYDOWN:
 			_keyCode = event.kbd.keycode;
 			break;
@@ -327,10 +341,10 @@ void BbvsEngine::updateGame() {
 	bool done;
 
 	do {
-		done = !update(_mouseX, _mouseY, _mouseButtons, _keyCode);
+		done = !update(_mouseX, _mouseY, _mouseButtons, _customAction);
 		_mouseButtons &= ~kLeftButtonClicked;
 		_mouseButtons &= ~kRightButtonClicked;
-		_keyCode = Common::KEYCODE_INVALID;
+		_customAction = kActionNone;
 	} while (--inputTicks && _playVideoNumber == 0 && _gameTicks > 0 && !done);
 
 	if (!done && _playVideoNumber == 0 && _gameTicks > 0) {
@@ -359,7 +373,7 @@ void BbvsEngine::updateBackgroundSounds() {
 	}
 }
 
-bool BbvsEngine::update(int mouseX, int mouseY, uint mouseButtons, Common::KeyCode keyCode) {
+bool BbvsEngine::update(int mouseX, int mouseY, uint mouseButtons, Common::CustomEventType customAction) {
 
 	if (_bootSaveSlot >= 0) {
 		loadGameState(_bootSaveSlot);
@@ -393,22 +407,21 @@ bool BbvsEngine::update(int mouseX, int mouseY, uint mouseButtons, Common::KeyCo
 				_verbPos.y = _cameraPos.y + 208;
 			_gameState = kGSVerbs;
 		} else {
-			switch (keyCode) {
-			case Common::KEYCODE_SPACE:
-			case Common::KEYCODE_i:
+			switch (customAction) {
+			case kActionInventory:
 				_inventoryButtonIndex = -1;
 				_gameState = kGSInventory;
 				return true;
-			case Common::KEYCODE_l:
+			case kActionLook:
 				_currVerbNum = kVerbLook;
 				break;
-			case Common::KEYCODE_t:
+			case kActionTalk:
 				_currVerbNum = kVerbTalk;
 				break;
-			case Common::KEYCODE_u:
+			case kActionUse:
 				_currVerbNum = kVerbUse;
 				break;
-			case Common::KEYCODE_w:
+			case kActionWalk:
 				_currVerbNum = kVerbWalk;
 				break;
 			default:
@@ -424,16 +437,15 @@ bool BbvsEngine::update(int mouseX, int mouseY, uint mouseButtons, Common::KeyCo
 		saveSnapshot();
 		if (mouseButtons & kRightButtonClicked)
 			_currVerbNum = kVerbUse;
-		switch (keyCode) {
-		case Common::KEYCODE_SPACE:
-		case Common::KEYCODE_i:
+		switch (customAction) {
+		case kActionInventory:
 			_gameState = kGSScene;
 			stopSpeech();
 			return true;
-		case Common::KEYCODE_l:
+		case kActionLook:
 			_currVerbNum = kVerbLook;
 			break;
-		case Common::KEYCODE_u:
+		case kActionUse:
 			_currVerbNum = kVerbUse;
 			break;
 		default:
@@ -461,7 +473,7 @@ bool BbvsEngine::update(int mouseX, int mouseY, uint mouseButtons, Common::KeyCo
 		_activeItemType = kITEmpty;
 		_activeItemIndex = 0;
 		_mouseCursorSpriteIndex = _gameModule->getGuiSpriteIndex(9);
-		if (keyCode == Common::KEYCODE_ESCAPE)
+		if (customAction == kActionEscape)
 			skipCurrAction();
 		else
 			updateCommon();
@@ -976,7 +988,7 @@ bool BbvsEngine::performActionCommand(ActionCommand *actionCommand) {
 		{
 			SceneObject *sceneObject = &_sceneObjects[actionCommand->sceneObjectIndex];
 			if (actionCommand->param == 0) {
-				sceneObject->anim = 0;
+				sceneObject->anim = nullptr;
 				sceneObject->animIndex = 0;
 				sceneObject->frameTicks = 0;
 				sceneObject->frameIndex = 0;
@@ -1039,7 +1051,7 @@ bool BbvsEngine::processCurrAction() {
 				break;
 
 			if (actionCommand->cmd == kActionCmdMoveObject || actionCommand->cmd == kActionCmdAnimObject) {
-				SceneObjectAction *sceneObjectAction = 0;
+				SceneObjectAction *sceneObjectAction = nullptr;
 				// See if there's already an entry for the SceneObject
 				for (uint j = 0; j < _sceneObjectActions.size(); ++j)
 					if (_sceneObjectActions[j].sceneObjectIndex == actionCommand->sceneObjectIndex) {
@@ -1147,7 +1159,7 @@ void BbvsEngine::updateCommon() {
 					evalActionResults(_currAction->results);
 					if (_gameState == kGSDialog)
 						updateDialogConditions();
-					_currAction = 0;
+					_currAction = nullptr;
 					_currActionCommandTimeStamp = 0;
 					_currActionCommandIndex = -1;
 					updateSceneObjectsTurnValue();
@@ -1311,7 +1323,7 @@ void BbvsEngine::updateDialogConditions() {
 
 void BbvsEngine::playSpeech(int soundNum) {
 	debug(5, "playSpeech(%0d)", soundNum);
-	Common::String sndFilename = Common::String::format("snd/snd%05d.aif", soundNum);
+	Common::Path sndFilename(Common::String::format("snd/snd%05d.aif", soundNum));
 	Common::File *fd = new Common::File();
 	fd->open(sndFilename);
 	Audio::AudioStream *audioStream = Audio::makeAIFFStream(fd, DisposeAfterUse::YES);
@@ -1351,7 +1363,7 @@ bool BbvsEngine::runMinigame(int minigameNum) {
 
 	_sound->unloadSounds();
 
-	Minigame *minigame = 0;
+	Minigame *minigame = nullptr;
 
 	switch (minigameNum) {
 	case kMinigameBbLoogie:

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -114,25 +113,25 @@ private:
 	void processManualMovementExecution(int actorIdx);
 	void processManualRotationExecution(int actorIdx);
 
-	bool _heroAction = false;
+	/**
+	 * This is true if the player hits the action button. E.g. in the second prison scene when you hide in the waste.
+	 */
+	bool _actionNormal = false;
+	void manualRealAngle(ActorStruct *actor);
 
 public:
 	Movements(TwinEEngine *engine);
+
+	void setActionNormal(bool actionNormal);
 
 	void update();
 
 	/**
 	 * Hero executes the current action of the trigger zone
 	 */
-	bool shouldTriggerZoneAction() const;
+	bool shouldExecuteAction() const;
 
-	bool _heroMoved = false;
-
-	/** Process actor coordinate */
-	IVec3 _processActor;
-
-	/** Previous process actor coordinate */
-	IVec3 _previousActor;
+	bool _lastJoyFlag = false;
 
 	int32 _targetActorDistance = 0;
 
@@ -140,7 +139,7 @@ public:
 	 * Get shadow position
 	 * @param pos Shadow coordinates
 	 */
-	void getShadowPosition(const IVec3 &pos);
+	IVec3 getShadow(const IVec3 &pos);
 
 	/**
 	 * Set actor safe angle
@@ -149,7 +148,7 @@ public:
 	 * @param stepAngle number of steps
 	 * @param movePtr time pointer to update
 	 */
-	void setActorAngleSafe(int16 startAngle, int16 endAngle, int16 stepAngle, ActorMoveStruct *movePtr);
+	void initRealAngle(int16 startAngle, int16 endAngle, int16 stepAngle, ActorMoveStruct *movePtr);
 
 	/**
 	 * Clear actors safe angle
@@ -173,34 +172,30 @@ public:
 	 * @param x2 Actor 2 X
 	 * @param z2 Actor 2 Z
 	 */
-	int32 getAngleAndSetTargetActorDistance(int32 x1, int32 z1, int32 x2, int32 z2);
+	int32 getAngle(int32 x1, int32 z1, int32 x2, int32 z2);
 
-	inline int32 getAngleAndSetTargetActorDistance(const IVec3& v1, const IVec3 &v2) {
-		return getAngleAndSetTargetActorDistance(v1.x, v1.z, v2.x, v2.z);
+	inline int32 getAngle(const IVec3& v1, const IVec3 &v2) {
+		return getAngle(v1.x, v1.z, v2.x, v2.z);
 	}
 
 	/**
-	 * Rotate actor with a given angle
-	 * @param x Actor current X coordinate
-	 * @param z Actor current Z coordinate
-	 * @param angle Actor angle to rotate
-	 */
-	IVec3 rotateActor(int32 x, int32 z, int32 angle);
-
-	/**
 	 * Move actor around the scene
-	 * @param angleFrom Current actor angle
-	 * @param angleTo Angle to rotate
-	 * @param speed Rotate speed
+	 * @param start Current actor angle
+	 * @param end Angle to rotate
+	 * @param duration Rotate speed
 	 * @param movePtr Pointer to process movements
 	 */
-	void moveActor(int32 angleFrom, int32 angleTo, int32 speed, ActorMoveStruct *movePtr) const;
+	void initRealAngleConst(int32 start, int32 end, int32 duration, ActorMoveStruct *movePtr) const;
 
-	void processActorMovements(int32 actorIdx);
+	void doDir(int32 actorIdx);
 };
 
-inline bool Movements::shouldTriggerZoneAction() const {
-	return _heroAction;
+inline void Movements::setActionNormal(bool actionNormal) {
+	_actionNormal = actionNormal;
+}
+
+inline bool Movements::shouldExecuteAction() const {
+	return _actionNormal;
 }
 
 } // namespace TwinE

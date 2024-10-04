@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,14 +35,14 @@
 #include "common/keyboard.h"
 #include "engines/engine.h"
 #include "engines/util.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/pixelformat.h"
 #include "graphics/surface.h"
 
 namespace Access {
 
 AccessVIDMovieDecoder::AccessVIDMovieDecoder()
-	: _stream(0), _videoTrack(0), _audioTrack(0) {
+	: _stream(nullptr), _videoTrack(nullptr), _audioTrack(nullptr) {
 	_streamSeekOffset = 0;
 	_streamVideoIndex = 0;
 	_streamAudioIndex = 0;
@@ -207,8 +206,8 @@ bool AccessVIDMovieDecoder::loadStream(Common::SeekableReadStream *stream) {
 void AccessVIDMovieDecoder::close() {
 	Video::VideoDecoder::close();
 
-	delete _stream; _stream = 0;
-	_videoTrack = 0;
+	delete _stream; _stream = nullptr;
+	_videoTrack = nullptr;
 
 	_indexCacheTable.clear();
 }
@@ -656,8 +655,8 @@ AccessVIDMovieDecoder::StreamAudioTrack::~StreamAudioTrack() {
 }
 
 void AccessVIDMovieDecoder::StreamAudioTrack::queueAudio(Common::SeekableReadStream *stream, byte chunkId) {
-	Common::SeekableReadStream *rawAudioStream = 0;
-	Audio::RewindableAudioStream *audioStream = 0;
+	Common::SeekableReadStream *rawAudioStream = nullptr;
+	Audio::RewindableAudioStream *audioStream = nullptr;
 	uint32 audioLengthMSecs = 0;
 
 	if (chunkId == kVIDMovieChunkId_AudioFirstChunk) {
@@ -693,30 +692,30 @@ Audio::AudioStream *AccessVIDMovieDecoder::StreamAudioTrack::getAudioStream() co
 	return _audioStream;
 }
 
-bool AccessEngine::playMovie(const Common::String &filename, const Common::Point &pos) {
-	AccessVIDMovieDecoder *videoDecoder = new AccessVIDMovieDecoder();
+bool AccessEngine::playMovie(const Common::Path &filename, const Common::Point &pos) {
+	AccessVIDMovieDecoder videoDecoder;
 
 	Common::Point framePos(pos.x, pos.y);
 
-	if (!videoDecoder->loadFile(filename)) {
-		warning("AccessVIDMoviePlay: could not open '%s'", filename.c_str());
+	if (!videoDecoder.loadFile(filename)) {
+		warning("AccessVIDMoviePlay: could not open '%s'", filename.toString().c_str());
 		return false;
 	}
 
 	bool skipVideo = false;
 
 	_events->clearEvents();
-	videoDecoder->start();
+	videoDecoder.start();
 
-	while (!shouldQuit() && !videoDecoder->endOfVideo() && !skipVideo) {
-		if (videoDecoder->needsUpdate()) {
-			const Graphics::Surface *frame = videoDecoder->decodeNextFrame();
+	while (!shouldQuit() && !videoDecoder.endOfVideo() && !skipVideo) {
+		if (videoDecoder.needsUpdate()) {
+			const Graphics::Surface *frame = videoDecoder.decodeNextFrame();
 
 			if (frame) {
 				_screen->blitFrom(*frame);
 
-				if (videoDecoder->hasDirtyPalette()) {
-					const byte *palette = videoDecoder->getPalette();
+				if (videoDecoder.hasDirtyPalette()) {
+					const byte *palette = videoDecoder.getPalette();
 					g_system->getPaletteManager()->setPalette(palette, 0, 256);
 				}
 
@@ -732,9 +731,6 @@ bool AccessEngine::playMovie(const Common::String &filename, const Common::Point
 				skipVideo = true;
 		}
 	}
-
-	videoDecoder->close();
-	delete videoDecoder;
 
 	return !skipVideo;
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Handles walking and use of the path system.
  *
@@ -48,14 +47,12 @@ namespace Tinsel {
 
 // in POLYGONS.C
 // Deliberatley defined here, and not in polygons.h
-HPOLYGON InitExtraBlock(PMOVER ca, PMOVER ta);
+HPOLYGON InitExtraBlock(MOVER *ca, MOVER *ta);
 
 //----------------- LOCAL DEFINES --------------------
 
-#define XMDIST	(TinselV2 ? 6 : 4)
-#define XHMDIST	(TinselV2 ? 3 : 2)
-#define YMDIST	(TinselV2 ? 3 : 2)
-#define YHMDIST	(TinselV2 ? 3 : 2)
+#define XMDIST	((TinselVersion >= 2) ? 6 : 4)
+#define YMDIST	((TinselVersion >= 2) ? 3 : 2)
 
 #define XTHERE		1
 #define XRESTRICT	2
@@ -70,7 +67,7 @@ HPOLYGON InitExtraBlock(PMOVER ca, PMOVER ta);
 #define ALL_SORTED	1
 #define NOT_SORTED	0
 
-#define STEPS_MAX (TinselV2 ? 12 : 6)
+#define STEPS_MAX ((TinselVersion >= 2) ? 12 : 6)
 
 //----------------- LOCAL GLOBAL DATA --------------------
 
@@ -92,7 +89,7 @@ static int g_hSlowVar = 0;	// used by MoveActor()
 static void NewCoOrdinates(int fromx, int fromy, int *targetX, int *targetY,
 			int *newx, int *newy, int *s1, int *s2, HPOLYGON *hS2p,
 			bool bOver, bool bBodge,
-			PMOVER pActor, PMOVER *collisionActor = 0);
+			MOVER *pActor, MOVER **collisionActor = 0);
 
 
 #if SLOW_RINCE_DOWN
@@ -486,7 +483,7 @@ DIRECTION GetDirection(int fromx, int fromy, int tox, int toy, DIRECTION lastree
 /**
  * Haven't moved, look towards the cursor.
  */
-static void GotThereWithoutMoving(PMOVER pActor) {
+static void GotThereWithoutMoving(MOVER *pActor) {
 	int	curX, curY;
 	DIRECTION	reel;
 
@@ -503,7 +500,7 @@ static void GotThereWithoutMoving(PMOVER pActor) {
 /**
  * Arrived at final destination.
  */
-static void GotThere(PMOVER pMover) {
+static void GotThere(MOVER *pMover) {
 	pMover->targetX = pMover->targetY = -1;		// 4/1/95
 	pMover->ItargetX = pMover->ItargetY = -1;
 	pMover->UtargetX = pMover->UtargetY = -1;
@@ -511,7 +508,7 @@ static void GotThere(PMOVER pMover) {
 	// Perhaps we have'nt moved.
 	if (pMover->objX == (int)pMover->walkedFromX && pMover->objY == (int)pMover->walkedFromY) {
 		// Got there without moving
-		if (!TinselV2)
+		if (TinselVersion <= 1)
 			GotThereWithoutMoving(pMover);
 		else if (!pMover->bSpecReel) {
 			// No tag reel, look at cursor
@@ -530,13 +527,13 @@ static void GotThere(PMOVER pMover) {
 		}
 	}
 
-	if (!TinselV2)
+	if (TinselVersion <= 1)
 		_vm->_actor->ReTagActor(pMover->actorID);	// Tag allowed while stationary
 
 	SetMoverStanding(pMover);
 	pMover->bMoving = false;
 
-	if (TinselV2 && pMover->bIgPath && pMover->zOverride != -1
+	if ((TinselVersion >= 2) && pMover->bIgPath && pMover->zOverride != -1
 			&&  InPolygon(pMover->objX, pMover->objY, PATH) == NOPOLY)
 		// New feature for end-of-scene walk-outs
 		SetMoverZ(pMover, pMover->objY, pMover->zOverride);
@@ -547,7 +544,7 @@ enum cgt { GT_NOTL, GT_NOTB, GT_NOT2, GT_OK, GT_MAY };
 /**
  * Can we get straight there?
  */
-static cgt CanGetThere(PMOVER pActor, int tx, int ty) {
+static cgt CanGetThere(MOVER *pActor, int tx, int ty) {
 	int s1, s2;		// s2 not used here!
 	HPOLYGON hS2p;		// nor is s2p!
 	int nextx, nexty;
@@ -583,7 +580,7 @@ static cgt CanGetThere(PMOVER pActor, int tx, int ty) {
 /**
  * Set final destination.
  */
-static void SetMoverUltDest(PMOVER pActor, int x, int y) {
+static void SetMoverUltDest(MOVER *pActor, int x, int y) {
 	pActor->UtargetX = x;
 	pActor->UtargetY = y;
 	pActor->hUpath = InPolygon(x, y, PATH);
@@ -601,7 +598,7 @@ static void SetMoverUltDest(PMOVER pActor, int x, int y) {
  * Otherwise, head towards the pseudo-center or end node of the first
  * en-route path.
  */
-static void SetMoverIntDest(PMOVER pMover, int x, int y) {
+static void SetMoverIntDest(MOVER *pMover, int x, int y) {
 	HPOLYGON hIpath, hTpath;
 	int	node;
 
@@ -617,7 +614,7 @@ static void SetMoverIntDest(PMOVER pMover, int x, int y) {
 		pMover->ItargetX = x;
 		pMover->ItargetY = y;
 		// make damn sure that Itarget is in hIpath
-		pMover->hIpath = !TinselV2 ? hTpath : InPolygon(x, y, PATH);
+		pMover->hIpath = (TinselVersion <= 1) ? hTpath : InPolygon(x, y, PATH);
 	} else if (IsAdjacentPath(pMover->hCpath, hTpath)) {
 		// In path adjacent to target
 		if (PolySubtype(hTpath) != NODE) {
@@ -628,24 +625,24 @@ static void SetMoverIntDest(PMOVER pMover, int x, int y) {
 			}
 			pMover->ItargetX = x;
 			pMover->ItargetY = y;
-			if (TinselV2)
+			if (TinselVersion >= 2)
 				// make damn sure that Itarget is in hIpath
 				pMover->hIpath = InPolygon(x, y, PATH);
 		} else {
 			// Target path is node - head for end node.
 			node = NearestEndNode(hTpath, pMover->objX, pMover->objY);
 			getNpathNode(hTpath, node, &pMover->ItargetX, &pMover->ItargetY);
-			if (TinselV2)
+			if (TinselVersion >= 2)
 				// make damn sure that Itarget is in hIpath
 				pMover->hIpath = InPolygon(pMover->ItargetX, pMover->ItargetY, PATH);
 		}
-		if (!TinselV2)
+		if (TinselVersion <= 1)
 			pMover->hIpath = hTpath;
 	} else {
 		assert(hTpath != NOPOLY); // Error 701
 		hIpath = GetPathOnTheWay(pMover->hCpath, hTpath);
 
-		if (TinselV2 && (hIpath == NOPOLY)) {
+		if ((TinselVersion >= 2) && (hIpath == NOPOLY)) {
 			pMover->hIpath = NOPOLY;
 		} else if (hIpath != NOPOLY) {
 			/* Head for an en-route path */
@@ -654,13 +651,13 @@ static void SetMoverIntDest(PMOVER pMover, int x, int y) {
 				if (CanGetThere(pMover, x, y) == GT_OK) {
 					pMover->ItargetX = x;
 					pMover->ItargetY = y;
-					if (TinselV2)
+					if (TinselVersion >= 2)
 						// make damn sure that Itarget is in hIpath
 						pMover->hIpath = InPolygon(x, y, PATH);
 				} else {
 					pMover->ItargetX = PolyCenterX(hIpath);
 					pMover->ItargetY = PolyCenterY(hIpath);
-					if (TinselV2)
+					if (TinselVersion >= 2)
 						// make damn sure that Itarget is in hIpath
 						pMover->hIpath = InPolygon(pMover->ItargetX, pMover->ItargetY, PATH);
 				}
@@ -668,11 +665,11 @@ static void SetMoverIntDest(PMOVER pMover, int x, int y) {
 				/* En-route path is node - head for end node. */
 				node = NearestEndNode(hIpath, pMover->objX, pMover->objY);
 				getNpathNode(hIpath, node, &pMover->ItargetX, &pMover->ItargetY);
-				if (TinselV2)
+				if (TinselVersion >= 2)
 					// make damn sure that Itarget is in hIpath
 					pMover->hIpath = InPolygon(pMover->ItargetX, pMover->ItargetY, PATH);
 			}
-			if (!TinselV2)
+			if (TinselVersion <= 1)
 				pMover->hIpath = hIpath;
 		}
 	}
@@ -683,7 +680,7 @@ static void SetMoverIntDest(PMOVER pMover, int x, int y) {
 /**
  * Set short-term destination and adopt the appropriate reel.
  */
-static void SetMoverDest(PMOVER pActor, int x, int y) {
+static void SetMoverDest(MOVER *pActor, int x, int y) {
 	int	scale;
 	DIRECTION	reel;
 
@@ -692,17 +689,42 @@ static void SetMoverDest(PMOVER pActor, int x, int y) {
 	pActor->targetY = y;
 	pActor->InDifficulty = NO_PROB;
 
-	reel = GetDirection(pActor->objX, pActor->objY, x, y, pActor->direction, pActor->hCpath);
-	scale = GetScale(pActor->hCpath, pActor->objY);
-	if (scale != pActor->scale || reel != pActor->direction) {
-		SetMoverWalkReel(pActor, reel, scale, false);
+
+	if ((TinselVersion == 3) && pActor->type == MOVER_3D) {
+		// int scale = SysVar(SV_SPRITER_SCALE);
+		// groundplane::Get3Dfrom2D(&pActor->vObj,pActor->objX,pActor->objY);
+		// groundplane::Get3Dfrom2D(&pActor->vTarget,pActor->targetX,pActor->targetY);
+		// targetX = (pActor->vTarget).x;
+		// posX = (pActor->vObj).x;
+		// targetZ = (pActor->vTarget).z;
+		// posZ = (pActor->vObj).z;
+		// int dX = (targetX - posX) / scale;
+		// int dZ = (targetZ - posZ) / scale;
+		// if ((dX != 0) || (dZ != 0)) {
+		// 	if (dX < 1) {
+		// 		if (dX < 0) {
+		// 		fpatan(-(float10)dZ / (float10)dX,(float10)1);
+		// 		}
+		// 	}
+		// 	else {
+		// 		fpatan((float10)dZ / (float10)dX,(float10)1);
+		// 	}
+		// 	direction = (int)(longlong)ROUND(0.5 + *(double *)(local_8 + 0x10));
+		// 	pActor->direction = direction;
+		// }
+	} else {
+		reel = GetDirection(pActor->objX, pActor->objY, x, y, pActor->direction, pActor->hCpath);
+		scale = GetScale(pActor->hCpath, pActor->objY);
+		if (scale != pActor->scale || reel != pActor->direction) {
+			SetMoverWalkReel(pActor, reel, scale, false);
+		}
 	}
 }
 
 /**
  * SetNextDest
  */
-static void SetNextDest(PMOVER pMover) {
+static void SetNextDest(MOVER *pMover) {
 	int	targetX, targetY;		// Ultimate destination
 	int	x, y;				// Present position
 	int	nextx, nexty;
@@ -719,7 +741,7 @@ static void SetNextDest(PMOVER pMover) {
 
 	int	ss1, ss2;
 	HPOLYGON shS2p;
-	PMOVER collisionActor;
+	MOVER *collisionActor;
 #if 1
 	int	sTargetX, sTargetY;
 #endif
@@ -991,7 +1013,7 @@ static void SetNextDest(PMOVER pMover) {
 		x = nextx;
 		y = nexty;
 
-		if (!TinselV2) {
+		if (TinselVersion <= 1) {
 			/*-------------------------
 			 Change of path polygon?  |
 			 -------------------------*/
@@ -1030,11 +1052,11 @@ static void SetNextDest(PMOVER pMover) {
 static void NewCoOrdinates(int fromx, int fromy, int *targetX, int *targetY,
 				int *newx, int *newy, int *s1, int *s2,
 				HPOLYGON *hS2p, bool bOver, bool bBodge,
-				PMOVER pMover, PMOVER *collisionActor) {
+				MOVER *pMover, MOVER **collisionActor) {
 	HPOLYGON hPoly;
 	int sidem, depthm;
 	int sidesteps, depthsteps;
-	PMOVER	ma;
+	MOVER *ma;
 
 	*s1 = *s2 = 0;
 
@@ -1241,7 +1263,7 @@ static void NewCoOrdinates(int fromx, int fromy, int *targetX, int *targetY,
 /**
  * SetOffWithinNodePath
  */
-static void SetOffWithinNodePath(PMOVER pMover, HPOLYGON StartPath, HPOLYGON DestPath,
+static void SetOffWithinNodePath(MOVER *pMover, HPOLYGON StartPath, HPOLYGON DestPath,
 								 int targetX, int targetY) {
 	int endnode;
 	HPOLYGON hIpath;
@@ -1286,7 +1308,7 @@ static void SetOffWithinNodePath(PMOVER pMover, HPOLYGON StartPath, HPOLYGON Des
 			endnode == NearestEndNode(StartPath, pMover->objX, pMover->objY)) {
 			// Leave it be
 
-			if (TinselV2) {
+			if (TinselVersion >= 2) {
 				// Yeah, but we need a destination
 				// It's release night and there's this problem in the bar...
 				if (hIpath)	// must be, but...
@@ -1315,7 +1337,7 @@ static void SetOffWithinNodePath(PMOVER pMover, HPOLYGON StartPath, HPOLYGON Des
 /**
  * Restore a movement, called from restoreMovement() in ACTORS.CPP
  */
-void SSetActorDest(PMOVER pActor) {
+void SSetActorDest(MOVER *pActor) {
 	if (pActor->UtargetX != -1 && pActor->UtargetY != -1) {
 		Stand(Common::nullContext, pActor->actorID, pActor->objX, pActor->objY, 0);
 
@@ -1331,11 +1353,11 @@ void SSetActorDest(PMOVER pActor) {
 /**
  * Initiate a movement, called from WalkTo_Event()
  */
-int SetActorDest(PMOVER pMover, int clickX, int clickY, bool igPath, SCNHANDLE hFilm) {
+int SetActorDest(MOVER *pMover, int clickX, int clickY, bool igPath, SCNHANDLE hFilm) {
 	HPOLYGON StartPath, DestPath = 0;
 	int targetX, targetY;
 
-	if (TinselV2) {
+	if (TinselVersion >= 2) {
 		// No need to synchronise if not moving!
 		// Hopefully will stop luggage flip in shades.
 		if (!MoverMoving(pMover))
@@ -1358,7 +1380,7 @@ int SetActorDest(PMOVER pMover, int clickX, int clickY, bool igPath, SCNHANDLE h
 	pMover->zOverride = -1;
 	pMover->hRpath = NOPOLY;
 
-	if (!TinselV2) {
+	if (TinselVersion <= 1) {
 		// Use the supplied reel or restore the normal actor.
 		if (hFilm != 0)
 			AlterMover(pMover, hFilm, AR_WALKREEL);
@@ -1417,7 +1439,7 @@ int SetActorDest(PMOVER pMover, int clickX, int clickY, bool igPath, SCNHANDLE h
 	SetMoverUltDest(pMover, targetX, targetY);
 	SetMoverIntDest(pMover, targetX, targetY);
 
-	if (TinselV2) {
+	if (TinselVersion >= 2) {
 		// No movement for unconnected paths
 		if (pMover->hIpath == NOPOLY && !igPath) {
 			GotThere(pMover);
@@ -1447,7 +1469,7 @@ int SetActorDest(PMOVER pMover, int clickX, int clickY, bool igPath, SCNHANDLE h
 /**
  * Change scale if appropriate.
  */
-static void CheckScale(PMOVER pActor, HPOLYGON hPath, int ypos) {
+static void CheckScale(MOVER *pActor, HPOLYGON hPath, int ypos) {
 	int scale;
 
 	scale = GetScale(hPath, ypos);
@@ -1459,7 +1481,7 @@ static void CheckScale(PMOVER pActor, HPOLYGON hPath, int ypos) {
 /**
  * Not going anywhere - Kick off again if not at final destination.
  */
-static void NotMoving(PMOVER pActor, int x, int y) {
+static void NotMoving(MOVER *pActor, int x, int y) {
 	pActor->targetX = pActor->targetY = -1;
 
 //	if (x == pActor->UtargetX && y == pActor->UtargetY)
@@ -1480,7 +1502,7 @@ static void NotMoving(PMOVER pActor, int x, int y) {
 /**
  * Does the necessary business when entering a different path polygon.
  */
-static void EnteringNewPath(PMOVER pMover, HPOLYGON hPath, int x, int y) {
+static void EnteringNewPath(MOVER *pMover, HPOLYGON hPath, int x, int y) {
 	int	firstnode;	// First node to go to
 	int	lastnode;	// Last node to go to
 	HPOLYGON hIpath;
@@ -1571,10 +1593,10 @@ static void EnteringNewPath(PMOVER pMover, HPOLYGON hPath, int x, int y) {
 			return;
 
 		// Added 23/10/96
-		if (TinselV2 && (pMover->hRpath == hPath))
+		if ((TinselVersion >= 2) && (pMover->hRpath == hPath))
 			return;
 
-		if (TinselV2)
+		if (TinselVersion >= 2)
 			pMover->hRpath = hLpath;
 		SetMoverIntDest(pMover, pMover->UtargetX, pMover->UtargetY);
 		SetNextDest(pMover);
@@ -1584,7 +1606,7 @@ static void EnteringNewPath(PMOVER pMover, HPOLYGON hPath, int x, int y) {
 /**
  * Move
  */
-void Move(PMOVER pMover, int newx, int newy, HPOLYGON hPath) {
+void Move(MOVER *pMover, int newx, int newy, HPOLYGON hPath) {
 	pMover->objX = newx;
 	pMover->objY = newy;
 
@@ -1608,13 +1630,13 @@ void Move(PMOVER pMover, int newx, int newy, HPOLYGON hPath) {
  *
  * Moves the actor as appropriate.
  */
-void MoveActor(PMOVER pMover) {
+void MoveActor(MOVER *pMover) {
 	int newx, newy;
 	HPOLYGON hPath;
 	int status, s2;		// s2 not used here!
 	HPOLYGON hS2p;		// nor is s2p!
 	HPOLYGON hEb;
-	PMOVER ma;
+	MOVER *ma;
 	int	sTargetX, sTargetY;
 	bool bNewPath = false;
 
@@ -1636,7 +1658,7 @@ void MoveActor(PMOVER pMover) {
 /**/	g_BogusVar = 0;			//
 #endif
 
-	if (!TinselV2) {
+	if (TinselVersion <= 1) {
 		// During swalk()s, movement while hidden may be slowed down.
 		if (pMover->bHidden) {
 			if (++g_hSlowVar < pMover->SlowFactor)
@@ -1740,7 +1762,7 @@ int GetLastLeadYdest() {
 /**
  * DoMoveActor
  */
-void DoMoveActor(PMOVER pActor) {
+void DoMoveActor(MOVER *pActor) {
 	int wasx, wasy;
 	int i;
 

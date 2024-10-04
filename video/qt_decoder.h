@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,6 +70,50 @@ public:
 	const Graphics::Surface *decodeNextFrame();
 	Audio::Timestamp getDuration() const { return Audio::Timestamp(0, _duration, _timeScale); }
 
+	void enableEditListBoundsCheckQuirk(bool enable) { _enableEditListBoundsCheckQuirk = enable; }
+	Common::String getAliasPath();
+
+	void handleMouseMove(int16 x, int16 y);
+	void handleMouseButton(bool isDown, int16 x = -1, int16 y = -1);
+
+	float getPanAngle() const { return ((VideoTrackHandler *)_nextVideoTrack)->getPanAngle(); }
+	void setPanAngle(float panAngle) { ((VideoTrackHandler *)_nextVideoTrack)->setPanAngle(panAngle); }
+	float getTiltAngle() const { return ((VideoTrackHandler *)_nextVideoTrack)->getTiltAngle(); }
+	void setTiltAngle(float tiltAngle) { ((VideoTrackHandler *)_nextVideoTrack)->setTiltAngle(tiltAngle); }
+	float getFOV() const { return ((VideoTrackHandler *)_nextVideoTrack)->getFOV(); }
+	void setFOV(float fov) { ((VideoTrackHandler *)_nextVideoTrack)->setFOV(fov); }
+
+	int getCurrentRow() { return _nextVideoTrack->getCurFrame() / _nav.columns; }
+	void setCurrentRow(int row);
+	int getCurrentColumn() { return _nextVideoTrack->getCurFrame() % _nav.columns; }
+	void setCurrentColumn(int column);
+
+	void nudge(const Common::String &direction);
+
+	bool isVR() const { return _isVR; }
+	QTVRType getQTVRType() const { return _qtvrType; }
+
+	uint8 getWarpMode() const { return _warpMode; }
+	void setWarpMode(uint8 warpMode) { _warpMode = warpMode; }
+
+	struct NodeData {
+		uint32 nodeID;
+
+		float defHPan;
+		float defVPan;
+		float defZoom;
+
+		float minHPan;
+		float minVPan;
+		float maxHPan;
+		float maxVPan;
+		float minZoom;
+
+		Common::String name;
+	};
+
+	NodeData getNodeData(uint32 nodeID);
+
 protected:
 	Common::QuickTimeParser::SampleDesc *readSampleDesc(Common::QuickTimeParser::Track *track, uint32 format, uint32 descSize);
 
@@ -81,9 +124,18 @@ private:
 
 	uint16 _width, _height;
 
+	uint16 _prevMouseX, _prevMouseY;
+	bool _isMouseButtonDown;
+
+	bool _isVR;
+
+	uint8 _warpMode; // (2 | 1 | 0) for 2-d, 1-d or no warping
+
 	Graphics::Surface *_scaledSurface;
 	void scaleSurface(const Graphics::Surface *src, Graphics::Surface *dst,
 			const Common::Rational &scaleFactorX, const Common::Rational &scaleFactorY);
+
+	bool _enableEditListBoundsCheckQuirk;
 
 	class VideoSampleDesc : public Common::QuickTimeParser::SampleDesc {
 	public:
@@ -132,10 +184,13 @@ private:
 		uint16 getWidth() const;
 		uint16 getHeight() const;
 		Graphics::PixelFormat getPixelFormat() const;
+		bool setOutputPixelFormat(const Graphics::PixelFormat &format);
 		int getCurFrame() const { return _curFrame; }
+		void setCurFrame(int32 curFrame) { _curFrame = curFrame; }
 		int getFrameCount() const;
-		uint32 getNextFrameStartTime() const;
+		uint32 getNextFrameStartTime() const; // milliseconds
 		const Graphics::Surface *decodeNextFrame();
+		Audio::Timestamp getFrameTime(uint frame) const;
 		const byte *getPalette() const;
 		bool hasDirtyPalette() const { return _curPalette; }
 		bool setReverse(bool reverse);
@@ -146,17 +201,37 @@ private:
 		Common::Rational getScaledWidth() const;
 		Common::Rational getScaledHeight() const;
 
+		float getPanAngle() const { return _panAngle; }
+		void setPanAngle(float panAngle) { _panAngle = panAngle; }
+		float getTiltAngle() const { return _tiltAngle; }
+		void setTiltAngle(float tiltAngle) { _tiltAngle = tiltAngle; }
+		float getFOV() const { return _fov; }
+		void setFOV(float fov) { _fov = fov; }
+
 	private:
 		QuickTimeDecoder *_decoder;
 		Common::QuickTimeParser::Track *_parent;
 		uint32 _curEdit;
 		int32 _curFrame;
-		uint32 _nextFrameStartTime;
+		int32 _delayedFrameToBufferTo;
+		uint32 _nextFrameStartTime; // media time
 		Graphics::Surface *_scaledSurface;
-		int32 _durationOverride;
+		int32 _durationOverride;    // media time
 		const byte *_curPalette;
 		mutable bool _dirtyPalette;
 		bool _reversed;
+
+		float _panAngle;
+		float _tiltAngle;
+		float _fov;
+
+		void constructPanorama();
+		void projectPanorama();
+
+		Graphics::Surface *_constructedPano;
+		Graphics::Surface *_projectedPano;
+
+		bool _isPanoConstructed;
 
 		// Forced dithering of frames
 		byte *_forcedDitherPalette;
@@ -165,13 +240,14 @@ private:
 		const Graphics::Surface *forceDither(const Graphics::Surface &frame);
 
 		Common::SeekableReadStream *getNextFramePacket(uint32 &descId);
-		uint32 getFrameDuration();
+		uint32 getCurFrameDuration();            // media time
 		uint32 findKeyFrame(uint32 frame) const;
-		void enterNewEditList(bool bufferFrames);
+		bool isEmptyEdit() const;
+		void enterNewEditListEntry(bool bufferFrames, bool intializingTrack = false);
 		const Graphics::Surface *bufferNextFrame();
-		uint32 getRateAdjustedFrameTime() const;
-		uint32 getCurEditTimeOffset() const;
-		uint32 getCurEditTrackDuration() const;
+		uint32 getRateAdjustedFrameTime() const; // media time
+		uint32 getCurEditTimeOffset() const;     // media time
+		uint32 getCurEditTrackDuration() const;  // media time
 		bool atLastEdit() const;
 		bool endOfCurEdit() const;
 		void checkEditListBounds();

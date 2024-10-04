@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "bladerunner/bladerunner.h"
 #include "bladerunner/script/ai_script.h"
 
 namespace BladeRunner {
@@ -204,21 +204,21 @@ void AIScriptZuben::ReceivedClue(int clueId, int fromActorId) {
 
 void AIScriptZuben::ClickedByPlayer() {
 	if (Actor_Query_Goal_Number(kActorZuben) == kGoalZubenGone) {
-		if (Player_Query_Current_Scene() == kSceneCT06) {
-			// return true;
-			return;
+		if (Player_Query_Current_Scene() != kSceneCT06) {
+			Actor_Face_Actor(kActorMcCoy, kActorZuben, true);
+			Actor_Says(kActorMcCoy, 8529, 13); // Yuck
 		}
-		Actor_Face_Actor(kActorMcCoy, kActorZuben, true);
-		Actor_Says(kActorMcCoy, 8529, 13);
+		return;
 	}
 
 	if (Global_Variable_Query(kVariableChapter) > 1
 	 && Global_Variable_Query(kVariableChapter) < 5
 	) {
-		if (Actor_Query_Friendliness_To_Other(kActorZuben, kActorMcCoy) <= 20) {
+		if (Actor_Query_Friendliness_To_Other(kActorZuben, kActorMcCoy) <= 20
+		    || Game_Flag_Query(kFlagTalkToZuben)) {
 			Actor_Face_Actor(kActorMcCoy, kActorZuben, true);
-			Actor_Says(kActorMcCoy, 8910, 11);
-		} else if (!Game_Flag_Query(kFlagTalkToZuben)) {
+			Actor_Says(kActorMcCoy, 8910, 11); // Hey you.
+		} else {
 			AI_Movement_Track_Pause(kActorZuben);
 			Actor_Face_Actor(kActorZuben, kActorMcCoy, true);
 			Actor_Says(kActorZuben, 140, 14);
@@ -229,9 +229,6 @@ void AIScriptZuben::ClickedByPlayer() {
 			dialogue();
 			Game_Flag_Set(kFlagTalkToZuben);
 			AI_Movement_Track_Unpause(kActorZuben);
-		} else {
-			Actor_Face_Actor(kActorMcCoy, kActorZuben, true);
-			Actor_Says(kActorMcCoy, 8910, 11);
 		}
 		// return true;
 	}
@@ -788,6 +785,16 @@ bool AIScriptZuben::UpdateAnimation(int *animation, int *frame) {
 
 		if (_animationFrame == 11) {
 			Actor_Combat_AI_Hit_Attempt(kActorZuben);
+#if !BLADERUNNER_ORIGINAL_BUGS
+			if (Game_Flag_Query(kFlagCT07ZubenAttack)
+			    && !Game_Flag_Query(kFlagMcCoyShotAtZuben)) {
+				// We re-use the flag that indicates that McCoy shot at Zuben,
+				// even though here it's Zuben who hits McCoy.
+				// This should be fine, since it serves the same purpose:
+				// McCoy can no longer spare Zuben if he holsters his gun.
+				Game_Flag_Set(kFlagMcCoyShotAtZuben);
+			}
+#endif // BLADERUNNER_ORIGINAL_BUGS
 		}
 
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
@@ -1029,7 +1036,7 @@ bool AIScriptZuben::UpdateAnimation(int *animation, int *frame) {
 		*animation = kModelAnimationZubenBashOnDoor;
 		++_animationFrame;
 		if (_animationFrame == 5) {
-			Overlay_Play("ct02over", 1, false, true, 0);
+			Overlay_Play("CT02OVER", 1, false, true, 0);
 		}
 		if (_animationFrame == 6) {
 			Sound_Play(kSfxMTLDOOR2, 40, 0, 0, 50);
@@ -1058,6 +1065,7 @@ bool AIScriptZuben::UpdateAnimation(int *animation, int *frame) {
 
 	default:
 		*animation = kModelAnimationZubenWalking;
+		debugC(6, kDebugAnimation, "AIScriptZuben::UpdateAnimation() - Current _animationState (%d) is default (walking)", _animationState);
 		break;
 	}
 	*frame = _animationFrame;
@@ -1252,6 +1260,10 @@ bool AIScriptZuben::ChangeAnimationMode(int mode) {
 		_animationState = 14;
 		_animationFrame = 0;
 		break;
+
+	default:
+		debugC(6, kDebugAnimation, "AIScriptZuben::ChangeAnimationMode(%d) - Target mode is not supported", mode);
+		break;
 	}
 	return true;
 }
@@ -1316,14 +1328,23 @@ void AIScriptZuben::dialogue() {
 			Actor_Says(kActorMcCoy, 7335, 14);
 			Actor_Says(kActorZuben, 260, 15);
 			Actor_Says(kActorMcCoy, 7340, 16);
-			Actor_Says(kActorZuben, 340, 15);
-			Actor_Says(kActorMcCoy, 7345, 12);
+			if (_vm->_language != Common::DE_DEU) {
+				// In German version Zuben's quote 340 is "boop" (placeholder)
+				// So skip it along with McCoy's response, which is not a placeholder
+				// but makes no sense without Zuben's quote.
+				Actor_Says(kActorZuben, 340, 15);  // You promise no hurt.
+				Actor_Says(kActorMcCoy, 7345, 12); // Right, no hurt. No hurt anymore.
+			}
 			Actor_Clue_Acquire(kActorMcCoy, kClueZubenTalksAboutLucy2, false, kActorZuben);
 		}
 		break;
 
 	case 1510:
 		Actor_Says(kActorMcCoy, 7300, 13);
+		if (_vm->_cutContent) {
+			Actor_Says(kActorZuben, 270, 12);
+			Actor_Says(kActorMcCoy, 7350, 18);
+		}
 		Actor_Says(kActorZuben, 280, 12);
 		Actor_Says(kActorMcCoy, 7355, 14);
 		Actor_Says(kActorZuben, 290, 15);
@@ -1331,7 +1352,14 @@ void AIScriptZuben::dialogue() {
 		Actor_Says(kActorZuben, 300, 14);
 		Actor_Says(kActorZuben, 310, 13);
 		Delay(2000);
+#if BLADERUNNER_ORIGINAL_BUGS
 		Actor_Says(kActorMcCoy, 7360, 11);
+#else
+		// Original re-uses McCoy's quote 7360 (Did he do things to Lucy?)
+		// which McCoy already said just before.
+		// The correct quote here is 7365 (You should have killed him)
+		Actor_Says(kActorMcCoy, 7365, 11);
+#endif
 		Actor_Says(kActorZuben, 320, 12);
 		Actor_Says(kActorZuben, 330, 12);
 		Actor_Clue_Acquire(kActorMcCoy, kClueZubensMotive, false, kActorZuben);

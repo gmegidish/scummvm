@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -25,7 +30,7 @@
 #include "engines/util.h"
 
 #include "graphics/cursorman.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/surface.h"
 
 #include "gob/gob.h"
@@ -47,7 +52,7 @@ Font::Font(const byte *data) : _dataPtr(data) {
 	_itemHeight = _dataPtr[1];
 	_startItem  = _dataPtr[2];
 	_endItem    = _dataPtr[3];
-	_charWidths = 0;
+	_charWidths = nullptr;
 
 	uint8 rowAlignedBits = (_itemWidth - 1) / 8 + 1;
 
@@ -89,13 +94,16 @@ bool Font::hasChar(uint8 c) const {
 }
 
 bool Font::isMonospaced() const {
-	return _charWidths == 0;
+	return _charWidths == nullptr;
 }
 
 void Font::drawLetter(Surface &surf, uint8 c, uint16 x, uint16 y,
 		uint32 color1, uint32 color2, bool transp) const {
 
 	uint16 data;
+
+	if (c == '\r' || c == '\n')
+		return;
 
 	const byte *src = getCharData(c);
 	if (!src) {
@@ -126,7 +134,7 @@ void Font::drawLetter(Surface &surf, uint8 c, uint16 x, uint16 y,
 						dst.set(color2);
 				}
 
-				dst++;
+				++dst;
 				data <<= 1;
 			}
 
@@ -158,11 +166,11 @@ void Font::drawString(const Common::String &str, int16 x, int16 y, int16 color1,
 const byte *Font::getCharData(uint8 c) const {
 	if (_endItem == 0) {
 		warning("Font::getCharData(): _endItem == 0");
-		return 0;
+		return nullptr;
 	}
 
 	if ((c < _startItem) || (c > _endItem))
-		return 0;
+		return nullptr;
 
 	return _data + (c - _startItem) * _itemSize;
 }
@@ -225,7 +233,8 @@ SurfacePtr Video::initSurfDesc(int16 width, int16 height, int16 flags) {
 	} else {
 		assert(!(flags & DISABLE_SPR_ALLOC));
 
-		if (!(flags & SCUMMVM_CURSOR))
+
+		if (!(flags & SCUMMVM_CURSOR) && _vm->getGameType() != kGameTypeAdibou2)
 			width = (width + 7) & 0xFFF8;
 
 		descPtr = SurfacePtr(new Surface(width, height, _vm->getPixelFormat().bytesPerPixel));
@@ -327,7 +336,7 @@ void Video::drawPacked(byte *sprBuf, int16 width, int16 height,
 				if (!transp || val)
 					dst.set(val);
 
-			dst++;
+			++dst;
 			curx++;
 			if (curx == destRight) {
 				dst += dest.getWidth() + x - curx;

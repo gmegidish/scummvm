@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/gumps/gump.h"
-#include "ultima/ultima8/graphics/render_surface.h"
-#include "ultima/ultima8/graphics/shape.h"
-#include "ultima/ultima8/graphics/shape_frame.h"
-#include "ultima/ultima8/graphics/shape_archive.h"
+#include "ultima/ultima8/gfx/render_surface.h"
+#include "ultima/ultima8/gfx/shape.h"
+#include "ultima/ultima8/gfx/shape_frame.h"
+#include "ultima/ultima8/gfx/shape_archive.h"
 #include "ultima/ultima8/games/game_data.h"
 #include "ultima/ultima8/gumps/gump_notify_process.h"
 #include "ultima/ultima8/kernel/kernel.h"
+#include "ultima/ultima8/kernel/mouse.h"
 #include "ultima/ultima8/kernel/object_manager.h"
 #include "ultima/ultima8/ultima8.h"
 
@@ -205,8 +205,9 @@ bool Gump::GetMouseCursor(int32 mx, int32 my, Shape &shape, int32 &frame) {
 	{
 		Gump *g = *it;
 
-		// Not if closing
-		if (g->_flags & FLAG_CLOSING) continue;
+		// Not if closing or hidden
+		if (g->_flags & FLAG_CLOSING || g->IsHidden())
+			continue;
 
 		// It's got the point
 		if (g->PointOnGump(mx, my))
@@ -377,6 +378,12 @@ void Gump::setRelativePosition(Gump::Position pos, int xoffset, int yoffset) {
 		case BOTTOM_CENTER:
 			Move(rect.width() / 2 - _dims.width() / 2 + xoffset, rect.height() - _dims.height() + yoffset);
 			break;
+		case LEFT_CENTER:
+			Move(xoffset, rect.height() / 2 - _dims.height() / 2 + yoffset);
+			break;
+		case RIGHT_CENTER:
+			Move(rect.width() - _dims.width() + xoffset, rect.height() / 2 - _dims.height() / 2 + yoffset);
+			break;
 		default:
 			break;
 		}
@@ -495,8 +502,9 @@ uint16 Gump::TraceObjId(int32 mx, int32 my) {
 	for (it = _children.rbegin(); it != _children.rend(); ++it) {
 		Gump *g = *it;
 
-		// Not if closing
-		if (g->_flags & FLAG_CLOSING) continue;
+		// Not if closing or hidden
+		if (g->_flags & FLAG_CLOSING || g->IsHidden())
+			continue;
 
 		// It's got the point
 		if (g->PointOnGump(gx, gy)) objId_ = g->TraceObjId(gx, gy);
@@ -603,7 +611,7 @@ void Gump::AddChild(Gump *gump, bool take_focus) {
 		// Why don't we check for FLAG_CLOSING here?
 		// Because we want to make sure that the sort order is always valid
 
-		// If we are same layer as focus and we wont take it, we will not be
+		// If we are same layer as focus and we won't take it, we will not be
 		// placed in front of it
 		if (!take_focus && other == _focusChild && other->_layer == gump->_layer)
 			break;
@@ -662,16 +670,23 @@ Gump *Gump::GetRootGump() {
 }
 
 
-bool Gump::StartDraggingChild(Gump *gump, int32 mx, int32 my) {
+bool Gump::onDragStart(int32 mx, int32 my) {
+	if (IsDraggable() && _parent) {
+		ParentToGump(mx, my);
+		Mouse::get_instance()->setDraggingOffset(mx, my);
+		_parent->MoveChildToFront(this);
+		return true;
+	}
 	return false;
 }
 
-void Gump::DraggingChild(Gump *gump, int mx, int my) {
-	CANT_HAPPEN();
+void Gump::onDragStop(int32 mx, int32 my) {
 }
 
-void Gump::StopDraggingChild(Gump *gump) {
-	CANT_HAPPEN();
+void Gump::onDrag(int32 mx, int32 my) {
+	int32 dx, dy;
+	Mouse::get_instance()->getDraggingOffset(dx, dy);
+	Move(mx - dx, my - dy);
 }
 
 //
@@ -689,8 +704,9 @@ Gump *Gump::onMouseDown(int button, int32 mx, int32 my) {
 	for (it = _children.rbegin(); it != _children.rend(); ++it) {
 		Gump *g = *it;
 
-		// Not if closing
-		if (g->_flags & FLAG_CLOSING || g->IsHidden()) continue;
+		// Not if closing or hidden
+		if (g->_flags & FLAG_CLOSING || g->IsHidden())
+			continue;
 
 		// It's got the point
 		if (g->PointOnGump(mx, my)) handled = g->onMouseDown(button, mx, my);
@@ -712,8 +728,9 @@ Gump *Gump::onMouseMotion(int32 mx, int32 my) {
 	for (it = _children.rbegin(); it != _children.rend(); ++it) {
 		Gump *g = *it;
 
-		// Not if closing
-		if (g->_flags & FLAG_CLOSING || g->IsHidden()) continue;
+		// Not if closing or hidden
+		if (g->_flags & FLAG_CLOSING || g->IsHidden())
+			continue;
 
 		// It's got the point
 		if (g->PointOnGump(mx, my)) handled = g->onMouseMotion(mx, my);
@@ -751,6 +768,10 @@ bool Gump::OnTextInput(int unicode) {
 bool Gump::mustSave(bool toplevel) const {
 	// DONT_SAVE flag
 	if (_flags & FLAG_DONT_SAVE)
+		return false;
+
+	// don't save when ready for deletion
+	if (_flags & FLAG_CLOSE_AND_DEL)
 		return false;
 
 	if (toplevel) {

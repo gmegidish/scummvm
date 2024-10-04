@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -133,13 +132,13 @@ PackageSet::PackageSet(Common::FSNode file, const Common::String &filename, bool
 	TPackageHeader hdr;
 	hdr.readFromStream(stream);
 	if (hdr._magic1 != PACKAGE_MAGIC_1 || hdr._magic2 != PACKAGE_MAGIC_2 || hdr._packageVersion > PACKAGE_VERSION) {
-		debugC(kWintermuteDebugFileAccess | kWintermuteDebugLog, "  Invalid header in package file '%s'. Ignoring.", filename.c_str());
+		debugC(kWintermuteDebugFileAccess, "  Invalid header in package file '%s'. Ignoring.", filename.c_str());
 		delete stream;
 		return;
 	}
 
 	if (hdr._packageVersion != PACKAGE_VERSION) {
-		debugC(kWintermuteDebugFileAccess | kWintermuteDebugLog, "  Warning: package file '%s' is outdated.", filename.c_str());
+		debugC(kWintermuteDebugFileAccess, "  Warning: package file '%s' is outdated.", filename.c_str());
 	}
 	_priority = hdr._priority;
 	_version  = hdr._gameVersion;
@@ -195,8 +194,7 @@ PackageSet::PackageSet(Common::FSNode file, const Common::String &filename, bool
 			}
 			debugC(kWintermuteDebugFileAccess, "Package contains %s", name);
 
-			Common::String upcName = name;
-			upcName.toUppercase();
+			Common::Path path(name, '\\');
 			delete[] name;
 			name = nullptr;
 
@@ -210,7 +208,9 @@ PackageSet::PackageSet(Common::FSNode file, const Common::String &filename, bool
 				/* timeDate1 = */ stream->readUint32LE();
 				/* timeDate2 = */ stream->readUint32LE();
 			}
-			_filesIter = _files.find(upcName);
+
+			FilesMap::iterator _filesIter;
+			_filesIter = _files.find(path);
 			if (_filesIter == _files.end()) {
 				BaseFileEntry *fileEntry = new BaseFileEntry();
 				fileEntry->_package = pkg;
@@ -218,9 +218,9 @@ PackageSet::PackageSet(Common::FSNode file, const Common::String &filename, bool
 				fileEntry->_length = length;
 				fileEntry->_compressedLength = compLength;
 				fileEntry->_flags = flags;
-				fileEntry->_filename = upcName;
+				fileEntry->_filename = path;
 
-				_files[upcName] = Common::ArchiveMemberPtr(fileEntry);
+				_files[path] = Common::ArchiveMemberPtr(fileEntry);
 			} else {
 				// current package has higher priority than the registered
 				// TODO: This cast might be a bit ugly.
@@ -248,17 +248,14 @@ PackageSet::~PackageSet() {
 }
 
 bool PackageSet::hasFile(const Common::Path &path) const {
-	Common::String name = path.toString();
-	Common::String upcName = name;
-	upcName.toUppercase();
-	Common::HashMap<Common::String, Common::ArchiveMemberPtr>::const_iterator it;
-	it = _files.find(upcName.c_str());
+	FilesMap::const_iterator it;
+	it = _files.find(path);
 	return (it != _files.end());
 }
 
 int PackageSet::listMembers(Common::ArchiveMemberList &list) const {
-	Common::HashMap<Common::String, Common::ArchiveMemberPtr>::const_iterator it = _files.begin();
-	Common::HashMap<Common::String, Common::ArchiveMemberPtr>::const_iterator end = _files.end();
+	FilesMap::const_iterator it = _files.begin();
+	FilesMap::const_iterator end = _files.end();
 	int count = 0;
 	for (; it != end; ++it) {
 		const Common::ArchiveMemberPtr ptr(it->_value);
@@ -269,20 +266,14 @@ int PackageSet::listMembers(Common::ArchiveMemberList &list) const {
 }
 
 const Common::ArchiveMemberPtr PackageSet::getMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	Common::String upcName = name;
-	upcName.toUppercase();
-	Common::HashMap<Common::String, Common::ArchiveMemberPtr>::const_iterator it;
-	it = _files.find(upcName.c_str());
+	FilesMap::const_iterator it;
+	it = _files.find(path);
 	return Common::ArchiveMemberPtr(it->_value);
 }
 
 Common::SeekableReadStream *PackageSet::createReadStreamForMember(const Common::Path &path) const {
-	Common::String name = path.toString();
-	Common::String upcName = name;
-	upcName.toUppercase();
-	Common::HashMap<Common::String, Common::ArchiveMemberPtr>::const_iterator it;
-	it = _files.find(upcName.c_str());
+	FilesMap::const_iterator it;
+	it = _files.find(path);
 	if (it != _files.end()) {
 		return it->_value->createReadStream();
 	}

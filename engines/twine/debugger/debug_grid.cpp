@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,17 +43,17 @@ void DebugGrid::changeGridCamera() {
 	Input *input = _engine->_input;
 	if (input->isActionActive(TwinEActionType::DebugGridCameraPressUp)) {
 		grid->_newCamera.z--;
-		redraw->_reqBgRedraw = true;
+		redraw->_firstTime = true;
 	} else if (input->isActionActive(TwinEActionType::DebugGridCameraPressDown)) {
 		grid->_newCamera.z++;
-		redraw->_reqBgRedraw = true;
+		redraw->_firstTime = true;
 	}
 	if (input->isActionActive(TwinEActionType::DebugGridCameraPressLeft)) {
 		grid->_newCamera.x--;
-		redraw->_reqBgRedraw = true;
+		redraw->_firstTime = true;
 	} else if (input->isActionActive(TwinEActionType::DebugGridCameraPressRight)) {
 		grid->_newCamera.x++;
-		redraw->_reqBgRedraw = true;
+		redraw->_firstTime = true;
 	}
 }
 
@@ -71,7 +70,7 @@ void DebugGrid::changeGrid() {
 			scene->_currentSceneIdx = LBA1SceneId::Citadel_Island_Prison;
 		}
 		scene->_needChangeScene = scene->_currentSceneIdx;
-		redraw->_reqBgRedraw = true;
+		redraw->_firstTime = true;
 	}
 
 	if (input->toggleActionIfActive(TwinEActionType::PreviousRoom)) {
@@ -80,7 +79,7 @@ void DebugGrid::changeGrid() {
 			scene->_currentSceneIdx = LBA1SceneId::SceneIdMax - 1;
 		}
 		scene->_needChangeScene = scene->_currentSceneIdx;
-		redraw->_reqBgRedraw = true;
+		redraw->_firstTime = true;
 	}
 }
 
@@ -111,8 +110,8 @@ void DebugGrid::applyCellingGrid() {
 			_engine->_scene->_needChangeScene = SCENE_CEILING_GRID_FADE_2; // tricky to make the fade
 		} else if (grid->_useCellingGrid == 1) {
 			grid->_useCellingGrid = -1;
-			grid->createGridMap();
-			_engine->_redraw->_reqBgRedraw = true;
+			grid->copyMapToCube();
+			_engine->_redraw->_firstTime = true;
 			debug("Disable Celling Grid index: %d", grid->_cellingGridIdx);
 			_engine->_scene->_needChangeScene = SCENE_CEILING_GRID_FADE_2; // tricky to make the fade
 		}

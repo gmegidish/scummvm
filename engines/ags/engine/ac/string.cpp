@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ags/lib/std/algorithm.h"
+#include "common/std/algorithm.h"
 #include "ags/engine/ac/string.h"
 #include "ags/shared/ac/common.h"
+#include "ags/shared/util/utf8.h"
 #include "ags/engine/ac/display.h"
 #include "ags/shared/ac/game_setup_struct.h"
 #include "ags/engine/ac/game_state.h"
@@ -53,19 +53,27 @@ const char *String_Copy(const char *srcString) {
 }
 
 const char *String_Append(const char *thisString, const char *extrabit) {
-	char *buffer = (char *)malloc(strlen(thisString) + strlen(extrabit) + 1);
-	strcpy(buffer, thisString);
-	strcat(buffer, extrabit);
+	size_t ln = strlen(thisString) + strlen(extrabit) + 1;
+	char *buffer = (char *)malloc(ln);
+	Common::strcpy_s(buffer, ln, thisString);
+	Common::strcat_s(buffer, ln, extrabit);
 	return CreateNewScriptString(buffer, false);
 }
 
-const char *String_AppendChar(const char *thisString, char extraOne) {
-	char *buffer = (char *)malloc(strlen(thisString) + 2);
-	sprintf(buffer, "%s%c", thisString, extraOne);
+const char *String_AppendChar(const char *thisString, int extraOne) {
+	size_t chw = 1;
+	char chr[Utf8::UtfSz + 1]{};
+	if (get_uformat() == U_UTF8)
+		chw = Utf8::SetChar(extraOne, chr, sizeof(chr));
+	else
+		chr[0] = extraOne;
+	size_t ln = strlen(thisString) + chw + 1;
+	char *buffer = (char *)malloc(ln);
+	Common::sprintf_s(buffer, ln, "%s%s", thisString, chr);
 	return CreateNewScriptString(buffer, false);
 }
 
-const char *String_ReplaceCharAt(const char *thisString, int index, char newChar) {
+const char *String_ReplaceCharAt(const char *thisString, int index, int newChar) {
 	size_t len = ustrlen(thisString);
 	if ((index < 0) || ((size_t)index >= len))
 		quit("!String.ReplaceCharAt: index outside range of string");
@@ -74,12 +82,17 @@ const char *String_ReplaceCharAt(const char *thisString, int index, char newChar
 	int uchar = ugetc(thisString + off);
 	size_t remain_sz = strlen(thisString + off);
 	size_t old_sz = ucwidth(uchar);
-	size_t new_sz = sizeof(char); // TODO: support unicode char in API
-	size_t total_sz = off + remain_sz + new_sz - old_sz + 1;
+	size_t new_chw = 1;
+	char new_chr[Utf8::UtfSz + 1]{};
+	if (get_uformat() == U_UTF8)
+		new_chw = Utf8::SetChar(newChar, new_chr, sizeof(new_chr));
+	else
+		new_chr[0] = newChar;
+	size_t total_sz = off + remain_sz + new_chw - old_sz + 1;
 	char *buffer = (char *)malloc(total_sz);
 	memcpy(buffer, thisString, off);
-	usetc(buffer + off, newChar);
-	memcpy(buffer + off + new_sz, thisString + off + old_sz, remain_sz - old_sz + 1);
+	memcpy(buffer + off, new_chr, new_chw);
+	memcpy(buffer + off + new_chw, thisString + off + old_sz, remain_sz - old_sz + 1);
 	return CreateNewScriptString(buffer, false);
 }
 
@@ -103,7 +116,7 @@ const char *String_Substring(const char *thisString, int index, int length) {
 	size_t strlen = ustrlen(thisString);
 	if ((index < 0) || ((size_t)index > strlen))
 		quit("!String.Substring: invalid index");
-	size_t sublen = std::min((size_t)length, strlen - index);
+	size_t sublen = MIN((size_t)length, strlen - index);
 	size_t start = uoffset(thisString, index);
 	size_t end = uoffset(thisString + start, sublen) + start;
 	size_t copysz = end - start;
@@ -195,9 +208,19 @@ const char *String_UpperCase(const char *thisString) {
 }
 
 int String_GetChars(const char *texx, int index) {
-	if ((index < 0) || (index >= (int)strlen(texx)))
-		return 0;
-	return texx[index];
+	if (get_uformat() == U_UTF8) {
+		if ((index < 0) || (index >= ustrlen(texx)))
+			return 0;
+		return ugetat(texx, index);
+	} else {
+		if ((index < 0) || (index >= (int)strlen(texx)))
+			return 0;
+		return texx[index];
+	}
+}
+
+int String_GetLength(const char *texx) {
+	return (get_uformat() == U_UTF8) ? ustrlen(texx) : strlen(texx);
 }
 
 int StringToInt(const char *stino) {
@@ -245,11 +268,10 @@ DynObjectRef CreateNewScriptStringObj(const char *fromText, bool reAllocate) {
 	ScriptString *str;
 	if (reAllocate) {
 		str = new ScriptString(fromText);
-	} else {
-		str = new ScriptString();
-		str->text = const_cast<char *>(fromText);
+	} else { // TODO: refactor to avoid const casts!
+		str = new ScriptString(const_cast<char *>(fromText), true);
 	}
-	void *obj_ptr = str->text;
+	void *obj_ptr = str->GetTextPtr();
 	int32_t handle = ccRegisterManagedObject(obj_ptr, str);
 	if (handle == 0) {
 		delete str;
@@ -285,31 +307,30 @@ size_t break_up_text_into_lines(const char *todis, SplitLines &lines, int wii, i
 			(get_uformat() == U_UTF8) ?
 				lines[rr].ReverseUTF8() :
 				lines[rr].Reverse();
-			line_length = wgettextwidth_compensate(lines[rr].GetCStr(), fonnt);
+			line_length = get_text_width_outlined(lines[rr].GetCStr(), fonnt);
 			if (line_length > _G(longestline))
 				_G(longestline) = line_length;
 		} else
 			for (size_t rr = 0; rr < lines.Count(); rr++) {
-				line_length = wgettextwidth_compensate(lines[rr].GetCStr(), fonnt);
+				line_length = get_text_width_outlined(lines[rr].GetCStr(), fonnt);
 				if (line_length > _G(longestline))
 					_G(longestline) = line_length;
 			}
 		return lines.Count();
 }
 
-int MAXSTRLEN = MAX_MAXSTRLEN;
 void check_strlen(char *ptt) {
-	MAXSTRLEN = MAX_MAXSTRLEN;
+	_G(MAXSTRLEN) = MAX_MAXSTRLEN;
 	long charstart = (intptr_t)&_GP(game).chars[0];
 	long charend = charstart + sizeof(CharacterInfo) * _GP(game).numcharacters;
 	if (((intptr_t)&ptt[0] >= charstart) && ((intptr_t)&ptt[0] <= charend))
-		MAXSTRLEN = 30;
+		_G(MAXSTRLEN) = 30;
 }
 
 /*void GetLanguageString(int indxx,char*buffr) {
 VALIDATE_STRING(buffr);
 char*bptr=get_language_text(indxx);
-if (bptr==NULL) strcpy(buffr,"[language string error]");
+if (bptr==NULL) Common::strcpy_s(buffr, 200, "[language string error]");
 else strncpy(buffr,bptr,199);
 buffr[199]=0;
 }*/
@@ -317,11 +338,7 @@ buffr[199]=0;
 void my_strncpy(char *dest, const char *src, int len) {
 	// the normal strncpy pads out the string with zeros up to the
 	// max length -- we don't want that
-	if (strlen(src) >= (unsigned)len) {
-		strncpy(dest, src, len);
-		dest[len] = 0;
-	} else
-		strcpy(dest, src);
+	Common::strcpy_s(dest, len + 1, src);
 }
 
 //=============================================================================
@@ -421,9 +438,8 @@ RuntimeScriptValue Sc_String_GetChars(void *self, const RuntimeScriptValue *para
 	API_OBJCALL_INT_PINT(const char, String_GetChars);
 }
 
-RuntimeScriptValue Sc_strlen(void *self, const RuntimeScriptValue *params, int32_t param_count) {
-	ASSERT_SELF(strlen);
-	return RuntimeScriptValue().SetInt32(strlen((const char *)self));
+RuntimeScriptValue Sc_String_GetLength(void *self, const RuntimeScriptValue *params, int32_t param_count) {
+	API_OBJCALL_INT(const char, String_GetLength);
 }
 
 //=============================================================================
@@ -452,7 +468,7 @@ void RegisterStringAPI() {
 	ccAddExternalObjectFunction("String::get_AsFloat", Sc_StringToFloat);
 	ccAddExternalObjectFunction("String::get_AsInt", Sc_StringToInt);
 	ccAddExternalObjectFunction("String::geti_Chars", Sc_String_GetChars);
-	ccAddExternalObjectFunction("String::get_Length", Sc_strlen);
+	ccAddExternalObjectFunction("String::get_Length", Sc_String_GetLength);
 }
 
 } // namespace AGS3

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -125,7 +124,7 @@ static const byte defaultSci32GMPatch[] = {
 };
 #endif
 
-Mt32ToGmMapList *Mt32dynamicMappings = NULL;
+Mt32ToGmMapList *Mt32dynamicMappings = nullptr;
 
 class MidiPlayer_Midi : public MidiPlayer {
 public:
@@ -231,7 +230,17 @@ private:
 	const char *_missingFiles;
 };
 
-MidiPlayer_Midi::MidiPlayer_Midi(SciVersion version) : MidiPlayer(version), _playSwitch(true), _masterVolume(15), _mt32Type(kMt32TypeNone), _mt32LCDSize(20), _hasReverb(false), _defaultReverb(-1), _useMT32Track(true), _missingFiles(nullptr) {
+MidiPlayer_Midi::MidiPlayer_Midi(SciVersion version) : 
+	MidiPlayer(version),
+	_playSwitch(true),
+	_masterVolume(15),
+	_mt32Type(kMt32TypeNone),
+	_mt32LCDSize(20),
+	_hasReverb(false),
+	_defaultReverb(-1),
+	_useMT32Track(true),
+	_missingFiles(nullptr) {
+
 	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_MIDI);
 	_driver = MidiDriver::createMidi(dev);
 
@@ -260,7 +269,7 @@ MidiPlayer_Midi::~MidiPlayer_Midi() {
 	const Mt32ToGmMapList::iterator end = Mt32dynamicMappings->end();
 	for (Mt32ToGmMapList::iterator it = Mt32dynamicMappings->begin(); it != end; ++it) {
 		delete[] (*it).name;
-		(*it).name = 0;
+		(*it).name = nullptr;
 	}
 
 	Mt32dynamicMappings->clear();
@@ -675,8 +684,8 @@ void MidiPlayer_Midi::sendMt32SysEx(const uint32 addr, const SciSpan<const byte>
 
 void MidiPlayer_Midi::readMt32Patch(const SciSpan<const byte> &data) {
 	// MT-32 patch contents:
-	// - 0-19        after-SysEx message
-	// - 20-39       before-SysEx message
+	// - 0-19        after-SysEx message   (KQ4/LSL2: before)
+	// - 20-39       before-SysEx message  (KQ4/LSL2: after)
 	// - 40-59       goodbye SysEx message
 	// - 60-61       volume
 	// - 62          reverb
@@ -694,12 +703,28 @@ void MidiPlayer_Midi::readMt32Patch(const SciSpan<const byte> &data) {
 
 	Common::MemoryReadStream stream(data.toStream());
 
+	// before-SysEx and after-SysEx texts swapped positions after KQ4 and LSL2.
+	uint beforeTextPos;
+	uint afterTextPos;
+	switch (g_sci->getGameId()) {
+	case GID_KQ4:
+	case GID_LSL2:
+		beforeTextPos = 0;
+		afterTextPos = _mt32LCDSize;
+		break;
+	default:
+		beforeTextPos = _mt32LCDSize;
+		afterTextPos = 0;
+		break;
+	}
+
 	// Send before-SysEx text
-	stream.seek(_mt32LCDSize);
+	stream.seek(beforeTextPos);
 	sendMt32SysEx(0x200000, stream, _mt32LCDSize);
 
 	// Save goodbye message
 	assert(sizeof(_goodbyeMsg) >= _mt32LCDSize);
+	stream.seek(_mt32LCDSize * 2);
 	stream.read(_goodbyeMsg, _mt32LCDSize);
 
 	const uint8 volume = MIN<uint16>(stream.readUint16LE(), 100);
@@ -746,7 +771,7 @@ void MidiPlayer_Midi::readMt32Patch(const SciSpan<const byte> &data) {
 	}
 
 	// Send after-SysEx text
-	stream.seek(0);
+	stream.seek(afterTextPos);
 	sendMt32SysEx(0x200000, stream, _mt32LCDSize);
 
 	if (_mt32Type != kMt32TypeD110) {
@@ -853,12 +878,12 @@ void MidiPlayer_Midi::readMt32DrvData() {
 		// Send before-SysEx text
 		sendMt32SysEx(0x200000, f, 20);
 
-		if (size != 2271) {
+		if (size != 2771) {
 			// Send after-SysEx text (SSCI sends this before every song).
 			// There aren't any SysEx calls in old drivers, so this can
 			// be sent right after the before-SysEx text.
 			sendMt32SysEx(0x200000, f, 20);
-		} else {
+		} else { // LSL2 early
 			// Skip the after-SysEx text in the newer patch version, we'll send
 			// it after the SysEx messages are sent.
 			f.skip(20);
@@ -1060,7 +1085,7 @@ bool MidiPlayer_Midi::readD110SysEx() {
 byte MidiPlayer_Midi::lookupGmInstrument(const char *iname) {
 	int i = 0;
 
-	if (Mt32dynamicMappings != NULL) {
+	if (Mt32dynamicMappings != nullptr) {
 		const Mt32ToGmMapList::iterator end = Mt32dynamicMappings->end();
 		for (Mt32ToGmMapList::iterator it = Mt32dynamicMappings->begin(); it != end; ++it) {
 			if (scumm_strnicmp(iname, (*it).name, 10) == 0)
@@ -1080,7 +1105,7 @@ byte MidiPlayer_Midi::lookupGmInstrument(const char *iname) {
 byte MidiPlayer_Midi::lookupGmRhythmKey(const char *iname) {
 	int i = 0;
 
-	if (Mt32dynamicMappings != NULL) {
+	if (Mt32dynamicMappings != nullptr) {
 		const Mt32ToGmMapList::iterator end = Mt32dynamicMappings->end();
 		for (Mt32ToGmMapList::iterator it = Mt32dynamicMappings->begin(); it != end; ++it) {
 			if (scumm_strnicmp(iname, (*it).name, 10) == 0)
@@ -1244,7 +1269,7 @@ void MidiPlayer_Midi::resetMt32() {
 }
 
 int MidiPlayer_Midi::open(ResourceManager *resMan) {
-	assert(resMan != NULL);
+	assert(resMan != nullptr);
 
 	int retval = _driver->open();
 	if (retval != 0) {
@@ -1316,7 +1341,7 @@ int MidiPlayer_Midi::open(ResourceManager *resMan) {
 			} else {
 				readMt32Patch(*res);
 			}
-		} else {
+		} else if (_version == SCI_VERSION_0_EARLY) {
 			// Early SCI0 games have the sound bank embedded in the MT-32 driver
 			readMt32DrvData();
 		}
@@ -1414,7 +1439,7 @@ void MidiPlayer_Midi::close() {
 		sendMt32SysEx(0x200000, SciSpan<const byte>(_goodbyeMsg, _mt32LCDSize), true);
 	}
 
-	_driver->setTimerCallback(NULL, NULL);
+	_driver->setTimerCallback(nullptr, nullptr);
 	_driver->close();
 }
 

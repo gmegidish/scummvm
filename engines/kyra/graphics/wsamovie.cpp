@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,8 +26,8 @@
 
 namespace Kyra {
 
-WSAMovie_v1::WSAMovie_v1(KyraEngine_v1 *vm)
-	: Movie(vm), _frameData(0), _frameOffsTable(0), _offscreenBuffer(0), _deltaBuffer(0) {
+WSAMovie_v1::WSAMovie_v1(KyraEngine_v1 *vm) : Movie(vm), _frameData(nullptr), _frameOffsTable(nullptr),
+	_offscreenBuffer(nullptr), _deltaBuffer(nullptr), _currentFrame(0), _numFrames(0), _width(0), _height(0), _flags(0), _deltaBufferSize(0) {
 }
 
 WSAMovie_v1::~WSAMovie_v1() {
@@ -49,7 +48,7 @@ int WSAMovie_v1::open(const char *filename, int offscreenDecode, Palette *palBuf
 	_width = READ_LE_UINT16(wsaData); wsaData += 2;
 	_height = READ_LE_UINT16(wsaData); wsaData += 2;
 	_deltaBufferSize = READ_LE_UINT16(wsaData); wsaData += 2;
-	_offscreenBuffer = NULL;
+	_offscreenBuffer = nullptr;
 	_flags = 0;
 	if (_vm->gameFlags().useAltShapeHeader) {
 		flags = READ_LE_UINT16(wsaData);
@@ -67,8 +66,7 @@ int WSAMovie_v1::open(const char *filename, int offscreenDecode, Palette *palBuf
 	if (offscreenDecode) {
 		_flags |= WF_OFFSCREEN_DECODE;
 		const int offscreenBufferSize = _width * _height;
-		_offscreenBuffer = new uint8[offscreenBufferSize];
-		memset(_offscreenBuffer, 0, offscreenBufferSize);
+		_offscreenBuffer = new uint8[offscreenBufferSize]();
 	}
 
 	if (_numFrames & 0x8000) {
@@ -80,8 +78,7 @@ int WSAMovie_v1::open(const char *filename, int offscreenDecode, Palette *palBuf
 	}
 	_currentFrame = _numFrames;
 
-	_deltaBuffer = new uint8[_deltaBufferSize];
-	memset(_deltaBuffer, 0, _deltaBufferSize);
+	_deltaBuffer = new uint8[_deltaBufferSize]();
 
 	// read frame offsets
 	_frameOffsTable = new uint32[_numFrames + 2];
@@ -141,7 +138,7 @@ void WSAMovie_v1::displayFrame(int frameNum, int pageNum, int x, int y, uint16 f
 	_y = y;
 	_drawPage = pageNum;
 
-	uint8 *dst = 0;
+	uint8 *dst = nullptr;
 	if (_flags & WF_OFFSCREEN_DECODE)
 		dst = _offscreenBuffer;
 	else
@@ -222,7 +219,7 @@ void WSAMovie_v1::processFrame(int frameNum, uint8 *dst) {
 
 #pragma mark -
 
-WSAMovieAmiga::WSAMovieAmiga(KyraEngine_v1 *vm) : WSAMovie_v1(vm), _buffer(0) {}
+WSAMovieAmiga::WSAMovieAmiga(KyraEngine_v1 *vm) : WSAMovie_v1(vm), _buffer(nullptr) {}
 
 int WSAMovieAmiga::open(const char *filename, int offscreenDecode, Palette *palBuf) {
 	int res = WSAMovie_v1::open(filename, offscreenDecode, palBuf);
@@ -238,7 +235,7 @@ int WSAMovieAmiga::open(const char *filename, int offscreenDecode, Palette *palB
 void WSAMovieAmiga::close() {
 	if (_opened) {
 		delete[] _buffer;
-		_buffer = 0;
+		_buffer = nullptr;
 	}
 	WSAMovie_v1::close();
 }
@@ -340,7 +337,7 @@ void WSAMovieAmiga::processFrame(int frameNum, uint8 *dst) {
 	Screen::convertAmigaGfx(dst, _width, _height, 5, (_flags & WF_FLIPPED) != 0);
 
 	src = dst;
-	dst = 0;
+	dst = nullptr;
 	int dstPitch = 0;
 	if (_flags & WF_OFFSCREEN_DECODE) {
 		dst = _offscreenBuffer;
@@ -379,7 +376,7 @@ int WSAMovie_v2::open(const char *filename, int unk1, Palette *palBuf) {
 	_width = READ_LE_UINT16(wsaData); wsaData += 2;
 	_height = READ_LE_UINT16(wsaData); wsaData += 2;
 	_deltaBufferSize = READ_LE_UINT16(wsaData); wsaData += 2;
-	_offscreenBuffer = NULL;
+	_offscreenBuffer = nullptr;
 	_flags = 0;
 	flags = READ_LE_UINT16(wsaData); wsaData += 2;
 
@@ -406,8 +403,7 @@ int WSAMovie_v2::open(const char *filename, int unk1, Palette *palBuf) {
 	if (!(unk1 & 2)) {
 		_flags |= WF_OFFSCREEN_DECODE;
 		const int offscreenBufferSize = _width * _height;
-		_offscreenBuffer = new uint8[offscreenBufferSize];
-		memset(_offscreenBuffer, 0, offscreenBufferSize);
+		_offscreenBuffer = new uint8[offscreenBufferSize]();
 	}
 
 	if (_numFrames & 0x8000) {
@@ -417,8 +413,7 @@ int WSAMovie_v2::open(const char *filename, int unk1, Palette *palBuf) {
 	}
 	_currentFrame = _numFrames;
 
-	_deltaBuffer = new uint8[_deltaBufferSize];
-	memset(_deltaBuffer, 0, _deltaBufferSize);
+	_deltaBuffer = new uint8[_deltaBufferSize]();
 
 	// read frame offsets
 	_frameOffsTable = new uint32[_numFrames + 2];

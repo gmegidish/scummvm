@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,19 @@ enum MohawkGameType {
 	GType_LIVINGBOOKSV2,
 	GType_LIVINGBOOKSV3,
 	GType_LIVINGBOOKSV4,
-	GType_LIVINGBOOKSV5
+	GType_LIVINGBOOKSV5,
+	GType_ZOOMBINI,
+	GType_CSWORLD,
+	GType_CSAMTRAK,
+	GType_JAMESMATH,
+	GType_TREEHOUSE,
+	GType_1STDEGREE,
+	GType_CSUSA,
+	GType_ORLY,
+	GType_ALIENTALES,
+	GType_MATHSWORKSHOP,
+	GType_WRICAMACT,
+	GType_AMAZINGWRITING,
 };
 
 #define GAMEOPTION_ME   GUIO_GAMEOPTIONS1
@@ -57,6 +68,18 @@ struct MohawkGameDescription {
 	uint8 gameType;
 	uint32 features;
 	const char *appName;
+
+	uint32 sizeBuffer() const {
+		uint32 ret = desc.sizeBuffer();
+		ret += ADDynamicDescription::strSizeBuffer(appName);
+		return ret;
+	}
+
+	void *toBuffer(void *buffer) {
+		buffer = desc.toBuffer(buffer);
+		buffer = ADDynamicDescription::strToBuffer(buffer, appName);
+		return buffer;
+	}
 };
 
 } // End of namespace Mohawk

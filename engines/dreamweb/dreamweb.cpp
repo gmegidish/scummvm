@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,14 +27,17 @@
 #include "common/system.h"
 #include "common/timer.h"
 #include "common/util.h"
+#include "common/concatstream.h"
 
 #include "engines/advancedDetector.h"
 
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/surface.h"
 
+#include "dreamweb/detection.h"
 #include "dreamweb/sound.h"
 #include "dreamweb/dreamweb.h"
+#include "dreamweb/rnca_archive.h"
 
 #include "common/text-to-speech.h"
 
@@ -49,7 +51,7 @@ DreamWebEngine::DreamWebEngine(OSystem *syst, const DreamWebGameDescription *gam
 	_personText(kNumPersonTexts) {
 
 	_vSyncPrevTick = 0;
-	_sound = 0;
+	_sound = nullptr;
 	_speed = 1;
 	_turbo = false;
 	_oldMouseState = 0;
@@ -81,8 +83,8 @@ DreamWebEngine::DreamWebEngine(OSystem *syst, const DreamWebGameDescription *gam
 
 	_speechLoaded = false;
 
-	_backdropBlocks = 0;
-	_reelList = 0;
+	_backdropBlocks = nullptr;
+	_reelList = nullptr;
 
 	_oldSubject._type = 0;
 	_oldSubject._index = 0;
@@ -249,7 +251,7 @@ DreamWebEngine::DreamWebEngine(OSystem *syst, const DreamWebGameDescription *gam
 	for (uint i = 0; i < kNumReelRoutines+1; i++)
 		memset(&_reelRoutines[i], 0, sizeof(ReelRoutine));
 
-	_personData = 0;
+	_personData = nullptr;
 
 	for (uint i = 0; i < 16; i++)
 		memset(&_openInvList[i], 0, sizeof(ObjectRef));
@@ -263,7 +265,7 @@ DreamWebEngine::DreamWebEngine(OSystem *syst, const DreamWebGameDescription *gam
 	for (uint i = 0; i < kNumChanges; i++)
 		memset(&_listOfChanges[i], 0, sizeof(Change));
 
-	_currentCharset = 0;
+	_currentCharset = nullptr;
 
 	for (uint i = 0; i < 36; i++)
 		memset(&_pathData[i], 0, sizeof(RoomPaths));
@@ -271,6 +273,8 @@ DreamWebEngine::DreamWebEngine(OSystem *syst, const DreamWebGameDescription *gam
 
 DreamWebEngine::~DreamWebEngine() {
 	delete _sound;
+	if (_thumbnail.getPixels())
+		_thumbnail.free();
 }
 
 void DreamWebEngine::pauseEngineIntern(bool pause) {
@@ -395,14 +399,29 @@ void DreamWebEngine::processEvents(bool processSoundEvents) {
 }
 
 Common::Error DreamWebEngine::run() {
+	if (_gameDescription->desc.flags & GF_INSTALLER) {
+		Common::Array<Common::SharedPtr<Common::SeekableReadStream>> volumes;
+		for (uint i = 0; _gameDescription->desc.filesDescriptions[i].fileName; i++) {
+			Common::File *dw = new Common::File();
+			const char *name = _gameDescription->desc.filesDescriptions[i].fileName;
+			if (!dw->open(name)) {
+				error("Can't open %s", name);
+			}
+			volumes.push_back(Common::SharedPtr<Common::SeekableReadStream>(dw));
+		}
+		Common::ConcatReadStream *concat = new Common::ConcatReadStream(volumes);
+		SearchMan.add("rnca", RNCAArchive::open(concat, DisposeAfterUse::YES));
+	}
+
 	if (_ttsMan != nullptr) {
 		Common::String languageString = Common::getLanguageCode(getLanguage());
 		_ttsMan->setLanguage(languageString);
+		_ttsMan->enable(ConfMan.getBool("tts_enabled_objects") || ConfMan.getBool("tts_enabled_speech"));
 		switch (getLanguage()) {
 		case Common::RU_RUS:
 			_textEncoding = Common::kDos866;
 			break;
-		case Common::CZ_CZE:
+		case Common::CS_CZE:
 			_textEncoding = Common::kWindows1250;
 			break;
 		default:
@@ -415,7 +434,7 @@ Common::Error DreamWebEngine::run() {
 	setDebugger(new DreamWebConsole(this));
 	_sound = new DreamWebSound(this);
 
-	_hasSpeech = Common::File::exists(_speechDirName + "/r01c0000.raw") && !ConfMan.getBool("speech_mute");
+	_hasSpeech = Common::File::exists(_speechDirName.appendComponent("r01c0000.raw")) && !ConfMan.getBool("speech_mute");
 	_brightPalette = ConfMan.getBool("bright_palette");
 	_copyProtection = ConfMan.getBool("copy_protection");
 
@@ -590,17 +609,17 @@ uint8 DreamWebEngine::modifyChar(uint8 c) const {
 	}
 }
 
-Common::String DreamWebEngine::modifyFileName(const char *name) {
+Common::Path DreamWebEngine::modifyFileName(const char *name) {
 	Common::String fileName(name);
 
 	// Sanity check
 	if (!fileName.hasPrefix("DREAMWEB."))
-		return fileName;
+		return Common::Path(fileName);
 
 	// Make sure we use the correct file name as it differs depending on the game variant
 	fileName = _datafilePrefix;
 	fileName += name + 9;
-	return fileName;
+	return Common::Path(fileName);
 }
 
 bool DreamWebEngine::hasSpeech() {

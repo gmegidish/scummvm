@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -910,7 +909,7 @@ void TattooPerson::checkWalkGraphics() {
 		return;
 	}
 
-	Common::String filename = Common::String::format("%s.vgs", _walkSequences[_sequenceNumber]._vgsName.c_str());
+	Common::Path filename(Common::String::format("%s.vgs", _walkSequences[_sequenceNumber]._vgsName.c_str()));
 
 	// Set the adjust depending on if we have to fine tune the x position of this particular graphic
 	_adjust.x = _adjust.y = 0;
@@ -950,10 +949,10 @@ void TattooPerson::checkWalkGraphics() {
 
 		if (npcNum != -1) {
 			// See if the VGS file called for is different than the main graphics which are already loaded
-			if (filename.compareToIgnoreCase(people[npcNum]._walkVGSName) != 0) {
+			if (!filename.equalsIgnoreCase(people[npcNum]._walkVGSName)) {
 				// See if this is one of the more used Walk Graphics stored in WALK.LIB
 				for (int idx = 0; idx < NUM_IN_WALK_LIB; ++idx) {
-					if (!scumm_stricmp(filename.c_str(), WALK_LIB_NAMES[idx])) {
+					if (filename.equalsIgnoreCase(WALK_LIB_NAMES[idx])) {
 						people._useWalkLib = true;
 						break;
 					}
@@ -973,7 +972,7 @@ void TattooPerson::checkWalkGraphics() {
 		_sequences = &_walkSequences[_sequenceNumber]._sequences[0];
 		_seqSize = _walkSequences[_sequenceNumber]._sequences.size();
 
-		// WORKAROUND: Occassionally when switching to a new walk sequence the existing frame number may be outside
+		// WORKAROUND: Occasionally when switching to a new walk sequence the existing frame number may be outside
 		// the allowed range for the new sequence. In such cases, reset the frame number
 		if (_frameNumber < 0 || _frameNumber >= (int)_seqSize || _walkSequences[_sequenceNumber][_frameNumber] == 0)
 			_frameNumber = 0;
@@ -995,7 +994,14 @@ void TattooPerson::synchronize(Serializer &s) {
 
 	s.syncAsSint32LE(_position.x);
 	s.syncAsSint32LE(_position.y);
-	s.syncString(_walkVGSName);
+	if (s.isSaving()) {
+		Common::String path(_walkVGSName.toString('/'));
+		s.syncString(path);
+	} else {
+		Common::String path;
+		s.syncString(path);
+		_walkVGSName = Common::Path(path);
+	}
 	s.syncString(_description);
 	s.syncString(_examine);
 
@@ -1162,7 +1168,7 @@ void TattooPerson::walkBothToCoords(const PositionFacing &holmesDest, const Posi
 	holmes._centerWalk = true;
 	_centerWalk = true;
 
-	// Do one last frame draw so that the lsat person to stop will be drawn in their final position
+	// Do one last frame draw so that the last person to stop will be drawn in their final position
 	scene.doBgAnim();
 
 	_updateNPCPath = true;
@@ -1380,9 +1386,8 @@ int TattooPeople::findSpeaker(int speaker) {
 			TattooPerson &p = (*this)[idx];
 
 			if (p._type == CHARACTER) {
-				Common::String name(p._name.c_str(), p._name.c_str() + 4);
-
-				if (name.equalsIgnoreCase(portrait) && p._npcName[4] >= '0' && p._npcName[4] <= '9')
+				if (scumm_strnicmp(portrait, p._npcName.c_str(), 4) == 0
+					&& Common::isDigit(p._npcName[4]))
 					return idx + CHARACTERS_INDEX;
 			}
 		}
@@ -1419,7 +1424,7 @@ bool TattooPeople::loadWalk() {
 
 			// See if this is one of the more used Walk Graphics stored in WALK.LIB
 			for (int libNum = 0; libNum < NUM_IN_WALK_LIB; ++libNum) {
-				if (!person._walkVGSName.compareToIgnoreCase(WALK_LIB_NAMES[libNum])) {
+				if (person._walkVGSName.equalsIgnoreCase(WALK_LIB_NAMES[libNum])) {
 					_useWalkLib = true;
 					break;
 				}
@@ -1430,8 +1435,10 @@ bool TattooPeople::loadWalk() {
 			person._maxFrames = person._images->size();
 
 			// Load walk sequence data
-			Common::String fname = Common::String(person._walkVGSName.c_str(), strchr(person._walkVGSName.c_str(), '.'));
-			fname += ".SEQ";
+			Common::String baseName(person._walkVGSName.baseName());
+			baseName = Common::String(baseName.c_str(), strchr(baseName.c_str(), '.'));
+			baseName += ".SEQ";
+			Common::Path fname = person._walkVGSName.getParent().appendComponent(baseName);
 
 			// Load the walk sequence data
 			Common::SeekableReadStream *stream = res.load(fname, _useWalkLib ? "walk.lib" : "vgs.lib");

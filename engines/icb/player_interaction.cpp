@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,6 +47,7 @@
 namespace ICB {
 
 mcodeFunctionReturnCodes fn_start_player_interaction(int32 &result, int32 *params) { return (MS->fn_start_player_interaction(result, params)); }
+mcodeFunctionReturnCodes fn_set_interact_distance(int32 &result, int32 *params) { return (MS->fn_set_interact_distance(result, params)); }
 
 #define INTERACT_DISTANCE (250 * REAL_ONE)
 #define MIN_INTERACT_DISTANCE (5 * REAL_ONE)
@@ -181,13 +181,13 @@ void _player::Find_current_player_interact_object() {
 						// we are nearer or the current is dead
 						// see if object is dead
 						if ((MS->logic_structs[j]->mega->dead) &&
-						    (crouch_status)) { // this mega is dead and we're crouched - only register him if there isnt another
+						    (crouch_status)) { // this mega is dead and we're crouched - only register him if there isn't another
 							if ((!mega_id) && (len < DEAD_MEGA_DISTANCE * DEAD_MEGA_DISTANCE)) { // dead mega chosen - must be within prop type range
 								nearest_mega = len;
 								mega_id = j + 1;
 								dead_mega = TRUE8; // chosen a dead mega
 							}
-						} else if (!MS->logic_structs[j]->mega->dead) { // must belive if we're stood
+						} else if (!MS->logic_structs[j]->mega->dead) { // must believe if we're stood
 							evil_chosen = MS->logic_structs[j]->mega->is_evil;
 							nearest_mega = len;
 							mega_id = j + 1;
@@ -211,7 +211,7 @@ void _player::Find_current_player_interact_object() {
 	}
 
 	// mega if armed, nearest prop or live mega, dead mega
-	if ((prop_id) && (nearest < nearest_mega)) { // UNARMED prop nearer than mega (wont be a prop if armed)
+	if ((prop_id) && (nearest < nearest_mega)) { // UNARMED prop nearer than mega (won't be a prop if armed)
 		cur_interact_id = (prop_id - 1);
 		interact_selected = TRUE8;
 	} else if ((mega_id) && (!dead_mega)) { // live mega
@@ -228,8 +228,6 @@ void _player::Find_current_player_interact_object() {
 		look_at_selected = TRUE8;
 	}
 }
-
-#if CD_MODE == 0
 
 void _player::Render_crude_interact_highlight() {
 	uint32 pitch; // backbuffer pitch
@@ -281,12 +279,6 @@ void _player::Render_crude_interact_highlight() {
 	surface_manager->Unlock_surface(working_buffer_id);
 }
 
-#else
-
-void _player::Render_crude_interact_highlight() {}
-
-#endif // #if CD_MODE == 0
-
 __mode_return _player::Player_interact() {
 	// check if the player has pressed the interact button
 	// if so see if there's a current interact object and if so setup the interaction
@@ -295,7 +287,7 @@ __mode_return _player::Player_interact() {
 	//				__FINISHED_THIS_CYCLE, or
 	//				__MORE_THIS_CYCLE
 
-	c_game_object *iobject;
+	CGame *iobject;
 	uint32 j;
 
 	// first check for auto-interact objects
@@ -304,15 +296,15 @@ __mode_return _player::Player_interact() {
 		for (j = 0; j < MAX_auto_interact; j++)
 			if (MS->auto_interact_list[j] == (cur_interact_id + 1)) {
 				//      try to fetch the object
-				iobject = (c_game_object *)MS->objects->Fetch_item_by_number(cur_interact_id);
+				iobject = (CGame *)LinkedDataObject::Fetch_item_by_number(MS->objects, cur_interact_id);
 
-				Zdebug("  INTERACT with %s", iobject->GetName());
+				Zdebug("  INTERACT with %s", CGameObject::GetName(iobject));
 
 				//      get the address of the script we want to run
-				const char *pc = (const char *)MS->scripts->Try_fetch_item_by_hash(iobject->GetScriptNameFullHash(OB_ACTION_CONTEXT)); //
+				const char *pc = (const char *)LinkedDataObject::Try_fetch_item_by_hash(MS->scripts, CGameObject::GetScriptNameFullHash(iobject, OB_ACTION_CONTEXT)); //
 
-				if (pc == NULL)
-					Fatal_error("Object [%s] has no interact script", iobject->GetName());
+				if (pc == nullptr)
+					Fatal_error("Object [%s] has no interact script", CGameObject::GetName(iobject));
 
 				//      now run the action context script which may or may not set a new script on level 1
 				RunScript(pc, iobject);
@@ -324,13 +316,13 @@ __mode_return _player::Player_interact() {
 	// check for interact button AND there being an object to interact with
 	if ((cur_state.IsButtonSet(__INTERACT)) && (interact_selected) && (!interact_lock) && (!stood_on_lift)) {
 		// try to fetch the object
-		iobject = (c_game_object *)MS->objects->Fetch_item_by_number(cur_interact_id);
+		iobject = (CGame *)LinkedDataObject::Fetch_item_by_number(MS->objects, cur_interact_id);
 
 		// get the address of the script we want to run
-		const char *pc = (const char *)MS->scripts->Try_fetch_item_by_hash(iobject->GetScriptNameFullHash(OB_ACTION_CONTEXT)); //
+		const char *pc = (const char *)LinkedDataObject::Try_fetch_item_by_hash(MS->scripts, CGameObject::GetScriptNameFullHash(iobject, OB_ACTION_CONTEXT)); //
 
-		if (pc == NULL)
-			Fatal_error("Object [%s] has no interact script", iobject->GetName());
+		if (pc == nullptr)
+			Fatal_error("Object [%s] has no interact script", CGameObject::GetName(iobject));
 
 		interact_lock = TRUE8; // switch the lock on
 
@@ -353,6 +345,23 @@ __mode_return _player::Player_interact() {
 		interact_lock = FALSE8; // let go
 
 	return (__MORE_THIS_CYCLE);
+}
+
+mcodeFunctionReturnCodes _game_session::fn_set_interact_distance(int32 &, int32 *params) {
+	// set the distance that the player needs to be from named object to interact with it
+	// params: 0 - name of object, 1 - distance in cm's
+
+	const char *object_name = (const char *)MemoryUtil::resolvePtr(params[0]);
+	uint32 id = LinkedDataObject::Fetch_item_number_by_name(objects, object_name);
+	if (id == 0xffffffff)
+		Fatal_error("[%s] calling fn_set_interact_distance finds [%s] is not a legal object", CGameObject::GetName(object), object_name);
+
+	if (params[1]) //positive value
+		logic_structs[id]->interact_dist = (PXreal)(params[1] * params[1]);
+	else
+		logic_structs[id]->interact_dist = DEFAULT_interact_distance;  //default interact distance - this is the ICB figure, but ED imps can change as required
+
+	return IR_CONT;
 }
 
 mcodeFunctionReturnCodes _game_session::fn_start_player_interaction(int32 &, int32 *params) {
@@ -380,7 +389,7 @@ mcodeFunctionReturnCodes _game_session::fn_start_player_interaction(int32 &, int
 	M->interacting = TRUE8;
 
 	// fetch action script
-	ad = (char *)scripts->Try_fetch_item_by_hash(params[0] /*(uint32)params*/);
+	ad = (char *)LinkedDataObject::Try_fetch_item_by_hash(scripts, params[0] /*(uint32)params*/);
 
 	//	write actual offset
 	L->logic[1] = ad;
@@ -393,30 +402,30 @@ mcodeFunctionReturnCodes _game_session::fn_start_player_interaction(int32 &, int
 
 	L->looping = 0; // reset to 0 for new logics
 
-	// script interpretter shouldnt write a pc back
+	// script interpreter shouldn't write a pc back
 	return (IR_TERMINATE);
 }
 
 bool8 _game_session::Engine_start_interaction(const char *script, uint32 id) {
 	// set the current mega object interacting named 'script' in target object 'id'
 
-	c_game_object *iobject;
+	CGame *iobject;
 	uint32 script_hash;
 
 	script_hash = HashString(script);
 
 	// get target object
-	iobject = (c_game_object *)MS->objects->Fetch_item_by_number(id);
+	iobject = (CGame *)LinkedDataObject::Fetch_item_by_number(MS->objects, id);
 	if (!iobject)
-		Fatal_error("Engine_start_interaction - named object dont exist"); // should never happen
+		Fatal_error("Engine_start_interaction - named object don't exist"); // should never happen
 
-	// now try and find a script with the passed extention i.e. ???::looping
-	for (uint32 k = 0; k < iobject->GetNoScripts(); k++) {
+	// now try and find a script with the passed extension i.e. ???::looping
+	for (uint32 k = 0; k < CGameObject::GetNoScripts(iobject); k++) {
 
-		if (script_hash == iobject->GetScriptNamePartHash(k)) {
+		if (script_hash == CGameObject::GetScriptNamePartHash(iobject, k)) {
 			//			script k is the one to run
 			//			get the address of the script we want to run
-			char *pc = (char *)scripts->Try_fetch_item_by_hash(iobject->GetScriptNameFullHash(k));
+			char *pc = (char *)LinkedDataObject::Try_fetch_item_by_hash(scripts, CGameObject::GetScriptNameFullHash(iobject, k));
 
 			// set target id
 			M->target_id = id;
@@ -439,7 +448,7 @@ bool8 _game_session::Engine_start_interaction(const char *script, uint32 id) {
 		}
 	}
 
-	// didnt find the named script
+	// didn't find the named script
 
 	return (FALSE8);
 }

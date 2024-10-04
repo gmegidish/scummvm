@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,8 +25,8 @@
 #include "bbvs/detection.h"
 
 static const PlainGameDescriptor bbvsGames[] = {
-	{ "bbvs", "Beavis and Butt-head in Virtual Stupidity" },
-	{ 0, 0 }
+	{ "bbvs", "Beavis and Butt-Head in Virtual Stupidity" },
+	{ nullptr, nullptr }
 };
 
 namespace Bbvs {
@@ -35,7 +34,7 @@ namespace Bbvs {
 static const ADGameDescription gameDescriptions[] = {
 	{
 		"bbvs",
-		0,
+		nullptr,
 		AD_ENTRY1s("vspr0001.vnm", "7ffe9b9e7ca322db1d48e86f5130578e", 1166628),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -65,7 +64,17 @@ static const ADGameDescription gameDescriptions[] = {
 
 	{
 		"bbvs",
-		0,
+		"Loogie Demo",
+		AD_ENTRY1s("BBLOOGIE.000", "83921c65bd93be7e35056c31bd37310b", 324764),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		GF_LOOGIE_ALT_DEMO | ADGF_DEMO | ADGF_DROPPLATFORM,
+		GUIO1(GUIO_NOMIDI)
+	},
+
+	{
+		"bbvs",
+		nullptr,
 		AD_ENTRY1s("vspr0001.vnm", "91c76b1048f93208cd7b1a05ebccb408", 1176976),
 		Common::RU_RUS,
 		Common::kPlatformWindows,
@@ -80,22 +89,22 @@ static const ADGameDescription gameDescriptions[] = {
 
 static const char * const directoryGlobs[] = {
 	"vnm",
-	0
+	nullptr
 };
 
-class BbvsMetaEngineDetection : public AdvancedMetaEngineDetection {
+class BbvsMetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	BbvsMetaEngineDetection() : AdvancedMetaEngineDetection(Bbvs::gameDescriptions, sizeof(ADGameDescription), bbvsGames) {
+	BbvsMetaEngineDetection() : AdvancedMetaEngineDetection(Bbvs::gameDescriptions, bbvsGames) {
 		_maxScanDepth = 3;
 		_directoryGlobs = directoryGlobs;
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "bbvs";
 	}
 
-	const char *getName() const override {
-		return "MTV's Beavis and Butt-head in Virtual Stupidity";
+	const char *getEngineName() const override {
+		return "MTV's Beavis and Butt-Head in Virtual Stupidity";
 	}
 
 	const char *getOriginalCopyright() const override {

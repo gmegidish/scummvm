@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,14 +49,14 @@ class BArchive {
 public:
 	BArchive() : _files(NULL), _fileCount(0), _opened(false) {}
 
-	BArchive(const Common::String &path) :
+	BArchive(const Common::Path &path) :
 	_files(NULL), _fileCount(0), _opened(false) {
 		openArchive(path);
 	}
 
 	~BArchive() { closeArchive(); }
 
-	void openArchive(const Common::String &path);
+	void openArchive(const Common::Path &path);
 	void closeArchive();
 	uint size() const { return _fileCount; }
 
@@ -80,14 +79,14 @@ private:
 	// File stream header data
 	static const uint _fileHeaderSize = 6;
 
-	Common::String _path;    ///< Path to file
+	Common::Path _path;    ///< Path to file
 	BAFile *_files;          ///< Internal array of files
 	uint _fileCount;         ///< Number of files in archive
 	bool _isDFW;             ///< True if the archive is in DFW format, false otherwise
 	bool _opened;            ///< True if the archive is opened, false otherwise
 	Common::File _f;         ///< Opened file handle
 
-	void openDFW(const Common::String &path);
+	void openDFW(const Common::Path &path);
 	BAFile *loadFileDFW(uint i);
 	BAFile *loadFileBAR(uint i);
 };

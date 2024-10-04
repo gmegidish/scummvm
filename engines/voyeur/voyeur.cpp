@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,9 +26,10 @@
 #include "common/scummsys.h"
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
-#include "graphics/palette.h"
+#include "common/events.h"
 #include "graphics/scaler.h"
 #include "graphics/thumbnail.h"
+#include "video/mve_decoder.h"
 
 namespace Voyeur {
 
@@ -43,13 +43,13 @@ VoyeurEngine::VoyeurEngine(OSystem *syst, const VoyeurGameDescription *gameDesc)
 	_screen = nullptr;
 	_soundManager = nullptr;
 	_voy = nullptr;
-	_bVoy = NULL;
+	_bVoy = nullptr;
 
 	_iForceDeath = ConfMan.getInt("boot_param");
 	if (_iForceDeath < 1 || _iForceDeath > 4)
 		_iForceDeath = -1;
 
-	_controlPtr = NULL;
+	_controlPtr = nullptr;
 	_stampFlags = 0;
 	_playStampGroupId = _currentVocId = 0;
 	_audioVideoId = -1;
@@ -156,11 +156,12 @@ void VoyeurEngine::initInput() {
 }
 
 bool VoyeurEngine::doHeadTitle() {
-//	char dest[144];
-
 	_eventsManager->startMainClockInt();
 
 	if (_loadGameSlot == -1) {
+		// show interplay logo animation
+		showLogo8Intro();
+
 		// Show starting screen
 		if (!getIsDemo() && _bVoy->getBoltGroup(0x500)) {
 			showConversionScreen();
@@ -192,7 +193,11 @@ bool VoyeurEngine::doHeadTitle() {
 			return false;
 
 		_eventsManager->getMouseInfo();
-		doTransitionCard("Saturday Afternoon", "Player's Apartment");
+		if (getLanguage() == Common::DE_DEU)
+			doTransitionCard(SATURDAY_AFTERNOON_DE, PLAYER_APARTMENT_DE);
+		else
+			doTransitionCard(SATURDAY_AFTERNOON_EN, PLAYER_APARTMENT_EN);
+
 		_eventsManager->delayClick(90);
 
 		if (_voy->_eventFlags & EVTFLAG_VICTIM_PRESET) {
@@ -527,7 +532,7 @@ void VoyeurEngine::doOpening() {
 	_bVoy->freeBoltGroup(0x200);
 }
 
-void VoyeurEngine::playRL2Video(const Common::String &filename) {
+void VoyeurEngine::playRL2Video(const Common::Path &filename) {
 	RL2Decoder decoder;
 	decoder.loadRL2File(filename, false);
 	decoder.start();
@@ -558,7 +563,7 @@ void VoyeurEngine::playAVideoDuration(int videoId, int duration) {
 	if (videoId == -1)
 		return;
 
-	PictureResource *pic = NULL;
+	PictureResource *pic = nullptr;
 	if (videoId == 42) {
 		_bVoy->getBoltGroup(0xE00);
 		_eventsManager->_videoDead = 0;
@@ -624,7 +629,7 @@ void VoyeurEngine::playAudio(int audioId) {
 
 	_voy->_eventFlags &= ~EVTFLAG_TIME_DISABLED;
 	_soundManager->setVOCOffset(_voy->_vocSecondsOffset);
-	Common::String filename = _soundManager->getVOCFileName(
+	Common::Path filename = _soundManager->getVOCFileName(
 		audioId + 159);
 	_soundManager->startVOCPlay(filename);
 	_voy->_eventFlags |= EVTFLAG_RECORDING;
@@ -638,7 +643,7 @@ void VoyeurEngine::playAudio(int audioId) {
 	_soundManager->stopVOCPlay();
 
 	_bVoy->freeBoltGroup(0x7F00);
-	_screen->_vPort->setupViewPort(NULL);
+	_screen->_vPort->setupViewPort(nullptr);
 
 	_voy->_eventFlags &= ~EVTFLAG_RECORDING;
 	_voy->_playStampMode = 129;
@@ -649,7 +654,7 @@ void VoyeurEngine::doTransitionCard(const Common::String &time, const Common::St
 	_screen->setColor(224, 220, 220, 220);
 	_eventsManager->_intPtr._hasPalette = true;
 
-	_screen->_vPort->setupViewPort(NULL);
+	_screen->_vPort->setupViewPort(nullptr);
 	_screen->_vPort->fillPic(0x80);
 	_screen->flipPage();
 	_eventsManager->sWaitFlip();
@@ -725,7 +730,7 @@ void VoyeurEngine::showEndingNews() {
 		_bVoy->freeBoltMember(_playStampGroupId + (idx - 1) * 2);
 		_bVoy->freeBoltMember(_playStampGroupId + (idx - 1) * 2 + 1);
 
-		Common::String fname = Common::String::format("news%d.voc", idx);
+		Common::Path fname(Common::String::format("news%d.voc", idx));
 		_soundManager->startVOCPlay(fname);
 
 		_eventsManager->getMouseInfo();
@@ -754,14 +759,14 @@ void VoyeurEngine::showEndingNews() {
 /**
  * Returns true if it is currently okay to restore a game
  */
-bool VoyeurEngine::canLoadGameStateCurrently() {
+bool VoyeurEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return _voyeurArea == AREA_APARTMENT;
 }
 
 /**
  * Returns true if it is currently okay to save the game
  */
-bool VoyeurEngine::canSaveGameStateCurrently() {
+bool VoyeurEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return _voyeurArea == AREA_APARTMENT;
 }
 
@@ -779,7 +784,7 @@ void VoyeurEngine::loadGame(int slot) {
 	if (!saveFile)
 		return;
 
-	Common::Serializer serializer(saveFile, NULL);
+	Common::Serializer serializer(saveFile, nullptr);
 
 	// Store the current time index before the game is loaded
 	_checkTransitionId = _voy->_transitionId;
@@ -818,7 +823,7 @@ Common::Error VoyeurEngine::saveGameState(int slot, const Common::String &desc, 
 	header.write(saveFile, this, desc);
 
 	// Set up a serializer
-	Common::Serializer serializer(NULL, saveFile);
+	Common::Serializer serializer(nullptr, saveFile);
 
 	// Synchronise the data
 	serializer.setVersion(VOYEUR_SAVEGAME_VERSION);
@@ -851,6 +856,68 @@ void VoyeurEngine::synchronize(Common::Serializer &s) {
 	_screen->synchronize(s);
 	_mainThread->synchronize(s);
 	_controlPtr->_state->synchronize(s);
+}
+
+void VoyeurEngine::showLogo8Intro() {
+	Common::File file;
+	if(!file.open("logo8.exe")) {
+		return;
+	}
+	file.seek(2);
+	int lastPageLength = file.readUint16LE();
+	int numPages = file.readUint16LE();
+	int exeLength = (numPages - 1) * 512 + lastPageLength;
+
+	// The MVE movie data is appended to the end of the EXE
+	file.seek(exeLength, SEEK_SET);
+
+	Video::MveDecoder *decoder = new Video::MveDecoder();
+	if (decoder->loadStream(&file)) {
+		decoder->setAudioTrack(0);
+		decoder->start();
+
+		bool skipMovie = false;
+		while (!decoder->endOfVideo() && !skipMovie && !shouldQuit()) {
+			unsigned int delay = MIN<uint32>(decoder->getTimeToNextFrame(), 10u);
+			g_system->delayMillis(delay);
+
+			const Graphics::Surface *frame = nullptr;
+
+			if (decoder->needsUpdate()) {
+				frame = decoder->decodeNextFrame();
+			}
+
+			if (frame) {
+				g_system->copyRectToScreen(frame->getPixels(), frame->pitch, 0, 0, frame->w, frame->h);
+
+				if (decoder->hasDirtyPalette()) {
+					PaletteManager *paletteManager = g_system->getPaletteManager();
+					decoder->applyPalette(paletteManager);
+				}
+
+				g_system->updateScreen();
+			}
+
+			Common::Event event;
+			while (g_system->getEventManager()->pollEvent(event)) {
+				switch (event.type) {
+				case Common::EVENT_KEYDOWN:
+					if (event.kbd.keycode == Common::KEYCODE_ESCAPE || event.kbd.keycode == Common::KEYCODE_SPACE) {
+						skipMovie = true;
+					}
+					break;
+				case Common::EVENT_LBUTTONDOWN:
+					skipMovie = true;
+					break;
+				default:
+					break;
+				}
+			}
+		}
+	}
+
+	file.close();
+	delete decoder;
 }
 
 /*------------------------------------------------------------------------*/

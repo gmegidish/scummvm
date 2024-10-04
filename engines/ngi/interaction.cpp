@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -106,8 +105,8 @@ bool InteractionController::handleInteraction(StaticANIObject *subj, GameObject 
 	if (!_interactions.size())
 		return false;
 
-	Interaction *inter = 0;
-	Interaction *previnter = 0;
+	Interaction *inter = nullptr;
+	Interaction *previnter = nullptr;
 	int dur = 0;
 	int mindur = 0xFFFF;
 
@@ -178,7 +177,7 @@ bool InteractionController::handleInteraction(StaticANIObject *subj, GameObject 
 				if (ani->_flags & 0x100)
 					return false;
 			} else if (inter->_staticsId1 != 0) {
-				if (ani->_movement || ani->_statics == 0 || ani->_statics->_staticsId != inter->_staticsId1) {
+				if (ani->_movement || ani->_statics == nullptr || ani->_statics->_staticsId != inter->_staticsId1) {
 					mq = ani->changeStatics1(inter->_staticsId1);
 					if (!mq)
 						return false;
@@ -200,7 +199,7 @@ bool InteractionController::handleInteraction(StaticANIObject *subj, GameObject 
 					return true;
 				} else {
 					if (ani->getMessageQueue())
-						ani->queueMessageQueue(0);
+						ani->queueMessageQueue(nullptr);
 				}
 			}
 		}
@@ -209,7 +208,7 @@ bool InteractionController::handleInteraction(StaticANIObject *subj, GameObject 
 			mq = new MessageQueue(inter->_messageQueue, 0, 1);
 			mq->changeParam28ForObjectId(obj->_id, -1, obj->_odelay);
 
-			if (!mq->chain(0))
+			if (!mq->chain(nullptr))
 				return false;
 		}
 
@@ -240,7 +239,7 @@ bool InteractionController::handleInteraction(StaticANIObject *subj, GameObject 
 		if (obj->_objtype == kObjTypeStaticANIObject) {
 			StaticANIObject *ani = static_cast<StaticANIObject *>(obj);
 
-			ani->queueMessageQueue(0);
+			ani->queueMessageQueue(nullptr);
 
 			if (inter->_staticsId1)
 				ani->changeStatics2(inter->_staticsId1);
@@ -313,7 +312,7 @@ bool InteractionController::handleInteraction(StaticANIObject *subj, GameObject 
 		obj->setPicAniInfo(aniInfo);
 
 		if (abs(xpos - subj->_ox) > 1 || abs(ypos - subj->_oy) > 1
-				|| (inter->_staticsId2 != 0 && (subj->_statics == 0 || subj->_statics->_staticsId != inter->_staticsId2))) {
+				|| (inter->_staticsId2 != 0 && (subj->_statics == nullptr || subj->_statics->_staticsId != inter->_staticsId2))) {
 			mq = getSc2MctlCompoundBySceneId(g_nmi->_currentScene->_sceneId)->startMove(subj, xpos, ypos, 1, inter->_staticsId2);
 
 			if (!mq)
@@ -352,7 +351,7 @@ bool InteractionController::handleInteraction(StaticANIObject *subj, GameObject 
 			return false;
 
 		if (ani->getMessageQueue())
-			ani->queueMessageQueue(0);
+			ani->queueMessageQueue(nullptr);
 
 		if (!ani->_statics || ani->_statics->_staticsId != inter->_staticsId1 || ani->_movement) {
 			mq = ani->changeStatics1(inter->_staticsId1);
@@ -414,7 +413,7 @@ Interaction *InteractionController::getInteractionByObjectIds(int obId, int obId
 			return intr;
 	}
 
-	return 0;
+	return nullptr;
 }
 
 Interaction::Interaction() {
@@ -424,7 +423,7 @@ Interaction::Interaction() {
 	_objectId3 = 0;
 	_objectState2 = 0;
 	_objectState1 = 0;
-	_messageQueue = 0;
+	_messageQueue = nullptr;
 	_flags = 0;
 	_yOffs = 0;
 	_xOffs = 0;
@@ -523,13 +522,13 @@ bool Interaction::canInteract(GameObject *obj1, GameObject *obj2, int invId) {
 bool Interaction::isOverlapping(StaticANIObject *subj, GameObject *obj) {
 	if (abs(_xOffs + obj->_ox - subj->_ox) <= 1
 		&& abs(obj->_oy + _yOffs - subj->_oy) <= 1) {
-		if (!_staticsId2 || (subj->_statics != 0 && subj->_statics->_staticsId == _staticsId2)) {
+		if (!_staticsId2 || (subj->_statics != nullptr && subj->_statics->_staticsId == _staticsId2)) {
 			if (!_staticsId1 || !(_flags & 1))
 				return true;
 
 			if (obj->_objtype == kObjTypeStaticANIObject) {
 				const StaticANIObject *ani = static_cast<StaticANIObject *>(obj);
-				if (ani->_statics != 0 && ani->_statics->_staticsId == _staticsId1)
+				if (ani->_statics != nullptr && ani->_statics->_staticsId == _staticsId1)
 					return true;
 			}
 		}

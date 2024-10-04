@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,10 +40,10 @@ const int SoundPC_v1::_kyra1SoundTriggers[] = {
 const int SoundPC_v1::_kyra1NumSoundTriggers = ARRAYSIZE(SoundPC_v1::_kyra1SoundTriggers);
 
 SoundPC_v1::SoundPC_v1(KyraEngine_v1 *vm, Audio::Mixer *mixer, kType type)
-	: Sound(vm, mixer), _driver(0), _trackEntries(), _soundDataPtr(0), _type(type) {
+	: Sound(vm, mixer), _driver(nullptr), _trackEntries(), _soundDataPtr(nullptr), _type(type), _version(-1) {
 	memset(_trackEntries, 0, sizeof(_trackEntries));
 
-	_soundTriggers = 0;
+	_soundTriggers = nullptr;
 	_numSoundTriggers = 0;
 	_sfxPlayingSound = -1;
 	_soundFileLoaded.clear();
@@ -77,10 +76,11 @@ SoundPC_v1::SoundPC_v1(KyraEngine_v1 *vm, Audio::Mixer *mixer, kType type)
 	// Correct the type to someting we support. NullSound is treated as a silent AdLib driver.
 	if (_type != kAdLib && _type != kPCSpkr && _type != kPCjr)
 		_type = kAdLib;
-	_driver = (type == kAdLib) ? PCSoundDriver::createAdLib(mixer, _version) : PCSoundDriver::createPCSpk(mixer, _type == kPCjr);
+	_driver = (type == kAdLib) ? (_version > 0 ? PCSoundDriver::createAdLib(mixer, _version) : nullptr) : PCSoundDriver::createPCSpk(mixer, _type == kPCjr);
 #else
 	_type = kAdLib;
-	_driver = PCSoundDriver::createAdLib(mixer, _version);
+	if (_version > 0)
+		_driver = PCSoundDriver::createAdLib(mixer, _version);
 #endif
 	assert(_driver);
 }
@@ -89,7 +89,7 @@ SoundPC_v1::~SoundPC_v1() {
 	delete _driver;
 	delete[] _soundDataPtr;
 	for (int i = 0; i < 3; i++)
-		initAudioResourceInfo(i, 0);
+		initAudioResourceInfo(i, nullptr);
 }
 
 bool SoundPC_v1::init() {
@@ -187,7 +187,7 @@ void SoundPC_v1::resetTrigger() {
 void SoundPC_v1::initAudioResourceInfo(int set, void *info) {
 	if (set >= kMusicIntro && set <= kMusicFinale) {
 		delete _resInfo[set];
-		_resInfo[set] = info ? new SoundResourceInfo_PC(*(SoundResourceInfo_PC*)info) : 0;
+		_resInfo[set] = info ? new SoundResourceInfo_PC(*(SoundResourceInfo_PC*)info) : nullptr;
 	}
 }
 
@@ -200,7 +200,7 @@ void SoundPC_v1::selectAudioResourceSet(int set) {
 
 bool SoundPC_v1::hasSoundFile(uint file) const {
 	if (file < res()->fileListSize)
-		return (res()->fileList[file] != 0);
+		return (res()->fileList[file] != nullptr);
 	return false;
 }
 
@@ -211,23 +211,24 @@ void SoundPC_v1::loadSoundFile(uint file) {
 		internalLoadFile(res()->fileList[file]);
 }
 
-void SoundPC_v1::loadSoundFile(Common::String file) {
+void SoundPC_v1::loadSoundFile(const Common::Path &file) {
 	internalLoadFile(file);
 }
 
-void SoundPC_v1::internalLoadFile(Common::String file) {
-	file += ((_version == 1) ? ".DAT" : (_type == kPCSpkr ? ".SND" : ".ADL"));
-	if (_soundFileLoaded == file)
+void SoundPC_v1::internalLoadFile(const Common::Path &file) {
+	Common::Path path(file);
+	path.appendInPlace((_version == 1) ? ".DAT" : (_type == kPCSpkr ? ".SND" : ".ADL"));
+	if (_soundFileLoaded == path)
 		return;
 
 	if (_soundDataPtr)
 		haltTrack();
 
-	uint8 *fileData = 0; uint32 fileSize = 0;
+	uint8 *fileData = nullptr; uint32 fileSize = 0;
 
-	fileData = _vm->resource()->fileData(file.c_str(), &fileSize);
+	fileData = _vm->resource()->fileData(path, &fileSize);
 	if (!fileData) {
-		warning("Couldn't find music file: '%s'", file.c_str());
+		warning("Couldn't find music file: '%s'", path.toString().c_str());
 		return;
 	}
 
@@ -259,7 +260,7 @@ void SoundPC_v1::internalLoadFile(Common::String file) {
 	delete[] fileData;
 	delete[] oldData;
 
-	_soundFileLoaded = file;
+	_soundFileLoaded = path;
 }
 
 } // End of namespace Kyra

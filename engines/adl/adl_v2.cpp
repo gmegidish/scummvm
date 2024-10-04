@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,9 +43,30 @@ AdlEngine_v2::AdlEngine_v2(OSystem *syst, const AdlGameDescription *gd) :
 		_picOnScreen(0),
 		_itemsOnScreen(0) { }
 
+void AdlEngine_v2::mapExeStrings(const Common::StringArray &strings) {
+	if (strings.size() < 11)
+		error("Not enough strings found in executable");
+
+	// Parser messages
+	_strings.verbError = strings[2];
+	_strings.nounError = strings[3];
+	_strings.enterCommand = strings[4];
+
+	// Line feeds
+	_strings.lineFeeds = strings[0];
+
+	// Opcode strings
+	_strings_v2.saveInsert = strings[5];
+	_strings_v2.saveReplace = strings[6];
+	_strings_v2.restoreInsert = strings[7];
+	_strings_v2.restoreReplace = strings[8];
+	_strings.playAgain = strings[9];
+	_strings.pressReturn = strings[10];
+}
+
 void AdlEngine_v2::insertDisk(byte volume) {
 	delete _disk;
-	_disk = new DiskImage();
+	_disk = new Common::DiskImage();
 
 	if (!_disk->open(getDiskImageName(volume)))
 		error("Failed to open disk volume %d", volume);
@@ -144,7 +164,7 @@ void AdlEngine_v2::handleTextOverflow() {
 
 Common::String AdlEngine_v2::loadMessage(uint idx) const {
 	if (_messages[idx]) {
-		StreamPtr strStream(_messages[idx]->createReadStream());
+		Common::StreamPtr strStream(_messages[idx]->createReadStream());
 		return readString(*strStream, 0xff);
 	}
 
@@ -190,14 +210,20 @@ void AdlEngine_v2::printString(const Common::String &str) {
 
 void AdlEngine_v2::drawItem(Item &item, const Common::Point &pos) {
 	item.isOnScreen = true;
-	StreamPtr stream(_itemPics[item.picture - 1]->createReadStream());
+
+	if (item.picture == 0 || (uint)(item.picture - 1) >= _itemPics.size()) {
+		warning("Item picture %d not found", item.picture);
+		return;
+	}
+
+	Common::StreamPtr stream(_itemPics[item.picture - 1]->createReadStream());
 	stream->readByte(); // Skip clear opcode
 	_graphics->drawPic(*stream, pos);
 }
 
 void AdlEngine_v2::loadRoom(byte roomNr) {
 	if (Common::find(_brokenRooms.begin(), _brokenRooms.end(), roomNr) != _brokenRooms.end()) {
-		debug("Warning: attempt to load non-existent room %d", roomNr);
+		warning("Attempt to load non-existent room %d", roomNr);
 		_roomData.description.clear();
 		_roomData.pictures.clear();
 		_roomData.commands.clear();
@@ -205,7 +231,7 @@ void AdlEngine_v2::loadRoom(byte roomNr) {
 	}
 
 	Room &room = getRoom(roomNr);
-	StreamPtr stream(room.data->createReadStream());
+	Common::StreamPtr stream(room.data->createReadStream());
 
 	uint16 descOffset = stream->readUint16LE();
 	uint16 commandOffset = stream->readUint16LE();
@@ -309,7 +335,7 @@ void AdlEngine_v2::drawItems() {
 		if (item->region == _state.region && item->room == _state.room && !item->isOnScreen) {
 			if (item->state == IDI_ITEM_DROPPED) {
 				// Draw dropped item if in normal view
-				if (getCurRoom().picture == getCurRoom().curPicture)
+				if (getCurRoom().picture == getCurRoom().curPicture && _itemsOnScreen < _itemOffsets.size())
 					drawItem(*item, _itemOffsets[_itemsOnScreen++]);
 			} else {
 				// Draw fixed item if current view is in the pic list
@@ -326,7 +352,7 @@ void AdlEngine_v2::drawItems() {
 	}
 }
 
-DataBlockPtr AdlEngine_v2::readDataBlockPtr(Common::ReadStream &f) const {
+Common::DataBlockPtr AdlEngine_v2::readDataBlockPtr(Common::ReadStream &f) const {
 	byte track = f.readByte();
 	byte sector = f.readByte();
 	byte offset = f.readByte();
@@ -336,7 +362,7 @@ DataBlockPtr AdlEngine_v2::readDataBlockPtr(Common::ReadStream &f) const {
 		error("Error reading DataBlockPtr");
 
 	if (track == 0 && sector == 0 && offset == 0 && size == 0)
-		return DataBlockPtr();
+		return Common::DataBlockPtr();
 
 	adjustDataBlockPtr(track, sector, offset, size);
 
@@ -597,13 +623,13 @@ int AdlEngine_v2::o_initDisk(ScriptEnv &e) {
 	return 0;
 }
 
-bool AdlEngine_v2::canSaveGameStateCurrently() {
+bool AdlEngine_v2::canSaveGameStateCurrently(Common::U32String *msg) {
 	if (!_canSaveNow)
 		return false;
 
 	// Back up first visit flag as it may be changed by this test
 	const bool isFirstTime = getCurRoom().isFirstTime;
-	const bool retval = AdlEngine::canSaveGameStateCurrently();
+	const bool retval = AdlEngine::canSaveGameStateCurrently(msg);
 
 	getCurRoom().isFirstTime = isFirstTime;
 

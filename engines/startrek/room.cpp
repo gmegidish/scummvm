@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -511,12 +510,12 @@ int16 Room::getRandomWordInRange(int start, int end) {
 	return _vm->getRandomWord() % (end - start + 1) + start;
 }
 
-void Room::playSoundEffectIndex(int soundEffect) {
+void Room::playSoundEffectIndex(SoundEffects soundEffect) {
 	_vm->_sound->playSoundEffectIndex(soundEffect);
 }
 
-void Room::playMidiMusicTracks(int startTrack, int loopTrack) {
-	_vm->_sound->playMidiMusicTracks(startTrack, loopTrack);
+void Room::playMidiMusicTracks(MidiTracks startTrack, MidiLoopType loopType) {
+	_vm->_sound->playMidiMusicTracks(startTrack, loopType);
 }
 
 void Room::endMission(int16 score, int16 arg1, int16 arg2) {
@@ -533,7 +532,7 @@ void Room::endMission(int16 score, int16 arg1, int16 arg2) {
 	_vm->_mccoyActor->animationString.clear();
 	_vm->_redshirtActor->animationString.clear();
 
-	playSoundEffectIndex(8);
+	playSoundEffectIndex(kSfxTransporterDematerialize);
 
 	while (_vm->_kirkActor->spriteDrawn)
 		_vm->handleAwayMissionEvents();

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,9 +29,10 @@
 #include "pakfs_save_manager.h"
 #include "framfs_save_manager.h"
 #include "backends/fs/n64/n64-fs-factory.h"
+#include "backends/mutex/null/null-mutex.h"
 #include "backends/saves/default/default-saves.h"
 #include "backends/timer/default/default-timer.h"
-#include "graphics/conversion.h"
+#include "graphics/blit.h"
 
 typedef unsigned long long uint64;
 
@@ -90,6 +90,7 @@ OSystem_N64::OSystem_N64() {
 	_disableFpsLimit = false;
 
 	_overlayVisible = false;
+	_overlayInGUI = false;
 
 	_shakeXOffset = 0;
 	_shakeYOffset = 0;
@@ -613,27 +614,34 @@ void OSystem_N64::setShakePos(int shakeXOffset, int shakeYOffset) {
 	return;
 }
 
-void OSystem_N64::showOverlay() {
-	// Change min/max mouse coords
-	_mouseMaxX = _overlayWidth;
-	_mouseMaxY = _overlayHeight;
+void OSystem_N64::showOverlay(bool inGUI) {
+	_overlayInGUI = inGUI;
 
-	// Relocate the mouse cursor given the new limitations
-	warpMouse(_mouseX, _mouseY);
+	if (inGUI) {
+		// Change min/max mouse coords
+		_mouseMaxX = _overlayWidth;
+		_mouseMaxY = _overlayHeight;
+
+		// Relocate the mouse cursor given the new limitations
+		warpMouse(_mouseX, _mouseY);
+	}
 
 	_overlayVisible = true;
 	_dirtyOffscreen = true;
 }
 
 void OSystem_N64::hideOverlay() {
-	// Change min/max mouse coords
-	_mouseMaxX = _gameWidth;
-	_mouseMaxY = _gameHeight;
+	if (_overlayInGUI) {
+		// Change min/max mouse coords
+		_mouseMaxX = _gameWidth;
+		_mouseMaxY = _gameHeight;
 
-	// Relocate the mouse cursor given the new limitations
-	warpMouse(_mouseX, _mouseY);
+		// Relocate the mouse cursor given the new limitations
+		warpMouse(_mouseX, _mouseY);
+	}
 
 	_overlayVisible = false;
+	_overlayInGUI = false;
 
 	// Clear double buffered display
 	clearAllVideoBuffers();
@@ -758,8 +766,11 @@ void OSystem_N64::warpMouse(int x, int y) {
 	_dirtyOffscreen = true;
 }
 
-void OSystem_N64::setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format) {
+void OSystem_N64::setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format, const byte *mask) {
 	if (!w || !h) return;
+
+	if (mask)
+		warning("OSystem_N64::setMouseCursor: Masks are not supported");
 
 	_mouseHotspotX = hotspotX;
 	_mouseHotspotY = hotspotY;
@@ -812,20 +823,8 @@ void OSystem_N64::delayMillis(uint msecs) {
 }
 
 // As we don't have multi-threading, no need for mutexes
-OSystem::MutexRef OSystem_N64::createMutex(void) {
-	return NULL;
-}
-
-void OSystem_N64::lockMutex(MutexRef mutex) {
-	return;
-}
-
-void OSystem_N64::unlockMutex(MutexRef mutex) {
-	return;
-}
-
-void OSystem_N64::deleteMutex(MutexRef mutex) {
-	return;
+Common::MutexInternal *OSystem_N64::createMutex(void) {
+	return new NullMutexInternal();
 }
 
 void OSystem_N64::quit() {

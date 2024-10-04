@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,18 +46,18 @@ private:
 	Common::SeekableReadStream *_data;
 
 	struct FolderEntry {
-		uint16 comp_type;           //The compression type
-		uint16 num_blocks;          //The total number of data blocks used by this folder
-		uint32 offset;              //The cabinet offset of first datablock
+		uint16 comp_type;           // The compression type
+		uint16 num_blocks;          // The total number of data blocks used by this folder
+		uint32 offset;              // The cabinet offset of first datablock
 	};
 
 	struct FileEntry {
-		uint32 length;              //Uncompressed size of the file in bytes
-		FolderEntry *folder;        //Folder holding this file
-		uint32 folderOffset;        //Uncompressed offset in the folder
+		uint32 length;              // Uncompressed size of the file in bytes
+		FolderEntry *folder;        // Folder holding this file
+		uint32 folderOffset;        // Uncompressed offset in the folder
 	};
 
-	typedef Common::HashMap<Common::String, FileEntry, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> FileMap;
+	typedef Common::HashMap<Common::Path, FileEntry, Common::Path::IgnoreCase_Hash, Common::Path::IgnoreCase_EqualTo> FileMap;
 	FileMap _fileMap;
 
 	typedef Common::HashMap<uint16, FolderEntry> FolderMap;
@@ -66,7 +65,7 @@ private:
 
 	Common::String readString(Common::ReadStream *stream);
 
-	//Decompressor
+	// Decompressor
 	class Decompressor {
 	public:
 		Decompressor(const FolderEntry *folder, Common::SeekableReadStream *_data);
@@ -94,8 +93,8 @@ private:
 
 	mutable Decompressor *_decompressor;
 
-	//Cache
-	typedef Common::HashMap<Common::String, byte *, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> CacheMap;
+	// Cache
+	typedef Common::HashMap<Common::Path, byte *, Common::Path::IgnoreCase_Hash, Common::Path::IgnoreCase_EqualTo> CacheMap;
 	mutable CacheMap _cache;
 };
 

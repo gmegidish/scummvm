@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,10 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+/*************************************
+ *
+ * USED IN:
+ * Standard Macromedia XObject
+ *
+ *************************************/
 
 /*
  * Macromedia provides several XObjects for controlling some common devices that
@@ -35,15 +41,16 @@
 #include "director/director.h"
 #include "director/lingo/lingo.h"
 #include "director/lingo/lingo-object.h"
+#include "director/lingo/lingo-utils.h"
 #include "director/lingo/xlibs/orthoplayxobj.h"
 
 
 namespace Director {
 
 const char *OrthoPlayXObj::xlibName = "OrthoPlayXObj";
-const char *OrthoPlayXObj::fileNames[] = {
-	"OrthoPlay XObj",
-	0
+const XlibFileDesc OrthoPlayXObj::fileNames[] = {
+	{ "OrthoPlay XObj",	nullptr },
+	{ nullptr,			nullptr },
 };
 
 static MethodProto xlibMethods[] = {
@@ -115,402 +122,98 @@ static MethodProto xlibMethods[] = {
 	{ "GotoOutPoint",		OrthoPlayXObj::m_gotoOutPoint,		 0, 0,  200 },	// D2
 	{ "GotoPrerollPoint",	OrthoPlayXObj::m_gotoPrerollPoint,	 0, 0,  200 },	// D2
 	{ "GotoPostrollPoint",	OrthoPlayXObj::m_gotoPostrollPoint,	 0, 0,  200 },	// D2
-	{ 0, 0, 0, 0, 0 }
+	{ nullptr, nullptr, 0, 0, 0 }
 };
 
-void OrthoPlayXObj::open(int type) {
+void OrthoPlayXObj::open(ObjectType type, const Common::Path &path) {
 	if (type == kXObj) {
 		OrthoPlayXObject::initMethods(xlibMethods);
 		OrthoPlayXObject *xobj = new OrthoPlayXObject(kXObj);
-		g_lingo->_globalvars[xlibName] = xobj;
+		g_lingo->exposeXObject(xlibName, xobj);
 	}
 }
 
-void OrthoPlayXObj::close(int type) {
+void OrthoPlayXObj::close(ObjectType type) {
 	if (type == kXObj) {
 		OrthoPlayXObject::cleanupMethods();
 		g_lingo->_globalvars[xlibName] = Datum();
 	}
 }
 
-
 OrthoPlayXObject::OrthoPlayXObject(ObjectType ObjectType) :Object<OrthoPlayXObject>("OrthoPlayXObj") {
 	_objType = ObjectType;
 }
 
 void OrthoPlayXObj::m_new(int nargs) {
-	g_lingo->push(g_lingo->_currentMe);
-}
-
-void OrthoPlayXObj::m_setSerialPort(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_setSerialPort", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_setInitViaDlog(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_setInitViaDlog", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_getInitInfo(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getInitInfo", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_setInitInfo(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_setInitInfo", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_getMaxDevices(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getMaxDevices", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_getDeviceTitle(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getDeviceTitle", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_setDevice(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_setDevice", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_selectDevice(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_selectDevice", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_getDevice(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getDevice", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_service(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_service", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_getValue(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getValue", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_cancel(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_cancel", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_explain(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_explain", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_idle(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_idle", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_readStatus(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_readStatus", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_readPos(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_readPos", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_searchTo(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_searchTo", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_play(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_play", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_still(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_still", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_stop(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_stop", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_scanForward(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_scanForward", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_scanReverse(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_scanReverse", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_playReverse(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_playReverse", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_fastForward(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_fastForward", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_rewind(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_rewind", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_stepForward(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_stepForward", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_stepReverse(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_stepReverse", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_shuttle(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_shuttle", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_record(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_record", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_eject(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_eject", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_prepareMedium(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_prepareMedium", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_getFirstTrack(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getFirstTrack", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_getLastTrack(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getLastTrack", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_getFirstFrame(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getFirstFrame", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_getLastFrame(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getLastFrame", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_getTrack(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getTrack", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_resetCounter(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_resetCounter", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_audioEnable(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_audioEnable", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_audioMute(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_audioMute", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_videoEnable(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_videoEnable", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_showFrame(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_showFrame", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_getFrameResolution(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getFrameResolution", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_setFrameResolution(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_setFrameResolution", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_hasDropFrames(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_hasDropFrames", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_sendRaw(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_sendRaw", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_readRaw(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_readRaw", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_setInPoint(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_setInPoint", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_setOutPoint(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_setOutPoint", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_setDuration(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_setDuration", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_getMinDuration(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getMinDuration", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_setPreroll(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_setPreroll", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_getPreroll(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getPreroll", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_setPostroll(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_setPostroll", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_getPostroll(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_getPostroll", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_setFieldDominance(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_setFieldDominance", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_playCue(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_playCue", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_playSegment(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_playSegment", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_recordCue(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_recordCue", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_recordSegment(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_recordSegment", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_recordVideoEnable(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_recordVideoEnable", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_recordAudioEnable(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_recordAudioEnable", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_assembleRecord(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_assembleRecord", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_previewRecord(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_previewRecord", nargs);
-	g_lingo->dropStack(nargs);
-	g_lingo->push(Datum());
-}
-
-void OrthoPlayXObj::m_gotoInPoint(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_gotoInPoint", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_gotoOutPoint(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_gotoOutPoint", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_gotoPrerollPoint(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_gotoPrerollPoint", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-void OrthoPlayXObj::m_gotoPostrollPoint(int nargs) {
-	g_lingo->printSTUBWithArglist("OrthoPlayXObj::m_gotoPostrollPoint", nargs);
-	g_lingo->dropStack(nargs);
-}
-
-
+	g_lingo->push(g_lingo->_state->me);
+}
+
+XOBJSTUBV(OrthoPlayXObj::m_setSerialPort)
+XOBJSTUBV(OrthoPlayXObj::m_setInitViaDlog)
+XOBJSTUBV(OrthoPlayXObj::m_getInitInfo)
+XOBJSTUBV(OrthoPlayXObj::m_setInitInfo)
+XOBJSTUBV(OrthoPlayXObj::m_getMaxDevices)
+XOBJSTUBV(OrthoPlayXObj::m_getDeviceTitle)
+XOBJSTUBV(OrthoPlayXObj::m_setDevice)
+XOBJSTUBV(OrthoPlayXObj::m_selectDevice)
+XOBJSTUBV(OrthoPlayXObj::m_getDevice)
+XOBJSTUBV(OrthoPlayXObj::m_service)
+XOBJSTUBV(OrthoPlayXObj::m_getValue)
+XOBJSTUBV(OrthoPlayXObj::m_cancel)
+XOBJSTUBV(OrthoPlayXObj::m_explain)
+XOBJSTUBV(OrthoPlayXObj::m_idle)
+XOBJSTUBNR(OrthoPlayXObj::m_readStatus)
+XOBJSTUBNR(OrthoPlayXObj::m_readPos)
+XOBJSTUBNR(OrthoPlayXObj::m_searchTo)
+XOBJSTUBNR(OrthoPlayXObj::m_play)
+XOBJSTUBNR(OrthoPlayXObj::m_still)
+XOBJSTUBNR(OrthoPlayXObj::m_stop)
+XOBJSTUBNR(OrthoPlayXObj::m_scanForward)
+XOBJSTUBNR(OrthoPlayXObj::m_scanReverse)
+XOBJSTUBNR(OrthoPlayXObj::m_playReverse)
+XOBJSTUBNR(OrthoPlayXObj::m_fastForward)
+XOBJSTUBNR(OrthoPlayXObj::m_rewind)
+XOBJSTUBNR(OrthoPlayXObj::m_stepForward)
+XOBJSTUBNR(OrthoPlayXObj::m_stepReverse)
+XOBJSTUBNR(OrthoPlayXObj::m_shuttle)
+XOBJSTUBNR(OrthoPlayXObj::m_record)
+XOBJSTUBNR(OrthoPlayXObj::m_eject)
+XOBJSTUBNR(OrthoPlayXObj::m_prepareMedium)
+XOBJSTUBV(OrthoPlayXObj::m_getFirstTrack)
+XOBJSTUBV(OrthoPlayXObj::m_getLastTrack)
+XOBJSTUBV(OrthoPlayXObj::m_getFirstFrame)
+XOBJSTUBV(OrthoPlayXObj::m_getLastFrame)
+XOBJSTUBV(OrthoPlayXObj::m_getTrack)
+XOBJSTUBNR(OrthoPlayXObj::m_resetCounter)
+XOBJSTUBNR(OrthoPlayXObj::m_audioEnable)
+XOBJSTUBNR(OrthoPlayXObj::m_audioMute)
+XOBJSTUBNR(OrthoPlayXObj::m_videoEnable)
+XOBJSTUBNR(OrthoPlayXObj::m_showFrame)
+XOBJSTUBV(OrthoPlayXObj::m_getFrameResolution)
+XOBJSTUBV(OrthoPlayXObj::m_setFrameResolution)
+XOBJSTUBV(OrthoPlayXObj::m_hasDropFrames)
+XOBJSTUBNR(OrthoPlayXObj::m_sendRaw)
+XOBJSTUBV(OrthoPlayXObj::m_readRaw)
+XOBJSTUBV(OrthoPlayXObj::m_setInPoint)
+XOBJSTUBV(OrthoPlayXObj::m_setOutPoint)
+XOBJSTUBV(OrthoPlayXObj::m_setDuration)
+XOBJSTUBV(OrthoPlayXObj::m_getMinDuration)
+XOBJSTUBV(OrthoPlayXObj::m_setPreroll)
+XOBJSTUBV(OrthoPlayXObj::m_getPreroll)
+XOBJSTUBV(OrthoPlayXObj::m_setPostroll)
+XOBJSTUBV(OrthoPlayXObj::m_getPostroll)
+XOBJSTUBV(OrthoPlayXObj::m_setFieldDominance)
+XOBJSTUBNR(OrthoPlayXObj::m_playCue)
+XOBJSTUBNR(OrthoPlayXObj::m_playSegment)
+XOBJSTUBNR(OrthoPlayXObj::m_recordCue)
+XOBJSTUBNR(OrthoPlayXObj::m_recordSegment)
+XOBJSTUBNR(OrthoPlayXObj::m_recordVideoEnable)
+XOBJSTUBNR(OrthoPlayXObj::m_recordAudioEnable)
+XOBJSTUBV(OrthoPlayXObj::m_assembleRecord)
+XOBJSTUBV(OrthoPlayXObj::m_previewRecord)
+XOBJSTUBNR(OrthoPlayXObj::m_gotoInPoint)
+XOBJSTUBNR(OrthoPlayXObj::m_gotoOutPoint)
+XOBJSTUBNR(OrthoPlayXObj::m_gotoPrerollPoint)
+XOBJSTUBNR(OrthoPlayXObj::m_gotoPostrollPoint)
 
 } // End of namespace Director

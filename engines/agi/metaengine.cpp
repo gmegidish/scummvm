@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 #include "common/md5.h"
 #include "common/savefile.h"
 #include "common/textconsole.h"
+#include "common/translation.h"
 
 #include "graphics/thumbnail.h"
 #include "graphics/surface.h"
@@ -33,10 +33,10 @@
 #include "engines/advancedDetector.h"
 
 #include "agi/agi.h"
-#include "agi/preagi.h"
-#include "agi/preagi_mickey.h"
-#include "agi/preagi_troll.h"
-#include "agi/preagi_winnie.h"
+#include "agi/preagi/preagi.h"
+#include "agi/preagi/mickey.h"
+#include "agi/preagi/troll.h"
+#include "agi/preagi/winnie.h"
 
 #include "agi/detection.h"
 
@@ -83,20 +83,12 @@ void AgiBase::initFeatures() {
 	_gameFeatures = _gameDescription->features;
 }
 
-void AgiBase::setFeature(uint32 feature) {
-	_gameFeatures |= feature;
-}
-
-void AgiBase::setVersion(uint16 version) {
-	_gameVersion = version;
-}
-
 void AgiBase::initVersion() {
 	_gameVersion = _gameDescription->version;
 }
 
 const char *AgiBase::getDiskName(uint16 id) {
-	for (int i = 0; _gameDescription->desc.filesDescriptions[i].fileName != NULL; i++)
+	for (int i = 0; _gameDescription->desc.filesDescriptions[i].fileName != nullptr; i++)
 		if (_gameDescription->desc.filesDescriptions[i].fileType == id)
 			return _gameDescription->desc.filesDescriptions[i].fileName;
 
@@ -112,16 +104,107 @@ bool AgiBase::hasFeature(EngineFeature f) const {
 
 } // End of namespace Agi
 
+static const ADExtraGuiOptionsMap optionsList[] = {
+	{
+		GAMEOPTION_ORIGINAL_SAVELOAD,
+		{
+			_s("Use original save/load screens"),
+			_s("Use the original save/load screens instead of the ScummVM ones"),
+			"originalsaveload",
+			false,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_AMIGA_ALTERNATIVE_PALETTE,
+		{
+			_s("Use an alternative palette"),
+			_s("Use an alternative palette, common for all Amiga games. This was the old behavior"),
+			"altamigapalette",
+			false,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_DISABLE_MOUSE,
+		{
+			_s("Mouse support"),
+			_s("Enables mouse support. Allows to use mouse for movement and in game menus."),
+			"mousesupport",
+			true,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_USE_HERCULES_FONT,
+		{
+			_s("Use Hercules hires font"),
+			_s("Uses Hercules hires font, when font file is available."),
+			"herculesfont",
+			false,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_COMMAND_PROMPT_WINDOW,
+		{
+			_s("Pause when entering commands"),
+			_s("Shows a command prompt window and pauses the game (like in SCI) instead of a real-time prompt."),
+			"commandpromptwindow",
+			false,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_APPLE2GS_ADD_SPEED_MENU,
+		{
+			_s("Add speed menu"),
+			_s("Add game speed menu (similar to PC version)"),
+			"apple2gs_speedmenu",
+			false,
+			0,
+			0
+		}
+	},
+
+	{
+		GAMEOPTION_COPY_PROTECTION,
+		{
+			_s("Enable copy protection"),
+			_s("Enable any copy protection that would otherwise be bypassed by default."),
+			"copy_protection",
+			false,
+			0,
+			0
+		}
+	},
+
+	AD_EXTRA_GUI_OPTIONS_TERMINATOR
+};
 
 using namespace Agi;
 
-class AgiMetaEngine : public AdvancedMetaEngine {
+class AgiMetaEngine : public AdvancedMetaEngine<Agi::AGIGameDescription> {
 public:
 	const char *getName() const override {
 		return "agi";
 	}
 
-	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	const ADExtraGuiOptionsMap *getAdvancedExtraGuiOptions() const override {
+		return optionsList;
+	}
+
+	Common::Error createInstance(OSystem *syst, Engine **engine, const Agi::AGIGameDescription *gd) const override;
 
 	SaveStateList listSaves(const char *target) const override;
 	int getMaximumSaveSlot() const override;
@@ -143,9 +226,7 @@ bool AgiMetaEngine::hasFeature(MetaEngineFeature f) const {
 		(f == kSimpleSavesNames);
 }
 
-Common::Error AgiMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	const Agi::AGIGameDescription *gd = (const Agi::AGIGameDescription *)desc;
-
+Common::Error AgiMetaEngine::createInstance(OSystem *syst, Engine **engine, const Agi::AGIGameDescription *gd) const {
 	switch (gd->gameType) {
 	case Agi::GType_PreAGI:
 		switch (gd->gameID) {
@@ -165,6 +246,7 @@ Common::Error AgiMetaEngine::createInstance(OSystem *syst, Engine **engine, cons
 	case Agi::GType_V1:
 	case Agi::GType_V2:
 	case Agi::GType_V3:
+	case Agi::GType_A2:
 		*engine = new Agi::AgiEngine(syst, gd);
 		break;
 	default:
@@ -206,10 +288,10 @@ SaveStateList AgiMetaEngine::listSaves(const char *target) const {
 							break;
 					}
 					if (descriptionPos >= sizeof(description)) {
-						strcpy(description, "[broken saved game]");
+						Common::strcpy_s(description, "[broken saved game]");
 					}
 				} else {
-					strcpy(description, "[not an AGI saved game]");
+					Common::strcpy_s(description, "[not an AGI saved game]");
 				}
 
 				delete in;
@@ -320,57 +402,50 @@ SaveStateDescriptor AgiMetaEngine::querySaveMetaInfos(const char *target, int sl
 
 namespace Agi {
 
-bool AgiBase::canLoadGameStateCurrently() {
-	if (!(getGameType() == GType_PreAGI)) {
-		if (getFlag(VM_FLAG_MENUS_ACCESSIBLE)) {
-			if (!_noSaveLoadAllowed) {
-				if (!cycleInnerLoopIsActive()) {
-					// We can't allow to restore a game, while inner loop is active
-					// For example Mixed Up Mother Goose has an endless loop for user name input
-					// Which means even if we abort the inner loop, the game would keep on calling
-					// GetString() until something is entered. And this would of course also happen
-					// right after restoring a saved game.
+bool AgiBase::canLoadGameStateCurrently(Common::U32String *msg) {
+	if (getGameType() == GType_PreAGI) {
+		if (msg)
+			*msg = _("This game does not support loading");
+		return false;
+	}
+
+	if (getFlag(VM_FLAG_MENUS_ACCESSIBLE)) {
+		if (!_noSaveLoadAllowed) {
+			if (!cycleInnerLoopIsActive()) {
+				// We can't allow to restore a game, while inner loop is active
+				// For example Mixed Up Mother Goose has an endless loop for user name input
+				// Which means even if we abort the inner loop, the game would keep on calling
+				// GetString() until something is entered. And this would of course also happen
+				// right after restoring a saved game.
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool AgiBase::canSaveGameStateCurrently(Common::U32String *msg) {
+	if (getGameType() == GType_PreAGI) {
+		if (msg)
+			*msg = _("This game does not support saving");
+		return false;
+	}
+
+	if (getGameID() == GID_BC) // Technically in Black Cauldron we may save anytime
+		return true;
+
+	if (getFlag(VM_FLAG_MENUS_ACCESSIBLE)) {
+		if (!_noSaveLoadAllowed) {
+			if (!cycleInnerLoopIsActive()) {
+				if (promptIsEnabled()) {
 					return true;
 				}
 			}
 		}
 	}
+
 	return false;
-}
-
-bool AgiBase::canSaveGameStateCurrently() {
-	if (getGameID() == GID_BC) // Technically in Black Cauldron we may save anytime
-		return true;
-
-	if (!(getGameType() == GType_PreAGI)) {
-		if (getFlag(VM_FLAG_MENUS_ACCESSIBLE)) {
-			if (!_noSaveLoadAllowed) {
-				if (!cycleInnerLoopIsActive()) {
-					if (promptIsEnabled()) {
-						return true;
-					}
-				}
-			}
-		}
-	}
-	return false;
-}
-
-int AgiEngine::agiDetectGame() {
-	int ec = errOK;
-
-	assert(_gameDescription != NULL);
-
-	if (getVersion() <= 0x2001) {
-		_loader = new AgiLoader_v1(this);
-	} else if (getVersion() <= 0x2999) {
-		_loader = new AgiLoader_v2(this);
-	} else {
-		_loader = new AgiLoader_v3(this);
-	}
-	ec = _loader->detectGame();
-
-	return ec;
 }
 
 } // End of namespace Agi

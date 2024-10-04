@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,7 @@
 #include "ngi/gameloader.h"
 
 #include "common/memstream.h"
-#include "graphics/transparent_surface.h"
+#include "graphics/managed_surface.h"
 
 namespace NGI {
 
@@ -106,6 +105,10 @@ PictureObject::PictureObject(PictureObject *src) : GameObject(src) {
 	_oy2 = _oy;
 	_pictureObject2List = src->_pictureObject2List;
 	_objtype = kObjTypePictureObject;
+}
+
+PictureObject::~PictureObject() {
+	delete _picture;
 }
 
 bool PictureObject::load(MfcArchive &file, bool bigPicture) {
@@ -378,7 +381,7 @@ bool GameObject::setPicAniInfo(const PicAniInfo &picAniInfo) {
 		if (picAniInfo.staticsId) {
 			ani->_statics = ani->getStaticsById(picAniInfo.staticsId);
 		} else {
-			ani->_statics = 0;
+			ani->_statics = nullptr;
 		}
 
 		if (picAniInfo.movementId) {
@@ -386,7 +389,7 @@ bool GameObject::setPicAniInfo(const PicAniInfo &picAniInfo) {
 			if (ani->_movement)
 				ani->_movement->setDynamicPhaseIndex(picAniInfo.dynamicPhaseIndex);
 		} else {
-			ani->_movement = 0;
+			ani->_movement = nullptr;
 		}
 
 		ani->setOXY(picAniInfo.ox, picAniInfo.oy);
@@ -414,7 +417,7 @@ Picture::~Picture() {
 }
 
 void Picture::freePicture() {
-	debugC(5, kDebugMemory, "Picture::freePicture(): file: %s", _memfilename.c_str());
+	debugC(5, kDebugMemory, "Picture::freePicture(): file: %s", _memfilename.toString().c_str());
 
 	if (_bitmap) {
 		if (testFlags() && !_field_54) {
@@ -471,8 +474,8 @@ bool Picture::load(MfcArchive &file) {
 
 	getData();
 
-	debugC(5, kDebugLoading, "Picture::load: loaded memobject=\"%s\" x=%d y=%d f44=%d width=%d height=%d alpha=%d memobject2=\"%s\"", _memfilename.c_str(),
-				_x, _y, _field_44, _width, _height, _alpha, _memoryObject2->_memfilename.c_str());
+	debugC(5, kDebugLoading, "Picture::load: loaded memobject=\"%s\" x=%d y=%d f44=%d width=%d height=%d alpha=%d memobject2=\"%s\"", _memfilename.toString().c_str(),
+				_x, _y, _field_44, _width, _height, _alpha, _memoryObject2->_memfilename.toString().c_str());
 
 	return true;
 }
@@ -492,7 +495,7 @@ void Picture::setAOIDs() {
 }
 
 void Picture::init() {
-	debugC(5, kDebugLoading, "Picture::init(), %s", _memfilename.c_str());
+	debugC(5, kDebugLoading, "Picture::init(), %s", _memfilename.toString().c_str());
 
 	MemoryObject::getData();
 
@@ -518,7 +521,7 @@ void Picture::getDibInfo() {
 	}
 
 	if (!_data) {
-		warning("Picture::getDibInfo: data is empty <%s>", _memfilename.c_str());
+		warning("Picture::getDibInfo: data is empty <%s>", _memfilename.toString().c_str());
 
 		MemoryObject::load();
 
@@ -544,7 +547,7 @@ void Picture::draw(int x, int y, int style, int angle) {
 	int x1 = x;
 	int y1 = y;
 
-	debugC(7, kDebugDrawing, "Picture::draw(%d, %d, %d, %d) (%s)", x, y, style, angle, _memfilename.c_str());
+	debugC(7, kDebugDrawing, "Picture::draw(%d, %d, %d, %d) (%s)", x, y, style, angle, _memfilename.toString().c_str());
 
 	if (x != -1)
 		x1 = x;
@@ -574,7 +577,9 @@ void Picture::draw(int x, int y, int style, int angle) {
 	case 1: {
 		//flip
 		const Dims dims = getDimensions();
-		_bitmap->flipVertical()->drawShaded(1, x1, y1 + 30 + dims.y, *pal, _alpha);
+		Bitmap *flipped = _bitmap->flipVertical();
+		flipped->drawShaded(1, x1, y1 + 30 + dims.y, *pal, _alpha);
+		delete flipped;
 		break;
 	}
 	case 2:
@@ -682,7 +687,7 @@ int Picture::getPixelAtPosEx(int x, int y) {
 	// TODO: It looks like this doesn't really work.
 	if (x < (g_nmi->_pictureScale + _width - 1) / g_nmi->_pictureScale &&
 			y < (g_nmi->_pictureScale + _height - 1) / g_nmi->_pictureScale &&
-			_memoryObject2 != 0 && _memoryObject2->_rows != 0)
+			_memoryObject2 != nullptr && _memoryObject2->_rows != nullptr)
 		return _memoryObject2->_rows[x][2 * y];
 
 	return 0;
@@ -708,15 +713,15 @@ Bitmap::Bitmap(const Bitmap &src) {
 	_type = src._type;
 	_width = src._width;
 	_height = src._height;
-	_surface = src._surface;
 	_flipping = src._flipping;
-	_surface = src._surface;
+	_surface = new Graphics::ManagedSurface();
+	_surface->create(_width, _height, Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0));
+	_surface->copyFrom(*src._surface);
 }
 
 Bitmap::~Bitmap() {
-	// TODO: This is a hack because Graphics::Surface has terrible resource
-	// management
-	//_surface->free();
+	_surface->free();
+	delete _surface;
 }
 
 void Bitmap::load(Common::ReadStream *s) {
@@ -746,7 +751,7 @@ bool Bitmap::isPixelHitAtPos(int x, int y) {
 }
 
 void Bitmap::decode(byte *pixels, const Palette &palette) {
-	_surface = new Graphics::TransparentSurface, Graphics::SurfaceDeleter();
+	_surface = new Graphics::ManagedSurface();
 	_surface->create(_width, _height, Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0));
 
 	if (_type == MKTAG('R', 'B', '\0', '\0'))
@@ -778,9 +783,9 @@ void Bitmap::putDib(int x, int y, const Palette &palette, byte alpha) {
 	if (y1 < 0)
 		y1 = 0;
 
-	int alphac = TS_ARGB(alpha, 0xff, 0xff, 0xff);
+	uint32 alphac = MS_ARGB(alpha, 0xff, 0xff, 0xff);
 
-	_surface->blit(g_nmi->_backgroundSurface, x1, y1, _flipping, &sub, alphac);
+	_surface->blendBlitTo(g_nmi->_backgroundSurface, x1, y1, _flipping, &sub, alphac);
 	g_nmi->_system->copyRectToScreen(g_nmi->_backgroundSurface.getBasePtr(x1, y1), g_nmi->_backgroundSurface.pitch, x1, y1, sub.width(), sub.height());
 }
 
@@ -943,7 +948,7 @@ void Bitmap::colorFill(uint32 *dest, int len, int32 color) {
 
 	g_nmi->_origFormat.colorToRGB(color, r, g, b);
 
-	uint32 c = TS_ARGB(0xff, r, g, b);
+	uint32 c = MS_ARGB(0xff, r, g, b);
 
 	for (int i = 0; i < len; i++)
 		*dest++ = c;
@@ -966,7 +971,7 @@ void Bitmap::paletteFill(uint32 *dest, byte *src, int len, const Palette &palett
 	for (int i = 0; i < len; i++) {
 		g_nmi->_origFormat.colorToRGB(palette.pal[*src++] & 0xffff, r, g, b);
 
-		*dest++ = TS_ARGB(0xff, r, g, b);
+		*dest++ = MS_ARGB(0xff, r, g, b);
 	}
 }
 
@@ -994,7 +999,7 @@ void Bitmap::copierKeyColor(uint32 *dest, byte *src, int len, int keyColor, cons
 		for (int i = 0; i < len; i++) {
 			if (*src != keyColor) {
 				g_nmi->_origFormat.colorToRGB(palette.pal[*src] & 0xffff, r, g, b);
-				*dest = TS_ARGB(0xff, r, g, b);
+				*dest = MS_ARGB(0xff, r, g, b);
 			}
 
 			dest++;
@@ -1006,7 +1011,7 @@ void Bitmap::copierKeyColor(uint32 *dest, byte *src, int len, int keyColor, cons
 		for (int i = 0; i < len; i++) {
 			if (*src16 != 0) {
 				g_nmi->_origFormat.colorToRGB(READ_LE_UINT16(src16), r, g, b);
-				*dest = TS_ARGB(0xff, r, g, b);
+				*dest = MS_ARGB(0xff, r, g, b);
 			}
 
 			dest++;
@@ -1039,14 +1044,14 @@ void Bitmap::copier(uint32 *dest, byte *src, int len, const Palette &palette, bo
 		for (int i = 0; i < len; i++) {
 			g_nmi->_origFormat.colorToRGB(palette.pal[*src++] & 0xffff, r, g, b);
 
-			*dest++ = TS_ARGB(0xff, r, g, b);
+			*dest++ = MS_ARGB(0xff, r, g, b);
 		}
 	} else {
 		int16 *src16 = (int16 *)src;
 
 		for (int i = 0; i < len; i++) {
 			g_nmi->_origFormat.colorToRGB(READ_LE_UINT16(src16++), r, g, b);
-			*dest++ = TS_ARGB(0xff, r, g, b);
+			*dest++ = MS_ARGB(0xff, r, g, b);
 		}
 	}
 }
@@ -1129,8 +1134,8 @@ void Shadows::init() {
 	StaticANIObject *st;
 	Movement *mov;
 
-	if (scene && (st = scene->getStaticANIObject1ById(_staticAniObjectId, -1)) != 0
-		&& ((mov = st->getMovementById(_movementId)) != 0))
+	if (scene && (st = scene->getStaticANIObject1ById(_staticAniObjectId, -1)) != nullptr
+		&& ((mov = st->getMovementById(_movementId)) != nullptr))
 		initMovement(mov);
 }
 
@@ -1163,7 +1168,7 @@ DynamicPhase *Shadows::findSize(int width, int height) {
 	int min = 1000;
 
 	if (!_items.size())
-		return 0;
+		return nullptr;
 
 	for (uint i = 0; i < _items.size(); i++) {
 		int w = abs(width - _items[i].width);

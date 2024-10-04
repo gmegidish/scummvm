@@ -5,10 +5,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,20 +16,23 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef ULTIMA8_ULTIMA8
 #define ULTIMA8_ULTIMA8
 
+#include "common/events.h"
+#include "common/random.h"
 #include "common/stream.h"
+#include "graphics/screen.h"
 #include "ultima/shared/std/containers.h"
-#include "ultima/shared/engine/ultima.h"
 #include "ultima/ultima8/usecode/intrinsics.h"
 #include "ultima/ultima8/misc/common_types.h"
 #include "ultima/ultima8/games/game_info.h"
+#include "ultima/ultima8/gfx/render_surface.h"
+#include "ultima/ultima8/metaengine.h"
 #include "ultima/detection.h"
 
 namespace Ultima {
@@ -53,7 +56,6 @@ class Mouse;
 class AvatarMoverProcess;
 class Texture;
 class AudioMixer;
-class FileSystem;
 class ConfigFileManager;
 struct GameInfo;
 
@@ -61,20 +63,22 @@ struct GameInfo;
 #define GAME_IS_REMORSE (Ultima8Engine::get_instance()->getGameInfo()->_type == GameInfo::GAME_REMORSE)
 #define GAME_IS_REGRET (Ultima8Engine::get_instance()->getGameInfo()->_type == GameInfo::GAME_REGRET)
 #define GAME_IS_CRUSADER (GAME_IS_REMORSE || GAME_IS_REGRET)
+#define GAME_IS_DEMO (Ultima8Engine::get_instance()->getGameInfo()->_ucOffVariant == GameInfo::GAME_UC_DEMO)
 
-class Ultima8Engine : public Shared::UltimaEngine {
+class Ultima8Engine : public Engine {
 	friend class Debugger;
 private:
+	Common::RandomSource _randomSource;
+
 	bool _isRunning;
 	GameInfo *_gameInfo;
+	const UltimaGameDescription *_gameDescription;
 
 	// minimal system
-	FileSystem *_fileSystem;
 	ConfigFileManager *_configFileMan;
 
 	static Ultima8Engine *_instance;
 
-	Std::list<ObjId> _textModes;      //!< Gumps that want text mode
 	bool _fontOverride;
 	bool _fontAntialiasing;
 	// Audio Mixer
@@ -83,8 +87,7 @@ private:
 
 	// full system
 	Game *_game;
-	Std::string _errorMessage;
-	Std::string _errorTitle;
+	Common::Error _lastError;
 
 	Kernel *_kernel;
 	ObjectManager *_objectManager;
@@ -101,10 +104,11 @@ private:
 	InverterGump *_inverterGump;
 	AvatarMoverProcess *_avatarMoverProcess;
 
-	// Various dependancy flags
+	// Various dependency flags
 	// Timing stuff
 	int32 _lerpFactor;       //!< Interpolation factor for this frame (0-256)
 	bool _inBetweenFrame;    //!< Set true if we are doing an inbetween frame
+	uint32 _priorFrameCounterTime;
 
 	bool _highRes;			 //!< Set to true to enable larger screen size
 	bool _frameSkip;         //!< Set to true to enable frame skipping (default false)
@@ -122,21 +126,15 @@ private:
 	bool _hasCheated;
 	bool _cheatsEnabled;
 	unsigned int _inversion;
-	bool _unkCrusaderFlag; //!< not sure what this is but it's only used in usecode for crusader, so just keep track of it..
+	bool _crusaderTeleporting; //!< Flag used by the usecode to know if Crusader is currently teleporting
 	uint32 _moveKeyFrame; //!< An imperfect way for the Crusader usecode to stop remote camera viewing.
 	bool _cruStasis; //!< A slightly different kind of stasis for Crusader that stops some keyboard events
 private:
-	/**
-	 * Does engine deinitialization
-	 */
-	void deinitialize() override;
-
 	/**
 	 * Shows the Pentagram splash screen
 	 */
 	void showSplashScreen();
 
-private:
 	//! write savegame info (time, ..., game-specifics)
 	void writeSaveInfo(Common::WriteStream *ws);
 
@@ -155,33 +153,23 @@ private:
 	//! Does a Full reset of the Engine (including shutting down Video)
 //	void fullReset();
 
-	// called depending upon command line arguments
-	void GraphicSysInit(); // starts/restarts the graphics subsystem
-
 	void handleDelayedEvents();
 
-	//! Fill a GameInfo struct for the give game name
-	//! \param game The id of the game to check (from pentagram.cfg)
-	//! \param gameinfo The GameInfo struct to fill
-	//! \return true if detected all the fields, false if detection failed
-	bool getGameInfo(const istring &game, GameInfo *gameinfo);
-
+	bool pollEvent(Common::Event &event);
 protected:
 	// Engine APIs
 	Common::Error run() override;
 
-	bool initialize() override;
+	Common::Error initialize();
+	void deinitialize();
 
 	void pauseEngineIntern(bool pause) override;
-
-	/**
-	 * Returns the data archive folder and version that's required
-	 */
-	bool isDataRequired(Common::String &folder, int &majorVersion, int &minorVersion) override;
 
 public:
 	Ultima8Engine(OSystem *syst, const Ultima::UltimaGameDescription *gameDesc);
 	~Ultima8Engine() override;
+
+	void initializePath(const Common::FSNode &gamePath) override;
 
 	static Ultima8Engine *get_instance() {
 		return _instance;
@@ -189,12 +177,10 @@ public:
 
 	bool hasFeature(EngineFeature f) const override;
 
-	bool startup();
-	void shutdown();
+	Common::Language getLanguage() const;
 
 	bool setupGame();
-	bool startupGame();
-	void shutdownGame(bool reloading = true);
+	Common::Error startupGame();
 
 	void changeVideoMode(int width, int height);
 
@@ -207,10 +193,13 @@ public:
 		return _screen;
 	}
 
-	Graphics::Screen *getScreen() const override;
+	Graphics::Screen *getScreen() const;
 
-	bool runGame();
+	Common::Error runGame();
 	virtual void handleEvent(const Common::Event &event);
+
+	void handleActionDown(KeybindingAction action);
+	void handleActionUp(KeybindingAction action);
 
 	void paint();
 
@@ -232,9 +221,9 @@ public:
 	INTRINSIC(I_getTimeInSeconds);
 	INTRINSIC(I_setTimeInGameHours);
 	INTRINSIC(I_avatarCanCheat);
-	INTRINSIC(I_getUnkCrusaderFlag);
-	INTRINSIC(I_setUnkCrusaderFlag);
-	INTRINSIC(I_clrUnkCrusaderFlag);
+	INTRINSIC(I_getCrusaderTeleporting);
+	INTRINSIC(I_setCrusaderTeleporting);
+	INTRINSIC(I_clrCrusaderTeleporting);
 	INTRINSIC(I_makeAvatarACheater);
 	INTRINSIC(I_closeItemGumps);
 	INTRINSIC(I_setCruStasis);
@@ -263,11 +252,11 @@ public:
 		_showTouching = !_showTouching;
 	}
 
-	bool isUnkCrusaderFlag() const {
-		return _unkCrusaderFlag;
+	bool isCrusaderTeleporting() const {
+		return _crusaderTeleporting;
 	}
-	void setUnkCrusaderFlag(bool flag) {
-		_unkCrusaderFlag = flag;
+	void setCrusaderTeleporting(bool flag) {
+		_crusaderTeleporting = flag;
 	}
 	void setCruStasis(bool flag) {
 		_cruStasis = flag;
@@ -297,6 +286,10 @@ public:
 		return _avatarMoverProcess;
 	}
 
+	Common::RandomSource &getRandomSource() {
+		return _randomSource;
+	}
+
 	/**
 	 * Notifies the engine that the sound settings may have changed
 	 */
@@ -315,12 +308,12 @@ public:
 	/**
 	 * Returns true if a savegame can be loaded
 	 */
-	bool canLoadGameStateCurrently(bool isAutosave = false) override { return true; }
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return true; }
 
 	/**
 	 * Returns true if the game can be saved
 	 */
-	bool canSaveGameStateCurrently(bool isAutosave = false) override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 
 	/**
 	 * Load a game
@@ -342,24 +335,13 @@ public:
 	 */
 	Common::Error saveGameStream(Common::WriteStream *stream, bool isAutosave) override;
 
-	//! save a game
-	//! \param filename the file to save to
-	//! \return true if succesful
-	bool saveGame(int slot, const Std::string &desc);
-
 	//! start a new game
-	//! \return true if succesful.
+	//! \return true if successful.
 	bool newGame(int saveSlot = -1);
 
-	//! Enter gump text mode (aka Unicode keyhandling)
-	void enterTextMode(Gump *);
-
-	//! Leave gump text mode (aka Unicode keyhandling)
-	void leaveTextMode(Gump *);
-
-	//! Display an error message box
-	//! \param message The message to display on the box
-	void Error(Std::string message, Std::string title = Std::string());
+	//! Sets an error to end the engine run loop
+	//! \param error The error to return from the engine
+	void setError(Common::Error &error);
 public:
 	unsigned int getInversion() const {
 		return _inversion;
@@ -383,8 +365,6 @@ public:
 	void makeCheater() {
 		_hasCheated = true;
 	}
-	Gump *getMenuGump() const;
-
 	bool isInterpolationEnabled() const {
 		return _interpolate;
 	}

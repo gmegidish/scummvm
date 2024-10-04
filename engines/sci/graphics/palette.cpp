@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,7 @@
 #include "sci/sci.h"
 #include "sci/engine/state.h"
 #include "sci/graphics/cache.h"
+#include "sci/graphics/gfxdrivers.h"
 #include "sci/graphics/maciconbar.h"
 #include "sci/graphics/palette.h"
 #include "sci/graphics/remap.h"
@@ -82,26 +82,10 @@ GfxPalette::GfxPalette(ResourceManager *resMan, GfxScreen *screen)
 
 	palVaryInit();
 
-	_macClut = 0;
+	_macClut = nullptr;
 	loadMacIconBarPalette();
 
-	switch (_resMan->getViewType()) {
-	case kViewEga:
-		_totalScreenColors = 16;
-		break;
-	case kViewAmiga:
-		_totalScreenColors = 32;
-		break;
-	case kViewAmiga64:
-		_totalScreenColors = 64;
-		break;
-	case kViewVga:
-	case kViewVga11:
-			_totalScreenColors = 256;
-		break;
-	default:
-		error("GfxPalette: Unknown view type");
-	}
+	_totalScreenColors = _screen->gfxDriver()->numColors();
 }
 
 GfxPalette::~GfxPalette() {
@@ -234,7 +218,7 @@ bool GfxPalette::setAmiga() {
 			}
 		}
 
-		// Directly set the palette, because setOnScreen() wont do a thing for amiga
+		// Directly set the palette, because setOnScreen() won't do a thing for amiga
 		copySysPaletteToScreen(true);
 		return true;
 	}
@@ -275,9 +259,6 @@ static byte blendColors(byte c1, byte c2) {
 }
 
 void GfxPalette::setEGA() {
-	int curColor;
-	byte color1, color2;
-
 	_sysPalette.colors[1].r  = 0x000; _sysPalette.colors[1].g  = 0x000; _sysPalette.colors[1].b  = 0x0AA;
 	_sysPalette.colors[2].r  = 0x000; _sysPalette.colors[2].g  = 0x0AA; _sysPalette.colors[2].b  = 0x000;
 	_sysPalette.colors[3].r  = 0x000; _sysPalette.colors[3].g  = 0x0AA; _sysPalette.colors[3].b  = 0x0AA;
@@ -293,14 +274,15 @@ void GfxPalette::setEGA() {
 	_sysPalette.colors[13].r = 0x0FF; _sysPalette.colors[13].g = 0x055; _sysPalette.colors[13].b = 0x0FF;
 	_sysPalette.colors[14].r = 0x0FF; _sysPalette.colors[14].g = 0x0FF; _sysPalette.colors[14].b = 0x055;
 	_sysPalette.colors[15].r = 0x0FF; _sysPalette.colors[15].g = 0x0FF; _sysPalette.colors[15].b = 0x0FF;
-	for (curColor = 0; curColor <= 15; curColor++) {
+	for (int curColor = 0; curColor <= 15; curColor++) {
 		_sysPalette.colors[curColor].used = 1;
 	}
 	// Now setting colors 16-254 to the correct mix colors that occur when not doing a dithering run on
 	//  finished pictures
-	for (curColor = 0x10; curColor <= 0xFE; curColor++) {
+	for (int curColor = 0x10; curColor <= 0xFE; curColor++) {
 		_sysPalette.colors[curColor].used = 1;
-		color1 = curColor & 0x0F; color2 = curColor >> 4;
+		byte color1 = curColor & 0x0F;
+		byte color2 = curColor >> 4;
 
 		_sysPalette.colors[curColor].r = blendColors(_sysPalette.colors[color1].r, _sysPalette.colors[color2].r);
 		_sysPalette.colors[curColor].g = blendColors(_sysPalette.colors[color1].g, _sysPalette.colors[color2].g);
@@ -327,7 +309,7 @@ void GfxPalette::set(Palette *newPalette, bool force, bool forceRealMerge, bool 
 			_sysPaletteChanged |= insert(newPalette, &_sysPalette, includeFirstColor);
 		}
 
-		// Adjust timestamp on newPalette, so it wont get merged/inserted w/o need
+		// Adjust timestamp on newPalette, so it won't get merged/inserted w/o need
 		newPalette->timestamp = _sysPalette.timestamp;
 
 		bool updatePalette = _sysPaletteChanged && _screen->_picNotValid == 0;
@@ -492,11 +474,6 @@ uint16 GfxPalette::matchColor(byte matchRed, byte matchGreen, byte matchBlue, bo
 	return bestColorNr;
 }
 
-void GfxPalette::getSys(Palette *pal) {
-	if (pal != &_sysPalette)
-		memcpy(pal, &_sysPalette,sizeof(Palette));
-}
-
 void GfxPalette::setOnScreen(bool update) {
 	copySysPaletteToScreen(update);
 }
@@ -560,10 +537,10 @@ void GfxPalette::kernelUnsetFlag(uint16 fromColor, uint16 toColor, uint16 flag) 
 }
 
 void GfxPalette::kernelSetIntensity(uint16 fromColor, uint16 toColor, uint16 intensity, bool setPalette) {
-	memset(&_sysPalette.intensity[0] + fromColor, intensity, toColor - fromColor);
-	if (setPalette) {
+	if (_screen->gfxDriver()->supportsPalIntensity())
+		memset(&_sysPalette.intensity[0] + fromColor, intensity, toColor - fromColor);
+	if (setPalette)
 		setOnScreen();
-	}
 }
 
 int16 GfxPalette::kernelFindColor(uint16 r, uint16 g, uint16 b, bool force16BitColorMatch) {
@@ -573,11 +550,10 @@ int16 GfxPalette::kernelFindColor(uint16 r, uint16 g, uint16 b, bool force16BitC
 // Returns true, if palette got changed
 bool GfxPalette::kernelAnimate(byte fromColor, byte toColor, int speed) {
 	Color col;
-	//byte colorNr;
 	int16 colorCount;
 	uint32 now = g_sci->getTickCount();
 
-	// search for sheduled animations with the same 'from' value
+	// search for scheduled animations with the same 'from' value
 	// schedule animation...
 	int scheduleCount = _schedules.size();
 	int scheduleNr;
@@ -705,7 +681,7 @@ void GfxPalette::kernelSyncScreenPalette() {
 //         do various things
 //         return 1
 //  deinit - unloads target palette, kills timer hook, disables palVaryOn
-//  pause - counts up or down, if counter != 0 -> signal wont get counted up by timer
+//  pause - counts up or down, if counter != 0 -> signal won't get counted up by timer
 //           will only count down to 0
 //
 // Restarting game

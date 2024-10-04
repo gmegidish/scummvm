@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  *              Originally written by Syn9 in FreeBASIC with SDL
@@ -59,7 +58,7 @@ void GriffonEngine::addFloatText(const char *stri, float xloc, float yloc, int c
 			_floatText[i].x = xloc;
 			_floatText[i].y = yloc;
 			_floatText[i].col = col;
-			strcpy(_floatText[i].text, stri);
+			Common::strcpy_s(_floatText[i].text, 64, stri);
 			return;
 		}
 	}
@@ -75,15 +74,15 @@ void GriffonEngine::eventText(const char *stri) {
 	int pause_ticks = _ticks + 500;
 	int b_ticks = _ticks;
 
-	_videoBuffer->blit(*_videoBuffer3);
-	_videoBuffer->blit(*_videoBuffer2);
+	_videoBuffer->blendBlitTo(*_videoBuffer3);
+	_videoBuffer->blendBlitTo(*_videoBuffer2);
 
 	do {
 		g_system->getEventManager()->pollEvent(_event);
 
 		if ((_event.type == Common::EVENT_KEYDOWN || _event.type == Common::EVENT_CUSTOM_ENGINE_ACTION_START) && pause_ticks < _ticks)
 			break;
-		_videoBuffer2->blit(*_videoBuffer);
+		_videoBuffer2->blendBlitTo(*_videoBuffer);
 
 		int fr = 192;
 
@@ -92,9 +91,9 @@ void GriffonEngine::eventText(const char *stri) {
 		if (fr > 192)
 			fr = 192;
 
-		_windowImg->setAlpha(fr, true);
+		_windowImg->surfacePtr()->setAlpha(fr, true);
 
-		_windowImg->blit(*_videoBuffer);
+		_windowImg->blendBlitTo(*_videoBuffer);
 		if (pause_ticks < _ticks)
 			drawString(_videoBuffer, stri, x, 15, 0);
 
@@ -120,12 +119,12 @@ void GriffonEngine::eventText(const char *stri) {
 		g_system->delayMillis(10);
 	} while (1);
 
-	_videoBuffer3->blit(*_videoBuffer);
+	_videoBuffer3->blendBlitTo(*_videoBuffer);
 
 	_itemTicks = _ticks + 210;
 }
 
-void GriffonEngine::drawLine(Graphics::TransparentSurface *buffer, int x1, int y1, int x2, int y2, int col) {
+void GriffonEngine::drawLine(Graphics::ManagedSurface *buffer, int x1, int y1, int x2, int y2, int col) {
 	int xdif = x2 - x1;
 	int ydif = y2 - y1;
 
@@ -144,14 +143,14 @@ void GriffonEngine::drawLine(Graphics::TransparentSurface *buffer, int x1, int y
 	}
 }
 
-void GriffonEngine::drawString(Graphics::TransparentSurface *buffer, const char *stri, int xloc, int yloc, int col) {
+void GriffonEngine::drawString(Graphics::ManagedSurface *buffer, const char *stri, int xloc, int yloc, int col) {
 	int l = strlen(stri);
 
 	for (int i = 0; i < l; i++) {
 		rcDest.left = xloc + i * 8;
 		rcDest.top = yloc;
 
-		_fontChr[stri[i] - 32][col]->blit(*buffer, rcDest.left, rcDest.top);
+		_fontChr[stri[i] - 32][col]->blendBlitTo(*buffer, rcDest.left, rcDest.top);
 	}
 }
 

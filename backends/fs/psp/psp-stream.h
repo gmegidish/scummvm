@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,7 +66,7 @@ public:
 	static PspIoStream *makeFromPath(const Common::String &path, bool writeMode);
 
 	PspIoStream(const Common::String &path, bool writeMode);
-	virtual ~PspIoStream() override;
+	~PspIoStream() override;
 
 	SceUID open();		// open the file pointed to by the file path
 
@@ -75,13 +74,13 @@ public:
 	void clearErr() override;
 	bool eos() const override;
 
-	virtual uint32 write(const void *dataPtr, uint32 dataSize) override;
-	virtual bool flush() override;
+	uint32 write(const void *dataPtr, uint32 dataSize) override;
+	bool flush() override;
 
-	virtual int64 pos() const override;
-	virtual int64 size() const override;
-	virtual bool seek(int64 offs, int whence = SEEK_SET) override;
-	virtual uint32 read(void *dataPtr, uint32 dataSize) override;
+	int64 pos() const override;
+	int64 size() const override;
+	bool seek(int64 offs, int whence = SEEK_SET) override;
+	uint32 read(void *dataPtr, uint32 dataSize) override;
 
 	// for suspending
 	int suspend() override;		/* Suspendable interface (power manager) */

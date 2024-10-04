@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, MojoTouch has exclusively licensed
+ * this code on November 10th, 2021, to be use in closed-source products.
+ * Therefore, any contributions (commits) to it will also be dual-licensed.
  *
  */
 
-#include <limits.h>
 #include "groovie/groovie.h"
 #include "groovie/logic/cake.h"
 
@@ -36,7 +40,7 @@ namespace Groovie {
 *	.
 * @see UpdateScores()
 */
-CakeGame::CakeGame() : _random("CakeGame") {
+CakeGame::CakeGame(bool easierAi) : _random("CakeGame") {
 	restart();
 
 	_map = {};
@@ -83,8 +87,11 @@ CakeGame::CakeGame() : _random("CakeGame") {
 	}
 
 #if 0
+	_easierAi = false;
 	testCake();
 #endif
+
+	_easierAi = easierAi;
 }
 
 void CakeGame::run(byte *scriptVariables) {
@@ -99,7 +106,6 @@ void CakeGame::run(byte *scriptVariables) {
 
 	if (lastMove == 9) {
 		// samantha makes a move
-		// TODO: fix graphical bug when samantha makes a move
 		lastMove = aiGetBestMove(6);
 		_hasCheated = true;
 		return;
@@ -117,7 +123,13 @@ void CakeGame::run(byte *scriptVariables) {
 		return;
 	}
 
-	lastMove = aiGetBestMove(4 + (_hasCheated == false));
+	int depth = 4 + (_hasCheated == false);
+	if (_easierAi && _moveCount > 8)
+		depth = 3;
+	else if (_easierAi)
+		depth = 2;
+
+	lastMove = aiGetBestMove(depth);
 	placeBonBon(lastMove);
 	if (gameEnded()) {
 		winner = STAUF;
@@ -280,10 +292,6 @@ int CakeGame::aiRecurse(int search_depth, int parent_score) {
 	return -best_score;
 }
 
-uint CakeGame::rng() {
-	return _random.getRandomNumber(UINT_MAX);
-}
-
 byte CakeGame::aiGetBestMove(int search_depth) {
 	int best_move = 0xffff;
 	uint counter = 1;
@@ -308,7 +316,7 @@ byte CakeGame::aiGetBestMove(int search_depth) {
 			} else if (best_score == score) {
 				// rng is only used on moves with equal scores
 				counter++;
-				uint r = rng() % 1000000;
+				uint r = _random.getRandomNumber(1000000 - 1);
 				if (r * counter < 1000000) {
 					best_move = move;
 				}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,6 +52,7 @@ Debugger::Debugger() {
 	_frameCountdown = 0;
 	_isActive = false;
 	_firstTime = true;
+	_defaultCommandProcessor = nullptr;
 #ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
 	_debuggerDialog = new GUI::ConsoleDialog(1.0f, 0.67f);
 	_debuggerDialog->setInputCallback(debuggerInputCallback, this);
@@ -73,6 +73,8 @@ Debugger::Debugger() {
 	registerCmd("md5",				WRAP_METHOD(Debugger, cmdMd5));
 	registerCmd("md5mac",			WRAP_METHOD(Debugger, cmdMd5Mac));
 #endif
+	registerCmd("clear",			WRAP_METHOD(Debugger, cmdClearLog));
+	registerCmd("cls",			WRAP_METHOD(Debugger, cmdClearLog)); // alias
 	registerCmd("exec",				WRAP_METHOD(Debugger, cmdExecFile));
 
 	registerCmd("debuglevel",		WRAP_METHOD(Debugger, cmdDebugLevel));
@@ -91,6 +93,18 @@ void Debugger::clearVars() {
 	_vars.resize(1); // Keep "debug_countdown"
 }
 
+
+void Debugger::setPrompt(Common::String prompt) {
+#ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
+	_debuggerDialog->setPrompt(prompt);
+#endif
+}
+
+void Debugger::resetPrompt() {
+#ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
+	_debuggerDialog->resetPrompt();
+#endif
+}
 
 // Initialisation Functions
 int Debugger::getCharsPerLine() {
@@ -295,6 +309,9 @@ bool Debugger::handleCommand(int argc, const char **argv, bool &result) {
 bool Debugger::parseCommand(const char *inputOrig) {
 	int num_params = 0;
 	const char *param[256];
+
+	if (_defaultCommandProcessor)
+		return (*_defaultCommandProcessor)(inputOrig);
 
 	// Parse out any params
 	Common::String input(inputOrig);
@@ -524,7 +541,7 @@ char *Debugger::readlineComplete(const char *input, int state) {
 	for (; iter != _cmds.end(); ++iter) {
 		if (iter->_key.hasPrefix(input)) {
 			char *ret = (char *)malloc(iter->_key.size() + 1);
-			strcpy(ret, iter->_key.c_str());
+			Common::strcpy_s(ret, iter->_key.size() + 1, iter->_key.c_str());
 			return ret;
 		}
 	}
@@ -632,8 +649,9 @@ bool Debugger::cmdMd5(int argc, const char **argv) {
 	if (argc < 2) {
 		debugPrintf("md5 [-n length] <filename | pattern>\n");
 	} else {
-		uint32 length = 0;
+		int32 length = 0;
 		uint paramOffset = 0;
+		bool tail = false;
 
 		// If the user supplied an -n parameter, set the bytes to read
 		if (!strcmp(argv[1], "-n")) {
@@ -643,6 +661,10 @@ bool Debugger::cmdMd5(int argc, const char **argv) {
 				return true;
 			}
 			length = atoi(argv[2]);
+			if (length < 0) {
+				length = -length;
+				tail = true;
+			}
 			paramOffset = 2;
 		}
 
@@ -652,15 +674,19 @@ bool Debugger::cmdMd5(int argc, const char **argv) {
 			filename = filename + " " + argv[i];
 		}
 		Common::ArchiveMemberList list;
-		SearchMan.listMatchingMembers(list, filename);
+		SearchMan.listMatchingMembers(list, Common::Path(filename, Common::Path::kNativeSeparator));
 		if (list.empty()) {
 			debugPrintf("File '%s' not found\n", filename.c_str());
 		} else {
 			sort(list.begin(), list.end(), ArchiveMemberLess());
 			for (Common::ArchiveMemberList::iterator iter = list.begin(); iter != list.end(); ++iter) {
 				Common::SeekableReadStream *stream = (*iter)->createReadStream();
+				if (tail && stream->size() > length)
+					stream->seek(-length, SEEK_END);
 				Common::String md5 = Common::computeStreamMD5AsString(*stream, length);
-				debugPrintf("%s  %s  %d\n", md5.c_str(), (*iter)->getName().c_str(), (int32)stream->size());
+				if (length != 0 && length < stream->size())
+					md5 += Common::String::format(" (%s %d bytes)", tail ? "last" : "first", length);
+				debugPrintf("%s: %s, %llu bytes\n", (*iter)->getName().c_str(), md5.c_str(), (unsigned long long)stream->size());
 				delete stream;
 			}
 		}
@@ -672,8 +698,9 @@ bool Debugger::cmdMd5Mac(int argc, const char **argv) {
 	if (argc < 2) {
 		debugPrintf("md5mac [-n length] <base filename>\n");
 	} else {
-		uint32 length = 0;
+		int32 length = 0;
 		uint paramOffset = 0;
+		bool tail = false;
 
 		// If the user supplied an -n parameter, set the bytes to read
 		if (!strcmp(argv[1], "-n")) {
@@ -683,6 +710,10 @@ bool Debugger::cmdMd5Mac(int argc, const char **argv) {
 				return true;
 			}
 			length = atoi(argv[2]);
+			if (length < 0) {
+				length = -length;
+				tail = true;
+			}
 			paramOffset = 2;
 		}
 
@@ -696,21 +727,27 @@ bool Debugger::cmdMd5Mac(int argc, const char **argv) {
 		// manager to open a specific file. Instead, it takes a "base name"
 		// and constructs a file name out of that. While usually a desirable
 		// thing, it's not ideal here.
-		if (!macResMan.open(filename)) {
+		if (!macResMan.open(Common::Path(filename, Common::Path::kNativeSeparator))) {
 			debugPrintf("Resource file '%s' not found\n", filename.c_str());
 		} else {
-			if (!macResMan.hasResFork() && !macResMan.hasDataFork()) {
+			Common::ScopedPtr<Common::SeekableReadStream> dataFork(Common::MacResManager::openFileOrDataFork(Common::Path(filename, Common::Path::kNativeSeparator)));
+			if (!macResMan.hasResFork() && !dataFork) {
 				debugPrintf("'%s' has neither data not resource fork\n", macResMan.getBaseFileName().toString().c_str());
 			} else {
 				// The resource fork is probably the most relevant one.
 				if (macResMan.hasResFork()) {
-					Common::String md5 = macResMan.computeResForkMD5AsString(length);
-					debugPrintf("%s  %s (resource)  %d\n", md5.c_str(), macResMan.getBaseFileName().toString().c_str(), macResMan.getResForkDataSize());
+					Common::String md5 = macResMan.computeResForkMD5AsString(length, tail);
+					if (length != 0 && length < (int32)macResMan.getResForkDataSize())
+						md5 += Common::String::format(" (%s %d bytes)", tail ? "last" : "first", length);
+					debugPrintf("%s (resource): %s, %llu bytes\n", macResMan.getBaseFileName().toString().c_str(), md5.c_str(), (unsigned long long)macResMan.getResForkDataSize());
 				}
-				if (macResMan.hasDataFork()) {
-					Common::SeekableReadStream *stream = macResMan.getDataFork();
-					Common::String md5 = Common::computeStreamMD5AsString(*stream, length);
-					debugPrintf("%s  %s (data)  %d\n", md5.c_str(), macResMan.getBaseFileName().toString().c_str(), (int32)stream->size());
+				if (dataFork) {
+					if (tail && dataFork->size() > length)
+						dataFork->seek(-length, SEEK_END);
+					Common::String md5 = Common::computeStreamMD5AsString(*dataFork, length);
+					if (length != 0 && length < dataFork->size())
+						md5 += Common::String::format(" (%s %d bytes)", tail ? "last" : "first", length);
+					debugPrintf("%s (data): %s, %llu bytes\n", macResMan.getBaseFileName().toString().c_str(), md5.c_str(), (unsigned long long)dataFork->size());
 				}
 			}
 			macResMan.close();
@@ -749,9 +786,11 @@ bool Debugger::cmdDebugFlagsList(int argc, const char **argv) {
 		return true;
 	}
 	for (Common::DebugManager::DebugChannelList::const_iterator i = debugLevels.begin(); i != debugLevels.end(); ++i) {
-		debugPrintf("%c%s - %s (%s)\n", i->enabled ? '+' : ' ',
+		bool enabled = DebugMan.isDebugChannelEnabled(i->channel);
+
+		debugPrintf("%c%s - %s (%s)\n", enabled ? '+' : ' ',
 				i->name.c_str(), i->description.c_str(),
-				i->enabled ? "enabled" : "disabled");
+				enabled ? "enabled" : "disabled");
 	}
 	debugPrintf("\n");
 	return true;
@@ -773,6 +812,13 @@ bool Debugger::cmdDebugFlagEnable(int argc, const char **argv) {
 	return true;
 }
 
+bool Debugger::cmdClearLog(int argc, const char **argv) {
+	#ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
+	_debuggerDialog->clearBuffer();
+	#endif
+	return true;
+}
+
 bool Debugger::cmdExecFile(int argc, const char **argv) {
 	if (argc <= 1) {
 		debugPrintf("Expected to get the file with debug commands\n");
@@ -780,7 +826,7 @@ bool Debugger::cmdExecFile(int argc, const char **argv) {
 	}
 	const Common::String filename(argv[1]);
 	Common::File file;
-	if (!file.open(filename)) {
+	if (!file.open(Common::Path(filename, Common::Path::kNativeSeparator))) {
 		debugPrintf("Can't open file %s\n", filename.c_str());
 		return false;
 	}

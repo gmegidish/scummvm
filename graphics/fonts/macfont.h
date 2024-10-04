@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@ namespace Graphics {
 
 class MacFontFamily {
 public:
-	MacFontFamily();
+	MacFontFamily(const Common::String &name);
 	~MacFontFamily();
 
 	bool load(Common::SeekableReadStream &stream);
@@ -47,9 +46,13 @@ public:
 		uint16 _fontID;
 	};
 
+	const Common::String &getName() { return _name; }
+	uint16 getFontFamilyId() { return _ffFamID; }
 	Common::Array<AsscEntry> *getAssocTable() { return &_ffAssocEntries; }
 
 private:
+	Common::String _name;
+
 	// FOND
 	uint16 _ffFlags;
 	uint16 _ffFamID;
@@ -165,8 +168,10 @@ public:
 	MacFONTFont(const MacFONTdata &data);
 	virtual ~MacFONTFont();
 
-	virtual int getFontHeight() const { return _data._fRectHeight; }
+	virtual int getFontHeight() const { return _data._fRectHeight + getFontLeading(); }
 	virtual int getFontAscent() const { return _data._ascent; }
+	virtual int getFontDescent() const { return _data._descent; }
+	virtual int getFontLeading() const { return _data._leading; }
 	virtual int getMaxCharWidth() const { return _data._maxWidth; }
 	virtual int getCharWidth(uint32 chr) const;
 	virtual void drawChar(Surface *dst, uint32 chr, int x, int y, uint32 color) const;

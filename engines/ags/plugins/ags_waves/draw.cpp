@@ -4,9 +4,9 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
  * of the License, or(at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -144,7 +143,7 @@ void AGSWaves::DrawBlur(ScriptMethodParams &params) {
 void AGSWaves::DrawTunnel(ScriptMethodParams &params) {
 	PARAMS3(int, spriteD, float, scale, float, speed);
 
-	d_time = speed;
+	d_time = PARAM_TO_FLOAT(speed);
 	BITMAP *src = _engine->GetSpriteGraphic(spriteD);
 	uint32 *pixela = (uint32 *)_engine->GetRawBitmapSurface(src);
 	int32 src_width = 640;
@@ -152,7 +151,7 @@ void AGSWaves::DrawTunnel(ScriptMethodParams &params) {
 	int32 src_depth = 32;
 	_engine->GetBitmapDimensions(src, &src_width, &src_height, &src_depth);
 
-	BITMAP *src2 = _engine->GetSpriteGraphic(int(scale));
+	BITMAP *src2 = _engine->GetSpriteGraphic((int32)PARAM_TO_FLOAT(scale));
 	uint32 *pixelb = (uint32 *)_engine->GetRawBitmapSurface(src2);
 	int h = screenHeight;
 	int w = screenWidth;
@@ -256,7 +255,7 @@ void AGSWaves::DrawForceField(ScriptMethodParams &params) {
 	}
 	if (b_time[id] == 0.0) b_time[id] = 1.0;
 	if (b_time[id] < 1.0) b_time[id] = 1.0;
-	b_time[id] += speed;
+	b_time[id] += PARAM_TO_FLOAT(speed);
 	BITMAP *src = _engine->GetSpriteGraphic(spriteD);
 
 	uint32 *pixelb = (uint32 *)_engine->GetRawBitmapSurface(src);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,11 +24,12 @@
 #include "ags/engine/ac/global_character.h"
 #include "ags/shared/ac/game_setup_struct.h"
 #include "ags/shared/ac/game_version.h"
+#include "ags/shared/util/stream.h"
 #include "ags/globals.h"
 
 namespace AGS3 {
 
-
+using namespace AGS::Shared;
 
 // return the type name of the object
 const char *CCCharacter::GetType() {
@@ -38,16 +38,19 @@ const char *CCCharacter::GetType() {
 
 // serialize the object into BUFFER (which is BUFSIZE bytes)
 // return number of bytes used
-int CCCharacter::Serialize(const char *address, char *buffer, int bufsize) {
-	const CharacterInfo *chaa = (const CharacterInfo *)address;
-	StartSerialize(buffer);
-	SerializeInt(chaa->index_id);
-	return EndSerialize();
+size_t CCCharacter::CalcSerializeSize() {
+	return sizeof(int32_t);
 }
 
-void CCCharacter::Unserialize(int index, const char *serializedData, int dataSize) {
-	StartUnserialize(serializedData, dataSize);
-	int num = UnserializeInt();
+// serialize the object into BUFFER (which is BUFSIZE bytes)
+// return number of bytes used
+void CCCharacter::Serialize(const char *address, Stream *out) {
+	const CharacterInfo *chaa = (const CharacterInfo *)address;
+	out->WriteInt32(chaa->index_id);
+}
+
+void CCCharacter::Unserialize(int index, Stream *in, size_t data_sz) {
+	int num = in->ReadInt32();
 	ccRegisterUnserializedObject(index, &_GP(game).chars[num], this);
 }
 

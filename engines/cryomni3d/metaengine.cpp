@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,21 +66,21 @@ bool CryOmni3DEngine::hasFeature(EngineFeature f) const {
 }
 
 
-class CryOmni3DMetaEngine : public AdvancedMetaEngine {
+class CryOmni3DMetaEngine : public AdvancedMetaEngine<CryOmni3DGameDescription> {
 public:
 	const char *getName() const override {
 		return "cryomni3d";
 	}
 
 	bool hasFeature(MetaEngineFeature f) const override;
-	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const CryOmni3DGameDescription *desc) const override;
 
 	SaveStateList listSaves(const char *target) const override;
 	int getMaximumSaveSlot() const override { return 999; }
 	void removeSaveState(const char *target, int slot) const override;
 	Common::String getSavegameFile(int saveGameIdx, const char *target) const override {
 		if (!target)
-			target = getEngineId();
+			target = getName();
 		if (saveGameIdx == kSavegameFilePattern)
 			return Common::String::format("%s.####", target);
 		else
@@ -93,8 +92,7 @@ bool CryOmni3DMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return
 		(f == kSupportsListSaves)
 		|| (f == kSupportsLoadingDuringStartup)
-		|| (f == kSupportsDeleteSave)
-		|| (f == kSimpleSavesNames);
+		|| (f == kSupportsDeleteSave);
 }
 
 SaveStateList CryOmni3DMetaEngine::listSaves(const char *target) const {
@@ -135,9 +133,7 @@ void CryOmni3DMetaEngine::removeSaveState(const char *target, int slot) const {
 }
 
 Common::Error CryOmni3DMetaEngine::createInstance(OSystem *syst, Engine **engine,
-		const ADGameDescription *desc) const {
-	const CryOmni3DGameDescription *gd = (const CryOmni3DGameDescription *)desc;
-
+		const CryOmni3DGameDescription *gd) const {
 	switch (gd->gameType) {
 	case GType_VERSAILLES:
 #ifdef ENABLE_VERSAILLES

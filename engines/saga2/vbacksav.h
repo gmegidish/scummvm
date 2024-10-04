@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -35,9 +34,9 @@ namespace Saga2 {
 //  "things that appear in fron of other things"
 
 class gBackSave : private gPort {
-	Rect16          savedRegion;        // extent of saved region
-	gPixelMap       savedPixels;        // buffer of saved pixels
-	bool            saved;              // true = saved.
+	Rect16          _savedRegion;        // extent of saved region
+	gPixelMap       _savedPixels;        // buffer of saved pixels
+	bool            _saved;              // true = saved.
 
 public:
 	gBackSave(const Rect16 &extent);
@@ -46,11 +45,11 @@ public:
 	void save(gDisplayPort &port);
 	void restore(gDisplayPort &port);
 	void setPos(Point16 pos) {
-		savedRegion.x = pos.x;
-		savedRegion.y = pos.y;
+		_savedRegion.x = pos.x;
+		_savedRegion.y = pos.y;
 	}
 	bool valid() {
-		return savedPixels.data != NULL;
+		return _savedPixels._data != NULL;
 	}
 };
 

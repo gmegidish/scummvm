@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -79,11 +78,18 @@ void GUIErrorMessageWithURL(const Common::String &msg, const char *url);
 /**
  * Initialize graphics and show an error message.
  */
-void GUIErrorMessageFormat(Common::U32String fmt, ...);
+void GUIErrorMessageFormatU32StringPtr(const Common::U32String *fmt, ...);
 /**
  * Initialize graphics and show an error message.
  */
-void GUIErrorMessageFormat(const char *fmt, ...) GCC_PRINTF(1, 2);
+template<class... TParam>
+inline void GUIErrorMessageFormat(const Common::U32String &fmt, TParam... param) {
+	GUIErrorMessageFormatU32StringPtr(&fmt, Common::forward<TParam>(param)...);
+}
+/**
+ * Initialize graphics and show an error message.
+ */
+void GUIErrorMessageFormat(MSVC_PRINTF const char *fmt, ...) GCC_PRINTF(1, 2);
 
 
 class Engine;
@@ -155,7 +161,7 @@ protected:
 	 */
 	Common::EventManager *_eventMan;
 	/**
-	 * The SaveFileMAnager used by the engine.
+	 * The SaveFileManager used by the engine.
 	 */
 	Common::SaveFileManager *_saveFileMan;
 
@@ -227,9 +233,13 @@ private:
 	 * Optional debugger for the engine.
 	 */
 	GUI::Debugger *_debugger;
+
+	/**
+	 * Flag for whether the quitGame method has been called
+	 */
+	static bool _quitRequested;
+
 public:
-
-
 	/**
 	 * Engine features.
 	 *
@@ -287,7 +297,19 @@ public:
 		 * The engine will need to read the actual resolution used by the
 		 * backend using OSystem::getWidth and OSystem::getHeight.
 		 */
-		kSupportsArbitraryResolutions
+		kSupportsArbitraryResolutions,
+
+		/**
+		 * The game provides custom help.
+		 *
+		 * This enables the help button in the main menu.
+		 */
+		 kSupportsHelp,
+
+		/**
+		 * The engine provides overrides to the quit and exit to launcher dialogs.
+		 */
+		kSupportsQuitDialogOverride,
 	};
 
 
@@ -426,8 +448,10 @@ public:
 
 	/**
 	 * Indicate whether a game state can be loaded.
+	 *
+	 * @param msg        Optional pointer to message explaining why it is disabled
 	 */
-	virtual bool canLoadGameStateCurrently();
+	virtual bool canLoadGameStateCurrently(Common::U32String *msg = nullptr);
 
 	/**
 	 * Save a game state.
@@ -452,8 +476,10 @@ public:
 
 	/**
 	 * Indicate whether a game state can be saved.
+	 *
+	 * @param msg        Optional pointer to message explaining why it is disabled
 	 */
-	virtual bool canSaveGameStateCurrently();
+	virtual bool canSaveGameStateCurrently(Common::U32String *msg = nullptr);
 
 	/**
 	 * Show the ScummVM save dialog, allowing users to save their game.
@@ -491,11 +517,6 @@ public:
 	 * This can mean either quitting ScummVM altogether, or returning to the launcher.
 	 */
 	static bool shouldQuit();
-
-	/**
-	 * Return the MetaEngineDetection instance used by this engine.
-	 */
-	static MetaEngineDetection &getMetaEngineDetection();
 
 	/**
 	 * Return the MetaEngine instance used by this engine.
@@ -602,7 +623,7 @@ public:
 	/**
 	 * Check if extracted CD Audio files are found.
 	 */
-	bool existExtractedCDAudioFiles();
+	bool existExtractedCDAudioFiles(uint track = 1);
 	/**
 	 * On some systems, check whether the game appears to be run
 	 * from the same CD drive, which also should play CD audio.
@@ -639,6 +660,12 @@ public:
 	virtual int getAutosaveSlot() const {
 		return 0;
 	}
+
+protected:
+	/**
+	 * Syncs the engine's mixer using the default volume syncing behavior.
+	 */
+	void defaultSyncSoundSettings();
 };
 
 
@@ -670,6 +697,8 @@ public:
 	void push(const Common::String target, const int slot = -1);
 	/** Pop the last game loaded into the chained games manager. */
 	bool pop(Common::String &target, int &slot);
+	/** Returns true if the chained games manager has no elements in the queue. */
+	bool empty() { return _chainedGames.empty(); }
 };
 
 /** Convenience shortcut for accessing the chained games manager. */

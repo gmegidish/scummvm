@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/stark/gfx/tinyglprop.h"
-
 #include "engines/stark/gfx/texture.h"
 #include "engines/stark/formats/biffmesh.h"
 #include "engines/stark/scene.h"
@@ -78,13 +76,19 @@ void TinyGLPropRenderer::render(const Math::Vector3d &position, float direction,
 		const Material &material = materials[face->materialId];
 		Math::Vector3d color;
 		const Gfx::Texture *tex = _texture->getTexture(material.texture);
+		if (tex) {
+			tex->bind();
+			tglEnable(TGL_TEXTURE_2D);
+		} else {
+			tglBindTexture(TGL_TEXTURE_2D, 0);
+			tglDisable(TGL_TEXTURE_2D);
+		}
 		auto vertexIndices = _faceEBO[face];
 		auto numVertexIndices = (face)->vertexIndices.size();
 		for (uint32 i = 0; i < numVertexIndices; i++) {
 			uint32 index = vertexIndices[i];
 			auto vertex = _faceVBO[index];
 			if (tex) {
-				tex->bind();
 				color = Math::Vector3d(1.0f, 1.0f, 1.0f);
 				if (material.doubleSided) {
 					vertex.texS = vertex.stexS;
@@ -94,7 +98,6 @@ void TinyGLPropRenderer::render(const Math::Vector3d &position, float direction,
 					vertex.texT = 1.0f - vertex.stexT;
 				}
 			} else {
-				tglBindTexture(TGL_TEXTURE_2D, 0);
 				color = Math::Vector3d(material.r, material.g, material.b);
 			}
 
@@ -149,15 +152,15 @@ void TinyGLPropRenderer::render(const Math::Vector3d &position, float direction,
 					default:
 						break;
 				}
-
-				lightColor.x() = CLIP(lightColor.x(), 0.0f, 1.0f);
-				lightColor.y() = CLIP(lightColor.y(), 0.0f, 1.0f);
-				lightColor.z() = CLIP(lightColor.z(), 0.0f, 1.0f);
-				color = color * lightColor;
-				vertex.r = color.x();
-				vertex.g = color.y();
-				vertex.b = color.z();
 			}
+
+			lightColor.x() = CLIP(lightColor.x(), 0.0f, 1.0f);
+			lightColor.y() = CLIP(lightColor.y(), 0.0f, 1.0f);
+			lightColor.z() = CLIP(lightColor.z(), 0.0f, 1.0f);
+			color = color * lightColor;
+			vertex.r = color.x();
+			vertex.g = color.y();
+			vertex.b = color.z();
 			_faceVBO[index] = vertex;
 		}
 

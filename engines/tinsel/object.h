@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Object Manager data structures
  */
@@ -56,33 +55,19 @@ enum {
 };
 
 /** structure for image */
-#include "common/pack-start.h"	// START STRUCT PACKING
 struct IMAGE {
-	short imgWidth;		///< image width
-	unsigned short imgHeight;	///< image height
-	short anioffX;		///< image x animation offset
-	short anioffY;		///< image y animation offset
-	SCNHANDLE hImgBits;	///< image bitmap handle
-	SCNHANDLE hImgPal;	///< image palette handle
-} PACKED_STRUCT;
-#include "common/pack-end.h"	// END STRUCT PACKING
-
-/** structure for image in Tinsel 3 */
-#include "common/pack-start.h"	// START STRUCT PACKING
-struct IMAGE_T3 {
-	short imgWidth;		///< image width
-	unsigned short imgHeight;	///< image height
-	short anioffX;		///< image x animation offset
-	short anioffY;		///< image y animation offset
-	SCNHANDLE hImgBits;	///< image bitmap handle
-	short isRLE;		///< if image is using run-length encoding
-	short colorFlags;	///< type of blending
-} PACKED_STRUCT;
-#include "common/pack-end.h"	// END STRUCT PACKING
+	short imgWidth;           ///< image width
+	unsigned short imgHeight; ///< image height
+	short anioffX;            ///< image x animation offset
+	short anioffY;            ///< image y animation offset
+	SCNHANDLE hImgBits;       ///< image bitmap handle
+	SCNHANDLE hImgPal;        ///< image palette handle (Tinsel V1/V2)
+	short isRLE;              ///< if image is using run-length encoding (Tinsel V3)
+	short colorFlags;         ///< type of blending (Tinsel V3)
+};
 
 /** a multi-object animation frame is a list of multi-image handles */
 typedef uint32 FRAME;
-
 
 // object structure
 struct OBJECT {
@@ -97,7 +82,7 @@ struct OBJECT {
 	Common::Rect rcPrev;		///< previous screen coordinates of object bounding rectangle
 	int flags;			///< object flags - see above for list
 	PALQ *pPal;			///< objects palette Q position
-	short isRLE;		///< TinselV3, if image is using run-length encoding
+	short isRLE;		///< TinselVersion == 3, if image is using run-length encoding
 	short colorFlags;	/// TinselV3, type of color blending
 	int constant;		///< which color in palette for monochrome objects
 	int width;			///< width of object
@@ -135,9 +120,6 @@ struct OBJECT {
 
 	OBJECT() { reset(); }
 };
-typedef OBJECT *POBJECT;
-
-#include "common/pack-start.h"	// START STRUCT PACKING
 
 // object initialisation structure
 struct OBJ_INIT {
@@ -147,10 +129,7 @@ struct OBJ_INIT {
 	int32 objX;		// objects initial x position
 	int32 objY;		// objects initial y position
 	int32 objZ;		// objects initial z position
-} PACKED_STRUCT;
-
-#include "common/pack-end.h"	// END STRUCT PACKING
-
+};
 
 /*----------------------------------------------------------------------*\
 |*			Object Function Prototypes			*|

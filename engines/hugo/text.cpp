@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/system.h"
@@ -202,11 +201,11 @@ char **TextHandler::loadTexts(Common::ReadStream &in) {
 
 void TextHandler::loadAllTexts(Common::ReadStream &in) {
 	// Read textData
-	_textData = loadTextsVariante(in, 0);
+	_textData = loadTextsVariante(in, nullptr);
 
 	// Read stringtData
 	// Only Hugo 1 DOS should use this array
-	_stringtData = loadTextsVariante(in, 0);
+	_stringtData = loadTextsVariante(in, nullptr);
 
 	// Read arrayNouns
 	_arrayNouns = loadTextsArray(in);
@@ -221,7 +220,7 @@ void TextHandler::loadAllTexts(Common::ReadStream &in) {
 	_textEngine = loadTexts(in);
 
 	// Read textIntro
-	_textIntro = loadTextsVariante(in, 0);
+	_textIntro = loadTextsVariante(in, nullptr);
 
 	// Read textMouse
 	_textMouse = loadTexts(in);
@@ -230,7 +229,7 @@ void TextHandler::loadAllTexts(Common::ReadStream &in) {
 	_textParser = loadTexts(in);
 
 	// Read textUtil
-	_textUtil = loadTextsVariante(in, 0);
+	_textUtil = loadTextsVariante(in, nullptr);
 }
 
 void TextHandler::freeTexts(char **ptr) {

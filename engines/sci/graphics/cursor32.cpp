@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,10 @@
 #include "sci/graphics/frameout.h"  // for GfxFrameout
 
 namespace Sci {
+
+enum {
+	kGfxCursor32SkipColor = 255
+};
 
 GfxCursor32::GfxCursor32() :
 	_hideCount(0),
@@ -96,7 +99,6 @@ void GfxCursor32::copy(DrawRegion &target, const DrawRegion &source) {
 
 	byte *targetPixel = target.data + ((drawRect.top - target.rect.top) * target.rect.width()) + (drawRect.left - target.rect.left);
 	const byte *sourcePixel = source.data + (sourceYOffset * source.rect.width()) + sourceXOffset;
-	const uint8 skipColor = source.skipColor;
 
 	int16 sourceStride = source.rect.width();
 	int16 targetStride = target.rect.width();
@@ -108,7 +110,7 @@ void GfxCursor32::copy(DrawRegion &target, const DrawRegion &source) {
 	for (int16 y = 0; y < drawRectHeight; ++y) {
 		if (SKIP) {
 			for (int16 x = 0; x < drawRectWidth; ++x) {
-				if (*sourcePixel != skipColor) {
+				if (*sourcePixel != kGfxCursor32SkipColor) {
 					*targetPixel = *sourcePixel;
 				}
 				++targetPixel;
@@ -228,8 +230,7 @@ void GfxCursor32::setView(const GuiResourceId viewId, const int16 loopNo, const 
 
 		_cursor.data = (byte *)realloc(_cursor.data, _width * _height);
 		_cursor.rect = Common::Rect(_width, _height);
-		memset(_cursor.data, 255, _width * _height);
-		_cursor.skipColor = 255;
+		memset(_cursor.data, kGfxCursor32SkipColor, _width * _height);
 
 		Buffer target;
 		target.init(_width, _height, _width, _cursor.data, Graphics::PixelFormat::createFormatCLUT8());
@@ -243,7 +244,7 @@ void GfxCursor32::setView(const GuiResourceId viewId, const int16 loopNo, const 
 		_width = _height = 1;
 		_cursor.data = (byte *)realloc(_cursor.data, _width * _height);
 		_cursor.rect = Common::Rect(_width, _height);
-		*_cursor.data = _cursor.skipColor;
+		*_cursor.data = kGfxCursor32SkipColor;
 		_cursorBack.rect = _cursor.rect;
 		_cursorBack.rect.clip(_screenRegion.rect);
 		if (!_cursorBack.rect.isEmpty()) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,12 +31,12 @@ void AGOSEngine_PN::boxController(uint x, uint y, uint mode) {
 	HitArea *best_ha;
 	HitArea *ha = _hitAreaList;
 
-	best_ha = NULL;
+	best_ha = nullptr;
 
 	do {
 		if (!(ha->flags & kOBFBoxDisabled)) {
 			if (x >= ha->x && y >= ha->y && x - ha->x < ha->width && y - ha->y < ha->height &&
-				best_ha == NULL) {
+				best_ha == nullptr) {
 				best_ha = ha;
 			} else {
 				if (ha->flags & kOBFBoxSelected) {
@@ -54,7 +53,7 @@ void AGOSEngine_PN::boxController(uint x, uint y, uint mode) {
 		_lastHitArea = best_ha;
 	}
 
-	if (best_ha == NULL) {
+	if (best_ha == nullptr) {
 		return;
 	}
 
@@ -66,10 +65,10 @@ void AGOSEngine_PN::boxController(uint x, uint y, uint mode) {
 
 void AGOSEngine_PN::mouseHit() {
 	if (_hitCalled == 5) {
-		execMouseHit(NULL);
+		execMouseHit(nullptr);
 	} else {
 		boxController(_mouse.x, _mouse.y, 1);
-		if (_hitCalled == 4 || _lastHitArea != 0) {
+		if (_hitCalled == 4 || _lastHitArea != nullptr) {
 			execMouseHit(_lastHitArea);
 		}
 	}
@@ -114,7 +113,7 @@ void AGOSEngine_PN::execMouseHit(HitArea *ha) {
 		_oneClick = 0;
 		_dragCount = 0;
 		_needHitAreaRecalc++;
-		if (ha != 0) {
+		if (ha != nullptr) {
 			if (ha->flags & kOBFInventoryBox)
 				hitBox5(ha);
 			else if (ha->flags & kOBFRoomBox)
@@ -124,7 +123,7 @@ void AGOSEngine_PN::execMouseHit(HitArea *ha) {
 		}
 	} else {
 		_hitCalled = 0;
-		if (_mouseString == 0) {
+		if (_mouseString == nullptr) {
 			_mouseString = (const char *)"\r";
 		}
 	}
@@ -242,12 +241,12 @@ void AGOSEngine_PN::hitBox8(HitArea *ha) {
 		return;
 
 	msgPtr = getMessage(_objectName1, ha->msg1);
-	sprintf(_inMessage, " in %s", msgPtr);
+	Common::sprintf_s(_inMessage, " in %s", msgPtr);
 	_mouseString1 = _inMessage;
 
 	msgPtr = getMessage(_objectName1, _dragStore->msg1);
 	*(tmpPtr = strchr(msgPtr, 13)) = 0;
-	sprintf(_placeMessage, "put %s", msgPtr);
+	Common::sprintf_s(_placeMessage, "put %s", msgPtr);
 	_mouseString = _placeMessage;
 }
 

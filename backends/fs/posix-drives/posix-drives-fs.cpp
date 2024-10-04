@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,11 +30,6 @@
 #include "common/bufferedstream.h"
 
 #include <dirent.h>
-
-DrivePOSIXFilesystemNode::Config::Config() {
-	bufferingMode = kBufferingModeStdio;
-	bufferSize = 0; // Use the default stdio buffer size
-}
 
 DrivePOSIXFilesystemNode::DrivePOSIXFilesystemNode(const Common::String &path, const Config &config) :
 		POSIXFilesystemNode(path),
@@ -75,7 +69,7 @@ void DrivePOSIXFilesystemNode::configureStream(StdioStream *stream) {
 }
 
 Common::SeekableReadStream *DrivePOSIXFilesystemNode::createReadStream() {
-	PosixIoStream *readStream = PosixIoStream::makeFromPath(getPath(), false);
+	StdioStream *readStream = PosixIoStream::makeFromPath(getPath(), false);
 
 	configureStream(readStream);
 
@@ -88,7 +82,7 @@ Common::SeekableReadStream *DrivePOSIXFilesystemNode::createReadStream() {
 }
 
 Common::SeekableWriteStream *DrivePOSIXFilesystemNode::createWriteStream() {
-	PosixIoStream *writeStream = PosixIoStream::makeFromPath(getPath(), true);
+	StdioStream *writeStream = PosixIoStream::makeFromPath(getPath(), true);
 
 	configureStream(writeStream);
 
@@ -111,7 +105,7 @@ DrivePOSIXFilesystemNode *DrivePOSIXFilesystemNode::getChildWithKnownType(const 
 		newPath += '/';
 	newPath += n;
 
-	DrivePOSIXFilesystemNode *child = new DrivePOSIXFilesystemNode(_config);
+	DrivePOSIXFilesystemNode *child = reinterpret_cast<DrivePOSIXFilesystemNode *>(makeNode());
 	child->_path = newPath;
 	child->_isValid = true;
 	child->_isPseudoRoot = false;
@@ -132,11 +126,7 @@ bool DrivePOSIXFilesystemNode::getChildren(AbstractFSList &list, AbstractFSNode:
 	assert(_isDirectory);
 
 	if (_isPseudoRoot) {
-		for (uint i = 0; i < _config.drives.size(); i++) {
-			list.push_back(makeNode(_config.drives[i]));
-		}
-
-		return true;
+		return _config.getDrives(list, hidden);
 	} else {
 		DIR *dirp = opendir(_path.c_str());
 		struct dirent *dp;
@@ -188,8 +178,7 @@ AbstractFSNode *DrivePOSIXFilesystemNode::getParent() const {
 	}
 
 	if (isDrive(_path)) {
-		DrivePOSIXFilesystemNode *root = new DrivePOSIXFilesystemNode(_config);
-		return root;
+		return makeNode();
 	}
 
 	return POSIXFilesystemNode::getParent();
@@ -197,9 +186,7 @@ AbstractFSNode *DrivePOSIXFilesystemNode::getParent() const {
 
 bool DrivePOSIXFilesystemNode::isDrive(const Common::String &path) const {
 	Common::String normalizedPath = Common::normalizePath(path, '/');
-	DrivesArray::const_iterator drive = Common::find(_config.drives.begin(), _config.drives.end(), normalizedPath);
-	return drive != _config.drives.end();
+	return _config.isDrive(normalizedPath);
 }
-
 
 #endif //#if defined(POSIX)

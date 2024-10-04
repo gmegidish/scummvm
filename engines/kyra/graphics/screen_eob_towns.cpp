@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -97,9 +96,21 @@ void Screen_EoB::shadeRect(int x1, int y1, int x2, int y2, int shadingLevel) {
 }
 
 SJISFontLarge::SJISFontLarge(Common::SharedPtr<Graphics::FontSJIS> &font) : SJISFont(font, 0, false, false, 0) {
-	_sjisWidth = _font->getMaxFontWidth();
-	_fontHeight = _font->getFontHeight();
-	_asciiWidth = _font->getCharWidth('a');
+}
+
+int SJISFontLarge::getHeight() const {
+	return _font->getFontHeight();
+}
+
+int SJISFontLarge::getWidth() const {
+	return _font->getMaxFontWidth();
+}
+
+int SJISFontLarge::getCharWidth(uint16 c) const {
+	if (c <= 0x7F || (c >= 0xA1 && c <= 0xDF))
+		return _font->getCharWidth('a');
+	else
+		return getWidth();
 }
 
 void SJISFontLarge::drawChar(uint16 c, byte *dst, int pitch, int) const {
@@ -108,7 +119,7 @@ void SJISFontLarge::drawChar(uint16 c, byte *dst, int pitch, int) const {
 	_font->drawChar(dst, c, 320, 1, _colorMap[1], _colorMap[0], 320, 200);
 }
 
-SJISFont12x12::SJISFont12x12(const uint16 *searchTable) : _height(6), _width(6), _data(0) {
+SJISFont12x12::SJISFont12x12(const uint16 *searchTable) : _height(6), _width(6), _data(0), _colorMap(nullptr) {
 	assert(searchTable);
 	for (int i = 0; i < 148; i++)
 		_searchTable[searchTable[i]] = i + 1;

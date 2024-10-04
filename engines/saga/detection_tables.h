@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,146 +28,6 @@
 #include "saga/shared_detection_defines.h"
 
 namespace Saga {
-
-static const GameResourceDescription ITE_Resources = {
-	1806,	// Scene lookup table RN
-	216,	// Script lookup table RN
-	3,		// Main panel
-	4,		// Converse panel
-	5,		// Option panel
-	6,		// Main sprites
-	7,		// Main panel sprites
-	35,		// Main strings
-	// ITE specific resources
-	36,		// Actor names
-	125,	// Default portraits
-	// IHNM specific resources
-	0,		// Option panel sprites
-	0,		// Warning panel
-	0,		// Warning panel sprites
-	0		// Psychic profile background
-};
-
-// FIXME: Option panel should be 4 but it is an empty resource.
-// Proper fix would be to not load the options panel when the demo is running
-static const GameResourceDescription ITEDemo_Resources = {
-	318,	// Scene lookup table RN
-	146,	// Script lookup table RN
-	2,		// Main panel
-	3,		// Converse panel
-	3,		// Option panel
-	5,		// Main sprites
-	6,		// Main panel sprites
-	8,		// Main strings
-	// ITE specific resources
-	9,		// Actor names
-	80,		// Default portraits
-	// IHNM specific resources
-	0,		// Option panel sprites
-	0,		// Warning panel
-	0,		// Warning panel sprites
-	0		// Psychic profile background
-};
-
-static const GameResourceDescription IHNM_Resources = {
-	1272,	// Scene lookup table RN
-	29,		// Script lookup table RN
-	9,		// Main panel
-	10,		// Converse panel
-	15,		// Option panel
-	12,		// Main sprites
-	12,		// Main panel sprites
-	21,		// Main strings
-	// ITE specific resources
-	0,		// Actor names
-	0,		// Default portraits
-	// IHNM specific resources
-	16,		// Option panel sprites
-	17,		// Warning panel
-	18,		// Warning panel sprites
-	20		// Psychic profile background
-};
-
-static const GameResourceDescription IHNMDEMO_Resources = {
-	286,	// Scene lookup table RN
-	18,		// Script lookup table RN
-	5,		// Main panel
-	6,		// Converse panel
-	10,		// Option panel
-	7,		// Main sprites
-	7,		// Main panel sprites
-	16,		// Main strings
-	// ITE specific resources
-	0,		// Actor names
-	0,		// Default portraits
-	// IHNM specific resources
-	11,		// Option panel sprites
-	12,		// Warning panel
-	13,		// Warning panel sprites
-	15		// Psychic profile background
-};
-
-static const GameFontDescription ITEDEMO_GameFonts[]    = { {0}, {1} };
-static const GameFontDescription ITEWINDEMO_GameFonts[] = { {2}, {0} };
-static const GameFontDescription ITE_GameFonts[]        = { {2}, {0}, {1} };
-static const GameFontDescription IHNMDEMO_GameFonts[]   = { {2}, {3}, {4} };
-// Font 6 is kIHNMFont8, font 8 is kIHNMMainFont
-static const GameFontDescription IHNMCD_GameFonts[]     = { {2}, {3}, {4}, {5}, {6}, {7}, {8} };
-
-// Patch files. Files not found will be ignored
-static const GamePatchDescription ITEPatch_Files[] = {
-	{       "cave.mid", GAME_RESOURCEFILE,    9},
-	{      "intro.mid", GAME_RESOURCEFILE,   10},
-	{   "fvillage.mid", GAME_RESOURCEFILE,   11},
-	{    "elkhall.mid", GAME_RESOURCEFILE,   12},
-	{      "mouse.mid", GAME_RESOURCEFILE,   13},
-	{   "darkclaw.mid", GAME_RESOURCEFILE,   14},
-	{   "birdchrp.mid", GAME_RESOURCEFILE,   15},
-	{   "orbtempl.mid", GAME_RESOURCEFILE,   16},
-	{     "spooky.mid", GAME_RESOURCEFILE,   17},
-	{    "catfest.mid", GAME_RESOURCEFILE,   18},
-	{ "elkfanfare.mid", GAME_RESOURCEFILE,   19},
-	{     "bcexpl.mid", GAME_RESOURCEFILE,   20},
-	{   "boargtnt.mid", GAME_RESOURCEFILE,   21},
-	{   "boarking.mid", GAME_RESOURCEFILE,   22},
-	{   "explorea.mid", GAME_RESOURCEFILE,   23},
-	{   "exploreb.mid", GAME_RESOURCEFILE,   24},
-	{   "explorec.mid", GAME_RESOURCEFILE,   25},
-	{   "sunstatm.mid", GAME_RESOURCEFILE,   26},
-	{   "nitstrlm.mid", GAME_RESOURCEFILE,   27},
-	{   "humruinm.mid", GAME_RESOURCEFILE,   28},
-	{   "damexplm.mid", GAME_RESOURCEFILE,   29},
-	{     "tychom.mid", GAME_RESOURCEFILE,   30},
-	{     "kitten.mid", GAME_RESOURCEFILE,   31},
-	{      "sweet.mid", GAME_RESOURCEFILE,   32},
-	{   "brutalmt.mid", GAME_RESOURCEFILE,   33},
-	{     "shiala.mid", GAME_RESOURCEFILE,   34},
-
-	{       "wyrm.pak", GAME_RESOURCEFILE, 1529},
-	{      "wyrm1.dlt", GAME_RESOURCEFILE, 1530},
-	{      "wyrm2.dlt", GAME_RESOURCEFILE, 1531},
-	{      "wyrm3.dlt", GAME_RESOURCEFILE, 1532},
-	{      "wyrm4.dlt", GAME_RESOURCEFILE, 1533},
-	{   "credit3n.dlt", GAME_RESOURCEFILE, 1796}, // PC
-	{   "credit3m.dlt", GAME_RESOURCEFILE, 1796}, // Macintosh
-	{   "credit4n.dlt", GAME_RESOURCEFILE, 1797}, // PC
-	{   "credit4m.dlt", GAME_RESOURCEFILE, 1797}, // Macintosh
-	{       "p2_a.voc", GAME_VOICEFILE,       4},
-	{       "p2_a.iaf", GAME_VOICEFILE,       4},
-	{             NULL,              0,       0}
-};
-
-static const GamePatchDescription ITEMacPatch_Files[] = {
-	{       "wyrm.pak", GAME_RESOURCEFILE, 1529},
-	{      "wyrm1.dlt", GAME_RESOURCEFILE, 1530},
-	{      "wyrm2.dlt", GAME_RESOURCEFILE, 1531},
-	{      "wyrm3.dlt", GAME_RESOURCEFILE, 1532},
-	{      "wyrm4.dlt", GAME_RESOURCEFILE, 1533},
-	{   "credit3m.dlt", GAME_RESOURCEFILE, 1796},
-	{   "credit4m.dlt", GAME_RESOURCEFILE, 1797},
-	{       "p2_a.iaf", GAME_VOICEFILE,       4},
-	{             NULL,              0,       0}
-};
 
 static const SAGAGameDescription gameDescriptions[] = {
 	// ITE Section ////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,12 +43,12 @@ static const SAGAGameDescription gameDescriptions[] = {
 	{
 		{
 			"ite",
-			_s("Missing game code"), // Reason for being unsupported
+			MetaEngineDetection::GAME_NOT_IMPLEMENTED, // Reason for being unsupported
 			{
-				{"ite.rsc",		GAME_RESOURCEFILE,					"986c79c4d2939dbe555576529fd37932", -1},
-				//{"ite.dmo",	GAME_DEMOFILE,						"0b9a70eb4e120b6f00579b46c8cae29e", -1},
-				{"scripts.rsc", GAME_SCRIPTFILE,					"d5697dd3240a3ceaddaa986c47e1a2d7", -1},
-				//{"voices.rsc",	GAME_SOUNDFILE | GAME_VOICEFILE,	"c58e67c506af4ffa03fd0aac2079deb0", -1},
+				{"ite.rsc",		GAME_RESOURCEFILE,					"986c79c4d2939dbe555576529fd37932", AD_NO_SIZE},
+				//{"ite.dmo",	GAME_DEMOFILE,						"0b9a70eb4e120b6f00579b46c8cae29e", AD_NO_SIZE},
+				{"scripts.rsc", GAME_SCRIPTFILE,					"d5697dd3240a3ceaddaa986c47e1a2d7", AD_NO_SIZE},
+				//{"voices.rsc",	GAME_SOUNDFILE | GAME_VOICEFILE,	"c58e67c506af4ffa03fd0aac2079deb0", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -200,10 +59,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		GF_ITE_DOS_DEMO,
 		ITE_DEFAULT_SCENE,
-		&ITEDemo_Resources,
-		ARRAYSIZE(ITEDEMO_GameFonts),
-		ITEDEMO_GameFonts,
-		NULL,
+		RESOURCELIST_ITE_DEMO,
+		FONTLIST_ITE_DEMO,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_DOS_DEMO,
+		{},
 	},
 
 	// Inherit the earth - MAC Demo version
@@ -224,10 +84,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITEWINDEMO_GameFonts),
-		ITEWINDEMO_GameFonts,
-		ITEMacPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE_WIN_DEMO,
+		PATCHLIST_ITE_MAC,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 
@@ -250,10 +111,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITEWINDEMO_GameFonts),
-		ITEWINDEMO_GameFonts,
-		ITEMacPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE_WIN_DEMO,
+		PATCHLIST_ITE_MAC,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 
@@ -276,10 +138,67 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITEWINDEMO_GameFonts),
-		ITEWINDEMO_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE_WIN_DEMO,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
+	},
+
+	// Inherit the earth - Win32 Demo version 2, compressed
+	{
+		{
+			"ite",
+			"Win Demo 2",
+			{
+				{"itedemo.exe",		0,	"d2ea5ccf8554fef4576718c06f34e5e5", 17472512},
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_DEMO,
+			GUIO0()
+		},
+		GID_ITE,
+		GF_INSTALLER,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE_WIN_DEMO,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{
+			{"ited.rsc",		GAME_RESOURCEFILE,	"3a450852cbf3c80773984d565647e6ac", 1951395},
+			{"scriptsd.rsc",	GAME_SCRIPTFILE,	"3f12b67fa93e56e1a6be39d2921d80bb", 70051},
+			AD_LISTEND
+		},
+	},
+
+	// Inherit the earth - Win32 Demo version 3, compressed
+	{
+		{
+			"ite",
+			"Win Demo 3",
+			{
+				{"itedemo.exe",		0,	"0a12e3ff2d511c2723acc4abc4480ee1", 31675904},
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_DEMO,
+			GUIO0()
+		},
+		GID_ITE,
+		GF_INSTALLER,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE_WIN_DEMO,
+		PATCHLIST_ITE_MAC, // Skip midi patches.
+		INTROLIST_ITE_DEFAULT,
+		{
+			{"ited.rsc",		GAME_RESOURCEFILE,	"3a450852cbf3c80773984d565647e6ac", 1951395},
+			{"scriptsd.rsc",	GAME_SCRIPTFILE,	"3f12b67fa93e56e1a6be39d2921d80bb", 70051},
+			AD_LISTEND
+		},
 	},
 
 
@@ -302,14 +221,137 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		GF_8BIT_UNSIGNED_PCM,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITEWINDEMO_GameFonts),
-		ITEWINDEMO_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE_WIN_DEMO,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
+	},
+
+	// Inherit the earth - Win32 Demo version 1
+	// Non-interactive demo, compressed
+	{
+		{
+			"ite",
+			"Demo 1",
+			{
+				{"itedemo.exe",		0,	"e49c52d06add732f3736f64d3e79a223", 7823872},
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_DEMO,
+			GUIO0()
+		},
+		GID_ITE,
+		GF_8BIT_UNSIGNED_PCM | GF_INSTALLER,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE_WIN_DEMO,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{
+			{"ited.rsc",		GAME_RESOURCEFILE,	"3a450852cbf3c80773984d565647e6ac", 1327323},
+			{"scriptsd.rsc",	GAME_SCRIPTFILE,	"3f12b67fa93e56e1a6be39d2921d80bb", 38613},
+			AD_LISTEND
+		},
 	},
 
 
-	// TODO: Add Amiga demos here (not supported yet)
+	{
+		{
+			"ite",
+			"AGA Demo CD",
+			{
+				{"ite.rtn",		GAME_RESOURCEFILE,	"634d36f78ac151b14dbeed274e169def", 18564},
+				{"ite.000",                             0,      "75a2c63fd67d3c87512a37af91537fba", 900096},
+				AD_LISTEND
+			},
+			Common::DE_DEU,
+			Common::kPlatformAmiga,
+			ADGF_CD,
+			GUIO0()
+		},
+		GID_ITE,
+		GF_EXTRA_ITE_CREDITS | GF_AGA_GRAPHICS | GF_EMBED_FONT | GF_POWERPACK_GFX,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE_GERMAN_AGA,
+		FONTLIST_NONE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_AMIGA_GERMAN_AGA,
+		{},
+	},
+	{
+		{
+			"ite",
+			"AGA Demo Floppy",
+			{
+				{"ite.rtn",		GAME_RESOURCEFILE,	"634d36f78ac151b14dbeed274e169def", 18564},
+				{"ite01.adf", 0, "82877f62357c39cb3a9f892dfce713e2", 901120},
+				{"ite02.adf", 0, "ed7bff9c17aacce17a9b5743d39149e7", 901120},
+				AD_LISTEND
+			},
+			Common::DE_DEU,
+			Common::kPlatformAmiga,
+			ADGF_CD,
+			GUIO0()
+		},
+		GID_ITE,
+		GF_ITE_FLOPPY|GF_EXTRA_ITE_CREDITS | GF_AGA_GRAPHICS | GF_EMBED_FONT | GF_POWERPACK_GFX,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE_GERMAN_AGA,
+		FONTLIST_NONE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_AMIGA_GERMAN_AGA,
+		{},
+	},
+	{
+		{
+			"ite",
+			"ECS Demo CD",
+			{
+				{"ite.rtn",		GAME_RESOURCEFILE,	"1e77154f045358ef3f09fbdb00ea92a4", 18624},
+				{"ite.000",                             0,      "7907e74ed9ce17bb9d6c10e21273d53e", 788221},
+				AD_LISTEND
+			},
+			Common::DE_DEU,
+			Common::kPlatformAmiga,
+			ADGF_CD,
+			GUIO0()
+		},
+		GID_ITE,
+		GF_EXTRA_ITE_CREDITS | GF_ECS_GRAPHICS | GF_EMBED_FONT | GF_POWERPACK_GFX,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE_GERMAN_ECS,
+		FONTLIST_NONE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_AMIGA_GERMAN_ECS,
+		{},
+	},
+	{
+		{
+			"ite",
+			"ECS Demo Floppy",
+			{
+				{"ite.rtn",		GAME_RESOURCEFILE,	"1e77154f045358ef3f09fbdb00ea92a4", 18624},
+				{"ite01.adf",                           0,      "fc6ba8bae7d86038efa2fba30ebf5e77", 901120},
+				{"ite02.adf",                           0,      "8f8cc806fc19066480b868c43e12343a", 901120},
+				AD_LISTEND
+			},
+			Common::DE_DEU,
+			Common::kPlatformAmiga,
+			ADGF_NO_FLAGS,
+			GUIO0()
+		},
+		GID_ITE,
+		GF_ITE_FLOPPY | GF_EXTRA_ITE_CREDITS | GF_ECS_GRAPHICS | GF_EMBED_FONT | GF_POWERPACK_GFX,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE_GERMAN_ECS,
+		FONTLIST_NONE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_AMIGA_GERMAN_ECS,
+		{},
+	},
 
 
 	// ITE Mac versions ///////////////////////////////////////////////////////////////////////////////////////
@@ -320,11 +362,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ite",
 			"CD",
 			{
-				{"ite resources.bin",	GAME_RESOURCEFILE | GAME_MACBINARY,	"0bd506aa887bfc7965f695c6bd28237d", -1},
-				{"ite scripts.bin",		GAME_SCRIPTFILE | GAME_MACBINARY,	"af0d7a2588e09ad3ecbc5b474ea238bf", -1},
-				{"ite sounds.bin",		GAME_SOUNDFILE | GAME_MACBINARY,	"441426c6bb2a517f65c7e49b57f7a345", -1},
-				{"ite music.bin",		GAME_MUSICFILE_GM | GAME_MACBINARY,	"c1d20324b7cdf1650e67061b8a93251c", -1},
-				//{"ite voices.bin",		GAME_VOICEFILE | GAME_MACBINARY,	"dba92ae7d57e942250fe135609708369", -1},
+				{"ite resources",	GAME_RESOURCEFILE | GAME_MACBINARY,	"d:4f7fa11c5175980ed593392838523060", 8862102},
+				{"ite scripts",		GAME_SCRIPTFILE | GAME_MACBINARY,	"d:adf1f46c1d0589083996a7060c798ad0", 336006},
+				{"ite sounds",		GAME_SOUNDFILE | GAME_MACBINARY,	"d:8ee4d9ee27688785608d09faaa4a974c", 3680672},
+				{"ite music",		GAME_MUSICFILE_GM | GAME_MACBINARY,	"r:b0d66d7ae48f35c5c9a3444343b86f85", 3135053},
+				// {"ite voices",		GAME_VOICEFILE | GAME_MACBINARY,	"ee65f8e713127cf7f2d56371d2b8e63d", 2264},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -335,10 +377,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		GF_8BIT_UNSIGNED_PCM,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITEWINDEMO_GameFonts),
-		ITEWINDEMO_GameFonts,
-		NULL,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE_WIN_DEMO,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - MAC CD First edition
@@ -347,11 +390,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ite",
 			"CD",
 			{
-				{"ite resources.bin",	GAME_RESOURCEFILE | GAME_MACBINARY,	"473768a17d843de5126d608b26ed7250", -1},
-				{"ite scripts.bin",		GAME_SCRIPTFILE | GAME_MACBINARY,	"294cad2d7bb6cd7dd602c9a5867873d7", -1},
-				{"ite sounds.bin",		GAME_SOUNDFILE | GAME_MACBINARY,	"178fa322aeb8eb51bba821eb128e037b", -1},
-				{"ite music.bin",		GAME_MUSICFILE_GM | GAME_MACBINARY,	"023fddf96a39edeaed647f16947de9c1", -1},
-				//{"ite voices.bin",		GAME_VOICEFILE | GAME_MACBINARY,	"dba92ae7d57e942250fe135609708369", -1},
+				{"ite resources.bin",	GAME_RESOURCEFILE | GAME_MACBINARY,	"473768a17d843de5126d608b26ed7250", AD_NO_SIZE},
+				{"ite scripts.bin",		GAME_SCRIPTFILE | GAME_MACBINARY,	"294cad2d7bb6cd7dd602c9a5867873d7", AD_NO_SIZE},
+				{"ite sounds.bin",		GAME_SOUNDFILE | GAME_MACBINARY,	"178fa322aeb8eb51bba821eb128e037b", AD_NO_SIZE},
+				{"ite music.bin",		GAME_MUSICFILE_GM | GAME_MACBINARY,	"023fddf96a39edeaed647f16947de9c1", AD_NO_SIZE},
+				//{"ite voices.bin",		GAME_VOICEFILE | GAME_MACBINARY,	"dba92ae7d57e942250fe135609708369", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -362,10 +405,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		GF_8BIT_UNSIGNED_PCM,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITEWINDEMO_GameFonts),
-		ITEWINDEMO_GameFonts,
-		NULL,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE_WIN_DEMO,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - MAC CD Wyrmkeep version
@@ -374,8 +418,8 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ite",
 			"Wyrmkeep CD",
 			{
-				{"ite.rsc",						GAME_RESOURCEFILE,	"4f7fa11c5175980ed593392838523060", -1},
-				{"scripts.rsc",					GAME_SCRIPTFILE,	"adf1f46c1d0589083996a7060c798ad0", -1},
+				{"ite.rsc",						GAME_RESOURCEFILE,	"4f7fa11c5175980ed593392838523060", AD_NO_SIZE},
+				{"scripts.rsc",					GAME_SCRIPTFILE,	"adf1f46c1d0589083996a7060c798ad0", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -386,17 +430,18 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITEWINDEMO_GameFonts),
-		ITEWINDEMO_GameFonts,
-		ITEMacPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE_WIN_DEMO,
+		PATCHLIST_ITE_MAC,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - MAC CD GOG version 1.1
 	{
 		{
 			"ite",
-			"GOG CD Mac v1.1",
+			"GOG.com CD Mac v1.1",
 			{
 				{"ite_i.rsc",					GAME_RESOURCEFILE,	"a6433e34b97b15e64fe8214651012db9", 8927165},
 				{"scripts_i.rsc",				GAME_SCRIPTFILE,	"a891405405edefc69c9d6c420c868b84", 335927},
@@ -410,10 +455,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		GF_SOME_MAC_RESOURCES,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		NULL,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 
@@ -431,7 +477,7 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"Multi-OS CD Version",
 			{
 				{"ite.rsc",						GAME_RESOURCEFILE,					"a6433e34b97b15e64fe8214651012db9", 8927165},
-				{"scripts.rsc",					GAME_SCRIPTFILE,					"a891405405edefc69c9d6c420c868b84", -1},
+				{"scripts.rsc",					GAME_SCRIPTFILE,					"a891405405edefc69c9d6c420c868b84", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -442,10 +488,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		NULL,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - German Wyrmkeep combined Windows/Mac/Linux CD
@@ -458,7 +505,7 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"Multi-OS CD Version",
 			{
 				{"ite.rsc",						GAME_RESOURCEFILE,					"420e09cfdbb4db12baefd4bc81d8e154", 8925349},
-				{"scripts.rsc",					GAME_SCRIPTFILE,					"a891405405edefc69c9d6c420c868b84", -1},
+				{"scripts.rsc",					GAME_SCRIPTFILE,					"a891405405edefc69c9d6c420c868b84", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::DE_DEU,
@@ -469,10 +516,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		NULL,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - Italian Wyrmkeep combined Windows/Mac/Linux CD (fan translation)
@@ -487,9 +535,9 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"Multi-OS CD Version",
 			{
 				// TODO: add size for ite.rsc
-				{"ite.rsc",						GAME_RESOURCEFILE,					"a6433e34b97b15e64fe8214651012db9", -1},
-				{"scripts.rsc",					GAME_SCRIPTFILE,					"a891405405edefc69c9d6c420c868b84", -1},
-				{"voices.rsc",					GAME_VOICEFILE,						"41bb6b95d792dde5196bdb78740895a6", -1},
+				{"ite.rsc",						GAME_RESOURCEFILE,					"a6433e34b97b15e64fe8214651012db9", AD_NO_SIZE},
+				{"scripts.rsc",					GAME_SCRIPTFILE,					"a891405405edefc69c9d6c420c868b84", AD_NO_SIZE},
+				{"voices.rsc",					GAME_VOICEFILE,						"41bb6b95d792dde5196bdb78740895a6", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::IT_ITA,
@@ -500,10 +548,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		NULL,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - Wyrmkeep Windows CD version
@@ -514,7 +563,7 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"Windows CD Version",
 			{
 				{"ite.rsc",		GAME_RESOURCEFILE,	"8f4315a9bb10ec839253108a032c8b54", 8928678},
-				{"scripts.rsc",	GAME_SCRIPTFILE,	"a891405405edefc69c9d6c420c868b84", -1},
+				{"scripts.rsc",	GAME_SCRIPTFILE,	"a891405405edefc69c9d6c420c868b84", AD_NO_SIZE},
 				{"cave.mid",	0,					"f7619359323058b61ec44fa8ce7888e5", 4441},
 				AD_LISTEND
 			},
@@ -526,10 +575,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		GF_EXTRA_ITE_CREDITS,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - Wyrmkeep Linux CD version
@@ -540,7 +590,7 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"Linux CD Version",
 			{
 				{"ite.rsc",		GAME_RESOURCEFILE,		"8f4315a9bb10ec839253108a032c8b54", 8928678},
-				{"scripts.rsc",	GAME_SCRIPTFILE,		"a891405405edefc69c9d6c420c868b84", -1},
+				{"scripts.rsc",	GAME_SCRIPTFILE,		"a891405405edefc69c9d6c420c868b84", AD_NO_SIZE},
 				{"music.rsc",	GAME_DIGITALMUSICFILE,	"d6454756517f042f01210458abe8edd4", 52894196},
 				AD_LISTEND
 			},
@@ -552,21 +602,22 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		GF_EXTRA_ITE_CREDITS,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
-	// Inherit the earth - Windows/Linux/DOS CD version
-	// FIXME Unclear which version(s) this matches - Windows and Linux versions have separate entries above.
+	// Inherit the earth - DOS CD version - 17-06-1994
+	// Reported by eriktorbjorn
 	{
 		{
 			"ite",
-			"Windows/Linux/DOS CD Version",
+			"DOS CD Version 1",
 			{
 				{"ite.rsc",		GAME_RESOURCEFILE,	"8f4315a9bb10ec839253108a032c8b54", 8928678},
-				{"scripts.rsc",	GAME_SCRIPTFILE,	"a891405405edefc69c9d6c420c868b84", -1},
+				{"scripts.rsc",	GAME_SCRIPTFILE,	"a891405405edefc69c9d6c420c868b84", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -577,10 +628,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		GF_EXTRA_ITE_CREDITS,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - Wyrmkeep Italian Windows CD version (fan translation)
@@ -602,10 +654,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - Wyrmkeep Italian Linux CD version (fan translation)
@@ -627,18 +680,18 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
-	// Inherit the earth - Italian Windows/Linux/DOS CD version (fan translation)
-	// FIXME Unclear which version(s) this matches - Windows and Linux versions have separate entries above.
+	// Inherit the earth - Italian DOS CD version (fan translation)
 	{
 		{
 			"ite",
-			"Windows/Linux/DOS CD Version",
+			"DOS CD Version",
 			{
 				{"ite.rsc",		GAME_RESOURCEFILE,	"8f4315a9bb10ec839253108a032c8b54", 8929956},
 				{"scripts.rsc",	GAME_SCRIPTFILE,	"a891405405edefc69c9d6c420c868b84", 350243},
@@ -652,10 +705,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - Wyrmkeep French Windows CD version (fan translation)
@@ -677,10 +731,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - Wyrmkeep French Linux CD version (fan translation)
@@ -702,18 +757,18 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
-	// Inherit the earth - French Windows/Linux/DOS CD version (fan translation)
-	// FIXME Unclear which version(s) this matches - Windows and Linux versions have separate entries above.
+	// Inherit the earth - French DOS CD version (fan translation)
 	{
 		{
 			"ite",
-			"Windows/Linux/DOS CD Version",
+			"DOS CD Version",
 			{
 				{"ite.rsc",		GAME_RESOURCEFILE,	"8f4315a9bb10ec839253108a032c8b54", 8929384},
 				{"scripts.rsc",	GAME_SCRIPTFILE,	"a891405405edefc69c9d6c420c868b84", 355877},
@@ -727,20 +782,21 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
-	// Inherit the earth - DOS CD version
+	// Inherit the earth - DOS CD version - 30-06-1994
 	{
 		{
 			"ite",
-			"CD Version",
+			"DOS CD Version 2",
 			{
-				{"ite.rsc",		GAME_RESOURCEFILE,	"8f4315a9bb10ec839253108a032c8b54", -1},
-				{"scripts.rsc",	GAME_SCRIPTFILE,	"50a0d2d7003c926a3832d503c8534e90", -1},
+				{"ite.rsc",		GAME_RESOURCEFILE,	"8f4315a9bb10ec839253108a032c8b54", AD_NO_SIZE},
+				{"scripts.rsc",	GAME_SCRIPTFILE,	"50a0d2d7003c926a3832d503c8534e90", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -751,10 +807,36 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
+	},
+
+	// Inherit the earth - Hebrew fan translation
+	{
+		{
+			"ite",
+			"CD Version",
+			{
+				{"ite.rsc",		GAME_RESOURCEFILE,	"b9354a4c2d138f680306e4baf8585e9d", AD_NO_SIZE},
+				{"scripts.rsc",	GAME_SCRIPTFILE,	"a891405405edefc69c9d6c420c868b84", AD_NO_SIZE},
+				AD_LISTEND
+			},
+			Common::HE_ISR,
+			Common::kPlatformUnknown,
+			ADGF_CD,
+			GUIO0()
+		},
+		GID_ITE,
+		0,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - DOS CD German version
@@ -764,8 +846,8 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ite",
 			"CD Version",
 			{
-				{"ite.rsc",		GAME_RESOURCEFILE,	"869fc23c8f38f575979ec67152914fee", -1},
-				{"scripts.rsc",	GAME_SCRIPTFILE,	"a891405405edefc69c9d6c420c868b84", -1},
+				{"ite.rsc",		GAME_RESOURCEFILE,	"869fc23c8f38f575979ec67152914fee", AD_NO_SIZE},
+				{"scripts.rsc",	GAME_SCRIPTFILE,	"a891405405edefc69c9d6c420c868b84", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::DE_DEU,
@@ -776,10 +858,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		NULL,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - Windows Trial
@@ -803,10 +886,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		NULL,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - macOS Trial
@@ -829,10 +913,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		NULL,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - Pocket PC Trial
@@ -855,10 +940,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the Earth - Japanese PC-98 CD version
@@ -874,15 +960,16 @@ static const SAGAGameDescription gameDescriptions[] = {
  			Common::JA_JPN,
  			Common::kPlatformPC98,
  			ADGF_CD,
- 			GUIO0()
+			GUIO1(GAMEOPTION_COPY_PROTECTION)
  		},
  		GID_ITE,
-		GF_ITE_FLOPPY,	// Even it that game version comes on a CD it behaves like a DOS floppy version
+		GF_ITE_FLOPPY,	// Even if that game version comes on a CD it behaves like a DOS floppy version
  		ITE_DEFAULT_SCENE,
- 		&ITE_Resources,
- 		ARRAYSIZE(ITE_GameFonts),
- 		ITE_GameFonts,
- 		NULL,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_DEFAULT,
+		{},
  	},
 
 	// Inherit the earth - Russian CD version (fan translation)
@@ -903,10 +990,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_ITE,
 		0,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// ITE floppy versions ////////////////////////////////////////////////////////////////////////////////////
@@ -917,22 +1005,23 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ite",
 			"Floppy",
 			{
-				{"ite.rsc",		GAME_RESOURCEFILE,					"869fc23c8f38f575979ec67152914fee", -1},
-				{"scripts.rsc",	GAME_SCRIPTFILE,					"516f7330f8410057b834424ea719d1ef", -1},
+				{"ite.rsc",		GAME_RESOURCEFILE,					"869fc23c8f38f575979ec67152914fee", AD_NO_SIZE},
+				{"scripts.rsc",	GAME_SCRIPTFILE,					"516f7330f8410057b834424ea719d1ef", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::DE_DEU,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
-			GUIO1(GUIO_NOSPEECH)
+			GUIO2(GUIO_NOSPEECH, GAMEOPTION_COPY_PROTECTION)
 		},
 		GID_ITE,
 		GF_ITE_FLOPPY,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		NULL,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - Disk version
@@ -942,22 +1031,57 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"Floppy",
 			{
 				{"ite.rsc",		GAME_RESOURCEFILE,					"8f4315a9bb10ec839253108a032c8b54", 8903828},
-				{"scripts.rsc",	GAME_SCRIPTFILE,					"516f7330f8410057b834424ea719d1ef", -1},
+				{"scripts.rsc",	GAME_SCRIPTFILE,					"516f7330f8410057b834424ea719d1ef", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
-			GUIO1(GUIO_NOSPEECH)
+			GUIO2(GUIO_NOSPEECH, GAMEOPTION_COPY_PROTECTION)
 		},
 		GID_ITE,
 		GF_ITE_FLOPPY,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
+
+	// Same as above but installer
+	{
+		{
+			"ite",
+			"Floppy Packed",
+			{
+				{"inherit.arj", 0, "a7910371d6b43c00a318bc9c6f0062b4", 1413298},
+				{"inherit.a01", 0, "e5034686e3bc531ba1bbcb6c6efe90c1", 1456420},
+				{"inherit.a02", 0, "a8d3bf36dd7ece019fd2f819a0dfed70", 1456328},
+				{"inherit.a03", 0, "456a4ee942cdf653754fbec4e942db46", 1456284},
+				{"inherit.a04", 0, "748865cda20e1404b19f17b5aaab255d", 1456289},
+				{"inherit.105", 0, "c03f250b95dedf7f10bf188c49047140", 1117200},
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformDOS,
+			ADGF_NO_FLAGS,
+			GUIO2(GUIO_NOSPEECH, GAMEOPTION_COPY_PROTECTION)
+		},
+		GID_ITE,
+		GF_ITE_FLOPPY | GF_INSTALLER,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{
+			{"ite.rsc",		GAME_RESOURCEFILE,					"8f4315a9bb10ec839253108a032c8b54", 8903828},
+			{"scripts.rsc",	GAME_SCRIPTFILE,					"516f7330f8410057b834424ea719d1ef", AD_NO_SIZE},
+			AD_LISTEND
+		},
+	},
+
 
 	// Inherit the earth - Italian Disk version (fan translation)
 	{
@@ -972,15 +1096,16 @@ static const SAGAGameDescription gameDescriptions[] = {
 			Common::IT_ITA,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
-			GUIO1(GUIO_NOSPEECH)
+			GUIO2(GUIO_NOSPEECH, GAMEOPTION_COPY_PROTECTION)
 		},
 		GID_ITE,
 		GF_ITE_FLOPPY,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - Chinese Disk version
@@ -993,18 +1118,19 @@ static const SAGAGameDescription gameDescriptions[] = {
 				{"scripts.rsc",	GAME_SCRIPTFILE,					"516f7330f8410057b834424ea719d1ef", 281071},
 				AD_LISTEND
 			},
-			Common::ZH_CNA,
+			Common::ZH_TWN,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
-			GUIO1(GUIO_NOSPEECH)
+			GUIO2(GUIO_NOSPEECH, GAMEOPTION_COPY_PROTECTION)
 		},
 		GID_ITE,
 		GF_ITE_FLOPPY,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// Inherit the earth - Russian Disk version (fan translation)
@@ -1020,20 +1146,199 @@ static const SAGAGameDescription gameDescriptions[] = {
 			Common::RU_RUS,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
-			GUIO1(GUIO_NOSPEECH)
+			GUIO2(GUIO_NOSPEECH, GAMEOPTION_COPY_PROTECTION)
 		},
 		GID_ITE,
 		GF_ITE_FLOPPY,
 		ITE_DEFAULT_SCENE,
-		&ITE_Resources,
-		ARRAYSIZE(ITE_GameFonts),
-		ITE_GameFonts,
-		ITEPatch_Files,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
 	},
 
 	// ITE Amiga versions /////////////////////////////////////////////////////////////////////////////////////
 
-	// TODO: Add the Amiga versions here (not supported yet)
+	// Official Dreamers Guild German release
+	{
+		{
+			"ite",
+			"AGA CD",
+			{
+				{"ite.rtn",		GAME_RESOURCEFILE,	"9d97f645eb877d1c9eb9d906930c3257", 18564},
+				{"aga.exe",                             0,      "f18ff495b8346983400a8eb6175590e5", 203224},
+				{"ite.sounds",             GAME_SOUNDFILE,      "f09b29e3204192de7e8cc6b073cb34f5", 640284},
+				{"ite.voices",             GAME_VOICEFILE,      "f2efcf1c175c572f91cc4ec66dbb226f", 221124347},
+				AD_LISTEND
+			},
+			Common::DE_DEU,
+			Common::kPlatformAmiga,
+			ADGF_CD,
+			GUIO0()
+		},
+		GID_ITE,
+		GF_EXTRA_ITE_CREDITS | GF_AGA_GRAPHICS,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE_GERMAN_AGA,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_AMIGA_GERMAN_AGA,
+		{},
+
+	},
+	// This is on the same disk as previous but it's for ECS systems
+	{
+		{
+			"ite",
+			"ECS CD",
+			{
+				{"ecs.rtn",		GAME_RESOURCEFILE,	"62d738d3201c1624f0e4bfcc8fb587dd", 18624},
+				{"ecs.exe",                             0,      "b6a5ae7b07c620a8101e87bb0d2af136", 205064},
+				{"ite.sounds",             GAME_SOUNDFILE,      "f09b29e3204192de7e8cc6b073cb34f5", 640284},
+				{"ite.voices",             GAME_VOICEFILE,      "f2efcf1c175c572f91cc4ec66dbb226f", 221124347},
+				AD_LISTEND
+			},
+			Common::DE_DEU,
+			Common::kPlatformAmiga,
+			ADGF_CD,
+			GUIO0()
+		},
+		GID_ITE,
+		GF_EXTRA_ITE_CREDITS | GF_ECS_GRAPHICS,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE_GERMAN_ECS,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_AMIGA_GERMAN_ECS,
+		{},
+	},
+	// Amiga Future coverdisk/Wyrmkeep English edition
+	{
+		{
+			"ite",
+			"AGA CD",
+			{
+				{"ite.rtn",		GAME_RESOURCEFILE,	"749885c0f7eaab4e977dc26a41d99ad8", 18524},
+				{"aga.exe",                             0,      "e6d93bbf0f89786eb930fbc81e02810d", 202328},
+				{"ite.sounds",             GAME_SOUNDFILE,      "f09b29e3204192de7e8cc6b073cb34f5", 640284},
+				{"ite.voices",             GAME_VOICEFILE,      "daf62750f5322da03fab395e548b0b8f", 217376825},
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformAmiga,
+			ADGF_CD,
+			GUIO0()
+		},
+		GID_ITE,
+		GF_EXTRA_ITE_CREDITS | GF_AGA_GRAPHICS,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_DEFAULT,
+		{},
+	},
+	// This is on the same disk as previous but it's for ECS systems
+	{
+		{
+			"ite",
+			"ECS CD",
+			{
+				{"ecs.rtn",		GAME_RESOURCEFILE,	"c9d09514839d771efdc82ad761413349", 18584},
+				{"ecs.exe",                             0,      "29665b96c2758aec3906ebc891079234", 204228},
+				{"ite.sounds",             GAME_SOUNDFILE,      "f09b29e3204192de7e8cc6b073cb34f5", 640284},
+				{"ite.voices",             GAME_VOICEFILE,      "daf62750f5322da03fab395e548b0b8f", 217376825},
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformAmiga,
+			ADGF_CD,
+			GUIO0()
+		},
+		GID_ITE,
+		GF_EXTRA_ITE_CREDITS | GF_ECS_GRAPHICS,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE_ENGLISH_ECS,
+		FONTLIST_ITE,
+		PATCHLIST_ITE,
+		INTROLIST_ITE_AMIGA_ENGLISH_ECS,
+		{},
+	},
+
+	// Inherit the earth - German Floppy version
+	{
+		{
+			"ite",
+			"AGA Floppy",
+			{
+				{"ite.rtn",		GAME_RESOURCEFILE,	"38f6a3aca708ef3ab6059d94a268da29", 18564},
+				{"ite01.adf",		0,					"4f7913f82d7f8318d24f31b6226731eb", 901120},
+				{"ite02.adf",	0,					"9c959343c3e2e4a067426bf4cf28eba0", 901120},
+				AD_LISTEND
+			},
+			Common::DE_DEU,
+			Common::kPlatformAmiga,
+			ADGF_NO_FLAGS,
+			GUIO2(GUIO_NOSPEECH, GAMEOPTION_COPY_PROTECTION)
+		},
+		GID_ITE,
+		GF_ITE_FLOPPY | GF_AGA_GRAPHICS | GF_EMBED_FONT | GF_POWERPACK_GFX,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE_GERMAN_AGA,
+		FONTLIST_NONE,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_AMIGA_GERMAN_AGA,
+		{},
+	},
+	{
+		{
+			"ite",
+			"ECS Floppy",
+			{
+				{"ite.rtn",		GAME_RESOURCEFILE,	"733a15d1816b76ed10fbb02668ae1f93", 18624},
+				{"ite01.adf",		0,					"49352821102fc03d1653e0fda13fb15f", 901120},
+				{"ite02.adf",	0,					"160189cce6ecec4bfb4e045bf9be3218", 901120},
+				AD_LISTEND
+			},
+			Common::DE_DEU,
+			Common::kPlatformAmiga,
+			ADGF_NO_FLAGS,
+			GUIO2(GUIO_NOSPEECH, GAMEOPTION_COPY_PROTECTION)
+		},
+		GID_ITE,
+		GF_ITE_FLOPPY | GF_ECS_GRAPHICS | GF_EMBED_FONT | GF_POWERPACK_GFX,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE_GERMAN_ECS,
+		FONTLIST_NONE,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_AMIGA_GERMAN_ECS,
+		{},
+	},
+	{
+		{
+			"ite",
+			"ECS Floppy",
+			{
+				{"ite.rtn",		GAME_RESOURCEFILE,	"9d0c6b31ac86b4bd9237e304e4bfb73a", 18624},
+				{"ite01.adf",		0,					"532973f8422f46f73db5b8a161681d40", 901120},
+				{"ite02.adf",	0,					"794f525b9b81f765a5df18bfae8364ec", 901120},
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformAmiga,
+			ADGF_NO_FLAGS,
+			GUIO2(GUIO_NOSPEECH, GAMEOPTION_COPY_PROTECTION)
+		},
+		GID_ITE,
+		GF_ITE_FLOPPY | GF_ECS_GRAPHICS | GF_EMBED_FONT | GF_POWERPACK_GFX,
+		ITE_DEFAULT_SCENE,
+		RESOURCELIST_ITE_GERMAN_ECS, // Uses German resource list for some reason
+		FONTLIST_NONE,
+		PATCHLIST_NONE,
+		INTROLIST_ITE_AMIGA_GERMAN_ECS, // Uses German intro list for some reason
+		{},
+	},
 
 	// IHNM Section ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1043,10 +1348,10 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ihnm",
 			"Demo",
 			{
-				{"music.res",		GAME_MUSICFILE_FM,	"0439083e3dfdc51b486071d45872ae52", -1},
+				{"music.res",		GAME_MUSICFILE_FM,	"0439083e3dfdc51b486071d45872ae52", AD_NO_SIZE},
 				{"scream.res",		GAME_RESOURCEFILE,	"46bbdc65d164ba7e89836a0935eec8e6", 16687179},
-				{"scripts.res",		GAME_SCRIPTFILE,	"9626bda8978094ff9b29198bc1ed5f9a", -1},
-				{"sfx.res",			GAME_SOUNDFILE,		"1c610d543f32ec8b525e3f652536f269", -1},
+				{"scripts.res",		GAME_SCRIPTFILE,	"9626bda8978094ff9b29198bc1ed5f9a", AD_NO_SIZE},
+				{"sfx.res",			GAME_SOUNDFILE,		"1c610d543f32ec8b525e3f652536f269", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -1057,10 +1362,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_IHNM,
 		0,
 		IHNMDEMO_DEFAULT_SCENE,
-		&IHNMDEMO_Resources,
-		ARRAYSIZE(IHNMDEMO_GameFonts),
-		IHNMDEMO_GameFonts,
-		NULL,
+		RESOURCELIST_IHNM_DEMO,
+		FONTLIST_IHNM_DEMO,
+		PATCHLIST_NONE,
+		INTROLIST_NONE,
+		{},
 	},
 
 	// I Have No Mouth And I Must Scream - English CD version
@@ -1069,16 +1375,16 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ihnm",
 			"",
 			{
-				{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", -1},
-				{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", -1},
+				{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", AD_NO_SIZE},
+				{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", AD_NO_SIZE},
 				{"scream.res",	GAME_RESOURCEFILE,					"46bbdc65d164ba7e89836a0935eec8e6", 79211140},
-				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,	"58b79e61594779513c7f2d35509fa89e", -1},
-				{"scripts.res",	GAME_SCRIPTFILE,					"be38bbc5a26be809dbf39f13befebd01", -1},
-				//{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", -1},
+				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,	"58b79e61594779513c7f2d35509fa89e", AD_NO_SIZE},
+				{"scripts.res",	GAME_SCRIPTFILE,					"be38bbc5a26be809dbf39f13befebd01", AD_NO_SIZE},
+				//{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", AD_NO_SIZE},
 				// There are two English versions of the game, each one with a different sfx.res file
 				// Known MD5 checksums for sfx.res in the English version of the game are
 				// 1c610d543f32ec8b525e3f652536f269 and 45a9a9f5d37740be24fd2ae2edf36573
-				{"sfx.res",		GAME_SOUNDFILE,						NULL, -1},
+				{"sfx.res",		GAME_SOUNDFILE,						NULL, AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::EN_ANY,
@@ -1089,10 +1395,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_IHNM,
 		0,
 		IHNM_DEFAULT_SCENE,
-		&IHNM_Resources,
-		ARRAYSIZE(IHNMCD_GameFonts),
-		IHNMCD_GameFonts,
-		NULL,
+		RESOURCELIST_IHNM,
+		FONTLIST_IHNM_CD,
+		PATCHLIST_NONE,
+		INTROLIST_NONE,
+		{},
 	},
 
 	// I Have No Mouth And I Must Scream - De CD version
@@ -1103,12 +1410,12 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ihnm",
 			"",
 			{
-				{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", -1},
-				{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", -1},
+				{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", AD_NO_SIZE},
+				{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", AD_NO_SIZE},
 				{"scream.res",	GAME_RESOURCEFILE,					"c92370d400e6f2a3fc411c3729d09224", 78517884},
-				{"scripts.res",	GAME_SCRIPTFILE,					"32aa01a89937520fe0ea513950117292", -1},
-				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,	"58b79e61594779513c7f2d35509fa89e", -1},
-				{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", -1},
+				{"scripts.res",	GAME_SCRIPTFILE,					"32aa01a89937520fe0ea513950117292", AD_NO_SIZE},
+				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,	"58b79e61594779513c7f2d35509fa89e", AD_NO_SIZE},
+				{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::DE_DEU,
@@ -1119,10 +1426,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_IHNM,
 		GF_IHNM_COLOR_FIX,
 		IHNM_DEFAULT_SCENE,
-		&IHNM_Resources,
-		ARRAYSIZE(IHNMCD_GameFonts),
-		IHNMCD_GameFonts,
-		NULL,
+		RESOURCELIST_IHNM,
+		FONTLIST_IHNM_CD,
+		PATCHLIST_NONE,
+		INTROLIST_NONE,
+		{},
 	},
 
 	// I Have No Mouth And I Must Scream - German fan CD translation
@@ -1149,10 +1457,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_IHNM,
 		0,
 		IHNM_DEFAULT_SCENE,
-		&IHNM_Resources,
-		ARRAYSIZE(IHNMCD_GameFonts),
-		IHNMCD_GameFonts,
-		NULL,
+		RESOURCELIST_IHNM,
+		FONTLIST_IHNM_CD,
+		PATCHLIST_NONE,
+		INTROLIST_NONE,
+		{},
 	},
 
 	// I Have No Mouth And I Must Scream - Hungarian fan CD translation
@@ -1179,10 +1488,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_IHNM,
 		0,
 		IHNM_DEFAULT_SCENE,
-		&IHNM_Resources,
-		ARRAYSIZE(IHNMCD_GameFonts),
-		IHNMCD_GameFonts,
-		NULL,
+		RESOURCELIST_IHNM,
+		FONTLIST_IHNM_CD,
+		PATCHLIST_NONE,
+		INTROLIST_NONE,
+		{},
 	},
 
 	// I Have No Mouth And I Must Scream - Sp CD version
@@ -1191,12 +1501,12 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ihnm",
 			"",
 			{
-				{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", -1},
-				{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", -1},
+				{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", AD_NO_SIZE},
+				{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", AD_NO_SIZE},
 				{"scream.res",	GAME_RESOURCEFILE,					"c92370d400e6f2a3fc411c3729d09224", 78560025},
-				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,	"58b79e61594779513c7f2d35509fa89e", -1},
-				{"scripts.res",	GAME_SCRIPTFILE,					"be38bbc5a26be809dbf39f13befebd01", -1},
-				{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", -1},
+				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,	"58b79e61594779513c7f2d35509fa89e", AD_NO_SIZE},
+				{"scripts.res",	GAME_SCRIPTFILE,					"be38bbc5a26be809dbf39f13befebd01", AD_NO_SIZE},
+				{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::ES_ESP,
@@ -1207,39 +1517,41 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_IHNM,
 		GF_IHNM_COLOR_FIX,
 		IHNM_DEFAULT_SCENE,
-		&IHNM_Resources,
-		ARRAYSIZE(IHNMCD_GameFonts),
-		IHNMCD_GameFonts,
-		NULL,
+		RESOURCELIST_IHNM,
+		FONTLIST_IHNM_CD,
+		PATCHLIST_NONE,
+		INTROLIST_NONE,
+		{},
 	},
 
 	// I Have No Mouth And I Must Scream - Korean CD version
 	{
 		{
 			"ihnm",
-			_s("Missing game code"), // Reason for being unsupported
+			"",
 			{
-				{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", -1},
-				{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", -1},
+				{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", AD_NO_SIZE},
+				{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", AD_NO_SIZE},
 				{"scream.res",	GAME_RESOURCEFILE,					"46bbdc65d164ba7e89836a0935eec8e6", 79211140},
-				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,	"58b79e61594779513c7f2d35509fa89e", -1},
-				{"scripts.res",	GAME_SCRIPTFILE,					"be38bbc5a26be809dbf39f13befebd01", -1},
-				{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", -1},
-				{"sbh1616.fnt",	0,									"ec047bbe048ed9465def705b5bd74d99", -1},
+				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,	"58b79e61594779513c7f2d35509fa89e", AD_NO_SIZE},
+				{"scripts.res",	GAME_SCRIPTFILE,					"be38bbc5a26be809dbf39f13befebd01", AD_NO_SIZE},
+				{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", AD_NO_SIZE},
+				{"sbh1616.fnt",	0,									"ec047bbe048ed9465def705b5bd74d99", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::KO_KOR,
 			Common::kPlatformDOS,
-			ADGF_UNSUPPORTED,
+			ADGF_NO_FLAGS,
 			GUIO1(GUIO_NOASPECT)
 		},
 		GID_IHNM,
 		GF_IHNM_COLOR_FIX,
 		IHNM_DEFAULT_SCENE,
-		&IHNM_Resources,
-		ARRAYSIZE(IHNMCD_GameFonts),
-		IHNMCD_GameFonts,
-		NULL,
+		RESOURCELIST_IHNM,
+		FONTLIST_IHNM_CD,
+		PATCHLIST_NONE,
+		INTROLIST_NONE,
+		{},
 	},
 
 	// I Have No Mouth And I Must Scream - Fr CD version
@@ -1249,12 +1561,12 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ihnm",
 			"",
 			{
-				{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", -1},
-				{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", -1},
+				{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", AD_NO_SIZE},
+				{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", AD_NO_SIZE},
 				{"scream.res",	GAME_RESOURCEFILE,					"c92370d400e6f2a3fc411c3729d09224", 78519324},
-				{"scripts.res",	GAME_SCRIPTFILE,					"32aa01a89937520fe0ea513950117292", -1},
-				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,	"58b79e61594779513c7f2d35509fa89e", -1},
-				{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", -1},
+				{"scripts.res",	GAME_SCRIPTFILE,					"32aa01a89937520fe0ea513950117292", AD_NO_SIZE},
+				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,	"58b79e61594779513c7f2d35509fa89e", AD_NO_SIZE},
+				{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::FR_FRA,
@@ -1265,10 +1577,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_IHNM,
 		GF_IHNM_COLOR_FIX,
 		IHNM_DEFAULT_SCENE,
-		&IHNM_Resources,
-		ARRAYSIZE(IHNMCD_GameFonts),
-		IHNMCD_GameFonts,
-		NULL,
+		RESOURCELIST_IHNM,
+		FONTLIST_IHNM_CD,
+		PATCHLIST_NONE,
+		INTROLIST_NONE,
+		{},
 	},
 
 	// I Have No Mouth And I Must Scream - Chinese CD
@@ -1276,7 +1589,7 @@ static const SAGAGameDescription gameDescriptions[] = {
 	{
 		{
 			"ihnm",
-			_s("Missing game code"), // Reason for being unsupported
+			"",
 			{
 				{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", 302676},
 				{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", 314020},
@@ -1286,18 +1599,19 @@ static const SAGAGameDescription gameDescriptions[] = {
 				{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", 22561056},
 				AD_LISTEND
 			},
-			Common::ZH_ANY,
+			Common::ZH_TWN,
 			Common::kPlatformDOS,
-			ADGF_UNSUPPORTED,
+			ADGF_NO_FLAGS,
 			GUIO1(GUIO_NOASPECT)
 		},
 		GID_IHNM,
-		0,
+		GF_IHNM_COLOR_FIX,
 		IHNM_DEFAULT_SCENE,
-		&IHNM_Resources,
-		ARRAYSIZE(IHNMCD_GameFonts),
-		IHNMCD_GameFonts,
-		NULL,
+		RESOURCELIST_IHNM,
+		FONTLIST_IHNM_ZH,
+		PATCHLIST_NONE,
+		INTROLIST_NONE,
+		{},
 	},
 
 	// I Have No Mouth And I Must Scream - Italian fan CD translation
@@ -1306,12 +1620,12 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ihnm",
 			"",
 			{
-				{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", -1},
-				{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", -1},
+				{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", AD_NO_SIZE},
+				{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", AD_NO_SIZE},
 				{"scream.res",	GAME_RESOURCEFILE,					"46bbdc65d164ba7e89836a0935eec8e6", 79211498},
-				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,	"58b79e61594779513c7f2d35509fa89e", -1},
-				{"scripts.res",	GAME_SCRIPTFILE,					"be38bbc5a26be809dbf39f13befebd01", -1},
-				{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", -1},
+				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,	"58b79e61594779513c7f2d35509fa89e", AD_NO_SIZE},
+				{"scripts.res",	GAME_SCRIPTFILE,					"be38bbc5a26be809dbf39f13befebd01", AD_NO_SIZE},
+				{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::IT_ITA,
@@ -1322,10 +1636,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_IHNM,
 		0,
 		IHNM_DEFAULT_SCENE,
-		&IHNM_Resources,
-		ARRAYSIZE(IHNMCD_GameFonts),
-		IHNMCD_GameFonts,
-		NULL,
+		RESOURCELIST_IHNM,
+		FONTLIST_IHNM_CD,
+		PATCHLIST_NONE,
+		INTROLIST_NONE,
+		{},
 	},
 
 	// I Have No Mouth And I Must Scream - Russian fan translaction v1.0 (by jack7277 et al)
@@ -1334,16 +1649,16 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ihnm",
 			"",
 			{
-				{"musicfm.res",	GAME_MUSICFILE_FM,						"0439083e3dfdc51b486071d45872ae52", -1},
-				{"musicgm.res",	GAME_MUSICFILE_GM,						"80f875a1fb384160d1f4b27166eef583", -1},
+				{"musicfm.res",	GAME_MUSICFILE_FM,						"0439083e3dfdc51b486071d45872ae52", AD_NO_SIZE},
+				{"musicgm.res",	GAME_MUSICFILE_GM,						"80f875a1fb384160d1f4b27166eef583", AD_NO_SIZE},
 				{"scream.res",	GAME_RESOURCEFILE,						"ac00dd9e6701e8edbb49429dacbc4731", 79210049},
-				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,		"58b79e61594779513c7f2d35509fa89e", -1},
-				{"scripts.res",	GAME_SCRIPTFILE,						"be38bbc5a26be809dbf39f13befebd01", -1},
-				//{"sfx.res",	GAME_SOUNDFILE,							"1c610d543f32ec8b525e3f652536f269", -1},
+				{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,		"58b79e61594779513c7f2d35509fa89e", AD_NO_SIZE},
+				{"scripts.res",	GAME_SCRIPTFILE,						"be38bbc5a26be809dbf39f13befebd01", AD_NO_SIZE},
+				//{"sfx.res",	GAME_SOUNDFILE,							"1c610d543f32ec8b525e3f652536f269", AD_NO_SIZE},
 				// There are two English versions of the game, each one with a different sfx.res file
 				// Known MD5 checksums for sfx.res in the English version of the game are
 				// 1c610d543f32ec8b525e3f652536f269 and 45a9a9f5d37740be24fd2ae2edf36573
-				{"sfx.res",		GAME_SOUNDFILE,							NULL, -1},
+				{"sfx.res",		GAME_SOUNDFILE,							NULL, AD_NO_SIZE},
 				AD_LISTEND
 			},
 			Common::RU_RUS,
@@ -1354,10 +1669,11 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_IHNM,
 		0,
 		IHNM_DEFAULT_SCENE,
-		&IHNM_Resources,
-		ARRAYSIZE(IHNMCD_GameFonts),
-		IHNMCD_GameFonts,
-		NULL,
+		RESOURCELIST_IHNM,
+		FONTLIST_IHNM_CD,
+		PATCHLIST_NONE,
+		INTROLIST_NONE,
+		{},
 	},
 
 	// I Have No Mouth And I Must Scream - Mac English CD
@@ -1380,13 +1696,14 @@ static const SAGAGameDescription gameDescriptions[] = {
 		GID_IHNM,
 		0,
 		IHNM_DEFAULT_SCENE,
-		&IHNM_Resources,
-		ARRAYSIZE(IHNMCD_GameFonts),
-		IHNMCD_GameFonts,
-		NULL,
+		RESOURCELIST_IHNM,
+		FONTLIST_IHNM_CD,
+		PATCHLIST_NONE,
+		INTROLIST_NONE,
+		{},
 	},
 
-	{ AD_TABLE_END_MARKER, 0, 0, 0, NULL, 0, NULL, NULL }
+	{ AD_TABLE_END_MARKER, 0, 0, 0, RESOURCELIST_NONE, FONTLIST_MAX, PATCHLIST_MAX, INTROLIST_NONE, {} }
 };
 
 } // End of namespace Saga

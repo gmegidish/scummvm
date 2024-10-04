@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -80,7 +79,7 @@ static const ADGameDescription tuckerGameDescriptions[] = {
 		"tucker",
 		"",
 		AD_ENTRY1s("infobar.txt", "e548994877ff31ca304f6352ce022a8e", 497),
-		Common::CZ_CZE,
+		Common::CS_CZE,
 		Common::kPlatformDOS,
 		Tucker::kGameFlagEncodedData,
 		GUIO1(GUIO_NOMIDI)
@@ -116,17 +115,17 @@ static const ADGameDescription tuckerDemoGameDescription = {
 	GUIO1(GUIO_NOMIDI)
 };
 
-class TuckerMetaEngineDetection : public AdvancedMetaEngineDetection {
+class TuckerMetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	TuckerMetaEngineDetection() : AdvancedMetaEngineDetection(tuckerGameDescriptions, sizeof(ADGameDescription), tuckerGames) {
+	TuckerMetaEngineDetection() : AdvancedMetaEngineDetection(tuckerGameDescriptions, tuckerGames) {
 		_md5Bytes = 512;
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "tucker";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Bud Tucker in Double Trouble";
 	}
 

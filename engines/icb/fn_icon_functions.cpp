@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,11 +20,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "engines/icb/icb.h"
 #include "engines/icb/common/px_rcutypes.h"
 #include "engines/icb/common/ptr_util.h"
 #include "engines/icb/global_objects.h"
@@ -69,6 +69,8 @@ mcodeFunctionReturnCodes fn_use_medipacks(int32 &result, int32 *params) { return
 mcodeFunctionReturnCodes fn_add_ammo_clips(int32 &result, int32 *params) { return (MS->fn_add_ammo_clips(result, params)); }
 
 mcodeFunctionReturnCodes fn_use_ammo_clips(int32 &result, int32 *params) { return (MS->fn_use_ammo_clips(result, params)); }
+
+mcodeFunctionReturnCodes fn_shutdown_inventory(int32 &result, int32 *params) { return (MS->fn_shutdown_inventory(result, params)); }
 
 mcodeFunctionReturnCodes _game_session::fn_is_carrying(int32 &result, int32 *params) {
 	const char *item_name = (const char *)MemoryUtil::resolvePtr(params[0]);
@@ -125,7 +127,7 @@ mcodeFunctionReturnCodes _game_session::fn_add_inventory_item(int32 &, int32 *pa
 	g_oIconListManager->AddIconToList(ICON_LIST_INVENTORY, item_name);
 
 	// Preload the icon for PSX smoothing.
-	sprintf(pcIconPath, ICON_PATH);
+	Common::sprintf_s(pcIconPath, ICON_PATH);
 	g_oIconMenu->PreloadIcon(pcIconPath, item_name);
 
 	// Calling script can continue.
@@ -143,6 +145,11 @@ mcodeFunctionReturnCodes _game_session::fn_remove_inventory_item(int32 &, int32 
 }
 
 mcodeFunctionReturnCodes _game_session::fn_add_medipacks(int32 &result, int32 *params) {
+	if (g_icb->getGameType() == GType_ELDORADO) {
+		result = 0;
+		return IR_CONT;
+	}
+
 	char pcIconPath[ENGINE_STRING_LEN];
 	bool8 bFlashIcons;
 
@@ -159,7 +166,7 @@ mcodeFunctionReturnCodes _game_session::fn_add_medipacks(int32 &result, int32 *p
 	player.AddMediPacks(1, bFlashIcons);
 
 	// Preload the icon for PSX smoothing.
-	sprintf(pcIconPath, ICON_PATH);
+	Common::sprintf_s(pcIconPath, ICON_PATH);
 	g_oIconMenu->PreloadIcon(pcIconPath, ARMS_HEALTH_NAME);
 	// Calling script can continue.
 
@@ -176,6 +183,10 @@ mcodeFunctionReturnCodes _game_session::fn_use_medipacks(int32 &, int32 *params)
 }
 
 mcodeFunctionReturnCodes _game_session::fn_add_ammo_clips(int32 &result, int32 *params) {
+	if (g_icb->getGameType() == GType_ELDORADO) {
+		return IR_CONT;
+	}
+
 	char pcIconPath[ENGINE_STRING_LEN];
 	bool8 bFlashIcons;
 
@@ -193,15 +204,15 @@ mcodeFunctionReturnCodes _game_session::fn_add_ammo_clips(int32 &result, int32 *
 		player.AddAmmoClips((uint32)params[0], bFlashIcons);
 
 		result = 0;
-	} else { // cant take all that were offered
+	} else { // can't take all that were offered
 		// Call the function that does the work.
 		player.AddAmmoClips(can_take, bFlashIcons); // take max we can take
 
-		result = params[0] - can_take; // leave behind those we cant take
+		result = params[0] - can_take; // leave behind those we can't take
 	}
 
 	// Preload the icon for PSX smoothing.
-	sprintf(pcIconPath, ICON_PATH);
+	Common::sprintf_s(pcIconPath, ICON_PATH);
 	g_oIconMenu->PreloadIcon(pcIconPath, ARMS_AMMO_NAME);
 
 	// Calling script can continue.
@@ -226,7 +237,7 @@ mcodeFunctionReturnCodes _game_session::fn_add_icon_to_icon_list(int32 &, int32 
 	g_oIconListManager->AddIconToList(list_name, icon_name);
 
 	// Preload the icon for PSX smoothing.
-	sprintf(pcIconPath, ICON_PATH);
+	Common::sprintf_s(pcIconPath, ICON_PATH);
 	g_oIconMenu->PreloadIcon(pcIconPath, icon_name);
 
 	// Calling script can continue.
@@ -301,6 +312,13 @@ mcodeFunctionReturnCodes _game_session::fn_interact_choose(int32 &, int32 *param
 
 	// To fix a GCC compiler warning.
 	return (IR_REPEAT);
+}
+
+mcodeFunctionReturnCodes _game_session::fn_shutdown_inventory(int32 &, int32 *) {
+	g_oIconMenu->CloseDownIconMenu();
+
+	// Calling script can continue.
+	return IR_CONT;
 }
 
 } // End of namespace ICB

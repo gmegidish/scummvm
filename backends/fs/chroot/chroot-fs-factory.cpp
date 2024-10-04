@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,8 +47,13 @@ AbstractFSNode *ChRootFilesystemFactory::makeCurrentDirectoryFileNode() const {
 		return NULL;
 	}
 
-	if (Common::String(buf).hasPrefix(_root + Common::String("/"))) {
+	Common::String curPath(buf);
+	if (curPath.hasPrefix(_root + Common::String("/"))) {
 		return new ChRootFilesystemNode(_root, buf + _root.size());
+	}
+	for (auto it = _virtualDrives.begin() ; it != _virtualDrives.end() ; ++it) {
+		if (curPath.hasPrefix(it->_value + Common::String("/")))
+			return new ChRootFilesystemNode(it->_value, buf + it->_value.size(), it->_key);
 	}
 
 	return new ChRootFilesystemNode(_root, "/");
@@ -57,7 +61,27 @@ AbstractFSNode *ChRootFilesystemFactory::makeCurrentDirectoryFileNode() const {
 
 AbstractFSNode *ChRootFilesystemFactory::makeFileNodePath(const Common::String &path) const {
 	assert(!path.empty());
+	size_t driveEnd = path.findFirstOf('/');
+	if (driveEnd != Common::String::npos && driveEnd > 0) {
+		auto it = _virtualDrives.find(path.substr(0, driveEnd));
+		if (it != _virtualDrives.end())
+			return new ChRootFilesystemNode(it->_value, path.substr(driveEnd), it->_key);
+	}
 	return new ChRootFilesystemNode(_root, path);
+}
+
+void ChRootFilesystemFactory::addVirtualDrive(const Common::String &name, const Common::String &path) {
+	_virtualDrives[name] = path;
+}
+
+Common::String ChRootFilesystemFactory::getSystemFullPath(const Common::String& path) const {
+	size_t driveEnd = path.findFirstOf('/');
+	if (driveEnd != Common::String::npos && driveEnd > 0) {
+		auto it = _virtualDrives.find(path.substr(0, driveEnd));
+		if (it != _virtualDrives.end())
+			return it->_value + path.substr(driveEnd);
+	}
+	return _root + path;
 }
 
 #endif

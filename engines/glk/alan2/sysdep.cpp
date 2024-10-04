@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -110,17 +109,17 @@ static char uppChrs[] = {
 
 
 int isSpace(int c) {            /* IN - Native character to test */
-	return (c != '\0' && strchr(spcChrs, c) != 0);
+	return (c != '\0' && strchr(spcChrs, c) != nullptr);
 }
 
 
 int isLower(int c) {            /* IN - Native character to test */
-	return (c != '\0' && strchr(lowChrs, c) != 0);
+	return (c != '\0' && strchr(lowChrs, c) != nullptr);
 }
 
 
 int isUpper(int c) {            /* IN - Native character to test */
-	return (c != '\0' && strchr(uppChrs, c) != 0);
+	return (c != '\0' && strchr(uppChrs, c) != nullptr);
 }
 
 int isLetter(int c) {           /* IN - Native character to test */
@@ -158,13 +157,13 @@ char *strupp(char str[]) {      /* INOUT - Native string to convert */
 
 int isLowerCase(int c) {        /* IN - ISO character to test */
 	static char lowChars[] = "abcdefghijklmnopqrstuvwxyz\340\341\342\343\344\345\346\347\351\352\353\354\355\356\357\360\361\362\363\364\365\366\370\371\372\373\374\375\376\377";
-	return (c != '\0' && strchr(lowChars, c) != 0);
+	return (c != '\0' && strchr(lowChars, c) != nullptr);
 }
 
 
 int isUpperCase(int c) {        /* IN - ISO character to test */
 	static char upperChars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337";
-	return (c != '\0' && strchr(upperChars, c) != 0);
+	return (c != '\0' && strchr(upperChars, c) != nullptr);
 }
 
 
@@ -201,6 +200,7 @@ char *stringUpper(char str[]) { /* INOUT - ISO string to convert */
 }
 
 
+#if 0
 /*----------------------------------------------------------------------
   toIso
 
@@ -305,6 +305,7 @@ void toNative(char copy[],  /* OUT - Mapped  string */
 	if (NATIVECHARSET != 0)
 		fromIso(copy, copy);
 }
+#endif
 
 } // End of namespace Alan2
 } // End of namespace Glk

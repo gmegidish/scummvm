@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -162,7 +161,7 @@ mcodeFunctionReturnCodes _game_session::fn_stop_sfx(int32 &, int32 *params) {
 	const char *sub = strstr(const_cast<char *>(snd), "::");
 
 	// if object name is given in form obj::snd then extract both parts
-	if (sub != NULL) {
+	if (sub != nullptr) {
 		char tempObj[64];
 		char tempSnd[64];
 
@@ -170,9 +169,9 @@ mcodeFunctionReturnCodes _game_session::fn_stop_sfx(int32 &, int32 *params) {
 		strncpy(tempObj, const_cast<char *>(snd), sub - snd);
 		tempObj[sub - snd] = 0; // null terminate
 
-		strcpy(tempSnd, sub + strlen("::"));
+		Common::strcpy_s(tempSnd, sub + 2/*strlen("::")*/);
 
-		int32 obj = MS->objects->Fetch_item_number_by_name(tempObj);
+		int32 obj = LinkedDataObject::Fetch_item_number_by_name(MS->objects, tempObj);
 
 		if (obj != -1)
 			RemoveRegisteredSound(obj, tempSnd);

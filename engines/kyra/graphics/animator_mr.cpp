@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -118,7 +117,7 @@ void KyraEngine_MR::drawSceneAnimObject(AnimObj *obj, int x, int y, int layer) {
 				flags |= 0x8000;
 			x = obj->xPos2 - _sceneAnimMovie[obj->animNum]->xAdd();
 			y = obj->yPos2 - _sceneAnimMovie[obj->animNum]->yAdd();
-			_sceneAnimMovie[obj->animNum]->displayFrame(obj->shapeIndex3, 2, x, y, flags | layer, 0, 0);
+			_sceneAnimMovie[obj->animNum]->displayFrame(obj->shapeIndex3, 2, x, y, flags | layer, nullptr, nullptr);
 		}
 	}
 }
@@ -293,7 +292,7 @@ void KyraEngine_MR::updateSceneAnim(int anim, int newFrame) {
 		animObject->shapeIndex3 = 0xFFFF;
 		animObject->animNum = 0xFFFF;
 	} else {
-		animObject->shapePtr = 0;
+		animObject->shapePtr = nullptr;
 		animObject->shapeIndex3 = newFrame;
 		animObject->animNum = anim;
 	}
@@ -326,10 +325,10 @@ void KyraEngine_MR::setupSceneAnimObject(int animId, uint16 flags, int x, int y,
 	anim.specialSize = specialSize;
 	anim.shapeIndex = shape;
 	if (filename)
-		strcpy(anim.filename, filename);
+		Common::strlcpy(anim.filename, filename, sizeof(anim.filename));
 
 	if (flags & 8) {
-		_sceneAnimMovie[animId]->open(filename, 1, 0);
+		_sceneAnimMovie[animId]->open(filename, 1, nullptr);
 		if (_sceneAnimMovie[animId]->opened()) {
 			anim.wsaFlag = 1;
 			if (x2 == -1)
@@ -369,7 +368,7 @@ void KyraEngine_MR::setupSceneAnimObject(int animId, uint16 flags, int x, int y,
 	if ((anim.flags & 4) && anim.shapeIndex != -1)
 		obj->shapePtr = _sceneShapes[anim.shapeIndex];
 	else
-		obj->shapePtr = 0;
+		obj->shapePtr = nullptr;
 
 	if (anim.flags & 8) {
 		obj->shapeIndex3 = anim.shapeIndex;

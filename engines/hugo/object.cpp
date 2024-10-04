@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -140,17 +139,17 @@ void ObjectHandler::useObject(int16 objId) {
 		const char *verb;                                 // Background verb to use directly
 		// Get or use objid directly
 		if ((obj->_genericCmd & TAKE) || obj->_objValue)  // Get collectible item
-			sprintf(_vm->_line, "%s %s", _vm->_text->getVerb(_vm->_take, 0), _vm->_text->getNoun(obj->_nounIndex, 0));
+			Common::sprintf_s(_vm->_line, "%s %s", _vm->_text->getVerb(_vm->_take, 0), _vm->_text->getNoun(obj->_nounIndex, 0));
 		else if (obj->_cmdIndex != 0)                     // Use non-collectible item if able
-			sprintf(_vm->_line, "%s %s", _vm->_text->getVerb(_vm->_parser->getCmdDefaultVerbIdx(obj->_cmdIndex), 0), _vm->_text->getNoun(obj->_nounIndex, 0));
-		else if ((verb = _vm->_parser->useBG(_vm->_text->getNoun(obj->_nounIndex, 0))) != 0)
-			sprintf(_vm->_line, "%s %s", verb, _vm->_text->getNoun(obj->_nounIndex, 0));
+			Common::sprintf_s(_vm->_line, "%s %s", _vm->_text->getVerb(_vm->_parser->getCmdDefaultVerbIdx(obj->_cmdIndex), 0), _vm->_text->getNoun(obj->_nounIndex, 0));
+		else if ((verb = _vm->_parser->useBG(_vm->_text->getNoun(obj->_nounIndex, 0))) != nullptr)
+			Common::sprintf_s(_vm->_line, "%s %s", verb, _vm->_text->getNoun(obj->_nounIndex, 0));
 		else
 			return;                                       // Can't use object directly
 	} else {
 		// Use status.objid on objid
 		// Default to first cmd verb
-		sprintf(_vm->_line, "%s %s %s", _vm->_text->getVerb(_vm->_parser->getCmdDefaultVerbIdx(_objects[inventObjId]._cmdIndex), 0),
+		Common::sprintf_s(_vm->_line, "%s %s %s", _vm->_text->getVerb(_vm->_parser->getCmdDefaultVerbIdx(_objects[inventObjId]._cmdIndex), 0),
 			                       _vm->_text->getNoun(_objects[inventObjId]._nounIndex, 0),
 			                       _vm->_text->getNoun(obj->_nounIndex, 0));
 
@@ -163,7 +162,7 @@ void ObjectHandler::useObject(int16 objId) {
 				for (Target *target = use->_targets; target->_nounIndex != 0; target++)
 					if (target->_nounIndex == obj->_nounIndex) {
 						foundFl = true;
-						sprintf(_vm->_line, "%s %s %s", _vm->_text->getVerb(target->_verbIndex, 0),
+						Common::sprintf_s(_vm->_line, "%s %s %s", _vm->_text->getVerb(target->_verbIndex, 0),
 							                       _vm->_text->getNoun(_objects[inventObjId]._nounIndex, 0),
 							                       _vm->_text->getNoun(obj->_nounIndex, 0));
 					}
@@ -204,7 +203,7 @@ int16 ObjectHandler::findObject(uint16 x, uint16 y) {
 		if (obj->_screenIndex == *_vm->_screenPtr && (obj->_genericCmd || obj->_objValue || obj->_cmdIndex)) {
 			Seq *curImage = obj->_currImagePtr;
 			// Object must have a visible image...
-			if (curImage != 0 && obj->_cycling != kCycleInvisible) {
+			if (curImage != nullptr && obj->_cycling != kCycleInvisible) {
 				// If cursor inside object
 				if (x >= (uint16)obj->_x && x <= obj->_x + curImage->_x2 && y >= (uint16)obj->_y && y <= obj->_y + curImage->_y2) {
 					// If object is closest so far
@@ -215,7 +214,7 @@ int16 ObjectHandler::findObject(uint16 x, uint16 y) {
 				}
 			} else {
 				// ...or a dummy object that has a hotspot rectangle
-				if (curImage == 0 && obj->_vxPath != 0 && !obj->_carriedFl) {
+				if (curImage == nullptr && obj->_vxPath != 0 && !obj->_carriedFl) {
 					// If cursor inside special rectangle
 					if ((int16)x >= obj->_oldx && (int16)x < obj->_oldx + obj->_vxPath && (int16)y >= obj->_oldy && (int16)y < obj->_oldy + obj->_vyPath) {
 						// If object is closest so far

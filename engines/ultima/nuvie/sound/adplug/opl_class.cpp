@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,10 +24,6 @@
 
 namespace Ultima {
 namespace Nuvie {
-
-#ifndef PI
-#define PI 3.14159265358979323846
-#endif
 
 #ifdef _MSC_VER
 #  define INLINE __inline
@@ -294,7 +289,7 @@ static const uint8 mul_tab[16] = {
 	The whole table takes: 64 * 210 = 13440 samples.
 
 	When AM = 1 data is used directly
-	When AM = 0 data is divided by 4 before being used (loosing precision is important)
+	When AM = 0 data is divided by 4 before being used (losing precision is important)
 */
 
 #define LFO_AM_TAB_ELEMENTS 210
@@ -395,7 +390,7 @@ OplClass::OplClass(int rate, bool bit16, bool usestereo)
 	: use16bit(bit16), stereo(usestereo), oplRate(rate) {
 	YM3812NumChips = 0;
 	num_lock = 0;
-	cur_chip = NULL;
+	cur_chip = nullptr;
 	YM3812Init(1, 3579545, rate);
 }
 
@@ -937,7 +932,7 @@ int OplClass::init_tables(void) {
 
 	for (i = 0; i < SIN_LEN; i++) {
 		/* non-standard sinus */
-		m = sin(((i * 2) + 1) * PI / SIN_LEN); /* checked against the real chip */
+		m = sin(((i * 2) + 1) * M_PI / SIN_LEN); /* checked against the real chip */
 
 		/* we never reach zero here due to ((i*2)+1) */
 
@@ -1339,7 +1334,7 @@ int OplClass::OPL_LockTable(void) {
 
 	/* first time */
 
-	cur_chip = NULL;
+	cur_chip = nullptr;
 	/* allocate total level table (128kb space) */
 	if (!init_tables()) {
 		num_lock--;
@@ -1355,7 +1350,7 @@ void OplClass::OPL_UnLockTable(void) {
 
 	/* last time */
 
-	cur_chip = NULL;
+	cur_chip = nullptr;
 	OPLCloseTable();
 
 }
@@ -1399,7 +1394,7 @@ FM_OPL *OplClass::OPLCreate(int type, int clock, int rate) {
 	FM_OPL *OPL;
 	int state_size;
 
-	if (OPL_LockTable() == -1) return NULL;
+	if (OPL_LockTable() == -1) return nullptr;
 
 	/* calculate OPL state size */
 	state_size  = sizeof(FM_OPL);
@@ -1407,8 +1402,8 @@ FM_OPL *OplClass::OPLCreate(int type, int clock, int rate) {
 	/* allocate memory block */
 	ptr = (char *)malloc(state_size);
 
-	if (ptr == NULL)
-		return NULL;
+	if (ptr == nullptr)
+		return nullptr;
 
 	/* clear */
 	memset(ptr, 0, state_size);
@@ -1491,7 +1486,7 @@ static int OPLTimerOver(FM_OPL *OPL, int c) {
 	} else {
 		/* Timer A */
 		OPL_STATUS_SET(OPL, 0x40);
-		/* CSM mode key,TL controll */
+		/* CSM mode key,TL control */
 		if (OPL->mode & 0x80) {
 			/* CSM mode total level latch and auto key on */
 			int ch;
@@ -1520,7 +1515,7 @@ int OplClass::YM3812Init(int num, int clock, int rate) {
 	for (i = 0; i < YM3812NumChips; i++) {
 		/* emulator create */
 		OPL_YM3812[i] = OPLCreate(OPL_TYPE_YM3812, clock, rate);
-		if (OPL_YM3812[i] == NULL) {
+		if (OPL_YM3812[i] == nullptr) {
 			/* it's really bad - we run out of memeory */
 			YM3812NumChips = 0;
 			return -1;
@@ -1536,7 +1531,7 @@ void OplClass::YM3812Shutdown(void) {
 	for (i = 0; i < YM3812NumChips; i++) {
 		/* emulator shutdown */
 		OPLDestroy(OPL_YM3812[i]);
-		OPL_YM3812[i] = NULL;
+		OPL_YM3812[i] = nullptr;
 	}
 	YM3812NumChips = 0;
 }

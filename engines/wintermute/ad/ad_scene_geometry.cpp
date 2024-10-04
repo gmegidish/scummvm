@@ -1,22 +1,21 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,8 +25,8 @@
  * Copyright (c) 2003-2013 Jan Nedoma and contributors
  */
 
-#include "common/math.h"
 #include "common/util.h"
+
 #include "engines/wintermute/ad/ad_block.h"
 #include "engines/wintermute/ad/ad_game.h"
 #include "engines/wintermute/ad/ad_generic.h"
@@ -44,13 +43,14 @@
 #include "engines/wintermute/base/base_sprite.h"
 #include "engines/wintermute/base/file/base_file.h"
 #include "engines/wintermute/base/gfx/opengl/base_render_opengl3d.h"
-#include "engines/wintermute/base/gfx/3ds/camera3d.h"
-#include "engines/wintermute/base/gfx/3ds/light3d.h"
-#include "engines/wintermute/base/gfx/3ds/loader3ds.h"
-#include "engines/wintermute/base/gfx/3ds/mesh3ds.h"
+#include "engines/wintermute/base/gfx/3dcamera.h"
+#include "engines/wintermute/base/gfx/3dlight.h"
+#include "engines/wintermute/base/gfx/3dloader_3ds.h"
+#include "engines/wintermute/base/gfx/3dmesh.h"
 #include "engines/wintermute/math/math_util.h"
 #include "engines/wintermute/system/sys_class_registry.h"
 #include "engines/wintermute/wintermute.h"
+
 #include "math/glmath.h"
 
 namespace Wintermute {
@@ -61,8 +61,6 @@ IMPLEMENT_PERSISTENT(AdSceneGeometry, false)
 AdSceneGeometry::AdSceneGeometry(BaseGame *gameRef) : BaseObject(gameRef) {
 	_activeCamera = _activeLight = -1;
 	_viewMatrix.setToIdentity();
-	//m_WaypointHeight = 5.0f;
-	//m_WaypointHeight = 1.0f;
 	_waypointHeight = 10.0f;
 	_wptMarker = NULL;
 
@@ -118,9 +116,6 @@ void AdSceneGeometry::cleanup() {
 	_waypointGroups.clear();
 
 	for (i = 0; i < _cameras.size(); i++) {
-		//		CBRenderD3D* _renderer = (CBRenderD3D*)_gameRef->_renderer;
-		//		if(m_Renderer->m_Camera == _cameras[i]) m_Renderer->m_Camera = NULL;
-
 		delete _cameras[i];
 	}
 	_cameras.clear();
@@ -211,42 +206,44 @@ bool AdSceneGeometry::loadFile(const char *filename) {
 
 		switch (ExtNode->_type) {
 		case GEOM_WALKPLANE: {
-			AdWalkplane *plane = new AdWalkplane(_gameRef);
-			plane->setName(meshNames[i].c_str());
-			plane->_mesh = meshes[i];
-			// TODO: These constants are endianness dependent
-			plane->_mesh->fillVertexBuffer(0xFF0000FF);
-			plane->_receiveShadows = ExtNode->_receiveShadows;
-			_planes.add(plane);
-			} break;
+				AdWalkplane *plane = new AdWalkplane(_gameRef);
+				plane->setName(meshNames[i].c_str());
+				plane->_mesh = meshes[i];
+				plane->_mesh->fillVertexBuffer(0xFF0000FF);
+				plane->_receiveShadows = ExtNode->_receiveShadows;
+				_planes.add(plane);
+			}
+			break;
 
 		case GEOM_BLOCKED: {
-			AdBlock *block = new AdBlock(_gameRef);
-			block->setName(meshNames[i].c_str());
-			block->_mesh = meshes[i];
-			block->_mesh->fillVertexBuffer(0xFFFF0000);
-			block->_receiveShadows = ExtNode->_receiveShadows;
-			_blocks.add(block);
-			} break;
+				AdBlock *block = new AdBlock(_gameRef);
+				block->setName(meshNames[i].c_str());
+				block->_mesh = meshes[i];
+				block->_mesh->fillVertexBuffer(0xFFFF0000);
+				block->_receiveShadows = ExtNode->_receiveShadows;
+				_blocks.add(block);
+			}
+			break;
 
 		case GEOM_WAYPOINT: {
-			Mesh3DS *mesh = meshes[i];
-			// TODO: groups
-			if (_waypointGroups.size() == 0) {
-				_waypointGroups.add(new AdWaypointGroup3D(_gameRef));
+				Mesh3DS *mesh = meshes[i];
+				if (_waypointGroups.size() == 0) {
+					_waypointGroups.add(new AdWaypointGroup3D(_gameRef));
+				}
+				_waypointGroups[0]->addFromMesh(mesh);
+				delete mesh;
 			}
-			_waypointGroups[0]->addFromMesh(mesh);
-			delete mesh;
-			} break;
+			break;
 
 		case GEOM_GENERIC: {
-			AdGeneric *generic = new AdGeneric(_gameRef);
-			generic->setName(meshNames[i].c_str());
-			generic->_mesh = meshes[i];
-			generic->_mesh->fillVertexBuffer(0xFF00FF00);
-			generic->_receiveShadows = ExtNode->_receiveShadows;
-			_generics.add(generic);
-			} break;
+				AdGeneric *generic = new AdGeneric(_gameRef);
+				generic->setName(meshNames[i].c_str());
+				generic->_mesh = meshes[i];
+				generic->_mesh->fillVertexBuffer(0xFF00FF00);
+				generic->_receiveShadows = ExtNode->_receiveShadows;
+				_generics.add(generic);
+			}
+			break;
 		}
 	}
 

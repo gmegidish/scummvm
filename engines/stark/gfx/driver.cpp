@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,13 +23,14 @@
 #include "engines/stark/gfx/opengl.h"
 #include "engines/stark/gfx/opengls.h"
 #include "engines/stark/gfx/tinygl.h"
+#include "engines/stark/services/services.h"
+#include "engines/stark/services/settings.h"
 
 #include "common/config-manager.h"
-#include "common/translation.h"
 
 #include "graphics/renderer.h"
 #include "graphics/surface.h"
-#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS) || defined(USE_GLES2)
+#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
 #include "graphics/opengl/context.h"
 #endif
 
@@ -43,48 +43,43 @@ namespace Gfx {
 
 Driver *Driver::create() {
 	Common::String rendererConfig = ConfMan.get("renderer");
-	Graphics::RendererType desiredRendererType = Graphics::parseRendererTypeCode(rendererConfig);
-	Graphics::RendererType matchingRendererType = Graphics::getBestMatchingAvailableRendererType(desiredRendererType);
+	Graphics::RendererType desiredRendererType = Graphics::Renderer::parseTypeCode(rendererConfig);
+	Graphics::RendererType matchingRendererType = Graphics::Renderer::getBestMatchingAvailableType(desiredRendererType,
+#if defined(USE_OPENGL_GAME)
+			Graphics::kRendererTypeOpenGL |
+#endif
+#if defined(USE_OPENGL_SHADERS)
+			Graphics::kRendererTypeOpenGLShaders |
+#endif
+#if defined(USE_TINYGL)
+			Graphics::kRendererTypeTinyGL |
+#endif
+			0);
 
-#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS) || defined(USE_GLES2)
 	bool softRenderer = matchingRendererType == Graphics::kRendererTypeTinyGL;
 	if (!softRenderer) {
 		initGraphics3d(kOriginalWidth, kOriginalHeight);
 	} else {
-#endif
 		initGraphics(kOriginalWidth, kOriginalHeight, nullptr);
-#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS) || defined(USE_GLES2)
-	}
-#endif
-
-	if (matchingRendererType != desiredRendererType && desiredRendererType != Graphics::kRendererTypeDefault) {
-		// Display a warning if unable to use the desired renderer
-		warning("Unable to match a '%s' renderer", rendererConfig.c_str());
 	}
 
-	Driver *driver = nullptr;
-
-#if defined(USE_GLES2) || defined(USE_OPENGL_SHADERS)
-	bool backendCapableOpenGLShaders = g_system->hasFeature(OSystem::kFeatureOpenGLForGame) && OpenGLContext.shadersSupported;
-	if (backendCapableOpenGLShaders && matchingRendererType == Graphics::kRendererTypeOpenGLShaders) {
-		driver = new OpenGLSDriver();
+#if defined(USE_OPENGL_SHADERS)
+	if (matchingRendererType == Graphics::kRendererTypeOpenGLShaders) {
+		return new OpenGLSDriver();
 	}
 #endif
-#if defined(USE_OPENGL_GAME) && !defined(USE_GLES2)
-	bool backendCapableOpenGL = g_system->hasFeature(OSystem::kFeatureOpenGLForGame);
-	if (backendCapableOpenGL && matchingRendererType == Graphics::kRendererTypeOpenGL) {
-		driver = new OpenGLDriver();
+#if defined(USE_OPENGL_GAME)
+	if (matchingRendererType == Graphics::kRendererTypeOpenGL) {
+		return new OpenGLDriver();
 	}
 #endif
+#if defined(USE_TINYGL)
 	if (matchingRendererType == Graphics::kRendererTypeTinyGL) {
-		//driver = new TinyGLDriver();
+		return new TinyGLDriver();
 	}
-
-	if (driver)
-		return driver;
-	warning("No renderers have been found for this game");
-	GUI::displayErrorDialog(Common::U32String::format(_("No renderers have been found for this game")));
-	return driver;
+#endif
+	/* We should never end up here, getBestMatchingRendererType would have failed before */
+	error("Unable to create a renderer");
 }
 
 const Graphics::PixelFormat Driver::getRGBAPixelFormat() {

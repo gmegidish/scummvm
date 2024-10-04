@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -223,8 +222,7 @@ int Object::propertyOffsetToId(SegManager *segMan, int propertyOffset) const {
 	int selectors = getVarCount();
 
 	if (propertyOffset < 0 || (propertyOffset >> 1) >= selectors) {
-		error("Applied propertyOffsetToId to invalid property offset %x (property #%d not in [0..%d])",
-		          propertyOffset, propertyOffset >> 1, selectors - 1);
+		// Scripts contain instructions with invalid properties
 		return -1;
 	}
 
@@ -380,15 +378,23 @@ bool Object::mustSetViewVisible(int index, const bool fromPropertyOp) const {
 
 void Object::initSelectorsSci3(const SciSpan<const byte> &buf, const bool initVariables) {
 	enum {
-		kExtraGroups = 3,
-		kGroupSize   = 32
+		kObjectHeaderSize = 16,
+		kSelectorBankSize = 256,
+		kGroupSize = 64,
+		kSelectorsInGroup = 32
 	};
 
-	const SciSpan<const byte> groupInfo = _baseObj.subspan(16);
-	const SciSpan<const byte> selectorBase = groupInfo.subspan(kExtraGroups * kGroupSize * sizeof(uint16));
-
-	int numGroups = g_sci->getKernel()->getSelectorNamesSize() / kGroupSize;
-	if (g_sci->getKernel()->getSelectorNamesSize() % kGroupSize)
+	// The selector bank is a 256 byte array. Each byte represents a range of
+	// 32 selectors. If an object has any selectors in the range then this
+	// byte is a one-based index to the list of selector-group structures that
+	// follows, otherwise it is zero.
+	const SciSpan<const byte> selectorBank = _baseObj.subspan(kObjectHeaderSize, kSelectorBankSize);
+	const SciSpan<const byte> groups = _baseObj.subspan(kObjectHeaderSize + kSelectorBankSize);
+	
+	// Instead of testing all 256 selector bank entries, we calculate how many
+	// groups there are according to the size of the selector table.
+	int numGroups = g_sci->getKernel()->getSelectorNamesSize() / kSelectorsInGroup;
+	if (g_sci->getKernel()->getSelectorNamesSize() % kSelectorsInGroup)
 		++numGroups;
 
 	_mustSetViewVisible.resize(numGroups);
@@ -396,23 +402,24 @@ void Object::initSelectorsSci3(const SciSpan<const byte> &buf, const bool initVa
 	int numMethods = 0;
 	int numProperties = 0;
 
-	// Selectors are divided into groups of 32, of which the first
-	// two selectors are always reserved (because their storage
-	// space is used by the typeMask).
+	// Selectors are divided into groups of 32, of which the first two selectors
+	// are unused because their bytes are used for a 32-bit typeMask that indicates
+	// which of the remaining 30 selectors are properties. This means that in SCI3
+	// there are no selectors with the values 0, 1, 32, 33, etc.
 	// We don't know beforehand how many methods and properties
 	// there are, so we count them first.
-	for (int groupNr = 0; groupNr < numGroups; ++groupNr) {
-		byte groupLocation = groupInfo[groupNr];
-		const SciSpan<const byte> seeker = selectorBase.subspan(groupLocation * kGroupSize * sizeof(uint16));
+	for (int bankIndex = 0; bankIndex < numGroups; ++bankIndex) {
+		byte groupIndex = selectorBank[bankIndex]; // one-based index
 
-		if (groupLocation != 0)	{
+		if (groupIndex != 0)	{
 			// This object actually has selectors belonging to this group
-			int typeMask = seeker.getUint32SEAt(0);
+			const SciSpan<const byte> group = groups.subspan((groupIndex - 1) * kGroupSize, kGroupSize);
+			uint32 typeMask = group.getUint32SEAt(0);
 
-			_mustSetViewVisible[groupNr] = (typeMask & 1);
+			_mustSetViewVisible[bankIndex] = (typeMask & 1);
 
-			for (int bit = 2; bit < kGroupSize; ++bit) {
-				int value = seeker.getUint16SEAt(bit * sizeof(uint16));
+			for (int bit = 2; bit < kSelectorsInGroup; ++bit) {
+				uint16 value = group.getUint16SEAt(bit * sizeof(uint16));
 				if (typeMask & (1 << bit)) { // Property
 					++numProperties;
 				} else if (value != 0xffff) { // Method
@@ -422,10 +429,11 @@ void Object::initSelectorsSci3(const SciSpan<const byte> &buf, const bool initVa
 				}
 			}
 		} else
-			_mustSetViewVisible[groupNr] = false;
+			_mustSetViewVisible[bankIndex] = false;
 	}
 
 	_methodCount = numMethods;
+	_baseMethod.resize(numMethods * 2);
 	_variables.resize(numProperties);
 	_baseVars.resize(numProperties);
 	_propertyOffsetsSci3.resize(numProperties);
@@ -433,30 +441,33 @@ void Object::initSelectorsSci3(const SciSpan<const byte> &buf, const bool initVa
 	// Go through the whole thing again to get the property values
 	// and method pointers
 	int propertyCounter = 0;
-	for (int groupNr = 0; groupNr < numGroups; ++groupNr) {
-		byte groupLocation = groupInfo[groupNr];
-		const SciSpan<const byte> seeker = selectorBase.subspan(groupLocation * kGroupSize * sizeof(uint16));
+	int methodCounter = 0;
+	uint32 codeOffset = buf.getUint32SEAt(0);
+	for (int bankIndex = 0; bankIndex < numGroups; ++bankIndex) {
+		byte groupIndex = selectorBank[bankIndex]; // one-based index
 
-		if (groupLocation != 0)	{
+		if (groupIndex != 0)	{
 			// This object actually has selectors belonging to this group
-			int typeMask = seeker.getUint32SEAt(0);
-			int groupBaseId = groupNr * kGroupSize;
+			const SciSpan<const byte> group = groups.subspan((groupIndex - 1) * kGroupSize, kGroupSize);
+			uint32 typeMask = group.getUint32SEAt(0);
+			int groupBaseId = bankIndex * kSelectorsInGroup;
 
-			for (int bit = 2; bit < kGroupSize; ++bit) {
-				int value = seeker.getUint16SEAt(bit * sizeof(uint16));
+			for (int bit = 2; bit < kSelectorsInGroup; ++bit) {
+				uint16 value = group.getUint16SEAt(bit * sizeof(uint16));
 				if (typeMask & (1 << bit)) { // Property
 					_baseVars[propertyCounter] = groupBaseId + bit;
 					if (initVariables) {
 						_variables[propertyCounter] = make_reg(0, value);
 					}
-					uint32 propertyOffset = (seeker + bit * sizeof(uint16)) - buf;
+					uint32 propertyOffset = (group + bit * sizeof(uint16)) - buf;
 					_propertyOffsetsSci3[propertyCounter] = propertyOffset;
 					++propertyCounter;
 				} else if (value != 0xffff) { // Method
-					_baseMethod.push_back(groupBaseId + bit);
-					const uint32 offset = value + buf.getUint32SEAt(0);
-					assert(offset <= kOffsetMask);
-					_baseMethod.push_back(offset);
+					_baseMethod[methodCounter * 2] = groupBaseId + bit;
+					uint32 methodOffset = value + codeOffset;
+					assert(methodOffset <= kOffsetMask);
+					_baseMethod[methodCounter * 2 + 1] = methodOffset;
+					++methodCounter;
 				} else {
 					// Undefined selector
 				}

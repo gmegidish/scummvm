@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,10 +26,6 @@
 #include "common/algorithm.h"
 #include "common/textconsole.h" // For error()
 #include "common/memory.h"
-
-#ifdef USE_CXX11
-#include "common/initializer_list.h"
-#endif
 
 namespace Common {
 
@@ -69,7 +64,7 @@ protected:
 	T *_storage;  /*!< Memory used for element storage. */
 
 public:
-	Array() : _capacity(0), _size(0), _storage(nullptr) {}
+	constexpr Array() : _capacity(0), _size(0), _storage(nullptr) {}
 
 	/**
 	 * Construct an array with @p count default-inserted instances of @p T. No
@@ -77,8 +72,11 @@ public:
 	 */
 	explicit Array(size_type count) : _size(count) {
 		allocCapacity(count);
+
+		T *storage = _storage;
+
 		for (size_type i = 0; i < count; ++i)
-			new ((void *)&_storage[i]) T();
+			new ((void *)&storage[i]) T();
 	}
 
 	/**
@@ -99,7 +97,6 @@ public:
 		}
 	}
 
-#ifdef USE_CXX11
 	/**
 	 * Construct an array as a copy of the given array using the C++11 move semantic.
 	 */
@@ -124,7 +121,6 @@ public:
 		if (_storage)
 			Common::uninitialized_copy(list.begin(), list.end(), _storage);
 	}
-#endif
 
 	/**
 	 * Construct an array by copying data from a regular array.
@@ -142,12 +138,52 @@ public:
 		_capacity = _size = 0;
 	}
 
+	/** Construct an element into a position in the array. */
+	template<class... TArgs>
+	void emplace(const_iterator pos, TArgs&&... args) {
+		assert(pos >= _storage && pos <= _storage + _size);
+
+		const size_type index = static_cast<size_type>(pos - _storage);
+
+		if (_size != _capacity && index == _size) {
+			// Added at the end in the existing storage
+			new (_storage + index) T(Common::forward<TArgs>(args)...);
+		} else {
+			// Either added in the middle, or ran out of space
+			// In the added-in-the-middle case, the copy is required because the parameters
+			// may contain a const ref to the original storage.
+			T *oldStorage = _storage;
+
+			allocCapacity(roundUpCapacity(_size + 1));
+
+			// Construct the new element first, since it may copy-construct from
+			// the original array
+			new (_storage + index) T(Common::forward<TArgs>(args)...);
+
+			// Move the original data
+			uninitialized_move(oldStorage, oldStorage + index, _storage);
+			uninitialized_move(oldStorage + index, oldStorage + _size, _storage + index + 1);
+
+			freeStorage(oldStorage, _size);
+		}
+
+		_size++;
+	}
+
+	/** Construct an element to the end of the array. */
+	template<class... TArgs>
+	void emplace_back(TArgs &&...args) {
+		emplace(begin() + _size, Common::forward<TArgs>(args)...);
+	}
+
 	/** Append an element to the end of the array. */
 	void push_back(const T &element) {
-		if (_size + 1 <= _capacity)
-			new ((void *)&_storage[_size++]) T(element);
-		else
-			insert_aux(end(), &element, &element + 1);
+		emplace_back(element);
+	}
+
+	/** Append an element to the end of the array. */
+	void push_back(T &&element) {
+		emplace_back(Common::move(element));
 	}
 
 	/** Append an element to the end of the array. */
@@ -223,8 +259,8 @@ public:
 	/** Remove an element at the given position from the array and return the value of that element. */
 	T remove_at(size_type idx) {
 		assert(idx < _size);
-		T tmp = _storage[idx];
-		copy(_storage + idx + 1, _storage + _size, _storage + idx);
+		T tmp = Common::move(_storage[idx]);
+		move(_storage + idx + 1, _storage + _size, _storage + idx);
 		_size--;
 		// We also need to destroy the last object properly here.
 		_storage[_size].~T();
@@ -258,7 +294,6 @@ public:
 		return *this;
 	}
 
-#ifdef USE_CXX11
 	/** Assign the given array to this array using the C++11 move semantic. */
 	Array &operator=(Array<T> &&old) {
 		if (this == &old)
@@ -275,7 +310,6 @@ public:
 
 		return *this;
 	}
-#endif
 
 	/** Return the size of the array. */
 	size_type size() const {
@@ -292,11 +326,25 @@ public:
 
 	/** Erase the element at @p pos position and return an iterator pointing to the next element in the array. */
 	iterator erase(iterator pos) {
-		copy(pos + 1, _storage + _size, pos);
+		move(pos + 1, _storage + _size, pos);
 		_size--;
 		// We also need to destroy the last object properly here.
 		_storage[_size].~T();
 		return pos;
+	}
+
+	/** Erase the elements from @p first to @p last and return an iterator pointing to the next element in the array. */
+	iterator erase(iterator first, iterator last) {
+		move(last, _storage + _size, first);
+
+		int count = (last - first);
+		_size -= count;
+
+		// We also need to destroy the objects beyond the new size
+		for (uint idx = _size; idx < (_size + count); ++idx)
+			_storage[idx].~T();
+
+		return first;
 	}
 
 	/** Check whether the array is empty. */
@@ -353,8 +401,8 @@ public:
 		allocCapacity(newCapacity);
 
 		if (oldStorage) {
-			// Copy old data
-			uninitialized_copy(oldStorage, oldStorage + _size, _storage);
+			// Move old data
+			uninitialized_move(oldStorage, oldStorage + _size, _storage);
 			freeStorage(oldStorage, _size);
 		}
 	}
@@ -362,10 +410,29 @@ public:
 	/** Change the size of the array. */
 	void resize(size_type newSize) {
 		reserve(newSize);
+
+		T *storage = _storage;
+
 		for (size_type i = newSize; i < _size; ++i)
-			_storage[i].~T();
+			storage[i].~T();
 		for (size_type i = _size; i < newSize; ++i)
-			new ((void *)&_storage[i]) T();
+			new ((void *)&storage[i]) T();
+
+		_size = newSize;
+	}
+
+	/** Change the size of the array and initialize new elements that exceed the
+	 *  current array's size with copies of value. */
+	void resize(size_type newSize, const T value) {
+		reserve(newSize);
+
+		T *storage = _storage;
+
+		for (size_type i = newSize; i < _size; ++i)
+			storage[i].~T();
+		if (newSize > _size)
+			uninitialized_fill_n(storage + _size, newSize - _size, value);
+
 		_size = newSize;
 	}
 
@@ -377,6 +444,12 @@ public:
 		T *dst = _storage;
 		while (first != last)
 			*dst++ = *first++;
+	}
+
+	void swap(Array &arr) {
+		SWAP(this->_capacity, arr._capacity);
+		SWAP(this->_size, arr._size);
+		SWAP(this->_storage, arr._storage);
 	}
 
 protected:
@@ -436,30 +509,30 @@ protected:
 				// storage to avoid conflicts.
 				allocCapacity(roundUpCapacity(_size + n));
 
-				// Copy the data from the old storage till the position where
+				// Move the data from the old storage till the position where
 				// we insert new data
-				uninitialized_copy(oldStorage, oldStorage + idx, _storage);
+				uninitialized_move(oldStorage, oldStorage + idx, _storage);
 				// Copy the data we insert
 				uninitialized_copy(first, last, _storage + idx);
-				// Afterwards, copy the old data from the position where we
+				// Afterwards, move the old data from the position where we
 				// insert.
-				uninitialized_copy(oldStorage + idx, oldStorage + _size, _storage + idx + n);
+				uninitialized_move(oldStorage + idx, oldStorage + _size, _storage + idx + n);
 
 				freeStorage(oldStorage, _size);
 			} else if (idx + n <= _size) {
 				// Make room for the new elements by shifting back
 				// existing ones.
 				// 1. Move a part of the data to the uninitialized area
-				uninitialized_copy(_storage + _size - n, _storage + _size, _storage + _size);
+				uninitialized_move(_storage + _size - n, _storage + _size, _storage + _size);
 				// 2. Move a part of the data to the initialized area
-				copy_backward(pos, _storage + _size - n, _storage + _size);
+				move_backward(pos, _storage + _size - n, _storage + _size);
 
 				// Insert the new elements.
 				copy(first, last, pos);
 			} else {
-				// Copy the old data from the position till the end to the new
+				// Move the old data from the position till the end to the new
 				// place.
-				uninitialized_copy(pos, _storage + _size, _storage + idx + n);
+				uninitialized_move(pos, _storage + _size, _storage + idx + n);
 
 				// Copy a part of the new data to the position inside the
 				// initialized space.

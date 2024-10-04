@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,16 +41,16 @@ class IdResolveIdRequest: public Networking::Request {
 	bool _ignoreCallback;
 
 	void start();
-	void listNextDirectory(StorageFile fileToReturn);
-	void listedDirectoryCallback(Storage::FileArrayResponse response);
-	void listedDirectoryErrorCallback(Networking::ErrorResponse error);
-	void finishFile(StorageFile file);
+	void listNextDirectory(const StorageFile &fileToReturn);
+	void listedDirectoryCallback(const Storage::FileArrayResponse &response);
+	void listedDirectoryErrorCallback(const Networking::ErrorResponse &error);
+	void finishFile(const StorageFile &file);
 public:
-	IdResolveIdRequest(IdStorage *storage, Common::String path, Storage::UploadCallback cb, Networking::ErrorCallback ecb, bool recursive = false); //TODO: why upload?
-	virtual ~IdResolveIdRequest();
+	IdResolveIdRequest(IdStorage *storage, const Common::String &path, Storage::UploadCallback cb, Networking::ErrorCallback ecb, bool recursive = false); //TODO: why upload?
+	~IdResolveIdRequest() override;
 
-	virtual void handle();
-	virtual void restart();
+	void handle() override;
+	void restart() override;
 };
 
 } // End of namespace Id

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,9 +52,9 @@ void bifyon(bifcxdef *ctx, int argc)
 
 	/* load the "yes" and "no" reply patterns */
 	if (os_get_str_rsc(RESID_YORN_YES, yesbuf, sizeof(yesbuf)))
-		strcpy(yesbuf, "[Yy].*");
+		Common::strcpy_s(yesbuf, "[Yy].*");
 	if (os_get_str_rsc(RESID_YORN_NO, nobuf, sizeof(nobuf)))
-		strcpy(nobuf, "[Nn].*");
+		Common::strcpy_s(nobuf, "[Nn].*");
 
 	/* if we're in HTML mode, switch to input font */
 	if (tio_is_html_mode())
@@ -68,7 +67,7 @@ void bifyon(bifcxdef *ctx, int argc)
 	tioreset(ctx->bifcxtio);
 
 	/* read a line of text */
-	if (tiogets(ctx->bifcxtio, (char *)0, rsp, (int)sizeof(rsp)))
+	if (tiogets(ctx->bifcxtio, (char *)nullptr, rsp, (int)sizeof(rsp)))
 		runsig(ctx->bifcxrun, ERR_RUNQUIT);
 
 	/* if we're in HTML mode, close the input font tag */
@@ -306,7 +305,7 @@ void bifsav(bifcxdef *ctx, int argc)
 	bifcntargs(ctx, 1, argc);
 	fn = runpopstr(ctx->bifcxrun);
 	bifcstr(ctx, buf, (size_t)sizeof(buf), fn);
-	os_defext(buf, ctx->bifcxsavext != 0 ? ctx->bifcxsavext : "sav");
+	os_defext(buf, ctx->bifcxsavext != nullptr ? ctx->bifcxsavext : "sav");
 	err = fiosav(ctx->bifcxrun->runcxvoc, buf, ctx->bifcxrun->runcxgamename);
 	runpush(ctx->bifcxrun, runclog(err), &val);
 }
@@ -337,7 +336,7 @@ void bifrso(bifcxdef *ctx, int argc)
 		/* get string parameter - it's the filename */
 		fn = runpopstr(ctx->bifcxrun);
 		bifcstr(ctx, buf, (size_t)sizeof(buf), fn);
-		os_defext(buf, ctx->bifcxsavext != 0 ? ctx->bifcxsavext : "sav");
+		os_defext(buf, ctx->bifcxsavext != nullptr ? ctx->bifcxsavext : "sav");
 	}
 
 	/* try restoring the file */
@@ -424,7 +423,7 @@ void bifinp(bifcxdef *ctx, int argc)
 	tioreset(ctx->bifcxtio);
 
 	/* read a line of text */
-	if (tiogets(ctx->bifcxtio, (char *)0, inbuf, (int)sizeof(inbuf)))
+	if (tiogets(ctx->bifcxtio, (char *)nullptr, inbuf, (int)sizeof(inbuf)))
 		runsig(ctx->bifcxrun, ERR_RUNQUIT);
 
 	/* push the string, converting escapes */
@@ -449,7 +448,7 @@ void bifnfy(bifcxdef *ctx, int argc)
 		tm = VOCDTIM_EACH_TURN;
 
 	vocsetfd(voc, voc->voccxalm, objn, prp, tm,
-			 (runsdef *)0, ERR_MANYNFY);
+			 (runsdef *)nullptr, ERR_MANYNFY);
 }
 
 
@@ -464,7 +463,7 @@ void bifunn(bifcxdef *ctx, int argc)
 	objn = runpopobj(ctx->bifcxrun);
 	prop = runpopprp(ctx->bifcxrun);
 	vocremfd(voc, voc->voccxalm, objn, prop,
-			 (runsdef *)0, ERR_NONFY);
+			 (runsdef *)nullptr, ERR_NONFY);
 }
 
 /* trace on/off */
@@ -518,7 +517,7 @@ void bifsay(bifcxdef *ctx, int argc)
 	{
 	case DAT_NUMBER:
 		num = runpopnum(ctx->bifcxrun);
-		sprintf(numbuf, "%ld", num);
+		Common::sprintf_s(numbuf, "%ld", num);
 		tioputs(ctx->bifcxtio, numbuf);
 		break;
 
@@ -916,7 +915,7 @@ static const char *bif_stristr(const char *s1, const char *s2)
 			return (const char *)s1;
 	}
 
-	return 0;
+	return nullptr;
 }
 
 /*
@@ -965,13 +964,13 @@ void bifask(bifcxdef *ctx, int argc)
 		{
 			"save",
 			"write",
-			0
+			nullptr
 		};
 		static const char *game_strs[] =
 		{
 			"restore",
 			"game",
-			0
+			nullptr
 		};
 		const char **sp;
 
@@ -998,7 +997,7 @@ void bifask(bifcxdef *ctx, int argc)
 		file_type = OSFTSAVE;
 
 		/* look for any one of the "save" substrings */
-		for (sp = save_strs ; *sp != 0 ; ++sp)
+		for (sp = save_strs ; *sp != nullptr ; ++sp)
 		{
 			/* check to see if this substring matches */
 			if (bif_stristr(pbuf, *sp))
@@ -1016,9 +1015,9 @@ void bifask(bifcxdef *ctx, int argc)
 		 *   find any of them, be conservative and make no assumptions
 		 *   about the file type
 		 */
-		for (sp = game_strs ; *sp != 0 ; ++sp)
+		for (sp = game_strs ; *sp != nullptr ; ++sp)
 		{
-			if (bif_stristr(pbuf, *sp) == 0)
+			if (bif_stristr(pbuf, *sp) == nullptr)
 			{
 				/*
 				 *   this one doesn't match - don't make assumptions about
@@ -1034,7 +1033,7 @@ void bifask(bifcxdef *ctx, int argc)
 		/* check for a transcript */
 		if (file_type == OSFTUNK
 			&& prompt_type == OS_AFP_SAVE
-			&& bif_stristr(pbuf, "script") != 0)
+			&& bif_stristr(pbuf, "script") != nullptr)
 		{
 			/* looks like a log file */
 			file_type = OSFTLOG;
@@ -1209,7 +1208,7 @@ void bifcvs(bifcxdef *ctx, int argc)
 		break;
 
 	case DAT_NUMBER:
-		sprintf(buf, "%ld", runpopnum(ctx->bifcxrun));
+		Common::sprintf_s(buf, "%ld", runpopnum(ctx->bifcxrun));
 		p = buf;
 		len = strlen(buf);
 		break;
@@ -2048,27 +2047,27 @@ static int get_ext_key_name(char *namebuf, int c, int extc)
 		case 10:
 		case 13:
 			/* return '\n' for LF and CR characters */
-			strcpy(namebuf, "\\n");
+			Common::strcpy_s(namebuf, 20, "\\n");
 			return TRUE;
 
 		case 9:
 			/* return '\t' for TAB characters */
-			strcpy(namebuf, "\\t");
+			Common::strcpy_s(namebuf, 20, "\\t");
 			return TRUE;
 
 		case 8:
 			/* return '[bksp]' for backspace characters */
-			strcpy(namebuf, "[bksp]");
+			Common::strcpy_s(namebuf, 20, "[bksp]");
 			return TRUE;
 
 		case 27:
 			/* return '[esc]' for the escape key */
-			strcpy(namebuf, "[esc]");
+			Common::strcpy_s(namebuf, 20, "[esc]");
 			return TRUE;
 
 		default:
 			/* return '[ctrl-X]' for other control characters */
-			strcpy(namebuf, "[ctrl-X]");
+			Common::strcpy_s(namebuf, 20, "[ctrl-X]");
 			namebuf[6] = (char)(c + 'a' - 1);
 			return TRUE;
 		}
@@ -2087,7 +2086,7 @@ static int get_ext_key_name(char *namebuf, int c, int extc)
 		&& extc <= (int)(sizeof(ext_key_names)/sizeof(ext_key_names[0])))
 	{
 		/* use the array name */
-		strcpy(namebuf, ext_key_names[extc - 1]);
+		Common::strcpy_s(namebuf, 20, ext_key_names[extc - 1]);
 		return TRUE;
 	}
 
@@ -2095,13 +2094,13 @@ static int get_ext_key_name(char *namebuf, int c, int extc)
 	if (extc >= CMD_ALT && extc <= CMD_ALT + 25)
 	{
 		/* generate an ALT key name */
-		strcpy(namebuf, "[alt-X]");
+		Common::strcpy_s(namebuf, 20, "[alt-X]");
 		namebuf[5] = (char)(extc - CMD_ALT + 'a');
 		return TRUE;
 	}
 
 	/* it's not a valid key - use '[?]' as the name */
-	strcpy(namebuf, "[?]");
+	Common::strcpy_s(namebuf, 20, "[?]");
 	return FALSE;
 }
 
@@ -2167,7 +2166,7 @@ void bifwrd(bifcxdef *ctx, int argc)
 	}
 
 	/* now build a list of strings from the words, if there are any */
-	if (v != 0 && voclistlen(v) != 0 && v->vocolfst != 0 && v->vocollst != 0)
+	if (v != nullptr && voclistlen(v) != 0 && v->vocolfst != nullptr && v->vocollst != nullptr)
 	{
 		for (dst = buf + 2, src = (const uchar *)v->vocolfst ;
 			 src <= (const uchar *)v->vocollst ; src += len + 1)
@@ -2175,7 +2174,7 @@ void bifwrd(bifcxdef *ctx, int argc)
 			*dst++ = DAT_SSTRING;
 			len = strlen((const char *)src);
 			oswp2(dst, len + 2);
-			strcpy((char *)dst + 2, (const char *)src);
+			Common::strcpy_s((char *)dst + 2, sizeof(buf) - (dst + 2 - buf), (const char *)src);
 			dst += len + 2;
 		}
 	}
@@ -2508,7 +2507,7 @@ void biffopen(bifcxdef *ctx, int argc)
 						   ctx->bifcxrun->runcxgamepath, fname);
 
 		/* replace the original filename with the full path */
-		strcpy(fname, newname);
+		Common::strcpy_s(fname, newname);
 	}
 
 	/* get the mode string */
@@ -2521,7 +2520,7 @@ void biffopen(bifcxdef *ctx, int argc)
 	/* allocate a filenum for the file */
 	for (fnum = 0 ; fnum < BIFFILMAX ; ++fnum)
 	{
-		if (ctx->bifcxfile[fnum].fp == 0)
+		if (ctx->bifcxfile[fnum].fp == nullptr)
 			break;
 	}
 	if (fnum == BIFFILMAX)
@@ -2595,7 +2594,7 @@ void biffopen(bifcxdef *ctx, int argc)
 	 *   current file safety level, which overrides our current setting.
 	 */
 	appctx = ctx->bifcxappctx;
-	if (appctx != 0 && appctx->get_io_safety_level != 0)
+	if (appctx != nullptr && appctx->get_io_safety_level != nullptr)
 	{
 		/*
 		 *   ask the host system for the current level, and override any
@@ -2721,7 +2720,7 @@ void biffopen(bifcxdef *ctx, int argc)
 	}
 
 	/* if we couldn't open it, return nil */
-	if (fp == 0)
+	if (fp == nullptr)
 	{
 		runpnil(ctx->bifcxrun);
 		return;
@@ -2752,15 +2751,15 @@ static osfildef *bif_get_file(bifcxdef *ctx, int *fnump, int *bin_modep)
 
 	/* get the file number and make sure it's valid */
 	fnum = runpopnum(ctx->bifcxrun);
-	if (fnum < 0 || fnum >= BIFFILMAX || ctx->bifcxfile[fnum].fp == 0)
+	if (fnum < 0 || fnum >= BIFFILMAX || ctx->bifcxfile[fnum].fp == nullptr)
 		runsig(ctx->bifcxrun, ERR_BADFILE);
 
 	/* put the validated file number, if the caller wants it */
-	if (fnump != 0)
+	if (fnump != nullptr)
 		*fnump = (int)fnum;
 
 	/* set the binary-mode flag, if the caller wants it */
-	if (bin_modep != 0)
+	if (bin_modep != nullptr)
 		*bin_modep = ((ctx->bifcxfile[fnum].flags & BIFFIL_F_BINARY) != 0);
 
 	/* return the file array pointer */
@@ -2774,11 +2773,11 @@ void biffclose(bifcxdef *ctx, int argc)
 
 	/* get the file number */
 	bifcntargs(ctx, 1, argc);
-	fp = bif_get_file(ctx, &fnum, 0);
+	fp = bif_get_file(ctx, &fnum, nullptr);
 
 	/* close the file and release the slot */
 	osfcls(fp);
-	ctx->bifcxfile[fnum].fp = 0;
+	ctx->bifcxfile[fnum].fp = nullptr;
 }
 
 void bifftell(bifcxdef *ctx, int argc)
@@ -2787,7 +2786,7 @@ void bifftell(bifcxdef *ctx, int argc)
 
 	/* get the file number */
 	bifcntargs(ctx, 1, argc);
-	fp = bif_get_file(ctx, (int *)0, 0);
+	fp = bif_get_file(ctx, (int *)nullptr, nullptr);
 
 	/* return the seek position */
 	runpnum(ctx->bifcxrun, osfpos(fp));
@@ -2800,7 +2799,7 @@ void biffseek(bifcxdef *ctx, int argc)
 
 	/* get the file pointer */
 	bifcntargs(ctx, 2, argc);
-	fp = bif_get_file(ctx, (int *)0, 0);
+	fp = bif_get_file(ctx, (int *)nullptr, nullptr);
 
 	/* get the seek position, and seek there */
 	pos = runpopnum(ctx->bifcxrun);
@@ -2813,7 +2812,7 @@ void biffseekeof(bifcxdef *ctx, int argc)
 
 	/* get the file pointer */
 	bifcntargs(ctx, 1, argc);
-	fp = bif_get_file(ctx, (int *)0, 0);
+	fp = bif_get_file(ctx, (int *)nullptr, nullptr);
 
 	/* seek to the end */
 	osfseek(fp, 0L, OSFSK_END);
@@ -2829,7 +2828,7 @@ void biffwrite(bifcxdef *ctx, int argc)
 
 	/* get the file */
 	bifcntargs(ctx, 2, argc);
-	fp = bif_get_file(ctx, (int *)0, &bin_mode);
+	fp = bif_get_file(ctx, (int *)nullptr, &bin_mode);
 
 	/* get the value to write */
 	runpop(ctx->bifcxrun, &val);
@@ -2957,7 +2956,7 @@ void biffread(bifcxdef *ctx, int argc)
 
 	/* get the file pointer */
 	bifcntargs(ctx, 1, argc);
-	fp = bif_get_file(ctx, (int *)0, &bin_mode);
+	fp = bif_get_file(ctx, (int *)nullptr, &bin_mode);
 
 	if (bin_mode)
 	{
@@ -3281,7 +3280,7 @@ void bifsysinfo(bifcxdef *ctx, int argc)
 		 *   take no additional arguments
 		 */
 		bifcntargs(ctx, 1, argc);
-		if (os_get_sysinfo(id, 0, &result))
+		if (os_get_sysinfo(id, nullptr, &result))
 		{
 			/* we got a valid result - return it */
 			runpnum(ctx->bifcxrun, result);
@@ -3313,13 +3312,13 @@ void bifsysinfo(bifcxdef *ctx, int argc)
 		 *   colors.
 		 */
 		bifcntargs(ctx, 1, argc);
-		if (os_get_sysinfo(SYSINFO_HTML, 0, &result) && result != 0)
+		if (os_get_sysinfo(SYSINFO_HTML, nullptr, &result) && result != 0)
 		{
 			/*
 			 *   we're in HTML mode, so ask the underlying HTML OS
 			 *   implementation for its level of text color support
 			 */
-			if (os_get_sysinfo(id, 0, &result))
+			if (os_get_sysinfo(id, nullptr, &result))
 			{
 				/* push the OS-level result */
 				runpnum(ctx->bifcxrun, result);
@@ -3531,7 +3530,7 @@ void bifregroup(bifcxdef *ctx, int argc)
 	reg = &ctx->bifcxregex.regs[grp];
 
 	/* if the group wasn't set, return nil */
-	if (reg->start_ofs == 0 || reg->end_ofs == 0)
+	if (reg->start_ofs == nullptr || reg->end_ofs == nullptr)
 	{
 		runpnil(ctx->bifcxrun);
 		return;
@@ -3981,7 +3980,7 @@ void bifgetobj(bifcxdef *ctx, int argc)
 
 	case 3:
 		/* direct object */
-		obj = (voc->voccxdobj == 0 ? MCMONINV : voc->voccxdobj->vocolobj);
+		obj = (voc->voccxdobj == nullptr ? MCMONINV : voc->voccxdobj->vocolobj);
 		break;
 
 	case 4:
@@ -3991,7 +3990,7 @@ void bifgetobj(bifcxdef *ctx, int argc)
 
 	case 5:
 		/* indirect object */
-		obj = (voc->voccxiobj == 0 ? MCMONINV : voc->voccxiobj->vocolobj);
+		obj = (voc->voccxiobj == nullptr ? MCMONINV : voc->voccxiobj->vocolobj);
 		break;
 
 	case 6:
@@ -4319,8 +4318,8 @@ void bifresexists(bifcxdef *ctx, int argc)
 	 *   supports external resource loading
 	 */
 	appctx = ctx->bifcxappctx;
-	found = (appctx != 0
-			 && appctx->resfile_exists != 0
+	found = (appctx != nullptr
+			 && appctx->resfile_exists != nullptr
 			 && (*appctx->resfile_exists)(appctx->resfile_exists_ctx,
 										  resname, strlen(resname)));
 

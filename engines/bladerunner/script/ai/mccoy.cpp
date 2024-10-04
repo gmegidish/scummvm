@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -371,7 +370,7 @@ bool AIScriptMcCoy::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 		dodge();
 		return true;
 
-	case 2:
+	case kGoalMcCoyLeanOverAndSearch:
 		_animationFrame = 0;
 		_animationState = 47;
 		return true;
@@ -535,7 +534,7 @@ bool AIScriptMcCoy::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 		}
 		return true;
 
-	case 400:
+	case kGoalMcCoyStartChapter5:
 		Actor_Set_Health(kActorMcCoy, 50, 50);
 		Game_Flag_Set(kFlagKP02Available);
 		affectionTowards = Global_Variable_Query(kVariableAffectionTowards);
@@ -563,8 +562,7 @@ bool AIScriptMcCoy::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 				Global_Variable_Set(kVariableAffectionTowards, kAffectionTowardsNone);
 			}
 		} else if (affectionTowards == kAffectionTowardsDektora
-		        || affectionTowards == kAffectionTowardsLucy
-		) {
+		        || affectionTowards == kAffectionTowardsLucy) {
 			if (!Game_Flag_Query(kFlagMcCoyIsHelpingReplicants)) {
 				Global_Variable_Set(kVariableAffectionTowards, kAffectionTowardsNone);
 			}
@@ -805,7 +803,7 @@ bool AIScriptMcCoy::UpdateAnimation(int *animation, int *frame) {
 		// animation state 21 is for the full shooting animation
 		*animation = kModelAnimationMcCoyWithGunShooting;
 		_animationFrame = 0;
-		// weird, but thats in game code
+		// weird, but that's in game code
 		if (Slice_Animation_Query_Number_Of_Frames(*animation) <= 0) {
 			_animationFrame = 0;
 			_animationState = 17;
@@ -1423,6 +1421,10 @@ bool AIScriptMcCoy::UpdateAnimation(int *animation, int *frame) {
 			Player_Gains_Control();
 		}
 		break;
+
+	default:
+		debugC(6, kDebugAnimation, "AIScriptMcCoy::UpdateAnimation() - Current _animationState (%d) is not supported", _animationState);
+		break;
 	}
 	*frame = _animationFrame;
 	return true;
@@ -1944,6 +1946,10 @@ bool AIScriptMcCoy::ChangeAnimationMode(int mode) {
 	case 85:
 		_animationFrame = 0;
 		_animationState = 69;
+		break;
+
+	default:
+		debugC(6, kDebugAnimation, "AIScriptMcCoy::ChangeAnimationMode(%d) - Target mode is not supported", mode);
 		break;
 	}
 	return true;

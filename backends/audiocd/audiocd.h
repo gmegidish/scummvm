@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -74,6 +73,20 @@ public:
 		Audio::Mixer::SoundType soundType = Audio::Mixer::kMusicSoundType) = 0;
 
 	/**
+	 * Start audio CD playback at a specific absolute timestamp
+	 * @param startFrame     the frame at which playback should start (75 frames = 1 second).
+	 * @param numLoops       how often playback should be repeated (<=0 means infinitely often).
+	 * @param duration       the number of frames to play.
+	 * @param onlyEmulate    determines if the track should be emulated only
+	 * @param soundType      What sound type to play as. By default, it's as music
+	 * @param cuesheet       The name of the cuesheet to use for timing data
+	 * @note The @c onlyEmulate parameter is deprecated.
+	 * @return @c true if the track started playing, @c false otherwise
+	 */
+	virtual bool playAbsolute(int startFrame, int numLoops, int duration, bool onlyEmulate = false,
+		Audio::Mixer::SoundType soundType = Audio::Mixer::kMusicSoundType, const char *cuesheet = "disc.cue") = 0;
+
+	/**
 	 * Get if audio is being played.
 	 * @return true if CD audio is playing
 	 */
@@ -108,8 +121,15 @@ public:
 	/**
 	 * Checks whether the extracted audio cd tracks exists as files in
 	 * the search paths.
+	 * @return true if audio files of the expected naming scheme are found, and supported by ScummVM.
 	 */
-	virtual bool existExtractedCDAudioFiles() = 0;
+	virtual bool existExtractedCDAudioFiles(uint track) = 0;
+
+	/**
+	 * Checks if game data are read from the same CD drive which should also play game CD audio.
+	 * @return true, if this case is applicable, and the system doesn't allow it.
+	 */
+	virtual bool isDataAndCDAudioReadFromSameCD() = 0;
 };
 
 #endif

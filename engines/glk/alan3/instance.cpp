@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -131,7 +130,7 @@ void setInstanceAttribute(int instance, int attribute, Aptr value) {
 			   changed so describe next time */
 			admin[instance].visitsCount = 0;
 	} else {
-		sprintf(str, "Can't SET/MAKE instance (%d).", instance);
+		Common::sprintf_s(str, "Can't SET/MAKE instance (%d).", instance);
 		syserr(str);
 	}
 }
@@ -181,7 +180,7 @@ Aptr getInstanceAttribute(int instance, int attribute) {
 			else
 				return getAttribute(admin[instance].attributes, attribute);
 		} else {
-			sprintf(str, "Can't ATTRIBUTE item (%d).", instance);
+			Common::sprintf_s(str, "Can't ATTRIBUTE item (%d).", instance);
 			syserr(str);
 		}
 	}
@@ -206,10 +205,10 @@ static void verifyInstance(int instance, const char *action) {
 	char message[200];
 
 	if (instance == 0) {
-		sprintf(message, "Can't %s instance (%d).", action, instance);
+		Common::sprintf_s(message, "Can't %s instance (%d).", action, instance);
 		syserr(message);
 	} else if (instance > (int)header->instanceMax) {
-		sprintf(message, "Can't %s instance (%d > instanceMax).", action, instance);
+		Common::sprintf_s(message, "Can't %s instance (%d > instanceMax).", action, instance);
 		syserr(message);
 	}
 }
@@ -504,7 +503,7 @@ void sayInteger(int value) {
 	char buf[25];
 
 	if (isHere(HERO, /*FALSE*/ TRANSITIVE)) {
-		sprintf(buf, "%d", value);
+		Common::sprintf_s(buf, "%d", value);
 		output(buf);
 	}
 }
@@ -539,9 +538,9 @@ static char *wordWithCode(int classBit, int code) {
 	for (w = 0; w < dictionarySize; w++)
 		if (dictionary[w].code == (Aword)code && ((classBit & dictionary[w].classBits) != 0))
 			return (char *)pointerTo(dictionary[w].string);
-	sprintf(str, "Could not find word of class %d with code %d.", classBit, code);
+	Common::sprintf_s(str, "Could not find word of class %d with code %d.", classBit, code);
 	syserr(str);
-	return NULL;
+	return nullptr;
 }
 
 

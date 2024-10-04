@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,6 @@
 #include "engines/nancy/sound.h"
 #include "engines/nancy/input.h"
 #include "engines/nancy/util.h"
-#include "engines/nancy/constants.h"
 
 #include "engines/nancy/ui/inventorybox.h"
 
@@ -38,12 +36,12 @@
 namespace Nancy {
 namespace UI {
 
-InventoryBox::InventoryBox(RenderObject &redrawFrom) :
-		RenderObject(redrawFrom, 6),
+InventoryBox::InventoryBox() :
+		RenderObject(6),
 		_scrollbar(nullptr),
-		_curtains(*this, this),
 		_scrollbarPos(0),
-		_curtainsFrameTime(0) {}
+		_highlightedHotspot(-1),
+		_inventoryData(nullptr) {}
 
 InventoryBox::~InventoryBox() {
 	_fullInventorySurface.free();
@@ -51,53 +49,18 @@ InventoryBox::~InventoryBox() {
 }
 
 void InventoryBox::init() {
-	Common::SeekableReadStream &stream = *g_nancy->getBootChunkStream("INV");
-	stream.seek(0, SEEK_SET);
+	auto *bootSummary = GetEngineData(BSUM);
+	assert(bootSummary);
+
+	_inventoryData = GetEngineData(INV);
+	assert(_inventoryData);
 
 	_order.clear();
 
-	Common::Rect scrollbarSrcBounds;
-	readRect(stream, scrollbarSrcBounds);
-	Common::Point scrollbarDefaultPos;
-	scrollbarDefaultPos.x = stream.readUint16LE();
-	scrollbarDefaultPos.y = stream.readUint16LE();
-	uint16 scrollbarMaxScroll = stream.readUint16LE();
+	moveTo(bootSummary->inventoryBoxScreenPosition);
+	g_nancy->_resource->loadImage(_inventoryData->inventoryBoxIconsImageName, _iconsSurface);
 
-	stream.seek(0xD6, SEEK_SET);
-
-	uint numFrames = g_nancy->getConstants().numCurtainAnimationFrames;
-	_curtainsSrc.resize(numFrames * 2);
-	for (uint i = 0; i < numFrames * 2; ++i) {
-		readRect(stream, _curtainsSrc[i]);
-	}
-
-	readRect(stream, _screenPosition);
-	_curtainsFrameTime = stream.readUint16LE();
-
-	Common::String inventoryBoxIconsImageName;
-	readFilename(stream, inventoryBoxIconsImageName);
-	readFilename(stream, _inventoryCursorsImageName);
-
-	stream.skip(8);
-	readRect(stream, _emptySpace);
-
-	char itemName[20];
-	uint itemNameLength = g_nancy->getGameType() == kGameTypeVampire ? 15 : 20;
-
-	_itemDescriptions.reserve(g_nancy->getConstants().numItems);
-	for (uint i = 0; i < g_nancy->getConstants().numItems; ++i) {
-		stream.read(itemName, itemNameLength);
-		itemName[itemNameLength - 1] = '\0';
-		_itemDescriptions.push_back(ItemDescription());
-		ItemDescription &desc = _itemDescriptions.back();
-		desc.name = Common::String(itemName);
-		desc.oneTimeUse = stream.readUint16LE();
-		readRect(stream, desc.sourceRect);
-	}
-
-	g_nancy->_resource->loadImage(inventoryBoxIconsImageName, _iconsSurface);
-
-	_fullInventorySurface.create(_screenPosition.width(), _screenPosition.height() * ((g_nancy->getConstants().numItems / 4) + 1), g_nancy->_graphicsManager->getScreenPixelFormat());
+	_fullInventorySurface.create(_screenPosition.width(), _screenPosition.height() * ((g_nancy->getStaticData().numItems / 4) + 1), g_nancy->_graphics->getScreenPixelFormat());
 	Common::Rect sourceRect = _screenPosition;
 	sourceRect.moveTo(0, 0);
 	_drawSurface.create(_fullInventorySurface, sourceRect);
@@ -112,7 +75,10 @@ void InventoryBox::init() {
 
 	RenderObject::init();
 
-	_scrollbar = new Scrollbar(NancySceneState.getFrame(), 9, scrollbarSrcBounds, scrollbarDefaultPos, scrollbarMaxScroll - scrollbarDefaultPos.y);
+	_scrollbar = new Scrollbar(	9,
+								_inventoryData->scrollbarSrcBounds,
+								_inventoryData->scrollbarDefaultPos,
+								_inventoryData->scrollbarMaxScroll - _inventoryData->scrollbarDefaultPos.y);
 	_scrollbar->init();
 	_curtains.init();
 }
@@ -132,31 +98,78 @@ void InventoryBox::registerGraphics() {
 }
 
 void InventoryBox::handleInput(NancyInput &input) {
+	// Disable input when primary video is playing
+	if (NancySceneState.getActiveConversation()) {
+		return;
+	}
+
 	if (_order.size()) {
 		_scrollbar->handleInput(input);
 	}
 
+	int hoveredHotspot = -1;
+
 	for (uint i = 0; i < 4; ++i) {
 		if (_itemHotspots[i].hotspot.contains(input.mousePos)) {
 			if (NancySceneState.getHeldItem() != -1) {
-				g_nancy->_cursorManager->setCursorType(CursorManager::kHotspotArrow);
+				g_nancy->_cursor->setCursorType(CursorManager::kHotspotArrow);
 				if (input.input & NancyInput::kLeftMouseButtonUp) {
 					NancySceneState.addItemToInventory(NancySceneState.getHeldItem());
 					g_nancy->_sound->playSound("BULS");
 				}
 			} else if (_itemHotspots[i].itemID != -1) {
-				g_nancy->_cursorManager->setCursorType(CursorManager::kHotspotArrow);
+				g_nancy->_cursor->setCursorType(CursorManager::kHotspotArrow);
+
+				hoveredHotspot = i;
+
 				if (input.input & NancyInput::kLeftMouseButtonUp) {
-					NancySceneState.removeItemFromInventory(_itemHotspots[i].itemID);
-					g_nancy->_sound->playSound("GLOB");
+					uint16 itemID = _itemHotspots[i].itemID;
+					INV::ItemDescription item = _inventoryData->itemDescriptions[itemID];
+					byte disabled = NancySceneState.getItemDisabledState(itemID);
+
+					if (!disabled) {
+						// Item is not disabled
+						NancySceneState.removeItemFromInventory(itemID, item.keepItem != kInvItemNewSceneView);
+						_highlightedHotspot = -1;
+						hoveredHotspot = -1;
+
+						if (item.keepItem == kInvItemNewSceneView) {
+							// Transport the player to a close-up scene, temporarily remove the item from the inventory
+							NancySceneState.pushScene(itemID);
+							SceneChangeDescription sceneChange;
+							sceneChange.sceneID = item.sceneID;
+							sceneChange.continueSceneSound = item.sceneSoundFlag;
+							NancySceneState.changeScene(sceneChange);
+						}
+					} else {
+						// Item is disabled
+						if (disabled == 2) {
+							// ...and set so it plays the "can't" sound when you click it
+							NancySceneState.playItemCantSound(itemID);
+						}
+					}
 				}
 			}
 			break;
 		}
 	}
+
+	if (_highlightedHotspot != hoveredHotspot) {
+		if (_highlightedHotspot != -1) {
+			// Un-highlight last hovered item
+			drawItemInSlot(_itemHotspots[_highlightedHotspot].itemID, _itemHotspots[_highlightedHotspot].itemOrder, false);
+			_highlightedHotspot = -1;
+		}
+
+		if (hoveredHotspot != -1) {
+			// Highlight hovered item
+			drawItemInSlot(_itemHotspots[hoveredHotspot].itemID, _itemHotspots[hoveredHotspot].itemOrder, true);
+			_highlightedHotspot = hoveredHotspot;
+		}
+	}
 }
 
-void InventoryBox::addItem(int16 itemID) {
+void InventoryBox::addItem(const int16 itemID) {
 	if (_order.size() == 0) {
 		// Adds first item, start curtains animation
 		_curtains.setOpen(true);
@@ -169,7 +182,7 @@ void InventoryBox::addItem(int16 itemID) {
 	onReorder();
 }
 
-void InventoryBox::removeItem(int16 itemID) {
+void InventoryBox::removeItem(const int16 itemID) {
 	for (auto &i : _order) {
 		if (i == itemID) {
 			_order.erase(&i);
@@ -184,13 +197,7 @@ void InventoryBox::onReorder() {
 
 	_fullInventorySurface.clear();
 	for (uint i = 0; i < _order.size(); ++i) {
-		Common::Rect dest;
-		dest.setWidth(_screenPosition.width() / 2);
-		dest.setHeight(_screenPosition.height() / 2);
-		dest.moveTo((i % 2) * dest.width(), (i / 2) * dest.height());
-		Common::Point destPoint = Common::Point (dest.left, dest.top);
-
-		_fullInventorySurface.blitFrom(_iconsSurface, _itemDescriptions[_order[i]].sourceRect, destPoint);
+		drawItemInSlot(_order[i], i);
 	}
 
 	if (_order.size() > 0) {
@@ -202,14 +209,29 @@ void InventoryBox::onReorder() {
 	_needsRedraw = true;
 }
 
-void InventoryBox::setHotspots(uint pageNr) {
+void InventoryBox::setHotspots(const uint pageNr) {
 	for (uint i = 0; i < 4; ++i) {
 		if (i + pageNr * 4 < _order.size()) {
-			_itemHotspots[i].itemID = _order[i +  pageNr * 4];
+			_itemHotspots[i].itemID = _order[i + pageNr * 4];
+			_itemHotspots[i].itemOrder = i + pageNr * 4;
 		} else {
 			_itemHotspots[i].itemID = -1;
+			_itemHotspots[i].itemOrder = -1;
 		}
 	}
+}
+
+void InventoryBox::drawItemInSlot(const uint itemID, const uint slotID, const bool highlighted) {
+	auto &item = _inventoryData->itemDescriptions[itemID];
+	Common::Rect dest;
+
+	dest.setWidth(_screenPosition.width() / 2);
+	dest.setHeight(_screenPosition.height() / 2);
+	dest.moveTo((slotID % 2) * dest.width(), (slotID / 2) * dest.height());
+	Common::Point destPoint = Common::Point (dest.left, dest.top);
+
+	_fullInventorySurface.blitFrom(_iconsSurface, highlighted ? item.highlightedSourceRect : item.sourceRect, destPoint);
+	_needsRedraw = true;
 }
 
 void InventoryBox::onScrollbarMove() {
@@ -220,7 +242,7 @@ void InventoryBox::onScrollbarMove() {
 	uint curPage = MIN<uint>(scrollPos / pageFrac, numPages - 1);
 
 	Common::Rect sourceRect = _screenPosition;
-	sourceRect.moveTo(0, curPage * sourceRect.height());
+	sourceRect.moveTo(0, curPage * (sourceRect.height() - 1));
 	_drawSurface.create(_fullInventorySurface, sourceRect);
 
 	setHotspots(curPage);
@@ -228,15 +250,28 @@ void InventoryBox::onScrollbarMove() {
 	_needsRedraw = true;
 }
 
+InventoryBox::Curtains::Curtains() :
+	RenderObject(10),
+	_soundTriggered(false),
+	_areOpen(false),
+	_curFrame(0),
+	_numFrames(g_nancy->getGameType() == kGameTypeVampire ? 10 : 7) {}
+
 void InventoryBox::Curtains::init() {
-	Common::Rect bounds = _parent->getBounds();
-	_drawSurface.create(bounds.width(), bounds.height(), g_nancy->_graphicsManager->getInputPixelFormat());
+	auto *inventoryData = GetEngineData(INV);
+	assert(inventoryData);
+
+	moveTo(inventoryData->curtainsScreenPosition);
+	Common::Rect bounds = _screenPosition;
+	bounds.moveTo(0, 0);
+	_drawSurface.create(bounds.width(), bounds.height(), g_nancy->_graphics->getInputPixelFormat());
 
 	if (g_nancy->getGameType() == kGameTypeVampire) {
-		_drawSurface.setPalette(g_nancy->_graphicsManager->_object0.getPalette(), 0, 256);
+		uint8 palette[256 * 3];
+		g_nancy->_graphics->_object0.grabPalette(palette, 0, 256);
+		_drawSurface.setPalette(palette, 0, 256);
 	}
 
-	_screenPosition = _parent->getScreenPosition();
 	_nextFrameTime = 0;
 	setAnimationFrame(_curFrame);
 
@@ -248,9 +283,12 @@ void InventoryBox::Curtains::init() {
 void InventoryBox::Curtains::updateGraphics() {
 	Time time = g_nancy->getTotalPlayTime();
 	if (_areOpen) {
-		if (_curFrame < g_nancy->getConstants().numCurtainAnimationFrames && time > _nextFrameTime) {
+		if (_curFrame < _numFrames && time > _nextFrameTime) {
+			auto *inventoryData = GetEngineData(INV);
+			assert(inventoryData);
+
 			setAnimationFrame(++_curFrame);
-			_nextFrameTime = time + _parent->_curtainsFrameTime;
+			_nextFrameTime = time + inventoryData->curtainsFrameTime;
 
 			if (!_soundTriggered) {
 				_soundTriggered = true;
@@ -259,8 +297,11 @@ void InventoryBox::Curtains::updateGraphics() {
 		}
 	} else {
 		if (_curFrame > 0 && time > _nextFrameTime) {
+			auto *inventoryData = GetEngineData(INV);
+			assert(inventoryData);
+
 			setAnimationFrame(--_curFrame);
-			_nextFrameTime = time + _parent->_curtainsFrameTime;
+			_nextFrameTime = time + inventoryData->curtainsFrameTime;
 
 			if (!_soundTriggered) {
 				_soundTriggered = true;
@@ -269,31 +310,38 @@ void InventoryBox::Curtains::updateGraphics() {
 		}
 	}
 
-	if (_curFrame == 0 || _curFrame == g_nancy->getConstants().numCurtainAnimationFrames) {
+	if (_curFrame == 0 || _curFrame == _numFrames) {
 		_soundTriggered = false;
 	}
 }
 
 void InventoryBox::Curtains::setAnimationFrame(uint frame) {
-	Graphics::ManagedSurface &_object0 = g_nancy->_graphicsManager->_object0;
+	Graphics::ManagedSurface &_object0 = g_nancy->_graphics->_object0;
 	Common::Rect srcRect;
 	Common::Point destPoint;
 
-	if (frame > g_nancy->getConstants().numCurtainAnimationFrames - 1) {
-		setVisible(false);
+	if (frame > (uint)(_numFrames - 1)) {
+		// TVD keeps the last frame visible
+		if (g_nancy->getGameType() > kGameTypeVampire) {
+			setVisible(false);
+		}
+
 		return;
 	} else {
 		setVisible(true);
 	}
 
-	_drawSurface.clear(g_nancy->_graphicsManager->getTransColor());
+	auto *inventoryData = GetEngineData(INV);
+	assert(inventoryData);
 
-	// Draw left shade
-	srcRect = _parent->_curtainsSrc[frame * 2];
+	_drawSurface.clear(g_nancy->_graphics->getTransColor());
+
+	// Draw left curtain
+	srcRect = inventoryData->curtainAnimationSrcs[frame * 2];
 	_drawSurface.blitFrom(_object0, srcRect, destPoint);
 
-	// Draw right shade
-	srcRect = _parent->_curtainsSrc[frame * 2 + 1];
+	// Draw right curtain
+	srcRect = inventoryData->curtainAnimationSrcs[frame * 2 + 1];
 	destPoint.x = getBounds().width() - srcRect.width();
 	_drawSurface.blitFrom(_object0, srcRect, destPoint);
 

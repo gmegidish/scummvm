@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#ifndef SCI_SOUNDCMD_H
-#define SCI_SOUNDCMD_H
+#ifndef SCI_SOUND_SOUNDCMD_H
+#define SCI_SOUND_SOUNDCMD_H
 
 #include "common/list.h"
 #include "audio/mididrv.h"	// for MusicType
@@ -33,20 +32,11 @@ class Console;
 class SciMusic;
 class SoundCommandParser;
 class MusicEntry;
-//typedef void (SoundCommandParser::*SoundCommand)(reg_t obj, int16 value);
-
-//struct MusicEntryCommand {
-//	MusicEntryCommand(const char *d, SoundCommand c) : sndCmd(c), desc(d) {}
-//	SoundCommand sndCmd;
-//	const char *desc;
-//};
 
 class SoundCommandParser {
 public:
 	SoundCommandParser(ResourceManager *resMan, SegManager *segMan, Kernel *kernel, AudioPlayer *audio, SciVersion soundVersion);
 	~SoundCommandParser();
-
-	//reg_t parseCommand(EngineState *s, int argc, reg_t *argv);
 
 	// Functions used for game state loading
 	void clearPlayList();
@@ -56,6 +46,8 @@ public:
 	// Functions used for the ScummVM menus
 	void setMasterVolume(int vol);
 	void pauseAll(bool pause);
+	void resetGlobalPauseCounter();
+	bool isGlobalPauseActive() const;
 #ifdef ENABLE_SCI32
 	void setVolume(const reg_t obj, const int vol);
 #endif
@@ -89,9 +81,10 @@ public:
 	 */
 	void updateSci0Cues();
 
+	bool isDigitalSamplePlaying() const;
+
 	reg_t kDoSoundInit(EngineState *s, int argc, reg_t *argv);
 	reg_t kDoSoundPlay(EngineState *s, int argc, reg_t *argv);
-	reg_t kDoSoundRestore(EngineState *s, int argc, reg_t *argv);
 	reg_t kDoSoundMute(EngineState *s, int argc, reg_t *argv);
 	reg_t kDoSoundPause(EngineState *s, int argc, reg_t *argv);
 	reg_t kDoSoundResumeAfterRestore(EngineState *s, int argc, reg_t *argv);
@@ -106,7 +99,6 @@ public:
 	reg_t kDoSoundSendMidi(EngineState *s, int argc, reg_t *argv);
 	reg_t kDoSoundGlobalReverb(EngineState *s, int argc, reg_t *argv);
 	reg_t kDoSoundSetHold(EngineState *s, int argc, reg_t *argv);
-	reg_t kDoSoundDummy(EngineState *s, int argc, reg_t *argv);
 	reg_t kDoSoundGetAudioCapability(EngineState *s, int argc, reg_t *argv);
 	reg_t kDoSoundSetVolume(EngineState *s, int argc, reg_t *argv);
 	reg_t kDoSoundSetPriority(EngineState *s, int argc, reg_t *argv);
@@ -114,8 +106,6 @@ public:
 	reg_t kDoSoundSuspend(EngineState *s, int argc, reg_t *argv);
 
 private:
-	//typedef Common::Array<MusicEntryCommand *> SoundCommandContainer;
-	//SoundCommandContainer _soundCommands;
 	ResourceManager *_resMan;
 	SegManager *_segMan;
 	Kernel *_kernel;
@@ -130,8 +120,15 @@ private:
 	void processDisposeSound(reg_t obj);
 	void processUpdateCues(reg_t obj);
 	int getSoundResourceId(reg_t obj);
+	
+	/**
+	 * Returns true if the sound is already playing and shouldn't be interrupted.
+	 * This is a workaround for known buggy scripts that accidentally rely on
+	 * the time it took Sierra's interpreter to load a sound and begin playing.
+	 */
+	bool isUninterruptableSoundPlaying(reg_t obj);
 };
 
 } // End of namespace Sci
 
-#endif // SCI_SOUNDCMD_H
+#endif // SCI_SOUND_SOUNDCMD_H

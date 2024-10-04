@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,9 +55,9 @@ WindowsTextToSpeechManager::WindowsTextToSpeechManager()
 	_threadParams.queue = &_speechQueue;
 	_threadParams.state = &_speechState;
 	_threadParams.mutex = &_speechMutex;
-	_thread = NULL;
-	_speechMutex = CreateMutex(NULL, FALSE, NULL);
-	if (_speechMutex == NULL) {
+	_thread = nullptr;
+	_speechMutex = CreateMutex(nullptr, FALSE, nullptr);
+	if (_speechMutex == nullptr) {
 		_speechState = BROKEN;
 		warning("Could not create TTS mutex");
 	}
@@ -66,12 +65,12 @@ WindowsTextToSpeechManager::WindowsTextToSpeechManager()
 
 void WindowsTextToSpeechManager::init() {
 	// init COM
-	if (FAILED(::CoInitialize(NULL)))
+	if (FAILED(::CoInitialize(nullptr)))
 		return;
 
 	// init audio
 	ISpObjectTokenCategory *pTokenCategory;
-	HRESULT hr = CoCreateInstance(CLSID_SpObjectTokenCategory, NULL, CLSCTX_ALL, IID_ISpObjectTokenCategory, (void **)&pTokenCategory);
+	HRESULT hr = CoCreateInstance(CLSID_SpObjectTokenCategory, nullptr, CLSCTX_ALL, IID_ISpObjectTokenCategory, (void **)&pTokenCategory);
 	if (SUCCEEDED(hr)) {
 		hr = pTokenCategory->SetId(SPCAT_AUDIOOUT, TRUE);
 		if (SUCCEEDED(hr)) {
@@ -79,11 +78,11 @@ void WindowsTextToSpeechManager::init() {
 			hr = pTokenCategory->GetDefaultTokenId(&tokenId);
 			if (SUCCEEDED(hr)) {
 				ISpObjectToken *pToken;
-				hr = CoCreateInstance(CLSID_SpObjectToken, NULL, CLSCTX_ALL, IID_ISpObjectToken, (void **)&pToken);
+				hr = CoCreateInstance(CLSID_SpObjectToken, nullptr, CLSCTX_ALL, IID_ISpObjectToken, (void **)&pToken);
 				if (SUCCEEDED(hr)) {
-					hr = pToken->SetId(NULL, tokenId, FALSE);
+					hr = pToken->SetId(nullptr, tokenId, FALSE);
 					if (SUCCEEDED(hr)) {
-						hr = pToken->CreateInstance(NULL, CLSCTX_ALL, IID_ISpAudio, (void **)&_audio);
+						hr = pToken->CreateInstance(nullptr, CLSCTX_ALL, IID_ISpAudio, (void **)&_audio);
 					}
 				}
 				CoTaskMemFree(tokenId);
@@ -96,7 +95,7 @@ void WindowsTextToSpeechManager::init() {
 	}
 
 	// init voice
-	hr = CoCreateInstance(CLSID_SpVoice, NULL, CLSCTX_ALL, IID_ISpVoice, (void **)&_voice);
+	hr = CoCreateInstance(CLSID_SpVoice, nullptr, CLSCTX_ALL, IID_ISpVoice, (void **)&_voice);
 	if (FAILED(hr)) {
 		warning("Could not initialize TTS voice");
 		return;
@@ -128,11 +127,11 @@ WindowsTextToSpeechManager::~WindowsTextToSpeechManager() {
 
 	clearState();
 
-	if (_thread != NULL) {
+	if (_thread != nullptr) {
 		WaitForSingleObject(_thread, INFINITE);
 		CloseHandle(_thread);
 	}
-	if (_speechMutex != NULL) {
+	if (_speechMutex != nullptr) {
 		CloseHandle(_speechMutex);
 	}
 	if (_voice)
@@ -154,7 +153,7 @@ DWORD WINAPI startSpeech(LPVOID parameters) {
 			break;
 		}
 		WCHAR *currentSpeech = params->queue->front();
-		_voice->Speak(currentSpeech, SPF_PURGEBEFORESPEAK | SPF_ASYNC | SPF_PARSE_SAPI, 0);
+		_voice->Speak(currentSpeech, SPF_PURGEBEFORESPEAK | SPF_ASYNC | SPF_PARSE_SAPI, nullptr);
 		ReleaseMutex(*params->mutex);
 
 		while (*(params->state) != WindowsTextToSpeechManager::PAUSED)
@@ -163,7 +162,7 @@ DWORD WINAPI startSpeech(LPVOID parameters) {
 
 		WaitForSingleObject(*params->mutex, INFINITE);
 		if (!params->queue->empty() && params->queue->front() == currentSpeech) {
-			if (currentSpeech != NULL)
+			if (currentSpeech != nullptr)
 				free(currentSpeech);
 			params->queue->pop_front();
 		}
@@ -179,7 +178,8 @@ DWORD WINAPI startSpeech(LPVOID parameters) {
 
 bool WindowsTextToSpeechManager::say(const Common::U32String &str, Action action) {
 	if (_speechState == BROKEN || _speechState == NO_VOICE) {
-		warning("The text to speech cannot speak in this state");
+		if (_ttsState->_enabled)
+			warning("The text to speech cannot speak in this state");
 		return true;
 	}
 
@@ -223,13 +223,13 @@ bool WindowsTextToSpeechManager::say(const Common::U32String &str, Action action
 
 	if (!isSpeaking() && !isPaused()) {
 		DWORD threadId;
-		if (_thread != NULL) {
+		if (_thread != nullptr) {
 			WaitForSingleObject(_thread, INFINITE);
 			CloseHandle(_thread);
 		}
 		_speechState = SPEAKING;
-		_thread = CreateThread(NULL, 0, startSpeech, &_threadParams, 0, &threadId);
-		if (_thread == NULL) {
+		_thread = CreateThread(nullptr, 0, startSpeech, &_threadParams, 0, &threadId);
+		if (_thread == nullptr) {
 			warning("Could not create speech thread");
 			_speechState = READY;
 			return true;
@@ -252,7 +252,7 @@ bool WindowsTextToSpeechManager::stop() {
 		_speechQueue.pop_front();
 	}
 	// Stop the current speech
-	_voice->Speak(NULL, SPF_PURGEBEFORESPEAK | SPF_ASYNC, 0);
+	_voice->Speak(nullptr, SPF_PURGEBEFORESPEAK | SPF_ASYNC, nullptr);
 	_speechState = READY;
 	ReleaseMutex(_speechMutex);
 	_audio->SetState(SPAS_RUN, 0);
@@ -278,13 +278,13 @@ bool WindowsTextToSpeechManager::resume() {
 		return false;
 	_voice->Resume();
 	DWORD threadId;
-	if (_thread != NULL) {
+	if (_thread != nullptr) {
 		WaitForSingleObject(_thread, INFINITE);
 		CloseHandle(_thread);
 	}
 	_speechState = SPEAKING;
-	_thread = CreateThread(NULL, 0, startSpeech, &_threadParams, 0, &threadId);
-	if (_thread == NULL) {
+	_thread = CreateThread(nullptr, 0, startSpeech, &_threadParams, 0, &threadId);
+	if (_thread == nullptr) {
 		warning("Could not create speech thread");
 		_speechState = READY;
 		return true;
@@ -340,8 +340,12 @@ void WindowsTextToSpeechManager::setVolume(unsigned volume) {
 }
 
 void WindowsTextToSpeechManager::setLanguage(Common::String language) {
-	Common::TextToSpeechManager::setLanguage(language);
-	updateVoices();
+	if (_ttsState->_language != language.substr(0, 2) || _ttsState->_availableVoices.empty()) {
+		Common::TextToSpeechManager::setLanguage(language);
+		updateVoices();
+	} else if (_speechState == NO_VOICE) {
+		_speechState = READY;
+	}
 	setVoice(0);
 }
 
@@ -352,7 +356,7 @@ void WindowsTextToSpeechManager::createVoice(void *cpVoiceToken) {
 	WCHAR *descW;
 	char *buffer;
 	Common::String desc;
-	HRESULT hr = voiceToken->GetStringValue(NULL, &descW);
+	HRESULT hr = voiceToken->GetStringValue(nullptr, &descW);
 	if (SUCCEEDED(hr)) {
 		buffer = Win32::unicodeToAnsi(descW);
 		desc = buffer;
@@ -361,7 +365,7 @@ void WindowsTextToSpeechManager::createVoice(void *cpVoiceToken) {
 	}
 
 	if (desc == "Sample TTS Voice") {
-		// This is really bad voice, it is basicaly unusable
+		// This is a really bad voice, it is basically unusable
 		return;
 	}
 
@@ -383,7 +387,7 @@ void WindowsTextToSpeechManager::createVoice(void *cpVoiceToken) {
 		warning("Could not get the language attribute for voice: %s", desc.c_str());
 		return;
 	}
-	Common::String language = lcidToLocale(wcstol(data, NULL, 16));
+	Common::String language = lcidToLocale(wcstol(data, nullptr, 16));
 	CoTaskMemFree(data);
 
 	// only get the voices for the current language
@@ -416,7 +420,7 @@ void WindowsTextToSpeechManager::createVoice(void *cpVoiceToken) {
 }
 
 Common::String WindowsTextToSpeechManager::lcidToLocale(LCID locale) {
-	int nchars = GetLocaleInfo(locale, LOCALE_SISO639LANGNAME, NULL, 0);
+	int nchars = GetLocaleInfo(locale, LOCALE_SISO639LANGNAME, nullptr, 0);
 	TCHAR *languageCode = new TCHAR[nchars];
 	GetLocaleInfo(locale, LOCALE_SISO639LANGNAME, languageCode, nchars);
 	Common::String result = Win32::tcharToString(languageCode);
@@ -425,15 +429,21 @@ Common::String WindowsTextToSpeechManager::lcidToLocale(LCID locale) {
 }
 
 void WindowsTextToSpeechManager::updateVoices() {
+	if (!_ttsState->_enabled) {
+		_speechState = NO_VOICE;
+		return;
+	}
+
 	if (_speechState == BROKEN)
 		return;
+
 	_ttsState->_availableVoices.clear();
 	ISpObjectToken *cpVoiceToken = nullptr;
 	IEnumSpObjectTokens *cpEnum = nullptr;
 	unsigned long ulCount = 0;
 
 	ISpObjectTokenCategory *cpCategory;
-	HRESULT hr = CoCreateInstance(CLSID_SpObjectTokenCategory, NULL, CLSCTX_ALL, IID_ISpObjectTokenCategory, (void**)&cpCategory);
+	HRESULT hr = CoCreateInstance(CLSID_SpObjectTokenCategory, nullptr, CLSCTX_ALL, IID_ISpObjectTokenCategory, (void**)&cpCategory);
 	if (SUCCEEDED(hr)) {
 		hr = cpCategory->SetId(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech_OneCore\\Voices", FALSE);
 		if (!SUCCEEDED(hr)) {
@@ -441,7 +451,7 @@ void WindowsTextToSpeechManager::updateVoices() {
 		}
 
 		if (SUCCEEDED(hr)) {
-			hr = cpCategory->EnumTokens(NULL, NULL, &cpEnum);
+			hr = cpCategory->EnumTokens(nullptr, nullptr, &cpEnum);
 		}
 	}
 
@@ -450,9 +460,9 @@ void WindowsTextToSpeechManager::updateVoices() {
 	}
 	_voice->SetVolume(0);
 	while (SUCCEEDED(hr) && ulCount--) {
-		hr = cpEnum->Next(1, &cpVoiceToken, NULL);
+		hr = cpEnum->Next(1, &cpVoiceToken, nullptr);
 		_voice->SetVoice(cpVoiceToken);
-		if (SUCCEEDED(_voice->Speak(L"hi, this is test", SPF_PURGEBEFORESPEAK | SPF_ASYNC | SPF_IS_NOT_XML, 0)))
+		if (SUCCEEDED(_voice->Speak(L"hi, this is test", SPF_PURGEBEFORESPEAK | SPF_ASYNC | SPF_IS_NOT_XML, nullptr)))
 			createVoice(cpVoiceToken);
 		else
 			cpVoiceToken->Release();
@@ -461,7 +471,7 @@ void WindowsTextToSpeechManager::updateVoices() {
 	// and we could easily be in NO_VOICE or BROKEN state here, in which the stop() wouldn't work
 	_audio->SetState(SPAS_STOP, 0);
 	_audio->SetState(SPAS_RUN, 0);
-	_voice->Speak(NULL, SPF_PURGEBEFORESPEAK | SPF_ASYNC | SPF_IS_NOT_XML, 0);
+	_voice->Speak(nullptr, SPF_PURGEBEFORESPEAK | SPF_ASYNC | SPF_IS_NOT_XML, nullptr);
 	_voice->SetVolume(_ttsState->_volume);
 	cpEnum->Release();
 

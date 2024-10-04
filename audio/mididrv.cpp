@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -73,7 +72,8 @@ static const struct {
 	{ MT_SEGACD,	GUIO_MIDISEGACD },
 	{ MT_GM,		GUIO_MIDIGM },
 	{ MT_MT32,		GUIO_MIDIMT32 },
-	{ 0,			0 },
+	{ MT_MACINTOSH,	GUIO_MIDIMAC},
+	{ 0,			nullptr },
 };
 
 Common::String MidiDriver::musicType2GUIO(uint32 musicType) {
@@ -191,6 +191,11 @@ MidiDriver::DeviceHandle MidiDriver::detectDevice(int flags) {
 			reslt = hdl;
 		break;
 
+	case MT_MACINTOSH:
+		if (flags & MDT_MACINTOSH)
+			reslt = hdl;
+		break;
+
 	case MT_SEGACD:
 	if (flags & MDT_SEGACD)
 		reslt = hdl;
@@ -251,13 +256,12 @@ MidiDriver::DeviceHandle MidiDriver::detectDevice(int flags) {
 			if (flags & MDT_PREFER_MT32)
 				devStr = ConfMan.hasKey("mt32_device") ? ConfMan.get("mt32_device") : Common::String("null");
 			else if (flags & MDT_PREFER_GM)
-				devStr = ConfMan.hasKey("gm_device") ? ConfMan.get("gm_device") : Common::String("null");
-			else
+				devStr = ConfMan.get("gm_device");
+
+			if (devStr.empty())
 				devStr = "auto";
 
-			// Default to Null device here, since we also register a default null setting for
-			// the MT32 or GM device in the config manager.
-			hdl = getDeviceHandle(devStr.empty() ? Common::String("null") : devStr);
+			hdl = getDeviceHandle(devStr);
 			const MusicType type = getMusicType(hdl);
 
 			// If we have a "Don't use GM/MT-32" setting we skip this part and jump
@@ -359,6 +363,9 @@ MidiDriver::DeviceHandle MidiDriver::detectDevice(int flags) {
 		} else if (flags & MDT_APPLEIIGS) {
 			tp = MT_APPLEIIGS;
 			flags &= ~MDT_APPLEIIGS;
+		} else if (flags & MDT_MACINTOSH) {
+			tp = MT_MACINTOSH;
+			flags &= ~MDT_MACINTOSH;
 		} else if (flags & MDT_MIDI) {
 			// If we haven't tried to find a MIDI device yet we do this now.
 			skipMidi = false;
@@ -385,7 +392,7 @@ MidiDriver::DeviceHandle MidiDriver::detectDevice(int flags) {
 }
 
 MidiDriver *MidiDriver::createMidi(MidiDriver::DeviceHandle handle) {
-	MidiDriver *driver = 0;
+	MidiDriver *driver = nullptr;
 	const PluginList p = MusicMan.getPlugins();
 	for (PluginList::const_iterator m = p.begin(); m != p.end(); m++) {
 		const MusicPluginObject &musicPlugin = (*m)->get<MusicPluginObject>();
@@ -525,19 +532,19 @@ void MidiDriver_BASE::midiDumpSysEx(const byte *msg, uint16 length) {
 
 
 void MidiDriver_BASE::midiDumpFinish() {
-	Common::DumpFile *midiDumpFile = new Common::DumpFile();
-	midiDumpFile->open("dump.mid");
-	midiDumpFile->write("MThd\0\0\0\x6\0\x1\0\x2", 12);		// standard MIDI file header, with two tracks
-	midiDumpFile->write("\x1\xf4", 2);						// division - 500 ticks per beat, i.e. a quarter note. Each tick is 1ms
-	midiDumpFile->write("MTrk", 4);							// start of first track - doesn't contain real data, it's just common practice to use two tracks
-	midiDumpFile->writeUint32BE(4);							// first track size
-	midiDumpFile->write("\0\xff\x2f\0", 4);			    	// meta event - end of track
-	midiDumpFile->write("MTrk", 4);							// start of second track
-	midiDumpFile->writeUint32BE(_midiDumpCache.size() + 4);	// track size (+4 because of the 'end of track' event)
-	midiDumpFile->write(_midiDumpCache.data(), _midiDumpCache.size());
-	midiDumpFile->write("\0\xff\x2f\0", 4);			    	// meta event - end of track
-	midiDumpFile->finalize();
-	midiDumpFile->close();
+	Common::DumpFile midiDumpFile;
+	midiDumpFile.open("dump.mid");
+	midiDumpFile.write("MThd\0\0\0\x6\0\x1\0\x2", 12);		// standard MIDI file header, with two tracks
+	midiDumpFile.write("\x1\xf4", 2);						// division - 500 ticks per beat, i.e. a quarter note. Each tick is 1ms
+	midiDumpFile.write("MTrk", 4);							// start of first track - doesn't contain real data, it's just common practice to use two tracks
+	midiDumpFile.writeUint32BE(4);							// first track size
+	midiDumpFile.write("\0\xff\x2f\0", 4);			    	// meta event - end of track
+	midiDumpFile.write("MTrk", 4);							// start of second track
+	midiDumpFile.writeUint32BE(_midiDumpCache.size() + 4);	// track size (+4 because of the 'end of track' event)
+	midiDumpFile.write(_midiDumpCache.data(), _midiDumpCache.size());
+	midiDumpFile.write("\0\xff\x2f\0", 4);			    	// meta event - end of track
+	midiDumpFile.finalize();
+	midiDumpFile.close();
 	const char msg[] = "Ending MIDI dump, created 'dump.mid'";
 	g_system->displayMessageOnOSD(_(msg));		//TODO: why it doesn't appear?
 	debug("%s", msg);

@@ -4,17 +4,18 @@ Keymaps
 
 Use the Keymaps tab to assign actions to keyboard keys or shortcuts, or to mouse or joystick buttons.
 
+
 **To change settings globally:**
 
-	From the Launcher, select **Options**, then select the **Keymaps** tab.
+ 	From the Launcher, select **Global Options**, then select the **Keymaps** tab.
 
 **To change settings for a specific game:**
 
-	Highlight the game in the games list, select **Edit Game** then select the **Keymaps** tab.
+	From the Launcher, highlight the game in the games list, and select the **Game Options** button. If the Launcher is in grid view, select the game and then select the gear icon in the popup window. Select the **Keymaps** tab.
 
 .. figure:: ../images/settings/keymaps.png
 
-    The Keymaps tab in the global settings
+    The Keymaps tab in the Global Options menu
 
 .. figure:: ../images/settings/keymaps_dropdown.png
 
@@ -52,7 +53,7 @@ Global
 Global Main Menu
 	*keymap_global_MENU*
 
-.. _mute:
+.. _keymap_mute:
 
 Toggle mute
 	*keymap_global_MUTE*
@@ -62,7 +63,7 @@ Toggle mute
 Quit
 	*keymap_global_QUIT*
 
-.. _debug:
+.. _keymap_debug:
 
 Open Debugger
 	*keymap_global_DEBUGGER*
@@ -133,45 +134,15 @@ Increase the scale factor
 Decrease the scale factor
 	*keymap_sdl-graphics_SCL-*
 
-.. _FLT1:
+.. _FLTN:
 
-Switch to nearest neighbour scaling
-	*keymap_sdl-graphics_FLT1*
+Switch to next graphical scale filter
+	*keymap_sdl-graphics_FLTN*
 
-.. _FLT2:
+.. _FLTP:
 
-Switch to AdvMame 2x/3x scaling
-	*keymap_sdl-graphics_FLT2*
-
-.. _FLT3:
-
-Switch to HQ 2x/3x scaling
-	*keymap_sdl-graphics_FLT3*
-
-.. _FLT4:
-
-Switch to 2XSai scaling
-	*keymap_sdl-graphics_FLT4*
-
-.. _FLT5:
-
-Switch to Super2xSai scaling
-	*keymap_sdl-graphics_FLT5*
-
-.. _FLT6:
-
-Switch to SuperEagle scaling
-	*keymap_sdl-graphics_FLT6*
-
-.. _FLT7:
-
-Switch to TV 2x scaling
-	*keymap_sdl-graphics_FLT7*
-
-.. _FLT8:
-
-Switch to DotMatrix scaling
-	*keymap_sdl-graphics_FLT8*
+Switch to previous graphical scale filter
+	*keymap_sdl-graphics_FLTP*
 
 GUI
 *****

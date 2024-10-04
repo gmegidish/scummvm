@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,8 +48,11 @@ LoLEngine::LoLEngine(OSystem *system, const GameFlags &flags) : KyraRpgEngine(sy
 	_screen = 0;
 	_gui = 0;
 	_tim = 0;
+	_txt = 0;
 
 	_lang = 0;
+	_langIntern = 0;
+
 	Common::Language lang = Common::parseLanguage(ConfMan.get("language"));
 	if (lang == _flags.fanLang && _flags.replacedLang != Common::UNK_LANG)
 		lang = _flags.replacedLang;
@@ -59,7 +61,6 @@ LoLEngine::LoLEngine(OSystem *system, const GameFlags &flags) : KyraRpgEngine(sy
 	case Common::EN_ANY:
 	case Common::EN_USA:
 	case Common::EN_GRB:
-		_lang = 0;
 		break;
 
 	case Common::FR_FRA:
@@ -70,13 +71,21 @@ LoLEngine::LoLEngine(OSystem *system, const GameFlags &flags) : KyraRpgEngine(sy
 		_lang = 2;
 		break;
 
+	case Common::ES_ESP:
+		_langIntern = 2;
+		break;
+
 	case Common::JA_JPN:
-		_lang = 0;
+		_langIntern = 1;
+		break;
+
+	case Common::ZH_TWN:
+		_langIntern = 3;
 		break;
 
 	default:
 		warning("unsupported language, switching back to English");
-		_lang = 0;
+		break;
 	}
 
 	_chargenFrameTable = _flags.isTalkie ? _chargenFrameTableTalkie : _chargenFrameTableFloppy;
@@ -203,12 +212,24 @@ LoLEngine::LoLEngine(OSystem *system, const GameFlags &flags) : KyraRpgEngine(sy
 	_lightningFirstSfx = 0;
 	_lightningSfxFrame = 0;
 
+	_stashSetupData = _monsterDirFlags = _monsterScaleX = _monsterScaleY = _updateSpellBookCoords = _updateSpellBookAnimData = _healShapeFrames = nullptr;
+	_sceneItemOffs = _monsterShiftOffs = nullptr;
+	_flyingItemShapes = nullptr;
+	_monsterDecorationShapes = nullptr;
+	_monsterModifiers1 = _monsterModifiers2 = _monsterModifiers3 = _monsterModifiers4 = _monsterScaleWH = _autoMapStrings = nullptr;
+	_fireBallCoords = nullptr;
+	_subMenuIndex = _numFireballShapes = _numHealShapes = _numHealiShapes = 0;
+	_currentMapLevel = _automapTopLeftX = _automapTopLeftY = 0;
+	_mapUpdateNeeded = false;
+
 	_compassTimer = 0;
 	_scriptCharacterCycle = 0;
 	_partyDamageFlags = -1;
 
 	_floatingCursorsEnabled = _autoSaveNamesEnabled = false;
 	_smoothScrollingEnabled = true;
+
+	_displayLoraPaulsonWorkaroundMsg = false;
 
 	memset(&_itemScript, 0, sizeof(_itemScript));
 }
@@ -374,42 +395,60 @@ Common::Error LoLEngine::init() {
 	assert(_gui);
 	_gui->initStaticData();
 
+	if (_res->exists("LANDS.PAK")) {
+		_screen->loadFont(Screen::FID_CHINESE_FNT, "LANDS.PAK");
+	}
+
 	_txt = new TextDisplayer_LoL(this, _screen);
+	if (_flags.lang == Common::JA_JPN && _flags.use16ColorMode) {
+		for (int i = 0; i < _screen->screenDimTableCount(); ++i) {
+			_txt->setLineSpacing(i, 1);
+			if ((i >= 3 && i <= 5) || i == 15) {
+				for (int ii = 0; ii < 256; ++ii)
+					_txt->setColorMapping(i, ii, 1);
+				_txt->setColorMapping(i, 0, 0);
+				_txt->setColorMapping(i, 0x11, 0x11);
+				_txt->setColorMapping(i, 0x18, 0x61);
+				_txt->setColorMapping(i, 0x33, 0xE1);
+				_txt->setColorMapping(i, 0x44, 0x44);
+				_txt->setColorMapping(i, 0x55, 0x81);
+				_txt->setColorMapping(i, 0x88, 0x41);
+				_txt->setColorMapping(i, 0x99, 0xA1);
+				_txt->setColorMapping(i, 0xAA, 0x21);
+				_txt->setVisualLineSpacingAdjust(i, -1);
+			} else {
+				_txt->setCharSpacing(i, 1);
+			}
+		}
+	} else if (_flags.lang == Common::ZH_TWN) {
+		_txt->setLineSpacing(-1, -1);
+	}
 
 	_screen->setAnimBlockPtr(10000);
 	_screen->setScreenDim(0);
 
-	_pageBuffer1 = new uint8[0xFA00];
-	memset(_pageBuffer1, 0, 0xFA00);
-	_pageBuffer2 = new uint8[0xFA00];
-	memset(_pageBuffer2, 0, 0xFA00);
+	_pageBuffer1 = new uint8[0xFA00]();
+	_pageBuffer2 = new uint8[0xFA00]();
 
-	_itemsInPlay = new LoLItem[400];
-	memset(_itemsInPlay, 0, sizeof(LoLItem) * 400);
+	_itemsInPlay = new LoLItem[400]();
 
-	_characters = new LoLCharacter[4];
-	memset(_characters, 0, sizeof(LoLCharacter) * 4);
+	_characters = new LoLCharacter[4]();
 
 	if (!_sound->init())
 		error("Couldn't init sound");
 
 	KyraRpgEngine::init();
 
-	_wllAutomapData = new uint8[80];
-	memset(_wllAutomapData, 0, 80);
+	_wllAutomapData = new uint8[80]();
 
-	_monsters = new LoLMonster[30];
-	memset(_monsters, 0, 30 * sizeof(LoLMonster));
-	_monsterProperties = new LoLMonsterProperty[5];
-	memset(_monsterProperties, 0, 5 * sizeof(LoLMonsterProperty));
+	_monsters = new LoLMonster[30]();
+	_monsterProperties = new LoLMonsterProperty[5]();
 
-	_tempBuffer5120 = new uint8[5120];
-	memset(_tempBuffer5120, 0, 5120);
+	_tempBuffer5120 = new uint8[5120]();
 
-	_flyingObjects = new FlyingObject[_numFlyingObjects];
+	_flyingObjects = new FlyingObject[_numFlyingObjects]();
 	_flyingObjectsPtr = _flyingObjects;
 	_flyingObjectStructSize = sizeof(FlyingObject);
-	memset(_flyingObjects, 0, _numFlyingObjects * sizeof(FlyingObject));
 
 	memset(_globalScriptVars, 0, sizeof(_globalScriptVars));
 
@@ -422,12 +461,9 @@ Common::Error LoLEngine::init() {
 	_clickedShapeYOffs = 8;
 	_clickedSpecialFlag = 0x40;
 
-	_monsterShapes = new uint8*[48];
-	memset(_monsterShapes, 0, 48 * sizeof(uint8 *));
-	_monsterPalettes = new uint8*[48];
-	memset(_monsterPalettes, 0, 48 * sizeof(uint8 *));
-	_monsterDecorationShapes = new uint8*[576];
-	memset(_monsterDecorationShapes, 0, 576 * sizeof(uint8 *));
+	_monsterShapes = new uint8*[48]();
+	_monsterPalettes = new uint8*[48]();
+	_monsterDecorationShapes = new uint8*[576]();
 	memset(&_scriptData, 0, sizeof(EMCData));
 
 	_activeMagicMenu = -1;
@@ -492,7 +528,6 @@ void LoLEngine::pauseEngineIntern(bool pause) {
 
 Common::Error LoLEngine::go() {
 	int action = -1;
-
 	if (_gameToLoad == -1) {
 		action = processPrologue();
 		if (action == -1)
@@ -510,7 +545,8 @@ Common::Error LoLEngine::go() {
 	// the prologue code we need to setup them manually here.
 	if (_gameToLoad != -1 && action != 3) {
 		preInit();
-		_screen->setFont((_flags.lang == Common::JA_JPN && _flags.use16ColorMode) ? Screen::FID_SJIS_TEXTMODE_FNT : Screen::FID_9_FNT);
+		_screen->setFont(_flags.lang == Common::Language::ZH_TWN ? Screen::FID_CHINESE_FNT :
+				 (_flags.lang == Common::JA_JPN && _flags.use16ColorMode) ? Screen::FID_SJIS_TEXTMODE_FNT : Screen::FID_9_FNT);
 	}
 
 	// We have three sound.dat files, one for the intro, one for the
@@ -618,7 +654,7 @@ void LoLEngine::checkFloatingPointerRegions() {
 
 	Common::Point p = getMousePos();
 
-	if (!(_updateFlags & 4) & !_floatingCursorControl) {
+	if (!(_updateFlags & 4) && !_floatingCursorControl) {
 		if (posWithinRect(p.x, p.y, 96, 0, 303, 136)) {
 			if (!posWithinRect(p.x, p.y, 128, 16, 271, 119)) {
 				if (posWithinRect(p.x, p.y, 112, 0, 287, 15))
@@ -666,26 +702,37 @@ uint8 *LoLEngine::getItemIconShapePtr(int index) {
 }
 
 int LoLEngine::mainMenu() {
-	bool hasSave = saveFileLoadable(0);
+	bool hasSave = false;
+	for (int i = 0; i < 20 && !hasSave; ++i) {
+		if (saveFileLoadable(i)) 
+			hasSave = true;
+	}
 
 	MainMenu::StaticData data[] = {
 		// 256 color ASCII mode
 		{
 			{ 0, 0, 0, 0, 0 },
 			{ 0x01, 0x04, 0x0C, 0x04, 0x00, 0x3D, 0x9F },
-			{ 0x2C, 0x19, 0x48, 0x2C },
-			Screen::FID_9_FNT, 1
+			{ 0x2C, 0x19, 0x48, 0x2C }, 0,
+			Screen::FID_9_FNT, 0, 1
 		},
 		// 16 color SJIS mode
 		{
 			{ 0, 0, 0, 0, 0 },
 			{ 0x01, 0x04, 0x0C, 0x04, 0x00, 0xC1, 0xE1 },
-			{ 0xCC, 0xDD, 0xDD, 0xDD },
-			Screen::FID_SJIS_TEXTMODE_FNT, 1
-		}
+			{ 0xCC, 0xDD, 0xDD, 0xDD }, 0,
+			Screen::FID_SJIS_TEXTMODE_FNT, 1, 1
+		},
+		// 256 color Chinese mode
+		{
+			{ 0, 0, 0, 0, 0 },
+			{ 0x01, 0x04, 0x0C, 0x04, 0x00, 0x3D, 0x9F },
+			{ 0x2C, 0x19, 0x48, 0x2C }, 0,
+			Screen::FID_CHINESE_FNT, 0, 1
+		},
 	};
 
-	int dataIndex = _flags.use16ColorMode ? 1 : 0;
+	int dataIndex = _flags.use16ColorMode ? 1 : _flags.lang == Common::Language::ZH_TWN ? 2 : 0;
 
 	if (!_flags.isTalkie)
 		--data[dataIndex].menuTable[3];
@@ -908,6 +955,8 @@ void LoLEngine::runLoop() {
 
 		update();
 
+		updatePlayTimer();
+
 		if (_sceneUpdateRequired)
 			gui_drawScene(0);
 		else
@@ -939,6 +988,8 @@ void LoLEngine::writeSettings() {
 	ConfMan.setBool("smooth_scrolling", _smoothScrollingEnabled);
 	ConfMan.setBool("auto_savenames", _autoSaveNamesEnabled);
 
+	static const Common::Language extraLanguages[] = { Common::EN_ANY, Common::JA_JPN, Common::ES_ESP, Common::ZH_TWN };
+
 	switch (_lang) {
 	case 1:
 		_flags.lang = Common::FR_FRA;
@@ -950,10 +1001,9 @@ void LoLEngine::writeSettings() {
 
 	case 0:
 	default:
-		if (_flags.platform == Common::kPlatformPC98 || _flags.platform == Common::kPlatformFMTowns)
-			_flags.lang = Common::JA_JPN;
-		else
-			_flags.lang = Common::EN_ANY;
+		assert (_langIntern >= 0 && _langIntern < ARRAYSIZE(extraLanguages));
+		_flags.lang = extraLanguages[_langIntern];
+		break;
 	}
 
 	if (_flags.lang == _flags.replacedLang && _flags.fanLang != Common::UNK_LANG)
@@ -992,13 +1042,28 @@ void LoLEngine::update() {
 	snd_updateCharacterSpeech();
 	fadeText();
 
+	if (_displayLoraPaulsonWorkaroundMsg) {
+		// Special WORKAROUND message for the Lora Paulson bug (see LoLEngine::addCharacter())
+		static const char *msg[] = {
+			"Lora has left the party. Her items are on the floor.",
+			"Lora a quitte le groupe. Ses objets sont par terre.",
+			"Lora hat die Gruppe verlassen. Ihre Sachen sind auf dem Boden.",
+			"Lora has left the party. Her items are on the floor.", // TODO: Translate to Japanese
+			"Lora ha abandonado el grupo. Sus articulos estan en el suelo.",	
+			"Lora has left the party. Her items are on the floor."	// TODO: Translate to Traditional Chinese
+		};
+
+		_displayLoraPaulsonWorkaroundMsg = false;
+		_txt->printMessage(4, "%s", msg[CLIP<int>(_langIntern ? _langIntern + 2 : _lang, 0, ARRAYSIZE(msg) - 1)]);
+	}
+
 	updateInput();
 	_screen->updateScreen();
 }
 
 #pragma mark - Localization
 
-char *LoLEngine::getLangString(uint16 id) {
+const char *LoLEngine::getLangString(uint16 id) {
 	if (id == 0xFFFF)
 		return 0;
 
@@ -1117,8 +1182,24 @@ bool LoLEngine::addCharacter(int id) {
 	};
 
 	int numChars = countActiveCharacters();
-	if (numChars == 4)
-		return false;
+	if (numChars >= 3) {
+		if (_characters[2].id == 4 && id == 6 && _currentLevel == 16 && _currentBlock == 0x225) {
+			// WORKAROUND: There can be a situation which the original game does not expect and does not handle
+			// when trying to pick up Paulson in the Urbish Mine and having more than 2 characters in the party.
+			// It it possible to exploit a bug to keep Lora in the party, although the game would expect her to
+			// leave earlier in the game. This will just crash the game, or when fixed, will not allow to pick
+			// up Paulson. So, we just boot her here as gracefully as possible (which is not very graceful).
+			const uint16 *itm = _characters[2].items;
+			for (int i = 0; i < 11; ++i) {
+				if (itm[i])
+					placeMoveLevelItem(itm[i], _currentLevel, _currentBlock, 0, 0, 0);
+			}
+			_displayLoraPaulsonWorkaroundMsg = true;
+			numChars = 2;
+		} else {
+			return false;
+		}
+	}	
 
 	int i = 0;
 	for (; i < _charDefaultsSize; i++) {
@@ -1672,7 +1753,7 @@ void LoLEngine::restoreAfterDialogueSequence(int controlMode) {
 		_updateFlags &= 0xFFFD;
 	} else {
 		const ScreenDim *d = _screen->getScreenDim(5);
-		_screen->fillRect(d->sx, d->sy, d->sx + d->w - (_flags.use16ColorMode ? 3 : 2), d->sy + d->h - 2, d->unkA);
+		_screen->fillRect(d->sx, d->sy, d->sx + d->w - (_flags.use16ColorMode ? 3 : 2), d->sy + d->h - 2, d->col2);
 		_txt->clearDim(4);
 		_txt->setupField(false);
 	}
@@ -1722,8 +1803,7 @@ void LoLEngine::generateBrightnessPalette(const Palette &src, Palette &dst, int 
 		modifier >>= 1;
 		if (modifier)
 			modifier--;
-		if (modifier > 3)
-			modifier = 3;
+
 		_blockBrightness = modifier << 4;
 		_sceneUpdateRequired = true;
 
@@ -1818,7 +1898,7 @@ void LoLEngine::loadTalkFile(int index) {
 	if (index > 0)
 		_curTlkFile = index;
 
-	_res->loadPakFile(Common::String::format("%02d.TLK", index));
+	_res->loadPakFile(Common::Path(Common::String::format("%02d.TLK", index)));
 }
 
 int LoLEngine::characterSays(int track, int charId, bool redraw) {
@@ -1853,7 +1933,7 @@ int LoLEngine::characterSays(int track, int charId, bool redraw) {
 	return r ? (textEnabled() ? 1 : 0) : 1;
 }
 
-int LoLEngine::playCharacterScriptChat(int charId, int mode, int restorePortrait, char *str, EMCState *script, const uint16 *paramList, int16 paramIndex) {
+int LoLEngine::playCharacterScriptChat(int charId, int mode, int restorePortrait, const char *str, EMCState *script, const uint16 *paramList, int16 paramIndex) {
 	int ch = 0;
 	bool skipAnim = false;
 
@@ -1869,7 +1949,7 @@ int LoLEngine::playCharacterScriptChat(int charId, int mode, int restorePortrait
 	} else if (charId > 0) {
 		int i = 0;
 
-		for (; i < 3; i++) {
+		for (; i < 4; i++) {
 			if (_characters[i].id != charId || !(_characters[i].flags & 1))
 				continue;
 			if (charId == ch)
@@ -1886,7 +1966,7 @@ int LoLEngine::playCharacterScriptChat(int charId, int mode, int restorePortrait
 		}
 	}
 
-	if (!skipAnim) {
+	if (!skipAnim && charId < 3) {
 		_updateCharNum = charId;
 		_portraitSpeechAnimMode = mode;
 		_updatePortraitSpeechAnimDuration = strlen(str) >> 1;
@@ -1917,7 +1997,7 @@ int LoLEngine::playCharacterScriptChat(int charId, int mode, int restorePortrait
 	}
 
 	_fadeText = false;
-	if (!skipAnim)
+	if (!skipAnim && charId < 3)
 		updatePortraitSpeechAnim();
 
 	return 1;
@@ -1925,6 +2005,7 @@ int LoLEngine::playCharacterScriptChat(int charId, int mode, int restorePortrait
 
 void LoLEngine::setupDialogueButtons(int numStr, const char *s1, const char *s2, const char *s3) {
 	screen()->setScreenDim(5);
+	assert(numStr);
 
 	if (numStr == 1 && speechEnabled()) {
 		_dialogueNumButtons = 0;
@@ -1953,6 +2034,12 @@ void LoLEngine::setupDialogueButtons(int numStr, const char *s1, const char *s2,
 			posX[0] = d->sx + (xOffs >> 1) - 37;
 			posX[1] = posX[0] + xOffs;
 			posX[2] = posX[1] + xOffs;
+		}
+
+		if (_flags.lang == Common::Language::ZH_TWN) {
+			posY[0] -= 10;
+			posY[1] -= 10;
+			posY[2] -= 10;
 		}
 
 		drawDialogueButtons();
@@ -1996,7 +2083,7 @@ void LoLEngine::delay(uint32 millis, bool doUpdate, bool) {
 }
 
 const KyraRpgGUISettings *LoLEngine::guiSettings() const {
-	return &_guiSettings;
+	return _flags.lang == Common::Language::ZH_TWN ? &_guiSettingsZH : &_guiSettings;
 }
 
 // spells
@@ -2240,6 +2327,8 @@ int LoLEngine::processMagicHeal(int charNum, int spellLevel) {
 	uint16 pY = 138;
 	uint16 diff[4];
 	uint16 pts[4];
+	memset(pX, 0, sizeof(pX));
+	memset(diff, 0, sizeof(diff));
 	memset(pts, 0, sizeof(pts));
 
 	while (charNum < n) {
@@ -3123,7 +3212,8 @@ void LoLEngine::transferSpellToScollAnimation(int charNum, int spell, int slot) 
 			_screen->copyRegion(112, 16, 12, h + 15, 87, 14, 2, 2, Screen::CR_NO_P_CHECK);
 
 			int y = 15;
-			Screen::FontId of = _screen->setFont(Screen::FID_9_FNT);
+			Screen::FontId of = _screen->setFont(_flags.lang == Common::Language::ZH_TWN ? Screen::FID_CHINESE_FNT :
+							     Screen::FID_9_FNT);
 			for (int ii = 0; ii < 7; ii++) {
 				if (_availableSpells[ii] == -1)
 					continue;
@@ -3286,7 +3376,7 @@ void LoLEngine::playSpellAnimation(WSAMovie_v2 *mov, int firstFrame, int lastFra
 			fin = true;
 	}
 
-	if (restoreScreen && (mov || callback)) {
+	if (restoreScreen && mov) {
 		_screen->copyPage(12, 2);
 		_screen->copyRegion(x, y, x, y, w2, h2, 2, 0, Screen::CR_NO_P_CHECK);
 		_screen->updateScreen();
@@ -3563,14 +3653,7 @@ int LoLEngine::calcInflictableDamagePerItem(int16 attacker, int16 target, uint16
 	if (hitType == 2 || !dmg)
 		return (dmg == 1) ? 2 : dmg;
 
-
-	int p = (calculateProtection(target) << 7) / dmg;
-	if (p > 217)
-		p = 217;
-
-	d = 256 - p;
-	r = (dmg * ABS(d)) >> 8;
-	dmg = d < 0 ? -r : r;
+	dmg = (dmg * (256 - MIN<int>((calculateProtection(target) << 7) / dmg, 217))) >> 8;
 
 	return (dmg < 2) ? 2 : dmg;
 }
@@ -4209,7 +4292,8 @@ void LoLEngine::drawMapPage(int pageNum) {
 			_screen->copyRegion(236, 16, 236 + xOffset, 16, -xOffset, 1, pageNum, pageNum, Screen::CR_NO_P_CHECK);
 
 		int cp = _screen->setCurPage(pageNum);
-		Screen::FontId of = _screen->setFont((_flags.lang == Common::JA_JPN && _flags.use16ColorMode) ? Screen::FID_SJIS_TEXTMODE_FNT : Screen::FID_9_FNT);
+		Screen::FontId of = _screen->setFont(_flags.lang == Common::Language::ZH_TWN ? Screen::FID_CHINESE_FNT :
+						     (_flags.lang == Common::JA_JPN && _flags.use16ColorMode) ? Screen::FID_SJIS_TEXTMODE_FNT : Screen::FID_9_FNT);
 		_screen->printText(getLangString(_autoMapStrings[_currentMapLevel]), 236 + xOffset, 8, 1, 0);
 		uint16 blX = mapGetStartPosX();
 		uint16 bl = (mapGetStartPosY() << 5) + blX;
@@ -4269,7 +4353,8 @@ void LoLEngine::drawMapPage(int pageNum) {
 		_screen->setFont(of);
 		_screen->setCurPage(cp);
 
-		of = _screen->setFont((_flags.lang == Common::JA_JPN && _flags.use16ColorMode) ? Screen::FID_SJIS_TEXTMODE_FNT : Screen::FID_6_FNT);
+		of = _screen->setFont(_flags.lang == Common::Language::ZH_TWN ? Screen::FID_CHINESE_FNT :
+				      (_flags.lang == Common::JA_JPN && _flags.use16ColorMode) ? Screen::FID_SJIS_TEXTMODE_FNT : Screen::FID_6_FNT);
 
 		int tY = 0;
 		sx = mapGetStartPosX();
@@ -4518,7 +4603,8 @@ void LoLEngine::printMapText(uint16 stringId, int x, int y) {
 
 void LoLEngine::printMapExitButtonText() {
 	int cp = _screen->setCurPage(2);
-	Screen::FontId of = _screen->setFont(Screen::FID_9_FNT);
+	Screen::FontId of = _screen->setFont(_flags.lang == Common::Language::ZH_TWN ?
+					     Screen::FID_CHINESE_FNT : Screen::FID_9_FNT);
 	_screen->fprintString("%s", 295, 182, _flags.use16ColorMode ? 0xBB : 172, 0, 5, getLangString(0x4033));
 	_screen->setFont(of);
 	_screen->setCurPage(cp);

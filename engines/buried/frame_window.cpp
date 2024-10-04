@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,7 +49,7 @@
 
 namespace Buried {
 
-FrameWindow::FrameWindow(BuriedEngine *vm) : Window(vm, 0) {
+FrameWindow::FrameWindow(BuriedEngine *vm) : Window(vm, nullptr) {
 	// Initialize member variables
 	_mainChildWindow = nullptr;
 	_controlDown = false;
@@ -96,7 +95,7 @@ bool FrameWindow::showTitleSequence() {
 
 	uint32 startTime = g_system->getMillis();
 	while (g_system->getMillis() < (startTime + 7000) && !_vm->hasMessage(this, kMessageTypeLButtonDown, kMessageTypeLButtonDown) && !_vm->shouldQuit())
-		_vm->yield();
+		_vm->yield(nullptr, -1);
 
 	_vm->_sound->stopInterfaceSound();
 	invalidateWindow();
@@ -110,7 +109,7 @@ bool FrameWindow::showTitleSequence() {
 	x = (_rect.right - video->getRect().right) / 2;
 	y = (_rect.bottom - video->getRect().bottom) / 2;
 
-	video->setWindowPos(0, x, y, 0, 0, kWindowPosNoSize | kWindowPosNoZOrder | kWindowPosShowWindow);
+	video->setWindowPos(nullptr, x, y, 0, 0, kWindowPosNoSize | kWindowPosNoZOrder | kWindowPosShowWindow);
 	video->playVideo();
 	enableWindow(true);
 
@@ -118,7 +117,7 @@ bool FrameWindow::showTitleSequence() {
 	_vm->removeMouseMessages(video);
 
 	while (!_vm->shouldQuit() && video->getMode() != VideoWindow::kModeStopped && !_vm->hasMessage(this, kMessageTypeLButtonDown, kMessageTypeLButtonDown))
-		_vm->yield();
+		_vm->yield(video, -1);
 
 	delete video;
 
@@ -181,7 +180,7 @@ bool FrameWindow::returnToMainMenu() {
 	return true;
 }
 
-bool FrameWindow::playMovie(const Common::String &background, const Common::String &movie, int movieLeft, int movieTop) {
+bool FrameWindow::playMovie(const Common::Path &background, const Common::Path &movie, int movieLeft, int movieTop) {
 	_vm->removeMouseMessages(this);
 	_vm->removeMouseMessages(_mainChildWindow);
 
@@ -214,7 +213,7 @@ bool FrameWindow::showClosingScreen() {
 	_mainChildWindow->showWindow(kWindowShow);
 	_mainChildWindow->setFocus();
 
-	// Start the the title sequence
+	// Start the title sequence
 	((TitleSequenceWindow *)_mainChildWindow)->playTitleSequence();
 
 	// Empty the input queue
@@ -269,8 +268,13 @@ bool FrameWindow::showDeathScene(int deathSceneIndex, GlobalFlags &globalFlags, 
 
 	_vm->removeMouseMessages(this);
 
+	// Pass globalFlags by value to DeathWindow here, as they will be destroyed
+	// together with _mainChildWindow (a GameUIWindow, which contains the scene
+	// window, which holds the instance of the global flags)
+	DeathWindow *deathWindow = new DeathWindow(_vm, this, deathSceneIndex, globalFlags, itemArray);
+
 	delete _mainChildWindow;
-	_mainChildWindow = new DeathWindow(_vm, this, deathSceneIndex, globalFlags, itemArray);
+	_mainChildWindow = deathWindow;
 	_mainChildWindow->showWindow(kWindowShow);
 	_mainChildWindow->invalidateWindow(false);
 
@@ -283,8 +287,13 @@ bool FrameWindow::showCompletionScene(GlobalFlags &globalFlags) {
 
 	_vm->removeMouseMessages(this);
 
+	// Pass globalFlags by value to CompletionWindow here, as they will be destroyed
+	// together with _mainChildWindow (a GameUIWindow, which contains the scene
+	// window, which holds the instance of the global flags)
+	CompletionWindow *completionWindow = new CompletionWindow(_vm, this, globalFlags);
+
 	delete _mainChildWindow;
-	_mainChildWindow = new CompletionWindow(_vm, this, globalFlags);
+	_mainChildWindow = completionWindow;
 	_mainChildWindow->showWindow(kWindowShow);
 	_mainChildWindow->invalidateWindow(false);
 

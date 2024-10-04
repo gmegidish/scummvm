@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,14 +34,14 @@ namespace Id {
 
 IdStorage::IdStorage() {}
 
-IdStorage::IdStorage(Common::String token, Common::String refreshToken, bool enabled):
+IdStorage::IdStorage(const Common::String &token, const Common::String &refreshToken, bool enabled):
 	BaseStorage(token, refreshToken, enabled) {}
 
 IdStorage::~IdStorage() {}
 
-void IdStorage::printFiles(FileArrayResponse response) {
+void IdStorage::printFiles(const FileArrayResponse &response) {
 	debug(9, "IdStorage: files:");
-	Common::Array<StorageFile> &files = response.value;
+	const Common::Array<StorageFile> &files = response.value;
 	for (uint32 i = 0; i < files.size(); ++i) {
 		debug(9, "\t%s%s", files[i].name().c_str(), files[i].isDirectory() ? " (directory)" : "");
 		debug(9, "\t%s", files[i].path().c_str());
@@ -51,11 +50,11 @@ void IdStorage::printFiles(FileArrayResponse response) {
 	}
 }
 
-void IdStorage::printBool(BoolResponse response) {
+void IdStorage::printBool(const BoolResponse &response) {
 	debug(9, "IdStorage: bool: %s", response.value ? "true" : "false");
 }
 
-void IdStorage::printFile(UploadResponse response) {
+void IdStorage::printFile(const UploadResponse &response) {
 	debug(9, "\nIdStorage: uploaded file info:");
 	debug(9, "\tid: %s", response.value.path().c_str());
 	debug(9, "\tname: %s", response.value.name().c_str());
@@ -64,30 +63,30 @@ void IdStorage::printFile(UploadResponse response) {
 }
 
 Storage::ListDirectoryCallback IdStorage::getPrintFilesCallback() {
-	return new Common::Callback<IdStorage, FileArrayResponse>(this, &IdStorage::printFiles);
+	return new Common::Callback<IdStorage, const FileArrayResponse &>(this, &IdStorage::printFiles);
 }
 
-Networking::Request *IdStorage::resolveFileId(Common::String path, UploadCallback callback, Networking::ErrorCallback errorCallback) {
+Networking::Request *IdStorage::resolveFileId(const Common::String &path, UploadCallback callback, Networking::ErrorCallback errorCallback) {
 	if (!errorCallback)
 		errorCallback = getErrorPrintingCallback();
 	if (!callback)
-		callback = new Common::Callback<IdStorage, UploadResponse>(this, &IdStorage::printFile);
+		callback = new Common::Callback<IdStorage, const UploadResponse &>(this, &IdStorage::printFile);
 	return addRequest(new IdResolveIdRequest(this, path, callback, errorCallback));
 }
 
-Networking::Request *IdStorage::listDirectory(Common::String path, ListDirectoryCallback callback, Networking::ErrorCallback errorCallback, bool recursive) {
+Networking::Request *IdStorage::listDirectory(const Common::String &path, ListDirectoryCallback callback, Networking::ErrorCallback errorCallback, bool recursive) {
 	if (!errorCallback)
 		errorCallback = getErrorPrintingCallback();
 	if (!callback)
-		callback = new Common::Callback<IdStorage, FileArrayResponse>(this, &IdStorage::printFiles);
+		callback = new Common::Callback<IdStorage, const FileArrayResponse &>(this, &IdStorage::printFiles);
 	return addRequest(new IdListDirectoryRequest(this, path, callback, errorCallback, recursive));
 }
 
-Networking::Request *IdStorage::createDirectory(Common::String path, BoolCallback callback, Networking::ErrorCallback errorCallback) {
+Networking::Request *IdStorage::createDirectory(const Common::String &path, BoolCallback callback, Networking::ErrorCallback errorCallback) {
 	if (!errorCallback)
 		errorCallback = getErrorPrintingCallback();
 	if (!callback)
-		callback = new Common::Callback<IdStorage, BoolResponse>(this, &IdStorage::printBool);
+		callback = new Common::Callback<IdStorage, const BoolResponse &>(this, &IdStorage::printBool);
 
 	//find out the parent path and directory name
 	Common::String parentPath = "", directoryName = path;
@@ -103,11 +102,11 @@ Networking::Request *IdStorage::createDirectory(Common::String path, BoolCallbac
 	return addRequest(new IdCreateDirectoryRequest(this, parentPath, directoryName, callback, errorCallback));
 }
 
-Networking::Request *IdStorage::streamFile(Common::String path, Networking::NetworkReadStreamCallback outerCallback, Networking::ErrorCallback errorCallback) {
+Networking::Request *IdStorage::streamFile(const Common::String &path, Networking::NetworkReadStreamCallback outerCallback, Networking::ErrorCallback errorCallback) {
 	return addRequest(new IdStreamFileRequest(this, path, outerCallback, errorCallback));
 }
 
-Networking::Request *IdStorage::download(Common::String remotePath, Common::String localPath, BoolCallback callback, Networking::ErrorCallback errorCallback) {
+Networking::Request *IdStorage::download(const Common::String &remotePath, const Common::Path &localPath, BoolCallback callback, Networking::ErrorCallback errorCallback) {
 	return addRequest(new IdDownloadRequest(this, remotePath, localPath, callback, errorCallback));
 }
 

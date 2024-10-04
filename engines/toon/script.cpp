@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, MojoTouch has
+ * exclusively licensed this code on March 23th, 2024, to be used in
+ * closed-source products.
+ * Therefore, any contributions (commits) to it will also be dual-licensed.
  *
  */
 
@@ -147,13 +153,13 @@ void EMCInterpreter::unload(EMCData *data) {
 		return;
 
 	delete[] data->text;
-	data->text = NULL;
+	data->text = nullptr;
 
 	delete[] data->ordr;
-	data->ordr = NULL;
+	data->ordr = nullptr;
 
 	delete[] data->data;
-	 data->data = NULL;
+	data->data = nullptr;
 }
 
 void EMCInterpreter::init(EMCState *scriptStat, const EMCData *data) {
@@ -179,27 +185,31 @@ bool EMCInterpreter::start(EMCState *script, int function) {
 }
 
 bool EMCInterpreter::isValid(EMCState *script) {
-	if (!script->ip || !script->dataPtr || _vm->shouldQuitGame())
+	if (script->ip == nullptr || script->dataPtr == nullptr || _vm->shouldQuitGame())
 		return false;
 	return true;
 }
 
 bool EMCInterpreter::run(EMCState *script) {
-	if (script->running)
+	if (script->running) {
+		// Prevents nested call of same (already running script)
 		return false;
+	}
 
 	_parameter = 0;
 
-	if (!script->ip)
+	if (script->ip == nullptr) {
 		return false;
+	}
 
 	script->running = true;
 
 	// Should be no Problem at all to cast to uint32 here, since that's the biggest ptrdiff the original
 	// would allow, of course that's not realistic to happen to be somewhere near the limit of uint32 anyway.
+	// instOffset is the offset of currect instruction from the start of the script data
 	const uint32 instOffset = (uint32)((const byte *)script->ip - (const byte *)script->dataPtr->data);
-	int16 code = *script->ip++;
-	int16 opcode = (code >> 8) & 0x1F;
+	int16 code = *script->ip++; // get the next instruction (and increase instruction pointer)
+	int16 opcode = (code >> 8) & 0x1F; // get the opCode from the instruction
 
 	if (code & 0x8000) {
 		opcode = 0;
@@ -216,15 +226,15 @@ bool EMCInterpreter::run(EMCState *script) {
 		error("Unknown script opcode: %d in file '%s' at offset 0x%.08X", opcode, script->dataPtr->filename, instOffset);
 	} else {
 		static bool EMCDebug = false;
-		if (EMCDebug)
+		if (EMCDebug) {
 			debugC(5, 0, "[0x%.08X] EMCInterpreter::%s([%d/%u])", instOffset * 2, _opcodes[opcode].desc, _parameter, (uint)_parameter);
-		//printf( "[0x%.08X] EMCInterpreter::%s([%d/%u])\n", instOffset, _opcodes[opcode].desc, _parameter, (uint)_parameter);
+			//printf( "[0x%.08X] EMCInterpreter::%s([%d/%u])\n", instOffset, _opcodes[opcode].desc, _parameter, (uint)_parameter);
+		}
 
 		(this->*(_opcodes[opcode].proc))(script);
 	}
-
 	script->running = false;
-	return (script->ip != 0);
+	return (script->ip != nullptr);
 }
 
 #pragma mark -
@@ -242,17 +252,21 @@ void EMCInterpreter::op_setRetValue(EMCState *script) {
 void EMCInterpreter::op_pushRetOrPos(EMCState *script) {
 	switch (_parameter) {
 	case 0:
+		// store retValue in next free stack slot (from 99 moving "downwards" to 0)
 		script->stack[--script->sp] = script->retValue;
 		break;
 
 	case 1:
+		// store offset of next instruction (from script->dataPtr->data) in stack slot
+		// store script->bp in stack slot
+		// set script->bp to current free stack slot + 2 (essentially it's the stack slot before we pushed here)
 		script->stack[--script->sp] = script->ip - script->dataPtr->data + 1;
 		script->stack[--script->sp] = script->bp;
 		script->bp = script->sp + 2;
 		break;
 
 	default:
-		script->ip = 0;
+		script->ip = nullptr;
 	}
 }
 
@@ -280,15 +294,20 @@ void EMCInterpreter::op_popRetOrPos(EMCState *script) {
 
 	case 1:
 		if (script->sp >= EMCState::kStackLastEntry) {
-			script->ip = 0;
+			// Nothing to pop
+			script->ip = nullptr;
 		} else {
+			// set the base "pointer" to the value of script->stack[] of the script->sp slot (entry)
+			// and increase the script->sp slot index (it now points to a slot with the value of the offset used below).
+			// script->ip is set to point at an offset of stack[script->sp] after dataPtr->data.
+			// and increase (again) the script->sp slot index.
 			script->bp = script->stack[script->sp++];
 			script->ip = script->dataPtr->data + script->stack[script->sp++];
 		}
 		break;
 
 	default:
-		script->ip = 0;
+		script->ip = nullptr;
 	}
 }
 
@@ -353,7 +372,7 @@ void EMCInterpreter::op_negate(EMCState *script) {
 
 	default:
 		warning("Unknown negation func: %d", _parameter);
-		script->ip = 0;
+		script->ip = nullptr;
 	}
 }
 
@@ -443,14 +462,14 @@ void EMCInterpreter::op_eval(EMCState *script) {
 	}
 
 	if (error)
-		script->ip = 0;
+		script->ip = nullptr;
 	else
 		script->stack[--script->sp] = ret;
 }
 
 void EMCInterpreter::op_setRetAndJmp(EMCState *script) {
 	if (script->sp >= EMCState::kStackLastEntry) {
-		script->ip = 0;
+		script->ip = nullptr;
 	} else {
 		script->retValue = script->stack[script->sp++];
 		uint16 temp = script->stack[script->sp++];
@@ -462,7 +481,7 @@ void EMCInterpreter::op_setRetAndJmp(EMCState *script) {
 void EMCInterpreter::saveState(EMCState *script, Common::WriteStream *stream) {
 	stream->writeSint16LE(script->bp);
 	stream->writeSint16LE(script->sp);
-	if (!script->ip) {
+	if (script->ip == nullptr) {
 		stream->writeSint16LE(-1);
 	} else {
 		stream->writeSint16LE(script->ip - script->dataPtr->data);
@@ -485,7 +504,7 @@ void EMCInterpreter::loadState(EMCState *script, Common::ReadStream *stream) {
 
 	int16 scriptIp = stream->readSint16LE();
 	if (scriptIp == -1) {
-		script->ip = 0;
+		script->ip = nullptr;
 	} else {
 		script->ip = scriptIp + script->dataPtr->data;
 	}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,19 +30,19 @@ namespace Illusions {
 byte *ResourceReaderFileReader::readResource(uint32 sceneId, uint32 resId, uint32 &dataSize) {
 	debug("ResourceReaderFileReader::readResource(%08X, %08X)", sceneId, resId);
 
-	Common::String filename = buildResourceFilename(resId);
+	Common::Path filename = buildResourceFilename(resId);
 	Common::File fd;
 	if (!fd.open(filename))
-		error("Resource::loadData() Could not open %s for reading", filename.c_str());
+		error("Resource::loadData() Could not open %s for reading", filename.toString().c_str());
 	dataSize = fd.size();
 	byte *data = (byte*)malloc(dataSize);
 	fd.read(data, dataSize);
 	return data;
 }
 
-Common::String ResourceReaderFileReader::buildResourceFilename(uint32 resId) {
+Common::Path ResourceReaderFileReader::buildResourceFilename(uint32 resId) {
 	const char *ext = getResourceExtension(resId);
-	return Common::String::format("%08X%s", resId, ext);
+	return Common::Path(Common::String::format("%08X%s", resId, ext));
 }
 
 const char *ResourceReaderFileReader::getResourceExtension(uint32 resId) {

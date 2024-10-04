@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,12 +57,12 @@ public:
 
 	//! Remove an item from the container. This does NOT update item.
 	//! \param item The item to remove
-	//! \return true if succesful, false if item wasn't in container
+	//! \return true if successful, false if item wasn't in container
 	virtual bool removeItem(Item *item);
 
 	//! Move an item to the end of the contents list
 	//! \param item The item to move
-	//! \return true if succesful, false if item isn't in this container
+	//! \return true if successful, false if item isn't in this container
 	virtual bool moveItemToEnd(Item *item);
 
 	//! Remove all contents, moving them to this container's
@@ -115,7 +114,7 @@ public:
 	//! Destroy self
 	void destroy(bool delnow = false) override;
 
-	void dumpInfo() const override;
+	Common::String dumpInfo() const override;
 
 	bool loadData(Common::ReadStream *rs, uint32 version);
 	void saveData(Common::WriteStream *ws) override;

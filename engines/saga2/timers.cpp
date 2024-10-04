@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * aint32 with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * Based on the original sources
@@ -85,28 +84,28 @@ void cleanupTimer() {
  * ====================================================================== */
 
 void Alarm::write(Common::MemoryWriteStreamDynamic *out) {
-	out->writeUint32LE(basetime);
-	out->writeUint32LE(duration);
+	out->writeUint32LE(_basetime);
+	out->writeUint32LE(_duration);
 }
 
 void Alarm::read(Common::InSaveFile *in) {
-	basetime = in->readUint32LE();
-	duration = in->readUint32LE();
+	_basetime = in->readUint32LE();
+	_duration = in->readUint32LE();
 }
 
 void Alarm::set(uint32 dur) {
-	basetime = gameTime;
-	duration = dur;
+	_basetime = gameTime;
+	_duration = dur;
 }
 
 bool Alarm::check() {
-	return ((uint32)(gameTime - basetime) > duration);
+	return ((uint32)(gameTime - _basetime) > _duration);
 }
 
 // time elapsed since alarm set
 
 uint32 Alarm::elapsed() {
-	return (uint32)(gameTime - basetime);
+	return (uint32)(gameTime - _basetime);
 }
 
 /* ===================================================================== *
@@ -136,7 +135,7 @@ void checkTimers() {
 			continue;
 
 		if ((*it)->check()) {
-			debugC(2, kDebugTimers, "Timer tick for %p (%s): %p (duration %d)", (void *)(*it)->getObject(), (*it)->getObject()->objName(), (void *)(*it), (*it)->getInterval());
+			debugC(2, kDebugTimers, "Timer tick for %p (%s): %p (_duration %d)", (void *)(*it)->getObject(), (*it)->getObject()->objName(), (void *)(*it), (*it)->getInterval());
 			(*it)->reset();
 			(*it)->getObject()->timerTick((*it)->thisID());
 		}
@@ -240,12 +239,12 @@ void loadTimers(Common::InSaveFile *in) {
 
 		timer = new Timer(in);
 
-		assert(timer != NULL);
+		assert(timer != nullptr);
 
 		//  Get the objects's timer list
 		timerList = fetchTimerList(timer->getObject());
 
-		assert(timerList != NULL);
+		assert(timerList != nullptr);
 
 		//  Append this timer to the objects's timer list
 		timerList->_timers.push_back(timer);

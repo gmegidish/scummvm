@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,12 +24,12 @@
 
 #include "common/ptr.h"
 #include "common/scummsys.h"
-#include "common/str.h"
 #include "common/types.h"
 
 #include "audio/timestamp.h"
 
 namespace Common {
+class Path;
 class SeekableReadStream;
 }
 
@@ -118,12 +117,31 @@ public:
 };
 
 /**
+ * Generic loopable audio stream. Subclasses of this are used to feed
+ * looping sampled audio data into ScummVM's audio mixer.
+ */
+class LoopableAudioStream : public virtual AudioStream {
+public:
+
+	/**
+	 * Return the number of loops that the stream has played.
+	 */
+	virtual uint getCompleteIterations() const = 0;
+
+	/**
+	 * Set the number of remaining loops the stream should play
+	 * before stopping.
+	 */
+	virtual void setRemainingIterations(uint loops) = 0;
+};
+
+/**
  * A looping audio stream.
  *
  * This object does nothing besides using a RewindableAudioStream
  * to play a stream in a loop.
  */
-class LoopingAudioStream : public AudioStream {
+class LoopingAudioStream : public LoopableAudioStream {
 public:
 	/**
 	 * Create a looping audio stream object.
@@ -139,6 +157,20 @@ public:
 	 */
 	LoopingAudioStream(RewindableAudioStream *stream, uint loops, DisposeAfterUse::Flag disposeAfterUse = DisposeAfterUse::YES, bool rewind = true);
 
+	/**
+	 * Create a looping audio stream object.
+	 *
+	 * On creation of the LoopingAudioStream object, the underlying stream will be rewound.
+	 *
+	 * @see makeLoopingAudioStream
+	 *
+	 * @param stream  The stream to loop.
+	 * @param loops   How often to loop (0 = infinite).
+	 * @param disposeAfterUse  Destroy the stream after the LoopingAudioStream has finished playback.
+	 * @param rewind  If true, rewind the underlying stream.
+	 */
+	LoopingAudioStream(Common::DisposablePtr<RewindableAudioStream>&& stream, uint loops, bool rewind = true);
+
 	int readBuffer(int16 *buffer, const int numSamples);
 	bool endOfData() const;
 	bool endOfStream() const;
@@ -146,10 +178,8 @@ public:
 	bool isStereo() const { return _parent->isStereo(); }
 	int getRate() const { return _parent->getRate(); }
 
-	/**
-	 * Return the number of loops that the stream has played.
-	 */
 	uint getCompleteIterations() const { return _completeIterations; }
+	void setRemainingIterations(uint loops) { _loops = _completeIterations + loops; }
 private:
 	Common::DisposablePtr<RewindableAudioStream> _parent;
 
@@ -192,7 +222,7 @@ public:
 	 * @return  A SeekableAudioStream ready to use in case of success.
 	 *          NULL in case of an error (e.g. invalid/non-existing file).
 	 */
-	static SeekableAudioStream *openStreamFile(const Common::String &basename);
+	static SeekableAudioStream *openStreamFile(const Common::Path &basename);
 
 	/**
 	 * Seek to a given offset in the stream.
@@ -254,7 +284,7 @@ AudioStream *makeLoopingAudioStream(SeekableAudioStream *stream, Timestamp start
  * @b Important: This can be merged with SubSeekableAudioStream for playback purposes.
  *               To do this, it must be extended to accept a start time.
  */
-class SubLoopingAudioStream : public AudioStream {
+class SubLoopingAudioStream : public LoopableAudioStream {
 public:
 	/**
 	 * Constructor for a SubLoopingAudioStream.
@@ -280,14 +310,16 @@ public:
 
 	bool isStereo() const { return _parent->isStereo(); }
 	int getRate() const { return _parent->getRate(); }
+
+	uint getCompleteIterations() const { return _completeIterations; }
+	void setRemainingIterations(uint loops) { _loops = _completeIterations + loops; }
 private:
 	Common::DisposablePtr<SeekableAudioStream> _parent;
 
 	uint _loops;
+	uint _completeIterations;
 	Timestamp _pos;
 	Timestamp _loopStart, _loopEnd;
-
-	bool _done;
 };
 
 
@@ -479,6 +511,12 @@ private:
  * endOfStream() has been reached.
  */
 AudioStream *makeNullAudioStream();
+
+/**
+ * Create an AudioStream that just returns silent samples and runs infinitely.
+ */
+AudioStream *makeSilentAudioStream(int rate, bool stereo);
+
 /** @} */
 } // End of namespace Audio
 

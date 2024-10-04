@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,7 @@ namespace Audio {
 RewindableAudioStream *make3DO_ADP4AudioStream(Common::SeekableReadStream *stream, uint16 sampleRate, bool stereo, uint32 *audioLengthMSecsPtr, DisposeAfterUse::Flag disposeAfterUse, audio_3DO_ADP4_PersistentSpace *persistentSpace) {
 	if (stereo) {
 		warning("make3DO_ADP4Stream(): stereo currently not supported");
-		return 0;
+		return nullptr;
 	}
 
 	if (audioLengthMSecsPtr) {
@@ -104,7 +103,7 @@ int16 Audio3DO_ADP4_Stream::decodeSample(byte compressedNibble) {
 // Writes the requested amount (or less) of samples into buffer and returns the amount of samples, that got written
 int Audio3DO_ADP4_Stream::readBuffer(int16 *buffer, const int numSamples) {
 	int8  byteCache[AUDIO_3DO_CACHE_SIZE];
-	int8 *byteCachePtr = NULL;
+	int8 *byteCachePtr = nullptr;
 	int   byteCacheSize = 0;
 	int   requestedBytesLeft = 0;
 	int   decodedSamplesCount = 0;
@@ -166,7 +165,7 @@ int Audio3DO_ADP4_Stream::readBuffer(int16 *buffer, const int numSamples) {
 }
 
 // ============================================================================
-static int16 audio_3DO_SDX2_SquareTable[256] = {
+static const int16 audio_3DO_SDX2_SquareTable[256] = {
 	-32768,-32258,-31752,-31250,-30752,-30258,-29768,-29282,-28800,-28322,
 	-27848,-27378,-26912,-26450,-25992,-25538,-25088,-24642,-24200,-23762,
 	-23328,-22898,-22472,-22050,-21632,-21218,-20808,-20402,-20000,-19602,
@@ -220,7 +219,7 @@ bool Audio3DO_SDX2_Stream::rewind() {
 // Writes the requested amount (or less) of samples into buffer and returns the amount of samples, that got written
 int Audio3DO_SDX2_Stream::readBuffer(int16 *buffer, const int numSamples) {
 	int8  byteCache[AUDIO_3DO_CACHE_SIZE];
-	int8 *byteCachePtr = NULL;
+	int8 *byteCachePtr = nullptr;
 	int   byteCacheSize = 0;
 	int   requestedBytesLeft = numSamples; // 1 byte per 16-bit sample
 	int   decodedSamplesCount = 0;
@@ -323,7 +322,7 @@ RewindableAudioStream *make3DO_SDX2AudioStream(Common::SeekableReadStream *strea
 	if (stereo) {
 		if (stream->size() & 1) {
 			warning("make3DO_SDX2Stream(): stereo data is uneven size");
-			return 0;
+			return nullptr;
 		}
 	}
 

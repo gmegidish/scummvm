@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -285,7 +284,7 @@ void Object::update() {
 	// Examine flags
 	if (flags & kObjectFlag20) {
 		if (_vm->getTick() - _tickCount >= (uint32)Common::Rational(1000, _field_B4).toInt()) {
-			_frameIndex =((_frameIndex + 1) % _frameCount);
+			_frameIndex = (_frameIndex + 1) % _frameCount;
 			_tickCount = _vm->getTick();
 			doPlaySounds = true;
 		}
@@ -311,7 +310,7 @@ void Object::update() {
 
 		if (!isFirstFrame) {
 			if (_vm->getTick() - _tickCount >= (uint32)Common::Rational(1000, _field_B4).toInt()) {
-				_frameIndex =((_frameIndex + 1) % _frameCount);
+				_frameIndex = (_frameIndex + 1) % _frameCount;
 				_tickCount = _vm->getTick();
 				doPlaySounds = true;
 			}
@@ -319,7 +318,7 @@ void Object::update() {
 	} else if (BYTE1(flags) & kObjectFlag8) {
 		if (_vm->getTick() - _tickCount >= 1000 * _tickCount2) {
 			if (_vm->getRandom(_field_C0) == 1)
-				_frameIndex =((_frameIndex + 1) % _frameCount);
+				_frameIndex = (_frameIndex + 1) % _frameCount;
 
 			_tickCount = _vm->getTick();
 			doPlaySounds = true;
@@ -381,6 +380,9 @@ void Object::update() {
 				BYTE1(flags) = (BYTE1(flags) & 0xFB) | kObjectFlag2;
 			}
 		}
+
+		_tickCount = _vm->getTick();
+		doPlaySounds = true;
 	}
 
 	if (flags & kObjectFlag40000) {

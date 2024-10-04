@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/config-manager.h"
 #include "common/fs.h"
-#include "ags/lib/std/regex.h"
+#include "common/std/regex.h"
 #include "ags/shared/core/platform.h"
 #include "ags/shared/util/string_utils.h"
 #include "ags/shared/util/directory.h"
@@ -57,7 +56,7 @@ bool CreateAllDirectories(const String &parent, const String &sub_dirs) {
 		const char *cur = sect + 1;
 		for (; *cur && *cur != '/' && *cur != PATH_ALT_SEPARATOR; ++cur);
 		// Skip empty dirs (duplicated separators etc)
-		if ((cur - sect == 1) && (*cur == '.' || *cur == '/' || *cur == PATH_ALT_SEPARATOR)) {
+		if ((cur - sect == 1) && (*sect == '.' || *sect == '/' || *sect == PATH_ALT_SEPARATOR)) {
 			sect = cur;
 			continue;
 		}
@@ -87,7 +86,8 @@ String GetCurrentDirectory() {
 	Path::FixupPath(str);
 	return str;
 #else
-	return ConfMan.get("path");
+	// Use / separator
+	return ConfMan.getPath("path").toString('/');
 #endif
 }
 
@@ -100,7 +100,7 @@ static bool GetFilesImpl(const String &dir_path, std::vector<String> &files, boo
 		Common::FSNode::kListFilesOnly);
 
 	for (uint i = 0; i < fsList.size(); ++i)
-		files.push_back(fsList[i].getName());
+		files.emplace_back(fsList[i].getName());
 	return true;
 }
 
@@ -151,13 +151,13 @@ FindFileRecursive FindFileRecursive::Open(const String &path, const String &wild
 	FindFile fdir = FindFile::OpenDirs(path);
 	FindFile ffile = FindFile::OpenFiles(path, wildcard);
 	if (ffile.AtEnd() && fdir.AtEnd())
-		return FindFileRecursive(); // return invalid object
+		return {}; // return invalid object
 	FindFileRecursive ff;
 	ff._fdir = std::move(fdir);
 	ff._ffile = std::move(ffile);
 	// Try get the first matching entry
 	if (ff._ffile.AtEnd() && !ff.Next())
-		return FindFileRecursive(); // return invalid object
+		return {}; // return invalid object
 	ff._maxLevel = max_level;
 	ff._fullDir = path;
 	ff._curFile = ff._ffile.Current();
@@ -165,7 +165,7 @@ FindFileRecursive FindFileRecursive::Open(const String &path, const String &wild
 }
 
 void FindFileRecursive::Close() {
-	while (_fdirs.size())
+	while (!_fdirs.empty())
 		_fdirs.pop();
 	_fdir.Close();
 	_ffile.Close();
@@ -194,7 +194,7 @@ bool FindFileRecursive::Next() {
 }
 
 bool FindFileRecursive::PushDir(const String &sub) {
-	if (_maxLevel != -1 && (int)_fdirs.size() == _maxLevel)
+	if (_maxLevel != SIZE_MAX && (uint32_t)_fdirs.size() == _maxLevel)
 		return false; // no more nesting allowed
 
 	String path = Path::ConcatPaths(_fullDir, sub);
@@ -211,13 +211,15 @@ bool FindFileRecursive::PushDir(const String &sub) {
 }
 
 bool FindFileRecursive::PopDir() {
-	if (_fdirs.size() == 0)
+	if (_fdirs.empty())
 		return false; // no more parent levels
 	// restore parent level
 	_fdir = std::move(_fdirs.top());
 	_fdirs.pop();
 	_fullDir = Path::GetParent(_fullDir);
 	_curDir = Path::GetParent(_curDir);
+	if (_curDir.Compare(".") == 0)
+		_curDir = ""; // hotfix for GetParent returning "."
 	// advance dir iterator that we just recovered
 	_fdir.Next();
 	return true;

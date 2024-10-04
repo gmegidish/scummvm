@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,7 @@
 #include "engines/stark/services/settings.h"
 
 #include "common/file.h"
-#include "common/unzip.h"
+#include "common/compression/unzip.h"
 #include "image/png.h"
 
 namespace Stark {
@@ -57,12 +56,12 @@ Gfx::TextureSet *TextureSet::getTexture() {
 }
 
 void TextureSet::readData(Formats::XRCReadStream *stream) {
-	_filename = stream->readString();
+	_filename = Common::Path(stream->readString());
 	_archiveName = stream->getArchiveName();
 }
 
 void TextureSet::onPostRead() {
-	if (StarkSettings->isAssetsModEnabled()) {
+	if (StarkSettings->isAssetsModEnabled() && StarkGfx->supportsModdedAssets()) {
 		_textureSet = readOverrideDdsArchive();
 	}
 
@@ -88,10 +87,10 @@ void TextureSet::extractArchive() {
 
 	Common::Array<Formats::Texture *> textures = archive->listObjectsRecursive<Formats::Texture>();
 	for (uint i = 0; i < textures.size(); i++) {
-		Common::String filename = Common::String::format(
+		Common::Path filename(Common::String::format(
 		            "dump/%s/%s.png",
-		            _filename.c_str(),
-		            stripExtension(textures[i]->getName()).c_str());
+		            _filename.baseName().c_str(),
+		            stripExtension(textures[i]->getName()).c_str()));
 
 		if (Common::File::exists(filename)) {
 			continue;
@@ -99,7 +98,7 @@ void TextureSet::extractArchive() {
 
 		Common::DumpFile out;
 		if (!out.open(filename, true)) {
-			warning("Unable to open file '%s' for writing", filename.c_str());
+			warning("Unable to open file '%s' for writing", filename.toString().c_str());
 			return;
 		}
 
@@ -118,9 +117,9 @@ void TextureSet::extractArchive() {
 }
 
 Gfx::TextureSet *TextureSet::readOverrideDdsArchive() {
-	Common::String archiveName = _filename + ".zip";
+	Common::Path archiveName = _filename.append(".zip");
 
-	debugC(kDebugModding, "Attempting to load %s", archiveName.c_str());
+	debugC(kDebugModding, "Attempting to load %s", archiveName.toString().c_str());
 
 	Common::Archive *archive = Common::makeZipArchive(archiveName);
 	if (!archive) {
@@ -130,7 +129,7 @@ Gfx::TextureSet *TextureSet::readOverrideDdsArchive() {
 	Common::ArchiveMemberList files;
 	archive->listMatchingMembers(files, "*.dds");
 	if (files.empty()) {
-		warning("No DDS files found in archive %s", archiveName.c_str());
+		warning("No DDS files found in archive %s", archiveName.toString().c_str());
 		delete archive;
 		return nullptr;
 	}
@@ -141,14 +140,16 @@ Gfx::TextureSet *TextureSet::readOverrideDdsArchive() {
 	for (Common::ArchiveMemberList::const_iterator it = files.begin(); it != files.end(); it++) {
 		const Common::String &name = (*it)->getName();
 
+		debugC(kDebugModding, "Attempting to load texture %s", name.c_str());
+
 		Common::SeekableReadStream *ddsStream = (*it)->createReadStream();
 		if (!ddsStream) {
-			warning("Unable to open %s for reading in %s", (*it)->getName().c_str(), archiveName.c_str());
+			warning("Unable to open %s for reading in %s", (*it)->getName().c_str(), archiveName.toString().c_str());
 			continue;
 		}
 
 		Formats::DDS dds;
-		if (!dds.load(*ddsStream, name + " in " + archiveName)) {
+		if (!dds.load(*ddsStream, name + " in " + archiveName.toString('/'))) {
 			delete ddsStream;
 			continue;
 		}
@@ -170,6 +171,15 @@ Gfx::TextureSet *TextureSet::readOverrideDdsArchive() {
 		// used by the models.
 		Common::String textureName = Common::String(name.c_str(), name.size() - 4);
 
+		// Fix for loading one of Emma's textures in mods caused by inconsistent zip filename encoding
+		//  The original game uses a 1 byte character (\xe6 which is ae in CP1252)
+		//	\x91 is ae in CP437 and CP850 which is used by some compression utilities
+		//	\xc3\xa6 is the UTF-8 2-byte representation
+		// Both get converted to the game's original encoding here
+		if (textureName == "pupp\x91r" || textureName == "pupp\xc3\xa6r") {
+			textureName = "pupp\xe6r";
+		}
+
 		textureSet->addTexture(textureName + ".bmp", texture);
 
 		delete ddsStream;
@@ -177,7 +187,7 @@ Gfx::TextureSet *TextureSet::readOverrideDdsArchive() {
 		loadedCount++;
 	}
 
-	debugC(kDebugModding, "Loaded %d textures from %s", loadedCount, archiveName.c_str());
+	debugC(kDebugModding, "Loaded %d textures from %s", loadedCount, archiveName.toString().c_str());
 
 	delete archive;
 
@@ -185,7 +195,7 @@ Gfx::TextureSet *TextureSet::readOverrideDdsArchive() {
 }
 
 void TextureSet::printData() {
-	debug("filename: %s", _filename.c_str());
+	debug("filename: %s", _filename.toString().c_str());
 }
 
 } // End of namespace Resources

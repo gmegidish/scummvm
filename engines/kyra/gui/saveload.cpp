@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@
 #include "graphics/thumbnail.h"
 #include "graphics/surface.h"
 
-#define CURRENT_SAVE_VERSION 20
+#define CURRENT_SAVE_VERSION 22
 
 #define GF_FLOPPY  (1 <<  0)
 #define GF_TALKIE  (1 <<  1)
@@ -66,7 +65,7 @@ WARN_UNUSED_RESULT KyraEngine_v1::ReadSaveHeaderError KyraEngine_v1::readSaveHea
 			in->read(descriptionBuffer, descriptionSize[i]);
 			descriptionBuffer[descriptionSize[i]] = 0;
 
-			Util::convertDOSToUTF8(descriptionBuffer, 81);
+			Util::convertString_KYRAtoGUI(descriptionBuffer, 81);
 
 			type = in->readUint32BE();
 			header.version = in->readUint16LE();
@@ -132,16 +131,30 @@ WARN_UNUSED_RESULT KyraEngine_v1::ReadSaveHeaderError KyraEngine_v1::readSaveHea
 				return kRSHEIoError;
 		}
 	} else {
-		header.thumbnail = 0;
+		header.thumbnail = nullptr;
+	}
+
+	if (header.version >= 21) {
+		header.timeDate.tm_sec = in->readSint32BE();
+		header.timeDate.tm_min = in->readSint32BE();
+		header.timeDate.tm_hour = in->readSint32BE();
+		header.timeDate.tm_mday = in->readSint32BE();
+		header.timeDate.tm_mon = in->readSint32BE();
+		header.timeDate.tm_year = in->readSint32BE();
+		header.timeDate.tm_wday = in->readSint32BE();
+		header.totalPlaySecs = in->readUint32BE();
+	} else {
+		header.totalPlaySecs = 0;
+		memset(&header.timeDate, 0, sizeof(TimeDate));
 	}
 
 	return ((in->err() || in->eos()) ? kRSHEIoError : kRSHENoError);
 }
 
 Common::SeekableReadStream *KyraEngine_v1::openSaveForReading(const char *filename, SaveHeader &header, bool checkID) {
-	Common::SeekableReadStream *in = 0;
+	Common::SeekableReadStream *in = nullptr;
 	if (!(in = _saveFileMan->openForLoading(filename)))
-		return 0;
+		return nullptr;
 
 	ReadSaveHeaderError errorCode = KyraEngine_v1::readSaveHeader(in, header);
 	if (errorCode != kRSHENoError) {
@@ -153,7 +166,7 @@ Common::SeekableReadStream *KyraEngine_v1::openSaveForReading(const char *filena
 			warning("Load failed '%s'", filename);
 
 		delete in;
-		return 0;
+		return nullptr;
 	}
 
 	if (!header.originalSave) {
@@ -161,25 +174,25 @@ Common::SeekableReadStream *KyraEngine_v1::openSaveForReading(const char *filena
 			if (header.gameID != _flags.gameID && checkID) {
 				warning("Trying to load saved game from other game (saved game: %u, running game: %u)", header.gameID, _flags.gameID);
 				delete in;
-				return 0;
+				return nullptr;
 			}
 		}
 
 		if (header.version < 2) {
 			warning("Make sure your savefile was from this version! (too old savefile version to detect that)");
-		} else {
+		} else if (checkID) {
 			if ((header.flags & GF_FLOPPY) && (_flags.isTalkie || _flags.platform == Common::kPlatformFMTowns || _flags.platform == Common::kPlatformPC98)) {
 				warning("Can not load DOS Floppy savefile for this (non DOS Floppy) gameversion");
 				delete in;
-				return 0;
+				return nullptr;
 			} else if ((header.flags & GF_TALKIE) && !(_flags.isTalkie)) {
 				warning("Can not load DOS CD-ROM savefile for this (non DOS CD-ROM) gameversion");
 				delete in;
-				return 0;
-			} else if (checkID && ((header.flags & GF_FMTOWNS) && !(_flags.platform == Common::kPlatformFMTowns || _flags.platform == Common::kPlatformPC98))) {
+				return nullptr;
+			} else if ((header.flags & GF_FMTOWNS) && !(_flags.platform == Common::kPlatformFMTowns || _flags.platform == Common::kPlatformPC98)) {
 				warning("Can not load FM-TOWNS/PC98 savefile for this (non FM-TOWNS/PC98) gameversion");
 				delete in;
-				return 0;
+				return nullptr;
 			}
 		}
 	}
@@ -189,12 +202,12 @@ Common::SeekableReadStream *KyraEngine_v1::openSaveForReading(const char *filena
 
 Common::OutSaveFile *KyraEngine_v1::openSaveForWriting(const char *filename, const char *saveName, const Graphics::Surface *thumbnail) const {
 	if (shouldQuit())
-		return 0;
+		return nullptr;
 
-	Common::WriteStream *out = 0;
+	Common::WriteStream *out = nullptr;
 	if (!(out = _saveFileMan->openForSaving(filename))) {
 		warning("Can't create file '%s', game not saved", filename);
-		return 0;
+		return nullptr;
 	}
 
 	// Savegame version
@@ -212,10 +225,10 @@ Common::OutSaveFile *KyraEngine_v1::openSaveForWriting(const char *filename, con
 	if (out->err()) {
 		warning("Can't write file '%s'. (Disk full?)", filename);
 		delete out;
-		return 0;
+		return nullptr;
 	}
 
-	Graphics::Surface *genThumbnail = 0;
+	Graphics::Surface *genThumbnail = nullptr;
 	if (!thumbnail)
 		thumbnail = genThumbnail = generateSaveThumbnail();
 
@@ -228,6 +241,19 @@ Common::OutSaveFile *KyraEngine_v1::openSaveForWriting(const char *filename, con
 		genThumbnail->free();
 		delete genThumbnail;
 	}
+
+	TimeDate td;
+	_system->getTimeAndDate(td);
+
+	out->writeSint32BE(td.tm_sec);
+	out->writeSint32BE(td.tm_min);
+	out->writeSint32BE(td.tm_hour);
+	out->writeSint32BE(td.tm_mday);
+	out->writeSint32BE(td.tm_mon);
+	out->writeSint32BE(td.tm_year);		
+	out->writeSint32BE(td.tm_wday);
+
+	out->writeUint32BE(_totalPlaySecs);
 
 	return new Common::OutSaveFile(out);
 }

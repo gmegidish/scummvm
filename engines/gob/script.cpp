@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -36,11 +41,11 @@ Script::Script(GobEngine *vm) : _vm(vm) {
 
 	_finished = true;
 
-	_totData = 0;
-	_totPtr = 0;
+	_totData = nullptr;
+	_totPtr = nullptr;
 	_totSize = 0;
 
-	_lom = 0;
+	_lom = nullptr;
 
 	memset(&_totProperties, 0, sizeof(TOTFile::Properties));
 }
@@ -140,9 +145,9 @@ int32 Script::getOffset(byte *ptr) const {
 
 byte *Script::getData(int32 offset) const {
 	if (!_totData)
-		return 0;
+		return nullptr;
 	if ((offset < 0) || (((uint32) offset) >= _totSize))
-		return 0;
+		return nullptr;
 
 	return _totData + offset;
 }
@@ -262,7 +267,11 @@ char *Script::peekString(int32 offset) {
 	return (char *)(_totPtr + offset);
 }
 
-int16 Script::readVarIndex(uint16 *size, uint16 *type) {
+void Script::writeByte(int32 offset, byte v) {
+	_totPtr[offset] = v;
+}
+
+uint16 Script::readVarIndex(uint16 *size, uint16 *type) {
 	return _expression->parseVarIndex(size, type);
 }
 
@@ -322,12 +331,12 @@ bool Script::evalBool() {
 }
 
 int32 Script::evalInt() {
-	evalExpr(0);
+	evalExpr(nullptr);
 	return getResultInt();
 }
 
 const char *Script::evalString() {
-	evalExpr(0);
+	evalExpr(nullptr);
 	return getResultStr();
 }
 
@@ -410,7 +419,7 @@ void Script::unload() {
 
 void Script::unloadTOT() {
 	delete _lom;
-	_lom = 0;
+	_lom = nullptr;
 
 	// Unwind the call stack
 	while (!_callStack.empty())
@@ -418,16 +427,16 @@ void Script::unloadTOT() {
 
 	delete[] _totData;
 
-	_totData = 0;
+	_totData = nullptr;
 	_totSize = 0;
-	_totPtr = 0;
+	_totPtr = nullptr;
 	_totFile.clear();
 
 	_finished = true;
 }
 
 bool Script::isLoaded() const {
-	return _totData != 0;
+	return _totData != nullptr;
 }
 
 void Script::setFinished(bool finished) {

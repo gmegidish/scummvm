@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,7 +47,7 @@ TitlerControl::TitlerControl(ZVision *engine, uint32 key, Common::SeekableReadSt
 
 	while (!stream.eos() && !line.contains('}')) {
 		if (param.matchString("string_resource_file", true)) {
-			readStringsFile(values);
+			readStringsFile(Common::Path(values));
 		} else if (param.matchString("rectangle", true)) {
 			int x;
 			int y;
@@ -88,10 +87,10 @@ void TitlerControl::setString(int strLine) {
 	}
 }
 
-void TitlerControl::readStringsFile(const Common::String &fileName) {
+void TitlerControl::readStringsFile(const Common::Path &fileName) {
 	Common::File file;
 	if (!_engine->getSearchManager()->openFile(file, fileName)) {
-		warning("String_resource_file %s could could be opened", fileName.c_str());
+		warning("String_resource_file %s could could be opened", fileName.toString().c_str());
 		return;
 	}
 
@@ -99,7 +98,7 @@ void TitlerControl::readStringsFile(const Common::String &fileName) {
 
 	while (!file.eos()) {
 
-		Common::String line = readWideLine(file);
+		Common::String line = readWideLine(file).encode();
 		_strings.push_back(line);
 	}
 	file.close();

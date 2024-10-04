@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -215,12 +214,12 @@ void AGOSEngine::o_oflag() {
 	// 28: item has prop
 	SubObject *subObject = (SubObject *)findChildOfType(getNextItemPtr(), kObjectType);
 	uint num = getVarOrByte();
-	setScriptCondition(subObject != NULL && (subObject->objectFlags & (1 << num)) != 0);
+	setScriptCondition(subObject != nullptr && (subObject->objectFlags & (1 << num)) != 0);
 }
 
 void AGOSEngine::o_destroy() {
 	// 31: set no parent
-	setItemParent(getNextItemPtr(), NULL);
+	setItemParent(getNextItemPtr(), nullptr);
 }
 
 void AGOSEngine::o_place() {
@@ -350,7 +349,7 @@ void AGOSEngine::o_oset() {
 	// 56: set child2 fr bit
 	SubObject *subObject = (SubObject *)findChildOfType(getNextItemPtr(), kObjectType);
 	int value = getVarOrByte();
-	if (subObject != NULL && value >= 16)
+	if (subObject != nullptr && value >= 16)
 		subObject->objectFlags |= (1 << value);
 }
 
@@ -358,7 +357,7 @@ void AGOSEngine::o_oclear() {
 	// 57: clear child2 fr bit
 	SubObject *subObject = (SubObject *)findChildOfType(getNextItemPtr(), kObjectType);
 	int value = getVarOrByte();
-	if (subObject != NULL && value >= 16)
+	if (subObject != nullptr && value >= 16)
 		subObject->objectFlags &= ~(1 << value);
 }
 
@@ -435,7 +434,7 @@ void AGOSEngine::o_process() {
 	}
 
 	Subroutine *sub = getSubroutineByID(id);
-	if (sub != NULL) {
+	if (sub != nullptr) {
 #ifdef __DS__
 		// HACK: Skip scene of Simon reading letter from Calypso
 		// due to speech segment been too large to fit into memory
@@ -469,19 +468,19 @@ void AGOSEngine::o_when() {
 
 void AGOSEngine::o_if1() {
 	// 77: has item minus 1
-	setScriptCondition(_subjectItem != NULL);
+	setScriptCondition(_subjectItem != nullptr);
 }
 
 void AGOSEngine::o_if2() {
 	// 78: has item minus 3
-	setScriptCondition(_objectItem != NULL);
+	setScriptCondition(_objectItem != nullptr);
 }
 
 void AGOSEngine::o_isCalled() {
 	// 79: childstruct fr2 is
 	SubObject *subObject = (SubObject *)findChildOfType(getNextItemPtr(), kObjectType);
 	uint stringId = getNextStringID();
-	setScriptCondition((subObject != NULL) && subObject->objectName == stringId);
+	setScriptCondition((subObject != nullptr) && subObject->objectName == stringId);
 }
 
 void AGOSEngine::o_is() {
@@ -1037,7 +1036,7 @@ Child *nextSub(Child *sub, int16 key) {
 			return a;
 		a = a->next;
 	}
-	return NULL;
+	return nullptr;
 }
 
 void AGOSEngine::synchChain(Item *i) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 
 #include "pink/archive.h"
 #include "pink/cel_decoder.h"
-#include "pink/director.h"
+#include "pink/screen.h"
 #include "pink/pink.h"
 #include "pink/objects/actions/action_cel.h"
 #include "pink/objects/actors/actor.h"
@@ -43,13 +42,13 @@ void ActionCEL::deserialize(Archive &archive) {
 	_z = archive.readDWORD();
 }
 
-bool ActionCEL::initPalette(Director *director) {
+bool ActionCEL::initPalette(Screen *screen) {
 	loadDecoder();
 	if (_decoder.getCurFrame() == -1) {
 		_decoder.decodeNextFrame();
 		_decoder.rewind();
 	}
-	director->setPalette(_decoder.getPalette());
+	screen->setPalette(_decoder.getPalette());
 	return true;
 }
 
@@ -57,11 +56,11 @@ void ActionCEL::start() {
 	loadDecoder();
 	_decoder.start();
 	this->onStart();
-	_actor->getPage()->getGame()->getDirector()->addSprite(this);
+	_actor->getPage()->getGame()->getScreen()->addSprite(this);
 }
 
 void ActionCEL::end() {
-	_actor->getPage()->getGame()->getDirector()->removeSprite(this);
+	_actor->getPage()->getGame()->getScreen()->removeSprite(this);
 	_decoder.close();
 }
 
@@ -95,18 +94,18 @@ void ActionCEL::setFrame(uint frame) {
 	}
 
 	_decoder.clearDirtyRects();
-	_actor->getPage()->getGame()->getDirector()->addDirtyRect(_bounds);
+	_actor->getPage()->getGame()->getScreen()->addDirtyRect(_bounds);
 }
 
 void ActionCEL::decodeNext() {
 	_decoder.decodeNextFrame();
-	_actor->getPage()->getGame()->getDirector()->addDirtyRects(this);
+	_actor->getPage()->getGame()->getScreen()->addDirtyRects(this);
 }
 
 void ActionCEL::setCenter(Common::Point center) {
-	_actor->getPage()->getGame()->getDirector()->addDirtyRect(_bounds);
+	_actor->getPage()->getGame()->getScreen()->addDirtyRect(_bounds);
 	_bounds = Common::Rect::center(center.x, center.y, _decoder.getWidth(), _decoder.getHeight());
-	_actor->getPage()->getGame()->getDirector()->addDirtyRect(_bounds);
+	_actor->getPage()->getGame()->getScreen()->addDirtyRect(_bounds);
 }
 
 } // End of namespace Pink

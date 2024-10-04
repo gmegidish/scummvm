@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -165,7 +164,7 @@ void error(CONTEXT, MsgKind msgno) {
 
   statusline()
 
-  Print the the status line on the top of the screen.
+  Print the status line on the top of the screen.
 
   */
 void statusline() {
@@ -174,12 +173,12 @@ void statusline() {
 	int pcol = col;
 	uint i;
 
-	if (NULL == glkStatusWin)
+	if (nullptr == glkStatusWin)
 		return;
 
 	g_vm->glk_set_window(glkStatusWin);
 	g_vm->glk_window_clear(glkStatusWin);
-	g_vm->glk_window_get_size(glkStatusWin, &glkWidth, NULL);
+	g_vm->glk_window_get_size(glkStatusWin, &glkWidth, nullptr);
 
 	g_vm->glk_set_style(style_User1);
 	for (i = 0; i < glkWidth; i++)
@@ -190,9 +189,9 @@ void statusline() {
 	needsp = FALSE;
 	say(where(HERO));
 	if (header->maxscore > 0)
-		sprintf(line, "Score %d(%d)/%d moves", cur.score, (int)header->maxscore, cur.tick);
+		Common::sprintf_s(line, "Score %d(%d)/%d moves", cur.score, (int)header->maxscore, cur.tick);
 	else
-		sprintf(line, "%d moves", cur.tick);
+		Common::sprintf_s(line, "%d moves", cur.tick);
 	g_vm->glk_window_move_cursor(glkStatusWin, glkWidth - col - strlen(line), 0);
 	printf(line);
 	needsp = FALSE;
@@ -265,7 +264,7 @@ void clear() {
 void *allocate(unsigned long len /* IN - Length to allocate */) {
 	void *p = (void *)malloc((size_t)len);
 
-	if (p == NULL)
+	if (p == nullptr)
 		syserr("Out of memory.");
 
 	return p;
@@ -433,7 +432,7 @@ void output(const char original[]) {
 	if (str[0] != '$' || str[1] != '$')
 		space();            /* Output space if needed (& not inhibited) */
 
-	while ((symptr = strchr(str, '$')) != (char *) NULL) {
+	while ((symptr = strchr(str, '$')) != (char *) nullptr) {
 		ch = *symptr;       /* Terminate before symbol */
 		*symptr = '\0';
 		if (strlen(str) > 0) {
@@ -478,8 +477,10 @@ void prmsg(MsgKind msg /* IN - message number */) {
 \*----------------------------------------------------------------------*/
 
 /* How to know we are at end of a table */
-Boolean eot(Aword *adr) {
-	return *adr == EOD;
+Boolean eot(const void *adr) {
+	const byte *v = (const byte *)adr;
+	return v[0] == 0xff && v[1] == 0xff &&
+		v[2] == 0xff && v[3] == 0xff;
 }
 
 Boolean isObj(Aword x) {
@@ -730,16 +731,16 @@ static AltElem *findalt(
 	AltElem *alt;
 
 	if (vrbsadr == 0)
-		return (NULL);
+		return (nullptr);
 
 	for (vrb = (VrbElem *) addrTo(vrbsadr); !endOfTable(vrb); vrb++)
 		if ((int)vrb->code == cur.vrb) {
 			for (alt = (AltElem *) addrTo(vrb->alts); !endOfTable(alt); alt++)
 				if (alt->param == param || alt->param == 0)
 					return alt;
-			return NULL;
+			return nullptr;
 		}
-	return NULL;
+	return nullptr;
 }
 
 
@@ -757,27 +758,27 @@ Boolean possible() {
 	fail = FALSE;
 	alt[0] = findalt(header->vrbs, 0);
 	/* Perform global checks */
-	if (alt[0] != 0 && alt[0]->checks != 0) {
+	if (alt[0] != nullptr && alt[0]->checks != 0) {
 		if (!trycheck(alt[0]->checks, FALSE)) return FALSE;
 		if (fail) return FALSE;
 	}
 
 	/* Now CHECKs in this location */
 	alt[1] = findalt(locs[cur.loc - LOCMIN].vrbs, 0);
-	if (alt[1] != 0 && alt[1]->checks != 0)
+	if (alt[1] != nullptr && alt[1]->checks != 0)
 		if (!trycheck(alt[1]->checks, FALSE))
 			return FALSE;
 
 	for (i = 0; params[i].code != EOD; i++) {
 		alt[i + 2] = findalt(objs[params[i].code - OBJMIN].vrbs, i + 1);
 		/* CHECKs in a possible parameter */
-		if (alt[i + 2] != 0 && alt[i + 2]->checks != 0)
+		if (alt[i + 2] != nullptr && alt[i + 2]->checks != 0)
 			if (!trycheck(alt[i + 2]->checks, FALSE))
 				return FALSE;
 	}
 
 	for (i = 0; i < 2 || params[i - 2].code != EOD; i++)
-		if (alt[i] != 0 && alt[i]->action != 0)
+		if (alt[i] != nullptr && alt[i]->action != 0)
 			break;
 	if (i >= 2 && params[i - 2].code == EOD)
 		/* Didn't find any code for this verb/object combination */
@@ -803,7 +804,7 @@ static void do_it(CONTEXT) {
 	fail = FALSE;
 	alt[0] = findalt(header->vrbs, 0);
 	/* Perform global checks */
-	if (alt[0] != 0 && alt[0]->checks != 0) {
+	if (alt[0] != nullptr && alt[0]->checks != 0) {
 		if (trcflg)
 			printf("\n<VERB %d, CHECK, GLOBAL:>\n", cur.vrb);
 		if (!trycheck(alt[0]->checks, TRUE)) return;
@@ -812,7 +813,7 @@ static void do_it(CONTEXT) {
 
 	/* Now CHECKs in this location */
 	alt[1] = findalt(locs[cur.loc - LOCMIN].vrbs, 0);
-	if (alt[1] != 0 && alt[1]->checks != 0) {
+	if (alt[1] != nullptr && alt[1]->checks != 0) {
 		if (trcflg)
 			printf("\n<VERB %d, CHECK, in LOCATION:>\n", cur.vrb);
 		if (!trycheck(alt[1]->checks, TRUE)) return;
@@ -821,7 +822,7 @@ static void do_it(CONTEXT) {
 
 	for (i = 0; params[i].code != EOD; i++) {
 		if (isLit(params[i].code))
-			alt[i + 2] = 0;
+			alt[i + 2] = nullptr;
 		else {
 			if (isObj(params[i].code))
 				alt[i + 2] = findalt(objs[params[i].code - OBJMIN].vrbs, i + 1);
@@ -830,7 +831,7 @@ static void do_it(CONTEXT) {
 			else
 				syserr("Illegal parameter type.");
 			/* CHECKs in the parameters */
-			if (alt[i + 2] != 0 && alt[i + 2]->checks != 0) {
+			if (alt[i + 2] != nullptr && alt[i + 2]->checks != 0) {
 				if (trcflg)
 					printf("\n<VERB %d, CHECK, in Parameter #%d:>\n", cur.vrb, i);
 				if (!trycheck(alt[i + 2]->checks, TRUE)) return;
@@ -841,7 +842,7 @@ static void do_it(CONTEXT) {
 
 	/* Check for anything to execute... */
 	for (i = 0; i < 2 || params[i - 2].code != EOD; i++)
-		if (alt[i] != 0 && alt[i]->action != 0)
+		if (alt[i] != nullptr && alt[i]->action != 0)
 			break;
 	if (i >= 2 && params[i - 2].code == EOD) {
 		// Didn't find any code for this verb/object combination
@@ -857,16 +858,16 @@ static void do_it(CONTEXT) {
 		done[i] = FALSE;
 	i--;
 	while (i >= 0) {
-		if (alt[i] != 0)
+		if (alt[i] != nullptr)
 			if (alt[i]->qual == (Aword)Q_BEFORE || alt[i]->qual == (Aword)Q_ONLY) {
 				if (alt[i]->action != 0) {
 					if (trcflg) {
 						if (i == 0)
-							strcpy(trace, "GLOBAL");
+							Common::strcpy_s(trace, "GLOBAL");
 						else if (i == 1)
-							strcpy(trace, "in LOCATION");
+							Common::strcpy_s(trace, "in LOCATION");
 						else
-							sprintf(trace, "in PARAMETER %d", i - 1);
+							Common::sprintf_s(trace, "in PARAMETER %d", i - 1);
 						if (alt[i]->qual == (Aword)Q_BEFORE)
 							printf("\n<VERB %d, %s (BEFORE), Body:>\n", cur.vrb, trace);
 						else
@@ -883,16 +884,16 @@ static void do_it(CONTEXT) {
 
 	/* Then execute any not declared as AFTER, i.e. the default */
 	for (i = 0; i < 2 || params[i - 2].code != EOD; i++) {
-		if (alt[i] != 0)
+		if (alt[i] != nullptr)
 			if (alt[i]->qual != (Aword)Q_AFTER) {
 				if (!done[i] && alt[i]->action != 0) {
 					if (trcflg) {
 						if (i == 0)
-							strcpy(trace, "GLOBAL");
+							Common::strcpy_s(trace, "GLOBAL");
 						else if (i == 1)
-							strcpy(trace, "in LOCATION");
+							Common::strcpy_s(trace, "in LOCATION");
 						else
-							sprintf(trace, "in PARAMETER %d", i - 1);
+							Common::sprintf_s(trace, "in PARAMETER %d", i - 1);
 						printf("\n<VERB %d, %s, Body:>\n", cur.vrb, trace);
 					}
 					CALL1(interpret, alt[i]->action)
@@ -905,15 +906,15 @@ static void do_it(CONTEXT) {
 	/* Finally, the ones declared as after */
 	i--;
 	while (i >= 0) {
-		if (alt[i] != 0)
+		if (alt[i] != nullptr)
 			if (!done[i] && alt[i]->action != 0) {
 				if (trcflg) {
 					if (i == 0)
-						strcpy(trace, "GLOBAL");
+						Common::strcpy_s(trace, "GLOBAL");
 					else if (i == 1)
-						strcpy(trace, "in LOCATION");
+						Common::strcpy_s(trace, "in LOCATION");
 					else
-						sprintf(trace, "in PARAMETER %d", i - 1);
+						Common::sprintf_s(trace, "in PARAMETER %d", i - 1);
 					printf("\n<VERB %d, %s (AFTER), Body:>\n", cur.vrb, trace);
 				}
 				CALL1(interpret, alt[i]->action)
@@ -942,7 +943,7 @@ void action(CONTEXT, ParamElem plst[] /* IN - Plural parameter list */) {
 		   over this position (and replace it by each present in the plst)
 		 */
 		for (mpos = 0; params[mpos].code != 0; mpos++); /* Find multiple position */
-		sprintf(marker, "($%d)", mpos + 1); /* Prepare a printout with $1/2/3 */
+		Common::sprintf_s(marker, "($%d)", mpos + 1); /* Prepare a printout with $1/2/3 */
 		for (i = 0; plst[i].code != EOD; i++) {
 			params[mpos] = plst[i];
 			output(marker);
@@ -1048,7 +1049,7 @@ static void checkvers(AcdHdr *hdr) {
 #endif
 				if (errflg) {
 					char str[80];
-					sprintf(str, "Incompatible version of ACODE program. Game is %ld.%ld, interpreter %ld.%ld.",
+					Common::sprintf_s(str, "Incompatible version of ACODE program. Game is %ld.%ld, interpreter %ld.%ld.",
 					        (long)(hdr->vers[0]),
 					        (long)(hdr->vers[1]),
 					        (long) alan.version.version,
@@ -1081,7 +1082,7 @@ static void load() {
 	/* Allocate and load memory */
 
 	/* No memory allocated yet? */
-	if (memory == NULL) {
+	if (memory == nullptr) {
 #ifdef V25COMPATIBLE
 		if (tmphdr.vers[0] == 2 && tmphdr.vers[1] == 5)
 			/* We need some more memory to expand 2.5 format*/
@@ -1107,7 +1108,7 @@ static void load() {
 		crc += (memory[i] >> 24) & 0xff;
 	}
 	if (crc != tmphdr.acdcrc) {
-		sprintf(err, "Checksum error in .ACD file (0x%lx instead of 0x%lx).",
+		Common::sprintf_s(err, "Checksum error in .ACD file (0x%lx instead of 0x%lx).",
 		        (unsigned long) crc, (unsigned long) tmphdr.acdcrc);
 		if (errflg)
 			syserr(err);

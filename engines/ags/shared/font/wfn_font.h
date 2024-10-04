@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,7 @@
 #ifndef AGS_SHARED_FONT_WFN_FONT_H
 #define AGS_SHARED_FONT_WFN_FONT_H
 
-#include "ags/lib/std/vector.h"
+#include "common/std/vector.h"
 #include "ags/shared/core/types.h"
 
 namespace AGS3 {
@@ -91,9 +90,7 @@ public:
 	}
 
 	// Get WFN character for the given code; if the character is missing, returns empty character
-	inline const WFNChar &GetChar(uint8_t code) const {
-		return code < _refs.size() ? *_refs[code] : _emptyChar;
-	}
+	const WFNChar &GetChar(uint8_t code) const;
 
 	void Clear();
 	// Reads WFNFont object, using data_size bytes from stream; if data_size = 0,
@@ -104,8 +101,6 @@ protected:
 	std::vector<const WFNChar *> _refs;      // reference array, contains pointers to elements of _items
 	std::vector<WFNChar>        _items;     // actual character items
 	std::vector<uint8_t>        _pixelData; // pixel data array
-
-	static const WFNChar        _emptyChar; // a dummy character to substitute bad symbols
 };
 
 } // namespace AGS3

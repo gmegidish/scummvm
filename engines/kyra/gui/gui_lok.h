@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -152,6 +151,7 @@ private:
 
 	uint8 defaultColor1() const override { return 12; }
 	uint8 defaultColor2() const override { return 248; }
+	uint8 menuItemLabelColor() const override { return 253; }
 
 	Common::String getMenuTitle(const Menu &menu) override { return menu.menuNameString; }
 	Common::String getMenuItemTitle(const MenuItem &menuItem) override { return menuItem.itemString; }
@@ -163,9 +163,18 @@ private:
 	bool _menuRestoreScreen;
 	uint8 _toplevelMenu;
 	int _savegameOffset;
-	char _savegameName[35];
-	char _savegameNames[5][35];
+	char _savegameName[35 * 4]; // allow extra space, since the string can be UTF-8, temporarily
+	char _savegameNames[5][35 * 4];
 	const char *_specialSavegameString;
+	bool _resetHanInput;
+
+	int _inputType;
+	// The purpose of these variables is improved handling of backspace character deletion for
+	// Hangul input. The original allows "deconstruction" of the last glyph, so why shouldn't we...
+	uint8 _inputState;
+	uint16 _backupChars[4];
+
+	int _saveLoadNumSlots;
 
 	Button::Callback _scrollUpFunctor;
 	Button::Callback _scrollDownFunctor;
@@ -176,7 +185,8 @@ private:
 	const char *_textSpeedString;
 	const char *_onString;
 	const char *_offString;
-	const char *_onCDString;
+	const char *_confMusicMenuStrings[3];
+	uint8 _confMusicMenuMod;
 };
 
 } // End of namespace Kyra

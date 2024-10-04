@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,14 +26,14 @@
 #include "backends/networking/curl/connectionmanager.h"
 #include "backends/networking/curl/curljsonrequest.h"
 #include "backends/networking/curl/networkreadstream.h"
-#include "common/json.h"
+#include "common/formats/json.h"
 
 namespace Cloud {
 namespace Dropbox {
 
 #define DROPBOX_API_CREATE_FOLDER "https://api.dropboxapi.com/2/files/create_folder"
 
-DropboxCreateDirectoryRequest::DropboxCreateDirectoryRequest(DropboxStorage *storage, Common::String path, Storage::BoolCallback cb, Networking::ErrorCallback ecb):
+DropboxCreateDirectoryRequest::DropboxCreateDirectoryRequest(DropboxStorage *storage, const Common::String &path, Storage::BoolCallback cb, Networking::ErrorCallback ecb):
 	Networking::Request(nullptr, ecb), _storage(storage), _path(path), _boolCallback(cb),
 	_workingRequest(nullptr), _ignoreCallback(false) {
 	start();
@@ -53,8 +52,8 @@ void DropboxCreateDirectoryRequest::start() {
 		_workingRequest->finish();
 	_ignoreCallback = false;
 
-	Networking::JsonCallback innerCallback = new Common::Callback<DropboxCreateDirectoryRequest, Networking::JsonResponse>(this, &DropboxCreateDirectoryRequest::responseCallback);
-	Networking::ErrorCallback errorResponseCallback = new Common::Callback<DropboxCreateDirectoryRequest, Networking::ErrorResponse>(this, &DropboxCreateDirectoryRequest::errorCallback);
+	Networking::JsonCallback innerCallback = new Common::Callback<DropboxCreateDirectoryRequest, const Networking::JsonResponse &>(this, &DropboxCreateDirectoryRequest::responseCallback);
+	Networking::ErrorCallback errorResponseCallback = new Common::Callback<DropboxCreateDirectoryRequest, const Networking::ErrorResponse &>(this, &DropboxCreateDirectoryRequest::errorCallback);
 	Networking::CurlJsonRequest *request = new DropboxTokenRefresher(_storage, innerCallback, errorResponseCallback, DROPBOX_API_CREATE_FOLDER);
 	request->addHeader("Authorization: Bearer " + _storage->accessToken());
 	request->addHeader("Content-Type: application/json");
@@ -67,8 +66,8 @@ void DropboxCreateDirectoryRequest::start() {
 	_workingRequest = ConnMan.addRequest(request);
 }
 
-void DropboxCreateDirectoryRequest::responseCallback(Networking::JsonResponse response) {
-	Common::JSONValue *json = response.value;
+void DropboxCreateDirectoryRequest::responseCallback(const Networking::JsonResponse &response) {
+	const Common::JSONValue *json = response.value;
 	_workingRequest = nullptr;
 	if (_ignoreCallback) {
 		delete json;
@@ -77,7 +76,7 @@ void DropboxCreateDirectoryRequest::responseCallback(Networking::JsonResponse re
 	if (response.request) _date = response.request->date();
 
 	Networking::ErrorResponse error(this, "DropboxCreateDirectoryRequest::responseCallback: unknown error");
-	Networking::CurlJsonRequest *rq = (Networking::CurlJsonRequest *)response.request;
+	const Networking::CurlJsonRequest *rq = (const Networking::CurlJsonRequest *)response.request;
 	if (rq && rq->getNetworkReadStream())
 		error.httpResponseCode = rq->getNetworkReadStream()->httpResponseCode();
 
@@ -114,7 +113,7 @@ void DropboxCreateDirectoryRequest::responseCallback(Networking::JsonResponse re
 	delete json;
 }
 
-void DropboxCreateDirectoryRequest::errorCallback(Networking::ErrorResponse error) {
+void DropboxCreateDirectoryRequest::errorCallback(const Networking::ErrorResponse &error) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback)
 		return;

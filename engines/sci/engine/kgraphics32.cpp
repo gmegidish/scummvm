@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,7 @@
 #include "sci/engine/features.h"
 #include "sci/engine/state.h"
 #include "sci/engine/selector.h"
+#include "sci/engine/tts.h"
 #include "sci/engine/kernel.h"
 #include "sci/graphics/animate.h"
 #include "sci/graphics/cache.h"
@@ -191,7 +191,10 @@ reg_t kUpdateScreenItem(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDeleteScreenItem(EngineState *s, int argc, reg_t *argv) {
-	debugC(6, kDebugLevelGraphics, "kDeleteScreenItem %x:%x (%s)", PRINT_REG(argv[0]), s->_segMan->getObjectName(argv[0]));
+	Common::String objectName = s->_segMan->getObjectName(argv[0]);
+	debugC(6, kDebugLevelGraphics, "kDeleteScreenItem %x:%x (%s)", PRINT_REG(argv[0]), objectName.c_str());
+	if (objectName == "DText")
+		g_sci->_tts->stop();
 	g_sci->_gfxFrameout->kernelDeleteScreenItem(argv[0]);
 	return s->r_acc;
 }
@@ -393,31 +396,45 @@ reg_t kSetShowStyle(EngineState *s, int argc, reg_t *argv) {
 	int16 divisions;
 
 	// SCI 2–2.1early
-	if (getSciVersion() < SCI_VERSION_2_1_MIDDLE) {
+	// KQ7 2.0b uses a mismatched version of the Styler script (SCI2.1early script
+	// for SCI2.1mid engine), so the calls it makes to kSetShowStyle are wrong and
+	// put `divisions` where `pFadeArray` is supposed to be.
+	if (getSciVersion() <= SCI_VERSION_2_1_EARLY || g_sci->getGameId() == GID_KQ7) {
 		blackScreen = 0;
 		pFadeArray = NULL_REG;
 		divisions = argc > 7 ? argv[7].toSint16() : -1;
 	}
-	// SCI 2.1mid
-	else if (getSciVersion() < SCI_VERSION_2_1_LATE) {
+	// SCI 2.1mid and RAMA demo (2.1late) and noninteractive Lighthouse demo (2.1late)
+	else if (getSciVersion() <= SCI_VERSION_2_1_MIDDLE ||
+		(g_sci->getGameId() == GID_RAMA && g_sci->isDemo()) ||
+		(g_sci->getGameId() == GID_LIGHTHOUSE && g_sci->isDemo() && getSciVersion() == SCI_VERSION_2_1_LATE)) {
 		blackScreen = 0;
 		pFadeArray = argc > 7 ? argv[7] : NULL_REG;
 		divisions = argc > 8 ? argv[8].toSint16() : -1;
 	}
-	// SCI 2.1late-3
+	// SCI 2.1late-3. Includes Mac 2.1late games and LSL7 demo (2.1late)
 	else {
 		blackScreen = argv[7].toSint16();
 		pFadeArray = argc > 8 ? argv[8] : NULL_REG;
 		divisions = argc > 9 ? argv[9].toSint16() : -1;
 	}
 
-	if ((getSciVersion() < SCI_VERSION_2_1_MIDDLE && g_sci->getGameId() != GID_KQ7 && type == 15) || type > 15) {
+	// kShowStyleMorph (15) was introduced during SCI2.1early.
+	// It appears after LSL6 and PQ4, but so far the only known
+	// SCI2.1early games to use it are KQ7 and SQ6 demos.
+	int maxType = 15;
+	if (getSciVersion() < SCI_VERSION_2_1_EARLY ||
+		g_sci->getGameId() == GID_LSL6 ||
+		g_sci->getGameId() == GID_PQ4) {
+		maxType = 14;
+	}
+	if (type > maxType) {
 		error("Illegal show style %d for plane %04x:%04x", type, PRINT_REG(planeObj));
 	}
 
 	// The order of planeObj and showStyle are reversed because this is how
 	// SSCI3 called the corresponding method on the KernelMgr
-	g_sci->_gfxTransitions32->kernelSetShowStyle(argc, planeObj, (ShowStyleType)type, seconds, back, priority, animate, refFrame, pFadeArray, divisions, blackScreen);
+	g_sci->_gfxTransitions32->kernelSetShowStyle(planeObj, (ShowStyleType)type, seconds, back, priority, animate, refFrame, pFadeArray, divisions, blackScreen);
 
 	return s->r_acc;
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,7 @@
 #include "common/textconsole.h"
 #include "engines/engine.h"
 #include "engines/util.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/surface.h"
 
 #include "sci/sci.h"
@@ -84,6 +83,13 @@ GfxFrameout::GfxFrameout(SegManager *segMan, GfxPalette32 *palette, GfxTransitio
 
 	switch (g_sci->getGameId()) {
 	case GID_HOYLE5:
+		if (g_sci->getResMan()->testResource(ResourceId(kResourceTypeView, 21))) {
+			// Hoyle school house math
+			_scriptWidth = 320;
+			_scriptHeight = 200;
+			break;
+		}
+		// fall-through
 	case GID_LIGHTHOUSE:
 	case GID_LSL7:
 	case GID_PHANTASMAGORIA2:
@@ -131,6 +137,7 @@ void GfxFrameout::clear() {
 	_planes.clear();
 	_visiblePlanes.clear();
 	_showList.clear();
+	_screenItemLists.clear();
 }
 
 bool GfxFrameout::detectHiRes() const {
@@ -328,7 +335,7 @@ void GfxFrameout::kernelDeletePlane(const reg_t object) {
 		_planes.erase(plane);
 	} else {
 		plane->_created = 0;
-		plane->_deleted = g_sci->_gfxFrameout->getScreenCount();
+		plane->_deleted = getScreenCount();
 	}
 }
 
@@ -482,23 +489,23 @@ void GfxFrameout::frameOut(const bool shouldShowBits, const Common::Rect &eraseR
 
 	// SSCI allocated these as static arrays of 100 pointers to
 	// ScreenItemList / RectList
-	ScreenItemListList screenItemLists;
-	EraseListList eraseLists;
-
-	screenItemLists.resize(_planes.size());
-	eraseLists.resize(_planes.size());
+	_screenItemLists.resize(_planes.size());
+	for (DrawList::size_type i = 0; i < _screenItemLists.size(); ++i) {
+		_screenItemLists[i].clear();
+	}
+	EraseListList eraseLists(_planes.size());
 
 	if (g_sci->_gfxRemap32->getRemapCount() > 0 && _remapOccurred) {
 		remapMarkRedraw();
 	}
 
-	calcLists(screenItemLists, eraseLists, eraseRect);
+	calcLists(_screenItemLists, eraseLists, eraseRect);
 
-	for (ScreenItemListList::iterator list = screenItemLists.begin(); list != screenItemLists.end(); ++list) {
+	for (ScreenItemListList::iterator list = _screenItemLists.begin(); list != _screenItemLists.end(); ++list) {
 		list->sort();
 	}
 
-	for (ScreenItemListList::iterator list = screenItemLists.begin(); list != screenItemLists.end(); ++list) {
+	for (ScreenItemListList::iterator list = _screenItemLists.begin(); list != _screenItemLists.end(); ++list) {
 		for (DrawList::iterator drawItem = list->begin(); drawItem != list->end(); ++drawItem) {
 			(*drawItem)->screenItem->getCelObj().submitPalette();
 		}
@@ -508,7 +515,7 @@ void GfxFrameout::frameOut(const bool shouldShowBits, const Common::Rect &eraseR
 
 	for (PlaneList::size_type i = 0; i < _planes.size(); ++i) {
 		drawEraseList(eraseLists[i], *_planes[i]);
-		drawScreenItemList(screenItemLists[i]);
+		drawScreenItemList(_screenItemLists[i]);
 	}
 
 	if (robotIsActive) {

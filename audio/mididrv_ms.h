@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -141,6 +140,25 @@ public:
 		FADE_ABORT_TYPE_START_VOLUME
 	};
 
+	/**
+	 * The controllers and parameters for which a default value can be set
+	 * using setControllerDefault.
+	 */
+	enum ControllerDefaultType {
+		CONTROLLER_DEFAULT_PROGRAM,
+		CONTROLLER_DEFAULT_INSTRUMENT_BANK,
+		CONTROLLER_DEFAULT_DRUMKIT,
+		CONTROLLER_DEFAULT_CHANNEL_PRESSURE,
+		CONTROLLER_DEFAULT_PITCH_BEND,
+		CONTROLLER_DEFAULT_MODULATION,
+		CONTROLLER_DEFAULT_VOLUME,
+		CONTROLLER_DEFAULT_PANNING,
+		CONTROLLER_DEFAULT_EXPRESSION,
+		CONTROLLER_DEFAULT_SUSTAIN,
+		CONTROLLER_DEFAULT_RPN,
+		CONTROLLER_DEFAULT_PITCH_BEND_SENSITIVITY
+	};
+
 protected:
 	// This stores data about a specific source of MIDI data.
 	struct MidiSource {
@@ -166,6 +184,28 @@ protected:
 		int32 fadeDuration;
 
 		MidiSource();
+	};
+
+	// Stores the default values that should be set for each controller.
+	// -1 means no explicit default should be set for that controller.
+	struct ControllerDefaults {
+		int8 program[16];
+		int8 instrumentBank;
+		int8 drumkit;
+
+		int8 channelPressure;
+		int16 pitchBend;
+
+		int8 modulation;
+		int8 volume;
+		int8 panning;
+		int8 expression;
+		int8 sustain;
+		int16 rpn;
+
+		int8 pitchBendSensitivity;
+
+		ControllerDefaults();
 	};
 
 public:
@@ -289,6 +329,67 @@ public:
 	bool isFading(uint8 source);
 
 	/**
+	 * Specify a controller which should be reset to its General MIDI default
+	 * value when a new track is started. See the overload for more details.
+	 * 
+	 * @param type The controller which should be reset.
+	 */
+	void setControllerDefault(ControllerDefaultType type);
+	/**
+	 * Specify a default value for a controller which should be set when a new
+	 * track is started. Use this if a game uses a MIDI controller, but does
+	 * not consistently set it to a value at the start of every track, causing
+	 * incorrect playback. Do not use this if a game depends on controller
+	 * values carrying over to the next track for correct playback.
+	 *
+	 * This functionality will not work if the fallback MIDI source -1 is used.
+	 * It is also necessary to call deinitSource whenever playback of a track
+	 * is stopped, as this sets up the contoller reset.
+	 *
+	 * Use the setControllerDefault(ControllerDefaultType) overload if the
+	 * General MIDI default value for the controller should be used.
+	 * 
+	 * @param type The controller which should be reset.
+	 * @param value The default value which should be set.
+	 */
+	void setControllerDefault(ControllerDefaultType type, int16 value);
+	/**
+	 * Specify a default value for a controller which should be set when a new
+	 * track is started. This expects an array of values, each of which will
+	 * be used as the default for the corresponding MIDI channel.
+	 *
+	 * This is currently only supported for program.
+	 *
+	 * See setControllerDefault for more details.
+	 *
+	 * @param type The controller which should be reset.
+	 * @param values The default values which should be set. Must be a 16 value
+	 * array.
+	 */
+	void setControllerDefaults(ControllerDefaultType type, int16 *values);
+	/**
+	 * Clears a previously set default value for the specified controller.
+	 * 
+	 * @param type The controller for which the default value should be cleared.
+	 */
+	void clearControllerDefault(ControllerDefaultType type);
+
+	/**
+	 * Sets an instrument map for arbitrarily remapping instruments in the MIDI
+	 * data. The map should consist of 128 bytes, with the index representing
+	 * the instrument number in the MIDI data, and the value being the
+	 * instrument which should be substituted.
+	 * This instrument mapping is applied before MT-32 to GM or GM to MT-32
+	 * instrument mapping.
+	 * Call this method with nullptr as parameter to clear a previously set
+	 * instrument remapping.
+	 * 
+	 * @param instrumentRemapping The instrument map that should be used for
+	 * remapping, or nullptr to disable remapping.
+	 */
+	void setInstrumentRemapping(const byte *instrumentRemapping);
+
+	/**
 	 * Applies the user volume settings to the MIDI driver. MIDI channel
 	 * volumes will be scaled using the user volume.
 	 * This function must be called by the engine when the user has changed the
@@ -348,6 +449,12 @@ protected:
 	// MIDI source data
 	MidiSource _sources[MAXIMUM_SOURCES];
 
+	// Default values for each controller
+	ControllerDefaults _controllerDefaults;
+
+	// Map for arbitrary instrument remapping.
+	const byte *_instrumentRemapping;
+
 	// True if the driver should scale MIDI channel volume to the user
 	// specified volume settings.
 	bool _userVolumeScaling;
@@ -372,11 +479,9 @@ protected:
 
 class MidiDriver_NULL_Multisource : public MidiDriver_Multisource {
 public:
-	~MidiDriver_NULL_Multisource();
-
 	int open() override;
 	bool isOpen() const override { return true; }
-	void close() override { }
+	void close() override;
 	uint32 getBaseTempo() override { return 10000; }
 	MidiChannel *allocateChannel() override { return 0; }
 	MidiChannel *getPercussionChannel() override { return 0; }

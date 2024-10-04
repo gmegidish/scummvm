@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,9 +30,9 @@
 #include "parallaction/parallaction.h"
 
 static const PlainGameDescriptor parallactionGames[] = {
-	{"nippon", "Nippon Safes Inc."},
+	{"nippon", "Nippon Safes, Inc."},
 	{"bra", "The Big Red Adventure"},
-	{0, 0}
+	{nullptr, nullptr}
 };
 
 static const DebugChannelDef debugFlagList[] = {
@@ -64,6 +63,32 @@ static const PARALLACTIONGameDescription gameDescriptions[] = {
 				{ "disk4",	0, "5bffddc7db226bdaa7dd3e10e5a15e68", 1151403},
 				{ "en",		0, "65cbfa81eafe308621184796ed116700", 399360},
 				{ "fr",		0, "ac20c743ea10f2cb4491f76c5644582c", 410624},
+				{ "ge",		0, "50916bfa34aee1380e0e959b37eceb5a", 410624},
+				{ "it",		0, "89964aef04d2c53a615ee8983caf2775", 410624},
+				AD_LISTEND
+			},
+			Common::UNK_LANG,
+			Common::kPlatformDOS,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOSPEECH)
+		},
+		GType_Nippon,
+		GF_LANG_EN | GF_LANG_FR | GF_LANG_DE | GF_LANG_IT | GF_LANG_MULT,
+	},
+
+	// Alternate version with patched 'FR' file.
+	// Bugreport #13630
+	{
+		{
+			"nippon",
+			"Multi-lingual alt",
+			{
+				{ "disk1",	0, "610363308258e926dbabd5a9e7bb769f", 1060142},
+				{ "disk2",	0, "bfdd7bcfbc226f4acf3f67fa9efa2826", 907205},
+				{ "disk3",	0, "eec08180240888d76e3cfe3e183d5d5d", 1030721},
+				{ "disk4",	0, "5bffddc7db226bdaa7dd3e10e5a15e68", 1151403},
+				{ "en",		0, "65cbfa81eafe308621184796ed116700", 399360},
+				{ "fr",		0, "fd368bab0a8854021870b2199255b7ec", 410624},
 				{ "ge",		0, "50916bfa34aee1380e0e959b37eceb5a", 410624},
 				{ "it",		0, "89964aef04d2c53a615ee8983caf2775", 410624},
 				AD_LISTEND
@@ -201,22 +226,22 @@ static const PARALLACTIONGameDescription gameDescriptions[] = {
 
 }
 
-class ParallactionMetaEngineDetection : public AdvancedMetaEngineDetection {
+class ParallactionMetaEngineDetection : public AdvancedMetaEngineDetection<Parallaction::PARALLACTIONGameDescription> {
 public:
-	ParallactionMetaEngineDetection() : AdvancedMetaEngineDetection(Parallaction::gameDescriptions, sizeof(Parallaction::PARALLACTIONGameDescription), parallactionGames) {
+	ParallactionMetaEngineDetection() : AdvancedMetaEngineDetection(Parallaction::gameDescriptions, parallactionGames) {
 		_guiOptions = GUIO1(GUIO_NOLAUNCHLOAD);
 	}
 
-	const char *getEngineId() const override {
+	const char *getName() const override {
 		return "parallaction";
 	}
 
-	const char *getName() const override {
+	const char *getEngineName() const override {
 		return "Parallaction";
 	}
 
 	const char *getOriginalCopyright() const override {
-		return "Nippon Safes Inc. (C) Dynabyte";
+		return "Nippon Safes, Inc. (C) Dynabyte";
 	}
 
 	const DebugChannelDef *getDebugChannels() const override {

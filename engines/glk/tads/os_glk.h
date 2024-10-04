@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -169,7 +168,7 @@ void os_time_ns(os_time_t *seconds, long *nanoseconds);
  *   list of time zone names that can be mapped to zoneinfo names via a
  *   hand-coded list (such a list is maintained in the Unicode CLDR; our
  *   Windows implementation uses the CLDR list to generate the mapping).
- *   MacOS X uses zoneinfo keys directly; /etc/localtime is a link to the
+ *   macOS uses zoneinfo keys directly; /etc/localtime is a link to the
  *   zoneinfo file for the local zone as set via the system preferences.
  *
  *   os_tzset() must be invoked at some point before this routine is called.
@@ -695,7 +694,7 @@ long os_get_sys_clock_ms();
  *   file types are meaningful then maps our abstract type IDs to the
  *   corresponding port-specific type IDs.  In practice, this has never been
  *   used anywhere other than the old Mac OS ports; in fact, it's not even
- *   used in the modern Mac OS (OS X and later), since Apple decided to stop
+ *   used in the modern macOS since Apple decided to stop
  *   fighting the tide and start using filename suffixes for this sort of
  *   tagging, like everyone else always has.
  *
@@ -1610,7 +1609,7 @@ int os_get_status();
  *.  void os_score(int score, int turncount)
  *.  {
  *.     char buf[40];
- *.     sprintf(buf, "%d/%d", score, turncount);
+ *.     Common::sprintf_s(buf, "%d/%d", score, turncount);
  *.     os_strsc(buf);
  *.  }
  */

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -28,18 +33,18 @@
 namespace Gob {
 
 SaveLoad_v4::SaveFile SaveLoad_v4::_saveFiles[] = {
-	{   "cat.inf", kSaveModeSave, 0, "savegame"},
-	{  "save.tmp", kSaveModeSave, 0, "current screen properties"},
-	{ "save0.tmp", kSaveModeSave, 0, "savegame screen properties"}, // Slot 0
-	{ "save1.tmp", kSaveModeSave, 0, "savegame screen properties"}, // Slot 1
-	{ "save2.tmp", kSaveModeSave, 0, "savegame screen properties"}, // Slot 2
-	{ "save3.tmp", kSaveModeSave, 0, "savegame screen properties"}, // Slot 3
-	{ "save4.tmp", kSaveModeSave, 0, "savegame screen properties"}, // Slot 4
-	{ "save5.tmp", kSaveModeSave, 0, "savegame screen properties"}, // Slot 5
-	{ "save6.tmp", kSaveModeSave, 0, "savegame screen properties"}, // Slot 6
-	{ "save7.tmp", kSaveModeSave, 0, "savegame screen properties"}, // Slot 7
-	{ "save8.tmp", kSaveModeSave, 0, "savegame screen properties"}, // Slot 8
-	{ "save9.tmp", kSaveModeSave, 0, "savegame screen properties"}  // Slot 9
+	{   "cat.inf", kSaveModeSave, nullptr, "savegame"},
+	{  "save.tmp", kSaveModeSave, nullptr, "current screen properties"},
+	{ "save0.tmp", kSaveModeSave, nullptr, "savegame screen properties"}, // Slot 0
+	{ "save1.tmp", kSaveModeSave, nullptr, "savegame screen properties"}, // Slot 1
+	{ "save2.tmp", kSaveModeSave, nullptr, "savegame screen properties"}, // Slot 2
+	{ "save3.tmp", kSaveModeSave, nullptr, "savegame screen properties"}, // Slot 3
+	{ "save4.tmp", kSaveModeSave, nullptr, "savegame screen properties"}, // Slot 4
+	{ "save5.tmp", kSaveModeSave, nullptr, "savegame screen properties"}, // Slot 5
+	{ "save6.tmp", kSaveModeSave, nullptr, "savegame screen properties"}, // Slot 6
+	{ "save7.tmp", kSaveModeSave, nullptr, "savegame screen properties"}, // Slot 7
+	{ "save8.tmp", kSaveModeSave, nullptr, "savegame screen properties"}, // Slot 8
+	{ "save9.tmp", kSaveModeSave, nullptr, "savegame screen properties"},  // Slot 9
 };
 
 
@@ -83,8 +88,8 @@ SaveLoad_v4::GameHandler::GameHandler(GobEngine *vm, const char *target) : SaveH
 
 	_lastSlot = -1;
 
-	_writer = 0;
-	_reader = 0;
+	_writer = nullptr;
+	_reader = nullptr;
 }
 
 SaveLoad_v4::GameHandler::~GameHandler() {
@@ -318,7 +323,7 @@ void SaveLoad_v4::GameHandler::buildIndex(byte *buffer) const {
 bool SaveLoad_v4::GameHandler::createReader(int slot) {
 	// If slot < 0, just check if a reader exists
 	if (slot < 0)
-		return (_reader != 0);
+		return (_reader != nullptr);
 
 	if (!_reader || (_reader->getSlot() != ((uint32) slot))) {
 		Common::String slotFile = _slotFile->build(slot);
@@ -342,7 +347,7 @@ bool SaveLoad_v4::GameHandler::createReader(int slot) {
 
 		if (!_reader->load()) {
 			delete _reader;
-			_reader = 0;
+			_reader = nullptr;
 			return false;
 		}
 	}
@@ -353,7 +358,7 @@ bool SaveLoad_v4::GameHandler::createReader(int slot) {
 bool SaveLoad_v4::GameHandler::createWriter(int slot) {
 	// If slot < 0, just check if a writer exists
 	if (slot < 0)
-		return (_writer != 0);
+		return (_writer != nullptr);
 
 	if (!_writer || (_writer->getSlot() != ((uint32) slot))) {
 		Common::String slotFile = _slotFile->build(slot);
@@ -372,8 +377,7 @@ bool SaveLoad_v4::GameHandler::createWriter(int slot) {
 SaveLoad_v4::CurScreenPropsHandler::CurScreenPropsHandler(GobEngine *vm) :
 	SaveHandler(vm) {
 
-	_props = new byte[256000];
-	memset(_props, 0, 256000);
+	_props = new byte[256000]();
 }
 
 SaveLoad_v4::CurScreenPropsHandler::~CurScreenPropsHandler() {
@@ -519,7 +523,7 @@ const SaveLoad_v4::SaveFile *SaveLoad_v4::getSaveFile(const char *fileName) cons
 		if (!scumm_stricmp(fileName, _saveFiles[i].sourceName))
 			return &_saveFiles[i];
 
-	return 0;
+	return nullptr;
 }
 
 SaveLoad_v4::SaveFile *SaveLoad_v4::getSaveFile(const char *fileName) {
@@ -529,7 +533,7 @@ SaveLoad_v4::SaveFile *SaveLoad_v4::getSaveFile(const char *fileName) {
 		if (!scumm_stricmp(fileName, _saveFiles[i].sourceName))
 			return &_saveFiles[i];
 
-	return 0;
+	return nullptr;
 }
 
 SaveHandler *SaveLoad_v4::getHandler(const char *fileName) const {
@@ -538,7 +542,7 @@ SaveHandler *SaveLoad_v4::getHandler(const char *fileName) const {
 	if (saveFile)
 		return saveFile->handler;
 
-	return 0;
+	return nullptr;
 }
 
 const char *SaveLoad_v4::getDescription(const char *fileName) const {
@@ -547,7 +551,7 @@ const char *SaveLoad_v4::getDescription(const char *fileName) const {
 	if (saveFile)
 		return saveFile->description;
 
-	return 0;
+	return nullptr;
 }
 
 SaveLoad::SaveMode SaveLoad_v4::getSaveMode(const char *fileName) const {

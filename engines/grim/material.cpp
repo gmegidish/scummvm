@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/endian.h"
+
 #include "image/tga.h"
 #include "image/png.h"
+
 #include "graphics/surface.h"
 
 #include "engines/grim/grim.h"
@@ -123,7 +124,7 @@ void MaterialData::initGrim(Common::SeekableReadStream *data) {
 	}
 }
 
-void loadTGA(Common::SeekableReadStream *data, Texture *t) {
+static void loadTGA(Common::SeekableReadStream *data, Texture *t) {
 	Image::TGADecoder *tgaDecoder = new Image::TGADecoder();
 	tgaDecoder->loadStream(*data);
 	const Graphics::Surface *tgaSurface = tgaDecoder->getSurface();
@@ -133,29 +134,29 @@ void loadTGA(Common::SeekableReadStream *data, Texture *t) {
 	t->_texture = nullptr;
 
 	int bpp = tgaSurface->format.bytesPerPixel;
-	if (bpp == 4) {
-		t->_colorFormat = BM_BGRA;
-		t->_bpp = 4;
-		t->_hasAlpha = true;
-	} else {
-		t->_colorFormat = BM_BGR888;
-		t->_bpp = 3;
-		t->_hasAlpha = false;
-	}
-
 	assert(bpp == 3 || bpp == 4); // Assure we have 24/32 bpp
 
 	// Allocate room for the texture.
-	t->_data = new uint8[t->_width * t->_height * (bpp)];
-
-	// Copy the texture data, as the decoder owns the current copy.
-	memcpy(t->_data, tgaSurface->getPixels(), t->_width * t->_height * (bpp));
-
+	t->_data = new uint8[t->_width * t->_height * 4];
+	t->_colorFormat = BM_RGBA;
+	t->_bpp = 4;
+	if (bpp == 4) {
+		t->_hasAlpha = true;
+	} else {
+		t->_hasAlpha = false;
+	}
+#ifdef SCUMM_BIG_ENDIAN
+	auto newSurface = tgaSurface->convertTo(Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0));
+#else
+	auto newSurface = tgaSurface->convertTo(Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
+#endif
+	memcpy(t->_data, newSurface->getPixels(), t->_width * t->_height * (t->_bpp));
+	newSurface->free();
+	delete newSurface;
 	delete tgaDecoder;
 }
 
 void MaterialData::initEMI(Common::SeekableReadStream *data) {
-
 	if (_fname.hasSuffix(".sur")) {  // This expects that we want all the materials in the sur-file
 		Common::Array<Common::String> texFileNames;
 		char readFileName[64];

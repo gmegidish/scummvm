@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,16 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "audio/softsynth/pcspk.h"
+#include "audio/mods/mod_xm_s3m.h"
+#include "audio/mods/universaltracker.h"
 
 #include "backends/audiocd/audiocd.h"
 
 #include "common/config-manager.h"
+#include "common/events.h"
+#include "common/file.h"
 
 #include "testbed/sound.h"
 
@@ -173,6 +176,88 @@ TestExitStatus SoundSubsystem::mixSounds() {
 	return passed;
 }
 
+const char *music[] = {
+	"music0167.xm",
+	"music0360.xm",
+	"music0038.mo3",
+	"music0077.it",
+	"music0078.it",
+	0
+};
+
+TestExitStatus SoundSubsystem::modPlayback() {
+	Testsuite::clearScreen();
+	TestExitStatus passed = kTestPassed;
+	Common::String info = "Testing Module Playback\n"
+			"You should hear 5 melodies\n";
+
+	if (Testsuite::handleInteractiveInput(info, "OK", "Skip", kOptionRight)) {
+		Testsuite::logPrintf("Info! Skipping test : Mod Playback\n");
+		return kTestSkipped;
+	}
+
+	Common::FSNode gameRoot(ConfMan.getPath("path"));
+	SearchMan.addSubDirectoryMatching(gameRoot, "audiocd-files");
+
+	Common::File f;
+	Audio::Mixer *mixer = g_system->getMixer();
+	Common::Point pt(0, 100);
+	Common::Point pt2(0, 110);
+
+	for (int i = 0; music[i]; i++) {
+		f.open(music[i]);
+
+		if (!f.isOpen())
+			continue;
+
+		Audio::RewindableAudioStream *mod = nullptr;
+
+		if (Audio::probeModXmS3m(&f))
+			mod = Audio::makeModXmS3mStream(&f, DisposeAfterUse::NO);
+
+		if (!mod) {
+			mod = Audio::makeUniversalTrackerStream(&f, DisposeAfterUse::NO);
+		}
+
+		if (!mod) {
+			Testsuite::displayMessage(Common::String::format("Could not load MOD file '%s'", music[i]));
+			f.close();
+
+			continue;
+		}
+
+		Audio::SoundHandle handle;
+
+		mixer->playStream(Audio::Mixer::kMusicSoundType, &handle, mod);
+
+		Common::EventManager *eventMan = g_system->getEventManager();
+		Common::Event event;
+
+		while (mixer->isSoundHandleActive(handle)) {
+			g_system->delayMillis(10);
+			Testsuite::writeOnScreen(Common::String::format("Playing Now: %s", music[i]), pt);
+			Testsuite::writeOnScreen("Press 'S' to stop", pt2);
+
+			if (eventMan->pollEvent(event)) {
+				if (event.type == Common::EVENT_KEYDOWN && event.kbd.keycode == Common::KEYCODE_s)
+					break;
+			}
+		}
+		g_system->delayMillis(10);
+
+		mixer->stopAll();
+		f.close();
+	}
+
+	mixer->stopAll();
+
+	if (Testsuite::handleInteractiveInput("Were you able to hear the music?", "Yes", "No", kOptionRight)) {
+		Testsuite::logDetailedPrintf("Error! No MOD playback\n");
+		passed = kTestFailed;
+	}
+	return passed;
+}
+
 TestExitStatus SoundSubsystem::audiocdOutput() {
 	Testsuite::clearScreen();
 	TestExitStatus passed = kTestPassed;
@@ -264,9 +349,10 @@ TestExitStatus SoundSubsystem::sampleRates() {
 SoundSubsystemTestSuite::SoundSubsystemTestSuite() {
 	addTest("SimpleBeeps", &SoundSubsystem::playBeeps, true);
 	addTest("MixSounds", &SoundSubsystem::mixSounds, true);
+	addTest("MODPlayback", &SoundSubsystem::modPlayback, true);
 
 	// Make audio-files discoverable
-	Common::FSNode gameRoot(ConfMan.get("path"));
+	Common::FSNode gameRoot(ConfMan.getPath("path"));
 	if (gameRoot.exists()) {
 		SearchMan.addSubDirectoryMatching(gameRoot, "audiocd-files");
 		if (SearchMan.hasFile("track01.mp3") && SearchMan.hasFile("track02.mp3") && SearchMan.hasFile("track03.mp3") && SearchMan.hasFile("track04.mp3")) {

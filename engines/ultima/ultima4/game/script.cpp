@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -130,8 +129,8 @@ Script::~Script() {
 	// Smart pointers anyone?
 
 	// Clean variables
-	Std::map<Common::String, Script::Variable *>::iterator variableItem = _variables.begin();
-	Std::map<Common::String, Script::Variable *>::iterator variablesEnd = _variables.end();
+	Common::HashMap<Common::String, Script::Variable *>::iterator variableItem = _variables.begin();
+	Common::HashMap<Common::String, Script::Variable *>::iterator variablesEnd = _variables.end();
 	while (variableItem != variablesEnd) {
 		delete variableItem->_value;
 		++variableItem;
@@ -139,7 +138,7 @@ Script::~Script() {
 }
 
 void Script::removeCurrentVariable(const Common::String &name) {
-	Std::map<Common::String, Script::Variable *>::iterator dup = _variables.find(name);
+	Common::HashMap<Common::String, Script::Variable *>::iterator dup = _variables.find(name);
 	if (dup != _variables.end()) {
 		delete dup->_value;
 		_variables.erase(dup); // not strictly necessary, but correct.
@@ -161,7 +160,7 @@ bool Script::load(const Common::String &filename, const Common::String &baseId, 
 	 * Open and parse the .xml file
 	 */
 	Shared::XMLTree *doc = new Shared::XMLTree(
-		Common::String::format("data/conf/%s", filename.c_str()));
+		Common::Path(Common::String::format("data/conf/%s", filename.c_str())));
 	_vendorScriptDoc = root = doc->getTree();
 
 	if (!root->id().equalsIgnoreCase("scripts"))
@@ -1240,7 +1239,7 @@ Script::ReturnCode Script::karma(Shared::XMLNode *script, Shared::XMLNode *curre
 	if (_debug)
 		debugN("Karma: adjusting - '%s'", action.c_str());
 
-	typedef Std::map<Common::String, KarmaAction /*, Std::less<Common::String> */> KarmaActionMap;
+	typedef Common::HashMap<Common::String, KarmaAction /*, Std::less<Common::String> */> KarmaActionMap;
 	static KarmaActionMap action_map;
 
 	if (action_map.size() == 0) {
@@ -1314,7 +1313,7 @@ Script::ReturnCode Script::setVar(Shared::XMLNode *script, Shared::XMLNode *curr
 }
 
 Script::ReturnCode Script::ztats(Shared::XMLNode *script, Shared::XMLNode *current) {
-	typedef Std::map<Common::String, StatsView/*, Std::less<Common::String>*/ > StatsViewMap;
+	typedef Common::HashMap<Common::String, StatsView/*, Std::less<Common::String>*/ > StatsViewMap;
 	static StatsViewMap view_map;
 
 	if (view_map.size() == 0) {

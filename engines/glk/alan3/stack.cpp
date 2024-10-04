@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,7 +43,7 @@ Stack createStack(int size) {
 
 /*======================================================================*/
 void deleteStack(Stack theStack) {
-	if (theStack == NULL)
+	if (theStack == nullptr)
 		syserr("deleting a NULL stack");
 
 	deallocate(theStack->stack);
@@ -62,7 +61,7 @@ int stackDepth(Stack theStack) {
 void dumpStack(Stack theStack) {
 	int i;
 
-	if (theStack == NULL)
+	if (theStack == nullptr)
 		syserr("NULL stack not supported anymore");
 
 	printf("[");
@@ -76,7 +75,7 @@ void dumpStack(Stack theStack) {
 
 /*======================================================================*/
 void push(Stack theStack, Aptr i) {
-	if (theStack == NULL)
+	if (theStack == nullptr)
 		syserr("NULL stack not supported anymore");
 
 	if (theStack->stackp == theStack->stackSize)
@@ -87,7 +86,7 @@ void push(Stack theStack, Aptr i) {
 
 /*======================================================================*/
 Aptr pop(Stack theStack) {
-	if (theStack == NULL)
+	if (theStack == nullptr)
 		syserr("NULL stack not supported anymore");
 
 	if (theStack->stackp == 0)
@@ -98,7 +97,7 @@ Aptr pop(Stack theStack) {
 
 /*======================================================================*/
 Aptr top(Stack theStack) {
-	if (theStack == NULL)
+	if (theStack == nullptr)
 		syserr("NULL stack not supported anymore");
 
 	return theStack->stack[theStack->stackp - 1];
@@ -111,7 +110,7 @@ Aptr top(Stack theStack) {
 void newFrame(Stack theStack, Aint noOfLocals) {
 	int n;
 
-	if (theStack == NULL)
+	if (theStack == nullptr)
 		syserr("NULL stack not supported anymore");
 
 	push(theStack, theStack->framePointer);
@@ -130,7 +129,7 @@ Aptr getLocal(Stack theStack, Aint framesBelow, Aint variableNumber) {
 	if (variableNumber < 1)
 		syserr("Reading a non-existing block-local variable.");
 
-	if (theStack == NULL)
+	if (theStack == nullptr)
 		syserr("NULL stack not supported anymore");
 
 	frame = theStack->framePointer;
@@ -151,7 +150,7 @@ void setLocal(Stack theStack, Aint framesBelow, Aint variableNumber, Aptr value)
 	if (variableNumber < 1)
 		syserr("Writing a non-existing block-local variable.");
 
-	if (theStack == NULL)
+	if (theStack == nullptr)
 		syserr("NULL stack not supported anymore");
 
 	frame = theStack->framePointer;
@@ -164,7 +163,7 @@ void setLocal(Stack theStack, Aint framesBelow, Aint variableNumber, Aptr value)
 
 /*======================================================================*/
 void endFrame(Stack theStack) {
-	if (theStack == NULL)
+	if (theStack == nullptr)
 		syserr("NULL stack not supported anymore");
 
 	theStack->stackp = theStack->framePointer;

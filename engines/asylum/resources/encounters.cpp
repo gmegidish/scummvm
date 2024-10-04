@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -367,14 +366,18 @@ bool Encounter::handleEvent(const AsylumEvent &evt) {
 	case EVENT_ASYLUM_UPDATE:
 		return update();
 
-	case Common::EVENT_KEYDOWN:
-		return key(evt);
-
 	case Common::EVENT_LBUTTONDOWN:
 	case Common::EVENT_LBUTTONUP:
-	case Common::EVENT_RBUTTONDOWN:
-	case Common::EVENT_RBUTTONUP:
 		return mouse(evt);
+
+	case Common::EVENT_RBUTTONDOWN:
+		return cancel(evt);
+
+	case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+		if ((AsylumAction)evt.customType == kAsylumActionShowMenu) {
+			return cancel(evt);
+		}
+		return true;
 	}
 
 	return false;
@@ -517,18 +520,6 @@ bool Encounter::update() {
 	return true;
 }
 
-bool Encounter::key(const AsylumEvent &evt) {
-	if (evt.kbd.keycode == Common::KEYCODE_ESCAPE) {
-		if (!isSpeaking()
-		 && _isDialogOpen
-		 && !getSpeech()->getTextData()
-		 && !getSpeech()->getTextDataPos())
-			_shouldCloseDialog = true;
-	}
-
-	return true;
-}
-
 bool Encounter::mouse(const AsylumEvent &evt) {
 	switch (evt.type) {
 	default:
@@ -556,20 +547,20 @@ bool Encounter::mouse(const AsylumEvent &evt) {
 			_data_455BD8 = false;
 		}
 		break;
-
-
-	case Common::EVENT_RBUTTONDOWN:
-		if (!isSpeaking()
-		 && _isDialogOpen
-		 && !getSpeech()->getTextData()
-		 && !getSpeech()->getTextDataPos())
-			_shouldCloseDialog = true;
-		break;
 	}
 
 	return true;
 }
 
+bool Encounter::cancel(const AsylumEvent &evt) {
+	if (!isSpeaking()
+	 && _isDialogOpen
+	 && !getSpeech()->getTextData()
+	 && !getSpeech()->getTextDataPos())
+		_shouldCloseDialog = true;
+
+	return true;
+}
 //////////////////////////////////////////////////////////////////////////
 // Variables
 //////////////////////////////////////////////////////////////////////////
@@ -657,6 +648,10 @@ void Encounter::choose(int32 index) {
 
 		case Common::RU_RUS:
 			goodBye = "\xc4\xee\x20\xf1\xe2\xe8\xe4\xe0\xed\xe8\xff"; // До свидания
+			break;
+
+		case Common::EU_ESP:
+			goodBye = "Agur";
 			break;
 		}
 

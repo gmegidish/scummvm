@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,14 +38,13 @@ Process::Process(ObjId it, uint16 ty)
 }
 
 void Process::fail() {
-	assert(!(_flags & PROC_TERMINATED));
-
 	_flags |= PROC_FAILED;
 	terminate();
 }
 
 void Process::terminate() {
-	assert(!(_flags & PROC_TERMINATED));
+	if (_flags & PROC_TERMINATED)
+		return;
 
 	Kernel *kernel = Kernel::get_instance();
 
@@ -106,7 +104,7 @@ void Process::suspend() {
 	_flags |= PROC_SUSPENDED;
 }
 
-void Process::dumpInfo() const {
+Common::String Process::dumpInfo() const {
 	Common::String info = Common::String::format(
 		"Process %d class %s, item %d, type %x, status ",
 		getPid(), GetClassType()._className, _itemNum, _type);
@@ -117,6 +115,8 @@ void Process::dumpInfo() const {
 	if (_flags & PROC_TERM_DEFERRED) info += "t";
 	if (_flags & PROC_FAILED) info += "F";
 	if (_flags & PROC_RUNPAUSED) info += "R";
+	if (_flags & PROC_TERM_DISPOSE) info += "D";
+
 	if (!_waiting.empty()) {
 		info += ", notify: ";
 		for (Std::vector<ProcId>::const_iterator i = _waiting.begin(); i != _waiting.end(); ++i) {
@@ -125,7 +125,7 @@ void Process::dumpInfo() const {
 		}
 	}
 
-	g_debugger->debugPrintf("%s\n", info.c_str());
+	return info;
 }
 
 void Process::saveData(Common::WriteStream *ws) {

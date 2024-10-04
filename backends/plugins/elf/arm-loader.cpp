@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@ bool ARMDLObject::relocate(Elf32_Off offset, Elf32_Word size, byte *relSegment) 
 
 	// Allocate memory for relocation table
 	if (!(rel = (Elf32_Rel *)malloc(size))) {
-		warning("elfloader: Out of memory.");
+		warning("elfloader: Could not allocate %d bytes for the relocation table", size);
 		return false;
 	}
 
@@ -64,6 +63,9 @@ bool ARMDLObject::relocate(Elf32_Off offset, Elf32_Word size, byte *relSegment) 
 
 		// Act differently based on the type of relocation
 		switch (REL_TYPE(rel[i].r_info)) {
+		case R_ARM_NONE:
+//		        debug(8, "elfloader: R_ARM_NONE: No relocation.");
+			break;
 		case R_ARM_ABS32:
 		case R_ARM_TARGET1:
 			if (sym->st_shndx < SHN_LOPROC) {			// Only shift for plugin section.
@@ -74,6 +76,15 @@ bool ARMDLObject::relocate(Elf32_Off offset, Elf32_Word size, byte *relSegment) 
 
 //				debug(8, "elfloader: R_ARM_ABS32: i=%d, a=%x, origTarget=%x, target=%x", i, a, origTarget, *target);
 			}
+			break;
+
+		// Note: PREL31 often points to a different section, so if we ever load in several segments, this needs to be adjusted
+		case R_ARM_PREL31:
+//		        debug(8, "elfloader: R_ARM_PREL31: PC-relative reference, ld takes care of necessary relocation work for us.");
+			break;
+
+		case R_ARM_PC24:
+//			debug(8, "elfloader: R_ARM_PC24: PC-relative jump, ld takes care of necessary relocation work for us.");
 			break;
 
 		case R_ARM_THM_CALL:

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,24 +70,25 @@ void LoiterProcess::run() {
 		return;
 	}
 
-	int32 x, y, z;
-	a->getLocation(x, y, z);
+	Point3 pt = a->getLocation();
 
-	x += 32 * ((getRandom() % 20) - 10);
-	y += 32 * ((getRandom() % 20) - 10);
+	Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
+
+	pt.x += 32 * rs.getRandomNumberRngSigned(-10, 10);
+	pt.y += 32 * rs.getRandomNumberRngSigned(-10, 10);
 
 	Process *pfp;
 	if (GAME_IS_U8)
-		pfp = new PathfinderProcess(a, x, y, z);
+		pfp = new PathfinderProcess(a, pt);
 	else
-		pfp = new CruPathfinderProcess(a, x, y, z, 0xc, 0x80, false);
+		pfp = new CruPathfinderProcess(a, pt, 0xc, 0x80, false);
 
 	Kernel::get_instance()->addProcess(pfp);
 
 	bool hasidle1 = a->hasAnim(Animation::idle1);
 	bool hasidle2 = a->hasAnim(Animation::idle2);
 
-	if ((hasidle1 || hasidle2) && ((getRandom() % 3) == 0)) {
+	if ((hasidle1 || hasidle2) && (rs.getRandomNumber(2) == 0)) {
 		Animation::Sequence idleanim;
 
 		if (!hasidle1) {
@@ -96,7 +96,7 @@ void LoiterProcess::run() {
 		} else if (!hasidle2) {
 			idleanim = Animation::idle1;
 		} else {
-			if (getRandom() % 2)
+			if (rs.getRandomBit())
 				idleanim = Animation::idle1;
 			else
 				idleanim = Animation::idle2;
@@ -109,7 +109,7 @@ void LoiterProcess::run() {
 
 	} else {
 		// wait 4-7 sec
-		DelayProcess *dp = new DelayProcess(30 * (4 + (getRandom() % 3)));
+		DelayProcess *dp = new DelayProcess(30 * rs.getRandomNumberRng(4, 7));
 		Kernel::get_instance()->addProcess(dp);
 		dp->waitFor(pfp);
 
@@ -117,9 +117,9 @@ void LoiterProcess::run() {
 	}
 }
 
-void LoiterProcess::dumpInfo() const {
-	Process::dumpInfo();
-	pout << "Frames left: " << _count;
+Common::String LoiterProcess::dumpInfo() const {
+	return Process::dumpInfo() +
+		Common::String::format(", frames left: %d", _count);
 }
 
 void LoiterProcess::saveData(Common::WriteStream *ws) {

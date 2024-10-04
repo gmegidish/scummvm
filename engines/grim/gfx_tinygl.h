@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,14 +24,17 @@
 
 #include "engines/grim/gfx_base.h"
 
-#include "graphics/tinygl/zgl.h"
+#include "graphics/tinygl/tinygl.h"
+
+namespace Graphics {
+struct Surface;
+}
 
 namespace Grim {
 
 class ModelNode;
 class Mesh;
 class MeshFace;
-class BlitImage;
 
 class GfxTinyGL : public GfxBase {
 public:
@@ -52,7 +54,7 @@ public:
 
 	void clearScreen() override;
 	void clearDepthBuffer() override;
-	void flipBuffer() override;
+	void flipBuffer(bool opportunistic = false) override;
 
 	bool isHardwareAccelerated() override;
 	bool supportsShaders() override;
@@ -128,11 +130,10 @@ protected:
 	void createSpecialtyTextureFromScreen(uint id, uint8 *data, int x, int y, int width, int height) override;
 
 private:
-	TinyGL::FrameBuffer *_zb;
 	Graphics::PixelFormat _pixelFormat;
-	Graphics::BlitImage *_emergFont[96];
-	Graphics::BlitImage *_smushImage;
-	Graphics::PixelBuffer _storedDisplay;
+	TinyGL::BlitImage *_emergFont[96];
+	TinyGL::BlitImage *_smushImage;
+	Graphics::Surface *_storedDisplay;
 	float _alpha;
 	const Actor *_currentActor;
 	TGLenum _depthFunc;

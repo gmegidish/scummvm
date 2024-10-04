@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -136,7 +141,7 @@ void Inter_Bargon::oBargon_intro2(OpGobParams &params) {
 		_vm->_video->dirtyRectsAll();
 		if ((_vm->_game->checkKeys(&mouseX, &mouseY, &buttons, 0) == kKeyEscape) ||
 				_vm->shouldQuit()) {
-			_vm->_palAnim->fade(0, -2, 0);
+			_vm->_palAnim->fade(nullptr, -2, 0);
 			_vm->_draw->_frontSurface->clear();
 			memset((char *)_vm->_draw->_vgaPalette, 0, 768);
 			WRITE_VAR(4, buttons);
@@ -157,7 +162,7 @@ void Inter_Bargon::oBargon_intro2(OpGobParams &params) {
 		_vm->_sound->sampleLoad(&samples[i], SOUND_SND, sndFiles[i]);
 	_vm->_sound->blasterPlayComposition(comp, 0, samples, 4);
 	_vm->_sound->blasterWaitEndPlay(true, false);
-	_vm->_palAnim->fade(0, 0, 0);
+	_vm->_palAnim->fade(nullptr, 0, 0);
 	_vm->_draw->_frontSurface->clear();
 }
 
@@ -190,7 +195,7 @@ void Inter_Bargon::oBargon_intro3(OpGobParams &params) {
 		if ((_vm->_game->checkKeys(&mouseX, &mouseY, &buttons, 0) == kKeyEscape) ||
 				_vm->shouldQuit()) {
 			_vm->_sound->blasterStop(10);
-			_vm->_palAnim->fade(0, -2, 0);
+			_vm->_palAnim->fade(nullptr, -2, 0);
 			_vm->_draw->_frontSurface->clear();
 			memset(_vm->_draw->_vgaPalette, 0, 768);
 			WRITE_VAR(4, buttons);

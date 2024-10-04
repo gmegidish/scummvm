@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,6 +54,9 @@ Parser::Parser(AvalancheEngine *vm) {
 	_alcoholLevel = 0;
 
 	_boughtOnion = false;
+
+	for (int i = 0; i < kParserWordsNum; ++i)
+		_vocabulary[i].init(1, "");
 }
 
 void Parser::init() {
@@ -830,11 +832,7 @@ void Parser::parse() {
 		// Check Accis's own table (words[]) for "global" commands.
 		if (notfound) {
 			byte answer = wordNum(thisword);
-			if (answer == kPardon) {
-				notfound = true;
-				_thats = _thats + kPardon;
-			} else
-				_thats = _thats + answer;
+			_thats = _thats + answer;
 			n++;
 		}
 
@@ -1099,7 +1097,8 @@ void Parser::examine() {
 			else if ((50 <= _thing) && (_thing <= 100)) {
 				// Also _thing
 				int id = _thing - 50;
-				assert(id < 31);
+				if (id >= 31)
+					error("Parser::Examine - Unexpected _thing value %d (>80)", _thing);
 				openBox(true);
 				_vm->_dialogs->displayText(*_vm->_also[id][1]);
 				openBox(false);

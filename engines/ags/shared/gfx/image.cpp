@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,25 +37,23 @@
 namespace AGS3 {
 
 template<class DECODER>
-BITMAP *decodeImage(const char *filename, color *pal) {
+BITMAP *decodeImageStream(Common::SeekableReadStream &stream, color *pal) {
 	DECODER decoder;
 
-	AGS::Shared::Stream *file = AGS3::AGS::Shared::File::OpenFileRead(filename);
-	if (!file)
-		return nullptr;
-
-	AGS::Shared::ScummVMReadStream f(file);
-	if (decoder.loadStream(f)) {
+	if (decoder.loadStream(stream)) {
 		// Create the output surface
 		const Graphics::Surface *src = decoder.getSurface();
 
 		// Copy the decoded surface
-		Surface *dest = new Surface(src->w, src->h, src->format);
+		int bpp = 8 * src->format.bytesPerPixel;
+		if (bpp == 24)
+			bpp = 32;
+		Surface *dest = (Surface *)create_bitmap_ex(bpp, src->w, src->h);
 		dest->blitFrom(*src);
 
 		// Copy the palette
 		const byte *palP = decoder.getPalette();
-		if (palP) {
+		if (palP && pal) {
 			for (int idx = 0; idx < 256; ++idx, palP += 3) {
 				pal[idx].r = palP[0];
 				pal[idx].g = palP[1];
@@ -69,6 +66,26 @@ BITMAP *decodeImage(const char *filename, color *pal) {
 	} else {
 		return nullptr;
 	}
+}
+
+template<class DECODER>
+BITMAP *decodeImage(const char *filename, color *pal) {
+	AGS::Shared::Stream *file = AGS3::AGS::Shared::File::OpenFileRead(filename);
+	if (!file)
+		return nullptr;
+
+	AGS::Shared::ScummVMReadStream f(file);
+	return decodeImageStream<DECODER>(f, pal);
+}
+
+template<class DECODER>
+BITMAP *decodeImage(PACKFILE *pf, color *pal) {
+	if (!pf)
+		return nullptr;
+
+	AGS::Shared::ScummVMPackReadStream f(pf);
+	f.seek(0);
+	return decodeImageStream<DECODER>(f, pal);
 }
 
 BITMAP *load_bmp(const char *filename, color *pal) {
@@ -102,6 +119,21 @@ BITMAP *load_bitmap(const char *filename, color *pal) {
 		error("Unknown image file - %s", filename);
 }
 
+BITMAP *load_bitmap(PACKFILE *pf, color *pal) {
+	BITMAP *result;
+
+	if ((result = decodeImage<Image::BitmapDecoder>(pf, pal)) != nullptr)
+		return result;
+	if ((result = decodeImage<Image::IFFDecoder>(pf, pal)) != nullptr)
+		return result;
+	if ((result = decodeImage<Image::PCXDecoder>(pf, pal)) != nullptr)
+		return result;
+	if ((result = decodeImage<Image::TGADecoder>(pf, pal)) != nullptr)
+		return result;
+
+	error("Unknown image file");
+}
+
 int save_bitmap(Common::WriteStream &out, BITMAP *bmp, const RGB *pal) {
 #ifdef SCUMM_LITTLE_ENDIAN
 	const Graphics::PixelFormat requiredFormat_3byte(3, 8, 8, 8, 0, 16, 8, 0, 0);
@@ -124,14 +156,14 @@ int save_bitmap(Common::WriteStream &out, BITMAP *bmp, const RGB *pal) {
 		}
 
 		surface.rawBlitFrom(temp, Common::Rect(0, 0, src.w, src.h),
-			Common::Point(0, 0), temp.getPalette());
+			Common::Point(0, 0));
 	} else {
 		// Copy from the source surface without alpha transparency
 		Graphics::ManagedSurface temp = src;
 		temp.format.aLoss = 8;
 
 		surface.rawBlitFrom(temp, Common::Rect(0, 0, src.w, src.h),
-			Common::Point(0, 0), nullptr);
+			Common::Point(0, 0));
 	}
 
 	// Write out the bitmap

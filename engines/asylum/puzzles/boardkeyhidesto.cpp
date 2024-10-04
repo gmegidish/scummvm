@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -103,6 +102,56 @@ static const PuzzleBoard::PuzzleData puzzleKeyHidesToData[] = {
 		true,
 		4, 0,
 		"L A   C L E F "
+	},
+	// Hebrew
+	{
+		56,
+		kGameFlag283,
+		503,
+		3,
+		{{5, false}, {6, false}, {7, false}},
+		10,
+		{
+			{'\xE7', 593,  58},
+			{'\xEE',  65,  59},
+			{'\xF4', 591,  91},
+			{'\xE0', 203, 106},
+			{'\xE4', 466, 122},
+			{'\xE1',  62, 123},
+			{'\xE9', 468, 155},
+			{'\xFA', 201, 170},
+			{'\xEE', 253, 203},
+			{'\xE7', 210, 218},
+			{'\0',     0,   0},
+		},
+		true,
+		10, 0,
+		"\xE7 \xFA \xF4 \xEE \xE4   \xE0 \xE9 \xE1 \xE7 \xEE "
+	},
+	// Basque
+	{
+		56,
+		kGameFlag283,
+		503,
+		3,
+		{{5, false}, {6, false}, {7, false}},
+		11,
+		{
+			{'A',   45,   56},
+			{'K',  199,   74},
+			{'A',  538,   88},
+			{'D',  276,  121},
+			{'L',  276,  137},
+			{'Z',  170,  152},
+			{'T',  536,   151},
+			{'A',  279,   185},
+			{'I',  494,   200},
+			{'G',  101,   248},
+			{'U',  546,   247}
+		},
+		true,
+		10, 0,
+		"D A U K A   G I L T Z A "
 	}
 };
 

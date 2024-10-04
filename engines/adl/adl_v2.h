@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,10 +47,11 @@ protected:
 	void takeItem(byte noun) override;
 
 	// Engine
-	bool canSaveGameStateCurrently() override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
 
+	void mapExeStrings(const Common::StringArray &strings);
 	void insertDisk(byte volume);
-	virtual DataBlockPtr readDataBlockPtr(Common::ReadStream &f) const;
+	virtual Common::DataBlockPtr readDataBlockPtr(Common::ReadStream &f) const;
 	virtual void adjustDataBlockPtr(byte &track, byte &sector, byte &offset, byte &size) const { }
 	void loadItems(Common::ReadStream &stream);
 	void loadRooms(Common::ReadStream &stream, byte count);
@@ -87,9 +87,9 @@ protected:
 	} _strings_v2;
 
 	uint _maxLines;
-	DiskImage *_disk;
+	Common::DiskImage *_disk;
 	byte _currentVolume;
-	Common::Array<DataBlockPtr> _itemPics;
+	Common::Array<Common::DataBlockPtr> _itemPics;
 	bool _itemRemoved;
 	byte _roomOnScreen, _picOnScreen, _itemsOnScreen;
 	Common::Array<byte> _brokenRooms;

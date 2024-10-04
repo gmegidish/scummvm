@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@ namespace CreateProjectTool {
 
 class MSVCProvider : public ProjectProvider {
 public:
-	MSVCProvider(StringList &global_warnings, std::map<std::string, StringList> &project_warnings, const int version, const MSVCVersion &msvcVersion);
+	MSVCProvider(StringList &global_warnings, std::map<std::string, StringList> &project_warnings, StringList &global_errors, const int version, const MSVCVersion &msvcVersion);
 
 protected:
 	const MSVCVersion _msvcVersion;
@@ -48,17 +47,16 @@ protected:
 		const char *release; ///< Filename of the Release build of the library.
 		const char *debug;   ///< Filename of the Debug build of the library.
 		const char *depends; ///< Win32 libs this library must be linked against.
-		const char *legacy;  ///< Legacy name for old precompiled libraries (deprecated).
 	};
 
 	std::string getLibraryFromFeature(const char *feature, const BuildSetup &setup, bool isRelease) const;
 	std::string outputLibraryDependencies(const BuildSetup &setup, bool isRelease) const;
 
-	void createWorkspace(const BuildSetup &setup);
+	void createWorkspace(const BuildSetup &setup) override;
 
-	void createOtherBuildFiles(const BuildSetup &setup);
+	void createOtherBuildFiles(const BuildSetup &setup) override;
 
-	void addResourceFiles(const BuildSetup &setup, StringList &includeList, StringList &excludeList);
+	void addResourceFiles(const BuildSetup &setup, StringList &includeList, StringList &excludeList) override;
 
 	/**
 	 * Create the global project properties.
@@ -75,13 +73,13 @@ protected:
 	 * two platform configurations will output their files into different
 	 * directories.
 	 *
+	 * @param setup      Description of the desired build setup.
 	 * @param properties File stream in which to write the property settings.
-	 * @param bits Number of bits the platform supports.
-	 * @param defines Defines the platform needs to have set.
-	 * @param prefix File prefix, used to add additional include paths.
-	 * @param runBuildEvents true if generating a revision number, false otherwise
+	 * @param arch       Target architecture
+	 * @param defines    Defines the platform needs to have set.
+	 * @param prefix     File prefix, used to add additional include paths.
 	 */
-	virtual void outputGlobalPropFile(const BuildSetup &setup, std::ofstream &properties, MSVC_Architecture arch, const StringList &defines, const std::string &prefix, bool runBuildEvents) = 0;
+	virtual void outputGlobalPropFile(const BuildSetup &setup, std::ofstream &properties, MSVC_Architecture arch, const StringList &defines, const std::string &prefix) = 0;
 
 	/**
 	 * Generates the project properties for debug and release settings.
@@ -113,12 +111,13 @@ protected:
 	/**
 	 * Get the command line for copying data files to the build directory.
 	 *
-	 * @param	arch	Target architecture
-	 * @param	setup	Description of the desired build setup.
+	 * @param	arch	   Target architecture
+	 * @param	setup	   Description of the desired build setup.
+	 * @param   isRelease  Type of build file
 	 *
 	 * @return	The post build event.
 	 */
-	std::string getPostBuildEvent(MSVC_Architecture arch, const BuildSetup &setup) const;
+	std::string getPostBuildEvent(MSVC_Architecture arch, const BuildSetup &setup, bool isRelease) const;
 };
 
 } // namespace CreateProjectTool

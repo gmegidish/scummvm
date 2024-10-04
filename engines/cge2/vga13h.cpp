@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 #include "common/array.h"
 #include "common/config-manager.h"
 #include "common/rect.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "cge2/general.h"
 #include "cge2/vga13h.h"
 #include "cge2/bitmap.h"
@@ -223,8 +222,9 @@ void Sprite::setName(char *newName) {
 		_ext->_name = nullptr;
 	}
 	if (newName) {
-		_ext->_name = new char[strlen(newName) + 1];
-		strcpy(_ext->_name, newName);
+		size_t ln = strlen(newName) + 1;
+		_ext->_name = new char[ln];
+		Common::strcpy_s(_ext->_name, ln, newName);
 	}
 }
 
@@ -244,10 +244,11 @@ int Sprite::labVal(Action snq, int lab) {
 			return i;
 	} else {
 		char tmpStr[kLineMax + 1];
+		STATIC_ASSERT(sizeof(tmpStr) >= kPathMax, mergeExt_expects_kPathMax_buffer);
 		_vm->mergeExt(tmpStr, _file, kSprExt);
 
 		if (_vm->_resman->exist(tmpStr)) { // sprite description file exist
-			EncryptedStream sprf(_vm, tmpStr);
+			EncryptedStream sprf(_vm->_resman, tmpStr);
 			if (sprf.err())
 				error("Bad SPR [%s]", tmpStr);
 
@@ -337,7 +338,7 @@ Sprite *Sprite::expand() {
 		curSeq = new Seq[_seqCnt];
 
 	if (_vm->_resman->exist(fname)) { // sprite description file exist
-		EncryptedStream sprf(_vm, fname);
+		EncryptedStream sprf(_vm->_resman, fname);
 		if (sprf.err())
 			error("Bad SPR [%s]", fname);
 

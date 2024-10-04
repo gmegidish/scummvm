@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@ enum GfxScreenUpscaledMode {
 	DISPLAY_UPSCALED_640x400  = 1
 };
 
-class AgiEngine;
+class AgiBase;
 
 enum GfxScreenMasks {
 	GFX_SCREEN_MASK_VISUAL      = 1,
@@ -70,8 +69,8 @@ private:
 public:
 	GfxMgr(AgiBase *vm, GfxFont *font);
 
-	int initVideo();
-	int deinitVideo();
+	void initVideo();
+	void deinitVideo();
 	void initPalette(uint8 *destPalette, const uint8 *paletteData, uint colorCount = 16, uint fromBits = 6, uint toBits = 8);
 	void initPaletteCLUT(uint8 *destPalette, const uint16 *paletteCLUTData, uint colorCount = 16);
 	void setAGIPal(int);
@@ -93,7 +92,6 @@ public:
 
 	void translateGameRectToDisplayScreen(int16 &x, int16 &y, int16 &width, int16 &height);
 	void translateVisualRectToDisplayScreen(int16 &x, int16 &y, int16 &width, int16 &height);
-	void translateDisplayRectToVisualScreen(int16 &x, int16 &y, int16 &width, int16 &height);
 
 	uint32 getDisplayOffsetToGameScreenPos(int16 x, int16 y);
 	uint32 getDisplayOffsetToVisualScreenPos(int16 x, int16 y);
@@ -175,12 +173,12 @@ public:
 	byte getCGAMixtureColor(byte color);
 
 	void render_Block(int16 x, int16 y, int16 width, int16 height, bool copyToScreen = true);
-	bool render_Clip(int16 &x, int16 &y, int16 &width, int16 &height, int16 clipAgainstWidth = SCRIPT_WIDTH, int16 clipAgainstHeight = SCRIPT_HEIGHT);
+	bool render_Clip(int16 &x, int16 &y, int16 &width, int16 &height, const int16 minY = 0, const int16 clipAgainstWidth = SCRIPT_WIDTH, const int16 clipAgainstHeight = SCRIPT_HEIGHT);
 
 private:
-	void render_BlockEGA(int16 x, int16 y, int16 width, int16 height, bool copyToScreen);
-	void render_BlockCGA(int16 x, int16 y, int16 width, int16 height, bool copyToScreen);
-	void render_BlockHercules(int16 x, int16 y, int16 width, int16 height, bool copyToScreen);
+	void render_BlockEGA(int16 x, int16 y, int16 width, int16 height);
+	void render_BlockCGA(int16 x, int16 y, int16 width, int16 height);
+	void render_BlockHercules(int16 x, int16 y, int16 width, int16 height);
 
 public:
 	void transition_Amiga();

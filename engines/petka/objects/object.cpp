@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "common/ini-file.h"
+#include "common/formats/ini-file.h"
 #include "common/stream.h"
 #include "common/system.h"
 #include "common/events.h"
@@ -54,7 +53,7 @@ QVisibleObject::QVisibleObject()
 	: _resourceId(-1), _z(240) {}
 
 QMessageObject::QMessageObject() {
-	_id = -1;
+	_id = (uint16)-1;
 	_status = 0;
 	_time = 0;
 	_dialogColor = -1;
@@ -66,6 +65,11 @@ QMessageObject::QMessageObject() {
 	_loopedSound = false;
 	_startSound = false;
 	_reaction = nullptr;
+
+	_x = _y = _walkX = _walkY = 0;
+	_frame = 0;
+	_sound = nullptr;
+	_reactionId = 0;
 }
 
 void QMessageObject::processMessage(const QMessage &msg) {
@@ -91,6 +95,8 @@ void QMessageObject::processMessage(const QMessage &msg) {
 		switch (msg.opcode) {
 		case kAddInv:
 			g_vm->getQSystem()->getCase()->addItem(msg.objId);
+			// original bug fix
+			g_vm->pushMouseMoveEvent();
 			break;
 		case kDelInv:
 			g_vm->getQSystem()->getCase()->removeItem(msg.objId);
@@ -535,10 +541,10 @@ void QObject::update(int time) {
 			g_vm->videoSystem()->addDirtyRect(Common::Point(_x, _y), *flc);
 			flc->setFrame(-1);
 			if (flc->getCurFrame() == (int32)flc->getFrameCount() - 1) {
-				g_vm->getQSystem()->addMessage(_id, kEnd, _resourceId, 0, 0, 0, 0);
+				g_vm->getQSystem()->addMessage(_id, kEnd, _resourceId, 0, 0, 0, nullptr);
 			}
 			if (flc->getCurFrame() + 1 == (int32)flc->getFrameCount() / 2) {
-				g_vm->getQSystem()->addMessage(_id, kHalf, _resourceId, 0, 0, 0, 0);
+				g_vm->getQSystem()->addMessage(_id, kHalf, _resourceId, 0, 0, 0, nullptr);
 			}
 			g_vm->videoSystem()->addDirtyRect(Common::Point(_x, _y), *flc);
 			_time -= flc->getDelay();

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,6 @@ namespace AGS3 {
 #define SYSTEM_NONE        AL_ID('N','O','N','E')
 
 #define GFX_SCUMMVM             AL_ID('S', 'C', 'V', 'M')
-#define GFX_SCUMMVM_FULLSCREEN  AL_ID('S', 'C', 'V', 'M')
 
 #define SWITCH_NONE           0
 #define SWITCH_PAUSE          1
@@ -118,7 +116,6 @@ struct GFX_DRIVER {
 	AL_METHOD(int, show_mouse, (BITMAP *bmp, int x, int y));
 	AL_METHOD(void, hide_mouse, (void));
 	AL_METHOD(void, move_mouse, (int x, int y));
-	AL_METHOD(void, drawing_mode, (void));
 	AL_METHOD(void, save_video_state, (void));
 	AL_METHOD(void, restore_video_state, (void));
 	AL_METHOD(void, set_blender_mode, (int mode, int r, int g, int b, int a));

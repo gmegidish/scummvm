@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/util.h"
 #include "gui/widgets/tab.h"
 #include "gui/gui-manager.h"
+#include "gui/widgets/scrollcontainer.h"
 
 #include "gui/ThemeEval.h"
 
@@ -51,13 +51,13 @@ void TabWidget::recalc() {
 	_titleSpacing = g_gui.xmlEval()->getVar("Globals.TabWidget.TitleSpacing");
 }
 
-TabWidget::TabWidget(GuiObject *boss, int x, int y, int w, int h)
-	: Widget(boss, x, y, w, h), _bodyBackgroundType(GUI::ThemeEngine::kDialogBackgroundDefault) {
+TabWidget::TabWidget(GuiObject *boss, int x, int y, int w, int h, ThemeEngine::TextAlignVertical alignV)
+	: Widget(boss, x, y, w, h), _bodyBackgroundType(ThemeEngine::kDialogBackgroundDefault), _alignV(alignV) {
 	init();
 }
 
-TabWidget::TabWidget(GuiObject *boss, const String &name)
-	: Widget(boss, name), _bodyBackgroundType(GUI::ThemeEngine::kDialogBackgroundDefault) {
+TabWidget::TabWidget(GuiObject *boss, const Common::String &name, ThemeEngine::TextAlignVertical alignV)
+	: Widget(boss, name), _bodyBackgroundType(ThemeEngine::kDialogBackgroundDefault), _alignV(alignV) {
 	init();
 }
 
@@ -74,8 +74,11 @@ void TabWidget::init() {
 	int x = _w - _butRP - _butW * 2 - 2;
 	int y = _butTP - _tabHeight;
 
-	String leftArrow = g_gui.useRTL() ? ">" : "<";
-	String rightArrow = g_gui.useRTL() ? "<" : ">";
+	if (_alignV == ThemeEngine::kTextAlignVBottom)
+		y = _h - _tabHeight + _butTP;
+
+	Common::String leftArrow = g_gui.useRTL() ? ">" : "<";
+	Common::String rightArrow = g_gui.useRTL() ? "<" : ">";
 
 	_navLeft = new ButtonWidget(this, x, y, _butW, _butH, Common::U32String(leftArrow), Common::U32String(), kCmdLeft);
 	_navRight = new ButtonWidget(this, x + _butW + 2, y, _butW, _butH, Common::U32String(rightArrow), Common::U32String(), kCmdRight);
@@ -91,6 +94,7 @@ TabWidget::~TabWidget() {
 	// having been switched using setActiveTab() afterward, then the
 	// firstWidget in the _tabs list for the active tab may not be up to
 	// date. So update it now.
+
 	if (_activeTab != -1)
 		_tabs[_activeTab].firstWidget = _firstWidget;
 	_firstWidget = nullptr;
@@ -116,7 +120,7 @@ uint16 TabWidget::getHeight() const {
 	return _h + _tabHeight;
 }
 
-int TabWidget::addTab(const U32String &title, const String &dialogName) {
+int TabWidget::addTab(const Common::U32String &title, const Common::String &dialogName) {
 	// Add a new tab page
 	Tab newTab;
 	newTab.title = title;
@@ -133,7 +137,7 @@ int TabWidget::addTab(const U32String &title, const String &dialogName) {
 
 	int numTabs = _tabs.size();
 
-	// Activate the new tab
+	// Activate the new tab, also writes back our _firstWidget
 	setActiveTab(numTabs - 1);
 
 	return _activeTab;
@@ -229,8 +233,6 @@ void TabWidget::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
 }
 
 void TabWidget::handleMouseDown(int x, int y, int button, int clickCount) {
-	assert(y < _tabHeight);
-
 	if (x < 0)
 		return;
 
@@ -248,8 +250,13 @@ void TabWidget::handleMouseDown(int x, int y, int button, int clickCount) {
 }
 
 void TabWidget::handleMouseMoved(int x, int y, int button) {
-	if (y < 0 || y >= _tabHeight)
-		return;
+	if (_alignV == ThemeEngine::kTextAlignVBottom) {
+		if (y < _w - _tabHeight || y > _w)
+			return;
+	} else {
+		if (y < 0 || y >= _tabHeight)
+			return;
+	}
 
 	if (x < 0)
 		return;
@@ -279,6 +286,14 @@ bool TabWidget::handleKeyDown(Common::KeyState state) {
 		adjustTabs(kTabForwards);
 
 	return Widget::handleKeyDown(state);
+}
+
+void TabWidget::handleMouseWheel(int x, int y, int direction) {
+	if (direction == 1) {
+		adjustTabs(kTabForwards);
+	} else {
+		adjustTabs(kTabBackwards);
+	}
 }
 
 void TabWidget::adjustTabs(int value) {
@@ -334,9 +349,7 @@ void TabWidget::reflowLayout() {
 		_tabs[_activeTab].firstWidget = _firstWidget;
 
 	for (uint i = 0; i < _tabs.size(); ++i) {
-		if (!_tabs[i].dialogName.empty()) {
-			g_gui.xmlEval()->reflowDialogLayout(_tabs[i].dialogName, _tabs[i].firstWidget);
-		}
+		g_gui.xmlEval()->reflowDialogLayout(_tabs[i].dialogName, _tabs[i].firstWidget);
 
 		Widget *w = _tabs[i].firstWidget;
 		while (w) {
@@ -376,6 +389,10 @@ void TabWidget::reflowLayout() {
 
 	int x = _w - _butRP - _butW * 2 - 2;
 	int y = _butTP - _tabHeight;
+
+	if (_alignV == ThemeEngine::kTextAlignVBottom)
+		y = _h - _tabHeight + _butTP;
+
 	_navLeft->resize(x, y, _butW, _butH, false);
 	_navRight->resize(x + _butW + 2, y, _butW, _butH, false);
 }
@@ -393,7 +410,7 @@ void TabWidget::drawWidget() {
 			_bodyBackgroundType);
 
 	g_gui.theme()->drawTab(Common::Rect(_x, _y, _x + _w, _y + _h), _tabHeight, widths, tabs,
-				_activeTab - _firstVisibleTab, (g_gui.useRTL() && _useRTL));
+				_activeTab - _firstVisibleTab, (g_gui.useRTL() && _useRTL), _alignV);
 }
 
 void TabWidget::draw() {
@@ -422,22 +439,25 @@ bool TabWidget::containsWidget(Widget *w) const {
 
 
 Widget *TabWidget::findWidget(int x, int y) {
-	if (y < _tabHeight) {
-		if (_navButtonsVisible) {
-			if (y >= _butTP && y < _butTP + _butH) {
-				if (x >= _w - _butRP - _butW * 2 - 2 && x < _w - _butRP - _butW - 2)
-					return _navLeft;
-				if (x >= _w - _butRP - _butW &&  x < _w - _butRP)
+	if ((_alignV == ThemeEngine::kTextAlignVBottom && y < _h - _tabHeight) ||
+		(_alignV == ThemeEngine::kTextAlignVTop && y >= _tabHeight)) {
+		// Iterate over all child widgets and find the one which was clicked
+		return Widget::findWidgetInChain(_firstWidget, x, y - _tabHeight);
+	}
+
+	if (_navButtonsVisible) {
+		if ((_alignV == ThemeEngine::kTextAlignVTop && y >= _butTP && y < _butTP + _butH) ||
+			(_alignV == ThemeEngine::kTextAlignVBottom && y >= _h - _butH - _butTP + _tabHeight && y < _h + _tabHeight)) {
+			if (x >= _w - _butRP - _butW * 2 - 2 && x < _w - _butRP - _butW - 2)
+				return _navLeft;
+
+			if (x >= _w - _butRP - _butW &&  x < _w - _butRP)
 					return _navRight;
 			}
 		}
 
-		// Click was in the tab area
-		return this;
-	} else {
-		// Iterate over all child widgets and find the one which was clicked
-		return Widget::findWidgetInChain(_firstWidget, x, y - _tabHeight);
-	}
+	// Click was in the tab area
+	return this;
 }
 
 void TabWidget::computeLastVisibleTab(bool adjustFirstIfRoom) {

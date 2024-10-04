@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -73,6 +72,7 @@ public:
 
 	void setMouseClick(uint8 button);
 	void setKbdChar(uint8 c);
+	void setAction(uint8 a);
 
 	void setBitFlag(int bitnum, bool value);
 	bool getBitFlag(int bitnum);
@@ -95,6 +95,7 @@ private:
 
 	// Save names
 	Common::String _saveNames[MAX_SAVES];
+	bool _wantAutosave;
 
 	// Code
 	byte *_code;
@@ -118,8 +119,8 @@ private:
 	uint8 _eventMouseClicked;
 	uint8 _kbdChar;
 	uint8 _eventKbdChar;
+	uint8 _eventAction;
 	uint16 _inputLoopAddress;
-	int16 _inputAction;
 	uint8 _newCursorStyle;
 	uint16 _hotspotTopAction;
 	uint16 _hotspotTopCursor;
@@ -128,6 +129,8 @@ private:
 	uint16 _hotspotRightAction;
 	uint16 _hotspotLeftAction;
 	uint16 _hotspotSlot;
+	bool _fastForwarding;
+	void resetFastForward();
 
 	// Video
 	Common::SeekableReadStream *_videoFile;
@@ -155,11 +158,12 @@ private:
 	uint8 readScriptVar();
 	uint32 getVideoRefString(Common::String &resName);
 
+	void executeInputAction(uint16 address);
 	bool hotspot(Common::Rect rect, uint16 addr, uint8 cursor);
 
 	void loadgame(uint slot);
 	bool preview_loadgame(uint slot);
-	void savegame(uint slot);
+	void savegame(uint slot, const char name[27]);
 	bool playvideofromref(uint32 fileref, bool loopUntilAudioDone = false);
 	bool playBackgroundSound(uint32 fileref, uint32 loops);
 	void printString(Graphics::Surface *surface, const char *str);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,8 +29,9 @@
 #define AGS_ENGINE_GFX_GRAPHICS_DRIVER_H
 
 //#include "math/matrix.h"
-#include "ags/lib/std/memory.h"
+#include "common/std/memory.h"
 #include "ags/lib/allegro.h" // RGB, PALETTE
+#include "ags/shared/gfx/gfx_def.h"
 #include "ags/engine/gfx/gfx_defines.h"
 #include "ags/engine/gfx/gfx_mode_list.h"
 #include "ags/shared/util/geometry.h"
@@ -57,27 +57,27 @@ enum TintMethod {
 	TintSpecifyMaximum = 1
 };
 
-enum VideoSkipType {
-	VideoSkipNone = 0,
-	VideoSkipEscape = 1,
-	VideoSkipAnyKey = 2,
-	VideoSkipKeyOrMouse = 3
+struct SpriteColorTransform {
+	int Alpha = 255; // alpha color value (0 - 255)
+
+	SpriteColorTransform() = default;
+	SpriteColorTransform(int alpha) : Alpha(alpha) {
+	}
 };
 
 // Sprite transformation
 // TODO: combine with stretch parameters in the IDriverDependantBitmap?
 struct SpriteTransform {
 	// Translate
-	int X, Y;
-	float ScaleX, ScaleY;
-	float Rotate; // angle, in radians
+	int X = 0, Y = 0;
+	float ScaleX = 1.f, ScaleY = 1.f;
+	float Rotate = 0.f; // angle, in radians
+	SpriteColorTransform Color;
 
-	SpriteTransform()
-		: X(0), Y(0), ScaleX(1.f), ScaleY(1.f), Rotate(0.f) {
-	}
-
-	SpriteTransform(int x, int y, float scalex = 1.0f, float scaley = 1.0f, float rotate = 0.0f)
-		: X(x), Y(y), ScaleX(scalex), ScaleY(scaley), Rotate(rotate) {
+	SpriteTransform() = default;
+	SpriteTransform(int x, int y, float scalex = 1.0f, float scaley = 1.0f, float rotate = 0.0f,
+		SpriteColorTransform color = SpriteColorTransform())
+		: X(x), Y(y), ScaleX(scalex), ScaleY(scaley), Rotate(rotate), Color(color) {
 	}
 };
 
@@ -92,17 +92,19 @@ struct RenderMatrixes {
 
 
 typedef void (*GFXDRV_CLIENTCALLBACK)();
-typedef bool (*GFXDRV_CLIENTCALLBACKXY)(int x, int y);
+typedef bool (*GFXDRV_CLIENTCALLBACKEVT)(int evt, int data);
 typedef void (*GFXDRV_CLIENTCALLBACKINITGFX)(void *data);
 
 class IGraphicsDriver {
 public:
-	virtual const char *GetDriverName() = 0;
+	// Gets graphic driver's identifier
 	virtual const char *GetDriverID() = 0;
+	// Gets graphic driver's "friendly name"
+	virtual const char *GetDriverName() = 0;
 	virtual void SetTintMethod(TintMethod method) = 0;
 	// Initialize given display mode
 	virtual bool SetDisplayMode(const DisplayMode &mode) = 0;
-	// Updates previously set display mode, accomodating to the new screen size
+	// Updates previously set display mode, accommodating to the new screen size
 	virtual void UpdateDeviceScreen(const Size &screen_size) = 0;
 	// Gets if a graphics mode was initialized
 	virtual bool IsModeSet() const = 0;
@@ -124,24 +126,44 @@ public:
 	// TODO: get rid of draw screen callback at some point when all fade functions are more or less grouped in one
 	virtual void SetCallbackToDrawScreen(GFXDRV_CLIENTCALLBACK callback, GFXDRV_CLIENTCALLBACK post_callback) = 0;
 	virtual void SetCallbackOnInit(GFXDRV_CLIENTCALLBACKINITGFX callback) = 0;
-	// The NullSprite callback is called in the main render loop when a
-	// null sprite is encountered. You can use this to hook into the rendering
-	// process.
-	virtual void SetCallbackForNullSprite(GFXDRV_CLIENTCALLBACKXY callback) = 0;
+	// The event callback is called in the main render loop when a
+	// event entry is encountered inside a sprite list.
+	// You can use this to hook into the rendering process.
+	virtual void SetCallbackOnSpriteEvt(GFXDRV_CLIENTCALLBACKEVT callback) = 0;
 	// Clears the screen rectangle. The coordinates are expected in the **native game resolution**.
 	virtual void ClearRectangle(int x1, int y1, int x2, int y2, RGB *colorToUse) = 0;
 	// Gets closest recommended bitmap format (currently - only color depth) for the given original format.
 	// Engine needs to have game bitmaps brought to the certain range of formats, easing conversion into the video bitmaps.
 	virtual int  GetCompatibleBitmapFormat(int color_depth) = 0;
+
+	// Creates a "raw" DDB, without pixel initialization
+	virtual IDriverDependantBitmap *CreateDDB(int width, int height, int color_depth, bool opaque = false) = 0;
+	// Creates DDB, initializes from the given bitmap.
 	virtual IDriverDependantBitmap *CreateDDBFromBitmap(Shared::Bitmap *bitmap, bool hasAlpha, bool opaque = false) = 0;
+	// Creates DDB intended to be used as a render target (allow render other DDBs on it).
+	virtual IDriverDependantBitmap *CreateRenderTargetDDB(int width, int height, int color_depth, bool opaque = false) = 0;
+	// Updates DBB using the given bitmap; bitmap must have same size and format
+	// as the one that this DDB was initialized with.
 	virtual void UpdateDDBFromBitmap(IDriverDependantBitmap *bitmapToUpdate, Shared::Bitmap *bitmap, bool hasAlpha) = 0;
+	// Destroy the DDB.
 	virtual void DestroyDDB(IDriverDependantBitmap *bitmap) = 0;
+
+	// Get shared texture from cache, or create from bitmap and assign ID
+	virtual IDriverDependantBitmap *GetSharedDDB(uint32_t sprite_id,
+		Shared::Bitmap *bitmap = nullptr, bool hasAlpha = true, bool opaque = false) = 0;
+	virtual void UpdateSharedDDB(uint32_t sprite_id, Shared::Bitmap *bitmap = nullptr, bool hasAlpha = true, bool opaque = false) = 0;
+	// Removes the shared texture reference, will force the texture to recreate next time
+	virtual void ClearSharedDDB(uint32_t sprite_id) = 0;
 
 	// Prepares next sprite batch, a list of sprites with defined viewport and optional
 	// global model transformation; all subsequent calls to DrawSprite will be adding
 	// sprites to this batch's list.
-	virtual void BeginSpriteBatch(const Rect &viewport, const SpriteTransform &transform,
-	                              const Point offset = Point(), GlobalFlipType flip = kFlip_None, PBitmap surface = nullptr) = 0;
+	// Beginning a batch while the previous was not ended will create a sub-batch
+	// (think of it as of a child scene node).
+	virtual void BeginSpriteBatch(const Rect &viewport, const SpriteTransform &transform = SpriteTransform(),
+		Shared::GraphicFlip flip = Shared::kFlip_None, PBitmap surface = nullptr) = 0;
+	// Ends current sprite batch
+	virtual void EndSpriteBatch() = 0;
 	// Adds sprite to the active batch
 	virtual void DrawSprite(int x, int y, IDriverDependantBitmap *bitmap) = 0;
 	// Adds fade overlay fx to the active batch
@@ -149,6 +171,12 @@ public:
 	// Adds tint overlay fx to the active batch
 	// TODO: redesign this to allow various post-fx per sprite batch?
 	virtual void SetScreenTint(int red, int green, int blue) = 0;
+	// Sets stage screen parameters for the current batch.
+	// Currently includes size and optional position offset;
+	// the position is relative, as stage screens are using sprite batch transforms.
+	// Stage screens are used to let plugins do raw drawing during render callbacks.
+	// TODO: find a better term? note, it's used in several places around renderers.
+	virtual void SetStageScreen(const Size &sz, int x = 0, int y = 0) = 0;
 	// Clears all sprite batches, resets batch counter
 	virtual void ClearDrawLists() = 0;
 	virtual void RenderToBackBuffer() = 0;
@@ -156,13 +184,17 @@ public:
 	// Renders with additional final offset and flip
 	// TODO: leftover from old code, solely for software renderer; remove when
 	// software mode either discarded or scene node graph properly implemented.
-	virtual void Render(int xoff, int yoff, GlobalFlipType flip) = 0;
+	virtual void Render(int xoff, int yoff, Shared::GraphicFlip flip) = 0;
 	// Copies contents of the game screen into bitmap using simple blit or pixel copy.
 	// Bitmap must be of supported size and pixel format. If it's not the method will
 	// fail and optionally write wanted destination format into 'want_fmt' pointer.
 	virtual bool GetCopyOfScreenIntoBitmap(Shared::Bitmap *destination, bool at_native_res, GraphicResolution *want_fmt = nullptr) = 0;
-	virtual void EnableVsyncBeforeRender(bool enabled) = 0;
-	virtual void Vsync() = 0;
+	// Tells if the renderer supports toggling vsync after initializing the mode.
+	virtual bool DoesSupportVsyncToggle() = 0;
+	// Toggles vertical sync mode, if renderer supports one; returns the *new state*.
+	virtual bool SetVsync(bool enabled) = 0;
+	// Tells if the renderer currently has vsync enabled.
+	virtual bool GetVsync() const = 0;
 	// Enables or disables rendering mode that draws sprite list directly into
 	// the final resolution, as opposed to drawing to native-resolution buffer
 	// and scaling to final frame. The effect may be that sprites that are
@@ -191,7 +223,11 @@ public:
 	virtual void SetMemoryBackBuffer(Shared::Bitmap *backBuffer) = 0;
 	// Returns memory backbuffer for the current rendering stage (or base virtual screen if called outside of render pass).
 	// All renderers should support this.
-	virtual Shared::Bitmap *GetStageBackBuffer(bool mark_dirty) = 0;
+	virtual Shared::Bitmap *GetStageBackBuffer(bool mark_dirty = false) = 0;
+	// Sets custom backbuffer bitmap to render current render stage to.
+	// Passing NULL pointer will tell renderer to switch back to its original stage buffer.
+	// Note that only software renderer supports this.
+	virtual void SetStageBackBuffer(Shared::Bitmap *backBuffer) = 0;
 	// Retrieves 3 transform matrixes for the current rendering stage: world (model), view and projection.
 	// These matrixes will be filled in accordance to the renderer's compatible format;
 	// returns false if renderer does not use matrixes (not a 3D renderer).

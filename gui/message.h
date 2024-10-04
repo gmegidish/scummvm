@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,8 @@
 namespace GUI {
 
 class CommandSender;
+class StaticTextWidget;
+class ButtonWidget;
 
 enum {
 	kMessageOK = 0,
@@ -46,7 +47,8 @@ public:
 				  const Common::U32String &defaultButton = Common::U32String("OK"),
 				  const Common::U32String &altButton = Common::U32String(),
 				  Graphics::TextAlign alignment = Graphics::kTextAlignCenter,
-				  const char *url = nullptr);
+				  const char *url = nullptr,
+				  const Common::U32String &extraMessage = Common::U32String());
 	MessageDialog(const Common::String &message,
 				  const Common::String &defaultButton = "OK",
 				  const Common::String &altButton = Common::String(),
@@ -58,13 +60,23 @@ public:
 				  Graphics::TextAlign alignment = Graphics::kTextAlignCenter);
 
 	void handleCommand(CommandSender *sender, uint32 cmd, uint32 data) override;
+	void reflowLayout() override;
+
 private:
 	const char *_url;
 	void init(const Common::U32String &message,
 			  const Common::U32String &defaultButton,
 			  const Common::U32StringArray &altButtons,
 			  Graphics::TextAlign alignment,
-			  const char *url);
+			  const char *url,
+			  const Common::U32String &extraMessage);
+
+protected:
+	Common::U32String _message;
+	Graphics::TextAlign _alignment;
+	Common::Array<StaticTextWidget *> _lines;
+	Common::Array<ButtonWidget *> _buttons;
+	StaticTextWidget *_extraMessage;
 };
 
 /**
@@ -78,6 +90,28 @@ public:
 
 protected:
 	uint32 _timer;
+};
+
+/**
+ * Timed message dialog: displays a message with a countdown.
+ */
+class CountdownMessageDialog : public MessageDialog {
+public:
+	CountdownMessageDialog(const Common::U32String &message,
+				  uint32 duration,
+				  const Common::U32String &defaultButton = Common::U32String("OK"),
+				  const Common::U32String &altButton = Common::U32String(),
+				  Graphics::TextAlign alignment = Graphics::kTextAlignCenter,
+				  const Common::U32String &countdownMessage = Common::U32String(""));
+
+	void handleTickle() override;
+
+protected:
+	void updateCountdown();
+
+	uint32 _timer;
+	uint32 _startTime;
+	Common::U32String _countdownMessage;
 };
 
 /**

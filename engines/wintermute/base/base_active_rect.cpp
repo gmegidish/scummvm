@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,15 +39,14 @@ BaseActiveRect::BaseActiveRect(BaseGame *inGame) : BaseClass(inGame) {
 	_rect.setEmpty();
 	_owner = nullptr;
 	_frame = nullptr;
+#ifdef ENABLE_WME3D
+	_xmodel = nullptr;
+#endif
 	_region = nullptr;
 	_zoomX = 100;
 	_zoomY = 100;
 	_offsetX = _offsetY = 0;
 	clipRect();
-
-#ifdef ENABLE_WME3D
-	_modelX = nullptr;
-#endif
 }
 
 
@@ -60,14 +58,29 @@ BaseActiveRect::BaseActiveRect(BaseGame *inGame, BaseObject *owner, BaseSubFrame
 	_zoomX = zoomX;
 	_zoomY = zoomY;
 	_precise = precise;
+#ifdef ENABLE_WME3D
+	_xmodel = nullptr;
+#endif
 	_region = nullptr;
 	_offsetX = _offsetY = 0;
 	clipRect();
-
-#ifdef ENABLE_WME3D
-	_modelX = nullptr;
-#endif
 }
+
+//////////////////////////////////////////////////////////////////////
+#ifdef ENABLE_WME3D
+BaseActiveRect::BaseActiveRect(BaseGame *inGame, BaseObject *owner, XModel *model, int x, int y, int width, int height, bool precise) : BaseClass(inGame) {
+	_owner = owner;
+	_xmodel = model;
+	_rect.setRect(x, y, x + width, y + height);
+	_zoomX = 100;
+	_zoomY = 100;
+	_precise = precise;
+	_frame = nullptr;
+	_region = nullptr;
+	_offsetX = _offsetY = 0;
+	clipRect();
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////
 BaseActiveRect::BaseActiveRect(BaseGame *inGame, BaseObject *owner, BaseRegion *region, int offsetX, int offsetY) : BaseClass(inGame) {
@@ -79,31 +92,21 @@ BaseActiveRect::BaseActiveRect(BaseGame *inGame, BaseObject *owner, BaseRegion *
 	_zoomY = 100;
 	_precise = true;
 	_frame = nullptr;
+#ifdef ENABLE_WME3D
+	_xmodel = nullptr;
+#endif
 	clipRect();
 	_offsetX = offsetX;
 	_offsetY = offsetY;
-
-#ifdef ENABLE_WME3D
-	_modelX = nullptr;
-#endif
 }
-
-#ifdef ENABLE_WME3D
-BaseActiveRect::BaseActiveRect(BaseGame *inGame, BaseObject *owner, ModelX *model, int x, int y, int width, int height, bool precise)
-	: BaseClass(inGame) {
-	_frame = nullptr;
-	_region = nullptr;
-	_owner = owner;
-	_modelX = model;
-	_rect.setRect(x, y, x + width, y + height);
-	_precise = precise;
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////
 BaseActiveRect::~BaseActiveRect() {
 	_owner = nullptr;
 	_frame = nullptr;
+#ifdef ENABLE_WME3D
+	_xmodel = nullptr;
+#endif
 	_region = nullptr;
 }
 

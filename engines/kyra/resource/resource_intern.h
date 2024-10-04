@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,7 @@
 #include "common/hashmap.h"
 #include "common/str.h"
 #include "common/list.h"
+#include "common/macresman.h"
 #include "common/stream.h"
 
 namespace Kyra {
@@ -46,8 +46,8 @@ public:
 
 	PlainArchive(Common::ArchiveMemberPtr file);
 
-	void addFileEntry(const Common::String &name, const Entry entry);
-	Entry getFileEntry(const Common::String &name) const;
+	void addFileEntry(const Common::Path &name, const Entry entry);
+	Entry getFileEntry(const Common::Path &name) const;
 
 	// Common::Archive API implementation
 	bool hasFile(const Common::Path &path) const override;
@@ -55,7 +55,7 @@ public:
 	const Common::ArchiveMemberPtr getMember(const Common::Path &path) const override;
 	Common::SeekableReadStream *createReadStreamForMember(const Common::Path &path) const override;
 private:
-	typedef Common::HashMap<Common::String, Entry, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> FileMap;
+	typedef Common::HashMap<Common::Path, Entry, Common::Path::IgnoreCase_Hash, Common::Path::IgnoreCase_EqualTo> FileMap;
 
 	Common::ArchiveMemberPtr _file;
 	FileMap _files;
@@ -73,7 +73,7 @@ public:
 private:
 	Common::ArchiveMemberPtr _file;
 
-	const uint32 *findFile(const Common::String &name) const;
+	const uint32 *findFile(const Common::Path &path) const;
 
 	const uint16 _entryCount;
 	const uint32 *const _fileEntries;
@@ -82,7 +82,7 @@ private:
 class CachedArchive : public Common::Archive {
 public:
 	struct InputEntry {
-		Common::String name;
+		Common::Path name;
 
 		byte *data;
 		uint32 size;
@@ -103,7 +103,7 @@ private:
 		uint32 size;
 	};
 
-	typedef Common::HashMap<Common::String, Entry, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> FileMap;
+	typedef Common::HashMap<Common::Path, Entry, Common::Path::IgnoreCase_Hash, Common::Path::IgnoreCase_EqualTo> FileMap;
 	FileMap _files;
 };
 
@@ -111,57 +111,41 @@ private:
 class ResArchiveLoader {
 public:
 	virtual ~ResArchiveLoader() {}
-	virtual bool checkFilename(Common::String filename) const = 0;
+	virtual bool checkFilename(const Common::String &filename) const = 0;
 	virtual bool isLoadable(const Common::String &filename, Common::SeekableReadStream &stream) const = 0;
 	virtual Common::Archive *load(Common::ArchiveMemberPtr file, Common::SeekableReadStream &stream) const = 0;
 };
 
 class ResLoaderPak : public ResArchiveLoader {
 public:
-	bool checkFilename(Common::String filename) const override;
+	bool checkFilename(const Common::String &filename) const override;
 	bool isLoadable(const Common::String &filename, Common::SeekableReadStream &stream) const override;
 	Common::Archive *load(Common::ArchiveMemberPtr file, Common::SeekableReadStream &stream) const override;
 };
 
 class ResLoaderInsMalcolm : public ResArchiveLoader {
 public:
-	bool checkFilename(Common::String filename) const override;
+	bool checkFilename(const Common::String &filename) const override;
 	bool isLoadable(const Common::String &filename, Common::SeekableReadStream &stream) const override;
 	Common::Archive *load(Common::ArchiveMemberPtr file, Common::SeekableReadStream &stream) const override;
 };
 
 class ResLoaderTlk : public ResArchiveLoader {
 public:
-	bool checkFilename(Common::String filename) const override;
+	bool checkFilename(const Common::String &filename) const override;
 	bool isLoadable(const Common::String &filename, Common::SeekableReadStream &stream) const override;
 	Common::Archive *load(Common::ArchiveMemberPtr file, Common::SeekableReadStream &stream) const override;
 };
 
 class InstallerLoader {
 public:
-	static Common::Archive *load(Resource *owner, const Common::String &filename, const Common::String &extension, const uint8 offset);
+	static Common::Archive *load(Resource *owner, const Common::Path &filename, const Common::String &extension, const uint8 offset);
 };
 
-class EndianAwareStreamWrapper : public Common::SeekableReadStreamEndian {
+class StuffItLoader {
 public:
-	EndianAwareStreamWrapper(Common::SeekableReadStream *stream, bool bigEndian, bool disposeAfterUse = true) : Common::SeekableReadStreamEndian(bigEndian), Common::ReadStreamEndian(bigEndian), _stream(stream), _dispose(disposeAfterUse) {}
-	~EndianAwareStreamWrapper() override { if (_dispose) delete _stream; }
-
-	// Common::Stream interface
-	bool err() const override { return _stream->err(); }
-
-	// Common::ReadStream interface
-	bool eos() const override { return _stream->eos(); }
-	uint32 read(void *dataPtr, uint32 dataSize) override { return _stream->read(dataPtr, dataSize); }
-
-	// Common::SeekableReadStream interface
-	int64 pos() const override { return _stream->pos(); }
-	int64 size() const override { return _stream->size(); }
-	bool seek(int64 offset, int whence = SEEK_SET) override { return _stream->seek(offset, whence); }
-
-private:
-	Common::SeekableReadStream *_stream;
-	bool _dispose;
+	static Common::Archive *load(Resource *owner, const Common::Path &filename);
+	static Common::Archive *load(Resource *owner, Common::SeekableReadStream *stream, const Common::String &debugName);
 };
 
 } // End of namespace Kyra

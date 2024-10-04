@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 #include "backends/networking/curl/connectionmanager.h"
 #include "backends/networking/curl/curljsonrequest.h"
 #include "backends/networking/curl/networkreadstream.h"
-#include "common/json.h"
+#include "common/formats/json.h"
 
 namespace Cloud {
 namespace Box {
@@ -36,7 +35,7 @@ namespace Box {
 #define BOX_LIST_DIRECTORY_LIMIT 1000
 #define BOX_FOLDERS_API_LINK "https://api.box.com/2.0/folders/%s/items?offset=%u&limit=%u&fields=%s"
 
-BoxListDirectoryByIdRequest::BoxListDirectoryByIdRequest(BoxStorage *storage, Common::String id, Storage::ListDirectoryCallback cb, Networking::ErrorCallback ecb):
+BoxListDirectoryByIdRequest::BoxListDirectoryByIdRequest(BoxStorage *storage, const Common::String &id, Storage::ListDirectoryCallback cb, Networking::ErrorCallback ecb):
 	Networking::Request(nullptr, ecb), _requestedId(id), _storage(storage), _listDirectoryCallback(cb),
 	_workingRequest(nullptr), _ignoreCallback(false) {
 	start();
@@ -66,14 +65,14 @@ void BoxListDirectoryByIdRequest::makeRequest(uint32 offset) {
 		"id,type,name,size,modified_at"
 	);
 
-	Networking::JsonCallback callback = new Common::Callback<BoxListDirectoryByIdRequest, Networking::JsonResponse>(this, &BoxListDirectoryByIdRequest::responseCallback);
-	Networking::ErrorCallback failureCallback = new Common::Callback<BoxListDirectoryByIdRequest, Networking::ErrorResponse>(this, &BoxListDirectoryByIdRequest::errorCallback);
+	Networking::JsonCallback callback = new Common::Callback<BoxListDirectoryByIdRequest, const Networking::JsonResponse &>(this, &BoxListDirectoryByIdRequest::responseCallback);
+	Networking::ErrorCallback failureCallback = new Common::Callback<BoxListDirectoryByIdRequest, const Networking::ErrorResponse &>(this, &BoxListDirectoryByIdRequest::errorCallback);
 	Networking::CurlJsonRequest *request = new BoxTokenRefresher(_storage, callback, failureCallback, url.c_str());
 	request->addHeader("Authorization: Bearer " + _storage->accessToken());
 	_workingRequest = ConnMan.addRequest(request);
 }
 
-void BoxListDirectoryByIdRequest::responseCallback(Networking::JsonResponse response) {
+void BoxListDirectoryByIdRequest::responseCallback(const Networking::JsonResponse &response) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback) {
 		delete response.value;
@@ -84,11 +83,11 @@ void BoxListDirectoryByIdRequest::responseCallback(Networking::JsonResponse resp
 		_date = response.request->date();
 
 	Networking::ErrorResponse error(this, "BoxListDirectoryByIdRequest::responseCallback: unknown error");
-	Networking::CurlJsonRequest *rq = (Networking::CurlJsonRequest *)response.request;
+	const Networking::CurlJsonRequest *rq = (const Networking::CurlJsonRequest *)response.request;
 	if (rq && rq->getNetworkReadStream())
 		error.httpResponseCode = rq->getNetworkReadStream()->httpResponseCode();
 
-	Common::JSONValue *json = response.value;
+	const Common::JSONValue *json = response.value;
 	if (json == nullptr) {
 		error.response = "Failed to parse JSON, null passed!";
 		finishError(error);
@@ -173,7 +172,7 @@ void BoxListDirectoryByIdRequest::responseCallback(Networking::JsonResponse resp
 	delete json;
 }
 
-void BoxListDirectoryByIdRequest::errorCallback(Networking::ErrorResponse error) {
+void BoxListDirectoryByIdRequest::errorCallback(const Networking::ErrorResponse &error) {
 	_workingRequest = nullptr;
 	if (_ignoreCallback) return;
 	if (error.request) _date = error.request->date();

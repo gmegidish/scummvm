@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,6 +35,8 @@
 #include "hdb/sound.h"
 #include "hdb/mpc.h"
 #include "hdb/window.h"
+
+#include "audio/mididrv.h"
 
 #define CHEAT_PATCHES 0
 
@@ -111,7 +112,7 @@ HDBGame::HDBGame(OSystem *syst, const ADGameDescription *gameDesc) : Engine(syst
 	_loadInfo.active = false;
 	_loadInfo.slot = 0;
 
-	syncSoundSettings();
+	_noMusicDriver = false;
 }
 
 HDBGame::~HDBGame() {
@@ -141,6 +142,16 @@ HDBGame::~HDBGame() {
 }
 
 bool HDBGame::init() {
+	// Assign default values to the ScummVM configuration manager, in case settings are missing
+	ConfMan.registerDefault(CONFIG_MUSICVOL, 192);
+	ConfMan.registerDefault(CONFIG_SFXVOL, 192);
+	ConfMan.registerDefault(CONFIG_SPEECHVOL, 192);
+	ConfMan.registerDefault(CONFIG_MUTEALL, "false");
+	ConfMan.registerDefault(CONFIG_NOSPEECH, "false");
+	ConfMan.registerDefault(CONFIG_CHEAT, "false");
+	// Menu::readConfig() takes care of the default values for:
+	// CONFIG_MSTONE7, CONFIG_MSTONE14, CONFIG_MSTONE21
+
 	/*
 		Game Subsystem Initializations
 	*/
@@ -167,6 +178,11 @@ bool HDBGame::init() {
 	_input->init();
 	_lua->init();
 	_menu->init();
+
+	// Query the selected music device (defaults to MT_AUTO device).
+	MidiDriver::DeviceHandle dev = MidiDriver::getDeviceHandle(ConfMan.hasKey("music_driver") ? ConfMan.get("music_driver") : Common::String("auto"));
+	_noMusicDriver = (MidiDriver::getMusicType(dev) == MT_NULL || MidiDriver::getMusicType(dev) == MT_INVALID);
+	syncSoundSettings();
 
 	_debugLogo = _gfx->loadIcon("icon_debug_logo");
 	_progressGfx = _gfx->loadPic(PIC_LOADBAR);
@@ -582,7 +598,7 @@ void HDBGame::useEntity(AIEntity *e) {
 			e = &temp;
 
 			if (temp.aiUse)
-				temp.aiUse(&temp);
+				temp.aiUse(&temp, 0, 0);
 
 			if (temp.luaFuncUse[0])
 				_lua->callFunction(temp.luaFuncUse, 0);
@@ -593,7 +609,7 @@ void HDBGame::useEntity(AIEntity *e) {
 			return;
 
 		if (e->aiUse)
-			e->aiUse(e);
+			e->aiUse(e, 0, 0);
 
 		if (e->luaFuncUse[0])
 			_lua->callFunction(e->luaFuncUse, 0);
@@ -1076,6 +1092,37 @@ Common::Error HDBGame::run() {
 	}
 
 	return Common::kNoError;
+}
+
+void HDBGame::syncSoundSettings() {
+	Engine::syncSoundSettings();
+
+	_mixer->setVolumeForSoundType(_mixer->kMusicSoundType, ConfMan.getInt(CONFIG_MUSICVOL));
+	_mixer->setVolumeForSoundType(_mixer->kSFXSoundType, ConfMan.getInt(CONFIG_SFXVOL));
+	_mixer->setVolumeForSoundType(_mixer->kSpeechSoundType, ConfMan.getInt(CONFIG_SPEECHVOL));
+
+	if (_noMusicDriver) {
+		// This affects *only* the music muting.
+		_mixer->muteSoundType(_mixer->kMusicSoundType, true);
+	}
+
+	bool allSoundIsMuted = false;
+	if (ConfMan.hasKey(CONFIG_MUTEALL)) {
+		allSoundIsMuted = ConfMan.getBool(CONFIG_MUTEALL);
+		if (!_noMusicDriver) {
+			_mixer->muteSoundType(_mixer->kMusicSoundType, allSoundIsMuted);
+		}
+		_mixer->muteSoundType(_mixer->kSFXSoundType, allSoundIsMuted);
+		_mixer->muteSoundType(_mixer->kSpeechSoundType, allSoundIsMuted);
+	}
+
+	if (ConfMan.hasKey(CONFIG_NOSPEECH) && !allSoundIsMuted) {
+		_mixer->muteSoundType(_mixer->kSpeechSoundType, ConfMan.getBool(CONFIG_NOSPEECH));
+		_sound->setVoiceStatus(!ConfMan.getBool(CONFIG_NOSPEECH));
+	}
+
+	// write-back to ini file for persistence
+	ConfMan.flushToDisk();
 }
 
 } // End of namespace HDB

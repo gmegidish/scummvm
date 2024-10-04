@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,7 @@
 #include "ultima/ultima8/world/actors/combat_process.h"
 #include "ultima/ultima8/world/actors/auto_firer_process.h"
 #include "ultima/ultima8/world/sprite_process.h"
-#include "ultima/ultima8/graphics/palette_fader_process.h"
+#include "ultima/ultima8/gfx/palette_fader_process.h"
 #include "ultima/ultima8/world/create_item_process.h"
 #include "ultima/ultima8/world/destroy_item_process.h"
 #include "ultima/ultima8/kernel/delay_process.h"
@@ -70,10 +69,8 @@ ActorAnimProcess::ActorAnimProcess(Actor *actor, Animation::Sequence action,
 	_type = ACTOR_ANIM_PROC_TYPE;
 #ifdef WATCHACTOR
 	if (_itemNum == watchactor)
-		pout << "Animation [" << Kernel::get_instance()->getFrameNum()
-			 << "] ActorAnimProcess created (" << _itemNum << ","
-			 << _action << "," << _dir << ") steps " << _steps
-			 << Std::endl;
+		debugC(kDebugActor, "Animation [%u] ActorAnimProcess created (%u, %d, %d) steps %u",
+			  Kernel::get_instance()->getFrameNum(), _itemNum, _action, _dir, _steps);
 #endif
 }
 
@@ -96,9 +93,8 @@ bool ActorAnimProcess::init() {
 
 #ifdef WATCHACTOR
 	if (_itemNum == watchactor)
-		pout << "Animation [" << Kernel::get_instance()->getFrameNum()
-			 << "] ActorAnimProcess " << getPid() << " init failed "
-			 << "(actor " << _itemNum << "not fast)" << Std::endl;
+		debugC(kDebugActor, "Animation [%u] ActorAnimProcess %u init failed (actor %u not fast)",
+			  Kernel::get_instance()->getFrameNum(), getPid(), _itemNum);
 #endif
 
 		return false;
@@ -109,9 +105,8 @@ bool ActorAnimProcess::init() {
 		//! don't do this animation or kill the previous one?
 		//! Or maybe wait until the previous one finishes?
 
-		perr << "ActorAnimProcess [" << getPid() << "]: ANIMLOCK set on actor "
-		     << _itemNum << ", skipping anim (" << _action << "," << _dir << ")"
-			 << Std::endl;
+		warning("ActorAnimProcess [%u]: ANIMLOCK set on actor %u, skipping anim (%d, %d)",
+			getPid(), _itemNum, _action, _dir);
 
 		// for now, just don't play this one.
 		return false;
@@ -124,9 +119,8 @@ bool ActorAnimProcess::init() {
 
 #ifdef WATCHACTOR
 	if (_itemNum == watchactor)
-		pout << "Animation [" << Kernel::get_instance()->getFrameNum()
-			 << "] ActorAnimProcess " << getPid() << " init failed "
-			 << "(tracker init failed)" << Std::endl;
+		debugC(kDebugActor, "Animation [%u] ActorAnimProcess %u init failed (tracker not fast)",
+			  Kernel::get_instance()->getFrameNum(), getPid());
 #endif
 
 		return false;
@@ -140,10 +134,8 @@ bool ActorAnimProcess::init() {
 
 #ifdef WATCHACTOR
 	if (_itemNum == watchactor)
-		pout << "Animation [" << Kernel::get_instance()->getFrameNum()
-		     << "] ActorAnimProcess " << getPid() << " initalized ("
-			 << _itemNum << "," << _action << "," << _dir << ") steps "
-			 << _steps << Std::endl;
+		debugC(kDebugActor, "Animation [%u] ActorAnimProcess %u initalized (%u, %d, %d) steps %d",
+			  Kernel::get_instance()->getFrameNum(), getPid(), _itemNum, _action, _dir, _steps);
 #endif
 
 	return true;
@@ -191,10 +183,8 @@ void ActorAnimProcess::run() {
 		//  AnimationTracker is done.)
 #ifdef WATCHACTOR
 		if (_itemNum == watchactor)
-			pout << "Animation ["
-			     << Kernel::get_instance()->getFrameNum()
-			     << "] ActorAnimProcess left fastarea; terminating"
-			     << Std::endl;
+			debugC(kDebugActor, "Animation [%u] ActorAnimProcess left fastarea; terminating",
+				  Kernel::get_instance()->getFrameNum());
 #endif
 		terminate();
 		return;
@@ -203,9 +193,8 @@ void ActorAnimProcess::run() {
 	bool resultVal = true;
 	if (_repeatCounter == 0) {
 		// next step:
-		int32 x, y, z;
-		a->getLocation(x, y, z);
-		resultVal = _tracker->stepFrom(x, y, z);
+		Point3 pt = a->getLocation();
+		resultVal = _tracker->stepFrom(pt);
 		_tracker->updateActorFlags();
 		_currentStep++;
 
@@ -216,19 +205,16 @@ void ActorAnimProcess::run() {
 				// all done
 #ifdef WATCHACTOR
 				if (_itemNum == watchactor)
-					pout << "Animation ["
-					     << Kernel::get_instance()->getFrameNum()
-					     << "] ActorAnimProcess done; terminating"
-					     << Std::endl;
+					debugC(kDebugActor, "Animation [%u] ActorAnimProcess done; terminating",
+						  Kernel::get_instance()->getFrameNum());
 #endif
 
 				// TODO: there are _three_ places where we can fall; clean up
-				if (_tracker->isUnsupported()) {
+				if (_tracker->isUnsupported() && pt.z > 0) {
 #ifdef WATCHACTOR
 					if (_itemNum == watchactor) {
-						pout << "Animation ["
-						     << Kernel::get_instance()->getFrameNum()
-						     << "] falling at end" << Std::endl;
+						debugC(kDebugActor, "Animation [%u] ActorAnimProcess falling at end",
+							  Kernel::get_instance()->getFrameNum());
 					}
 #endif
 					int32 dx, dy, dz;
@@ -248,18 +234,15 @@ void ActorAnimProcess::run() {
 
 #ifdef WATCHACTOR
 				if (_itemNum == watchactor)
-					pout << "Animation ["
-					     << Kernel::get_instance()->getFrameNum()
-					     << "] ActorAnimProcess blocked; terminating"
-					     << Std::endl;
+					debugC(kDebugActor, "Animation [%u] ActorAnimProcess blocked; terminating",
+						  Kernel::get_instance()->getFrameNum());
 #endif
 
-				if (_tracker->isUnsupported()) {
+				if (_tracker->isUnsupported() && pt.z > 0) {
 #ifdef WATCHACTOR
 					if (_itemNum == watchactor) {
-						pout << "Animation ["
-						     << Kernel::get_instance()->getFrameNum()
-						     << "] falling from blocked" << Std::endl;
+						debugC(kDebugActor, "Animation [%u] ActorAnimProcess falling from blocked",
+							  Kernel::get_instance()->getFrameNum());
 					}
 #endif
 					// no inertia here because we just crashed into something
@@ -305,34 +288,32 @@ void ActorAnimProcess::run() {
 		}
 	}
 
-	int32 x, y, z, x2, y2, z2;
-	a->getLocation(x, y, z);
+	Point3 pt = a->getLocation();
+	Point3 pt2;
 
 	if (_interpolate) {
 		// Apply interpolated position on repeated frames
-		_tracker->getInterpolatedPosition(x2, y2, z2, _repeatCounter);
-		if (x == x2 && y == y2 && z == z2) {
-			_tracker->getInterpolatedPosition(x, y, z, _repeatCounter + 1);
-			a->collideMove(x, y, z, false, true); // forced move
+		pt2 = _tracker->getInterpolatedPosition(_repeatCounter);
+		if (pt == pt2) {
+			pt = _tracker->getInterpolatedPosition(_repeatCounter + 1);
+			a->collideMove(pt.x, pt.y, pt.z, false, true); // forced move
 			a->setFrame(_tracker->getFrame());
 #ifdef WATCHACTOR
 		} else {
 			if (_itemNum == watchactor) {
-				pout << "Animation [" << Kernel::get_instance()->getFrameNum()
-					 << "] moved, so aborting this frame." << Std::endl;
+				debugC(kDebugActor, "Animation [%u] ActorAnimProcess moved, so aborting this frame.",
+						Kernel::get_instance()->getFrameNum());
 			}
 #endif // WATCHACTOR
 		}
 	} else {
 		// Just move the whole distance on frame 0 of the repeat.
 		if (_repeatCounter == 0) {
-			_tracker->getPosition(x2, y2, z2);
-			a->collideMove(x2, y2, z2, false, true); // forced move
+			pt2 = _tracker->getPosition();
+			a->collideMove(pt2.x, pt2.y, pt2.z, false, true); // forced move
 			a->setFrame(_tracker->getFrame());
 		} else {
-			x2 = x;
-			y2 = y;
-			z2 = z;
+			pt2 = pt;
 		}
 	}
 
@@ -340,10 +321,8 @@ void ActorAnimProcess::run() {
 	if (!a->hasFlags(Item::FLG_FASTAREA)) {
 #ifdef WATCHACTOR
 		if (_itemNum == watchactor)
-			pout << "Animation ["
-			     << Kernel::get_instance()->getFrameNum()
-			     << "] ActorAnimProcess left fastarea; terminating"
-			     << Std::endl;
+			debugC(kDebugActor, "Animation [%u] ActorAnimProcess left fastarea; terminating",
+				  Kernel::get_instance()->getFrameNum());
 #endif
 		terminate();
 		return;
@@ -351,32 +330,32 @@ void ActorAnimProcess::run() {
 
 #ifdef WATCHACTOR
 	if (_itemNum == watchactor) {
-		pout << "Animation [" << Kernel::get_instance()->getFrameNum()
-		     << "] showing frame (" << x << "," << y << "," << z << ")-("
-			 << x2 << "," << y2 << "," << z2 << ")"
-		     << " shp (" << a->getShape() << "," << _tracker->getFrame()
-		     << ") sfx " << _tracker->getAnimFrame()->_sfx
-		     << " rep " << _repeatCounter << ConsoleStream::hex
-			 << " flg " << _tracker->getAnimFrame()->_flags << " "
-			 << ConsoleStream::dec;
+		Common::String info;
+		if (_tracker->isDone())
+			info += "D";
+		if (_tracker->isBlocked())
+			info += "B";
+		if (_tracker->isUnsupported())
+			info += "U";
+		if (_tracker->hitSomething())
+			info += "H";
 
-		if (_tracker->isDone()) pout << "D";
-		if (_tracker->isBlocked()) pout << "B";
-		if (_tracker->isUnsupported()) pout << "U";
-		if (_tracker->hitSomething()) pout << "H";
-		pout << Std::endl;
+		debugC(kDebugActor, "Animation [%u] ActorAnimProcess showing frame (%d, %d, %d)-(%d, %d, %d) shp (%u, %u) sfx %d rep %d flg %04X %s",
+			  Kernel::get_instance()->getFrameNum(), pt.x, pt.y, pt.z, pt2.x, pt2.y, pt2.z,
+			  a->getShape(), _tracker->getFrame(), _tracker->getAnimFrame()->_sfx,
+			  _repeatCounter, _tracker->getAnimFrame()->_flags, info.c_str());
 	}
 #endif
 
 
 	if (_repeatCounter == _tracker->getAnimAction()->getFrameRepeat()) {
-		if (_tracker->isUnsupported()) {
+		if (_tracker->isUnsupported() && pt.z > 0) {
 			_animAborted = !_tracker->getAnimAction()->hasFlags(AnimAction::AAF_UNSTOPPABLE);
 
 #ifdef WATCHACTOR
 			if (_itemNum == watchactor) {
-				pout << "Animation [" << Kernel::get_instance()->getFrameNum()
-				     << "] falling from repeat" << Std::endl;
+				debugC(kDebugActor, "Animation [%u] ActorAnimProcess falling from repeat",
+					  Kernel::get_instance()->getFrameNum());
 			}
 #endif
 
@@ -406,11 +385,12 @@ void ActorAnimProcess::doSpecial() {
 	if (!GAME_IS_U8)
 		return;
 
+	Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
 	// play SFX when Avatar draws/sheathes weapon
-	if (_itemNum == 1 && (_action == Animation::readyWeapon ||
-	                      _action == Animation::unreadyWeapon) &&
-	        a->getEquip(ShapeInfo::SE_WEAPON) != 0) {
-		int sfx = (getRandom() % 2) ? 0x51 : 0x52; // constants!
+	if (_itemNum == kMainActorId &&
+			(_action == Animation::readyWeapon || _action == Animation::unreadyWeapon) &&
+			a->getEquip(ShapeInfo::SE_WEAPON) != 0) {
+		int sfx = rs.getRandomBit() ? 0x51 : 0x52; // constants!
 		AudioProcess *audioproc = AudioProcess::get_instance();
 		if (audioproc) audioproc->playSFX(sfx, 0x60, 1, 0);
 		return;
@@ -427,29 +407,27 @@ void ActorAnimProcess::doSpecial() {
 			Actor *skull = Actor::createActor(0x19d, 0);
 			if (!skull) return;
 			skull->setFlag(Item::FLG_FAST_ONLY);
-			int32 x, y, z;
-			a->getLocation(x, y, z);
+			Point3 pt = a->getLocation();
 			Direction dirNum = a->getDir();
-			skull->move(x + 32 * Direction_XFactor(dirNum), y + 32 * Direction_XFactor(dirNum), z);
+			skull->move(pt.x + 32 * Direction_XFactor(dirNum), pt.y + 32 * Direction_XFactor(dirNum), pt.z);
 			hostile = skull;
 		} else if (a->getMapNum() != 54) { // Khumash-Gor doesn't summon ghouls
 			// otherwise, summon ghoul
 			unsigned int ghoulcount = a->countNearby(0x8e, 8 * 256);
 			if (ghoulcount > 2) return;
 
-			int32 x, y, z;
-			a->getLocation(x, y, z);
-			x += (getRandom() % (6 * 256)) - 3 * 256;
-			y += (getRandom() % (6 * 256)) - 3 * 256;
+			Point3 pt = a->getLocation();
+			pt.x += rs.getRandomNumberRngSigned(-3 * 256, 3 * 256);
+			pt.y += rs.getRandomNumberRngSigned(-3 * 256, 3 * 256);
 
 			Actor *ghoul = Actor::createActor(0x8e, 0);
 			if (!ghoul) return;
 			ghoul->setFlag(Item::FLG_FAST_ONLY);
-			if (!ghoul->canExistAt(x, y, z, true)) {
+			if (!ghoul->canExistAt(pt, true)) {
 				ghoul->destroy();
 				return;
 			}
-			ghoul->move(x, y, z);
+			ghoul->move(pt);
 			ghoul->doAnim(Animation::standUp, dir_north);
 			hostile = ghoul;
 		}
@@ -478,57 +456,58 @@ void ActorAnimProcess::doSpecial() {
 
 	// play PC/NPC footsteps
 	bool playavfootsteps = ConfMan.getBool("footsteps");
-	if (_itemNum != 1 || playavfootsteps) {
-		UCList itemlist(2);
-		LOOPSCRIPT(script, LS_TOKEN_TRUE);
+	if (_itemNum != kMainActorId || playavfootsteps) {
+		int32 xd, yd, zd;
+		Point3 pt = a->getLocation();
+		a->getFootpadWorld(xd, yd, zd);
+		Box start(pt.x, pt.y, pt.z, xd, yd, zd);
+
+		pt = _tracker->getPosition();
+		Box target(pt.x, pt.y, pt.z, xd, yd, zd);
+
 		CurrentMap *cm = World::get_instance()->getCurrentMap();
+		PositionInfo info = cm->getPositionInfo(target, start, a->getShapeInfo()->_flags, _itemNum);
+		if (info.supported && info.land) {
+			uint32 floor = info.land->getShape();
+			bool running = (_action == Animation::run);
+			bool splash = false;
+			int sfx = 0;
+			switch (floor) { // lots of constants!!
+			case 0x03:
+			case 0x04:
+			case 0x09:
+			case 0x0B:
+			case 0x5C:
+			case 0x5E:
+				sfx = 0x2B;
+				break;
+			case 0x7E:
+			case 0x80:
+				sfx = 0xCD;
+				splash = true;
+				break;
+			case 0xA1:
+			case 0xA2:
+			case 0xA3:
+			case 0xA4:
+				sfx = (running ? 0x99 : 0x91);
+				break;
+			default:
+				sfx = (running ? 0x97 : 0x90);
+				break;
+			}
 
-		// find items directly below
-		cm->surfaceSearch(&itemlist, script, sizeof(script), a, false, true);
-		if (itemlist.getSize() == 0) return;
+			if (sfx) {
+				AudioProcess *audioproc = AudioProcess::get_instance();
+				if (audioproc)
+					audioproc->playSFX(sfx, 0x60, _itemNum, 0, false, 0x10000 + rs.getRandomNumber(0x1FFF) - 0x1000);
+			}
 
-		Item *f = getItem(itemlist.getuint16(0));
-		assert(f);
-
-		uint32 floor = f->getShape();
-		bool running = (_action == Animation::run);
-		bool splash = false;
-		int sfx = 0;
-		switch (floor) { // lots of constants!!
-		case 0x03:
-		case 0x04:
-		case 0x09:
-		case 0x0B:
-		case 0x5C:
-		case 0x5E:
-			sfx = 0x2B;
-			break;
-		case 0x7E:
-		case 0x80:
-			sfx = 0xCD;
-			splash = true;
-			break;
-		case 0xA1:
-		case 0xA2:
-		case 0xA3:
-		case 0xA4:
-			sfx = (running ? 0x99 : 0x91);
-			break;
-		default:
-			sfx = (running ? 0x97 : 0x90);
-			break;
-		}
-
-		if (sfx) {
-			AudioProcess *audioproc = AudioProcess::get_instance();
-			if (audioproc) audioproc->playSFX(sfx, 0x60, _itemNum, 0, false, 0x10000 + (getRandom() & 0x1FFF) - 0x1000);
-		}
-
-		if (splash) {
-			int32 x, y, z;
-			a->getLocation(x, y, z);
-			Process *sp = new SpriteProcess(475, 0, 7, 1, 1, x, y, z);
-			Kernel::get_instance()->addProcess(sp);
+			if (splash) {
+				pt = a->getLocation();
+				Process *sp = new SpriteProcess(475, 0, 7, 1, 1, pt.x, pt.y, pt.z);
+				Kernel::get_instance()->addProcess(sp);
+			}
 		}
 	}
 
@@ -547,7 +526,7 @@ void ActorAnimProcess::doFireWeaponCru(Actor *a, const AnimFrame *f) {
 	if (!wpninfo || !wpninfo->_weaponInfo)
 		return;
 
-	if (a->getObjId() == 1 && wpninfo->_weaponInfo->_damageType == 6) {
+	if (a->getObjId() == kMainActorId && wpninfo->_weaponInfo->_damageType == 6) {
 		Process *auto_firer = new AutoFirerProcess();
 		Kernel::get_instance()->addProcess(auto_firer);
 	}
@@ -579,12 +558,13 @@ void ActorAnimProcess::doHitSpecial(Item *hit) {
 
 		if (!weapon) return;
 
+		Common::RandomSource &rs = Ultima8Engine::get_instance()->getRandomSource();
 		uint32 weaponshape = weapon->getShape();
 
 		switch (weaponshape) {
 		case 0x32F: // magic hammer
 			if (audioproc) audioproc->playSFX(23, 0x60, 1, 0, false,
-				                                  0x10000 + (getRandom() & 0x1FFF) - 0x1000);
+				                                  0x10000 + rs.getRandomNumber(0x1FFF) - 0x1000);
 			break;
 		case 0x330: { // Slayer
 			// if we killed somebody, thunder&lightning
@@ -592,7 +572,7 @@ void ActorAnimProcess::doHitSpecial(Item *hit) {
 				// calling intrinsic...
 				PaletteFaderProcess::I_lightningBolt(0, 0);
 				int sfx;
-				switch (getRandom() % 3) {
+				switch (rs.getRandomNumber(2)) {
 				case 0:
 					sfx = 91;
 					break;
@@ -609,12 +589,12 @@ void ActorAnimProcess::doHitSpecial(Item *hit) {
 		}
 		case 0x331: { // Flame Sting
 			int sfx = 33;
-			if (getRandom() % 2 == 0) sfx = 101;
+			if (rs.getRandomBit())
+				sfx = 101;
 			if (audioproc) audioproc->playSFX(sfx, 0x60, 1, 0, false,
-				                                  0x10000 + (getRandom() & 0x1FFF) - 0x1000);
+				                                  0x10000 + rs.getRandomNumber(0x1FFF) - 0x1000);
 
-			int32 x, y, z;
-			a->getLocation(x, y, z);
+			Point3 pt = a->getLocation();
 			// 1: create flame sprite
 			// 2: create flame object
 			// 3: wait
@@ -623,9 +603,9 @@ void ActorAnimProcess::doHitSpecial(Item *hit) {
 			Kernel *kernel = Kernel::get_instance();
 
 			int32 fx, fy, fz;
-			fx = x + 96 * Direction_XFactor(_dir);
-			fy = y + 96 * Direction_YFactor(_dir);
-			fz = z;
+			fx = pt.x + 96 * Direction_XFactor(_dir);
+			fy = pt.y + 96 * Direction_YFactor(_dir);
+			fz = pt.z;
 
 			// CONSTANTS!! (lots of them)
 
@@ -640,7 +620,7 @@ void ActorAnimProcess::doHitSpecial(Item *hit) {
 			        0, 0, 0, fx, fy, fz);
 			ProcId cipid = kernel->addProcess(cip);
 
-			DelayProcess *dp2 = new DelayProcess(60 + (getRandom() % 60)); //2-4s
+			DelayProcess *dp2 = new DelayProcess(rs.getRandomNumberRng(60, 120)); //2-4s
 			ProcId dp2id = kernel->addProcess(dp2);
 
 			DestroyItemProcess *dip = new DestroyItemProcess(0);
@@ -669,10 +649,8 @@ void ActorAnimProcess::doHitSpecial(Item *hit) {
 void ActorAnimProcess::terminate() {
 #ifdef WATCHACTOR
 	if (_itemNum == watchactor)
-		pout << "Animation ["
-		     << Kernel::get_instance()->getFrameNum()
-		     << "] ActorAnimProcess " << getPid() << " terminating"
-		     << Std::endl;
+		debugC(kDebugActor, "Animation [%u] ActorAnimProcess %u terminating",
+			  Kernel::get_instance()->getFrameNum(), getPid());
 #endif
 
 	Actor *a = getActor(_itemNum);
@@ -683,10 +661,8 @@ void ActorAnimProcess::terminate() {
 				// destroy the actor
 #ifdef WATCHACTOR
 				if (_itemNum == watchactor)
-					pout << "Animation ["
-					     << Kernel::get_instance()->getFrameNum()
-					     << "] ActorAnimProcess destroying actor " << _itemNum
-					     << Std::endl;
+					debugC(kDebugActor, "Animation [%u] ActorAnimProcess destroying actor %u",
+						  Kernel::get_instance()->getFrameNum(), _itemNum);
 #endif
 				Process *vanishproc = new DestroyItemProcess(a);
 				Kernel::get_instance()->addProcess(vanishproc);
@@ -701,9 +677,9 @@ void ActorAnimProcess::terminate() {
 	Process::terminate();
 }
 
-void ActorAnimProcess::dumpInfo() const {
-	Process::dumpInfo();
-	pout << "_action: " << _action << ", _dir: " << _dir << Std::endl;
+Common::String ActorAnimProcess::dumpInfo() const {
+	return Process::dumpInfo() +
+		Common::String::format(", _action: %d, _dir: %d", _action, _dir);
 }
 
 void ActorAnimProcess::saveData(Common::WriteStream *ws) {

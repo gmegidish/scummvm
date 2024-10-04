@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
+#include "ultima/ultima.h"
+#include "ultima/ultima8/misc/debugger.h"
 
 #include "ultima/ultima8/world/missile_tracker.h"
 
@@ -32,26 +32,26 @@
 namespace Ultima {
 namespace Ultima8 {
 
-MissileTracker::MissileTracker(const Item *item, int32 sx, int32 sy, int32 sz,
+MissileTracker::MissileTracker(const Item *item, ObjId owner,
+							   int32 sx, int32 sy, int32 sz,
 							   int32 tx, int32 ty, int32 tz,
 							   int32 speed, int32 gravity) :
-		_destX(tx), _destY(ty), _destZ(tz), _gravity(gravity) {
+		_owner(owner), _destX(tx), _destY(ty), _destZ(tz), _gravity(gravity) {
 	_objId = item->getObjId();
 
 	init(sx, sy, sz, speed);
 }
 
-MissileTracker::MissileTracker(const Item *item, int32 tx, int32 ty, int32 tz,
+MissileTracker::MissileTracker(const Item *item, ObjId owner,
+							   int32 tx, int32 ty, int32 tz,
 							   int32 speed, int32 gravity) :
-		  _destX(tx), _destY(ty), _destZ(tz), _gravity(gravity)  {
+		_owner(owner), _destX(tx), _destY(ty), _destZ(tz), _gravity(gravity)  {
 	assert(item->getParent() == 0);
 
 	_objId = item->getObjId();
 
-	int32 x, y, z;
-	item->getLocation(x, y, z);
-
-	init(x, y, z, speed);
+	Point3 pt = item->getLocation();
+	init(pt.x, pt.y, pt.z, speed);
 }
 
 void MissileTracker::init(int32 x, int32 y, int32 z, int32 speed) {
@@ -101,11 +101,9 @@ void MissileTracker::init(int32 x, int32 y, int32 z, int32 speed) {
 		_speedX = ((_destX - x) + (_frames / 2)) / _frames;
 		_speedY = ((_destY - y) + (_frames / 2)) / _frames;
 
-#if 0
-		pout.printf("MissileTracker: from (%d,%d,%d) to (%d,%d,%d)\n", x, y, z, _destX, _destY, _destZ);
-		pout.printf("speed: %d, _gravity: %d, _frames: %d\n", speed, _gravity, _frames);
-		pout.printf("resulting speed: (%d,%d,%d)\n", _speedX, _speedY, _speedZ);
-#endif
+		debugC(kDebugCollision, "MissileTracker: from (%d,%d,%d) to (%d,%d,%d)", x, y, z, _destX, _destY, _destZ);
+		debugC(kDebugCollision, "speed: %d, _gravity: %d, _frames: %d", speed, _gravity, _frames);
+		debugC(kDebugCollision, "resulting speed: (%d,%d,%d)", _speedX, _speedY, _speedZ);
 	} else {
 
 		// no significant horizontal movement
@@ -121,8 +119,8 @@ MissileTracker::~MissileTracker() {
 }
 
 bool MissileTracker::isPathClear() const {
-	int32 start[3];
-	int32 end[3];
+	Point3 start;
+	Point3 end;
 	int32 dims[3];
 	int32 sx, sy, sz;
 
@@ -140,12 +138,12 @@ bool MissileTracker::isPathClear() const {
 	}
 
 	item->getFootpadWorld(dims[0], dims[1], dims[2]);
-	item->getLocation(start[0], start[1], start[2]);
+	start = item->getLocation();
 
 	for (int f = 0; f < _frames; ++f) {
-		end[0] = start[0] + sx;
-		end[1] = start[1] + sy;
-		end[2] = start[2] + sz;
+		end.x = start.x + sx;
+		end.y = start.y + sy;
+		end.z = start.z + sz;
 
 		// Do the sweep test
 		Std::list<CurrentMap::SweepItem> collisions;
@@ -155,7 +153,7 @@ bool MissileTracker::isPathClear() const {
 
 		int32 hit = 0x4000;
 		for (it = collisions.begin(); it != collisions.end(); it++) {
-			if (it->_blocking && !it->_touching) {
+			if (it->_blocking && !it->_touching && it->_item != _owner) {
 				hit = it->_hitTime;
 				break;
 			}
@@ -166,7 +164,7 @@ bool MissileTracker::isPathClear() const {
 		}
 
 		sz -= _gravity;
-		for (int i = 0; i < 3; ++i) start[i] = end[i];
+		start = end;
 	}
 
 	return true;

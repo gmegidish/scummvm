@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,7 +65,7 @@ void Sound::playEffectLooping(uint32 id, uint32 volume, uint16 heading, uint16 a
 }
 
 void Sound::playEffectFadeInOut(uint32 id, uint32 volume, uint16 heading, uint16 attenuation,
-		uint32 fadeInDuration, uint32 playDuration, uint32 fadeOutDuration) {
+	                        uint32 fadeInDuration, uint32 playDuration, uint32 fadeOutDuration) {
 
 	SoundChannel *channel = getChannelForSound(id, kEffect);
 	channel->play(id, fadeInDuration == 0 ? volume : 0, heading, attenuation, true, kEffect);
@@ -279,7 +278,7 @@ bool Sound::isPlaying(uint32 id) {
 }
 
 void Sound::setupNextSound(SoundNextCommand command, int16 controlVar, int16 startSoundId, int16 soundCount,
-		int32 soundMinDelay, int32 soundMaxDelay, int32 controlSoundId, int32 controlSoundMaxPosition) {
+	                   int32 soundMinDelay, int32 soundMaxDelay, int32 controlSoundId, int32 controlSoundMaxPosition) {
 
 	bool playSeveralSounds = _vm->_state->getSoundNextMultipleSounds();
 
@@ -390,7 +389,7 @@ SoundChannel::SoundChannel(Myst3Engine *vm) :
 		_playing(false),
 		_fading(false),
 		_id(0),
-		_stream(0),
+		_stream(nullptr),
 		_age(0),
 		_ambientFadeOutDelay(0),
 		_volume(0),
@@ -480,7 +479,7 @@ uint32 SoundChannel::adjustVolume(uint32 volume) {
 
 Audio::RewindableAudioStream *SoundChannel::makeAudioStream(const Common::String &name) const {
 	Common::String folder = Common::String(name.c_str(), 4);
-	Common::String filename = Common::String::format("M3Data/%s/%s", folder.c_str(), name.c_str());
+	Common::Path filename(Common::String::format("M3Data/%s/%s", folder.c_str(), name.c_str()));
 
 	Common::SeekableReadStream *s = SearchMan.createReadStreamForMember(filename);
 
@@ -488,26 +487,26 @@ Audio::RewindableAudioStream *SoundChannel::makeAudioStream(const Common::String
 	bool isWMA = false;
 
 	if (!s)
-		s = SearchMan.createReadStreamForMember(filename + ".wav");
+		s = SearchMan.createReadStreamForMember(filename.append(".wav"));
 
 	if (!s) {
-		s = SearchMan.createReadStreamForMember(filename + ".mp3");
+		s = SearchMan.createReadStreamForMember(filename.append(".mp3"));
 		if (s) isMP3 = true;
 	}
 
 	if (!s) {
-		s = SearchMan.createReadStreamForMember(filename + ".wma");
+		s = SearchMan.createReadStreamForMember(filename.append(".wma"));
 		if (s) isWMA = true;
 	}
 
 	if (!s)
-		error("Unable to open sound file '%s'", filename.c_str());
+		error("Unable to open sound file '%s'", filename.toString().c_str());
 
 	if (isMP3) {
 #ifdef USE_MAD
 		return Audio::makeMP3Stream(s, DisposeAfterUse::YES);
 #else
-		warning("Unable to play sound '%s', MP3 support is not compiled in.", filename.c_str());
+		warning("Unable to play sound '%s', MP3 support is not compiled in.", filename.toString().c_str());
 		delete s;
 		return NULL;
 #endif
@@ -555,7 +554,7 @@ void SoundChannel::stop() {
 	_stopWhenSilent = true;
 	_hasFadeArray = false;
 
-	_stream = 0;
+	_stream = nullptr;
 	_length = Audio::Timestamp();
 }
 

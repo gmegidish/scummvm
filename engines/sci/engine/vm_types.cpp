@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,30 +45,11 @@ void reg_t::setSegment(SegmentId segment) {
 	}
 }
 
-uint32 reg_t::getOffset() const {
-	if (getSciVersion() < SCI_VERSION_3) {
-		return _offset;
-	} else {
-		// Return the lower 16 bits from the offset, and the 17th and 18th bits from the segment
-		return ((_segment & 0xC000) << 2) | _offset;
-	}
-}
-
-void reg_t::setOffset(uint32 offset) {
-	if (getSciVersion() < SCI_VERSION_3) {
-		_offset = offset;
-	} else {
-		// Store the lower 16 bits in the offset, and the 17th and 18th bits in the segment
-		_offset = offset & 0xFFFF;
-		_segment = ((offset & 0x30000) >> 2) | (_segment & 0x3FFF);
-	}
-}
-
 reg_t reg_t::lookForWorkaround(const reg_t right, const char *operation) const {
 	SciCallOrigin originReply;
 	SciWorkaroundSolution solution = trackOriginAndFindWorkaround(0, arithmeticWorkarounds, &originReply);
 	if (solution.type == WORKAROUND_NONE)
-		error("Invalid arithmetic operation (%s - params: %04x:%04x and %04x:%04x) from %s", operation, PRINT_REG(*this), PRINT_REG(right), originReply.toString().c_str());
+		error("Invalid arithmetic operation (%s - params: %04x:%04x and %04x:%04x)", operation, PRINT_REG(*this), PRINT_REG(right));
 	assert(solution.type == WORKAROUND_FAKE);
 	return make_reg(0, solution.value);
 }
@@ -138,9 +118,16 @@ reg_t reg_t::operator%(const reg_t right) const {
 			warning("Modulo of a negative number has been requested for SCI0. This *could* lead to issues");
 		int16 value = toSint16();
 		int16 modulo = ABS(right.toSint16());
-		int16 result = value % modulo;
-		if (result < 0)
-			result += modulo;
+		int16 result;
+		if (getSciVersion() <= SCI_VERSION_2_1_MIDDLE) {
+			result = value % modulo;
+			if (result < 0)
+				result += modulo;
+		} else {
+			// SCI2.1 Late and SCI3 treat the dividend as unsigned.
+			// LSL7 ocean motion depends on this. Bug #10270
+			result = (uint16)value % modulo;
+		}
 		return make_reg(0, result);
 	} else
 		return lookForWorkaround(right, "modulo");

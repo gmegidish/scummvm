@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,25 +15,27 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef AGS_ENGINE_AC_GAME_STATE_H
 #define AGS_ENGINE_AC_GAME_STATE_H
 
-#include "ags/lib/std/memory.h"
-#include "ags/lib/std/vector.h"
+#include "common/std/memory.h"
+#include "common/std/vector.h"
 #include "ags/shared/ac/character_info.h"
+#include "ags/shared/ac/keycode.h"
 #include "ags/engine/ac/runtime_defines.h"
+#include "ags/engine/ac/speech.h"
+#include "ags/engine/ac/timer.h"
 #include "ags/shared/game/room_struct.h"
 #include "ags/engine/game/viewport.h"
+#include "ags/engine/gfx/graphics_driver.h"
 #include "ags/engine/media/audio/queued_audio_item.h"
 #include "ags/shared/util/geometry.h"
 #include "ags/shared/util/string_types.h"
 #include "ags/shared/util/string.h"
-#include "ags/engine/ac/timer.h"
 
 namespace AGS3 {
 
@@ -55,6 +57,7 @@ struct ScriptViewport;
 struct ScriptCamera;
 struct ScriptOverlay;
 
+#define MAX_GAME_STATE_NAME_LENGTH 100
 #define GAME_STATE_RESERVED_INTS 5
 
 // Savegame data format
@@ -65,7 +68,6 @@ enum GameStateSvgVersion {
 	kGSSvgVersion_350_9 = 2,
 	kGSSvgVersion_350_10 = 3,
 };
-
 
 
 // Adding to this might need to modify AGSDEFNS.SH and AGSPLUGIN.H
@@ -170,15 +172,16 @@ struct GameState {
 	char  walkable_areas_on[MAX_WALK_AREAS + 1];
 	short screen_flipped = 0;
 	int   entered_at_x = 0, entered_at_y = 0, entered_edge = 0;
-	int   want_speech = 0;
-	int   cant_skip_speech = 0;
+	bool  voice_avail; // whether voice-over is available
+	SpeechMode speech_mode; // speech mode (text, voice, or both)
+	int   speech_skip_style = 0;
 	int32_t   script_timers[MAX_TIMERS];
 	int   sound_volume = 0, speech_volume = 0;
 	int   normal_font = 0, speech_font = 0;
 	int8  key_skip_wait = 0;
 	int   swap_portrait_lastchar = 0;
 	int   swap_portrait_lastlastchar = 0;
-	int   separate_music_lib = 0;
+	bool  separate_music_lib = false;
 	int   in_conversation = 0;
 	int   screen_tint = 0;
 	int   num_parsed_words = 0;
@@ -219,14 +222,14 @@ struct GameState {
 	char  playmp3file_name[PLAYMP3FILE_MAX_FILENAME_LEN];
 	char  globalstrings[MAXGLOBALSTRINGS][MAX_MAXSTRLEN];
 	char  lastParserEntry[MAX_MAXSTRLEN];
-	char  game_name[100];
+	char  game_name[MAX_GAME_STATE_NAME_LENGTH];
 	int   ground_level_areas_disabled = 0;
 	int   next_screen_transition = 0;
 	int   gamma_adjustment = 0;
 	short temporarily_turned_off_character = 0;  // Hide Player Charactr ticked
-	short inv_backwards_compatibility = 0;
-	int32_t *gui_draw_order = 0;
-	std::vector<AGS::Shared::String> do_once_tokens = 0;
+	short inv_backwards_compatibility = 0;  // tells to use legacy inv_* variables
+	std::vector<int> gui_draw_order; // used only for hit detection now
+	std::vector<AGS::Shared::String> do_once_tokens;
 	int   text_min_display_time_ms = 0;
 	int   ignore_user_input_after_text_timeout_ms = 0;
 	int32_t default_audio_type_volumes[MAX_AUDIO_TYPES];
@@ -253,10 +256,12 @@ struct GameState {
 	int  complete_overlay_on = 0;
 	// Is there a blocking text overlay on screen (contains overlay ID)
 	int  text_overlay_on = 0;
-	// Blocking speech overlay managed object, for accessing in scripts
-	ScriptOverlay *speech_text_scover = nullptr;
-	// Speech portrait overlay managed object
-	ScriptOverlay *speech_face_scover = nullptr;
+	// Script overlay handles, because we must return same script objects
+	// whenever user script queries for them.
+	// Blocking speech overlay managed handle
+	int  speech_text_schandle = 0;
+	// Speech portrait overlay managed handle
+	int  speech_face_schandle = 0;
 
 	int shake_screen_yoff = 0; // y offset of the shaking screen
 
@@ -270,21 +275,22 @@ struct GameState {
 	// Viewports are positioned in game screen coordinates, related to the "game size",
 	// while cameras are positioned in room coordinates.
 	//
+	// Returns main (game's) viewport position on screen, this is the overall game view
+	const Rect &GetMainViewport() const;
+	// Returns UI viewport position on screen, within the main viewport
+	const Rect &GetUIViewport() const;
+	// Returns SpriteTransform corresponding to the global screen offsets
+	AGS::Engine::SpriteTransform GetGlobalTransform(bool full_frame_rend) const;
 	// Tells if the room viewport should be adjusted automatically each time a new room is loaded
 	bool IsAutoRoomViewport() const;
-	// Returns main viewport position on screen, this is the overall game view
-	const Rect &GetMainViewport() const;
-	// Returns UI viewport position on screen, this is the GUI layer
-	const Rect &GetUIViewport() const;
 	// Returns Room viewport object by it's main index
 	PViewport  GetRoomViewport(int index) const;
 	// Returns Room viewport object by index in z-order
 	const std::vector<PViewport> &GetRoomViewportsZOrdered() const;
 	// Finds room viewport at the given screen coordinates; returns nullptr if non found
 	PViewport  GetRoomViewportAt(int x, int y) const;
-	// Returns UI viewport position in absolute coordinates (with main viewport offset)
-	Rect       GetUIViewportAbs() const;
-	// Returns Room viewport position in absolute coordinates (with main viewport offset)
+	// Returns Room viewport position in absolute coordinates (with main viewport offset);
+	// this is a helper function, meant for peculiar cases.
 	Rect       GetRoomViewportAbs(int index) const;
 	// Sets if the room viewport should be adjusted automatically each time a new room is loaded
 	void SetAutoRoomViewport(bool on);
@@ -310,11 +316,12 @@ struct GameState {
 	int  RoomToScreenX(int roomx);
 	int  RoomToScreenY(int roomy);
 	// Converts game screen coordinates to the room coordinates through the room viewport
-	// This pair of functions tries to find if there is any viewport at the given coords and results
-	// in failure if there is none.
+	// This pair of functions tries to find if there is any viewport at the given coords.
+	// If "clip_viewport" parameter is true, then not finding a viewport results in failure,
+	// if it is false, proceeds converting through the primary viewport.
 	// TODO: find out if possible to refactor and get rid of "variadic" variants;
 	// usually this depends on how the arguments are created (whether they are in "variadic" or true coords)
-	VpPoint ScreenToRoom(int scrx, int scry);
+	VpPoint ScreenToRoom(int scrx, int scry, bool clip_viewport = true);
 	VpPoint ScreenToRoomDivDown(int scrx, int scry); // native "variadic" coords variant
 
 	// Makes sure primary viewport and camera are created and linked together
@@ -356,10 +363,13 @@ struct GameState {
 
 	// Set how the last blocking wait was skipped
 	void SetWaitSkipResult(int how, int data = 0);
-	// Returns the code of the latest blocking wait skip method.
-	// * positive value means a key code;
-	// * negative value means a -(mouse code + 1);
-	// * 0 means timeout.
+	void SetWaitKeySkip(const KeyInput &kp) {
+		SetWaitSkipResult(SKIP_KEYPRESS, AGSKeyToScriptKey(kp.Key) | kp.Mod);
+	}
+	// Returns the information about how the latest blocking wait was skipped.
+	// The information is packed into int32 value like this:
+	// | 0xFF       | 0xFF    | 0xF      | 0xFFF                     |
+	// | eInputType | eKeyMod | reserved | eKeyCode, MouseButton etc |
 	int GetWaitSkipResult() const;
 
 	//
@@ -376,9 +386,9 @@ struct GameState {
 	// Serialization
 	//
 	void ReadQueuedAudioItems_Aligned(Shared::Stream *in);
-	void ReadCustomProperties_v340(Shared::Stream *in);
-	void WriteCustomProperties_v340(Shared::Stream *out) const;
-	void ReadFromSavegame(Shared::Stream *in, GameStateSvgVersion svg_ver, AGS::Engine::RestoredData &r_data);
+	void ReadCustomProperties_v340(Shared::Stream *in, GameDataVersion data_ver);
+	void WriteCustomProperties_v340(Shared::Stream *out, GameDataVersion data_ver) const;
+	void ReadFromSavegame(Shared::Stream *in, GameDataVersion data_ver, GameStateSvgVersion svg_ver, AGS::Engine::RestoredData &r_data);
 	void WriteForSavegame(Shared::Stream *out) const;
 	void FreeProperties();
 	void FreeViewportsAndCameras();
@@ -389,11 +399,12 @@ private:
 
 	// Defines if the room viewport should be adjusted to the room size automatically.
 	bool _isAutoRoomViewport = false;
-	// Main viewport defines the rectangle of the drawn and interactable area
+	// Main viewport defines the rectangle of the drawn and interactable area;
 	// in the most basic case it will be equal to the game size.
-	Viewport _mainViewport;
-	// UI viewport defines the render and interaction rectangle of game's UI.
-	Viewport _uiViewport;
+	Rect _mainViewport;
+	// UI viewport defines the render and interaction rectangle of game's UI,
+	// within the main game viewport.
+	Rect _uiViewport;
 	// Room viewports define place on screen where the room camera's
 	// contents are drawn.
 	std::vector<PViewport> _roomViewports;
@@ -401,11 +412,10 @@ private:
 	std::vector<PViewport> _roomViewportsSorted;
 	// Cameras defines the position of a "looking eye" inside the room.
 	std::vector<PCamera> _roomCameras;
-	// Script viewports and cameras are references to real data export to
-	// user script. They became invalidated as the actual object gets
-	// destroyed, but are kept in memory to prevent script errors.
-	std::vector<std::pair<ScriptViewport *, int32_t>> _scViewportRefs;
-	std::vector<std::pair<ScriptCamera *, int32_t>> _scCameraRefs;
+	// We keep handles to the script refs to viewports and cameras, so that we
+	// could address them and invalidate as the actual object gets destroyed.
+	std::vector<int32_t> _scViewportHandles;
+	std::vector<int32_t> _scCameraHandles;
 
 	// Tells that the main viewport's position has changed since last game update
 	bool  _mainViewportHasChanged = false;

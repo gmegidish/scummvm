@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,7 +40,7 @@ const int ventsInit[9] = { 0, 0, 1, 0, 0, 1, 0, 0, 1 };
 void scene33_initScene(Scene *sc) {
 	g_vars->scene33_mug = sc->getStaticANIObject1ById(ANI_MUG_33, -1);
 	g_vars->scene33_jettie = sc->getStaticANIObject1ById(ANI_JETTIE_FLOW, -1);
-	g_vars->scene33_cube = 0;
+	g_vars->scene33_cube = nullptr;
 	g_vars->scene33_cubeX = -1;
 	g_vars->scene33_handleIsDown = false;
 
@@ -166,8 +165,8 @@ void sceneHandler33_zoneClickProcess(StaticANIObject *ani) {
 	if (!ani->_movement) {
 		sceneHandler33_switchVent(ani);
 
-		StaticANIObject *vent1 = 0;
-		StaticANIObject *vent2 = 0;
+		StaticANIObject *vent1 = nullptr;
+		StaticANIObject *vent2 = nullptr;
 
 		switch (ani->_odelay) {
 		case 0:
@@ -207,7 +206,7 @@ void sceneHandler33_zoneClickProcess(StaticANIObject *ani) {
 }
 
 void sceneHandler33_clickZones(ExCommand *cmd) {
-	StaticANIObject *closest = 0;
+	StaticANIObject *closest = nullptr;
 	double mindist = 1e10;
 
 	for (uint i = 0; i < g_nmi->_currentScene->_staticANIObjectList1.size(); i++) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -62,22 +61,11 @@ typedef sc_int(*sc_read_callbackref_t)(void *, sc_byte *, sc_int);
 typedef void (*sc_write_callbackref_t)(void *, const sc_byte *, sc_int);
 
 /*
- * Small utility and wrapper functions.  For printf wrappers, try to apply
- * gcc printf argument checking; this code is cautious about applying the
- * checks.
+ * Small utility and wrapper functions.
  */
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
-extern void sc_trace(const sc_char *format, ...)
-__attribute__((__format__(__printf__, 1, 2)));
-extern void sc_error(const sc_char *format, ...)
-__attribute__((__format__(__printf__, 1, 2)));
-extern void sc_fatal(const sc_char *format, ...)
-__attribute__((__format__(__printf__, 1, 2)));
-#else
-extern void sc_trace(const sc_char *format, ...);
-extern void sc_error(const sc_char *format, ...);
-extern void sc_fatal(const sc_char *format, ...);
-#endif
+extern void sc_trace(MSVC_PRINTF const sc_char *format, ...) GCC_PRINTF(1, 2);
+extern void sc_error(MSVC_PRINTF const sc_char *format, ...) GCC_PRINTF(1, 2);
+extern void sc_fatal(MSVC_PRINTF const sc_char *format, ...) GCC_PRINTF(1, 2);
 extern void *sc_malloc(size_t size);
 extern void *sc_realloc(void *pointer, size_t size);
 extern void sc_free(void *pointer);

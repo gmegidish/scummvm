@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
+ * ScummVM is the legal property of its developers, whose names
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,13 +35,11 @@
 
 namespace Grim {
 
-
 /**
  * @class Model
  */
 Model::Model(const Common::String &filename, Common::SeekableReadStream *data, CMap *cmap, Model *parent) :
 		Object(), _parent(parent), _numMaterials(0), _numGeosets(0), _cmap(cmap), _fname(filename) {
-
 	if (data->readUint32BE() == MKTAG('L','D','O','M'))
 		loadBinary(data);
 	else {
@@ -145,7 +142,7 @@ void Model::loadText(TextSplitter *ts) {
 		_materials[i] = nullptr;
 
 		ts->scanString("%d: %32s", 2, &num, materialName);
-		strcpy(_materialNames[num], materialName);
+		Common::strcpy_s(_materialNames[num], materialName);
 		loadMaterial(num, _cmap);
 	}
 
@@ -396,9 +393,7 @@ Mesh::Mesh() :
 		_vertices(nullptr), _verticesI(nullptr), _vertNormals(nullptr),
 		_numTextureVerts(0), _textureVerts(nullptr), _faces(nullptr), _userData(nullptr) {
 	_name[0] = '\0';
-
 }
-
 
 Mesh::~Mesh() {
 	g_driver->destroyMesh(this);

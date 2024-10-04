@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,6 +46,9 @@ DialogInterface::DialogInterface() {
 	_sender = nullptr;
 	_reaction = nullptr;
 	_firstTime = true;
+
+	_savedCursorId = _savedCursorActType = 0;
+	_wasCursorAnim = _wasCursorShown = false;
 }
 
 DialogInterface::~DialogInterface() {
@@ -88,10 +90,7 @@ void DialogInterface::restoreCursor() {
 	cursor->_actionType = _savedCursorActType;
 
 	// original bug fix
-	Common::Event ev;
-	ev.type = Common::EVENT_MOUSEMOVE;
-	ev.mouse = g_system->getEventManager()->getMousePos();
-	_qsys->onEvent(ev);
+	g_vm->pushMouseMoveEvent();
 }
 
 void DialogInterface::next(int choice) {
@@ -244,7 +243,10 @@ void DialogInterface::onMenuOpcode() {
 
 	Common::Array<Common::U32String> choices;
 	_dialog->getMenuChoices(choices);
-	_qsys->_mainInterface->setTextChoice(choices, 0xFFFF, g_system->getScreenFormat().RGBToColor(0xFF, 0, 0));
+	_qsys->_mainInterface->setTextChoice(choices,
+										 g_system->getScreenFormat().RGBToColor(0xFF, 0xFF, 0xFF),
+										 g_system->getScreenFormat().RGBToColor(0xA, 0xA, 0xA),
+										 g_system->getScreenFormat().RGBToColor(0, 0, 0xFF));
 
 	_qsys->getCursor()->_isShown = true;
 	_state = kMenu;

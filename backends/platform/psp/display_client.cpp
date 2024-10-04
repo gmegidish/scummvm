@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -103,7 +102,7 @@ void Palette::setColorPositionAlpha(uint32 position, bool alpha) {
 
 //	Set some of the palette to color values in array
 //	By default, ScummVm doesn't support alpha values in palettes
-void Palette::setPartial(const byte *colors, uint32 start, uint32 num, bool supportsAlpha /* = false */) {
+void Palette::setPartial(const byte *colors, uint start, uint num, bool supportsAlpha /* = false */) {
 	DEBUG_ENTER_FUNC();
 
 	assert(_values);
@@ -640,6 +639,7 @@ inline uint32 GuRenderer::convertToGuPixelFormat(PSPPixelFormat::Type format) {
 		guFormat = GU_PSM_5650;
 		break;
 	case PSPPixelFormat::Type_8888:
+	case PSPPixelFormat::Type_8888_RGBA:
 		guFormat = GU_PSM_8888;
 		break;
 	case PSPPixelFormat::Type_Palette_8bit:

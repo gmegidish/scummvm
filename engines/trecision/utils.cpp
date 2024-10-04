@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -86,14 +85,22 @@ uint16 TrecisionEngine::getKey() {
 	}
 }
 
+uint16 TrecisionEngine::getAction() {
+	Common::CustomEventType customType = _curAction;
+	_curAction = kActionNone;
+
+	return customType;
+}
+
 Common::KeyCode TrecisionEngine::waitKey() {
 	_graphicsMgr->hideCursor();
-	while (_curKey == Common::KEYCODE_INVALID)
+	while (_curKey == Common::KEYCODE_INVALID && _curAction == kActionNone && !_joyButtonUp)
 		checkSystem();
 	_graphicsMgr->showCursor();
 
 	Common::KeyCode t = _curKey;
 	_curKey = Common::KEYCODE_INVALID;
+	_joyButtonUp = false;
 
 	return t;
 }
@@ -116,7 +123,7 @@ uint32 TrecisionEngine::readTime() {
 bool TrecisionEngine::checkMask(Common::Point pos) {
 	for (int8 i = MAXOBJINROOM - 1; i >= 0; --i) {
 		uint16 checkedObj = _room[_curRoom]._object[i];
-		Common::Rect lim = _obj[checkedObj]._lim;
+		Common::Rect lim = _obj[checkedObj]._area;
 		lim.translate(0, TOP);
 		// Trecision includes the bottom and right coordinates
 		++lim.right;
@@ -185,7 +192,7 @@ float TrecisionEngine::sinCosAngle(float sinus, float cosinus) {
 		return (float)acos(cosinus);
 
 	// 3 quad
-	return PI2 - (float)acos(cosinus);
+	return (M_PI * 2) - (float)acos(cosinus);
 }
 
 void TrecisionEngine::processTime() {

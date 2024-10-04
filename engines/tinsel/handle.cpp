@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * This file contains the handle based Memory Manager code
  */
@@ -26,12 +25,16 @@
 #include "common/file.h"
 #include "common/memstream.h"
 #include "common/textconsole.h"
+#include "common/str.h"
 
+#include "tinsel/actors.h"
+#include "tinsel/background.h"
 #include "tinsel/drives.h"
 #include "tinsel/dw.h"
 #include "tinsel/handle.h"
 #include "tinsel/heapmem.h"			// heap memory manager
-#include "tinsel/scn.h"		// for the DW1 Mac resource handler
+#include "tinsel/palette.h"
+#include "tinsel/sched.h"
 #include "tinsel/timers.h"	// for DwGetCurrentTime()
 #include "tinsel/tinsel.h"
 #include "tinsel/scene.h"
@@ -56,11 +59,12 @@ enum {
 	fSound		= 0x04000000L,	///< sound data
 	fGraphic	= 0x08000000L,	///< graphic data
 	fCompressed	= 0x10000000L,	///< compressed data
-	fLoaded		= 0x20000000L	///< set when file data has been loaded
+	fLoaded		= 0x20000000L,	///< set when file data has been loaded
+	fUnknown	= 0x40000000L	///< v3 specific
 };
-#define FSIZE_MASK	(TinselV3 ? 0xFFFFFFFFL : 0x00FFFFFFL)	//!< mask to isolate the filesize
-#define MEMFLAGS(x) (TinselV3 ? x->flags2 : x->filesize)
-#define MEMFLAGSET(x, mask) (TinselV3 ? x->flags2 |= mask : x->filesize |= mask)
+#define FSIZE_MASK	((TinselVersion == 3) ? 0xFFFFFFFFL : 0x00FFFFFFL)	//!< mask to isolate the filesize
+#define MEMFLAGS(x) ((TinselVersion == 3) ? x->flags2 : x->filesize)
+#define MEMFLAGSET(x, mask) ((TinselVersion == 3) ? x->flags2 |= mask : x->filesize |= mask)
 
 Handle::Handle() : _handleTable(0), _numHandles(0), _cdPlayHandle((uint32)-1), _cdBaseHandle(0), _cdTopHandle(0), _cdGraphStream(nullptr) {
 }
@@ -78,7 +82,7 @@ Handle::~Handle() {
  * permanent graphics etc.
  */
 void Handle::SetupHandleTable() {
-	bool t2Flag = TinselV2;
+	bool t2Flag = TinselVersion >= 2;
 	int RECORD_SIZE = t2Flag ? 24 : 20;
 
 	int len;
@@ -170,7 +174,7 @@ void Handle::OpenCDGraphFile() {
 
 	_cdGraphStream = new Common::File;
 	if (!_cdGraphStream->open(_szCdPlayFile))
-		error(CANNOT_FIND_FILE, _szCdPlayFile.c_str());
+		error(CANNOT_FIND_FILE, _szCdPlayFile.toString().c_str());
 }
 
 void Handle::LoadCDGraphData(MEMHANDLE *pH) {
@@ -217,7 +221,7 @@ void Handle::LoadCDGraphData(MEMHANDLE *pH) {
 }
 
 /**
- * Called immediatly preceding a CDplay().
+ * Called immediately preceding a CDplay().
  * Prepares the ground so that when LockMem() is called, the
  * appropriate section of the extra scene file is loaded.
  * @param start			Handle of start of range
@@ -256,7 +260,7 @@ void Handle::LoadFile(MEMHANDLE *pH) {
 	memcpy(szFilename, pH->szName, sizeof(pH->szName));
 	szFilename[sizeof(pH->szName)] = 0;
 
-	if (!TinselV3 && MEMFLAGS(pH) & fCompressed) {
+	if ((TinselVersion != 3) && MEMFLAGS(pH) & fCompressed) {
 		error("Compression handling has been removed - %s", szFilename);
 	}
 
@@ -271,7 +275,7 @@ void Handle::LoadFile(MEMHANDLE *pH) {
 		// make sure address is valid
 		assert(addr);
 
-		if (TinselV3 && MEMFLAGS(pH) & fCompressed) {
+		if ((TinselVersion == 3) && MEMFLAGS(pH) & fCompressed) {
 			bytes = decompressLZSS(f, addr);
 		} else {
 			bytes = f.read(addr, pH->filesize & FSIZE_MASK);
@@ -286,7 +290,7 @@ void Handle::LoadFile(MEMHANDLE *pH) {
 		// set the loaded flag
 		MEMFLAGSET(pH, fLoaded);
 
-		if (bytes == (pH->filesize & FSIZE_MASK)) {
+		if (bytes == int(pH->filesize & FSIZE_MASK)) {
 			return;
 		}
 
@@ -299,36 +303,103 @@ void Handle::LoadFile(MEMHANDLE *pH) {
 }
 
 /**
- * Return a font specified by a SCHNHANDLE
+ * Return a font specified by a SCNHANDLE
  * Handles endianess internally
  * @param offset			Handle and offset to data
  * @return FONT structure
 */
 FONT *Handle::GetFont(SCNHANDLE offset) {
-	byte *fontData = LockMem(offset);
+	byte *data = LockMem(offset);
 	const bool isBE = TinselV1Mac || TinselV1Saturn;
-	const uint32 size = (TinselV3 ? 12 * 4 : 11 * 4) + 300 * 4;	// FONT struct size
-	Common::MemoryReadStreamEndian *fontStream = new Common::MemoryReadStreamEndian(fontData, size, isBE);
+	const uint32 size = ((TinselVersion == 3) ? 12 * 4 : 11 * 4) + 300 * 4;	// FONT struct size
+	Common::MemoryReadStreamEndian *stream = new Common::MemoryReadStreamEndian(data, size, isBE);
 
 	FONT *font = new FONT();
-	font->xSpacing = fontStream->readSint32();
-	font->ySpacing = fontStream->readSint32();
-	font->xShadow = fontStream->readSint32();
-	font->yShadow = fontStream->readSint32();
-	font->spaceSize = fontStream->readSint32();
-	font->baseColor = TinselV3 ? fontStream->readSint32() : 0;
-	font->fontInit.hObjImg = fontStream->readUint32();
-	font->fontInit.objFlags = fontStream->readSint32();
-	font->fontInit.objID = fontStream->readSint32();
-	font->fontInit.objX = fontStream->readSint32();
-	font->fontInit.objY = fontStream->readSint32();
-	font->fontInit.objZ = fontStream->readSint32();
+	font->xSpacing = stream->readSint32();
+	font->ySpacing = stream->readSint32();
+	font->xShadow = stream->readSint32();
+	font->yShadow = stream->readSint32();
+	font->spaceSize = stream->readSint32();
+	font->baseColor = (TinselVersion == 3) ? stream->readSint32() : 0;
+	font->fontInit.hObjImg = stream->readUint32();
+	font->fontInit.objFlags = stream->readSint32();
+	font->fontInit.objID = stream->readSint32();
+	font->fontInit.objX = stream->readSint32();
+	font->fontInit.objY = stream->readSint32();
+	font->fontInit.objZ = stream->readSint32();
 	for (int i = 0; i < 300; i++)
-		font->fontDef[i] = fontStream->readUint32();
+		font->fontDef[i] = stream->readUint32();
 
-	delete fontStream;
+	delete stream;
 
 	return font;
+}
+
+/**
+ * Return a palette specified by a SCNHANDLE
+ * Handles endianess internally
+ * @param offset			Handle and offset to data
+ * @return PALETTE structure
+*/
+PALETTE *Handle::GetPalette(SCNHANDLE offset) {
+	byte *data = LockMem(offset);
+	const bool isBE = TinselV1Mac || TinselV1Saturn;
+	const uint32 size = 4 + 256 * 4;	// numColors + 256 COLORREF (max)
+	Common::MemoryReadStreamEndian *stream = new Common::MemoryReadStreamEndian(data, size, isBE);
+
+	PALETTE *pal = new PALETTE();
+
+	pal->numColors = stream->readSint32();
+	for (int32 i = 0; i < pal->numColors; i++) {
+		pal->palRGB[i] = stream->readUint32();
+
+		// get the RGB color model values
+		pal->palette[i * 3] = (byte)(pal->palRGB[i] & 0xFF);
+		pal->palette[i * 3 + 1] = (byte)((pal->palRGB[i] >> 8) & 0xFF);
+		pal->palette[i * 3 + 2] = (byte)((pal->palRGB[i] >> 16) & 0xFF);
+	}
+
+	delete stream;
+
+	return pal;
+}
+
+/**
+ * Return an image specified by a SCNHANDLE
+ * Handles endianess internally
+ * @param offset			Handle and offset to data
+ * @return IMAGE structure
+*/
+const IMAGE *Handle::GetImage(SCNHANDLE offset) {
+	byte *data = LockMem(offset);
+	const bool isBE = TinselV1Mac || TinselV1Saturn;
+	const uint32 size = 16; // IMAGE struct size
+
+	Common::MemoryReadStreamEndian *stream = new Common::MemoryReadStreamEndian(data, size, isBE);
+
+	IMAGE *img = new IMAGE();
+
+	img->imgWidth = stream->readSint16();
+	img->imgHeight = stream->readUint16();
+	img->anioffX = stream->readSint16();
+	img->anioffY = stream->readSint16();
+	img->hImgBits = stream->readUint32();
+
+	if (TinselVersion != 3) {
+		img->hImgPal = stream->readUint32();
+	} else {
+		img->isRLE = stream->readSint16();
+		img->colorFlags = stream->readSint16();
+	}
+
+	delete stream;
+
+	return img;
+}
+
+void Handle::SetImagePalette(SCNHANDLE offset, SCNHANDLE palHandle) {
+	byte *img = LockMem(offset);
+	WRITE_32(img + 12, palHandle); // hImgPal
 }
 
 SCNHANDLE Handle::GetFontImageHandle(SCNHANDLE offset) {
@@ -337,6 +408,67 @@ SCNHANDLE Handle::GetFontImageHandle(SCNHANDLE offset) {
 	delete font;
 
 	return handle;
+}
+
+/**
+ * Return an actor's data specified by a SCNHANDLE
+ * Handles endianess internally
+ * @param offset			Handle and offset to data
+ * @param count				Data count
+ * @return IMAGE structure
+*/
+const ACTORDATA *Handle::GetActorData(SCNHANDLE offset, uint32 count) {
+	byte *data = LockMem(offset);
+	const bool isBE = TinselV1Mac || TinselV1Saturn;
+	const uint32 size = (TinselVersion >= 2) ? 20 : 12; // ACTORDATA struct size
+
+	Common::MemoryReadStreamEndian *stream = new Common::MemoryReadStreamEndian(data, size * count, isBE);
+
+	ACTORDATA *actorData = new ACTORDATA[count];
+
+	for (uint32 i = 0; i < count; i++) {
+		if (TinselVersion <= 1) {
+			actorData[i].masking = stream->readSint32();
+			actorData[i].hActorId = stream->readUint32();
+			actorData[i].hActorCode = stream->readUint32();
+		} else {
+			actorData[i].hActorId = stream->readUint32();
+			actorData[i].hTagText = stream->readUint32();
+			actorData[i].tagPortionV = stream->readSint32();
+			actorData[i].tagPortionH = stream->readSint32();
+			actorData[i].hActorCode = stream->readUint32();
+		}
+	}
+
+	delete stream;
+
+	return actorData;
+}
+
+/**
+ * Return a process specified by a SCNHANDLE
+ * Handles endianess internally
+ * @param offset			Handle and offset to data
+ * @param count				Data count
+ * @return PROCESS_STRUC structure
+*/
+const PROCESS_STRUC *Handle::GetProcessData(SCNHANDLE offset, uint32 count) {
+	byte *data = LockMem(offset);
+	const bool isBE = TinselV1Mac || TinselV1Saturn;
+	const uint32 size = 8; // PROCESS_STRUC struct size
+
+	Common::MemoryReadStreamEndian *stream = new Common::MemoryReadStreamEndian(data, size * count, isBE);
+
+	PROCESS_STRUC *processData = new PROCESS_STRUC[count];
+
+	for (uint32 i = 0; i < count; i++) {
+		processData[i].processId = stream->readUint32();
+		processData[i].hProcessCode = stream->readUint32();
+	}
+
+	delete stream;
+
+	return processData;
 }
 
 /**
@@ -380,7 +512,7 @@ byte *Handle::LockMem(SCNHANDLE offset) {
 			// Data was discarded, we have to reload
 			MemoryReAlloc(pH->_node, pH->filesize & FSIZE_MASK);
 
-			if (TinselV2) {
+			if (TinselVersion >= 2) {
 				SetCD(pH->flags2 & fAllCds);
 				CdCD(Common::nullContext);
 			}
@@ -499,10 +631,26 @@ int Handle::CdNumber(SCNHANDLE offset) {
 
 	MEMHANDLE *pH = _handleTable + handle;
 
-	if (!TinselV2)
+	if (TinselVersion <= 1)
 		return 1;
 
 	return GetCD(pH->flags2 & fAllCds);
+}
+
+/**
+  * Searches for a resource by name and returns the handle to it.
+  *
+  * @param fileName Name of the resource to search for
+  */
+SCNHANDLE Handle::FindLanguageSceneHandle(const char *fileName) {
+	Common::String nameString{fileName};
+
+	for (uint i = 0; i < _numHandles; ++i) {
+		if (nameString == Common::String{_handleTable[i].szName}) {
+			return i << SCNHANDLE_SHIFT;
+		}
+	}
+	error("Can't find handle for language scene\n");
 }
 
 } // End of namespace Tinsel

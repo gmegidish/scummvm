@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,14 +26,17 @@
 #include "backends/networking/curl/networkreadstream.h"
 #include "backends/networking/curl/sessionrequest.h"
 #include "common/debug.h"
-#include "common/json.h"
+#include "common/file.h"
+#include "common/formats/json.h"
 
 namespace Networking {
 
-SessionRequest::SessionRequest(Common::String url, DataCallback cb, ErrorCallback ecb):
+SessionRequest::SessionRequest(const Common::String &url, const Common::Path &localFile, DataCallback cb, ErrorCallback ecb, bool binary):
 	CurlRequest(cb, ecb, url), _contentsStream(DisposeAfterUse::YES),
-	_buffer(new byte[CURL_SESSION_REQUEST_BUFFER_SIZE]), _text(nullptr),
-	_started(false), _complete(false), _success(false) {
+	_buffer(new byte[CURL_SESSION_REQUEST_BUFFER_SIZE]), _text(nullptr), _localFile(nullptr),
+	_started(false), _complete(false), _success(false), _binary(binary) {
+
+	openLocalFile(localFile);
 
 	// automatically go under ConnMan control so nobody would be able to leak the memory
 	// but, we don't need it to be working just yet
@@ -44,6 +46,25 @@ SessionRequest::SessionRequest(Common::String url, DataCallback cb, ErrorCallbac
 
 SessionRequest::~SessionRequest() {
 	delete[] _buffer;
+}
+
+void SessionRequest::openLocalFile(const Common::Path &localFile) {
+	if (localFile.empty())
+		return;
+
+	_localFile = new Common::DumpFile();
+	if (!_localFile->open(localFile, true)) {
+		warning("SessionRequestFile: unable to open file to download into");
+		ErrorResponse error(this, false, true, "SessionRequestFile: unable to open file to download into", -1);
+		finishError(error);
+		delete _localFile;
+		_localFile = nullptr;
+		return;
+	}
+
+	debug(5, "SessionRequest: opened localfile %s", localFile.toString(Common::Path::kNativeSeparator).c_str());
+
+	_binary = true; // Enforce binary
 }
 
 bool SessionRequest::reuseStream() {
@@ -75,10 +96,10 @@ char *SessionRequest::getPreparedContents() {
 	return (char *)result;
 }
 
-void SessionRequest::finishError(ErrorResponse error) {
+void SessionRequest::finishError(const ErrorResponse &error, RequestState state) {
 	_complete = true;
 	_success = false;
-	CurlRequest::finishError(error);
+	CurlRequest::finishError(error, PAUSED);
 }
 
 void SessionRequest::finishSuccess() {
@@ -86,8 +107,19 @@ void SessionRequest::finishSuccess() {
 	_complete = true;
 	_success = true;
 
-	if (_callback)
-		(*_callback)(DataResponse(this, text()));
+	if (_localFile) {
+		_localFile->close();
+		delete _localFile;
+		_localFile = nullptr;
+	}
+
+	if (_callback) {	// If localfile is present, contentStream is empty, so it is fine
+		_response.buffer = _contentsStream.getData();
+		_response.len = _contentsStream.size();
+		_response.eos = true;
+
+		(*_callback)(DataResponse(this, &_response));
+	}
 }
 
 void SessionRequest::start() {
@@ -105,7 +137,7 @@ void SessionRequest::startAndWait() {
 	wait();
 }
 
-void SessionRequest::reuse(Common::String url, DataCallback cb, ErrorCallback ecb) {
+void SessionRequest::reuse(const Common::String &url, const Common::Path &localFile, DataCallback cb, ErrorCallback ecb, bool binary) {
 	_url = url;
 
 	delete _callback;
@@ -113,19 +145,53 @@ void SessionRequest::reuse(Common::String url, DataCallback cb, ErrorCallback ec
 	_callback = cb;
 	_errorCallback = ecb;
 
+	_binary = binary;
+
+	openLocalFile(localFile);
+
 	restart();
 }
 
 void SessionRequest::handle() {
+	// This is called by ConnMan when state is PROCESSING
+
 	if (!_stream) _stream = makeStream();
 
 	if (_stream) {
+		if (_stream->httpResponseCode() != 200 && _stream->httpResponseCode() != 0) {
+			warning("SessionRequest: HTTP response code is not 200 OK (it's %ld)", _stream->httpResponseCode());
+			ErrorResponse error(this, false, true, "HTTP response code is not 200 OK", _stream->httpResponseCode());
+			finishError(error);
+			return;
+		}
 		uint32 readBytes = _stream->read(_buffer, CURL_SESSION_REQUEST_BUFFER_SIZE);
-		if (readBytes != 0)
-			if (_contentsStream.write(_buffer, readBytes) != readBytes)
-				warning("SessionRequest: unable to write all the bytes into MemoryWriteStreamDynamic");
+		if (readBytes != 0) {
+			if (!_localFile) {
+				if (_contentsStream.write(_buffer, readBytes) != readBytes)
+					warning("SessionRequest: unable to write all the bytes into MemoryWriteStreamDynamic");
+			} else {
+				_response.buffer = _buffer;
+				_response.len = readBytes;
+				_response.eos = _stream->eos();
+
+				if (_localFile->write(_buffer, readBytes) != readBytes) {
+					warning("DownloadRequest: unable to write all received bytes into output file");
+					finishError(Networking::ErrorResponse(this, false, true, "DownloadRequest::handle: failed to write all bytes into a file", -1));
+					return;
+				}
+
+				if (_callback)
+					(*_callback)(DataResponse(this, &_response));
+			}
+		}
 
 		if (_stream->eos()) {
+			if (_stream->hasError()) {
+				ErrorResponse error(this, false, true, Common::String::format("TLS stream response code is not CURLE_OK OK: %s", _stream->getError()), _stream->getErrorCode());
+				finishError(error);
+				return;
+			}
+
 			finishSuccess();
 		}
 	}
@@ -156,6 +222,19 @@ void SessionRequest::close() {
 	_state = FINISHED;
 }
 
+void SessionRequest::abortRequest() {
+	ErrorResponse error(this, false, true, Common::String::format("Aborted"), -1);
+	finishError(error);
+
+	if (_localFile) {
+		_localFile->close();
+		delete _localFile;
+		_localFile = nullptr;
+
+		// TODO we need to remove file, but there is no API
+	}
+}
+
 bool SessionRequest::complete() {
 	return _complete;
 }
@@ -165,12 +244,19 @@ bool SessionRequest::success() {
 }
 
 char *SessionRequest::text() {
+	if (_binary || _localFile)
+		return nullptr;
+
 	if (_text == nullptr)
 		_text = getPreparedContents();
 	return _text;
 }
 
 Common::JSONValue *SessionRequest::json() {
+	if (_binary)
+		error("SessionRequest::json() is called for binary stream");
+	if (_localFile)
+		error("SessionRequest::json() is called for localFile stream");
 	return Common::JSON::parse(text());
 }
 

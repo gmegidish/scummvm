@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 #include "common/debug.h"
 #include "common/textconsole.h"
 #include "common/translation.h"
-#include "common/zlib.h"
+#include "common/compression/deflate.h"
 
 namespace TeenAgent {
 
@@ -106,25 +105,6 @@ bool Resources::loadArchives(const ADGameDescription *gd) {
 	// zlib here is no longer needed, and it's maintained only for backwards
 	// compatibility.
 	Common::SeekableReadStream *dat = Common::wrapCompressedReadStream(dat_file);
-
-#if !defined(USE_ZLIB)
-	uint16 header = dat->readUint16BE();
-	bool isCompressed = (header == 0x1F8B ||
-				     ((header & 0x0F00) == 0x0800 &&
-				      header % 31 == 0));
-	dat->seek(-2, SEEK_CUR);
-
-	if (isCompressed) {
-		// teenagent.dat is compressed, but zlib hasn't been compiled in
-		delete dat;
-
-		const char *msg = _s("The teenagent.dat file is compressed and zlib hasn't been included in this executable. Please decompress it");
-		Common::U32String errorMessage = _(msg);
-		warning(msg);
-		GUIErrorMessage(errorMessage);
-		return false;
-	}
-#endif
 
 	dat->skip(CSEG_SIZE);
 	dseg.read(dat, DSEG_SIZE);

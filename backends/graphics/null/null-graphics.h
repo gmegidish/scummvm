@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,7 @@ public:
 	void setFeatureState(OSystem::Feature f, bool enable) override {}
 	bool getFeatureState(OSystem::Feature f) const override { return false; }
 
+#ifdef USE_RGB_COLOR
 	Graphics::PixelFormat getScreenFormat() const override {
 		return _format;
 	}
@@ -47,6 +47,7 @@ public:
 		list.push_back(Graphics::PixelFormat::createFormatCLUT8());
 		return list;
 	}
+#endif
 
 	void initSize(uint width, uint height, const Graphics::PixelFormat *format = NULL) override {
 		_width = width;
@@ -54,7 +55,7 @@ public:
 		_format = format ? *format : Graphics::PixelFormat::createFormatCLUT8();
 	}
 
-	virtual int getScreenChangeID() const override { return 0; }
+	int getScreenChangeID() const override { return 0; }
 
 	void beginGFXTransaction() override {}
 	OSystem::TransactionError endGFXTransaction() override { return OSystem::kTransactionSuccess; }
@@ -67,12 +68,13 @@ public:
 	Graphics::Surface *lockScreen() override { return NULL; }
 	void unlockScreen() override {}
 	void fillScreen(uint32 col) override {}
+	void fillScreen(const Common::Rect &r, uint32 col) override {}
 	void updateScreen() override {}
 	void setShakePos(int shakeXOffset, int shakeYOffset) override {}
 	void setFocusRectangle(const Common::Rect& rect) override {}
 	void clearFocusRectangle() override {}
 
-	void showOverlay() override { _overlayVisible = true; }
+	void showOverlay(bool inGUI) override { _overlayVisible = true; }
 	void hideOverlay() override { _overlayVisible = false; }
 	bool isOverlayVisible() const override { return _overlayVisible; }
 	Graphics::PixelFormat getOverlayFormat() const override { return Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0); }
@@ -84,7 +86,7 @@ public:
 
 	bool showMouse(bool visible) override { return !visible; }
 	void warpMouse(int x, int y) override {}
-	void setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const Graphics::PixelFormat *format = NULL) override {}
+	void setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const Graphics::PixelFormat *format = NULL, const byte *mask = NULL) override {}
 	void setCursorPalette(const byte *colors, uint start, uint num) override {}
 
 private:

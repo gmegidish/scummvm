@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,7 +66,7 @@
 #include "ultima/ultima4/sound/music.h"
 #include "ultima/ultima4/sound/sound.h"
 #include "ultima/ultima4/views/dungeonview.h"
-#include "ultima/ultima4/meta_engine.h"
+#include "ultima/ultima4/metaengine.h"
 #include "common/savefile.h"
 #include "common/system.h"
 
@@ -493,7 +492,7 @@ Std::vector<Coords> gameGetDirectionalActionPath(int dirmask, int validDirection
 
 	/*
 	 * try every tile in the given direction, up to the given range.
-	 * Stop when the the range is exceeded, or the action is blocked.
+	 * Stop when the range is exceeded, or the action is blocked.
 	 */
 
 	MapCoords t_c(origin);
@@ -713,14 +712,12 @@ const int colors[] = {
 void showMixturesSuper(int page = 0) {
 	g_screen->screenTextColor(FG_WHITE);
 	for (int i = 0; i < 13; i++) {
-		char buf[4];
 
 		const Spell *s = g_spells->getSpell(i + 13 * page);
 		int line = i + 8;
 		g_screen->screenTextAt(2, line, "%s", s->_name);
 
-		snprintf(buf, 4, "%3d", g_ultima->_saveGame->_mixtures[i + 13 * page]);
-		g_screen->screenTextAt(6, line, "%s", buf);
+		g_screen->screenTextAt(6, line, "%s", Common::String::format("%3d", g_ultima->_saveGame->_mixtures[i + 13 * page]).c_str());
 
 		g_screen->screenShowChar(32, 9, line);
 		int comp = s->_components;
@@ -730,8 +727,7 @@ void showMixturesSuper(int page = 0) {
 		}
 		g_screen->screenTextColor(FG_WHITE);
 
-		snprintf(buf, 3, "%2d", s->_mp);
-		g_screen->screenTextAt(19, line, "%s", buf);
+		g_screen->screenTextAt(19, line, "%s", Common::String::format("%2d", s->_mp).c_str());
 	}
 }
 

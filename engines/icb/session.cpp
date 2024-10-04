@@ -1,7 +1,7 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
  * Additional copyright for this file:
@@ -9,10 +9,10 @@
  * This code is based on source code created by Revolution Software,
  * used with permission.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,11 +20,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "engines/icb/icb.h"
 #include "engines/icb/p4.h"
 #include "engines/icb/debug.h"
 #include "engines/icb/p4_generic.h"
@@ -50,10 +50,9 @@
 
 namespace ICB {
 
-
 // Translation tweaks
 
-_linked_data_file *LoadTranslatedFile(const char *session, const char *mission);
+LinkedDataFile *LoadTranslatedFile(const char *session, const char *mission);
 
 
 // prototypes
@@ -68,7 +67,7 @@ void _game_session::___init(const char *mission, const char *new_session_name) {
 	uint32 buf_hash;
 
 	// begin with no set object
-	// a camera will be choosen after the first logic cycle based upon the player objects position
+	// a camera will be chosen after the first logic cycle based upon the player objects position
 	set.Reset();
 
 	// no special footsteps set
@@ -107,16 +106,16 @@ void _game_session::___init(const char *mission, const char *new_session_name) {
 	char h_mission_name[8];
 	HashFile(mission, h_mission_name);
 
-	sprintf(speech_font_one, FONT_PATH, "font.pcfont");
-	sprintf(remora_font, FONT_PATH, "futura.pcfont");
+	Common::sprintf_s(speech_font_one, FONT_PATH, "font.pcfont");
+	Common::sprintf_s(remora_font, FONT_PATH, "futura.pcfont");
 
-	if (sprintf(session_name, "%s\\%s\\", mission, new_session_name) > ENGINE_STRING_LEN)
+	if (Common::sprintf_s(session_name, "%s\\%s\\", mission, new_session_name) > ENGINE_STRING_LEN)
 		Fatal_error("_game_session::_game_session [%s] string overflow", session_name);
 
-	if (sprintf(h_session_name, "%s\\%s", h_mission_name, session_h_name) > ENGINE_STRING_LEN)
+	if (Common::sprintf_s(h_session_name, "%s\\%s", h_mission_name, session_h_name) > ENGINE_STRING_LEN)
 		Fatal_error("_game_session::_game_session [%s] string overflow", h_session_name);
 
-	if (sprintf(session_cluster, SESSION_CLUSTER_PATH, h_mission_name, session_h_name) > ENGINE_STRING_LEN)
+	if (Common::sprintf_s(session_cluster, SESSION_CLUSTER_PATH, h_mission_name, session_h_name) > ENGINE_STRING_LEN)
 		Fatal_error("_game_session::_game_session [%s] string overflow", session_cluster);
 
 	session_cluster_hash = HashString(session_cluster);
@@ -155,17 +154,17 @@ void _game_session::___init(const char *mission, const char *new_session_name) {
 	// we can assume all of these in here will be of the game object class!
 
 	// When clustered the session files have the base stripped
-	strcpy(temp_buf, "objects");
+	Common::strcpy_s(temp_buf, "objects");
 
 	// so PSX can have nice session loading screen and details (for timing and to stop player getting bored)
 	LoadMsg("Session Objects");
 
 	// Make Res_open compute the hash value
 	buf_hash = NULL_HASH;
-	objects = (_linked_data_file *)private_session_resman->Res_open(temp_buf, buf_hash, session_cluster, session_cluster_hash);
+	objects = (LinkedDataFile *)private_session_resman->Res_open(temp_buf, buf_hash, session_cluster, session_cluster_hash);
 
 	//	set this for convenience
-	total_objects = objects->Fetch_number_of_items();
+	total_objects = LinkedDataObject::Fetch_number_of_items(objects);
 	Zdebug("total objects %d", total_objects);
 
 	if (total_objects >= MAX_session_objects)
@@ -182,12 +181,12 @@ void _game_session::___init(const char *mission, const char *new_session_name) {
 	// inititialise the session scripts
 
 	// When clustered the session files have the base stripped
-	strcpy(temp_buf, "scripts");
+	Common::strcpy_s(temp_buf, "scripts");
 
 	// so PSX can have nice session loading screen and details (for timing and to stop player getting bored)
 	LoadMsg("Session Scripts");
 	buf_hash = NULL_HASH;
-	scripts = (_linked_data_file *)private_session_resman->Res_open(temp_buf, buf_hash, session_cluster, session_cluster_hash);
+	scripts = (LinkedDataFile *)private_session_resman->Res_open(temp_buf, buf_hash, session_cluster, session_cluster_hash);
 
 	// display script version info
 	// also available on console
@@ -196,27 +195,27 @@ void _game_session::___init(const char *mission, const char *new_session_name) {
 	// initialise prop animation file
 
 	// When clustered the session files have the base stripped
-	strcpy(temp_buf, PX_FILENAME_PROPANIMS);
+	Common::strcpy_s(temp_buf, PX_FILENAME_PROPANIMS);
 
 	// so PSX can have nice session loading screen and details (for timing and to stop player getting bored)
 	LoadMsg("Session PropAnims");
 	buf_hash = NULL_HASH;
-	prop_anims = (_linked_data_file *)private_session_resman->Res_open(temp_buf, buf_hash, session_cluster, session_cluster_hash);
+	prop_anims = (LinkedDataFile *)private_session_resman->Res_open(temp_buf, buf_hash, session_cluster, session_cluster_hash);
 
 	// Check file version is correct.
-	if (prop_anims->GetHeaderVersion() != VERSION_PXWGPROPANIMS)
-		Fatal_error("%s version check failed (file has %d, engine has %d)", temp_buf, prop_anims->GetHeaderVersion(), VERSION_PXWGPROPANIMS);
+	if (LinkedDataObject::GetHeaderVersion(prop_anims) != VERSION_PXWGPROPANIMS)
+		Fatal_error("%s version check failed (file has %d, engine has %d)", temp_buf, LinkedDataObject::GetHeaderVersion(prop_anims), VERSION_PXWGPROPANIMS);
 
 	// init features file
-	// we stick this in the private cache so it hangs around and later in-game references wont cause a main pool reload
+	// we stick this in the private cache so it hangs around and later in-game references won't cause a main pool reload
 
 	// When clustered the session files have the base stripped
-	strcpy(temp_buf, "pxwgfeatures");
+	Common::strcpy_s(temp_buf, "pxwgfeatures");
 
 	// so PSX can have nice session loading screen and details (for timing and to stop player getting bored)
 	LoadMsg("Session Features");
 	buf_hash = NULL_HASH;
-	features = (_linked_data_file *)private_session_resman->Res_open(temp_buf, buf_hash, session_cluster, session_cluster_hash);
+	features = (LinkedDataFile *)private_session_resman->Res_open(temp_buf, buf_hash, session_cluster, session_cluster_hash);
 
 	// engine knows no set/camera chosen
 	Reset_camera_director();
@@ -233,12 +232,12 @@ void _game_session::___init(const char *mission, const char *new_session_name) {
 	Tdebug("text_lines.txt", "\n\n---Text Lines---\n");
 
 	// text
-	text = NULL; // game can exist with this file
+	text = nullptr; // game can exist with this file
 
 	char textFileName[100];
 
 	// When clustered the session files have the base stripped
-	strcpy(temp_buf, "text");
+	Common::strcpy_s(temp_buf, "text");
 
 	buf_hash = HashString(temp_buf);
 	if (private_session_resman->Test_file(temp_buf, buf_hash, session_cluster, session_cluster_hash)) {
@@ -251,7 +250,7 @@ void _game_session::___init(const char *mission, const char *new_session_name) {
 			// Ok, translators mode has been activated
 			text = LoadTranslatedFile(mission, session_name);
 		} else
-			text = (_linked_data_file *)private_session_resman->Res_open(temp_buf, buf_hash, session_cluster, session_cluster_hash);
+			text = (LinkedDataFile *)private_session_resman->Res_open(temp_buf, buf_hash, session_cluster, session_cluster_hash);
 	} else
 		Fatal_error("Missing Text File \"%s\"", temp_buf);
 
@@ -259,15 +258,15 @@ void _game_session::___init(const char *mission, const char *new_session_name) {
 
 	// A copy of the code above to open the global text file.  Feel free to edit this if I've ballsed up
 	// anywhere.
-	global_text = NULL;
+	global_text = nullptr;
 
 	char global_cluster[ENGINE_STRING_LEN];
 
-	strcpy(global_cluster, GLOBAL_CLUSTER_PATH);
+	Common::strcpy_s(global_cluster, GLOBAL_CLUSTER_PATH);
 
 	uint32 global_cluster_hash = HashString(global_cluster);
 
-	sprintf(textFileName, GLOBAL_TEXT_FILE);
+	Common::sprintf_s(textFileName, GLOBAL_TEXT_FILE);
 
 	buf_hash = HashString(textFileName);
 
@@ -278,7 +277,7 @@ void _game_session::___init(const char *mission, const char *new_session_name) {
 			// Ok, translators mode has been activated
 			global_text = LoadTranslatedFile("global", "global\\global\\");
 		} else
-			global_text = (_linked_data_file *)private_session_resman->Res_open(textFileName, buf_hash, global_cluster, global_cluster_hash);
+			global_text = (LinkedDataFile *)private_session_resman->Res_open(textFileName, buf_hash, global_cluster, global_cluster_hash);
 
 	} else {
 		Fatal_error("Failed to find global text file [%s][%s]", textFileName, global_cluster);
@@ -288,8 +287,10 @@ void _game_session::___init(const char *mission, const char *new_session_name) {
 	// reference file which is opened here so the global reference can be set.
 	g_oIconMenu->SetTransparencyColourKey();
 
-	// Initialise the remora
-	g_oRemora->InitialiseRemora();
+	if (g_icb->getGameType() == GType_ICB) {
+		// Initialise the remora
+		g_oRemora->InitialiseRemora();
+	}
 
 	// Set the default colour for voice over text.
 	voice_over_red = VOICE_OVER_DEFAULT_RED;
@@ -310,7 +311,7 @@ void _game_session::___init(const char *mission, const char *new_session_name) {
 	total_was = 0;
 
 	// When clustered the session files have the base stripped
-	strcpy(temp_buf, "walkarea");
+	Common::strcpy_s(temp_buf, "walkarea");
 
 	buf_hash = HashString(temp_buf);
 
@@ -319,13 +320,13 @@ void _game_session::___init(const char *mission, const char *new_session_name) {
 	uint32 len = private_session_resman->Check_file_size(temp_buf, buf_hash, session_cluster, session_cluster_hash);
 
 	if (len) {
-		walk_areas = (_linked_data_file *)private_session_resman->Res_open(temp_buf, buf_hash, session_cluster, session_cluster_hash);
-		Tdebug("walkareas.txt", "%d top level walkareas\n", walk_areas->Fetch_number_of_items());
+		walk_areas = (LinkedDataFile *)private_session_resman->Res_open(temp_buf, buf_hash, session_cluster, session_cluster_hash);
+		Tdebug("walkareas.txt", "%d top level walkareas\n", LinkedDataObject::Fetch_number_of_items(walk_areas));
 
 		int32 nMissing = 0;
-		for (uint32 k = 0; k < walk_areas->Fetch_number_of_items(); k++) {
+		for (uint32 k = 0; k < LinkedDataObject::Fetch_number_of_items(walk_areas); k++) {
 			INTEGER_WalkAreaFile *inner_wa;
-			inner_wa = (INTEGER_WalkAreaFile *)walk_areas->Fetch_item_by_number(k);
+			inner_wa = (INTEGER_WalkAreaFile *)LinkedDataObject::Fetch_item_by_number(walk_areas, k);
 
 			Tdebug("walkareas.txt", "\nclump %d has %d inner items", k, inner_wa->GetNoAreas());
 
@@ -384,8 +385,10 @@ void _game_session::___init(const char *mission, const char *new_session_name) {
 }
 
 void _game_session::Script_version_check() {
-	if (FN_ROUTINES_DATA_VERSION != scripts->GetHeaderVersion())
-		Fatal_error("WARNING! SCRIPTS AND ENGINE ARE NOT SAME VERSION");
+	uint32 version = LinkedDataObject::GetHeaderVersion(scripts);
+	if (FN_ROUTINES_DATA_VERSION_ICB != version && FN_ROUTINES_DATA_VERSION_ELDORADO != version) {
+		error("SCRIPTS AND ENGINE ARE NOT SAME VERSION: %d", version);
+	}
 }
 
 void _game_session::___destruct() {
@@ -483,13 +486,19 @@ void _game_session::Init_objects() {
 		// only do this at start of mission - never again afterward - i.e. not when returning to first session from another
 		uint32 script_hash;
 
-		id = objects->Fetch_item_number_by_name("player"); // returns -1 if object not in existence
+		Common::String itemName;
+		if (g_icb->getGameType() == GType_ICB)
+			itemName = "player";
+		else
+			itemName = "scenes";
+		id = LinkedDataObject::Fetch_item_number_by_name(objects, itemName.c_str()); // returns -1 if object not in existence
 		if (id == 0xffffffff)
-			Fatal_error("Init_objects cant find 'player'");
-		script_hash = HashString("player::globals");
-		const char *pc = (const char *)scripts->Try_fetch_item_by_hash(script_hash);
+			Fatal_error("Init_objects can't find '%s'", itemName.c_str());
+		Common::String hashString = itemName + "::globals";
+		script_hash = HashString(hashString.c_str());
+		const char *pc = (const char *)LinkedDataObject::Try_fetch_item_by_hash(scripts, script_hash);
 		if (pc) {
-			object = (c_game_object *)objects->Fetch_item_by_number(id);
+			object = (CGame *)LinkedDataObject::Fetch_item_by_number(objects, id);
 			Tdebug("objects_init.txt", " initialising globals", (const char *)buf);
 			RunScript(pc, object);
 		}
@@ -509,9 +518,9 @@ void _game_session::Init_objects() {
 	// event manager have been initialised in case calls get made to these services in any of the
 	// objects' InitScripts.
 	for (j = 0; ((j < total_objects)); j++) {
-		object = (c_game_object *)objects->Fetch_item_by_number(j);
-		Tdebug("objects_init.txt", "\n\n---------------------------------------------------\n%d  initialising object '%s'", j, object->GetName());
-		Zdebug("\n\n---------------------------------------------------\n%d  initialising object '%s'", j, object->GetName());
+		object = (CGame *)LinkedDataObject::Fetch_item_by_number(objects, j);
+		Tdebug("objects_init.txt", "\n\n---------------------------------------------------\n%d  initialising object '%s'", j, CGameObject::GetName(object));
+		Zdebug("\n\n---------------------------------------------------\n%d  initialising object '%s'", j, CGameObject::GetName(object));
 
 		Zdebug("[%d]", num_megas);
 
@@ -528,24 +537,24 @@ void _game_session::Init_objects() {
 		// the init script is always script 0 for the object
 		// the init script may or may not be overiden
 		// get the address of the script we want to run
-		const char *pc = (const char *)scripts->Try_fetch_item_by_hash(object->GetScriptNameFullHash(OB_INIT_SCRIPT)); // run init script
+		const char *pc = (const char *)LinkedDataObject::Try_fetch_item_by_hash(scripts, CGameObject::GetScriptNameFullHash(object, OB_INIT_SCRIPT)); // run init script
 
 		if (pc) {
 			RunScript(pc, object);
 
-			strcpy(buf, object->GetName());
-			strcat(buf, "::local_init");
+			Common::strcpy_s(buf, CGameObject::GetName(object));
+			Common::strcat_s(buf, "::local_init");
 
 			uint32 script_hash;
 
 			script_hash = HashString(buf);
 
 			// Jso PSX can have nice session loading screen and details (for timing and to stop player getting bored)
-			InitMsg(object->GetName());
+			InitMsg(CGameObject::GetName(object));
 
 			Tdebug("objects_init.txt", "search for [%s]", (const char *)buf);
 
-			pc = (const char *)scripts->Try_fetch_item_by_hash(script_hash);
+			pc = (const char *)LinkedDataObject::Try_fetch_item_by_hash(scripts, script_hash);
 
 			if (pc) {
 				//              set M and I for FN_ functions that may be called
@@ -563,8 +572,8 @@ void _game_session::Init_objects() {
 			logic_structs[j]->logic_level = 0;
 
 			//          set base logic to logic context script
-			logic_structs[j]->logic[0] = (char *)scripts->Try_fetch_item_by_hash(object->GetScriptNameFullHash(OB_LOGIC_CONTEXT));
-			//          **note, we dont need to set up the script reference (logic_ref) for level 0
+			logic_structs[j]->logic[0] = (char *)LinkedDataObject::Try_fetch_item_by_hash(scripts, CGameObject::GetScriptNameFullHash(object, OB_LOGIC_CONTEXT));
+			//          **note, we don't need to set up the script reference (logic_ref) for level 0
 		} else
 			Shut_down_object("by initialise - no init script");
 
@@ -598,24 +607,26 @@ void _game_session::Init_objects() {
 
 	Tdebug("objects_init.txt", "\n\nfound %d voxel characters", number_of_voxel_ids);
 
-	// init the player object number
-	// get id
-	id = objects->Fetch_item_number_by_name("player"); // returns -1 if object not in existence
+	if (g_icb->getGameType() == GType_ICB) {
+		// init the player object number
+		// get id
+		id = LinkedDataObject::Fetch_item_number_by_name(objects, "player"); // returns -1 if object not in existence
 
-	if (id != 0xffffffff) {
-		L = logic_structs[id]; // fetch logic struct for player object
-		I = L->voxel_info;
-		M = L->mega;
+		if (id != 0xffffffff) {
+			L = logic_structs[id]; // fetch logic struct for player object
+			I = L->voxel_info;
+			M = L->mega;
 
-		object = (c_game_object *)objects->Fetch_item_by_number(id);
+			object = (CGame *)LinkedDataObject::Fetch_item_by_number(objects, id);
 
-		//		not if this object has been shut-down - for not having a map marker for example
-		if (L->ob_status != OB_STATUS_HELD)
-			player.Set_player_id(id);
+			// not if this object has been shut-down - for not having a map marker for example
+			if (L->ob_status != OB_STATUS_HELD)
+				player.Set_player_id(id);
 
-		// Preload the player animation to make PSX jerking better
-		for (uint32 i = 0; i < NUMBER_player_startup_anims; i++)
-			rs_anims->Res_open(I->get_anim_name(player_startup_anims[i]), I->anim_name_hash[player_startup_anims[i]], I->base_path, I->base_path_hash);
+			// Preload the player animation to make PSX jerking better
+			for (uint32 i = 0; i < NUMBER_player_startup_anims; i++)
+				rs_anims->Res_open(I->get_anim_name(player_startup_anims[i]), I->anim_name_hash[player_startup_anims[i]], I->base_path, I->base_path_hash);
+		}
 	}
 
 	// done
@@ -626,7 +637,7 @@ void _game_session::Init_objects() {
 }
 
 void _game_session::Pre_initialise_objects() {
-	// prepare gameworld and objects but dont run init scripts yet
+	// prepare gameworld and objects but don't run init scripts yet
 
 	// so PSX can have nice session loading screen and details (for timing and to stop player getting bored)
 	StartInit(total_objects + 6); // +6 because also floors, barriers, markers, camera_table, plan_view, player
@@ -639,7 +650,7 @@ void _game_session::Pre_initialise_objects() {
 	InitMsg("Floors");
 
 	// initialise the floor area definition file
-	// uses the private resman so mission->session-> need to be initialised so this cant be on session contructor
+	// uses the private resman so mission->session-> need to be initialised so this can't be on session contructor
 	floor_def = g_icb_session_floors;
 	g_icb_session_floors->___init();
 
@@ -670,10 +681,10 @@ void _game_session::Pre_initialise_objects() {
 
 		Zdebug("%d -[%d]", j, num_megas);
 
-		object = (c_game_object *)objects->Fetch_item_by_number(j);
+		object = (CGame *)LinkedDataObject::Fetch_item_by_number(objects, j);
 
 		logic_structs[j] = g_logics[j];
-		logic_structs[j]->___init((const char *)object->GetName());
+		logic_structs[j]->___init((const char *)CGameObject::GetName(object));
 	}
 
 	// Set up the event manager for this session.  This has to be done after the barrier handler
@@ -779,7 +790,7 @@ void _game_session::One_logic_cycle() {
 			cur_id = j; // fast reference for engine functions
 			// fetch the object that is our current object
 			// 'object' needed as logic code may ask it for the objects name, etc.
-			object = (c_game_object *)objects->Fetch_item_by_number(j);
+			object = (CGame *)LinkedDataObject::Fetch_item_by_number(objects, j);
 
 			// run appropriate logic
 			switch (L->big_mode) {
@@ -922,16 +933,16 @@ void _game_session::Pre_logic_event_check() {
 	if (L->context_request || g_oEventManager->HasEventPending(cur_id) || g_oSoundLogicEngine->SoundEventPendingForID(cur_id)) {
 		//      Yes, the object has an event pending, so rerun its logic context.
 		if (L->context_request)
-			Zdebug("[%s] internal request to rerun logic context", object->GetName());
+			Zdebug("[%s] internal request to rerun logic context", CGameObject::GetName(object));
 
 		else
-			Zdebug("[%s] event means rerun logic context", object->GetName());
+			Zdebug("[%s] event means rerun logic context", CGameObject::GetName(object));
 
 		if ((L->image_type == VOXEL) && (M->interacting)) { // check for megas who are interacting
 			// interacting, so ignoring LOS event
 			Zdebug("interacting, so ignoring LOS event");
 		} else {
-			L->logic[0] = (char *)scripts->Try_fetch_item_by_hash((object->GetScriptNameFullHash(OB_LOGIC_CONTEXT)));
+			L->logic[0] = (char *)LinkedDataObject::Try_fetch_item_by_hash(scripts, (CGameObject::GetScriptNameFullHash(object, OB_LOGIC_CONTEXT)));
 
 			// run script - context chooser MAY pick a new L 1 logic
 			// we call this now so the new script will be setup and ready to run
@@ -945,7 +956,7 @@ void _game_session::Pre_logic_event_check() {
 
 void _game_session::Script_cycle() {
 	int32 ret;
-	c_game_object *script_owner;
+	CGame *script_owner;
 	uint32 inner_cycles;
 
 	inner_cycles = 0; // to catch infnite_loops
@@ -956,8 +967,8 @@ void _game_session::Script_cycle() {
 		// this can change within a cycle
 		if ((L->image_type == VOXEL) && (M->interacting)) { // check for megas who are interacting
 			// object is running someone elses interaction script
-			// so get their object and pass to interpretter so that local vars can be accessed correctly
-			script_owner = (c_game_object *)objects->Fetch_item_by_number(M->target_id);
+			// so get their object and pass to interpreter so that local vars can be accessed correctly
+			script_owner = (CGame *)LinkedDataObject::Fetch_item_by_number(objects, M->target_id);
 		} else {
 			script_owner = object; // object running its own script
 		}
@@ -967,7 +978,7 @@ void _game_session::Script_cycle() {
 		// ret is:
 		// 0 done enough this cycle
 		// 1 current script has finished and hit closing brace
-		// 2 FN_ returned an IR_TERMINATE to interpretter so we just go around - new script or gosub
+		// 2 FN_ returned an IR_TERMINATE to interpreter so we just go around - new script or gosub
 
 		if (ret == IR_RET_SCRIPT_FINISHED) { // script has finished so drop down a level
 			if (L->logic_level) { // not on base, so we can just drop down to the script below
@@ -982,11 +993,11 @@ void _game_session::Script_cycle() {
 			}
 
 			if (!L->logic_level) { // restart the object
-				L->logic_ref[1] = 0; // completely reset L 1 so that context choose will select ok
+				L->logic_ref[1] = nullptr; // completely reset L 1 so that context choose will select ok
 				// it is acceptable to choose the logic that had previously been running
 
 				// temp reset PC the hard way
-				L->logic[0] = (char *)scripts->Try_fetch_item_by_hash(object->GetScriptNameFullHash(OB_LOGIC_CONTEXT));
+				L->logic[0] = (char *)LinkedDataObject::Try_fetch_item_by_hash(scripts, CGameObject::GetScriptNameFullHash(object, OB_LOGIC_CONTEXT));
 
 				// run script - context chooser will pick a new L 1 logic
 				RunScript(const_cast<const char *&>(L->logic[0]), object);
@@ -1007,20 +1018,20 @@ void _game_session::Script_cycle() {
 		// in the Remora's menu's now for it to trip this limit, and genuine infinite loops will
 		// still be caught.
 		if (inner_cycles == 1000)
-			Fatal_error("object [%s] is in an infinite script loop!", object->GetName());
+			Fatal_error("object [%s] is in an infinite script loop!", CGameObject::GetName(object));
 
 	} while (ret); // ret==0 means quit for this object
 }
 
 uint32 _game_session::Fetch_prop_state(char *prop_name) {
 	// return a props state
-	// if the prop object doesnt exist we create a dummy - the system continues regardless - which is nice
+	// if the prop object doesn't exist we create a dummy - the system continues regardless - which is nice
 
 	uint32 prop_number;
 	uint32 j;
 
 	if (camera_hack == FALSE8) {
-		prop_number = objects->Fetch_item_number_by_name(prop_name);
+		prop_number = LinkedDataObject::Fetch_item_number_by_name(objects, prop_name);
 
 		if (prop_number != 0xffffffff)
 			return (prop_state_table[prop_number]); // get prop state (pc)
@@ -1035,10 +1046,10 @@ uint32 _game_session::Fetch_prop_state(char *prop_name) {
 	while ((j < number_of_missing_objects) && (strcmp(missing_obs[j], prop_name)))
 		++j;
 
-	// didnt find the object
+	// didn't find the object
 	if (j == number_of_missing_objects) {
 		// create entry for the object
-		if (strcmp(prop_name, "not a prop") && (camera_hack == FALSE8)) // dont report dummy lights
+		if (strcmp(prop_name, "not a prop") && (camera_hack == FALSE8)) // don't report dummy lights
 			Message_box("object missing for prop [%s]", prop_name);
 
 		Set_string(prop_name, missing_obs[number_of_missing_objects], MAX_missing_object_name_length);
@@ -1055,14 +1066,14 @@ uint32 _game_session::Fetch_prop_state(char *prop_name) {
 
 void _game_session::Set_prop_state(char *prop_name, uint32 value) {
 	// set a prop state
-	// if the prop doesnt exist we skip it - and assume it will soon be built
+	// if the prop doesn't exist we skip it - and assume it will soon be built
 	// there is no scope checking
 
 	uint32 prop_number;
 	uint32 j;
 
 	if (camera_hack == FALSE8) {
-		prop_number = objects->Fetch_item_number_by_name(prop_name);
+		prop_number = LinkedDataObject::Fetch_item_number_by_name(objects, prop_name);
 
 		if (prop_number != 0xffffffff)
 			prop_state_table[prop_number] = value; // set prop state (pc)
@@ -1076,7 +1087,7 @@ void _game_session::Set_prop_state(char *prop_name, uint32 value) {
 	while ((j < number_of_missing_objects) && (strcmp(missing_obs[j], prop_name)))
 		++j;
 
-	// didnt find the object
+	// didn't find the object
 	if (j == number_of_missing_objects)
 		return;
 
@@ -1106,7 +1117,7 @@ void _game_session::Process_player_floor_status() {
 
 	player_floor = logic_structs[player.Fetch_player_id()]->owner_floor_rect;
 
-	// dont need to tell the player he's on the players floor
+	// don't need to tell the player he's on the players floor
 	if (player.Fetch_player_id() == cur_id)
 		return;
 
@@ -1149,12 +1160,12 @@ void _game_session::Idle_manager() {
 
 			script_hash = HashString("idle");
 
-			// try and find a script with the passed extention i.e. ???::looping
-			for (k = 0; k < object->GetNoScripts(); k++) {
-				if (script_hash == object->GetScriptNamePartHash(k)) {
+			// try and find a script with the passed extension i.e. ???::looping
+			for (k = 0; k < CGameObject::GetNoScripts(object); k++) {
+				if (script_hash == CGameObject::GetScriptNamePartHash(object, k)) {
 					//          script k is the one to run
 					//          get the address of the script we want to run
-					ad = (char *)scripts->Try_fetch_item_by_hash(object->GetScriptNameFullHash(k));
+					ad = (char *)LinkedDataObject::Try_fetch_item_by_hash(scripts, CGameObject::GetScriptNameFullHash(object, k));
 
 					//          write actual offset
 					L->logic[2] = ad;
@@ -1175,7 +1186,7 @@ void _game_session::Idle_manager() {
 }
 
 void _game_session::Set_init_voxel_floors() {
-	// set all mega characters floors - called after game restore because logics may begin by checking the floor number but it wont be set until end of first cycle
+	// set all mega characters floors - called after game restore because logics may begin by checking the floor number but it won't be set until end of first cycle
 	uint32 j;
 
 	for (j = 0; j < number_of_voxel_ids; j++)
@@ -1188,7 +1199,7 @@ void _game_session::Set_init_voxel_floors() {
 	Prepare_megas_route_barriers(TRUE8); // update barriers
 }
 
-_linked_data_file *LoadTranslatedFile(const char *mission, const char *session) {
+LinkedDataFile *LoadTranslatedFile(const char *mission, const char *session) {
 	// Get the actual session name
 	const char *sessionstart = session + strlen(mission) + 1;
 	pxString actsession;
@@ -1203,7 +1214,7 @@ _linked_data_file *LoadTranslatedFile(const char *mission, const char *session) 
 	// Load in this file
 	Common::SeekableReadStream *stream = openDiskFileForBinaryStreamRead(fname.c_str());
 
-	if (stream == NULL) // if it could not be opened
+	if (stream == nullptr) // if it could not be opened
 		Fatal_error("Unable to load file %s", (const char *)fname);
 
 	uint32 len = stream->size();
@@ -1218,7 +1229,7 @@ _linked_data_file *LoadTranslatedFile(const char *mission, const char *session) 
 	//      0 terminate the string
 	memPtr[len] = 0;
 
-	return ((_linked_data_file *)memPtr);
+	return ((LinkedDataFile *)memPtr);
 }
 
 } // End of namespace ICB

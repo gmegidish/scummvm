@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * This file contains the Object Manager code.
  */
@@ -299,27 +298,29 @@ void SortObjectList(OBJECT **pObjList) {
  */
 void GetAniOffset(SCNHANDLE hImg, int flags, int *pAniX, int *pAniY) {
 	if (hImg) {
-		const IMAGE *pImg = (const IMAGE *)_vm->_handle->LockMem(hImg);
+		const IMAGE *pImg = _vm->_handle->GetImage(hImg);
 
 		// set ani X
-		*pAniX = (int16) FROM_16(pImg->anioffX);
+		*pAniX = (int16) pImg->anioffX;
 
 		// set ani Y
-		*pAniY = (int16) FROM_16(pImg->anioffY);
+		*pAniY = (int16) pImg->anioffY;
 
 		if (flags & DMA_FLIPH) {
 			// we are flipped horizontally
 
 			// set ani X = -ani X + width - 1
-			*pAniX = -*pAniX + FROM_16(pImg->imgWidth) - 1;
+			*pAniX = -*pAniX + pImg->imgWidth - 1;
 		}
 
 		if (flags & DMA_FLIPV) {
 			// we are flipped vertically
 
 			// set ani Y = -ani Y + height - 1
-			*pAniY = -*pAniY + (FROM_16(pImg->imgHeight) & ~C16_FLAG_MASK) - 1;
+			*pAniY = -*pAniY + (pImg->imgHeight & ~C16_FLAG_MASK) - 1;
 		}
+
+		delete pImg;
 	} else
 		// null image
 		*pAniX = *pAniY = 0;
@@ -371,12 +372,12 @@ OBJECT *InitObject(const OBJ_INIT *pInitTbl) {
 	if (pInitTbl->hObjImg) {
 		int aniX, aniY;		// objects animation offsets
 		PALQ *pPalQ= nullptr;	// palette queue pointer
-		const IMAGE *pImg = (const IMAGE *)_vm->_handle->LockMem(pInitTbl->hObjImg); // handle to image
+		const IMAGE *pImg = _vm->_handle->GetImage(pInitTbl->hObjImg); // handle to image
 
-		if (!TinselV3) {
+		if (TinselVersion != 3) {
 			if (pImg->hImgPal) {
 				// allocate a palette for this object
-				pPalQ = AllocPalette(FROM_32(pImg->hImgPal));
+				pPalQ = AllocPalette(pImg->hImgPal);
 
 				// make sure palette allocated
 				assert(pPalQ != NULL);
@@ -385,26 +386,26 @@ OBJECT *InitObject(const OBJ_INIT *pInitTbl) {
 			// assign palette to object
 			pObj->pPal = pPalQ;
 		} else {
-			const IMAGE_T3 *pImgT3 = (const IMAGE_T3 *)pImg;
-
-			if ((pImgT3->colorFlags & 0x0C) == 0) { // bits 0b1100 are used to select blending mode
+			if ((pImg->colorFlags & 0x0C) == 0) { // bits 0b1100 are used to select blending mode
 				pObj->flags = pObj->flags & ~DMA_GHOST;
 			} else {
 				assert((pObj->flags & DMA_WNZ) != 0);
 				pObj->flags |= DMA_GHOST;
 			}
-			pObj->isRLE = pImgT3->isRLE;
-			pObj->colorFlags = pImgT3->colorFlags;
+			pObj->isRLE = pImg->isRLE;
+			pObj->colorFlags = pImg->colorFlags;
 		}
 
 		// set objects size
-		pObj->width  = FROM_16(pImg->imgWidth);
-		pObj->height = FROM_16(pImg->imgHeight) & ~C16_FLAG_MASK;
+		pObj->width  = pImg->imgWidth;
+		pObj->height = pImg->imgHeight & ~C16_FLAG_MASK;
 		pObj->flags &= ~C16_FLAG_MASK;
-		pObj->flags |= FROM_16(pImg->imgHeight) & C16_FLAG_MASK;
+		pObj->flags |= pImg->imgHeight & C16_FLAG_MASK;
 
 		// set objects bitmap definition
-		pObj->hBits = FROM_32(pImg->hImgBits);
+		pObj->hBits = pImg->hImgBits;
+
+		delete pImg;
 
 		// get animation offset of object
 		GetAniOffset(pObj->hImg, pInitTbl->objFlags, &aniX, &aniY);
@@ -452,16 +453,18 @@ void AnimateObjectFlags(OBJECT *pAniObj, int newflags, SCNHANDLE hNewImg) {
 
 		if (hNewImg) {
 			// get pointer to image
-			const IMAGE *pNewImg = (IMAGE *)_vm->_handle->LockMem(hNewImg);
+			const IMAGE *pNewImg = _vm->_handle->GetImage(hNewImg);
 
 			// setup new shape
-			pAniObj->width  = FROM_16(pNewImg->imgWidth);
-			pAniObj->height = FROM_16(pNewImg->imgHeight) & ~C16_FLAG_MASK;
+			pAniObj->width  = pNewImg->imgWidth;
+			pAniObj->height = pNewImg->imgHeight & ~C16_FLAG_MASK;
 			newflags &= ~C16_FLAG_MASK;
-			newflags |= FROM_16(pNewImg->imgHeight) & C16_FLAG_MASK;
+			newflags |= pNewImg->imgHeight & C16_FLAG_MASK;
 
 			// set objects bitmap definition
-			pAniObj->hBits  = FROM_32(pNewImg->hImgBits);
+			pAniObj->hBits  = pNewImg->hImgBits;
+
+			delete pNewImg;
 		} else {	// null image
 			pAniObj->width  = 0;
 			pAniObj->height = 0;

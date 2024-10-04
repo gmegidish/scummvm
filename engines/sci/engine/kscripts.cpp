@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -155,6 +154,16 @@ reg_t kResCheck(EngineState *s, int argc, reg_t *argv) {
 	}
 
 #ifdef ENABLE_SCI32
+	// At least LSL6-Hires explicitly treats wave and audio resources the same
+	// in its check routine. This was removed in later interpreters. It may be
+	// in others, but LSL6 is the only game known to have scripts that rely on
+	// this behavior for anything except except kLoad/kUnload calls. Bug #13549
+	if (g_sci->getGameId() == GID_LSL6HIRES) {
+		if (restype == kResourceTypeWave && res == nullptr) {
+			res = g_sci->getResMan()->testResource(ResourceId(kResourceTypeAudio, argv[1].toUint16()));
+		}
+	}
+
 	// GK2 stores some VMDs inside of resource volumes, but usually videos are
 	// streamed from the filesystem.
 	if (res == nullptr) {
@@ -174,7 +183,7 @@ reg_t kResCheck(EngineState *s, int argc, reg_t *argv) {
 		}
 
 		if (format) {
-			const Common::String fileName = Common::String::format(format, argv[1].toUint16());
+			const Common::Path fileName(Common::String::format(format, argv[1].toUint16()));
 			return make_reg(0, Common::File::exists(fileName));
 		}
 	}
@@ -320,7 +329,7 @@ reg_t kRespondsTo(EngineState *s, int argc, reg_t *argv) {
 	reg_t obj = argv[0];
 	int selector = argv[1].toUint16();
 
-	return make_reg(0, s->_segMan->isHeapObject(obj) && lookupSelector(s->_segMan, obj, selector, NULL, NULL) != kSelectorNone);
+	return make_reg(0, s->_segMan->isHeapObject(obj) && lookupSelector(s->_segMan, obj, selector, nullptr, nullptr) != kSelectorNone);
 }
 
 } // End of namespace Sci

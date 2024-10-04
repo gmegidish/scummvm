@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -93,15 +92,15 @@ namespace AGS3 {
 #define OBJECT_ON     13
 #define RUN_DIALOG    14
 
-
+// Number of state-saved rooms
 #define MAX_ROOMS 300
+// Some obsolete room data, likely pre-2.5
+#define MAX_LEGACY_ROOM_FLAGS 15
 
-#define MAX_FLAGS     15
 #define LEGACY_MAXOBJNAMELEN 30
 
 #define LEGACY_MAX_SPRITES_V25  6000
 #define LEGACY_MAX_SPRITES      30000
-#define MAX_CURSOR          20
 
 #if AGS_PLATFORM_OS_WINDOWS
 #define AGS_INLINE inline

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,22 +27,18 @@ namespace Nuvie {
 
 GUI_TextToggleButton::GUI_TextToggleButton(void *data, int x, int y, int w, int h,
 		const char *const *texts_, int count_, int selection_,
-		GUI_Font *font, int alignment_,
+		GUI_Font *font, ButtonTextAlign alignment_,
 		GUI_CallBack *callback, int flat)
-	: GUI_Button(data, x, y, w, h, "", font, alignment_, 0, callback, flat) {
-	count = count_;
+	: GUI_Button(data, x, y, w, h, "", font, alignment_, false, callback, flat), count(count_),
+	  selection(selection_), alignment(alignment_) {
 	assert(count > 0);
-
-	selection = selection_;
 	assert(selection >= 0 && selection < count);
-
-	alignment = alignment_;
 
 	texts = new char *[count];
 	for (int i = 0; i < count; ++i) {
-		int l = strlen(texts_[i]);
-		texts[i] = new char[l + 1];
-		strcpy(texts[i], texts_[i]);
+		int l = strlen(texts_[i]) + 1;
+		texts[i] = new char[l];
+		Common::strcpy_s(texts[i], l, texts_[i]);
 	}
 
 	ChangeTextButton(-1, -1, -1, -1, texts[selection], alignment);

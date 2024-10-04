@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, this code is also
+ * licensed under LGPL 2.1. See LICENSES/COPYING.LGPL file for the
+ * full text of the license.
  *
  */
 
@@ -24,6 +29,10 @@
 #define GOB_DRAW_H
 
 #include "gob/video.h"
+
+namespace Common {
+class WinResources;
+}
 
 namespace Gob {
 
@@ -38,6 +47,7 @@ namespace Gob {
 #define RENDERFLAG_NOSUBTITLES       0x0400
 #define RENDERFLAG_FROMSPLIT         0x0800
 #define RENDERFLAG_DOUBLECOORDS      0x1000
+#define RENDERFLAG_DOUBLEVIDEO       0x2000
 
 class Draw {
 public:
@@ -144,20 +154,21 @@ public:
 	int8 _cursorAnimLow[40];
 	int8 _cursorAnimHigh[40];
 	int8 _cursorAnimDelays[40];
+	Common::String _cursorNames[40];
+	Common::String _cursorName;
+	bool _cursorDrawnFromScripts;
 
 	int32 _cursorCount;
-	bool *_doCursorPalettes;
-	byte *_cursorPalettes;
-	byte *_cursorKeyColors;
-	uint16 *_cursorPaletteStarts;
-	uint16 *_cursorPaletteCounts;
-	int32 *_cursorHotspotsX;
-	int32 *_cursorHotspotsY;
 
 	int16 _palLoadData1[4];
 	int16 _palLoadData2[4];
 
+	// Coordinates adjustment mode
+	// Some game were released for a higher resolution than the one they
+	// were originally designed for. adjustCoords() is used to adjust
+	//
 	int16 _needAdjust;
+
 	int16 _scrollOffsetY;
 	int16 _scrollOffsetX;
 
@@ -192,6 +203,7 @@ public:
 	void adjustCoords(char adjust, uint16 *coord1, uint16 *coord2) {
 		adjustCoords(adjust, (int16 *)coord1, (int16 *)coord2);
 	}
+	void resizeCursors(int16 width, int16 height, int16 count, bool transparency);
 	int stringLength(const char *str, uint16 fontIndex);
 	void printTextCentered(int16 id, int16 left, int16 top, int16 right,
 			int16 bottom, const char *str, int16 fontIndex, int16 color);
@@ -209,6 +221,7 @@ public:
 	virtual void initScreen() = 0;
 	virtual void closeScreen() = 0;
 	virtual void blitCursor() = 0;
+
 	virtual void animateCursor(int16 cursor) = 0;
 	virtual void printTotText(int16 id) = 0;
 	virtual void spriteOperation(int16 operation) = 0;
@@ -297,6 +310,23 @@ public:
 	Draw_Playtoons(GobEngine *vm);
 	~Draw_Playtoons() override {}
 	void spriteOperation(int16 operation) override;
+};
+
+
+class Draw_v7 : public Draw_Playtoons {
+public:
+	Draw_v7(GobEngine *vm);
+	~Draw_v7() override;
+
+	void initScreen() override;
+	void animateCursor(int16 cursor) override;
+
+
+private:
+	Common::WinResources *_cursors;
+
+	bool loadCursorFile();
+	bool loadCursorFromFile(Common::String filename);
 };
 
 // Draw operations

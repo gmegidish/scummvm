@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "ags/shared/ac/game_setup_struct.h"
 #include "ags/engine/ac/statobj/ags_static_object.h"
 #include "ags/engine/ac/game.h"
 #include "ags/engine/ac/game_state.h"
 #include "ags/globals.h"
 
 namespace AGS3 {
+
+using namespace AGS::Shared;
 
 const char *AGSStaticObject::GetFieldPtr(const char *address, intptr_t offset) {
 	return address + offset;
@@ -75,6 +77,9 @@ void AGSStaticObject::WriteFloat(const char *address, intptr_t offset, float val
 void StaticGame::WriteInt32(const char *address, intptr_t offset, int32_t val) {
 	if (offset == 4 * sizeof(int32_t)) {
 		set_debug_mode(val != 0);
+	} else if (offset == 57 * sizeof(int32_t)) {
+		_GP(play).inv_top = val;
+		GUI::MarkInventoryForUpdate(_GP(game).playercharacter, true);
 	} else if (offset == 99 * sizeof(int32_t) || offset == 112 * sizeof(int32_t)) {
 		*(int32_t *)(const_cast<char *>(address) + offset) = ReadScriptAlignment(val);
 	} else {

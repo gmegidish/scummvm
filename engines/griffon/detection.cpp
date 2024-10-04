@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,26 +23,12 @@
 #include "engines/advancedDetector.h"
 
 #include "common/text-to-speech.h"
-#include "common/translation.h"
+
+#include "griffon/detection.h"
 
 static const PlainGameDescriptor griffonGames[] = {
 	{"griffon", "The Griffon Legend"},
-	{NULL, NULL}
-};
-
-#define GAMEOPTION_TTS_NARRATOR 	GUIO_GAMEOPTIONS1
-
-static const ADExtraGuiOptionsMap optionsList[] = {
-	{
-		GAMEOPTION_TTS_NARRATOR,
-		{
-			_s("Enable Text to Speech"),
-			_s("Use TTS to read the descriptions (if TTS is available)"),
-			"tts_enabled",
-			false
-		}
-	},
-	AD_EXTRA_GUI_OPTIONS_TERMINATOR
+	{nullptr, nullptr}
 };
 
 namespace Griffon {
@@ -51,7 +36,7 @@ namespace Griffon {
 static const ADGameDescription gameDescriptions[] = {
 	{
 		"griffon",
-		NULL,
+		nullptr,
 		AD_ENTRY1s("objectdb.dat", "ec5371da28f01ccf88980b32d9de2232", 27754),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -68,20 +53,16 @@ static const ADGameDescription gameDescriptions[] = {
 
 }
 
-class GriffonMetaEngineDetection: public AdvancedMetaEngineDetection {
+class GriffonMetaEngineDetection: public AdvancedMetaEngineDetection<ADGameDescription> {
 public:
-	GriffonMetaEngineDetection() : AdvancedMetaEngineDetection(Griffon::gameDescriptions, sizeof(ADGameDescription), griffonGames
-#ifdef USE_TTS
-			, optionsList
-#endif
-			) {
-	}
-
-	const char *getEngineId() const override {
-		return "griffon";
+	GriffonMetaEngineDetection() : AdvancedMetaEngineDetection(Griffon::gameDescriptions, griffonGames) {
 	}
 
 	const char *getName() const override {
+		return "griffon";
+	}
+
+	const char *getEngineName() const override {
 		return "Griffon Engine";
 	}
 

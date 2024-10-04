@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@
 namespace Neverhood {
 
 Module2800::Module2800(NeverhoodEngine *vm, Module *parentModule, int which)
-	: Module(vm, parentModule), _musicResource(NULL) {
+	: Module(vm, parentModule), _musicResource(nullptr) {
 
 	_currentMusicFileHash = 0;
 	_vm->_soundMan->addMusic(0x64210814, 0xD2FA4D14);
@@ -199,7 +198,7 @@ void Module2800::updateScene() {
 				if (_musicResource) {
 					_musicResource->unload();
 					delete _musicResource;
-					_musicResource = NULL;
+					_musicResource = nullptr;
 				}
 				_currentMusicFileHash = 0;
 			}
@@ -1180,7 +1179,7 @@ Scene2804::Scene2804(NeverhoodEngine *vm, Module *parentModule, int which)
 	addCollisionSprite(_ssRedButton);
 
 	for (uint crystalIndex = 0; crystalIndex < 5; crystalIndex++) {
-		AsScene2804CrystalWaves *asCrystalWaves = NULL;
+		AsScene2804CrystalWaves *asCrystalWaves = nullptr;
 		if (crystalIndex < 4 && getGlobalVar(V_SHRINK_LIGHTS_ON) == 0)
 			asCrystalWaves = insertSprite<AsScene2804CrystalWaves>(crystalIndex);
 		_asCrystals[crystalIndex] = insertSprite<AsScene2804Crystal>(asCrystalWaves, crystalIndex);
@@ -2160,7 +2159,7 @@ uint32 Scene2822::handleMessage(int messageNum, const MessageParam &param, Entit
 			if (getGlobalVar(V_LADDER_DOWN) == 0) {
 				setGlobalVar(V_LADDER_DOWN, 1);
 				setGlobalVar(V_LADDER_DOWN_ACTION, 1);
-				SetMessageHandler(NULL);
+				SetMessageHandler(nullptr);
 				playSound(2);
 				_mouseCursor->setVisible(false);
 			}

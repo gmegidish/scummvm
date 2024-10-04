@@ -1,10 +1,10 @@
 /* Created by Eric Fry
  * Copyright (C) 2011 The Nuvie Team
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,7 +12,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *
  */
@@ -27,17 +27,17 @@
 namespace Ultima {
 namespace Nuvie {
 
-U6AdPlugDecoderStream::U6AdPlugDecoderStream(CEmuopl *o, Std::string filename, uint16 song_num) {
+U6AdPlugDecoderStream::U6AdPlugDecoderStream(CEmuopl *o, const Common::Path &filename, uint16 song_num) {
 	is_midi_track = false;
 	opl = o;
 	samples_left = 0;
-	if (has_file_extension(filename.c_str(), ".lzc")) {
+	if (has_file_extension(filename.baseName().c_str(), ".lzc")) {
 		player = new CmidPlayer(opl);
 		((CmidPlayer *)player)->load(filename, song_num);
 		is_midi_track = true;
 	} else {
 		player = new Cu6mPlayer(opl);
-		player->load(filename.c_str());
+		player->load(filename);
 	}
 	player_refresh_count = (int)(opl->getRate() / player->getrefresh());
 

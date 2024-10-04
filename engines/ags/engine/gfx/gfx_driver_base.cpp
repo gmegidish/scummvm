@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #include "ags/engine/gfx/gfxfilter.h"
 #include "ags/engine/gfx/gfx_driver_base.h"
 #include "ags/engine/gfx/gfx_util.h"
+#include "ags/shared/debugging/out.h"
 
 namespace AGS3 {
 
@@ -35,11 +35,10 @@ namespace Engine {
 GraphicsDriverBase::GraphicsDriverBase()
 	: _pollingCallback(nullptr)
 	, _drawScreenCallback(nullptr)
-	, _nullSpriteCallback(nullptr)
+	, _spriteEvtCallback(nullptr)
 	, _initGfxCallback(nullptr) {
-	// Initialize default sprite batch, it will be used when no other batch was activated
-	_actSpriteBatch = 0;
-	_spriteBatchDesc.push_back(SpriteBatchDesc());
+	_actSpriteBatch = UINT32_MAX;
+	_rendSpriteBatch = UINT32_MAX;
 }
 
 bool GraphicsDriverBase::IsModeSet() const {
@@ -66,17 +65,48 @@ Rect GraphicsDriverBase::GetRenderDestination() const {
 	return _dstRect;
 }
 
+bool GraphicsDriverBase::SetVsync(bool enabled) {
+	if (!_capsVsync || (_mode.Vsync == enabled)) {
+		return _mode.Vsync;
+	}
+
+	bool new_value = true;
+	if (SetVsyncImpl(enabled, new_value) && new_value == enabled) {
+		Debug::Printf("SetVsync: switched to %d", new_value);
+		_mode.Vsync = new_value;
+	}
+	else {
+		Debug::Printf("SetVsync: failed, stay at %d", new_value);
+		_capsVsync = false; // mark as non-capable (at least in current mode)
+	}
+	return _mode.Vsync;
+}
+
+bool GraphicsDriverBase::GetVsync() const {
+	return _mode.Vsync;
+}
+
 void GraphicsDriverBase::BeginSpriteBatch(const Rect &viewport, const SpriteTransform &transform,
-        const Point offset, GlobalFlipType flip, PBitmap surface) {
-	_actSpriteBatch++;
-	_spriteBatchDesc.push_back(SpriteBatchDesc(viewport, transform, offset, flip, surface));
+	GraphicFlip flip, PBitmap surface) {
+	_spriteBatchDesc.push_back(SpriteBatchDesc(_actSpriteBatch, viewport, transform, flip, surface));
+	_spriteBatchRange.push_back(std::make_pair(GetLastDrawEntryIndex(), (size_t) SIZE_MAX));
+	_actSpriteBatch = _spriteBatchDesc.size() - 1;
 	InitSpriteBatch(_actSpriteBatch, _spriteBatchDesc[_actSpriteBatch]);
+}
+
+void GraphicsDriverBase::EndSpriteBatch() {
+	assert(_actSpriteBatch != UINT32_MAX);
+	if (_actSpriteBatch == UINT32_MAX)
+		return;
+	_spriteBatchRange[_actSpriteBatch].second = GetLastDrawEntryIndex();
+	_actSpriteBatch = _spriteBatchDesc[_actSpriteBatch].Parent;
 }
 
 void GraphicsDriverBase::ClearDrawLists() {
 	ResetAllBatches();
-	_actSpriteBatch = 0;
-	_spriteBatchDesc.resize(1);
+	_actSpriteBatch = UINT32_MAX;
+	_spriteBatchDesc.clear();
+	_spriteBatchRange.clear();
 }
 
 void GraphicsDriverBase::OnInit() {
@@ -87,6 +117,8 @@ void GraphicsDriverBase::OnUnInit() {
 
 void GraphicsDriverBase::OnModeSet(const DisplayMode &mode) {
 	_mode = mode;
+	// Adjust some generic parameters as necessary
+	_mode.Vsync &= _capsVsync;
 }
 
 void GraphicsDriverBase::OnModeReleased() {
@@ -107,10 +139,6 @@ void GraphicsDriverBase::OnSetNativeRes(const GraphicResolution &native_res) {
 	_srcRect = RectWH(0, 0, native_res.Width, native_res.Height);
 	_srcColorDepth = native_res.ColorDepth;
 	OnScalingChanged();
-
-	// Adjust default sprite batch making it comply to native size
-	_spriteBatchDesc[0].Viewport = RectWH(native_res);
-	InitSpriteBatch(_actSpriteBatch, _spriteBatchDesc[_actSpriteBatch]);
 }
 
 void GraphicsDriverBase::OnSetRenderFrame(const Rect &dst_rect) {
@@ -149,12 +177,19 @@ Bitmap *VideoMemoryGraphicsDriver::GetMemoryBackBuffer() {
 	return nullptr;
 }
 
-void VideoMemoryGraphicsDriver::SetMemoryBackBuffer(Bitmap *backBuffer) { // do nothing, video-memory drivers don't use main back buffer, only stage bitmaps they pass to plugins
+void VideoMemoryGraphicsDriver::SetMemoryBackBuffer(Bitmap * /*backBuffer*/) {
+	// do nothing, video-memory drivers don't use main back buffer, only stage bitmaps they pass to plugins
 }
 
 Bitmap *VideoMemoryGraphicsDriver::GetStageBackBuffer(bool mark_dirty) {
+	if (_rendSpriteBatch == UINT32_MAX)
+		return nullptr;
 	_stageScreenDirty |= mark_dirty;
-	return _stageVirtualScreen.get();
+	return GetStageScreenRaw(_rendSpriteBatch);
+}
+
+void VideoMemoryGraphicsDriver::SetStageBackBuffer(Bitmap *backBuffer) {
+	// do nothing, video-memory drivers don't support this
 }
 
 bool VideoMemoryGraphicsDriver::GetStageMatrixes(RenderMatrixes &rm) {
@@ -169,49 +204,135 @@ IDriverDependantBitmap *VideoMemoryGraphicsDriver::CreateDDBFromBitmap(Bitmap *b
 	return ddb;
 }
 
-PBitmap VideoMemoryGraphicsDriver::CreateStageScreen(size_t index, const Size &sz) {
-	if (_stageScreens.size() <= index)
-		_stageScreens.resize(index + 1);
-	if (sz.IsNull())
-		_stageScreens[index].reset();
-	else if (_stageScreens[index] == nullptr || _stageScreens[index]->GetSize() != sz)
-		_stageScreens[index].reset(new Bitmap(sz.Width, sz.Height, _mode.ColorDepth));
-	return _stageScreens[index];
+IDriverDependantBitmap *VideoMemoryGraphicsDriver::GetSharedDDB(uint32_t sprite_id, Bitmap *bitmap, bool hasAlpha, bool opaque) {
+	const auto found = _txRefs.find(sprite_id);
+	if (found != _txRefs.end()) {
+		const auto &item = found->_value;
+		if (!item.Data.expired())
+			return CreateDDB(item.Data.lock(), item.Res.Width, item.Res.Height, item.Res.ColorDepth, opaque);
+	}
+
+	// Create and add a new element
+	std::shared_ptr<TextureData> txdata(CreateTextureData(bitmap->GetWidth(), bitmap->GetHeight(), opaque));
+	txdata->ID = sprite_id;
+	UpdateTextureData(txdata.get(), bitmap, opaque, hasAlpha);
+	// only add into the map when has valid sprite ID
+	if (sprite_id != UINT32_MAX) {
+		_txRefs[sprite_id] = TextureCacheItem(txdata,
+			GraphicResolution(bitmap->GetWidth(), bitmap->GetHeight(), bitmap->GetColorDepth()));
+	}
+	return CreateDDB(txdata, bitmap->GetWidth(), bitmap->GetHeight(), bitmap->GetColorDepth(), opaque);
 }
 
-PBitmap VideoMemoryGraphicsDriver::GetStageScreen(size_t index) {
-	if (index < _stageScreens.size())
-		return _stageScreens[index];
-	return nullptr;
+void VideoMemoryGraphicsDriver::UpdateSharedDDB(uint32_t sprite_id, Bitmap *bitmap, bool hasAlpha, bool opaque) {
+	const auto found = _txRefs.find(sprite_id);
+	if (found == _txRefs.end())
+		return;
+	auto txdata = found->_value.Data.lock();
+	if (!txdata)
+		return;
+
+	// Update texture ONLY if the bitmap's resolution matches;
+	// otherwise - detach shared texture (don't delete the data yet, as it may be in use)
+	const auto &res = found->_value.Res;
+	if (res.Width == bitmap->GetWidth() && res.Height == bitmap->GetHeight() && res.ColorDepth == bitmap->GetColorDepth()) {
+		UpdateTextureData(txdata.get(), bitmap, opaque, hasAlpha);
+	} else {
+		txdata->ID = UINT32_MAX;
+		_txRefs.erase(found);
+	}
+}
+
+void VideoMemoryGraphicsDriver::ClearSharedDDB(uint32_t sprite_id) {
+	// Reset sprite ID for any remaining shared txdata,
+	// then remove the reference from the cache;
+	// NOTE: we do not delete txdata itself, as it may be temporarily in use
+	const auto found = _txRefs.find(sprite_id);
+	if (found != _txRefs.end()) {
+		auto txdata = found->_value.Data.lock();
+		if (txdata)
+			txdata->ID = UINT32_MAX;
+		_txRefs.erase(found);
+	}
+}
+
+void VideoMemoryGraphicsDriver::DestroyDDB(IDriverDependantBitmap* ddb) {
+	uint32_t sprite_id = ddb->GetRefID();
+	DestroyDDBImpl(ddb);
+	// Remove shared object from ref list if no more active refs left
+	const auto found = _txRefs.find(sprite_id);
+	if (found != _txRefs.end() && found->_value.Data.expired())
+		_txRefs.erase(found);
+}
+
+void VideoMemoryGraphicsDriver::SetStageScreen(const Size &sz, int x, int y) {
+	SetStageScreen(_actSpriteBatch, sz, x, y);
+}
+
+void VideoMemoryGraphicsDriver::SetStageScreen(size_t index, const Size &sz, int x, int y) {
+	if (_stageScreens.size() <= index)
+		_stageScreens.resize(index + 1);
+	_stageScreens[index].Position = RectWH(x, y, sz.Width, sz.Height);
+}
+
+Bitmap *VideoMemoryGraphicsDriver::GetStageScreenRaw(size_t index) {
+	assert(index < _stageScreens.size());
+	if (_stageScreens.size() <= index)
+		return nullptr;
+
+	auto &scr = _stageScreens[index];
+	const Size sz = scr.Position.GetSize();
+	if (scr.Raw && (scr.Raw->GetSize() != sz)) {
+		scr.Raw.reset();
+		if (scr.DDB)
+			DestroyDDB(scr.DDB);
+		scr.DDB = nullptr;
+	}
+	if (!scr.Raw && !sz.IsNull()) {
+		scr.Raw.reset(new Bitmap(sz.Width, sz.Height, _mode.ColorDepth));
+		scr.DDB = CreateDDB(sz.Width, sz.Height, _mode.ColorDepth, false);
+	}
+	return scr.Raw.get();
+}
+
+IDriverDependantBitmap *VideoMemoryGraphicsDriver::UpdateStageScreenDDB(size_t index, int &x, int &y) {
+	assert((index < _stageScreens.size()) && _stageScreens[index].DDB);
+	if ((_stageScreens.size() <= index) || !_stageScreens[index].Raw || !_stageScreens[index].DDB)
+		return nullptr;
+
+	auto &scr = _stageScreens[index];
+	UpdateDDBFromBitmap(scr.DDB, scr.Raw.get(), true);
+	scr.Raw->ClearTransparent();
+	x = scr.Position.Left;
+	y = scr.Position.Top;
+	return scr.DDB;
 }
 
 void VideoMemoryGraphicsDriver::DestroyAllStageScreens() {
-	if (_stageVirtualScreenDDB)
+	if (_stageVirtualScreenDDB)  // FIXME: Not in upstream
 		this->DestroyDDB(_stageVirtualScreenDDB);
 	_stageVirtualScreenDDB = nullptr;
 
-	for (size_t i = 0; i < _stageScreens.size(); ++i)
-		_stageScreens[i].reset();
-	_stageVirtualScreen.reset();
+	for (size_t i = 0; i < _stageScreens.size(); ++i) {
+		if (_stageScreens[i].DDB)
+			DestroyDDB(_stageScreens[i].DDB);
+	}
+	_stageScreens.clear();
 }
 
-bool VideoMemoryGraphicsDriver::DoNullSpriteCallback(int x, int y) {
-	if (!_nullSpriteCallback)
+IDriverDependantBitmap *VideoMemoryGraphicsDriver::DoSpriteEvtCallback(int evt, int data, int &x, int &y) {
+	if (!_spriteEvtCallback)
 		error("Unhandled attempt to draw null sprite");
 	_stageScreenDirty = false;
-	_stageVirtualScreen->ClearTransparent();
 	// NOTE: this is not clear whether return value of callback may be
 	// relied on. Existing plugins do not seem to return anything but 0,
-	// even if they handle this event.
-	_stageScreenDirty |= _nullSpriteCallback(x, y) != 0;
+	// even if they handle this event. This is why we also set
+	// _stageScreenDirty in certain plugin API function implementations.
+	_stageScreenDirty |= _spriteEvtCallback(evt, data) != 0;
 	if (_stageScreenDirty) {
-		if (_stageVirtualScreenDDB)
-			UpdateDDBFromBitmap(_stageVirtualScreenDDB, _stageVirtualScreen.get(), true);
-		else
-			_stageVirtualScreenDDB = CreateDDBFromBitmap(_stageVirtualScreen.get(), true);
-		return true;
+		return UpdateStageScreenDDB(_rendSpriteBatch, x, y);
 	}
-	return false;
+	return nullptr;
 }
 
 IDriverDependantBitmap *VideoMemoryGraphicsDriver::MakeFx(int r, int g, int b) {
@@ -292,20 +413,20 @@ __inline void get_pixel_if_not_transparent32(const unsigned int *pixel, unsigned
 #define VMEMCOLOR_RGBA(r,g,b,a) \
 	( (((a) & 0xFF) << _vmem_a_shift_32) | (((r) & 0xFF) << _vmem_r_shift_32) | (((g) & 0xFF) << _vmem_g_shift_32) | (((b) & 0xFF) << _vmem_b_shift_32) )
 
-
-void VideoMemoryGraphicsDriver::BitmapToVideoMem(const Bitmap *bitmap, const bool has_alpha, const TextureTile *tile, const VideoMemDDB *target,
-        char *dst_ptr, const int dst_pitch, const bool usingLinearFiltering) {
+void VideoMemoryGraphicsDriver::BitmapToVideoMem(const Bitmap *bitmap, const bool has_alpha, const TextureTile *tile,
+												 char *dst_ptr, const int dst_pitch, const bool usingLinearFiltering) {
 	const int src_depth = bitmap->GetColorDepth();
 	bool lastPixelWasTransparent = false;
-	for (int y = 0; y < tile->height; y++) {
-		lastPixelWasTransparent = false;
-		const uint8_t *scanline_before = bitmap->GetScanLine(y + tile->y - 1);
-		const uint8_t *scanline_at = bitmap->GetScanLine(y + tile->y);
-		const uint8_t *scanline_after = bitmap->GetScanLine(y + tile->y + 1);
-		unsigned int *memPtrLong = (unsigned int *)dst_ptr;
+	switch (src_depth) {
+	case 8: {
+		for (int y = 0; y < tile->height; y++) {
+			lastPixelWasTransparent = false;
+			const uint8_t *scanline_before = (y > 0) ? bitmap->GetScanLine(y + tile->y - 1) : nullptr;
+			const uint8_t *scanline_at = bitmap->GetScanLine(y + tile->y);
+			const uint8_t *scanline_after = (y < tile->height - 1) ? bitmap->GetScanLine(y + tile->y + 1) : nullptr;
+			unsigned int *memPtrLong = (unsigned int *)dst_ptr;
 
-		for (int x = 0; x < tile->width; x++) {
-			if (src_depth == 8) {
+			for (int x = 0; x < tile->width; x++) {
 				const unsigned char *srcData = (const unsigned char *)&scanline_at[(x + tile->x) * sizeof(char)];
 				if (*srcData == MASK_COLOR_8) {
 					if (!usingLinearFiltering)
@@ -337,7 +458,19 @@ void VideoMemoryGraphicsDriver::BitmapToVideoMem(const Bitmap *bitmap, const boo
 						lastPixelWasTransparent = false;
 					}
 				}
-			} else if (src_depth == 16) {
+			}
+			dst_ptr += dst_pitch;
+		}
+	} break;
+	case 16: {
+		for (int y = 0; y < tile->height; y++) {
+			lastPixelWasTransparent = false;
+			const uint8_t *scanline_before = (y > 0) ? bitmap->GetScanLine(y + tile->y - 1) : nullptr;
+			const uint8_t *scanline_at = bitmap->GetScanLine(y + tile->y);
+			const uint8_t *scanline_after = (y < tile->height - 1) ? bitmap->GetScanLine(y + tile->y + 1) : nullptr;
+			unsigned int *memPtrLong = (unsigned int *)dst_ptr;
+
+			for (int x = 0; x < tile->width; x++) {
 				const unsigned short *srcData = (const unsigned short *)&scanline_at[(x + tile->x) * sizeof(short)];
 				if (*srcData == MASK_COLOR_16) {
 					if (!usingLinearFiltering)
@@ -369,7 +502,19 @@ void VideoMemoryGraphicsDriver::BitmapToVideoMem(const Bitmap *bitmap, const boo
 						lastPixelWasTransparent = false;
 					}
 				}
-			} else if (src_depth == 32) {
+			}
+			dst_ptr += dst_pitch;
+		}
+	} break;
+	case 32: {
+		for (int y = 0; y < tile->height; y++) {
+			lastPixelWasTransparent = false;
+			const uint8_t *scanline_before = (y > 0) ? bitmap->GetScanLine(y + tile->y - 1) : nullptr;
+			const uint8_t *scanline_at = bitmap->GetScanLine(y + tile->y);
+			const uint8_t *scanline_after = (y < tile->height - 1) ? bitmap->GetScanLine(y + tile->y + 1) : nullptr;
+			unsigned int *memPtrLong = (unsigned int *)dst_ptr;
+
+			for (int x = 0; x < tile->width; x++) {
 				const unsigned int *srcData = (const unsigned int *)&scanline_at[(x + tile->x) * sizeof(int)];
 				if (*srcData == MASK_COLOR_32) {
 					if (!usingLinearFiltering)
@@ -404,36 +549,72 @@ void VideoMemoryGraphicsDriver::BitmapToVideoMem(const Bitmap *bitmap, const boo
 					}
 				}
 			}
+			dst_ptr += dst_pitch;
 		}
-
-		dst_ptr += dst_pitch;
+	} break;
+	default:
+		break;
 	}
 }
 
-void VideoMemoryGraphicsDriver::BitmapToVideoMemOpaque(const Bitmap *bitmap, const bool has_alpha, const TextureTile *tile, const VideoMemDDB *target,
-        char *dst_ptr, const int dst_pitch) {
+void VideoMemoryGraphicsDriver::BitmapToVideoMemOpaque(const Bitmap *bitmap, const bool has_alpha, const TextureTile *tile,
+													   char *dst_ptr, const int dst_pitch) {
 	const int src_depth = bitmap->GetColorDepth();
-	for (int y = 0; y < tile->height; y++) {
-		const uint8_t *scanline_at = bitmap->GetScanLine(y + tile->y);
-		unsigned int *memPtrLong = (unsigned int *)dst_ptr;
 
-		for (int x = 0; x < tile->width; x++) {
-			if (src_depth == 8) {
+	switch (src_depth) {
+	case 8: {
+		for (int y = 0; y < tile->height; y++) {
+			const uint8_t *scanline_at = bitmap->GetScanLine(y + tile->y);
+			unsigned int *memPtrLong = (unsigned int *)dst_ptr;
+
+			for (int x = 0; x < tile->width; x++) {
 				const unsigned char *srcData = (const unsigned char *)&scanline_at[(x + tile->x) * sizeof(char)];
 				memPtrLong[x] = VMEMCOLOR_RGBA(algetr8(*srcData), algetg8(*srcData), algetb8(*srcData), 0xFF);
-			} else if (src_depth == 16) {
+			}
+
+			dst_ptr += dst_pitch;
+		}
+	} break;
+	case 16: {
+		for (int y = 0; y < tile->height; y++) {
+			const uint8_t *scanline_at = bitmap->GetScanLine(y + tile->y);
+			unsigned int *memPtrLong = (unsigned int *)dst_ptr;
+
+			for (int x = 0; x < tile->width; x++) {
 				const unsigned short *srcData = (const unsigned short *)&scanline_at[(x + tile->x) * sizeof(short)];
 				memPtrLong[x] = VMEMCOLOR_RGBA(algetr16(*srcData), algetg16(*srcData), algetb16(*srcData), 0xFF);
-			} else if (src_depth == 32) {
-				const unsigned int *srcData = (const unsigned int *)&scanline_at[(x + tile->x) * sizeof(int)];
-				if (has_alpha)
+			}
+
+			dst_ptr += dst_pitch;
+		}
+	} break;
+	case 32: {
+		if (has_alpha) {
+			for (int y = 0; y < tile->height; y++) {
+				const uint8_t *scanline_at = bitmap->GetScanLine(y + tile->y);
+				unsigned int *memPtrLong = (unsigned int *)dst_ptr;
+
+				for (int x = 0; x < tile->width; x++) {
+					const unsigned int *srcData = (const unsigned int *)&scanline_at[(x + tile->x) * sizeof(int)];
 					memPtrLong[x] = VMEMCOLOR_RGBA(algetr32(*srcData), algetg32(*srcData), algetb32(*srcData), algeta32(*srcData));
-				else
+				}
+				dst_ptr += dst_pitch;
+			}
+		} else {
+			for (int y = 0; y < tile->height; y++) {
+				const uint8_t *scanline_at = bitmap->GetScanLine(y + tile->y);
+				unsigned int *memPtrLong = (unsigned int *)dst_ptr;
+
+				for (int x = 0; x < tile->width; x++) {
+					const unsigned int *srcData = (const unsigned int *)&scanline_at[(x + tile->x) * sizeof(int)];
 					memPtrLong[x] = VMEMCOLOR_RGBA(algetr32(*srcData), algetg32(*srcData), algetb32(*srcData), 0xFF);
+				}
+				dst_ptr += dst_pitch;
 			}
 		}
-
-		dst_ptr += dst_pitch;
+	} break;
+	default:
+		break;
 	}
 }
 

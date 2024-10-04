@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,12 +48,12 @@ uint32 Path::get_max_score(uint32 cost) {
 	//                           low of a maximum score to move around walls)
 	if (max_score < 8 * 2 * 3)
 		max_score = 8 * 2 * 3;
-	return (max_score);
+	return max_score;
 }
 
 /* Return a weighted estimate of the highest cost from location `s' to `g'.
  */
-uint32 Path::path_cost_est(MapCoord &s, MapCoord &g) {
+uint32 Path::path_cost_est(const MapCoord &s, const MapCoord &g) {
 	uint32 major = (s.xdistance(g) >= s.ydistance(g))
 	               ? s.xdistance(g) : s.ydistance(g);
 	uint32 minor = (s.xdistance(g) >= s.ydistance(g))
@@ -67,23 +66,21 @@ uint32 Path::path_cost_est(MapCoord &s, MapCoord &g) {
 void Path::delete_path() {
 	if (path)
 		free(path);
-	path = NULL;
+	path = nullptr;
 	step_count = 0;
 	path_size = 0;
 }
 
-MapCoord Path::get_first_step() {
-	return (Path::get_step(0));
+const MapCoord &Path::get_first_step() {
+	return Path::get_step(0);
 }
 
-MapCoord Path::get_last_step() {
-	return (Path::get_step(step_count - 1));
+const MapCoord &Path::get_last_step() {
+	return Path::get_step(step_count - 1);
 }
 
-MapCoord Path::get_step(uint32 step_index) {
-	MapCoord step(0, 0, 0);
-	step = path[step_index];
-	return (step);
+const MapCoord &Path::get_step(uint32 step_index) {
+	return path[step_index];
 }
 
 bool Path::have_path() {
@@ -97,7 +94,7 @@ void Path::get_path(MapCoord **path_start, uint32 &pathSize) {
 }
 
 /* Increases path size in blocks and adds a step to the end of the path. */
-void Path::add_step(MapCoord loc) {
+void Path::add_step(const MapCoord &loc) {
 	const int path_block_size = 8;
 	if (step_count >= path_size) {
 		path_size += path_block_size;

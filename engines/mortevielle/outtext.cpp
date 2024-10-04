@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -128,11 +127,11 @@ void TextHandler::displayStr(Common::String inputStr, int x, int y, int dx, int 
  * Load DES (picture container) file
  * @remarks	Originally called 'chardes'
  */
-void TextHandler::loadPictureFile(Common::String filename, Common::String altFilename, int32 skipSize, int length) {
+void TextHandler::loadPictureFile(const Common::Path &filename, const Common::Path &altFilename, int32 skipSize, int length) {
 	Common::File f;
 	if (!f.open(filename)) {
 		if (!f.open(altFilename))
-			error("Missing file: Either %s or %s", filename.c_str(), altFilename.c_str());
+			error("Missing file: Either %s or %s", filename.toString().c_str(), altFilename.toString().c_str());
 	}
 	// HACK: The original game contains a bug in the 2nd intro screen, in German DOS version.
 	// The size specified in the fxx array is wrong (too short). In order to fix it, we are using
@@ -153,10 +152,10 @@ void TextHandler::loadPictureFile(Common::String filename, Common::String altFil
  * Load ANI file
  * @remarks	Originally called 'charani'
  */
-void TextHandler::loadAniFile(Common::String filename, int32 skipSize, int length) {
+void TextHandler::loadAniFile(const Common::Path &filename, int32 skipSize, int length) {
 	Common::File f;
 	if (!f.open(filename))
-		error("Missing file - %s", filename.c_str());
+		error("Missing file - %s", filename.toString().c_str());
 
 	assert(skipSize + length <= f.size());
 
@@ -224,7 +223,7 @@ void TextHandler::taffich() {
 	_vm->_destinationOk = true;
 	_vm->_mouse->hideMouse();
 	drawingStartPos = 0;
-	Common::String filename, altFilename;
+	Common::Path filename, altFilename;
 
 	if ((a != 50) && (a != 51)) {
 		int m = a + 2000;

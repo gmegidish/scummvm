@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,7 +63,7 @@ WorldStats::WorldStats(AsylumEngine *engine) : _vm(engine) {
 	memset(&graphicResourceIds, kResourceNone, sizeof(graphicResourceIds));
 	sceneTitleGraphicResourceId = kResourceNone;
 	sceneTitlePaletteResourceId = kResourceNone;
-	actorType = 0;
+	actorType = kActorMax;
 	memset(&soundResourceIds, kResourceNone, sizeof(soundResourceIds));
 
 	numAmbientSounds = 0;
@@ -202,6 +201,10 @@ void WorldStats::load(Common::SeekableReadStream *stream) {
 	musicResourceIndex        = stream->readSint32LE();
 	musicStatusExt            = stream->readSint32LE();
 
+	// Patch a flag number which is too big
+	if (chapter == kChapter8 && ambientSounds[1].flagNum[1] == 99999)
+		ambientSounds[1].flagNum[1] = 0;
+
 load_objects:
 	//////////////////////////////////////////////////////////////////////////
 	// Read Objects
@@ -310,7 +313,7 @@ load_inventory:
 		ObjectId id = (ObjectId)stream->readUint32LE();
 
 		if (id == 0)
-			wheels[i] = NULL;
+			wheels[i] = nullptr;
 		else
 			wheels[i] = getObjectById(id);
 	}
@@ -489,7 +492,7 @@ void WorldStats::saveLoadWithSerializer(Common::Serializer &s) {
 
 		if (s.isLoading()) {
 			if (id == kObjectNone)
-				wheels[i] = NULL;
+				wheels[i] = nullptr;
 			else
 				wheels[i] = getObjectById(id);
 		}
@@ -544,7 +547,7 @@ Object *WorldStats::getObjectById(ObjectId id) {
 		if (objects[i]->getId() == id)
 			return objects[i];
 
-	return NULL;
+	return nullptr;
 }
 
 void WorldStats::setWheelObjects() {

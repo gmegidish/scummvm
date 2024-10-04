@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -138,7 +137,7 @@ void DrasculaEngine::setupRoomsTable() {
 }
 
 void DrasculaEngine::freeRoomsTable() {
-	if (_roomHandlers == 0)
+	if (_roomHandlers == nullptr)
 		return;
 
 	for (uint32 i = 0; i < _roomHandlers->roomParsers.size(); i++)
@@ -154,7 +153,7 @@ void DrasculaEngine::freeRoomsTable() {
 	_roomHandlers->roomUpdaters.clear();
 
 	delete _roomHandlers;
-	_roomHandlers = 0;
+	_roomHandlers = nullptr;
 }
 
 bool DrasculaEngine::roomParse(int rN, int fl) {
@@ -404,7 +403,7 @@ bool DrasculaEngine::room_13(int fl) {
 		talk(411);
 		trackProtagonist = 3;
 		talk(412);
-		strcpy(objName[1], _textmisc[4]); // "yoda"
+		Common::strcpy_s(objName[1], _textmisc[4]); // "yoda"
 	} else if (pickedObject == kVerbTalk && fl == 51) {
 		converse(7);
 	} else if (pickedObject == 19 && fl == 51) {
@@ -1107,7 +1106,7 @@ void DrasculaEngine::updateRefresh() {
 
 	// Call room-specific updater
 	char rm[20];
-	sprintf(rm, "update_%d", _roomNumber);
+	Common::sprintf_s(rm, "update_%d", _roomNumber);
 	for (uint i = 0; i < _roomHandlers->roomUpdaters.size(); i++) {
 		if (!strcmp(rm, _roomHandlers->roomUpdaters[i]->desc)) {
 			debug(8, "Calling room updater %d", _roomNumber);
@@ -1145,7 +1144,7 @@ void DrasculaEngine::updateRefresh_pre() {
 
 	// Call room-specific preupdater
 	char rm[20];
-	sprintf(rm, "update_%d_pre", _roomNumber);
+	Common::sprintf_s(rm, "update_%d_pre", _roomNumber);
 	for (uint i = 0; i < _roomHandlers->roomPreupdaters.size(); i++) {
 		if (!strcmp(rm, _roomHandlers->roomPreupdaters[i]->desc)) {
 			debug(8, "Calling room preupdater %d", _roomNumber);
@@ -1643,7 +1642,7 @@ bool DrasculaEngine::room(int rN, int fl) {
 	if (!roomParse(rN, fl)) {
 		// Call room-specific parser
 		char rm[20];
-		sprintf(rm, "room_%d", rN);
+		Common::sprintf_s(rm, "room_%d", rN);
 		for (uint i = 0; i < _roomHandlers->roomParsers.size(); i++) {
 			if (!strcmp(rm, _roomHandlers->roomParsers[i]->desc)) {
 				debug(4, "Calling room parser %d", rN);
@@ -1664,7 +1663,7 @@ void DrasculaEngine::enterRoom(int roomIndex) {
 	showCursor();
 
 	char fileName[20];
-	sprintf(fileName, "%d.ald", roomIndex);
+	Common::sprintf_s(fileName, "%d.ald", roomIndex);
 	int soc, l, overridenWidth = 0, objIsExit = 0;
 	float chiquez = 0, pequegnez = 0;
 	char surfaceName[20];
@@ -1672,7 +1671,7 @@ void DrasculaEngine::enterRoom(int roomIndex) {
 
 	_hasName = false;
 
-	strcpy(currentData, fileName);
+	Common::strcpy_s(currentData, fileName);
 
 	Common::SeekableReadStream *stream = _archives.open(fileName);
 	if (!stream)
@@ -1707,7 +1706,7 @@ void DrasculaEngine::enterRoom(int roomIndex) {
 			p.parseString(surfaceName);
 			loadPic(surfaceName, backSurface);
 
-			strcpy(menuBackground, surfaceName);
+			Common::strcpy_s(menuBackground, surfaceName);
 		} else {
 			curWidth = CHARACTER_WIDTH;
 			curHeight = CHARACTER_HEIGHT;
@@ -1719,7 +1718,7 @@ void DrasculaEngine::enterRoom(int roomIndex) {
 			loadPic(96, frontSurface);
 			loadPic(99, backSurface);
 
-			strcpy(menuBackground, "99.alg");
+			Common::strcpy_s(menuBackground, "99.alg");
 		}
 	}
 

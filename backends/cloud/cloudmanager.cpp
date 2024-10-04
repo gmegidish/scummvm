@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 #include "backends/cloud/dropbox/dropboxstorage.h"
 #include "backends/cloud/onedrive/onedrivestorage.h"
 #include "backends/cloud/googledrive/googledrivestorage.h"
+#include "common/formats/json.h"
 #include "common/translation.h"
 #include "common/config-manager.h"
 #include "common/str.h"
@@ -237,7 +237,7 @@ Common::String CloudManager::getStorageLastSync(uint32 index) {
 	return _storages[index].lastSyncDate;
 }
 
-void CloudManager::setStorageUsername(uint32 index, Common::String name) {
+void CloudManager::setStorageUsername(uint32 index, const Common::String &name) {
 	if (index >= _storages.size())
 		return;
 	_storages[index].username = name;
@@ -251,14 +251,14 @@ void CloudManager::setStorageUsedSpace(uint32 index, uint64 used) {
 	save();
 }
 
-void CloudManager::setStorageLastSync(uint32 index, Common::String date) {
+void CloudManager::setStorageLastSync(uint32 index, const Common::String &date) {
 	if (index >= _storages.size())
 		return;
 	_storages[index].lastSyncDate = date;
 	save();
 }
 
-void CloudManager::connectStorage(uint32 index, Common::String code, Networking::ErrorCallback cb) {
+void CloudManager::connectStorage(uint32 index, const Common::String &code, Networking::ErrorCallback cb) {
 	freeStorages();
 
 	switch (index) {
@@ -281,6 +281,66 @@ void CloudManager::connectStorage(uint32 index, Common::String code, Networking:
 	// when the token is received, they call replaceStorage()
 	// or removeStorage(), if some error occurred
 	// thus, no memory leak happens
+}
+
+void CloudManager::connectStorage(uint32 index, Networking::JsonResponse codeFlowJson, Networking::ErrorCallback cb) {
+	freeStorages();
+
+	switch (index) {
+	case kStorageDropboxId:
+		new Dropbox::DropboxStorage(codeFlowJson, cb);
+		break;
+	case kStorageOneDriveId:
+		new OneDrive::OneDriveStorage(codeFlowJson, cb);
+		break;
+	case kStorageGoogleDriveId:
+		new GoogleDrive::GoogleDriveStorage(codeFlowJson, cb);
+		break;
+	case kStorageBoxId:
+		new Box::BoxStorage(codeFlowJson, cb);
+		break;
+	default:
+		break;
+	}
+	// in these constructors Storages extract tokens from the passed JSON
+	// they call replaceStorage(), if the tokens are found,
+	// or removeStorage(), if some error occurred
+	// thus, no memory leak happens
+}
+
+bool CloudManager::connectStorage(Networking::JsonResponse codeFlowJson, Networking::ErrorCallback cb) {
+	const Common::JSONValue *json = codeFlowJson.value;
+	if (json == nullptr || !json->isObject()) {
+		return false;
+	}
+
+	Common::JSONObject result = json->asObject();
+	if (!result.contains("storage")) {
+		return false;
+	}
+
+	Common::JSONValue *storageValue = result.getVal("storage");
+	if (!storageValue->isString()) {
+		return false;
+	}
+
+	uint32 storageId = kStorageNoneId;
+	Common::String storage = storageValue->asString();
+	if (storage == "dropbox")
+		storageId = kStorageDropboxId;
+	else if (storage == "onedrive")
+		storageId = kStorageOneDriveId;
+	else if (storage == "gdrive")
+		storageId = kStorageGoogleDriveId;
+	else if (storage == "box")
+		storageId = kStorageBoxId;
+
+	if (storageId == kStorageNoneId) {
+		return false;
+	}
+
+	connectStorage(storageId, codeFlowJson, cb);
+	return true;
 }
 
 void CloudManager::disconnectStorage(uint32 index) {
@@ -321,7 +381,7 @@ void CloudManager::disconnectStorage(uint32 index) {
 }
 
 
-Networking::Request *CloudManager::listDirectory(Common::String path, Storage::ListDirectoryCallback callback, Networking::ErrorCallback errorCallback, bool recursive) {
+Networking::Request *CloudManager::listDirectory(const Common::String &path, Storage::ListDirectoryCallback callback, Networking::ErrorCallback errorCallback, bool recursive) {
 	Storage *storage = getCurrentStorage();
 	if (storage) {
 		return storage->listDirectory(path, callback, errorCallback, recursive);
@@ -333,7 +393,7 @@ Networking::Request *CloudManager::listDirectory(Common::String path, Storage::L
 	return nullptr;
 }
 
-Networking::Request *CloudManager::downloadFolder(Common::String remotePath, Common::String localPath, Storage::FileArrayCallback callback, Networking::ErrorCallback errorCallback, bool recursive) {
+Networking::Request *CloudManager::downloadFolder(const Common::String &remotePath, const Common::Path &localPath, Storage::FileArrayCallback callback, Networking::ErrorCallback errorCallback, bool recursive) {
 	Storage *storage = getCurrentStorage();
 	if (storage) {
 		return storage->downloadFolder(remotePath, localPath, callback, errorCallback, recursive);
@@ -422,6 +482,12 @@ double CloudManager::getSyncDownloadingProgress() const {
 	return 1;
 }
 
+void CloudManager::getSyncDownloadingInfo(Storage::SyncDownloadingInfo &info) const {
+	Storage *storage = getCurrentStorage();
+	if (storage)
+		storage->getSyncDownloadingInfo(info);
+}
+
 double CloudManager::getSyncProgress() const {
 	Storage *storage = getCurrentStorage();
 	if (storage)
@@ -442,19 +508,13 @@ void CloudManager::cancelSync() const {
 		storage->cancelSync();
 }
 
-void CloudManager::setSyncTarget(GUI::CommandReceiver *target) const {
-	Storage *storage = getCurrentStorage();
-	if (storage)
-		storage->setSyncTarget(target);
-}
-
 void CloudManager::showCloudDisabledIcon() {
 	_icon.show(CloudIcon::kDisabled, 3000);
 }
 
 ///// DownloadFolderRequest-related /////
 
-bool CloudManager::startDownload(Common::String remotePath, Common::String localPath) const {
+bool CloudManager::startDownload(const Common::String &remotePath, const Common::Path &localPath) const {
 	Storage *storage = getCurrentStorage();
 	if (storage)
 		return storage->startDownload(remotePath, localPath);
@@ -515,11 +575,11 @@ Common::String CloudManager::getDownloadRemoteDirectory() const {
 	return "";
 }
 
-Common::String CloudManager::getDownloadLocalDirectory() const {
+Common::Path CloudManager::getDownloadLocalDirectory() const {
 	Storage *storage = getCurrentStorage();
 	if (storage)
 		return storage->getDownloadLocalDirectory();
-	return "";
+	return Common::Path();
 }
 
 bool CloudManager::pollEvent(Common::Event &event) {

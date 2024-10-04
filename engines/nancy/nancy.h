@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,12 +24,14 @@
 
 #include "common/file.h"
 #include "common/str.h"
+#include "common/ptr.h"
 
 #include "engines/engine.h"
 
 #include "nancy/detection.h"
 #include "nancy/time.h"
 #include "nancy/commontypes.h"
+#include "nancy/enginedata.h"
 
 namespace Common {
 class RandomSource;
@@ -41,19 +42,19 @@ class Serializer;
  * This is the namespace of the Nancy engine.
  *
  * Status of this engine:
- * Nancy Drew: Secrets can kill is completable,
- * with a few minor graphical glitches;
- * The Vampire Diaries boots, but crashes almost immediately;
- * every other game is untested but definitely unplayable
+ * The Vampire Diaries and all Nancy Drew games up to and including
+ * Nancy Drew: Ghost Dogs of Moon Lake are fully completable.
+ * Every other game is untested but definitely unplayable.
  *
  * Games using this engine:
- *  - The Vampire Diaries (1996)
- *  - Almost every mainline Nancy Drew game by HeR Interactive,
- * 	up to and including Nancy Drew: Sea of Darkness (2015)
+ *	- The Vampire Diaries (1996)
+ *	- Almost every mainline Nancy Drew game by HeR Interactive,
+ *		beginnning with Nancy Drew: Secrets can Kill (1998)
+ *		up to and including Nancy Drew: Sea of Darkness (2015)
  */
 namespace Nancy {
 
-static const int kSavegameVersion = 1;
+static const int kSavegameVersion = 3;
 
 struct NancyGameDescription;
 
@@ -63,9 +64,8 @@ class InputManager;
 class SoundManager;
 class GraphicsManager;
 class CursorManager;
-class CheatDialog;
 class NancyConsole;
-struct GameConstants;
+class DeferredLoader;
 
 namespace State {
 class State;
@@ -80,93 +80,91 @@ public:
 
 	static NancyEngine *create(GameType type, OSystem *syst, const NancyGameDescription *gd);
 
-	virtual bool hasFeature(EngineFeature f) const override;
+	void errorString(const char *buf_input, char *buf_output, int buf_output_size) override;
+	bool hasFeature(EngineFeature f) const override;
 
-	virtual Common::Error loadGameStream(Common::SeekableReadStream *stream) override;
-	virtual Common::Error saveGameStream(Common::WriteStream *stream, bool isAutosave = false) override;
-	virtual bool canLoadGameStateCurrently() override;
-	virtual bool canSaveGameStateCurrently() override;
-	virtual bool canSaveAutosaveCurrently() override;
+	Common::Error loadGameStream(Common::SeekableReadStream *stream) override;
+	Common::Error saveGameStream(Common::WriteStream *stream, bool isAutosave = false) override;
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
+
+	void secondChance();
 
 	const char *getCopyrightString() const;
 	uint32 getGameFlags() const;
 	const char *getGameId() const;
 	GameType getGameType() const;
+	Common::Language getGameLanguage() const;
 	Common::Platform getPlatform() const;
 
-	const GameConstants &getConstants() const;
+	const StaticData &getStaticData() const;
+	const EngineData *getEngineData(const Common::String &name) const;
 
 	void setState(NancyState::NancyState state, NancyState::NancyState overridePrevious = NancyState::kNone);
 	NancyState::NancyState getState() { return _gameFlow.curState; }
 	void setToPreviousState();
 
-	// Chunks found in BOOT get extracted and cached at startup, this function lets other classes access them
-	Common::SeekableReadStream *getBootChunkStream(const Common::String &name) const;
-
 	void setMouseEnabled(bool enabled);
 
-	void callCheatMenu(bool eventFlags);
+	void addDeferredLoader(Common::SharedPtr<DeferredLoader> &loaderPtr);
+
+	// The first few games used 1/2 for false/true in
+	// inventory, logic conditions, and event flags
+	const byte _true;
+	const byte _false;
 
 	// Managers
 	ResourceManager *_resource;
-	GraphicsManager *_graphicsManager;
-	CursorManager *_cursorManager;
+	GraphicsManager *_graphics;
+	CursorManager *_cursor;
 	InputManager *_input;
 	SoundManager *_sound;
 
 	Common::RandomSource *_randomSource;
 
-	// BSUM data
-	SceneChangeDescription _firstScene;
-	
-	uint16 _startTimeHours;
-	uint16 _startTimeMinutes;
+	// Used to check whether we need to show the SaveDialog
+	bool _hasJustSaved;
 
-	bool _overrideMovementTimeDeltas;
-	Time _slowMovementTimeDelta;
-	Time _fastMovementTimeDelta;
-	Time _playerTimeMinuteLength;
-
-	uint _horizontalEdgesSize;
-	uint _verticalEdgesSize;
-
-	Common::Rect _textboxScreenPosition;
+protected:
+	Common::Error run() override;
+	void pauseEngineIntern(bool pause) override;
 
 private:
 	struct GameFlow {
 		NancyState::NancyState curState = NancyState::kNone;
 		NancyState::NancyState prevState = NancyState::kNone;
+		NancyState::NancyState nextState = NancyState::kNone;
+		bool changingState = true;
 	};
-
-	virtual Common::Error run() override;
 
 	void bootGameEngine();
 
 	State::State *getStateObject(NancyState::NancyState state) const;
+	void destroyState(NancyState::NancyState state) const;
 
-	bool addBootChunk(const Common::String &name, Common::SeekableReadStream *stream);
-	void clearBootChunks();
-
-	void preloadCals(const IFF &boot);
-	void readChunkList(const IFF &boot, Common::Serializer &ser, const Common::String &prefix);
-
-	void readBootSummary(const IFF &boot);
+	void preloadCals();
+	void readDatFile();
 
 	Common::Error synchronize(Common::Serializer &serializer);
 
 	bool isCompressed();
 
-	bool _cheatTypeIsEventFlag;
+	StaticData _staticData;
+	Common::HashMap<Common::String, EngineData *> _engineData;
+
+	const byte _datFileMajorVersion;
+	const byte _datFileMinorVersion;
 
 	GameFlow _gameFlow;
 	OSystem *_system;
 
 	const NancyGameDescription *_gameDescription;
 
-	Common::HashMap<Common::String, Common::SeekableReadStream *> _bootChunks;
+	Common::Array<Common::WeakPtr<DeferredLoader>> _deferredLoaderObjects;
 };
 
 extern NancyEngine *g_nancy;
+#define GetEngineData(s) (const s*)g_nancy->getEngineData(#s);
 
 } // End of namespace Nancy
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,16 +31,14 @@
 namespace Ultima {
 namespace Nuvie {
 
-CustomSfxManager::CustomSfxManager(Configuration *cfg, Audio::Mixer *m) : SfxManager(cfg, m) {
-	Std::string cfg_filename;
-
-	sfx_map = new Std::map<uint16, uint16>();
+CustomSfxManager::CustomSfxManager(const Configuration *cfg, Audio::Mixer *m) : SfxManager(cfg, m) {
+	Common::Path cfg_filename;
 
 	config->pathFromValue("config/ultima6/sfxdir", "", custom_filepath);
 
 	build_path(custom_filepath, "sfx_map.cfg", cfg_filename);
 
-	loadSfxMapFile(cfg_filename, sfx_map);
+	loadSfxMapFile(cfg_filename);
 }
 
 CustomSfxManager::~CustomSfxManager() {
@@ -49,30 +46,29 @@ CustomSfxManager::~CustomSfxManager() {
 }
 
 
-bool CustomSfxManager::loadSfxMapFile(Std::string cfg_filename, Std::map<uint16, uint16> *m) {
-	char seps[] = ";\r\n";
-	char *token1;
-	char *token2;
+bool CustomSfxManager::loadSfxMapFile(const Common::Path &cfg_filename) {
+	const char seps[] = ";\r\n";
+	const char *token1;
+	const char *token2;
 	NuvieIOFileRead niof;
-	char *sz;
 
 	if (niof.open(cfg_filename) == false) {
-		DEBUG(0, LEVEL_ERROR, "Failed to open '%s'", cfg_filename.c_str());
+		DEBUG(0, LEVEL_ERROR, "Failed to open '%s'", cfg_filename.toString().c_str());
 		return false;
 	}
 
-	sz = (char *) niof.readAll();
+	char *sz = (char *)niof.readAll();
 
 	token1 = strtok(sz, seps);
 
-	while ((token1 != NULL) && ((token2 = strtok(NULL, seps)) != NULL)) {
+	while ((token1 != nullptr) && ((token2 = strtok(nullptr, seps)) != nullptr)) {
 		SfxIdType sfx_id = (SfxIdType)atoi(token1);
 		int custom_wave_id = atoi(token2);
 
 		DEBUG(0, LEVEL_DEBUGGING, "%d : %d.wav\n", sfx_id, custom_wave_id);
-		(*m)[sfx_id] = custom_wave_id;
+		sfx_map[sfx_id] = custom_wave_id;
 
-		token1 = strtok(NULL, seps);
+		token1 = strtok(nullptr, seps);
 	}
 
 
@@ -80,15 +76,15 @@ bool CustomSfxManager::loadSfxMapFile(Std::string cfg_filename, Std::map<uint16,
 }
 
 bool CustomSfxManager::playSfx(SfxIdType sfx_id, uint8 volume) {
-	return playSfxLooping(sfx_id, NULL, volume);
+	return playSfxLooping(sfx_id, nullptr, volume);
 }
 
 
 bool CustomSfxManager::playSfxLooping(SfxIdType sfx_id, Audio::SoundHandle *handle, uint8 volume) {
-	Std::map < uint16, uint16 >::iterator it;
+	Common::HashMap < uint16, uint16 >::iterator it;
 
-	it = sfx_map->find((uint16)sfx_id);
-	if (it != sfx_map->end()) {
+	it = sfx_map.find((uint16)sfx_id);
+	if (it != sfx_map.end()) {
 		playSoundSample((*it)._value, handle, volume);
 		return true;
 	}
@@ -97,18 +93,18 @@ bool CustomSfxManager::playSfxLooping(SfxIdType sfx_id, Audio::SoundHandle *hand
 }
 
 void CustomSfxManager::playSoundSample(uint16 sample_num, Audio::SoundHandle *looping_handle, uint8 volume) {
-	Audio::AudioStream *stream = NULL;
+	Audio::AudioStream *stream = nullptr;
 	Audio::SoundHandle handle;
-	Std::string filename;
+	Common::Path filename;
 	char wavefile[10]; // "nnnnn.wav\0"
 
-	sprintf(wavefile, "%d.wav", sample_num);
+	Common::sprintf_s(wavefile, "%d.wav", sample_num);
 
 	build_path(custom_filepath, wavefile, filename);
 
 	Common::File *readStream = new Common::File();
 	if (!readStream->open(filename)) {
-		DEBUG(0, LEVEL_ERROR, "Failed to open '%s'", filename.c_str());
+		DEBUG(0, LEVEL_ERROR, "Failed to open '%s'", filename.toString().c_str());
 		delete readStream;
 		return;
 	}

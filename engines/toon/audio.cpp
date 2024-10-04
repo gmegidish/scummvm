@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * This file is dual-licensed.
+ * In addition to the GPLv3 license mentioned above, MojoTouch has
+ * exclusively licensed this code on March 23th, 2024, to be used in
+ * closed-source products.
+ * Therefore, any contributions (commits) to it will also be dual-licensed.
  *
  */
 
@@ -31,10 +37,10 @@ namespace Toon {
 
 AudioManager::AudioManager(ToonEngine *vm, Audio::Mixer *mixer) : _vm(vm), _mixer(mixer) {
 	for (int32 i = 0; i < 16; i++)
-		_channels[i] = NULL;
+		_channels[i] = nullptr;
 
 	for (int32 i = 0; i < 4; i++)
-		_audioPacks[i] = NULL;
+		_audioPacks[i] = nullptr;
 
 	for (int32 i = 0; i < 4; i++) {
 		_ambientSFXs[i]._delay = 0;
@@ -80,24 +86,29 @@ void AudioManager::removeInstance(AudioStreamInstance *inst) {
 
 	for (int32 i = 0; i < 16; i++) {
 		if (inst == _channels[i])
-			_channels[i] = NULL;
+			_channels[i] = nullptr;
 	}
 }
 
-void AudioManager::playMusic(const Common::String &dir, const Common::String &music) {
+int AudioManager::playMusic(const Common::String &dir, const Common::String &music) {
 	debugC(1, kDebugAudio, "playMusic(%s, %s)", dir.c_str(), music.c_str());
 
 	// two musics can be played at same time
-	Common::String path = Common::String::format("ACT%d/%s/%s.MUS", _vm->state()->_currentChapter, dir.c_str(), music.c_str());
+	Common::Path path;
+	if (dir == "") {
+		path = Common::Path(Common::String::format("%s.MUS", music.c_str()));
+	} else {
+		path = Common::Path(Common::String::format("ACT%d/%s/%s.MUS", _vm->state()->_currentChapter, dir.c_str(), music.c_str()));
+	}
 
 	if (_currentMusicName == music)
-		return;
+		return -1;
 
 	_currentMusicName = music;
 
 	Common::SeekableReadStream *srs = _vm->resources()->openFile(path);
 	if (!srs)
-		return;
+		return -1;
 
 	// see what channel to take
 	// if the current channel didn't really start. reuse this one
@@ -119,10 +130,12 @@ void AudioManager::playMusic(const Common::String &dir, const Common::String &mu
 		_channels[_currentMusicChannel]->stop(false);
 	}
 
-	// no need to delete instance here it will automatically deleted by the mixer is done with it
+	// no need to delete instance here; it will automatically be deleted by the mixer when it is done with it
 	_channels[_currentMusicChannel] = new AudioStreamInstance(this, _mixer, srs, true, true);
 	_channels[_currentMusicChannel]->setVolume(_musicMuted ? 0 : 255);
 	_channels[_currentMusicChannel]->play(true, Audio::Mixer::kMusicSoundType);
+
+	return _currentMusicChannel;
 }
 
 bool AudioManager::voiceStillPlaying() {
@@ -196,18 +209,18 @@ void AudioManager::stopCurrentVoice() {
 
 void AudioManager::closeAudioPack(int32 id) {
 	delete _audioPacks[id];
-	_audioPacks[id] = NULL;
+	_audioPacks[id] = nullptr;
 }
 
-bool AudioManager::loadAudioPack(int32 id, const Common::String &indexFile, const Common::String &packFile) {
-	debugC(4, kDebugAudio, "loadAudioPack(%d, %s, %s)", id, indexFile.c_str(), packFile.c_str());
+bool AudioManager::loadAudioPack(int32 id, const Common::Path &indexFile, const Common::Path &packFile) {
+	debugC(4, kDebugAudio, "loadAudioPack(%d, %s, %s)", id, indexFile.toString().c_str(), packFile.toString().c_str());
 
 	closeAudioPack(id);
 	_audioPacks[id] = new AudioStreamPackage(_vm);
 	return _audioPacks[id]->loadAudioPackage(indexFile, packFile);
 }
 
-void AudioManager::setMusicVolume(int32 volume) {
+void AudioManager::setMusicVolume(uint8 volume) {
 	debugC(1, kDebugAudio, "setMusicVolume(%d)", volume);
 	if (_channels[0])
 		_channels[0]->setVolume(volume);
@@ -216,22 +229,29 @@ void AudioManager::setMusicVolume(int32 volume) {
 		_channels[1]->setVolume(volume);
 }
 
-void AudioManager::stopMusic() {
+void AudioManager::stopMusicChannel(int channelId, bool fade) {
+	if (_channels[channelId])
+		_channels[channelId]->stop(fade);
+
+	if (_currentMusicChannel == channelId)
+		// clean _currentMusicName too
+		_currentMusicName = "";
+}
+
+void AudioManager::stopMusic(bool fade) {
 	debugC(1, kDebugAudio, "stopMusic()");
 
-	if (_channels[0])
-		_channels[0]->stop(true);
-	if (_channels[1])
-		_channels[1]->stop(true);
+	stopMusicChannel(0, fade);
+	stopMusicChannel(1, fade);
 }
 
 AudioStreamInstance::AudioStreamInstance(AudioManager *man, Audio::Mixer *mixer, Common::SeekableReadStream *stream , bool looping, bool deleteFileStreamAtEnd) {
 	_compBufferSize = 0;
-	_buffer = NULL;
+	_buffer = nullptr;
 	_bufferSize = 0;
 	_bufferMaxSize = 0;
 	_mixer = mixer;
-	_compBuffer = NULL;
+	_compBuffer = nullptr;
 	_bufferOffset = 0;
 	_lastSample = 0;
 	_lastStepIndex = 0;
@@ -475,8 +495,8 @@ void AudioStreamInstance::setVolume(int32 volume) {
 }
 
 AudioStreamPackage::AudioStreamPackage(ToonEngine *vm) : _vm(vm) {
-	_indexBuffer = NULL;
-	_file = NULL;
+	_indexBuffer = nullptr;
+	_file = nullptr;
 }
 
 AudioStreamPackage::~AudioStreamPackage() {
@@ -484,8 +504,8 @@ AudioStreamPackage::~AudioStreamPackage() {
 	delete _file;
 }
 
-bool AudioStreamPackage::loadAudioPackage(const Common::String &indexFile, const Common::String &streamFile) {
-	debugC(4, kDebugAudio, "loadAudioPackage(%s, %s)", indexFile.c_str(), streamFile.c_str());
+bool AudioStreamPackage::loadAudioPackage(const Common::Path &indexFile, const Common::Path &streamFile) {
+	debugC(4, kDebugAudio, "loadAudioPackage(%s, %s)", indexFile.toString().c_str(), streamFile.toString().c_str());
 
 	uint32 size = 0;
 	uint8 *fileData = _vm->resources()->getFileData(indexFile, &size);

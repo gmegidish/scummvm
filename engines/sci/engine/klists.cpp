@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -869,6 +868,10 @@ reg_t kArrayCopy(EngineState *s, int argc, reg_t *argv) {
 	const uint16 targetIndex = argv[1].toUint16();
 	const uint16 sourceIndex = argv[3].toUint16();
 	const int16 count = argv[4].toSint16();
+
+	if (argv[2].isNull()) {
+		return argv[0];
+	}
 
 	if (!s->_segMan->isArray(argv[2])) {
 		// String copies may be made from static script data

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,7 +51,7 @@ static const TonyGameDescription gameDescriptions[] = {
 				{ "voices.vdb",  0, "3384bdcb70d1e1ecedbde26e79683ede", 299019523 },
 				AD_LISTEND
 			},
-			Common::CZ_CZE,
+			Common::CS_CZE,
 			Common::kPlatformWindows,
 			ADGF_DROPPLATFORM,
 			GUIO1(GUIO_NOMIDI)
@@ -71,6 +70,24 @@ static const TonyGameDescription gameDescriptions[] = {
 				AD_LISTEND
 			},
 			Common::FR_FRA,
+			Common::kPlatformWindows,
+			ADGF_DROPPLATFORM,
+			GUIO1(GUIO_NOMIDI)
+		},
+	},
+
+	{
+		// Tony Tough Spanish provided by Pakolmo
+		{
+			"tony",
+			0,
+			{
+				{ "roasted.mpc", 0, "bcca7985db2fba9c1c4a0886618ec835", 515967 },
+				{ "roasted.mpr", 0, "06203dbbc85fdd1e6dc8fc211c1a6207", 135911071 },
+				{ "voices.vdb", 0, "aebc6eb607ee19cc94bfe9c11898bb8c", 243003502 },
+				AD_LISTEND
+			},
+			Common::ES_ESP,
 			Common::kPlatformWindows,
 			ADGF_DROPPLATFORM,
 			GUIO1(GUIO_NOMIDI)
@@ -103,7 +120,7 @@ static const TonyGameDescription gameDescriptions[] = {
 			{
 				{ "roasted.mpc", 0, "187de6f88f4083808cb66342ab55a7fd", 389904 },
 				{ "roasted.mpr", 0, "06203dbbc85fdd1e6dc8fc211c1a6207", 135911071 },
-				{ "voices.vdb",  0, 0, -1 },	// FIXME
+				{ "voices.vdb",  0, 0, AD_NO_SIZE },	// FIXME
 				AD_LISTEND
 			},
 			Common::DE_DEU,

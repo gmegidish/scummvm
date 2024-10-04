@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -121,7 +120,9 @@ private:
 	bool restParty_extraAbortCondition() override;
 
 	// Sound
+	void snd_playLevelScore() override;
 	void snd_loadAmigaSounds(int level, int sub) override;
+	void snd_updateLevelScore() override;
 
 	const char *const *_amigaSoundFiles2;
 	const char *const *_amigaSoundMapExtra;
@@ -148,9 +149,14 @@ private:
 	const char *const *_utilMenuStrings;
 
 	static const KyraRpgGUISettings _guiSettingsDOS;
+	static const KyraRpgGUISettings _guiSettingsDOS_ZH;
 	static const KyraRpgGUISettings _guiSettingsFMTowns;
+	static const KyraRpgGUISettings _guiSettingsPC98;
 	static const KyraRpgGUISettings _guiSettingsAmiga;
 	static const uint8 _egaDefaultPalette[];
+
+	static const uint16 _dlgButtonPosX_ZH[17];
+	static const uint8 _dlgButtonPosY_ZH[17];
 };
 
 } // End of namespace Kyra

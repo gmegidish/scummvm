@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,8 +25,9 @@
 #include "scumm/actor.h"
 #include "scumm/charset.h"
 #include "scumm/file.h"
+#include "scumm/he/intern_he.h"
 #include "scumm/imuse/imuse.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
 #include "scumm/insane/insane.h"
 #include "scumm/object.h"
 #include "scumm/resource.h"
@@ -346,7 +346,7 @@ void ScummEngine_v6::nukeArray(int a) {
 	data = readVar(a);
 
 	if (_game.heversion >= 80)
-		data &= ~0x33539000;
+		data &= ~MAGIC_ARRAY_NUMBER;
 
 	if (data)
 		_res->nukeResource(rtString, data);
@@ -373,7 +373,7 @@ int ScummEngine_v6::findFreeArrayId() {
 ScummEngine_v6::ArrayHeader *ScummEngine_v6::getArray(int array) {
 	ArrayHeader *ah = (ArrayHeader *)getResourceAddress(rtString, readVar(array));
 	if (!ah)
-		return 0;
+		return nullptr;
 
 	if (_game.heversion == 0) {
 		// Workaround for a long standing bug where we saved array headers in native
@@ -406,7 +406,10 @@ int ScummEngine_v6::readArray(int array, int idx, int base) {
 	// ...
 	// So it checks for invalid array indices only *after* using them to access
 	// the array. Ouch.
-	if (_game.id == GID_FT && array == 447 && _currentRoom == 95 && vm.slot[_currentScript].number == 2010 && idx == -1 && base == -1) {
+	//
+	// TODO: what did the original interpreter precisely do in this case?
+	if (_game.id == GID_FT && array == 447 && _currentRoom == 95 && vm.slot[_currentScript].number == 2010 && idx == -1 && base == -1 &&
+		enhancementEnabled(kEnhGameBreakingBugFixes)) {
 		return 0;
 	}
 
@@ -496,6 +499,81 @@ void ScummEngine_v6::o6_pushByteVar() {
 }
 
 void ScummEngine_v6::o6_pushWordVar() {
+// BACKYARD BASEBALL 2001 ONLINE CHANGES
+#if defined(USE_ENET) && defined(USE_LIBCURL)
+	if (_enableHECompetitiveOnlineMods) {
+		// Sprinting in competitive Backyard Baseball is considered too weak in its current state. This will increase how effective
+		// it is, limiting the highest speed characters enough to where they cannot go TOO fast.
+		if (_game.id == GID_BASEBALL2001 && _currentRoom == 3 && vm.slot[_currentScript].number == 2095 && readVar(399) == 1) {
+			int offset = _scriptPointer - _scriptOrgPointer;
+			int sprintCounter = readArray(344, vm.localvar[_currentScript][0], 1);
+			int sprintGain = vm.localvar[_currentScript][4];
+			int playerSpeed = vm.localvar[_currentScript][5];
+			if (offset == 42273) {
+				if (sprintCounter >= 21) {
+					if (playerSpeed >= 8) {
+						sprintGain = 2;
+					} else if (playerSpeed == 6 || playerSpeed == 7) {
+						sprintGain = 3;
+					} else {
+						sprintGain = 4;
+					}
+				} else if (sprintCounter >= 15) {
+					if (playerSpeed >= 6) {
+						sprintGain = 2;
+					} else {
+						sprintGain = 3;
+					}
+				} else if (sprintCounter >= 9) {
+						sprintGain = 2;
+				} else {
+					sprintGain = 1;
+				}
+				writeVar(0x4000 + 4, sprintGain);
+			}
+		}
+
+		// This code will change the velocity of the hit based on the pitch thrown, and the location of the pitch itself.
+		if (_game.id == GID_BASEBALL2001 && _currentRoom == 4 && vm.slot[_currentScript].number == 2090 && readVar(399) == 1) {
+			int offset = _scriptPointer - _scriptOrgPointer;
+			int powerAdjustment = vm.localvar[_currentScript][4];
+			int pitchSelected = readVar(0x8000 + 10);
+
+			// Checks if the swing is either Power or Line Drive
+			if (offset == 102789 && (readVar(387) == 1||readVar(387) == 2)) {
+				// Checks if the current pitch type is the same as that of the "remembered" pitch type
+				if (readArray(346, 0, 0) == readArray(346, 1, 0)) {
+					// Checks if the current pitch is either a Heat or a Fireball. The reason it adds 0 instead of 5 is because
+					// in the actual calculation it adds 5 to these two anyway, so this should help balance them out.
+					if (pitchSelected == 14 || pitchSelected == 21) {
+						powerAdjustment = powerAdjustment + 0;
+					} else {
+						powerAdjustment = powerAdjustment + 5;
+					}
+				}
+				// Checks if the zone location is the same as that of the previous one. This should slightly reduce the amount of pitching to the exact same location.
+				// Can also be adjusted later if necessary.
+				if (readArray(346, 0, 1) == readArray(346, 1, 1)) {
+					powerAdjustment = powerAdjustment + 15;
+				}
+				// write the power adjustment to the result
+				writeVar(0x4000 + 4, powerAdjustment);
+			}
+		}
+
+		// Remember the previous pitch thrown and the previous pitch "zone location", then set those two values to the "remembered" values for later use.
+		if (_game.id == GID_BASEBALL2001 && _currentRoom == 4 && vm.slot[_currentScript].number == 2201 && readVar(399) == 1) {
+			writeArray(346, 1, 0, readArray(346, 0, 0));
+			writeArray(346, 1, 1, readArray(346, 0, 1));
+		}
+		// This sets the base cost of a slow ball to 2. Previously it costed the least of every pitch to throw, which resulted in people only using that pitch.
+		if (_game.id == GID_BASEBALL2001 && _currentRoom == 4 && vm.slot[_currentScript].number == 2057 && readVar(399) == 1) {
+			if (readVar(0x4000 + 1) == 15) {
+				writeVar(0x4000 + 2, 2);
+			}
+		}
+	}
+#endif
 	push(readVar(fetchScriptWord()));
 }
 
@@ -506,7 +584,28 @@ void ScummEngine_v6::o6_byteArrayRead() {
 
 void ScummEngine_v6::o6_wordArrayRead() {
 	int base = pop();
-	push(readArray(fetchScriptWord(), 0, base));
+	int array = fetchScriptWord();
+#if defined(USE_ENET) && defined(USE_LIBCURL)
+	if (_enableHECompetitiveOnlineMods) {
+		// If we're pulling from the randomly selected teams for online play
+		// at Prince Rupert, read from variables 748 and 749 instead
+		if (_game.id == GID_BASEBALL2001 && _currentRoom == 6 && vm.slot[_currentScript].number == 2071 &&
+			readVar(399) == 1 &&  // We're online and in the team name select screen
+			readVar(747) == 1) {  // We successfully got team arrays the host and opponent
+			switch (array) {
+			case 264:
+			case 321:
+				array = 748;
+				break;
+			case 265:
+			case 322:
+				array = 749;
+				break;
+			}
+		}
+	}
+#endif
+	push(readArray(array, 0, base));
 }
 
 void ScummEngine_v6::o6_byteArrayIndexedRead() {
@@ -535,10 +634,175 @@ void ScummEngine_v6::o6_eq() {
 	int a = pop();
 	int b = pop();
 
+// BACKYARD BASEBALL 2001 ONLINE CHANGES
+#if defined(USE_ENET) && defined(USE_LIBCURL)
+	// The player stat adjustments that should get applied in certain conditions (i.e. when two siblings are on the same team)
+	// don't get applied properly for the away (peer) team in online play. This results in each team's game using a different
+	// version of players' stats, leading to unfair play and potential desyncs. This hack ensures the away team's game doesn't
+	// exit the script before applying these stat adjustments. The script checks whether the game is being played online before
+	// this, such that this code doesn't execute for offline play.
+	if (_game.id == GID_BASEBALL2001 && _currentRoom == 27 && vm.slot[_currentScript].number == 2346) {
+		int offset = _scriptPointer - _scriptOrgPointer;
+		if (offset == 196137) {
+			push(0);
+			return;
+		}
+	}
+
+	if (_enableHECompetitiveOnlineMods) {
+		int pitchXValue = readVar(0x8000 + 11);
+		int pitchYValue = readVar(0x8000 + 12);
+		int strikeZoneTop = readVar(0x8000 + 29);
+		int strikeZoneBottom = readVar(0x8000 + 30);
+
+		// People have been complaining about strikes being visually unclear during online games. This is because the strike zone's visual is not
+		// equal length compared to the actual range in which a strike can be called. These changes should fix that, with some extra leniency in
+		// the corners in particular since they are especially difficult to see visually, due to having four large corner pieces blocking the view.
+
+		// This checks if the pitch's y location is either:
+		// a. at least 2 pixels lower than the top of the zone/at least 3 pixels above the bottom of the zone
+		// b. at least 2 pixels lower than the top of the zone/at least 3 pixels above the bottom of the zone
+		// If either of these are true AND the x value is less than or equal to 279 OR greater than or equal to 354, make the game read as a ball.
+		// The strike zone should be much more lenient in the corners, as well as removing the small advantage of throwing to the farthest right side of the zone.
+		if (_game.id == GID_BASEBALL2001 && _currentRoom == 4 && (vm.slot[_currentScript].number == 2202 || vm.slot[_currentScript].number == 2192) && readVar(399) == 1) {
+			if (((pitchYValue <= strikeZoneTop + 2 || pitchYValue >= strikeZoneBottom - 3) && pitchXValue <= 279) ||
+				((pitchYValue <= strikeZoneTop + 2 || pitchYValue >= strikeZoneBottom - 3) && pitchXValue >= 354)) {
+				writeVar(0x8000 + 16, 2);
+			}
+			// if the ball's y location is 1 pixel higher than the bottom of the zone, then it will be a ball.
+			// This removes the small advantage of throwing at the very bottom of the zone.
+			if (pitchYValue > strikeZoneBottom - 1) {
+				writeVar(0x8000 + 16, 2);
+			}
+		}
+
+		// This change affects the angle adjustment for each batting stance when timing your swing. There are complaints that
+		// the game does not give you enough control when batting, resulting in a lot of hits going to the same area. This should
+		// give players more agency on where they want to hit the ball, which will also increase the skill ceiling.
+		if (_game.id == GID_BASEBALL2001 && _currentRoom == 4 && vm.slot[_currentScript].number == 2087 && readVar(399) == 1) {
+			int offset = _scriptPointer - _scriptOrgPointer;
+			// OPEN STANCE ADJUSTMENTS (1 being earliest, 5 being latest)
+			if (offset == 101898 && readVar(447) == 1) {
+				switch (readVar(0x8000 + 1)) {
+				case 1:
+					writeVar(0x4000 + 0, -13);
+					break;
+				case 2:
+					writeVar(0x4000 + 0, -2);
+					break;
+				case 3:
+					writeVar(0x4000 + 0, 10);
+					break;
+				case 4:
+					writeVar(0x4000 + 0, 40);
+					break;
+				case 5:
+					writeVar(0x4000 + 0, 63);
+					break;
+				}
+			}
+			// SQUARED STANCE ADJUSTMENTS (1 being earliest, 5 being latest)
+			if (offset == 101898 && readVar(447) == 2) {
+				switch (readVar(0x8000 + 1)) {
+				case 1:
+					writeVar(0x4000 + 0, -30);
+					break;
+				case 2:
+					writeVar(0x4000 + 0, -7);
+					break;
+				case 3:
+					writeVar(0x4000 + 0, 10);
+					break;
+				case 4:
+					writeVar(0x4000 + 0, 27);
+					break;
+				case 5:
+					writeVar(0x4000 + 0, 45);
+					break;
+				}
+			}
+			// CLOSED STANCE ADJUSTMENTS (1 being earliest, 5 being latest)
+			if (offset == 101898 && readVar(447) == 3) {
+				switch (readVar(0x8000 + 1)) {
+				case 1:
+					writeVar(0x4000 + 0, -47);
+					break;
+				case 2:
+					writeVar(0x4000 + 0, -32);
+					break;
+				case 3:
+					writeVar(0x4000 + 0, 0);
+					break;
+				case 4:
+					writeVar(0x4000 + 0, 15);
+					break;
+				case 5:
+					writeVar(0x4000 + 0, 28);
+					break;
+				}
+			}
+		}
+
+		// This code makes it so that generic players (and Mr. Clanky) play pro player music when hitting home runs.
+		// This is a purely aesthetic change, as they have no home run music by default.
+		if (_game.id == GID_BASEBALL2001 && _currentRoom == 3 && vm.slot[_currentScript].number == 11 && vm.localvar[_currentScript][0] > 61 && readVar(399) == 1) {
+			// this local variable checks for player ID
+			writeVar(0x4000 + 0, 60);
+		}
+	}
+#endif
+
+#if defined(USE_ENET) && defined(USE_LIBCURL)
+	int offset = _scriptPointer - _scriptOrgPointer;
+	// WORKAROUND: In Backyard Baseball 2001, The special rules of the Mountain Aire and Wilderness neighborhoods
+	// are incorrect.  They were set to "3 innings" and "no swing spot" respectively, while they were supposed to be set to
+	// "no special rules" and "3 innings".  This is a script bug which assumed to be fixed in later post-retail updates, but
+	// since we don't have access to any of those, this workaround will have to do.
+	if (_game.id == GID_BASEBALL2001 && vm.slot[_currentScript].number == 419 && ((a == 9 && b == 9) || (a == 8 && b == 8))) {
+		switch (a) {
+		case 9:
+			// Mountain Aire (No special rules)
+			writeVar(695, 0);
+			break;
+		case 8:
+			// Wilderness (3 innings)
+			writeVar(695, 64);
+			break;
+		}
+
+		// Clean up stack and stop the script
+		fetchScriptWord();
+		pop();
+		stopObjectCode();
+
+	// HACK: This script doesn't allow Super Colossal Dome to be chosen for online play, by checking if the selected
+	// field's value is 5 (SCD's number) and incrementing/decrementing if it is. To allow SCD to be used, we return 0
+	// for those checks.
+	} else if (_enableHECompetitiveOnlineMods && _game.id == GID_BASEBALL2001 && _currentRoom == 40 &&
+		vm.slot[_currentScript].number == 2106 && a == 5 && (offset == 16754 || offset == 16791)) {
+		push(0);
+
+	// WORKAROUND: Online play is disabled in the Macintosh versions of Backyard Football and Backyard Baseball 2001
+	// because the original U32 makes use of DirectPlay, a Windows exclusive API; we now have our own implementation
+	// which is cross-platform compatible.  We get around that by tricking those checks that we are playing on
+	// the Windows version. These scripts check VAR_PLATFORM (b) against the value (2) of the Macintosh platform (a).
+	} else if (_game.id == GID_FOOTBALL && _currentRoom == 2 && (vm.slot[_currentScript].number == 2049 || vm.slot[_currentScript].number == 2050 ||
+#else
+	if (_game.id == GID_FOOTBALL && _currentRoom == 2 && (vm.slot[_currentScript].number == 2049 || vm.slot[_currentScript].number == 2050 ||
+#endif
+		vm.slot[_currentScript].number == 498) && a == 2 && b == 2) {
+		push(0);
+	} else if (_game.id == GID_BASEBALL2001 && _currentRoom == 2 && (vm.slot[_currentScript].number == 10002 || vm.slot[_currentScript].number == 2050) &&
+		a == 2 && b == 2) {
+		push(0);
+	} else if (_game.id == GID_FOOTBALL2002 && _currentRoom == 3 && vm.slot[_currentScript].number == 2079 &&
+		a == 2 && b == 2) {
+		push(0);
+
 	// WORKAROUND: Forces the game version string set via script 1 to be used in both Macintosh and Windows versions,
 	// when checking for save game compatibility. Allows saved games to be shared between Macintosh and Windows versions.
 	// The scripts check VAR_PLATFORM (b) against the value (2) of the Macintosh platform (a).
-	if (_game.id == GID_BASEBALL2001 && (vm.slot[_currentScript].number == 291 || vm.slot[_currentScript].number == 292) &&
+	} else if (_game.id == GID_BASEBALL2001 && (vm.slot[_currentScript].number == 291 || vm.slot[_currentScript].number == 292) &&
 		a == 2 && b == 1) {
 		push(1);
 	} else {
@@ -552,7 +816,31 @@ void ScummEngine_v6::o6_neq() {
 
 void ScummEngine_v6::o6_gt() {
 	int a = pop();
-	push(pop() > a);
+	int b = pop();
+
+	// WORKAROUND: In Football 2002, when hosting a Network game, it would eventually timeout,
+	// which causes the game to stop hosting and query for sessions again.
+	//
+	// [016C] (39)     localvar8++
+	// [016F] (36)     if (localvar8 > localvar12) {
+	// [0179] (54)       printDebug.begin()
+	// [017B] (54)       printDebug.msg("Host Timeout")
+	// [018A] (7C)       startScript(90,220,[])
+	// [0190] (7C)       startScript(90,2051,[])
+	// [0197] (7C)       startScript(90,2054,[])
+	// [019E] (80)       stopScript(0)
+	// [01A1] (**)     }
+	//
+	// We have our own session selection dialog which allows the user to host or join a session as
+	// they please; we do not want them to go through the whole setup again after the timeout
+	// so let's just make unreachable, allowing the session to be hosted indefinitely until
+	// they cancel it out.
+	if (_game.id == GID_FOOTBALL2002 && _currentRoom == 3 && vm.slot[_currentScript].number == 2052) {
+		push(0);
+		return;
+	}
+
+	push(b > a);
 }
 
 void ScummEngine_v6::o6_lt() {
@@ -567,7 +855,16 @@ void ScummEngine_v6::o6_le() {
 
 void ScummEngine_v6::o6_ge() {
 	int a = pop();
-	push(pop() >= a);
+	int b = pop();
+#if defined(USE_ENET) && defined(USE_LIBCURL)
+	// Mod for Backyard Baseball 2001 online competitive play: Reduce sprints
+	// required to reach top speed
+	if (_enableHECompetitiveOnlineMods && _game.id == GID_BASEBALL2001 &&
+		_currentRoom == 3 && vm.slot[_currentScript].number == 2095 && readVar(399) == 1) {
+		a -= 1;  // If sprint counter (b) is higher than a, runner gets 1 extra speed
+	}
+#endif
+	push(b >= a);
 }
 
 void ScummEngine_v6::o6_add() {
@@ -589,12 +886,37 @@ void ScummEngine_v6::o6_div() {
 	int a = pop();
 	if (a == 0)
 		error("division by zero");
-	push(pop() / a);
+	int b = pop();
+#if defined(USE_ENET) && defined(USE_LIBCURL)
+	// Mod for Backyard Baseball 2001 online competitive play: Allow full sprinting while
+	// running half-speed on a popup
+	if (_enableHECompetitiveOnlineMods && _game.id == GID_BASEBALL2001 && _currentRoom == 3 &&
+		vm.slot[_currentScript].number == 2095 && readVar(399) == 1 && a == 2) {
+		// Normally divides speed by two here
+		int runnerIdx = readVar(0x4000);
+		int runnerReSprint = readArray(344, runnerIdx, 1);
+		// But if the runner is sprinting, don't divide by two
+		if (runnerReSprint > 1) {
+			push(b);
+			return;
+		}
+	}
+#endif
+	push(b / a);
 }
 
 void ScummEngine_v6::o6_land() {
 	int a = pop();
-	push(pop() && a);
+	int b = pop();
+	// WORKAROUND: When entering an area, the game will check if
+	// vars 133 and 134 are set, else it will wait for 5 seconds before
+	// showing the coach list.  var133 is set 1 somewhere but var134
+	// is always set at 0. I am going to assume this is a script bug,
+	// so let's skip the 5 second wait.
+	if (_game.id == GID_BASEBALL2001 && _currentRoom == 40 && vm.slot[_currentScript].number == 2122)
+		push(1);
+	else
+		push(b && a);
 }
 
 void ScummEngine_v6::o6_lor() {
@@ -720,12 +1042,28 @@ void ScummEngine_v6::o6_jump() {
 
 	// WORKAROUND bug #4464: Talking to the guard at the bigfoot party, after
 	// he's let you inside, will cause the game to hang, if you end the conversation.
-	// This is a script bug, due to a missing jump in one segment of the script.
-	if (_game.id == GID_SAMNMAX && vm.slot[_currentScript].number == 101 && readVar(0x8000 + 97) == 1 && offset == 1) {
+	// This is a script bug, due to a missing jump in one segment of the script,
+	// and it also happens with the original interpreters.
+	//
+	// Intentionally using `kEnhGameBreakingBugFixes`, since having the game hang
+	// is not useful to anyone.
+	if (_game.id == GID_SAMNMAX && vm.slot[_currentScript].number == 101 && readVar(0x8000 + 97) == 1 && offset == 1 &&
+		enhancementEnabled(kEnhGameBreakingBugFixes)) {
 		offset = -18;
 	}
 
 	_scriptPointer += offset;
+
+	// WORKAROUND:  When getting the area popuation, the scripts does not break after getting
+	// the popuation.  Not only this may slow down the game a bit, it sends quite a bit of bandwidth
+	// considering we're outside the game.  So let's break the script for 5 seconds
+	// before jumping back to the beginning.
+	if ((_game.id == GID_BASEBALL2001 && _currentRoom == 39 && vm.slot[_currentScript].number == 2090 && offset == -904) ||
+		(_game.id == GID_BASEBALL2001 && _currentRoom == 40 && vm.slot[_currentScript].number == 2101 && offset == -128)) {
+		vm.slot[_currentScript].delay = 5 * 60; // 5 seconds
+		vm.slot[_currentScript].status = ssPaused;
+		o6_breakHere();
+	}
 }
 
 void ScummEngine_v6::o6_startScript() {
@@ -735,6 +1073,21 @@ void ScummEngine_v6::o6_startScript() {
 	getStackList(args, ARRAYSIZE(args));
 	script = pop();
 	flags = pop();
+
+	// WORKAROUND: In DOTT, when Jefferson builds the fire, `startScript(1,106,[91,5])`
+	// is called, which randomly changes the state of the fire object between 1 and 5,
+	// as long as Hoagie doesn't exit this room. This makes him randomly fail
+	// interacting with it, saying "I can't reach it." instead of the intended "No.
+	// Fire bad." line. It looks like the 1-5 states for the fire object are useless
+	// leftovers which can be safely ignored in order to make sure that Hoagie's
+	// comment is always available (maybe the fire was meant to be displayed
+	// differently when it's just been lit, but then the idea was dropped?).
+	// This also happens with the original interpreters and with the remaster.
+	if (_game.id == GID_TENTACLE && _roomResource == 13 &&
+		vm.slot[_currentScript].number == 21 && script == 106 &&
+		args[0] == 91 && enhancementEnabled(kEnhRestoredContent)) {
+		return;
+	}
 
 	// WORKAROUND for a bug also present in the original EXE: After greasing (or oiling?)
 	// the cannonballs in the Plunder Town Theater, during the juggling show, the game
@@ -750,7 +1103,7 @@ void ScummEngine_v6::o6_startScript() {
 	// This fix checks for this situation happening (and only this one), and makes a call
 	// to a soundKludge operation like script 29 would have done.
 	if (_game.id == GID_CMI && _currentRoom == 19 &&
-		vm.slot[_currentScript].number == 168 && script == 118) {
+		vm.slot[_currentScript].number == 168 && script == 118 && enhancementEnabled(kEnhAudioChanges)) {
 		int list[16] = { 4096, 1278, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		_sound->soundKludge(list, 2);
 	}
@@ -758,49 +1111,10 @@ void ScummEngine_v6::o6_startScript() {
 	// WORKAROUND bug #269: At Dino Bungee National Memorial, the buttons for
 	// the Wally and Rex dinosaurs will always restart their speech, instead of
 	// stopping and starting their speech. This was a script bug in the original
-	// game.
+	// game, which would also block the "That was informative" reaction from Sam.
 	if (_game.id == GID_SAMNMAX && _roomResource == 59 &&
-		vm.slot[_currentScript].number == 201 && script == 48) {
+		vm.slot[_currentScript].number == 201 && script == 48 && enhancementEnabled(kEnhRestoredContent)) {
 		o6_breakHere();
-	}
-
-	// WORKAROUND bug #1493: In Puerto Pollo, if you have Guybrush examine
-	// the church clock, he'll read out the current time. Nice touch, only that
-	// it sounds crap in the german version (and maybe others, too). It seems
-	// the original engine of the german version played just a simple fixed
-	// text in this spot, for the above reason. Since the data files are
-	// unchanged, it must have been an engine hack job. No idea how they did
-	// it exactly, but this here is how we do it :-)
-	if (_game.id == GID_CMI && script == 204 &&
-		_currentRoom == 15 && vm.slot[_currentScript].number == 421 &&
-		_language == Common::DE_DEU) {
-
-		_actorToPrintStrFor = 1;
-		_string[0].loadDefault();
-		actorTalk((const byte *)"/VDSO325/Whoa! Look at the time. Gotta scoot.");
-
-		return;
-	}
-
-	// WORKAROUND bug #3591: When turning pages in the recipe book
-	// (found on Blood Island), there is a brief moment where it displays
-	// text from two different pages at the same time.
-	//
-	// The content of the books is drawing (in an endless loop) by local
-	// script 2007. Changing the page is handled by script 2006, which
-	// first stops script 2007; then switches the page; then restarts
-	// script 2007. But it fails to clear the blast texts beforehand.
-	// Hence, the next time blast text is drawn, both the old one (from
-	// the old instance of script 2007) and the new text (from the new
-	// instance) are briefly drawn simultaneously.
-	//
-	// This looks like a script bug to me (a missing call to clearTextQueue).
-	// But this could also hint at a subtle bug in ScummVM; we should check
-	// whether this bug occurs with the original engine or not.
-	if (_game.id == GID_CMI && script == 2007 &&
-		_currentRoom == 62 && vm.slot[_currentScript].number == 2006) {
-
-		removeBlastTexts();
 	}
 
 	runScript(script, (flags & 1) != 0, (flags & 2) != 0, args);
@@ -830,6 +1144,66 @@ void ScummEngine_v6::o6_startScriptQuick2() {
 	int script;
 	getStackList(args, ARRAYSIZE(args));
 	script = pop();
+#if defined(USE_ENET) && defined(USE_LIBCURL)
+	// Mod for Backyard Baseball 2001 online competitive play: change effect of
+	// pitch location on hit quality
+	if (_enableHECompetitiveOnlineMods && _game.id == GID_BASEBALL2001 && _currentRoom == 4 && script == 2085 && readVar(399) == 1) {
+		int zone = _roomVars[2];
+		int stance = readVar(447);
+		int handedness = _roomVars[0];
+		int hitQuality = -2;
+		if (stance == 2) {  // Batter is in a squared stance
+			switch (zone) {
+			case 25:
+				hitQuality = 3;
+				break;
+			case 18: case 24: case 26: case 32:
+				hitQuality = 2;
+				break;
+			case 10: case 11: case 12: case 17: case 19: case 23: case 27: case 31: case 33: case 38: case 39: case 40:
+				hitQuality = 1;
+				break;
+			case 4: case 16: case 20: case 30: case 34: case 46:
+				hitQuality = 0;
+				break;
+			case 3: case 5: case 9: case 13: case 15: case 21: case 22: case 28: case 29: case 35: case 37: case 41: case 45: case 47:
+				hitQuality = -1;
+				break;
+			default:
+				break;
+			}
+			push(hitQuality);
+			return;
+		}
+		if (
+			(handedness == 2 && stance == 1)  // Left-handed batter in open stance
+			|| (handedness == 1 && stance == 3)  // Right-handed batter in closed stance
+		) {
+			zone  = ((zone - 1) / 7) * 7 + (6 - ((zone - 1) % 7)) + 1;  // "Flip" zone horizontally across center
+		}
+		switch (zone) {
+		case 24:
+			hitQuality = 3;
+			break;
+		case 17: case 23: case 25: case 31:
+			hitQuality = 2;
+			break;
+		case 9: case 10: case 16: case 18: case 22: case 26: case 30: case 32: case 37: case 38:
+			hitQuality = 1;
+			break;
+		case 3: case 11: case 15: case 19: case 29: case 33: case 39: case 45:
+			hitQuality = 0;
+			break;
+		case 2: case 4: case 8: case 12: case 20: case 27: case 34: case 36: case 40: case 44: case 46:
+			hitQuality = -1;
+			break;
+		default:
+			break;
+		}
+		push(hitQuality);
+		return;
+	}
+#endif
 	runScript(script, 0, 1, args);
 }
 
@@ -913,37 +1287,37 @@ void ScummEngine_v6::o6_cursorCommand() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 0x90:		// SO_CURSOR_ON Turn cursor on
+	case SO_CURSOR_ON:		// Turn cursor on
 		_cursor.state = 1;
 		verbMouseOver(0);
 		break;
-	case 0x91:		// SO_CURSOR_OFF Turn cursor off
+	case SO_CURSOR_OFF:		// Turn cursor off
 		_cursor.state = 0;
 		verbMouseOver(0);
 		break;
-	case 0x92:		// SO_USERPUT_ON
+	case SO_USERPUT_ON:
 		_userPut = 1;
 		break;
-	case 0x93:		// SO_USERPUT_OFF
+	case SO_USERPUT_OFF:
 		_userPut = 0;
 		break;
-	case 0x94:		// SO_CURSOR_SOFT_ON Turn soft cursor on
+	case SO_CURSOR_SOFT_ON:		// Turn soft cursor on
 		_cursor.state++;
 		if (_cursor.state > 1)
 			error("Cursor state greater than 1 in script");
 		verbMouseOver(0);
 		break;
-	case 0x95:		// SO_CURSOR_SOFT_OFF Turn soft cursor off
+	case SO_CURSOR_SOFT_OFF:		// Turn soft cursor off
 		_cursor.state--;
 		verbMouseOver(0);
 		break;
-	case 0x96:		// SO_USERPUT_SOFT_ON
+	case SO_USERPUT_SOFT_ON:
 		_userPut++;
 		break;
-	case 0x97:		// SO_USERPUT_SOFT_OFF
+	case SO_USERPUT_SOFT_OFF:
 		_userPut--;
 		break;
-	case 0x99:		// SO_CURSOR_IMAGE Set cursor image
+	case SO_CURSOR_IMAGE:		// Set cursor image
 		{
 			int room, obj;
 			if (_game.heversion >= 70) {
@@ -952,23 +1326,28 @@ void ScummEngine_v6::o6_cursorCommand() {
 			} else {
 				obj = popRoomAndObj(&room);
 			}
+
+			// Post-load fix for broken SAMNMAX savegames (see bug no. 14467)
+			if (_game.id == GID_SAMNMAX && obj == 0 && room == 93)
+				break;
+
 			setCursorFromImg(obj, room, 1);
 			break;
 		}
-	case 0x9A:		// SO_CURSOR_HOTSPOT Set cursor hotspot
+	case SO_CURSOR_HOTSPOT:		// Set cursor hotspot
 		a = pop();
 		setCursorHotspot(pop(), a);
 		updateCursor();
 		break;
-	case 0x9C:		// SO_CHARSET_SET
+	case SO_CHARSET_SET:
 		initCharset(pop());
 		break;
-	case 0x9D:		// SO_CHARSET_COLOR
+	case SO_CHARSET_COLOR:
 		getStackList(args, ARRAYSIZE(args));
 		for (i = 0; i < 16; i++)
 			_charsetColorMap[i] = _charsetData[_string[1]._default.charset][i] = (unsigned char)args[i];
 		break;
-	case 0xD6:		// SO_CURSOR_TRANSPARENT Set cursor transparent color
+	case SO_CURSOR_TRANSPARENT:		// Set cursor transparent color
 		setCursorTransparency(pop());
 		break;
 	default:
@@ -1063,7 +1442,7 @@ void ScummEngine_v6::o6_startSound() {
 		_imuseDigital->startSfx(pop(), 64);
 	else
 #endif
-		_sound->addSoundToQueue(pop(), offset);
+		_sound->startSound(pop(), offset);
 }
 
 void ScummEngine_v6::o6_stopSound() {
@@ -1074,7 +1453,7 @@ void ScummEngine_v6::o6_startMusic() {
 	if (_game.version >= 7)
 		error("o6_startMusic() It shouldn't be called here for imuse digital");
 
-	_sound->addSoundToQueue(pop());
+	_sound->startSound(pop());
 }
 
 void ScummEngine_v6::o6_stopObjectScript() {
@@ -1103,7 +1482,6 @@ void ScummEngine_v6::o6_setCameraAt() {
 		int x, y;
 
 		camera._follows = 0;
-		VAR(VAR_CAMERA_FOLLOWED_ACTOR) = 0;
 
 		y = pop();
 		x = pop();
@@ -1116,7 +1494,21 @@ void ScummEngine_v6::o6_setCameraAt() {
 
 void ScummEngine_v6::o6_loadRoom() {
 	int room = pop();
-	startScene(room, 0, 0);
+
+	// WORKAROUND bug #13378: During Sam's reactions to Max beating up the
+	// scientist in the intro, we sometimes have to slow down animations
+	// artificially. This is where we speed them back up again.
+	if (_game.id == GID_SAMNMAX && vm.slot[_currentScript].number == 65 && room == 6 && enhancementEnabled(kEnhTimingChanges)) {
+		int actors[] = { 2, 3, 10 };
+
+		for (int i = 0; i < ARRAYSIZE(actors); i++) {
+			Actor *a = derefActorSafe(actors[i], "o6_animateActor");
+			if (a && a->getAnimSpeed() > 0)
+				a->setAnimSpeed(0);
+		}
+	}
+
+	startScene(room, nullptr, 0);
 	if (_game.heversion >= 61) {
 		setCameraAt(camera._cur.x, 0);
 	}
@@ -1151,13 +1543,11 @@ void ScummEngine_v6::o6_walkActorToObj() {
 		getObjectXYPos(obj, x, y, dir);
 		a->startWalkActor(x, y, dir);
 	} else {
-		a2 = derefActorSafe(obj, "o6_walkActorToObj(2)");
-		if (_game.id == GID_SAMNMAX && a2 == 0) {
-			// WORKAROUND bug #801 SAM: Fish Farm. Note quite sure why it
-			// happens, whether it's normal or due to a bug in the ScummVM code.
-			debug(0, "o6_walkActorToObj: invalid actor %d", obj);
+		if (!isValidActor(obj))
 			return;
-		}
+
+		a2 = derefActor(obj, "o6_walkActorToObj(2)");
+
 		if (!a->isInCurrentRoom() || !a2->isInCurrentRoom())
 			return;
 		if (dist == 0) {
@@ -1232,26 +1622,37 @@ void ScummEngine_v6::o6_faceActor() {
 void ScummEngine_v6::o6_animateActor() {
 	int anim = pop();
 	int act = pop();
-	if (_game.id == GID_TENTACLE && _roomResource == 57 &&
-		vm.slot[_currentScript].number == 19 && act == 593) {
-		// WORKAROUND bug #813: This very odd case (animateActor(593,250))
-		// occurs in DOTT, in the cutscene after George cuts down the "cherry
-		// tree" and the tree Laverne is trapped in vanishes...
-		// Not sure if this means animateActor somehow also must work for objects
-		// (593 is the time machine in room 57), or if this is simply a script bug.
-		act = 6;
-	}
-	if (_game.id == GID_SAMNMAX && _roomResource == 35 &&
-		vm.slot[_currentScript].number == 202 && act == 4 && anim == 14) {
+
+	if (_game.id == GID_SAMNMAX && _roomResource == 35 && vm.slot[_currentScript].number == 202 &&
+		act == 4 && anim == 14 && enhancementEnabled(kEnhMinorBugFixes)) {
 		// WORKAROUND bug #2068 (Animation glitch at World of Fish).
 		// Before starting animation 14 of the fisherman, make sure he isn't
-		// talking anymore. This appears to be a bug in the original game as well.
+		// talking anymore, otherwise the fishing line may appear twice when Max
+		// grabs it and subtitles (at a slow speed) and voices are both enabled.
+		// This bug exists in the original game as well.
 		if (getTalkingActor() == 4) {
 			stopTalk();
 		}
 	}
-	Actor *a = derefActor(act, "o6_animateActor");
-	a->animateActor(anim);
+
+	if (_game.id == GID_SAMNMAX && _roomResource == 47 && vm.slot[_currentScript].number == 202 &&
+		act == 2 && anim == 249 && enhancementEnabled(kEnhMinorBugFixes)) {
+		// WORKAROUND for bug #3832: parts of Bruno are left on the screen when he
+		// escapes Bumpusville with Trixie. Bruno (act. 11) and Trixie (act. 12) are
+		// properly removed from the scene by the script, but not the combined actor
+		// which is used by this animation (act. 6).
+		Actor *a = derefActorSafe(6, "o6_animateActor");
+		if (a && a->_costume == 243)
+			a->putActor(0, 0, 0);
+	}
+
+	// Since there have been cases of the scripts sending garbage data
+	// as the actor number (see bug #813), we handle these cases cleanly
+	// by not crashing ScummVM and returning a nullptr Actor instead.
+	Actor *a = derefActorSafe(act, "o6_animateActor");
+	if (a) {
+		a->animateActor(anim);
+	}
 }
 
 void ScummEngine_v6::o6_doSentence() {
@@ -1321,20 +1722,48 @@ void ScummEngine_v6::o6_loadRoomWithEgo() {
 }
 
 void ScummEngine_v6::o6_getRandomNumber() {
-	int rnd;
-	rnd = _rnd.getRandomNumber(ABS(pop()));
+	int rnd = _rnd.getRandomNumber(0x7fff);
+	rnd = rnd % (pop() + 1);
 	if (VAR_RANDOM_NR != 0xFF)
 		VAR(VAR_RANDOM_NR) = rnd;
 	push(rnd);
+
+	debug(6, "o6_getRandomNumber(): %d", rnd);
 }
 
 void ScummEngine_v6::o6_getRandomNumberRange() {
 	int max = pop();
 	int min = pop();
-	int rnd = _rnd.getRandomNumberRng(min, max);
+	int rnd = _rnd.getRandomNumber(0x7fff);
+	rnd = min + (rnd % (max - min + 1));
+#if defined(USE_ENET) && defined(USE_LIBCURL)
+	if (_enableHECompetitiveOnlineMods) {
+		// For using predefined teams in Prince Rupert, instead of choosing player IDs randomly
+		// let's pull from the variables that contain the teams
+		if (_game.id == GID_BASEBALL2001 && vm.slot[_currentScript].number == 298 &&
+			readVar(399) == 1 && readVar(747) == 1) {
+			int offset = _scriptPointer - _scriptOrgPointer;
+			if (offset == 117) {
+				// Host's team
+				rnd = readArray(748, 0, vm.localvar[_currentScript][1]);
+			} else if (offset == 210) {
+				// Opponent's team
+				rnd = readArray(749, 0, vm.localvar[_currentScript][1]);
+			}
+		}
+		// Mod for Backyard Football online competitive play: allow all 38 backyard kids and pros
+		// to be drafted in an online game. This controls how many kids are shown in the bleachers
+		// when drafting. Without this mod, a random selection of between 31 and 35 kids are shown.
+		if (_game.id == GID_FOOTBALL && readVar(465) == 1 && _currentRoom == 5 && vm.slot[_currentScript].number == 2107) {
+			rnd = 38;
+		}
+	}
+#endif
 	if (VAR_RANDOM_NR != 0xFF)
 		VAR(VAR_RANDOM_NR) = rnd;
 	push(rnd);
+
+	debug(6, "o6_getRandomNumberRange(): %d (min: %d, max: %d)", rnd, min, max);
 }
 
 void ScummEngine_v6::o6_isScriptRunning() {
@@ -1372,8 +1801,15 @@ void ScummEngine_v6::o6_getActorRoom() {
 		return;
 	}
 
-	Actor *a = derefActor(act, "o6_getActorRoom");
-	push(a->_room);
+	Actor *a = derefActorSafe(act, "o6_getActorRoom");
+	// This check is in place because at least Full Throttle, despite
+	// only allowing 30 actors, might ask for actor 30 (0-indexed), which
+	// on the original went on to fetch garbage data without crashing.
+	// In our case, instead of erroring out, we handle the issue gracefully.
+	if (a)
+		push(a->_room);
+	else
+		push(0);
 }
 
 void ScummEngine_v6::o6_getActorWalkBox() {
@@ -1480,6 +1916,19 @@ void ScummEngine_v6::o6_getVerbFromXY() {
 }
 
 void ScummEngine_v6::o6_beginOverride() {
+	// WORKAROUND (bug in the original):
+	// When Guybrush gets on the Sea Cucumber for the first time and the monkeys show up on deck,
+	// if the ESC key is pressed before the "Any last words, Threepwood?" dialogue, the music will
+	// continue playing indefinitely throughout the game (or until another "sequence" music is played).
+	//
+	// To amend this, we intercept this exact script override and we force the playback of sound 2277,
+	// which is the iMUSE sequence which would have been played after the dialogue.
+	if (enhancementEnabled(kEnhAudioChanges) && _game.id == GID_CMI && _currentRoom == 37 && vm.slot[_currentScript].number == 251 &&
+		_sound->isSoundRunning(2275) != 0 && (_scriptPointer - _scriptOrgPointer) == 0x1A) {
+		int list[16] = {0x1001, 2277, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		_sound->soundKludge(list, 2);
+	}
+
 	beginOverride();
 	_skipVideo = 0;
 }
@@ -1527,97 +1976,97 @@ void ScummEngine_v6::o6_resourceRoutines() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 100:		// SO_LOAD_SCRIPT
+	case SO_LOAD_SCRIPT:
 		resid = pop();
 		if (_game.version >= 7)
 			if (resid >= _numGlobalScripts)
 				break;
 		ensureResourceLoaded(rtScript, resid);
 		break;
-	case 101:		// SO_LOAD_SOUND
+	case SO_LOAD_SOUND:
 		resid = pop();
 		ensureResourceLoaded(rtSound, resid);
 		break;
-	case 102:		// SO_LOAD_COSTUME
+	case SO_LOAD_COSTUME:
 		resid = pop();
 		ensureResourceLoaded(rtCostume, resid);
 		break;
-	case 103:		// SO_LOAD_ROOM
+	case SO_LOAD_ROOM:
 		resid = pop();
 		ensureResourceLoaded(rtRoom, resid);
 		break;
-	case 104:		// SO_NUKE_SCRIPT
+	case SO_NUKE_SCRIPT:
 		resid = pop();
 		if (_game.version >= 7)
 			if (resid >= _numGlobalScripts)
 				break;
 		_res->setResourceCounter(rtScript, resid, 0x7F);
 		break;
-	case 105:		// SO_NUKE_SOUND
+	case SO_NUKE_SOUND:
 		resid = pop();
 		_res->setResourceCounter(rtSound, resid, 0x7F);
 		break;
-	case 106:		// SO_NUKE_COSTUME
+	case SO_NUKE_COSTUME:
 		resid = pop();
 		_res->setResourceCounter(rtCostume, resid, 0x7F);
 		break;
-	case 107:		// SO_NUKE_ROOM
+	case SO_NUKE_ROOM:
 		resid = pop();
 		_res->setResourceCounter(rtRoom, resid, 0x7F);
 		break;
-	case 108:		// SO_LOCK_SCRIPT
+	case SO_LOCK_SCRIPT:
 		resid = pop();
 		if (resid >= _numGlobalScripts)
 			break;
 		_res->lock(rtScript, resid);
 		break;
-	case 109:		// SO_LOCK_SOUND
+	case SO_LOCK_SOUND:
 		resid = pop();
 		_res->lock(rtSound, resid);
 		break;
-	case 110:		// SO_LOCK_COSTUME
+	case SO_LOCK_COSTUME:
 		resid = pop();
 		_res->lock(rtCostume, resid);
 		break;
-	case 111:		// SO_LOCK_ROOM
+	case SO_LOCK_ROOM:
 		resid = pop();
 		if (resid > 0x7F)
 			resid = _resourceMapper[resid & 0x7F];
 		_res->lock(rtRoom, resid);
 		break;
-	case 112:		// SO_UNLOCK_SCRIPT
+	case SO_UNLOCK_SCRIPT:
 		resid = pop();
 		if (resid >= _numGlobalScripts)
 			break;
 		_res->unlock(rtScript, resid);
 		break;
-	case 113:		// SO_UNLOCK_SOUND
+	case SO_UNLOCK_SOUND:
 		resid = pop();
 		_res->unlock(rtSound, resid);
 		break;
-	case 114:		// SO_UNLOCK_COSTUME
+	case SO_UNLOCK_COSTUME:
 		resid = pop();
 		_res->unlock(rtCostume, resid);
 		break;
-	case 115:		// SO_UNLOCK_ROOM
+	case SO_UNLOCK_ROOM:
 		resid = pop();
 		if (resid > 0x7F)
 			resid = _resourceMapper[resid & 0x7F];
 		_res->unlock(rtRoom, resid);
 		break;
-	case 116:		// SO_CLEAR_HEAP
+	case SO_CLEAR_HEAP:
 		/* this is actually a scumm message */
 		error("clear heap not working yet");
 		break;
-	case 117:		// SO_LOAD_CHARSET
+	case SO_LOAD_CHARSET:
 		resid = pop();
 		loadCharset(resid);
 		break;
-	case 118:		// SO_NUKE_CHARSET
+	case SO_NUKE_CHARSET:
 		resid = pop();
 		nukeCharset(resid);
 		break;
-	case 119:		// SO_LOAD_OBJECT
+	case SO_LOAD_OBJECT:
 		{
 			int room, obj = popRoomAndObj(&room);
 			loadFlObject(obj, room);
@@ -1635,7 +2084,7 @@ void ScummEngine_v6::o6_roomOps() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 172:		// SO_ROOM_SCROLL
+	case SO_ROOM_SCROLL:
 		b = pop();
 		a = pop();
 		if (a < (_screenWidth / 2))
@@ -1650,13 +2099,13 @@ void ScummEngine_v6::o6_roomOps() {
 		VAR(VAR_CAMERA_MAX_X) = b;
 		break;
 
-	case 174:		// SO_ROOM_SCREEN
+	case SO_ROOM_SCREEN:
 		b = pop();
 		a = pop();
 		initScreens(a, b);
 		break;
 
-	case 175:		// SO_ROOM_PALETTE
+	case SO_ROOM_PALETTE:
 		d = pop();
 		c = pop();
 		b = pop();
@@ -1664,15 +2113,15 @@ void ScummEngine_v6::o6_roomOps() {
 		setPalColor(d, a, b, c);
 		break;
 
-	case 176:		// SO_ROOM_SHAKE_ON
+	case SO_ROOM_SHAKE_ON:
 		setShake(1);
 		break;
 
-	case 177:		// SO_ROOM_SHAKE_OFF
+	case SO_ROOM_SHAKE_OFF:
 		setShake(0);
 		break;
 
-	case 179:		// SO_ROOM_INTENSITY
+	case SO_ROOM_INTENSITY:
 		c = pop();
 		b = pop();
 		a = pop();
@@ -1682,7 +2131,7 @@ void ScummEngine_v6::o6_roomOps() {
 		darkenPalette(a, a, a, b, c);
 		break;
 
-	case 180:		// SO_ROOM_SAVEGAME
+	case SO_ROOM_SAVEGAME:
 		_saveTemporaryState = true;
 		_saveLoadSlot = pop();
 		_saveLoadFlag = pop();
@@ -1690,7 +2139,7 @@ void ScummEngine_v6::o6_roomOps() {
 			_saveSound = (_saveLoadSlot != 0);
 		break;
 
-	case 181:		// SO_ROOM_FADE
+	case SO_ROOM_FADE:
 		a = pop();
 		if (a) {
 			_switchRoomEffect = (byte)(a & 0xFF);
@@ -1700,7 +2149,7 @@ void ScummEngine_v6::o6_roomOps() {
 		}
 		break;
 
-	case 182:		// SO_RGB_ROOM_INTENSITY
+	case SO_RGB_ROOM_INTENSITY:
 		e = pop();
 		d = pop();
 		c = pop();
@@ -1709,7 +2158,7 @@ void ScummEngine_v6::o6_roomOps() {
 		darkenPalette(a, b, c, d, e);
 		break;
 
-	case 183:		// SO_ROOM_SHADOW
+	case SO_ROOM_SHADOW:
 		e = pop();
 		d = pop();
 		c = pop();
@@ -1718,15 +2167,15 @@ void ScummEngine_v6::o6_roomOps() {
 		setShadowPalette(a, b, c, d, e, 0, 256);
 		break;
 
-	case 184:		// SO_SAVE_STRING
+	case SO_SAVE_STRING:
 		error("save string not implemented");
 		break;
 
-	case 185:		// SO_LOAD_STRING
+	case SO_LOAD_STRING:
 		error("load string not implemented");
 		break;
 
-	case 186:		// SO_ROOM_TRANSFORM
+	case SO_ROOM_TRANSFORM:
 		d = pop();
 		c = pop();
 		b = pop();
@@ -1734,26 +2183,27 @@ void ScummEngine_v6::o6_roomOps() {
 		palManipulateInit(a, b, c, d);
 		break;
 
-	case 187:		// SO_CYCLE_SPEED
+	case SO_CYCLE_SPEED:
 		b = pop();
 		a = pop();
 		assertRange(1, a, 16, "o6_roomOps: 187: color cycle");
 		_colorCycle[a - 1].delay = (b != 0) ? 0x4000 / (b * 0x4C) : 0;
 		break;
 
-	case 213:		// SO_ROOM_NEW_PALETTE
+	case SO_ROOM_NEW_PALETTE:
 		a = pop();
 
-		// This opcode is used when turning off noir mode in Sam & Max,
-		// but since our implementation of this feature doesn't change
-		// the original palette there's no need to reload it. Doing it
-		// this way, we avoid some graphics glitches that the original
-		// interpreter had.
-
-		if (_game.id == GID_SAMNMAX && vm.slot[_currentScript].number == 64)
+		// This opcode is used when turning off noir mode in Sam & Max;
+		// the original exhibited some minor glitches during this mode,
+		// so we have two ways to perform it: the accurate one, and our
+		// improved one...
+		if (_game.id == GID_SAMNMAX && enhancementEnabled(kEnhMinorBugFixes) &&
+			_currentScript != 0xFF && vm.slot[_currentScript].number == 64) {
 			setDirtyColors(0, 255);
-		else
+		} else {
 			setCurrentPalette(a);
+		}
+
 		break;
 	default:
 		error("o6_roomOps: default case %d", subOp);
@@ -1766,7 +2216,7 @@ void ScummEngine_v6::o6_actorOps() {
 	int args[8];
 
 	byte subOp = fetchScriptByte();
-	if (subOp == 197) {
+	if (subOp == SO_ACTOR_INIT) {
 		_curActor = pop();
 		return;
 	}
@@ -1776,136 +2226,147 @@ void ScummEngine_v6::o6_actorOps() {
 		return;
 
 	switch (subOp) {
-	case 76:		// SO_COSTUME
-		a->setActorCostume(pop());
+	case SO_COSTUME:
+		i = pop();
+		// WORKAROUND: There's a small continuity error in DOTT; the fire that
+		// makes Washington leave the room can only exist if he's wearing the
+		// chattering teeth, but yet when he comes back he's not wearing them
+		// during this cutscene.
+		if (_game.id == GID_TENTACLE && _currentRoom == 13 && vm.slot[_currentScript].number == 211 &&
+			a->_number == 8 && i == 53 && enhancementEnabled(kEnhVisualChanges)) {
+			i = 69;
+		}
+		a->setActorCostume(i);
 		break;
-	case 77:		// SO_STEP_DIST
+	case SO_STEP_DIST:
 		j = pop();
 		i = pop();
 		a->setActorWalkSpeed(i, j);
 		break;
-	case 78:		// SO_SOUND
+	case SO_SOUND:
 		k = getStackList(args, ARRAYSIZE(args));
 		for (i = 0; i < k; i++)
 			a->_sound[i] = args[i];
 		break;
-	case 79:		// SO_WALK_ANIMATION
+	case SO_WALK_ANIMATION:
 		a->_walkFrame = pop();
 		break;
-	case 80:		// SO_TALK_ANIMATION
+	case SO_TALK_ANIMATION:
 		a->_talkStopFrame = pop();
 		a->_talkStartFrame = pop();
 		break;
-	case 81:		// SO_STAND_ANIMATION
+	case SO_STAND_ANIMATION:
 		a->_standFrame = pop();
 		break;
-	case 82:		// SO_ANIMATION
+	case SO_ANIMATION:
 		// dummy case in scumm6
 		pop();
 		pop();
 		pop();
 		break;
-	case 83:		// SO_DEFAULT
+	case SO_DEFAULT:
 		a->initActor(0);
 		break;
-	case 84:		// SO_ELEVATION
+	case SO_ELEVATION:
 		a->setElevation(pop());
 		break;
-	case 85:		// SO_ANIMATION_DEFAULT
+	case SO_ANIMATION_DEFAULT:
 		a->_initFrame = 1;
 		a->_walkFrame = 2;
 		a->_standFrame = 3;
 		a->_talkStartFrame = 4;
 		a->_talkStopFrame = 5;
 		break;
-	case 86:		// SO_PALETTE
+	case SO_PALETTE:
 		j = pop();
 		i = pop();
 		assertRange(0, i, 255, "o6_actorOps: palette slot");
 		a->setPalette(i, j);
 		break;
-	case 87:		// SO_TALK_COLOR
+	case SO_TALK_COLOR:
 		a->_talkColor = pop();
 		break;
-	case 88:		// SO_ACTOR_NAME
-		loadPtrToResource(rtActorName, a->_number, NULL);
+	case SO_ACTOR_NAME:
+		loadPtrToResource(rtActorName, a->_number, nullptr);
 		break;
-	case 89:		// SO_INIT_ANIMATION
+	case SO_INIT_ANIMATION:
 		a->_initFrame = pop();
 		break;
-	case 91:		// SO_ACTOR_WIDTH
+	case SO_ACTOR_WIDTH:
 		a->_width = pop();
 		break;
-	case 92:		// SO_SCALE
+	case SO_SCALE:
 		i = pop();
 		a->setScale(i, i);
 		break;
-	case 93:		// SO_NEVER_ZCLIP
+	case SO_NEVER_ZCLIP:
 		a->_forceClip = 0;
 		break;
-	case 225:		// SO_ALWAYS_ZCLIP
-	case 94:		// SO_ALWAYS_ZCLIP
+	case SO_ALWAYS_ZCLIP_FT_DEMO:
+	case SO_ALWAYS_ZCLIP:
 		a->_forceClip = pop();
 		break;
-	case 95:		// SO_IGNORE_BOXES
+	case SO_IGNORE_BOXES:
 		a->_ignoreBoxes = 1;
 		a->_forceClip = (_game.version >= 7) ? 100 : 0;
 		if (a->isInCurrentRoom())
 			a->putActor();
 		break;
-	case 96:		// SO_FOLLOW_BOXES
+	case SO_FOLLOW_BOXES:
 		a->_ignoreBoxes = 0;
 		a->_forceClip = (_game.version >= 7) ? 100 : 0;
 		if (a->isInCurrentRoom())
 			a->putActor();
 		break;
-	case 97:		// SO_ANIMATION_SPEED
+	case SO_ANIMATION_SPEED:
 		a->setAnimSpeed(pop());
 		break;
-	case 98:		// SO_SHADOW
+	case SO_SHADOW:
 		a->_shadowMode = pop();
 		break;
-	case 99:		// SO_TEXT_OFFSET
+	case SO_TEXT_OFFSET:
 		a->_talkPosY = pop();
 		a->_talkPosX = pop();
 		break;
-	case 198:		// SO_ACTOR_VARIABLE
+	case SO_ACTOR_VARIABLE:
 		i = pop();
 		a->setAnimVar(pop(), i);
 		break;
-	case 215:		// SO_ACTOR_IGNORE_TURNS_ON
+	case SO_ACTOR_IGNORE_TURNS_ON:
 		a->_ignoreTurns = true;
 		break;
-	case 216:		// SO_ACTOR_IGNORE_TURNS_OFF
+	case SO_ACTOR_IGNORE_TURNS_OFF:
 		a->_ignoreTurns = false;
 		break;
-	case 217:		// SO_ACTOR_NEW
+	case SO_NEW:
 		a->initActor(2);
 		break;
-	case 227:		// SO_ACTOR_DEPTH
+	case SO_ACTOR_DEPTH:
 		a->_layer = pop();
 		break;
-	case 228:		// SO_ACTOR_WALK_SCRIPT
+	case SO_ACTOR_WALK_SCRIPT:
 		a->_walkScript = pop();
 		break;
-	case 229:		// SO_ACTOR_STOP
+	case SO_ACTOR_STOP:
 		a->stopActorMoving();
 		a->startAnimActor(a->_standFrame);
 		break;
-	case 230:										/* set direction */
+	case SO_ACTOR_FACE:										/* set direction */
 		a->_moving &= ~MF_TURN;
-		a->setDirection(pop());
+		j = pop();
+		a->turnToDirection(j);
+		a->setDirection(j);
 		break;
-	case 231:										/* turn to direction */
+	case SO_ACTOR_TURN:										/* turn to direction */
 		a->turnToDirection(pop());
 		break;
-	case 233:		// SO_ACTOR_WALK_PAUSE
+	case SO_ACTOR_WALK_PAUSE:
 		a->_moving |= MF_FROZEN;
 		break;
-	case 234:		// SO_ACTOR_WALK_RESUME
+	case SO_ACTOR_WALK_RESUME:
 		a->_moving &= ~MF_FROZEN;
 		break;
-	case 235:		// SO_ACTOR_TALK_SCRIPT
+	case SO_ACTOR_TALK_SCRIPT:
 		a->_talkScript = pop();
 		break;
 	default:
@@ -1918,7 +2379,7 @@ void ScummEngine_v6::o6_verbOps() {
 	VerbSlot *vs;
 
 	byte subOp = fetchScriptByte();
-	if (subOp == 196) {
+	if (subOp == SO_VERB_INIT) {
 		_curVerb = pop();
 		_curVerbSlot = getVerbSlot(_curVerb, 0);
 		assertRange(0, _curVerbSlot, _numVerbs - 1, "new verb slot");
@@ -1927,7 +2388,7 @@ void ScummEngine_v6::o6_verbOps() {
 	vs = &_verbs[_curVerbSlot];
 	slot = _curVerbSlot;
 	switch (subOp) {
-	case 124:		// SO_VERB_IMAGE
+	case SO_VERB_IMAGE:
 		a = pop();
 		if (_curVerbSlot) {
 			setVerbObject(_roomResource, a, slot);
@@ -1936,34 +2397,34 @@ void ScummEngine_v6::o6_verbOps() {
 				vs->imgindex = a;
 		}
 		break;
-	case 125:		// SO_VERB_NAME
-		loadPtrToResource(rtVerb, slot, NULL);
+	case SO_VERB_NAME:
+		loadPtrToResource(rtVerb, slot, nullptr);
 		vs->type = kTextVerbType;
 		vs->imgindex = 0;
 		break;
-	case 126:		// SO_VERB_COLOR
+	case SO_VERB_COLOR:
 		vs->color = pop();
 		break;
-	case 127:		// SO_VERB_HICOLOR
+	case SO_VERB_HICOLOR:
 		vs->hicolor = pop();
 		break;
-	case 128:		// SO_VERB_AT
+	case SO_VERB_AT:
 		vs->curRect.top = pop();
 		vs->curRect.left = vs->origLeft = pop();
 		break;
-	case 129:		// SO_VERB_ON
+	case SO_VERB_ON:
 		vs->curmode = 1;
 		break;
-	case 130:		// SO_VERB_OFF
+	case SO_VERB_OFF:
 		vs->curmode = 0;
 		break;
-	case 131:		// SO_VERB_DELETE
+	case SO_VERB_DELETE:
 		if (_game.heversion >= 60) {
 			slot = getVerbSlot(pop(), 0);
 		}
 		killVerb(slot);
 		break;
-	case 132:		// SO_VERB_NEW
+	case SO_VERB_NEW:
 		slot = getVerbSlot(_curVerb, 0);
 		if (slot == 0) {
 			for (slot = 1; slot < _numVerbs; slot++) {
@@ -1987,19 +2448,19 @@ void ScummEngine_v6::o6_verbOps() {
 		vs->center = 0;
 		vs->imgindex = 0;
 		break;
-	case 133:		// SO_VERB_DIMCOLOR
+	case SO_VERB_DIMCOLOR:
 		vs->dimcolor = pop();
 		break;
-	case 134:		// SO_VERB_DIM
+	case SO_VERB_DIM:
 		vs->curmode = 2;
 		break;
-	case 135:		// SO_VERB_KEY
+	case SO_VERB_KEY:
 		vs->key = pop();
 		break;
-	case 136:		// SO_VERB_CENTER
+	case SO_VERB_CENTER:
 		vs->center = 1;
 		break;
-	case 137:		// SO_VERB_NAME_STR
+	case SO_VERB_NAME_STR:
 		a = pop();
 		if (a == 0) {
 			loadPtrToResource(rtVerb, slot, (const byte *)"");
@@ -2009,7 +2470,7 @@ void ScummEngine_v6::o6_verbOps() {
 		vs->type = kTextVerbType;
 		vs->imgindex = 0;
 		break;
-	case 139:		// SO_VERB_IMAGE_IN_ROOM
+	case SO_VERB_IMAGE_IN_ROOM:
 		b = pop();
 		a = pop();
 
@@ -2019,10 +2480,10 @@ void ScummEngine_v6::o6_verbOps() {
 			vs->imgindex = a;
 		}
 		break;
-	case 140:		// SO_VERB_BAKCOLOR
+	case SO_VERB_BAKCOLOR:
 		vs->bkcolor = pop();
 		break;
-	case 255:
+	case SO_END:
 		drawVerb(slot, 0);
 		verbMouseOver(0);
 		break;
@@ -2073,13 +2534,13 @@ void ScummEngine_v6::o6_arrayOps() {
 	int list[128];
 
 	switch (subOp) {
-	case 205:		// SO_ASSIGN_STRING
+	case SO_ASSIGN_STRING:
 		b = pop();
 		len = resStrLen(_scriptPointer);
 		data = defineArray(array, kStringArray, 0, len + 1);
 		copyScriptString(data + b);
 		break;
-	case 208:		// SO_ASSIGN_INT_LIST
+	case SO_ASSIGN_INT_LIST:
 		b = pop();
 		c = pop();
 		d = readVar(array);
@@ -2090,7 +2551,7 @@ void ScummEngine_v6::o6_arrayOps() {
 			writeArray(array, 0, b + c, pop());
 		}
 		break;
-	case 212:		// SO_ASSIGN_2DIM_LIST
+	case SO_ASSIGN_2DIM_LIST:
 		b = pop();
 		len = getStackList(list, ARRAYSIZE(list));
 		d = readVar(array);
@@ -2120,7 +2581,7 @@ void ScummEngine_v6::o6_saveRestoreVerbs() {
 	}
 
 	switch (subOp) {
-	case 141:		// SO_SAVE_VERBS
+	case SO_SAVE_VERBS:
 		while (a <= b) {
 			slot = getVerbSlot(a, 0);
 			if (slot && _verbs[slot].saveid == 0) {
@@ -2131,7 +2592,7 @@ void ScummEngine_v6::o6_saveRestoreVerbs() {
 			a++;
 		}
 		break;
-	case 142:		// SO_RESTORE_VERBS
+	case SO_RESTORE_VERBS:
 		while (a <= b) {
 			slot = getVerbSlot(a, c);
 			if (slot) {
@@ -2146,7 +2607,7 @@ void ScummEngine_v6::o6_saveRestoreVerbs() {
 			a++;
 		}
 		break;
-	case 143:		// SO_DELETE_VERBS
+	case SO_DELETE_VERBS:
 		while (a <= b) {
 			slot = getVerbSlot(a, c);
 			if (slot)
@@ -2177,7 +2638,7 @@ void ScummEngine_v6::o6_wait() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 168:		// SO_WAIT_FOR_ACTOR Wait for actor
+	case SO_WAIT_FOR_ACTOR:		// Wait for actor
 		offs = fetchScriptWordSigned();
 		actnum = pop();
 		a = derefActor(actnum, "o6_wait:168");
@@ -2189,11 +2650,11 @@ void ScummEngine_v6::o6_wait() {
 				break;
 		}
 		return;
-	case 169:		// SO_WAIT_FOR_MESSAGE Wait for message
+	case SO_WAIT_FOR_MESSAGE:		// Wait for message
 		if (VAR(VAR_HAVE_MSG))
 			break;
 		return;
-	case 170:		// SO_WAIT_FOR_CAMERA Wait for camera
+	case SO_WAIT_FOR_CAMERA:		// Wait for camera
 		if (_game.version >= 7) {
 			if (camera._dest != camera._cur)
 				break;
@@ -2203,7 +2664,7 @@ void ScummEngine_v6::o6_wait() {
 		}
 
 		return;
-	case 171:		// SO_WAIT_FOR_SENTENCE
+	case SO_WAIT_FOR_SENTENCE:
 		if (_sentenceNum) {
 			if (_sentence[_sentenceNum - 1].freezeCount && !isScriptInUse(VAR(VAR_SENTENCE_SCRIPT)))
 				return;
@@ -2212,20 +2673,22 @@ void ScummEngine_v6::o6_wait() {
 		if (!isScriptInUse(VAR(VAR_SENTENCE_SCRIPT)))
 			return;
 		break;
-	case 226:		// SO_WAIT_FOR_ANIMATION
+	case SO_WAIT_FOR_ANIMATION:
 		offs = fetchScriptWordSigned();
 		actnum = pop();
 		a = derefActor(actnum, "o6_wait:226");
 		if (a->isInCurrentRoom() && a->_needRedraw)
 			break;
 		return;
-	case 232:		// SO_WAIT_FOR_TURN
+	case SO_WAIT_FOR_TURN:
 		// WORKAROUND for bug #819: An angle will often be received as the
 		// actor number due to script bugs in The Dig. In all cases where this
 		// occurs, _curActor is set just before it, so we can use it instead.
 		//
 		// For now, if the value passed in is divisible by 45, assume it is an
 		// angle, and use _curActor as the actor to wait for.
+		//
+		// TODO: what did the original interpreter do in this case?
 		offs = fetchScriptWordSigned();
 		actnum = pop();
 		if (actnum % 45 == 0) {
@@ -2253,10 +2716,12 @@ void ScummEngine_v6::o6_soundKludge() {
 	// slight bug causing it to busy-wait for a sound to finish. Even under
 	// the best of circumstances, this will cause the game to hang briefly.
 	// On platforms where threading is cooperative, it will cause the game
-	// to hang indefinitely. We identify the buggy part of the script by
-	// looking for a soundKludge() opcode immediately followed by a jump.
+	// to hang indefinitely (hence the use of `kEnhGameBreakingBugFixes`).
+	// We identify the buggy part of the script by looking for a
+	// soundKludge() opcode immediately followed by a jump.
 
-	if (_game.id == GID_CMI && _roomResource == 11 && vm.slot[_currentScript].number == 2016 && *_scriptPointer == 0x66) {
+	if (_game.id == GID_CMI && _roomResource == 11 && vm.slot[_currentScript].number == 2016 && *_scriptPointer == 0x66 &&
+		enhancementEnabled(kEnhGameBreakingBugFixes)) {
 		debug(3, "Working around script bug in room-11-2016");
 		o6_breakHere();
 	}
@@ -2284,13 +2749,14 @@ void ScummEngine_v6::o6_systemOps() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 158:		// SO_RESTART
+	case SO_RESTART:
 		restart();
 		break;
-	case 159:		// SO_PAUSE
+	case SO_PAUSE:
 		pauseGame();
 		break;
-	case 160:		// SO_QUIT
+	case SO_QUIT:
+		_quitFromScriptCmd = true;
 		quitGame();
 		break;
 	default:
@@ -2307,7 +2773,20 @@ void ScummEngine_v6::o6_delay() {
 
 void ScummEngine_v6::o6_delaySeconds() {
 	uint32 delay = (uint32)pop();
-	delay = delay * 60;
+	// WORKAROUND: On Baseball 2001, this script downloads the news, poll and banner information.
+	// It gives a one second break before validating that the download has completed, which is
+	// a tad bit too long.  So let's turn that into a one frame break.  This is safe because
+	// the script also checks if either var135 == 1, or the check has been done
+	// 10 times before moving on:
+	//
+	// [0000] (43) localvar2 = 10
+	//  ...
+	// [004E] (4F) localvar3++
+	// [0051] (B1) delaySeconds(1)
+	// [0054] (5D) unless ((var135 || (localvar3 > localvar2))) jump 4e
+	if (!(_game.id == GID_BASEBALL2001 && vm.slot[_currentScript].number == 414)) {
+		delay = delay * 60;
+	}
 	vm.slot[_currentScript].delay = delay;
 	vm.slot[_currentScript].status = ssPaused;
 	o6_breakHere();
@@ -2355,7 +2834,7 @@ void ScummEngine_v6::o6_printEgo() {
 void ScummEngine_v6::o6_talkActor() {
 	int offset = _scriptPointer - _scriptOrgPointer;
 
-	// WORKAROUND for bug #1452: see below for detailed description
+	// WORKAROUND for missing waitForMessage() calls; see below
 	if (_forcedWaitForMessage) {
 		if (VAR(VAR_HAVE_MSG)) {
 			_scriptPointer--;
@@ -2369,19 +2848,74 @@ void ScummEngine_v6::o6_talkActor() {
 		return;
 	}
 
+	// WORKAROUND: If Sam tries to buy an object at Snuckey's without having
+	// any money, Max's comment on capitalism may be cut too early because the
+	// employee reacts immediately after Max without any prior waitForMessage().
+	// The magic values below come from scripts 11-67 and 11-205.
+	//
+	// This call can't just be inserted after Max's line; it needs to be done
+	// just before the employee's line, otherwise the timing with Sam's moves
+	// will feel off -- so we can't use the _forcedWaitForMessage trick.
+	if (_game.id == GID_SAMNMAX && _roomResource == 11 && vm.slot[_currentScript].number == 67
+		&& getOwner(70) != 2 && !readVar(0x8000 + 67) && !readVar(0x8000 + 39) && readVar(0x8000 + 12) == 1
+		&& !getClass(126, 6) && enhancementEnabled(kEnhRestoredContent)) {
+		if (VAR(VAR_HAVE_MSG)) {
+			_scriptPointer--;
+			o6_breakHere();
+			return;
+		}
+	}
+
 	_actorToPrintStrFor = pop();
 
 	// WORKAROUND for bug #3803: "DOTT: Bernard impersonating LaVerne"
 	// Original script did not check for VAR_EGO == 2 before executing
 	// a talkActor opcode.
 	if (_game.id == GID_TENTACLE && vm.slot[_currentScript].number == 307
-			&& VAR(VAR_EGO) != 2 && _actorToPrintStrFor == 2) {
+			&& VAR(VAR_EGO) != 2 && _actorToPrintStrFor == 2
+			&& enhancementEnabled(kEnhMinorBugFixes)) {
 		_scriptPointer += resStrLen(_scriptPointer) + 1;
 		return;
 	}
 
+	// WORKAROUND: In the French release of Full Throttle, a "piano-low-kick"
+	// string appears in the text when Ben looks at one of the small pictures
+	// above the piano in the bar. Probably an original placeholder which
+	// hasn't been properly replaced... Fixed in the 2017 remaster, though.
+	if (_game.id == GID_FT && _language == Common::FR_FRA
+		&& _roomResource == 7 && vm.slot[_currentScript].number == 77
+		&& _actorToPrintStrFor == 1 && enhancementEnabled(kEnhTextLocFixes)) {
+		const int len = resStrLen(_scriptPointer) + 1;
+		if (len == 93 && memcmp(_scriptPointer + 16 + 18, "piano-low-kick", 14) == 0) {
+			byte *tmpBuf = new byte[len - 14 + 3];
+			memcpy(tmpBuf, _scriptPointer, 16 + 18);
+			memcpy(tmpBuf + 16 + 18, ", 1", 3);
+			memcpy(tmpBuf + 16 + 18 + 3, _scriptPointer + 16 + 18 + 14, len - (16 + 18 + 14));
+
+			_string[0].loadDefault();
+			actorTalk(tmpBuf);
+			delete[] tmpBuf;
+			_scriptPointer += len;
+			return;
+		}
+	}
+
 	_string[0].loadDefault();
 	actorTalk(_scriptPointer);
+
+	// WORKAROUND: Dr Fred's first reaction line about Hoagie's and Laverne's
+	// units after receiving a new diamond is unused because of missing
+	// wait.waitForMessage() calls. We always simulate this opcode when
+	// triggering Dr Fred's lines in this part of the script, since there is
+	// no stable offset for all the floppy, CD and translated versions, and
+	// no easy way to only target the impacted lines.
+	if (_game.id == GID_TENTACLE && vm.slot[_currentScript].number == 9
+		&& vm.localvar[_currentScript][0] == 216 && _actorToPrintStrFor == 4 && enhancementEnabled(kEnhRestoredContent)) {
+		_forcedWaitForMessage = true;
+		_scriptPointer--;
+
+		return;
+	}
 
 	// WORKAROUND for bug #1452: "DIG: Missing subtitles when talking to Brink"
 	// Original script does not have wait.waitForMessage() after several messages:
@@ -2394,7 +2928,7 @@ void ScummEngine_v6::o6_talkActor() {
 	// [0166] (73)   } else {
 	//
 	// Here we simulate that opcode.
-	if (_game.id == GID_DIG && vm.slot[_currentScript].number == 88) {
+	if (_game.id == GID_DIG && vm.slot[_currentScript].number == 88 && enhancementEnabled(kEnhRestoredContent)) {
 		if (offset == 0x158 || offset == 0x214 || offset == 0x231 || offset == 0x278) {
 			_forcedWaitForMessage = true;
 			_scriptPointer--;
@@ -2402,6 +2936,24 @@ void ScummEngine_v6::o6_talkActor() {
 			return;
 		}
 	}
+
+	// WORKAROUND bug #4410: Restore a missing subtitle when Low is inside the
+	// tomb and he finds the purpose of the crypt ("/TOMB.022/Now that I know
+	// what I'm looking for"...). Also happens in the original interpreters.
+	// We used to do this in actorTalk(), but then Low's proper walking
+	// animation was lost and he would just glide over the floor. Having him
+	// wait before he moves is less disturbing, since that's something he
+	// already does in the game.
+	if (_game.id == GID_DIG && _roomResource == 58 && vm.slot[_currentScript].number == 402
+		&& _actorToPrintStrFor == 3 && vm.localvar[_currentScript][0] == 0
+		&& readVar(0x8000 + 94) && readVar(0x8000 + 78) && !readVar(0x8000 + 97)
+		&& _scummVars[269] == 3 && getState(388) == 2 && enhancementEnabled(kEnhRestoredContent)) {
+		_forcedWaitForMessage = true;
+		_scriptPointer--;
+
+		return;
+	}
+
 	_scriptPointer += resStrLen(_scriptPointer) + 1;
 }
 
@@ -2416,22 +2968,22 @@ void ScummEngine_v6::o6_dimArray() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 199:		// SO_INT_ARRAY
+	case SO_INT_ARRAY:
 		data = kIntArray;
 		break;
-	case 200:		// SO_BIT_ARRAY
+	case SO_BIT_ARRAY:
 		data = kBitArray;
 		break;
-	case 201:		// SO_NIBBLE_ARRAY
+	case SO_NIBBLE_ARRAY:
 		data = kNibbleArray;
 		break;
-	case 202:		// SO_BYTE_ARRAY
+	case SO_BYTE_ARRAY:
 		data = kByteArray;
 		break;
-	case 203:		// SO_STRING_ARRAY
+	case SO_STRING_ARRAY:
 		data = kStringArray;
 		break;
-	case 204:		// SO_UNDIM_ARRAY
+	case SO_UNDIM_ARRAY:
 		nukeArray(fetchScriptWord());
 		return;
 	default:
@@ -2450,19 +3002,19 @@ void ScummEngine_v6::o6_dim2dimArray() {
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
-	case 199:		// SO_INT_ARRAY
+	case SO_INT_ARRAY:
 		data = kIntArray;
 		break;
-	case 200:		// SO_BIT_ARRAY
+	case SO_BIT_ARRAY:
 		data = kBitArray;
 		break;
-	case 201:		// SO_NIBBLE_ARRAY
+	case SO_NIBBLE_ARRAY:
 		data = kNibbleArray;
 		break;
-	case 202:		// SO_BYTE_ARRAY
+	case SO_BYTE_ARRAY:
 		data = kByteArray;
 		break;
-	case 203:		// SO_STRING_ARRAY
+	case SO_STRING_ARRAY:
 		data = kStringArray;
 		break;
 	default:
@@ -2554,9 +3106,6 @@ void ScummEngine_v7::o6_kernelSetFunctions() {
 				if ((_game.id == GID_FT) && (_game.features & GF_DEMO) && (_game.platform == Common::kPlatformMacintosh) &&
 					(!strcmp(videoname, "jumpgorge.san")))
 					_splayer->play("jumpgorg.san", _smushFrameRate);
-				// WORKAROUND: A faster frame rate is required, to keep audio/video in sync in this video
-				else if (_game.id == GID_DIG && !strcmp(videoname, "sq3.san"))
-					_splayer->play(videoname, 14);
 				else
 					_splayer->play(videoname, _smushFrameRate);
 
@@ -2586,7 +3135,7 @@ void ScummEngine_v7::o6_kernelSetFunctions() {
 		break;
 	case 16:
 	case 17:
-		enqueueText(getStringAddressVar(VAR_STRING2DRAW), args[3], args[4], args[2], args[1], (args[0] == 16));
+		enqueueText(getStringAddressVar(VAR_STRING2DRAW), args[3], args[4], args[2], args[1], (args[0] == 16) ? kStyleAlignCenter : kStyleAlignLeft);
 		break;
 	case 20:
 		_imuseDigital->setRadioChatterSFX(args[1]);
@@ -2687,17 +3236,21 @@ void ScummEngine_v6::o6_kernelSetFunctions() {
 	case 114:
 		// Sam & Max film noir mode
 		if (_game.id == GID_SAMNMAX) {
-			// At this point ScummVM will already have set
-			// variable 0x8000 to indicate that the game is
-			// in film noir mode. All we have to do here is
-			// to mark the palette as "dirty", because
-			// updatePalette() will desaturate the colors
-			// as they are uploaded to the backend.
-			//
-			// This actually works better than the original
-			// interpreter, where actors would sometimes
-			// still be drawn in color.
-			setDirtyColors(0, 255);
+			if (enhancementEnabled(kEnhMinorBugFixes)) {
+				// At this point ScummVM will already have set
+				// variable 0x8000 to indicate that the game is
+				// in film noir mode. All we have to do here is
+				// to mark the palette as "dirty", because
+				// updatePalette() will desaturate the colors
+				// as they are uploaded to the backend.
+				//
+				// This actually works better than the original
+				// interpreter, where actors would sometimes
+				// still be drawn in color.
+				setDirtyColors(0, 255);
+			} else {
+				applyGrayscaleToPaletteRange(0, 254);
+			}
 		} else
 			error("stub o6_kernelSetFunctions_114()");
 		break;
@@ -2859,7 +3412,29 @@ int ScummEngine::getKeyState(int key) {
 	}
 }
 
+int ScummEngine::getActionState(ScummAction action) {
+	return (_actionMap[action]) ? 1 : 0;
+}
+
 void ScummEngine_v6::o6_delayFrames() {
+	// WORKAROUND:  At startup, Moonbase Commander will pause for 20 frames before
+	// showing the Infogrames logo.  The purpose of this break is to give time for the
+	// GameSpy Arcade application to fill with the online game information.
+	//
+	// [0000] (84) localvar2 = max(readConfigFile.number(":var263:","user","wait-for-gamespy"),10)
+	// [0029] (08) delayFrames((localvar2 * 2))
+	//
+	// But since we don't support GameSpy and have our own online support, this break
+	// has become redundant and only wastes time.
+	//
+	// WORKAROUND:  On Baseball 2001, there is a 10 frame pause before sending the login information
+	// to the server.  This is rather a pointless break, so let's skip that.
+	if ((_game.id == GID_MOONBASE && vm.slot[_currentScript].number == 69) ||
+		(_game.id == GID_BASEBALL2001 && _currentRoom == 37 && vm.slot[_currentScript].number == 2068)) {
+		pop();
+		return;
+	}
+
 	ScriptSlot *ss = &vm.slot[_currentScript];
 	if (ss->delayFrameCount == 0) {
 		ss->delayFrameCount = pop();
@@ -2957,15 +3532,21 @@ void ScummEngine_v6::o6_findAllObjects() {
 	push(readVar(0));
 }
 
-void ScummEngine_v6::shuffleArray(int num, int minIdx, int maxIdx) {
+void ScummEngine_v6::shuffleArray(int num, int minIdx, int maxIdx) {	
+	int rand1, rand2;
 	int range = maxIdx - minIdx;
 	int count = range * 2;
 
 	// Shuffle the array 'num'
 	while (count--) {
 		// Determine two random elements...
-		int rand1 = _rnd.getRandomNumber(range) + minIdx;
-		int rand2 = _rnd.getRandomNumber(range) + minIdx;
+		if (_game.heversion >= 72) {
+			rand1 = VAR(VAR_RANDOM_NR) = _rnd.getRandomNumberRng(minIdx, maxIdx);
+			rand2 = VAR(VAR_RANDOM_NR) = _rnd.getRandomNumberRng(minIdx, maxIdx);
+		} else {
+			rand1 = _rnd.getRandomNumber(range) + minIdx;
+			rand2 = _rnd.getRandomNumber(range) + minIdx;
+		}
 
 		// ...and swap them
 		int val1 = readArray(num, 0, rand1);
@@ -3050,7 +3631,7 @@ void ScummEngine_v6::o6_getPixel() {
 
 	VirtScreen *vs = findVirtScreen(y);
 
-	if (vs == NULL || x > _screenWidth - 1 || x < 0) {
+	if (vs == nullptr || x > _screenWidth - 1 || x < 0) {
 		push(-1);
 		return;
 	}
@@ -3063,7 +3644,7 @@ void ScummEngine_v6::o6_setBoxSet() {
 	int arg = pop() - 1;
 
 	const byte *room = getResourceAddress(rtRoom, _roomResource);
-	const byte *boxd = NULL, *boxm = NULL;
+	const byte *boxd = nullptr, *boxm = nullptr;
 	int32 dboxSize, mboxSize;
 	int i;
 
@@ -3101,42 +3682,42 @@ void ScummEngine_v6::decodeParseString(int m, int n) {
 	byte b = fetchScriptByte();
 
 	switch (b) {
-	case 65:		// SO_AT
+	case SO_AT:
 		_string[m].ypos = pop();
 		_string[m].xpos = pop();
 		_string[m].overhead = false;
 		break;
-	case 66:		// SO_COLOR
+	case SO_COLOR:
 		_string[m].color = pop();
 		break;
-	case 67:		// SO_CLIPPED
+	case SO_CLIPPED:
 		_string[m].right = pop();
 		break;
-	case 69:		// SO_CENTER
+	case SO_CENTER:
 		_string[m].center = true;
 		_string[m].overhead = false;
 		break;
-	case 71:		// SO_LEFT
+	case SO_LEFT:
 		_string[m].center = false;
 		_string[m].overhead = false;
 		break;
-	case 72:		// SO_OVERHEAD
+	case SO_OVERHEAD:
 		_string[m].overhead = true;
 		_string[m].no_talk_anim = false;
 		break;
-	case 74:		// SO_MUMBLE
+	case SO_MUMBLE:
 		_string[m].no_talk_anim = true;
 		break;
-	case 75:		// SO_TEXTSTRING
+	case SO_TEXTSTRING:
 		printString(m, _scriptPointer);
 		_scriptPointer += resStrLen(_scriptPointer) + 1;
 		break;
-	case 0xFE:
+	case SO_BASEOP:
 		_string[m].loadDefault();
 		if (n)
 			_actorToPrintStrFor = pop();
 		break;
-	case 0xFF:
+	case SO_END:
 		_string[m].saveDefault();
 		break;
 	default:

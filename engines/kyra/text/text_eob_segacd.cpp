@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,8 +32,7 @@ TextDisplayer_SegaCD::TextDisplayer_SegaCD(EoBEngine *engine, Screen_EoB *scr) :
 	_curDim(0), _textColor(0xFF), _curPosY(0), _curPosX(0) {
 	assert(_renderer);
 	_msgRenderBufferSize = 320 * 48;
-	_msgRenderBuffer = new uint8[_msgRenderBufferSize];
-	memset(_msgRenderBuffer, 0, _msgRenderBufferSize);
+	_msgRenderBuffer = new uint8[_msgRenderBufferSize]();
 }
 
 TextDisplayer_SegaCD::~TextDisplayer_SegaCD() {
@@ -77,7 +75,7 @@ void TextDisplayer_SegaCD::printShadedText(const char *str, int x, int y, int te
 	if (y == -1)
 		y = s->sy;
 	if (textColor == -1)
-		textColor = s->unk8;
+		textColor = s->col1;
 	if (shadowColor == -1)
 		shadowColor = 0;
 	if (pitchW == -1)
@@ -91,11 +89,11 @@ void TextDisplayer_SegaCD::printShadedText(const char *str, int x, int y, int te
 	if (!screenUpdate)
 		return;
 
-	if (s->unkE) {
+	if (s->column) {
 		for (int i = 0; i < (pitchH >> 3); ++i)
-			_screen->sega_loadTextBufferToVRAM(i * (pitchW << 2), ((s->unkC & 0x7FF) + i * s->unkE) << 5, pitchW << 2);
+			_screen->sega_loadTextBufferToVRAM(i * (pitchW << 2), ((s->line & 0x7FF) + i * s->column) << 5, pitchW << 2);
 	} else {
-		_screen->sega_loadTextBufferToVRAM(0, (s->unkC & 0x7FF) << 5, (pitchW * pitchH) >> 1);
+		_screen->sega_loadTextBufferToVRAM(0, (s->line & 0x7FF) << 5, (pitchW * pitchH) >> 1);
 	}
 }
 
@@ -104,9 +102,9 @@ int TextDisplayer_SegaCD::clearDim(int dim) {
 	_curDim = dim;
 	_curPosY = _curPosX = 0;
 	const ScreenDim *s = &_dimTable[dim];
-	_renderer->memsetVRAM((s->unkC & 0x7FF) << 5, s->unkA, (s->w * s->h) >> 1);
-	_screen->sega_clearTextBuffer(s->unkA);
-	memset(_msgRenderBuffer, s->unkA, _msgRenderBufferSize);
+	_renderer->memsetVRAM((s->line & 0x7FF) << 5, s->col2, (s->w * s->h) >> 1);
+	_screen->sega_clearTextBuffer(s->col2);
+	memset(_msgRenderBuffer, s->col2, _msgRenderBufferSize);
 	return res;
 }
 
@@ -126,8 +124,9 @@ void TextDisplayer_SegaCD::displayText(char *str, ...) {
 	if (tc != -1)
 		SWAP(_textColor, tc);
 
-	for (const char *pos = str; *pos; updated = false) {
+	for (const char *pos = str; *pos; ) {
 		uint8 cmd = fetchCharacter(tmp, pos);
+		updated = false;
 
 		if (_dimTable[_curDim].h < _curPosY + _screen->getFontHeight()) {
 			_curPosY -= _screen->getFontHeight();
@@ -192,7 +191,7 @@ uint8 TextDisplayer_SegaCD::fetchCharacter(char *dest, const char *&src) {
 
 void TextDisplayer_SegaCD::linefeed() {
 	copyTextBufferLine(_screen->getFontHeight(), 0, (_dimTable[_curDim].h & ~7) - _screen->getFontHeight(), _dimTable[_curDim].w >> 3);
-	clearTextBufferLine(_screen->getFontHeight(), _screen->getFontHeight(), _dimTable[_curDim].w >> 3, _dimTable[_curDim].unkA);
+	clearTextBufferLine(_screen->getFontHeight(), _screen->getFontHeight(), _dimTable[_curDim].w >> 3, _dimTable[_curDim].col2);
 }
 
 void TextDisplayer_SegaCD::clearTextBufferLine(uint16 y, uint16 lineHeight, uint16 pitch, uint8 col) {

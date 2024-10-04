@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,20 +46,23 @@ namespace Image {
 class Indeo3Decoder : public Codec {
 public:
 	Indeo3Decoder(uint16 width, uint16 height, uint bitsPerPixel = 24);
-	~Indeo3Decoder();
+	~Indeo3Decoder() override;
 
-	const Graphics::Surface *decodeFrame(Common::SeekableReadStream &stream);
-	Graphics::PixelFormat getPixelFormat() const;
+	const Graphics::Surface *decodeFrame(Common::SeekableReadStream &stream) override;
+	Graphics::PixelFormat getPixelFormat() const override;
+	bool setOutputPixelFormat(const Graphics::PixelFormat &format) override { _pixelFormat = format; return true; }
 
 	static bool isIndeo3(Common::SeekableReadStream &stream);
 
 private:
 	Graphics::Surface *_surface;
 
+	uint16 _width;
+	uint16 _height;
 	Graphics::PixelFormat _pixelFormat;
 
-	static const int _corrector_type_0[24];
-	static const int _corrector_type_2[8];
+	static const byte _corrector_type_0[24];
+	static const byte _corrector_type_2[8];
 	static const uint32 correction[];
 	static const uint32 correctionloworder[];
 	static const uint32 correctionhighorder[];
@@ -80,7 +82,7 @@ private:
 	YUVBufs *_ref_frame;
 
 	byte *_ModPred;
-	uint16 *_corrector_type;
+	byte *_corrector_type;
 
 	void buildModPred();
 	void allocFrames();

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -194,9 +193,9 @@ PrinceEngine::~PrinceEngine() {
 
 void PrinceEngine::init() {
 
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 
-	debugEngine("Adding all path: %s", gameDataDir.getPath().c_str());
+	debugEngine("Adding all path: %s", gameDataDir.getPath().toString(Common::Path::kNativeSeparator).c_str());
 
 	if (!(getFeatures() & GF_EXTRACTED)) {
 		PtcArchive *all = new PtcArchive();
@@ -505,7 +504,7 @@ void PrinceEngine::loadMobTranslationTexts() {
 }
 
 void PrinceEngine::setMobTranslationTexts() {
-	int locationOffset = READ_UINT16(_mobTranslationData + (_locationNr - 1) * 2);
+	int locationOffset = READ_LE_UINT16(_mobTranslationData + (_locationNr - 1) * 2);
 	if (locationOffset) {
 		byte *locationText = _mobTranslationData + locationOffset;
 		for (uint i = 0; i < _mobList.size(); i++) {
@@ -771,7 +770,7 @@ void PrinceEngine::leftMouseButton() {
 						if (!text._str) {
 							continue;
 						}
-						text._str = 0;
+						text._str = nullptr;
 						text._time = 0;
 					}
 				}

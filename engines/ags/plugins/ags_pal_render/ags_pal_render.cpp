@@ -4,9 +4,9 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
  * of the License, or(at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,16 +33,16 @@ namespace AGSPalRender {
 #define MAX_STARS 1024
 #define MAX_DEPTH 64
 
-#define PI         (3.1415926535f)
-#define HALF_PI    (0.5f * PI)
-#define TWO_PI     (2.0f * PI)
+#define ONE_PI     ((float)M_PI)
+#define HALF_PI    (0.5f * ONE_PI)
+#define TWO_PI     (2.0f * ONE_PI)
 #define TWO_PI_INV (1.0f / TWO_PI)
 
-const float halfpi = (0.5f * PI);
-const float twopi  = (2.0f * PI);
+const float halfpi = (0.5f * ONE_PI);
+const float twopi  = (2.0f * ONE_PI);
 const float twopi_inv = (1.0f / TWO_PI);
-const float pisquared = PI * PI;
-const float picubed = PI * PI * PI;
+const float pisquared = ONE_PI * ONE_PI;
+const float picubed = ONE_PI * ONE_PI * ONE_PI;
 
 IAGSEngine *engine;
 //unsigned char clut[256][256];
@@ -172,7 +171,7 @@ float  q3sqrt(const float x) {
 
 void Make_Sin_Lut() {
 	for (int angle = 0; angle < 360; angle++) {
-		double rad = (angle * PI) / 180.0;
+		double rad = (angle * ONE_PI) / 180.0;
 		rot_sine_LUT [angle] = static_cast<float>(sin(rad));
 		rot_cos_LUT [angle]  = static_cast<float>(cos(rad));
 	}
@@ -207,7 +206,7 @@ unsigned short root(unsigned short x) {
 
 float Hill(float x) {
 	const float a0 = 1.0f;
-	const float a2 = 2.0f / PI - 12.0f / (pisquared);
+	const float a2 = 2.0f / ONE_PI - 12.0f / (pisquared);
 	const float a3 = 16.0f / (picubed) - 4.0f / (pisquared);
 	const float xx = x * x;
 	const float xxx = xx * x;
@@ -225,7 +224,7 @@ float FastSin(float x) {
 	// 4 pieces of hills
 	if (x < halfpi)
 		return Hill(halfpi - x);
-	else if (x < PI)
+	else if (x < ONE_PI)
 		return Hill(x - halfpi);
 	else if (x < 3.0f * halfpi)
 		return -Hill(3.0f * halfpi - x);
@@ -604,7 +603,7 @@ unsigned char MixColorAlpha (unsigned char fg,unsigned char bg,unsigned char alp
 	int out_b = (palette[fg].b>>1) * alpha + (palette[bg].b>>1) * (255 - alpha);
 	//unsigned char ralpha = alpha>>2;
 	//unsigned char invralpha = 64-ralpha;
-	//if (ralpha > alpha) engine->AbortGame ("wtf");
+	//if (ralpha > alpha) engine->AbortGame ("oops");
 	//int out_r = alphamultiply[(palette[fg].r>>1)][ralpha] + alphamultiply[(palette[bg].r>>1)][(invralpha)];
 	//int out_g = alphamultiply[(palette[fg].g)][ralpha] + alphamultiply[(palette[bg].g)][(invralpha)];
 	//int out_b = alphamultiply[(palette[fg].b>>1)][ralpha] + alphamultiply[(palette[bg].b>>1)][(invralpha)];
@@ -630,7 +629,7 @@ unsigned char MixColorAdditive (unsigned char fg,unsigned char bg,unsigned char 
 	int i=0;
 	int add_r,add_b,add_g = 0;
 	char ralpha = alpha>>2;
-	//if (ralpha > alpha) engine->AbortGame ("wtf");
+	//if (ralpha > alpha) engine->AbortGame ("oops");
 	//add_r = (((palette[fg].r>>1) * (alpha))>>8);
 	//add_b = (((palette[fg].b>>1) * (alpha))>>8);
 	//add_g = (((palette[fg].g)    * (alpha))>>8);
@@ -770,7 +769,7 @@ void AGSPalRender::IterateStars(ScriptMethodParams &params) {
 			stars[i].x = (float)((::AGS::g_vm->getRandomNumber(0x7fffffff) % sw) << 1) - sw;
 			if (stars[i].x < 1.0 && stars[i].x > -1.0) stars[i].x = (float)sw;
 			stars[i].y = (float)((::AGS::g_vm->getRandomNumber(0x7fffffff) % sh) << 1) - sh;
-			if (stars[i].y < 1.0 && stars[i].y > 1.0) stars[i].y = (float)sh;
+			if (stars[i].y < 1.0 && stars[i].y > -1.0) stars[i].y = (float)sh;
 			stars[i].z = (float)MAX_DEPTH;
 			//stars[i].color = (rand () %240);
 		}
@@ -922,7 +921,7 @@ void AGSPalRender::DrawStars(ScriptMethodParams &params) {
 			stars[i].x = (float)((::AGS::g_vm->getRandomNumber(0x7fffffff) % sw) << 1) - sw;
 			if (stars[i].x < 1.0 && stars[i].x > -1.0) stars[i].x = (float)sw;
 			stars[i].y = (float)((::AGS::g_vm->getRandomNumber(0x7fffffff) % sh) << 1) - sh;
-			if (stars[i].y < 1.0 && stars[i].y > 1.0) stars[i].y = (float)sh;
+			if (stars[i].y < 1.0 && stars[i].y > -1.0) stars[i].y = (float)sh;
 			stars[i].z = (float)MAX_DEPTH;
 			//stars[i].color = (rand () %240);
 		} else if (stars[i].z > 0) {

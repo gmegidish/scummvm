@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,13 +30,13 @@
 namespace Sci {
 
 Vocabulary::Vocabulary(ResourceManager *resMan, bool foreign) : _resMan(resMan), _foreign(foreign) {
-	_parserRules = NULL;
+	_parserRules = nullptr;
 
 	memset(_parserNodes, 0, sizeof(_parserNodes));
 	// Mark parse tree as unused
 	_parserNodes[0].type = kParseTreeLeafNode;
 	_parserNodes[0].value = 0;
-	_parserNodes[0].right = 0;
+	_parserNodes[0].right = nullptr;
 
 	_synonyms.clear(); // No synonyms
 
@@ -67,7 +66,7 @@ Vocabulary::Vocabulary(ResourceManager *resMan, bool foreign) : _resMan(resMan),
 			_parserRules = buildGNF();
 	} else {
 		debug(2, "Assuming that this game does not use a parser.");
-		_parserRules = NULL;
+		_parserRules = nullptr;
 	}
 
 	loadAltInputs();
@@ -189,7 +188,53 @@ bool Vocabulary::loadParserWords() {
 		seeker += 3;
 	}
 
+	// Russian translation can contain translated vocab in special format
+	if (g_sci->getLanguage() == Common::RU_RUS)
+		loadTranslatedWords();
+
 	return true;
+}
+
+void Vocabulary::loadTranslatedWords() {
+	// This is special fan made format similar to VOCAB.000 (see
+	// https://wiki.scummvm.org/index.php?title=SCI/Specifications/SCI_in_action/Parser#Vocabulary_file_formats)
+	// but all characters used are in the upper character range (80h..FFh)
+
+	Resource *resource = _resMan->findResource(ResourceId(kResourceTypeVocab, VOCAB_RESOURCE_SCUMM_LOC_VOCAB), 0);
+	if (!resource)
+		return;
+	
+	char currentWord[VOCAB_MAX_WORDLENGTH] = "";
+	int currentWordPos = 0;
+
+	uint32 seeker = 0;
+	while (seeker < resource->size()) {
+		byte c;
+
+		currentWordPos = resource->getUint8At(seeker++); // Parts of previous words may be re-used
+
+		do {
+			if (seeker >= resource->size()) {
+				return;
+			}
+			c = resource->getUint8At(seeker++);
+			assert(currentWordPos < ARRAYSIZE(currentWord) - 1);
+			currentWord[currentWordPos++] = (c & 0x7f) | 0x80; // add 0x80 for upper character table
+		} while (c < 0x80);
+
+		currentWord[currentWordPos] = 0;
+
+		// Now decode class and group:
+		c = resource->getUint8At(seeker + 1);
+		ResultWord newWord;
+		newWord._class = ((resource->getUint8At(seeker)) << 4) | ((c & 0xf0) >> 4);
+		newWord._group = (resource->getUint8At(seeker + 2)) | ((c & 0x0f) << 8);
+
+		// Add this to the list of possible class,group pairs for this word
+		_parserWords[currentWord].push_back(newWord);
+
+		seeker += 3;
+	}
 }
 
 const char *Vocabulary::getAnyWordFromGroup(int group) {
@@ -496,6 +541,7 @@ void Vocabulary::lookupWordPrefix(ResultWordListList &parent_retval, ResultWordL
 	PrefixMeaning prefixes[] = {
 		{0xe1, "1hebrew1prefix1bet"},           // "Bet"
 		{0xe4, "the"},                          // "He Hayedia"
+		{0xe5, "and"},                          // "Vav"
 		{0xec, "1hebrew1prefix1lamed"},         // "Lamed"
 		{0xee, "1hebrew1prefix1mem"}            // "Mem"
 	};
@@ -655,19 +701,42 @@ static const byte lowerCaseMap[256] = {
 	0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff  // 0xf0
 };
 
+static const byte lowerCaseMap866[256] = {
+	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, // 0x00
+	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, // 0x10
+	0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, // 0x20
+	0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f, // 0x30
+	0x40,  'a',  'b',  'c',  'd',  'e',  'f',  'g',  'h',  'i',  'j',  'k',  'l',  'm',  'n',  'o', // 0x40
+	 'p',  'q',  'r',  's',  't',  'u',  'v',  'w',  'x',  'y',  'z', 0x5b, 0x5c, 0x5d, 0x5e, 0x5f, // 0x50
+	0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f, // 0x60
+	0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7d, 0x7e, 0x7f, // 0x70
+	0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf, // 0x80
+	0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef, // 0x90
+	0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf, // 0xa0
+	0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf, // 0xb0
+	0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf, // 0xc0
+	0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf, // 0xd0
+	0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef, // 0xe0
+	0xa5, 0xa5, 0xf3, 0xf3, 0xf5, 0xf5, 0xf7, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff  // 0xf0
+};
+
 bool Vocabulary::tokenizeString(ResultWordListList &retval, const char *sentence, char **error) {
 	char currentWord[VOCAB_MAX_WORDLENGTH] = "";
 	int pos_in_sentence = 0;
 	unsigned char c;
 	int wordLen = 0;
+	const byte *lcMap = lowerCaseMap;
 
-	*error = NULL;
+	*error = nullptr;
+
+	if (g_sci->getLanguage() == Common::RU_RUS)
+		lcMap = lowerCaseMap866;
 
 	do {
 		c = sentence[pos_in_sentence++];
 
 		if (Common::isAlnum(c) || (c == '-' && wordLen) || (c >= 0x80)) {
-			currentWord[wordLen] = lowerCaseMap[c];
+			currentWord[wordLen] = lcMap[c];
 			++wordLen;
 		} else if (c == ' ' || c == '\0') {
 			// Continue on this word. Words may contain a '-', but may not start with
@@ -826,7 +895,7 @@ int Vocabulary::parseNodes(int *i, int *pos, int type, int nr, int argc, const c
 	if (type == kParseNumber) {
 		_parserNodes[*pos += 1].type = kParseTreeLeafNode;
 		_parserNodes[*pos].value = nr;
-		_parserNodes[*pos].right = 0;
+		_parserNodes[*pos].right = nullptr;
 		return *pos;
 	}
 	if (type == kParseEndOfInput) {
@@ -853,7 +922,7 @@ int Vocabulary::parseNodes(int *i, int *pos, int type, int nr, int argc, const c
 			} else if (!strcmp(token, "nil")) {
 				nextToken = kParseNil;
 			} else {
-				nextValue = strtol(token, NULL, 0);
+				nextValue = strtol(token, nullptr, 0);
 				nextToken = kParseNumber;
 			}
 		}
@@ -899,7 +968,7 @@ static ParseTreeNode* scanForMajor(ParseTreeNode *tree, int major) {
 		if (node_major(tree) == major)
 			return tree;
 		else
-			return 0;
+			return nullptr;
 	}
 
 	ParseTreeNode* ptr = tree->right;
@@ -913,12 +982,12 @@ static ParseTreeNode* scanForMajor(ParseTreeNode *tree, int major) {
 	}
 
 	if (major == 0x141)
-		return 0;
+		return nullptr;
 
 	// If not found, go into a 0x141 and try again
 	tree = scanForMajor(tree, 0x141);
 	if (!tree)
-		return 0;
+		return nullptr;
 	return scanForMajor(tree, major);
 }
 

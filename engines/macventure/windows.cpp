@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -95,16 +94,16 @@ Graphics::BorderOffsets borderOffsets(MVWindowType type) {
 	case MacVenture::kAltBox:
 		break;
 	case MacVenture::kNoGrowDoc:
-		offsets.titleTop = 0;
+		offsets.titleTop = 2;
 		offsets.titleBottom = 0;
-		offsets.titlePos = 0;
+		offsets.titlePos = 29;
 		break;
 	case MacVenture::kMovableDBox:
 		break;
 	case MacVenture::kZoomDoc:
-		offsets.titleTop = 0;
+		offsets.titleTop = 3;
 		offsets.titleBottom = 0;
-		offsets.titlePos = 0;
+		offsets.titlePos = 25;
 
 		offsets.upperScrollHeight = 20;
 		offsets.lowerScrollHeight = 20;
@@ -115,17 +114,17 @@ Graphics::BorderOffsets borderOffsets(MVWindowType type) {
 		offsets.titlePos = 0;
 		break;
 	case MacVenture::kInvWindow:
-		offsets.titleTop = 0;
+		offsets.titleTop = 3;
 		offsets.titleBottom = 0;
-		offsets.titlePos = 0;
+		offsets.titlePos = 36;
 
 		offsets.upperScrollHeight = 20;
 		offsets.lowerScrollHeight = 20;
 		break;
 	case MacVenture::kRDoc4:
-		offsets.titleTop = 0;
+		offsets.titleTop = 2;
 		offsets.titleBottom = 0;
-		offsets.titlePos = 0;
+		offsets.titlePos = 22;
 		break;
 	default:
 		break;

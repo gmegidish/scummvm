@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,7 @@
 #include "ultima/ultima4/map/tileset.h"
 #include "ultima/ultima4/views/tileview.h"
 #include "ultima/ultima4/ultima4.h"
+#include "common/system.h"
 
 namespace Ultima {
 namespace Ultima4 {
@@ -42,7 +42,7 @@ TileView::TileView(int x, int y, int columns, int rows) :
 	_tileWidth = TILE_WIDTH;
 	_tileHeight = TILE_HEIGHT;
 	_tileSet = g_tileSets->get("base");
-	_animated = Image::create(SCALED(_tileWidth), SCALED(_tileHeight), false, Image::HARDWARE);
+	_animated = Image::create(SCALED(_tileWidth), SCALED(_tileHeight), g_system->getScreenFormat());
 	_dest = nullptr;
 }
 
@@ -53,7 +53,7 @@ TileView::TileView(int x, int y, int columns, int rows, const Common::String &ti
 	_tileWidth = TILE_WIDTH;
 	_tileHeight = TILE_HEIGHT;
 	_tileSet = g_tileSets->get(tileset);
-	_animated = Image::create(SCALED(_tileWidth), SCALED(_tileHeight), false, Image::HARDWARE);
+	_animated = Image::create(SCALED(_tileWidth), SCALED(_tileHeight), g_system->getScreenFormat());
 	_dest = nullptr;
 }
 
@@ -70,7 +70,7 @@ void TileView::reinit() {
 		delete _animated;
 		_animated = nullptr;
 	}
-	_animated = Image::create(SCALED(_tileWidth), SCALED(_tileHeight), false, Image::HARDWARE);
+	_animated = Image::create(SCALED(_tileWidth), SCALED(_tileHeight), _dest ? _dest->format() : g_system->getScreenFormat());
 }
 
 void TileView::loadTile(MapTile &mapTile) {

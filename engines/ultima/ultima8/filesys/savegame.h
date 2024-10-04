@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,15 +35,9 @@ class ZipFile;
 class IDataSource;
 
 class SavegameReader {
-	struct FileEntry {
-		uint _offset;
-		uint _size;
-		FileEntry() : _offset(0), _size(0) {}
-	};
 private:
 	ExtendedSavegameHeader _header;
-	Common::HashMap<Common::String, FileEntry> _index;
-	Common::SeekableReadStream *_file;
+	Common::Archive *_archive;
 	uint32 _version;
 public:
 	explicit SavegameReader(Common::SeekableReadStream *rs, bool metadataOnly = false);
@@ -60,7 +53,7 @@ public:
 	/**
 	 * Get an entry/section within the save
 	 */
-	Common::SeekableReadStream *getDataSource(const Std::string &name);
+	Common::SeekableReadStream *getDataSource(const Common::Path &name);
 };
 
 class SavegameWriter {
@@ -82,7 +75,7 @@ public:
 	//! \param size (in bytes) of data
 	bool writeFile(const Std::string &name, const uint8 *data, uint32 size);
 
-	//! write a file to the savegame from an memory stream
+	//! write a file to the savegame from a memory stream
 	//! \param name name of the file
 	//! \param buf the MemoryWriteStreamDynamic to save
 	bool writeFile(const Std::string &name, Common::MemoryWriteStreamDynamic *buf);

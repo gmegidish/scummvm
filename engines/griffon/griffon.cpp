@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *              Originally written by Syn9 in FreeBASIC with SDL
  *              http://syn9.thehideoutgames.com/index_backup.php
@@ -53,7 +52,7 @@
 namespace Griffon {
 
 GriffonEngine::GriffonEngine(OSystem *syst) : Engine(syst) {
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "sound");
 
 	_rnd = new Common::RandomSource("griffon");
@@ -76,6 +75,7 @@ GriffonEngine::GriffonEngine(OSystem *syst) : Engine(syst) {
 	_saveSlot = 0;
 
 	_ticks = g_system->getMillis();
+	_ticksAtPauseStart = 0;
 
 	for (int i = 0; i < 33; ++i) {
 		for (int j = 0; j < 6; ++j) {
@@ -132,10 +132,13 @@ void GriffonEngine::saveConfig() {
 
 Common::Error GriffonEngine::run() {
 	Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
-	if (ttsMan != nullptr)
+	if (ttsMan != nullptr) {
 		ttsMan->setLanguage("en");
+		ttsMan->enable(ConfMan.getBool("tts_enabled"));
+	}
 
-	initGraphics(320, 240, new Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0));
+	Graphics::PixelFormat pixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0);
+	initGraphics(320, 240, &pixelFormat);
 
 	_mixer = g_system->getMixer();
 
@@ -190,6 +193,16 @@ Common::Error GriffonEngine::run() {
 	}
 
 	return Common::kNoError;
+}
+
+void GriffonEngine::pauseEngineIntern(bool pause) {
+	if (pause) {
+		_ticksAtPauseStart = _ticks;
+	} else {
+		uint32 diff = _system->getMillis() - _ticksAtPauseStart;
+		_ticks += diff;
+		_nextTicks += diff;
+	}
 }
 
 }

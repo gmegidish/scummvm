@@ -18,10 +18,10 @@
 #ifndef MT32EMU_CONFIG_H
 #define MT32EMU_CONFIG_H
 
-#define MT32EMU_VERSION      "2.5.1"
+#define MT32EMU_VERSION      "2.7.0"
 #define MT32EMU_VERSION_MAJOR 2
-#define MT32EMU_VERSION_MINOR 5
-#define MT32EMU_VERSION_PATCH 1
+#define MT32EMU_VERSION_MINOR 7
+#define MT32EMU_VERSION_PATCH 0
 
 /* Library Exports Configuration
  *
@@ -34,6 +34,7 @@
  * 3: All the available API types are provided by the library build.
  */
 #define MT32EMU_EXPORTS_TYPE 0
+#define MT32EMU_API_TYPE 0
 
 /* Type of library build.
  *

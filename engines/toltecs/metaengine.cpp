@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,11 +26,27 @@
 #include "common/savefile.h"
 #include "common/str-array.h"
 #include "common/system.h"
+#include "common/translation.h"
 
 #include "toltecs/toltecs.h"
 #include "toltecs/detection.h"
 
 namespace Toltecs {
+
+static const ADExtraGuiOptionsMap optionsList[] = {
+	{
+		GAMEOPTION_ORIGINAL_SAVELOAD,
+		{
+			_s("Use original save/load screens"),
+			_s("Use the original save/load screens instead of the ScummVM ones"),
+			"originalsaveload",
+			false,
+			0,
+			0
+		}
+	},
+	AD_EXTRA_GUI_OPTIONS_TERMINATOR
+};
 
 uint32 ToltecsEngine::getFeatures() const {
 	return _gameDescription->desc.flags;
@@ -43,14 +58,18 @@ Common::Language ToltecsEngine::getLanguage() const {
 
 } // End of namespace Toltecs
 
-class ToltecsMetaEngine : public AdvancedMetaEngine {
+class ToltecsMetaEngine : public AdvancedMetaEngine<Toltecs::ToltecsGameDescription> {
 public:
 	const char *getName() const override {
 		return "toltecs";
 	}
 
+	const ADExtraGuiOptionsMap *getAdvancedExtraGuiOptions() const override {
+		return Toltecs::optionsList;
+	}
+
 	bool hasFeature(MetaEngineFeature f) const override;
-	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const Toltecs::ToltecsGameDescription *desc) const override;
 
 	SaveStateList listSaves(const char *target) const override;
 	int getMaximumSaveSlot() const override;
@@ -77,8 +96,8 @@ bool Toltecs::ToltecsEngine::hasFeature(EngineFeature f) const {
 		(f == kSupportsSavingDuringRuntime);
 }
 
-Common::Error ToltecsMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	*engine = new Toltecs::ToltecsEngine(syst, (const Toltecs::ToltecsGameDescription *)desc);
+Common::Error ToltecsMetaEngine::createInstance(OSystem *syst, Engine **engine, const Toltecs::ToltecsGameDescription *desc) const {
+	*engine = new Toltecs::ToltecsEngine(syst,desc);
 	return Common::kNoError;
 }
 

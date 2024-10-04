@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@
 namespace Kyra {
 
 Screen_v2::Screen_v2(KyraEngine_v1 *vm, OSystem *system, const ScreenDim *dimTable, const int dimTableSize)
-	: Screen(vm, system, dimTable, dimTableSize), _wsaFrameAnimBuffer(0) {
+	: Screen(vm, system, dimTable, dimTableSize), _wsaFrameAnimBuffer(nullptr) {
 	_wsaFrameAnimBuffer = new uint8[1024];
 	assert(_wsaFrameAnimBuffer);
 }
@@ -194,7 +193,7 @@ const uint8 *Screen_v2::getPtrToShape(const uint8 *shpFile, int shape) {
 	uint16 shapes = READ_LE_UINT16(shpFile);
 
 	if (shapes <= shape)
-		return 0;
+		return nullptr;
 
 	uint32 offset = READ_LE_UINT32(shpFile + (shape << 2) + 2);
 
@@ -205,7 +204,7 @@ uint8 *Screen_v2::getPtrToShape(uint8 *shpFile, int shape) {
 	uint16 shapes = READ_LE_UINT16(shpFile);
 
 	if (shapes <= shape)
-		return 0;
+		return nullptr;
 
 	uint32 offset = READ_LE_UINT32(shpFile + (shape << 2) + 2);
 
@@ -235,7 +234,7 @@ uint16 Screen_v2::getShapeSize(const uint8 *shp) {
 uint8 *Screen_v2::makeShapeCopy(const uint8 *src, int index) {
 	const uint8 *shape = getPtrToShape(src, index);
 	if (!shape)
-		return 0;
+		return nullptr;
 
 	int size = getShapeSize(shape);
 
@@ -260,11 +259,7 @@ int Screen_v2::getLayer(int x, int y) {
 	pixel &= 0x7F;
 	pixel >>= 3;
 
-	if (pixel < 1)
-		pixel = 1;
-	else if (pixel > 15)
-		pixel = 15;
-	return pixel;
+	return CLIP<uint8>(pixel, 1, 15);
 }
 
 int Screen_v2::getRectSize(int w, int h) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,21 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ags/engine/ac/draw.h"
 #include "ags/engine/ac/drawing_surface.h"
 #include "ags/shared/ac/common.h"
-#include "ags/engine/ac/character_cache.h"
 #include "ags/engine/ac/display.h"
 #include "ags/engine/ac/game.h"
 #include "ags/shared/ac/game_setup_struct.h"
 #include "ags/engine/ac/game_state.h"
 #include "ags/engine/ac/global_translation.h"
-#include "ags/engine/ac/object_cache.h"
 #include "ags/engine/ac/room_object.h"
 #include "ags/engine/ac/room_status.h"
 #include "ags/engine/ac/string.h"
@@ -67,7 +64,7 @@ void DrawingSurface_Release(ScriptDrawingSurface *sds) {
 	}
 	if (sds->roomMaskType > kRoomAreaNone) {
 		if (sds->roomMaskType == kRoomAreaWalkBehind) {
-			recache_walk_behinds();
+			walkbehinds_recalc();
 		}
 		sds->roomMaskType = kRoomAreaNone;
 	}
@@ -175,7 +172,7 @@ void DrawingSurface_DrawImageImpl(ScriptDrawingSurface *sds, Bitmap *src,
 	Math::ClampLength(src_y, src_height, 0, src->GetHeight());
 
 	// TODO: possibly optimize by not making a stretched intermediate bitmap
-	// if simplier blit/draw_sprite could be called (no translucency with alpha channel).
+	// if simpler blit/draw_sprite could be called (no translucency with alpha channel).
 	bool needToFreeBitmap = false;
 	if (dst_width != src->GetWidth() || dst_height != src->GetHeight() ||
 		src_width != src->GetWidth() || src_height != src->GetHeight()) {
@@ -187,7 +184,6 @@ void DrawingSurface_DrawImageImpl(ScriptDrawingSurface *sds, Bitmap *src,
 
 		src = newPic;
 		needToFreeBitmap = true;
-		update_polled_stuff_if_runtime();
 	}
 
 	ds = sds->StartDrawing();
@@ -227,7 +223,7 @@ void DrawingSurface_DrawSurfaceEx(ScriptDrawingSurface *target, ScriptDrawingSur
 		int dst_x, int dst_y, int dst_width, int dst_height,
 		int src_x, int src_y, int src_width, int src_height) {
 	DrawingSurface_DrawImageImpl(target, source->GetBitmapSurface(), dst_x, dst_y, trans, dst_width, dst_height,
-		src_x, src_y, src_width, src_height, -1, source->hasAlphaChannel);
+		src_x, src_y, src_width, src_height, -1, source->hasAlphaChannel != 0);
 }
 
 void DrawingSurface_DrawSurface(ScriptDrawingSurface *target, ScriptDrawingSurface *source, int trans) {
@@ -334,7 +330,7 @@ void DrawingSurface_DrawStringWrapped_Old(ScriptDrawingSurface *sds, int xx, int
 }
 
 void DrawingSurface_DrawStringWrapped(ScriptDrawingSurface *sds, int xx, int yy, int wid, int font, int alignment, const char *msg) {
-	int linespacing = getfontspacing_outlined(font);
+	int linespacing = get_font_linespacing(font);
 	sds->PointToGameResolution(&xx, &yy);
 	sds->SizeToGameResolution(&wid);
 
@@ -345,15 +341,8 @@ void DrawingSurface_DrawStringWrapped(ScriptDrawingSurface *sds, int xx, int yy,
 	color_t text_color = sds->currentColour;
 
 	for (size_t i = 0; i < _GP(Lines).Count(); i++) {
-		int drawAtX = xx;
-
-		if (alignment & kMAlignHCenter) {
-			drawAtX = xx + ((wid / 2) - wgettextwidth(_GP(Lines)[i].GetCStr(), font) / 2);
-		} else if (alignment & kMAlignRight) {
-			drawAtX = (xx + wid) - wgettextwidth(_GP(Lines)[i].GetCStr(), font);
-		}
-
-		wouttext_outline(ds, drawAtX, yy + linespacing * i, font, text_color, _GP(Lines)[i].GetCStr());
+		GUI::DrawTextAlignedHor(ds, _GP(Lines)[i].GetCStr(), font, text_color,
+			xx, xx + wid - 1, yy + linespacing * i, (FrameAlignment)alignment);
 	}
 
 	sds->FinishedDrawing();
@@ -406,8 +395,8 @@ void DrawingSurface_DrawPixel(ScriptDrawingSurface *sds, int x, int y) {
 int DrawingSurface_GetPixel(ScriptDrawingSurface *sds, int x, int y) {
 	sds->PointToGameResolution(&x, &y);
 	Bitmap *ds = sds->StartDrawing();
-	unsigned int rawPixel = ds->GetPixel(x, y);
-	unsigned int maskColor = ds->GetMaskColor();
+	int rawPixel = ds->GetPixel(x, y);
+	int maskColor = ds->GetMaskColor();
 	int colDepth = ds->GetColorDepth();
 
 	if (rawPixel == maskColor) {
@@ -416,12 +405,10 @@ int DrawingSurface_GetPixel(ScriptDrawingSurface *sds, int x, int y) {
 		int r = getr_depth(colDepth, rawPixel);
 		int g = getg_depth(colDepth, rawPixel);
 		int b = getb_depth(colDepth, rawPixel);
-
 		rawPixel = Game_GetColorFromRGB(r, g, b);
 	}
 
 	sds->FinishedDrawingReadOnly();
-
 	return rawPixel;
 }
 
@@ -558,7 +545,7 @@ RuntimeScriptValue Sc_DrawingSurface_GetWidth(void *self, const RuntimeScriptVal
 //
 //=============================================================================
 
-void RegisterDrawingSurfaceAPI(ScriptAPIVersion base_api, ScriptAPIVersion compat_api) {
+void RegisterDrawingSurfaceAPI(ScriptAPIVersion base_api, ScriptAPIVersion /*compat_api */) {
 	ccAddExternalObjectFunction("DrawingSurface::Clear^1", Sc_DrawingSurface_Clear);
 	ccAddExternalObjectFunction("DrawingSurface::CreateCopy^0", Sc_DrawingSurface_CreateCopy);
 	ccAddExternalObjectFunction("DrawingSurface::DrawCircle^3", Sc_DrawingSurface_DrawCircle);

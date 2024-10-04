@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -76,7 +75,7 @@ void MainMenu::display() {
 
 	// Load each of the menu item assets and add to the scene sprites list
 	for (int i = 0; i < 7; ++i) {
-		Common::String spritesName = Resources::formatName(NEBULAR_MENUSCREEN,
+		Common::Path spritesName = Resources::formatName(NEBULAR_MENUSCREEN,
 			'A', i + 1, EXT_SS, "");
 		_menuItems[i] = new SpriteAsset(_vm, spritesName, 0);
 		_menuItemIndexes[i] = scene._sprites.add(_menuItems[i]);
@@ -200,34 +199,33 @@ bool MainMenu::onEvent(Common::Event &event) {
 		return false;
 
 	// Handle keypresses - these can be done at any time, even when the menu items are being drawn
-	if (event.type == Common::EVENT_KEYDOWN) {
-		switch (event.kbd.keycode) {
-		case Common::KEYCODE_ESCAPE:
-		case Common::KEYCODE_F6:
+	if (event.type == Common::EVENT_CUSTOM_ENGINE_ACTION_START) {
+		switch (event.customType) {
+		case kActionEscape:
 			handleAction(EXIT);
 			break;
 
-		case Common::KEYCODE_F1:
+		case kActionStartGame:
 			handleAction(START_GAME);
 			break;
 
-		case Common::KEYCODE_F2:
+		case kActionResumeGame:
 			handleAction(RESUME_GAME);
 			break;
 
-		case Common::KEYCODE_F3:
+		case kActionShowIntro:
 			handleAction(SHOW_INTRO);
 			break;
 
-		case Common::KEYCODE_F4:
+		case kActionCredits:
 			handleAction(CREDITS);
 			break;
 
-		case Common::KEYCODE_F5:
+		case kActionQuotes:
 			handleAction(QUOTES);
 			break;
 
-		case Common::KEYCODE_s: {
+		case kActionRestartAnimation: {
 			// Goodness knows why, but Rex has a key to restart the menuitem animations
 			// Restart the animation
 			_menuItemIndex = -1;
@@ -240,12 +238,15 @@ bool MainMenu::onEvent(Common::Event &event) {
 		}
 
 		default:
-			// Any other key skips the menu animation
 			_skipFlag = true;
 			return false;
 		}
 
 		return true;
+	} else if (event.type == Common::EVENT_KEYDOWN) {
+		// Any other key skips the menu animation
+		_skipFlag = true;
+		return false;
 	}
 
 	switch (event.type) {
@@ -407,7 +408,8 @@ void AdvertView::show() {
 }
 
 bool AdvertView::onEvent(Common::Event &event) {
-	if (event.type == Common::EVENT_KEYDOWN || event.type == Common::EVENT_LBUTTONDOWN) {
+	if (event.type == Common::EVENT_CUSTOM_ENGINE_ACTION_START || event.type == Common::EVENT_KEYDOWN
+			|| event.type == Common::EVENT_JOYBUTTON_DOWN || event.type == Common::EVENT_LBUTTONDOWN) {
 		_breakFlag = true;
 		return true;
 	}

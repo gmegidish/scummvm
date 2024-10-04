@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Plays the background film of a scene.
  */
@@ -61,11 +60,11 @@ void BGmainProcess(CORO_PARAM, const void *param) {
 	if (_vm->_bg->_pBG[0] == NULL) {
 		/*** At start of scene ***/
 
-		if (!TinselV2) {
+		if (TinselVersion <= 1) {
 			pReel = (const FREEL *)param;
 
 			// Get the MULTI_INIT structure
-			pmi = (const MULTI_INIT *)_vm->_handle->LockMem(FROM_32(pReel->mobj));
+			pmi = pReel->GetMultiInit();
 
 			// Initialize and insert the object, and initialize its script.
 			_vm->_bg->_pBG[0] = MultiInitObject(pmi);
@@ -80,7 +79,7 @@ void BGmainProcess(CORO_PARAM, const void *param) {
 			int i;
 			for (i = 0; i < _vm->_bg->_bgReels; i++) {
 				// Get the MULTI_INIT structure
-				pmi = (PMULTI_INIT)_vm->_handle->LockMem(FROM_32(pFilm->reels[i].mobj));
+				pmi = pFilm->reels[i].GetMultiInit();
 
 				// Initialize and insert the object, and initialize its script.
 				_vm->_bg->_pBG[i] = MultiInitObject(pmi);
@@ -96,7 +95,7 @@ void BGmainProcess(CORO_PARAM, const void *param) {
 		if (_vm->_bg->GetDoFadeIn()) {
 			FadeInFast();
 			_vm->_bg->SetDoFadeIn(false);
-		} else if (TinselV2)
+		} else if (TinselVersion >= 2)
 			PokeInTagColor();
 
 		for (;;) {
@@ -109,7 +108,7 @@ void BGmainProcess(CORO_PARAM, const void *param) {
 		}
 	} else {
 		// New background during scene
-		if (!TinselV2) {
+		if (TinselVersion <= 1) {
 			pReel = (const FREEL *)param;
 			InitStepAnimScript(&_vm->_bg->_thisAnim[0], _vm->_bg->_pBG[0], FROM_32(pReel->script), _vm->_bg->getBgSpeed());
 			StepAnimScript(&_vm->_bg->_thisAnim[0]);
@@ -139,7 +138,7 @@ void BGotherProcess(CORO_PARAM, const void *param) {
 	CORO_END_CONTEXT(_ctx);
 
 	const FREEL *pReel = (const FREEL *)param;
-	const MULTI_INIT *pmi = (const MULTI_INIT *)_vm->_handle->LockMem(FROM_32(pReel->mobj));
+	const MULTI_INIT *pmi = pReel->GetMultiInit();
 
 	CORO_BEGIN_CODE(_ctx);
 
@@ -165,18 +164,20 @@ void Background::StartupBackground(CORO_PARAM, SCNHANDLE hFilm) {
 	CORO_BEGIN_CONTEXT;
 	CORO_END_CONTEXT(_ctx);
 
+	const FILM *pfilm = (const FILM *)_vm->_handle->LockMem(hFilm);
+	const FREEL *pfr = &pfilm->reels[0];
+
+	if (TinselVersion != 3) {
+		const MULTI_INIT *pmi = pfr->GetMultiInit();
+		const FRAME *pFrame = pmi->GetFrame();
+		const IMAGE *pim = _vm->_handle->GetImage(READ_32(pFrame));
+		SetBackPal(pim->hImgPal);
+		delete pim;
+	}
+
 	CORO_BEGIN_CODE(_ctx);
 
-	const FILM *pfilm;
-	IMAGE *pim;
-
-	_hBackground = hFilm;		// Save handle in case of Save_Scene()
-
-	pim = _vm->_cursor->GetImageFromFilm(hFilm, 0, NULL, NULL, &pfilm);
-
-	if (!TinselV3) {
-		SetBackPal(FROM_32(pim->hImgPal));
-	}
+	_hBackground = hFilm; // Save handle in case of Save_Scene()
 
 	// Extract the film speed
 	_BGspeed = ONE_SECOND / FROM_32(pfilm->frate);
@@ -184,7 +185,7 @@ void Background::StartupBackground(CORO_PARAM, SCNHANDLE hFilm) {
 	// Start display process for each reel in the film
 	CoroScheduler.createProcess(PID_REEL, BGmainProcess, &pfilm->reels[0], sizeof(FREEL));
 
-	if (TinselV0) {
+	if (TinselVersion == 0) {
 		for (uint i = 1; i < FROM_32(pfilm->numreels); ++i)
 			CoroScheduler.createProcess(PID_REEL, BGotherProcess, &pfilm->reels[i], sizeof(FREEL));
 	}
@@ -192,7 +193,7 @@ void Background::StartupBackground(CORO_PARAM, SCNHANDLE hFilm) {
 	if (_pBG[0] == NULL)
 		ControlStartOff();
 
-	if (TinselV2 && (coroParam != Common::nullContext))
+	if ((TinselVersion >= 2) && (coroParam != Common::nullContext))
 		CORO_GIVE_WAY;
 
 	CORO_END_CODE;

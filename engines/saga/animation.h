@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,6 +39,15 @@ namespace Saga {
 #define SAGA_FRAME_COMPRESSED_RUN 0x80
 #define SAGA_FRAME_UNCOMPRESSED_RUN 0x40
 #define SAGA_FRAME_EMPTY_RUN 0xC0
+
+#define SAGA_FRAME_AMIGA_OPCODE_REPOSITION 0x00
+#define SAGA_FRAME_AMIGA_OPCODE_LITERAL 0x40
+#define SAGA_FRAME_AMIGA_OPCODE_TRANSPARENT 0xC0
+#define SAGA_FRAME_AMIGA_OPCODE_NEWLINE 0x80
+#define SAGA_FRAME_AMIGA_OPCODE_MASK 0xC0
+#define SAGA_FRAME_AMIGA_PARAM_MASK 0x3F
+#define SAGA_FRAME_AMIGA_END 0x3F
+#define SAGA_FRAME_AMIGA_START 0x3E
 
 enum AnimationState {
 	ANIM_PLAYING = 0x01,

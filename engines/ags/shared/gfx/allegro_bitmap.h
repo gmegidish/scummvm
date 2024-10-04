@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,17 +49,27 @@ public:
 	Bitmap(BITMAP *al_bmp, bool shared_data);
 	~Bitmap();
 
-	// Allocate new bitmap
-	// CHECKME: color_depth = 0 is used to call Allegro's create_bitmap, which uses
+	// Allocate new bitmap.
+	// NOTE: color_depth is in BITS per pixel (i.e. 8, 16, 24, 32...).
+	// NOTE: in all of these color_depth may be passed as 0 in which case a default
+	// color depth will be used (as previously set for the system).
+	// TODO: color_depth = 0 is used to call Allegro's create_bitmap, which uses
 	// some global color depth setting; not sure if this is OK to use for generic class,
 	// revise this in future
 	bool    Create(int width, int height, int color_depth = 0);
+	// Create Bitmap and clear to transparent color
 	bool    CreateTransparent(int width, int height, int color_depth = 0);
-	// Allow this object to share existing bitmap data
+	// Creates a sub-bitmap of the given bitmap; the sub-bitmap is a reference to
+	// particular region inside a parent.
+	// WARNING: the parent bitmap MUST be kept in memory for as long as sub-bitmap exists!
 	bool    CreateSubBitmap(Bitmap *src, const Rect &rc);
-	// Create a copy of given bitmap
+	// Resizes existing sub-bitmap within the borders of its parent
+	bool    ResizeSubBitmap(int width, int height);
+	// Creates a plain copy of the given bitmap, optionally converting to a different color depth;
+	// pass color depth 0 to keep the original one.
 	bool    CreateCopy(Bitmap *src, int color_depth = 0);
-	// TODO: a temporary solution for plugin support
+	// TODO: this is a temporary solution for plugin support
+	// Wraps a raw allegro BITMAP object, optionally owns it (will delete on disposal)
 	bool    WrapAllegroBitmap(BITMAP *al_bmp, bool shared_data);
 	// Deallocate bitmap
 	void    Destroy();
@@ -69,6 +78,7 @@ public:
 		return LoadFromFile(filename.GetCStr());
 	}
 	bool    LoadFromFile(const char *filename);
+	bool    LoadFromFile(PACKFILE *pf);
 	bool    SaveToFile(const String &filename, const void *palette) {
 		return SaveToFile(filename.GetCStr(), palette);
 	}
@@ -97,6 +107,11 @@ public:
 	// Is this a subbitmap, referencing a part of another, bigger one?
 	inline bool isSubBitmap() const {
 		return _alBitmap->isSubBitmap();
+	}
+
+	// Do both bitmaps share same data (usually: subbitmaps, or parent/subbitmap)
+	inline bool IsSameBitmap(Bitmap *other) const {
+		return is_same_bitmap(_alBitmap, other->_alBitmap) != 0;
 	}
 
 	// Checks if bitmap cannot be used
@@ -147,13 +162,15 @@ public:
 
 	// Get scanline for direct reading
 	inline const unsigned char *GetScanLine(int index) const {
-		return (index >= 0 && index < GetHeight()) ? _alBitmap->getBasePtr(0, index) : nullptr;
+		assert(index >= 0 && index < GetHeight());
+		return _alBitmap->getBasePtr(0, index);
 	}
 	inline unsigned char *GetScanLine(int index) {
-		return (index >= 0 && index < GetHeight()) ? (unsigned char *)_alBitmap->getBasePtr(0, index) : nullptr;
+		assert(index >= 0 && index < GetHeight());
+		return (unsigned char *)_alBitmap->getBasePtr(0, index);
 	}
 
-	void    SetMaskColor(color_t color);
+	// Get bitmap's mask color (transparent color)
 	inline color_t GetMaskColor() const {
 		return bitmap_mask_color(_alBitmap);
 	}
@@ -166,6 +183,7 @@ public:
 
 	//=========================================================================
 	// Clipping
+	// TODO: consider implementing push-pop clipping stack logic.
 	//=========================================================================
 	void    SetClip(const Rect &rc);
 	void    ResetClip();
@@ -177,7 +195,9 @@ public:
 	// Draw other bitmap over current one
 	void    Blit(Bitmap *src, int dst_x = 0, int dst_y = 0, BitmapMaskOption mask = kBitmap_Copy);
 	void    Blit(Bitmap *src, int src_x, int src_y, int dst_x, int dst_y, int width, int height, BitmapMaskOption mask = kBitmap_Copy);
-	// Copy other bitmap, stretching or shrinking its size to given values
+	// Draw other bitmap in a masked mode (kBitmap_Transparency)
+	void    MaskedBlit(Bitmap *src, int dst_x, int dst_y);
+	// Draw other bitmap, stretching or shrinking its size to given values
 	void    StretchBlt(Bitmap *src, const Rect &dst_rc, BitmapMaskOption mask = kBitmap_Copy);
 	void    StretchBlt(Bitmap *src, const Rect &src_rc, const Rect &dst_rc, BitmapMaskOption mask = kBitmap_Copy);
 	// Antia-aliased stretch-blit
@@ -189,7 +209,7 @@ public:
 	// Draw bitmap using lighting preset
 	void    LitBlendBlt(Bitmap *src, int dst_x, int dst_y, int light_amount);
 	// TODO: generic "draw transformed" function? What about mask option?
-	void    FlipBlt(Bitmap *src, int dst_x, int dst_y, BitmapFlip flip);
+	void    FlipBlt(Bitmap *src, int dst_x, int dst_y, GraphicFlip flip);
 	void    RotateBlt(Bitmap *src, int dst_x, int dst_y, fixed_t angle);
 	void    RotateBlt(Bitmap *src, int dst_x, int dst_y, int pivot_x, int pivot_y, fixed_t angle);
 
@@ -226,7 +246,8 @@ public:
 	// TODO: think how to increase safety over this (some fixed memory buffer class with iterator?)
 	// Gets scanline for directly writing into it
 	inline unsigned char *GetScanLineForWriting(int index) {
-		return (index >= 0 && index < GetHeight()) ? _alBitmap->line[index] : nullptr;
+		assert(index >= 0 && index < GetHeight());
+		return _alBitmap->line[index];
 	}
 	inline unsigned char *GetDataForWriting() {
 		return _alBitmap->line[0];

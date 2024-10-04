@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,29 +26,30 @@
 
 class ChRootFilesystemNode final : public AbstractFSNode {
 	Common::String _root;
+	Common::String _drive;
 	POSIXFilesystemNode *_realNode;
 
-	ChRootFilesystemNode(const Common::String &root, POSIXFilesystemNode *);
+	ChRootFilesystemNode(const Common::String &root, POSIXFilesystemNode *, const Common::String &drive);
 
 public:
-	ChRootFilesystemNode(const Common::String &root, const Common::String &path);
-	virtual ~ChRootFilesystemNode() override;
+	ChRootFilesystemNode(const Common::String &root, const Common::String &path, const Common::String &drive = Common::String());
+	~ChRootFilesystemNode() override;
 
-	virtual bool exists() const override;
-	virtual Common::U32String getDisplayName() const override;
-	virtual Common::String getName() const override;
-	virtual Common::String getPath() const override;
-	virtual bool isDirectory() const override;
-	virtual bool isReadable() const override;
-	virtual bool isWritable() const override;
+	bool exists() const override;
+	Common::U32String getDisplayName() const override;
+	Common::String getName() const override;
+	Common::String getPath() const override;
+	bool isDirectory() const override;
+	bool isReadable() const override;
+	bool isWritable() const override;
 
-	virtual AbstractFSNode *getChild(const Common::String &n) const override;
-	virtual bool getChildren(AbstractFSList &list, ListMode mode, bool hidden) const override;
-	virtual AbstractFSNode *getParent() const override;
+	AbstractFSNode *getChild(const Common::String &n) const override;
+	bool getChildren(AbstractFSList &list, ListMode mode, bool hidden) const override;
+	AbstractFSNode *getParent() const override;
 
-	virtual Common::SeekableReadStream *createReadStream() override;
-	virtual Common::SeekableWriteStream *createWriteStream() override;
-	virtual bool createDirectory() override;
+	Common::SeekableReadStream *createReadStream() override;
+	Common::SeekableWriteStream *createWriteStream() override;
+	bool createDirectory() override;
 
 private:
 	static Common::String addPathComponent(const Common::String &path, const Common::String &component);

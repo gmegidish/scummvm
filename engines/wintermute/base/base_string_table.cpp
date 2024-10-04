@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -87,14 +86,15 @@ char *BaseStringTable::getKey(const char *str) const {
 	char *key = new char[value - str];
 	Common::strlcpy(key, str + 1, (size_t)(value - str));
 
-	BasePlatform::strlwr(key);
+	BasePlatform::wintermute_strlwr(key);
 
 	char *newStr;
 
 	StringsIter it = _strings.find(key);
 	if (it != _strings.end()) {
-		newStr = new char[it->_value.size() + 1];
-		strcpy(newStr, it->_value.c_str());
+		size_t newStrSize = it->_value.size() + 1;
+		newStr = new char[newStrSize];
+		Common::strcpy_s(newStr, newStrSize, it->_value.c_str());
 		if (strlen(newStr) > 0 && newStr[0] == '/' && strchr(newStr + 1, '/')) {
 			delete[] key;
 			char *ret = getKey(newStr);
@@ -123,7 +123,7 @@ void BaseStringTable::expand(char **str) const {
 	char *key = new char[value - *str];
 	Common::strlcpy(key, *str + 1, (size_t)(value - *str));
 
-	BasePlatform::strlwr(key);
+	BasePlatform::wintermute_strlwr(key);
 
 	value++;
 
@@ -131,11 +131,13 @@ void BaseStringTable::expand(char **str) const {
 
 	StringsIter it = _strings.find(key);
 	if (it != _strings.end()) {
-		newStr = new char[it->_value.size() + 1];
-		strcpy(newStr, it->_value.c_str());
+		size_t newStrSize = it->_value.size() + 1;
+		newStr = new char[newStrSize];
+		Common::strcpy_s(newStr, newStrSize, it->_value.c_str());
 	} else {
-		newStr = new char[strlen(value) + 1];
-		strcpy(newStr, value);
+		size_t newStrSize = strlen(value) + 1;
+		newStr = new char[newStrSize];
+		Common::strcpy_s(newStr, newStrSize, value);
 	}
 
 	delete[] key;
@@ -149,8 +151,8 @@ void BaseStringTable::expand(char **str) const {
 
 //////////////////////////////////////////////////////////////////////////
 void BaseStringTable::expand(Common::String &str) const {
-	char *tmp = new char[str.size()+1];
-	strcpy(tmp, str.c_str());
+	char *tmp = new char[str.size() + 1];
+	Common::strcpy_s(tmp, str.size() + 1, str.c_str());
 	expand(&tmp);
 	str = tmp;
 	delete[] tmp;
@@ -170,7 +172,7 @@ const char *BaseStringTable::expandStatic(const char *string) const {
 
 	char *key = new char[value - string];
 	Common::strlcpy(key, string + 1, (size_t)(value - string - 1));
-	BasePlatform::strlwr(key);
+	BasePlatform::wintermute_strlwr(key);
 
 	value++;
 

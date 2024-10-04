@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,7 @@
 
 #include "asylum/resources/data.h"
 
-#include "asylum/console.h"
+#include "asylum/detection.h"
 #include "asylum/eventhandler.h"
 #include "asylum/shared.h"
 
@@ -68,11 +67,14 @@ class Sound;
 class Text;
 class VideoPlayer;
 
+extern const char *const engineKeyMapId;
+extern const char *const resviewerKeyMapId;
+
 class AsylumEngine: public Engine, public Common::Serializable {
 protected:
 	// Engine APIs
-	virtual Common::Error run();
-	virtual bool hasFeature(EngineFeature f) const;
+	virtual Common::Error run() override;
+	virtual bool hasFeature(EngineFeature f) const override;
 
 public:
 	enum StartGameType {
@@ -87,7 +89,7 @@ public:
 	/**
 	 * Start a new the game
 	 */
-	void startGame(ResourcePackId sceneId, StartGameType type);
+	bool startGame(ResourcePackId sceneId, StartGameType type);
 
 	/**
 	 * Restarts the game
@@ -104,7 +106,7 @@ public:
 	 *
 	 * @param sceneId ResourcePack for the scene
 	 */
-	void switchScene(ResourcePackId sceneId) { startGame(sceneId, kStartGameScene); }
+	void switchScene(ResourcePackId sceneId) { (void)startGame(sceneId, kStartGameScene); }
 
 	/**
 	 * Get the number of engine ticks
@@ -188,7 +190,7 @@ public:
 	void updateReverseStereo();
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 	bool checkGameVersion(const char *version) { return !strcmp(_gameDescription->extra, version); }
 	bool isAltDemo() { return Common::File::exists("asylum.dat"); }
@@ -199,18 +201,17 @@ public:
 	EventHandler *getEventHandler() { return _handler; }
 
 	// Save/Load
-	int getAutosaveSlot() const { return getMetaEngine()->getAutosaveSlot(); }
-	bool canLoadGameStateCurrently();
-	Common::Error loadGameState(int slot);
-	bool canSaveGameStateCurrently();
-	bool canSaveAutosaveCurrently();
-	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false);
+	int getAutosaveSlot() const override { return getMetaEngine()->getAutosaveSlot(); }
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override;
+	Common::Error loadGameState(int slot) override;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override;
+	bool canSaveAutosaveCurrently() override;
+	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
 
 private:
 	const ADGameDescription *_gameDescription;
 
 	// Misc
-	Console              *_console;
 	Common::RandomSource *_rnd;
 
 	// Game

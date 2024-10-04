@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@ enum {
 	kChooseCmd = 'Chos'
 };
 
-FileBrowserDialog::FileBrowserDialog(const char *title, const char *fileExtension, int mode, const char *fileMask)
+FileBrowserDialog::FileBrowserDialog(const char *title, const char *fileExtension, int mode, const char *fileMask, const char *initialFilename)
 	: Dialog("FileBrowser"), _mode(mode), _fileExt(fileExtension) {
 
 	if (fileMask == NULL) {
@@ -53,7 +52,7 @@ FileBrowserDialog::FileBrowserDialog(const char *title, const char *fileExtensio
 	new StaticTextWidget(this, "FileBrowser.Headline", title ? Common::convertToU32String(title) :
 					mode == kFBModeLoad ? _("Choose file for loading") : _("Enter filename for saving"));
 
-	_fileName = new EditTextWidget(this, "FileBrowser.Filename", Common::U32String());
+	_fileName = new EditTextWidget(this, "FileBrowser.Filename", Common::U32String(initialFilename));
 
 	if (mode == kFBModeLoad)
 		_fileName->setEnabled(false);
@@ -93,7 +92,6 @@ void FileBrowserDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 
 		break;
 	case kListSelectionChangedCmd:
 		_fileName->setEditString(_fileList->getList().operator[](_fileList->getSelected()));
-		_fileName->markAsDirty();
 		break;
 	case kListItemActivatedCmd:
 	case kListItemDoubleClickedCmd:
@@ -126,7 +124,7 @@ bool FileBrowserDialog::isProceedSave() {
 	if (_mode == kFBModeLoad)
 		return true;
 
-	for (ListWidget::U32StringArray::const_iterator file = _fileList->getList().begin(); file != _fileList->getList().end(); ++file) {
+	for (Common::U32StringArray::const_iterator file = _fileList->getList().begin(); file != _fileList->getList().end(); ++file) {
 		if (*file == _fileName->getEditString()) {
 			matched = true;
 			break;
@@ -146,7 +144,7 @@ bool FileBrowserDialog::isProceedSave() {
 void FileBrowserDialog::updateListing() {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 
-	ListWidget::U32StringArray list;
+	Common::U32StringArray list;
 
 	Common::StringArray filenames = saveFileMan->listSavefiles(_fileMask);
 	Common::sort(filenames.begin(), filenames.end());

@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,6 +55,7 @@
 #include "engines/advancedDetector.h"
 #include "graphics/renderer.h"
 #include "graphics/framelimiter.h"
+#include "gui/error.h"
 #include "gui/message.h"
 
 namespace Stark {
@@ -75,7 +75,6 @@ StarkEngine::~StarkEngine() {
 	delete StarkServices::instance().dialogPlayer;
 	delete StarkServices::instance().randomSource;
 	delete StarkServices::instance().scene;
-	delete StarkServices::instance().gfx;
 	delete StarkServices::instance().staticProvider;
 	delete StarkServices::instance().resourceProvider;
 	delete StarkServices::instance().global;
@@ -86,6 +85,7 @@ StarkEngine::~StarkEngine() {
 	delete StarkServices::instance().settings;
 	delete StarkServices::instance().gameChapter;
 	delete StarkServices::instance().gameMessage;
+	delete StarkServices::instance().gfx;
 
 	StarkServices::destroy();
 
@@ -98,7 +98,13 @@ Common::Error StarkEngine::run() {
 
 	// Get the screen prepared
 	Gfx::Driver *gfx = Gfx::Driver::create();
+	if (gfx == nullptr)
+		return Common::kNoError;
 	gfx->init();
+
+	if (StarkSettings->isAssetsModEnabled() && !gfx->supportsModdedAssets()) {
+		GUI::displayErrorDialog(_("Software renderer does not support modded assets"));
+	}
 
 	checkRecommendedDatafiles();
 
@@ -179,24 +185,25 @@ void StarkEngine::processEvents() {
 
 		if (isPaused()) {
 			// Only pressing key P to resume the game is allowed when the game is paused
-			if (e.type == Common::EVENT_KEYDOWN && e.kbd.keycode == Common::KEYCODE_p) {
+			if (e.type == Common::EVENT_CUSTOM_ENGINE_ACTION_START && e.customType == kActionPause) {
 				_gamePauseToken.clear();
 			}
 			continue;
 		}
 
-		if (e.type == Common::EVENT_KEYDOWN) {
+		if (e.type == Common::EVENT_KEYDOWN || e.type == Common::EVENT_CUSTOM_ENGINE_ACTION_START) {
 			if (e.kbdRepeat) {
 				continue;
 			}
 
-			if (e.kbd.keycode == Common::KEYCODE_p) {
+			if (e.customType == kActionPause) {
 				if (StarkUserInterface->isInGameScreen()) {
 					_gamePauseToken = pauseEngine();
 					debug("The game is paused");
 				}
 			} else {
 				StarkUserInterface->handleKeyPress(e.kbd);
+				StarkUserInterface->handleActions(e.customType);
 			}
 
 		} else if (e.type == Common::EVENT_LBUTTONUP) {
@@ -260,11 +267,12 @@ static bool modsCompare(const Common::FSNode &a, const Common::FSNode &b) {
 }
 
 void StarkEngine::addModsToSearchPath() const {
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	const Common::FSNode modsDir = gameDataDir.getChild("mods");
 	if (modsDir.exists()) {
 		Common::FSList list;
-		modsDir.getChildren(list);
+		if (!modsDir.getChildren(list))
+			return;
 
 		Common::sort(list.begin(), list.end(), modsCompare);
 
@@ -283,7 +291,7 @@ void StarkEngine::checkRecommendedDatafiles() {
 
 	Common::String message = _("You are missing recommended data files:");
 
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	Common::FSNode fontsDir = gameDataDir.getChild("fonts");
 	if (!fontsDir.isDirectory()) {
 		fontsDir = gameDataDir.getChild("Fonts"); // FSNode is case sensitive
@@ -329,8 +337,18 @@ void StarkEngine::checkRecommendedDatafiles() {
 bool StarkEngine::hasFeature(EngineFeature f) const {
 	// The TinyGL renderer does not support arbitrary resolutions for now
 	Common::String rendererConfig = ConfMan.get("renderer");
-	Graphics::RendererType desiredRendererType = Graphics::parseRendererTypeCode(rendererConfig);
-	Graphics::RendererType matchingRendererType = Graphics::getBestMatchingAvailableRendererType(desiredRendererType);
+	Graphics::RendererType desiredRendererType = Graphics::Renderer::parseTypeCode(rendererConfig);
+	Graphics::RendererType matchingRendererType = Graphics::Renderer::getBestMatchingAvailableType(desiredRendererType,
+#if defined(USE_OPENGL_GAME)
+			Graphics::kRendererTypeOpenGL |
+#endif
+#if defined(USE_OPENGL_SHADERS)
+			Graphics::kRendererTypeOpenGLShaders |
+#endif
+#if defined(USE_TINYGL)
+			Graphics::kRendererTypeTinyGL |
+#endif
+			0);
 	bool softRenderer = matchingRendererType == Graphics::kRendererTypeTinyGL;
 
 	return
@@ -340,7 +358,7 @@ bool StarkEngine::hasFeature(EngineFeature f) const {
 		(f == kSupportsReturnToLauncher);
 }
 
-bool StarkEngine::canLoadGameStateCurrently() {
+bool StarkEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return !StarkUserInterface->isInSaveLoadMenuScreen();
 }
 
@@ -407,7 +425,7 @@ Common::Error StarkEngine::loadGameState(int slot) {
 	return Common::kNoError;
 }
 
-bool StarkEngine::canSaveGameStateCurrently() {
+bool StarkEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	// Disallow saving when there is no level loaded or when a script is running
 	// or when the save & load menu is currently displayed
 	return StarkGlobal->getLevel() && StarkGlobal->getCurrent() && StarkUserInterface->isInteractive() && !StarkUserInterface->isInSaveLoadMenuScreen();

@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@
 #include "graphics/renderer.h"
 #include "graphics/surface.h"
 
-#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS) || defined(USE_GLES2)
+#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
 #include "graphics/opengl/context.h"
 #endif
 
@@ -68,7 +67,6 @@ const float Renderer::cubeVertices[] = {
 Renderer::Renderer(OSystem *system)
 		: _system(system),
 		  _font(nullptr) {
-
 	// Compute the cube faces Axis Aligned Bounding Boxes
 	for (uint i = 0; i < ARRAYSIZE(_cubeFacesAABB); i++) {
 		for (uint j = 0; j < 4; j++) {
@@ -81,12 +79,12 @@ Renderer::~Renderer() {
 }
 
 void Renderer::initFont(const Graphics::Surface *surface) {
-	_font = createTexture(surface);
+	_font = createTexture2D(surface);
 }
 
 void Renderer::freeFont() {
 	if (_font) {
-		freeTexture(_font);
+		delete _font;
 		_font = nullptr;
 	}
 }
@@ -94,7 +92,7 @@ void Renderer::freeFont() {
 Texture *Renderer::copyScreenshotToTexture() {
 	Graphics::Surface *surface = getScreenshot();
 
-	Texture *texture = createTexture(surface);
+	Texture *texture = createTexture2D(surface);
 
 	surface->free();
 	delete surface;
@@ -190,8 +188,18 @@ void Renderer::flipVertical(Graphics::Surface *s) {
 
 Renderer *createRenderer(OSystem *system) {
 	Common::String rendererConfig = ConfMan.get("renderer");
-	Graphics::RendererType desiredRendererType = Graphics::parseRendererTypeCode(rendererConfig);
-	Graphics::RendererType matchingRendererType = Graphics::getBestMatchingAvailableRendererType(desiredRendererType);
+	Graphics::RendererType desiredRendererType = Graphics::Renderer::parseTypeCode(rendererConfig);
+	Graphics::RendererType matchingRendererType = Graphics::Renderer::getBestMatchingAvailableType(desiredRendererType,
+#if defined(USE_OPENGL_GAME)
+			Graphics::kRendererTypeOpenGL |
+#endif
+#if defined(USE_OPENGL_SHADERS)
+			Graphics::kRendererTypeOpenGLShaders |
+#endif
+#if defined(USE_TINYGL)
+			Graphics::kRendererTypeTinyGL |
+#endif
+			0);
 
 	bool isAccelerated = matchingRendererType != Graphics::kRendererTypeTinyGL;
 
@@ -209,37 +217,23 @@ Renderer *createRenderer(OSystem *system) {
 		initGraphics(width, height, nullptr);
 	}
 
-#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS) || defined(USE_GLES2)
-	bool backendCapableOpenGL = g_system->hasFeature(OSystem::kFeatureOpenGLForGame);
-#endif
-
-#if defined(USE_OPENGL_GAME)
-	// Check the OpenGL context actually supports shaders
-	if (backendCapableOpenGL && matchingRendererType == Graphics::kRendererTypeOpenGLShaders && !OpenGLContext.shadersSupported) {
-		matchingRendererType = Graphics::kRendererTypeOpenGL;
-	}
-#endif
-
-	if (matchingRendererType != desiredRendererType && desiredRendererType != Graphics::kRendererTypeDefault) {
-		// Display a warning if unable to use the desired renderer
-		warning("Unable to create a '%s' renderer", rendererConfig.c_str());
-	}
-
-#if defined(USE_GLES2) || defined(USE_OPENGL_SHADERS)
-	if (backendCapableOpenGL && matchingRendererType == Graphics::kRendererTypeOpenGLShaders) {
+#if defined(USE_OPENGL_SHADERS)
+	if (matchingRendererType == Graphics::kRendererTypeOpenGLShaders) {
 		return CreateGfxOpenGLShader(system);
 	}
 #endif
-#if defined(USE_OPENGL_GAME) && !defined(USE_GLES2)
-	if (backendCapableOpenGL && matchingRendererType == Graphics::kRendererTypeOpenGL) {
+#if defined(USE_OPENGL_GAME)
+	if (matchingRendererType == Graphics::kRendererTypeOpenGL) {
 		return CreateGfxOpenGL(system);
 	}
 #endif
+#if defined(USE_TINYGL)
 	if (matchingRendererType == Graphics::kRendererTypeTinyGL) {
 		return CreateGfxTinyGL(system);
 	}
-
-	error("Unable to create a '%s' renderer", rendererConfig.c_str());
+#endif
+	/* We should never end up here, getBestMatchingRendererType would have failed before */
+	error("Unable to create a renderer");
 }
 
 void Renderer::renderDrawable(Drawable *drawable, Window *window) {
@@ -312,4 +306,5 @@ const Graphics::PixelFormat Texture::getRGBAPixelFormat() {
 	return Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24);
 #endif
 }
+
 } // End of namespace Myst3

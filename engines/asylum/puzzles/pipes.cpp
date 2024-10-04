@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include <common/math.h>
+#include "common/intrinsics.h"
 
 #include "asylum/puzzles/pipes.h"
 
@@ -101,10 +100,10 @@ void Peephole::startUpWater(bool flag) {
 //////////////////////////////////////////////////////////////////////////
 Connector::Connector() :
 	_id(0),
-	_position(NULL),
+	_position(nullptr),
 	_state(kBinNum0000),
 	_isConnected(false),
-	_nextConnector(NULL),
+	_nextConnector(nullptr),
 	_type(kConnectorTypeI),
 	_nextConnectorPosition(kDirectionNowhere) {
 	memset(_nodes, 0, sizeof(_nodes));
@@ -293,7 +292,7 @@ PuzzlePipes::PuzzlePipes(AsylumEngine *engine) : Puzzle(engine) {
 	_isLeverReady = false;
 	memset(&_sinks, 0, sizeof(_sinks));
 	memset(&_sources, 0, sizeof(_sources));
-	_frameIndexSpider = NULL;
+	_frameIndexSpider = nullptr;
 
 	initResources();
 	setup();
@@ -420,6 +419,11 @@ void PuzzlePipes::updateScreen() {
 	}
 
 	if (_isLeverReady) {
+		_vm->clearGameFlag(kGameFlagBrokenPipeSpraying);
+		_vm->clearGameFlag(kGameFlagSmFtnOverflows);
+		_vm->clearGameFlag(kGameFlagFountainFilling);
+		_vm->clearGameFlag(kGameFlagSewerExplodes);
+
 		if (!_levelFlags[4])
 			_vm->setGameFlag((GameFlag)(96 + checkFlags()));
 		getScreen()->clear();
@@ -458,7 +462,7 @@ bool PuzzlePipes::mouseLeftDown(const AsylumEvent &) {
 	return true;
 }
 
-bool PuzzlePipes::mouseRightDown(const AsylumEvent &) {
+bool PuzzlePipes::exitPuzzle() {
 	getScreen()->clear();
 	getSound()->stop(getWorld()->graphicResourceIds[41]);
 	getSound()->setMusicVolume(_previousMusicVolume);
@@ -504,27 +508,27 @@ void PuzzlePipes::setup() {
 		_sources[i]->_flowValues[i] = 1;
 	}
 
-	_connectors[ 0].init(           NULL,  _peepholes + 4,  _peepholes + 6,  _peepholes + 0, 1, kConnectorTypeL);
-	_connectors[ 1].init(_peepholes +  6, _peepholes + 15, _peepholes + 23,            NULL, 1, kConnectorTypeL);
-	_connectors[ 2].init(_peepholes + 23, _peepholes + 24, _peepholes + 33,            NULL, 2, kConnectorTypeL);
-	_connectors[ 3].init(           NULL,  _peepholes + 5,  _peepholes + 7,  _peepholes + 4, 1, kConnectorTypeL);
-	_connectors[ 4].init(_peepholes +  7, _peepholes + 11,            NULL,            NULL, 2, kConnectorTypeL,  _connectors + 5, kDirectionSh);
-	_connectors[ 5].init(           NULL, _peepholes + 18, _peepholes + 24, _peepholes + 15, 1, kConnectorTypeT,  _connectors + 4, kDirectionNh);
-	_connectors[ 6].init(           NULL,  _peepholes + 1,  _peepholes + 8,  _peepholes + 5, 1, kConnectorTypeL);
+	_connectors[ 0].init(        nullptr,  _peepholes + 4,  _peepholes + 6,  _peepholes + 0, 1, kConnectorTypeL);
+	_connectors[ 1].init(_peepholes +  6, _peepholes + 15, _peepholes + 23,         nullptr, 1, kConnectorTypeL);
+	_connectors[ 2].init(_peepholes + 23, _peepholes + 24, _peepholes + 33,         nullptr, 2, kConnectorTypeL);
+	_connectors[ 3].init(        nullptr,  _peepholes + 5,  _peepholes + 7,  _peepholes + 4, 1, kConnectorTypeL);
+	_connectors[ 4].init(_peepholes +  7, _peepholes + 11,         nullptr,         nullptr, 2, kConnectorTypeL,  _connectors + 5, kDirectionSh);
+	_connectors[ 5].init(        nullptr, _peepholes + 18, _peepholes + 24, _peepholes + 15, 1, kConnectorTypeT,  _connectors + 4, kDirectionNh);
+	_connectors[ 6].init(        nullptr,  _peepholes + 1,  _peepholes + 8,  _peepholes + 5, 1, kConnectorTypeL);
 	_connectors[ 7].init(_peepholes +  8, _peepholes + 12, _peepholes + 25, _peepholes + 11, 1, kConnectorTypeT);
 	_connectors[ 8].init(_peepholes + 25, _peepholes + 29, _peepholes + 34, _peepholes + 18, 2, kConnectorTypeT);
 	_connectors[ 9].init(_peepholes +  9, _peepholes + 16, _peepholes + 19, _peepholes + 12, 8, kConnectorTypeT);
-	_connectors[10].init(_peepholes + 19, _peepholes + 20, _peepholes + 26,            NULL, 2, kConnectorTypeL);
+	_connectors[10].init(_peepholes + 19, _peepholes + 20, _peepholes + 26,         nullptr, 2, kConnectorTypeL);
 	_connectors[11].init(_peepholes + 26, _peepholes + 31, _peepholes + 35, _peepholes + 29, 2, kConnectorTypeT);
-	_connectors[12].init(_peepholes +  2, _peepholes + 10,            NULL,  _peepholes + 9, 2, kConnectorTypeL);
-	_connectors[13].init(_peepholes + 13, _peepholes + 17,            NULL, _peepholes + 16, 1, kConnectorTypeT, _connectors + 14, kDirectionSh);
-	_connectors[14].init(           NULL, _peepholes + 21, _peepholes + 27, _peepholes + 20, 8, kConnectorTypeT, _connectors + 13, kDirectionNh);
-	_connectors[15].init(_peepholes + 10,            NULL, _peepholes + 22, _peepholes + 17, 1, kConnectorTypeI, _connectors + 19, kDirectionEt);
+	_connectors[12].init(_peepholes +  2, _peepholes + 10,         nullptr,  _peepholes + 9, 2, kConnectorTypeL);
+	_connectors[13].init(_peepholes + 13, _peepholes + 17,         nullptr, _peepholes + 16, 1, kConnectorTypeT, _connectors + 14, kDirectionSh);
+	_connectors[14].init(        nullptr, _peepholes + 21, _peepholes + 27, _peepholes + 20, 8, kConnectorTypeT, _connectors + 13, kDirectionNh);
+	_connectors[15].init(_peepholes + 10,         nullptr, _peepholes + 22, _peepholes + 17, 1, kConnectorTypeI, _connectors + 19, kDirectionEt);
 	_connectors[16].init(_peepholes + 21, _peepholes + 22, _peepholes + 30, _peepholes + 27, 2, kConnectorTypeT);
-	_connectors[17].init(_peepholes + 30, _peepholes + 32,            NULL, _peepholes + 31, 2, kConnectorTypeL);
-	_connectors[18].init(_peepholes +  3,            NULL, _peepholes + 14, _peepholes + 13, 8, kConnectorTypeL);
-	_connectors[19].init(_peepholes + 14,            NULL, _peepholes + 28,            NULL, 4, kConnectorTypeL, _connectors + 15, kDirectionWt);
-	_connectors[20].init(_peepholes + 28,            NULL, _peepholes + 36, _peepholes + 32, 4, kConnectorTypeL);
+	_connectors[17].init(_peepholes + 30, _peepholes + 32,         nullptr, _peepholes + 31, 2, kConnectorTypeL);
+	_connectors[18].init(_peepholes +  3,         nullptr, _peepholes + 14, _peepholes + 13, 8, kConnectorTypeL);
+	_connectors[19].init(_peepholes + 14,         nullptr, _peepholes + 28,         nullptr, 4, kConnectorTypeL, _connectors + 15, kDirectionWt);
+	_connectors[20].init(_peepholes + 28,         nullptr, _peepholes + 36, _peepholes + 32, 4, kConnectorTypeL);
 
 	_connectors[ 4].initGroup();
 	_connectors[13].initGroup();
@@ -539,8 +543,7 @@ void PuzzlePipes::setup() {
 		_spiders.push_back(new Spider(_vm, Common::Rect(544, 225, 650, 490)));
 
 	if (i) {
-		_frameIndexSpider = new uint32[_spiders.size()];
-		memset(_frameIndexSpider, 0, _spiders.size() * sizeof(uint32));
+		_frameIndexSpider = new uint32[_spiders.size()]();
 	}
 }
 

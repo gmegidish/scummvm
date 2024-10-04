@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -296,15 +295,19 @@ void UIImagePicker::drawTooltip(Graphics::Surface &surface, int x, int y) {
 	}
 
 	rect.right = width + rect.left + 3;
-	if (rect.right >= 640) {
-		rect.right = 639;
-		rect.left = 636 - width;
+	if (rect.right >= BladeRunnerEngine::kOriginalGameWidth) {
+		rect.right = BladeRunnerEngine::kOriginalGameWidth - 1;
+		rect.left = BladeRunnerEngine::kOriginalGameWidth - 4 - width;
+		if (rect.left < 0)  rect.left = 0;  // should never happen
+		if (rect.right < 0) rect.right = 0; // should never happen
 	}
 
 	rect.bottom = height + rect.top + 2;
-	if (rect.bottom >= 480) {
-		rect.bottom = 479;
-		rect.top = 478 - height;
+	if (rect.bottom >= BladeRunnerEngine::kOriginalGameHeight) {
+		rect.bottom = BladeRunnerEngine::kOriginalGameHeight - 1;
+		rect.top = BladeRunnerEngine::kOriginalGameHeight - 3 - height;
+		if (rect.top < 0)    rect.top = 0;    // should never happen
+		if (rect.bottom < 0) rect.bottom = 0; // should never happen
 	}
 
 	surface.fillRect(rect, surface.format.RGBToColor(0, 0, 0));

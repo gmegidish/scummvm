@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,9 +66,10 @@ protected:
 
 private:
 	int		_result;
+	bool    _handlingMouseWheel;
 
 public:
-	Dialog(int x, int y, int w, int h);
+	Dialog(int x, int y, int w, int h, bool scale = false);
 	Dialog(const Common::String &name);
 
 	virtual int runModal();
@@ -82,6 +82,8 @@ public:
 	void	setFocusWidget(Widget *widget);
 	Widget *getFocusWidget() { return _focusedWidget; }
 
+	bool isDragging() const { return _dragWidget != nullptr; }
+
 	void setTickleWidget(Widget *widget) { _tickleWidget = widget; }
 	void unSetTickleWidget() { _tickleWidget = nullptr; }
 	Widget *getTickleWidget() { return _tickleWidget; }
@@ -90,10 +92,10 @@ public:
 	virtual void lostFocus();
 	virtual void receivedFocus(int x = -1, int y = -1) { if (x >= 0 && y >= 0) handleMouseMoved(x, y, 0); }
 
-protected:
 	virtual void open();
 	virtual void close();
 
+protected:
 	/** Recursively mark all the widgets in this dialog as dirty so they are redrawn */
 	void markWidgetsAsDirty();
 
@@ -106,12 +108,12 @@ protected:
 	virtual void handleTickle(); // Called periodically (in every guiloop() )
 	virtual void handleMouseDown(int x, int y, int button, int clickCount);
 	virtual void handleMouseUp(int x, int y, int button, int clickCount);
-	virtual void handleMouseWheel(int x, int y, int direction);
+	virtual void handleMouseWheel(int x, int y, int direction) override;
 	virtual void handleKeyDown(Common::KeyState state);
 	virtual void handleKeyUp(Common::KeyState state);
 	virtual void handleMouseMoved(int x, int y, int button);
 	virtual void handleMouseLeft(int button) {}
-	virtual void handleOtherEvent(const Common::Event &evt) {}
+	virtual void handleOtherEvent(const Common::Event &evt);
 	void handleCommand(CommandSender *sender, uint32 cmd, uint32 data) override;
 
 	Widget *findWidget(int x, int y); // Find the widget at pos x,y if any

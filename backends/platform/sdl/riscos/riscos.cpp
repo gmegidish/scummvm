@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,7 @@
 #include "backends/platform/sdl/riscos/riscos.h"
 #include "backends/saves/default/default-saves.h"
 #include "backends/events/riscossdl/riscossdl-events.h"
+#include "backends/graphics/riscossdl/riscossdl-graphics.h"
 #include "backends/fs/riscos/riscos-fs-factory.h"
 #include "backends/fs/riscos/riscos-fs.h"
 
@@ -58,11 +58,15 @@ void OSystem_RISCOS::initBackend() {
 	if (_eventSource == 0)
 		_eventSource = new RISCOSSdlEventSource();
 
+	// Create the graphics manager
+	if (!_graphicsManager)
+		_graphicsManager = new RISCOSSdlGraphicsManager(_eventSource, _window);
+
 	// Create the savefile manager
 	if (_savefileManager == 0) {
 		Common::String savePath = "/<Choices$Write>/ScummVM/Saves";
 		if (Riscos::assureDirectoryExists(savePath))
-			_savefileManager = new DefaultSaveFileManager(savePath);
+			_savefileManager = new DefaultSaveFileManager(Common::Path(savePath));
 	}
 
 	// Invoke parent implementation of this method
@@ -117,18 +121,50 @@ void OSystem_RISCOS::logMessage(LogMessageType::Type type, const char *message) 
 	_swix(Report_Text0, _IN(0), report.c_str());
 }
 
-Common::String OSystem_RISCOS::getDefaultConfigFileName() {
+void OSystem_RISCOS::messageBox(LogMessageType::Type type, const char *message) {
+	_kernel_swi_regs regs;
+	_kernel_oserror error;
+
+	error.errnum = 0;
+	Common::strlcpy(error.errmess, message, 252);
+	regs.r[0] = (int)&error;
+	regs.r[1] = 0;
+	regs.r[2] = (int)"ScummVM";
+	regs.r[3] = 0;
+	regs.r[4] = 0;
+	regs.r[5] = 0;
+
+	switch (type) {
+	case LogMessageType::kError:
+		regs.r[1] |= (1 << 8);
+		break;
+	case LogMessageType::kWarning:
+		regs.r[1] |= (1 << 8) | (2 << 9);
+		break;
+	case LogMessageType::kInfo:
+	case LogMessageType::kDebug:
+	default:
+		regs.r[1] |= (1 << 8) | (1 << 9);
+		break;
+	}
+
+	_kernel_swi(Wimp_ReportError, &regs, &regs);
+}
+
+Common::Path OSystem_RISCOS::getDefaultConfigFileName() {
 	return "/<Choices$Write>/ScummVM/scummvmrc";
 }
 
-Common::String OSystem_RISCOS::getDefaultLogFileName() {
+Common::Path OSystem_RISCOS::getDefaultLogFileName() {
 	Common::String logFile = "/<Choices$Write>/ScummVM/Logs";
 
 	if (!Riscos::assureDirectoryExists(logFile)) {
-		return Common::String();
+		return Common::Path();
 	}
 
-	return logFile + "/scummvm";
+	Common::Path logPath(logFile);
+	logPath.joinInPlace("scummvm");
+	return logPath;
 }
 
 #endif

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,12 +32,12 @@ namespace TADS2 {
 /*
  *  Globals for the script reader
  */
-osfildef *scrfp = (osfildef *)0;                             /* script file */
+osfildef *scrfp = (osfildef *)nullptr;                             /* script file */
 int scrquiet = 0;             /* flag: true ==> script is NOT shown as read */
 
 int qasopn(char *scrnam, int quiet) {
 	if (scrfp) return 1;                     /* already reading from script */
-	if ((scrfp = osfoprt(scrnam, OSFTCMD)) == 0) return 1;
+	if ((scrfp = osfoprt(scrnam, OSFTCMD)) == nullptr) return 1;
 	scrquiet = quiet;
 	return 0;
 }
@@ -48,15 +47,15 @@ void qasclose() {
 	if (scrfp)
 	{
 		osfcls(scrfp);
-		scrfp = 0;                                   /* no more script file */
+		scrfp = nullptr;                                   /* no more script file */
 		scrquiet = 0;
 	}
 }
 
 char *qasgets(char *buf, int bufl) {
 	/* shouldn't be here at all if there's no script file */
-	if (scrfp == 0)
-		return 0;
+	if (scrfp == nullptr)
+		return nullptr;
 
 	/* update status line */
 	runstat();
@@ -64,7 +63,7 @@ char *qasgets(char *buf, int bufl) {
 	/* keep going until we find something we like */
 	for (;;)
 	{
-		char c;
+		int c;
 
 		/*
 		 *   Read the next character of input.  If it's not a newline,
@@ -79,7 +78,7 @@ char *qasgets(char *buf, int bufl) {
 			{
 				/* end of file:  close the script and return eof */
 				qasclose();
-				return 0;
+				return nullptr;
 			}
 
 			/* if the line started with '>', strip '\n' and return line */
@@ -105,10 +104,10 @@ char *qasgets(char *buf, int bufl) {
 				/* return the command */
 				return buf;
 			}
-		} else if ((int)c == EOF) {
+		} else if (c == EOF) {
 			/* end of file - close the script and return eof */
 			qasclose();
-			return 0;
+			return nullptr;
 		}
 	}
 }

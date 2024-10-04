@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -302,7 +301,7 @@ void LoLEngine::loadLevelGraphics(const char *file, int specialColor, int weight
 	if (file) {
 		_lastSpecialColor = specialColor;
 		_lastSpecialColorWeight = weight;
-		strcpy(_lastBlockDataFile, file);
+		_lastBlockDataFile = file;
 		if (palFile)
 			_lastOverridePalFile = palFile;
 		else
@@ -313,7 +312,7 @@ void LoLEngine::loadLevelGraphics(const char *file, int specialColor, int weight
 		if (_lastSpecialColor == 1)
 			_lastSpecialColor = 0x44;
 		else if (_lastSpecialColor == 0x66)
-			_lastSpecialColor = scumm_stricmp(_lastBlockDataFile, "YVEL2") ? 0xCC : 0x44;
+			_lastSpecialColor = _lastBlockDataFile.equalsIgnoreCase("YVEL2") ? 0x44 : 0xCC;
 		else if (_lastSpecialColor == 0x6B)
 			_lastSpecialColor = 0xCC;
 		else
@@ -325,7 +324,7 @@ void LoLEngine::loadLevelGraphics(const char *file, int specialColor, int weight
 	int tlen = 0;
 
 	if (_flags.use16ColorMode) {
-		fname = Common::String::format("%s.VCF", _lastBlockDataFile);
+		fname = _lastBlockDataFile + ".VCF";
 		_screen->loadBitmap(fname.c_str(), 3, 3, 0);
 		v = _screen->getCPagePtr(2);
 		tlen = READ_LE_UINT16(v) << 5;
@@ -337,7 +336,7 @@ void LoLEngine::loadLevelGraphics(const char *file, int specialColor, int weight
 		memcpy(_vcfBlocks, v, tlen);
 	}
 
-	fname = Common::String::format("%s.VCN", _lastBlockDataFile);
+	fname = _lastBlockDataFile + ".VCN";
 	_screen->loadBitmap(fname.c_str(), 3, 3, 0);
 	v = _screen->getCPagePtr(2);
 	tlen = READ_LE_UINT16(v);
@@ -388,7 +387,7 @@ void LoLEngine::loadLevelGraphics(const char *file, int specialColor, int weight
 	memcpy(_vcnBlocks, v, vcnLen);
 	v += vcnLen;
 
-	fname = Common::String::format("%s.VMP", _lastBlockDataFile);
+	fname = _lastBlockDataFile + ".VMP";
 	_screen->loadBitmap(fname.c_str(), 3, 3, 0);
 	v = _screen->getCPagePtr(2);
 
@@ -457,7 +456,7 @@ void LoLEngine::loadLevelGraphics(const char *file, int specialColor, int weight
 	generateBrightnessPalette(_screen->getPalette(0), _screen->getPalette(1), _brightness, _lampEffect);
 
 	if (_flags.isTalkie) {
-		Common::SeekableReadStream *s = _res->createReadStream(Common::String::format("LEVEL%.02d.TLC", _currentLevel));
+		Common::SeekableReadStream *s = _res->createReadStream(Common::Path(Common::String::format("LEVEL%.02d.TLC", _currentLevel)));
 		s->read(_transparencyTable1, 256);
 		s->read(_transparencyTable2, 5120);
 		delete s;
@@ -811,8 +810,9 @@ void LoLEngine::movePartySmoothScrollBlocked(int speed) {
 
 	_screen->backupSceneWindow(_sceneDrawPage2 == 2 ? 2 : 6, 6);
 
+	uint32 delayTimer = _system->getMillis();
 	for (int i = 0; i < 2; i++) {
-		uint32 delayTimer = _system->getMillis() + speed * _tickLength;
+		delayTimer += (speed * _tickLength);
 		_screen->smoothScrollZoomStepTop(6, 2, _scrollXTop[i], _scrollYTop[i]);
 		_screen->smoothScrollZoomStepBottom(6, 2, _scrollXBottom[i], _scrollYBottom[i]);
 		_screen->restoreSceneWindow(2, 0);
@@ -823,8 +823,9 @@ void LoLEngine::movePartySmoothScrollBlocked(int speed) {
 			i++;
 	}
 
+	delayTimer = _system->getMillis();
 	for (int i = 2; i; i--) {
-		uint32 delayTimer = _system->getMillis() + speed * _tickLength;
+		delayTimer += (speed * _tickLength);
 		_screen->smoothScrollZoomStepTop(6, 2, _scrollXTop[i], _scrollYTop[i]);
 		_screen->smoothScrollZoomStepBottom(6, 2, _scrollXBottom[i], _scrollYBottom[i]);
 		_screen->restoreSceneWindow(2, 0);
@@ -861,8 +862,9 @@ void LoLEngine::movePartySmoothScrollUp(int speed) {
 		_screen->backupSceneWindow(6, 6);
 	}
 
+	uint32 delayTimer = _system->getMillis();
 	for (int i = 0; i < 5; i++) {
-		uint32 delayTimer = _system->getMillis() + speed * _tickLength;
+		delayTimer += (speed * _tickLength);
 		_screen->smoothScrollZoomStepTop(6, 2, _scrollXTop[i], _scrollYTop[i]);
 		_screen->smoothScrollZoomStepBottom(6, 2, _scrollXBottom[i], _scrollYBottom[i]);
 
@@ -896,8 +898,9 @@ void LoLEngine::movePartySmoothScrollDown(int speed) {
 	gui_drawScene(2);
 	_screen->backupSceneWindow(2, 6);
 
+	uint32 delayTimer = _system->getMillis();
 	for (int i = 4; i >= 0; i--) {
-		uint32 delayTimer = _system->getMillis() + speed * _tickLength;
+		delayTimer += (speed * _tickLength);
 		_screen->smoothScrollZoomStepTop(6, 2, _scrollXTop[i], _scrollYTop[i]);
 		_screen->smoothScrollZoomStepBottom(6, 2, _scrollXBottom[i], _scrollYBottom[i]);
 
@@ -931,8 +934,9 @@ void LoLEngine::movePartySmoothScrollLeft(int speed) {
 
 	gui_drawScene(_sceneDrawPage1);
 
+	uint32 delayTimer = _system->getMillis();
 	for (int i = 88, d = 88; i > 22; i -= 22, d += 22) {
-		uint32 delayTimer = _system->getMillis() + speed * _tickLength;
+		delayTimer += (speed * _tickLength);
 		_screen->smoothScrollHorizontalStep(_sceneDrawPage2, 66, d, i);
 		_screen->copyRegion(112 + i, 0, 112, 0, d, 120, _sceneDrawPage1, _sceneDrawPage2, Screen::CR_NO_P_CHECK);
 		_screen->copyRegion(112, 0, 112, 0, 176, 120, _sceneDrawPage2, 0, Screen::CR_NO_P_CHECK);
@@ -964,7 +968,7 @@ void LoLEngine::movePartySmoothScrollRight(int speed) {
 	fadeText();
 	delayUntil(delayTimer);
 
-	delayTimer = _system->getMillis() + speed * _tickLength;
+	delayTimer += (speed * _tickLength);
 	_screen->smoothScrollHorizontalStep(_sceneDrawPage2, 22, 0, 66);
 	_screen->copyRegion(112, 0, 200, 0, 88, 120, _sceneDrawPage1, _sceneDrawPage2, Screen::CR_NO_P_CHECK);
 	_screen->copyRegion(112, 0, 112, 0, 176, 120, _sceneDrawPage2, 0, Screen::CR_NO_P_CHECK);
@@ -972,7 +976,7 @@ void LoLEngine::movePartySmoothScrollRight(int speed) {
 	fadeText();
 	delayUntil(delayTimer);
 
-	delayTimer = _system->getMillis() + speed * _tickLength;
+	delayTimer += (speed * _tickLength);
 	_screen->smoothScrollHorizontalStep(_sceneDrawPage2, 44, 0, 22);
 	_screen->copyRegion(112, 0, 178, 0, 110, 120, _sceneDrawPage1, _sceneDrawPage2, Screen::CR_NO_P_CHECK);
 	_screen->copyRegion(112, 0, 112, 0, 176, 120, _sceneDrawPage2, 0, Screen::CR_NO_P_CHECK);
@@ -1007,7 +1011,7 @@ void LoLEngine::movePartySmoothScrollTurnLeft(int speed) {
 	fadeText();
 	delayUntil(delayTimer);
 
-	delayTimer = _system->getMillis() + speed * _tickLength;
+	delayTimer += (speed * _tickLength);
 	_screen->smoothScrollTurnStep2(_sceneDrawPage1, _sceneDrawPage2, dp);
 	if (d)
 		_screen->copyGuiShapeToSurface(14, dp);
@@ -1016,7 +1020,7 @@ void LoLEngine::movePartySmoothScrollTurnLeft(int speed) {
 	fadeText();
 	delayUntil(delayTimer);
 
-	delayTimer = _system->getMillis() + speed * _tickLength;
+	delayTimer += (speed * _tickLength);
 	_screen->smoothScrollTurnStep3(_sceneDrawPage1, _sceneDrawPage2, dp);
 	if (d)
 		_screen->copyGuiShapeToSurface(14, dp);
@@ -1051,7 +1055,7 @@ void LoLEngine::movePartySmoothScrollTurnRight(int speed) {
 	fadeText();
 	delayUntil(delayTimer);
 
-	delayTimer = _system->getMillis() + speed * _tickLength;
+	delayTimer += (speed * _tickLength);
 	_screen->smoothScrollTurnStep2(_sceneDrawPage2, _sceneDrawPage1, dp);
 	if (d)
 		_screen->copyGuiShapeToSurface(14, dp);
@@ -1060,7 +1064,7 @@ void LoLEngine::movePartySmoothScrollTurnRight(int speed) {
 	fadeText();
 	delayUntil(delayTimer);
 
-	delayTimer = _system->getMillis() + speed * _tickLength;
+	delayTimer += (speed * _tickLength);
 	_screen->smoothScrollTurnStep1(_sceneDrawPage2, _sceneDrawPage1, dp);
 	if (d)
 		_screen->copyGuiShapeToSurface(14, dp);
@@ -1078,10 +1082,10 @@ void LoLEngine::movePartySmoothScrollTurnRight(int speed) {
 
 void LoLEngine::pitDropScroll(int numSteps) {
 	_screen->copyRegionSpecial(0, 320, 200, 112, 0, 6, 176, 120, 0, 0, 176, 120, 0);
-	uint32 etime = 0;
+	uint32 etime = _system->getMillis();
 
 	for (int i = 0; i < numSteps; i++) {
-		etime = _system->getMillis() + _tickLength;
+		etime += _tickLength;
 		int ys = ((30720 / numSteps) * i) >> 8;
 		_screen->copyRegionSpecial(6, 176, 120, 0, ys, 0, 320, 200, 112, 0, 176, 120 - ys, 0);
 		_screen->copyRegionSpecial(2, 320, 200, 112, 0, 0, 320, 200, 112, 120 - ys, 176, ys, 0);
@@ -1090,7 +1094,7 @@ void LoLEngine::pitDropScroll(int numSteps) {
 		delayUntil(etime);
 	}
 
-	etime = _system->getMillis() + _tickLength;
+	etime += _tickLength;
 
 	_screen->copyRegionSpecial(2, 320, 200, 112, 0, 0, 320, 200, 112, 0, 176, 120, 0);
 	_screen->updateScreen();
@@ -1103,9 +1107,10 @@ void LoLEngine::pitDropScroll(int numSteps) {
 void LoLEngine::shakeScene(int duration, int width, int height, int restore) {
 	_screen->copyRegion(112, 0, 112, 0, 176, 120, 0, 6, Screen::CR_NO_P_CHECK);
 	uint32 endTime = _system->getMillis() + duration * _tickLength;
+	uint32 delayTimer = _system->getMillis();
 
 	while (endTime > _system->getMillis()) {
-		uint32 delayTimer = _system->getMillis() + 2 * _tickLength;
+		delayTimer += (2 * _tickLength);
 
 		int s1 = width ? (_rnd.getRandomNumber(255) % (width << 1)) - width : 0;
 		int s2 = height ? (_rnd.getRandomNumber(255) % (height << 1)) - height : 0;
@@ -1204,7 +1209,7 @@ int LoLEngine::smoothScrollDrawSpecialGuiShape(int pageNum) {
 
 void LoLEngine::drawScene(int pageNum) {
 	if (pageNum && pageNum != _sceneDrawPage1) {
-		SWAP(_sceneDrawPage1, _sceneDrawPage2);
+			SWAP(_sceneDrawPage1, _sceneDrawPage2);
 		updateDrawPage2();
 	}
 

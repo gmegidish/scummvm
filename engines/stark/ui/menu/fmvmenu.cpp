@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,35 +15,28 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/stark/ui/menu/fmvmenu.h"
-
 #include "engines/stark/services/services.h"
 #include "engines/stark/services/userinterface.h"
 #include "engines/stark/services/diary.h"
 #include "engines/stark/services/staticprovider.h"
-
 #include "engines/stark/resources/location.h"
-
 #include "engines/stark/visual/text.h"
 
 namespace Stark {
 
-const Color FMVWidget::_textColorHovered = Color(0x1E, 0x1E, 0x96);
-const Color FMVWidget::_textColorDefault = Color(0x00, 0x00, 0x00);
-
-// Hard-coded parameters in case cannot retrieve the format rectangle
-Common::Point FMVMenuScreen::_formatRectPos(202, 61);
-int FMVMenuScreen::_fontHeight(16);
-uint FMVMenuScreen::_fmvPerPage(18);
-
 FMVMenuScreen::FMVMenuScreen(Gfx::Driver *gfx, Cursor *cursor) :
 		StaticLocationScreen(gfx, cursor, "DiaryFMV", Screen::kScreenFMVMenu),
-		_fmvWidgets() {
+		_fmvWidgets(),
+		_page(0),
+		_maxPage(0) {
+	_formatRectPos = Common::Point(202, 61);
+	_fontHeight = 16;
+	_fmvPerPage = 18;
 }
 
 FMVMenuScreen::~FMVMenuScreen() {
@@ -184,9 +177,12 @@ FMVWidget::FMVWidget(Gfx::Driver *gfx, uint fmvIndex) :
 	Common::Rect rect = _title.getRect();
 	_width = rect.right - rect.left;
 
-	_position.x = FMVMenuScreen::_formatRectPos.x;
-	_position.y = FMVMenuScreen::_formatRectPos.y +
-	              (fmvIndex % FMVMenuScreen::_fmvPerPage) * (FMVMenuScreen::_fontHeight + 4);
+	_formatRectPos = Common::Point(202, 61);
+	_fontHeight = 16;
+	_fmvPerPage = 18;
+
+	_position.x = _formatRectPos.x;
+	_position.y = _formatRectPos.y + (fmvIndex % _fmvPerPage) * (_fontHeight + 4);
 }
 
 void FMVWidget::onClick() {
@@ -195,7 +191,7 @@ void FMVWidget::onClick() {
 
 bool FMVWidget::isMouseInside(const Common::Point &mousePos) const {
 	return mousePos.x >= _position.x && mousePos.x <= _position.x + _width &&
-		   mousePos.y >= _position.y && mousePos.y <= _position.y + FMVMenuScreen::_fontHeight;
+		   mousePos.y >= _position.y && mousePos.y <= _position.y + _fontHeight;
 }
 
 } // End of namespace Stark

@@ -1,13 +1,13 @@
-/* ResidualVM - A 3D game interpreter
+/* ScummVM - Graphic Adventure Engine
  *
- * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the AUTHORS
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,24 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "engines/stark/ui/cursor.h"
-
 #include "engines/stark/gfx/driver.h"
-#include "engines/stark/gfx/texture.h"
-
 #include "engines/stark/services/gameinterface.h"
 #include "engines/stark/services/global.h"
 #include "engines/stark/services/services.h"
 #include "engines/stark/services/staticprovider.h"
-
 #include "engines/stark/resources/item.h"
 #include "engines/stark/resources/sound.h"
-
 #include "engines/stark/visual/image.h"
 #include "engines/stark/visual/text.h"
 
@@ -90,7 +84,7 @@ void Cursor::setItemActive(bool itemActive) {
 
 void Cursor::onScreenChanged() {
 	if (_mouseText) {
-		_mouseText->resetTexture();
+		_mouseText->reset();
 	}
 }
 
@@ -171,8 +165,8 @@ void Cursor::setMouseHint(const Common::String &hint) {
 		if (!hint.empty()) {
 			_mouseText = new VisualText(_gfx);
 			_mouseText->setText(hint);
-			_mouseText->setColor(Color(0xFF, 0xFF, 0xFF));
-			_mouseText->setBackgroundColor(Color(0x00, 0x00, 0x00, 0x80));
+			_mouseText->setColor(Gfx::Color(0xFF, 0xFF, 0xFF));
+			_mouseText->setBackgroundColor(Gfx::Color(0x00, 0x00, 0x00, 0x80));
 			_mouseText->setFont(FontProvider::kSmallFont);
 			_mouseText->setTargetWidth(96);
 		} else {

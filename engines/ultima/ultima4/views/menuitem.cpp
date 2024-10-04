@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 namespace Ultima {
 namespace Ultima4 {
 
-MenuItem::MenuItem(Common::String t, short x, short y, int sc) :
+MenuItem::MenuItem(const Common::String &t, short x, short y, int sc) :
 	_id(-1), _x(x), _y(y), _text(t), _highlighted(false),
 	_selected(false), _visible(true), _scOffset(sc), _closesMenu(false) {
 	// if the sc/scOffset is outside the range of the text string, assert
@@ -79,7 +78,7 @@ void MenuItem::setY(int y) {
 	_y = y;
 }
 
-void MenuItem::setText(Common::String t) {
+void MenuItem::setText(const Common::String &t) {
 	_text = t;
 }
 
@@ -103,7 +102,7 @@ void MenuItem::setClosesMenu(bool closesMenu) {
 	this->_closesMenu = closesMenu;
 }
 
-BoolMenuItem::BoolMenuItem(Common::String text, short xp, short yp, int shortcutKey, bool *val) :
+BoolMenuItem::BoolMenuItem(const Common::String &text, short xp, short yp, int shortcutKey, bool *val) :
 	MenuItem(text, xp, yp, shortcutKey),
 	_val(val),
 	_on("On"),
@@ -129,7 +128,7 @@ void BoolMenuItem::activate(MenuEvent &event) {
 		*_val = !(*_val);
 }
 
-StringMenuItem::StringMenuItem(Common::String text, short xp, short yp, int shortcutKey,
+StringMenuItem::StringMenuItem(const Common::String &text, short xp, short yp, int shortcutKey,
 							   Common::String *val, const Std::vector<Common::String> &validSettings) :
 	MenuItem(text, xp, yp, shortcutKey),
 	_val(val),
@@ -165,7 +164,7 @@ void StringMenuItem::activate(MenuEvent &event) {
 	}
 }
 
-IntMenuItem::IntMenuItem(Common::String text, short xp, short yp, int shortcutKey, int *val,
+IntMenuItem::IntMenuItem(const Common::String &text, short xp, short yp, int shortcutKey, int *val,
 						 int min, int max, int increment, menuOutputType output) :
 	MenuItem(text, xp, yp, shortcutKey),
 	_val(val),

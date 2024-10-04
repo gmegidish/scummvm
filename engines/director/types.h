@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,11 +26,24 @@ namespace Director {
 
 #define CONTINUATION (0xAC)
 
+enum {
+	kFewFamesMaxCounter = 19,
+};
+
+enum {
+	kShotColorDiffThreshold = 2,
+	kShotPercentPixelThreshold = 1
+};
+
+#define kQuirksCacheArchive "quirks"
+
 enum MovieFlag {
+	kMovieFlagRemapPalettesWhenNeeded =  (1 << 6),
 	kMovieFlagAllowOutdatedLingo	= (1 << 8)
 };
 
 enum CastType {
+	kCastTypeAny = -1,
 	kCastTypeNull = 0,
 	kCastBitmap = 1,
 	kCastFilmLoop = 2,
@@ -44,7 +56,8 @@ enum CastType {
 	kCastMovie = 9,
 	kCastDigitalVideo = 10,
 	kCastLingoScript = 11,
-	kCastRTE = 12
+	kCastRTE = 12,
+	kCastTransition = 14,
 };
 
 enum ScriptType {
@@ -54,7 +67,17 @@ enum ScriptType {
 	kMovieScript = 2,
 	kEventScript = 3,
 	kTestScript = 4,
-	kMaxScriptType = 4	// Sync with cast.cpp:46, array scriptTypes[]
+	kParentScript = 7,
+	kMaxScriptType = 7	// Sync with types.cpp:28, array scriptTypes[]
+};
+
+enum EventHandlerSourceType {
+	kNoneHandler = 0,
+	kPrimaryHandler = 1,
+	kSpriteHandler = 2,
+	kCastHandler = 3,
+	kFrameHandler = 4,
+	kMovieHandler = 5
 };
 
 enum ScriptFlag {
@@ -152,7 +175,7 @@ enum SpriteType {
 	kOutlinedOvalSprite				= 14,	// QuickDraw
 	kThickLineSprite				= 15,	// 2pt width line
 	kCastMemberSprite				= 16,	// Specified by cast member
-	kFilmLoopSpite					= 17,
+	kFilmLoopSprite					= 17,
 	kDirMovieSprite					= 18
 };
 
@@ -276,6 +299,11 @@ enum TransitionType {
 	kTransDissolveBits
 };
 
+enum RenderMode {
+	kRenderModeNormal,
+	kRenderForceUpdate
+};
+
 // TODO: Can there be any more built-in palette types?
 enum PaletteType {
 	kClutSystemMac = -1,
@@ -285,7 +313,12 @@ enum PaletteType {
 	kClutVivid = -5,
 	kClutNTSC = -6,
 	kClutMetallic = -7,
-	kClutSystemWin = -101
+	kClutSystemWin = -101,
+	kClutSystemWinD5 = -102
+};
+
+enum {
+	kNumBuiltinTiles = 8
 };
 
 enum DirectorCursor {
@@ -295,8 +328,11 @@ enum DirectorCursor {
 
 enum PlayState {
 	kPlayNotStarted,
+	kPlayLoaded,
 	kPlayStarted,
-	kPlayStopped
+	kPlayStopped,
+	kPlayPaused,
+	kPlayPausedAfterLoading,
 };
 
 enum SymbolType {
@@ -306,6 +342,8 @@ enum SymbolType {
 	FBLTIN,	// builtin function
 	HBLTIN,	// builtin handler (can be called as either command or func)
 	KBLTIN,	// builtin constant
+	FBLTIN_LIST, // builtin function w/list override check
+	HBLTIN_LIST, // builtin handler w/list override check
 	HANDLER	// user-defined handler
 };
 
@@ -316,7 +354,7 @@ enum ChunkType {
 	kChunkLine
 };
 
-enum {
+enum FileVer {
 	kFileVer300 = 0x404,
 	kFileVer310 = 0x405,
 	kFileVer400 = 0x45B,
@@ -329,30 +367,31 @@ enum {
 	kFileVer1000 = 0x73B,
 	kFileVer1100 = 0x781,
 	kFileVer1150 = 0x782,
-	kFileVer1200 = 0x783,
-	kFileVer1201 = 0x79F
+	kFileVer1200 = 0x79F
 };
 
 enum DatumType {
-	ARRAY,
 	ARGC,
 	ARGCNORET,
+	ARRAY,
 	CASTREF,
 	CHUNKREF,
 	FIELDREF,
 	FLOAT,
+	GLOBALREF,
 	INT,
+	LOCALREF,
+	MENUREF,
 	OBJECT,
 	PARRAY,
+	PICTUREREF,
 	POINT,
+	PROPREF,
+	RECT,
 	STRING,
 	SYMBOL,
 	VARREF,
-	GLOBALREF,
-	LOCALREF,
-	PROPREF,
 	VOID,
-	RECT
 };
 
 enum VarType {
@@ -364,6 +403,13 @@ enum VarType {
 	kVarLocal
 };
 
+enum LPPFlag {
+	kLPPNone = 0,
+	kLPPSimple = 1 << 0,
+	kLPPForceD2 = 1 << 1,
+	kLPPTrimGarbage = 1 << 2,
+};
+
 struct CastMemberID {
 	int member;
 	int castLib;
@@ -371,22 +417,31 @@ struct CastMemberID {
 	CastMemberID() : member(0), castLib(0) {}
 	CastMemberID(int memberID, int castLibID)
 		: member(memberID), castLib(castLibID) {}
-	
-	bool operator==(const CastMemberID &c) {
+
+	bool operator==(const CastMemberID &c) const {
 		return member == c.member && castLib == c.castLib;
 	}
-	bool operator!=(const CastMemberID &c) {
+	bool operator!=(const CastMemberID &c) const {
 		return member != c.member || castLib != c.castLib;
 	}
 
+	bool isNull() const { return member == 0 && castLib == 0; }
+
 	Common::String asString() const;
+
+	uint hash() const { return ((castLib & 0xffff) << 16) + (member & 0xffff); }
 };
 
 enum CompareResult {
-	kCompareLess,
-	kCompareEqual,
-	kCompareGreater,
-	kCompareError
+	kCompareLess	= 1 << 0,
+	kCompareEqual	= 1 << 1,
+	kCompareGreater = 1 << 2,
+	kCompareError	= 1 << 3,
+};
+
+enum DebugDrawModes {
+	kDebugDrawCast  = 1 << 0,
+	kDebugDrawFrame = 1 << 1,
 };
 
 struct Datum;
@@ -395,7 +450,21 @@ typedef Common::Array<Datum> DatumArray;
 typedef Common::Array<PCell> PropertyArray;
 
 const char *scriptType2str(ScriptType scr);
+const char *castType2str(CastType type);
+const char *spriteType2str(SpriteType type);
+const char *inkType2str(InkType type);
 
 } // End of namespace Director
+
+namespace Common {
+
+template<>
+struct Hash<Director::CastMemberID> {
+	uint operator()(const Director::CastMemberID &id) const {
+		return id.hash();
+	}
+};
+
+} // End of namespace Common
 
 #endif

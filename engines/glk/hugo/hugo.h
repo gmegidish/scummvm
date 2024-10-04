@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -897,7 +896,7 @@ private:
 	/**
 	 * Assumes that filename/resname contain a resourcefile name and a resource name.
 	 * If resname is "", filename contains the path of the resource on disk.
-	 * Returns the length of the resource if if the named resource is found.
+	 * Returns the length of the resource if the named resource is found.
 	 *
 	 * If FindResource() returns non-zero, the file is hot, i.e., it is open and positioned
 	 * to the start of the resource.
@@ -1123,9 +1122,9 @@ private:
 		return _random.getRandomNumber(0xffffff);
 	}
 
-	char *itoa(int value, char *str, int base) {
+	char *hugo_itoa(int value, char *str, int base, size_t str_size) {
 		assert(base == 10);
-		sprintf(str, "%d", value);
+		Common::sprintf_s(str, str_size, "%d", value);
 		return str;
 	}
 

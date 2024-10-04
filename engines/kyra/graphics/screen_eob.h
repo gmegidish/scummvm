@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,8 @@
 #define KYRA_SCREEN_EOB_H
 
 #ifdef ENABLE_EOB
+
+#include "graphics/big5.h"
 
 #include "kyra/graphics/screen.h"
 
@@ -68,6 +69,8 @@ public:
 
 	void printShadedText(const char *string, int x, int y, int col1, int col2, int shadowCol, int pitch = -1);
 
+	static void eob2ChineseLZUncompress(byte *dest, uint32 destSize, Common::SeekableReadStream *src);
+	void loadChineseEOB2LZBitmap(Common::SeekableReadStream *s, int pageNum, uint32 size);
 	void loadBitmap(const char *filename, int tempPage, int dstPage, Palette *pal, bool skip = false) override;
 	void loadEoBBitmap(const char *file, const uint8 *cgaMapping, int tempPage, int destPage, int convertToPage);
 	void loadShapeSetBitmap(const char *file, int tempPage, int destPage);
@@ -79,6 +82,7 @@ public:
 
 	uint8 *encodeShape(uint16 x, uint16 y, uint16 w, uint16 h, bool encode8bit = false, const uint8 *cgaMapping = 0);
 	void drawShape(uint8 pageNum, const uint8 *shapeData, int x, int y, int sd = -1, int flags = 0, ...) override;
+	void drawT1Shape(uint8 pageNum, const byte *t1data, int x, int y, int sd);
 	const uint8 *scaleShape(const uint8 *shapeData, int blockDistance);
 	const uint8 *scaleShapeStep(const uint8 *shp);
 	const uint8 *generateShapeOverlay(const uint8 *shp, const uint8 *fadingTable);
@@ -198,7 +202,8 @@ private:
 	const uint16 _cursorColorKey16Bit;
 
 	static const uint8 _egaMatchTable[];
-	static const ScreenDim _screenDimTable[];
+	static const ScreenDim _screenDimTableIntl[];
+	static const ScreenDim _screenDimTableZH[];
 	static const int _screenDimTableCount;
 
 	// SegaCD specific
@@ -220,6 +225,34 @@ private:
 	uint16 *_segaCustomPalettes;
 	uint8 *_defaultRenderBuffer;
 	int _defaultRenderBufferSize;
+
+	Common::SharedPtr<Graphics::Big5Font> _big5;
+};
+
+class ChineseTwoByteFontEoB final : public Font {
+public:
+	ChineseTwoByteFontEoB(Common::SharedPtr<Graphics::Big5Font> big5, Font *singleByte) : _big5(big5), _singleByte(singleByte), _border(false), _colorMap(nullptr) {}
+
+	virtual Type getType() const override { return kBIG5; }
+
+	bool load(Common::SeekableReadStream &data) override {
+		return _singleByte->load(data);
+	}
+
+	void setStyles(int styles) override { _border = (styles & kStyleBorder); _singleByte->setStyles(styles); }
+	int getHeight() const override { return MAX(_big5->getFontHeight(), _singleByte->getHeight()); }
+	int getWidth() const override { return MAX(_big5->kChineseTraditionalWidth + 2, _singleByte->getWidth()); }
+	void setColorMap(const uint8 *src) override { _colorMap = src; _singleByte->setColorMap(src); }
+	int getCharWidth(uint16 c) const override;
+	int getCharHeight(uint16 c) const override;
+	void drawChar(uint16 c, byte *dst, int pitch, int bpp) const override;
+
+private:
+	uint16 translateBig5(uint16 in) const;
+	Common::SharedPtr<Graphics::Big5Font> _big5;
+	Common::ScopedPtr<Font> _singleByte;
+	bool _border;
+	const uint8 *_colorMap;
 };
 
 /**
@@ -229,13 +262,15 @@ private:
 */
 class OldDOSFont : public Font {
 public:
-	OldDOSFont(Common::RenderMode mode, uint8 shadowColor);
+	OldDOSFont(Common::RenderMode mode, uint8 shadowColor, bool remapCharacters = true);
 	~OldDOSFont() override;
 
 	bool load(Common::SeekableReadStream &file) override;
+	bool loadPCBIOSTall();
 	Type getType() const override { return kASCII; }
 	int getHeight() const override { return _height; }
 	int getWidth() const override { return _width; }
+	bool usesOverlay() const override { return _useOverlay; }
 	int getCharWidth(uint16 c) const override;
 	void setColorMap(const uint8 *src) override;
 	void set16bitColorMap(const uint16 *src) override { _colorMap16bit = src; }
@@ -253,11 +288,16 @@ protected:
 	int _numGlyphs;
 	uint8 _shadowColor;
 
+	uint16 _numGlyphsMax;
+	bool _useOverlay;
+	int _scaleV;
+
 private:
 	void drawCharIntern(uint16 c, byte *dst, int pitch, int bpp, int col1, int col2) const;
 	virtual uint16 convert(uint16 c) const;
 	Common::RenderMode _renderMode;
 	const uint16 *_colorMap16bit;
+	bool _remapCharacters;
 
 	static uint16 *_cgaDitheringTable;
 	static int _numRef;
@@ -304,7 +344,7 @@ private:
 		const int16 *kerning;
 	};
 
-	TextFont *loadContentFile(const Common::String fileName);
+	TextFont *loadContentFile(const Common::Path &fileName);
 	void selectMode(int mode);
 
 	struct FontContent {
@@ -349,19 +389,34 @@ private:
 	uint16 convert(uint16 c) const;
 	const uint16 *_convTable1, *_convTable2;
 	bool _defaultConv;
-	/*uint8 _shadowColor;*/
+};
+
+/**
+* SJIS Font variant used in EOB II PC-98. It converts 1-byte characters into 2-byte characters.
+*/
+class SJISFontEoB2PC98 : public SJISFont {
+public:
+	SJISFontEoB2PC98(Common::SharedPtr<Graphics::FontSJIS> &font, /*uint8 shadowColor,*/ const char *convTable1, const char *convTable2);
+	~SJISFontEoB2PC98() override {}
+	int getCharWidth(uint16 c) const override;
+	void drawChar(uint16 c, byte *dst, int pitch, int) const override;
+
+private:
+	uint16 convert(uint16 c) const;
+	const char *_convTable1, *_convTable2;
+	//bool _defaultConv;
 };
 
 /**
 * OldDOSFont variant used in EOB I PC-98. It uses the same drawing routine, but has a different loader. It contains
-* ASCII and Katakana characters and requires several conversion tables to display these. It gets drawn on the SJIS overlay.
+* ASCII and Katakana characters in JIS X 0201 and requires several conversion tables to display these. It gets drawn on the hires overlay.
 */
 class Font12x12PC98 : public OldDOSFont{
 public:
 	Font12x12PC98(uint8 shadowColor, const uint16 *convTable1, const uint16 *convTable2, const uint8 *lookupTable);
 	~Font12x12PC98() override;
 	bool usesOverlay() const override { return true; }
-	Type getType() const override { return kSJIS; }
+	Type getType() const override { return kJIS_X0201; }
 	int getHeight() const override { return _height >> 1; }
 	int getWidth() const override { return _width >> 1; }
 	int getCharWidth(uint16 c) const override { return _width >> 1; };
@@ -374,12 +429,42 @@ private:
 };
 
 /**
+* OldDOSFont variant used in EOB II PC-98 which supports twice the number of characters. Some font files may include kana characters. The font supports
+* weird vertical scaling and can be drawn on the hires overlay.
+*/
+class PC98Font : public OldDOSFont {
+public:
+	PC98Font(uint8 shadowColor, bool useOverlay, int scaleV, const uint8 *convTable1 = 0, const char *convTable2 = 0, const char *convTable3 = 0);
+	~PC98Font() override {}
+	bool load(Common::SeekableReadStream &file) override;
+	int getHeight() const override { return _outputHeight; }
+	int getWidth() const override { return _outputWidth; }
+	int getCharWidth(uint16 c) const override { return _outputWidth; };
+	Type getType() const override { return _type; }
+
+private:
+	uint16 convert(uint16 c) const override;
+	uint16 makeTwoByte(uint16 c) const;
+
+	const uint8 *_convTable1;
+	const char *_convTable2, *_convTable3;
+
+	int _outputHeight;
+	int _outputWidth;
+	const Type _type;
+};
+
+/**
 * SJIS Font variant used in the intro and outro of EOB II FM-Towns. It appears twice as large, since it is not rendered on the hires overlay pages.
 */
 class SJISFontLarge : public SJISFont {
 public:
 	SJISFontLarge(Common::SharedPtr<Graphics::FontSJIS> &font);
 	~SJISFontLarge() override {}
+
+	int getHeight() const override;
+	int getWidth() const override;
+	int getCharWidth(uint16 c) const override;
 
 	bool usesOverlay() const override { return false; }
 	void drawChar(uint16 c, byte *dst, int pitch, int) const override;

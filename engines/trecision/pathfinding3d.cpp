@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "trecision/actor.h"
-#include "trecision/anim.h"
+#include "trecision/animtype.h"
 #include "trecision/pathfinding3d.h"
 #include "trecision/sound.h"
 #include "trecision/trecision.h"
@@ -700,7 +699,7 @@ void PathFinding3D::setPosition(int num) {
 		ox /= t;
 		oz /= t;
 
-		float theta = _vm->sinCosAngle(ox, oz) * 180.0f / PI;
+		float theta = _vm->sinCosAngle(ox, oz) * 180.0f / M_PI;
 		if (_vm->floatComp(theta, 360.0f) >= 0) // theta >= 360.0f
 			theta -= 360.0f;
 		if (_vm->floatComp(theta, 0.0f) == -1) // theta < 0.0f
@@ -765,7 +764,7 @@ void PathFinding3D::lookAt(float x, float z) {
 	ox /= t;
 	oz /= t;
 
-	float theta = _vm->sinCosAngle(ox, oz) * 180.0f / PI;
+	float theta = _vm->sinCosAngle(ox, oz) * 180.0f / M_PI;
 	if (_vm->floatComp(theta, 360.0f) >= 0) //theta >= 360.0f
 		theta -= 360.0f;
 	if (_vm->floatComp(theta, 0.0f) == -1) // theta < 0.0f
@@ -1005,7 +1004,7 @@ void PathFinding3D::buildFramelist() {
 		ox /= approx;
 		oz /= approx;
 
-		theta = _vm->sinCosAngle(ox, oz) * 180.0f / PI + 180.0f;
+		theta = _vm->sinCosAngle(ox, oz) * 180.0f / M_PI + 180.0f;
 		if (_vm->floatComp(theta, 360.0f) >= 0)
 			theta -= 360.0f;
 		if (_vm->floatComp(theta, 0.0f) == -1)
@@ -1056,7 +1055,7 @@ void PathFinding3D::buildFramelist() {
 
 			curLen = sqrt(_step[index]._dx * _step[index]._dx + _step[index]._dz * _step[index]._dz);
 
-			theta = ((270.0f - theta) * PI) / 180.0f;
+			theta = ((270.0f - theta) * M_PI) / 180.0f;
 			ox = cos(theta) * curLen;
 			oz = sin(theta) * curLen;
 
@@ -1095,7 +1094,7 @@ void PathFinding3D::buildFramelist() {
 
 			curLen = sqrt(_step[index - 1]._dx * _step[index - 1]._dx + _step[index - 1]._dz * _step[index - 1]._dz);
 
-			oldTheta = ((270.0f - oldTheta) * PI) / 180.0f;
+			oldTheta = ((270.0f - oldTheta) * M_PI) / 180.0f;
 			ox = cos(oldTheta) * curLen;
 			oz = sin(oldTheta) * curLen;
 
@@ -1117,7 +1116,7 @@ void PathFinding3D::buildFramelist() {
 
 			curLen = sqrt(_step[index]._dx * _step[index]._dx + _step[index]._dz * _step[index]._dz);
 
-			theta = ((270.0f - theta) * PI) / 180.0f;
+			theta = ((270.0f - theta) * M_PI) / 180.0f;
 			ox = cos(theta) * curLen;
 			oz = sin(theta) * curLen;
 

@@ -28,7 +28,6 @@ MODULE_OBJS := \
 	timer/default/default-timer.o
 
 ifdef USE_CLOUD
-
 ifdef USE_LIBCURL
 MODULE_OBJS += \
 	cloud/basestorage.o \
@@ -68,6 +67,18 @@ MODULE_OBJS += \
 endif
 endif
 
+ifdef USE_SCUMMVMDLC
+ifdef USE_LIBCURL
+MODULE_OBJS += \
+	dlc/scummvmcloud.o
+endif
+endif
+
+ifdef USE_DLC
+MODULE_OBJS += \
+	dlc/dlcmanager.o
+endif
+
 ifdef USE_LIBCURL
 MODULE_OBJS += \
 	networking/curl/connectionmanager.o \
@@ -75,8 +86,11 @@ MODULE_OBJS += \
 	networking/curl/curlrequest.o \
 	networking/curl/curljsonrequest.o \
 	networking/curl/postrequest.o \
+	networking/curl/request.o \
+	networking/curl/session.o \
 	networking/curl/sessionrequest.o \
-	networking/curl/request.o
+	networking/curl/socket.o \
+	networking/curl/url.o
 endif
 
 ifdef USE_SDL_NET
@@ -96,6 +110,38 @@ MODULE_OBJS += \
 	networking/sdl_net/localwebserver.o \
 	networking/sdl_net/reader.o \
 	networking/sdl_net/uploadfileclienthandler.o
+endif
+
+ifdef USE_CLOUD
+ifdef USE_LIBCURL
+ifdef USE_SDL_NET
+MODULE_OBJS += \
+	networking/sdl_net/handlers/connectcloudhandler.o
+endif
+endif
+endif
+
+# ENet networking source files.
+ifdef USE_ENET
+MODULE_OBJS += \
+	networking/enet/source/callbacks.o \
+	networking/enet/source/compress.o \
+	networking/enet/source/host.o \
+	networking/enet/source/list.o \
+	networking/enet/source/packet.o \
+	networking/enet/source/peer.o \
+	networking/enet/source/protocol.o
+ifdef WIN32
+MODULE_OBJS += \
+	networking/enet/source/win32.o
+else
+MODULE_OBJS += \
+	networking/enet/source/unix.o
+endif
+MODULE_OBJS += \
+	networking/enet/enet.o \
+	networking/enet/host.o \
+	networking/enet/socket.o
 endif
 
 ifdef USE_ELF_LOADER
@@ -122,8 +168,6 @@ endif
 # OpenGL specific source files.
 ifdef USE_OPENGL
 MODULE_OBJS += \
-	graphics/opengl/context.o \
-	graphics/opengl/debug.o \
 	graphics/opengl/framebuffer.o \
 	graphics/opengl/opengl-graphics.o \
 	graphics/opengl/shader.o \
@@ -131,6 +175,8 @@ MODULE_OBJS += \
 	graphics/opengl/pipelines/clut8.o \
 	graphics/opengl/pipelines/fixed.o \
 	graphics/opengl/pipelines/pipeline.o \
+	graphics/opengl/pipelines/libretro.o \
+	graphics/opengl/pipelines/libretro/parser.o \
 	graphics/opengl/pipelines/shader.o
 endif
 
@@ -139,15 +185,19 @@ endif
 # derive from the SDL backend, and they all need the following files.
 ifdef SDL_BACKEND
 MODULE_OBJS += \
-	events/sdl/legacy-sdl-events.o \
 	events/sdl/sdl-events.o \
 	graphics/sdl/sdl-graphics.o \
 	graphics/surfacesdl/surfacesdl-graphics.o \
-	graphics3d/openglsdl/openglsdl-graphics3d.o \
 	mixer/sdl/sdl-mixer.o \
+	mixer/null/null-mixer.o \
 	mutex/sdl/sdl-mutex.o \
-	plugins/sdl/sdl-provider.o \
 	timer/sdl/sdl-timer.o
+
+ifndef RISCOS
+ifndef KOLIBRIOS
+MODULE_OBJS += plugins/sdl/sdl-provider.o
+endif
+endif
 
 # SDL 2 removed audio CD support
 ifndef USE_SDL2
@@ -157,13 +207,27 @@ endif
 
 ifdef USE_OPENGL
 MODULE_OBJS += \
-	graphics/openglsdl/openglsdl-graphics.o
+	graphics/openglsdl/openglsdl-graphics.o \
+	graphics3d/opengl/framebuffer.o \
+	graphics3d/opengl/surfacerenderer.o \
+	graphics3d/opengl/texture.o \
+	graphics3d/opengl/tiledsurface.o \
+	graphics3d/openglsdl/openglsdl-graphics3d.o
 endif
 
 ifdef USE_DISCORD
 MODULE_OBJS += \
 	presence/discord/discord.o
 endif
+endif
+
+ifdef KOLIBRIOS
+MODULE_OBJS += \
+	fs/kolibrios/kolibrios-fs.o \
+	fs/kolibrios/kolibrios-fs-factory.o \
+	fs/posix/posix-iostream.o \
+	plugins/kolibrios/kolibrios-provider.o \
+	saves/kolibrios/kolibrios-saves.o
 endif
 
 ifdef POSIX
@@ -203,6 +267,11 @@ MODULE_OBJS += \
 	text-to-speech/macosx/macosx-text-to-speech.o
 endif
 
+ifdef SDL_BACKEND
+MODULE_OBJS += \
+	plugins/sdl/macosx/macosx-provider.o
+endif
+
 endif
 
 ifdef WIN32
@@ -224,19 +293,24 @@ endif
 
 endif
 
+ifeq ($(BACKEND),3ds)
+MODULE_OBJS += \
+	mutex/3ds/3ds-mutex.o
+endif
+
 ifeq ($(BACKEND),android)
 MODULE_OBJS += \
+	fs/android/android-fs-factory.o \
+	fs/android/android-posix-fs.o \
+	fs/android/android-saf-fs.o \
+	graphics/android/android-graphics.o \
+	graphics3d/android/android-graphics3d.o \
+	graphics3d/android/texture.o \
+	graphics3d/opengl/framebuffer.o \
+	graphics3d/opengl/surfacerenderer.o \
+	graphics3d/opengl/texture.o \
+	graphics3d/opengl/tiledsurface.o \
 	mutex/pthread/pthread-mutex.o
-endif
-
-ifeq ($(BACKEND),android3d)
-MODULE_OBJS += \
-	mutex/pthread/pthread-mutex.o
-endif
-
-ifeq ($(BACKEND),androidsdl)
-MODULE_OBJS += \
-	events/androidsdl/androidsdl-events.o
 endif
 
 ifdef AMIGAOS
@@ -258,9 +332,16 @@ endif
 ifdef RISCOS
 MODULE_OBJS += \
 	events/riscossdl/riscossdl-events.o \
+	graphics/riscossdl/riscossdl-graphics.o \
 	fs/riscos/riscos-fs.o \
 	fs/riscos/riscos-fs-factory.o \
+	midi/riscos.o \
+	plugins/riscos/riscos-provider.o
+ifndef SDL_BACKEND
+# This is needed for null backend but already included in SDL backend
+MODULE_OBJS += \
 	platform/sdl/riscos/riscos-utils.o
+endif
 endif
 
 ifdef PLAYSTATION3
@@ -282,6 +363,17 @@ MODULE_OBJS += \
 	plugins/3ds/3ds-provider.o
 endif
 
+ifeq ($(BACKEND),atari)
+MODULE_OBJS += \
+	events/atari/atari-events.o \
+	graphics/atari/atari-c2p-asm.o \
+	graphics/atari/atari-cursor.o \
+	graphics/atari/atari-graphics.o \
+	graphics/atari/atari-graphics-asm.o \
+	graphics/atari/atari-screen.o \
+	mixer/atari/atari-mixer.o
+endif
+
 ifeq ($(BACKEND),ds)
 MODULE_OBJS += \
 	events/ds/ds-events.o \
@@ -295,20 +387,16 @@ MODULE_OBJS += \
 	plugins/ds/ds-provider.o
 endif
 
-ifeq ($(BACKEND),dingux)
-MODULE_OBJS += \
-	events/dinguxsdl/dinguxsdl-events.o
-endif
-
-ifeq ($(BACKEND),gph)
-MODULE_OBJS += \
-	events/gph/gph-events.o \
-	graphics/gph/gph-graphics.o
-endif
-
 ifdef IPHONE
 MODULE_OBJS += \
-	mutex/pthread/pthread-mutex.o
+	mutex/pthread/pthread-mutex.o \
+	graphics/ios/ios-graphics.o \
+	graphics/ios/renderbuffer.o \
+	graphics3d/ios/ios-graphics3d.o \
+	graphics3d/opengl/framebuffer.o \
+	graphics3d/opengl/surfacerenderer.o \
+	graphics3d/opengl/texture.o \
+	graphics3d/opengl/tiledsurface.o
 endif
 
 ifeq ($(BACKEND),maemo)
@@ -327,6 +415,18 @@ endif
 ifeq ($(BACKEND),null)
 MODULE_OBJS += \
 	mixer/null/null-mixer.o
+endif
+
+ifdef MIYOO
+ifeq ($(MIYOO_TARGET), miyoomini)
+MODULE_OBJS += \
+	graphics/miyoo/miyoomini-graphics.o
+endif
+endif
+
+ifdef OPENDINGUX
+MODULE_OBJS += \
+	graphics/opendingux/opendingux-graphics.o
 endif
 
 ifeq ($(BACKEND),openpandora)
@@ -350,6 +450,7 @@ MODULE_OBJS += \
 	fs/posix/posix-iostream.o \
 	fs/posix-drives/posix-drives-fs.o \
 	fs/posix-drives/posix-drives-fs-factory.o \
+	plugins/psp2/psp2-provider.o \
 	events/psp2sdl/psp2sdl-events.o
 endif
 
@@ -362,6 +463,7 @@ ifeq ($(BACKEND),wii)
 MODULE_OBJS += \
 	fs/wii/wii-fs.o \
 	fs/wii/wii-fs-factory.o \
+	mutex/wii/wii-mutex.o \
 	plugins/wii/wii-provider.o
 endif
 
@@ -372,8 +474,40 @@ endif
 
 ifdef ENABLE_EVENTRECORDER
 MODULE_OBJS += \
-	mixer/null/null-mixer.o \
 	saves/recorder/recorder-saves.o
+# SDL and null backend already add null-mixer
+ifndef SDL_BACKEND
+ifneq ($(BACKEND),null)
+MODULE_OBJS += \
+	mixer/null/null-mixer.o
+endif
+endif
+endif
+
+ifdef USE_IMGUI
+MODULE_OBJS += \
+	imgui/imgui.o \
+	imgui/imgui_demo.o \
+	imgui/imgui_draw.o \
+	imgui/imgui_fonts.o \
+	imgui/imgui_tables.o \
+	imgui/imgui_widgets.o \
+	imgui/misc/freetype/imgui_freetype.o
+endif
+
+ifdef USE_SDL2
+ifdef USE_IMGUI
+ifdef USE_OPENGL
+MODULE_OBJS += \
+	imgui/backends/imgui_impl_opengl3.o
+endif
+ifdef USE_IMGUI_SDLRENDERER2
+MODULE_OBJS += \
+	imgui/backends/imgui_impl_sdlrenderer2.o
+endif
+MODULE_OBJS += \
+	imgui/backends/imgui_impl_sdl2.o
+endif
 endif
 
 # Include common rules

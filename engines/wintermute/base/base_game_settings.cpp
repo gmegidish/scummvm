@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -123,14 +122,13 @@ bool BaseGameSettings::loadSettings(const char *filename) {
 	buffer = params;
 	while ((cmd = parser.getCommand(&buffer, commands, &params)) > 0) {
 		switch (cmd) {
-			case TOKEN_GAME:
+			case TOKEN_GAME: {
 				delete[] _gameFile;
-				_gameFile = new char[strlen(params) + 1];
-				if (_gameFile) {
-					strcpy(_gameFile, params);
-				}
+				size_t gameFileSize = strlen(params) + 1;
+				_gameFile = new char[gameFileSize];
+				Common::strcpy_s(_gameFile, gameFileSize, params);
 				break;
-
+			}
 			case TOKEN_STRING_TABLE:
 				if (DID_FAIL(_stringTable->loadFile(params))) {
 					cmd = PARSERR_GENERIC;
